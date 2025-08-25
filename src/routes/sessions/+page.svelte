@@ -6,6 +6,7 @@
 
   let sessions = [];
   let active = null;
+  let sessionMode = 'claude'; // Default session mode
 
   let socket;
   let authed = false;
@@ -51,7 +52,7 @@
   }
 
   function addSession() {
-    const opts = { mode: 'shell', cols: 80, rows: 24 };
+    const opts = { mode: sessionMode, cols: 80, rows: 24 };
     socket.emit('create', opts, (resp) => {
       if (resp.ok) {
         goto(`/sessions/${resp.sessionId}`);
@@ -69,26 +70,65 @@
     socket.emit('end', id);
   }
 
+  function logout() {
+    // Clear authentication token
+    localStorage.removeItem('dispatch-auth-token');
+    // Disconnect socket
+    disconnectSocket();
+    // Redirect to login page
+    goto('/');
+  }
+
   onMount(connectSocket);
   onDestroy(disconnectSocket);
 </script>
 
 
-<h1>Session Management</h1>
+<div class="container">
+  <div class="sessions-header">
+    <div>
+      <h2>sessions</h2>
+    </div>
+    <button class="button-secondary logout-btn" on:click={logout}>
+      logout
+    </button>
+  </div>
 
-<div>
-  <button on:click={addSession}>Create New Session</button>
+  <div class="new-session-controls">
+    <select bind:value={sessionMode}>
+      <option value="claude">claude mode</option>
+      <option value="bash">bash mode</option>
+    </select>
+    <button on:click={addSession}>+ create new session</button>
+  </div>
+
+  {#if sessions.length === 0}
+    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+      <p>no active sessions</p>
+      <p style="font-size: 0.9rem;">create a new session to get started</p>
+    </div>
+  {:else}
+    <ul>
+      {#each sessions as session}
+        <li>
+          <div class="session-item">
+            <div class="session-name">
+              {session.name}
+              {#if active === session.id}
+                <span class="session-status">(active)</span>
+              {/if}
+            </div>
+            <div class="session-actions">
+              <button class="button-secondary" on:click={() => switchSession(session.id)}>
+                open
+              </button>
+              <button class="button-danger" on:click={() => endSession(session.id)}>
+                end
+              </button>
+            </div>
+          </div>
+        </li>
+      {/each}
+    </ul>
+  {/if}
 </div>
-
-<ul>
-  {#each sessions as session}
-    <li>
-      <span>{session.name}</span>
-      {#if active === session.id}
-        <strong> (Active)</strong>
-      {/if}
-      <button on:click={() => switchSession(session.id)}>Switch</button>
-      <button on:click={() => endSession(session.id)}>End</button>
-    </li>
-  {/each}
-</ul>

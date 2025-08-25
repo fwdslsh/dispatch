@@ -1,0 +1,456 @@
+/* fwdslsh.dev inspired theme */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Staatliches&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Protest+Revolution&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=Protest+Revolution&display=swap');
+
+:root {
+  --bg-dark: #0f0f0f;
+  --bg-darker: #0a0a0a;
+  --primary: #00ff88;
+  --primary-gradient: linear-gradient(135deg, #00ff88, #00cc6a);
+  --secondary: #ff6b6b;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-muted: #666666;
+  --border: #333333;
+  --border-light: #555555;
+  --surface: #1a1a1a;
+  --surface-hover: #2a2a2a;
+  --font-sans: 'Exo 2', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Share Tech Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Base page background */
+:root {
+  /* tweak density/scale here (must evenly divide the keyframe distance) */
+  --tile: 400px;
+  --bg: transparent;
+  /* page background behind the pattern */
+  --opacity: 0.01;
+  /* pattern visibility */
+}
+
+
+/* Two independent layers for subtle parallax */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-repeat: repeat;
+  opacity: var(--opacity);
+  mix-blend-mode: screen;
+  /* luminous on dark bg; switch to 'overlay' if needed */
+  filter: hue-rotate(0deg) saturate(120%);
+  /* color-tunable */
+}
+
+body::before {
+  background-image: url("bg.svg");
+  background-size: var(--tile) var(--tile);
+  animation: driftA 9s linear infinite linear;
+}
+
+body::after {
+  background-image: url("bg.svg");
+  background-size: calc(var(--tile) * 2) calc(var(--tile) * 2);
+  animation: driftB 15s linear infinite reverse;
+  opacity: calc(var(--opacity) * 0.5);
+}
+
+@keyframes driftA {
+  from {
+    background-position: 0 0;
+    opacity: calc(var(--opacity) * 0.5);
+    transform: scale(1.1);
+  }
+
+  to {
+    background-position: var(--tile) var(--tile);
+  }
+}
+
+@keyframes driftB {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: calc(var(--tile) * 2) calc(var(--tile) * 2);
+    opacity: calc(var(--opacity) * 0.5);
+    transform: scale(1.1);
+  }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+
+  body::before,
+  body::after {
+    animation: none;
+  }
+}
+
+/* Testing */
+.page-bg {
+  display: none;
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("bg.svg");
+  background-repeat: repeat;
+  background-size: var(--tile-size) var(--tile-size);
+  opacity: var(--pattern-opacity);
+  mix-blend-mode: screen;
+  animation: driftSlow 60s linear infinite;
+  z-index: -1;
+}
+
+@keyframes driftSlow {
+  from {
+    background-position: 0 0;
+    opacity: 0.3;
+    transform: scale(1);
+  }
+
+  to {
+    background-position: var(--tile-size) var(--tile-size);
+    opacity: 0.1;
+    transform: scale(1.1);
+  }
+}
+
+/* No animation if user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .page-bg {
+    animation: none;
+  }
+}
+body {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  overflow-x: hidden;
+  /* Account for fixed navigation */
+}
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Protest Revolution', 'Courier New', monospace;
+  font-weight: bold;
+  text-transform: lowercase;
+  margin-bottom: 1rem;
+}
+
+h1 {
+  font-size: clamp(3rem, 8vw, 5rem);
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: var(--primary);
+  margin-bottom: 0;
+}
+
+h3 {
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+  color: var(--text-secondary);
+}
+
+p {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+/* Layout */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-inline: 2rem;
+}
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
+/* Forms */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 400px;
+  width: 100%;
+}
+
+input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.1);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Buttons */
+button {
+  background: var(--primary-gradient);
+  border: none;
+  border-radius: 8px;
+  padding: 1rem 1rem;
+  color: var(--bg-dark);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: lowercase;
+}
+
+button:hover {
+  /* transform: translateY(-2px); */
+  box-shadow: 0 4px 12px rgba(0, 255, 136, 0.13);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.button-secondary {
+  background: var(--surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.button-secondary:hover {
+  background: var(--surface-hover) !important;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1) !important;
+}
+
+.button-danger {
+  background: linear-gradient(135deg, var(--secondary), #ff5252) !important;
+  color: white !important;
+}
+
+.button-danger:hover {
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3) !important;
+}
+
+/* Lists */
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+li:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-light);
+}
+
+/* Sessions header */
+.sessions-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.logout-btn {
+  padding: 0.75rem 1.5rem !important;
+  font-size: 0.9rem !important;
+}
+
+/* New session controls */
+.new-session-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.new-session-controls select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+}
+
+.new-session-controls select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.1);
+}
+
+/* Session items */
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.session-name {
+  flex: 1;
+  text-align: left;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.session-status {
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.session-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.session-actions button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Error messages */
+.error {
+  color: var(--secondary);
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid var(--secondary);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+/* Loading states */
+.loading {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .session-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .session-actions {
+    justify-content: center;
+  }
+
+  .new-session-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sessions-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .logout-btn {
+    align-self: flex-end;
+  }
+}
+
+/* Terminal specific styles */
+.terminal-container {
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.controls {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+
+.public-url {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .public-url {
+    margin-left: 0;
+    text-align: center;
+  }
+}

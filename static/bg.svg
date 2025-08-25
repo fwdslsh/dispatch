@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="400" height="400" viewBox="0 0 40 40"
+     shape-rendering="crispEdges">
+  <!--
+    fwdslsh "matrix" tile
+    - 64x64px seamless tile
+    - Symmetric motif (slashes + grid + nodes)
+    - Crisp 1px lines aligned to .5 coordinates
+    - Colors: tweak ink and glow if you inline; otherwise edit stroke/fill values below
+  -->
+  <defs>
+    <pattern id="tile" patternUnits="userSpaceOnUse" width="64" height="64">
+      <!-- BASE -->
+      <rect width="64" height="64" fill="transparent"/>
+
+      <!-- Fine grid (every 8px) -->
+      <g stroke="#66ffd1" stroke-opacity=".07" stroke-width="1">
+        <!-- verticals -->
+        <path d="M8 .5 V63.5 M16 .5 V63.5 M24 .5 V63.5 M40 .5 V63.5 M48 .5 V63.5 M56 .5 V63.5"/>
+        <!-- horizontals -->
+        <path d="M.5 8 H63.5 M.5 16 H63.5 M.5 24 H63.5 M.5 40 H63.5 M.5 48 H63.5 M.5 56 H63.5"/>
+      </g>
+
+      <!-- Major grid (0 & 32) -->
+      <g stroke="#66ffd1" stroke-opacity=".18" stroke-width="1">
+        <path d="M.5 .5 V63.5 M32.5 .5 V63.5"/>
+        <path d="M.5 .5 H63.5 M.5 32.5 H63.5"/>
+      </g>
+
+      <!-- Diagonal slash motif (mirrored) -->
+      <g stroke="#66ffd1" stroke-opacity=".12" stroke-width="1">
+        <!-- NE/SW -->
+        <path d="M0 16 L16 0 M48 64 L64 48"/>
+        <path d="M0 48 L48 0 M16 64 L64 16"/>
+      </g>
+
+      <!-- Dashed scan-lines to add perceived motion when panned -->
+      <g stroke="#66ffd1" stroke-opacity=".22" stroke-width="1" stroke-dasharray="2 6">
+        <path d="M24.5 0 L24.5 64 M40.5 0 L40.5 64"/>
+        <path d="M0 24.5 L64 24.5 M0 40.5 L64 40.5"/>
+      </g>
+
+      <!-- Nodes (symmetrical) -->
+      <g fill="#66ffd1">
+        <circle cx="12" cy="12" r="1.2" opacity=".35"/>
+        <circle cx="52" cy="12" r="1.2" opacity=".22"/>
+        <circle cx="12" cy="52" r="1.2" opacity=".22"/>
+        <circle cx="52" cy="52" r="1.2" opacity=".35"/>
+        <circle cx="32" cy="32" r="1.1" opacity=".28"/>
+        <circle cx="32" cy="8"  r="1.0" opacity=".18"/>
+        <circle cx="8"  cy="32" r="1.0" opacity=".18"/>
+        <circle cx="56" cy="32" r="1.0" opacity=".18"/>
+        <circle cx="32" cy="56" r="1.0" opacity=".18"/>
+      </g>
+
+      <!-- Accent slashes inspired by the brand "/" -->
+      <g stroke="#e6ff58" stroke-opacity=".12" stroke-width="1">
+        <path d="M6 30 L10 26"/>
+        <path d="M58 34 L54 38"/>
+        <path d="M30 58 L34 54"/>
+        <path d="M34 10 L30 6"/>
+      </g>
+    </pattern>
+  </defs>
+
+  <!-- Paint one tile; CSS will repeat the image -->
+  <rect width="64" height="64" fill="url(#tile)"/>
+</svg>

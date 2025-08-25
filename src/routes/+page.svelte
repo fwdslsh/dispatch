@@ -34,23 +34,30 @@
 </script>
 
 <svelte:head>
-  <title>Login - Dispatch</title>
+  <title>dispatch - Terminal Access</title>
 </svelte:head>
 
-<main class="container">
-  <h1>Login</h1>
-  <form on:submit={handleLogin}>
-    <input
-      type="password"
-      placeholder="Enter terminal key"
-      bind:value={key}
-      required
-      autocomplete="off"
-      disabled={loading}
-    />
-    <button type="submit" disabled={loading}>Login</button>
-  </form>
-  {#if error}
-    <p style="color: red">{error}</p>
-  {/if}
+<main class="main-container">
+  <div class="container">
+    <h1>dispatch</h1>
+    <p>secure terminal access via web</p>
+    
+    <form on:submit={handleLogin}>
+      <input
+        type="password"
+        placeholder="terminal key"
+        bind:value={key}
+        required
+        autocomplete="off"
+        disabled={loading}
+      />
+      <button type="submit" disabled={loading}>
+        {loading ? 'connecting...' : 'connect'}
+      </button>
+    </form>
+    
+    {#if error}
+      <div class="error">{error}</div>
+    {/if}
+  </div>
 </main>
