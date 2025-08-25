@@ -1,12 +1,12 @@
 # Multi-stage build
-FROM node:20-bullseye AS build
+FROM node:20 AS build
 
 # Install build dependencies for native modules
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 RUN NODE_ENV=production npm run build
