@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "TERMINAL_KEY=test vite dev",
-    "build": "vite build",
+    "build": "vite build --config vite.config.prod.js",
     "preview": "vite preview",
-    "start": "vite build && PORT=5170 TERMINAL_KEY=test node src/app.js",
+    "start": "vite build --config vite.config.prod.js && PORT=5170 TERMINAL_KEY=test node src/app.js",
     "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
   },
