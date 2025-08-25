@@ -159,4 +159,4 @@ ENV PTY_MODE=claude
 
 ## License
 
-MIT License - see LICENSE file for details.
+Creative Commons Attribution 4.0 International License - see LICENSE file for details.

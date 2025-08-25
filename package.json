@@ -2,6 +2,7 @@
   "name": "dispatch",
   "version": "0.1.0",
   "description": "SvelteKit PTY + Claude Code in Docker",
+  "license": "CC-BY-4.0",
   "type": "module",
   "scripts": {
     "dev": "TERMINAL_KEY=test vite dev",
