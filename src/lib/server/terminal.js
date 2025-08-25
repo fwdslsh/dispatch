@@ -17,8 +17,13 @@ export class TerminalManager {
   constructor() {
     /** @type {Map<string, import('node-pty').IPty>} */
     this.sessions = new Map();
+    /** @type {Map<string, string[]>} */
+    this.buffers = new Map();
+    /** @type {Map<string, Set<Function>>} */
+    this.subscribers = new Map();
     this.ptyRoot = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
     this.defaultMode = process.env.PTY_MODE || 'claude';
+    this.maxBufferSize = 5000; // Keep last 5000 characters per session
     
     // Ensure sessions directory exists
     try {
@@ -74,10 +79,32 @@ export class TerminalManager {
     });
 
     this.sessions.set(sessionId, pty);
+    this.buffers.set(sessionId, []);
+    this.subscribers.set(sessionId, new Set());
+    
+    // Set up data handling
+    pty.onData((data) => {
+      // Buffer the data
+      this.appendToBuffer(sessionId, data);
+      
+      // Notify all subscribers
+      const subs = this.subscribers.get(sessionId);
+      if (subs) {
+        subs.forEach(callback => {
+          try {
+            callback(data);
+          } catch (err) {
+            console.error('Error in subscriber callback:', err);
+          }
+        });
+      }
+    });
     
     // Clean up on exit
     pty.onExit(() => {
       this.sessions.delete(sessionId);
+      this.buffers.delete(sessionId);
+      this.subscribers.delete(sessionId);
       console.log(`Session ${sessionId} ended`);
     });
 
@@ -140,6 +167,64 @@ export class TerminalManager {
       } catch (err) {
         console.error(`Failed to write to session ${sessionId}:`, err.message);
       }
+    }
+  }
+
+  /**
+   * Append data to session buffer
+   * @param {string} sessionId
+   * @param {string} data
+   */
+  appendToBuffer(sessionId, data) {
+    const buffer = this.buffers.get(sessionId);
+    if (buffer) {
+      buffer.push(data);
+      
+      // Trim buffer if it gets too large
+      const totalSize = buffer.reduce((sum, chunk) => sum + chunk.length, 0);
+      if (totalSize > this.maxBufferSize) {
+        // Remove oldest chunks until we're under the limit
+        while (buffer.length > 0 && buffer.reduce((sum, chunk) => sum + chunk.length, 0) > this.maxBufferSize * 0.8) {
+          buffer.shift();
+        }
+      }
+    }
+  }
+
+  /**
+   * Get buffered data for a session
+   * @param {string} sessionId
+   * @returns {string}
+   */
+  getBufferedData(sessionId) {
+    const buffer = this.buffers.get(sessionId);
+    return buffer ? buffer.join('') : '';
+  }
+
+  /**
+   * Subscribe to session data
+   * @param {string} sessionId
+   * @param {Function} callback
+   * @returns {Function} unsubscribe function
+   */
+  subscribeToSession(sessionId, callback) {
+    const subs = this.subscribers.get(sessionId);
+    if (subs) {
+      subs.add(callback);
+      return () => subs.delete(callback);
+    }
+    return () => {};
+  }
+
+  /**
+   * Unsubscribe from session data
+   * @param {string} sessionId
+   * @param {Function} callback
+   */
+  unsubscribeFromSession(sessionId, callback) {
+    const subs = this.subscribers.get(sessionId);
+    if (subs) {
+      subs.delete(callback);
     }
   }
 }

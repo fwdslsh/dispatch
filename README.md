@@ -18,6 +18,9 @@ A containerized web application that provides interactive PTY sessions in Docker
 ### Local Development
 
 ```bash
+# Use the correct Node.js version (22+)
+nvm use
+
 # Install dependencies
 npm install
 
@@ -27,6 +30,8 @@ npm run build
 # Run with default settings
 TERMINAL_KEY=your-secret-key node src/app.js
 ```
+
+**Note**: This project includes a `.nvmrc` file that specifies Node.js version 22. Run `nvm use` to automatically switch to the correct version.
 
 Open http://localhost:3000, enter your key, and start a terminal session.
 
@@ -100,6 +105,18 @@ Each terminal session:
 - `GET /` - Main application interface
 - `GET /public-url` - Returns LocalTunnel URL if enabled
 - `WebSocket /socket.io/` - PTY session communication
+
+Note: The previous REST session management endpoint (`/sessions/api`) has been deprecated. Use the WebSocket API (`socket.io`) to list, create, attach, and end sessions. See the "WebSocket usage" section below.
+
+### WebSocket usage
+
+Clients should connect to the Socket.IO server and use these events:
+
+- `list` (callback) — returns `{ ok: true, sessions: [...], active }`
+- `create` (opts, callback) — create PTY; server expects `{ mode, cols, rows, meta }`; callback returns `{ ok: true, sessionId }`
+- `attach` (opts, callback) — attach to existing session `{ sessionId, cols, rows }`
+- `end` (sessionId?) — end a session; server broadcasts `sessions-updated`
+- server broadcasts `sessions-updated` whenever session metadata changes
 
 ## Development
 

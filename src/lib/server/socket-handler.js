@@ -1,11 +1,16 @@
 // src/lib/server/socket-handler.js
 import { TerminalManager } from './terminal.js';
+import { addSession, switchSession, endSession, getSessions } from './session-store.js';
+import fs from 'node:fs';
 
 const terminalManager = new TerminalManager();
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
+const TUNNEL_FILE = '/tmp/tunnel-url.txt';
 
 /** @type {Map<string, string>} */
 const socketSessions = new Map();
+/** @type {Map<string, Function>} */
+const socketUnsubscribers = new Map();
 
 export function handleConnection(socket) {
   console.log('Socket connected:', socket.id);
@@ -32,21 +37,59 @@ export function handleConnection(socket) {
     }
 
     try {
-      const { sessionId, pty } = terminalManager.createSession(opts);
+      const createOpts = {
+        mode: opts.mode,
+        cols: opts.cols,
+        rows: opts.rows
+      };
+      const { sessionId, pty } = terminalManager.createSession(createOpts);
       socketSessions.set(socket.id, sessionId);
 
-      // Forward PTY output to socket
-      pty.onData((data) => {
+      // Store session metadata (minimal if not provided)
+      try {
+        const sessionMeta = opts && opts.meta ? 
+          { id: sessionId, ...opts.meta } :
+          { id: sessionId, name: `Session ${sessionId.slice(0, 8)}`, host: 'local', port: '0', username: 'user' };
+        
+        addSession(sessionMeta);
+        // Broadcast updated sessions list
+        socket.server.emit('sessions-updated', getSessions());
+      } catch (err) {
+        console.warn('Failed to persist session metadata:', err.message);
+      }
+
+      // Subscribe to session data
+      const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
         socket.emit('output', data);
       });
+      socketUnsubscribers.set(socket.id, unsubscribe);
 
       // Handle PTY exit
       pty.onExit(({ exitCode, signal }) => {
         socket.emit('ended', { exitCode, signal });
+        const unsubscribe = socketUnsubscribers.get(socket.id);
+        if (unsubscribe) {
+          unsubscribe();
+          socketUnsubscribers.delete(socket.id);
+        }
         socketSessions.delete(socket.id);
       });
 
       callback({ ok: true, sessionId });
+    } catch (err) {
+      callback({ ok: false, error: err.message });
+    }
+  });
+
+  // List sessions (auth required)
+  socket.on('list', (callback) => {
+    if (!authenticated) {
+      callback({ ok: false, error: 'Not authenticated' });
+      return;
+    }
+    
+    try {
+      callback({ ok: true, ...getSessions() });
     } catch (err) {
       callback({ ok: false, error: err.message });
     }
@@ -69,20 +112,39 @@ export function handleConnection(socket) {
 
     socketSessions.set(socket.id, sessionId);
 
+    // Send buffered data first
+    const bufferedData = terminalManager.getBufferedData(sessionId);
+    if (bufferedData) {
+      socket.emit('output', bufferedData);
+    }
+
     // Resize if dimensions provided
     if (opts.cols && opts.rows) {
       terminalManager.resizeSession(sessionId, opts.cols, opts.rows);
     }
 
-    // Forward PTY output to socket
-    pty.onData((data) => {
+    // Subscribe to session data
+    const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
       socket.emit('output', data);
     });
+    socketUnsubscribers.set(socket.id, unsubscribe);
 
     // Handle PTY exit
     pty.onExit(({ exitCode, signal }) => {
-      socket.emit('ended', { exitCode, signal });
-      socketSessions.delete(socket.id);
+        socket.emit('ended', { exitCode, signal });
+        const unsubscribe = socketUnsubscribers.get(socket.id);
+        if (unsubscribe) {
+          unsubscribe();
+          socketUnsubscribers.delete(socket.id);
+        }
+        socketSessions.delete(socket.id);
+        try {
+          // Clean up persistent metadata when PTY exits
+          endSession(sessionId);
+          socket.server.emit('sessions-updated', getSessions());
+        } catch (err) {
+          console.warn('Failed to clean up session metadata on exit:', err.message);
+        }
     });
 
     callback({ ok: true });
@@ -109,25 +171,52 @@ export function handleConnection(socket) {
   });
 
   // End session
-  socket.on('end', () => {
+  socket.on('end', (sessionIdArg) => {
     if (!authenticated) return;
-    
-    const sessionId = socketSessions.get(socket.id);
+
+    const sessionId = sessionIdArg || socketSessions.get(socket.id);
     if (sessionId) {
       terminalManager.endSession(sessionId);
       socketSessions.delete(socket.id);
+      try {
+        endSession(sessionId);
+      } catch (err) {
+        console.warn('Failed to remove session metadata on end:', err.message);
+      }
+      // Broadcast update
+      socket.server.emit('sessions-updated', getSessions());
       socket.emit('ended');
+    }
+  });
+
+  // Get public URL (no auth required)
+  socket.on('get-public-url', (callback) => {
+    try {
+      const url = fs.readFileSync(TUNNEL_FILE, 'utf-8').trim();
+      callback({ ok: true, url });
+    } catch {
+      callback({ ok: true, url: null });
     }
   });
 
   // Detach from session (but don't end it)
   socket.on('detach', () => {
+    const unsubscribe = socketUnsubscribers.get(socket.id);
+    if (unsubscribe) {
+      unsubscribe();
+      socketUnsubscribers.delete(socket.id);
+    }
     socketSessions.delete(socket.id);
   });
 
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log('Socket disconnected:', socket.id);
+    const unsubscribe = socketUnsubscribers.get(socket.id);
+    if (unsubscribe) {
+      unsubscribe();
+      socketUnsubscribers.delete(socket.id);
+    }
     socketSessions.delete(socket.id);
   });
 }

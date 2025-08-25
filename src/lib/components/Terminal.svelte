@@ -1,28 +1,80 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
+  import { onDestroy } from 'svelte';
   import { io } from 'socket.io-client';
-  import { Terminal } from '@xterm/xterm';
-  import { FitAddon } from '@xterm/addon-fit';
+  import { Xterm, XtermAddon } from '@battlefieldduck/xterm-svelte';
 
-  let container;
-  let term;
-  let fit;
+  export let sessionId = null;
+
+  let terminal;
   let socket;
   let publicUrl = null;
   let mode = 'claude';
   let authenticated = false;
   let authKey = '';
-  let showAuth = true;
+  let showAuth = false;
 
   const LS_KEY = 'dispatch-session-id';
 
-  async function pollPublicUrl() {
-    try {
-      const resp = await fetch('/public-url');
-      const data = await resp.json();
-      publicUrl = data.url;
-    } catch (err) {
-      console.warn('Failed to fetch public URL:', err.message);
+  let options = {
+    convertEol: true,
+    cursorBlink: true,
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    theme: { background: '#000000' }
+  };
+
+  async function onLoad() {
+    console.log('Terminal component has loaded');
+
+    // FitAddon Usage
+    const fitAddon = new (await XtermAddon.FitAddon()).FitAddon();
+    terminal.loadAddon(fitAddon);
+    fitAddon.fit();
+
+    // Set up resize handling
+    const resize = () => {
+      fitAddon.fit();
+      socket?.emit('resize', { cols: terminal.cols, rows: terminal.rows });
+    };
+    
+    // ResizeObserver for container changes
+    const ro = new ResizeObserver(resize);
+    const terminalElement = terminal.element?.parentElement;
+    if (terminalElement) {
+      ro.observe(terminalElement);
+    }
+    window.addEventListener('resize', resize);
+
+    // Store cleanup function
+    terminal._cleanup = () => {
+      window.removeEventListener('resize', resize);
+      ro.disconnect();
+    };
+
+    connect();
+    pollPublicUrl();
+    const pollId = setInterval(pollPublicUrl, 10000);
+    
+    // Store poll cleanup
+    terminal._pollCleanup = () => clearInterval(pollId);
+  }
+
+  function onData(data) {
+    console.log('onData()', data);
+    socket?.emit('input', data);
+  }
+
+  function onKey(data) {
+    console.log('onKey()', data);
+    // Handle any special key combinations here if needed
+  }
+
+  function pollPublicUrl() {
+    if (socket) {
+      socket.emit('get-public-url', (resp) => {
+        if (resp.ok) {
+          publicUrl = resp.url;
+        }
+      });
     }
   }
 
@@ -33,9 +85,11 @@
       if (resp.ok) {
         authenticated = true;
         showAuth = false;
+        localStorage.setItem('dispatch-auth-token', authKey);
         connectToSession();
       } else {
-        alert('Authentication failed: ' + (resp.error || 'Invalid key'));
+        localStorage.removeItem('dispatch-auth-token');
+        goto('/');
       }
     });
   }
@@ -46,20 +100,24 @@
     });
 
     socket.on('connect_error', (err) => {
-      term?.writeln(`\r\n[connection error] ${err.message}\r\n`);
+      terminal?.writeln(`\r\n[connection error] ${err.message}\r\n`);
     });
 
     socket.on('output', (data) => {
-      term?.write(data);
+      terminal?.write(data);
     });
 
     socket.on('ended', () => {
-      term?.writeln('\r\n[session ended]\r\n');
+      terminal?.writeln('\r\n[session ended]\r\n');
       localStorage.removeItem(LS_KEY);
     });
 
     socket.on('connect', () => {
-      if (!authenticated) {
+      const storedAuth = localStorage.getItem('dispatch-auth-token');
+      if (storedAuth) {
+        authKey = storedAuth;
+        authenticate();
+      } else {
         showAuth = true;
       }
     });
@@ -68,13 +126,13 @@
   function connectToSession() {
     if (!socket || !authenticated) return;
 
-    const saved = localStorage.getItem(LS_KEY);
-    const dims = { cols: term.cols, rows: term.rows };
-    
-    if (saved) {
-      socket.emit('attach', { sessionId: saved, ...dims }, (resp) => {
+    const dims = { cols: terminal.cols, rows: terminal.rows };
+
+    if (sessionId) {
+      socket.emit('attach', { sessionId, ...dims }, (resp) => {
         if (!resp || !resp.ok) {
-          startNewSession(mode); // make a fresh one
+          // failed to attach, create a new one
+          startNewSession(mode);
         }
       });
     } else {
@@ -85,58 +143,39 @@
   function startNewSession(modeOverride) {
     if (!socket || !authenticated) return;
 
-    const dims = { cols: term.cols, rows: term.rows, mode: modeOverride || mode };
+    const dims = { cols: terminal.cols, rows: terminal.rows, mode: modeOverride || mode };
     socket.emit('create', dims, (resp) => {
       if (resp.ok) {
-        localStorage.setItem(LS_KEY, resp.sessionId);
+  localStorage.setItem(LS_KEY, resp.sessionId);
+  // if we have session props, persist metadata
+  // client can emit a separate create with meta if needed
       } else {
-        term?.writeln(`\r\n[error] ${resp.error}\r\n`);
+        terminal?.writeln(`\r\n[error] ${resp.error}\r\n`);
       }
     });
   }
+
+
+  import { goto } from '$app/navigation';
 
   function endSession() {
     const id = localStorage.getItem(LS_KEY);
     if (id && socket) {
       socket.emit('end');
       // server will broadcast 'ended'
+      goto('/sessions');
     }
   }
 
-  onMount(() => {
-    term = new Terminal({
-      convertEol: true,
-      cursorBlink: true,
-      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-      theme: { background: '#000000' }
-    });
-    fit = new FitAddon();
-    term.loadAddon(fit);
-    term.open(container);
-    fit.fit();
-
-    connect();
-    pollPublicUrl();
-    const pollId = setInterval(pollPublicUrl, 10000);
-
-    term.onData((data) => socket?.emit('input', data));
-
-    const resize = () => {
-      fit.fit();
-      socket?.emit('resize', { cols: term.cols, rows: term.rows });
-    };
-    const ro = new ResizeObserver(resize);
-    ro.observe(container);
-    window.addEventListener('resize', resize);
-
-    return () => {
-      socket?.emit('detach');
-      window.removeEventListener('resize', resize);
-      ro.disconnect();
-      clearInterval(pollId);
-      socket?.disconnect();
-      term.dispose();
-    };
+  onDestroy(() => {
+    if (terminal?._cleanup) {
+      terminal._cleanup();
+    }
+    if (terminal?._pollCleanup) {
+      terminal._pollCleanup();
+    }
+    socket?.emit('detach');
+    socket?.disconnect();
   });
 
   function handleKeyPress(event) {
@@ -176,7 +215,9 @@
     {/if}
   </div>
   
-  <div bind:this={container} class="terminal"></div>
+  <div class="terminal">
+    <Xterm bind:terminal {options} {onLoad} {onData} {onKey} />
+  </div>
 </div>
 
 <style>
