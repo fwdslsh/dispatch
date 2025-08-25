@@ -111,6 +111,8 @@
     padding: 0;
     margin: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   @media (max-width: 768px) {

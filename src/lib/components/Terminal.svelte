@@ -72,12 +72,20 @@
       socket?.emit('resize', { cols: terminal.cols, rows: terminal.rows });
     };
     
-    // ResizeObserver for container changes
+    // ResizeObserver for terminal container changes
     const ro = new ResizeObserver(resize);
-    const terminalElement = terminal.element?.parentElement;
-    if (terminalElement) {
-      ro.observe(terminalElement);
+    const terminalContainer = terminal.element?.closest('.terminal');
+    const pageContainer = terminal.element?.closest('.terminal-page-container');
+    
+    // Watch both the immediate terminal container and the page container
+    if (terminalContainer) {
+      ro.observe(terminalContainer);
     }
+    if (pageContainer) {
+      ro.observe(pageContainer);
+    }
+    
+    // Also watch for window resize
     window.addEventListener('resize', resize);
 
     // Store cleanup function
@@ -86,6 +94,11 @@
       window.removeEventListener('resize', handleResize);
       ro.disconnect();
     };
+
+    // Force an initial resize to ensure proper sizing
+    requestAnimationFrame(() => {
+      resize();
+    });
 
     connect();
     pollPublicUrl();
@@ -321,32 +334,58 @@
     margin-bottom: 1rem;
   }
 
+  .controls {
+    flex-shrink: 0; /* Don't allow controls to shrink */
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
   .terminal-container {
     display: flex;
     flex-direction: column;
     height: 100%;
     width: 100%;
     position: relative;
+    min-height: 0; /* Allow flex child to shrink */
   }
 
   .terminal {
     flex: 1;
     background: var(--bg-darker);
-    height: 100%;
     overflow: hidden;
+    min-height: 0; /* Allow flex child to shrink */
+    container-type: size; /* Enable container queries */
   }
 
   .terminal :global(.xterm) {
     height: 100% !important;
+    width: 100% !important;
   }
 
   .terminal :global(.xterm .xterm-viewport) {
     height: 100% !important;
   }
 
+  .terminal :global(.xterm .xterm-screen) {
+    height: 100% !important;
+  }
+
+  /* Container query for responsive terminal sizing */
+  @container (min-height: 200px) {
+    .terminal :global(.xterm) {
+      height: 100% !important;
+    }
+  }
+
   .mobile-controls {
     background: var(--surface);
     border-top: 1px solid var(--border);
+    flex-shrink: 0; /* Don't allow mobile controls to shrink */
   }
 
   .special-keys {
