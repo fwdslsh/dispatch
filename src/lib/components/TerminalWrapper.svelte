@@ -13,7 +13,7 @@
 {#if mounted && Terminal}
   <svelte:component this={Terminal} />
 {:else}
-  <div class="h-[70vh] w-full rounded-lg overflow-hidden border bg-black flex items-center justify-center">
-    <p class="text-white">Loading terminal...</p>
-  </div>
+  <section style="height:70vh; width:100%; border-radius:var(--pico-border-radius); overflow:hidden; border:var(--pico-border-width) solid var(--pico-border-color); background:black; display:flex; align-items:center; justify-content:center;">
+    <p style="color:white;">Loading terminal...</p>
+  </section>
 {/if}

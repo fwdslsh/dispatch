@@ -146,54 +146,127 @@
   }
 </script>
 
-<svelte:head>
-  <link rel="stylesheet" href="https://unpkg.com/@xterm/xterm@5.3.0/css/xterm.css" />
-</svelte:head>
-
 {#if showAuth}
-  <div class="mb-4 p-4 border rounded-lg bg-yellow-50">
-    <h2 class="text-lg font-semibold mb-2">Authentication Required</h2>
-    <div class="flex gap-2">
+  <div class="auth-overlay">
+    <div class="auth-box">
+      <h3>Authentication Required</h3>
       <input 
         type="password" 
-        bind:value={authKey}
+        bind:value={authKey} 
+        placeholder="Enter authentication key"
         on:keypress={handleKeyPress}
-        placeholder="Enter shared secret key"
-        class="flex-1 px-3 py-2 border rounded"
       />
-      <button 
-        on:click={authenticate}
-        class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      >
-        Connect
-      </button>
+      <button on:click={authenticate}>Connect</button>
     </div>
   </div>
 {/if}
 
-{#if publicUrl}
-  <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-    <div class="text-sm text-green-800">
-      <strong>Public URL:</strong> 
-      <a href={publicUrl} target="_blank" class="text-blue-600 underline">{publicUrl}</a>
-    </div>
-  </div>
-{/if}
-
-{#if authenticated}
-  <div class="mb-3 flex gap-2 items-center">
-    <label for="session-mode" class="text-sm">New session mode:</label>
-    <select id="session-mode" bind:value={mode} class="border px-2 py-1 rounded">
-      <option value="claude">Claude Code</option>
-      <option value="shell">Shell</option>
+<div class="terminal-container">
+  <div class="controls">
+    <select bind:value={mode}>
+      <option value="claude">Claude Mode</option>
+      <option value="bash">Bash Mode</option>
     </select>
-    <button class="px-3 py-1 border rounded hover:bg-gray-50" on:click={() => startNewSession(mode)}>
-      New session
-    </button>
-    <button class="px-3 py-1 border rounded hover:bg-gray-50" on:click={endSession}>
-      End session
-    </button>
+    
+    <button on:click={() => startNewSession(mode)}>New Session</button>
+    <button on:click={endSession}>End Session</button>
+    
+    {#if publicUrl}
+      <span class="public-url">Public URL: {publicUrl}</span>
+    {/if}
   </div>
-{/if}
+  
+  <div bind:this={container} class="terminal"></div>
+</div>
 
-<div bind:this={container} class="h-[70vh] w-full rounded-lg overflow-hidden border"></div>
+<style>
+  .auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .auth-box {
+    background: #1e1e1e;
+    padding: 2rem;
+    border-radius: 8px;
+    color: white;
+    text-align: center;
+  }
+
+  .auth-box h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+  }
+
+  .auth-box input {
+    padding: 0.5rem;
+    margin: 0.5rem;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #2a2a2a;
+    color: white;
+    width: 200px;
+  }
+
+  .auth-box button {
+    padding: 0.5rem 1rem;
+    margin: 0.5rem;
+    background: #007acc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .auth-box button:hover {
+    background: #005a9e;
+  }
+
+  .terminal-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    background: #2a2a2a;
+    border-bottom: 1px solid #444;
+  }
+
+  .controls select,
+  .controls button {
+    padding: 0.25rem 0.5rem;
+    background: #1e1e1e;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .controls button:hover {
+    background: #3a3a3a;
+  }
+
+  .public-url {
+    color: #888;
+    font-size: 0.8rem;
+    margin-left: auto;
+  }
+
+  .terminal {
+    flex: 1;
+    background: #000000;
+  }
+</style>

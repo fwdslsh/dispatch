@@ -8,7 +8,9 @@
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
 		"sourceMap": true,
-		"strict": true,
-		"moduleResolution": "bundler"
+		"strict": false,
+		"moduleResolution": "bundler",
+		"maxNodeModuleJsDepth": 2,
+		"jsDoc": "import"
 	}
 }
