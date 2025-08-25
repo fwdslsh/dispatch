@@ -95,8 +95,9 @@ dist
 .temp
 .cache
 
-# Sveltekit cache directory
+# SvelteKit build output
 .svelte-kit/
+build/
 
 # vitepress build output
 **/.vitepress/dist
@@ -137,3 +138,4 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+src/lib/server/sessions.json
