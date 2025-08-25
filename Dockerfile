@@ -9,44 +9,31 @@ COPY . .
 RUN npm run build
 
 # Runtime stage
-FROM node:20-bullseye
+FROM node:20-slim
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    wget \
-    python3 \
-    python3-pip \
-    tini \
-    && rm -rf /var/lib/apt/lists/*
+# Note: Claude CLI and other tools would be installed here in a real deployment
+# For this MVP, we're keeping it minimal
 
-# Install Claude Code (example - adjust based on actual installation method)
-RUN npm install -g @anthropic-ai/claude-cli
-
-# Non-root user
+# Create non-root user
 RUN useradd -m -u 10001 appuser
-USER appuser
 
 WORKDIR /app
 COPY --from=build /app /app
 
-# Create dirs for mounts (sessions, workspace, home)
-RUN mkdir -p /home/appuser/sessions /workspace /home/appuser/home
+# Create dirs for sessions
+RUN mkdir -p /tmp/dispatch-sessions && chown -R appuser:appuser /tmp/dispatch-sessions /app
+
+USER appuser
 
 # Set environment variables
 ENV NODE_ENV=production \
     PORT=3000 \
     TERMINAL_KEY=change-me \
-    PTY_ROOT=/home/appuser/sessions \
-    PTY_MODE=claude \
+    PTY_ROOT=/tmp/dispatch-sessions \
+    PTY_MODE=shell \
     ENABLE_TUNNEL=false \
-    LT_SUBDOMAIN= \
-    HOME=/home/appuser/home
-
-COPY --chown=appuser:appuser start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+    LT_SUBDOMAIN=
 
 EXPOSE 3000
-ENTRYPOINT ["/usr/bin/tini","--"]
-CMD ["/app/start.sh"]
+
+CMD ["node", "src/app.js"]

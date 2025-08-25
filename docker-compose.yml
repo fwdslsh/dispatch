@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  dispatch:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - TERMINAL_KEY=change-me-in-production
+      - PTY_MODE=shell
+      - ENABLE_TUNNEL=false
+      # Uncomment for public access:
+      # - ENABLE_TUNNEL=true
+      # - LT_SUBDOMAIN=my-dispatch
+    restart: unless-stopped
+    # Optional: Mount for persistent sessions (not recommended for security)
+    # volumes:
+    #   - ./sessions:/tmp/dispatch-sessions
