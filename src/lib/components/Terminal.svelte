@@ -66,8 +66,9 @@
       fitAddon.fit();
     }, 100);
 
-    // Set up resize handling
+    // Set up resize handling - focus on PTY resize only
     const resize = () => {
+      // Let CSS handle the visual sizing, just call fit for PTY calculations
       fitAddon.fit();
       socket?.emit('resize', { cols: terminal.cols, rows: terminal.rows });
     };
@@ -354,24 +355,51 @@
     min-height: 0; /* Allow flex child to shrink */
   }
 
+  /* Force xterm to fill available height using direct approach */
   .terminal {
     flex: 1;
     background: var(--bg-darker);
     overflow: hidden;
-    min-height: 0; /* Allow flex child to shrink */
-    container-type: size; /* Enable container queries */
+    min-height: 0;
+    container-type: size;
+    position: relative;
   }
 
   .terminal :global(.xterm) {
-    height: 100% !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
     width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    min-height: 100% !important;
   }
 
   .terminal :global(.xterm .xterm-viewport) {
     height: 100% !important;
+    max-height: none !important;
+    min-height: 100% !important;
+    overflow-y: auto !important;
   }
 
   .terminal :global(.xterm .xterm-screen) {
+    height: 100% !important;
+    max-height: none !important;
+    min-height: 100% !important;
+  }
+
+  /* Override any inline styles that limit height */
+  .terminal :global(.xterm[style*="height"]) {
+    height: 100% !important;
+  }
+
+  .terminal :global(.xterm-viewport[style*="height"]) {
+    height: 100% !important;
+  }
+
+  .terminal :global(.xterm-screen[style*="height"]) {
     height: 100% !important;
   }
 
