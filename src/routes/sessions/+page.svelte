@@ -3,6 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { io } from 'socket.io-client';
   import { goto } from '$app/navigation';
+  import HeaderToolbar from '$lib/components/HeaderToolbar.svelte';
 
   let sessions = [];
   let active = null;
@@ -85,14 +86,17 @@
 
 
 <div class="container">
-  <div class="sessions-header">
-    <div>
+  <HeaderToolbar>
+    {#snippet left()}
       <h2>sessions</h2>
-    </div>
-    <button class="button-secondary logout-btn" on:click={logout}>
-      logout
-    </button>
-  </div>
+    {/snippet}
+    
+    {#snippet right()}
+      <button class="button-secondary logout-btn" on:click={logout}>
+        logout
+      </button>
+    {/snippet}
+  </HeaderToolbar>
 
   <div class="new-session-controls">
     <select bind:value={sessionMode}>

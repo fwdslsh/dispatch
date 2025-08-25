@@ -40,7 +40,7 @@
 <main class="main-container">
   <div class="container">
     <h1>dispatch</h1>
-    <p>secure terminal access via web</p>
+    <p>terminal access via web</p>
     
     <form on:submit={handleLogin}>
       <input

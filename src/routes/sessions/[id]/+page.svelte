@@ -1,6 +1,7 @@
 
 <script>
   import Terminal from '$lib/components/Terminal.svelte';
+  import HeaderToolbar from '$lib/components/HeaderToolbar.svelte';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
@@ -41,23 +42,26 @@
   }
 </script>
 
-<div class="session-header">
-  <div class="session-header-left">
+<HeaderToolbar>
+  {#snippet left()}
     <a href="/sessions" class="back-link">
       <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
         <path d="M19 12H5M12 19l-7-7 7-7"/>
       </svg>
     </a>
     <h2># {$page.params.id.slice(0, 8)}</h2>
-  </div>
-  {#if authed && sessionId}
-    <button class="button-danger end-session-btn" on:click={endSession}>
-      <svg class="end-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M18 6L6 18M6 6l12 12"/>
-      </svg>
-    </button>
-  {/if}
-</div>
+  {/snippet}
+  
+  {#snippet right()}
+    {#if authed && sessionId}
+      <button class="button-danger end-session-btn" on:click={endSession}>
+        <svg class="end-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    {/if}
+  {/snippet}
+</HeaderToolbar>
 
 <div class="terminal-page-container">
   {#if authed && sessionId}
@@ -70,22 +74,6 @@
 </div>
 
 <style>
-  .session-header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 1rem 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
-  }
-
-  .session-header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
   .end-session-btn {
     padding: 0.75rem 0.75rem !important;
     font-size: 0.9rem !important;
@@ -103,7 +91,7 @@
   .back-link {
     color: var(--primary);
     text-decoration: none;
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-mono);
     font-weight: bold;
     transition: color 0.2s ease;
     display: flex;
@@ -121,7 +109,7 @@
     stroke-width: 2;
   }
 
-  .session-header h2 {
+  h2 {
     margin: 0;
     color: var(--text-secondary);
     font-size: 1.1rem;
@@ -139,23 +127,6 @@
   }
 
   @media (max-width: 768px) {
-    .session-header {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 1rem;
-      padding: 1rem;
-    }
-    
-    .session-header-left {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-    
-    .end-session-btn {
-      align-self: flex-end;
-    }
-
     .terminal-page-container {
       top: 6rem; /* Account for larger header on mobile */
     }
