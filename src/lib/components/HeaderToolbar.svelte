@@ -21,7 +21,6 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-xl);
-    min-height: 4rem;
   }
 
   .header-left {
@@ -38,15 +37,12 @@
 
   @media (max-width: 768px) {
     .header-toolbar {
-      flex-direction: column;
-      align-items: stretch;
       gap: var(--space-md);
       padding: var(--space-md);
       min-height: auto;
     }
     
     .header-left {
-      flex-direction: column;
       align-items: flex-start;
       gap: var(--space-sm);
     }

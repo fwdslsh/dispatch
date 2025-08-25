@@ -115,7 +115,7 @@
 
   @media (max-width: 768px) {
     .terminal-page-container {
-      top: 6rem; /* Account for larger header on mobile */
+      top: 5rem; /* Account for larger header on mobile */
     }
   }
 </style>
