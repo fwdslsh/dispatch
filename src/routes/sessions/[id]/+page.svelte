@@ -54,7 +54,7 @@
   
   {#snippet right()}
     {#if authed && sessionId}
-      <button class="button-danger end-session-btn" on:click={endSession}>
+      <button class="button-danger end-session-btn btn-icon-only" on:click={endSession}>
         <svg class="end-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path d="M18 6L6 18M6 6l12 12"/>
         </svg>
@@ -74,19 +74,6 @@
 </div>
 
 <style>
-  .end-session-btn {
-    padding: 0.75rem 0.75rem !important;
-    font-size: 0.9rem !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 0.5rem !important;
-  }
-
-  .end-icon {
-    width: 1rem;
-    height: 1rem;
-    stroke-width: 2;
-  }
 
   .back-link {
     color: var(--primary);
@@ -96,7 +83,7 @@
     transition: color 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-sm);
   }
 
   .back-link:hover {
