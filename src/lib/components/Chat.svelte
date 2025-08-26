@@ -1,13 +1,19 @@
 <script>
   import { onMount } from 'svelte';
-  import AnsiUp from 'ansi-up';
+  import { AnsiUp } from 'ansi_up';
 
   export let socket = null;
   export let sessionId = null;
+  export let initialHistory = { chatMessages: [], currentInput: '', currentOutput: '' };
+  export let onInputEvent = () => {};
+  export let onOutputEvent = () => {};
 
-  let chatMessages = [];
+  let chatMessages = [{
+    type: 'system',
+    content: 'Chat view enabled. Commands will appear as messages below.',
+    timestamp: new Date()
+  }]; // Start with welcome message
   let currentInput = '';
-  let currentOutput = '';
   let chatContainer;
   let ansiUp;
 
@@ -16,63 +22,45 @@
     // Configure AnsiUp for better terminal output
     ansiUp.use_classes = true; // Use CSS classes instead of inline styles
     
-    // Initialize with welcome message
-    chatMessages = [{
-      type: 'system',
-      content: 'Chat view enabled. Commands will appear as messages below.',
-      timestamp: new Date()
-    }];
-
-    // Set up socket event listener for output
-    if (socket) {
-      socket.on('output', handleChatOutput);
-    }
+    // Scroll to bottom after loading
+    setTimeout(() => scrollChatToBottom(), 100);
   });
-
-  function handleChatOutput(data) {
-    // Accumulate output data
-    currentOutput += data;
-    
-    // Check if we have a complete line (ends with newline or carriage return)
-    if (data.includes('\n') || data.includes('\r')) {
-      // Clean and process the accumulated output
-      let cleanOutput = currentOutput
-        .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n')
-        .trim();
-      
-      if (cleanOutput) {
-        // Convert ANSI codes to HTML
-        const htmlOutput = ansiUp.ansi_to_html(cleanOutput);
-        
-        // Add output as assistant message
-        chatMessages = [...chatMessages, {
-          type: 'assistant',
-          content: htmlOutput,
-          isHtml: true, // Flag to indicate this content is HTML
-          timestamp: new Date()
-        }];
-        
-        // Scroll to bottom
-        setTimeout(() => scrollChatToBottom(), 100);
-      }
-      
-      currentOutput = '';
+  
+  // Reactively update chat messages when history changes
+  $: if (initialHistory) {
+    console.log('Chat component reactive update triggered:', initialHistory);
+    if (initialHistory.chatMessages && initialHistory.chatMessages.length > 0) {
+      console.log('Setting chat messages:', initialHistory.chatMessages.length, 'messages');
+      chatMessages = [...initialHistory.chatMessages]; // Create new array to ensure reactivity
+      currentInput = initialHistory.currentInput || '';
+      console.log('Chat messages now:', chatMessages.length);
+      // Scroll to bottom when history updates
+      setTimeout(() => scrollChatToBottom(), 50);
+    } else {
+      console.log('No chat messages in initialHistory, keeping welcome message');
+      // Keep the welcome message that was set during initialization
     }
   }
 
+  // Chat component no longer processes socket output directly
+  // It only displays messages from the shared history
+  // The Terminal component handles socket output and updates shared history
+
   function sendChatMessage() {
-    if (!currentInput.trim() || !socket) return;
+    if (!currentInput.trim() || !socket) {
+      console.log('Chat send blocked:', { hasInput: !!currentInput.trim(), hasSocket: !!socket });
+      return;
+    }
     
-    // Add user message to chat
-    chatMessages = [...chatMessages, {
-      type: 'user',
-      content: currentInput,
-      timestamp: new Date()
-    }];
+    const inputToSend = currentInput;
+    console.log('Sending chat message:', inputToSend);
+    
+    // Add to shared input history - this will trigger a reactive update
+    onInputEvent(inputToSend);
     
     // Send to PTY
-    socket.emit('input', currentInput + '\r');
+    socket.emit('input', inputToSend + '\r');
+    console.log('Emitted input to socket:', inputToSend + '\\r');
     
     // Clear input
     currentInput = '';
@@ -100,38 +88,10 @@
     }
   }
 
-  // Cleanup socket listener on destroy
-  import { onDestroy } from 'svelte';
-  onDestroy(() => {
-    if (socket) {
-      socket.off('output', handleChatOutput);
-    }
-  });
+  // No socket cleanup needed since Chat doesn't listen to socket output
 </script>
 
 <div class="chat-view">
-  <div class="chat-header">
-    <div class="chat-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-      Chat Mode
-    </div>
-    <div class="chat-controls">
-      <button class="special-key-btn" on:click={() => sendSpecialKey('\t')} title="Send Tab">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <rect x="3" y="5" width="18" height="14" rx="2"/>
-          <path d="M8 10h6"/>
-        </svg>
-      </button>
-      <button class="special-key-btn" on:click={() => sendSpecialKey('\u0003')} title="Send Ctrl+C">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
-      <slot name="toggle-button"></slot>
-    </div>
-  </div>
   
   <div class="chat-messages" bind:this={chatContainer}>
     {#each chatMessages as message}
@@ -147,7 +107,7 @@
               <span>{message.content}</span>
             </div>
           {:else if message.isHtml}
-            <div class="message-html" {@html message.content}></div>
+            <div class="message-html">{@html message.content}</div>
           {:else}
             <pre class="message-text">{message.content}</pre>
           {/if}
@@ -160,6 +120,20 @@
   </div>
   
   <div class="chat-input-container">
+    <div class="chat-controls">
+      <button class="special-key-btn" on:click={() => sendSpecialKey('\t')} title="Send Tab" aria-label="Send Tab key">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <path d="M8 10h6"/>
+        </svg>
+      </button>
+      <button class="special-key-btn" on:click={() => sendSpecialKey('\u0003')} title="Send Ctrl+C" aria-label="Send Ctrl+C">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      <slot name="toggle-button"></slot>
+    </div>
     <div class="chat-input-wrapper">
       <textarea
         bind:value={currentInput}
@@ -169,7 +143,6 @@
         rows="1"
         autocomplete="off"
         autocapitalize="none"
-        autocorrect="off"
         spellcheck="false"
         inputmode="text"
         enterkeyhint="send"
@@ -193,36 +166,17 @@
     flex-direction: column;
     height: 100%;
     background: var(--bg-darker);
-  }
-
-  .chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-md);
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .chat-title {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    color: var(--text-primary);
-    font-family: var(--font-mono);
-    font-weight: bold;
-  }
-
-  .chat-title svg {
-    width: 18px;
-    height: 18px;
-    color: var(--primary);
+    overflow: hidden; /* Prevent horizontal scroll */
   }
 
   .chat-controls {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
   }
 
   .special-key-btn {
@@ -255,16 +209,22 @@
   .chat-messages {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scroll */
     padding: var(--space-md);
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
+    min-height: 0; /* Allow flex child to shrink below content size */
+    max-height: 100%; /* Prevent overflow beyond container */
+    width: 100%; /* Ensure full width */
   }
 
   .message {
     display: flex;
     flex-direction: column;
     max-width: 85%;
+    word-wrap: break-word; /* Prevent long words from causing horizontal scroll */
+    overflow-wrap: break-word;
   }
 
   .message.user {
@@ -290,6 +250,9 @@
     padding: var(--space-md);
     backdrop-filter: blur(10px);
     position: relative;
+    overflow-wrap: break-word; /* Prevent horizontal overflow */
+    word-break: break-word;
+    max-width: 100%;
   }
 
   .message.user .message-content {
@@ -314,7 +277,10 @@
     margin: 0;
     white-space: pre-wrap;
     word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
     color: var(--text-primary);
+    max-width: 100%;
   }
 
   .message-html {
@@ -322,6 +288,10 @@
     font-size: 0.9rem;
     line-height: 1.4;
     color: var(--text-primary);
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
+    max-width: 100%;
   }
 
   /* ANSI color classes for terminal output */
@@ -369,9 +339,9 @@
   }
 
   .chat-input-container {
-    padding: var(--space-md);
     background: var(--surface);
     border-top: 1px solid var(--border);
+    overflow: hidden; /* Prevent horizontal scroll */
   }
 
   .chat-input-wrapper {
@@ -382,6 +352,8 @@
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: var(--space-md);
+    margin: var(--space-md);
+    margin-top: 0;
   }
 
   .chat-input {
@@ -437,17 +409,37 @@
 
   /* Mobile optimizations for chat */
   @media (max-width: 768px) {
+    .chat-view {
+      overflow: hidden; /* Strict no-scroll on mobile */
+    }
+    
     .chat-messages {
       padding: var(--space-sm);
       gap: var(--space-md);
+      /* Account for controls and input area */
+      max-height: calc(100vh - 160px);
+      min-height: 0;
+      overflow-x: hidden;
     }
     
     .message {
-      max-width: 90%;
+      max-width: 95%; /* More space on mobile */
+      min-width: 0; /* Allow messages to shrink */
     }
     
-    .chat-input-container {
-      padding: var(--space-sm);
+    .message-content {
+      max-width: 100%;
+      overflow-wrap: anywhere; /* Aggressive word breaking on mobile */
+    }
+    
+    .chat-controls {
+      padding: var(--space-xs) var(--space-sm);
+      gap: var(--space-xs);
+    }
+    
+    .chat-input-wrapper {
+      margin: var(--space-sm);
+      margin-top: 0;
     }
     
     .special-key-btn {

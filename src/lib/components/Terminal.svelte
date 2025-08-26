@@ -6,6 +6,10 @@
 
   export let sessionId = null;
   export let onchatclick = () => {};
+  export let initialHistory = '';
+  export let onInputEvent = () => {};
+  export let onOutputEvent = () => {};
+  export let onBufferUpdate = () => {};
 
   let terminal;
   let socket;
@@ -113,6 +117,12 @@
           setTimeout(() => overlayTextarea?.focus(), 0);
         });
       }
+      
+      // Restore terminal history if available
+      if (initialHistory && terminal) {
+        console.log('Restoring terminal history, length:', initialHistory.length);
+        terminal.write(initialHistory);
+      }
     }, 100);
     
     // Store poll cleanup
@@ -124,6 +134,8 @@
     // Disable direct input on mobile - use overlay textarea instead
     if (!isMobile && socket) {
       socket.emit('input', data);
+      // Accumulate input characters until command is complete
+      handleInputAccumulation(data);
     }
   }
 
@@ -136,6 +148,34 @@
   function sendSpecialKey(key) {
     if (socket) {
       socket.emit('input', key);
+      // Accumulate input characters until command is complete
+      handleInputAccumulation(key);
+    }
+  }
+  
+  function handleInputAccumulation(data) {
+    if (data === '\r' || data === '\n') {
+      // Command completed - save the accumulated input
+      if (currentInputBuffer.trim()) {
+        onInputEvent(currentInputBuffer);
+      }
+      currentInputBuffer = '';
+    } else if (data === '\b') {
+      // Backspace - remove last character from buffer
+      currentInputBuffer = currentInputBuffer.slice(0, -1);
+    } else if (data === '\u001b[A' || data === '\u001b[B' || data === '\u001b[C' || data === '\u001b[D') {
+      // Arrow keys - don't add to input buffer
+      return;
+    } else if (data === '\t' || data === '\u0003') {
+      // Tab or Ctrl+C - special commands that should be saved immediately
+      if (data === '\u0003') {
+        onInputEvent('Ctrl+C');
+      } else if (data === '\t') {
+        onInputEvent('Tab');
+      }
+    } else if (data.length === 1 && data >= ' ') {
+      // Regular printable character - add to buffer
+      currentInputBuffer += data;
     }
   }
 
@@ -149,6 +189,8 @@
       if (socket) {
         // Send all new input to terminal
         socket.emit('input', inputText);
+        // Accumulate input characters until command is complete
+        handleInputAccumulation(inputText);
         
         // Clear the textarea to capture next input
         event.target.value = '';
@@ -162,30 +204,37 @@
           case 'Enter':
             event.preventDefault();
             socket.emit('input', '\r');
+            handleInputAccumulation('\r');
             break;
           case 'Backspace':
             event.preventDefault();
             socket.emit('input', '\b');
+            handleInputAccumulation('\b');
             break;
           case 'Tab':
             event.preventDefault();
             socket.emit('input', '\t');
+            handleInputAccumulation('\t');
             break;
           case 'ArrowUp':
             event.preventDefault();
             socket.emit('input', '\u001b[A');
+            handleInputAccumulation('\u001b[A');
             break;
           case 'ArrowDown':
             event.preventDefault();
             socket.emit('input', '\u001b[B');
+            handleInputAccumulation('\u001b[B');
             break;
           case 'ArrowRight':
             event.preventDefault();
             socket.emit('input', '\u001b[C');
+            handleInputAccumulation('\u001b[C');
             break;
           case 'ArrowLeft':
             event.preventDefault();
             socket.emit('input', '\u001b[D');
+            handleInputAccumulation('\u001b[D');
             break;
           default:
             // Let regular characters go through the input event
@@ -305,6 +354,8 @@
   let isSelecting = false;
   let startX = 0;
   let startY = 0;
+  let currentInputBuffer = ''; // Buffer to accumulate input until Enter is pressed
+  let currentOutputBuffer = ''; // Buffer to accumulate output until complete lines
 
   function handleTerminalTap(event) {
     // Check if user is trying to select text or click a link
@@ -383,6 +434,42 @@
 
     socket.on('output', (data) => {
       terminal?.write(data);
+      
+      // Accumulate output data for chat history
+      currentOutputBuffer += data;
+      
+      // Check if we have complete lines (ends with newline or carriage return)
+      if (data.includes('\n') || data.includes('\r')) {
+        // Clean and process the accumulated output
+        let cleanOutput = currentOutputBuffer
+          .replace(/\r\n/g, '\n')
+          .replace(/\r/g, '\n')
+          .trim();
+        
+        if (cleanOutput) {
+          // Add to shared output history
+          onOutputEvent(cleanOutput);
+        }
+        
+        currentOutputBuffer = '';
+      }
+      
+      // Update terminal buffer cache by getting the terminal buffer
+      if (terminal && onBufferUpdate) {
+        // Get the terminal buffer contents to cache
+        const buffer = terminal.buffer.active;
+        let historyContent = '';
+        
+        // Extract visible content from terminal buffer
+        for (let i = 0; i < buffer.length; i++) {
+          const line = buffer.getLine(i);
+          if (line) {
+            historyContent += line.translateToString(true) + '\n';
+          }
+        }
+        
+        onBufferUpdate(historyContent);
+      }
     });
 
     socket.on('ended', () => {

@@ -7,13 +7,31 @@
   import { page } from "$app/stores";
   import { browser } from "$app/environment";
   import { io } from "socket.io-client";
+  import { AnsiUp } from 'ansi_up';
 
   let authed = false;
   let sessionId;
   let socket;
+  let sessionAttached = false;
   let chatView = false;
+  let ansiUp;
+  
+  // Unified session history - single source of truth
+  let sessionHistory = {
+    // All terminal I/O as structured events
+    events: [],
+    // Raw terminal buffer for terminal view
+    terminalBuffer: '',
+    // Current partial input/output being built
+    currentInput: '',
+    currentOutput: ''
+  };
 
   onMount(() => {
+    // Initialize AnsiUp for processing terminal output
+    ansiUp = new AnsiUp();
+    ansiUp.use_classes = true;
+    
     if (browser) {
       const storedAuth = localStorage.getItem("dispatch-auth-token");
       if (storedAuth) {
@@ -22,7 +40,18 @@
         // Create socket connection for end session functionality
         socket = io({ transports: ["websocket", "polling"] });
         socket.emit("auth", storedAuth, (res) => {
-          // Auth handled, socket ready for end session
+          if (res && res.ok) {
+            // Now attach to the session so chat can send/receive data
+            const dims = { cols: 80, rows: 24 }; // Default dimensions for chat
+            socket.emit('attach', { sessionId, ...dims }, (resp) => {
+              if (resp && resp.ok) {
+                sessionAttached = true;
+                console.log('Socket attached to session for chat use');
+              } else {
+                console.error('Failed to attach socket to session:', resp);
+              }
+            });
+          }
         });
       } else {
         goto("/");
@@ -44,10 +73,102 @@
 
   function toggleView() {
     chatView = !chatView;
+    console.log('View toggled to:', chatView ? 'chat' : 'terminal');
+  }
+
+  // UUID fallback for non-secure contexts
+  function generateUUID() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    // Fallback UUID generator for non-secure contexts
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  // Unified history management functions
+  function addInputEvent(input) {
+    const event = {
+      type: 'input',
+      content: input,
+      timestamp: new Date(),
+      id: generateUUID()
+    };
+    sessionHistory.events = [...sessionHistory.events, event];
+    console.log('Added input event:', input);
+  }
+
+  function addOutputEvent(output) {
+    const event = {
+      type: 'output', 
+      content: output,
+      timestamp: new Date(),
+      id: generateUUID()
+    };
+    sessionHistory.events = [...sessionHistory.events, event];
+    console.log('Added output event, length:', output.length);
+  }
+
+  function updateTerminalBuffer(buffer) {
+    sessionHistory.terminalBuffer = buffer;
+  }
+
+  // Make chat history reactive to sessionHistory changes
+  let chatHistory = { chatMessages: [], currentInput: '', currentOutput: '' };
+  
+  $: {
+    // Convert events to chat messages format whenever sessionHistory changes
+    const chatMessages = [];
+    
+    // Add welcome message if no events
+    if (sessionHistory.events.length === 0) {
+      chatMessages.push({
+        type: 'system',
+        content: 'Chat view enabled. Commands will appear as messages below.',
+        timestamp: new Date()
+      });
+    }
+
+    // Convert I/O events to chat messages
+    for (const event of sessionHistory.events) {
+      if (event.type === 'input') {
+        chatMessages.push({
+          type: 'user',
+          content: event.content,
+          timestamp: event.timestamp
+        });
+      } else if (event.type === 'output') {
+        // Process ANSI codes to HTML for chat display
+        const htmlContent = ansiUp ? ansiUp.ansi_to_html(event.content) : event.content;
+        chatMessages.push({
+          type: 'assistant',
+          content: htmlContent,
+          timestamp: event.timestamp,
+          isHtml: true // Content is now processed HTML
+        });
+      }
+    }
+
+    chatHistory = {
+      chatMessages,
+      currentInput: sessionHistory.currentInput,
+      currentOutput: sessionHistory.currentOutput
+    };
+    
+    console.log('Session page: Updated chat history with', chatMessages.length, 'messages from', sessionHistory.events.length, 'events');
+    console.log('Session page: Chat messages:', chatMessages);
+    console.log('Session page: Passing chatHistory:', chatHistory);
+  }
+
+  function getHistoryForTerminal() {
+    return sessionHistory.terminalBuffer;
   }
 </script>
 
-<div class="container">
+<div class="container session-container">
   <HeaderToolbar>
     {#snippet left()}
       <a href="/sessions" class="back-link" aria-label="Back to sessions">
@@ -65,6 +186,24 @@
 
     {#snippet right()}
       {#if authed && sessionId}
+        <button
+          title={chatView ? "Switch to Terminal" : "Switch to Chat"}
+          aria-label={chatView ? "Switch to Terminal view" : "Switch to Chat view"}
+          class="view-toggle-header btn-icon-only"
+          on:click={toggleView}
+        >
+          {#if chatView}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          {:else}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          {/if}
+        </button>
         <button
           title="End Session"
           aria-label="End Session"
@@ -87,35 +226,22 @@
   <div class="terminal-page-container">
     {#if authed && sessionId}
       {#if chatView}
-        <Chat {socket} {sessionId}>
-          <button 
-            slot="toggle-button" 
-            class="view-toggle" 
-            on:click={toggleView} 
-            title="Switch to Terminal"
-            aria-label="Switch to Terminal view"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-          </button>
-        </Chat>
+        <Chat 
+          {socket} 
+          {sessionId} 
+          initialHistory={chatHistory}
+          onInputEvent={addInputEvent}
+          onOutputEvent={addOutputEvent}
+        />
       {:else}
-        <div class="terminal-header">
-          <button 
-            class="view-toggle" 
-            on:click={toggleView} 
-            title="Switch to Chat"
-            aria-label="Switch to Chat view"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          </button>
-        </div>
-        <Terminal {sessionId} onchatclick={toggleView} />
+        <Terminal 
+          {sessionId} 
+          onchatclick={toggleView}
+          initialHistory={getHistoryForTerminal()}
+          onInputEvent={addInputEvent}
+          onOutputEvent={addOutputEvent}
+          onBufferUpdate={updateTerminalBuffer}
+        />
       {/if}
     {:else}
       <div style="text-align: center; padding: 2rem;">
@@ -126,11 +252,20 @@
 </div>
 <style>
 
+  .session-container {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  
   .terminal-page-container {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0; /* Allow flex child to shrink */
   }
 
   .back-link {
@@ -168,6 +303,29 @@
     }
   }
 
+  .view-toggle-header {
+    background: transparent !important;
+    color: var(--primary) !important;
+    border: none !important;
+    padding: var(--space-sm) !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .view-toggle-header:hover {
+    background: rgba(0, 255, 136, 0.1) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .view-toggle-header svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    stroke-width: 2;
+  }
+
   .end-session-btn {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -188,47 +346,5 @@
 
   .loading {
     color: var(--text-muted);
-  }
-
-  .terminal-header {
-    display: flex;
-    justify-content: flex-end;
-    padding: var(--space-sm) var(--space-md);
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .view-toggle {
-    background: transparent !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 6px !important;
-    padding: var(--space-sm) !important;
-    color: var(--text-secondary) !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 40px;
-    min-height: 40px;
-  }
-
-  .view-toggle:hover {
-    background: var(--surface-hover) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border-light) !important;
-  }
-
-  .view-toggle svg {
-    width: 18px;
-    height: 18px;
-    stroke-width: 2;
-  }
-
-  @media (max-width: 768px) {
-    .view-toggle {
-      min-width: 44px !important;
-      min-height: 44px !important;
-    }
   }
 </style>

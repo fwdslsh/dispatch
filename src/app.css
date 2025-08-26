@@ -156,6 +156,26 @@ body {
   /* Account for fixed navigation */
 }
 
+/* Prevent page scrolling on session pages */
+body:has(.session-container) {
+  overflow: hidden;
+  height: 100vh;
+  max-height: 100vh;
+}
+
+/* Session container overrides */
+.session-container {
+  max-width: none !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: var(--bg-dark) !important;
+  backdrop-filter: none !important;
+  overflow: hidden !important;
+}
+
 /* Typography */
 h1,
 h2,
