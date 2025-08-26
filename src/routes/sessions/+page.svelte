@@ -129,7 +129,7 @@
                     <BackIcon />
                 </button>
                 {:else}
-                <h2 class="error-text">NO KEY SET</h2>
+                <h2 class="error-text">No key set</h2>
                 {/if}
             {/snippet}
 
@@ -143,7 +143,7 @@
         <div class="sessions">
             {#if sessions.length === 0}
                 <div class="empty-state">
-                    <p>no active sessions</p>
+                    <h2>no active sessions</h2>
                     <p style="font-size: 0.9rem;">
                         create a new session to get started
                     </p>
@@ -248,9 +248,6 @@
         text-align: center;
         padding: 2rem;
         color: var(--text-muted);
-        background: rgba(0, 0, 0, 0.1);
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(10px);
         margin: var(--space-md);
     }
