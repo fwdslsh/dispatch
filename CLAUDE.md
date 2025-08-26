@@ -9,10 +9,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ```bash
+# Use correct Node.js version (22+)
+nvm use
+
 # Install dependencies
 npm install
 
-# Development server with hot reload
+# Development server with hot reload (sets TERMINAL_KEY=test, runs on --host)
 npm run dev
 
 # Build for production  
@@ -27,8 +30,13 @@ npm run check
 # Watch mode type checking
 npm run check:watch
 
-# Start production server
+# Start production server (includes build + LocalTunnel enabled)
 npm start
+
+# Alternative production start
+node src/app.js
+# OR use the wrapper script
+./start.sh
 ```
 
 ## Architecture
@@ -38,17 +46,22 @@ npm start
 - **Frontend**: SvelteKit application with xterm.js terminal emulator
 - **Backend**: Express server with Socket.IO for WebSocket communication
 - **Terminal Management**: node-pty for spawning and managing PTY sessions
-- **Session Storage**: Simple JSON-based session persistence
+- **Session Storage**: Simple JSON-based session persistence  
 - **Containerization**: Multi-stage Docker build with non-root execution
+- **UI Framework**: Uses augmented-ui for futuristic styling (see https://augmented-ui.com/docs/)
 
 ### Key Files Structure
 
 ```
 src/
 ├── app.js                     # Production server entry point
+├── app.css                    # Global styles with augmented-ui
 ├── lib/
 │   ├── components/
-│   │   └── Terminal.svelte    # Main terminal component with xterm.js
+│   │   ├── Terminal.svelte    # Main terminal component with xterm.js
+│   │   ├── Chat.svelte        # Chat/auxiliary UI component
+│   │   ├── HeaderToolbar.svelte # Navigation toolbar
+│   │   └── Icons/             # SVG icon components
 │   └── server/
 │       ├── socket-handler.js  # Socket.IO connection management
 │       ├── terminal.js        # TerminalManager class for PTY sessions
@@ -56,8 +69,8 @@ src/
 │       └── sessions.json      # Session storage file
 └── routes/
     ├── +page.svelte          # Main application interface
-    ├── session/[id]/+page.svelte  # Individual session view
     ├── sessions/+page.svelte # Session management interface
+    ├── sessions/[id]/+page.svelte # Individual session view
     └── public-url/+server.js # LocalTunnel URL endpoint
 ```
 
@@ -145,6 +158,13 @@ The `TerminalManager` class handles PTY lifecycle:
 - Socket.IO client management with authentication flow
 - Responsive terminal sizing with ResizeObserver and window events
 - Session persistence using localStorage
+- Mobile-first responsive design with keyboard handling
+
+### UI Styling Guidelines
+- Uses augmented-ui library for futuristic interface elements
+- Reference https://augmented-ui.com/docs/ when working with augmented-ui styles
+- Consistent theme with CSS custom properties (--bg-darker, --primary, --surface, etc.)
+- Mobile keyboard detection and viewport management
 
 ### Error Handling
 - Graceful PTY process failures
@@ -176,3 +196,26 @@ For production with Claude Code:
 - PTY session creation in `terminal.js:36-86`
 - Terminal component initialization in `Terminal.svelte:28-62`
 - LocalTunnel URL extraction in `app.js:38-76`
+
+### Development Access
+- Development server runs on all interfaces (`--host` flag)
+- Default auth key in development: `test`
+- Access at `http://localhost:3000` with key `test`
+
+## Key Dependencies & Versions
+
+- **Node.js**: >=22 (see `.nvmrc` and `package.json` engines)
+- **xterm.js**: Terminal emulator with addon support
+- **Socket.IO**: Real-time bidirectional communication
+- **node-pty**: Pseudoterminal management
+- **augmented-ui**: Futuristic UI components
+- **SvelteKit**: Full-stack web framework
+- **Playwright**: Testing framework (available but not configured)
+
+## Runtime Requirements & Constraints
+
+- Container runs as non-root user (`appuser`, uid 10001)
+- Session directories are ephemeral and isolated
+- Claude CLI must be installed separately for Claude mode
+- LocalTunnel requires network access for public URLs
+- File system permissions must allow session directory creation

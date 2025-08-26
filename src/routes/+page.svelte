@@ -89,4 +89,16 @@
     display: flex;
     justify-content: center;
   }
+
+  /* Enhanced form styling */
+  form {
+    background: rgba(0, 0, 0, 0.1);
+    padding: var(--space-xl);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 
+      0 8px 25px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
 </style>

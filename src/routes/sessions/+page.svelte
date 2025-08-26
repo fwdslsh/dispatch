@@ -200,7 +200,19 @@
         text-align: center;
         padding: 2rem;
         color: var(--text-muted);
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        margin: var(--space-md);
     }
+    
+    .empty-state p:first-child {
+        font-size: 1.2rem;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-sm);
+    }
+    
     select {
         padding-inline-start: var(--space-md);
     }

@@ -690,13 +690,17 @@
   }
 
   .mobile-controls {
-    background: var(--surface);
-    border-top: 1px solid var(--border);
+    background: rgba(26, 26, 26, 0.8);
+    border-top: 1px solid rgba(0, 255, 136, 0.2);
     display: flex;
     flex-direction: column;
     position: relative;
     z-index: 1001; /* Above overlay textarea */
     min-height: 80px;
+    backdrop-filter: blur(15px);
+    box-shadow: 
+      0 -4px 12px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .mobile-toolbar {
@@ -723,10 +727,12 @@
 
   .key-button:hover,
   .key-button:active {
-    background: var(--surface-hover) !important;
-    color: var(--text-primary) !important;
+    background: rgba(0, 255, 136, 0.1) !important;
+    color: var(--primary) !important;
     transform: none !important;
-    box-shadow: none !important;
+    box-shadow: 
+      0 0 8px rgba(0, 255, 136, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
   }
 
   .key-button svg {
