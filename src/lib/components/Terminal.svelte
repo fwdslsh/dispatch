@@ -23,6 +23,7 @@
   let initialViewportHeight = 0;
 
   const LS_KEY = 'dispatch-session-id';
+  const LS_HISTORY_KEY = 'dispatch-session-history';
 
   let options = {
     convertEol: true,
@@ -113,10 +114,22 @@
     pollPublicUrl();
     const pollId = setInterval(pollPublicUrl, 10000);
     
-    // Restore terminal history if available
-    if (initialHistory && terminal) {
-      console.debug('Restoring terminal history, length:', initialHistory.length);
-      terminal.write(initialHistory);
+    // Load session history from localStorage first
+    const storedHistory = loadSessionHistory();
+    
+    // Restore terminal history - prefer stored history over initial history
+    const historyToRestore = storedHistory || initialHistory || '';
+    if (historyToRestore && terminal) {
+      console.debug('Restoring terminal history, length:', historyToRestore.length);
+      terminal.write(historyToRestore);
+      
+      // If we used stored history, also reconstruct the terminal buffer
+      if (storedHistory) {
+        const reconstructedBuffer = reconstructTerminalBuffer();
+        if (onBufferUpdate) {
+          onBufferUpdate(reconstructedBuffer);
+        }
+      }
     }
     
     // Store poll cleanup
@@ -149,8 +162,8 @@
 
   function sendMobileInput() {
     console.debug('Terminal: sendMobileInput called, input:', mobileInput, 'socket:', !!socket, 'socket.connected:', socket?.connected);
-    if (!mobileInput.trim() || !socket) {
-      console.debug('Terminal: sendMobileInput blocked - no input or socket', { 
+    if (!socket) {
+      console.debug('Terminal: sendMobileInput blocked - no socket', { 
         hasInput: !!mobileInput.trim(), 
         hasSocket: !!socket,
         socketConnected: socket?.connected 
@@ -158,19 +171,27 @@
       return;
     }
     
-    const inputToSend = mobileInput;
-    console.debug('Terminal: sending to PTY:', inputToSend);
-    
-    // Add to shared input history
-    onInputEvent(inputToSend);
-    
-    // Send to PTY with carriage return
-    socket.emit('input', inputToSend + '\r');
-    handleInputAccumulation(inputToSend + '\r');
-    
-    // Clear input
-    mobileInput = '';
-    console.debug('Terminal: input cleared, new value:', mobileInput);
+    // Only check for input content if we have some, otherwise allow empty sends (for Enter key)
+    if (mobileInput.trim()) {
+      const inputToSend = mobileInput;
+      console.debug('Terminal: sending to PTY:', inputToSend);
+      
+      // Add to shared input history
+      onInputEvent(inputToSend);
+      
+      // Send to PTY with carriage return
+      socket.emit('input', inputToSend + '\r');
+      handleInputAccumulation(inputToSend + '\r');
+      
+      // Clear input
+      mobileInput = '';
+      console.debug('Terminal: input cleared, new value:', mobileInput);
+    } else {
+      // No input content, just send enter key
+      console.debug('Terminal: sending empty enter key');
+      socket.emit('input', '\r');
+      handleInputAccumulation('\r');
+    }
   }
 
   function handleMobileKeydown(event) {
@@ -185,20 +206,24 @@
       // Command completed - save the accumulated input
       if (currentInputBuffer.trim()) {
         onInputEvent(currentInputBuffer);
+        addToSessionHistory(currentInputBuffer + '\r', 'input');
       }
       currentInputBuffer = '';
     } else if (data === '\b') {
       // Backspace - remove last character from buffer
       currentInputBuffer = currentInputBuffer.slice(0, -1);
     } else if (data === '\u001b[A' || data === '\u001b[B' || data === '\u001b[C' || data === '\u001b[D') {
-      // Arrow keys - don't add to input buffer
+      // Arrow keys - don't add to input buffer, but save to history for special keys
+      addToSessionHistory(data, 'input');
       return;
     } else if (data === '\t' || data === '\u0003') {
       // Tab or Ctrl+C - special commands that should be saved immediately
       if (data === '\u0003') {
         onInputEvent('Ctrl+C');
+        addToSessionHistory(data, 'input');
       } else if (data === '\t') {
         onInputEvent('Tab');
+        addToSessionHistory(data, 'input');
       }
     } else if (data.length === 1 && data >= ' ') {
       // Regular printable character - add to buffer
@@ -294,6 +319,7 @@
 
   let currentInputBuffer = ''; // Buffer to accumulate input until Enter is pressed
   let currentOutputBuffer = ''; // Buffer to accumulate output until complete lines
+  let sessionTerminalHistory = []; // Deduplicated terminal history for this session
 
 
   function pollPublicUrl() {
@@ -304,6 +330,93 @@
         }
       });
     }
+  }
+
+  // Session history management functions
+  function getStorageKey() {
+    return `${LS_HISTORY_KEY}-${sessionId}`;
+  }
+
+  function loadSessionHistory() {
+    if (!sessionId) return '';
+    
+    try {
+      const stored = localStorage.getItem(getStorageKey());
+      if (stored) {
+        const history = JSON.parse(stored);
+        if (Array.isArray(history)) {
+          sessionTerminalHistory = history;
+          console.debug('Loaded session history:', sessionTerminalHistory.length, 'items');
+          // Reconstruct the terminal content from stored history entries
+          return reconstructTerminalBuffer();
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load session history:', error);
+    }
+    return '';
+  }
+
+  function saveSessionHistory() {
+    if (!sessionId) return;
+    
+    try {
+      localStorage.setItem(getStorageKey(), JSON.stringify(sessionTerminalHistory));
+      console.debug('Saved session history:', sessionTerminalHistory.length, 'items');
+    } catch (error) {
+      console.warn('Failed to save session history:', error);
+    }
+  }
+
+  function addToSessionHistory(data, type = 'output') {
+    if (!data || !sessionId) return;
+    
+    // Create a unique entry with content and metadata
+    const entry = {
+      type,
+      content: data,
+      timestamp: Date.now(),
+      id: Math.random().toString(36).substr(2, 9)
+    };
+    
+    // Check for duplicate content (avoid adding the same data twice)
+    const lastEntry = sessionTerminalHistory[sessionTerminalHistory.length - 1];
+    if (lastEntry && lastEntry.content === data && lastEntry.type === type) {
+      console.debug('Skipping duplicate history entry');
+      return;
+    }
+    
+    sessionTerminalHistory.push(entry);
+    saveSessionHistory();
+  }
+
+  function clearSessionHistory() {
+    if (!sessionId) return;
+    
+    try {
+      localStorage.removeItem(getStorageKey());
+      sessionTerminalHistory = [];
+      console.debug('Cleared session history');
+    } catch (error) {
+      console.warn('Failed to clear session history:', error);
+    }
+  }
+
+  function reconstructTerminalBuffer() {
+    // Rebuild terminal buffer from stored history in chronological order
+    let buffer = '';
+    
+    // Sort by timestamp to ensure correct order
+    const sortedHistory = [...sessionTerminalHistory].sort((a, b) => a.timestamp - b.timestamp);
+    
+    for (const entry of sortedHistory) {
+      // Only include output content for terminal display
+      // Input is handled by the terminal itself and shouldn't be duplicated
+      if (entry.type === 'output') {
+        buffer += entry.content;
+      }
+    }
+    return buffer;
   }
 
   function setupSocketListeners() {
@@ -322,6 +435,9 @@
       console.debug('Terminal: received output from socket:', data.length, 'chars, first 50:', data.substring(0, 50));
       terminal?.write(data);
       console.debug('Terminal: wrote to xterm, terminal exists:', !!terminal);
+      
+      // Save to localStorage history for persistence
+      addToSessionHistory(data, 'output');
       
       // Accumulate output data for chat history
       currentOutputBuffer += data;
@@ -363,6 +479,8 @@
     socket.on('ended', () => {
       terminal?.writeln('\r\n[session ended]\r\n');
       localStorage.removeItem(LS_KEY);
+      // Clear session history when session ends
+      clearSessionHistory();
       // Redirect to sessions page when session ends
       setTimeout(() => goto('/sessions'), 1000); // Small delay to show the message
     });
@@ -419,13 +537,18 @@
     height: 570px; /* Consistent height with chat view */
   }
   
+  /* Desktop layout */
+  @media (min-width: 769px) {
+    .terminal-container {
+      height: calc(100dvh - 200px); /* Account for header + controls with grid layout */
+    }
+  }
+  
   /* Handle mobile viewport and keyboard */
   @media (max-width: 768px) {
     .terminal-container {
-      height: calc(100dvh - 60px - 120px); /* Account for header (60px) + mobile controls (120px) */
+      height: calc(100dvh - 100px); /* Simplified calculation for grid layout */
       position: relative;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
       width: 100vw;
       max-width: 100vw;
       box-sizing: border-box;
@@ -437,28 +560,42 @@
       touch-action: pan-y;
       width: 100%;
       max-width: 100%;
-      overflow-x: hidden; /* Prevent horizontal scroll */
     }
     
     .terminal :global(.xterm-viewport) {
-      /* Ensure mobile scrolling works */
+      /* Fix mobile scrolling - ensure native scroll behavior */
       -webkit-overflow-scrolling: touch !important;
       touch-action: pan-y !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
       width: 100% !important;
       max-width: 100% !important;
-      overflow-x: hidden !important;
     }
 
     .terminal :global(.xterm) {
       width: 100% !important;
       max-width: 100% !important;
+      pointer-events: allow !important;
+      -webkit-overflow-scrolling: touch;
+     :global(div) {
+        pointer-events: none !important;
+      }
     }
+    
     
     /* When mobile keyboard is open, adjust layout but preserve scrolling */
     :global(body.keyboard-open) .terminal-container {
-      height: calc(100vh - 60px - 120px); /* Use viewport height when keyboard is open */
-      max-height: calc(100vh - 60px - 120px);
+      height: calc(100vh - 200px); /* Use viewport height when keyboard is open */
+      max-height: calc(100vh - 200px);
       overflow: hidden;
+    }
+  }
+  
+  /* Desktop keyboard handling */
+  @media (min-width: 769px) {
+    :global(body.keyboard-open) .terminal-container {
+      height: calc(100vh - 200px); /* Same calculation for consistency */
+      max-height: calc(100vh - 200px);
     }
 
     /* Ensure terminal stays visible above keyboard but remains scrollable */
@@ -492,7 +629,6 @@
   .terminal :global(.xterm .xterm-screen) {
     /* Allow the terminal content to scroll */
     overflow-y: auto !important;
-    margin-inline: var(--space-md);
   }
 
   .controls {

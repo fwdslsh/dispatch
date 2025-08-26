@@ -10,7 +10,14 @@
   // Input handling functions
   function handleSend() {
     console.debug("MobileControls: handleSend called, input:", currentInput);
-    onSendMessage();
+    // Always send enter key even if there's no message
+    if (currentInput.trim()) {
+      // Send the message if there's content
+      onSendMessage();
+    } else {
+      // Send just enter key if no content (for prompts, confirmations, etc.)
+      onSpecialKey("\r");
+    }
   }
 
   function handleKeydown(event) {
@@ -21,26 +28,43 @@
 
 {#if isMobile || true}
   <div class="mobile-controls">
-    <div class="mobile-input-wrapper">
-      <textarea
-        bind:value={currentInput}
-        on:keydown={handleKeydown}
-        placeholder="Type your command..."
-        class="mobile-input"
-        rows="1"
-        autocomplete="off"
-        autocapitalize="none"
-        spellcheck="false"
-        inputmode="text"
-        enterkeyhint="send"
-        data-gramm="false"
-        data-gramm_editor="false"
-        data-enable-grammarly="false"
-      ></textarea>
-    </div>
-    <div class="mobile-toolbar">
+    <div class="controls-grid">
+      <!-- grid cells: we'll place buttons in order; input spans bottom row -->
       <button
-        class="key-button {isTerminalView ? 'chat-button' : 'terminal-button'}"
+        class="key-button"
+        on:click={() => onSpecialKey("\u001b[A")}
+        title="Up arrow"
+        aria-label="Send Up arrow"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M12 19V5M5 12l7-7 7 7" />
+        </svg>
+      </button>
+
+      <button
+        class="key-button"
+        on:click={() => onSpecialKey("\u001b[B")}
+        title="Down arrow"
+        aria-label="Send Down arrow"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M12 5v14M19 12l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <button
+        class="key-button"
+        on:click={() => onSpecialKey("\u0003")}
+        title="Ctrl+C"
+        aria-label="Send Ctrl+C"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+
+      <button
+        class="key-button toggle-button"
         on:click={onToggleView}
         title={isTerminalView ? "Switch to Chat" : "Switch to Terminal"}
         aria-label={isTerminalView
@@ -61,6 +85,7 @@
           </svg>
         {/if}
       </button>
+
       <button
         class="key-button"
         on:click={() => onSpecialKey("\t")}
@@ -72,46 +97,36 @@
           <path d="M8 10h6" />
         </svg>
       </button>
-      <button
-        class="key-button"
-        on:click={() => onSpecialKey("\u0003")}
-        title="Ctrl+C"
-        aria-label="Send Ctrl+C"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
-      </button>
-      <button
-        class="key-button"
-        on:click={() => onSpecialKey("\u001b[A")}
-        title="Up arrow"
-        aria-label="Send Up arrow"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M12 19V5M5 12l7-7 7 7" />
-        </svg>
-      </button>
-      <button
-        class="key-button"
-        on:click={() => onSpecialKey("\u001b[B")}
-        title="Down arrow"
-        aria-label="Send Down arrow"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M12 5v14M19 12l-7 7-7-7" />
-        </svg>
-      </button>
 
       <button
-        class="key-button"
+        class="key-button send-button"
         on:click={handleSend}
-        aria-label="Send command"
+        title="Send"
+        aria-label="Send"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
           <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
         </svg>
       </button>
+
+      <!-- Input spans the entire bottom row -->
+      <div class="input-wrapper">
+        <textarea
+          bind:value={currentInput}
+          on:keydown={handleKeydown}
+          placeholder="Type your command..."
+          class="mobile-input"
+          rows="1"
+          autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
+          inputmode="text"
+          enterkeyhint="send"
+          data-gramm="false"
+          data-gramm_editor="false"
+          data-enable-grammarly="false"
+        ></textarea>
+      </div>
     </div>
   </div>
 {/if}
@@ -127,17 +142,16 @@
     backdrop-filter: blur(15px);
   }
 
-  .mobile-input-wrapper {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
+  .controls-grid {
+    display: grid;
+    gap: var(--space-xs);
     padding: var(--space-md);
-    border-bottom: 1px solid var(--border);
-    min-height: 60px;
+    width: 100%;
+    height: 100%;
   }
 
   .mobile-input {
-    flex: 1;
+    width: 100%;
     background: rgba(42, 42, 42, 0.6);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -146,9 +160,11 @@
     font-size: 16px; /* Prevent zoom on iOS */
     line-height: 1.4;
     resize: none;
-    min-height: 40px;
+    min-height: 44px;
+    height: 100%;
     padding: var(--space-sm);
     backdrop-filter: blur(10px);
+    box-sizing: border-box;
   }
 
   .mobile-input:focus {
@@ -161,15 +177,60 @@
     color: var(--text-muted);
   }
 
+  /* Desktop: 2 rows x 6 columns
+     - grid-template: 2 rows of equal height, 6 columns
+     Mobile: 3 rows x 3 columns
+     - grid-template: 3 rows of equal height, 3 columns
+  */
+  @media (min-width: 800px) {
+    .controls-grid {
+      grid-template-columns: repeat(6, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      align-items: stretch;
+      column-gap: var(--space-xs);
+      row-gap: var(--space-xs);
+    }
 
-  .mobile-toolbar {
-    display: flex;
-    gap: var(--space-xs);
-    padding: var(--space-md);
-    min-height: 60px; /* Fixed height for consistency */
-    height: min-content;
-    justify-content: space-evenly;
-    align-items: center;
+    /* Buttons occupy first row and first part of second row as needed */
+    /* .controls-grid > .key-button:nth-child(1) { grid-column: 1; grid-row: 1; }
+    .controls-grid > .key-button:nth-child(2) { grid-column: 2; grid-row: 1; }
+    .controls-grid > .key-button:nth-child(3) { grid-column: 3; grid-row: 1; }
+    .controls-grid > .key-button:nth-child(4) { grid-column: 4; grid-row: 1; }
+    .controls-grid > .key-button:nth-child(5) { grid-column: 5; grid-row: 1; }
+    .controls-grid > .key-button:nth-child(6) { grid-column: 6; grid-row: 1; } */
+
+    /* Input spans entire bottom row */
+    .controls-grid > .input-wrapper {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+
+  @media (max-width: 800px) {
+    .controls-grid {
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      column-gap: var(--space-xs);
+      row-gap: var(--space-xs);
+      align-items: stretch;
+    }
+
+    /* Place first 6 controls across first two rows (3 cols each)
+       Buttons 1-3: row 1, cols 1-3
+       Buttons 4-6: row 2, cols 1-3
+       Input spans row 3 across all columns
+    */
+    /* .controls-grid > .key-button:nth-child(1) { grid-column: 1; grid-row: 1; }
+    .controls-grid > .key-button:nth-child(2) { grid-column: 2; grid-row: 1; }
+    .controls-grid > .key-button:nth-child(3) { grid-column: 3; grid-row: 1; }
+    .controls-grid > .key-button:nth-child(4) { grid-column: 1; grid-row: 2; }
+    .controls-grid > .key-button:nth-child(5) { grid-column: 2; grid-row: 2; }
+    .controls-grid > .key-button:nth-child(6) { grid-column: 3; grid-row: 2; } */
+
+    .controls-grid > .input-wrapper {
+      grid-column: 1 / -1;
+      grid-row: 3;
+    }
   }
 
   .key-button {
@@ -178,8 +239,8 @@
     border: none !important;
     border-radius: 8px !important;
     padding: var(--space-md) !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
+    width: 100% !important;
+    height: 100% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -200,29 +261,5 @@
     width: 20px;
     height: 20px;
     stroke-width: 2;
-  }
-
-  .chat-button {
-    color: var(--primary) !important;
-  }
-
-  .chat-button:hover {
-    color: var(--text-primary) !important;
-    background: rgba(0, 255, 136, 0.1) !important;
-    text-shadow:
-      0 0 8px var(--primary),
-      0 0 16px rgba(0, 255, 136, 0.4) !important;
-  }
-
-  .terminal-button {
-    color: var(--primary) !important;
-  }
-
-  .terminal-button:hover {
-    color: var(--text-primary) !important;
-    background: rgba(0, 255, 136, 0.1) !important;
-    text-shadow:
-      0 0 8px var(--primary),
-      0 0 16px rgba(0, 255, 136, 0.4) !important;
   }
 </style>

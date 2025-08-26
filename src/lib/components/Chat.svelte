@@ -299,7 +299,7 @@
   /* Mobile optimizations for chat */
   @media (max-width: 768px) {
     .chat-view {
-      height: calc(100dvh - 60px - 120px); /* Account for header (60px) + mobile controls (120px) */
+      height: calc(100dvh - 100px); /* Account for header (60px) + mobile controls (120px) */
       overflow: hidden;
       display: flex;
       flex-direction: column;
