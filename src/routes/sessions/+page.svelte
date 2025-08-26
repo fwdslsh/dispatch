@@ -31,6 +31,13 @@
                 // Check if authentication is actually required
                 authRequired = storedAuth !== "no-auth";
                 
+                // Update body class based on auth requirement
+                if (!authRequired) {
+                    document.body.classList.add('no-key');
+                } else {
+                    document.body.classList.remove('no-key');
+                }
+                
                 const authKey = storedAuth === "no-auth" ? "" : storedAuth;
                 socket.emit("auth", authKey, (res) => {
                     authed = !!(res && res.ok);
@@ -112,9 +119,20 @@
         const storedAuth = localStorage.getItem("dispatch-auth-token");
         authRequired = storedAuth !== "no-auth";
         
+        // Add body class based on auth requirement
+        if (!authRequired) {
+            document.body.classList.add('no-key');
+        } else {
+            document.body.classList.remove('no-key');
+        }
+        
         connectSocket();
     });
-    onDestroy(disconnectSocket);
+    onDestroy(() => {
+        // Clean up body class
+        document.body.classList.remove('no-key');
+        disconnectSocket();
+    });
 </script>
 
 <Container>
@@ -137,7 +155,7 @@
                     <BackIcon />
                 </button>
                 {:else}
-                <h2 class="danger">NO KEY SET</h2>
+                <h2 class="error-text">NO KEY SET</h2>
                 {/if}
             {/snippet}
 

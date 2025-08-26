@@ -308,13 +308,11 @@
       margin: 0; /* Remove any default margins */
       padding: 0; /* Remove any default padding */
       box-sizing: border-box;
-      width: 100vw; /* Ensure full viewport width */
-      max-width: 100vw; /* Prevent overflow */
     }
     
     .chat-messages {
-      padding: var(--space-xs); /* Reduced padding on mobile */
-      gap: var(--space-md);
+      /*padding: var(--space-xs);  Reduced padding on mobile */
+      row-gap: var(--space-md);
       /* Account for header (60px) + mobile controls (120px) + safe area */
       max-height: calc(100vh - 200px);
       min-height: 0;

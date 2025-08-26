@@ -415,7 +415,6 @@
   .terminal-container {
     display: flex;
     flex-direction: column;
-
     position: relative;
   }
   
@@ -481,9 +480,4 @@
     /* Allow the terminal content to scroll */
     overflow-y: auto !important;
   }
-
-
-
-
-
 </style>

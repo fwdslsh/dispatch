@@ -202,24 +202,7 @@
 
       {#snippet right()}
         {#if authed && sessionId}
-          <button
-            title={chatView ? "Switch to Terminal" : "Switch to Chat"}
-            aria-label={chatView ? "Switch to Terminal view" : "Switch to Chat view"}
-            class="view-toggle-header btn-icon-only"
-            onclick={toggleView}
-          >
-            {#if chatView}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                <line x1="8" y1="21" x2="16" y2="21"/>
-                <line x1="12" y1="17" x2="12" y2="21"/>
-              </svg>
-            {:else}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-            {/if}
-          </button>
+        
 
           <h2># {page.params.id.slice(0, 8)}</h2>
           
