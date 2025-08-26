@@ -168,7 +168,7 @@
   }
 </script>
 
-<div class="container session-container">
+<div class="container" class:session-container={true}>
   <HeaderToolbar>
     {#snippet left()}
       <a href="/sessions" class="back-link" aria-label="Back to sessions">
@@ -252,10 +252,8 @@
 </div>
 <style>
 
-  .session-container {
-    height: 100vh;
-    max-height: 100vh;
-    overflow: hidden;
+  /* Default desktop layout - use normal container */
+  .container {
     display: flex;
     flex-direction: column;
   }
@@ -265,7 +263,22 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    min-height: 0; /* Allow flex child to shrink */
+    min-height: 400px; /* Minimum height for terminal functionality */
+  }
+  
+  /* Mobile-specific session container overrides */
+  @media (max-width: 800px) {
+    .session-container {
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .terminal-page-container {
+      min-height: 0; /* Allow flex child to shrink on mobile */
+    }
   }
 
   .back-link {
