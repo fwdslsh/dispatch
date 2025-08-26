@@ -60,6 +60,11 @@
   transition: all 0.3s ease;
 }
 
+body.no-key{
+  --primary: #ff6b6b;
+  --primary-muted: #ff6b6b50;
+  --primary-gradient: linear-gradient(135deg, #ff6b6b, #ff6b6b88);
+}
 body.no-key [data-augmented-ui] {
   --aug-border-bg: var(--secondary);
   border: 1px solid var(--secondary-muted);

@@ -4,7 +4,7 @@
     import { goto } from "$app/navigation";
     import HeaderToolbar from "$lib/components/HeaderToolbar.svelte";
     import Container from "$lib/components/Container.svelte";
-    import BackIcon from "$lib/components/BackIcon.svelte";
+    import BackIcon from "$lib/components/Icons/BackIcon.svelte";
     import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
     import SessionIcon from "$lib/components/Icons/SessionIcon.svelte";
     import StartSession from "$lib/components/Icons/StartSession.svelte";
@@ -14,9 +14,10 @@
     let active = null;
     let sessionMode = "bash"; // Default session mode
 
+    export let data;
+    
     let socket;
     let authed = false;
-    let authRequired = true; // Will be set to false if no TERMINAL_KEY is configured
     
     // Dialog state
     let showEndSessionDialog = false;
@@ -28,16 +29,6 @@
         socket.on("connect", () => {
             const storedAuth = localStorage.getItem("dispatch-auth-token");
             if (storedAuth) {
-                // Check if authentication is actually required
-                authRequired = storedAuth !== "no-auth";
-                
-                // Update body class based on auth requirement
-                if (!authRequired) {
-                    document.body.classList.add('no-key');
-                } else {
-                    document.body.classList.remove('no-key');
-                }
-                
                 const authKey = storedAuth === "no-auth" ? "" : storedAuth;
                 socket.emit("auth", authKey, (res) => {
                     authed = !!(res && res.ok);
@@ -114,32 +105,15 @@
         goto("/");
     }
 
-    onMount(() => {
-        // Set authRequired immediately based on stored auth
-        const storedAuth = localStorage.getItem("dispatch-auth-token");
-        authRequired = storedAuth !== "no-auth";
-        
-        // Add body class based on auth requirement
-        if (!authRequired) {
-            document.body.classList.add('no-key');
-        } else {
-            document.body.classList.remove('no-key');
-        }
-        
-        connectSocket();
-    });
-    onDestroy(() => {
-        // Clean up body class
-        document.body.classList.remove('no-key');
-        disconnectSocket();
-    });
+    onMount(connectSocket);
+    onDestroy(disconnectSocket);
 </script>
 
 <Container>
     {#snippet header()}
         <HeaderToolbar>
             {#snippet left()}
-                {#if authRequired}
+                {#if data.hasTerminalKey}
                 <button
                     class="button-secondary logout-btn btn-icon-only"
                     on:click={logout}

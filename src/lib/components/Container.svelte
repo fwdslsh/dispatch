@@ -33,7 +33,7 @@
   .container {
     --aug-border-opacity: 0.5;
     max-width: 800px;
-    min-height: 475px;
+    min-height: 625px;
     /* max-height: calc(100svh - calc(var(--space-lg) * 2)); */
     margin: 0 auto;
     margin-top: var(--space-xl);

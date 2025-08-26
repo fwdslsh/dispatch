@@ -9,7 +9,7 @@
   import { browser } from "$app/environment";
   import { io } from "socket.io-client";
   import { AnsiUp } from 'ansi_up';
-  import BackIcon from "$lib/components/BackIcon.svelte";
+  import BackIcon from "$lib/components/Icons/BackIcon.svelte";
   import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
   import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
 
