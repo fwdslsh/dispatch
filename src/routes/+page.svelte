@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { io } from "socket.io-client";
   import { onMount } from "svelte";
+  import Container from "$lib/components/Container.svelte";
   let key = "";
   let error = "";
   let loading = false;
@@ -37,29 +38,31 @@
 </svelte:head>
 
 <main class="login-page">
-  <div class="container">
-    <h1>dispatch</h1>
-    <p>terminal access via web</p>
+  <Container>
+    {#snippet children()}
+      <h1>dispatch</h1>
+      <p>terminal access via web</p>
 
-    <div class="form-container">
-      <form on:submit={handleLogin}>
-        <input
-          type="password"
-          placeholder="terminal key"
-          bind:value={key}
-          required
-          autocomplete="off"
-          disabled={loading}
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? "connecting..." : "connect"}
-        </button>
-      </form>
-    </div>
-    {#if error}
-      <div class="error">{error}</div>
-    {/if}
-  </div>
+      <div class="form-container">
+        <form on:submit={handleLogin}>
+          <input
+            type="password"
+            placeholder="terminal key"
+            bind:value={key}
+            required
+            autocomplete="off"
+            disabled={loading}
+          />
+          <button type="submit" disabled={loading}>
+            {loading ? "connecting..." : "connect"}
+          </button>
+        </form>
+      </div>
+      {#if error}
+        <div class="error">{error}</div>
+      {/if}
+    {/snippet}
+  </Container>
 </main>
 
 <style>
@@ -73,7 +76,7 @@
     }
   }
   @media (max-width: 800px) {
-    .login-page .container {
+    .login-page :global(.container) {
       display: flex;
       flex-direction: column;
       justify-content: center;

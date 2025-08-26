@@ -2,6 +2,7 @@
   import Terminal from "$lib/components/Terminal.svelte";
   import Chat from "$lib/components/Chat.svelte";
   import HeaderToolbar from "$lib/components/HeaderToolbar.svelte";
+  import Container from "$lib/components/Container.svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
@@ -168,60 +169,64 @@
   }
 </script>
 
-<div class="container" class:session-container={true}>
-  <HeaderToolbar>
-    {#snippet left()}
-      <a href="/sessions" class="back-link" aria-label="Back to sessions">
-        <svg
-          class="back-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path d="M19 12H5M12 19l-7-7 7-7" />
-        </svg>
-      </a>
-      <h2># {page.params.id.slice(0, 8)}</h2>
-    {/snippet}
-
-    {#snippet right()}
-      {#if authed && sessionId}
-        <button
-          title={chatView ? "Switch to Terminal" : "Switch to Chat"}
-          aria-label={chatView ? "Switch to Terminal view" : "Switch to Chat view"}
-          class="view-toggle-header btn-icon-only"
-          on:click={toggleView}
-        >
-          {#if chatView}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-          {:else}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-          {/if}
-        </button>
-        <button
-          title="End Session"
-          aria-label="End Session"
-          class="button-danger end-session-btn btn-icon-only"
-          on:click={endSession}
-        >
+<Container sessionContainer={true}>
+  {#snippet header()}
+    <HeaderToolbar>
+      {#snippet left()}
+        <a href="/sessions" class="back-link" aria-label="Back to sessions">
           <svg
-            class="end-icon"
+            class="back-icon"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
           >
-            <path d="M18 6L6 18M6 6l12 12" />
+            <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
-        </button>
-      {/if}
-    {/snippet}
-  </HeaderToolbar>
+        </a>
+        <h2># {page.params.id.slice(0, 8)}</h2>
+      {/snippet}
+
+      {#snippet right()}
+        {#if authed && sessionId}
+          <button
+            title={chatView ? "Switch to Terminal" : "Switch to Chat"}
+            aria-label={chatView ? "Switch to Terminal view" : "Switch to Chat view"}
+            class="view-toggle-header btn-icon-only"
+            on:click={toggleView}
+          >
+            {#if chatView}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            {/if}
+          </button>
+          <button
+            title="End Session"
+            aria-label="End Session"
+            class="button-danger end-session-btn btn-icon-only"
+            on:click={endSession}
+          >
+            <svg
+              class="end-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        {/if}
+      {/snippet}
+    </HeaderToolbar>
+  {/snippet}
+  
+  {#snippet children()}
 
   <div class="terminal-page-container">
     {#if authed && sessionId}
@@ -250,36 +255,16 @@
       </div>
     {/if}
   </div>
-</div>
+  {/snippet}
+</Container>
 <style>
 
-  /* Default desktop layout - use normal container */
-  .container {
-    display: flex;
-    flex-direction: column;
-  }
-  
   .terminal-page-container {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     min-height: 400px; /* Minimum height for terminal functionality */
-  }
-  
-  /* Mobile-specific session container overrides */
-  @media (max-width: 800px) {
-    .session-container {
-      height: 100vh;
-      max-height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .terminal-page-container {
-      min-height: 0; /* Allow flex child to shrink on mobile */
-    }
   }
 
   .back-link {
@@ -303,6 +288,10 @@
   }
   
   @media (max-width: 768px) {
+    .terminal-page-container {
+      min-height: 0; /* Allow flex child to shrink on mobile */
+    }
+    
     .back-link {
       padding: var(--space-sm);
       min-width: 44px;
