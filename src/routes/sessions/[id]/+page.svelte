@@ -9,8 +9,9 @@
   import { browser } from "$app/environment";
   import { io } from "socket.io-client";
   import { AnsiUp } from 'ansi_up';
-    import BackIcon from "$lib/components/BackIcon.svelte";
-    import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
+  import BackIcon from "$lib/components/BackIcon.svelte";
+  import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
+  import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
 
   let authed = false;
   let sessionId;
@@ -18,6 +19,9 @@
   let sessionAttached = false;
   let chatView = false;
   let ansiUp;
+  
+  // Dialog state
+  let showEndSessionDialog = false;
   
   // Unified session history - single source of truth
   let sessionHistory = {
@@ -42,16 +46,24 @@
         sessionId = page.params.id;
         // Create socket connection for end session functionality
         socket = io({ transports: ["websocket", "polling"] });
-        socket.emit("auth", storedAuth, (res) => {
+        const authKey = storedAuth === "no-auth" ? "" : storedAuth;
+        socket.emit("auth", authKey, (res) => {
+          console.debug('Session page: auth response:', res);
           if (res && res.ok) {
             // Now attach to the session so chat can send/receive data
             const dims = { cols: 80, rows: 24 }; // Default dimensions for chat
+            console.debug('Session page: attempting to attach to session:', sessionId);
             socket.emit('attach', { sessionId, ...dims }, (resp) => {
               if (resp && resp.ok) {
                 sessionAttached = true;
-                console.log('Socket attached to session for chat use');
+                console.debug('Socket attached to session successfully');
               } else {
                 console.error('Failed to attach socket to session:', resp);
+                // If session doesn't exist, redirect to sessions page
+                if (resp && resp.error === 'Session not found') {
+                  console.debug('Session not found, redirecting to sessions page');
+                  goto('/sessions');
+                }
               }
             });
           }
@@ -62,6 +74,10 @@
       }
     }
   });
+
+  function showEndDialog() {
+    showEndSessionDialog = true;
+  }
 
   function endSession() {
     if (sessionId && socket) {
@@ -74,9 +90,13 @@
     }
   }
 
+  function closeEndDialog() {
+    showEndSessionDialog = false;
+  }
+
   function toggleView() {
     chatView = !chatView;
-    console.log('View toggled to:', chatView ? 'chat' : 'terminal');
+    console.debug('View toggled to:', chatView ? 'chat' : 'terminal');
   }
 
   // UUID fallback for non-secure contexts
@@ -101,7 +121,7 @@
       id: generateUUID()
     };
     sessionHistory.events = [...sessionHistory.events, event];
-    console.log('Added input event:', input);
+    console.debug('Added input event:', input);
   }
 
   function addOutputEvent(output) {
@@ -112,7 +132,7 @@
       id: generateUUID()
     };
     sessionHistory.events = [...sessionHistory.events, event];
-    console.log('Added output event, length:', output.length);
+    console.debug('Added output event, length:', output.length);
   }
 
   function updateTerminalBuffer(buffer) {
@@ -161,9 +181,9 @@
       currentOutput: sessionHistory.currentOutput
     };
     
-    console.log('Session page: Updated chat history with', chatMessages.length, 'messages from', sessionHistory.events.length, 'events');
-    console.log('Session page: Chat messages:', chatMessages);
-    console.log('Session page: Passing chatHistory:', chatHistory);
+    console.debug('Session page: Updated chat history with', chatMessages.length, 'messages from', sessionHistory.events.length, 'events');
+    console.debug('Session page: Chat messages:', chatMessages);
+    console.debug('Session page: Passing chatHistory:', chatHistory);
   }
 
   function getHistoryForTerminal() {
@@ -175,13 +195,12 @@
   {#snippet header()}
     <HeaderToolbar>
       {#snippet left()}
-      <button onclick={() => goto('/sessions')} class="btn-icon-only" title="Back to sessions" aria-label="Back to sessions">
-          <!-- <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg> -->
+        <button onclick={() => goto('/sessions')} class="btn-icon-only" title="Back to sessions" aria-label="Back to sessions">
           <BackIcon />
+        </button>
+      {/snippet}
 
-      </button>
+      {#snippet right()}
         {#if authed && sessionId}
           <button
             title={chatView ? "Switch to Terminal" : "Switch to Chat"}
@@ -201,27 +220,18 @@
               </svg>
             {/if}
           </button>
+
+          <h2># {page.params.id.slice(0, 8)}</h2>
+          
           <button
             title="End Session"
             aria-label="End Session"
             class="button-danger end-session-btn btn-icon-only"
-            onclick={endSession}
+            onclick={showEndDialog}
           >
-          <EndSessionIcon />
-            <!-- <svg
-              class="end-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg> -->
+            <EndSessionIcon />
           </button>
         {/if}
-      {/snippet}
-
-      {#snippet right()}
-        <h2># {page.params.id.slice(0, 8)}</h2>
       {/snippet}
     </HeaderToolbar>
   {/snippet}
@@ -237,6 +247,7 @@
           initialHistory={chatHistory}
           onInputEvent={addInputEvent}
           onOutputEvent={addOutputEvent}
+          onterminalclick={toggleView}
         />
       {:else}
         <Terminal 
@@ -257,6 +268,17 @@
   </div>
   {/snippet}
 </Container>
+
+<!-- Confirmation Dialog for ending session -->
+<ConfirmationDialog
+  open={showEndSessionDialog}
+  title="End Session"
+  message="Are you sure you want to end this session? All unsaved work will be lost."
+  confirmText="End Session"
+  cancelText="Cancel"
+  onConfirm={endSession}
+  onClose={closeEndDialog}
+/>
 <style>
 
   .terminal-page-container {

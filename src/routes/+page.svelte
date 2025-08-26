@@ -12,7 +12,19 @@
     const storedAuth = localStorage.getItem("dispatch-auth-token");
     if (storedAuth) {
       goto("/sessions");
+      return;
     }
+    
+    // Check if auth is required by testing with empty key
+    const socket = io({ transports: ["websocket", "polling"] });
+    socket.emit("auth", "", (resp) => {
+      if (resp.ok) {
+        // No auth required, redirect to sessions
+        localStorage.setItem("dispatch-auth-token", "no-auth");
+        goto("/sessions");
+      }
+      socket.disconnect();
+    });
   });
 
   async function handleLogin(e) {

@@ -71,6 +71,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    margin-inline: -0.5rem;
   }
 
   .container-footer {

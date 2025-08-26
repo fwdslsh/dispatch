@@ -2,6 +2,7 @@
   import { onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { Xterm, XtermAddon } from '@battlefieldduck/xterm-svelte';
+  import MobileControls from './MobileControls.svelte';
 
   export let socket = null;
   export let sessionId = null;
@@ -11,12 +12,14 @@
   export let onOutputEvent = () => {};
   export let onBufferUpdate = () => {};
 
+  // State for unified mobile input
+  let mobileInput = '';
+
   let terminal;
   let publicUrl = null;
   let authenticated = false;
   let authKey = '';
   let isMobile = false;
-  let overlayTextarea;
   let initialViewportHeight = 0;
 
   const LS_KEY = 'dispatch-session-id';
@@ -52,7 +55,7 @@
   };
 
   async function onLoad() {
-    console.log('Terminal component has loaded');
+    console.debug('Terminal component has loaded');
 
     // Check if we're on mobile
     isMobile = window.innerWidth <= 768;
@@ -110,32 +113,19 @@
     pollPublicUrl();
     const pollId = setInterval(pollPublicUrl, 10000);
     
-    // Setup overlay textarea for mobile
-    setTimeout(() => {
-      setupOverlayTextarea();
-      
-      // Hook into xterm focus events to focus our overlay textarea
-      if (isMobile && terminal && overlayTextarea) {
-        // Use the correct xterm.js event API
-        terminal.textarea?.addEventListener('focus', () => {
-          setTimeout(() => overlayTextarea?.focus(), 0);
-        });
-      }
-      
-      // Restore terminal history if available
-      if (initialHistory && terminal) {
-        console.log('Restoring terminal history, length:', initialHistory.length);
-        terminal.write(initialHistory);
-      }
-    }, 100);
+    // Restore terminal history if available
+    if (initialHistory && terminal) {
+      console.debug('Restoring terminal history, length:', initialHistory.length);
+      terminal.write(initialHistory);
+    }
     
     // Store poll cleanup
     terminal._pollCleanup = () => clearInterval(pollId);
   }
 
   function onData(data) {
-    console.log('onData()', data);
-    // Disable direct input on mobile - use overlay textarea instead
+    console.debug('onData()', data);
+    // Allow direct terminal input on desktop, mobile uses unified controls
     if (!isMobile && socket) {
       socket.emit('input', data);
       // Accumulate input characters until command is complete
@@ -144,7 +134,7 @@
   }
 
   function onKey(data) {
-    console.log('onKey()', data);
+    console.debug('onKey()', data);
     // Handle any special key combinations here if needed
   }
 
@@ -154,6 +144,39 @@
       socket.emit('input', key);
       // Accumulate input characters until command is complete
       handleInputAccumulation(key);
+    }
+  }
+
+  function sendMobileInput() {
+    console.debug('Terminal: sendMobileInput called, input:', mobileInput, 'socket:', !!socket, 'socket.connected:', socket?.connected);
+    if (!mobileInput.trim() || !socket) {
+      console.debug('Terminal: sendMobileInput blocked - no input or socket', { 
+        hasInput: !!mobileInput.trim(), 
+        hasSocket: !!socket,
+        socketConnected: socket?.connected 
+      });
+      return;
+    }
+    
+    const inputToSend = mobileInput;
+    console.debug('Terminal: sending to PTY:', inputToSend);
+    
+    // Add to shared input history
+    onInputEvent(inputToSend);
+    
+    // Send to PTY with carriage return
+    socket.emit('input', inputToSend + '\r');
+    handleInputAccumulation(inputToSend + '\r');
+    
+    // Clear input
+    mobileInput = '';
+    console.debug('Terminal: input cleared, new value:', mobileInput);
+  }
+
+  function handleMobileKeydown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendMobileInput();
     }
   }
   
@@ -184,96 +207,6 @@
   }
 
 
-  function setupOverlayTextarea() {
-    if (!overlayTextarea || !terminal) return;
-
-    // Setup event handlers for the overlay textarea
-    overlayTextarea.addEventListener('input', (event) => {
-      const inputText = event.target.value;
-      if (socket) {
-        // Send all new input to terminal
-        socket.emit('input', inputText);
-        // Accumulate input characters until command is complete
-        handleInputAccumulation(inputText);
-        
-        // Clear the textarea to capture next input
-        event.target.value = '';
-      }
-    });
-
-    // Handle special keys like Enter, Backspace, etc.
-    overlayTextarea.addEventListener('keydown', (event) => {
-      if (socket) {
-        switch (event.key) {
-          case 'Enter':
-            event.preventDefault();
-            socket.emit('input', '\r');
-            handleInputAccumulation('\r');
-            break;
-          case 'Backspace':
-            event.preventDefault();
-            socket.emit('input', '\b');
-            handleInputAccumulation('\b');
-            break;
-          case 'Tab':
-            event.preventDefault();
-            socket.emit('input', '\t');
-            handleInputAccumulation('\t');
-            break;
-          case 'ArrowUp':
-            event.preventDefault();
-            socket.emit('input', '\u001b[A');
-            handleInputAccumulation('\u001b[A');
-            break;
-          case 'ArrowDown':
-            event.preventDefault();
-            socket.emit('input', '\u001b[B');
-            handleInputAccumulation('\u001b[B');
-            break;
-          case 'ArrowRight':
-            event.preventDefault();
-            socket.emit('input', '\u001b[C');
-            handleInputAccumulation('\u001b[C');
-            break;
-          case 'ArrowLeft':
-            event.preventDefault();
-            socket.emit('input', '\u001b[D');
-            handleInputAccumulation('\u001b[D');
-            break;
-          default:
-            // Let regular characters go through the input event
-            break;
-        }
-      }
-    });
-
-    // Focus textarea when terminal is clicked/focused
-    overlayTextarea.addEventListener('focus', () => {
-      if (isMobile) {
-        document.body.classList.add('keyboard-open');
-        // Prevent page scrolling but allow terminal scrolling
-        document.body.style.overflow = 'hidden';
-        document.body.style.position = 'fixed';
-        document.body.style.width = '100%';
-        document.body.style.height = '100%';
-        // Keep pointer events enabled while focused
-        overlayTextarea.style.pointerEvents = 'auto';
-      }
-    });
-
-    overlayTextarea.addEventListener('blur', () => {
-      if (isMobile) {
-        document.body.classList.remove('keyboard-open');
-        // Restore page scrolling
-        document.body.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.height = '';
-        // Disable pointer events to allow scrolling
-        overlayTextarea.style.pointerEvents = 'none';
-      }
-    });
-  }
 
   function setupKeyboardDetection() {
     let keyboardVisible = false;
@@ -331,7 +264,7 @@
   }
 
   function handleKeyboardDismiss() {
-    console.log('Keyboard dismissed');
+    console.debug('Keyboard dismissed');
     // Remove keyboard-open class and restore page scrolling
     document.body.classList.remove('keyboard-open');
     document.body.style.overflow = '';
@@ -359,60 +292,8 @@
     });
   }
 
-  let isSelecting = false;
-  let startX = 0;
-  let startY = 0;
   let currentInputBuffer = ''; // Buffer to accumulate input until Enter is pressed
   let currentOutputBuffer = ''; // Buffer to accumulate output until complete lines
-
-  function handleTerminalTap(event) {
-    // Check if user is trying to select text or click a link
-    if (event.detail > 1) {
-      // Double click or more - likely text selection
-      return;
-    }
-
-    // If there's a text selection, don't interfere
-    const selection = window.getSelection();
-    if (selection && selection.toString().length > 0) {
-      return;
-    }
-
-    // Only focus overlay for keyboard input, not for scrolling
-    if (isMobile && overlayTextarea && !isSelecting) {
-      // Temporarily enable pointer events for focusing
-      overlayTextarea.style.pointerEvents = 'auto';
-      overlayTextarea.focus();
-      // Disable again after a short delay to allow scrolling
-      setTimeout(() => {
-        if (overlayTextarea && document.activeElement !== overlayTextarea) {
-          overlayTextarea.style.pointerEvents = 'none';
-        }
-      }, 100);
-    }
-  }
-
-  function handleMouseDown(event) {
-    startX = event.clientX;
-    startY = event.clientY;
-    isSelecting = false;
-  }
-
-  function handleMouseMove(event) {
-    if (!isSelecting) {
-      const deltaX = Math.abs(event.clientX - startX);
-      const deltaY = Math.abs(event.clientY - startY);
-      if (deltaX > 5 || deltaY > 5) {
-        isSelecting = true;
-      }
-    }
-  }
-
-  function handleMouseUp() {
-    setTimeout(() => {
-      isSelecting = false;
-    }, 100);
-  }
 
 
   function pollPublicUrl() {
@@ -426,14 +307,21 @@
   }
 
   function setupSocketListeners() {
-    if (!socket) return;
+    if (!socket) {
+      console.debug('Terminal: setupSocketListeners called but no socket');
+      return;
+    }
+
+    console.debug('Terminal: setting up socket listeners, socket connected:', socket.connected);
 
     socket.on('connect_error', (err) => {
       terminal?.writeln(`\r\n[connection error] ${err.message}\r\n`);
     });
 
     socket.on('output', (data) => {
+      console.debug('Terminal: received output from socket:', data.length, 'chars, first 50:', data.substring(0, 50));
       terminal?.write(data);
+      console.debug('Terminal: wrote to xterm, terminal exists:', !!terminal);
       
       // Accumulate output data for chat history
       currentOutputBuffer += data;
@@ -507,69 +395,19 @@
     </div>
   {/if}
   
-  <div 
-    class="terminal" 
-    on:click={handleTerminalTap} 
-    on:keydown={handleTerminalTap} 
-    on:mousedown={handleMouseDown}
-    on:mousemove={handleMouseMove}
-    on:mouseup={handleMouseUp}
-    role="button" 
-    tabindex="0" 
-    aria-label="Terminal - tap to open keyboard"
-  >
+  <div class="terminal">
     <Xterm bind:terminal {options} {onLoad} {onData} {onKey} />
-    
-    {#if isMobile}
-      <!-- Overlay textarea for capturing native keyboard input -->
-      <textarea
-        bind:this={overlayTextarea}
-        class="overlay-textarea"
-        class:selection-mode={isSelecting}       
-        autocapitalize="none"
-        spellcheck="false"
-        inputmode="text"
-        enterkeyhint="enter"
-        data-gramm="false"
-        data-gramm_editor="false"
-        data-enable-grammarly="false"
-        aria-label="Terminal input"
-      ></textarea>
-    {/if}
   </div>
   
-  {#if isMobile}
-    <div class="mobile-controls">
-      <div class="mobile-toolbar">
-        <button class="key-button" on:click={() => sendSpecialKey('\t')} title="Tab" aria-label="Send Tab key">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <rect x="3" y="5" width="18" height="14" rx="2"/>
-            <path d="M8 10h6"/>
-          </svg>
-        </button>
-        <button class="key-button" on:click={() => sendSpecialKey('\u0003')} title="Ctrl+C" aria-label="Send Ctrl+C">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M18 6L6 18M6 6l12 12"/>
-          </svg>
-        </button>
-        <button class="key-button" on:click={() => sendSpecialKey('\u001b[A')} title="Up arrow" aria-label="Send Up arrow">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M12 19V5M5 12l7-7 7 7"/>
-          </svg>
-        </button>
-        <button class="key-button" on:click={() => sendSpecialKey('\u001b[B')} title="Down arrow" aria-label="Send Down arrow">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M12 5v14M19 12l-7 7-7-7"/>
-          </svg>
-        </button>
-        <button class="key-button chat-button" on:click={onchatclick} title="Switch to Chat" aria-label="Switch to Chat view">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  {/if}
+  <MobileControls 
+    bind:currentInput={mobileInput}
+    onSendMessage={sendMobileInput}
+    onKeydown={handleMobileKeydown}
+    onSpecialKey={sendSpecialKey}
+    onToggleView={onchatclick}
+    isTerminalView={true}
+    {isMobile}
+  />
 </div>
 
 <style>
@@ -577,8 +415,7 @@
   .terminal-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    width: 100%;
+
     position: relative;
   }
   
@@ -645,104 +482,7 @@
     overflow-y: auto !important;
   }
 
-  .overlay-textarea {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: calc(100% - 80px); /* Account for mobile toolbar */
-    opacity: 0;
-    z-index: 100; /* Lower z-index to allow terminal interactions */
-    resize: none;
-    border: none;
-    background: transparent;
-    color: transparent;
-    caret-color: transparent;
-    outline: none;
-    font-size: 16px; /* Prevent zoom on iOS */
-    pointer-events: none; /* Default to no pointer events */
-  }
-  
-  /* Only enable pointer events when needed for keyboard input */
-  .overlay-textarea:focus {
-    pointer-events: auto;
-  }
 
-  /* When in selection mode, disable pointer events completely */
-  .overlay-textarea.selection-mode {
-    pointer-events: none;
-    z-index: -1; /* Move below terminal */
-  }
-  
-  /* Allow scrolling when not actively inputting */
-  .terminal-container:not(:focus-within) .overlay-textarea {
-    pointer-events: none;
-  }
-
-  /* Chat button styling */
-  .chat-button {
-    color: var(--primary) !important;
-  }
-
-  .chat-button:hover {
-    color: var(--text-primary) !important;
-    background: rgba(0, 255, 136, 0.1) !important;
-    text-shadow: 
-      0 0 8px var(--primary),
-      0 0 16px rgba(0, 255, 136, 0.4) !important;
-  }
-
-  .mobile-controls {
-    background: rgba(26, 26, 26, 0.8);
-    border-top: 1px solid rgba(0, 255, 136, 0.2);
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    z-index: 1001; /* Above overlay textarea */
-    min-height: 80px;
-    backdrop-filter: blur(15px);
-    box-shadow: 
-      0 -4px 12px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-
-  .mobile-toolbar {
-    display: flex;
-    gap: var(--space-xs);
-    padding: var(--space-md);
-    justify-content: space-evenly;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .key-button {
-    background: transparent !important;
-    color: var(--text-secondary) !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: var(--space-md) !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: all 0.2s ease !important;
-  }
-
-  .key-button:hover,
-  .key-button:active {
-    background: rgba(0, 255, 136, 0.1) !important;
-    color: var(--primary) !important;
-    transform: none !important;
-    text-shadow: 
-      0 0 8px var(--primary),
-      0 0 16px rgba(0, 255, 136, 0.4) !important;
-  }
-
-  .key-button svg {
-    width: 20px;
-    height: 20px;
-    stroke-width: 2;
-  }
 
 
 

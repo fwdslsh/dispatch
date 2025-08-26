@@ -1,18 +1,26 @@
 <script>
   import { onMount } from 'svelte';
   import { AnsiUp } from 'ansi_up';
+  import MobileControls from './MobileControls.svelte';
 
   export let socket = null;
   export let sessionId = null;
   export let initialHistory = { chatMessages: [], currentInput: '', currentOutput: '' };
   export let onInputEvent = () => {};
   export let onOutputEvent = () => {};
+  export let onterminalclick = () => {};
+  
+  // Export functions for mobile controls
+  export let onSendMessage = sendChatMessage;
+  export let onKeydown = handleChatKeydown;
 
   let chatMessages = [{
     type: 'system',
     content: 'Chat view enabled. Commands will appear as messages below.',
     timestamp: new Date()
   }]; // Start with welcome message
+  
+  let isMobile = false;
   let currentInput = '';
   let chatContainer;
   let ansiUp;
@@ -22,22 +30,35 @@
     // Configure AnsiUp for better terminal output
     ansiUp.use_classes = true; // Use CSS classes instead of inline styles
     
+    // Check if we're on mobile
+    isMobile = window.innerWidth <= 768;
+    
+    // Update mobile state on resize
+    const handleResize = () => {
+      isMobile = window.innerWidth <= 768;
+    };
+    window.addEventListener('resize', handleResize);
+    
     // Scroll to bottom after loading
     setTimeout(() => scrollChatToBottom(), 100);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   });
   
   // Reactively update chat messages when history changes
   $: if (initialHistory) {
-    console.log('Chat component reactive update triggered:', initialHistory);
+    console.debug('Chat component reactive update triggered:', initialHistory);
     if (initialHistory.chatMessages && initialHistory.chatMessages.length > 0) {
-      console.log('Setting chat messages:', initialHistory.chatMessages.length, 'messages');
+      console.debug('Setting chat messages:', initialHistory.chatMessages.length, 'messages');
       chatMessages = [...initialHistory.chatMessages]; // Create new array to ensure reactivity
       currentInput = initialHistory.currentInput || '';
-      console.log('Chat messages now:', chatMessages.length);
+      console.debug('Chat messages now:', chatMessages.length);
       // Scroll to bottom when history updates
       setTimeout(() => scrollChatToBottom(), 50);
     } else {
-      console.log('No chat messages in initialHistory, keeping welcome message');
+      console.debug('No chat messages in initialHistory, keeping welcome message');
       // Keep the welcome message that was set during initialization
     }
   }
@@ -47,20 +68,21 @@
   // The Terminal component handles socket output and updates shared history
 
   function sendChatMessage() {
+    console.debug('Chat: sendChatMessage called, input:', currentInput);
     if (!currentInput.trim() || !socket) {
-      console.log('Chat send blocked:', { hasInput: !!currentInput.trim(), hasSocket: !!socket });
+      console.debug('Chat send blocked - no input or socket');
       return;
     }
     
     const inputToSend = currentInput;
-    console.log('Sending chat message:', inputToSend);
+    console.debug('Chat: sending message:', inputToSend);
     
     // Add to shared input history - this will trigger a reactive update
     onInputEvent(inputToSend);
     
     // Send to PTY
     socket.emit('input', inputToSend + '\r');
-    console.log('Emitted input to socket:', inputToSend + '\\r');
+    console.debug('Emitted input to socket:', inputToSend + '\\r');
     
     // Clear input
     currentInput = '';
@@ -119,44 +141,16 @@
     {/each}
   </div>
   
-  <div class="chat-input-container">
-    <div class="chat-controls">
-      <button class="special-key-btn" on:click={() => sendSpecialKey('\t')} title="Send Tab" aria-label="Send Tab key">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <rect x="3" y="5" width="18" height="14" rx="2"/>
-          <path d="M8 10h6"/>
-        </svg>
-      </button>
-      <button class="special-key-btn" on:click={() => sendSpecialKey('\u0003')} title="Send Ctrl+C" aria-label="Send Ctrl+C">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
-      <slot name="toggle-button"></slot>
-    </div>
-    <div class="chat-input-wrapper">
-      <textarea
-        bind:value={currentInput}
-        on:keydown={handleChatKeydown}
-        placeholder="Type your command..."
-        class="chat-input"
-        rows="1"
-        autocomplete="off"
-        autocapitalize="none"
-        spellcheck="false"
-        inputmode="text"
-        enterkeyhint="send"
-        data-gramm="false"
-        data-gramm_editor="false"
-        data-enable-grammarly="false"
-      ></textarea>
-      <button class="chat-send" on:click={sendChatMessage} disabled={!currentInput.trim()} aria-label="Send message">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>
-        </svg>
-      </button>
-    </div>
-  </div>
+  
+  <MobileControls 
+    bind:currentInput={currentInput}
+    onSendMessage={sendChatMessage}
+    onKeydown={handleChatKeydown}
+    onSpecialKey={sendSpecialKey}
+    onToggleView={onterminalclick}
+    isTerminalView={false}
+    {isMobile}
+  />
 </div>
 
 <style>
@@ -164,46 +158,11 @@
   .chat-view {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    
+    height: 570px;
     overflow: hidden; /* Prevent horizontal scroll */
   }
 
-  .chat-controls {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .special-key-btn {
-    background: transparent !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 6px !important;
-    padding: var(--space-xs) !important;
-    color: var(--text-secondary) !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 32px;
-    min-height: 32px;
-  }
-
-  .special-key-btn:hover {
-    background: var(--surface-hover) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border-light) !important;
-  }
-
-  .special-key-btn svg {
-    width: 16px;
-    height: 16px;
-    stroke-width: 2;
-  }
 
   .chat-messages {
     flex: 1;
@@ -337,72 +296,6 @@
     font-family: var(--font-mono);
   }
 
-  .chat-input-container {
-    border-top: 1px solid var(--border);
-    overflow: hidden; /* Prevent horizontal scroll */
-    min-height: 10rem;
-  }
-
-  .chat-input-wrapper {
-    display: flex;
-    align-items: flex-end;
-    gap: var(--space-md);
-    background: var(--bg-darker);
-    padding: var(--space-lg);
-    
-    margin: 0;
-  }
-
-  .chat-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    font-family: var(--font-mono);
-    font-size: 1rem;
-    line-height: 1.4;
-    resize: none;
-    min-height: 20px;
-    max-height: 120px;
-  }
-
-  .chat-input:focus {
-    outline: none;
-  }
-
-  .chat-input::placeholder {
-    color: var(--text-muted);
-  }
-
-  .chat-send {
-    background: var(--primary) !important;
-    color: var(--bg-dark) !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: var(--space-sm) !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 36px;
-    min-height: 36px;
-    flex-shrink: 0;
-  }
-
-  .chat-send:hover:not(:disabled) {
-    background: var(--text-primary) !important;
-  }
-
-  .chat-send:disabled {
-    background: var(--text-muted) !important;
-    cursor: not-allowed !important;
-  }
-
-  .chat-send svg {
-    width: 18px;
-    height: 18px;
-  }
 
   /* Mobile optimizations for chat */
   @media (max-width: 768px) {
@@ -412,16 +305,22 @@
       max-height: 100vh;
       display: flex;
       flex-direction: column;
+      margin: 0; /* Remove any default margins */
+      padding: 0; /* Remove any default padding */
+      box-sizing: border-box;
+      width: 100vw; /* Ensure full viewport width */
+      max-width: 100vw; /* Prevent overflow */
     }
     
     .chat-messages {
-      padding: var(--space-sm);
+      padding: var(--space-xs); /* Reduced padding on mobile */
       gap: var(--space-md);
-      /* Account for header (60px) + controls (~48px) + input (~60px) + safe area */
-      max-height: calc(100vh - 180px);
+      /* Account for header (60px) + mobile controls (120px) + safe area */
+      max-height: calc(100vh - 200px);
       min-height: 0;
       overflow-x: hidden;
       flex: 1;
+      box-sizing: border-box; /* Include padding in width calculation */
     }
     
     .message {
@@ -434,39 +333,6 @@
       overflow-wrap: anywhere; /* Aggressive word breaking on mobile */
     }
     
-    .chat-input-container {
-      /* Ensure input area is always visible */
-      flex-shrink: 0;
-      position: relative;
-      /* background: var(--surface); */
-      border-top: 1px solid var(--border);
-      /* Add safe area padding for devices with home indicators */
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    
-    .chat-controls {
-      padding: var(--space-xs) var(--space-sm);
-      gap: var(--space-xs);
-      flex-shrink: 0;
-    }
-    
-    .chat-input-wrapper {
-      margin: 0;
-      margin-bottom: var(--space-sm);
-      /* Ensure minimum touch target size */
-      min-height: 44px;
-    }
-    
-    .chat-input {
-      min-height: 20px;
-      /* Prevent zoom on iOS */
-      font-size: 16px;
-    }
-    
-    .special-key-btn {
-      min-width: 40px !important;
-      min-height: 40px !important;
-    }
   }
   
   /* iOS-specific fixes */
@@ -478,13 +344,10 @@
     }
     
     .chat-messages {
-      /* More conservative height calculation for iOS Safari */
-      max-height: calc(100dvh - 200px);
+      /* More conservative height calculation for iOS Safari - account for mobile controls */
+      max-height: calc(100dvh - 220px);
     }
     
-    .chat-input-container {
-      /* Extra bottom padding for iOS home indicator */
-      padding-bottom: max(env(safe-area-inset-bottom), 16px);
-    }
   }
+
 </style>

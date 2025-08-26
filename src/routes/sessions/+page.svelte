@@ -8,6 +8,7 @@
     import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
     import SessionIcon from "$lib/components/Icons/SessionIcon.svelte";
     import StartSession from "$lib/components/Icons/StartSession.svelte";
+    import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
 
     let sessions = [];
     let active = null;
@@ -15,6 +16,11 @@
 
     let socket;
     let authed = false;
+    let authRequired = true; // Will be set to false if no TERMINAL_KEY is configured
+    
+    // Dialog state
+    let showEndSessionDialog = false;
+    let sessionToEnd = null;
 
     function connectSocket() {
         socket = io({ transports: ["websocket", "polling"] });
@@ -22,7 +28,11 @@
         socket.on("connect", () => {
             const storedAuth = localStorage.getItem("dispatch-auth-token");
             if (storedAuth) {
-                socket.emit("auth", storedAuth, (res) => {
+                // Check if authentication is actually required
+                authRequired = storedAuth !== "no-auth";
+                
+                const authKey = storedAuth === "no-auth" ? "" : storedAuth;
+                socket.emit("auth", authKey, (res) => {
                     authed = !!(res && res.ok);
                     if (!authed) {
                         // Auth failed, redirect to login
@@ -71,8 +81,21 @@
         goto(`/sessions/${id}`);
     }
 
-    function endSession(id) {
-        socket.emit("end", id);
+    function showEndDialog(id) {
+        sessionToEnd = id;
+        showEndSessionDialog = true;
+    }
+
+    function endSession() {
+        if (sessionToEnd) {
+            socket.emit("end", sessionToEnd);
+            sessionToEnd = null;
+        }
+    }
+
+    function closeEndDialog() {
+        showEndSessionDialog = false;
+        sessionToEnd = null;
     }
 
     function logout() {
@@ -84,7 +107,13 @@
         goto("/");
     }
 
-    onMount(connectSocket);
+    onMount(() => {
+        // Set authRequired immediately based on stored auth
+        const storedAuth = localStorage.getItem("dispatch-auth-token");
+        authRequired = storedAuth !== "no-auth";
+        
+        connectSocket();
+    });
     onDestroy(disconnectSocket);
 </script>
 
@@ -92,6 +121,7 @@
     {#snippet header()}
         <HeaderToolbar>
             {#snippet left()}
+                {#if authRequired}
                 <button
                     class="button-secondary logout-btn btn-icon-only"
                     on:click={logout}
@@ -106,6 +136,9 @@
 
                     <BackIcon />
                 </button>
+                {:else}
+                <h2 class="danger">NO KEY SET</h2>
+                {/if}
             {/snippet}
 
             {#snippet right()}
@@ -142,7 +175,7 @@
                                         class="button-danger btn-sm btn-icon-only"
                                         on:click={(e) => {
                                             e.stopPropagation();
-                                            endSession(session.id);
+                                            showEndDialog(session.id);
                                         }}
                                         title="End session"
                                         aria-label="End session"
@@ -206,6 +239,17 @@
         </div>
     {/snippet}
 </Container>
+
+<!-- Confirmation Dialog for ending sessions -->
+<ConfirmationDialog
+    open={showEndSessionDialog}
+    title="End Session"
+    message="Are you sure you want to end this session? All unsaved work will be lost."
+    confirmText="End Session"
+    cancelText="Cancel"
+    onConfirm={endSession}
+    onClose={closeEndDialog}
+/>
 
 <style>
     .empty-state {

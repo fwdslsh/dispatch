@@ -5,7 +5,11 @@ import fs from 'node:fs';
 
 const terminalManager = new TerminalManager();
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
+const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
 const TUNNEL_FILE = '/tmp/tunnel-url.txt';
+
+// Check if auth key is required
+const AUTH_REQUIRED = ENABLE_TUNNEL || TERMINAL_KEY !== 'change-me';
 
 /** @type {Map<string, string>} */
 const socketSessions = new Map();
@@ -15,11 +19,15 @@ const socketUnsubscribers = new Map();
 export function handleConnection(socket) {
   console.log('Socket connected:', socket.id);
   
-  let authenticated = false;
+  let authenticated = !AUTH_REQUIRED; // Skip auth if not required
 
   // Authentication
   socket.on('auth', (key, callback) => {
-    if (key === TERMINAL_KEY) {
+    if (!AUTH_REQUIRED) {
+      authenticated = true;
+      callback({ ok: true });
+      console.log('Socket authenticated (no auth required):', socket.id);
+    } else if (key === TERMINAL_KEY) {
       authenticated = true;
       callback({ ok: true });
       console.log('Socket authenticated:', socket.id);

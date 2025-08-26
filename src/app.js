@@ -12,6 +12,14 @@ const PORT = process.env.PORT || 3000;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
 const LT_SUBDOMAIN = process.env.LT_SUBDOMAIN || '';
 const TUNNEL_FILE = '/tmp/tunnel-url.txt';
+const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
+
+// Security check: require proper key if tunnel is enabled
+if (ENABLE_TUNNEL && TERMINAL_KEY === 'change-me') {
+  console.error('ERROR: TERMINAL_KEY must be set when ENABLE_TUNNEL=true for security');
+  console.error('Set a secure TERMINAL_KEY environment variable');
+  process.exit(1);
+}
 
 // Create Express app
 const app = express();
