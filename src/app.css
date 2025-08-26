@@ -18,15 +18,22 @@
   --surface-hover: #2a2a2a;
   --font-sans: 'Exo 2', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'Share Tech Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-  
+
   /* Spacing system */
-  --space-xs: 0.25rem;  /* 4px */
-  --space-sm: 0.5rem;   /* 8px */
-  --space-md: 1rem;     /* 16px */
-  --space-lg: 1.5rem;   /* 24px */
-  --space-xl: 2rem;     /* 32px */
-  --space-2xl: 3rem;    /* 48px */
-  --space-3xl: 4rem;    /* 64px */
+  --space-xs: 0.25rem;
+  /* 4px */
+  --space-sm: 0.5rem;
+  /* 8px */
+  --space-md: 1rem;
+  /* 16px */
+  --space-lg: 1.5rem;
+  /* 24px */
+  --space-xl: 2rem;
+  /* 32px */
+  --space-2xl: 3rem;
+  /* 48px */
+  --space-3xl: 4rem;
+  /* 64px */
 }
 
 * {
@@ -41,12 +48,12 @@
   --tile: 400px;
   --bg: transparent;
   /* page background behind the pattern */
-  --opacity: 0.01;
+  --opacity: 0.05;
   /* pattern visibility */
 }
 
 
-/* Two independent layers for subtle parallax */
+/* Multiple independent layers for random-like animation */
 body::before,
 body::after {
   content: "";
@@ -57,93 +64,89 @@ body::after {
   background-repeat: repeat;
   opacity: var(--opacity);
   mix-blend-mode: screen;
-  /* luminous on dark bg; switch to 'overlay' if needed */
-  filter: hue-rotate(0deg) saturate(120%);
-  /* color-tunable */
+  background-image: url("bg.svg");
 }
 
+/* Layer 1 - slow drift with brightness variation */
 body::before {
-  background-image: url("bg.svg");
   background-size: var(--tile) var(--tile);
-  animation: driftA 9s linear infinite linear;
+  animation: 
+    driftA 37s linear infinite,
+    brightnessWave1 23s ease-in-out infinite,
+    scaleShimmer1 19s ease-in-out infinite alternate;
 }
 
+/* Layer 2 - different speed and offset for complexity */
 body::after {
-  background-image: url("bg.svg");
-  background-size: calc(var(--tile) * 2) calc(var(--tile) * 2);
-  animation: driftB 15s linear infinite reverse;
-  opacity: calc(var(--opacity) * 0.5);
+  background-size: calc(var(--tile) * 1.3) calc(var(--tile) * 1.3);
+  opacity: calc(var(--opacity) * 0.7);
+  animation: 
+    driftB 29s linear infinite reverse,
+    brightnessWave2 31s ease-in-out infinite,
+    scaleShimmer2 17s ease-in-out infinite alternate-reverse;
+  transform: rotate(15deg);
 }
 
 @keyframes driftA {
-  from {
-    background-position: 0 0;
-    opacity: calc(var(--opacity) * 0.5);
-    transform: scale(1.1);
-  }
-
-  to {
-    background-position: var(--tile) var(--tile);
-  }
+  0% { background-position: 0 0; }
+  100% { background-position: var(--tile) var(--tile); }
 }
 
 @keyframes driftB {
-  from {
-    background-position: 0 0;
-  }
+  0% { background-position: 0 0; }
+  100% { background-position: calc(var(--tile) * 1.3) calc(var(--tile) * 1.3); }
+}
 
-  to {
-    background-position: calc(var(--tile) * 2) calc(var(--tile) * 2);
-    opacity: calc(var(--opacity) * 0.5);
-    transform: scale(1.1);
-  }
+/* Brightness variations to simulate random circle brightening */
+@keyframes brightnessWave1 {
+  0% { filter: brightness(0.8) saturate(100%); }
+  13% { filter: brightness(1.4) saturate(140%); }
+  27% { filter: brightness(0.6) saturate(80%); }
+  41% { filter: brightness(1.8) saturate(160%); }
+  58% { filter: brightness(0.9) saturate(110%); }
+  73% { filter: brightness(1.6) saturate(130%); }
+  89% { filter: brightness(0.7) saturate(90%); }
+  100% { filter: brightness(0.8) saturate(100%); }
+}
+
+@keyframes brightnessWave2 {
+  0% { filter: brightness(1.2) saturate(120%); }
+  17% { filter: brightness(0.5) saturate(70%); }
+  34% { filter: brightness(1.9) saturate(170%); }
+  49% { filter: brightness(0.8) saturate(95%); }
+  66% { filter: brightness(1.5) saturate(145%); }
+  81% { filter: brightness(0.6) saturate(85%); }
+  97% { filter: brightness(1.3) saturate(125%); }
+  100% { filter: brightness(1.2) saturate(120%); }
+}
+
+/* Scale variations for additional organic movement */
+@keyframes scaleShimmer1 {
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.05) rotate(1deg); }
+  50% { transform: scale(0.98) rotate(-0.5deg); }
+  75% { transform: scale(1.03) rotate(0.8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes scaleShimmer2 {
+  0% { transform: scale(1.02) rotate(15deg); }
+  30% { transform: scale(0.96) rotate(14.2deg); }
+  60% { transform: scale(1.08) rotate(15.7deg); }
+  100% { transform: scale(1.02) rotate(15deg); }
 }
 
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
-
   body::before,
   body::after {
     animation: none;
+    filter: brightness(1) saturate(100%);
+    transform: none;
   }
 }
 
-/* Testing */
-.page-bg {
-  display: none;
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("bg.svg");
-  background-repeat: repeat;
-  background-size: var(--tile-size) var(--tile-size);
-  opacity: var(--pattern-opacity);
-  mix-blend-mode: screen;
-  animation: driftSlow 60s linear infinite;
-  z-index: -1;
-}
 
-@keyframes driftSlow {
-  from {
-    background-position: 0 0;
-    opacity: 0.3;
-    transform: scale(1);
-  }
-
-  to {
-    background-position: var(--tile-size) var(--tile-size);
-    opacity: 0.1;
-    transform: scale(1.1);
-  }
-}
-
-/* No animation if user prefers reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .page-bg {
-    animation: none;
-  }
-}
 body {
   background: var(--bg-dark);
   color: var(--text-primary);
@@ -152,6 +155,7 @@ body {
   overflow-x: hidden;
   /* Account for fixed navigation */
 }
+
 /* Typography */
 h1,
 h2,
@@ -192,8 +196,33 @@ p {
 
 /* Layout */
 .container {
-  max-width: 1200px;
+  max-width: 800px;
+  min-height: 475px;
   margin: 0 auto;
+  margin-top: var(--space-xl);
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(26, 26, 26, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+/* Responsive container - full width on small screens */
+@media (max-width: 800px) {
+  .container {
+    max-width: 100%;
+    height: 100dvh;
+    /* Use dynamic viewport height for mobile */
+    margin-top: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+  }
 }
 
 .main-container {
@@ -259,10 +288,12 @@ button {
 
 /* Button sizes */
 .btn-sm {
-  padding: var(--space-sm);
-  min-height: 2rem;
-  min-width: 2rem;
+  padding: var(--space-xs);
+  min-height: 1.5rem;
+  min-width: 1.5rem;
   font-size: 0.875rem;
+  background: transparent;
+  border: none;
 }
 
 .btn-md {
@@ -279,10 +310,24 @@ button {
   font-size: 1.125rem;
 }
 
-/* Icon-only buttons */
+/* Icon-only buttons - minimal styling with icon colors */
 .btn-icon-only {
-  padding: var(--space-md);
-  min-width: 2.5rem;
+  padding: var(--space-sm);
+  min-width: 2rem;
+  min-height: 2rem;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon-only:hover {
+  color: var(--text-primary);
 }
 
 .btn-icon-only svg {
@@ -292,12 +337,13 @@ button {
 }
 
 button:hover {
-  /* transform: translateY(-2px); */
-  box-shadow: 0 4px 12px rgba(0, 255, 136, 0.13);
+  /* No box shadow for minimal styling */
+  transform: none;
 }
 
 button:active {
   transform: translateY(0);
+  opacity: 0.8;
 }
 
 button:disabled {
@@ -307,24 +353,29 @@ button:disabled {
   box-shadow: none;
 }
 
+/* Secondary buttons - minimal with icon styling */
 .button-secondary {
-  background: var(--surface) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border) !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border: none !important;
 }
 
 .button-secondary:hover {
-  background: var(--surface-hover) !important;
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1) !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
 }
 
+/* Danger buttons - red icon color */
 .button-danger {
-  background: linear-gradient(135deg, var(--secondary), #ff5252) !important;
-  color: white !important;
+  background: transparent !important;
+  color: var(--secondary) !important;
+  border: none !important;
 }
 
 .button-danger:hover {
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3) !important;
+  color: #ff5252 !important;
+  box-shadow: none !important;
 }
 
 /* Lists */
@@ -335,20 +386,32 @@ ul {
 }
 
 li {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: rgba(26, 26, 26, 0.4);
+  border: 1px solid rgba(85, 85, 85, 0.3);
+  border-radius: 12px;
   padding: var(--space-md);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
   transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 li:hover {
-  background: var(--surface-hover);
-  border-color: var(--border-light);
+  background: rgba(42, 42, 42, 0.5);
+  border-color: rgba(85, 85, 85, 0.5);
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+li:last-child {
+  margin-bottom: var(--space-md); /* Keep consistent spacing */
 }
 
 
@@ -362,20 +425,32 @@ li:hover {
 }
 
 .new-session-controls select {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: var(--space-md);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: var(--space-md) 0;
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 1rem;
   width: 100%;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
 .new-session-controls select:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.1);
+  border-bottom-color: var(--primary);
+  box-shadow: none;
+}
+
+.new-session-controls select:hover {
+  border-bottom-color: var(--border-light);
+}
+
+.new-session-controls select option {
+  background: var(--bg-dark);
+  color: var(--text-primary);
 }
 
 /* Session items */
@@ -402,6 +477,10 @@ li:hover {
 .session-actions {
   display: flex;
   gap: var(--space-sm);
+
+  button[title="Open session"] {
+    color: var(--primary);
+  }
 }
 
 
@@ -427,14 +506,61 @@ li:hover {
 
 
   .session-item {
-    align-items: stretch;
     gap: var(--space-sm);
   }
 
   .session-actions {
     justify-content: center;
+    gap: var(--space-lg);
+    /* Increase spacing between buttons on mobile */
   }
 
+  .new-session-controls {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: var(--space-lg);
+    /* Reduced padding to prevent overflow */
+    align-items: center;
+    gap: var(--space-lg);
+    flex-shrink: 0;
+    /* Prevent shrinking */
+  }
+
+  /* Mobile touch targets for better usability */
+  .btn-icon-only {
+    min-width: 44px;
+    /* Apple/Google recommended minimum touch target */
+    min-height: 44px;
+    padding: var(--space-md);
+  }
+
+  .btn-icon-only svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    stroke-width: 2;
+  }
+
+  .btn-sm {
+    min-width: 44px;
+    min-height: 44px;
+    padding: var(--space-md);
+  }
+
+  /* Maintain glassy containers on mobile with touch targets */
+  li {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+
+  /* Sessions list takes full viewport */
+  .sessions {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-md);
+    padding-bottom: 120px; /* Space for bottom controls */
+  }
+  
+  /* Position new session controls at bottom */
   .new-session-controls {
     position: fixed;
     bottom: 0;
@@ -442,17 +568,13 @@ li:hover {
     right: 0;
     background: var(--surface);
     border-top: 1px solid var(--border);
-    padding: var(--space-md);
-    align-items: stretch;
-    gap: var(--space-sm);
+    padding: var(--space-lg);
+    align-items: center;
+    gap: var(--space-lg);
+    flex-shrink: 0;
     z-index: 10;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
-    margin-bottom: 0;
-  }
-
-  /* Add bottom padding to sessions list to account for fixed controls */
-  .sessions {
-    padding-bottom: 6rem;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
   }
 }
 

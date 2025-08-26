@@ -1,5 +1,5 @@
 # Multi-stage build
-FROM node:20-bullseye AS build
+FROM node:22-bullseye AS build
 
 WORKDIR /app
 COPY package*.json ./
@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build
 
 # Runtime stage
-FROM node:20-slim
+FROM node:22-slim
 
 # Note: Claude CLI and other tools would be installed here in a real deployment
 # For this MVP, we're keeping it minimal

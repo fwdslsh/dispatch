@@ -16,7 +16,7 @@
   .header-toolbar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: var(--space-md) var(--space-xl);
+    padding-inline: var(--space-md);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -38,17 +38,16 @@
   @media (max-width: 768px) {
     .header-toolbar {
       gap: var(--space-md);
-      padding: var(--space-md);
-      min-height: auto;
+      padding: var(--space-sm) var(--space-md);
     }
     
     .header-left {
-      align-items: flex-start;
-      gap: var(--space-sm);
+      align-items: center;
+      gap: var(--space-md);
     }
     
     .header-right {
-      align-self: flex-end;
+      align-self: center;
     }
   }
 </style>

@@ -6,7 +6,7 @@
 
     let sessions = [];
     let active = null;
-    let sessionMode = "claude"; // Default session mode
+    let sessionMode = "bash"; // Default session mode
 
     let socket;
     let authed = false;
@@ -90,7 +90,7 @@
         {/snippet}
 
         {#snippet right()}
-            <button class="button-secondary logout-btn btn-icon-only" on:click={logout} title="Logout">
+            <button class="button-secondary logout-btn btn-icon-only" on:click={logout} title="Logout" aria-label="Logout">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                     <polyline points="16,17 21,12 16,7"/>
@@ -101,24 +101,8 @@
     </HeaderToolbar>
 
     <div class="sessions">
-        <div class="new-session-controls">
-            <select bind:value={sessionMode}>
-                <option value="claude">claude mode</option>
-                <option value="bash">bash mode</option>
-            </select>
-            <button class="btn-icon-only" on:click={addSession} title="Create new session">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="16"/>
-                    <line x1="8" y1="12" x2="16" y2="12"/>
-                </svg>
-            </button>
-        </div>
-
         {#if sessions.length === 0}
-            <div
-                style="text-align: center; padding: 2rem; color: var(--text-muted);"
-            >
+            <div class="empty-state">
                 <p>no active sessions</p>
                 <p style="font-size: 0.9rem;">
                     create a new session to get started
@@ -129,26 +113,12 @@
                 {#each sessions as session}
                     <li>
                         <div class="session-item">
-                            <div class="session-name">
-                                {session.name}
-                                {#if active === session.id}
-                                    <span class="session-status">(active)</span>
-                                {/if}
-                            </div>
                             <div class="session-actions">
-                                <button
-                                    class="button-secondary btn-sm btn-icon-only"
-                                    on:click={() => switchSession(session.id)}
-                                    title="Open session"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <polygon points="5,3 19,12 5,21"/>
-                                    </svg>
-                                </button>
                                 <button
                                     class="button-danger btn-sm btn-icon-only"
                                     on:click={() => endSession(session.id)}
                                     title="End session"
+                                    aria-label="End session"
                                 >
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -156,16 +126,47 @@
                                     </svg>
                                 </button>
                             </div>
+                            <div class="session-name">
+                                {session.name}
+                                {#if active === session.id}
+                                    <span class="session-status">(active)</span>
+                                {/if}
+                            </div>
+                            <button
+                                class="btn-sm btn-icon-only"
+                                on:click={() => switchSession(session.id)}
+                                title="Open session"
+                                aria-label="Open session"
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <polygon points="5,3 19,12 5,21"/>
+                                </svg>
+                            </button>
                         </div>
                     </li>
                 {/each}
             </ul>
         {/if}
     </div>
+
+    <div class="new-session-controls">
+        <select bind:value={sessionMode}>
+            <option value="bash">bash mode</option>
+            <option value="claude">claude mode</option>
+        </select>
+        <button class="btn-icon-only" on:click={addSession} title="Create new session">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="16"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+        </button>
+    </div>
 </div>
 <style>
-    .sessions{
-        padding-inline: 1rem;
-        padding-top: 1rem;
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-muted);
     }
 </style>

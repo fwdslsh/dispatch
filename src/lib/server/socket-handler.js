@@ -166,7 +166,7 @@ export function handleConnection(socket) {
     
     const sessionId = socketSessions.get(socket.id);
     if (sessionId && dims.cols && dims.rows) {
-      terminalManager.resizeSession(sessionId, dims.cols, dims.rows);
+      terminalManager.resizeSession(sessionId, dims.cols,100);
     }
   });
 
