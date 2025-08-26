@@ -158,9 +158,8 @@
   .chat-view {
     display: flex;
     flex-direction: column;
-    
     height: 570px;
-    overflow: hidden; /* Prevent horizontal scroll */
+    overflow-x: hidden; /* Prevent horizontal scroll */
   }
 
 
@@ -300,25 +299,20 @@
   /* Mobile optimizations for chat */
   @media (max-width: 768px) {
     .chat-view {
-      overflow: hidden; /* Strict no-scroll on mobile */
-      height: 100vh; /* Full viewport height */
-      max-height: 100vh;
+      height: calc(100dvh - 60px - 120px); /* Account for header (60px) + mobile controls (120px) */
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      margin: 0; /* Remove any default margins */
-      padding: 0; /* Remove any default padding */
+      margin: 0;
+      padding: 0;
       box-sizing: border-box;
     }
     
     .chat-messages {
-      /*padding: var(--space-xs);  Reduced padding on mobile */
       row-gap: var(--space-md);
-      /* Account for header (60px) + mobile controls (120px) + safe area */
-      max-height: calc(100vh - 200px);
       min-height: 0;
-      overflow-x: hidden;
       flex: 1;
-      box-sizing: border-box; /* Include padding in width calculation */
+      box-sizing: border-box;
     }
     
     .message {
@@ -330,22 +324,7 @@
       max-width: 100%;
       overflow-wrap: anywhere; /* Aggressive word breaking on mobile */
     }
-    
   }
   
-  /* iOS-specific fixes */
-  @media (max-width: 768px) and (-webkit-min-device-pixel-ratio: 2) {
-    .chat-view {
-      /* Use dynamic viewport height on iOS to account for Safari UI */
-      height: 100dvh;
-      max-height: 100dvh;
-    }
-    
-    .chat-messages {
-      /* More conservative height calculation for iOS Safari - account for mobile controls */
-      max-height: calc(100dvh - 220px);
-    }
-    
-  }
 
 </style>

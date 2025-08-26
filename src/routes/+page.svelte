@@ -14,7 +14,7 @@
       goto("/sessions");
       return;
     }
-    
+
     // Check if auth is required by testing with empty key
     const socket = io({ transports: ["websocket", "polling"] });
     socket.emit("auth", "", (resp) => {
@@ -78,12 +78,13 @@
 </main>
 
 <style>
-  .login-page {
+  :global(.login-page .container-content) {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    h1,p{
+    h1,
+    p {
       text-align: center;
     }
   }
@@ -93,6 +94,10 @@
       flex-direction: column;
       justify-content: center;
       padding-inline: var(--space-lg);
+
+      h1{
+        font-size: 5rem;
+      }
     }
   }
   .form-container {
@@ -109,7 +114,7 @@
     border-radius: 12px;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 
+    box-shadow:
       0 8px 25px rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }

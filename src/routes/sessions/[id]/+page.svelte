@@ -272,67 +272,17 @@
     min-height: 400px; /* Minimum height for terminal functionality */
   }
 
-  .back-link {
-    display: flex;
-    align-items: center;
-    color: var(--primary);
-    text-decoration: none;
-    padding: var(--space-xs);
-    border-radius: 4px;
-    transition: color 0.2s ease;
-  }
-
-  .back-link:hover {
-    color: var(--text-primary);
-  }
-
-  .back-icon {
-    width: 1.5rem;
-    height: 1.5rem;
-    margin-right: var(--space-sm);
-  }
-  
   @media (max-width: 768px) {
     .terminal-page-container {
       min-height: 0; /* Allow flex child to shrink on mobile */
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+      box-sizing: border-box;
     }
-    
-    .back-link {
-      padding: var(--space-sm);
-      min-width: 44px;
-      min-height: 44px;
-      justify-content: center;
-    }
-    
-    .back-icon {
-      width: 1.75rem;
-      height: 1.75rem;
-      margin-right: 0;
-    }
+
   }
 
-  .view-toggle-header {
-    background: transparent !important;
-    color: var(--primary) !important;
-    border: none !important;
-    padding: var(--space-sm) !important;
-    border-radius: 6px !important;
-    transition: all 0.2s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  .view-toggle-header:hover {
-    background: rgba(0, 255, 136, 0.1) !important;
-    color: var(--text-primary) !important;
-  }
-
-  .view-toggle-header svg {
-    width: 1.25rem;
-    height: 1.25rem;
-    stroke-width: 2;
-  }
 
   .end-session-btn {
     background: var(--surface);
@@ -346,12 +296,6 @@
     background: var(--surface-hover);
     border-color: var(--border-hover);
   }
-
-  .end-icon {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-
   .loading {
     color: var(--text-muted);
   }

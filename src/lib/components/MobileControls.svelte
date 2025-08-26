@@ -118,17 +118,13 @@
 
 <style>
   .mobile-controls {
-    background: rgba(26, 26, 26, 0.8);
     border-top: 1px solid rgba(0, 255, 136, 0.2);
     display: flex;
     flex-direction: column;
     position: relative;
     z-index: 1001;
-    min-height: 120px; /* Increased for input area */
+    height: auto;
     backdrop-filter: blur(15px);
-    box-shadow:
-      0 -4px 12px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .mobile-input-wrapper {
@@ -137,6 +133,7 @@
     gap: var(--space-md);
     padding: var(--space-md);
     border-bottom: 1px solid var(--border);
+    min-height: 60px;
   }
 
   .mobile-input {
@@ -164,43 +161,15 @@
     color: var(--text-muted);
   }
 
-  .mobile-send {
-    background: var(--primary) !important;
-    color: var(--bg-dark) !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: var(--space-sm) !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 44px;
-    min-height: 44px;
-    flex-shrink: 0;
-  }
-
-  .mobile-send:hover:not(:disabled) {
-    background: var(--text-primary) !important;
-    transform: scale(1.05);
-  }
-
-  .mobile-send:disabled {
-    background: var(--text-muted) !important;
-    cursor: not-allowed !important;
-    opacity: 0.5;
-  }
-
-  .mobile-send svg {
-    width: 20px;
-    height: 20px;
-  }
 
   .mobile-toolbar {
     display: flex;
     gap: var(--space-xs);
     padding: var(--space-md);
+    min-height: 60px; /* Fixed height for consistency */
+    height: min-content;
     justify-content: space-evenly;
+    align-items: center;
   }
 
   .key-button {

@@ -416,42 +416,55 @@
     display: flex;
     flex-direction: column;
     position: relative;
+    height: 570px; /* Consistent height with chat view */
   }
   
   /* Handle mobile viewport and keyboard */
   @media (max-width: 768px) {
     .terminal-container {
-      height: calc(100dvh - 60px); /* Account for header height */
+      height: calc(100dvh - 60px - 120px); /* Account for header (60px) + mobile controls (120px) */
       position: relative;
-      /* Allow touch scrolling */
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y; /* Allow vertical scrolling */
+      touch-action: pan-y;
+      width: 100vw;
+      max-width: 100vw;
+      box-sizing: border-box;
     }
     
     .terminal {
       /* Enable proper touch scrolling on mobile */
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden; /* Prevent horizontal scroll */
     }
     
     .terminal :global(.xterm-viewport) {
       /* Ensure mobile scrolling works */
       -webkit-overflow-scrolling: touch !important;
       touch-action: pan-y !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+    }
+
+    .terminal :global(.xterm) {
+      width: 100% !important;
+      max-width: 100% !important;
     }
     
     /* When mobile keyboard is open, adjust layout but preserve scrolling */
     :global(body.keyboard-open) .terminal-container {
-      height: calc(100vh - 60px); /* Use viewport height when keyboard is open */
-      max-height: calc(100vh - 60px);
-      overflow: hidden; /* Prevent page scroll, but allow terminal scroll */
+      height: calc(100vh - 60px - 120px); /* Use viewport height when keyboard is open */
+      max-height: calc(100vh - 60px - 120px);
+      overflow: hidden;
     }
 
     /* Ensure terminal stays visible above keyboard but remains scrollable */
     :global(body.keyboard-open) .terminal {
-      height: calc(100% - 80px); /* Account for mobile controls */
-      min-height: 200px; /* Minimum visible terminal height */
-      /* Keep scrolling enabled even with keyboard open */
+      height: 100%;
+      min-height: 200px;
       overflow-y: auto;
     }
   }
@@ -479,5 +492,18 @@
   .terminal :global(.xterm .xterm-screen) {
     /* Allow the terminal content to scroll */
     overflow-y: auto !important;
+    margin-inline: var(--space-md);
+  }
+
+  .controls {
+    padding: var(--space-sm) var(--space-md);
+    background: rgba(26, 26, 26, 0.6);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .public-url {
+    font-family: var(--font-mono);
   }
 </style>

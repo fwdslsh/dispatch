@@ -88,13 +88,17 @@
     .session-container {
       height: 100vh;
       max-height: 100svh;
+      width: 100vw;
+      max-width: 100vw;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      box-sizing: border-box;
     }
 
     .session-container .container-content {
       min-height: 0; /* Allow flex child to shrink on mobile */
+      margin-inline: 0; /* Remove negative margins on mobile to prevent text cutoff */
     }
   }
 
