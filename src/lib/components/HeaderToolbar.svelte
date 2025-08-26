@@ -14,14 +14,14 @@
 
 <style>
   .header-toolbar {
-    border-bottom: 1px solid rgba(51, 51, 51, 0.6);
-    padding-inline: var(--space-md);
+    border-bottom: 1px solid var(--primary-muted);
+    
+    padding-inline: var(--space-sm);
+    margin-inline: var(--space-sm);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-xl);
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(10px);
   }
 
   .header-left {

@@ -182,10 +182,6 @@
           <BackIcon />
 
       </button>
-        <h2># {page.params.id.slice(0, 8)}</h2>
-      {/snippet}
-
-      {#snippet right()}
         {#if authed && sessionId}
           <button
             title={chatView ? "Switch to Terminal" : "Switch to Chat"}
@@ -222,6 +218,10 @@
             </svg> -->
           </button>
         {/if}
+      {/snippet}
+
+      {#snippet right()}
+        <h2># {page.params.id.slice(0, 8)}</h2>
       {/snippet}
     </HeaderToolbar>
   {/snippet}

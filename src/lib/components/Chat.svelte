@@ -165,7 +165,6 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--bg-darker);
     overflow: hidden; /* Prevent horizontal scroll */
   }
 

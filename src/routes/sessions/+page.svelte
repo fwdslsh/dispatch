@@ -130,11 +130,20 @@
                             <div
                                 class="session-item"
                                 data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
+                                on:click={() => switchSession(session.id)}
+                                role="button"
+                                tabindex="0"
+                                on:keydown={(e) => e.key === 'Enter' && switchSession(session.id)}
+                                title="Open session"
+                                aria-label="Open session {session.name}"
                             >
                                 <div class="session-actions">
                                     <button
                                         class="button-danger btn-sm btn-icon-only"
-                                        on:click={() => endSession(session.id)}
+                                        on:click={(e) => {
+                                            e.stopPropagation();
+                                            endSession(session.id);
+                                        }}
                                         title="End session"
                                         aria-label="End session"
                                     >
@@ -151,7 +160,10 @@
                                 </div>
                                 <button
                                     class="btn-sm btn-icon-only"
-                                    on:click={() => switchSession(session.id)}
+                                    on:click={(e) => {
+                                        e.stopPropagation();
+                                        switchSession(session.id);
+                                    }}
                                     title="Open session"
                                     aria-label="Open session"
                                 >

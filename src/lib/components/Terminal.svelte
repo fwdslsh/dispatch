@@ -687,6 +687,9 @@
   .chat-button:hover {
     color: var(--text-primary) !important;
     background: rgba(0, 255, 136, 0.1) !important;
+    text-shadow: 
+      0 0 8px var(--primary),
+      0 0 16px rgba(0, 255, 136, 0.4) !important;
   }
 
   .mobile-controls {
@@ -730,9 +733,9 @@
     background: rgba(0, 255, 136, 0.1) !important;
     color: var(--primary) !important;
     transform: none !important;
-    box-shadow: 
-      0 0 8px rgba(0, 255, 136, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    text-shadow: 
+      0 0 8px var(--primary),
+      0 0 16px rgba(0, 255, 136, 0.4) !important;
   }
 
   .key-button svg {
