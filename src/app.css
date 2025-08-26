@@ -176,6 +176,26 @@ body:has(.session-container) {
   overflow: hidden !important;
 }
 
+/* Mobile session container improvements */
+@media (max-width: 768px) {
+  .session-container {
+    /* Use dynamic viewport height on mobile */
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    /* Account for mobile browser UI */
+    min-height: 100vh !important;
+  }
+  
+  /* iOS Safari specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    .session-container {
+      /* iOS Safari dynamic viewport handling */
+      height: -webkit-fill-available !important;
+      max-height: -webkit-fill-available !important;
+    }
+  }
+}
+
 /* Typography */
 h1,
 h2,

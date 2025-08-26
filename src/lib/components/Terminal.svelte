@@ -26,6 +26,7 @@
     convertEol: true,
     cursorBlink: true,
     fontFamily: 'Courier New, monospace',
+    scrollback: 10000, // Enable scrollback buffer
     theme: { 
       background: '#0a0a0a',
       foreground: '#ffffff',
@@ -247,11 +248,13 @@
     overlayTextarea.addEventListener('focus', () => {
       if (isMobile) {
         document.body.classList.add('keyboard-open');
-        // Prevent page scrolling
+        // Prevent page scrolling but allow terminal scrolling
         document.body.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
         document.body.style.width = '100%';
         document.body.style.height = '100%';
+        // Keep pointer events enabled while focused
+        overlayTextarea.style.pointerEvents = 'auto';
       }
     });
 
@@ -263,6 +266,8 @@
         document.body.style.position = '';
         document.body.style.width = '';
         document.body.style.height = '';
+        // Disable pointer events to allow scrolling
+        overlayTextarea.style.pointerEvents = 'none';
       }
     });
   }
@@ -370,8 +375,17 @@
       return;
     }
 
+    // Only focus overlay for keyboard input, not for scrolling
     if (isMobile && overlayTextarea && !isSelecting) {
+      // Temporarily enable pointer events for focusing
+      overlayTextarea.style.pointerEvents = 'auto';
       overlayTextarea.focus();
+      // Disable again after a short delay to allow scrolling
+      setTimeout(() => {
+        if (overlayTextarea && document.activeElement !== overlayTextarea) {
+          overlayTextarea.style.pointerEvents = 'none';
+        }
+      }, 100);
     }
   }
 
@@ -614,19 +628,36 @@
     .terminal-container {
       height: calc(100dvh - 60px); /* Account for header height */
       position: relative;
+      /* Allow touch scrolling */
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y; /* Allow vertical scrolling */
     }
     
-    /* When mobile keyboard is open, use visual viewport height */
+    .terminal {
+      /* Enable proper touch scrolling on mobile */
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+    
+    .terminal :global(.xterm-viewport) {
+      /* Ensure mobile scrolling works */
+      -webkit-overflow-scrolling: touch !important;
+      touch-action: pan-y !important;
+    }
+    
+    /* When mobile keyboard is open, adjust layout but preserve scrolling */
     :global(body.keyboard-open) .terminal-container {
       height: calc(100vh - 60px); /* Use viewport height when keyboard is open */
       max-height: calc(100vh - 60px);
-      overflow: hidden;
+      overflow: hidden; /* Prevent page scroll, but allow terminal scroll */
     }
 
-    /* Ensure terminal stays visible above keyboard */
+    /* Ensure terminal stays visible above keyboard but remains scrollable */
     :global(body.keyboard-open) .terminal {
       height: calc(100% - 80px); /* Account for mobile controls */
       min-height: 200px; /* Minimum visible terminal height */
+      /* Keep scrolling enabled even with keyboard open */
+      overflow-y: auto;
     }
   }
 
@@ -635,24 +666,34 @@
     background: var(--bg-darker);
     height: 100%;
     overflow: hidden;
+    position: relative;
   }
 
   .terminal :global(.xterm) {
     height: 100% !important;
+    width: 100% !important;
   }
 
   .terminal :global(.xterm .xterm-viewport) {
     height: 100% !important;
+    /* Ensure scrolling works properly */
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+  }
+  
+  .terminal :global(.xterm .xterm-screen) {
+    /* Allow the terminal content to scroll */
+    overflow-y: auto !important;
   }
 
   .overlay-textarea {
     position: absolute;
-    top: 80px;
+    top: 0;
     left: 0;
     width: 100%;
-    height: calc(100% - 160px); /* Don't cover mobile toolbar */
+    height: calc(100% - 80px); /* Account for mobile toolbar */
     opacity: 0;
-    z-index: 1000;
+    z-index: 100; /* Lower z-index to allow terminal interactions */
     resize: none;
     border: none;
     background: transparent;
@@ -660,11 +701,22 @@
     caret-color: transparent;
     outline: none;
     font-size: 16px; /* Prevent zoom on iOS */
+    pointer-events: none; /* Default to no pointer events */
+  }
+  
+  /* Only enable pointer events when needed for keyboard input */
+  .overlay-textarea:focus {
     pointer-events: auto;
   }
 
-  /* When in selection mode, allow pointer events to pass through to terminal */
+  /* When in selection mode, disable pointer events completely */
   .overlay-textarea.selection-mode {
+    pointer-events: none;
+    z-index: -1; /* Move below terminal */
+  }
+  
+  /* Allow scrolling when not actively inputting */
+  .terminal-container:not(:focus-within) .overlay-textarea {
     pointer-events: none;
   }
 

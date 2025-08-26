@@ -411,15 +411,20 @@
   @media (max-width: 768px) {
     .chat-view {
       overflow: hidden; /* Strict no-scroll on mobile */
+      height: 100vh; /* Full viewport height */
+      max-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
     
     .chat-messages {
       padding: var(--space-sm);
       gap: var(--space-md);
-      /* Account for controls and input area */
-      max-height: calc(100vh - 160px);
+      /* Account for header (60px) + controls (~48px) + input (~60px) + safe area */
+      max-height: calc(100vh - 180px);
       min-height: 0;
       overflow-x: hidden;
+      flex: 1;
     }
     
     .message {
@@ -432,19 +437,58 @@
       overflow-wrap: anywhere; /* Aggressive word breaking on mobile */
     }
     
+    .chat-input-container {
+      /* Ensure input area is always visible */
+      flex-shrink: 0;
+      position: relative;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      /* Add safe area padding for devices with home indicators */
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    
     .chat-controls {
       padding: var(--space-xs) var(--space-sm);
       gap: var(--space-xs);
+      flex-shrink: 0;
     }
     
     .chat-input-wrapper {
       margin: var(--space-sm);
       margin-top: 0;
+      margin-bottom: var(--space-sm);
+      /* Ensure minimum touch target size */
+      min-height: 44px;
+    }
+    
+    .chat-input {
+      min-height: 20px;
+      /* Prevent zoom on iOS */
+      font-size: 16px;
     }
     
     .special-key-btn {
       min-width: 40px !important;
       min-height: 40px !important;
+    }
+  }
+  
+  /* iOS-specific fixes */
+  @media (max-width: 768px) and (-webkit-min-device-pixel-ratio: 2) {
+    .chat-view {
+      /* Use dynamic viewport height on iOS to account for Safari UI */
+      height: 100dvh;
+      max-height: 100dvh;
+    }
+    
+    .chat-messages {
+      /* More conservative height calculation for iOS Safari */
+      max-height: calc(100dvh - 200px);
+    }
+    
+    .chat-input-container {
+      /* Extra bottom padding for iOS home indicator */
+      padding-bottom: max(env(safe-area-inset-bottom), 16px);
     }
   }
 </style>
