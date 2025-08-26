@@ -27,13 +27,14 @@
 
   let options = {
     convertEol: true,
-    cursorBlink: true,
+    cursorBlink: true, // Disable cursor blinking since it's read-only
     fontFamily: 'Courier New, monospace',
     scrollback: 10000, // Enable scrollback buffer
+    disableStdin: true, // Make terminal read-only
     theme: { 
       background: '#0a0a0a',
       foreground: '#ffffff',
-      cursor: '#00ff88',
+      cursor: '#00ff88', // Hide cursor since terminal is read-only
       cursorAccent: '#0a0a0a',
       selectionBackground: 'rgba(0, 255, 136, 0.3)',
       black: '#0a0a0a',

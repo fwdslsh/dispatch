@@ -10,7 +10,6 @@
 		"sourceMap": true,
 		"strict": false,
 		"moduleResolution": "bundler",
-		"maxNodeModuleJsDepth": 2,
-		"jsDoc": "import"
+		"maxNodeModuleJsDepth": 2
 	}
 }

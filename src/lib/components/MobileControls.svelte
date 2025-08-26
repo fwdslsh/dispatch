@@ -174,7 +174,17 @@
   }
 
   .mobile-input::placeholder {
-    color: var(--text-muted);
+    color: var(--primary-muted);
+    animation: pulse-placeholder 2s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-placeholder {
+    0%, 100% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
 
   /* Desktop: 2 rows x 6 columns
