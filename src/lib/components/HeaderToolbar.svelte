@@ -14,7 +14,6 @@
 
 <style>
   .header-toolbar {
-    background: var(--surface);
     border-bottom: 1px solid var(--border);
     padding-inline: var(--space-md);
     display: flex;

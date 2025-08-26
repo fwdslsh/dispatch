@@ -4,6 +4,10 @@
     import { goto } from "$app/navigation";
     import HeaderToolbar from "$lib/components/HeaderToolbar.svelte";
     import Container from "$lib/components/Container.svelte";
+    import BackIcon from "$lib/components/BackIcon.svelte";
+    import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
+    import SessionIcon from "$lib/components/Icons/SessionIcon.svelte";
+    import StartSession from "$lib/components/Icons/StartSession.svelte";
 
     let sessions = [];
     let active = null;
@@ -88,12 +92,19 @@
     {#snippet header()}
         <HeaderToolbar>
             {#snippet left()}
-                <button class="button-secondary logout-btn btn-icon-only" on:click={logout} title="Logout" aria-label="Logout">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <button
+                    class="button-secondary logout-btn btn-icon-only"
+                    on:click={logout}
+                    title="Logout"
+                    aria-label="Logout"
+                >
+                    <!-- <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                         <polyline points="16,17 21,12 16,7"/>
                         <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
+                    </svg> -->
+
+                    <BackIcon />
                 </button>
             {/snippet}
 
@@ -102,80 +113,95 @@
             {/snippet}
         </HeaderToolbar>
     {/snippet}
-    
-    {#snippet children()}
 
-    <div class="sessions">
-        {#if sessions.length === 0}
-            <div class="empty-state">
-                <p>no active sessions</p>
-                <p style="font-size: 0.9rem;">
-                    create a new session to get started
-                </p>
-            </div>
-        {:else}
-            <ul>
-                {#each sessions as session}
-                    <li>
-                        <div class="session-item">
-                            <div class="session-actions">
+    {#snippet children()}
+        <div class="sessions">
+            {#if sessions.length === 0}
+                <div class="empty-state">
+                    <p>no active sessions</p>
+                    <p style="font-size: 0.9rem;">
+                        create a new session to get started
+                    </p>
+                </div>
+            {:else}
+                <ul>
+                    {#each sessions as session}
+                        <li>
+                            <div
+                                class="session-item"
+                                data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
+                            >
+                                <div class="session-actions">
+                                    <button
+                                        class="button-danger btn-sm btn-icon-only"
+                                        on:click={() => endSession(session.id)}
+                                        title="End session"
+                                        aria-label="End session"
+                                    >
+                                        <EndSessionIcon />
+                                    </button>
+                                </div>
+                                <div class="session-name">
+                                    {session.name}
+                                    {#if active === session.id}
+                                        <span class="session-status"
+                                            >(active)</span
+                                        >
+                                    {/if}
+                                </div>
                                 <button
-                                    class="button-danger btn-sm btn-icon-only"
-                                    on:click={() => endSession(session.id)}
-                                    title="End session"
-                                    aria-label="End session"
+                                    class="btn-sm btn-icon-only"
+                                    on:click={() => switchSession(session.id)}
+                                    title="Open session"
+                                    aria-label="Open session"
                                 >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <line x1="18" y1="6" x2="6" y2="18"/>
-                                        <line x1="6" y1="6" x2="18" y2="18"/>
-                                    </svg>
+                                    <SessionIcon />
+                                    <!-- <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                    >
+                                        <polygon points="5,3 19,12 5,21" />
+                                    </svg> -->
                                 </button>
                             </div>
-                            <div class="session-name">
-                                {session.name}
-                                {#if active === session.id}
-                                    <span class="session-status">(active)</span>
-                                {/if}
-                            </div>
-                            <button
-                                class="btn-sm btn-icon-only"
-                                on:click={() => switchSession(session.id)}
-                                title="Open session"
-                                aria-label="Open session"
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <polygon points="5,3 19,12 5,21"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </li>
-                {/each}
-            </ul>
-        {/if}
-    </div>
-
+                        </li>
+                    {/each}
+                </ul>
+            {/if}
+        </div>
     {/snippet}
-    
+
     {#snippet footer()}
         <div class="new-session-controls">
             <select bind:value={sessionMode}>
                 <option value="bash">bash mode</option>
                 <option value="claude">claude mode</option>
             </select>
-            <button class="btn-icon-only" on:click={addSession} title="Create new session">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="16"/>
-                    <line x1="8" y1="12" x2="16" y2="12"/>
-                </svg>
+            <button
+                class="btn-icon-only"
+                on:click={addSession}
+                title="Create new session"
+                aria-label="Create new session"
+            >
+                <StartSession />
+                <!-- <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                </svg> -->
             </button>
         </div>
     {/snippet}
 </Container>
+
 <style>
     .empty-state {
         text-align: center;
         padding: 2rem;
         color: var(--text-muted);
+    }
+    select {
+        padding-inline-start: var(--space-md);
     }
 </style>

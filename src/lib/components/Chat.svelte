@@ -350,9 +350,8 @@
     gap: var(--space-md);
     background: var(--bg-darker);
     padding: var(--space-lg);
-    margin: var(--space-md);
-    margin-inline: 0;
-    margin-top: 0;
+    
+    margin: 0;
   }
 
   .chat-input {
@@ -440,7 +439,7 @@
       /* Ensure input area is always visible */
       flex-shrink: 0;
       position: relative;
-      background: var(--surface);
+      /* background: var(--surface); */
       border-top: 1px solid var(--border);
       /* Add safe area padding for devices with home indicators */
       padding-bottom: env(safe-area-inset-bottom, 0px);

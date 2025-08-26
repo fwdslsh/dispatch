@@ -9,6 +9,8 @@
   import { browser } from "$app/environment";
   import { io } from "socket.io-client";
   import { AnsiUp } from 'ansi_up';
+    import BackIcon from "$lib/components/BackIcon.svelte";
+    import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
 
   let authed = false;
   let sessionId;
@@ -173,16 +175,13 @@
   {#snippet header()}
     <HeaderToolbar>
       {#snippet left()}
-        <a href="/sessions" class="back-link" aria-label="Back to sessions">
-          <svg
-            class="back-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-          >
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-        </a>
+      <button onclick={() => goto('/sessions')} class="btn-icon-only" title="Back to sessions" aria-label="Back to sessions">
+          <!-- <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg> -->
+          <BackIcon />
+
+      </button>
         <h2># {page.params.id.slice(0, 8)}</h2>
       {/snippet}
 
@@ -192,7 +191,7 @@
             title={chatView ? "Switch to Terminal" : "Switch to Chat"}
             aria-label={chatView ? "Switch to Terminal view" : "Switch to Chat view"}
             class="view-toggle-header btn-icon-only"
-            on:click={toggleView}
+            onclick={toggleView}
           >
             {#if chatView}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -210,16 +209,17 @@
             title="End Session"
             aria-label="End Session"
             class="button-danger end-session-btn btn-icon-only"
-            on:click={endSession}
+            onclick={endSession}
           >
-            <svg
+          <EndSessionIcon />
+            <!-- <svg
               class="end-icon"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
             >
               <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            </svg> -->
           </button>
         {/if}
       {/snippet}
