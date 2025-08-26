@@ -1,9 +1,9 @@
 <script>
   import { onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import { io } from 'socket.io-client';
   import { Xterm, XtermAddon } from '@battlefieldduck/xterm-svelte';
 
+  export let socket = null;
   export let sessionId = null;
   export let onchatclick = () => {};
   export let initialHistory = '';
@@ -12,7 +12,6 @@
   export let onBufferUpdate = () => {};
 
   let terminal;
-  let socket;
   let publicUrl = null;
   let authenticated = false;
   let authKey = '';
@@ -103,7 +102,11 @@
       ro.disconnect();
     };
 
-    connect();
+    // Set up socket listeners if socket is provided
+    if (socket) {
+      setupSocketListeners();
+    }
+    
     pollPublicUrl();
     const pollId = setInterval(pollPublicUrl, 10000);
     
@@ -422,25 +425,8 @@
     }
   }
 
-  function authenticate() {
-    if (!socket || !authKey.trim()) return;
-    
-    socket.emit('auth', authKey, (resp) => {
-      if (resp.ok) {
-        authenticated = true;
-        localStorage.setItem('dispatch-auth-token', authKey);
-        connectToSession();
-      } else {
-        localStorage.removeItem('dispatch-auth-token');
-        goto('/');
-      }
-    });
-  }
-
-  function connect() {
-    socket = io({
-      transports: ['websocket', 'polling']
-    });
+  function setupSocketListeners() {
+    if (!socket) return;
 
     socket.on('connect_error', (err) => {
       terminal?.writeln(`\r\n[connection error] ${err.message}\r\n`);
@@ -492,32 +478,6 @@
       // Redirect to sessions page when session ends
       setTimeout(() => goto('/sessions'), 1000); // Small delay to show the message
     });
-
-    socket.on('connect', () => {
-      const storedAuth = localStorage.getItem('dispatch-auth-token');
-      if (storedAuth) {
-        authKey = storedAuth;
-        authenticate();
-      }
-    });
-  }
-
-  function connectToSession() {
-    if (!socket || !authenticated) return;
-
-    const dims = { cols: terminal.cols, rows: terminal.rows };
-
-    if (sessionId) {
-      socket.emit('attach', { sessionId, ...dims }, (resp) => {
-        if (!resp || !resp.ok) {
-          // failed to attach, redirect to sessions page
-          goto('/sessions');
-        }
-      });
-    } else {
-      // No sessionId provided, redirect to sessions page
-      goto('/sessions');
-    }
   }
 
 
@@ -533,8 +493,8 @@
     if (terminal?._keyboardCleanup) {
       terminal._keyboardCleanup();
     }
-    socket?.emit('detach');
-    socket?.disconnect();
+    // Don't disconnect the socket as it's shared with other components
+    // The session page will handle socket cleanup
   });
 
 </script>
@@ -565,12 +525,11 @@
       <textarea
         bind:this={overlayTextarea}
         class="overlay-textarea"
-        class:selection-mode={isSelecting}
-        autocomplete="off"
+        class:selection-mode={isSelecting}       
         autocapitalize="none"
         spellcheck="false"
         inputmode="text"
-        enterkeyhint="send"
+        enterkeyhint="enter"
         data-gramm="false"
         data-gramm_editor="false"
         data-enable-grammarly="false"

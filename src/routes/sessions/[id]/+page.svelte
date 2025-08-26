@@ -4,7 +4,7 @@
   import HeaderToolbar from "$lib/components/HeaderToolbar.svelte";
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { browser } from "$app/environment";
   import { io } from "socket.io-client";
   import { AnsiUp } from 'ansi_up';
@@ -36,7 +36,7 @@
       const storedAuth = localStorage.getItem("dispatch-auth-token");
       if (storedAuth) {
         authed = true;
-        sessionId = $page.params.id;
+        sessionId = page.params.id;
         // Create socket connection for end session functionality
         socket = io({ transports: ["websocket", "polling"] });
         socket.emit("auth", storedAuth, (res) => {
@@ -181,7 +181,7 @@
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
       </a>
-      <h2># {$page.params.id.slice(0, 8)}</h2>
+      <h2># {page.params.id.slice(0, 8)}</h2>
     {/snippet}
 
     {#snippet right()}
@@ -235,6 +235,7 @@
         />
       {:else}
         <Terminal 
+          {socket}
           {sessionId} 
           onchatclick={toggleView}
           initialHistory={getHistoryForTerminal()}
