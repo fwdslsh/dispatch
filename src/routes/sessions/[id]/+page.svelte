@@ -12,6 +12,7 @@
   import BackIcon from "$lib/components/Icons/BackIcon.svelte";
   import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
   import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
+    import TerminalReadonly from "$lib/components/TerminalReadonly.svelte";
 
   let authed = false;
   let sessionId;
@@ -23,6 +24,10 @@
   // Dialog state
   let showEndSessionDialog = false;
   
+  // Constants for history management
+  const MAX_CHAT_EVENTS = 300000; // Maximum number of events to keep for chat
+  const MAX_TERMINAL_BUFFER_LENGTH = 500000; // Maximum terminal buffer length in characters
+
   // Unified session history - single source of truth
   let sessionHistory = {
     // All terminal I/O as structured events
@@ -121,6 +126,10 @@
       id: generateUUID()
     };
     sessionHistory.events = [...sessionHistory.events, event];
+    
+    // Trim events if needed
+    trimEventsIfNeeded();
+    
     console.debug('Added input event:', input);
   }
 
@@ -132,11 +141,31 @@
       id: generateUUID()
     };
     sessionHistory.events = [...sessionHistory.events, event];
+    
+    // Trim events if needed
+    trimEventsIfNeeded();
+    
     console.debug('Added output event, length:', output.length);
+  }
+
+  function trimEventsIfNeeded() {
+    if (sessionHistory.events.length > MAX_CHAT_EVENTS) {
+      const eventsToRemove = sessionHistory.events.length - MAX_CHAT_EVENTS;
+      sessionHistory.events = sessionHistory.events.slice(eventsToRemove);
+      console.debug(`Trimmed ${eventsToRemove} chat events, now have ${sessionHistory.events.length} events`);
+    }
   }
 
   function updateTerminalBuffer(buffer) {
     sessionHistory.terminalBuffer = buffer;
+    
+    // Trim terminal buffer if it gets too large
+    if (sessionHistory.terminalBuffer.length > MAX_TERMINAL_BUFFER_LENGTH) {
+      // Keep the last portion of the buffer
+      const keepLength = Math.floor(MAX_TERMINAL_BUFFER_LENGTH * 0.8); // Keep 80% when trimming
+      sessionHistory.terminalBuffer = sessionHistory.terminalBuffer.slice(-keepLength);
+      console.debug(`Trimmed terminal buffer to ${sessionHistory.terminalBuffer.length} characters`);
+    }
   }
 
   // Make chat history reactive to sessionHistory changes
@@ -233,7 +262,7 @@
           onterminalclick={toggleView}
         />
       {:else}
-        <Terminal 
+      <TerminalReadonly 
           {socket}
           {sessionId} 
           onchatclick={toggleView}
@@ -242,6 +271,15 @@
           onOutputEvent={addOutputEvent}
           onBufferUpdate={updateTerminalBuffer}
         />
+        <!-- <Terminal 
+          {socket}
+          {sessionId} 
+          onchatclick={toggleView}
+          initialHistory={getHistoryForTerminal()}
+          onInputEvent={addInputEvent}
+          onOutputEvent={addOutputEvent}
+          onBufferUpdate={updateTerminalBuffer}
+        /> -->
       {/if}
     {:else}
       <div style="text-align: center; padding: 2rem;">

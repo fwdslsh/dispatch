@@ -1,7 +1,7 @@
 <script>
-  import { onDestroy } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import { Xterm, XtermAddon } from '@battlefieldduck/xterm-svelte';
+  import { AnsiUp } from 'ansi_up';
   import MobileControls from './MobileControls.svelte';
 
   export let socket = null;
@@ -15,51 +15,29 @@
   // State for unified mobile input
   let mobileInput = '';
 
-  let terminal;
+  let terminalElement;
   let publicUrl = null;
-  let authenticated = false;
-  let authKey = '';
   let isMobile = false;
   let initialViewportHeight = 0;
+  let ansiUp;
 
   const LS_KEY = 'dispatch-session-id';
   const LS_HISTORY_KEY = 'dispatch-session-history';
   const MAX_HISTORY_ENTRIES = 5000; // Maximum number of history entries to keep
   const MAX_BUFFER_LENGTH = 500000; // Maximum buffer length in characters (~500KB)
 
-  let options = {
-    convertEol: true,
-    cursorBlink: true, // Disable cursor blinking since it's read-only
-    fontFamily: 'Courier New, monospace',
-    scrollback: 10000, // Enable scrollback buffer
-    disableStdin: true, // Make terminal read-only
-    theme: { 
-      background: '#0a0a0a',
-      foreground: '#ffffff',
-      cursor: '#00ff88', // Hide cursor since terminal is read-only
-      cursorAccent: '#0a0a0a',
-      selectionBackground: 'rgba(0, 255, 136, 0.3)',
-      black: '#0a0a0a',
-      red: '#ff6b6b',
-      green: '#00ff88',
-      yellow: '#ffeb3b',
-      blue: '#2196f3',
-      magenta: '#e91e63',
-      cyan: '#00bcd4',
-      white: '#ffffff',
-      brightBlack: '#666666',
-      brightRed: '#ff5252',
-      brightGreen: '#69f0ae',
-      brightYellow: '#ffff00',
-      brightBlue: '#448aff',
-      brightMagenta: '#ff4081',
-      brightCyan: '#18ffff',
-      brightWhite: '#ffffff'
-    }
-  };
+  let currentInputBuffer = ''; // Buffer to accumulate input until Enter is pressed
+  let currentOutputBuffer = ''; // Buffer to accumulate output until complete lines
+  let sessionTerminalHistory = []; // Deduplicated terminal history for this session
+  let terminalContent = ''; // HTML content for display
+  let rawTerminalBuffer = ''; // Raw ANSI content buffer
 
-  async function onLoad() {
-    console.debug('Terminal component has loaded');
+  onMount(() => {
+    console.debug('TerminalReadonly component has mounted');
+
+    // Initialize AnsiUp
+    ansiUp = new AnsiUp();
+    ansiUp.use_classes = true;
 
     // Check if we're on mobile
     isMobile = window.innerWidth <= 768;
@@ -76,39 +54,6 @@
       setupKeyboardDetection();
     }
 
-    // FitAddon Usage
-    const fitAddon = new (await XtermAddon.FitAddon()).FitAddon();
-    terminal.loadAddon(fitAddon);
-    
-    // Store fitAddon reference for keyboard handling
-    terminal._fitAddon = fitAddon;
-    
-    // Ensure the terminal fits after DOM is ready
-    setTimeout(() => {
-      fitAddon.fit();
-    }, 100);
-
-    // Set up resize handling
-    const resize = () => {
-      fitAddon.fit();
-      socket?.emit('resize', { cols: terminal.cols, rows: terminal.rows });
-    };
-    
-    // ResizeObserver for container changes
-    const ro = new ResizeObserver(resize);
-    const terminalElement = terminal.element?.parentElement;
-    if (terminalElement) {
-      ro.observe(terminalElement);
-    }
-    window.addEventListener('resize', resize);
-
-    // Store cleanup function
-    terminal._cleanup = () => {
-      window.removeEventListener('resize', resize);
-      window.removeEventListener('resize', handleResize);
-      ro.disconnect();
-    };
-
     // Set up socket listeners if socket is provided
     if (socket) {
       setupSocketListeners();
@@ -122,9 +67,10 @@
     
     // Restore terminal history - prefer stored history over initial history
     const historyToRestore = storedHistory || initialHistory || '';
-    if (historyToRestore && terminal) {
+    if (historyToRestore) {
       console.debug('Restoring terminal history, length:', historyToRestore.length);
-      terminal.write(historyToRestore);
+      rawTerminalBuffer = historyToRestore;
+      displayContent(historyToRestore);
       
       // If we used stored history, also reconstruct the terminal buffer
       if (storedHistory) {
@@ -134,26 +80,79 @@
         }
       }
     }
-    
-    // Store poll cleanup
-    terminal._pollCleanup = () => clearInterval(pollId);
-  }
 
-  function onData(data) {
-    console.debug('onData()', data);
-    // Allow direct terminal input on desktop, mobile uses unified controls
-    if (!isMobile && socket) {
-      socket.emit('input', data);
-      // Accumulate input characters until command is complete
-      handleInputAccumulation(data);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearInterval(pollId);
+    };
+  });
+
+  function displayContent(content) {
+    if (ansiUp && content) {
+      // Store raw content
+      rawTerminalBuffer = content;
+      
+      // Process terminal control sequences
+      let processedContent = processTerminalSequences(content);
+      
+      // Convert ANSI to HTML
+      terminalContent = ansiUp.ansi_to_html(processedContent);
+      
+      // Auto-scroll to bottom after content update
+      setTimeout(() => {
+        if (terminalElement) {
+          terminalElement.scrollTop = terminalElement.scrollHeight;
+        }
+      }, 10);
     }
   }
 
-  function onKey(data) {
-    console.debug('onKey()', data);
-    // Handle any special key combinations here if needed
+  function processTerminalSequences(content) {
+    // More sophisticated terminal sequence processing
+    
+    // Step 1: Handle carriage return overwrites (for progress indicators)
+    let lines = content.split('\n');
+    let processedLines = [];
+    
+    for (let line of lines) {
+      // Handle carriage return overwrites within a line
+      if (line.includes('\r')) {
+        // Simulate terminal behavior: \r moves cursor to beginning of line
+        let segments = line.split('\r');
+        let processedLine = '';
+        
+        for (let i = 0; i < segments.length; i++) {
+          if (i === 0) {
+            processedLine = segments[i];
+          } else {
+            // Overwrite from beginning of line
+            let overwrite = segments[i];
+            if (overwrite.length >= processedLine.length) {
+              processedLine = overwrite;
+            } else {
+              // Partial overwrite
+              processedLine = overwrite + processedLine.slice(overwrite.length);
+            }
+          }
+        }
+        
+        processedLines.push(processedLine);
+      } else {
+        processedLines.push(line);
+      }
+    }
+    
+    let result = processedLines.join('\n');
+    
+    // Step 2: Clean up excess whitespace and control characters
+    result = result
+      // Remove excessive repeated characters (like progress dots)
+      .replace(/([⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏])\s*\1{10,}/g, '$1') // Limit spinner repetition
+      // Clean up multiple consecutive newlines (keep max 2)
+      .replace(/\n{3,}/g, '\n\n');
+    
+    return result;
   }
-
 
   function sendSpecialKey(key) {
     if (socket) {
@@ -164,20 +163,16 @@
   }
 
   function sendMobileInput() {
-    console.debug('Terminal: sendMobileInput called, input:', mobileInput, 'socket:', !!socket, 'socket.connected:', socket?.connected);
+    console.debug('TerminalReadonly: sendMobileInput called, input:', mobileInput, 'socket:', !!socket, 'socket.connected:', socket?.connected);
     if (!socket) {
-      console.debug('Terminal: sendMobileInput blocked - no socket', { 
-        hasInput: !!mobileInput.trim(), 
-        hasSocket: !!socket,
-        socketConnected: socket?.connected 
-      });
+      console.debug('TerminalReadonly: sendMobileInput blocked - no socket');
       return;
     }
     
     // Only check for input content if we have some, otherwise allow empty sends (for Enter key)
     if (mobileInput.trim()) {
       const inputToSend = mobileInput;
-      console.debug('Terminal: sending to PTY:', inputToSend);
+      console.debug('TerminalReadonly: sending to PTY:', inputToSend);
       
       // Add to shared input history
       onInputEvent(inputToSend);
@@ -188,10 +183,10 @@
       
       // Clear input
       mobileInput = '';
-      console.debug('Terminal: input cleared, new value:', mobileInput);
+      console.debug('TerminalReadonly: input cleared, new value:', mobileInput);
     } else {
       // No input content, just send enter key
-      console.debug('Terminal: sending empty enter key');
+      console.debug('TerminalReadonly: sending empty enter key');
       socket.emit('input', '\r');
       handleInputAccumulation('\r');
     }
@@ -234,8 +229,6 @@
     }
   }
 
-
-
   function setupKeyboardDetection() {
     let keyboardVisible = false;
     
@@ -256,13 +249,6 @@
       };
       
       window.visualViewport.addEventListener('resize', handleViewportChange);
-      
-      // Cleanup function
-      if (terminal) {
-        terminal._keyboardCleanup = () => {
-          window.visualViewport.removeEventListener('resize', handleViewportChange);
-        };
-      }
     } else {
       // Fallback to window resize detection
       const handleWindowResize = () => {
@@ -281,13 +267,6 @@
       };
       
       window.addEventListener('resize', handleWindowResize);
-      
-      // Cleanup function
-      if (terminal) {
-        terminal._keyboardCleanup = () => {
-          window.removeEventListener('resize', handleWindowResize);
-        };
-      }
     }
   }
 
@@ -299,31 +278,7 @@
     document.body.style.position = '';
     document.body.style.width = '';
     document.body.style.height = '';
-    
-    // Blur the textarea to ensure it's not focused
-    if (overlayTextarea) {
-      overlayTextarea.blur();
-    }
-    
-    // Force layout reflow and terminal resize
-    requestAnimationFrame(() => {
-      // Force a reflow to trigger layout recalculation
-      document.body.offsetHeight;
-      
-      // Small delay to ensure layout settles completely
-      setTimeout(() => {
-        // Force a resize to ensure terminal fits properly
-        if (terminal && terminal._fitAddon) {
-          terminal._fitAddon.fit();
-        }
-      }, 150);
-    });
   }
-
-  let currentInputBuffer = ''; // Buffer to accumulate input until Enter is pressed
-  let currentOutputBuffer = ''; // Buffer to accumulate output until complete lines
-  let sessionTerminalHistory = []; // Deduplicated terminal history for this session
-
 
   function pollPublicUrl() {
     if (socket) {
@@ -448,23 +403,36 @@
 
   function setupSocketListeners() {
     if (!socket) {
-      console.debug('Terminal: setupSocketListeners called but no socket');
+      console.debug('TerminalReadonly: setupSocketListeners called but no socket');
       return;
     }
 
-    console.debug('Terminal: setting up socket listeners, socket connected:', socket.connected);
+    console.debug('TerminalReadonly: setting up socket listeners, socket connected:', socket.connected);
 
     socket.on('connect_error', (err) => {
-      terminal?.writeln(`\r\n[connection error] ${err.message}\r\n`);
+      const errorMsg = `\r\n[connection error] ${err.message}\r\n`;
+      rawTerminalBuffer += errorMsg;
+      displayContent(rawTerminalBuffer);
     });
 
     socket.on('output', (data) => {
-      console.debug('Terminal: received output from socket:', data.length, 'chars, first 50:', data.substring(0, 50));
-      terminal?.write(data);
-      console.debug('Terminal: wrote to xterm, terminal exists:', !!terminal);
+      console.debug('TerminalReadonly: received output from socket:', data.length, 'chars, first 50:', data.substring(0, 50));
       
       // Save to localStorage history for persistence
       addToSessionHistory(data, 'output');
+      
+      // Add to raw buffer and display the entire reconstructed content
+      rawTerminalBuffer += data;
+      
+      // Trim raw buffer if it gets too large
+      if (rawTerminalBuffer.length > MAX_BUFFER_LENGTH) {
+        // Keep the last portion of the buffer
+        const keepLength = Math.floor(MAX_BUFFER_LENGTH * 0.8); // Keep 80% when trimming
+        rawTerminalBuffer = rawTerminalBuffer.slice(-keepLength);
+        console.debug(`Trimmed raw terminal buffer to ${rawTerminalBuffer.length} characters`);
+      }
+      
+      displayContent(rawTerminalBuffer);
       
       // Accumulate output data for chat history
       currentOutputBuffer += data;
@@ -485,26 +453,17 @@
         currentOutputBuffer = '';
       }
       
-      // Update terminal buffer cache by getting the terminal buffer
-      if (terminal && onBufferUpdate) {
-        // Get the terminal buffer contents to cache
-        const buffer = terminal.buffer.active;
-        let historyContent = '';
-        
-        // Extract visible content from terminal buffer
-        for (let i = 0; i < buffer.length; i++) {
-          const line = buffer.getLine(i);
-          if (line) {
-            historyContent += line.translateToString(true) + '\n';
-          }
-        }
-        
-        onBufferUpdate(historyContent);
+      // Update terminal buffer cache
+      if (onBufferUpdate) {
+        const reconstructedBuffer = reconstructTerminalBuffer();
+        onBufferUpdate(reconstructedBuffer);
       }
     });
 
     socket.on('ended', () => {
-      terminal?.writeln('\r\n[session ended]\r\n');
+      const endMsg = '\r\n[session ended]\r\n';
+      rawTerminalBuffer += endMsg;
+      displayContent(rawTerminalBuffer);
       localStorage.removeItem(LS_KEY);
       // Clear session history when session ends
       clearSessionHistory();
@@ -513,25 +472,10 @@
     });
   }
 
-
-
-
   onDestroy(() => {
-    if (terminal?._cleanup) {
-      terminal._cleanup();
-    }
-    if (terminal?._pollCleanup) {
-      terminal._pollCleanup();
-    }
-    if (terminal?._keyboardCleanup) {
-      terminal._keyboardCleanup();
-    }
-    // Don't disconnect the socket as it's shared with other components
-    // The session page will handle socket cleanup
+    // Clean up any remaining listeners
   });
-
 </script>
-
 
 <div class="terminal-container">
   {#if publicUrl}
@@ -540,8 +484,10 @@
     </div>
   {/if}
   
-  <div class="terminal">
-    <Xterm bind:terminal {options} {onLoad} {onData} {onKey} />
+  <div class="terminal" bind:this={terminalElement}>
+    <div class="terminal-content">
+      {@html terminalContent}
+    </div>
   </div>
   
   <MobileControls 
@@ -556,7 +502,6 @@
 </div>
 
 <style>
-
   .terminal-container {
     display: flex;
     flex-direction: column;
@@ -589,32 +534,18 @@
       max-width: 100%;
     }
     
-    .terminal :global(.xterm-viewport) {
-      /* Fix mobile scrolling - ensure native scroll behavior */
-      -webkit-overflow-scrolling: touch !important;
-      touch-action: pan-y !important;
-      overflow-y: auto !important;
-      overflow-x: hidden !important;
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-
-    .terminal :global(.xterm) {
-      width: 100% !important;
-      max-width: 100% !important;
-      pointer-events: allow !important;
-      -webkit-overflow-scrolling: touch;
-     :global(div) {
-        pointer-events: none !important;
-      }
-    }
-    
-    
     /* When mobile keyboard is open, adjust layout but preserve scrolling */
     :global(body.keyboard-open) .terminal-container {
       height: calc(100vh - 200px); /* Use viewport height when keyboard is open */
       max-height: calc(100vh - 200px);
       overflow: hidden;
+    }
+
+    /* Ensure terminal stays visible above keyboard but remains scrollable */
+    :global(body.keyboard-open) .terminal {
+      height: 100%;
+      min-height: 200px;
+      overflow-y: auto;
     }
   }
   
@@ -637,25 +568,59 @@
     flex: 1;
     background: var(--bg-darker);
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     position: relative;
-  }
-
-  .terminal :global(.xterm) {
-    height: 100% !important;
-    width: 100% !important;
-  }
-
-  .terminal :global(.xterm .xterm-viewport) {
-    height: 100% !important;
-    /* Ensure scrolling works properly */
-    overflow-y: auto !important;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.2;
+    padding: var(--space-md);
+    color: #ffffff;
     scrollbar-width: thin;
   }
-  
-  .terminal :global(.xterm .xterm-screen) {
-    /* Allow the terminal content to scroll */
-    overflow-y: auto !important;
+
+  .terminal-content {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    min-height: 100%;
+  }
+
+  /* ANSI color classes - AnsiUp generates these */
+  .terminal-content :global(.ansi-black-fg) { color: #0a0a0a; }
+  .terminal-content :global(.ansi-red-fg) { color: #ff6b6b; }
+  .terminal-content :global(.ansi-green-fg) { color: #00ff88; }
+  .terminal-content :global(.ansi-yellow-fg) { color: #ffeb3b; }
+  .terminal-content :global(.ansi-blue-fg) { color: #2196f3; }
+  .terminal-content :global(.ansi-magenta-fg) { color: #e91e63; }
+  .terminal-content :global(.ansi-cyan-fg) { color: #00bcd4; }
+  .terminal-content :global(.ansi-white-fg) { color: #ffffff; }
+  .terminal-content :global(.ansi-bright-black-fg) { color: #666666; }
+  .terminal-content :global(.ansi-bright-red-fg) { color: #ff5252; }
+  .terminal-content :global(.ansi-bright-green-fg) { color: #69f0ae; }
+  .terminal-content :global(.ansi-bright-yellow-fg) { color: #ffff00; }
+  .terminal-content :global(.ansi-bright-blue-fg) { color: #448aff; }
+  .terminal-content :global(.ansi-bright-magenta-fg) { color: #ff4081; }
+  .terminal-content :global(.ansi-bright-cyan-fg) { color: #18ffff; }
+  .terminal-content :global(.ansi-bright-white-fg) { color: #ffffff; }
+
+  /* Background colors */
+  .terminal-content :global(.ansi-black-bg) { background-color: #0a0a0a; }
+  .terminal-content :global(.ansi-red-bg) { background-color: #ff6b6b; }
+  .terminal-content :global(.ansi-green-bg) { background-color: #00ff88; }
+  .terminal-content :global(.ansi-yellow-bg) { background-color: #ffeb3b; }
+  .terminal-content :global(.ansi-blue-bg) { background-color: #2196f3; }
+  .terminal-content :global(.ansi-magenta-bg) { background-color: #e91e63; }
+  .terminal-content :global(.ansi-cyan-bg) { background-color: #00bcd4; }
+  .terminal-content :global(.ansi-white-bg) { background-color: #ffffff; }
+
+  /* Text styling */
+  .terminal-content :global(.ansi-bold) { font-weight: bold; }
+  .terminal-content :global(.ansi-dim) { opacity: 0.7; }
+  .terminal-content :global(.ansi-italic) { font-style: italic; }
+  .terminal-content :global(.ansi-underline) { text-decoration: underline; }
+  .terminal-content :global(.ansi-reverse) { 
+    color: #0a0a0a; 
+    background-color: #ffffff; 
   }
 
   .controls {
