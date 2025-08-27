@@ -34,6 +34,5 @@ jobs:
     with:
       tag:  ${{ github.event.inputs.tag || github.ref_name }}
       description: Accessible web-based terminal sessions with AI assistance.
-      image_name: fwdslsh/dispatch      
     secrets: inherit
 
