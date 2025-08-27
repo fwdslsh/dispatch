@@ -20,21 +20,42 @@ jobs:
   # Then create the release
   release:
     name: Create GitHub Release
-    uses: softprops/action-gh-release@v2
-    with:
-      tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-      name: ${{ github.event.inputs.tag || github.ref_name }}
-      body_path: release_notes.md
-      generate_release_notes: true
-      append_body: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event.inputs.tag || github.ref_name }}
+          body_path: release_notes.md
+          generate_release_notes: true
+          append_body: true
   # Call Docker publishing workflow
   docker:
     name: Publish Docker Image
     needs: [release]
     if: ${{ !cancelled() && needs.release.result == 'success' }}
-    uses: fwdslsh/toolkit/.github/workflows/publish-docker.yml@main
-    with:
-      tag:  ${{ github.event.inputs.tag || github.ref_name }}
-      description: Accessible web-based terminal sessions with AI assistance.
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: |
+            fwdslsh/dispatch:${{ github.event.inputs.tag || github.ref_name }}
+            fwdslsh/dispatch:latest
+
+      - name: Set image description
+        run: echo "Published fwdslsh/dispatch:${{ github.event.inputs.tag || github.ref_name }}"
 
