@@ -27,9 +27,8 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: ${{ github.event.inputs.tag || github.ref_name }}
-          body_path: .github/workflows/release_notes.md
           generate_release_notes: true
-          append_body: true
+          append_body: false
   # Call Docker publishing workflow
   docker:
     name: Publish Docker Image
