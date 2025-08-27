@@ -46,9 +46,9 @@ COPY --from=build /app /app
 
 # Create dirs for sessions
 RUN mkdir -p /tmp/dispatch-sessions /workspace \
-    && chown -R appuser:appuser /tmp/dispatch-sessions /app /workspace
+    && chown -R appuser:appuser /tmp/dispatch-sessions /app /workspace /home/appuser
 
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @qwen-code/qwen-code@latest
 USER appuser
 
 # Set environment variables

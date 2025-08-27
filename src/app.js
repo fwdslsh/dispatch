@@ -10,8 +10,8 @@ import { handleConnection } from './lib/server/socket-handler.js';
 
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
+const TUNNEL_FILE = process.env.TUNNEL_FILE || '/tmp/tunnel-url.txt';
 const LT_SUBDOMAIN = process.env.LT_SUBDOMAIN || '';
-const TUNNEL_FILE = '/tmp/tunnel-url.txt';
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
 
 // Security check: require proper key if tunnel is enabled

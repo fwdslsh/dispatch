@@ -214,6 +214,8 @@
             <select bind:value={sessionMode}>
                 <option value="bash">bash mode</option>
                 <option value="claude">claude mode</option>
+                <option value="qwen">qwen mode</option>
+                <option value="gemini">gemini mode</option>
             </select>
             <button
                 class="btn-icon-only"
