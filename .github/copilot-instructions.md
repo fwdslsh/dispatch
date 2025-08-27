@@ -40,7 +40,7 @@ Editing guidelines for common tasks
 - Docker: Dockerfile uses multi-stage build and expects runtime defaults in ENV (see `Dockerfile` for `PORT`, `PTY_ROOT`, `PTY_MODE`). Building with Claude requires installing the Claude CLI in the image.
 
 Debug & dev tips (concrete)
-- Dev server: `npm run dev` exposes Vite host; use browser at `http://localhost:3000` and key `test` (dev script).
+- Dev server: `npm run dev` exposes Vite host; use browser at `http://localhost:3030` and key `test` (dev script).
 - Production local run: `TERMINAL_KEY=your-key node src/app.js` or use `start.sh` for a small wrapper that prepares `PTY_ROOT`.
 - Check tunnel output: when enabled, see `/tmp/tunnel-url.txt` for the public URL.
 - If PTY spawn fails, inspect `src/lib/server/terminal.js` and ensure the CLI exists (e.g., `claude`) and container has execute permissions.

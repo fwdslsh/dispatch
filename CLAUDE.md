@@ -95,7 +95,7 @@ Each terminal session runs in isolation:
 - `TERMINAL_KEY`: Authentication key (default: `change-me`)
 
 ### Optional Variables
-- `PORT`: Server port (default: `3000`)
+- `PORT`: Server port (default: `3030`)
 - `PTY_ROOT`: Session directory root (default: `/tmp/dispatch-sessions`)
 - `PTY_MODE`: Default session mode (default: `shell`, can be `claude`)
 - `ENABLE_TUNNEL`: Enable LocalTunnel (default: `false`)
@@ -200,7 +200,7 @@ For production with Claude Code:
 ### Development Access
 - Development server runs on all interfaces (`--host` flag)
 - Default auth key in development: `test`
-- Access at `http://localhost:3000` with key `test`
+- Access at `http://localhost:3030` with key `test`
 
 ## Key Dependencies & Versions
 
