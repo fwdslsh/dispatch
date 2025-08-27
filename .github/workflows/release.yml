@@ -20,7 +20,6 @@ jobs:
   # Then create the release
   release:
     name: Create Release
-    needs: build
     uses: fwdslsh/toolkit/.github/workflows/create-gh-release.yml@main
     with:
       tag: ${{ github.event.inputs.tag || github.ref_name }}
