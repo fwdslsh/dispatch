@@ -19,12 +19,15 @@ jobs:
 
   # Then create the release
   release:
-    name: Create Release
-    uses: fwdslsh/toolkit/.github/workflows/create-gh-release.yml@main
+    name: Create GitHub Release
+    uses: softprops/action-gh-release@v2
     with:
-      tag: ${{ github.event.inputs.tag || github.ref_name }}
-    secrets: inherit
-
+      tag_name: ${{ steps.release-info.outputs.tag }}
+      name: ${{ steps.release-info.outputs.tag }}
+      body_path: .github/workflows/release_notes.md
+      prerelease: ${{ steps.release-info.outputs.is_prerelease == 'true' }}
+      generate_release_notes: true
+      append_body: true
   # Call Docker publishing workflow
   docker:
     name: Publish Docker Image
