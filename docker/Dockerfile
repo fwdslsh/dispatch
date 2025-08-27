@@ -35,17 +35,18 @@ RUN apt-get update \
 # Note: Claude CLI and other tools would be installed here in a real deployment
 # For this MVP, we're keeping it minimal
 
-# Create non-root user
-RUN useradd -m -u 10001 appuser \
-    && useradd -m -u 10000 anotheruser \
-    && usermod -a -G appuser anotheruser
+# Create non-root user with configurable UID/GID
+ARG USER_UID=10001
+ARG USER_GID=10001
+RUN (groupadd -g ${USER_GID} appuser || true) \
+    && useradd -m -u ${USER_UID} -g ${USER_GID} appuser
 
 WORKDIR /app
 COPY --from=build /app /app
 
 # Create dirs for sessions
-RUN mkdir -p /tmp/dispatch-sessions /workspace /home/appuser \
-    && chown -R appuser:appuser /tmp/dispatch-sessions /app /workspace /home/appuser
+RUN mkdir -p /tmp/dispatch-sessions /workspace \
+    && chown -R appuser:appuser /tmp/dispatch-sessions /app /workspace
 
 RUN npm install -g @anthropic-ai/claude-code
 USER appuser

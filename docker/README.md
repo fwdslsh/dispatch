@@ -2,19 +2,6 @@
 
 This document explains how to build and run the Dispatch Docker image (`fwdslsh/dispatch:latest`). It includes examples for running the container, mounting local directories for persistent storage, handling permissions, and troubleshooting common Docker-related issues.
 
-> Note: The runtime container runs as a non-root user with UID 10001 (`appuser`). When mounting host directories you must ensure correct ownership/permissions so the container can write to the mounts.
-
-## Build the image (optional)
-
-If you want to build the image locally:
-
-```bash
-# Build and tag locally
-docker build -f docker/Dockerfile -t fwdslsh/dispatch:latest .
-```
-
-If you plan to run the pre-built image from Docker Hub, skip the build step.
-
 ## Run (basic)
 
 ```bash
@@ -40,13 +27,13 @@ When `ENABLE_TUNNEL=true` the container will attempt to create a public URL. A k
 To keep user data, dotfiles, and project files across container restarts, mount host directories into the container.
 
 ```bash
-# Example mounts for home and workspace
+# Create directories (no sudo needed!)
 mkdir -p ~/dispatch-home ~/dispatch-projects
-# Make the host directories writeable by container UID 10001
-sudo chown -R 10001:10001 ~/dispatch-home ~/dispatch-projects
 
+# Option 1: Use your current user ID (recommended)
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
+  --user $(id -u):$(id -g) \
   -v ~/dispatch-home:/home/appuser \
   -v ~/dispatch-projects:/workspace \
   fwdslsh/dispatch:latest
@@ -55,25 +42,20 @@ docker run -p 3030:3030 \
 Recommended mount points:
 - `/home/appuser` — user home directory inside the container (shell history, dotfiles)
 - `/workspace` — where you can keep project folders and code
-- `/data` — extra persistent storage as needed
 
-Important: the container runs as UID `10001` (user `appuser`). If mounted host directories are owned by a different UID, the container will not be able to write to them. Use `sudo chown -R 10001:10001 <path>` to grant ownership to the container user.
-
-Alternative approaches:
-- Use group permissions to share access between your host user and the container (e.g., `sudo chown -R $(id -u):10001 <path>`)
-- Mount read-only if you only need to read files from the host: `-v /host/path:/container/path:ro`
+**Security isolation**: The container can only access the specific directories you mount. No sudo required when using `--user $(id -u):$(id -g)` or building with your user ID.
 
 ## Combined: persistence + public URL
 
 ```bash
-# Prepare directories
+# Create directories (no sudo needed!)
 mkdir -p ~/dispatch-home ~/dispatch-projects
-sudo chown -R 10001:10001 ~/dispatch-home ~/dispatch-projects
 
 # Run with persistence and tunneling
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
   -e ENABLE_TUNNEL=true \
+  --user $(id -u):$(id -g) \
   -v ~/dispatch-home:/home/appuser \
   -v ~/dispatch-projects:/workspace \
   fwdslsh/dispatch:latest
@@ -94,14 +76,14 @@ docker run -p 3030:3030 \
 Symptom: You can access the UI but cannot create files or save in mounted folders.
 
 Fix:
-1. Ensure the host directories exist.
-2. Ensure ownership is set to UID 10001 (container user):
+1. Ensure the host directories exist: `mkdir -p ~/dispatch-home ~/dispatch-projects`
+2. Use the recommended permission approach:
 
 ```bash
-sudo chown -R 10001:10001 ~/dispatch-home ~/dispatch-projects
+docker run --user $(id -u):$(id -g) [other options...]
 ```
 
-3. Alternatively adjust group permissions or use `:ro` if read-only is intended.
+3. For read-only access, add `:ro` suffix: `-v ~/dispatch-home:/home/appuser:ro`
 
 ### Port conflicts
 
@@ -134,13 +116,13 @@ docker run -p 3030:3030 -e TERMINAL_KEY=secret fwdslsh/dispatch:latest
 Run with persistence and custom host port:
 
 ```bash
-sudo chown -R 10001:10001 ~/dispatch-home ~/dispatch-projects
-docker run -p 3030:3030 -e TERMINAL_KEY=secret -v ~/dispatch-home:/home/appuser -v ~/dispatch-projects:/workspace fwdslsh/dispatch:latest
+mkdir -p ~/dispatch-home ~/dispatch-projects
+docker run -p 3030:3030 -e TERMINAL_KEY=secret --user $(id -u):$(id -g) -v ~/dispatch-home:/home/appuser -v ~/dispatch-projects:/workspace fwdslsh/dispatch:latest
 ```
 
 ## Further reading
 
-- See `docker/Dockerfile` for how the image is built and the runtime user (`appuser`, UID 10001)
+- See `docker/Dockerfile` for how the image is built and the flexible runtime user configuration
 - See `CONTRIBUTING.md` for development and build instructions
 
 ---

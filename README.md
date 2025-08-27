@@ -45,39 +45,52 @@ The container will display a public URL you can access from anywhere.
 Mount local directories to preserve your work across container restarts:
 
 ```bash
-# First, create and set up the directories with proper permissions
+# Create directories (no sudo needed!)
 mkdir -p ~/dispatch-home ~/dispatch-projects
-sudo chown -R 10001:10001 ~/dispatch-home ~/dispatch-projects
 
-# Then mount your home directory and workspace
+# Option 1: Use your current user ID (recommended)
+docker run -p 3030:3030 \
+  -e TERMINAL_KEY=your-secret-password \
+  --user $(id -u):$(id -g) \
+  -v ~/dispatch-home:/home/appuser \
+  -v ~/dispatch-projects:/workspace \
+  fwdslsh/dispatch:latest
+
+# Option 2: Build with your user ID for seamless integration
+docker build -f docker/Dockerfile \
+  --build-arg USER_UID=$(id -u) \
+  --build-arg USER_GID=$(id -g) \
+  -t dispatch-local .
+
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
   -v ~/dispatch-home:/home/appuser \
   -v ~/dispatch-projects:/workspace \
-  fwdslsh/dispatch:latest
+  dispatch-local
 ```
 
 This setup provides:
 
 - **Persistent home directory**: Your shell history, configs, and dotfiles survive container restarts
-- **Project workspace**: A dedicated folder for your code and projects
+- **Project workspace**: A dedicated folder for your code and projects  
 - **Data safety**: Your work is saved on your host machine, not lost when the container stops
+- **No sudo required**: Uses your host user permissions for seamless file access
 
-**Important**: The container runs as user ID 10001, so mounted directories need proper ownership for write access.
+**Security isolation**: The container can only access the two mounted directories you specify.
 
 ### Combined: Persistent Storage + Public URL
 
 For the complete setup with both persistence and remote access:
 
 ```bash
-# Set up directories with proper permissions first
+# Create directories (no sudo needed!)
 mkdir -p ~/dispatch-home ~/dispatch-projects
-sudo chown -R 10001:10001 ~/dispatch-home ~/dispatch-projects
 
 # Run with both features enabled
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
   -e ENABLE_TUNNEL=true \
+  --user $(id -u):$(id -g) \
   -v ~/dispatch-home:/home/appuser \
   -v ~/dispatch-projects:/workspace \
   fwdslsh/dispatch:latest
