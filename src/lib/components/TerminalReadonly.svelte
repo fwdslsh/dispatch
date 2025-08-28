@@ -16,7 +16,6 @@
   let mobileInput = '';
 
   let terminalElement;
-  let publicUrl = null;
   let isMobile = false;
   let initialViewportHeight = 0;
   let ansiUp;
@@ -59,9 +58,6 @@
       setupSocketListeners();
     }
     
-    pollPublicUrl();
-    const pollId = setInterval(pollPublicUrl, 10000);
-    
     // Load session history from localStorage first
     const storedHistory = loadSessionHistory();
     
@@ -83,7 +79,6 @@
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      clearInterval(pollId);
     };
   });
 
@@ -280,15 +275,6 @@
     document.body.style.height = '';
   }
 
-  function pollPublicUrl() {
-    if (socket) {
-      socket.emit('get-public-url', (resp) => {
-        if (resp.ok) {
-          publicUrl = resp.url;
-        }
-      });
-    }
-  }
 
   // Session history management functions
   function getStorageKey() {
@@ -473,16 +459,12 @@
   }
 
   onDestroy(() => {
+    
     // Clean up any remaining listeners
   });
 </script>
 
 <div class="terminal-container">
-  {#if publicUrl}
-    <div class="controls">
-      <div class="public-url">public: {publicUrl}</div>
-    </div>
-  {/if}
   
   <div class="terminal" bind:this={terminalElement}>
     <div class="terminal-content">

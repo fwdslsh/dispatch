@@ -3,6 +3,7 @@
   import { io } from "socket.io-client";
   import { onMount } from "svelte";
   import Container from "$lib/components/Container.svelte";
+  import PublicUrlDisplay from "$lib/components/PublicUrlDisplay.svelte";
   let key = "";
   let error = "";
   let loading = false;
@@ -70,6 +71,8 @@
           </button>
         </form>
       </div>
+
+        <PublicUrlDisplay />
       {#if error}
         <div class="error">{error}</div>
       {/if}
@@ -95,7 +98,7 @@
       justify-content: center;
       padding-inline: var(--space-lg);
 
-      h1{
+      h1 {
         font-size: 5rem;
       }
     }

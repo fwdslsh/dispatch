@@ -14,9 +14,9 @@
 
   // State for unified mobile input
   let mobileInput = '';
+  let mobileControlsRef;
 
   let terminal;
-  let publicUrl = null;
   let authenticated = false;
   let authKey = '';
   let isMobile = false;
@@ -114,9 +114,6 @@
       setupSocketListeners();
     }
     
-    pollPublicUrl();
-    const pollId = setInterval(pollPublicUrl, 10000);
-    
     // Load session history from localStorage first
     const storedHistory = loadSessionHistory();
     
@@ -135,8 +132,7 @@
       }
     }
     
-    // Store poll cleanup
-    terminal._pollCleanup = () => clearInterval(pollId);
+    // Poll cleanup no longer needed
   }
 
   function onData(data) {
@@ -320,20 +316,18 @@
     });
   }
 
+  function handleTerminalClick() {
+    // Focus the input textbox when terminal is clicked
+    if (mobileControlsRef && mobileControlsRef.focusInput) {
+      mobileControlsRef.focusInput();
+    }
+  }
+
   let currentInputBuffer = ''; // Buffer to accumulate input until Enter is pressed
   let currentOutputBuffer = ''; // Buffer to accumulate output until complete lines
   let sessionTerminalHistory = []; // Deduplicated terminal history for this session
 
 
-  function pollPublicUrl() {
-    if (socket) {
-      socket.emit('get-public-url', (resp) => {
-        if (resp.ok) {
-          publicUrl = resp.url;
-        }
-      });
-    }
-  }
 
   // Session history management functions
   function getStorageKey() {
@@ -534,17 +528,13 @@
 
 
 <div class="terminal-container">
-  {#if publicUrl}
-    <div class="controls">
-      <div class="public-url">public: {publicUrl}</div>
-    </div>
-  {/if}
   
-  <div class="terminal">
+  <div class="terminal" on:click={handleTerminalClick}>
     <Xterm bind:terminal {options} {onLoad} {onData} {onKey} />
   </div>
   
   <MobileControls 
+    bind:this={mobileControlsRef}
     bind:currentInput={mobileInput}
     onSendMessage={sendMobileInput}
     onKeydown={handleMobileKeydown}
@@ -567,7 +557,8 @@
   /* Desktop layout */
   @media (min-width: 769px) {
     .terminal-container {
-      height: calc(100dvh - 200px); /* Account for header + controls with grid layout */
+      height: 80svh;
+      transition: height 0.3s ease;
     }
   }
   
@@ -639,6 +630,12 @@
     height: 100%;
     overflow: hidden;
     position: relative;
+    cursor: pointer;
+    transition: height 0.3s ease;
+  }
+
+  .terminal:active {
+    background: rgba(10, 10, 10, 0.7);
   }
 
   .terminal :global(.xterm) {

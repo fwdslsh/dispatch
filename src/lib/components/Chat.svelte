@@ -160,6 +160,14 @@
     flex-direction: column;
     height: 570px;
     overflow-x: hidden; /* Prevent horizontal scroll */
+    transition: height 0.3s ease;
+  }
+
+  /* Desktop layout - match terminal height */
+  @media (min-width: 800px) {
+    .chat-view {
+      height: 80svh;
+    }
   }
 
 

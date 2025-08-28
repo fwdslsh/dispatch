@@ -1,27 +1,38 @@
 <script>
-  export let currentInput = "";
-  export let onSendMessage = () => {};
-  export let onKeydown = () => {};
-  export let onSpecialKey = () => {};
-  export let onToggleView = () => {};
-  export let isTerminalView = true;
-  export let isMobile = false;
+  // Props (runes mode)
+  let {
+  currentInput = $bindable(),
+    onSendMessage = () => {},
+    onKeydown = (e) => {},
+    onSpecialKey = (k) => {},
+    onToggleView = () => {},
+    isTerminalView = true,
+    isMobile = false
+  } = $props();
+
+  // Local ref
+  let textareaRef = $state(null);
+
+  // Expose focus method to parent components
+   function focusInput() {
+    if (textareaRef) textareaRef.focus();
+  }
 
   // Input handling functions
   function handleSend() {
-    console.debug("MobileControls: handleSend called, input:", currentInput);
+    console.debug('MobileControls: handleSend called, input:', currentInput);
     // Always send enter key even if there's no message
     if (currentInput.trim()) {
       // Send the message if there's content
       onSendMessage();
     } else {
       // Send just enter key if no content (for prompts, confirmations, etc.)
-      onSpecialKey("\r");
+      onSpecialKey('\r');
     }
   }
 
   function handleKeydown(event) {
-    console.debug("MobileControls: handleKeydown called, key:", event.key);
+    console.debug('MobileControls: handleKeydown called, key:', event.key);
     onKeydown(event);
   }
 </script>
@@ -32,7 +43,7 @@
       <!-- grid cells: we'll place buttons in order; input spans bottom row -->
       <button
         class="key-button"
-        on:click={() => onSpecialKey("\u001b[A")}
+        onclick={() => onSpecialKey("\u001b[A")}
         title="Up arrow"
         aria-label="Send Up arrow"
       >
@@ -43,7 +54,7 @@
 
       <button
         class="key-button"
-        on:click={() => onSpecialKey("\u001b[B")}
+        onclick={() => onSpecialKey("\u001b[B")}
         title="Down arrow"
         aria-label="Send Down arrow"
       >
@@ -54,7 +65,7 @@
 
       <button
         class="key-button"
-        on:click={() => onSpecialKey("\u0003")}
+        onclick={() => onSpecialKey("\u0003")}
         title="Ctrl+C"
         aria-label="Send Ctrl+C"
       >
@@ -65,7 +76,7 @@
 
       <button
         class="key-button toggle-button"
-        on:click={onToggleView}
+        onclick={() => onToggleView()}
         title={isTerminalView ? "Switch to Chat" : "Switch to Terminal"}
         aria-label={isTerminalView
           ? "Switch to Chat view"
@@ -88,7 +99,7 @@
 
       <button
         class="key-button"
-        on:click={() => onSpecialKey("\t")}
+        onclick={() => onSpecialKey("\t")}
         title="Tab"
         aria-label="Send Tab key"
       >
@@ -100,7 +111,7 @@
 
       <button
         class="key-button send-button"
-        on:click={handleSend}
+        onclick={handleSend}
         title="Send"
         aria-label="Send"
       >
@@ -112,8 +123,9 @@
       <!-- Input spans the entire bottom row -->
       <div class="input-wrapper">
         <textarea
+          bind:this={textareaRef}
           bind:value={currentInput}
-          on:keydown={handleKeydown}
+          onkeydown={handleKeydown}
           placeholder="Type your command..."
           class="mobile-input"
           rows="1"
@@ -139,7 +151,7 @@
     position: relative;
     z-index: 1001;
     height: auto;
-    backdrop-filter: blur(15px);
+    backdrop-filter: blur(5px);
   }
 
   .controls-grid {

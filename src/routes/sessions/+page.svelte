@@ -9,6 +9,7 @@
     import SessionIcon from "$lib/components/Icons/SessionIcon.svelte";
     import StartSession from "$lib/components/Icons/StartSession.svelte";
     import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
+    import PublicUrlDisplay from "$lib/components/PublicUrlDisplay.svelte";
 
     let sessions = [];
     let active = null;
@@ -210,6 +211,8 @@
     {/snippet}
 
     {#snippet footer()}
+
+        <PublicUrlDisplay />
         <div class="new-session-controls">
             <select bind:value={sessionMode}>
                 <option value="bash">bash mode</option>

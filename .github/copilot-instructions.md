@@ -19,7 +19,7 @@ Where to look first (fast map)
 - HTTP + SvelteKit handler: `src/app.js` -> imports `../build/handler.js` and starts Socket.IO.
 - Socket entrypoints / auth: `src/lib/server/socket-handler.js` (look for `handleConnection`).
 - PTY lifecycle: `src/lib/server/terminal.js` (TerminalManager / spawn logic, environment setup, mode switching).
-- Session persistence: `src/lib/server/session-store.js` and `src/lib/server/sessions.json`.
+- Session persistence: `src/lib/server/session-store.js` (stores sessions at `PTY_ROOT/sessions.json`).
 - Frontend terminal: `src/lib/components/Terminal.svelte` and chat/aux UI in `Chat.svelte`.
 - LocalTunnel integration: `src/app.js` (spawns `npx localtunnel`, writes `/tmp/tunnel-url.txt`).
 
@@ -53,6 +53,6 @@ When in doubt
 - Trace a user action from front-end -> `build/handler.js` -> `src/app.js` -> Socket.IO -> `socket-handler.js` -> `terminal.js`.
 - Update the small surface areas: socket events, terminal spawn, session-store; these three files cover most runtime changes.
 
-Files referenced: `src/app.js`, `start.sh`, `Dockerfile`, `package.json`, `src/lib/server/socket-handler.js`, `src/lib/server/terminal.js`, `src/lib/server/session-store.js`, `src/lib/components/Terminal.svelte`, `src/lib/components/Chat.svelte`, `src/lib/server/sessions.json`.
+Files referenced: `src/app.js`, `start.sh`, `Dockerfile`, `package.json`, `src/lib/server/socket-handler.js`, `src/lib/server/terminal.js`, `src/lib/server/session-store.js`, `src/lib/components/Terminal.svelte`, `src/lib/components/Chat.svelte`, sessions stored in `PTY_ROOT/sessions.json` at runtime.
 
 If anything above is unclear or you want more examples (e.g., exact event payloads, session JSON schema, or a short workflow for adding a socket event + test), tell me which part and I'll expand.

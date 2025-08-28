@@ -86,6 +86,7 @@ body.no-key [data-augmented-ui] {
   padding: 0;
   box-sizing: border-box;
   scrollbar-width: thin;
+  transition-behavior: allow-discrete;
 }
 
 /* Base page background */
@@ -94,7 +95,7 @@ body.no-key [data-augmented-ui] {
   --tile: 400px;
   --bg: transparent;
   /* page background behind the pattern */
-  --opacity: 0.05;
+  --opacity: 0.025;
   /* pattern visibility */
 }
 
@@ -110,26 +111,27 @@ body::after {
   background-repeat: repeat;
   opacity: var(--opacity);
   mix-blend-mode: screen;
-  background-image: url("bg.svg");
+  background-image: url("/bg.svg");
 }
 
 /* Layer 1 - slow drift with brightness variation */
 body::before {
   background-size: var(--tile) var(--tile);
+  opacity: calc(var(--opacity) * 0.5);
   animation:
-    driftA 37s linear infinite,
-    brightnessWave1 23s ease-in-out infinite,
-    scaleShimmer1 19s ease-in-out infinite alternate;
+    driftA 177s linear infinite,
+    brightnessWave1 43s ease-in-out infinite,
+    scaleShimmer1 39s ease-in-out infinite alternate;
 }
 
 /* Layer 2 - different speed and offset for complexity */
 body::after {
   background-size: calc(var(--tile) * 1.3) calc(var(--tile) * 1.3);
-  opacity: calc(var(--opacity) * 0.7);
+  opacity: calc(var(--opacity) * 0.5);
   animation:
-    driftB 29s linear infinite reverse,
-    brightnessWave2 31s ease-in-out infinite,
-    scaleShimmer2 17s ease-in-out infinite alternate-reverse;
+    driftB 159s linear infinite reverse,
+    brightnessWave2 71s ease-in-out infinite,
+    scaleShimmer2 37s ease-in-out infinite alternate-reverse;
   transform: rotate(15deg);
 }
 
@@ -757,7 +759,7 @@ h2.error-text {
 /* Terminal specific styles */
 .terminal-container {
   background:transparent;
-
+  
   overflow: hidden;
   /* backdrop-filter: blur(15px);
   box-shadow: 

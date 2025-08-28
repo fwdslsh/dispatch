@@ -6,7 +6,8 @@ import fs from 'node:fs';
 const terminalManager = new TerminalManager();
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
-const TUNNEL_FILE = '/tmp/tunnel-url.txt';
+const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
+const TUNNEL_FILE = process.env.TUNNEL_FILE || `${PTY_ROOT}/tunnel-url.txt`;
 
 // Check if auth key is required
 const AUTH_REQUIRED = ENABLE_TUNNEL || TERMINAL_KEY !== 'change-me';

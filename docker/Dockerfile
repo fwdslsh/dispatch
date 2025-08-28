@@ -28,13 +28,20 @@ FROM node:22-bookworm-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       build-essential \
+       tree jq yq build-essential \
        python3 \
        pkg-config \
        git
-# Note: Claude CLI and other tools would be installed here in a real deployment
-# For this MVP, we're keeping it minimal
 
+# Set environment variables
+ENV NODE_ENV=production \
+    PORT=3030 \
+    TERMINAL_KEY=change-me \
+    PTY_ROOT=/tmp/dispatch-sessions \
+    PTY_MODE=shell \
+    ENABLE_TUNNEL=false \
+    LT_SUBDOMAIN=
+    
 # Create non-root user with configurable UID/GID
 ARG USER_UID=10001
 ARG USER_GID=10001
@@ -46,19 +53,15 @@ COPY --from=build /app /app
 
 # Create dirs for sessions
 RUN mkdir -p /tmp/dispatch-sessions /workspace \
-    && chown -R appuser:appuser /tmp/dispatch-sessions /app /workspace /home/appuser
+    && chown -R appuser:appuser /tmp/dispatch-sessions /app /workspace /home/appuser \
+    # Create an initial sessions.json so the runtime has a writable file at PTY_ROOT
+    && printf '%s' '{"sessions": [], "active": null}' > /tmp/dispatch-sessions/sessions.json \
+    && chown appuser:appuser /tmp/dispatch-sessions/sessions.json \
+    && chmod 0644 /tmp/dispatch-sessions/sessions.json
 
 RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @qwen-code/qwen-code@latest
 USER appuser
 
-# Set environment variables
-ENV NODE_ENV=production \
-    PORT=3030 \
-    TERMINAL_KEY=change-me \
-    PTY_ROOT=/tmp/dispatch-sessions \
-    PTY_MODE=shell \
-    ENABLE_TUNNEL=false \
-    LT_SUBDOMAIN=
 
 EXPOSE 3030
 

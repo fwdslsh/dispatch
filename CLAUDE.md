@@ -65,8 +65,8 @@ src/
 │   └── server/
 │       ├── socket-handler.js  # Socket.IO connection management
 │       ├── terminal.js        # TerminalManager class for PTY sessions
-│       ├── session-store.js   # Session metadata persistence
-│       └── sessions.json      # Session storage file
+│       ├── session-store.js   # Session metadata persistence (stores file at PTY_ROOT/sessions.json)
+│       └── sessions.json      # Session storage file created at runtime in PTY_ROOT (default /tmp/dispatch-sessions/sessions.json)
 └── routes/
     ├── +page.svelte          # Main application interface
     ├── sessions/+page.svelte # Session management interface

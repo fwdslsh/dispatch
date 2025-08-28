@@ -10,9 +10,35 @@ import { handleConnection } from './lib/server/socket-handler.js';
 
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
-const TUNNEL_FILE = process.env.TUNNEL_FILE || '/tmp/tunnel-url.txt';
+const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
+const TUNNEL_FILE = process.env.TUNNEL_FILE || `${PTY_ROOT}/tunnel-url.txt`;
 const LT_SUBDOMAIN = process.env.LT_SUBDOMAIN || '';
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
+
+// PTY_ROOT runtime session store
+const SESSIONS_FILE = `${PTY_ROOT}/sessions.json`;
+
+// Ensure PTY_ROOT and sessions file exist and are writable
+try {
+  if (!fs.existsSync(PTY_ROOT)) {
+    fs.mkdirSync(PTY_ROOT, { recursive: true });
+    console.log(`Created PTY_ROOT at ${PTY_ROOT}`);
+  }
+
+  // If sessions.json missing, create an initial file
+  if (!fs.existsSync(SESSIONS_FILE)) {
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify({ sessions: [], active: null }, null, 2));
+    console.log(`Created initial sessions file at ${SESSIONS_FILE}`);
+  }
+
+  // Check writability
+  fs.accessSync(PTY_ROOT, fs.constants.W_OK);
+  fs.accessSync(SESSIONS_FILE, fs.constants.W_OK);
+} catch (err) {
+  console.error(`ERROR: PTY_ROOT or sessions file not writable: ${err.message}`);
+  console.error(`Ensure PTY_ROOT=${PTY_ROOT} exists and is writable by the process user.`);
+  process.exit(1);
+}
 
 // Security check: require proper key if tunnel is enabled
 if (ENABLE_TUNNEL && (TERMINAL_KEY === 'change-me' || !TERMINAL_KEY)) {
@@ -44,7 +70,7 @@ io.on('connection', handleConnection);
 let ltProc = null;
 
 function extractLtUrl(line) {
-  const match = line.match(/your tunnel is available at:\s*(https?:\/\/[^\s]+)/i);
+  const match = line.match(/your url is:\s*(https?:\/\/[^\s]+)/i);
   return match ? match[1] : null;
 }
 

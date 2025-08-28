@@ -14,8 +14,7 @@
 
 <style>
   .header-toolbar {
-    border-bottom: 1px solid var(--primary-muted);
-    
+    border-bottom: 1px solid var(--primary-muted);    
     padding-inline: var(--space-sm);
     margin-inline: var(--space-sm);
     display: flex;

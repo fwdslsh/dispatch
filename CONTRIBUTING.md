@@ -104,8 +104,7 @@ src/
 
 - **`src/lib/server/socket-handler.js`**: Socket.IO connection handling and authentication
 - **`src/lib/server/terminal.js`**: PTY lifecycle management, environment setup, mode switching
-- **`src/lib/server/session-store.js`**: Session persistence and JSON storage
-- **`src/lib/server/sessions.json`**: Simple session data store
+- **`src/lib/server/session-store.js`**: Session persistence and JSON storage (stores file at `PTY_ROOT/sessions.json`)
 
 ### Frontend Components
 
