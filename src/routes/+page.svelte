@@ -56,7 +56,10 @@
       <h1>dispatch</h1>
       <p>terminal access via web</p>
 
-      <div class="form-container">
+      <div
+        class="form-container"
+        data-augmented-ui="br-clip bl-clip tl-clip tr-clip border"
+      >
         <form on:submit={handleLogin}>
           <input
             type="password"
@@ -66,13 +69,17 @@
             autocomplete="off"
             disabled={loading}
           />
-          <button type="submit" disabled={loading}>
+          <button
+            type="submit"
+            disabled={loading}
+            data-augmented-ui="br-clip bl-clip tl-clip tr-clip border"
+          >
             {loading ? "connecting..." : "connect"}
           </button>
         </form>
       </div>
 
-        <PublicUrlDisplay />
+      <PublicUrlDisplay />
       {#if error}
         <div class="error">{error}</div>
       {/if}
@@ -81,6 +88,12 @@
 </main>
 
 <style>
+  @property --aug-border-bg {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: rgba(0, 255, 136, 0.314);
+  }
+
   :global(.login-page .container-content) {
     display: flex;
     flex-direction: column;
@@ -89,6 +102,7 @@
     h1,
     p {
       text-align: center;
+      margin-bottom: 0;
     }
   }
   @media (max-width: 800px) {
@@ -105,20 +119,54 @@
   }
   .form-container {
     margin-top: var(--space-lg);
-    width: 100%;
     display: flex;
     justify-content: center;
-  }
+    --aug-border-bg: var(--primary-muted);
+    transition: all 0.3s ease;
 
-  /* Enhanced form styling */
-  form {
-    background: rgba(0, 0, 0, 0.1);
-    padding: var(--space-xl);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow:
-      0 8px 25px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    &:hover {
+      --aug-border-bg: var(--secondary);
+      box-shadow: 
+        0 0 125px rgba(0, 255, 136, 0.15),
+        0 0 50px rgba(0, 255, 136, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    button {
+      --aug-border-bg: var(--primary-muted);
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease, --aug-border-bg 0.3s ease, box-shadow 0.3s ease, text-shadow 0.3s ease;
+      box-shadow: 
+        0 0 0px rgba(0, 255, 136, 0),
+        0 0 0px rgba(0, 255, 136, 0),
+        inset 0 1px 0 rgba(255, 255, 255, 0);
+      
+      &:hover {
+        --aug-border-bg: var(--primary);
+        text-shadow:
+          0 0 15px var(--primary),
+          0 0 30px var(--primary);
+        box-shadow: 
+          0 0 20px rgba(0, 255, 136, 0.4),
+          0 0 40px rgba(0, 255, 136, 0.15),
+          inset 0 1px 0 rgba(255, 255, 255, 0.15);
+       
+      }
+    }
+
+    input {
+      transition: all 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 
+        0 0 0px rgba(0, 255, 136, 0),
+        0 0 0px rgba(0, 255, 136, 0);
+        
+      &:hover {
+        border-color: rgba(0, 255, 136, 0.6);
+        box-shadow: 
+          0 0 12px rgba(0, 255, 136, 0.15),
+          0 0 24px rgba(0, 255, 136, 0.05);
+      }
+    }
   }
 </style>

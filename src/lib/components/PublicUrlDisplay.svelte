@@ -15,7 +15,7 @@
 
   function pollPublicUrl() {
     if (socket) {
-      socket.emit('get-public-url', (resp) => {
+      socket.emit("get-public-url", (resp) => {
         if (resp.ok) {
           publicUrl = resp.url;
         }
@@ -25,18 +25,21 @@
 
   function copyToClipboard() {
     if (publicUrl) {
-      navigator.clipboard.writeText(publicUrl).then(() => {
-        // Could add a toast notification here
-        console.log('URL copied to clipboard');
-      }).catch(err => {
-        console.error('Failed to copy: ', err);
-      });
+      navigator.clipboard
+        .writeText(publicUrl)
+        .then(() => {
+          // Could add a toast notification here
+          console.log("URL copied to clipboard");
+        })
+        .catch((err) => {
+          console.error("Failed to copy: ", err);
+        });
     }
   }
 
   function openInNewTab() {
     if (publicUrl) {
-      window.open(publicUrl, '_blank');
+      window.open(publicUrl, "_blank");
     }
   }
 
@@ -60,22 +63,28 @@
   <div class="public-url-container">
     <!-- <div class="public-url-label">Public URL:</div> -->
     <div class="public-url-wrapper">
-      <button 
-        class="public-url-link" 
+      <button
+        class="public-url-link"
         on:click={openInNewTab}
         title="Click to open in new tab"
       >
         {publicUrl}
       </button>
-      <button 
-        class="copy-button" 
+      <button
+        class="copy-button"
         on:click={copyToClipboard}
         title="Copy to clipboard"
         aria-label="Copy URL to clipboard"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+          ></path>
         </svg>
       </button>
     </div>
@@ -84,7 +93,6 @@
 
 <style>
   .public-url-container {
-    
     padding: var(--space-sm);
     margin: var(--space-sm) 0;
     backdrop-filter: blur(5px);
@@ -94,15 +102,6 @@
 
   .public-url-container:hover {
     opacity: 1;
-  }
-
-  .public-url-label {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-    margin-bottom: var(--space-xs);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    opacity: 0.6;
   }
 
   .public-url-wrapper {
@@ -129,8 +128,11 @@
   .public-url-link:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: var(--secondary);
-    color: var(--primary);
+    color: var(--secondary);
     transform: none;
+    text-shadow:
+      0 0 10px var(--secondary),
+      0 0 20px var(--secondary-muted);
   }
 
   .public-url-link:active {
@@ -155,10 +157,14 @@
   }
 
   .copy-button:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(0, 255, 136, 0.3);
-    color: var(--primary);
     transform: none;
+    color: var(--secondary-muted);
+    svg {
+      text-shadow:
+        0 0 10px var(--secondary),
+        0 0 20px var(--secondary-muted);
+         filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
+    }
   }
 
   .copy-button:active {
@@ -175,12 +181,12 @@
       flex-direction: column;
       align-items: stretch;
     }
-    
+
     .public-url-link {
       text-align: center;
       word-break: break-all;
     }
-    
+
     .copy-button {
       align-self: center;
     }

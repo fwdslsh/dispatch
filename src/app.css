@@ -377,12 +377,13 @@ form {
   gap: var(--space-md);
   max-width: 400px;
   width: 100%;
+  padding: var(--space-lg);
 }
 
 input {
   background: rgba(26, 26, 26, 0.4);
   border: 1px solid rgba(51, 51, 51, 0.6);
-  border-radius: 8px;
+  /* border-radius: 8px; */
   padding: var(--space-md);
   color: var(--text-primary);
   font-family: var(--font-mono);
@@ -406,7 +407,7 @@ input::placeholder {
 button {
   background: var(--primary-gradient);
   border: none;
-  border-radius: 8px;
+  /* border-radius: 8px; */
   padding: var(--space-md);
   color: var(--bg-dark);
   font-family: var(--font-mono);
@@ -425,8 +426,8 @@ button {
 
 button:hover {
   text-shadow: 
-    0 0 10px rgba(0, 0, 0, 0.8),
-    0 0 20px rgba(0, 0, 0, 0.6);
+    0 0 10px var(--primary),
+    0 0 20px var(--primary);
 }
 
 /* Button sizes */
