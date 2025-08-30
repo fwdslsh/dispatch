@@ -186,21 +186,24 @@
     }
 
     .public-url-wrapper {
-      flex-direction: column;
-      align-items: stretch;
-      gap: var(--space-xs);
+      flex-direction: row; /* Keep horizontal layout */
+      align-items: center;
+      gap: 0; /* No gap, buttons connect */
     }
 
     .public-url-link {
-      text-align: center;
-      word-break: break-all;
+      text-align: left;
       font-size: 0.75rem;
       padding: var(--space-xs);
+      white-space: nowrap; /* Prevent wrapping */
+      overflow: hidden; /* Hide overflow */
+      text-overflow: ellipsis; /* Add ... for long URLs */
+      word-break: normal; /* Don't break words */
     }
 
     .copy-button {
-      align-self: center;
-      margin-top: var(--space-xs);
+      flex-shrink: 0; /* Prevent button from shrinking */
+      margin-top: 0;
     }
   }
 </style>

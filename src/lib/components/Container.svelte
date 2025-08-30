@@ -109,6 +109,8 @@
     .container:not(.session-container) {
       height: 100vh;
       max-height: 100vh;
+      padding-top: 60px; /* Account for fixed header */
+      box-sizing: border-box;
     }
     
     .container:not(.session-container) .container-content {

@@ -440,6 +440,7 @@
             flex: 1; /* Take up remaining space */
             overflow-y: auto; /* Enable scrolling */
             padding: var(--space-sm); /* Reduce padding on mobile */
+            padding-top: calc(var(--space-sm) + 60px); /* Account for fixed header height */
         }
 
         .new-session-form {
