@@ -61,10 +61,10 @@
 - Better visual feedback for connection states and errors
 
 **Mobile UX Enhancements:**
-- Optimized mobile keyboard handling and input methods
-- Improved touch interactions for terminal operations
-- Mobile-specific UI adaptations and gestures
-- Better viewport management for small screens
+- [x] Optimized mobile keyboard handling and input methods
+- [x] Improved touch interactions for terminal operations
+- [x] Mobile-specific UI adaptations and gestures
+- [x] Better viewport management for small screens
 
 **Settings Management:**
 - User preferences storage (font size, theme, shortcuts)

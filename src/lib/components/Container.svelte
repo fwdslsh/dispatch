@@ -70,7 +70,6 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     margin-inline: -0.5rem;
   }
 
@@ -81,6 +80,11 @@
   /* Default desktop layout - use normal container */
   .container:not(.session-container) .container-content {
     min-height: 400px; /* Minimum height for content functionality */
+  }
+
+  /* Session container specific styles */
+  .session-container .container-content {
+    overflow: hidden; /* Only apply overflow hidden to actual terminal sessions */
   }
 
   /* Mobile-specific session container overrides */

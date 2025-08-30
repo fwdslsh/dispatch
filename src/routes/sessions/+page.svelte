@@ -303,6 +303,18 @@
 />
 
 <style>
+    .sessions {
+        max-height: 400px; /* Allow scrolling if many sessions */
+        overflow-y: auto;
+        padding: var(--space-md);
+    }
+
+    .sessions ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
     .empty-state {
         text-align: center;
         padding: 2rem;

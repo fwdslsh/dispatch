@@ -277,16 +277,15 @@ body::after {
   }
 }
 
-html{
-  overflow: hidden;
+html {
+  /* Allow scrolling on desktop by default */
 }
 body {
   background: var(--bg-dark);
   color: var(--text-primary);
   font-family: var(--font-sans);
   line-height: 1.6;
-  overflow: hidden;
-  /* Account for fixed navigation */
+  /* Allow scrolling on desktop by default */
 }
 
 /* Prevent page scrolling on session pages - mobile only */
