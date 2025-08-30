@@ -627,8 +627,9 @@
     /* Responsive adjustments */
     @media (max-width: 768px) {
         .sessions {
+            max-height: unset;
             padding: var(--space-sm);
-            padding-top: calc(60px + var(--space-sm)); /* Account for header */
+            padding-top: calc(56px + var(--space-sm)); /* Account for fixed header height */
         }
 
         .footer-content {

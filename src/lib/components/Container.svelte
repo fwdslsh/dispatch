@@ -66,6 +66,15 @@
     margin-inline: calc(var(--space-md) * -1);
   }
 
+  /* Ensure header can transform outside container bounds on mobile */
+  @media (max-width: 768px) {
+    .container-header {
+      position: relative;
+      z-index: 101;
+      overflow: visible;
+    }
+  }
+
   .container-content {
     flex: 1;
     display: flex;
@@ -95,7 +104,8 @@
       max-height: 100svh;
       width: 100vw;
       max-width: 100vw;
-      overflow: hidden;
+      overflow-x: hidden; /* Only hide horizontal overflow */
+      overflow-y: visible; /* Allow header to transform outside bounds */
       display: flex;
       flex-direction: column;
       box-sizing: border-box;

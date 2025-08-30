@@ -1,185 +1,70 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { headerState, panelStore, viewportStore } from '$lib/stores/panel-store.js';
   
   // Component for reusable header toolbar with left and right content slots
-  let { left, right, collapsible = true } = $props();
+  let { left, right } = $props();
   
   let headerElement;
-  let cleanupFunctions = [];
-  
-  // Subscribe to header state
-  let isCollapsed = false;
-  let isAnimating = false;
-  
-  // Scroll-based auto-hide state
-  let lastScrollY = 0;
-  let scrollDirection = 'down';
-  let autoHideTimeout;
-  let isMobile = false;
   
   onMount(() => {
-    // Subscribe to header state changes
-    const unsubscribeHeader = headerState.subscribe(state => {
-      isCollapsed = state.collapsed;
-      isAnimating = state.animating;
-    });
-    
-    cleanupFunctions.push(unsubscribeHeader);
-    
-    // Set up scroll-based auto-hide for mobile only
-    if (typeof window !== 'undefined') {
-      checkMobileAndSetupAutoHide();
-      
-      // Listen for resize events to re-check mobile state
-      const handleResize = () => checkMobileAndSetupAutoHide();
-      window.addEventListener('resize', handleResize);
-      cleanupFunctions.push(() => window.removeEventListener('resize', handleResize));
-    }
-  });
-  
-  function checkMobileAndSetupAutoHide() {
-    const wasMobile = isMobile;
-    isMobile = window.innerWidth <= 768;
-    
-    // Only setup auto-hide if mobile state changed or first time
-    if (isMobile !== wasMobile) {
-      if (isMobile && collapsible) {
-        setupScrollBasedAutoHide();
-      } else if (!isMobile) {
-        // Show header on desktop
-        panelStore.showPanel('header');
-        clearTimeout(autoHideTimeout);
-      }
-    }
-  }
-  
-  function handleAnimationEnd() {
-    panelStore.setAnimating('header', false);
-  }
-  
-  function setupScrollBasedAutoHide() {
-    // Only setup auto-hide on mobile
-    if (!isMobile) return;
-    
     let ticking = false;
+    let lastScrollY = 0;
     
-    const createScrollHandler = (getScrollPosition) => {
-      return () => {
-        // Double-check mobile state during scroll
-        if (!isMobile || !ticking) {
-          if (!isMobile && ticking) {
-            ticking = false;
-            return;
+    const handleAnyScroll = (event) => {
+      if (window.innerWidth > 768) return; // Mobile only
+      
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          // Get scroll position from various sources
+          let currentScrollY = 0;
+          
+          // Try to get scroll from the event target first
+          if (event && event.target && event.target !== window && event.target !== document) {
+            currentScrollY = event.target.scrollTop || 0;
+          } else {
+            // Fallback to window scroll
+            currentScrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
           }
           
-          requestAnimationFrame(() => {
-            if (!isMobile) {
-              ticking = false;
-              return;
+          console.log('Scroll - Last:', lastScrollY, 'Current:', currentScrollY, 'Direction:', currentScrollY > lastScrollY ? 'down' : 'up');
+          
+          if (currentScrollY > lastScrollY && currentScrollY > 10) {
+            // Scrolling down - hide header
+            if (headerElement) {
+              headerElement.classList.add('header-hidden');
+              headerElement.style.transform = 'translateY(-100%)';
+              console.log('Header hidden');
             }
-            
-            const currentScrollY = getScrollPosition();
-            const scrollThreshold = 20; // Minimum scroll distance to trigger hide/show
-            
-            if (Math.abs(currentScrollY - lastScrollY) > scrollThreshold) {
-              const newDirection = currentScrollY > lastScrollY ? 'down' : 'up';
-              
-              if (newDirection !== scrollDirection) {
-                scrollDirection = newDirection;
-                
-                // Clear existing timeout
-                clearTimeout(autoHideTimeout);
-                
-                if (scrollDirection === 'down' && currentScrollY > 50) {
-                  // Hide header when scrolling down
-                  panelStore.hidePanel('header');
-                } else if (scrollDirection === 'up') {
-                  // Show header immediately when scrolling up
-                  panelStore.showPanel('header');
-                  // Auto-hide again after 3 seconds of no interaction
-                  clearTimeout(autoHideTimeout);
-                  autoHideTimeout = setTimeout(() => {
-                    if (isMobile) { // Only auto-hide if still on mobile
-                      panelStore.hidePanel('header');
-                    }
-                  }, 3000);
-                }
-              }
-              
-              lastScrollY = currentScrollY;
+          } else if (currentScrollY < lastScrollY || currentScrollY <= 10) {
+            // Scrolling up or near top - show header
+            if (headerElement) {
+              headerElement.classList.remove('header-hidden');
+              headerElement.style.transform = 'translateY(0)';
+              console.log('Header shown');
             }
-            
-            ticking = false;
-          });
-          ticking = true;
-        }
-      };
-    };
-
-    // Create handlers for different scroll contexts
-    const windowScrollHandler = createScrollHandler(() => window.scrollY || window.pageYOffset);
-    
-    const containerScrollHandler = createScrollHandler(() => {
-      const container = document.querySelector('.sessions');
-      return container ? container.scrollTop : 0;
-    });
-
-    // Add listeners with retry logic for dynamic content
-    const addScrollListeners = () => {
-      // Window scroll (for pages that allow body scrolling)
-      window.addEventListener('scroll', windowScrollHandler, { passive: true });
-      
-      // Container scroll (for mobile session list)
-      const sessionsContainer = document.querySelector('.sessions');
-      if (sessionsContainer) {
-        sessionsContainer.addEventListener('scroll', containerScrollHandler, { passive: true });
-        console.debug('HeaderToolbar: Added scroll listener to sessions container');
-      }
-      
-      // Container content scroll (for other scrollable containers)
-      const containerContent = document.querySelector('.container-content');
-      if (containerContent) {
-        const containerContentHandler = createScrollHandler(() => containerContent.scrollTop);
-        containerContent.addEventListener('scroll', containerContentHandler, { passive: true });
+          }
+          
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
-    // Add listeners immediately and retry a few times for dynamic content
-    addScrollListeners();
-    setTimeout(addScrollListeners, 100);
-    setTimeout(addScrollListeners, 500);
+    // Listen for any scroll events on the page
+    window.addEventListener('scroll', handleAnyScroll, { passive: true, capture: true });
+    document.addEventListener('scroll', handleAnyScroll, { passive: true, capture: true });
     
-    cleanupFunctions.push(() => {
-      window.removeEventListener('scroll', windowScrollHandler);
-      
-      const sessionsContainer = document.querySelector('.sessions');
-      if (sessionsContainer) {
-        sessionsContainer.removeEventListener('scroll', containerScrollHandler);
-      }
-      
-      const containerContent = document.querySelector('.container-content');
-      if (containerContent) {
-        // We don't have a reference to the handler, so we'll need to recreate cleanup logic
-        const containerContentHandler = createScrollHandler(() => containerContent.scrollTop);
-        containerContent.removeEventListener('scroll', containerContentHandler);
-      }
-      
-      clearTimeout(autoHideTimeout);
-    });
-  }
-  
-  onDestroy(() => {
-    cleanupFunctions.forEach(cleanup => cleanup());
+    return () => {
+      window.removeEventListener('scroll', handleAnyScroll, true);
+      document.removeEventListener('scroll', handleAnyScroll, true);
+    };
   });
 </script>
 
 <div 
   class="header-toolbar"
-  class:collapsed={isCollapsed}
-  class:animating={isAnimating}
   bind:this={headerElement}
-  on:transitionend={handleAnimationEnd}
 >
   <div class="header-left">
     {@render left()}
@@ -201,9 +86,6 @@
     gap: var(--space-xl);
     position: relative;
     background: var(--bg-primary);
-    z-index: 200;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .header-left {
@@ -218,61 +100,31 @@
     gap: var(--space-sm);
   }
 
-  /* Collapsed state */
-  .header-toolbar.collapsed {
-    transform: translateY(-100%);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .header-toolbar.animating {
-    transition-duration: 0.3s;
-  }
-
-
   @media (max-width: 768px) {
     .header-toolbar {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      margin: 0 !important;
       gap: var(--space-md);
       padding: var(--space-sm) var(--space-md);
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      margin: 0;
-      border-radius: 0;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
       backdrop-filter: blur(10px);
       background: rgba(var(--bg-primary-rgb, 10, 10, 10), 0.95);
+      z-index: 1000 !important;
+      transition: transform 0.3s ease-out;
+      will-change: transform;
+      transform: translateY(0);
+    }
+    
+    /* Hidden state - slides up */
+    .header-toolbar.header-hidden {
+      transform: translateY(-100%) !important;
     }
     
     .header-left {
-      align-items: center;
       gap: var(--space-md);
     }
-    
-    .header-right {
-      align-self: center;
-    }
-
-    /* Enhanced collapsed animation on mobile */
-    .header-toolbar.collapsed {
-      transform: translateY(-120%);
-    }
-  }
-
-
-  /* Prevent flickering during animations */
-  .header-toolbar.animating * {
-    pointer-events: none;
-  }
-
-  /* Smooth performance optimizations */
-  .header-toolbar {
-    will-change: transform, opacity;
-    contain: layout style;
-  }
-
-  .header-toolbar.animating {
-    will-change: transform, opacity;
   }
 </style>
