@@ -141,3 +141,4 @@ vite.config.ts.timestamp-*
 src/lib/server/sessions.json
 .notes
 .key
+.agent-os/recaps/
