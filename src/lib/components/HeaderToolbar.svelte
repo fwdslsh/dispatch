@@ -6,7 +6,6 @@
   let { left, right, collapsible = true } = $props();
   
   let headerElement;
-  let touchZone;
   let cleanupFunctions = [];
   
   // Subscribe to header state
@@ -15,9 +14,9 @@
   
   // Scroll-based auto-hide state
   let lastScrollY = 0;
-  let isScrolling = false;
   let scrollDirection = 'down';
   let autoHideTimeout;
+  let isMobile = false;
   
   onMount(() => {
     // Subscribe to header state changes
@@ -28,84 +27,30 @@
     
     cleanupFunctions.push(unsubscribeHeader);
     
-    // Set up gesture detection for header reveal
-    if (collapsible) {
-      setupGestureDetection();
-    }
-    
-    // Set up scroll-based auto-hide for mobile
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      setupScrollBasedAutoHide();
+    // Set up scroll-based auto-hide for mobile only
+    if (typeof window !== 'undefined') {
+      checkMobileAndSetupAutoHide();
+      
+      // Listen for resize events to re-check mobile state
+      const handleResize = () => checkMobileAndSetupAutoHide();
+      window.addEventListener('resize', handleResize);
+      cleanupFunctions.push(() => window.removeEventListener('resize', handleResize));
     }
   });
   
-  function setupGestureDetection() {
-    let startY = 0;
-    let startTime = 0;
+  function checkMobileAndSetupAutoHide() {
+    const wasMobile = isMobile;
+    isMobile = window.innerWidth <= 768;
     
-    const handleTouchStart = (e) => {
-      if (!isCollapsed) return;
-      
-      const touch = e.touches[0];
-      startY = touch.clientY;
-      startTime = Date.now();
-      
-      // Only trigger if touching near the top of screen
-      if (touch.clientY <= 60) {
-        document.addEventListener('touchmove', handleTouchMove);
-        document.addEventListener('touchend', handleTouchEnd);
-      }
-    };
-    
-    const handleTouchMove = (e) => {
-      const touch = e.touches[0];
-      const deltaY = touch.clientY - startY;
-      
-      // Show header preview while dragging down
-      if (deltaY > 20) {
-        const progress = Math.min(1, (deltaY - 20) / 60);
-        updateHeaderPreview(progress);
-      }
-    };
-    
-    const handleTouchEnd = (e) => {
-      const touch = e.changedTouches[0];
-      const deltaY = touch.clientY - startY;
-      const deltaTime = Date.now() - startTime;
-      const velocity = deltaY / deltaTime;
-      
-      // Show header if swipe down is strong enough
-      if (deltaY > 50 && velocity > 0.2) {
+    // Only setup auto-hide if mobile state changed or first time
+    if (isMobile !== wasMobile) {
+      if (isMobile && collapsible) {
+        setupScrollBasedAutoHide();
+      } else if (!isMobile) {
+        // Show header on desktop
         panelStore.showPanel('header');
-        
-        // Auto-hide after 3 seconds
-        setTimeout(() => {
-          panelStore.hidePanel('header');
-        }, 3000);
-      } else {
-        // Reset preview
-        updateHeaderPreview(0);
+        clearTimeout(autoHideTimeout);
       }
-      
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-    
-    document.addEventListener('touchstart', handleTouchStart);
-    
-    cleanupFunctions.push(() => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    });
-  }
-  
-  function updateHeaderPreview(progress) {
-    if (headerElement) {
-      const translateY = -100 + (100 * progress);
-      const opacity = progress;
-      headerElement.style.transform = `translateY(${translateY}%)`;
-      headerElement.style.opacity = opacity.toString();
     }
   }
   
@@ -114,68 +59,112 @@
   }
   
   function setupScrollBasedAutoHide() {
+    // Only setup auto-hide on mobile
+    if (!isMobile) return;
+    
     let ticking = false;
     
-    const handleScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY || window.pageYOffset;
-          const scrollThreshold = 20; // Minimum scroll distance to trigger hide/show
-          
-          if (Math.abs(currentScrollY - lastScrollY) > scrollThreshold) {
-            const newDirection = currentScrollY > lastScrollY ? 'down' : 'up';
-            
-            if (newDirection !== scrollDirection) {
-              scrollDirection = newDirection;
-              
-              // Clear existing timeout
-              clearTimeout(autoHideTimeout);
-              
-              if (scrollDirection === 'down' && currentScrollY > 100) {
-                // Hide header when scrolling down (with small delay)
-                autoHideTimeout = setTimeout(() => {
-                  panelStore.hidePanel('header');
-                }, 150);
-              } else if (scrollDirection === 'up') {
-                // Show header immediately when scrolling up
-                panelStore.showPanel('header');
-                // Auto-hide again after 3 seconds of no interaction
-                autoHideTimeout = setTimeout(() => {
-                  panelStore.hidePanel('header');
-                }, 3000);
-              }
-            }
-            
-            lastScrollY = currentScrollY;
+    const createScrollHandler = (getScrollPosition) => {
+      return () => {
+        // Double-check mobile state during scroll
+        if (!isMobile || !ticking) {
+          if (!isMobile && ticking) {
+            ticking = false;
+            return;
           }
           
-          ticking = false;
-        });
-        ticking = true;
-      }
+          requestAnimationFrame(() => {
+            if (!isMobile) {
+              ticking = false;
+              return;
+            }
+            
+            const currentScrollY = getScrollPosition();
+            const scrollThreshold = 20; // Minimum scroll distance to trigger hide/show
+            
+            if (Math.abs(currentScrollY - lastScrollY) > scrollThreshold) {
+              const newDirection = currentScrollY > lastScrollY ? 'down' : 'up';
+              
+              if (newDirection !== scrollDirection) {
+                scrollDirection = newDirection;
+                
+                // Clear existing timeout
+                clearTimeout(autoHideTimeout);
+                
+                if (scrollDirection === 'down' && currentScrollY > 50) {
+                  // Hide header when scrolling down
+                  panelStore.hidePanel('header');
+                } else if (scrollDirection === 'up') {
+                  // Show header immediately when scrolling up
+                  panelStore.showPanel('header');
+                  // Auto-hide again after 3 seconds of no interaction
+                  clearTimeout(autoHideTimeout);
+                  autoHideTimeout = setTimeout(() => {
+                    if (isMobile) { // Only auto-hide if still on mobile
+                      panelStore.hidePanel('header');
+                    }
+                  }, 3000);
+                }
+              }
+              
+              lastScrollY = currentScrollY;
+            }
+            
+            ticking = false;
+          });
+          ticking = true;
+        }
+      };
     };
+
+    // Create handlers for different scroll contexts
+    const windowScrollHandler = createScrollHandler(() => window.scrollY || window.pageYOffset);
     
-    // Add scroll listener to window
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    
-    // Also listen for scroll on sessions container
-    const addScrollListener = () => {
+    const containerScrollHandler = createScrollHandler(() => {
+      const container = document.querySelector('.sessions');
+      return container ? container.scrollTop : 0;
+    });
+
+    // Add listeners with retry logic for dynamic content
+    const addScrollListeners = () => {
+      // Window scroll (for pages that allow body scrolling)
+      window.addEventListener('scroll', windowScrollHandler, { passive: true });
+      
+      // Container scroll (for mobile session list)
       const sessionsContainer = document.querySelector('.sessions');
       if (sessionsContainer) {
-        sessionsContainer.addEventListener('scroll', handleScroll, { passive: true });
+        sessionsContainer.addEventListener('scroll', containerScrollHandler, { passive: true });
+        console.debug('HeaderToolbar: Added scroll listener to sessions container');
+      }
+      
+      // Container content scroll (for other scrollable containers)
+      const containerContent = document.querySelector('.container-content');
+      if (containerContent) {
+        const containerContentHandler = createScrollHandler(() => containerContent.scrollTop);
+        containerContent.addEventListener('scroll', containerContentHandler, { passive: true });
       }
     };
-    
-    // Add listener immediately and also after a short delay (in case DOM isn't ready)
-    addScrollListener();
-    setTimeout(addScrollListener, 100);
+
+    // Add listeners immediately and retry a few times for dynamic content
+    addScrollListeners();
+    setTimeout(addScrollListeners, 100);
+    setTimeout(addScrollListeners, 500);
     
     cleanupFunctions.push(() => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', windowScrollHandler);
+      
       const sessionsContainer = document.querySelector('.sessions');
       if (sessionsContainer) {
-        sessionsContainer.removeEventListener('scroll', handleScroll);
+        sessionsContainer.removeEventListener('scroll', containerScrollHandler);
       }
+      
+      const containerContent = document.querySelector('.container-content');
+      if (containerContent) {
+        // We don't have a reference to the handler, so we'll need to recreate cleanup logic
+        const containerContentHandler = createScrollHandler(() => containerContent.scrollTop);
+        containerContent.removeEventListener('scroll', containerContentHandler);
+      }
+      
       clearTimeout(autoHideTimeout);
     });
   }
@@ -200,10 +189,6 @@
   </div>
 </div>
 
-<!-- Touch zone for gesture detection when collapsed -->
-{#if isCollapsed && collapsible}
-  <div class="touch-zone" bind:this={touchZone}></div>
-{/if}
 
 <style>
   .header-toolbar {
@@ -244,17 +229,6 @@
     transition-duration: 0.3s;
   }
 
-  /* Touch zone for gesture detection */
-  .touch-zone {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    z-index: 150;
-    pointer-events: auto;
-    background: transparent;
-  }
 
   @media (max-width: 768px) {
     .header-toolbar {
@@ -286,18 +260,6 @@
     }
   }
 
-  @media (min-width: 769px) {
-    /* Desktop: never collapse */
-    .header-toolbar.collapsed {
-      transform: none;
-      opacity: 1;
-      pointer-events: auto;
-    }
-    
-    .touch-zone {
-      display: none;
-    }
-  }
 
   /* Prevent flickering during animations */
   .header-toolbar.animating * {

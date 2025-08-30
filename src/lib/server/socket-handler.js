@@ -83,6 +83,8 @@ export function handleConnection(socket) {
           socketUnsubscribers.delete(socket.id);
         }
         socketSessions.delete(socket.id);
+        // Note: We don't remove session metadata when PTY exits
+        // Sessions persist and can be reconnected to with new PTY processes
       });
 
       callback({ ok: true, sessionId, name });
@@ -113,11 +115,32 @@ export function handleConnection(socket) {
     }
 
     const { sessionId } = opts;
-    const pty = terminalManager.getSession(sessionId);
+    let pty = terminalManager.getSession(sessionId);
     
     if (!pty) {
-      callback({ ok: false, error: 'Session not found' });
-      return;
+      // Check if session exists in persistent storage
+      const sessions = getSessions();
+      const persistentSession = sessions.sessions.find(s => s.id === sessionId);
+      
+      if (persistentSession) {
+        // Session exists but PTY is dead, create a new PTY with existing session ID
+        try {
+          const result = terminalManager.createSessionWithId(sessionId, {
+            mode: terminalManager.defaultMode, // Use default mode for resumed sessions
+            cols: opts.cols || 80,
+            rows: opts.rows || 24,
+            name: persistentSession.name
+          });
+          pty = result.pty;
+          console.log(`Resumed session: ${sessionId} (${persistentSession.name})`);
+        } catch (err) {
+          callback({ ok: false, error: `Failed to resume session: ${err.message}` });
+          return;
+        }
+      } else {
+        callback({ ok: false, error: 'Session not found' });
+        return;
+      }
     }
 
     socketSessions.set(socket.id, sessionId);
@@ -148,13 +171,8 @@ export function handleConnection(socket) {
           socketUnsubscribers.delete(socket.id);
         }
         socketSessions.delete(socket.id);
-        try {
-          // Clean up persistent metadata when PTY exits
-          endSession(sessionId);
-          socket.server.emit('sessions-updated', getSessions());
-        } catch (err) {
-          console.warn('Failed to clean up session metadata on exit:', err.message);
-        }
+        // Note: We don't remove session metadata when PTY exits
+        // Sessions persist and can be reconnected to with new PTY processes
     });
 
     callback({ ok: true });

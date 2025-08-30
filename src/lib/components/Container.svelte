@@ -123,9 +123,7 @@
       padding: var(--space-sm);
       background: rgba(15, 15, 15, 0.95);
       backdrop-filter: blur(10px);
-      position: sticky;
-      bottom: 0;
-      z-index: 20;
+      flex-shrink: 0;
     }
   }
 

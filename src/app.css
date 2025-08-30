@@ -580,7 +580,6 @@ li:last-child {
 .new-session-controls {
   display: flex;
   align-items: center;
-  width: 100%;
   justify-content: end;
 
   button:hover,

@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { handleConnection } from './lib/server/socket-handler.js';
+import { initializeSessionStore } from './lib/server/session-store.js';
 
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
@@ -34,6 +35,10 @@ try {
   // Check writability
   fs.accessSync(PTY_ROOT, fs.constants.W_OK);
   fs.accessSync(SESSIONS_FILE, fs.constants.W_OK);
+  
+  // Initialize session store and clean up any orphaned sessions
+  initializeSessionStore();
+  
 } catch (err) {
   console.error(`ERROR: PTY_ROOT or sessions file not writable: ${err.message}`);
   console.error(`Ensure PTY_ROOT=${PTY_ROOT} exists and is writable by the process user.`);
