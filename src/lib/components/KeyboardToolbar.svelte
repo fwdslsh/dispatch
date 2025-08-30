@@ -199,6 +199,12 @@
     if (browser) {
       toolbarConfig = loadToolbarConfig();
       setupKeyboardDetection();
+      
+      // For testing: show keyboard toolbar on mobile by default
+      // This can be removed once keyboard detection is working properly
+      if (isMobile) {
+        visible = true;
+      }
     }
   });
 
@@ -207,7 +213,7 @@
   });
 </script>
 
-{#if visible && isMobile}
+{#if isMobile}
   <div 
     class="keyboard-toolbar" 
     data-testid="keyboard-toolbar"

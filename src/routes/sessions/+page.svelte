@@ -44,6 +44,12 @@
     // Dialog state
     let showEndSessionDialog = false;
     let sessionToEnd = null;
+    
+    // Rename state
+    let editingSessionId = null;
+    let editingSessionName = '';
+    let showRenameValidation = false;
+    let renameValidation = { isValid: true };
 
     function connectSocket() {
         socket = io({ transports: ["websocket", "polling"] });
@@ -131,6 +137,41 @@
         showEndSessionDialog = false;
         sessionToEnd = null;
     }
+    
+    function startRenaming(sessionId, currentName) {
+        editingSessionId = sessionId;
+        editingSessionName = currentName;
+        showRenameValidation = false;
+        renameValidation = { isValid: true };
+    }
+    
+    function cancelRename() {
+        editingSessionId = null;
+        editingSessionName = '';
+        showRenameValidation = false;
+        renameValidation = { isValid: true };
+    }
+    
+    function saveRename() {
+        const validation = validateSessionNameWithFeedback(editingSessionName);
+        renameValidation = validation;
+        showRenameValidation = !validation.isValid;
+        
+        if (!validation.isValid) {
+            return;
+        }
+        
+        // Send rename request to backend
+        socket.emit("rename", editingSessionId, editingSessionName.trim(), (resp) => {
+            if (resp.ok) {
+                // Success - clear editing state
+                cancelRename();
+                // Sessions will be updated via sessions-updated event
+            } else {
+                alert("Failed to rename session: " + (resp.error || "unknown"));
+            }
+        });
+    }
 
     function logout() {
         // Clear authentication token
@@ -200,6 +241,20 @@
                             >
                                 <div class="session-actions">
                                     <button
+                                        class="btn-sm btn-icon-only session-rename-btn"
+                                        on:click={(e) => {
+                                            e.stopPropagation();
+                                            startRenaming(session.id, session.name);
+                                        }}
+                                        title="Rename session"
+                                        aria-label="Rename session"
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                            <path d="m18.5 2.5 a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                    </button>
+                                    <button
                                         class="button-danger btn-sm btn-icon-only"
                                         on:click={(e) => {
                                             e.stopPropagation();
@@ -212,11 +267,42 @@
                                     </button>
                                 </div>
                                 <div class="session-name">
-                                    {session.name}
-                                    {#if active === session.id}
-                                        <span class="session-status"
-                                            >(active)</span
-                                        >
+                                    {#if editingSessionId === session.id}
+                                        <div class="session-rename-form">
+                                            <input
+                                                type="text"
+                                                bind:value={editingSessionName}
+                                                class="session-rename-input"
+                                                class:error={!renameValidation.isValid}
+                                                class:warning={renameValidation.isValid && renameValidation.severity === 'warning'}
+                                                on:keydown={(e) => {
+                                                    if (e.key === 'Enter') saveRename();
+                                                    if (e.key === 'Escape') cancelRename();
+                                                }}
+                                                placeholder="Session name"
+                                                maxlength="50"
+                                                autocomplete="off"
+                                            />
+                                            <div class="rename-actions">
+                                                <button class="btn-sm rename-save" on:click={saveRename} title="Save">✓</button>
+                                                <button class="btn-sm rename-cancel" on:click={cancelRename} title="Cancel">✕</button>
+                                            </div>
+                                            {#if showRenameValidation && renameValidation.message}
+                                                <div 
+                                                    class="rename-validation-message"
+                                                    class:error={renameValidation.severity === 'error'}
+                                                    class:warning={renameValidation.severity === 'warning'}
+                                                    class:info={renameValidation.severity === 'info'}
+                                                >
+                                                    {renameValidation.message}
+                                                </div>
+                                            {/if}
+                                        </div>
+                                    {:else}
+                                        {session.name}
+                                        {#if active === session.id}
+                                            <span class="session-status">(active)</span>
+                                        {/if}
                                     {/if}
                                 </div>
                                 <button
@@ -344,6 +430,32 @@
     .session-name-input {
         display: flex;
         justify-content: center;
+        flex: 1; /* Take up remaining space on desktop */
+    }
+    
+    /* Desktop: horizontal layout */
+    @media (min-width: 769px) {
+        .new-session-form {
+            flex-direction: row;
+            align-items: flex-start;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+        
+        .session-name-input {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .new-session-controls {
+            flex-shrink: 0;
+            gap: var(--space-sm);
+        }
+        
+        .validation-message {
+            flex-basis: 100%; /* Force validation message to new line */
+            order: 1;
+        }
     }
 
     .session-name-input input {
@@ -440,7 +552,7 @@
             flex: 1; /* Take up remaining space */
             overflow-y: auto; /* Enable scrolling */
             padding: var(--space-sm); /* Reduce padding on mobile */
-            padding-top: var(--space-md); /* Reduced since header auto-hides */
+            padding-top: calc(60px + var(--space-sm)); /* Account for initial header visibility */
         }
 
         .new-session-form {
@@ -460,5 +572,117 @@
         .new-session-controls {
             gap: var(--space-sm);
         }
+    }
+    
+    /* Session rename styles */
+    .session-rename-btn {
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+    }
+    
+    .session-rename-btn:hover {
+        opacity: 1;
+        color: var(--primary);
+    }
+    
+    .session-rename-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .session-rename-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+        width: 100%;
+    }
+    
+    .session-rename-input {
+        background: rgba(26, 26, 26, 0.9);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        border-radius: 4px;
+        color: var(--text-primary);
+        padding: var(--space-xs) var(--space-sm);
+        font-size: 0.9rem;
+        width: 100%;
+        transition: all 0.2s ease;
+    }
+    
+    .session-rename-input:focus {
+        outline: none;
+        border-color: rgba(0, 255, 136, 0.6);
+        box-shadow: 0 0 8px rgba(0, 255, 136, 0.1);
+    }
+    
+    .session-rename-input.error {
+        border-color: rgba(255, 82, 82, 0.6);
+    }
+    
+    .session-rename-input.warning {
+        border-color: rgba(255, 193, 7, 0.5);
+    }
+    
+    .rename-actions {
+        display: flex;
+        gap: var(--space-xs);
+    }
+    
+    .rename-save, .rename-cancel {
+        padding: var(--space-xs);
+        border: 1px solid;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        min-width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .rename-save {
+        background: rgba(0, 255, 136, 0.1);
+        border-color: rgba(0, 255, 136, 0.3);
+        color: rgba(0, 255, 136, 0.9);
+    }
+    
+    .rename-save:hover {
+        background: rgba(0, 255, 136, 0.2);
+        border-color: rgba(0, 255, 136, 0.5);
+    }
+    
+    .rename-cancel {
+        background: rgba(255, 82, 82, 0.1);
+        border-color: rgba(255, 82, 82, 0.3);
+        color: rgba(255, 82, 82, 0.9);
+    }
+    
+    .rename-cancel:hover {
+        background: rgba(255, 82, 82, 0.2);
+        border-color: rgba(255, 82, 82, 0.5);
+    }
+    
+    .rename-validation-message {
+        font-size: 0.75rem;
+        padding: var(--space-xs);
+        border-radius: 3px;
+        margin-top: var(--space-xs);
+    }
+    
+    .rename-validation-message.error {
+        color: rgba(255, 82, 82, 0.9);
+        background: rgba(255, 82, 82, 0.1);
+        border: 1px solid rgba(255, 82, 82, 0.2);
+    }
+    
+    .rename-validation-message.warning {
+        color: rgba(255, 193, 7, 0.9);
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.2);
+    }
+    
+    .rename-validation-message.info {
+        color: rgba(0, 255, 136, 0.8);
+        background: rgba(0, 255, 136, 0.05);
+        border: 1px solid rgba(0, 255, 136, 0.2);
     }
 </style>
