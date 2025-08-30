@@ -1,4 +1,6 @@
 #!/bin/bash
+mkdir -p ~/dispatch/{home,projects}
+
 key="$(cat .key 2>/dev/null)"
 docker build -f docker/Dockerfile -t fwdslsh/dispatch:latest .
 docker run -d --rm --name dispatch \
@@ -7,6 +9,6 @@ docker run -d --rm --name dispatch \
   -e ENABLE_TUNNEL=true \
   -e PTY_ROOT="/home/appuser" \
   --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/appuser \
-  -v ~/dispatch-projects:/workspace \
+  -v ~/dispatch/home:/home/appuser \
+  -v ~/dispatch/projects:/workspace \
   fwdslsh/dispatch:latest

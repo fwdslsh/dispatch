@@ -10,12 +10,33 @@
     import StartSession from "$lib/components/Icons/StartSession.svelte";
     import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
     import PublicUrlDisplay from "$lib/components/PublicUrlDisplay.svelte";
+    import { validateSessionNameRealtime, validateSessionNameWithFeedback } from "$lib/utils/session-name-validation.js";
 
     let sessions = [];
     let active = null;
     let sessionMode = "bash"; // Default session mode
+    let sessionName = ""; // Custom session name input
+    
+    // Validation state
+    let nameValidation = { isValid: true };
+    let showValidation = false;
 
     export let data;
+    
+    // Reactive validation
+    $: {
+        nameValidation = validateSessionNameRealtime(sessionName);
+        // Only show validation feedback when there's a message or it's invalid
+        showValidation = !nameValidation.isValid || nameValidation.message;
+    }
+    
+    // Validate before submission
+    function validateBeforeSubmit() {
+        const finalValidation = validateSessionNameWithFeedback(sessionName);
+        nameValidation = finalValidation;
+        showValidation = !finalValidation.isValid;
+        return finalValidation.isValid;
+    }
     
     let socket;
     let authed = false;
@@ -66,9 +87,23 @@
     }
 
     function addSession() {
-        const opts = { mode: sessionMode, cols: 80, rows: 24 };
+        // Validate name before creating session
+        if (!validateBeforeSubmit()) {
+            return; // Don't create session if validation fails
+        }
+        
+        const opts = { 
+            mode: sessionMode, 
+            cols: 80, 
+            rows: 24,
+            name: sessionName.trim() || undefined // Include name if provided
+        };
         socket.emit("create", opts, (resp) => {
             if (resp.ok) {
+                // Clear the name input and validation state after successful creation
+                sessionName = "";
+                nameValidation = { isValid: true };
+                showValidation = false;
                 goto(`/sessions/${resp.sessionId}`);
             } else {
                 alert("Failed to create session: " + (resp.error || "unknown"));
@@ -213,26 +248,45 @@
     {#snippet footer()}
 
         <PublicUrlDisplay />
-        <div class="new-session-controls">
-            <select bind:value={sessionMode}>
-                <option value="bash">bash mode</option>
-                <option value="claude">claude mode</option>
-                <option value="qwen">qwen mode</option>
-                <option value="gemini">gemini mode</option>
-            </select>
-            <button
-                class="btn-icon-only"
-                on:click={addSession}
-                title="Create new session"
-                aria-label="Create new session"
-            >
-                <StartSession />
-                <!-- <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="16" />
-                    <line x1="8" y1="12" x2="16" y2="12" />
-                </svg> -->
-            </button>
+        <div class="new-session-form">
+            <div class="session-name-input">
+                <input
+                    type="text"
+                    placeholder="session name (optional)"
+                    bind:value={sessionName}
+                    maxlength="50"
+                    autocomplete="off"
+                    class:error={!nameValidation.isValid}
+                    class:warning={nameValidation.isValid && nameValidation.severity === 'warning'}
+                    on:keydown={(e) => e.key === 'Enter' && addSession()}
+                />
+                {#if showValidation && nameValidation.message}
+                    <div 
+                        class="validation-message"
+                        class:error={nameValidation.severity === 'error'}
+                        class:warning={nameValidation.severity === 'warning'}
+                        class:info={nameValidation.severity === 'info'}
+                    >
+                        {nameValidation.message}
+                    </div>
+                {/if}
+            </div>
+            <div class="new-session-controls">
+                <select bind:value={sessionMode}>
+                    <option value="bash">bash mode</option>
+                    <option value="claude">claude mode</option>
+                    <option value="qwen">qwen mode</option>
+                    <option value="gemini">gemini mode</option>
+                </select>
+                <button
+                    class="btn-icon-only"
+                    on:click={addSession}
+                    title="Create new session"
+                    aria-label="Create new session"
+                >
+                    <StartSession />
+                </button>
+            </div>
         </div>
     {/snippet}
 </Container>
@@ -265,5 +319,116 @@
     
     select {
         padding-inline-start: var(--space-md);
+    }
+
+    .new-session-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+        margin-top: var(--space-md);
+    }
+
+    .session-name-input {
+        display: flex;
+        justify-content: center;
+    }
+
+    .session-name-input input {
+        width: 100%;
+        max-width: 300px;
+        padding: var(--space-sm) var(--space-md);
+        background: rgba(26, 26, 26, 0.8);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        border-radius: 6px;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .session-name-input input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .session-name-input input:focus {
+        outline: none;
+        border-color: rgba(0, 255, 136, 0.6);
+        box-shadow: 
+            0 0 12px rgba(0, 255, 136, 0.15),
+            0 0 24px rgba(0, 255, 136, 0.05);
+        background: rgba(26, 26, 26, 0.9);
+    }
+
+    .session-name-input input:hover:not(:focus) {
+        border-color: rgba(0, 255, 136, 0.4);
+        background: rgba(26, 26, 26, 0.85);
+    }
+
+    .session-name-input input.error {
+        border-color: rgba(255, 82, 82, 0.6);
+        background: rgba(26, 26, 26, 0.9);
+    }
+
+    .session-name-input input.error:focus {
+        border-color: rgba(255, 82, 82, 0.8);
+        box-shadow: 
+            0 0 12px rgba(255, 82, 82, 0.2),
+            0 0 24px rgba(255, 82, 82, 0.1);
+    }
+
+    .session-name-input input.warning {
+        border-color: rgba(255, 193, 7, 0.5);
+    }
+
+    .session-name-input input.warning:focus {
+        border-color: rgba(255, 193, 7, 0.7);
+        box-shadow: 
+            0 0 12px rgba(255, 193, 7, 0.15),
+            0 0 24px rgba(255, 193, 7, 0.05);
+    }
+
+    .validation-message {
+        font-size: 0.75rem;
+        margin-top: var(--space-xs);
+        text-align: center;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: 4px;
+        backdrop-filter: blur(10px);
+    }
+
+    .validation-message.error {
+        color: rgba(255, 82, 82, 0.9);
+        background: rgba(255, 82, 82, 0.1);
+        border: 1px solid rgba(255, 82, 82, 0.2);
+    }
+
+    .validation-message.warning {
+        color: rgba(255, 193, 7, 0.9);
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.2);
+    }
+
+    .validation-message.info {
+        color: rgba(0, 255, 136, 0.8);
+        background: rgba(0, 255, 136, 0.05);
+        border: 1px solid rgba(0, 255, 136, 0.2);
+    }
+
+    .new-session-controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: var(--space-md);
+    }
+
+    @media (max-width: 768px) {
+        .session-name-input input {
+            max-width: none;
+            font-size: 0.85rem;
+        }
+        
+        .new-session-controls {
+            gap: var(--space-sm);
+        }
     }
 </style>

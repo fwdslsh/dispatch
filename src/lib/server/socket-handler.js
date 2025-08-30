@@ -1,6 +1,6 @@
 // src/lib/server/socket-handler.js
 import { TerminalManager } from './terminal.js';
-import { addSession, switchSession, endSession, getSessions } from './session-store.js';
+import { addSession, switchSession, endSession, getSessions, updateSessionName } from './session-store.js';
 import fs from 'node:fs';
 
 const terminalManager = new TerminalManager();
@@ -49,16 +49,17 @@ export function handleConnection(socket) {
       const createOpts = {
         mode: opts.mode,
         cols: opts.cols,
-        rows: opts.rows
+        rows: opts.rows,
+        name: opts.name // Pass the optional name parameter
       };
-      const { sessionId, pty } = terminalManager.createSession(createOpts);
+      const { sessionId, pty, name } = terminalManager.createSession(createOpts);
       socketSessions.set(socket.id, sessionId);
 
       // Store session metadata (minimal if not provided)
       try {
         const sessionMeta = opts && opts.meta ? 
-          { id: sessionId, ...opts.meta } :
-          { id: sessionId, name: `Session ${sessionId.slice(0, 8)}`, host: 'local', port: '0', username: 'user' };
+          { id: sessionId, name, ...opts.meta } :
+          { id: sessionId, name, host: 'local', port: '0', username: 'user' };
         
         addSession(sessionMeta);
         // Broadcast updated sessions list
@@ -84,7 +85,7 @@ export function handleConnection(socket) {
         socketSessions.delete(socket.id);
       });
 
-      callback({ ok: true, sessionId });
+      callback({ ok: true, sessionId, name });
     } catch (err) {
       callback({ ok: false, error: err.message });
     }
@@ -195,6 +196,53 @@ export function handleConnection(socket) {
       // Broadcast update
       socket.server.emit('sessions-updated', getSessions());
       socket.emit('ended');
+    }
+  });
+
+  // Rename session
+  socket.on('rename', (opts, callback) => {
+    if (!authenticated) {
+      callback({ success: false, error: 'Not authenticated' });
+      return;
+    }
+
+    const { sessionId, newName } = opts;
+
+    if (!sessionId || !newName) {
+      callback({ success: false, error: 'sessionId and newName are required' });
+      return;
+    }
+
+    try {
+      // Get current session metadata to return old name
+      const sessionData = getSessions();
+      const session = sessionData.sessions.find(s => s.id === sessionId);
+      
+      if (!session) {
+        callback({ success: false, error: 'Session not found' });
+        return;
+      }
+
+      const oldName = session.name;
+
+      // Rename in TerminalManager (handles validation and symlinks)
+      const actualNewName = terminalManager.renameSession(sessionId, newName);
+      
+      // Update persistent session storage
+      updateSessionName(sessionId, actualNewName);
+      
+      // Broadcast updated sessions list
+      socket.server.emit('sessions-updated', getSessions());
+      
+      callback({
+        success: true,
+        sessionId,
+        oldName,
+        newName: actualNewName
+      });
+      
+    } catch (err) {
+      callback({ success: false, error: err.message });
     }
   });
 

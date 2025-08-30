@@ -75,3 +75,31 @@ export function endSession(sessionId) {
 export function getSessions() {
   return readSessions();
 }
+
+/**
+ * Update the name of an existing session
+ * @param {string} sessionId - The session ID to update
+ * @param {string} newName - The new name for the session
+ * @returns {string} The updated session ID
+ */
+export function updateSessionName(sessionId, newName) {
+  const data = readSessions();
+  const session = data.sessions.find(s => s.id === sessionId);
+  
+  if (!session) {
+    throw new Error('Session not found');
+  }
+  
+  session.name = newName;
+  writeSessions(data);
+  return sessionId;
+}
+
+/**
+ * Get all session names currently in use
+ * @returns {Array<string>} Array of session names
+ */
+export function getAllSessionNames() {
+  const data = readSessions();
+  return data.sessions.map(session => session.name);
+}

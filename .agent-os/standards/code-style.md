@@ -75,3 +75,21 @@ IF current task involves writing or updating JavaScript:
 ELSE:
   SKIP: JavaScript style guide not relevant to current task
 </conditional-block>
+
+<conditional-block task-condition="svelte" context-check="svelte-style">
+IF current task involves writing or updating Svelte:
+  IF svelte-style.md already in context:
+    SKIP: Re-reading this file
+    NOTE: "Using Svelte style guide already in context"
+  ELSE:
+    <context_fetcher_strategy>
+      IF current agent is Claude Code AND context-fetcher agent exists:
+        USE: @agent:context-fetcher
+        REQUEST: "Get Svelte style rules from code-style/svelte-style.md"
+        PROCESS: Returned style rules
+      ELSE:
+        READ: @.agent-os/standards/code-style/svelte-style.md
+    </context_fetcher_strategy>
+ELSE:
+  SKIP: Svelte style guide not relevant to current task
+</conditional-block>
