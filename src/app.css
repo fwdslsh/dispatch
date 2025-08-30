@@ -3,6 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Protest+Revolution&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=Protest+Revolution&display=swap');
 @import 'augmented-ui/augmented-ui.min.css';
+@import './lib/styles/mobile-responsive.css';
 
 :root {
   --bg-dark: #0f0f0f;

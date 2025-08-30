@@ -31,7 +31,7 @@ RUN apt-get update \
        tree jq yq build-essential \
        python3 \
        pkg-config \
-       git
+       git gh
 
 # Set environment variables
 ENV NODE_ENV=production \
