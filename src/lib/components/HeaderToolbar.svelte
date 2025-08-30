@@ -13,6 +13,12 @@
   let isCollapsed = false;
   let isAnimating = false;
   
+  // Scroll-based auto-hide state
+  let lastScrollY = 0;
+  let isScrolling = false;
+  let scrollDirection = 'down';
+  let autoHideTimeout;
+  
   onMount(() => {
     // Subscribe to header state changes
     const unsubscribeHeader = headerState.subscribe(state => {
@@ -25,6 +31,11 @@
     // Set up gesture detection for header reveal
     if (collapsible) {
       setupGestureDetection();
+    }
+    
+    // Set up scroll-based auto-hide for mobile
+    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+      setupScrollBasedAutoHide();
     }
   });
   
@@ -100,6 +111,73 @@
   
   function handleAnimationEnd() {
     panelStore.setAnimating('header', false);
+  }
+  
+  function setupScrollBasedAutoHide() {
+    let ticking = false;
+    
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY || window.pageYOffset;
+          const scrollThreshold = 20; // Minimum scroll distance to trigger hide/show
+          
+          if (Math.abs(currentScrollY - lastScrollY) > scrollThreshold) {
+            const newDirection = currentScrollY > lastScrollY ? 'down' : 'up';
+            
+            if (newDirection !== scrollDirection) {
+              scrollDirection = newDirection;
+              
+              // Clear existing timeout
+              clearTimeout(autoHideTimeout);
+              
+              if (scrollDirection === 'down' && currentScrollY > 100) {
+                // Hide header when scrolling down (with small delay)
+                autoHideTimeout = setTimeout(() => {
+                  panelStore.hidePanel('header');
+                }, 150);
+              } else if (scrollDirection === 'up') {
+                // Show header immediately when scrolling up
+                panelStore.showPanel('header');
+                // Auto-hide again after 3 seconds of no interaction
+                autoHideTimeout = setTimeout(() => {
+                  panelStore.hidePanel('header');
+                }, 3000);
+              }
+            }
+            
+            lastScrollY = currentScrollY;
+          }
+          
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    
+    // Add scroll listener to window
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Also listen for scroll on sessions container
+    const addScrollListener = () => {
+      const sessionsContainer = document.querySelector('.sessions');
+      if (sessionsContainer) {
+        sessionsContainer.addEventListener('scroll', handleScroll, { passive: true });
+      }
+    };
+    
+    // Add listener immediately and also after a short delay (in case DOM isn't ready)
+    addScrollListener();
+    setTimeout(addScrollListener, 100);
+    
+    cleanupFunctions.push(() => {
+      window.removeEventListener('scroll', handleScroll);
+      const sessionsContainer = document.querySelector('.sessions');
+      if (sessionsContainer) {
+        sessionsContainer.removeEventListener('scroll', handleScroll);
+      }
+      clearTimeout(autoHideTimeout);
+    });
   }
   
   onDestroy(() => {

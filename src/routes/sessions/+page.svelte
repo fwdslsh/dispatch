@@ -440,7 +440,7 @@
             flex: 1; /* Take up remaining space */
             overflow-y: auto; /* Enable scrolling */
             padding: var(--space-sm); /* Reduce padding on mobile */
-            padding-top: calc(var(--space-sm) + 60px); /* Account for fixed header height */
+            padding-top: var(--space-md); /* Reduced since header auto-hides */
         }
 
         .new-session-form {
@@ -449,6 +449,7 @@
             background: rgba(26, 26, 26, 0.95);
             backdrop-filter: blur(10px);
             border-top: 1px solid rgba(0, 255, 136, 0.2);
+            margin-top: var(--space-sm); /* Add space between PublicUrlDisplay and form */
         }
         
         .session-name-input input {

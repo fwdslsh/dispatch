@@ -178,11 +178,13 @@
 
   @media (max-width: 768px) {
     .public-url-container {
-      padding: var(--space-xs);
-      margin: var(--space-xs) 0;
+      padding: var(--space-sm);
+      margin: var(--space-sm) 0;
       background: rgba(26, 26, 26, 0.9);
-      border-top: 1px solid rgba(0, 255, 136, 0.1);
-      border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+      border: 1px solid rgba(0, 255, 136, 0.15);
+      border-radius: 6px;
+      position: relative;
+      z-index: 10; /* Ensure it's above other elements */
     }
 
     .public-url-wrapper {

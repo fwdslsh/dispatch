@@ -75,6 +75,7 @@
 
   .container-footer {
     flex-shrink: 0;
+    padding: var(--space-md);
   }
 
   /* Default desktop layout - use normal container */
@@ -109,13 +110,22 @@
     .container:not(.session-container) {
       height: 100vh;
       max-height: 100vh;
-      padding-top: 60px; /* Account for fixed header */
+      padding-top: 20px; /* Reduced padding since header auto-hides */
       box-sizing: border-box;
     }
     
     .container:not(.session-container) .container-content {
       min-height: 0; /* Allow flex child to shrink */
       margin-inline: 0;
+    }
+    
+    .container:not(.session-container) .container-footer {
+      padding: var(--space-sm);
+      background: rgba(15, 15, 15, 0.95);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
     }
   }
 
