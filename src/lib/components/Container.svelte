@@ -104,6 +104,17 @@
       min-height: 0; /* Allow flex child to shrink on mobile */
       margin-inline: 0; /* Remove negative margins on mobile to prevent text cutoff */
     }
+
+    /* For non-session containers (like session list), ensure proper flex layout */
+    .container:not(.session-container) {
+      height: 100vh;
+      max-height: 100vh;
+    }
+    
+    .container:not(.session-container) .container-content {
+      min-height: 0; /* Allow flex child to shrink */
+      margin-inline: 0;
+    }
   }
 
   /* Responsive container - full width on small screens */

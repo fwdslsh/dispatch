@@ -304,7 +304,8 @@
 
 <style>
     .sessions {
-        max-height: 400px; /* Allow scrolling if many sessions */
+        flex: 1; /* Take up remaining space on desktop too */
+        max-height: 400px; /* Limit height on desktop for scrolling */
         overflow-y: auto;
         padding: var(--space-md);
     }
@@ -434,6 +435,21 @@
     }
 
     @media (max-width: 768px) {
+        .sessions {
+            max-height: none; /* Allow full height on mobile */
+            flex: 1; /* Take up remaining space */
+            overflow-y: auto; /* Enable scrolling */
+            padding: var(--space-sm); /* Reduce padding on mobile */
+        }
+
+        .new-session-form {
+            padding: var(--space-sm);
+            gap: var(--space-sm);
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0, 255, 136, 0.2);
+        }
+        
         .session-name-input input {
             max-width: none;
             font-size: 0.85rem;

@@ -176,19 +176,31 @@
     height: 14px;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
+    .public-url-container {
+      padding: var(--space-xs);
+      margin: var(--space-xs) 0;
+      background: rgba(26, 26, 26, 0.9);
+      border-top: 1px solid rgba(0, 255, 136, 0.1);
+      border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+    }
+
     .public-url-wrapper {
       flex-direction: column;
       align-items: stretch;
+      gap: var(--space-xs);
     }
 
     .public-url-link {
       text-align: center;
       word-break: break-all;
+      font-size: 0.75rem;
+      padding: var(--space-xs);
     }
 
     .copy-button {
       align-self: center;
+      margin-top: var(--space-xs);
     }
   }
 </style>
