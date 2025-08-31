@@ -50,7 +50,8 @@ export function handleConnection(socket) {
         mode: opts.mode,
         cols: opts.cols,
         rows: opts.rows,
-        name: opts.name // Pass the optional name parameter
+        name: opts.name, // Pass the optional name parameter
+        parentSessionId: opts.parentSessionId // Pass parent session ID for shared directory
       };
       const { sessionId, pty, name } = terminalManager.createSession(createOpts);
       socketSessions.set(socket.id, sessionId);

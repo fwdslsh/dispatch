@@ -50,7 +50,7 @@
         sessionId = page.params.id;
         // Create socket connection for end session functionality
 
-        socket = io(import.meta.env.DEV ? "http://localhost:3030" : undefined, { transports: ["websocket", "polling"] });
+        socket = io({ transports: ["websocket", "polling"] });
         const authKey = storedAuth === "no-auth" ? "" : storedAuth;
         socket.emit("auth", authKey, (res) => {
           console.debug("Session page: auth response:", res);

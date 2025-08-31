@@ -15,6 +15,7 @@ import { getAllSessionNames } from './session-store.js';
  * @property {number} [rows]
  * @property {"claude"|"shell"} [mode]
  * @property {string} [name]
+ * @property {string} [parentSessionId]
  */
 
 export class TerminalManager {
@@ -53,18 +54,25 @@ export class TerminalManager {
    * @returns {{sessionId: string, pty: import('node-pty').IPty, name: string}}
    */
   createSessionWithId(sessionId, opts = {}) {
-    const { cols = 80, rows = 24, mode = this.defaultMode, name } = opts;
+    const { cols = 80, rows = 24, mode = this.defaultMode, name, parentSessionId } = opts;
     
     // Validate and generate session name
     const sessionName = name || generateFallbackName(sessionId);
     
-    // Create session directory
-    const sessionDir = path.join(this.ptyRoot, sessionId);
-    
-    try {
-      fs.mkdirSync(sessionDir, { recursive: true });
-    } catch (err) {
-      throw new Error(`Failed to create session directory: ${err.message}`);
+    // Determine session directory - use parent session's directory if specified
+    let sessionDir;
+    if (parentSessionId && this.sessions.has(parentSessionId)) {
+      // Use the same directory as the parent session
+      sessionDir = path.join(this.ptyRoot, parentSessionId);
+      console.log(`Creating new session ${sessionId} in existing directory: ${sessionDir}`);
+    } else {
+      // Create new session directory
+      sessionDir = path.join(this.ptyRoot, sessionId);
+      try {
+        fs.mkdirSync(sessionDir, { recursive: true });
+      } catch (err) {
+        throw new Error(`Failed to create session directory: ${err.message}`);
+      }
     }
     
     // Determine command based on mode
@@ -167,7 +175,16 @@ export class TerminalManager {
    */
   createSession(opts = {}) {
     const sessionId = randomUUID();
-    const sessionDir = path.join(this.ptyRoot, sessionId);
+    
+    // If parentSessionId is provided, use the existing session directory
+    const { parentSessionId } = opts;
+    let sessionDir;
+    if (parentSessionId && this.sessions.has(parentSessionId)) {
+      sessionDir = path.join(this.ptyRoot, parentSessionId);
+      console.log(`Creating new session ${sessionId} in existing directory: ${sessionDir}`);
+    } else {
+      sessionDir = path.join(this.ptyRoot, sessionId);
+    }
     
     // Handle session name
     let sessionName;
@@ -180,12 +197,14 @@ export class TerminalManager {
       sessionName = generateFallbackName(sessionId);
     }
     
-    // Create session directory
-    try {
-      fs.mkdirSync(sessionDir, { recursive: true });
-    } catch (err) {
-      console.error(`Failed to create session dir ${sessionDir}:`, err.message);
-      throw new Error(`Could not create session directory: ${err.message}`);
+    // Create session directory (only if not using parent session directory)
+    if (!parentSessionId || !this.sessions.has(parentSessionId)) {
+      try {
+        fs.mkdirSync(sessionDir, { recursive: true });
+      } catch (err) {
+        console.error(`Failed to create session dir ${sessionDir}:`, err.message);
+        throw new Error(`Could not create session directory: ${err.message}`);
+      }
     }
 
     const mode = opts.mode || this.defaultMode;

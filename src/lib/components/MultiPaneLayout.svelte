@@ -270,11 +270,12 @@
         
         console.log(`MultiPaneLayout: Attached pane ${paneId} to existing session ${sessionId}`);
       } else {
-        // Additional panes create new sessions
+        // Additional panes create new sessions in the same directory
         socket.emit('create', {
           cols: terminal.cols,
           rows: terminal.rows,
-          mode: 'shell'
+          mode: 'shell',
+          parentSessionId: sessionId // Use original session directory
         }, (response) => {
           if (response.success) {
             const newSessionId = response.sessionId;
