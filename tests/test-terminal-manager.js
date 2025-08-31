@@ -76,10 +76,11 @@ try {
   
   console.log('Testing session renaming...');
   const newName = terminalManager.renameSession(session1.sessionId, 'Renamed Session');
-  assert(newName === 'Renamed Session', 'Should return new name');
+  // Since resolveNameConflict might add suffix for conflicts, check it starts with our desired name
+  assert(newName.startsWith('Renamed Session'), 'Should return new name (possibly with conflict resolution)');
   
   const updatedMetadata = terminalManager.getSessionMetadata(session1.sessionId);
-  assert(updatedMetadata.name === 'Renamed Session', 'Should update metadata');
+  assert(updatedMetadata.name === newName, 'Should update metadata with resolved name');
   console.log(`✓ Session renamed to "${newName}"`);
   
   console.log('Testing session cleanup...');

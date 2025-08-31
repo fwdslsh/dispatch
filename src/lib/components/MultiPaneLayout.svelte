@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { Xterm, XtermAddon } from '@battlefieldduck/xterm-svelte';
   import { PaneManager } from '../services/pane-manager.js';
+  import { TerminalInstanceManager } from '../services/terminal-instance-manager.js';
+  import ResizeHandle from './ResizeHandle.svelte';
   
   export let socket = null;
   export let isMobile = false;
@@ -14,13 +16,14 @@
   let containerElement;
   let panesWrapper;
   let paneManager;
+  let terminalInstanceManager;
   let paneElements = new Map();
-  let terminals = new Map();
   let resizeHandle = null;
   let isResizing = false;
   let resizeStartX = 0;
   let resizeStartY = 0;
   let resizeStartRatio = 50;
+  let minPaneSize = 100; // Minimum pane size in pixels
   
   // Reactive state
   let panes = [];
@@ -32,6 +35,7 @@
     if (isMobile) return; // Don't initialize on mobile
     
     paneManager = new PaneManager();
+    terminalInstanceManager = new TerminalInstanceManager();
     
     // Try to load saved layout
     if (!paneManager.loadLayout()) {
@@ -52,10 +56,10 @@
       paneManager.clearAll();
     }
     
-    // Clean up terminals
-    terminals.forEach(terminal => {
-      if (terminal) terminal.dispose();
-    });
+    // Clean up terminal instances
+    if (terminalInstanceManager) {
+      terminalInstanceManager.cleanup();
+    }
   });
   
   function updatePanes() {
@@ -72,11 +76,9 @@
     
     // Fit terminals after layout change
     setTimeout(() => {
-      terminals.forEach((terminal, paneId) => {
-        if (terminal._fitAddon) {
-          terminal._fitAddon.fit();
-        }
-      });
+      if (terminalInstanceManager) {
+        terminalInstanceManager.fitAll();
+      }
     }, 100);
   }
   
@@ -178,9 +180,13 @@
     if (!activePane || panes.length <= 1) return;
     
     // Close terminal session if connected
-    if (socket && activePane.sessionId) {
-      socket.emit('end', activePane.sessionId);
+    const instance = terminalInstanceManager.getInstance(activePane.id);
+    if (instance && instance.socket && instance.sessionId) {
+      instance.socket.emit('end', instance.sessionId);
     }
+    
+    // Destroy terminal instance
+    terminalInstanceManager.destroyInstance(activePane.id);
     
     paneManager.removePane(activePane.id);
     updatePanes();
@@ -190,12 +196,9 @@
     paneManager.focusPane(paneId);
     updatePanes();
     
-    // Explicitly focus the terminal
-    const terminal = terminals.get(paneId);
-    if (terminal) {
-      setTimeout(() => {
-        terminal.focus();
-      }, 50);
+    // Focus the terminal instance
+    if (terminalInstanceManager) {
+      terminalInstanceManager.setActiveInstance(paneId);
     }
   }
   
@@ -209,18 +212,26 @@
   async function onTerminalLoad(paneId, terminal) {
     console.log(`Terminal loaded for pane ${paneId}`);
     
-    // Store terminal reference
-    terminals.set(paneId, terminal);
-    
-    const pane = paneManager.panes.get(paneId);
-    if (pane) {
-      pane.terminal = terminal;
+    // Create or get terminal instance
+    let instance = terminalInstanceManager.getInstance(paneId);
+    if (!instance) {
+      instance = terminalInstanceManager.createInstance(paneId, {
+        cols: terminal.cols,
+        rows: terminal.rows
+      });
     }
     
     // Load fit addon
     const fitAddon = new (await XtermAddon.FitAddon()).FitAddon();
     terminal.loadAddon(fitAddon);
-    terminal._fitAddon = fitAddon;
+    
+    // Set terminal in instance manager
+    terminalInstanceManager.setTerminal(paneId, terminal, fitAddon);
+    
+    const pane = paneManager.panes.get(paneId);
+    if (pane) {
+      pane.terminal = terminal;
+    }
     
     // Register link detection if available
     if (linkDetector) {
@@ -247,6 +258,9 @@
         // First pane connects to existing session
         pane.sessionId = sessionId;
         
+        // Attach session to terminal instance
+        terminalInstanceManager.attachSession(paneId, sessionId, socket);
+        
         // Attach to existing session
         socket.emit('attach', {
           sessionId,
@@ -266,6 +280,9 @@
             const newSessionId = response.sessionId;
             pane.sessionId = newSessionId;
             
+            // Attach session to terminal instance
+            terminalInstanceManager.attachSession(paneId, newSessionId, socket);
+            
             // Attach to new session
             socket.emit('attach', {
               sessionId: newSessionId,
@@ -277,69 +294,57 @@
           }
         });
       }
-      
-      // Handle output for this specific pane
-      const outputHandler = (data) => {
-        if (pane.sessionId) {
-          terminal.write(data);
-        }
-      };
-      
-      socket.on('output', outputHandler);
-      
-      // Store handler for cleanup
-      terminal._outputHandler = outputHandler;
     }
   }
   
   function onTerminalData(paneId, data) {
-    const pane = paneManager.panes.get(paneId);
-    if (socket && pane && pane.sessionId) {
+    const instance = terminalInstanceManager.getInstance(paneId);
+    if (instance && instance.socket && instance.sessionId) {
       // Send input to the specific session
-      socket.emit('input', data, pane.sessionId);
+      instance.socket.emit('input', data);
     }
   }
   
-  // Resize handling
-  function startResize(e, direction) {
+  // Resize handling with collision detection
+  function handleResizeStart(event) {
     if (layoutType !== 'split') return;
     
     isResizing = true;
-    resizeStartX = e.clientX;
-    resizeStartY = e.clientY;
     resizeStartRatio = paneManager.layout.ratio || 50;
-    
-    document.addEventListener('mousemove', handleResizeMove);
-    document.addEventListener('mouseup', stopResize);
-    
-    e.preventDefault();
   }
   
-  function handleResizeMove(e) {
-    if (!isResizing || !containerElement) return;
+  function handleResize(event) {
+    if (!isResizing || !panesWrapper) return;
     
-    const rect = containerElement.getBoundingClientRect();
+    const rect = panesWrapper.getBoundingClientRect();
     const direction = paneManager.layout.direction;
+    const { delta } = event.detail;
     
     let newRatio;
     if (direction === 'vertical') {
-      const deltaX = e.clientX - resizeStartX;
-      const percentChange = (deltaX / rect.width) * 100;
+      const percentChange = (delta / rect.width) * 100;
       newRatio = resizeStartRatio + percentChange;
+      
+      // Collision detection for vertical split
+      const minRatio = (minPaneSize / rect.width) * 100;
+      const maxRatio = 100 - minRatio;
+      newRatio = Math.max(minRatio, Math.min(maxRatio, newRatio));
     } else {
-      const deltaY = e.clientY - resizeStartY;
-      const percentChange = (deltaY / rect.height) * 100;
+      const percentChange = (delta / rect.height) * 100;
       newRatio = resizeStartRatio + percentChange;
+      
+      // Collision detection for horizontal split
+      const minRatio = (minPaneSize / rect.height) * 100;
+      const maxRatio = 100 - minRatio;
+      newRatio = Math.max(minRatio, Math.min(maxRatio, newRatio));
     }
     
     paneManager.updateSplitRatio(newRatio);
     recalculateDimensions();
   }
   
-  function stopResize() {
+  function handleResizeEnd(event) {
     isResizing = false;
-    document.removeEventListener('mousemove', handleResizeMove);
-    document.removeEventListener('mouseup', stopResize);
     
     // Save layout after resize
     paneManager.saveLayout();
@@ -353,7 +358,7 @@
     // Initialize terminals for new panes
     setTimeout(() => {
       panes.forEach(pane => {
-        if (!terminals.has(pane.id)) {
+        if (!terminalInstanceManager.getInstance(pane.id)) {
           initializeTerminal(pane.id);
         }
       });
@@ -448,15 +453,23 @@
     <!-- Resize handle for split layouts -->
     {#if layoutType === 'split' && panes.length === 2}
       {@const direction = paneManager?.layout?.direction}
-      <div 
-        class="resize-handle"
-        class:vertical={direction === 'vertical'}
-        class:horizontal={direction === 'horizontal'}
-        style={direction === 'vertical' 
-          ? `left: ${dimensions.get(panes[0].id)?.width || 0}px;`
-          : `top: ${dimensions.get(panes[0].id)?.height || 0}px;`}
-        onmousedown={(e) => startResize(e, direction)}
-      />
+      {@const pane0Dim = dimensions.get(panes[0].id)}
+      {#if pane0Dim}
+        <ResizeHandle
+          direction={direction}
+          position={{
+            x: direction === 'vertical' ? pane0Dim.width : 0,
+            y: direction === 'horizontal' ? pane0Dim.height : 0
+          }}
+          minSize={minPaneSize}
+          maxSize={direction === 'vertical' 
+            ? (panesWrapper?.getBoundingClientRect().width || 1000) - minPaneSize
+            : (panesWrapper?.getBoundingClientRect().height || 1000) - minPaneSize}
+          on:resizeStart={handleResizeStart}
+          on:resize={handleResize}
+          on:resizeEnd={handleResizeEnd}
+        />
+      {/if}
     {/if}
   </div>
 </div>
@@ -553,44 +566,7 @@
     padding: 4px;
   }
   
-  /* Resize handle */
-  .resize-handle {
-    position: absolute;
-    background: var(--primary, #00ff88);
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 20;
-  }
-  
-  .resize-handle:hover {
-    opacity: 0.3;
-  }
-  
-  .resize-handle.vertical {
-    width: 4px;
-    height: 100%;
-    top: 0;
-    cursor: ew-resize;
-    transform: translateX(-2px);
-  }
-  
-  .resize-handle.horizontal {
-    width: 100%;
-    height: 4px;
-    left: 0;
-    cursor: ns-resize;
-    transform: translateY(-2px);
-  }
-  
-  /* Active resizing */
-  :global(body.resizing) {
-    cursor: ew-resize !important;
-    user-select: none !important;
-  }
-  
-  :global(body.resizing-horizontal) {
-    cursor: ns-resize !important;
-  }
+  /* ResizeHandle component will handle its own styles */
   
   /* Make sure xterm takes full space */
   .pane-terminal :global(.xterm) {
