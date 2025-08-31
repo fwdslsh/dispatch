@@ -215,7 +215,13 @@ export function handleConnection(socket) {
 
   // Handle input from client
   socket.on('input', (data, sessionId) => {
-    if (!authenticated) return;
+    // Allow /login command even without authentication
+    const isLoginCommand = data && typeof data === 'string' && 
+      (data.trim() === '/login' || data.trim().startsWith('claude setup-token') || data.trim().startsWith('npx @anthropic-ai/claude setup-token'));
+    
+    if (!authenticated && !isLoginCommand) {
+      return;
+    }
     
     // Use provided sessionId, or fall back to first session in socket's session set
     let targetSessionId = sessionId;
@@ -227,7 +233,13 @@ export function handleConnection(socket) {
     }
     
     if (targetSessionId) {
-      terminalManager.writeToSession(targetSessionId, data);
+      // Handle /login command specially
+      if (isLoginCommand && data.trim() === '/login') {
+        // Convert /login to the actual claude setup-token command
+        terminalManager.writeToSession(targetSessionId, 'npx @anthropic-ai/claude setup-token\r');
+      } else {
+        terminalManager.writeToSession(targetSessionId, data);
+      }
     }
   });
 

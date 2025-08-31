@@ -10,20 +10,9 @@ const claudeService = new ClaudeCodeService();
 export function withClaudeAuth(handler) {
   return async (context) => {
     try {
-      const isAuthenticated = await claudeService.checkAuthentication();
+      // Test authentication by making a simple query
+      await claudeService.query('ping', { maxTurns: 1 });
       
-      if (!isAuthenticated) {
-        return new Response(JSON.stringify({
-          error: 'Not authenticated with Claude CLI',
-          hint: 'Run: npx @anthropic-ai/claude-code login'
-        }), {
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-      }
-
       // Add Claude service to context for use in handlers
       context.claudeService = claudeService;
       
@@ -32,11 +21,13 @@ export function withClaudeAuth(handler) {
     } catch (error) {
       console.error('Claude authentication middleware error:', error);
       
+      const isAuthError = error.message?.includes('not authenticated') || error.message?.includes('login');
+      
       return new Response(JSON.stringify({
-        error: 'Authentication verification failed',
-        details: error.message
+        error: isAuthError ? 'Not authenticated with Claude CLI' : 'Authentication verification failed',
+        hint: isAuthError ? 'Run: npx @anthropic-ai/claude setup-token' : error.message
       }), {
-        status: 500,
+        status: isAuthError ? 401 : 500,
         headers: {
           'Content-Type': 'application/json'
         }
@@ -51,7 +42,8 @@ export function withClaudeAuth(handler) {
  */
 export async function checkClaudeAuth() {
   try {
-    return await claudeService.checkAuthentication();
+    await claudeService.query('ping', { maxTurns: 1 });
+    return true;
   } catch (error) {
     console.error('Claude auth check failed:', error);
     return false;

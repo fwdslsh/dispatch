@@ -2,47 +2,27 @@ import { query } from '@anthropic-ai/claude-code';
 
 /**
  * Service wrapper for Claude Code SDK integration
- * Provides authentication management, error handling, and request queuing
+ * Simplified implementation using official SDK patterns
  */
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 export class ClaudeCodeService {
   constructor(options = {}) {
-    this.authenticated = false;
-    this.lastError = null;
-    this.requestQueue = [];
-    this.processing = false;
-    this.options = {
-      allowedTools: ['Read', 'Grep', 'WriteFile', 'Bash', 'WebSearch'],
-      permissionMode: 'default',
-      maxTurns: 5,
+    // Get the absolute path to the CLI executable
+    const cliPath = resolve(__dirname, '../../../node_modules/.bin/claude');
+    
+    this.defaultOptions = {
+      maxTurns: 10,
+      customSystemPrompt: 'You are a helpful coding assistant integrated into a web terminal interface.',
+      allowedTools: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'WebSearch', 'Task'],
+      permissionMode: 'bypassPermissions',
+      pathToClaudeCodeExecutable: cliPath,
       ...options
     };
-  }
-
-  /**
-   * Check authentication status with Claude CLI
-   * @returns {Promise<boolean>} Authentication status
-   */
-  async checkAuthentication() {
-    try {
-      // Test authentication by making a simple query
-      // The SDK will throw if not authenticated
-      const testQuery = query({
-        prompt: 'test',
-        options: { maxTurns: 1 }
-      });
-      
-      // Try to get first result
-      const iterator = testQuery[Symbol.asyncIterator]();
-      await iterator.next();
-      
-      this.authenticated = true;
-      this.lastError = null;
-      return true;
-    } catch (error) {
-      this.lastError = error;
-      this.authenticated = false;
-      return false;
-    }
   }
 
   /**
@@ -52,114 +32,79 @@ export class ClaudeCodeService {
    * @returns {Promise<string>} The complete response from Claude
    */
   async query(prompt, options = {}) {
-    // Check authentication first
-    if (!this.authenticated) {
-      const authSuccess = await this.checkAuthentication();
-      if (!authSuccess) {
-        throw new Error('Not authenticated with Claude CLI. Please run: claude-code login');
+    const queryOptions = {
+      ...this.defaultOptions,
+      ...options
+    };
+
+    try {
+      let fullResponse = '';
+      
+      // Use the official SDK query function with correct parameter structure
+      for await (const message of query({
+        prompt,
+        options: queryOptions
+      })) {
+        if (message.type === 'result') {
+          fullResponse += message.result;
+        } else if (message.type === 'assistant') {
+          fullResponse += message.content;
+        }
+      }
+      
+      return fullResponse;
+    } catch (error) {
+      // Provide better error information while maintaining compatibility
+      if (error.message?.includes('not authenticated')) {
+        throw new Error('Not authenticated with Claude CLI. Please run: claude setup-token');
+      } else if (error.code === 'ETIMEDOUT') {
+        throw new Error('Claude request timed out');
+      } else {
+        throw new Error(`Claude query failed: ${error.message}`);
       }
     }
+  }
 
+  /**
+   * Stream query responses for real-time updates
+   * @param {string} prompt - The prompt to send to Claude
+   * @param {Object} options - Query options
+   * @param {Function} onMessage - Callback for each message chunk
+   * @returns {Promise<string>} Promise that resolves with the complete response
+   */
+  async streamQuery(prompt, options = {}, onMessage = null) {
     const queryOptions = {
-      prompt,
-      allowedTools: options.allowedTools || this.options.allowedTools,
-      permissionMode: options.permissionMode || this.options.permissionMode,
-      maxTurns: options.maxTurns || this.options.maxTurns,
+      ...this.defaultOptions,
       ...options
     };
 
     let fullResponse = '';
     
     try {
-      for await (const message of query({ prompt, options: queryOptions })) {
+      for await (const message of query({
+        prompt,
+        options: queryOptions
+      })) {
         if (message.type === 'result') {
           fullResponse += message.result;
+          if (onMessage) onMessage({ type: 'result', content: message.result });
+        } else if (message.type === 'assistant') {
+          fullResponse += message.content;
+          if (onMessage) onMessage({ type: 'assistant', content: message.content });
+        } else if (onMessage) {
+          onMessage(message);
         }
-        // Additional message types can be handled here for streaming UI updates
       }
       
       return fullResponse;
     } catch (error) {
-      this.lastError = error;
-      throw error;
-    }
-  }
-
-  /**
-   * Add a query to the processing queue to prevent concurrent requests
-   * @param {string} prompt - The prompt to send to Claude
-   * @param {Object} options - Query options
-   * @returns {Promise<string>} Promise that resolves with the response
-   */
-  async queueQuery(prompt, options = {}) {
-    return new Promise((resolve, reject) => {
-      this.requestQueue.push({ prompt, options, resolve, reject });
-      this.processQueue();
-    });
-  }
-
-  /**
-   * Process queued requests sequentially
-   * @private
-   */
-  async processQueue() {
-    if (this.processing || this.requestQueue.length === 0) {
-      return;
-    }
-
-    this.processing = true;
-
-    while (this.requestQueue.length > 0) {
-      const { prompt, options, resolve, reject } = this.requestQueue.shift();
-      
-      try {
-        const result = await this.query(prompt, options);
-        resolve(result);
-      } catch (error) {
-        reject(error);
+      if (error.message?.includes('not authenticated')) {
+        throw new Error('Not authenticated with Claude CLI. Please run: claude setup-token');
+      } else {
+        console.log('Claude query error:', error);
+        throw new Error(`Claude query failed: ${error.message}`);
       }
     }
-
-    this.processing = false;
-  }
-
-  /**
-   * Check if service is authenticated
-   * @returns {boolean} Authentication status
-   */
-  isAuthenticated() {
-    return this.authenticated;
-  }
-
-  /**
-   * Get the last error that occurred
-   * @returns {Error|null} The last error or null if no error
-   */
-  getLastError() {
-    return this.lastError;
-  }
-
-  /**
-   * Clear all pending requests from the queue
-   */
-  clearQueue() {
-    this.requestQueue = [];
-  }
-
-  /**
-   * Get the current queue length
-   * @returns {number} Number of pending requests
-   */
-  getQueueLength() {
-    return this.requestQueue.length;
-  }
-
-  /**
-   * Check if the service is currently processing requests
-   * @returns {boolean} Processing status
-   */
-  isProcessing() {
-    return this.processing;
   }
 }
 

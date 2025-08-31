@@ -16,18 +16,18 @@ export async function POST({ request }) {
       }, { status: 400 });
     }
 
-    // Check authentication first
-    const isAuthenticated = await claudeService.checkAuthentication();
-    if (!isAuthenticated) {
-      return json({
-        error: 'Not authenticated with Claude CLI',
-        hint: 'Run: npx @anthropic-ai/claude-code login'
-      }, { status: 401 });
-    }
+    // // Check authentication first
+    // const isAuthenticated = await claudeService.();
+    // if (!isAuthenticated) {
+    //   return json({
+    //     error: 'Not authenticated with Claude CLI',
+    //     hint: 'Run: npx @anthropic-ai/claude setup-token'
+    //   }, { status: 401 });
+    // }
 
     // Execute the query
-    const response = await claudeService.queueQuery(prompt.trim(), options);
-    
+    const response = await claudeService.query(prompt.trim(), options);
+
     return json({
       response,
       success: true

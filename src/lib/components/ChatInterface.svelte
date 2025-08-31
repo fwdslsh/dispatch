@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy, afterUpdate } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import VirtualList from 'svelte-virtual-list';
   import { marked } from 'marked';
   import Prism from 'prismjs';
@@ -11,9 +11,7 @@
   import { getClaudeAuthContext } from '../contexts/claude-auth-context.svelte.js';
 
   // Props
-  export let sessionId = 'default';
-  export let onSendMessage = () => {};
-  export let height = '400px';
+  let { sessionId = 'default', onSendMessage = () => {}, height = '400px' } = $props();
 
   // Chat state
   let messages = $state([]);
@@ -42,8 +40,8 @@
   });
 
   // Auto-scroll to bottom after updates
-  afterUpdate(() => {
-    if (virtualList) {
+  $effect(() => {
+    if (virtualList && messages.length > 0) {
       scrollToBottom();
     }
   });
@@ -92,7 +90,10 @@
       ...message
     };
     
+    console.log('Adding message to chat:', newMessage);
     messages = [...messages, newMessage];
+    console.log('Total messages now:', messages.length);
+    console.log('Virtual items:', virtualItems.length);
     saveChatHistory();
   }
 
@@ -107,8 +108,21 @@
    * Send a message
    */
   function sendMessage() {
+    console.log('sendMessage called');
     const content = messageInput.trim();
-    if (!content) return;
+    console.log('Message content:', content);
+    console.log('Claude auth state:', claudeAuth.authState);
+    
+    if (!content) {
+      console.log('No content, returning');
+      return;
+    }
+
+    // Handle /login command specially
+    if (content === '/login' || content.startsWith('claude setup-token')) {
+      handleLoginCommand(content);
+      return;
+    }
 
     const message = {
       id: Date.now().toString(),
@@ -117,9 +131,58 @@
       timestamp: new Date()
     };
 
+    console.log('Adding user message:', message);
     addMessage(message);
     onSendMessage(message);
     messageInput = '';
+
+    // Automatically query Claude with the user's message
+    console.log('Querying Claude with:', content);
+    queryClaude(content);
+  }
+
+  /**
+   * Handle /login command
+   */
+  async function handleLoginCommand(content) {
+    // Add user message
+    addMessage({
+      id: Date.now().toString(),
+      sender: 'user', 
+      content,
+      timestamp: new Date()
+    });
+    
+    messageInput = '';
+
+    // Provide login instructions
+    addMessage({
+      id: (Date.now() + 1).toString(),
+      sender: 'assistant',
+      content: `To authenticate with Claude Code, please run the following command in a terminal:
+
+\`\`\`bash
+npx @anthropic-ai/claude setup-token
+\`\`\`
+
+After successful authentication, return here and try your query again. You can also use the terminal tab in this interface to run the login command directly.
+
+Once authenticated, I'll be able to help you with coding tasks, questions, and more!`,
+      timestamp: new Date()
+    });
+
+    // Trigger a refresh of auth status after a short delay
+    setTimeout(async () => {
+      await claudeAuth.refresh();
+      if (claudeAuth.authenticated) {
+        addMessage({
+          id: (Date.now() + 2).toString(),
+          sender: 'assistant',
+          content: '✅ Authentication successful! I\'m ready to help you with your coding tasks.',
+          timestamp: new Date()
+        });
+      }
+    }, 2000);
   }
 
   /**
@@ -173,8 +236,27 @@
    * Scroll to bottom of message list
    */
   function scrollToBottom() {
-    if (virtualList) {
-      virtualList.scrollTo(messages.length - 1);
+    if (virtualItems.length > 0) {
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        try {
+          // First try using the VirtualList API if available
+          if (virtualList && typeof virtualList.scrollToIndex === 'function') {
+            virtualList.scrollToIndex(virtualItems.length - 1);
+            return;
+          }
+          
+          // Fallback: Find and scroll the virtual list viewport
+          if (messageContainer) {
+            const viewport = messageContainer.querySelector('.svelte-virtual-list-viewport');
+            if (viewport) {
+              viewport.scrollTop = viewport.scrollHeight;
+            }
+          }
+        } catch (error) {
+          console.warn('Could not scroll to bottom:', error);
+        }
+      });
     }
   }
 
@@ -196,7 +278,7 @@
     if (!claudeAuth.authenticated) {
       addMessage({
         sender: 'assistant',
-        content: 'Not authenticated with Claude CLI. Please run: `claude-code login`'
+        content: 'Not authenticated with Claude CLI. Please run: `claude setup-token`'
       });
       return;
     }
@@ -220,21 +302,29 @@
     }
   }
 
+  // Check if current input is a login command
+  let isLoginCommand = $derived(messageInput.trim() === '/login' || messageInput.trim().startsWith('claude setup-token'));
+
   // Prepare items for virtual list
-  $: virtualItems = [
+  let virtualItems = $derived([
     ...messages.map(msg => ({ type: 'message', data: msg })),
     ...(typing ? [{ type: 'typing', data: {} }] : [])
-  ];
+  ]);
 </script>
 
 <div class="chat-interface" style="height: {height}">
+  <!-- Debug info -->
+  {#if virtualItems.length === 0}
+    <div class="debug-info">No messages yet. Items: {virtualItems.length}, Messages: {messages.length}</div>
+  {/if}
+  
   <!-- Messages container with virtual scrolling -->
   <div class="messages-container" bind:this={messageContainer}>
     <VirtualList 
       bind:this={virtualList}
       items={virtualItems} 
       let:item 
-      itemHeight={60}
+      itemHeight={120}
     >
       {#if item.type === 'message'}
         <div class="message-wrapper">
@@ -265,14 +355,14 @@
   <div class="input-area" data-augmented-ui="tl-clip br-clip border">
     <textarea
       bind:value={messageInput}
-      on:keydown={handleKeyDown}
+      onkeydown={handleKeyDown}
       placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
       class="message-input"
       rows="1"
     ></textarea>
     <button
-      on:click={sendMessage}
-      disabled={!messageInput.trim() || !claudeAuth.authenticated}
+      onclick={sendMessage}
+      disabled={!messageInput.trim() || (!claudeAuth.authenticated && !isLoginCommand)}
       class="send-button"
       data-augmented-ui="tl-clip br-clip border"
     >
@@ -284,7 +374,7 @@
   {#if !claudeAuth.authenticated}
     <div class="auth-warning" data-augmented-ui="border">
       <span>⚠️ Not authenticated with Claude CLI</span>
-      <small>Run <code>claude-code login</code> to enable chat</small>
+      <small>Type <code>/login</code> for instructions or run <code>claude setup-token</code> in terminal</small>
     </div>
   {/if}
 </div>
@@ -316,9 +406,11 @@
 
   .message-wrapper {
     margin-bottom: var(--space-sm);
-    min-height: 60px;
+    min-height: 120px;
     display: flex;
     align-items: flex-start;
+    box-sizing: border-box;
+    padding: var(--space-xs) 0;
   }
 
   .message {
@@ -391,11 +483,11 @@
     height: 8px;
     border-radius: 50%;
     background: var(--primary);
-    animation: typing-pulse 1.4s infinite ease-in-out;
+    animation: typing-pulse 2.5s infinite ease-in-out;
   }
 
-  .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-  .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+  .typing-dot:nth-child(1) { animation-delay: -0.6s; }
+  .typing-dot:nth-child(2) { animation-delay: -0.3s; }
 
   @keyframes typing-pulse {
     0%, 80%, 100% {
@@ -503,5 +595,13 @@
     .send-button {
       padding: var(--space-sm);
     }
+  }
+
+  .debug-info {
+    padding: var(--space-sm);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
   }
 </style>

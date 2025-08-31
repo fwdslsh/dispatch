@@ -31,7 +31,7 @@ class MockClaudeCodeSDK {
     this.lastQuery = options;
 
     if (!this.authenticated) {
-      throw new Error('Not authenticated with Claude CLI. Please run: claude-code login');
+      throw new Error('Not authenticated with Claude CLI. Please run: claude setup-token');
     }
 
     // Simulate streaming response
@@ -75,7 +75,7 @@ class ClaudeCodeService {
     if (!this.authenticated) {
       await this.checkAuthentication();
       if (!this.authenticated) {
-        throw new Error('Not authenticated with Claude CLI. Please run: claude-code login');
+        throw new Error('Not authenticated with Claude CLI. Please run: claude setup-token');
       }
     }
 

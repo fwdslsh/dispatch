@@ -8,20 +8,24 @@ const claudeService = new ClaudeCodeService();
  */
 export async function GET() {
   try {
-    const isAuthenticated = await claudeService.checkAuthentication();
+    // Test authentication by making a simple query
+    await claudeService.query('ping', { maxTurns: 1 });
     
     return json({
-      authenticated: isAuthenticated,
-      error: isAuthenticated ? null : 'Not authenticated with Claude CLI'
+      authenticated: true,
+      error: null
     });
     
   } catch (error) {
     console.error('Claude auth check failed:', error);
     
+    await claudeService.query('/login', { maxTurns: 1 });
+    const isAuthError = error.message?.includes('not authenticated') || error.message?.includes('login');
+    
     return json({
       authenticated: false,
-      error: error.message || 'Authentication check failed',
-      hint: 'Run: npx @anthropic-ai/claude-code login'
+      error: isAuthError ? 'Not authenticated with Claude CLI' : error.message,
+      hint: isAuthError ? 'Run: npx @anthropic-ai/claude setup-token' : 'Authentication check failed'
     }, { status: 500 });
   }
 }

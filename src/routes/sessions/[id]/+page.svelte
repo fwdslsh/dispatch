@@ -1,9 +1,12 @@
 <script>
   import Terminal from "$lib/components/Terminal.svelte";
   import Chat from "$lib/components/Chat.svelte";
+  import ChatInterface from "$lib/components/ChatInterface.svelte";
+  import CommandMenu from "$lib/components/CommandMenu.svelte";
+  import ChatSettings from "$lib/components/ChatSettings.svelte";
   import HeaderToolbar from "$lib/components/HeaderToolbar.svelte";
   import Container from "$lib/components/Container.svelte";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { browser } from "$app/environment";
@@ -13,12 +16,19 @@
   import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
   import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
   import TerminalReadonly from "$lib/components/TerminalReadonly.svelte";
+  import { createClaudeAuthContext } from "$lib/contexts/claude-auth-context.svelte.js";
 
   let authed = false;
   let sessionId;
   let socket;
-  let chatView = false;
+  let currentView = 'terminal'; // 'terminal', 'chat', 'claude'
   let ansiUp;
+
+  // Initialize Claude authentication context immediately (not in onMount)
+  let claudeAuth = createClaudeAuthContext();
+  
+  // Store the cleanup function for the keyboard event listener
+  let keyboardCleanup;
 
   // Dialog state
   let showEndSessionDialog = false;
@@ -43,7 +53,22 @@
     ansiUp = new AnsiUp();
     ansiUp.use_classes = true;
 
+    // Add keyboard shortcut for view cycling (Ctrl+`)
+    const handleKeydown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === '`') {
+        event.preventDefault();
+        toggleView();
+      }
+    };
+
     if (browser) {
+      document.addEventListener('keydown', handleKeydown);
+
+      // Store cleanup function
+      keyboardCleanup = () => {
+        document.removeEventListener('keydown', handleKeydown);
+      };
+
       const storedAuth = localStorage.getItem("dispatch-auth-token");
       if (storedAuth) {
         authed = true;
@@ -84,6 +109,12 @@
     }
   });
 
+  onDestroy(() => {
+    if (keyboardCleanup) {
+      keyboardCleanup();
+    }
+  });
+
   function showEndDialog() {
     showEndSessionDialog = true;
   }
@@ -104,8 +135,24 @@
   }
 
   function toggleView() {
-    chatView = !chatView;
-    console.debug("View toggled to:", chatView ? "chat" : "terminal");
+    const oldView = currentView;
+    // Cycle through views: terminal -> chat -> claude -> terminal
+    switch (currentView) {
+      case 'terminal':
+        currentView = 'chat';
+        break;
+      case 'chat':
+        currentView = 'claude';
+        break;
+      case 'claude':
+        currentView = 'terminal';
+        break;
+      default:
+        currentView = 'terminal';
+    }
+    console.log(`View toggled from "${oldView}" to "${currentView}"`);
+    console.log(`Browser width: ${browser ? window.innerWidth : 'unknown'}`);
+    console.log(`Claude auth context:`, claudeAuth ? claudeAuth.authState : 'not initialized');
   }
 
   // UUID fallback for non-secure contexts
@@ -187,8 +234,8 @@
     // Convert events to chat messages format whenever sessionHistory changes
     const chatMessages = [];
 
-    // Add welcome message if no events
-    if (sessionHistory.events.length === 0) {
+    // Add welcome message if no events (for legacy chat view)
+    if (sessionHistory.events.length === 0 && currentView === 'chat') {
       chatMessages.push({
         type: "system",
         content: "Chat view enabled. Commands will appear as messages below.",
@@ -231,8 +278,6 @@
       sessionHistory.events.length,
       "events",
     );
-    console.debug("Session page: Chat messages:", chatMessages);
-    console.debug("Session page: Passing chatHistory:", chatHistory);
   }
 
   function getHistoryForTerminal() {
@@ -256,7 +301,25 @@
 
       {#snippet right()}
         {#if authed && sessionId}
-          <h2># {page.params.id.slice(0, 8)}</h2>
+          <div class="session-info">
+            <h2># {page.params.id.slice(0, 8)}</h2>
+            <div class="view-indicator" data-augmented-ui="tl-clip br-clip border">
+              <span class="view-label">View:</span>
+              <button 
+                class="view-toggle" 
+                onclick={toggleView}
+                title="Click to cycle views: Terminal → Chat → Claude (or press Ctrl+`)"
+              >
+                {#if currentView === 'terminal'}
+                  Terminal
+                {:else if currentView === 'chat'}
+                  Chat
+                {:else if currentView === 'claude'}
+                  Claude {#if claudeAuth && claudeAuth.authenticated}✓{:else}⚠️{/if}
+                {/if}
+              </button>
+            </div>
+          </div>
 
           <button
             title="End Session"
@@ -274,7 +337,7 @@
   {#snippet children()}
     <div class="terminal-page-container">
       {#if authed && sessionId}
-        {#if chatView}
+        {#if currentView === 'chat'}
           <Chat
             {socket}
             {sessionId}
@@ -283,6 +346,15 @@
             onOutputEvent={addOutputEvent}
             onterminalclick={toggleView}
           />
+        {:else if currentView === 'claude'}
+          <div class="claude-chat-container">
+            <ChatInterface
+              sessionId={sessionId}
+              height="calc(100vh - 140px)"
+            />
+            <CommandMenu />
+            <ChatSettings />
+          </div>
         {:else}
           {#if browser && window.innerWidth <= 768}
             <!-- Mobile: Use readonly terminal -->
@@ -337,6 +409,16 @@
     min-height: 400px; /* Minimum height for terminal functionality */
   }
 
+  .claude-chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
+    position: relative;
+    overflow: hidden;
+  }
+
   @media (max-width: 768px) {
     .terminal-page-container {
       min-height: 0; /* Allow flex child to shrink on mobile */
@@ -361,7 +443,68 @@
     background: var(--surface-hover);
     border-color: var(--border-hover);
   }
+
+  .session-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .view-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background: var(--surface);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+
+  .view-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .view-toggle {
+    background: var(--primary);
+    color: var(--bg-dark);
+    border: none;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .view-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px var(--primary-muted);
+  }
+
+  .view-toggle:active {
+    transform: translateY(0);
+  }
+
   .loading {
     color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .session-info {
+      gap: var(--space-sm);
+    }
+    
+    .view-indicator {
+      padding: var(--space-xs);
+    }
+    
+    .view-toggle {
+      padding: 2px var(--space-xs);
+      font-size: 0.7rem;
+    }
   }
 </style>

@@ -2,11 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   
   // Props
-  export let visible = false;
-  export let commands = [];
-  export let sessionId = 'default';
-  export let onExecuteCommand = () => {};
-  export let onClose = () => {};
+  let { visible = false, commands = [], sessionId = 'default', onExecuteCommand = () => {}, onClose = () => {} } = $props();
 
   // State
   let searchQuery = $state('');
@@ -14,10 +10,14 @@
   let searchInput;
   
   // Computed
-  $: filteredCommands = filterCommands(commands, searchQuery);
-  $: if (filteredCommands.length > 0 && selectedIndex >= filteredCommands.length) {
-    selectedIndex = 0;
-  }
+  let filteredCommands = $derived(filterCommands(commands, searchQuery));
+  
+  // Effect to reset selection when filtered commands change
+  $effect(() => {
+    if (filteredCommands.length > 0 && selectedIndex >= filteredCommands.length) {
+      selectedIndex = 0;
+    }
+  });
 
   // Keyboard event handler
   let keydownHandler;
@@ -228,9 +228,11 @@
   }
 
   // Save to cache when commands change
-  $: if (commands.length > 0) {
-    saveCommandCache();
-  }
+  $effect(() => {
+    if (commands.length > 0) {
+      saveCommandCache();
+    }
+  });
 </script>
 
 {#if visible}

@@ -2,10 +2,7 @@
   import { onMount } from 'svelte';
   
   // Props
-  export let visible = false;
-  export let sessionId = 'default';
-  export let onClose = () => {};
-  export let onSaveSettings = () => {};
+  let { visible = false, sessionId = 'default', onClose = () => {}, onSaveSettings = () => {} } = $props();
 
   // Settings state
   let settings = $state({
