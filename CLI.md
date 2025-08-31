@@ -63,6 +63,15 @@ dispatch start --mode claude
 # Start with custom directories
 dispatch start --projects ~/my-projects --ssh ~/.ssh
 
+# Start with email notification
+dispatch start --notify-email user@example.com --smtp-host smtp.gmail.com --smtp-user user@gmail.com --smtp-pass app-password
+
+# Start with webhook notification (great for Slack, Discord, etc.)
+dispatch start --notify-webhook https://hooks.slack.com/services/your-webhook-url
+
+# Start with both notifications
+dispatch start --notify-email user@example.com --notify-webhook https://hooks.slack.com/webhook --tunnel
+
 # Build image and start
 dispatch start --build
 ```
@@ -80,6 +89,12 @@ dispatch start --build
 - `--ssh <path>` - SSH directory to mount (read-only)
 - `--claude <path>` - Claude config directory to mount
 - `--config <path>` - Additional config directory to mount
+- `--notify-email <email>` - Send email notification with access link
+- `--notify-webhook <url>` - Send webhook notification with access link
+- `--smtp-host <host>` - SMTP server host for email notifications
+- `--smtp-port <port>` - SMTP server port (default: 587)
+- `--smtp-user <user>` - SMTP username for email notifications
+- `--smtp-pass <password>` - SMTP password for email notifications
 
 ### `dispatch stop`
 
@@ -144,6 +159,34 @@ build: false
 
 # Open browser automatically after starting
 openBrowser: false
+
+# Notification settings
+notifications:
+  # Enable notifications when container starts
+  enabled: false
+  
+  # Email notification settings
+  email:
+    # Email address to send notifications to
+    to: null
+    
+    # SMTP server configuration
+    smtp:
+      host: smtp.gmail.com
+      port: 587
+      secure: false  # true for 465, false for other ports
+      user: your-email@gmail.com
+      pass: your-app-password
+  
+  # Webhook notification settings (great for Slack, Discord, etc.)
+  webhook:
+    # Webhook URL to send POST request to
+    url: null
+    
+    # Optional custom headers
+    headers:
+      Content-Type: application/json
+      # Authorization: Bearer your-token
 ```
 
 Command-line options override configuration file settings.
@@ -197,6 +240,58 @@ dispatch start --mode claude --claude ~/.claude --open
 ```bash
 # Use different project directory
 dispatch start --projects ~/my-special-project --home ~/dispatch-custom
+```
+
+### Notifications
+
+#### Email Notifications
+
+Get notified via email when your container starts:
+
+```bash
+# Quick email notification
+dispatch start --notify-email your-email@gmail.com --smtp-host smtp.gmail.com --smtp-user your-email@gmail.com --smtp-pass your-app-password
+
+# Using configuration file (recommended for security)
+dispatch config
+# Edit ~/.dispatch/config.yaml to add your email settings
+dispatch start
+```
+
+**Gmail Setup:**
+1. Enable 2FA on your Gmail account
+2. Generate an app password: https://myaccount.google.com/apppasswords
+3. Use your Gmail address as `smtp-user` and the app password as `smtp-pass`
+
+#### Webhook Notifications
+
+Perfect for team notifications via Slack, Discord, or other services:
+
+```bash
+# Slack webhook
+dispatch start --notify-webhook https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+
+# Discord webhook  
+dispatch start --notify-webhook https://discord.com/api/webhooks/123456789/abcdefghijk
+
+# Custom webhook with tunnel URL
+dispatch start --tunnel --notify-webhook https://your-webhook.com/notifications
+```
+
+**Slack Setup:**
+1. Go to your Slack app settings
+2. Create a new webhook integration
+3. Copy the webhook URL and use it with `--notify-webhook`
+
+**Webhook Payload:**
+The webhook receives a JSON payload:
+```json
+{
+  "message": "Dispatch Container Started",
+  "url": "http://localhost:3030",
+  "terminalKey": "your-terminal-key",
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
 ```
 
 ## Troubleshooting
