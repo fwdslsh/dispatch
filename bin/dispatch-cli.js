@@ -1,15 +1,12 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import yaml from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import open from 'open';
-import nodemailer from 'nodemailer';
-import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,16 +32,6 @@ const defaultConfig = {
   openBrowser: false,
   notifications: {
     enabled: false,
-    email: {
-      to: null,
-      smtp: {
-        host: null,
-        port: 587,
-        secure: false,
-        user: null,
-        pass: null
-      }
-    },
     webhook: {
       url: null,
       headers: {
@@ -63,14 +50,14 @@ function expandPath(pathStr) {
 }
 
 function loadConfig() {
-  const configPath = path.join(os.homedir(), '.dispatch', 'config.yaml');
+  const configPath = path.join(os.homedir(), '.dispatch', 'config.json');
   
   let config = { ...defaultConfig };
   
   if (fs.existsSync(configPath)) {
     try {
-      const yamlContent = fs.readFileSync(configPath, 'utf8');
-      const fileConfig = yaml.load(yamlContent);
+      const jsonContent = fs.readFileSync(configPath, 'utf8');
+      const fileConfig = JSON.parse(jsonContent);
       config = { ...config, ...fileConfig };
     } catch (error) {
       console.warn(`Warning: Could not parse config file ${configPath}: ${error.message}`);
@@ -82,51 +69,6 @@ function loadConfig() {
 
 function generateRandomKey() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
-
-async function sendEmailNotification(config, url, terminalKey) {
-  try {
-    const smtp = config.notifications.email.smtp;
-    if (!smtp.host || !smtp.user || !smtp.pass || !config.notifications.email.to) {
-      console.warn('⚠️  Email notification skipped: missing SMTP configuration');
-      return;
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: smtp.host,
-      port: smtp.port,
-      secure: smtp.secure,
-      auth: {
-        user: smtp.user,
-        pass: smtp.pass
-      }
-    });
-
-    const subject = 'Dispatch Container Started';
-    const text = `Your Dispatch container is ready!
-
-🌐 Web Interface: ${url}
-🔑 Terminal Key: ${terminalKey}
-
-Access your development environment at the link above.`;
-
-    const html = `<h2>Your Dispatch Container is Ready!</h2>
-<p><strong>🌐 Web Interface:</strong> <a href="${url}">${url}</a></p>
-<p><strong>🔑 Terminal Key:</strong> <code>${terminalKey}</code></p>
-<p>Access your development environment at the link above.</p>`;
-
-    await transporter.sendMail({
-      from: smtp.user,
-      to: config.notifications.email.to,
-      subject: subject,
-      text: text,
-      html: html
-    });
-
-    console.log(`📧 Email notification sent to ${config.notifications.email.to}`);
-  } catch (error) {
-    console.warn(`⚠️  Email notification failed: ${error.message}`);
-  }
 }
 
 async function sendWebhookNotification(config, url, terminalKey) {
@@ -144,9 +86,15 @@ async function sendWebhookNotification(config, url, terminalKey) {
       timestamp: new Date().toISOString()
     };
 
-    await axios.post(webhook.url, payload, {
-      headers: webhook.headers
+    const response = await fetch(webhook.url, {
+      method: 'POST',
+      headers: webhook.headers,
+      body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
 
     console.log(`🔗 Webhook notification sent to ${webhook.url}`);
   } catch (error) {
@@ -161,22 +109,11 @@ async function sendNotifications(config, url, terminalKey) {
 
   console.log('📲 Sending notifications...');
 
-  const promises = [];
-
-  if (config.notifications.email.to) {
-    promises.push(sendEmailNotification(config, url, terminalKey));
-  }
-
   if (config.notifications.webhook.url) {
-    promises.push(sendWebhookNotification(config, url, terminalKey));
+    await sendWebhookNotification(config, url, terminalKey);
+  } else {
+    console.warn('⚠️  Notifications enabled but no webhook configured');
   }
-
-  if (promises.length === 0) {
-    console.warn('⚠️  Notifications enabled but no email or webhook configured');
-    return;
-  }
-
-  await Promise.allSettled(promises);
 }
 
 function ensureDirectories(config) {
@@ -322,12 +259,7 @@ program
   .option('--ssh <path>', 'SSH directory to mount (read-only)')
   .option('--claude <path>', 'Claude config directory to mount')
   .option('--config <path>', 'Additional config directory to mount')
-  .option('--notify-email <email>', 'Send email notification with access link')
   .option('--notify-webhook <url>', 'Send webhook notification with access link')
-  .option('--smtp-host <host>', 'SMTP server host for email notifications')
-  .option('--smtp-port <port>', 'SMTP server port (default: 587)')
-  .option('--smtp-user <user>', 'SMTP username for email notifications')
-  .option('--smtp-pass <password>', 'SMTP password for email notifications')
   .action(async (options) => {
     try {
       let config = loadConfig();
@@ -347,32 +279,9 @@ program
       if (options.config) config.volumes.config = options.config;
       
       // Handle notification options
-      if (options.notifyEmail || options.notifyWebhook || options.smtpHost) {
-        config.notifications.enabled = true;
-      }
-      
-      if (options.notifyEmail) {
-        config.notifications.email.to = options.notifyEmail;
-      }
-      
       if (options.notifyWebhook) {
+        config.notifications.enabled = true;
         config.notifications.webhook.url = options.notifyWebhook;
-      }
-      
-      if (options.smtpHost) {
-        config.notifications.email.smtp.host = options.smtpHost;
-      }
-      
-      if (options.smtpPort) {
-        config.notifications.email.smtp.port = parseInt(options.smtpPort);
-      }
-      
-      if (options.smtpUser) {
-        config.notifications.email.smtp.user = options.smtpUser;
-      }
-      
-      if (options.smtpPass) {
-        config.notifications.email.smtp.pass = options.smtpPass;
       }
       
       // Ensure directories exist
@@ -458,80 +367,36 @@ program
   .description('Generate example configuration file')
   .action(() => {
     const configDir = path.join(os.homedir(), '.dispatch');
-    const configPath = path.join(configDir, 'config.yaml');
+    const configPath = path.join(configDir, 'config.json');
     
-    const exampleConfig = `# Dispatch CLI Configuration
-# This file is located at ~/.dispatch/config.yaml
-
-# Docker image to use
-image: fwdslsh/dispatch:latest
-
-# Port for web interface
-port: 3030
-
-# Terminal authentication key (leave null to auto-generate)
-terminalKey: null
-
-# Enable public URL tunnel
-enableTunnel: false
-
-# Custom tunnel subdomain (optional)
-ltSubdomain: null
-
-# PTY mode: 'shell' or 'claude'
-ptyMode: shell
-
-# Volume mounts
-volumes:
-  # Projects workspace directory
-  projects: ~/dispatch/projects
-  
-  # User home directory (for dotfiles, shell history, etc.)
-  home: ~/dispatch/home
-  
-  # SSH directory (mounted read-only, optional)
-  ssh: ~/.ssh
-  
-  # Claude configuration directory (optional)
-  claude: ~/.claude
-  
-  # Additional config directory (optional)
-  config: ~/.config
-
-# Build Docker image before running
-build: false
-
-# Open browser automatically after starting
-openBrowser: false
-
-# Notification settings
-notifications:
-  # Enable notifications when container starts
-  enabled: false
-  
-  # Email notification settings
-  email:
-    # Email address to send notifications to
-    to: null
-    
-    # SMTP server configuration
-    smtp:
-      host: smtp.gmail.com
-      port: 587
-      secure: false  # true for 465, false for other ports
-      user: your-email@gmail.com
-      pass: your-app-password
-  
-  # Webhook notification settings (great for Slack, Discord, etc.)
-  webhook:
-    # Webhook URL to send POST request to
-    url: null
-    
-    # Optional custom headers
-    headers:
-      Content-Type: application/json
-      # Authorization: Bearer your-token
-`;
+    const exampleConfig = {
+      // Dispatch CLI Configuration
+      image: 'fwdslsh/dispatch:latest',
+      port: 3030,
+      terminalKey: null, // Will be auto-generated if not provided
+      enableTunnel: false,
+      ltSubdomain: null, // Custom tunnel subdomain (optional)
+      ptyMode: 'shell', // 'shell' or 'claude'
+      volumes: {
+        projects: '~/dispatch/projects', // Projects workspace directory
+        home: '~/dispatch/home', // User home directory (for dotfiles, shell history, etc.)
+        ssh: '~/.ssh', // SSH directory (mounted read-only, optional)
+        claude: '~/.claude', // Claude configuration directory (optional)
+        config: '~/.config' // Additional config directory (optional)
+      },
+      build: false, // Build Docker image before running
+      openBrowser: false, // Open browser automatically after starting
+      notifications: {
+        enabled: false, // Enable notifications when container starts
+        webhook: {
+          url: null, // Webhook URL to send POST request to (great for Slack, Discord, etc.)
+          headers: {
+            'Content-Type': 'application/json'
+            // Add other headers like Authorization if needed
+          }
+        }
+      }
+    };
     
     try {
       if (!fs.existsSync(configDir)) {
@@ -544,7 +409,7 @@ notifications:
         return;
       }
       
-      fs.writeFileSync(configPath, exampleConfig, 'utf8');
+      fs.writeFileSync(configPath, JSON.stringify(exampleConfig, null, 2), 'utf8');
       console.log(`✅ Configuration file created at ${configPath}`);
       console.log('📝 Edit this file to customize your Dispatch setup');
       
