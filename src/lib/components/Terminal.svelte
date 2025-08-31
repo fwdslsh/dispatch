@@ -151,14 +151,8 @@
     // Poll cleanup no longer needed
   }
 
-  function onData(data) {
-    console.debug('onData()', data);
-    // Desktop direct terminal input - simplified
-    if (socket) {
-      socket.emit('input', data);
-      onInputEvent(data); // Simple input tracking
-    }
-  }
+  // onData handler removed - input is now handled by MultiPaneLayout per-pane
+  // This eliminates duplicate input handling and double keystroke issues
 
   function onKey(data) {
     console.debug('onKey()', data);

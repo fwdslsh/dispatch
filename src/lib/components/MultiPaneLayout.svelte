@@ -30,10 +30,15 @@
   let layoutType = 'single';
   
   onMount(() => {
-    console.debug('MultiPaneLayout onMount - desktop mode');
+    console.debug(`MultiPaneLayout onMount - desktop mode for session: ${sessionId}`);
     
-    paneManager = new PaneManager();
-    terminalInstanceManager = new TerminalInstanceManager();
+    paneManager = new PaneManager(sessionId);
+    terminalInstanceManager = new TerminalInstanceManager(sessionId);
+    
+    console.debug(`Created managers for session ${sessionId}:`, {
+      paneManagerStats: `Session-scoped PaneManager initialized`,
+      terminalManagerStats: terminalInstanceManager.getStats()
+    });
     
     // Try to load saved layout
     if (!paneManager.loadLayout()) {
@@ -42,6 +47,9 @@
     }
     
     updatePanes();
+    
+    // Sessions will be connected automatically when terminals load - no need for delayed checks
+    
     setupKeyboardShortcuts();
     setupResizeObserver();
     
@@ -49,6 +57,8 @@
   });
   
   onDestroy(() => {
+    console.debug(`MultiPaneLayout onDestroy for session: ${sessionId}`);
+    
     if (paneManager) {
       paneManager.saveLayout();
       paneManager.clearAll();
@@ -56,6 +66,7 @@
     
     // Clean up terminal instances
     if (terminalInstanceManager) {
+      console.debug(`Cleaning up terminal instances for session ${sessionId}:`, terminalInstanceManager.getStats());
       terminalInstanceManager.cleanup();
     }
   });
@@ -159,17 +170,31 @@
   }
   
   function splitCurrentPane(direction) {
+    console.log(`MultiPaneLayout: splitCurrentPane called with direction: ${direction}`);
     const activePane = paneManager.getActivePane();
-    if (!activePane) return;
+    if (!activePane) {
+      console.log('MultiPaneLayout: No active pane to split');
+      return;
+    }
     
+    console.log(`MultiPaneLayout: Splitting pane ${activePane.id} in ${direction} direction`);
     const newPane = paneManager.splitPane(activePane.id, direction);
     if (newPane) {
+      console.log(`MultiPaneLayout: Created new pane ${newPane.id}, updating layout`);
       updatePanes();
+      console.log(`MultiPaneLayout: Layout after split:`, {
+        type: paneManager.layout.type,
+        direction: paneManager.layout.direction,
+        totalPanes: paneManager.getAllPanes().length
+      });
       
-      // Create terminal for new pane
+      // Create terminal for new pane - session will be connected automatically when terminal loads
       setTimeout(() => {
+        console.log(`MultiPaneLayout: Initializing terminal for new pane ${newPane.id}`);
         initializeTerminal(newPane.id);
       }, 100);
+    } else {
+      console.log('MultiPaneLayout: Failed to create new pane');
     }
   }
   
@@ -250,61 +275,114 @@
       terminal.focus();
     }, 100);
     
-    // Set up socket connection for this pane
-    if (socket && socket.connected) {
-      if (paneManager.getAllPanes().length === 1 && sessionId) {
-        // First pane connects to existing session
-        pane.sessionId = sessionId;
-        
-        // Attach session to terminal instance
-        terminalInstanceManager.attachSession(paneId, sessionId, socket);
-        
-        // Attach to existing session
-        socket.emit('attach', {
-          sessionId,
-          cols: terminal.cols,
-          rows: terminal.rows
-        });
-        
-        console.log(`MultiPaneLayout: Attached pane ${paneId} to existing session ${sessionId}`);
-      } else {
-        // Additional panes create new sessions in the same directory
-        socket.emit('create', {
-          cols: terminal.cols,
-          rows: terminal.rows,
-          mode: 'shell',
-          parentSessionId: sessionId // Use original session directory
-        }, (response) => {
-          if (response.ok) {
-            const newSessionId = response.sessionId;
-            pane.sessionId = newSessionId;
-            
-            // Attach session to terminal instance
-            terminalInstanceManager.attachSession(paneId, newSessionId, socket);
-            
-            // Attach to new session
-            socket.emit('attach', {
-              sessionId: newSessionId,
-              cols: terminal.cols,
-              rows: terminal.rows
-            });
-            
-            console.log(`MultiPaneLayout: Created new session ${newSessionId} for pane ${paneId}`);
-          } else {
-            console.error(`MultiPaneLayout: Failed to create session for pane ${paneId}:`, response.error);
-          }
-        });
-      }
-    }
+    // Simple session connection: connect immediately when terminal loads
+    connectPaneToSession(paneId, terminal, pane);
   }
   
+  /**
+   * Simple, robust session connection for a pane
+   * Called immediately when terminal loads - handles all connection logic in one place
+   */
+  function connectPaneToSession(paneId, terminal, pane) {
+    console.log(`MultiPaneLayout: connectPaneToSession called for ${paneId}`, {
+      socketConnected: socket?.connected,
+      paneHasSavedSession: pane?.sessionId,
+      totalPanes: paneManager.getAllPanes().length,
+      mainSessionId: sessionId
+    });
+
+    if (!socket || !socket.connected) {
+      console.error(`MultiPaneLayout: Socket not connected for pane ${paneId}`);
+      return;
+    }
+
+    const savedSessionId = pane ? pane.sessionId : null;
+    const isFirstPane = paneManager.getAllPanes().length === 1;
+
+    // Determine what session to try first
+    let primarySessionToTry = null;
+    if (savedSessionId) {
+      primarySessionToTry = savedSessionId;
+      console.log(`MultiPaneLayout: Pane ${paneId} attempting to reconnect to saved session ${savedSessionId}`);
+    } else if (isFirstPane && sessionId) {
+      primarySessionToTry = sessionId;
+      console.log(`MultiPaneLayout: First pane ${paneId} attempting to connect to main session ${sessionId}`);
+    }
+
+    if (primarySessionToTry) {
+      // Try to attach to the primary session
+      console.log(`MultiPaneLayout: Trying to attach ${paneId} to ${primarySessionToTry}`);
+      socket.emit('attach', {
+        sessionId: primarySessionToTry,
+        cols: terminal.cols,
+        rows: terminal.rows
+      }, (response) => {
+        if (response.ok) {
+          // Success - connect terminal instance to this session
+          if (pane) {
+            pane.sessionId = primarySessionToTry;
+          }
+          terminalInstanceManager.attachSession(paneId, primarySessionToTry, socket);
+          console.log(`MultiPaneLayout: ✅ Pane ${paneId} connected to session ${primarySessionToTry}`);
+        } else {
+          // Failed - create new session immediately
+          console.log(`MultiPaneLayout: ❌ Failed to attach pane ${paneId} to ${primarySessionToTry}: ${response.error}`);
+          createNewSessionForPane(paneId, terminal, pane);
+        }
+      });
+    } else {
+      // No session to try - create new one immediately
+      console.log(`MultiPaneLayout: 🆕 Pane ${paneId} has no session, creating new session`);
+      createNewSessionForPane(paneId, terminal, pane);
+    }
+  }
+
+  /**
+   * Create a new PTY session for a pane (simplified)
+   */
+  function createNewSessionForPane(paneId, terminal, pane) {
+    console.log(`MultiPaneLayout: 🔄 Creating new PTY session for pane ${paneId}`);
+    socket.emit('create', {
+      cols: terminal.cols,
+      rows: terminal.rows,
+      mode: 'shell',
+      parentSessionId: sessionId
+    }, (response) => {
+      if (response.ok) {
+        const newSessionId = response.sessionId;
+        console.log(`MultiPaneLayout: ✅ Created new session ${newSessionId} for pane ${paneId}`);
+        
+        // Update pane and connect terminal instance
+        if (pane) {
+          pane.sessionId = newSessionId;
+          console.log(`MultiPaneLayout: Updated pane ${paneId} with sessionId ${newSessionId}`);
+        } else {
+          console.warn(`MultiPaneLayout: No pane object to update for ${paneId}`);
+        }
+        
+        terminalInstanceManager.attachSession(paneId, newSessionId, socket);
+        console.log(`MultiPaneLayout: 🔗 Pane ${paneId} connected to new session ${newSessionId}`);
+      } else {
+        console.error(`MultiPaneLayout: ❌ Failed to create session for pane ${paneId}: ${response.error}`);
+      }
+    });
+  }
+
   function onTerminalData(paneId, data) {
+    console.log(`MultiPaneLayout: Terminal data from ${paneId}:`, JSON.stringify(data));
     const instance = terminalInstanceManager.getInstance(paneId);
     if (instance && instance.socket && instance.sessionId) {
+      console.log(`MultiPaneLayout: Sending input to session ${instance.sessionId} for pane ${paneId}`);
       // Send input to the specific session - simplified
       instance.socket.emit('input', data, instance.sessionId);
       // Simple input event tracking
       onInputEvent(data);
+    } else {
+      console.warn(`MultiPaneLayout: Cannot send input for pane ${paneId}:`, {
+        hasInstance: !!instance,
+        hasSocket: !!instance?.socket,
+        sessionId: instance?.sessionId
+      });
     }
   }
   
@@ -358,7 +436,7 @@
     paneManager.applyPreset(presetName);
     updatePanes();
     
-    // Initialize terminals for new panes
+    // Initialize terminals for new panes - sessions will be connected automatically
     setTimeout(() => {
       panes.forEach(pane => {
         if (!terminalInstanceManager.getInstance(pane.id)) {

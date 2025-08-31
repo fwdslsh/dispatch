@@ -3,7 +3,8 @@
  * Manages multiple terminal instances for multi-pane layouts
  */
 export class TerminalInstanceManager {
-  constructor() {
+  constructor(sessionId = 'default') {
+    this.sessionId = sessionId;
     this.instances = new Map();
     this.activeInstanceId = null;
     this.sessionMapping = new Map(); // Map session IDs to terminal instances
@@ -151,8 +152,20 @@ export class TerminalInstanceManager {
       throw new Error(`Terminal instance ${paneId} does not exist`);
     }
     
+    // Ensure terminal object is ready before attaching session
+    if (!instance.terminal) {
+      console.warn(`TerminalManager: Warning - terminal object not set for pane ${paneId} during session attachment`);
+    }
+    
+    console.log(`TerminalManager: Attaching session ${sessionId} to pane ${paneId}`, {
+      hasTerminal: !!instance.terminal,
+      terminalCols: instance.terminal?.cols,
+      terminalRows: instance.terminal?.rows
+    });
+    
     // Clean up any existing session
     if (instance.sessionId) {
+      console.log(`TerminalManager: Detaching existing session ${instance.sessionId} from pane ${paneId}`);
       this.detachSession(paneId);
     }
     
@@ -162,13 +175,24 @@ export class TerminalInstanceManager {
     
     // Set up output handler for this specific session
     const outputHandler = (output) => {
+      console.log(`TerminalManager: Output received for session ${output.sessionId}, target: ${sessionId}, pane: ${paneId}`);
       // Only write to this terminal if it's from the correct session
       if (instance.terminal && output.sessionId === sessionId) {
+        console.log(`TerminalManager: Writing ${output.data.length} chars to terminal ${paneId}`);
         instance.terminal.write(output.data);
+      } else {
+        console.log(`TerminalManager: Ignoring output - reason:`, {
+          hasTerminal: !!instance.terminal,
+          sessionMatch: output.sessionId === sessionId,
+          receivedSessionId: output.sessionId,
+          expectedSessionId: sessionId,
+          paneId: paneId
+        });
       }
     };
     
     // Listen for output from this specific session
+    console.log(`TerminalManager: Setting up output handler for pane ${paneId}, session ${sessionId}`);
     socket.on('output', outputHandler);
     instance.handlers.set('output', outputHandler);
     
@@ -185,8 +209,11 @@ export class TerminalInstanceManager {
     const instance = this.instances.get(paneId);
     if (!instance) return false;
     
+    console.log(`TerminalManager: Detaching session ${instance.sessionId} from pane ${paneId}`);
+    
     // Clean up handlers
     if (instance.handlers.size > 0) {
+      console.log(`TerminalManager: Cleaning up ${instance.handlers.size} handlers for pane ${paneId}`);
       instance.handlers.forEach((handler, event) => {
         if (event === 'input') {
           // Dispose terminal input handler
@@ -195,6 +222,7 @@ export class TerminalInstanceManager {
           }
         } else if (instance.socket) {
           // Remove socket event handlers
+          console.log(`TerminalManager: Removing ${event} handler for pane ${paneId}`);
           instance.socket.off(event, handler);
         }
       });
@@ -302,6 +330,7 @@ export class TerminalInstanceManager {
    */
   getStats() {
     return {
+      dispatchSessionId: this.sessionId,
       totalInstances: this.instances.size,
       activeSessions: this.sessionMapping.size,
       activeInstanceId: this.activeInstanceId,

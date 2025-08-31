@@ -2,7 +2,8 @@
 // No external dependencies - pure vanilla JavaScript implementation
 
 export class PaneManager {
-  constructor() {
+  constructor(sessionId = 'default') {
+    this.sessionId = sessionId;
     this.panes = new Map();
     this.activePane = null;
     this.nextPaneId = 1;
@@ -285,7 +286,7 @@ export class PaneManager {
     return false;
   }
   
-  // Save layout to localStorage
+  // Save layout to localStorage (scoped by session)
   saveLayout() {
     const layoutData = {
       layout: this.layout,
@@ -298,7 +299,8 @@ export class PaneManager {
     };
     
     try {
-      localStorage.setItem('dispatch-pane-layout', JSON.stringify(layoutData));
+      const storageKey = `dispatch-pane-layout-${this.sessionId}`;
+      localStorage.setItem(storageKey, JSON.stringify(layoutData));
       return true;
     } catch (error) {
       console.error('Failed to save pane layout:', error);
@@ -306,10 +308,11 @@ export class PaneManager {
     }
   }
   
-  // Load layout from localStorage
+  // Load layout from localStorage (scoped by session)
   loadLayout() {
     try {
-      const stored = localStorage.getItem('dispatch-pane-layout');
+      const storageKey = `dispatch-pane-layout-${this.sessionId}`;
+      const stored = localStorage.getItem(storageKey);
       if (!stored) return false;
       
       const layoutData = JSON.parse(stored);
@@ -358,5 +361,17 @@ export class PaneManager {
     this.panes.clear();
     this.activePane = null;
     this.layout = { type: 'single', root: null };
+  }
+
+  // Clean up session-specific data from localStorage
+  cleanupSession() {
+    try {
+      const storageKey = `dispatch-pane-layout-${this.sessionId}`;
+      localStorage.removeItem(storageKey);
+      return true;
+    } catch (error) {
+      console.error('Failed to cleanup session layout:', error);
+      return false;
+    }
   }
 }
