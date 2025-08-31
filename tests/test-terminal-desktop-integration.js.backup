@@ -7,12 +7,6 @@
 
 console.log('🧪 Testing Terminal Desktop Integration...\n');
 
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(`Assertion failed: ${message}`);
-  }
-}
-
 try {
   console.log('📋 Checking Terminal component desktop integration');
   
@@ -27,7 +21,7 @@ try {
   const hasLinkDetectorImport = terminalContent.includes('import { LinkDetector }');
   
   console.log(`    MultiPaneLayout import: ${hasMultiPaneImport ? '✅' : '❌'}`);
-  console.log(`    LinkDetector import: ${hasLinkDetectorImport ? '✅' : '❌'}`);
+  console.log(`    LinkDetector import: ${hasMultiPaneImport ? '✅' : '❌'}`);
   
   if (!hasMultiPaneImport) {
     throw new Error('Terminal component missing MultiPaneLayout import');
@@ -63,20 +57,13 @@ try {
     throw new Error('Terminal component missing conditional rendering logic');
   }
   
-  // Test 4: Check MultiPaneLayout props (improved logic)
+  // Test 4: Check MultiPaneLayout props
   console.log('  - Testing MultiPaneLayout props...');
   
-  // Extract the MultiPaneLayout component section specifically
-  const multiPaneStart = terminalContent.indexOf('<MultiPaneLayout');
-  const multiPaneEnd = terminalContent.indexOf('/>', multiPaneStart);
-  const multiPaneSection = multiPaneStart !== -1 && multiPaneEnd !== -1 
-    ? terminalContent.substring(multiPaneStart, multiPaneEnd + 2)
-    : '';
-  
-  const hasSocketProp = multiPaneSection.includes('{socket}');
-  const hasSessionIdProp = multiPaneSection.includes('{sessionId}');
-  const hasIsMobileProp = multiPaneSection.includes('{isMobile}');
-  const hasLinkDetectorProp = multiPaneSection.includes('{linkDetector}');
+  const hasSocketProp = terminalContent.includes('{socket}') && terminalContent.indexOf('{socket}') > terminalContent.indexOf('<MultiPaneLayout');
+  const hasSessionIdProp = terminalContent.includes('{sessionId}') && terminalContent.indexOf('{sessionId}') > terminalContent.indexOf('<MultiPaneLayout');
+  const hasIsMobileProp = terminalContent.includes('{isMobile}') && terminalContent.indexOf('{isMobile}') > terminalContent.indexOf('<MultiPaneLayout');
+  const hasLinkDetectorProp = terminalContent.includes('{linkDetector}') && terminalContent.indexOf('{linkDetector}') > terminalContent.indexOf('<MultiPaneLayout');
   
   console.log(`    socket prop: ${hasSocketProp ? '✅' : '❌'}`);
   console.log(`    sessionId prop: ${hasSessionIdProp ? '✅' : '❌'}`);
@@ -91,28 +78,43 @@ try {
   console.log('  - Testing LinkDetector initialization...');
   
   const hasLinkDetectorInit = terminalContent.includes('linkDetector = new LinkDetector()');
-  const hasLinkDetectorConditional = terminalContent.includes('if (isDesktopMode)') && terminalContent.includes('linkDetector = new LinkDetector()');
+  const hasDesktopCheck = terminalContent.includes('if (isDesktopMode)') && terminalContent.indexOf('linkDetector = new LinkDetector()') > 0;
   
   console.log(`    LinkDetector initialization: ${hasLinkDetectorInit ? '✅' : '❌'}`);
-  console.log(`    Conditional initialization: ${hasLinkDetectorConditional ? '✅' : '❌'}`);
+  console.log(`    Desktop mode check for LinkDetector: ${hasDesktopCheck ? '✅' : '❌'}`);
   
   if (!hasLinkDetectorInit) {
     throw new Error('Terminal component missing LinkDetector initialization');
   }
   
+  console.log('  ✅ Terminal component desktop integration verified');
+  
+  // Test 6: Check MultiPaneLayout structure
+  console.log('  - Testing MultiPaneLayout component structure...');
+  
+  const multiPaneContent = await fs.promises.readFile('src/lib/components/MultiPaneLayout.svelte', 'utf8');
+  
+  const hasPaneManager = multiPaneContent.includes('new PaneManager()');
+  const hasXtermImport = multiPaneContent.includes("from '@battlefieldduck/xterm-svelte'");
+  const hasPaneControls = multiPaneContent.includes('pane-controls');
+  const hasLayoutPresets = multiPaneContent.includes('applyPreset');
+  
+  console.log(`    PaneManager initialization: ${hasPaneManager ? '✅' : '❌'}`);
+  console.log(`    Xterm import: ${hasXtermImport ? '✅' : '❌'}`);
+  console.log(`    Pane controls UI: ${hasPaneControls ? '✅' : '❌'}`);
+  console.log(`    Layout presets: ${hasLayoutPresets ? '✅' : '❌'}`);
+  
+  if (!hasPaneManager || !hasXtermImport || !hasPaneControls || !hasLayoutPresets) {
+    throw new Error('MultiPaneLayout component missing required features');
+  }
+  
+  console.log('  ✅ MultiPaneLayout component structure verified');
+  
   console.log('\n✅ All Terminal desktop integration tests passed!');
   
-  console.log('\n📊 Test Summary:');
-  console.log('   ✅ MultiPaneLayout and LinkDetector imports');
-  console.log('   ✅ Desktop mode detection logic');
-  console.log('   ✅ Conditional rendering logic');
-  console.log('   ✅ MultiPaneLayout component props');
-  console.log('   ✅ LinkDetector initialization');
-  
-  console.log('\n🎉 Terminal desktop integration verified successfully!');
-  
 } catch (error) {
-  console.error('\n❌ Test failed:', error.message);
-  console.error(error.stack);
+  console.error('❌ Test failed:', error.message);
   process.exit(1);
 }
+
+console.log('\n🎉 Terminal desktop integration verified successfully!');

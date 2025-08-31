@@ -284,29 +284,24 @@
             onterminalclick={toggleView}
           />
         {:else}
-          {#if browser && window.innerWidth <= 768}
-            <!-- Mobile: Use readonly terminal -->
-            <TerminalReadonly
-              {socket}
-              {sessionId}
-              onchatclick={toggleView}
-              initialHistory={getHistoryForTerminal()}
-              onInputEvent={addInputEvent}
-              onOutputEvent={addOutputEvent}
-              onBufferUpdate={updateTerminalBuffer}
-            />
-          {:else}
-            <!-- Desktop: Use enhanced terminal with multi-pane -->
-            <Terminal 
-              {socket}
-              {sessionId} 
-              onchatclick={toggleView}
-              initialHistory={getHistoryForTerminal()}
-              onInputEvent={addInputEvent}
-              onOutputEvent={addOutputEvent}
-              onBufferUpdate={updateTerminalBuffer}
-            />
-          {/if}
+          <Terminal 
+            {socket}
+            {sessionId} 
+            onchatclick={toggleView}
+            initialHistory={getHistoryForTerminal()}
+            onInputEvent={addInputEvent}
+            onOutputEvent={addOutputEvent}
+            onBufferUpdate={updateTerminalBuffer}
+          />
+          <!-- <TerminalReadonly
+            {socket}
+            {sessionId}
+            onchatclick={toggleView}
+            initialHistory={getHistoryForTerminal()}
+            onInputEvent={addInputEvent}
+            onOutputEvent={addOutputEvent}
+            onBufferUpdate={updateTerminalBuffer}
+          /> -->
         {/if}
       {:else}
         <div style="text-align: center; padding: 2rem;">

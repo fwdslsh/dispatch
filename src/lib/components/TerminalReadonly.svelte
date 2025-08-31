@@ -401,7 +401,10 @@
       displayContent(rawTerminalBuffer);
     });
 
-    socket.on('output', (data) => {
+    socket.on('output', (output) => {
+      // Handle both old format (direct data) and new format (session-specific)
+      const data = typeof output === 'string' ? output : output.data;
+      
       console.debug('TerminalReadonly: received output from socket:', data.length, 'chars, first 50:', data.substring(0, 50));
       
       // Save to localStorage history for persistence
