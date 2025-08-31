@@ -1,6 +1,6 @@
 # Product Roadmap
 
-> Last Updated: 2025-08-30
+> Last Updated: 2025-08-31
 > Version: 1.0.0
 > Status: Planning
 
@@ -55,10 +55,10 @@
 ### Must-Have Features
 
 **Desktop UX Improvements:**
-- Enhanced session management interface with search and filtering
-- Improved terminal sizing and font customization
-- Keyboard shortcuts and hotkeys for common actions
-- Better visual feedback for connection states and errors
+- [x] Enhanced session management interface with search and filtering
+- [x] Improved terminal sizing and font customization
+- [x] Keyboard shortcuts and hotkeys for common actions
+- [x] Better visual feedback for connection states and errors
 
 **Mobile UX Enhancements:**
 - [x] Optimized mobile keyboard handling and input methods

@@ -45,10 +45,18 @@ export class TerminalInstanceManager {
     const instance = this.instances.get(paneId);
     if (!instance) return false;
     
-    // Clean up socket handlers
-    if (instance.socket) {
+    // Clean up handlers
+    if (instance.handlers.size > 0) {
       instance.handlers.forEach((handler, event) => {
-        instance.socket.off(event, handler);
+        if (event === 'input') {
+          // Dispose terminal input handler
+          if (handler && typeof handler.dispose === 'function') {
+            handler.dispose();
+          }
+        } else if (instance.socket) {
+          // Remove socket event handlers
+          instance.socket.off(event, handler);
+        }
       });
     }
     
@@ -153,9 +161,10 @@ export class TerminalInstanceManager {
     this.sessionMapping.set(sessionId, paneId);
     
     // Set up output handler for this specific session
-    const outputHandler = (data) => {
-      if (instance.terminal) {
-        instance.terminal.write(data);
+    const outputHandler = (output) => {
+      // Only write to this terminal if it's from the correct session
+      if (instance.terminal && output.sessionId === sessionId) {
+        instance.terminal.write(output.data);
       }
     };
     
@@ -163,14 +172,8 @@ export class TerminalInstanceManager {
     socket.on('output', outputHandler);
     instance.handlers.set('output', outputHandler);
     
-    // Set up input handler
-    if (instance.terminal) {
-      instance.terminal.onData((data) => {
-        if (instance.socket && instance.sessionId) {
-          instance.socket.emit('input', data);
-        }
-      });
-    }
+    // Input handler is now managed by MultiPaneLayout.onTerminalData
+    // to avoid duplicate input handling
     
     return true;
   }
@@ -183,9 +186,17 @@ export class TerminalInstanceManager {
     if (!instance) return false;
     
     // Clean up handlers
-    if (instance.socket && instance.handlers.size > 0) {
+    if (instance.handlers.size > 0) {
       instance.handlers.forEach((handler, event) => {
-        instance.socket.off(event, handler);
+        if (event === 'input') {
+          // Dispose terminal input handler
+          if (handler && typeof handler.dispose === 'function') {
+            handler.dispose();
+          }
+        } else if (instance.socket) {
+          // Remove socket event handlers
+          instance.socket.off(event, handler);
+        }
       });
       instance.handlers.clear();
     }
@@ -193,11 +204,6 @@ export class TerminalInstanceManager {
     // Remove from session mapping
     if (instance.sessionId) {
       this.sessionMapping.delete(instance.sessionId);
-    }
-    
-    // Clear terminal input handler
-    if (instance.terminal) {
-      instance.terminal.onData(() => {}); // Clear the handler
     }
     
     instance.sessionId = null;
@@ -230,7 +236,7 @@ export class TerminalInstanceManager {
     
     // Emit resize event to server if connected
     if (instance.socket && instance.sessionId) {
-      instance.socket.emit('resize', { cols, rows });
+      instance.socket.emit('resize', { cols, rows, sessionId: instance.sessionId });
     }
     
     return true;

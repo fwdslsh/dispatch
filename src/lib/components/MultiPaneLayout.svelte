@@ -6,7 +6,6 @@
   import ResizeHandle from './ResizeHandle.svelte';
   
   export let socket = null;
-  export let isMobile = false;
   export let sessionId = null;
   export let linkDetector = null;
   export let terminalOptions = {};
@@ -31,8 +30,7 @@
   let layoutType = 'single';
   
   onMount(() => {
-    console.debug('MultiPaneLayout onMount - isMobile:', isMobile, 'window width:', typeof window !== 'undefined' ? window.innerWidth : 'SSR');
-    if (isMobile) return; // Don't initialize on mobile
+    console.debug('MultiPaneLayout onMount - desktop mode');
     
     paneManager = new PaneManager();
     terminalInstanceManager = new TerminalInstanceManager();
@@ -303,8 +301,10 @@
   function onTerminalData(paneId, data) {
     const instance = terminalInstanceManager.getInstance(paneId);
     if (instance && instance.socket && instance.sessionId) {
-      // Send input to the specific session
-      instance.socket.emit('input', data);
+      // Send input to the specific session - simplified
+      instance.socket.emit('input', data, instance.sessionId);
+      // Simple input event tracking
+      onInputEvent(data);
     }
   }
   
@@ -370,7 +370,7 @@
   
 </script>
 
-{#if !isMobile}
+<!-- Desktop-only multi-pane layout -->
 <div class="multi-pane-container" bind:this={containerElement}>
   <!-- Layout controls -->
   <div class="pane-controls">
@@ -476,7 +476,6 @@
     {/if}
   </div>
 </div>
-{/if}
 
 <style>
   .multi-pane-container {
@@ -577,10 +576,5 @@
     height: 100% !important;
   }
   
-  /* Responsive - hide on mobile */
-  @media (max-width: 768px) {
-    .multi-pane-container {
-      display: none;
-    }
-  }
+  /* Desktop-only layout */
 </style>

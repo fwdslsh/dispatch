@@ -12,9 +12,9 @@ const TUNNEL_FILE = process.env.TUNNEL_FILE || `${PTY_ROOT}/tunnel-url.txt`;
 // Check if auth key is required
 const AUTH_REQUIRED = ENABLE_TUNNEL || TERMINAL_KEY !== 'change-me';
 
-/** @type {Map<string, string>} */
+/** @type {Map<string, Set<string>>} */
 const socketSessions = new Map();
-/** @type {Map<string, Function>} */
+/** @type {Map<string, Map<string, Function>>} */
 const socketUnsubscribers = new Map();
 
 export function handleConnection(socket) {
@@ -54,7 +54,12 @@ export function handleConnection(socket) {
         parentSessionId: opts.parentSessionId // Pass parent session ID for shared directory
       };
       const { sessionId, pty, name } = terminalManager.createSession(createOpts);
-      socketSessions.set(socket.id, sessionId);
+      
+      // Add session to this socket's session set
+      if (!socketSessions.has(socket.id)) {
+        socketSessions.set(socket.id, new Set());
+      }
+      socketSessions.get(socket.id).add(sessionId);
 
       // Store session metadata (minimal if not provided)
       try {
@@ -69,21 +74,29 @@ export function handleConnection(socket) {
         console.warn('Failed to persist session metadata:', err.message);
       }
 
-      // Subscribe to session data
-      const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
-        socket.emit('output', data);
-      });
-      socketUnsubscribers.set(socket.id, unsubscribe);
+      // Note: Subscription to session data is handled in the 'attach' handler
+      // This allows sessions to be created without immediately consuming output
 
       // Handle PTY exit
       pty.onExit(({ exitCode, signal }) => {
         socket.emit('ended', { exitCode, signal });
-        const unsubscribe = socketUnsubscribers.get(socket.id);
-        if (unsubscribe) {
-          unsubscribe();
-          socketUnsubscribers.delete(socket.id);
+        
+        // Clean up this specific session
+        const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+        if (sessionUnsubscribers && sessionUnsubscribers.has(sessionId)) {
+          const unsubscribe = sessionUnsubscribers.get(sessionId);
+          if (unsubscribe) {
+            unsubscribe();
+            sessionUnsubscribers.delete(sessionId);
+          }
         }
-        socketSessions.delete(socket.id);
+        
+        // Remove session from socket's session set
+        const sessions = socketSessions.get(socket.id);
+        if (sessions) {
+          sessions.delete(sessionId);
+        }
+        
         // Note: We don't remove session metadata when PTY exits
         // Sessions persist and can be reconnected to with new PTY processes
       });
@@ -144,12 +157,16 @@ export function handleConnection(socket) {
       }
     }
 
-    socketSessions.set(socket.id, sessionId);
+    // Add session to this socket's session set
+    if (!socketSessions.has(socket.id)) {
+      socketSessions.set(socket.id, new Set());
+    }
+    socketSessions.get(socket.id).add(sessionId);
 
     // Send buffered data first
     const bufferedData = terminalManager.getBufferedData(sessionId);
     if (bufferedData) {
-      socket.emit('output', bufferedData);
+      socket.emit('output', { sessionId, data: bufferedData });
     }
 
     // Resize if dimensions provided
@@ -159,19 +176,35 @@ export function handleConnection(socket) {
 
     // Subscribe to session data
     const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
-      socket.emit('output', data);
+      socket.emit('output', { sessionId, data });
     });
-    socketUnsubscribers.set(socket.id, unsubscribe);
+    
+    // Store unsubscriber for this specific session
+    if (!socketUnsubscribers.has(socket.id)) {
+      socketUnsubscribers.set(socket.id, new Map());
+    }
+    socketUnsubscribers.get(socket.id).set(sessionId, unsubscribe);
 
     // Handle PTY exit
     pty.onExit(({ exitCode, signal }) => {
         socket.emit('ended', { exitCode, signal });
-        const unsubscribe = socketUnsubscribers.get(socket.id);
-        if (unsubscribe) {
-          unsubscribe();
-          socketUnsubscribers.delete(socket.id);
+        
+        // Clean up this specific session
+        const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+        if (sessionUnsubscribers && sessionUnsubscribers.has(sessionId)) {
+          const unsubscribe = sessionUnsubscribers.get(sessionId);
+          if (unsubscribe) {
+            unsubscribe();
+            sessionUnsubscribers.delete(sessionId);
+          }
         }
-        socketSessions.delete(socket.id);
+        
+        // Remove session from socket's session set
+        const sessions = socketSessions.get(socket.id);
+        if (sessions) {
+          sessions.delete(sessionId);
+        }
+        
         // Note: We don't remove session metadata when PTY exits
         // Sessions persist and can be reconnected to with new PTY processes
     });
@@ -180,12 +213,20 @@ export function handleConnection(socket) {
   });
 
   // Handle input from client
-  socket.on('input', (data) => {
+  socket.on('input', (data, sessionId) => {
     if (!authenticated) return;
     
-    const sessionId = socketSessions.get(socket.id);
-    if (sessionId) {
-      terminalManager.writeToSession(sessionId, data);
+    // Use provided sessionId, or fall back to first session in socket's session set
+    let targetSessionId = sessionId;
+    if (!targetSessionId) {
+      const sessions = socketSessions.get(socket.id);
+      if (sessions && sessions.size > 0) {
+        targetSessionId = sessions.values().next().value;
+      }
+    }
+    
+    if (targetSessionId) {
+      terminalManager.writeToSession(targetSessionId, data);
     }
   });
 
@@ -193,9 +234,17 @@ export function handleConnection(socket) {
   socket.on('resize', (dims) => {
     if (!authenticated) return;
     
-    const sessionId = socketSessions.get(socket.id);
-    if (sessionId && dims.cols && dims.rows) {
-      terminalManager.resizeSession(sessionId, dims.cols,100);
+    // Resize specific session or all sessions for this socket
+    const targetSessionId = dims.sessionId;
+    if (targetSessionId && dims.cols && dims.rows) {
+      terminalManager.resizeSession(targetSessionId, dims.cols, dims.rows);
+    } else {
+      // Fall back to resizing first session if no specific session provided
+      const sessions = socketSessions.get(socket.id);
+      if (sessions && sessions.size > 0 && dims.cols && dims.rows) {
+        const firstSessionId = sessions.values().next().value;
+        terminalManager.resizeSession(firstSessionId, dims.cols, dims.rows);
+      }
     }
   });
 
@@ -203,10 +252,34 @@ export function handleConnection(socket) {
   socket.on('end', (sessionIdArg) => {
     if (!authenticated) return;
 
-    const sessionId = sessionIdArg || socketSessions.get(socket.id);
+    // Use provided sessionId or default to first session in socket's set
+    let sessionId = sessionIdArg;
+    if (!sessionId) {
+      const sessions = socketSessions.get(socket.id);
+      if (sessions && sessions.size > 0) {
+        sessionId = sessions.values().next().value;
+      }
+    }
+    
     if (sessionId) {
       terminalManager.endSession(sessionId);
-      socketSessions.delete(socket.id);
+      
+      // Remove session from socket's session set
+      const sessions = socketSessions.get(socket.id);
+      if (sessions) {
+        sessions.delete(sessionId);
+      }
+      
+      // Clean up unsubscriber for this session
+      const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+      if (sessionUnsubscribers && sessionUnsubscribers.has(sessionId)) {
+        const unsubscribe = sessionUnsubscribers.get(sessionId);
+        if (unsubscribe) {
+          unsubscribe();
+          sessionUnsubscribers.delete(sessionId);
+        }
+      }
+      
       try {
         endSession(sessionId);
       } catch (err) {
@@ -277,9 +350,12 @@ export function handleConnection(socket) {
 
   // Detach from session (but don't end it)
   socket.on('detach', () => {
-    const unsubscribe = socketUnsubscribers.get(socket.id);
-    if (unsubscribe) {
-      unsubscribe();
+    // Clean up all sessions for this socket
+    const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+    if (sessionUnsubscribers) {
+      sessionUnsubscribers.forEach((unsubscribe) => {
+        if (unsubscribe) unsubscribe();
+      });
       socketUnsubscribers.delete(socket.id);
     }
     socketSessions.delete(socket.id);
@@ -288,9 +364,13 @@ export function handleConnection(socket) {
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log('Socket disconnected:', socket.id);
-    const unsubscribe = socketUnsubscribers.get(socket.id);
-    if (unsubscribe) {
-      unsubscribe();
+    
+    // Clean up all sessions for this socket
+    const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+    if (sessionUnsubscribers) {
+      sessionUnsubscribers.forEach((unsubscribe) => {
+        if (unsubscribe) unsubscribe();
+      });
       socketUnsubscribers.delete(socket.id);
     }
     socketSessions.delete(socket.id);

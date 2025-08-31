@@ -2,9 +2,7 @@
   import { onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
   import { Xterm, XtermAddon } from '@battlefieldduck/xterm-svelte';
-  import MobileControls from './MobileControls.svelte';
-  import KeyboardToolbar from './KeyboardToolbar.svelte';
-  import CommandPalette from './CommandPalette.svelte';
+  // Mobile components removed for desktop-only terminal
   import MultiPaneLayout from './MultiPaneLayout.svelte';
   import { TerminalOutputFilter } from '../services/output-deduplicator.js';
   import { LinkDetector } from '../services/link-detector.js';
@@ -17,25 +15,18 @@
   export let onOutputEvent = () => {};
   export let onBufferUpdate = () => {};
 
-  // State for unified mobile input
-  let mobileInput = '';
-  let mobileControlsRef;
+  // Mobile input state removed
 
   let terminal;
   let authenticated = false;
   let authKey = '';
-  let isMobile = false;
-  let initialViewportHeight = 0;
-  let keyboardToolbarVisible = false;
-  let commandPaletteVisible = false;
-  let commandHistory = [];
-  let favoriteCommands = [];
+  // Desktop-only mode
+  let isDesktopMode = true;
   
   // Output deduplication
   let outputFilter = null;
   
-  // Desktop multi-pane state
-  let isDesktopMode = false;
+  // Always desktop mode
   let linkDetector = null;
 
   const LS_KEY = 'dispatch-session-id';
@@ -77,22 +68,10 @@
   async function onLoad() {
     console.debug('Terminal component has loaded');
 
-    // Check if we're on mobile and set desktop mode
-    isMobile = window.innerWidth <= 768;
-    isDesktopMode = !isMobile;
-    initialViewportHeight = window.innerHeight;
-    
-    // Update mobile state on resize
-    const handleResize = () => {
-      isMobile = window.innerWidth <= 768;
-      isDesktopMode = !isMobile;
-    };
-    window.addEventListener('resize', handleResize);
+    // Always desktop mode - mobile handling removed
+    isDesktopMode = true;
 
-    // Set up keyboard dismiss detection
-    if (isMobile) {
-      setupKeyboardDetection();
-    }
+    // Keyboard detection removed for desktop-only mode
 
     // FitAddon Usage
     const fitAddon = new (await XtermAddon.FitAddon()).FitAddon();
@@ -123,7 +102,6 @@
     // Store cleanup function
     terminal._cleanup = () => {
       window.removeEventListener('resize', resize);
-      window.removeEventListener('resize', handleResize);
       ro.disconnect();
     };
 
@@ -139,13 +117,10 @@
       }
     });
     
-    // Initialize LinkDetector for desktop mode
-    if (isDesktopMode) {
-      linkDetector = new LinkDetector();
-      // Register with terminal if it's single pane mode
-      if (!isMobile && terminal) {
-        linkDetector.registerWithTerminal(terminal);
-      }
+    // Initialize LinkDetector
+    linkDetector = new LinkDetector();
+    if (terminal) {
+      linkDetector.registerWithTerminal(terminal);
     }
     
     // Set up socket listeners if socket is provided
@@ -153,8 +128,7 @@
       setupSocketListeners();
     }
     
-    // Load command history
-    loadCommandHistory();
+    // Command history loading removed
     
     // Load session history from localStorage first
     const storedHistory = loadSessionHistory();
@@ -179,255 +153,26 @@
 
   function onData(data) {
     console.debug('onData()', data);
-    // Allow direct terminal input on desktop, mobile uses unified controls
-    if (!isMobile && socket) {
+    // Desktop direct terminal input - simplified
+    if (socket) {
       socket.emit('input', data);
-      // Accumulate input characters until command is complete
-      handleInputAccumulation(data);
+      onInputEvent(data); // Simple input tracking
     }
   }
 
   function onKey(data) {
     console.debug('onKey()', data);
-    // Handle any special key combinations here if needed
+    // Key handling simplified for desktop
   }
 
 
-  function sendSpecialKey(key) {
-    if (socket) {
-      socket.emit('input', key);
-      // Accumulate input characters until command is complete
-      handleInputAccumulation(key);
-    }
-  }
-
-  function handleCommandPalette() {
-    commandPaletteVisible = true;
-  }
-
-  function handleCommandSelect(command) {
-    if (socket && command.command) {
-      // Add to history
-      addCommandToHistory(command);
-      
-      // Send to terminal
-      socket.emit('input', command.command + '\r');
-      handleInputAccumulation(command.command + '\r');
-    }
-    commandPaletteVisible = false;
-  }
-
-  function addCommandToHistory(command) {
-    // Remove existing entry if present
-    const existingIndex = commandHistory.findIndex(h => h.command === command.command);
-    if (existingIndex !== -1) {
-      commandHistory.splice(existingIndex, 1);
-    }
-    
-    // Add to front with timestamp
-    commandHistory.unshift({
-      ...command,
-      timestamp: Date.now(),
-      useCount: (command.useCount || 0) + 1
-    });
-    
-    // Limit history size
-    if (commandHistory.length > 50) {
-      commandHistory = commandHistory.slice(0, 50);
-    }
-    
-    // Save to localStorage
-    saveCommandHistory();
-  }
-
-  function loadCommandHistory() {
-    if (!sessionId || typeof localStorage === 'undefined') return;
-    
-    try {
-      const stored = localStorage.getItem(`command-history-${sessionId}`);
-      if (stored) {
-        commandHistory = JSON.parse(stored);
-      }
-    } catch (error) {
-      console.warn('Failed to load command history:', error);
-    }
-  }
-
-  function saveCommandHistory() {
-    if (!sessionId || typeof localStorage === 'undefined') return;
-    
-    try {
-      localStorage.setItem(`command-history-${sessionId}`, JSON.stringify(commandHistory));
-    } catch (error) {
-      console.warn('Failed to save command history:', error);
-    }
-  }
-
-  function sendMobileInput() {
-    console.debug('Terminal: sendMobileInput called, input:', mobileInput, 'socket:', !!socket, 'socket.connected:', socket?.connected);
-    if (!socket) {
-      console.debug('Terminal: sendMobileInput blocked - no socket', { 
-        hasInput: !!mobileInput.trim(), 
-        hasSocket: !!socket,
-        socketConnected: socket?.connected 
-      });
-      return;
-    }
-    
-    // Only check for input content if we have some, otherwise allow empty sends (for Enter key)
-    if (mobileInput.trim()) {
-      const inputToSend = mobileInput;
-      console.debug('Terminal: sending to PTY:', inputToSend);
-      
-      // Add to shared input history
-      onInputEvent(inputToSend);
-      
-      // Send to PTY with carriage return
-      socket.emit('input', inputToSend + '\r');
-      handleInputAccumulation(inputToSend + '\r');
-      
-      // Clear input
-      mobileInput = '';
-      console.debug('Terminal: input cleared, new value:', mobileInput);
-    } else {
-      // No input content, just send enter key
-      console.debug('Terminal: sending empty enter key');
-      socket.emit('input', '\r');
-      handleInputAccumulation('\r');
-    }
-  }
-
-  function handleMobileKeydown(event) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      sendMobileInput();
-    }
-  }
-  
-  function handleInputAccumulation(data) {
-    if (data === '\r' || data === '\n') {
-      // Command completed - save the accumulated input
-      if (currentInputBuffer.trim()) {
-        onInputEvent(currentInputBuffer);
-        addToSessionHistory(currentInputBuffer + '\r', 'input');
-      }
-      currentInputBuffer = '';
-    } else if (data === '\b') {
-      // Backspace - remove last character from buffer
-      currentInputBuffer = currentInputBuffer.slice(0, -1);
-    } else if (data === '\u001b[A' || data === '\u001b[B' || data === '\u001b[C' || data === '\u001b[D') {
-      // Arrow keys - don't add to input buffer, but save to history for special keys
-      addToSessionHistory(data, 'input');
-      return;
-    } else if (data === '\t' || data === '\u0003') {
-      // Tab or Ctrl+C - special commands that should be saved immediately
-      if (data === '\u0003') {
-        onInputEvent('Ctrl+C');
-        addToSessionHistory(data, 'input');
-      } else if (data === '\t') {
-        onInputEvent('Tab');
-        addToSessionHistory(data, 'input');
-      }
-    } else if (data.length === 1 && data >= ' ') {
-      // Regular printable character - add to buffer
-      currentInputBuffer += data;
-    }
-  }
+  // Mobile input functions removed - desktop only
 
 
 
-  function setupKeyboardDetection() {
-    let keyboardVisible = false;
-    
-    // Try to use Visual Viewport API first (most reliable)
-    if (window.visualViewport) {
-      const handleViewportChange = () => {
-        const heightDiff = window.innerHeight - window.visualViewport.height;
-        const wasKeyboardVisible = keyboardVisible;
-        keyboardVisible = heightDiff > 150; // Threshold for keyboard detection
-        
-        if (keyboardVisible && !wasKeyboardVisible) {
-          // Keyboard opened
-          document.body.classList.add('keyboard-open');
-        } else if (wasKeyboardVisible && !keyboardVisible) {
-          // Keyboard was dismissed
-          handleKeyboardDismiss();
-        }
-      };
-      
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-      
-      // Cleanup function
-      if (terminal) {
-        terminal._keyboardCleanup = () => {
-          window.visualViewport.removeEventListener('resize', handleViewportChange);
-        };
-      }
-    } else {
-      // Fallback to window resize detection
-      const handleWindowResize = () => {
-        const currentHeight = window.innerHeight;
-        const heightDiff = initialViewportHeight - currentHeight;
-        const wasKeyboardVisible = keyboardVisible;
-        keyboardVisible = heightDiff > 150;
-        
-        if (keyboardVisible && !wasKeyboardVisible) {
-          // Keyboard opened
-          document.body.classList.add('keyboard-open');
-        } else if (wasKeyboardVisible && !keyboardVisible) {
-          // Keyboard was dismissed
-          handleKeyboardDismiss();
-        }
-      };
-      
-      window.addEventListener('resize', handleWindowResize);
-      
-      // Cleanup function
-      if (terminal) {
-        terminal._keyboardCleanup = () => {
-          window.removeEventListener('resize', handleWindowResize);
-        };
-      }
-    }
-  }
+  // Mobile keyboard and click handling removed
 
-  function handleKeyboardDismiss() {
-    console.debug('Keyboard dismissed');
-    // Remove keyboard-open class and restore page scrolling
-    document.body.classList.remove('keyboard-open');
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width = '';
-    document.body.style.height = '';
-    
-    // Blur the textarea to ensure it's not focused
-    if (overlayTextarea) {
-      overlayTextarea.blur();
-    }
-    
-    // Force layout reflow and terminal resize
-    requestAnimationFrame(() => {
-      // Force a reflow to trigger layout recalculation
-      document.body.offsetHeight;
-      
-      // Small delay to ensure layout settles completely
-      setTimeout(() => {
-        // Force a resize to ensure terminal fits properly
-        if (terminal && terminal._fitAddon) {
-          terminal._fitAddon.fit();
-        }
-      }, 150);
-    });
-  }
-
-  function handleTerminalClick() {
-    // Focus the input textbox when terminal is clicked
-    if (mobileControlsRef && mobileControlsRef.focusInput) {
-      mobileControlsRef.focusInput();
-    }
-  }
-
-  let currentInputBuffer = ''; // Buffer to accumulate input until Enter is pressed
+  // Input buffer removed - simplified for desktop
   let currentOutputBuffer = ''; // Buffer to accumulate output until complete lines
   let sessionTerminalHistory = []; // Deduplicated terminal history for this session
 
@@ -556,19 +301,14 @@
       terminal?.writeln(`\r\n[connection error] ${err.message}\r\n`);
     });
 
-    socket.on('output', async (data) => {
+    socket.on('output', async (output) => {
+      // Handle both old format (direct data) and new format (session-specific)
+      const data = typeof output === 'string' ? output : output.data;
+      
       console.debug('Terminal: received output from socket:', data.length, 'chars, first 50:', data.substring(0, 50));
       
-      // Process output through intelligent deduplication filter
-      if (outputFilter && isMobile) {
-        // On mobile, use the output filter for better performance
-        await outputFilter.processTerminalOutput(data, (filteredData) => {
-          terminal?.write(filteredData);
-        });
-      } else {
-        // On desktop, write directly (preserve existing behavior)
-        terminal?.write(data);
-      }
+      // Direct output to terminal (desktop only)
+      terminal?.write(data);
       
       console.debug('Terminal: wrote to xterm, terminal exists:', !!terminal);
       
@@ -632,9 +372,7 @@
     if (terminal?._pollCleanup) {
       terminal._pollCleanup();
     }
-    if (terminal?._keyboardCleanup) {
-      terminal._keyboardCleanup();
-    }
+    // Keyboard cleanup removed
     
     // Clean up output filter
     if (outputFilter) {
@@ -650,178 +388,25 @@
 
 
 <div class="terminal-container">
-  
-  {#if isDesktopMode}
-    <!-- Desktop multi-pane layout -->
-    <MultiPaneLayout 
-      {socket}
-      {sessionId}
-      {isMobile}
-      {linkDetector}
-      terminalOptions={options}
-      onInputEvent={handleInputAccumulation}
-      onOutputEvent={onOutputEvent}
-    />
-  {:else}
-    <!-- Mobile single-pane layout -->
-    <div class="terminal" on:click={handleTerminalClick}>
-      <Xterm bind:terminal {options} {onLoad} {onData} {onKey} />
-    </div>
-  {/if}
-  
-  {#if !isDesktopMode}
-    <MobileControls 
-      bind:this={mobileControlsRef}
-      bind:currentInput={mobileInput}
-      onSendMessage={sendMobileInput}
-      onKeydown={handleMobileKeydown}
-      onSpecialKey={sendSpecialKey}
-      onToggleView={onchatclick}
-      isTerminalView={true}
-      {isMobile}
-    />
-  {/if}
-  
-  {#if !isDesktopMode}
-    <!-- Keyboard Toolbar for virtual keyboard optimization -->
-    <KeyboardToolbar 
-      bind:visible={keyboardToolbarVisible}
-      onSpecialKey={sendSpecialKey}
-      onCommandPalette={handleCommandPalette}
-      {isMobile}
-    />
-
-    <!-- Command Palette -->
-    <CommandPalette 
-      bind:visible={commandPaletteVisible}
-      onCommandSelect={handleCommandSelect}
-      onClose={() => commandPaletteVisible = false}
-      triggerElement={mobileControlsRef}
-      {commandHistory}
-      {favoriteCommands}
-    />
-  {/if}
+  <!-- Desktop multi-pane layout only -->
+  <MultiPaneLayout 
+    {socket}
+    {sessionId}
+    {linkDetector}
+    terminalOptions={options}
+    onInputEvent={onInputEvent}
+    onOutputEvent={onOutputEvent}
+  />
 </div>
 
 <style>
 
+  /* Desktop-only terminal container */
   .terminal-container {
     display: flex;
     flex-direction: column;
     position: relative;
-    height: 570px; /* Consistent height with chat view */
-  }
-  
-  /* Desktop layout */
-  @media (min-width: 769px) {
-    .terminal-container {
-      height: 80svh;
-      transition: height 0.3s ease;
-    }
-  }
-  
-  /* Handle mobile viewport and keyboard */
-  @media (max-width: 768px) {
-    .terminal-container {
-      height: calc(100dvh - 100px); /* Simplified calculation for grid layout */
-      position: relative;
-      width: 100vw;
-      max-width: 100vw;
-      box-sizing: border-box;
-    }
-    
-    .terminal {
-      /* Enable proper touch scrolling on mobile */
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-y;
-      width: 100%;
-      max-width: 100%;
-    }
-    
-    .terminal :global(.xterm-viewport) {
-      /* Fix mobile scrolling - ensure native scroll behavior */
-      -webkit-overflow-scrolling: touch !important;
-      touch-action: pan-y !important;
-      overflow-y: auto !important;
-      overflow-x: hidden !important;
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-
-    .terminal :global(.xterm) {
-      width: 100% !important;
-      max-width: 100% !important;
-      pointer-events: allow !important;
-      -webkit-overflow-scrolling: touch;
-     :global(div) {
-        pointer-events: none !important;
-      }
-    }
-    
-    
-    /* When mobile keyboard is open, adjust layout but preserve scrolling */
-    :global(body.keyboard-open) .terminal-container {
-      height: calc(100vh - 200px); /* Use viewport height when keyboard is open */
-      max-height: calc(100vh - 200px);
-      overflow: hidden;
-    }
-  }
-  
-  /* Desktop keyboard handling */
-  @media (min-width: 769px) {
-    :global(body.keyboard-open) .terminal-container {
-      height: calc(100vh - 200px); /* Same calculation for consistency */
-      max-height: calc(100vh - 200px);
-    }
-
-    /* Ensure terminal stays visible above keyboard but remains scrollable */
-    :global(body.keyboard-open) .terminal {
-      height: 100%;
-      min-height: 200px;
-      overflow-y: auto;
-    }
-  }
-
-  .terminal {
-    flex: 1;
-    background: var(--bg-darker);
-    height: 100%;
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
-    transition: height 0.3s ease;
-  }
-
-  .terminal:active {
-    background: rgba(10, 10, 10, 0.7);
-  }
-
-  .terminal :global(.xterm) {
-    height: 100% !important;
-    width: 100% !important;
-  }
-
-  .terminal :global(.xterm .xterm-viewport) {
-    height: 100% !important;
-    /* Ensure scrolling works properly */
-    overflow-y: auto !important;
-    scrollbar-width: thin;
-  }
-  
-  .terminal :global(.xterm .xterm-screen) {
-    /* Allow the terminal content to scroll */
-    overflow-y: auto !important;
-  }
-
-  .controls {
-    padding: var(--space-sm) var(--space-md);
-    background: rgba(26, 26, 26, 0.6);
-    border-bottom: 1px solid var(--border);
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-  }
-
-  .public-url {
-    font-family: var(--font-mono);
+    height: 80svh;
+    width: 100%;
   }
 </style>
