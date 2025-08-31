@@ -1,4 +1,4 @@
-import { ClaudeCodeService } from '$lib/services/claude-code-service.js';
+import { ClaudeCodeService } from '../services/claude-code-service.js';
 
 const claudeService = new ClaudeCodeService();
 

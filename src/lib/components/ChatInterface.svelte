@@ -8,7 +8,7 @@
   import 'prismjs/components/prism-python.js';
   import 'prismjs/components/prism-bash.js';
   import 'prismjs/components/prism-json.js';
-  import { getClaudeAuthContext } from '$lib/contexts/claude-auth-context.svelte.js';
+  import { getClaudeAuthContext } from '../contexts/claude-auth-context.svelte.js';
 
   // Props
   export let sessionId = 'default';
