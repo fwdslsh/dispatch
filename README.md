@@ -15,7 +15,24 @@ Dispatch provides secure, containerized terminal sessions through your web brows
 
 ## 🚀 Quick Start
 
-### Run with Docker (Recommended)
+### Option 1: Using the CLI (Recommended)
+
+Install the Dispatch CLI for the easiest setup:
+
+```bash
+# Install globally
+npm install -g fwdslsh/dispatch
+
+# Generate configuration
+dispatch config
+
+# Start with browser opening automatically
+dispatch start --open
+```
+
+See [CLI Documentation](CLI.md) for full CLI usage.
+
+### Option 2: Run with Docker (Direct)
 
 ```bash
 # Start Dispatch with your password
