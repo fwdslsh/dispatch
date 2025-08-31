@@ -12,6 +12,7 @@
   export let onOutputEvent = () => {};
   
   let containerElement;
+  let panesWrapper;
   let paneManager;
   let paneElements = new Map();
   let terminals = new Map();
@@ -27,6 +28,7 @@
   let layoutType = 'single';
   
   onMount(() => {
+    console.debug('MultiPaneLayout onMount - isMobile:', isMobile, 'window width:', typeof window !== 'undefined' ? window.innerWidth : 'SSR');
     if (isMobile) return; // Don't initialize on mobile
     
     paneManager = new PaneManager();
@@ -41,10 +43,7 @@
     setupKeyboardShortcuts();
     setupResizeObserver();
     
-    // Initial dimension calculation
-    if (containerElement) {
-      recalculateDimensions();
-    }
+    // Initial dimension calculation will be done when panesWrapper is available
   });
   
   onDestroy(() => {
@@ -66,9 +65,9 @@
   }
   
   function recalculateDimensions() {
-    if (!containerElement || !paneManager) return;
+    if (!panesWrapper || !paneManager) return;
     
-    const rect = containerElement.getBoundingClientRect();
+    const rect = panesWrapper.getBoundingClientRect();
     dimensions = paneManager.calculatePaneDimensions(rect.width, rect.height);
     
     // Fit terminals after layout change
@@ -140,9 +139,19 @@
       recalculateDimensions();
     });
     
-    if (containerElement) {
-      resizeObserver.observe(containerElement);
-    }
+    // We'll start observing once panesWrapper is available
+    const startObserving = () => {
+      if (panesWrapper) {
+        resizeObserver.observe(panesWrapper);
+        // Initial calculation
+        recalculateDimensions();
+      } else {
+        // Try again in next frame
+        requestAnimationFrame(startObserving);
+      }
+    };
+    
+    startObserving();
     
     return () => {
       resizeObserver.disconnect();
@@ -180,6 +189,14 @@
   function handlePaneClick(paneId) {
     paneManager.focusPane(paneId);
     updatePanes();
+    
+    // Explicitly focus the terminal
+    const terminal = terminals.get(paneId);
+    if (terminal) {
+      setTimeout(() => {
+        terminal.focus();
+      }, 50);
+    }
   }
   
   async function initializeTerminal(paneId) {
@@ -207,46 +224,71 @@
     
     // Register link detection if available
     if (linkDetector) {
-      linkDetector.registerWithTerminal(terminal);
+      try {
+        linkDetector.registerWithTerminal(terminal);
+      } catch (error) {
+        console.warn('Failed to register link detector:', error);
+      }
     }
+    
+    // Focus the terminal so it can receive input
+    terminal.focus();
     
     // Initial fit
     setTimeout(() => {
       fitAddon.fit();
+      // Focus again after fit to ensure it's ready for input
+      terminal.focus();
     }, 100);
     
     // Set up socket connection for this pane
     if (socket && socket.connected) {
-      // Create new session for this pane
-      socket.emit('create', {
-        cols: terminal.cols,
-        rows: terminal.rows,
-        mode: 'shell'
-      }, (response) => {
-        if (response.success) {
-          const sessionId = response.sessionId;
-          pane.sessionId = sessionId;
-          
-          // Attach to session
-          socket.emit('attach', {
-            sessionId,
-            cols: terminal.cols,
-            rows: terminal.rows
-          });
-          
-          // Handle output for this specific pane
-          const outputHandler = (data) => {
-            if (pane.sessionId === sessionId) {
-              terminal.write(data);
-            }
-          };
-          
-          socket.on('output', outputHandler);
-          
-          // Store handler for cleanup
-          terminal._outputHandler = outputHandler;
+      if (paneManager.getAllPanes().length === 1 && sessionId) {
+        // First pane connects to existing session
+        pane.sessionId = sessionId;
+        
+        // Attach to existing session
+        socket.emit('attach', {
+          sessionId,
+          cols: terminal.cols,
+          rows: terminal.rows
+        });
+        
+        console.log(`MultiPaneLayout: Attached pane ${paneId} to existing session ${sessionId}`);
+      } else {
+        // Additional panes create new sessions
+        socket.emit('create', {
+          cols: terminal.cols,
+          rows: terminal.rows,
+          mode: 'shell'
+        }, (response) => {
+          if (response.success) {
+            const newSessionId = response.sessionId;
+            pane.sessionId = newSessionId;
+            
+            // Attach to new session
+            socket.emit('attach', {
+              sessionId: newSessionId,
+              cols: terminal.cols,
+              rows: terminal.rows
+            });
+            
+            console.log(`MultiPaneLayout: Created new session ${newSessionId} for pane ${paneId}`);
+          }
+        });
+      }
+      
+      // Handle output for this specific pane
+      const outputHandler = (data) => {
+        if (pane.sessionId) {
+          terminal.write(data);
         }
-      });
+      };
+      
+      socket.on('output', outputHandler);
+      
+      // Store handler for cleanup
+      terminal._outputHandler = outputHandler;
     }
   }
   
@@ -364,9 +406,11 @@
   </div>
   
   <!-- Panes container -->
-  <div class="panes-wrapper" class:split-vertical={layoutType === 'split' && paneManager?.layout?.direction === 'vertical'}
+  <div class="panes-wrapper" 
+       class:split-vertical={layoutType === 'split' && paneManager?.layout?.direction === 'vertical'}
        class:split-horizontal={layoutType === 'split' && paneManager?.layout?.direction === 'horizontal'}
-       class:grid-layout={layoutType === 'grid'}>
+       class:grid-layout={layoutType === 'grid'}
+       bind:this={panesWrapper}>
     
     {#each panes as pane (pane.id)}
       {@const dim = dimensions.get(pane.id) || {}}
@@ -379,7 +423,10 @@
           width: {dim.width || 0}px;
           height: {dim.height || 0}px;
         "
-        onclick={() => handlePaneClick(pane.id)}
+        onclick={(e) => {
+          e.stopPropagation();
+          handlePaneClick(pane.id);
+        }}
       >
         <div class="pane-header">
           <span class="pane-title">{pane.title}</span>

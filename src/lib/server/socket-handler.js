@@ -26,14 +26,14 @@ export function handleConnection(socket) {
   socket.on('auth', (key, callback) => {
     if (!AUTH_REQUIRED) {
       authenticated = true;
-      callback({ ok: true });
+      if (callback) callback({ ok: true });
       console.log('Socket authenticated (no auth required):', socket.id);
     } else if (key === TERMINAL_KEY) {
       authenticated = true;
-      callback({ ok: true });
+      if (callback) callback({ ok: true });
       console.log('Socket authenticated:', socket.id);
     } else {
-      callback({ ok: false, error: 'Invalid key' });
+      if (callback) callback({ ok: false, error: 'Invalid key' });
       console.log('Socket auth failed:', socket.id);
     }
   });
@@ -41,7 +41,7 @@ export function handleConnection(socket) {
   // Create new session
   socket.on('create', (opts, callback) => {
     if (!authenticated) {
-      callback({ ok: false, error: 'Not authenticated' });
+      if (callback) callback({ ok: false, error: 'Not authenticated' });
       return;
     }
 
@@ -87,30 +87,30 @@ export function handleConnection(socket) {
         // Sessions persist and can be reconnected to with new PTY processes
       });
 
-      callback({ ok: true, sessionId, name });
+      if (callback) callback({ ok: true, sessionId, name });
     } catch (err) {
-      callback({ ok: false, error: err.message });
+      if (callback) callback({ ok: false, error: err.message });
     }
   });
 
   // List sessions (auth required)
   socket.on('list', (callback) => {
     if (!authenticated) {
-      callback({ ok: false, error: 'Not authenticated' });
+      if (callback) callback({ ok: false, error: 'Not authenticated' });
       return;
     }
     
     try {
-      callback({ ok: true, ...getSessions() });
+      if (callback) callback({ ok: true, ...getSessions() });
     } catch (err) {
-      callback({ ok: false, error: err.message });
+      if (callback) callback({ ok: false, error: err.message });
     }
   });
 
   // Attach to existing session
   socket.on('attach', (opts, callback) => {
     if (!authenticated) {
-      callback({ ok: false, error: 'Not authenticated' });
+      if (callback) callback({ ok: false, error: 'Not authenticated' });
       return;
     }
 
@@ -134,11 +134,11 @@ export function handleConnection(socket) {
           pty = result.pty;
           console.log(`Resumed session: ${sessionId} (${persistentSession.name})`);
         } catch (err) {
-          callback({ ok: false, error: `Failed to resume session: ${err.message}` });
+          if (callback) callback({ ok: false, error: `Failed to resume session: ${err.message}` });
           return;
         }
       } else {
-        callback({ ok: false, error: 'Session not found' });
+        if (callback) callback({ ok: false, error: 'Session not found' });
         return;
       }
     }
@@ -175,7 +175,7 @@ export function handleConnection(socket) {
         // Sessions persist and can be reconnected to with new PTY processes
     });
 
-    callback({ ok: true });
+    if (callback) callback({ ok: true });
   });
 
   // Handle input from client
@@ -220,14 +220,14 @@ export function handleConnection(socket) {
   // Rename session
   socket.on('rename', (opts, callback) => {
     if (!authenticated) {
-      callback({ success: false, error: 'Not authenticated' });
+      if (callback) callback({ success: false, error: 'Not authenticated' });
       return;
     }
 
     const { sessionId, newName } = opts;
 
     if (!sessionId || !newName) {
-      callback({ success: false, error: 'sessionId and newName are required' });
+      if (callback) callback({ success: false, error: 'sessionId and newName are required' });
       return;
     }
 
@@ -237,7 +237,7 @@ export function handleConnection(socket) {
       const session = sessionData.sessions.find(s => s.id === sessionId);
       
       if (!session) {
-        callback({ success: false, error: 'Session not found' });
+        if (callback) callback({ success: false, error: 'Session not found' });
         return;
       }
 
@@ -252,7 +252,7 @@ export function handleConnection(socket) {
       // Broadcast updated sessions list
       socket.server.emit('sessions-updated', getSessions());
       
-      callback({
+      if (callback) callback({
         success: true,
         sessionId,
         oldName,
@@ -260,7 +260,7 @@ export function handleConnection(socket) {
       });
       
     } catch (err) {
-      callback({ success: false, error: err.message });
+      if (callback) callback({ success: false, error: err.message });
     }
   });
 
@@ -268,9 +268,9 @@ export function handleConnection(socket) {
   socket.on('get-public-url', (callback) => {
     try {
       const url = fs.readFileSync(TUNNEL_FILE, 'utf-8').trim();
-      callback({ ok: true, url });
+      if (callback) callback({ ok: true, url });
     } catch {
-      callback({ ok: true, url: null });
+      if (callback) callback({ ok: true, url: null });
     }
   });
 

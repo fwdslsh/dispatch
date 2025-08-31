@@ -48,7 +48,7 @@
     cursorBlink: true, // Disable cursor blinking since it's read-only
     fontFamily: 'Courier New, monospace',
     scrollback: 10000, // Enable scrollback buffer
-    disableStdin: true, // Make terminal read-only
+    disableStdin: false, // Make terminal read-only
     theme: { 
       background: '#0a0a0a',
       foreground: '#ffffff',
@@ -656,6 +656,7 @@
     <MultiPaneLayout 
       {socket}
       {sessionId}
+      {isMobile}
       {linkDetector}
       terminalOptions={options}
       onInputEvent={handleInputAccumulation}
