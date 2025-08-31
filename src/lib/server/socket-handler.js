@@ -1,6 +1,7 @@
 // src/lib/server/socket-handler.js
 import { TerminalManager } from './terminal.js';
 import { addSession, switchSession, endSession, getSessions, updateSessionName } from './session-store.js';
+import { getClaudeService } from './claude-auth-middleware.js';
 import fs from 'node:fs';
 
 const terminalManager = new TerminalManager();
