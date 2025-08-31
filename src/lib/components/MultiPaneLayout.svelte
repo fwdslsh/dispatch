@@ -277,7 +277,7 @@
           mode: 'shell',
           parentSessionId: sessionId // Use original session directory
         }, (response) => {
-          if (response.success) {
+          if (response.ok) {
             const newSessionId = response.sessionId;
             pane.sessionId = newSessionId;
             
@@ -292,6 +292,8 @@
             });
             
             console.log(`MultiPaneLayout: Created new session ${newSessionId} for pane ${paneId}`);
+          } else {
+            console.error(`MultiPaneLayout: Failed to create session for pane ${paneId}:`, response.error);
           }
         });
       }
