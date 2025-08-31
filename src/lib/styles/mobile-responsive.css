@@ -1,0 +1,384 @@
+/* Mobile-first responsive design styles */
+
+/* Base mobile styles */
+body.mobile-mode {
+  /* Optimize for mobile performance */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* Prevent zoom on input focus */
+  touch-action: manipulation;
+  
+  /* Ensure proper viewport behavior */
+  overscroll-behavior: none;
+  
+  /* Optimize scrolling */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Touch-friendly sizing */
+body.mobile-mode button,
+body.mobile-mode input,
+body.mobile-mode select,
+body.mobile-mode [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Optimize animations for mobile */
+@media (max-width: 768px) {
+  * {
+    animation-duration: 0.15s !important;
+    transition-duration: 0.15s !important;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Orientation-specific adjustments */
+body.orientation-portrait {
+  --mobile-padding: 16px;
+  --mobile-font-size: 16px;
+}
+
+body.orientation-landscape {
+  --mobile-padding: 12px;
+  --mobile-font-size: 14px;
+}
+
+/* Responsive typography */
+@media (max-width: 768px) {
+  html {
+    font-size: 16px; /* Ensure minimum readable size */
+  }
+  
+  body {
+    font-size: var(--mobile-font-size, 16px);
+    line-height: 1.4;
+  }
+  
+  /* Ensure code is readable on mobile */
+  code, pre, .terminal {
+    font-size: max(14px, 0.875em);
+    line-height: 1.4;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  html {
+    font-size: 14px;
+  }
+  
+  code, pre, .terminal {
+    font-size: 12px;
+  }
+}
+
+/* Keyboard toolbar responsive styles */
+.keyboard-toolbar {
+  /* Ensure it stays above all content */
+  z-index: 1002;
+  
+  /* Safe area support for modern devices */
+  padding-bottom: env(safe-area-inset-bottom);
+  
+  /* Performance optimization */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+@media (max-width: 360px) {
+  .keyboard-toolbar .toolbar-button {
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+}
+
+/* Command palette responsive styles */
+.command-palette {
+  /* Ensure proper z-index stacking */
+  z-index: 1003;
+  
+  /* Safe area support */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+@media (max-width: 768px) {
+  .command-palette {
+    /* Full width on mobile */
+    left: 8px;
+    right: 8px;
+    width: auto;
+    
+    /* Adaptive height */
+    max-height: 70vh;
+  }
+  
+  .command-palette .search-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
+@media (max-width: 360px) {
+  .command-palette {
+    left: 4px;
+    right: 4px;
+    max-height: 75vh;
+  }
+  
+  .command-palette .command-item {
+    min-height: 48px;
+    font-size: 14px;
+  }
+}
+
+/* Header toolbar responsive behavior */
+@media (max-width: 768px) {
+  .header-toolbar {
+    /* Collapsible behavior */
+    transition: transform 0.2s ease-out;
+  }
+  
+  .header-toolbar.collapsed {
+    transform: translateY(-100%);
+  }
+  
+  .header-toolbar.animating {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Mobile sidebar styles */
+@media (max-width: 768px) {
+  .mobile-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 80vw;
+    background: var(--bg-darker, #1a1a1a);
+    z-index: 1004;
+    
+    /* Performance optimization */
+    will-change: transform;
+    transform: translateZ(0);
+    
+    /* Slide animation */
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .mobile-sidebar.visible {
+    transform: translateX(0);
+  }
+  
+  /* Backdrop */
+  .mobile-sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1003;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+  }
+  
+  .mobile-sidebar-backdrop.visible {
+    opacity: 1;
+  }
+}
+
+/* Terminal responsive adjustments */
+@media (max-width: 768px) {
+  .terminal-container {
+    /* Maximize available space */
+    padding: 0;
+  }
+  
+  .terminal {
+    /* Ensure touch scrolling works */
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+    
+    /* Optimize rendering */
+    will-change: transform;
+    transform: translateZ(0);
+  }
+  
+  /* Mobile controls integration */
+  .mobile-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-darker, #1a1a1a);
+    border-top: 1px solid var(--border, #333);
+    z-index: 1001;
+    
+    /* Safe area support */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .keyboard-toolbar,
+  .command-palette,
+  .mobile-sidebar {
+    border: 2px solid;
+  }
+  
+  .toolbar-button,
+  .command-item {
+    border: 1px solid;
+  }
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  body.mobile-mode {
+    /* Better dark mode contrast */
+    background: #000;
+    color: #fff;
+  }
+  
+  .keyboard-toolbar {
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(20px);
+  }
+  
+  .command-palette {
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(20px);
+  }
+}
+
+/* Performance optimizations for slower devices */
+@media (max-width: 360px) and (max-height: 640px) {
+  /* Reduce visual effects on small/slow devices */
+  .keyboard-toolbar,
+  .command-palette,
+  .mobile-sidebar {
+    backdrop-filter: none;
+  }
+  
+  /* Simplify animations */
+  * {
+    animation-duration: 0.1s !important;
+    transition-duration: 0.1s !important;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  .command-palette {
+    max-height: 80vh; /* More space in landscape */
+  }
+  
+  .keyboard-toolbar {
+    padding: 4px 8px; /* Reduce padding in landscape */
+  }
+  
+  .toolbar-button {
+    min-height: 36px;
+    padding: 4px 8px;
+  }
+}
+
+/* Ultra-wide mobile screens (like iPhone Pro Max) */
+@media (min-width: 414px) and (max-width: 768px) {
+  .command-palette {
+    left: 24px;
+    right: 24px;
+  }
+  
+  .keyboard-toolbar .toolbar-buttons {
+    justify-content: center;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+/* Foldable device support */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  /* Large portrait screens (like iPad or unfolded phones) */
+  body.mobile-mode .keyboard-toolbar {
+    display: flex;
+    justify-content: center;
+  }
+  
+  body.mobile-mode .command-palette {
+    left: 10%;
+    right: 10%;
+    width: auto;
+  }
+}
+
+/* Print styles */
+@media print {
+  .keyboard-toolbar,
+  .command-palette,
+  .mobile-sidebar,
+  .mobile-controls {
+    display: none !important;
+  }
+}
+
+/* Focus management for better accessibility */
+body.mobile-mode {
+  /* Enhanced focus indicators for touch devices */
+}
+
+body.mobile-mode *:focus {
+  outline: 2px solid var(--primary, #00ff88);
+  outline-offset: 2px;
+}
+
+/* Ensure interactive elements are large enough for touch */
+body.mobile-mode a,
+body.mobile-mode button,
+body.mobile-mode input,
+body.mobile-mode select,
+body.mobile-mode textarea,
+body.mobile-mode [tabindex],
+body.mobile-mode [role="button"],
+body.mobile-mode [role="link"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Optimize for touch interactions */
+body.mobile-mode {
+  /* Disable text selection where not needed */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+body.mobile-mode input,
+body.mobile-mode textarea,
+body.mobile-mode [contenteditable] {
+  /* Re-enable text selection for input elements */
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}

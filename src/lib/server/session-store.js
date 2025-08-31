@@ -103,3 +103,43 @@ export function getAllSessionNames() {
   const data = readSessions();
   return data.sessions.map(session => session.name);
 }
+
+/**
+ * Clean up sessions that have been explicitly marked for deletion
+ * We no longer clean up based on directory existence since we want persistent sessions
+ * @returns {number} Number of sessions cleaned up
+ */
+export function cleanupDeadSessions() {
+  // For now, we don't auto-cleanup sessions on startup
+  // Sessions persist across server restarts and can be reused
+  const data = readSessions();
+  
+  // Clear active session since server restart means no active PTY
+  if (data.active) {
+    data.active = null;
+    writeSessions(data);
+    console.log('Cleared active session on server restart');
+  }
+  
+  console.log(`Session store initialized with ${data.sessions.length} persistent session(s)`);
+  return 0;
+}
+
+/**
+ * Initialize session store and perform cleanup
+ * This should be called on server startup
+ */
+export function initializeSessionStore() {
+  console.log('Initializing session store...');
+  
+  // Ensure the session file exists
+  readSessions();
+  
+  // Clean up any orphaned sessions
+  const cleanedCount = cleanupDeadSessions();
+  
+  const data = readSessions();
+  console.log(`Session store initialized with ${data.sessions.length} active session(s)`);
+  
+  return { activeCount: data.sessions.length, cleanedCount };
+}

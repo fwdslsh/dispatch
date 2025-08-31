@@ -3,6 +3,11 @@
   import { goto } from '$app/navigation';
   import { Xterm, XtermAddon } from '@battlefieldduck/xterm-svelte';
   import MobileControls from './MobileControls.svelte';
+  import KeyboardToolbar from './KeyboardToolbar.svelte';
+  import CommandPalette from './CommandPalette.svelte';
+  import MultiPaneLayout from './MultiPaneLayout.svelte';
+  import { TerminalOutputFilter } from '../services/output-deduplicator.js';
+  import { LinkDetector } from '../services/link-detector.js';
 
   export let socket = null;
   export let sessionId = null;
@@ -21,6 +26,17 @@
   let authKey = '';
   let isMobile = false;
   let initialViewportHeight = 0;
+  let keyboardToolbarVisible = false;
+  let commandPaletteVisible = false;
+  let commandHistory = [];
+  let favoriteCommands = [];
+  
+  // Output deduplication
+  let outputFilter = null;
+  
+  // Desktop multi-pane state
+  let isDesktopMode = false;
+  let linkDetector = null;
 
   const LS_KEY = 'dispatch-session-id';
   const LS_HISTORY_KEY = 'dispatch-session-history';
@@ -32,7 +48,7 @@
     cursorBlink: true, // Disable cursor blinking since it's read-only
     fontFamily: 'Courier New, monospace',
     scrollback: 10000, // Enable scrollback buffer
-    disableStdin: true, // Make terminal read-only
+    disableStdin: false, // Make terminal read-only
     theme: { 
       background: '#0a0a0a',
       foreground: '#ffffff',
@@ -61,13 +77,15 @@
   async function onLoad() {
     console.debug('Terminal component has loaded');
 
-    // Check if we're on mobile
+    // Check if we're on mobile and set desktop mode
     isMobile = window.innerWidth <= 768;
+    isDesktopMode = !isMobile;
     initialViewportHeight = window.innerHeight;
     
     // Update mobile state on resize
     const handleResize = () => {
       isMobile = window.innerWidth <= 768;
+      isDesktopMode = !isMobile;
     };
     window.addEventListener('resize', handleResize);
 
@@ -109,10 +127,34 @@
       ro.disconnect();
     };
 
+    // Initialize output filter for intelligent deduplication
+    outputFilter = new TerminalOutputFilter({
+      progressThreshold: 5, // Show progress every 5%
+      maxBufferLines: 1000,
+      onOutputReplace: (buffer, newLine) => {
+        // Handle terminal line replacement
+        // In a real implementation, this would use terminal-specific APIs
+        // to replace content instead of appending
+        console.debug('Output replacement:', { buffer: buffer.slice(-50), newLine });
+      }
+    });
+    
+    // Initialize LinkDetector for desktop mode
+    if (isDesktopMode) {
+      linkDetector = new LinkDetector();
+      // Register with terminal if it's single pane mode
+      if (!isMobile && terminal) {
+        linkDetector.registerWithTerminal(terminal);
+      }
+    }
+    
     // Set up socket listeners if socket is provided
     if (socket) {
       setupSocketListeners();
     }
+    
+    // Load command history
+    loadCommandHistory();
     
     // Load session history from localStorage first
     const storedHistory = loadSessionHistory();
@@ -156,6 +198,68 @@
       socket.emit('input', key);
       // Accumulate input characters until command is complete
       handleInputAccumulation(key);
+    }
+  }
+
+  function handleCommandPalette() {
+    commandPaletteVisible = true;
+  }
+
+  function handleCommandSelect(command) {
+    if (socket && command.command) {
+      // Add to history
+      addCommandToHistory(command);
+      
+      // Send to terminal
+      socket.emit('input', command.command + '\r');
+      handleInputAccumulation(command.command + '\r');
+    }
+    commandPaletteVisible = false;
+  }
+
+  function addCommandToHistory(command) {
+    // Remove existing entry if present
+    const existingIndex = commandHistory.findIndex(h => h.command === command.command);
+    if (existingIndex !== -1) {
+      commandHistory.splice(existingIndex, 1);
+    }
+    
+    // Add to front with timestamp
+    commandHistory.unshift({
+      ...command,
+      timestamp: Date.now(),
+      useCount: (command.useCount || 0) + 1
+    });
+    
+    // Limit history size
+    if (commandHistory.length > 50) {
+      commandHistory = commandHistory.slice(0, 50);
+    }
+    
+    // Save to localStorage
+    saveCommandHistory();
+  }
+
+  function loadCommandHistory() {
+    if (!sessionId || typeof localStorage === 'undefined') return;
+    
+    try {
+      const stored = localStorage.getItem(`command-history-${sessionId}`);
+      if (stored) {
+        commandHistory = JSON.parse(stored);
+      }
+    } catch (error) {
+      console.warn('Failed to load command history:', error);
+    }
+  }
+
+  function saveCommandHistory() {
+    if (!sessionId || typeof localStorage === 'undefined') return;
+    
+    try {
+      localStorage.setItem(`command-history-${sessionId}`, JSON.stringify(commandHistory));
+    } catch (error) {
+      console.warn('Failed to save command history:', error);
     }
   }
 
@@ -452,9 +556,20 @@
       terminal?.writeln(`\r\n[connection error] ${err.message}\r\n`);
     });
 
-    socket.on('output', (data) => {
+    socket.on('output', async (data) => {
       console.debug('Terminal: received output from socket:', data.length, 'chars, first 50:', data.substring(0, 50));
-      terminal?.write(data);
+      
+      // Process output through intelligent deduplication filter
+      if (outputFilter && isMobile) {
+        // On mobile, use the output filter for better performance
+        await outputFilter.processTerminalOutput(data, (filteredData) => {
+          terminal?.write(filteredData);
+        });
+      } else {
+        // On desktop, write directly (preserve existing behavior)
+        terminal?.write(data);
+      }
+      
       console.debug('Terminal: wrote to xterm, terminal exists:', !!terminal);
       
       // Save to localStorage history for persistence
@@ -520,6 +635,13 @@
     if (terminal?._keyboardCleanup) {
       terminal._keyboardCleanup();
     }
+    
+    // Clean up output filter
+    if (outputFilter) {
+      outputFilter.clear();
+      outputFilter = null;
+    }
+    
     // Don't disconnect the socket as it's shared with other components
     // The session page will handle socket cleanup
   });
@@ -529,20 +651,56 @@
 
 <div class="terminal-container">
   
-  <div class="terminal" on:click={handleTerminalClick}>
-    <Xterm bind:terminal {options} {onLoad} {onData} {onKey} />
-  </div>
+  {#if isDesktopMode}
+    <!-- Desktop multi-pane layout -->
+    <MultiPaneLayout 
+      {socket}
+      {sessionId}
+      {isMobile}
+      {linkDetector}
+      terminalOptions={options}
+      onInputEvent={handleInputAccumulation}
+      onOutputEvent={onOutputEvent}
+    />
+  {:else}
+    <!-- Mobile single-pane layout -->
+    <div class="terminal" on:click={handleTerminalClick}>
+      <Xterm bind:terminal {options} {onLoad} {onData} {onKey} />
+    </div>
+  {/if}
   
-  <MobileControls 
-    bind:this={mobileControlsRef}
-    bind:currentInput={mobileInput}
-    onSendMessage={sendMobileInput}
-    onKeydown={handleMobileKeydown}
-    onSpecialKey={sendSpecialKey}
-    onToggleView={onchatclick}
-    isTerminalView={true}
-    {isMobile}
-  />
+  {#if !isDesktopMode}
+    <MobileControls 
+      bind:this={mobileControlsRef}
+      bind:currentInput={mobileInput}
+      onSendMessage={sendMobileInput}
+      onKeydown={handleMobileKeydown}
+      onSpecialKey={sendSpecialKey}
+      onToggleView={onchatclick}
+      isTerminalView={true}
+      {isMobile}
+    />
+  {/if}
+  
+  {#if !isDesktopMode}
+    <!-- Keyboard Toolbar for virtual keyboard optimization -->
+    <KeyboardToolbar 
+      bind:visible={keyboardToolbarVisible}
+      onSpecialKey={sendSpecialKey}
+      onCommandPalette={handleCommandPalette}
+      {isMobile}
+    />
+
+    <!-- Command Palette -->
+    <CommandPalette 
+      bind:visible={commandPaletteVisible}
+      onCommandSelect={handleCommandSelect}
+      onClose={() => commandPaletteVisible = false}
+      triggerElement={mobileControlsRef}
+      {commandHistory}
+      {favoriteCommands}
+    />
+  {/if}
 </div>
 
 <style>

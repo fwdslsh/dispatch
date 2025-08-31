@@ -28,7 +28,7 @@ export class TerminalManager {
     /** @type {Map<string, {name: string, symlinkName: string}>} */
     this.sessionMetadata = new Map();
     this.ptyRoot = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
-    this.defaultMode = process.env.PTY_MODE || 'claude';
+    this.defaultMode = process.env.PTY_MODE || 'shell';
     this.maxBufferSize = 5000; // Keep last 5000 characters per session
     
     // Ensure sessions directory exists
@@ -44,6 +44,120 @@ export class TerminalManager {
     } catch (err) {
       console.warn('Failed to cleanup orphaned symlinks:', err.message);
     }
+  }
+
+  /**
+   * Create a new PTY session with a specific session ID
+   * @param {string} sessionId - The session ID to use
+   * @param {SessionOpts} [opts={}] - Session options
+   * @returns {{sessionId: string, pty: import('node-pty').IPty, name: string}}
+   */
+  createSessionWithId(sessionId, opts = {}) {
+    const { cols = 80, rows = 24, mode = this.defaultMode, name } = opts;
+    
+    // Validate and generate session name
+    const sessionName = name || generateFallbackName(sessionId);
+    
+    // Create session directory
+    const sessionDir = path.join(this.ptyRoot, sessionId);
+    
+    try {
+      fs.mkdirSync(sessionDir, { recursive: true });
+    } catch (err) {
+      throw new Error(`Failed to create session directory: ${err.message}`);
+    }
+    
+    // Determine command based on mode
+    let command, args, env;
+    if (mode === 'claude') {
+      command = 'claude';
+      args = [];
+      env = {
+        ...process.env,
+        TERM: 'xterm-256color',
+        HOME: sessionDir
+      };
+    } else {
+      // Default to shell mode
+      command = process.env.SHELL || '/bin/bash';
+      args = [];
+      env = {
+        ...process.env,
+        TERM: 'xterm-256color',
+        HOME: sessionDir
+      };
+    }
+    
+    // Create PTY with the provided session ID
+    const pty = spawn(command, args, {
+      name: 'xterm-256color',
+      cols,
+      rows,
+      cwd: sessionDir,
+      env
+    });
+
+    this.sessions.set(sessionId, pty);
+    this.buffers.set(sessionId, []);
+    this.subscribers.set(sessionId, new Set());
+    
+    // Create symlink for readable directory name
+    let symlinkName;
+    try {
+      symlinkName = createSymlink(sessionId, sessionName);
+    } catch (err) {
+      console.warn(`Failed to create symlink for session ${sessionId}:`, err.message);
+      symlinkName = null;
+    }
+    
+    // Store session metadata
+    this.sessionMetadata.set(sessionId, {
+      name: sessionName,
+      symlinkName: symlinkName
+    });
+    
+    // Set up data handling
+    pty.onData((data) => {
+      // Buffer the data
+      this.appendToBuffer(sessionId, data);
+      
+      // Notify all subscribers
+      const subs = this.subscribers.get(sessionId);
+      if (subs) {
+        subs.forEach(callback => {
+          try {
+            callback(data);
+          } catch (err) {
+            console.error('Error in subscriber callback:', err);
+          }
+        });
+      }
+    });
+    
+    // Clean up on exit (but don't remove from persistent storage)
+    pty.onExit(() => {
+      this.sessions.delete(sessionId);
+      this.buffers.delete(sessionId);
+      this.subscribers.delete(sessionId);
+      
+      // Clean up symlink
+      const metadata = this.sessionMetadata.get(sessionId);
+      if (metadata && metadata.symlinkName) {
+        try {
+          removeSymlinkByName(metadata.symlinkName);
+        } catch (err) {
+          console.warn(`Failed to remove symlink for session ${sessionId}:`, err.message);
+        }
+      }
+      
+      this.sessionMetadata.delete(sessionId);
+    });
+    
+    return {
+      sessionId,
+      pty,
+      name: sessionName
+    };
   }
 
   /**

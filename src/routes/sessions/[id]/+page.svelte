@@ -49,6 +49,7 @@
         authed = true;
         sessionId = page.params.id;
         // Create socket connection for end session functionality
+
         socket = io({ transports: ["websocket", "polling"] });
         const authKey = storedAuth === "no-auth" ? "" : storedAuth;
         socket.emit("auth", authKey, (res) => {
@@ -283,7 +284,16 @@
             onterminalclick={toggleView}
           />
         {:else}
-          <TerminalReadonly
+          <Terminal 
+            {socket}
+            {sessionId} 
+            onchatclick={toggleView}
+            initialHistory={getHistoryForTerminal()}
+            onInputEvent={addInputEvent}
+            onOutputEvent={addOutputEvent}
+            onBufferUpdate={updateTerminalBuffer}
+          />
+          <!-- <TerminalReadonly
             {socket}
             {sessionId}
             onchatclick={toggleView}
@@ -291,16 +301,7 @@
             onInputEvent={addInputEvent}
             onOutputEvent={addOutputEvent}
             onBufferUpdate={updateTerminalBuffer}
-          />
-          <!-- <Terminal 
-          {socket}
-          {sessionId} 
-          onchatclick={toggleView}
-          initialHistory={getHistoryForTerminal()}
-          onInputEvent={addInputEvent}
-          onOutputEvent={addOutputEvent}
-          onBufferUpdate={updateTerminalBuffer}
-        /> -->
+          /> -->
         {/if}
       {:else}
         <div style="text-align: center; padding: 2rem;">

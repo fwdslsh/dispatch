@@ -66,21 +66,35 @@
     margin-inline: calc(var(--space-md) * -1);
   }
 
+  /* Ensure header can transform outside container bounds on mobile */
+  @media (max-width: 768px) {
+    .container-header {
+      position: relative;
+      z-index: 101;
+      overflow: visible;
+    }
+  }
+
   .container-content {
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     margin-inline: -0.5rem;
   }
 
   .container-footer {
     flex-shrink: 0;
+    padding: var(--space-md);
   }
 
   /* Default desktop layout - use normal container */
   .container:not(.session-container) .container-content {
     min-height: 400px; /* Minimum height for content functionality */
+  }
+
+  /* Session container specific styles */
+  .session-container .container-content {
+    overflow: hidden; /* Only apply overflow hidden to actual terminal sessions */
   }
 
   /* Mobile-specific session container overrides */
@@ -90,7 +104,8 @@
       max-height: 100svh;
       width: 100vw;
       max-width: 100vw;
-      overflow: hidden;
+      overflow-x: hidden; /* Only hide horizontal overflow */
+      overflow-y: visible; /* Allow header to transform outside bounds */
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
@@ -99,6 +114,26 @@
     .session-container .container-content {
       min-height: 0; /* Allow flex child to shrink on mobile */
       margin-inline: 0; /* Remove negative margins on mobile to prevent text cutoff */
+    }
+
+    /* For non-session containers (like session list), ensure proper flex layout */
+    .container:not(.session-container) {
+      height: 100vh;
+      max-height: 100vh;
+      padding-top: 20px; /* Reduced padding since header auto-hides */
+      box-sizing: border-box;
+    }
+    
+    .container:not(.session-container) .container-content {
+      min-height: 0; /* Allow flex child to shrink */
+      margin-inline: 0;
+    }
+    
+    .container:not(.session-container) .container-footer {
+      padding: var(--space-sm);
+      background: rgba(15, 15, 15, 0.95);
+      backdrop-filter: blur(10px);
+      flex-shrink: 0;
     }
   }
 

@@ -3,6 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Protest+Revolution&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&family=Protest+Revolution&display=swap');
 @import 'augmented-ui/augmented-ui.min.css';
+@import './lib/styles/mobile-responsive.css';
 
 :root {
   --bg-dark: #0f0f0f;
@@ -276,16 +277,15 @@ body::after {
   }
 }
 
-html{
-  overflow: hidden;
+html {
+  /* Allow scrolling on desktop by default */
 }
 body {
   background: var(--bg-dark);
   color: var(--text-primary);
   font-family: var(--font-sans);
   line-height: 1.6;
-  overflow: hidden;
-  /* Account for fixed navigation */
+  /* Allow scrolling on desktop by default */
 }
 
 /* Prevent page scrolling on session pages - mobile only */
@@ -580,7 +580,6 @@ li:last-child {
 .new-session-controls {
   display: flex;
   align-items: center;
-  width: 100%;
   justify-content: end;
 
   button:hover,

@@ -14,6 +14,13 @@ const webSocketServer = {
 			}
 		});
 
+		// Initialize session store in development
+		import('./src/lib/server/session-store.js').then(({ initializeSessionStore }) => {
+			initializeSessionStore();
+		}).catch((err) => {
+			console.warn('Session store not available during dev:', err.message);
+		});
+
 		// Import the socket handler for development
 		import('./src/lib/server/socket-handler.js').then(({ handleConnection }) => {
 			io.on('connection', handleConnection);

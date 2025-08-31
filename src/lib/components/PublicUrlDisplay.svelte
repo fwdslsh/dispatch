@@ -176,19 +176,34 @@
     height: 14px;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
+    .public-url-container {
+      padding: var(--space-sm);
+      margin: 0;
+      background: rgba(26, 26, 26, 0.9);
+      border: 1px solid rgba(0, 255, 136, 0.15);
+      border-radius: 6px;
+    }
+
     .public-url-wrapper {
-      flex-direction: column;
-      align-items: stretch;
+      flex-direction: row; /* Keep horizontal layout */
+      align-items: center;
+      gap: 0; /* No gap, buttons connect */
     }
 
     .public-url-link {
-      text-align: center;
-      word-break: break-all;
+      text-align: left;
+      font-size: 0.75rem;
+      padding: var(--space-xs);
+      white-space: nowrap; /* Prevent wrapping */
+      overflow: hidden; /* Hide overflow */
+      text-overflow: ellipsis; /* Add ... for long URLs */
+      word-break: normal; /* Don't break words */
     }
 
     .copy-button {
-      align-self: center;
+      flex-shrink: 0; /* Prevent button from shrinking */
+      margin-top: 0;
     }
   }
 </style>
