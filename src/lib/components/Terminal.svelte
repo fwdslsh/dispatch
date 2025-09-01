@@ -1,11 +1,12 @@
 <script>
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { Xterm, XtermAddon } from '@battlefieldduck/xterm-svelte';
-  // Mobile components removed for desktop-only terminal
-  import MultiPaneLayout from './MultiPaneLayout.svelte';
-  import { TerminalOutputFilter } from '../services/output-deduplicator.js';
   import { LinkDetector } from '../services/link-detector.js';
+  import { TERMINAL_CONFIG, STORAGE_CONFIG } from '../config/constants.js';
+  import { SafeStorage, ErrorHandler } from '../utils/error-handling.js';
+  import { TerminalHistoryService } from '../services/terminal-history.js';
+  import { createCleanupManager } from '../utils/cleanup-manager.js';
 
   export let socket = null;
   export let sessionId = null;
@@ -14,25 +15,21 @@
   export let onInputEvent = () => {};
   export let onOutputEvent = () => {};
   export let onBufferUpdate = () => {};
-
-  // Mobile input state removed
+  
+  // Self-contained mode - create own socket/session if not provided
+  let ownSocket = null;
+  let ownSessionId = null;
 
   let terminal;
-  let authenticated = false;
-  let authKey = '';
-  // Desktop-only mode
-  let isDesktopMode = true;
-  
-  // Output deduplication
-  let outputFilter = null;
-  
-  // Always desktop mode
   let linkDetector = null;
+  let isInitialized = false;
+  let historyService = null;
+  let cleanupManager = null;
 
-  const LS_KEY = 'dispatch-session-id';
+  const LS_KEY = STORAGE_CONFIG.SESSION_ID_KEY;
   const LS_HISTORY_KEY = 'dispatch-session-history';
-  const MAX_HISTORY_ENTRIES = 5000; // Maximum number of history entries to keep
-  const MAX_BUFFER_LENGTH = 500000; // Maximum buffer length in characters (~500KB)
+  const MAX_HISTORY_ENTRIES = TERMINAL_CONFIG.MAX_HISTORY_ENTRIES;
+  const MAX_BUFFER_LENGTH = TERMINAL_CONFIG.MAX_BUFFER_LENGTH;
 
   let options = {
     convertEol: true,
@@ -65,15 +62,70 @@
     }
   };
 
-  async function onLoad() {
-    console.debug('Terminal component has loaded');
+  onMount(async () => {
+    console.debug('Terminal mount - initializing terminal');
+    
+    // Initialize cleanup manager
+    cleanupManager = createCleanupManager('Terminal');
+    
+    // If no socket/session provided, create our own (self-contained mode)
+    if (!socket || !sessionId) {
+      await createOwnSocketAndSession();
+    }
+    
+    // Initialize history service
+    const activeSessionId = getActiveSessionId();
+    if (activeSessionId) {
+      historyService = new TerminalHistoryService(activeSessionId);
+      cleanupManager.register(() => {
+        if (historyService) {
+          historyService.destroy();
+        }
+      }, 'history-service');
+    }
+  });
+  
+  async function createOwnSocketAndSession() {
+    console.debug('Terminal: Creating own socket and session (self-contained mode)');
+    
+    // Import io here to avoid issues if not available
+    const { io } = await import('socket.io-client');
+    
+    // Create socket connection
+    ownSocket = io({ transports: ["websocket", "polling"] });
+    
+    // Get auth key from localStorage
+    const storedAuth = localStorage.getItem("dispatch-auth-token");
+    const authKey = storedAuth === "no-auth" ? "" : storedAuth || "";
+    
+    // Authenticate
+    ownSocket.emit("auth", authKey, (res) => {
+      console.debug("Terminal: Self-contained auth response:", res);
+      if (res && res.ok) {
+        // Create new session
+        const dims = TERMINAL_CONFIG.DEFAULT_DIMENSIONS;
+        ownSocket.emit("create", { mode: 'shell', ...dims }, (resp) => {
+          if (resp && resp.ok) {
+            ownSessionId = resp.sessionId;
+            console.debug("Terminal: Created own session:", ownSessionId);
+          } else {
+            console.error("Terminal: Failed to create session:", resp);
+          }
+        });
+      }
+    });
+  }
 
-    // Always desktop mode - mobile handling removed
-    isDesktopMode = true;
+  // Helper functions to get the active socket and session
+  function getActiveSocket() {
+    return socket || ownSocket;
+  }
+  
+  function getActiveSessionId() {
+    return sessionId || ownSessionId;
+  }
 
-    // Keyboard detection removed for desktop-only mode
-
-    // FitAddon Usage
+  async function setupTerminalAddons() {
     const fitAddon = new (await XtermAddon.FitAddon()).FitAddon();
     terminal.loadAddon(fitAddon);
     
@@ -81,14 +133,18 @@
     terminal._fitAddon = fitAddon;
     
     // Ensure the terminal fits after DOM is ready
-    setTimeout(() => {
+    const timeoutId = cleanupManager.setTimeout(() => {
       fitAddon.fit();
-    }, 100);
+    }, TERMINAL_CONFIG.FIT_DELAY_MS);
 
-    // Set up resize handling
+    return fitAddon;
+  }
+
+  function setupResizeHandling(fitAddon) {
     const resize = () => {
       fitAddon.fit();
-      socket?.emit('resize', { cols: terminal.cols, rows: terminal.rows });
+      const activeSocket = getActiveSocket();
+      activeSocket?.emit('resize', { cols: terminal.cols, rows: terminal.rows });
     };
     
     // ResizeObserver for container changes
@@ -97,40 +153,31 @@
     if (terminalElement) {
       ro.observe(terminalElement);
     }
-    window.addEventListener('resize', resize);
+    
+    // Use cleanup manager for event listeners and observers
+    cleanupManager.addEventListener(window, 'resize', resize);
+    cleanupManager.addObserver(ro, 'terminal-resize-observer');
+  }
 
-    // Store cleanup function
-    terminal._cleanup = () => {
-      window.removeEventListener('resize', resize);
-      ro.disconnect();
-    };
-
-    // Initialize output filter for intelligent deduplication
-    outputFilter = new TerminalOutputFilter({
-      progressThreshold: 5, // Show progress every 5%
-      maxBufferLines: 1000,
-      onOutputReplace: (buffer, newLine) => {
-        // Handle terminal line replacement
-        // In a real implementation, this would use terminal-specific APIs
-        // to replace content instead of appending
-        console.debug('Output replacement:', { buffer: buffer.slice(-50), newLine });
+  function setupTerminalInput() {
+    terminal.onData((data) => {
+      const activeSocket = getActiveSocket();
+      const activeSessionId = getActiveSessionId();
+      if (activeSocket && activeSessionId) {
+        activeSocket.emit('input', data, activeSessionId);
+        onInputEvent(data);
       }
     });
-    
-    // Initialize LinkDetector
+  }
+
+  function initializeLinkDetector() {
     linkDetector = new LinkDetector();
     if (terminal) {
       linkDetector.registerWithTerminal(terminal);
     }
-    
-    // Set up socket listeners if socket is provided
-    if (socket) {
-      setupSocketListeners();
-    }
-    
-    // Command history loading removed
-    
-    // Load session history from localStorage first
+  }
+
+  async function restoreSessionHistory() {
     const storedHistory = loadSessionHistory();
     
     // Restore terminal history - prefer stored history over initial history
@@ -147,170 +194,94 @@
         }
       }
     }
-    
-    // Poll cleanup no longer needed
   }
 
-  function onData(data) {
-    console.debug('onData()', data);
-    // Desktop direct terminal input - simplified
-    if (socket) {
-      socket.emit('input', data);
-      onInputEvent(data); // Simple input tracking
+  async function onLoad() {
+    console.debug('Terminal component has loaded');
+    if (isInitialized) {
+      console.debug('Terminal already initialized, skipping setup');
+      return;
     }
+
+    const fitAddon = await setupTerminalAddons();
+    setupResizeHandling(fitAddon);
+    setupTerminalInput();
+    initializeLinkDetector();
+    
+    // Mark as initialized
+    isInitialized = true;
+    
+    // Set up socket listeners if socket is available
+    const activeSocket = getActiveSocket();
+    if (activeSocket) {
+      setupSocketListeners();
+    }
+    
+    await restoreSessionHistory();
   }
 
-  function onKey(data) {
-    console.debug('onKey()', data);
-    // Key handling simplified for desktop
-  }
-
-
-  // Mobile input functions removed - desktop only
-
-
-
-  // Mobile keyboard and click handling removed
-
-  // Input buffer removed - simplified for desktop
-  let currentOutputBuffer = ''; // Buffer to accumulate output until complete lines
-  let sessionTerminalHistory = []; // Deduplicated terminal history for this session
+  // Input buffer for processing output
+  let currentOutputBuffer = '';
 
 
 
   // Session history management functions
   function getStorageKey() {
-    return `${LS_HISTORY_KEY}-${sessionId}`;
+    const activeSessionId = getActiveSessionId();
+    return `${LS_HISTORY_KEY}-${activeSessionId}`;
   }
 
   function loadSessionHistory() {
-    if (!sessionId) return '';
-    
-    try {
-      const stored = localStorage.getItem(getStorageKey());
-      if (stored) {
-        const history = JSON.parse(stored);
-        if (Array.isArray(history)) {
-          sessionTerminalHistory = history;
-          console.debug('Loaded session history:', sessionTerminalHistory.length, 'items');
-          // Reconstruct the terminal content from stored history entries
-          return reconstructTerminalBuffer();
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to load session history:', error);
-    }
-    return '';
+    if (!historyService) return '';
+    return historyService.load();
   }
 
   function saveSessionHistory() {
-    if (!sessionId) return;
-    
-    try {
-      localStorage.setItem(getStorageKey(), JSON.stringify(sessionTerminalHistory));
-      console.debug('Saved session history:', sessionTerminalHistory.length, 'items');
-    } catch (error) {
-      console.warn('Failed to save session history:', error);
+    if (historyService) {
+      historyService.save();
     }
   }
 
   function addToSessionHistory(data, type = 'output') {
-    if (!data || !sessionId) return;
-    
-    // Create a unique entry with content and metadata
-    const entry = {
-      type,
-      content: data,
-      timestamp: Date.now(),
-      id: Math.random().toString(36).substr(2, 9)
-    };
-    
-    // Check for duplicate content (avoid adding the same data twice)
-    const lastEntry = sessionTerminalHistory[sessionTerminalHistory.length - 1];
-    if (lastEntry && lastEntry.content === data && lastEntry.type === type) {
-      console.debug('Skipping duplicate history entry');
-      return;
+    if (historyService && data) {
+      historyService.addEntry(data, type);
     }
-    
-    sessionTerminalHistory.push(entry);
-    
-    // Trim history if it exceeds limits
-    trimHistoryIfNeeded();
     
     saveSessionHistory();
   }
 
-  function trimHistoryIfNeeded() {
-    // Trim by number of entries
-    if (sessionTerminalHistory.length > MAX_HISTORY_ENTRIES) {
-      const entriesToRemove = sessionTerminalHistory.length - MAX_HISTORY_ENTRIES;
-      sessionTerminalHistory = sessionTerminalHistory.slice(entriesToRemove);
-      console.debug(`Trimmed ${entriesToRemove} history entries, now have ${sessionTerminalHistory.length} entries`);
-    }
-    
-    // Trim by total content size
-    let totalSize = sessionTerminalHistory.reduce((size, entry) => size + entry.content.length, 0);
-    if (totalSize > MAX_BUFFER_LENGTH) {
-      // Remove entries from the beginning until we're under the limit
-      while (totalSize > MAX_BUFFER_LENGTH && sessionTerminalHistory.length > 0) {
-        const removedEntry = sessionTerminalHistory.shift();
-        totalSize -= removedEntry.content.length;
-      }
-      console.debug(`Trimmed history by size, now have ${sessionTerminalHistory.length} entries (${totalSize} chars)`);
-    }
-  }
 
   function clearSessionHistory() {
-    if (!sessionId) return;
-    
-    try {
-      localStorage.removeItem(getStorageKey());
-      sessionTerminalHistory = [];
+    if (historyService) {
+      historyService.clear();
       console.debug('Cleared session history');
-    } catch (error) {
-      console.warn('Failed to clear session history:', error);
     }
   }
 
   function reconstructTerminalBuffer() {
-    // Rebuild terminal buffer from stored history in chronological order
-    let buffer = '';
-    
-    // Sort by timestamp to ensure correct order
-    const sortedHistory = [...sessionTerminalHistory].sort((a, b) => a.timestamp - b.timestamp);
-    
-    for (const entry of sortedHistory) {
-      // Only include output content for terminal display
-      // Input is handled by the terminal itself and shouldn't be duplicated
-      if (entry.type === 'output') {
-        buffer += entry.content;
-      }
-    }
-    return buffer;
+    // Use history service to reconstruct buffer
+    return historyService ? historyService.reconstructTerminalBuffer() : '';
   }
 
   function setupSocketListeners() {
-    if (!socket) {
+    const activeSocket = getActiveSocket();
+    if (!activeSocket) {
       console.debug('Terminal: setupSocketListeners called but no socket');
       return;
     }
 
-    console.debug('Terminal: setting up socket listeners, socket connected:', socket.connected);
+    console.debug('Terminal: setting up socket listeners, socket connected:', activeSocket.connected);
 
-    socket.on('connect_error', (err) => {
+    activeSocket.on('connect_error', (err) => {
       terminal?.writeln(`\r\n[connection error] ${err.message}\r\n`);
     });
 
-    socket.on('output', async (output) => {
+    activeSocket.on('output', async (output) => {
       // Handle both old format (direct data) and new format (session-specific)
       const data = typeof output === 'string' ? output : output.data;
       
-      console.debug('Terminal: received output from socket:', data.length, 'chars, first 50:', data.substring(0, 50));
-      
-      // Direct output to terminal (desktop only)
+      // Direct output to terminal
       terminal?.write(data);
-      
-      console.debug('Terminal: wrote to xterm, terminal exists:', !!terminal);
       
       // Save to localStorage history for persistence
       addToSessionHistory(data, 'output');
@@ -335,24 +306,18 @@
       }
       
       // Update terminal buffer cache by getting the terminal buffer
-      if (terminal && onBufferUpdate) {
-        // Get the terminal buffer contents to cache
-        const buffer = terminal.buffer.active;
-        let historyContent = '';
+      if (terminal && historyService) {
+        // Update buffer in history service (with caching optimization)
+        historyService.updateBuffer(terminal);
         
-        // Extract visible content from terminal buffer
-        for (let i = 0; i < buffer.length; i++) {
-          const line = buffer.getLine(i);
-          if (line) {
-            historyContent += line.translateToString(true) + '\n';
-          }
+        // Notify parent component of buffer update
+        if (onBufferUpdate) {
+          onBufferUpdate(historyService.currentBuffer);
         }
-        
-        onBufferUpdate(historyContent);
       }
     });
 
-    socket.on('ended', () => {
+    activeSocket.on('ended', () => {
       terminal?.writeln('\r\n[session ended]\r\n');
       localStorage.removeItem(LS_KEY);
       // Clear session history when session ends
@@ -366,18 +331,28 @@
 
 
   onDestroy(() => {
+    // Use cleanup manager for systematic resource cleanup
+    if (cleanupManager) {
+      cleanupManager.cleanup();
+    }
+    
+    // Terminal-specific cleanup
     if (terminal?._cleanup) {
       terminal._cleanup();
     }
     if (terminal?._pollCleanup) {
       terminal._pollCleanup();
     }
-    // Keyboard cleanup removed
     
-    // Clean up output filter
-    if (outputFilter) {
-      outputFilter.clear();
-      outputFilter = null;
+    // Cleanup link detector
+    if (linkDetector) {
+      linkDetector = null;
+    }
+    
+    // Cleanup history service
+    if (historyService) {
+      historyService.destroy();
+      historyService = null;
     }
     
     // Don't disconnect the socket as it's shared with other components
@@ -388,20 +363,16 @@
 
 
 <div class="terminal-container">
-  <!-- Desktop multi-pane layout only -->
-  <MultiPaneLayout 
-    {socket}
-    {sessionId}
-    {linkDetector}
-    terminalOptions={options}
-    onInputEvent={onInputEvent}
-    onOutputEvent={onOutputEvent}
+  <!-- Simple single terminal -->
+  <Xterm 
+    {options}
+    bind:terminal
+    onLoad={onLoad}
   />
 </div>
 
 <style>
 
-  /* Desktop-only terminal container */
   .terminal-container {
     display: flex;
     flex-direction: column;
@@ -409,4 +380,6 @@
     height: 80svh;
     width: 100%;
   }
+
+  /* Terminal takes full available space */
 </style>

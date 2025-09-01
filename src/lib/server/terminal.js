@@ -8,6 +8,7 @@ import { spawn } from 'node-pty';
 import { createSymlink, removeSymlinkByName, updateSymlink, cleanupOrphanedSymlinks } from './symlink-manager.js';
 import { validateSessionName, generateFallbackName, resolveNameConflict } from './name-validation.js';
 import { getAllSessionNames } from './session-store.js';
+import { TERMINAL_CONFIG } from '../config/constants.js';
 
 /**
  * @typedef {Object} SessionOpts
@@ -30,7 +31,7 @@ export class TerminalManager {
     this.sessionMetadata = new Map();
     this.ptyRoot = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
     this.defaultMode = process.env.PTY_MODE || 'shell';
-    this.maxBufferSize = 5000; // Keep last 5000 characters per session
+    this.maxBufferSize = TERMINAL_CONFIG.MAX_HISTORY_ENTRIES;
     
     // Ensure sessions directory exists
     try {
@@ -383,7 +384,7 @@ export class TerminalManager {
       const totalSize = buffer.reduce((sum, chunk) => sum + chunk.length, 0);
       if (totalSize > this.maxBufferSize) {
         // Remove oldest chunks until we're under the limit
-        while (buffer.length > 0 && buffer.reduce((sum, chunk) => sum + chunk.length, 0) > this.maxBufferSize * 0.8) {
+        while (buffer.length > 0 && buffer.reduce((sum, chunk) => sum + chunk.length, 0) > this.maxBufferSize * TERMINAL_CONFIG.BUFFER_TRIM_RATIO) {
           buffer.shift();
         }
       }

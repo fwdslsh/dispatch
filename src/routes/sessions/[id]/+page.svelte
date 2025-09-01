@@ -1,9 +1,12 @@
 <script>
   import Terminal from "$lib/components/Terminal.svelte";
-  import Chat from "$lib/components/Chat.svelte";
+  import MultiPaneLayout from "$lib/components/MultiPaneLayout.svelte";
+  import ChatInterface from "$lib/components/ChatInterface.svelte";
+  import CommandMenu from "$lib/components/CommandMenu.svelte";
+  import ChatSettings from "$lib/components/ChatSettings.svelte";
   import HeaderToolbar from "$lib/components/HeaderToolbar.svelte";
   import Container from "$lib/components/Container.svelte";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { browser } from "$app/environment";
@@ -12,20 +15,28 @@
   import BackIcon from "$lib/components/Icons/BackIcon.svelte";
   import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
   import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
-  import TerminalReadonly from "$lib/components/TerminalReadonly.svelte";
+  import { createClaudeAuthContext } from "$lib/contexts/claude-auth-context.svelte.js";
+  import { TERMINAL_CONFIG, UI_CONFIG } from "$lib/config/constants.js";
 
   let authed = false;
   let sessionId;
   let socket;
-  let chatView = false;
+  let currentView = 'terminal'; // 'terminal', 'claude'
   let ansiUp;
+  let isDesktopMode = false;
+
+  // Initialize Claude authentication context immediately (not in onMount)
+  let claudeAuth = createClaudeAuthContext();
+  
+  // Store the cleanup function for the keyboard event listener
+  let keyboardCleanup;
 
   // Dialog state
   let showEndSessionDialog = false;
 
   // Constants for history management
-  const MAX_CHAT_EVENTS = 300000; // Maximum number of events to keep for chat
-  const MAX_TERMINAL_BUFFER_LENGTH = 500000; // Maximum terminal buffer length in characters
+  const MAX_CHAT_EVENTS = TERMINAL_CONFIG.MAX_CHAT_EVENTS;
+  const MAX_TERMINAL_BUFFER_LENGTH = TERMINAL_CONFIG.MAX_BUFFER_LENGTH;
 
   // Unified session history - single source of truth
   let sessionHistory = {
@@ -42,8 +53,26 @@
     // Initialize AnsiUp for processing terminal output
     ansiUp = new AnsiUp();
     ansiUp.use_classes = true;
+    
+    // Determine if desktop mode (1024px+ width)
+    isDesktopMode = window.innerWidth >= UI_CONFIG.DESKTOP_BREAKPOINT;
+
+    // Add keyboard shortcut for view cycling (Ctrl+`)
+    const handleKeydown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === '`') {
+        event.preventDefault();
+        toggleView();
+      }
+    };
 
     if (browser) {
+      document.addEventListener('keydown', handleKeydown);
+
+      // Store cleanup function
+      keyboardCleanup = () => {
+        document.removeEventListener('keydown', handleKeydown);
+      };
+
       const storedAuth = localStorage.getItem("dispatch-auth-token");
       if (storedAuth) {
         authed = true;
@@ -84,6 +113,12 @@
     }
   });
 
+  onDestroy(() => {
+    if (keyboardCleanup) {
+      keyboardCleanup();
+    }
+  });
+
   function showEndDialog() {
     showEndSessionDialog = true;
   }
@@ -104,8 +139,21 @@
   }
 
   function toggleView() {
-    chatView = !chatView;
-    console.debug("View toggled to:", chatView ? "chat" : "terminal");
+    const oldView = currentView;
+    // Cycle through views: terminal -> claude -> terminal
+    switch (currentView) {
+      case 'terminal':
+        currentView = 'claude';
+        break;
+      case 'claude':
+        currentView = 'terminal';
+        break;
+      default:
+        currentView = 'terminal';
+    }
+    console.log(`View toggled from "${oldView}" to "${currentView}"`);
+    console.log(`Browser width: ${browser ? window.innerWidth : 'unknown'}`);
+    console.log(`Claude auth context:`, claudeAuth ? claudeAuth.authState : 'not initialized');
   }
 
   // UUID fallback for non-secure contexts
@@ -180,60 +228,6 @@
     }
   }
 
-  // Make chat history reactive to sessionHistory changes
-  let chatHistory = { chatMessages: [], currentInput: "", currentOutput: "" };
-
-  $: {
-    // Convert events to chat messages format whenever sessionHistory changes
-    const chatMessages = [];
-
-    // Add welcome message if no events
-    if (sessionHistory.events.length === 0) {
-      chatMessages.push({
-        type: "system",
-        content: "Chat view enabled. Commands will appear as messages below.",
-        timestamp: new Date(),
-      });
-    }
-
-    // Convert I/O events to chat messages
-    for (const event of sessionHistory.events) {
-      if (event.type === "input") {
-        chatMessages.push({
-          type: "user",
-          content: event.content,
-          timestamp: event.timestamp,
-        });
-      } else if (event.type === "output") {
-        // Process ANSI codes to HTML for chat display
-        const htmlContent = ansiUp
-          ? ansiUp.ansi_to_html(event.content)
-          : event.content;
-        chatMessages.push({
-          type: "assistant",
-          content: htmlContent,
-          timestamp: event.timestamp,
-          isHtml: true, // Content is now processed HTML
-        });
-      }
-    }
-
-    chatHistory = {
-      chatMessages,
-      currentInput: sessionHistory.currentInput,
-      currentOutput: sessionHistory.currentOutput,
-    };
-
-    console.debug(
-      "Session page: Updated chat history with",
-      chatMessages.length,
-      "messages from",
-      sessionHistory.events.length,
-      "events",
-    );
-    console.debug("Session page: Chat messages:", chatMessages);
-    console.debug("Session page: Passing chatHistory:", chatHistory);
-  }
 
   function getHistoryForTerminal() {
     return sessionHistory.terminalBuffer;
@@ -256,7 +250,23 @@
 
       {#snippet right()}
         {#if authed && sessionId}
-          <h2># {page.params.id.slice(0, 8)}</h2>
+          <div class="session-info">
+            <h2># {page.params.id.slice(0, 8)}</h2>
+            <div class="view-indicator" data-augmented-ui="tl-clip br-clip border">
+              <span class="view-label">View:</span>
+              <button 
+                class="view-toggle" 
+                onclick={toggleView}
+                title="Click to cycle views: Terminal → Claude (or press Ctrl+`)"
+              >
+                {#if currentView === 'terminal'}
+                  Terminal
+                {:else if currentView === 'claude'}
+                  Claude {#if claudeAuth && claudeAuth.authenticated}✓{:else}⚠️{/if}
+                {/if}
+              </button>
+            </div>
+          </div>
 
           <button
             title="End Session"
@@ -274,29 +284,26 @@
   {#snippet children()}
     <div class="terminal-page-container">
       {#if authed && sessionId}
-        {#if chatView}
-          <Chat
-            {socket}
-            {sessionId}
-            initialHistory={chatHistory}
-            onInputEvent={addInputEvent}
-            onOutputEvent={addOutputEvent}
-            onterminalclick={toggleView}
-          />
+        {#if currentView === 'claude'}
+          <div class="claude-chat-container">
+            <ChatInterface
+              sessionId={sessionId}
+              height="calc(100vh - 140px)"
+            />
+            <CommandMenu />
+            <ChatSettings />
+          </div>
         {:else}
-          {#if browser && window.innerWidth <= 768}
-            <!-- Mobile: Use readonly terminal -->
-            <TerminalReadonly
+          {#if isDesktopMode}
+            <!-- Desktop: Multi-pane layout -->
+            <MultiPaneLayout 
               {socket}
               {sessionId}
-              onchatclick={toggleView}
-              initialHistory={getHistoryForTerminal()}
               onInputEvent={addInputEvent}
               onOutputEvent={addOutputEvent}
-              onBufferUpdate={updateTerminalBuffer}
             />
           {:else}
-            <!-- Desktop: Use enhanced terminal with multi-pane -->
+            <!-- Mobile: Single terminal -->
             <Terminal 
               {socket}
               {sessionId} 
@@ -337,6 +344,16 @@
     min-height: 400px; /* Minimum height for terminal functionality */
   }
 
+  .claude-chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
+    position: relative;
+    overflow: hidden;
+  }
+
   @media (max-width: 768px) {
     .terminal-page-container {
       min-height: 0; /* Allow flex child to shrink on mobile */
@@ -361,7 +378,68 @@
     background: var(--surface-hover);
     border-color: var(--border-hover);
   }
+
+  .session-info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .view-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    background: var(--surface);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+
+  .view-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .view-toggle {
+    background: var(--primary);
+    color: var(--bg-dark);
+    border: none;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .view-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px var(--primary-muted);
+  }
+
+  .view-toggle:active {
+    transform: translateY(0);
+  }
+
   .loading {
     color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .session-info {
+      gap: var(--space-sm);
+    }
+    
+    .view-indicator {
+      padding: var(--space-xs);
+    }
+    
+    .view-toggle {
+      padding: 2px var(--space-xs);
+      font-size: 0.7rem;
+    }
   }
 </style>
