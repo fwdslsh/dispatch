@@ -5,10 +5,8 @@ import { io } from 'socket.io-client';
 import fs from 'fs';
 import path from 'path';
 
-// Test environment setup
-const TEST_PTY_ROOT = '/tmp/dispatch-test-workdir-socket';
-process.env.PTY_ROOT = TEST_PTY_ROOT;
-process.env.TERMINAL_KEY = 'test';
+// Use the same PTY_ROOT as the running server
+const TEST_PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
 
 function assert(condition, message) {
   if (!condition) {
@@ -23,10 +21,13 @@ function assertEqual(actual, expected, message) {
 }
 
 // Clean up test environment
-function cleanup() {
+function cleanup(projectId) {
   try {
-    if (fs.existsSync(TEST_PTY_ROOT)) {
-      fs.rmSync(TEST_PTY_ROOT, { recursive: true, force: true });
+    if (projectId) {
+      const projectDir = path.join(TEST_PTY_ROOT, projectId);
+      if (fs.existsSync(projectDir)) {
+        fs.rmSync(projectDir, { recursive: true, force: true });
+      }
     }
   } catch (err) {
     console.warn('Cleanup warning:', err.message);
@@ -36,14 +37,12 @@ function cleanup() {
 async function runSocketTests() {
   console.log('Testing working directory socket functionality...\n');
   
-  // Clean up before tests
-  cleanup();
-
   console.log('Note: These tests require a running server.');
   console.log('Run "npm run dev" in another terminal first.\n');
 
   const serverUrl = 'http://localhost:5173';
   let client;
+  let projectId;
 
   try {
     // Connect and authenticate
@@ -77,10 +76,10 @@ async function runSocketTests() {
 
     // Create a test project
     console.log('\n🔧 Creating test project...');
-    let projectId;
+    const projectName = `Test Working Dir Project ${Date.now()}`;
     await new Promise((resolve, reject) => {
       client.emit('create-project', { 
-        name: 'Test Working Dir Project', 
+        name: projectName, 
         description: 'Project for testing working directories' 
       }, (response) => {
         if (response.success) {
@@ -203,7 +202,9 @@ async function runSocketTests() {
     if (client) {
       client.disconnect();
     }
-    cleanup();
+    if (projectId) {
+      cleanup(projectId);
+    }
   }
 }
 
