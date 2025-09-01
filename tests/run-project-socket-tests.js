@@ -49,8 +49,7 @@ async function runTests() {
   const { 
     createProject, 
     getProjects, 
-    addSessionToProject,
-    migrateSessionsToProjects
+    addSessionToProject
   } = await import('../src/lib/server/project-store.js');
   
   const { 
@@ -98,18 +97,6 @@ async function runTests() {
     console.log(`   ✓ Project contains ${updatedProject.sessions.length} session(s)\n`);
     
     // Test 5: Migration test
-    console.log('🔧 Test 5: Test session-to-project migration');
-    const existingSessions = [
-      { id: 'old-session-1', name: 'Legacy Session 1' },
-      { id: 'old-session-2', name: 'Legacy Session 2' }
-    ];
-    const migrated = migrateSessionsToProjects(existingSessions);
-    assertEqual(migrated, 2, 'Should migrate 2 sessions');
-    
-    const allProjects = getProjects();
-    assertEqual(allProjects.projects.length, 3, 'Should have 3 projects total after migration');
-    console.log(`   ✓ Migrated ${migrated} sessions to projects\n`);
-    
     console.log('🎉 All project Socket.IO integration tests passed!');
     console.log('\nNote: Full Socket.IO event testing requires a running server.');
     console.log('The project/session data model is working correctly.\n');

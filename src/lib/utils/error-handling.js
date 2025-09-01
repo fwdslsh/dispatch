@@ -226,20 +226,3 @@ export class SafeStorage {
   }
 }
 
-/**
- * Legacy compatibility - maintain existing response format during migration
- * @deprecated Use createErrorResponse instead
- */
-export const createLegacyErrorResponse = (message) => ({
-  ok: false,
-  error: message
-});
-
-/**
- * Legacy compatibility - maintain existing response format during migration
- * @deprecated Use createSuccessResponse instead
- */
-export const createLegacySuccessResponse = (data = {}) => ({
-  ok: true,
-  ...data
-});

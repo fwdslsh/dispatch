@@ -12,7 +12,7 @@ import {
   removeSessionFromProject,
   setActiveProject 
 } from './project-store.js';
-import { createLegacyErrorResponse, createLegacySuccessResponse, ErrorHandler } from '../utils/error-handling.js';
+import { createErrorResponse, createSuccessResponse, ErrorHandler } from '../utils/error-handling.js';
 import { ValidationMiddleware, RateLimiter } from '../utils/validation.js';
 import fs from 'node:fs';
 
@@ -42,15 +42,15 @@ export function handleConnection(socket) {
   socket.on('auth', (key, callback) => {
     if (!AUTH_REQUIRED) {
       authenticated = true;
-      if (callback) callback(createLegacySuccessResponse());
+      if (callback) callback(createSuccessResponse());
       console.log('Socket authenticated (no auth required):', socket.id);
     } else if (key === TERMINAL_KEY) {
       authenticated = true;
-      if (callback) callback(createLegacySuccessResponse());
+      if (callback) callback(createSuccessResponse());
       console.log('Socket authenticated:', socket.id);
     } else {
       const errorResponse = ErrorHandler.handle('Invalid authentication key', 'socket.auth', false);
-      if (callback) callback(createLegacyErrorResponse(errorResponse.error));
+      if (callback) callback(createErrorResponse(errorResponse.error));
       console.log('Socket auth failed:', socket.id);
     }
   });
@@ -58,14 +58,14 @@ export function handleConnection(socket) {
   // Create new session
   socket.on('create', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
 
     // Validate session options
     const validation = ValidationMiddleware.validateSessionOptions(opts || {});
     if (!validation.success) {
-      if (callback) callback(createLegacyErrorResponse(validation.error));
+      if (callback) callback(createErrorResponse(validation.error));
       return;
     }
 
@@ -122,30 +122,30 @@ export function handleConnection(socket) {
         // Sessions persist and can be reconnected to with new PTY processes
       });
 
-      if (callback) callback({ ok: true, sessionId, name });
+      if (callback) callback({ success: true, sessionId, name });
     } catch (err) {
-      if (callback) callback({ ok: false, error: err.message });
+      if (callback) callback({ success: false, error: err.message });
     }
   });
 
   // List sessions (auth required)
   socket.on('list', (callback) => {
     if (!authenticated) {
-      if (callback) callback({ ok: false, error: 'Not authenticated' });
+      if (callback) callback({ success: false, error: 'Not authenticated' });
       return;
     }
     
     try {
-      if (callback) callback({ ok: true, ...getSessions() });
+      if (callback) callback({ success: true, ...getSessions() });
     } catch (err) {
-      if (callback) callback({ ok: false, error: err.message });
+      if (callback) callback({ success: false, error: err.message });
     }
   });
 
   // Attach to existing session
   socket.on('attach', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback({ ok: false, error: 'Not authenticated' });
+      if (callback) callback({ success: false, error: 'Not authenticated' });
       return;
     }
 
@@ -169,11 +169,11 @@ export function handleConnection(socket) {
           pty = result.pty;
           console.log(`Resumed session: ${sessionId} (${persistentSession.name})`);
         } catch (err) {
-          if (callback) callback({ ok: false, error: `Failed to resume session: ${err.message}` });
+          if (callback) callback({ success: false, error: `Failed to resume session: ${err.message}` });
           return;
         }
       } else {
-        if (callback) callback({ ok: false, error: 'Session not found' });
+        if (callback) callback({ success: false, error: 'Session not found' });
         return;
       }
     }
@@ -230,7 +230,7 @@ export function handleConnection(socket) {
         // Sessions persist and can be reconnected to with new PTY processes
     });
 
-    if (callback) callback({ ok: true });
+    if (callback) callback({ success: true });
   });
 
   // Handle input from client
@@ -398,9 +398,9 @@ export function handleConnection(socket) {
   socket.on('get-public-url', (callback) => {
     try {
       const url = fs.readFileSync(TUNNEL_FILE, 'utf-8').trim();
-      if (callback) callback({ ok: true, url });
+      if (callback) callback({ success: true, url });
     } catch {
-      if (callback) callback({ ok: true, url: null });
+      if (callback) callback({ success: true, url: null });
     }
   });
 
@@ -422,7 +422,7 @@ export function handleConnection(socket) {
   // Create new project
   socket.on('create-project', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
 
@@ -430,7 +430,7 @@ export function handleConnection(socket) {
       const { name, description } = opts || {};
       
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
-        if (callback) callback(createLegacyErrorResponse('Project name is required'));
+        if (callback) callback(createErrorResponse('Project name is required'));
         return;
       }
 
@@ -439,31 +439,31 @@ export function handleConnection(socket) {
       // Broadcast updated projects list
       socket.server.emit('projects-updated', getProjects());
       
-      if (callback) callback({ ok: true, project });
+      if (callback) callback({ success: true, project });
     } catch (err) {
-      if (callback) callback(createLegacyErrorResponse(err.message));
+      if (callback) callback(createErrorResponse(err.message));
     }
   });
 
   // List projects
   socket.on('list-projects', (callback) => {
     if (!authenticated) {
-      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
     
     try {
       const projects = getProjects();
-      if (callback) callback({ ok: true, ...projects });
+      if (callback) callback({ success: true, ...projects });
     } catch (err) {
-      if (callback) callback(createLegacyErrorResponse(err.message));
+      if (callback) callback(createErrorResponse(err.message));
     }
   });
 
   // Get single project with sessions
   socket.on('get-project', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
 
@@ -471,14 +471,14 @@ export function handleConnection(socket) {
       const { projectId } = opts || {};
       
       if (!projectId) {
-        if (callback) callback(createLegacyErrorResponse('Project ID is required'));
+        if (callback) callback(createErrorResponse('Project ID is required'));
         return;
       }
 
       const project = getProject(projectId);
       
       if (!project) {
-        if (callback) callback(createLegacyErrorResponse('Project not found'));
+        if (callback) callback(createErrorResponse('Project not found'));
         return;
       }
 
@@ -486,21 +486,21 @@ export function handleConnection(socket) {
       const activeSessions = terminalManager.getProjectSessions(projectId);
       
       if (callback) callback({ 
-        ok: true, 
+        success: true, 
         project: {
           ...project,
           activeSessions
         }
       });
     } catch (err) {
-      if (callback) callback(createLegacyErrorResponse(err.message));
+      if (callback) callback(createErrorResponse(err.message));
     }
   });
 
   // Update project
   socket.on('update-project', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
 
@@ -508,7 +508,7 @@ export function handleConnection(socket) {
       const { projectId, updates } = opts || {};
       
       if (!projectId || !updates) {
-        if (callback) callback(createLegacyErrorResponse('Project ID and updates are required'));
+        if (callback) callback(createErrorResponse('Project ID and updates are required'));
         return;
       }
 
@@ -517,16 +517,16 @@ export function handleConnection(socket) {
       // Broadcast updated projects list
       socket.server.emit('projects-updated', getProjects());
       
-      if (callback) callback({ ok: true, project: updatedProject });
+      if (callback) callback({ success: true, project: updatedProject });
     } catch (err) {
-      if (callback) callback(createLegacyErrorResponse(err.message));
+      if (callback) callback(createErrorResponse(err.message));
     }
   });
 
   // Delete project
   socket.on('delete-project', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
 
@@ -534,7 +534,7 @@ export function handleConnection(socket) {
       const { projectId } = opts || {};
       
       if (!projectId) {
-        if (callback) callback(createLegacyErrorResponse('Project ID is required'));
+        if (callback) callback(createErrorResponse('Project ID is required'));
         return;
       }
 
@@ -555,16 +555,16 @@ export function handleConnection(socket) {
       // Broadcast updated projects list
       socket.server.emit('projects-updated', getProjects());
       
-      if (callback) callback({ ok: true });
+      if (callback) callback({ success: true });
     } catch (err) {
-      if (callback) callback(createLegacyErrorResponse(err.message));
+      if (callback) callback(createErrorResponse(err.message));
     }
   });
 
   // Create session within project
   socket.on('create-session-in-project', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
 
@@ -572,21 +572,21 @@ export function handleConnection(socket) {
       const { projectId, sessionOpts } = opts || {};
       
       if (!projectId) {
-        if (callback) callback(createLegacyErrorResponse('Project ID is required'));
+        if (callback) callback(createErrorResponse('Project ID is required'));
         return;
       }
 
       // Verify project exists
       const project = getProject(projectId);
       if (!project) {
-        if (callback) callback(createLegacyErrorResponse('Project not found'));
+        if (callback) callback(createErrorResponse('Project not found'));
         return;
       }
 
       // Validate session options
       const validation = ValidationMiddleware.validateSessionOptions(sessionOpts || {});
       if (!validation.success) {
-        if (callback) callback(createLegacyErrorResponse(validation.error));
+        if (callback) callback(createErrorResponse(validation.error));
         return;
       }
 
@@ -647,16 +647,16 @@ export function handleConnection(socket) {
         }
       });
 
-      if (callback) callback({ ok: true, sessionId, name, projectId });
+      if (callback) callback({ success: true, sessionId, name, projectId });
     } catch (err) {
-      if (callback) callback(createLegacyErrorResponse(err.message));
+      if (callback) callback(createErrorResponse(err.message));
     }
   });
 
   // Set active project
   socket.on('set-active-project', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
 
@@ -668,9 +668,9 @@ export function handleConnection(socket) {
       // Broadcast updated projects list
       socket.server.emit('projects-updated', getProjects());
       
-      if (callback) callback({ ok: true, activeProject: activeProjectId });
+      if (callback) callback({ success: true, activeProject: activeProjectId });
     } catch (err) {
-      if (callback) callback(createLegacyErrorResponse(err.message));
+      if (callback) callback(createErrorResponse(err.message));
     }
   });
 

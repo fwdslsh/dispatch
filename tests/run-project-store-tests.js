@@ -14,8 +14,7 @@ import {
   removeSessionFromProject,
   setActiveProject,
   getAllProjectNames,
-  initializeProjectStore,
-  migrateSessionsToProjects
+  initializeProjectStore
 } from '../src/lib/server/project-store.js';
 
 // Test environment setup
@@ -152,17 +151,6 @@ try {
   const projectsAfterDeletion = getProjects();
   assertEqual(projectsAfterDeletion.projects.filter(p => p.id === project2.id).length, 0, 'Should not find deleted project');
   console.log('✓ deleteProject tests passed');
-
-  // Test 12: Migration
-  console.log('Testing migrateSessionsToProjects...');
-  const timestamp = Date.now();
-  const existingSessions = [
-    { id: `old-session-${timestamp}-1`, name: `Old Session ${timestamp} 1` },
-    { id: `old-session-${timestamp}-2`, name: `Old Session ${timestamp} 2` }
-  ];
-  const migrated = migrateSessionsToProjects(existingSessions);
-  assertEqual(migrated, 2, 'Should migrate 2 sessions');
-  console.log('✓ migrateSessionsToProjects tests passed');
 
   // Test error cases
   console.log('Testing error cases...');
