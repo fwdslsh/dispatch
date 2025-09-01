@@ -41,7 +41,7 @@ async function runTests() {
     const terminalManager = new TerminalManager();
     
     // Create a proper test project through DirectoryManager
-    const projectInfo = await terminalManager.directoryManager.createProject('test-project', {
+    const projectInfo = await terminalManager.directoryManager.createProject(`test-project-${Date.now()}`, {
       displayName: 'Test Project',
       description: 'A test project for working directory functionality'
     });
