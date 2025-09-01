@@ -11,7 +11,7 @@ export function withClaudeAuth(handler) {
   return async (context) => {
     try {
       // Test authentication by making a simple query
-      await claudeService.query('ping', { maxTurns: 1 });
+     // await claudeService.query('ping', { maxTurns: 1 });
       
       // Add Claude service to context for use in handlers
       context.claudeService = claudeService;
@@ -25,7 +25,7 @@ export function withClaudeAuth(handler) {
       
       return new Response(JSON.stringify({
         error: isAuthError ? 'Not authenticated with Claude CLI' : 'Authentication verification failed',
-        hint: isAuthError ? 'Run: npx @anthropic-ai/claude setup-token' : error.message
+        hint: isAuthError ? 'Run: claude setup-token' : error.message
       }), {
         status: isAuthError ? 401 : 500,
         headers: {

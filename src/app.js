@@ -5,76 +5,96 @@ import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import fs from 'node:fs';
 import os from 'node:os';
+import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { handleConnection } from './lib/server/socket-handler.js';
-import { initializeSessionStore } from './lib/server/session-store.js';
+import { initializeSessionStore, getDirectoryManager } from './lib/server/session-store.js';
 import { initializeProjectStore } from './lib/server/project-store.js';
+import DirectoryManager from './lib/server/directory-manager.js';
 
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
-const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
-const TUNNEL_FILE = process.env.TUNNEL_FILE || `${PTY_ROOT}/tunnel-url.txt`;
 const LT_SUBDOMAIN = process.env.LT_SUBDOMAIN || '';
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
 
-// PTY_ROOT runtime session store
-const SESSIONS_FILE = `${PTY_ROOT}/sessions.json`;
+// New directory management environment variables
+const DISPATCH_CONFIG_DIR = process.env.DISPATCH_CONFIG_DIR ||
+  (process.platform === 'win32' 
+    ? path.join(process.env.APPDATA || os.homedir(), 'dispatch')
+    : path.join(os.homedir(), '.config', 'dispatch'));
 
-// Ensure PTY_ROOT and sessions file exist and are writable
-try {
-  if (!fs.existsSync(PTY_ROOT)) {
-    fs.mkdirSync(PTY_ROOT, { recursive: true });
-    console.log(`Created PTY_ROOT at ${PTY_ROOT}`);
+const DISPATCH_PROJECTS_DIR = process.env.DISPATCH_PROJECTS_DIR ||
+  (process.platform === 'win32'
+    ? path.join(os.homedir(), 'dispatch-projects')
+    : process.env.CONTAINER_ENV 
+      ? '/var/lib/dispatch/projects'
+      : path.join(os.homedir(), 'dispatch-projects'));
+
+// Initialize directory management system
+const directoryManager = new DirectoryManager();
+
+async function initializeDirectories() {
+  try {
+    // Initialize new directory management system
+    await directoryManager.initialize();
+    console.log(`Initialized DirectoryManager with:`);
+    console.log(`  Config Dir: ${directoryManager.configDir}`);
+    console.log(`  Projects Dir: ${directoryManager.projectsDir}`);
+    
+    // Check writability
+    fs.accessSync(directoryManager.configDir, fs.constants.W_OK);
+    fs.accessSync(directoryManager.projectsDir, fs.constants.W_OK);
+    
+    // Initialize session store and clean up any orphaned sessions
+    initializeSessionStore();
+    
+    // Initialize project store if available
+    if (typeof initializeProjectStore !== 'undefined') {
+      initializeProjectStore();
+    }
+    
+  } catch (err) {
+    console.error(`ERROR: Directory initialization failed: ${err.message}`);
+    console.error(`Ensure directories are writable by the process user.`);
+    console.error(`Config Dir: ${directoryManager.configDir}`);
+    console.error(`Projects Dir: ${directoryManager.projectsDir}`);
+    process.exit(1);
   }
-
-  // If sessions.json missing, create an initial file
-  if (!fs.existsSync(SESSIONS_FILE)) {
-    fs.writeFileSync(SESSIONS_FILE, JSON.stringify({ sessions: [], active: null }, null, 2));
-    console.log(`Created initial sessions file at ${SESSIONS_FILE}`);
-  }
-
-  // Check writability
-  fs.accessSync(PTY_ROOT, fs.constants.W_OK);
-  fs.accessSync(SESSIONS_FILE, fs.constants.W_OK);
-  
-  // Initialize session store and clean up any orphaned sessions
-  initializeSessionStore();
-  
-  // Initialize project store
-  initializeProjectStore();
-  
-} catch (err) {
-  console.error(`ERROR: PTY_ROOT or sessions file not writable: ${err.message}`);
-  console.error(`Ensure PTY_ROOT=${PTY_ROOT} exists and is writable by the process user.`);
-  process.exit(1);
 }
 
-// Security check: require proper key if tunnel is enabled
-if (ENABLE_TUNNEL && (TERMINAL_KEY === 'change-me' || !TERMINAL_KEY)) {
-  console.error('ERROR: TERMINAL_KEY must be set when ENABLE_TUNNEL=true for security');
-  console.error('Set a secure TERMINAL_KEY environment variable');
-  process.exit(1);
-}
+async function startServer() {
+  // Initialize directories before starting server
+  await initializeDirectories();
 
-// Create Express app
-const app = express();
-
-// Use SvelteKit handler
-app.use(handler);
-
-// Create HTTP server
-const httpServer = createServer(app);
-
-// Create Socket.IO server
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+  // Security check: require proper key if tunnel is enabled
+  if (ENABLE_TUNNEL && (TERMINAL_KEY === 'change-me' || !TERMINAL_KEY)) {
+    console.error('ERROR: TERMINAL_KEY must be set when ENABLE_TUNNEL=true for security');
+    console.error('Set a secure TERMINAL_KEY environment variable');
+    process.exit(1);
   }
-});
 
-// Handle socket connections
-io.on('connection', handleConnection);
+  // Create Express app
+  const app = express();
+
+  // Use SvelteKit handler
+  app.use(handler);
+
+  // Create HTTP server
+  const httpServer = createServer(app);
+
+  // Create Socket.IO server
+  const io = new Server(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+
+  // Handle socket connections
+  io.on('connection', handleConnection);
+
+  return { httpServer };
+}
 
 let ltProc = null;
 
@@ -93,6 +113,8 @@ function startLocalTunnel() {
 
   console.log(`[LT] Starting LocalTunnel on port ${PORT}...`);
   ltProc = spawn('npx', ['localtunnel', ...args], { stdio: 'pipe' });
+
+  const TUNNEL_FILE = path.join(directoryManager.configDir, 'tunnel-url.txt');
 
   ltProc.stdout.on('data', (buf) => {
     const line = buf.toString().trim();
@@ -125,15 +147,21 @@ function stopLocalTunnel() {
   }
 }
 
-httpServer.listen(PORT, () => {
-  console.log(`dispatch running at http://localhost:${PORT}`);
-  startLocalTunnel();
-});
-
-// graceful shutdown
-for (const sig of ['SIGINT', 'SIGTERM']) {
-  process.on(sig, () => {
-    stopLocalTunnel();
-    process.exit(0);
+// Start the server
+startServer().then(({ httpServer }) => {
+  httpServer.listen(PORT, () => {
+    console.log(`dispatch running at http://localhost:${PORT}`);
+    startLocalTunnel();
   });
-}
+
+  // graceful shutdown
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => {
+      stopLocalTunnel();
+      process.exit(0);
+    });
+  }
+}).catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});
