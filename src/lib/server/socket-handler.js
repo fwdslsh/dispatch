@@ -201,26 +201,36 @@ export function handleConnection(socket) {
     }
     socketSessions.get(socket.id).add(sessionId);
 
-    // CRITICAL FIX: Send buffered data OR live stream, never both
+    // Send buffered data (history) AND set up live subscription for new output
     const bufferedData = terminalManager.getBufferedData(sessionId);
     
+    // First, send any buffered/historical data
     if (bufferedData && bufferedData.trim().length > 0) {
-      // Session has history - send buffered data only (no live subscription)
       console.debug(`Sending ${bufferedData.length} chars of buffered data for session ${sessionId}`);
       socket.emit('output', { sessionId, data: bufferedData });
-    } else {
-      // No history - set up live subscription only
-      console.debug(`Setting up live subscription for session ${sessionId}`);
-      const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
-        socket.emit('output', { sessionId, data });
-      });
-      
-      // Store unsubscriber for this specific session
-      if (!socketUnsubscribers.has(socket.id)) {
-        socketUnsubscribers.set(socket.id, new Map());
-      }
-      socketUnsubscribers.get(socket.id).set(sessionId, unsubscribe);
     }
+    
+    // Clean up any existing subscription for this session before creating a new one
+    const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+    if (sessionUnsubscribers && sessionUnsubscribers.has(sessionId)) {
+      const oldUnsubscribe = sessionUnsubscribers.get(sessionId);
+      if (oldUnsubscribe) {
+        oldUnsubscribe();
+        console.debug(`Cleaned up old subscription for session ${sessionId}`);
+      }
+    }
+    
+    // Set up live subscription for new output
+    console.debug(`Setting up live subscription for session ${sessionId}`);
+    const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
+      socket.emit('output', { sessionId, data });
+    });
+    
+    // Store unsubscriber for this specific session
+    if (!socketUnsubscribers.has(socket.id)) {
+      socketUnsubscribers.set(socket.id, new Map());
+    }
+    socketUnsubscribers.get(socket.id).set(sessionId, unsubscribe);
 
     // Resize if dimensions provided
     if (opts.cols && opts.rows) {
