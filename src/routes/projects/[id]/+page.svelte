@@ -13,6 +13,7 @@
     import StartSession from "$lib/components/Icons/StartSession.svelte";
     import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
     import PublicUrlDisplay from "$lib/components/PublicUrlDisplay.svelte";
+    import DirectoryPicker from "$lib/components/DirectoryPicker.svelte";
     import {
         validateSessionNameRealtime,
         validateSessionNameWithFeedback,
@@ -29,6 +30,7 @@
     let activeSessionId = null;
     let sessionMode = "shell"; // Default session mode
     let sessionName = ""; // Custom session name input
+    let workingDirectory = ""; // Working directory for Claude sessions
 
     // Validation state
     let nameValidation = { isValid: true };
@@ -179,6 +181,7 @@
                     sessionOpts: {
                         mode: sessionMode,
                         name: sessionName.trim() || undefined,
+                        workingDirectory: sessionMode === 'claude' && workingDirectory ? workingDirectory : undefined,
                         cols: 80,
                         rows: 24
                     }
@@ -195,6 +198,7 @@
             
             // Clear form
             sessionName = "";
+            workingDirectory = "";
             nameValidation = { isValid: true };
             showValidation = false;
 
@@ -489,6 +493,18 @@
                             </div>
                         {/if}
                     </div>
+
+                    {#if sessionMode === 'claude'}
+                        <DirectoryPicker
+                            bind:selectedPath={workingDirectory}
+                            {socket}
+                            {projectId}
+                            disabled={!socket || !authed}
+                            on:select={(event) => {
+                                workingDirectory = event.detail.path;
+                            }}
+                        />
+                    {/if}
 
                     <button
                         class="btn-primary"
