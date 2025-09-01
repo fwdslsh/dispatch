@@ -19,6 +19,7 @@ import { TERMINAL_CONFIG } from '../config/constants.js';
  * @property {string} [parentSessionId]
  * @property {string} [projectId]
  * @property {string} [workingDirectory]
+ * @property {boolean} [createSubfolder]
  */
 
 export class TerminalManager {
@@ -29,7 +30,7 @@ export class TerminalManager {
     this.buffers = new Map();
     /** @type {Map<string, Set<Function>>} */
     this.subscribers = new Map();
-    /** @type {Map<string, {name: string, symlinkName: string, projectId?: string}>} */
+    /** @type {Map<string, {name: string, symlinkName: string, projectId?: string, workingDir?: string, hasSubfolder?: boolean}>} */
     this.sessionMetadata = new Map();
     this.ptyRoot = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
     this.defaultMode = process.env.PTY_MODE || 'shell';
@@ -195,7 +196,15 @@ export class TerminalManager {
       env = {
         ...process.env,
         TERM: 'xterm-256color',
-        HOME: sessionWorkingDir
+        HOME: sessionWorkingDir,
+        // Additional sandboxing environment variables
+        PWD: sessionWorkingDir,
+        USER: 'appuser',
+        PATH: '/usr/local/bin:/usr/bin:/bin',
+        // Prevent easy escape from project directory
+        PROMPT_COMMAND: `cd "${sessionWorkingDir}"`,
+        // Clear any potentially problematic env vars
+        OLDPWD: sessionWorkingDir
       };
     } else {
       // Default to shell mode
@@ -204,7 +213,15 @@ export class TerminalManager {
       env = {
         ...process.env,
         TERM: 'xterm-256color',
-        HOME: sessionWorkingDir
+        HOME: sessionWorkingDir,
+        // Additional sandboxing environment variables
+        PWD: sessionWorkingDir,
+        USER: 'appuser',
+        PATH: '/usr/local/bin:/usr/bin:/bin',
+        // Prevent easy escape from project directory
+        PROMPT_COMMAND: `cd "${sessionWorkingDir}"`,
+        // Clear any potentially problematic env vars
+        OLDPWD: sessionWorkingDir
       };
     }
     

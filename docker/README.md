@@ -1,12 +1,50 @@
 # Dispatch Docker Usage
 
-This document explains how to build and run the Dispatch Docker image (`fwdslsh/dispatch:latest`). It includes examples for running the container, mounting local directories for persistent storage, handling permissions, and troubleshooting common Docker-related issues.
+This document explains how to build and run Dispatch with **project sandboxing** enabled. Dispatch isolates terminal sessions within project directories for enhanced security and organization.
 
-## Run (basic)
+## 🔒 Project Sandboxing Overview
+
+**How it works:**
+- Each project creates an isolated directory under `/tmp/dispatch-sessions/{project-id}/`
+- Terminal sessions use the project directory as their `$HOME`
+- Configuration files are copied from the host system home to each project home
+- Sessions are sandboxed and cannot easily escape their project directory
+
+## 📁 Volume Mounting Strategy
+
+Dispatch uses a clear mounting strategy with distinct purposes:
+
+| Host Path | Container Path | Purpose | Notes |
+|-----------|----------------|---------|-------|
+| `~/dispatch/home` | `/home/appuser` | **System Home** | Shared configs, dotfiles, SSH keys |
+| `~/dispatch/projects` | `/workspace` | **Legacy Workspace** | Backward compatibility access |
+| `~/.ssh` | `/home/appuser/.ssh:ro` | **SSH Keys** | Read-only SSH access |
+| `~/.claude` | `/home/appuser/.claude` | **Claude Config** | Claude CLI configuration |
+
+## 🚀 Quick Start
+
+### Using the enhanced start script (recommended)
 
 ```bash
-# Run Dispatch and expose port 3030
-docker run -p 3030:3030 -e TERMINAL_KEY=your-secret-password fwdslsh/dispatch:latest
+# Use the enhanced start script with project sandboxing
+chmod +x docker/start-sandboxed.sh
+./docker/start-sandboxed.sh
+```
+
+### Basic run with sandboxing
+
+```bash
+# Create directories for the new structure
+mkdir -p ~/dispatch/{home,projects}
+
+# Run with project sandboxing enabled
+docker run -p 3030:3030 \
+  -e TERMINAL_KEY=your-secret-password \
+  -e PROJECT_SANDBOX_ENABLED=true \
+  --user $(id -u):$(id -g) \
+  -v ~/dispatch/home:/home/appuser \
+  -v ~/dispatch/projects:/workspace \
+  fwdslsh/dispatch:latest
 ```
 
 Open your browser at `http://localhost:3030` and enter the password you set in `TERMINAL_KEY`.

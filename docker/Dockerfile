@@ -40,7 +40,10 @@ ENV NODE_ENV=production \
     PTY_ROOT=/tmp/dispatch-sessions \
     PTY_MODE=shell \
     ENABLE_TUNNEL=false \
-    LT_SUBDOMAIN=
+    LT_SUBDOMAIN= \
+    # Project sandboxing configuration
+    PROJECT_SANDBOX_ENABLED=true \
+    HOST_HOME_DIR=/home/appuser
     
 # Create non-root user with configurable UID/GID
 ARG USER_UID=10001
@@ -51,7 +54,10 @@ RUN (groupadd -g ${USER_GID} appuser || true) \
 WORKDIR /app
 COPY --from=build /app /app
 
-# Create dirs for sessions
+# Create directories for the application structure
+# /tmp/dispatch-sessions: Project storage root (each project gets a subdirectory)
+# /workspace: Legacy workspace directory for backward compatibility 
+# /home/appuser: Container's system home directory (mounted from host for system-wide configs)
 RUN mkdir -p /tmp/dispatch-sessions /workspace \
     && chown -R appuser:appuser /tmp/dispatch-sessions /app /workspace /home/appuser \
     # Create an initial sessions.json so the runtime has a writable file at PTY_ROOT

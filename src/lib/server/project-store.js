@@ -4,6 +4,7 @@
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'node:crypto';
+import { PROJECT_CONFIG } from '../config/constants.js';
 
 const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
 const PROJECT_FILE = path.resolve(PTY_ROOT, 'projects.json');
@@ -42,6 +43,109 @@ function writeProjects(data) {
 }
 
 /**
+ * Initialize project sandbox environment by copying configuration files
+ * @param {string} projectDir - The project directory path
+ * @param {string} hostHomeDir - The host home directory to copy configs from
+ */
+function initializeProjectSandbox(projectDir, hostHomeDir = PROJECT_CONFIG.HOST_HOME_DIR) {
+  // Check if sandboxing is enabled
+  const sandboxEnabled = process.env.PROJECT_SANDBOX_ENABLED !== 'false';
+  if (!sandboxEnabled) {
+    console.log('Project sandboxing disabled, skipping config initialization');
+    return;
+  }
+
+  // Use environment variable for host home directory if available
+  const sourceHomeDir = process.env.HOST_HOME_DIR || hostHomeDir;
+  
+  try {
+    console.log(`Initializing project sandbox at ${projectDir} from host home ${sourceHomeDir}`);
+    
+    // Copy configuration directories
+    for (const configDir of PROJECT_CONFIG.CONFIG_DIRS_TO_COPY) {
+      const sourcePath = path.join(sourceHomeDir, configDir);
+      const targetPath = path.join(projectDir, configDir);
+      
+      if (fs.existsSync(sourcePath)) {
+        try {
+          // Create target directory structure
+          fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+          
+          // Copy directory recursively
+          copyDirectoryRecursive(sourcePath, targetPath);
+          console.log(`Copied config directory: ${configDir}`);
+        } catch (err) {
+          console.warn(`Failed to copy config directory ${configDir}: ${err.message}`);
+        }
+      }
+    }
+    
+    // Copy configuration files
+    for (const configFile of PROJECT_CONFIG.CONFIG_FILES_TO_COPY) {
+      const sourcePath = path.join(sourceHomeDir, configFile);
+      const targetPath = path.join(projectDir, configFile);
+      
+      if (fs.existsSync(sourcePath)) {
+        try {
+          // Ensure target directory exists
+          fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+          
+          // Copy file
+          fs.copyFileSync(sourcePath, targetPath);
+          fs.chmodSync(targetPath, PROJECT_CONFIG.CONFIG_FILE_MODE);
+          console.log(`Copied config file: ${configFile}`);
+        } catch (err) {
+          console.warn(`Failed to copy config file ${configFile}: ${err.message}`);
+        }
+      }
+    }
+    
+    // Create .bash_history file if it doesn't exist
+    const bashHistoryPath = path.join(projectDir, '.bash_history');
+    if (!fs.existsSync(bashHistoryPath)) {
+      try {
+        fs.writeFileSync(bashHistoryPath, '', { mode: PROJECT_CONFIG.CONFIG_FILE_MODE });
+        console.log('Created .bash_history file');
+      } catch (err) {
+        console.warn(`Failed to create .bash_history: ${err.message}`);
+      }
+    }
+    
+  } catch (err) {
+    console.warn(`Failed to initialize project sandbox: ${err.message}`);
+  }
+}
+
+/**
+ * Recursively copy a directory
+ * @param {string} source - Source directory path
+ * @param {string} target - Target directory path
+ */
+function copyDirectoryRecursive(source, target) {
+  if (!fs.existsSync(target)) {
+    fs.mkdirSync(target, { recursive: true });
+  }
+  
+  const items = fs.readdirSync(source);
+  
+  for (const item of items) {
+    const sourcePath = path.join(source, item);
+    const targetPath = path.join(target, item);
+    
+    const stat = fs.statSync(sourcePath);
+    
+    if (stat.isDirectory()) {
+      copyDirectoryRecursive(sourcePath, targetPath);
+    } else {
+      fs.copyFileSync(sourcePath, targetPath);
+      // Preserve file permissions but ensure they're not too restrictive
+      const sourceMode = stat.mode;
+      fs.chmodSync(targetPath, sourceMode);
+    }
+  }
+}
+
+/**
  * Create a new project
  * @param {Object} projectData - Project data { name, description }
  * @returns {Object} Created project
@@ -76,6 +180,9 @@ export function createProject(projectData) {
   } catch (err) {
     throw new Error(`Failed to create project directory: ${err.message}`);
   }
+
+  // Initialize project sandbox with configuration files
+  initializeProjectSandbox(projectDir);
 
   // Create sessions subdirectory within the project
   const sessionsDir = path.join(projectDir, 'sessions');

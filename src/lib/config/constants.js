@@ -124,3 +124,32 @@ export const ERROR_CODES = {
   UNKNOWN_ERROR: 'UNKNOWN_ERROR'
 };
 
+export const PROJECT_CONFIG = {
+  // Project sandboxing configuration
+  DEFAULT_SANDBOX_ENABLED: true,
+  
+  // Configuration directories to copy from host home to project home
+  CONFIG_DIRS_TO_COPY: [
+    '.claude',
+    '.config/gh',  // GitHub CLI config
+    '.config/git'  // Git config
+  ],
+  
+  // Configuration files to copy from host home to project home
+  CONFIG_FILES_TO_COPY: [
+    '.gitconfig',
+    '.bashrc',
+    '.profile',
+    '.bash_profile',
+    '.vimrc',
+    '.zshrc'
+  ],
+  
+  // Host home directory (where configs are sourced from)
+  HOST_HOME_DIR: '/home/appuser',
+  
+  // Permissions for copied config files
+  CONFIG_FILE_MODE: 0o644,
+  CONFIG_DIR_MODE: 0o755
+};
+
