@@ -18,6 +18,7 @@ import { TERMINAL_CONFIG } from '../config/constants.js';
  * @property {string} [name]
  * @property {string} [parentSessionId]
  * @property {string} [projectId]
+ * @property {string} [workingDirectory]
  */
 
 export class TerminalManager {
@@ -78,13 +79,69 @@ export class TerminalManager {
   }
 
   /**
+   * List directories within a project folder
+   * @param {string} projectId - The project ID
+   * @param {string} [relativePath=''] - Relative path within the project (optional)
+   * @returns {Array<{name: string, path: string, isDirectory: boolean}>} Array of directory entries
+   */
+  listProjectDirectories(projectId, relativePath = '') {
+    const projectDir = path.join(this.ptyRoot, projectId);
+    
+    // Ensure project directory exists
+    if (!fs.existsSync(projectDir)) {
+      throw new Error(`Project directory does not exist: ${projectId}`);
+    }
+    
+    // Construct the target directory path
+    const targetDir = path.join(projectDir, relativePath);
+    
+    // Security check: ensure the target path is within the project directory
+    const resolvedProjectDir = path.resolve(projectDir);
+    const resolvedTargetDir = path.resolve(targetDir);
+    
+    if (!resolvedTargetDir.startsWith(resolvedProjectDir)) {
+      throw new Error('Invalid path: Directory must be within the project folder');
+    }
+    
+    // Check if target directory exists
+    if (!fs.existsSync(targetDir)) {
+      throw new Error(`Directory does not exist: ${path.join(projectId, relativePath)}`);
+    }
+    
+    try {
+      const entries = fs.readdirSync(targetDir, { withFileTypes: true });
+      
+      return entries
+        .filter(entry => {
+          // Filter out hidden files/directories and common undesirable directories
+          const name = entry.name;
+          return !name.startsWith('.') && 
+                 !['node_modules', 'sessions', '__pycache__', 'dist', 'build'].includes(name);
+        })
+        .map(entry => ({
+          name: entry.name,
+          path: path.join(relativePath, entry.name).replace(/\\/g, '/'), // Normalize path separators
+          isDirectory: entry.isDirectory()
+        }))
+        .sort((a, b) => {
+          // Sort directories first, then files, alphabetically within each group
+          if (a.isDirectory && !b.isDirectory) return -1;
+          if (!a.isDirectory && b.isDirectory) return 1;
+          return a.name.localeCompare(b.name);
+        });
+    } catch (err) {
+      throw new Error(`Failed to list directory contents: ${err.message}`);
+    }
+  }
+
+  /**
    * Create a new PTY session within a project directory
    * @param {string} projectId - The project ID where the session will be created
    * @param {SessionOpts} [opts={}] - Session options
    * @returns {{sessionId: string, pty: import('node-pty').IPty, name: string, projectId: string}}
    */
   createSessionInProject(projectId, opts = {}) {
-    const { cols = 80, rows = 24, mode = this.defaultMode, name, createSubfolder = false } = opts;
+    const { cols = 80, rows = 24, mode = this.defaultMode, name, workingDirectory } = opts;
     const sessionId = randomUUID();
     
     // Validate and generate session name
@@ -103,19 +160,31 @@ export class TerminalManager {
     // Determine session working directory
     let sessionWorkingDir = projectDir;
     
-    if (createSubfolder) {
-      // Create a session-specific subfolder within the project/sessions directory
-      const sessionsDir = path.join(projectDir, 'sessions');
-      sessionWorkingDir = path.join(sessionsDir, sessionId);
+    if (workingDirectory) {
+      // Use the specified working directory within the project
+      const targetDir = path.join(projectDir, workingDirectory);
       
-      try {
-        fs.mkdirSync(sessionWorkingDir, { recursive: true });
-        console.log(`Created session subfolder: ${sessionWorkingDir}`);
-      } catch (err) {
-        console.warn(`Failed to create session subfolder: ${err.message}`);
-        // Fall back to project directory
-        sessionWorkingDir = projectDir;
+      // Security check: ensure the target path is within the project directory
+      const resolvedProjectDir = path.resolve(projectDir);
+      const resolvedTargetDir = path.resolve(targetDir);
+      
+      if (!resolvedTargetDir.startsWith(resolvedProjectDir)) {
+        throw new Error('Invalid working directory: Must be within the project folder');
       }
+      
+      // Check if the working directory exists
+      if (!fs.existsSync(targetDir)) {
+        throw new Error(`Working directory does not exist: ${workingDirectory}`);
+      }
+      
+      // Verify it's actually a directory
+      const stats = fs.statSync(targetDir);
+      if (!stats.isDirectory()) {
+        throw new Error(`Working directory path is not a directory: ${workingDirectory}`);
+      }
+      
+      sessionWorkingDir = targetDir;
+      console.log(`Using custom working directory: ${sessionWorkingDir}`);
     }
     
     // Determine command based on mode
@@ -161,13 +230,11 @@ export class TerminalManager {
       symlinkName = null;
     }
 
-    // Store session metadata with project reference and working directory
+    // Store session metadata with project reference
     this.sessionMetadata.set(sessionId, { 
       name: sessionName, 
       symlinkName,
-      projectId: projectId,
-      workingDir: sessionWorkingDir,
-      hasSubfolder: createSubfolder
+      projectId: projectId
     });
 
     console.log(`Created session ${sessionId} (${sessionName}) in project ${projectId} at ${sessionWorkingDir}`);

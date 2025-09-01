@@ -666,7 +666,8 @@ export function handleConnection(socket) {
       // Create PTY session in project
       const createOpts = {
         ...validation.data,
-        projectId: projectId
+        projectId: projectId,
+        workingDirectory: sessionOpts?.workingDirectory // Pass through working directory option
       };
       const { sessionId, pty, name } = terminalManager.createSessionInProject(projectId, createOpts);
       
@@ -742,6 +743,42 @@ export function handleConnection(socket) {
       socket.server.emit('projects-updated', getProjects());
       
       if (callback) callback({ success: true, activeProject: activeProjectId });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // List directories within a project
+  socket.on('list-project-directories', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId, relativePath } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createErrorResponse('Project ID is required'));
+        return;
+      }
+
+      // Verify project exists
+      const project = getProject(projectId);
+      if (!project) {
+        if (callback) callback(createErrorResponse('Project not found'));
+        return;
+      }
+
+      // List directories using TerminalManager
+      const directories = terminalManager.listProjectDirectories(projectId, relativePath);
+      
+      if (callback) callback({ 
+        success: true, 
+        projectId,
+        relativePath: relativePath || '',
+        directories 
+      });
     } catch (err) {
       if (callback) callback(createErrorResponse(err.message));
     }
