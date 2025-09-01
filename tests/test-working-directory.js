@@ -42,41 +42,58 @@ try {
   cleanup();
   
   const terminalManager = new TerminalManager();
-  const projectId = 'test-project';
   
-  // Create a test project structure
-  const projectDir = path.join(TEST_PTY_ROOT, projectId);
-  fs.mkdirSync(projectDir, { recursive: true });
+  // Create a proper test project through DirectoryManager
+  const projectInfo = await terminalManager.directoryManager.createProject('test-project', {
+    displayName: 'Test Project',
+    description: 'A test project for working directory functionality'
+  });
   
-  // Create some test directories
-  const subDir1 = path.join(projectDir, 'src');
-  const subDir2 = path.join(projectDir, 'docs');
-  const subDir3 = path.join(projectDir, 'src', 'components');
+  const projectId = projectInfo.id;
+  const projectDir = projectInfo.path;
   
-  fs.mkdirSync(subDir1, { recursive: true });
-  fs.mkdirSync(subDir2, { recursive: true });
-  fs.mkdirSync(subDir3, { recursive: true });
+  // Create some test directories in the workspace
+  const srcDir = path.join(projectDir, 'workspace', 'src');
+  const docsDir = path.join(projectDir, 'workspace', 'docs');
+  const componentsDir = path.join(srcDir, 'components');
+  
+  fs.mkdirSync(srcDir, { recursive: true });
+  fs.mkdirSync(docsDir, { recursive: true });
+  fs.mkdirSync(componentsDir, { recursive: true });
   
   // Create some test files
-  fs.writeFileSync(path.join(projectDir, 'README.md'), '# Test Project');
-  fs.writeFileSync(path.join(subDir1, 'main.js'), 'console.log("hello");');
-  fs.writeFileSync(path.join(subDir2, 'guide.md'), '# Guide');
+  fs.writeFileSync(path.join(projectDir, 'workspace', 'README.md'), '# Test Project');
+  fs.writeFileSync(path.join(srcDir, 'main.js'), 'console.log("hello");');
+  fs.writeFileSync(path.join(docsDir, 'guide.md'), '# Guide');
   
   console.log('✓ Created test project structure');
   
   // Test 1: List project directories
   console.log('\nTesting directory listing...');
-  const rootDirectories = terminalManager.listProjectDirectories(projectId);
+  const rootDirectories = await terminalManager.listProjectDirectories(projectId);
   
   assert(Array.isArray(rootDirectories), 'Should return an array');
-  assert(rootDirectories.length >= 2, 'Should find at least src and docs directories');
+  assert(rootDirectories.length >= 1, 'Should find at least workspace directory');
   
-  const srcDir = rootDirectories.find(d => d.name === 'src');
-  const docsDir = rootDirectories.find(d => d.name === 'docs');
+  const workspaceDir = rootDirectories.find(d => d.name === 'workspace');
+  assert(workspaceDir && workspaceDir.isDirectory, 'Should find workspace directory');
   
-  assert(srcDir && srcDir.isDirectory, 'Should find src directory');
-  assert(docsDir && docsDir.isDirectory, 'Should find docs directory');
-  assertEqual(srcDir.path, 'src', 'Should have correct relative path for src');
+  console.log('✓ Directory listing returns correct structure');
+  
+  // Test 2: List subdirectories in workspace
+  console.log('\nTesting subdirectory listing...');
+  const workspaceContents = await terminalManager.listProjectDirectories(projectId, 'workspace');
+  
+  assert(Array.isArray(workspaceContents), 'Should return an array for workspace contents');
+  
+  const srcSubDir = workspaceContents.find(d => d.name === 'src');
+  const docsSubDir = workspaceContents.find(d => d.name === 'docs');
+  
+  assert(srcSubDir && srcSubDir.isDirectory, 'Should find src directory in workspace');
+  assert(docsSubDir && docsSubDir.isDirectory, 'Should find docs directory in workspace');
+  assertEqual(srcSubDir.path, 'workspace/src', 'Should have correct relative path for src');
+  
+  console.log('✓ Subdirectory listing works correctly');
   
   console.log('✓ Directory listing works correctly');
   

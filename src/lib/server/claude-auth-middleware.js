@@ -1,6 +1,23 @@
 import { ClaudeCodeService } from '../services/claude-code-service.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const claudeService = new ClaudeCodeService();
+
+/**
+ * Check if Claude credentials exist in a specific directory
+ * @param {string} homeDir - The home directory to check for credentials
+ * @returns {boolean} Whether Claude credentials exist
+ */
+export function checkClaudeCredentials(homeDir) {
+  try {
+    const credentialsPath = path.join(homeDir, '.claude', 'credentials.json');
+    return fs.existsSync(credentialsPath);
+  } catch (error) {
+    console.error('Error checking Claude credentials:', error);
+    return false;
+  }
+}
 
 /**
  * Authentication middleware for Claude Code endpoints

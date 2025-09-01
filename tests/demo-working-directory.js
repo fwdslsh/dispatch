@@ -4,7 +4,7 @@
 import { io } from 'socket.io-client';
 
 const serverUrl = 'http://localhost:5173';
-const projectId = '8f11a917-6a2b-494f-957b-e2bf022fc1da'; // The demo project we created
+const projectId = '2ce67133-27a7-4045-a351-d225f71c88cb'; // The demo project we created
 
 console.log('🎯 Demo: Working Directory Functionality');
 console.log('=========================================\n');

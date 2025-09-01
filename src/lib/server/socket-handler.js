@@ -14,6 +14,7 @@ import {
 } from './project-store.js';
 import { createErrorResponse, createSuccessResponse, ErrorHandler } from '../utils/error-handling.js';
 import { ValidationMiddleware, RateLimiter } from '../utils/validation.js';
+import { checkClaudeCredentials } from './claude-auth-middleware.js';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
 
@@ -871,8 +872,8 @@ export function handleConnection(socket) {
     }
   });
 
-  // List directories within a project (simplified - returns empty array)
-  socket.on('list-project-directories', (opts, callback) => {
+  // List directories within a project
+  socket.on('list-project-directories', async (opts, callback) => {
     if (!authenticated) {
       if (callback) callback(createErrorResponse('Not authenticated'));
       return;
@@ -893,12 +894,51 @@ export function handleConnection(socket) {
         return;
       }
 
-      // Simplified implementation - return empty directories
+      // Use TerminalManager to list directories
+      const directories = await terminalManager.listProjectDirectories(projectId, relativePath || '');
+      
       if (callback) callback({ 
         success: true, 
         projectId,
         relativePath: relativePath || '',
-        directories: [] 
+        directories 
+      });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // Check Claude authentication status for a project
+  socket.on('check-claude-auth', async (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createErrorResponse('Project ID is required'));
+        return;
+      }
+
+      // Verify project exists
+      const project = getProject(projectId);
+      if (!project) {
+        if (callback) callback(createErrorResponse('Project not found'));
+        return;
+      }
+
+      // Get project directory and check for Claude credentials
+      const projectInfo = await terminalManager.directoryManager.getProject(projectId);
+      const isAuthenticated = checkClaudeCredentials(projectInfo.path);
+      
+      if (callback) callback({ 
+        success: true, 
+        projectId,
+        authenticated: isAuthenticated,
+        credentialsPath: `${projectInfo.path}/.claude/credentials.json`
       });
     } catch (err) {
       if (callback) callback(createErrorResponse(err.message));
