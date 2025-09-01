@@ -1,6 +1,6 @@
 <script>
   import Terminal from "$lib/components/Terminal.svelte";
-  import Chat from "$lib/components/Chat.svelte";
+  import MultiPaneLayout from "$lib/components/MultiPaneLayout.svelte";
   import ChatInterface from "$lib/components/ChatInterface.svelte";
   import CommandMenu from "$lib/components/CommandMenu.svelte";
   import ChatSettings from "$lib/components/ChatSettings.svelte";
@@ -15,14 +15,15 @@
   import BackIcon from "$lib/components/Icons/BackIcon.svelte";
   import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
   import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
-  import TerminalReadonly from "$lib/components/TerminalReadonly.svelte";
   import { createClaudeAuthContext } from "$lib/contexts/claude-auth-context.svelte.js";
+  import { TERMINAL_CONFIG, UI_CONFIG } from "$lib/config/constants.js";
 
   let authed = false;
   let sessionId;
   let socket;
-  let currentView = 'terminal'; // 'terminal', 'chat', 'claude'
+  let currentView = 'terminal'; // 'terminal', 'claude'
   let ansiUp;
+  let isDesktopMode = false;
 
   // Initialize Claude authentication context immediately (not in onMount)
   let claudeAuth = createClaudeAuthContext();
@@ -34,8 +35,8 @@
   let showEndSessionDialog = false;
 
   // Constants for history management
-  const MAX_CHAT_EVENTS = 300000; // Maximum number of events to keep for chat
-  const MAX_TERMINAL_BUFFER_LENGTH = 500000; // Maximum terminal buffer length in characters
+  const MAX_CHAT_EVENTS = TERMINAL_CONFIG.MAX_CHAT_EVENTS;
+  const MAX_TERMINAL_BUFFER_LENGTH = TERMINAL_CONFIG.MAX_BUFFER_LENGTH;
 
   // Unified session history - single source of truth
   let sessionHistory = {
@@ -52,6 +53,9 @@
     // Initialize AnsiUp for processing terminal output
     ansiUp = new AnsiUp();
     ansiUp.use_classes = true;
+    
+    // Determine if desktop mode (1024px+ width)
+    isDesktopMode = window.innerWidth >= UI_CONFIG.DESKTOP_BREAKPOINT;
 
     // Add keyboard shortcut for view cycling (Ctrl+`)
     const handleKeydown = (event) => {
@@ -136,12 +140,9 @@
 
   function toggleView() {
     const oldView = currentView;
-    // Cycle through views: terminal -> chat -> claude -> terminal
+    // Cycle through views: terminal -> claude -> terminal
     switch (currentView) {
       case 'terminal':
-        currentView = 'chat';
-        break;
-      case 'chat':
         currentView = 'claude';
         break;
       case 'claude':
@@ -227,58 +228,6 @@
     }
   }
 
-  // Make chat history reactive to sessionHistory changes
-  let chatHistory = { chatMessages: [], currentInput: "", currentOutput: "" };
-
-  $: {
-    // Convert events to chat messages format whenever sessionHistory changes
-    const chatMessages = [];
-
-    // Add welcome message if no events (for legacy chat view)
-    if (sessionHistory.events.length === 0 && currentView === 'chat') {
-      chatMessages.push({
-        type: "system",
-        content: "Chat view enabled. Commands will appear as messages below.",
-        timestamp: new Date(),
-      });
-    }
-
-    // Convert I/O events to chat messages
-    for (const event of sessionHistory.events) {
-      if (event.type === "input") {
-        chatMessages.push({
-          type: "user",
-          content: event.content,
-          timestamp: event.timestamp,
-        });
-      } else if (event.type === "output") {
-        // Process ANSI codes to HTML for chat display
-        const htmlContent = ansiUp
-          ? ansiUp.ansi_to_html(event.content)
-          : event.content;
-        chatMessages.push({
-          type: "assistant",
-          content: htmlContent,
-          timestamp: event.timestamp,
-          isHtml: true, // Content is now processed HTML
-        });
-      }
-    }
-
-    chatHistory = {
-      chatMessages,
-      currentInput: sessionHistory.currentInput,
-      currentOutput: sessionHistory.currentOutput,
-    };
-
-    console.debug(
-      "Session page: Updated chat history with",
-      chatMessages.length,
-      "messages from",
-      sessionHistory.events.length,
-      "events",
-    );
-  }
 
   function getHistoryForTerminal() {
     return sessionHistory.terminalBuffer;
@@ -308,12 +257,10 @@
               <button 
                 class="view-toggle" 
                 onclick={toggleView}
-                title="Click to cycle views: Terminal → Chat → Claude (or press Ctrl+`)"
+                title="Click to cycle views: Terminal → Claude (or press Ctrl+`)"
               >
                 {#if currentView === 'terminal'}
                   Terminal
-                {:else if currentView === 'chat'}
-                  Chat
                 {:else if currentView === 'claude'}
                   Claude {#if claudeAuth && claudeAuth.authenticated}✓{:else}⚠️{/if}
                 {/if}
@@ -337,16 +284,7 @@
   {#snippet children()}
     <div class="terminal-page-container">
       {#if authed && sessionId}
-        {#if currentView === 'chat'}
-          <Chat
-            {socket}
-            {sessionId}
-            initialHistory={chatHistory}
-            onInputEvent={addInputEvent}
-            onOutputEvent={addOutputEvent}
-            onterminalclick={toggleView}
-          />
-        {:else if currentView === 'claude'}
+        {#if currentView === 'claude'}
           <div class="claude-chat-container">
             <ChatInterface
               sessionId={sessionId}
@@ -356,19 +294,16 @@
             <ChatSettings />
           </div>
         {:else}
-          {#if browser && window.innerWidth <= 768}
-            <!-- Mobile: Use readonly terminal -->
-            <TerminalReadonly
+          {#if isDesktopMode}
+            <!-- Desktop: Multi-pane layout -->
+            <MultiPaneLayout 
               {socket}
               {sessionId}
-              onchatclick={toggleView}
-              initialHistory={getHistoryForTerminal()}
               onInputEvent={addInputEvent}
               onOutputEvent={addOutputEvent}
-              onBufferUpdate={updateTerminalBuffer}
             />
           {:else}
-            <!-- Desktop: Use enhanced terminal with multi-pane -->
+            <!-- Mobile: Single terminal -->
             <Terminal 
               {socket}
               {sessionId} 

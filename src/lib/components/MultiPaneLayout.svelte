@@ -1,9 +1,8 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { Xterm, XtermAddon } from '@battlefieldduck/xterm-svelte';
-  import { PaneManager } from '../services/pane-manager.js';
-  import { TerminalInstanceManager } from '../services/terminal-instance-manager.js';
+  import Terminal from './Terminal.svelte';
   import ResizeHandle from './ResizeHandle.svelte';
+  import { TERMINAL_CONFIG } from '../config/constants.js';
   
   export let socket = null;
   export let sessionId = null;
@@ -14,127 +13,50 @@
   
   let containerElement;
   let panesWrapper;
-  let paneManager;
-  let terminalInstanceManager;
-  let paneElements = new Map();
-  let resizeHandle = null;
   let isResizing = false;
-  let resizeStartX = 0;
-  let resizeStartY = 0;
   let resizeStartRatio = 50;
-  let minPaneSize = 100; // Minimum pane size in pixels
+  let minPaneSize = TERMINAL_CONFIG.MIN_PANE_SIZE;
   
-  // Reactive state
-  let panes = [];
-  let dimensions = new Map();
+  // Simplified state - just track terminal instances
+  let terminals = [{ id: 'terminal-1', focused: true }]; // Start with one terminal
   let layoutType = 'single';
+  let splitRatio = 50; // For 2-pane splits
   
   onMount(() => {
     console.debug(`MultiPaneLayout onMount - desktop mode for session: ${sessionId}`);
-    
-    paneManager = new PaneManager(sessionId);
-    terminalInstanceManager = new TerminalInstanceManager(sessionId);
-    
-    console.debug(`Created managers for session ${sessionId}:`, {
-      paneManagerStats: `Session-scoped PaneManager initialized`,
-      terminalManagerStats: terminalInstanceManager.getStats()
-    });
-    
-    // Try to load saved layout
-    if (!paneManager.loadLayout()) {
-      // Create initial pane
-      paneManager.createPane({ title: 'Terminal 1' });
-    }
-    
-    updatePanes();
-    
-    // Sessions will be connected automatically when terminals load - no need for delayed checks
-    
     setupKeyboardShortcuts();
     setupResizeObserver();
-    
-    // Initial dimension calculation will be done when panesWrapper is available
   });
+  
+  // No shared socket listeners needed - each Terminal handles its own
   
   onDestroy(() => {
     console.debug(`MultiPaneLayout onDestroy for session: ${sessionId}`);
-    
-    if (paneManager) {
-      paneManager.saveLayout();
-      paneManager.clearAll();
-    }
-    
-    // Clean up terminal instances
-    if (terminalInstanceManager) {
-      console.debug(`Cleaning up terminal instances for session ${sessionId}:`, terminalInstanceManager.getStats());
-      terminalInstanceManager.cleanup();
-    }
+    // Cleanup handled by individual Terminal components
   });
   
-  function updatePanes() {
-    panes = paneManager.getAllPanes();
-    layoutType = paneManager.layout.type;
-    recalculateDimensions();
-  }
-  
   function recalculateDimensions() {
-    if (!panesWrapper || !paneManager) return;
-    
-    const rect = panesWrapper.getBoundingClientRect();
-    dimensions = paneManager.calculatePaneDimensions(rect.width, rect.height);
-    
-    // Fit terminals after layout change
-    setTimeout(() => {
-      if (terminalInstanceManager) {
-        terminalInstanceManager.fitAll();
-      }
-    }, 100);
+    // Let Terminal components handle their own sizing
   }
   
   function setupKeyboardShortcuts() {
     const handleKeydown = (e) => {
-      // Alt + Arrow keys for navigation
-      if (e.altKey) {
-        switch (e.key) {
-          case 'ArrowUp':
-            e.preventDefault();
-            paneManager.navigatePane('up');
-            updatePanes();
-            break;
-          case 'ArrowDown':
-            e.preventDefault();
-            paneManager.navigatePane('down');
-            updatePanes();
-            break;
-          case 'ArrowLeft':
-            e.preventDefault();
-            paneManager.navigatePane('left');
-            updatePanes();
-            break;
-          case 'ArrowRight':
-            e.preventDefault();
-            paneManager.navigatePane('right');
-            updatePanes();
-            break;
-        }
-      }
-      
       // Ctrl + Shift + D for vertical split
       if (e.ctrlKey && e.shiftKey && e.key === 'D') {
         e.preventDefault();
-        splitCurrentPane('vertical');
+        splitVertical();
       }
       
       // Ctrl + Shift + E for horizontal split
       if (e.ctrlKey && e.shiftKey && e.key === 'E') {
         e.preventDefault();
-        splitCurrentPane('horizontal');
+        splitHorizontal();
       }
       
       // Ctrl + Shift + W to close current pane
       if (e.ctrlKey && e.shiftKey && e.key === 'W') {
         e.preventDefault();
-        closeCurrentPane();
+        closeTerminal();
       }
     };
     
@@ -146,309 +68,129 @@
   }
   
   function setupResizeObserver() {
-    const resizeObserver = new ResizeObserver(() => {
-      recalculateDimensions();
-    });
+    // ResizeObserver no longer needed - terminals handle their own resize
+    return () => {};
+  }
+  
+  function splitVertical() {
+    if (terminals.length >= TERMINAL_CONFIG.MAX_TERMINALS) return;
     
-    // We'll start observing once panesWrapper is available
-    const startObserving = () => {
-      if (panesWrapper) {
-        resizeObserver.observe(panesWrapper);
-        // Initial calculation
-        recalculateDimensions();
-      } else {
-        // Try again in next frame
-        requestAnimationFrame(startObserving);
-      }
+    const newTerminal = {
+      id: `terminal-${Date.now()}`,
+      focused: false
     };
     
-    startObserving();
+    terminals = [...terminals, newTerminal];
+    layoutType = terminals.length === 2 ? 'split' : 'grid';
     
-    return () => {
-      resizeObserver.disconnect();
+    console.log('Split vertical - now have', terminals.length, 'terminals');
+  }
+  
+  function splitHorizontal() {
+    if (terminals.length >= TERMINAL_CONFIG.MAX_TERMINALS) return;
+    
+    const newTerminal = {
+      id: `terminal-${Date.now()}`,
+      focused: false
     };
+    
+    terminals = [...terminals, newTerminal];
+    layoutType = terminals.length === 2 ? 'split' : 'grid';
+    
+    console.log('Split horizontal - now have', terminals.length, 'terminals');
   }
   
-  function splitCurrentPane(direction) {
-    console.log(`MultiPaneLayout: splitCurrentPane called with direction: ${direction}`);
-    const activePane = paneManager.getActivePane();
-    if (!activePane) {
-      console.log('MultiPaneLayout: No active pane to split');
-      return;
-    }
+  function closeTerminal() {
+    if (terminals.length <= 1) return; // Keep at least one terminal
     
-    console.log(`MultiPaneLayout: Splitting pane ${activePane.id} in ${direction} direction`);
-    const newPane = paneManager.splitPane(activePane.id, direction);
-    if (newPane) {
-      console.log(`MultiPaneLayout: Created new pane ${newPane.id}, updating layout`);
-      updatePanes();
-      console.log(`MultiPaneLayout: Layout after split:`, {
-        type: paneManager.layout.type,
-        direction: paneManager.layout.direction,
-        totalPanes: paneManager.getAllPanes().length
-      });
-      
-      // Create terminal for new pane - session will be connected automatically when terminal loads
-      setTimeout(() => {
-        console.log(`MultiPaneLayout: Initializing terminal for new pane ${newPane.id}`);
-        initializeTerminal(newPane.id);
-      }, 100);
+    // Remove the last terminal
+    terminals = terminals.slice(0, -1);
+    
+    // Update layout type
+    if (terminals.length === 1) {
+      layoutType = 'single';
+    } else if (terminals.length === 2) {
+      layoutType = 'split';
     } else {
-      console.log('MultiPaneLayout: Failed to create new pane');
+      layoutType = 'grid';
     }
+    
+    console.log('Closed terminal - now have', terminals.length, 'terminals');
   }
   
-  function closeCurrentPane() {
-    const activePane = paneManager.getActivePane();
-    if (!activePane || panes.length <= 1) return;
+  function handleTerminalFocus(terminalId) {
+    // Update focus state
+    terminals = terminals.map(t => ({
+      ...t,
+      focused: t.id === terminalId
+    }));
     
-    // Close terminal session if connected
-    const instance = terminalInstanceManager.getInstance(activePane.id);
-    if (instance && instance.socket && instance.sessionId) {
-      instance.socket.emit('end', instance.sessionId);
-    }
-    
-    // Destroy terminal instance
-    terminalInstanceManager.destroyInstance(activePane.id);
-    
-    paneManager.removePane(activePane.id);
-    updatePanes();
+    console.log('Focused terminal:', terminalId);
   }
   
-  function handlePaneClick(paneId) {
-    paneManager.focusPane(paneId);
-    updatePanes();
-    
-    // Focus the terminal instance
-    if (terminalInstanceManager) {
-      terminalInstanceManager.setActiveInstance(paneId);
-    }
-  }
+  // No complex terminal initialization needed - Terminal.svelte handles everything
   
-  async function initializeTerminal(paneId) {
-    const pane = paneManager.panes.get(paneId);
-    if (!pane) return;
-    
-    // Terminal will be initialized by onLoad callback
-  }
+  // No complex session management needed - Terminal.svelte handles its own sessions
   
-  async function onTerminalLoad(paneId, terminal) {
-    console.log(`Terminal loaded for pane ${paneId}`);
-    
-    // Create or get terminal instance
-    let instance = terminalInstanceManager.getInstance(paneId);
-    if (!instance) {
-      instance = terminalInstanceManager.createInstance(paneId, {
-        cols: terminal.cols,
-        rows: terminal.rows
-      });
-    }
-    
-    // Load fit addon
-    const fitAddon = new (await XtermAddon.FitAddon()).FitAddon();
-    terminal.loadAddon(fitAddon);
-    
-    // Set terminal in instance manager
-    terminalInstanceManager.setTerminal(paneId, terminal, fitAddon);
-    
-    const pane = paneManager.panes.get(paneId);
-    if (pane) {
-      pane.terminal = terminal;
-    }
-    
-    // Register link detection if available
-    if (linkDetector) {
-      try {
-        linkDetector.registerWithTerminal(terminal);
-      } catch (error) {
-        console.warn('Failed to register link detector:', error);
-      }
-    }
-    
-    // Focus the terminal so it can receive input
-    terminal.focus();
-    
-    // Initial fit
-    setTimeout(() => {
-      fitAddon.fit();
-      // Focus again after fit to ensure it's ready for input
-      terminal.focus();
-    }, 100);
-    
-    // Simple session connection: connect immediately when terminal loads
-    connectPaneToSession(paneId, terminal, pane);
-  }
-  
-  /**
-   * Simple, robust session connection for a pane
-   * Called immediately when terminal loads - handles all connection logic in one place
-   */
-  function connectPaneToSession(paneId, terminal, pane) {
-    console.log(`MultiPaneLayout: connectPaneToSession called for ${paneId}`, {
-      socketConnected: socket?.connected,
-      paneHasSavedSession: pane?.sessionId,
-      totalPanes: paneManager.getAllPanes().length,
-      mainSessionId: sessionId
-    });
-
-    if (!socket || !socket.connected) {
-      console.error(`MultiPaneLayout: Socket not connected for pane ${paneId}`);
-      return;
-    }
-
-    const savedSessionId = pane ? pane.sessionId : null;
-    const isFirstPane = paneManager.getAllPanes().length === 1;
-
-    // Determine what session to try first
-    let primarySessionToTry = null;
-    if (savedSessionId) {
-      primarySessionToTry = savedSessionId;
-      console.log(`MultiPaneLayout: Pane ${paneId} attempting to reconnect to saved session ${savedSessionId}`);
-    } else if (isFirstPane && sessionId) {
-      primarySessionToTry = sessionId;
-      console.log(`MultiPaneLayout: First pane ${paneId} attempting to connect to main session ${sessionId}`);
-    }
-
-    if (primarySessionToTry) {
-      // Try to attach to the primary session
-      console.log(`MultiPaneLayout: Trying to attach ${paneId} to ${primarySessionToTry}`);
-      socket.emit('attach', {
-        sessionId: primarySessionToTry,
-        cols: terminal.cols,
-        rows: terminal.rows
-      }, (response) => {
-        if (response.ok) {
-          // Success - connect terminal instance to this session
-          if (pane) {
-            pane.sessionId = primarySessionToTry;
-          }
-          terminalInstanceManager.attachSession(paneId, primarySessionToTry, socket);
-          console.log(`MultiPaneLayout: ✅ Pane ${paneId} connected to session ${primarySessionToTry}`);
-        } else {
-          // Failed - create new session immediately
-          console.log(`MultiPaneLayout: ❌ Failed to attach pane ${paneId} to ${primarySessionToTry}: ${response.error}`);
-          createNewSessionForPane(paneId, terminal, pane);
-        }
-      });
-    } else {
-      // No session to try - create new one immediately
-      console.log(`MultiPaneLayout: 🆕 Pane ${paneId} has no session, creating new session`);
-      createNewSessionForPane(paneId, terminal, pane);
-    }
-  }
-
-  /**
-   * Create a new PTY session for a pane (simplified)
-   */
-  function createNewSessionForPane(paneId, terminal, pane) {
-    console.log(`MultiPaneLayout: 🔄 Creating new PTY session for pane ${paneId}`);
-    socket.emit('create', {
-      cols: terminal.cols,
-      rows: terminal.rows,
-      mode: 'shell',
-      parentSessionId: sessionId
-    }, (response) => {
-      if (response.ok) {
-        const newSessionId = response.sessionId;
-        console.log(`MultiPaneLayout: ✅ Created new session ${newSessionId} for pane ${paneId}`);
-        
-        // Update pane and connect terminal instance
-        if (pane) {
-          pane.sessionId = newSessionId;
-          console.log(`MultiPaneLayout: Updated pane ${paneId} with sessionId ${newSessionId}`);
-        } else {
-          console.warn(`MultiPaneLayout: No pane object to update for ${paneId}`);
-        }
-        
-        terminalInstanceManager.attachSession(paneId, newSessionId, socket);
-        console.log(`MultiPaneLayout: 🔗 Pane ${paneId} connected to new session ${newSessionId}`);
-      } else {
-        console.error(`MultiPaneLayout: ❌ Failed to create session for pane ${paneId}: ${response.error}`);
-      }
-    });
-  }
-
-  function onTerminalData(paneId, data) {
-    console.log(`MultiPaneLayout: Terminal data from ${paneId}:`, JSON.stringify(data));
-    const instance = terminalInstanceManager.getInstance(paneId);
-    if (instance && instance.socket && instance.sessionId) {
-      console.log(`MultiPaneLayout: Sending input to session ${instance.sessionId} for pane ${paneId}`);
-      // Send input to the specific session - simplified
-      instance.socket.emit('input', data, instance.sessionId);
-      // Simple input event tracking
-      onInputEvent(data);
-    } else {
-      console.warn(`MultiPaneLayout: Cannot send input for pane ${paneId}:`, {
-        hasInstance: !!instance,
-        hasSocket: !!instance?.socket,
-        sessionId: instance?.sessionId
-      });
-    }
-  }
-  
-  // Resize handling with collision detection
-  function handleResizeStart(event) {
+  // Simplified resize handling
+  function handleResizeStart() {
     if (layoutType !== 'split') return;
-    
     isResizing = true;
-    resizeStartRatio = paneManager.layout.ratio || 50;
+    resizeStartRatio = splitRatio;
   }
   
   function handleResize(event) {
-    if (!isResizing || !panesWrapper) return;
-    
-    const rect = panesWrapper.getBoundingClientRect();
-    const direction = paneManager.layout.direction;
+    if (!isResizing) return;
     const { delta } = event.detail;
+    const rect = panesWrapper?.getBoundingClientRect();
+    if (!rect) return;
     
-    let newRatio;
-    if (direction === 'vertical') {
-      const percentChange = (delta / rect.width) * 100;
-      newRatio = resizeStartRatio + percentChange;
-      
-      // Collision detection for vertical split
-      const minRatio = (minPaneSize / rect.width) * 100;
-      const maxRatio = 100 - minRatio;
-      newRatio = Math.max(minRatio, Math.min(maxRatio, newRatio));
-    } else {
-      const percentChange = (delta / rect.height) * 100;
-      newRatio = resizeStartRatio + percentChange;
-      
-      // Collision detection for horizontal split
-      const minRatio = (minPaneSize / rect.height) * 100;
-      const maxRatio = 100 - minRatio;
-      newRatio = Math.max(minRatio, Math.min(maxRatio, newRatio));
+    const percentChange = (delta / rect.width) * 100;
+    splitRatio = Math.max(20, Math.min(80, resizeStartRatio + percentChange));
+  }
+  
+  function handleResizeEnd() {
+    isResizing = false;
+  }
+  
+  // Apply simple layout presets
+  function applyPreset(presetName) {
+    switch (presetName) {
+      case 'single':
+        terminals = [{ id: 'terminal-1', focused: true }];
+        layoutType = 'single';
+        break;
+      case 'vertical':
+        terminals = [
+          { id: 'terminal-1', focused: true },
+          { id: 'terminal-2', focused: false }
+        ];
+        layoutType = 'split';
+        break;
+      case 'horizontal':
+        terminals = [
+          { id: 'terminal-1', focused: true },
+          { id: 'terminal-2', focused: false }
+        ];
+        layoutType = 'split';
+        break;
+      case 'quad':
+        terminals = [
+          { id: 'terminal-1', focused: true },
+          { id: 'terminal-2', focused: false },
+          { id: 'terminal-3', focused: false },
+          { id: 'terminal-4', focused: false }
+        ];
+        layoutType = 'grid';
+        break;
     }
     
-    paneManager.updateSplitRatio(newRatio);
-    recalculateDimensions();
-  }
-  
-  function handleResizeEnd(event) {
-    isResizing = false;
-    
-    // Save layout after resize
-    paneManager.saveLayout();
-  }
-  
-  // Apply preset layouts
-  function applyPreset(presetName) {
-    paneManager.applyPreset(presetName);
-    updatePanes();
-    
-    // Initialize terminals for new panes - sessions will be connected automatically
-    setTimeout(() => {
-      panes.forEach(pane => {
-        if (!terminalInstanceManager.getInstance(pane.id)) {
-          initializeTerminal(pane.id);
-        }
-      });
-    }, 100);
+    console.log('Applied preset:', presetName, '- now have', terminals.length, 'terminals');
   }
   
 </script>
 
-<!-- Desktop-only multi-pane layout -->
+<!-- Simplified multi-pane layout with independent terminals -->
 <div class="multi-pane-container" bind:this={containerElement}>
   <!-- Layout controls -->
   <div class="pane-controls">
@@ -480,77 +222,56 @@
     
     <span class="separator">|</span>
     
-    <button onclick={() => splitCurrentPane('vertical')} title="Split vertical (Ctrl+Shift+D)">
+    <button onclick={splitVertical} title="Split vertical (Ctrl+Shift+D)">
       Split V
     </button>
-    <button onclick={() => splitCurrentPane('horizontal')} title="Split horizontal (Ctrl+Shift+E)">
+    <button onclick={splitHorizontal} title="Split horizontal (Ctrl+Shift+E)">
       Split H
     </button>
-    <button onclick={closeCurrentPane} title="Close pane (Ctrl+Shift+W)">
+    <button onclick={closeTerminal} title="Close pane (Ctrl+Shift+W)">
       Close
     </button>
   </div>
   
-  <!-- Panes container -->
-  <div class="panes-wrapper" 
-       class:split-vertical={layoutType === 'split' && paneManager?.layout?.direction === 'vertical'}
-       class:split-horizontal={layoutType === 'split' && paneManager?.layout?.direction === 'horizontal'}
-       class:grid-layout={layoutType === 'grid'}
+  <!-- Terminals container -->
+  <div class="terminals-wrapper"
+       class:layout-single={layoutType === 'single'}
+       class:layout-split={layoutType === 'split'}
+       class:layout-grid={layoutType === 'grid'}
        bind:this={panesWrapper}>
     
-    {#each panes as pane (pane.id)}
-      {@const dim = dimensions.get(pane.id) || {}}
+    {#each terminals as terminal (terminal.id)}
       <div 
         class="terminal-pane"
-        class:focused={pane.focused}
-        style="
-          left: {dim.x || 0}px;
-          top: {dim.y || 0}px;
-          width: {dim.width || 0}px;
-          height: {dim.height || 0}px;
-        "
-        onclick={(e) => {
-          e.stopPropagation();
-          handlePaneClick(pane.id);
-        }}
+        class:focused={terminal.focused}
+        onclick={() => handleTerminalFocus(terminal.id)}
       >
         <div class="pane-header">
-          <span class="pane-title">{pane.title}</span>
-          {#if pane.focused}
+          <span class="pane-title">Terminal {terminals.indexOf(terminal) + 1}</span>
+          {#if terminal.focused}
             <span class="focus-indicator">●</span>
           {/if}
         </div>
         
         <div class="pane-terminal">
-          <Xterm 
-            options={terminalOptions}
-            onLoad={(terminal) => onTerminalLoad(pane.id, terminal)}
-            onData={(data) => onTerminalData(pane.id, data)}
+          <!-- Each Terminal is completely independent -->
+          <Terminal
+            {socket}
+            {sessionId}
+            {terminalOptions}
+            onInputEvent={(data) => onInputEvent(data)}
+            onOutputEvent={(data) => onOutputEvent(data)}
           />
         </div>
       </div>
     {/each}
     
-    <!-- Resize handle for split layouts -->
-    {#if layoutType === 'split' && panes.length === 2}
-      {@const direction = paneManager?.layout?.direction}
-      {@const pane0Dim = dimensions.get(panes[0].id)}
-      {#if pane0Dim}
-        <ResizeHandle
-          direction={direction}
-          position={{
-            x: direction === 'vertical' ? pane0Dim.width : 0,
-            y: direction === 'horizontal' ? pane0Dim.height : 0
-          }}
-          minSize={minPaneSize}
-          maxSize={direction === 'vertical' 
-            ? (panesWrapper?.getBoundingClientRect().width || 1000) - minPaneSize
-            : (panesWrapper?.getBoundingClientRect().height || 1000) - minPaneSize}
-          on:resizeStart={handleResizeStart}
-          on:resize={handleResize}
-          on:resizeEnd={handleResizeEnd}
-        />
-      {/if}
+    <!-- Simple resize handle for 2-pane splits -->
+    {#if layoutType === 'split' && terminals.length === 2}
+      <div 
+        class="resize-handle"
+        style="left: {splitRatio}%"
+      ></div>
     {/if}
   </div>
 </div>
@@ -600,19 +321,40 @@
     margin: 0 4px;
   }
   
-  .panes-wrapper {
-    position: relative;
+  .terminals-wrapper {
     flex: 1;
+    display: flex;
+    gap: 2px;
+    padding: 2px;
     overflow: hidden;
   }
   
+  /* Layout modes */
+  .layout-single {
+    flex-direction: column;
+  }
+  
+  .layout-split {
+    flex-direction: row;
+  }
+  
+  .layout-grid {
+    flex-wrap: wrap;
+  }
+  
+  .layout-grid .terminal-pane {
+    flex: 1 1 48%;
+  }
+  
   .terminal-pane {
-    position: absolute;
+    flex: 1;
     border: 1px solid var(--border, #333);
     background: var(--bg-darker, #0a0a0a);
     display: flex;
     flex-direction: column;
     transition: border-color 0.2s;
+    min-width: 200px;
+    min-height: 200px;
   }
   
   .terminal-pane.focused {
@@ -629,6 +371,7 @@
     border-bottom: 1px solid var(--border, #333);
     font-size: 12px;
     color: var(--text-secondary, #ccc);
+    flex-shrink: 0;
   }
   
   .pane-title {
@@ -643,16 +386,27 @@
   .pane-terminal {
     flex: 1;
     overflow: hidden;
-    padding: 4px;
+    display: flex;
+    flex-direction: column;
   }
   
-  /* ResizeHandle component will handle its own styles */
-  
-  /* Make sure xterm takes full space */
-  .pane-terminal :global(.xterm) {
-    width: 100% !important;
-    height: 100% !important;
+  /* Simple resize handle */
+  .resize-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border, #333);
+    cursor: col-resize;
+    z-index: 20;
   }
   
-  /* Desktop-only layout */
+  .resize-handle:hover {
+    background: var(--primary, #00ff88);
+  }
+  
+  /* Terminal component takes full space */
+  .pane-terminal :global(.terminal-container) {
+    height: 100%;
+  }
 </style>

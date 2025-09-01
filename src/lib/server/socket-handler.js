@@ -1,7 +1,8 @@
 // src/lib/server/socket-handler.js
 import { TerminalManager } from './terminal.js';
 import { addSession, switchSession, endSession, getSessions, updateSessionName } from './session-store.js';
-import { getClaudeService } from './claude-auth-middleware.js';
+import { createLegacyErrorResponse, createLegacySuccessResponse, ErrorHandler } from '../utils/error-handling.js';
+import { ValidationMiddleware, RateLimiter } from '../utils/validation.js';
 import fs from 'node:fs';
 
 const terminalManager = new TerminalManager();
@@ -18,6 +19,9 @@ const socketSessions = new Map();
 /** @type {Map<string, Map<string, Function>>} */
 const socketUnsubscribers = new Map();
 
+// Rate limiter for input events (per socket)
+const inputRateLimiter = new RateLimiter(1000, 50); // 50 inputs per second per socket
+
 export function handleConnection(socket) {
   console.log('Socket connected:', socket.id);
   
@@ -27,14 +31,15 @@ export function handleConnection(socket) {
   socket.on('auth', (key, callback) => {
     if (!AUTH_REQUIRED) {
       authenticated = true;
-      if (callback) callback({ ok: true });
+      if (callback) callback(createLegacySuccessResponse());
       console.log('Socket authenticated (no auth required):', socket.id);
     } else if (key === TERMINAL_KEY) {
       authenticated = true;
-      if (callback) callback({ ok: true });
+      if (callback) callback(createLegacySuccessResponse());
       console.log('Socket authenticated:', socket.id);
     } else {
-      if (callback) callback({ ok: false, error: 'Invalid key' });
+      const errorResponse = ErrorHandler.handle('Invalid authentication key', 'socket.auth', false);
+      if (callback) callback(createLegacyErrorResponse(errorResponse.error));
       console.log('Socket auth failed:', socket.id);
     }
   });
@@ -42,17 +47,21 @@ export function handleConnection(socket) {
   // Create new session
   socket.on('create', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback({ ok: false, error: 'Not authenticated' });
+      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      return;
+    }
+
+    // Validate session options
+    const validation = ValidationMiddleware.validateSessionOptions(opts || {});
+    if (!validation.success) {
+      if (callback) callback(createLegacyErrorResponse(validation.error));
       return;
     }
 
     try {
       const createOpts = {
-        mode: opts.mode,
-        cols: opts.cols,
-        rows: opts.rows,
-        name: opts.name, // Pass the optional name parameter
-        parentSessionId: opts.parentSessionId // Pass parent session ID for shared directory
+        ...validation.data,
+        parentSessionId: opts?.parentSessionId // Pass parent session ID for shared directory
       };
       const { sessionId, pty, name } = terminalManager.createSession(createOpts);
       
@@ -215,9 +224,23 @@ export function handleConnection(socket) {
 
   // Handle input from client
   socket.on('input', (data, sessionId) => {
+    // Rate limiting check
+    if (!inputRateLimiter.isAllowed(socket.id)) {
+      console.warn(`Rate limit exceeded for socket ${socket.id}`);
+      return;
+    }
+    
+    // Validate input data
+    const inputValidation = ValidationMiddleware.validateInput(data);
+    if (!inputValidation.success) {
+      console.warn(`Invalid input from socket ${socket.id}:`, inputValidation.error);
+      return;
+    }
+    const validatedData = inputValidation.data;
+    
     // Allow /login command even without authentication
-    const isLoginCommand = data && typeof data === 'string' && 
-      (data.trim() === '/login' || data.trim().startsWith('claude setup-token') || data.trim().startsWith('npx @anthropic-ai/claude setup-token'));
+    const isLoginCommand = validatedData && typeof validatedData === 'string' && 
+      (validatedData.trim() === '/login' || validatedData.trim().startsWith('claude setup-token') || validatedData.trim().startsWith('npx @anthropic-ai/claude setup-token'));
     
     if (!authenticated && !isLoginCommand) {
       return;
@@ -234,11 +257,11 @@ export function handleConnection(socket) {
     
     if (targetSessionId) {
       // Handle /login command specially
-      if (isLoginCommand && data.trim() === '/login') {
+      if (isLoginCommand && validatedData.trim() === '/login') {
         // Convert /login to the actual claude setup-token command
         terminalManager.writeToSession(targetSessionId, 'npx @anthropic-ai/claude setup-token\r');
       } else {
-        terminalManager.writeToSession(targetSessionId, data);
+        terminalManager.writeToSession(targetSessionId, validatedData);
       }
     }
   });
@@ -247,16 +270,25 @@ export function handleConnection(socket) {
   socket.on('resize', (dims) => {
     if (!authenticated) return;
     
+    // Validate dimensions
+    const validation = ValidationMiddleware.validateDimensions(dims);
+    if (!validation.success) {
+      console.warn(`Invalid resize dimensions from socket ${socket.id}:`, validation.error);
+      return;
+    }
+    
+    const validatedDims = validation.data;
+    
     // Resize specific session or all sessions for this socket
     const targetSessionId = dims.sessionId;
-    if (targetSessionId && dims.cols && dims.rows) {
-      terminalManager.resizeSession(targetSessionId, dims.cols, dims.rows);
+    if (targetSessionId) {
+      terminalManager.resizeSession(targetSessionId, validatedDims.cols, validatedDims.rows);
     } else {
       // Fall back to resizing first session if no specific session provided
       const sessions = socketSessions.get(socket.id);
-      if (sessions && sessions.size > 0 && dims.cols && dims.rows) {
+      if (sessions && sessions.size > 0) {
         const firstSessionId = sessions.values().next().value;
-        terminalManager.resizeSession(firstSessionId, dims.cols, dims.rows);
+        terminalManager.resizeSession(firstSessionId, validatedDims.cols, validatedDims.rows);
       }
     }
   });
