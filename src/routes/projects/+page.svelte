@@ -4,7 +4,6 @@
     import { goto } from "$app/navigation";
     import HeaderToolbar from "$lib/components/HeaderToolbar.svelte";
     import Container from "$lib/components/Container.svelte";
-    import { panelStore } from "$lib/stores/panel-store.js";
     import BackIcon from "$lib/components/Icons/BackIcon.svelte";
     import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
     import SessionIcon from "$lib/components/Icons/SessionIcon.svelte";
@@ -107,8 +106,6 @@
     }
 
     onMount(async () => {
-        panelStore.closeMobilePanel();
-
         try {
             socket = io();
 

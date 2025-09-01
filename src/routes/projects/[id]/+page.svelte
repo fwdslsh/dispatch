@@ -7,7 +7,6 @@
     import Container from "$lib/components/Container.svelte";
     import Terminal from "$lib/components/Terminal.svelte";
     import Chat from "$lib/components/ChatInterface.svelte";
-    import { panelStore } from "$lib/stores/panel-store.js";
     import BackIcon from "$lib/components/Icons/BackIcon.svelte";
     import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
     import SessionIcon from "$lib/components/Icons/SessionIcon.svelte";
@@ -65,8 +64,6 @@
             goto('/projects');
             return;
         }
-
-        panelStore.closeMobilePanel();
 
         try {
             socket = io();

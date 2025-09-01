@@ -8,6 +8,7 @@ import os from 'node:os';
 import { spawn } from 'node:child_process';
 import { handleConnection } from './lib/server/socket-handler.js';
 import { initializeSessionStore } from './lib/server/session-store.js';
+import { initializeProjectStore } from './lib/server/project-store.js';
 
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
@@ -38,6 +39,9 @@ try {
   
   // Initialize session store and clean up any orphaned sessions
   initializeSessionStore();
+  
+  // Initialize project store
+  initializeProjectStore();
   
 } catch (err) {
   console.error(`ERROR: PTY_ROOT or sessions file not writable: ${err.message}`);
