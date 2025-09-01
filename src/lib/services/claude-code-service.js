@@ -59,8 +59,10 @@ export class ClaudeCodeService {
         throw new Error('Not authenticated with Claude CLI. Please run: claude setup-token');
       } else if (error.code === 'ETIMEDOUT') {
         throw new Error('Claude request timed out');
+      } else if (error.message?.includes('exited with code 1') || error.message?.includes('ENOENT')) {
+        throw new Error('Claude CLI not found or not properly installed. Please run: npm install -g @anthropic-ai/claude-cli && claude setup-token');
       } else {
-        throw new Error(`Claude query failed: ${error.message}`);
+        throw new Error(`Claude query failed: ${error.message || error.toString()}`);
       }
     }
   }

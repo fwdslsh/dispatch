@@ -269,6 +269,7 @@ export function removeSessionFromProject(projectId, sessionId) {
   const data = readProjects();
   const project = data.projects.find(p => p.id === projectId);
   
+  console.log('Removing session:', sessionId, 'from project:', projectId);
   if (!project) {
     throw new Error('Project not found');
   }

@@ -154,12 +154,12 @@ export class TerminalSocketService {
       };
 
       this.socket.emit("attach", attachOptions, (response) => {
-        if (response && response.ok) {
+        if (response && (response.ok || response.success)) {
           console.debug('TerminalSocketService: Attached to session:', sessionId);
-          resolve(true);
+          resolve(response);
         } else {
           console.error('TerminalSocketService: Attach failed:', response);
-          resolve(false);
+          resolve({ success: false, error: response?.error || 'Attach failed' });
         }
       });
     });
@@ -296,6 +296,23 @@ export class TerminalSocketService {
     this.reconnectAttempts = 0;
 
     console.debug('TerminalSocketService: Disconnected and cleaned up');
+  }
+
+  /**
+   * Set external socket (for use with externally managed socket connections)
+   * @param {Object} socket - External socket instance
+   */
+  setSocket(socket) {
+    if (this.socket && this.socket !== socket) {
+      // Clean up existing socket
+      this.disconnect();
+    }
+    
+    this.socket = socket;
+    this.isConnected = socket?.connected || false;
+    this.isAuthenticated = true; // Assume external socket is already authenticated
+    
+    console.debug('TerminalSocketService: Using external socket:', socket?.id);
   }
 
   /**

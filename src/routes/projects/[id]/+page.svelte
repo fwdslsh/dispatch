@@ -1,5 +1,5 @@
 <script>
-    import { onMount, onDestroy } from "svelte";
+    import { onMount, onDestroy, mount, unmount } from "svelte";
     import { page } from "$app/stores";
     import { io } from "socket.io-client";
     import { goto } from "$app/navigation";
@@ -17,6 +17,7 @@
         validateSessionNameRealtime,
         validateSessionNameWithFeedback,
     } from "$lib/utils/session-name-validation.js";
+    import { createClaudeAuthContext } from "$lib/contexts/claude-auth-context.svelte.js";
 
     export let data;
 
@@ -50,6 +51,9 @@
 
     let socket;
     let authed = false;
+    
+    // Create Claude auth context for Chat components
+    const claudeAuthContext = createClaudeAuthContext();
 
     // Dialog state
     let showEndSessionDialog = false;
@@ -98,8 +102,14 @@
                 // If this was the active session, clear it
                 if (activeSessionId === sessionId) {
                     activeSessionId = null;
-                    currentTerminal = null;
-                    currentChat = null;
+                    if (currentTerminal) {
+                        unmount(currentTerminal);
+                        currentTerminal = null;
+                    }
+                    if (currentChat) {
+                        unmount(currentChat);
+                        currentChat = null;
+                    }
                 }
                 
                 // Reload project to update session statuses
@@ -117,6 +127,16 @@
     });
 
     onDestroy(() => {
+        // Cleanup components
+        if (currentTerminal) {
+            unmount(currentTerminal);
+            currentTerminal = null;
+        }
+        if (currentChat) {
+            unmount(currentChat);
+            currentChat = null;
+        }
+        
         if (socket) {
             socket.disconnect();
         }
@@ -126,11 +146,13 @@
         if (!socket || !authed || !projectId) return;
 
         socket.emit("get-project", { projectId }, (response) => {
-            if (response.ok) {
+            if (response.success) {
                 project = response.project;
                 sessions = project.sessions || [];
                 activeSessions = project.activeSessions || [];
                 console.log("Loaded project:", project);
+                console.log("Sessions from project:", sessions);
+                console.log("Active sessions from project:", activeSessions);
             } else {
                 console.error("Failed to load project:", response.error);
                 if (response.error === 'Project not found') {
@@ -161,7 +183,7 @@
                         rows: 24
                     }
                 }, (response) => {
-                    if (response.ok) {
+                    if (response.success) {
                         resolve(response);
                     } else {
                         reject(new Error(response.error || 'Creation failed'));
@@ -199,11 +221,17 @@
         }
 
         // Clear current instances
-        currentTerminal = null;
-        currentChat = null;
+        if (currentTerminal) {
+            unmount(currentTerminal);
+            currentTerminal = null;
+        }
+        if (currentChat) {
+            unmount(currentChat);
+            currentChat = null;
+        }
 
         socket.emit("attach", { sessionId, cols: 80, rows: 24 }, (response) => {
-            if (response.ok) {
+            if (response.success) {
                 activeSessionId = sessionId;
                 console.log("Attached to session:", sessionId);
                 
@@ -212,13 +240,17 @@
                                   activeSessions.find(s => s.sessionId === sessionId);
                 
                 if (sessionInfo?.type === 'claude') {
-                    // Create chat component
+                    // Create chat component with Claude auth context
                     setTimeout(() => {
                         const chatContainer = document.getElementById('chat-container');
                         if (chatContainer) {
-                            currentChat = new Chat({
+                            currentChat = mount(Chat, {
                                 target: chatContainer,
-                                props: { sessionId, socket }
+                                props: { 
+                                    sessionId, 
+                                    socket,
+                                    claudeAuthContext: claudeAuthContext
+                                }
                             });
                         }
                     }, 100);
@@ -227,9 +259,9 @@
                     setTimeout(() => {
                         const terminalContainer = document.getElementById('terminal-container');
                         if (terminalContainer) {
-                            currentTerminal = new Terminal({
+                            currentTerminal = mount(Terminal, {
                                 target: terminalContainer,
-                                props: { sessionId, socket }
+                                props: { sessionId, socket, projectId }
                             });
                         }
                     }, 100);
@@ -241,19 +273,22 @@
     }
 
     function confirmEndSession(sessionId) {
+        console.log('confirmEndSession called with sessionId:', sessionId);
         const sessionInfo = sessions.find(s => s.id === sessionId) || 
                            activeSessions.find(s => s.sessionId === sessionId);
         sessionToEnd = { id: sessionId, name: sessionInfo?.name || sessionId };
         showEndSessionDialog = true;
+        console.log('showEndSessionDialog set to:', showEndSessionDialog, 'sessionToEnd:', sessionToEnd);
     }
 
     async function endSession() {
+        console.log('endSession called, sessionToEnd:', sessionToEnd);
         if (!sessionToEnd || !socket || !authed) return;
 
         try {
             const result = await new Promise((resolve, reject) => {
                 socket.emit('end', sessionToEnd.id, (response) => {
-                    if (response?.ok !== false) {
+                    if (response?.success) {
                         resolve(response);
                     } else {
                         reject(new Error(response?.error || 'End session failed'));
@@ -263,14 +298,24 @@
 
             console.log('Session ended successfully');
             showEndSessionDialog = false;
-            sessionToEnd = null;
             
             // If this was the active session, clear it
-            if (activeSessionId === sessionToEnd.id) {
+            if (sessionToEnd && activeSessionId === sessionToEnd.id) {
                 activeSessionId = null;
-                currentTerminal = null;
-                currentChat = null;
+                if (currentTerminal) {
+                    unmount(currentTerminal);
+                    currentTerminal = null;
+                }
+                if (currentChat) {
+                    unmount(currentChat);
+                    currentChat = null;
+                }
             }
+            
+            sessionToEnd = null;
+            
+            // Reload project to update session list
+            loadProject();
         } catch (err) {
             console.error('Failed to end session:', err);
             // Could show error to user here
@@ -300,13 +345,13 @@
                     <BackIcon />
                 </button>
             {/snippet}
-            {#snippet center()}
-                <h1>{project?.name || 'Loading...'}</h1>
-                {#if project?.description}
-                    <p class="project-description">{project.description}</p>
-                {/if}
-            {/snippet}
             {#snippet right()}
+                <div class="header-content">
+                    <h1>{project?.name || 'Loading...'}</h1>
+                    {#if project?.description}
+                        <p class="project-description">{project.description}</p>
+                    {/if}
+                </div>
                 <PublicUrlDisplay />
             {/snippet}
         </HeaderToolbar>
@@ -355,6 +400,13 @@
                                             </button>
                                         {:else}
                                             <span class="session-status-stopped">Stopped</span>
+                                            <button
+                                                class="btn-sm btn-danger"
+                                                on:click={() => confirmEndSession(session.id)}
+                                                title="Remove from project"
+                                            >
+                                                <EndSessionIcon />
+                                            </button>
                                         {/if}
                                     </div>
                                 </div>
@@ -408,6 +460,12 @@
                             <option value="shell">Terminal (Shell)</option>
                             <option value="claude">Claude Agent</option>
                         </select>
+                        {#if sessionMode === 'claude'}
+                            <div class="session-mode-info">
+                                <p>⚠️ Claude sessions require authentication.</p>
+                                <p>If the session exits immediately, run: <code>npx @anthropic-ai/claude setup-token</code></p>
+                            </div>
+                        {/if}
                     </div>
                     
                     <div class="form-group">
@@ -435,7 +493,7 @@
                     <button
                         class="btn-primary"
                         on:click={createSessionInProject}
-                        disabled={!nameValidation.isValid && sessionName.trim()}
+                        disabled={!nameValidation.isValid && !!sessionName.trim()}
                     >
                         <StartSession />
                         Create Session
@@ -464,17 +522,27 @@
 
 <!-- End session confirmation dialog -->
 <ConfirmationDialog
-    bind:show={showEndSessionDialog}
+    open={showEndSessionDialog}
     title="End Session"
     message="Are you sure you want to end session '{sessionToEnd?.name}'? This will terminate the session and you may lose unsaved work."
     confirmText="End Session"
     cancelText="Cancel"
-    dangerous={true}
-    on:confirm={endSession}
-    on:cancel={cancelEndSession}
+    onConfirm={endSession}
+    onCancel={cancelEndSession}
+    onClose={cancelEndSession}
 />
 
 <style>
+    .header-content {
+        text-align: center;
+        flex: 1;
+    }
+
+    .header-content h1 {
+        margin: 0;
+        color: var(--text-primary);
+    }
+
     .project-description {
         font-size: 0.9rem;
         color: var(--text-secondary);
@@ -643,6 +711,33 @@
 
     .form-group input.invalid {
         border-color: var(--error);
+    }
+
+    .session-mode-info {
+        margin-top: var(--space-xs);
+        padding: var(--space-sm);
+        background: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    .session-mode-info p {
+        margin: 0;
+        margin-bottom: var(--space-xs);
+        color: #ffc107;
+    }
+
+    .session-mode-info p:last-child {
+        margin-bottom: 0;
+    }
+
+    .session-mode-info code {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        color: var(--accent);
     }
 
     .validation-message {

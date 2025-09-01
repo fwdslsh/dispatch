@@ -45,6 +45,7 @@ export class TerminalViewModel {
     this.currentOutputBuffer = '';
     this.inputDisposable = null;
     this.socketEventUnsubscribes = [];
+    this.queuedOutput = []; // Queue for output received before terminal is ready
   }
 
   /**
@@ -109,11 +110,18 @@ export class TerminalViewModel {
    * @param {string} projectId - Project ID (optional)
    */
   async initializeWithExternalSession(socket, sessionId, projectId = null) {
-    // Use external session
-    this.sessionService.useExternalSession(sessionId, projectId);
+    // Set up socket service to use the external socket
+    this.socketService.setSocket(socket);
     
-    // Set up socket event listeners using the external socket
+    // Set up socket event listeners FIRST so we can receive buffered data
     this.setupSocketEventListeners(socket);
+    
+    // Use external session and attach to it
+    const attached = await this.sessionService.useExternalSession(sessionId, projectId);
+    
+    if (!attached) {
+      throw new Error('Failed to attach to external session');
+    }
     
     this.connectionStatus.set('connected');
     this.updateSessionInfo();
@@ -158,17 +166,41 @@ export class TerminalViewModel {
    */
   async initializeTerminal(terminal, options = {}) {
     try {
-      // Initialize configuration service
+      // Initialize configuration service (simplified)
       const configInitialized = await this.configService.initialize(terminal, options);
       if (!configInitialized) {
         throw new Error('Failed to initialize terminal configuration');
       }
 
-      // Setup input handling
+      // Setup input handling ONCE
       this.setupInputHandling();
       
-      // Restore session history
-      this.restoreSessionHistory();
+      // First, restore session history to show previous content
+      const historyLoaded = this.restoreSessionHistory();
+      
+      // Then process any queued output from current session (don't duplicate with history)
+      if (this.queuedOutput && this.queuedOutput.length > 0 && !historyLoaded) {
+        console.debug('TerminalViewModel: Processing queued output:', this.queuedOutput.length, 'items');
+        this.queuedOutput.forEach(data => {
+          this.configService.write(data);
+        });
+        this.queuedOutput = [];
+      } else if (this.queuedOutput && this.queuedOutput.length > 0) {
+        console.debug('TerminalViewModel: Skipping queued output to avoid duplication with loaded history');
+        this.queuedOutput = [];
+      }
+      
+      // Send an empty string to trigger initial prompt display
+      // This helps the PTY know the terminal is ready
+      if (!historyLoaded) {
+        this.cleanupManager.setTimeout(() => {
+          if (this.sessionService.isActive()) {
+            console.debug('TerminalViewModel: Triggering initial prompt');
+            // Send empty string to trigger prompt without adding a newline
+            this.sessionService.sendInput('');
+          }
+        }, 100);
+      }
       
       console.debug('TerminalViewModel: Terminal initialized');
       return true;
@@ -226,10 +258,23 @@ export class TerminalViewModel {
     // Handle both old format (direct data) and new format (session-specific)
     const data = typeof output === 'string' ? output : output.data;
     
-    // Write to terminal
-    this.configService.write(data);
+    // Skip empty data
+    if (!data || data.length === 0) {
+      return;
+    }
     
-    // Add to session history
+    // Only write to terminal if configuration service is ready
+    if (this.configService && this.configService.isTerminalInitialized()) {
+      this.configService.write(data);
+    } else {
+      // Queue the data if terminal isn't ready yet
+      if (!this.queuedOutput) {
+        this.queuedOutput = [];
+      }
+      this.queuedOutput.push(data);
+    }
+    
+    // Add to session history (this is the PTY output that should be saved)
     this.sessionService.addToHistory(data);
     
     // Accumulate output data for chat history
@@ -251,10 +296,15 @@ export class TerminalViewModel {
       this.currentOutputBuffer = '';
     }
     
-    // Update terminal buffer cache
+    // Update terminal buffer cache and force save to history
     const terminal = this.configService.getTerminal();
     if (terminal) {
       this.sessionService.updateBuffer(terminal);
+      
+      // Force save history periodically to ensure persistence
+      if (this.sessionService.historyService) {
+        this.sessionService.historyService.save();
+      }
       
       // Notify parent component of buffer update
       const currentBuffer = this.sessionService.getCurrentBuffer();
@@ -266,33 +316,51 @@ export class TerminalViewModel {
    * Setup input handling
    */
   setupInputHandling() {
+    // CRITICAL: Always clean up existing handler first
     if (this.inputDisposable) {
+      console.debug('TerminalViewModel: Cleaning up existing input handler');
       this.inputDisposable();
+      this.inputDisposable = null;
     }
 
+    // Set up the single input handler
     this.inputDisposable = this.configService.setupInputHandler((data) => {
-      // Send input to session
+      // Log input for debugging
+      console.debug('TerminalViewModel: Received input from terminal:', JSON.stringify(data), 'sending to PTY');
+      
+      // Send input to session (PTY will echo back)
       this.sessionService.sendInput(data);
       
       // Notify event handler
       this.onInputEvent(data);
     });
+    
+    if (this.inputDisposable) {
+      console.debug('TerminalViewModel: Input handling setup complete - keystroke wiring active');
+    } else {
+      console.error('TerminalViewModel: Failed to setup input handling - keystrokes will not work');
+    }
   }
 
   /**
    * Restore session history
+   * @returns {boolean} Whether history was loaded
    */
   restoreSessionHistory() {
     const storedHistory = this.sessionService.getHistory();
     
-    if (storedHistory) {
+    if (storedHistory && storedHistory.length > 0) {
       console.debug('TerminalViewModel: Restoring session history, length:', storedHistory.length);
       this.configService.write(storedHistory);
       
       // Update buffer
       const currentBuffer = this.sessionService.getCurrentBuffer();
       this.onBufferUpdate(currentBuffer);
+      return true;
     }
+    
+    console.debug('TerminalViewModel: No session history to restore');
+    return false;
   }
 
   /**
@@ -433,6 +501,9 @@ export class TerminalViewModel {
       this.cleanupManager.cleanup();
     }
 
+    // Clear queued output
+    this.queuedOutput = [];
+    
     // Reset state
     this.isInitialized.set(false);
     this.isLoading.set(false);

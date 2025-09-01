@@ -153,21 +153,38 @@ export function handleConnection(socket) {
     let pty = terminalManager.getSession(sessionId);
     
     if (!pty) {
-      // Check if session exists in persistent storage
+      // Check if session exists in persistent storage (try both old and new stores)
+      let persistentSession = null;
+      
+      // First check the old session store
       const sessions = getSessions();
-      const persistentSession = sessions.sessions.find(s => s.id === sessionId);
+      persistentSession = sessions.sessions.find(s => s.id === sessionId);
+      
+      // If not found, check project-based sessions
+      if (!persistentSession) {
+        const projectsData = getProjects();
+        const projects = projectsData.projects || [];
+        for (const project of projects) {
+          const session = project.sessions?.find(s => s.id === sessionId);
+          if (session) {
+            persistentSession = session;
+            break;
+          }
+        }
+      }
       
       if (persistentSession) {
         // Session exists but PTY is dead, create a new PTY with existing session ID
         try {
+          const sessionMode = persistentSession.type === 'claude' ? 'claude' : 'shell';
           const result = terminalManager.createSessionWithId(sessionId, {
-            mode: terminalManager.defaultMode === 'claude' ? 'claude' : 'shell', // Use default mode for resumed sessions
+            mode: sessionMode,
             cols: opts.cols || 80,
             rows: opts.rows || 24,
             name: persistentSession.name
           });
           pty = result.pty;
-          console.log(`Resumed session: ${sessionId} (${persistentSession.name})`);
+          console.log(`Resumed session: ${sessionId} (${persistentSession.name}) in ${sessionMode} mode`);
         } catch (err) {
           if (callback) callback({ success: false, error: `Failed to resume session: ${err.message}` });
           return;
@@ -184,27 +201,31 @@ export function handleConnection(socket) {
     }
     socketSessions.get(socket.id).add(sessionId);
 
-    // Send buffered data first
+    // CRITICAL FIX: Send buffered data OR live stream, never both
     const bufferedData = terminalManager.getBufferedData(sessionId);
-    if (bufferedData) {
+    
+    if (bufferedData && bufferedData.trim().length > 0) {
+      // Session has history - send buffered data only (no live subscription)
+      console.debug(`Sending ${bufferedData.length} chars of buffered data for session ${sessionId}`);
       socket.emit('output', { sessionId, data: bufferedData });
+    } else {
+      // No history - set up live subscription only
+      console.debug(`Setting up live subscription for session ${sessionId}`);
+      const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
+        socket.emit('output', { sessionId, data });
+      });
+      
+      // Store unsubscriber for this specific session
+      if (!socketUnsubscribers.has(socket.id)) {
+        socketUnsubscribers.set(socket.id, new Map());
+      }
+      socketUnsubscribers.get(socket.id).set(sessionId, unsubscribe);
     }
 
     // Resize if dimensions provided
     if (opts.cols && opts.rows) {
       terminalManager.resizeSession(sessionId, opts.cols, opts.rows);
     }
-
-    // Subscribe to session data
-    const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
-      socket.emit('output', { sessionId, data });
-    });
-    
-    // Store unsubscriber for this specific session
-    if (!socketUnsubscribers.has(socket.id)) {
-      socketUnsubscribers.set(socket.id, new Map());
-    }
-    socketUnsubscribers.get(socket.id).set(sessionId, unsubscribe);
 
     // Handle PTY exit
     pty.onExit(({ exitCode, signal }) => {
@@ -305,8 +326,11 @@ export function handleConnection(socket) {
   });
 
   // End session
-  socket.on('end', (sessionIdArg) => {
-    if (!authenticated) return;
+  socket.on('end', (sessionIdArg, callback) => {
+    if (!authenticated) {
+      if (callback) callback({ success: false, error: 'Not authenticated' });
+      return;
+    }
 
     // Use provided sessionId or default to first session in socket's set
     let sessionId = sessionIdArg;
@@ -318,7 +342,42 @@ export function handleConnection(socket) {
     }
     
     if (sessionId) {
+      // Get project ID before ending session (metadata will be deleted)
+      const sessionMetadata = terminalManager.sessionMetadata.get(sessionId);
+      let projectId = sessionMetadata?.projectId;
+      
+      // If no projectId in terminal metadata, search project store
+      if (!projectId) {
+        console.log(`DEBUG: No projectId in session metadata, searching project store...`);
+        const projectsData = getProjects();
+        const projects = projectsData.projects || [];
+        
+        for (const project of projects) {
+          if (project.sessions && project.sessions.some(s => s.id === sessionId)) {
+            projectId = project.id;
+            console.log(`DEBUG: Found session ${sessionId} in project ${projectId}`);
+            break;
+          }
+        }
+      }
+      
+      console.log(`DEBUG: Ending session ${sessionId}`);
+      console.log(`DEBUG: Session metadata:`, sessionMetadata);
+      console.log(`DEBUG: Final projectId:`, projectId);
+      
       terminalManager.endSession(sessionId);
+      console.log(`Ended session: ${sessionId}, projectId: ${projectId}`);
+      // Remove session from project if it belongs to one
+      if (projectId) {
+        try {
+          removeSessionFromProject(projectId, sessionId);
+          console.log(`Removed session ${sessionId} from project ${projectId}`);
+          // Broadcast project updates to all clients
+          socket.server.emit('projects-updated', getProjects());
+        } catch (err) {
+          console.warn(`Failed to remove session from project: ${err.message}`);
+        }
+      }
       
       // Remove session from socket's session set
       const sessions = socketSessions.get(socket.id);
@@ -344,6 +403,10 @@ export function handleConnection(socket) {
       // Broadcast update
       socket.server.emit('sessions-updated', getSessions());
       socket.emit('ended');
+      
+      if (callback) callback({ success: true });
+    } else {
+      if (callback) callback({ success: false, error: 'Session not found' });
     }
   });
 

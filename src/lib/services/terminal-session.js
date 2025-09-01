@@ -127,20 +127,40 @@ export class TerminalSessionService {
   }
 
   /**
-   * Use an externally provided session
+   * Use an externally provided session and attach to it
    * @param {string} sessionId - Session ID
    * @param {string} projectId - Project ID (optional)
+   * @returns {Promise<boolean>} Success status
    */
-  useExternalSession(sessionId, projectId = null) {
-    this.sessionId = sessionId;
-    this.projectId = projectId;
-    this.isOwnSession = false;
-    this.status = 'connected';
-    
-    // Initialize history service
-    this.initializeHistoryService();
-    
-    console.debug('TerminalSessionService: Using external session:', sessionId);
+  async useExternalSession(sessionId, projectId = null) {
+    try {
+      this.sessionId = sessionId;
+      this.projectId = projectId;
+      this.isOwnSession = false;
+      this.status = 'connecting';
+      
+      // Actually attach to the existing PTY session via socket
+      const response = await this.socketService.attachToSession(sessionId, { cols: 80, rows: 24 });
+      
+      if (response && (response.success || response.ok)) {
+        this.status = 'connected';
+        this.sessionInfo = response;
+        
+        // Initialize history service
+        this.initializeHistoryService();
+        
+        console.debug('TerminalSessionService: Attached to external session:', sessionId);
+        return true;
+      } else {
+        this.status = 'disconnected';
+        console.error('TerminalSessionService: Failed to attach to external session:', response?.error);
+        return false;
+      }
+    } catch (error) {
+      this.status = 'disconnected';
+      console.error('TerminalSessionService: Error attaching to external session:', error);
+      return false;
+    }
   }
 
   /**
@@ -218,7 +238,13 @@ export class TerminalSessionService {
    * @returns {string} Session history
    */
   getHistory() {
-    return this.historyService ? this.historyService.load() : '';
+    if (this.historyService) {
+      const history = this.historyService.load();
+      console.debug(`TerminalSessionService: Loaded ${history.length} chars from history for session ${this.sessionId}`);
+      return history;
+    }
+    console.debug(`TerminalSessionService: No history service for session ${this.sessionId}`);
+    return '';
   }
 
   /**
@@ -226,8 +252,11 @@ export class TerminalSessionService {
    * @param {string} data - Output data
    */
   addToHistory(data) {
-    if (this.historyService) {
+    if (this.historyService && data && data.length > 0) {
       this.historyService.addEntry(data, 'output');
+      console.debug(`TerminalSessionService: Added ${data.length} chars to history for session ${this.sessionId}`);
+    } else if (!this.historyService) {
+      console.warn(`TerminalSessionService: No history service for session ${this.sessionId}`);
     }
   }
 

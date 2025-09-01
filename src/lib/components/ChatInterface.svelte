@@ -11,7 +11,13 @@
   import { getClaudeAuthContext } from '../contexts/claude-auth-context.svelte.js';
 
   // Props
-  let { sessionId = 'default', onSendMessage = () => {}, height = '400px' } = $props();
+  let { 
+    sessionId = 'default', 
+    socket = null,
+    onSendMessage = () => {}, 
+    height = '400px',
+    claudeAuthContext = null
+  } = $props();
 
   // Chat state
   let messages = $state([]);
@@ -20,8 +26,8 @@
   let messageContainer;
   let virtualList;
   
-  // Get Claude auth context
-  const claudeAuth = getClaudeAuthContext();
+  // Get Claude auth context - use prop if provided, otherwise get from context
+  const claudeAuth = claudeAuthContext || getClaudeAuthContext();
 
   // Initialize marked configuration
   onMount(() => {

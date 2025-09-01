@@ -5,15 +5,13 @@
 
 import { TERMINAL_CONFIG } from '../config/constants.js';
 import { ErrorHandler } from '../utils/error-handling.js';
-import { LinkDetector } from './link-detector.js';
 
 export class TerminalConfigurationService {
   constructor() {
     this.terminal = null;
     this.fitAddon = null;
-    this.linkDetector = null;
     this.resizeObserver = null;
-    this.eventListeners = [];
+    this.inputDisposable = null;
     this.isInitialized = false;
   }
 
@@ -28,6 +26,7 @@ export class TerminalConfigurationService {
       fontFamily: 'Courier New, monospace',
       scrollback: 10000,
       disableStdin: false,
+      localEcho: false,
       theme: { 
         background: '#0a0a0a',
         foreground: '#ffffff',
@@ -64,17 +63,11 @@ export class TerminalConfigurationService {
     try {
       this.terminal = terminal;
       
-      // Apply options (merge defaults with custom options)
-      const options = { ...this.getDefaultOptions(), ...customOptions };
-      
-      // Setup addons
+      // Just setup the basic addons - no complex configuration
       await this.setupAddons();
       
-      // Setup resize handling
+      // Basic resize handling
       this.setupResizeHandling();
-      
-      // Setup link detection
-      this.setupLinkDetection();
       
       this.isInitialized = true;
       console.debug('TerminalConfigurationService: Initialized');
@@ -143,33 +136,10 @@ export class TerminalConfigurationService {
         this.resizeObserver.observe(terminalElement);
       }
     }
-    
-    // Window resize listener
-    const windowResizeHandler = () => resize();
-    window.addEventListener('resize', windowResizeHandler);
-    this.eventListeners.push(() => {
-      window.removeEventListener('resize', windowResizeHandler);
-    });
 
     console.debug('TerminalConfigurationService: Resize handling setup');
   }
 
-  /**
-   * Setup link detection
-   */
-  setupLinkDetection() {
-    if (!this.terminal) {
-      return;
-    }
-
-    try {
-      this.linkDetector = new LinkDetector();
-      this.linkDetector.registerWithTerminal(this.terminal);
-      console.debug('TerminalConfigurationService: Link detection setup');
-    } catch (error) {
-      ErrorHandler.handle(error, 'TerminalConfigurationService.setupLinkDetection', false);
-    }
-  }
 
   /**
    * Fit terminal to container
@@ -274,14 +244,32 @@ export class TerminalConfigurationService {
    */
   setupInputHandler(onDataHandler) {
     if (!this.terminal || typeof onDataHandler !== 'function') {
+      console.warn('TerminalConfigurationService: No terminal or invalid handler provided');
       return () => {};
     }
 
     try {
-      const disposable = this.terminal.onData(onDataHandler);
+      // CRITICAL: Clean up any existing input handler first to prevent duplication
+      if (this.inputDisposable) {
+        if (typeof this.inputDisposable.dispose === 'function') {
+          this.inputDisposable.dispose();
+        }
+        this.inputDisposable = null;
+      }
+      
+      // Set up onData event handler for user input
+      this.inputDisposable = this.terminal.onData((data) => {
+        console.debug('Terminal received input data:', JSON.stringify(data), 'length:', data.length);
+        // Send the data to PTY via the handler
+        onDataHandler(data);
+      });
+      
+      console.debug('TerminalConfigurationService: Input handler setup complete - terminal ready for input');
+      
       return () => {
-        if (disposable && typeof disposable.dispose === 'function') {
-          disposable.dispose();
+        if (this.inputDisposable && typeof this.inputDisposable.dispose === 'function') {
+          this.inputDisposable.dispose();
+          this.inputDisposable = null;
         }
       };
     } catch (error) {
@@ -371,15 +359,13 @@ export class TerminalConfigurationService {
    * Cleanup resources
    */
   cleanup() {
-    // Remove event listeners
-    this.eventListeners.forEach(removeListener => {
-      try {
-        removeListener();
-      } catch (error) {
-        console.warn('Error removing event listener:', error);
+    // Cleanup input handler
+    if (this.inputDisposable) {
+      if (typeof this.inputDisposable.dispose === 'function') {
+        this.inputDisposable.dispose();
       }
-    });
-    this.eventListeners = [];
+      this.inputDisposable = null;
+    }
 
     // Cleanup resize observer
     if (this.resizeObserver) {
@@ -387,10 +373,6 @@ export class TerminalConfigurationService {
       this.resizeObserver = null;
     }
 
-    // Cleanup link detector
-    if (this.linkDetector) {
-      this.linkDetector = null;
-    }
 
     // Cleanup fit addon
     this.fitAddon = null;

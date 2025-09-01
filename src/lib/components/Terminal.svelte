@@ -3,28 +3,31 @@
   import { Xterm } from '@battlefieldduck/xterm-svelte';
   import { TerminalViewModel } from '../services/terminal-viewmodel.js';
 
-  export let socket = null;
-  export let sessionId = null;
-  export let projectId = null;
-  export let onchatclick = () => {};
-  export let initialHistory = '';
-  export let onInputEvent = () => {};
-  export let onOutputEvent = () => {};
-  export let onBufferUpdate = () => {};
-  export let terminalOptions = {};
+  let {
+    socket = null,
+    sessionId = null,
+    projectId = null,
+    onchatclick = () => {},
+    initialHistory = '',
+    onInputEvent = () => {},
+    onOutputEvent = () => {},
+    onBufferUpdate = () => {},
+    terminalOptions = {}
+  } = $props();
   
-  let terminal;
-  let viewModel = null;
-  let isLoading = true;
-  let error = null;
+  let terminal = $state();
+  let viewModel = $state(null);
+  let isLoading = $state(true);
+  let error = $state(null);
 
-  // Default terminal options
-  let options = {
+  // Terminal options configured for proper input handling
+  let options = $derived({
     convertEol: true,
     cursorBlink: true,
     fontFamily: 'Courier New, monospace',
     scrollback: 10000,
-    disableStdin: false,
+    disableStdin: false, // Enable input handling
+    allowTransparency: false, // Better performance
     theme: { 
       background: '#0a0a0a',
       foreground: '#ffffff',
@@ -49,7 +52,7 @@
       brightWhite: '#ffffff'
     },
     ...terminalOptions
-  };
+  });
 
   onMount(async () => {
     console.debug('Terminal mount - initializing ViewModel');
@@ -86,6 +89,9 @@
       console.debug('ViewModel or terminal not ready');
       return;
     }
+
+    // Ensure terminal is ready for input
+    console.debug('Terminal ready with options:', terminal.options);
 
     // Initialize terminal with ViewModel
     const terminalInitialized = await viewModel.initializeTerminal(terminal, options);
