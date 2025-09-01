@@ -68,6 +68,25 @@ export function createProject(projectData) {
     sessions: []
   };
 
+  // Create the project directory
+  const projectDir = path.join(PTY_ROOT, project.id);
+  try {
+    fs.mkdirSync(projectDir, { recursive: true });
+    console.log(`Created project directory: ${projectDir}`);
+  } catch (err) {
+    throw new Error(`Failed to create project directory: ${err.message}`);
+  }
+
+  // Create sessions subdirectory within the project
+  const sessionsDir = path.join(projectDir, 'sessions');
+  try {
+    fs.mkdirSync(sessionsDir, { recursive: true });
+    console.log(`Created sessions directory: ${sessionsDir}`);
+  } catch (err) {
+    console.warn(`Failed to create sessions directory: ${err.message}`);
+    // Don't fail project creation if sessions dir creation fails
+  }
+
   data.projects.push(project);
   writeProjects(data);
   return project;
@@ -136,6 +155,18 @@ export function deleteProject(projectId) {
   
   if (index === -1) {
     throw new Error('Project not found');
+  }
+
+  // Remove project directory if it exists
+  const projectDir = path.join(PTY_ROOT, projectId);
+  try {
+    if (fs.existsSync(projectDir)) {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+      console.log(`Removed project directory: ${projectDir}`);
+    }
+  } catch (err) {
+    console.warn(`Failed to remove project directory: ${err.message}`);
+    // Don't fail project deletion if directory removal fails
   }
 
   data.projects.splice(index, 1);

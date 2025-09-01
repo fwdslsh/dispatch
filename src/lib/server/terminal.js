@@ -56,7 +56,7 @@ export class TerminalManager {
    * @returns {{sessionId: string, pty: import('node-pty').IPty, name: string, projectId: string}}
    */
   createSessionInProject(projectId, opts = {}) {
-    const { cols = 80, rows = 24, mode = this.defaultMode, name } = opts;
+    const { cols = 80, rows = 24, mode = this.defaultMode, name, createSubfolder = false } = opts;
     const sessionId = randomUUID();
     
     // Validate and generate session name
@@ -72,6 +72,24 @@ export class TerminalManager {
       throw new Error(`Failed to create project directory: ${err.message}`);
     }
     
+    // Determine session working directory
+    let sessionWorkingDir = projectDir;
+    
+    if (createSubfolder) {
+      // Create a session-specific subfolder within the project/sessions directory
+      const sessionsDir = path.join(projectDir, 'sessions');
+      sessionWorkingDir = path.join(sessionsDir, sessionId);
+      
+      try {
+        fs.mkdirSync(sessionWorkingDir, { recursive: true });
+        console.log(`Created session subfolder: ${sessionWorkingDir}`);
+      } catch (err) {
+        console.warn(`Failed to create session subfolder: ${err.message}`);
+        // Fall back to project directory
+        sessionWorkingDir = projectDir;
+      }
+    }
+    
     // Determine command based on mode
     let command, args, env;
     if (mode === 'claude') {
@@ -80,7 +98,7 @@ export class TerminalManager {
       env = {
         ...process.env,
         TERM: 'xterm-256color',
-        HOME: projectDir
+        HOME: sessionWorkingDir
       };
     } else {
       // Default to shell mode
@@ -89,16 +107,16 @@ export class TerminalManager {
       env = {
         ...process.env,
         TERM: 'xterm-256color',
-        HOME: projectDir
+        HOME: sessionWorkingDir
       };
     }
     
-    // Create PTY with the project directory as cwd
+    // Create PTY with the session working directory as cwd
     const pty = spawn(command, args, {
       name: 'xterm-256color',
       cols,
       rows,
-      cwd: projectDir,
+      cwd: sessionWorkingDir,
       env
     });
 
@@ -115,14 +133,16 @@ export class TerminalManager {
       symlinkName = null;
     }
 
-    // Store session metadata with project reference
+    // Store session metadata with project reference and working directory
     this.sessionMetadata.set(sessionId, { 
       name: sessionName, 
       symlinkName,
-      projectId: projectId
+      projectId: projectId,
+      workingDir: sessionWorkingDir,
+      hasSubfolder: createSubfolder
     });
 
-    console.log(`Created session ${sessionId} (${sessionName}) in project ${projectId}`);
+    console.log(`Created session ${sessionId} (${sessionName}) in project ${projectId} at ${sessionWorkingDir}`);
 
     // Setup data handler with buffer management
     pty.onData((data) => {
