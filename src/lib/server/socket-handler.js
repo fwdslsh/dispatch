@@ -1,6 +1,17 @@
 // src/lib/server/socket-handler.js
 import { TerminalManager } from './terminal.js';
 import { addSession, switchSession, endSession, getSessions, updateSessionName } from './session-store.js';
+import { 
+  createProject, 
+  getProjects, 
+  getProject,
+  updateProject,
+  deleteProject,
+  addSessionToProject,
+  updateSessionInProject,
+  removeSessionFromProject,
+  setActiveProject 
+} from './project-store.js';
 import { createLegacyErrorResponse, createLegacySuccessResponse, ErrorHandler } from '../utils/error-handling.js';
 import { ValidationMiddleware, RateLimiter } from '../utils/validation.js';
 import fs from 'node:fs';
@@ -150,7 +161,7 @@ export function handleConnection(socket) {
         // Session exists but PTY is dead, create a new PTY with existing session ID
         try {
           const result = terminalManager.createSessionWithId(sessionId, {
-            mode: terminalManager.defaultMode, // Use default mode for resumed sessions
+            mode: terminalManager.defaultMode === 'claude' ? 'claude' : 'shell', // Use default mode for resumed sessions
             cols: opts.cols || 80,
             rows: opts.rows || 24,
             name: persistentSession.name
@@ -404,6 +415,263 @@ export function handleConnection(socket) {
       socketUnsubscribers.delete(socket.id);
     }
     socketSessions.delete(socket.id);
+  });
+
+  // PROJECT-BASED EVENT HANDLERS
+
+  // Create new project
+  socket.on('create-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { name, description } = opts || {};
+      
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        if (callback) callback(createLegacyErrorResponse('Project name is required'));
+        return;
+      }
+
+      const project = createProject({ name: name.trim(), description: description || '' });
+      
+      // Broadcast updated projects list
+      socket.server.emit('projects-updated', getProjects());
+      
+      if (callback) callback({ ok: true, project });
+    } catch (err) {
+      if (callback) callback(createLegacyErrorResponse(err.message));
+    }
+  });
+
+  // List projects
+  socket.on('list-projects', (callback) => {
+    if (!authenticated) {
+      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      return;
+    }
+    
+    try {
+      const projects = getProjects();
+      if (callback) callback({ ok: true, ...projects });
+    } catch (err) {
+      if (callback) callback(createLegacyErrorResponse(err.message));
+    }
+  });
+
+  // Get single project with sessions
+  socket.on('get-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createLegacyErrorResponse('Project ID is required'));
+        return;
+      }
+
+      const project = getProject(projectId);
+      
+      if (!project) {
+        if (callback) callback(createLegacyErrorResponse('Project not found'));
+        return;
+      }
+
+      // Get active sessions for this project
+      const activeSessions = terminalManager.getProjectSessions(projectId);
+      
+      if (callback) callback({ 
+        ok: true, 
+        project: {
+          ...project,
+          activeSessions
+        }
+      });
+    } catch (err) {
+      if (callback) callback(createLegacyErrorResponse(err.message));
+    }
+  });
+
+  // Update project
+  socket.on('update-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId, updates } = opts || {};
+      
+      if (!projectId || !updates) {
+        if (callback) callback(createLegacyErrorResponse('Project ID and updates are required'));
+        return;
+      }
+
+      const updatedProject = updateProject(projectId, updates);
+      
+      // Broadcast updated projects list
+      socket.server.emit('projects-updated', getProjects());
+      
+      if (callback) callback({ ok: true, project: updatedProject });
+    } catch (err) {
+      if (callback) callback(createLegacyErrorResponse(err.message));
+    }
+  });
+
+  // Delete project
+  socket.on('delete-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createLegacyErrorResponse('Project ID is required'));
+        return;
+      }
+
+      // End all active sessions in this project first
+      const activeSessions = terminalManager.getProjectSessions(projectId);
+      activeSessions.forEach(sessionInfo => {
+        if (sessionInfo.active) {
+          try {
+            terminalManager.endSession(sessionInfo.sessionId);
+          } catch (err) {
+            console.warn(`Failed to end session ${sessionInfo.sessionId}:`, err.message);
+          }
+        }
+      });
+
+      deleteProject(projectId);
+      
+      // Broadcast updated projects list
+      socket.server.emit('projects-updated', getProjects());
+      
+      if (callback) callback({ ok: true });
+    } catch (err) {
+      if (callback) callback(createLegacyErrorResponse(err.message));
+    }
+  });
+
+  // Create session within project
+  socket.on('create-session-in-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId, sessionOpts } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createLegacyErrorResponse('Project ID is required'));
+        return;
+      }
+
+      // Verify project exists
+      const project = getProject(projectId);
+      if (!project) {
+        if (callback) callback(createLegacyErrorResponse('Project not found'));
+        return;
+      }
+
+      // Validate session options
+      const validation = ValidationMiddleware.validateSessionOptions(sessionOpts || {});
+      if (!validation.success) {
+        if (callback) callback(createLegacyErrorResponse(validation.error));
+        return;
+      }
+
+      // Create PTY session in project
+      const createOpts = {
+        ...validation.data,
+        projectId: projectId
+      };
+      const { sessionId, pty, name } = terminalManager.createSessionInProject(projectId, createOpts);
+      
+      // Add session to this socket's session set
+      if (!socketSessions.has(socket.id)) {
+        socketSessions.set(socket.id, new Set());
+      }
+      socketSessions.get(socket.id).add(sessionId);
+
+      // Add session to project metadata
+      try {
+        addSessionToProject(projectId, {
+          id: sessionId,
+          name,
+          type: validation.data.mode || 'pty',
+          status: 'active'
+        });
+        
+        // Broadcast updated projects list
+        socket.server.emit('projects-updated', getProjects());
+      } catch (err) {
+        console.warn('Failed to persist session metadata:', err.message);
+      }
+
+      // Handle PTY exit
+      pty.onExit(({ exitCode, signal }) => {
+        socket.emit('session-ended', { sessionId, exitCode, signal });
+        
+        // Update session status in project
+        try {
+          updateSessionInProject(projectId, sessionId, { status: 'stopped' });
+          socket.server.emit('projects-updated', getProjects());
+        } catch (err) {
+          console.warn('Failed to update session status:', err.message);
+        }
+        
+        // Clean up this specific session
+        const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+        if (sessionUnsubscribers && sessionUnsubscribers.has(sessionId)) {
+          const unsubscribe = sessionUnsubscribers.get(sessionId);
+          if (unsubscribe) {
+            unsubscribe();
+            sessionUnsubscribers.delete(sessionId);
+          }
+        }
+        
+        // Remove session from socket's session set
+        const sessions = socketSessions.get(socket.id);
+        if (sessions) {
+          sessions.delete(sessionId);
+        }
+      });
+
+      if (callback) callback({ ok: true, sessionId, name, projectId });
+    } catch (err) {
+      if (callback) callback(createLegacyErrorResponse(err.message));
+    }
+  });
+
+  // Set active project
+  socket.on('set-active-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId } = opts || {};
+      
+      const activeProjectId = setActiveProject(projectId);
+      
+      // Broadcast updated projects list
+      socket.server.emit('projects-updated', getProjects());
+      
+      if (callback) callback({ ok: true, activeProject: activeProjectId });
+    } catch (err) {
+      if (callback) callback(createLegacyErrorResponse(err.message));
+    }
   });
 
   // Handle disconnect
