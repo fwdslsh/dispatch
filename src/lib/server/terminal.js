@@ -60,11 +60,15 @@ export class TerminalManager {
   setupDataHandler(pty, sessionId) {
     // ONLY SET UP ONE DATA HANDLER PER PTY
     pty.onData((data) => {
+      console.debug(`PTY data for session ${sessionId}:`, JSON.stringify(data));
+      
       // Buffer the data
       this.appendToBuffer(sessionId, data);
       
       // Notify all subscribers
       const subscribers = this.subscribers.get(sessionId);
+      console.debug(`Session ${sessionId} has ${subscribers ? subscribers.size : 0} subscribers`);
+      
       if (subscribers) {
         subscribers.forEach(callback => {
           try {
@@ -346,6 +350,8 @@ export class TerminalManager {
     });
 
     this.sessions.set(sessionId, pty);
+    this.buffers.set(sessionId, []);
+    this.subscribers.set(sessionId, new Set());
 
     // Set up data handler
     this.setupDataHandler(pty, sessionId);
@@ -359,6 +365,18 @@ export class TerminalManager {
     });
 
     console.log(`Created simple session ${sessionId} in mode ${mode} at ${sessionWorkingDir}`);
+    
+    // Force initial output to test PTY connectivity
+    setTimeout(() => {
+      try {
+        if (mode === 'shell') {
+          // Send a simple command to trigger shell output
+          pty.write('echo "Shell session ready"\r');
+        }
+      } catch (err) {
+        console.error(`Failed to send initial command to session ${sessionId}:`, err);
+      }
+    }, 500);
     
     return pty;
   }

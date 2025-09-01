@@ -271,11 +271,33 @@ export function handleConnection(socket) {
         // Session exists but PTY is dead, create a new PTY with existing session ID
         try {
           const sessionMode = persistentSession.type === 'claude' ? 'claude' : 'shell';
-          // Legacy createSessionWithId removed - sessions now require projects
-          if (callback) callback(createErrorResponse('Legacy session restoration not supported. Please create a new session.'));
-          return;
           
-          // Legacy session restoration not implemented
+          // Find the project this session belongs to
+          let projectId = null;
+          const projectsData = getProjects();
+          const projects = projectsData.projects || [];
+          for (const project of projects) {
+            if (project.sessions?.some(s => s.id === sessionId)) {
+              projectId = project.id;
+              break;
+            }
+          }
+          
+          if (!projectId) {
+            if (callback) callback({ success: false, error: 'Session project not found' });
+            return;
+          }
+          
+          // Create a new PTY for the existing session
+          const sessionOpts = {
+            mode: sessionMode,
+            name: persistentSession.name,
+            projectId: projectId
+          };
+          pty = terminalManager.createSimpleSession(sessionId, sessionOpts);
+          
+          console.log(`Restored session ${sessionId} with new PTY process`);
+          
         } catch (err) {
           if (callback) callback({ success: false, error: `Failed to restore session: ${err.message}` });
           return;

@@ -25,7 +25,7 @@ export function withClaudeAuth(handler) {
       
       return new Response(JSON.stringify({
         error: isAuthError ? 'Not authenticated with Claude CLI' : 'Authentication verification failed',
-        hint: isAuthError ? 'Run: npx @anthropic-ai/claude setup-token' : error.message
+        hint: isAuthError ? 'Run: claude setup-token' : error.message
       }), {
         status: isAuthError ? 401 : 500,
         headers: {
