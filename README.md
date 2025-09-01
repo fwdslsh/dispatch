@@ -63,14 +63,14 @@ Mount local directories to preserve your work across container restarts:
 
 ```bash
 # Create directories (no sudo needed!)
-mkdir -p ~/dispatch-home ~/dispatch-projects
+mkdir -p ~/dispatch-config ~/dispatch-projects
 
 # Option 1: Use your current user ID (recommended)
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
   --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/appuser \
-  -v ~/dispatch-projects:/workspace \
+  -v ~/dispatch-config:/home/appuser/.config/dispatch \
+  -v ~/dispatch-projects:/var/lib/dispatch/projects \
   fwdslsh/dispatch:latest
 
 # Option 2: Build with your user ID for seamless integration
@@ -81,15 +81,15 @@ docker build -f docker/Dockerfile \
 
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
-  -v ~/dispatch-home:/home/appuser \
-  -v ~/dispatch-projects:/workspace \
+  -v ~/dispatch-config:/home/appuser/.config/dispatch \
+  -v ~/dispatch-projects:/var/lib/dispatch/projects \
   dispatch-local
 ```
 
 This setup provides:
 
-- **Persistent home directory**: Your shell history, configs, and dotfiles survive container restarts
-- **Project workspace**: A dedicated folder for your code and projects  
+- **Persistent configuration**: Project registry and application settings survive container restarts
+- **Organized project storage**: Each project gets its own dedicated directory with session isolation
 - **Data safety**: Your work is saved on your host machine, not lost when the container stops
 - **No sudo required**: Uses your host user permissions for seamless file access
 
@@ -101,15 +101,15 @@ For the complete setup with both persistence and remote access:
 
 ```bash
 # Create directories (no sudo needed!)
-mkdir -p ~/dispatch-home ~/dispatch-projects
+mkdir -p ~/dispatch-config ~/dispatch-projects
 
 # Run with both features enabled
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
   -e ENABLE_TUNNEL=true \
   --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/appuser \
-  -v ~/dispatch-projects:/workspace \
+  -v ~/dispatch-config:/home/appuser/.config/dispatch \
+  -v ~/dispatch-projects:/var/lib/dispatch/projects \
   fwdslsh/dispatch:latest
 ```
 
@@ -121,13 +121,20 @@ docker run -p 3030:3030 \
 4. **Click "Create Session"** to start your first terminal
 5. **Start working!** Your terminal is ready to use
 
-### Multiple Sessions
+### Projects and Sessions
 
-Create multiple isolated terminals for different projects:
+Dispatch organizes your work into projects with isolated sessions:
 
-- Each session has its own directory and environment
+**Projects**: Logical containers for related work (e.g., "web-app", "data-analysis")
+- Each project has its own directory and storage space
+- Projects can be created, listed, and managed through the web interface
+- Projects persist across container restarts when using persistent storage
+
+**Sessions**: Individual terminal instances within a project
+- Each session runs in its own isolated environment
+- Sessions inherit the project's working directory and context
+- Multiple sessions can run simultaneously within the same project
 - Sessions persist until you explicitly end them
-- Switch between sessions easily in the web interface
 
 ## 🤖 AI-Powered Development with Claude
 
@@ -154,6 +161,9 @@ Customize Dispatch with these environment variables:
 | `PTY_MODE` | `shell` | Default mode: `shell` or `claude` |
 | `ENABLE_TUNNEL` | `false` | Enable public URL sharing |
 | `LT_SUBDOMAIN` | `""` | Custom subdomain for public URL |
+| `DISPATCH_CONFIG_DIR` | `/home/appuser/.config/dispatch` | Directory for configuration and project registry |
+| `DISPATCH_PROJECTS_DIR` | `/var/lib/dispatch/projects` | Root directory for project storage |
+| `CONTAINER_ENV` | `true` | Indicates running in container environment |
 
 ### Volume Mounting for Persistence
 
@@ -161,19 +171,19 @@ To preserve your data across container restarts, mount local directories:
 
 | Host Path | Container Path | Purpose |
 |-----------|----------------|---------|
-| `~/dispatch-home` | `/home/appuser` | User home directory (shell history, configs, dotfiles) |
-| `~/dispatch-projects` | `/workspace` | Project workspace for your code |
+| `~/dispatch-config` | `/home/appuser/.config/dispatch` | Application configuration and project registry |
+| `~/dispatch-projects` | `/var/lib/dispatch/projects` | Project storage (each project gets its own subdirectory) |
 | Custom path | `/data` | Any additional data you want to persist |
 
 **Setting up permissions**: The container runs as user ID 10001, so you need to set proper ownership:
 
 ```bash
 # Create directories and set ownership
-mkdir -p ~/dispatch-home ~/dispatch-projects
-sudo chown -R 10001:10001 ~/dispatch-home ~/dispatch-projects
+mkdir -p ~/dispatch-config ~/dispatch-projects
+sudo chown -R 10001:10001 ~/dispatch-config ~/dispatch-projects
 
 # Alternative: Use your user ID but with group 10001
-# sudo chown -R $(id -u):10001 ~/dispatch-home ~/dispatch-projects
+# sudo chown -R $(id -u):10001 ~/dispatch-config ~/dispatch-projects
 ```
 
 ### Example Configurations
@@ -253,8 +263,8 @@ docker run -p 3030:3030 \
 
 **Cannot write to mounted directories?**
 
-- Ensure directories have proper ownership: `sudo chown -R 10001:10001 ~/dispatch-home ~/dispatch-projects`
-- Check that directories exist before mounting: `mkdir -p ~/dispatch-home ~/dispatch-projects`
+- Ensure directories have proper ownership: `sudo chown -R 10001:10001 ~/dispatch-config ~/dispatch-projects`
+- Check that directories exist before mounting: `mkdir -p ~/dispatch-config ~/dispatch-projects`
 - Verify the mount paths are correct in your docker run command
 
 **Need more help?** Check our [GitHub Issues](https://github.com/fwdslsh/dispatch/issues) or create a new issue.

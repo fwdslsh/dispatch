@@ -13,10 +13,26 @@ services:
       - TERMINAL_KEY=change-me-in-production
       - PTY_MODE=shell
       - ENABLE_TUNNEL=false
+      # Directory management configuration
+      - DISPATCH_CONFIG_DIR=/home/appuser/.config/dispatch
+      - DISPATCH_PROJECTS_DIR=/var/lib/dispatch/projects
+      - CONTAINER_ENV=true
       # Uncomment for public access:
       # - ENABLE_TUNNEL=true
       # - LT_SUBDOMAIN=my-dispatch
+    volumes:
+      # Mount for persistent project storage
+      - dispatch_projects:/var/lib/dispatch/projects
+      # Mount for persistent configuration
+      - dispatch_config:/home/appuser/.config/dispatch
+      # Optional: Mount host directories for persistence
+      # - ./dispatch-projects:/var/lib/dispatch/projects
+      # - ./dispatch-config:/home/appuser/.config/dispatch
     restart: unless-stopped
-    # Optional: Mount for persistent sessions (not recommended for security)
-    # volumes:
-    #   - ./sessions:/tmp/dispatch-sessions
+
+volumes:
+  # Named volumes for project and configuration persistence
+  dispatch_projects:
+    driver: local
+  dispatch_config:
+    driver: local

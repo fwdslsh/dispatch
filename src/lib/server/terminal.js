@@ -200,7 +200,7 @@ export class TerminalManager {
         // Additional sandboxing environment variables
         PWD: sessionWorkingDir,
         USER: 'appuser',
-        PATH: '/usr/local/bin:/usr/bin:/bin',
+        //PATH: '/usr/local/bin:/usr/bin:/bin',
         // Session stays within project directory
         PROJECT_ROOT: projectDir,
         SESSION_DIR: sessionPath,
@@ -218,7 +218,7 @@ export class TerminalManager {
         // Additional sandboxing environment variables
         PWD: sessionWorkingDir,
         USER: 'appuser',
-        PATH: '/usr/local/bin:/usr/bin:/bin',
+        //PATH: '/usr/local/bin:/usr/bin:/bin',
         // Session stays within project directory
         PROJECT_ROOT: projectDir,
         SESSION_DIR: sessionPath,

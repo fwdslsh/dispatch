@@ -17,32 +17,32 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [X] 1.7 Add environment variable support in src/app.js
   - [X] 1.8 Verify all tests pass
 
-- [ ] 2. Socket API and Backend Integration
-  - [ ] 2.1 Write tests for socket handler project operations
-  - [ ] 2.2 Update src/lib/server/socket-handler.js with project parameter
-  - [ ] 2.3 Add listProjects event handler
-  - [ ] 2.4 Implement project filtering for session listing
-  - [ ] 2.5 Add project validation to attach event
-  - [ ] 2.6 Verify all tests pass
+- [X] 2. Socket API and Backend Integration
+  - [X] 2.1 Write tests for socket handler project operations
+  - [X] 2.2 Update src/lib/server/socket-handler.js with project parameter
+  - [X] 2.3 Add listProjects event handler
+  - [X] 2.4 Implement project filtering for session listing
+  - [X] 2.5 Add project validation to attach event
+  - [X] 2.6 Verify all tests pass
 
-- [ ] 3. Frontend Updates
-  - [ ] 3.1 Write tests for frontend project context
-  - [ ] 3.2 Update src/lib/components/Terminal.svelte for project support
-  - [ ] 3.3 Modify src/routes/+page.svelte with project selector
-  - [ ] 3.4 Update session pages to show project association
-  - [ ] 3.5 Verify all tests pass
+- [X] 3. Frontend Updates
+  - [X] 3.1 Write tests for frontend project context
+  - [X] 3.2 Update src/lib/components/Terminal.svelte for project support
+  - [X] 3.3 Modify src/routes/+page.svelte with project selector
+  - [X] 3.4 Update session pages to show project association
+  - [X] 3.5 Verify all tests pass
 
-- [ ] 4. Docker and Deployment Configuration
-  - [ ] 4.1 Write deployment validation tests
-  - [ ] 4.2 Update Dockerfile with new directory structure
-  - [ ] 4.3 Create or update docker-compose.yml with volume mounts
-  - [ ] 4.4 Modify start.sh script for directory initialization
-  - [ ] 4.5 Test container build and runtime permissions
-  - [ ] 4.6 Verify all tests pass
+- [X] 4. Docker and Deployment Configuration
+  - [X] 4.1 Write deployment validation tests
+  - [X] 4.2 Update Dockerfile with new directory structure
+  - [X] 4.3 Create or update docker-compose.yml with volume mounts
+  - [X] 4.4 Modify start.sh script for directory initialization
+  - [X] 4.5 Test container build and runtime permissions
+  - [X] 4.6 Verify all tests pass
 
-- [ ] 5. Documentation and Migration
-  - [ ] 5.1 Update README.md with new directory structure
-  - [ ] 5.2 Modify CLAUDE.md to reflect project/session changes
-  - [ ] 5.3 Update package.json scripts if needed
-  - [ ] 5.4 Test migration procedures
-  - [ ] 5.5 Verify documentation accuracy
+- [X] 5. Documentation and Migration
+  - [X] 5.1 Update README.md with new directory structure
+  - [X] 5.2 Modify CLAUDE.md to reflect project/session changes
+  - [X] 5.3 Update package.json scripts if needed
+  - [X] 5.4 Test migration procedures
+  - [X] 5.5 Verify documentation accuracy

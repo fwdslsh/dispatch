@@ -68,27 +68,39 @@ export function handleConnection(socket) {
     }
 
     try {
-      // Create a default project if none exists or get the default one
-      let defaultProject;
-      try {
-        const projects = await terminalManager.listProjects();
-        defaultProject = projects.find(p => p.name === 'default') || 
-                        projects.find(p => p.tags?.includes('default'));
-        
-        if (!defaultProject) {
-          // Create default project
-          defaultProject = await terminalManager.createProject('default', {
-            displayName: 'Default Project',
-            description: 'Default project for legacy sessions',
-            tags: ['default'],
-            settings: {
-              defaultShell: process.env.SHELL || '/bin/bash'
-            }
-          });
+      // Use specified project or create/get default project
+      let targetProject;
+      const { projectId } = opts || {};
+      
+      if (projectId) {
+        // Use specified project
+        targetProject = await terminalManager.getProject(projectId);
+        if (!targetProject) {
+          if (callback) callback(createErrorResponse(`Project ${projectId} not found`));
+          return;
         }
-      } catch (err) {
-        if (callback) callback(createErrorResponse(`Failed to create default project: ${err.message}`));
-        return;
+      } else {
+        // Create a default project if none exists or get the default one
+        try {
+          const projects = await terminalManager.listProjects();
+          targetProject = projects.find(p => p.name === 'default') || 
+                          projects.find(p => p.tags?.includes('default'));
+          
+          if (!targetProject) {
+            // Create default project
+            targetProject = await terminalManager.createProject('default', {
+              displayName: 'Default Project',
+              description: 'Default project for legacy sessions',
+              tags: ['default'],
+              settings: {
+                defaultShell: process.env.SHELL || '/bin/bash'
+              }
+            });
+          }
+        } catch (err) {
+          if (callback) callback(createErrorResponse(`Failed to create default project: ${err.message}`));
+          return;
+        }
       }
 
       const createOpts = {
@@ -96,7 +108,7 @@ export function handleConnection(socket) {
         purpose: 'Legacy session',
         metadata: opts?.meta || {}
       };
-      const result = await terminalManager.createSessionInProject(defaultProject.id, createOpts);
+      const result = await terminalManager.createSessionInProject(targetProject.id, createOpts);
       const { sessionId, pty, name } = result;
       
       // Add session to this socket's session set
@@ -151,28 +163,81 @@ export function handleConnection(socket) {
     }
   });
 
-  // List sessions (auth required)
-  socket.on('list', (callback) => {
+  // List sessions (auth required) with optional project filtering
+  socket.on('list', async (opts, callback) => {
+    // Handle both old signature (callback only) and new signature (opts, callback)
+    if (typeof opts === 'function') {
+      callback = opts;
+      opts = {};
+    }
+    
     if (!authenticated) {
       if (callback) callback({ success: false, error: 'Not authenticated' });
       return;
     }
     
     try {
-      if (callback) callback({ success: true, ...getSessions() });
+      const { projectId } = opts || {};
+      
+      if (projectId) {
+        // Filter sessions by project
+        const project = await terminalManager.getProject(projectId);
+        if (!project) {
+          if (callback) callback({ success: false, error: 'Project not found' });
+          return;
+        }
+        
+        // Get sessions for this project
+        const projectSessions = await terminalManager.getDirectoryManagerProjectSessions(projectId);
+        const activeSessions = Object.values(projectSessions).map(session => ({
+          ...session,
+          sessionId: session.id // Add sessionId alias for frontend compatibility
+        }));
+        
+        if (callback) callback({ 
+          success: true, 
+          sessions: activeSessions,
+          projectId: projectId 
+        });
+      } else {
+        // Return all sessions (legacy behavior)
+        if (callback) callback({ success: true, ...getSessions() });
+      }
     } catch (err) {
       if (callback) callback({ success: false, error: err.message });
     }
   });
 
-  // Attach to existing session
-  socket.on('attach', (opts, callback) => {
+  // Attach to existing session with project validation
+  socket.on('attach', async (opts, callback) => {
     if (!authenticated) {
       if (callback) callback({ success: false, error: 'Not authenticated' });
       return;
     }
 
-    const { sessionId } = opts;
+    const { sessionId, projectId } = opts;
+    
+    // Validate project if specified
+    if (projectId) {
+      try {
+        const project = await terminalManager.getProject(projectId);
+        if (!project) {
+          if (callback) callback({ success: false, error: 'Project not found' });
+          return;
+        }
+        
+        // Verify session belongs to the specified project
+        const projectSessions = await terminalManager.getDirectoryManagerProjectSessions(projectId);
+        if (!projectSessions[sessionId]) {
+          if (callback) callback({ success: false, error: 'Session not found in specified project' });
+          return;
+        }
+      } catch (err) {
+        if (callback) callback({ success: false, error: `Project validation failed: ${err.message}` });
+        return;
+      }
+    }
+
     let pty = terminalManager.getSession(sessionId);
     
     if (!pty) {

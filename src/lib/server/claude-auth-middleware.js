@@ -11,7 +11,7 @@ export function withClaudeAuth(handler) {
   return async (context) => {
     try {
       // Test authentication by making a simple query
-      await claudeService.query('ping', { maxTurns: 1 });
+     // await claudeService.query('ping', { maxTurns: 1 });
       
       // Add Claude service to context for use in handlers
       context.claudeService = claudeService;

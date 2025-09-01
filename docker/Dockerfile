@@ -37,10 +37,14 @@ RUN apt-get update \
 ENV NODE_ENV=production \
     PORT=3030 \
     TERMINAL_KEY=change-me \
-    PTY_ROOT=/tmp/dispatch-sessions \
     PTY_MODE=shell \
     ENABLE_TUNNEL=false \
     LT_SUBDOMAIN= \
+    # Directory management configuration
+    DISPATCH_CONFIG_DIR=/home/appuser/.config/dispatch \
+    DISPATCH_PROJECTS_DIR=/var/lib/dispatch/projects \
+    # Container environment flag
+    CONTAINER_ENV=true \
     # Project sandboxing configuration
     PROJECT_SANDBOX_ENABLED=true \
     HOST_HOME_DIR=/home/appuser
@@ -54,16 +58,16 @@ RUN (groupadd -g ${USER_GID} appuser || true) \
 WORKDIR /app
 COPY --from=build /app /app
 
-# Create directories for the application structure
-# /tmp/dispatch-sessions: Project storage root (each project gets a subdirectory)
-# /workspace: Legacy workspace directory for backward compatibility 
-# /home/appuser: Container's system home directory (mounted from host for system-wide configs)
-RUN mkdir -p /tmp/dispatch-sessions /workspace \
-    && chown -R appuser:appuser /tmp/dispatch-sessions /app /workspace /home/appuser \
-    # Create an initial sessions.json so the runtime has a writable file at PTY_ROOT
-    && printf '%s' '{"sessions": [], "active": null}' > /tmp/dispatch-sessions/sessions.json \
-    && chown appuser:appuser /tmp/dispatch-sessions/sessions.json \
-    && chmod 0644 /tmp/dispatch-sessions/sessions.json
+# Create directories for the new directory management structure
+# /home/appuser/.config/dispatch: Application configuration and project registry
+# /var/lib/dispatch/projects: Project storage root (each project gets a subdirectory)
+# /workspace: Legacy workspace directory for backward compatibility
+RUN mkdir -p /home/appuser/.config/dispatch /var/lib/dispatch/projects /workspace \
+    && chown -R appuser:appuser /home/appuser/.config/dispatch /var/lib/dispatch/projects /app /workspace /home/appuser \
+    # Create initial project registry file
+    && printf '%s' '{}' > /home/appuser/.config/dispatch/projects.json \
+    && chown appuser:appuser /home/appuser/.config/dispatch/projects.json \
+    && chmod 0644 /home/appuser/.config/dispatch/projects.json
 
 RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @qwen-code/qwen-code@latest
 USER appuser

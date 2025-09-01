@@ -46,7 +46,8 @@ node src/app.js
 - **Frontend**: SvelteKit application with xterm.js terminal emulator
 - **Backend**: Express server with Socket.IO for WebSocket communication
 - **Terminal Management**: node-pty for spawning and managing PTY sessions
-- **Session Storage**: Simple JSON-based session persistence  
+- **Project Management**: Hierarchical project/session organization with DirectoryManager
+- **Session Storage**: JSON-based project registry and session persistence  
 - **Containerization**: Multi-stage Docker build with non-root execution
 - **UI Framework**: Uses augmented-ui for futuristic styling (see https://augmented-ui.com/docs/)
 
@@ -63,10 +64,11 @@ src/
 │   │   ├── HeaderToolbar.svelte # Navigation toolbar
 │   │   └── Icons/             # SVG icon components
 │   └── server/
-│       ├── socket-handler.js  # Socket.IO connection management
-│       ├── terminal.js        # TerminalManager class for PTY sessions
-│       ├── session-store.js   # Session metadata persistence (stores file at PTY_ROOT/sessions.json)
-│       └── sessions.json      # Session storage file created at runtime in PTY_ROOT (default /tmp/dispatch-sessions/sessions.json)
+│       ├── socket-handler.js     # Socket.IO connection management with project support
+│       ├── terminal.js           # TerminalManager class for PTY sessions
+│       ├── session-store.js      # Session metadata persistence 
+│       ├── directory-manager.js  # Project and session directory management
+│       └── sessions.json         # Session storage file created at runtime
 └── routes/
     ├── +page.svelte          # Main application interface
     ├── sessions/+page.svelte # Session management interface
@@ -74,12 +76,21 @@ src/
     └── public-url/+server.js # LocalTunnel URL endpoint
 ```
 
-### Session Architecture
+### Project and Session Architecture
 
-Each terminal session runs in isolation:
-- **Unique directory**: `/tmp/dispatch-sessions/{uuid}`
-- **Independent environment**: Separate HOME and working directory
+The application organizes work into projects with isolated sessions:
+
+**Project Structure:**
+- **Project registry**: Stored in `DISPATCH_CONFIG_DIR/projects.json` (default: `/home/appuser/.config/dispatch/projects.json`)
+- **Project directories**: Each project gets its own directory in `DISPATCH_PROJECTS_DIR` (default: `/var/lib/dispatch/projects`)
+- **Unique project IDs**: Generated using timestamps and random values for uniqueness
+
+**Session Architecture:**
+Each terminal session runs within a project context:
+- **Session directory**: `{project_path}/sessions/{session_uuid}`
+- **Independent environment**: Separate HOME and working directory per session
 - **Process isolation**: Each session spawns its own PTY process
+- **Project inheritance**: Sessions inherit the project's working directory and context
 - **Mode selection**: Supports both Claude Code (`claude`) and shell (`bash`) modes
 
 ### Authentication & Security
@@ -96,10 +107,13 @@ Each terminal session runs in isolation:
 
 ### Optional Variables
 - `PORT`: Server port (default: `3030`)
-- `PTY_ROOT`: Session directory root (default: `/tmp/dispatch-sessions`)
+- `DISPATCH_CONFIG_DIR`: Configuration directory (default: `/home/appuser/.config/dispatch`)
+- `DISPATCH_PROJECTS_DIR`: Projects root directory (default: `/var/lib/dispatch/projects`)
+- `PTY_ROOT`: Legacy session directory root (deprecated, use DISPATCH_CONFIG_DIR/DISPATCH_PROJECTS_DIR)
 - `PTY_MODE`: Default session mode (default: `shell`, can be `claude`)
 - `ENABLE_TUNNEL`: Enable LocalTunnel (default: `false`)
 - `LT_SUBDOMAIN`: Optional LocalTunnel subdomain
+- `CONTAINER_ENV`: Container environment flag (default: `true` in Docker)
 
 ## Socket.IO API
 
@@ -107,9 +121,10 @@ The application uses Socket.IO for all terminal communication:
 
 ### Client Events
 - `auth(key, callback)` - Authenticate with terminal key
-- `create(opts, callback)` - Create new PTY session with `{mode, cols, rows, meta}`
+- `create(opts, callback)` - Create new PTY session with `{mode, cols, rows, meta, project}` (project optional)
 - `attach(opts, callback)` - Attach to existing session with `{sessionId, cols, rows}`
 - `list(callback)` - Get all sessions (no auth required)
+- `listProjects(callback)` - Get all projects 
 - `input(data)` - Send input to attached session
 - `resize(dims)` - Resize terminal with `{cols, rows}`
 - `end(sessionId?)` - End session (current if no ID provided)
@@ -120,15 +135,21 @@ The application uses Socket.IO for all terminal communication:
 - `ended({exitCode, signal})` - Session terminated
 - `sessions-updated(sessions)` - Broadcast when session list changes
 
-## Terminal Management
+## Terminal and Project Management
 
-The `TerminalManager` class handles PTY lifecycle:
+The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycle within projects:
+
+### Project Creation
+1. Generate unique project ID using timestamp and random values
+2. Create project directory in `DISPATCH_PROJECTS_DIR`
+3. Register project in project registry (`DISPATCH_CONFIG_DIR/projects.json`)
+4. Set up project metadata and permissions
 
 ### Session Creation
 1. Generate unique session ID (UUID)
-2. Create isolated directory in `PTY_ROOT`
+2. Create session directory within project: `{project_path}/sessions/{session_uuid}`
 3. Spawn PTY process with specified mode (`claude` or shell)
-4. Set up environment variables (`HOME`, `TERM`, etc.)
+4. Set up environment variables (`HOME`, `TERM`, etc.) with project context
 5. Register cleanup handlers for process exit
 
 ### Mode Switching
@@ -173,9 +194,11 @@ The `TerminalManager` class handles PTY lifecycle:
 - Session cleanup on unexpected termination
 
 ### State Management
-- Session metadata stored in JSON file
+- Project registry stored in `DISPATCH_CONFIG_DIR/projects.json`
+- Session metadata stored within project directories
 - Socket-to-session mapping for connection tracking
 - Broadcast updates when session list changes
+- Project-based session filtering and organization
 
 ## Testing & Debugging
 
@@ -189,13 +212,17 @@ For production with Claude Code:
 1. Install Claude CLI in container: `npm install -g @anthropic-ai/claude-cli`
 2. Set `PTY_MODE=claude`
 3. Configure authentication key
-4. Use volume mounts for session persistence if needed
+4. Mount persistent volumes for project data:
+   - `~/dispatch-config:/home/appuser/.config/dispatch` (project registry)
+   - `~/dispatch-projects:/var/lib/dispatch/projects` (project storage)
 
 ### Common Debug Points
 - Socket authentication flow in `socket-handler.js:17-26`
-- PTY session creation in `terminal.js:36-86`
+- Project creation in `directory-manager.js:115-145`
+- PTY session creation in `terminal.js:36-86`  
 - Terminal component initialization in `Terminal.svelte:28-62`
 - LocalTunnel URL extraction in `app.js:38-76`
+- Project registry management in `directory-manager.js:67-85`
 
 ### Development Access
 - Development server runs on all interfaces (`--host` flag)
@@ -215,7 +242,9 @@ For production with Claude Code:
 ## Runtime Requirements & Constraints
 
 - Container runs as non-root user (`appuser`, uid 10001)
-- Session directories are ephemeral and isolated
+- Project and session directories require proper permissions
+- Projects persist when using persistent volume mounts
+- Sessions are ephemeral within their project context
 - Claude CLI must be installed separately for Claude mode
 - LocalTunnel requires network access for public URLs
-- File system permissions must allow session directory creation
+- File system permissions must allow directory creation in `DISPATCH_CONFIG_DIR` and `DISPATCH_PROJECTS_DIR`
