@@ -4,25 +4,25 @@
   import { onMount } from "svelte";
   import Container from "$lib/components/Container.svelte";
   import PublicUrlDisplay from "$lib/components/PublicUrlDisplay.svelte";
-  let key = "";
-  let error = "";
-  let loading = false;
+  let key = $state(""); 
+  let error = $state("");
+  let loading = $state(false);
 
   onMount(() => {
     // Check if already authenticated
     const storedAuth = localStorage.getItem("dispatch-auth-token");
     if (storedAuth) {
-      goto("/sessions");
+      goto("/projects");
       return;
     }
 
     // Check if auth is required by testing with empty key
     const socket = io({ transports: ["websocket", "polling"] });
     socket.emit("auth", "", (resp) => {
-      if (resp.ok) {
+      if (resp?.success  === true) {
         // No auth required, redirect to sessions
         localStorage.setItem("dispatch-auth-token", "no-auth");
-        goto("/sessions");
+        goto("/projects");
       }
       socket.disconnect();
     });
@@ -35,9 +35,9 @@
     const socket = io({ transports: ["websocket", "polling"] });
     socket.emit("auth", key, (resp) => {
       loading = false;
-      if (resp.ok) {
+      if (resp?.success === true) {
         localStorage.setItem("dispatch-auth-token", key);
-        goto("/sessions");
+        goto("/projects");
       } else {
         error = resp.error || "Invalid key";
       }
@@ -60,7 +60,7 @@
         class="form-container"
         data-augmented-ui="br-clip bl-clip tl-clip tr-clip border"
       >
-        <form on:submit={handleLogin}>
+        <form onsubmit={handleLogin}>
           <input
             type="password"
             placeholder="terminal key"
