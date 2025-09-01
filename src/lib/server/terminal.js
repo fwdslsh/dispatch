@@ -301,6 +301,68 @@ export class TerminalManager {
     return projectSessions;
   }
 
+  /**
+   * Create a simple PTY session directly (without DirectoryManager)
+   * @param {string} sessionId - The session ID
+   * @param {SessionOpts} [opts={}] - Session options
+   * @returns {import('node-pty').IPty} The created PTY instance
+   */
+  createSimpleSession(sessionId, opts = {}) {
+    const { cols = 80, rows = 24, mode = this.defaultMode, name, workingDirectory } = opts;
+    
+    // Use current working directory or project-specific directory
+    const sessionWorkingDir = workingDirectory || process.cwd();
+    
+    // Determine command based on mode
+    let command, args, env;
+    if (mode === 'claude') {
+      command = 'claude';
+      args = [];
+      env = {
+        ...process.env,
+        TERM: 'xterm-256color',
+        PWD: sessionWorkingDir,
+        USER: process.env.USER || 'appuser'
+      };
+    } else {
+      // Default to shell mode
+      command = process.env.SHELL || '/bin/bash';
+      args = [];
+      env = {
+        ...process.env,
+        TERM: 'xterm-256color',
+        PWD: sessionWorkingDir,
+        USER: process.env.USER || 'appuser'
+      };
+    }
+    
+    // Create PTY
+    const pty = spawn(command, args, {
+      name: 'xterm-256color',
+      cols,
+      rows,
+      cwd: sessionWorkingDir,
+      env
+    });
+
+    this.sessions.set(sessionId, pty);
+
+    // Set up data handler
+    this.setupDataHandler(pty, sessionId);
+
+    // Store session metadata
+    this.sessionMetadata.set(sessionId, {
+      name: name || `session-${Date.now()}`,
+      symlinkName: '',
+      projectId: opts.projectId,
+      workingDir: sessionWorkingDir
+    });
+
+    console.log(`Created simple session ${sessionId} in mode ${mode} at ${sessionWorkingDir}`);
+    
+    return pty;
+  }
+
   // Legacy createSessionWithId method removed - use createSessionInProject instead
 
   // Legacy createSession method removed - use createSessionInProject instead
