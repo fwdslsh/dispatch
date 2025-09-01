@@ -1,14 +1,14 @@
 // src/lib/server/terminal.js
-import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { randomUUID } from 'node:crypto';
+// randomUUID import removed - now handled by DirectoryManager
 import { spawn } from 'node-pty';
-import { createSymlink, removeSymlinkByName, updateSymlink, cleanupOrphanedSymlinks } from './symlink-manager.js';
+import { createSymlink, removeSymlinkByName, cleanupOrphanedSymlinks } from './symlink-manager.js';
 import { validateSessionName, generateFallbackName, resolveNameConflict } from './name-validation.js';
 import { getAllSessionNames } from './session-store.js';
 import { TERMINAL_CONFIG } from '../config/constants.js';
+import DirectoryManager from './directory-manager.js';
 
 /**
  * @typedef {Object} SessionOpts
@@ -20,6 +20,8 @@ import { TERMINAL_CONFIG } from '../config/constants.js';
  * @property {string} [projectId]
  * @property {string} [workingDirectory]
  * @property {boolean} [createSubfolder]
+ * @property {string} [purpose]
+ * @property {Object} [metadata]
  */
 
 export class TerminalManager {
@@ -32,16 +34,14 @@ export class TerminalManager {
     this.subscribers = new Map();
     /** @type {Map<string, {name: string, symlinkName: string, projectId?: string, workingDir?: string, hasSubfolder?: boolean}>} */
     this.sessionMetadata = new Map();
-    this.ptyRoot = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
     this.defaultMode = process.env.PTY_MODE || 'shell';
     this.maxBufferSize = TERMINAL_CONFIG.MAX_HISTORY_ENTRIES;
     
-    // Ensure sessions directory exists
-    try {
-      fs.mkdirSync(this.ptyRoot, { recursive: true });
-    } catch (err) {
-      console.warn(`Could not create PTY root ${this.ptyRoot}:`, err.message);
-    }
+    // Initialize DirectoryManager
+    this.directoryManager = new DirectoryManager();
+    this.directoryManager.initialize().catch(err => {
+      console.error('Failed to initialize DirectoryManager:', err);
+    });
     
     // Cleanup orphaned symlinks on startup
     try {
@@ -83,15 +83,15 @@ export class TerminalManager {
    * List directories within a project folder
    * @param {string} projectId - The project ID
    * @param {string} [relativePath=''] - Relative path within the project (optional)
-   * @returns {Array<{name: string, path: string, isDirectory: boolean}>} Array of directory entries
+   * @returns {Promise<Array<{name: string, path: string, isDirectory: boolean}>>} Array of directory entries
    */
-  listProjectDirectories(projectId, relativePath = '') {
-    const projectDir = path.join(this.ptyRoot, projectId);
-    
-    // Ensure project directory exists
-    if (!fs.existsSync(projectDir)) {
-      throw new Error(`Project directory does not exist: ${projectId}`);
+  async listProjectDirectories(projectId, relativePath = '') {
+    const project = await this.directoryManager.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project does not exist: ${projectId}`);
     }
+    
+    const projectDir = project.path;
     
     // Construct the target directory path
     const targetDir = path.join(projectDir, relativePath);
@@ -139,43 +139,43 @@ export class TerminalManager {
    * Create a new PTY session within a project directory
    * @param {string} projectId - The project ID where the session will be created
    * @param {SessionOpts} [opts={}] - Session options
-   * @returns {{sessionId: string, pty: import('node-pty').IPty, name: string, projectId: string}}
+   * @returns {Promise<{sessionId: string, pty: import('node-pty').IPty, name: string, projectId: string}>}
    */
-  createSessionInProject(projectId, opts = {}) {
+  async createSessionInProject(projectId, opts = {}) {
     const { cols = 80, rows = 24, mode = this.defaultMode, name, workingDirectory } = opts;
-    const sessionId = randomUUID();
+    
+    // Create session through DirectoryManager
+    const sessionData = await this.directoryManager.createSession(projectId, {
+      mode,
+      purpose: opts.purpose || 'Terminal session',
+      ...opts.metadata
+    });
+    
+    const sessionId = sessionData.id;
+    const sessionPath = sessionData.path;
     
     // Validate and generate session name
     const sessionName = name || generateFallbackName(sessionId);
     
-    // Use project directory as the session directory
-    const projectDir = path.join(this.ptyRoot, projectId);
-    
-    // Ensure project directory exists
-    try {
-      fs.mkdirSync(projectDir, { recursive: true });
-    } catch (err) {
-      throw new Error(`Failed to create project directory: ${err.message}`);
-    }
+    // Get project info for the working directory
+    const project = await this.directoryManager.getProject(projectId);
+    const projectDir = project.path;
     
     // Determine session working directory
-    let sessionWorkingDir = projectDir;
+    // Sessions start in their own directory, but have access to the entire project
+    let sessionWorkingDir = sessionPath;
     
     if (workingDirectory) {
       // Use the specified working directory within the project
       const targetDir = path.join(projectDir, workingDirectory);
       
-      // Security check: ensure the target path is within the project directory
-      const resolvedProjectDir = path.resolve(projectDir);
-      const resolvedTargetDir = path.resolve(targetDir);
-      
-      if (!resolvedTargetDir.startsWith(resolvedProjectDir)) {
-        throw new Error('Invalid working directory: Must be within the project folder');
-      }
+      // Use DirectoryManager's path validation
+      this.directoryManager.validatePath(targetDir, projectDir);
       
       // Check if the working directory exists
       if (!fs.existsSync(targetDir)) {
-        throw new Error(`Working directory does not exist: ${workingDirectory}`);
+        // Create it if it doesn't exist
+        fs.mkdirSync(targetDir, { recursive: true });
       }
       
       // Verify it's actually a directory
@@ -196,13 +196,14 @@ export class TerminalManager {
       env = {
         ...process.env,
         TERM: 'xterm-256color',
-        HOME: sessionWorkingDir,
+        HOME: projectDir,  // Set HOME to project root for access to entire project
         // Additional sandboxing environment variables
         PWD: sessionWorkingDir,
         USER: 'appuser',
         PATH: '/usr/local/bin:/usr/bin:/bin',
-        // Prevent easy escape from project directory
-        PROMPT_COMMAND: `cd "${sessionWorkingDir}"`,
+        // Session stays within project directory
+        PROJECT_ROOT: projectDir,
+        SESSION_DIR: sessionPath,
         // Clear any potentially problematic env vars
         OLDPWD: sessionWorkingDir
       };
@@ -213,13 +214,14 @@ export class TerminalManager {
       env = {
         ...process.env,
         TERM: 'xterm-256color',
-        HOME: sessionWorkingDir,
+        HOME: projectDir,  // Set HOME to project root for access to entire project
         // Additional sandboxing environment variables
         PWD: sessionWorkingDir,
         USER: 'appuser',
         PATH: '/usr/local/bin:/usr/bin:/bin',
-        // Prevent easy escape from project directory
-        PROMPT_COMMAND: `cd "${sessionWorkingDir}"`,
+        // Session stays within project directory
+        PROJECT_ROOT: projectDir,
+        SESSION_DIR: sessionPath,
         // Clear any potentially problematic env vars
         OLDPWD: sessionWorkingDir
       };
@@ -258,6 +260,12 @@ export class TerminalManager {
 
     // Setup SINGLE data handler
     this.setupDataHandler(pty, sessionId);
+    
+    // Update session metadata with PID
+    await this.directoryManager.updateSession(projectId, sessionId, {
+      pid: pty.pid,
+      status: 'active'
+    });
 
     return { sessionId, pty, name: sessionName, projectId };
   }
@@ -293,239 +301,9 @@ export class TerminalManager {
     return projectSessions;
   }
 
-  /**
-   * Create a new PTY session with a specific session ID
-   * @param {string} sessionId - The session ID to use
-   * @param {SessionOpts} [opts={}] - Session options
-   * @returns {{sessionId: string, pty: import('node-pty').IPty, name: string}}
-   */
-  createSessionWithId(sessionId, opts = {}) {
-    const { cols = 80, rows = 24, mode = this.defaultMode, name, parentSessionId } = opts;
-    
-    // Validate and generate session name
-    const sessionName = name || generateFallbackName(sessionId);
-    
-    // Determine session directory - use parent session's directory if specified
-    let sessionDir;
-    if (parentSessionId && this.sessions.has(parentSessionId)) {
-      // Use the same directory as the parent session
-      sessionDir = path.join(this.ptyRoot, parentSessionId);
-      console.log(`Creating new session ${sessionId} in existing directory: ${sessionDir}`);
-    } else {
-      // Create new session directory
-      sessionDir = path.join(this.ptyRoot, sessionId);
-      try {
-        fs.mkdirSync(sessionDir, { recursive: true });
-      } catch (err) {
-        throw new Error(`Failed to create session directory: ${err.message}`);
-      }
-    }
-    
-    // Determine command based on mode
-    let command, args, env;
-    if (mode === 'claude') {
-      command = 'claude';
-      args = [];
-      env = {
-        ...process.env,
-        TERM: 'xterm-256color',
-        HOME: sessionDir
-      };
-    } else {
-      // Default to shell mode
-      command = process.env.SHELL || '/bin/bash';
-      args = [];
-      env = {
-        ...process.env,
-        TERM: 'xterm-256color',
-        HOME: sessionDir
-      };
-    }
-    
-    // Create PTY with the provided session ID
-    const pty = spawn(command, args, {
-      name: 'xterm-256color',
-      cols,
-      rows,
-      cwd: sessionDir,
-      env
-    });
+  // Legacy createSessionWithId method removed - use createSessionInProject instead
 
-    this.sessions.set(sessionId, pty);
-    this.buffers.set(sessionId, []);
-    this.subscribers.set(sessionId, new Set());
-    
-    // Create symlink for readable directory name
-    let symlinkName;
-    try {
-      symlinkName = createSymlink(sessionId, sessionName);
-    } catch (err) {
-      console.warn(`Failed to create symlink for session ${sessionId}:`, err.message);
-      symlinkName = null;
-    }
-    
-    // Store session metadata
-    this.sessionMetadata.set(sessionId, {
-      name: sessionName,
-      symlinkName: symlinkName
-    });
-    
-    // Set up SINGLE data handling
-    this.setupDataHandler(pty, sessionId);
-    
-    // Clean up on exit (but don't remove from persistent storage)
-    pty.onExit(() => {
-      this.sessions.delete(sessionId);
-      this.buffers.delete(sessionId);
-      this.subscribers.delete(sessionId);
-      
-      // Clean up symlink
-      const metadata = this.sessionMetadata.get(sessionId);
-      if (metadata && metadata.symlinkName) {
-        try {
-          removeSymlinkByName(metadata.symlinkName);
-        } catch (err) {
-          console.warn(`Failed to remove symlink for session ${sessionId}:`, err.message);
-        }
-      }
-      
-      this.sessionMetadata.delete(sessionId);
-    });
-    
-    return {
-      sessionId,
-      pty,
-      name: sessionName
-    };
-  }
-
-  /**
-   * Create a new PTY session
-   * @param {SessionOpts} opts
-   * @returns {{ sessionId: string, pty: import('node-pty').IPty, name: string }}
-   */
-  createSession(opts = {}) {
-    const sessionId = randomUUID();
-    
-    // If parentSessionId is provided, use the existing session directory
-    const { parentSessionId } = opts;
-    let sessionDir;
-    if (parentSessionId && this.sessions.has(parentSessionId)) {
-      sessionDir = path.join(this.ptyRoot, parentSessionId);
-      console.log(`Creating new session ${sessionId} in existing directory: ${sessionDir}`);
-    } else {
-      sessionDir = path.join(this.ptyRoot, sessionId);
-    }
-    
-    // Handle session name
-    let sessionName;
-    if (opts.name && validateSessionName(opts.name)) {
-      // Use custom name, resolving conflicts with existing sessions
-      const existingNames = getAllSessionNames();
-      sessionName = resolveNameConflict(opts.name.trim(), existingNames);
-    } else {
-      // Generate fallback name
-      sessionName = generateFallbackName(sessionId);
-    }
-    
-    // Create session directory (only if not using parent session directory)
-    if (!parentSessionId || !this.sessions.has(parentSessionId)) {
-      try {
-        fs.mkdirSync(sessionDir, { recursive: true });
-      } catch (err) {
-        console.error(`Failed to create session dir ${sessionDir}:`, err.message);
-        throw new Error(`Could not create session directory: ${err.message}`);
-      }
-    }
-
-    const mode = opts.mode || this.defaultMode;
-    const cols = opts.cols || 80;
-    const rows = opts.rows || 24;
-
-    let command, args;
-    
-    if (mode === 'claude') {
-      // Start Claude Code
-      command = 'claude';
-      args = [];
-    } else {
-      // Start shell
-      command = process.env.SHELL || '/bin/bash';
-      args = [];
-    }
-
-    const pty = spawn(command, args, {
-      name: 'xterm-256color',
-      cols,
-      rows,
-      cwd: sessionDir,
-      env: {
-        ...process.env,
-        TERM: 'xterm-256color',
-        HOME: sessionDir
-      }
-    });
-
-    this.sessions.set(sessionId, pty);
-    this.buffers.set(sessionId, []);
-    this.subscribers.set(sessionId, new Set());
-    
-    // Create symlink for readable directory name
-    let symlinkName;
-    try {
-      symlinkName = createSymlink(sessionId, sessionName);
-    } catch (err) {
-      console.warn(`Failed to create symlink for session ${sessionId}:`, err.message);
-      symlinkName = null;
-    }
-    
-    // Store session metadata
-    this.sessionMetadata.set(sessionId, {
-      name: sessionName,
-      symlinkName: symlinkName
-    });
-    
-    // Set up SINGLE data handling
-    this.setupDataHandler(pty, sessionId);
-    
-    // Clean up on exit
-    pty.onExit(({ exitCode, signal }) => {
-      // Detect Claude authentication issues
-      if (mode === 'claude' && exitCode === 1) {
-        console.warn(`Claude session ${sessionId} exited with code 1 - likely authentication issue`);
-        // Send authentication error message to subscribers
-        const authMessage = '\r\n\x1b[33m⚠ Claude CLI is not authenticated.\x1b[0m\r\n' +
-                           '\x1b[36mTo authenticate, run: npx @anthropic-ai/claude setup-token\x1b[0m\r\n' +
-                           '\x1b[36mOr use the /login command to authenticate interactively.\x1b[0m\r\n\r\n';
-        
-        // Send the message to all subscribers before cleaning up
-        const subscribers = this.subscribers.get(sessionId);
-        if (subscribers) {
-          subscribers.forEach(callback => callback(authMessage));
-        }
-      }
-      
-      this.sessions.delete(sessionId);
-      this.buffers.delete(sessionId);
-      this.subscribers.delete(sessionId);
-      
-      // Clean up symlink
-      const metadata = this.sessionMetadata.get(sessionId);
-      if (metadata && metadata.symlinkName) {
-        try {
-          removeSymlinkByName(metadata.symlinkName);
-        } catch (err) {
-          console.warn(`Failed to remove symlink for session ${sessionId}:`, err.message);
-        }
-      }
-      this.sessionMetadata.delete(sessionId);
-      
-      console.log(`Session ${sessionId} ended (exitCode: ${exitCode}, signal: ${signal})`);
-    });
-
-    console.log(`Created ${mode} session ${sessionId} "${sessionName}" in ${sessionDir}`);
-    return { sessionId, pty, name: sessionName };
-  }
+  // Legacy createSession method removed - use createSessionInProject instead
 
   /**
    * Get an existing session
@@ -723,5 +501,42 @@ export class TerminalManager {
    */
   getSessionMetadata(sessionId) {
     return this.sessionMetadata.get(sessionId) || null;
+  }
+  
+  /**
+   * Create a new project using DirectoryManager
+   * @param {string} name - Project name
+   * @param {Object} metadata - Project metadata
+   * @returns {Promise<Object>} Created project info
+   */
+  async createProject(name, metadata = {}) {
+    return this.directoryManager.createProject(name, metadata);
+  }
+  
+  /**
+   * List all projects
+   * @param {Object} options - Filter options
+   * @returns {Promise<Array>} List of projects
+   */
+  async listProjects(options = {}) {
+    return this.directoryManager.listProjects(options);
+  }
+  
+  /**
+   * Get project by ID
+   * @param {string} projectId - Project ID
+   * @returns {Promise<Object|null>} Project info or null if not found
+   */
+  async getProject(projectId) {
+    return this.directoryManager.getProject(projectId);
+  }
+  
+  /**
+   * Get sessions for a project using DirectoryManager
+   * @param {string} projectId - Project ID
+   * @returns {Promise<Object>} Sessions map
+   */
+  async getDirectoryManagerProjectSessions(projectId) {
+    return this.directoryManager.getProjectSessions(projectId);
   }
 }

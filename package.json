@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "TERMINAL_KEY='test' vite dev --host",
     "dev:server": "TERMINAL_KEY='test' node src/dev-server.js",
-    "dev:no-key": "TERMINAL_KEY='test' vite dev --host",
+    "dev:no-key": "TERMINAL_KEY='' vite dev --host",
     "dev:tunnel": "TERMINAL_KEY=test ENABLE_TUNNEL=true vite dev --host",
     "build": "vite build",
     "preview": "vite preview",

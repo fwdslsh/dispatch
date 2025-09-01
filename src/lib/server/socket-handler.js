@@ -18,12 +18,10 @@ import fs from 'node:fs';
 
 const terminalManager = new TerminalManager();
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
-const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
-const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
-const TUNNEL_FILE = process.env.TUNNEL_FILE || `${PTY_ROOT}/tunnel-url.txt`;
+const TUNNEL_FILE = '/tmp/tunnel-url.txt'; // Simplified tunnel file path
 
 // Check if auth key is required
-const AUTH_REQUIRED = ENABLE_TUNNEL || TERMINAL_KEY !== 'change-me';
+const AUTH_REQUIRED = TERMINAL_KEY !== 'change-me';
 
 /** @type {Map<string, Set<string>>} */
 const socketSessions = new Map();
@@ -56,7 +54,7 @@ export function handleConnection(socket) {
   });
 
   // Create new session
-  socket.on('create', (opts, callback) => {
+  socket.on('create', async (opts, callback) => {
     if (!authenticated) {
       if (callback) callback(createErrorResponse('Not authenticated'));
       return;
@@ -70,11 +68,36 @@ export function handleConnection(socket) {
     }
 
     try {
+      // Create a default project if none exists or get the default one
+      let defaultProject;
+      try {
+        const projects = await terminalManager.listProjects();
+        defaultProject = projects.find(p => p.name === 'default') || 
+                        projects.find(p => p.tags?.includes('default'));
+        
+        if (!defaultProject) {
+          // Create default project
+          defaultProject = await terminalManager.createProject('default', {
+            displayName: 'Default Project',
+            description: 'Default project for legacy sessions',
+            tags: ['default'],
+            settings: {
+              defaultShell: process.env.SHELL || '/bin/bash'
+            }
+          });
+        }
+      } catch (err) {
+        if (callback) callback(createErrorResponse(`Failed to create default project: ${err.message}`));
+        return;
+      }
+
       const createOpts = {
         ...validation.data,
-        parentSessionId: opts?.parentSessionId // Pass parent session ID for shared directory
+        purpose: 'Legacy session',
+        metadata: opts?.meta || {}
       };
-      const { sessionId, pty, name } = terminalManager.createSession(createOpts);
+      const result = await terminalManager.createSessionInProject(defaultProject.id, createOpts);
+      const { sessionId, pty, name } = result;
       
       // Add session to this socket's session set
       if (!socketSessions.has(socket.id)) {
@@ -177,16 +200,13 @@ export function handleConnection(socket) {
         // Session exists but PTY is dead, create a new PTY with existing session ID
         try {
           const sessionMode = persistentSession.type === 'claude' ? 'claude' : 'shell';
-          const result = terminalManager.createSessionWithId(sessionId, {
-            mode: sessionMode,
-            cols: opts.cols || 80,
-            rows: opts.rows || 24,
-            name: persistentSession.name
-          });
-          pty = result.pty;
-          console.log(`Resumed session: ${sessionId} (${persistentSession.name}) in ${sessionMode} mode`);
+          // Legacy createSessionWithId removed - sessions now require projects
+          if (callback) callback(createErrorResponse('Legacy session restoration not supported. Please create a new session.'));
+          return;
+          
+          // Legacy session restoration not implemented
         } catch (err) {
-          if (callback) callback({ success: false, error: `Failed to resume session: ${err.message}` });
+          if (callback) callback({ success: false, error: `Failed to restore session: ${err.message}` });
           return;
         }
       } else {
@@ -493,7 +513,7 @@ export function handleConnection(socket) {
   // PROJECT-BASED EVENT HANDLERS
 
   // Create new project
-  socket.on('create-project', (opts, callback) => {
+  socket.on('create-project', async (opts, callback) => {
     if (!authenticated) {
       if (callback) callback(createErrorResponse('Not authenticated'));
       return;
@@ -507,10 +527,13 @@ export function handleConnection(socket) {
         return;
       }
 
-      const project = createProject({ name: name.trim(), description: description || '' });
+      const project = await terminalManager.createProject(name.trim(), { 
+        description: description || '' 
+      });
       
       // Broadcast updated projects list
-      socket.server.emit('projects-updated', getProjects());
+      const projects = await terminalManager.listProjects();
+      socket.server.emit('projects-updated', projects);
       
       if (callback) callback({ success: true, project });
     } catch (err) {
@@ -519,22 +542,22 @@ export function handleConnection(socket) {
   });
 
   // List projects
-  socket.on('list-projects', (callback) => {
+  socket.on('list-projects', async (callback) => {
     if (!authenticated) {
       if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
     
     try {
-      const projects = getProjects();
-      if (callback) callback({ success: true, ...projects });
+      const projects = await terminalManager.listProjects();
+      if (callback) callback({ success: true, projects });
     } catch (err) {
       if (callback) callback(createErrorResponse(err.message));
     }
   });
 
   // Get single project with sessions
-  socket.on('get-project', (opts, callback) => {
+  socket.on('get-project', async (opts, callback) => {
     if (!authenticated) {
       if (callback) callback(createErrorResponse('Not authenticated'));
       return;
@@ -548,7 +571,7 @@ export function handleConnection(socket) {
         return;
       }
 
-      const project = getProject(projectId);
+      const project = await terminalManager.getProject(projectId);
       
       if (!project) {
         if (callback) callback(createErrorResponse('Project not found'));
@@ -556,7 +579,14 @@ export function handleConnection(socket) {
       }
 
       // Get active sessions for this project
-      const activeSessions = terminalManager.getProjectSessions(projectId);
+      const activeSessionsObj = await terminalManager.getDirectoryManagerProjectSessions(projectId);
+      
+      // Convert sessions object to array for frontend compatibility
+      // Ensure each session has both 'id' and 'sessionId' properties
+      const activeSessions = Object.values(activeSessionsObj).map(session => ({
+        ...session,
+        sessionId: session.id  // Add sessionId alias for frontend compatibility
+      }));
       
       if (callback) callback({ 
         success: true, 
@@ -635,7 +665,7 @@ export function handleConnection(socket) {
   });
 
   // Create session within project
-  socket.on('create-session-in-project', (opts, callback) => {
+  socket.on('create-session-in-project', async (opts, callback) => {
     if (!authenticated) {
       if (callback) callback(createErrorResponse('Not authenticated'));
       return;
@@ -650,7 +680,7 @@ export function handleConnection(socket) {
       }
 
       // Verify project exists
-      const project = getProject(projectId);
+      const project = await terminalManager.getProject(projectId);
       if (!project) {
         if (callback) callback(createErrorResponse('Project not found'));
         return;
@@ -669,7 +699,7 @@ export function handleConnection(socket) {
         projectId: projectId,
         workingDirectory: sessionOpts?.workingDirectory // Pass through working directory option
       };
-      const { sessionId, pty, name } = terminalManager.createSessionInProject(projectId, createOpts);
+      const { sessionId, pty, name } = await terminalManager.createSessionInProject(projectId, createOpts);
       
       // Add session to this socket's session set
       if (!socketSessions.has(socket.id)) {
