@@ -1,7 +1,18 @@
 // src/lib/server/socket-handler.js
 import { TerminalManager } from './terminal.js';
 import { addSession, switchSession, endSession, getSessions, updateSessionName } from './session-store.js';
-import { createLegacyErrorResponse, createLegacySuccessResponse, ErrorHandler } from '../utils/error-handling.js';
+import { 
+  createProject, 
+  getProjects, 
+  getProject,
+  updateProject,
+  deleteProject,
+  addSessionToProject,
+  updateSessionInProject,
+  removeSessionFromProject,
+  setActiveProject 
+} from './project-store.js';
+import { createErrorResponse, createSuccessResponse, ErrorHandler } from '../utils/error-handling.js';
 import { ValidationMiddleware, RateLimiter } from '../utils/validation.js';
 import fs from 'node:fs';
 
@@ -31,15 +42,15 @@ export function handleConnection(socket) {
   socket.on('auth', (key, callback) => {
     if (!AUTH_REQUIRED) {
       authenticated = true;
-      if (callback) callback(createLegacySuccessResponse());
+      if (callback) callback(createSuccessResponse());
       console.log('Socket authenticated (no auth required):', socket.id);
     } else if (key === TERMINAL_KEY) {
       authenticated = true;
-      if (callback) callback(createLegacySuccessResponse());
+      if (callback) callback(createSuccessResponse());
       console.log('Socket authenticated:', socket.id);
     } else {
       const errorResponse = ErrorHandler.handle('Invalid authentication key', 'socket.auth', false);
-      if (callback) callback(createLegacyErrorResponse(errorResponse.error));
+      if (callback) callback(createErrorResponse(errorResponse.error));
       console.log('Socket auth failed:', socket.id);
     }
   });
@@ -47,14 +58,14 @@ export function handleConnection(socket) {
   // Create new session
   socket.on('create', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback(createLegacyErrorResponse('Not authenticated'));
+      if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
 
     // Validate session options
     const validation = ValidationMiddleware.validateSessionOptions(opts || {});
     if (!validation.success) {
-      if (callback) callback(createLegacyErrorResponse(validation.error));
+      if (callback) callback(createErrorResponse(validation.error));
       return;
     }
 
@@ -111,30 +122,30 @@ export function handleConnection(socket) {
         // Sessions persist and can be reconnected to with new PTY processes
       });
 
-      if (callback) callback({ ok: true, sessionId, name });
+      if (callback) callback({ success: true, sessionId, name });
     } catch (err) {
-      if (callback) callback({ ok: false, error: err.message });
+      if (callback) callback({ success: false, error: err.message });
     }
   });
 
   // List sessions (auth required)
   socket.on('list', (callback) => {
     if (!authenticated) {
-      if (callback) callback({ ok: false, error: 'Not authenticated' });
+      if (callback) callback({ success: false, error: 'Not authenticated' });
       return;
     }
     
     try {
-      if (callback) callback({ ok: true, ...getSessions() });
+      if (callback) callback({ success: true, ...getSessions() });
     } catch (err) {
-      if (callback) callback({ ok: false, error: err.message });
+      if (callback) callback({ success: false, error: err.message });
     }
   });
 
   // Attach to existing session
   socket.on('attach', (opts, callback) => {
     if (!authenticated) {
-      if (callback) callback({ ok: false, error: 'Not authenticated' });
+      if (callback) callback({ success: false, error: 'Not authenticated' });
       return;
     }
 
@@ -142,27 +153,44 @@ export function handleConnection(socket) {
     let pty = terminalManager.getSession(sessionId);
     
     if (!pty) {
-      // Check if session exists in persistent storage
+      // Check if session exists in persistent storage (try both old and new stores)
+      let persistentSession = null;
+      
+      // First check the old session store
       const sessions = getSessions();
-      const persistentSession = sessions.sessions.find(s => s.id === sessionId);
+      persistentSession = sessions.sessions.find(s => s.id === sessionId);
+      
+      // If not found, check project-based sessions
+      if (!persistentSession) {
+        const projectsData = getProjects();
+        const projects = projectsData.projects || [];
+        for (const project of projects) {
+          const session = project.sessions?.find(s => s.id === sessionId);
+          if (session) {
+            persistentSession = session;
+            break;
+          }
+        }
+      }
       
       if (persistentSession) {
         // Session exists but PTY is dead, create a new PTY with existing session ID
         try {
+          const sessionMode = persistentSession.type === 'claude' ? 'claude' : 'shell';
           const result = terminalManager.createSessionWithId(sessionId, {
-            mode: terminalManager.defaultMode, // Use default mode for resumed sessions
+            mode: sessionMode,
             cols: opts.cols || 80,
             rows: opts.rows || 24,
             name: persistentSession.name
           });
           pty = result.pty;
-          console.log(`Resumed session: ${sessionId} (${persistentSession.name})`);
+          console.log(`Resumed session: ${sessionId} (${persistentSession.name}) in ${sessionMode} mode`);
         } catch (err) {
-          if (callback) callback({ ok: false, error: `Failed to resume session: ${err.message}` });
+          if (callback) callback({ success: false, error: `Failed to resume session: ${err.message}` });
           return;
         }
       } else {
-        if (callback) callback({ ok: false, error: 'Session not found' });
+        if (callback) callback({ success: false, error: 'Session not found' });
         return;
       }
     }
@@ -173,18 +201,27 @@ export function handleConnection(socket) {
     }
     socketSessions.get(socket.id).add(sessionId);
 
-    // Send buffered data first
+    // Send buffered data (history) AND set up live subscription for new output
     const bufferedData = terminalManager.getBufferedData(sessionId);
-    if (bufferedData) {
+    
+    // First, send any buffered/historical data
+    if (bufferedData && bufferedData.trim().length > 0) {
+      console.debug(`Sending ${bufferedData.length} chars of buffered data for session ${sessionId}`);
       socket.emit('output', { sessionId, data: bufferedData });
     }
-
-    // Resize if dimensions provided
-    if (opts.cols && opts.rows) {
-      terminalManager.resizeSession(sessionId, opts.cols, opts.rows);
+    
+    // Clean up any existing subscription for this session before creating a new one
+    const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+    if (sessionUnsubscribers && sessionUnsubscribers.has(sessionId)) {
+      const oldUnsubscribe = sessionUnsubscribers.get(sessionId);
+      if (oldUnsubscribe) {
+        oldUnsubscribe();
+        console.debug(`Cleaned up old subscription for session ${sessionId}`);
+      }
     }
-
-    // Subscribe to session data
+    
+    // Set up live subscription for new output
+    console.debug(`Setting up live subscription for session ${sessionId}`);
     const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
       socket.emit('output', { sessionId, data });
     });
@@ -194,6 +231,11 @@ export function handleConnection(socket) {
       socketUnsubscribers.set(socket.id, new Map());
     }
     socketUnsubscribers.get(socket.id).set(sessionId, unsubscribe);
+
+    // Resize if dimensions provided
+    if (opts.cols && opts.rows) {
+      terminalManager.resizeSession(sessionId, opts.cols, opts.rows);
+    }
 
     // Handle PTY exit
     pty.onExit(({ exitCode, signal }) => {
@@ -219,7 +261,7 @@ export function handleConnection(socket) {
         // Sessions persist and can be reconnected to with new PTY processes
     });
 
-    if (callback) callback({ ok: true });
+    if (callback) callback({ success: true });
   });
 
   // Handle input from client
@@ -294,8 +336,11 @@ export function handleConnection(socket) {
   });
 
   // End session
-  socket.on('end', (sessionIdArg) => {
-    if (!authenticated) return;
+  socket.on('end', (sessionIdArg, callback) => {
+    if (!authenticated) {
+      if (callback) callback({ success: false, error: 'Not authenticated' });
+      return;
+    }
 
     // Use provided sessionId or default to first session in socket's set
     let sessionId = sessionIdArg;
@@ -307,7 +352,42 @@ export function handleConnection(socket) {
     }
     
     if (sessionId) {
+      // Get project ID before ending session (metadata will be deleted)
+      const sessionMetadata = terminalManager.sessionMetadata.get(sessionId);
+      let projectId = sessionMetadata?.projectId;
+      
+      // If no projectId in terminal metadata, search project store
+      if (!projectId) {
+        console.log(`DEBUG: No projectId in session metadata, searching project store...`);
+        const projectsData = getProjects();
+        const projects = projectsData.projects || [];
+        
+        for (const project of projects) {
+          if (project.sessions && project.sessions.some(s => s.id === sessionId)) {
+            projectId = project.id;
+            console.log(`DEBUG: Found session ${sessionId} in project ${projectId}`);
+            break;
+          }
+        }
+      }
+      
+      console.log(`DEBUG: Ending session ${sessionId}`);
+      console.log(`DEBUG: Session metadata:`, sessionMetadata);
+      console.log(`DEBUG: Final projectId:`, projectId);
+      
       terminalManager.endSession(sessionId);
+      console.log(`Ended session: ${sessionId}, projectId: ${projectId}`);
+      // Remove session from project if it belongs to one
+      if (projectId) {
+        try {
+          removeSessionFromProject(projectId, sessionId);
+          console.log(`Removed session ${sessionId} from project ${projectId}`);
+          // Broadcast project updates to all clients
+          socket.server.emit('projects-updated', getProjects());
+        } catch (err) {
+          console.warn(`Failed to remove session from project: ${err.message}`);
+        }
+      }
       
       // Remove session from socket's session set
       const sessions = socketSessions.get(socket.id);
@@ -333,6 +413,10 @@ export function handleConnection(socket) {
       // Broadcast update
       socket.server.emit('sessions-updated', getSessions());
       socket.emit('ended');
+      
+      if (callback) callback({ success: true });
+    } else {
+      if (callback) callback({ success: false, error: 'Session not found' });
     }
   });
 
@@ -387,9 +471,9 @@ export function handleConnection(socket) {
   socket.on('get-public-url', (callback) => {
     try {
       const url = fs.readFileSync(TUNNEL_FILE, 'utf-8').trim();
-      if (callback) callback({ ok: true, url });
+      if (callback) callback({ success: true, url });
     } catch {
-      if (callback) callback({ ok: true, url: null });
+      if (callback) callback({ success: true, url: null });
     }
   });
 
@@ -404,6 +488,263 @@ export function handleConnection(socket) {
       socketUnsubscribers.delete(socket.id);
     }
     socketSessions.delete(socket.id);
+  });
+
+  // PROJECT-BASED EVENT HANDLERS
+
+  // Create new project
+  socket.on('create-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { name, description } = opts || {};
+      
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        if (callback) callback(createErrorResponse('Project name is required'));
+        return;
+      }
+
+      const project = createProject({ name: name.trim(), description: description || '' });
+      
+      // Broadcast updated projects list
+      socket.server.emit('projects-updated', getProjects());
+      
+      if (callback) callback({ success: true, project });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // List projects
+  socket.on('list-projects', (callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+    
+    try {
+      const projects = getProjects();
+      if (callback) callback({ success: true, ...projects });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // Get single project with sessions
+  socket.on('get-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createErrorResponse('Project ID is required'));
+        return;
+      }
+
+      const project = getProject(projectId);
+      
+      if (!project) {
+        if (callback) callback(createErrorResponse('Project not found'));
+        return;
+      }
+
+      // Get active sessions for this project
+      const activeSessions = terminalManager.getProjectSessions(projectId);
+      
+      if (callback) callback({ 
+        success: true, 
+        project: {
+          ...project,
+          activeSessions
+        }
+      });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // Update project
+  socket.on('update-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId, updates } = opts || {};
+      
+      if (!projectId || !updates) {
+        if (callback) callback(createErrorResponse('Project ID and updates are required'));
+        return;
+      }
+
+      const updatedProject = updateProject(projectId, updates);
+      
+      // Broadcast updated projects list
+      socket.server.emit('projects-updated', getProjects());
+      
+      if (callback) callback({ success: true, project: updatedProject });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // Delete project
+  socket.on('delete-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createErrorResponse('Project ID is required'));
+        return;
+      }
+
+      // End all active sessions in this project first
+      const activeSessions = terminalManager.getProjectSessions(projectId);
+      activeSessions.forEach(sessionInfo => {
+        if (sessionInfo.active) {
+          try {
+            terminalManager.endSession(sessionInfo.sessionId);
+          } catch (err) {
+            console.warn(`Failed to end session ${sessionInfo.sessionId}:`, err.message);
+          }
+        }
+      });
+
+      deleteProject(projectId);
+      
+      // Broadcast updated projects list
+      socket.server.emit('projects-updated', getProjects());
+      
+      if (callback) callback({ success: true });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // Create session within project
+  socket.on('create-session-in-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId, sessionOpts } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createErrorResponse('Project ID is required'));
+        return;
+      }
+
+      // Verify project exists
+      const project = getProject(projectId);
+      if (!project) {
+        if (callback) callback(createErrorResponse('Project not found'));
+        return;
+      }
+
+      // Validate session options
+      const validation = ValidationMiddleware.validateSessionOptions(sessionOpts || {});
+      if (!validation.success) {
+        if (callback) callback(createErrorResponse(validation.error));
+        return;
+      }
+
+      // Create PTY session in project
+      const createOpts = {
+        ...validation.data,
+        projectId: projectId
+      };
+      const { sessionId, pty, name } = terminalManager.createSessionInProject(projectId, createOpts);
+      
+      // Add session to this socket's session set
+      if (!socketSessions.has(socket.id)) {
+        socketSessions.set(socket.id, new Set());
+      }
+      socketSessions.get(socket.id).add(sessionId);
+
+      // Add session to project metadata
+      try {
+        addSessionToProject(projectId, {
+          id: sessionId,
+          name,
+          type: validation.data.mode || 'pty',
+          status: 'active'
+        });
+        
+        // Broadcast updated projects list
+        socket.server.emit('projects-updated', getProjects());
+      } catch (err) {
+        console.warn('Failed to persist session metadata:', err.message);
+      }
+
+      // Handle PTY exit
+      pty.onExit(({ exitCode, signal }) => {
+        socket.emit('session-ended', { sessionId, exitCode, signal });
+        
+        // Update session status in project
+        try {
+          updateSessionInProject(projectId, sessionId, { status: 'stopped' });
+          socket.server.emit('projects-updated', getProjects());
+        } catch (err) {
+          console.warn('Failed to update session status:', err.message);
+        }
+        
+        // Clean up this specific session
+        const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+        if (sessionUnsubscribers && sessionUnsubscribers.has(sessionId)) {
+          const unsubscribe = sessionUnsubscribers.get(sessionId);
+          if (unsubscribe) {
+            unsubscribe();
+            sessionUnsubscribers.delete(sessionId);
+          }
+        }
+        
+        // Remove session from socket's session set
+        const sessions = socketSessions.get(socket.id);
+        if (sessions) {
+          sessions.delete(sessionId);
+        }
+      });
+
+      if (callback) callback({ success: true, sessionId, name, projectId });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // Set active project
+  socket.on('set-active-project', (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId } = opts || {};
+      
+      const activeProjectId = setActiveProject(projectId);
+      
+      // Broadcast updated projects list
+      socket.server.emit('projects-updated', getProjects());
+      
+      if (callback) callback({ success: true, activeProject: activeProjectId });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
   });
 
   // Handle disconnect

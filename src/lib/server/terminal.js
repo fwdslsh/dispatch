@@ -17,6 +17,7 @@ import { TERMINAL_CONFIG } from '../config/constants.js';
  * @property {"claude"|"shell"} [mode]
  * @property {string} [name]
  * @property {string} [parentSessionId]
+ * @property {string} [projectId]
  */
 
 export class TerminalManager {
@@ -27,7 +28,7 @@ export class TerminalManager {
     this.buffers = new Map();
     /** @type {Map<string, Set<Function>>} */
     this.subscribers = new Map();
-    /** @type {Map<string, {name: string, symlinkName: string}>} */
+    /** @type {Map<string, {name: string, symlinkName: string, projectId?: string}>} */
     this.sessionMetadata = new Map();
     this.ptyRoot = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
     this.defaultMode = process.env.PTY_MODE || 'shell';
@@ -46,6 +47,166 @@ export class TerminalManager {
     } catch (err) {
       console.warn('Failed to cleanup orphaned symlinks:', err.message);
     }
+  }
+
+  /**
+   * CRITICAL: Set up a SINGLE data handler for a PTY session
+   * This prevents duplicate keystroke output by ensuring only ONE handler per PTY
+   * @param {import('node-pty').IPty} pty - The PTY instance
+   * @param {string} sessionId - The session ID
+   */
+  setupDataHandler(pty, sessionId) {
+    // ONLY SET UP ONE DATA HANDLER PER PTY
+    pty.onData((data) => {
+      // Buffer the data
+      this.appendToBuffer(sessionId, data);
+      
+      // Notify all subscribers
+      const subscribers = this.subscribers.get(sessionId);
+      if (subscribers) {
+        subscribers.forEach(callback => {
+          try {
+            callback(data);
+          } catch (err) {
+            console.warn('Subscriber callback error:', err);
+          }
+        });
+      }
+    });
+    
+    console.debug(`Set up SINGLE data handler for session ${sessionId}`);
+  }
+
+  /**
+   * Create a new PTY session within a project directory
+   * @param {string} projectId - The project ID where the session will be created
+   * @param {SessionOpts} [opts={}] - Session options
+   * @returns {{sessionId: string, pty: import('node-pty').IPty, name: string, projectId: string}}
+   */
+  createSessionInProject(projectId, opts = {}) {
+    const { cols = 80, rows = 24, mode = this.defaultMode, name, createSubfolder = false } = opts;
+    const sessionId = randomUUID();
+    
+    // Validate and generate session name
+    const sessionName = name || generateFallbackName(sessionId);
+    
+    // Use project directory as the session directory
+    const projectDir = path.join(this.ptyRoot, projectId);
+    
+    // Ensure project directory exists
+    try {
+      fs.mkdirSync(projectDir, { recursive: true });
+    } catch (err) {
+      throw new Error(`Failed to create project directory: ${err.message}`);
+    }
+    
+    // Determine session working directory
+    let sessionWorkingDir = projectDir;
+    
+    if (createSubfolder) {
+      // Create a session-specific subfolder within the project/sessions directory
+      const sessionsDir = path.join(projectDir, 'sessions');
+      sessionWorkingDir = path.join(sessionsDir, sessionId);
+      
+      try {
+        fs.mkdirSync(sessionWorkingDir, { recursive: true });
+        console.log(`Created session subfolder: ${sessionWorkingDir}`);
+      } catch (err) {
+        console.warn(`Failed to create session subfolder: ${err.message}`);
+        // Fall back to project directory
+        sessionWorkingDir = projectDir;
+      }
+    }
+    
+    // Determine command based on mode
+    let command, args, env;
+    if (mode === 'claude') {
+      command = 'claude';
+      args = [];
+      env = {
+        ...process.env,
+        TERM: 'xterm-256color',
+        HOME: sessionWorkingDir
+      };
+    } else {
+      // Default to shell mode
+      command = process.env.SHELL || '/bin/bash';
+      args = [];
+      env = {
+        ...process.env,
+        TERM: 'xterm-256color',
+        HOME: sessionWorkingDir
+      };
+    }
+    
+    // Create PTY with the session working directory as cwd
+    const pty = spawn(command, args, {
+      name: 'xterm-256color',
+      cols,
+      rows,
+      cwd: sessionWorkingDir,
+      env
+    });
+
+    this.sessions.set(sessionId, pty);
+    this.buffers.set(sessionId, []);
+    this.subscribers.set(sessionId, new Set());
+    
+    // Create symlink for readable directory name (project-based)
+    let symlinkName;
+    try {
+      symlinkName = createSymlink(projectId, sessionName);
+    } catch (err) {
+      console.warn(`Failed to create symlink for project ${projectId}:`, err.message);
+      symlinkName = null;
+    }
+
+    // Store session metadata with project reference and working directory
+    this.sessionMetadata.set(sessionId, { 
+      name: sessionName, 
+      symlinkName,
+      projectId: projectId,
+      workingDir: sessionWorkingDir,
+      hasSubfolder: createSubfolder
+    });
+
+    console.log(`Created session ${sessionId} (${sessionName}) in project ${projectId} at ${sessionWorkingDir}`);
+
+    // Setup SINGLE data handler
+    this.setupDataHandler(pty, sessionId);
+
+    return { sessionId, pty, name: sessionName, projectId };
+  }
+
+  /**
+   * Get the project ID for a given session
+   * @param {string} sessionId - The session ID
+   * @returns {string|null} Project ID or null if not found
+   */
+  getSessionProject(sessionId) {
+    const metadata = this.sessionMetadata.get(sessionId);
+    return metadata?.projectId || null;
+  }
+
+  /**
+   * Get all sessions for a specific project
+   * @param {string} projectId - The project ID
+   * @returns {Array<{sessionId: string, name: string, active: boolean}>} Array of session info
+   */
+  getProjectSessions(projectId) {
+    const projectSessions = [];
+    
+    for (const [sessionId, metadata] of this.sessionMetadata.entries()) {
+      if (metadata.projectId === projectId) {
+        projectSessions.push({
+          sessionId,
+          name: metadata.name,
+          active: this.sessions.has(sessionId)
+        });
+      }
+    }
+    
+    return projectSessions;
   }
 
   /**
@@ -125,23 +286,8 @@ export class TerminalManager {
       symlinkName: symlinkName
     });
     
-    // Set up data handling
-    pty.onData((data) => {
-      // Buffer the data
-      this.appendToBuffer(sessionId, data);
-      
-      // Notify all subscribers
-      const subs = this.subscribers.get(sessionId);
-      if (subs) {
-        subs.forEach(callback => {
-          try {
-            callback(data);
-          } catch (err) {
-            console.error('Error in subscriber callback:', err);
-          }
-        });
-      }
-    });
+    // Set up SINGLE data handling
+    this.setupDataHandler(pty, sessionId);
     
     // Clean up on exit (but don't remove from persistent storage)
     pty.onExit(() => {
@@ -255,26 +401,26 @@ export class TerminalManager {
       symlinkName: symlinkName
     });
     
-    // Set up data handling
-    pty.onData((data) => {
-      // Buffer the data
-      this.appendToBuffer(sessionId, data);
-      
-      // Notify all subscribers
-      const subs = this.subscribers.get(sessionId);
-      if (subs) {
-        subs.forEach(callback => {
-          try {
-            callback(data);
-          } catch (err) {
-            console.error('Error in subscriber callback:', err);
-          }
-        });
-      }
-    });
+    // Set up SINGLE data handling
+    this.setupDataHandler(pty, sessionId);
     
     // Clean up on exit
-    pty.onExit(() => {
+    pty.onExit(({ exitCode, signal }) => {
+      // Detect Claude authentication issues
+      if (mode === 'claude' && exitCode === 1) {
+        console.warn(`Claude session ${sessionId} exited with code 1 - likely authentication issue`);
+        // Send authentication error message to subscribers
+        const authMessage = '\r\n\x1b[33m⚠ Claude CLI is not authenticated.\x1b[0m\r\n' +
+                           '\x1b[36mTo authenticate, run: npx @anthropic-ai/claude setup-token\x1b[0m\r\n' +
+                           '\x1b[36mOr use the /login command to authenticate interactively.\x1b[0m\r\n\r\n';
+        
+        // Send the message to all subscribers before cleaning up
+        const subscribers = this.subscribers.get(sessionId);
+        if (subscribers) {
+          subscribers.forEach(callback => callback(authMessage));
+        }
+      }
+      
       this.sessions.delete(sessionId);
       this.buffers.delete(sessionId);
       this.subscribers.delete(sessionId);
@@ -290,7 +436,7 @@ export class TerminalManager {
       }
       this.sessionMetadata.delete(sessionId);
       
-      console.log(`Session ${sessionId} ended`);
+      console.log(`Session ${sessionId} ended (exitCode: ${exitCode}, signal: ${signal})`);
     });
 
     console.log(`Created ${mode} session ${sessionId} "${sessionName}" in ${sessionDir}`);
@@ -335,23 +481,27 @@ export class TerminalManager {
       } catch (err) {
         console.error(`Failed to kill session ${sessionId}:`, err.message);
       }
-      
-      // Manual cleanup (the onExit handler will also run, but this ensures cleanup)
-      this.sessions.delete(sessionId);
-      this.buffers.delete(sessionId);
-      this.subscribers.delete(sessionId);
-      
-      // Clean up symlink
-      const metadata = this.sessionMetadata.get(sessionId);
-      if (metadata && metadata.symlinkName) {
-        try {
-          removeSymlinkByName(metadata.symlinkName);
-        } catch (err) {
-          console.warn(`Failed to remove symlink for session ${sessionId}:`, err.message);
-        }
-      }
-      this.sessionMetadata.delete(sessionId);
+    } else {
+      console.warn(`Session ${sessionId} not found or already ended - performing cleanup anyway`);
     }
+    
+    // Always perform cleanup, even if PTY already exited
+    this.sessions.delete(sessionId);
+    this.buffers.delete(sessionId);
+    this.subscribers.delete(sessionId);
+    
+    // Clean up symlink
+    const metadata = this.sessionMetadata.get(sessionId);
+    if (metadata && metadata.symlinkName) {
+      try {
+        removeSymlinkByName(metadata.symlinkName);
+      } catch (err) {
+        console.warn(`Failed to remove symlink for session ${sessionId}:`, err.message);
+      }
+    }
+    this.sessionMetadata.delete(sessionId);
+    
+    console.log(`Session ${sessionId} cleanup completed`);
   }
 
   /**

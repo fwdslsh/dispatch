@@ -19,8 +19,9 @@ export async function GET() {
   } catch (error) {
     console.error('Claude auth check failed:', error);
     
-    await claudeService.query('/login', { maxTurns: 1 });
-    const isAuthError = error.message?.includes('not authenticated') || error.message?.includes('login');
+    const isAuthError = error.message?.includes('not authenticated') || 
+                       error.message?.includes('login') || 
+                       error.message?.includes('exited with code 1');
     
     return json({
       authenticated: false,

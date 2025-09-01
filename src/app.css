@@ -8,9 +8,11 @@
 :root {
   --bg-dark: #0f0f0f;
   --bg-darker: #0a0a0a;
+  --bg: #1a1a1a;
   --primary: #00ff88;
   --primary-muted: #00ff8850;
   --primary-gradient: linear-gradient(135deg, #00ff88, #00cc6a);
+  --accent: #00ff88;
   --secondary: #ff6b6b;
   --secondary-muted: #ff6b6b62;
   --text-primary: #ffffff;
@@ -94,7 +96,6 @@ body.no-key [data-augmented-ui] {
 :root {
   /* tweak density/scale here (must evenly divide the keyframe distance) */
   --tile: 400px;
-  --bg: transparent;
   /* page background behind the pattern */
   --opacity: 0.025;
   /* pattern visibility */
@@ -449,7 +450,7 @@ button:hover {
   appearance: none;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.3s ease;
   display: inline-flex;
