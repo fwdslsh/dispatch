@@ -1,29 +1,29 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-  
+  import { createEventDispatcher } from "svelte";
+
   export let show = false;
   export let title = "Confirm Action";
   export let message = "Are you sure you want to proceed?";
   export let confirmText = "Confirm";
   export let cancelText = "Cancel";
   export let dangerous = false;
-  
+
   const dispatch = createEventDispatcher();
 
   function handleConfirm() {
-    dispatch('confirm');
+    dispatch("confirm");
     show = false;
   }
 
   function handleCancel() {
-    dispatch('cancel');
+    dispatch("cancel");
     show = false;
   }
 
   function handleKeydown(event) {
-    if (event.key === 'Escape') {
+    if (event.key === "Escape") {
       handleCancel();
-    } else if (event.key === 'Enter' && event.target.tagName !== 'BUTTON') {
+    } else if (event.key === "Enter" && event.target.tagName !== "BUTTON") {
       handleConfirm();
     }
   }
@@ -36,8 +36,8 @@
 </script>
 
 {#if show}
-  <div 
-    class="dialog-backdrop" 
+  <div
+    class="dialog-backdrop"
     on:click={handleBackdropClick}
     on:keydown={handleKeydown}
     role="dialog"
@@ -45,24 +45,27 @@
     aria-labelledby="dialog-title"
     aria-describedby="dialog-message"
   >
-    <div class="dialog-container" data-augmented-ui="tl-clip tr-clip br-clip bl-clip border">
+    <div
+      class="dialog-container"
+      data-augmented-ui="tl-clip tr-clip br-clip bl-clip border"
+    >
       <div class="dialog-content">
         <h3 id="dialog-title" class="dialog-title">{title}</h3>
         <p id="dialog-message" class="dialog-message">{message}</p>
       </div>
-      
+
       <div class="dialog-actions">
-        <button 
-          type="button" 
-          class="button-secondary btn-icon-only"
+        <button
+          type="button"
+          class="button-secondary text-button"
           on:click={handleCancel}
           aria-label="Cancel"
         >
           {cancelText}
         </button>
-        <button 
-          type="button" 
-          class="button-confirm"
+        <button
+          type="button"
+          class="button-confirm text-button"
           class:button-danger={dangerous}
           on:click={handleConfirm}
           aria-label="Confirm action"
@@ -98,12 +101,12 @@
     border-radius: 12px;
     backdrop-filter: blur(20px);
     border: 1px solid rgba(0, 255, 136, 0.3);
-    box-shadow: 
+    box-shadow:
       0 10px 40px rgba(0, 0, 0, 0.5),
       0 0 30px rgba(0, 255, 136, 0.1),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
     animation: slideIn 0.3s ease-out;
-    
+
     --aug-border-all: 1px;
     --aug-border-bg: rgba(0, 255, 136, 0.4);
     --aug-inlay-all: 4px;
@@ -143,21 +146,28 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border: none;
+    background: none;
+    font-family: var(--font-accent);
+    &:hover {
+      transition: all 0.4s ease;
+    }
   }
 
   .button-secondary {
-    background: rgba(128, 128, 128, 0.1);
+    /* background: rgba(128, 128, 128, 0.1); */
     color: var(--text-secondary);
-    border: 1px solid rgba(128, 128, 128, 0.3) !important;
+    /* border: 1px solid rgba(128, 128, 128, 0.3) !important; */
   }
 
   .button-secondary:hover {
-    background: rgba(128, 128, 128, 0.2);
-    border-color: rgba(128, 128, 128, 0.5) !important;
+    /* background: rgba(128, 128, 128, 0.2);
+    border-color: rgba(128, 128, 128, 0.5) !important; */
+
+    color: rgba(0, 255, 136, 0.8);
+    background: none;
   }
 
   .button-confirm {
-    background: var(--accent);
     color: var(--bg);
   }
 
@@ -166,12 +176,13 @@
   }
 
   .button-danger {
-    background: var(--error) !important;
-    color: white !important;
+    background: none;
+    color: var(--secondary-muted);
   }
 
   .button-danger:hover {
-    background: rgba(255, 99, 99, 0.8) !important;
+    color: var(--secondary);
+    background: none;
   }
 
   @keyframes fadeIn {

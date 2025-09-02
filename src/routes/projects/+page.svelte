@@ -5,6 +5,7 @@
     import BackIcon from "$lib/components/Icons/BackIcon.svelte";
     import PublicUrlDisplay from "$lib/components/PublicUrlDisplay.svelte";
     import Projects from "$lib/components/Projects.svelte";
+    import ExitIcon from "$lib/components/Icons/ExitIcon.svelte";
 
     export let data;
 
@@ -19,12 +20,12 @@
         <HeaderToolbar>
             {#snippet left()}
                 <button
-                    class="btn-icon-only"
+                    class="btn-icon-only button-danger"
                     on:click={() => logout()}
-                    title="Back to home"
-                    aria-label="Back to home"
+                    title="Logout"
+                    aria-label="Logout"
                 >
-                    <BackIcon />
+                    <ExitIcon />
                 </button>
             {/snippet}
             {#snippet right()}

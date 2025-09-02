@@ -24,6 +24,7 @@
   --surface-hover: #2a2a2a;
   --font-sans: 'Exo 2', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'Share Tech Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  --font-accent: 'Protest Revolution', 'Courier New', monospace;
 
   /* Spacing system */
   --space-xs: 0.25rem;
@@ -279,9 +280,6 @@ body::after {
   }
 }
 
-html {
-  /* Allow scrolling on desktop by default */
-}
 
 body {
   background: var(--bg-dark);
@@ -342,7 +340,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Protest Revolution', 'Courier New', monospace;
+  font-family: var(--font-accent);
   font-weight: bold;
   text-transform: lowercase;
   margin-bottom: 1rem;
@@ -350,17 +348,24 @@ h6 {
 
 h1 {
   font-size: clamp(3rem, 8vw, 5rem);
-  background: var(--primary-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: var(--primary);
   background-clip: text;
   margin-bottom: 0;
+  text-shadow:
+    0 0 3px currentColor,
+    0 0 2px currentColor;
+    text-transform: lowercase;
 }
 
 h2 {
   font-size: clamp(1.5rem, 3vw, 2rem);
   color: var(--primary);
   margin-bottom: 0;
+  text-shadow:
+    0 0 2px currentColor,
+    0 0 2px currentColor;
 }
 
 h3 {
@@ -428,9 +433,15 @@ button {
 }
 
 button:hover {
+  transition: all 0.5s ease;
+}
+
+button.text-button:hover {
+
   text-shadow:
-    0 0 10px var(--primary),
-    0 0 20px var(--primary);
+    0 0 3px currentColor,
+    0 0 5px currentColor;
+  background: none;
 }
 
 /* Button sizes */
@@ -488,6 +499,10 @@ button:hover {
   border-color: var(--error);
 }
 
+button:hover {
+  transition: all 0.5s ease;
+}
+
 button:active {
   opacity: 0.9;
   text-shadow:
@@ -503,35 +518,35 @@ button:disabled {
 
 /* Secondary buttons - minimal with icon styling */
 .button-secondary {
-  background: transparent !important;
-  color: var(--text-secondary) !important;
-  border: none !important;
-  box-shadow: none !important;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  box-shadow: none;
 }
 
 .button-secondary:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary) !important;
   text-shadow:
     0 0 8px rgba(255, 255, 255, 0.6),
-    0 0 16px rgba(255, 255, 255, 0.3) !important;
-  transform: none !important;
+    0 0 16px rgba(255, 255, 255, 0.3);
+  transform: none;
 }
 
 /* Danger buttons - red icon color */
 .button-danger {
-  background: transparent !important;
-  color: var(--secondary) !important;
-  border: none !important;
-  box-shadow: none !important;
+  background: transparent;
+  color: var(--secondary);
+  border: none;
+  box-shadow: none;
 }
 
 .button-danger:hover {
-  color: #ff5252 !important;
+  color: #ff5252;
   text-shadow:
     0 0 8px rgba(255, 82, 82, 0.8),
-    0 0 16px rgba(255, 107, 107, 0.4) !important;
-  transform: none !important;
+    0 0 16px rgba(255, 107, 107, 0.4);
+  transform: none;
 }
 
 /* Lists */

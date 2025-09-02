@@ -1,8 +1,9 @@
 <script>
+    import EditIcon from "./Icons/EditIcon.svelte";
+
     import { onMount, onDestroy } from "svelte";
     import { io } from "socket.io-client";
     import { goto } from "$app/navigation";
-    import EndSessionIcon from "$lib/components/Icons/EndSessionIcon.svelte";
     import SessionIcon from "$lib/components/Icons/SessionIcon.svelte";
     import StartSession from "$lib/components/Icons/StartSession.svelte";
     import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
@@ -10,6 +11,7 @@
         validateSessionNameRealtime,
         validateSessionNameWithFeedback,
     } from "$lib/utils/session-name-validation.js";
+    import DeleteProject from "./Icons/DeleteProject.svelte";
 
     export let terminalKey;
 
@@ -76,26 +78,32 @@
 
         try {
             const result = await new Promise((resolve, reject) => {
-                socket.emit('update-project', {
-                    projectId: renamingProjectId,
-                    updates: { name: renameValue.trim() }
-                }, (response) => {
-                    if (response.success) {
-                        resolve(response);
-                    } else {
-                        reject(new Error(response.error || 'Update failed'));
-                    }
-                });
+                socket.emit(
+                    "update-project",
+                    {
+                        projectId: renamingProjectId,
+                        updates: { name: renameValue.trim() },
+                    },
+                    (response) => {
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(
+                                new Error(response.error || "Update failed"),
+                            );
+                        }
+                    },
+                );
             });
 
-            console.log('Project renamed successfully:', result);
+            console.log("Project renamed successfully:", result);
             cancelRenaming();
         } catch (err) {
-            console.error('Failed to rename project:', err);
-            renameValidation = { 
-                isValid: false, 
-                message: err.message || 'Failed to rename project',
-                severity: 'error'
+            console.error("Failed to rename project:", err);
+            renameValidation = {
+                isValid: false,
+                message: err.message || "Failed to rename project",
+                severity: "error",
             };
             showRenameValidation = true;
         }
@@ -107,7 +115,7 @@
 
             socket.on("connect", () => {
                 console.log("Connected to server");
-                
+
                 // Authenticate
                 socket.emit("auth", terminalKey || "test", (response) => {
                     if (response?.success) {
@@ -129,7 +137,6 @@
                 console.log("Disconnected from server");
                 authed = false;
             });
-
         } catch (error) {
             console.error("Failed to connect:", error);
         }
@@ -167,20 +174,26 @@
 
         try {
             const result = await new Promise((resolve, reject) => {
-                socket.emit('create-project', {
-                    name: projectName.trim(),
-                    description: projectDescription.trim()
-                }, (response) => {
-                    if (response.success) {
-                        resolve(response);
-                    } else {
-                        reject(new Error(response.error || 'Creation failed'));
-                    }
-                });
+                socket.emit(
+                    "create-project",
+                    {
+                        name: projectName.trim(),
+                        description: projectDescription.trim(),
+                    },
+                    (response) => {
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(
+                                new Error(response.error || "Creation failed"),
+                            );
+                        }
+                    },
+                );
             });
 
-            console.log('Project created successfully:', result);
-            
+            console.log("Project created successfully:", result);
+
             // Clear form
             projectName = "";
             projectDescription = "";
@@ -190,11 +203,11 @@
             // Navigate to the new project
             goto(`/projects/${result.project.id}`);
         } catch (err) {
-            console.error('Failed to create project:', err);
-            nameValidation = { 
-                isValid: false, 
-                message: err.message || 'Failed to create project',
-                severity: 'error'
+            console.error("Failed to create project:", err);
+            nameValidation = {
+                isValid: false,
+                message: err.message || "Failed to create project",
+                severity: "error",
             };
             showValidation = true;
         }
@@ -226,22 +239,28 @@
 
         try {
             const result = await new Promise((resolve, reject) => {
-                socket.emit('delete-project', {
-                    projectId: projectToDelete.id
-                }, (response) => {
-                    if (response.success) {
-                        resolve(response);
-                    } else {
-                        reject(new Error(response.error || 'Deletion failed'));
-                    }
-                });
+                socket.emit(
+                    "delete-project",
+                    {
+                        projectId: projectToDelete.id,
+                    },
+                    (response) => {
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(
+                                new Error(response.error || "Deletion failed"),
+                            );
+                        }
+                    },
+                );
             });
 
-            console.log('Project deleted successfully');
+            console.log("Project deleted successfully");
             showDeleteProjectDialog = false;
             projectToDelete = null;
         } catch (err) {
-            console.error('Failed to delete project:', err);
+            console.error("Failed to delete project:", err);
             // Could show error to user here
         }
     }
@@ -252,186 +271,192 @@
     }
 </script>
 
-<div class="projects">
-    {#if projects.length === 0}
-        <div class="empty-state">
-            <h2>no projects yet</h2>
-            <p style="font-size: 0.9rem;">
-                create your first project to get started
-            </p>
+<div class="projects-container">
+    <div
+        class="project-form"
+        data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
+    >
+        <h3>Create New Project</h3>
+        <div class="form-group">
+            <label for="project-name">Project Name</label>
+            <input
+                id="project-name"
+                type="text"
+                bind:value={projectName}
+                placeholder="Enter project name"
+                class:invalid={!nameValidation.isValid}
+                on:keydown={(e) => e.key === "Enter" && createProject()}
+            />
+            {#if showValidation && nameValidation.message}
+                <div
+                    class="validation-message"
+                    class:error={nameValidation.severity === "error"}
+                    class:warning={nameValidation.severity === "warning"}
+                    class:info={nameValidation.severity === "info"}
+                >
+                    {nameValidation.message}
+                </div>
+            {/if}
         </div>
-    {:else}
-        <ul>
-            {#each projects as project}
-                <li>
-                    <div
-                        class="project-item"
-                        data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
-                        on:click={() => openProject(project.id)}
-                        role="button"
-                        tabindex="0"
-                        on:keydown={(e) =>
-                            e.key === "Enter" &&
-                            openProject(project.id)}
-                        title="Open project"
-                        aria-label="Open project {project.name}"
-                    >
-                        <div class="project-actions">
-                            <button
-                                class="btn-icon-only project-rename-btn"
-                                on:click={(e) => {
-                                    e.stopPropagation();
-                                    startRenaming(
-                                        project.id,
-                                        project.name,
-                                    );
-                                }}
-                                title="Rename project"
-                                aria-label="Rename project"
-                            >
-                                ✏️
-                            </button>
-                            <button
-                                class="btn-icon-only button-danger"
-                                on:click={(e) => {
-                                    e.stopPropagation();
-                                    confirmDeleteProject(project);
-                                }}
-                                title="Delete project"
-                                aria-label="Delete project"
-                            >
-                                <EndSessionIcon />
-                            </button>
-                        </div>
-                        <div class="project-info">
-                            {#if renamingProjectId === project.id}
-                                <div class="rename-container">
-                                    <input
-                                        type="text"
-                                        bind:value={renameValue}
-                                        placeholder="Project name"
-                                        class="rename-input"
-                                        class:invalid={!renameValidation.isValid}
-                                        on:keydown={(e) => {
-                                            if (e.key === "Enter") {
-                                                confirmRename();
-                                            } else if (e.key === "Escape") {
-                                                cancelRenaming();
-                                            }
-                                        }}
-                                        on:click={(e) => e.stopPropagation()}
-                                        
-                                    />
-                                    <div class="rename-actions">
-                                        <button
-                                            class="btn-icon-only"
-                                            on:click={(e) => {
-                                                e.stopPropagation();
-                                                confirmRename();
+
+        <div class="form-group">
+            <label for="project-description">Description (optional)</label>
+            <input
+                id="project-description"
+                type="text"
+                bind:value={projectDescription}
+                placeholder="Enter project description"
+                on:keydown={(e) => e.key === "Enter" && createProject()}
+            />
+        </div>
+
+        <button
+            class="btn-primary"
+            on:click={createProject}
+            disabled={!nameValidation.isValid || !projectName.trim()}
+        >
+            <StartSession />
+            Create Project
+        </button>
+    </div>
+    <div class="projects">
+        {#if projects.length === 0}
+            <div class="empty-state">
+                <h2>no projects yet</h2>
+                <p style="font-size: 0.9rem;">
+                    create your first project to get started
+                </p>
+            </div>
+        {:else}
+            <ul>
+                {#each projects as project}
+                    <li>
+                        <div
+                            class="project-item"
+                            data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
+                            on:click={() => openProject(project.id)}
+                            role="button"
+                            tabindex="0"
+                            on:keydown={(e) =>
+                                e.key === "Enter" && openProject(project.id)}
+                            title="Open project"
+                            aria-label="Open project {project.name}"
+                        >
+                            <div class="project-actions">
+                                <button
+                                    class="btn-icon-only project-rename-btn"
+                                    on:click={(e) => {
+                                        e.stopPropagation();
+                                        startRenaming(project.id, project.name);
+                                    }}
+                                    title="Rename project"
+                                    aria-label="Rename project"
+                                >
+                                    <EditIcon></EditIcon>
+                                </button>
+                                <button
+                                    class="btn-icon-only button-danger"
+                                    on:click={(e) => {
+                                        e.stopPropagation();
+                                        confirmDeleteProject(project);
+                                    }}
+                                    title="Delete project"
+                                    aria-label="Delete project"
+                                >
+                                    <DeleteProject />
+                                </button>
+                            </div>
+                            <div class="project-info">
+                                {#if renamingProjectId === project.id}
+                                    <div class="rename-container">
+                                        <input
+                                            type="text"
+                                            bind:value={renameValue}
+                                            placeholder="Project name"
+                                            class="rename-input"
+                                            class:invalid={!renameValidation.isValid}
+                                            on:keydown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    confirmRename();
+                                                } else if (e.key === "Escape") {
+                                                    cancelRenaming();
+                                                }
                                             }}
-                                        >
-                                            ✓
-                                        </button>
-                                        <button
-                                            class="btn-icon-only button-danger"
-                                            on:click={(e) => {
-                                                e.stopPropagation();
-                                                cancelRenaming();
-                                            }}
-                                        >
-                                            ✕
-                                        </button>
+                                            on:click={(e) =>
+                                                e.stopPropagation()}
+                                        />
+                                        <div class="rename-actions">
+                                            <button
+                                                class="btn-icon-only"
+                                                on:click={(e) => {
+                                                    e.stopPropagation();
+                                                    confirmRename();
+                                                }}
+                                            >
+                                                ✓
+                                            </button>
+                                            <button
+                                                class="btn-icon-only button-danger"
+                                                on:click={(e) => {
+                                                    e.stopPropagation();
+                                                    cancelRenaming();
+                                                }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        {#if showRenameValidation && renameValidation.message}
+                                            <div
+                                                class="rename-validation-message"
+                                                class:error={renameValidation.severity ===
+                                                    "error"}
+                                                class:warning={renameValidation.severity ===
+                                                    "warning"}
+                                                class:info={renameValidation.severity ===
+                                                    "info"}
+                                            >
+                                                {renameValidation.message}
+                                            </div>
+                                        {/if}
                                     </div>
-                                    {#if showRenameValidation && renameValidation.message}
-                                        <div
-                                            class="rename-validation-message"
-                                            class:error={renameValidation.severity ===
-                                                "error"}
-                                            class:warning={renameValidation.severity ===
-                                                "warning"}
-                                            class:info={renameValidation.severity ===
-                                                "info"}
-                                        >
-                                            {renameValidation.message}
+                                {:else}
+                                    <div class="project-name">
+                                        {project.name}
+                                    </div>
+                                    {#if project.description}
+                                        <div class="project-description">
+                                            {project.description}
                                         </div>
                                     {/if}
-                                </div>
-                            {:else}
-                                <div class="project-name">{project.name}</div>
-                                {#if project.description}
-                                    <div class="project-description">{project.description}</div>
                                 {/if}
                                 <div class="project-meta">
                                     {project.sessions?.length || 0} session(s)
                                     {#if activeProject === project.id}
-                                        <span class="project-status">(active)</span>
+                                        <span class="project-status"
+                                            >(active)</span
+                                        >
                                     {/if}
                                 </div>
-                            {/if}
+                            </div>
+                            <button
+                                class="btn-icon-only"
+                                on:click={(e) => {
+                                    e.stopPropagation();
+                                    openProject(project.id);
+                                }}
+                                title="Open project"
+                                aria-label="Open project"
+                            >
+                                <SessionIcon />
+                            </button>
                         </div>
-                        <button
-                            class="btn-icon-only"
-                            on:click={(e) => {
-                                e.stopPropagation();
-                                openProject(project.id);
-                            }}
-                            title="Open project"
-                            aria-label="Open project"
-                        >
-                            <SessionIcon />
-                        </button>
-                    </div>
-                </li>
-            {/each}
-        </ul>
-    {/if}
-</div>
-
-<div class="project-form" data-augmented-ui="tl-clip tr-clip br-clip bl-clip both">
-    <h3>Create New Project</h3>
-    <div class="form-group">
-        <label for="project-name">Project Name</label>
-        <input
-            id="project-name"
-            type="text"
-            bind:value={projectName}
-            placeholder="Enter project name"
-            class:invalid={!nameValidation.isValid}
-            on:keydown={(e) => e.key === "Enter" && createProject()}
-        />
-        {#if showValidation && nameValidation.message}
-            <div
-                class="validation-message"
-                class:error={nameValidation.severity === "error"}
-                class:warning={nameValidation.severity === "warning"}
-                class:info={nameValidation.severity === "info"}
-            >
-                {nameValidation.message}
-            </div>
+                    </li>
+                {/each}
+            </ul>
         {/if}
     </div>
-    
-    <div class="form-group">
-        <label for="project-description">Description (optional)</label>
-        <input
-            id="project-description"
-            type="text"
-            bind:value={projectDescription}
-            placeholder="Enter project description"
-            on:keydown={(e) => e.key === "Enter" && createProject()}
-        />
-    </div>
 
-    <button
-        class="btn-primary"
-        on:click={createProject}
-        disabled={!nameValidation.isValid || !projectName.trim()}
-    >
-        <StartSession />
-        Create Project
-    </button>
 </div>
-
 <!-- Delete confirmation dialog -->
 <ConfirmationDialog
     bind:show={showDeleteProjectDialog}
@@ -445,9 +470,9 @@
 />
 
 <style>
-    :global(.container-content:has(.projects)) {
+    .projects-container {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         height: 100%;
         justify-content: space-between;
     }
@@ -643,70 +668,5 @@
         background: rgba(255, 99, 99, 0.1);
         color: var(--error);
         border: 1px solid rgba(255, 99, 99, 0.3);
-    }
-
-    .btn-primary {
-        display: flex;
-        align-items: center;
-        gap: var(--space-sm);
-        padding: var(--space-sm) var(--space-md);
-        background: var(--accent);
-        color: var(--bg);
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-        background: rgba(0, 255, 136, 0.8);
-    }
-
-    .btn-primary:disabled {
-        background: rgba(0, 255, 136, 0.3);
-        cursor: not-allowed;
-    }
-
-    .btn-sm {
-        padding: var(--space-xs) var(--space-sm);
-        background: rgba(0, 255, 136, 0.1);
-        border: 1px solid rgba(0, 255, 136, 0.3);
-        border-radius: 4px;
-        color: var(--accent);
-        font-size: 0.8rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .btn-sm:hover {
-        background: rgba(0, 255, 136, 0.2);
-        border-color: var(--accent);
-    }
-
-    .btn-icon-only {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        
-        color: var(--accent);
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    
-
-    .btn-danger {
-        background: rgba(255, 99, 99, 0.1);
-        border-color: rgba(255, 99, 99, 0.3);
-        color: var(--error);
-    }
-
-    .btn-danger:hover {
-        background: rgba(255, 99, 99, 0.2);
-        border-color: var(--error);
     }
 </style>

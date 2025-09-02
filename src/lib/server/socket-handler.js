@@ -118,10 +118,7 @@ export function handleConnection(socket) {
 
       // Store session metadata (minimal if not provided)
       try {
-        const sessionMeta = opts && opts.meta ? 
-          { id: sessionId, name, ...opts.meta } :
-          { id: sessionId, name, host: 'local', port: '0', username: 'user' };
-        
+
         // Session is already added to project via addSessionToProject above
         // Broadcast updated sessions list
         socket.server.emit('sessions-updated', storageManager.getSessions());

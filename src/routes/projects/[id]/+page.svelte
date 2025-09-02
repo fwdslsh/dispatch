@@ -515,120 +515,127 @@
     {#snippet children()}
         <div class="project-view">
             <!-- Sessions Panel -->
-            <div class="sessions-panel" data-augmented-ui="tl-clip tr-clip br-clip bl-clip both">
-                <h3>Sessions</h3>
+            <div
+                class="sessions-panel"
+                data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
+            >
+                <div>
+                    <h3>Sessions</h3>
 
-                {#if sessions.length === 0 && activeSessions.length === 0}
-                    <div class="empty-sessions">
-                        <p>No sessions in this project yet.</p>
-                    </div>
-                {:else}
-                    <ul class="sessions-list">
-                        {#each sessions as session}
-                            <li>
-                                <div
-                                    class="session-item"
-                                    class:active={activeSessionId ===
-                                        session.id}
-                                    data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
-                                >
-                                    <div class="session-info">
-                                        <div class="session-name">
-                                            {session.name}
-                                        </div>
-                                        <div class="session-meta">
-                                            {session.type} • {session.status}
-                                        </div>
-                                    </div>
-                                    <div class="session-actions">
-                                        {#if session.status === "active"}
-                                            <button
-                                                class="btn-sm"
-                                                on:click={() =>
-                                                    attachToSession(session.id)}
-                                                title="Attach to session"
-                                            >
-                                                <SessionIcon />
-                                            </button>
-                                            <button
-                                                class="btn-sm btn-danger"
-                                                on:click={() =>
-                                                    confirmEndSession(
-                                                        session.id,
-                                                    )}
-                                                title="End session"
-                                            >
-                                                <EndSessionIcon />
-                                            </button>
-                                        {:else}
-                                            <span class="session-status-stopped"
-                                                >Stopped</span
-                                            >
-                                            <button
-                                                class="btn-sm btn-danger"
-                                                on:click={() =>
-                                                    confirmEndSession(
-                                                        session.id,
-                                                    )}
-                                                title="Remove from project"
-                                            >
-                                                <EndSessionIcon />
-                                            </button>
-                                        {/if}
-                                    </div>
-                                </div>
-                            </li>
-                        {/each}
-
-                        {#each activeSessions as activeSession}
-                            {#if !sessions.find((s) => s.id === activeSession.sessionId)}
+                    {#if sessions.length === 0 && activeSessions.length === 0}
+                        <div class="empty-sessions">
+                            <p>No sessions in this project yet.</p>
+                        </div>
+                    {:else}
+                        <ul class="sessions-list">
+                            {#each sessions as session}
                                 <li>
                                     <div
                                         class="session-item"
                                         class:active={activeSessionId ===
-                                            activeSession.sessionId}
+                                            session.id}
                                         data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
                                     >
                                         <div class="session-info">
                                             <div class="session-name">
-                                                {activeSession.name}
+                                                {session.name}
                                             </div>
                                             <div class="session-meta">
-                                                Active session
+                                                {session.type} • {session.status}
                                             </div>
                                         </div>
                                         <div class="session-actions">
-                                            <button
-                                                class="btn-sm"
-                                                on:click={() =>
-                                                    attachToSession(
-                                                        activeSession.sessionId,
-                                                    )}
-                                                title="Attach to session"
-                                            >
-                                                <SessionIcon />
-                                            </button>
-                                            <button
-                                                class="btn-sm btn-danger"
-                                                on:click={() =>
-                                                    confirmEndSession(
-                                                        activeSession.sessionId,
-                                                    )}
-                                                title="End session"
-                                            >
-                                                <EndSessionIcon />
-                                            </button>
+                                            {#if session.status === "active"}
+                                                <button
+                                                    class="btn-sm"
+                                                    on:click={() =>
+                                                        attachToSession(
+                                                            session.id,
+                                                        )}
+                                                    title="Attach to session"
+                                                >
+                                                    <SessionIcon />
+                                                </button>
+                                                <button
+                                                    class="btn-sm btn-danger"
+                                                    on:click={() =>
+                                                        confirmEndSession(
+                                                            session.id,
+                                                        )}
+                                                    title="End session"
+                                                >
+                                                    <EndSessionIcon />
+                                                </button>
+                                            {:else}
+                                                <span
+                                                    class="session-status-stopped"
+                                                    >Stopped</span
+                                                >
+                                                <button
+                                                    class="btn-sm btn-danger"
+                                                    on:click={() =>
+                                                        confirmEndSession(
+                                                            session.id,
+                                                        )}
+                                                    title="Remove from project"
+                                                >
+                                                    <EndSessionIcon />
+                                                </button>
+                                            {/if}
                                         </div>
                                     </div>
                                 </li>
-                            {/if}
-                        {/each}
-                    </ul>
-                {/if}
+                            {/each}
 
+                            {#each activeSessions as activeSession}
+                                {#if !sessions.find((s) => s.id === activeSession.sessionId)}
+                                    <li>
+                                        <div
+                                            class="session-item"
+                                            class:active={activeSessionId ===
+                                                activeSession.sessionId}
+                                            data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
+                                        >
+                                            <div class="session-info">
+                                                <div class="session-name">
+                                                    {activeSession.name}
+                                                </div>
+                                                <div class="session-meta">
+                                                    Active session
+                                                </div>
+                                            </div>
+                                            <div class="session-actions">
+                                                <button
+                                                    class="btn-sm"
+                                                    on:click={() =>
+                                                        attachToSession(
+                                                            activeSession.sessionId,
+                                                        )}
+                                                    title="Attach to session"
+                                                >
+                                                    <SessionIcon />
+                                                </button>
+                                                <button
+                                                    class="btn-sm btn-danger"
+                                                    on:click={() =>
+                                                        confirmEndSession(
+                                                            activeSession.sessionId,
+                                                        )}
+                                                    title="End session"
+                                                >
+                                                    <EndSessionIcon />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </li>
+                                {/if}
+                            {/each}
+                        </ul>
+                    {/if}
+                </div>
                 <!-- Create Session Form -->
                 <div class="session-form">
-                    <h4>Create New Session</h4>
+                    <h3>Create New Session</h3>
 
                     <div class="form-group">
                         <label for="session-mode">Type</label>
@@ -802,6 +809,7 @@
     message="Are you sure you want to end session '{sessionToEnd?.name}'? This will terminate the session and you may lose unsaved work."
     confirmText="End Session"
     cancelText="Cancel"
+    dangerous={true}
     on:confirm={endSession}
     on:cancel={cancelEndSession}
 />
@@ -836,7 +844,8 @@
         overflow-y: hidden;
         display: flex;
         flex-direction: column;
-        max-height: 100%;
+        height: 100%;
+        justify-content: space-between;
     }
 
     .sessions-panel h3 {
