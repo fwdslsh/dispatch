@@ -54,6 +54,12 @@
     let socket;
     let authed = false;
     
+    // Claude authentication state
+    let claudeAuthState = 'unchecked'; // 'unchecked', 'checking', 'authenticated', 'not-authenticated', 'authenticating', 'waiting-for-token'
+    let claudeAuthSessionId = null;
+    let claudeOAuthUrl = null;
+    let claudeAuthToken = '';
+    
     // Create Claude auth context for Chat components
     const claudeAuthContext = createClaudeAuthContext();
 
@@ -123,6 +129,36 @@
                 authed = false;
             });
 
+            // Claude authentication event handlers
+            socket.on("claude-auth-url", (data) => {
+                console.log("Received Claude OAuth URL:", data);
+                claudeOAuthUrl = data.url;
+                claudeAuthState = 'waiting-for-token';
+            });
+
+            socket.on("claude-auth-output", (data) => {
+                console.log("Claude auth output:", data.data);
+            });
+
+            socket.on("claude-auth-ended", (data) => {
+                console.log("Claude auth session ended:", data);
+                if (data.exitCode === 0) {
+                    // Authentication successful
+                    claudeAuthState = 'authenticated';
+                    claudeOAuthUrl = null;
+                    claudeAuthToken = '';
+                    claudeAuthSessionId = null;
+                    // Refresh project to update UI
+                    loadProject();
+                } else {
+                    // Authentication failed
+                    claudeAuthState = 'not-authenticated';
+                    claudeOAuthUrl = null;
+                    claudeAuthToken = '';
+                    claudeAuthSessionId = null;
+                }
+            });
+
         } catch (error) {
             console.error("Failed to connect:", error);
         }
@@ -155,11 +191,62 @@
                 console.log("Loaded project:", project);
                 console.log("Sessions from project:", sessions);
                 console.log("Active sessions from project:", activeSessions);
+                
+                // Check Claude authentication status when project loads
+                checkClaudeAuth();
             } else {
                 console.error("Failed to load project:", response.error);
                 if (response.error === 'Project not found') {
                     goto('/projects');
                 }
+            }
+        });
+    }
+
+    function checkClaudeAuth() {
+        if (!socket || !authed || !projectId) return;
+        
+        claudeAuthState = 'checking';
+        socket.emit("check-claude-auth", { projectId }, (response) => {
+            if (response.success) {
+                claudeAuthState = response.authenticated ? 'authenticated' : 'not-authenticated';
+            } else {
+                console.error("Failed to check Claude auth:", response.error);
+                claudeAuthState = 'not-authenticated';
+            }
+        });
+    }
+
+    function startClaudeAuth() {
+        if (!socket || !authed || !projectId) return;
+        
+        claudeAuthState = 'authenticating';
+        claudeOAuthUrl = null;
+        claudeAuthToken = '';
+        
+        socket.emit("start-claude-auth", { projectId }, (response) => {
+            if (response.success) {
+                claudeAuthSessionId = response.sessionId;
+                console.log("Started Claude auth session:", claudeAuthSessionId);
+            } else {
+                console.error("Failed to start Claude auth:", response.error);
+                claudeAuthState = 'not-authenticated';
+            }
+        });
+    }
+
+    function submitAuthToken() {
+        if (!socket || !authed || !claudeAuthSessionId || !claudeAuthToken.trim()) return;
+        
+        socket.emit("submit-auth-token", { 
+            sessionId: claudeAuthSessionId, 
+            token: claudeAuthToken.trim() 
+        }, (response) => {
+            if (response.success) {
+                console.log("Token submitted successfully");
+                // Wait for claude-auth-ended event to update state
+            } else {
+                console.error("Failed to submit token:", response.error);
             }
         });
     }
@@ -171,6 +258,17 @@
 
         if (!socket || !authed || !projectId) {
             console.error("Not connected, authenticated, or no project ID");
+            return;
+        }
+
+        // Check Claude authentication if creating a Claude session
+        if (sessionMode === 'claude' && claudeAuthState !== 'authenticated') {
+            nameValidation = { 
+                isValid: false, 
+                message: 'Claude authentication required. Please authenticate first.',
+                severity: 'error'
+            };
+            showValidation = true;
             return;
         }
 
@@ -466,14 +564,48 @@
                         </select>
                         {#if sessionMode === 'claude'}
                             <div class="session-mode-info">
-                                <p>🤖 <strong>Claude AI Authentication Required</strong></p>
-                                <p>Claude sessions need authentication with Anthropic's API. The system will check authentication status automatically.</p>
-                                <details class="auth-details">
-                                    <summary>Manual Setup (if needed)</summary>
-                                    <p>If authentication issues persist, you can manually run:</p>
-                                    <code>npx @anthropic-ai/claude-cli setup-token</code>
-                                    <p>See the <a href="/docs/claude-authentication.md" target="_blank">Claude Authentication Guide</a> for detailed setup instructions.</p>
-                                </details>
+                                {#if claudeAuthState === 'checking'}
+                                    <p>🔍 <strong>Checking Claude Authentication...</strong></p>
+                                {:else if claudeAuthState === 'authenticated'}
+                                    <p>✅ <strong>Claude AI Ready</strong></p>
+                                    <p>You're authenticated and ready to create Claude sessions.</p>
+                                {:else if claudeAuthState === 'not-authenticated'}
+                                    <p>🤖 <strong>Claude AI Authentication Required</strong></p>
+                                    <p>Click the button below to start the authentication process.</p>
+                                    <button 
+                                        class="btn-auth" 
+                                        on:click={startClaudeAuth}
+                                        disabled={!socket || !authed}
+                                    >
+                                        🚀 Start Authentication
+                                    </button>
+                                {:else if claudeAuthState === 'authenticating'}
+                                    <p>⏳ <strong>Starting Authentication...</strong></p>
+                                    <p>Setting up authentication session...</p>
+                                {:else if claudeAuthState === 'waiting-for-token'}
+                                    <p>🔗 <strong>OAuth Authentication</strong></p>
+                                    <p>1. Click the link below to authenticate with Claude AI:</p>
+                                    <a href={claudeOAuthUrl} target="_blank" class="oauth-link">
+                                        🔗 Open Claude Authentication
+                                    </a>
+                                    <p>2. After completing authentication, enter your token code:</p>
+                                    <div class="token-input-group">
+                                        <input
+                                            type="text"
+                                            bind:value={claudeAuthToken}
+                                            placeholder="Paste your authentication token here"
+                                            class="token-input"
+                                            on:keydown={(e) => e.key === "Enter" && submitAuthToken()}
+                                        />
+                                        <button 
+                                            class="btn-submit-token" 
+                                            on:click={submitAuthToken}
+                                            disabled={!claudeAuthToken.trim()}
+                                        >
+                                            Submit Token
+                                        </button>
+                                    </div>
+                                {/if}
                             </div>
                         {/if}
                     </div>
@@ -515,7 +647,7 @@
                     <button
                         class="btn-primary"
                         on:click={createSessionInProject}
-                        disabled={!nameValidation.isValid && !!sessionName.trim()}
+                        disabled={(!nameValidation.isValid && !!sessionName.trim()) || (sessionMode === 'claude' && claudeAuthState !== 'authenticated')}
                     >
                         <StartSession />
                         Create Session
@@ -758,45 +890,94 @@
         color: var(--accent);
     }
 
-    .auth-details {
-        margin-top: var(--space-xs);
-        padding: var(--space-xs);
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 3px;
-    }
-
-    .auth-details summary {
+    .btn-auth {
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+        width: 100%;
+        padding: var(--space-sm);
+        background: var(--accent);
+        color: var(--bg);
+        border: none;
+        border-radius: 4px;
+        font-weight: 500;
+        font-size: 0.9rem;
         cursor: pointer;
-        color: var(--text-secondary);
-        font-size: 0.75rem;
-        margin-bottom: var(--space-xs);
+        transition: background-color 0.2s ease;
+        margin-top: var(--space-xs);
     }
 
-    .auth-details summary:hover {
-        color: var(--accent);
+    .btn-auth:hover:not(:disabled) {
+        background: rgba(0, 255, 136, 0.8);
     }
 
-    .auth-details p {
-        color: var(--text-muted);
-        font-size: 0.75rem;
+    .btn-auth:disabled {
+        background: rgba(0, 255, 136, 0.3);
+        cursor: not-allowed;
+    }
+
+    .oauth-link {
+        display: inline-block;
+        background: rgba(0, 123, 255, 0.1);
+        color: #007bff;
+        text-decoration: none;
+        padding: var(--space-xs) var(--space-sm);
+        border: 1px solid rgba(0, 123, 255, 0.3);
+        border-radius: 4px;
         margin: var(--space-xs) 0;
+        font-weight: 500;
+        transition: all 0.2s ease;
     }
 
-    .auth-details a {
-        color: var(--accent);
+    .oauth-link:hover {
+        background: rgba(0, 123, 255, 0.2);
+        border-color: #007bff;
         text-decoration: none;
     }
 
-    .auth-details a:hover {
-        text-decoration: underline;
+    .token-input-group {
+        display: flex;
+        gap: var(--space-xs);
+        margin-top: var(--space-xs);
     }
 
-    .session-mode-info code {
-        background: rgba(0, 0, 0, 0.3);
-        padding: 2px 4px;
-        border-radius: 3px;
+    .token-input {
+        flex: 1;
+        padding: var(--space-xs) var(--space-sm);
+        background: rgba(26, 26, 26, 0.8);
+        border: 1px solid rgba(0, 255, 136, 0.3);
+        border-radius: 4px;
+        color: var(--text-primary);
+        font-size: 0.9rem;
         font-family: 'Courier New', monospace;
-        color: var(--accent);
+    }
+
+    .token-input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.1);
+    }
+
+    .btn-submit-token {
+        padding: var(--space-xs) var(--space-sm);
+        background: var(--accent);
+        color: var(--bg);
+        border: none;
+        border-radius: 4px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .btn-submit-token:hover:not(:disabled) {
+        background: rgba(0, 255, 136, 0.8);
+    }
+
+    .btn-submit-token:disabled {
+        background: rgba(0, 255, 136, 0.3);
+        cursor: not-allowed;
     }
 
     .validation-message {

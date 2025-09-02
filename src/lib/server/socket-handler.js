@@ -895,6 +895,124 @@ export function handleConnection(socket) {
     }
   });
 
+  // Start Claude authentication process
+  socket.on('start-claude-auth', async (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createErrorResponse('Project ID is required'));
+        return;
+      }
+
+      // Get project directory through TerminalManager
+      const projectInfo = await terminalManager.directoryManager.getProject(projectId);
+      if (!projectInfo) {
+        if (callback) callback(createErrorResponse('Project not found'));
+        return;
+      }
+
+      // Create a special session for Claude authentication
+      const sessionId = `claude-auth-${randomUUID()}`;
+      const sessionOpts = {
+        mode: 'shell', // Use shell mode to run claude setup-token
+        name: 'Claude Authentication',
+        projectId: projectId,
+        cols: 80,
+        rows: 24
+      };
+
+      // Create the session
+      const pty = terminalManager.createSimpleSession(sessionId, sessionOpts);
+      
+      // Add session to this socket's session set
+      if (!socketSessions.has(socket.id)) {
+        socketSessions.set(socket.id, new Set());
+      }
+      socketSessions.get(socket.id).add(sessionId);
+
+      // Set up data handler to capture output and look for OAuth URL
+      let outputBuffer = '';
+      const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
+        outputBuffer += data;
+        
+        // Look for OAuth URL in the output
+        const urlMatch = outputBuffer.match(/https:\/\/console\.anthropic\.com\/oauth\/authorize[^\s\n\r]+/);
+        if (urlMatch) {
+          const oauthUrl = urlMatch[0];
+          socket.emit('claude-auth-url', { sessionId, url: oauthUrl });
+        }
+        
+        // Also emit raw output for debugging
+        socket.emit('claude-auth-output', { sessionId, data });
+      });
+
+      // Store unsubscriber
+      if (!socketUnsubscribers.has(socket.id)) {
+        socketUnsubscribers.set(socket.id, new Map());
+      }
+      socketUnsubscribers.get(socket.id).set(sessionId, unsubscribe);
+
+      // Handle PTY exit
+      pty.onExit(({ exitCode, signal }) => {
+        socket.emit('claude-auth-ended', { sessionId, exitCode, signal });
+        
+        // Clean up
+        const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
+        if (sessionUnsubscribers && sessionUnsubscribers.has(sessionId)) {
+          const unsubscribe = sessionUnsubscribers.get(sessionId);
+          if (unsubscribe) {
+            unsubscribe();
+            sessionUnsubscribers.delete(sessionId);
+          }
+        }
+        
+        const sessions = socketSessions.get(socket.id);
+        if (sessions) {
+          sessions.delete(sessionId);
+        }
+      });
+
+      // Start the claude setup-token command
+      setTimeout(() => {
+        terminalManager.writeToSession(sessionId, 'claude setup-token\r');
+      }, 500);
+
+      if (callback) callback({ success: true, sessionId });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // Submit authentication token to Claude setup process
+  socket.on('submit-auth-token', async (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { sessionId, token } = opts || {};
+      
+      if (!sessionId || !token) {
+        if (callback) callback(createErrorResponse('Session ID and token are required'));
+        return;
+      }
+
+      // Send the token to the session
+      terminalManager.writeToSession(sessionId, `${token}\r`);
+
+      if (callback) callback({ success: true });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log('Socket disconnected:', socket.id);
