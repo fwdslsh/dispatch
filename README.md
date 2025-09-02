@@ -138,7 +138,7 @@ Dispatch organizes your work into projects with isolated sessions:
 
 ## 🤖 AI-Powered Development with Claude
 
-Dispatch can integrate with Claude Code for intelligent assistance:
+Dispatch integrates with Claude Code for intelligent coding assistance with an interactive authentication workflow:
 
 ```bash
 # Run with Claude Code enabled
@@ -147,6 +147,17 @@ docker run -p 3030:3030 \
   -e PTY_MODE=claude \
   fwdslsh/dispatch:latest
 ```
+
+### Claude Authentication
+
+Dispatch provides a seamless web-based authentication flow for Claude AI:
+
+- **Interactive Login**: Authenticate directly from the projects page
+- **OAuth Integration**: Secure login through Anthropic's authentication system  
+- **Persistent Credentials**: Authentication persists across container restarts
+- **Error Handling**: Clear error messages and retry options
+
+For detailed setup and troubleshooting, see the [**Claude Authentication Guide**](docs/claude-authentication.md).
 
 **Note**: Claude integration requires the Claude CLI to be available in the container.
 

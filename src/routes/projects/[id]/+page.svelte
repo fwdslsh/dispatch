@@ -466,8 +466,14 @@
                         </select>
                         {#if sessionMode === 'claude'}
                             <div class="session-mode-info">
-                                <p>⚠️ Claude sessions require authentication.</p>
-                                <p>If the session exits immediately, run: <code>npx @anthropic-ai/claude setup-token</code></p>
+                                <p>🤖 <strong>Claude AI Authentication Required</strong></p>
+                                <p>Claude sessions need authentication with Anthropic's API. The system will check authentication status automatically.</p>
+                                <details class="auth-details">
+                                    <summary>Manual Setup (if needed)</summary>
+                                    <p>If authentication issues persist, you can manually run:</p>
+                                    <code>npx @anthropic-ai/claude-cli setup-token</code>
+                                    <p>See the <a href="/docs/claude-authentication.md" target="_blank">Claude Authentication Guide</a> for detailed setup instructions.</p>
+                                </details>
                             </div>
                         {/if}
                     </div>
@@ -746,6 +752,43 @@
 
     .session-mode-info p:last-child {
         margin-bottom: 0;
+    }
+
+    .session-mode-info strong {
+        color: var(--accent);
+    }
+
+    .auth-details {
+        margin-top: var(--space-xs);
+        padding: var(--space-xs);
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+    }
+
+    .auth-details summary {
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        margin-bottom: var(--space-xs);
+    }
+
+    .auth-details summary:hover {
+        color: var(--accent);
+    }
+
+    .auth-details p {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        margin: var(--space-xs) 0;
+    }
+
+    .auth-details a {
+        color: var(--accent);
+        text-decoration: none;
+    }
+
+    .auth-details a:hover {
+        text-decoration: underline;
     }
 
     .session-mode-info code {

@@ -99,6 +99,7 @@ Each terminal session runs within a project context:
 - **Non-root container execution**: Runs as `appuser` (uid 10001)
 - **Session isolation**: Each session contained in separate directory
 - **WebSocket authentication**: Auth required before terminal operations
+- **Claude AI Authentication**: Interactive web-based OAuth flow for Claude access (see [Claude Authentication Guide](docs/claude-authentication.md))
 
 ## Environment Configuration
 
