@@ -14,6 +14,7 @@ import {
 } from './project-store.js';
 import { createErrorResponse, createSuccessResponse, ErrorHandler } from '../utils/error-handling.js';
 import { ValidationMiddleware, RateLimiter } from '../utils/validation.js';
+import { checkClaudeCredentials } from './claude-auth-middleware.js';
 import fs from 'node:fs';
 import { randomUUID } from 'node:crypto';
 
@@ -770,29 +771,11 @@ export function handleConnection(socket) {
         return;
       }
 
-      // Verify project exists
-      const project = getProject(projectId);
-      if (!project) {
-        if (callback) callback(createErrorResponse('Project not found'));
-        return;
-      }
-
-      // Validate session options
-      const validation = ValidationMiddleware.validateSessionOptions(sessionOpts || {});
-      if (!validation.success) {
-        if (callback) callback(createErrorResponse(validation.error));
-        return;
-      }
-
-      // Create PTY session directly
-      const createOpts = {
-        ...validation.data,
-        projectId: projectId,
-        workingDirectory: sessionOpts?.workingDirectory // Pass through working directory option
-      };
-      const sessionId = randomUUID();
-      const pty = terminalManager.createSimpleSession(sessionId, createOpts);
-      const name = createOpts.name || `session-${Date.now()}`;
+      // Use TerminalManager to create session (this also validates project existence)
+      const sessionResult = await terminalManager.createSessionInProject(projectId, sessionOpts || {});
+      
+      const sessionId = sessionResult.sessionId;
+      const name = sessionResult.name;
       
       // Add session to this socket's session set
       if (!socketSessions.has(socket.id)) {
@@ -800,32 +783,9 @@ export function handleConnection(socket) {
       }
       socketSessions.get(socket.id).add(sessionId);
 
-      // Add session to project metadata
-      try {
-        addSessionToProject(projectId, {
-          id: sessionId,
-          name,
-          type: validation.data.mode || 'pty',
-          status: 'active'
-        });
-        
-        // Broadcast updated projects list
-        socket.server.emit('projects-updated', getProjects());
-      } catch (err) {
-        console.warn('Failed to persist session metadata:', err.message);
-      }
-
       // Handle PTY exit
-      pty.onExit(({ exitCode, signal }) => {
+      sessionResult.pty.onExit(({ exitCode, signal }) => {
         socket.emit('session-ended', { sessionId, exitCode, signal });
-        
-        // Update session status in project
-        try {
-          updateSessionInProject(projectId, sessionId, { status: 'stopped' });
-          socket.server.emit('projects-updated', getProjects());
-        } catch (err) {
-          console.warn('Failed to update session status:', err.message);
-        }
         
         // Clean up this specific session
         const sessionUnsubscribers = socketUnsubscribers.get(socket.id);
@@ -871,8 +831,8 @@ export function handleConnection(socket) {
     }
   });
 
-  // List directories within a project (simplified - returns empty array)
-  socket.on('list-project-directories', (opts, callback) => {
+  // List directories within a project
+  socket.on('list-project-directories', async (opts, callback) => {
     if (!authenticated) {
       if (callback) callback(createErrorResponse('Not authenticated'));
       return;
@@ -886,19 +846,49 @@ export function handleConnection(socket) {
         return;
       }
 
-      // Verify project exists
-      const project = getProject(projectId);
-      if (!project) {
-        if (callback) callback(createErrorResponse('Project not found'));
-        return;
-      }
-
-      // Simplified implementation - return empty directories
+      // Use TerminalManager to list directories (this also validates project existence)
+      const directories = await terminalManager.listProjectDirectories(projectId, relativePath || '');
+      
       if (callback) callback({ 
         success: true, 
         projectId,
         relativePath: relativePath || '',
-        directories: [] 
+        directories 
+      });
+    } catch (err) {
+      if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // Check Claude authentication status for a project
+  socket.on('check-claude-auth', async (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { projectId } = opts || {};
+      
+      if (!projectId) {
+        if (callback) callback(createErrorResponse('Project ID is required'));
+        return;
+      }
+
+      // Get project directory through TerminalManager (this also validates project existence)
+      const projectInfo = await terminalManager.directoryManager.getProject(projectId);
+      if (!projectInfo) {
+        if (callback) callback(createErrorResponse('Project not found'));
+        return;
+      }
+      
+      const isAuthenticated = checkClaudeCredentials(projectInfo.path);
+      
+      if (callback) callback({ 
+        success: true, 
+        projectId,
+        authenticated: isAuthenticated,
+        credentialsPath: `${projectInfo.path}/.claude/credentials.json`
       });
     } catch (err) {
       if (callback) callback(createErrorResponse(err.message));
