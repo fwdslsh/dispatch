@@ -53,13 +53,13 @@
 
     let socket;
     let authed = false;
-    
+
     // Claude authentication state
-    let claudeAuthState = 'unchecked'; // 'unchecked', 'checking', 'authenticated', 'not-authenticated', 'authenticating', 'waiting-for-token'
+    let claudeAuthState = "unchecked"; // 'unchecked', 'checking', 'authenticated', 'not-authenticated', 'authenticating', 'waiting-for-token'
     let claudeAuthSessionId = null;
     let claudeOAuthUrl = null;
-    let claudeAuthToken = '';
-    
+    let claudeAuthToken = "";
+
     // Create Claude auth context for Chat components
     const claudeAuthContext = createClaudeAuthContext();
 
@@ -73,7 +73,7 @@
 
     onMount(async () => {
         if (!projectId) {
-            goto('/projects');
+            goto("/projects");
             return;
         }
 
@@ -82,7 +82,7 @@
 
             socket.on("connect", () => {
                 console.log("Connected to server");
-                
+
                 // Authenticate
                 socket.emit("auth", data?.terminalKey || "test", (response) => {
                     if (response?.ok || response?.success) {
@@ -103,10 +103,12 @@
             socket.on("session-ended", (data) => {
                 console.log("Session ended:", data);
                 const { sessionId } = data;
-                
+
                 // Remove from active sessions
-                activeSessions = activeSessions.filter(s => s.sessionId !== sessionId);
-                
+                activeSessions = activeSessions.filter(
+                    (s) => s.sessionId !== sessionId,
+                );
+
                 // If this was the active session, clear it
                 if (activeSessionId === sessionId) {
                     activeSessionId = null;
@@ -119,7 +121,7 @@
                         currentChat = null;
                     }
                 }
-                
+
                 // Reload project to update session statuses
                 loadProject();
             });
@@ -133,7 +135,7 @@
             socket.on("claude-auth-url", (data) => {
                 console.log("Received Claude OAuth URL:", data);
                 claudeOAuthUrl = data.url;
-                claudeAuthState = 'waiting-for-token';
+                claudeAuthState = "waiting-for-token";
             });
 
             socket.on("claude-auth-output", (data) => {
@@ -143,9 +145,9 @@
             socket.on("claude-token-saved", (data) => {
                 console.log("Claude token saved:", data);
                 // Token was automatically saved, mark as authenticated
-                claudeAuthState = 'authenticated';
+                claudeAuthState = "authenticated";
                 claudeOAuthUrl = null;
-                claudeAuthToken = '';
+                claudeAuthToken = "";
                 claudeAuthSessionId = null;
                 // Refresh project to update UI
                 loadProject();
@@ -153,28 +155,27 @@
 
             socket.on("claude-auth-error", (data) => {
                 console.error("Claude auth error:", data.error);
-                claudeAuthState = 'not-authenticated';
+                claudeAuthState = "not-authenticated";
             });
 
             socket.on("claude-auth-ended", (data) => {
                 console.log("Claude auth session ended:", data);
                 if (data.exitCode === 0) {
                     // Authentication successful (fallback if token wasn't auto-detected)
-                    claudeAuthState = 'authenticated';
+                    claudeAuthState = "authenticated";
                     claudeOAuthUrl = null;
-                    claudeAuthToken = '';
+                    claudeAuthToken = "";
                     claudeAuthSessionId = null;
                     // Refresh project to update UI
                     loadProject();
                 } else {
                     // Authentication failed
-                    claudeAuthState = 'not-authenticated';
+                    claudeAuthState = "not-authenticated";
                     claudeOAuthUrl = null;
-                    claudeAuthToken = '';
+                    claudeAuthToken = "";
                     claudeAuthSessionId = null;
                 }
             });
-
         } catch (error) {
             console.error("Failed to connect:", error);
         }
@@ -190,7 +191,7 @@
             unmount(currentChat);
             currentChat = null;
         }
-        
+
         if (socket) {
             socket.disconnect();
         }
@@ -207,13 +208,13 @@
                 console.log("Loaded project:", project);
                 console.log("Sessions from project:", sessions);
                 console.log("Active sessions from project:", activeSessions);
-                
+
                 // Check Claude authentication status when project loads
                 checkClaudeAuth();
             } else {
                 console.error("Failed to load project:", response.error);
-                if (response.error === 'Project not found') {
-                    goto('/projects');
+                if (response.error === "Project not found") {
+                    goto("/projects");
                 }
             }
         });
@@ -221,50 +222,65 @@
 
     function checkClaudeAuth() {
         if (!socket || !authed || !projectId) return;
-        
-        claudeAuthState = 'checking';
+
+        claudeAuthState = "checking";
         socket.emit("check-claude-auth", { projectId }, (response) => {
             if (response.success) {
-                claudeAuthState = response.authenticated ? 'authenticated' : 'not-authenticated';
+                claudeAuthState = response.authenticated
+                    ? "authenticated"
+                    : "not-authenticated";
             } else {
                 console.error("Failed to check Claude auth:", response.error);
-                claudeAuthState = 'not-authenticated';
+                claudeAuthState = "not-authenticated";
             }
         });
     }
 
     function startClaudeAuth() {
         if (!socket || !authed || !projectId) return;
-        
-        claudeAuthState = 'authenticating';
+
+        claudeAuthState = "authenticating";
         claudeOAuthUrl = null;
-        claudeAuthToken = '';
-        
+        claudeAuthToken = "";
+
         socket.emit("start-claude-auth", { projectId }, (response) => {
             if (response.success) {
                 claudeAuthSessionId = response.sessionId;
-                console.log("Started Claude auth session:", claudeAuthSessionId);
+                console.log(
+                    "Started Claude auth session:",
+                    claudeAuthSessionId,
+                );
             } else {
                 console.error("Failed to start Claude auth:", response.error);
-                claudeAuthState = 'not-authenticated';
+                claudeAuthState = "not-authenticated";
             }
         });
     }
 
     function submitAuthToken() {
-        if (!socket || !authed || !claudeAuthSessionId || !claudeAuthToken.trim()) return;
-        
-        socket.emit("submit-auth-token", { 
-            sessionId: claudeAuthSessionId, 
-            token: claudeAuthToken.trim() 
-        }, (response) => {
-            if (response.success) {
-                console.log("Token submitted successfully");
-                // Wait for claude-auth-ended event to update state
-            } else {
-                console.error("Failed to submit token:", response.error);
-            }
-        });
+        if (
+            !socket ||
+            !authed ||
+            !claudeAuthSessionId ||
+            !claudeAuthToken.trim()
+        )
+            return;
+
+        socket.emit(
+            "submit-auth-token",
+            {
+                sessionId: claudeAuthSessionId,
+                token: claudeAuthToken.trim(),
+            },
+            (response) => {
+                if (response.success) {
+                    console.log("Token submitted successfully");
+                    // Wait for claude-auth-ended event to update state
+                } else {
+                    console.error("Failed to submit token:", response.error);
+                }
+            },
+        );
     }
 
     async function createSessionInProject() {
@@ -278,11 +294,12 @@
         }
 
         // Check Claude authentication if creating a Claude session
-        if (sessionMode === 'claude' && claudeAuthState !== 'authenticated') {
-            nameValidation = { 
-                isValid: false, 
-                message: 'Claude authentication required. Please authenticate first.',
-                severity: 'error'
+        if (sessionMode === "claude" && claudeAuthState !== "authenticated") {
+            nameValidation = {
+                isValid: false,
+                message:
+                    "Claude authentication required. Please authenticate first.",
+                severity: "error",
             };
             showValidation = true;
             return;
@@ -290,26 +307,35 @@
 
         try {
             const result = await new Promise((resolve, reject) => {
-                socket.emit('create-session-in-project', {
-                    projectId: projectId,
-                    sessionOpts: {
-                        mode: sessionMode,
-                        name: sessionName.trim() || undefined,
-                        workingDirectory: sessionMode === 'claude' && workingDirectory ? workingDirectory : undefined,
-                        cols: 80,
-                        rows: 24
-                    }
-                }, (response) => {
-                    if (response.success) {
-                        resolve(response);
-                    } else {
-                        reject(new Error(response.error || 'Creation failed'));
-                    }
-                });
+                socket.emit(
+                    "create-session-in-project",
+                    {
+                        projectId: projectId,
+                        sessionOpts: {
+                            mode: sessionMode,
+                            name: sessionName.trim() || undefined,
+                            workingDirectory:
+                                sessionMode === "claude" && workingDirectory
+                                    ? workingDirectory
+                                    : undefined,
+                            cols: 80,
+                            rows: 24,
+                        },
+                    },
+                    (response) => {
+                        if (response.success) {
+                            resolve(response);
+                        } else {
+                            reject(
+                                new Error(response.error || "Creation failed"),
+                            );
+                        }
+                    },
+                );
             });
 
-            console.log('Session created successfully:', result);
-            
+            console.log("Session created successfully:", result);
+
             // Clear form
             sessionName = "";
             workingDirectory = "";
@@ -322,11 +348,11 @@
             // Automatically attach to the new session
             attachToSession(result.sessionId);
         } catch (err) {
-            console.error('Failed to create session:', err);
-            nameValidation = { 
-                isValid: false, 
-                message: err.message || 'Failed to create session',
-                severity: 'error'
+            console.error("Failed to create session:", err);
+            nameValidation = {
+                isValid: false,
+                message: err.message || "Failed to create session",
+                severity: "error",
             };
             showValidation = true;
         }
@@ -352,34 +378,37 @@
             if (response.success) {
                 activeSessionId = sessionId;
                 console.log("Attached to session:", sessionId);
-                
+
                 // Create appropriate component based on session type
-                const sessionInfo = sessions.find(s => s.id === sessionId) || 
-                                  activeSessions.find(s => s.sessionId === sessionId);
-                
-                if (sessionInfo?.type === 'claude') {
+                const sessionInfo =
+                    sessions.find((s) => s.id === sessionId) ||
+                    activeSessions.find((s) => s.sessionId === sessionId);
+
+                if (sessionInfo?.type === "claude") {
                     // Create chat component with Claude auth context
                     setTimeout(() => {
-                        const chatContainer = document.getElementById('chat-container');
+                        const chatContainer =
+                            document.getElementById("chat-container");
                         if (chatContainer) {
                             currentChat = mount(Chat, {
                                 target: chatContainer,
-                                props: { 
-                                    sessionId, 
+                                props: {
+                                    sessionId,
                                     socket,
-                                    claudeAuthContext: claudeAuthContext
-                                }
+                                    claudeAuthContext: claudeAuthContext,
+                                },
                             });
                         }
                     }, 100);
                 } else {
                     // Create terminal component
                     setTimeout(() => {
-                        const terminalContainer = document.getElementById('terminal-container');
+                        const terminalContainer =
+                            document.getElementById("terminal-container");
                         if (terminalContainer) {
                             currentTerminal = mount(Terminal, {
                                 target: terminalContainer,
-                                props: { sessionId, socket, projectId }
+                                props: { sessionId, socket, projectId },
                             });
                         }
                     }, 100);
@@ -391,32 +420,40 @@
     }
 
     function confirmEndSession(sessionId) {
-        console.log('confirmEndSession called with sessionId:', sessionId);
-        const sessionInfo = sessions.find(s => s.id === sessionId) || 
-                           activeSessions.find(s => s.sessionId === sessionId);
+        console.log("confirmEndSession called with sessionId:", sessionId);
+        const sessionInfo =
+            sessions.find((s) => s.id === sessionId) ||
+            activeSessions.find((s) => s.sessionId === sessionId);
         sessionToEnd = { id: sessionId, name: sessionInfo?.name || sessionId };
         showEndSessionDialog = true;
-        console.log('showEndSessionDialog set to:', showEndSessionDialog, 'sessionToEnd:', sessionToEnd);
+        console.log(
+            "showEndSessionDialog set to:",
+            showEndSessionDialog,
+            "sessionToEnd:",
+            sessionToEnd,
+        );
     }
 
     async function endSession() {
-        console.log('endSession called, sessionToEnd:', sessionToEnd);
+        console.log("endSession called, sessionToEnd:", sessionToEnd);
         if (!sessionToEnd || !socket || !authed) return;
 
         try {
             const result = await new Promise((resolve, reject) => {
-                socket.emit('end', sessionToEnd.id, (response) => {
+                socket.emit("end", sessionToEnd.id, (response) => {
                     if (response?.success) {
                         resolve(response);
                     } else {
-                        reject(new Error(response?.error || 'End session failed'));
+                        reject(
+                            new Error(response?.error || "End session failed"),
+                        );
                     }
                 });
             });
 
-            console.log('Session ended successfully');
+            console.log("Session ended successfully");
             showEndSessionDialog = false;
-            
+
             // If this was the active session, clear it
             if (sessionToEnd && activeSessionId === sessionToEnd.id) {
                 activeSessionId = null;
@@ -429,13 +466,13 @@
                     currentChat = null;
                 }
             }
-            
+
             sessionToEnd = null;
-            
+
             // Reload project to update session list
             loadProject();
         } catch (err) {
-            console.error('Failed to end session:', err);
+            console.error("Failed to end session:", err);
             // Could show error to user here
         }
     }
@@ -446,7 +483,7 @@
     }
 
     function backToProjects() {
-        goto('/projects');
+        goto("/projects");
     }
 </script>
 
@@ -465,7 +502,7 @@
             {/snippet}
             {#snippet right()}
                 <div class="header-content">
-                    <h2>{project?.name || 'Loading...'}</h2>
+                    <h2>{project?.name || "Loading..."}</h2>
                     {#if project?.description}
                         <p class="project-description">{project.description}</p>
                     {/if}
@@ -478,9 +515,9 @@
     {#snippet children()}
         <div class="project-view">
             <!-- Sessions Panel -->
-            <div class="sessions-panel">
+            <div class="sessions-panel" data-augmented-ui="tl-clip tr-clip br-clip bl-clip both">
                 <h3>Sessions</h3>
-                
+
                 {#if sessions.length === 0 && activeSessions.length === 0}
                     <div class="empty-sessions">
                         <p>No sessions in this project yet.</p>
@@ -491,36 +528,48 @@
                             <li>
                                 <div
                                     class="session-item"
-                                    class:active={activeSessionId === session.id}
+                                    class:active={activeSessionId ===
+                                        session.id}
                                     data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
                                 >
                                     <div class="session-info">
-                                        <div class="session-name">{session.name}</div>
+                                        <div class="session-name">
+                                            {session.name}
+                                        </div>
                                         <div class="session-meta">
                                             {session.type} • {session.status}
                                         </div>
                                     </div>
                                     <div class="session-actions">
-                                        {#if session.status === 'active'}
+                                        {#if session.status === "active"}
                                             <button
                                                 class="btn-sm"
-                                                on:click={() => attachToSession(session.id)}
+                                                on:click={() =>
+                                                    attachToSession(session.id)}
                                                 title="Attach to session"
                                             >
                                                 <SessionIcon />
                                             </button>
                                             <button
                                                 class="btn-sm btn-danger"
-                                                on:click={() => confirmEndSession(session.id)}
+                                                on:click={() =>
+                                                    confirmEndSession(
+                                                        session.id,
+                                                    )}
                                                 title="End session"
                                             >
                                                 <EndSessionIcon />
                                             </button>
                                         {:else}
-                                            <span class="session-status-stopped">Stopped</span>
+                                            <span class="session-status-stopped"
+                                                >Stopped</span
+                                            >
                                             <button
                                                 class="btn-sm btn-danger"
-                                                on:click={() => confirmEndSession(session.id)}
+                                                on:click={() =>
+                                                    confirmEndSession(
+                                                        session.id,
+                                                    )}
                                                 title="Remove from project"
                                             >
                                                 <EndSessionIcon />
@@ -530,17 +579,20 @@
                                 </div>
                             </li>
                         {/each}
-                        
+
                         {#each activeSessions as activeSession}
-                            {#if !sessions.find(s => s.id === activeSession.sessionId)}
+                            {#if !sessions.find((s) => s.id === activeSession.sessionId)}
                                 <li>
                                     <div
                                         class="session-item"
-                                        class:active={activeSessionId === activeSession.sessionId}
+                                        class:active={activeSessionId ===
+                                            activeSession.sessionId}
                                         data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
                                     >
                                         <div class="session-info">
-                                            <div class="session-name">{activeSession.name}</div>
+                                            <div class="session-name">
+                                                {activeSession.name}
+                                            </div>
                                             <div class="session-meta">
                                                 Active session
                                             </div>
@@ -548,14 +600,20 @@
                                         <div class="session-actions">
                                             <button
                                                 class="btn-sm"
-                                                on:click={() => attachToSession(activeSession.sessionId)}
+                                                on:click={() =>
+                                                    attachToSession(
+                                                        activeSession.sessionId,
+                                                    )}
                                                 title="Attach to session"
                                             >
                                                 <SessionIcon />
                                             </button>
                                             <button
                                                 class="btn-sm btn-danger"
-                                                on:click={() => confirmEndSession(activeSession.sessionId)}
+                                                on:click={() =>
+                                                    confirmEndSession(
+                                                        activeSession.sessionId,
+                                                    )}
                                                 title="End session"
                                             >
                                                 <EndSessionIcon />
@@ -571,50 +629,82 @@
                 <!-- Create Session Form -->
                 <div class="session-form">
                     <h4>Create New Session</h4>
-                    
+
                     <div class="form-group">
                         <label for="session-mode">Type</label>
                         <select id="session-mode" bind:value={sessionMode}>
                             <option value="shell">Terminal (Shell)</option>
                             <option value="claude">Claude Agent</option>
                         </select>
-                        {#if sessionMode === 'claude'}
+                        {#if sessionMode === "claude"}
                             <div class="session-mode-info">
-                                {#if claudeAuthState === 'checking'}
-                                    <p>🔍 <strong>Checking Claude Authentication...</strong></p>
-                                {:else if claudeAuthState === 'authenticated'}
+                                {#if claudeAuthState === "checking"}
+                                    <p>
+                                        🔍 <strong
+                                            >Checking Claude Authentication...</strong
+                                        >
+                                    </p>
+                                {:else if claudeAuthState === "authenticated"}
                                     <p>✅ <strong>Claude AI Ready</strong></p>
-                                    <p>You're authenticated and ready to create Claude sessions.</p>
-                                {:else if claudeAuthState === 'not-authenticated'}
-                                    <p>🤖 <strong>Claude AI Authentication Required</strong></p>
-                                    <p>Click the button below to start the authentication process.</p>
-                                    <button 
-                                        class="btn-auth" 
+                                    <p>
+                                        You're authenticated and ready to create
+                                        Claude sessions.
+                                    </p>
+                                {:else if claudeAuthState === "not-authenticated"}
+                                    <p>
+                                        🤖 <strong
+                                            >Claude AI Authentication Required</strong
+                                        >
+                                    </p>
+                                    <p>
+                                        Click the button below to start the
+                                        authentication process.
+                                    </p>
+                                    <button
+                                        class="btn-auth"
                                         on:click={startClaudeAuth}
                                         disabled={!socket || !authed}
                                     >
                                         🚀 Start Authentication
                                     </button>
-                                {:else if claudeAuthState === 'authenticating'}
-                                    <p>⏳ <strong>Starting Authentication...</strong></p>
+                                {:else if claudeAuthState === "authenticating"}
+                                    <p>
+                                        ⏳ <strong
+                                            >Starting Authentication...</strong
+                                        >
+                                    </p>
                                     <p>Setting up authentication session...</p>
-                                {:else if claudeAuthState === 'waiting-for-token'}
-                                    <p>🔗 <strong>OAuth Authentication</strong></p>
-                                    <p>1. Click the link below to authenticate with Claude AI:</p>
-                                    <a href={claudeOAuthUrl} target="_blank" class="oauth-link">
+                                {:else if claudeAuthState === "waiting-for-token"}
+                                    <p>
+                                        🔗 <strong>OAuth Authentication</strong>
+                                    </p>
+                                    <p>
+                                        1. Click the link below to authenticate
+                                        with Claude AI:
+                                    </p>
+                                    <a
+                                        href={claudeOAuthUrl}
+                                        target="_blank"
+                                        class="oauth-link"
+                                    >
                                         🔗 Open Claude Authentication
                                     </a>
-                                    <p>2. After completing authentication, enter your token code:</p>
+                                    <p>
+                                        2. After completing authentication,
+                                        enter your token code:
+                                    </p>
                                     <div class="token-input-group">
                                         <input
                                             type="text"
                                             bind:value={claudeAuthToken}
                                             placeholder="Paste your authentication token here"
                                             class="token-input"
-                                            on:keydown={(e) => e.key === "Enter" && submitAuthToken()}
+                                            on:keydown={(e) =>
+                                                e.key === "Enter" &&
+                                                submitAuthToken()}
                                         />
-                                        <button 
-                                            class="btn-submit-token" 
+                                        <button
+                                            class="btn-submit-token"
                                             on:click={submitAuthToken}
                                             disabled={!claudeAuthToken.trim()}
                                         >
@@ -625,7 +715,7 @@
                             </div>
                         {/if}
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="session-name">Name (optional)</label>
                         <input
@@ -634,13 +724,16 @@
                             bind:value={sessionName}
                             placeholder="Enter session name"
                             class:invalid={!nameValidation.isValid}
-                            on:keydown={(e) => e.key === "Enter" && createSessionInProject()}
+                            on:keydown={(e) =>
+                                e.key === "Enter" && createSessionInProject()}
                         />
                         {#if showValidation && nameValidation.message}
                             <div
                                 class="validation-message"
-                                class:error={nameValidation.severity === "error"}
-                                class:warning={nameValidation.severity === "warning"}
+                                class:error={nameValidation.severity ===
+                                    "error"}
+                                class:warning={nameValidation.severity ===
+                                    "warning"}
                                 class:info={nameValidation.severity === "info"}
                             >
                                 {nameValidation.message}
@@ -648,7 +741,7 @@
                         {/if}
                     </div>
 
-                    {#if sessionMode === 'claude'}
+                    {#if sessionMode === "claude"}
                         <DirectoryPicker
                             bind:selectedPath={workingDirectory}
                             {socket}
@@ -663,7 +756,10 @@
                     <button
                         class="btn-primary"
                         on:click={createSessionInProject}
-                        disabled={(!nameValidation.isValid && !!sessionName.trim()) || (sessionMode === 'claude' && claudeAuthState !== 'authenticated')}
+                        disabled={(!nameValidation.isValid &&
+                            !!sessionName.trim()) ||
+                            (sessionMode === "claude" &&
+                                claudeAuthState !== "authenticated")}
                     >
                         <StartSession />
                         Create Session
@@ -672,17 +768,26 @@
             </div>
 
             <!-- Content Panel -->
-            <div class="content-panel">
+            <div
+                class="content-panel"
+                data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
+            >
                 {#if activeSessionId}
-                    {#if sessions.find(s => s.id === activeSessionId)?.type === 'claude' || activeSessions.find(s => s.sessionId === activeSessionId)?.type === 'claude'}
+                    {#if sessions.find((s) => s.id === activeSessionId)?.type === "claude" || activeSessions.find((s) => s.sessionId === activeSessionId)?.type === "claude"}
                         <div id="chat-container" class="session-content"></div>
                     {:else}
-                        <div id="terminal-container" class="session-content"></div>
+                        <div
+                            id="terminal-container"
+                            class="session-content"
+                        ></div>
                     {/if}
                 {:else}
                     <div class="no-session">
                         <h3>No Session Selected</h3>
-                        <p>Create a new session or select an existing one to get started.</p>
+                        <p>
+                            Create a new session or select an existing one to
+                            get started.
+                        </p>
                     </div>
                 {/if}
             </div>
@@ -708,11 +813,6 @@
         flex: 1;
     }
 
-    .header-content h1 {
-        margin: 0;
-        color: var(--text-primary);
-    }
-
     .project-description {
         font-size: 0.9rem;
         color: var(--text-secondary);
@@ -732,7 +832,6 @@
         flex-shrink: 0;
         background: rgba(26, 26, 26, 0.8);
         border: 1px solid rgba(0, 255, 136, 0.3);
-        border-radius: 8px;
         padding: var(--space-md);
         backdrop-filter: blur(10px);
         overflow-y: auto;
@@ -816,9 +915,9 @@
 
     .content-panel {
         flex: 1;
-        background: rgba(26, 26, 26, 0.8);
+        background: transparent;
         border: 1px solid rgba(0, 255, 136, 0.3);
-        border-radius: 8px;
+        padding-inline: 0;
         backdrop-filter: blur(10px);
         overflow: hidden;
         display: flex;
@@ -965,7 +1064,7 @@
         border-radius: 4px;
         color: var(--text-primary);
         font-size: 0.9rem;
-        font-family: 'Courier New', monospace;
+        font-family: "Courier New", monospace;
     }
 
     .token-input:focus {

@@ -32,9 +32,8 @@
 <style>
   .container {
     --aug-border-opacity: 0.5;
-    max-width: 800px;
-    min-height: 625px;
-    /* max-height: calc(100svh - calc(var(--space-lg) * 2)); */
+    max-width: calc(100svw - calc(var(--space-lg) * 2));
+    height: calc(100svh - calc(var(--space-lg) * 2));
     margin: 0 auto;
     margin-top: var(--space-xl);
     width: 100%;
@@ -67,7 +66,7 @@
   }
 
   /* Ensure header can transform outside container bounds on mobile */
-  @media (max-width: 768px) {
+  @media (max-width: 800px) {
     .container-header {
       position: relative;
       z-index: 101;
@@ -120,7 +119,7 @@
     .container:not(.session-container) {
       height: 100vh;
       max-height: 100vh;
-      padding-top: 20px; /* Reduced padding since header auto-hides */
+      padding-top: 80px; /* Reduced padding since header auto-hides */
       box-sizing: border-box;
     }
     

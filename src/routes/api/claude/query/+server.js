@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { ClaudeCodeService } from '../../../../lib/services/claude-code-service.js';
+import { ClaudeCodeService } from '$lib/services/claude-code-service.js';
 
 const claudeService = new ClaudeCodeService();
 

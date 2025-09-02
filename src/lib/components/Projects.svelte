@@ -278,7 +278,7 @@
                     >
                         <div class="project-actions">
                             <button
-                                class="btn-sm btn-icon-only project-rename-btn"
+                                class="btn-icon-only project-rename-btn"
                                 on:click={(e) => {
                                     e.stopPropagation();
                                     startRenaming(
@@ -292,7 +292,7 @@
                                 ✏️
                             </button>
                             <button
-                                class="btn-sm btn-icon-only btn-danger"
+                                class="btn-icon-only button-danger"
                                 on:click={(e) => {
                                     e.stopPropagation();
                                     confirmDeleteProject(project);
@@ -320,11 +320,11 @@
                                             }
                                         }}
                                         on:click={(e) => e.stopPropagation()}
-                                        autofocus
+                                        
                                     />
                                     <div class="rename-actions">
                                         <button
-                                            class="btn-sm"
+                                            class="btn-icon-only"
                                             on:click={(e) => {
                                                 e.stopPropagation();
                                                 confirmRename();
@@ -333,7 +333,7 @@
                                             ✓
                                         </button>
                                         <button
-                                            class="btn-sm"
+                                            class="btn-icon-only button-danger"
                                             on:click={(e) => {
                                                 e.stopPropagation();
                                                 cancelRenaming();
@@ -370,7 +370,7 @@
                             {/if}
                         </div>
                         <button
-                            class="btn-sm btn-icon-only"
+                            class="btn-icon-only"
                             on:click={(e) => {
                                 e.stopPropagation();
                                 openProject(project.id);
@@ -489,7 +489,6 @@
     .project-item:hover {
         background: rgba(0, 255, 136, 0.1);
         border-color: rgba(0, 255, 136, 0.6);
-        transform: translateY(-2px);
     }
 
     .project-actions {
@@ -597,6 +596,9 @@
 
     .rename-container {
         position: relative;
+        display: flex;
+        flex-direction: row;
+        width: 100%;
     }
 
     .rename-input {
@@ -683,18 +685,13 @@
         width: 32px;
         height: 32px;
         padding: 0;
-        background: rgba(0, 255, 136, 0.1);
-        border: 1px solid rgba(0, 255, 136, 0.3);
-        border-radius: 6px;
+        
         color: var(--accent);
         cursor: pointer;
         transition: all 0.2s ease;
     }
 
-    .btn-icon-only:hover {
-        background: rgba(0, 255, 136, 0.2);
-        border-color: var(--accent);
-    }
+    
 
     .btn-danger {
         background: rgba(255, 99, 99, 0.1);

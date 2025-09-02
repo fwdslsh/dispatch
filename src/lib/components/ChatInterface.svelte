@@ -318,7 +318,7 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
   ]);
 </script>
 
-<div class="chat-interface" style="height: {height}">
+<div class="chat-interface">
   <!-- Debug info -->
   {#if virtualItems.length === 0}
     <div class="debug-info">No messages yet. Items: {virtualItems.length}, Messages: {messages.length}</div>
@@ -389,17 +389,18 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
   .chat-interface {
     display: flex;
     flex-direction: column;
-    background: var(--bg-darker);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    background-color: transparent;
     overflow: hidden;
     font-family: var(--font-sans);
+    height: 100%;
+    :global(p){
+      color: unset;
+    }
   }
 
   .messages-container {
     flex: 1;
     overflow: hidden;
-    background: var(--bg-dark);
   }
 
   :global(.chat-interface .svelte-virtual-list-viewport) {

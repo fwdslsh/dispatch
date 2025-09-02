@@ -1,23 +1,23 @@
 <script>
-  let {
-    open = false,
-    title = "Confirm Action",
-    message = "Are you sure you want to proceed?",
-    confirmText = "Confirm",
-    cancelText = "Cancel",
-    onConfirm = () => {},
-    onCancel = () => {},
-    onClose = () => {}
-  } = $props();
+  import { createEventDispatcher } from 'svelte';
+  
+  export let show = false;
+  export let title = "Confirm Action";
+  export let message = "Are you sure you want to proceed?";
+  export let confirmText = "Confirm";
+  export let cancelText = "Cancel";
+  export let dangerous = false;
+  
+  const dispatch = createEventDispatcher();
 
   function handleConfirm() {
-    onConfirm();
-    onClose();
+    dispatch('confirm');
+    show = false;
   }
 
   function handleCancel() {
-    onCancel();
-    onClose();
+    dispatch('cancel');
+    show = false;
   }
 
   function handleKeydown(event) {
@@ -35,7 +35,7 @@
   }
 </script>
 
-{#if open}
+{#if show}
   <div 
     class="dialog-backdrop" 
     on:click={handleBackdropClick}
@@ -62,7 +62,8 @@
         </button>
         <button 
           type="button" 
-          class="button-danger"
+          class="button-confirm"
+          class:button-danger={dangerous}
           on:click={handleConfirm}
           aria-label="Confirm action"
           autofocus
@@ -136,6 +137,41 @@
   .dialog-actions button {
     min-width: 80px;
     font-size: 0.9rem;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+  }
+
+  .button-secondary {
+    background: rgba(128, 128, 128, 0.1);
+    color: var(--text-secondary);
+    border: 1px solid rgba(128, 128, 128, 0.3) !important;
+  }
+
+  .button-secondary:hover {
+    background: rgba(128, 128, 128, 0.2);
+    border-color: rgba(128, 128, 128, 0.5) !important;
+  }
+
+  .button-confirm {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .button-confirm:hover {
+    background: rgba(0, 255, 136, 0.8);
+  }
+
+  .button-danger {
+    background: var(--error) !important;
+    color: white !important;
+  }
+
+  .button-danger:hover {
+    background: rgba(255, 99, 99, 0.8) !important;
   }
 
   @keyframes fadeIn {

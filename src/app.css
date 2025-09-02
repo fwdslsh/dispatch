@@ -50,24 +50,25 @@
   --aug-inlay-bg: var(--bg-dark);
   --aug-inlay-opacity: 0.2;
   padding-inline: var(--space-sm);
-  
+
   /* Subtle glow effect */
-  box-shadow: 
+  box-shadow:
     0 0 10px rgba(0, 255, 136, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  
+
   /* Enhanced glassmorphism */
   backdrop-filter: blur(15px);
   border: 1px solid rgba(0, 255, 136, 0.2);
-  
+
   transition: all 0.3s ease;
 }
 
-body.no-key{
+body.no-key {
   --primary: #ff6b6b;
   --primary-muted: #ff6b6b50;
   --primary-gradient: linear-gradient(135deg, #ff6b6b, #ff6b6b88);
 }
+
 body.no-key [data-augmented-ui] {
   --aug-border-bg: var(--secondary);
   border: 1px solid var(--secondary-muted);
@@ -281,6 +282,7 @@ body::after {
 html {
   /* Allow scrolling on desktop by default */
 }
+
 body {
   background: var(--bg-dark);
   color: var(--text-primary);
@@ -426,7 +428,7 @@ button {
 }
 
 button:hover {
-  text-shadow: 
+  text-shadow:
     0 0 10px var(--primary),
     0 0 20px var(--primary);
 }
@@ -468,14 +470,27 @@ button:hover {
 .btn-icon-only svg {
   width: 1.25rem;
   height: 1.25rem;
-  stroke-width: 2;  text-shadow: 
+  stroke-width: 2;
+  text-shadow:
     0 0 8px var(--primary),
     0 0 16px rgba(0, 255, 136, 0.5);
 }
 
+
+.btn-danger {
+  background: rgba(255, 99, 99, 0.1);
+  border-color: rgba(255, 99, 99, 0.3);
+  color: var(--error);
+}
+
+.btn-danger:hover {
+  background: rgba(255, 99, 99, 0.2);
+  border-color: var(--error);
+}
+
 button:active {
   opacity: 0.9;
-  text-shadow: 
+  text-shadow:
     0 0 5px rgba(0, 0, 0, 0.9),
     0 0 10px rgba(0, 0, 0, 0.7);
 }
@@ -497,7 +512,7 @@ button:disabled {
 .button-secondary:hover {
   background: rgba(255, 255, 255, 0.05) !important;
   color: var(--text-primary) !important;
-  text-shadow: 
+  text-shadow:
     0 0 8px rgba(255, 255, 255, 0.6),
     0 0 16px rgba(255, 255, 255, 0.3) !important;
   transform: none !important;
@@ -513,7 +528,7 @@ button:disabled {
 
 .button-danger:hover {
   color: #ff5252 !important;
-  text-shadow: 
+  text-shadow:
     0 0 8px rgba(255, 82, 82, 0.8),
     0 0 16px rgba(255, 107, 107, 0.4) !important;
   transform: none !important;
@@ -548,9 +563,11 @@ li:last-child {
   --aug-br: 0.5rem;
   --aug-bl: 0.5rem;
   --aug-tl: 0.5rem;
+
   button {
     padding: 0;
   }
+
   transition: all 0.3s ease-in-out;
 }
 
@@ -560,7 +577,7 @@ li:last-child {
   --aug-border-opacity: 0.5;
 
   background: rgba(42, 42, 42, 0.5);
-  box-shadow: 
+  box-shadow:
     0 0 15px rgba(0, 255, 136, 0.1),
     0 4px 12px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -606,13 +623,13 @@ li:last-child {
 .new-session-controls select:focus {
   outline: none;
   background-color: transparent;
-  text-shadow: 
+  text-shadow:
     0 0 5px var(--primary),
     0 0 10px rgba(0, 255, 136, 0.4);
 }
 
 .new-session-controls select:hover {
-  text-shadow: 
+  text-shadow:
     0 0 4px var(--primary),
     0 0 8px rgba(0, 255, 136, 0.3);
 }
@@ -663,7 +680,7 @@ li:last-child {
   margin-top: 1rem;
   font-weight: bold;
   backdrop-filter: blur(10px);
-  box-shadow: 
+  box-shadow:
     0 0 10px rgba(255, 107, 107, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -702,7 +719,7 @@ h2.error-text {
     flex-shrink: 0;
     /* Prevent shrinking */
     backdrop-filter: blur(15px);
-    box-shadow: 
+    box-shadow:
       0 -2px 10px rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
@@ -751,7 +768,7 @@ h2.error-text {
     flex-shrink: 0;
     z-index: 10;
     backdrop-filter: blur(20px);
-    box-shadow: 
+    box-shadow:
       0 -4px 20px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
@@ -759,8 +776,8 @@ h2.error-text {
 
 /* Terminal specific styles */
 .terminal-container {
-  background:transparent;
-  
+  background: transparent;
+
   overflow: hidden;
   /* backdrop-filter: blur(15px);
   box-shadow: 
