@@ -2,11 +2,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-// randomUUID import removed - now handled by DirectoryManager
 import { spawn } from 'node-pty';
-import { createSymlink, removeSymlinkByName, cleanupOrphanedSymlinks } from './symlink-manager.js';
-import { validateSessionName, generateFallbackName, resolveNameConflict } from './name-validation.js';
-import { getAllSessionNames } from './session-store.js';
+import storageManager from './storage-manager.js';
 import { TERMINAL_CONFIG } from '../config/constants.js';
 import DirectoryManager from './directory-manager.js';
 
@@ -32,7 +29,7 @@ export class TerminalManager {
     this.buffers = new Map();
     /** @type {Map<string, Set<Function>>} */
     this.subscribers = new Map();
-    /** @type {Map<string, {name: string, symlinkName: string, projectId?: string, workingDir?: string, hasSubfolder?: boolean}>} */
+    /** @type {Map<string, {name: string, projectId?: string, workingDir?: string, hasSubfolder?: boolean}>} */
     this.sessionMetadata = new Map();
     this.defaultMode = process.env.PTY_MODE || 'shell';
     this.maxBufferSize = TERMINAL_CONFIG.MAX_HISTORY_ENTRIES;
@@ -43,12 +40,7 @@ export class TerminalManager {
       console.error('Failed to initialize DirectoryManager:', err);
     });
     
-    // Cleanup orphaned symlinks on startup
-    try {
-      cleanupOrphanedSymlinks();
-    } catch (err) {
-      console.warn('Failed to cleanup orphaned symlinks:', err.message);
-    }
+    // Storage manager handles cleanup
   }
 
   /**
@@ -90,12 +82,14 @@ export class TerminalManager {
    * @returns {Promise<Array<{name: string, path: string, isDirectory: boolean}>>} Array of directory entries
    */
   async listProjectDirectories(projectId, relativePath = '') {
-    const project = await this.directoryManager.getProject(projectId);
-    if (!project) {
+    // Use PTY_ROOT to build the project directory path
+    const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
+    const projectDir = path.join(PTY_ROOT, projectId);
+    
+    // Check if project directory exists
+    if (!fs.existsSync(projectDir)) {
       throw new Error(`Project does not exist: ${projectId}`);
     }
-    
-    const projectDir = project.path;
     
     // Construct the target directory path
     const targetDir = path.join(projectDir, relativePath);
@@ -148,33 +142,36 @@ export class TerminalManager {
   async createSessionInProject(projectId, opts = {}) {
     const { cols = 80, rows = 24, mode = this.defaultMode, name, workingDirectory } = opts;
     
-    // Create session through DirectoryManager
-    const sessionData = await this.directoryManager.createSession(projectId, {
-      mode,
-      purpose: opts.purpose || 'Terminal session',
-      ...opts.metadata
-    });
+    // Validate project exists using storage manager
+    const project = storageManager.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project ${projectId} not found`);
+    }
     
-    const sessionId = sessionData.id;
-    const sessionPath = sessionData.path;
+    // Use UUID for session ID (same as before)
+    const sessionId = this.directoryManager.generateSessionTimestamp();
     
     // Validate and generate session name
-    const sessionName = name || generateFallbackName(sessionId);
+    const sessionName = name || storageManager.generateFallbackName(sessionId);
     
-    // Get project info for the working directory
-    const project = await this.directoryManager.getProject(projectId);
-    const projectDir = project.path;
+    // Get project directory using PTY_ROOT structure
+    const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
+    const projectDir = path.join(PTY_ROOT, projectId);
     
     // Determine session working directory
-    // Sessions start in their own directory, but have access to the entire project
-    let sessionWorkingDir = sessionPath;
+    let sessionWorkingDir = projectDir; // Start in project root by default
     
     if (workingDirectory) {
       // Use the specified working directory within the project
       const targetDir = path.join(projectDir, workingDirectory);
       
-      // Use DirectoryManager's path validation
-      this.directoryManager.validatePath(targetDir, projectDir);
+      // Basic path validation (ensure it's within project)
+      const resolvedTarget = path.resolve(targetDir);
+      const resolvedProject = path.resolve(projectDir);
+      
+      if (!resolvedTarget.startsWith(resolvedProject)) {
+        throw new Error('Working directory must be within the project');
+      }
       
       // Check if the working directory exists
       if (!fs.existsSync(targetDir)) {
@@ -207,7 +204,7 @@ export class TerminalManager {
         //PATH: '/usr/local/bin:/usr/bin:/bin',
         // Session stays within project directory
         PROJECT_ROOT: projectDir,
-        SESSION_DIR: sessionPath,
+        SESSION_DIR: sessionWorkingDir,
         // Clear any potentially problematic env vars
         OLDPWD: sessionWorkingDir
       };
@@ -225,7 +222,7 @@ export class TerminalManager {
         //PATH: '/usr/local/bin:/usr/bin:/bin',
         // Session stays within project directory
         PROJECT_ROOT: projectDir,
-        SESSION_DIR: sessionPath,
+        SESSION_DIR: sessionWorkingDir,
         // Clear any potentially problematic env vars
         OLDPWD: sessionWorkingDir
       };
@@ -244,19 +241,11 @@ export class TerminalManager {
     this.buffers.set(sessionId, []);
     this.subscribers.set(sessionId, new Set());
     
-    // Create symlink for readable directory name (project-based)
-    let symlinkName;
-    try {
-      symlinkName = createSymlink(projectId, sessionName);
-    } catch (err) {
-      console.warn(`Failed to create symlink for project ${projectId}:`, err.message);
-      symlinkName = null;
-    }
+    // Symlink functionality removed for simplicity
 
     // Store session metadata with project reference
     this.sessionMetadata.set(sessionId, { 
-      name: sessionName, 
-      symlinkName,
+      name: sessionName,
       projectId: projectId
     });
 
@@ -265,10 +254,14 @@ export class TerminalManager {
     // Setup SINGLE data handler
     this.setupDataHandler(pty, sessionId);
     
-    // Update session metadata with PID
-    await this.directoryManager.updateSession(projectId, sessionId, {
+    // Add session to project in storage manager
+    storageManager.addSessionToProject(projectId, {
+      id: sessionId,
+      name: sessionName,
+      type: mode,
+      status: 'active',
       pid: pty.pid,
-      status: 'active'
+      created: new Date().toISOString()
     });
 
     return { sessionId, pty, name: sessionName, projectId };
@@ -359,7 +352,6 @@ export class TerminalManager {
     // Store session metadata
     this.sessionMetadata.set(sessionId, {
       name: name || `session-${Date.now()}`,
-      symlinkName: '',
       projectId: opts.projectId,
       workingDir: sessionWorkingDir
     });
@@ -432,15 +424,8 @@ export class TerminalManager {
     this.buffers.delete(sessionId);
     this.subscribers.delete(sessionId);
     
-    // Clean up symlink
+    // Clean up session metadata
     const metadata = this.sessionMetadata.get(sessionId);
-    if (metadata && metadata.symlinkName) {
-      try {
-        removeSymlinkByName(metadata.symlinkName);
-      } catch (err) {
-        console.warn(`Failed to remove symlink for session ${sessionId}:`, err.message);
-      }
-    }
     this.sessionMetadata.delete(sessionId);
     
     console.log(`Session ${sessionId} cleanup completed`);
@@ -527,7 +512,7 @@ export class TerminalManager {
    * @returns {string} The actual name used (may be modified for conflicts)
    */
   renameSession(sessionId, newName) {
-    if (!validateSessionName(newName)) {
+    if (!storageManager.validateSessionName(newName)) {
       throw new Error('Invalid session name');
     }
 
@@ -543,31 +528,15 @@ export class TerminalManager {
     }
 
     // Resolve name conflicts with existing sessions
-    const existingNames = getAllSessionNames().filter(name => name !== metadata.name);
-    const resolvedName = resolveNameConflict(newName.trim(), existingNames);
+    const existingNames = storageManager.getAllSessionNames().filter(name => name !== metadata.name);
+    const resolvedName = storageManager.resolveNameConflict(newName.trim(), existingNames);
 
-    // Update symlink
-    let newSymlinkName = metadata.symlinkName;
-    if (metadata.symlinkName) {
-      try {
-        removeSymlinkByName(metadata.symlinkName);
-        newSymlinkName = createSymlink(sessionId, resolvedName);
-      } catch (err) {
-        console.warn(`Failed to update symlink for session ${sessionId}:`, err.message);
-        // Try to recreate the old symlink
-        try {
-          createSymlink(sessionId, metadata.name);
-        } catch (restoreErr) {
-          console.error(`Failed to restore symlink for session ${sessionId}:`, restoreErr.message);
-        }
-        throw new Error(`Failed to update session symlink: ${err.message}`);
-      }
-    }
+    // Symlink functionality removed
 
     // Update metadata
     this.sessionMetadata.set(sessionId, {
       name: resolvedName,
-      symlinkName: newSymlinkName
+      projectId: metadata.projectId
     });
 
     console.log(`Renamed session ${sessionId} from "${metadata.name}" to "${resolvedName}"`);
@@ -577,7 +546,7 @@ export class TerminalManager {
   /**
    * Get session metadata including name
    * @param {string} sessionId - The session ID
-   * @returns {{name: string, symlinkName: string} | null} Session metadata or null if not found
+   * @returns {{name: string, projectId?: string} | null} Session metadata or null if not found
    */
   getSessionMetadata(sessionId) {
     return this.sessionMetadata.get(sessionId) || null;

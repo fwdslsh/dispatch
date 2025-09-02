@@ -1,21 +1,11 @@
 // src/lib/server/socket-handler.js
 import { TerminalManager } from './terminal.js';
-import { addSession, switchSession, endSession, getSessions, updateSessionName } from './session-store.js';
-import { 
-  createProject, 
-  getProjects, 
-  getProject,
-  updateProject,
-  deleteProject,
-  addSessionToProject,
-  updateSessionInProject,
-  removeSessionFromProject,
-  setActiveProject 
-} from './project-store.js';
+import storageManager from './storage-manager.js';
 import { createErrorResponse, createSuccessResponse, ErrorHandler } from '../utils/error-handling.js';
 import { ValidationMiddleware, RateLimiter } from '../utils/validation.js';
 import { checkClaudeCredentials } from './claude-auth-middleware.js';
 import fs from 'node:fs';
+import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 const terminalManager = new TerminalManager();
@@ -76,7 +66,7 @@ export function handleConnection(socket) {
       
       if (projectId) {
         // Use specified project
-        targetProject = getProject(projectId);
+        targetProject = storageManager.getProject(projectId);
         if (!targetProject) {
           if (callback) callback(createErrorResponse(`Project ${projectId} not found`));
           return;
@@ -84,13 +74,13 @@ export function handleConnection(socket) {
       } else {
         // Create a default project if none exists or get the default one
         try {
-          const projectsData = getProjects();
+          const projectsData = storageManager.getProjects();
           const projects = projectsData.projects || [];
           targetProject = projects.find(p => p.name === 'default');
           
           if (!targetProject) {
             // Create default project
-            targetProject = createProject({
+            targetProject = storageManager.createProject({
               name: 'default',
               description: 'Default project for legacy sessions'
             });
@@ -111,7 +101,7 @@ export function handleConnection(socket) {
       const name = sessionOpts.name || `session-${Date.now()}`;
       
       // Add session to project
-      addSessionToProject(targetProject.id, {
+      storageManager.addSessionToProject(targetProject.id, {
         id: sessionId,
         name,
         type: sessionOpts.mode || 'shell',
@@ -131,9 +121,9 @@ export function handleConnection(socket) {
           { id: sessionId, name, ...opts.meta } :
           { id: sessionId, name, host: 'local', port: '0', username: 'user' };
         
-        addSession(sessionMeta);
+        // Session is already added to project via addSessionToProject above
         // Broadcast updated sessions list
-        socket.server.emit('sessions-updated', getSessions());
+        socket.server.emit('sessions-updated', storageManager.getSessions());
       } catch (err) {
         console.warn('Failed to persist session metadata:', err.message);
       }
@@ -189,7 +179,7 @@ export function handleConnection(socket) {
       
       if (projectId) {
         // Filter sessions by project
-        const project = getProject(projectId);
+        const project = storageManager.getProject(projectId);
         if (!project) {
           if (callback) callback({ success: false, error: 'Project not found' });
           return;
@@ -208,7 +198,7 @@ export function handleConnection(socket) {
         });
       } else {
         // Return all sessions (legacy behavior)
-        if (callback) callback({ success: true, ...getSessions() });
+        if (callback) callback({ success: true, ...storageManager.getSessions() });
       }
     } catch (err) {
       if (callback) callback({ success: false, error: err.message });
@@ -227,7 +217,7 @@ export function handleConnection(socket) {
     // Validate project if specified
     if (projectId) {
       try {
-        const project = getProject(projectId);
+        const project = storageManager.getProject(projectId);
         if (!project) {
           if (callback) callback({ success: false, error: 'Project not found' });
           return;
@@ -252,12 +242,12 @@ export function handleConnection(socket) {
       let persistentSession = null;
       
       // First check the old session store
-      const sessions = getSessions();
+      const sessions = storageManager.getSessions();
       persistentSession = sessions.sessions.find(s => s.id === sessionId);
       
       // If not found, check project-based sessions
       if (!persistentSession) {
-        const projectsData = getProjects();
+        const projectsData = storageManager.getProjects();
         const projects = projectsData.projects || [];
         for (const project of projects) {
           const session = project.sessions?.find(s => s.id === sessionId);
@@ -275,7 +265,7 @@ export function handleConnection(socket) {
           
           // Find the project this session belongs to
           let projectId = null;
-          const projectsData = getProjects();
+          const projectsData = storageManager.getProjects();
           const projects = projectsData.projects || [];
           for (const project of projects) {
             if (project.sessions?.some(s => s.id === sessionId)) {
@@ -473,7 +463,7 @@ export function handleConnection(socket) {
       // If no projectId in terminal metadata, search project store
       if (!projectId) {
         console.log(`DEBUG: No projectId in session metadata, searching project store...`);
-        const projectsData = getProjects();
+        const projectsData = storageManager.getProjects();
         const projects = projectsData.projects || [];
         
         for (const project of projects) {
@@ -494,10 +484,10 @@ export function handleConnection(socket) {
       // Remove session from project if it belongs to one
       if (projectId) {
         try {
-          removeSessionFromProject(projectId, sessionId);
+          storageManager.removeSessionFromProject(projectId, sessionId);
           console.log(`Removed session ${sessionId} from project ${projectId}`);
           // Broadcast project updates to all clients
-          socket.server.emit('projects-updated', getProjects());
+          socket.server.emit('projects-updated', storageManager.getProjects());
         } catch (err) {
           console.warn(`Failed to remove session from project: ${err.message}`);
         }
@@ -520,12 +510,12 @@ export function handleConnection(socket) {
       }
       
       try {
-        endSession(sessionId);
+        // Session cleanup handled by terminalManager.endSession above
       } catch (err) {
         console.warn('Failed to remove session metadata on end:', err.message);
       }
       // Broadcast update
-      socket.server.emit('sessions-updated', getSessions());
+      socket.server.emit('sessions-updated', storageManager.getSessions());
       socket.emit('ended');
       
       if (callback) callback({ success: true });
@@ -550,7 +540,7 @@ export function handleConnection(socket) {
 
     try {
       // Get current session metadata to return old name
-      const sessionData = getSessions();
+      const sessionData = storageManager.getSessions();
       const session = sessionData.sessions.find(s => s.id === sessionId);
       
       if (!session) {
@@ -564,10 +554,18 @@ export function handleConnection(socket) {
       const actualNewName = terminalManager.renameSession(sessionId, newName);
       
       // Update persistent session storage
-      updateSessionName(sessionId, actualNewName);
+      // Update session name in project
+      const projects = storageManager.getProjects();
+      for (const project of projects.projects) {
+        const session = project.sessions?.find(s => s.id === sessionId);
+        if (session) {
+          storageManager.updateSessionInProject(project.id, sessionId, { name: actualNewName });
+          break;
+        }
+      }
       
       // Broadcast updated sessions list
-      socket.server.emit('sessions-updated', getSessions());
+      socket.server.emit('sessions-updated', storageManager.getSessions());
       
       if (callback) callback({
         success: true,
@@ -621,13 +619,13 @@ export function handleConnection(socket) {
         return;
       }
 
-      const project = createProject({ 
+      const project = storageManager.createProject({ 
         name: name.trim(),
         description: description || '' 
       });
       
       // Broadcast updated projects list
-      socket.server.emit('projects-updated', getProjects());
+      socket.server.emit('projects-updated', storageManager.getProjects());
       
       if (callback) callback({ success: true, project });
     } catch (err) {
@@ -636,14 +634,14 @@ export function handleConnection(socket) {
   });
 
   // List projects
-  socket.on('list-projects', async (callback) => {
+  socket.on('list-projects', async (opts, callback) => {
     if (!authenticated) {
       if (callback) callback(createErrorResponse('Not authenticated'));
       return;
     }
     
     try {
-      const projectsData = getProjects();
+      const projectsData = storageManager.getProjects();
       if (callback) callback({ success: true, projects: projectsData.projects || [] });
     } catch (err) {
       if (callback) callback(createErrorResponse(err.message));
@@ -665,7 +663,7 @@ export function handleConnection(socket) {
         return;
       }
 
-      const project = getProject(projectId);
+      const project = storageManager.getProject(projectId);
       
       if (!project) {
         if (callback) callback(createErrorResponse('Project not found'));
@@ -705,10 +703,10 @@ export function handleConnection(socket) {
         return;
       }
 
-      const updatedProject = updateProject(projectId, updates);
+      const updatedProject = storageManager.updateProject(projectId, updates);
       
       // Broadcast updated projects list
-      socket.server.emit('projects-updated', getProjects());
+      socket.server.emit('projects-updated', storageManager.getProjects());
       
       if (callback) callback({ success: true, project: updatedProject });
     } catch (err) {
@@ -732,7 +730,7 @@ export function handleConnection(socket) {
       }
 
       // End all active sessions in this project first
-      const project = getProject(projectId);
+      const project = storageManager.getProject(projectId);
       if (project && project.sessions) {
         project.sessions.forEach(sessionInfo => {
           if (sessionInfo.status === 'active') {
@@ -745,10 +743,10 @@ export function handleConnection(socket) {
         });
       }
 
-      deleteProject(projectId);
+      storageManager.deleteProject(projectId);
       
       // Broadcast updated projects list
-      socket.server.emit('projects-updated', getProjects());
+      socket.server.emit('projects-updated', storageManager.getProjects());
       
       if (callback) callback({ success: true });
     } catch (err) {
@@ -820,10 +818,10 @@ export function handleConnection(socket) {
     try {
       const { projectId } = opts || {};
       
-      const activeProjectId = setActiveProject(projectId);
+      const activeProjectId = storageManager.setActiveProject(projectId);
       
       // Broadcast updated projects list
-      socket.server.emit('projects-updated', getProjects());
+      socket.server.emit('projects-updated', storageManager.getProjects());
       
       if (callback) callback({ success: true, activeProject: activeProjectId });
     } catch (err) {
@@ -875,20 +873,24 @@ export function handleConnection(socket) {
         return;
       }
 
-      // Get project directory through TerminalManager (this also validates project existence)
-      const projectInfo = await terminalManager.directoryManager.getProject(projectId);
-      if (!projectInfo) {
+      // Get project from the same store used by get-project
+      const project = storageManager.getProject(projectId);
+      if (!project) {
         if (callback) callback(createErrorResponse('Project not found'));
         return;
       }
       
-      const isAuthenticated = checkClaudeCredentials(projectInfo.path);
+      // Build the project path (using PTY_ROOT from project-store.js)
+      const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
+      const projectPath = path.join(PTY_ROOT, projectId);
+      
+      const isAuthenticated = checkClaudeCredentials(projectPath);
       
       if (callback) callback({ 
         success: true, 
         projectId,
         authenticated: isAuthenticated,
-        credentialsPath: `${projectInfo.path}/.claude/credentials.json`
+        credentialsPath: `${projectPath}/.claude/credentials.json`
       });
     } catch (err) {
       if (callback) callback(createErrorResponse(err.message));
@@ -910,12 +912,16 @@ export function handleConnection(socket) {
         return;
       }
 
-      // Get project directory through TerminalManager
-      const projectInfo = await terminalManager.directoryManager.getProject(projectId);
-      if (!projectInfo) {
+      // Get project from the same store used by get-project
+      const project = storageManager.getProject(projectId);
+      if (!project) {
         if (callback) callback(createErrorResponse('Project not found'));
         return;
       }
+      
+      // Build the project path (using PTY_ROOT from project-store.js)
+      const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
+      const projectPath = path.join(PTY_ROOT, projectId);
 
       // Create a special session for Claude authentication
       const sessionId = `claude-auth-${randomUUID()}`;
@@ -936,8 +942,9 @@ export function handleConnection(socket) {
       }
       socketSessions.get(socket.id).add(sessionId);
 
-      // Set up data handler to capture output and look for OAuth URL
+      // Set up data handler to capture output and look for OAuth URL and token
       let outputBuffer = '';
+      let tokenSaved = false;
       const unsubscribe = terminalManager.subscribeToSession(sessionId, (data) => {
         outputBuffer += data;
         
@@ -946,6 +953,41 @@ export function handleConnection(socket) {
         if (urlMatch) {
           const oauthUrl = urlMatch[0];
           socket.emit('claude-auth-url', { sessionId, url: oauthUrl });
+        }
+        
+        // Look for generated token and save it automatically
+        if (!tokenSaved) {
+          const tokenMatch = outputBuffer.match(/sk-ant-[a-zA-Z0-9_-]+/);
+          if (tokenMatch) {
+            const token = tokenMatch[0];
+            console.log(`Found Claude token for project ${projectId}, saving to credentials...`);
+            
+            try {
+              // Create .claude directory and credentials.json
+              const claudeDir = path.join(projectPath, '.claude');
+              if (!fs.existsSync(claudeDir)) {
+                fs.mkdirSync(claudeDir, { recursive: true });
+              }
+              
+              const credentials = {
+                token: token,
+                created: new Date().toISOString()
+              };
+              
+              const credentialsPath = path.join(claudeDir, 'credentials.json');
+              fs.writeFileSync(credentialsPath, JSON.stringify(credentials, null, 2));
+              
+              console.log(`Claude credentials saved to ${credentialsPath}`);
+              tokenSaved = true;
+              
+              // Emit success event
+              socket.emit('claude-token-saved', { sessionId, credentialsPath });
+              
+            } catch (err) {
+              console.error('Failed to save Claude credentials:', err);
+              socket.emit('claude-auth-error', { sessionId, error: err.message });
+            }
+          }
         }
         
         // Also emit raw output for debugging

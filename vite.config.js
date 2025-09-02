@@ -14,11 +14,11 @@ const webSocketServer = {
 			}
 		});
 
-		// Initialize session store in development
-		import('./src/lib/server/session-store.js').then(({ initializeSessionStore }) => {
-			initializeSessionStore();
+		// Initialize storage manager in development
+		import('./src/lib/server/storage-manager.js').then((module) => {
+			module.default.initialize();
 		}).catch((err) => {
-			console.warn('Session store not available during dev:', err.message);
+			console.warn('Storage manager not available during dev:', err.message);
 		});
 
 		// Import the socket handler for development

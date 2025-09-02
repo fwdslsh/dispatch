@@ -7,6 +7,11 @@
     import Projects from "$lib/components/Projects.svelte";
 
     export let data;
+
+    function logout(){
+        localStorage.removeItem('dispatch-auth-token');
+        goto("/");
+    }
 </script>
 
 <Container>
@@ -14,8 +19,8 @@
         <HeaderToolbar>
             {#snippet left()}
                 <button
-                    class="btn-icon"
-                    on:click={() => goto("/")}
+                    class="btn-icon-only"
+                    on:click={() => logout()}
                     title="Back to home"
                     aria-label="Back to home"
                 >

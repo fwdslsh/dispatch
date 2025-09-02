@@ -140,10 +140,26 @@
                 console.log("Claude auth output:", data.data);
             });
 
+            socket.on("claude-token-saved", (data) => {
+                console.log("Claude token saved:", data);
+                // Token was automatically saved, mark as authenticated
+                claudeAuthState = 'authenticated';
+                claudeOAuthUrl = null;
+                claudeAuthToken = '';
+                claudeAuthSessionId = null;
+                // Refresh project to update UI
+                loadProject();
+            });
+
+            socket.on("claude-auth-error", (data) => {
+                console.error("Claude auth error:", data.error);
+                claudeAuthState = 'not-authenticated';
+            });
+
             socket.on("claude-auth-ended", (data) => {
                 console.log("Claude auth session ended:", data);
                 if (data.exitCode === 0) {
-                    // Authentication successful
+                    // Authentication successful (fallback if token wasn't auto-detected)
                     claudeAuthState = 'authenticated';
                     claudeOAuthUrl = null;
                     claudeAuthToken = '';
@@ -439,7 +455,7 @@
         <HeaderToolbar>
             {#snippet left()}
                 <button
-                    class="btn-icon"
+                    class="btn-icon-only"
                     on:click={backToProjects}
                     title="Back to projects"
                     aria-label="Back to projects"
@@ -449,7 +465,7 @@
             {/snippet}
             {#snippet right()}
                 <div class="header-content">
-                    <h1>{project?.name || 'Loading...'}</h1>
+                    <h2>{project?.name || 'Loading...'}</h2>
                     {#if project?.description}
                         <p class="project-description">{project.description}</p>
                     {/if}

@@ -8,8 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { handleConnection } from './lib/server/socket-handler.js';
-import { initializeSessionStore, getDirectoryManager } from './lib/server/session-store.js';
-import { initializeProjectStore } from './lib/server/project-store.js';
+import storageManager from './lib/server/storage-manager.js';
 import DirectoryManager from './lib/server/directory-manager.js';
 
 const PORT = process.env.PORT || 3030;
@@ -45,13 +44,8 @@ async function initializeDirectories() {
     fs.accessSync(directoryManager.configDir, fs.constants.W_OK);
     fs.accessSync(directoryManager.projectsDir, fs.constants.W_OK);
     
-    // Initialize session store and clean up any orphaned sessions
-    initializeSessionStore();
-    
-    // Initialize project store if available
-    if (typeof initializeProjectStore !== 'undefined') {
-      initializeProjectStore();
-    }
+    // Initialize unified storage manager
+    await storageManager.initialize();
     
   } catch (err) {
     console.error(`ERROR: Directory initialization failed: ${err.message}`);

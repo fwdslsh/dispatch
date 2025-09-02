@@ -144,7 +144,7 @@
     function loadProjects() {
         if (!socket || !authed) return;
 
-        socket.emit("list-projects", (response) => {
+        socket.emit("list-projects", {}, (response) => {
             if (response.success) {
                 projects = response.projects || [];
                 activeProject = response.activeProject;
