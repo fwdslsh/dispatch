@@ -797,14 +797,13 @@
 
 <!-- End session confirmation dialog -->
 <ConfirmationDialog
-    open={showEndSessionDialog}
+    show={showEndSessionDialog}
     title="End Session"
     message="Are you sure you want to end session '{sessionToEnd?.name}'? This will terminate the session and you may lose unsaved work."
     confirmText="End Session"
     cancelText="Cancel"
-    onConfirm={endSession}
-    onCancel={cancelEndSession}
-    onClose={cancelEndSession}
+    on:confirm={endSession}
+    on:cancel={cancelEndSession}
 />
 
 <style>
@@ -834,13 +833,17 @@
         border: 1px solid rgba(0, 255, 136, 0.3);
         padding: var(--space-md);
         backdrop-filter: blur(10px);
-        overflow-y: auto;
+        overflow-y: hidden;
+        display: flex;
+        flex-direction: column;
+        max-height: 100%;
     }
 
     .sessions-panel h3 {
         margin-top: 0;
         margin-bottom: var(--space-md);
         color: var(--text-primary);
+        height: min-content;
     }
 
     .sessions-panel h4 {
@@ -848,6 +851,7 @@
         margin-bottom: var(--space-sm);
         color: var(--text-primary);
         font-size: 1rem;
+        height: min-content;
     }
 
     .empty-sessions {
@@ -861,6 +865,8 @@
         padding: 0;
         list-style: none;
         margin-bottom: var(--space-lg);
+        overflow-y: auto;
+        scrollbar-width: thin;
     }
 
     .session-item {

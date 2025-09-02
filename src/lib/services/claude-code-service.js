@@ -1,4 +1,7 @@
 import { query } from '@anthropic-ai/claude-code';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
 /**
  * Service wrapper for Claude Code SDK integration
@@ -23,6 +26,33 @@ export class ClaudeCodeService {
       pathToClaudeCodeExecutable: cliPath,
       ...options
     };
+  }
+
+  /**
+   * Check if Claude CLI is authenticated by verifying credentials file
+   * @returns {boolean} True if authenticated (credentials.json exists with token)
+   */
+  isAuthenticated() {
+    try {
+      const homeDir = os.homedir();
+      const credentialsPath = path.join(homeDir, '.claude', 'credentials.json');
+      
+      // Check if credentials file exists
+      if (!fs.existsSync(credentialsPath)) {
+        return false;
+      }
+      
+      // Read and parse the credentials file
+      const credentialsContent = fs.readFileSync(credentialsPath, 'utf8');
+      const credentials = JSON.parse(credentialsContent);
+      
+      // Check if token property exists and has a value
+      return !!(credentials.token && typeof credentials.token === 'string' && credentials.token.trim().length > 0);
+      
+    } catch (error) {
+      console.error('Error checking Claude authentication:', error);
+      return false;
+    }
   }
 
   /**

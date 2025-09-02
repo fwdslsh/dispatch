@@ -70,8 +70,8 @@ async function createTestProject() {
     
     // Test Claude authentication
     console.log('🤖 Testing Claude authentication check...');
-    const hasClaudeAuth = await import('../src/lib/server/claude-auth-middleware.js')
-      .then(mod => mod.checkClaudeCredentials(projectInfo.path));
+    const hasClaudeAuth = await import('../src/lib/services/claude-code-service.js')
+      .then(mod => mod.claudeCodeService.isAuthenticated());
     
     console.log(`   Claude credentials exist: ${hasClaudeAuth}`);
     console.log(`   Credentials path: ${projectInfo.path}/.claude/credentials.json`);

@@ -3,12 +3,13 @@ import { TerminalManager } from './terminal.js';
 import storageManager from './storage-manager.js';
 import { createErrorResponse, createSuccessResponse, ErrorHandler } from '../utils/error-handling.js';
 import { ValidationMiddleware, RateLimiter } from '../utils/validation.js';
-import { checkClaudeCredentials } from './claude-auth-middleware.js';
+import { ClaudeCodeService } from '../services/claude-code-service.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 const terminalManager = new TerminalManager();
+const claudeService = new ClaudeCodeService();
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
 const TUNNEL_FILE = '/tmp/tunnel-url.txt'; // Simplified tunnel file path
 
@@ -884,7 +885,7 @@ export function handleConnection(socket) {
       const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
       const projectPath = path.join(PTY_ROOT, projectId);
       
-      const isAuthenticated = checkClaudeCredentials(projectPath);
+      const isAuthenticated =  claudeService.isAuthenticated(); // checkClaudeCredentials(projectPath);
       
       if (callback) callback({ 
         success: true, 
@@ -1052,6 +1053,74 @@ export function handleConnection(socket) {
       if (callback) callback({ success: true });
     } catch (err) {
       if (callback) callback(createErrorResponse(err.message));
+    }
+  });
+
+  // Check Claude authentication status
+  socket.on('check-claude-auth', async (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      // Check authentication by verifying credentials file
+      const isAuth = claudeService.isAuthenticated();
+      
+      if (isAuth) {
+        if (callback) callback({ 
+          success: true, 
+          authenticated: true, 
+          error: null 
+        });
+      } else {
+        if (callback) callback({ 
+          success: false,
+          authenticated: false,
+          error: 'Not authenticated with Claude CLI',
+          hint: 'Run: npx @anthropic-ai/claude setup-token'
+        });
+      }
+      
+    } catch (error) {
+      console.error('Claude auth check failed:', error);
+      
+      if (callback) callback({ 
+        success: false,
+        authenticated: false,
+        error: 'Authentication check failed',
+        hint: 'Could not verify Claude CLI authentication'
+      });
+    }
+  });
+
+  // Execute Claude query
+  socket.on('claude-query', async (opts, callback) => {
+    if (!authenticated) {
+      if (callback) callback(createErrorResponse('Not authenticated'));
+      return;
+    }
+
+    try {
+      const { prompt, options = {} } = opts || {};
+      
+      if (!prompt || typeof prompt !== 'string') {
+        if (callback) callback(createErrorResponse('Prompt is required and must be a string'));
+        return;
+      }
+
+      // Execute the query
+      const response = await claudeService.query(prompt.trim(), options);
+
+      if (callback) callback({
+        success: true,
+        response
+      });
+      
+    } catch (error) {
+      console.error('Claude query failed:', error);
+      
+      if (callback) callback(createErrorResponse(error.message || 'Query execution failed'));
     }
   });
 

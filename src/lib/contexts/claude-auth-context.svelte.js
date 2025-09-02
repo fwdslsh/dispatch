@@ -1,4 +1,5 @@
 import { getContext, setContext } from 'svelte';
+import { io } from 'socket.io-client';
 
 const CLAUDE_AUTH_CONTEXT_KEY = 'claude-auth';
 
@@ -12,23 +13,88 @@ class ClaudeAuthContext {
   lastChecked = $state(null);
 
   constructor() {
+    // Initialize socket connection
+    this.socket = null;
+    this.terminalKey = null;
+    this.socketAuthenticated = false;
+    
     // Check authentication status on initialization
-    this.checkAuth();
+    this.initSocket();
+  }
+
+  async initSocket() {
+    try {
+      this.socket = io();
+      
+      this.socket.on('connect', () => {
+        console.log('Claude auth context connected to socket');
+        // Authenticate socket when connected
+        const key = this.terminalKey || 'test'; // Use test key for development
+        this.socket.emit('auth', key, (response) => {
+          if (response?.success) {
+            this.socketAuthenticated = true;
+            this.checkAuth(); // Check Claude auth after socket auth
+          } else {
+            console.error('Socket authentication failed:', response);
+            this.socketAuthenticated = false;
+            this.authenticated = false;
+            this.error = 'Socket authentication failed';
+            this.loading = false;
+          }
+        });
+      });
+
+      this.socket.on('disconnect', () => {
+        console.log('Claude auth context disconnected from socket');
+        this.socketAuthenticated = false;
+      });
+    } catch (error) {
+      console.error('Failed to initialize socket:', error);
+      this.authenticated = false;
+      this.error = 'Failed to connect to server';
+      this.loading = false;
+    }
+  }
+
+  setTerminalKey(key) {
+    this.terminalKey = key;
+    if (this.socket && this.socket.connected) {
+      this.socket.emit('auth', key, (response) => {
+        this.socketAuthenticated = response?.success || false;
+        if (this.socketAuthenticated) {
+          this.checkAuth();
+        }
+      });
+    }
   }
 
   /**
    * Check Claude CLI authentication status
    */
   async checkAuth() {
+    if (!this.socket || !this.socketAuthenticated) {
+      this.authenticated = false;
+      this.error = 'Socket not authenticated';
+      this.loading = false;
+      return;
+    }
+
     this.loading = true;
     this.error = null;
     
     try {
-      const response = await fetch('/api/claude/auth');
-      const data = await response.json();
+      const response = await new Promise((resolve, reject) => {
+        this.socket.emit('check-claude-auth', {}, (response) => {
+          if (response) {
+            resolve(response);
+          } else {
+            reject(new Error('No response received'));
+          }
+        });
+      });
       
-      this.authenticated = data.authenticated;
-      this.error = data.error;
+      this.authenticated = response.authenticated || false;
+      this.error = response.error;
       this.lastChecked = new Date();
       
     } catch (error) {
@@ -47,25 +113,29 @@ class ClaudeAuthContext {
    * @returns {Promise<string>} The response from Claude
    */
   async query(prompt, options = {}) {
+    if (!this.socket || !this.socketAuthenticated) {
+      throw new Error('Socket not authenticated');
+    }
+    
     if (!this.authenticated) {
       throw new Error('Not authenticated with Claude CLI');
     }
 
-    const response = await fetch('/api/claude/query', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ prompt, options }),
+    const response = await new Promise((resolve, reject) => {
+      this.socket.emit('claude-query', { prompt, options }, (response) => {
+        if (response) {
+          if (response.success) {
+            resolve(response);
+          } else {
+            reject(new Error(response.error || 'Query failed'));
+          }
+        } else {
+          reject(new Error('No response received'));
+        }
+      });
     });
-
-    const data = await response.json();
     
-    if (!response.ok) {
-      throw new Error(data.error || 'Query failed');
-    }
-    
-    return data.response;
+    return response.response;
   }
 
   /**
@@ -102,6 +172,17 @@ class ClaudeAuthContext {
       error: this.error,
       lastChecked: this.lastChecked
     };
+  }
+
+  /**
+   * Cleanup socket connection
+   */
+  destroy() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+    this.socketAuthenticated = false;
   }
 }
 

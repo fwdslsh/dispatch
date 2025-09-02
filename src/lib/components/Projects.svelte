@@ -387,7 +387,7 @@
     {/if}
 </div>
 
-<div class="project-form">
+<div class="project-form" data-augmented-ui="tl-clip tr-clip br-clip bl-clip both">
     <h3>Create New Project</h3>
     <div class="form-group">
         <label for="project-name">Project Name</label>
@@ -445,6 +445,12 @@
 />
 
 <style>
+    :global(.container-content:has(.projects)) {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        justify-content: space-between;
+    }
     .projects {
         flex: 1;
         max-height: 400px;
