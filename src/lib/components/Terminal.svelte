@@ -1,6 +1,7 @@
 <script>
   import { Xterm } from '@battlefieldduck/xterm-svelte';
   import { TerminalViewModel } from '../services/terminal-viewmodel.js';
+    import { onMount } from 'svelte';
 
   let {
     socket = null,
@@ -53,7 +54,7 @@
     ...terminalOptions
   });
 
-  $effect(() => {
+  onMount(() => {
     console.debug('Terminal mount - initializing ViewModel');
     
     // Create ViewModel
@@ -135,7 +136,6 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    height: 80svh;
     width: 100%;
   }
 

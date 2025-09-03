@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Refactor the Dispatch server architecture to eliminate critical technical debt by splitting the monolithic 1,138-line socket handler into focused handlers, consolidating three overlapping storage systems into a unified approach, and implementing proper separation of concerns following SOLID principles. This refactoring will improve code maintainability, testability, and scalability while reducing complexity and removing architectural violations identified in the comprehensive server architecture review.

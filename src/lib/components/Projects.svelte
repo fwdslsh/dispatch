@@ -482,7 +482,7 @@
     }
     .projects {
         flex: 1;
-        max-height: 400px;
+        max-height: 90svh;
         overflow-y: auto;
         padding: var(--space-md);
     }

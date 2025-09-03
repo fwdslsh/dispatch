@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { handleConnection } from './lib/server/socket-handler.js';
+import { handleConnection } from './lib/server/socket-handler-refactored.js';
 import storageManager from './lib/server/storage-manager.js';
 import DirectoryManager from './lib/server/directory-manager.js';
 

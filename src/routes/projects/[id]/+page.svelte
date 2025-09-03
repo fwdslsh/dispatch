@@ -1,6 +1,6 @@
 <script>
-    import { mount, unmount } from "svelte";
-    import { page } from "$app/stores";
+    import { mount, onMount, unmount } from "svelte";
+    import { page } from "$app/state";
     import { io } from "socket.io-client";
     import { goto } from "$app/navigation";
     import HeaderToolbar from "$lib/components/HeaderToolbar.svelte";
@@ -19,10 +19,11 @@
         validateSessionNameWithFeedback,
     } from "$lib/utils/session-name-validation.js";
     import { createClaudeAuthContext } from "$lib/contexts/claude-auth-context.svelte.js";
+    import { onDestroy } from "svelte";
 
     let { data } = $props();
 
-    let projectId = $derived($page.params.id);
+    let projectId = $derived(page.params.id);
 
     let project = $state(null);
     let sessions = $state([]);
@@ -34,20 +35,16 @@
 
     // Validation state
     let nameValidation = $state({ isValid: true, message: '', severity: 'info' });
-    let showValidation = $state(false);
 
     // Reactive validation
     $effect(() => {
         nameValidation = validateSessionNameRealtime(sessionName);
-        // Only show validation feedback when there's a message or it's invalid
-        showValidation = !nameValidation.isValid || nameValidation.message;
     });
 
     // Validate before submission
     function validateBeforeSubmit() {
         const finalValidation = validateSessionNameWithFeedback(sessionName);
         nameValidation = finalValidation;
-        showValidation = !finalValidation.isValid;
         return finalValidation.isValid;
     }
 
@@ -71,8 +68,11 @@
     let currentTerminal = $state(null);
     let currentChat = $state(null);
 
-    $effect(() => {
-        if (!projectId) {
+    onMount(() => {
+        // Only depend on projectId to avoid cleanup loops
+        const currentProjectId = projectId;
+        
+        if (!currentProjectId) {
             goto("/projects");
             return;
         }
@@ -87,57 +87,70 @@
 
                 // Authenticate
                 socket.emit("auth", data?.terminalKey || "test", (response) => {
-                    if (response?.ok || response?.success) {
-                        authed = true;
-                        loadProject();
-                    } else {
-                        console.error("Authentication failed");
-                    }
+                    // Use queueMicrotask to ensure state updates happen in the next tick
+                    queueMicrotask(() => {
+                        if (response?.ok || response?.success) {
+                            authed = true;
+                            loadProject();
+                        } else {
+                            console.error("Authentication failed");
+                        }
+                    });
                 });
             });
 
             socket.on("projects-updated", (data) => {
                 console.log("Projects updated:", data);
-                // Reload current project if it still exists
-                loadProject();
+                // Use queueMicrotask to ensure state updates happen in the next tick
+                queueMicrotask(() => {
+                    // Reload current project if it still exists
+                    loadProject();
+                });
             });
 
             socket.on("session-ended", (data) => {
                 console.log("Session ended:", data);
                 const { sessionId } = data;
 
-                // Remove from active sessions
-                activeSessions = activeSessions.filter(
-                    (s) => s.sessionId !== sessionId,
-                );
+                // Use queueMicrotask to ensure state updates happen in the next tick
+                queueMicrotask(() => {
+                    // Remove from active sessions
+                    activeSessions = activeSessions.filter(
+                        (s) => s.sessionId !== sessionId,
+                    );
 
-                // If this was the active session, clear it
-                if (activeSessionId === sessionId) {
-                    activeSessionId = null;
-                    if (currentTerminal) {
-                        unmount(currentTerminal);
-                        currentTerminal = null;
+                    // If this was the active session, clear it
+                    if (activeSessionId === sessionId) {
+                        activeSessionId = null;
+                        if (currentTerminal) {
+                            unmount(currentTerminal);
+                            currentTerminal = null;
+                        }
+                        if (currentChat) {
+                            unmount(currentChat);
+                            currentChat = null;
+                        }
                     }
-                    if (currentChat) {
-                        unmount(currentChat);
-                        currentChat = null;
-                    }
-                }
 
-                // Reload project to update session statuses
-                loadProject();
+                    // Reload project to update session statuses
+                    loadProject();
+                });
             });
 
             socket.on("disconnect", () => {
                 console.log("Disconnected from server");
-                authed = false;
+                queueMicrotask(() => {
+                    authed = false;
+                });
             });
 
             // Claude authentication event handlers
             socket.on("claude-auth-url", (data) => {
                 console.log("Received Claude OAuth URL:", data);
-                claudeOAuthUrl = data.url;
-                claudeAuthState = "waiting-for-token";
+                queueMicrotask(() => {
+                    claudeOAuthUrl = data.url;
+                    claudeAuthState = "waiting-for-token";
+                });
             });
 
             socket.on("claude-auth-output", (data) => {
@@ -146,54 +159,50 @@
 
             socket.on("claude-token-saved", (data) => {
                 console.log("Claude token saved:", data);
-                // Token was automatically saved, mark as authenticated
-                claudeAuthState = "authenticated";
-                claudeOAuthUrl = null;
-                claudeAuthToken = "";
-                claudeAuthSessionId = null;
-                // Refresh project to update UI
-                loadProject();
-            });
-
-            socket.on("claude-auth-error", (data) => {
-                console.error("Claude auth error:", data.error);
-                claudeAuthState = "not-authenticated";
-            });
-
-            socket.on("claude-auth-ended", (data) => {
-                console.log("Claude auth session ended:", data);
-                if (data.exitCode === 0) {
-                    // Authentication successful (fallback if token wasn't auto-detected)
+                queueMicrotask(() => {
+                    // Token was automatically saved, mark as authenticated
                     claudeAuthState = "authenticated";
                     claudeOAuthUrl = null;
                     claudeAuthToken = "";
                     claudeAuthSessionId = null;
                     // Refresh project to update UI
                     loadProject();
-                } else {
-                    // Authentication failed
+                });
+            });
+
+            socket.on("claude-auth-error", (data) => {
+                console.error("Claude auth error:", data.error);
+                queueMicrotask(() => {
                     claudeAuthState = "not-authenticated";
-                    claudeOAuthUrl = null;
-                    claudeAuthToken = "";
-                    claudeAuthSessionId = null;
-                }
+                });
+            });
+
+            socket.on("claude-auth-ended", (data) => {
+                console.log("Claude auth session ended:", data);
+                queueMicrotask(() => {
+                    if (data.exitCode === 0) {
+                        // Authentication successful (fallback if token wasn't auto-detected)
+                        claudeAuthState = "authenticated";
+                        claudeOAuthUrl = null;
+                        claudeAuthToken = "";
+                        claudeAuthSessionId = null;
+                        // Refresh project to update UI
+                        loadProject();
+                    } else {
+                        // Authentication failed
+                        claudeAuthState = "not-authenticated";
+                        claudeOAuthUrl = null;
+                        claudeAuthToken = "";
+                        claudeAuthSessionId = null;
+                    }
+                });
             });
         } catch (error) {
             console.error("Failed to connect:", error);
         }
         
-        // Cleanup function
+        // Cleanup function - only clean up socket, not components
         return () => {
-            // Cleanup components
-            if (currentTerminal) {
-                unmount(currentTerminal);
-                currentTerminal = null;
-            }
-            if (currentChat) {
-                unmount(currentChat);
-                currentChat = null;
-            }
-
             if (socket) {
                 socket.disconnect();
                 socket = null;
@@ -201,26 +210,41 @@
         };
     });
 
+    // Use onDestroy for component cleanup to avoid reactive dependency issues
+    onDestroy(() => {
+        // Cleanup components when page component is destroyed
+        if (currentTerminal) {
+            unmount(currentTerminal);
+            currentTerminal = null;
+        }
+        if (currentChat) {
+            unmount(currentChat);
+            currentChat = null;
+        }
+    });
+
     function loadProject() {
         if (!socket || !authed || !projectId) return;
 
         socket.emit("get-project", { projectId }, (response) => {
-            if (response.success) {
-                project = response.project;
-                sessions = project.sessions || [];
-                activeSessions = project.activeSessions || [];
-                console.log("Loaded project:", project);
-                console.log("Sessions from project:", $state.snapshot(sessions));
-                console.log("Active sessions from project:", $state.snapshot(activeSessions));
+            queueMicrotask(() => {
+                if (response.success) {
+                    project = response.project;
+                    sessions = project.sessions || [];
+                    activeSessions = project.activeSessions || [];
+                    console.log("Loaded project:", project);
+                    console.log("Sessions from project:", $state.snapshot(sessions));
+                    console.log("Active sessions from project:", $state.snapshot(activeSessions));
 
-                // Check Claude authentication status when project loads
-                checkClaudeAuth();
-            } else {
-                console.error("Failed to load project:", response.error);
-                if (response.error === "Project not found") {
-                    goto("/projects");
+                    // Check Claude authentication status when project loads
+                    checkClaudeAuth();
+                } else {
+                    console.error("Failed to load project:", response.error);
+                    if (response.error === "Project not found") {
+                        goto("/projects");
+                    }
                 }
-            }
+            });
         });
     }
 
@@ -229,14 +253,16 @@
 
         claudeAuthState = "checking";
         socket.emit("check-claude-auth", { projectId }, (response) => {
-            if (response.success) {
-                claudeAuthState = response.authenticated
-                    ? "authenticated"
-                    : "not-authenticated";
-            } else {
-                console.error("Failed to check Claude auth:", response.error);
-                claudeAuthState = "not-authenticated";
-            }
+            queueMicrotask(() => {
+                if (response.success) {
+                    claudeAuthState = response.authenticated
+                        ? "authenticated"
+                        : "not-authenticated";
+                } else {
+                    console.error("Failed to check Claude auth:", response.error);
+                    claudeAuthState = "not-authenticated";
+                }
+            });
         });
     }
 
@@ -248,16 +274,18 @@
         claudeAuthToken = "";
 
         socket.emit("start-claude-auth", { projectId }, (response) => {
-            if (response.success) {
-                claudeAuthSessionId = response.sessionId;
-                console.log(
-                    "Started Claude auth session:",
-                    claudeAuthSessionId,
-                );
-            } else {
-                console.error("Failed to start Claude auth:", response.error);
-                claudeAuthState = "not-authenticated";
-            }
+            queueMicrotask(() => {
+                if (response.success) {
+                    claudeAuthSessionId = response.sessionId;
+                    console.log(
+                        "Started Claude auth session:",
+                        claudeAuthSessionId,
+                    );
+                } else {
+                    console.error("Failed to start Claude auth:", response.error);
+                    claudeAuthState = "not-authenticated";
+                }
+            });
         });
     }
 
@@ -305,7 +333,6 @@
                     "Claude authentication required. Please authenticate first.",
                 severity: "error",
             };
-            showValidation = true;
             return;
         }
 
@@ -344,7 +371,6 @@
             sessionName = "";
             workingDirectory = "";
             nameValidation = { isValid: true, message: '', severity: 'info' };
-            showValidation = false;
 
             // Reload project to show new session
             loadProject();
@@ -358,7 +384,6 @@
                 message: err.message || "Failed to create session",
                 severity: "error",
             };
-            showValidation = true;
         }
     }
 
@@ -380,43 +405,54 @@
 
         socket.emit("attach", { sessionId, cols: 80, rows: 24 }, (response) => {
             if (response.success) {
-                activeSessionId = sessionId;
+                if (response.alreadyAttached) {
+                    console.log("Already attached to session:", sessionId);
+                    return; // Don't proceed with mounting components again
+                }
                 console.log("Attached to session:", sessionId);
-
-                // Create appropriate component based on session type
+                
+                // Get session info first
                 const sessionInfo =
                     sessions.find((s) => s.id === sessionId) ||
                     activeSessions.find((s) => s.sessionId === sessionId);
 
-                if (sessionInfo?.type === "claude") {
-                    // Create chat component with Claude auth context
-                    setTimeout(() => {
-                        const chatContainer =
-                            document.getElementById("chat-container");
-                        if (chatContainer) {
-                            currentChat = mount(Chat, {
-                                target: chatContainer,
-                                props: {
-                                    sessionId,
-                                    socket,
-                                    claudeAuthContext: claudeAuthContext,
-                                },
-                            });
+                // Use a single setTimeout to handle both state update and component mounting
+                setTimeout(() => {
+                    activeSessionId = sessionId;
+                    
+                    // Use requestAnimationFrame to ensure DOM is updated before mounting
+                    requestAnimationFrame(() => {
+                        if (sessionInfo?.type === "claude") {
+                            // Create chat component with Claude auth context
+                            const chatContainer =
+                                document.getElementById("chat-container");
+                            if (chatContainer) {
+                                currentChat = mount(Chat, {
+                                    target: chatContainer,
+                                    props: {
+                                        sessionId,
+                                        socket,
+                                        claudeAuthContext: claudeAuthContext,
+                                    },
+                                });
+                            } else {
+                                console.error("Chat container not found after DOM update");
+                            }
+                        } else {
+                            // Create terminal component
+                            const terminalContainer =
+                                document.getElementById("terminal-container");
+                            if (terminalContainer) {
+                                currentTerminal = mount(Terminal, {
+                                    target: terminalContainer,
+                                    props: { sessionId, socket, projectId },
+                                });
+                            } else {
+                                console.error("Terminal container not found after DOM update");
+                            }
                         }
-                    }, 100);
-                } else {
-                    // Create terminal component
-                    setTimeout(() => {
-                        const terminalContainer =
-                            document.getElementById("terminal-container");
-                        if (terminalContainer) {
-                            currentTerminal = mount(Terminal, {
-                                target: terminalContainer,
-                                props: { sessionId, socket, projectId },
-                            });
-                        }
-                    }, 100);
-                }
+                    });
+                }, 0);
             } else {
                 console.error("Failed to attach to session:", response.error);
             }
@@ -738,7 +774,7 @@
                             onkeydown={(e) =>
                                 e.key === "Enter" && createSessionInProject()}
                         />
-                        {#if showValidation && nameValidation.message}
+                        {#if !nameValidation.isValid && nameValidation.message}
                             <div
                                 class="validation-message"
                                 class:error={nameValidation.severity ===

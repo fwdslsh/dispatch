@@ -22,7 +22,7 @@ const webSocketServer = {
 		});
 
 		// Import the socket handler for development
-		import('./src/lib/server/socket-handler.js').then(({ handleConnection }) => {
+		import('./src/lib/server/socket-handler-refactored.js').then(({ handleConnection }) => {
 			io.on('connection', handleConnection);
 		}).catch((err) => {
 			console.warn('Socket handler not available during dev:', err.message);
