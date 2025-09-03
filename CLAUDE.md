@@ -18,6 +18,15 @@ npm install
 # Development server with hot reload (sets TERMINAL_KEY=test, runs on --host)
 npm run dev
 
+# Development server only (no client)
+npm run dev:server
+
+# Development without authentication (TERMINAL_KEY not required)
+npm run dev:no-key
+
+# Development with LocalTunnel enabled
+npm run dev:tunnel
+
 # Build for production  
 npm run build
 
@@ -35,8 +44,9 @@ npm start
 
 # Alternative production start
 node src/app.js
-# OR use the wrapper script
-./start.sh
+
+# CLI tool access
+./bin/dispatch-cli.js
 ```
 
 ## Architecture
@@ -51,6 +61,18 @@ node src/app.js
 - **Containerization**: Multi-stage Docker build with non-root execution
 - **UI Framework**: Uses augmented-ui for futuristic styling (see https://augmented-ui.com/docs/)
 
+### Simple Architecture Patterns
+
+This codebase emphasizes maintainability through **simple, focused patterns**:
+
+- **Handler-based Architecture**: Each domain (sessions, projects, terminal I/O) has dedicated handlers with single responsibilities
+- **Service Layer**: Clean separation with services that encapsulate business logic (`TerminalConfigurationService`, `ClaudeCodeService`)
+- **Dependency Injection**: Services are injected into handlers for easy testing and swapping
+- **Constants Centralization**: All magic numbers, strings, and configuration in `/src/lib/config/constants.js`
+- **Unified Storage**: `StorageManager` abstraction eliminates scattered file operations
+- **Consistent Error Handling**: Standardized error response patterns throughout
+- **ESM Modules**: Clean ES module structure with explicit imports/exports
+
 ### Key Files Structure
 
 ```
@@ -63,12 +85,27 @@ src/
 │   │   ├── Chat.svelte        # Chat/auxiliary UI component
 │   │   ├── HeaderToolbar.svelte # Navigation toolbar
 │   │   └── Icons/             # SVG icon components
+│   ├── config/
+│   │   └── constants.js       # Centralized configuration constants
+│   ├── services/              # Business logic services
+│   │   ├── TerminalConfigurationService.js
+│   │   ├── ClaudeCodeService.js
+│   │   └── TerminalHistoryService.js
+│   ├── utils/                 # Shared utilities
+│   ├── contexts/              # Svelte 5 contexts for state management
 │   └── server/
-│       ├── socket-handler.js     # Socket.IO connection management with project support
-│       ├── terminal.js           # TerminalManager class for PTY sessions
-│       ├── session-store.js      # Session metadata persistence 
-│       ├── directory-manager.js  # Project and session directory management
-│       └── sessions.json         # Session storage file created at runtime
+│       ├── handlers/          # Specialized event handlers
+│       │   ├── SessionHandler.js
+│       │   ├── ProjectHandler.js
+│       │   └── TerminalIOHandler.js
+│       ├── middleware/        # Cross-cutting concerns (auth, validation)
+│       ├── config/            # Server configuration
+│       ├── socket-handler.js  # Main Socket.IO coordinator
+│       ├── terminal.js        # TerminalManager class for PTY sessions
+│       ├── session-store.js   # Session metadata persistence 
+│       └── directory-manager.js # Project and session directory management
+├── bin/
+│   └── dispatch-cli.js        # CLI tool entry point
 └── routes/
     ├── +page.svelte          # Main application interface
     ├── sessions/+page.svelte # Session management interface
@@ -173,33 +210,48 @@ The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycl
 - Automatic URL detection and persistence to `/tmp/tunnel-url.txt`
 - Graceful cleanup on server shutdown
 
-## Development Patterns
+## Development Patterns for Maintainability
 
-### Component Architecture
-- `Terminal.svelte`: Main terminal interface with xterm.js integration
-- Socket.IO client management with authentication flow
-- Responsive terminal sizing with ResizeObserver and window events
-- Session persistence using localStorage
-- Mobile-first responsive design with keyboard handling
+### Code Organization Principles
+- **Single Responsibility**: Each module focuses on one concern (handlers, services, utilities)
+- **Explicit Dependencies**: All imports/exports are clearly declared
+- **Constants over Magic**: Use `/src/lib/config/constants.js` for all configuration values
+- **Error First**: Consistent error handling patterns across all modules
+- **Service Layer**: Business logic isolated in services, separate from I/O concerns
+
+### Component Architecture (Svelte 5)
+- **Modern Runes**: Components use `$state`, `$derived`, `$props` for reactive state
+- **Context-based State**: Shared state via Svelte 5 contexts in `/src/lib/contexts/`
+- **Clean Separation**: UI components don't contain business logic
+- **Responsive Design**: Mobile-first with consistent breakpoints from constants
+
+### Handler Pattern
+Each Socket.IO event type has a dedicated handler:
+- `SessionHandler` - Session lifecycle management
+- `ProjectHandler` - Project operations
+- `TerminalIOHandler` - Terminal input/output processing
+
+Handlers receive injected services and use consistent error response patterns.
+
+### Configuration Management
+All configuration centralized in `/src/lib/config/constants.js`:
+- Terminal settings and validation rules
+- UI responsive breakpoints and dimensions
+- Storage keys and file paths
+- Error codes and messages
+- Project sandboxing settings
+
+### Error Handling Patterns
+- **Consistent Responses**: Standard error format across all handlers
+- **Graceful Degradation**: Fallbacks for PTY failures and socket disconnections
+- **User Feedback**: Clear error messages without exposing implementation details
+- **Cleanup**: Automatic resource cleanup on failures
 
 ### UI Styling Guidelines
 - Uses augmented-ui library for futuristic interface elements
 - Reference https://augmented-ui.com/docs/ when working with augmented-ui styles
 - Consistent theme with CSS custom properties (--bg-darker, --primary, --surface, etc.)
 - Mobile keyboard detection and viewport management
-
-### Error Handling
-- Graceful PTY process failures
-- Socket disconnection recovery
-- Authentication error feedback
-- Session cleanup on unexpected termination
-
-### State Management
-- Project registry stored in `DISPATCH_CONFIG_DIR/projects.json`
-- Session metadata stored within project directories
-- Socket-to-session mapping for connection tracking
-- Broadcast updates when session list changes
-- Project-based session filtering and organization
 
 ## Testing & Debugging
 
@@ -218,12 +270,12 @@ For production with Claude Code:
    - `~/dispatch-projects:/var/lib/dispatch/projects` (project storage)
 
 ### Common Debug Points
-- Socket authentication flow in `socket-handler.js:17-26`
-- Project creation in `directory-manager.js:115-145`
-- PTY session creation in `terminal.js:36-86`  
-- Terminal component initialization in `Terminal.svelte:28-62`
-- LocalTunnel URL extraction in `app.js:38-76`
-- Project registry management in `directory-manager.js:67-85`
+- Handler initialization and dependency injection in `socket-handler.js`
+- Project creation workflow in `directory-manager.js`
+- PTY session lifecycle in `terminal.js` 
+- Terminal component state management in `Terminal.svelte`
+- Configuration loading from `/src/lib/config/constants.js`
+- Service interactions in handlers (session, project, terminal I/O)
 
 ### Development Access
 - Development server runs on all interfaces (`--host` flag)

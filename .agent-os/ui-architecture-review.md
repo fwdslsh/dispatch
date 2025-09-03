@@ -10,7 +10,7 @@ The Dispatch UI codebase exhibits significant architectural debt with multiple d
 
 **Critical Issues:**
 - 🔴 **Critical**: God components violating Single Responsibility Principle (1,215-line project page)
-- 🔴 **Critical**: Missing MVVM/MVC separation leading to untestable business logic
+- 🔴 **Critical**: Missing MVVM separation leading to untestable business logic
 - 🟡 **Major**: Over-engineered components with YAGNI violations (831-line command palette)
 - 🟡 **Major**: Unintegrated components representing wasted development effort
 
@@ -259,13 +259,13 @@ $: filteredCommands = filterCommands(commands, searchQuery);
    - **Purpose:** Advanced terminal splitting and multi-pane management
    - **Features:** Keyboard shortcuts, complex layouts, resize handling
    - **Integration Status:** ❌ Not imported or used anywhere
-   - **Recommendation:** Integrate for power users or remove
+   - **Recommendation:** Integrate
 
 2. **CommandPalette.svelte** 
    - **Purpose:** Advanced command palette with fuzzy search
    - **Features:** Categorization, command history, floating UI
    - **Integration Status:** ❌ Not imported or used anywhere  
-   - **Recommendation:** Simplify and integrate for productivity features
+   - **Recommendation:** Remove and use CommandMenu.svelte instead
 
 3. **CommandMenu.svelte**
    - **Purpose:** Simpler command menu interface
@@ -392,22 +392,27 @@ projects/[id]/+page.svelte (1,215 lines) →
 
 #### Global State Architecture
 ```javascript
-// stores/app-store.js
-export const appStore = $state({
-  auth: {
-    isAuthenticated: false,
-    user: null,
-    terminalKey: null
-  },
-  connection: {
-    socket: null,
-    status: 'disconnected'
-  },
-  projects: {
-    active: null,
-    list: []
-  }
-});
+// SystemViewModel.js
+/// Example
+export class SystemViewModel {
+  const state = $state({
+    auth: {
+      isAuthenticated: false,
+      user: null,
+      terminalKey: null
+    },
+    connection: {
+      socket: null,
+      status: 'disconnected'
+    },
+    projects: {
+      active: null,
+      list: []
+    }
+  });
+
+...
+}
 ```
 
 #### Context-Based Dependency Injection
@@ -454,42 +459,30 @@ export function createServicesContext() {
 #### Consistent Component APIs
 ```javascript
 // Standard prop patterns for all components
-interface ComponentProps {
-  // Data props
-  data?: any;
-  
-  // State props  
-  disabled?: boolean;
-  loading?: boolean;
-  error?: string;
-  
-  // Event props (on* pattern)
-  onclick?: () => void;
-  onchange?: (value: any) => void;
-  
-  // Children/content
-  children?: Snippet;
-}
+/**
+ * @typedef {Object} ComponentProps
+ * @property {any} [data] - Data props
+ * @property {boolean} [disabled] - State prop: disabled
+ * @property {boolean} [loading] - State prop: loading
+ * @property {string} [error] - State prop: error
+ * @property {function():void} [onclick] - Event prop: click handler
+ * @property {function(any):void} [onchange] - Event prop: change handler
+ * @property {Snippet} [children] - Children/content
+ */
 ```
 
 ### 5. Integration Recommendations
 
 #### Keep and Integrate
 - **MultiPaneLayout.svelte**: Valuable for power users
-  - Simplify implementation (remove 50% of complex features)
-  - Add toggle in main terminal interface
-  - Implement as progressive enhancement
+  - Simplify implementation (remove 50% of complex features)  
+  - Implement
 
-#### Simplify and Integrate  
-- **CommandPalette.svelte**: Useful productivity feature
-  - Remove fuzzy search complexity (use simple filtering)
-  - Remove floating UI library (use fixed positioning)
-  - Integrate with Ctrl+K shortcut in main app
-
-#### Remove Redundancy
-- **CommandMenu.svelte**: Remove (redundant with CommandPalette)
+#### Keep and Integrate 
+- **CommandMenu.svelte**:
 - Consolidate dialog implementations
 - Standardize form validation patterns
+  - Integrate with Ctrl+K shortcut in main app
 
 ### 6. Testing Strategy
 
@@ -522,7 +515,7 @@ test('SessionForm emits create event', () => {
 ### Phase 1: Foundation (2-3 weeks)
 1. **Extract ViewModels** from god components
 2. **Create base UI components** (Button, Input, Dialog)
-3. **Implement global state management** with Svelte 5 runes
+3. **Implement global state management** with Svelte 5 runes and SystemViewModel
 4. **Set up dependency injection** with contexts
 
 ### Phase 2: Component Refactoring (3-4 weeks)  
@@ -533,7 +526,7 @@ test('SessionForm emits create event', () => {
 
 ### Phase 3: Integration & Cleanup (2-3 weeks)
 1. **Integrate MultiPaneLayout** with simplified implementation
-2. **Add CommandPalette** with basic functionality  
+2. **Add CommandMenu** with basic functionality  
 3. **Remove redundant components** and unused code
 4. **Add comprehensive testing** for refactored components
 
@@ -557,9 +550,7 @@ test('SessionForm emits create event', () => {
 
 ### Mitigation Strategies
 1. **Incremental refactoring**: Refactor one component at a time
-2. **Feature flags**: Hide new implementations behind flags during development
-3. **Comprehensive testing**: Test before and after each refactoring step
-4. **User feedback**: Gather feedback on UI changes early
+2. **Comprehensive testing**: Test before and after each refactoring step
 
 ## Conclusion
 
