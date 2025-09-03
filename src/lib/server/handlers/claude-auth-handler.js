@@ -7,6 +7,7 @@
 
 import { ClaudeCodeService } from '../../services/claude-code-service.js';
 import { createErrorResponse, ErrorHandler } from '../../utils/error-handling.js';
+import { TUNNEL_CONFIG } from '../../config/constants.js';
 import fs from 'node:fs';
 
 /**
@@ -19,7 +20,7 @@ export class ClaudeAuthHandler {
    */
   constructor({ claudeService }) {
     this.claudeService = claudeService || new ClaudeCodeService();
-    this.TUNNEL_FILE = '/tmp/tunnel-url.txt'; // TODO: Make configurable
+    this.TUNNEL_FILE = TUNNEL_CONFIG.TUNNEL_URL_FILE;
   }
 
   /**

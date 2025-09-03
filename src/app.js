@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { handleConnection } from './lib/server/socket-handler-refactored.js';
+import { createSocketHandler } from './lib/server/socket-handler-working.js';
 import storageManager from './lib/server/storage-manager.js';
 import DirectoryManager from './lib/server/directory-manager.js';
 
@@ -85,7 +85,8 @@ async function startServer() {
   });
 
   // Handle socket connections
-  io.on('connection', handleConnection);
+  const handler = createSocketHandler(io);
+  io.on('connection', handler);
 
   return { httpServer };
 }

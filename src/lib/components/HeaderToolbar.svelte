@@ -69,10 +69,10 @@
   bind:this={headerElement}
 >
   <div class="header-left">
-    {@render left()}
+    {@render left?.()}
   </div>
   <div class="header-right">
-    {@render right()}
+    {@render right?.()}
   </div>
 </div>
 

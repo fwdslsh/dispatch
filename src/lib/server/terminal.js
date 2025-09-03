@@ -82,9 +82,12 @@ export class TerminalManager {
    * @returns {Promise<Array<{name: string, path: string, isDirectory: boolean}>>} Array of directory entries
    */
   async listProjectDirectories(projectId, relativePath = '') {
-    // Use PTY_ROOT to build the project directory path
-    const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
-    const projectDir = path.join(PTY_ROOT, projectId);
+    // Get project directory from DirectoryManager
+    const project = await this.directoryManager.getProject(projectId);
+    if (!project) {
+      throw new Error(`Project ${projectId} not found`);
+    }
+    const projectDir = project.path;
     
     // Check if project directory exists
     if (!fs.existsSync(projectDir)) {
@@ -142,21 +145,20 @@ export class TerminalManager {
   async createSessionInProject(projectId, opts = {}) {
     const { cols = 80, rows = 24, mode = this.defaultMode, name, workingDirectory } = opts;
     
-    // Validate project exists using storage manager
+    // Validate project exists using StorageManager (which handles UUID-based projects)
     const project = storageManager.getProject(projectId);
     if (!project) {
       throw new Error(`Project ${projectId} not found`);
     }
+    
+    // Get project directory path using the DirectoryManager's projects directory
+    const projectDir = path.join(this.directoryManager.projectsDir, projectId);
     
     // Use UUID for session ID (same as before)
     const sessionId = this.directoryManager.generateSessionTimestamp();
     
     // Validate and generate session name
     const sessionName = name || storageManager.generateFallbackName(sessionId);
-    
-    // Get project directory using PTY_ROOT structure
-    const PTY_ROOT = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
-    const projectDir = path.join(PTY_ROOT, projectId);
     
     // Determine session working directory
     let sessionWorkingDir = projectDir; // Start in project root by default
@@ -373,10 +375,6 @@ export class TerminalManager {
     return pty;
   }
 
-  // Legacy createSessionWithId method removed - use createSessionInProject instead
-
-  // Legacy createSession method removed - use createSessionInProject instead
-
   /**
    * Get an existing session
    * @param {string} sessionId
@@ -587,5 +585,97 @@ export class TerminalManager {
    */
   async getDirectoryManagerProjectSessions(projectId) {
     return this.directoryManager.getProjectSessions(projectId);
+  }
+
+  /**
+   * Attach a socket to an existing session
+   * @param {Object} socket - The socket to attach
+   * @param {Object} options - Attachment options with sessionId, cols, rows
+   * @returns {Promise<boolean>} Success status
+   */
+  async attachToSession(socket, options) {
+    const { sessionId, cols, rows } = options;
+    
+    if (!sessionId) {
+      throw new Error('Session ID is required');
+    }
+
+    const pty = this.getSession(sessionId);
+    if (!pty) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    try {
+      // Resize session if dimensions provided
+      if (cols && rows) {
+        this.resizeSession(sessionId, cols, rows);
+      }
+
+      // Subscribe socket to session output
+      const callback = (data) => {
+        socket.emit('output', data);
+      };
+
+      this.subscribeToSession(sessionId, callback);
+
+      // Send buffered data to newly attached socket
+      const bufferedData = this.getBufferedData(sessionId);
+      if (bufferedData) {
+        socket.emit('output', bufferedData);
+      }
+
+      // Handle socket disconnect
+      socket.on('disconnect', () => {
+        this.unsubscribeFromSession(sessionId, callback);
+      });
+
+      console.log(`Socket ${socket.id} attached to session ${sessionId}`);
+      return true;
+    } catch (error) {
+      console.error('Error attaching to session:', error);
+      return false;
+    }
+  }
+
+  /**
+   * List all sessions across all projects
+   * @returns {Array} Array of session information
+   */
+  listSessions() {
+    const sessions = [];
+    
+    for (const [sessionId, metadata] of this.sessionMetadata.entries()) {
+      const pty = this.sessions.get(sessionId);
+      sessions.push({
+        id: sessionId,
+        sessionId,
+        name: metadata.name,
+        projectId: metadata.projectId,
+        active: !!pty,
+        status: pty ? 'active' : 'inactive',
+        pid: pty?.pid || null
+      });
+    }
+    
+    return sessions;
+  }
+
+  /**
+   * Send input to a session (alias for writeToSession)
+   * @param {string} sessionId
+   * @param {string} data
+   */
+  sendInput(sessionId, data) {
+    this.writeToSession(sessionId, data);
+  }
+
+  /**
+   * Resize a session (alias for resizeSession)
+   * @param {string} sessionId
+   * @param {number} cols
+   * @param {number} rows
+   */
+  resize(sessionId, cols, rows) {
+    this.resizeSession(sessionId, cols, rows);
   }
 }

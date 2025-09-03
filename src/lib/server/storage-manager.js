@@ -1,5 +1,4 @@
 // Unified storage manager combining project-store and session-store functionality
-// Uses the current PTY_ROOT structure for backward compatibility
 // File: src/lib/server/storage-manager.js
 
 import fs from 'fs';
@@ -10,12 +9,11 @@ import DirectoryManager from './directory-manager.js';
 
 class StorageManager {
   constructor() {
-    // Use existing PTY_ROOT structure for backward compatibility
-    this.ptyRoot = process.env.PTY_ROOT || '/tmp/dispatch-sessions';
-    this.projectsFile = path.join(this.ptyRoot, 'projects.json');
-    
     // Initialize DirectoryManager for validation methods
     this.directoryManager = new DirectoryManager();
+    
+    // Use DirectoryManager's config directory for projects registry
+    this.projectsFile = null; // Will be set after DirectoryManager initialization
     
     // Initialize on construction
     this.initialize();
@@ -24,6 +22,10 @@ class StorageManager {
   async initialize() {
     try {
       await this.directoryManager.initialize();
+      
+      // Set projects file path after DirectoryManager is initialized
+      this.projectsFile = path.join(this.directoryManager.configDir, 'projects.json');
+      
       this.ensureDirectoryStructure();
     } catch (err) {
       console.error('Failed to initialize StorageManager:', err);
@@ -31,13 +33,11 @@ class StorageManager {
   }
 
   /**
-   * Ensure the PTY_ROOT directory and projects.json exist
+   * Ensure the config directory and projects.json exist
    */
   ensureDirectoryStructure() {
-    if (!fs.existsSync(this.ptyRoot)) {
-      fs.mkdirSync(this.ptyRoot, { recursive: true });
-    }
-
+    // DirectoryManager already ensures config directory exists
+    
     if (!fs.existsSync(this.projectsFile)) {
       const initial = { projects: [], activeProject: null };
       fs.writeFileSync(this.projectsFile, JSON.stringify(initial, null, 2));
@@ -94,8 +94,8 @@ class StorageManager {
     const sanitizedName = name.trim();
     const now = new Date().toISOString();
     
-    // Create project directory
-    const projectPath = path.join(this.ptyRoot, projectId);
+    // Create project directory using DirectoryManager
+    const projectPath = path.join(this.directoryManager.projectsDir, projectId);
     if (fs.existsSync(projectPath)) {
       throw new Error(`Project directory already exists`);
     }
@@ -168,7 +168,7 @@ class StorageManager {
     }
 
     // Remove project directory
-    const projectPath = path.join(this.ptyRoot, projectId);
+    const projectPath = path.join(this.directoryManager.projectsDir, projectId);
     if (fs.existsSync(projectPath)) {
       fs.rmSync(projectPath, { recursive: true, force: true });
     }

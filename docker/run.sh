@@ -7,7 +7,8 @@ docker run -d --rm --name dispatch \
   -p 3030:3030 \
   -e TERMINAL_KEY="${key:-}" \
   -e ENABLE_TUNNEL=true \
-  -e PTY_ROOT="/home/appuser" \
+  -e DISPATCH_CONFIG_DIR="/home/appuser/.config/dispatch" \
+  -e DISPATCH_PROJECTS_DIR="/workspace" \
   --user $(id -u):$(id -g) \
   -v ~/dispatch/home:/home/appuser \
   -v ~/dispatch/projects:/workspace \

@@ -68,14 +68,14 @@
     <div class="public-url-wrapper">
       <button
         class="public-url-link"
-        on:click={openInNewTab}
+        onclick={openInNewTab}
         title="Click to open in new tab"
       >
         {publicUrl}
       </button>
       <button
         class="copy-button"
-        on:click={copyToClipboard}
+        onclick={copyToClipboard}
         title="Copy to clipboard"
         aria-label="Copy URL to clipboard"
       >

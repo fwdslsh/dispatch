@@ -21,9 +21,10 @@ const webSocketServer = {
 			console.warn('Storage manager not available during dev:', err.message);
 		});
 
-		// Import the socket handler for development
-		import('./src/lib/server/socket-handler-refactored.js').then(({ handleConnection }) => {
-			io.on('connection', handleConnection);
+		// Import the working socket handler for development
+		import('./src/lib/server/socket-handler.js').then(({ createSocketHandler }) => {
+			const handler = createSocketHandler(io);
+			io.on('connection', handler);
 		}).catch((err) => {
 			console.warn('Socket handler not available during dev:', err.message);
 		});

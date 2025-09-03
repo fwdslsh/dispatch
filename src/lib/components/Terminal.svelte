@@ -1,6 +1,6 @@
 <script>
   import { Xterm } from '@battlefieldduck/xterm-svelte';
-  import { TerminalViewModel } from '../services/terminal-viewmodel.js';
+  import { TerminalViewModel } from './TerminalViewModel.svelte.js';
     import { onMount } from 'svelte';
 
   let {
@@ -17,8 +17,10 @@
   
   let terminal = $state();
   let viewModel = $state(null);
-  let isLoading = $state(true);
-  let error = $state(null);
+  
+  // Derived state from viewModel
+  let isLoading = $derived(viewModel?.state?.isLoading ?? true);
+  let error = $derived(viewModel?.state?.error ?? null);
 
   // Terminal options configured for proper input handling
   let options = $derived({
@@ -73,12 +75,9 @@
       onChatClick: onchatclick
     }).then(initialized => {
       if (!initialized) {
-        error = 'Failed to initialize terminal';
-        isLoading = false;
+        console.error('Failed to initialize terminal');
         return;
       }
-
-      isLoading = false;
     });
 
     // Cleanup function
@@ -107,7 +106,7 @@
     const terminalInitialized = await viewModel.initializeTerminal(terminal, options);
     
     if (!terminalInitialized) {
-      error = 'Failed to initialize terminal';
+      console.error('Failed to initialize terminal');
       return;
     }
 

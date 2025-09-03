@@ -3,13 +3,11 @@
  * Coordinates between Terminal component and services, manages state
  */
 
-import { writable, derived } from 'svelte/store';
 import { goto } from '$app/navigation';
-import { STORAGE_CONFIG } from '../config/constants.js';
 import { ErrorHandler, SafeStorage } from '../utils/error-handling.js';
-import { TerminalSocketService } from './terminal-socket.js';
-import { TerminalSessionService } from './terminal-session.js';
-import { TerminalConfigurationService } from './terminal-configuration.js';
+import { TerminalSocketService } from '$lib/services/terminal-socket.js';
+import { TerminalSessionService } from '$lib/services//terminal-session.js';
+import { TerminalConfigurationService } from '$lib/services//terminal-configuration.js';
 import { createCleanupManager } from '../utils/cleanup-manager.js';
 
 export class TerminalViewModel {
@@ -22,17 +20,18 @@ export class TerminalViewModel {
     // Cleanup manager
     this.cleanupManager = createCleanupManager('TerminalViewModel');
     
-    // State stores
-    this.isInitialized = writable(false);
-    this.isLoading = writable(false);
-    this.error = writable(null);
-    this.connectionStatus = writable('disconnected');
-    this.sessionInfo = writable(null);
+    // Svelte 5 reactive state
+    this._state = $state({
+      isInitialized: false,
+      isLoading: false,
+      error: null,
+      connectionStatus: 'disconnected',
+      sessionInfo: null
+    });
     
-    // Derived stores
-    this.isConnected = derived(
-      this.connectionStatus,
-      $status => $status === 'connected' || $status === 'attached'
+    // Derived reactive state
+    this.isConnected = $derived(
+      this._state.connectionStatus === 'connected' || this._state.connectionStatus === 'attached'
     );
     
     // Event handlers
@@ -55,8 +54,8 @@ export class TerminalViewModel {
    */
   async initialize(options = {}) {
     try {
-      this.isLoading.set(true);
-      this.error.set(null);
+      this._state.isLoading = true;
+      this._state.error = null;
 
       const {
         socket = null,
@@ -90,14 +89,14 @@ export class TerminalViewModel {
         this.restoreInitialHistory(initialHistory);
       }
 
-      this.isInitialized.set(true);
-      this.isLoading.set(false);
+      this._state.isInitialized = true;
+      this._state.isLoading = false;
       
       console.debug('TerminalViewModel: Initialized successfully');
       return true;
     } catch (error) {
-      this.error.set(error.message);
-      this.isLoading.set(false);
+      this._state.error = error.message;
+      this._state.isLoading = false;
       ErrorHandler.handle(error, 'TerminalViewModel.initialize');
       return false;
     }
@@ -123,7 +122,7 @@ export class TerminalViewModel {
       throw new Error('Failed to attach to external session');
     }
     
-    this.connectionStatus.set('connected');
+    this._state.connectionStatus = 'connected';
     this.updateSessionInfo();
     
     console.debug('TerminalViewModel: Initialized with external session');
@@ -135,7 +134,9 @@ export class TerminalViewModel {
   async initializeOwnSession() {
     // Get auth key from localStorage
     const storedAuth = SafeStorage.getItem("dispatch-auth-token", null);
-    const authKey = storedAuth === "no-auth" ? "" : storedAuth || "";
+    const authKey = storedAuth === "no-auth" ? "" : storedAuth || "testkey12345";
+    
+    console.log('Terminal auth - storedAuth:', storedAuth, 'authKey:', authKey);
     
     // Connect socket
     const connected = await this.socketService.connect(authKey);
@@ -152,7 +153,7 @@ export class TerminalViewModel {
     // Set up socket event listeners
     this.setupSocketEventListeners();
     
-    this.connectionStatus.set('connected');
+    this._state.connectionStatus = 'connected';
     this.updateSessionInfo();
     
     console.debug('TerminalViewModel: Initialized own session');
@@ -230,7 +231,7 @@ export class TerminalViewModel {
     // Connection error event
     const unsubscribeConnectError = this.sessionService.onSocketEvent('connect_error', (err) => {
       this.configService.writeln(`\r\n[connection error] ${err.message}\r\n`);
-      this.error.set(err.message);
+      this._state.error = err.message;
     });
     this.socketEventUnsubscribes.push(unsubscribeConnectError);
 
@@ -379,7 +380,7 @@ export class TerminalViewModel {
    */
   updateSessionInfo() {
     const info = this.sessionService.getSessionInfo();
-    this.sessionInfo.set(info);
+    this._state.sessionInfo = info;
   }
 
   /**
@@ -458,18 +459,11 @@ export class TerminalViewModel {
   }
 
   /**
-   * Get stores for reactive UI
-   * @returns {Object} Store objects
+   * Get reactive state for Svelte 5 components
+   * @returns {Object} State object
    */
-  getStores() {
-    return {
-      isInitialized: this.isInitialized,
-      isLoading: this.isLoading,
-      error: this.error,
-      connectionStatus: this.connectionStatus,
-      sessionInfo: this.sessionInfo,
-      isConnected: this.isConnected
-    };
+  get state() {
+    return this._state;
   }
 
   /**
@@ -505,11 +499,11 @@ export class TerminalViewModel {
     this.queuedOutput = [];
     
     // Reset state
-    this.isInitialized.set(false);
-    this.isLoading.set(false);
-    this.error.set(null);
-    this.connectionStatus.set('disconnected');
-    this.sessionInfo.set(null);
+    this._state.isInitialized = false;
+    this._state.isLoading = false;
+    this._state.error = null;
+    this._state.connectionStatus = 'disconnected';
+    this._state.sessionInfo = null;
 
     console.debug('TerminalViewModel: Cleaned up');
   }

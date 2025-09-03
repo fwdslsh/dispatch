@@ -5,13 +5,13 @@
   "license": "CC-BY-4.0",
   "type": "module",
   "scripts": {
-    "dev": "TERMINAL_KEY='test' vite dev --host",
-    "dev:server": "TERMINAL_KEY='test' node src/dev-server.js",
+    "dev": "TERMINAL_KEY='testkey12345' vite dev --host",
+    "dev:server": "TERMINAL_KEY='testkey12345' node src/dev-server.js",
     "dev:no-key": "TERMINAL_KEY='' vite dev --host",
-    "dev:tunnel": "TERMINAL_KEY=test ENABLE_TUNNEL=true vite dev --host",
+    "dev:tunnel": "TERMINAL_KEY=testkey12345 ENABLE_TUNNEL=true vite dev --host",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "vite build && PORT=5170 TERMINAL_KEY=test ENABLE_TUNNEL=true node src/app.js",
+    "start": "vite build && PORT=5170 TERMINAL_KEY=testkey12345 ENABLE_TUNNEL=true node src/app.js",
     "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
   },
@@ -40,6 +40,7 @@
     "svelte-virtual-list": "^3.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@sveltejs/kit": "^2.36.2",
     "jsdom": "^26.1.0",
     "playwright": "^1.55.0",

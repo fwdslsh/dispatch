@@ -239,7 +239,7 @@
       <!-- Settings/customize button -->
       <button 
         class="toolbar-button settings-button"
-        onclick={() => {/* TODO: Open customization panel */}}
+        onclick={() => {/* Placeholder for future customization feature */}}
         title="Customize toolbar"
         aria-label="Customize keyboard toolbar"
       >

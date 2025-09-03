@@ -154,7 +154,16 @@ export class SafeStorage {
   static getItem(key, defaultValue = null) {
     try {
       const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
+      if (!item) return defaultValue;
+      
+      // Try to parse as JSON first
+      try {
+        return JSON.parse(item);
+      } catch (parseError) {
+        // If JSON parsing fails, return the raw string value
+        // This handles cases where plain strings are stored
+        return item;
+      }
     } catch (error) {
       ErrorHandler.handle(error, 'SafeStorage.getItem', false, { key });
       return defaultValue;

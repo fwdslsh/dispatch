@@ -6,10 +6,59 @@
     import SessionIcon from "$lib/components/Icons/SessionIcon.svelte";
     import StartSession from "$lib/components/Icons/StartSession.svelte";
     import ConfirmationDialog from "$lib/components/ConfirmationDialog.svelte";
-    import {
-        validateSessionNameRealtime,
-        validateSessionNameWithFeedback,
-    } from "$lib/utils/session-name-validation.js";
+    // Simple validation functions
+    function validateNameRealtime(name) {
+        if (!name || name.length === 0) {
+            return { isValid: true };
+        }
+        
+        if (name.length > 45) {
+            const remaining = 50 - name.length;
+            return { 
+                isValid: remaining >= 0, 
+                message: remaining >= 0 ? `${remaining} characters remaining` : 'Name too long',
+                severity: remaining >= 0 ? 'warning' : 'error'
+            };
+        }
+        
+        const validPattern = /^[a-zA-Z0-9\s_-]*$/;
+        if (!validPattern.test(name)) {
+            return { 
+                isValid: false, 
+                message: 'Invalid characters detected', 
+                severity: 'error' 
+            };
+        }
+        
+        return { isValid: true };
+    }
+
+    function validateNameWithFeedback(name) {
+        if (!name || !name.trim()) {
+            return { isValid: true, message: 'Will use generated name if empty', severity: 'info' };
+        }
+
+        const trimmed = name.trim();
+        
+        if (trimmed.length > 50) {
+            return { isValid: false, error: 'Name must be 50 characters or less' };
+        }
+        
+        const validPattern = /^[a-zA-Z0-9\s_-]+$/;
+        if (!validPattern.test(trimmed)) {
+            return { isValid: false, error: 'Name can only contain letters, numbers, spaces, hyphens, and underscores' };
+        }
+
+        if (trimmed.length < 3) {
+            return { isValid: true, message: 'Very short name', severity: 'warning' };
+        }
+        
+        if (trimmed.length > 30) {
+            return { isValid: true, message: 'Long name (max 50)', severity: 'warning' };
+        }
+
+        return { isValid: true };
+    }
     import DeleteProject from "./Icons/DeleteProject.svelte";
     import { onMount } from "svelte";
 
@@ -17,6 +66,11 @@
 
     let projects = $state([]);
     let activeProject = $state(null);
+    
+    // Debug: track projects array changes
+    $effect(() => {
+        console.log("Projects reactive update - length:", projects.length);
+    });
     let projectName = $state("");
     let projectDescription = $state("");
 
@@ -29,17 +83,17 @@
 
     // Reactive validation for project name
     $effect(() => {
-        nameValidation = validateSessionNameRealtime(projectName);
+        nameValidation = validateNameRealtime(projectName);
     });
 
     // Validate before submission
     function validateBeforeSubmit() {
-        const finalValidation = validateSessionNameWithFeedback(projectName);
+        const finalValidation = validateNameWithFeedback(projectName);
         nameValidation = finalValidation;
         return finalValidation.isValid;
     }
 
-    let socket = null; // Not reactive to prevent effect loops
+    let socket = $state(null);
     let authed = $state(false);
 
     // Dialog state
@@ -72,7 +126,7 @@
 
     async function confirmRename() {
         // Validate rename
-        const validation = validateSessionNameWithFeedback(renameValue);
+        const validation = validateNameWithFeedback(renameValue);
         renameValidation = validation;
         showRenameValidation = !validation.isValid;
 
@@ -122,10 +176,15 @@
             socket.on("connect", () => {
                 console.log("Connected to server");
 
+                // Get stored auth token from login
+                const storedAuth = localStorage.getItem("dispatch-auth-token");
+                const authKey = storedAuth === "no-auth" ? "" : storedAuth || "testkey12345";
+                
                 // Authenticate
-                socket.emit("auth", terminalKey || "test", (response) => {
+                socket.emit("auth", authKey, (response) => {
                     if (response?.success) {
                         authed = true;
+                        // Load projects immediately after authentication
                         loadProjects();
                     } else {
                         console.error("Authentication failed");
@@ -135,8 +194,10 @@
 
             socket.on("projects-updated", (data) => {
                 console.log("Projects updated:", data);
+                console.log("Setting projects array to:", data.projects?.length || 0, "items");
                 projects = data.projects || [];
                 activeProject = data.activeProject;
+                console.log("Projects array now has:", projects.length, "items");
             });
 
             socket.on("disconnect", () => {
@@ -157,15 +218,22 @@
     });
 
     function loadProjects() {
-        if (!socket || !authed) return;
+        if (!socket || !authed) {
+            console.log("Cannot load projects: socket =", !!socket, "authed =", authed);
+            return;
+        }
 
+        console.log("Loading projects via list-projects...");
         socket.emit("list-projects", {}, (response) => {
-            if (response.success) {
-                projects = response.projects || [];
+            console.log("list-projects response:", response);
+            if (response?.success) {
+                const newProjects = response.projects || [];
+                console.log("Setting projects to:", newProjects.length, "items");
+                projects = newProjects;
                 activeProject = response.activeProject;
-                console.log("Loaded projects:", $state.snapshot(projects));
+                console.log("Projects now contains:", $state.snapshot(projects));
             } else {
-                console.error("Failed to load projects:", response.error);
+                console.error("Failed to load projects:", response?.error || "Unknown error");
             }
         });
     }
@@ -207,8 +275,8 @@
             projectDescription = "";
             nameValidation = { isValid: true, message: "", severity: "info" };
 
-            // Navigate to the new project
-            goto(`/projects/${result.project.id}`);
+            // Don't navigate automatically - let user see their projects list
+            // User can click on the project to open it if they want
         } catch (err) {
             console.error("Failed to create project:", err);
             nameValidation = {

@@ -147,7 +147,6 @@ Each terminal session runs within a project context:
 - `PORT`: Server port (default: `3030`)
 - `DISPATCH_CONFIG_DIR`: Configuration directory (default: `/home/appuser/.config/dispatch`)
 - `DISPATCH_PROJECTS_DIR`: Projects root directory (default: `/var/lib/dispatch/projects`)
-- `PTY_ROOT`: Legacy session directory root (deprecated, use DISPATCH_CONFIG_DIR/DISPATCH_PROJECTS_DIR)
 - `PTY_MODE`: Default session mode (default: `shell`, can be `claude`)
 - `ENABLE_TUNNEL`: Enable LocalTunnel (default: `false`)
 - `LT_SUBDOMAIN`: Optional LocalTunnel subdomain

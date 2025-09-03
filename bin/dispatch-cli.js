@@ -163,7 +163,8 @@ async function runContainer(config) {
   const terminalKey = config.terminalKey || generateRandomKey();
   args.push('-e', `TERMINAL_KEY=${terminalKey}`);
   args.push('-e', `PTY_MODE=${config.ptyMode}`);
-  args.push('-e', `PTY_ROOT=/home/appuser`);
+  args.push('-e', `DISPATCH_CONFIG_DIR=/home/appuser/.config/dispatch`);
+  args.push('-e', `DISPATCH_PROJECTS_DIR=/workspace`);
   
   if (config.enableTunnel) {
     args.push('-e', 'ENABLE_TUNNEL=true');

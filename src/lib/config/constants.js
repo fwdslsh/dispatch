@@ -153,3 +153,10 @@ export const PROJECT_CONFIG = {
   CONFIG_DIR_MODE: 0o755
 };
 
+export const TUNNEL_CONFIG = {
+  // LocalTunnel configuration
+  TUNNEL_URL_FILE: '/tmp/tunnel-url.txt',
+  TUNNEL_TIMEOUT: 10000,
+  TUNNEL_RETRY_ATTEMPTS: 3
+};
+
