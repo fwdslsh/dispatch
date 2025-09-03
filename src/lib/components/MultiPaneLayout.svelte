@@ -1,38 +1,40 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
   import Terminal from './Terminal.svelte';
   import ResizeHandle from './ResizeHandle.svelte';
   import { TERMINAL_CONFIG } from '../config/constants.js';
   
-  export let socket = null;
-  export let sessionId = null;
-  export let linkDetector = null;
-  export let terminalOptions = {};
-  export let onInputEvent = () => {};
-  export let onOutputEvent = () => {};
+  let {
+    socket = null,
+    sessionId = null,
+    linkDetector = null,
+    terminalOptions = {},
+    onInputEvent = () => {},
+    onOutputEvent = () => {}
+  } = $props();
   
-  let containerElement;
-  let panesWrapper;
-  let isResizing = false;
-  let resizeStartRatio = 50;
-  let minPaneSize = TERMINAL_CONFIG.MIN_PANE_SIZE;
+  let containerElement = $state();
+  let panesWrapper = $state();
+  let isResizing = $state(false);
+  let resizeStartRatio = $state(50);
+  let minPaneSize = $state(TERMINAL_CONFIG.MIN_PANE_SIZE);
   
   // Simplified state - just track terminal instances
-  let terminals = [{ id: 'terminal-1', focused: true }]; // Start with one terminal
-  let layoutType = 'single';
-  let splitRatio = 50; // For 2-pane splits
+  let terminals = $state([{ id: 'terminal-1', focused: true }]); // Start with one terminal
+  let layoutType = $state('single');
+  let splitRatio = $state(50); // For 2-pane splits
   
-  onMount(() => {
-    console.debug(`MultiPaneLayout onMount - desktop mode for session: ${sessionId}`);
-    setupKeyboardShortcuts();
-    setupResizeObserver();
-  });
-  
-  // No shared socket listeners needed - each Terminal handles its own
-  
-  onDestroy(() => {
-    console.debug(`MultiPaneLayout onDestroy for session: ${sessionId}`);
-    // Cleanup handled by individual Terminal components
+  $effect(() => {
+    console.debug(`MultiPaneLayout mount - desktop mode for session: ${sessionId}`);
+    const cleanupKeyboard = setupKeyboardShortcuts();
+    const cleanupResize = setupResizeObserver();
+    
+    // Cleanup function
+    return () => {
+      console.debug(`MultiPaneLayout destroy for session: ${sessionId}`);
+      cleanupKeyboard();
+      cleanupResize();
+      // Cleanup handled by individual Terminal components
+    };
   });
   
   function recalculateDimensions() {

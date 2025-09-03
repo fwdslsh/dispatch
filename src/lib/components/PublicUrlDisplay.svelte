@@ -1,10 +1,9 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
   import { io } from "socket.io-client";
 
-  let publicUrl = null;
-  let socket = null;
-  let pollInterval = null;
+  let publicUrl = $state(null);
+  let socket = null; // Not reactive - doesn't need to be
+  let pollInterval = null; // Not reactive - doesn't need to be
 
   function connectSocket() {
     socket = io({ transports: ["websocket", "polling"] });
@@ -43,19 +42,23 @@
     }
   }
 
-  onMount(() => {
+  // Use untrack to prevent creating dependencies on state changes
+  $effect(() => {
     connectSocket();
     // Poll every 5 seconds to check for URL updates
     pollInterval = setInterval(pollPublicUrl, 5000);
-  });
-
-  onDestroy(() => {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-    }
-    if (socket) {
-      socket.disconnect();
-    }
+    
+    // Cleanup function
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+    };
   });
 </script>
 

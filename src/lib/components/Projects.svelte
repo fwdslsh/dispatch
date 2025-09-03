@@ -1,7 +1,6 @@
 <script>
     import EditIcon from "./Icons/EditIcon.svelte";
 
-    import { onMount, onDestroy } from "svelte";
     import { io } from "socket.io-client";
     import { goto } from "$app/navigation";
     import SessionIcon from "$lib/components/Icons/SessionIcon.svelte";
@@ -12,45 +11,50 @@
         validateSessionNameWithFeedback,
     } from "$lib/utils/session-name-validation.js";
     import DeleteProject from "./Icons/DeleteProject.svelte";
+    import { onMount } from "svelte";
 
-    export let terminalKey;
+    let { terminalKey } = $props();
 
-    let projects = [];
-    let activeProject = null;
-    let projectName = "";
-    let projectDescription = "";
+    let projects = $state([]);
+    let activeProject = $state(null);
+    let projectName = $state("");
+    let projectDescription = $state("");
 
     // Validation state for project name
-    let nameValidation = { isValid: true };
-    let showValidation = false;
+    let nameValidation = $state({
+        isValid: true,
+        message: "",
+        severity: "info",
+    });
 
     // Reactive validation for project name
-    $: {
+    $effect(() => {
         nameValidation = validateSessionNameRealtime(projectName);
-        // Only show validation feedback when there's a message or it's invalid
-        showValidation = !nameValidation.isValid || nameValidation.message;
-    }
+    });
 
     // Validate before submission
     function validateBeforeSubmit() {
         const finalValidation = validateSessionNameWithFeedback(projectName);
         nameValidation = finalValidation;
-        showValidation = !finalValidation.isValid;
         return finalValidation.isValid;
     }
 
-    let socket;
-    let authed = false;
+    let socket = null; // Not reactive to prevent effect loops
+    let authed = $state(false);
 
     // Dialog state
-    let showDeleteProjectDialog = false;
-    let projectToDelete = null;
+    let showDeleteProjectDialog = $state(false);
+    let projectToDelete = $state(null);
 
     // Rename state
-    let renamingProjectId = null;
-    let renameValue = "";
-    let renameValidation = { isValid: true };
-    let showRenameValidation = false;
+    let renamingProjectId = $state(null);
+    let renameValue = $state("");
+    let renameValidation = $state({
+        isValid: true,
+        message: "",
+        severity: "info",
+    });
+    let showRenameValidation = $state(false);
 
     function startRenaming(projectId, currentName) {
         renamingProjectId = projectId;
@@ -109,9 +113,11 @@
         }
     }
 
-    onMount(async () => {
+    onMount(() => {
         try {
-            socket = io();
+            if (!socket) {
+                socket = io();
+            }
 
             socket.on("connect", () => {
                 console.log("Connected to server");
@@ -140,12 +146,14 @@
         } catch (error) {
             console.error("Failed to connect:", error);
         }
-    });
 
-    onDestroy(() => {
-        if (socket) {
-            socket.disconnect();
-        }
+        // Cleanup function
+        return () => {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        };
     });
 
     function loadProjects() {
@@ -155,7 +163,7 @@
             if (response.success) {
                 projects = response.projects || [];
                 activeProject = response.activeProject;
-                console.log("Loaded projects:", projects);
+                console.log("Loaded projects:", $state.snapshot(projects));
             } else {
                 console.error("Failed to load projects:", response.error);
             }
@@ -197,8 +205,7 @@
             // Clear form
             projectName = "";
             projectDescription = "";
-            nameValidation = { isValid: true };
-            showValidation = false;
+            nameValidation = { isValid: true, message: "", severity: "info" };
 
             // Navigate to the new project
             goto(`/projects/${result.project.id}`);
@@ -209,7 +216,6 @@
                 message: err.message || "Failed to create project",
                 severity: "error",
             };
-            showValidation = true;
         }
     }
 
@@ -285,9 +291,9 @@
                 bind:value={projectName}
                 placeholder="Enter project name"
                 class:invalid={!nameValidation.isValid}
-                on:keydown={(e) => e.key === "Enter" && createProject()}
+                onkeydown={(e) => e.key === "Enter" && createProject()}
             />
-            {#if showValidation && nameValidation.message}
+            {#if !nameValidation.isValid && nameValidation.message}
                 <div
                     class="validation-message"
                     class:error={nameValidation.severity === "error"}
@@ -306,13 +312,13 @@
                 type="text"
                 bind:value={projectDescription}
                 placeholder="Enter project description"
-                on:keydown={(e) => e.key === "Enter" && createProject()}
+                onkeydown={(e) => e.key === "Enter" && createProject()}
             />
         </div>
 
         <button
             class="btn-primary"
-            on:click={createProject}
+            onclick={createProject}
             disabled={!nameValidation.isValid || !projectName.trim()}
         >
             <StartSession />
@@ -334,10 +340,10 @@
                         <div
                             class="project-item"
                             data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
-                            on:click={() => openProject(project.id)}
+                            onclick={() => openProject(project.id)}
                             role="button"
                             tabindex="0"
-                            on:keydown={(e) =>
+                            onkeydown={(e) =>
                                 e.key === "Enter" && openProject(project.id)}
                             title="Open project"
                             aria-label="Open project {project.name}"
@@ -345,7 +351,7 @@
                             <div class="project-actions">
                                 <button
                                     class="btn-icon-only project-rename-btn"
-                                    on:click={(e) => {
+                                    onclick={(e) => {
                                         e.stopPropagation();
                                         startRenaming(project.id, project.name);
                                     }}
@@ -356,7 +362,7 @@
                                 </button>
                                 <button
                                     class="btn-icon-only button-danger"
-                                    on:click={(e) => {
+                                    onclick={(e) => {
                                         e.stopPropagation();
                                         confirmDeleteProject(project);
                                     }}
@@ -375,20 +381,19 @@
                                             placeholder="Project name"
                                             class="rename-input"
                                             class:invalid={!renameValidation.isValid}
-                                            on:keydown={(e) => {
+                                            onkeydown={(e) => {
                                                 if (e.key === "Enter") {
                                                     confirmRename();
                                                 } else if (e.key === "Escape") {
                                                     cancelRenaming();
                                                 }
                                             }}
-                                            on:click={(e) =>
-                                                e.stopPropagation()}
+                                            onclick={(e) => e.stopPropagation()}
                                         />
                                         <div class="rename-actions">
                                             <button
                                                 class="btn-icon-only"
-                                                on:click={(e) => {
+                                                onclick={(e) => {
                                                     e.stopPropagation();
                                                     confirmRename();
                                                 }}
@@ -397,7 +402,7 @@
                                             </button>
                                             <button
                                                 class="btn-icon-only button-danger"
-                                                on:click={(e) => {
+                                                onclick={(e) => {
                                                     e.stopPropagation();
                                                     cancelRenaming();
                                                 }}
@@ -440,7 +445,7 @@
                             </div>
                             <button
                                 class="btn-icon-only"
-                                on:click={(e) => {
+                                onclick={(e) => {
                                     e.stopPropagation();
                                     openProject(project.id);
                                 }}
@@ -455,7 +460,6 @@
             </ul>
         {/if}
     </div>
-
 </div>
 <!-- Delete confirmation dialog -->
 <ConfirmationDialog
@@ -465,8 +469,8 @@
     confirmText="Delete"
     cancelText="Cancel"
     dangerous={true}
-    on:confirm={deleteProject}
-    on:cancel={cancelDeleteProject}
+    onconfirm={deleteProject}
+    oncancel={cancelDeleteProject}
 />
 
 <style>

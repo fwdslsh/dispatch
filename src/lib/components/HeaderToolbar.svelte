@@ -1,10 +1,11 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
+    import { onMount } from "svelte";
+
   
   // Component for reusable header toolbar with left and right content slots
   let { left, right } = $props();
   
-  let headerElement;
+  let headerElement = $state();
   
   onMount(() => {
     let ticking = false;
@@ -55,6 +56,7 @@
     window.addEventListener('scroll', handleAnyScroll, { passive: true, capture: true });
     document.addEventListener('scroll', handleAnyScroll, { passive: true, capture: true });
     
+    // Cleanup function
     return () => {
       window.removeEventListener('scroll', handleAnyScroll, true);
       document.removeEventListener('scroll', handleAnyScroll, true);

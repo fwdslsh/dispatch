@@ -1,14 +1,13 @@
 <script>
   import { goto } from "$app/navigation";
   import { io } from "socket.io-client";
-  import { onMount } from "svelte";
   import Container from "$lib/components/Container.svelte";
   import PublicUrlDisplay from "$lib/components/PublicUrlDisplay.svelte";
   let key = $state(""); 
   let error = $state("");
   let loading = $state(false);
 
-  onMount(() => {
+  $effect(() => {
     // Check if already authenticated
     const storedAuth = localStorage.getItem("dispatch-auth-token");
     if (storedAuth) {

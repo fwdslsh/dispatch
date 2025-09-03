@@ -1,33 +1,31 @@
 <script>
-    import { createEventDispatcher } from 'svelte';
-    import { onMount } from 'svelte';
+    let {
+        socket = null,
+        projectId = null,
+        selectedPath = '',
+        disabled = false,
+        onselect = () => {}
+    } = $props();
 
-    export let socket = null;
-    export let projectId = null;
-    export let selectedPath = '';
-    export let disabled = false;
-
-    const dispatch = createEventDispatcher();
-
-    let isOpen = false;
-    let currentPath = '';
-    let directories = [];
-    let loading = false;
-    let error = null;
-    let pathHistory = [];
+    let isOpen = $state(false);
+    let currentPath = $state('');
+    let directories = $state([]);
+    let loading = $state(false);
+    let error = $state(null);
+    let pathHistory = $state([]);
 
     // Navigation state
-    let breadcrumbs = [];
+    let breadcrumbs = $state([]);
 
-    $: {
+    $effect(() => {
         if (currentPath) {
             breadcrumbs = ['/', ...currentPath.split('/').filter(Boolean)];
         } else {
             breadcrumbs = ['/'];
         }
-    }
+    });
 
-    onMount(() => {
+    $effect(() => {
         // Load root directories when component mounts
         if (socket && projectId) {
             loadDirectories('');
@@ -103,19 +101,19 @@
 
     function selectCurrentDirectory() {
         selectedPath = currentPath;
-        dispatch('select', { path: currentPath });
+        onselect({ detail: { path: currentPath } });
         isOpen = false;
     }
 
     function clearSelection() {
         selectedPath = '';
-        dispatch('select', { path: '' });
+        onselect({ detail: { path: '' } });
     }
 
     function selectDirectory(dirName) {
         const fullPath = currentPath ? `${currentPath}/${dirName}` : dirName;
         selectedPath = fullPath;
-        dispatch('select', { path: fullPath });
+        onselect({ detail: { path: fullPath } });
         isOpen = false;
     }
 </script>
@@ -135,7 +133,7 @@
             <button
                 type="button"
                 class="browse-btn"
-                on:click={togglePicker}
+                onclick={togglePicker}
                 disabled={disabled || !socket || !projectId}
                 title="Browse directories"
             >
@@ -145,7 +143,7 @@
                 <button
                     type="button"
                     class="clear-btn"
-                    on:click={clearSelection}
+                    onclick={clearSelection}
                     disabled={disabled}
                     title="Clear selection"
                 >
@@ -166,7 +164,7 @@
                         <button
                             class="breadcrumb"
                             class:active={index === breadcrumbs.length - 1}
-                            on:click={() => navigateToBreadcrumb(index)}
+                            onclick={() => navigateToBreadcrumb(index)}
                         >
                             {crumb === '/' ? '🏠' : crumb}
                         </button>
@@ -179,7 +177,7 @@
                     {#if pathHistory.length > 0}
                         <button
                             class="nav-btn"
-                            on:click={goBack}
+                            onclick={goBack}
                             title="Go back"
                         >
                             ←
@@ -187,7 +185,7 @@
                     {/if}
                     <button
                         class="select-current-btn"
-                        on:click={selectCurrentDirectory}
+                        onclick={selectCurrentDirectory}
                         title="Select current directory"
                     >
                         Select "{currentPath || '/'}"
@@ -201,7 +199,7 @@
                 {:else if error}
                     <div class="error">
                         Error: {error}
-                        <button class="retry-btn" on:click={() => loadDirectories(currentPath)}>
+                        <button class="retry-btn" onclick={() => loadDirectories(currentPath)}>
                             Retry
                         </button>
                     </div>
@@ -213,14 +211,14 @@
                             <div class="directory-item">
                                 <button
                                     class="directory-name"
-                                    on:click={() => navigateToDirectory(dir.name)}
+                                    onclick={() => navigateToDirectory(dir.name)}
                                     title="Navigate into {dir.name}"
                                 >
                                     📁 {dir.name}
                                 </button>
                                 <button
                                     class="select-dir-btn"
-                                    on:click={() => selectDirectory(dir.name)}
+                                    onclick={() => selectDirectory(dir.name)}
                                     title="Select {dir.name}"
                                 >
                                     Select

@@ -7,7 +7,7 @@
     import Projects from "$lib/components/Projects.svelte";
     import ExitIcon from "$lib/components/Icons/ExitIcon.svelte";
 
-    export let data;
+    let { data } = $props();
 
     function logout(){
         localStorage.removeItem('dispatch-auth-token');
@@ -21,7 +21,7 @@
             {#snippet left()}
                 <button
                     class="btn-icon-only button-danger"
-                    on:click={() => logout()}
+                    onclick={() => logout()}
                     title="Logout"
                     aria-label="Logout"
                 >

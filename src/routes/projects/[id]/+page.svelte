@@ -1,5 +1,5 @@
 <script>
-    import { onMount, onDestroy, mount, unmount } from "svelte";
+    import { mount, unmount } from "svelte";
     import { page } from "$app/stores";
     import { io } from "socket.io-client";
     import { goto } from "$app/navigation";
@@ -20,28 +20,28 @@
     } from "$lib/utils/session-name-validation.js";
     import { createClaudeAuthContext } from "$lib/contexts/claude-auth-context.svelte.js";
 
-    export let data;
+    let { data } = $props();
 
-    $: projectId = $page.params.id;
+    let projectId = $derived($page.params.id);
 
-    let project = null;
-    let sessions = [];
-    let activeSessions = [];
-    let activeSessionId = null;
-    let sessionMode = "shell"; // Default session mode
-    let sessionName = ""; // Custom session name input
-    let workingDirectory = ""; // Working directory for Claude sessions
+    let project = $state(null);
+    let sessions = $state([]);
+    let activeSessions = $state([]);
+    let activeSessionId = $state(null);
+    let sessionMode = $state("shell"); // Default session mode
+    let sessionName = $state(""); // Custom session name input
+    let workingDirectory = $state(""); // Working directory for Claude sessions
 
     // Validation state
-    let nameValidation = { isValid: true };
-    let showValidation = false;
+    let nameValidation = $state({ isValid: true, message: '', severity: 'info' });
+    let showValidation = $state(false);
 
     // Reactive validation
-    $: {
+    $effect(() => {
         nameValidation = validateSessionNameRealtime(sessionName);
         // Only show validation feedback when there's a message or it's invalid
         showValidation = !nameValidation.isValid || nameValidation.message;
-    }
+    });
 
     // Validate before submission
     function validateBeforeSubmit() {
@@ -51,34 +51,36 @@
         return finalValidation.isValid;
     }
 
-    let socket;
-    let authed = false;
+    let socket = null; // Not reactive to prevent effect loops
+    let authed = $state(false);
 
     // Claude authentication state
-    let claudeAuthState = "unchecked"; // 'unchecked', 'checking', 'authenticated', 'not-authenticated', 'authenticating', 'waiting-for-token'
-    let claudeAuthSessionId = null;
-    let claudeOAuthUrl = null;
-    let claudeAuthToken = "";
+    let claudeAuthState = $state("unchecked"); // 'unchecked', 'checking', 'authenticated', 'not-authenticated', 'authenticating', 'waiting-for-token'
+    let claudeAuthSessionId = $state(null);
+    let claudeOAuthUrl = $state(null);
+    let claudeAuthToken = $state("");
 
     // Create Claude auth context for Chat components
     const claudeAuthContext = createClaudeAuthContext();
 
     // Dialog state
-    let showEndSessionDialog = false;
-    let sessionToEnd = null;
+    let showEndSessionDialog = $state(false);
+    let sessionToEnd = $state(null);
 
     // Current terminal/chat instance
-    let currentTerminal = null;
-    let currentChat = null;
+    let currentTerminal = $state(null);
+    let currentChat = $state(null);
 
-    onMount(async () => {
+    $effect(() => {
         if (!projectId) {
             goto("/projects");
             return;
         }
 
         try {
-            socket = io();
+            if (!socket) {
+                socket = io();
+            }
 
             socket.on("connect", () => {
                 console.log("Connected to server");
@@ -179,22 +181,24 @@
         } catch (error) {
             console.error("Failed to connect:", error);
         }
-    });
+        
+        // Cleanup function
+        return () => {
+            // Cleanup components
+            if (currentTerminal) {
+                unmount(currentTerminal);
+                currentTerminal = null;
+            }
+            if (currentChat) {
+                unmount(currentChat);
+                currentChat = null;
+            }
 
-    onDestroy(() => {
-        // Cleanup components
-        if (currentTerminal) {
-            unmount(currentTerminal);
-            currentTerminal = null;
-        }
-        if (currentChat) {
-            unmount(currentChat);
-            currentChat = null;
-        }
-
-        if (socket) {
-            socket.disconnect();
-        }
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        };
     });
 
     function loadProject() {
@@ -206,8 +210,8 @@
                 sessions = project.sessions || [];
                 activeSessions = project.activeSessions || [];
                 console.log("Loaded project:", project);
-                console.log("Sessions from project:", sessions);
-                console.log("Active sessions from project:", activeSessions);
+                console.log("Sessions from project:", $state.snapshot(sessions));
+                console.log("Active sessions from project:", $state.snapshot(activeSessions));
 
                 // Check Claude authentication status when project loads
                 checkClaudeAuth();
@@ -339,7 +343,7 @@
             // Clear form
             sessionName = "";
             workingDirectory = "";
-            nameValidation = { isValid: true };
+            nameValidation = { isValid: true, message: '', severity: 'info' };
             showValidation = false;
 
             // Reload project to show new session
@@ -493,7 +497,7 @@
             {#snippet left()}
                 <button
                     class="btn-icon-only"
-                    on:click={backToProjects}
+                    onclick={backToProjects}
                     title="Back to projects"
                     aria-label="Back to projects"
                 >
@@ -548,7 +552,7 @@
                                             {#if session.status === "active"}
                                                 <button
                                                     class="btn-sm"
-                                                    on:click={() =>
+                                                    onclick={() =>
                                                         attachToSession(
                                                             session.id,
                                                         )}
@@ -558,7 +562,7 @@
                                                 </button>
                                                 <button
                                                     class="btn-sm btn-danger"
-                                                    on:click={() =>
+                                                    onclick={() =>
                                                         confirmEndSession(
                                                             session.id,
                                                         )}
@@ -573,7 +577,7 @@
                                                 >
                                                 <button
                                                     class="btn-sm btn-danger"
-                                                    on:click={() =>
+                                                    onclick={() =>
                                                         confirmEndSession(
                                                             session.id,
                                                         )}
@@ -607,7 +611,7 @@
                                             <div class="session-actions">
                                                 <button
                                                     class="btn-sm"
-                                                    on:click={() =>
+                                                    onclick={() =>
                                                         attachToSession(
                                                             activeSession.sessionId,
                                                         )}
@@ -617,7 +621,7 @@
                                                 </button>
                                                 <button
                                                     class="btn-sm btn-danger"
-                                                    on:click={() =>
+                                                    onclick={() =>
                                                         confirmEndSession(
                                                             activeSession.sessionId,
                                                         )}
@@ -669,7 +673,7 @@
                                     </p>
                                     <button
                                         class="btn-auth"
-                                        on:click={startClaudeAuth}
+                                        onclick={startClaudeAuth}
                                         disabled={!socket || !authed}
                                     >
                                         🚀 Start Authentication
@@ -706,13 +710,13 @@
                                             bind:value={claudeAuthToken}
                                             placeholder="Paste your authentication token here"
                                             class="token-input"
-                                            on:keydown={(e) =>
+                                            onkeydown={(e) =>
                                                 e.key === "Enter" &&
                                                 submitAuthToken()}
                                         />
                                         <button
                                             class="btn-submit-token"
-                                            on:click={submitAuthToken}
+                                            onclick={submitAuthToken}
                                             disabled={!claudeAuthToken.trim()}
                                         >
                                             Submit Token
@@ -731,7 +735,7 @@
                             bind:value={sessionName}
                             placeholder="Enter session name"
                             class:invalid={!nameValidation.isValid}
-                            on:keydown={(e) =>
+                            onkeydown={(e) =>
                                 e.key === "Enter" && createSessionInProject()}
                         />
                         {#if showValidation && nameValidation.message}
@@ -754,7 +758,7 @@
                             {socket}
                             {projectId}
                             disabled={!socket || !authed}
-                            on:select={(event) => {
+                            onselect={(event) => {
                                 workingDirectory = event.detail.path;
                             }}
                         />
@@ -762,7 +766,7 @@
 
                     <button
                         class="btn-primary"
-                        on:click={createSessionInProject}
+                        onclick={createSessionInProject}
                         disabled={(!nameValidation.isValid &&
                             !!sessionName.trim()) ||
                             (sessionMode === "claude" &&
@@ -810,8 +814,8 @@
     confirmText="End Session"
     cancelText="Cancel"
     dangerous={true}
-    on:confirm={endSession}
-    on:cancel={cancelEndSession}
+    onconfirm={endSession}
+    oncancel={cancelEndSession}
 />
 
 <style>

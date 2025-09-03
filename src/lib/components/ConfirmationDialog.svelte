@@ -1,22 +1,22 @@
 <script>
-  import { createEventDispatcher } from "svelte";
-
-  export let show = false;
-  export let title = "Confirm Action";
-  export let message = "Are you sure you want to proceed?";
-  export let confirmText = "Confirm";
-  export let cancelText = "Cancel";
-  export let dangerous = false;
-
-  const dispatch = createEventDispatcher();
+  let { 
+    show = $bindable(false),
+    title = "Confirm Action",
+    message = "Are you sure you want to proceed?",
+    confirmText = "Confirm",
+    cancelText = "Cancel",
+    dangerous = false,
+    onconfirm = () => {},
+    oncancel = () => {}
+  } = $props();
 
   function handleConfirm() {
-    dispatch("confirm");
+    onconfirm();
     show = false;
   }
 
   function handleCancel() {
-    dispatch("cancel");
+    oncancel();
     show = false;
   }
 
@@ -38,8 +38,8 @@
 {#if show}
   <div
     class="dialog-backdrop"
-    on:click={handleBackdropClick}
-    on:keydown={handleKeydown}
+    onclick={handleBackdropClick}
+    onkeydown={handleKeydown}
     role="dialog"
     aria-modal="true"
     aria-labelledby="dialog-title"
@@ -58,7 +58,7 @@
         <button
           type="button"
           class="button-secondary text-button"
-          on:click={handleCancel}
+          onclick={handleCancel}
           aria-label="Cancel"
         >
           {cancelText}
@@ -67,7 +67,7 @@
           type="button"
           class="button-confirm text-button"
           class:button-danger={dangerous}
-          on:click={handleConfirm}
+          onclick={handleConfirm}
           aria-label="Confirm action"
           autofocus
         >

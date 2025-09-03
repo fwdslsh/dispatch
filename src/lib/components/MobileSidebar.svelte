@@ -1,5 +1,4 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
   import { sidebarState, panelStore, viewportStore } from '$lib/stores/panel-store.js';
   import Hammer from 'hammerjs';
   
@@ -10,16 +9,16 @@
     onNewSession = () => {}
   } = $props();
   
-  let sidebarElement;
-  let backdropElement;
-  let hammerInstance;
-  let cleanupFunctions = [];
+  let sidebarElement = $state();
+  let backdropElement = $state();
+  let hammerInstance = $state();
+  let cleanupFunctions = $state([]);
   
   // Sidebar state
-  let isVisible = false;
-  let isAnimating = false;
+  let isVisible = $state(false);
+  let isAnimating = $state(false);
   
-  onMount(() => {
+  $effect(() => {
     // Subscribe to sidebar state
     const unsubscribeSidebar = sidebarState.subscribe(state => {
       isVisible = state.visible;
@@ -30,6 +29,23 @@
     
     // Set up hammer.js for gesture detection
     setupGestureDetection();
+    
+    // Cleanup function
+    return () => {
+      // Clean up subscriptions and event listeners
+      cleanupFunctions.forEach(fn => fn());
+      
+      // Clean up hammer instance
+      if (hammerInstance) {
+        hammerInstance.destroy();
+      }
+      
+      // Remove edge zone element
+      const edgeZone = document.querySelector('[data-edge-zone]');
+      if (edgeZone) {
+        edgeZone.remove();
+      }
+    };
   });
   
   function setupGestureDetection() {
@@ -116,9 +132,6 @@
     });
   }
   
-  onDestroy(() => {
-    cleanupFunctions.forEach(cleanup => cleanup());
-  });
 </script>
 
 <!-- Backdrop -->
@@ -128,7 +141,7 @@
     class:animating={isAnimating}
     bind:this={backdropElement}
     onclick={handleBackdropClick}
-    on:transitionend={handleAnimationEnd}
+    ontransitionend={handleAnimationEnd}
   ></div>
 {/if}
 
@@ -138,7 +151,7 @@
   class:visible={isVisible}
   class:animating={isAnimating}
   bind:this={sidebarElement}
-  on:transitionend={handleAnimationEnd}
+  ontransitionend={handleAnimationEnd}
 >
   <div class="sidebar-header">
     <h2>Sessions</h2>

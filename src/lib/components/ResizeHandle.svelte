@@ -1,22 +1,22 @@
 <script>
-  import { createEventDispatcher, onMount, onDestroy } from 'svelte';
-  
   // Props
-  export let direction = 'vertical'; // 'vertical' | 'horizontal'
-  export let position = { x: 0, y: 0 };
-  export let minSize = 100;
-  export let maxSize = 1000;
-  export let paneId = null;
-  
-  // Event dispatcher
-  const dispatch = createEventDispatcher();
+  let {
+    direction = 'vertical', // 'vertical' | 'horizontal'
+    position = { x: 0, y: 0 },
+    minSize = 100,
+    maxSize = 1000,
+    paneId = null,
+    onresizestart = () => {},
+    onresize = () => {},
+    onresizeend = () => {}
+  } = $props();
   
   // Local state
-  let handleElement = null;
-  let isResizing = false;
-  let startPosition = null;
-  let startSize = null;
-  let currentPosition = null;
+  let handleElement = $state(null);
+  let isResizing = $state(false);
+  let startPosition = $state(null);
+  let startSize = $state(null);
+  let currentPosition = $state(null);
   
   // Handle mouse down
   function handleMouseDown(e) {
@@ -43,10 +43,12 @@
     e.preventDefault();
     
     // Dispatch resize start event
-    dispatch('resizeStart', {
-      position: startPosition,
-      direction,
-      paneId
+    onresizestart({
+      detail: {
+        position: startPosition,
+        direction,
+        paneId
+      }
     });
   }
   
@@ -67,12 +69,14 @@
     const constrainedDelta = constrainDelta(delta);
     
     // Dispatch resize event
-    dispatch('resize', {
-      delta: constrainedDelta,
-      rawDelta: delta,
-      position: currentPosition,
-      direction,
-      paneId
+    onresize({
+      detail: {
+        delta: constrainedDelta,
+        rawDelta: delta,
+        position: currentPosition,
+        direction,
+        paneId
+      }
     });
   }
   
@@ -92,10 +96,12 @@
     document.body.classList.remove('resizing-ns');
     
     // Dispatch resize end event
-    dispatch('resizeEnd', {
-      position: currentPosition,
-      direction,
-      paneId
+    onresizeend({
+      detail: {
+        position: currentPosition,
+        direction,
+        paneId
+      }
     });
     
     // Reset state
@@ -134,14 +140,16 @@
   }
   
   // Cleanup on destroy
-  onDestroy(() => {
-    if (isResizing) {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.classList.remove('resizing');
-      document.body.classList.remove('resizing-ew');
-      document.body.classList.remove('resizing-ns');
-    }
+  $effect(() => {
+    return () => {
+      if (isResizing) {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.classList.remove('resizing');
+        document.body.classList.remove('resizing-ew');
+        document.body.classList.remove('resizing-ns');
+      }
+    };
   });
 </script>
 
@@ -153,10 +161,10 @@
     {direction === 'vertical' ? `left: ${position.x}px` : ''};
     {direction === 'horizontal' ? `top: ${position.y}px` : ''};
   "
-  on:mousedown={handleMouseDown}
-  on:touchstart={handleTouchStart}
-  on:touchmove={handleTouchMove}
-  on:touchend={handleTouchEnd}
+  onmousedown={handleMouseDown}
+  ontouchstart={handleTouchStart}
+  ontouchmove={handleTouchMove}
+  ontouchend={handleTouchEnd}
   role="separator"
   aria-orientation={direction}
   aria-label="Resize handle"

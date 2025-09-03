@@ -1,10 +1,9 @@
 <script>
   import '../app.css';
-  import { onMount } from 'svelte';
   
-  export let data;
+  let { data } = $props();
   
-  onMount(() => {
+  $effect(() => {
     // Set body class based on whether TERMINAL_KEY is configured
     if (!data.hasTerminalKey) {
       document.body.classList.add('no-key');

@@ -1,5 +1,4 @@
 <script>
-  import { onDestroy, onMount } from 'svelte';
   import { Xterm } from '@battlefieldduck/xterm-svelte';
   import { TerminalViewModel } from '../services/terminal-viewmodel.js';
 
@@ -54,14 +53,14 @@
     ...terminalOptions
   });
 
-  onMount(async () => {
+  $effect(() => {
     console.debug('Terminal mount - initializing ViewModel');
     
     // Create ViewModel
     viewModel = new TerminalViewModel();
     
     // Initialize ViewModel
-    const initialized = await viewModel.initialize({
+    viewModel.initialize({
       socket,
       sessionId,
       projectId,
@@ -71,15 +70,25 @@
       onOutputEvent,
       onBufferUpdate,
       onChatClick: onchatclick
+    }).then(initialized => {
+      if (!initialized) {
+        error = 'Failed to initialize terminal';
+        isLoading = false;
+        return;
+      }
+
+      isLoading = false;
     });
 
-    if (!initialized) {
-      error = 'Failed to initialize terminal';
-      isLoading = false;
-      return;
-    }
-
-    isLoading = false;
+    // Cleanup function
+    return () => {
+      console.debug('Terminal component destroying');
+      
+      if (viewModel) {
+        viewModel.destroy();
+        viewModel = null;
+      }
+    };
   });
 
   async function onLoad() {
@@ -104,14 +113,6 @@
     console.debug('Terminal initialization complete');
   }
 
-  onDestroy(() => {
-    console.debug('Terminal component destroying');
-    
-    if (viewModel) {
-      viewModel.destroy();
-      viewModel = null;
-    }
-  });
 </script>
 
 <div class="terminal-container">
