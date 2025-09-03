@@ -3,11 +3,12 @@
   import { io } from "socket.io-client";
   import Container from "$lib/components/Container.svelte";
   import PublicUrlDisplay from "$lib/components/PublicUrlDisplay.svelte";
-  let key = $state(""); 
+  import { onMount } from "svelte";
+  let key = $state("");
   let error = $state("");
   let loading = $state(false);
 
-  $effect(() => {
+  onMount(() => {
     // Check if already authenticated
     const storedAuth = localStorage.getItem("dispatch-auth-token");
     if (storedAuth) {
@@ -18,7 +19,7 @@
     // Check if auth is required by testing with empty key
     const socket = io({ transports: ["websocket", "polling"] });
     socket.emit("auth", "", (resp) => {
-      if (resp?.success  === true) {
+      if (resp?.success === true) {
         // No auth required, redirect to sessions
         localStorage.setItem("dispatch-auth-token", "no-auth");
         goto("/projects");
@@ -88,7 +89,7 @@
 
 <style>
   @property --aug-border-bg {
-    syntax: '<color>';
+    syntax: "<color>";
     inherits: false;
     initial-value: rgba(0, 255, 136, 0.314);
   }
@@ -125,7 +126,7 @@
 
     &:hover {
       --aug-border-bg: var(--secondary);
-      box-shadow: 
+      box-shadow:
         0 0 125px rgba(0, 255, 136, 0.15),
         0 0 50px rgba(0, 255, 136, 0.05),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -135,34 +136,40 @@
       --aug-border-bg: var(--primary-muted);
       border: none;
       cursor: pointer;
-      transition: all 0.3s ease, --aug-border-bg 0.3s ease, box-shadow 0.3s ease, text-shadow 0.3s ease;
-      box-shadow: 
+      transition:
+        all 0.3s ease,
+        --aug-border-bg 0.3s ease,
+        box-shadow 0.3s ease,
+        text-shadow 0.3s ease;
+      box-shadow:
         0 0 0px rgba(0, 255, 136, 0),
         0 0 0px rgba(0, 255, 136, 0),
         inset 0 1px 0 rgba(255, 255, 255, 0);
-      
+
       &:hover {
         --aug-border-bg: var(--primary);
         text-shadow:
           0 0 15px var(--primary),
           0 0 30px var(--primary);
-        box-shadow: 
+        box-shadow:
           0 0 20px rgba(0, 255, 136, 0.4),
           0 0 40px rgba(0, 255, 136, 0.15),
           inset 0 1px 0 rgba(255, 255, 255, 0.15);
-       
       }
     }
 
     input {
-      transition: all 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-      box-shadow: 
+      transition:
+        all 0.3s ease,
+        border-color 0.3s ease,
+        box-shadow 0.3s ease;
+      box-shadow:
         0 0 0px rgba(0, 255, 136, 0),
         0 0 0px rgba(0, 255, 136, 0);
-        
+
       &:hover {
         border-color: rgba(0, 255, 136, 0.6);
-        box-shadow: 
+        box-shadow:
           0 0 12px rgba(0, 255, 136, 0.15),
           0 0 24px rgba(0, 255, 136, 0.05);
       }

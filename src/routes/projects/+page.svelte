@@ -2,7 +2,6 @@
     import { goto } from "$app/navigation";
     import HeaderToolbar from "$lib/components/HeaderToolbar.svelte";
     import Container from "$lib/components/Container.svelte";
-    import BackIcon from "$lib/components/Icons/BackIcon.svelte";
     import PublicUrlDisplay from "$lib/components/PublicUrlDisplay.svelte";
     import Projects from "$lib/components/Projects.svelte";
     import ExitIcon from "$lib/components/Icons/ExitIcon.svelte";
