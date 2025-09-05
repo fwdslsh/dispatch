@@ -3,7 +3,7 @@
 	import HeaderToolbar from '$lib/components/HeaderToolbar.svelte';
 	import Container from '$lib/components/Container.svelte';
 	import PublicUrlDisplay from '$lib/components/PublicUrlDisplay.svelte';
-	import Projects from '$lib/components/Projects.svelte';
+	import { ProjectManager } from '$lib/components/projects/index.js';
 	import ExitIcon from '$lib/components/Icons/ExitIcon.svelte';
 
 	let { data } = $props();
@@ -35,6 +35,6 @@
 
 	{#snippet children()}
 		<PublicUrlDisplay />
-		<Projects terminalKey={data?.terminalKey} />
+		<ProjectManager terminalKey={data?.terminalKey} />
 	{/snippet}
 </Container>
