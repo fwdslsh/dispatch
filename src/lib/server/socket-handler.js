@@ -246,8 +246,11 @@ function createSocketHandler(io) {
       }
       
       try {
-        // Get all sessions across all projects
+        // Get all sessions - both active (in memory) and stored (in projects)
         const allSessions = [];
+        const seenSessionIds = new Set();
+        
+        // First, add active sessions from memory
         for (const [sessionId, metadata] of terminalManager.sessionMetadata.entries()) {
           allSessions.push({
             id: sessionId,
@@ -255,9 +258,35 @@ function createSocketHandler(io) {
             name: metadata.name,
             projectId: metadata.projectId,
             active: terminalManager.sessions.has(sessionId),
-            status: terminalManager.sessions.has(sessionId) ? 'active' : 'inactive'
+            status: terminalManager.sessions.has(sessionId) ? 'active' : 'inactive',
+            type: 'shell' // Default type, could be enhanced
           });
+          seenSessionIds.add(sessionId);
         }
+        
+        // Then, add stored sessions from projects (if not already in active list)
+        const projectData = storageManager.getProjects();
+        if (projectData && projectData.projects) {
+          for (const project of projectData.projects) {
+            if (project.sessions && Array.isArray(project.sessions)) {
+              for (const session of project.sessions) {
+                if (!seenSessionIds.has(session.id)) {
+                  allSessions.push({
+                    id: session.id,
+                    sessionId: session.id,
+                    name: session.name || session.id,
+                    projectId: project.id,
+                    active: false, // Not in active memory
+                    status: session.status || 'inactive',
+                    type: session.type || session.mode || 'shell'
+                  });
+                  seenSessionIds.add(session.id);
+                }
+              }
+            }
+          }
+        }
+        
         if (callback) callback({ success: true, sessions: allSessions });
       } catch (error) {
         console.error('Error listing sessions:', error);

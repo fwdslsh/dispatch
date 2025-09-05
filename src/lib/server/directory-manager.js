@@ -17,9 +17,9 @@ class DirectoryManager {
     
     this.projectsDir = process.env.DISPATCH_PROJECTS_DIR ||
       (process.platform === 'win32'
-        ? path.join(os.homedir(), 'dispatch-projects')
+        ? path.join(process.env.APPDATA || os.homedir(), 'dispatch-projects')
         : process.env.CONTAINER_ENV 
-          ? '/var/lib/dispatch/projects'
+          ? '/workspace'
           : path.join(os.homedir(), 'dispatch-projects'));
     
     // Reserved names that cannot be used for projects

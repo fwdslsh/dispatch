@@ -146,6 +146,9 @@ function stopLocalTunnel() {
 startServer().then(({ httpServer }) => {
   httpServer.listen(PORT, () => {
     console.log(`dispatch running at http://localhost:${PORT}`);
+    console.log(`Config Dir: ${directoryManager.configDir}`);
+    console.log(`Projects Dir: ${directoryManager.projectsDir}`);
+   
     startLocalTunnel();
   });
 

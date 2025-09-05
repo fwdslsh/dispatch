@@ -26,7 +26,6 @@ export class TerminalConfigurationService {
       fontFamily: 'Courier New, monospace',
       scrollback: 10000,
       disableStdin: false,
-      localEcho: false,
       theme: { 
         background: '#0a0a0a',
         foreground: '#ffffff',

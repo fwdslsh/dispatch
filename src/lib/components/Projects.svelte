@@ -275,8 +275,10 @@
             projectDescription = "";
             nameValidation = { isValid: true, message: "", severity: "info" };
 
-            // Don't navigate automatically - let user see their projects list
-            // User can click on the project to open it if they want
+            // Navigate to the newly created project
+            if (result.project?.id) {
+                goto(`/projects/${result.project.id}`);
+            }
         } catch (err) {
             console.error("Failed to create project:", err);
             nameValidation = {

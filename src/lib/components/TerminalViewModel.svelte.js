@@ -62,7 +62,6 @@ export class TerminalViewModel {
         sessionId = null,
         projectId = null,
         initialHistory = '',
-        terminalOptions = {},
         onInputEvent = () => {},
         onOutputEvent = () => {},
         onBufferUpdate = () => {},
@@ -167,6 +166,13 @@ export class TerminalViewModel {
    */
   async initializeTerminal(terminal, options = {}) {
     try {
+      // Allow terminal re-initialization but prevent duplicate view model initialization
+      if (this.configService && this.configService.isTerminalInitialized()) {
+        console.debug('TerminalViewModel: Terminal already initialized, setting up input handling for this instance');
+        this.setupInputHandling();
+        return true;
+      }
+
       // Initialize configuration service (simplified)
       const configInitialized = await this.configService.initialize(terminal, options);
       if (!configInitialized) {
@@ -222,6 +228,9 @@ export class TerminalViewModel {
       return;
     }
 
+    // Clean up existing listeners first to prevent duplicates
+    this.cleanupSocketEventListeners();
+
     // Output event
     const unsubscribeOutput = this.sessionService.onSocketEvent('output', (output) => {
       this.handleSocketOutput(output);
@@ -249,6 +258,14 @@ export class TerminalViewModel {
     this.socketEventUnsubscribes.push(unsubscribeEnded);
 
     console.debug('TerminalViewModel: Socket event listeners setup');
+  }
+
+  /**
+   * Clean up socket event listeners
+   */
+  cleanupSocketEventListeners() {
+    this.socketEventUnsubscribes.forEach(unsubscribe => unsubscribe());
+    this.socketEventUnsubscribes = [];
   }
 
   /**
@@ -317,29 +334,29 @@ export class TerminalViewModel {
    * Setup input handling
    */
   setupInputHandling() {
-    // CRITICAL: Always clean up existing handler first
-    if (this.inputDisposable) {
-      console.debug('TerminalViewModel: Cleaning up existing input handler');
-      this.inputDisposable();
-      this.inputDisposable = null;
-    }
+    // Clean up existing handler first
+    this.cleanupInputHandler();
 
     // Set up the single input handler
     this.inputDisposable = this.configService.setupInputHandler((data) => {
-      // Log input for debugging
-      console.debug('TerminalViewModel: Received input from terminal:', JSON.stringify(data), 'sending to PTY');
-      
       // Send input to session (PTY will echo back)
       this.sessionService.sendInput(data);
-      
-      // Notify event handler
-      this.onInputEvent(data);
     });
     
     if (this.inputDisposable) {
-      console.debug('TerminalViewModel: Input handling setup complete - keystroke wiring active');
+      console.debug('TerminalViewModel: Input handling setup complete');
     } else {
-      console.error('TerminalViewModel: Failed to setup input handling - keystrokes will not work');
+      console.error('TerminalViewModel: Failed to setup input handling');
+    }
+  }
+
+  /**
+   * Clean up input handler
+   */
+  cleanupInputHandler() {
+    if (this.inputDisposable) {
+      this.inputDisposable();
+      this.inputDisposable = null;
     }
   }
 
@@ -471,14 +488,10 @@ export class TerminalViewModel {
    */
   cleanup() {
     // Unsubscribe from socket events
-    this.socketEventUnsubscribes.forEach(unsubscribe => unsubscribe());
-    this.socketEventUnsubscribes = [];
+    this.cleanupSocketEventListeners();
 
     // Cleanup input handler
-    if (this.inputDisposable) {
-      this.inputDisposable();
-      this.inputDisposable = null;
-    }
+    this.cleanupInputHandler();
 
     // Cleanup services
     this.sessionService.cleanup();

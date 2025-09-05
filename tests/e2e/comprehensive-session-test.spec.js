@@ -39,23 +39,17 @@ test.describe('Comprehensive Session Testing', () => {
     await page.fill('input[placeholder="Enter project name"]', projectName);
     await page.click('button:has-text("Create Project")');
     
-    // Wait for project creation and verify we stay on projects page
+    // Wait for project creation and verify we navigate to the project page
     await page.waitForTimeout(3000);
     const currentUrl = page.url();
-    console.log('URL after project creation (should stay on /projects):', currentUrl);
-    expect(currentUrl).toMatch(/\/projects$/);
+    console.log('URL after project creation (should navigate to project page):', currentUrl);
+    expect(currentUrl).toMatch(/\/projects\/[a-f0-9-]+$/);
     
-    // Verify project count increased
-    const projectItemsAfter = await page.locator('.project-item').count();
-    console.log('Number of projects after creation:', projectItemsAfter);
-    expect(projectItemsAfter).toBeGreaterThan(projectItemsBefore);
-    
-    // Click on the first project to test session functionality
-    console.log('=== Testing project navigation and sessions ===');
-    await page.click('.project-item:first-child');
+    // We're now already on the project page, so no need to click
+    console.log('=== Testing session functionality on project page ===');
     
     // Wait for project page to load
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(2000);
     const projectUrl = page.url();
     console.log('Project URL after clicking:', projectUrl);
     expect(projectUrl).toMatch(/\/projects\/[^\/]+$/);

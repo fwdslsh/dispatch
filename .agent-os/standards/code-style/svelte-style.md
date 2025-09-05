@@ -57,7 +57,7 @@ Other runes
 MVVM pattern and vertical-slice layout
 - We use MVVM to separate concerns, and we organize code in vertical feature slices under `src/lib/` so Models, ViewModels and Views for a feature live together.
   - Model: plain JavaScript objects that define data shapes and business logic (documented with JSDoc).
-  - ViewModel: `.svelte.js` or `.js` modules that declare `$state`, `$derived`, and expose actions; written in plain JavaScript with JSDoc annotations. API clients are injected into ViewModel constructors.
+  - ViewModel: `.svelte.js` modules that declare `$state`, `$derived`, and expose actions; written in plain JavaScript with JSDoc annotations. API clients are injected into ViewModel constructors.
   - View: `.svelte` component consuming the ViewModel via imports, props, or snippets.
   - API Client: classes that handle server communication, injected into ViewModel constructors. They take model objects as function parameters and return model objects from function calls.
 
@@ -243,7 +243,7 @@ Notes and gotchas
 - $effect does not run during SSR; guard any browser-only APIs.
 
 Quick checklist (for PRs)
-- Uses Svelte 5 runes where appropriate.
+- Uses Svelte 5 runes exclusivly.
 - ViewModel and API client patterns applied.
 - No reactive-destructuring bugs.
 - Tests for ViewModel logic added.
