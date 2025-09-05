@@ -3,9 +3,9 @@
  * No over-engineering, just what's needed to make everything work
  */
 
-import { TerminalManager } from '../session-types/shell/server/terminal.server.js';
-import DirectoryManager from './directory-manager.js';
-import storageManager from './storage-manager.js';
+import { TerminalManager } from '../../session-types/shell/server/terminal.server.js';
+import DirectoryManager from '../services/directory-manager.js';
+import storageManager from '../services/storage-manager.js';
 import fs from 'fs';
 
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';

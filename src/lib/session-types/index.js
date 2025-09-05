@@ -1,113 +1,64 @@
 /**
  * Session Types - Main entry point for session type system
  * 
- * This module provides manual registration of session types with static imports
- * for optimal build-time optimization and tree shaking.
+ * Simple static configuration without complex registry system.
+ * Re-exports from simple-session-types.js for compatibility.
  */
 
-import { sessionTypeRegistry } from './registry.js';
+// Re-export everything from simple-session-types for clean interface
+export {
+  SESSION_TYPES,
+  getAllSessionTypes,
+  getSessionType,
+  getSessionTypesByCategory,
+  hasSessionType,
+  getProjectSessionTypes,
+  getStandaloneSessionTypes,
+  isValidSessionType,
+  getDefaultOptions,
+  CLIENT_SESSION_TYPES,
+  SERVER_SESSION_TYPES,
+  createSessionTypeConfig
+} from './simple-session-types.js';
 
-// Static imports for build-time optimization
-// Import client-side session type implementations here for static bundling
-import { shellSessionType } from './shell/client.js';
-import { claudeSessionType } from './claude/client.js';
+// Re-export server configuration for server-side usage
+export {
+  SESSION_HANDLERS,
+  SESSION_NAMESPACES,
+  getHandlerCreator,
+  getNamespace,
+  getAvailableTypes,
+  hasHandlers,
+  createHandlersForType,
+  setupSessionTypeNamespace
+} from './simple-server-config.js';
 
 /**
- * Initialize session types registry with manual registration
- * This function should be called during application startup
+ * Initialize session types (simplified)
+ * No complex initialization needed - just validates configuration
  */
 export function initializeSessionTypes() {
-  console.log('Initializing session type registry...');
+  console.log('Session types initialized with simple static configuration');
   
-  // Manual registration - explicit and controlled
-  // Register implemented session types:
+  const types = getAllSessionTypes();
+  const typeCount = types.length;
+  console.log(`Available session types: ${typeCount}`);
   
-  sessionTypeRegistry.register(shellSessionType);
-  sessionTypeRegistry.register(claudeSessionType);
-  
-  // Future session types would be added here manually:
-  // sessionTypeRegistry.register(jupyterSessionType);
-  // sessionTypeRegistry.register(dockerSessionType);
-  
-  sessionTypeRegistry.initialized = true;
-  
-  const typeCount = sessionTypeRegistry.list().length;
-  console.log(`Session type registry initialized with ${typeCount} types`);
-  
-  // Log registered types for debugging
   if (typeCount > 0) {
-    const types = sessionTypeRegistry.list().map(t => `${t.name} (${t.id})`).join(', ');
-    console.log(`Registered session types: ${types}`);
+    const typeNames = types.map(t => `${t.name} (${t.id})`).join(', ');
+    console.log(`Types: ${typeNames}`);
   }
+  
+  return true;
 }
 
 /**
- * Static handler map for WebSocket handlers
- * This is a placeholder - actual handlers are loaded server-side
- */
-export const SESSION_TYPE_HANDLERS = {
-  // Handlers are dynamically loaded on server-side only
-};
-
-/**
- * Get session type by ID
- * @param {string} typeId - Session type identifier
- * @returns {BaseSessionType|undefined} Session type or undefined
- */
-export function getSessionType(typeId) {
-  return sessionTypeRegistry.get(typeId);
-}
-
-/**
- * Get all registered session types
- * @returns {Array<BaseSessionType>} All registered session types
- */
-export function getAllSessionTypes() {
-  return sessionTypeRegistry.list();
-}
-
-/**
- * Get session types by category
- * @param {string} category - Category to filter by
- * @returns {Array<BaseSessionType>} Session types in category
- */
-export function getSessionTypesByCategory(category) {
-  return sessionTypeRegistry.getByCategory(category);
-}
-
-/**
- * Check if a session type is registered
- * @param {string} typeId - Session type identifier
- * @returns {boolean} True if registered
- */
-export function hasSessionType(typeId) {
-  return sessionTypeRegistry.has(typeId);
-}
-
-/**
- * Get available categories
- * @returns {Array<string>} Unique categories
- */
-export function getAvailableCategories() {
-  return sessionTypeRegistry.getCategories();
-}
-
-/**
- * Get WebSocket handler factory for session type
- * @param {string} typeId - Session type identifier
- * @returns {Function|undefined} Handler factory function or undefined
- */
-export function getSessionTypeHandler(typeId) {
-  return SESSION_TYPE_HANDLERS[typeId];
-}
-
-/**
- * Validate session type registration before startup
- * This helps catch configuration errors early
+ * Validate session type configuration
+ * Simple validation without complex registry checking
  */
 export function validateRegistration() {
+  const types = getAllSessionTypes();
   const errors = [];
-  const types = sessionTypeRegistry.list();
   
   // Check for duplicate namespaces
   const namespaces = new Set();
@@ -118,29 +69,23 @@ export function validateRegistration() {
     namespaces.add(type.namespace);
   }
   
-  // Note: Handler validation is done server-side only
-  
   if (errors.length > 0) {
-    console.error('Session type registration validation failed:');
+    console.error('Session type validation failed:');
     errors.forEach(error => console.error(`  - ${error}`));
     throw new Error(`Session type validation failed: ${errors.join(', ')}`);
   }
   
-  console.log('Session type registration validation passed');
+  console.log('Session type validation passed');
   return true;
 }
 
-// Export the registry for direct access when needed
-export { sessionTypeRegistry };
-
-// Export static session type references for build optimization
-// These will be populated as session types are implemented:
-// export { shellSessionType, claudeSessionType };
-
-// Export base classes for extension
-export { BaseSessionType } from './shared/BaseSessionType.js';
-export { SessionTypeRegistry } from './registry.js';
-
-// Export shared utilities
-export * from './shared/SessionTypeUtils.js';
-export * from './shared/ValidationUtils.js';
+// Legacy compatibility exports (for components that might still use these names)
+export const getSessionTypesByCategory = getSessionTypesByCategory;
+export const hasSessionType = hasSessionType;
+export const getAvailableCategories = () => {
+  const categories = new Set();
+  getAllSessionTypes().forEach(type => {
+    if (type.category) categories.add(type.category);
+  });
+  return Array.from(categories);
+};

@@ -6,7 +6,7 @@
  */
 
 import { BaseSessionType } from '../shared/BaseSessionType.js';
-import { generateSessionId, createSessionMetadata, mergeSessionOptions } from '../shared/SessionTypeUtils.js';
+import { generateSessionId, createSessionMetadata, mergeSessionOptions } from '../../shared/utils/session-utils.js';
 
 export class ShellSessionType extends BaseSessionType {
   constructor() {

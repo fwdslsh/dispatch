@@ -12,7 +12,7 @@ const webSocketServer = {
 		});
 
 		// Initialize storage manager in development
-		import('./src/lib/server/storage-manager.js')
+		import('./src/lib/server/services/storage-manager.js')
 			.then((module) => {
 				module.default.initialize();
 			})
@@ -21,7 +21,7 @@ const webSocketServer = {
 			});
 
 		// Import the working socket handler for development
-		import('./src/lib/server/socket-handler.js')
+		import('./src/lib/server/handlers/socket-handler.js')
 			.then(({ createSocketHandler }) => {
 				const handler = createSocketHandler(io);
 

@@ -321,6 +321,51 @@ export const sanitizers = {
 };
 
 /**
+ * Validate project name
+ * @param {string} name - Project name to validate
+ * @returns {object} Validation result with valid flag and errors array
+ */
+export function validateProjectName(name) {
+	const errors = [];
+
+	if (!name || typeof name !== 'string') {
+		errors.push('Project name is required and must be a string');
+		return { valid: false, errors };
+	}
+
+	const trimmedName = name.trim();
+
+	if (trimmedName.length === 0) {
+		errors.push('Project name cannot be empty');
+	}
+
+	if (trimmedName.length > 100) {
+		errors.push('Project name must be 100 characters or less');
+	}
+
+	if (trimmedName.length < 2) {
+		errors.push('Project name must be at least 2 characters');
+	}
+
+	// Check for invalid characters
+	const invalidChars = /[<>:"/\\|?*\x00-\x1f]/;
+	if (invalidChars.test(trimmedName)) {
+		errors.push('Project name contains invalid characters');
+	}
+
+	// Check for reserved names
+	const reservedNames = ['con', 'prn', 'aux', 'nul', 'com1', 'com2', 'com3', 'com4', 'com5', 'com6', 'com7', 'com8', 'com9', 'lpt1', 'lpt2', 'lpt3', 'lpt4', 'lpt5', 'lpt6', 'lpt7', 'lpt8', 'lpt9'];
+	if (reservedNames.includes(trimmedName.toLowerCase())) {
+		errors.push('Project name is reserved and cannot be used');
+	}
+
+	return {
+		valid: errors.length === 0,
+		errors
+	};
+}
+
+/**
  * Rate limiting utilities
  */
 export class RateLimiter {

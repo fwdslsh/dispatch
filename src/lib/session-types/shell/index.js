@@ -6,8 +6,7 @@
  */
 
 import { BaseSessionType } from '../shared/BaseSessionType.js';
-import { generateSessionId, createSessionMetadata, mergeSessionOptions } from '../shared/SessionTypeUtils.js';
-import { createSessionValidator } from '../shared/ValidationUtils.js';
+import { generateSessionId, createSessionMetadata, mergeSessionOptions, validateSessionOptions } from '../../shared/utils/session-utils.js';
 import fs from 'fs';
 import path from 'path';
 

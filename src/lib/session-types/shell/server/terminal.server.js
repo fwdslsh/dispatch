@@ -4,8 +4,8 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node-pty';
 import { TERMINAL_CONFIG } from '../config.js';
-import DirectoryManager from '../../../server/directory-manager.js';
-import storageManager from '../../../server/storage-manager.js';
+import DirectoryManager from '../../../server/services/directory-manager.js';
+import storageManager from '../../../server/services/storage-manager.js';
 
 /**
  * @typedef {Object} SessionOpts

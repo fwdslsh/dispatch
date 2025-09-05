@@ -469,68 +469,16 @@
 		gap: 1rem;
 	}
 
-	.form-group {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
 
-	.form-group label {
-		font-weight: 500;
-		color: var(--text-primary);
-	}
 
-	.optional {
-		font-weight: normal;
-		color: var(--text-secondary);
-		font-size: 0.85rem;
-	}
 
-	.form-group input,
-	.form-group select {
-		padding: 0.5rem;
-		background: rgba(26, 26, 26, 0.8);
-		color: var(--text-primary);
-		border: 1px solid rgba(0, 255, 136, 0.3);
-		border-radius: 4px;
-	}
 
-	.form-group input:focus,
-	.form-group select:focus {
-		outline: none;
-		border-color: var(--primary);
-		box-shadow: 0 0 4px rgba(0, 255, 136, 0.3);
-	}
 
-	.form-group input.invalid {
-		border-color: var(--error);
-	}
 
-	.form-group input.valid {
-		border-color: var(--success);
-	}
 
-	.validation-message {
-		font-size: 0.85rem;
-		padding: 0.25rem 0.5rem;
-		border-radius: 3px;
-	}
 
-	.validation-message.error {
-		color: var(--error);
-		background: rgba(255, 107, 107, 0.1);
-		border: 1px solid rgba(255, 107, 107, 0.3);
-	}
 
-	.validation-message.success {
-		color: var(--success);
-		background: rgba(0, 255, 136, 0.1);
-		border: 1px solid rgba(0, 255, 136, 0.3);
-	}
 
-	.validation-message.info {
-		color: var(--text-secondary);
-	}
 
 	.claude-auth-status {
 		margin-top: 1rem;
@@ -585,8 +533,7 @@
 		flex: 1;
 	}
 
-	.btn-submit-token,
-	.btn-primary {
+	.btn-submit-token {
 		padding: 0.5rem 1rem;
 		background: var(--primary);
 		color: var(--bg-dark);
@@ -596,10 +543,6 @@
 		font-weight: 500;
 	}
 
-	.btn-primary:disabled {
-		background: rgba(0, 255, 136, 0.3);
-		cursor: not-allowed;
-	}
 
 	.content-panel {
 		flex: 1;

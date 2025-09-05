@@ -5,9 +5,9 @@
  * while maintaining backward compatibility with the main namespace.
  */
 
-import { TerminalManager } from '../session-types/shell/server/terminal.server.js';
+import { TerminalManager } from '../../session-types/shell/server/terminal.server.js';
 import { createSocketHandler } from './socket-handler.js';
-import { sessionTypeRegistry, SESSION_TYPE_HANDLERS } from '../session-types/index.js';
+import { getAllSessionTypes, SESSION_HANDLERS } from '../../session-types/index.js';
 
 const TERMINAL_KEY = process.env.TERMINAL_KEY || 'change-me';
 const AUTH_REQUIRED = TERMINAL_KEY.length >= 8;
@@ -30,7 +30,7 @@ export function createNamespacedSocketHandler(io) {
   console.log('🔧 Setting up session type namespaces...');
   
   // Create isolated namespaces for each registered session type
-  const registeredTypes = sessionTypeRegistry.list();
+  const registeredTypes = getAllSessionTypes();
   
   if (registeredTypes.length === 0) {
     console.warn('⚠️  No session types registered - only main namespace will be available');
@@ -103,7 +103,7 @@ export function createSessionTypeHandler(sessionType, namespace) {
      * Load and register session type-specific handlers
      */
     try {
-      const createHandlers = SESSION_TYPE_HANDLERS[sessionType.id];
+      const createHandlers = SESSION_HANDLERS[sessionType.id];
       
       if (!createHandlers) {
         console.error(`No handler factory found for session type: ${sessionType.id}`);
@@ -353,7 +353,7 @@ export function getNamespaceStats(io) {
     mainNamespaceConnections: io.engine.clientsCount || 0
   };
   
-  for (const sessionType of sessionTypeRegistry.list()) {
+  for (const sessionType of getAllSessionTypes()) {
     const namespace = io.of(sessionType.namespace);
     const connections = namespace.sockets.size;
     
@@ -375,7 +375,7 @@ export function getNamespaceStats(io) {
  */
 export function validateSessionTypeRegistration() {
   const errors = [];
-  const types = sessionTypeRegistry.list();
+  const types = getAllSessionTypes();
   
   // Check for duplicate namespaces
   const namespaces = new Set();
@@ -388,7 +388,7 @@ export function validateSessionTypeRegistration() {
   
   // Check that all types have handlers
   for (const type of types) {
-    if (!SESSION_TYPE_HANDLERS[type.id]) {
+    if (!SESSION_HANDLERS[type.id]) {
       errors.push(`No handler registered for session type: ${type.id}`);
     }
   }

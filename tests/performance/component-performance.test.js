@@ -30,10 +30,10 @@ describe('Component Performance Tests', () => {
       const start = performance.now();
       
       // Test import times for Services
-      await import('../../src/lib/services/ProjectService.js');
+      await import('../../src/lib/shared/services/SimpleProjectService.js');
       await import('../../src/lib/session-types/claude/utils/CommandService.js');
-      await import('../../src/lib/services/DirectoryService.js');
-      await import('../../src/lib/services/SocketService.js');
+      await import('../../src/lib/shared/services/DirectoryService.js');
+      await import('../../src/lib/shared/services/SimpleSocketService.js');
       
       const end = performance.now();
       const duration = end - start;

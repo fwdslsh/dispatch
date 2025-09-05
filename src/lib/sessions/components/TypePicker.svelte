@@ -26,11 +26,6 @@
     }
   });
   
-  // Icon mapping for session types
-  const iconMap = {
-    shell: ShellIcon,
-    claude: ClaudeIcon
-  };
   
   // Handle type selection
   function selectType(type) {
@@ -63,8 +58,10 @@
           type="button"
         >
           <div class="type-icon">
-            {#if iconMap[type.id]}
-              <svelte:component this={iconMap[type.id]} />
+            {#if type.id === 'shell'}
+              <ShellIcon />
+            {:else if type.id === 'claude'}
+              <ClaudeIcon />
             {:else}
               <div class="default-icon">?</div>
             {/if}

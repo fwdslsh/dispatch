@@ -49,7 +49,7 @@
 	}
 </script>
 
-<form class="project-form" on:submit|preventDefault={handleSubmit}>
+<form class="project-form" onsubmit={(e) => {e.preventDefault(); handleSubmit();}}>
 	<div class="form-fields">
 		<div class="form-group">
 			<Input

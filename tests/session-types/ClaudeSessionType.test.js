@@ -8,14 +8,11 @@ import { ClaudeSessionType } from '../../src/lib/session-types/claude/index.js';
 import { BaseSessionType } from '../../src/lib/session-types/shared/BaseSessionType.js';
 
 // Mock external dependencies
-vi.mock('../../session-types/shared/SessionTypeUtils.js', () => ({
+vi.mock('../../src/lib/shared/utils/session-utils.js', () => ({
   generateSessionId: vi.fn(() => 'claude_test_session_123'),
   createSessionMetadata: vi.fn((data) => ({ ...data, createdAt: '2023-01-01T00:00:00.000Z' })),
-  mergeSessionOptions: vi.fn((options, defaults) => ({ ...defaults, ...options }))
-}));
-
-vi.mock('../../session-types/shared/ValidationUtils.js', () => ({
-  createSessionValidator: vi.fn(() => vi.fn(() => ({ valid: true, errors: [] })))
+  mergeSessionOptions: vi.fn((options, defaults) => ({ ...defaults, ...options })),
+  validateSessionOptions: vi.fn(() => ({ valid: true, errors: [] }))
 }));
 
 describe('ClaudeSessionType', () => {

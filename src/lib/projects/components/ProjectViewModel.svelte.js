@@ -3,7 +3,7 @@
  * Extends BaseViewModel with Svelte 5 runes for reactive state management
  */
 import { BaseViewModel } from '../../shared/contexts/BaseViewModel.svelte.js';
-import { ValidationError } from '../../services/ValidationError.js';
+import { ValidationError } from '../../shared/services/ValidationError.js';
 import { goto } from '$app/navigation';
 
 export class ProjectViewModel extends BaseViewModel {

@@ -17,6 +17,6 @@ export { createClaudeHandlers } from './claude/ClaudeHandler.js';
  * Static handler map for WebSocket handlers (server-only)
  */
 export const SESSION_TYPE_HANDLERS = {
-  'shell': () => import('./shell/ShellHandler.js').then(m => m.createShellHandlers),
-  'claude': () => import('./claude/ClaudeHandler.js').then(m => m.createClaudeHandlers)
+  'shell': createShellHandlers,
+  'claude': createClaudeHandlers
 };

@@ -39,6 +39,10 @@
 		class: customClass = '',
 		style = '',
 		id = undefined,
+		
+		// Snippet props
+		icon,
+		children,
 		...restProps
 	} = $props();
 
@@ -95,14 +99,18 @@
 			<div class="btn__spinner" aria-hidden="true">
 				<div class="spinner"></div>
 			</div>
-		{:else}
-			<slot name="icon"></slot>
+		{:else if icon}
+			{@render icon()}
 		{/if}
 	{/if}
 
 	{#if showText}
 		<span class="btn__text" class:btn__text--hidden={loading && hideTextOnLoading}>
-			<slot>{text}</slot>
+			{#if children}
+				{@render children()}
+			{:else}
+				{text}
+			{/if}
 		</span>
 	{/if}
 
@@ -111,8 +119,8 @@
 			<div class="btn__spinner" aria-hidden="true">
 				<div class="spinner"></div>
 			</div>
-		{:else}
-			<slot name="icon"></slot>
+		{:else if icon}
+			{@render icon()}
 		{/if}
 	{/if}
 </button>

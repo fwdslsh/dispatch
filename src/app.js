@@ -7,11 +7,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { createSocketHandler } from './lib/server/socket-handler.js';
-import { createNamespacedSocketHandler } from './lib/server/namespaced-socket-handler.js';
+import { createModularSocketHandler } from './lib/server/handlers/ModularSocketHandler.js';
+import { createNamespacedSocketHandler } from './lib/server/handlers/namespaced-socket-handler.js';
 import { initializeSessionTypes } from './lib/session-types/index.js';
-import storageManager from './lib/server/storage-manager.js';
-import DirectoryManager from './lib/server/directory-manager.js';
+import storageManager from './lib/server/services/storage-manager.js';
+import DirectoryManager from './lib/server/services/directory-manager.js';
 
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
@@ -92,7 +92,7 @@ async function startServer() {
 
 	// Handle socket connections
 	// Setup both main namespace and isolated session type namespaces
-	const mainHandler = createSocketHandler(io);
+	const mainHandler = createModularSocketHandler(io);
 	io.on('connection', mainHandler);
 	
 	// Setup namespaced handlers for session types

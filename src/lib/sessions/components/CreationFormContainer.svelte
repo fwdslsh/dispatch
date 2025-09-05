@@ -12,57 +12,13 @@
   // Props
   let { selectedType = null, projectId = null, onSessionCreate = null, onValidationError = null } = $props();
   
-  // Dynamic form components - loaded on demand
-  let formComponents = $state({});
-  let loadingStates = $state({});
-  let errorStates = $state({});
+  // Static form component imports
+  import ShellCreationForm from '../../session-types/shell/ShellCreationForm.svelte';
+  import ClaudeCreationForm from '../../session-types/claude/ClaudeCreationForm.svelte';
   
   // Form data binding
   let sessionData = $state(null);
-  
-  // Status for accessibility
   let formStatus = $state('');
-  
-  // Static form component mapping for build-time optimization
-  const formComponentMap = {
-    shell: () => import('../../session-types/shell/ShellCreationForm.svelte'),
-    claude: () => import('../../session-types/claude/ClaudeCreationForm.svelte')
-  };
-  
-  // Load form component dynamically
-  async function loadFormComponent(sessionTypeId) {
-    if (formComponents[sessionTypeId] || loadingStates[sessionTypeId]) {
-      return;
-    }
-    
-    const formLoader = formComponentMap[sessionTypeId];
-    if (!formLoader) {
-      errorStates[sessionTypeId] = `Unsupported session type: ${sessionTypeId}`;
-      return;
-    }
-    
-    loadingStates[sessionTypeId] = true;
-    
-    try {
-      const module = await formLoader();
-      formComponents[sessionTypeId] = module.default;
-      errorStates[sessionTypeId] = null;
-      formStatus = `${selectedType?.name || 'Session'} form loaded`;
-    } catch (error) {
-      console.error(`Failed to load form for ${sessionTypeId}:`, error);
-      errorStates[sessionTypeId] = 'Error loading form component';
-      formStatus = 'Error loading form';
-    } finally {
-      loadingStates[sessionTypeId] = false;
-    }
-  }
-  
-  // Reactive form loading
-  $effect(() => {
-    if (selectedType?.id && formComponentMap[selectedType.id]) {
-      loadFormComponent(selectedType.id);
-    }
-  });
   
   // Clear session data when type changes
   $effect(() => {
@@ -92,10 +48,6 @@
     return type?.requiresProject && !projectId;
   }
   
-  // Get current form component
-  function getCurrentFormComponent() {
-    return selectedType?.id ? formComponents[selectedType.id] : null;
-  }
   
   // Handle form errors
   function handleFormError(error) {
@@ -106,7 +58,7 @@
   }
 </script>
 
-<main class="form-container" role="main" aria-label="Session creation form">
+<main class="form-container" aria-label="Session creation form">
   <!-- Live region for screen reader announcements -->
   <div class="sr-only" aria-live="polite" aria-label="Form status">
     {formStatus}
@@ -143,28 +95,7 @@
       </p>
     </div>
     
-  {:else if errorStates[selectedType.id]}
-    <!-- Form loading error -->
-    <div class="error-state">
-      <div class="error-icon">❌</div>
-      <h3>Error loading form</h3>
-      <p>{errorStates[selectedType.id]}</p>
-      <button 
-        class="retry-button"
-        onclick={() => loadFormComponent(selectedType.id)}
-      >
-        Retry
-      </button>
-    </div>
-    
-  {:else if loadingStates[selectedType.id]}
-    <!-- Loading form component -->
-    <div class="loading-state">
-      <div class="loading-spinner" aria-label="Loading"></div>
-      <h3>Loading {selectedType.name} form...</h3>
-    </div>
-    
-  {:else if formComponentMap[selectedType.id] && getCurrentFormComponent()}
+  {:else if selectedType?.id === 'shell' || selectedType?.id === 'claude'}
     <!-- Render appropriate form component -->
     <div class="form-wrapper">
       <div class="form-header">
@@ -177,13 +108,21 @@
       </div>
       
       <div class="form-content">
-        <svelte:component 
-          this={getCurrentFormComponent()}
-          {projectId}
-          sessionType={selectedType}
-          bind:sessionData
-          onError={handleFormError}
-        />
+        {#if selectedType?.id === 'shell'}
+          <ShellCreationForm 
+            {projectId}
+            sessionType={selectedType}
+            bind:sessionData
+            onError={handleFormError}
+          />
+        {:else if selectedType?.id === 'claude'}
+          <ClaudeCreationForm 
+            {projectId}
+            sessionType={selectedType}
+            bind:sessionData
+            onError={handleFormError}
+          />
+        {/if}
       </div>
     </div>
     
@@ -199,9 +138,8 @@
       <details>
         <summary>Available session types</summary>
         <ul>
-          {#each Object.keys(formComponentMap) as typeId}
-            <li>{typeId}</li>
-          {/each}
+          <li>shell</li>
+          <li>claude</li>
         </ul>
       </details>
     </div>
@@ -231,8 +169,7 @@
   /* State containers */
   .placeholder-state,
   .error-state,
-  .warning-state,
-  .loading-state {
+  .warning-state {
     text-align: center;
     padding: 2rem;
     border-radius: 8px;
@@ -256,11 +193,6 @@
     border-color: var(--warning, #ffb74d);
   }
   
-  .loading-state {
-    background: var(--info-light, #e3f2fd);
-    color: var(--info-dark, #1565c0);
-    border-color: var(--info, #2196f3);
-  }
   
   /* Icons */
   .placeholder-icon,
@@ -271,16 +203,6 @@
     display: block;
   }
   
-  /* Loading spinner */
-  .loading-spinner {
-    width: 40px;
-    height: 40px;
-    margin: 0 auto 1rem;
-    border: 3px solid var(--info-light, #e3f2fd);
-    border-top: 3px solid var(--info, #2196f3);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
   
   @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -290,8 +212,7 @@
   /* State headings and text */
   .placeholder-state h3,
   .error-state h3,
-  .warning-state h3,
-  .loading-state h3 {
+  .warning-state h3 {
     margin: 0 0 0.5rem 0;
     font-size: 1.25rem;
     font-weight: 600;
@@ -299,28 +220,11 @@
   
   .placeholder-state p,
   .error-state p,
-  .warning-state p,
-  .loading-state p {
+  .warning-state p {
     margin: 0;
     line-height: 1.5;
   }
   
-  /* Retry button */
-  .retry-button {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background: var(--primary, #0066cc);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background 0.2s ease;
-  }
-  
-  .retry-button:hover {
-    background: var(--primary-dark, #004499);
-  }
   
   /* Details/summary styling */
   details {
@@ -389,8 +293,7 @@
     
     .placeholder-state,
     .error-state,
-    .warning-state,
-    .loading-state {
+    .warning-state {
       padding: 1.5rem 1rem;
     }
     

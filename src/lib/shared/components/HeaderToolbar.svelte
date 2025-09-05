@@ -123,10 +123,6 @@
 			transform: translateY(0);
 		}
 
-		/* Hidden state - slides up */
-		.header-toolbar.header-hidden {
-			transform: translateY(-100%) !important;
-		}
 
 		.header-left {
 			gap: var(--space-md);

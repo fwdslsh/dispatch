@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ShellSessionType } from '../../src/lib/session-types/shell/index.js';
 import { TerminalManager } from '../../src/lib/session-types/shell/server/terminal.server.js';
-import { generateSessionId, createSessionMetadata } from '../../src/lib/session-types/shared/SessionTypeUtils.js';
+import { generateSessionId, createSessionMetadata } from '../../src/lib/shared/utils/session-utils.js';
 
 // Mock TerminalManager
 vi.mock('../../server/terminal.js', () => ({
@@ -15,7 +15,7 @@ vi.mock('../../server/terminal.js', () => ({
 }));
 
 // Mock session utilities
-vi.mock('../../session-types/shared/SessionTypeUtils.js', () => ({
+vi.mock('../../src/lib/shared/utils/session-utils.js', () => ({
   generateSessionId: vi.fn(() => 'sess_shell_123'),
   createSessionMetadata: vi.fn((params) => ({
     id: params.id,
