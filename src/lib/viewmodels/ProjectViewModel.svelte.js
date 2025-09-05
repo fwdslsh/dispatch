@@ -42,14 +42,22 @@ export class ProjectViewModel extends BaseViewModel {
 		this.formData.name.trim().length > 0 && this.formValidation.isValid && !this.loading
 	);
 	
-	nameValidation = $derived(this.validateNameRealtime(this.formData.name));
+	// Optimize expensive validation with $derived.by
+	nameValidation = $derived.by(() => {
+		// Only recompute when name changes
+		const name = this.formData.name;
+		return this.validateNameRealtime(name);
+	});
 	
-	projectsWithSessionCount = $derived(
-		this.projects.map(project => ({
+	// Optimize expensive map operation with $derived.by
+	projectsWithSessionCount = $derived.by(() => {
+		// Only recompute when projects array changes
+		const projects = this.projects;
+		return projects.map(project => ({
 			...project,
 			sessionCount: project.sessions?.length || 0
-		}))
-	);
+		}));
+	});
 
 	constructor(projectService, services = {}) {
 		// Create a model-like object for BaseViewModel

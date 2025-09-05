@@ -45,6 +45,11 @@ export class TerminalViewModel {
 		this.inputDisposable = null;
 		this.socketEventUnsubscribes = [];
 		this.queuedOutput = []; // Queue for output received before terminal is ready
+		
+		// Message batching for performance (16ms intervals for 60fps)
+		this.outputBatchQueue = [];
+		this.batchTimer = null;
+		this.BATCH_INTERVAL_MS = 16; // 60fps
 	}
 
 	/**
