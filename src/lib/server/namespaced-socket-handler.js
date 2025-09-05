@@ -5,7 +5,7 @@
  * while maintaining backward compatibility with the main namespace.
  */
 
-import { TerminalManager } from './terminal.js';
+import { TerminalManager } from '../session-types/shell/server/terminal.server.js';
 import { createSocketHandler } from './socket-handler.js';
 import { sessionTypeRegistry, SESSION_TYPE_HANDLERS } from '../session-types/index.js';
 

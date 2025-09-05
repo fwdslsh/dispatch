@@ -8,11 +8,9 @@
 import { sessionTypeRegistry } from './registry.js';
 
 // Static imports for build-time optimization
-// Import session type implementations here for static bundling
-import { shellSessionType } from './shell/index.js';
-import { createShellHandlers } from './shell/ShellHandler.js';
-import { claudeSessionType } from './claude/index.js';
-import { createClaudeHandlers } from './claude/ClaudeHandler.js';
+// Import client-side session type implementations here for static bundling
+import { shellSessionType } from './shell/client.js';
+import { claudeSessionType } from './claude/client.js';
 
 /**
  * Initialize session types registry with manual registration
@@ -45,12 +43,10 @@ export function initializeSessionTypes() {
 
 /**
  * Static handler map for WebSocket handlers
- * This provides O(1) lookup for statically imported handlers
+ * This is a placeholder - actual handlers are loaded server-side
  */
 export const SESSION_TYPE_HANDLERS = {
-  // Static handler registration for build-time optimization:
-  'shell': createShellHandlers,
-  'claude': createClaudeHandlers
+  // Handlers are dynamically loaded on server-side only
 };
 
 /**
@@ -122,12 +118,7 @@ export function validateRegistration() {
     namespaces.add(type.namespace);
   }
   
-  // Check that all types have handlers
-  for (const type of types) {
-    if (!SESSION_TYPE_HANDLERS[type.id]) {
-      errors.push(`No handler registered for session type: ${type.id}`);
-    }
-  }
+  // Note: Handler validation is done server-side only
   
   if (errors.length > 0) {
     console.error('Session type registration validation failed:');
@@ -147,7 +138,7 @@ export { sessionTypeRegistry };
 // export { shellSessionType, claudeSessionType };
 
 // Export base classes for extension
-export { BaseSessionType } from './base/BaseSessionType.js';
+export { BaseSessionType } from './shared/BaseSessionType.js';
 export { SessionTypeRegistry } from './registry.js';
 
 // Export shared utilities

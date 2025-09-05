@@ -5,9 +5,10 @@
  * and specialized development assistance capabilities.
  */
 
-import { BaseSessionType } from '../base/BaseSessionType.js';
+import { BaseSessionType } from '../shared/BaseSessionType.js';
 import { generateSessionId, createSessionMetadata, mergeSessionOptions } from '../shared/SessionTypeUtils.js';
 import { createSessionValidator } from '../shared/ValidationUtils.js';
+import { TerminalManager } from '../shell/server/terminal.server.js';
 
 export class ClaudeSessionType extends BaseSessionType {
   constructor(terminalManager = null) {
@@ -62,9 +63,7 @@ export class ClaudeSessionType extends BaseSessionType {
   async getTerminalManager() {
     if (!this.terminalManager) {
       try {
-        // Dynamic import to avoid circular dependency
-        const module = await import('../../server/terminal.js');
-        const { TerminalManager } = module;
+        
         this.terminalManager = new TerminalManager();
         console.log('Created TerminalManager instance for Claude session type');
       } catch (err) {

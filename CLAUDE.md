@@ -15,7 +15,7 @@ nvm use
 # Install dependencies
 npm install
 
-# Development server with hot reload (sets TERMINAL_KEY=test, runs on --host)
+# Development server with hot reload (sets TERMINAL_KEY=testkey12345, runs on --host)
 npm run dev
 
 # Development server only (no client)
@@ -39,6 +39,14 @@ npm run check
 # Watch mode type checking
 npm run check:watch
 
+# Linting and formatting
+npm run lint          # Check code formatting and style
+npm run format        # Auto-format code with Prettier
+
+# Testing
+npm run test          # Run all unit tests
+npm run test:unit     # Run unit tests with Vitest
+
 # Start production server (includes build + LocalTunnel enabled)
 npm start
 
@@ -61,56 +69,63 @@ node src/app.js
 - **Containerization**: Multi-stage Docker build with non-root execution
 - **UI Framework**: Uses augmented-ui for futuristic styling (see https://augmented-ui.com/docs/)
 
-### Simple Architecture Patterns
+### Architecture Patterns
 
-This codebase emphasizes maintainability through **simple, focused patterns**:
+This codebase follows modern modular patterns for maintainability:
 
-- **Handler-based Architecture**: Each domain (sessions, projects, terminal I/O) has dedicated handlers with single responsibilities
-- **Service Layer**: Clean separation with services that encapsulate business logic (`TerminalConfigurationService`, `ClaudeCodeService`)
-- **Dependency Injection**: Services are injected into handlers for easy testing and swapping
-- **Constants Centralization**: All magic numbers, strings, and configuration in `/src/lib/config/constants.js`
-- **Unified Storage**: `StorageManager` abstraction eliminates scattered file operations
-- **Consistent Error Handling**: Standardized error response patterns throughout
+- **Feature-based Organization**: Code organized by features (projects, sessions, session-types) with shared utilities
+- **MVVM Architecture**: ViewModels separate UI logic from components using Svelte 5 runes (`$state`, `$derived`)
+- **Session Type System**: Pluggable session types (Claude, Shell) with isolated namespaced handlers
+- **Service Layer**: Business logic encapsulated in services with dependency injection
+- **Centralized Configuration**: Feature-specific config files and shared constants
+- **Svelte 5 Contexts**: Modern reactive state management with contexts and runes
 - **ESM Modules**: Clean ES module structure with explicit imports/exports
 
-### Key Files Structure
+### Feature-Based Architecture
+
+The codebase is now organized around features with clear separation:
 
 ```
 src/
 ├── app.js                     # Production server entry point
 ├── app.css                    # Global styles with augmented-ui
 ├── lib/
-│   ├── components/
-│   │   ├── Terminal.svelte    # Main terminal component with xterm.js
-│   │   ├── Chat.svelte        # Chat/auxiliary UI component
-│   │   ├── HeaderToolbar.svelte # Navigation toolbar
-│   │   └── Icons/             # SVG icon components
-│   ├── config/
-│   │   └── constants.js       # Centralized configuration constants
-│   ├── services/              # Business logic services
-│   │   ├── TerminalConfigurationService.js
-│   │   ├── ClaudeCodeService.js
-│   │   └── TerminalHistoryService.js
-│   ├── utils/                 # Shared utilities
-│   ├── contexts/              # Svelte 5 contexts for state management
-│   └── server/
-│       ├── handlers/          # Specialized event handlers
-│       │   ├── SessionHandler.js
-│       │   ├── ProjectHandler.js
-│       │   └── TerminalIOHandler.js
-│       ├── middleware/        # Cross-cutting concerns (auth, validation)
-│       ├── config/            # Server configuration
-│       ├── socket-handler.js  # Main Socket.IO coordinator
-│       ├── terminal.js        # TerminalManager class for PTY sessions
-│       ├── session-store.js   # Session metadata persistence
-│       └── directory-manager.js # Project and session directory management
+│   ├── projects/              # Project management feature
+│   │   ├── components/        # Project UI components
+│   │   ├── services/          # Project services
+│   │   └── config.js          # Project configuration
+│   ├── sessions/              # Session management feature
+│   │   ├── components/        # Session UI components & ViewModels
+│   │   ├── services/          # Session services
+│   │   └── config.js          # Session configuration
+│   ├── session-types/         # Pluggable session type system
+│   │   ├── registry.js        # Session type registry
+│   │   ├── index.js           # Main entry point & initialization
+│   │   ├── shared/            # Base classes & utilities
+│   │   ├── claude/            # Claude Code session type
+│   │   │   ├── components/    # Claude-specific components
+│   │   │   ├── server/        # Claude server handlers
+│   │   │   └── utils/         # Claude utilities
+│   │   └── shell/             # Shell session type
+│   │       ├── components/    # Shell-specific components
+│   │       ├── server/        # Shell server handlers
+│   │       └── utils/         # Shell utilities
+│   ├── shared/                # Shared components & utilities
+│   │   ├── components/        # Reusable UI components
+│   │   ├── contexts/          # Svelte 5 contexts
+│   │   └── utils/             # Shared utilities & constants
+│   ├── services/              # Core application services
+│   └── server/                # Core server infrastructure
+│       ├── handlers/          # Main Socket.IO handlers
+│       ├── middleware/        # Auth & validation middleware
+│       ├── socket-handler.js  # Socket.IO coordinator
+│       └── namespaced-socket-handler.js # Session type handler routing
 ├── bin/
 │   └── dispatch-cli.js        # CLI tool entry point
 └── routes/
     ├── +page.svelte          # Main application interface
-    ├── sessions/+page.svelte # Session management interface
-    ├── sessions/[id]/+page.svelte # Individual session view
-    └── public-url/+server.js # LocalTunnel URL endpoint
+    ├── projects/+page.svelte # Project management interface
+    └── projects/[id]/+page.svelte # Individual project view
 ```
 
 ### Project and Session Architecture
@@ -197,10 +212,22 @@ The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycl
 4. Set up environment variables (`HOME`, `TERM`, etc.) with project context
 5. Register cleanup handlers for process exit
 
-### Mode Switching
+### Session Type System
 
-- **Claude Mode**: Spawns `claude` command for AI-assisted development
-- **Shell Mode**: Spawns user's default shell (`$SHELL` or `/bin/bash`)
+The application now uses a pluggable session type architecture:
+
+**Session Type Registry**: Central registry managing available session types
+- **Static Registration**: Session types are statically imported and registered for build optimization
+- **Namespace Isolation**: Each session type operates in its own Socket.IO namespace
+- **Extensible**: New session types can be added by implementing `BaseSessionType`
+
+**Built-in Session Types**:
+- **Claude (`claude`)**: AI-assisted development using Claude Code CLI
+- **Shell (`shell`)**: Traditional shell sessions with customizable terminals
+
+**Handler System**: Each session type provides its own Socket.IO handlers:
+- `src/lib/session-types/claude/server/` - Claude-specific server handlers  
+- `src/lib/session-types/shell/server/` - Shell-specific server handlers
 
 ## Docker Integration
 
@@ -225,38 +252,56 @@ The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycl
 
 ### Code Organization Principles
 
-- **Single Responsibility**: Each module focuses on one concern (handlers, services, utilities)
-- **Explicit Dependencies**: All imports/exports are clearly declared
-- **Constants over Magic**: Use `/src/lib/config/constants.js` for all configuration values
-- **Error First**: Consistent error handling patterns across all modules
-- **Service Layer**: Business logic isolated in services, separate from I/O concerns
+- **Feature-First**: Code organized by features (projects, sessions, session-types) rather than technical layers
+- **MVVM Pattern**: ViewModels handle business logic, Components handle UI, Models handle data
+- **Explicit Dependencies**: All imports/exports are clearly declared with ESM modules
+- **Configuration per Feature**: Each feature has its own `config.js` alongside shared constants
+- **Shared Foundation**: Common components, contexts, and utilities in `/src/lib/shared/`
 
-### Component Architecture (Svelte 5)
+### MVVM Architecture (Svelte 5)
 
-- **Modern Runes**: Components use `$state`, `$derived`, `$props` for reactive state
-- **Context-based State**: Shared state via Svelte 5 contexts in `/src/lib/contexts/`
-- **Clean Separation**: UI components don't contain business logic
-- **Responsive Design**: Mobile-first with consistent breakpoints from constants
+**ViewModels**: Handle business logic using Svelte 5 runes
+- Located alongside components (e.g., `DirectoryPickerViewModel.svelte.js`)
+- Use `$state`, `$derived`, `$effect` for reactive business logic
+- Clean separation from UI concerns
 
-### Handler Pattern
+**Components**: Focus purely on presentation
+- Use `$props` to receive data from ViewModels
+- Minimal business logic, primarily UI event handling
+- Responsive design with mobile-first approach
 
-Each Socket.IO event type has a dedicated handler:
+**Contexts**: Global state management
+- Located in `/src/lib/shared/contexts/` for shared state
+- Feature-specific contexts within feature directories
+- Use Svelte 5 context API with runes for reactivity
 
-- `SessionHandler` - Session lifecycle management
-- `ProjectHandler` - Project operations
-- `TerminalIOHandler` - Terminal input/output processing
+### Server Architecture
 
-Handlers receive injected services and use consistent error response patterns.
+**Main Socket.IO Handlers**: Core application handlers in `/src/lib/server/handlers/`
+- `session-handler.js` - Session lifecycle management
+- `project-handler.js` - Project operations
+- `auth-handler.js` - Authentication handling
+
+**Namespaced Session Type Handlers**: Isolated handlers per session type
+- Routed through `namespaced-socket-handler.js`
+- Each session type provides its own handlers via factory functions
+- Complete isolation between session types for security and maintainability
+
+**Middleware**: Cross-cutting concerns
+- `auth-middleware.js` - Authentication validation
+- `auth-decorators.js` - Handler authentication decoration
 
 ### Configuration Management
 
-All configuration centralized in `/src/lib/config/constants.js`:
+**Feature-specific Configuration**: Each feature has its own `config.js`
+- `/src/lib/projects/config.js` - Project-related constants
+- `/src/lib/sessions/config.js` - Session-related constants  
+- `/src/lib/session-types/*/config.js` - Session type specific configs
 
-- Terminal settings and validation rules
-- UI responsive breakpoints and dimensions
-- Storage keys and file paths
-- Error codes and messages
-- Project sandboxing settings
+**Shared Configuration**: Common utilities in `/src/lib/shared/utils/constants.js`
+- Core application constants
+- UI breakpoints and dimensions
+- Shared validation rules
 
 ### Error Handling Patterns
 
@@ -293,18 +338,19 @@ For production with Claude Code:
 
 ### Common Debug Points
 
-- Handler initialization and dependency injection in `socket-handler.js`
-- Project creation workflow in `directory-manager.js`
-- PTY session lifecycle in `terminal.js`
-- Terminal component state management in `Terminal.svelte`
-- Configuration loading from `/src/lib/config/constants.js`
-- Service interactions in handlers (session, project, terminal I/O)
+- Session type registration and initialization in `src/lib/session-types/index.js`
+- Namespaced handler routing in `src/lib/server/namespaced-socket-handler.js`
+- Project creation workflow in `src/lib/server/directory-manager.js`
+- MVVM patterns in ViewModels (e.g., `DirectoryPickerViewModel.svelte.js`)
+- Socket.IO namespace isolation for session types
+- Feature configuration loading from respective `config.js` files
 
 ### Development Access
 
 - Development server runs on all interfaces (`--host` flag)
-- Default auth key in development: `test`
-- Access at `http://localhost:3030` with key `test`
+- Default auth key in development: `testkey12345`
+- Access at `http://localhost:5173` during development
+- Production access at `http://localhost:3030` with configured key
 
 ## Key Dependencies & Versions
 

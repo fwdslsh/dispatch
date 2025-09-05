@@ -15,9 +15,9 @@ describe('Component Performance Tests', () => {
       
       // Test import times for ViewModels
       await import('../../src/lib/contexts/BaseViewModel.svelte.js');
-      await import('../../src/lib/viewmodels/ProjectViewModel.svelte.js');
+      await import('../../src/lib/shared/components/ProjectViewModel.svelte.js');
       await import('../../src/lib/viewmodels/CommandMenuViewModel.svelte.js');
-      await import('../../src/lib/viewmodels/DirectoryPickerViewModel.svelte.js');
+      await import('../../src/lib/shared/components/DirectoryPickerViewModel.svelte.js');
       
       const end = performance.now();
       const duration = end - start;
@@ -31,9 +31,9 @@ describe('Component Performance Tests', () => {
       
       // Test import times for Services
       await import('../../src/lib/services/ProjectService.js');
-      await import('../../src/lib/services/CommandService.js');
+      await import('../../src/lib/session-types/claude/utils/CommandService.js');
       await import('../../src/lib/services/DirectoryService.js');
-      await import('../../src/lib/services/foundation/SocketService.js');
+      await import('../../src/lib/services/SocketService.js');
       
       const end = performance.now();
       const duration = end - start;

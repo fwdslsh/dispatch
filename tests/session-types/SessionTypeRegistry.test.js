@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SessionTypeRegistry } from '../../src/lib/session-types/registry.js';
-import { BaseSessionType } from '../../src/lib/session-types/base/BaseSessionType.js';
+import { BaseSessionType } from '../../src/lib/session-types/shared/BaseSessionType.js';
 
 describe('SessionTypeRegistry', () => {
   let registry;

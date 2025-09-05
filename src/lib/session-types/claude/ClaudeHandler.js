@@ -5,7 +5,8 @@
  * Integrates with existing TerminalManager and Claude API for AI-assisted development.
  */
 
-import { TerminalManager } from '../../server/terminal.js';
+import { TerminalManager } from "../shell/server/terminal.server";
+
 
 let terminalManager = null;
 

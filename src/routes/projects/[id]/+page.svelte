@@ -2,21 +2,17 @@
 	import { mount, onMount, unmount } from 'svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { ProjectViewModel } from '$lib/viewmodels/ProjectViewModel.svelte.js';
-	import Container from '$lib/components/Container.svelte';
-	import HeaderToolbar from '$lib/components/HeaderToolbar.svelte';
-	import Terminal from '$lib/components/Terminal.svelte';
-	import Chat from '$lib/components/ChatInterface.svelte';
-	import SessionList from '$lib/components/SessionList.svelte';
-	import TypePicker from '$lib/components/TypePicker.svelte';
-	import CreationFormContainer from '$lib/components/CreationFormContainer.svelte';
-	import DirectoryPicker from '$lib/components/DirectoryPicker.svelte';
-	import BackIcon from '$lib/components/Icons/BackIcon.svelte';
-	import { createClaudeAuthContext } from '$lib/contexts/claude-auth-context.svelte.js';
-	import {
-		validateSessionNameRealtime,
-		validateSessionNameWithFeedback
-	} from '$lib/utils/session-name-validation.js';
+	import Container from '$lib/shared/components/Container.svelte';
+	import HeaderToolbar from '$lib/shared/components/HeaderToolbar.svelte';
+	import Terminal from '$lib/session-types/shell/components/Terminal.svelte';
+	import Chat from '$lib/shared/components/ChatInterface.svelte';
+
+	import BackIcon from '$lib/shared/components/Icons/BackIcon.svelte';
+	import { createClaudeAuthContext } from '$lib/session-types/claude/utils/claude-auth-context.svelte.js';
+	import { ProjectViewModel } from '$lib/projects/components/ProjectViewModel.svelte.js';
+	import CreationFormContainer from '$lib/sessions/components/CreationFormContainer.svelte';
+	import TypePicker from '$lib/sessions/components/TypePicker.svelte';
+	import SessionList from '$lib/sessions/components/SessionList.svelte';
 
 	// Create view model instance
 	const projectId = $derived(page.params.id);

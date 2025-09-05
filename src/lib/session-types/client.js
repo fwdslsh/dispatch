@@ -6,7 +6,7 @@
  */
 
 import { sessionTypeRegistry } from './registry.js';
-import { BaseSessionType } from './base/BaseSessionType.js';
+import { BaseSessionType } from './shared/BaseSessionType.js';
 
 /**
  * Client-side shell session type metadata

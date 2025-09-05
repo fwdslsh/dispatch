@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BaseSessionType } from '../../src/lib/session-types/base/BaseSessionType.js';
+import { BaseSessionType } from '../../src/lib/session-types/shared/BaseSessionType.js';
 
 describe('BaseSessionType', () => {
   let config;

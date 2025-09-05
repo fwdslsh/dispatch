@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { Server as SocketIOServer } from 'socket.io';
 import { io as Client } from 'socket.io-client';
 import { SessionTypeRegistry } from '../../src/lib/session-types/registry.js';
-import { BaseSessionType } from '../../src/lib/session-types/base/BaseSessionType.js';
+import { BaseSessionType } from '../../src/lib/session-types/shared/BaseSessionType.js';
 
 describe('WebSocket Namespace Integration', () => {
   let httpServer;

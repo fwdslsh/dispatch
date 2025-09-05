@@ -6,7 +6,7 @@
    */
   
   import { createEventDispatcher } from 'svelte';
-  import BaseCreationForm from '../base/BaseCreationForm.svelte';
+  import BaseCreationForm from '../shared/BaseCreationForm.svelte';
   
   // Props
   let { 

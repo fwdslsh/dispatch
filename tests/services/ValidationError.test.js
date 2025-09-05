@@ -3,7 +3,7 @@
  * Tests custom error class for form/input validation
  */
 import { describe, it, expect } from 'vitest';
-import { ValidationError } from '../../src/lib/services/foundation/ValidationError.js';
+import { ValidationError } from '../../src/lib/services/ValidationError.js';
 
 describe('ValidationError', () => {
 	describe('Constructor and Basic Properties', () => {

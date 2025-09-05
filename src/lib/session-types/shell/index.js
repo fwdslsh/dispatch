@@ -5,7 +5,7 @@
  * This serves as a reference implementation for other session types.
  */
 
-import { BaseSessionType } from '../base/BaseSessionType.js';
+import { BaseSessionType } from '../shared/BaseSessionType.js';
 import { generateSessionId, createSessionMetadata, mergeSessionOptions } from '../shared/SessionTypeUtils.js';
 import { createSessionValidator } from '../shared/ValidationUtils.js';
 import fs from 'fs';
@@ -53,7 +53,7 @@ export class ShellSessionType extends BaseSessionType {
     if (!this.terminalManager) {
       try {
         // Dynamic import to avoid circular dependency
-        const module = await import('../../server/terminal.js');
+        const module = await import('./server/terminal.server.js');
         const { TerminalManager } = module;
         this.terminalManager = new TerminalManager();
         console.log('Created TerminalManager instance for shell session type');

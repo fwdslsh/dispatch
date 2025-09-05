@@ -10,8 +10,9 @@
 -->
 
 <script>
-  import DirectoryPicker from '$lib/components/DirectoryPicker.svelte';
-  
+	import DirectoryPicker from "$lib/sessions/components/DirectoryPicker.svelte";
+
+ 
   // Props
   let { 
     projectId = null, 

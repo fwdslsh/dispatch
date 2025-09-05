@@ -1,0 +1,35 @@
+
+export const TERMINAL_CONFIG = {
+	// History and buffer limits
+	MAX_HISTORY_ENTRIES: 5000,
+	MAX_BUFFER_LENGTH: 500000,
+	MAX_CHAT_EVENTS: 300000,
+
+	// Terminal dimensions
+	DEFAULT_DIMENSIONS: { cols: 80, rows: 24 },
+	MIN_COLS: 1,
+	MAX_COLS: 500,
+	MIN_ROWS: 1,
+	MAX_ROWS: 200,
+
+	// Timing and performance
+	FIT_DELAY_MS: 100,
+	BUFFER_TRIM_RATIO: 0.8,
+	MIN_UPDATE_INTERVAL: 100,
+	SAVE_DEBOUNCE_MS: 500,
+
+	// Buffer cache optimization
+	MAX_BUFFER_CACHE_SIZE: 10,
+	BUFFER_CHANGE_THRESHOLD: 100,
+
+	// Limits and constraints
+	MAX_TERMINALS: 4,
+	MIN_PANE_SIZE: 100,
+	MAX_INPUT_LENGTH: 10000,
+	MAX_SESSION_NAME_LENGTH: 100,
+
+	// Socket and network
+	SOCKET_TIMEOUT: 30000,
+	RECONNECT_ATTEMPTS: 3,
+	RECONNECT_DELAY: 1000
+};

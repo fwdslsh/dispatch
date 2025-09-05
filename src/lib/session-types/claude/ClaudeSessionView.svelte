@@ -11,17 +11,25 @@
    * terminal access for code execution and file operations.
    */
   
-  import { createEventDispatcher } from 'svelte';
-  import BaseSessionView from '../base/BaseSessionView.svelte';
-  import Terminal from '../../components/Terminal.svelte';
-  import ChatInterface from '../../components/ChatInterface.svelte';
-  
-  // Props - using $props() for component input
+  import BaseSessionView from '../shared/BaseSessionView.svelte';
+  import Terminal from '../shell/components/Terminal.svelte';
+  import ChatInterface from '../../shared/components/ChatInterface.svelte';
+  // Props - using $props() for component input with callback props
   const {
     session = {},
     socket = null,
     projectId = null,
-    readonly = false
+    readonly = false,
+    onSessionAction = () => {},
+    onError = () => {},
+    onViewChanged = () => {},
+    onConnected = () => {},
+    onDisconnected = () => {},
+    onChatCleared = () => {},
+    onConversationCleared = () => {},
+    onModelSettingsUpdated = () => {},
+    onTerminalReady = () => {},
+    onTerminalOutput = () => {}
   } = $props();
   
   // ViewModel State - reactive state using $state()
@@ -66,8 +74,7 @@
   const historySize = $derived(conversationHistory.length);
   const hasCapabilities = $derived(Object.keys(claudeConfig.capabilities || {}).length > 0);
 
-  // Event dispatcher for communication with parent components
-  const dispatch = createEventDispatcher();
+  // Modern callback props replace event dispatcher
   
   /**
    * Handle session actions from BaseSessionView
@@ -101,7 +108,7 @@
    */
   function toggleChatView() {
     showChat = !showChat;
-    dispatch('viewChanged', { showChat });
+    onViewChanged({ showChat });
   }
   
   /**
@@ -116,10 +123,10 @@
     
     socket.emit('attach-session', sessionId, (response) => {
       if (response.success) {
-        dispatch('sessionAction', { action: 'attached', sessionId });
+        onSessionAction({ action: 'attached', sessionId });
       } else {
         console.error('Failed to attach to Claude session:', response.error);
-        dispatch('error', { action: 'attach', error: response.error });
+        onError({ action: 'attach', error: response.error });
       }
     });
   }
@@ -136,10 +143,10 @@
     
     socket.emit('detach-session', (response) => {
       if (response.success) {
-        dispatch('sessionAction', { action: 'detached', sessionId: response.sessionId });
+        onSessionAction({ action: 'detached', sessionId: response.sessionId });
       } else {
         console.error('Failed to detach from Claude session:', response.error);
-        dispatch('error', { action: 'detach', error: response.error });
+        onError({ action: 'detach', error: response.error });
       }
     });
   }
@@ -159,10 +166,10 @@
     
     socket.emit('end-session', sessionId, (response) => {
       if (response.success) {
-        dispatch('sessionAction', { action: 'ended', sessionId: response.sessionId });
+        onSessionAction({ action: 'ended', sessionId: response.sessionId });
       } else {
         console.error('Failed to end Claude session:', response.error);
-        dispatch('error', { action: 'end', error: response.error });
+        onError({ action: 'end', error: response.error });
       }
     });
   }
@@ -174,7 +181,7 @@
   function clearChat() {
     if (chatComponent && typeof chatComponent.clearHistory === 'function') {
       chatComponent.clearHistory();
-      dispatch('chatCleared');
+      onChatCleared();
     }
   }
   
@@ -192,10 +199,10 @@
       if (response.success) {
         clearChat(); // Also clear local chat
         conversationHistory = [];
-        dispatch('conversationCleared');
+        onConversationCleared();
       } else {
         console.error('Failed to clear conversation history:', response.error);
-        dispatch('error', { action: 'clear-conversation', error: response.error });
+        onError({ action: 'clear-conversation', error: response.error });
       }
     });
   }
@@ -213,7 +220,7 @@
     socket.emit('claude-message', { message }, (response) => {
       if (!response.success) {
         console.error('Failed to send Claude message:', response.error);
-        dispatch('error', { action: 'send-message', error: response.error });
+        onError({ action: 'send-message', error: response.error });
       }
     });
   }
@@ -230,10 +237,10 @@
     
     socket.emit('update-model-settings', settings, (response) => {
       if (response.success) {
-        dispatch('modelSettingsUpdated', { settings: response.settings });
+        onModelSettingsUpdated({ settings: response.settings });
       } else {
         console.error('Failed to update model settings:', response.error);
-        dispatch('error', { action: 'update-settings', error: response.error });
+        onError({ action: 'update-settings', error: response.error });
       }
     });
   }
@@ -247,7 +254,7 @@
     if (!confirmed) return;
     
     // Notify parent component of restart request
-    dispatch('sessionAction', { action: 'restart-requested', sessionId: session.id });
+    onSessionAction({ action: 'restart-requested', sessionId: session.id });
     console.log('Claude restart requested for session:', session.id);
   }
   
@@ -257,7 +264,7 @@
    */
   function handleTerminalReady() {
     isTerminalReady = true;
-    dispatch('terminalReady');
+    onTerminalReady();
   }
   
   /**
@@ -266,7 +273,7 @@
    */
   function handleTerminalData(data) {
     // Terminal output can be used to provide context to Claude
-    dispatch('terminalOutput', { data });
+    onTerminalOutput({ data });
   }
   
   /**
@@ -296,18 +303,18 @@
    */
   function handleSocketConnect() {
     console.log('Claude session socket connected');
-    dispatch('connected');
+    onConnected();
   }
   
   function handleSocketDisconnect() {
     isTerminalReady = false;
     console.log('Claude session socket disconnected');
-    dispatch('disconnected');
+    onDisconnected();
   }
   
   function handleSocketError(error) {
     console.error('Claude session socket error:', error);
-    dispatch('error', error);
+    onError(error);
   }
   
   // Setup socket event listeners

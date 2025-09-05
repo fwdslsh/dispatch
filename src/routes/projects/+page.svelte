@@ -1,10 +1,11 @@
 <script>
 	import { goto } from '$app/navigation';
-	import HeaderToolbar from '$lib/components/HeaderToolbar.svelte';
-	import Container from '$lib/components/Container.svelte';
-	import PublicUrlDisplay from '$lib/components/PublicUrlDisplay.svelte';
-	import { ProjectManager } from '$lib/components/projects/index.js';
-	import ExitIcon from '$lib/components/Icons/ExitIcon.svelte';
+	import HeaderToolbar from '$lib/shared/components/HeaderToolbar.svelte';
+	import Container from '$lib/shared/components/Container.svelte';
+	import PublicUrlDisplay from '$lib/shared/components/PublicUrlDisplay.svelte';
+	import Projects from '$lib/projects/components/Projects.svelte';
+	import ExitIcon from '$lib/shared/components/Icons/ExitIcon.svelte';
+	import ProjectManager from '$lib/projects/components/ProjectManager.svelte';
 
 	let { data } = $props();
 

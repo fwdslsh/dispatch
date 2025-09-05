@@ -3,7 +3,7 @@
  * Tests command processing, search functionality, keyboard navigation, and state management
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { CommandMenuViewModel } from '../../src/lib/viewmodels/CommandMenuViewModel.svelte.js';
+import { CommandMenuViewModel } from '../../src/lib/session-types/claude/components/CommandMenuViewModel.svelte.js';
 
 describe('CommandMenuViewModel', () => {
 	let mockModel;

@@ -1,8 +1,8 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { io } from 'socket.io-client';
-	import Container from '$lib/components/Container.svelte';
-	import PublicUrlDisplay from '$lib/components/PublicUrlDisplay.svelte';
+	import Container from '$lib/shared/components/Container.svelte';
+	import PublicUrlDisplay from '$lib/shared/components/PublicUrlDisplay.svelte';
 	import { onMount } from 'svelte';
 	let key = $state('');
 	let error = $state('');

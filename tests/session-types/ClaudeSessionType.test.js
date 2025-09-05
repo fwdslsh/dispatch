@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ClaudeSessionType } from '../../src/lib/session-types/claude/index.js';
-import { BaseSessionType } from '../../src/lib/session-types/base/BaseSessionType.js';
+import { BaseSessionType } from '../../src/lib/session-types/shared/BaseSessionType.js';
 
 // Mock external dependencies
 vi.mock('../../session-types/shared/SessionTypeUtils.js', () => ({

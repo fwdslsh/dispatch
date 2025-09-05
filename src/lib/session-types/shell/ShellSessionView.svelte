@@ -8,19 +8,23 @@
    * - Model: Session data structures and shell information
    * 
    * Integrates with Terminal.svelte to provide shell-specific functionality
-   * and UI elements while maintaining the core terminal interface.
+   * and UI elements whi./components/Terminal.svelte interface.
    */
   
-  import { createEventDispatcher } from 'svelte';
-  import BaseSessionView from '../base/BaseSessionView.svelte';
-  import Terminal from '../../components/Terminal.svelte';
+  import BaseSessionView from '../shared/BaseSessionView.svelte';
+  import Terminal from './components/Terminal.svelte';
   
-  // Props - using $props() for component input
-  const {
+  // Props - using $props() for component input with callback props
+  let {
     session = {},
     socket = null,
     projectId = null,
-    readonly = false
+    readonly = false,
+    onSessionAction = () => {},
+    onConnected = () => {},
+    onDisconnected = () => {},
+    onError = () => {},
+    onTerminalReady = () => {}
   } = $props();
   
   // ViewModel State - reactive state using $state()
@@ -53,33 +57,7 @@
   });
   const historySize = $derived(terminalHistory.length);
   const hasEnvironmentVariables = $derived(environmentVariables.length > 0);
-
-  // Event dispatcher for communication with parent components
-  const dispatch = createEventDispatcher();
   
-  /**
-   * Handle session actions from BaseSessionView
-   * ViewModel Controller - handles UI interaction logic
-   */
-  function handleSessionAction(event) {
-    const { action, sessionId, data } = event.detail;
-    
-    // Action dispatch pattern following MVVM principles
-    const actionHandlers = {
-      attach: () => attachToSession(sessionId),
-      detach: () => detachFromSession(),
-      end: () => endSession(sessionId),
-      clear: () => clearTerminal(),
-      restart: () => restartShell(),
-    };
-    
-    const handler = actionHandlers[action];
-    if (handler) {
-      handler();
-    } else {
-      console.warn('Unknown session action:', action);
-    }
-  }
   
   /**
    * Attach to shell session
@@ -93,10 +71,10 @@
     
     socket.emit('attach-session', sessionId, (response) => {
       if (response.success) {
-        dispatch('sessionAction', { action: 'attached', sessionId });
+        onSessionAction({ action: 'attached', sessionId });
       } else {
         console.error('Failed to attach to session:', response.error);
-        dispatch('error', { action: 'attach', error: response.error });
+        onError({ action: 'attach', error: response.error });
       }
     });
   }
@@ -113,10 +91,10 @@
     
     socket.emit('detach-session', (response) => {
       if (response.success) {
-        dispatch('sessionAction', { action: 'detached', sessionId: response.sessionId });
+        onSessionAction({ action: 'detached', sessionId: response.sessionId });
       } else {
         console.error('Failed to detach from session:', response.error);
-        dispatch('error', { action: 'detach', error: response.error });
+        onError({ action: 'detach', error: response.error });
       }
     });
   }
@@ -136,10 +114,10 @@
     
     socket.emit('end-session', sessionId, (response) => {
       if (response.success) {
-        dispatch('sessionAction', { action: 'ended', sessionId: response.sessionId });
+        onSessionAction({ action: 'ended', sessionId: response.sessionId });
       } else {
         console.error('Failed to end session:', response.error);
-        dispatch('error', { action: 'end', error: response.error });
+        onError({ action: 'end', error: response.error });
       }
     });
   }
@@ -157,7 +135,7 @@
     socket.emit('shell-command', { type: 'clear' }, (response) => {
       if (!response.success) {
         console.error('Failed to clear terminal:', response.error);
-        dispatch('error', { action: 'clear', error: response.error });
+        onError({ action: 'clear', error: response.error });
       }
     });
   }
@@ -175,7 +153,7 @@
     socket.emit('shell-command', { type: 'interrupt' }, (response) => {
       if (!response.success) {
         console.error('Failed to send interrupt:', response.error);
-        dispatch('error', { action: 'interrupt', error: response.error });
+        onError({ action: 'interrupt', error: response.error });
       }
     });
   }
@@ -189,7 +167,7 @@
     if (!confirmed) return;
     
     // Notify parent component of restart request
-    dispatch('sessionAction', { action: 'restart-requested', sessionId: session.id });
+    onSessionAction({ action: 'restart-requested', sessionId: session.id });
     console.log('Shell restart requested for session:', session.id);
   }
   
@@ -199,7 +177,7 @@
    */
   function handleTerminalReady() {
     isTerminalReady = true;
-    dispatch('terminalReady');
+    onTerminalReady();
   }
   
   /**
@@ -230,18 +208,18 @@
    */
   function handleSocketConnect() {
     console.log('Shell session socket connected');
-    dispatch('connected');
+    onConnected();
   }
   
   function handleSocketDisconnect() {
     isTerminalReady = false;
     console.log('Shell session socket disconnected');
-    dispatch('disconnected');
+    onDisconnected();
   }
   
   function handleSocketError(error) {
     console.error('Shell session socket error:', error);
-    dispatch('error', error);
+    onError(error);
   }
   
   // Setup socket event listeners
@@ -267,7 +245,10 @@
   {readonly}
   showControls={true}
   showMetadata={true}
-  on:sessionAction={handleSessionAction}
+  {onSessionAction}
+  {onConnected}
+  {onDisconnected}
+  {onError}
 >
   <!-- Custom session controls -->
   <div slot="session-controls" let:handleAction let:isConnected let:status>

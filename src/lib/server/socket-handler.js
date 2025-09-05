@@ -3,7 +3,7 @@
  * No over-engineering, just what's needed to make everything work
  */
 
-import { TerminalManager } from './terminal.js';
+import { TerminalManager } from '../session-types/shell/server/terminal.server.js';
 import DirectoryManager from './directory-manager.js';
 import storageManager from './storage-manager.js';
 import fs from 'fs';
@@ -188,14 +188,14 @@ function createSocketHandler(io) {
 					name: options.name,
 					workingDirectory: options.workingDirectory
 				});
-				socketSessions.set(socket.id, sessionData.id);
+				socketSessions.set(socket.id, sessionData.sessionId);
 
 				// Update project if provided
 				if (options.project) {
 					try {
 						await storageManager.addSessionToProject(options.project, {
-							id: sessionData.id,
-							name: options.meta?.name || sessionData.id,
+							id: sessionData.sessionId,
+							name: options.meta?.name || sessionData.sessionId,
 							mode: options.mode || 'shell',
 							status: 'active',
 							createdAt: new Date().toISOString()
@@ -209,7 +209,7 @@ function createSocketHandler(io) {
 					callback({
 						success: true,
 						session: sessionData,
-						sessionId: sessionData.id
+						sessionId: sessionData.sessionId
 					});
 
 				// Broadcast session updates

@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { initializeClientSessionTypes } from '$lib/session-types/client.js';
-	import '../app.css';
+	import '$lib/shared/styles/app.css';
 
 	let { data, children } = $props();
 
@@ -15,7 +15,7 @@
 		}
 
 		// Set body class based on whether TERMINAL_KEY is configured
-		if (!data.hasTerminalKey) {
+		if (!data?.hasTerminalKey) {
 			document.body.classList.add('no-key');
 		} else {
 			document.body.classList.remove('no-key');

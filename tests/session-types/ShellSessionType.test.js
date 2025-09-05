@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ShellSessionType } from '../../src/lib/session-types/shell/index.js';
-import { TerminalManager } from '../../src/lib/server/terminal.js';
+import { TerminalManager } from '../../src/lib/session-types/shell/server/terminal.server.js';
 import { generateSessionId, createSessionMetadata } from '../../src/lib/session-types/shared/SessionTypeUtils.js';
 
 // Mock TerminalManager
