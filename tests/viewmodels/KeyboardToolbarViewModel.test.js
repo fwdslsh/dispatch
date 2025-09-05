@@ -3,7 +3,7 @@
  * Tests keyboard shortcut management, toolbar state, configuration persistence, and key event handling
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { KeyboardToolbarViewModel } from '../../viewmodels/KeyboardToolbarViewModel.svelte.js';
+import { KeyboardToolbarViewModel } from '../../src/lib/viewmodels/KeyboardToolbarViewModel.svelte.js';
 
 describe('KeyboardToolbarViewModel', () => {
 	let mockModel;

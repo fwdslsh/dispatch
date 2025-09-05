@@ -3,7 +3,7 @@
  * Tests command registration, search algorithms, execution patterns, and cache management
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { CommandService } from '../../services/CommandService.js';
+import { CommandService } from '../../src/lib/services/CommandService.js';
 
 describe('CommandService', () => {
 	let commandService;

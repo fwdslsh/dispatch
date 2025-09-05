@@ -3,7 +3,7 @@
  * Tests file system navigation, path resolution, and selection state management
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { DirectoryPickerViewModel } from '../../viewmodels/DirectoryPickerViewModel.svelte.js';
+import { DirectoryPickerViewModel } from '../../src/lib/viewmodels/DirectoryPickerViewModel.svelte.js';
 
 describe('DirectoryPickerViewModel', () => {
 	let mockModel;

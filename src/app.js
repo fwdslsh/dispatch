@@ -7,7 +7,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { createSocketHandler } from './lib/server/socket-handler-working.js';
+import { createSocketHandler } from './lib/server/socket-handler.js';
+import { createNamespacedSocketHandler } from './lib/server/namespaced-socket-handler.js';
+import { initializeSessionTypes } from './lib/session-types/index.js';
 import storageManager from './lib/server/storage-manager.js';
 import DirectoryManager from './lib/server/directory-manager.js';
 
@@ -60,6 +62,9 @@ async function initializeDirectories() {
 async function startServer() {
 	// Initialize directories before starting server
 	await initializeDirectories();
+	
+	// Initialize session types registry
+	initializeSessionTypes();
 
 	// Security check: require proper key if tunnel is enabled
 	if (ENABLE_TUNNEL && (TERMINAL_KEY === 'change-me' || !TERMINAL_KEY)) {
@@ -86,8 +91,12 @@ async function startServer() {
 	});
 
 	// Handle socket connections
-	const handler = createSocketHandler(io);
-	io.on('connection', handler);
+	// Setup both main namespace and isolated session type namespaces
+	const mainHandler = createSocketHandler(io);
+	io.on('connection', mainHandler);
+	
+	// Setup namespaced handlers for session types
+	createNamespacedSocketHandler(io);
 
 	return { httpServer };
 }

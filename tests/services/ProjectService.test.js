@@ -3,7 +3,7 @@
  * Tests Socket.IO integration and project management operations
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ProjectService } from '../../services/ProjectService.js';
+import { ProjectService } from '../../src/lib/services/ProjectService.js';
 
 // Mock the socket.io-client import
 vi.mock('socket.io-client', () => {

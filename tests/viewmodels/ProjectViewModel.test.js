@@ -3,7 +3,7 @@
  * Tests project listing, creation, editing, validation, and Socket.IO integration
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ProjectViewModel } from '../../viewmodels/ProjectViewModel.svelte.js';
+import { ProjectViewModel } from '../../src/lib/viewmodels/ProjectViewModel.svelte.js';
 
 // Mock the socket.io-client import
 vi.mock('socket.io-client', () => {

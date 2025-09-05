@@ -3,7 +3,7 @@
  * Tests Socket.IO wrapper with error handling, reconnection, and event management
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { SocketService } from '../../services/foundation/SocketService.js';
+import { SocketService } from '../../src/lib/services/foundation/SocketService.js';
 
 // Mock the socket.io-client import
 vi.mock('socket.io-client', () => {

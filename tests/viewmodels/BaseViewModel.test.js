@@ -3,7 +3,7 @@
  * Tests all common state patterns ($state, $derived, $effect)
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { BaseViewModel } from '../../contexts/BaseViewModel.svelte.js';
+import { BaseViewModel } from '../../src/lib/contexts/BaseViewModel.svelte.js';
 
 describe('BaseViewModel', () => {
 	let mockModel;

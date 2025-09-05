@@ -8,7 +8,8 @@
 	import Terminal from '$lib/components/Terminal.svelte';
 	import Chat from '$lib/components/ChatInterface.svelte';
 	import SessionList from '$lib/components/SessionList.svelte';
-	import CreateSessionForm from '$lib/components/CreateSessionForm.svelte';
+	import TypePicker from '$lib/components/TypePicker.svelte';
+	import CreationFormContainer from '$lib/components/CreationFormContainer.svelte';
 	import DirectoryPicker from '$lib/components/DirectoryPicker.svelte';
 	import BackIcon from '$lib/components/Icons/BackIcon.svelte';
 	import { createClaudeAuthContext } from '$lib/contexts/claude-auth-context.svelte.js';
@@ -27,11 +28,9 @@
 	let claudeOAuthUrl = $state(null);
 	let claudeAuthToken = $state('');
 
-	// Session creation state
-	let sessionMode = $state('shell');
-	let sessionName = $state('');
-	let workingDirectory = $state('');
-	let nameValidation = $state({ isValid: true, message: '', severity: 'info' });
+	// Session creation state  
+	let selectedSessionType = $state(null);
+	let sessionCreationData = $state(null);
 
 	// Component mounting state
 	let currentTerminal = $state(null);
@@ -40,9 +39,12 @@
 	// Create Claude auth context for Chat components
 	const claudeAuthContext = createClaudeAuthContext();
 
-	// Reactive validation
+	// Handle session creation data from form
 	$effect(() => {
-		nameValidation = validateSessionNameRealtime(sessionName);
+		if (sessionCreationData) {
+			handleCreateSessionFromData(sessionCreationData);
+			sessionCreationData = null; // Reset after handling
+		}
 	});
 
 	onMount(() => {
@@ -143,56 +145,53 @@
 		);
 	}
 
-	// Enhanced create session with Claude support
-	async function handleCreateSession(name, mode) {
+	// Handle session creation from new form system
+	async function handleCreateSessionFromData(sessionData) {
 		try {
-			const finalValidation = validateSessionNameWithFeedback(name);
-			nameValidation = finalValidation;
-
-			if (!finalValidation.isValid && name.trim()) {
-				return;
-			}
-
+			const sessionType = sessionData.sessionType || selectedSessionType?.id || 'shell';
+			const sessionName = sessionData.name || '';
+			
 			// Check Claude authentication if creating a Claude session
-			if (mode === 'claude' && claudeAuthState !== 'authenticated') {
-				nameValidation = {
-					isValid: false,
-					message: 'Claude authentication required. Please authenticate first.',
-					severity: 'error'
-				};
+			if (sessionType === 'claude' && claudeAuthState !== 'authenticated') {
+				alert('Claude authentication required. Please authenticate first.');
 				return;
 			}
 
 			const options = {
-				mode,
-				name: name.trim(),
-				cols: 120,
-				rows: 30,
+				mode: sessionType,
+				name: sessionName,
+				cols: sessionData.options?.cols || 120,
+				rows: sessionData.options?.rows || 30,
 				project: projectId
 			};
 
-			// Add working directory for Claude sessions
-			if (mode === 'claude' && workingDirectory) {
-				options.workingDirectory = workingDirectory;
+			// Add session-specific options
+			if (sessionData.options) {
+				Object.assign(options, sessionData.options);
 			}
 
-			const sessionId = await vm.createSession(name.trim(), mode);
+			const sessionId = await vm.createSession(sessionName, sessionType);
 			if (sessionId) {
-				// Clear form
-				sessionName = '';
-				workingDirectory = '';
-				nameValidation = { isValid: true, message: '', severity: 'info' };
-
+				// Clear form state
+				selectedSessionType = null;
+				
 				// Auto-attach to new session
 				await handleAttachSession(sessionId);
 			}
 		} catch (error) {
-			nameValidation = {
-				isValid: false,
-				message: error.message,
-				severity: 'error'
-			};
+			console.error('Failed to create session:', error);
+			alert(`Failed to create session: ${error.message}`);
 		}
+	}
+
+	// Legacy support for old session creation (for backward compatibility)
+	async function handleCreateSession(name, mode) {
+		const sessionData = {
+			sessionType: mode,
+			name: name,
+			options: { cols: 120, rows: 30 }
+		};
+		await handleCreateSessionFromData(sessionData);
 	}
 
 	async function handleAttachSession(sessionId) {
@@ -321,41 +320,51 @@
 						onEnd={handleEndSession}
 					/>
 
-					<!-- Enhanced Session Form with Claude Support -->
+					<!-- New Session Creation with Session Type Registry -->
 					<div class="session-form">
 						<h4>New Session</h4>
 
-						<!-- Session Mode Selection -->
-						<div class="form-group">
-							<label for="session-mode">Type</label>
-							<select id="session-mode" bind:value={sessionMode}>
-								<option value="shell">Terminal (Shell)</option>
-								<option value="claude">Claude Agent</option>
-							</select>
+						<!-- Session Type Picker -->
+						<TypePicker 
+							bind:selectedType={selectedSessionType}
+							onTypeSelect={(type) => selectedSessionType = type}
+						/>
 
-							<!-- Claude Authentication Status -->
-							{#if sessionMode === 'claude'}
-								<div class="session-mode-info">
-									{#if claudeAuthState === 'checking'}
-										<p>🔍 <strong>Checking Claude Authentication...</strong></p>
-									{:else if claudeAuthState === 'authenticated'}
-										<p>✅ <strong>Claude AI Ready</strong></p>
-										<p>You're authenticated and ready to create Claude sessions.</p>
-									{:else if claudeAuthState === 'not-authenticated'}
+						<!-- Session Creation Form Container -->
+						{#if selectedSessionType}
+							<CreationFormContainer 
+								{selectedSessionType}
+								projectId={projectId}
+								bind:sessionData={sessionCreationData}
+								onSessionCreate={(data) => sessionCreationData = data}
+								onValidationError={(error) => console.error('Form validation error:', error)}
+							/>
+						{/if}
+
+						<!-- Legacy Claude Authentication Status (for backward compatibility) -->
+						{#if selectedSessionType?.id === 'claude'}
+							<div class="claude-auth-status">
+								{#if claudeAuthState === 'checking'}
+									<p>🔍 <strong>Checking Claude Authentication...</strong></p>
+								{:else if claudeAuthState === 'authenticated'}
+									<p>✅ <strong>Claude AI Ready</strong></p>
+								{:else if claudeAuthState === 'not-authenticated'}
+									<div class="auth-required">
 										<p>🤖 <strong>Claude AI Authentication Required</strong></p>
-										<p>Click the button below to start the authentication process.</p>
 										<button class="btn-auth" onclick={startClaudeAuth}>
 											🚀 Start Authentication
 										</button>
-									{:else if claudeAuthState === 'authenticating'}
-										<p>⏳ <strong>Starting Authentication...</strong></p>
-									{:else if claudeAuthState === 'waiting-for-token'}
+									</div>
+								{:else if claudeAuthState === 'authenticating'}
+									<p>⏳ <strong>Starting Authentication...</strong></p>
+								{:else if claudeAuthState === 'waiting-for-token'}
+									<div class="oauth-flow">
 										<p>🔗 <strong>OAuth Authentication</strong></p>
-										<p>1. Click the link below to authenticate with Claude AI:</p>
+										<p>1. Click the link below to authenticate:</p>
 										<a href={claudeOAuthUrl} target="_blank" class="oauth-link">
 											🔗 Open Claude Authentication
 										</a>
-										<p>2. After completing authentication, enter your token code:</p>
+										<p>2. Enter your authentication token:</p>
 										<div class="token-input-group">
 											<input
 												type="text"
@@ -372,50 +381,10 @@
 												Submit Token
 											</button>
 										</div>
-									{/if}
-								</div>
-							{/if}
-						</div>
-
-						<!-- Session Name -->
-						<div class="form-group">
-							<label for="session-name">
-								Name <span class="optional">(optional)</span>
-							</label>
-							<input
-								type="text"
-								id="session-name"
-								placeholder="Session name"
-								bind:value={sessionName}
-								class:invalid={!nameValidation.isValid && !!sessionName.trim()}
-								class:valid={nameValidation.isValid && nameValidation.severity === 'success'}
-							/>
-							{#if nameValidation.message}
-								<div class="validation-message {nameValidation.severity}">
-									{nameValidation.message}
-								</div>
-							{/if}
-						</div>
-
-						<!-- Directory Picker for Claude Sessions -->
-						{#if sessionMode === 'claude'}
-							<DirectoryPicker
-								bind:selectedPath={workingDirectory}
-								socket={vm.socket}
-								{projectId}
-								disabled={!vm.socket}
-							/>
+									</div>
+								{/if}
+							</div>
 						{/if}
-
-						<button
-							type="submit"
-							class="btn-primary"
-							onclick={() => handleCreateSession(sessionName, sessionMode)}
-							disabled={(!nameValidation.isValid && !!sessionName.trim()) ||
-								(sessionMode === 'claude' && claudeAuthState !== 'authenticated')}
-						>
-							Create Session
-						</button>
 					</div>
 				</aside>
 
@@ -567,13 +536,20 @@
 		color: var(--text-secondary);
 	}
 
-	.session-mode-info {
-		margin-top: 0.5rem;
+	.claude-auth-status {
+		margin-top: 1rem;
 		padding: 0.75rem;
 		background: rgba(42, 42, 42, 0.4);
 		border: 1px solid rgba(0, 255, 136, 0.2);
 		border-radius: 4px;
 		font-size: 0.9rem;
+	}
+
+	.auth-required,
+	.oauth-flow {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 
 	.btn-auth {
