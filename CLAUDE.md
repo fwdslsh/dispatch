@@ -316,6 +316,8 @@ For production with Claude Code:
 - **SvelteKit**: Full-stack web framework
 - **Playwright**: Testing framework (available but not configured)
 
+**VERY IMPORTANT** Use the svelte-llm MCP tool to review documentation on modern Svelte syntax, SvelteKit best practices, and any other Svelte or SvelteKit related information.
+
 ## Runtime Requirements & Constraints
 
 - Container runs as non-root user (`appuser`, uid 10001)
