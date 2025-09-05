@@ -1,5 +1,5 @@
 /**
- * Simple Server Session Type Configuration
+ * Server Session Type Configuration
  * 
  * Static server-side configuration without complex factories.
  * Maps session types to their server handlers directly.
@@ -10,8 +10,8 @@ import { createShellHandlers } from './shell/server/shell-handlers.js';
 import { createClaudeHandlers } from './claude/server/claude-handlers.js';
 
 /**
- * Simple mapping of session types to their handler creators
- * No complex registry - just direct function mapping
+ * Clean mapping of session types to their handler creators
+ * Direct function mapping without complex registry patterns
  */
 export const SESSION_HANDLERS = {
   shell: createShellHandlers,

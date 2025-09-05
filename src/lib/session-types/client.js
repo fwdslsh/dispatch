@@ -5,7 +5,7 @@
  * without importing any server-side code that would leak into the browser bundle.
  */
 
-import { CLIENT_SESSION_TYPES, getAllSessionTypes, getSessionType, hasSessionType, getSessionTypesByCategory } from './simple-session-types.js';
+import { CLIENT_SESSION_TYPES, getAllSessionTypes, getSessionType, hasSessionType, getSessionTypesByCategory } from './session-types.js';
 import { BaseSessionType } from './shared/BaseSessionType.js';
 
 /**
@@ -113,11 +113,11 @@ export const clientShellSessionType = new ClientShellSessionType();
 export const clientClaudeSessionType = new ClientClaudeSessionType();
 
 /**
- * Initialize client-side session types (simplified)
+ * Initialize client-side session types
  * No complex registry needed - just validates configuration
  */
 export function initializeClientSessionTypes() {
-  console.log('Initializing client-side session types with simple static configuration...');
+  console.log('Initializing client-side session types with static configuration...');
   
   const types = getAllSessionTypes();
   const typeCount = types.length;
@@ -132,7 +132,7 @@ export function initializeClientSessionTypes() {
   return true;
 }
 
-// Re-export utility functions from simple-session-types
+// Re-export utility functions from session-types
 export { getAllSessionTypes, getSessionType, getSessionTypesByCategory, hasSessionType };
 
 /**

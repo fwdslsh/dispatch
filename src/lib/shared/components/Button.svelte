@@ -22,7 +22,7 @@
 		augmented = 'tl-clip br-clip',
 		
 		// Button behavior
-		type = 'button', // 'button' | 'submit' | 'reset'
+		type = /** @type {'button' | 'submit' | 'reset'} */ ('button'), // 'button' | 'submit' | 'reset'
 		form = undefined,
 		
 		// Icon support
@@ -61,8 +61,8 @@
 	});
 
 	// Compute button state
-	const isDisabled = $derived(() => disabled || loading);
-	const showText = $derived(() => !loading || !hideTextOnLoading);
+	const isDisabled = $derived(disabled || loading);
+	const showText = $derived(!loading || !hideTextOnLoading);
 
 	// Handle click with disabled/loading checks
 	function handleClick(event) {

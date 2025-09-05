@@ -1,18 +1,18 @@
 /**
- * Simple Session Service
+ * Session Service
  * 
  * Straightforward session management without unnecessary complexity.
- * Follows the simple service patterns defined in ServicePatterns.md
+ * Follows clean service patterns with minimal dependencies.
  */
 
 /**
- * Simple Session Service
+ * Session Service
  */
-export class SimpleSessionService {
+export class SessionService {
   constructor(socketService) {
     this.socket = socketService;
-    this.currentSession = $state(null);
-    this.sessions = $state([]);
+    this.currentSession = null;
+    this.sessions = [];
   }
 
   /**
@@ -36,7 +36,7 @@ export class SimpleSessionService {
         return { success: false, error: response.error || 'Failed to create session' };
       }
     } catch (error) {
-      console.error('SimpleSessionService: Create session failed:', error);
+      console.error('SessionService: Create session failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -59,7 +59,7 @@ export class SimpleSessionService {
         return { success: false, error: response.error || 'Failed to attach to session' };
       }
     } catch (error) {
-      console.error('SimpleSessionService: Attach failed:', error);
+      console.error('SessionService: Attach failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -78,7 +78,7 @@ export class SimpleSessionService {
         return { success: false, error: response.error || 'Failed to get sessions' };
       }
     } catch (error) {
-      console.error('SimpleSessionService: Get sessions failed:', error);
+      console.error('SessionService: Get sessions failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -96,7 +96,7 @@ export class SimpleSessionService {
       
       return { success: true };
     } catch (error) {
-      console.error('SimpleSessionService: End session failed:', error);
+      console.error('SessionService: End session failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -113,7 +113,7 @@ export class SimpleSessionService {
       this.socket.socket.emit('input', input);
       return { success: true };
     } catch (error) {
-      console.error('SimpleSessionService: Send input failed:', error);
+      console.error('SessionService: Send input failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -130,7 +130,7 @@ export class SimpleSessionService {
       this.socket.socket.emit('resize', { cols, rows });
       return { success: true };
     } catch (error) {
-      console.error('SimpleSessionService: Resize failed:', error);
+      console.error('SessionService: Resize failed:', error);
       return { success: false, error: error.message };
     }
   }

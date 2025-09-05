@@ -7,6 +7,7 @@
 
 import { TerminalManager } from '../../session-types/shell/server/terminal.server.js';
 import DirectoryManager from '../../server/services/directory-manager.js';
+import { randomUUID } from 'crypto';
 import fs from 'fs';
 
 /**
@@ -47,33 +48,38 @@ export function createSessionSocketHandlers(io, socket, requireAuth, socketSessi
       // Create directory context if project specified
       let workingDirectory;
       if (sessionOptions.projectId) {
-        workingDirectory = await directoryManager.getProjectDirectory(sessionOptions.projectId);
+        const project = await directoryManager.getProject(sessionOptions.projectId);
+        workingDirectory = project?.path;
       }
 
       // Create terminal session
-      const result = await terminalManager.create({
-        ...sessionOptions,
-        workingDirectory,
-        socket
-      });
+      const sessionId = sessionOptions.projectId 
+        ? await terminalManager.createSessionInProject(sessionOptions.projectId, {
+            ...sessionOptions,
+            workingDirectory
+          })
+        : terminalManager.createSimpleSession(randomUUID(), {
+            ...sessionOptions,
+            workingDirectory
+          });
 
-      if (result && result.sessionId) {
-        socketSessions.set(socket.id, result.sessionId);
+      if (sessionId) {
+        socketSessions.set(socket.id, sessionId);
         
-        console.log(`[SESSION] Created session ${result.sessionId} for socket ${socket.id}`);
+        console.log(`[SESSION] Created session ${sessionId} for socket ${socket.id}`);
         
         // Broadcast session creation
         io.emit('session-created', {
-          sessionId: result.sessionId,
-          session: result,
+          sessionId: sessionId,
+          session: { sessionId },
           socketId: socket.id
         });
 
         if (callback) {
           callback({
             success: true,
-            sessionId: result.sessionId,
-            session: result
+            sessionId: sessionId,
+            session: { sessionId }
           });
         }
       } else {
@@ -103,7 +109,7 @@ export function createSessionSocketHandlers(io, socket, requireAuth, socketSessi
       const cols = Math.max(10, Math.min(500, parseInt(options.cols) || 80));
       const rows = Math.max(5, Math.min(200, parseInt(options.rows) || 24));
 
-      const success = await terminalManager.attach(sessionId, socket, { cols, rows });
+      const success = await terminalManager.attachToSession(sessionId);
 
       if (success) {
         socketSessions.set(socket.id, sessionId);
@@ -131,7 +137,7 @@ export function createSessionSocketHandlers(io, socket, requireAuth, socketSessi
    */
   const listSessionsHandler = (callback) => {
     try {
-      const sessions = terminalManager.getAllSessions();
+      const sessions = terminalManager.listSessions();
       console.log(`[SESSION] Listing ${sessions.length} sessions for socket ${socket.id}`);
 
       if (callback) {
@@ -164,7 +170,7 @@ export function createSessionSocketHandlers(io, socket, requireAuth, socketSessi
 
       console.log(`[SESSION] Ending session ${targetSessionId} for socket ${socket.id}`);
 
-      const success = await terminalManager.destroy(targetSessionId);
+      const success = terminalManager.endSession(targetSessionId);
 
       if (success) {
         // Remove from socket mapping if it was the current session
@@ -205,16 +211,11 @@ export function createSessionSocketHandlers(io, socket, requireAuth, socketSessi
 
       console.log(`[SESSION] Detaching socket ${socket.id} from session ${sessionId}`);
 
-      const success = terminalManager.detach(sessionId, socket);
-
-      if (success) {
-        socketSessions.delete(socket.id);
-        console.log(`[SESSION] Socket ${socket.id} detached from session ${sessionId}`);
-        
-        if (callback) callback({ success: true });
-      } else {
-        if (callback) callback({ success: false, error: 'Failed to detach from session' });
-      }
+      // Simply remove the session mapping for this socket
+      socketSessions.delete(socket.id);
+      console.log(`[SESSION] Socket ${socket.id} detached from session ${sessionId}`);
+      
+      if (callback) callback({ success: true });
     } catch (error) {
       console.error('[SESSION] Error detaching from session:', error);
       if (callback) callback({ success: false, error: error.message });
@@ -239,7 +240,7 @@ export function createSessionSocketHandlers(io, socket, requireAuth, socketSessi
       }
 
       console.log(`[SESSION] Sending input to session ${sessionId} from socket ${socket.id}`);
-      terminalManager.write(sessionId, data);
+      terminalManager.sendInput(sessionId, data);
     } catch (error) {
       console.error('[SESSION] Error sending input:', error);
     }
@@ -266,7 +267,7 @@ export function createSessionSocketHandlers(io, socket, requireAuth, socketSessi
       const rows = Math.max(5, Math.min(200, parseInt(dims.rows)));
 
       console.log(`[SESSION] Resizing session ${sessionId} to ${cols}x${rows} from socket ${socket.id}`);
-      terminalManager.resize(sessionId, { cols, rows });
+      terminalManager.resize(sessionId, cols, rows);
     } catch (error) {
       console.error('[SESSION] Error resizing session:', error);
     }
@@ -280,12 +281,7 @@ export function createSessionSocketHandlers(io, socket, requireAuth, socketSessi
     if (sessionId) {
       console.log(`[SESSION] Socket ${socket.id} disconnected, cleaning up session ${sessionId}`);
       
-      // Detach from session but don't end it (in case of reconnection)
-      try {
-        terminalManager.detach(sessionId, socket);
-      } catch (error) {
-        console.error('[SESSION] Error during disconnect cleanup:', error);
-      }
+      // Just remove the socket mapping (session stays alive for potential reconnection)
       
       socketSessions.delete(socket.id);
     }

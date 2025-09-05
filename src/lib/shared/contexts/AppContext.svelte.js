@@ -1,5 +1,5 @@
 /**
- * Simple App Context - Pure State Management
+ * App Context - Pure State Management
  * 
  * Clean context focused only on reactive state without service creation.
  * Follows the principle of separating state from service management.
@@ -7,13 +7,13 @@
 
 import { getContext, setContext } from 'svelte';
 
-const APP_CONTEXT_KEY = Symbol('simple-app-context');
+const APP_CONTEXT_KEY = Symbol('app-context');
 
 /**
- * Create simple app context with pure state management
+ * Create app context with pure state management
  */
-export function createSimpleAppContext() {
-  // Simple reactive state - no service creation
+export function createAppContext() {
+  // Pure reactive state - no service creation
   const auth = $state({
     isAuthenticated: false,
     terminalKey: null
@@ -122,7 +122,7 @@ export function createSimpleAppContext() {
 export function getAppContext() {
   const context = getContext(APP_CONTEXT_KEY);
   if (!context) {
-    throw new Error('App context not found. Make sure createSimpleAppContext() is called in a parent component.');
+    throw new Error('App context not found. Make sure createAppContext() is called in a parent component.');
   }
   return context;
 }

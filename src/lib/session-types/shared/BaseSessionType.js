@@ -37,7 +37,7 @@ export class BaseSessionType {
    * and register any necessary socket listeners.
    * 
    * @param {SessionCreationOptions} options - Creation options
-   * @param {Socket} socket - Socket.IO socket instance
+   * @param {Object} socket - Socket.IO socket instance
    * @returns {Promise<SessionMetadata>} Created session metadata
    * @throws {Error} Must be implemented by session type
    */
@@ -52,7 +52,7 @@ export class BaseSessionType {
    * Override this method to enable session attachment.
    * 
    * @param {string} sessionId - ID of the session to attach to
-   * @param {Socket} socket - Socket.IO socket instance
+   * @param {Object} socket - Socket.IO socket instance
    * @returns {Promise<boolean>} True if attachment succeeded, false otherwise
    */
   async onAttach(sessionId, socket) {

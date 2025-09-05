@@ -137,7 +137,7 @@ export class KeyboardService {
 
 		// Handle special keys
 		if (button.isSpecial) {
-			return { type: 'special', key: button.key };
+			return button.key || '';
 		}
 
 		// Handle standard key mappings
@@ -343,7 +343,7 @@ export class KeyboardService {
 	/**
 	 * Add keyboard event listener
 	 * @param {string} eventType - Event type to listen for
-	 * @param {Function} handler - Event handler function
+	 * @param {EventListener} handler - Event handler function
 	 * @returns {Function} - Cleanup function
 	 */
 	addKeyboardListener(eventType, handler) {
@@ -368,7 +368,7 @@ export class KeyboardService {
 	/**
 	 * Remove specific keyboard event listener
 	 * @param {string} eventType - Event type
-	 * @param {Function} handler - Handler function to remove
+	 * @param {EventListener} handler - Handler function to remove
 	 */
 	removeKeyboardListener(eventType, handler) {
 		if (typeof window === 'undefined') return;

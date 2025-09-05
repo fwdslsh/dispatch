@@ -5,7 +5,8 @@
  * Uses straightforward reactive state with no unnecessary complexity.
  */
 
-import { BaseViewModel } from '../../../src/lib/shared/contexts/BaseViewModel.svelte.js';
+import { BaseViewModel } from "$lib/shared/contexts/BaseViewModel.svelte";
+
 
 /**
  * Simple Project Page ViewModel
@@ -247,9 +248,9 @@ export class ProjectPageViewModel extends BaseViewModel {
   /**
    * Simple cleanup
    */
-  destroy() {
+  dispose() {
     console.log('ProjectPageViewModel: Cleaning up');
     this.hideAllComponents();
-    super.destroy();
+    super.dispose();
   }
 }

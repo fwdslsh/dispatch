@@ -1,11 +1,11 @@
 /**
  * Session Types - Main entry point for session type system
  * 
- * Simple static configuration without complex registry system.
- * Re-exports from simple-session-types.js for compatibility.
+ * Static configuration without complex registry system.
+ * Re-exports from session-types.js for clean interface.
  */
 
-// Re-export everything from simple-session-types for clean interface
+// Re-export everything from session-types for clean interface
 export {
   SESSION_TYPES,
   getAllSessionTypes,
@@ -19,7 +19,7 @@ export {
   CLIENT_SESSION_TYPES,
   SERVER_SESSION_TYPES,
   createSessionTypeConfig
-} from './simple-session-types.js';
+} from './session-types.js';
 
 // Re-export server configuration for server-side usage
 export {
@@ -31,14 +31,14 @@ export {
   hasHandlers,
   createHandlersForType,
   setupSessionTypeNamespace
-} from './simple-server-config.js';
+} from './server-config.js';
 
 /**
- * Initialize session types (simplified)
+ * Initialize session types
  * No complex initialization needed - just validates configuration
  */
 export function initializeSessionTypes() {
-  console.log('Session types initialized with simple static configuration');
+  console.log('Session types initialized with static configuration');
   
   const types = getAllSessionTypes();
   const typeCount = types.length;
@@ -79,9 +79,7 @@ export function validateRegistration() {
   return true;
 }
 
-// Legacy compatibility exports (for components that might still use these names)
-export const getSessionTypesByCategory = getSessionTypesByCategory;
-export const hasSessionType = hasSessionType;
+// Legacy compatibility - functions already exported above
 export const getAvailableCategories = () => {
   const categories = new Set();
   getAllSessionTypes().forEach(type => {

@@ -1,17 +1,17 @@
 /**
- * Simple Socket Service
+ * Socket Service
  * 
  * Straightforward socket service without unnecessary complexity.
- * Follows the simple service patterns defined in ServicePatterns.md
+ * Follows clean service patterns with minimal dependencies.
  */
 
 /**
- * Simple Socket Service
+ * Socket Service
  */
-export class SimpleSocketService {
+export class SocketService {
   constructor() {
     this.socket = null;
-    this.isConnected = $state(false);
+    this.isConnected = false;
   }
 
   /**
@@ -39,7 +39,7 @@ export class SimpleSocketService {
 
       return { success: true };
     } catch (error) {
-      console.error('SimpleSocketService: Connect failed:', error);
+      console.error('SocketService: Connect failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -59,7 +59,7 @@ export class SimpleSocketService {
 
       return response || { success: true };
     } catch (error) {
-      console.error('SimpleSocketService: Emit failed:', error);
+      console.error('SocketService: Emit failed:', error);
       return { success: false, error: error.message };
     }
   }

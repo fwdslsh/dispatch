@@ -4,7 +4,7 @@
 -->
 <script>
 	import { onMount } from 'svelte';
-	import { SimpleProjectService } from '$lib/shared/services/index.js';
+	import { ProjectService } from '$lib/shared/services/index.js';
 	import ProjectHeader from './ProjectHeader.svelte';
 	import ProjectForm from './ProjectForm.svelte';
 	import ProjectList from './ProjectList.svelte';
@@ -16,7 +16,7 @@
 	let { terminalKey = '' } = $props();
 
 	// Initialize services and ViewModel
-	const projectService = new SimpleProjectService();
+	const projectService = new ProjectService();
 	const viewModel = new ProjectViewModel(projectService);
 
 	// Reactive state from ViewModel

@@ -1,8 +1,8 @@
 /**
- * Simple Session Types Configuration
+ * Session Types Configuration
  * 
  * Static configuration without complex runtime registry.
- * Just imports and exports session types directly.
+ * Imports and exports session types directly for clean architecture.
  */
 
 // Import session type client implementations

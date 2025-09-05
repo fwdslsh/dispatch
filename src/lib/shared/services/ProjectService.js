@@ -1,18 +1,52 @@
 /**
- * Simple Project Service
+ * Project Service
  * 
  * Straightforward project management without unnecessary complexity.
- * Follows the simple service patterns defined in ServicePatterns.md
+ * Follows clean service patterns with minimal dependencies.
  */
 
 /**
- * Simple Project Service
+ * Project Service
  */
-export class SimpleProjectService {
-  constructor(socketService) {
-    this.socket = socketService;
-    this.currentProject = $state(null);
-    this.projects = $state([]);
+export class ProjectService {
+  constructor() {
+    this.socket = null;
+    this.currentProject = null;
+    this.projects = [];
+  }
+
+  /**
+   * Initialize the service with socket connection
+   */
+  async initialize() {
+    try {
+      // Import and set up socket connection
+      const { io } = await import('socket.io-client');
+      this.socket = io();
+
+      // Wait for connection
+      return new Promise((resolve) => {
+        this.socket.on('connect', () => {
+          resolve(true);
+        });
+
+        this.socket.on('connect_error', () => {
+          resolve(false);
+        });
+      });
+    } catch (error) {
+      console.error('ProjectService: Initialize failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if socket is connected
+   */
+  _checkConnection() {
+    if (!this.socket || !this.socket.connected) {
+      throw new Error('Service not initialized or connection lost');
+    }
   }
 
   /**
@@ -20,6 +54,7 @@ export class SimpleProjectService {
    */
   async createProject(data) {
     try {
+      this._checkConnection();
       const response = await this.socket.emit('create-project', {
         name: data.name || 'Untitled Project',
         description: data.description || ''
@@ -31,7 +66,7 @@ export class SimpleProjectService {
         return { success: false, error: response.error || 'Failed to create project' };
       }
     } catch (error) {
-      console.error('SimpleProjectService: Create project failed:', error);
+      console.error('ProjectService: Create project failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -49,7 +84,7 @@ export class SimpleProjectService {
         return { success: false, error: response.error || 'Failed to get project' };
       }
     } catch (error) {
-      console.error('SimpleProjectService: Get project failed:', error);
+      console.error('ProjectService: Get project failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -68,7 +103,7 @@ export class SimpleProjectService {
         return { success: false, error: response.error || 'Failed to get projects' };
       }
     } catch (error) {
-      console.error('SimpleProjectService: Get projects failed:', error);
+      console.error('ProjectService: Get projects failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -94,7 +129,7 @@ export class SimpleProjectService {
         return { success: false, error: response.error || 'Failed to update project' };
       }
     } catch (error) {
-      console.error('SimpleProjectService: Update project failed:', error);
+      console.error('ProjectService: Update project failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -117,7 +152,7 @@ export class SimpleProjectService {
         return { success: false, error: response.error || 'Failed to delete project' };
       }
     } catch (error) {
-      console.error('SimpleProjectService: Delete project failed:', error);
+      console.error('ProjectService: Delete project failed:', error);
       return { success: false, error: error.message };
     }
   }
@@ -136,7 +171,7 @@ export class SimpleProjectService {
         return result;
       }
     } catch (error) {
-      console.error('SimpleProjectService: Set current project failed:', error);
+      console.error('ProjectService: Set current project failed:', error);
       return { success: false, error: error.message };
     }
   }

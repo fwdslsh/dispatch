@@ -149,7 +149,12 @@ export class DirectoryService {
 			}, 10000); // 10 second timeout
 
 			// Simulate socket emit call
-			const socket = this.socket || { emit: () => {} };
+			const socket = this.socket || { emit: (event, data, callback) => {
+				// Mock socket that calls callback with empty response
+				if (typeof callback === 'function') {
+					setTimeout(() => callback({}), 0);
+				}
+			} };
 			
 			try {
 				socket.emit(event, data, (response) => {
