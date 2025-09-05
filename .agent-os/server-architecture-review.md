@@ -8,8 +8,9 @@
 The Dispatch server architecture has evolved organically, resulting in significant architectural debt. While functional, the codebase violates fundamental software engineering principles (SOLID, DRY, YAGNI) and suffers from over-engineering, inconsistent patterns, and complex interdependencies.
 
 **Key Issues**:
+
 - 🔴 **Critical**: Multiple overlapping storage systems creating data inconsistency risk
-- 🔴 **Critical**: Single 1,138-line socket handler violating SRP 
+- 🔴 **Critical**: Single 1,138-line socket handler violating SRP
 - 🟡 **Major**: Over-engineered DirectoryManager with unused complexity
 - 🟡 **Major**: Inconsistent authentication and error handling patterns
 - 🟢 **Minor**: Dead code and unnecessary abstractions
@@ -33,6 +34,7 @@ app.js (Entry Point)
 #### Single Responsibility Principle (SRP) - MAJOR VIOLATIONS
 
 **`socket-handler.js` (1,138 lines)**:
+
 ```javascript
 // Handles 28+ different responsibilities:
 - Authentication (multiple types)
@@ -48,13 +50,15 @@ app.js (Entry Point)
 ```
 
 **Recommendation**: Split into focused handlers:
+
 - `AuthenticationHandler`
-- `SessionHandler` 
+- `SessionHandler`
 - `ProjectHandler`
 - `ClaudeAuthHandler`
 - `TerminalIOHandler`
 
 **`DirectoryManager` (732 lines)**:
+
 ```javascript
 // Combines unrelated concerns:
 - Project CRUD operations
@@ -66,6 +70,7 @@ app.js (Entry Point)
 ```
 
 **Recommendation**: Extract specialized services:
+
 - `PathValidator`
 - `ProjectService`
 - `SessionService`
@@ -78,9 +83,9 @@ Adding new session types or authentication methods requires modifying existing c
 ```javascript
 // Hard-coded mode handling in multiple places
 if (mode === 'claude') {
-  // Claude-specific logic
+	// Claude-specific logic
 } else {
-  // Shell logic  
+	// Shell logic
 }
 ```
 
@@ -109,17 +114,24 @@ import storageManager from './storage-manager.js';
 #### Session Creation Logic Duplication
 
 **In `terminal.js`**:
+
 ```javascript
 // createSimpleSession (lines 307-374)
 const pty = spawn(command, args, {
-  name: 'xterm-256color',
-  cols, rows, cwd: sessionWorkingDir, env
+	name: 'xterm-256color',
+	cols,
+	rows,
+	cwd: sessionWorkingDir,
+	env
 });
 
-// createSessionInProject (lines 142-268) 
+// createSessionInProject (lines 142-268)
 const pty = spawn(command, args, {
-  name: 'xterm-256color', 
-  cols, rows, cwd: sessionWorkingDir, env
+	name: 'xterm-256color',
+	cols,
+	rows,
+	cwd: sessionWorkingDir,
+	env
 });
 ```
 
@@ -128,6 +140,7 @@ const pty = spawn(command, args, {
 #### Path Validation Repetition
 
 Path security checks scattered across:
+
 - `directory-manager.js` (lines 90-109)
 - `terminal.js` (lines 167-174)
 - `socket-handler.js` (inline checks)
@@ -135,12 +148,14 @@ Path security checks scattered across:
 #### Authentication Logic Duplication
 
 Authentication checks repeated throughout `socket-handler.js`:
+
 ```javascript
 if (!authenticated) {
-  if (callback) callback(createErrorResponse('Not authenticated'));
-  return;
+	if (callback) callback(createErrorResponse('Not authenticated'));
+	return;
 }
 ```
+
 **Occurrences**: 15+ times
 
 ### 4. YAGNI Principle Violations
@@ -148,9 +163,10 @@ if (!authenticated) {
 #### Over-Engineered DirectoryManager
 
 **Unused Complexity**:
+
 ```javascript
 // Complex project registry system (lines 377-387)
-// Sophisticated path validation (lines 90-109)  
+// Sophisticated path validation (lines 90-109)
 // Advanced name sanitization (lines 62-83)
 // Multiple directory structures (lines 334-375)
 ```
@@ -160,6 +176,7 @@ if (!authenticated) {
 #### Multiple Storage Systems
 
 Three coexisting storage approaches:
+
 1. **Legacy session store** (`sessions.json`)
 2. **Project-based storage** (`projects.json` + project directories)
 3. **DirectoryManager storage** (`.dispatch/` structure)
@@ -171,10 +188,33 @@ Three coexisting storage approaches:
 ```javascript
 // directory-manager.js lines 26-31
 this.RESERVED_NAMES = [
-  '.dispatch', 'dispatch', 'config', 'sessions', 'workspace',
-  'CON', 'PRN', 'AUX', 'NUL', // Windows reserved
-  'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-  'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+	'.dispatch',
+	'dispatch',
+	'config',
+	'sessions',
+	'workspace',
+	'CON',
+	'PRN',
+	'AUX',
+	'NUL', // Windows reserved
+	'COM1',
+	'COM2',
+	'COM3',
+	'COM4',
+	'COM5',
+	'COM6',
+	'COM7',
+	'COM8',
+	'COM9',
+	'LPT1',
+	'LPT2',
+	'LPT3',
+	'LPT4',
+	'LPT5',
+	'LPT6',
+	'LPT7',
+	'LPT8',
+	'LPT9'
 ];
 ```
 
@@ -185,6 +225,7 @@ this.RESERVED_NAMES = [
 #### Commented-Out Legacy Code
 
 **`terminal.js`**:
+
 ```javascript
 // Legacy createSessionWithId method removed - use createSessionInProject instead
 // Legacy createSession method removed - use createSessionInProject instead
@@ -194,6 +235,7 @@ this.RESERVED_NAMES = [
 #### Unused Imports and Variables
 
 **`socket-handler.js`**:
+
 ```javascript
 import { ClaudeCodeService } from '../services/claude-code-service.js'; // Used minimally
 const TUNNEL_FILE = '/tmp/tunnel-url.txt'; // Hardcoded path
@@ -202,9 +244,10 @@ const TUNNEL_FILE = '/tmp/tunnel-url.txt'; // Hardcoded path
 #### Inconsistent Patterns
 
 **Error Handling**:
+
 ```javascript
 // Sometimes uses ErrorHandler.handle()
-// Sometimes throws Error directly  
+// Sometimes throws Error directly
 // Sometimes returns error objects
 // Sometimes uses callbacks with error
 ```
@@ -236,6 +279,7 @@ this.subscribers = new Map();
 #### Inefficient File I/O
 
 Multiple synchronous file operations:
+
 ```javascript
 fs.writeFileSync(this.projectsFile, JSON.stringify(data, null, 2));
 ```
@@ -249,23 +293,24 @@ Validation logic spread across multiple files with different implementations:
 ```javascript
 // directory-manager.js approach
 if (targetPath.includes('../') || targetPath.includes('..\\')) {
-  throw new Error('Path traversal detected');
+	throw new Error('Path traversal detected');
 }
 
-// terminal.js approach  
+// terminal.js approach
 const resolvedTarget = path.resolve(targetDir);
 const resolvedProject = path.resolve(projectDir);
 if (!resolvedTarget.startsWith(resolvedProject)) {
-  throw new Error('Working directory must be within the project');
+	throw new Error('Working directory must be within the project');
 }
 ```
 
 #### Inconsistent Authentication
 
 Some operations bypass authentication:
+
 ```javascript
 // socket-handler.js line 387
-const isLoginCommand = validatedData && typeof validatedData === 'string' && 
+const isLoginCommand = validatedData && typeof validatedData === 'string' &&
   (validatedData.trim() === '/login' || /* ... */);
 
 if (!authenticated && !isLoginCommand) {
@@ -278,8 +323,9 @@ if (!authenticated && !isLoginCommand) {
 #### Large, Complex Functions
 
 **`socket-handler.js` event handlers**:
+
 - `create` handler: 110 lines
-- `attach` handler: 150 lines  
+- `attach` handler: 150 lines
 - `start-claude-auth` handler: 130 lines
 
 **Problem**: Difficult to unit test, debug, and maintain.
@@ -308,7 +354,7 @@ import { ClaudeCodeService } from '../services/claude-code-service.js';
 ### Priority 2: Architecture Improvements
 
 1. **Apply Command Pattern** for socket event handling
-2. **Use Strategy Pattern** for session types and auth providers  
+2. **Use Strategy Pattern** for session types and auth providers
 3. **Implement Repository Pattern** for data access
 4. **Add proper logging and monitoring**
 
@@ -332,7 +378,7 @@ import { ClaudeCodeService } from '../services/claude-code-service.js';
 src/lib/server/
 ├── handlers/
 │   ├── AuthHandler.js
-│   ├── SessionHandler.js  
+│   ├── SessionHandler.js
 │   ├── ProjectHandler.js
 │   └── ClaudeAuthHandler.js
 ├── services/
@@ -357,7 +403,8 @@ src/lib/server/
 
 The current server architecture demonstrates functional capability but suffers from significant technical debt that will impede future development and maintenance. The violations of fundamental software engineering principles create a fragile, hard-to-test, and difficult-to-extend codebase.
 
-**Immediate Action Required**: 
+**Immediate Action Required**:
+
 1. Refactor the monolithic socket handler
 2. Consolidate the storage systems
 3. Implement proper separation of concerns

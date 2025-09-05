@@ -2,15 +2,16 @@
 
 > **Created**: 2025-09-05  
 > **Status**: Planning  
-> **Scope**: Complete UI/UX architecture refactoring for maintainable, scalable, and testable Dispatch codebase  
+> **Scope**: Complete UI/UX architecture refactoring for maintainable, scalable, and testable Dispatch codebase
 
 ## Executive Summary
 
 This comprehensive refactoring plan addresses critical architecture violations identified in the Dispatch codebase, establishing a maintainable, scalable MVVM architecture using Svelte 5 runes while eliminating code redundancies, breaking down god components, and implementing foundational design patterns. **The primary goal is to simplify the code without over-engineering** - focusing on clean, readable patterns that reduce complexity rather than adding unnecessary abstractions. The plan is aligned with existing specifications and provides a systematic approach to transform the codebase without losing functionality.
 
 **Key Metrics (Current State)**:
+
 - **Projects.svelte**: 746 lines (248% over 300-line limit)
-- **ChatInterface.svelte**: 613 lines (204% over limit)  
+- **ChatInterface.svelte**: 613 lines (204% over limit)
 - **CommandMenu.svelte**: 593 lines (197% over limit)
 - **DirectoryPicker.svelte**: 498 lines (166% over limit)
 - **MultiPaneLayout.svelte**: 413 lines (137% over limit)
@@ -44,8 +45,9 @@ This comprehensive refactoring plan addresses critical architecture violations i
 ### 1.2 MVVM Implementation Inconsistencies
 
 **Current State Analysis**:
+
 - ✅ `ProjectViewModel.svelte.js` - Properly implemented with Svelte 5 runes
-- ✅ `TerminalViewModel.svelte.js` - Exists but needs enhancement  
+- ✅ `TerminalViewModel.svelte.js` - Exists but needs enhancement
 - ❌ Missing ViewModels for Chat, Command, Directory, Layout components
 - ❌ Inconsistent Model layer implementation
 - ❌ Service layer partially implemented
@@ -53,6 +55,7 @@ This comprehensive refactoring plan addresses critical architecture violations i
 ### 1.3 State Management Fragmentation
 
 **Current Patterns Identified**:
+
 - ✅ Svelte 5 runes in ViewModels (`$state`, `$derived`)
 - ❌ Mixed context patterns (some legacy, some modern)
 - ❌ Direct socket management in components
@@ -61,11 +64,13 @@ This comprehensive refactoring plan addresses critical architecture violations i
 ### 1.4 Code Redundancy Analysis
 
 **Duplicate Validation Logic**:
+
 - Project name validation duplicated in Projects.svelte and utils
 - Session validation scattered across components
 - Input validation patterns repeated without standardization
 
 **Repeated UI Patterns**:
+
 - Loading states implemented differently across components
 - Error display patterns inconsistent
 - Modal/dialog patterns duplicated
@@ -196,17 +201,17 @@ src/lib/
 // No complex registry or DI container needed
 
 export class ProjectViewModel extends BaseViewModel {
-  constructor(projectService, socketService, validationService) {
-    super();
-    this.#projectService = projectService;
-    this.#socketService = socketService;
-    this.#validationService = validationService;
-  }
+	constructor(projectService, socketService, validationService) {
+		super();
+		this.#projectService = projectService;
+		this.#socketService = socketService;
+		this.#validationService = validationService;
+	}
 }
 
 // Simple instantiation in components:
 const projectService = new ProjectService();
-const socketService = new SocketService();  
+const socketService = new SocketService();
 const validationService = new ValidationService();
 const viewModel = new ProjectViewModel(projectService, socketService, validationService);
 ```
@@ -218,7 +223,7 @@ const viewModel = new ProjectViewModel(projectService, socketService, validation
 ```javascript
 // Button.svelte - Standardized button component
 <script>
-  let { 
+  let {
     variant = 'primary',     // primary, secondary, danger, ghost
     size = 'medium',         // small, medium, large
     disabled = false,
@@ -229,7 +234,7 @@ const viewModel = new ProjectViewModel(projectService, socketService, validation
   } = $props();
 </script>
 
-<button 
+<button
   class="btn btn--{variant} btn--{size}"
   {disabled}
   onclick={onclick}
@@ -249,6 +254,7 @@ const viewModel = new ProjectViewModel(projectService, socketService, validation
 **Current**: 746 lines with 8+ responsibilities
 
 **Target Structure**:
+
 ```
 ProjectManager.svelte (Container - 80-100 lines)
 ├── ProjectHeader.svelte (40-60 lines)
@@ -266,12 +272,13 @@ ProjectManager.svelte (Container - 80-100 lines)
    - Enhance with validation and error handling services
 
 2. **Create Foundation Components**
+
    ```javascript
    // ProjectCard.svelte - Reusable project display
    <script>
      let { project, onEdit, onDelete, onNavigate } = $props();
    </script>
-   
+
    <Card class="project-card">
      <div class="project-header">
        <h3>{project.name}</h3>
@@ -291,20 +298,20 @@ ProjectManager.svelte (Container - 80-100 lines)
    ```javascript
    // ValidationService.js
    export class ValidationService extends BaseService {
-     validateProjectName(name) {
-       const rules = [
-         { test: name => name?.length > 0, message: 'Name required' },
-         { test: name => name.length <= 50, message: 'Name too long' },
-         { test: name => /^[a-zA-Z0-9\s_-]+$/.test(name), message: 'Invalid characters' }
-       ];
-       
-       for (const rule of rules) {
-         if (!rule.test(name)) {
-           return { isValid: false, message: rule.message };
-         }
-       }
-       return { isValid: true };
-     }
+   	validateProjectName(name) {
+   		const rules = [
+   			{ test: (name) => name?.length > 0, message: 'Name required' },
+   			{ test: (name) => name.length <= 50, message: 'Name too long' },
+   			{ test: (name) => /^[a-zA-Z0-9\s_-]+$/.test(name), message: 'Invalid characters' }
+   		];
+
+   		for (const rule of rules) {
+   			if (!rule.test(name)) {
+   				return { isValid: false, message: rule.message };
+   			}
+   		}
+   		return { isValid: true };
+   	}
    }
    ```
 
@@ -313,6 +320,7 @@ ProjectManager.svelte (Container - 80-100 lines)
 **Current**: 593 lines with command processing + UI
 
 **Target Structure**:
+
 ```
 CommandMenuContainer.svelte (Container - 60-80 lines)
 ├── CommandPalette.svelte (100-120 lines)
@@ -326,8 +334,9 @@ CommandMenuContainer.svelte (Container - 60-80 lines)
 **Current**: 498 lines with file system + tree UI
 
 **Target Structure**:
+
 ```
-DirectoryContainer.svelte (Container - 60-80 lines)  
+DirectoryContainer.svelte (Container - 60-80 lines)
 ├── DirectoryTree.svelte (120-150 lines)
 ├── DirectoryItem.svelte (40-60 lines)
 ├── DirectoryBreadcrumbs.svelte (50-70 lines)
@@ -343,53 +352,56 @@ DirectoryContainer.svelte (Container - 60-80 lines)
 import { getContext, setContext } from 'svelte';
 
 class AppState {
-  // Authentication state
-  #user = $state(null);
-  #isAuthenticated = $state(false);
-  #authToken = $state(null);
-  
-  // UI state  
-  #theme = $state('dark');
-  #sidebarOpen = $state(false);
-  #activeModal = $state(null);
-  
-  // Connection state
-  #socketConnection = $state(null);
-  #connectionStatus = $state('disconnected');
-  
-  // Error handling
-  #globalError = $state(null);
-  #notifications = $state([]);
-  
-  constructor() {
-    // Initialize from localStorage
-    this.loadPersistedState();
-  }
-  
-  // Computed properties
-  get isOnline() {
-    return $derived(this.#connectionStatus === 'connected');
-  }
-  
-  get canPerformActions() {
-    return $derived(this.#isAuthenticated && this.isOnline);
-  }
-  
-  // Actions
-  setAuthentication(user, token) {
-    this.#user = user;
-    this.#authToken = token;
-    this.#isAuthenticated = true;
-    this.persistAuthState();
-  }
-  
-  addNotification(notification) {
-    this.#notifications = [...this.#notifications, {
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-      ...notification
-    }];
-  }
+	// Authentication state
+	#user = $state(null);
+	#isAuthenticated = $state(false);
+	#authToken = $state(null);
+
+	// UI state
+	#theme = $state('dark');
+	#sidebarOpen = $state(false);
+	#activeModal = $state(null);
+
+	// Connection state
+	#socketConnection = $state(null);
+	#connectionStatus = $state('disconnected');
+
+	// Error handling
+	#globalError = $state(null);
+	#notifications = $state([]);
+
+	constructor() {
+		// Initialize from localStorage
+		this.loadPersistedState();
+	}
+
+	// Computed properties
+	get isOnline() {
+		return $derived(this.#connectionStatus === 'connected');
+	}
+
+	get canPerformActions() {
+		return $derived(this.#isAuthenticated && this.isOnline);
+	}
+
+	// Actions
+	setAuthentication(user, token) {
+		this.#user = user;
+		this.#authToken = token;
+		this.#isAuthenticated = true;
+		this.persistAuthState();
+	}
+
+	addNotification(notification) {
+		this.#notifications = [
+			...this.#notifications,
+			{
+				id: crypto.randomUUID(),
+				timestamp: Date.now(),
+				...notification
+			}
+		];
+	}
 }
 ```
 
@@ -401,9 +413,9 @@ class AppState {
   import { createAppContext } from './AppContext.svelte.js';
   import { createTerminalContext } from './TerminalContext.svelte.js';
   import { createProjectContext } from './ProjectContext.svelte.js';
-  
+
   let { children } = $props();
-  
+
   // Initialize all contexts
   const appContext = createAppContext();
   const terminalContext = createTerminalContext(appContext);
@@ -419,22 +431,25 @@ class AppState {
 
 **Analysis**: 613-line component with unclear integration status
 
-**Recommendation**: 
--  Refactor to comply with the project component structure and make a note that it needs to be implemented and a link to the related spec.
+**Recommendation**:
+
+- Refactor to comply with the project component structure and make a note that it needs to be implemented and a link to the related spec.
 
 ### 5.2 Unused Utilities and Functions
 
 **Candidates for Removal** (requires verification):
+
 ```javascript
 // Check these files for actual usage:
-src/lib/utils/cleanup-manager.js          // Verify integration
-src/lib/contexts/BaseModel.svelte.js      // May be redundant with new BaseModel
-src/lib/contexts/BaseViewModel.svelte.js  // May be redundant with new BaseViewModel
+src / lib / utils / cleanup - manager.js; // Verify integration
+src / lib / contexts / BaseModel.svelte.js; // May be redundant with new BaseModel
+src / lib / contexts / BaseViewModel.svelte.js; // May be redundant with new BaseViewModel
 ```
 
 ### 5.3 Legacy Context Files
 
 **Migration Plan**:
+
 1. Audit existing contexts in `src/lib/contexts/`
 2. Migrate functionality to new Svelte 5 rune-based contexts
 3. Update all context consumers
@@ -445,17 +460,19 @@ src/lib/contexts/BaseViewModel.svelte.js  // May be redundant with new BaseViewM
 ### 6.1 State Management Optimizations
 
 **Derived State Memoization**:
+
 ```javascript
 class ProjectViewModel extends BaseViewModel {
-  // Expensive computation with memoization
-  #filteredProjects = $derived.by(() => {
-    if (!this.#searchTerm) return this.#projects;
-    
-    return this.#projects.filter(project =>
-      project.name.toLowerCase().includes(this.#searchTerm.toLowerCase()) ||
-      project.description.toLowerCase().includes(this.#searchTerm.toLowerCase())
-    );
-  });
+	// Expensive computation with memoization
+	#filteredProjects = $derived.by(() => {
+		if (!this.#searchTerm) return this.#projects;
+
+		return this.#projects.filter(
+			(project) =>
+				project.name.toLowerCase().includes(this.#searchTerm.toLowerCase()) ||
+				project.description.toLowerCase().includes(this.#searchTerm.toLowerCase())
+		);
+	});
 }
 ```
 
@@ -490,47 +507,48 @@ Note: Component testing is excluded for now - focus on ViewModels and Services o
 ### 7.2 Testing Patterns and Examples
 
 **ViewModel Testing**:
+
 ```javascript
 // ProjectViewModel.test.js
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectViewModel } from '$lib/viewmodels/ProjectViewModel.svelte.js';
 
 describe('ProjectViewModel', () => {
-  let viewModel;
-  let mockProjectService;
-  let mockSocketService;
-  
-  beforeEach(() => {
-    mockProjectService = {
-      fetchProjects: vi.fn().mockResolvedValue([]),
-      createProject: vi.fn(),
-      updateProject: vi.fn(),
-      deleteProject: vi.fn()
-    };
-    
-    mockSocketService = {
-      emit: vi.fn(),
-      on: vi.fn(),
-      off: vi.fn()
-    };
-    
-    viewModel = new ProjectViewModel(mockProjectService, mockSocketService);
-  });
-  
-  it('should initialize with loading state', () => {
-    expect(viewModel.loading).toBe(true);
-    expect(viewModel.projects).toEqual([]);
-  });
-  
-  it('should load projects on initialize', async () => {
-    const mockProjects = [{ id: 1, name: 'Test Project' }];
-    mockProjectService.fetchProjects.mockResolvedValue(mockProjects);
-    
-    await viewModel.initialize();
-    
-    expect(viewModel.projects).toEqual(mockProjects);
-    expect(viewModel.loading).toBe(false);
-  });
+	let viewModel;
+	let mockProjectService;
+	let mockSocketService;
+
+	beforeEach(() => {
+		mockProjectService = {
+			fetchProjects: vi.fn().mockResolvedValue([]),
+			createProject: vi.fn(),
+			updateProject: vi.fn(),
+			deleteProject: vi.fn()
+		};
+
+		mockSocketService = {
+			emit: vi.fn(),
+			on: vi.fn(),
+			off: vi.fn()
+		};
+
+		viewModel = new ProjectViewModel(mockProjectService, mockSocketService);
+	});
+
+	it('should initialize with loading state', () => {
+		expect(viewModel.loading).toBe(true);
+		expect(viewModel.projects).toEqual([]);
+	});
+
+	it('should load projects on initialize', async () => {
+		const mockProjects = [{ id: 1, name: 'Test Project' }];
+		mockProjectService.fetchProjects.mockResolvedValue(mockProjects);
+
+		await viewModel.initialize();
+
+		expect(viewModel.projects).toEqual(mockProjects);
+		expect(viewModel.loading).toBe(false);
+	});
 });
 ```
 
@@ -541,19 +559,21 @@ describe('ProjectViewModel', () => {
 **Strategy**: Replace components directly - no backwards compatibility needed
 
 - Create new components alongside old ones
-- Replace old component imports with new ones when ready  
+- Replace old component imports with new ones when ready
 - Delete old components after replacement
 - Use git commits for safe rollback points
 
 ### 9.2 Rollback Strategy
 
 **Simple Rollback Points**:
+
 - Each major component gets its own commit
 - Direct component replacement makes rollback straightforward
 
 ### 9.3 Performance Monitoring
 
 **Key Metrics to Track**:
+
 - Component render times
 - Bundle size impact
 - Memory usage patterns
@@ -565,17 +585,20 @@ describe('ProjectViewModel', () => {
 ### 10.1 Architecture Quality Metrics
 
 **Component Size Compliance**:
+
 - ✅ All components under 300 lines
 - ✅ No component with more than 3 primary responsibilities
 - ✅ Clear separation of container vs presentation components
 
 **MVVM Implementation**:
-- ✅ All major UI sections have dedicated ViewModels  
+
+- ✅ All major UI sections have dedicated ViewModels
 - ✅ Business logic extracted from View components
 - ✅ Models handle all data structures and validation
 - ✅ Services manage all external communication
 
 **State Management Consistency**:
+
 - ✅ Unified context system using Svelte 5 runes
 - ✅ No direct socket management in components
 - ✅ Consistent error handling patterns across app
@@ -583,11 +606,13 @@ describe('ProjectViewModel', () => {
 ### 10.2 Code Quality Targets
 
 **Testing Coverage (Simplified)**:
+
 - ✅ >80% unit test coverage for ViewModels and Services only
 - ✅ Integration tests for critical user workflows
 - ✅ E2E tests for complete application features (existing tests)
 
 **Performance Benchmarks**:
+
 - ✅ Initial page load under 2 seconds
 - ✅ Component render times under 100ms
 - ✅ Bundle size increase under 15% from current state
@@ -596,17 +621,18 @@ describe('ProjectViewModel', () => {
 ### 10.3 Maintainability Validation
 
 **Developer Experience**:
+
 - ✅ New features can be added without modifying existing components
 - ✅ Components can be tested in isolation
 - ✅ Clear debugging and error tracing
 - ✅ Consistent code patterns across all components
-
 
 ## 12. Conclusion
 
 This comprehensive refactoring plan transforms the Dispatch codebase from its current state with oversized god components and inconsistent architecture into a maintainable, scalable MVVM system using modern Svelte 5 patterns. **The focus is on simplification and avoiding over-engineering**.
 
 **Key Benefits**:
+
 - **Simplicity**: Clean, readable code without unnecessary abstractions
 - **Maintainability**: All components under 300 lines with single responsibilities
 - **Testability**: Focus on ViewModels and Services for core business logic testing
@@ -615,8 +641,9 @@ This comprehensive refactoring plan transforms the Dispatch codebase from its cu
 - **Developer Experience**: Consistent patterns without complex tooling
 
 **Key Simplifications**:
+
 - No feature flags or backwards compatibility complexity
-- No component testing initially - focus on ViewModels/Services  
+- No component testing initially - focus on ViewModels/Services
 - No virtual scrolling or over-engineered performance optimizations
 - Simple constructor injection instead of complex DI containers
 - Direct migration approach without parallel development overhead

@@ -7,7 +7,7 @@ Dispatch provides secure, containerized terminal sessions through your web brows
 ## ✨ What You Get
 
 - 🌐 **Access anywhere**: Full terminal in your browser - no SSH or VPN needed
-- 🔐 **Secure**: Password-protected with isolated sessions  
+- 🔐 **Secure**: Password-protected with isolated sessions
 - 🤖 **AI-powered**: Optional Claude Code integration for intelligent assistance
 - 🚀 **Zero setup**: One Docker command gets you running
 - 📱 **Share easily**: Optional public URLs for collaboration
@@ -126,11 +126,13 @@ docker run -p 3030:3030 \
 Dispatch organizes your work into projects with isolated sessions:
 
 **Projects**: Logical containers for related work (e.g., "web-app", "data-analysis")
+
 - Each project has its own directory and storage space
 - Projects can be created, listed, and managed through the web interface
 - Projects persist across container restarts when using persistent storage
 
 **Sessions**: Individual terminal instances within a project
+
 - Each session runs in its own isolated environment
 - Sessions inherit the project's working directory and context
 - Multiple sessions can run simultaneously within the same project
@@ -153,7 +155,7 @@ docker run -p 3030:3030 \
 Dispatch provides a seamless web-based authentication flow for Claude AI:
 
 - **Interactive Login**: Authenticate directly from the projects page
-- **OAuth Integration**: Secure login through Anthropic's authentication system  
+- **OAuth Integration**: Secure login through Anthropic's authentication system
 - **Persistent Credentials**: Authentication persists across container restarts
 - **Error Handling**: Clear error messages and retry options
 
@@ -165,26 +167,26 @@ For detailed setup and troubleshooting, see the [**Claude Authentication Guide**
 
 Customize Dispatch with these environment variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `TERMINAL_KEY` | `change-me` | **🔑 Required** - Your authentication password |
-| `PORT` | `3030` | Port for the web interface |
-| `PTY_MODE` | `shell` | Default mode: `shell` or `claude` |
-| `ENABLE_TUNNEL` | `false` | Enable public URL sharing |
-| `LT_SUBDOMAIN` | `""` | Custom subdomain for public URL |
-| `DISPATCH_CONFIG_DIR` | `/home/appuser/.config/dispatch` | Directory for configuration and project registry |
-| `DISPATCH_PROJECTS_DIR` | `/var/lib/dispatch/projects` | Root directory for project storage |
-| `CONTAINER_ENV` | `true` | Indicates running in container environment |
+| Variable                | Default                          | Description                                      |
+| ----------------------- | -------------------------------- | ------------------------------------------------ |
+| `TERMINAL_KEY`          | `change-me`                      | **🔑 Required** - Your authentication password   |
+| `PORT`                  | `3030`                           | Port for the web interface                       |
+| `PTY_MODE`              | `shell`                          | Default mode: `shell` or `claude`                |
+| `ENABLE_TUNNEL`         | `false`                          | Enable public URL sharing                        |
+| `LT_SUBDOMAIN`          | `""`                             | Custom subdomain for public URL                  |
+| `DISPATCH_CONFIG_DIR`   | `/home/appuser/.config/dispatch` | Directory for configuration and project registry |
+| `DISPATCH_PROJECTS_DIR` | `/var/lib/dispatch/projects`     | Root directory for project storage               |
+| `CONTAINER_ENV`         | `true`                           | Indicates running in container environment       |
 
 ### Volume Mounting for Persistence
 
 To preserve your data across container restarts, mount local directories:
 
-| Host Path | Container Path | Purpose |
-|-----------|----------------|---------|
-| `~/dispatch-config` | `/home/appuser/.config/dispatch` | Application configuration and project registry |
-| `~/dispatch-projects` | `/var/lib/dispatch/projects` | Project storage (each project gets its own subdirectory) |
-| Custom path | `/data` | Any additional data you want to persist |
+| Host Path             | Container Path                   | Purpose                                                  |
+| --------------------- | -------------------------------- | -------------------------------------------------------- |
+| `~/dispatch-config`   | `/home/appuser/.config/dispatch` | Application configuration and project registry           |
+| `~/dispatch-projects` | `/var/lib/dispatch/projects`     | Project storage (each project gets its own subdirectory) |
+| Custom path           | `/data`                          | Any additional data you want to persist                  |
 
 **Setting up permissions**: The container runs as user ID 10001, so you need to set proper ownership:
 
@@ -230,7 +232,7 @@ docker run -p 3030:3030 \
 ### Security Features
 
 - 🔐 Password authentication required for all access
-- 👤 Non-root container execution  
+- 👤 Non-root container execution
 - 📁 Isolated session directories
 - 🗑️ Automatic cleanup when sessions end
 
@@ -247,7 +249,7 @@ docker run -p 3030:3030 \
 
 **Remote Development**: Access your development environment from anywhere
 
-**Education**: Provide students with consistent, isolated coding environments  
+**Education**: Provide students with consistent, isolated coding environments
 
 **Team Collaboration**: Share temporary environments with colleagues
 

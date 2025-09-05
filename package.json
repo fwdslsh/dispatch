@@ -1,54 +1,69 @@
 {
-  "name": "dispatch",
-  "version": "0.0.3",
-  "description": "Coding agents in Docker accessible via web terminal",
-  "license": "CC-BY-4.0",
-  "type": "module",
-  "scripts": {
-    "dev": "TERMINAL_KEY='testkey12345' vite dev --host",
-    "dev:server": "TERMINAL_KEY='testkey12345' node src/dev-server.js",
-    "dev:no-key": "TERMINAL_KEY='' vite dev --host",
-    "dev:tunnel": "TERMINAL_KEY=testkey12345 ENABLE_TUNNEL=true vite dev --host",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "vite build && PORT=5170 TERMINAL_KEY=testkey12345 ENABLE_TUNNEL=true node src/app.js",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
-  },
-  "bin": {
-    "dispatch": "./bin/dispatch-cli.js"
-  },
-  "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.98",
-    "@battlefieldduck/xterm-svelte": "^2.1.0",
-    "@floating-ui/dom": "^1.7.4",
-    "@sveltejs/adapter-node": "*",
-    "@xterm/addon-fit": "^0.10.0",
-    "@xterm/xterm": "^5.5.0",
-    "ansi_up": "^6.0.6",
-    "augmented-ui": "^2.0.0",
-    "commander": "^12.1.0",
-    "express": "^5.1.0",
-    "hammerjs": "^2.0.8",
-    "localtunnel": "^2.0.2",
-    "marked": "^16.2.1",
-    "node-pty": "^1.0.0",
-    "open": "^10.1.0",
-    "prismjs": "^1.30.0",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1",
-    "svelte-virtual-list": "^3.0.1"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.55.0",
-    "@sveltejs/kit": "^2.36.2",
-    "jsdom": "^26.1.0",
-    "playwright": "^1.55.0",
-    "svelte": "^5.38.3",
-    "svelte-check": "^4.3.1",
-    "vite": "^7.1.3"
-  },
-  "engines": {
-    "node": ">=22"
-  }
+	"name": "dispatch",
+	"version": "0.0.3",
+	"description": "Coding agents in Docker accessible via web terminal",
+	"license": "CC-BY-4.0",
+	"type": "module",
+	"scripts": {
+		"dev": "TERMINAL_KEY='testkey12345' vite dev --host",
+		"dev:server": "TERMINAL_KEY='testkey12345' node src/dev-server.js",
+		"dev:no-key": "TERMINAL_KEY='' vite dev --host",
+		"dev:tunnel": "TERMINAL_KEY=testkey12345 ENABLE_TUNNEL=true vite dev --host",
+		"build": "vite build",
+		"preview": "vite preview",
+		"start": "vite build && PORT=5170 TERMINAL_KEY=testkey12345 ENABLE_TUNNEL=true node src/app.js",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
+		"format": "prettier --write .",
+		"lint": "prettier --check . && eslint .",
+		"test:unit": "vitest",
+		"test": "npm run test:unit -- --run"
+	},
+	"bin": {
+		"dispatch": "./bin/dispatch-cli.js"
+	},
+	"dependencies": {
+		"@anthropic-ai/claude-code": "^1.0.98",
+		"@battlefieldduck/xterm-svelte": "^2.1.0",
+		"@floating-ui/dom": "^1.7.4",
+		"@sveltejs/adapter-node": "*",
+		"@xterm/addon-fit": "^0.10.0",
+		"@xterm/xterm": "^5.5.0",
+		"ansi_up": "^6.0.6",
+		"augmented-ui": "^2.0.0",
+		"commander": "^12.1.0",
+		"express": "^5.1.0",
+		"hammerjs": "^2.0.8",
+		"localtunnel": "^2.0.2",
+		"marked": "^16.2.1",
+		"node-pty": "^1.0.0",
+		"open": "^10.1.0",
+		"prismjs": "^1.30.0",
+		"socket.io": "^4.8.1",
+		"socket.io-client": "^4.8.1",
+		"svelte-virtual-list": "^3.0.1"
+	},
+	"devDependencies": {
+		"@eslint/compat": "^1.2.5",
+		"@eslint/js": "^9.18.0",
+		"@playwright/test": "^1.55.0",
+		"@sveltejs/kit": "^2.36.2",
+		"@vitest/browser": "^3.2.3",
+		"eslint": "^9.18.0",
+		"eslint-config-prettier": "^10.0.1",
+		"eslint-plugin-svelte": "^3.0.0",
+		"globals": "^16.0.0",
+		"jsdom": "^26.1.0",
+		"playwright": "^1.53.0",
+		"prettier": "^3.4.2",
+		"prettier-plugin-svelte": "^3.3.3",
+		"svelte": "^5.38.3",
+		"svelte-check": "^4.3.1",
+		"vite": "^7.1.3",
+		"vitest": "^3.2.3",
+		"vitest-browser-svelte": "^0.1.0"
+	},
+	"engines": {
+		"node": ">=22"
+	}
 }

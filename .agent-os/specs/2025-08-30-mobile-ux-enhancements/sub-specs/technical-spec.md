@@ -8,6 +8,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 ## Technical Requirements
 
 ### Virtual Keyboard Optimization
+
 - Implement custom toolbar overlay for xterm.js terminal when virtual keyboard is active
 - Detect keyboard visibility using visualViewport API and resize events
 - Create toolbar component with configurable buttons for: Tab, Escape, Ctrl, Alt, Arrow keys, Pipe, common shortcuts (Ctrl+C, Ctrl+Z, etc.)
@@ -15,6 +16,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Position toolbar above virtual keyboard using CSS fixed positioning and safe-area-inset-bottom
 
 ### Collapsible UI Panel System
+
 - Implement auto-collapse behavior for HeaderToolbar.svelte on mobile viewports
 - Add swipe-down gesture detection to reveal collapsed header
 - Create slide-out sidebar for session list accessible via hamburger menu or swipe-right gesture
@@ -22,6 +24,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Maintain panel state in component stores for persistence across navigation
 
 ### Mobile Command Palette
+
 - Create new CommandPalette.svelte component with mobile-first design
 - Implement fuzzy search using existing command history from localStorage
 - Support categories: Recent Commands, Favorites, Common Operations
@@ -30,6 +33,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Maximum height constraint to prevent keyboard overlap
 
 ### Intelligent Output Deduplication
+
 - Implement output buffer analysis in Terminal.svelte before rendering
 - Create similarity detection algorithm using Levenshtein distance or simhash
 - Threshold configuration: 85% similarity triggers replacement
@@ -39,6 +43,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Replace in-place using xterm.js write with cursor positioning
 
 ### Responsive Design Implementation
+
 - Define breakpoints: Mobile (<768px), Tablet (768px-1024px), Desktop (>1024px)
 - Use CSS container queries for component-level responsiveness
 - Implement orientation detection for landscape/portrait optimizations
@@ -47,6 +52,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Touch target minimum size: 44x44px for all interactive elements
 
 ### Performance Optimizations
+
 - Implement virtual scrolling for session list on mobile
 - Debounce resize events with 100ms delay
 - Use CSS will-change for animated panels
@@ -55,6 +61,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Implement output throttling: max 30fps update rate on mobile
 
 ### Browser Compatibility
+
 - Target iOS Safari 15+, Chrome 100+, Firefox 100+
 - Use feature detection for visualViewport API with fallbacks
 - Polyfill for container queries if needed
@@ -64,6 +71,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 ## Approach
 
 ### Implementation Strategy
+
 1. **Phase 1: Core Infrastructure** - Implement responsive breakpoints and panel system foundation
 2. **Phase 2: Virtual Keyboard Support** - Add toolbar overlay and keyboard detection
 3. **Phase 3: Output Optimization** - Implement intelligent deduplication algorithm
@@ -71,6 +79,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 5. **Phase 5: Polish & Performance** - Optimize animations and add gesture support
 
 ### Component Architecture
+
 - Extend existing Terminal.svelte with mobile detection and overlay management
 - Create new MobileToolbar.svelte component for virtual keyboard buttons
 - Add CommandPalette.svelte as overlay component with portal rendering
@@ -78,12 +87,14 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Implement MobileGestureHandler utility for swipe detection
 
 ### State Management
+
 - Use Svelte stores for panel visibility states
 - Implement mobile detection store with reactive viewport queries
 - Create keyboard visibility store using visualViewport API
 - Maintain command history in localStorage with mobile-optimized structure
 
 ### Integration Points
+
 - Hook into existing xterm.js resize handling in Terminal.svelte
 - Extend Socket.IO event handling for mobile network resilience
 - Integrate with existing session management in session-store.js

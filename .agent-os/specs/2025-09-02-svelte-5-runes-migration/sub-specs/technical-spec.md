@@ -73,6 +73,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 ### Runes Patterns
 
 #### State Management
+
 ```javascript
 // Before (Svelte 4)
 let count = 0;
@@ -84,6 +85,7 @@ let doubled = $derived(count * 2);
 ```
 
 #### Component Props
+
 ```javascript
 // Before (Svelte 4)
 export let title;
@@ -94,22 +96,22 @@ let { title, onClose } = $props();
 ```
 
 #### Effects
+
 ```javascript
 // Before (Svelte 4)
 onMount(() => {
-  const cleanup = setupSocket();
-  return cleanup;
+	const cleanup = setupSocket();
+	return cleanup;
 });
 
 // After (Svelte 5)
 $effect(() => {
-  const cleanup = setupSocket();
-  return cleanup;
+	const cleanup = setupSocket();
+	return cleanup;
 });
 ```
 
 ## External Dependencies
-
 
 ### Migration Tools
 

@@ -16,7 +16,6 @@ permissions:
   packages: write
 
 jobs:
-
   # Then create the release
   release:
     name: Create GitHub Release
@@ -57,4 +56,3 @@ jobs:
 
       - name: Set image description
         run: echo "Published fwdslsh/dispatch:${{ github.event.inputs.tag || github.ref_name }}"
-

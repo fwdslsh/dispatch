@@ -11,11 +11,13 @@ Migrate the entire Dispatch codebase from legacy Svelte 4 syntax to the new Svel
 ## User Stories
 
 ### Maintaining Development Experience
+
 As a developer, I want to work with modern Svelte 5 runes syntax, so that I can leverage the latest framework features and maintain consistency across the codebase.
 
 The migration should update all reactive declarations ($:), stores ($store), lifecycle hooks (onMount, onDestroy), and event handling to use the new runes API ($state, $derived, $effect, etc.) while preserving all existing functionality.
 
-### Preserving User Functionality  
+### Preserving User Functionality
+
 As an end user, I want all terminal features to continue working seamlessly after the migration, so that my workflow remains uninterrupted.
 
 All terminal sessions, socket communications, UI interactions, and project management features must function identically before and after the migration, with no visible changes to the user interface or behavior.

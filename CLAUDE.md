@@ -27,7 +27,7 @@ npm run dev:no-key
 # Development with LocalTunnel enabled
 npm run dev:tunnel
 
-# Build for production  
+# Build for production
 npm run build
 
 # Preview production build
@@ -57,7 +57,7 @@ node src/app.js
 - **Backend**: Express server with Socket.IO for WebSocket communication
 - **Terminal Management**: node-pty for spawning and managing PTY sessions
 - **Project Management**: Hierarchical project/session organization with DirectoryManager
-- **Session Storage**: JSON-based project registry and session persistence  
+- **Session Storage**: JSON-based project registry and session persistence
 - **Containerization**: Multi-stage Docker build with non-root execution
 - **UI Framework**: Uses augmented-ui for futuristic styling (see https://augmented-ui.com/docs/)
 
@@ -102,7 +102,7 @@ src/
 │       ├── config/            # Server configuration
 │       ├── socket-handler.js  # Main Socket.IO coordinator
 │       ├── terminal.js        # TerminalManager class for PTY sessions
-│       ├── session-store.js   # Session metadata persistence 
+│       ├── session-store.js   # Session metadata persistence
 │       └── directory-manager.js # Project and session directory management
 ├── bin/
 │   └── dispatch-cli.js        # CLI tool entry point
@@ -118,12 +118,14 @@ src/
 The application organizes work into projects with isolated sessions:
 
 **Project Structure:**
+
 - **Project registry**: Stored in `DISPATCH_CONFIG_DIR/projects.json` (default: `/home/appuser/.config/dispatch/projects.json`)
 - **Project directories**: Each project gets its own directory in `DISPATCH_PROJECTS_DIR` (default: `/var/lib/dispatch/projects`)
 - **Unique project IDs**: Generated using timestamps and random values for uniqueness
 
 **Session Architecture:**
 Each terminal session runs within a project context:
+
 - **Session directory**: `{project_path}/sessions/{session_uuid}`
 - **Independent environment**: Separate HOME and working directory per session
 - **Process isolation**: Each session spawns its own PTY process
@@ -141,9 +143,11 @@ Each terminal session runs within a project context:
 ## Environment Configuration
 
 ### Required Variables
+
 - `TERMINAL_KEY`: Authentication key (default: `change-me`)
 
 ### Optional Variables
+
 - `PORT`: Server port (default: `3030`)
 - `DISPATCH_CONFIG_DIR`: Configuration directory (default: `/home/appuser/.config/dispatch`)
 - `DISPATCH_PROJECTS_DIR`: Projects root directory (default: `/var/lib/dispatch/projects`)
@@ -157,17 +161,19 @@ Each terminal session runs within a project context:
 The application uses Socket.IO for all terminal communication:
 
 ### Client Events
+
 - `auth(key, callback)` - Authenticate with terminal key
 - `create(opts, callback)` - Create new PTY session with `{mode, cols, rows, meta, project}` (project optional)
 - `attach(opts, callback)` - Attach to existing session with `{sessionId, cols, rows}`
 - `list(callback)` - Get all sessions (no auth required)
-- `listProjects(callback)` - Get all projects 
+- `listProjects(callback)` - Get all projects
 - `input(data)` - Send input to attached session
 - `resize(dims)` - Resize terminal with `{cols, rows}`
 - `end(sessionId?)` - End session (current if no ID provided)
 - `detach()` - Detach from session without ending it
 
 ### Server Events
+
 - `output(data)` - Terminal output data
 - `ended({exitCode, signal})` - Session terminated
 - `sessions-updated(sessions)` - Broadcast when session list changes
@@ -177,12 +183,14 @@ The application uses Socket.IO for all terminal communication:
 The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycle within projects:
 
 ### Project Creation
+
 1. Generate unique project ID using timestamp and random values
 2. Create project directory in `DISPATCH_PROJECTS_DIR`
 3. Register project in project registry (`DISPATCH_CONFIG_DIR/projects.json`)
 4. Set up project metadata and permissions
 
 ### Session Creation
+
 1. Generate unique session ID (UUID)
 2. Create session directory within project: `{project_path}/sessions/{session_uuid}`
 3. Spawn PTY process with specified mode (`claude` or shell)
@@ -190,21 +198,25 @@ The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycl
 5. Register cleanup handlers for process exit
 
 ### Mode Switching
+
 - **Claude Mode**: Spawns `claude` command for AI-assisted development
 - **Shell Mode**: Spawns user's default shell (`$SHELL` or `/bin/bash`)
 
 ## Docker Integration
 
 ### Multi-stage Build
+
 - **Build stage**: Install dependencies and build application
 - **Runtime stage**: Minimal Node.js slim image with built application
 
 ### Security Features
+
 - Non-root user execution (`appuser`)
 - Minimal runtime dependencies
 - Isolated session directories with proper permissions
 
 ### LocalTunnel Integration
+
 - Optional public URL sharing via LocalTunnel
 - Automatic URL detection and persistence to `/tmp/tunnel-url.txt`
 - Graceful cleanup on server shutdown
@@ -212,6 +224,7 @@ The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycl
 ## Development Patterns for Maintainability
 
 ### Code Organization Principles
+
 - **Single Responsibility**: Each module focuses on one concern (handlers, services, utilities)
 - **Explicit Dependencies**: All imports/exports are clearly declared
 - **Constants over Magic**: Use `/src/lib/config/constants.js` for all configuration values
@@ -219,13 +232,16 @@ The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycl
 - **Service Layer**: Business logic isolated in services, separate from I/O concerns
 
 ### Component Architecture (Svelte 5)
+
 - **Modern Runes**: Components use `$state`, `$derived`, `$props` for reactive state
 - **Context-based State**: Shared state via Svelte 5 contexts in `/src/lib/contexts/`
 - **Clean Separation**: UI components don't contain business logic
 - **Responsive Design**: Mobile-first with consistent breakpoints from constants
 
 ### Handler Pattern
+
 Each Socket.IO event type has a dedicated handler:
+
 - `SessionHandler` - Session lifecycle management
 - `ProjectHandler` - Project operations
 - `TerminalIOHandler` - Terminal input/output processing
@@ -233,7 +249,9 @@ Each Socket.IO event type has a dedicated handler:
 Handlers receive injected services and use consistent error response patterns.
 
 ### Configuration Management
+
 All configuration centralized in `/src/lib/config/constants.js`:
+
 - Terminal settings and validation rules
 - UI responsive breakpoints and dimensions
 - Storage keys and file paths
@@ -241,12 +259,14 @@ All configuration centralized in `/src/lib/config/constants.js`:
 - Project sandboxing settings
 
 ### Error Handling Patterns
+
 - **Consistent Responses**: Standard error format across all handlers
 - **Graceful Degradation**: Fallbacks for PTY failures and socket disconnections
 - **User Feedback**: Clear error messages without exposing implementation details
 - **Cleanup**: Automatic resource cleanup on failures
 
 ### UI Styling Guidelines
+
 - Uses augmented-ui library for futuristic interface elements
 - Reference https://augmented-ui.com/docs/ when working with augmented-ui styles
 - Consistent theme with CSS custom properties (--bg-darker, --primary, --surface, etc.)
@@ -255,12 +275,15 @@ All configuration centralized in `/src/lib/config/constants.js`:
 ## Testing & Debugging
 
 ### Development Mode
+
 - Vite dev server with hot reload
 - Socket.IO integrated via Vite plugin
 - Development-specific error handling
 
 ### Production Deployment
+
 For production with Claude Code:
+
 1. Install Claude CLI in container: `npm install -g @anthropic-ai/claude-cli`
 2. Set `PTY_MODE=claude`
 3. Configure authentication key
@@ -269,14 +292,16 @@ For production with Claude Code:
    - `~/dispatch-projects:/var/lib/dispatch/projects` (project storage)
 
 ### Common Debug Points
+
 - Handler initialization and dependency injection in `socket-handler.js`
 - Project creation workflow in `directory-manager.js`
-- PTY session lifecycle in `terminal.js` 
+- PTY session lifecycle in `terminal.js`
 - Terminal component state management in `Terminal.svelte`
 - Configuration loading from `/src/lib/config/constants.js`
 - Service interactions in handlers (session, project, terminal I/O)
 
 ### Development Access
+
 - Development server runs on all interfaces (`--host` flag)
 - Default auth key in development: `test`
 - Access at `http://localhost:3030` with key `test`

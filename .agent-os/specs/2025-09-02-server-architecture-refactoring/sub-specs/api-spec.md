@@ -11,6 +11,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 ### Authentication Events
 
 #### auth
+
 **Purpose:** Authenticate client connection with terminal key  
 **Handler:** AuthHandler  
 **Parameters:** `(key: string, callback: Function)`  
@@ -20,6 +21,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 ### Session Management Events
 
 #### create
+
 **Purpose:** Create new PTY session with project context  
 **Handler:** SessionHandler  
 **Parameters:** `(opts: {mode: string, cols: number, rows: number, meta?: object, project?: string}, callback: Function)`  
@@ -27,6 +29,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 **Errors:** Invalid parameters, project not found, PTY creation failure
 
 #### attach
+
 **Purpose:** Attach to existing session  
 **Handler:** SessionHandler  
 **Parameters:** `(opts: {sessionId: string, cols: number, rows: number}, callback: Function)`  
@@ -34,6 +37,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 **Errors:** Session not found, invalid dimensions, permission denied
 
 #### list
+
 **Purpose:** Get all accessible sessions  
 **Handler:** SessionHandler  
 **Parameters:** `(callback: Function)`  
@@ -41,6 +45,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 **Errors:** None (always succeeds with empty array)
 
 #### end
+
 **Purpose:** Terminate session and cleanup resources  
 **Handler:** SessionHandler  
 **Parameters:** `(sessionId?: string)`  
@@ -50,6 +55,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 ### Project Management Events
 
 #### listProjects
+
 **Purpose:** Get all accessible projects  
 **Handler:** ProjectHandler  
 **Parameters:** `(callback: Function)`  
@@ -59,6 +65,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 ### Terminal I/O Events
 
 #### input
+
 **Purpose:** Send input data to attached session  
 **Handler:** TerminalIOHandler  
 **Parameters:** `(data: string)`  
@@ -66,6 +73,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 **Errors:** No attached session, session terminated
 
 #### resize
+
 **Purpose:** Resize terminal dimensions  
 **Handler:** TerminalIOHandler  
 **Parameters:** `(dims: {cols: number, rows: number})`  
@@ -73,6 +81,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 **Errors:** Invalid dimensions, no attached session
 
 #### detach
+
 **Purpose:** Detach from session without termination  
 **Handler:** TerminalIOHandler  
 **Parameters:** None  
@@ -82,6 +91,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 ### Claude Authentication Events
 
 #### start-claude-auth
+
 **Purpose:** Initiate Claude OAuth authentication flow  
 **Handler:** ClaudeAuthHandler  
 **Parameters:** `(callback: Function)`  
@@ -89,6 +99,7 @@ The refactored architecture will maintain the existing Socket.IO API contract wh
 **Errors:** OAuth service unavailable, configuration missing
 
 #### submit-claude-token
+
 **Purpose:** Complete Claude authentication with OAuth token  
 **Handler:** ClaudeAuthHandler  
 **Parameters:** `(tokenData: object, callback: Function)`  
@@ -103,16 +114,16 @@ The SocketRouter will dispatch events to appropriate handlers while maintaining 
 
 ```javascript
 class SocketRouter {
-  constructor(handlers, middlewares) {
-    this.handlers = handlers;
-    this.middlewares = middlewares;
-  }
-  
-  async route(eventName, socket, ...args) {
-    // Apply middleware chain (auth, validation, rate limiting)
-    // Dispatch to appropriate handler
-    // Handle response formatting and error handling
-  }
+	constructor(handlers, middlewares) {
+		this.handlers = handlers;
+		this.middlewares = middlewares;
+	}
+
+	async route(eventName, socket, ...args) {
+		// Apply middleware chain (auth, validation, rate limiting)
+		// Dispatch to appropriate handler
+		// Handle response formatting and error handling
+	}
 }
 ```
 
@@ -133,7 +144,7 @@ interface EventHandler {
 Authentication and validation will be applied consistently:
 
 1. **AuthenticationMiddleware** - Verify terminal key for protected operations
-2. **ValidationMiddleware** - Validate input parameters and formats  
+2. **ValidationMiddleware** - Validate input parameters and formats
 3. **RateLimitMiddleware** - Apply rate limiting rules per connection
 4. **LoggingMiddleware** - Log events for debugging and monitoring
 
@@ -149,8 +160,8 @@ interface StorageService {
   updateSession(sessionId: string, updates: Partial<SessionMetadata>): Promise<void>;
   deleteSession(sessionId: string): Promise<void>;
   listSessions(): Promise<SessionMetadata[]>;
-  
-  // Project operations  
+
+  // Project operations
   createProject(projectData: ProjectMetadata): Promise<string>;
   getProject(projectId: string): Promise<ProjectMetadata | null>;
   updateProject(projectId: string, updates: Partial<ProjectMetadata>): Promise<void>;

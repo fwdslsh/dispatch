@@ -3,92 +3,92 @@
  * Provides reactive state management and validation framework
  */
 export class BaseModel {
-  constructor(initialState = {}) {
-    this._state = { ...initialState };
-    this._disposed = false;
-    this.onChange = null; // Override in subclasses or set externally
-  }
+	constructor(initialState = {}) {
+		this._state = { ...initialState };
+		this._disposed = false;
+		this.onChange = null; // Override in subclasses or set externally
+	}
 
-  /**
-   * Get current state (immutable copy)
-   */
-  get state() {
-    return { ...this._state };
-  }
+	/**
+	 * Get current state (immutable copy)
+	 */
+	get state() {
+		return { ...this._state };
+	}
 
-  /**
-   * Update state with validation and change notification
-   * @param {Object} updates - Partial state updates
-   */
-  setState(updates) {
-    if (this._disposed) {
-      throw new Error('Cannot update state: Model has been disposed');
-    }
+	/**
+	 * Update state with validation and change notification
+	 * @param {Object} updates - Partial state updates
+	 */
+	setState(updates) {
+		if (this._disposed) {
+			throw new Error('Cannot update state: Model has been disposed');
+		}
 
-    const newState = { ...this._state, ...updates };
-    
-    if (this.validate && !this.validate(newState)) {
-      return false;
-    }
+		const newState = { ...this._state, ...updates };
 
-    this._state = newState;
-    
-    if (this.onChange) {
-      this.onChange(this.state);
-    }
+		if (this.validate && !this.validate(newState)) {
+			return false;
+		}
 
-    return true;
-  }
+		this._state = newState;
 
-  /**
-   * Reset state to initial values
-   */
-  reset() {
-    if (this._disposed) return;
-    
-    this._state = {};
-    if (this.onChange) {
-      this.onChange(this.state);
-    }
-  }
+		if (this.onChange) {
+			this.onChange(this.state);
+		}
 
-  /**
-   * Validate state - override in subclasses
-   * @param {Object} state - State to validate
-   * @returns {boolean} - True if valid
-   */
-  validate(state) {
-    return true; // Default: all states are valid
-  }
+		return true;
+	}
 
-  /**
-   * Serialize model to JSON
-   */
-  toJSON() {
-    return this.state;
-  }
+	/**
+	 * Reset state to initial values
+	 */
+	reset() {
+		if (this._disposed) return;
 
-  /**
-   * Load state from JSON
-   * @param {Object} data - JSON data to load
-   */
-  fromJSON(data) {
-    this.setState(data);
-  }
+		this._state = {};
+		if (this.onChange) {
+			this.onChange(this.state);
+		}
+	}
 
-  /**
-   * Dispose of the model and clean up resources
-   */
-  dispose() {
-    this._disposed = true;
-    this._state = {};
-    this.onChange = null;
-  }
+	/**
+	 * Validate state - override in subclasses
+	 * @param {Object} state - State to validate
+	 * @returns {boolean} - True if valid
+	 */
+	validate(state) {
+		return true; // Default: all states are valid
+	}
 
-  /**
-   * Check if model has been disposed
-   */
-  get isDisposed() {
-    return this._disposed;
-  }
+	/**
+	 * Serialize model to JSON
+	 */
+	toJSON() {
+		return this.state;
+	}
+
+	/**
+	 * Load state from JSON
+	 * @param {Object} data - JSON data to load
+	 */
+	fromJSON(data) {
+		this.setState(data);
+	}
+
+	/**
+	 * Dispose of the model and clean up resources
+	 */
+	dispose() {
+		this._disposed = true;
+		this._state = {};
+		this.onChange = null;
+	}
+
+	/**
+	 * Check if model has been disposed
+	 */
+	get isDisposed() {
+		return this._disposed;
+	}
 }

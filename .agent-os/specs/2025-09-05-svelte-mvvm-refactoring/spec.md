@@ -11,16 +11,19 @@ Transform the Dispatch codebase from oversized god components with inconsistent 
 ## User Stories
 
 ### Developer Maintainability
+
 As a developer maintaining the Dispatch codebase, I want components under 300 lines with clear separation between view logic and business logic so that I can easily understand, modify, and test individual components without navigating through massive files or understanding the entire codebase.
 
 The current Projects.svelte (746 lines) violates SRP by handling project listing, creation, editing, validation, session management, and socket connections, making it fragile and difficult to extend with new features.
 
 ### Code Quality and Testing
+
 As a developer, I want properly separated ViewModels and Services with simple constructor injection so that I can write comprehensive unit tests for business logic without complex mocking or understanding UI implementation details.
 
 The current tight coupling makes it nearly impossible to test business logic independently from UI components.
 
 ### Architecture Consistency
+
 As a team member, I want consistent MVVM patterns and standardized foundation components so that I can build new features efficiently using established patterns without recreating UI primitives or state management approaches.
 
 ## Spec Scope

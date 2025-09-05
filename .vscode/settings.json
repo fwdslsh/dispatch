@@ -1,17 +1,13 @@
 {
-    "files.exclude": {
-        "**/.git": true,
-        "**/.svn": true,
-        "**/.hg": true,
-        "**/.DS_Store": true,
-        "**/Thumbs.db": true,
-        "**/node_modules": true,
-        "**/.svelte-kit": true,
-        "**/build": true
-    },
-    "cSpell.words": [
-        "appuser",
-        "sandboxing",
-        "Unsubscribers"
-    ]
+	"files.exclude": {
+		"**/.git": true,
+		"**/.svn": true,
+		"**/.hg": true,
+		"**/.DS_Store": true,
+		"**/Thumbs.db": true,
+		"**/node_modules": true,
+		"**/.svelte-kit": true,
+		"**/build": true
+	},
+	"cSpell.words": ["appuser", "sandboxing", "Unsubscribers"]
 }
