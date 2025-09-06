@@ -5,6 +5,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 ## Technical Requirements
 
 ### Chat Interface Implementation
+
 - Implement `ChatInterface.svelte` component with message history display using virtual scrolling for performance
 - Design message components with distinct styling for user vs assistant messages
 - Implement typing indicator overlay that appears during Claude Code processing
@@ -12,6 +13,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Handle message formatting including code blocks, markdown, and special Claude Code outputs
 
 ### Claude Code SDK Integration
+
 - Install and configure `@anthropic-ai/claude-code-sdk` package
 - Create `ClaudeCodeService` class to wrap SDK functionality
 - Implement `query()` method integration with proper error handling
@@ -20,6 +22,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Implement message queuing to prevent concurrent requests
 
 ### Command Menu Implementation
+
 - Create `CommandMenu.svelte` component with searchable command list
 - Implement keyboard shortcut (Cmd/Ctrl + K) to trigger menu
 - Pre-populate with Claude Code commands from the current project/session
@@ -27,6 +30,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Cache commands per session
 
 ### Authentication System
+
 - Integrate with Claude.ai subscription authentication using existing Claude CLI credentials
 - Create `/auth/claude` endpoint to handle login status verification
 - Utilize Claude Code SDK's built-in authentication that uses stored credentials
@@ -36,16 +40,18 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Handle login prompts by directing users to use `/login` command in terminal
 
 ### Settings Panel
+
 - Create `ChatSettings.svelte` component with tabbed interface
 - Implement forms for configuring:
   - Allowed tools (with checkbox list from SDK)
-  - Permission mode (dropdown list from SDK)  
+  - Permission mode (dropdown list from SDK)
   - Model selection (dropdown with available models)
   - MCP server configuration (JSON editor / file uploader)
 - Store settings in database per user/session
 - Apply settings to SDK initialization on chat load
 
 ### UI/UX Specifications
+
 - Responsive design supporting desktop and tablet viewports
 - Theme support matching existing Dispatch theme
 - Typing indicator using CSS animation (three dots pulse)
@@ -55,6 +61,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Unread message indicator when scrolled up
 
 ### Integration Requirements
+
 - Extend existing Socket.IO infrastructure for real-time updates
 - Add new socket events: 'claude:query', 'claude:response', 'claude:typing'
 - Integrate with existing session management system
@@ -63,6 +70,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 - Maintain compatibility with existing terminal functionality
 
 ### Performance Criteria
+
 - Initial chat interface load time < 500ms
 - Message rendering < 100ms per message
 - Typing indicator response time < 200ms

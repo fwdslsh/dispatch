@@ -49,7 +49,7 @@
 ## Containerization
 
 - **Container Runtime:** Docker
-- **Base Images:** 
+- **Base Images:**
   - Build: node:22-slim
   - Runtime: node:22-slim
 - **User:** Non-root (appuser, uid 10001)

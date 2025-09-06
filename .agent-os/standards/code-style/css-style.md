@@ -14,17 +14,17 @@ We use PicoCSS and modern CSS features for all styling.
 
 ```css
 :root {
-  --radius: 0.5rem;
+	--radius: 0.5rem;
 }
 
 .card {
-  background: var(--pico-primary);
-  border-radius: var(--radius);
-  padding: 1rem;
-  color: white;
-  
-  & h2 {
-    margin-top: 0;
-  }
+	background: var(--pico-primary);
+	border-radius: var(--radius);
+	padding: 1rem;
+	color: white;
+
+	& h2 {
+		margin-top: 0;
+	}
 }
 ```

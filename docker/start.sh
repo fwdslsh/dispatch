@@ -37,11 +37,6 @@ else
     echo "  ⚠️  DISPATCH_PROJECTS_DIR not set, using defaults"
 fi
 
-# Legacy PTY_ROOT support (deprecated)
-if [ -n "$PTY_ROOT" ]; then
-    echo "  ⚠️  PTY_ROOT is deprecated, please use DISPATCH_CONFIG_DIR and DISPATCH_PROJECTS_DIR"
-    mkdir -p "$PTY_ROOT"
-fi
 
 # Verify directory permissions
 echo "Verifying directory permissions..."

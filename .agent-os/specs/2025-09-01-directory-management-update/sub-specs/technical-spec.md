@@ -22,7 +22,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 
 ### Environment Variable Support
 
-- Add DISPATCH_CONFIG_DIR support with default `~/.config/dispatch` or `/etc/dispatch` 
+- Add DISPATCH_CONFIG_DIR support with default `~/.config/dispatch` or `/etc/dispatch`
 - Add DISPATCH_PROJECTS_DIR support with default `~/dispatch-projects` or `/var/lib/dispatch/projects`
 - Update `src/app.js` to respect these environment variables
 - Modify session store to save configuration in DISPATCH_CONFIG_DIR

@@ -9,7 +9,9 @@ Use a sqlite database of server needs and indexdb for client side
 ### New Tables
 
 #### chat_sessions
+
 Stores chat session metadata and configuration
+
 ```sql
 CREATE TABLE chat_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -26,7 +28,9 @@ CREATE INDEX idx_chat_sessions_user_id ON chat_sessions(user_id);
 ```
 
 #### chat_messages
+
 Stores all chat messages between users and Claude
+
 ```sql
 CREATE TABLE chat_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -43,7 +47,9 @@ CREATE INDEX idx_chat_messages_created ON chat_messages(created_at DESC);
 ```
 
 #### chat_settings
+
 Stores user-specific chat configuration and preferences
+
 ```sql
 CREATE TABLE chat_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,9 +67,10 @@ CREATE TABLE chat_settings (
 CREATE INDEX idx_chat_settings_session ON chat_settings(chat_session_id);
 ```
 
-
 #### command_usage
+
 Tracks command usage for analytics and quick access
+
 ```sql
 CREATE TABLE command_usage (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -81,6 +88,7 @@ CREATE INDEX idx_command_usage_frequency ON command_usage(usage_count DESC);
 ## Migrations
 
 ### Migration 001: Initial Chat Schema
+
 ```sql
 -- Up Migration
 BEGIN;
