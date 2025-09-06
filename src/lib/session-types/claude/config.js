@@ -19,14 +19,7 @@ export const CLAUDE_CONFIG = {
 	MAX_TOKENS_LIMIT: 100000,
 	MIN_TEMPERATURE: 0.0,
 	MAX_TEMPERATURE: 1.0,
-	
-	// Terminal dimensions specific to Claude sessions
-	DEFAULT_DIMENSIONS: { cols: 120, rows: 30 },
-	MIN_COLS: 80,
-	MAX_COLS: 200,
-	MIN_ROWS: 24,
-	MAX_ROWS: 100,
-	
+		
 	// Conversation and history limits
 	MAX_CONVERSATION_HISTORY: 100,
 	CONVERSATION_TRIM_SIZE: 50,
@@ -71,11 +64,5 @@ export const CLAUDE_CONFIG = {
 	// Default system prompt
 	DEFAULT_SYSTEM_PROMPT: 'You are Claude, an AI assistant created by Anthropic. You are helping with software development.',
 	
-	// Environment variables for Claude sessions
-	DEFAULT_ENV_VARS: {
-		TERM: 'xterm-256color',
-		COLORTERM: 'truecolor',
-		EDITOR: 'nano',
-		PAGER: 'less'
-	}
+
 };

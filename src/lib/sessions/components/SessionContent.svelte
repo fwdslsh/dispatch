@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { getSessionType } from '$lib/session-types/client.js';
 	import Terminal from '$lib/session-types/shell/components/Terminal.svelte';
-	import ChatInterface from '$lib/shared/components/ChatInterface.svelte';
+	import ChatInterface from '$lib/session-types/claude/components/ChatInterface.svelte';
 	
 	// Fallback imports for session type views
 	import ShellSessionView from '$lib/session-types/shell/ShellSessionView.svelte';

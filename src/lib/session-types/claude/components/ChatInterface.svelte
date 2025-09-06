@@ -8,7 +8,6 @@
 	import 'prismjs/components/prism-python.js';
 	import 'prismjs/components/prism-bash.js';
 	import 'prismjs/components/prism-json.js';
-	import { getClaudeAuthContext } from '../../session-types/claude/utils/claude-auth-context.svelte.js';
 
 	// Props
 	let {
@@ -16,7 +15,6 @@
 		socket = null,
 		onSendMessage = () => {},
 		height = '400px',
-		claudeAuthContext = null
 	} = $props();
 
 	// Chat state
@@ -25,12 +23,12 @@
 	let messageInput = $state('');
 	let messageContainer;
 	let virtualList;
-
-	// Get Claude auth context - use prop if provided, otherwise get from context
-	const claudeAuth = claudeAuthContext || getClaudeAuthContext();
+	
+	// Claude authentication state
+	let isAuthenticated = $state(false);
 
 	// Initialize marked configuration
-	onMount(() => {
+	onMount(async () => {
 		marked.setOptions({
 			highlight: function (code, lang) {
 				if (lang && Prism.languages[lang]) {
@@ -43,7 +41,28 @@
 		});
 
 		loadChatHistory();
+		
+		// Check Claude authentication status
+		checkAuthStatus();
 	});
+	
+	/**
+	 * Check Claude authentication status
+	 */
+	async function checkAuthStatus() {
+		try {
+			// Note: claudeCodeService only works in Node.js environments
+			// In browser, we'll assume not authenticated and rely on server-side auth
+			if (typeof window !== 'undefined') {
+				isAuthenticated = false;
+			} else {
+				isAuthenticated = claudeCodeService.isAuthenticated();
+			}
+		} catch (error) {
+			console.warn('Could not check Claude auth status:', error);
+			isAuthenticated = false;
+		}
+	}
 
 	// Auto-scroll to bottom after updates
 	$effect(() => {
@@ -117,7 +136,7 @@
 		console.log('sendMessage called');
 		const content = messageInput.trim();
 		console.log('Message content:', content);
-		console.log('Claude auth state:', claudeAuth.authState);
+		console.log('Claude auth state:', isAuthenticated);
 
 		if (!content) {
 			console.log('No content, returning');
@@ -179,8 +198,8 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
 
 		// Trigger a refresh of auth status after a short delay
 		setTimeout(async () => {
-			await claudeAuth.refresh();
-			if (claudeAuth.authenticated) {
+			await checkAuthStatus();
+			if (isAuthenticated) {
 				addMessage({
 					id: (Date.now() + 2).toString(),
 					sender: 'assistant',
@@ -281,10 +300,11 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
 	 * Query Claude with the given prompt
 	 */
 	async function queryClaude(prompt) {
-		if (!claudeAuth.authenticated) {
+		if (!isAuthenticated) {
 			addMessage({
 				sender: 'assistant',
-				content: 'Not authenticated with Claude CLI. Please run: `claude setup-token`'
+				content: 'Not authenticated with Claude CLI. Please run: `claude setup-token`',
+				timestamp: new Date()
 			});
 			return;
 		}
@@ -292,16 +312,18 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
 		setTyping(true);
 
 		try {
-			const response = await claudeAuth.query(prompt);
+			const response = await claudeCodeService.query(prompt);
 			addMessage({
 				sender: 'assistant',
-				content: response
+				content: response,
+				timestamp: new Date()
 			});
 		} catch (error) {
 			console.error('Claude query failed:', error);
 			addMessage({
 				sender: 'assistant',
-				content: `Error: ${error.message}`
+				content: `Error: ${error.message}`,
+				timestamp: new Date()
 			});
 		} finally {
 			setTyping(false);
@@ -367,7 +389,7 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
 		></textarea>
 		<button
 			onclick={sendMessage}
-			disabled={!messageInput.trim() || (!claudeAuth.authenticated && !isLoginCommand)}
+			disabled={!messageInput.trim() || (!isAuthenticated && !isLoginCommand)}
 			class="send-button"
 			data-augmented-ui="tl-clip br-clip border"
 		>
@@ -376,7 +398,7 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
 	</div>
 
 	<!-- Authentication status -->
-	{#if !claudeAuth.authenticated}
+	{#if !isAuthenticated}
 		<div class="auth-warning" data-augmented-ui="border">
 			<span>⚠️ Not authenticated with Claude CLI</span>
 			<small

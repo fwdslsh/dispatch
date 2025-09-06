@@ -1,7 +1,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { CommandMenuViewModel } from '../CommandMenuViewModel.svelte.js';
-	import { CommandService } from '../../utils/CommandService.js';
+	import { CommandService } from './CommandService.js';
 	import CommandSearchInput from './CommandSearchInput.svelte';
 	import CommandList from './CommandList.svelte';
 

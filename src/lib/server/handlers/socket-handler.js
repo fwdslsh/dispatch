@@ -4,6 +4,7 @@
  */
 
 import { TerminalManager } from '../../session-types/shell/server/terminal.server.js';
+import createClaudeHandlers from '../../session-types/claude/server/claude-socket-handler.server.js';
 import DirectoryManager from '../services/directory-manager.js';
 import storageManager from '../services/storage-manager.js';
 import fs from 'fs';
@@ -32,6 +33,11 @@ const directoryManager = new DirectoryManager();
 function createSocketHandler(io) {
 	return (socket) => {
 		console.log('Socket connected:', socket.id);
+
+		// Initialize Claude handlers for this socket
+		const claudeHandlers = createClaudeHandlers(socket, {
+			logger: console
+		});
 
 		// Simple authentication
 		socket.on('auth', (key, callback) => {
@@ -384,6 +390,11 @@ function createSocketHandler(io) {
 			if (sessionId) {
 				// Don't end the session, just detach the socket
 				socketSessions.delete(socket.id);
+			}
+
+			// Clean up Claude handlers
+			if (claudeHandlers && typeof claudeHandlers.cleanup === 'function') {
+				claudeHandlers.cleanup();
 			}
 		});
 	};

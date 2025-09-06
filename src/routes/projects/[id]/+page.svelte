@@ -1,8 +1,8 @@
 <!-- 
-  Simplified Project Page Component - MVVM Example
+  Project Page - Simplified Session Interface
   
-  This demonstrates how to use the ProjectPageViewModel to separate business logic
-  from presentation. The component is now much simpler and focused only on UI.
+  Uses the new SessionTypeSelector for clean session type selection.
+  Much simpler than the previous complex ViewModel approach.
 -->
 
 <script>
@@ -10,216 +10,301 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   
-  // UI Components
-  import Container from '$lib/shared/components/Container.svelte';
-  import HeaderToolbar from '$lib/shared/components/HeaderToolbar.svelte';
-  import Terminal from '$lib/session-types/shell/components/Terminal.svelte';
-  import Chat from '$lib/shared/components/ChatInterface.svelte';
+  // Simplified session selector
+  import SessionTypeSelector from '$lib/sessions/components/SessionTypeSelector.svelte';
   import BackIcon from '$lib/shared/components/Icons/BackIcon.svelte';
   
-  // Session creation components
-  import CreationFormContainer from '$lib/sessions/components/CreationFormContainer.svelte';
-  import SessionList from '$lib/sessions/components/SessionList.svelte';
-  
-  // Simple ViewModel (not complex service injection)
-  import { ProjectPageViewModel } from '../../../lib/projects/contexts/ProjectPageViewModel.svelte.js';
-  import { createClaudeAuthContext } from '$lib/session-types/claude/utils/claude-auth-context.svelte.js';
-  
-  // Create ViewModel with simple parameters
   const projectId = $derived(page.params.id);
   
-  // Initialize socket (this could be from a simple shared store)
-  let socket = null;
-  let vm = null;
+  // Simple state
+  let sessionType = $state('shell'); // 'shell' or 'claude'
+  let currentProject = $state(null);
+  let hasActiveSession = $state(false);
   
-  // Claude auth context for chat components
-  const claudeAuthContext = createClaudeAuthContext();
-  
-  // Initialize on mount
   onMount(async () => {
-    // Simple socket connection (could be from a shared store)
-    const { io } = await import('socket.io-client');
-    socket = io();
-    
-    // Create ViewModel with simple parameters - no complex dependency injection
-    vm = new ProjectPageViewModel(projectId, socket);
-    
-    // Initialize ViewModel
-    await vm.initialize();
-    
-    // Cleanup on unmount
-    return () => {
-      vm?.destroy();
-      socket?.disconnect();
-    };
+    // Load project info (simplified)
+    try {
+      // This would typically fetch from an API or local storage
+      currentProject = {
+        id: projectId,
+        name: `Project ${projectId}`,
+        description: 'Development project'
+      };
+    } catch (error) {
+      console.error('Error loading project:', error);
+    }
   });
   
-  // Simple event handlers that delegate to ViewModel
-  function handleCreateSession(sessionData) {
-    vm?.handleCreateSession(sessionData);
+  function handleSessionCreated(event) {
+    console.log('Session created:', event);
+    hasActiveSession = true;
   }
   
-  function handleStartClaudeAuth() {
-    vm?.startClaudeAuth();
-  }
-  
-  function handleSubmitClaudeToken() {
-    vm?.submitClaudeToken();
+  function handleSessionEnded(event) {
+    console.log('Session ended:', event);
+    hasActiveSession = false;
   }
   
   function handleBack() {
-    vm?.hideAllComponents();
     goto('/projects');
+  }
+  
+  function startShellSession() {
+    sessionType = 'shell';
+    hasActiveSession = true;
+  }
+  
+  function startClaudeSession() {
+    sessionType = 'claude';
+    hasActiveSession = true;
+  }
+  
+  function endSession() {
+    hasActiveSession = false;
   }
 </script>
 
-<!-- Clean template focused only on presentation -->
-{#if vm?.isInitialized}
-  <Container>
-    <HeaderToolbar>
-      <button onclick={handleBack} class="back-button">
-        <BackIcon />
-        Back to Projects
-      </button>
-      
-      {#if vm.currentProject}
-        <h1>{vm.currentProject.name}</h1>
-        <p>{vm.currentProject.description}</p>
-      {/if}
-      
-      <div class="status">
-        {vm.isOnline ? '🟢 Online' : '🔴 Offline'}
-      </div>
-    </HeaderToolbar>
-
-    <!-- Claude Authentication UI -->
-    {#if vm.claudeAuthState === 'not-authenticated'}
-      <div class="claude-auth-section">
-        <h3>Claude Authentication Required</h3>
-        <button onclick={handleStartClaudeAuth}>Authenticate with Claude</button>
+<div class="project-page">
+  <!-- Header -->
+  <header class="project-header">
+    <button onclick={handleBack} class="back-button">
+      <BackIcon />
+      Back to Projects
+    </button>
+    
+    {#if currentProject}
+      <div class="project-info">
+        <h1>{currentProject.name}</h1>
+        <p>{currentProject.description}</p>
       </div>
     {/if}
+  </header>
 
-    {#if vm.claudeAuthState === 'waiting-for-token' && vm.claudeOAuthUrl}
-      <div class="token-input-section">
-        <p>Open this URL: <a href={vm.claudeOAuthUrl} target="_blank">{vm.claudeOAuthUrl}</a></p>
-        <input 
-          bind:value={vm.claudeAuthToken} 
-          placeholder="Paste your token here"
-        />
-        <button onclick={handleSubmitClaudeToken}>Submit Token</button>
-      </div>
-    {/if}
-
-    <!-- Session Creation Form - shown/hidden based on simple reactive state -->
-    {#if vm.showSessionForm}
-      <CreationFormContainer 
-        onSessionCreate={handleCreateSession}
-        availableTypes={[
-          { id: 'shell', name: 'Shell Terminal' },
-          ...(vm.canCreateClaude ? [{ id: 'claude', name: 'Claude Code' }] : [])
-        ]}
-      />
-    {/if}
-
-    <!-- Terminal Component - simple {#if} instead of complex mounting -->
-    {#if vm.showTerminal && vm.currentSession}
-      <Terminal 
-        sessionId={vm.currentSession.sessionId}
-        {socket}
-      />
-    {/if}
-
-    <!-- Chat Component - simple {#if} instead of complex mounting -->
-    {#if vm.showChat && vm.currentSession}
-      <Chat 
-        sessionId={vm.currentSession.sessionId}
-        {socket}
-        claudeAuthContext={claudeAuthContext}
-      />
-    {/if}
-
-    <!-- Sessions List -->
-    <SessionList 
-      projectId={projectId}
-      {socket}
-    />
-
-    <!-- Action Buttons -->
-    <div class="actions">
-      {#if !vm.showSessionForm && !vm.currentSession}
-        <button onclick={() => vm.showCreateForm()}>
-          Create New Session
+  <!-- Session Selection or Active Session -->
+  {#if !hasActiveSession}
+    <div class="session-selection">
+      <h2>Choose Session Type</h2>
+      <div class="session-buttons">
+        <button onclick={startShellSession} class="session-btn shell">
+          <div class="session-icon">🖥️</div>
+          <h3>Shell Terminal</h3>
+          <p>Interactive command line interface</p>
         </button>
-      {/if}
-      
-      {#if vm.currentSession}
-        <button onclick={() => vm.hideAllComponents()}>
-          Close Session
+        
+        <button onclick={startClaudeSession} class="session-btn claude">
+          <div class="session-icon">🤖</div>
+          <h3>Claude AI</h3>
+          <p>AI-powered coding assistant</p>
         </button>
-      {/if}
+      </div>
     </div>
-  </Container>
-
-{:else}
-  <!-- Simple loading state -->
-  <Container>
-    <p>Loading project...</p>
-  </Container>
-{/if}
+  {:else}
+    <!-- Active Session -->
+    <div class="session-container">
+      <div class="session-header">
+        <h3>
+          {sessionType === 'shell' ? '🖥️ Shell Terminal' : '🤖 Claude AI'}
+        </h3>
+        <button onclick={endSession} class="end-session-btn">
+          End Session
+        </button>
+      </div>
+      
+      <div class="session-content">
+        <SessionTypeSelector
+          sessionType={sessionType}
+          projectId={projectId}
+          onSessionCreated={handleSessionCreated}
+          onSessionEnded={handleSessionEnded}
+        />
+      </div>
+    </div>
+  {/if}
+</div>
 
 <style>
+  .project-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-dark, #0a0a0a);
+    color: var(--text-primary, #ffffff);
+  }
+
+  .project-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    background: var(--surface, #1a1a1a);
+    border-bottom: 1px solid var(--border, #333);
+  }
+
   .back-button {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--surface-variant, #2a2a2a);
+    border: 1px solid var(--border, #333);
+    color: var(--text-primary, #ffffff);
     border-radius: 6px;
     cursor: pointer;
+    transition: background 0.2s;
   }
 
-  .claude-auth-section {
-    padding: 1rem;
-    background: var(--warning-bg);
-    border-radius: 8px;
-    margin: 1rem 0;
+  .back-button:hover {
+    background: var(--surface-hover, #3a3a3a);
   }
 
-  .token-input-section {
-    padding: 1rem;
-    background: var(--info-bg);
-    border-radius: 8px;
-    margin: 1rem 0;
+  .project-info h1 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.5rem;
+    color: var(--primary, #00d4ff);
   }
 
-  .token-input-section input {
-    width: 100%;
-    padding: 0.5rem;
-    margin: 0.5rem 0;
-    border: 1px solid var(--border);
-    border-radius: 4px;
+  .project-info p {
+    margin: 0;
+    color: var(--text-secondary, #aaa);
+    font-size: 0.875rem;
   }
 
-  .actions {
+  .session-selection {
+    flex: 1;
     display: flex;
-    gap: 1rem;
-    padding: 1rem 0;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
+    padding: 2rem;
+    text-align: center;
   }
 
-  .actions button {
-    padding: 0.75rem 1.5rem;
-    background: var(--primary);
-    color: white;
+  .session-selection h2 {
+    margin: 0 0 2rem 0;
+    font-size: 1.75rem;
+    color: var(--text-primary, #ffffff);
+  }
+
+  .session-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    max-width: 800px;
+    width: 100%;
+  }
+
+  .session-btn {
+    padding: 2rem;
+    background: var(--surface, #1a1a1a);
+    border: 2px solid var(--border, #333);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    color: var(--text-primary, #ffffff);
+  }
+
+  .session-btn:hover {
+    border-color: var(--primary, #00d4ff);
+    background: var(--surface-hover, #252525);
+    transform: translateY(-2px);
+  }
+
+  .session-btn.shell:hover {
+    border-color: var(--success, #00ff88);
+    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.2);
+  }
+
+  .session-btn.claude:hover {
+    border-color: var(--primary, #00d4ff);
+    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.2);
+  }
+
+  .session-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .session-btn h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+  }
+
+  .session-btn p {
+    margin: 0;
+    color: var(--text-secondary, #aaa);
+    font-size: 0.875rem;
+  }
+
+  .session-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: var(--surface, #1a1a1a);
+    border-bottom: 1px solid var(--border, #333);
+  }
+
+  .session-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary, #ffffff);
+  }
+
+  .end-session-btn {
+    padding: 0.5rem 1rem;
+    background: var(--error, #ff4444);
     border: none;
+    color: white;
     border-radius: 6px;
     cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.2s;
   }
 
-  .status {
-    font-size: 0.9rem;
-    font-weight: 500;
+  .end-session-btn:hover {
+    background: var(--error-hover, #ff6666);
+  }
+
+  .session-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .project-header {
+      padding: 0.75rem 1rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .session-buttons {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .session-btn {
+      padding: 1.5rem;
+    }
+
+    .session-header {
+      padding: 0.75rem 1rem;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+
+    .session-selection {
+      padding: 1rem;
+    }
   }
 </style>

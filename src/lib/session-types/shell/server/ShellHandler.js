@@ -5,7 +5,7 @@
  * Integrates with existing TerminalManager for PTY session management.
  */
 
-import { TerminalManager } from "./server/terminal.server";
+import { TerminalManager } from "./terminal.server";
 
 
 let terminalManager = null;

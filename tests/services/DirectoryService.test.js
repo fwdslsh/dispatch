@@ -3,7 +3,7 @@
  * Tests directory listing, path validation, navigation logic, and caching
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { DirectoryService } from '../../src/lib/shared/services/DirectoryService.js';
+import { DirectoryService } from '../../src/lib/shared/server/DirectoryService.js';
 
 describe('DirectoryService', () => {
 	let directoryService;

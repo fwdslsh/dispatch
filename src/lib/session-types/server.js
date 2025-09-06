@@ -10,7 +10,7 @@ export { shellSessionType } from './shell/index.js';
 export { claudeSessionType } from './claude/index.js';
 
 // Server-side handlers
-export { createShellHandlers } from './shell/ShellHandler.js';
+export { createShellHandlers } from './shell/server/ShellHandler.js';
 export { createClaudeHandlers } from './claude/ClaudeHandler.js';
 
 /**

@@ -4,12 +4,12 @@
  * Enhanced with $derived patterns and comprehensive reactive state
  */
 export class BaseViewModel {
-	constructor(model, services = {}) {
+	constructor(model = null, services = {}) {
 		this.model = model;
 		this.services = services;
 
 		// Core reactive state using $state
-		this._reactiveState = $state(model.state);
+		this._reactiveState = $state(model?.state || {});
 		this._loading = $state(false);
 		this._error = $state(null);
 		this._validationErrors = $state(new Map());
@@ -49,14 +49,16 @@ export class BaseViewModel {
 		}));
 
 		// Listen to model changes and update reactive state
-		if (model.onChange) {
-			const originalOnChange = model.onChange;
-			model.onChange = (newState) => {
-				this._updateReactiveState(newState);
-				if (originalOnChange) originalOnChange(newState);
-			};
-		} else {
-			model.onChange = (newState) => this._updateReactiveState(newState);
+		if (model) {
+			if (model.onChange) {
+				const originalOnChange = model.onChange;
+				model.onChange = (newState) => {
+					this._updateReactiveState(newState);
+					if (originalOnChange) originalOnChange(newState);
+				};
+			} else {
+				model.onChange = (newState) => this._updateReactiveState(newState);
+			}
 		}
 	}
 

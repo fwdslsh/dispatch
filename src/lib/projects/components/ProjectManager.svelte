@@ -16,7 +16,7 @@
 	let { terminalKey = '' } = $props();
 
 	// Initialize services and ViewModel
-	const projectService = new ProjectService();
+	const projectService = new ProjectService(terminalKey);
 	const viewModel = new ProjectViewModel(projectService);
 
 	// Reactive state from ViewModel

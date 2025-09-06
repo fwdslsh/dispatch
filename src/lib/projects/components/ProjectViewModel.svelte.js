@@ -3,7 +3,7 @@
  * Extends BaseViewModel with Svelte 5 runes for reactive state management
  */
 import { BaseViewModel } from '../../shared/contexts/BaseViewModel.svelte.js';
-import { ValidationError } from '../../shared/services/ValidationError.js';
+import { ValidationError } from '../../shared/utils/ValidationError.js';
 import { goto } from '$app/navigation';
 
 export class ProjectViewModel extends BaseViewModel {
@@ -179,7 +179,7 @@ export class ProjectViewModel extends BaseViewModel {
 				const response = await this.service.getProjects();
 				
 				if (response.success) {
-					this.projects = response.projects || [];
+					this.projects = response.data || [];
 					this.activeProject = response.activeProject;
 					return response;
 				} else {
@@ -214,8 +214,8 @@ export class ProjectViewModel extends BaseViewModel {
 					this.showCreateForm = false;
 					
 					// Navigate to the new project if ID is provided
-					if (response.project?.id) {
-						this.goto(`/projects/${response.project.id}`);
+					if (response.data?.id) {
+						this.goto(`/projects/${response.data.id}`);
 					}
 					
 					return response;

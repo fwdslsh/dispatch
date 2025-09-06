@@ -13,8 +13,8 @@
   let { selectedType = null, projectId = null, onSessionCreate = null, onValidationError = null } = $props();
   
   // Static form component imports
-  import ShellCreationForm from '../../session-types/shell/ShellCreationForm.svelte';
-  import ClaudeCreationForm from '../../session-types/claude/ClaudeCreationForm.svelte';
+  import ShellCreationForm from '../../session-types/shell/components/ShellCreationForm.svelte';
+  import ClaudeCreationForm from '../../session-types/claude/components/ClaudeCreationForm.svelte';
   
   // Form data binding
   let sessionData = $state(null);
