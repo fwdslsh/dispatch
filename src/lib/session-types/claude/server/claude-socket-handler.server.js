@@ -1,6 +1,6 @@
 /**
  * Claude Socket.IO Handler - Server-side Claude Code service integration
- * 
+ *
  * Wraps claude-code-service in Socket.IO handlers for client communication.
  * Handles authentication, chat messages, and session management.
  */
@@ -13,323 +13,317 @@ import { claudeCodeService } from './claude-code-service.server.js';
  * @param {Object} options - Handler options
  */
 export function createClaudeHandlers(socket, options = {}) {
-  const { 
-    sessionManager = null,
-    logger = console 
-  } = options;
+	const { sessionManager = null, logger = console } = options;
 
-  // Claude session state
-  let claudeSession = {
-    id: null,
-    projectId: null,
-    isAuthenticated: false,
-    messages: []
-  };
+	// Claude session state
+	let claudeSession = {
+		id: null,
+		projectId: null,
+		isAuthenticated: false,
+		messages: []
+	};
 
-  /**
-   * Check Claude CLI authentication status
-   */
-  socket.on('claude:check-auth', async (callback) => {
-    try {
-      const isAuthenticated = await claudeCodeService.isAuthenticated();
-      claudeSession.isAuthenticated = isAuthenticated;
-      
-      logger.log(`Claude auth check for ${socket.id}: ${isAuthenticated}`);
-      
-      callback({
-        success: true,
-        authenticated: isAuthenticated
-      });
-    } catch (error) {
-      logger.error('Claude auth check failed:', error);
-      callback({
-        success: false,
-        error: error.message
-      });
-    }
-  });
+	/**
+	 * Check Claude CLI authentication status
+	 */
+	socket.on('claude:check-auth', async (callback) => {
+		try {
+			const isAuthenticated = await claudeCodeService.isAuthenticated();
+			claudeSession.isAuthenticated = isAuthenticated;
 
-  /**
-   * Initialize Claude chat session
-   */
-  socket.on('claude:init-session', async ({ projectId, sessionOptions = {} }, callback) => {
-    try {
-      const sessionId = `claude-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      claudeSession = {
-        id: sessionId,
-        projectId: projectId || 'unnamed-project',
-        isAuthenticated: await claudeCodeService.isAuthenticated(),
-        messages: [],
-        createdAt: new Date().toISOString()
-      };
+			logger.log(`Claude auth check for ${socket.id}: ${isAuthenticated}`);
 
-      // Add welcome message
-      const welcomeMessage = {
-        id: `msg-${Date.now()}`,
-        role: 'assistant',
-        content: `Hello! I'm Claude, your AI coding assistant. I'm ready to help you with ${projectId ? `project "${projectId}"` : 'your coding tasks'}.
+			callback({
+				success: true,
+				authenticated: isAuthenticated
+			});
+		} catch (error) {
+			logger.error('Claude auth check failed:', error);
+			callback({
+				success: false,
+				error: error.message
+			});
+		}
+	});
 
-${claudeSession.isAuthenticated ? '✅ I\'m authenticated and ready to assist you!' : '⚠️ I need authentication to provide full assistance. Please run `claude setup-token` in your terminal.'}`,
-        timestamp: new Date().toISOString()
-      };
+	/**
+	 * Initialize Claude chat session
+	 */
+	socket.on('claude:init-session', async ({ projectId, sessionOptions = {} }, callback) => {
+		try {
+			const sessionId = `claude-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      claudeSession.messages.push(welcomeMessage);
+			claudeSession = {
+				id: sessionId,
+				projectId: projectId || 'unnamed-project',
+				isAuthenticated: await claudeCodeService.isAuthenticated(),
+				messages: [],
+				createdAt: new Date().toISOString()
+			};
 
-      logger.log(`Claude session initialized: ${sessionId} for project: ${projectId}`);
+			// Add welcome message
+			const welcomeMessage = {
+				id: `msg-${Date.now()}`,
+				role: 'assistant',
+				content: `Hello! I'm Claude, your AI coding assistant. I'm ready to help you with ${projectId ? `project "${projectId}"` : 'your coding tasks'}.
 
-      callback({
-        success: true,
-        session: {
-          id: sessionId,
-          projectId: claudeSession.projectId,
-          authenticated: claudeSession.isAuthenticated,
-          welcomeMessage
-        }
-      });
+${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you!" : '⚠️ I need authentication to provide full assistance. Please run `claude setup-token` in your terminal.'}`,
+				timestamp: new Date().toISOString()
+			};
 
-      // Emit session created event
-      socket.emit('claude:session-created', {
-        sessionId,
-        projectId: claudeSession.projectId
-      });
+			claudeSession.messages.push(welcomeMessage);
 
-    } catch (error) {
-      logger.error('Claude session initialization failed:', error);
-      callback({
-        success: false,
-        error: error.message
-      });
-    }
-  });
+			logger.log(`Claude session initialized: ${sessionId} for project: ${projectId}`);
 
-  /**
-   * Send message to Claude
-   */
-  socket.on('claude:send-message', async ({ message, sessionId }, callback) => {
-    try {
-      if (!claudeSession.id || claudeSession.id !== sessionId) {
-        callback({
-          success: false,
-          error: 'Invalid session ID'
-        });
-        return;
-      }
+			callback({
+				success: true,
+				session: {
+					id: sessionId,
+					projectId: claudeSession.projectId,
+					authenticated: claudeSession.isAuthenticated,
+					welcomeMessage
+				}
+			});
 
-      const userMessage = {
-        id: `msg-${Date.now()}`,
-        role: 'user',
-        content: message.trim(),
-        timestamp: new Date().toISOString()
-      };
+			// Emit session created event
+			socket.emit('claude:session-created', {
+				sessionId,
+				projectId: claudeSession.projectId
+			});
+		} catch (error) {
+			logger.error('Claude session initialization failed:', error);
+			callback({
+				success: false,
+				error: error.message
+			});
+		}
+	});
 
-      claudeSession.messages.push(userMessage);
+	/**
+	 * Send message to Claude
+	 */
+	socket.on('claude:send-message', async ({ message, sessionId }, callback) => {
+		try {
+			if (!claudeSession.id || claudeSession.id !== sessionId) {
+				callback({
+					success: false,
+					error: 'Invalid session ID'
+				});
+				return;
+			}
 
-      // Emit typing indicator
-      socket.emit('claude:typing', { sessionId, isTyping: true });
+			const userMessage = {
+				id: `msg-${Date.now()}`,
+				role: 'user',
+				content: message.trim(),
+				timestamp: new Date().toISOString()
+			};
 
-      callback({
-        success: true,
-        message: userMessage
-      });
+			claudeSession.messages.push(userMessage);
 
-      // Query Claude if authenticated
-      if (claudeSession.isAuthenticated) {
-        try {
-          // Add project context to the message
-          const contextualMessage = `Project: ${claudeSession.projectId}\n\nUser: ${message}`;
-          
-          const response = await claudeCodeService.query(contextualMessage);
-          
-          const assistantMessage = {
-            id: `msg-${Date.now() + 1}`,
-            role: 'assistant',
-            content: response,
-            timestamp: new Date().toISOString()
-          };
+			// Emit typing indicator
+			socket.emit('claude:typing', { sessionId, isTyping: true });
 
-          claudeSession.messages.push(assistantMessage);
+			callback({
+				success: true,
+				message: userMessage
+			});
 
-          // Emit response
-          socket.emit('claude:message-response', {
-            sessionId,
-            message: assistantMessage
-          });
+			// Query Claude if authenticated
+			if (claudeSession.isAuthenticated) {
+				try {
+					// Add project context to the message
+					const contextualMessage = `Project: ${claudeSession.projectId}\n\nUser: ${message}`;
 
-        } catch (error) {
-          logger.error('Claude query failed:', error);
-          
-          const errorMessage = {
-            id: `msg-${Date.now() + 1}`,
-            role: 'assistant',
-            content: `Sorry, I encountered an error: ${error.message}\n\nPlease make sure you're authenticated with Claude CLI by running: \`claude setup-token\``,
-            timestamp: new Date().toISOString(),
-            isError: true
-          };
+					const response = await claudeCodeService.query(contextualMessage);
 
-          claudeSession.messages.push(errorMessage);
+					const assistantMessage = {
+						id: `msg-${Date.now() + 1}`,
+						role: 'assistant',
+						content: response,
+						timestamp: new Date().toISOString()
+					};
 
-          socket.emit('claude:message-response', {
-            sessionId,
-            message: errorMessage
-          });
-        }
-      } else {
-        // Not authenticated response
-        const authMessage = {
-          id: `msg-${Date.now() + 1}`,
-          role: 'assistant',
-          content: 'I need authentication to provide assistance. Please run the following command in your terminal:\n\n```bash\nclaude setup-token\n```\n\nAfter authentication, I\'ll be able to help you with your coding tasks!',
-          timestamp: new Date().toISOString()
-        };
+					claudeSession.messages.push(assistantMessage);
 
-        claudeSession.messages.push(authMessage);
+					// Emit response
+					socket.emit('claude:message-response', {
+						sessionId,
+						message: assistantMessage
+					});
+				} catch (error) {
+					logger.error('Claude query failed:', error);
 
-        socket.emit('claude:message-response', {
-          sessionId,
-          message: authMessage
-        });
-      }
+					const errorMessage = {
+						id: `msg-${Date.now() + 1}`,
+						role: 'assistant',
+						content: `Sorry, I encountered an error: ${error.message}\n\nPlease make sure you're authenticated with Claude CLI by running: \`claude setup-token\``,
+						timestamp: new Date().toISOString(),
+						isError: true
+					};
 
-      // Stop typing indicator
-      socket.emit('claude:typing', { sessionId, isTyping: false });
+					claudeSession.messages.push(errorMessage);
 
-    } catch (error) {
-      logger.error('Claude message handling failed:', error);
-      
-      socket.emit('claude:typing', { sessionId, isTyping: false });
-      
-      callback({
-        success: false,
-        error: error.message
-      });
-    }
-  });
+					socket.emit('claude:message-response', {
+						sessionId,
+						message: errorMessage
+					});
+				}
+			} else {
+				// Not authenticated response
+				const authMessage = {
+					id: `msg-${Date.now() + 1}`,
+					role: 'assistant',
+					content:
+						"I need authentication to provide assistance. Please run the following command in your terminal:\n\n```bash\nclaude setup-token\n```\n\nAfter authentication, I'll be able to help you with your coding tasks!",
+					timestamp: new Date().toISOString()
+				};
 
-  /**
-   * Clear chat history
-   */
-  socket.on('claude:clear-chat', ({ sessionId }, callback) => {
-    try {
-      if (!claudeSession.id || claudeSession.id !== sessionId) {
-        callback({
-          success: false,
-          error: 'Invalid session ID'
-        });
-        return;
-      }
+				claudeSession.messages.push(authMessage);
 
-      claudeSession.messages = [{
-        id: `msg-${Date.now()}`,
-        role: 'assistant',
-        content: 'Chat history cleared. How can I help you with your project?',
-        timestamp: new Date().toISOString()
-      }];
+				socket.emit('claude:message-response', {
+					sessionId,
+					message: authMessage
+				});
+			}
 
-      callback({
-        success: true
-      });
+			// Stop typing indicator
+			socket.emit('claude:typing', { sessionId, isTyping: false });
+		} catch (error) {
+			logger.error('Claude message handling failed:', error);
 
-      socket.emit('claude:chat-cleared', { sessionId });
+			socket.emit('claude:typing', { sessionId, isTyping: false });
 
-    } catch (error) {
-      logger.error('Claude clear chat failed:', error);
-      callback({
-        success: false,
-        error: error.message
-      });
-    }
-  });
+			callback({
+				success: false,
+				error: error.message
+			});
+		}
+	});
 
-  /**
-   * Get chat history
-   */
-  socket.on('claude:get-history', ({ sessionId }, callback) => {
-    try {
-      if (!claudeSession.id || claudeSession.id !== sessionId) {
-        callback({
-          success: false,
-          error: 'Invalid session ID'
-        });
-        return;
-      }
+	/**
+	 * Clear chat history
+	 */
+	socket.on('claude:clear-chat', ({ sessionId }, callback) => {
+		try {
+			if (!claudeSession.id || claudeSession.id !== sessionId) {
+				callback({
+					success: false,
+					error: 'Invalid session ID'
+				});
+				return;
+			}
 
-      callback({
-        success: true,
-        messages: claudeSession.messages
-      });
+			claudeSession.messages = [
+				{
+					id: `msg-${Date.now()}`,
+					role: 'assistant',
+					content: 'Chat history cleared. How can I help you with your project?',
+					timestamp: new Date().toISOString()
+				}
+			];
 
-    } catch (error) {
-      logger.error('Claude get history failed:', error);
-      callback({
-        success: false,
-        error: error.message
-      });
-    }
-  });
+			callback({
+				success: true
+			});
 
-  /**
-   * End Claude session
-   */
-  socket.on('claude:end-session', ({ sessionId }, callback) => {
-    try {
-      if (claudeSession.id === sessionId) {
-        logger.log(`Claude session ended: ${sessionId}`);
-        
-        const endedSession = { ...claudeSession };
-        
-        // Reset session
-        claudeSession = {
-          id: null,
-          projectId: null,
-          isAuthenticated: false,
-          messages: []
-        };
+			socket.emit('claude:chat-cleared', { sessionId });
+		} catch (error) {
+			logger.error('Claude clear chat failed:', error);
+			callback({
+				success: false,
+				error: error.message
+			});
+		}
+	});
 
-        callback({
-          success: true
-        });
+	/**
+	 * Get chat history
+	 */
+	socket.on('claude:get-history', ({ sessionId }, callback) => {
+		try {
+			if (!claudeSession.id || claudeSession.id !== sessionId) {
+				callback({
+					success: false,
+					error: 'Invalid session ID'
+				});
+				return;
+			}
 
-        socket.emit('claude:session-ended', {
-          sessionId: endedSession.id,
-          projectId: endedSession.projectId
-        });
-      } else {
-        callback({
-          success: false,
-          error: 'Invalid session ID'
-        });
-      }
+			callback({
+				success: true,
+				messages: claudeSession.messages
+			});
+		} catch (error) {
+			logger.error('Claude get history failed:', error);
+			callback({
+				success: false,
+				error: error.message
+			});
+		}
+	});
 
-    } catch (error) {
-      logger.error('Claude end session failed:', error);
-      callback({
-        success: false,
-        error: error.message
-      });
-    }
-  });
+	/**
+	 * End Claude session
+	 */
+	socket.on('claude:end-session', ({ sessionId }, callback) => {
+		try {
+			if (claudeSession.id === sessionId) {
+				logger.log(`Claude session ended: ${sessionId}`);
 
-  /**
-   * Handle disconnect
-   */
-  socket.on('disconnect', () => {
-    if (claudeSession.id) {
-      logger.log(`Claude session disconnected: ${claudeSession.id}`);
-    }
-  });
+				const endedSession = { ...claudeSession };
 
-  return {
-    getSession: () => claudeSession,
-    cleanup: () => {
-      claudeSession = {
-        id: null,
-        projectId: null,
-        isAuthenticated: false,
-        messages: []
-      };
-    }
-  };
+				// Reset session
+				claudeSession = {
+					id: null,
+					projectId: null,
+					isAuthenticated: false,
+					messages: []
+				};
+
+				callback({
+					success: true
+				});
+
+				socket.emit('claude:session-ended', {
+					sessionId: endedSession.id,
+					projectId: endedSession.projectId
+				});
+			} else {
+				callback({
+					success: false,
+					error: 'Invalid session ID'
+				});
+			}
+		} catch (error) {
+			logger.error('Claude end session failed:', error);
+			callback({
+				success: false,
+				error: error.message
+			});
+		}
+	});
+
+	/**
+	 * Handle disconnect
+	 */
+	socket.on('disconnect', () => {
+		if (claudeSession.id) {
+			logger.log(`Claude session disconnected: ${claudeSession.id}`);
+		}
+	});
+
+	return {
+		getSession: () => claudeSession,
+		cleanup: () => {
+			claudeSession = {
+				id: null,
+				projectId: null,
+				isAuthenticated: false,
+				messages: []
+			};
+		}
+	};
 }
 
 /**

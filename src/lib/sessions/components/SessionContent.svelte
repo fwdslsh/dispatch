@@ -3,7 +3,7 @@
 	import { getSessionType } from '$lib/session-types/client.js';
 	import Terminal from '$lib/session-types/shell/components/Terminal.svelte';
 	import ChatInterface from '$lib/session-types/claude/components/ChatInterface.svelte';
-	
+
 	// Fallback imports for session type views
 	import ShellSessionView from '$lib/session-types/shell/ShellSessionView.svelte';
 	import ClaudeSessionView from '$lib/session-types/claude/ClaudeSessionView.svelte';
@@ -15,16 +15,16 @@
 		showChat = false,
 		onChatToggle = () => {}
 	} = $props();
-	
+
 	// Dynamic session view state
 	let sessionViewComponent = $state(null);
 	let useLegacyView = $state(false);
 	let isLoading = $state(false);
 	let error = $state(null);
-	
+
 	// Session type derived from session data
 	const sessionType = $derived(session?.type || session?.mode || 'shell');
-	
+
 	/**
 	 * Load session type view component dynamically
 	 * Falls back to legacy Terminal/Chat view if session type not found
@@ -35,21 +35,21 @@
 			useLegacyView = false;
 			return;
 		}
-		
+
 		isLoading = true;
 		error = null;
-		
+
 		try {
 			// Get session type from registry
 			const sessionTypeDefinition = getSessionType(sessionType);
-			
+
 			if (!sessionTypeDefinition) {
 				console.warn(`Session type '${sessionType}' not found in registry, using legacy view`);
 				useLegacyView = true;
 				sessionViewComponent = null;
 				return;
 			}
-			
+
 			// Use static imports for known session types for better performance
 			switch (sessionType) {
 				case 'shell':
@@ -63,7 +63,9 @@
 				default:
 					// Try dynamic import for unknown session types
 					try {
-						const module = await import(`$lib/session-types/${sessionType}/${sessionType.charAt(0).toUpperCase() + sessionType.slice(1)}SessionView.svelte`);
+						const module = await import(
+							`$lib/session-types/${sessionType}/${sessionType.charAt(0).toUpperCase() + sessionType.slice(1)}SessionView.svelte`
+						);
 						sessionViewComponent = module.default;
 						useLegacyView = false;
 					} catch (importError) {
@@ -73,7 +75,6 @@
 					}
 					break;
 			}
-			
 		} catch (err) {
 			console.error('Error loading session view:', err);
 			error = err.message;
@@ -83,7 +84,7 @@
 			isLoading = false;
 		}
 	}
-	
+
 	// Load session view when session changes
 	$effect(() => {
 		loadSessionView();
@@ -107,18 +108,16 @@
 					<div class="error-icon">⚠️</div>
 					<h3>Error Loading Session View</h3>
 					<p>{error}</p>
-					<button onclick={loadSessionView} class="retry-button">
-						Retry
-					</button>
+					<button onclick={loadSessionView} class="retry-button"> Retry </button>
 				</div>
 			</div>
 		{:else if !useLegacyView && sessionViewComponent}
 			<!-- Dynamic session type view -->
 			<div class="dynamic-session-view">
-				<svelte:component 
-					this={sessionViewComponent} 
-					{session} 
-					{socket} 
+				<svelte:component
+					this={sessionViewComponent}
+					{session}
+					{socket}
 					{projectId}
 					readonly={false}
 					on:sessionAction
@@ -134,7 +133,10 @@
 						<h3>{session.name || session.id}</h3>
 						<span class="session-mode">{sessionType}</span>
 						{#if !sessionViewComponent}
-							<span class="legacy-indicator" title="Using legacy view - session type view not available">
+							<span
+								class="legacy-indicator"
+								title="Using legacy view - session type view not available"
+							>
 								(Legacy)
 							</span>
 						{/if}
@@ -176,7 +178,7 @@
 		width: 100%;
 		background: var(--bg);
 	}
-	
+
 	/* Dynamic session view styles */
 	.dynamic-session-view {
 		flex: 1;
@@ -184,7 +186,7 @@
 		flex-direction: column;
 		height: 100%;
 	}
-	
+
 	/* Legacy view styles */
 	.legacy-session-view {
 		flex: 1;
@@ -192,7 +194,7 @@
 		flex-direction: column;
 		height: 100%;
 	}
-	
+
 	.legacy-indicator {
 		padding: 0.125rem 0.375rem;
 		background: var(--warning-color, #f59e0b);
@@ -203,7 +205,7 @@
 		text-transform: uppercase;
 		letter-spacing: 0.025em;
 	}
-	
+
 	/* Loading state styles */
 	.session-loading {
 		flex: 1;
@@ -212,12 +214,12 @@
 		justify-content: center;
 		height: 100%;
 	}
-	
+
 	.loading-content {
 		text-align: center;
 		color: var(--text-muted);
 	}
-	
+
 	.loading-spinner {
 		width: 32px;
 		height: 32px;
@@ -227,12 +229,16 @@
 		margin: 0 auto 1rem;
 		animation: spin 1s linear infinite;
 	}
-	
+
 	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
 	}
-	
+
 	/* Error state styles */
 	.session-error {
 		flex: 1;
@@ -241,30 +247,30 @@
 		justify-content: center;
 		height: 100%;
 	}
-	
+
 	.error-content {
 		text-align: center;
 		color: var(--text-muted);
 		max-width: 400px;
 		padding: 2rem;
 	}
-	
+
 	.error-icon {
 		font-size: 2rem;
 		margin-bottom: 1rem;
 	}
-	
+
 	.error-content h3 {
 		margin: 0 0 0.5rem 0;
 		color: var(--error-color, #ef4444);
 	}
-	
+
 	.error-content p {
 		margin: 0 0 1rem 0;
 		color: var(--text-secondary);
 		font-size: 0.9rem;
 	}
-	
+
 	.retry-button {
 		padding: 0.5rem 1rem;
 		background: var(--accent);
@@ -275,7 +281,7 @@
 		font-size: 0.9rem;
 		transition: opacity 0.2s;
 	}
-	
+
 	.retry-button:hover {
 		opacity: 0.9;
 	}

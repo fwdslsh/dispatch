@@ -124,7 +124,7 @@
 
 <div class="directory-picker">
 	<div class="picker-input">
-		<label for=directory-path>Working Directory (optional)</label>
+		<label for="directory-path">Working Directory (optional)</label>
 		<div class="input-container">
 			<input
 				type="text"

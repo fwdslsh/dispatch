@@ -217,16 +217,19 @@ The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycl
 The application now uses a pluggable session type architecture:
 
 **Session Type Registry**: Central registry managing available session types
+
 - **Static Registration**: Session types are statically imported and registered for build optimization
 - **Namespace Isolation**: Each session type operates in its own Socket.IO namespace
 - **Extensible**: New session types can be added by implementing `BaseSessionType`
 
 **Built-in Session Types**:
+
 - **Claude (`claude`)**: AI-assisted development using Claude Code CLI
 - **Shell (`shell`)**: Traditional shell sessions with customizable terminals
 
 **Handler System**: Each session type provides its own Socket.IO handlers:
-- `src/lib/session-types/claude/server/` - Claude-specific server handlers  
+
+- `src/lib/session-types/claude/server/` - Claude-specific server handlers
 - `src/lib/session-types/shell/server/` - Shell-specific server handlers
 
 ## Docker Integration
@@ -261,16 +264,19 @@ The application now uses a pluggable session type architecture:
 ### MVVM Architecture (Svelte 5)
 
 **ViewModels**: Handle business logic using Svelte 5 runes
+
 - Located alongside components (e.g., `DirectoryPickerViewModel.svelte.js`)
 - Use `$state`, `$derived`, `$effect` for reactive business logic
 - Clean separation from UI concerns
 
 **Components**: Focus purely on presentation
+
 - Use `$props` to receive data from ViewModels
 - Minimal business logic, primarily UI event handling
 - Responsive design with mobile-first approach
 
 **Contexts**: Global state management
+
 - Located in `/src/lib/shared/contexts/` for shared state
 - Feature-specific contexts within feature directories
 - Use Svelte 5 context API with runes for reactivity
@@ -278,27 +284,32 @@ The application now uses a pluggable session type architecture:
 ### Server Architecture
 
 **Main Socket.IO Handlers**: Core application handlers in `/src/lib/server/handlers/`
+
 - `session-handler.js` - Session lifecycle management
 - `project-handler.js` - Project operations
 - `auth-handler.js` - Authentication handling
 
 **Namespaced Session Type Handlers**: Isolated handlers per session type
+
 - Routed through `namespaced-socket-handler.js`
 - Each session type provides its own handlers via factory functions
 - Complete isolation between session types for security and maintainability
 
 **Middleware**: Cross-cutting concerns
+
 - `auth-middleware.js` - Authentication validation
 - `auth-decorators.js` - Handler authentication decoration
 
 ### Configuration Management
 
 **Feature-specific Configuration**: Each feature has its own `config.js`
+
 - `/src/lib/projects/config.js` - Project-related constants
-- `/src/lib/sessions/config.js` - Session-related constants  
+- `/src/lib/sessions/config.js` - Session-related constants
 - `/src/lib/session-types/*/config.js` - Session type specific configs
 
 **Shared Configuration**: Common utilities in `/src/lib/shared/utils/constants.js`
+
 - Core application constants
 - UI breakpoints and dimensions
 - Shared validation rules

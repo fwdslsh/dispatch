@@ -11,14 +11,14 @@
 	import SessionIcon from '$lib/shared/components/Icons/SessionIcon.svelte';
 
 	// Props
-	let { 
-		project, 
+	let {
+		project,
 		isActive = false,
 		isRenaming = false,
 		renameValue = '',
 		renameValidation = { isValid: true, message: '' },
-		onEdit, 
-		onDelete, 
+		onEdit,
+		onDelete,
 		onOpen,
 		onRenameConfirm,
 		onRenameCancel,
@@ -79,8 +79,8 @@
 	}
 </script>
 
-<div 
-	class="project-card" 
+<div
+	class="project-card"
 	class:active={isActive}
 	data-augmented-ui="tl-clip tr-clip br-clip bl-clip both"
 	onclick={handleCardClick}
@@ -90,23 +90,13 @@
 >
 	<div class="project-actions">
 		{#if !isRenaming}
-			<Button
-				variant="ghost"
-				size="small"
-				onclick={handleEditClick}
-				title="Rename project"
-			>
+			<Button variant="ghost" size="small" onclick={handleEditClick} title="Rename project">
 				{#snippet icon()}
 					<EditIcon />
 				{/snippet}
 			</Button>
 
-			<Button
-				variant="danger"
-				size="small"
-				onclick={handleDeleteClick}
-				title="Delete project"
-			>
+			<Button variant="danger" size="small" onclick={handleDeleteClick} title="Delete project">
 				{#snippet icon()}
 					<DeleteProject />
 				{/snippet}
@@ -125,7 +115,7 @@
 					onkeydown={handleRenameKeyDown}
 					focus={true}
 				/>
-				
+
 				<div class="rename-actions">
 					<Button
 						variant="primary"
@@ -135,27 +125,18 @@
 					>
 						✓
 					</Button>
-					<Button
-						variant="secondary"
-						size="small"
-						onclick={handleRenameCancel}
-					>
-						✕
-					</Button>
+					<Button variant="secondary" size="small" onclick={handleRenameCancel}>✕</Button>
 				</div>
-				
+
 				{#if !renameValidation.isValid && renameValidation.message}
-					<ValidationMessage
-						message={renameValidation.message}
-						severity="error"
-					/>
+					<ValidationMessage message={renameValidation.message} severity="error" />
 				{/if}
 			</div>
 		{:else}
 			<div class="project-name">
 				{project.name}
 			</div>
-			
+
 			{#if project.description}
 				<div class="project-description">
 					{project.description}
@@ -172,12 +153,7 @@
 	</div>
 
 	<div class="project-open-action">
-		<Button
-			variant="ghost"
-			size="medium"
-			onclick={handleCardClick}
-			title="Open project"
-		>
+		<Button variant="ghost" size="medium" onclick={handleCardClick} title="Open project">
 			{#snippet icon()}
 				<SessionIcon />
 			{/snippet}

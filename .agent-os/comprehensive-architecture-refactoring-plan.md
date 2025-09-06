@@ -295,6 +295,7 @@ ProjectManager.svelte (Container - 80-100 lines)
    ```
 
 3. **Extract Validation Logic**
+
    ```javascript
    // ValidationService.js
    export class ValidationService extends BaseService {

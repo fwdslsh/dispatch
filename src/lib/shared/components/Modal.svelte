@@ -8,36 +8,36 @@
 	let {
 		// Visibility
 		open = $bindable(false),
-		
+
 		// Modal configuration
 		size = 'medium', // 'small' | 'medium' | 'large' | 'fullscreen'
 		closeOnBackdrop = true,
 		closeOnEscape = true,
 		showCloseButton = true,
-		
+
 		// Content
 		title = '',
-		
+
 		// Snippets for content
 		children,
 		footer,
-		
+
 		// Styling
 		augmented = 'tl-clip tr-clip bl-clip br-clip',
-		
+
 		// Accessibility
 		ariaLabel = undefined,
 		ariaDescribedBy = undefined,
-		
+
 		// Event handlers
 		onclose = undefined,
 		onopen = undefined,
-		
+
 		// HTML attributes
 		class: customClass = '',
 		...restProps
 	} = $props();
-	
+
 	// Generate unique IDs
 	const modalId = crypto.randomUUID();
 	const titleId = title ? `${modalId}-title` : undefined;
@@ -122,16 +122,23 @@
 							{title}
 						</h2>
 					{/if}
-					
+
 					{#if showCloseButton}
-						<button
-							class="modal__close"
-							onclick={close}
-							aria-label="Close modal"
-							type="button"
-						>
-							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-								<path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+						<button class="modal__close" onclick={close} aria-label="Close modal" type="button">
+							<svg
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="none"
+								xmlns="http://www.w3.org/2000/svg"
+							>
+								<path
+									d="M18 6L6 18M6 6L18 18"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								/>
 							</svg>
 						</button>
 					{/if}
@@ -173,7 +180,7 @@
 		background: var(--bg);
 		color: var(--text-primary);
 		border: 1px solid var(--border);
-		box-shadow: 
+		box-shadow:
 			0 20px 25px -5px rgba(0, 0, 0, 0.4),
 			0 10px 10px -5px rgba(0, 0, 0, 0.2);
 		max-height: 90vh;
@@ -374,5 +381,4 @@
 	.modal:focus {
 		outline: none;
 	}
-
 </style>

@@ -7,18 +7,20 @@
 	import ProjectCard from './ProjectCard.svelte';
 
 	// Props
-	let { 
-		projects = [], 
-		loading = false, 
+	let {
+		projects = [],
+		loading = false,
 		viewModel,
-		onProjectEdit, 
-		onProjectDelete, 
-		onProjectOpen 
+		onProjectEdit,
+		onProjectDelete,
+		onProjectOpen
 	} = $props();
 
 	// Derived state
 	let hasProjects = $derived(projects.length > 0);
-	let projectsWithSessionCount = $derived(viewModel ? viewModel.projectsWithSessionCount : projects);
+	let projectsWithSessionCount = $derived(
+		viewModel ? viewModel.projectsWithSessionCount : projects
+	);
 
 	// Event handlers for project actions
 	function handleProjectEdit(projectId, currentName) {

@@ -84,10 +84,7 @@ Integrates DirectoryPickerViewModel with UI components and manages all state
 
 <div class="directory-picker-manager">
 	{#if viewModel.error}
-		<ErrorDisplay 
-			message={viewModel.error} 
-			onDismiss={() => viewModel.clearError()}
-		/>
+		<ErrorDisplay message={viewModel.error} onDismiss={() => viewModel.clearError()} />
 	{/if}
 
 	<DirectoryPickerInput

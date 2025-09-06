@@ -8,13 +8,13 @@
 	let {
 		// Message content
 		message = '',
-		
+
 		// Validation state
 		type = 'error', // 'error' | 'warning' | 'success' | 'info'
-		
+
 		// Display options
 		showIcon = true,
-		
+
 		// HTML attributes
 		class: customClass = '',
 		id = undefined,
@@ -41,19 +41,13 @@
 </script>
 
 {#if message}
-	<div 
-		class={messageClasses}
-		id={messageId}
-		role="alert"
-		aria-live="polite"
-		{...restProps}
-	>
+	<div class={messageClasses} id={messageId} role="alert" aria-live="polite" {...restProps}>
 		{#if showIcon}
 			<div class="validation-message__icon" aria-hidden="true">
 				{@html icons[type]}
 			</div>
 		{/if}
-		
+
 		<div class="validation-message__text">
 			{message}
 		</div>
@@ -117,17 +111,17 @@
 			color: #ff0000;
 			font-weight: 600;
 		}
-		
+
 		.validation-message--warning {
 			color: #ff8c00;
 			font-weight: 600;
 		}
-		
+
 		.validation-message--success {
 			color: #008000;
 			font-weight: 600;
 		}
-		
+
 		.validation-message--info {
 			color: #0066cc;
 			font-weight: 600;

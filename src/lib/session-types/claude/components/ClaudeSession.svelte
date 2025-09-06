@@ -5,307 +5,330 @@
   No terminal integration - pure chat-based interface.
 -->
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  import ChatInterface from './ChatInterface.svelte';
-  import CommandMenu from './CommandMenu.svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import ChatInterface from './ChatInterface.svelte';
+	import CommandMenu from './CommandMenu.svelte';
 
-  let { 
-    projectId,
-    sessionOptions = {},
-    onSessionCreated = () => {},
-    onSessionEnded = () => {},
-    socket = null
-  } = $props();
+	let {
+		projectId,
+		sessionOptions = {},
+		onSessionCreated = () => {},
+		onSessionEnded = () => {},
+		socket = null
+	} = $props();
 
-  // Component refs
-  let chatInterface;
-  let commandMenu = $state();
+	// Component refs
+	let chatInterface;
+	let commandMenu = $state();
 
-  // Session state
-  let sessionId = $state(projectId || `claude-session-${Date.now()}`);
-  let isReady = $state(false);
-  let error = $state(null);
+	// Session state
+	let sessionId = $state(projectId || `claude-session-${Date.now()}`);
+	let isReady = $state(false);
+	let error = $state(null);
 
-  // Claude auth is now handled directly by ChatInterface
+	// Claude auth is now handled directly by ChatInterface
 
-  // Available commands for the command menu
-  let commands = $state([
-    {
-      id: 'explain-code',
-      name: 'Explain Code',
-      description: 'Explain how a piece of code works',
-      category: 'Analysis',
-      shortcut: 'Ctrl+E'
-    },
-    {
-      id: 'review-code',
-      name: 'Review Code',
-      description: 'Get a code review with suggestions',
-      category: 'Analysis',
-      shortcut: 'Ctrl+R'
-    },
-    {
-      id: 'refactor-code',
-      name: 'Refactor Code',
-      description: 'Suggest refactoring improvements',
-      category: 'Improvement',
-      shortcut: 'Ctrl+Shift+R'
-    },
-    {
-      id: 'write-tests',
-      name: 'Write Tests',
-      description: 'Generate unit tests for code',
-      category: 'Testing',
-      shortcut: 'Ctrl+T'
-    },
-    {
-      id: 'debug-help',
-      name: 'Debug Help',
-      description: 'Help debug an issue or error',
-      category: 'Debugging',
-      shortcut: 'Ctrl+D'
-    },
-    {
-      id: 'optimize-code',
-      name: 'Optimize Code',
-      description: 'Suggest performance optimizations',
-      category: 'Improvement'
-    },
-    {
-      id: 'document-code',
-      name: 'Document Code',
-      description: 'Generate documentation for code',
-      category: 'Documentation'
-    },
-    {
-      id: 'clear-chat',
-      name: 'Clear Chat',
-      description: 'Clear the chat history',
-      category: 'Utility',
-      shortcut: 'Ctrl+L'
-    }
-  ]);
+	// Available commands for the command menu
+	let commands = $state([
+		{
+			id: 'explain-code',
+			name: 'Explain Code',
+			description: 'Explain how a piece of code works',
+			category: 'Analysis',
+			shortcut: 'Ctrl+E'
+		},
+		{
+			id: 'review-code',
+			name: 'Review Code',
+			description: 'Get a code review with suggestions',
+			category: 'Analysis',
+			shortcut: 'Ctrl+R'
+		},
+		{
+			id: 'refactor-code',
+			name: 'Refactor Code',
+			description: 'Suggest refactoring improvements',
+			category: 'Improvement',
+			shortcut: 'Ctrl+Shift+R'
+		},
+		{
+			id: 'write-tests',
+			name: 'Write Tests',
+			description: 'Generate unit tests for code',
+			category: 'Testing',
+			shortcut: 'Ctrl+T'
+		},
+		{
+			id: 'debug-help',
+			name: 'Debug Help',
+			description: 'Help debug an issue or error',
+			category: 'Debugging',
+			shortcut: 'Ctrl+D'
+		},
+		{
+			id: 'optimize-code',
+			name: 'Optimize Code',
+			description: 'Suggest performance optimizations',
+			category: 'Improvement'
+		},
+		{
+			id: 'document-code',
+			name: 'Document Code',
+			description: 'Generate documentation for code',
+			category: 'Documentation'
+		},
+		{
+			id: 'clear-chat',
+			name: 'Clear Chat',
+			description: 'Clear the chat history',
+			category: 'Utility',
+			shortcut: 'Ctrl+L'
+		}
+	]);
 
-  onMount(() => {
-    initializeSession();
-  });
+	onMount(() => {
+		initializeSession();
+	});
 
-  onDestroy(() => {
-    // Cleanup if needed
-  });
+	onDestroy(() => {
+		// Cleanup if needed
+	});
 
-  /**
-   * Initialize the Claude chat session
-   */
-  async function initializeSession() {
-    try {
-      isReady = true;
-      error = null;
-      
-      // Add welcome message
-      if (chatInterface) {
-        chatInterface.addMessage({
-          sender: 'assistant',
-          content: `Welcome to Claude Code! I'm ready to help you with your ${projectId ? `project "${projectId}"` : 'coding tasks'}.
+	/**
+	 * Initialize the Claude chat session
+	 */
+	async function initializeSession() {
+		try {
+			isReady = true;
+			error = null;
+
+			// Add welcome message
+			if (chatInterface) {
+				chatInterface.addMessage({
+					sender: 'assistant',
+					content: `Welcome to Claude Code! I'm ready to help you with your ${projectId ? `project "${projectId}"` : 'coding tasks'}.
 
 Use **Ctrl+K** to open the command menu for quick actions, or just type your questions directly.
 
 ⚠️ You may need to authenticate with Claude CLI for full functionality. Type \`/login\` for instructions.`,
-          timestamp: new Date()
-        });
-      }
+					timestamp: new Date()
+				});
+			}
 
-      onSessionCreated({ sessionId, projectId });
-    } catch (err) {
-      error = err.message;
-      console.error('Failed to initialize Claude session:', err);
-    }
-  }
+			onSessionCreated({ sessionId, projectId });
+		} catch (err) {
+			error = err.message;
+			console.error('Failed to initialize Claude session:', err);
+		}
+	}
 
-  /**
-   * Handle message sending from chat interface
-   */
-  function handleSendMessage(message) {
-    // Message is already added to chat by ChatInterface
-    // Could add additional processing here if needed
-    console.log('Claude session message:', message);
-  }
+	/**
+	 * Handle message sending from chat interface
+	 */
+	function handleSendMessage(message) {
+		// Message is already added to chat by ChatInterface
+		// Could add additional processing here if needed
+		console.log('Claude session message:', message);
+	}
 
-  /**
-   * Handle command execution from command menu
-   */
-  function handleExecuteCommand(command) {
-    switch (command.id) {
-      case 'clear-chat':
-        if (chatInterface) {
-          chatInterface.clearHistory();
-        }
-        break;
-      case 'explain-code':
-        promptForCodeAction('Please paste the code you\'d like me to explain:', 'Explain this code:');
-        break;
-      case 'review-code':
-        promptForCodeAction('Please paste the code you\'d like me to review:', 'Please review this code and provide suggestions:');
-        break;
-      case 'refactor-code':
-        promptForCodeAction('Please paste the code you\'d like me to refactor:', 'Please suggest refactoring improvements for this code:');
-        break;
-      case 'write-tests':
-        promptForCodeAction('Please paste the code you\'d like tests for:', 'Please write unit tests for this code:');
-        break;
-      case 'debug-help':
-        promptForCodeAction('Please paste the code and describe the issue:', 'I need help debugging this code:');
-        break;
-      case 'optimize-code':
-        promptForCodeAction('Please paste the code you\'d like me to optimize:', 'Please suggest performance optimizations for this code:');
-        break;
-      case 'document-code':
-        promptForCodeAction('Please paste the code you\'d like documented:', 'Please generate documentation for this code:');
-        break;
-      default:
-        if (chatInterface) {
-          chatInterface.addMessage({
-            sender: 'assistant',
-            content: `Command "${command.name}" executed. How can I help you with this?`,
-            timestamp: new Date()
-          });
-        }
-    }
-  }
+	/**
+	 * Handle command execution from command menu
+	 */
+	function handleExecuteCommand(command) {
+		switch (command.id) {
+			case 'clear-chat':
+				if (chatInterface) {
+					chatInterface.clearHistory();
+				}
+				break;
+			case 'explain-code':
+				promptForCodeAction(
+					"Please paste the code you'd like me to explain:",
+					'Explain this code:'
+				);
+				break;
+			case 'review-code':
+				promptForCodeAction(
+					"Please paste the code you'd like me to review:",
+					'Please review this code and provide suggestions:'
+				);
+				break;
+			case 'refactor-code':
+				promptForCodeAction(
+					"Please paste the code you'd like me to refactor:",
+					'Please suggest refactoring improvements for this code:'
+				);
+				break;
+			case 'write-tests':
+				promptForCodeAction(
+					"Please paste the code you'd like tests for:",
+					'Please write unit tests for this code:'
+				);
+				break;
+			case 'debug-help':
+				promptForCodeAction(
+					'Please paste the code and describe the issue:',
+					'I need help debugging this code:'
+				);
+				break;
+			case 'optimize-code':
+				promptForCodeAction(
+					"Please paste the code you'd like me to optimize:",
+					'Please suggest performance optimizations for this code:'
+				);
+				break;
+			case 'document-code':
+				promptForCodeAction(
+					"Please paste the code you'd like documented:",
+					'Please generate documentation for this code:'
+				);
+				break;
+			default:
+				if (chatInterface) {
+					chatInterface.addMessage({
+						sender: 'assistant',
+						content: `Command "${command.name}" executed. How can I help you with this?`,
+						timestamp: new Date()
+					});
+				}
+		}
+	}
 
-  /**
-   * Prompt user for code and add a pre-filled message
-   */
-  function promptForCodeAction(promptText, prefix) {
-    if (chatInterface) {
-      chatInterface.addMessage({
-        sender: 'assistant',
-        content: promptText,
-        timestamp: new Date()
-      });
-    }
-  }
+	/**
+	 * Prompt user for code and add a pre-filled message
+	 */
+	function promptForCodeAction(promptText, prefix) {
+		if (chatInterface) {
+			chatInterface.addMessage({
+				sender: 'assistant',
+				content: promptText,
+				timestamp: new Date()
+			});
+		}
+	}
 
+	// Expose methods for external access
+	export function clearChat() {
+		if (chatInterface) {
+			chatInterface.clearHistory();
+		}
+	}
 
-
-  // Expose methods for external access
-  export function clearChat() {
-    if (chatInterface) {
-      chatInterface.clearHistory();
-    }
-  }
-
-  export function endSession() {
-    onSessionEnded({ sessionId, projectId });
-  }
+	export function endSession() {
+		onSessionEnded({ sessionId, projectId });
+	}
 </script>
 
 <div class="claude-session">
-  {#if error}
-    <div class="error">
-      <h3>Error</h3>
-      <p>{error}</p>
-      <button onclick={initializeSession}>
-        Retry
-      </button>
-    </div>
-  {:else if !isReady}
-    <div class="loading">
-      <h3>Initializing Claude Session...</h3>
-      <p>Setting up your AI coding assistant...</p>
-      <div class="spinner"></div>
-    </div>
-  {:else}
-    <!-- Main chat interface -->
-    <div class="chat-container">
-      <ChatInterface
-        bind:this={chatInterface}
-        {sessionId}
-        {socket}
-        onSendMessage={handleSendMessage}
-        height="100%"
-      />
-    </div>
+	{#if error}
+		<div class="error">
+			<h3>Error</h3>
+			<p>{error}</p>
+			<button onclick={initializeSession}> Retry </button>
+		</div>
+	{:else if !isReady}
+		<div class="loading">
+			<h3>Initializing Claude Session...</h3>
+			<p>Setting up your AI coding assistant...</p>
+			<div class="spinner"></div>
+		</div>
+	{:else}
+		<!-- Main chat interface -->
+		<div class="chat-container">
+			<ChatInterface
+				bind:this={chatInterface}
+				{sessionId}
+				{socket}
+				onSendMessage={handleSendMessage}
+				height="100%"
+			/>
+		</div>
 
-    <!-- Command menu overlay -->
-    <CommandMenu
-      bind:this={commandMenu}
-      {commands}
-      {sessionId}
-      onExecuteCommand={handleExecuteCommand}
-    />
-  {/if}
+		<!-- Command menu overlay -->
+		<CommandMenu
+			bind:this={commandMenu}
+			{commands}
+			{sessionId}
+			onExecuteCommand={handleExecuteCommand}
+		/>
+	{/if}
 </div>
 
 <style>
-  .claude-session {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-dark);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
-  }
+	.claude-session {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		background: var(--bg-dark);
+		color: var(--text-primary);
+		font-family: var(--font-sans);
+	}
 
-  .error, .loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding: 2rem;
-    text-align: center;
-  }
+	.error,
+	.loading {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+		padding: 2rem;
+		text-align: center;
+	}
 
-  .error {
-    background: var(--error-bg, #2a1f1f);
-    color: var(--error-text, #ff6b6b);
-  }
+	.error {
+		background: var(--error-bg, #2a1f1f);
+		color: var(--error-text, #ff6b6b);
+	}
 
-  .error button {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    background: var(--primary);
-    color: var(--bg-dark);
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-  }
+	.error button {
+		margin-top: 1rem;
+		padding: 0.5rem 1rem;
+		background: var(--primary);
+		color: var(--bg-dark);
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		font-weight: 500;
+	}
 
-  .loading {
-    background: var(--surface);
-  }
+	.loading {
+		background: var(--surface);
+	}
 
-  .spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--border);
-    border-top: 3px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-top: 1rem;
-  }
+	.spinner {
+		width: 32px;
+		height: 32px;
+		border: 3px solid var(--border);
+		border-top: 3px solid var(--primary);
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin-top: 1rem;
+	}
 
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
+	@keyframes spin {
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
+	}
 
-  .chat-container {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
+	.chat-container {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
 
-  /* Mobile responsive */
-  @media (max-width: 768px) {
-    .claude-session {
-      height: 100vh;
-    }
-    
-    .error, .loading {
-      padding: 1rem;
-    }
-  }
+	/* Mobile responsive */
+	@media (max-width: 768px) {
+		.claude-session {
+			height: 100vh;
+		}
+
+		.error,
+		.loading {
+			padding: 1rem;
+		}
+	}
 </style>

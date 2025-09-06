@@ -72,6 +72,7 @@ Use the git-workflow subagent to create git commit, push to GitHub, and create p
 <remote>origin</remote>
 </push>
 <pull_request>
+
 <title>descriptive PR title</title>
 <description>functionality recap</description>
 </pull_request>

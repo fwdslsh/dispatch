@@ -39,7 +39,7 @@
 	// Component state
 	let searchInputRef;
 	let dialogRef;
-	
+
 	// Reactive updates from props
 	$effect(() => {
 		if (viewModel && !viewModel.isDisposed) {
@@ -152,9 +152,9 @@
 {#if viewModel.isVisible}
 	<div class="command-menu" role="dialog" aria-modal="true" aria-label="Command Menu">
 		<div class="command-menu-overlay" on:click={handleOverlayClick}>
-			<div 
+			<div
 				bind:this={dialogRef}
-				class="command-menu-dialog" 
+				class="command-menu-dialog"
 				data-augmented-ui="tl-clip tr-clip border"
 			>
 				<CommandSearchInput

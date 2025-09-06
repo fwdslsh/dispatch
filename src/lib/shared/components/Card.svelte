@@ -10,21 +10,21 @@
 		children,
 		header,
 		footer,
-		
+
 		// Styling
 		variant = 'default', // 'default' | 'elevated' | 'outlined' | 'filled'
 		padding = 'medium', // 'none' | 'small' | 'medium' | 'large'
-		
+
 		// Augmented UI
 		augmented = 'tl-clip br-clip',
-		
+
 		// Interactive states
 		clickable = false,
 		hover = true,
-		
+
 		// Event handlers
 		onclick = undefined,
-		
+
 		// HTML attributes
 		class: customClass = '',
 		...restProps
@@ -100,7 +100,7 @@
 	.card--elevated {
 		background: var(--surface);
 		border-color: var(--border);
-		box-shadow: 
+		box-shadow:
 			0 4px 6px -1px rgba(0, 0, 0, 0.3),
 			0 2px 4px -1px rgba(0, 0, 0, 0.2);
 	}
@@ -141,7 +141,7 @@
 	.card--clickable:hover,
 	.card--hoverable:hover {
 		transform: translateY(-1px);
-		box-shadow: 
+		box-shadow:
 			0 8px 15px -3px rgba(0, 0, 0, 0.4),
 			0 4px 6px -2px rgba(0, 0, 0, 0.3);
 		border-color: var(--primary-muted);

@@ -68,7 +68,6 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 				} else {
 					throw new Error(result.error || 'Failed to load directories');
 				}
-
 			} catch (error) {
 				console.error('Directory loading failed:', error);
 				this.setError(error);
@@ -100,10 +99,7 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 		if (this.isDisposed || !dirName) return;
 
 		// Build new path
-		const newPath = this.services.directoryService.joinPath(
-			this.state.currentPath,
-			dirName
-		);
+		const newPath = this.services.directoryService.joinPath(this.state.currentPath, dirName);
 
 		// Add current path to history before navigating
 		this._addToHistory(this.state.currentPath);
@@ -132,7 +128,7 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 
 		const parentPath = this.services.directoryService.getParentPath(this.state.currentPath);
 		this._addToHistory(this.state.currentPath);
-		
+
 		await this.loadDirectories(parentPath);
 	}
 
@@ -199,10 +195,7 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 	selectDirectory(dirName, onSelect = null) {
 		if (this.isDisposed || !dirName) return;
 
-		const fullPath = this.services.directoryService.joinPath(
-			this.state.currentPath,
-			dirName
-		);
+		const fullPath = this.services.directoryService.joinPath(this.state.currentPath, dirName);
 
 		this.updateFields({
 			selectedPath: fullPath,
@@ -269,7 +262,7 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 		if (this.isDisposed || this.state.disabled) return;
 
 		this.updateField('isOpen', true);
-		
+
 		// Load directories if needed
 		if (!this.hasDirectories || this.state.currentPath !== '') {
 			await this.loadDirectories('');
@@ -316,10 +309,7 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 	resolvePath(relativePath) {
 		if (this.isDisposed) return '';
 
-		return this.services.directoryService.resolvePath(
-			this.state.currentPath,
-			relativePath
-		);
+		return this.services.directoryService.resolvePath(this.state.currentPath, relativePath);
 	}
 
 	/**
@@ -343,9 +333,9 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 	 */
 	_addToHistory(path) {
 		if (!path && path !== '') return; // Don't add null/undefined
-		
+
 		const history = [...(this.state.pathHistory || [])];
-		
+
 		// Avoid duplicate consecutive entries
 		if (history[history.length - 1] !== path) {
 			history.push(path);
@@ -388,10 +378,8 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 	_updateBreadcrumbs() {
 		if (this.isDisposed) return;
 
-		const breadcrumbs = this.services.directoryService.generateBreadcrumbs(
-			this.state.currentPath
-		);
-		
+		const breadcrumbs = this.services.directoryService.generateBreadcrumbs(this.state.currentPath);
+
 		this.updateField('breadcrumbs', breadcrumbs);
 	}
 
@@ -417,10 +405,10 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 		// Effect for handling current path changes
 		$effect(() => {
 			if (this.isDisposed) return;
-			
+
 			// Track current path changes
 			this.state.currentPath;
-			
+
 			// Update breadcrumbs when path changes
 			this._updateBreadcrumbs();
 		});
@@ -449,33 +437,33 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 		if (this.isDisposed) return false;
 
 		const state = this.state;
-		
+
 		// Validate basic state structure
 		if (typeof state.isOpen !== 'boolean') {
 			this.setValidationError('isOpen', 'isOpen must be a boolean');
 			return false;
 		}
-		
+
 		if (typeof state.currentPath !== 'string') {
 			this.setValidationError('currentPath', 'currentPath must be a string');
 			return false;
 		}
-		
+
 		if (typeof state.selectedPath !== 'string') {
 			this.setValidationError('selectedPath', 'selectedPath must be a string');
 			return false;
 		}
-		
+
 		if (!Array.isArray(state.directories)) {
 			this.setValidationError('directories', 'directories must be an array');
 			return false;
 		}
-		
+
 		if (!Array.isArray(state.pathHistory)) {
 			this.setValidationError('pathHistory', 'pathHistory must be an array');
 			return false;
 		}
-		
+
 		if (!Array.isArray(state.breadcrumbs)) {
 			this.setValidationError('breadcrumbs', 'breadcrumbs must be an array');
 			return false;
@@ -496,7 +484,7 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 	getDirectoryByName(name) {
 		if (this.isDisposed || !name) return null;
 
-		return this.state.directories.find(dir => dir.name === name) || null;
+		return this.state.directories.find((dir) => dir.name === name) || null;
 	}
 
 	/**
@@ -516,13 +504,9 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 	filterDirectories(pattern) {
 		if (this.isDisposed) return [];
 
-		const regex = typeof pattern === 'string' 
-			? new RegExp(pattern, 'i') 
-			: pattern;
+		const regex = typeof pattern === 'string' ? new RegExp(pattern, 'i') : pattern;
 
-		return this.state.directories.filter(dir => 
-			regex.test(dir.name)
-		);
+		return this.state.directories.filter((dir) => regex.test(dir.name));
 	}
 
 	// ========================================
@@ -556,7 +540,7 @@ export class DirectoryPickerViewModel extends BaseViewModel {
 		if (this.isDisposed) return;
 
 		this.updateField('disabled', !!disabled);
-		
+
 		// Close picker if being disabled
 		if (disabled && this.state.isOpen) {
 			this.closePicker();

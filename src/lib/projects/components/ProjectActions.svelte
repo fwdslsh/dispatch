@@ -6,14 +6,7 @@
 	import Button from '$lib/shared/components/Button.svelte';
 
 	// Props
-	let { 
-		project, 
-		onExport,
-		onSettings,
-		onSetActive,
-		onArchive,
-		disabled = false
-	} = $props();
+	let { project, onExport, onSettings, onSetActive, onArchive, disabled = false } = $props();
 
 	// Event handlers
 	function handleExport() {
@@ -75,13 +68,7 @@
 			Export
 		</Button>
 
-		<Button
-			variant="ghost"
-			size="small"
-			onclick={handleArchive}
-			{disabled}
-			title="Archive project"
-		>
+		<Button variant="ghost" size="small" onclick={handleArchive} {disabled} title="Archive project">
 			Archive
 		</Button>
 	</div>

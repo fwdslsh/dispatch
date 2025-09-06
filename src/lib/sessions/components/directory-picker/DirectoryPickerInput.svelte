@@ -27,7 +27,7 @@ Pure presentation component with input field, browse button, and clear button
 
 <div class="directory-picker-input">
 	<label>Working Directory (optional)</label>
-	
+
 	<div class="input-container">
 		<Input
 			type="text"
@@ -38,7 +38,7 @@ Pure presentation component with input field, browse button, and clear button
 			class="directory-input"
 			onKeydown={handleKeydown}
 		/>
-		
+
 		<Button
 			variant="outline"
 			size="small"
@@ -50,7 +50,7 @@ Pure presentation component with input field, browse button, and clear button
 		>
 			📁
 		</Button>
-		
+
 		{#if selectedPath}
 			<Button
 				variant="outline"
@@ -64,7 +64,7 @@ Pure presentation component with input field, browse button, and clear button
 			</Button>
 		{/if}
 	</div>
-	
+
 	<div class="help-text">
 		Select a specific folder within the project as the working directory for this Claude session.
 	</div>

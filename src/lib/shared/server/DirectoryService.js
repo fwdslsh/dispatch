@@ -59,26 +59,29 @@ export class DirectoryService {
 				};
 			}
 
-			const result = await this._makeSocketRequest('list-project-directories', {
-				projectId,
-				relativePath,
-				options: {
-					includeHidden: false,
-					sortBy: 'name',
-					sortOrder: 'asc'
-				}
-			}, socketId);
+			const result = await this._makeSocketRequest(
+				'list-project-directories',
+				{
+					projectId,
+					relativePath,
+					options: {
+						includeHidden: false,
+						sortBy: 'name',
+						sortOrder: 'asc'
+					}
+				},
+				socketId
+			);
 
 			// Normalize and validate result
 			const normalizedResult = this._normalizeDirectoryResult(result);
-			
+
 			// Cache successful results
 			if (normalizedResult.success) {
 				this._setCachedResult(cacheKey, normalizedResult);
 			}
 
 			return normalizedResult;
-
 		} catch (error) {
 			console.error('Directory listing failed:', error);
 			return {
@@ -105,11 +108,11 @@ export class DirectoryService {
 		}
 
 		const directories = Array.isArray(result.directories) ? result.directories : [];
-		
+
 		// Normalize directory entries
 		const normalizedDirectories = directories
-			.filter(dir => dir && typeof dir.name === 'string')
-			.map(dir => ({
+			.filter((dir) => dir && typeof dir.name === 'string')
+			.map((dir) => ({
 				name: dir.name,
 				type: dir.type || 'directory',
 				path: dir.path || dir.name,
@@ -149,13 +152,15 @@ export class DirectoryService {
 			}, 10000); // 10 second timeout
 
 			// Simulate socket emit call
-			const socket = this.socket || { emit: (event, data, callback) => {
-				// Mock socket that calls callback with empty response
-				if (typeof callback === 'function') {
-					setTimeout(() => callback({}), 0);
+			const socket = this.socket || {
+				emit: (event, data, callback) => {
+					// Mock socket that calls callback with empty response
+					if (typeof callback === 'function') {
+						setTimeout(() => callback({}), 0);
+					}
 				}
-			} };
-			
+			};
+
 			try {
 				socket.emit(event, data, (response) => {
 					clearTimeout(timeout);
@@ -195,11 +200,11 @@ export class DirectoryService {
 
 		// Check for dangerous path patterns
 		const dangerousPatterns = [
-			/\.\./,           // Parent directory traversal
-			/\/\.\./,         // Parent directory traversal
-			/^\/+/,           // Absolute paths
-			/[<>:"|?*]/,      // Invalid filename characters
-			/\0/              // Null bytes
+			/\.\./, // Parent directory traversal
+			/\/\.\./, // Parent directory traversal
+			/^\/+/, // Absolute paths
+			/[<>:"|?*]/, // Invalid filename characters
+			/\0/ // Null bytes
 		];
 
 		for (const pattern of dangerousPatterns) {
@@ -229,10 +234,10 @@ export class DirectoryService {
 	 */
 	_normalizePath(path) {
 		if (!path) return '';
-		
+
 		return path
 			.split('/')
-			.filter(segment => segment && segment !== '.')
+			.filter((segment) => segment && segment !== '.')
 			.join('/');
 	}
 
@@ -277,10 +282,10 @@ export class DirectoryService {
 	 */
 	getParentPath(path) {
 		if (!path) return '';
-		
+
 		const segments = path.split('/').filter(Boolean);
 		if (segments.length <= 1) return '';
-		
+
 		return segments.slice(0, -1).join('/');
 	}
 
@@ -291,7 +296,7 @@ export class DirectoryService {
 	 */
 	generateBreadcrumbs(path) {
 		if (!path) return ['/'];
-		
+
 		const segments = path.split('/').filter(Boolean);
 		return ['/', ...segments];
 	}
@@ -303,8 +308,8 @@ export class DirectoryService {
 	 */
 	joinPath(...segments) {
 		return segments
-			.filter(segment => segment)
-			.map(segment => String(segment))
+			.filter((segment) => segment)
+			.map((segment) => String(segment))
 			.join('/')
 			.replace(/\/+/g, '/'); // Remove duplicate slashes
 	}
@@ -403,7 +408,7 @@ export class DirectoryService {
 	 */
 	updateOptions(newOptions) {
 		if (this.isDisposed) return;
-		
+
 		this.options = {
 			...this.options,
 			...newOptions

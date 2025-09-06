@@ -1,4 +1,3 @@
-
 export const TERMINAL_CONFIG = {
 	// History and buffer limits
 	MAX_HISTORY_ENTRIES: 5000,

@@ -8,38 +8,38 @@
 	let {
 		// Content props
 		text = '',
-		
+
 		// Variant and styling
 		variant = 'primary', // 'primary' | 'secondary' | 'danger' | 'ghost'
 		size = 'medium', // 'small' | 'medium' | 'large'
-		
+
 		// State props
 		disabled = false,
 		loading = false,
 		hideTextOnLoading = false,
-		
+
 		// Augmented UI
 		augmented = 'tl-clip br-clip',
-		
+
 		// Button behavior
 		type = /** @type {'button' | 'submit' | 'reset'} */ ('button'), // 'button' | 'submit' | 'reset'
 		form = undefined,
-		
+
 		// Icon support
 		iconPosition = 'start', // 'start' | 'end'
-		
+
 		// Event handlers
 		onclick = undefined,
-		
+
 		// Accessibility
 		ariaLabel = undefined,
 		ariaDescribedBy = undefined,
-		
+
 		// HTML attributes
 		class: customClass = '',
 		style = '',
 		id = undefined,
-		
+
 		// Snippet props
 		icon,
 		children,
@@ -52,11 +52,11 @@
 	// Compute button classes
 	const buttonClasses = $derived(() => {
 		const classes = ['btn', `btn--${variant}`, `btn--${size}`];
-		
+
 		if (disabled) classes.push('btn--disabled');
 		if (loading) classes.push('btn--loading');
 		if (customClass) classes.push(...customClass.split(' '));
-		
+
 		return classes.join(' ');
 	});
 
@@ -279,15 +279,15 @@
 		.btn {
 			min-height: 44px; /* Better touch targets on mobile */
 		}
-		
+
 		.btn--small {
 			height: 36px;
 		}
-		
+
 		.btn--medium {
 			height: 44px;
 		}
-		
+
 		.btn--large {
 			height: 52px;
 		}

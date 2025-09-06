@@ -8,51 +8,51 @@
 	let {
 		// Value binding
 		value = $bindable(''),
-		
+
 		// Input configuration
 		type = 'text', // 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'date' | 'time' | 'datetime-local' | 'textarea'
 		placeholder = '',
-		
+
 		// Label and help
 		label = '',
 		help = '',
-		
+
 		// Validation states
 		error = '',
 		warning = '',
 		success = false,
 		required = false,
-		
+
 		// Size and appearance
 		size = 'medium', // 'small' | 'medium' | 'large'
-		
+
 		// Character limits
 		maxLength = undefined,
-		
+
 		// Textarea specific
 		rows = 4,
 		cols = undefined,
 		resize = 'vertical', // 'none' | 'vertical' | 'horizontal' | 'both'
-		
+
 		// State
 		disabled = false,
 		readonly = false,
-		
+
 		// Form integration
 		form = undefined,
 		autocomplete = undefined,
 		autofocus = false,
-		
+
 		// Event handlers
 		oninput = undefined,
 		onchange = undefined,
 		onfocus = undefined,
 		onblur = undefined,
-		
+
 		// Accessibility
 		ariaLabel = undefined,
 		ariaDescribedBy = undefined,
-		
+
 		// HTML attributes
 		class: customClass = '',
 		style = '',
@@ -71,7 +71,7 @@
 	// Compute classes
 	const inputClasses = $derived(() => {
 		const classes = ['input', `input--${size}`];
-		
+
 		if (type === 'textarea') classes.push('input--textarea');
 		if (error) classes.push('input--error');
 		else if (warning) classes.push('input--warning');
@@ -80,7 +80,7 @@
 		if (readonly) classes.push('input--readonly');
 		if (resize && type === 'textarea') classes.push(`input--resize-${resize}`);
 		if (customClass) classes.push(...customClass.split(' '));
-		
+
 		return classes.join(' ');
 	});
 
@@ -289,10 +289,18 @@
 		line-height: 1.5;
 	}
 
-	.input--resize-none { resize: none; }
-	.input--resize-vertical { resize: vertical; }
-	.input--resize-horizontal { resize: horizontal; }
-	.input--resize-both { resize: both; }
+	.input--resize-none {
+		resize: none;
+	}
+	.input--resize-vertical {
+		resize: vertical;
+	}
+	.input--resize-horizontal {
+		resize: horizontal;
+	}
+	.input--resize-both {
+		resize: both;
+	}
 
 	/* States */
 	.input--error {
@@ -384,15 +392,15 @@
 		.input {
 			min-height: 44px; /* Better touch targets */
 		}
-		
+
 		.input--small {
 			height: 36px;
 		}
-		
+
 		.input--medium {
 			height: 44px;
 		}
-		
+
 		.input--large {
 			height: 52px;
 		}

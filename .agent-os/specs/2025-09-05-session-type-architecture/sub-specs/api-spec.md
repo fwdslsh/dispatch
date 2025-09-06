@@ -18,34 +18,34 @@ This is the API specification for the spec detailed in @.agent-os/specs/2025-09-
 ```javascript
 // Session types available at build time
 const AVAILABLE_SESSION_TYPES = {
-  'shell': {
-    id: 'shell',
-    name: 'Shell Terminal', 
-    description: 'Standard shell terminal session',
-    category: 'terminal',
-    namespace: '/shell',
-    requiresProject: false,
-    supportsAttachment: true,
-    defaultOptions: {
-      shell: '/bin/bash',
-      cols: 80,
-      rows: 24
-    }
-  },
-  'claude': {
-    id: 'claude',
-    name: 'Claude Code',
-    description: 'AI-assisted development session', 
-    category: 'development',
-    namespace: '/claude',
-    requiresProject: true,
-    supportsAttachment: false,
-    defaultOptions: {
-      model: 'claude-3-sonnet',
-      cols: 120,
-      rows: 30
-    }
-  }
+	shell: {
+		id: 'shell',
+		name: 'Shell Terminal',
+		description: 'Standard shell terminal session',
+		category: 'terminal',
+		namespace: '/shell',
+		requiresProject: false,
+		supportsAttachment: true,
+		defaultOptions: {
+			shell: '/bin/bash',
+			cols: 80,
+			rows: 24
+		}
+	},
+	claude: {
+		id: 'claude',
+		name: 'Claude Code',
+		description: 'AI-assisted development session',
+		category: 'development',
+		namespace: '/claude',
+		requiresProject: true,
+		supportsAttachment: false,
+		defaultOptions: {
+			model: 'claude-3-sonnet',
+			cols: 120,
+			rows: 30
+		}
+	}
 };
 ```
 
@@ -60,6 +60,7 @@ const AVAILABLE_SESSION_TYPES = {
 **Purpose**: Create a new session with type-specific parameters
 
 **Request Parameters**:
+
 ```javascript
 {
   type: 'shell',              // Required: session type ID
@@ -77,6 +78,7 @@ const AVAILABLE_SESSION_TYPES = {
 ```
 
 **Response Format**:
+
 ```javascript
 {
   success: true,
@@ -97,6 +99,7 @@ const AVAILABLE_SESSION_TYPES = {
 ```
 
 **Error Responses**:
+
 ```javascript
 // Invalid session type
 {
@@ -131,7 +134,7 @@ Each session type operates within its own Socket.IO namespace to prevent event c
 #### Namespace Pattern
 
 - **Shell sessions**: `/shell`
-- **Claude sessions**: `/claude`  
+- **Claude sessions**: `/claude`
 - **Custom types**: `/{typeId}`
 
 #### Namespace-Specific Events
@@ -139,22 +142,26 @@ Each session type operates within its own Socket.IO namespace to prevent event c
 ##### Shell Namespace (`/shell`)
 
 **Client Events**:
+
 - `connect()` - Connect to shell namespace
 - `input(data)` - Send terminal input
 - `resize(dims)` - Resize terminal `{cols, rows}`
 
 **Server Events**:
+
 - `output(data)` - Terminal output
 
 ##### Claude Namespace (`/claude`)
 
 **Client Events**:
+
 - `connect()` - Connect to Claude namespace
 - `login` - Login to Claude Code
 - `sendMessage(message)` - Send message to Claude
 - `getCommands()` - Request a list of available commands
 
 **Server Events**:
+
 - `authenticated` - Confirms user is authenticated to Claude Code
 - `message(data)` - Claude response message
 - `commands(list of commands)` - Returns all commands registered with Claude code
@@ -166,6 +173,7 @@ Each session type operates within its own Socket.IO namespace to prevent event c
 **Purpose**: Attach to existing typed session with namespace context
 
 **Request Parameters**:
+
 ```javascript
 {
   sessionId: 'sess_abc123',
@@ -176,6 +184,7 @@ Each session type operates within its own Socket.IO namespace to prevent event c
 ```
 
 **Response Format**:
+
 ```javascript
 {
   success: true,
@@ -195,6 +204,7 @@ Each session type operates within its own Socket.IO namespace to prevent event c
 **Purpose**: Detach from current session while keeping it active
 
 **Response Format**:
+
 ```javascript
 {
   success: true,
@@ -207,13 +217,15 @@ Each session type operates within its own Socket.IO namespace to prevent event c
 **Purpose**: Get session information and metadata via WebSocket
 
 **Request Parameters**:
+
 ```javascript
 {
-  sessionId: 'sess_abc123'
+	sessionId: 'sess_abc123';
 }
 ```
 
 **Response Format**:
+
 ```javascript
 {
   success: true,
@@ -239,12 +251,12 @@ Each session type operates within its own Socket.IO namespace to prevent event c
 ## Greenfield Development
 
 > **Architecture Decision**: This is greenfield development with no backward compatibility requirements. Session types are statically registered at build time, eliminating the need for:
-> 
+>
 > - Runtime session type discovery
 > - Dynamic session type management
 > - REST API endpoints for session type operations
 > - Server-side session type listing
-> 
+>
 > All session type information is available to the client application through static imports and conditional rendering.
 
 ## Error Handling Standards
@@ -290,7 +302,6 @@ All API responses use consistent error format:
 
 - Each namespace requires separate authentication
 - Terminal key validated before namespace operations
-
 
 ## Performance Implications
 

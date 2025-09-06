@@ -4,11 +4,12 @@ This style guide focuses on Svelte 5's runes-mode features and new API surface. 
 
 Principles
 
-- Prefer runes-based reactivity ($state, $derived, $effect, $props, $bindable, etc.) over manual stores or frameworks-specific helpers.
+- ALWAYS user runes-based reactivity ($state, $derived, $effect, $props, $bindable, etc.) instead manual stores or frameworks-specific helpers.
 - Keep components declarative and small; favor composition and snippets over complex inheritance.
 - Use MVVM (Model-View-ViewModel) for app structure. Views are `.svelte` components, ViewModels hold reactive runes and logic (can be `.svelte.js` modules), and Models are plain objects used by API client proxies.
 - Expose side-effect boundaries: use `$effect` for DOM or third-party interactions; use `$derived` for pure computed values.
 - Use API proxy/client objects for server communication and abstract fetch/transport in a thin client module.
+- Use the svelte-llm mcp tool, if available, to check the latest syntax and svelte best practices
 
 Contract (tiny)
 

@@ -31,12 +31,7 @@
 					<span>Loading...</span>
 				</div>
 			{:else}
-				<Button
-					variant="primary"
-					size="medium"
-					onclick={handleCreateClick}
-					disabled={loading}
-				>
+				<Button variant="primary" size="medium" onclick={handleCreateClick} disabled={loading}>
 					{#snippet icon()}
 						<StartSession />
 					{/snippet}

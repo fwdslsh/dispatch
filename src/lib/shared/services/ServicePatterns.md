@@ -8,33 +8,33 @@ All services should follow this simple pattern:
 
 ```javascript
 export class MyService {
-  constructor(dependencies) {
-    // Simple constructor with direct dependencies
-    this.socket = dependencies.socket;
-    this.someState = $state(null);
-  }
+	constructor(dependencies) {
+		// Simple constructor with direct dependencies
+		this.socket = dependencies.socket;
+		this.someState = $state(null);
+	}
 
-  // Methods return simple objects, not complex abstractions
-  async doSomething(data) {
-    try {
-      const response = await this.socket.emit('do-something', data);
-      
-      if (response.success) {
-        this.someState = response.data;
-        return { success: true, data: response.data };
-      } else {
-        return { success: false, error: response.error };
-      }
-    } catch (error) {
-      console.error('MyService: Error in doSomething:', error);
-      return { success: false, error: error.message };
-    }
-  }
+	// Methods return simple objects, not complex abstractions
+	async doSomething(data) {
+		try {
+			const response = await this.socket.emit('do-something', data);
 
-  // Simple cleanup
-  destroy() {
-    this.someState = null;
-  }
+			if (response.success) {
+				this.someState = response.data;
+				return { success: true, data: response.data };
+			} else {
+				return { success: false, error: response.error };
+			}
+		} catch (error) {
+			console.error('MyService: Error in doSomething:', error);
+			return { success: false, error: error.message };
+		}
+	}
+
+	// Simple cleanup
+	destroy() {
+		this.someState = null;
+	}
 }
 ```
 
@@ -65,9 +65,9 @@ async callServer(event, data) {
     const response = await new Promise((resolve) => {
       this.socket.emit(event, data, resolve);
     });
-    
-    return response.success ? 
-      { success: true, data: response.data } : 
+
+    return response.success ?
+      { success: true, data: response.data } :
       { success: false, error: response.error };
   } catch (error) {
     return { success: false, error: error.message };
@@ -81,28 +81,28 @@ Simple reactive state in services:
 
 ```javascript
 export class StateService {
-  constructor() {
-    // Simple reactive state
-    this.items = $state([]);
-    this.currentItem = $state(null);
-    this.isLoading = $state(false);
-    
-    // Simple computed values
-    this.hasItems = $derived(() => this.items.length > 0);
-  }
+	constructor() {
+		// Simple reactive state
+		this.items = $state([]);
+		this.currentItem = $state(null);
+		this.isLoading = $state(false);
 
-  // Simple state updates
-  setLoading(loading) {
-    this.isLoading = loading;
-  }
+		// Simple computed values
+		this.hasItems = $derived(() => this.items.length > 0);
+	}
 
-  addItem(item) {
-    this.items.push(item);
-  }
+	// Simple state updates
+	setLoading(loading) {
+		this.isLoading = loading;
+	}
 
-  setCurrentItem(item) {
-    this.currentItem = item;
-  }
+	addItem(item) {
+		this.items.push(item);
+	}
+
+	setCurrentItem(item) {
+		this.currentItem = item;
+	}
 }
 ```
 
@@ -137,6 +137,7 @@ class ComplexError extends Error {
 ## Summary
 
 Keep it simple:
+
 1. **Direct dependencies** in constructor
 2. **Simple return objects** `{ success, data?, error? }`
 3. **Basic error handling** with try/catch and console.error

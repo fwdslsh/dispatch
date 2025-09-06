@@ -49,7 +49,13 @@
 	}
 </script>
 
-<form class="project-form" onsubmit={(e) => {e.preventDefault(); handleSubmit();}}>
+<form
+	class="project-form"
+	onsubmit={(e) => {
+		e.preventDefault();
+		handleSubmit();
+	}}
+>
 	<div class="form-fields">
 		<div class="form-group">
 			<Input
@@ -61,12 +67,9 @@
 				disabled={loading}
 				onkeydown={handleKeyDown}
 			/>
-			
+
 			{#if nameValidation.message}
-				<ValidationMessage
-					message={nameValidation.message}
-					severity={nameValidation.severity}
-				/>
+				<ValidationMessage message={nameValidation.message} severity={nameValidation.severity} />
 			{/if}
 		</div>
 
@@ -81,29 +84,21 @@
 		</div>
 
 		{#if !formValidation.isValid && formValidation.message}
-			<ValidationMessage
-				message={formValidation.message}
-				severity="error"
-			/>
+			<ValidationMessage message={formValidation.message} severity="error" />
 		{/if}
 	</div>
 
 	<div class="form-actions">
-		<Button
-			type="button"
-			variant="secondary"
-			onclick={handleCancel}
-			disabled={loading}
-		>
+		<Button type="button" variant="secondary" onclick={handleCancel} disabled={loading}>
 			Cancel
 		</Button>
-		
+
 		<Button
 			type="submit"
 			variant="primary"
 			onclick={handleSubmit}
 			disabled={!canCreateProject}
-			loading={loading}
+			{loading}
 		>
 			{#snippet icon()}
 				{#if !loading}

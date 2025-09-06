@@ -25,11 +25,7 @@
 		</div>
 	{:else if error}
 		<div class="command-list-state">
-			<ErrorDisplay 
-				message={error} 
-				variant="compact"
-				showRetry={false}
-			/>
+			<ErrorDisplay message={error} variant="compact" showRetry={false} />
 		</div>
 	{:else if !hasCommands}
 		<div class="no-results">

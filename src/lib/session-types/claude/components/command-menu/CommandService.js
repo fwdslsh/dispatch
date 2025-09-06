@@ -55,7 +55,7 @@ export class CommandService {
 		};
 
 		// Check if command already exists and update it
-		const existingIndex = this.commands.findIndex(cmd => cmd.name === command.name);
+		const existingIndex = this.commands.findIndex((cmd) => cmd.name === command.name);
 		if (existingIndex >= 0) {
 			this.commands[existingIndex] = normalizedCommand;
 		} else {
@@ -82,8 +82,8 @@ export class CommandService {
 		}
 
 		const initialLength = this.commands.length;
-		this.commands = this.commands.filter(cmd => cmd.name !== commandName);
-		
+		this.commands = this.commands.filter((cmd) => cmd.name !== commandName);
+
 		return this.commands.length < initialLength;
 	}
 
@@ -135,15 +135,15 @@ export class CommandService {
 
 		// Filter and score commands
 		const results = searchList
-			.filter(cmd => this._isValidCommand(cmd))
-			.map(cmd => ({
+			.filter((cmd) => this._isValidCommand(cmd))
+			.map((cmd) => ({
 				command: cmd,
 				score: this._calculateMatchScore(cmd, normalizedQuery)
 			}))
-			.filter(result => result.score > 0)
+			.filter((result) => result.score > 0)
 			.sort((a, b) => b.score - a.score)
 			.slice(0, this.options.searchOptions.maxResults)
-			.map(result => result.command);
+			.map((result) => result.command);
 
 		return results;
 	}
@@ -158,7 +158,7 @@ export class CommandService {
 	_calculateMatchScore(command, query) {
 		const caseSensitive = this.options.searchOptions.caseSensitive;
 		const normalize = caseSensitive ? (str) => str : (str) => str.toLowerCase();
-		
+
 		const normalizedQuery = normalize(query);
 		const name = normalize(command.name || '');
 		const description = normalize(command.description || '');
@@ -204,21 +204,22 @@ export class CommandService {
 		const nameWords = name.split(/\s+/);
 		const descWords = description.split(/\s+/);
 
-		queryWords.forEach(queryWord => {
-			if (nameWords.some(word => word === queryWord)) {
+		queryWords.forEach((queryWord) => {
+			if (nameWords.some((word) => word === queryWord)) {
 				score += 100;
 			}
-			if (descWords.some(word => word === queryWord)) {
+			if (descWords.some((word) => word === queryWord)) {
 				score += 50;
 			}
 		});
 
 		// Bonus for multiple word matches
-		const matchingWords = queryWords.filter(queryWord =>
-			nameWords.some(word => word.includes(queryWord)) ||
-			descWords.some(word => word.includes(queryWord))
+		const matchingWords = queryWords.filter(
+			(queryWord) =>
+				nameWords.some((word) => word.includes(queryWord)) ||
+				descWords.some((word) => word.includes(queryWord))
 		);
-		
+
 		if (matchingWords.length > 1) {
 			score += matchingWords.length * 25;
 		}
@@ -235,7 +236,7 @@ export class CommandService {
 	 */
 	_fuzzyMatch(str, query) {
 		if (!str || !query) return false;
-		
+
 		let strIndex = 0;
 		let queryIndex = 0;
 		let matches = 0;
@@ -281,7 +282,6 @@ export class CommandService {
 
 			// Default execution - just return the command action
 			return command.action;
-
 		} catch (error) {
 			console.error('Command execution failed:', error);
 			throw error;
@@ -298,7 +298,7 @@ export class CommandService {
 			throw new Error('CommandService has been disposed');
 		}
 
-		const command = this.commands.find(cmd => cmd.name === commandName);
+		const command = this.commands.find((cmd) => cmd.name === commandName);
 		if (!command) {
 			throw new Error(`Command not found: ${commandName}`);
 		}
@@ -362,7 +362,7 @@ export class CommandService {
 			throw new Error('CommandService has been disposed');
 		}
 
-		const categories = [...new Set(this.commands.map(cmd => cmd.category || 'General'))];
+		const categories = [...new Set(this.commands.map((cmd) => cmd.category || 'General'))];
 		return categories.sort();
 	}
 
@@ -376,7 +376,7 @@ export class CommandService {
 			throw new Error('CommandService has been disposed');
 		}
 
-		return this.commands.filter(cmd => cmd.category === category);
+		return this.commands.filter((cmd) => cmd.category === category);
 	}
 
 	// ========================================
@@ -433,7 +433,7 @@ export class CommandService {
 			}
 
 			const parsed = JSON.parse(cachedData);
-			
+
 			// Check if cache is still valid (not expired)
 			const isExpired = Date.now() - parsed.timestamp > this.options.cacheTimeout;
 			if (isExpired) {
@@ -442,7 +442,6 @@ export class CommandService {
 			}
 
 			return Array.isArray(parsed.commands) ? parsed.commands : [];
-
 		} catch (error) {
 			console.warn('Failed to load command cache:', error);
 			return [];

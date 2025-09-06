@@ -35,11 +35,11 @@ describe('ProjectViewModel', () => {
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
-		
+
 		// Get mock references
 		const socketModule = await import('socket.io-client');
 		mockIo = socketModule.io;
-		
+
 		// Reset mock socket
 		mockSocket = {
 			connect: vi.fn(),
@@ -52,7 +52,7 @@ describe('ProjectViewModel', () => {
 			connected: false,
 			id: 'mock-socket-id'
 		};
-		
+
 		mockIo.mockReturnValue(mockSocket);
 
 		// Mock ProjectService
@@ -178,7 +178,7 @@ describe('ProjectViewModel', () => {
 
 		it('should not create project with invalid data', async () => {
 			const invalidName = '';
-			
+
 			mockProjectService.validateProject.mockReturnValue({
 				isValid: false,
 				message: 'Project name is required',
@@ -344,9 +344,7 @@ describe('ProjectViewModel', () => {
 
 	describe('Socket.IO Integration', () => {
 		it('should handle projects-updated event', () => {
-			const updatedProjects = [
-				{ id: '1', name: 'Updated Project' }
-			];
+			const updatedProjects = [{ id: '1', name: 'Updated Project' }];
 
 			// Simulate socket event
 			viewModel.handleProjectsUpdated({
@@ -390,13 +388,19 @@ describe('ProjectViewModel', () => {
 
 		it('should compute canCreateProject correctly', () => {
 			// Test the logic that would be in canCreateProject
-			const canCreate = viewModel.formData.name.trim().length > 0 && viewModel.formValidation.isValid && !viewModel.loading;
+			const canCreate =
+				viewModel.formData.name.trim().length > 0 &&
+				viewModel.formValidation.isValid &&
+				!viewModel.loading;
 			expect(canCreate).toBe(false);
 
 			// With valid name should be true
 			viewModel.formData.name = 'Valid Project';
 			viewModel.formValidation.isValid = true;
-			const canCreateValid = viewModel.formData.name.trim().length > 0 && viewModel.formValidation.isValid && !viewModel.loading;
+			const canCreateValid =
+				viewModel.formData.name.trim().length > 0 &&
+				viewModel.formValidation.isValid &&
+				!viewModel.loading;
 			expect(canCreateValid).toBe(true);
 		});
 
@@ -407,7 +411,7 @@ describe('ProjectViewModel', () => {
 			];
 
 			// Test the mapping logic directly
-			const computed = viewModel.projects.map(project => ({
+			const computed = viewModel.projects.map((project) => ({
 				...project,
 				sessionCount: project.sessions?.length || 0
 			}));
@@ -473,7 +477,7 @@ describe('ProjectViewModel', () => {
 			// Socket cleanup is handled by BaseViewModel's cleanup callbacks
 			const cleanup1 = vi.fn();
 			const cleanup2 = vi.fn();
-			
+
 			viewModel.addCleanup(cleanup1);
 			viewModel.addCleanup(cleanup2);
 

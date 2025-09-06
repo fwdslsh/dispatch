@@ -171,9 +171,7 @@ describe('KeyboardToolbarViewModel', () => {
 
 			await viewModel.removeButton('Tab');
 
-			expect(viewModel.state.toolbarConfig).not.toContain(
-				expect.objectContaining({ key: 'Tab' })
-			);
+			expect(viewModel.state.toolbarConfig).not.toContain(expect.objectContaining({ key: 'Tab' }));
 			expect(mockKeyboardService.saveConfiguration).toHaveBeenCalled();
 		});
 
@@ -317,10 +315,10 @@ describe('KeyboardToolbarViewModel', () => {
 		});
 
 		it('should handle custom key mappings', async () => {
-			const customButton = { 
-				key: 'custom', 
-				label: 'Custom', 
-				customSequence: '\u001b[1;5D' 
+			const customButton = {
+				key: 'custom',
+				label: 'Custom',
+				customSequence: '\u001b[1;5D'
 			};
 
 			const sequence = await viewModel.generateKeySequence(customButton);
@@ -392,10 +390,7 @@ describe('KeyboardToolbarViewModel', () => {
 		it('should correctly compute buttonCount', () => {
 			expect(viewModel.buttonCount).toBe(0);
 
-			viewModel.updateField('toolbarConfig', [
-				{ key: 'key1' }, 
-				{ key: 'key2' }
-			]);
+			viewModel.updateField('toolbarConfig', [{ key: 'key1' }, { key: 'key2' }]);
 			expect(viewModel.buttonCount).toBe(2);
 		});
 
@@ -410,7 +405,12 @@ describe('KeyboardToolbarViewModel', () => {
 		it('should correctly compute hasActiveModifiers', () => {
 			expect(viewModel.hasActiveModifiers).toBe(false);
 
-			viewModel.updateField('activeModifiers', { ctrl: true, alt: false, shift: false, meta: false });
+			viewModel.updateField('activeModifiers', {
+				ctrl: true,
+				alt: false,
+				shift: false,
+				meta: false
+			});
 			expect(viewModel.hasActiveModifiers).toBe(true);
 		});
 	});
@@ -518,7 +518,7 @@ describe('KeyboardToolbarViewModel', () => {
 		it('should dispose properly', () => {
 			const cleanup = vi.fn();
 			viewModel.addCleanup(cleanup);
-			
+
 			expect(viewModel.isDisposed).toBe(false);
 
 			viewModel.dispose();

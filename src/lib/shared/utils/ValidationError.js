@@ -13,12 +13,12 @@ export class ValidationError extends Error {
 	 */
 	constructor(message, field, code, details) {
 		super(message);
-		
+
 		this.name = 'ValidationError';
 		this.field = field;
 		this.code = code;
 		this.details = details;
-		
+
 		// Maintains proper stack trace for where error was thrown (only available on V8)
 		if (Error.captureStackTrace) {
 			Error.captureStackTrace(this, ValidationError);
@@ -41,11 +41,7 @@ export class ValidationError extends Error {
 	 * @returns {ValidationError}
 	 */
 	static invalidFormat(field, formatName) {
-		return new ValidationError(
-			`Please enter a valid ${formatName}`,
-			field,
-			'INVALID_FORMAT'
-		);
+		return new ValidationError(`Please enter a valid ${formatName}`, field, 'INVALID_FORMAT');
 	}
 
 	/**
@@ -133,17 +129,17 @@ export class ValidationError extends Error {
 	 */
 	getTechnicalMessage() {
 		let message = '';
-		
+
 		if (this.field) {
 			message += `[${this.field}] `;
 		}
-		
+
 		if (this.code) {
 			message += `${this.code}: `;
 		}
-		
+
 		message += this.message;
-		
+
 		return message;
 	}
 

@@ -1,11 +1,6 @@
 <script>
 	// Props
-	let {
-		command = {},
-		selected = false,
-		onSelect = () => {},
-		onExecute = () => {}
-	} = $props();
+	let { command = {}, selected = false, onSelect = () => {}, onExecute = () => {} } = $props();
 
 	// Derived properties for safety
 	let name = $derived(command.name || '');
@@ -36,7 +31,7 @@
 			<div class="command-description">{description}</div>
 		{/if}
 	</div>
-	
+
 	{#if category || shortcut}
 		<div class="command-meta">
 			{#if category}

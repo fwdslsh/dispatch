@@ -9,20 +9,20 @@
 		// Error content
 		error = '',
 		title = '',
-		
+
 		// Severity levels
 		severity = 'error', // 'error' | 'warning' | 'info' | 'success'
-		
+
 		// Display options
 		dismissible = false,
 		showIcon = true,
-		
+
 		// Styling
 		size = 'medium', // 'small' | 'medium' | 'large'
-		
+
 		// Event handlers
 		ondismiss = undefined,
-		
+
 		// HTML attributes
 		class: customClass = '',
 		...restProps
@@ -50,12 +50,7 @@
 	}
 </script>
 
-<div 
-	class={errorClasses}
-	role="alert"
-	aria-live="polite"
-	{...restProps}
->
+<div class={errorClasses} role="alert" aria-live="polite" {...restProps}>
 	{#if showIcon}
 		<div class="error-display__icon" aria-hidden="true">
 			{@html icons[severity]}
@@ -66,13 +61,13 @@
 		{#if title}
 			<h4 class="error-display__title">{title}</h4>
 		{/if}
-		
+
 		{#if error}
 			<div class="error-display__message">
 				{error}
 			</div>
 		{/if}
-		
+
 		<!-- Allow for custom content -->
 		{#if $$slots.default}
 			<div class="error-display__slot">
@@ -82,14 +77,19 @@
 	</div>
 
 	{#if dismissible}
-		<button 
+		<button
 			class="error-display__dismiss"
 			onclick={handleDismiss}
 			aria-label="Dismiss message"
 			type="button"
 		>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-				<path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+				<path
+					d="M18 6L6 18M6 6L18 18"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+				/>
 			</svg>
 		</button>
 	{/if}
@@ -259,7 +259,7 @@
 		.error-display {
 			gap: var(--space-xs);
 		}
-		
+
 		.error-display--dismissible {
 			padding-right: var(--space-lg);
 		}
@@ -271,7 +271,7 @@
 			border-width: 2px;
 			background: var(--bg);
 		}
-		
+
 		.error-display__dismiss {
 			border: 1px solid currentColor;
 		}

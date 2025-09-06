@@ -32,7 +32,7 @@
 		try {
 			// Initialize service connection
 			const connected = await projectService.initialize();
-			
+
 			if (connected) {
 				// Load initial projects
 				await viewModel.loadProjects();
@@ -85,10 +85,7 @@
 </script>
 
 <div class="project-manager">
-	<ProjectHeader 
-		onCreateProject={handleCreateProject}
-		{loading}
-	/>
+	<ProjectHeader onCreateProject={handleCreateProject} {loading} />
 
 	{#if error}
 		<div class="error-message">
@@ -97,7 +94,7 @@
 	{/if}
 
 	<div class="project-content">
-		<ProjectList 
+		<ProjectList
 			{projects}
 			{loading}
 			{viewModel}
@@ -109,13 +106,13 @@
 
 	<!-- Create Project Modal -->
 	{#if showCreateForm}
-		<Modal 
-			title="Create New Project" 
+		<Modal
+			title="Create New Project"
 			show={showCreateForm}
 			onClose={() => viewModel.toggleCreateForm()}
 		>
 			{#snippet children()}
-				<ProjectForm 
+				<ProjectForm
 					{viewModel}
 					onProjectCreated={handleProjectCreated}
 					onCancel={() => viewModel.toggleCreateForm()}

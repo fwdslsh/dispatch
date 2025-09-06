@@ -52,7 +52,7 @@ describe('DirectoryPickerViewModel', () => {
 				return ['/', ...path.split('/').filter(Boolean)];
 			}),
 			joinPath: vi.fn().mockImplementation((...segments) => {
-				return segments.filter(segment => segment).join('/');
+				return segments.filter((segment) => segment).join('/');
 			})
 		};
 
@@ -237,7 +237,7 @@ describe('DirectoryPickerViewModel', () => {
 
 		it('should not go back when no history exists', async () => {
 			viewModel.state.pathHistory = [];
-			
+
 			await viewModel.goBack();
 
 			expect(mockDirectoryService.listDirectories).not.toHaveBeenCalled();
@@ -293,7 +293,7 @@ describe('DirectoryPickerViewModel', () => {
 		it('should select current directory', () => {
 			viewModel.state.currentPath = 'src/components';
 			const onSelectSpy = vi.fn();
-			
+
 			viewModel.selectCurrentDirectory(onSelectSpy);
 
 			expect(viewModel.state.selectedPath).toBe('src/components');
@@ -448,7 +448,7 @@ describe('DirectoryPickerViewModel', () => {
 
 		it('should correctly compute breadcrumbs for nested path', () => {
 			viewModel.updateField('currentPath', 'src/components/ui');
-			
+
 			// Trigger breadcrumb generation
 			viewModel._updateBreadcrumbs();
 
@@ -458,7 +458,7 @@ describe('DirectoryPickerViewModel', () => {
 
 	describe('State Management', () => {
 		it('should handle loading state during async operations', async () => {
-			const promise = new Promise(resolve => setTimeout(resolve, 100));
+			const promise = new Promise((resolve) => setTimeout(resolve, 100));
 			mockDirectoryService.listDirectories.mockReturnValue(promise);
 
 			const loadingPromise = viewModel.loadDirectories('src');
@@ -588,9 +588,7 @@ describe('DirectoryPickerViewModel', () => {
 
 	describe('Error Handling', () => {
 		it('should handle timeout errors', async () => {
-			mockDirectoryService.listDirectories.mockRejectedValue(
-				new Error('Request timeout')
-			);
+			mockDirectoryService.listDirectories.mockRejectedValue(new Error('Request timeout'));
 
 			await viewModel.loadDirectories('slow-path');
 

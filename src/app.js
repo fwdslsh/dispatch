@@ -62,7 +62,7 @@ async function initializeDirectories() {
 async function startServer() {
 	// Initialize directories before starting server
 	await initializeDirectories();
-	
+
 	// Initialize session types registry
 	initializeSessionTypes();
 
@@ -94,7 +94,7 @@ async function startServer() {
 	// Setup both main namespace and isolated session type namespaces
 	const mainHandler = createModularSocketHandler(io);
 	io.on('connection', mainHandler);
-	
+
 	// Setup namespaced handlers for session types
 	createNamespacedSocketHandler(io);
 

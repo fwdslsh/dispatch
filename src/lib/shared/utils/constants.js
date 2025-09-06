@@ -3,7 +3,6 @@
  * Single source of truth for all application constants
  */
 
-
 export const UI_CONFIG = {
 	// Responsive breakpoints
 	DESKTOP_BREAKPOINT: 1024,

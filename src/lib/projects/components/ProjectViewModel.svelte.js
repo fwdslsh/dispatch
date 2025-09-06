@@ -5,6 +5,7 @@
 import { BaseViewModel } from '../../shared/contexts/BaseViewModel.svelte.js';
 import { ValidationError } from '../../shared/utils/ValidationError.js';
 import { goto } from '$app/navigation';
+import { PROJECT_VALIDATION } from '../config.js';
 
 export class ProjectViewModel extends BaseViewModel {
 	// Project state using Svelte 5 $state runes
@@ -37,23 +38,23 @@ export class ProjectViewModel extends BaseViewModel {
 
 	// Derived state using $derived rune
 	hasProjects = $derived(this.projects.length > 0);
-	
+
 	canCreateProject = $derived(
 		this.formData.name.trim().length > 0 && this.formValidation.isValid && !this.loading
 	);
-	
+
 	// Optimize expensive validation with $derived.by
 	nameValidation = $derived.by(() => {
 		// Only recompute when name changes
 		const name = this.formData.name;
 		return this.validateNameRealtime(name);
 	});
-	
+
 	// Optimize expensive map operation with $derived.by
 	projectsWithSessionCount = $derived.by(() => {
 		// Only recompute when projects array changes
 		const projects = this.projects;
-		return projects.map(project => ({
+		return projects.map((project) => ({
 			...project,
 			sessionCount: project.sessions?.length || 0
 		}));
@@ -73,7 +74,7 @@ export class ProjectViewModel extends BaseViewModel {
 		};
 
 		super(model, { projectService, ...services });
-		
+
 		// Initialize reactive state
 		this.projects = model.state.projects;
 		this.activeProject = model.state.activeProject;
@@ -118,7 +119,7 @@ export class ProjectViewModel extends BaseViewModel {
 			return new Promise((resolve) => {
 				this.socket.on('connect', () => {
 					const authToken = localStorage.getItem('dispatch-auth-token') || 'testkey12345';
-					
+
 					this.socket.emit('auth', authToken, (response) => {
 						if (response?.success) {
 							this.clearError();
@@ -177,7 +178,7 @@ export class ProjectViewModel extends BaseViewModel {
 		return await this.withLoading(async () => {
 			try {
 				const response = await this.service.getProjects();
-				
+
 				if (response.success) {
 					this.projects = response.data || [];
 					this.activeProject = response.activeProject;
@@ -208,16 +209,16 @@ export class ProjectViewModel extends BaseViewModel {
 		try {
 			const result = await this.withLoading(async () => {
 				const response = await this.service.createProject(projectData);
-				
+
 				if (response.success) {
 					this.clearForm();
 					this.showCreateForm = false;
-					
+
 					// Navigate to the new project if ID is provided
 					if (response.data?.id) {
 						this.goto(`/projects/${response.data.id}`);
 					}
-					
+
 					return response;
 				} else {
 					throw new Error(response.error || 'Failed to create project');
@@ -244,7 +245,7 @@ export class ProjectViewModel extends BaseViewModel {
 		try {
 			await this.withLoading(async () => {
 				const response = await this.service.deleteProject(this.projectToDelete.id);
-				
+
 				if (response.success) {
 					this.showDeleteDialog = false;
 					this.projectToDelete = null;
@@ -317,8 +318,8 @@ export class ProjectViewModel extends BaseViewModel {
 			return { isValid: true, message: '', severity: 'info' };
 		}
 
-		if (name.length > 45) {
-			const remaining = 50 - name.length;
+		if (name.length > PROJECT_VALIDATION.NAME_MAX_LENGTH - 5) {
+			const remaining = PROJECT_VALIDATION.NAME_MAX_LENGTH - name.length;
 			return {
 				isValid: remaining >= 0,
 				message: remaining >= 0 ? `${remaining} characters remaining` : 'Name too long',
@@ -326,8 +327,7 @@ export class ProjectViewModel extends BaseViewModel {
 			};
 		}
 
-		const validPattern = /^[a-zA-Z0-9\s_-]*$/;
-		if (!validPattern.test(name)) {
+		if (!PROJECT_VALIDATION.NAME_PATTERN.test(name)) {
 			return {
 				isValid: false,
 				message: 'Invalid characters detected',

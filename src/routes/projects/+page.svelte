@@ -3,7 +3,6 @@
 	import HeaderToolbar from '$lib/shared/components/HeaderToolbar.svelte';
 	import Container from '$lib/shared/components/Container.svelte';
 	import PublicUrlDisplay from '$lib/shared/components/PublicUrlDisplay.svelte';
-	import Projects from '$lib/projects/components/Projects.svelte';
 	import ExitIcon from '$lib/shared/components/Icons/ExitIcon.svelte';
 	import ProjectManager from '$lib/projects/components/ProjectManager.svelte';
 

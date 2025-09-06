@@ -64,7 +64,7 @@ export class KeyboardService {
 		} catch (error) {
 			console.warn('Failed to load keyboard toolbar config:', error);
 		}
-		
+
 		return null;
 	}
 
@@ -101,7 +101,7 @@ export class KeyboardService {
 
 		for (let i = 0; i < configuration.length; i++) {
 			const button = configuration[i];
-			
+
 			if (!button || typeof button !== 'object') {
 				return { isValid: false, error: `Button at index ${i} must be an object` };
 			}
@@ -219,8 +219,20 @@ export class KeyboardService {
 	 * @returns {boolean} - True if modifier key
 	 */
 	isModifierKey(key) {
-		const modifierKeys = ['Control', 'Alt', 'Shift', 'Meta', 'ControlLeft', 'ControlRight', 
-		                      'AltLeft', 'AltRight', 'ShiftLeft', 'ShiftRight', 'MetaLeft', 'MetaRight'];
+		const modifierKeys = [
+			'Control',
+			'Alt',
+			'Shift',
+			'Meta',
+			'ControlLeft',
+			'ControlRight',
+			'AltLeft',
+			'AltRight',
+			'ShiftLeft',
+			'ShiftRight',
+			'MetaLeft',
+			'MetaRight'
+		];
 		return modifierKeys.includes(key);
 	}
 
@@ -287,7 +299,6 @@ export class KeyboardService {
 				window.visualViewport.removeEventListener('resize', handleViewportChange);
 				document.body.classList.remove('keyboard-toolbar-visible');
 			};
-
 		} else {
 			// Fallback to window resize detection (for Android)
 			const initialHeight = window.innerHeight;
@@ -376,7 +387,7 @@ export class KeyboardService {
 		window.removeEventListener(eventType, handler);
 
 		this.listeners = this.listeners.filter(
-			listener => !(listener.eventType === eventType && listener.handler === handler)
+			(listener) => !(listener.eventType === eventType && listener.handler === handler)
 		);
 	}
 
@@ -390,7 +401,7 @@ export class KeyboardService {
 	 */
 	updateOptions(newOptions) {
 		if (this.isDisposed) return;
-		
+
 		this.options = {
 			...this.options,
 			...newOptions
@@ -426,7 +437,7 @@ export class KeyboardService {
 		}
 
 		// Remove all event listeners
-		this.listeners.forEach(listener => {
+		this.listeners.forEach((listener) => {
 			if (typeof window !== 'undefined') {
 				window.removeEventListener(listener.eventType, listener.handler);
 			}

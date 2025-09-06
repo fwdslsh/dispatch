@@ -40,11 +40,7 @@ Displays directories with navigation and selection options
 
 <div class="directory-browser">
 	{#if error}
-		<ErrorDisplay 
-			{error}
-			onRetry={onRetry}
-			class="browser-error"
-		/>
+		<ErrorDisplay {error} {onRetry} class="browser-error" />
 	{:else if directories.length === 0}
 		<div class="empty-state">
 			<div class="empty-icon">📁</div>
@@ -66,7 +62,7 @@ Displays directories with navigation and selection options
 							<span class="directory-size">({dir.size} items)</span>
 						{/if}
 					</button>
-					
+
 					<Button
 						variant="outline"
 						size="small"

@@ -19,7 +19,7 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 		this.buttonCount = $derived(this.state.toolbarConfig?.length || 0);
 		this.isKeyboardVisible = $derived(this.state.keyboardHeight > 0);
 		this.hasActiveModifiers = $derived(
-			Object.values(this.state.activeModifiers || {}).some(active => active)
+			Object.values(this.state.activeModifiers || {}).some((active) => active)
 		);
 		this.canCustomize = $derived(!this.state.isCustomizing);
 		this.shouldShowToolbar = $derived(this.state.isMobile && this.state.visible);
@@ -45,7 +45,7 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 		try {
 			// Try to load from storage first
 			const stored = this.services.keyboardService.loadConfiguration();
-			
+
 			let config;
 			if (stored && stored.length > 0) {
 				config = stored;
@@ -119,7 +119,7 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 
 				const defaultConfig = this.services.keyboardService.getDefaultConfiguration();
 				this.updateField('toolbarConfig', defaultConfig);
-				
+
 				await this.services.keyboardService.saveConfiguration(defaultConfig);
 			} catch (error) {
 				console.error('Configuration reset failed:', error);
@@ -162,9 +162,9 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 		if (this.isDisposed || !button) return;
 
 		const currentConfig = [...(this.state.toolbarConfig || [])];
-		
+
 		// Check if button already exists
-		const exists = currentConfig.some(btn => btn.key === button.key);
+		const exists = currentConfig.some((btn) => btn.key === button.key);
 		if (exists) {
 			this.setError('Button already exists in configuration');
 			return;
@@ -182,8 +182,8 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 		if (this.isDisposed || !buttonKey) return;
 
 		const currentConfig = [...(this.state.toolbarConfig || [])];
-		const updatedConfig = currentConfig.filter(btn => btn.key !== buttonKey);
-		
+		const updatedConfig = currentConfig.filter((btn) => btn.key !== buttonKey);
+
 		await this.updateConfiguration(updatedConfig);
 	}
 
@@ -196,9 +196,8 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 		if (this.isDisposed) return;
 
 		const config = [...(this.state.toolbarConfig || [])];
-		
-		if (fromIndex < 0 || fromIndex >= config.length || 
-		    toIndex < 0 || toIndex >= config.length) {
+
+		if (fromIndex < 0 || fromIndex >= config.length || toIndex < 0 || toIndex >= config.length) {
 			return;
 		}
 
@@ -234,7 +233,7 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 				method: this.state.detectionMethod || 'auto',
 				onVisibilityChange: (visible, height) => {
 					if (this.isDisposed) return;
-					
+
 					this.updateFields({
 						visible,
 						keyboardHeight: height || 0
@@ -244,7 +243,6 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 
 			// Store cleanup function
 			this.addCleanup(cleanup);
-
 		} catch (error) {
 			console.error('Keyboard detection setup failed:', error);
 			this.setError(error);
@@ -296,7 +294,7 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 
 			// Generate key sequence
 			const sequence = this.services.keyboardService.generateKeySequence(button);
-			
+
 			if (sequence && typeof onKeySequence === 'function') {
 				onKeySequence(sequence);
 			}
@@ -305,7 +303,6 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 			if (button.ctrlKey || button.altKey || button.shiftKey || button.metaKey) {
 				this._updateActiveModifiers(button);
 			}
-
 		} catch (error) {
 			console.error('Button press handling failed:', error);
 			this.setError(error);
@@ -350,7 +347,7 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 		// Set timeout to clear modifier
 		setTimeout(() => {
 			if (this.isDisposed) return;
-			
+
 			const currentModifiers = { ...this.state.activeModifiers };
 			switch (button.key) {
 				case 'Control':
@@ -534,7 +531,7 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 				};
 
 				const sequence = this.services.keyboardService.generateKeySequence(button);
-				
+
 				if (sequence && typeof onSequence === 'function') {
 					onSequence(sequence);
 				}
@@ -563,7 +560,7 @@ export class KeyboardToolbarViewModel extends BaseViewModel {
 
 			// Track mobile mode changes
 			const isMobile = this.state.isMobile;
-			
+
 			// Setup or teardown keyboard detection based on mobile mode
 			if (isMobile) {
 				this.setupKeyboardDetection();

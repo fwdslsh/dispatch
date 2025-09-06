@@ -14,7 +14,7 @@
 		sessionId = 'default',
 		socket = null,
 		onSendMessage = () => {},
-		height = '400px',
+		height = '400px'
 	} = $props();
 
 	// Chat state
@@ -23,7 +23,7 @@
 	let messageInput = $state('');
 	let messageContainer;
 	let virtualList;
-	
+
 	// Claude authentication state
 	let isAuthenticated = $state(false);
 
@@ -41,11 +41,11 @@
 		});
 
 		loadChatHistory();
-		
+
 		// Check Claude authentication status
 		checkAuthStatus();
 	});
-	
+
 	/**
 	 * Check Claude authentication status
 	 */

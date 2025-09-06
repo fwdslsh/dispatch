@@ -34,7 +34,7 @@ describe('DirectoryService', () => {
 	describe('Constructor and Initialization', () => {
 		it('should initialize with default options', () => {
 			const service = new DirectoryService();
-			
+
 			expect(service.options.maxPathLength).toBe(1024);
 			expect(service.options.restrictToProject).toBe(true);
 			expect(service.isDisposed).toBe(false);
@@ -199,7 +199,7 @@ describe('DirectoryService', () => {
 				'folder-with-dashes'
 			];
 
-			validPaths.forEach(path => {
+			validPaths.forEach((path) => {
 				const result = directoryService.validatePath(path);
 				expect(result.isValid).toBe(true);
 				expect(result.normalizedPath).toBeDefined();
@@ -221,7 +221,7 @@ describe('DirectoryService', () => {
 				'folder\0null'
 			];
 
-			dangerousPaths.forEach(path => {
+			dangerousPaths.forEach((path) => {
 				const result = directoryService.validatePath(path);
 				expect(result.isValid).toBe(false);
 				expect(result.error).toContain('invalid or dangerous characters');
@@ -231,7 +231,7 @@ describe('DirectoryService', () => {
 		it('should reject non-string paths', () => {
 			const invalidTypes = [null, undefined, 123, {}, [], true];
 
-			invalidTypes.forEach(path => {
+			invalidTypes.forEach((path) => {
 				const result = directoryService.validatePath(path);
 				expect(result.isValid).toBe(false);
 				expect(result.error).toBe('Path must be a string');
@@ -379,7 +379,7 @@ describe('DirectoryService', () => {
 			});
 
 			// Wait for cache to expire
-			await new Promise(resolve => setTimeout(resolve, 1100));
+			await new Promise((resolve) => setTimeout(resolve, 1100));
 
 			// Second call should not use expired cache
 			await directoryService.listDirectories({
@@ -544,7 +544,7 @@ describe('DirectoryService', () => {
 	describe('Error Handling', () => {
 		it('should handle invalid path validation gracefully', () => {
 			const result = directoryService.validatePath('../../../etc');
-			
+
 			expect(result.isValid).toBe(false);
 			expect(result.error).toBeDefined();
 		});

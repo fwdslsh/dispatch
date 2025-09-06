@@ -8,19 +8,19 @@
 	let {
 		// Size variants
 		size = 'medium', // 'small' | 'medium' | 'large' | 'xl'
-		
+
 		// Style variants
 		variant = 'primary', // 'primary' | 'secondary' | 'muted'
-		
+
 		// Content
 		text = '',
-		
+
 		// Behavior
 		inline = false, // If true, displays inline; if false, centers in container
-		
+
 		// Accessibility
 		ariaLabel = 'Loading',
-		
+
 		// HTML attributes
 		class: customClass = '',
 		...restProps
@@ -44,12 +44,7 @@
 </script>
 
 <div class={wrapperClasses} {...restProps}>
-	<div
-		class={spinnerClasses}
-		role="status"
-		aria-label={ariaLabel}
-		aria-live="polite"
-	>
+	<div class={spinnerClasses} role="status" aria-label={ariaLabel} aria-live="polite">
 		<div class="spinner__circle"></div>
 		{#if text}
 			<span class="spinner__text" aria-hidden="true">
@@ -193,7 +188,7 @@
 			border-top-color: transparent;
 			border-right-color: transparent;
 		}
-		
+
 		/* Provide alternative indication */
 		.spinner__circle::after {
 			content: '';
@@ -211,7 +206,8 @@
 	}
 
 	@keyframes pulse {
-		0%, 100% {
+		0%,
+		100% {
 			opacity: 0.6;
 			transform: translate(-50%, -50%) scale(1);
 		}
@@ -227,12 +223,12 @@
 			border-color: transparent;
 			border-top-color: currentColor;
 		}
-		
+
 		.spinner--secondary .spinner__circle {
 			border-color: transparent;
 			border-top-color: currentColor;
 		}
-		
+
 		.spinner--muted .spinner__circle {
 			border-color: transparent;
 			border-top-color: currentColor;

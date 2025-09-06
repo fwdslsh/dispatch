@@ -132,12 +132,15 @@ export class BaseViewModel {
 		// Effect for monitoring state changes and auto-validation
 		$effect(() => {
 			if (this._disposed) return;
-			
+
 			// Track state changes for potential validation
 			$state.snapshot(this._reactiveState);
-			
+
 			// Auto-validate if validation service is available
-			if (this.services.validationService && typeof this.services.validationService.validate === 'function') {
+			if (
+				this.services.validationService &&
+				typeof this.services.validationService.validate === 'function'
+			) {
 				this._performAutoValidation();
 			}
 		});
@@ -155,7 +158,7 @@ export class BaseViewModel {
 	 */
 	_performAutoValidation() {
 		if (this._disposed) return;
-		
+
 		try {
 			const validationResult = this.services.validationService.validate(this._reactiveState);
 			if (validationResult && typeof validationResult === 'object') {
@@ -172,9 +175,9 @@ export class BaseViewModel {
 	 */
 	_updateValidationErrors(validationResult) {
 		this._validationErrors.clear();
-		
+
 		if (validationResult.errors && Array.isArray(validationResult.errors)) {
-			validationResult.errors.forEach(error => {
+			validationResult.errors.forEach((error) => {
 				if (error.field && error.message) {
 					this._validationErrors.set(error.field, error.message);
 				}
@@ -283,7 +286,7 @@ export class BaseViewModel {
 	 */
 	async validate() {
 		if (this._disposed) return true;
-		
+
 		if (!this.services.validationService) {
 			console.warn('No validation service available');
 			return true;
@@ -305,10 +308,10 @@ export class BaseViewModel {
 	 */
 	reset() {
 		if (this._disposed) return;
-		
+
 		// Reset state to initial
 		Object.assign(this._reactiveState, this._initialState);
-		
+
 		// Clear all errors and flags
 		this._error = null;
 		this._validationErrors.clear();
@@ -323,21 +326,21 @@ export class BaseViewModel {
 	 */
 	updateField(field, value) {
 		if (this._disposed) return;
-		
+
 		// Handle dot notation for nested fields
 		const fieldParts = field.split('.');
 		let target = this._reactiveState;
-		
+
 		for (let i = 0; i < fieldParts.length - 1; i++) {
 			if (!target[fieldParts[i]]) {
 				target[fieldParts[i]] = {};
 			}
 			target = target[fieldParts[i]];
 		}
-		
+
 		target[fieldParts[fieldParts.length - 1]] = value;
 		this._checkDirtyState();
-		
+
 		// Clear validation error for this field if it exists
 		this.clearValidationError(field);
 	}
@@ -348,7 +351,7 @@ export class BaseViewModel {
 	 */
 	updateFields(updates) {
 		if (this._disposed) return;
-		
+
 		Object.entries(updates).forEach(([field, value]) => {
 			this.updateField(field, value);
 		});

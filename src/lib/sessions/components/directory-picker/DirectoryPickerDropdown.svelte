@@ -53,19 +53,12 @@ Contains breadcrumbs navigation, actions, and directory browser
 				{/if}
 			{/each}
 		</div>
-		
+
 		<div class="picker-actions">
 			{#if viewModel.canGoBack}
-				<Button
-					variant="outline"
-					size="small"
-					onclick={onGoBack}
-					title="Go back"
-				>
-					←
-				</Button>
+				<Button variant="outline" size="small" onclick={onGoBack} title="Go back">←</Button>
 			{/if}
-			
+
 			<Button
 				variant="primary"
 				size="small"
@@ -82,8 +75,8 @@ Contains breadcrumbs navigation, actions, and directory browser
 			directories={viewModel.state.directories}
 			error={viewModel.state.error}
 			loading={viewModel.loading}
-			onNavigate={onNavigate}
-			onSelect={onSelect}
+			{onNavigate}
+			{onSelect}
 			onRetry={() => viewModel.reloadCurrentDirectory()}
 		/>
 	</div>

@@ -123,7 +123,6 @@
 			transform: translateY(0);
 		}
 
-
 		.header-left {
 			gap: var(--space-md);
 		}
