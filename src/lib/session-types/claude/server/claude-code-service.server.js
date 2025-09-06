@@ -80,9 +80,13 @@ export class ClaudeCodeService {
 				options: queryOptions
 			})) {
 				if (message.type === 'result') {
-					fullResponse += message.result;
+					// Handle result messages - access properties safely
+					const content = message['result'] || '';
+					fullResponse += content;
 				} else if (message.type === 'assistant') {
-					fullResponse += message.content;
+					// Handle assistant messages - access properties safely
+					const content = message['content'] || '';
+					fullResponse += content;
 				}
 			}
 
@@ -127,11 +131,13 @@ export class ClaudeCodeService {
 				options: queryOptions
 			})) {
 				if (message.type === 'result') {
-					fullResponse += message.result;
-					if (onMessage) onMessage({ type: 'result', content: message.result });
+					const content = message['result'] || '';
+					fullResponse += content;
+					if (onMessage) onMessage({ type: 'result', content });
 				} else if (message.type === 'assistant') {
-					fullResponse += message.content;
-					if (onMessage) onMessage({ type: 'assistant', content: message.content });
+					const content = message['content'] || '';
+					fullResponse += content;
+					if (onMessage) onMessage({ type: 'assistant', content });
 				} else if (onMessage) {
 					onMessage(message);
 				}

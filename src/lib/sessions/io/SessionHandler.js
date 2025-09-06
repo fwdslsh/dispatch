@@ -109,7 +109,7 @@ export class SessionHandler extends BaseHandler {
                 this.socketSessions.set(socket.id, sessionId);
                 console.log(`[SESSION] Socket ${socket.id} attached to session ${sessionId}`);
 
-                const sessionInfo = this.terminalManager.getSession(sessionId);
+                const sessionInfo = this.terminalManager.sessions.get(sessionId);
                 const response = {
                     success: true,
                     sessionId,

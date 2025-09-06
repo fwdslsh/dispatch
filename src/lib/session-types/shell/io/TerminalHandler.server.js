@@ -104,7 +104,7 @@ export class TerminalHandler extends BaseHandler {
             };
 
             if (sessionId) {
-                const sessionInfo = this.terminalManager.getSession(sessionId);
+                const sessionInfo = this.terminalManager.sessions.get(sessionId);
                 status.sessionInfo = sessionInfo;
             }
 

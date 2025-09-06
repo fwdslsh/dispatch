@@ -10,16 +10,16 @@ export class ClaudeHandler extends BaseHandler {
     }
 
     setupEventHandlers(socket) {
-        socket.on('claude:auth', this.authHandler.withAuth(this.handleAuth.bind(this, socket), socket));
+        socket.on('claude:auth', this.handleAuth.bind(this, socket)); // Remove auth requirement for this endpoint
         socket.on('claude:create', this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket));
         socket.on('claude:send', this.authHandler.withAuth(this.handleSend.bind(this, socket), socket));
         socket.on('claude:history', this.authHandler.withAuth(this.handleHistory.bind(this, socket), socket));
         socket.on('claude:clear', this.authHandler.withAuth(this.handleClear.bind(this, socket), socket));
         socket.on('claude:end', this.authHandler.withAuth(this.handleEnd.bind(this, socket), socket));
         
-        // Claude authentication flow events
-        socket.on('claude:start-auth', this.authHandler.withAuth(this.handleStartAuth.bind(this, socket), socket));
-        socket.on('claude:submit-token', this.authHandler.withAuth(this.handleSubmitToken.bind(this, socket), socket));
+        // Claude authentication flow events - these don't require external auth
+        socket.on('claude:start-auth', this.handleStartAuth.bind(this, socket));
+        socket.on('claude:submit-token', this.handleSubmitToken.bind(this, socket));
     }
 
     handleDisconnect(socket) {
