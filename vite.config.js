@@ -11,24 +11,26 @@ const webSocketServer = {
 			cors: { origin: '*', methods: ['GET', 'POST'] }
 		});
 
-		// Initialize storage manager in development
-		import('./src/lib/server/services/storage-manager.js')
-			.then((module) => {
-				module.default.initialize();
+		// Initialize directory manager in development
+		import('./src/lib/server/services/directory-manager.js')
+			.then(async (module) => {
+				await module.default.initialize();
+				console.log('Directory manager initialized for development');
 			})
 			.catch((err) => {
-				console.warn('Storage manager not available during dev:', err.message);
+				console.warn('Directory manager not available during dev:', err.message);
 			});
 
-		// Import the working socket handler for development
-		import('./src/lib/server/handlers/socket-handler.js')
-			.then(({ createSocketHandler }) => {
-				const handler = createSocketHandler(io);
+		// Import the new namespace socket handlers for development
+		import('./src/lib/shared/server/NamespaceSocketHandler.server.js')
+			.then(({ createNamespaceSocketHandlers, createMainNamespaceHandler }) => {
+				const namespaceHandlers = createNamespaceSocketHandlers(io);
+				const mainHandler = createMainNamespaceHandler(io, namespaceHandlers);
 
-				io.on('connection', handler);
+				io.on('connection', mainHandler);
 			})
 			.catch((err) => {
-				console.warn('Socket handler not available during dev:', err.message);
+				console.warn('Namespace socket handlers not available during dev:', err.message);
 			});
 	}
 };

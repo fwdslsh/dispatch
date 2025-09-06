@@ -5,7 +5,7 @@ Integrates DirectoryPickerViewModel with UI components and manages all state
 -->
 <script>
 	import { DirectoryPickerViewModel } from '../../viewmodels/directory-picker/DirectoryPickerViewModel.svelte.js';
-	imp../../../services/DirectoryService.js../services/DirectoryService.js';
+	import { DirectoryService } from '../../../services/DirectoryService.js';
 	import { ErrorDisplay, LoadingSpinner } from '$lib/shared/components/Button.svelte';
 	import DirectoryPickerInput from './DirectoryPickerInput.svelte';
 	import DirectoryPickerDropdown from './DirectoryPickerDropdown.svelte';

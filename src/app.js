@@ -7,11 +7,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { createModularSocketHandler } from './lib/server/handlers/ModularSocketHandler.js';
-import { createNamespacedSocketHandler } from './lib/server/handlers/namespaced-socket-handler.js';
-import { initializeSessionTypes } from './lib/session-types/index.js';
-import storageManager from './lib/server/services/storage-manager.js';
-import DirectoryManager from './lib/server/services/directory-manager.js';
+import { createNamespaceSocketHandlers, createMainNamespaceHandler } from './lib/server/handlers/NamespaceSocketHandler.js';
+import directoryManager from './lib/server/services/directory-manager.js';
 
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
@@ -33,8 +30,7 @@ const DISPATCH_PROJECTS_DIR =
 			? '/var/lib/dispatch/projects'
 			: path.join(os.homedir(), 'dispatch-projects'));
 
-// Initialize directory management system
-const directoryManager = new DirectoryManager();
+// Use the singleton directoryManager instance
 
 async function initializeDirectories() {
 	try {
@@ -48,8 +44,7 @@ async function initializeDirectories() {
 		fs.accessSync(directoryManager.configDir, fs.constants.W_OK);
 		fs.accessSync(directoryManager.projectsDir, fs.constants.W_OK);
 
-		// Initialize unified storage manager
-		await storageManager.initialize();
+		// DirectoryManager already initialized above
 	} catch (err) {
 		console.error(`ERROR: Directory initialization failed: ${err.message}`);
 		console.error(`Ensure directories are writable by the process user.`);
@@ -62,9 +57,6 @@ async function initializeDirectories() {
 async function startServer() {
 	// Initialize directories before starting server
 	await initializeDirectories();
-
-	// Initialize session types registry
-	initializeSessionTypes();
 
 	// Security check: require proper key if tunnel is enabled
 	if (ENABLE_TUNNEL && (TERMINAL_KEY === 'change-me' || !TERMINAL_KEY)) {
@@ -90,13 +82,17 @@ async function startServer() {
 		}
 	});
 
-	// Handle socket connections
-	// Setup both main namespace and isolated session type namespaces
-	const mainHandler = createModularSocketHandler(io);
+	// Handle socket connections using new namespace architecture
+	console.log('[SERVER] Initializing namespace-based socket architecture...');
+	
+	// Create all namespace handlers
+	const namespaceHandlers = createNamespaceSocketHandlers(io);
+	
+	// Setup main namespace handler for backward compatibility
+	const mainHandler = createMainNamespaceHandler(io, namespaceHandlers);
 	io.on('connection', mainHandler);
-
-	// Setup namespaced handlers for session types
-	createNamespacedSocketHandler(io);
+	
+	console.log('[SERVER] ✅ Socket.IO namespace architecture initialized');
 
 	return { httpServer };
 }

@@ -3,7 +3,6 @@
  * Extends BaseViewModel with Svelte 5 runes for reactive state management
  */
 import { BaseViewModel } from '../../shared/contexts/BaseViewModel.svelte.js';
-import { ValidationError } from '../../shared/utils/ValidationError.js';
 import { goto } from '$app/navigation';
 import { PROJECT_VALIDATION } from '../config.js';
 
@@ -82,9 +81,6 @@ export class ProjectViewModel extends BaseViewModel {
 
 		this.service = projectService;
 
-		// Optional navigation function for testing
-		this.goto = services.goto || goto;
-
 		// Set up reactive effects
 		this.setupEffects();
 	}
@@ -100,65 +96,42 @@ export class ProjectViewModel extends BaseViewModel {
 
 		// Socket event handling effect
 		$effect(() => {
-			if (this.socket) {
+			if (this.service) {
 				this.setupSocketListeners();
 			}
 		});
 	}
 
 	/**
-	 * Initialize socket connection and authentication
-	 */
-	async initializeSocket() {
-		if (this.socket) return;
-
-		try {
-			const { io } = await import('socket.io-client');
-			this.socket = io();
-
-			return new Promise((resolve) => {
-				this.socket.on('connect', () => {
-					const authToken = localStorage.getItem('dispatch-auth-token') || 'testkey12345';
-
-					this.socket.emit('auth', authToken, (response) => {
-						if (response?.success) {
-							this.clearError();
-							this.loadProjects().then(() => resolve(true));
-						} else {
-							this.setError('Authentication failed');
-							resolve(false);
-						}
-					});
-				});
-
-				this.setupSocketListeners();
-			});
-		} catch (error) {
-			this.setError('Failed to connect to server');
-			return false;
-		}
-	}
-
-	/**
-	 * Set up Socket.IO event listeners
+	 * Set up Socket.IO event listeners for the new namespace-based client
 	 */
 	setupSocketListeners() {
-		if (!this.socket) return;
+		if (!this.service) return;
 
-		this.socket.on('projects-updated', (data) => {
-			this.handleProjectsUpdated(data);
+		// Set up event listeners on the project client
+		this.service.setOnProjectsUpdated((projects) => {
+			this.handleProjectsUpdated({ projects });
 		});
 
-		this.socket.on('disconnect', () => {
-			console.log('Disconnected from server');
+		this.service.setOnProjectCreated((project) => {
+			// Project will be included in projects updated event
+			console.log('Project created:', project);
+		});
+
+		this.service.setOnProjectUpdated((project) => {
+			// Project will be included in projects updated event
+			console.log('Project updated:', project);
+		});
+
+		this.service.setOnProjectDeleted((projectId) => {
+			// Projects will be updated via projects updated event
+			console.log('Project deleted:', projectId);
 		});
 
 		// Add cleanup for socket listeners
 		this.addCleanup(() => {
-			if (this.socket) {
-				this.socket.removeAllListeners();
-				this.socket.disconnect();
-				this.socket = null;
+			if (this.service && this.service.disconnect) {
+				this.service.disconnect();
 			}
 		});
 	}
@@ -177,14 +150,13 @@ export class ProjectViewModel extends BaseViewModel {
 	async loadProjects() {
 		return await this.withLoading(async () => {
 			try {
-				const response = await this.service.getProjects();
+				const response = await this.service.list();
 
 				if (response.success) {
-					this.projects = response.data || [];
-					this.activeProject = response.activeProject;
+					this.projects = response.projects || [];
 					return response;
 				} else {
-					throw new Error(response.error || 'Failed to load projects');
+					throw new Error('Failed to load projects');
 				}
 			} catch (error) {
 				this.setError(error.message);
@@ -208,20 +180,20 @@ export class ProjectViewModel extends BaseViewModel {
 
 		try {
 			const result = await this.withLoading(async () => {
-				const response = await this.service.createProject(projectData);
+				const response = await this.service.create(projectData);
 
 				if (response.success) {
 					this.clearForm();
 					this.showCreateForm = false;
 
 					// Navigate to the new project if ID is provided
-					if (response.data?.id) {
-						this.goto(`/projects/${response.data.id}`);
+					if (response.project?.id) {
+						goto(`/projects/${response.project.id}`);
 					}
 
 					return response;
 				} else {
-					throw new Error(response.error || 'Failed to create project');
+					throw new Error('Failed to create project');
 				}
 			});
 
@@ -244,14 +216,14 @@ export class ProjectViewModel extends BaseViewModel {
 
 		try {
 			await this.withLoading(async () => {
-				const response = await this.service.deleteProject(this.projectToDelete.id);
+				const response = await this.service.delete(this.projectToDelete.id);
 
 				if (response.success) {
 					this.showDeleteDialog = false;
 					this.projectToDelete = null;
 					// Projects will be updated via socket event
 				} else {
-					throw new Error(response.error || 'Failed to delete project');
+					throw new Error('Failed to delete project');
 				}
 			});
 		} catch (error) {
@@ -292,14 +264,14 @@ export class ProjectViewModel extends BaseViewModel {
 		}
 
 		try {
-			const response = await this.service.updateProject(this.renamingProjectId, {
+			const response = await this.service.update(this.renamingProjectId, {
 				name: this.renameValue.trim()
 			});
 
 			if (response.success) {
 				this.cancelRenaming();
 			} else {
-				throw new Error(response.error || 'Failed to rename project');
+				throw new Error('Failed to rename project');
 			}
 		} catch (error) {
 			this.renameValidation = {
@@ -351,7 +323,7 @@ export class ProjectViewModel extends BaseViewModel {
 	 * Open a project (navigate to project page)
 	 */
 	openProject(projectId) {
-		this.goto(`/projects/${projectId}`);
+		goto(`/projects/${projectId}`);
 	}
 
 	/**
@@ -359,7 +331,7 @@ export class ProjectViewModel extends BaseViewModel {
 	 */
 	async setActiveProject(projectId) {
 		try {
-			const response = await this.service.setActiveProject(projectId);
+			const response = await this.service.get(projectId);
 			if (response.success) {
 				this.activeProject = projectId;
 			}

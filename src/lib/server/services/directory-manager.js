@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import os from 'os';
 import { randomUUID } from 'crypto';
 
@@ -609,11 +610,11 @@ class DirectoryManager {
 	}
 
 	/**
-	 * Delete a project (equivalent to project-store deleteProject)
+	 * Delete a project (async version - equivalent to project-store deleteProject)
 	 * @param {string} projectId - Project ID to delete
 	 * @returns {Promise<void>}
 	 */
-	async deleteProject(projectId) {
+	async deleteProjectAsync(projectId) {
 		const project = await this.getProject(projectId);
 		if (!project) {
 			throw new Error(`Project ${projectId} not found`);
@@ -630,12 +631,12 @@ class DirectoryManager {
 	}
 
 	/**
-	 * Update project metadata (equivalent to project-store updateProject)
+	 * Update project metadata (async version - equivalent to project-store updateProject)
 	 * @param {string} projectId - Project ID
 	 * @param {Object} updates - Updates to apply
 	 * @returns {Promise<Object>} Updated project
 	 */
-	async updateProject(projectId, updates) {
+	async updateProjectAsync(projectId, updates) {
 		const project = await this.getProject(projectId);
 		if (!project) {
 			throw new Error(`Project ${projectId} not found`);
@@ -666,12 +667,12 @@ class DirectoryManager {
 	}
 
 	/**
-	 * Add session to project (equivalent to project-store addSessionToProject)
+	 * Add session to project (async version - equivalent to project-store addSessionToProject)
 	 * @param {string} projectId - Project ID
 	 * @param {Object} sessionData - Session data
 	 * @returns {Promise<Object>} Added session
 	 */
-	async addSessionToProject(projectId, sessionData) {
+	async addSessionToProjectAsync(projectId, sessionData) {
 		const project = await this.getProject(projectId);
 		if (!project) {
 			throw new Error(`Project ${projectId} not found`);
@@ -698,23 +699,23 @@ class DirectoryManager {
 	}
 
 	/**
-	 * Update session in project (equivalent to project-store updateSessionInProject)
+	 * Update session in project (async version - equivalent to project-store updateSessionInProject)
 	 * @param {string} projectId - Project ID
 	 * @param {string} sessionId - Session ID
 	 * @param {Object} updates - Updates to apply
 	 * @returns {Promise<Object>} Updated session
 	 */
-	async updateSessionInProject(projectId, sessionId, updates) {
+	async updateSessionInProjectAsync(projectId, sessionId, updates) {
 		return this.updateSession(projectId, sessionId, updates);
 	}
 
 	/**
-	 * Remove session from project (equivalent to project-store removeSessionFromProject)
+	 * Remove session from project (async version - equivalent to project-store removeSessionFromProject)
 	 * @param {string} projectId - Project ID
 	 * @param {string} sessionId - Session ID
 	 * @returns {Promise<void>}
 	 */
-	async removeSessionFromProject(projectId, sessionId) {
+	async removeSessionFromProjectAsync(projectId, sessionId) {
 		const project = await this.getProject(projectId);
 		if (!project) {
 			throw new Error(`Project ${projectId} not found`);
@@ -751,6 +752,321 @@ class DirectoryManager {
 		// Return the projectId for now
 		return projectId;
 	}
+
+	// STORAGE MANAGER COMPATIBILITY METHODS (merged from storage-manager.js)
+
+	/**
+	 * Ensure the config directory and projects.json exist (sync version)
+	 */
+	ensureDirectoryStructure() {
+		// DirectoryManager already ensures config directory exists
+		const projectsFile = path.join(this.configDir, 'projects.json');
+		if (!fsSync.existsSync(projectsFile)) {
+			const initial = { projects: [], activeProject: null };
+			fsSync.writeFileSync(projectsFile, JSON.stringify(initial, null, 2));
+		}
+	}
+
+	/**
+	 * Read projects from projects.json (sync version for legacy compatibility)
+	 * @returns {Object} Projects data
+	 */
+	readProjects() {
+		this.ensureDirectoryStructure();
+		const projectsFile = path.join(this.configDir, 'projects.json');
+
+		try {
+			const data = JSON.parse(fsSync.readFileSync(projectsFile, 'utf-8'));
+			// Ensure projects field exists for backward compatibility
+			if (!data.projects) {
+				data.projects = [];
+			}
+			return data;
+		} catch (err) {
+			throw new Error(`Unable to read projects file at ${projectsFile}: ${err.message}`);
+		}
+	}
+
+	/**
+	 * Write projects to projects.json (sync version for legacy compatibility)
+	 * @param {Object} data - Projects data
+	 */
+	writeProjects(data) {
+		try {
+			this.ensureDirectoryStructure();
+			const projectsFile = path.join(this.configDir, 'projects.json');
+			fsSync.writeFileSync(projectsFile, JSON.stringify(data, null, 2));
+		} catch (err) {
+			const projectsFile = path.join(this.configDir, 'projects.json');
+			throw new Error(`Unable to write projects file at ${projectsFile}: ${err.message}`);
+		}
+	}
+
+	/**
+	 * Create a new project (sync legacy compatibility method from storage-manager)
+	 * @param {Object} options - Project options with name and description
+	 * @returns {Object} Created project info
+	 */
+	createProjectSync(options) {
+		const { name, description } = options;
+
+		if (!name || typeof name !== 'string' || !name.trim()) {
+			throw new Error('Project name is required');
+		}
+
+		const projectId = randomUUID();
+		const sanitizedName = name.trim();
+		const now = new Date().toISOString();
+
+		// Create project directory
+		const projectPath = path.join(this.projectsDir, projectId);
+		if (fsSync.existsSync(projectPath)) {
+			throw new Error(`Project directory already exists`);
+		}
+		fsSync.mkdirSync(projectPath, { recursive: true });
+
+		const projectData = {
+			id: projectId,
+			name: sanitizedName,
+			description: description || '',
+			createdAt: now,
+			sessions: []
+		};
+
+		// Add to projects registry
+		const data = this.readProjects();
+		data.projects.push(projectData);
+		this.writeProjects(data);
+
+		return projectData;
+	}
+
+	/**
+	 * Get all projects (legacy compatibility method from storage-manager)
+	 * @returns {Object} Projects data
+	 */
+	getProjects() {
+		return this.readProjects();
+	}
+
+	/**
+	 * Get a specific project by ID (sync legacy compatibility method from storage-manager)
+	 * @param {string} projectId - Project ID
+	 * @returns {Object|null} Project or null if not found
+	 */
+	getProjectSync(projectId) {
+		const data = this.readProjects();
+		return data.projects.find((p) => p.id === projectId) || null;
+	}
+
+	/**
+	 * Update project metadata (legacy compatibility method from storage-manager)
+	 * @param {string} projectId - Project ID
+	 * @param {Object} updates - Updates to apply
+	 * @returns {Object} Updated project
+	 */
+	updateProject(projectId, updates) {
+		const data = this.readProjects();
+		const project = data.projects.find((p) => p.id === projectId);
+
+		if (!project) {
+			throw new Error(`Project ${projectId} not found`);
+		}
+
+		Object.assign(project, updates);
+		this.writeProjects(data);
+
+		return project;
+	}
+
+	/**
+	 * Delete a project (legacy compatibility method from storage-manager)
+	 * @param {string} projectId - Project ID
+	 */
+	deleteProject(projectId) {
+		const data = this.readProjects();
+		const projectIndex = data.projects.findIndex((p) => p.id === projectId);
+
+		if (projectIndex === -1) {
+			throw new Error(`Project ${projectId} not found`);
+		}
+
+		// Remove project directory
+		const projectPath = path.join(this.projectsDir, projectId);
+		if (fsSync.existsSync(projectPath)) {
+			fsSync.rmSync(projectPath, { recursive: true, force: true });
+		}
+
+		// Remove from registry
+		data.projects.splice(projectIndex, 1);
+		this.writeProjects(data);
+		return true;
+	}
+
+	/**
+	 * Add session to project (legacy compatibility method from storage-manager)
+	 * @param {string} projectId - Project ID
+	 * @param {Object} sessionData - Session data
+	 * @returns {Object} Updated project
+	 */
+	addSessionToProject(projectId, sessionData) {
+		const data = this.readProjects();
+		const project = data.projects.find((p) => p.id === projectId);
+
+		if (!project) {
+			throw new Error(`Project ${projectId} not found`);
+		}
+
+		if (!project.sessions) {
+			project.sessions = [];
+		}
+
+		project.sessions.push(sessionData);
+		this.writeProjects(data);
+
+		return project;
+	}
+
+	/**
+	 * Update session in project (legacy compatibility method from storage-manager)
+	 * @param {string} projectId - Project ID
+	 * @param {string} sessionId - Session ID
+	 * @param {Object} updates - Updates to apply
+	 * @returns {Object} Updated session
+	 */
+	updateSessionInProject(projectId, sessionId, updates) {
+		const data = this.readProjects();
+		const project = data.projects.find((p) => p.id === projectId);
+
+		if (!project) {
+			throw new Error(`Project ${projectId} not found`);
+		}
+
+		if (!project.sessions) {
+			project.sessions = [];
+		}
+
+		const session = project.sessions.find((s) => s.id === sessionId);
+		if (!session) {
+			throw new Error(`Session ${sessionId} not found in project ${projectId}`);
+		}
+
+		Object.assign(session, updates);
+		this.writeProjects(data);
+
+		return session;
+	}
+
+	/**
+	 * Remove session from project (legacy compatibility method from storage-manager)
+	 * @param {string} projectId - Project ID
+	 * @param {string} sessionId - Session ID
+	 */
+	removeSessionFromProject(projectId, sessionId) {
+		const data = this.readProjects();
+		const project = data.projects.find((p) => p.id === projectId);
+
+		if (!project) {
+			throw new Error(`Project ${projectId} not found`);
+		}
+
+		if (!project.sessions) {
+			project.sessions = [];
+		}
+
+		const sessionIndex = project.sessions.findIndex((s) => s.id === sessionId);
+		if (sessionIndex === -1) {
+			throw new Error(`Session ${sessionId} not found in project ${projectId}`);
+		}
+
+		project.sessions.splice(sessionIndex, 1);
+		this.writeProjects(data);
+	}
+
+	/**
+	 * Get sessions from the DirectoryManager session store (legacy compatibility)
+	 * @returns {Object} Sessions data
+	 */
+	getSessions() {
+		const sessionFile = path.join(this.configDir || os.tmpdir(), 'sessions.json');
+
+		if (!fsSync.existsSync(sessionFile)) {
+			const initial = { sessions: [], active: null, projects: {} };
+			const dir = path.dirname(sessionFile);
+			if (!fsSync.existsSync(dir)) {
+				fsSync.mkdirSync(dir, { recursive: true });
+			}
+			fsSync.writeFileSync(sessionFile, JSON.stringify(initial, null, 2));
+			return initial;
+		}
+
+		try {
+			const data = JSON.parse(fsSync.readFileSync(sessionFile, 'utf-8'));
+			if (!data.projects) {
+				data.projects = {};
+			}
+			return data;
+		} catch (err) {
+			throw new Error(`Unable to read sessions file at ${sessionFile}: ${err.message}`);
+		}
+	}
+
+	/**
+	 * Get all session names (for name conflict resolution)
+	 * @returns {Array<string>} Array of session names
+	 */
+	getAllSessionNames() {
+		// Get names from both old session store and project sessions
+		const names = new Set();
+
+		try {
+			const sessions = this.getSessions();
+			sessions.sessions.forEach((session) => {
+				if (session.name) names.add(session.name);
+			});
+		} catch (err) {
+			// Ignore errors from session store
+		}
+
+		try {
+			const projects = this.getProjects();
+			projects.projects.forEach((project) => {
+				if (project.sessions) {
+					project.sessions.forEach((session) => {
+						if (session.name) names.add(session.name);
+					});
+				}
+			});
+		} catch (err) {
+			// Ignore errors from project store
+		}
+
+		return Array.from(names);
+	}
 }
 
-export default DirectoryManager;
+// Export singleton instance for storage-manager compatibility
+const directoryManager = new DirectoryManager();
+export default directoryManager;
+
+// Export named functions for backward compatibility with storage-manager
+export const {
+	createProjectSync: createProject,
+	getProjects,
+	getProjectSync: getProject,
+	updateProject,
+	deleteProject,
+	addSessionToProject,
+	updateSessionInProject,
+	removeSessionFromProject,
+	setActiveProject,
+	getSessions,
+	getAllSessionNames,
+	validateSessionName,
+	sanitizeSessionName,
+	generateFallbackName,
+	resolveNameConflict
+} = directoryManager;
+
+// Export the class for direct instantiation if needed
+export { DirectoryManager };
