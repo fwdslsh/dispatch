@@ -12,7 +12,7 @@ const webSocketServer = {
 		});
 
 		// Initialize directory manager in development
-		import('./src/lib/shared/services/directory-manager.server.js')
+		import('./src/lib/shared/utils/directory-manager.server.js')
 			.then(async (module) => {
 				await module.default.initialize();
 				console.log('Directory manager initialized for development');

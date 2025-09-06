@@ -1,5 +1,5 @@
 import { BaseHandler } from '../../shared/io/BaseHandler.js';
-import directoryManager from '../../shared/services/directory-manager.server.js';
+import directoryManager from '../../shared/utils/directory-manager.server.js';
 
 export class ProjectHandler extends BaseHandler {
     constructor(io, authHandler) {

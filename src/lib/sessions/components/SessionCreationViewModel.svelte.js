@@ -5,7 +5,7 @@
  * Separates session creation concerns from UI components.
  */
 
-import { BaseViewModel } from '../../shared/contexts/BaseViewModel.svelte.js';
+import { BaseViewModel } from '../../shared/components/BaseViewModel.svelte.js';
 
 /**
  * Session Creation States

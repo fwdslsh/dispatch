@@ -2,7 +2,7 @@
  * ProjectViewModel - MVVM pattern for project management
  * Extends BaseViewModel with Svelte 5 runes for reactive state management
  */
-import { BaseViewModel } from '../../shared/contexts/BaseViewModel.svelte.js';
+import { BaseViewModel } from '../../shared/components/BaseViewModel.svelte.js';
 import { goto } from '$app/navigation';
 import { PROJECT_VALIDATION } from '../config.js';
 

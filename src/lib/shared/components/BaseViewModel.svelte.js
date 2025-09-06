@@ -75,6 +75,10 @@ export class BaseViewModel {
 	get loading() {
 		return this._loading;
 	}
+	set loading(value) {
+		if (this._disposed) return;
+		this._loading = value;
+	}
 
 	/**
 	 * Error state

@@ -1,6 +1,6 @@
 import { BaseHandler } from '../../shared/io/BaseHandler.js';
 import { TerminalManager } from '../../session-types/shell/server/terminal.server.js';
-import directoryManager from '../../shared/services/directory-manager.server.js';
+import directoryManager from '../../shared/utils/directory-manager.server.js';
 import { randomUUID } from 'crypto';
 
 export class SessionHandler extends BaseHandler {
@@ -14,7 +14,7 @@ export class SessionHandler extends BaseHandler {
     setupEventHandlers(socket) {
         socket.on('sessions:create', this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket));
         socket.on('sessions:attach', this.authHandler.withAuth(this.handleAttach.bind(this, socket), socket));
-        socket.on('sessions:list', this.authHandler.withAuth(this.handleList.bind(this, socket), socket));
+        socket.on('sessions:list', this.handleList.bind(this, socket));
         socket.on('sessions:end', this.authHandler.withAuth(this.handleEnd.bind(this, socket), socket));
         socket.on('sessions:detach', this.authHandler.withAuth(this.handleDetach.bind(this, socket), socket));
     }
@@ -54,15 +54,10 @@ export class SessionHandler extends BaseHandler {
             }
 
             // Create terminal session
-            const sessionId = sessionOptions.projectId
-                ? await this.terminalManager.createSessionInProject(sessionOptions.projectId, {
-                    ...sessionOptions,
-                    workingDirectory
-                })
-                : this.terminalManager.createSimpleSession(randomUUID(), {
-                    ...sessionOptions,
-                    workingDirectory
-                });
+            const sessionId = await this.terminalManager.createSessionInProject(sessionOptions.projectId, {
+                ...sessionOptions,
+                workingDirectory
+            });
 
             if (sessionId) {
                 this.socketSessions.set(socket.id, sessionId);

@@ -40,10 +40,24 @@ export class ClaudeSessionViewModel {
 	#onSessionCreated = null;
 	#onSessionEnded = null;
 
+	// Actions - static object to prevent reactive loops
+	actions;
+
 	constructor(projectId = '', sessionOptions = {}, terminalKey = 'testkey12345') {
 		this.projectId = projectId;
 		this.sessionOptions = sessionOptions;
 		this.#terminalKey = terminalKey;
+
+		// Initialize static actions object
+		this.actions = {
+			connect: this.connect.bind(this),
+			disconnect: this.disconnect.bind(this),
+			initializeClaudeSession: this.initializeClaudeSession.bind(this),
+			sendMessage: this.sendMessage.bind(this),
+			clearChat: this.clearChat.bind(this),
+			endSession: this.endSession.bind(this),
+			retry: this.retry.bind(this)
+		};
 	}
 
 	/**
@@ -354,46 +368,5 @@ export class ClaudeSessionViewModel {
 		this.isSending = false;
 	}
 
-	/**
-	 * Get current state summary for UI
-	 */
-	get state() {
-		return {
-			// Connection
-			socket: this.socket,
-			sessionId: this.sessionId,
-			isConnecting: this.isConnecting,
-			error: this.error,
-			connectionStatus: this.connectionStatus,
 
-			// Authentication
-			isTerminalAuthenticated: this.isTerminalAuthenticated,
-			isClaudeAuthenticated: this.isClaudeAuthenticated,
-			authStep: this.authStep,
-
-			// Chat
-			messages: this.messages,
-			isSending: this.isSending,
-
-			// Derived state
-			isReady: this.sessionId && this.isTerminalAuthenticated && this.authStep === 'ready',
-			needsTerminalAuth: !this.isTerminalAuthenticated,
-			needsClaudeAuth: this.isTerminalAuthenticated && this.authStep === 'claude-check'
-		};
-	}
-
-	/**
-	 * Get actions available to UI
-	 */
-	get actions() {
-		return {
-			connect: this.connect.bind(this),
-			disconnect: this.disconnect.bind(this),
-			initializeClaudeSession: this.initializeClaudeSession.bind(this),
-			sendMessage: this.sendMessage.bind(this),
-			clearChat: this.clearChat.bind(this),
-			endSession: this.endSession.bind(this),
-			retry: this.retry.bind(this)
-		};
-	}
 }

@@ -8,25 +8,44 @@
 	import { onMount, onDestroy } from 'svelte';
 	import ChatInterface from './ChatInterface.svelte';
 	import CommandMenu from './CommandMenu.svelte';
+	import ClaudeCreationForm from './ClaudeCreationForm.svelte';
+	import { ClaudeSessionViewModel } from './ClaudeSessionViewModel.svelte.js';
+	import { ClaudeClient } from '../io/ClaudeClient.js';
+	import { io } from 'socket.io-client';
 
 	let {
 		projectId,
 		sessionOptions = {},
 		onSessionCreated = () => {},
 		onSessionEnded = () => {},
-		socket = null
+		socket = null,
+		terminalKey = 'testkey12345'
 	} = $props();
 
+	// Create ViewModel once with initial props - no reactive updates to avoid infinite loops
+	let viewModel = new ClaudeSessionViewModel(projectId, sessionOptions, terminalKey);
+	let claudeClient = $state(null);
+
 	// Component refs
-	let chatInterface;
+	let chatInterface = $state();
 	let commandMenu = $state();
 
-	// Session state
-	let sessionId = $state(projectId || `claude-session-${Date.now()}`);
-	let isReady = $state(false);
-	let error = $state(null);
+	// Reactive state from ViewModel - access properties directly to avoid getter loops
+	let sessionId = $derived(viewModel.sessionId);
+	let isReady = $derived(
+		viewModel.sessionId && viewModel.isTerminalAuthenticated && viewModel.authStep === 'ready'
+	);
+	let error = $derived(viewModel.error);
+	let connectionStatus = $derived(viewModel.connectionStatus);
+	let isConnecting = $derived(viewModel.isConnecting);
+	let authStep = $derived(viewModel.authStep);
+	let needsTerminalAuth = $derived(!viewModel.isTerminalAuthenticated);
+	let needsClaudeAuth = $derived(
+		viewModel.isTerminalAuthenticated && viewModel.authStep === 'claude-check'
+	);
 
-	// Claude auth is now handled directly by ChatInterface
+	// Actions from ViewModel - access directly to avoid $derived loops
+	let { connect, disconnect, retry } = viewModel.actions;
 
 	// Available commands for the command menu
 	let commands = $state([
@@ -86,12 +105,31 @@
 		}
 	]);
 
-	onMount(() => {
-		initializeSession();
+	onMount(async () => {
+		// Create Claude client
+		claudeClient = new ClaudeClient(io, { baseUrl: '' });
+
+		// Set up callbacks
+		viewModel.setCallbacks({
+			onSessionCreated,
+			onSessionEnded
+		});
+
+		// Connect to session
+		viewModel.connect();
+
+		// Return cleanup function
+		return () => {
+			viewModel.disconnect();
+		};
 	});
 
+
+
 	onDestroy(() => {
-		// Cleanup if needed
+		if (claudeClient) {
+			claudeClient.disconnect();
+		}
 	});
 
 	/**
@@ -214,23 +252,29 @@ Use **Ctrl+K** to open the command menu for quick actions, or just type your que
 		}
 	}
 
-	export function endSession() {
-		onSessionEnded({ sessionId, projectId });
+	export function endClaudeSession() {
+		viewModel.endSession();
 	}
 </script>
 
 <div class="claude-session">
 	{#if error}
 		<div class="error">
-			<h3>Error</h3>
+			<h3>Connection Error</h3>
 			<p>{error}</p>
-			<button onclick={initializeSession}> Retry </button>
+			<button onclick={retry}>Retry Connection</button>
 		</div>
-	{:else if !isReady}
+	{:else if isConnecting || !isReady}
 		<div class="loading">
-			<h3>Initializing Claude Session...</h3>
-			<p>Setting up your AI coding assistant...</p>
-			<div class="spinner"></div>
+			<h3>Connecting to Claude...</h3>
+			<p>
+				{#if needsClaudeAuth}
+					Checking Claude authentication...
+				{:else}
+					Setting up your AI coding assistant...
+				{/if}
+			</p>
+			<ClaudeCreationForm {projectId} />
 		</div>
 	{:else}
 		<!-- Main chat interface -->
@@ -238,9 +282,8 @@ Use **Ctrl+K** to open the command menu for quick actions, or just type your que
 			<ChatInterface
 				bind:this={chatInterface}
 				{sessionId}
-				{socket}
+				{claudeClient}
 				onSendMessage={handleSendMessage}
-				height="100%"
 			/>
 		</div>
 
@@ -293,25 +336,6 @@ Use **Ctrl+K** to open the command menu for quick actions, or just type your que
 
 	.loading {
 		background: var(--surface);
-	}
-
-	.spinner {
-		width: 32px;
-		height: 32px;
-		border: 3px solid var(--border);
-		border-top: 3px solid var(--primary);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-		margin-top: 1rem;
-	}
-
-	@keyframes spin {
-		0% {
-			transform: rotate(0deg);
-		}
-		100% {
-			transform: rotate(360deg);
-		}
 	}
 
 	.chat-container {

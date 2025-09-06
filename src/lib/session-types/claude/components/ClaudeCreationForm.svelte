@@ -50,11 +50,8 @@
 		{ id: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast and efficient' }
 	];
 
-	// Reactive validation
-	$effect(() => {
-		validateForm();
-		updateSessionData();
-	});
+	// Remove reactive validation that caused infinite loops
+	// Validation will be called explicitly when needed
 
 	// Validate form data
 	function validateForm() {

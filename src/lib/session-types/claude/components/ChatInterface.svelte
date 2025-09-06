@@ -1,260 +1,53 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import VirtualList from 'svelte-virtual-list';
-	import { marked } from 'marked';
-	import Prism from 'prismjs';
-	import 'prismjs/components/prism-javascript.js';
-	import 'prismjs/components/prism-typescript.js';
-	import 'prismjs/components/prism-python.js';
-	import 'prismjs/components/prism-bash.js';
-	import 'prismjs/components/prism-json.js';
+	import { ChatInterfaceViewModel } from './ChatInterfaceViewModel.svelte.js';
 
 	// Props
 	let {
 		sessionId = 'default',
-		socket = null,
 		onSendMessage = () => {},
-		height = '400px'
+		claudeClient = null
 	} = $props();
 
-	// Chat state
-	let messages = $state([]);
-	let typing = $state(false);
-	let messageInput = $state('');
+	// Create ViewModel once with initial props - no reactive updates to avoid infinite loops
+	let viewModel = new ChatInterfaceViewModel(sessionId, onSendMessage, claudeClient);
 	let messageContainer;
 	let virtualList;
 
-	// Claude authentication state
-	let isAuthenticated = $state(false);
+	// Reactive state from ViewModel - access properties directly
+	let messages = $derived(viewModel.messages);
+	let typing = $derived(viewModel.typing);
+	let messageInput = $derived(viewModel.messageInput);
+	let isAuthenticated = $derived(viewModel.isAuthenticated);
+	let isLoginCommand = $derived(viewModel.messageInput.trim() === '/login' || viewModel.messageInput.trim().startsWith('claude setup-token'));
+	let virtualItems = $derived([
+		...viewModel.messages.map((msg) => ({ type: 'message', data: msg })),
+		...(viewModel.typing ? [{ type: 'typing', data: {} }] : [])
+	]);
 
-	// Initialize marked configuration
-	onMount(async () => {
-		marked.setOptions({
-			highlight: function (code, lang) {
-				if (lang && Prism.languages[lang]) {
-					return Prism.highlight(code, Prism.languages[lang], lang);
-				}
-				return code;
-			},
-			breaks: true,
-			gfm: true
-		});
+	// Actions from ViewModel - access directly without $derived
+	let { sendMessage, handleKeyDown, formatMessageContent, formatTimestamp, updateMessageInput } = viewModel.actions;
 
-		loadChatHistory();
-
-		// Check Claude authentication status
-		checkAuthStatus();
-	});
-
-	/**
-	 * Check Claude authentication status
-	 */
-	async function checkAuthStatus() {
-		try {
-			// Note: claudeCodeService only works in Node.js environments
-			// In browser, we'll assume not authenticated and rely on server-side auth
-			if (typeof window !== 'undefined') {
-				isAuthenticated = false;
-			} else {
-				isAuthenticated = claudeCodeService.isAuthenticated();
-			}
-		} catch (error) {
-			console.warn('Could not check Claude auth status:', error);
-			isAuthenticated = false;
-		}
-	}
 
 	// Auto-scroll to bottom after updates
 	$effect(() => {
-		if (virtualList && messages.length > 0) {
+		if (virtualList && virtualItems.length > 0) {
 			scrollToBottom();
 		}
 	});
 
-	/**
-	 * Load chat history from localStorage
-	 */
-	function loadChatHistory() {
-		if (typeof window === 'undefined') return;
-
-		const key = `chat-history-${sessionId}`;
-		const stored = localStorage.getItem(key);
-		if (stored) {
-			try {
-				messages = JSON.parse(stored);
-			} catch (error) {
-				console.warn('Failed to load chat history:', error);
-				messages = [];
-			}
-		}
-	}
-
-	/**
-	 * Save chat history to localStorage
-	 */
-	function saveChatHistory() {
-		if (typeof window === 'undefined') return;
-
-		const key = `chat-history-${sessionId}`;
-		try {
-			localStorage.setItem(key, JSON.stringify(messages));
-		} catch (error) {
-			console.warn('Failed to save chat history:', error);
-		}
-	}
-
-	/**
-	 * Add a message to the chat
-	 */
+	// Expose methods for external access
 	export function addMessage(message) {
-		const newMessage = {
-			id: message.id || Date.now().toString(),
-			sender: message.sender,
-			content: message.content,
-			timestamp: message.timestamp || new Date(),
-			...message
-		};
-
-		console.log('Adding message to chat:', newMessage);
-		messages = [...messages, newMessage];
-		console.log('Total messages now:', messages.length);
-		console.log('Virtual items:', virtualItems.length);
-		saveChatHistory();
+		viewModel.addMessage(message);
 	}
 
-	/**
-	 * Set typing indicator state
-	 */
 	export function setTyping(isTyping) {
-		typing = isTyping;
+		viewModel.setTyping(isTyping);
 	}
 
-	/**
-	 * Send a message
-	 */
-	function sendMessage() {
-		console.log('sendMessage called');
-		const content = messageInput.trim();
-		console.log('Message content:', content);
-		console.log('Claude auth state:', isAuthenticated);
-
-		if (!content) {
-			console.log('No content, returning');
-			return;
-		}
-
-		// Handle /login command specially
-		if (content === '/login' || content.startsWith('claude setup-token')) {
-			handleLoginCommand(content);
-			return;
-		}
-
-		const message = {
-			id: Date.now().toString(),
-			sender: 'user',
-			content,
-			timestamp: new Date()
-		};
-
-		console.log('Adding user message:', message);
-		addMessage(message);
-		onSendMessage(message);
-		messageInput = '';
-
-		// Automatically query Claude with the user's message
-		console.log('Querying Claude with:', content);
-		queryClaude(content);
-	}
-
-	/**
-	 * Handle /login command
-	 */
-	async function handleLoginCommand(content) {
-		// Add user message
-		addMessage({
-			id: Date.now().toString(),
-			sender: 'user',
-			content,
-			timestamp: new Date()
-		});
-
-		messageInput = '';
-
-		// Provide login instructions
-		addMessage({
-			id: (Date.now() + 1).toString(),
-			sender: 'assistant',
-			content: `To authenticate with Claude Code, please run the following command in a terminal:
-
-\`\`\`bash
-npx @anthropic-ai/claude setup-token
-\`\`\`
-
-After successful authentication, return here and try your query again. You can also use the terminal tab in this interface to run the login command directly.
-
-Once authenticated, I'll be able to help you with coding tasks, questions, and more!`,
-			timestamp: new Date()
-		});
-
-		// Trigger a refresh of auth status after a short delay
-		setTimeout(async () => {
-			await checkAuthStatus();
-			if (isAuthenticated) {
-				addMessage({
-					id: (Date.now() + 2).toString(),
-					sender: 'assistant',
-					content: "✅ Authentication successful! I'm ready to help you with your coding tasks.",
-					timestamp: new Date()
-				});
-			}
-		}, 2000);
-	}
-
-	/**
-	 * Handle Enter key in textarea
-	 */
-	function handleKeyDown(event) {
-		if (event.key === 'Enter' && !event.shiftKey) {
-			event.preventDefault();
-			sendMessage();
-		}
-	}
-
-	/**
-	 * Format message content with markdown and syntax highlighting
-	 */
-	function formatMessageContent(content) {
-		// Handle code blocks with syntax highlighting
-		if (content.includes('```')) {
-			return formatCodeBlocks(content);
-		}
-
-		// Regular markdown parsing
-		return marked.parse(content);
-	}
-
-	/**
-	 * Format code blocks with syntax highlighting
-	 */
-	function formatCodeBlocks(content) {
-		return content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, language, code) => {
-			const lang = language || 'text';
-			let highlighted = code;
-
-			if (lang && Prism.languages[lang]) {
-				highlighted = Prism.highlight(code, Prism.languages[lang], lang);
-			}
-
-			return `<pre class="code-block"><code class="language-${lang}">${highlighted}</code></pre>`;
-		});
-	}
-
-	/**
-	 * Format timestamp for display
-	 */
-	function formatTimestamp(timestamp) {
-		const date = new Date(timestamp);
-		return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	export function clearHistory() {
+		viewModel.clearHistory();
 	}
 
 	/**
@@ -284,62 +77,6 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
 			});
 		}
 	}
-
-	/**
-	 * Clear chat history
-	 */
-	export function clearHistory() {
-		messages = [];
-		const key = `chat-history-${sessionId}`;
-		if (typeof window !== 'undefined') {
-			localStorage.removeItem(key);
-		}
-	}
-
-	/**
-	 * Query Claude with the given prompt
-	 */
-	async function queryClaude(prompt) {
-		if (!isAuthenticated) {
-			addMessage({
-				sender: 'assistant',
-				content: 'Not authenticated with Claude CLI. Please run: `claude setup-token`',
-				timestamp: new Date()
-			});
-			return;
-		}
-
-		setTyping(true);
-
-		try {
-			const response = await claudeCodeService.query(prompt);
-			addMessage({
-				sender: 'assistant',
-				content: response,
-				timestamp: new Date()
-			});
-		} catch (error) {
-			console.error('Claude query failed:', error);
-			addMessage({
-				sender: 'assistant',
-				content: `Error: ${error.message}`,
-				timestamp: new Date()
-			});
-		} finally {
-			setTyping(false);
-		}
-	}
-
-	// Check if current input is a login command
-	let isLoginCommand = $derived(
-		messageInput.trim() === '/login' || messageInput.trim().startsWith('claude setup-token')
-	);
-
-	// Prepare items for virtual list
-	let virtualItems = $derived([
-		...messages.map((msg) => ({ type: 'message', data: msg })),
-		...(typing ? [{ type: 'typing', data: {} }] : [])
-	]);
 </script>
 
 <div class="chat-interface">
@@ -381,7 +118,8 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
 	<!-- Input area -->
 	<div class="input-area" data-augmented-ui="tl-clip br-clip border">
 		<textarea
-			bind:value={messageInput}
+			value={messageInput}
+			oninput={(e) => updateMessageInput(e.currentTarget.value)}
 			onkeydown={handleKeyDown}
 			placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
 			class="message-input"
@@ -389,7 +127,7 @@ Once authenticated, I'll be able to help you with coding tasks, questions, and m
 		></textarea>
 		<button
 			onclick={sendMessage}
-			disabled={!messageInput.trim() || (!isAuthenticated && !isLoginCommand)}
+			disabled={!messageInput?.trim() || (!isAuthenticated && !isLoginCommand)}
 			class="send-button"
 			data-augmented-ui="tl-clip br-clip border"
 		>
