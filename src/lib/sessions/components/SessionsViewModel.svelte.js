@@ -30,7 +30,7 @@ export class SessionsViewModel extends BaseViewModel {
 	 */
 	_initializeClient() {
 		try {
-			this.sessionClient = new SessionClient(io());
+			this.sessionClient = new SessionClient(io, { baseUrl: '' });
 		} catch (err) {
 			this.setError(`Failed to initialize session client: ${err.message}`);
 		}

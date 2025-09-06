@@ -14,6 +14,12 @@ export class ClaudeClient extends BaseClient {
         this.on('claude:typing', this.handleTyping.bind(this));
         this.on('claude:cleared', this.handleCleared.bind(this));
         this.on('claude:session-ended', this.handleSessionEnded.bind(this));
+        
+        // Authentication flow events
+        this.on('claude:auth-started', this.handleAuthStarted.bind(this));
+        this.on('claude:auth-output', this.handleAuthOutput.bind(this));
+        this.on('claude:auth-url', this.handleAuthUrl.bind(this));
+        this.on('claude:auth-completed', this.handleAuthCompleted.bind(this));
     }
 
     handleAuthStatus(data) {
@@ -54,6 +60,31 @@ export class ClaudeClient extends BaseClient {
         
         if (this.onSessionEnded) {
             this.onSessionEnded(data);
+        }
+    }
+
+    // New authentication event handlers
+    handleAuthStarted(data) {
+        if (this.onAuthStarted) {
+            this.onAuthStarted(data);
+        }
+    }
+
+    handleAuthOutput(data) {
+        if (this.onAuthOutput) {
+            this.onAuthOutput(data);
+        }
+    }
+
+    handleAuthUrl(data) {
+        if (this.onAuthUrl) {
+            this.onAuthUrl(data);
+        }
+    }
+
+    handleAuthCompleted(data) {
+        if (this.onAuthCompleted) {
+            this.onAuthCompleted(data);
         }
     }
 
@@ -156,6 +187,31 @@ export class ClaudeClient extends BaseClient {
         });
     }
 
+    // New authentication methods
+    async startAuth() {
+        return new Promise((resolve, reject) => {
+            this.emit('claude:start-auth', (response) => {
+                if (response.success) {
+                    resolve(response);
+                } else {
+                    reject(new Error(response.error || 'Failed to start authentication'));
+                }
+            });
+        });
+    }
+
+    async submitToken(data) {
+        return new Promise((resolve, reject) => {
+            this.emit('claude:submit-token', data, (response) => {
+                if (response.success) {
+                    resolve(response);
+                } else {
+                    reject(new Error(response.error || 'Failed to submit token'));
+                }
+            });
+        });
+    }
+
     getCurrentSession() {
         return this.currentSession;
     }
@@ -191,5 +247,22 @@ export class ClaudeClient extends BaseClient {
 
     setOnSessionEnded(callback) {
         this.onSessionEnded = callback;
+    }
+
+    // New authentication callback setters
+    setOnAuthStarted(callback) {
+        this.onAuthStarted = callback;
+    }
+
+    setOnAuthOutput(callback) {
+        this.onAuthOutput = callback;
+    }
+
+    setOnAuthUrl(callback) {
+        this.onAuthUrl = callback;
+    }
+
+    setOnAuthCompleted(callback) {
+        this.onAuthCompleted = callback;
     }
 }

@@ -2,22 +2,22 @@
 	let { sessions = [], activeSessionId = null, onAttach, onEnd } = $props();
 </script>
 
-<div class="sessions-list">
+<div class="sessions-list" data-testid="sessions-list">
 	{#if sessions.length === 0}
-		<p>No sessions yet</p>
+		<p data-testid="no-sessions-message">No sessions yet</p>
 	{:else}
-		<ul>
+		<ul data-testid="sessions-items">
 			{#each sessions as session}
-				<li class:active={activeSessionId === session.id}>
+				<li class:active={activeSessionId === session.id} data-testid="session-item-{session.id}">
 					<div>
 						<strong>{session.name}</strong>
 						<small>{session.type || 'shell'} • {session.status || 'inactive'}</small>
 					</div>
 					<div>
 						{#if session.status === 'active'}
-							<button onclick={() => onAttach(session.id)}> Attach </button>
+							<button onclick={() => onAttach(session.id)} data-testid="attach-session-{session.id}"> Attach </button>
 						{/if}
-						<button onclick={() => onEnd(session.id)}> End </button>
+						<button onclick={() => onEnd(session.id)} data-testid="end-session-{session.id}"> End </button>
 					</div>
 				</li>
 			{/each}

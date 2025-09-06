@@ -24,7 +24,6 @@
 	// Form state
 	let sessionName = $state('');
 	let claudeModel = $state('claude-3.5-sonnet');
-	let authToken = $state('');
 	let maxTokens = $state(8192);
 	let temperature = $state(0.7);
 	let workingDirectory = $state('');
@@ -38,6 +37,13 @@
 	let validationErrors = $state({});
 	let isValidating = $state(false);
 
+	// Claude authentication state
+	let claudeAuthStatus = $state('checking'); // 'checking', 'needed', 'authenticating', 'ready', 'error'
+	let authError = $state('');
+	let oauthUrl = $state('');
+	let userToken = $state('');
+	let authSessionId = $state(null);
+
 	// Available Claude models
 	const claudeModels = [
 		{
@@ -49,6 +55,110 @@
 		{ id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced performance' },
 		{ id: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast and efficient' }
 	];
+
+	// Initialize Claude client and check authentication
+	import { onMount } from 'svelte';
+	import { ClaudeClient } from '../io/ClaudeClient.js';
+	import { io } from 'socket.io-client';
+
+	let claudeClient = $state(null);
+
+	onMount(() => {
+		// Initialize Claude client
+		claudeClient = new ClaudeClient(io, { baseUrl: '' });
+
+		// Set up authentication event handlers
+		claudeClient.setOnAuthStarted(handleAuthStarted);
+		claudeClient.setOnAuthOutput(handleAuthOutput);
+		claudeClient.setOnAuthUrl(handleAuthUrl);
+		claudeClient.setOnAuthCompleted(handleAuthCompleted);
+
+		// Check initial authentication status
+		checkClaudeAuth();
+
+		return () => {
+			if (claudeClient) {
+				claudeClient.disconnect();
+			}
+		};
+	});
+
+	// Authentication functions
+	async function checkClaudeAuth() {
+		if (!claudeClient) return;
+
+		try {
+			claudeAuthStatus = 'checking';
+			const response = await claudeClient.checkAuth();
+			
+			if (response.authenticated) {
+				claudeAuthStatus = 'ready';
+			} else {
+				claudeAuthStatus = 'needed';
+			}
+		} catch (error) {
+			console.error('Failed to check Claude auth:', error);
+			claudeAuthStatus = 'error';
+			authError = error.message;
+		}
+	}
+
+	async function startClaudeAuth() {
+		if (!claudeClient) return;
+
+		try {
+			claudeAuthStatus = 'authenticating';
+			authError = '';
+			oauthUrl = '';
+			userToken = '';
+
+			const response = await claudeClient.startAuth();
+			authSessionId = response.authSessionId;
+		} catch (error) {
+			console.error('Failed to start Claude auth:', error);
+			claudeAuthStatus = 'error';
+			authError = error.message;
+		}
+	}
+
+	async function submitAuthToken() {
+		if (!claudeClient || !userToken.trim()) return;
+
+		try {
+			await claudeClient.submitToken({ token: userToken.trim() });
+			// Response will come through auth-completed event
+		} catch (error) {
+			console.error('Failed to submit auth token:', error);
+			authError = error.message;
+		}
+	}
+
+	// Event handlers
+	function handleAuthStarted(data) {
+		console.log('Claude auth started:', data);
+	}
+
+	function handleAuthOutput(data) {
+		console.log('Claude auth output:', data);
+	}
+
+	function handleAuthUrl(data) {
+		console.log('Claude OAuth URL received:', data);
+		oauthUrl = data.url;
+	}
+
+	function handleAuthCompleted(data) {
+		console.log('Claude auth completed:', data);
+		if (data.success && data.authenticated) {
+			claudeAuthStatus = 'ready';
+			oauthUrl = '';
+			userToken = '';
+			authSessionId = null;
+		} else {
+			claudeAuthStatus = 'error';
+			authError = data.message || 'Authentication failed';
+		}
+	}
 
 	// Remove reactive validation that caused infinite loops
 	// Validation will be called explicitly when needed
@@ -72,11 +182,9 @@
 			errors.claudeModel = 'Invalid Claude model selected';
 		}
 
-		// Authentication token validation
-		if (!authToken.trim()) {
-			errors.authToken = 'Claude authentication token is required';
-		} else if (!isValidClaudeToken(authToken)) {
-			errors.authToken = 'Invalid Claude API token format';
+		// Claude authentication validation
+		if (claudeAuthStatus !== 'ready') {
+			errors.claudeAuth = 'Claude authentication is required';
 		}
 
 		// Temperature validation
@@ -102,15 +210,6 @@
 		}
 	}
 
-	// Validate Claude API token format
-	function isValidClaudeToken(token) {
-		if (!token || typeof token !== 'string') return false;
-
-		// Claude API keys start with 'sk-ant-api03-'
-		const claudeApiKeyPattern = /^sk-ant-api03-[A-Za-z0-9_-]+$/;
-		return claudeApiKeyPattern.test(token.trim());
-	}
-
 	// Update session data for parent component
 	function updateSessionData() {
 		if (Object.keys(validationErrors).length > 0) {
@@ -125,7 +224,7 @@
 			name: finalSessionName,
 			options: {
 				claudeModel,
-				authToken: authToken.trim(),
+				authenticated: claudeAuthStatus === 'ready',
 				maxTokens: parseInt(maxTokens),
 				temperature: parseFloat(temperature),
 				workingDirectory: workingDirectory.trim() || undefined,
@@ -212,28 +311,95 @@
 			{/if}
 		</div>
 
-		<!-- Authentication Token -->
-		<div class="form-group">
-			<label for="auth-token" class="form-label">
-				Claude API Token <span class="required">*</span>
+		<!-- Claude Authentication -->
+		<div class="form-group" data-testid="claude-auth">
+			<label class="form-label">
+				Claude AI Authentication
+				{#if claudeAuthStatus === 'checking'}
+					<span class="auth-status checking">🔍 Checking</span>
+				{:else if claudeAuthStatus === 'ready'}
+					<span class="auth-status ready">✅ Ready</span>
+				{:else if claudeAuthStatus === 'needed'}
+					<span class="auth-status needed">🤖 Authentication required</span>
+				{:else if claudeAuthStatus === 'authenticating'}
+					<span class="auth-status authenticating">⏳ Authenticating</span>
+				{:else if claudeAuthStatus === 'error'}
+					<span class="auth-status error">❌ Error</span>
+				{/if}
 			</label>
-			<input
-				type="password"
-				id="auth-token"
-				class="form-input"
-				class:error={validationErrors.authToken}
-				placeholder="sk-ant-api03-..."
-				bind:value={authToken}
-				oninput={() => clearFieldError('authToken')}
-				autocomplete="off"
-			/>
-			{#if validationErrors.authToken}
-				<div class="error-message">{validationErrors.authToken}</div>
-			{:else}
-				<div class="help-text">
-					Get your API token from <a href="https://console.anthropic.com/" target="_blank"
-						>Anthropic Console</a
+
+			{#if claudeAuthStatus === 'needed'}
+				<div class="auth-panel">
+					<div class="auth-message">
+						Click the button below to start the authentication process.
+					</div>
+					<button 
+						type="button" 
+						class="auth-button" 
+						onclick={startClaudeAuth}
+						data-testid="start-claude-auth"
 					>
+						🚀 Start Authentication
+					</button>
+				</div>
+			{:else if claudeAuthStatus === 'authenticating'}
+				<div class="auth-panel">
+					{#if oauthUrl}
+						<div class="auth-step">
+							<div class="auth-message">
+								Visit this URL to get your authentication token:
+							</div>
+							<div class="oauth-url">
+								<a href={oauthUrl} target="_blank" class="oauth-link">
+									{oauthUrl}
+								</a>
+							</div>
+							<div class="token-input-section">
+								<label for="user-token" class="form-label">Paste your token here:</label>
+								<div class="token-input-row">
+									<input
+										type="text"
+										id="user-token"
+										class="form-input token-input"
+										placeholder="Paste authentication token..."
+										bind:value={userToken}
+									/>
+									<button 
+										type="button" 
+										class="submit-token-button" 
+										onclick={submitAuthToken}
+										disabled={!userToken.trim()}
+										data-testid="submit-auth-token"
+									>
+										Submit
+									</button>
+								</div>
+							</div>
+						</div>
+					{:else}
+						<div class="auth-message">
+							Setting up authentication... Please wait.
+						</div>
+					{/if}
+				</div>
+			{:else if claudeAuthStatus === 'ready'}
+				<div class="auth-panel">
+					<div class="auth-message success">
+						Claude AI is authenticated and ready to use!
+					</div>
+				</div>
+			{:else if claudeAuthStatus === 'error'}
+				<div class="auth-panel">
+					<div class="auth-message error">
+						{authError || 'Authentication failed'}
+					</div>
+					<button 
+						type="button" 
+						class="auth-button retry" 
+						onclick={checkClaudeAuth}
+					>
+						🔄 Retry
+					</button>
 				</div>
 			{/if}
 		</div>
@@ -339,7 +505,7 @@
 		<button
 			type="submit"
 			class="hidden-submit"
-			disabled={isValidating || Object.keys(validationErrors).length > 0}
+			disabled={isValidating || Object.keys(validationErrors).length > 0 || claudeAuthStatus !== 'ready'}
 		>
 			Create Session
 		</button>
@@ -499,6 +665,139 @@
 
 	.hidden-submit {
 		display: none;
+	}
+
+	/* Claude Authentication Styles */
+	.auth-status {
+		margin-left: 0.5rem;
+		font-size: 0.9rem;
+		font-weight: normal;
+	}
+
+	.auth-status.checking {
+		color: var(--warning, #ff9800);
+	}
+
+	.auth-status.ready {
+		color: var(--success, #4caf50);
+	}
+
+	.auth-status.needed {
+		color: var(--info, #2196f3);
+	}
+
+	.auth-status.authenticating {
+		color: var(--warning, #ff9800);
+	}
+
+	.auth-status.error {
+		color: var(--error, #f44336);
+	}
+
+	.auth-panel {
+		padding: 1rem;
+		border: 1px solid var(--border, #e0e0e0);
+		border-radius: 6px;
+		background: var(--surface-light, #f9f9f9);
+		margin-top: 0.5rem;
+	}
+
+	.auth-message {
+		margin-bottom: 1rem;
+		color: var(--text-primary, #333);
+		line-height: 1.4;
+	}
+
+	.auth-message.success {
+		color: var(--success, #4caf50);
+		font-weight: 500;
+	}
+
+	.auth-message.error {
+		color: var(--error, #f44336);
+	}
+
+	.auth-button {
+		padding: 0.75rem 1.5rem;
+		background: var(--primary, #0066cc);
+		color: white;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 0.9rem;
+		font-weight: 500;
+		transition: all 0.2s ease;
+	}
+
+	.auth-button:hover {
+		background: var(--primary-dark, #0056b3);
+		transform: translateY(-1px);
+	}
+
+	.auth-button.retry {
+		background: var(--warning, #ff9800);
+	}
+
+	.auth-button.retry:hover {
+		background: var(--warning-dark, #e68900);
+	}
+
+	.oauth-url {
+		margin: 1rem 0;
+		padding: 0.75rem;
+		background: var(--code-bg, #f5f5f5);
+		border: 1px solid var(--border, #e0e0e0);
+		border-radius: 4px;
+		word-break: break-all;
+	}
+
+	.oauth-link {
+		color: var(--primary, #0066cc);
+		text-decoration: none;
+		font-family: monospace;
+		font-size: 0.85rem;
+	}
+
+	.oauth-link:hover {
+		text-decoration: underline;
+	}
+
+	.token-input-section {
+		margin-top: 1rem;
+	}
+
+	.token-input-row {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+
+	.token-input {
+		flex: 1;
+		font-family: monospace;
+		font-size: 0.85rem;
+	}
+
+	.submit-token-button {
+		padding: 0.75rem 1rem;
+		background: var(--success, #4caf50);
+		color: white;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 0.85rem;
+		font-weight: 500;
+		white-space: nowrap;
+		transition: all 0.2s ease;
+	}
+
+	.submit-token-button:hover:not(:disabled) {
+		background: var(--success-dark, #45a049);
+	}
+
+	.submit-token-button:disabled {
+		background: var(--disabled, #ccc);
+		cursor: not-allowed;
 	}
 
 	/* Mobile responsive */

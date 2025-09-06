@@ -16,6 +16,10 @@ export class ClaudeHandler extends BaseHandler {
         socket.on('claude:history', this.authHandler.withAuth(this.handleHistory.bind(this, socket), socket));
         socket.on('claude:clear', this.authHandler.withAuth(this.handleClear.bind(this, socket), socket));
         socket.on('claude:end', this.authHandler.withAuth(this.handleEnd.bind(this, socket), socket));
+        
+        // Claude authentication flow events
+        socket.on('claude:start-auth', this.authHandler.withAuth(this.handleStartAuth.bind(this, socket), socket));
+        socket.on('claude:submit-token', this.authHandler.withAuth(this.handleSubmitToken.bind(this, socket), socket));
     }
 
     handleDisconnect(socket) {
@@ -310,6 +314,194 @@ ${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you
             }
         } catch (error) {
             console.error('[CLAUDE] End session failed:', error);
+            const errorResponse = {
+                success: false,
+                error: error.message
+            };
+
+            if (callback) callback(errorResponse);
+        }
+    }
+
+    /**
+     * Handle starting Claude authentication flow
+     * Creates a PTY session and runs 'claude setup-token'
+     */
+    async handleStartAuth(socket, callback) {
+        try {
+            console.log(`[CLAUDE] Starting authentication flow for socket ${socket.id}`);
+
+            // Import TerminalManager dynamically to avoid circular dependencies
+            const { TerminalManager } = await import('../../shell/server/terminal.server.js');
+            const terminalManager = new TerminalManager();
+
+            // Create a temporary session for authentication
+            const authSessionId = await terminalManager.createSessionInProject('claude-auth', {
+                name: 'Claude Authentication',
+                mode: 'shell',
+                cols: 80,
+                rows: 24,
+                workingDirectory: process.cwd(),
+                shell: process.env.SHELL || '/bin/bash'
+            });
+
+            if (!authSessionId) {
+                throw new Error('Failed to create authentication session');
+            }
+
+            // Store the auth session for this socket
+            const authSession = {
+                id: authSessionId,
+                terminalManager,
+                socket,
+                step: 'running-setup',
+                outputBuffer: '',
+                urlExtracted: false
+            };
+
+            // Store auth session (use a different map for auth sessions)
+            if (!this.authSessions) {
+                this.authSessions = new Map();
+            }
+            this.authSessions.set(socket.id, authSession);
+
+            // Get the terminal session and set up output monitoring
+            const terminalSession = authSession.terminalManager.sessions.get(authSessionId);
+            if (terminalSession && terminalSession.ptyProcess) {
+                // Monitor output for OAuth URL
+                terminalSession.ptyProcess.onData((data) => {
+                    this.handleAuthOutput(socket.id, data);
+                });
+
+                // Send the command to start authentication
+                setTimeout(() => {
+                    terminalSession.ptyProcess.write('claude setup-token\r');
+                }, 500);
+            }
+
+            const response = {
+                success: true,
+                authSessionId,
+                message: 'Authentication flow started'
+            };
+
+            if (callback) callback(response);
+
+            // Emit status update
+            this.emitToSocket(socket, 'claude:auth-started', response);
+
+        } catch (error) {
+            console.error('[CLAUDE] Start auth failed:', error);
+            const errorResponse = {
+                success: false,
+                error: error.message
+            };
+
+            if (callback) callback(errorResponse);
+        }
+    }
+
+    /**
+     * Handle authentication output and extract OAuth URL
+     */
+    handleAuthOutput(socketId, data) {
+        const authSession = this.authSessions?.get(socketId);
+        if (!authSession) return;
+
+        authSession.outputBuffer += data;
+
+        // Emit raw output for debugging
+        this.emitToSocket(authSession.socket, 'claude:auth-output', { data });
+
+        // Look for OAuth URL in the output
+        if (!authSession.urlExtracted) {
+            const urlMatch = authSession.outputBuffer.match(/https:\/\/console\.anthropic\.com[^\s\n\r]+/);
+            if (urlMatch) {
+                const oauthUrl = urlMatch[0];
+                authSession.urlExtracted = true;
+                authSession.step = 'waiting-for-token';
+
+                console.log(`[CLAUDE] OAuth URL extracted: ${oauthUrl}`);
+
+                // Emit the OAuth URL to the client
+                this.emitToSocket(authSession.socket, 'claude:auth-url', {
+                    url: oauthUrl,
+                    message: 'Please visit this URL to get your authentication token'
+                });
+            }
+        }
+    }
+
+    /**
+     * Handle token submission from user
+     */
+    async handleSubmitToken(socket, data, callback) {
+        try {
+            const { token } = data || {};
+            if (!token || typeof token !== 'string') {
+                throw new Error('Token is required');
+            }
+
+            const authSession = this.authSessions?.get(socket.id);
+            if (!authSession) {
+                throw new Error('No active authentication session');
+            }
+
+            console.log(`[CLAUDE] Submitting token for socket ${socket.id}`);
+
+            // Get the terminal session and send the token
+            const terminalSession = authSession.terminalManager.sessions.get(authSession.id);
+            if (terminalSession && terminalSession.ptyProcess) {
+                // Send the token to the running setup-token command
+                terminalSession.ptyProcess.write(token.trim() + '\r');
+
+                // Wait a moment for the command to complete
+                setTimeout(async () => {
+                    try {
+                        // Check if authentication is now successful
+                        const isAuthenticated = await claudeCodeService.isAuthenticated();
+                        
+                        if (isAuthenticated) {
+                            console.log(`[CLAUDE] Authentication successful for socket ${socket.id}`);
+                            
+                            // Clean up auth session
+                            authSession.terminalManager.endSession(authSession.id);
+                            this.authSessions.delete(socket.id);
+
+                            // Emit success
+                            this.emitToSocket(socket, 'claude:auth-completed', {
+                                success: true,
+                                authenticated: true,
+                                message: 'Authentication completed successfully!'
+                            });
+                        } else {
+                            // Authentication failed
+                            this.emitToSocket(socket, 'claude:auth-completed', {
+                                success: false,
+                                authenticated: false,
+                                message: 'Authentication failed. Please try again.'
+                            });
+                        }
+                    } catch (error) {
+                        console.error('[CLAUDE] Auth check failed:', error);
+                        this.emitToSocket(socket, 'claude:auth-completed', {
+                            success: false,
+                            authenticated: false,
+                            message: `Authentication check failed: ${error.message}`
+                        });
+                    }
+                }, 2000);
+            }
+
+            const response = {
+                success: true,
+                message: 'Token submitted successfully'
+            };
+
+            if (callback) callback(response);
+
+        } catch (error) {
+            console.error('[CLAUDE] Submit token failed:', error);
             const errorResponse = {
                 success: false,
                 error: error.message
