@@ -6,7 +6,7 @@
 	let pollInterval = null; // Not reactive - doesn't need to be
 
 	function connectSocket() {
-		socket = io({ transports: ['websocket', 'polling'] });
+		socket = io({ transports: ['websocket', 'polling'] }); // This is correct for direct socket usage
 		socket.on('connect', () => {
 			pollPublicUrl();
 		});

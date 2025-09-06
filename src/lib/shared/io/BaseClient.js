@@ -14,6 +14,7 @@ export class BaseClient {
     register() {
         this.socket.on('connect', () => {
             console.log(`Connected to ${this.namespacePath} namespace`);
+            this.setupEventListeners();
             this.onConnect();
         });
 
@@ -26,8 +27,6 @@ export class BaseClient {
             console.error(`Connection error to ${this.namespacePath}:`, error);
             this.onConnectionError(error);
         });
-
-        this.setupEventListeners();
     }
 
     setupEventListeners() {

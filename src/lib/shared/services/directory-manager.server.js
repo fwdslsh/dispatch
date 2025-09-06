@@ -86,6 +86,11 @@ class DirectoryManager {
 	 * @returns {string} Sanitized project name
 	 */
 	sanitizeProjectName(name) {
+		// Ensure name is a string
+		if (!name || typeof name !== 'string') {
+			throw new Error('Project name must be a string');
+		}
+
 		// Convert to lowercase and replace invalid chars with hyphens
 		let sanitized = name
 			.toLowerCase()

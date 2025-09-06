@@ -24,7 +24,7 @@ export class SocketService {
 			}
 
 			const { io } = await import('socket.io-client');
-			this.socket = io(url);
+			this.socket = io(url); // This is correct if you want to connect to a specific URL
 
 			await new Promise((resolve, reject) => {
 				this.socket.on('connect', () => {

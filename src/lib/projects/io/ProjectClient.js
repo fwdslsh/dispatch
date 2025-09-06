@@ -6,6 +6,44 @@ export class ProjectClient extends BaseClient {
         super(io, '/projects', config);
         this.currentProject = null;
         this.projects = [];
+        this.authenticated = false;
+        this.terminalKey = config.terminalKey;
+    }
+
+    async onConnect() {
+        console.log('[PROJECT-CLIENT] Connected, attempting authentication with key:', this.terminalKey ? 'present' : 'missing');
+        // Authenticate with the server when connecting
+        if (this.terminalKey) {
+            try {
+                await this.authenticate();
+                // After successful authentication, trigger initial project load if callback is set
+                if (this.onAuthenticated) {
+                    this.onAuthenticated();
+                }
+            } catch (error) {
+                console.error('[PROJECT-CLIENT] Authentication failed:', error);
+            }
+        } else {
+            console.warn('[PROJECT-CLIENT] No terminal key provided');
+        }
+    }
+
+    async authenticate() {
+        console.log('[PROJECT-CLIENT] Sending auth request with key:', this.terminalKey);
+        return new Promise((resolve, reject) => {
+            this.emit('auth', this.terminalKey, (response) => {
+                console.log('[PROJECT-CLIENT] Auth response received:', response);
+                if (response?.success) {
+                    this.authenticated = true;
+                    console.log('[PROJECT-CLIENT] Authenticated successfully');
+                    resolve(response);
+                } else {
+                    this.authenticated = false;
+                    console.error('[PROJECT-CLIENT] Authentication failed:', response?.error || 'No response');
+                    reject(new Error(response?.error || 'Authentication failed'));
+                }
+            });
+        });
     }
 
     setupEventListeners() {
@@ -16,6 +54,7 @@ export class ProjectClient extends BaseClient {
     }
 
     handleProjectsUpdated(data) {
+        console.log('[PROJECT-CLIENT] Projects updated event received:', data);
         if (data.success && data.projects) {
             this.projects = data.projects;
             if (this.onProjectsUpdated) {
@@ -33,6 +72,7 @@ export class ProjectClient extends BaseClient {
     }
 
     handleProjectUpdated(data) {
+        console.log('handleProjectUpdated', data);
         if (data.success && data.project) {
             // Update current project if it was updated
             if (this.currentProject && this.currentProject.id === data.project.id) {
@@ -59,13 +99,17 @@ export class ProjectClient extends BaseClient {
     }
 
     async list() {
+        console.log('[PROJECT-CLIENT] Requesting project list...');
         return new Promise((resolve, reject) => {
             this.emit('projects:list', (response) => {
-                if (response.success) {
+                console.log('[PROJECT-CLIENT] Project list response:', response);
+                if (response?.success) {
                     this.projects = response.projects || [];
+                    console.log('[PROJECT-CLIENT] Projects loaded:', this.projects.length);
                     resolve(response);
                 } else {
-                    reject(new Error(response.error || 'Failed to list projects'));
+                    console.error('[PROJECT-CLIENT] Failed to list projects:', response?.error);
+                    reject(new Error(response?.error || 'Failed to list projects'));
                 }
             });
         });
@@ -202,6 +246,10 @@ export class ProjectClient extends BaseClient {
 
     setOnProjectDeleted(callback) {
         this.onProjectDeleted = callback;
+    }
+
+    setOnAuthenticated(callback) {
+        this.onAuthenticated = callback;
     }
 
     getCurrentProject() {

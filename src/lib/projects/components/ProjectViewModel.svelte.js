@@ -81,26 +81,13 @@ export class ProjectViewModel extends BaseViewModel {
 
 		this.service = projectService;
 
-		// Set up reactive effects
-		this.setupEffects();
+		// No $effect setup here; must be done in Svelte component
 	}
 
 	/**
 	 * Set up Svelte 5 effects for reactive behavior
 	 */
-	setupEffects() {
-		// Real-time form validation effect
-		$effect(() => {
-			this.formValidation = this.validateNameRealtime(this.formData.name);
-		});
-
-		// Socket event handling effect
-		$effect(() => {
-			if (this.service) {
-				this.setupSocketListeners();
-			}
-		});
-	}
+	// setupEffects removed; effects must be set up in Svelte component
 
 	/**
 	 * Set up Socket.IO event listeners for the new namespace-based client
@@ -142,6 +129,9 @@ export class ProjectViewModel extends BaseViewModel {
 	handleProjectsUpdated(data) {
 		this.projects = data.projects || [];
 		this.activeProject = data.activeProject;
+		// Clear loading state when projects are updated via socket
+		this._loading = false;
+		console.log('[PROJECT-VIEWMODEL] Projects updated via socket, loading cleared:', this.projects.length);
 	}
 
 	/**

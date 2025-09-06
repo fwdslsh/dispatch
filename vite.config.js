@@ -12,7 +12,7 @@ const webSocketServer = {
 		});
 
 		// Initialize directory manager in development
-		import('./src/lib/server/services/directory-manager.js')
+		import('./src/lib/shared/services/directory-manager.server.js')
 			.then(async (module) => {
 				await module.default.initialize();
 				console.log('Directory manager initialized for development');
@@ -22,7 +22,7 @@ const webSocketServer = {
 			});
 
 		// Import the new namespace socket handlers for development
-		import('./src/lib/shared/server/NamespaceSocketHandler.server.js')
+		import('./src/lib/shared/io/NamespaceSocketHandler.server.js')
 			.then(({ createNamespaceSocketHandlers, createMainNamespaceHandler }) => {
 				const namespaceHandlers = createNamespaceSocketHandlers(io);
 				const mainHandler = createMainNamespaceHandler(io, namespaceHandlers);

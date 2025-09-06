@@ -128,29 +128,7 @@ export class BaseViewModel {
 	 * Call this in extending classes to enable reactive effects
 	 * @protected
 	 */
-	_setupEffects() {
-		// Effect for monitoring state changes and auto-validation
-		$effect(() => {
-			if (this._disposed) return;
-
-			// Track state changes for potential validation
-			$state.snapshot(this._reactiveState);
-
-			// Auto-validate if validation service is available
-			if (
-				this.services.validationService &&
-				typeof this.services.validationService.validate === 'function'
-			) {
-				this._performAutoValidation();
-			}
-		});
-
-		// Add cleanup for effects
-		this.addCleanup(() => {
-			// Effects are automatically cleaned up by Svelte when the component unmounts
-			// but we track this for manual disposal
-		});
-	}
+// _setupEffects removed: $effect must only be used in Svelte components
 
 	/**
 	 * Auto-validation effect

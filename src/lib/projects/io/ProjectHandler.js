@@ -1,5 +1,5 @@
 import { BaseHandler } from '../../shared/io/BaseHandler.js';
-import directoryManager from '../../server/services/directory-manager.js';
+import directoryManager from '../../shared/services/directory-manager.server.js';
 
 export class ProjectHandler extends BaseHandler {
     constructor(io, authHandler) {
@@ -19,6 +19,12 @@ export class ProjectHandler extends BaseHandler {
     }
 
     setupEventHandlers(socket) {
+        // Add auth event handler for namespace-specific authentication
+        socket.on('auth', (key, callback) => {
+            console.log(`[PROJECT] Auth request from socket ${socket.id} with key: ${key ? 'present' : 'missing'}`);
+            this.authHandler.handleLogin(socket, key, callback);
+        });
+
         socket.on('projects:list', this.authHandler.withAuth(this.handleList.bind(this, socket), socket));
         socket.on('projects:create', this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket));
         socket.on('projects:get', this.authHandler.withAuth(this.handleGet.bind(this, socket), socket));
@@ -28,6 +34,7 @@ export class ProjectHandler extends BaseHandler {
 
     async handleList(socket, callback) {
         try {
+            console.log(`[PROJECT] Listing projects for socket ${socket.id}`);
             const projectData = directoryManager.getProjects();
             const projects = projectData?.projects || [];
             console.log(`[PROJECT] Listing ${projects.length} projects for socket ${socket.id}`);
@@ -53,7 +60,7 @@ export class ProjectHandler extends BaseHandler {
         try {
             console.log('[PROJECT] Creating project:', data);
 
-            const project = await directoryManager.createProject({
+            const project = await directoryManager.createProjectLegacy({
                 name: data.name || 'Untitled Project',
                 description: data.description || ''
             });

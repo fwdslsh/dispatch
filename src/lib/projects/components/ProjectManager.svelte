@@ -17,48 +17,51 @@
 
 	// State management
 	let projectService;
-	let viewModel;
+	let viewModel = $state();
 	let io;
 
-	// Reactive state (will be set after initialization)
-	let projects = $state([]);
-	let loading = $state(false);
-	let error = $state(null);
-	let showCreateForm = $state(false);
-	let showDeleteDialog = $state(false);
-	let projectToDelete = $state(null);
+	// Derived state to keep UI in sync with viewModel
+	let projects = $derived(viewModel?.projects || []);
+	let loading = $derived(viewModel?.loading || false);
+	let error = $derived(viewModel?.error || null);
+	let showCreateForm = $derived(viewModel?.showCreateForm || false);
+	let showDeleteDialog = $derived(viewModel?.showDeleteDialog || false);
+	let projectToDelete = $derived(viewModel?.projectToDelete || null);
 
 	// Initialize on mount
 	onMount(async () => {
 		try {
 			// Initialize Socket.IO
-			const { io: socketIO } = await import('socket.io-client');
-			io = socketIO();
-
-			// Initialize services and ViewModel
+			const { io } = await import('socket.io-client');
+			// Pass the io function directly to ProjectClient
 			projectService = new ProjectClient(io, { terminalKey });
 			viewModel = new ProjectViewModel(projectService);
 
-			// Set up reactive state bindings
-			projects = viewModel.projects;
-			loading = viewModel.loading;
-			error = viewModel.error;
-			showCreateForm = viewModel.showCreateForm;
-			showDeleteDialog = viewModel.showDeleteDialog;
-			projectToDelete = viewModel.projectToDelete;
-
-			// Wait for connection and load projects
-			await viewModel.loadProjects();
+			// Set up authentication callback to load projects after auth
+			projectService.setOnAuthenticated(async () => {
+				console.log('[PROJECT-MANAGER] Authentication completed, loading projects...');
+				await viewModel.loadProjects();
+			});
 		} catch (err) {
 			error = 'Initialization failed: ' + err.message;
 		}
 
 		// Cleanup on component destroy
 		return () => {
-			viewModel.dispose();
+			viewModel?.dispose();
 		};
 	});
-
+	// Set up effects for form validation and socket listeners
+	$effect(() => {
+		if (viewModel) {
+			viewModel.formValidation = viewModel.validateNameRealtime(viewModel.formData.name);
+		}
+	});
+	$effect(() => {
+		if (viewModel && viewModel.service) {
+			viewModel.setupSocketListeners();
+		}
+	});
 	// Event handlers
 	function handleCreateProject() {
 		if (viewModel) viewModel.toggleCreateForm();

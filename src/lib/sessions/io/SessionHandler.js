@@ -1,6 +1,6 @@
 import { BaseHandler } from '../../shared/io/BaseHandler.js';
 import { TerminalManager } from '../../session-types/shell/server/terminal.server.js';
-import directoryManager from '../../server/services/directory-manager.js';
+import directoryManager from '../../shared/services/directory-manager.server.js';
 import { randomUUID } from 'crypto';
 
 export class SessionHandler extends BaseHandler {
