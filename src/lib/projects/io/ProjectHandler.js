@@ -37,9 +37,31 @@ export class ProjectHandler extends BaseHandler {
             console.log(`[PROJECT] Listing projects for socket ${socket.id}`);
             const projectData = directoryManager.getProjects();
             const projects = projectData?.projects || [];
-            console.log(`[PROJECT] Listing ${projects.length} projects for socket ${socket.id}`);
+            
+            // Add session counts from DirectoryManager
+            const projectsWithSessions = await Promise.all(
+                projects.map(async (project) => {
+                    try {
+                        const sessions = await directoryManager.getProjectSessions(project.id);
+                        return {
+                            ...project,
+                            sessions: sessions || [],
+                            sessionCount: sessions ? sessions.length : 0
+                        };
+                    } catch (err) {
+                        console.warn(`[PROJECT] Could not get sessions for project ${project.id}:`, err.message);
+                        return {
+                            ...project,
+                            sessions: [],
+                            sessionCount: 0
+                        };
+                    }
+                })
+            );
+            
+            console.log(`[PROJECT] Listing ${projectsWithSessions.length} projects for socket ${socket.id}`);
 
-            const response = { success: true, projects };
+            const response = { success: true, projects: projectsWithSessions };
             
             if (callback && typeof callback === 'function') {
                 callback(response);

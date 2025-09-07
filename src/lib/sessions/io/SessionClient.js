@@ -110,8 +110,16 @@ export class SessionClient extends BaseClient {
         return this._promisify(this.attach.bind(this), sessionId, options);
     }
 
-    list(callback) {
-        this.emit('sessions:list', (response) => {
+    list(options = {}, callback) {
+        // Handle optional options parameter
+        if (typeof options === 'function') {
+            callback = options;
+            options = {};
+        }
+        
+        console.log('[SESSION-CLIENT] Emitting sessions:list event with callback:', typeof callback);
+        this.emit('sessions:list', options, (response) => {
+            console.log('[SESSION-CLIENT] Received sessions:list response:', response);
             if (response && response.success) {
                 this.sessions = response.sessions || [];
             }
@@ -120,8 +128,8 @@ export class SessionClient extends BaseClient {
     }
 
     // Optional Promise version for backward compatibility
-    listAsync() {
-        return this._promisify(this.list.bind(this));
+    listAsync(options = {}) {
+        return this._promisify(this.list.bind(this), options);
     }
 
     end(sessionId = null, callback) {

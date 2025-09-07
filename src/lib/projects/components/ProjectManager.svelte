@@ -4,7 +4,6 @@
 -->
 <script>
 	import { onMount } from 'svelte';
-	import ProjectHeader from './ProjectHeader.svelte';
 	import ProjectForm from './ProjectForm.svelte';
 	import ProjectList from './ProjectList.svelte';
 	import Modal from '$lib/shared/components/Modal.svelte';
@@ -62,8 +61,8 @@
 			viewModel.setupSocketListeners();
 		}
 	});
-	// Event handlers
-	function handleCreateProject() {
+	// Event handlers - expose this method to parent components
+	export function handleCreateProject() {
 		if (viewModel) viewModel.toggleCreateForm();
 	}
 
@@ -98,8 +97,6 @@
 </script>
 
 <div class="project-manager">
-	<ProjectHeader onCreateProject={handleCreateProject} {loading} />
-
 	{#if error}
 		<div class="error-message">
 			{error}

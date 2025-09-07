@@ -121,42 +121,29 @@
 		
 		// First authenticate with TERMINAL_KEY
 		const terminalKey = page.data?.terminalKey || '';
-		console.log('Authenticating with terminal key...');
 		
 		claudeClient.authenticate(terminalKey, (authResponse) => {
-			console.log('Terminal key auth response:', authResponse);
-			
 			if (authResponse && authResponse.success) {
 				// Now check Claude authentication
-				console.log('Terminal auth success, checking Claude auth...');
 				claudeClient.checkAuth(() => {
 					// Response will be handled by setOnAuthStatus event handler
 				});
 			} else {
 				isConnecting = false;
 				error = 'Application authentication failed';
-				console.error('Terminal key authentication failed:', authResponse?.error);
 			}
 		});
 	}
 
 	function createSession() {
-		console.log('createSession called with projectId:', projectId, 'sessionOptions:', sessionOptions);
-		if (!claudeClient) {
-			console.log('createSession: claudeClient is null');
-			return;
-		}
+		if (!claudeClient) return;
 		
-		console.log('createSession: calling claudeClient.createSession');
 		claudeClient.createSession(projectId, sessionOptions, (err, response) => {
-			console.log('createSession callback - err:', err, 'response:', response);
 			if (err) {
-				console.log('createSession error:', err.message);
 				error = err.message;
 				return;
 			}
 			
-			console.log('createSession success:', response);
 			sessionId = response.session.id;
 			if (response.session.welcomeMessage) {
 				messages = [response.session.welcomeMessage];

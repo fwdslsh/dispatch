@@ -9,14 +9,25 @@
 	import SessionList from '$lib/sessions/components/SessionList.svelte';
 	import { SessionsViewModel } from '$lib/sessions/components/SessionsViewModel.svelte.js';
 
+	let {data} = $props();
 	const projectId = $derived(page.params.id);
 	let sessionType = $state('shell');
 	let hasActiveSession = $state(false);
 
 	const sessionsVM = new SessionsViewModel();
 	
+	// Filter sessions for current project
+	const projectSessions = $derived(() => {
+		const filtered = sessionsVM.sessions.filter(session => session.projectId === projectId);
+		console.log(`[PROJECT-PAGE] All sessions: ${sessionsVM.sessions.length}, Project sessions for ${projectId}: ${filtered.length}`);
+		console.log('[PROJECT-PAGE] First few sessions:', sessionsVM.sessions.slice(0, 3));
+		console.log('[PROJECT-PAGE] Filtered project sessions:', filtered.slice(0, 3));
+		return filtered;
+	});
+	const project = $derived(data?.project || data?.projects?.find(p => p.id === projectId) || { name: 'Unknown Project' });
 	// Load sessions once on mount
 	onMount(() => {
+		console.log(`[PROJECT-PAGE] Loading sessions for project: ${projectId}`);
 		sessionsVM.loadSessions();
 	});
 
@@ -64,7 +75,7 @@
 				</button>
 			{/snippet}
 			{#snippet right()}
-				<h2>Project {projectId.substring(0, 8)}</h2>
+				<h2>Project {project.name}</h2>
 			{/snippet}
 		</HeaderToolbar>
 	{/snippet}
@@ -73,7 +84,7 @@
 		<!-- Existing Sessions -->
 		<div class="sessions-section">
 			<SessionList 
-				sessions={sessionsVM.sessions} 
+				sessions={project.sessions} 
 				onAttach={(sessionId) => sessionsVM.attachToSession(sessionId)} 
 				onEnd={(sessionId) => sessionsVM.endSession(sessionId)} 
 			/>

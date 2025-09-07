@@ -1,5 +1,4 @@
 import { BaseHandler } from '../../shared/io/BaseHandler.js';
-import { TerminalManager } from '../../session-types/shell/server/terminal.server.js';
 import directoryManager from '../../shared/utils/directory-manager.server.js';
 import { randomUUID } from 'crypto';
 
@@ -7,14 +6,26 @@ export class SessionHandler extends BaseHandler {
     constructor(io, authHandler) {
         super(io, '/sessions');
         this.authHandler = authHandler;
-        this.terminalManager = new TerminalManager();
+        this.directoryManager = directoryManager;
         this.socketSessions = new Map();
+        
+        // Initialize DirectoryManager
+        this.initializeDirectoryManager();
+    }
+
+    async initializeDirectoryManager() {
+        try {
+            await this.directoryManager.initialize();
+            console.log('[SESSION] DirectoryManager initialized successfully');
+        } catch (error) {
+            console.error('[SESSION] Failed to initialize DirectoryManager:', error);
+        }
     }
 
     setupEventHandlers(socket) {
         socket.on('sessions:create', this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket));
         socket.on('sessions:attach', this.authHandler.withAuth(this.handleAttach.bind(this, socket), socket));
-        socket.on('sessions:list', this.handleList.bind(this, socket));
+        socket.on('sessions:list', this.authHandler.withAuth(this.handleList.bind(this, socket), socket));
         socket.on('sessions:end', this.authHandler.withAuth(this.handleEnd.bind(this, socket), socket));
         socket.on('sessions:detach', this.authHandler.withAuth(this.handleDetach.bind(this, socket), socket));
     }
@@ -46,41 +57,38 @@ export class SessionHandler extends BaseHandler {
                 customOptions: options.customOptions || {}
             };
 
-            // Create directory context if project specified
-            let workingDirectory;
-            if (sessionOptions.projectId) {
-                const project = await directoryManager.getProject(sessionOptions.projectId);
-                workingDirectory = project?.path;
-            }
-
-            // Create terminal session
-            const sessionId = await this.terminalManager.createSessionInProject(sessionOptions.projectId, {
-                ...sessionOptions,
-                workingDirectory
+            // Use DirectoryManager to create session with proper project integration
+            const sessionData = await this.directoryManager.createSession(sessionOptions.projectId, {
+                name: sessionOptions.name,
+                mode: sessionOptions.mode,
+                cols: sessionOptions.cols,
+                rows: sessionOptions.rows,
+                customOptions: sessionOptions.customOptions,
+                socketId: socket.id
             });
 
-            if (sessionId) {
-                this.socketSessions.set(socket.id, sessionId);
+            if (sessionData && sessionData.sessionId) {
+                this.socketSessions.set(socket.id, sessionData.sessionId);
 
-                console.log(`[SESSION] Created session ${sessionId} for socket ${socket.id}`);
+                console.log(`[SESSION] Created session ${sessionData.sessionId} for socket ${socket.id}`);
 
                 // Broadcast session creation to all clients in namespace
                 this.emitToNamespace('sessions:created', {
                     success: true,
-                    sessionId: sessionId,
-                    session: { sessionId },
+                    sessionId: sessionData.sessionId,
+                    session: { sessionId: sessionData.sessionId },
                     socketId: socket.id
                 });
 
                 const response = {
                     success: true,
-                    sessionId: sessionId,
-                    session: { sessionId }
+                    sessionId: sessionData.sessionId,
+                    session: { sessionId: sessionData.sessionId }
                 };
 
                 if (callback) callback(response);
             } else {
-                throw new Error('Failed to create terminal session');
+                throw new Error('Failed to create session through DirectoryManager');
             }
         } catch (error) {
             console.error('[SESSION] Error creating session:', error);
@@ -103,13 +111,23 @@ export class SessionHandler extends BaseHandler {
             const cols = Math.max(10, Math.min(500, parseInt(options.cols) || 80));
             const rows = Math.max(5, Math.min(200, parseInt(options.rows) || 24));
 
-            const success = await this.terminalManager.attachToSession(sessionId);
+            // Find the session in projects using DirectoryManager
+            const sessionInfo = await this.findSessionInProjects(sessionId);
 
-            if (success) {
+            if (sessionInfo) {
                 this.socketSessions.set(socket.id, sessionId);
-                console.log(`[SESSION] Socket ${socket.id} attached to session ${sessionId}`);
+                console.log(`[SESSION] Socket ${socket.id} attached to session ${sessionId} in project ${sessionInfo.projectId}`);
 
-                const sessionInfo = this.terminalManager.sessions.get(sessionId);
+                // Update session with attachment info
+                if (sessionInfo.projectId) {
+                    await this.directoryManager.updateSession(sessionInfo.projectId, sessionId, {
+                        attachedAt: new Date().toISOString(),
+                        socketId: socket.id,
+                        cols,
+                        rows
+                    });
+                }
+
                 const response = {
                     success: true,
                     sessionId,
@@ -124,7 +142,7 @@ export class SessionHandler extends BaseHandler {
                     socketId: socket.id
                 });
             } else {
-                const errorResponse = { success: false, error: 'Failed to attach to session' };
+                const errorResponse = { success: false, error: `Session ${sessionId} not found` };
                 if (callback) callback(errorResponse);
             }
         } catch (error) {
@@ -134,20 +152,79 @@ export class SessionHandler extends BaseHandler {
         }
     }
 
+    // Helper method to find a session across all projects
+    async findSessionInProjects(sessionId) {
+        try {
+            // Get all projects
+            const projectsData = await this.directoryManager.listProjects();
+            
+            // Search each project for the session
+            for (const project of projectsData.projects || []) {
+                try {
+                    const projectSessions = await this.directoryManager.getProjectSessions(project.id);
+                    const session = projectSessions.find(s => s.sessionId === sessionId || s.id === sessionId);
+                    if (session) {
+                        return {
+                            ...session,
+                            projectId: project.id,
+                            projectName: project.name
+                        };
+                    }
+                } catch (err) {
+                    console.warn(`[SESSION] Could not search sessions in project ${project.id}:`, err.message);
+                }
+            }
+
+
+            return null;
+        } catch (error) {
+            console.error('[SESSION] Error finding session in projects:', error);
+            return null;
+        }
+    }
+
     async handleList(socket, callback) {
         try {
-            const sessions = this.terminalManager.listSessions();
-            console.log(`[SESSION] Listing ${sessions.length} sessions for socket ${socket.id}`);
+            // Get all sessions from all projects using DirectoryManager
+            const allSessions = [];
+            
+            // Get all projects directly from projects.json instead of using listProjects
+            const projectsData = await this.directoryManager.getProjectsLegacy();
+            
+            // For each project, get its sessions
+            for (const project of projectsData.projects || []) {
+                try {
+                    const projectSessions = await this.directoryManager.getProjectSessions(project.id);
+                    
+                    // Add project context to each session
+                    projectSessions.forEach(session => {
+                        allSessions.push({
+                            ...session,
+                            projectId: project.id,
+                            projectName: project.name
+                        });
+                    });
+                } catch (err) {
+                    console.warn(`[SESSION] Could not get sessions for project ${project.id}:`, err.message);
+                }
+            }
+            
 
-            const response = { success: true, sessions };
+            console.log(`[SESSION] Listing ${allSessions.length} sessions for socket ${socket.id}`);
 
-            if (callback) callback(response);
+            const response = { success: true, sessions: allSessions };
+
+            if (callback && typeof callback === 'function') {
+                callback(response);
+            }
 
             this.emitToSocket(socket, 'sessions:updated', response);
         } catch (error) {
             console.error('[SESSION] Error listing sessions:', error);
             const errorResponse = { success: false, error: error.message };
-            if (callback) callback(errorResponse);
+            if (callback && typeof callback === 'function') {
+                callback(errorResponse);
+            }
         }
     }
 
@@ -167,9 +244,20 @@ export class SessionHandler extends BaseHandler {
 
             console.log(`[SESSION] Ending session ${targetSessionId} for socket ${socket.id}`);
 
-            const success = this.terminalManager.endSession(targetSessionId);
+            // Find the session using DirectoryManager
+            const sessionInfo = await this.findSessionInProjects(targetSessionId);
 
-            if (success) {
+            if (sessionInfo) {
+                // Update session status to ended using DirectoryManager
+                if (sessionInfo.projectId) {
+                    await this.directoryManager.updateSession(sessionInfo.projectId, targetSessionId, {
+                        status: 'ended',
+                        endedAt: new Date().toISOString(),
+                        exitCode: 0,
+                        endedBySocketId: socket.id
+                    });
+                }
+
                 // Remove from socket mapping if it was the current session
                 if (this.socketSessions.get(socket.id) === targetSessionId) {
                     this.socketSessions.delete(socket.id);
@@ -188,7 +276,7 @@ export class SessionHandler extends BaseHandler {
                 const response = { success: true };
                 if (callback) callback(response);
             } else {
-                const errorResponse = { success: false, error: 'Failed to end session' };
+                const errorResponse = { success: false, error: `Session ${targetSessionId} not found` };
                 if (callback) callback(errorResponse);
             }
         } catch (error) {

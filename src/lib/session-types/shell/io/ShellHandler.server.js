@@ -1,12 +1,26 @@
 import { BaseHandler } from '../../../shared/io/BaseHandler.js';
 import { TerminalManager } from '../server/terminal.server.js';
+import directoryManager from '../../../shared/utils/directory-manager.server.js';
 
 export class ShellHandler extends BaseHandler {
     constructor(io, authHandler) {
         super(io, '/shell');
         this.authHandler = authHandler;
-        this.terminalManager = new TerminalManager();
+        this.terminalManager = new TerminalManager(); // Still needed for PTY management
+        this.directoryManager = directoryManager; // Added for session persistence
         this.shellSessions = new Map(); // socket.id -> shell session info
+        
+        // Initialize DirectoryManager
+        this.initializeDirectoryManager();
+    }
+
+    async initializeDirectoryManager() {
+        try {
+            await this.directoryManager.initialize();
+            console.log('[SHELL] DirectoryManager initialized successfully');
+        } catch (error) {
+            console.error('[SHELL] Failed to initialize DirectoryManager:', error);
+        }
     }
 
     setupEventHandlers(socket) {
@@ -44,16 +58,41 @@ export class ShellHandler extends BaseHandler {
                 shell: options.shell || '/bin/bash'
             };
 
-            // Create shell-specific session
-            const sessionData = await this.terminalManager.createSessionInProject(`shell-${Date.now()}`, sessionOptions);
-            const sessionId = sessionData.id;
+            // Create session in DirectoryManager for persistence
+            const directorySession = await this.directoryManager.createSession(sessionOptions.projectId, {
+                name: sessionOptions.name,
+                mode: sessionOptions.mode,
+                cols: sessionOptions.cols,
+                rows: sessionOptions.rows,
+                customOptions: {
+                    shell: sessionOptions.shell,
+                    workingDirectory: sessionOptions.workingDirectory
+                },
+                socketId: socket.id
+            });
 
-            if (sessionId) {
+            if (!directorySession?.id) {
+                throw new Error('Failed to create session in DirectoryManager');
+            }
+
+            const sessionId = directorySession.id;
+
+            // Create PTY session in TerminalManager for actual terminal process
+            const terminalSessionOptions = {
+                ...sessionOptions
+            };
+            const terminalSessionData = await this.terminalManager.createSessionInProject(sessionOptions.projectId, terminalSessionOptions);
+
+            if (terminalSessionData?.id) {
+                // Use the terminal session ID for PTY operations
+                const terminalSessionId = terminalSessionData.id;
+                
                 // Attach socket to terminal session for PTY I/O
-                await this.terminalManager.attachToSession(socket, { sessionId });
+                await this.terminalManager.attachToSession(socket, { sessionId: terminalSessionId });
 
                 const shellSession = {
-                    sessionId,
+                    sessionId, // DirectoryManager session ID (for persistence)
+                    terminalSessionId, // TerminalManager session ID (for PTY operations)
                     projectId: sessionOptions.projectId,
                     shell: sessionOptions.shell,
                     workingDirectory: sessionOptions.workingDirectory,
@@ -66,14 +105,14 @@ export class ShellHandler extends BaseHandler {
                 const handleInput = (data) => {
                     const session = this.shellSessions.get(socket.id);
                     if (session?.sessionId === sessionId) {
-                        this.terminalManager.sendInput(sessionId, data);
+                        this.terminalManager.sendInput(session.terminalSessionId, data);
                     }
                 };
 
                 const handleResize = (dims) => {
                     const session = this.shellSessions.get(socket.id);
                     if (session?.sessionId === sessionId) {
-                        this.terminalManager.resize(sessionId, dims.cols, dims.rows);
+                        this.terminalManager.resize(session.terminalSessionId, dims.cols, dims.rows);
                     }
                 };
 
@@ -100,7 +139,7 @@ export class ShellHandler extends BaseHandler {
                     session: shellSession
                 });
             } else {
-                throw new Error('Failed to create shell session');
+                throw new Error('Failed to create PTY session in TerminalManager');
             }
         } catch (error) {
             console.error('[SHELL] Error creating shell session:', error);
@@ -199,7 +238,7 @@ export class ShellHandler extends BaseHandler {
 
             // Send command with newline to execute it
             const commandWithNewline = command.endsWith('\n') ? command : command + '\n';
-            this.terminalManager.sendInput(shellSession.sessionId, commandWithNewline);
+            this.terminalManager.sendInput(shellSession.terminalSessionId, commandWithNewline);
 
             const response = {
                 success: true,
@@ -239,9 +278,25 @@ export class ShellHandler extends BaseHandler {
 
             console.log(`[SHELL] Ending shell session ${sessionId} for socket ${socket.id}`);
 
-            const success = this.terminalManager.endSession(sessionId);
+            // End the PTY session in TerminalManager
+            const terminalSuccess = this.terminalManager.endSession(shellSession?.terminalSessionId || sessionId);
 
-            if (success) {
+            // Update session status in DirectoryManager
+            const projectId = shellSession?.projectId;
+            if (projectId) {
+                try {
+                    await this.directoryManager.updateSession(projectId, sessionId, {
+                        status: 'ended',
+                        endedAt: new Date().toISOString(),
+                        exitCode: 0,
+                        endedBySocketId: socket.id
+                    });
+                } catch (dmError) {
+                    console.warn(`[SHELL] Failed to update session in DirectoryManager:`, dmError);
+                }
+            }
+
+            if (terminalSuccess) {
                 this.shellSessions.delete(socket.id);
 
                 console.log(`[SHELL] Shell session ${sessionId} ended successfully`);

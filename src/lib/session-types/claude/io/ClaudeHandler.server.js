@@ -1,12 +1,26 @@
 import { BaseHandler } from "../../../shared/io/BaseHandler";
 import { claudeCodeService } from "../server/claude-code-service.server";
+import directoryManager from '../../../shared/utils/directory-manager.server.js';
 
 export class ClaudeHandler extends BaseHandler {
     constructor(io, authHandler) {
         super(io, '/claude');
         this.authHandler = authHandler;
-        this.sessions = new Map(); // socket.id -> claude session
+        this.sessions = new Map(); // socket.id -> claude session (for active connections)
         this.claudeCodeService = claudeCodeService;
+        this.directoryManager = directoryManager; // Added for session persistence
+        
+        // Initialize DirectoryManager
+        this.initializeDirectoryManager();
+    }
+    
+    async initializeDirectoryManager() {
+        try {
+            await this.directoryManager.initialize();
+            console.log('[CLAUDE] DirectoryManager initialized successfully');
+        } catch (error) {
+            console.error('[CLAUDE] Failed to initialize DirectoryManager:', error);
+        }
     }
 
     setupEventHandlers(socket) {
@@ -63,38 +77,65 @@ export class ClaudeHandler extends BaseHandler {
 
     async handleCreate(socket, data, callback) {
         try {
-            const { projectId, sessionOptions = {} } = data || {};
-            const sessionId = `claude-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            console.log(`[CLAUDE] Creating Claude session for socket ${socket.id}:`, data);
 
-            const claudeSession = {
-                id: sessionId,
-                projectId: projectId || 'unnamed-project',
-                isAuthenticated: claudeCodeService.isAuthenticated(), // Remove await - this is a synchronous method
-                messages: [],
-                createdAt: new Date().toISOString()
+            const { projectId, sessionOptions = {} } = data || {};
+            
+            if (!projectId) {
+                throw new Error('Project ID is required for Claude sessions');
+            }
+
+            const sessionData = {
+                name: sessionOptions.name || 'Claude Session',
+                mode: 'claude',
+                cols: Math.max(10, Math.min(500, parseInt(sessionOptions.cols) || 80)),
+                rows: Math.max(5, Math.min(200, parseInt(sessionOptions.rows) || 24)),
+                customOptions: {
+                    authenticated: claudeCodeService.isAuthenticated(),
+                    messages: []
+                },
+                socketId: socket.id
             };
+
+            // Create session in DirectoryManager for persistence
+            const directorySession = await this.directoryManager.createSession(projectId, sessionData);
+
+            if (!directorySession?.id) {
+                throw new Error('Failed to create session in DirectoryManager');
+            }
+
+            const sessionId = directorySession.id;
 
             // Add welcome message
             const welcomeMessage = {
                 id: `msg-${Date.now()}`,
                 role: 'assistant',
-                content: `Hello! I'm Claude, your AI coding assistant. I'm ready to help you with ${projectId ? `project "${projectId}"` : 'your coding tasks'}.
+                content: `Hello! I'm Claude, your AI coding assistant. I'm ready to help you with project "${projectId}".
 
-${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you!" : '⚠️ I need authentication to provide full assistance. Please run `claude setup-token` in your terminal.'}`,
+${sessionData.customOptions.authenticated ? "✅ I'm authenticated and ready to assist you!" : '⚠️ I need authentication to provide full assistance. Please run `claude setup-token` in your terminal.'}`,
                 timestamp: new Date().toISOString()
             };
 
-            claudeSession.messages.push(welcomeMessage);
+            // Store active session info in memory for socket handling
+            const claudeSession = {
+                sessionId,
+                projectId,
+                authenticated: sessionData.customOptions.authenticated,
+                messages: [welcomeMessage],
+                createdAt: new Date().toISOString()
+            };
+
             this.sessions.set(socket.id, claudeSession);
 
-            console.log(`[CLAUDE] Session created: ${sessionId} for project: ${projectId}`);
+            console.log(`[CLAUDE] Created Claude session ${sessionId} for socket ${socket.id}`);
 
             const response = {
                 success: true,
+                sessionId,
                 session: {
                     id: sessionId,
-                    projectId: claudeSession.projectId,
-                    authenticated: claudeSession.isAuthenticated,
+                    projectId: projectId,
+                    authenticated: sessionData.customOptions.authenticated,
                     welcomeMessage
                 }
             };
@@ -103,15 +144,15 @@ ${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you
 
             this.emitToSocket(socket, 'claude:session-created', {
                 sessionId,
-                projectId: claudeSession.projectId
+                projectId,
+                session: claudeSession
             });
         } catch (error) {
-            console.error('[CLAUDE] Session creation failed:', error);
+            console.error('[CLAUDE] Error creating Claude session:', error);
             const errorResponse = {
                 success: false,
                 error: error.message
             };
-
             if (callback) callback(errorResponse);
         }
     }

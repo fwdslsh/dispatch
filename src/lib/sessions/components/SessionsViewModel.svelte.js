@@ -40,22 +40,38 @@ export class SessionsViewModel extends BaseViewModel {
 	 * Load sessions from the server
 	 */
 	async loadSessions() {
-		if (this.loading || !this.sessionClient) return;
+		if (this.loading || !this.sessionClient) {
+			console.log('[SESSIONS-VM] loadSessions called but skipped:', { loading: this.loading, hasClient: !!this.sessionClient });
+			return;
+		}
 
+		console.log('[SESSIONS-VM] Starting to load sessions...');
 		this.loading = true;
 		this.setError(null);
 
-		try {
-			const response = await this.sessionClient.list();
-			this.sessions = response.sessions || [];
-			this.activeSessions = this.sessions.filter(s => s.status === 'active');
-		} catch (err) {
-			this.setError(`Failed to load sessions: ${err.message}`);
-			this.sessions = [];
-			this.activeSessions = [];
-		} finally {
-			this.loading = false;
-		}
+		// Use callback-based approach instead of Promise
+		this.sessionClient.list((response) => {
+			console.log('[SESSIONS-VM] Session list response:', response);
+			try {
+				if (response && response.success) {
+					this.sessions = response.sessions || [];
+					this.activeSessions = this.sessions.filter(s => s.status === 'active');
+					console.log('[SESSIONS-VM] Loaded sessions:', { total: this.sessions.length, active: this.activeSessions.length });
+				} else {
+					console.error('[SESSIONS-VM] Session list response not successful:', response);
+					this.setError(`Failed to load sessions: ${response?.error || 'Unknown error'}`);
+					this.sessions = [];
+					this.activeSessions = [];
+				}
+			} catch (err) {
+				console.error('[SESSIONS-VM] Error processing session response:', err);
+				this.setError(`Failed to process sessions: ${err.message}`);
+				this.sessions = [];
+				this.activeSessions = [];
+			} finally {
+				this.loading = false;
+			}
+		});
 	}
 
 	/**
