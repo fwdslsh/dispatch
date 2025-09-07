@@ -21,25 +21,27 @@ node bin/dispatch-cli.js --help
 
 ## Quick Start
 
-1. **Generate configuration file:**
+1. **Initialize environment (recommended for first-time setup):**
+   ```bash
+   dispatch init
+   ```
 
+2. **Or generate configuration file manually:**
    ```bash
    dispatch config
    ```
 
-2. **Start Dispatch:**
-
+3. **Start Dispatch:**
    ```bash
    dispatch start --open
    ```
 
-3. **Check status:**
-
+4. **Check status:**
    ```bash
    dispatch status
    ```
 
-4. **Stop container:**
+5. **Stop container:**
    ```bash
    dispatch stop
    ```
@@ -111,6 +113,30 @@ Check if the Dispatch container is currently running.
 ### `dispatch config`
 
 Generate an example configuration file at `~/.dispatch/config.yaml`.
+
+### `dispatch init [options]`
+
+Initialize Dispatch environment setup. This command automates the setup process for a new Dispatch environment.
+
+```bash
+dispatch init
+```
+
+#### Options:
+- `--skip-docker` - Skip Docker image pull
+- `--skip-cli` - Skip making CLI globally available  
+- `--dispatch-home <path>` - Dispatch home directory (default: ~/dispatch)
+- `--projects-dir <path>` - Projects directory (default: ~/dispatch/projects)
+
+#### What it does:
+1. **Creates directory structure**: Sets up `~/dispatch` with subdirectories for projects, home, and configuration
+2. **Copies configuration**: Copies `~/.claude` and `~/.config/dispatch` directories to dispatch home if they exist
+3. **Updates CLI configuration**: Configures volume mounts to use the new directory structure
+4. **Makes CLI available**: Optionally creates a global symlink for the dispatch command
+5. **Pulls Docker image**: Optionally pulls the latest Dispatch Docker image
+6. **Saves preferences**: Stores initialization settings for future reference
+
+After running `init`, you can immediately use `dispatch start` with the properly configured environment.
 
 ## Configuration
 
@@ -213,10 +239,20 @@ Additional directories can be mounted:
 
 ## Examples
 
+### First-Time Setup
+
+```bash
+# Initialize environment with automatic setup
+dispatch init
+
+# Start Dispatch with all configurations applied
+dispatch start --open
+```
+
 ### Basic Development Setup
 
 ```bash
-# Generate config
+# Generate config manually
 dispatch config
 
 # Edit config to enable browser opening
@@ -245,6 +281,19 @@ dispatch start --mode claude --claude ~/.claude --open
 ```bash
 # Use different project directory
 dispatch start --projects ~/my-special-project --home ~/dispatch-custom
+```
+
+### Custom Initialization
+
+```bash
+# Initialize with custom directories
+dispatch init --dispatch-home ~/my-dispatch --projects-dir ~/my-projects
+
+# Initialize without Docker pull and CLI setup
+dispatch init --skip-docker --skip-cli
+
+# Initialize with specific paths non-interactively
+dispatch init --dispatch-home /opt/dispatch --projects-dir /opt/dispatch/workspace
 ```
 
 ### Notifications
