@@ -8,6 +8,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 ## Tasks
 
 ### 1. Multi-Pane Layout Infrastructure ✅ COMPLETED
+
 - [x] 1.1 Write tests for MultiPaneLayout component initialization and basic rendering
 - [x] 1.2 Create MultiPaneLayout.svelte component with CSS Grid container structure
 - [x] 1.3 Implement pane creation and removal methods with proper DOM management
@@ -18,6 +19,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [x] 1.8 Verify all multi-pane layout tests pass
 
 ### 2. Custom Resize Handle System ✅ COMPLETED
+
 - [x] 2.1 Write tests for resize handle mouse interaction events (mousedown, mousemove, mouseup)
 - [x] 2.2 Create ResizeHandle.svelte component with drag detection capabilities
 - [x] 2.3 Implement mouse position tracking and boundary constraint calculations
@@ -28,6 +30,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [x] 2.8 Verify all resize handle interaction tests pass
 
 ### 3. Multiple Terminal Instance Management ✅ COMPLETED
+
 - [x] 3.1 Write tests for multiple xterm.js instance creation, destruction, and lifecycle management
 - [x] 3.2 Modify Terminal.svelte to support multiple xterm instances with unique identifiers
 - [x] 3.3 Implement terminal instance registry for tracking active terminals across panes
@@ -38,6 +41,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [x] 3.8 Verify all multiple terminal instance tests pass
 
 ### 4. Keyboard Navigation System ✅ COMPLETED
+
 - [x] 4.1 Write tests for Alt+Arrow key combinations and focus switching between panes
 - [x] 4.2 Implement global keyboard event listener with Alt key modifier detection
 - [x] 4.3 Add pane traversal logic (left, right, up, down navigation)
@@ -48,6 +52,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 - [x] 4.8 Verify all keyboard navigation tests pass
 
 ### 5. Layout Persistence and Link Detection ✅ COMPLETED
+
 - [x] 5.1 Write tests for localStorage layout persistence and clickable link detection
 - [x] 5.2 Implement localStorage serialization/deserialization for pane configurations
 - [x] 5.3 Add layout restoration on page load with fallback to default single-pane

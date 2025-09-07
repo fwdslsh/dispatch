@@ -5,6 +5,7 @@ This document explains how to build and run Dispatch with **project sandboxing**
 ## 🔒 Project Sandboxing Overview
 
 **How it works:**
+
 - Each project creates an isolated directory under `/tmp/dispatch-sessions/{project-id}/`
 - Terminal sessions use the project directory as their `$HOME`
 - Configuration files are copied from the host system home to each project home
@@ -14,12 +15,12 @@ This document explains how to build and run Dispatch with **project sandboxing**
 
 Dispatch uses a clear mounting strategy with distinct purposes:
 
-| Host Path | Container Path | Purpose | Notes |
-|-----------|----------------|---------|-------|
-| `~/dispatch/home` | `/home/appuser` | **System Home** | Shared configs, dotfiles, SSH keys |
-| `~/dispatch/projects` | `/workspace` | **Legacy Workspace** | Backward compatibility access |
-| `~/.ssh` | `/home/appuser/.ssh:ro` | **SSH Keys** | Read-only SSH access |
-| `~/.claude` | `/home/appuser/.claude` | **Claude Config** | Claude CLI configuration |
+| Host Path             | Container Path          | Purpose              | Notes                              |
+| --------------------- | ----------------------- | -------------------- | ---------------------------------- |
+| `~/dispatch/home`     | `/home/appuser`         | **System Home**      | Shared configs, dotfiles, SSH keys |
+| `~/dispatch/projects` | `/workspace`            | **Legacy Workspace** | Backward compatibility access      |
+| `~/.ssh`              | `/home/appuser/.ssh:ro` | **SSH Keys**         | Read-only SSH access               |
+| `~/.claude`           | `/home/appuser/.claude` | **Claude Config**    | Claude CLI configuration           |
 
 ## 🚀 Quick Start
 
@@ -78,6 +79,7 @@ docker run -p 3030:3030 \
 ```
 
 Recommended mount points:
+
 - `/home/appuser` — user home directory inside the container (shell history, dotfiles)
 - `/workspace` — where you can keep project folders and code
 
@@ -114,6 +116,7 @@ docker run -p 3030:3030 \
 Symptom: You can access the UI but cannot create files or save in mounted folders.
 
 Fix:
+
 1. Ensure the host directories exist: `mkdir -p ~/dispatch-home ~/dispatch-projects`
 2. Use the recommended permission approach:
 
@@ -162,4 +165,3 @@ docker run -p 3030:3030 -e TERMINAL_KEY=secret --user $(id -u):$(id -g) -v ~/dis
 
 - See `docker/Dockerfile` for how the image is built and the flexible runtime user configuration
 - See `CONTRIBUTING.md` for development and build instructions
-

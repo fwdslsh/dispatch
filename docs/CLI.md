@@ -22,16 +22,19 @@ node bin/dispatch-cli.js --help
 ## Quick Start
 
 1. **Generate configuration file:**
+
    ```bash
    dispatch config
    ```
 
 2. **Start Dispatch:**
+
    ```bash
    dispatch start --open
    ```
 
 3. **Check status:**
+
    ```bash
    dispatch status
    ```
@@ -77,6 +80,7 @@ dispatch start --build
 ```
 
 #### Options:
+
 - `-p, --port <port>` - Port for web interface (default: 3030)
 - `-k, --key <key>` - Terminal authentication key
 - `--tunnel` - Enable public URL tunnel
@@ -122,7 +126,7 @@ dispatch config
 # Docker image to use
 image: fwdslsh/dispatch:latest
 
-# Port for web interface  
+# Port for web interface
 port: 3030
 
 # Terminal authentication key (leave null to auto-generate)
@@ -141,16 +145,16 @@ ptyMode: shell
 volumes:
   # Projects workspace directory
   projects: ~/dispatch/projects
-  
+
   # User home directory (for dotfiles, shell history, etc.)
   home: ~/dispatch/home
-  
+
   # SSH directory (mounted read-only, optional)
   ssh: ~/.ssh
-  
+
   # Claude configuration directory (optional)
   claude: ~/.claude
-  
+
   # Additional config directory (optional)
   config: ~/.config
 
@@ -164,25 +168,25 @@ openBrowser: false
 notifications:
   # Enable notifications when container starts
   enabled: false
-  
+
   # Email notification settings
   email:
     # Email address to send notifications to
     to: null
-    
+
     # SMTP server configuration
     smtp:
       host: smtp.gmail.com
       port: 587
-      secure: false  # true for 465, false for other ports
+      secure: false # true for 465, false for other ports
       user: your-email@gmail.com
       pass: your-app-password
-  
+
   # Webhook notification settings (great for Slack, Discord, etc.)
   webhook:
     # Webhook URL to send POST request to
     url: null
-    
+
     # Optional custom headers
     headers:
       Content-Type: application/json
@@ -202,6 +206,7 @@ The CLI automatically creates the following directory structure:
 ```
 
 Additional directories can be mounted:
+
 - **SSH Keys**: Mount `~/.ssh` for Git access (read-only)
 - **Claude Config**: Mount `~/.claude` for Claude CLI configuration
 - **Additional Config**: Mount `~/.config` or other config directories
@@ -259,6 +264,7 @@ dispatch start
 ```
 
 **Gmail Setup:**
+
 1. Enable 2FA on your Gmail account
 2. Generate an app password: https://myaccount.google.com/apppasswords
 3. Use your Gmail address as `smtp-user` and the app password as `smtp-pass`
@@ -271,7 +277,7 @@ Perfect for team notifications via Slack, Discord, or other services:
 # Slack webhook
 dispatch start --notify-webhook https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 
-# Discord webhook  
+# Discord webhook
 dispatch start --notify-webhook https://discord.com/api/webhooks/123456789/abcdefghijk
 
 # Custom webhook with tunnel URL
@@ -279,18 +285,20 @@ dispatch start --tunnel --notify-webhook https://your-webhook.com/notifications
 ```
 
 **Slack Setup:**
+
 1. Go to your Slack app settings
 2. Create a new webhook integration
 3. Copy the webhook URL and use it with `--notify-webhook`
 
 **Webhook Payload:**
 The webhook receives a JSON payload:
+
 ```json
 {
-  "message": "Dispatch Container Started",
-  "url": "http://localhost:3030",
-  "terminalKey": "your-terminal-key",
-  "timestamp": "2024-01-01T12:00:00.000Z"
+	"message": "Dispatch Container Started",
+	"url": "http://localhost:3030",
+	"terminalKey": "your-terminal-key",
+	"timestamp": "2024-01-01T12:00:00.000Z"
 }
 ```
 
@@ -299,11 +307,13 @@ The webhook receives a JSON payload:
 ### Container Not Starting
 
 1. Check if Docker is running:
+
    ```bash
    docker version
    ```
 
 2. Check container status:
+
    ```bash
    dispatch status
    ```

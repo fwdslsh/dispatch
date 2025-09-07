@@ -37,7 +37,8 @@ DOCKER_ARGS=(
   # Environment variables
   -e "TERMINAL_KEY=$TERMINAL_KEY"
   -e "ENABLE_TUNNEL=${ENABLE_TUNNEL:-false}"
-  -e "PTY_ROOT=/tmp/dispatch-sessions"
+  -e "DISPATCH_CONFIG_DIR=/home/appuser/.config/dispatch"
+  -e "DISPATCH_PROJECTS_DIR=/workspace"
   -e "PROJECT_SANDBOX_ENABLED=true"
   -e "HOST_HOME_DIR=/home/appuser"
   
@@ -79,7 +80,7 @@ fi
 
 echo ""
 echo "Project Sandboxing:"
-echo "  Each project creates an isolated directory under /tmp/dispatch-sessions/"
+echo "  Each project creates an isolated directory under /var/lib/dispatch/projects/"
 echo "  Projects get their own HOME directory initialized with copied configs"
 echo "  Terminal sessions are sandboxed to their project directory"
 

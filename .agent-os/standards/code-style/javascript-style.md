@@ -19,7 +19,7 @@ import { DatabaseService } from './services/database.js';
 import { validateInput } from '../utils/validation.js';
 
 export class ApiServer extends EventEmitter {
-  // Implementation
+	// Implementation
 }
 
 export { validateInput };
@@ -34,22 +34,22 @@ export { validateInput };
 
 ```javascript
 export class UserService {
-  #database;
-  #cache = new Map();
+	#database;
+	#cache = new Map();
 
-  constructor(database) {
-    this.#database = database;
-  }
+	constructor(database) {
+		this.#database = database;
+	}
 
-  async findUser(id) {
-    if (this.#cache.has(id)) {
-      return this.#cache.get(id);
-    }
-    
-    const user = await this.#database.users.findById(id);
-    this.#cache.set(id, user);
-    return user;
-  }
+	async findUser(id) {
+		if (this.#cache.has(id)) {
+			return this.#cache.get(id);
+		}
+
+		const user = await this.#database.users.findById(id);
+		this.#cache.set(id, user);
+		return user;
+	}
 }
 ```
 
@@ -63,14 +63,13 @@ export class UserService {
 ```javascript
 // Data transformation pipeline
 export const processUsers = (users) =>
-  users
-    .filter(user => user.active)
-    .map(({ id, name, email }) => ({ id, name, email }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+	users
+		.filter((user) => user.active)
+		.map(({ id, name, email }) => ({ id, name, email }))
+		.sort((a, b) => a.name.localeCompare(b.name));
 
 // Higher-order function for validation
-export const createValidator = (schema) => (data) =>
-  schema.validate(data);
+export const createValidator = (schema) => (data) => schema.validate(data);
 ```
 
 ## Async Patterns
@@ -82,16 +81,14 @@ export const createValidator = (schema) => (data) =>
 
 ```javascript
 export class DataProcessor {
-  async processMultipleFiles(filePaths) {
-    try {
-      const results = await Promise.all(
-        filePaths.map(path => this.#processFile(path))
-      );
-      return results.filter(Boolean);
-    } catch (error) {
-      throw new ProcessingError(`Failed to process files: ${error.message}`);
-    }
-  }
+	async processMultipleFiles(filePaths) {
+		try {
+			const results = await Promise.all(filePaths.map((path) => this.#processFile(path)));
+			return results.filter(Boolean);
+		} catch (error) {
+			throw new ProcessingError(`Failed to process files: ${error.message}`);
+		}
+	}
 }
 ```
 
@@ -104,12 +101,12 @@ export class DataProcessor {
 
 ```javascript
 export class ValidationError extends Error {
-  constructor(field, value, constraint) {
-    super(`Invalid ${field}: ${value} does not meet ${constraint}`);
-    this.name = 'ValidationError';
-    this.field = field;
-    this.value = value;
-  }
+	constructor(field, value, constraint) {
+		super(`Invalid ${field}: ${value} does not meet ${constraint}`);
+		this.name = 'ValidationError';
+		this.field = field;
+		this.value = value;
+	}
 }
 ```
 
@@ -133,27 +130,26 @@ export class ValidationError extends Error {
  * Service for managing user data and operations
  */
 export class UserService {
-  /**
-   * Find a user by ID with caching
-   * @param {string} id - The user ID to search for
-   * @returns {Promise<User|null>} The user object or null if not found
-   * @throws {DatabaseError} When database connection fails
-   * @example
-   * const user = await userService.findUser('123');
-   * if (user) console.log(user.name);
-   */
-  async findUser(id) {
-    // Implementation
-  }
+	/**
+	 * Find a user by ID with caching
+	 * @param {string} id - The user ID to search for
+	 * @returns {Promise<User|null>} The user object or null if not found
+	 * @throws {DatabaseError} When database connection fails
+	 * @example
+	 * const user = await userService.findUser('123');
+	 * if (user) console.log(user.name);
+	 */
+	async findUser(id) {
+		// Implementation
+	}
 
-  /**
-   * Process and transform user data
-   * @param {User[]} users - Array of user objects to process
-   * @returns {User[]} Filtered and sorted active users
-   */
-  static processUsers(users) {
-    // Implementation
-  }
+	/**
+	 * Process and transform user data
+	 * @param {User[]} users - Array of user objects to process
+	 * @returns {User[]} Filtered and sorted active users
+	 */
+	static processUsers(users) {
+		// Implementation
+	}
 }
 ```
-

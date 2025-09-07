@@ -13,7 +13,7 @@ encoding: UTF-8
 Generate product docs for new projects: mission, tech-stack and roadmap files for AI agent consumption.
 
 <pre_flight_check>
-  EXECUTE: @.agent-os/instructions/meta/pre-flight.md
+EXECUTE: @.agent-os/instructions/meta/pre-flight.md
 </pre_flight_check>
 
 <process_flow>
@@ -25,22 +25,20 @@ Generate product docs for new projects: mission, tech-stack and roadmap files fo
 Use the context-fetcher subagent to collect all required inputs from the user including main idea, key features (minimum 3), target users (minimum 1), and tech stack preferences with blocking validation before proceeding.
 
 <data_sources>
-  <primary>user_direct_input</primary>
-  <fallback_sequence>
-    1. @.agent-os/standards/tech-stack.md
-    2. @.claude/CLAUDE.md
-    3. Cursor User Rules
-  </fallback_sequence>
+<primary>user_direct_input</primary>
+<fallback_sequence> 1. @.agent-os/standards/tech-stack.md 2. @.claude/CLAUDE.md 3. Cursor User Rules
+</fallback_sequence>
 </data_sources>
 
 <error_template>
-  Please provide the following missing information:
-  1. Main idea for the product
-  2. List of key features (minimum 3)
-  3. Target users and use cases (minimum 1)
-  4. Tech stack preferences
-  5. Has the new application been initialized yet and we're inside the project folder? (yes/no)
-</error_template>
+Please provide the following missing information:
+
+1. Main idea for the product
+2. List of key features (minimum 3)
+3. Target users and use cases (minimum 1)
+4. Tech stack preferences
+5. Has the new application been initialized yet and we're inside the project folder? (yes/no)
+   </error_template>
 
 </step>
 
@@ -51,12 +49,12 @@ Use the context-fetcher subagent to collect all required inputs from the user in
 Use the file-creator subagent to create the following file_structure with validation for write permissions and protection against overwriting existing files:
 
 <file_structure>
-  .agent-os/
-  └── product/
-      ├── mission.md          # Product vision and purpose
-      ├── mission-lite.md     # Condensed mission for AI context
-      ├── tech-stack.md       # Technical architecture
-      └── roadmap.md          # Development phases
+.agent-os/
+└── product/
+├── mission.md # Product vision and purpose
+├── mission-lite.md # Condensed mission for AI context
+├── tech-stack.md # Technical architecture
+└── roadmap.md # Development phases
 </file_structure>
 
 </step>
@@ -68,6 +66,7 @@ Use the file-creator subagent to create the following file_structure with valida
 Use the file-creator subagent to create the file: .agent-os/product/mission.md and use the following template:
 
 <file_template>
+
   <header>
     # Product Mission
   </header>
@@ -85,6 +84,7 @@ Use the file-creator subagent to create the file: .agent-os/product/mission.md a
     ## Pitch
 
     [PRODUCT_NAME] is a [PRODUCT_TYPE] that helps [TARGET_USERS] [SOLVE_PROBLEM] by providing [KEY_VALUE_PROPOSITION].
+
   </template>
   <constraints>
     - length: 1-2 sentences
@@ -108,6 +108,7 @@ Use the file-creator subagent to create the file: .agent-os/product/mission.md a
     - **Context:** [BUSINESS_CONTEXT]
     - **Pain Points:** [PAIN_POINT_1], [PAIN_POINT_2]
     - **Goals:** [GOAL_1], [GOAL_2]
+
   </template>
   <schema>
     - name: string
@@ -128,6 +129,7 @@ Use the file-creator subagent to create the file: .agent-os/product/mission.md a
     [PROBLEM_DESCRIPTION]. [QUANTIFIABLE_IMPACT].
 
     **Our Solution:** [SOLUTION_DESCRIPTION]
+
   </template>
   <constraints>
     - problems: 2-4
@@ -144,6 +146,7 @@ Use the file-creator subagent to create the file: .agent-os/product/mission.md a
     ### [DIFFERENTIATOR_TITLE]
 
     Unlike [COMPETITOR_OR_ALTERNATIVE], we provide [SPECIFIC_ADVANTAGE]. This results in [MEASURABLE_BENEFIT].
+
   </template>
   <constraints>
     - count: 2-3
@@ -163,6 +166,7 @@ Use the file-creator subagent to create the file: .agent-os/product/mission.md a
     ### Collaboration Features
 
     - **[FEATURE_NAME]:** [USER_BENEFIT_DESCRIPTION]
+
   </template>
   <constraints>
     - total: 8-10 features
@@ -180,56 +184,54 @@ Use the file-creator subagent to create the file: .agent-os/product/mission.md a
 Use the file-creator subagent to create the file: .agent-os/product/tech-stack.md and use the following template:
 
 <file_template>
+
   <header>
     # Technical Stack
   </header>
 </file_template>
 
 <required_items>
-  - application_framework: string + version
-  - database_system: string
-  - javascript_framework: string
-  - import_strategy: ["importmaps", "node"]
-  - css_framework: string + version
-  - ui_component_library: string
-  - fonts_provider: string
-  - icon_library: string
-  - application_hosting: string
-  - database_hosting: string
-  - asset_hosting: string
-  - deployment_solution: string
-  - code_repository_url: string
-</required_items>
+
+- application_framework: string + version
+- database_system: string
+- javascript_framework: string
+- import_strategy: ["importmaps", "node"]
+- css_framework: string + version
+- ui_component_library: string
+- fonts_provider: string
+- icon_library: string
+- application_hosting: string
+- database_hosting: string
+- asset_hosting: string
+- deployment_solution: string
+- code_repository_url: string
+  </required_items>
 
 <data_resolution>
-  IF has_context_fetcher:
-    FOR missing tech stack items:
-      USE: @agent:context-fetcher
-      REQUEST: "Find [ITEM_NAME] from tech-stack.md"
-      PROCESS: Use found defaults
-  ELSE:
-    PROCEED: To manual resolution below
+IF has_context_fetcher:
+FOR missing tech stack items:
+USE: @agent:context-fetcher
+REQUEST: "Find [ITEM_NAME] from tech-stack.md"
+PROCESS: Use found defaults
+ELSE:
+PROCEED: To manual resolution below
 
-  <manual_resolution>
-    <for_each item="required_items">
-      <if_not_in>user_input</if_not_in>
-      <then_check>
-        1. @.agent-os/standards/tech-stack.md
-        2. @.claude/CLAUDE.md
-        3. Cursor User Rules
-      </then_check>
-      <else>add_to_missing_list</else>
-    </for_each>
-  </manual_resolution>
+<manual_resolution>
+<for_each item="required_items">
+<if_not_in>user_input</if_not_in>
+<then_check> 1. @.agent-os/standards/tech-stack.md 2. @.claude/CLAUDE.md 3. Cursor User Rules
+</then_check>
+<else>add_to_missing_list</else>
+</for_each>
+</manual_resolution>
 </data_resolution>
 
 <missing_items_template>
-  Please provide the following technical stack details:
-  [NUMBERED_LIST_OF_MISSING_ITEMS]
+Please provide the following technical stack details:
+[NUMBERED_LIST_OF_MISSING_ITEMS]
 
-  You can respond with the technology choice or "n/a" for each item.
+You can respond with the technology choice or "n/a" for each item.
 </missing_items_template>
-
 
 </step>
 
@@ -242,33 +244,29 @@ Use the file-creator subagent to create the file: .agent-os/product/mission-lite
 Use the following template:
 
 <file_template>
+
   <header>
     # Product Mission (Lite)
   </header>
 </file_template>
 
 <content_structure>
-  <elevator_pitch>
-    - source: Step 3 mission.md pitch section
-    - format: single sentence
-  </elevator_pitch>
-  <value_summary>
-    - length: 1-3 sentences
-    - includes: value proposition, target users, key differentiator
-    - excludes: secondary users, secondary differentiators
-  </value_summary>
+<elevator_pitch> - source: Step 3 mission.md pitch section - format: single sentence
+</elevator_pitch>
+<value_summary> - length: 1-3 sentences - includes: value proposition, target users, key differentiator - excludes: secondary users, secondary differentiators
+</value_summary>
 </content_structure>
 
 <content_template>
-  [ELEVATOR_PITCH_FROM_MISSION_MD]
+[ELEVATOR_PITCH_FROM_MISSION_MD]
 
-  [1-3_SENTENCES_SUMMARIZING_VALUE_TARGET_USERS_AND_PRIMARY_DIFFERENTIATOR]
+[1-3_SENTENCES_SUMMARIZING_VALUE_TARGET_USERS_AND_PRIMARY_DIFFERENTIATOR]
 </content_template>
 
 <example>
   TaskFlow is a project management tool that helps remote teams coordinate work efficiently by providing real-time collaboration and automated workflow tracking.
 
-  TaskFlow serves distributed software teams who need seamless task coordination across time zones. Unlike traditional project management tools, TaskFlow automatically syncs with development workflows and provides intelligent task prioritization based on team capacity and dependencies.
+TaskFlow serves distributed software teams who need seamless task coordination across time zones. Unlike traditional project management tools, TaskFlow automatically syncs with development workflows and provides intelligent task prioritization based on team capacity and dependencies.
 </example>
 
 </step>
@@ -280,16 +278,16 @@ Use the following template:
 Use the file-creator subagent to create the following file: .agent-os/product/roadmap.md using the following template:
 
 <file_template>
+
   <header>
     # Product Roadmap
   </header>
 </file_template>
 
 <phase_structure>
-  <phase_count>1-3</phase_count>
-  <features_per_phase>3-7</features_per_phase>
-  <phase_template>
-    ## Phase [NUMBER]: [NAME]
+<phase_count>1-3</phase_count>
+<features_per_phase>3-7</features_per_phase>
+<phase_template> ## Phase [NUMBER]: [NAME]
 
     **Goal:** [PHASE_GOAL]
     **Success Criteria:** [MEASURABLE_CRITERIA]
@@ -301,29 +299,32 @@ Use the file-creator subagent to create the following file: .agent-os/product/ro
     ### Dependencies
 
     - [DEPENDENCY]
-  </phase_template>
+
+</phase_template>
 </phase_structure>
 
 <phase_guidelines>
-  - Phase 1: Core MVP functionality
-  - Phase 2: Key differentiators
-  - Phase 3: Scale and polish
-  - Phase 4: Advanced features
-  - Phase 5: Enterprise features
-</phase_guidelines>
+
+- Phase 1: Core MVP functionality
+- Phase 2: Key differentiators
+- Phase 3: Scale and polish
+- Phase 4: Advanced features
+- Phase 5: Enterprise features
+  </phase_guidelines>
 
 <effort_scale>
-  - XS: 1 day
-  - S: 2-3 days
-  - M: 1 week
-  - L: 2 weeks
-  - XL: 3+ weeks
-</effort_scale>
+
+- XS: 1 day
+- S: 2-3 days
+- M: 1 week
+- L: 2 weeks
+- XL: 3+ weeks
+  </effort_scale>
 
 </step>
 
 </process_flow>
 
 <post_flight_check>
-  EXECUTE: @.agent-os/instructions/meta/post-flight.md
+EXECUTE: @.agent-os/instructions/meta/post-flight.md
 </post_flight_check>
