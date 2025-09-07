@@ -116,9 +116,9 @@
 					<div class="auth-message">
 						Click the button below to start the authentication process.
 					</div>
-					<button 
-						type="button" 
-						class="auth-button" 
+					<button
+						type="button"
+						class="auth-button"
 						onclick={viewModel.actions.startClaudeAuth}
 						data-testid="start-claude-auth"
 					>
@@ -129,9 +129,7 @@
 				<div class="auth-panel">
 					{#if viewModel.oauthUrl}
 						<div class="auth-step">
-							<div class="auth-message">
-								Visit this URL to get your authentication token:
-							</div>
+							<div class="auth-message">Visit this URL to get your authentication token:</div>
 							<div class="oauth-url">
 								<a href={viewModel.oauthUrl} target="_blank" class="oauth-link">
 									{viewModel.oauthUrl}
@@ -147,9 +145,9 @@
 										placeholder="Paste authentication token..."
 										bind:value={viewModel.userToken}
 									/>
-									<button 
-										type="button" 
-										class="submit-token-button" 
+									<button
+										type="button"
+										class="submit-token-button"
 										onclick={viewModel.actions.submitAuthToken}
 										disabled={!viewModel.userToken.trim()}
 										data-testid="submit-auth-token"
@@ -160,25 +158,21 @@
 							</div>
 						</div>
 					{:else}
-						<div class="auth-message">
-							Setting up authentication... Please wait.
-						</div>
+						<div class="auth-message">Setting up authentication... Please wait.</div>
 					{/if}
 				</div>
 			{:else if viewModel.claudeAuthStatus === 'ready'}
 				<div class="auth-panel">
-					<div class="auth-message success">
-						Claude AI is authenticated and ready to use!
-					</div>
+					<div class="auth-message success">Claude AI is authenticated and ready to use!</div>
 				</div>
 			{:else if viewModel.claudeAuthStatus === 'error'}
 				<div class="auth-panel">
 					<div class="auth-message error">
 						{viewModel.authError || 'Authentication failed'}
 					</div>
-					<button 
-						type="button" 
-						class="auth-button retry" 
+					<button
+						type="button"
+						class="auth-button retry"
 						onclick={viewModel.actions.checkClaudeAuth}
 					>
 						🔄 Retry
@@ -271,7 +265,11 @@
 			<label class="form-label">Capabilities</label>
 			<div class="checkbox-group">
 				<label class="checkbox-label">
-					<input type="checkbox" class="checkbox-input" bind:checked={viewModel.enableCodeExecution} />
+					<input
+						type="checkbox"
+						class="checkbox-input"
+						bind:checked={viewModel.enableCodeExecution}
+					/>
 					<span class="checkbox-text">Enable Code Execution</span>
 				</label>
 
@@ -287,7 +285,9 @@
 		<button
 			type="submit"
 			class="hidden-submit"
-			disabled={viewModel.isValidating || Object.keys(viewModel.validationErrors).length > 0 || viewModel.claudeAuthStatus !== 'ready'}
+			disabled={viewModel.isValidating ||
+				Object.keys(viewModel.validationErrors).length > 0 ||
+				viewModel.claudeAuthStatus !== 'ready'}
 		>
 			Create Session
 		</button>

@@ -2,189 +2,208 @@ import { BaseHandler } from '../../shared/io/BaseHandler.js';
 import directoryManager from '../../shared/utils/directory-manager.server.js';
 
 export class ProjectHandler extends BaseHandler {
-    constructor(io, authHandler) {
-        super(io, '/projects');
-        this.authHandler = authHandler;
-        this.ensureStorageInitialized();
-    }
+	constructor(io, authHandler) {
+		super(io, '/projects');
+		this.authHandler = authHandler;
+		this.ensureStorageInitialized();
+	}
 
-    async ensureStorageInitialized() {
-        try {
-            await directoryManager.initialize();
-            console.log('[PROJECT] Directory manager initialized');
-        } catch (err) {
-            console.error('[PROJECT] Failed to initialize directory manager:', err);
-            throw err;
-        }
-    }
+	async ensureStorageInitialized() {
+		try {
+			await directoryManager.initialize();
+			console.log('[PROJECT] Directory manager initialized');
+		} catch (err) {
+			console.error('[PROJECT] Failed to initialize directory manager:', err);
+			throw err;
+		}
+	}
 
-    setupEventHandlers(socket) {
-        // Add auth event handler for namespace-specific authentication
-        socket.on('auth', (key, callback) => {
-            console.log(`[PROJECT] Auth request from socket ${socket.id} with key: ${key ? 'present' : 'missing'}`);
-            this.authHandler.handleLogin(socket, key, callback);
-        });
+	setupEventHandlers(socket) {
+		// Add auth event handler for namespace-specific authentication
+		socket.on('auth', (key, callback) => {
+			console.log(
+				`[PROJECT] Auth request from socket ${socket.id} with key: ${key ? 'present' : 'missing'}`
+			);
+			this.authHandler.handleLogin(socket, key, callback);
+		});
 
-        socket.on('projects:list', this.authHandler.withAuth(this.handleList.bind(this, socket), socket));
-        socket.on('projects:create', this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket));
-        socket.on('projects:get', this.authHandler.withAuth(this.handleGet.bind(this, socket), socket));
-        socket.on('projects:update', this.authHandler.withAuth(this.handleUpdate.bind(this, socket), socket));
-        socket.on('projects:delete', this.authHandler.withAuth(this.handleDelete.bind(this, socket), socket));
-    }
+		socket.on(
+			'projects:list',
+			this.authHandler.withAuth(this.handleList.bind(this, socket), socket)
+		);
+		socket.on(
+			'projects:create',
+			this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket)
+		);
+		socket.on('projects:get', this.authHandler.withAuth(this.handleGet.bind(this, socket), socket));
+		socket.on(
+			'projects:update',
+			this.authHandler.withAuth(this.handleUpdate.bind(this, socket), socket)
+		);
+		socket.on(
+			'projects:delete',
+			this.authHandler.withAuth(this.handleDelete.bind(this, socket), socket)
+		);
+	}
 
-    async handleList(socket, callback) {
-        try {
-            console.log(`[PROJECT] Listing projects for socket ${socket.id}`);
-            const projectData = directoryManager.getProjects();
-            const projects = projectData?.projects || [];
-            
-            // Add session counts from DirectoryManager
-            const projectsWithSessions = await Promise.all(
-                projects.map(async (project) => {
-                    try {
-                        const sessions = await directoryManager.getProjectSessions(project.id);
-                        return {
-                            ...project,
-                            sessions: sessions || [],
-                            sessionCount: sessions ? sessions.length : 0
-                        };
-                    } catch (err) {
-                        console.warn(`[PROJECT] Could not get sessions for project ${project.id}:`, err.message);
-                        return {
-                            ...project,
-                            sessions: [],
-                            sessionCount: 0
-                        };
-                    }
-                })
-            );
-            
-            console.log(`[PROJECT] Listing ${projectsWithSessions.length} projects for socket ${socket.id}`);
+	async handleList(socket, callback) {
+		try {
+			console.log(`[PROJECT] Listing projects for socket ${socket.id}`);
+			const projectData = directoryManager.getProjects();
+			const projects = projectData?.projects || [];
 
-            const response = { success: true, projects: projectsWithSessions };
-            
-            if (callback && typeof callback === 'function') {
-                callback(response);
-            }
-            
-            this.emitToSocket(socket, 'projects:updated', response);
-        } catch (error) {
-            console.error('[PROJECT] Error listing projects:', error);
-            const errorResponse = { success: false, error: error.message };
-            
-            if (callback && typeof callback === 'function') {
-                callback(errorResponse);
-            }
-        }
-    }
+			// Add session counts from DirectoryManager
+			const projectsWithSessions = await Promise.all(
+				projects.map(async (project) => {
+					try {
+						const sessions = await directoryManager.getProjectSessions(project.id);
+						return {
+							...project,
+							sessions: sessions || [],
+							sessionCount: sessions ? sessions.length : 0
+						};
+					} catch (err) {
+						console.warn(
+							`[PROJECT] Could not get sessions for project ${project.id}:`,
+							err.message
+						);
+						return {
+							...project,
+							sessions: [],
+							sessionCount: 0
+						};
+					}
+				})
+			);
 
-    async handleCreate(socket, data, callback) {
-        try {
-            console.log('[PROJECT] Creating project:', data);
+			console.log(
+				`[PROJECT] Listing ${projectsWithSessions.length} projects for socket ${socket.id}`
+			);
 
-            const project = await directoryManager.createProjectLegacy({
-                name: data.name || 'Untitled Project',
-                description: data.description || ''
-            });
+			const response = { success: true, projects: projectsWithSessions };
 
-            console.log('[PROJECT] Project created:', project);
+			if (callback && typeof callback === 'function') {
+				callback(response);
+			}
 
-            // Get updated project list
-            const projectData = directoryManager.getProjects();
-            const allProjects = projectData?.projects || [];
+			this.emitToSocket(socket, 'projects:updated', response);
+		} catch (error) {
+			console.error('[PROJECT] Error listing projects:', error);
+			const errorResponse = { success: false, error: error.message };
 
-            // Broadcast to all sockets in this namespace
-            this.emitToNamespace('projects:updated', { success: true, projects: allProjects });
-            this.emitToNamespace('projects:created', { success: true, project });
+			if (callback && typeof callback === 'function') {
+				callback(errorResponse);
+			}
+		}
+	}
 
-            const response = { success: true, project };
-            if (callback) callback(response);
-        } catch (error) {
-            console.error('[PROJECT] Error creating project:', error);
-            const errorResponse = { success: false, error: error.message };
-            if (callback) callback(errorResponse);
-        }
-    }
+	async handleCreate(socket, data, callback) {
+		try {
+			console.log('[PROJECT] Creating project:', data);
 
-    async handleGet(socket, data, callback) {
-        try {
-            if (!data.projectId) {
-                const errorResponse = { success: false, error: 'Project ID is required' };
-                if (callback) callback(errorResponse);
-                return;
-            }
+			const project = await directoryManager.createProjectLegacy({
+				name: data.name || 'Untitled Project',
+				description: data.description || ''
+			});
 
-            const project = directoryManager.getProject(data.projectId);
-            if (!project) {
-                const errorResponse = { success: false, error: 'Project not found' };
-                if (callback) callback(errorResponse);
-                return;
-            }
+			console.log('[PROJECT] Project created:', project);
 
-            console.log(`[PROJECT] Retrieved project ${data.projectId} for socket ${socket.id}`);
-            const response = { success: true, project };
-            if (callback) callback(response);
-        } catch (error) {
-            console.error('[PROJECT] Error getting project:', error);
-            const errorResponse = { success: false, error: error.message };
-            if (callback) callback(errorResponse);
-        }
-    }
+			// Get updated project list
+			const projectData = directoryManager.getProjects();
+			const allProjects = projectData?.projects || [];
 
-    async handleUpdate(socket, data, callback) {
-        try {
-            if (!data.projectId) {
-                const errorResponse = { success: false, error: 'Project ID is required' };
-                if (callback) callback(errorResponse);
-                return;
-            }
+			// Broadcast to all sockets in this namespace
+			this.emitToNamespace('projects:updated', { success: true, projects: allProjects });
+			this.emitToNamespace('projects:created', { success: true, project });
 
-            console.log('[PROJECT] Updating project:', data);
+			const response = { success: true, project };
+			if (callback) callback(response);
+		} catch (error) {
+			console.error('[PROJECT] Error creating project:', error);
+			const errorResponse = { success: false, error: error.message };
+			if (callback) callback(errorResponse);
+		}
+	}
 
-            const updated = await directoryManager.updateProject(data.projectId, data.updates);
+	async handleGet(socket, data, callback) {
+		try {
+			if (!data.projectId) {
+				const errorResponse = { success: false, error: 'Project ID is required' };
+				if (callback) callback(errorResponse);
+				return;
+			}
 
-            // Get updated project list and broadcast
-            const projectData = directoryManager.getProjects();
-            const allProjects = projectData?.projects || [];
+			const project = directoryManager.getProject(data.projectId);
+			if (!project) {
+				const errorResponse = { success: false, error: 'Project not found' };
+				if (callback) callback(errorResponse);
+				return;
+			}
 
-            this.emitToNamespace('projects:updated', { success: true, projects: allProjects });
-            this.emitToNamespace('projects:project-updated', { success: true, project: updated });
+			console.log(`[PROJECT] Retrieved project ${data.projectId} for socket ${socket.id}`);
+			const response = { success: true, project };
+			if (callback) callback(response);
+		} catch (error) {
+			console.error('[PROJECT] Error getting project:', error);
+			const errorResponse = { success: false, error: error.message };
+			if (callback) callback(errorResponse);
+		}
+	}
 
-            const response = { success: true, project: updated };
-            if (callback) callback(response);
-        } catch (error) {
-            console.error('[PROJECT] Error updating project:', error);
-            const errorResponse = { success: false, error: error.message };
-            if (callback) callback(errorResponse);
-        }
-    }
+	async handleUpdate(socket, data, callback) {
+		try {
+			if (!data.projectId) {
+				const errorResponse = { success: false, error: 'Project ID is required' };
+				if (callback) callback(errorResponse);
+				return;
+			}
 
-    async handleDelete(socket, data, callback) {
-        try {
-            if (!data.projectId) {
-                const errorResponse = { success: false, error: 'Project ID is required' };
-                if (callback) callback(errorResponse);
-                return;
-            }
+			console.log('[PROJECT] Updating project:', data);
 
-            console.log('[PROJECT] Deleting project:', data.projectId);
+			const updated = await directoryManager.updateProject(data.projectId, data.updates);
 
-            await directoryManager.deleteProject(data.projectId);
+			// Get updated project list and broadcast
+			const projectData = directoryManager.getProjects();
+			const allProjects = projectData?.projects || [];
 
-            // Get updated project list and broadcast
-            const projectData = directoryManager.getProjects();
-            const allProjects = projectData?.projects || [];
+			this.emitToNamespace('projects:updated', { success: true, projects: allProjects });
+			this.emitToNamespace('projects:project-updated', { success: true, project: updated });
 
-            this.emitToNamespace('projects:updated', { success: true, projects: allProjects });
-            this.emitToNamespace('projects:deleted', { success: true, projectId: data.projectId });
+			const response = { success: true, project: updated };
+			if (callback) callback(response);
+		} catch (error) {
+			console.error('[PROJECT] Error updating project:', error);
+			const errorResponse = { success: false, error: error.message };
+			if (callback) callback(errorResponse);
+		}
+	}
 
-            console.log(`[PROJECT] Project ${data.projectId} deleted successfully`);
-            const response = { success: true };
-            if (callback) callback(response);
-        } catch (error) {
-            console.error('[PROJECT] Error deleting project:', error);
-            const errorResponse = { success: false, error: error.message };
-            if (callback) callback(errorResponse);
-        }
-    }
+	async handleDelete(socket, data, callback) {
+		try {
+			if (!data.projectId) {
+				const errorResponse = { success: false, error: 'Project ID is required' };
+				if (callback) callback(errorResponse);
+				return;
+			}
+
+			console.log('[PROJECT] Deleting project:', data.projectId);
+
+			await directoryManager.deleteProject(data.projectId);
+
+			// Get updated project list and broadcast
+			const projectData = directoryManager.getProjects();
+			const allProjects = projectData?.projects || [];
+
+			this.emitToNamespace('projects:updated', { success: true, projects: allProjects });
+			this.emitToNamespace('projects:deleted', { success: true, projectId: data.projectId });
+
+			console.log(`[PROJECT] Project ${data.projectId} deleted successfully`);
+			const response = { success: true };
+			if (callback) callback(response);
+		} catch (error) {
+			console.error('[PROJECT] Error deleting project:', error);
+			const errorResponse = { success: false, error: error.message };
+			if (callback) callback(errorResponse);
+		}
+	}
 }

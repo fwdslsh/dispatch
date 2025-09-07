@@ -22,12 +22,12 @@
 	let messages = $state([]);
 	let messageInput = $state('');
 	let isTyping = $state(false);
-	
+
 	// Auth state
 	let authUrl = $state('');
 	let authToken = $state('');
 	let authError = $state('');
-	
+
 	// Claude client
 	let claudeClient = null;
 
@@ -45,7 +45,7 @@
 
 	function setupEventHandlers() {
 		if (!claudeClient) return;
-		
+
 		// Auth event handlers
 		claudeClient.setOnAuthStatus((data) => {
 			console.log('Auth status received:', data);
@@ -58,11 +58,11 @@
 				needsAuth = true;
 			}
 		});
-		
+
 		claudeClient.setOnAuthUrl((data) => {
 			authUrl = data.url;
 		});
-		
+
 		claudeClient.setOnAuthCompleted((data) => {
 			if (data.success) {
 				needsAuth = false;
@@ -74,7 +74,7 @@
 				authError = data.message || 'Authentication failed';
 			}
 		});
-		
+
 		// Session event handlers
 		claudeClient.setOnSessionCreated((data) => {
 			sessionId = data.sessionId;
@@ -104,24 +104,26 @@
 
 		claudeClient.setOnCleared((data) => {
 			if (data.sessionId === sessionId) {
-				messages = [{
-					id: `msg-${Date.now()}`,
-					role: 'assistant',
-					content: 'Chat history cleared. How can I help you?',
-					timestamp: new Date().toISOString()
-				}];
+				messages = [
+					{
+						id: `msg-${Date.now()}`,
+						role: 'assistant',
+						content: 'Chat history cleared. How can I help you?',
+						timestamp: new Date().toISOString()
+					}
+				];
 			}
 		});
 	}
 
 	function checkAuthAndConnect() {
 		if (!claudeClient) return;
-		
+
 		isConnecting = true;
-		
+
 		// First authenticate with TERMINAL_KEY
 		const terminalKey = page.data?.terminalKey || '';
-		
+
 		claudeClient.authenticate(terminalKey, (authResponse) => {
 			if (authResponse && authResponse.success) {
 				// Now check Claude authentication
@@ -137,13 +139,13 @@
 
 	function createSession() {
 		if (!claudeClient) return;
-		
+
 		claudeClient.createSession(projectId, sessionOptions, (err, response) => {
 			if (err) {
 				error = err.message;
 				return;
 			}
-			
+
 			sessionId = response.session.id;
 			if (response.session.welcomeMessage) {
 				messages = [response.session.welcomeMessage];
@@ -153,24 +155,24 @@
 
 	function sendMessage() {
 		if (!messageInput.trim() || !claudeClient || !sessionId) return;
-		
+
 		const userMessage = {
 			id: `msg-${Date.now()}`,
 			role: 'user',
 			content: messageInput.trim(),
 			timestamp: new Date().toISOString()
 		};
-		
+
 		messages = [...messages, userMessage];
 		isTyping = true;
-		
+
 		claudeClient.sendMessage(messageInput.trim(), (err) => {
 			if (err) {
 				console.error('Error sending message:', err);
 				isTyping = false;
 			}
 		});
-		
+
 		messageInput = '';
 	}
 
@@ -204,7 +206,12 @@
 		<div class="error">
 			<h3>Error</h3>
 			<p>{error}</p>
-			<button onclick={() => { error = null; checkAuthAndConnect(); }}>Retry</button>
+			<button
+				onclick={() => {
+					error = null;
+					checkAuthAndConnect();
+				}}>Retry</button
+			>
 		</div>
 	{:else if isConnecting}
 		<div class="loading">
@@ -216,24 +223,18 @@
 			<h3>Claude Authentication Required</h3>
 			<p>You need to authenticate with Claude AI before creating a session.</p>
 			<button onclick={startAuth} class="auth-btn">Start Authentication</button>
-			
+
 			{#if authUrl}
 				<div class="auth-step">
 					<p>Visit this URL to get your token:</p>
 					<a href={authUrl} target="_blank" class="auth-url">{authUrl}</a>
 					<div class="token-input">
-						<input
-							type="text"
-							placeholder="Paste your token here..."
-							bind:value={authToken}
-						/>
-						<button onclick={submitAuthToken} disabled={!authToken.trim()}>
-							Submit
-						</button>
+						<input type="text" placeholder="Paste your token here..." bind:value={authToken} />
+						<button onclick={submitAuthToken} disabled={!authToken.trim()}> Submit </button>
 					</div>
 				</div>
 			{/if}
-			
+
 			{#if authError}
 				<div class="error-msg">{authError}</div>
 			{/if}
@@ -256,7 +257,7 @@
 					</div>
 				{/if}
 			</div>
-			
+
 			<div class="input-area">
 				<div class="input-row">
 					<input
@@ -292,7 +293,8 @@
 		color: var(--text-primary, #fff);
 	}
 
-	.error, .loading {
+	.error,
+	.loading {
 		display: flex;
 		flex-direction: column;
 		align-items: center;

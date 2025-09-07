@@ -7,6 +7,7 @@ This document describes the comprehensive E2E test suite for the Dispatch applic
 ## Test Coverage
 
 ### 🔐 Authentication Flow (`auth.spec.js`)
+
 - **No auth required scenario**: Auto-redirect to projects
 - **Authentication required**: Form display and validation
 - **Valid authentication**: Successful login and redirect
@@ -16,6 +17,7 @@ This document describes the comprehensive E2E test suite for the Dispatch applic
 - **Network errors**: Graceful handling of connection issues
 
 ### 📁 Projects Management (`projects.spec.js`)
+
 - **Projects page display**: Main elements and layout
 - **Project creation**: Form handling and validation
 - **Project name validation**: Edge cases and sanitization
@@ -26,6 +28,7 @@ This document describes the comprehensive E2E test suite for the Dispatch applic
 - **Responsive design**: Mobile layout adaptation
 
 ### 💻 Terminal Sessions (`sessions.spec.js`)
+
 - **Session page display**: Project session interface
 - **Shell session creation**: Standard terminal sessions
 - **Claude session creation**: AI-powered sessions (if available)
@@ -37,6 +40,7 @@ This document describes the comprehensive E2E test suite for the Dispatch applic
 - **Mobile responsiveness**: Touch-optimized interface
 
 ### 📱 Mobile UX Features (`mobile.spec.js`)
+
 - **Mobile layout optimization**: Responsive design verification
 - **Virtual keyboard toolbar**: Custom terminal keys
 - **Command palette**: Touch-friendly command selection
@@ -50,6 +54,7 @@ This document describes the comprehensive E2E test suite for the Dispatch applic
 - **Touch accessibility**: Target size validation
 
 ### ⌨️ Command Palette and Keyboard Shortcuts (`command-palette.spec.js`)
+
 - **Palette activation**: Keyboard shortcuts and click triggers
 - **Command filtering**: Search and fuzzy matching
 - **Keyboard navigation**: Arrow key navigation
@@ -64,6 +69,7 @@ This document describes the comprehensive E2E test suite for the Dispatch applic
 - **Escape handling**: Palette dismissal
 
 ### 📂 Working Directory Functionality (`working-directory.spec.js`)
+
 - **Directory picker**: Selection interface
 - **Directory creation**: Session with specific working directory
 - **Security validation**: Path traversal prevention
@@ -76,6 +82,7 @@ This document describes the comprehensive E2E test suite for the Dispatch applic
 - **API integration**: Directory listing endpoints
 
 ### 🚨 Error Conditions and Edge Cases (`error-cases.spec.js`)
+
 - **Network disconnection**: Offline mode and error handling
 - **Server errors**: 5xx response handling
 - **Invalid project IDs**: 404 and routing errors
@@ -93,6 +100,7 @@ This document describes the comprehensive E2E test suite for the Dispatch applic
 ## Test Infrastructure
 
 ### Configuration
+
 - **Playwright Config**: `playwright.config.js`
 - **Test Directory**: `e2e/`
 - **Browsers**: Chrome, Firefox, Safari, Mobile Chrome, Mobile Safari
@@ -100,6 +108,7 @@ This document describes the comprehensive E2E test suite for the Dispatch applic
 - **Dev Server**: Auto-started before tests
 
 ### Scripts
+
 ```bash
 npm run test:e2e           # Run all E2E tests
 npm run test:e2e:headed    # Run with browser UI visible
@@ -110,6 +119,7 @@ npm run playwright:install # Install browser dependencies
 ```
 
 ### Test Runner
+
 - **Custom Runner**: `run-e2e-tests.js`
 - **Parallel Execution**: Tests run in parallel for speed
 - **Cross-Browser**: Automated testing across multiple browsers
@@ -119,36 +129,40 @@ npm run playwright:install # Install browser dependencies
 ## Test Patterns
 
 ### Authentication Setup
+
 ```javascript
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-  const authInput = page.locator('input[type="password"]');
-  if (await authInput.isVisible()) {
-    await authInput.fill('test');
-    await page.locator('button[type="submit"]').click();
-  }
+	await page.goto('/');
+	const authInput = page.locator('input[type="password"]');
+	if (await authInput.isVisible()) {
+		await authInput.fill('test');
+		await page.locator('button[type="submit"]').click();
+	}
 });
 ```
 
 ### Responsive Testing
+
 ```javascript
 test('mobile layout', async ({ page }) => {
-  await page.setViewportSize({ width: 375, height: 667 });
-  // Test mobile-specific functionality
+	await page.setViewportSize({ width: 375, height: 667 });
+	// Test mobile-specific functionality
 });
 ```
 
 ### Error Simulation
+
 ```javascript
 test('network errors', async ({ page }) => {
-  await page.route('**/socket.io/**', route => route.abort());
-  // Test error handling
+	await page.route('**/socket.io/**', (route) => route.abort());
+	// Test error handling
 });
 ```
 
 ## Coverage Gaps and Limitations
 
 ### Known Gaps
+
 1. **File Upload/Download**: No tests for file transfer functionality
 2. **Multi-User Scenarios**: Single-user testing only
 3. **Long-Running Sessions**: Limited testing of persistent sessions
@@ -156,12 +170,14 @@ test('network errors', async ({ page }) => {
 5. **Accessibility**: Limited ARIA and screen reader testing
 
 ### Environment Dependencies
+
 1. **Claude CLI**: Tests may fail if Claude is not installed
 2. **Docker Environment**: Some features require containerized deployment
 3. **Network Configuration**: Tests assume local development setup
 4. **Browser Support**: Limited to Playwright-supported browsers
 
 ### Test Data Dependencies
+
 1. **Project Creation**: Tests create temporary projects
 2. **Session Cleanup**: Some sessions may persist between test runs
 3. **localStorage**: Tests may leave authentication tokens
@@ -170,6 +186,7 @@ test('network errors', async ({ page }) => {
 ## Maintenance Guidelines
 
 ### Adding New Tests
+
 1. Follow existing test patterns and structure
 2. Use descriptive test names and group related tests
 3. Include proper error handling and cleanup
@@ -177,12 +194,14 @@ test('network errors', async ({ page }) => {
 5. Ensure mobile compatibility
 
 ### Updating Tests
+
 1. Update tests when UI changes occur
 2. Maintain consistent selector patterns
 3. Update documentation when adding new coverage
 4. Verify tests across all supported browsers
 
 ### Debugging Failures
+
 1. Use `npm run test:e2e:debug` for interactive debugging
 2. Check `test-results/` for failure artifacts
 3. Verify server is running on correct port
@@ -191,6 +210,7 @@ test('network errors', async ({ page }) => {
 ## Future Enhancements
 
 ### Planned Improvements
+
 1. **Visual Regression Testing**: Screenshot comparison
 2. **Performance Testing**: Load time and interaction benchmarks
 3. **Accessibility Testing**: WCAG compliance validation
@@ -198,6 +218,7 @@ test('network errors', async ({ page }) => {
 5. **Cross-Platform**: Testing on different operating systems
 
 ### Integration Opportunities
+
 1. **CI/CD Pipeline**: Automated testing on pull requests
 2. **Monitoring**: Integration with error tracking services
 3. **Metrics**: Test execution time and flakiness tracking

@@ -13,7 +13,7 @@ class DirectoryManager {
 		// Get actual home directory, resolving tilde if needed
 		const getActualHome = () => {
 			const homeFromEnv = process.env.HOME;
-			
+
 			// If HOME starts with tilde, we need to expand it properly
 			if (homeFromEnv && homeFromEnv.startsWith('~/')) {
 				// For development, the tilde should be expanded relative to the real user home
@@ -21,13 +21,13 @@ class DirectoryManager {
 				const userName = process.env.USER || 'founder3'; // Default to founder3 for this system
 				return path.join('/home', userName, homeFromEnv.slice(2)); // Remove '~/' and join with /home/username
 			}
-			
+
 			// If HOME itself is the tilde literal, expand from system directories
 			if (homeFromEnv && homeFromEnv === '~') {
 				const userName = process.env.USER || 'founder3';
 				return path.join('/home', userName);
 			}
-			
+
 			return homeFromEnv || os.homedir();
 		};
 
@@ -44,22 +44,24 @@ class DirectoryManager {
 		};
 
 		// Set directory paths from environment or defaults
-		const baseConfigDir = process.env.DISPATCH_CONFIG_DIR ||
+		const baseConfigDir =
+			process.env.DISPATCH_CONFIG_DIR ||
 			(process.platform === 'win32'
 				? path.join(actualHome, 'dispatch')
 				: path.join(actualHome, '.config', 'dispatch'));
-		
+
 		this.configDir = expandTilde(baseConfigDir);
 
-		const baseProjectsDir = process.env.DISPATCH_PROJECTS_DIR ||
+		const baseProjectsDir =
+			process.env.DISPATCH_PROJECTS_DIR ||
 			(process.platform === 'win32'
 				? path.join(actualHome, 'dispatch-projects')
 				: process.env.CONTAINER_ENV
 					? '/workspace'
 					: path.join(actualHome, 'dispatch-projects'));
-		
+
 		this.projectsDir = expandTilde(baseProjectsDir);
-		
+
 		// Store the actual home for logging
 		this._actualHome = actualHome;
 
@@ -115,8 +117,12 @@ class DirectoryManager {
 		console.log('[DIRECTORY] Environment Configuration:');
 		console.log(`[DIRECTORY]   HOME: ${process.env.HOME || 'undefined'}`);
 		console.log(`[DIRECTORY]   Actual Home Dir: ${this.getActualHomeDir()}`);
-		console.log(`[DIRECTORY]   DISPATCH_CONFIG_DIR: ${process.env.DISPATCH_CONFIG_DIR || 'undefined (using default)'}`);
-		console.log(`[DIRECTORY]   DISPATCH_PROJECTS_DIR: ${process.env.DISPATCH_PROJECTS_DIR || 'undefined (using default)'}`);
+		console.log(
+			`[DIRECTORY]   DISPATCH_CONFIG_DIR: ${process.env.DISPATCH_CONFIG_DIR || 'undefined (using default)'}`
+		);
+		console.log(
+			`[DIRECTORY]   DISPATCH_PROJECTS_DIR: ${process.env.DISPATCH_PROJECTS_DIR || 'undefined (using default)'}`
+		);
 		console.log(`[DIRECTORY] Resolved Paths:`);
 		console.log(`[DIRECTORY]   Config Directory: ${this.configDir}`);
 		console.log(`[DIRECTORY]   Projects Directory: ${this.projectsDir}`);
@@ -130,7 +136,7 @@ class DirectoryManager {
 		// Initialize projects registry if it doesn't exist
 		const projectsRegistryPath = path.join(this.configDir, 'projects.json');
 		console.log(`[DIRECTORY]   Projects Registry: ${projectsRegistryPath}`);
-		
+
 		try {
 			await fs.access(projectsRegistryPath);
 		} catch {
@@ -454,7 +460,6 @@ class DirectoryManager {
 			'utf8'
 		);
 
-
 		await fs.writeFile(
 			path.join(projectPath, '.dispatch', 'project.json'),
 			JSON.stringify({ id: projectId, name: sanitizedName }, null, 2),
@@ -519,14 +524,14 @@ class DirectoryManager {
 		}
 
 		// Find the project
-		const projectIndex = projectsData.projects.findIndex(p => p.id === projectId);
+		const projectIndex = projectsData.projects.findIndex((p) => p.id === projectId);
 		if (projectIndex === -1) {
 			throw new Error(`Project ${projectId} not found`);
 		}
 
 		const sessionId = randomUUID();
 		const timestamp = this.generateSessionTimestamp();
-		
+
 		// Get project info for creating session directory
 		const project = projectsData.projects[projectIndex];
 		const projectPath = path.join(this.projectsDir, projectId);
@@ -546,7 +551,7 @@ class DirectoryManager {
 			status: 'active',
 			pid: null,
 			mode: metadata.mode || 'shell',
-			...metadata  // Include all metadata fields
+			...metadata // Include all metadata fields
 		};
 
 		// Add session to project in projects.json
@@ -573,12 +578,12 @@ class DirectoryManager {
 		const registryPath = path.join(this.configDir, 'projects.json');
 		try {
 			const registry = JSON.parse(await fs.readFile(registryPath, 'utf8'));
-			
+
 			// Handle both old direct-key format and new projects array format
 			let projectEntry;
 			if (registry.projects && Array.isArray(registry.projects)) {
 				// New format: projects stored in array
-				projectEntry = registry.projects.find(p => p.id === projectId);
+				projectEntry = registry.projects.find((p) => p.id === projectId);
 			} else {
 				// Old format: projects stored as direct keys
 				projectEntry = registry[projectId];
@@ -597,13 +602,16 @@ class DirectoryManager {
 					};
 				} catch (metadataErr) {
 					// If metadata file doesn't exist, fall back to registry data
-					console.warn(`[DIRECTORY] Could not load metadata for project ${projectId}:`, metadataErr.message);
+					console.warn(
+						`[DIRECTORY] Could not load metadata for project ${projectId}:`,
+						metadataErr.message
+					);
 				}
 			}
 
 			// For projects without separate metadata files, calculate the path
 			const projectPath = projectEntry.path || path.join(this.projectsDir, projectEntry.id);
-			
+
 			return {
 				...projectEntry,
 				path: projectPath
@@ -621,7 +629,7 @@ class DirectoryManager {
 	 */
 	async listProjects(options = {}) {
 		const registryPath = path.join(this.configDir, 'projects.json');
-		
+
 		// Ensure the registry file exists and has valid structure
 		try {
 			await fs.access(registryPath);
@@ -646,7 +654,9 @@ class DirectoryManager {
 				if (fullProject) {
 					// Apply tag filter if specified
 					if (options.tags && options.tags.length > 0) {
-						const hasTag = options.tags.some((tag) => fullProject.tags && fullProject.tags.includes(tag));
+						const hasTag = options.tags.some(
+							(tag) => fullProject.tags && fullProject.tags.includes(tag)
+						);
 						if (!hasTag) continue;
 					}
 
@@ -675,13 +685,13 @@ class DirectoryManager {
 		try {
 			const content = await fs.readFile(projectsPath, 'utf8');
 			const projectsData = JSON.parse(content);
-			
+
 			// Find the project
-			const project = projectsData.projects.find(p => p.id === projectId);
+			const project = projectsData.projects.find((p) => p.id === projectId);
 			if (!project) {
 				throw new Error(`Project ${projectId} not found`);
 			}
-			
+
 			// Return the sessions array from projects.json
 			return project.sessions || [];
 		} catch (err) {
@@ -709,7 +719,7 @@ class DirectoryManager {
 		}
 
 		// Find the project
-		const projectIndex = projectsData.projects.findIndex(p => p.id === projectId);
+		const projectIndex = projectsData.projects.findIndex((p) => p.id === projectId);
 		if (projectIndex === -1) {
 			throw new Error(`Project ${projectId} not found`);
 		}
@@ -720,7 +730,7 @@ class DirectoryManager {
 		}
 
 		// Find the session within the project
-		const sessionIndex = project.sessions.findIndex(s => s.id === sessionId);
+		const sessionIndex = project.sessions.findIndex((s) => s.id === sessionId);
 		if (sessionIndex === -1) {
 			throw new Error(`Session ${sessionId} not found in project ${projectId}`);
 		}
@@ -813,7 +823,7 @@ class DirectoryManager {
 		}
 
 		// Find the project
-		const projectIndex = projectsData.projects.findIndex(p => p.id === projectId);
+		const projectIndex = projectsData.projects.findIndex((p) => p.id === projectId);
 		if (projectIndex === -1) {
 			throw new Error(`Project ${projectId} not found`);
 		}
@@ -867,7 +877,7 @@ class DirectoryManager {
 		}
 
 		// Find the project
-		const projectIndex = projectsData.projects.findIndex(p => p.id === projectId);
+		const projectIndex = projectsData.projects.findIndex((p) => p.id === projectId);
 		if (projectIndex === -1) {
 			throw new Error(`Project ${projectId} not found`);
 		}
@@ -878,7 +888,7 @@ class DirectoryManager {
 		}
 
 		// Remove session from array
-		project.sessions = project.sessions.filter(s => s.id !== sessionId);
+		project.sessions = project.sessions.filter((s) => s.id !== sessionId);
 
 		// Save updated projects.json
 		await fs.writeFile(projectsPath, JSON.stringify(projectsData, null, 2), 'utf8');
@@ -1132,7 +1142,6 @@ class DirectoryManager {
 		project.sessions.splice(sessionIndex, 1);
 		this.writeProjects(data);
 	}
-
 
 	/**
 	 * Get all session names (for name conflict resolution)

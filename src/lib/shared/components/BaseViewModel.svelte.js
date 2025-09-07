@@ -132,7 +132,7 @@ export class BaseViewModel {
 	 * Call this in extending classes to enable reactive effects
 	 * @protected
 	 */
-// _setupEffects removed: $effect must only be used in Svelte components
+	// _setupEffects removed: $effect must only be used in Svelte components
 
 	/**
 	 * Auto-validation effect

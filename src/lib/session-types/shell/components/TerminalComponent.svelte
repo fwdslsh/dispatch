@@ -59,16 +59,16 @@
 	onMount(() => {
 		// Create terminal instance
 		terminal = new Terminal(terminalOptions);
-		
+
 		// Initialize fit addon
 		fitAddon = new FitAddon();
 		terminal.loadAddon(fitAddon);
-		
+
 		// Open terminal in DOM element
 		if (terminalElement) {
 			terminal.open(terminalElement);
 		}
-		
+
 		if (socket && sessionId) {
 			setupTerminal();
 		}
@@ -83,7 +83,7 @@
 
 	function setupTerminal() {
 		if (!terminal || !socket || isSetup) return;
-		
+
 		isSetup = true;
 
 		// Write initial content if provided
@@ -118,7 +118,7 @@
 			}
 		};
 
-		// Set up socket listeners  
+		// Set up socket listeners
 		socket.on('terminal-output', handleOutput);
 		socket.on('shell:session-ended', handleSessionEnded);
 
@@ -175,19 +175,18 @@
 	onDestroy(() => {
 		// Clean up terminal setup
 		cleanupTerminal();
-		
+
 		// Dispose of terminal instance
 		if (terminal) {
 			terminal.dispose();
 		}
-		
+
 		// Clean up window listener
 		window.removeEventListener('resize', fitTerminal);
 	});
 </script>
 
-<div class="terminal-container" bind:this={terminalElement}>
-</div>
+<div class="terminal-container" bind:this={terminalElement}></div>
 
 <style>
 	.terminal-container {

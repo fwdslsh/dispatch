@@ -7,7 +7,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { createNamespaceSocketHandlers, createMainNamespaceHandler } from './lib/server/handlers/NamespaceSocketHandler.js';
+import {
+	createNamespaceSocketHandlers,
+	createMainNamespaceHandler
+} from './lib/server/handlers/NamespaceSocketHandler.js';
 import directoryManager from './lib/server/services/directory-manager.js';
 
 const PORT = process.env.PORT || 3030;
@@ -57,7 +60,7 @@ async function initializeDirectories() {
 async function startServer() {
 	// Print HOME environment variable
 	console.log(`HOME environment variable: ${process.env.HOME || 'not set'}`);
-	
+
 	// Initialize directories before starting server
 	await initializeDirectories();
 
@@ -87,14 +90,14 @@ async function startServer() {
 
 	// Handle socket connections using new namespace architecture
 	console.log('[SERVER] Initializing namespace-based socket architecture...');
-	
+
 	// Create all namespace handlers
 	const namespaceHandlers = createNamespaceSocketHandlers(io);
-	
+
 	// Setup main namespace handler for backward compatibility
 	const mainHandler = createMainNamespaceHandler(io, namespaceHandlers);
 	io.on('connection', mainHandler);
-	
+
 	console.log('[SERVER] ✅ Socket.IO namespace architecture initialized');
 
 	return { httpServer };

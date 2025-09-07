@@ -32,7 +32,7 @@ export class ChatInterfaceViewModel {
 		this.#sessionId = sessionId;
 		this.#onSendMessage = onSendMessage;
 		this.#claudeClient = claudeClient;
-		
+
 		// Initialize static actions object
 		this.actions = {
 			addMessage: this.addMessage.bind(this),
@@ -42,9 +42,11 @@ export class ChatInterfaceViewModel {
 			formatMessageContent: this.formatMessageContent.bind(this),
 			formatTimestamp: this.formatTimestamp.bind(this),
 			clearHistory: this.clearHistory.bind(this),
-			updateMessageInput: (value) => { this.messageInput = value; }
+			updateMessageInput: (value) => {
+				this.messageInput = value;
+			}
 		};
-		
+
 		this.#initializeMarked();
 		this.#loadChatHistory();
 		this.#checkAuthStatus();
@@ -103,7 +105,7 @@ export class ChatInterfaceViewModel {
 	 */
 	sendMessage() {
 		const content = this.messageInput.trim();
-		
+
 		if (!content) {
 			return;
 		}
@@ -170,8 +172,6 @@ export class ChatInterfaceViewModel {
 			localStorage.removeItem(key);
 		}
 	}
-
-
 
 	// Private methods
 

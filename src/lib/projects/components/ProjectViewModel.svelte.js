@@ -131,7 +131,10 @@ export class ProjectViewModel extends BaseViewModel {
 		this.activeProject = data.activeProject;
 		// Clear loading state when projects are updated via socket
 		this._loading = false;
-		console.log('[PROJECT-VIEWMODEL] Projects updated via socket, loading cleared:', this.projects.length);
+		console.log(
+			'[PROJECT-VIEWMODEL] Projects updated via socket, loading cleared:',
+			this.projects.length
+		);
 	}
 
 	/**

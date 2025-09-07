@@ -77,7 +77,7 @@ export class ClaudeCreationFormViewModel {
 	 */
 	initialize() {
 		console.log('ClaudeCreationFormViewModel: Starting initialization...');
-		
+
 		// Set up authentication event handlers
 		this.#setupAuthenticationHandlers();
 
@@ -108,7 +108,7 @@ export class ClaudeCreationFormViewModel {
 				this.authError = error.message;
 				return;
 			}
-			
+
 			if (response.authenticated) {
 				this.claudeAuthStatus = 'ready';
 			} else {

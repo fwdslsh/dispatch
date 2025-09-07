@@ -3,6 +3,7 @@
 ## Problem Analysis
 
 ### Current Issues
+
 1. **Inconsistent Patterns**: Mixed use of async/Promise patterns and callbacks
 2. **Promise Wrapping**: Unnecessary Promise wrapping around socket.io callbacks
 3. **API Complexity**: Different method signatures across clients
@@ -12,15 +13,17 @@
 ### Current Architecture Analysis
 
 **Handler Classes (Server-side):**
+
 - BaseHandler.js - ✅ Good foundation, uses socket.io callbacks
 - AuthHandler.js - Need to review
-- ProjectHandler.js - Need to review  
+- ProjectHandler.js - Need to review
 - SessionHandler.js - Need to review
 - ClaudeHandler.server.js - ✅ Uses callbacks correctly
 - ShellHandler.server.js - Need to review
 - TerminalHandler.server.js - Need to review
 
 **Client Classes (Client-side):**
+
 - BaseClient.js - ✅ Good foundation with emit/on methods
 - AuthClient.js - Need to review
 - ProjectClient.js - ❌ Uses Promise wrapping (authenticate, etc)
@@ -32,6 +35,7 @@
 ## Desired Pattern
 
 ### Core Principles
+
 1. **Callback-First API**: All methods use `(error, result)` callback pattern
 2. **Event-Driven**: Primary communication via socket events
 3. **Simple & Predictable**: Consistent method signatures across all clients
@@ -40,6 +44,7 @@
 ### Standard Method Signatures
 
 **For request/response operations:**
+
 ```javascript
 // Current (Promise-based) - AVOID
 async methodName(params) {
@@ -55,6 +60,7 @@ methodName(params, callback) {
 ```
 
 **For event-only operations:**
+
 ```javascript
 // Fire and forget
 sendData(data) {
@@ -68,31 +74,31 @@ The BaseClient should provide utilities for consistent callback handling:
 
 ```javascript
 class BaseClient {
-    // Core emit with callback support
-    emit(event, data, callback) {
-        return this.socket.emit(event, data, callback);
-    }
-    
-    // Utility for consistent error handling
-    _handleResponse(callback) {
-        return (response) => {
-            if (response && response.success !== false) {
-                callback(null, response);
-            } else {
-                callback(new Error(response?.error || 'Operation failed'), null);
-            }
-        };
-    }
-    
-    // Optional: Promise wrapper for convenience (but not primary API)
-    _promisify(method, ...args) {
-        return new Promise((resolve, reject) => {
-            method(...args, (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-            });
-        });
-    }
+	// Core emit with callback support
+	emit(event, data, callback) {
+		return this.socket.emit(event, data, callback);
+	}
+
+	// Utility for consistent error handling
+	_handleResponse(callback) {
+		return (response) => {
+			if (response && response.success !== false) {
+				callback(null, response);
+			} else {
+				callback(new Error(response?.error || 'Operation failed'), null);
+			}
+		};
+	}
+
+	// Optional: Promise wrapper for convenience (but not primary API)
+	_promisify(method, ...args) {
+		return new Promise((resolve, reject) => {
+			method(...args, (error, result) => {
+				if (error) reject(error);
+				else resolve(result);
+			});
+		});
+	}
 }
 ```
 
@@ -101,9 +107,11 @@ class BaseClient {
 ### Phase 1: Client Class Refactoring
 
 #### 1.1 Update ClaudeClient.js
+
 **Current Issues:**
+
 - `checkAuth()` - Promise-wrapped
-- `createSession()` - Promise-wrapped  
+- `createSession()` - Promise-wrapped
 - `sendMessage()` - Promise-wrapped
 - `getHistory()` - Promise-wrapped
 - `clearChat()` - Promise-wrapped
@@ -112,6 +120,7 @@ class BaseClient {
 - `submitToken()` - Promise-wrapped
 
 **Refactoring:**
+
 ```javascript
 // Replace this:
 async checkAuth() {
@@ -134,7 +143,9 @@ checkAuthAsync() {
 ```
 
 #### 1.2 Update SessionClient.js
+
 **Current Issues:**
+
 - `create()` - Promise-wrapped
 - `attach()` - Promise-wrapped
 - `detach()` - Promise-wrapped
@@ -144,7 +155,9 @@ checkAuthAsync() {
 **Refactoring:** Apply same callback-first pattern as above.
 
 #### 1.3 Update ProjectClient.js
+
 **Current Issues:**
+
 - `authenticate()` - Promise-wrapped
 - `listProjects()` - Promise-wrapped
 - `createProject()` - Promise-wrapped
@@ -153,6 +166,7 @@ checkAuthAsync() {
 **Refactoring:** Apply same callback-first pattern.
 
 #### 1.4 Review and Update Other Clients
+
 - AuthClient.js
 - TerminalClient.js
 - ShellClient.js
@@ -162,23 +176,27 @@ checkAuthAsync() {
 All ViewModels that use these clients need to be updated to use callback pattern:
 
 #### 2.1 ClaudeSessionViewModel.svelte.js
+
 **Current Usage:**
+
 ```javascript
 const response = await this.#claudeClient.checkAuth();
 ```
 
 **New Usage:**
+
 ```javascript
 this.#claudeClient.checkAuth((error, response) => {
-    if (error) {
-        this.error = error.message;
-        return;
-    }
-    // Handle success...
+	if (error) {
+		this.error = error.message;
+		return;
+	}
+	// Handle success...
 });
 ```
 
 #### 2.2 Other ViewModels
+
 - ClaudeCreationFormViewModel.svelte.js
 - SessionsViewModel.svelte.js
 - ProjectsViewModel.svelte.js
@@ -189,24 +207,28 @@ this.#claudeClient.checkAuth((error, response) => {
 Review all Handler classes to ensure they follow proper callback patterns:
 
 #### 3.1 ClaudeHandler.server.js ✅
+
 Already uses callbacks correctly - no changes needed.
 
 #### 3.2 Other Handlers to Review
+
 - AuthHandler.js
 - ProjectHandler.js
-- SessionHandler.js  
+- SessionHandler.js
 - ShellHandler.server.js
 - TerminalHandler.server.js
 
 ### Phase 4: Integration Testing
 
 #### 4.1 End-to-End Testing
+
 - Test Claude authentication flow
 - Test session creation/management
 - Test project operations
 - Test shell/terminal operations
 
-#### 4.2 ViewModel Reactivity Testing  
+#### 4.2 ViewModel Reactivity Testing
+
 - Verify reactive state updates work correctly with callback pattern
 - Test error handling and user feedback
 - Verify loading states work properly
@@ -214,21 +236,27 @@ Already uses callbacks correctly - no changes needed.
 ## Implementation Strategy
 
 ### Step 1: Update BaseClient with Helper Methods
+
 Add `_handleResponse` and `_promisify` utility methods to BaseClient.
 
 ### Step 2: Refactor One Client at a Time
+
 Start with ClaudeClient as it's most complex, then SessionClient, then ProjectClient.
 
 ### Step 3: Update Corresponding ViewModels
+
 Update each ViewModel after its client is refactored.
 
 ### Step 4: Test Each Component
+
 Test functionality after each client/ViewModel pair is updated.
 
 ### Step 5: Review Handlers
+
 Ensure all handlers use proper callback patterns.
 
 ### Step 6: Final Integration Testing
+
 Full end-to-end testing of all functionality.
 
 ## Benefits of This Approach
@@ -244,15 +272,17 @@ Full end-to-end testing of all functionality.
 ## Checklist
 
 ### Phase 1 - Client Refactoring
+
 - [ ] Update BaseClient with helper methods
 - [ ] Refactor ClaudeClient.js to callback-first API
-- [ ] Refactor SessionClient.js to callback-first API  
+- [ ] Refactor SessionClient.js to callback-first API
 - [ ] Refactor ProjectClient.js to callback-first API
 - [ ] Review and update AuthClient.js
 - [ ] Review and update TerminalClient.js
 - [ ] Review and update ShellClient.js
 
 ### Phase 2 - ViewModel Updates
+
 - [ ] Update ClaudeSessionViewModel.svelte.js
 - [ ] Update ClaudeCreationFormViewModel.svelte.js
 - [ ] Update SessionsViewModel.svelte.js
@@ -261,14 +291,16 @@ Full end-to-end testing of all functionality.
 - [ ] Update any other ViewModels using socket clients
 
 ### Phase 3 - Handler Review
+
 - [ ] Review AuthHandler.js
 - [ ] Review ProjectHandler.js
 - [ ] Review SessionHandler.js
-- [ ] Review ShellHandler.server.js  
+- [ ] Review ShellHandler.server.js
 - [ ] Review TerminalHandler.server.js
 - [ ] Verify ClaudeHandler.server.js (already good)
 
 ### Phase 4 - Testing & Validation
+
 - [ ] Test Claude authentication flow
 - [ ] Test Claude session creation and messaging
 - [ ] Test session management (create, attach, end)
@@ -279,6 +311,7 @@ Full end-to-end testing of all functionality.
 - [ ] Performance testing
 
 ### Phase 5 - Cleanup
+
 - [ ] Remove any unused Promise-based code
 - [ ] Update any remaining async/await usage
 - [ ] Code review and documentation updates

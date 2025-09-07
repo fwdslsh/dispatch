@@ -15,9 +15,16 @@
 					</div>
 					<div>
 						{#if session.status === 'active'}
-							<button onclick={() => onAttach(session.id)} data-testid="attach-session-{session.id}"> Attach </button>
+							<button
+								onclick={() => onAttach(session.id)}
+								data-testid="attach-session-{session.id}"
+							>
+								Attach
+							</button>
 						{/if}
-						<button onclick={() => onEnd(session.id)} data-testid="end-session-{session.id}"> End </button>
+						<button onclick={() => onEnd(session.id)} data-testid="end-session-{session.id}">
+							End
+						</button>
 					</div>
 				</li>
 			{/each}

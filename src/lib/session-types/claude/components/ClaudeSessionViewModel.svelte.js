@@ -84,7 +84,7 @@ export class ClaudeSessionViewModel {
 
 			// Create Claude client
 			this.#claudeClient = new ClaudeClient(io);
-			
+
 			// Set up event handlers
 			this.#setupClaudeClientHandlers();
 
@@ -99,7 +99,6 @@ export class ClaudeSessionViewModel {
 				// Move to Claude initialization
 				this.initializeClaudeSession();
 			}, 100);
-
 		} catch (err) {
 			console.error('Error connecting to Claude:', err);
 			this.error = err.message;
@@ -134,7 +133,7 @@ export class ClaudeSessionViewModel {
 			// Check Claude authentication
 			const response = await this.#claudeClient.checkAuth();
 			console.log('ClaudeSessionViewModel: Auth response received:', response);
-			
+
 			this.isClaudeAuthenticated = response.authenticated;
 
 			if (response.authenticated) {
@@ -274,7 +273,7 @@ export class ClaudeSessionViewModel {
 		try {
 			// Initialize Claude session via client
 			const response = await this.#claudeClient.createSession(this.projectId, this.sessionOptions);
-			
+
 			this.sessionId = response.session.id;
 			this.isClaudeAuthenticated = response.session.authenticated;
 
@@ -303,6 +302,4 @@ export class ClaudeSessionViewModel {
 		this.messages = [];
 		this.isSending = false;
 	}
-
-
 }

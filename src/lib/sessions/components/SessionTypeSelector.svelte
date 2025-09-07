@@ -13,11 +13,11 @@
 		onSessionCreated,
 		onSessionEnded
 	} = $props();
-	
+
 	let ShellSession = $state(null);
 	let ClaudeSession = $state(null);
 	let isLoading = $state(true);
-	
+
 	onMount(async () => {
 		try {
 			if (sessionType === 'shell') {
@@ -40,9 +40,21 @@
 		<p>Loading {sessionType} session...</p>
 	</div>
 {:else if sessionType === 'shell' && ShellSession}
-	<svelte:component this={ShellSession} {projectId} {sessionOptions} {onSessionCreated} {onSessionEnded} />
+	<svelte:component
+		this={ShellSession}
+		{projectId}
+		{sessionOptions}
+		{onSessionCreated}
+		{onSessionEnded}
+	/>
 {:else if sessionType === 'claude' && ClaudeSession}
-	<svelte:component this={ClaudeSession} {projectId} {sessionOptions} {onSessionCreated} {onSessionEnded} />
+	<svelte:component
+		this={ClaudeSession}
+		{projectId}
+		{sessionOptions}
+		{onSessionCreated}
+		{onSessionEnded}
+	/>
 {:else}
 	<div class="error">
 		{#if !ShellSession && !ClaudeSession}

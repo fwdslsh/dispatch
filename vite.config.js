@@ -13,7 +13,7 @@ const webSocketServer = {
 
 		// Print HOME environment variable for development
 		console.log(`[DEV] HOME environment variable: ${process.env.HOME || 'not set'}`);
-		
+
 		// Initialize directory manager in development
 		import('./src/lib/shared/utils/directory-manager.server.js')
 			.then(async (module) => {

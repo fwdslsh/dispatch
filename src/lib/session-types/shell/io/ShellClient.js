@@ -1,196 +1,196 @@
 import { BaseClient } from '../../../shared/io/BaseClient.js';
 
 export class ShellClient extends BaseClient {
-    constructor(io, config = {}) {
-        super(io, '/shell', config);
-        this.currentSession = null;
-    }
+	constructor(io, config = {}) {
+		super(io, '/shell', config);
+		this.currentSession = null;
+	}
 
-    setupEventListeners() {
-        this.on('shell:session-created', this.handleSessionCreated.bind(this));
-        this.on('shell:connected', this.handleConnected.bind(this));
-        this.on('shell:output', this.handleOutput.bind(this));
-        this.on('shell:command-executed', this.handleCommandExecuted.bind(this));
-        this.on('shell:session-ended', this.handleSessionEnded.bind(this));
-    }
+	setupEventListeners() {
+		this.on('shell:session-created', this.handleSessionCreated.bind(this));
+		this.on('shell:connected', this.handleConnected.bind(this));
+		this.on('shell:output', this.handleOutput.bind(this));
+		this.on('shell:command-executed', this.handleCommandExecuted.bind(this));
+		this.on('shell:session-ended', this.handleSessionEnded.bind(this));
+	}
 
-    handleSessionCreated(data) {
-        if (data.session) {
-            this.currentSession = data.session;
-        }
-        
-        if (this.onSessionCreated) {
-            this.onSessionCreated(data);
-        }
-    }
+	handleSessionCreated(data) {
+		if (data.session) {
+			this.currentSession = data.session;
+		}
 
-    handleConnected(data) {
-        if (data.session) {
-            this.currentSession = data.session;
-        }
-        
-        if (this.onConnected) {
-            this.onConnected(data);
-        }
-    }
+		if (this.onSessionCreated) {
+			this.onSessionCreated(data);
+		}
+	}
 
-    handleOutput(data) {
-        if (this.onOutput) {
-            this.onOutput(data);
-        }
-    }
+	handleConnected(data) {
+		if (data.session) {
+			this.currentSession = data.session;
+		}
 
-    handleCommandExecuted(data) {
-        if (this.onCommandExecuted) {
-            this.onCommandExecuted(data);
-        }
-    }
+		if (this.onConnected) {
+			this.onConnected(data);
+		}
+	}
 
-    handleSessionEnded(data) {
-        if (this.currentSession?.sessionId === data.sessionId) {
-            this.currentSession = null;
-        }
-        
-        if (this.onSessionEnded) {
-            this.onSessionEnded(data);
-        }
-    }
+	handleOutput(data) {
+		if (this.onOutput) {
+			this.onOutput(data);
+		}
+	}
 
-    async createSession(options = {}) {
-        return new Promise((resolve, reject) => {
-            const sessionOptions = {
-                name: options.name || 'Shell Session',
-                cols: options.cols || 80,
-                rows: options.rows || 24,
-                projectId: options.projectId,
-                workingDirectory: options.workingDirectory,
-                shell: options.shell || '/bin/bash'
-            };
+	handleCommandExecuted(data) {
+		if (this.onCommandExecuted) {
+			this.onCommandExecuted(data);
+		}
+	}
 
-            this.emit('shell:create', sessionOptions, (response) => {
-                if (response.success) {
-                    this.currentSession = response.session;
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to create shell session'));
-                }
-            });
-        });
-    }
+	handleSessionEnded(data) {
+		if (this.currentSession?.sessionId === data.sessionId) {
+			this.currentSession = null;
+		}
 
-    async connect(sessionId) {
-        return new Promise((resolve, reject) => {
-            this.emit('shell:connect', { sessionId }, (response) => {
-                if (response.success) {
-                    this.currentSession = response.session;
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to connect to shell session'));
-                }
-            });
-        });
-    }
+		if (this.onSessionEnded) {
+			this.onSessionEnded(data);
+		}
+	}
 
-    async execute(command) {
-        if (!this.currentSession?.sessionId) {
-            throw new Error('No active shell session');
-        }
+	async createSession(options = {}) {
+		return new Promise((resolve, reject) => {
+			const sessionOptions = {
+				name: options.name || 'Shell Session',
+				cols: options.cols || 80,
+				rows: options.rows || 24,
+				projectId: options.projectId,
+				workingDirectory: options.workingDirectory,
+				shell: options.shell || '/bin/bash'
+			};
 
-        return new Promise((resolve, reject) => {
-            this.emit('shell:execute', { command }, (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to execute command'));
-                }
-            });
-        });
-    }
+			this.emit('shell:create', sessionOptions, (response) => {
+				if (response.success) {
+					this.currentSession = response.session;
+					resolve(response);
+				} else {
+					reject(new Error(response.error || 'Failed to create shell session'));
+				}
+			});
+		});
+	}
 
-    async endSession(sessionId = null) {
-        const targetSessionId = sessionId || this.currentSession?.sessionId;
-        
-        if (!targetSessionId) {
-            throw new Error('No shell session to end');
-        }
+	async connect(sessionId) {
+		return new Promise((resolve, reject) => {
+			this.emit('shell:connect', { sessionId }, (response) => {
+				if (response.success) {
+					this.currentSession = response.session;
+					resolve(response);
+				} else {
+					reject(new Error(response.error || 'Failed to connect to shell session'));
+				}
+			});
+		});
+	}
 
-        return new Promise((resolve, reject) => {
-            this.emit('shell:end', { sessionId: targetSessionId }, (response) => {
-                if (response.success) {
-                    if (!sessionId || sessionId === this.currentSession?.sessionId) {
-                        this.currentSession = null;
-                    }
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to end shell session'));
-                }
-            });
-        });
-    }
+	async execute(command) {
+		if (!this.currentSession?.sessionId) {
+			throw new Error('No active shell session');
+		}
 
-    getCurrentSession() {
-        return this.currentSession;
-    }
+		return new Promise((resolve, reject) => {
+			this.emit('shell:execute', { command }, (response) => {
+				if (response.success) {
+					resolve(response);
+				} else {
+					reject(new Error(response.error || 'Failed to execute command'));
+				}
+			});
+		});
+	}
 
-    hasActiveSession() {
-        return this.currentSession !== null;
-    }
+	async endSession(sessionId = null) {
+		const targetSessionId = sessionId || this.currentSession?.sessionId;
 
-    getSessionId() {
-        return this.currentSession?.sessionId || null;
-    }
+		if (!targetSessionId) {
+			throw new Error('No shell session to end');
+		}
 
-    // Convenience methods for common shell operations
-    async runCommand(command) {
-        return this.execute(command);
-    }
+		return new Promise((resolve, reject) => {
+			this.emit('shell:end', { sessionId: targetSessionId }, (response) => {
+				if (response.success) {
+					if (!sessionId || sessionId === this.currentSession?.sessionId) {
+						this.currentSession = null;
+					}
+					resolve(response);
+				} else {
+					reject(new Error(response.error || 'Failed to end shell session'));
+				}
+			});
+		});
+	}
 
-    async changeDirectory(path) {
-        return this.execute(`cd ${path}`);
-    }
+	getCurrentSession() {
+		return this.currentSession;
+	}
 
-    async listFiles(path = '.') {
-        return this.execute(`ls -la ${path}`);
-    }
+	hasActiveSession() {
+		return this.currentSession !== null;
+	}
 
-    async createFile(filename, content = '') {
-        if (content) {
-            return this.execute(`cat > ${filename} << 'EOF'\n${content}\nEOF`);
-        } else {
-            return this.execute(`touch ${filename}`);
-        }
-    }
+	getSessionId() {
+		return this.currentSession?.sessionId || null;
+	}
 
-    async removeFile(filename) {
-        return this.execute(`rm ${filename}`);
-    }
+	// Convenience methods for common shell operations
+	async runCommand(command) {
+		return this.execute(command);
+	}
 
-    async createDirectory(dirname) {
-        return this.execute(`mkdir -p ${dirname}`);
-    }
+	async changeDirectory(path) {
+		return this.execute(`cd ${path}`);
+	}
 
-    async removeDirectory(dirname) {
-        return this.execute(`rm -rf ${dirname}`);
-    }
+	async listFiles(path = '.') {
+		return this.execute(`ls -la ${path}`);
+	}
 
-    // Event callback setters
-    setOnSessionCreated(callback) {
-        this.onSessionCreated = callback;
-    }
+	async createFile(filename, content = '') {
+		if (content) {
+			return this.execute(`cat > ${filename} << 'EOF'\n${content}\nEOF`);
+		} else {
+			return this.execute(`touch ${filename}`);
+		}
+	}
 
-    setOnConnected(callback) {
-        this.onConnected = callback;
-    }
+	async removeFile(filename) {
+		return this.execute(`rm ${filename}`);
+	}
 
-    setOnOutput(callback) {
-        this.onOutput = callback;
-    }
+	async createDirectory(dirname) {
+		return this.execute(`mkdir -p ${dirname}`);
+	}
 
-    setOnCommandExecuted(callback) {
-        this.onCommandExecuted = callback;
-    }
+	async removeDirectory(dirname) {
+		return this.execute(`rm -rf ${dirname}`);
+	}
 
-    setOnSessionEnded(callback) {
-        this.onSessionEnded = callback;
-    }
+	// Event callback setters
+	setOnSessionCreated(callback) {
+		this.onSessionCreated = callback;
+	}
+
+	setOnConnected(callback) {
+		this.onConnected = callback;
+	}
+
+	setOnOutput(callback) {
+		this.onOutput = callback;
+	}
+
+	setOnCommandExecuted(callback) {
+		this.onCommandExecuted = callback;
+	}
+
+	setOnSessionEnded(callback) {
+		this.onSessionEnded = callback;
+	}
 }

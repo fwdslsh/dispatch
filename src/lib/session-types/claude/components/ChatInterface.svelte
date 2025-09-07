@@ -4,11 +4,7 @@
 	import { ChatInterfaceViewModel } from './ChatInterfaceViewModel.svelte.js';
 
 	// Props
-	let {
-		sessionId = 'default',
-		onSendMessage = () => {},
-		claudeClient = null
-	} = $props();
+	let { sessionId = 'default', onSendMessage = () => {}, claudeClient = null } = $props();
 
 	// Create ViewModel once with initial props - no reactive updates to avoid infinite loops
 	let viewModel = new ChatInterfaceViewModel(sessionId, onSendMessage, claudeClient);
@@ -20,15 +16,18 @@
 	let typing = $derived(viewModel.typing);
 	let messageInput = $derived(viewModel.messageInput);
 	let isAuthenticated = $derived(viewModel.isAuthenticated);
-	let isLoginCommand = $derived(viewModel.messageInput.trim() === '/login' || viewModel.messageInput.trim().startsWith('claude setup-token'));
+	let isLoginCommand = $derived(
+		viewModel.messageInput.trim() === '/login' ||
+			viewModel.messageInput.trim().startsWith('claude setup-token')
+	);
 	let virtualItems = $derived([
 		...viewModel.messages.map((msg) => ({ type: 'message', data: msg })),
 		...(viewModel.typing ? [{ type: 'typing', data: {} }] : [])
 	]);
 
 	// Actions from ViewModel - access directly without $derived
-	let { sendMessage, handleKeyDown, formatMessageContent, formatTimestamp, updateMessageInput } = viewModel.actions;
-
+	let { sendMessage, handleKeyDown, formatMessageContent, formatTimestamp, updateMessageInput } =
+		viewModel.actions;
 
 	// Auto-scroll to bottom after updates
 	$effect(() => {

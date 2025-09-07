@@ -3,348 +3,366 @@ import { TerminalManager } from '../server/terminal.server.js';
 import directoryManager from '../../../shared/utils/directory-manager.server.js';
 
 export class ShellHandler extends BaseHandler {
-    constructor(io, authHandler) {
-        super(io, '/shell');
-        this.authHandler = authHandler;
-        this.terminalManager = new TerminalManager(); // Still needed for PTY management
-        this.directoryManager = directoryManager; // Added for session persistence
-        this.shellSessions = new Map(); // socket.id -> shell session info
-        
-        // Initialize DirectoryManager
-        this.initializeDirectoryManager();
-    }
+	constructor(io, authHandler) {
+		super(io, '/shell');
+		this.authHandler = authHandler;
+		this.terminalManager = new TerminalManager(); // Still needed for PTY management
+		this.directoryManager = directoryManager; // Added for session persistence
+		this.shellSessions = new Map(); // socket.id -> shell session info
 
-    async initializeDirectoryManager() {
-        try {
-            await this.directoryManager.initialize();
-            console.log('[SHELL] DirectoryManager initialized successfully');
-        } catch (error) {
-            console.error('[SHELL] Failed to initialize DirectoryManager:', error);
-        }
-    }
+		// Initialize DirectoryManager
+		this.initializeDirectoryManager();
+	}
 
-    setupEventHandlers(socket) {
-        // Add auth event handler for namespace-specific authentication
-        socket.on('auth', (key, callback) => {
-            console.log(`[SHELL] Auth request from socket ${socket.id} with key: ${key ? 'present' : 'missing'}`);
-            this.authHandler.handleLogin(socket, key, callback);
-        });
+	async initializeDirectoryManager() {
+		try {
+			await this.directoryManager.initialize();
+			console.log('[SHELL] DirectoryManager initialized successfully');
+		} catch (error) {
+			console.error('[SHELL] Failed to initialize DirectoryManager:', error);
+		}
+	}
 
-        socket.on('shell:create', this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket));
-        socket.on('shell:connect', this.authHandler.withAuth(this.handleConnect.bind(this, socket), socket));
-        socket.on('shell:execute', this.authHandler.withAuth(this.handleExecute.bind(this, socket), socket));
-        socket.on('shell:end', this.authHandler.withAuth(this.handleEnd.bind(this, socket), socket));
-    }
+	setupEventHandlers(socket) {
+		// Add auth event handler for namespace-specific authentication
+		socket.on('auth', (key, callback) => {
+			console.log(
+				`[SHELL] Auth request from socket ${socket.id} with key: ${key ? 'present' : 'missing'}`
+			);
+			this.authHandler.handleLogin(socket, key, callback);
+		});
 
-    handleDisconnect(socket) {
-        const session = this.shellSessions.get(socket.id);
-        if (session?.sessionId) {
-            console.log(`[SHELL] Socket ${socket.id} disconnected, cleaning up shell session ${session.sessionId}`);
-        }
-        this.shellSessions.delete(socket.id);
-    }
+		socket.on(
+			'shell:create',
+			this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket)
+		);
+		socket.on(
+			'shell:connect',
+			this.authHandler.withAuth(this.handleConnect.bind(this, socket), socket)
+		);
+		socket.on(
+			'shell:execute',
+			this.authHandler.withAuth(this.handleExecute.bind(this, socket), socket)
+		);
+		socket.on('shell:end', this.authHandler.withAuth(this.handleEnd.bind(this, socket), socket));
+	}
 
-    async handleCreate(socket, options, callback) {
-        try {
-            console.log(`[SHELL] Creating shell session for socket ${socket.id}:`, options);
+	handleDisconnect(socket) {
+		const session = this.shellSessions.get(socket.id);
+		if (session?.sessionId) {
+			console.log(
+				`[SHELL] Socket ${socket.id} disconnected, cleaning up shell session ${session.sessionId}`
+			);
+		}
+		this.shellSessions.delete(socket.id);
+	}
 
-            const sessionOptions = {
-                name: options.name || 'Shell Session',
-                mode: 'shell',
-                cols: Math.max(10, Math.min(500, parseInt(options.cols) || 80)),
-                rows: Math.max(5, Math.min(200, parseInt(options.rows) || 24)),
-                projectId: options.projectId,
-                workingDirectory: options.workingDirectory,
-                shell: options.shell || '/bin/bash'
-            };
+	async handleCreate(socket, options, callback) {
+		try {
+			console.log(`[SHELL] Creating shell session for socket ${socket.id}:`, options);
 
-            // Create session in DirectoryManager for persistence
-            const directorySession = await this.directoryManager.createSession(sessionOptions.projectId, {
-                name: sessionOptions.name,
-                mode: sessionOptions.mode,
-                cols: sessionOptions.cols,
-                rows: sessionOptions.rows,
-                customOptions: {
-                    shell: sessionOptions.shell,
-                    workingDirectory: sessionOptions.workingDirectory
-                },
-                socketId: socket.id
-            });
+			const sessionOptions = {
+				name: options.name || 'Shell Session',
+				mode: 'shell',
+				cols: Math.max(10, Math.min(500, parseInt(options.cols) || 80)),
+				rows: Math.max(5, Math.min(200, parseInt(options.rows) || 24)),
+				projectId: options.projectId,
+				workingDirectory: options.workingDirectory,
+				shell: options.shell || '/bin/bash'
+			};
 
-            if (!directorySession?.id) {
-                throw new Error('Failed to create session in DirectoryManager');
-            }
+			// Create session in DirectoryManager for persistence
+			const directorySession = await this.directoryManager.createSession(sessionOptions.projectId, {
+				name: sessionOptions.name,
+				mode: sessionOptions.mode,
+				cols: sessionOptions.cols,
+				rows: sessionOptions.rows,
+				customOptions: {
+					shell: sessionOptions.shell,
+					workingDirectory: sessionOptions.workingDirectory
+				},
+				socketId: socket.id
+			});
 
-            const sessionId = directorySession.id;
+			if (!directorySession?.id) {
+				throw new Error('Failed to create session in DirectoryManager');
+			}
 
-            // Create PTY session in TerminalManager for actual terminal process
-            const terminalSessionOptions = {
-                ...sessionOptions
-            };
-            const terminalSessionData = await this.terminalManager.createSessionInProject(sessionOptions.projectId, terminalSessionOptions);
+			const sessionId = directorySession.id;
 
-            if (terminalSessionData?.id) {
-                // Use the terminal session ID for PTY operations
-                const terminalSessionId = terminalSessionData.id;
-                
-                // Attach socket to terminal session for PTY I/O
-                await this.terminalManager.attachToSession(socket, { sessionId: terminalSessionId });
+			// Create PTY session in TerminalManager for actual terminal process
+			const terminalSessionOptions = {
+				...sessionOptions
+			};
+			const terminalSessionData = await this.terminalManager.createSessionInProject(
+				sessionOptions.projectId,
+				terminalSessionOptions
+			);
 
-                const shellSession = {
-                    sessionId, // DirectoryManager session ID (for persistence)
-                    terminalSessionId, // TerminalManager session ID (for PTY operations)
-                    projectId: sessionOptions.projectId,
-                    shell: sessionOptions.shell,
-                    workingDirectory: sessionOptions.workingDirectory,
-                    createdAt: new Date().toISOString()
-                };
+			if (terminalSessionData?.id) {
+				// Use the terminal session ID for PTY operations
+				const terminalSessionId = terminalSessionData.id;
 
-                this.shellSessions.set(socket.id, shellSession);
+				// Attach socket to terminal session for PTY I/O
+				await this.terminalManager.attachToSession(socket, { sessionId: terminalSessionId });
 
-                // Set up shell-specific input handling
-                const handleInput = (data) => {
-                    const session = this.shellSessions.get(socket.id);
-                    if (session?.sessionId === sessionId) {
-                        this.terminalManager.sendInput(session.terminalSessionId, data);
-                    }
-                };
+				const shellSession = {
+					sessionId, // DirectoryManager session ID (for persistence)
+					terminalSessionId, // TerminalManager session ID (for PTY operations)
+					projectId: sessionOptions.projectId,
+					shell: sessionOptions.shell,
+					workingDirectory: sessionOptions.workingDirectory,
+					createdAt: new Date().toISOString()
+				};
 
-                const handleResize = (dims) => {
-                    const session = this.shellSessions.get(socket.id);
-                    if (session?.sessionId === sessionId) {
-                        this.terminalManager.resize(session.terminalSessionId, dims.cols, dims.rows);
-                    }
-                };
+				this.shellSessions.set(socket.id, shellSession);
 
-                // Remove any existing handlers first
-                socket.removeAllListeners('shell:input');
-                socket.removeAllListeners('shell:resize');
+				// Set up shell-specific input handling
+				const handleInput = (data) => {
+					const session = this.shellSessions.get(socket.id);
+					if (session?.sessionId === sessionId) {
+						this.terminalManager.sendInput(session.terminalSessionId, data);
+					}
+				};
 
-                // Add new handlers
-                socket.on('shell:input', handleInput);
-                socket.on('shell:resize', handleResize);
+				const handleResize = (dims) => {
+					const session = this.shellSessions.get(socket.id);
+					if (session?.sessionId === sessionId) {
+						this.terminalManager.resize(session.terminalSessionId, dims.cols, dims.rows);
+					}
+				};
 
-                console.log(`[SHELL] Created shell session ${sessionId} for socket ${socket.id}`);
+				// Remove any existing handlers first
+				socket.removeAllListeners('shell:input');
+				socket.removeAllListeners('shell:resize');
 
-                const response = {
-                    success: true,
-                    sessionId,
-                    session: shellSession
-                };
+				// Add new handlers
+				socket.on('shell:input', handleInput);
+				socket.on('shell:resize', handleResize);
 
-                if (callback) callback(response);
+				console.log(`[SHELL] Created shell session ${sessionId} for socket ${socket.id}`);
 
-                this.emitToSocket(socket, 'shell:session-created', {
-                    sessionId,
-                    session: shellSession
-                });
-            } else {
-                throw new Error('Failed to create PTY session in TerminalManager');
-            }
-        } catch (error) {
-            console.error('[SHELL] Error creating shell session:', error);
-            const errorResponse = {
-                success: false,
-                error: error.message
-            };
-            if (callback) callback(errorResponse);
-        }
-    }
+				const response = {
+					success: true,
+					sessionId,
+					session: shellSession
+				};
 
-    async handleConnect(socket, data, callback) {
-        try {
-            const { sessionId } = data || {};
-            
-            if (!sessionId) {
-                const errorResponse = {
-                    success: false,
-                    error: 'Session ID is required'
-                };
-                if (callback) callback(errorResponse);
-                return;
-            }
+				if (callback) callback(response);
 
-            console.log(`[SHELL] Connecting socket ${socket.id} to shell session ${sessionId}`);
+				this.emitToSocket(socket, 'shell:session-created', {
+					sessionId,
+					session: shellSession
+				});
+			} else {
+				throw new Error('Failed to create PTY session in TerminalManager');
+			}
+		} catch (error) {
+			console.error('[SHELL] Error creating shell session:', error);
+			const errorResponse = {
+				success: false,
+				error: error.message
+			};
+			if (callback) callback(errorResponse);
+		}
+	}
 
-            const success = await this.terminalManager.attachToSession(socket, { sessionId });
+	async handleConnect(socket, data, callback) {
+		try {
+			const { sessionId } = data || {};
 
-            if (success) {
-                const session = this.terminalManager.sessions.get(sessionId);
-                
-                const shellSession = {
-                    sessionId,
-                    shell: session?.shell || '/bin/bash',
-                    workingDirectory: session?.workingDirectory,
-                    connectedAt: new Date().toISOString()
-                };
+			if (!sessionId) {
+				const errorResponse = {
+					success: false,
+					error: 'Session ID is required'
+				};
+				if (callback) callback(errorResponse);
+				return;
+			}
 
-                this.shellSessions.set(socket.id, shellSession);
+			console.log(`[SHELL] Connecting socket ${socket.id} to shell session ${sessionId}`);
 
-                console.log(`[SHELL] Socket ${socket.id} connected to shell session ${sessionId}`);
+			const success = await this.terminalManager.attachToSession(socket, { sessionId });
 
-                const response = {
-                    success: true,
-                    sessionId,
-                    session: shellSession
-                };
+			if (success) {
+				const session = this.terminalManager.sessions.get(sessionId);
 
-                if (callback) callback(response);
+				const shellSession = {
+					sessionId,
+					shell: session?.shell || '/bin/bash',
+					workingDirectory: session?.workingDirectory,
+					connectedAt: new Date().toISOString()
+				};
 
-                this.emitToSocket(socket, 'shell:connected', {
-                    sessionId,
-                    session: shellSession
-                });
-            } else {
-                const errorResponse = {
-                    success: false,
-                    error: 'Failed to connect to shell session'
-                };
-                if (callback) callback(errorResponse);
-            }
-        } catch (error) {
-            console.error('[SHELL] Error connecting to shell session:', error);
-            const errorResponse = {
-                success: false,
-                error: error.message
-            };
-            if (callback) callback(errorResponse);
-        }
-    }
+				this.shellSessions.set(socket.id, shellSession);
 
-    async handleExecute(socket, data, callback) {
-        try {
-            const { command } = data || {};
-            const shellSession = this.shellSessions.get(socket.id);
+				console.log(`[SHELL] Socket ${socket.id} connected to shell session ${sessionId}`);
 
-            if (!shellSession?.sessionId) {
-                const errorResponse = {
-                    success: false,
-                    error: 'No active shell session'
-                };
-                if (callback) callback(errorResponse);
-                return;
-            }
+				const response = {
+					success: true,
+					sessionId,
+					session: shellSession
+				};
 
-            if (!command || typeof command !== 'string') {
-                const errorResponse = {
-                    success: false,
-                    error: 'Command is required and must be a string'
-                };
-                if (callback) callback(errorResponse);
-                return;
-            }
+				if (callback) callback(response);
 
-            console.log(`[SHELL] Executing command in session ${shellSession.sessionId}: ${command}`);
+				this.emitToSocket(socket, 'shell:connected', {
+					sessionId,
+					session: shellSession
+				});
+			} else {
+				const errorResponse = {
+					success: false,
+					error: 'Failed to connect to shell session'
+				};
+				if (callback) callback(errorResponse);
+			}
+		} catch (error) {
+			console.error('[SHELL] Error connecting to shell session:', error);
+			const errorResponse = {
+				success: false,
+				error: error.message
+			};
+			if (callback) callback(errorResponse);
+		}
+	}
 
-            // Send command with newline to execute it
-            const commandWithNewline = command.endsWith('\n') ? command : command + '\n';
-            this.terminalManager.sendInput(shellSession.terminalSessionId, commandWithNewline);
+	async handleExecute(socket, data, callback) {
+		try {
+			const { command } = data || {};
+			const shellSession = this.shellSessions.get(socket.id);
 
-            const response = {
-                success: true,
-                sessionId: shellSession.sessionId,
-                command: command.trim()
-            };
+			if (!shellSession?.sessionId) {
+				const errorResponse = {
+					success: false,
+					error: 'No active shell session'
+				};
+				if (callback) callback(errorResponse);
+				return;
+			}
 
-            if (callback) callback(response);
+			if (!command || typeof command !== 'string') {
+				const errorResponse = {
+					success: false,
+					error: 'Command is required and must be a string'
+				};
+				if (callback) callback(errorResponse);
+				return;
+			}
 
-            this.emitToSocket(socket, 'shell:command-executed', {
-                sessionId: shellSession.sessionId,
-                command: command.trim()
-            });
-        } catch (error) {
-            console.error('[SHELL] Error executing command:', error);
-            const errorResponse = {
-                success: false,
-                error: error.message
-            };
-            if (callback) callback(errorResponse);
-        }
-    }
+			console.log(`[SHELL] Executing command in session ${shellSession.sessionId}: ${command}`);
 
-    async handleEnd(socket, data, callback) {
-        try {
-            const shellSession = this.shellSessions.get(socket.id);
-            const sessionId = data?.sessionId || shellSession?.sessionId;
+			// Send command with newline to execute it
+			const commandWithNewline = command.endsWith('\n') ? command : command + '\n';
+			this.terminalManager.sendInput(shellSession.terminalSessionId, commandWithNewline);
 
-            if (!sessionId) {
-                const errorResponse = {
-                    success: false,
-                    error: 'No shell session to end'
-                };
-                if (callback) callback(errorResponse);
-                return;
-            }
+			const response = {
+				success: true,
+				sessionId: shellSession.sessionId,
+				command: command.trim()
+			};
 
-            console.log(`[SHELL] Ending shell session ${sessionId} for socket ${socket.id}`);
+			if (callback) callback(response);
 
-            // End the PTY session in TerminalManager
-            const terminalSuccess = this.terminalManager.endSession(shellSession?.terminalSessionId || sessionId);
+			this.emitToSocket(socket, 'shell:command-executed', {
+				sessionId: shellSession.sessionId,
+				command: command.trim()
+			});
+		} catch (error) {
+			console.error('[SHELL] Error executing command:', error);
+			const errorResponse = {
+				success: false,
+				error: error.message
+			};
+			if (callback) callback(errorResponse);
+		}
+	}
 
-            // Update session status in DirectoryManager
-            const projectId = shellSession?.projectId;
-            if (projectId) {
-                try {
-                    await this.directoryManager.updateSession(projectId, sessionId, {
-                        status: 'ended',
-                        endedAt: new Date().toISOString(),
-                        exitCode: 0,
-                        endedBySocketId: socket.id
-                    });
-                } catch (dmError) {
-                    console.warn(`[SHELL] Failed to update session in DirectoryManager:`, dmError);
-                }
-            }
+	async handleEnd(socket, data, callback) {
+		try {
+			const shellSession = this.shellSessions.get(socket.id);
+			const sessionId = data?.sessionId || shellSession?.sessionId;
 
-            if (terminalSuccess) {
-                this.shellSessions.delete(socket.id);
+			if (!sessionId) {
+				const errorResponse = {
+					success: false,
+					error: 'No shell session to end'
+				};
+				if (callback) callback(errorResponse);
+				return;
+			}
 
-                console.log(`[SHELL] Shell session ${sessionId} ended successfully`);
+			console.log(`[SHELL] Ending shell session ${sessionId} for socket ${socket.id}`);
 
-                const response = { success: true };
-                if (callback) callback(response);
+			// End the PTY session in TerminalManager
+			const terminalSuccess = this.terminalManager.endSession(
+				shellSession?.terminalSessionId || sessionId
+			);
 
-                this.emitToSocket(socket, 'shell:session-ended', {
-                    sessionId,
-                    exitCode: 0
-                });
-            } else {
-                const errorResponse = {
-                    success: false,
-                    error: 'Failed to end shell session'
-                };
-                if (callback) callback(errorResponse);
-            }
-        } catch (error) {
-            console.error('[SHELL] Error ending shell session:', error);
-            const errorResponse = {
-                success: false,
-                error: error.message
-            };
-            if (callback) callback(errorResponse);
-        }
-    }
+			// Update session status in DirectoryManager
+			const projectId = shellSession?.projectId;
+			if (projectId) {
+				try {
+					await this.directoryManager.updateSession(projectId, sessionId, {
+						status: 'ended',
+						endedAt: new Date().toISOString(),
+						exitCode: 0,
+						endedBySocketId: socket.id
+					});
+				} catch (dmError) {
+					console.warn(`[SHELL] Failed to update session in DirectoryManager:`, dmError);
+				}
+			}
 
-    // Method to emit shell output to connected sockets
-    emitShellOutput(sessionId, data) {
-        for (const [socketId, session] of this.shellSessions.entries()) {
-            if (session.sessionId === sessionId) {
-                const socket = this.namespace.sockets.get(socketId);
-                if (socket) {
-                    this.emitToSocket(socket, 'shell:output', {
-                        sessionId,
-                        data
-                    });
-                }
-            }
-        }
-    }
+			if (terminalSuccess) {
+				this.shellSessions.delete(socket.id);
 
-    getShellSession(socketId) {
-        return this.shellSessions.get(socketId);
-    }
+				console.log(`[SHELL] Shell session ${sessionId} ended successfully`);
 
-    getAllShellSessions() {
-        return new Map(this.shellSessions);
-    }
+				const response = { success: true };
+				if (callback) callback(response);
+
+				this.emitToSocket(socket, 'shell:session-ended', {
+					sessionId,
+					exitCode: 0
+				});
+			} else {
+				const errorResponse = {
+					success: false,
+					error: 'Failed to end shell session'
+				};
+				if (callback) callback(errorResponse);
+			}
+		} catch (error) {
+			console.error('[SHELL] Error ending shell session:', error);
+			const errorResponse = {
+				success: false,
+				error: error.message
+			};
+			if (callback) callback(errorResponse);
+		}
+	}
+
+	// Method to emit shell output to connected sockets
+	emitShellOutput(sessionId, data) {
+		for (const [socketId, session] of this.shellSessions.entries()) {
+			if (session.sessionId === sessionId) {
+				const socket = this.namespace.sockets.get(socketId);
+				if (socket) {
+					this.emitToSocket(socket, 'shell:output', {
+						sessionId,
+						data
+					});
+				}
+			}
+		}
+	}
+
+	getShellSession(socketId) {
+		return this.shellSessions.get(socketId);
+	}
+
+	getAllShellSessions() {
+		return new Map(this.shellSessions);
+	}
 }
