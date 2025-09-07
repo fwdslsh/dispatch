@@ -6,13 +6,17 @@
 -->
 <script>
 	import { Xterm } from '@battlefieldduck/xterm-svelte';
-	import { onMount } from 'svelte';
+	import { FitAddon } from '@xterm/addon-fit';
+	import { onMount, onDestroy } from 'svelte';
 
 	let { socket, sessionId, options = {}, initialContent = '' } = $props();
 
 	// XTerm instance reference
 	let terminal = $state();
 	let terminalElement = $state();
+	let fitAddon = $state();
+	let isSetup = $state(false);
+	let cleanup = $state(null);
 
 	// Simple terminal options with good defaults
 	const terminalOptions = $derived({
@@ -24,6 +28,7 @@
 		scrollback: 10000,
 		disableStdin: false,
 		allowTransparency: false,
+		localEcho: false, // Disable local echo to prevent character duplication
 		theme: {
 			background: '#0a0a0a',
 			foreground: '#ffffff',
@@ -51,20 +56,28 @@
 	});
 
 	onMount(() => {
-		if (terminal && socket && sessionId) {
-			setupTerminal();
+		if (terminal) {
+			// Initialize fit addon
+			fitAddon = new FitAddon();
+			terminal.loadAddon(fitAddon);
+			
+			if (socket && sessionId) {
+				setupTerminal();
+			}
 		}
 	});
 
 	// Set up terminal when we have all dependencies
 	$effect(() => {
-		if (terminal && socket && sessionId) {
+		if (terminal && socket && sessionId && !isSetup) {
 			setupTerminal();
 		}
 	});
 
 	function setupTerminal() {
-		if (!terminal || !socket) return;
+		if (!terminal || !socket || isSetup) return;
+		
+		isSetup = true;
 
 		// Write initial content if provided
 		if (initialContent) {
@@ -74,21 +87,21 @@
 		// Handle user input - send to socket
 		terminal.onData((data) => {
 			if (socket && sessionId) {
-				socket.emit('input', data);
+				socket.emit('shell:input', data);
 			}
 		});
 
 		// Handle terminal resize - notify socket
 		terminal.onResize((size) => {
 			if (socket && sessionId) {
-				socket.emit('resize', { cols: size.cols, rows: size.rows });
+				socket.emit('shell:resize', { cols: size.cols, rows: size.rows });
 			}
 		});
 
 		// Listen for output from socket
 		const handleOutput = (data) => {
-			if (data.sessionId === sessionId && terminal) {
-				terminal.write(data.data);
+			if (terminal) {
+				terminal.write(data);
 			}
 		};
 
@@ -98,17 +111,25 @@
 			}
 		};
 
-		// Set up socket listeners
-		socket.on('output', handleOutput);
-		socket.on('ended', handleSessionEnded);
+		// Set up socket listeners  
+		socket.on('terminal-output', handleOutput);
+		socket.on('shell:session-ended', handleSessionEnded);
 
-		// Cleanup function
-		return () => {
+		// Store cleanup function
+		cleanup = () => {
 			if (socket) {
-				socket.off('output', handleOutput);
-				socket.off('ended', handleSessionEnded);
+				socket.off('terminal-output', handleOutput);
+				socket.off('shell:session-ended', handleSessionEnded);
 			}
 		};
+	}
+
+	function cleanupTerminal() {
+		if (cleanup) {
+			cleanup();
+			cleanup = null;
+		}
+		// Don't reset isSetup here to avoid infinite loops
 	}
 
 	// Public methods for parent component
@@ -130,8 +151,8 @@
 
 	// Fit terminal to container
 	function fitTerminal() {
-		if (terminal && terminalElement) {
-			terminal.fit();
+		if (fitAddon && terminal && terminalElement) {
+			fitAddon.fit();
 		}
 	}
 
@@ -142,10 +163,14 @@
 
 		// Listen for window resize
 		window.addEventListener('resize', fitTerminal);
+	});
 
-		return () => {
-			window.removeEventListener('resize', fitTerminal);
-		};
+	onDestroy(() => {
+		// Clean up terminal setup
+		cleanupTerminal();
+		
+		// Clean up window listener
+		window.removeEventListener('resize', fitTerminal);
 	});
 </script>
 

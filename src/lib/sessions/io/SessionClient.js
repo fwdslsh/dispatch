@@ -67,88 +67,93 @@ export class SessionClient extends BaseClient {
         }
     }
 
-    async create(options) {
-        return new Promise((resolve, reject) => {
-            const sessionOptions = {
-                name: options.name || 'Terminal Session',
-                mode: options.mode || 'shell',
-                cols: options.cols || 80,
-                rows: options.rows || 24,
-                projectId: options.projectId,
-                customOptions: options.customOptions || {}
-            };
+    create(options, callback) {
+        const sessionOptions = {
+            name: options.name || 'Terminal Session',
+            mode: options.mode || 'shell',
+            cols: options.cols || 80,
+            rows: options.rows || 24,
+            projectId: options.projectId,
+            customOptions: options.customOptions || {}
+        };
 
-            this.emit('sessions:create', sessionOptions, (response) => {
-                if (response.success) {
-                    this.currentSessionId = response.sessionId;
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to create session'));
-                }
-            });
+        this.emit('sessions:create', sessionOptions, (response) => {
+            if (response && response.success) {
+                this.currentSessionId = response.sessionId;
+            }
+            this._handleResponse(callback)(response);
         });
     }
 
-    async attach(sessionId, options = {}) {
-        return new Promise((resolve, reject) => {
-            const attachOptions = {
-                sessionId,
-                cols: options.cols || 80,
-                rows: options.rows || 24
-            };
+    // Optional Promise version for backward compatibility
+    createAsync(options) {
+        return this._promisify(this.create.bind(this), options);
+    }
 
-            this.emit('sessions:attach', attachOptions, (response) => {
-                if (response.success) {
-                    this.currentSessionId = sessionId;
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to attach to session'));
-                }
-            });
+    attach(sessionId, options = {}, callback) {
+        const attachOptions = {
+            sessionId,
+            cols: options.cols || 80,
+            rows: options.rows || 24
+        };
+
+        this.emit('sessions:attach', attachOptions, (response) => {
+            if (response && response.success) {
+                this.currentSessionId = sessionId;
+            }
+            this._handleResponse(callback)(response);
         });
     }
 
-    async list() {
-        return new Promise((resolve, reject) => {
-            this.emit('sessions:list', (response) => {
-                if (response.success) {
-                    this.sessions = response.sessions || [];
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to list sessions'));
-                }
-            });
+    // Optional Promise version for backward compatibility
+    attachAsync(sessionId, options = {}) {
+        return this._promisify(this.attach.bind(this), sessionId, options);
+    }
+
+    list(callback) {
+        this.emit('sessions:list', (response) => {
+            if (response && response.success) {
+                this.sessions = response.sessions || [];
+            }
+            this._handleResponse(callback)(response);
         });
     }
 
-    async end(sessionId = null) {
-        return new Promise((resolve, reject) => {
-            const targetSessionId = sessionId || this.currentSessionId;
-            
-            this.emit('sessions:end', targetSessionId, (response) => {
-                if (response.success) {
-                    if (!sessionId || sessionId === this.currentSessionId) {
-                        this.currentSessionId = null;
-                    }
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to end session'));
-                }
-            });
-        });
+    // Optional Promise version for backward compatibility
+    listAsync() {
+        return this._promisify(this.list.bind(this));
     }
 
-    async detach() {
-        return new Promise((resolve, reject) => {
-            this.emit('sessions:detach', (response) => {
-                if (response.success) {
+    end(sessionId = null, callback) {
+        const targetSessionId = sessionId || this.currentSessionId;
+        
+        this.emit('sessions:end', targetSessionId, (response) => {
+            if (response && response.success) {
+                if (!sessionId || sessionId === this.currentSessionId) {
                     this.currentSessionId = null;
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to detach from session'));
                 }
-            });
+            }
+            this._handleResponse(callback)(response);
         });
+    }
+
+    // Optional Promise version for backward compatibility
+    endAsync(sessionId = null) {
+        return this._promisify(this.end.bind(this), sessionId);
+    }
+
+    detach(callback) {
+        this.emit('sessions:detach', (response) => {
+            if (response && response.success) {
+                this.currentSessionId = null;
+            }
+            this._handleResponse(callback)(response);
+        });
+    }
+
+    // Optional Promise version for backward compatibility
+    detachAsync() {
+        return this._promisify(this.detach.bind(this));
     }
 
     getCurrentSessionId() {

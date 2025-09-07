@@ -56,8 +56,8 @@ export class ShellSessionViewModel {
 			this.error = null;
 			this.connectionStatus = 'connecting';
 
-			// Create socket connection
-			this.#socket = io('/', {
+			// Create socket connection to shell namespace
+			this.#socket = io('/shell', {
 				autoConnect: true
 			});
 
@@ -87,12 +87,13 @@ export class ShellSessionViewModel {
 	}
 
 	/**
-	 * Send input to terminal
+	 * Send input to terminal (handled by TerminalComponent directly)
+	 * This method is kept for API compatibility but shouldn't be used
 	 */
 	sendInput(data) {
-		if (this.#socket && this.sessionId) {
-			this.#socket.emit('input', data);
-		}
+		// Input is handled directly by TerminalComponent via terminal.onData()
+		// This method is kept for backward compatibility but not used
+		console.warn('sendInput called - input should be handled by TerminalComponent');
 	}
 
 	/**
@@ -100,7 +101,7 @@ export class ShellSessionViewModel {
 	 */
 	resizeTerminal(cols, rows) {
 		if (this.#socket && this.sessionId) {
-			this.#socket.emit('resize', { cols, rows });
+			this.#socket.emit('shell:resize', { cols, rows });
 		}
 	}
 
@@ -109,7 +110,7 @@ export class ShellSessionViewModel {
 	 */
 	endSession() {
 		if (this.#socket && this.sessionId) {
-			this.#socket.emit('end', this.sessionId);
+			this.#socket.emit('shell:end', { sessionId: this.sessionId });
 		}
 	}
 
@@ -148,14 +149,18 @@ export class ShellSessionViewModel {
 			this.connectionStatus = 'disconnected';
 		});
 
-		this.#socket.on('output', (data) => {
-			this.terminalHistory += data.data;
+		this.#socket.on('terminal-output', (data) => {
+			this.terminalHistory += data;
 		});
 
-		this.#socket.on('ended', (data) => {
-			console.log('Session ended:', data);
+		this.#socket.on('shell:session-ended', (data) => {
+			console.log('Shell session ended:', data);
 			this.#onSessionEnded?.({ sessionId: this.sessionId, ...data });
 			this.sessionId = null;
+		});
+
+		this.#socket.on('shell:session-created', (data) => {
+			console.log('Shell session created:', data);
 		});
 	}
 
@@ -180,15 +185,15 @@ export class ShellSessionViewModel {
 		if (!this.#socket) return;
 
 		const options = {
-			mode: 'shell',
+			name: this.sessionOptions.name || 'Shell Session',
 			cols: this.sessionOptions.cols || 80,
 			rows: this.sessionOptions.rows || 24,
-			name: this.sessionOptions.name || 'Shell Session',
-			project: this.projectId,
-			workingDirectory: this.sessionOptions.workingDirectory
+			projectId: this.projectId,
+			workingDirectory: this.sessionOptions.workingDirectory,
+			shell: this.sessionOptions.shell || '/bin/bash'
 		};
 
-		this.#socket.emit('create', options, (response) => {
+		this.#socket.emit('shell:create', options, (response) => {
 			if (response.success) {
 				this.sessionId = response.sessionId;
 				this.isConnecting = false;

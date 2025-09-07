@@ -16,7 +16,7 @@ export class ClaudeHandler extends BaseHandler {
         socket.on('claude:history', this.authHandler.withAuth(this.handleHistory.bind(this, socket), socket));
         socket.on('claude:clear', this.authHandler.withAuth(this.handleClear.bind(this, socket), socket));
         socket.on('claude:end', this.authHandler.withAuth(this.handleEnd.bind(this, socket), socket));
-        
+
         // Claude authentication flow events - these don't require external auth
         socket.on('claude:start-auth', this.handleStartAuth.bind(this, socket));
         socket.on('claude:submit-token', this.handleSubmitToken.bind(this, socket));
@@ -32,9 +32,10 @@ export class ClaudeHandler extends BaseHandler {
 
     async handleAuth(socket, callback) {
         try {
-            const isAuthenticated = await claudeCodeService.isAuthenticated();
+            console.log(`[CLAUDE] Auth check for ${socket.id}:`);
 
-            console.log(`[CLAUDE] Auth check for ${socket.id}: ${isAuthenticated}`);
+            const isAuthenticated = claudeCodeService.isAuthenticated(); // Remove await - this is a synchronous method
+            console.log(`[CLAUDE] Auth check result for ${socket.id}: ${isAuthenticated}`);
 
             const response = {
                 success: true,
@@ -62,7 +63,7 @@ export class ClaudeHandler extends BaseHandler {
             const claudeSession = {
                 id: sessionId,
                 projectId: projectId || 'unnamed-project',
-                isAuthenticated: await claudeCodeService.isAuthenticated(),
+                isAuthenticated: claudeCodeService.isAuthenticated(), // Remove await - this is a synchronous method
                 messages: [],
                 createdAt: new Date().toISOString()
             };
@@ -459,11 +460,11 @@ ${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you
                 setTimeout(async () => {
                     try {
                         // Check if authentication is now successful
-                        const isAuthenticated = await claudeCodeService.isAuthenticated();
-                        
+                        const isAuthenticated = claudeCodeService.isAuthenticated(); // Remove await - this is a synchronous method
+
                         if (isAuthenticated) {
                             console.log(`[CLAUDE] Authentication successful for socket ${socket.id}`);
-                            
+
                             // Clean up auth session
                             authSession.terminalManager.endSession(authSession.id);
                             this.authSessions.delete(socket.id);

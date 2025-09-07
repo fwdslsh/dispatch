@@ -140,7 +140,7 @@ export class ProjectViewModel extends BaseViewModel {
 	async loadProjects() {
 		return await this.withLoading(async () => {
 			try {
-				const response = await this.service.list();
+				const response = await this.service.listAsync();
 
 				if (response.success) {
 					this.projects = response.projects || [];

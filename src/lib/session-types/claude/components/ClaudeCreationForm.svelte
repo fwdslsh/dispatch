@@ -1,16 +1,14 @@
 <!--
   ClaudeCreationForm.svelte - Claude AI Session Creation Form
   
-  Provides Claude-specific session configuration options including:
-  - Claude model selection
-  - Authentication token input
-  - Temperature and token limits
-  - Project directory selection
-  - Capability toggles
+  Thin presentation layer for Claude session creation.
+  Uses ClaudeCreationFormViewModel for business logic.
 -->
 
 <script>
 	import DirectoryPicker from '$lib/sessions/components/DirectoryPicker.svelte';
+	import { ClaudeCreationFormViewModel } from './ClaudeCreationFormViewModel.svelte.js';
+	import { onMount } from 'svelte';
 
 	// Props
 	let {
@@ -21,247 +19,32 @@
 		socket = null
 	} = $props();
 
-	// Form state
-	let sessionName = $state('');
-	let claudeModel = $state('claude-3.5-sonnet');
-	let maxTokens = $state(8192);
-	let temperature = $state(0.7);
-	let workingDirectory = $state('');
-	let enableCodeExecution = $state(true);
-	let enableFileAccess = $state(true);
-	let systemPrompt = $state(
-		'You are Claude, an AI assistant created by Anthropic. You are helping with software development.'
-	);
-
-	// Validation state
-	let validationErrors = $state({});
-	let isValidating = $state(false);
-
-	// Claude authentication state
-	let claudeAuthStatus = $state('checking'); // 'checking', 'needed', 'authenticating', 'ready', 'error'
-	let authError = $state('');
-	let oauthUrl = $state('');
-	let userToken = $state('');
-	let authSessionId = $state(null);
-
-	// Available Claude models
-	const claudeModels = [
-		{
-			id: 'claude-3.5-sonnet',
-			name: 'Claude 3.5 Sonnet',
-			description: 'Best for coding and analysis'
-		},
-		{ id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Most capable, slower' },
-		{ id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced performance' },
-		{ id: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast and efficient' }
-	];
-
-	// Initialize Claude client and check authentication
-	import { onMount } from 'svelte';
-	import { ClaudeClient } from '../io/ClaudeClient.js';
-	import { io } from 'socket.io-client';
-
-	let claudeClient = $state(null);
-
-	onMount(() => {
-		// Initialize Claude client
-		claudeClient = new ClaudeClient(io, { baseUrl: '' });
-
-		// Set up authentication event handlers
-		claudeClient.setOnAuthStarted(handleAuthStarted);
-		claudeClient.setOnAuthOutput(handleAuthOutput);
-		claudeClient.setOnAuthUrl(handleAuthUrl);
-		claudeClient.setOnAuthCompleted(handleAuthCompleted);
-
-		// Check initial authentication status
-		checkClaudeAuth();
-
-		return () => {
-			if (claudeClient) {
-				claudeClient.disconnect();
-			}
-		};
+	// Create ViewModel instance
+	const viewModel = new ClaudeCreationFormViewModel({
+		projectId,
+		sessionType,
+		onError
 	});
 
-	// Authentication functions
-	async function checkClaudeAuth() {
-		if (!claudeClient) return;
+	// Bind sessionData to ViewModel
+	$effect(() => {
+		sessionData = viewModel.sessionData;
+	});
 
-		try {
-			claudeAuthStatus = 'checking';
-			const response = await claudeClient.checkAuth();
-			
-			if (response.authenticated) {
-				claudeAuthStatus = 'ready';
-			} else {
-				claudeAuthStatus = 'needed';
-			}
-		} catch (error) {
-			console.error('Failed to check Claude auth:', error);
-			claudeAuthStatus = 'error';
-			authError = error.message;
-		}
-	}
+	onMount(() => {
+		console.log('ClaudeCreationForm: Component mounted, initializing viewModel...');
+		// Initialize the view model
+		viewModel.actions.initialize();
 
-	async function startClaudeAuth() {
-		if (!claudeClient) return;
-
-		try {
-			claudeAuthStatus = 'authenticating';
-			authError = '';
-			oauthUrl = '';
-			userToken = '';
-
-			const response = await claudeClient.startAuth();
-			authSessionId = response.authSessionId;
-		} catch (error) {
-			console.error('Failed to start Claude auth:', error);
-			claudeAuthStatus = 'error';
-			authError = error.message;
-		}
-	}
-
-	async function submitAuthToken() {
-		if (!claudeClient || !userToken.trim()) return;
-
-		try {
-			await claudeClient.submitToken({ token: userToken.trim() });
-			// Response will come through auth-completed event
-		} catch (error) {
-			console.error('Failed to submit auth token:', error);
-			authError = error.message;
-		}
-	}
-
-	// Event handlers
-	function handleAuthStarted(data) {
-		console.log('Claude auth started:', data);
-	}
-
-	function handleAuthOutput(data) {
-		console.log('Claude auth output:', data);
-	}
-
-	function handleAuthUrl(data) {
-		console.log('Claude OAuth URL received:', data);
-		oauthUrl = data.url;
-	}
-
-	function handleAuthCompleted(data) {
-		console.log('Claude auth completed:', data);
-		if (data.success && data.authenticated) {
-			claudeAuthStatus = 'ready';
-			oauthUrl = '';
-			userToken = '';
-			authSessionId = null;
-		} else {
-			claudeAuthStatus = 'error';
-			authError = data.message || 'Authentication failed';
-		}
-	}
-
-	// Remove reactive validation that caused infinite loops
-	// Validation will be called explicitly when needed
-
-	// Validate form data
-	function validateForm() {
-		const errors = {};
-
-		// Session name validation (optional but if provided must be valid)
-		if (sessionName.trim() && sessionName.length < 3) {
-			errors.sessionName = 'Session name must be at least 3 characters';
-		}
-
-		if (sessionName.length > 50) {
-			errors.sessionName = 'Session name must be less than 50 characters';
-		}
-
-		// Claude model validation
-		const validModels = claudeModels.map((m) => m.id);
-		if (!validModels.includes(claudeModel)) {
-			errors.claudeModel = 'Invalid Claude model selected';
-		}
-
-		// Claude authentication validation
-		if (claudeAuthStatus !== 'ready') {
-			errors.claudeAuth = 'Claude authentication is required';
-		}
-
-		// Temperature validation
-		if (temperature < 0 || temperature > 1) {
-			errors.temperature = 'Temperature must be between 0 and 1';
-		}
-
-		// Max tokens validation
-		if (maxTokens < 1 || maxTokens > 100000) {
-			errors.maxTokens = 'Max tokens must be between 1 and 100,000';
-		}
-
-		// System prompt validation
-		if (systemPrompt.length > 1000) {
-			errors.systemPrompt = 'System prompt must be less than 1000 characters';
-		}
-
-		validationErrors = errors;
-
-		// Report validation errors
-		if (Object.keys(errors).length > 0 && onError) {
-			onError({ message: 'Form validation failed', errors });
-		}
-	}
-
-	// Update session data for parent component
-	function updateSessionData() {
-		if (Object.keys(validationErrors).length > 0) {
-			sessionData = null;
-			return;
-		}
-
-		const finalSessionName = sessionName.trim() || `Claude Session ${Date.now()}`;
-
-		sessionData = {
-			sessionType: 'claude',
-			name: finalSessionName,
-			options: {
-				claudeModel,
-				authenticated: claudeAuthStatus === 'ready',
-				maxTokens: parseInt(maxTokens),
-				temperature: parseFloat(temperature),
-				workingDirectory: workingDirectory.trim() || undefined,
-				systemPrompt: systemPrompt.trim() || undefined,
-				enableCodeExecution,
-				enableFileAccess,
-				cols: 120,
-				rows: 30
-			}
+		return () => {
+			console.log('ClaudeCreationForm: Component unmounting, cleaning up viewModel...');
+			// Cleanup when component is unmounted
+			viewModel.actions.cleanup();
 		};
-	}
-
-	// Handle form submission
-	function handleSubmit(event) {
-		event.preventDefault();
-
-		isValidating = true;
-		validateForm();
-
-		setTimeout(() => {
-			isValidating = false;
-
-			if (Object.keys(validationErrors).length === 0) {
-				updateSessionData();
-			}
-		}, 100);
-	}
-
-	// Clear validation errors for a field
-	function clearFieldError(fieldName) {
-		const newErrors = { ...validationErrors };
-		delete newErrors[fieldName];
-		validationErrors = newErrors;
-	}
+	});
 </script>
 
-<form class="claude-form" onsubmit={handleSubmit}>
+<form class="claude-form" onsubmit={viewModel.actions.handleSubmit}>
 	<div class="form-header">
 		<h4 class="form-title">Configure Claude AI Session</h4>
 		<p class="form-description">
@@ -279,14 +62,14 @@
 				type="text"
 				id="session-name"
 				class="form-input"
-				class:error={validationErrors.sessionName}
+				class:error={viewModel.validationErrors.sessionName}
 				placeholder="e.g., My Claude Session"
-				bind:value={sessionName}
-				oninput={() => clearFieldError('sessionName')}
+				bind:value={viewModel.sessionName}
+				oninput={() => viewModel.actions.clearFieldError('sessionName')}
 				maxlength="50"
 			/>
-			{#if validationErrors.sessionName}
-				<div class="error-message">{validationErrors.sessionName}</div>
+			{#if viewModel.validationErrors.sessionName}
+				<div class="error-message">{viewModel.validationErrors.sessionName}</div>
 			{/if}
 		</div>
 
@@ -296,18 +79,18 @@
 			<select
 				id="claude-model"
 				class="form-select"
-				class:error={validationErrors.claudeModel}
-				bind:value={claudeModel}
-				onchange={() => clearFieldError('claudeModel')}
+				class:error={viewModel.validationErrors.claudeModel}
+				bind:value={viewModel.claudeModel}
+				onchange={() => viewModel.actions.clearFieldError('claudeModel')}
 			>
-				{#each claudeModels as model}
+				{#each viewModel.claudeModels as model}
 					<option value={model.id}>
 						{model.name} - {model.description}
 					</option>
 				{/each}
 			</select>
-			{#if validationErrors.claudeModel}
-				<div class="error-message">{validationErrors.claudeModel}</div>
+			{#if viewModel.validationErrors.claudeModel}
+				<div class="error-message">{viewModel.validationErrors.claudeModel}</div>
 			{/if}
 		</div>
 
@@ -315,20 +98,20 @@
 		<div class="form-group" data-testid="claude-auth">
 			<label class="form-label">
 				Claude AI Authentication
-				{#if claudeAuthStatus === 'checking'}
+				{#if viewModel.claudeAuthStatus === 'checking'}
 					<span class="auth-status checking">🔍 Checking</span>
-				{:else if claudeAuthStatus === 'ready'}
+				{:else if viewModel.claudeAuthStatus === 'ready'}
 					<span class="auth-status ready">✅ Ready</span>
-				{:else if claudeAuthStatus === 'needed'}
+				{:else if viewModel.claudeAuthStatus === 'needed'}
 					<span class="auth-status needed">🤖 Authentication required</span>
-				{:else if claudeAuthStatus === 'authenticating'}
+				{:else if viewModel.claudeAuthStatus === 'authenticating'}
 					<span class="auth-status authenticating">⏳ Authenticating</span>
-				{:else if claudeAuthStatus === 'error'}
+				{:else if viewModel.claudeAuthStatus === 'error'}
 					<span class="auth-status error">❌ Error</span>
 				{/if}
 			</label>
 
-			{#if claudeAuthStatus === 'needed'}
+			{#if viewModel.claudeAuthStatus === 'needed'}
 				<div class="auth-panel">
 					<div class="auth-message">
 						Click the button below to start the authentication process.
@@ -336,22 +119,22 @@
 					<button 
 						type="button" 
 						class="auth-button" 
-						onclick={startClaudeAuth}
+						onclick={viewModel.actions.startClaudeAuth}
 						data-testid="start-claude-auth"
 					>
 						🚀 Start Authentication
 					</button>
 				</div>
-			{:else if claudeAuthStatus === 'authenticating'}
+			{:else if viewModel.claudeAuthStatus === 'authenticating'}
 				<div class="auth-panel">
-					{#if oauthUrl}
+					{#if viewModel.oauthUrl}
 						<div class="auth-step">
 							<div class="auth-message">
 								Visit this URL to get your authentication token:
 							</div>
 							<div class="oauth-url">
-								<a href={oauthUrl} target="_blank" class="oauth-link">
-									{oauthUrl}
+								<a href={viewModel.oauthUrl} target="_blank" class="oauth-link">
+									{viewModel.oauthUrl}
 								</a>
 							</div>
 							<div class="token-input-section">
@@ -362,13 +145,13 @@
 										id="user-token"
 										class="form-input token-input"
 										placeholder="Paste authentication token..."
-										bind:value={userToken}
+										bind:value={viewModel.userToken}
 									/>
 									<button 
 										type="button" 
 										class="submit-token-button" 
-										onclick={submitAuthToken}
-										disabled={!userToken.trim()}
+										onclick={viewModel.actions.submitAuthToken}
+										disabled={!viewModel.userToken.trim()}
 										data-testid="submit-auth-token"
 									>
 										Submit
@@ -382,21 +165,21 @@
 						</div>
 					{/if}
 				</div>
-			{:else if claudeAuthStatus === 'ready'}
+			{:else if viewModel.claudeAuthStatus === 'ready'}
 				<div class="auth-panel">
 					<div class="auth-message success">
 						Claude AI is authenticated and ready to use!
 					</div>
 				</div>
-			{:else if claudeAuthStatus === 'error'}
+			{:else if viewModel.claudeAuthStatus === 'error'}
 				<div class="auth-panel">
 					<div class="auth-message error">
-						{authError || 'Authentication failed'}
+						{viewModel.authError || 'Authentication failed'}
 					</div>
 					<button 
 						type="button" 
 						class="auth-button retry" 
-						onclick={checkClaudeAuth}
+						onclick={viewModel.actions.checkClaudeAuth}
 					>
 						🔄 Retry
 					</button>
@@ -412,15 +195,15 @@
 					type="number"
 					id="temperature"
 					class="form-input"
-					class:error={validationErrors.temperature}
-					bind:value={temperature}
-					oninput={() => clearFieldError('temperature')}
+					class:error={viewModel.validationErrors.temperature}
+					bind:value={viewModel.temperature}
+					oninput={() => viewModel.actions.clearFieldError('temperature')}
 					min="0"
 					max="1"
 					step="0.1"
 				/>
-				{#if validationErrors.temperature}
-					<div class="error-message">{validationErrors.temperature}</div>
+				{#if viewModel.validationErrors.temperature}
+					<div class="error-message">{viewModel.validationErrors.temperature}</div>
 				{:else}
 					<div class="help-text">0.0 = focused, 1.0 = creative</div>
 				{/if}
@@ -432,15 +215,15 @@
 					type="number"
 					id="max-tokens"
 					class="form-input"
-					class:error={validationErrors.maxTokens}
-					bind:value={maxTokens}
-					oninput={() => clearFieldError('maxTokens')}
+					class:error={viewModel.validationErrors.maxTokens}
+					bind:value={viewModel.maxTokens}
+					oninput={() => viewModel.actions.clearFieldError('maxTokens')}
 					min="1"
 					max="100000"
 					step="1"
 				/>
-				{#if validationErrors.maxTokens}
-					<div class="error-message">{validationErrors.maxTokens}</div>
+				{#if viewModel.validationErrors.maxTokens}
+					<div class="error-message">{viewModel.validationErrors.maxTokens}</div>
 				{:else}
 					<div class="help-text">Maximum response length</div>
 				{/if}
@@ -448,17 +231,16 @@
 		</div>
 
 		<!-- Working Directory -->
-		{#if projectId && socket}
+		{#if projectId}
 			<div class="form-group">
 				<label class="form-label">Working Directory</label>
-				<DirectoryPicker
-					bind:selectedPath={workingDirectory}
-					{socket}
-					{projectId}
-					placeholder="Select directory (optional)"
-					disabled={!socket}
+				<input
+					type="text"
+					class="form-input"
+					placeholder="e.g., /path/to/working/directory"
+					bind:value={viewModel.workingDirectory}
 				/>
-				<div class="help-text">Starting directory for Claude's file operations</div>
+				<div class="help-text">Starting directory for Claude's file operations (optional)</div>
 			</div>
 		{/if}
 
@@ -470,15 +252,15 @@
 			<textarea
 				id="system-prompt"
 				class="form-textarea"
-				class:error={validationErrors.systemPrompt}
+				class:error={viewModel.validationErrors.systemPrompt}
 				placeholder="You are Claude, an AI assistant..."
-				bind:value={systemPrompt}
-				oninput={() => clearFieldError('systemPrompt')}
+				bind:value={viewModel.systemPrompt}
+				oninput={() => viewModel.actions.clearFieldError('systemPrompt')}
 				rows="3"
 				maxlength="1000"
 			></textarea>
-			{#if validationErrors.systemPrompt}
-				<div class="error-message">{validationErrors.systemPrompt}</div>
+			{#if viewModel.validationErrors.systemPrompt}
+				<div class="error-message">{viewModel.validationErrors.systemPrompt}</div>
 			{:else}
 				<div class="help-text">Custom instructions for Claude's behavior</div>
 			{/if}
@@ -489,12 +271,12 @@
 			<label class="form-label">Capabilities</label>
 			<div class="checkbox-group">
 				<label class="checkbox-label">
-					<input type="checkbox" class="checkbox-input" bind:checked={enableCodeExecution} />
+					<input type="checkbox" class="checkbox-input" bind:checked={viewModel.enableCodeExecution} />
 					<span class="checkbox-text">Enable Code Execution</span>
 				</label>
 
 				<label class="checkbox-label">
-					<input type="checkbox" class="checkbox-input" bind:checked={enableFileAccess} />
+					<input type="checkbox" class="checkbox-input" bind:checked={viewModel.enableFileAccess} />
 					<span class="checkbox-text">Enable File Access</span>
 				</label>
 			</div>
@@ -505,7 +287,7 @@
 		<button
 			type="submit"
 			class="hidden-submit"
-			disabled={isValidating || Object.keys(validationErrors).length > 0 || claudeAuthStatus !== 'ready'}
+			disabled={viewModel.isValidating || Object.keys(viewModel.validationErrors).length > 0 || viewModel.claudeAuthStatus !== 'ready'}
 		>
 			Create Session
 		</button>
@@ -516,6 +298,7 @@
 	.claude-form {
 		width: 100%;
 		max-width: 600px;
+		overflow-y: auto;
 	}
 
 	.form-header {

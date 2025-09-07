@@ -107,7 +107,7 @@
 
 	onMount(async () => {
 		// Create Claude client
-		claudeClient = new ClaudeClient(io, { baseUrl: '' });
+		claudeClient = new ClaudeClient(io);
 
 		// Set up callbacks
 		viewModel.setCallbacks({
@@ -116,49 +116,19 @@
 		});
 
 		// Connect to session
-		viewModel.connect();
+		await viewModel.connect();
+		viewModel.initializeClaudeSession();
 
-		// Return cleanup function
-		return () => {
-			viewModel.disconnect();
-		};
+		
 	});
 
-
-
 	onDestroy(() => {
+			viewModel.disconnect();
 		if (claudeClient) {
 			claudeClient.disconnect();
 		}
 	});
 
-	/**
-	 * Initialize the Claude chat session
-	 */
-	async function initializeSession() {
-		try {
-			isReady = true;
-			error = null;
-
-			// Add welcome message
-			if (chatInterface) {
-				chatInterface.addMessage({
-					sender: 'assistant',
-					content: `Welcome to Claude Code! I'm ready to help you with your ${projectId ? `project "${projectId}"` : 'coding tasks'}.
-
-Use **Ctrl+K** to open the command menu for quick actions, or just type your questions directly.
-
-⚠️ You may need to authenticate with Claude CLI for full functionality. Type \`/login\` for instructions.`,
-					timestamp: new Date()
-				});
-			}
-
-			onSessionCreated({ sessionId, projectId });
-		} catch (err) {
-			error = err.message;
-			console.error('Failed to initialize Claude session:', err);
-		}
-	}
 
 	/**
 	 * Handle message sending from chat interface
@@ -264,18 +234,13 @@ Use **Ctrl+K** to open the command menu for quick actions, or just type your que
 			<p>{error}</p>
 			<button onclick={retry}>Retry Connection</button>
 		</div>
-	{:else if isConnecting || !isReady}
+	{:else if isConnecting || needsTerminalAuth}
 		<div class="loading">
 			<h3>Connecting to Claude...</h3>
-			<p>
-				{#if needsClaudeAuth}
-					Checking Claude authentication...
-				{:else}
-					Setting up your AI coding assistant...
-				{/if}
-			</p>
-			<ClaudeCreationForm {projectId} />
+			<p>Setting up your AI coding assistant...</p>
 		</div>
+	{:else if needsClaudeAuth && !viewModel.isClaudeAuthenticated}
+		<ClaudeCreationForm {projectId} />
 	{:else}
 		<!-- Main chat interface -->
 		<div class="chat-container">
@@ -299,12 +264,13 @@ Use **Ctrl+K** to open the command menu for quick actions, or just type your que
 
 <style>
 	.claude-session {
-		height: 100%;
+		max-height: 60svh;
 		display: flex;
 		flex-direction: column;
 		background: var(--bg-dark);
 		color: var(--text-primary);
 		font-family: var(--font-sans);
+		overflow: auto;
 	}
 
 	.error,

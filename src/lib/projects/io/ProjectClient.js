@@ -10,40 +10,44 @@ export class ProjectClient extends BaseClient {
         this.terminalKey = config.terminalKey;
     }
 
-    async onConnect() {
+    onConnect() {
         console.log('[PROJECT-CLIENT] Connected, attempting authentication with key:', this.terminalKey ? 'present' : 'missing');
         // Authenticate with the server when connecting
         if (this.terminalKey) {
-            try {
-                await this.authenticate();
+            this.authenticate((error, response) => {
+                if (error) {
+                    console.error('[PROJECT-CLIENT] Authentication failed:', error);
+                    return;
+                }
+                
                 // After successful authentication, trigger initial project load if callback is set
                 if (this.onAuthenticated) {
                     this.onAuthenticated();
                 }
-            } catch (error) {
-                console.error('[PROJECT-CLIENT] Authentication failed:', error);
-            }
+            });
         } else {
             console.warn('[PROJECT-CLIENT] No terminal key provided');
         }
     }
 
-    async authenticate() {
+    authenticate(callback) {
         console.log('[PROJECT-CLIENT] Sending auth request with key:', this.terminalKey);
-        return new Promise((resolve, reject) => {
-            this.emit('auth', this.terminalKey, (response) => {
-                console.log('[PROJECT-CLIENT] Auth response received:', response);
-                if (response?.success) {
-                    this.authenticated = true;
-                    console.log('[PROJECT-CLIENT] Authenticated successfully');
-                    resolve(response);
-                } else {
-                    this.authenticated = false;
-                    console.error('[PROJECT-CLIENT] Authentication failed:', response?.error || 'No response');
-                    reject(new Error(response?.error || 'Authentication failed'));
-                }
-            });
+        this.emit('auth', this.terminalKey, (response) => {
+            console.log('[PROJECT-CLIENT] Auth response received:', response);
+            if (response?.success) {
+                this.authenticated = true;
+                console.log('[PROJECT-CLIENT] Authenticated successfully');
+            } else {
+                this.authenticated = false;
+                console.error('[PROJECT-CLIENT] Authentication failed:', response?.error || 'No response');
+            }
+            this._handleResponse(callback)(response);
         });
+    }
+
+    // Optional Promise version for backward compatibility
+    authenticateAsync() {
+        return this._promisify(this.authenticate.bind(this));
     }
 
     setupEventListeners() {
@@ -98,87 +102,86 @@ export class ProjectClient extends BaseClient {
         }
     }
 
-    async list() {
+    list(callback) {
         console.log('[PROJECT-CLIENT] Requesting project list...');
-        return new Promise((resolve, reject) => {
-            this.emit('projects:list', (response) => {
-                console.log('[PROJECT-CLIENT] Project list response:', response);
-                if (response?.success) {
-                    this.projects = response.projects || [];
-                    console.log('[PROJECT-CLIENT] Projects loaded:', this.projects.length);
-                    resolve(response);
-                } else {
-                    console.error('[PROJECT-CLIENT] Failed to list projects:', response?.error);
-                    reject(new Error(response?.error || 'Failed to list projects'));
-                }
-            });
+        this.emit('projects:list', (response) => {
+            console.log('[PROJECT-CLIENT] Project list response:', response);
+            if (response?.success) {
+                this.projects = response.projects || [];
+                console.log('[PROJECT-CLIENT] Projects loaded:', this.projects.length);
+            } else {
+                console.error('[PROJECT-CLIENT] Failed to list projects:', response?.error);
+            }
+            this._handleResponse(callback)(response);
         });
     }
 
-    async create(data) {
-        return new Promise((resolve, reject) => {
-            this.emit('projects:create', {
-                name: data.name || 'Untitled Project',
-                description: data.description || ''
-            }, (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to create project'));
-                }
-            });
-        });
+    // Optional Promise version for backward compatibility
+    listAsync() {
+        return this._promisify(this.list.bind(this));
     }
 
-    async get(projectId) {
-        return new Promise((resolve, reject) => {
-            this.emit('projects:get', { projectId }, (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to get project'));
-                }
-            });
-        });
+    create(data, callback) {
+        this.emit('projects:create', {
+            name: data.name || 'Untitled Project',
+            description: data.description || ''
+        }, this._handleResponse(callback));
     }
 
-    async update(projectId, updates) {
-        return new Promise((resolve, reject) => {
-            this.emit('projects:update', { projectId, updates }, (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to update project'));
-                }
-            });
-        });
+    // Optional Promise version for backward compatibility
+    createAsync(data) {
+        return this._promisify(this.create.bind(this), data);
     }
 
-    async delete(projectId) {
-        return new Promise((resolve, reject) => {
-            this.emit('projects:delete', { projectId }, (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to delete project'));
-                }
-            });
-        });
+    get(projectId, callback) {
+        this.emit('projects:get', { projectId }, this._handleResponse(callback));
     }
 
-    async setCurrentProject(projectId) {
-        try {
-            const result = await this.get(projectId);
+    // Optional Promise version for backward compatibility
+    getAsync(projectId) {
+        return this._promisify(this.get.bind(this), projectId);
+    }
+
+    update(projectId, updates, callback) {
+        this.emit('projects:update', { projectId, updates }, this._handleResponse(callback));
+    }
+
+    // Optional Promise version for backward compatibility
+    updateAsync(projectId, updates) {
+        return this._promisify(this.update.bind(this), projectId, updates);
+    }
+
+    delete(projectId, callback) {
+        this.emit('projects:delete', { projectId }, this._handleResponse(callback));
+    }
+
+    // Optional Promise version for backward compatibility
+    deleteAsync(projectId) {
+        return this._promisify(this.delete.bind(this), projectId);
+    }
+
+    setCurrentProject(projectId, callback) {
+        this.get(projectId, (error, result) => {
+            if (error) {
+                console.error('[PROJECT-CLIENT] Set current project failed:', error);
+                callback(error, null);
+                return;
+            }
+            
             if (result.success) {
                 this.currentProject = result.project;
-                return result;
+                callback(null, result);
             } else {
-                throw new Error(result.error);
+                const err = new Error(result.error);
+                console.error('[PROJECT-CLIENT] Set current project failed:', err);
+                callback(err, null);
             }
-        } catch (error) {
-            console.error('[PROJECT-CLIENT] Set current project failed:', error);
-            throw error;
-        }
+        });
+    }
+
+    // Optional Promise version for backward compatibility
+    setCurrentProjectAsync(projectId) {
+        return this._promisify(this.setCurrentProject.bind(this), projectId);
     }
 
     validateProject(name, description = '') {

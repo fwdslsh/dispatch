@@ -10,6 +10,12 @@ export class ShellHandler extends BaseHandler {
     }
 
     setupEventHandlers(socket) {
+        // Add auth event handler for namespace-specific authentication
+        socket.on('auth', (key, callback) => {
+            console.log(`[SHELL] Auth request from socket ${socket.id} with key: ${key ? 'present' : 'missing'}`);
+            this.authHandler.handleLogin(socket, key, callback);
+        });
+
         socket.on('shell:create', this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket));
         socket.on('shell:connect', this.authHandler.withAuth(this.handleConnect.bind(this, socket), socket));
         socket.on('shell:execute', this.authHandler.withAuth(this.handleExecute.bind(this, socket), socket));
@@ -39,9 +45,13 @@ export class ShellHandler extends BaseHandler {
             };
 
             // Create shell-specific session
-            const sessionId = this.terminalManager.createSessionInProject(`shell-${Date.now()}`, sessionOptions);
+            const sessionData = await this.terminalManager.createSessionInProject(`shell-${Date.now()}`, sessionOptions);
+            const sessionId = sessionData.id;
 
             if (sessionId) {
+                // Attach socket to terminal session for PTY I/O
+                await this.terminalManager.attachToSession(socket, { sessionId });
+
                 const shellSession = {
                     sessionId,
                     projectId: sessionOptions.projectId,
@@ -51,6 +61,29 @@ export class ShellHandler extends BaseHandler {
                 };
 
                 this.shellSessions.set(socket.id, shellSession);
+
+                // Set up shell-specific input handling
+                const handleInput = (data) => {
+                    const session = this.shellSessions.get(socket.id);
+                    if (session?.sessionId === sessionId) {
+                        this.terminalManager.sendInput(sessionId, data);
+                    }
+                };
+
+                const handleResize = (dims) => {
+                    const session = this.shellSessions.get(socket.id);
+                    if (session?.sessionId === sessionId) {
+                        this.terminalManager.resize(sessionId, dims.cols, dims.rows);
+                    }
+                };
+
+                // Remove any existing handlers first
+                socket.removeAllListeners('shell:input');
+                socket.removeAllListeners('shell:resize');
+
+                // Add new handlers
+                socket.on('shell:input', handleInput);
+                socket.on('shell:resize', handleResize);
 
                 console.log(`[SHELL] Created shell session ${sessionId} for socket ${socket.id}`);
 
@@ -94,15 +127,15 @@ export class ShellHandler extends BaseHandler {
 
             console.log(`[SHELL] Connecting socket ${socket.id} to shell session ${sessionId}`);
 
-            const success = await this.terminalManager.attachToSession(sessionId);
+            const success = await this.terminalManager.attachToSession(socket, { sessionId });
 
             if (success) {
-                const sessionInfo = this.terminalManager.sessions[sessionId];
+                const session = this.terminalManager.sessions.get(sessionId);
                 
                 const shellSession = {
                     sessionId,
-                    shell: sessionInfo?.shell || '/bin/bash',
-                    workingDirectory: sessionInfo?.workingDirectory,
+                    shell: session?.shell || '/bin/bash',
+                    workingDirectory: session?.workingDirectory,
                     connectedAt: new Date().toISOString()
                 };
 

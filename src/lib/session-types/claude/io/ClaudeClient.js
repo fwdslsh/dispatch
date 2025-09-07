@@ -91,10 +91,12 @@ export class ClaudeClient extends BaseClient {
     async checkAuth() {
         return new Promise((resolve, reject) => {
             this.emit('claude:auth', (response) => {
-                if (response.success) {
+                console.log('checkAuth response', response);
+                if (response && response.success !== undefined) {
+                    // Always resolve if we got a valid response, regardless of authentication status
                     resolve(response);
                 } else {
-                    reject(new Error(response.error || 'Authentication check failed'));
+                    reject(new Error(response?.error || 'Authentication check failed'));
                 }
             });
         });
