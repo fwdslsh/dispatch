@@ -9,3 +9,5 @@ export function load() {
 		terminalKey: hasTerminalKey ? process.env.TERMINAL_KEY : ''
 	};
 }
+
+export const ssr = false;

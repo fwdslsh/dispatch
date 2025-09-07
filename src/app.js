@@ -55,6 +55,9 @@ async function initializeDirectories() {
 }
 
 async function startServer() {
+	// Print HOME environment variable
+	console.log(`HOME environment variable: ${process.env.HOME || 'not set'}`);
+	
 	// Initialize directories before starting server
 	await initializeDirectories();
 

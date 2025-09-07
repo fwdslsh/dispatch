@@ -10,6 +10,12 @@ export class ClaudeHandler extends BaseHandler {
     }
 
     setupEventHandlers(socket) {
+        // Add auth event handler for namespace-specific authentication
+        socket.on('auth', (key, callback) => {
+            console.log(`[CLAUDE] Auth request from socket ${socket.id} with key: ${key ? 'present' : 'missing'}`);
+            this.authHandler.handleLogin(socket, key, callback);
+        });
+
         socket.on('claude:auth', this.handleAuth.bind(this, socket)); // Remove auth requirement for this endpoint
         socket.on('claude:create', this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket));
         socket.on('claude:send', this.authHandler.withAuth(this.handleSend.bind(this, socket), socket));
@@ -337,7 +343,7 @@ ${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you
             const terminalManager = new TerminalManager();
 
             // Create a temporary session for authentication
-            const authSessionId = await terminalManager.createSessionInProject('claude-auth', {
+            const ptyProcess = await terminalManager.createSessionInProject('claude-auth', {
                 name: 'Claude Authentication',
                 mode: 'shell',
                 cols: 80,
@@ -346,15 +352,16 @@ ${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you
                 shell: process.env.SHELL || '/bin/bash'
             });
 
-            if (!authSessionId) {
+            if (!ptyProcess) {
                 throw new Error('Failed to create authentication session');
             }
 
             // Store the auth session for this socket
             const authSession = {
-                id: authSessionId,
+                id: socket.id,
                 terminalManager,
                 socket,
+                process: ptyProcess,
                 step: 'running-setup',
                 outputBuffer: '',
                 urlExtracted: false
@@ -365,24 +372,27 @@ ${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you
                 this.authSessions = new Map();
             }
             this.authSessions.set(socket.id, authSession);
-
+            
+            console.log(`[CLAUDE] Auth session created: ${authSession.id} for socket ${socket.id}`, authSession);
             // Get the terminal session and set up output monitoring
-            const terminalSession = authSession.terminalManager.sessions.get(authSessionId);
-            if (terminalSession && terminalSession.ptyProcess) {
+           // const terminalSession = terminalManager.sessions.get(authSession.id);
+            if (authSession && authSession.process) {
                 // Monitor output for OAuth URL
-                terminalSession.ptyProcess.onData((data) => {
-                    this.handleAuthOutput(socket.id, data);
+                authSession.process.ptyProcess.onData((data) => {
+                    this.handleAuthOutput(socket, data);
                 });
 
                 // Send the command to start authentication
                 setTimeout(() => {
-                    terminalSession.ptyProcess.write('claude setup-token\r');
+                    authSession.process.ptyProcess.write('claude setup-token\r');
                 }, 500);
+            } else {
+                console.warn('[CLAUDE] Terminal session or PTY process not found for auth session');
             }
 
             const response = {
                 success: true,
-                authSessionId,
+                authSessionId: authSession.id,
                 message: 'Authentication flow started'
             };
 
@@ -405,14 +415,16 @@ ${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you
     /**
      * Handle authentication output and extract OAuth URL
      */
-    handleAuthOutput(socketId, data) {
-        const authSession = this.authSessions?.get(socketId);
+    handleAuthOutput(socket, data) {
+        console.log(`[CLAUDE] Auth output for socket ${socket.id}:`, data);
+        const authSession = this.authSessions?.get(socket.id);
         if (!authSession) return;
 
         authSession.outputBuffer += data;
 
+        console.log(`[CLAUDE] Current auth output buffer for socket ${socket.id}:`, authSession);
         // Emit raw output for debugging
-        this.emitToSocket(authSession.socket, 'claude:auth-output', { data });
+        this.emitToSocket(socket, 'claude:auth-output', { data });
 
         // Look for OAuth URL in the output
         if (!authSession.urlExtracted) {
@@ -425,7 +437,7 @@ ${claudeSession.isAuthenticated ? "✅ I'm authenticated and ready to assist you
                 console.log(`[CLAUDE] OAuth URL extracted: ${oauthUrl}`);
 
                 // Emit the OAuth URL to the client
-                this.emitToSocket(authSession.socket, 'claude:auth-url', {
+                this.emitToSocket(socket, 'claude:auth-url', {
                     url: oauthUrl,
                     message: 'Please visit this URL to get your authentication token'
                 });

@@ -5,9 +5,10 @@
   The parent component (ShellSession) handles all the socket communication via its ViewModel.
 -->
 <script>
-	import { Xterm } from '@battlefieldduck/xterm-svelte';
+	import { Terminal } from '@xterm/xterm';
 	import { FitAddon } from '@xterm/addon-fit';
 	import { onMount, onDestroy } from 'svelte';
+	import '@xterm/xterm/css/xterm.css';
 
 	let { socket, sessionId, options = {}, initialContent = '' } = $props();
 
@@ -56,14 +57,20 @@
 	});
 
 	onMount(() => {
-		if (terminal) {
-			// Initialize fit addon
-			fitAddon = new FitAddon();
-			terminal.loadAddon(fitAddon);
-			
-			if (socket && sessionId) {
-				setupTerminal();
-			}
+		// Create terminal instance
+		terminal = new Terminal(terminalOptions);
+		
+		// Initialize fit addon
+		fitAddon = new FitAddon();
+		terminal.loadAddon(fitAddon);
+		
+		// Open terminal in DOM element
+		if (terminalElement) {
+			terminal.open(terminalElement);
+		}
+		
+		if (socket && sessionId) {
+			setupTerminal();
 		}
 	});
 
@@ -169,13 +176,17 @@
 		// Clean up terminal setup
 		cleanupTerminal();
 		
+		// Dispose of terminal instance
+		if (terminal) {
+			terminal.dispose();
+		}
+		
 		// Clean up window listener
 		window.removeEventListener('resize', fitTerminal);
 	});
 </script>
 
 <div class="terminal-container" bind:this={terminalElement}>
-	<Xterm bind:terminal options={terminalOptions} />
 </div>
 
 <style>

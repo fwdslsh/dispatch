@@ -83,7 +83,8 @@ export class TerminalManager {
 				id: sessionId,
 				pid: ptyProcess.pid,
 				shell,
-				workingDirectory
+				workingDirectory,
+				ptyProcess
 			};
 		} catch (error) {
 			console.error('Failed to create terminal session:', error);

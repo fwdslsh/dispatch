@@ -1,8 +1,5 @@
 /**
- * ClaudeCreationFormViewModel - Handles Claude session creation form logic
- *
- * Manages form state, validation, and Claude authentication using ClaudeClient.
- * UI components should be thin and only handle presentation.
+ * ClaudeCreationFormViewModel - Simplified form logic for Claude session creation
  */
 
 import { ClaudeClient } from '../io/ClaudeClient.js';
@@ -10,7 +7,7 @@ import { io } from 'socket.io-client';
 
 export class ClaudeCreationFormViewModel {
 	// Private fields
-	#claudeClient = null;
+	#claudeClient = new ClaudeClient(io, {});
 	#onError = null;
 
 	// Form state
@@ -41,7 +38,6 @@ export class ClaudeCreationFormViewModel {
 	// Configuration
 	projectId = $state('');
 	sessionType = $state(null);
-	socket = $state(null);
 
 	// Available Claude models
 	claudeModels = [
@@ -79,26 +75,14 @@ export class ClaudeCreationFormViewModel {
 	/**
 	 * Initialize the view model
 	 */
-	async initialize() {
+	initialize() {
 		console.log('ClaudeCreationFormViewModel: Starting initialization...');
-		try {
-			// Initialize Claude client
-			console.log('ClaudeCreationFormViewModel: Creating ClaudeClient...');
-			this.#claudeClient = new ClaudeClient(io);
+		
+		// Set up authentication event handlers
+		this.#setupAuthenticationHandlers();
 
-			// Set up authentication event handlers
-			console.log('ClaudeCreationFormViewModel: Setting up authentication handlers...');
-			this.#setupAuthenticationHandlers();
-
-			// Check initial authentication status
-			console.log('ClaudeCreationFormViewModel: Checking Claude auth...');
-			await this.checkClaudeAuth();
-			console.log('ClaudeCreationFormViewModel: Initialization complete');
-		} catch (error) {
-			console.error('Failed to initialize Claude creation form:', error);
-			this.claudeAuthStatus = 'error';
-			this.authError = error.message;
-		}
+		// Check initial authentication status
+		this.checkClaudeAuth();
 	}
 
 	/**
@@ -107,71 +91,65 @@ export class ClaudeCreationFormViewModel {
 	cleanup() {
 		if (this.#claudeClient) {
 			this.#claudeClient.disconnect();
-			this.#claudeClient = null;
 		}
 	}
 
 	/**
 	 * Check Claude authentication status
 	 */
-	async checkClaudeAuth() {
-		console.log('ClaudeCreationFormViewModel: checkClaudeAuth called, client exists:', !!this.#claudeClient);
+	checkClaudeAuth() {
 		if (!this.#claudeClient) return;
 
-		try {
-			console.log('ClaudeCreationFormViewModel: Setting auth status to checking...');
-			this.claudeAuthStatus = 'checking';
-			console.log('ClaudeCreationFormViewModel: Calling claudeClient.checkAuth()...');
-			const response = await this.#claudeClient.checkAuth();
-			console.log('ClaudeCreationFormViewModel: checkAuth response:', response);
+		this.claudeAuthStatus = 'checking';
+		this.#claudeClient.checkAuth((error, response) => {
+			if (error) {
+				console.error('Failed to check Claude auth:', error);
+				this.claudeAuthStatus = 'error';
+				this.authError = error.message;
+				return;
+			}
 			
 			if (response.authenticated) {
-				console.log('ClaudeCreationFormViewModel: Auth successful, setting status to ready');
 				this.claudeAuthStatus = 'ready';
 			} else {
-				console.log('ClaudeCreationFormViewModel: Auth needed, setting status to needed');
 				this.claudeAuthStatus = 'needed';
 			}
-		} catch (error) {
-			console.error('Failed to check Claude auth:', error);
-			this.claudeAuthStatus = 'error';
-			this.authError = error.message;
-		}
+		});
 	}
 
 	/**
 	 * Start Claude authentication process
 	 */
-	async startClaudeAuth() {
+	startClaudeAuth() {
 		if (!this.#claudeClient) return;
 
-		try {
-			this.claudeAuthStatus = 'authenticating';
-			this.authError = '';
-			this.oauthUrl = '';
-			this.userToken = '';
+		this.claudeAuthStatus = 'authenticating';
+		this.authError = '';
+		this.oauthUrl = '';
+		this.userToken = '';
 
-			await this.#claudeClient.startAuth();
-		} catch (error) {
-			console.error('Failed to start Claude auth:', error);
-			this.claudeAuthStatus = 'error';
-			this.authError = error.message;
-		}
+		this.#claudeClient.startAuth((error, response) => {
+			if (error) {
+				console.error('Failed to start Claude auth:', error);
+				this.claudeAuthStatus = 'error';
+				this.authError = error.message;
+			}
+		});
 	}
 
 	/**
 	 * Submit authentication token
 	 */
-	async submitAuthToken() {
+	submitAuthToken() {
 		if (!this.#claudeClient || !this.userToken.trim()) return;
 
-		try {
-			await this.#claudeClient.submitToken({ token: this.userToken.trim() });
+		this.#claudeClient.submitToken({ token: this.userToken.trim() }, (error, response) => {
+			if (error) {
+				console.error('Failed to submit auth token:', error);
+				this.authError = error.message;
+			}
 			// Response will come through auth-completed event
-		} catch (error) {
-			console.error('Failed to submit auth token:', error);
-			this.authError = error.message;
-		}
+		});
 	}
 
 	/**

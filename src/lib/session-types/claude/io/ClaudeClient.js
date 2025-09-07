@@ -88,131 +88,106 @@ export class ClaudeClient extends BaseClient {
         }
     }
 
-    async checkAuth() {
-        return new Promise((resolve, reject) => {
-            this.emit('claude:auth', (response) => {
-                console.log('checkAuth response', response);
-                if (response && response.success !== undefined) {
-                    // Always resolve if we got a valid response, regardless of authentication status
-                    resolve(response);
-                } else {
-                    reject(new Error(response?.error || 'Authentication check failed'));
-                }
-            });
+    checkAuth(callback) {
+        console.log('checkAuth called with callback');
+        this.emit('claude:auth', (response) => {
+            console.log('checkAuth response received:', response);
+            if (response && response.success !== false) {
+                console.log('checkAuth success, calling callback with:', response);
+                callback(null, response);
+            } else {
+                console.log('checkAuth failed, calling callback with error:', response);
+                callback(new Error(response?.error || 'Auth check failed'), null);
+            }
         });
     }
 
-    async createSession(projectId = null, sessionOptions = {}) {
-        return new Promise((resolve, reject) => {
-            this.emit('claude:create', { projectId, sessionOptions }, (response) => {
-                if (response.success) {
-                    this.currentSession = response.session;
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to create Claude session'));
-                }
-            });
+
+    createSession(projectId = null, sessionOptions = {}, callback) {
+        const params = { projectId, sessionOptions };
+        this.emit('claude:create', params, (response) => {
+            if (response && response.success) {
+                this.currentSession = response.session;
+            }
+            this._handleResponse(callback)(response);
         });
     }
 
-    async sendMessage(message) {
+
+    sendMessage(message, callback) {
         if (!this.currentSession?.id) {
-            throw new Error('No active Claude session');
+            callback(new Error('No active Claude session'), null);
+            return;
         }
 
-        return new Promise((resolve, reject) => {
-            this.emit('claude:send', {
-                message,
-                sessionId: this.currentSession.id
-            }, (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to send message'));
-                }
-            });
-        });
+        const params = {
+            message,
+            sessionId: this.currentSession.id
+        };
+        this.emit('claude:send', params, this._handleResponse(callback));
     }
 
-    async getHistory() {
+
+    getHistory(callback) {
         if (!this.currentSession?.id) {
-            throw new Error('No active Claude session');
+            callback(new Error('No active Claude session'), null);
+            return;
         }
 
-        return new Promise((resolve, reject) => {
-            this.emit('claude:history', {
-                sessionId: this.currentSession.id
-            }, (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to get chat history'));
-                }
-            });
-        });
+        const params = { sessionId: this.currentSession.id };
+        this.emit('claude:history', params, this._handleResponse(callback));
     }
 
-    async clearChat() {
+
+    clearChat(callback) {
         if (!this.currentSession?.id) {
-            throw new Error('No active Claude session');
+            callback(new Error('No active Claude session'), null);
+            return;
         }
 
-        return new Promise((resolve, reject) => {
-            this.emit('claude:clear', {
-                sessionId: this.currentSession.id
-            }, (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to clear chat'));
-                }
-            });
-        });
+        const params = { sessionId: this.currentSession.id };
+        this.emit('claude:clear', params, this._handleResponse(callback));
     }
 
-    async endSession() {
+
+    endSession(callback) {
         if (!this.currentSession?.id) {
-            throw new Error('No active Claude session');
+            callback(new Error('No active Claude session'), null);
+            return;
         }
 
         const sessionId = this.currentSession.id;
+        this.emit('claude:end', { sessionId }, (response) => {
+            if (response && response.success) {
+                this.currentSession = null;
+            }
+            this._handleResponse(callback)(response);
+        });
+    }
 
-        return new Promise((resolve, reject) => {
-            this.emit('claude:end', { sessionId }, (response) => {
-                if (response.success) {
-                    this.currentSession = null;
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to end session'));
-                }
-            });
+
+    // Application authentication (TERMINAL_KEY)
+    authenticate(key, callback) {
+        this.emit('auth', key, (response) => {
+            if (response && response.success) {
+                console.log('Claude client authenticated with application');
+            } else {
+                console.error('Claude client application authentication failed:', response?.error);
+            }
+            callback(response);
         });
     }
 
     // New authentication methods
-    async startAuth() {
-        return new Promise((resolve, reject) => {
-            this.emit('claude:start-auth', (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to start authentication'));
-                }
-            });
-        });
+    startAuth(callback) {
+        this.emit('claude:start-auth', this._handleResponse(callback));
     }
 
-    async submitToken(data) {
-        return new Promise((resolve, reject) => {
-            this.emit('claude:submit-token', data, (response) => {
-                if (response.success) {
-                    resolve(response);
-                } else {
-                    reject(new Error(response.error || 'Failed to submit token'));
-                }
-            });
-        });
+
+    submitToken(data, callback) {
+        this.emit('claude:submit-token', data, this._handleResponse(callback));
     }
+
 
     getCurrentSession() {
         return this.currentSession;

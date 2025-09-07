@@ -5,7 +5,7 @@
 	"license": "CC-BY-4.0",
 	"type": "module",
 	"scripts": {
-		"dev": "TERMINAL_KEY='testkey12345' vite dev --host",
+		"dev": "TERMINAL_KEY='testkey12345' DISPATCH_HOME='~/dispatch-home' vite dev --host",
 		"dev:server": "TERMINAL_KEY='testkey12345' node src/dev-server.js",
 		"dev:no-key": "TERMINAL_KEY='' vite dev --host",
 		"dev:tunnel": "TERMINAL_KEY=testkey12345 ENABLE_TUNNEL=true vite dev --host",

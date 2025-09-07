@@ -16,7 +16,7 @@ const __dirname = dirname(__filename);
 export class ClaudeCodeService {
 	constructor(options = {}) {
 		// Get the absolute path to the CLI executable
-		const cliPath = resolve(__dirname, '../../../node_modules/.bin/claude');
+		const cliPath = resolve(process.cwd(), './node_modules/.bin/claude');
 
 		this.defaultOptions = {
 			maxTurns: 10,
@@ -36,8 +36,8 @@ export class ClaudeCodeService {
 	isAuthenticated() {
 		try {
 			const homeDir = os.homedir();
-			const credentialsPath = path.join(homeDir, '.claude', 'credentials.json');
-
+			const credentialsPath = path.join(homeDir, '.claude', '.credentials.json');
+			console.log('Checking Claude authentication at:', credentialsPath);
 			// Check if credentials file exists
 			if (!fs.existsSync(credentialsPath)) {
 				return false;
@@ -49,9 +49,9 @@ export class ClaudeCodeService {
 
 			// Check if token property exists and has a value
 			return !!(
-				credentials.token &&
-				typeof credentials.token === 'string' &&
-				credentials.token.trim().length > 0
+				credentials.claudeAiOauth?.accessToken &&
+				typeof credentials.claudeAiOauth.accessToken === 'string' &&
+				credentials.claudeAiOauth.accessToken.trim().length > 0
 			);
 		} catch (error) {
 			console.error('Error checking Claude authentication:', error);
