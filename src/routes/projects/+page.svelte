@@ -23,8 +23,8 @@
 
 <Container>
 	{#snippet header()}
-		<HeaderToolbar>
-			{#snippet left()}
+		<div class="page-header">
+			<div class="page-header__title">
 				<button
 					class="btn-icon-only button-danger"
 					onclick={() => logout()}
@@ -33,19 +33,19 @@
 				>
 					<ExitIcon />
 				</button>
-			{/snippet}
-			{#snippet right()}
-				<div class="header-title-section">
-					<h2>Projects</h2>
-					<Button variant="primary" size="small" onclick={handleCreateProject}>
-						{#snippet icon()}
-							<StartSession />
-						{/snippet}
-						Create Project
-					</Button>
-				</div>
-			{/snippet}
-		</HeaderToolbar>
+			</div>
+			<div class="page-header__title">
+				<h2>Projects</h2>
+			</div>
+			<div class="page-header__actions">
+				<Button variant="primary" size="small" onclick={handleCreateProject}>
+					{#snippet icon()}
+						<StartSession />
+					{/snippet}
+					Create Project
+				</Button>
+			</div>
+		</div>
 	{/snippet}
 
 	{#snippet children()}
@@ -55,14 +55,9 @@
 </Container>
 
 <style>
-	.header-title-section {
-		display: flex;
-		align-items: center;
-		gap: var(--space-md);
-	}
-
-	.header-title-section h2 {
-		margin: 0;
-		color: var(--text-primary);
+	/* Page-specific layout adjustments */
+	:global(.container) {
+		max-width: 1200px;
+		container-type: inline-size;
 	}
 </style>

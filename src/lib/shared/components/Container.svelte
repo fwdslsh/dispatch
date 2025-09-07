@@ -26,132 +26,90 @@
 
 <style>
 	.container {
-		--aug-border-opacity: 0.5;
-		max-width: calc(100svw - calc(var(--space-lg) * 2));
-		height: calc(100svh - calc(var(--space-lg) * 2));
-		margin: 0 auto;
-		margin-top: var(--space-xl);
+		--aug-border-opacity: 0.3;
+		max-width: calc(100svw - var(--space-xl));
+		height: calc(100svh - var(--space-xl));
+		margin: var(--space-lg) auto 0;
 		width: 100%;
-		backdrop-filter: blur(10px);
+		backdrop-filter: blur(15px);
 		display: flex;
 		flex-direction: column;
-
-		/* Enhanced glassmorphism effect */
-		/* background: rgba(26, 26, 26, 0.137); */
-		/* box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      0 0 20px rgba(0, 255, 136, 0.05),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(0, 255, 136, 0.15);
-     */
 		transition: all 0.3s ease;
+		container-type: inline-size;
+		
+		/* Enhanced glassmorphism */
+		background: rgba(26, 26, 26, 0.1);
+		box-shadow: 
+			0 8px 32px rgba(0, 0, 0, 0.2),
+			0 0 20px rgba(0, 255, 136, 0.03),
+			inset 0 1px 0 rgba(255, 255, 255, 0.03);
 	}
-
-	/* .container:hover {
-    box-shadow: 
-      0 12px 40px rgba(0, 0, 0, 0.4),
-      0 0 30px rgba(0, 255, 136, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    border-color: rgba(0, 255, 136, 0.25);
-  } */
 
 	.container-header {
 		flex-shrink: 0;
 		margin-inline: calc(var(--space-md) * -1);
 	}
 
-	/* Ensure header can transform outside container bounds on mobile */
-	@media (max-width: 800px) {
-		.container-header {
-			position: relative;
-			z-index: 101;
-			overflow: visible;
-		}
-	}
-
 	.container-content {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		margin-inline: -0.5rem;
+		overflow: hidden;
+		padding: var(--space-md);
 	}
 
 	.container-footer {
 		flex-shrink: 0;
 		padding: var(--space-md);
+		border-top: 1px solid var(--border);
+		background: rgba(26, 26, 26, 0.8);
 	}
 
-	/* Default desktop layout - use normal container */
+	/* Default desktop layout */
 	.container:not(.session-container) .container-content {
-		min-height: 400px; /* Minimum height for content functionality */
+		min-height: 400px;
+		overflow: auto;
 	}
 
 	/* Session container specific styles */
 	.session-container .container-content {
-		overflow: hidden; /* Only apply overflow hidden to actual terminal sessions */
+		padding: 0;
+		overflow: hidden;
 	}
 
-	/* Mobile-specific session container overrides */
-	@media (max-width: 800px) {
-		.session-container {
-			height: 100vh;
-			max-height: 100svh;
-			width: 100vw;
-			max-width: 100vw;
-			overflow-x: hidden; /* Only hide horizontal overflow */
-			overflow-y: visible; /* Allow header to transform outside bounds */
-			display: flex;
-			flex-direction: column;
-			box-sizing: border-box;
-		}
-
-		.session-container .container-content {
-			min-height: 0; /* Allow flex child to shrink on mobile */
-			margin-inline: 0; /* Remove negative margins on mobile to prevent text cutoff */
-		}
-
-		/* For non-session containers (like session list), ensure proper flex layout */
-		.container:not(.session-container) {
-			height: 100vh;
-			max-height: 100vh;
-			padding-top: 80px; /* Reduced padding since header auto-hides */
-			box-sizing: border-box;
-		}
-
-		.container:not(.session-container) .container-content {
-			min-height: 0; /* Allow flex child to shrink */
-			margin-inline: 0;
-		}
-
-		.container:not(.session-container) .container-footer {
-			padding: var(--space-sm);
-			background: rgba(15, 15, 15, 0.95);
-			backdrop-filter: blur(10px);
-			flex-shrink: 0;
-		}
-	}
-
-	/* Responsive container - full width on small screens */
-	@media (max-width: 800px) {
+	/* Mobile responsive */
+	@container (max-width: 800px) {
 		.container {
 			max-width: 100%;
 			height: 100dvh;
-			/* Use dynamic viewport height for mobile */
-			margin-top: 0;
-			padding: 0;
-			/* background: var(--bg-dark); 
-      backdrop-filter: none;*/
-
-			/* Remove augmented styling on mobile for better usability */
-			clip-path: none;
-			box-shadow: none;
+			margin: 0;
 			--aug-border-all: 0px;
 			--aug-inlay-all: 0px;
-			--aug-inplay-opacity: 0;
-			--aug-br: 0px;
-			--aug-bl: 0px;
-			--aug-tr: 0px;
-			--aug-tl: 0px;
+			clip-path: none;
+			box-shadow: none;
+			background: var(--bg-dark);
+			backdrop-filter: none;
+		}
+		
+		.container-header {
+			margin-inline: 0;
+		}
+		
+		.container-content {
+			padding: var(--space-sm);
+		}
+		
+		.session-container .container-content {
+			padding: 0;
+		}
+	}
+
+	/* iOS Safari dynamic viewport handling */
+	@supports (-webkit-touch-callout: none) {
+		@container (max-width: 800px) {
+			.container {
+				height: -webkit-fill-available;
+			}
 		}
 	}
 </style>
