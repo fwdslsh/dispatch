@@ -143,3 +143,4 @@ src/lib/server/sessions.json
 .key
 .agent-os/recaps/
 test-results/
+playwright-report/

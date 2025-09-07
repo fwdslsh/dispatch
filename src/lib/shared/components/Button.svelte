@@ -50,7 +50,7 @@
 	const buttonId = id || `btn-${Math.random().toString(36).substr(2, 9)}`;
 
 	// Compute button classes
-	const buttonClasses = $derived(() => {
+	const buttonClasses = $derived.by(() => {
 		const classes = ['btn', `btn--${variant}`, `btn--${size}`];
 
 		if (disabled) classes.push('btn--disabled');
@@ -151,7 +151,6 @@
 	/* Variants */
 	.btn--primary {
 		background: var(--primary-gradient);
-		color: var(--bg-dark);
 		--aug-border-bg: var(--primary);
 	}
 
@@ -163,7 +162,6 @@
 
 	.btn--secondary {
 		background: var(--surface);
-		color: var(--text-primary);
 		border: 1px solid var(--border-light);
 		--aug-border-bg: var(--border-light);
 	}
