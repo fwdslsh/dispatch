@@ -47,7 +47,7 @@ After thorough review of the Socket.IO architecture, I've identified significant
 **Client Events Expected:**
 
 ```javascript
-socket.emit('auth', key, callback)
+socket.emit('auth', key, callback);
 ```
 
 #### 3. ProjectSocketHandler.js
@@ -64,11 +64,11 @@ socket.emit('auth', key, callback)
 **Client Events Expected:**
 
 ```javascript
-socket.emit('list-projects', callback)
-socket.emit('create-project', {name, description}, callback)
-socket.emit('get-project', {projectId}, callback)
-socket.emit('update-project', {projectId, updates}, callback)
-socket.emit('delete-project', {projectId}, callback)
+socket.emit('list-projects', callback);
+socket.emit('create-project', { name, description }, callback);
+socket.emit('get-project', { projectId }, callback);
+socket.emit('update-project', { projectId, updates }, callback);
+socket.emit('delete-project', { projectId }, callback);
 ```
 
 #### 4. SessionSocketHandler.js
@@ -87,13 +87,13 @@ socket.emit('delete-project', {projectId}, callback)
 **Client Events Expected:**
 
 ```javascript
-socket.emit('create', options, callback)
-socket.emit('attach', {sessionId, cols, rows}, callback)
-socket.emit('list', callback)
-socket.emit('end', sessionId, callback)
-socket.emit('detach', callback)
-socket.emit('input', data)
-socket.emit('resize', {cols, rows})
+socket.emit('create', options, callback);
+socket.emit('attach', { sessionId, cols, rows }, callback);
+socket.emit('list', callback);
+socket.emit('end', sessionId, callback);
+socket.emit('detach', callback);
+socket.emit('input', data);
+socket.emit('resize', { cols, rows });
 ```
 
 #### 5. Claude Socket Handler
@@ -155,7 +155,7 @@ socket.emit('resize', {cols, rows})
 **Problem**: Authentication logic is repeated in multiple client services
 
 - ProjectSocketClient has its own auth logic
-- ShellSessionViewModel has its own auth logic  
+- ShellSessionViewModel has its own auth logic
 - SocketClientService doesn't handle auth at all
 
 **Impact**: Inconsistent authentication, potential security issues, code duplication
@@ -213,7 +213,7 @@ socket.emit('resize', {cols, rows})
 ├── AuthHandler    - Server: authentication only
 └── AuthClient     - Client: authentication only
 
-/projects/io          - Project management namespace  
+/projects/io          - Project management namespace
 ├── ProjectHandler - Server: project CRUD operations
 └── ProjectClient  - Client: project service
 
@@ -244,7 +244,7 @@ auth:login
 auth:logout
 auth:check
 
-// Projects  
+// Projects
 projects:list
 projects:create
 projects:get
@@ -283,38 +283,34 @@ Each server handler follows this pattern:
 ```javascript
 // /src/lib/{feature}/io/{Feature}Handler.js
 export class FeatureHandler {
-    constructor(io, service1, service2) {
-        this.namespace = io.of("/feature");
-        this.service1 = service1;
-        this.service2 = service2;
-        this.register();
-    }
+	constructor(io, service1, service2) {
+		this.namespace = io.of('/feature');
+		this.service1 = service1;
+		this.service2 = service2;
+		this.register();
+	}
 
-    register() {
-        this.namespace.on('connection', (socket) => {
-            console.log('A client connected to the feature namespace');
+	register() {
+		this.namespace.on('connection', (socket) => {
+			console.log('A client connected to the feature namespace');
 
-            socket.on('action', handleAction);
+			socket.on('action', handleAction);
 
-            socket.on('disconnect', () => {
-                console.log('A client disconnected from the feature namespace');
-            });
-        });
-    }
+			socket.on('disconnect', () => {
+				console.log('A client disconnected from the feature namespace');
+			});
+		});
+	}
 
-    async handleAction(data, callback) {
-        // Handler implementation
-      console.log('Received action with data:', data);
+	async handleAction(data, callback) {
+		// Handler implementation
+		console.log('Received action with data:', data);
 
-      if(callback)
-         callback({success: true, message: "Action completed", data});
+		if (callback) callback({ success: true, message: 'Action completed', data });
 
-
-      // Handle the event and emit a response if needed
-      socket.emit('completed', { message: 'Event completed', data });
-
-            
-    }
+		// Handle the event and emit a response if needed
+		socket.emit('completed', { message: 'Event completed', data });
+	}
 }
 ```
 
@@ -325,18 +321,18 @@ Each client service follows this pattern:
 ```javascript
 // /src/lib/{feature}/client/{Feature}Client.js
 export class FeatureClient {
-    constructor(io, config) {
-        this.#socket = io(`${config.baseUrl}/feature`);
-        this.register();
-    }
+	constructor(io, config) {
+		this.#socket = io(`${config.baseUrl}/feature`);
+		this.register();
+	}
 
-    async register() {
-      socket.on("completed", handleCompleted);
-    }
+	async register() {
+		socket.on('completed', handleCompleted);
+	}
 
-    async performAction(data) {
-         socket.emit('exampleEvent', data);
-    }
+	async performAction(data) {
+		socket.emit('exampleEvent', data);
+	}
 }
 ```
 
@@ -346,7 +342,7 @@ export class FeatureClient {
 
 1. **Create Namespace Factory**
    - Create Handler/Client base classes to ensure they require io and config (for the client)
-   - create abstract register function in the base classes 
+   - create abstract register function in the base classes
 
 2. **Update Server Entry Point**
    - Modify app.js/socket setup to use namespaces
@@ -375,7 +371,7 @@ export class FeatureClient {
 
 2. **Sessions Namespace**
    - Extract session handlers to `/sessions` namespace
-   - Create dedicated SessionClient  
+   - Create dedicated SessionClient
    - Update UI components to use new client
 
 3. **Terminals Namespace**
@@ -391,7 +387,7 @@ export class FeatureClient {
    - Update Claude components to use new client
 
 2. **Shell Namespace**
-   - Move shell logic to `/shell` namespace  
+   - Move shell logic to `/shell` namespace
    - Create dedicated ShellClient
    - Update shell components to use new client
 
@@ -415,7 +411,7 @@ export class FeatureClient {
 - No cross-feature dependencies
 - Easier to debug and maintain
 
-### 2. 1:1 Server-Client Mapping  
+### 2. 1:1 Server-Client Mapping
 
 - Every server handler has one client counterpart
 - Easy to trace request/response flow
@@ -430,7 +426,7 @@ export class FeatureClient {
 ### 4. Consistent Patterns
 
 - All handlers follow same structure
-- All clients follow same structure  
+- All clients follow same structure
 - Predictable event naming
 
 ### 5. Improved Testability

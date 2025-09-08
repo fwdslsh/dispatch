@@ -1,45 +1,26 @@
+import devtoolsJson from 'vite-plugin-devtools-json';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { Server } from 'socket.io';
 import { defineConfig } from 'vite';
+import { setupSocketIO } from './src/lib/server/socket-setup.js';
 
-const webSocketServer = {
-	name: 'webSocketServer',
-	configureServer(server) {
-		if (!server.httpServer) return;
+function socketIOPlugin() {
+	return {
+		name: 'socketio',
+		configureServer(server) {
+			if (!server.httpServer) return;
 
-		const io = new Server(server.httpServer, {
-			cors: { origin: '*', methods: ['GET', 'POST'] }
-		});
+			console.log('[DEV] Setting up Socket.IO with shared managers...');
+			const io = setupSocketIO(server.httpServer);
 
-		// Print HOME environment variable for development
-		console.log(`[DEV] HOME environment variable: ${process.env.HOME || 'not set'}`);
-		
-		// Initialize directory manager in development
-		import('./src/lib/shared/utils/directory-manager.server.js')
-			.then(async (module) => {
-				await module.default.initialize();
-				console.log('Directory manager initialized for development');
-			})
-			.catch((err) => {
-				console.warn('Directory manager not available during dev:', err.message);
-			});
-
-		// Import the new namespace socket handlers for development
-		import('./src/lib/shared/io/NamespaceSocketHandler.server.js')
-			.then(({ createNamespaceSocketHandlers, createMainNamespaceHandler }) => {
-				const namespaceHandlers = createNamespaceSocketHandlers(io);
-				const mainHandler = createMainNamespaceHandler(io, namespaceHandlers);
-
-				io.on('connection', mainHandler);
-			})
-			.catch((err) => {
-				console.warn('Namespace socket handlers not available during dev:', err.message);
-			});
-	}
-};
+			// Store globally for API endpoints if needed
+			globalThis.__DISPATCH_SOCKET_IO = io;
+			console.log('[DEV] Socket.IO ready with shared managers');
+		}
+	};
+}
 
 export default defineConfig({
-	plugins: [sveltekit(), webSocketServer],
+	plugins: [sveltekit(), socketIOPlugin(), devtoolsJson()],
 	test: {
 		expect: { requireAssertions: true },
 		projects: [

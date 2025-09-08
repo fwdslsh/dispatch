@@ -36,10 +36,10 @@
 		flex-direction: column;
 		transition: all 0.3s ease;
 		container-type: inline-size;
-		
+
 		/* Enhanced glassmorphism */
 		background: rgba(26, 26, 26, 0.1);
-		box-shadow: 
+		box-shadow:
 			0 8px 32px rgba(0, 0, 0, 0.2),
 			0 0 20px rgba(0, 255, 136, 0.03),
 			inset 0 1px 0 rgba(255, 255, 255, 0.03);
@@ -90,15 +90,15 @@
 			background: var(--bg-dark);
 			backdrop-filter: none;
 		}
-		
+
 		.container-header {
 			margin-inline: 0;
 		}
-		
+
 		.container-content {
 			padding: var(--space-sm);
 		}
-		
+
 		.session-container .container-content {
 			padding: 0;
 		}

@@ -1,8 +1,7 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { io } from 'socket.io-client';
-	import Container from '$lib/shared/components/Container.svelte';
-	import PublicUrlDisplay from '$lib/shared/components/PublicUrlDisplay.svelte';
+	import { Container, PublicUrlDisplay, Button, Input, ErrorDisplay } from '$lib/shared/components';
 	import { onMount } from 'svelte';
 	let key = $state('');
 	let error = $state('');
@@ -10,20 +9,33 @@
 
 	onMount(() => {
 		// Check if already authenticated
-		const storedAuth = localStorage.getItem('dispatch-auth-token');
-		if (storedAuth) {
-			goto('/projects');
+		const storedKey = localStorage.getItem('dispatch-auth-key');
+		if (storedKey) {
+			// Test if stored key works by attempting a simple Socket.IO connection
+			const socket = io({ transports: ['websocket', 'polling'] });
+			socket.emit('terminal.start', { key: storedKey, workspacePath: '/tmp' }, (resp) => {
+				if (resp?.success !== false || resp?.error !== 'Invalid key') {
+					// Key works (or at least isn't rejected for auth reasons)
+					goto('/projects');
+				} else {
+					// Key is invalid, clear it
+					localStorage.removeItem('dispatch-auth-key');
+				}
+				socket.disconnect();
+			});
 			return;
 		}
 
-		// Check if auth is required by testing with empty key
+		// Try the default dev key automatically
+		const testKey = 'testkey12345';
 		const socket = io({ transports: ['websocket', 'polling'] });
-		socket.emit('auth', '', (resp) => {
-			if (resp?.success === true) {
-				// No auth required, redirect to sessions
-				localStorage.setItem('dispatch-auth-token', 'no-auth');
+		socket.emit('terminal.start', { key: testKey, workspacePath: '/tmp' }, (resp) => {
+			if (resp?.success !== false || resp?.error !== 'Invalid key') {
+				// Dev key works, auto-authenticate
+				localStorage.setItem('dispatch-auth-key', testKey);
 				goto('/projects');
 			}
+			// Otherwise show the login form
 			socket.disconnect();
 		});
 	});
@@ -33,13 +45,13 @@
 		loading = true;
 		error = '';
 		const socket = io({ transports: ['websocket', 'polling'] });
-		socket.emit('auth', key, (resp) => {
+		socket.emit('terminal.start', { key, workspacePath: '/tmp' }, (resp) => {
 			loading = false;
-			if (resp?.success === true) {
-				localStorage.setItem('dispatch-auth-token', key);
+			if (resp?.success !== false || resp?.error !== 'Invalid key') {
+				localStorage.setItem('dispatch-auth-key', key);
 				goto('/projects');
 			} else {
-				error = resp.error || 'Invalid key';
+				error = 'Invalid key';
 			}
 			socket.disconnect();
 		});
@@ -58,27 +70,30 @@
 
 			<div class="form-container" data-augmented-ui="br-clip bl-clip tl-clip tr-clip border">
 				<form onsubmit={handleLogin}>
-					<input
+					<Input
+						bind:value={key}
 						type="password"
 						placeholder="terminal key"
-						bind:value={key}
 						required
-						autocomplete="off"
 						disabled={loading}
+						autocomplete="off"
+						size="large"
 					/>
-					<button
+					<Button
 						type="submit"
 						disabled={loading}
-						data-augmented-ui="br-clip bl-clip tl-clip tr-clip border"
-					>
-						{loading ? 'connecting...' : 'connect'}
-					</button>
+						{loading}
+						text={loading ? 'connecting...' : 'connect'}
+						variant="primary"
+						size="large"
+						augmented="br-clip bl-clip tl-clip tr-clip"
+					/>
 				</form>
 			</div>
 
 			<PublicUrlDisplay />
 			{#if error}
-				<div class="error">{error}</div>
+				<ErrorDisplay {error} />
 			{/if}
 		{/snippet}
 	</Container>
@@ -116,10 +131,9 @@
 	}
 	.form-container {
 		margin-top: var(--space-lg);
-		display: flex;
-		justify-content: center;
 		--aug-border-bg: var(--primary-muted);
 		transition: all 0.3s ease;
+		padding: var(--space-lg);
 
 		&:hover {
 			--aug-border-bg: var(--secondary);
@@ -129,47 +143,12 @@
 				inset 0 1px 0 rgba(255, 255, 255, 0.08);
 		}
 
-		button {
-			--aug-border-bg: var(--primary-muted);
-			border: none;
-			cursor: pointer;
-			transition:
-				all 0.3s ease,
-				--aug-border-bg 0.3s ease,
-				box-shadow 0.3s ease,
-				text-shadow 0.3s ease;
-			box-shadow:
-				0 0 0px rgba(0, 255, 136, 0),
-				0 0 0px rgba(0, 255, 136, 0),
-				inset 0 1px 0 rgba(255, 255, 255, 0);
-
-			&:hover {
-				--aug-border-bg: var(--primary);
-				text-shadow:
-					0 0 15px var(--primary),
-					0 0 30px var(--primary);
-				box-shadow:
-					0 0 20px rgba(0, 255, 136, 0.4),
-					0 0 40px rgba(0, 255, 136, 0.15),
-					inset 0 1px 0 rgba(255, 255, 255, 0.15);
-			}
-		}
-
-		input {
-			transition:
-				all 0.3s ease,
-				border-color 0.3s ease,
-				box-shadow 0.3s ease;
-			box-shadow:
-				0 0 0px rgba(0, 255, 136, 0),
-				0 0 0px rgba(0, 255, 136, 0);
-
-			&:hover {
-				border-color: rgba(0, 255, 136, 0.6);
-				box-shadow:
-					0 0 12px rgba(0, 255, 136, 0.15),
-					0 0 24px rgba(0, 255, 136, 0.05);
-			}
+		form {
+			display: flex;
+			flex-direction: column;
+			gap: var(--space-md);
+			align-items: center;
+			min-width: 300px;
 		}
 	}
 </style>

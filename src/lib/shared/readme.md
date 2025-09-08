@@ -1,1 +1,0 @@
-Contains all shared code related for both the client and server
