@@ -38,8 +38,70 @@ const webSocketServer = {
 	}
 };
 
+function socketIOPlugin() {
+	return {
+		name: 'socketio',
+		configureServer(server) {
+			// Skip Socket.IO setup for Vitest
+			if (!server.httpServer) return;
+			
+			// Wait a bit to ensure hooks.server.js is loaded, then attach Socket.IO
+			setTimeout(async () => {
+				try {
+					console.log('Setting up Socket.IO server...');
+					const hooksModule = await import('./src/hooks.server.js');
+					const { ioServer, terminals, claude } = hooksModule;
+					
+					// Check if we have the required instances
+					if (!ioServer) {
+						console.error('ioServer not available from hooks.server.js');
+						return;
+					}
+					
+					// Only attach if not already attached
+					if (!ioServer.io) {
+						console.log('Attaching Socket.IO to HTTP server');
+						const io = ioServer.attachTo(server.httpServer);
+						
+						// Handle Socket.IO events
+						io.on('connection', (socket) => {
+							console.log('Socket.IO client connected:', socket.id);
+							
+							// Terminal events
+							if (terminals) {
+								socket.on('terminal.write', (data) => {
+									terminals.write(data.id, data.data);
+								});
+								
+								socket.on('terminal.resize', (data) => {
+									terminals.resize(data.id, data.cols, data.rows);
+								});
+							}
+							
+							// Claude events
+							if (claude) {
+								socket.on('claude.send', (data) => {
+									console.log('Claude message received:', data);
+									claude.send(data.id, data.input);
+								});
+							}
+							
+							socket.on('disconnect', () => {
+								console.log('Socket.IO client disconnected:', socket.id);
+							});
+						});
+					} else {
+						console.log('Socket.IO server already attached');
+					}
+				} catch (err) {
+					console.error('Failed to setup Socket.IO:', err);
+				}
+			}, 100);
+		}
+	};
+}
 export default defineConfig({
-	plugins: [sveltekit(), webSocketServer],
+	plugins: [sveltekit(), socketIOPlugin()],
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
