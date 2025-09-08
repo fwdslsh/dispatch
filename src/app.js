@@ -35,22 +35,31 @@ const getActualHome = () => {
 };
 
 const actualHome = getActualHome();
-const configDir = expandTilde(process.env.DISPATCH_CONFIG_DIR || 
-	(process.platform === 'win32' ? path.join(actualHome, 'dispatch') : path.join(actualHome, '.config', 'dispatch')));
-const projectsDir = expandTilde(process.env.DISPATCH_PROJECTS_DIR || 
-	(process.platform === 'win32' ? path.join(actualHome, 'dispatch-projects') : 
-	 process.env.CONTAINER_ENV ? '/workspace' : path.join(actualHome, 'dispatch-projects')));
+const configDir = expandTilde(
+	process.env.DISPATCH_CONFIG_DIR ||
+		(process.platform === 'win32'
+			? path.join(actualHome, 'dispatch')
+			: path.join(actualHome, '.config', 'dispatch'))
+);
+const projectsDir = expandTilde(
+	process.env.DISPATCH_PROJECTS_DIR ||
+		(process.platform === 'win32'
+			? path.join(actualHome, 'dispatch-projects')
+			: process.env.CONTAINER_ENV
+				? '/workspace'
+				: path.join(actualHome, 'dispatch-projects'))
+);
 
 async function initializeDirectories() {
 	try {
 		console.log(`[DIRECTORY] Config Directory: ${configDir}`);
 		console.log(`[DIRECTORY] Projects Directory: ${projectsDir}`);
-		
+
 		fs.mkdirSync(configDir, { recursive: true });
 		fs.mkdirSync(projectsDir, { recursive: true });
 		fs.accessSync(configDir, fs.constants.W_OK);
 		fs.accessSync(projectsDir, fs.constants.W_OK);
-		
+
 		console.log('Directories initialized successfully');
 	} catch (err) {
 		console.error(`ERROR: Directory initialization failed: ${err.message}`);
@@ -71,7 +80,7 @@ function startLocalTunnel() {
 	console.log(`[LT] Starting LocalTunnel on port ${PORT}...`);
 	ltProc = spawn('npx', ['localtunnel', ...args], { stdio: 'pipe' });
 	const TUNNEL_FILE = path.join(configDir, 'tunnel-url.txt');
-	
+
 	ltProc.stdout.on('data', (buf) => {
 		const line = buf.toString().trim();
 		console.log(`[LT] ${line}`);
@@ -85,56 +94,62 @@ function startLocalTunnel() {
 			}
 		}
 	});
-	
+
 	ltProc.stderr.on('data', (buf) => {
 		process.stderr.write(`[LT-err] ${buf.toString()}`);
 	});
-	
+
 	ltProc.on('exit', (code, sig) => {
 		console.log(`[LT] exited code=${code} sig=${sig}`);
-		try { fs.unlinkSync(TUNNEL_FILE); } catch { }
+		try {
+			fs.unlinkSync(TUNNEL_FILE);
+		} catch {}
 	});
 }
 
 function stopLocalTunnel() {
 	if (ltProc && !ltProc.killed) {
-		try { ltProc.kill(); } catch { }
+		try {
+			ltProc.kill();
+		} catch {}
 	}
 }
 
 // Initialize directories before starting server
-initializeDirectories().then(() => {
-	// Security check: require proper key if tunnel is enabled
-	if (ENABLE_TUNNEL && TERMINAL_KEY === 'testkey12345') {
-		console.error('ERROR: Change TERMINAL_KEY from default when ENABLE_TUNNEL=true for security');
-		process.exit(1);
-	}
+initializeDirectories()
+	.then(async () => {
+		// Security check: require proper key if tunnel is enabled
+		if (ENABLE_TUNNEL && TERMINAL_KEY === 'testkey12345') {
+			console.error('ERROR: Change TERMINAL_KEY from default when ENABLE_TUNNEL=true for security');
+			process.exit(1);
+		}
 
-	// Create HTTP server with SvelteKit handler
-	const server = http.createServer(handler);
-	
-	// Initialize Socket.IO with shared managers
-	const { setupSocketIO } = await import('./lib/server/socket-setup.js');
-	const io = setupSocketIO(server);
-	
-	// Store globally for API endpoints if needed
-	globalThis.__DISPATCH_SOCKET_IO = io;
+		// Create HTTP server with SvelteKit handler
+		const server = http.createServer(handler);
 
-	server.listen(PORT, () => {
-		console.log(`dispatch running at http://localhost:${PORT}`);
-		console.log(`Config Dir: ${configDir}`);
-		console.log(`Projects Dir: ${projectsDir}`);
-		startLocalTunnel();
-	});
+		// Initialize Socket.IO with shared managers
+		const { setupSocketIO } = await import('./lib/server/socket-setup.js');
+		const io = setupSocketIO(server);
 
-	// graceful shutdown
-	for (const sig of ['SIGINT', 'SIGTERM']) {
-		process.on(sig, () => {
-			stopLocalTunnel();
-			process.exit(0);
+		// Store globally for API endpoints if needed
+		globalThis.__DISPATCH_SOCKET_IO = io;
+
+		server.listen(PORT, () => {
+			console.log(`dispatch running at http://localhost:${PORT}`);
+			console.log(`Config Dir: ${configDir}`);
+			console.log(`Projects Dir: ${projectsDir}`);
+			startLocalTunnel();
 		});
-	}
-}).catch((err) => {
-	console.error('Failed to start server:', err);
-	process.exit(1);
-});
+
+		// graceful shutdown
+		for (const sig of ['SIGINT', 'SIGTERM']) {
+			process.on(sig, () => {
+				stopLocalTunnel();
+				process.exit(0);
+			});
+		}
+	})
+	.catch((err) => {
+		console.error('Failed to start server:', err);
+		process.exit(1);
+	});

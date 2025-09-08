@@ -3,21 +3,27 @@
 	import { io } from 'socket.io-client';
 	import TerminalPane from '$lib/components/TerminalPane.svelte';
 	import ClaudePane from '$lib/components/ClaudePane.svelte';
+	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
+	import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
 	import { Container, Button, Card } from '$lib/shared/components';
 
 	let sessions = $state([]);
-	let workspaceRoot = $state('/workspaces');
-	let chosenWorkspace = $state('');
 	let workspaces = $state([]);
+
+	// Modal states
+	let terminalModalOpen = $state(false);
+	let claudeModalOpen = $state(false);
 
 	// Session grid state
 	let layoutPreset = $state('2up'); // '1up' | '2up' | '4up'
 	let pinned = $state([]); // array of session IDs to display in grid order
 	let cols = $derived(layoutPreset === '1up' ? 1 : layoutPreset === '2up' ? 2 : 2);
-	let visible = $derived(pinned
-		.map((id) => sessions.find((s) => s.id === id))
-		.filter(Boolean)
-		.slice(0, layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1));
+	let visible = $derived(
+		pinned
+			.map((id) => sessions.find((s) => s.id === id))
+			.filter(Boolean)
+			.slice(0, layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1)
+	);
 
 	async function listWorkspaces() {
 		const r = await fetch('/api/workspaces');
@@ -30,47 +36,70 @@
 		const j = await r.json();
 		return j.sessions;
 	}
-	async function openWorkspace(p) {
-		chosenWorkspace = p;
+
+	async function createTerminalSession(workspacePath) {
+		// Ensure workspace exists
 		await fetch('/api/workspaces', {
 			method: 'POST',
-			body: JSON.stringify({ action: 'open', path: p })
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ action: 'open', path: workspacePath })
 		});
-	}
-	async function create(type) {
-		if (!chosenWorkspace) return;
 
-		if (type === 'pty') {
-			// Create terminal via Socket.IO
-			const socket = io();
-			const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+		// Create terminal via Socket.IO
+		const socket = io();
+		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 
-			socket.emit('terminal.start', { key, workspacePath: chosenWorkspace }, (response) => {
+		return new Promise((resolve, reject) => {
+			socket.emit('terminal.start', { key, workspacePath }, (response) => {
 				if (response.success) {
-					const s = { id: response.id, type, workspacePath: chosenWorkspace };
+					const s = { id: response.id, type: 'pty', workspacePath };
 					sessions = [...sessions, s];
 					// auto-pin newest into grid if there's room
 					if (pinned.length < (layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1))
 						pinned = [...pinned, response.id];
+					resolve();
 				} else {
 					console.error('Failed to create terminal:', response.error);
+					reject(new Error(response.error));
 				}
 				socket.disconnect();
 			});
-		} else {
-			// Create Claude session via API (for now)
-			const r = await fetch('/api/sessions', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ type, workspacePath: chosenWorkspace, options: {} })
-			});
-			const { id } = await r.json();
-			const s = { id, type, workspacePath: chosenWorkspace };
-			sessions = [...sessions, s];
-			// auto-pin newest into grid if there's room
-			if (pinned.length < (layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1))
-				pinned = [...pinned, id];
+		});
+	}
+
+	async function createClaudeSession({ workspacePath, sessionId, projectName, resumeSession }) {
+		// Ensure workspace exists
+		await fetch('/api/workspaces', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ action: 'open', path: workspacePath })
+		});
+
+		// Create Claude session via API
+		const r = await fetch('/api/sessions', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({
+				type: 'claude',
+				workspacePath,
+				options: {
+					sessionId,
+					projectName,
+					resumeSession
+				}
+			})
+		});
+
+		if (!r.ok) {
+			throw new Error(`Failed to create Claude session: ${r.statusText}`);
 		}
+
+		const { id } = await r.json();
+		const s = { id, type: 'claude', workspacePath };
+		sessions = [...sessions, s];
+		// auto-pin newest into grid if there's room
+		if (pinned.length < (layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1))
+			pinned = [...pinned, id];
 	}
 
 	function togglePin(id) {
@@ -86,22 +115,10 @@
 <Container sessionContainer={true}>
 	{#snippet children()}
 		<section class="toolbar">
-			<div class="workspace-controls">
-				<label>Workspace</label>
-				<select bind:value={chosenWorkspace} on:change={(e) => openWorkspace(e.target.value)}>
-					<option value="" disabled selected>Select…</option>
-					{#each workspaces as w}<option value={w}>{w}</option>{/each}
-				</select>
+			<div class="session-controls">
+				<Button onclick={() => (terminalModalOpen = true)} text="+ Terminal" size="small" />
 				<Button
-					onclick={() => create('pty')}
-					disabled={!chosenWorkspace}
-					text="+ Terminal"
-					variant="secondary"
-					size="small"
-				/>
-				<Button
-					onclick={() => create('claude')}
-					disabled={!chosenWorkspace}
+					onclick={() => (claudeModalOpen = true)}
 					text="+ Claude"
 					variant="primary"
 					size="small"
@@ -165,6 +182,15 @@
 	{/snippet}
 </Container>
 
+<!-- Modals -->
+<TerminalSessionModal
+	bind:open={terminalModalOpen}
+	{workspaces}
+	onSessionCreate={createTerminalSession}
+/>
+
+<ClaudeSessionModal bind:open={claudeModalOpen} onSessionCreate={createClaudeSession} />
+
 <style>
 	.toolbar {
 		display: flex;
@@ -176,7 +202,7 @@
 		border-bottom: 1px solid var(--border);
 	}
 
-	.workspace-controls {
+	.session-controls {
 		display: flex;
 		gap: var(--space-sm);
 		align-items: center;
@@ -217,20 +243,6 @@
 		border: 1px solid var(--border);
 		border-radius: 4px;
 		overflow: hidden;
-	}
-
-	select {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		color: var(--text-primary);
-		padding: var(--space-xs) var(--space-sm);
-		border-radius: 4px;
-		min-width: 200px;
-	}
-
-	label {
-		color: var(--text-secondary);
-		font-weight: 500;
 	}
 
 	@media (max-width: 768px) {

@@ -42,27 +42,62 @@
 	/* 64px */
 }
 
+/* 
+ * Augmented UI Configuration
+ * Following augmented-ui best practices for performance and consistency
+ */
+
+/* Core augmented-ui configuration - following recommended patterns */
 [data-augmented-ui] {
-	--aug-border-bg: var(--primary);
-	--aug-border-bg-hover: rgba(0, 255, 136, 0.4);
+	/* Use CSS custom properties for state-based control */
+	--aug-border: initial;
 	--aug-border-all: 1px;
+	--aug-border-bg: var(--primary);
+	--aug-border-opacity: 0.4;
+
+	--aug-inlay: initial;
 	--aug-inlay-all: 4px;
 	--aug-inlay-bg: var(--bg-dark);
-	--aug-inlay-opacity: 0.2;
-	padding-inline: var(--space-sm);
+	--aug-inlay-opacity: 0.15;
 
-	/* Subtle glow effect */
+	/* Standardized clip configurations */
+	--aug-tl: 0.5rem;
+	--aug-tr: 0.5rem;
+	--aug-bl: 0.5rem;
+	--aug-br: 0.5rem;
+
+	/* Performance optimization: combine transitions */
+	transition:
+		--aug-border-bg 0.2s ease,
+		--aug-border-opacity 0.2s ease,
+		box-shadow 0.2s ease;
+
+	/* Enhanced visual effects */
 	box-shadow:
-		0 0 10px rgba(0, 255, 136, 0.1),
-		inset 0 1px 0 rgba(255, 255, 255, 0.05);
+		0 0 8px rgba(0, 255, 136, 0.08),
+		inset 0 1px 0 rgba(255, 255, 255, 0.03);
 
-	/* Enhanced glassmorphism */
-	backdrop-filter: blur(15px);
-	/* border: 1px solid rgba(0, 255, 136, 0.2); */
-
-	transition: all 0.3s ease;
+	backdrop-filter: blur(12px);
 }
 
+/* Interactive states - following augmented-ui best practices */
+[data-augmented-ui]:hover:not(.no-hover) {
+	--aug-border-bg: rgba(0, 255, 136, 0.6);
+	--aug-border-opacity: 0.6;
+
+	/* Enhanced visual feedback with proper performance considerations */
+	box-shadow:
+		0 0 16px rgba(0, 255, 136, 0.12),
+		0 0 8px rgba(0, 255, 136, 0.06),
+		inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-augmented-ui]:active:not(.no-active) {
+	--aug-border-bg: rgba(0, 255, 136, 0.8);
+	--aug-border-opacity: 0.8;
+}
+
+/* Context-specific configurations */
 body.no-key {
 	--primary: #ff6b6b;
 	--primary-muted: #ff6b6b50;
@@ -71,17 +106,13 @@ body.no-key {
 
 body.no-key [data-augmented-ui] {
 	--aug-border-bg: var(--secondary);
-	border: 1px solid var(--secondary-muted);
+	border-fallback: 1px solid var(--secondary-muted);
 }
 
-/* [data-augmented-ui]:hover:not(.container) {
-  --aug-border-bg: rgba(0, 255, 136, 0.6);
-  box-shadow: 
-    0 0 20px rgba(0, 255, 136, 0.15),
-    0 0 40px rgba(0, 255, 136, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  background: rgba(26, 26, 26, 0.5);
-} */
+/* Component-specific optimizations */
+[data-augmented-ui*='border']:not(.custom-padding) {
+	padding-inline: var(--space-sm);
+}
 
 * {
 	margin: 0;
@@ -377,7 +408,6 @@ form {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-md);
-	max-width: 400px;
 	width: 100%;
 	padding: var(--space-lg);
 }
@@ -471,8 +501,6 @@ button.text-button:hover {
 
 .btn-icon-only:hover {
 	color: var(--primary);
-
-	transform: none;
 }
 
 .btn-icon-only svg {
@@ -509,7 +537,6 @@ button:active {
 button:disabled {
 	background: var(--text-muted);
 	cursor: not-allowed;
-	transform: none;
 }
 
 /* Secondary buttons - minimal with icon styling */
@@ -526,7 +553,6 @@ button:disabled {
 	text-shadow:
 		0 0 8px rgba(255, 255, 255, 0.6),
 		0 0 16px rgba(255, 255, 255, 0.3);
-	transform: none;
 }
 
 /* Danger buttons - red icon color */
@@ -542,7 +568,6 @@ button:disabled {
 	text-shadow:
 		0 0 8px rgba(255, 82, 82, 0.8),
 		0 0 16px rgba(255, 107, 107, 0.4);
-	transform: none;
 }
 
 /* Lists */
@@ -641,7 +666,6 @@ li:last-child {
 }
 
 .session-item:active {
-	transform: scale(0.98);
 	--aug-border-bg: rgba(0, 255, 136, 0.7);
 }
 

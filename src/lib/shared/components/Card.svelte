@@ -31,7 +31,7 @@
 	} = $props();
 
 	// Compute card classes
-	const cardClasses = $derived(() => {
+	const cardClasses = $derived.by(() => {
 		const classes = ['card', `card--${variant}`, `card--padding-${padding}`];
 		if (clickable) classes.push('card--clickable');
 		if (hover && !clickable) classes.push('card--hoverable');
@@ -140,7 +140,6 @@
 
 	.card--clickable:hover,
 	.card--hoverable:hover {
-		transform: translateY(-1px);
 		box-shadow:
 			0 8px 15px -3px rgba(0, 0, 0, 0.4),
 			0 4px 6px -2px rgba(0, 0, 0, 0.3);
@@ -153,7 +152,6 @@
 	}
 
 	.card--clickable:active {
-		transform: translateY(0);
 	}
 
 	/* Card sections */

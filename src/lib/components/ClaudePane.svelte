@@ -47,8 +47,8 @@
 		{/each}
 	</div>
 	<form onsubmit={send} class="input-form">
-		<Input bind:value={input} placeholder="Ask Claude…" size="small" />
-		<Button type="submit" text="Send" variant="primary" size="small" />
+		<Input bind:value={input} placeholder="Ask Claude..." />
+		<Button type="submit" text="Send" variant="primary" />
 	</form>
 </div>
 

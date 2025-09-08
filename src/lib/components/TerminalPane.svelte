@@ -1,6 +1,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { Terminal } from '@xterm/xterm';
+	import { FitAddon } from '@xterm/addon-fit';
 	import { io } from 'socket.io-client';
 	import '@xterm/xterm/css/xterm.css';
 
@@ -9,7 +10,11 @@
 
 	onMount(() => {
 		term = new Terminal({ convertEol: true, cursorBlink: true });
+		const fitAddon = new FitAddon();
+		term.loadAddon(fitAddon);
 		term.open(el);
+		// Fit once after opening so cols/rows are correct for the initial emit
+		fitAddon.fit();
 
 		socket = io();
 		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
@@ -46,8 +51,15 @@
 			console.log('Terminal exited with code:', data.exitCode);
 		});
 
-		// Handle window resize
+		// Handle window resize and ensure terminal fits its container
 		const resize = () => {
+			// Fit terminal to container first so cols/rows update
+			try {
+				fitAddon.fit();
+			} catch (e) {
+				// fit may throw if terminal not yet attached; ignore
+			}
+
 			if (socket && socket.connected) {
 				socket.emit('terminal.resize', {
 					key,
@@ -58,12 +70,28 @@
 			}
 		};
 		window.addEventListener('resize', resize);
+		// Also observe container size changes (e.g., parent layout changes)
+		let ro;
+		if (typeof ResizeObserver !== 'undefined') {
+			ro = new ResizeObserver(resize);
+			ro.observe(el);
+		}
 	});
 
 	onDestroy(() => {
 		if (socket) {
 			socket.disconnect();
 		}
+		try {
+			// remove listeners and observers
+			window.removeEventListener('resize', resize);
+		} catch (e) {}
+		try {
+			if (ro) ro.disconnect();
+		} catch (e) {}
+		try {
+			if (term) term.dispose();
+		} catch (e) {}
 	});
 </script>
 
@@ -73,8 +101,6 @@
 	.terminal-container {
 		height: 100%;
 		min-height: 400px;
-		background: var(--bg-dark);
-		border-radius: 4px;
 		overflow: hidden;
 	}
 

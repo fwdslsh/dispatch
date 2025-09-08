@@ -69,7 +69,7 @@
 	const counterId = `${inputId}-counter`;
 
 	// Compute classes
-	const inputClasses = $derived(() => {
+	const inputClasses = $derived.by(() => {
 		const classes = ['input', `input--${size}`];
 
 		if (type === 'textarea') classes.push('input--textarea');

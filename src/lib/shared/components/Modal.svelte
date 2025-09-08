@@ -23,7 +23,7 @@
 		footer,
 
 		// Styling
-		augmented = 'tl-clip tr-clip bl-clip br-clip',
+		augmented = 'tl-clip tr-clip bl-clip br-clip border',
 
 		// Accessibility
 		ariaLabel = undefined,
@@ -177,12 +177,18 @@
 	}
 
 	.modal {
+		/* Augmented-UI optimizations */
+		--aug-border-opacity: 0.35;
+		--aug-border-bg: rgba(0, 255, 136, 0.4);
+
+		/* Modal styling */
 		background: var(--bg);
 		color: var(--text-primary);
 		border: 1px solid var(--border);
 		box-shadow:
 			0 20px 25px -5px rgba(0, 0, 0, 0.4),
-			0 10px 10px -5px rgba(0, 0, 0, 0.2);
+			0 10px 10px -5px rgba(0, 0, 0, 0.2),
+			0 0 0 1px rgba(0, 255, 136, 0.1);
 		max-height: 90vh;
 		max-width: 90vw;
 		display: flex;

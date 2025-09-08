@@ -129,7 +129,6 @@
 	}
 
 	.public-url-link:active {
-		transform: translateY(0);
 	}
 
 	.copy-button {
@@ -161,7 +160,6 @@
 	}
 
 	.copy-button:active {
-		transform: translateY(0);
 	}
 
 	.copy-button svg {
