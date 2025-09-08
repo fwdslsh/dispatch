@@ -85,8 +85,9 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 - Uses xterm.js for terminal emulation with Socket.IO for real-time communication
 - Svelte 5 with modern reactive patterns
 
-**Socket.IO Layer** (`src/lib/server/io-server.js`):
+**Socket.IO Layer** (`src/lib/server/socket-setup.js`):
 - Handles real-time bidirectional communication
+- Uses shared service managers from global `__API_SERVICES`
 - Manages authentication and session lifecycle
 - Routes messages between frontend and backend services
 
@@ -94,7 +95,7 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 - `WorkspaceManager`: Directory-based workspace management with JSON index persistence
 - `SessionRouter`: In-memory session mapping and routing
 - `ClaudeSessionManager`: Claude Code integration using `@anthropic-ai/claude-code` package
-- `TerminalManager`: PTY session management for shell access
+- `TerminalManager`: PTY session management with dynamic Socket.IO reference handling
 
 ### Workspace and Session Model
 
@@ -138,19 +139,16 @@ The application uses Socket.IO for all real-time communication:
 
 ### Client Events
 
-- `auth(key, callback)` - Authenticate with terminal key
-- `workspace:list(callback)` - List all available workspaces
-- `workspace:open(path, callback)` - Open/create workspace at path
-- `session:create(opts, callback)` - Create new session with `{type, workspacePath}`
-- `session:list(workspacePath, callback)` - List sessions for workspace
-- `session:send(sessionId, input)` - Send input to session
-- `session:end(sessionId)` - End specific session
+- `terminal.start(data, callback)` - Start terminal session with `{key, workspacePath, shell, env}`
+- `terminal.write(data)` - Send input to terminal with `{key, id, data}`
+- `terminal.resize(data)` - Resize terminal with `{key, id, cols, rows}`
+- `claude.send(data)` - Send message to Claude with `{key, id, input}`
 
 ### Server Events
 
-- `session:output(sessionId, data)` - Session output data
-- `session:ended(sessionId, {exitCode, signal})` - Session terminated
-- `workspace:updated` - Broadcast workspace changes
+- `data(output)` - Terminal output data
+- `exit({exitCode})` - Terminal session ended
+- `message.delta(events)` - Claude response events array
 - `error(data)` - Error messages
 
 ## Core Service Classes
@@ -189,6 +187,20 @@ Manages Claude Code sessions using `@anthropic-ai/claude-code`:
 async create({workspacePath, options}) // Create Claude session
 list(workspacePath)                    // List Claude sessions
 async send(id, userInput)              // Send message to Claude
+setSocketIO(socket)                    // Update Socket.IO reference for output
+```
+
+### TerminalManager (`src/lib/server/terminals/TerminalManager.js`)
+
+Manages PTY terminal sessions with dynamic Socket.IO handling:
+
+```javascript
+// Key methods
+start({workspacePath, shell, env})     // Create terminal session
+write(id, data)                        // Send input to terminal
+resize(id, cols, rows)                 // Resize terminal
+stop(id)                              // Kill terminal session
+setSocketIO(socket)                   // Update Socket.IO reference for all terminals
 ```
 
 ## Docker Integration
@@ -217,18 +229,25 @@ async send(id, userInput)              // Send message to Claude
 **Main Application** (`src/app.js`):
 - Production server entry point
 - Initializes directories and starts HTTP server
-- Integrates SvelteKit handler with Socket.IO
+- Integrates SvelteKit handler with Socket.IO via `setupSocketIO()`
 - Manages LocalTunnel lifecycle
+- Sets up global `__DISPATCH_SOCKET_IO` for API endpoint access
 
 **Vite Development** (`vite.config.js`):
 - Custom Socket.IO plugin for development server
 - Separate test configurations for client and server
 - Browser testing with Playwright integration
 
-**Socket.IO Integration** (`src/lib/server/io-server.js`):
-- Centralizes Socket.IO initialization
+**Socket.IO Integration** (`src/lib/server/socket-setup.js`):
+- Centralizes Socket.IO initialization with `setupSocketIO()` function
+- Uses shared service managers from `hooks.server.js` via `__API_SERVICES`
 - Handles authentication and session management
 - Coordinates between frontend and backend services
+
+**Shared Service Architecture** (`src/hooks.server.js`):
+- Initializes global `__API_SERVICES` with shared manager instances
+- Provides service access to both API endpoints and Socket.IO handlers
+- WorkspaceManager, SessionRouter, TerminalManager, and ClaudeSessionManager are shared
 
 ### Frontend Components
 
