@@ -145,3 +145,4 @@ src/lib/server/sessions.json
 test-results/
 playwright-report/
 .dispatch-home/
+.remove

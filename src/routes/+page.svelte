@@ -11,19 +11,34 @@
 	onMount(() => {
 		// Check if already authenticated
 		const storedAuth = localStorage.getItem('dispatch-auth-token');
-		if (storedAuth) {
-			goto('/projects');
+		if (storedAuth && storedAuth !== 'no-auth') {
+			// Test if stored auth still works
+			const socket = io({ transports: ['websocket', 'polling'] });
+			socket.emit('auth', storedAuth, (resp) => {
+				if (resp?.success === true) {
+					goto('/projects');
+				} else {
+					// Stored auth is invalid, clear it
+					localStorage.removeItem('dispatch-auth-token');
+				}
+				socket.disconnect();
+			});
 			return;
+		} else if (storedAuth === 'no-auth') {
+			// Legacy no-auth token, need to check current server state
+			localStorage.removeItem('dispatch-auth-token');
 		}
 
-		// Check if auth is required by testing with empty key
+		// Check if auth is required by testing with the default dev key
+		const testKey = 'testkey12345'; // Default dev key from CLAUDE.md
 		const socket = io({ transports: ['websocket', 'polling'] });
-		socket.emit('auth', '', (resp) => {
+		socket.emit('auth', testKey, (resp) => {
 			if (resp?.success === true) {
-				// No auth required, redirect to sessions
-				localStorage.setItem('dispatch-auth-token', 'no-auth');
+				// Dev mode with default key, auto-authenticate
+				localStorage.setItem('dispatch-auth-token', testKey);
 				goto('/projects');
 			}
+			// Otherwise show the login form
 			socket.disconnect();
 		});
 	});

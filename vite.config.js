@@ -67,22 +67,37 @@ function socketIOPlugin() {
 						io.on('connection', (socket) => {
 							console.log('Socket.IO client connected:', socket.id);
 							
-							// Terminal events
+							// Authentication is handled by the SocketIOServer class itself
+							// The ioServer.io instance will have auth handlers built-in
+							
+							// Terminal events (authenticated by SocketIOServer)
 							if (terminals) {
 								socket.on('terminal.write', (data) => {
-									terminals.write(data.id, data.data);
+									if (ioServer.isAuthenticated(socket.id)) {
+										terminals.write(data.id, data.data);
+									} else {
+										console.log(`Socket ${socket.id} not authenticated for terminal.write`);
+									}
 								});
 								
 								socket.on('terminal.resize', (data) => {
-									terminals.resize(data.id, data.cols, data.rows);
+									if (ioServer.isAuthenticated(socket.id)) {
+										terminals.resize(data.id, data.cols, data.rows);
+									} else {
+										console.log(`Socket ${socket.id} not authenticated for terminal.resize`);
+									}
 								});
 							}
 							
-							// Claude events
+							// Claude events (authenticated by SocketIOServer)
 							if (claude) {
 								socket.on('claude.send', (data) => {
-									console.log('Claude message received:', data);
-									claude.send(data.id, data.input);
+									if (ioServer.isAuthenticated(socket.id)) {
+										console.log('Claude message received:', data);
+										claude.send(data.id, data.input);
+									} else {
+										console.log(`Socket ${socket.id} not authenticated for claude.send`);
+									}
 								});
 							}
 							
