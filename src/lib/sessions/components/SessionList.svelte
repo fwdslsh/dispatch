@@ -11,7 +11,7 @@
 				<li class:active={activeSessionId === session.id} data-testid="session-item-{session.id}">
 					<div>
 						<strong>{session.name}</strong>
-						<small>{session.type || 'shell'} • {session.status || 'inactive'}</small>
+						<small>{session.type || session.mode || 'shell'} • {session.status || 'inactive'}</small>
 					</div>
 					<div>
 						{#if session.status === 'active'}

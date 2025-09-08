@@ -23,6 +23,12 @@ export class SessionHandler extends BaseHandler {
     }
 
     setupEventHandlers(socket) {
+        // Add auth event handler for namespace-specific authentication
+        socket.on('auth', (key, callback) => {
+            console.log(`[SESSION] Auth request from socket ${socket.id} with key: ${key ? 'present' : 'missing'}`);
+            this.authHandler.handleLogin(socket, key, callback);
+        });
+
         socket.on('sessions:create', this.authHandler.withAuth(this.handleCreate.bind(this, socket), socket));
         socket.on('sessions:attach', this.authHandler.withAuth(this.handleAttach.bind(this, socket), socket));
         socket.on('sessions:list', this.authHandler.withAuth(this.handleList.bind(this, socket), socket));

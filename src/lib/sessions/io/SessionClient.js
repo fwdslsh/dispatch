@@ -5,6 +5,46 @@ export class SessionClient extends BaseClient {
         super(io, '/sessions', config);
         this.currentSessionId = null;
         this.sessions = [];
+        this.authenticated = false;
+        this.terminalKey = config.terminalKey || 'testkey12345'; // Default for dev
+    }
+
+    onConnect() {
+        console.log(
+            '[SESSION-CLIENT] Connected, attempting authentication with key:',
+            this.terminalKey ? 'present' : 'missing'
+        );
+        // Authenticate with the server when connecting
+        if (this.terminalKey) {
+            this.authenticate((error, response) => {
+                if (error) {
+                    console.error('[SESSION-CLIENT] Authentication failed:', error);
+                    return;
+                }
+                
+                // After successful authentication, trigger initial session load if callback is set
+                if (this.onAuthenticated) {
+                    this.onAuthenticated();
+                }
+            });
+        } else {
+            console.warn('[SESSION-CLIENT] No terminal key provided');
+        }
+    }
+
+    authenticate(callback) {
+        console.log('[SESSION-CLIENT] Sending auth request with key:', this.terminalKey);
+        this.emit('auth', this.terminalKey, (response) => {
+            console.log('[SESSION-CLIENT] Auth response received:', response);
+            if (response?.success) {
+                this.authenticated = true;
+                console.log('[SESSION-CLIENT] Authenticated successfully');
+            } else {
+                this.authenticated = false;
+                console.error('[SESSION-CLIENT] Authentication failed:', response?.error || 'No response');
+            }
+            this._handleResponse(callback)(response);
+        });
     }
 
     setupEventListeners() {

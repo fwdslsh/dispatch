@@ -144,3 +144,4 @@ src/lib/server/sessions.json
 .agent-os/recaps/
 test-results/
 playwright-report/
+.dispatch-home/

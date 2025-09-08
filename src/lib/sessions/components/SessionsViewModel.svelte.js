@@ -84,7 +84,7 @@ export class SessionsViewModel extends BaseViewModel {
 		this.setError(null);
 
 		try {
-			const response = await this.sessionClient.attach(sessionId, options);
+			const response = await this.sessionClient.attachAsync(sessionId, options);
 			if (response.success) {
 				this.currentSession = response.session;
 			}
@@ -107,7 +107,7 @@ export class SessionsViewModel extends BaseViewModel {
 		this.setError(null);
 
 		try {
-			const response = await this.sessionClient.end(sessionId);
+			const response = await this.sessionClient.endAsync(sessionId);
 			if (response.success) {
 				// Remove from sessions list
 				this.sessions = this.sessions.filter(s => s.id !== sessionId);

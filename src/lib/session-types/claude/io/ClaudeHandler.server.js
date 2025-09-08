@@ -55,8 +55,8 @@ export class ClaudeHandler extends BaseHandler {
 
 	handleDisconnect(socket) {
 		const session = this.sessions.get(socket.id);
-		if (session?.id) {
-			console.log(`[CLAUDE] Socket ${socket.id} disconnected, cleaning up session ${session.id}`);
+		if (session?.sessionId) {
+			console.log(`[CLAUDE] Socket ${socket.id} disconnected, cleaning up session ${session.sessionId}`);
 		}
 		this.sessions.delete(socket.id);
 	}
@@ -173,7 +173,7 @@ ${sessionData.customOptions.authenticated ? "✅ I'm authenticated and ready to 
 			const { message, sessionId } = data || {};
 			const claudeSession = this.sessions.get(socket.id);
 
-			if (!claudeSession?.id || claudeSession.id !== sessionId) {
+			if (!claudeSession?.sessionId || claudeSession.sessionId !== sessionId) {
 				const errorResponse = {
 					success: false,
 					error: 'Invalid session ID'
@@ -202,7 +202,7 @@ ${sessionData.customOptions.authenticated ? "✅ I'm authenticated and ready to 
 			if (callback) callback(response);
 
 			// Query Claude if authenticated
-			if (claudeSession.isAuthenticated) {
+			if (claudeSession.authenticated) {
 				try {
 					// Add project context to the message
 					const contextualMessage = `Project: ${claudeSession.projectId}\n\nUser: ${message}`;
@@ -283,7 +283,7 @@ ${sessionData.customOptions.authenticated ? "✅ I'm authenticated and ready to 
 			const { sessionId } = data || {};
 			const claudeSession = this.sessions.get(socket.id);
 
-			if (!claudeSession?.id || claudeSession.id !== sessionId) {
+			if (!claudeSession?.sessionId || claudeSession.sessionId !== sessionId) {
 				const errorResponse = {
 					success: false,
 					error: 'Invalid session ID'
@@ -314,7 +314,7 @@ ${sessionData.customOptions.authenticated ? "✅ I'm authenticated and ready to 
 			const { sessionId } = data || {};
 			const claudeSession = this.sessions.get(socket.id);
 
-			if (!claudeSession?.id || claudeSession.id !== sessionId) {
+			if (!claudeSession?.sessionId || claudeSession.sessionId !== sessionId) {
 				const errorResponse = {
 					success: false,
 					error: 'Invalid session ID'
