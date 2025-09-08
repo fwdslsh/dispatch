@@ -69,7 +69,7 @@ node src/app.js
 
 - **Frontend**: SvelteKit application with xterm.js terminal emulator
 - **Backend**: Express server with Socket.IO for WebSocket communication
-- **Terminal Management**: node-pty integration for spawning terminal sessions  
+- **Terminal Management**: node-pty integration for spawning terminal sessions
 - **Workspace Management**: WorkspaceManager class handles workspace/project organization
 - **Session Routing**: SessionRouter manages active sessions and their mappings
 - **Claude Integration**: ClaudeSessionManager provides Claude Code session management
@@ -80,18 +80,21 @@ node src/app.js
 The application follows a clean separation between frontend UI, Socket.IO communication layer, and backend services:
 
 **SvelteKit Frontend**:
+
 - Main interface at `/` for terminal sessions
 - Project management interface at `/projects`
 - Uses xterm.js for terminal emulation with Socket.IO for real-time communication
 - Svelte 5 with modern reactive patterns
 
 **Socket.IO Layer** (`src/lib/server/socket-setup.js`):
+
 - Handles real-time bidirectional communication
 - Uses shared service managers from global `__API_SERVICES`
 - Manages authentication and session lifecycle
 - Routes messages between frontend and backend services
 
 **Backend Services**:
+
 - `WorkspaceManager`: Directory-based workspace management with JSON index persistence
 - `SessionRouter`: In-memory session mapping and routing
 - `ClaudeSessionManager`: Claude Code integration using `@anthropic-ai/claude-code` package
@@ -100,11 +103,13 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 ### Workspace and Session Model
 
 **Workspaces**: Directory-based workspaces with persistent metadata
+
 - Stored in `WORKSPACES_ROOT` (default: `~/.dispatch-home/workspaces`)
 - Index file tracks workspace metadata and session history
 - Each workspace is an isolated directory environment
 
 **Sessions**: Ephemeral session instances within workspaces
+
 - Two types: `claude` (Claude Code) and `shell` (terminal)
 - Sessions inherit workspace directory as working directory
 - Session routing via `SessionRouter` maps session IDs to descriptors
@@ -160,7 +165,7 @@ Manages workspace lifecycle and persistence:
 ```javascript
 // Key methods
 async init()                    // Initialize workspace index
-async list()                    // List all workspace directories  
+async list()                    // List all workspace directories
 async open(dir)                 // Open/create workspace
 async clone(fromPath, toPath)   // Clone workspace
 async rememberSession(dir, sessionDescriptor) // Persist session info
@@ -170,12 +175,12 @@ async rememberSession(dir, sessionDescriptor) // Persist session info
 
 Maps session IDs to session descriptors:
 
-```javascript  
+```javascript
 // Key methods
-bind(sessionId, descriptor)     // Register session
-get(sessionId)                  // Get session descriptor
-all()                          // Get all sessions
-byWorkspace(workspacePath)     // Filter by workspace
+bind(sessionId, descriptor); // Register session
+get(sessionId); // Get session descriptor
+all(); // Get all sessions
+byWorkspace(workspacePath); // Filter by workspace
 ```
 
 ### ClaudeSessionManager (`src/lib/server/claude/ClaudeSessionManager.js`)
@@ -183,7 +188,7 @@ byWorkspace(workspacePath)     // Filter by workspace
 Manages Claude Code sessions using `@anthropic-ai/claude-code`:
 
 ```javascript
-// Key methods  
+// Key methods
 async create({workspacePath, options}) // Create Claude session
 list(workspacePath)                    // List Claude sessions
 async send(id, userInput)              // Send message to Claude
@@ -196,11 +201,11 @@ Manages PTY terminal sessions with dynamic Socket.IO handling:
 
 ```javascript
 // Key methods
-start({workspacePath, shell, env})     // Create terminal session
-write(id, data)                        // Send input to terminal
-resize(id, cols, rows)                 // Resize terminal
-stop(id)                              // Kill terminal session
-setSocketIO(socket)                   // Update Socket.IO reference for all terminals
+start({ workspacePath, shell, env }); // Create terminal session
+write(id, data); // Send input to terminal
+resize(id, cols, rows); // Resize terminal
+stop(id); // Kill terminal session
+setSocketIO(socket); // Update Socket.IO reference for all terminals
 ```
 
 ## Docker Integration
@@ -208,7 +213,7 @@ setSocketIO(socket)                   // Update Socket.IO reference for all term
 ### Multi-stage Build
 
 - **Build stage**: Install dependencies and build SvelteKit application
-- **Runtime stage**: Minimal Node.js slim image with built application  
+- **Runtime stage**: Minimal Node.js slim image with built application
 
 ### Security Features
 
@@ -227,6 +232,7 @@ setSocketIO(socket)                   // Update Socket.IO reference for all term
 ### Server Architecture
 
 **Main Application** (`src/app.js`):
+
 - Production server entry point
 - Initializes directories and starts HTTP server
 - Integrates SvelteKit handler with Socket.IO via `setupSocketIO()`
@@ -234,17 +240,20 @@ setSocketIO(socket)                   // Update Socket.IO reference for all term
 - Sets up global `__DISPATCH_SOCKET_IO` for API endpoint access
 
 **Vite Development** (`vite.config.js`):
+
 - Custom Socket.IO plugin for development server
 - Separate test configurations for client and server
 - Browser testing with Playwright integration
 
 **Socket.IO Integration** (`src/lib/server/socket-setup.js`):
+
 - Centralizes Socket.IO initialization with `setupSocketIO()` function
 - Uses shared service managers from `hooks.server.js` via `__API_SERVICES`
 - Handles authentication and session management
 - Coordinates between frontend and backend services
 
 **Shared Service Architecture** (`src/hooks.server.js`):
+
 - Initializes global `__API_SERVICES` with shared manager instances
 - Provides service access to both API endpoints and Socket.IO handlers
 - WorkspaceManager, SessionRouter, TerminalManager, and ClaudeSessionManager are shared

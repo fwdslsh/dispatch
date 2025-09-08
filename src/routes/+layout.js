@@ -1,6 +1,6 @@
 /** @type {import('./$types').LayoutLoad} */
 export async function load() {
-    return {};
+	return {};
 }
 export const ssr = false;
 export const prerender = false;

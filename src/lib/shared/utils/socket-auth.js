@@ -1,6 +1,6 @@
 /**
  * Socket.IO Authentication Utilities
- * 
+ *
  * Centralized utilities for handling Socket.IO authentication
  * with the SocketIOServer authentication system.
  */
@@ -38,16 +38,16 @@ export function clearAuthToken() {
  */
 export async function createAuthenticatedSocket(options = {}) {
 	const socket = io({ transports: ['websocket', 'polling'], ...options });
-	
+
 	return new Promise((resolve, reject) => {
 		const token = getStoredAuthToken();
-		
+
 		if (!token) {
 			socket.disconnect();
 			resolve({ socket: null, authenticated: false });
 			return;
 		}
-		
+
 		// Try to authenticate with stored token
 		socket.emit('auth', token, (response) => {
 			if (response?.success) {
@@ -59,7 +59,7 @@ export async function createAuthenticatedSocket(options = {}) {
 				resolve({ socket: null, authenticated: false });
 			}
 		});
-		
+
 		// Handle connection errors
 		socket.on('connect_error', (error) => {
 			socket.disconnect();
@@ -75,7 +75,7 @@ export async function createAuthenticatedSocket(options = {}) {
  */
 export async function testAuthKey(key) {
 	const socket = io({ transports: ['websocket', 'polling'] });
-	
+
 	return new Promise((resolve) => {
 		// Set a timeout to prevent hanging
 		const timeout = setTimeout(() => {
@@ -90,7 +90,7 @@ export async function testAuthKey(key) {
 				resolve(response?.success === true);
 			});
 		});
-		
+
 		// Handle connection errors
 		socket.on('connect_error', () => {
 			clearTimeout(timeout);
@@ -121,7 +121,7 @@ export async function authenticateSocket(socket, key) {
 export async function isAuthenticated() {
 	const token = getStoredAuthToken();
 	if (!token) return false;
-	
+
 	return await testAuthKey(token);
 }
 

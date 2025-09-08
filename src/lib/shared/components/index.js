@@ -10,3 +10,7 @@ export { default as LoadingSpinner } from './LoadingSpinner.svelte';
 export { default as ErrorDisplay } from './ErrorDisplay.svelte';
 export { default as Card } from './Card.svelte';
 export { default as ValidationMessage } from './ValidationMessage.svelte';
+export { default as Container } from './Container.svelte';
+export { default as PublicUrlDisplay } from './PublicUrlDisplay.svelte';
+export { default as ConfirmationDialog } from './ConfirmationDialog.svelte';
+export { default as HeaderToolbar } from './HeaderToolbar.svelte';

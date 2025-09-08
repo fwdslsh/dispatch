@@ -9,7 +9,7 @@
 		// Set body class based on whether TERMINAL_KEY is configured OR user has stored auth token
 		const hasStoredAuth = !!getStoredAuthToken();
 		const hasAuth = data?.hasTerminalKey || hasStoredAuth;
-		
+
 		if (!hasAuth) {
 			document.body.classList.add('no-key');
 		} else {

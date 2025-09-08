@@ -8,10 +8,10 @@ function socketIOPlugin() {
 		name: 'socketio',
 		configureServer(server) {
 			if (!server.httpServer) return;
-			
+
 			console.log('[DEV] Setting up Socket.IO with shared managers...');
 			const io = setupSocketIO(server.httpServer);
-			
+
 			// Store globally for API endpoints if needed
 			globalThis.__DISPATCH_SOCKET_IO = io;
 			console.log('[DEV] Socket.IO ready with shared managers');

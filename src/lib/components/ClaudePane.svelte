@@ -1,6 +1,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { io } from 'socket.io-client';
+	import { Button, Input } from '$lib/shared/components';
 
 	let { sessionId } = $props();
 
@@ -36,14 +37,75 @@
 	onDestroy(() => socket?.disconnect());
 </script>
 
-<div class="pane">
-	<div class="log">
+<div class="claude-pane">
+	<div class="messages">
 		{#each messages as m}
-			<div><strong>{m.role}:</strong> {m.text}</div>
+			<div class="message message--{m.role}">
+				<div class="message__role">{m.role}:</div>
+				<div class="message__text">{m.text}</div>
+			</div>
 		{/each}
 	</div>
-	<form onsubmit={send} style="display:flex; gap:8px; margin-top:8px;">
-		<input bind:value={input} placeholder="Ask Claude…" style="flex:1" />
-		<button>Send</button>
+	<form onsubmit={send} class="input-form">
+		<Input bind:value={input} placeholder="Ask Claude…" size="small" />
+		<Button type="submit" text="Send" variant="primary" size="small" />
 	</form>
 </div>
+
+<style>
+	.claude-pane {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		background: var(--bg-dark);
+		color: var(--text-primary);
+	}
+
+	.messages {
+		flex: 1;
+		overflow-y: auto;
+		padding: var(--space-sm);
+		scroll-behavior: smooth;
+	}
+
+	.message {
+		margin-bottom: var(--space-sm);
+		padding: var(--space-sm);
+		border-radius: 4px;
+		border-left: 3px solid var(--border);
+	}
+
+	.message--user {
+		background: var(--surface);
+		border-left-color: var(--primary);
+	}
+
+	.message--assistant {
+		background: var(--surface-hover);
+		border-left-color: var(--secondary);
+	}
+
+	.message__role {
+		font-weight: 600;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+		margin-bottom: var(--space-xs);
+	}
+
+	.message__text {
+		line-height: 1.5;
+		word-wrap: break-word;
+	}
+
+	.input-form {
+		display: flex;
+		gap: var(--space-sm);
+		padding: var(--space-sm);
+		border-top: 1px solid var(--border);
+		background: var(--surface);
+	}
+
+	.input-form :global(.input) {
+		flex: 1;
+	}
+</style>
