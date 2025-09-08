@@ -16,6 +16,14 @@ export class TerminalManager {
     this.nextId = 1;
   }
   
+  setSocketIO(io) {
+    this.io = io;
+    // Update socket reference for all existing terminals
+    for (const [id, terminalData] of this.terminals) {
+      terminalData.socket = io;
+    }
+  }
+  
   start({ workspacePath, shell = os.platform() === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash', env = {} }) {
     if (!pty) {
       console.error('Cannot start terminal: node-pty is not available');
@@ -26,15 +34,30 @@ export class TerminalManager {
     console.log(`Creating terminal ${id} with shell ${shell} in ${workspacePath}`);
     
     try {
-      const term = pty.spawn(shell, [], { name: 'xterm-color', cwd: workspacePath, env: { ...process.env, ...env } });
-      this.terminals.set(id, { term, workspacePath });
+      const term = pty.spawn(shell, [], { 
+        name: 'xterm-color', 
+        cwd: workspacePath, 
+        env: { 
+          ...process.env, 
+          ...env,
+          TERM: 'xterm-256color',
+          PS1: '\\u@\\h:\\w$ '
+        } 
+      });
+      this.terminals.set(id, { term, workspacePath, socket: this.io });
       
       term.onData(data => {
-        this.io.io.to(`terminal:${id}`).emit('data', data);
+        const terminalData = this.terminals.get(id);
+        if (terminalData && terminalData.socket) {
+          terminalData.socket.emit('data', data);
+        }
       });
       
       term.onExit(({ exitCode }) => { 
-        this.io.io.to(`terminal:${id}`).emit('exit', { exitCode });
+        const terminalData = this.terminals.get(id);
+        if (terminalData && terminalData.socket) {
+          terminalData.socket.emit('exit', { exitCode });
+        }
         this.terminals.delete(id); 
       });
       
@@ -47,7 +70,6 @@ export class TerminalManager {
   }
   
   write(id, data) { 
-    console.log(`Writing to terminal ${id}:`, JSON.stringify(data));
     const terminal = this.terminals.get(id);
     if (!terminal) {
       console.error(`Terminal ${id} not found. Available terminals:`, Array.from(this.terminals.keys()));

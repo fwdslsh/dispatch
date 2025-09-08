@@ -1,6 +1,7 @@
 
 <script>
   import { onMount } from 'svelte';
+  import { io } from 'socket.io-client';
   import TerminalPane from '$lib/components/TerminalPane.svelte';
   import ClaudePane from '$lib/components/ClaudePane.svelte';
 
@@ -27,13 +28,33 @@
   }
   async function create(type) {
     if (!chosenWorkspace) return;
-    const r = await fetch('/api/sessions', { method:'POST', headers: { 'content-type':'application/json' },
-      body: JSON.stringify({ type, workspacePath: chosenWorkspace, options: {} }) });
-    const { id } = await r.json();
-    const s = { id, type, workspacePath: chosenWorkspace };
-    sessions = [...sessions, s];
-    // auto-pin newest into grid if there's room
-    if (pinned.length < (layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1)) pinned = [...pinned, id];
+    
+    if (type === 'pty') {
+      // Create terminal via Socket.IO
+      const socket = io();
+      const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+      
+      socket.emit('terminal.start', { key, workspacePath: chosenWorkspace }, (response) => {
+        if (response.success) {
+          const s = { id: response.id, type, workspacePath: chosenWorkspace };
+          sessions = [...sessions, s];
+          // auto-pin newest into grid if there's room
+          if (pinned.length < (layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1)) pinned = [...pinned, response.id];
+        } else {
+          console.error('Failed to create terminal:', response.error);
+        }
+        socket.disconnect();
+      });
+    } else {
+      // Create Claude session via API (for now)
+      const r = await fetch('/api/sessions', { method:'POST', headers: { 'content-type':'application/json' },
+        body: JSON.stringify({ type, workspacePath: chosenWorkspace, options: {} }) });
+      const { id } = await r.json();
+      const s = { id, type, workspacePath: chosenWorkspace };
+      sessions = [...sessions, s];
+      // auto-pin newest into grid if there's room
+      if (pinned.length < (layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1)) pinned = [...pinned, id];
+    }
   }
 
   function togglePin(id) {

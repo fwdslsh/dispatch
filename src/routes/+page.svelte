@@ -10,32 +10,30 @@
 
 	onMount(() => {
 		// Check if already authenticated
-		const storedAuth = localStorage.getItem('dispatch-auth-token');
-		if (storedAuth && storedAuth !== 'no-auth') {
-			// Test if stored auth still works
+		const storedKey = localStorage.getItem('dispatch-auth-key');
+		if (storedKey) {
+			// Test if stored key works by attempting a simple Socket.IO connection
 			const socket = io({ transports: ['websocket', 'polling'] });
-			socket.emit('auth', storedAuth, (resp) => {
-				if (resp?.success === true) {
+			socket.emit('terminal.start', { key: storedKey, workspacePath: '/tmp' }, (resp) => {
+				if (resp?.success !== false || resp?.error !== 'Invalid key') {
+					// Key works (or at least isn't rejected for auth reasons)
 					goto('/projects');
 				} else {
-					// Stored auth is invalid, clear it
-					localStorage.removeItem('dispatch-auth-token');
+					// Key is invalid, clear it
+					localStorage.removeItem('dispatch-auth-key');
 				}
 				socket.disconnect();
 			});
 			return;
-		} else if (storedAuth === 'no-auth') {
-			// Legacy no-auth token, need to check current server state
-			localStorage.removeItem('dispatch-auth-token');
 		}
 
-		// Check if auth is required by testing with the default dev key
-		const testKey = 'testkey12345'; // Default dev key from CLAUDE.md
+		// Try the default dev key automatically
+		const testKey = 'testkey12345';
 		const socket = io({ transports: ['websocket', 'polling'] });
-		socket.emit('auth', testKey, (resp) => {
-			if (resp?.success === true) {
-				// Dev mode with default key, auto-authenticate
-				localStorage.setItem('dispatch-auth-token', testKey);
+		socket.emit('terminal.start', { key: testKey, workspacePath: '/tmp' }, (resp) => {
+			if (resp?.success !== false || resp?.error !== 'Invalid key') {
+				// Dev key works, auto-authenticate
+				localStorage.setItem('dispatch-auth-key', testKey);
 				goto('/projects');
 			}
 			// Otherwise show the login form
@@ -48,13 +46,13 @@
 		loading = true;
 		error = '';
 		const socket = io({ transports: ['websocket', 'polling'] });
-		socket.emit('auth', key, (resp) => {
+		socket.emit('terminal.start', { key, workspacePath: '/tmp' }, (resp) => {
 			loading = false;
-			if (resp?.success === true) {
-				localStorage.setItem('dispatch-auth-token', key);
+			if (resp?.success !== false || resp?.error !== 'Invalid key') {
+				localStorage.setItem('dispatch-auth-key', key);
 				goto('/projects');
 			} else {
-				error = resp.error || 'Invalid key';
+				error = 'Invalid key';
 			}
 			socket.disconnect();
 		});

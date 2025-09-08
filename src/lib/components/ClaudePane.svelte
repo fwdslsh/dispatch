@@ -14,7 +14,8 @@
 	function send(e) {
 		e.preventDefault();
 		if (!input.trim()) return;
-		socket.emit('claude.send', { id: sessionId, input });
+		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+		socket.emit('claude.send', { key, id: sessionId, input });
 		messages = [...messages, { role: 'user', text: input }];
 		input = '';
 	}
@@ -22,7 +23,7 @@
 	onMount(() => {
 		socket = io();
 		socket.on('connect', () => {
-			socket.emit('subscribe', `claude:${sessionId}`);
+			console.log('Claude Socket.IO connected');
 		});
 
 		socket.on('message.delta', (payload) => {

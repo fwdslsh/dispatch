@@ -24,6 +24,11 @@ export class ClaudeSessionManager {
       pathToClaudeCodeExecutable: cliPath,
     };
   }
+  
+  setSocketIO(io) {
+    this.io = io;
+  }
+  
   /**
    * @param {{ workspacePath: string, options?: object }} param0
    */
@@ -84,14 +89,18 @@ export class ClaudeSessionManager {
       }
 
       // Emit the final results array
-      this.io.io.to(`claude:${id}`).emit('message.delta', results);
+      if (this.io) {
+        this.io.emit('message.delta', results);
+      }
 
     } catch (error) {
       console.error(`Error in Claude session ${id}:`, error);
-      this.io.io.to(`claude:${id}`).emit('error', {
-        message: 'Failed to process message',
-        error: error.message
-      });
+      if (this.io) {
+        this.io.emit('error', {
+          message: 'Failed to process message',
+          error: error.message
+        });
+      }
     }
   }
 }

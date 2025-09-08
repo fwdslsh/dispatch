@@ -12,19 +12,19 @@
     term.open(el);
     
     socket = io();
+    const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
     
     socket.on('connect', () => {
       console.log('Socket.IO connected');
-      // Join the terminal room
-      socket.emit('subscribe', `terminal:${ptyId}`);
       
       // Handle user input
       term.onData(data => {
-        socket.emit('terminal.write', { id: ptyId, data });
+        socket.emit('terminal.write', { key, id: ptyId, data });
       });
       
       // Send initial size
       socket.emit('terminal.resize', { 
+        key,
         id: ptyId, 
         cols: term.cols, 
         rows: term.rows 
@@ -32,7 +32,7 @@
       
       // Send initial enter to trigger prompt
       setTimeout(() => {
-        socket.emit('terminal.write', { id: ptyId, data: '\r' });
+        socket.emit('terminal.write', { key, id: ptyId, data: '\r' });
       }, 200);
     });
 
@@ -50,6 +50,7 @@
     const resize = () => {
       if (socket && socket.connected) {
         socket.emit('terminal.resize', { 
+          key,
           id: ptyId, 
           cols: term.cols, 
           rows: term.rows 

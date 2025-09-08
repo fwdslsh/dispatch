@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Dispatch** is a containerized web application that provides interactive PTY (pseudoterminal) sessions accessible via browser. It's built with SvelteKit and uses Socket.IO for real-time terminal communication. The primary use case is providing Claude Code sessions in isolated Docker environments with web-based terminal access.
+**Dispatch** is a containerized web application that provides interactive terminal sessions accessible via browser. It's built with SvelteKit and uses Socket.IO for real-time communication. The primary use case is providing Claude Code sessions and shell access in isolated environments with web-based terminal access.
 
 ## Development Commands
 
@@ -46,6 +46,12 @@ npm run format        # Auto-format code with Prettier
 # Testing
 npm run test          # Run all unit tests
 npm run test:unit     # Run unit tests with Vitest
+npm run test:e2e      # Run E2E tests with Playwright
+npm run test:e2e:headed    # Run E2E tests with browser UI
+npm run test:e2e:debug     # Debug E2E tests
+npm run test:e2e:ui        # Playwright test UI
+npm run test:e2e:report    # Show E2E test reports
+npm run playwright:install # Install Playwright browsers
 
 # Start production server (includes build + LocalTunnel enabled)
 npm start
@@ -63,97 +69,51 @@ node src/app.js
 
 - **Frontend**: SvelteKit application with xterm.js terminal emulator
 - **Backend**: Express server with Socket.IO for WebSocket communication
-- **Terminal Management**: node-pty for spawning and managing PTY sessions
-- **Project Management**: Hierarchical project/session organization with DirectoryManager
-- **Session Storage**: JSON-based project registry and session persistence
+- **Terminal Management**: node-pty integration for spawning terminal sessions  
+- **Workspace Management**: WorkspaceManager class handles workspace/project organization
+- **Session Routing**: SessionRouter manages active sessions and their mappings
+- **Claude Integration**: ClaudeSessionManager provides Claude Code session management
 - **Containerization**: Multi-stage Docker build with non-root execution
-- **UI Framework**: Uses augmented-ui for futuristic styling (see https://augmented-ui.com/docs/)
 
-### Architecture Patterns
+### High-Level Architecture
 
-This codebase follows modern modular patterns for maintainability:
+The application follows a clean separation between frontend UI, Socket.IO communication layer, and backend services:
 
-- **Feature-based Organization**: Code organized by features (projects, sessions, session-types) with shared utilities
-- **MVVM Architecture**: ViewModels separate UI logic from components using Svelte 5 runes (`$state`, `$derived`)
-- **Session Type System**: Pluggable session types (Claude, Shell) with isolated namespaced handlers
-- **Service Layer**: Business logic encapsulated in services with dependency injection
-- **Centralized Configuration**: Feature-specific config files and shared constants
-- **Svelte 5 Contexts**: Modern reactive state management with contexts and runes
-- **ESM Modules**: Clean ES module structure with explicit imports/exports
+**SvelteKit Frontend**:
+- Main interface at `/` for terminal sessions
+- Project management interface at `/projects`
+- Uses xterm.js for terminal emulation with Socket.IO for real-time communication
+- Svelte 5 with modern reactive patterns
 
-### Feature-Based Architecture
+**Socket.IO Layer** (`src/lib/server/io-server.js`):
+- Handles real-time bidirectional communication
+- Manages authentication and session lifecycle
+- Routes messages between frontend and backend services
 
-The codebase is now organized around features with clear separation:
+**Backend Services**:
+- `WorkspaceManager`: Directory-based workspace management with JSON index persistence
+- `SessionRouter`: In-memory session mapping and routing
+- `ClaudeSessionManager`: Claude Code integration using `@anthropic-ai/claude-code` package
+- `TerminalManager`: PTY session management for shell access
 
-```
-src/
-├── app.js                     # Production server entry point
-├── app.css                    # Global styles with augmented-ui
-├── lib/
-│   ├── projects/              # Project management feature
-│   │   ├── components/        # Project UI components
-│   │   ├── services/          # Project services
-│   │   └── config.js          # Project configuration
-│   ├── sessions/              # Session management feature
-│   │   ├── components/        # Session UI components & ViewModels
-│   │   ├── services/          # Session services
-│   │   └── config.js          # Session configuration
-│   ├── session-types/         # Pluggable session type system
-│   │   ├── registry.js        # Session type registry
-│   │   ├── index.js           # Main entry point & initialization
-│   │   ├── shared/            # Base classes & utilities
-│   │   ├── claude/            # Claude Code session type
-│   │   │   ├── components/    # Claude-specific components
-│   │   │   ├── server/        # Claude server handlers
-│   │   │   └── utils/         # Claude utilities
-│   │   └── shell/             # Shell session type
-│   │       ├── components/    # Shell-specific components
-│   │       ├── server/        # Shell server handlers
-│   │       └── utils/         # Shell utilities
-│   ├── shared/                # Shared components & utilities
-│   │   ├── components/        # Reusable UI components
-│   │   ├── contexts/          # Svelte 5 contexts
-│   │   └── utils/             # Shared utilities & constants
-│   ├── services/              # Core application services
-│   └── server/                # Core server infrastructure
-│       ├── handlers/          # Main Socket.IO handlers
-│       ├── middleware/        # Auth & validation middleware
-│       ├── socket-handler.js  # Socket.IO coordinator
-│       └── namespaced-socket-handler.js # Session type handler routing
-├── bin/
-│   └── dispatch-cli.js        # CLI tool entry point
-└── routes/
-    ├── +page.svelte          # Main application interface
-    ├── projects/+page.svelte # Project management interface
-    └── projects/[id]/+page.svelte # Individual project view
-```
+### Workspace and Session Model
 
-### Project and Session Architecture
+**Workspaces**: Directory-based workspaces with persistent metadata
+- Stored in `WORKSPACES_ROOT` (default: `~/.dispatch-home/workspaces`)
+- Index file tracks workspace metadata and session history
+- Each workspace is an isolated directory environment
 
-The application organizes work into projects with isolated sessions:
-
-**Project Structure:**
-
-- **Project registry**: Stored in `DISPATCH_CONFIG_DIR/projects.json` (default: `/home/appuser/.config/dispatch/projects.json`)
-- **Project directories**: Each project gets its own directory in `DISPATCH_PROJECTS_DIR` (default: `/var/lib/dispatch/projects`)
-- **Unique project IDs**: Generated using timestamps and random values for uniqueness
-
-**Session Architecture:**
-Each terminal session runs within a project context:
-
-- **Session directory**: `{project_path}/sessions/{session_uuid}`
-- **Independent environment**: Separate HOME and working directory per session
-- **Process isolation**: Each session spawns its own PTY process
-- **Project inheritance**: Sessions inherit the project's working directory and context
-- **Mode selection**: Supports both Claude Code (`claude`) and shell (`bash`) modes
+**Sessions**: Ephemeral session instances within workspaces
+- Two types: `claude` (Claude Code) and `shell` (terminal)
+- Sessions inherit workspace directory as working directory
+- Session routing via `SessionRouter` maps session IDs to descriptors
 
 ### Authentication & Security
 
 - **Shared secret authentication**: All access requires `TERMINAL_KEY`
-- **Non-root container execution**: Runs as `appuser` (uid 10001)
-- **Session isolation**: Each session contained in separate directory
+- **Non-root container execution**: Runs as `appuser` (uid 10001) in production
+- **Session isolation**: Each session contained in separate workspace directory
 - **WebSocket authentication**: Auth required before terminal operations
-- **Claude AI Authentication**: Interactive web-based OAuth flow for Claude access (see [Claude Authentication Guide](docs/claude-authentication.md))
 
 ## Environment Configuration
 
@@ -164,223 +124,160 @@ Each terminal session runs within a project context:
 ### Optional Variables
 
 - `PORT`: Server port (default: `3030`)
-- `DISPATCH_CONFIG_DIR`: Configuration directory (default: `/home/appuser/.config/dispatch`)
-- `DISPATCH_PROJECTS_DIR`: Projects root directory (default: `/var/lib/dispatch/projects`)
-- `PTY_MODE`: Default session mode (default: `shell`, can be `claude`)
+- `HOME`: User home directory for workspace initialization
+- `WORKSPACES_ROOT`: Root directory for workspaces (default: `$HOME/.dispatch-home/workspaces`)
+- `DISPATCH_CONFIG_DIR`: Configuration directory (default: `$HOME/.config/dispatch`)
+- `DISPATCH_PROJECTS_DIR`: Projects root directory (default: `/workspace` in container)
 - `ENABLE_TUNNEL`: Enable LocalTunnel (default: `false`)
 - `LT_SUBDOMAIN`: Optional LocalTunnel subdomain
 - `CONTAINER_ENV`: Container environment flag (default: `true` in Docker)
 
 ## Socket.IO API
 
-The application uses Socket.IO for all terminal communication:
+The application uses Socket.IO for all real-time communication:
 
 ### Client Events
 
 - `auth(key, callback)` - Authenticate with terminal key
-- `create(opts, callback)` - Create new PTY session with `{mode, cols, rows, meta, project}` (project optional)
-- `attach(opts, callback)` - Attach to existing session with `{sessionId, cols, rows}`
-- `list(callback)` - Get all sessions (no auth required)
-- `listProjects(callback)` - Get all projects
-- `input(data)` - Send input to attached session
-- `resize(dims)` - Resize terminal with `{cols, rows}`
-- `end(sessionId?)` - End session (current if no ID provided)
-- `detach()` - Detach from session without ending it
+- `workspace:list(callback)` - List all available workspaces
+- `workspace:open(path, callback)` - Open/create workspace at path
+- `session:create(opts, callback)` - Create new session with `{type, workspacePath}`
+- `session:list(workspacePath, callback)` - List sessions for workspace
+- `session:send(sessionId, input)` - Send input to session
+- `session:end(sessionId)` - End specific session
 
 ### Server Events
 
-- `output(data)` - Terminal output data
-- `ended({exitCode, signal})` - Session terminated
-- `sessions-updated(sessions)` - Broadcast when session list changes
+- `session:output(sessionId, data)` - Session output data
+- `session:ended(sessionId, {exitCode, signal})` - Session terminated
+- `workspace:updated` - Broadcast workspace changes
+- `error(data)` - Error messages
 
-## Terminal and Project Management
+## Core Service Classes
 
-The `TerminalManager` class works with `DirectoryManager` to handle PTY lifecycle within projects:
+### WorkspaceManager (`src/lib/server/core/WorkspaceManager.js`)
 
-### Project Creation
+Manages workspace lifecycle and persistence:
 
-1. Generate unique project ID using timestamp and random values
-2. Create project directory in `DISPATCH_PROJECTS_DIR`
-3. Register project in project registry (`DISPATCH_CONFIG_DIR/projects.json`)
-4. Set up project metadata and permissions
+```javascript
+// Key methods
+async init()                    // Initialize workspace index
+async list()                    // List all workspace directories  
+async open(dir)                 // Open/create workspace
+async clone(fromPath, toPath)   // Clone workspace
+async rememberSession(dir, sessionDescriptor) // Persist session info
+```
 
-### Session Creation
+### SessionRouter (`src/lib/server/core/SessionRouter.js`)
 
-1. Generate unique session ID (UUID)
-2. Create session directory within project: `{project_path}/sessions/{session_uuid}`
-3. Spawn PTY process with specified mode (`claude` or shell)
-4. Set up environment variables (`HOME`, `TERM`, etc.) with project context
-5. Register cleanup handlers for process exit
+Maps session IDs to session descriptors:
 
-### Session Type System
+```javascript  
+// Key methods
+bind(sessionId, descriptor)     // Register session
+get(sessionId)                  // Get session descriptor
+all()                          // Get all sessions
+byWorkspace(workspacePath)     // Filter by workspace
+```
 
-The application now uses a pluggable session type architecture:
+### ClaudeSessionManager (`src/lib/server/claude/ClaudeSessionManager.js`)
 
-**Session Type Registry**: Central registry managing available session types
+Manages Claude Code sessions using `@anthropic-ai/claude-code`:
 
-- **Static Registration**: Session types are statically imported and registered for build optimization
-- **Namespace Isolation**: Each session type operates in its own Socket.IO namespace
-- **Extensible**: New session types can be added by implementing `BaseSessionType`
-
-**Built-in Session Types**:
-
-- **Claude (`claude`)**: AI-assisted development using Claude Code CLI
-- **Shell (`shell`)**: Traditional shell sessions with customizable terminals
-
-**Handler System**: Each session type provides its own Socket.IO handlers:
-
-- `src/lib/session-types/claude/server/` - Claude-specific server handlers
-- `src/lib/session-types/shell/server/` - Shell-specific server handlers
+```javascript
+// Key methods  
+async create({workspacePath, options}) // Create Claude session
+list(workspacePath)                    // List Claude sessions
+async send(id, userInput)              // Send message to Claude
+```
 
 ## Docker Integration
 
 ### Multi-stage Build
 
-- **Build stage**: Install dependencies and build application
-- **Runtime stage**: Minimal Node.js slim image with built application
+- **Build stage**: Install dependencies and build SvelteKit application
+- **Runtime stage**: Minimal Node.js slim image with built application  
 
 ### Security Features
 
-- Non-root user execution (`appuser`)
+- Non-root user execution (`appuser`, uid 10001)
 - Minimal runtime dependencies
-- Isolated session directories with proper permissions
+- Isolated workspace directories with proper permissions
 
 ### LocalTunnel Integration
 
 - Optional public URL sharing via LocalTunnel
-- Automatic URL detection and persistence to `/tmp/tunnel-url.txt`
+- Automatic URL detection and persistence to config directory
 - Graceful cleanup on server shutdown
 
-## Development Patterns for Maintainability
-
-### Code Organization Principles
-
-- **Feature-First**: Code organized by features (projects, sessions, session-types) rather than technical layers
-- **MVVM Pattern**: ViewModels handle business logic, Components handle UI, Models handle data
-- **Explicit Dependencies**: All imports/exports are clearly declared with ESM modules
-- **Configuration per Feature**: Each feature has its own `config.js` alongside shared constants
-- **Shared Foundation**: Common components, contexts, and utilities in `/src/lib/shared/`
-
-### MVVM Architecture (Svelte 5)
-
-**ViewModels**: Handle business logic using Svelte 5 runes
-
-- Located alongside components (e.g., `DirectoryPickerViewModel.svelte.js`)
-- Use `$state`, `$derived`, `$effect` for reactive business logic
-- Clean separation from UI concerns
-
-**Components**: Focus purely on presentation
-
-- Use `$props` to receive data from ViewModels
-- Minimal business logic, primarily UI event handling
-- Responsive design with mobile-first approach
-
-**Contexts**: Global state management
-
-- Located in `/src/lib/shared/contexts/` for shared state
-- Feature-specific contexts within feature directories
-- Use Svelte 5 context API with runes for reactivity
+## Development Patterns
 
 ### Server Architecture
 
-**Main Socket.IO Handlers**: Core application handlers in `/src/lib/server/handlers/`
+**Main Application** (`src/app.js`):
+- Production server entry point
+- Initializes directories and starts HTTP server
+- Integrates SvelteKit handler with Socket.IO
+- Manages LocalTunnel lifecycle
 
-- `session-handler.js` - Session lifecycle management
-- `project-handler.js` - Project operations
-- `auth-handler.js` - Authentication handling
+**Vite Development** (`vite.config.js`):
+- Custom Socket.IO plugin for development server
+- Separate test configurations for client and server
+- Browser testing with Playwright integration
 
-**Namespaced Session Type Handlers**: Isolated handlers per session type
+**Socket.IO Integration** (`src/lib/server/io-server.js`):
+- Centralizes Socket.IO initialization
+- Handles authentication and session management
+- Coordinates between frontend and backend services
 
-- Routed through `namespaced-socket-handler.js`
-- Each session type provides its own handlers via factory functions
-- Complete isolation between session types for security and maintainability
+### Frontend Components
 
-**Middleware**: Cross-cutting concerns
-
-- `auth-middleware.js` - Authentication validation
-- `auth-decorators.js` - Handler authentication decoration
-
-### Configuration Management
-
-**Feature-specific Configuration**: Each feature has its own `config.js`
-
-- `/src/lib/projects/config.js` - Project-related constants
-- `/src/lib/sessions/config.js` - Session-related constants
-- `/src/lib/session-types/*/config.js` - Session type specific configs
-
-**Shared Configuration**: Common utilities in `/src/lib/shared/utils/constants.js`
-
-- Core application constants
-- UI breakpoints and dimensions
-- Shared validation rules
-
-### Error Handling Patterns
-
-- **Consistent Responses**: Standard error format across all handlers
-- **Graceful Degradation**: Fallbacks for PTY failures and socket disconnections
-- **User Feedback**: Clear error messages without exposing implementation details
-- **Cleanup**: Automatic resource cleanup on failures
-
-### UI Styling Guidelines
-
-- Uses augmented-ui library for futuristic interface elements
-- Reference https://augmented-ui.com/docs/ when working with augmented-ui styles
-- Consistent theme with CSS custom properties (--bg-darker, --primary, --surface, etc.)
-- Mobile keyboard detection and viewport management
+**Terminal Integration**: Uses `@battlefieldduck/xterm-svelte` for terminal UI
+**UI Framework**: Augmented UI for futuristic styling components
+**State Management**: Modern Svelte 5 reactive patterns
 
 ## Testing & Debugging
 
+### Test Configuration
+
+The project uses Vitest with separate client/server test projects:
+
+- **Client tests**: Browser environment with Playwright
+- **Server tests**: Node environment for backend logic
+- **E2E tests**: Full Playwright integration testing
+
 ### Development Mode
 
-- Vite dev server with hot reload
-- Socket.IO integrated via Vite plugin
-- Development-specific error handling
+- Vite dev server with hot reload and Socket.IO integration
+- Development-specific authentication bypass options
+- Console debugging for Socket.IO events and session lifecycle
 
 ### Production Deployment
 
-For production with Claude Code:
+For production:
 
-1. Install Claude CLI in container: `npm install -g @anthropic-ai/claude-cli`
-2. Set `PTY_MODE=claude`
-3. Configure authentication key
-4. Mount persistent volumes for project data:
-   - `~/dispatch-config:/home/appuser/.config/dispatch` (project registry)
-   - `~/dispatch-projects:/var/lib/dispatch/projects` (project storage)
-
-### Common Debug Points
-
-- Session type registration and initialization in `src/lib/session-types/index.js`
-- Namespaced handler routing in `src/lib/server/namespaced-socket-handler.js`
-- Project creation workflow in `src/lib/server/directory-manager.js`
-- MVVM patterns in ViewModels (e.g., `DirectoryPickerViewModel.svelte.js`)
-- Socket.IO namespace isolation for session types
-- Feature configuration loading from respective `config.js` files
-
-### Development Access
-
-- Development server runs on all interfaces (`--host` flag)
-- Default auth key in development: `testkey12345`
-- Access at `http://localhost:5173` during development
-- Production access at `http://localhost:3030` with configured key
+1. Set strong `TERMINAL_KEY` (especially with `ENABLE_TUNNEL=true`)
+2. Mount persistent volumes for workspace data
+3. Configure proper directory permissions for container user
+4. Claude Code integration requires Claude CLI in container
 
 ## Key Dependencies & Versions
 
 - **Node.js**: >=22 (see `.nvmrc` and `package.json` engines)
-- **xterm.js**: Terminal emulator with addon support
+- **@anthropic-ai/claude-code**: Claude Code CLI integration
+- **xterm.js**: Terminal emulator with Svelte wrapper
 - **Socket.IO**: Real-time bidirectional communication
-- **node-pty**: Pseudoterminal management
+- **node-pty**: Pseudoterminal management (via Claude Code package)
 - **augmented-ui**: Futuristic UI components
-- **SvelteKit**: Full-stack web framework
-- **Playwright**: Testing framework (available but not configured)
-
-**VERY IMPORTANT** Use the svelte-llm MCP tool to review documentation on modern Svelte syntax, SvelteKit best practices, and any other Svelte or SvelteKit related information.
+- **SvelteKit**: Full-stack web framework with adapter-node
+- **Vitest**: Testing framework with Playwright integration
 
 ## Runtime Requirements & Constraints
 
 - Container runs as non-root user (`appuser`, uid 10001)
-- Project and session directories require proper permissions
-- Projects persist when using persistent volume mounts
-- Sessions are ephemeral within their project context
-- Claude CLI must be installed separately for Claude mode
+- Workspace directories require proper permissions for container user
+- Workspaces persist when using persistent volume mounts
+- Sessions are ephemeral and tied to workspace lifecycle
+- Claude integration requires network access for API calls
 - LocalTunnel requires network access for public URLs
-- File system permissions must allow directory creation in `DISPATCH_CONFIG_DIR` and `DISPATCH_PROJECTS_DIR`
+- File system permissions must allow directory creation in configured paths

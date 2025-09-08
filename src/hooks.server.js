@@ -1,43 +1,41 @@
 
 import { sequence } from '@sveltejs/kit/hooks';
-import { SocketIOServer } from './lib/server/io/SocketIOServer';
-import { WorkspaceManager } from './lib/server/core/WorkspaceManager';
-import { SessionRouter } from './lib/server/core/SessionRouter';
-import { TerminalManager } from './lib/server/terminals/TerminalManager';
-import { ClaudeSessionManager } from './lib/server/claude/ClaudeSessionManager';
+import { WorkspaceManager } from './lib/server/core/WorkspaceManager.js';
+import { SessionRouter } from './lib/server/core/SessionRouter.js';
+import { TerminalManager } from './lib/server/terminals/TerminalManager.js';
+import { ClaudeSessionManager } from './lib/server/claude/ClaudeSessionManager.js';
 
-// Initialize instances (but don't wire up Socket.IO handlers yet)
-if (!globalThis.__HOOKS_INSTANCES) {
-  const ioServer = new SocketIOServer();
-  
-  const sessions = new SessionRouter();
-  const workspaces = new WorkspaceManager({
-    rootDir: process.env.WORKSPACES_ROOT || './.workspaces',
-    indexFile: (process.env.WORKSPACES_ROOT || './.workspaces') + '/.dispatch/hub-index.json'
-  });
-  
-  // Initialize workspaces asynchronously
-  workspaces.init().catch(err => {
-    console.error('Failed to initialize workspaces:', err);
-  });
-  
-  const terminals = new TerminalManager({ io: ioServer });
-  const claude = new ClaudeSessionManager({ io: ioServer });
+// Initialize services for API endpoints (but not for Socket.IO which is handled separately)
+if (!globalThis.__API_SERVICES) {
+  try {
+    const sessions = new SessionRouter();
+    const workspaces = new WorkspaceManager({
+      rootDir: process.env.WORKSPACES_ROOT || './.workspaces',
+      indexFile: (process.env.WORKSPACES_ROOT || './.workspaces') + '/.dispatch/hub-index.json'
+    });
+    
+    // Initialize workspaces asynchronously
+    workspaces.init().catch(err => {
+      console.error('Failed to initialize workspaces:', err);
+    });
+    
+    // Create managers without Socket.IO for API use
+    const terminals = new TerminalManager({ io: null });
+    const claude = new ClaudeSessionManager({ io: null });
 
-  globalThis.__HOOKS_INSTANCES = { ioServer, sessions, workspaces, terminals, claude };
+    globalThis.__API_SERVICES = { sessions, workspaces, terminals, claude };
+  } catch (error) {
+    console.error('Failed to initialize API services:', error);
+    globalThis.__API_SERVICES = { sessions: null, workspaces: null, terminals: null, claude: null };
+  }
 }
 
-export const ioServer = globalThis.__HOOKS_INSTANCES?.ioServer;
-export const sessions = globalThis.__HOOKS_INSTANCES?.sessions;
-export const workspaces = globalThis.__HOOKS_INSTANCES?.workspaces;
-export const terminals = globalThis.__HOOKS_INSTANCES?.terminals;
-export const claude = globalThis.__HOOKS_INSTANCES?.claude;
-
 export const handle = sequence(async ({ event, resolve }) => {
-  event.locals.ioServer = ioServer;
-  event.locals.workspaces = workspaces;
-  event.locals.sessions = sessions;
-  event.locals.terminals = terminals;
-  event.locals.claude = claude;
+  // Make services available to API endpoints
+  event.locals.sessions = globalThis.__API_SERVICES?.sessions;
+  event.locals.workspaces = globalThis.__API_SERVICES?.workspaces;
+  event.locals.terminals = globalThis.__API_SERVICES?.terminals;
+  event.locals.claude = globalThis.__API_SERVICES?.claude;
+  
   return resolve(event);
 });
