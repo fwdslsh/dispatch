@@ -156,7 +156,6 @@
 
 	.btn--primary:hover:not(:disabled) {
 		background: var(--primary);
-		transform: translateY(-1px);
 		box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
 	}
 
@@ -180,7 +179,6 @@
 
 	.btn--danger:hover:not(:disabled) {
 		background: var(--secondary);
-		transform: translateY(-1px);
 		box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
 	}
 

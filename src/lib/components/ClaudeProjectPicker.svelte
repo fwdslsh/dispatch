@@ -1,9 +1,11 @@
 <script>
 	// Svelte 5 (runes)
-	let selected = $bindable(null); // { name, path, sessionCount, lastModified }
-	export let api = '/api/cc/projects';
-	export let placeholder = 'Browse Claude Code projects…';
-	export let onSelect;
+	let {
+		selected = $bindable(), // { name, path, sessionCount, lastModified }
+		api = '/api/cc/projects',
+		placeholder = 'Browse Claude Code projects…',
+		onSelect
+	} = $props();
 
 	let open = $state(false);
 	let query = $state('');

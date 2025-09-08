@@ -5,19 +5,19 @@
 	import ClaudePane from '$lib/components/ClaudePane.svelte';
 	import { Container, Button, Card } from '$lib/shared/components';
 
-	let sessions = [];
-	let workspaceRoot = '/workspaces';
-	let chosenWorkspace = '';
-	let workspaces = [];
+	let sessions = $state([]);
+	let workspaceRoot = $state('/workspaces');
+	let chosenWorkspace = $state('');
+	let workspaces = $state([]);
 
 	// Session grid state
-	let layoutPreset = '2up'; // '1up' | '2up' | '4up'
-	let pinned = []; // array of session IDs to display in grid order
-	$: cols = layoutPreset === '1up' ? 1 : layoutPreset === '2up' ? 2 : 2;
-	$: visible = pinned
+	let layoutPreset = $state('2up'); // '1up' | '2up' | '4up'
+	let pinned = $state([]); // array of session IDs to display in grid order
+	let cols = $derived(layoutPreset === '1up' ? 1 : layoutPreset === '2up' ? 2 : 2);
+	let visible = $derived(pinned
 		.map((id) => sessions.find((s) => s.id === id))
 		.filter(Boolean)
-		.slice(0, layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1);
+		.slice(0, layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1));
 
 	async function listWorkspaces() {
 		const r = await fetch('/api/workspaces');

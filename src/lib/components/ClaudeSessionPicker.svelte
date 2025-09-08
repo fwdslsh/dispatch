@@ -1,9 +1,11 @@
 <script>
 	// Props
-	export let project = ''; // required
-	export let apiBase = '/api/cc/session'; // base for endpoints
-	export let placeholder = 'Select a session…';
-	let selected = $bindable(null); // { id, lastModified, size }
+	let {
+		project = '', // required
+		apiBase = '/api/cc/session', // base for endpoints
+		placeholder = 'Select a session…',
+		selected = $bindable()
+	} = $props(); // { id, lastModified, size }
 
 	// State
 	let open = $state(false);
