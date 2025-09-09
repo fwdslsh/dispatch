@@ -86,17 +86,10 @@ export class ClaudeSessionManager {
 				return;
 			}
 
-			let results = [];
 			for await (const event of stream) {
-				if (event) {
-					results.push(event);
-					//this.io.io.to(`claude:${id}`).emit('message.delta', event);
+				if (event && this.io) {
+					this.io.emit('message.delta', [event]);
 				}
-			}
-
-			// Emit the final results array
-			if (this.io) {
-				this.io.emit('message.delta', results);
 			}
 		} catch (error) {
 			console.error(`Error in Claude session ${id}:`, error);
