@@ -1,6 +1,8 @@
 <script>
 	import { onDestroy, onMount } from 'svelte';
 	import { io } from 'socket.io-client';
+	import { fly, scale } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import TerminalPane from '$lib/components/TerminalPane.svelte';
 	import ClaudePane from '$lib/components/ClaudePane.svelte';
 	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
@@ -28,10 +30,8 @@
 	let isMobile = $state(false);
 	let cols = $derived(isMobile ? 1 : layoutPreset === '1up' ? 1 : layoutPreset === '2up' ? 2 : 2);
 	
-	// Animation state tracking
-	let isFirstLoad = $state(true);
+	// Layout tracking for responsive behavior
 	let previousCols = $state(cols);
-	let animatingContainers = $state(new Set());
 	let visible = $derived.by(() => {
 		console.log('DEBUG visible derivation:', {
 			sessionsCount: sessions.length,
@@ -75,27 +75,9 @@
 		}
 	});
 	
-	// Animation effects when layout changes
+	// Track layout changes for responsive behavior
 	$effect(() => {
-		if (cols !== previousCols && !isFirstLoad) {
-			// Trigger morphing animation for existing containers
-			visible.forEach((_, index) => {
-				animatingContainers.add(index);
-			});
-			
-			// Clear animations after duration
-			setTimeout(() => {
-				animatingContainers.clear();
-			}, 600);
-		}
 		previousCols = cols;
-		
-		// Mark first load as complete after initial render
-		if (isFirstLoad && visible.length > 0) {
-			setTimeout(() => {
-				isFirstLoad = false;
-			}, 100);
-		}
 	});
 
 	async function listWorkspaces() {
@@ -426,8 +408,10 @@
 				{#each visible as s, index}
 					{#if s && typeof s === 'object' && 'id' in s && 'type' in s}
 						<div 
-							class="terminal-container {animatingContainers.has(index) ? 'morphing' : ''}" 
+							class="terminal-container" 
 							style="--animation-index: {index};"
+							in:fly|global={{ y: 20, duration: 400, delay: index * 60, easing: cubicOut }}
+							out:fly|global={{ y: -20, duration: 300, delay: index * 40, easing: cubicOut }}
 						>
 							<div class="terminal-header">
 								<div class="terminal-status">
@@ -742,45 +726,8 @@
 		border: 1px solid var(--primary-dim);
 		overflow: hidden;
 		
-		/* Smooth container transitions */
-		transition: 
-			transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
-			opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1),
-			border-color 0.2s ease;
-		
-		/* Staggered animation delays */
-		transition-delay: calc(var(--animation-index, 0) * 0.05s);
-	}
-	
-	/* Modern CSS entrance animation using @starting-style */
-	.terminal-container {
-		opacity: 1;
-		transform: translateY(0) scale(1);
-	}
-	
-	@starting-style {
-		.terminal-container {
-			opacity: 0;
-			transform: translateY(16px) scale(0.96);
-		}
-	}
-	
-	/* Layout change morphing animation */
-	.terminal-container.morphing {
-		animation: terminalMorph 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-		animation-delay: calc(var(--animation-index, 0) * 0.04s);
-	}
-	
-	@keyframes terminalMorph {
-		0% {
-			transform: translateY(0) scale(1);
-		}
-		50% {
-			transform: translateY(-3px) scale(1.01);
-		}
-		100% {
-			transform: translateY(0) scale(1);
-		}
+		/* Simple transitions for hover states */
+		transition: border-color 0.2s ease;
 	}
 	
 	.terminal-container:hover {
