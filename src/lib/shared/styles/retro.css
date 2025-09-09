@@ -55,6 +55,22 @@
     --line: color-mix(in oklab, var(--text) 20%, transparent);
     --glow: color-mix(in oklab, var(--accent) 40%, transparent);
     --focus: color-mix(in oklab, var(--accent) 80%, white 10%);
+
+
+    /* Primary Phosphor Green Family */
+    --primary: #2ee66b;
+    --primary-bright: #4eff82;
+    --primary-dim: #1ea851;
+    --primary-muted: #2ee66b80;
+    --primary-gradient: linear-gradient(135deg, #2ee66b, #4eff82);
+    --primary-glow: rgba(46, 230, 107, 0.3);
+
+    /* Accent Colors for Variety */
+    --accent: #2ee66b;
+    --accent-amber: #ffd166;
+    --accent-cyan: #00c2ff;
+    --accent-magenta: #ff6b9d;
+    --accent-warning: #ff8c42;
 }
 
 /* Reset & base */
@@ -62,6 +78,8 @@
 *::before,
 *::after {
     box-sizing: border-box;
+    transition-behavior: allow-discrete;
+
 }
 
 html,
@@ -364,16 +382,53 @@ textarea:focus {
     color: var(--err);
 }
 
-/* Augmented button styling - subtle professional approach */
+/* Register custom properties for transitions */
+@property --aug-l {
+    syntax: '<length>';
+    initial-value: 4px;
+    inherits: false;
+}
+
+@property --aug-r {
+    syntax: '<length>';
+    initial-value: 4px;
+    inherits: false;
+}
+
+@property --aug-border-all {
+    syntax: '<length>';
+    initial-value: 1px;
+    inherits: false;
+}
+
+@property --aug-border-opacity {
+    syntax: '<number>';
+    initial-value: 0.2;
+    inherits: false;
+}
+
+@property --aug-inlay-all {
+    syntax: '<length>';
+    initial-value: 0px;
+    inherits: false;
+}
+
+@property --aug-inlay-opacity {
+    syntax: '<number>';
+    initial-value: 0.3;
+    inherits: false;
+}
+
+/* Augmented button styling - animated professional approach */
 .button.aug {
-    --aug-l: 6px;
-    --aug-r: 6px;
+    --aug-tl: 8px;
+    --aug-br: 8px;
     --aug-border-all: 1px;
     --aug-border-bg: var(--accent);
-    --aug-border-opacity: 0.3;
-    --aug-inlay-all: 1px;
-    --aug-inlay-bg: color-mix(in oklab, var(--accent) 10%, transparent);
-    --aug-inlay-opacity: 0.5;
+    --aug-border-opacity: 0.2;
+    --aug-inlay-all: 0px;
+    --aug-inlay-bg: color-mix(in oklab, var(--accent) 5%, transparent);
+    --aug-inlay-opacity: 0.3;
 
     /* Override base button border to prevent clashing */
     border: none;
@@ -382,6 +437,86 @@ textarea:focus {
     text-transform: uppercase;
     font-weight: 600;
     letter-spacing: 0.02em;
+    
+    /* Animate augmented-ui properties and effects */
+    transition: 
+        --aug-l 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        --aug-r 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        --aug-border-all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        --aug-border-opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        --aug-inlay-all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        --aug-inlay-opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.button.aug:hover {
+    
+    --aug-tl: 10px;
+    --aug-br: 10px;
+    --aug-border-all: 1px;
+    --aug-inlay-bg: color-mix(in oklab, var(--accent) 50%, transparent);
+    --aug-inlay-all: 1px;
+    --aug-inlay-opacity: 0.5;
+    
+    /* Add outer glow */
+    box-shadow: 
+        0 0 20px rgba(46, 230, 107, 0.4),
+        0 0 40px rgba(46, 230, 107, 0.2);
+}
+
+.button.aug:active,
+.button.aug.active {
+    --aug-br: 16px;
+    --aug-tl: 16px;
+    --aug-border-all: 1.5px;
+    --aug-border-opacity: 0.8;
+    --aug-inlay-all: 1px;
+    --aug-inlay-opacity: 0.7;
+    
+    /* Inner glow for pressed state + slight scale */
+    box-shadow: 
+        inset 0 0 8px rgba(46, 230, 107, 0.3),
+        0 0 10px rgba(46, 230, 107, 0.2);
+    transform: scale(0.98);
+}
+
+.button.aug.ghost:hover {
+    --aug-l: 6px;
+    --aug-r: 6px;
+    --aug-border-all: 2px;
+    --aug-border-opacity: 0.5;
+    --aug-inlay-all: 1px;
+    --aug-inlay-opacity: 0.4;
+    
+    /* Ghost variant glow */
+    box-shadow: 
+        0 0 18px rgba(46, 230, 107, 0.3),
+        0 0 35px rgba(46, 230, 107, 0.15);
+}
+
+.button.aug.ghost:active,
+.button.aug.ghost.active {
+    --aug-l: 5px;
+    --aug-r: 5px;
+    --aug-border-all: 2px;
+    --aug-border-opacity: 0.7;
+    --aug-inlay-all: 1px;
+    --aug-inlay-opacity: 0.6;
+    
+    /* Ghost inner glow for pressed state */
+    box-shadow: 
+        inset 0 0 6px rgba(46, 230, 107, 0.25),
+        0 0 8px rgba(46, 230, 107, 0.1);
+}
+
+
+.button.aug.ghost:active,
+.button.aug.ghost.active {
+    --aug-border-opacity: 0.5;
+    --aug-inlay-opacity: 0.7;
+    /* Ghost inner glow for pressed state */
+    box-shadow: inset 0 0 6px rgba(46, 230, 107, 0.25) !important;
 }
 
 /* 8) Tables */

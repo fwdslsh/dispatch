@@ -1,11 +1,13 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { io } from 'socket.io-client';
 	import TerminalPane from '$lib/components/TerminalPane.svelte';
 	import ClaudePane from '$lib/components/ClaudePane.svelte';
 	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
 	import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
 	import { Button } from '$lib/shared/components';
+	import ClaudeIcon from '$lib/shared/components/Icons/ClaudeIcon.svelte';
+	import TerminalIcon from '$lib/shared/components/Icons/TerminalIcon.svelte';
 
 	let sessions = $state([]);
 	let workspaces = $state([]);
@@ -18,40 +20,81 @@
 	let layoutPreset = $state('2up'); // '1up' | '2up' | '4up'
 	let pinned = $state([]); // array of session IDs to display in grid order
 	let currentMobileSession = $state(0); // current session index for mobile
-	
+
+	// Sidebar state
+	let sidebarCollapsed = $state(false);
+
 	// Responsive layout logic
 	let isMobile = $state(false);
-	let cols = $derived(isMobile ? 1 : (layoutPreset === '1up' ? 1 : layoutPreset === '2up' ? 2 : 2));
+	let cols = $derived(isMobile ? 1 : layoutPreset === '1up' ? 1 : layoutPreset === '2up' ? 2 : 2);
+	
+	// Animation state tracking
+	let isFirstLoad = $state(true);
+	let previousCols = $state(cols);
+	let animatingContainers = $state(new Set());
 	let visible = $derived.by(() => {
 		console.log('DEBUG visible derivation:', {
 			sessionsCount: sessions.length,
 			pinnedCount: pinned.length,
-			sessions: sessions.map(s => ({ id: s?.id, type: s?.type })),
-			pinned: pinned
+			sessions: sessions.map((s) => ({ id: s?.id, type: s?.type })),
+			pinned: pinned,
+			isMobile: isMobile,
+			currentMobileSession: currentMobileSession
 		});
-		
-		// Simple approach: just get all pinned sessions that exist
-		const pinnedSessions = pinned
-			.map((id) => {
-				const found = sessions.find((s) => s && s.id === id);
-				console.log('Looking for session ID:', id, 'found:', !!found, found?.type);
-				return found;
-			})
-			.filter(Boolean);
-		
-		console.log('Pinned sessions found:', pinnedSessions.length);
-		
+
 		if (isMobile) {
-			// Mobile: show only current session
-			const result = pinnedSessions.slice(currentMobileSession, currentMobileSession + 1);
-			console.log('Mobile result:', result.length);
+			// Mobile: show current session from ALL sessions (not just pinned)
+			const allSessions = sessions.filter(
+				(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
+			);
+			console.log('Mobile - all sessions:', allSessions.length);
+
+			if (allSessions.length === 0) return [];
+
+			// Ensure currentMobileSession is within bounds
+			const validIndex = Math.min(currentMobileSession, allSessions.length - 1);
+			const result = allSessions.slice(validIndex, validIndex + 1);
+			console.log('Mobile result:', result.length, 'index:', validIndex);
 			return result;
 		} else {
-			// Desktop: show based on layout preset
+			// Desktop: show based on layout preset and pinned sessions
+			const pinnedSessions = pinned
+				.map((id) => {
+					const found = sessions.find((s) => s && s.id === id);
+					console.log('Looking for session ID:', id, 'found:', !!found, found?.type);
+					return found;
+				})
+				.filter(Boolean);
+
+			console.log('Pinned sessions found:', pinnedSessions.length);
+
 			const maxSessions = layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1;
 			const result = pinnedSessions.slice(0, maxSessions);
 			console.log('Desktop result:', result.length, 'maxSessions:', maxSessions);
 			return result;
+		}
+	});
+	
+	// Animation effects when layout changes
+	$effect(() => {
+		if (cols !== previousCols && !isFirstLoad) {
+			// Trigger morphing animation for existing containers
+			visible.forEach((_, index) => {
+				animatingContainers.add(index);
+			});
+			
+			// Clear animations after duration
+			setTimeout(() => {
+				animatingContainers.clear();
+			}, 600);
+		}
+		previousCols = cols;
+		
+		// Mark first load as complete after initial render
+		if (isFirstLoad && visible.length > 0) {
+			setTimeout(() => {
+				isFirstLoad = false;
+			}, 100);
 		}
 	});
 
@@ -85,7 +128,13 @@
 					const s = { id: response.id, type: 'pty', workspacePath };
 					sessions = [...sessions, s];
 					// auto-pin newest into grid if there's room
-					const maxVisible = isMobile ? 1 : (layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1);
+					const maxVisible = isMobile
+						? 1
+						: layoutPreset === '4up'
+							? 4
+							: layoutPreset === '2up'
+								? 2
+								: 1;
 					if (pinned.length < maxVisible) {
 						pinned = [...pinned, response.id];
 					}
@@ -130,7 +179,7 @@
 		const s = { id, type: 'claude', workspacePath };
 		sessions = [...sessions, s];
 		// auto-pin newest into grid if there's room
-		const maxVisible = isMobile ? 1 : (layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1);
+		const maxVisible = isMobile ? 1 : layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1;
 		if (pinned.length < maxVisible) {
 			pinned = [...pinned, id];
 		}
@@ -142,8 +191,10 @@
 
 	// Mobile session navigation
 	function nextMobileSession() {
-		const maxSessions = pinned.filter(id => sessions.find(s => s.id === id)).length;
-		if (currentMobileSession < maxSessions - 1) {
+		const allSessions = sessions.filter(
+			(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
+		);
+		if (currentMobileSession < allSessions.length - 1) {
 			currentMobileSession++;
 		}
 	}
@@ -154,6 +205,16 @@
 		}
 	}
 
+	// Jump to specific session (for mobile session list)
+	function jumpToSession(sessionIndex) {
+		const allSessions = sessions.filter(
+			(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
+		);
+		if (sessionIndex >= 0 && sessionIndex < allSessions.length) {
+			currentMobileSession = sessionIndex;
+		}
+	}
+
 	// Responsive detection
 	function updateMobileState() {
 		isMobile = window.innerWidth <= 768;
@@ -161,6 +222,17 @@
 			// Reset to first session when switching to mobile
 			currentMobileSession = 0;
 		}
+
+		// On very small screens, collapse sidebar by default
+		if (window.innerWidth <= 480) {
+			sidebarCollapsed = true;
+		}
+	}
+
+	function toggleSidebar() {
+		sidebarCollapsed = !sidebarCollapsed;
+		// Persist sidebar state
+		localStorage.setItem('dispatch-sidebar-collapsed', sidebarCollapsed.toString());
 	}
 
 	onMount(async () => {
@@ -173,45 +245,69 @@
 			workspaces = [];
 			sessions = [];
 		}
-		
+
 		// Initialize responsive state
 		updateMobileState();
 		window.addEventListener('resize', updateMobileState);
-		
-		return () => {
-			window.removeEventListener('resize', updateMobileState);
-		};
+
+		// Load saved sidebar state
+		const savedSidebarState = localStorage.getItem('dispatch-sidebar-collapsed');
+		if (savedSidebarState) {
+			sidebarCollapsed = savedSidebarState === 'true';
+		}
+	});
+
+	onDestroy(() => {
+		// Clean up any resources if needed
+		window.removeEventListener('resize', updateMobileState);
 	});
 </script>
 
-<div class="dispatch-workspace">
+<div class="dispatch-workspace" class:sidebar-collapsed={sidebarCollapsed}>
 	<!-- Compact Header -->
 	<header class="header">
 		<div class="header-brand">
-			<span class="brand-icon">⚡</span>
+			<span class="brand-icon">
+				<img src="/favicon.png" alt="Dispatch" height="32" />
+			</span>
 			<span class="brand-text">Dispatch</span>
 		</div>
-		
+
+		<!-- Sidebar toggle -->
+		<Button
+			onclick={toggleSidebar}
+			text={sidebarCollapsed ? '▶' : '◀'}
+			variant="ghost"
+			size="small"
+			augmented="none"
+			ariaLabel={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+			class="sidebar-toggle"
+		>
+			{#snippet icon()}{/snippet}
+		</Button>
+
 		<div class="header-actions">
-			<Button 
-				onclick={() => (terminalModalOpen = true)} 
-				text="Terminal" 
+			<Button
+				onclick={() => (terminalModalOpen = true)}
+				text="Terminal"
 				variant="primary"
 				size="small"
-				augmented="tl-clip br-clip both"
+				augmented="none"
 			>
-				{#snippet icon()}⚡{/snippet}
-				{#snippet children()}{/snippet}
+				{#snippet icon()}
+					<TerminalIcon />
+				{/snippet}
 			</Button>
-			<Button 
-				onclick={() => (claudeModalOpen = true)} 
-				text="Claude" 
-				variant="secondary"
+			<Button
+				onclick={() => (claudeModalOpen = true)}
+				text="Claude"
+				variant="ghost"
 				size="small"
 				augmented="tr-clip bl-clip both"
 			>
-				{#snippet icon()}🤖{/snippet}
-				{#snippet children()}{/snippet}
+				{#snippet icon()}
+					<ClaudeIcon />
+				{/snippet}
 			</Button>
 		</div>
 
@@ -224,16 +320,16 @@
 						onclick={() => (layoutPreset = preset)}
 						text={preset}
 						variant={layoutPreset === preset ? 'primary' : 'ghost'}
+						class={layoutPreset === preset ? 'active' : ''}
 						size="small"
 						augmented="tl-clip br-clip both"
 					>
-						{#snippet icon()}{/snippet}
-						{#snippet children()}{/snippet}
+						{preset}
 					</Button>
 				{/each}
 			</div>
 		{/if}
-		
+
 		<!-- Mobile session navigation -->
 		{#if isMobile && visible.length > 0}
 			<div class="mobile-session-nav">
@@ -246,10 +342,12 @@
 					disabled={currentMobileSession === 0}
 				>
 					{#snippet icon()}{/snippet}
-					{#snippet children()}{/snippet}
+					{#snippet children()}&lt;{/snippet}
 				</Button>
 				<span class="session-counter">
-					{currentMobileSession + 1} / {pinned.filter(id => sessions.find(s => s.id === id)).length}
+					{currentMobileSession + 1} / {sessions.filter(
+						(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
+					).length}
 				</span>
 				<Button
 					onclick={nextMobileSession}
@@ -257,18 +355,44 @@
 					variant="ghost"
 					size="small"
 					augmented="br-clip both"
-					disabled={currentMobileSession >= pinned.filter(id => sessions.find(s => s.id === id)).length - 1}
+					disabled={currentMobileSession >=
+						sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length -
+							1}
 				>
-					{#snippet icon()}{/snippet}
-					{#snippet children()}{/snippet}
+					{#snippet children()}&gt;{/snippet}
 				</Button>
 			</div>
 		{/if}
 	</header>
 
 	<!-- Session Management Sidebar -->
-	{#if sessions.length > 0}
-		<aside class="sidebar">
+	<aside class="sidebar" class:collapsed={sidebarCollapsed}>
+		{#if isMobile}
+			<!-- Mobile: Full-width vertical session list -->
+			<h3 class="sidebar-title">Sessions ({sessions.length})</h3>
+			<div class="mobile-session-list">
+				{#each sessions as s, index}
+					{#if s && typeof s === 'object' && 'id' in s && 'type' in s}
+						<button
+							class="mobile-session-item {currentMobileSession === index ? 'active' : ''}"
+							onclick={() => jumpToSession(index)}
+						>
+							<span class="session-type">{s.type === 'claude' ? '🤖' : '⚡'}</span>
+							<div class="session-info">
+								<span class="session-id">{s.id}</span>
+								<span class="session-type-label"
+									>{s.type === 'claude' ? 'Claude Session' : 'Terminal Session'}</span
+								>
+							</div>
+							{#if currentMobileSession === index}
+								<span class="session-current">●</span>
+							{/if}
+						</button>
+					{/if}
+				{/each}
+			</div>
+		{:else}
+			<!-- Desktop: Vertical session list with pinning -->
 			<h3 class="sidebar-title">Sessions ({sessions.length})</h3>
 			<div class="session-list">
 				{#each sessions as s}
@@ -284,8 +408,8 @@
 					{/if}
 				{/each}
 			</div>
-		</aside>
-	{/if}
+		{/if}
+	</aside>
 
 	<!-- Main Workspace -->
 	<main class="main-content" style={`--cols: ${cols};`}>
@@ -299,9 +423,12 @@
 			</div>
 		{:else}
 			<div class="session-grid">
-				{#each visible as s}
+				{#each visible as s, index}
 					{#if s && typeof s === 'object' && 'id' in s && 'type' in s}
-						<div class="terminal-container">
+						<div 
+							class="terminal-container {animatingContainers.has(index) ? 'morphing' : ''}" 
+							style="--animation-index: {index};"
+						>
 							<div class="terminal-header">
 								<div class="terminal-status">
 									<span class="status-dot"></span>
@@ -335,18 +462,25 @@
 
 <style>
 	/* Maximum Screen Space Utilization for Developers */
-	
+
 	.dispatch-workspace {
+		position: relative;
 		height: 100vh;
 		display: grid;
-		grid-template-columns: auto 1fr;
+		grid-template-columns: 200px 1fr;
 		grid-template-rows: auto 1fr;
-		grid-template-areas: 
-			"header header"
-			"sidebar main";
+		grid-template-areas:
+			'header header'
+			'sidebar main';
 		background: var(--bg-dark);
 		color: var(--text-primary);
 		overflow: hidden;
+		transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	/* Collapsed sidebar layout */
+	.dispatch-workspace.sidebar-collapsed {
+		grid-template-columns: 0px 1fr;
 	}
 
 	/* ========================================
@@ -357,7 +491,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-4);
-		padding: var(--space-2) var(--space-4);
+		padding: var(--space-3);
 		background: var(--bg-panel);
 		border-bottom: 1px solid var(--primary-dim);
 		min-height: 50px; /* Minimal header height */
@@ -367,7 +501,7 @@
 	.header-brand {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
+		gap: var(--space-3);
 		font-family: var(--font-accent);
 		font-weight: 700;
 	}
@@ -376,6 +510,8 @@
 		font-size: 1.25rem;
 		color: var(--primary);
 		filter: drop-shadow(0 0 5px var(--primary-glow));
+		justify-content: center;
+		display: flex;
 	}
 
 	.brand-text {
@@ -387,14 +523,14 @@
 
 	.header-actions {
 		display: flex;
-		gap: var(--space-2);
+		gap: var(--space-3);
 	}
 
 	.header-layout {
 		margin-left: auto;
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
+		gap: var(--space-3);
 	}
 
 	.layout-label {
@@ -408,8 +544,16 @@
 	.mobile-session-nav {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
+		gap: var(--space-3);
 		margin-left: auto;
+	}
+
+	/* Sidebar toggle button */
+	:global(.sidebar-toggle) {
+		font-family: var(--font-mono) !important;
+		font-size: 0.875rem !important;
+		min-width: 2rem !important;
+		padding: var(--space-2) !important;
 	}
 
 	.session-counter {
@@ -431,8 +575,20 @@
 		background: var(--bg-panel);
 		border-right: 1px solid var(--primary-dim);
 		padding: var(--space-3);
-		overflow-y: auto;
+		overflow: hidden;
 		flex-shrink: 0;
+		height: 100%;
+		opacity: 1;
+		transform: translateX(0);
+		transition:
+			opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+			transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.sidebar.collapsed {
+		opacity: 0;
+		transform: translateX(-100%);
+		pointer-events: none;
 	}
 
 	.sidebar-title {
@@ -443,12 +599,34 @@
 		margin: 0 0 var(--space-3) 0;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+		opacity: 1;
+		transform: translateY(0);
+		transition:
+			opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1) 0.1s,
+			transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+	}
+
+	.sidebar.collapsed .sidebar-title {
+		opacity: 0;
+		transform: translateY(-10px);
+		transition-delay: 0s;
 	}
 
 	.session-list {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
+		opacity: 1;
+		transform: translateY(0);
+		transition:
+			opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1) 0.15s,
+			transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.15s;
+	}
+
+	.sidebar.collapsed .session-list {
+		opacity: 0;
+		transform: translateY(-15px);
+		transition-delay: 0s;
 	}
 
 	.session-item {
@@ -504,6 +682,14 @@
 		position: relative;
 	}
 
+	/* Mobile main content - smooth grid-based sliding */
+	@media (max-width: 768px) {
+		.main-content {
+			min-height: 0; /* Important for grid fr units */
+			overflow: hidden; /* Hide content during slide animation */
+		}
+	}
+
 	.empty-workspace {
 		display: flex;
 		align-items: center;
@@ -538,9 +724,12 @@
 	.session-grid {
 		display: grid;
 		grid-template-columns: repeat(var(--cols), 1fr);
-		gap: 2px; /* Minimal gaps for maximum space */
+		gap: var(--space-2); /* Consistent minimal gaps */
 		height: 100%;
 		overflow: hidden;
+		padding: var(--space-2);
+		
+		/* NO grid transition - instant layout change to prevent snapping */
 	}
 
 	/* ========================================
@@ -552,13 +741,116 @@
 		background: var(--bg-panel);
 		border: 1px solid var(--primary-dim);
 		overflow: hidden;
+		
+		/* Smooth container transitions */
+		transition: 
+			transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+			opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1),
+			border-color 0.2s ease;
+		
+		/* Staggered animation delays */
+		transition-delay: calc(var(--animation-index, 0) * 0.05s);
+	}
+	
+	/* Modern CSS entrance animation using @starting-style */
+	.terminal-container {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+	
+	@starting-style {
+		.terminal-container {
+			opacity: 0;
+			transform: translateY(16px) scale(0.96);
+		}
+	}
+	
+	/* Layout change morphing animation */
+	.terminal-container.morphing {
+		animation: terminalMorph 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+		animation-delay: calc(var(--animation-index, 0) * 0.04s);
+	}
+	
+	@keyframes terminalMorph {
+		0% {
+			transform: translateY(0) scale(1);
+		}
+		50% {
+			transform: translateY(-3px) scale(1.01);
+		}
+		100% {
+			transform: translateY(0) scale(1);
+		}
+	}
+	
+	.terminal-container:hover {
+		border-color: var(--primary);
+	}
+	
+	/* Mobile session switching with modern CSS */
+	@media (max-width: 768px) {
+		.terminal-container {
+			transition: 
+				transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+				opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+				box-shadow 0.2s ease,
+				border-color 0.2s ease;
+			transition-behavior: allow-discrete;
+		}
+		
+		/* Mobile starting style - slide from right */
+		@starting-style {
+			.terminal-container {
+				opacity: 0;
+				transform: translateX(24px) scale(0.97);
+			}
+		}
+	}
+	
+	/* Desktop layout change transitions */
+	@media (min-width: 769px) {
+		.session-grid {
+			/* Instant grid layout - no transition to prevent snapping */
+		}
+		
+		.terminal-container {
+			/* Only animate the containers themselves, not the grid */
+			transition: 
+				transform 0.5s cubic-bezier(0.23, 1, 0.32, 1),
+				opacity 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+				box-shadow 0.2s ease,
+				border-color 0.2s ease;
+		}
+	}
+	
+	/* Accessibility: reduced motion */
+	@media (prefers-reduced-motion: reduce) {
+		.terminal-container {
+			transition: opacity 0.2s ease;
+		}
+		
+		.terminal-container:hover {
+			transform: none !important;
+			box-shadow: none !important;
+		}
+		
+		.session-grid {
+			transition: none;
+		}
+		
+		@starting-style {
+			.terminal-container {
+				opacity: 0;
+				transform: none;
+			}
+		}
 	}
 
 	.terminal-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: var(--space-1) var(--space-3);
+		padding: var(--space-2) var(--space-3);
 		background: linear-gradient(135deg, var(--bg-dark), var(--bg-panel));
 		border-bottom: 1px solid var(--primary-dim);
 		min-height: 32px; /* Minimal header height */
@@ -568,7 +860,7 @@
 	.terminal-status {
 		display: flex;
 		align-items: center;
-		gap: var(--space-1);
+		gap: var(--space-2);
 	}
 
 	.status-dot {
@@ -581,8 +873,13 @@
 	}
 
 	@keyframes pulse {
-		0%, 100% { opacity: 1; }
-		50% { opacity: 0.7; }
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.7;
+		}
 	}
 
 	.terminal-type {
@@ -613,18 +910,41 @@
 	   ======================================== */
 	@media (max-width: 768px) {
 		.dispatch-workspace {
-			grid-template-columns: 1fr;
-			grid-template-rows: auto auto 1fr;
-			grid-template-areas: 
-				"header"
-				"sidebar"
-				"main";
+			grid-template-columns: 1fr !important;
+			grid-template-rows: auto 1fr 1fr;
+			grid-template-areas:
+				'header'
+				'sidebar'
+				'main';
+			/* Smooth grid transitions on mobile */
+			transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+			height: 100vh;
+			overflow: hidden;
+		}
+
+		/* On mobile, sidebar collapse means hiding sidebar, main takes full space */
+		.dispatch-workspace.sidebar-collapsed {
+			grid-template-rows: auto 0fr 1fr;
+			grid-template-areas:
+				'header'
+				'sidebar'
+				'main';
+		}
+
+		/* When sidebar is open, main content slides down */
+		.dispatch-workspace:not(.sidebar-collapsed) {
+			grid-template-rows: auto 1fr 0fr;
+			grid-template-areas:
+				'header'
+				'sidebar'
+				'main';
 		}
 
 		.header {
 			flex-wrap: wrap;
 			min-height: auto;
-			gap: var(--space-2);
+			gap: var(--space-3);
+			padding: var(--space-2);
 		}
 
 		.header-layout {
@@ -635,15 +955,95 @@
 		}
 
 		.sidebar {
-			width: auto;
-			max-height: 150px;
-			padding: var(--space-2);
+			width: 100%;
+			min-height: 0; /* Important for grid fr units */
+			padding: var(--space-4);
+			border-bottom: 1px solid var(--primary-dim);
+			overflow: hidden; /* Hide content that would overflow during animation */
+			display: flex;
+			flex-direction: column;
 		}
 
+		.sidebar.collapsed {
+			/* When collapsed, sidebar shrinks to 0 height via grid animation */
+		}
+
+		/* Mobile full-width session list */
+		.mobile-session-list {
+			display: flex;
+			flex-direction: column;
+			gap: var(--space-2);
+			overflow-y: auto;
+			flex: 1; /* Take remaining space in sidebar */
+			min-height: 0; /* Important for flex child with overflow */
+		}
+
+		.mobile-session-item {
+			display: flex;
+			align-items: center;
+			gap: var(--space-3);
+			padding: var(--space-3) var(--space-4);
+			background: transparent;
+			border: 1px solid var(--primary-dim);
+			border-radius: 6px;
+			color: var(--text-secondary);
+			font-family: var(--font-mono);
+			cursor: pointer;
+			text-align: left;
+			width: 100%;
+			transition: all 0.2s ease;
+		}
+
+		.mobile-session-item:hover {
+			background: rgba(46, 230, 107, 0.1);
+			border-color: var(--primary);
+			color: var(--text-primary);
+		}
+
+		.mobile-session-item.active {
+			background: rgba(46, 230, 107, 0.15);
+			border-color: var(--primary);
+			color: var(--primary);
+			font-weight: 600;
+			box-shadow: 0 0 12px rgba(46, 230, 107, 0.3);
+		}
+
+		.mobile-session-item .session-type {
+			font-size: 1.5rem;
+			min-width: 2rem;
+		}
+
+		.mobile-session-item .session-info {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			gap: var(--space-1);
+		}
+
+		.mobile-session-item .session-id {
+			font-weight: 600;
+			font-size: 0.875rem;
+			color: var(--text-primary);
+		}
+
+		.mobile-session-item .session-type-label {
+			font-size: 0.75rem;
+			color: var(--text-muted);
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+
+		.mobile-session-item .session-current {
+			color: var(--primary);
+			font-weight: 700;
+			font-size: 1.25rem;
+		}
+
+		/* Desktop session list - unchanged */
 		.session-list {
 			flex-direction: row;
 			flex-wrap: wrap;
-			gap: var(--space-1);
+			gap: var(--space-2);
 		}
 
 		.session-item {
@@ -664,17 +1064,34 @@
 		}
 	}
 
-	/* Very small screens - hide sidebar by default */
+	/* Very small screens - keep sidebar toggle but hide sidebar by default */
 	@media (max-width: 480px) {
 		.dispatch-workspace {
-			grid-template-rows: auto 1fr;
-			grid-template-areas: 
-				"header"
-				"main";
+			grid-template-rows: min-content 0px auto !important;
+			grid-template-areas:
+				'header'
+				'sidebar'
+				'main' !important;
+			transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		}
+
+		/* Force sidebar collapsed by default on very small screens */
+		.dispatch-workspace:not(.sidebar-collapsed) {
+			grid-template-rows: min-content auto 0px !important;
+			grid-template-areas:
+				'header'
+				'sidebar'
+				'main' !important;
+			transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+			main {
+				opacity: 0;
+			}
 		}
 
 		.sidebar {
-			display: none;
+			/* Don't force hide - let the collapse state control visibility */
+
+			overflow-y: auto;
 		}
 	}
 
@@ -702,7 +1119,7 @@
 		.terminal-header {
 			min-height: 28px;
 		}
-		
+
 		.header {
 			min-height: 45px;
 		}

@@ -42,12 +42,12 @@
 
 		// Snippet props
 		icon,
-		children,
+		children = undefined,
 		...restProps
 	} = $props();
 
 	// Generate unique ID if not provided
-	const buttonId = id || `btn-${Math.random().toString(36).substr(2, 9)}`;
+	const buttonId = id || `btn-${Math.random().toString(36).substring(2, 9)}`;
 
 	// Compute button classes - use global retro.css classes
 	const buttonClasses = $derived.by(() => {
@@ -83,7 +83,7 @@
 </script>
 
 <button
-	{id}
+	id={buttonId}
 	class={buttonClasses}
 	{type}
 	{form}
@@ -129,7 +129,7 @@
 </button>
 
 <style>
-	/* Enhanced terminal button styling */
+	/* Clean minimal button styling */
 	.button {
 		display: inline-flex;
 		align-items: center;
@@ -137,42 +137,59 @@
 		white-space: nowrap;
 		position: relative;
 		
-		/* Override global styles for component specificity */
-		background: linear-gradient(135deg, var(--primary), var(--primary-bright)) !important;
-		border: 2px solid var(--primary) !important;
-		color: var(--bg-dark) !important;
+		/* Clean outline style with minimal background */
+		background: rgba(46, 230, 107, 0.05) !important;
+		border: 1px solid var(--primary-dim) !important;
+		color: var(--text-primary) !important;
 		font-family: var(--font-mono) !important;
-		font-weight: 700 !important;
+		font-weight: 600 !important;
 		text-transform: uppercase !important;
 		letter-spacing: 0.05em !important;
 		
-		/* Enhanced terminal styling */
-		box-shadow:
-			0 0 20px var(--primary-glow),
-			inset 0 2px 0 rgba(255, 255, 255, 0.2),
-			inset 0 -2px 0 rgba(0, 0, 0, 0.2) !important;
+		/* No glow by default */
+		box-shadow: none !important;
+		transition: all 0.2s ease !important;
 	}
 	
 	.button:hover {
-		background: linear-gradient(135deg, var(--primary-bright), var(--accent-cyan)) !important;
-		transform: translateY(-2px) !important;
-		box-shadow:
-			var(--glow-strong),
-			inset 0 3px 0 rgba(255, 255, 255, 0.3),
-			inset 0 -3px 0 rgba(0, 0, 0, 0.3),
-			0 8px 25px rgba(0, 0, 0, 0.4) !important;
-		text-shadow: 0 0 10px rgba(0, 0, 0, 0.8) !important;
+		background: rgba(46, 230, 107, 0.1) !important;
+		border-color: var(--primary) !important;
+		/* Prominent outer glow on hover */
+		box-shadow: 0 0 20px rgba(46, 230, 107, 0.6), 0 0 40px rgba(46, 230, 107, 0.3) !important;
+	}
+	.button:active,
+	.button.active {
+		/* Depressed look with inner glow */
+		background: rgba(46, 230, 107, 0.15) !important;
+		border-color: var(--primary) !important;
+		box-shadow: inset 0 0 8px rgba(46, 230, 107, 0.3) !important;
 	}
 	
-	.button:active {
-		transform: translateY(0px) !important;
-		box-shadow:
-			var(--glow-primary),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1),
-			inset 0 -1px 0 rgba(0, 0, 0, 0.1) !important;
+	/* Ghost variant - same clean styling */
+	.button.ghost {
+		background: transparent !important;
+		border: 1px solid var(--primary-dim) !important;
+		color: var(--text-secondary) !important;
+		box-shadow: none !important;
 	}
-	
-	/* Variant styling */
+
+	.button.ghost:hover {
+		background: rgba(46, 230, 107, 0.08) !important;
+		border-color: var(--primary) !important;
+		color: var(--primary) !important;
+		/* Prominent outer glow on hover */
+		box-shadow: 0 0 18px rgba(46, 230, 107, 0.5), 0 0 35px rgba(46, 230, 107, 0.25) !important;
+	}
+
+	.button.ghost:active,
+	.button.ghost.active {
+		background: rgba(46, 230, 107, 0.12) !important;
+		color: var(--primary) !important;
+		border-color: var(--primary) !important;
+		/* Simple inner glow for depressed look */
+		box-shadow: inset 0 0 6px rgba(46, 230, 107, 0.25) !important;
+	}
+
 	.button.danger {
 		background: linear-gradient(135deg, var(--secondary), #ff5252) !important;
 		border-color: var(--secondary) !important;

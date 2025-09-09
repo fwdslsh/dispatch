@@ -47,8 +47,8 @@
 		{/each}
 	</div>
 	<form onsubmit={send} class="input-form">
-		<input bind:value={input} placeholder="Ask Claude..." />
-		<button class="button primary" type="submit">Send</button>
+		<input bind:value={input} placeholder="Ask Claude..." class="input" />
+		<button type="submit" class="button primary">Send</button>
 	</form>
 </div>
 
@@ -58,7 +58,7 @@
 		flex-direction: column;
 		height: 100%;
 		background: var(--bg);
-		color: var(--text);
+		color: var(--text-primary);
 	}
 
 	.messages {
@@ -71,26 +71,29 @@
 	.message {
 		margin-bottom: var(--space-3);
 		padding: var(--space-3);
-		border-left: 3px solid var(--line);
-		background: var(--surface);
+		border-left: 3px solid var(--primary-dim);
+		background: var(--bg-panel);
+		border-radius: 0;
 	}
 
 	.message--user {
-		border-left-color: var(--accent);
+		border-left-color: var(--accent-amber);
+		background: rgba(255, 209, 102, 0.05);
 	}
 
 	.message--assistant {
-		border-left-color: var(--accent-2);
-		background: var(--elev);
+		border-left-color: var(--primary);
+		background: rgba(46, 230, 107, 0.05);
 	}
 
 	.message__role {
 		font-family: var(--font-mono);
 		font-weight: 700;
-		color: var(--muted);
-		font-size: var(--font-size-0);
+		color: var(--text-muted);
+		font-size: 0.75rem;
 		margin-bottom: var(--space-2);
 		text-transform: uppercase;
+		letter-spacing: 0.05em;
 	}
 
 	.message__text {
@@ -102,11 +105,11 @@
 		display: flex;
 		gap: var(--space-3);
 		padding: var(--space-3);
-		border-top: 1px solid var(--line);
-		background: var(--surface);
+		border-top: 1px solid var(--primary-dim);
+		background: var(--bg-panel);
 	}
 
-	.input-form input {
+	.input-form .input {
 		flex: 1;
 	}
 </style>
