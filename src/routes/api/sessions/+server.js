@@ -9,8 +9,24 @@ export async function GET({ url, locals }) {
 export async function POST({ request, locals }) {
 	const { type, workspacePath, options } = await request.json();
 	if (type === 'pty') {
-		const { id } = locals.terminals.start({ workspacePath });
-		const d = { id, type, workspacePath, title: `Shell @ ${workspacePath}` };
+		const { terminalId, resumeSession } = options || {};
+		const { id } = locals.terminals.start({ 
+			workspacePath, 
+			resume: !!resumeSession,
+			terminalId: resumeSession ? terminalId : null
+		});
+		
+		const title = resumeSession ? 
+			`Shell @ ${workspacePath} (resumed)` : 
+			`Shell @ ${workspacePath}`;
+			
+		const d = { 
+			id, 
+			type, 
+			workspacePath, 
+			title,
+			resumeSession: !!resumeSession
+		};
 		locals.sessions.bind(id, d);
 		await locals.workspaces.rememberSession(workspacePath, d);
 		return new Response(JSON.stringify({ id }));

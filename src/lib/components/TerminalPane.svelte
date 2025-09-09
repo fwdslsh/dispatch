@@ -6,9 +6,29 @@
 	import '@xterm/xterm/css/xterm.css';
 
 	export let ptyId;
+	export let shouldResume = false;
+	export let workspacePath = null;
 	let socket, term, el;
 
-	onMount(() => {
+	async function loadTerminalHistory() {
+		if (!shouldResume || !ptyId) return;
+		
+		try {
+			const response = await fetch(`/api/sessions/${encodeURIComponent(ptyId)}/history`);
+			if (response.ok) {
+				const data = await response.json();
+				if (data.history) {
+					console.log(`Loading terminal history for ${ptyId}, size: ${data.history.length} chars`);
+					// Write history to terminal to restore previous state
+					term.write(data.history);
+				}
+			}
+		} catch (error) {
+			console.error('Failed to load terminal history:', error);
+		}
+	}
+
+	onMount(async () => {
 		term = new Terminal({
 			convertEol: true,
 			cursorBlink: true,
@@ -22,6 +42,11 @@
 		term.open(el);
 		// Fit once after opening so cols/rows are correct for the initial emit
 		fitAddon.fit();
+
+		// Load history before connecting if resuming
+		if (shouldResume) {
+			await loadTerminalHistory();
+		}
 
 		socket = io();
 		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
@@ -42,10 +67,12 @@
 				rows: term.rows
 			});
 
-			// Send initial enter to trigger prompt
-			setTimeout(() => {
-				socket.emit('terminal.write', { key, id: ptyId, data: '\r' });
-			}, 200);
+			// Send initial enter to trigger prompt (only for new terminals)
+			if (!shouldResume) {
+				setTimeout(() => {
+					socket.emit('terminal.write', { key, id: ptyId, data: '\r' });
+				}, 200);
+			}
 		});
 
 		// Listen for terminal data

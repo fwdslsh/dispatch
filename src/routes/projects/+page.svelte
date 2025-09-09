@@ -456,7 +456,11 @@
 							</div>
 							<div class="terminal-viewport">
 								{#if s.type === 'pty'}
-									<TerminalPane ptyId={s.id} />
+									<TerminalPane 
+										ptyId={s.id} 
+										shouldResume={s.resumeSession || false}
+										workspacePath={s.workspacePath}
+									/>
 								{:else}
 									<ClaudePane 
 										sessionId={s.id} 
