@@ -270,8 +270,8 @@
 	}
 
 	.modal--medium {
-		width: 600px;
-		min-height: 300px;
+		width: 750px;
+		min-height: 450px;
 	}
 
 	.modal--large {

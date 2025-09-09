@@ -19,9 +19,8 @@
 
 			if (mode === 'new') {
 				if (!newProjectName.trim()) return;
-				// Create session with new project directory as workspace path
-				// The backend will create the directory if it doesn't exist
-				projectPath = `/workspace/${newProjectName.trim()}`;
+				// For new projects, send just the project name and let backend construct the full path
+				projectPath = newProjectName.trim();
 			} else {
 				if (!selectedProject) return;
 				projectPath = selectedProject.path;
@@ -32,7 +31,8 @@
 				workspacePath: projectPath,
 				sessionId,
 				projectName: mode === 'new' ? newProjectName.trim() : selectedProject.name,
-				resumeSession: !!sessionId
+				resumeSession: !!sessionId,
+				createWorkspace: mode === 'new'
 			});
 
 			handleClose();
@@ -146,30 +146,82 @@
 	.form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-5);
+		gap: var(--space-6);
+		min-height: 320px;
+		padding: var(--space-2);
 	}
 
 	.mode-selector {
 		display: flex;
-		gap: var(--space-2);
+		gap: var(--space-3);
+		justify-content: center;
+		margin-bottom: var(--space-2);
+	}
+
+	.mode-selector .button {
+		flex: 1;
+		max-width: 200px;
+		padding: var(--space-3) var(--space-4);
+		font-size: 0.95rem;
+		font-weight: 500;
+		transition: all 0.3s ease;
 	}
 
 	.form-group {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-3);
+		gap: var(--space-4);
+		padding: var(--space-3) var(--space-2);
 	}
 
 	label,
 	.label {
-		font-weight: 500;
+		font-weight: 600;
+		color: var(--primary);
+		font-size: 1rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-bottom: var(--space-2);
+		font-family: var(--font-mono);
+	}
+
+	.label::before {
+		content: '> ';
+		color: var(--accent-amber);
+		margin-right: 0.5rem;
+	}
+
+	input[type="text"] {
+		padding: var(--space-4);
+		font-size: 1rem;
+		background: var(--bg-input);
+		border: 2px solid var(--primary-dim);
 		color: var(--text);
-		font-size: 0.9rem;
+		border-radius: 0;
+		font-family: var(--font-mono);
+		transition: all 0.3s ease;
+		min-height: 48px;
+	}
+
+	input[type="text"]:focus {
+		outline: none;
+		border-color: var(--primary);
+		background: var(--bg);
+		box-shadow: 0 0 0 2px rgba(46, 230, 107, 0.2);
+	}
+
+	input[type="text"]::placeholder {
+		color: var(--text-muted);
+		opacity: 0.7;
 	}
 
 	.help-text {
-		font-size: 0.8rem;
-		color: var(--muted);
-		margin: 0;
+		font-size: 0.85rem;
+		color: var(--text-muted);
+		margin: var(--space-2) 0 0 0;
+		font-style: italic;
+		line-height: 1.4;
+		padding-left: var(--space-2);
+		border-left: 2px solid var(--primary-dim);
 	}
 </style>

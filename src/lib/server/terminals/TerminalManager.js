@@ -111,16 +111,8 @@ export class TerminalManager {
 				this.terminals.delete(id);
 			});
 
-			// If resuming, load and replay history
-			if (resume) {
-				this.loadTerminalHistory(id).then((history) => {
-					if (history) {
-						console.log(`Restoring terminal history for ${id}, size: ${history.length} chars`);
-						// Write history to terminal to restore state
-						term.write(history);
-					}
-				});
-			}
+			// Note: History loading is handled by the UI component to avoid duplication
+			// The resume flag is used by the UI to determine if it should load history
 
 			console.log(`Terminal ${id} created successfully`);
 			return { id };

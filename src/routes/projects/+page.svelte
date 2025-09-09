@@ -89,15 +89,33 @@
 	});
 
 	async function listWorkspaces() {
-		const r = await fetch('/api/workspaces');
-		const j = await r.json();
-		return j.list;
+		try {
+			const r = await fetch('/api/workspaces');
+			if (!r.ok) {
+				console.error('Failed to load workspaces:', r.status, r.statusText);
+				return [];
+			}
+			const j = await r.json();
+			return j.list || [];
+		} catch (error) {
+			console.error('Error loading workspaces:', error);
+			return [];
+		}
 	}
 
 	async function loadSessions() {
-		const r = await fetch('/api/sessions');
-		const j = await r.json();
-		return j.sessions;
+		try {
+			const r = await fetch('/api/sessions');
+			if (!r.ok) {
+				console.error('Failed to load sessions:', r.status, r.statusText);
+				return [];
+			}
+			const j = await r.json();
+			return j.sessions || [];
+		} catch (error) {
+			console.error('Error loading sessions:', error);
+			return [];
+		}
 	}
 
 	async function createTerminalSession(workspacePath) {
@@ -138,13 +156,27 @@
 		});
 	}
 
-	async function createClaudeSession({ workspacePath, sessionId, projectName, resumeSession }) {
+	async function createClaudeSession({ workspacePath, sessionId, projectName, resumeSession, createWorkspace = false }) {
+		// For new workspaces, construct the proper path using WORKSPACES_ROOT
+		let actualWorkspacePath = workspacePath;
+		if (createWorkspace) {
+			// The backend will construct the full path using WORKSPACES_ROOT
+			actualWorkspacePath = workspacePath; // Just the project name for new workspaces
+		}
+		
 		// Ensure workspace exists
-		await fetch('/api/workspaces', {
+		const workspaceResponse = await fetch('/api/workspaces', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ action: 'open', path: workspacePath })
+			body: JSON.stringify({ 
+				action: createWorkspace ? 'create' : 'open', 
+				path: actualWorkspacePath,
+				isNewProject: createWorkspace 
+			})
 		});
+		
+		const workspaceData = await workspaceResponse.json();
+		const finalWorkspacePath = workspaceData.path;
 
 		// Create Claude session via API
 		const r = await fetch('/api/sessions', {
@@ -152,7 +184,7 @@
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({
 				type: 'claude',
-				workspacePath,
+				workspacePath: finalWorkspacePath,
 				options: {
 					sessionId,
 					projectName,
@@ -433,7 +465,7 @@
 			</div>
 		{:else}
 			<div class="session-grid">
-				{#each visible as s, index}
+				{#each visible as s, index (s.id)}
 					{#if s && typeof s === 'object' && 'id' in s && 'type' in s}
 						<div 
 							class="terminal-container" 
@@ -464,8 +496,8 @@
 								{:else}
 									<ClaudePane 
 										sessionId={s.id} 
-										projectPath={s.workspacePath}
-										shouldResume={s.shouldResume || false}
+										claudeSessionId={s.sessionId}
+										shouldResume={s.resumeSession || false}
 									/>
 								{/if}
 							</div>

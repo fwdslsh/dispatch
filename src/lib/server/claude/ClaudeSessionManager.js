@@ -33,10 +33,12 @@ export class ClaudeSessionManager {
 	 * @param {{ workspacePath: string, options?: object, sessionId?: string }} param0
 	 */
 	async create({ workspacePath, options = {}, sessionId = null }) {
-		const id = sessionId ? `claude_${sessionId}` : `claude_${this.nextId++}`;
+		const realSessionId = sessionId || `${this.nextId++}`;
+		const id = `claude_${realSessionId}`;
+		
 		this.sessions.set(id, {
 			workspacePath,
-			sessionId: sessionId || id.replace('claude_', ''),
+			sessionId: realSessionId,
 			options: {
 				...this.defaultOptions,
 				...options,
@@ -46,7 +48,7 @@ export class ClaudeSessionManager {
 				}
 			}
 		});
-		return { id, sessionId: sessionId || id.replace('claude_', '') };
+		return { id, sessionId: realSessionId };
 	}
 	/**
 	 * @param {any} workspacePath
