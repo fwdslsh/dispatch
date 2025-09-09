@@ -4,7 +4,7 @@
 	import Button from '$lib/shared/components/Button.svelte';
 	// Using global styles for inputs
 
-	let { sessionId } = $props();
+	let { sessionId, projectPath = null, shouldResume = false } = $props();
 
 	/**
 	 * @type {import("socket.io-client").Socket}
@@ -12,6 +12,7 @@
 	let socket = $state();
 	let messages = $state([]);
 	let input = $state('');
+	let loading = $state(false);
 
 	function send(e) {
 		e.preventDefault();
@@ -22,7 +23,46 @@
 		input = '';
 	}
 
-	onMount(() => {
+	async function loadPreviousMessages() {
+		if (!shouldResume || !projectPath || !sessionId) return;
+		
+		loading = true;
+		try {
+			// Extract project name from path and session ID from claude session
+			const projectName = projectPath.split('/').pop() || projectPath;
+			const claudeSessionId = sessionId.replace('claude_', '');
+			
+			const response = await fetch(`/api/claude/sessions/${encodeURIComponent(projectName)}/${encodeURIComponent(claudeSessionId)}?full=1`);
+			
+			if (response.ok) {
+				const data = await response.json();
+				const previousMessages = [];
+				
+				// Parse the .jsonl entries to reconstruct messages
+				for (const entry of data.entries || []) {
+					if (entry.role === 'user' && entry.content) {
+						previousMessages.push({ role: 'user', text: entry.content });
+					} else if (entry.role === 'assistant' && entry.content) {
+						previousMessages.push({ role: 'assistant', text: entry.content });
+					}
+				}
+				
+				messages = previousMessages;
+				console.log('Loaded previous messages:', previousMessages.length);
+			}
+		} catch (error) {
+			console.error('Failed to load previous messages:', error);
+		} finally {
+			loading = false;
+		}
+	}
+
+	onMount(async () => {
+		// Load previous messages first if resuming
+		if (shouldResume) {
+			await loadPreviousMessages();
+		}
+
 		socket = io();
 		socket.on('connect', () => {
 			console.log('Claude Socket.IO connected');
@@ -40,6 +80,12 @@
 
 <div class="claude-pane">
 	<div class="messages">
+		{#if loading}
+			<div class="loading-message">
+				<div class="message__role">system:</div>
+				<div class="message__text">Loading previous conversation...</div>
+			</div>
+		{/if}
 		{#each messages as m}
 			<div class="message message--{m.role}">
 				<div class="message__role">{m.role}:</div>
@@ -106,6 +152,16 @@
 	.message__text {
 		line-height: 1.5;
 		word-wrap: break-word;
+	}
+
+	.loading-message {
+		margin-bottom: var(--space-3);
+		padding: var(--space-3);
+		border-left: 3px solid var(--primary-dim);
+		background: var(--bg-panel);
+		border-radius: 0;
+		opacity: 0.8;
+		font-style: italic;
 	}
 
 	.input-form {

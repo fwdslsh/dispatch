@@ -16,11 +16,28 @@ export async function POST({ request, locals }) {
 		return new Response(JSON.stringify({ id }));
 	}
 	if (type === 'claude') {
-		const { id } = await locals.claude.create({ workspacePath, options });
-		const d = { id, type, workspacePath, title: `Claude @ ${workspacePath}` };
-		locals.sessions.bind(id, d);
+		const { sessionId, projectName, resumeSession } = options || {};
+		const result = await locals.claude.create({ 
+			workspacePath, 
+			options, 
+			sessionId: resumeSession ? sessionId : null 
+		});
+		
+		const title = resumeSession ? 
+			`Claude @ ${projectName} (resumed)` : 
+			`Claude @ ${projectName || workspacePath}`;
+			
+		const d = { 
+			id: result.id, 
+			type, 
+			workspacePath, 
+			title,
+			sessionId: result.sessionId,
+			resumeSession: !!resumeSession
+		};
+		locals.sessions.bind(result.id, d);
 		await locals.workspaces.rememberSession(workspacePath, d);
-		return new Response(JSON.stringify({ id }));
+		return new Response(JSON.stringify({ id: result.id, sessionId: result.sessionId }));
 	}
 	return new Response('Bad Request', { status: 400 });
 }

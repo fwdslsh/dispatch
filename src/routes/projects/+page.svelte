@@ -165,8 +165,15 @@
 			throw new Error(`Failed to create Claude session: ${r.statusText}`);
 		}
 
-		const { id } = await r.json();
-		const s = { id, type: 'claude', workspacePath };
+		const { id, sessionId: claudeSessionId } = await r.json();
+		const s = { 
+			id, 
+			type: 'claude', 
+			workspacePath, 
+			projectName,
+			claudeSessionId,
+			shouldResume: resumeSession
+		};
 		sessions = [...sessions, s];
 		// auto-pin newest into grid if there's room
 		const maxVisible = isMobile ? 1 : layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1;
@@ -362,7 +369,7 @@
 						sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length -
 							1}
 				>
-					{#snippet children()}&gt;{/snippet}
+					{#snippet icon()}{/snippet}
 				</Button>
 			</div>
 		{/if}
@@ -451,7 +458,11 @@
 								{#if s.type === 'pty'}
 									<TerminalPane ptyId={s.id} />
 								{:else}
-									<ClaudePane sessionId={s.id} />
+									<ClaudePane 
+										sessionId={s.id} 
+										projectPath={s.workspacePath}
+										shouldResume={s.shouldResume || false}
+									/>
 								{/if}
 							</div>
 						</div>
