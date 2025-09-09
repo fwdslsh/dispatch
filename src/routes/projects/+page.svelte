@@ -32,6 +32,8 @@
 	
 	// Layout tracking for responsive behavior
 	let previousCols = $state(cols);
+	let previousMobileSession = $state(currentMobileSession);
+	let mobileDirection = $state(0); // -1 for left, 1 for right
 	let visible = $derived.by(() => {
 		console.log('DEBUG visible derivation:', {
 			sessionsCount: sessions.length,
@@ -75,9 +77,15 @@
 		}
 	});
 	
-	// Track layout changes for responsive behavior
+	// Track layout and mobile session changes
 	$effect(() => {
 		previousCols = cols;
+		
+		// Track mobile session direction for animations
+		if (isMobile && currentMobileSession !== previousMobileSession) {
+			mobileDirection = currentMobileSession > previousMobileSession ? 1 : -1;
+			previousMobileSession = currentMobileSession;
+		}
 	});
 
 	async function listWorkspaces() {
@@ -177,12 +185,14 @@
 			(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
 		);
 		if (currentMobileSession < allSessions.length - 1) {
+			mobileDirection = 1; // Set direction before changing session
 			currentMobileSession++;
 		}
 	}
 
 	function prevMobileSession() {
 		if (currentMobileSession > 0) {
+			mobileDirection = -1; // Set direction before changing session
 			currentMobileSession--;
 		}
 	}
@@ -193,6 +203,7 @@
 			(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
 		);
 		if (sessionIndex >= 0 && sessionIndex < allSessions.length) {
+			mobileDirection = sessionIndex > currentMobileSession ? 1 : -1;
 			currentMobileSession = sessionIndex;
 		}
 	}
@@ -258,23 +269,32 @@
 		<!-- Sidebar toggle -->
 		<Button
 			onclick={toggleSidebar}
-			text={sidebarCollapsed ? '▶' : '◀'}
+			text=""
 			variant="ghost"
 			size="small"
-			augmented="none"
+			augmented="tl-clip br-clip both"
 			ariaLabel={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
 			class="sidebar-toggle"
 		>
-			{#snippet icon()}{/snippet}
+			{#snippet icon()}
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					{#if sidebarCollapsed}
+						<path d="M9 18l6-6-6-6"/>
+					{:else}
+						<path d="M15 18l-6-6 6-6"/>
+					{/if}
+				</svg>
+			{/snippet}
 		</Button>
 
 		<div class="header-actions">
 			<Button
 				onclick={() => (terminalModalOpen = true)}
-				text="Terminal"
-				variant="primary"
+				text=""
+				variant="ghost"
 				size="small"
-				augmented="none"
+				augmented="tl-clip br-clip both"
+				ariaLabel="Create terminal session"
 			>
 				{#snippet icon()}
 					<TerminalIcon />
@@ -282,10 +302,11 @@
 			</Button>
 			<Button
 				onclick={() => (claudeModalOpen = true)}
-				text="Claude"
+				text=""
 				variant="ghost"
 				size="small"
-				augmented="tr-clip bl-clip both"
+				augmented="tl-clip br-clip both"
+				ariaLabel="Create claude session"
 			>
 				{#snippet icon()}
 					<ClaudeIcon />
@@ -410,8 +431,14 @@
 						<div 
 							class="terminal-container" 
 							style="--animation-index: {index};"
-							in:fly|global={{ y: 20, duration: 400, delay: index * 60, easing: cubicOut }}
-							out:fly|global={{ y: -20, duration: 300, delay: index * 40, easing: cubicOut }}
+							in:fly|global={isMobile 
+								? { x: mobileDirection * 60, duration: 350, easing: cubicOut }
+								: { y: 20, duration: 400, delay: index * 60, easing: cubicOut }
+							}
+							out:fly|global={isMobile 
+								? { x: mobileDirection * -60, duration: 300, easing: cubicOut }
+								: { y: -20, duration: 300, delay: index * 40, easing: cubicOut }
+							}
 						>
 							<div class="terminal-header">
 								<div class="terminal-status">
