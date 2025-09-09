@@ -68,24 +68,16 @@
 	const warningId = `${inputId}-warning`;
 	const counterId = `${inputId}-counter`;
 
-	// Compute classes
+	// Compute classes - use global input styles
 	const inputClasses = $derived.by(() => {
-		const classes = ['input', `input--${size}`];
-
-		if (type === 'textarea') classes.push('input--textarea');
-		if (error) classes.push('input--error');
-		else if (warning) classes.push('input--warning');
-		else if (success) classes.push('input--success');
-		if (disabled) classes.push('input--disabled');
-		if (readonly) classes.push('input--readonly');
-		if (resize && type === 'textarea') classes.push(`input--resize-${resize}`);
+		const classes = [];
+		if (error) classes.push('error');
 		if (customClass) classes.push(...customClass.split(' '));
-
 		return classes.join(' ');
 	});
 
 	// Compute ARIA describedby
-	const computedAriaDescribedBy = $derived(() => {
+	const computedAriaDescribedBy = $derived.by(() => {
 		const ids = [];
 		if (help) ids.push(helpId);
 		if (error) ids.push(errorId);
@@ -96,11 +88,11 @@
 	});
 
 	// Character count
-	const characterCount = $derived(() => value?.toString().length || 0);
-	const isApproachingLimit = $derived(() => maxLength && characterCount / maxLength > 0.8);
-	const isAtLimit = $derived(() => maxLength && characterCount >= maxLength);
+	const characterCount = $derived(value?.toString().length || 0);
+	const isApproachingLimit = $derived(maxLength && characterCount / maxLength > 0.8);
+	const isAtLimit = $derived(maxLength && characterCount >= maxLength);
 
-	const counterClasses = $derived(() => {
+	const counterClasses = $derived.by(() => {
 		const classes = ['input__counter'];
 		if (isAtLimit) classes.push('input__counter--error');
 		else if (isApproachingLimit) classes.push('input__counter--warning');
@@ -218,22 +210,31 @@
 	.input-wrapper {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-xs);
+		gap: var(--space-2);
 		width: 100%;
 	}
 
 	.input__label {
-		font-family: var(--font-sans);
 		font-size: 0.875rem;
-		font-weight: 500;
-		color: var(--text-primary);
+		font-weight: 600;
+		font-family: var(--font-mono);
+		color: var(--text-secondary);
 		display: flex;
 		align-items: center;
-		gap: var(--space-xs);
+		gap: var(--space-1);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+	
+	/* Terminal label prefix */
+	.input__label::before {
+		content: '> ';
+		color: var(--accent-amber);
+		font-weight: 700;
 	}
 
 	.input__required {
-		color: var(--secondary);
+		color: var(--err);
 		font-weight: bold;
 	}
 
@@ -242,182 +243,133 @@
 		width: 100%;
 	}
 
-	.input {
-		width: 100%;
-		border: 1px solid var(--border);
-		border-radius: 4px;
-		background: var(--bg-dark);
-		color: var(--text-primary);
-		font-family: var(--font-sans);
-		transition: all 0.2s ease;
-		outline: none;
+	/* Enhanced terminal input styling - override global styles */
+	input, textarea {
+		background: rgba(18, 26, 23, 0.6) !important;
+		border: 2px solid var(--primary-dim) !important;
+		border-radius: 0 !important;
+		color: var(--text-primary) !important;
+		font-family: var(--font-mono) !important;
+		
+		/* Terminal styling */
+		box-shadow:
+			inset 0 0 20px rgba(0, 0, 0, 0.5),
+			0 0 10px var(--primary-glow) !important;
+		
+		transition: all 0.3s ease !important;
+		position: relative;
 	}
-
-	.input:focus {
-		border-color: var(--primary);
-		box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
-	}
-
-	.input:hover:not(:disabled):not(:focus) {
-		border-color: var(--border-light);
-	}
-
-	/* Sizes */
-	.input--small {
-		padding: var(--space-xs) var(--space-sm);
-		font-size: 0.875rem;
-		height: 32px;
-	}
-
-	.input--medium {
-		padding: var(--space-sm) var(--space-md);
-		font-size: 1rem;
-		height: 40px;
-	}
-
-	.input--large {
-		padding: var(--space-md) var(--space-lg);
-		font-size: 1.125rem;
-		height: 48px;
+	
+	input:focus, textarea:focus {
+		border-color: var(--primary) !important;
+		background: rgba(18, 26, 23, 0.8) !important;
+		color: var(--primary-bright) !important;
+		box-shadow:
+			inset 0 0 20px rgba(0, 0, 0, 0.5),
+			var(--glow-primary),
+			0 0 0 3px var(--primary-glow) !important;
+		text-shadow: 0 0 8px var(--primary-glow) !important;
+		outline: none !important;
 	}
 
 	/* Textarea specific */
-	.input--textarea {
+	textarea {
 		resize: vertical;
 		min-height: 80px;
 		height: auto;
 		line-height: 1.5;
 	}
-
-	.input--resize-none {
-		resize: none;
-	}
-	.input--resize-vertical {
-		resize: vertical;
-	}
-	.input--resize-horizontal {
-		resize: horizontal;
-	}
-	.input--resize-both {
-		resize: both;
-	}
-
-	/* States */
-	.input--error {
-		border-color: var(--secondary);
-		box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.3);
-	}
-
-	.input--error:focus {
-		box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.4);
-	}
-
-	.input--warning {
-		border-color: #ffa726;
-		box-shadow: 0 0 0 1px rgba(255, 167, 38, 0.3);
-	}
-
-	.input--warning:focus {
-		box-shadow: 0 0 0 2px rgba(255, 167, 38, 0.4);
-	}
-
-	.input--success {
-		border-color: var(--primary);
-		box-shadow: 0 0 0 1px rgba(0, 255, 136, 0.3);
-	}
-
-	.input--disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-		background: var(--bg-darker);
-	}
-
-	.input--readonly {
-		background: var(--bg-darker);
-		cursor: default;
+	
+	/* Terminal cursor effect simulation */
+	input:focus::after, textarea:focus::after {
+		content: '';
+		position: absolute;
+		right: 8px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 2px;
+		height: 1em;
+		background: var(--primary);
+		animation: cursorBlink 1s infinite;
+		pointer-events: none;
 	}
 
 	/* Character counter */
 	.input__counter {
 		position: absolute;
-		bottom: var(--space-xs);
-		right: var(--space-sm);
+		bottom: var(--space-1);
+		right: var(--space-3);
 		font-size: 0.75rem;
-		color: var(--text-muted);
-		background: var(--bg-dark);
+		color: var(--muted);
+		background: var(--surface);
 		padding: 2px 4px;
 		border-radius: 2px;
 		pointer-events: none;
 	}
 
-	.input--textarea ~ .input__counter {
-		bottom: var(--space-sm);
+	textarea ~ .input__counter {
+		bottom: var(--space-3);
 	}
 
 	.input__counter--warning {
-		color: #ffa726;
+		color: var(--warn);
 	}
 
 	.input__counter--error {
-		color: var(--secondary);
+		color: var(--err);
 	}
 
-	/* Help and validation messages */
+	/* Enhanced terminal help and validation messages */
 	.input__help {
 		font-size: 0.75rem;
-		color: var(--text-secondary);
+		font-family: var(--font-mono);
+		color: var(--text-muted);
 		line-height: 1.4;
+	}
+	
+	.input__help::before {
+		content: 'ℹ ';
+		color: var(--accent-cyan);
+		margin-right: 0.25rem;
 	}
 
 	.input__error {
 		font-size: 0.75rem;
+		font-family: var(--font-mono);
 		color: var(--secondary);
 		line-height: 1.4;
 		display: flex;
 		align-items: center;
-		gap: var(--space-xs);
+		gap: var(--space-1);
+		background: rgba(255, 107, 107, 0.1);
+		padding: var(--space-2);
+		border: 1px solid rgba(255, 107, 107, 0.3);
+		text-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
+	}
+	
+	.input__error::before {
+		content: '⚠ ';
+		color: var(--secondary);
+		font-weight: 700;
 	}
 
 	.input__warning {
 		font-size: 0.75rem;
-		color: #ffa726;
+		font-family: var(--font-mono);
+		color: var(--accent-amber);
 		line-height: 1.4;
 		display: flex;
 		align-items: center;
-		gap: var(--space-xs);
+		gap: var(--space-1);
+		background: rgba(255, 209, 102, 0.1);
+		padding: var(--space-2);
+		border: 1px solid rgba(255, 209, 102, 0.3);
+		text-shadow: 0 0 5px rgba(255, 209, 102, 0.3);
 	}
-
-	/* Responsive */
-	@media (max-width: 768px) {
-		.input {
-			min-height: 44px; /* Better touch targets */
-		}
-
-		.input--small {
-			height: 36px;
-		}
-
-		.input--medium {
-			height: 44px;
-		}
-
-		.input--large {
-			height: 52px;
-		}
-	}
-
-	/* Placeholder styling */
-	.input::placeholder {
-		color: var(--text-muted);
-		opacity: 1;
-	}
-
-	/* Autofill styles */
-	.input:-webkit-autofill,
-	.input:-webkit-autofill:hover,
-	.input:-webkit-autofill:focus {
-		-webkit-box-shadow: 0 0 0 1000px var(--bg-dark) inset;
-		-webkit-text-fill-color: var(--text-primary);
-		transition: background-color 5000s ease-in-out 0s;
+	
+	.input__warning::before {
+		content: '⚡ ';
+		color: var(--accent-amber);
+		font-weight: 700;
 	}
 </style>

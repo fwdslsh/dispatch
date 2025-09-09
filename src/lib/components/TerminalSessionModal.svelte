@@ -1,5 +1,5 @@
 <script>
-	import { Modal, Button } from '$lib/shared/components';
+	import { Modal } from '$lib/shared/components';
 
 	let { open = $bindable(false), workspaces = [], onSessionCreate } = $props();
 
@@ -43,13 +43,10 @@
 	{/snippet}
 
 	{#snippet footer()}
-		<Button onclick={handleClose} text="Cancel" variant="ghost" disabled={creating} />
-		<Button
-			onclick={handleCreate}
-			text={creating ? 'Creating...' : 'Create Terminal'}
-			variant="primary"
-			disabled={!selectedWorkspace || creating}
-		/>
+		<button class="button aug" data-augmented-ui="l-clip r-clip both" onclick={handleClose} disabled={creating}>Cancel</button>
+		<button class="button aug primary" data-augmented-ui="l-clip r-clip both" onclick={handleCreate} disabled={!selectedWorkspace || creating}>
+			{creating ? 'Creating...' : 'Create Terminal'}
+		</button>
 	{/snippet}
 </Modal>
 
@@ -57,38 +54,18 @@
 	.form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-md);
+		gap: var(--space-4);
 	}
 
 	.form-group {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-sm);
+		gap: var(--space-3);
 	}
 
 	label {
 		font-weight: 500;
-		color: var(--text-primary);
-		font-size: 0.9rem;
-	}
-
-	select {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		color: var(--text-primary);
-		padding: var(--space-sm);
-		border-radius: 4px;
-		font-size: 0.9rem;
-	}
-
-	select:focus {
-		outline: none;
-		border-color: var(--primary);
-		box-shadow: 0 0 0 2px var(--primary-alpha);
-	}
-
-	select:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
+		color: var(--text);
+		font-size: 0.875rem;
 	}
 </style>

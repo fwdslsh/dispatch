@@ -26,7 +26,7 @@
 		...restProps
 	} = $props();
 
-	// Compute spinner classes
+	// Compute spinner classes - simplified for global styles
 	const spinnerClasses = $derived(() => {
 		const classes = ['spinner', `spinner--${size}`, `spinner--${variant}`];
 		if (inline) classes.push('spinner--inline');
@@ -121,24 +121,24 @@
 
 	/* Color variants */
 	.spinner--primary .spinner__circle {
-		border-color: var(--primary-muted);
-		border-top-color: var(--primary);
+		border-color: color-mix(in oklab, var(--accent) 30%, transparent);
+		border-top-color: var(--accent);
 	}
 
 	.spinner--secondary .spinner__circle {
-		border-color: var(--secondary-muted);
-		border-top-color: var(--secondary);
+		border-color: color-mix(in oklab, var(--accent-2) 30%, transparent);
+		border-top-color: var(--accent-2);
 	}
 
 	.spinner--muted .spinner__circle {
-		border-color: var(--border);
-		border-top-color: var(--text-muted);
+		border-color: var(--line);
+		border-top-color: var(--muted);
 	}
 
 	/* Text styling */
 	.spinner__text {
-		font-family: var(--font-sans);
-		color: var(--text-secondary);
+		font-family: var(--font-mono);
+		color: var(--muted);
 		font-size: 0.875rem;
 		text-align: center;
 		line-height: 1.4;

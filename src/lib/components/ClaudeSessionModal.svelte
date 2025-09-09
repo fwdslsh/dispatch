@@ -1,5 +1,5 @@
 <script>
-	import { Modal, Button } from '$lib/shared/components';
+	import { Modal } from '$lib/shared/components';
 	import ClaudeProjectPicker from './ClaudeProjectPicker.svelte';
 	import ClaudeSessionPicker from './ClaudeSessionPicker.svelte';
 
@@ -77,7 +77,8 @@
 			<div class="mode-selector">
 				<button
 					type="button"
-					class="mode-button {mode === 'existing' ? 'active' : ''}"
+					class="button aug {mode === 'existing' ? 'primary' : ''}"
+					data-augmented-ui="l-clip r-clip both"
 					onclick={() => (mode = 'existing')}
 					disabled={creating}
 				>
@@ -85,7 +86,8 @@
 				</button>
 				<button
 					type="button"
-					class="mode-button {mode === 'new' ? 'active' : ''}"
+					class="button aug {mode === 'new' ? 'primary' : ''}"
+					data-augmented-ui="l-clip r-clip both"
 					onclick={() => (mode = 'new')}
 					disabled={creating}
 				>
@@ -133,13 +135,10 @@
 	{/snippet}
 
 	{#snippet footer()}
-		<Button onclick={handleClose} text="Cancel" variant="ghost" disabled={creating} />
-		<Button
-			onclick={handleCreate}
-			text={createButtonText}
-			variant="primary"
-			disabled={!canCreate || creating}
-		/>
+		<button class="button aug" data-augmented-ui="l-clip r-clip both" onclick={handleClose} disabled={creating}>Cancel</button>
+		<button class="button aug primary" data-augmented-ui="l-clip r-clip both" onclick={handleCreate} disabled={!canCreate || creating}>
+			{createButtonText}
+		</button>
 	{/snippet}
 </Modal>
 
@@ -147,82 +146,30 @@
 	.form {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-lg);
+		gap: var(--space-5);
 	}
 
 	.mode-selector {
 		display: flex;
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		overflow: hidden;
-	}
-
-	.mode-button {
-		flex: 1;
-		padding: var(--space-sm) var(--space-md);
-		background: var(--surface);
-		border: none;
-		color: var(--text-secondary);
-		cursor: pointer;
-		font-size: 0.9rem;
-		transition: all 0.2s ease;
-	}
-
-	.mode-button:not(:last-child) {
-		border-right: 1px solid var(--border);
-	}
-
-	.mode-button:hover {
-		background: var(--surface-hover);
-		color: var(--text-primary);
-	}
-
-	.mode-button.active {
-		background: var(--primary);
-		color: var(--primary-text);
-	}
-
-	.mode-button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
+		gap: var(--space-2);
 	}
 
 	.form-group {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-sm);
+		gap: var(--space-3);
 	}
 
 	label,
 	.label {
 		font-weight: 500;
-		color: var(--text-primary);
+		color: var(--text);
 		font-size: 0.9rem;
-	}
-
-	input {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		color: var(--text-primary);
-		padding: var(--space-sm);
-		border-radius: 4px;
-		font-size: 0.9rem;
-	}
-
-	input:focus {
-		outline: none;
-		border-color: var(--primary);
-		box-shadow: 0 0 0 2px var(--primary-alpha);
-	}
-
-	input:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
 	}
 
 	.help-text {
 		font-size: 0.8rem;
-		color: var(--text-secondary);
+		color: var(--muted);
 		margin: 0;
 	}
 </style>

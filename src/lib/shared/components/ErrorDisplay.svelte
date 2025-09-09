@@ -29,7 +29,7 @@
 	} = $props();
 
 	// Compute classes
-	const errorClasses = $derived(() => {
+	const errorClasses = $derived.by(() => {
 		const classes = ['error-display', `error-display--${severity}`, `error-display--${size}`];
 		if (dismissible) classes.push('error-display--dismissible');
 		if (customClass) classes.push(...customClass.split(' '));

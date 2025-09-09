@@ -16,7 +16,7 @@
 		padding = 'medium', // 'none' | 'small' | 'medium' | 'large'
 
 		// Augmented UI
-		augmented = 'tl-clip br-clip',
+		augmented = 'tl-clip br-clip both',
 
 		// Interactive states
 		clickable = false,
@@ -30,11 +30,11 @@
 		...restProps
 	} = $props();
 
-	// Compute card classes
+	// Compute card classes - use global retro.css classes
 	const cardClasses = $derived.by(() => {
-		const classes = ['card', `card--${variant}`, `card--padding-${padding}`];
-		if (clickable) classes.push('card--clickable');
-		if (hover && !clickable) classes.push('card--hoverable');
+		const classes = [variant === 'elevated' ? 'panel' : 'card'];
+		if (augmented && augmented !== 'none') classes.push('aug');
+		if (clickable) classes.push('clickable');
 		if (customClass) classes.push(...customClass.split(' '));
 		return classes.join(' ');
 	});
@@ -55,6 +55,7 @@
 	}
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
 	class={cardClasses}
 	data-augmented-ui={augmented}
@@ -82,85 +83,17 @@
 </div>
 
 <style>
-	.card {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		color: var(--text-primary);
-		transition: all 0.2s ease;
-		position: relative;
-		overflow: hidden;
-	}
-
-	/* Variants */
-	.card--default {
-		background: var(--surface);
-		border-color: var(--border);
-	}
-
-	.card--elevated {
-		background: var(--surface);
-		border-color: var(--border);
-		box-shadow:
-			0 4px 6px -1px rgba(0, 0, 0, 0.3),
-			0 2px 4px -1px rgba(0, 0, 0, 0.2);
-	}
-
-	.card--outlined {
-		background: transparent;
-		border: 2px solid var(--border-light);
-	}
-
-	.card--filled {
-		background: var(--bg-darker);
-		border-color: var(--bg-darker);
-	}
-
-	/* Padding variants */
-	.card--padding-none {
-		padding: 0;
-	}
-
-	.card--padding-small {
-		padding: var(--space-sm);
-	}
-
-	.card--padding-medium {
-		padding: var(--space-md);
-	}
-
-	.card--padding-large {
-		padding: var(--space-lg);
-	}
-
-	/* Interactive states */
-	.card--clickable {
+	/* Override global card/panel styles with layout-specific adjustments */
+	.clickable {
 		cursor: pointer;
-		transition: all 0.2s ease;
 	}
 
-	.card--clickable:hover,
-	.card--hoverable:hover {
-		box-shadow:
-			0 8px 15px -3px rgba(0, 0, 0, 0.4),
-			0 4px 6px -2px rgba(0, 0, 0, 0.3);
-		border-color: var(--primary-muted);
-	}
-
-	.card--clickable:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
-	}
-
-	.card--clickable:active {
-	}
-
-	/* Card sections */
+	/* Card sections layout */
 	.card__header {
-		padding: var(--space-md) var(--space-md) 0 var(--space-md);
-		border-bottom: 1px solid var(--border);
-		margin-bottom: var(--space-md);
+		margin-bottom: var(--space-4);
 		font-weight: 600;
-		color: var(--text-primary);
+		border-bottom: 1px solid var(--line);
+		padding-bottom: var(--space-3);
 	}
 
 	.card__content {
@@ -169,74 +102,10 @@
 	}
 
 	.card__footer {
-		padding: var(--space-md) var(--space-md) 0 var(--space-md);
-		border-top: 1px solid var(--border);
-		margin-top: var(--space-md);
+		margin-top: var(--space-4);
+		border-top: 1px solid var(--line);
+		padding-top: var(--space-3);
 		font-size: 0.875rem;
-		color: var(--text-secondary);
-	}
-
-	/* Adjust sections for different padding variants */
-	.card--padding-none .card__header,
-	.card--padding-none .card__content,
-	.card--padding-none .card__footer {
-		padding-left: var(--space-md);
-		padding-right: var(--space-md);
-	}
-
-	.card--padding-none .card__header {
-		padding-top: var(--space-md);
-	}
-
-	.card--padding-none .card__footer {
-		padding-bottom: var(--space-md);
-	}
-
-	.card--padding-small .card__header,
-	.card--padding-small .card__footer {
-		padding-left: var(--space-sm);
-		padding-right: var(--space-sm);
-	}
-
-	.card--padding-large .card__header,
-	.card--padding-large .card__footer {
-		padding-left: var(--space-lg);
-		padding-right: var(--space-lg);
-	}
-
-	/* Responsive */
-	@media (max-width: 768px) {
-		.card--padding-medium {
-			padding: var(--space-sm);
-		}
-
-		.card--padding-large {
-			padding: var(--space-md);
-		}
-
-		.card__header,
-		.card__footer {
-			padding-left: var(--space-sm);
-			padding-right: var(--space-sm);
-		}
-	}
-
-	/* High contrast mode support */
-	@media (prefers-contrast: high) {
-		.card {
-			border-width: 2px;
-		}
-	}
-
-	/* Reduced motion support */
-	@media (prefers-reduced-motion: reduce) {
-		.card {
-			transition: none;
-		}
-
-		.card--clickable:hover,
-		.card--hoverable:hover {
-			transform: none;
-		}
+		color: var(--muted);
 	}
 </style>

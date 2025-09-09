@@ -19,7 +19,7 @@
 		hideTextOnLoading = false,
 
 		// Augmented UI
-		augmented = 'tl-clip br-clip',
+		augmented = 'tl-clip br-clip both',
 
 		// Button behavior
 		type = /** @type {'button' | 'submit' | 'reset'} */ ('button'), // 'button' | 'submit' | 'reset'
@@ -49,12 +49,15 @@
 	// Generate unique ID if not provided
 	const buttonId = id || `btn-${Math.random().toString(36).substr(2, 9)}`;
 
-	// Compute button classes
+	// Compute button classes - use global retro.css classes
 	const buttonClasses = $derived.by(() => {
-		const classes = ['btn', `btn--${variant}`, `btn--${size}`];
+		const classes = ['button'];
 
-		if (disabled) classes.push('btn--disabled');
-		if (loading) classes.push('btn--loading');
+		if (variant === 'primary') classes.push('primary');
+		else if (variant === 'danger') classes.push('danger');
+		else if (variant === 'secondary') classes.push('warn');
+
+		if (augmented && augmented !== 'none') classes.push('aug');
 		if (customClass) classes.push(...customClass.split(' '));
 
 		return classes.join(' ');
@@ -126,108 +129,78 @@
 </button>
 
 <style>
-	.btn {
+	/* Enhanced terminal button styling */
+	.button {
 		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		gap: var(--space-sm);
-		border: none;
-		border-radius: 0;
-		font-family: var(--font-sans);
-		font-weight: 500;
-		text-decoration: none;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		position: relative;
-		outline: none;
+		gap: var(--space-2);
 		white-space: nowrap;
+		position: relative;
+		
+		/* Override global styles for component specificity */
+		background: linear-gradient(135deg, var(--primary), var(--primary-bright)) !important;
+		border: 2px solid var(--primary) !important;
+		color: var(--bg-dark) !important;
+		font-family: var(--font-mono) !important;
+		font-weight: 700 !important;
+		text-transform: uppercase !important;
+		letter-spacing: 0.05em !important;
+		
+		/* Enhanced terminal styling */
+		box-shadow:
+			0 0 20px var(--primary-glow),
+			inset 0 2px 0 rgba(255, 255, 255, 0.2),
+			inset 0 -2px 0 rgba(0, 0, 0, 0.2) !important;
+	}
+	
+	.button:hover {
+		background: linear-gradient(135deg, var(--primary-bright), var(--accent-cyan)) !important;
+		transform: translateY(-2px) !important;
+		box-shadow:
+			var(--glow-strong),
+			inset 0 3px 0 rgba(255, 255, 255, 0.3),
+			inset 0 -3px 0 rgba(0, 0, 0, 0.3),
+			0 8px 25px rgba(0, 0, 0, 0.4) !important;
+		text-shadow: 0 0 10px rgba(0, 0, 0, 0.8) !important;
+	}
+	
+	.button:active {
+		transform: translateY(0px) !important;
+		box-shadow:
+			var(--glow-primary),
+			inset 0 1px 0 rgba(255, 255, 255, 0.1),
+			inset 0 -1px 0 rgba(0, 0, 0, 0.1) !important;
+	}
+	
+	/* Variant styling */
+	.button.danger {
+		background: linear-gradient(135deg, var(--secondary), #ff5252) !important;
+		border-color: var(--secondary) !important;
+		box-shadow:
+			0 0 20px rgba(255, 107, 107, 0.3),
+			inset 0 2px 0 rgba(255, 255, 255, 0.2),
+			inset 0 -2px 0 rgba(0, 0, 0, 0.2) !important;
+	}
+	
+	.button.warn {
+		background: linear-gradient(135deg, var(--accent-amber), #ffdd44) !important;
+		border-color: var(--accent-amber) !important;
+		color: var(--bg-dark) !important;
+		box-shadow:
+			0 0 20px rgba(255, 209, 102, 0.3),
+			inset 0 2px 0 rgba(255, 255, 255, 0.2),
+			inset 0 -2px 0 rgba(0, 0, 0, 0.2) !important;
 	}
 
-	.btn:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
-	}
-
-	/* Variants */
-	.btn--primary {
-		background: var(--primary-gradient);
-		--aug-border-bg: var(--primary);
-	}
-
-	.btn--primary:hover:not(:disabled) {
-		background: var(--primary);
-		box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
-	}
-
-	.btn--secondary {
-		background: var(--surface);
-		border: 1px solid var(--border-light);
-		--aug-border-bg: var(--border-light);
-	}
-
-	.btn--secondary:hover:not(:disabled) {
-		background: var(--surface-hover);
-		border-color: var(--primary);
-		--aug-border-bg: var(--primary);
-	}
-
-	.btn--danger {
-		background: linear-gradient(135deg, var(--secondary), #ff4757);
-		color: white;
-		--aug-border-bg: var(--secondary);
-	}
-
-	.btn--danger:hover:not(:disabled) {
-		background: var(--secondary);
-		box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
-	}
-
-	.btn--ghost {
-		background: transparent;
-		color: var(--primary);
-		border: 1px solid var(--primary-muted);
-		--aug-border-bg: transparent;
-	}
-
-	.btn--ghost:hover:not(:disabled) {
-		background: var(--primary-muted);
-		color: var(--bg-dark);
-		border-color: var(--primary);
-	}
-
-	/* Sizes */
-	.btn--small {
-		padding: var(--space-xs) var(--space-sm);
-		font-size: 0.875rem;
-		height: 32px;
-		min-width: 64px;
-	}
-
-	.btn--medium {
-		padding: var(--space-sm) var(--space-md);
-		font-size: 1rem;
-		height: 40px;
-		min-width: 80px;
-	}
-
-	.btn--large {
-		padding: var(--space-md) var(--space-lg);
-		font-size: 1.125rem;
-		height: 48px;
-		min-width: 96px;
-	}
-
-	/* States */
-	.btn--disabled {
-		opacity: 0.6;
+	/* Loading and disabled states */
+	.button:disabled {
+		opacity: 0.5;
 		cursor: not-allowed;
-		transform: none !important;
-		box-shadow: none !important;
-	}
-
-	.btn--loading {
-		cursor: wait;
 		pointer-events: none;
+		transform: none !important;
+		background: var(--text-muted) !important;
+		border-color: var(--text-muted) !important;
+		box-shadow: none !important;
 	}
 
 	.btn__text--hidden {
@@ -236,7 +209,7 @@
 		overflow: hidden;
 	}
 
-	/* Spinner */
+	/* Enhanced terminal spinner */
 	.btn__spinner {
 		display: flex;
 		align-items: center;
@@ -249,43 +222,39 @@
 		border: 2px solid currentColor;
 		border-top: 2px solid transparent;
 		border-radius: 50%;
-		animation: spin 1s linear infinite;
+		animation: terminalSpin 1s linear infinite;
 	}
 
-	.btn--small .spinner {
-		width: 12px;
-		height: 12px;
-		border-width: 1.5px;
-	}
-
-	.btn--large .spinner {
-		width: 20px;
-		height: 20px;
-		border-width: 2.5px;
-	}
-
-	@keyframes spin {
+	@keyframes terminalSpin {
 		to {
 			transform: rotate(360deg);
 		}
 	}
-
-	/* Responsive adjustments */
-	@media (max-width: 768px) {
-		.btn {
-			min-height: 44px; /* Better touch targets on mobile */
+	
+	/* Terminal glow animation */
+	@keyframes terminalGlow {
+		0%, 100% { 
+			box-shadow:
+				0 0 20px var(--primary-glow),
+				inset 0 2px 0 rgba(255, 255, 255, 0.2),
+				inset 0 -2px 0 rgba(0, 0, 0, 0.2);
 		}
-
-		.btn--small {
-			height: 36px;
+		50% { 
+			box-shadow:
+				var(--glow-strong),
+				inset 0 2px 0 rgba(255, 255, 255, 0.2),
+				inset 0 -2px 0 rgba(0, 0, 0, 0.2);
 		}
-
-		.btn--medium {
-			height: 44px;
-		}
-
-		.btn--large {
-			height: 52px;
+	}
+	
+	/* Add subtle glow animation for primary buttons */
+	.button.primary {
+		animation: terminalGlow 3s ease-in-out infinite;
+	}
+	
+	@media (prefers-reduced-motion: reduce) {
+		.button.primary {
+			animation: none;
 		}
 	}
 </style>

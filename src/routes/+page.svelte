@@ -1,7 +1,7 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { io } from 'socket.io-client';
-	import { Container, PublicUrlDisplay, Button, Input, ErrorDisplay } from '$lib/shared/components';
+	import { PublicUrlDisplay, ErrorDisplay } from '$lib/shared/components';
 	import { onMount } from 'svelte';
 	let key = $state('');
 	let error = $state('');
@@ -25,7 +25,6 @@
 			});
 			return;
 		}
-
 	});
 
 	async function handleLogin(e) {
@@ -51,31 +50,29 @@
 </svelte:head>
 
 <main class="login-page">
-	<Container>
-		{#snippet children()}
-			<h1>dispatch</h1>
+	<div class="container">
+		<div class="login-content">
+			<h1 class="glow">dispatch</h1>
 			<p>terminal access via web</p>
 
-			<div class="form-container" data-augmented-ui="br-clip bl-clip tl-clip tr-clip border">
+			<div class="card aug" data-augmented-ui="tl-clip br-clip both">
 				<form onsubmit={handleLogin}>
-					<Input
+					<input
 						bind:value={key}
 						type="password"
 						placeholder="terminal key"
 						required
 						disabled={loading}
 						autocomplete="off"
-						size="large"
 					/>
-					<Button
+					<button
+						class="button primary aug"
 						type="submit"
 						disabled={loading}
-						{loading}
-						text={loading ? 'connecting...' : 'connect'}
-						variant="primary"
-						size="large"
-						augmented="br-clip bl-clip tl-clip tr-clip"
-					/>
+						data-augmented-ui="l-clip r-clip both"
+					>
+						{loading ? 'connecting...' : 'connect'}
+					</button>
 				</form>
 			</div>
 
@@ -83,60 +80,31 @@
 			{#if error}
 				<ErrorDisplay {error} />
 			{/if}
-		{/snippet}
-	</Container>
+		</div>
+	</div>
 </main>
 
 <style>
-	@property --aug-border-bg {
-		syntax: '<color>';
-		inherits: false;
-		initial-value: rgba(0, 255, 136, 0.314);
-	}
-
-	:global(.login-page .container-content) {
+	.login-page {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		h1,
-		p {
-			text-align: center;
-			margin-bottom: 0;
-		}
+		min-height: 100vh;
 	}
-	@media (max-width: 800px) {
-		.login-page :global(.container) {
-			display: flex;
-			flex-direction: column;
-			justify-content: center;
-			padding-inline: var(--space-lg);
 
-			h1 {
-				font-size: 5rem;
-			}
-		}
+	.login-content {
+		text-align: center;
 	}
-	.form-container {
-		margin-top: var(--space-lg);
-		--aug-border-bg: var(--primary-muted);
-		transition: all 0.3s ease;
-		padding: var(--space-lg);
 
-		&:hover {
-			--aug-border-bg: var(--secondary);
-			box-shadow:
-				0 0 125px rgba(0, 255, 136, 0.15),
-				0 0 50px rgba(0, 255, 136, 0.05),
-				inset 0 1px 0 rgba(255, 255, 255, 0.08);
-		}
+	.login-content > * + * {
+		margin-top: var(--space-5);
+	}
 
-		form {
-			display: flex;
-			flex-direction: column;
-			gap: var(--space-md);
-			align-items: center;
-			min-width: 300px;
-		}
+	form {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+		align-items: center;
+		min-width: 300px;
 	}
 </style>

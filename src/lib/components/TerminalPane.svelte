@@ -9,7 +9,14 @@
 	let socket, term, el;
 
 	onMount(() => {
-		term = new Terminal({ convertEol: true, cursorBlink: true });
+		term = new Terminal({
+			convertEol: true,
+			cursorBlink: true,
+			fontFamily: 'var(--font-mono)',
+			fontSize: 14,
+			lineHeight: 1.2,
+			letterSpacing: 0.5,
+		});
 		const fitAddon = new FitAddon();
 		term.loadAddon(fitAddon);
 		term.open(el);
@@ -105,22 +112,23 @@
 	}
 
 	.terminal-container :global(.xterm) {
-		padding: var(--space-sm);
+		padding: var(--space-3);
+		font-family: var(--font-mono) !important;
 	}
 
 	.terminal-container :global(.xterm-viewport) {
-		background: var(--bg-dark) !important;
+		background: var(--bg) !important;
 	}
 
 	.terminal-container :global(.xterm-screen) {
-		background: var(--bg-dark) !important;
+		background: var(--bg) !important;
 	}
 
 	.terminal-container :global(.xterm-cursor) {
-		background: var(--primary) !important;
+		background: var(--accent) !important;
 	}
 
 	.terminal-container :global(.xterm-selection) {
-		background: var(--primary-muted) !important;
+		background: color-mix(in oklab, var(--accent) 30%, transparent) !important;
 	}
 </style>

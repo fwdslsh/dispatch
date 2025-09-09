@@ -23,7 +23,7 @@
 		footer,
 
 		// Styling
-		augmented = 'tl-clip tr-clip bl-clip br-clip border',
+		augmented = 'tl-clip tr-clip bl-clip br-clip both',
 
 		// Accessibility
 		ariaLabel = undefined,
@@ -43,12 +43,25 @@
 	const titleId = title ? `${modalId}-title` : undefined;
 	const contentId = `${modalId}-content`;
 
-	// Compute modal classes
+	// Responsive state
+	let isMobile = $state(false);
+
+	// Check if mobile on mount and resize
+	function updateMobileState() {
+		isMobile = window.innerWidth <= 768;
+	}
+
+	// Compute modal classes - use global card/panel styles
 	const modalClasses = $derived(() => {
-		const classes = ['modal', `modal--${size}`];
+		const classes = ['card', 'modal', `modal--${size}`];
+		// Only apply augmented-ui on desktop to prevent clipping on mobile
+		if (augmented && augmented !== 'none' && !isMobile) classes.push('aug');
 		if (customClass) classes.push(...customClass.split(' '));
 		return classes.join(' ');
 	});
+
+	// Compute augmented attribute - disable on mobile
+	const augmentedAttr = $derived(isMobile ? 'none' : augmented);
 
 	// Handle backdrop click
 	function handleBackdropClick(event) {
@@ -84,14 +97,20 @@
 			// Focus trap - focus the modal
 			const modalElement = document.getElementById(modalId);
 			modalElement?.focus();
+			
+			// Initialize mobile state
+			updateMobileState();
+			window.addEventListener('resize', updateMobileState);
 		} else {
 			// Restore body scroll
 			document.body.style.overflow = '';
+			window.removeEventListener('resize', updateMobileState);
 		}
 
 		// Cleanup on unmount
 		return () => {
 			document.body.style.overflow = '';
+			window.removeEventListener('resize', updateMobileState);
 		};
 	});
 </script>
@@ -111,7 +130,7 @@
 		<div
 			id={modalId}
 			class={modalClasses}
-			data-augmented-ui={augmented}
+			data-augmented-ui={augmentedAttr}
 			tabindex="-1"
 			{...restProps}
 		>
@@ -166,36 +185,47 @@
 		right: 0;
 		bottom: 0;
 		z-index: 1000;
-		background: rgba(0, 0, 0, 0.8);
-		backdrop-filter: blur(4px);
+		background: 
+			radial-gradient(ellipse at center, rgba(46, 230, 107, 0.08) 0%, transparent 70%),
+			color-mix(in oklab, black 85%, transparent);
+		backdrop-filter: blur(12px);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: var(--space-md);
-		animation: backdropFadeIn 0.2s ease-out;
+		padding: var(--space-4);
+		animation: backdropFadeIn 0.3s ease-out;
 		outline: none;
+		
+		/* Terminal grid overlay */
+		background-image: 
+			radial-gradient(circle at 25% 25%, var(--scan-line) 1px, transparent 1px),
+			radial-gradient(circle at 75% 75%, var(--scan-line) 1px, transparent 1px);
+		background-size: 50px 50px, 30px 30px;
 	}
 
 	.modal {
-		/* Augmented-UI optimizations */
-		--aug-border-opacity: 0.35;
-		--aug-border-bg: rgba(0, 255, 136, 0.4);
-
-		/* Modal styling */
-		background: var(--bg);
-		color: var(--text-primary);
-		border: 1px solid var(--border);
-		box-shadow:
-			0 20px 25px -5px rgba(0, 0, 0, 0.4),
-			0 10px 10px -5px rgba(0, 0, 0, 0.2),
-			0 0 0 1px rgba(0, 255, 136, 0.1);
 		max-height: 90vh;
 		max-width: 90vw;
 		display: flex;
 		flex-direction: column;
-		animation: modalSlideIn 0.3s ease-out;
+		animation: modalSlideIn 0.4s ease-out;
 		outline: none;
 		position: relative;
+		
+		/* Enhanced terminal modal styling */
+		background: var(--bg-panel);
+		border: 2px solid var(--primary-dim);
+		border-radius: 0;
+		
+		/* Terminal lighting effects */
+		box-shadow:
+			var(--glow-primary),
+			inset 0 0 60px rgba(46, 230, 107, 0.03),
+			inset 0 0 20px rgba(0, 0, 0, 0.8),
+			0 15px 50px rgba(0, 0, 0, 0.7);
+			
+		/* Terminal screen curvature */
+		transform: perspective(1000px);
 	}
 
 	/* Sizes */
@@ -221,111 +251,195 @@
 		max-height: none;
 	}
 
-	/* Header */
+	/* Enhanced terminal header */
 	.modal__header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: var(--space-lg) var(--space-lg) 0 var(--space-lg);
+		padding: var(--space-4) var(--space-5);
 		flex-shrink: 0;
+		background: linear-gradient(135deg, var(--bg-dark), var(--bg-panel));
+		border-bottom: 2px solid var(--primary-dim);
+		position: relative;
+	}
+
+	/* Terminal title bar effect */
+	.modal__header::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: linear-gradient(90deg, 
+			transparent, 
+			var(--primary), 
+			var(--accent-amber), 
+			var(--primary), 
+			transparent
+		);
+		animation: terminalScan 2s linear infinite;
 	}
 
 	.modal__title {
-		font-family: var(--font-sans);
-		font-size: 1.5rem;
-		font-weight: 600;
-		color: var(--text-primary);
+		font-size: 1.2rem;
+		font-weight: 700;
+		font-family: var(--font-mono);
+		color: var(--primary);
 		margin: 0;
 		line-height: 1.2;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		text-shadow: 0 0 8px var(--primary-glow);
+	}
+
+	/* Terminal prompt prefix for title */
+	.modal__title::before {
+		content: '> ';
+		color: var(--accent-amber);
+		margin-right: 0.5rem;
 	}
 
 	.modal__close {
-		background: none;
-		border: none;
-		color: var(--text-secondary);
+		background: transparent;
+		border: 1px solid var(--primary-dim);
+		color: var(--text-muted);
 		cursor: pointer;
-		padding: var(--space-xs);
-		border-radius: 4px;
-		transition: all 0.2s ease;
+		padding: var(--space-2);
+		transition: all 0.3s ease;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
+		width: 2rem;
+		height: 2rem;
 	}
 
 	.modal__close:hover {
-		color: var(--text-primary);
-		background: var(--surface-hover);
+		color: var(--primary);
+		border-color: var(--primary);
+		background: rgba(46, 230, 107, 0.1);
+		box-shadow: 0 0 10px var(--primary-glow);
+		text-shadow: 0 0 5px var(--primary-glow);
 	}
 
-	.modal__close:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
+	@keyframes terminalScan {
+		0% { transform: translateX(-100%); }
+		100% { transform: translateX(100%); }
 	}
 
-	/* Content */
+	/* Enhanced terminal content */
 	.modal__content {
 		flex: 1;
 		overflow-y: auto;
-		padding: var(--space-lg);
-		scrollbar-width: thin;
-		scrollbar-color: var(--border) transparent;
+		padding: var(--space-5);
+		background: var(--bg);
+		color: var(--text-primary);
+		font-family: var(--font-sans);
+		position: relative;
 	}
 
-	.modal__content::-webkit-scrollbar {
-		width: 6px;
+	/* Subtle scan lines in content area */
+	.modal__content::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: repeating-linear-gradient(
+			0deg,
+			transparent 0px,
+			transparent 2px,
+			var(--scan-line) 3px,
+			transparent 4px
+		);
+		pointer-events: none;
+		opacity: 0.3;
 	}
 
-	.modal__content::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	.modal__content::-webkit-scrollbar-thumb {
-		background: var(--border);
-		border-radius: 3px;
-	}
-
-	.modal__content::-webkit-scrollbar-thumb:hover {
-		background: var(--border-light);
-	}
-
-	/* Footer */
+	/* Enhanced terminal footer */
 	.modal__footer {
-		padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
-		border-top: 1px solid var(--border);
-		margin-top: var(--space-md);
+		padding: var(--space-4) var(--space-5);
+		border-top: 2px solid var(--primary-dim);
+		background: linear-gradient(135deg, var(--bg-dark), var(--bg-panel));
 		flex-shrink: 0;
 		display: flex;
-		gap: var(--space-sm);
+		gap: var(--space-3);
 		justify-content: flex-end;
 		align-items: center;
+		position: relative;
 	}
 
-	/* Animations */
+	/* Terminal footer accent line */
+	.modal__footer::before {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: linear-gradient(90deg, 
+			transparent, 
+			var(--primary), 
+			transparent
+		);
+	}
+
+	/* Enhanced animations with terminal effects */
 	@keyframes backdropFadeIn {
 		from {
 			opacity: 0;
+			backdrop-filter: blur(0px);
 		}
 		to {
 			opacity: 1;
+			backdrop-filter: blur(12px);
 		}
 	}
 
 	@keyframes modalSlideIn {
 		from {
 			opacity: 0;
-			transform: translate3d(0, -20px, 0) scale(0.95);
+			transform: perspective(1000px) translate3d(0, -30px, -50px) scale(0.9);
+			box-shadow: none;
+		}
+		50% {
+			opacity: 0.8;
+			transform: perspective(1000px) translate3d(0, -10px, -20px) scale(0.95);
 		}
 		to {
 			opacity: 1;
-			transform: translate3d(0, 0, 0) scale(1);
+			transform: perspective(1000px) translate3d(0, 0, 0) scale(1);
+			box-shadow:
+				var(--glow-primary),
+				inset 0 0 60px rgba(46, 230, 107, 0.03),
+				inset 0 0 20px rgba(0, 0, 0, 0.8),
+				0 15px 50px rgba(0, 0, 0, 0.7);
 		}
 	}
 
 	/* Responsive */
 	@media (max-width: 768px) {
 		.modal-backdrop {
-			padding: var(--space-sm);
+			padding: var(--space-2);
+			align-items: flex-start;
+			padding-top: var(--space-6);
+		}
+
+		.modal {
+			/* Disable augmented-ui on mobile to prevent clipping */
+			border-radius: 8px !important;
+			max-width: 100%;
+			width: 100%;
+			margin: 0;
+			/* Simplify mobile styling */
+			border: 1px solid var(--primary-dim);
+			box-shadow: 
+				0 4px 20px rgba(0, 0, 0, 0.5),
+				0 0 20px rgba(46, 230, 107, 0.1);
+		}
+
+		/* Remove augmented-ui completely on mobile */
+		.modal[data-augmented-ui] {
+			border-radius: 8px !important;
 		}
 
 		.modal--small,
@@ -333,6 +447,7 @@
 		.modal--large {
 			width: 100%;
 			max-width: 100%;
+			min-height: auto;
 		}
 
 		.modal--fullscreen {
@@ -340,50 +455,55 @@
 			height: 100vh;
 			max-width: 100vw;
 			max-height: 100vh;
+			border-radius: 0 !important;
 		}
 
 		.modal__header,
 		.modal__content,
 		.modal__footer {
-			padding-left: var(--space-md);
-			padding-right: var(--space-md);
+			padding-left: var(--space-4);
+			padding-right: var(--space-4);
 		}
 
 		.modal__content {
-			padding-top: var(--space-md);
-			padding-bottom: var(--space-md);
+			padding-top: var(--space-4);
+			padding-bottom: var(--space-4);
 		}
 
 		.modal__footer {
 			flex-direction: column;
 			align-items: stretch;
-		}
-	}
-
-	/* High contrast mode support */
-	@media (prefers-contrast: high) {
-		.modal {
-			border-width: 2px;
+			gap: var(--space-2);
 		}
 
+		/* Mobile-specific title styling */
+		.modal__title {
+			font-size: 1rem;
+			letter-spacing: 0.05em;
+		}
+
+		/* Simplify mobile close button */
 		.modal__close {
-			border: 1px solid var(--border);
+			width: 1.75rem;
+			height: 1.75rem;
 		}
 	}
 
-	/* Reduced motion support */
 	@media (prefers-reduced-motion: reduce) {
 		.modal-backdrop,
 		.modal {
 			animation: none;
 		}
-
-		.modal__close {
-			transition: none;
+		
+		.modal__header::before {
+			animation: none;
+		}
+		
+		.modal__content::before {
+			display: none;
 		}
 	}
 
-	/* Focus management */
 	.modal:focus {
 		outline: none;
 	}

@@ -1,7 +1,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { io } from 'socket.io-client';
-	import { Button, Input } from '$lib/shared/components';
+	// Using global styles for buttons and inputs
 
 	let { sessionId } = $props();
 
@@ -47,8 +47,8 @@
 		{/each}
 	</div>
 	<form onsubmit={send} class="input-form">
-		<Input bind:value={input} placeholder="Ask Claude..." />
-		<Button type="submit" text="Send" variant="primary" />
+		<input bind:value={input} placeholder="Ask Claude..." />
+		<button class="button primary" type="submit">Send</button>
 	</form>
 </div>
 
@@ -57,39 +57,40 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background: var(--bg-dark);
-		color: var(--text-primary);
+		background: var(--bg);
+		color: var(--text);
 	}
 
 	.messages {
 		flex: 1;
 		overflow-y: auto;
-		padding: var(--space-sm);
+		padding: var(--space-3);
 		scroll-behavior: smooth;
 	}
 
 	.message {
-		margin-bottom: var(--space-sm);
-		padding: var(--space-sm);
-		border-radius: 4px;
-		border-left: 3px solid var(--border);
+		margin-bottom: var(--space-3);
+		padding: var(--space-3);
+		border-left: 3px solid var(--line);
+		background: var(--surface);
 	}
 
 	.message--user {
-		background: var(--surface);
-		border-left-color: var(--primary);
+		border-left-color: var(--accent);
 	}
 
 	.message--assistant {
-		background: var(--surface-hover);
-		border-left-color: var(--secondary);
+		border-left-color: var(--accent-2);
+		background: var(--elev);
 	}
 
 	.message__role {
-		font-weight: 600;
-		color: var(--text-secondary);
-		font-size: 0.875rem;
-		margin-bottom: var(--space-xs);
+		font-family: var(--font-mono);
+		font-weight: 700;
+		color: var(--muted);
+		font-size: var(--font-size-0);
+		margin-bottom: var(--space-2);
+		text-transform: uppercase;
 	}
 
 	.message__text {
@@ -99,13 +100,13 @@
 
 	.input-form {
 		display: flex;
-		gap: var(--space-sm);
-		padding: var(--space-sm);
-		border-top: 1px solid var(--border);
+		gap: var(--space-3);
+		padding: var(--space-3);
+		border-top: 1px solid var(--line);
 		background: var(--surface);
 	}
 
-	.input-form :global(.input) {
+	.input-form input {
 		flex: 1;
 	}
 </style>

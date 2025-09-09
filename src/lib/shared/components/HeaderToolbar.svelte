@@ -82,27 +82,27 @@
 
 <style>
 	.header-toolbar {
-		border-bottom: 1px solid var(--primary-muted);
-		padding-inline: var(--space-sm);
-		margin-inline: var(--space-sm);
+		border-bottom: 1px solid var(--line);
+		padding-inline: var(--space-3);
+		margin-inline: var(--space-3);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: var(--space-xl);
+		gap: var(--space-6);
 		position: relative;
-		background: var(--bg-primary);
+		background: var(--bg);
 	}
 
 	.header-left {
 		display: flex;
 		align-items: center;
-		gap: var(--space-lg);
+		gap: var(--space-5);
 	}
 
 	.header-right {
 		display: flex;
 		align-items: center;
-		gap: var(--space-sm);
+		gap: var(--space-3);
 	}
 
 	@media (max-width: 768px) {
@@ -112,11 +112,11 @@
 			left: 0 !important;
 			right: 0 !important;
 			margin: 0 !important;
-			gap: var(--space-md);
-			padding: var(--space-sm) var(--space-md);
+			gap: var(--space-4);
+			padding: var(--space-3) var(--space-4);
 			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 			backdrop-filter: blur(10px);
-			background: rgba(var(--bg-primary-rgb, 10, 10, 10), 0.95);
+			background: color-mix(in oklab, var(--bg) 95%, transparent);
 			z-index: 1000 !important;
 			transition: transform 0.3s ease-out;
 			will-change: transform;
@@ -124,7 +124,7 @@
 		}
 
 		.header-left {
-			gap: var(--space-md);
+			gap: var(--space-4);
 		}
 	}
 </style>
