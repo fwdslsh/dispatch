@@ -1,7 +1,8 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { io } from 'socket.io-client';
-	// Using global styles for buttons and inputs
+	import Button from '$lib/shared/components/Button.svelte';
+	// Using global styles for inputs
 
 	let { sessionId } = $props();
 
@@ -48,7 +49,13 @@
 	</div>
 	<form onsubmit={send} class="input-form">
 		<input bind:value={input} placeholder="Ask Claude..." class="input" />
-		<button type="submit" class="button primary">Send</button>
+		<Button 
+			type="submit" 
+			text="Send" 
+			variant="primary" 
+			augmented="tr-clip bl-clip both"
+			{...{icon: undefined}}
+		/>
 	</form>
 </div>
 

@@ -1,4 +1,7 @@
 <script>
+	import { onDestroy } from "svelte";
+	import { on } from "svelte/events";
+
 	/**
 	 * Modal Foundation Component
 	 * Standardized modal with backdrop, keyboard handling, and accessibility
@@ -39,7 +42,7 @@
 	} = $props();
 
 	// Generate unique IDs
-	const modalId = crypto.randomUUID();
+	const modalId = `modal-${Math.random()}`;
 	const titleId = title ? `${modalId}-title` : undefined;
 	const contentId = `${modalId}-content`;
 
@@ -52,7 +55,7 @@
 	}
 
 	// Compute modal classes - use global card/panel styles
-	const modalClasses = $derived(() => {
+	const modalClasses = $derived.by(() => {
 		const classes = ['card', 'modal', `modal--${size}`];
 		// Only apply augmented-ui on desktop to prevent clipping on mobile
 		if (augmented && augmented !== 'none' && !isMobile) classes.push('aug');
@@ -107,33 +110,34 @@
 			window.removeEventListener('resize', updateMobileState);
 		}
 
-		// Cleanup on unmount
-		return () => {
-			document.body.style.overflow = '';
-			window.removeEventListener('resize', updateMobileState);
-		};
+	});
+	onDestroy(() => {
+		// Ensure body scroll is restored
+		document.body.style.overflow = '';
+		window.removeEventListener('resize', updateMobileState);
 	});
 </script>
 
-{#if open}
+<div
+	class="modal-backdrop"
+	class:open
+	role="dialog"
+	aria-modal="true"
+	aria-label={ariaLabel || title}
+	aria-labelledby={titleId}
+	aria-describedby={ariaDescribedBy || contentId}
+	onclick={handleBackdropClick}
+	onkeydown={handleKeydown}
+	tabindex="-1"
+>
 	<div
-		class="modal-backdrop"
-		role="dialog"
-		aria-modal="true"
-		aria-label={ariaLabel || title}
-		aria-labelledby={titleId}
-		aria-describedby={ariaDescribedBy || contentId}
-		onclick={handleBackdropClick}
-		onkeydown={handleKeydown}
+		id={modalId}
+		class="{modalClasses}"
+		class:open
+		data-augmented-ui={augmentedAttr}
 		tabindex="-1"
+		{...restProps}
 	>
-		<div
-			id={modalId}
-			class={modalClasses}
-			data-augmented-ui={augmentedAttr}
-			tabindex="-1"
-			{...restProps}
-		>
 			{#if title || showCloseButton}
 				<header class="modal__header">
 					{#if title}
@@ -174,8 +178,7 @@
 				</footer>
 			{/if}
 		</div>
-	</div>
-{/if}
+</div>
 
 <style>
 	.modal-backdrop {
@@ -188,13 +191,20 @@
 		background: 
 			radial-gradient(ellipse at center, rgba(46, 230, 107, 0.08) 0%, transparent 70%),
 			color-mix(in oklab, black 85%, transparent);
-		backdrop-filter: blur(12px);
-		display: flex;
+		backdrop-filter: blur(0px);
+		display: none;
 		align-items: center;
 		justify-content: center;
 		padding: var(--space-4);
-		animation: backdropFadeIn 0.3s ease-out;
 		outline: none;
+		
+		/* Modern CSS dialog-style animations */
+		opacity: 0;
+		transition: 
+			display 0.3s allow-discrete,
+			overlay 0.3s allow-discrete,
+			opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1),
+			backdrop-filter 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 		
 		/* Terminal grid overlay */
 		background-image: 
@@ -202,13 +212,23 @@
 			radial-gradient(circle at 75% 75%, var(--scan-line) 1px, transparent 1px);
 		background-size: 50px 50px, 30px 30px;
 	}
+	
+	.modal-backdrop.open {
+		display: flex;
+		opacity: 1;
+		backdrop-filter: blur(12px);
+		
+		@starting-style {
+			opacity: 0;
+			backdrop-filter: blur(0px);
+		}
+	}
 
 	.modal {
 		max-height: 90vh;
 		max-width: 90vw;
 		display: flex;
 		flex-direction: column;
-		animation: modalSlideIn 0.4s ease-out;
 		outline: none;
 		position: relative;
 		
@@ -218,14 +238,29 @@
 		border-radius: 0;
 		
 		/* Terminal lighting effects */
+		box-shadow: none;
+		
+		/* Modern CSS modal animations */
+		opacity: 0;
+		transform: perspective(1000px) translate3d(0, -20px, -30px) scale(0.95);
+		transition: 
+			opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1),
+			transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+	}
+	
+	.modal.open {
+		opacity: 1;
+		transform: perspective(1000px) translate3d(0, 0, 0) scale(1);
 		box-shadow:
 			var(--glow-primary),
 			inset 0 0 60px rgba(46, 230, 107, 0.03),
 			inset 0 0 20px rgba(0, 0, 0, 0.8),
 			0 15px 50px rgba(0, 0, 0, 0.7);
-			
-		/* Terminal screen curvature */
-		transform: perspective(1000px);
+		
+		@starting-style {
+			opacity: 0;
+			transform: perspective(1000px) translate3d(0, -20px, -30px) scale(0.95);
+		}
 	}
 
 	/* Sizes */
@@ -383,38 +418,7 @@
 		);
 	}
 
-	/* Enhanced animations with terminal effects */
-	@keyframes backdropFadeIn {
-		from {
-			opacity: 0;
-			backdrop-filter: blur(0px);
-		}
-		to {
-			opacity: 1;
-			backdrop-filter: blur(12px);
-		}
-	}
-
-	@keyframes modalSlideIn {
-		from {
-			opacity: 0;
-			transform: perspective(1000px) translate3d(0, -30px, -50px) scale(0.9);
-			box-shadow: none;
-		}
-		50% {
-			opacity: 0.8;
-			transform: perspective(1000px) translate3d(0, -10px, -20px) scale(0.95);
-		}
-		to {
-			opacity: 1;
-			transform: perspective(1000px) translate3d(0, 0, 0) scale(1);
-			box-shadow:
-				var(--glow-primary),
-				inset 0 0 60px rgba(46, 230, 107, 0.03),
-				inset 0 0 20px rgba(0, 0, 0, 0.8),
-				0 15px 50px rgba(0, 0, 0, 0.7);
-		}
-	}
+	/* Modern CSS animations replace old keyframes */
 
 	/* Responsive */
 	@media (max-width: 768px) {
