@@ -57,7 +57,7 @@
 
 	--aug-inlay: initial;
 	--aug-inlay-all: 4px;
-	--aug-inlay-bg: var(--bg-dark);
+	--aug-inlay-bg: transparent;
 	--aug-inlay-opacity: 0.15;
 
 	/* Standardized clip configurations */

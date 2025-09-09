@@ -26,18 +26,6 @@
 			return;
 		}
 
-		// Try the default dev key automatically
-		const testKey = 'testkey12345';
-		const socket = io({ transports: ['websocket', 'polling'] });
-		socket.emit('terminal.start', { key: testKey, workspacePath: '/tmp' }, (resp) => {
-			if (resp?.success !== false || resp?.error !== 'Invalid key') {
-				// Dev key works, auto-authenticate
-				localStorage.setItem('dispatch-auth-key', testKey);
-				goto('/projects');
-			}
-			// Otherwise show the login form
-			socket.disconnect();
-		});
 	});
 
 	async function handleLogin(e) {
