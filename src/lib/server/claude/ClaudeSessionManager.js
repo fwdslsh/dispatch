@@ -42,7 +42,8 @@ export class ClaudeSessionManager {
 		const realSessionId = sessionId || `${this.nextId++}`;
 		const id = `claude_${realSessionId}`;
 		
-		this.sessions.set(id, {
+		/** @type {{ workspacePath: string, sessionId: string, resumeCapable: boolean, options: object }} */
+		const sessionData = {
 			workspacePath,
 			sessionId: realSessionId,
 			resumeCapable: !!sessionId, // only true if resuming an existing on-disk session
@@ -52,7 +53,9 @@ export class ClaudeSessionManager {
 				...options,
 				env: { ...process.env, HOME: process.env.HOME }
 			}
-		});
+		};
+		
+		this.sessions.set(id, sessionData);
 		// Also map raw session id for clients that pass it directly
 		this.sessions.set(realSessionId, this.sessions.get(id));
 		return { id, sessionId: realSessionId };
@@ -76,6 +79,7 @@ export class ClaudeSessionManager {
 
 		// Resolve or lazily hydrate a session mapping for this id
 		const { key, session } = await this.#ensureSession(id);
+		/** @type {{ workspacePath: string, sessionId: string, resumeCapable?: boolean, options: object }} */
 		const s = session;
 		console.log(`ClaudeSessionManager: Using session ${key} with sessionId ${s.sessionId}`);
 
@@ -230,6 +234,7 @@ export class ClaudeSessionManager {
 		}
 
 		// Register hydrated session with sane defaults
+		/** @type {{ workspacePath: string, sessionId: string, resumeCapable: boolean, options: object }} */
 		const hydrated = {
 			workspacePath,
 			sessionId,

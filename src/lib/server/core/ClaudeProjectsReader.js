@@ -218,8 +218,8 @@ export class ClaudeProjectsReader {
     const allSessions = projects.flatMap(p => p.sessions);
     
     const now = new Date();
-    const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
-    const oneWeekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     return {
       totalProjects: projects.length,
