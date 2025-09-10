@@ -3,6 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import { io } from 'socket.io-client';
 	import Button from '$lib/shared/components/Button.svelte';
+	import Markdown from '$lib/shared/components/Markdown.svelte';
 	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
 	// Using global styles for inputs
 
@@ -34,35 +35,6 @@
 			scrollToBottom();
 		}
 	});
-	
-	function formatMessage(text) {
-		if (!text) return '';
-		
-		// Escape HTML first
-		let formatted = text
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#39;');
-		
-		// Convert code blocks
-		formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre class="code-block"><code>$1</code></pre>');
-		
-		// Convert inline code
-		formatted = formatted.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
-		
-		// Convert bold text
-		formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-		
-		// Convert italic text
-		formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
-		
-		// Convert line breaks
-		formatted = formatted.replace(/\n/g, '<br>');
-		
-		return formatted;
-	}
 
 	async function send(e) {
 		e.preventDefault();
@@ -106,24 +78,62 @@
 	function iconForEventType(e) {
 		try {
 			const type = (e?.type || '').toString().toLowerCase();
+			
+			// Handle assistant events with tool_use content
+			if (type === 'assistant' && e?.message?.content && Array.isArray(e.message.content)) {
+				const toolItems = e.message.content.filter(c => c && c.type === 'tool_use');
+				if (toolItems.length > 0) {
+					const toolName = (toolItems[0].name || '').toString().toLowerCase();
+					// Tool name specific icons
+					if (toolName.includes('read')) return { symbol: '📖', label: 'Read files' };
+					if (toolName.includes('write')) return { symbol: '📝', label: 'Write files' };
+					if (toolName.includes('edit')) return { symbol: '✏️', label: 'Edit files' };
+					if (toolName.includes('bash') || toolName.includes('shell') || toolName.includes('exec')) return { symbol: '💻', label: 'Run command' };
+					if (toolName.includes('grep') || toolName.includes('search')) return { symbol: '🔎', label: 'Search' };
+					if (toolName.includes('glob')) return { symbol: '✨', label: 'Glob match' };
+					if (toolName.includes('web')) return { symbol: '🌐', label: 'Web' };
+					if (toolName.includes('task')) return { symbol: '📋', label: 'Task' };
+					if (toolName.includes('todo')) return { symbol: '✅', label: 'Todo' };
+					return { symbol: '🛠️', label: 'Tool: ' + toolItems[0].name };
+				}
+			}
+			
+			// Handle user events with tool_result content
+			if (type === 'user' && e?.message?.content) {
+				const content = e.message.content;
+				const hasToolResult = Array.isArray(content)
+					? content.some(c => c && c.type === 'tool_result')
+					: (content && typeof content === 'object' && content.type === 'tool_result');
+				if (hasToolResult) {
+					return { symbol: '✔️', label: 'Tool result' };
+				}
+			}
+			
+			// Direct tool/name based detection for simpler events
 			const tool = (e?.tool || e?.name || '').toString().toLowerCase();
-			// Tool name specific icons
-			if (tool.includes('read')) return { symbol: '📖', label: 'Read files' };
-			if (tool.includes('write')) return { symbol: '📝', label: 'Write files' };
-			if (tool.includes('edit')) return { symbol: '✏️', label: 'Edit files' };
-			if (tool.includes('bash') || tool.includes('shell') || tool.includes('exec')) return { symbol: '💻', label: 'Run command' };
-			if (tool.includes('grep') || tool.includes('search')) return { symbol: '🔎', label: 'Search' };
-			if (tool.includes('glob')) return { symbol: '✨', label: 'Glob match' };
-			if (tool.includes('web')) return { symbol: '🌐', label: 'Web' };
-			if (tool.includes('task')) return { symbol: '📋', label: 'Task' };
+			if (tool) {
+				if (tool.includes('read')) return { symbol: '📖', label: 'Read files' };
+				if (tool.includes('write')) return { symbol: '📝', label: 'Write files' };
+				if (tool.includes('edit')) return { symbol: '✏️', label: 'Edit files' };
+				if (tool.includes('bash') || tool.includes('shell') || tool.includes('exec')) return { symbol: '💻', label: 'Run command' };
+				if (tool.includes('grep') || tool.includes('search')) return { symbol: '🔎', label: 'Search' };
+				if (tool.includes('glob')) return { symbol: '✨', label: 'Glob match' };
+				if (tool.includes('web')) return { symbol: '🌐', label: 'Web' };
+				if (tool.includes('task')) return { symbol: '📋', label: 'Task' };
+				if (tool.includes('todo')) return { symbol: '✅', label: 'Todo' };
+			}
+			
 			// Generic type-based icons
+			if (type === 'summary') return { symbol: '🧾', label: 'Summary' };
 			if (type === 'result') return { symbol: '✅', label: 'Result' };
+			if (type === 'tool_result') return { symbol: '✔️', label: 'Tool result' };
 			if (type.includes('status') || type.includes('progress')) return { symbol: '⏳', label: 'Working' };
 			if (type.includes('think') || type.includes('plan')) return { symbol: '🧠', label: 'Thinking' };
 			if (type.includes('assistant')) return { symbol: '🤖', label: 'Assistant' };
 			if (type.includes('user')) return { symbol: '👤', label: 'User' };
 			if (type.includes('tool')) return { symbol: '🛠️', label: 'Tool' };
 			if (type.includes('message')) return { symbol: '💬', label: 'Message' };
+			
 			return { symbol: '🔹', label: type || 'Event' };
 		} catch (err) {
 			return { symbol: '🔹', label: 'Event' };
@@ -174,7 +184,7 @@
 		}
 	}
 	
-	// formatEventSummary removed - now using ActivitySummary component for better formatting
+	// ActivitySummary component handles event formatting with rich details
 	
 
 	async function loadPreviousMessages() {
@@ -305,22 +315,64 @@
 			console.log('Received message.delta:', payload);
 			// payload is an array; in our setup typically of length 1
 			for (const evt of payload || []) {
-				if (evt?.type === 'result') {
-					// Final result: update message content and attach the activity icons
-					messages = [
-						...messages,
-						{
-							role: 'assistant',
-							text: evt.result || '',
-							timestamp: new Date(),
-							id: Date.now(),
-							activityIcons: [...liveEventIcons] // Preserve the icons with this message
+				console.log('Processing event:', evt);
+				
+				// Check if this is a text content event from assistant
+				if (evt?.type === 'assistant' && evt?.message?.content) {
+					// Extract text content if available
+					const textContent = Array.isArray(evt.message.content)
+						? evt.message.content
+							.filter(c => c && c.type === 'text')
+							.map(c => c.text)
+							.join('')
+						: (evt.message.content.type === 'text' ? evt.message.content.text : '');
+					
+					if (textContent) {
+						// Create a new assistant message with accumulated activities
+						messages = [
+							...messages,
+							{
+								role: 'assistant',
+								text: textContent,
+								timestamp: new Date(),
+								id: Date.now(),
+								activityIcons: [...liveEventIcons] // Attach accumulated activities
+							}
+						];
+						liveEventIcons = []; // Clear for next accumulation
+						isWaitingForReply = true; // Keep waiting for more potential messages
+					} else {
+						// Non-text assistant content (tool use, etc.)
+						pushLiveIcon(evt);
+					}
+				} else if (evt?.type === 'result') {
+					// Final aggregated result - use if no individual messages were sent
+					// Check if we have pending activities that weren't attached to a message yet
+					if (liveEventIcons.length > 0 || !messages.length || messages[messages.length - 1].role !== 'assistant') {
+						messages = [
+							...messages,
+							{
+								role: 'assistant',
+								text: evt.result || '',
+								timestamp: new Date(),
+								id: Date.now(),
+								activityIcons: [...liveEventIcons] // Preserve any remaining icons
+							}
+						];
+					} else {
+						// Update the last assistant message with the final result if needed
+						const lastMessage = messages[messages.length - 1];
+						if (lastMessage.role === 'assistant' && !lastMessage.text && evt.result) {
+							messages[messages.length - 1] = {
+								...lastMessage,
+								text: evt.result
+							};
 						}
-					];
+					}
 					isWaitingForReply = false;
-					liveEventIcons = []; // Clear for next message
+					liveEventIcons = []; // Clear for next conversation turn
 				} else {
-					// Non-final delta: keep typing indicator and show an icon
+					// Other event types (tool use, status, etc.) - accumulate as icons
 					pushLiveIcon(evt);
 				}
 			}
@@ -332,7 +384,6 @@
 		socket.on('error', (error) => {
 			console.error('Socket error:', error);
 			isWaitingForReply = false;
-			liveEventIcons = [];
 			
 			// Add error message if we were waiting for a reply
 			if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
@@ -341,9 +392,11 @@
 					text: '⚠️ Sorry, I encountered an error processing your request. Please try again.',
 					timestamp: new Date(),
 					id: Date.now(),
-					isError: true
+					isError: true,
+					activityIcons: [...liveEventIcons] // Preserve any activities that happened before error
 				}];
 			}
+			liveEventIcons = [];
 			// selection handled within LiveIconStrip component
 		});
 		
@@ -424,7 +477,9 @@
 								}
 							</span>
 						</div>
-						<div class="message-text">{@html formatMessage(m.text)}</div>
+						<div class="message-text">
+							<Markdown content={m.text} />
+						</div>
 						{#if m.activityIcons && m.activityIcons.length > 0}
 							<div class="activity-icons-container">
 								<div class="activity-icons-header">
@@ -1547,61 +1602,7 @@
 		scroll-margin-bottom: var(--space-6);
 	}
 	
-	/* 📝 MESSAGE FORMATTING */
-	.message-text :global(.code-block) {
-		display: block;
-		margin: var(--space-3) 0;
-		padding: var(--space-4);
-		background: 
-			linear-gradient(135deg, 
-				color-mix(in oklab, var(--bg) 95%, var(--primary) 5%),
-				color-mix(in oklab, var(--bg) 98%, var(--primary) 2%)
-			);
-		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: 12px;
-		overflow-x: auto;
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		line-height: 1.5;
-		box-shadow: 
-			inset 0 2px 8px rgba(0, 0, 0, 0.1),
-			0 2px 12px -4px rgba(0, 0, 0, 0.1);
-	}
-	
-	.message-text :global(.code-block code) {
-		display: block;
-		color: var(--text);
-		white-space: pre;
-	}
-	
-	.message-text :global(.inline-code) {
-		display: inline;
-		padding: var(--space-1) var(--space-2);
-		background: color-mix(in oklab, var(--primary) 15%, transparent);
-		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		border-radius: 6px;
-		font-family: var(--font-mono);
-		font-size: 0.9em;
-		color: var(--primary);
-		
-		text-wrap-mode: wrap;
-	}
-	
-	.message-text :global(strong) {
-		font-weight: 700;
-		color: var(--text);
-	}
-	
-	.message-text :global(em) {
-		font-style: italic;
-		color: var(--text);
-	}
-	
-	.message-text :global(br) {
-		display: block;
-		content: '';
-		margin-top: var(--space-2);
-	}
+	/* Message text container - Markdown component handles content styles */
 	
 	/* ⚠️ ERROR MESSAGE STYLING */
 	.message--error .message-text {

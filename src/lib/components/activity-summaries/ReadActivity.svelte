@@ -56,15 +56,30 @@
 		if (!result) return null;
 		
 		if (typeof result === 'string') {
-			// Take first 200 chars as preview
-			const preview = result.substring(0, 200);
-			return preview + (result.length > 200 ? '...' : '');
+			// Take first 500 chars as preview for better context
+			const preview = result.substring(0, 500);
+			return {
+				text: preview + (result.length > 500 ? '...' : ''),
+				totalLength: result.length,
+				lines: result.split('\n').length
+			};
 		}
 		
 		if (result.content) {
 			const content = result.content;
-			const preview = content.substring(0, 200);
-			return preview + (content.length > 200 ? '...' : '');
+			const preview = content.substring(0, 500);
+			return {
+				text: preview + (content.length > 500 ? '...' : ''),
+				totalLength: content.length,
+				lines: content.split('\n').length
+			};
+		}
+		
+		// Check for error in result
+		if (result.error) {
+			return {
+				error: result.error
+			};
 		}
 		
 		return null;
@@ -110,11 +125,22 @@
 		{#if fileInfo.success && fileInfo.preview}
 			<div class="activity-result">
 				<div class="activity-row">
-					<span class="activity-label">Preview</span>
+					<span class="activity-label">Content Preview</span>
+					{#if fileInfo.preview.lines}
+						<span class="activity-value">
+							{fileInfo.preview.lines} lines, {fileInfo.preview.totalLength} characters
+						</span>
+					{/if}
 				</div>
-				<pre class="activity-code">{fileInfo.preview}</pre>
-				{#if fileInfo.preview.endsWith('...')}
-					<div class="activity-truncated">Content truncated for display</div>
+				{#if fileInfo.preview.error}
+					<div class="activity-error">{fileInfo.preview.error}</div>
+				{:else if fileInfo.preview.text}
+					<pre class="activity-code">{fileInfo.preview.text}</pre>
+					{#if fileInfo.preview.text.endsWith('...')}
+						<div class="activity-truncated">
+							Showing first 500 characters of {fileInfo.preview.totalLength} total
+						</div>
+					{/if}
 				{/if}
 			</div>
 		{/if}
