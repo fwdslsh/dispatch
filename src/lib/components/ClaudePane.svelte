@@ -63,13 +63,15 @@
 
 	async function send(e) {
 		e.preventDefault();
-		console.log('ClaudePane send called with:', { sessionId, input: input.trim(), socketConnected: socket?.connected });
+		// Use claudeSessionId if available (for resumed sessions), otherwise sessionId
+		const effectiveSessionId = claudeSessionId || sessionId;
+		console.log('ClaudePane send called with:', { sessionId, claudeSessionId, effectiveSessionId, input: input.trim(), socketConnected: socket?.connected });
 		if (!input.trim()) return;
 		if (!socket) {
 			console.error('Socket not available');
 			return;
 		}
-		if (!sessionId) {
+		if (!effectiveSessionId) {
 			console.error('SessionId not available');
 			return;
 		}
@@ -93,8 +95,8 @@
 		// Force immediate scroll to user message
 		await scrollToBottom();
 		
-		console.log('Emitting claude.send with:', { key, id: sessionId, input: userMessage });
-		socket.emit('claude.send', { key, id: sessionId, input: userMessage });
+		console.log('Emitting claude.send with:', { key, id: effectiveSessionId, input: userMessage });
+		socket.emit('claude.send', { key, id: effectiveSessionId, input: userMessage });
 	}
 
 	function iconForEventType(e) {

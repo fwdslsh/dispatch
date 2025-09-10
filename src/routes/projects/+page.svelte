@@ -495,8 +495,8 @@
 									/>
 								{:else}
 									<ClaudePane 
-										sessionId={s.id} 
-										claudeSessionId={s.sessionId}
+										sessionId={s.claudeSessionId || s.sessionId || s.id} 
+										claudeSessionId={s.claudeSessionId || s.sessionId}
 										shouldResume={s.resumeSession || false}
 									/>
 								{/if}

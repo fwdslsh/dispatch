@@ -45,6 +45,7 @@ export class ClaudeSessionManager {
 		this.sessions.set(id, {
 			workspacePath,
 			sessionId: realSessionId,
+			resumeCapable: !!sessionId, // only true if resuming an existing on-disk session
 			options: {
 				...this.defaultOptions,
 				cwd: workspacePath,
@@ -69,20 +70,31 @@ export class ClaudeSessionManager {
 	 * @param {any} userInput
 	 */
 	async send(id, userInput) {
-		console.log(`ClaudeSessionManager: send to session ${id}:`, userInput, process.env.HOME);
+		console.log(`ClaudeSessionManager: send to session ${id}:`, userInput);
+		console.log(`ClaudeSessionManager: HOME=${process.env.HOME}`);
+		console.log(`ClaudeSessionManager: Current sessions:`, Array.from(this.sessions.keys()));
 
 		// Resolve or lazily hydrate a session mapping for this id
 		const { key, session } = await this.#ensureSession(id);
 		const s = session;
+		console.log(`ClaudeSessionManager: Using session ${key} with sessionId ${s.sessionId}`);
 
 		try {
+			const debugEnv = { ...process.env, HOME: process.env.HOME };
+			// If you want SDK debug logs, uncomment next line
+			// debugEnv.DEBUG = debugEnv.DEBUG || '1';
 			const stream = query({
 				prompt: userInput,
 				options: {
 					...s.options,
-					continue: true,
-					resume: s.sessionId,
-					env: { ...process.env, HOME: process.env.HOME }
+					continue: !!s.resumeCapable,
+					...(s.resumeCapable ? { resume: s.sessionId } : {}),
+					stderr: (data) => {
+						try {
+							console.error(`[Claude stderr ${s.sessionId}]`, data);
+						} catch {}
+					},
+					env: debugEnv
 				}
 			});
 
@@ -109,21 +121,52 @@ export class ClaudeSessionManager {
 
 	/**
 	 * Ensure we have a session object for the provided id.
-	 * Accepts either a manager key (e.g. "claude_<uuid>") or a raw sessionId ("<uuid>").
+	 * Accepts either a manager key (e.g. "claude_<uuid>"), a raw sessionId ("<uuid>"), 
+	 * or a simple numeric key (e.g. "claude_1").
 	 * If not present, attempts to locate the session on disk and hydrate it.
 	 * @param {string} id
 	 * @returns {Promise<{ key: string, session: { workspacePath: string, sessionId: string, options: any } }>} 
 	 */
 	async #ensureSession(id) {
+		console.log(`[Claude] #ensureSession called with id: ${id}`);
+		
 		// Try exact key first
 		let s = this.sessions.get(id);
-		if (s) return { key: id, session: s };
+		if (s) {
+			console.log(`[Claude] Found session in memory with exact key: ${id}`);
+			return { key: id, session: s };
+		}
 
-		// Try prefixed form if raw uuid was provided
-		const sessionId = id.startsWith('claude_') ? id.replace(/^claude_/, '') : id;
+		// Check if this looks like a UUID (with or without claude_ prefix)
+		const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ||
+		               /^claude_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+		
+		// Extract sessionId (UUID) from the input
+		let sessionId;
+		if (isUuid) {
+			sessionId = id.startsWith('claude_') ? id.replace(/^claude_/, '') : id;
+		} else if (id.startsWith('claude_')) {
+			// This might be a simple manager ID like "claude_1", we can't hydrate without UUID
+			console.log(`[Claude] Cannot hydrate session with manager ID ${id} - UUID required`);
+			throw new Error('unknown session - UUID required for hydration');
+		} else {
+			// Assume it's a raw UUID
+			sessionId = id;
+		}
+		
 		const key = `claude_${sessionId}`;
 		s = this.sessions.get(key);
-		if (s) return { key, session: s };
+		if (s) {
+			console.log(`[Claude] Found session in memory with constructed key: ${key}`);
+			return { key, session: s };
+		}
+		
+		// Also try with just the sessionId as key
+		s = this.sessions.get(sessionId);
+		if (s) {
+			console.log(`[Claude] Found session in memory with sessionId: ${sessionId}`);
+			return { key: sessionId, session: s };
+		}
 
 		// Hydrate from disk by scanning candidate projects directories for the session jsonl
 		const candidates = [
@@ -190,6 +233,7 @@ export class ClaudeSessionManager {
 		const hydrated = {
 			workspacePath,
 			sessionId,
+			resumeCapable: true,
 			options: {
 				...this.defaultOptions,
 				cwd: workspacePath,

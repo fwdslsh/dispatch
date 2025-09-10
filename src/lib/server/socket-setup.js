@@ -156,6 +156,7 @@ async function directResume(socket, id, prompt) {
 			continue: true,
 			resume: sessionId,
 			cwd,
+			stderr: (data) => { try { console.error(`[Claude stderr ${sessionId}]`, data); } catch {} },
 			env: { ...process.env, HOME: process.env.HOME }
 		}
 	});
