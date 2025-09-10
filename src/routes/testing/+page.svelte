@@ -202,29 +202,29 @@
             
             <!-- Left Side: Session Browser -->
             <div class="browser-section" class:mobile-sidebar={isMobileView} class:show-sidebar={showSidebar}>
-                <!-- Mobile Tab Navigation -->
-                {#if isMobileView}
-                    <div class="mobile-tabs">
-                        <button 
-                            class="tab-btn" 
-                            class:active={activeTab === 'projects'}
-                            onclick={() => activeTab = 'projects'}
-                        >
-                            Projects
-                        </button>
-                        <button 
-                            class="tab-btn" 
-                            class:active={activeTab === 'sessions'}
-                            onclick={() => activeTab = 'sessions'}
-                        >
-                            Sessions
-                        </button>
-                    </div>
-                {/if}
+                <!-- Tab Navigation (visible on both mobile and desktop) -->
+                <div class="mobile-tabs" class:desktop-tabs={!isMobileView}>
+                    <button 
+                        class="tab-btn" 
+                        class:active={activeTab === 'projects'}
+                        onclick={() => activeTab = 'projects'}
+                        type="button"
+                    >
+                        Projects
+                    </button>
+                    <button 
+                        class="tab-btn" 
+                        class:active={activeTab === 'sessions'}
+                        onclick={() => activeTab = 'sessions'}
+                        type="button"
+                    >
+                        Sessions
+                    </button>
+                </div>
                 
-                <div class="browser-layout" class:mobile-browser={isMobileView}>
+                <div class="browser-layout" class:mobile-browser={isMobileView} class:tabbed-layout={true}>
                     <!-- Projects Panel -->
-                    <div class="panel projects-panel" class:mobile-hidden={isMobileView && activeTab !== 'projects'}>
+                    <div class="panel projects-panel" class:hidden={activeTab !== 'projects'}>
                         <h2>Projects</h2>
                         <div class="panel-content">
                             {#if loading && projects.length === 0}
@@ -257,7 +257,7 @@
                     </div>
 
                     <!-- Sessions Panel -->
-                    <div class="panel sessions-panel" class:mobile-hidden={isMobileView && activeTab !== 'sessions'}>
+                    <div class="panel sessions-panel" class:hidden={activeTab !== 'sessions'}>
                         <h2>Sessions</h2>
                         <div class="panel-content">
                             {#if !selectedProject}
@@ -432,6 +432,10 @@
         grid-template-rows: 1fr 1fr;
         gap: 1rem;
         height: 100%;
+    }
+    
+    .browser-layout.tabbed-layout {
+        grid-template-rows: 1fr;
     }
 
     .claude-section {
@@ -798,7 +802,7 @@
         opacity: 0.3;
     }
 
-    /* Mobile Tabs */
+    /* Tabs (Mobile and Desktop) */
     .mobile-tabs {
         display: flex;
         background: var(--surface);
@@ -807,6 +811,16 @@
         top: 0;
         z-index: 10;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Desktop-specific tab styles */
+    .mobile-tabs.desktop-tabs {
+        background: var(--surface-hover);
+        border-radius: 0.5rem 0.5rem 0 0;
+        border-bottom: 2px solid var(--surface-border);
+        margin-bottom: 0;
+        position: relative;
+        box-shadow: none;
     }
 
     .tab-btn {
@@ -851,13 +865,39 @@
     .tab-btn.active::after {
         width: 100%;
     }
+    
+    /* Desktop-specific tab active state */
+    .desktop-tabs .tab-btn {
+        border-radius: 0.5rem 0.5rem 0 0;
+        margin: 0 0.25rem;
+    }
+    
+    .desktop-tabs .tab-btn.active {
+        background: var(--surface);
+        border-bottom-color: var(--surface);
+        box-shadow: 
+            0 -2px 8px -4px rgba(0, 0, 0, 0.1),
+            inset 0 -1px 0 var(--primary);
+        position: relative;
+        z-index: 1;
+    }
+    
+    .desktop-tabs .tab-btn.active::before {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--surface);
+    }
 
     .mobile-browser {
         grid-template-columns: 1fr !important;
         grid-template-rows: 1fr !important;
     }
 
-    .mobile-hidden {
+    .hidden {
         display: none !important;
     }
 

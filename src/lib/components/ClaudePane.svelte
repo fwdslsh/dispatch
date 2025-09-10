@@ -3,6 +3,7 @@
 	import { fly } from 'svelte/transition';
 	import { io } from 'socket.io-client';
 	import Button from '$lib/shared/components/Button.svelte';
+	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
 	// Using global styles for inputs
 
 	let { sessionId, claudeSessionId = null, shouldResume = false } = $props();
@@ -16,8 +17,9 @@
 	let loading = $state(false);
 	let isWaitingForReply = $state(false);
 	let messagesContainer = $state();
-	import LiveIconStrip from '$lib/shared/components/LiveIconStrip.svelte';
 	let liveEventIcons = $state([]);
+	let selectedEventIcon = $state(null);
+	let messageSelectedIcon = $state({});
 
 	async function scrollToBottom() {
 		await tick();
@@ -145,6 +147,35 @@
 		}
 	}
 	
+	function selectEventIcon(icon, messageId = null) {
+		if (messageId) {
+			// For completed message icons
+			const key = `${messageId}-${icon.id}`;
+			if (messageSelectedIcon[key]) {
+				messageSelectedIcon = { ...messageSelectedIcon, [key]: null };
+			} else {
+				// Clear other selections for this message
+				const newSelected = {};
+				for (const k in messageSelectedIcon) {
+					if (!k.startsWith(`${messageId}-`)) {
+						newSelected[k] = messageSelectedIcon[k];
+					}
+				}
+				newSelected[key] = icon;
+				messageSelectedIcon = newSelected;
+			}
+		} else {
+			// For typing indicator icons
+			if (selectedEventIcon?.id === icon.id) {
+				selectedEventIcon = null;
+			} else {
+				selectedEventIcon = icon;
+			}
+		}
+	}
+	
+	// formatEventSummary removed - now using ActivitySummary component for better formatting
+	
 
 	async function loadPreviousMessages() {
 		if (!claudeSessionId) return;
@@ -213,7 +244,13 @@
 					const ic = iconFromEntry(entry);
 					if (ic) {
 						const id = `${i}-${Math.random().toString(36).slice(2, 6)}`;
-						pendingIcons = [...pendingIcons, { id, symbol: ic.symbol, label: ic.label, event: ic.event, timestamp: ts }].slice(-12);
+						pendingIcons = [...pendingIcons, { 
+							id, 
+							symbol: ic.symbol, 
+							label: ic.label, 
+							event: ic.event || entry, 
+							timestamp: ts 
+						}]; // Removed slice to keep all icons
 						continue;
 					}
 
@@ -229,7 +266,7 @@
 								text: textContent,
 								timestamp: ts,
 								id: `prev_${i}_assistant`,
-								iconTrail: pendingIcons
+								activityIcons: pendingIcons // Changed from iconTrail to activityIcons
 							});
 							pendingIcons = [];
 						}
@@ -269,18 +306,19 @@
 			// payload is an array; in our setup typically of length 1
 			for (const evt of payload || []) {
 				if (evt?.type === 'result') {
-					// Final result: update message content as usual
+					// Final result: update message content and attach the activity icons
 					messages = [
 						...messages,
 						{
 							role: 'assistant',
 							text: evt.result || '',
 							timestamp: new Date(),
-							id: Date.now()
+							id: Date.now(),
+							activityIcons: [...liveEventIcons] // Preserve the icons with this message
 						}
 					];
 					isWaitingForReply = false;
-					liveEventIcons = [];
+					liveEventIcons = []; // Clear for next message
 				} else {
 					// Non-final delta: keep typing indicator and show an icon
 					pushLiveIcon(evt);
@@ -387,8 +425,49 @@
 							</span>
 						</div>
 						<div class="message-text">{@html formatMessage(m.text)}</div>
-						{#if m.iconTrail && m.iconTrail.length > 0}
-							<LiveIconStrip icons={m.iconTrail} title="Agent activity" />
+						{#if m.activityIcons && m.activityIcons.length > 0}
+							<div class="activity-icons-container">
+								<div class="activity-icons-header">
+									<span class="activity-icons-label">Activity Trail</span>
+									<span class="activity-icons-count">{m.activityIcons.length} actions</span>
+								</div>
+								<div class="live-event-icons static" aria-label="Agent activity">
+									{#each m.activityIcons as ev, index (ev.id)}
+										{@const isSelected = messageSelectedIcon[`${m.id}-${ev.id}`]}
+										<button 
+											class="event-icon static" 
+											class:selected={isSelected}
+											title={ev.label}
+											onclick={() => selectEventIcon(ev, m.id)}
+											type="button"
+											aria-label="{ev.label} - Click for details"
+										>
+											{ev.symbol}
+										</button>
+									{/each}
+								</div>
+								{#if messageSelectedIcon}
+									{@const selectedIcon = Object.values(messageSelectedIcon).find(icon => icon && Object.keys(messageSelectedIcon).find(k => k.startsWith(`${m.id}-`) && messageSelectedIcon[k] === icon))}
+									{#if selectedIcon}
+									<div class="event-summary static" transition:fly={{ y: -10, duration: 200 }}>
+										<div class="event-summary-header">
+											<span class="event-summary-icon">{selectedIcon.symbol}</span>
+											<span class="event-summary-label">{selectedIcon.label}</span>
+											<span class="event-summary-time">
+												{selectedIcon.timestamp.toLocaleTimeString('en-US', { 
+													hour: '2-digit', 
+													minute: '2-digit', 
+													second: '2-digit' 
+												})}
+											</span>
+										</div>
+										<div class="event-summary-content">
+											<ActivitySummary icon={selectedIcon} />
+										</div>
+									</div>
+									{/if}
+								{/if}
+							</div>
 						{/if}
 					</div>
 				</div>
@@ -415,7 +494,41 @@
 							<span class="typing-dot"></span>
 							<span class="typing-dot"></span>
 						</div>
-						<LiveIconStrip icons={liveEventIcons} title="Live agent activity" />
+						{#if liveEventIcons.length > 0}
+							<div class="live-event-icons" aria-label="Live agent activity">
+								{#each liveEventIcons as ev, index (ev.id)}
+									<button 
+										class="event-icon" 
+										class:selected={selectedEventIcon?.id === ev.id}
+										title={ev.label}
+										onclick={() => selectEventIcon(ev)}
+										style="animation-delay: {index * 0.05}s"
+										type="button"
+										aria-label="{ev.label} - Click for details"
+									>
+										{ev.symbol}
+									</button>
+								{/each}
+							</div>
+							{#if selectedEventIcon}
+								<div class="event-summary" transition:fly={{ y: -10, duration: 200 }}>
+									<div class="event-summary-header">
+										<span class="event-summary-icon">{selectedEventIcon.symbol}</span>
+										<span class="event-summary-label">{selectedEventIcon.label}</span>
+										<span class="event-summary-time">
+											{selectedEventIcon.timestamp.toLocaleTimeString('en-US', { 
+												hour: '2-digit', 
+												minute: '2-digit', 
+												second: '2-digit' 
+											})}
+										</span>
+									</div>
+									<div class="event-summary-content">
+										<ActivitySummary icon={selectedEventIcon} />
+									</div>
+								</div>
+							{/if}
+						{/if}
 					</div>
 				</div>
 			</div>
