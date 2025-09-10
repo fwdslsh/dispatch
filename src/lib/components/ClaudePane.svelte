@@ -16,6 +16,7 @@
 	let loading = $state(false);
 	let isWaitingForReply = $state(false);
 	let messagesContainer = $state();
+	let liveEventIcons = $state([]);
 
 	async function scrollToBottom() {
 		await tick();
@@ -87,12 +88,50 @@
 		// Clear input and show waiting state
 		input = '';
 		isWaitingForReply = true;
+		liveEventIcons = [];
 		
 		// Force immediate scroll to user message
 		await scrollToBottom();
 		
 		console.log('Emitting claude.send with:', { key, id: sessionId, input: userMessage });
 		socket.emit('claude.send', { key, id: sessionId, input: userMessage });
+	}
+
+	function iconForEventType(e) {
+		try {
+			const type = (e?.type || '').toString().toLowerCase();
+			const tool = (e?.tool || e?.name || '').toString().toLowerCase();
+			// Tool name specific icons
+			if (tool.includes('read')) return { symbol: '📖', label: 'Read files' };
+			if (tool.includes('write')) return { symbol: '📝', label: 'Write files' };
+			if (tool.includes('edit')) return { symbol: '✏️', label: 'Edit files' };
+			if (tool.includes('bash') || tool.includes('shell') || tool.includes('exec')) return { symbol: '💻', label: 'Run command' };
+			if (tool.includes('grep') || tool.includes('search')) return { symbol: '🔎', label: 'Search' };
+			if (tool.includes('glob')) return { symbol: '✨', label: 'Glob match' };
+			if (tool.includes('web')) return { symbol: '🌐', label: 'Web' };
+			if (tool.includes('task')) return { symbol: '📋', label: 'Task' };
+			// Generic type-based icons
+			if (type === 'result') return { symbol: '✅', label: 'Result' };
+			if (type.includes('status') || type.includes('progress')) return { symbol: '⏳', label: 'Working' };
+			if (type.includes('think') || type.includes('plan')) return { symbol: '🧠', label: 'Thinking' };
+			if (type.includes('assistant')) return { symbol: '🤖', label: 'Assistant' };
+			if (type.includes('user')) return { symbol: '👤', label: 'User' };
+			if (type.includes('tool')) return { symbol: '🛠️', label: 'Tool' };
+			if (type.includes('message')) return { symbol: '💬', label: 'Message' };
+			return { symbol: '🔹', label: type || 'Event' };
+		} catch (err) {
+			return { symbol: '🔹', label: 'Event' };
+		}
+	}
+
+	function pushLiveIcon(e) {
+		const { symbol, label } = iconForEventType(e);
+		const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+		// Avoid spamming duplicates back-to-back
+		const last = liveEventIcons[liveEventIcons.length - 1];
+		if (!last || last.symbol !== symbol) {
+			liveEventIcons = [...liveEventIcons, { id, symbol, label }].slice(-12);
+		}
 	}
 
 	async function loadPreviousMessages() {
@@ -172,19 +211,28 @@
 
 		socket.on('message.delta', async (payload) => {
 			console.log('Received message.delta:', payload);
-			
-			// Hide typing indicator when response arrives
-			isWaitingForReply = false;
-
-			const result = payload.find((r) => r.type === 'result');
-			messages = [...messages, { 
-				role: 'assistant', 
-				text: result.result || '',
-				timestamp: new Date(),
-				id: Date.now()
-			}];
-			
-			// Scroll to show the new response
+			// payload is an array; in our setup typically of length 1
+			for (const evt of payload || []) {
+				console.log('Processing event:', evt);
+				if (evt?.type === 'result') {
+					// Final result: update message content as usual
+					messages = [
+						...messages,
+						{
+							role: 'assistant',
+							text: evt.result || '',
+							timestamp: new Date(),
+							id: Date.now()
+						}
+					];
+					isWaitingForReply = false;
+					liveEventIcons = [];
+				} else {
+					// Non-final delta: keep typing indicator and show an icon
+					pushLiveIcon(evt);
+				}
+			}
+			// Scroll to show the latest state (icons or final message)
 			await scrollToBottom();
 		});
 		
@@ -192,6 +240,7 @@
 		socket.on('error', (error) => {
 			console.error('Socket error:', error);
 			isWaitingForReply = false;
+			liveEventIcons = [];
 			
 			// Add error message if we were waiting for a reply
 			if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
@@ -208,6 +257,7 @@
 		socket.on('disconnect', () => {
 			console.log('Socket disconnected');
 			isWaitingForReply = false;
+			liveEventIcons = [];
 		});
 	});
 	onDestroy(() => socket?.disconnect());
@@ -307,6 +357,13 @@
 							<span class="typing-dot"></span>
 							<span class="typing-dot"></span>
 						</div>
+						{#if liveEventIcons.length > 0}
+							<div class="live-event-icons" aria-label="Live agent activity">
+								{#each liveEventIcons as ev (ev.id)}
+									<span class="event-icon" title={ev.label}>{ev.symbol}</span>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -732,6 +789,37 @@
 			0 8px 32px -12px rgba(0, 0, 0, 0.1),
 			inset 0 1px 2px rgba(255, 255, 255, 0.05);
 		transition: all 0.3s ease;
+	}
+
+	/* Live event icons under typing bubble */
+	.live-event-icons {
+		margin-top: var(--space-3);
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		padding: var(--space-2) var(--space-3);
+		border-radius: 12px;
+		background: linear-gradient(135deg,
+			color-mix(in oklab, var(--primary) 8%, transparent),
+			color-mix(in oklab, var(--primary) 4%, transparent)
+		);
+		border: 1px solid color-mix(in oklab, var(--primary) 18%, transparent);
+		box-shadow:
+			inset 0 1px 2px rgba(255, 255, 255, 0.05),
+			0 4px 16px -10px var(--primary-glow);
+		font-size: 1rem;
+	}
+
+	.event-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		background: color-mix(in oklab, var(--surface) 94%, var(--primary) 6%);
+		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
+		box-shadow: 0 2px 8px -4px var(--primary-glow);
 	}
 	
 	.message--user .message-text {

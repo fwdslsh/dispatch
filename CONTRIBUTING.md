@@ -2,6 +2,8 @@
 
 We welcome contributions to Dispatch! This guide will help you get started with development and contributing to the project.
 
+Also see AGENTS.md for code style, structure, and testing conventions specific to this repository.
+
 ## 🚀 Quick Development Setup
 
 ### Prerequisites
@@ -18,7 +20,7 @@ git clone https://github.com/your-username/dispatch.git
 cd dispatch
 
 # 2. Use the correct Node.js version
-nvm use --lts
+nvm use 22 || nvm install 22
 
 # 3. Install dependencies
 npm install
@@ -27,7 +29,7 @@ npm install
 npm run dev
 ```
 
-The dev server will start at `http://localhost:3030` with the test key `test`.
+The dev server runs via Vite (for example `http://localhost:5173`) and sets `TERMINAL_KEY=testkey12345` for local testing.
 
 ## 🛠️ Development Commands
 
@@ -47,6 +49,23 @@ npm run check
 # Continuous type checking
 npm run check:watch
 ```
+
+### Linting & Tests
+
+```bash
+# Format and lint
+npm run format
+npm run lint
+
+# Unit tests (Vitest)
+npm test
+
+# End-to-end tests (Playwright)
+npm run playwright:install   # first time only
+npm run test:e2e
+```
+
+Refer to AGENTS.md for testing layout and naming patterns.
 
 ## 🏗️ Project Architecture
 
@@ -393,16 +412,17 @@ docker push fwdslsh/dispatch:latest
 
 ### Pull Request Process
 
-1. **Fork** the repository
-2. **Create a feature branch** from `main`
-3. **Make your changes** with clear commits
-4. **Test thoroughly** (see testing section above)
-5. **Update documentation** if needed
-6. **Submit pull request** with clear description
+Use `.github/pull_request_template.md` and ensure:
+
+1. Clear summary and linked issues
+2. Test plan with commands and results (`npm run lint`, `npm test`, `npm run test:e2e` if applicable)
+3. Screenshots for UI changes
+4. Notes on env/config changes (e.g., `TERMINAL_KEY`, `ENABLE_TUNNEL`)
+5. Conventional Commit titles (e.g., `feat:`, `fix:`, `refactor:`)
 
 ### Commit Messages
 
-Use clear, descriptive commit messages:
+Follow Conventional Commits. Keep the subject imperative and ~72 characters:
 
 ```
 feat: add session export functionality

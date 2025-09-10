@@ -1,6 +1,9 @@
 import { query } from '@anthropic-ai/claude-code';
 
-import { dirname, resolve } from 'path';
+import { resolve, join } from 'path';
+import { homedir } from 'node:os';
+import { readdir, stat, readFile } from 'node:fs/promises';
+import { ClaudeProjectsReader } from '../core/ClaudeProjectsReader.js';
 
 export class ClaudeSessionManager {
 	/**
@@ -23,6 +26,9 @@ export class ClaudeSessionManager {
 			permissionMode: 'bypassPermissions',
 			pathToClaudeCodeExecutable: cliPath
 		};
+
+		// Projects reader to help locate existing sessions on disk when resuming
+		this.projectsReader = new ClaudeProjectsReader(join(process.env.HOME || homedir(), '.claude', 'projects'));
 	}
 
 	setSocketIO(io) {
@@ -41,13 +47,13 @@ export class ClaudeSessionManager {
 			sessionId: realSessionId,
 			options: {
 				...this.defaultOptions,
-				...options,
 				cwd: workspacePath,
-				env: {
-					HOME: process.env.HOME
-				}
+				...options,
+				env: { ...process.env, HOME: process.env.HOME }
 			}
 		});
+		// Also map raw session id for clients that pass it directly
+		this.sessions.set(realSessionId, this.sessions.get(id));
 		return { id, sessionId: realSessionId };
 	}
 	/**
@@ -64,8 +70,10 @@ export class ClaudeSessionManager {
 	 */
 	async send(id, userInput) {
 		console.log(`ClaudeSessionManager: send to session ${id}:`, userInput, process.env.HOME);
-		const s = this.sessions.get(id);
-		if (!s) throw new Error('unknown session');
+
+		// Resolve or lazily hydrate a session mapping for this id
+		const { key, session } = await this.#ensureSession(id);
+		const s = session;
 
 		try {
 			const stream = query({
@@ -73,11 +81,8 @@ export class ClaudeSessionManager {
 				options: {
 					...s.options,
 					continue: true,
-					sessionId: s.sessionId, // Pass the session ID to continue existing session
-					cwd: s.workspacePath,
-					env: {
-						HOME: process.env.HOME
-					}
+					resume: s.sessionId,
+					env: { ...process.env, HOME: process.env.HOME }
 				}
 			});
 
@@ -100,5 +105,100 @@ export class ClaudeSessionManager {
 				});
 			}
 		}
+	}
+
+	/**
+	 * Ensure we have a session object for the provided id.
+	 * Accepts either a manager key (e.g. "claude_<uuid>") or a raw sessionId ("<uuid>").
+	 * If not present, attempts to locate the session on disk and hydrate it.
+	 * @param {string} id
+	 * @returns {Promise<{ key: string, session: { workspacePath: string, sessionId: string, options: any } }>} 
+	 */
+	async #ensureSession(id) {
+		// Try exact key first
+		let s = this.sessions.get(id);
+		if (s) return { key: id, session: s };
+
+		// Try prefixed form if raw uuid was provided
+		const sessionId = id.startsWith('claude_') ? id.replace(/^claude_/, '') : id;
+		const key = `claude_${sessionId}`;
+		s = this.sessions.get(key);
+		if (s) return { key, session: s };
+
+		// Hydrate from disk by scanning candidate projects directories for the session jsonl
+		const candidates = [
+			// Explicit env var if provided
+			process.env.CLAUDE_PROJECTS_DIR,
+			// HOME-based default (dev sets HOME to .dispatch-home)
+			join(process.env.HOME || homedir(), '.claude', 'projects'),
+			// Fallback to repo-local .dispatch-home
+			join(process.cwd(), '.dispatch-home', '.claude', 'projects'),
+			// Fallback to repo-local .claude (some setups)
+			join(process.cwd(), '.claude', 'projects')
+		].filter(Boolean);
+		let found = null;
+		for (const projectsDir of candidates) {
+			try { console.log(`[Claude] Looking for session ${sessionId} in ${projectsDir}`); } catch {}
+			try {
+				const dirs = await readdir(projectsDir, { withFileTypes: true });
+				for (const d of dirs) {
+					if (!d.isDirectory()) continue;
+					const filePath = join(projectsDir, d.name, `${sessionId}.jsonl`);
+					try {
+						const st = await stat(filePath);
+						if (st && st.isFile()) {
+							found = { projectDirName: d.name, filePath, projectsDir };
+							break;
+						}
+					} catch {}
+				}
+				if (found) break;
+			} catch (e) {
+				// ignore scan errors for this candidate
+			}
+		}
+
+		if (!found) {
+			console.warn(`[Claude] Session ${sessionId} not found in any projects dir`);
+			throw new Error('unknown session');
+		}
+
+		// Try to read cwd directly from the session jsonl for accuracy
+		let workspacePath = null;
+		try {
+			const content = await readFile(found.filePath, 'utf-8');
+			const line = (content.split('\n').find((l) => l.includes('"cwd"')) || '').trim();
+			if (line) {
+				try {
+					const parsed = JSON.parse(line);
+					if (parsed && typeof parsed.cwd === 'string' && parsed.cwd.length > 0) {
+						workspacePath = parsed.cwd;
+					}
+				} catch {}
+			}
+		} catch {}
+
+		// Fallback to decoding project dir name if cwd not found in file
+		if (!workspacePath) {
+			workspacePath = this.projectsReader.decodeProjectPath(found.projectDirName);
+			if (!workspacePath || !workspacePath.startsWith('/')) {
+				workspacePath = resolve(process.cwd(), workspacePath || '.');
+			}
+		}
+
+		// Register hydrated session with sane defaults
+		const hydrated = {
+			workspacePath,
+			sessionId,
+			options: {
+				...this.defaultOptions,
+				cwd: workspacePath,
+				env: { ...process.env, HOME: process.env.HOME }
+			}
+		};
+		this.sessions.set(key, hydrated);
+		this.sessions.set(sessionId, hydrated);
+		console.log(`[Claude] Hydrated session ${sessionId} @ ${workspacePath} (from ${found.projectsDir})`);
+		return { key, session: hydrated };
 	}
 }

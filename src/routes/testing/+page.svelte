@@ -1,6 +1,10 @@
 <script>
     import { onMount } from 'svelte';
     import ClaudePane from '$lib/components/ClaudePane.svelte';
+    
+    let isMobileView = false;
+    let showSidebar = false;
+    let activeTab = 'projects'; // 'projects' or 'sessions'
 
     let projects = [];
     let sessions = [];
@@ -80,19 +84,53 @@
 
     onMount(() => {
         loadProjects();
+        checkMobileView();
+        window.addEventListener('resize', checkMobileView);
+        
+        return () => {
+            window.removeEventListener('resize', checkMobileView);
+        };
     });
+    
+    function checkMobileView() {
+        isMobileView = window.innerWidth < 768;
+        if (!isMobileView) {
+            showSidebar = false; // Reset sidebar on desktop
+        }
+    }
+    
+    function toggleSidebar() {
+        showSidebar = !showSidebar;
+    }
+    
+    function closeSidebarAndSelect() {
+        if (isMobileView) {
+            showSidebar = false;
+        }
+    }
 </script>
 
 <svelte:head>
     <title>Claude Session Browser</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 </svelte:head>
 
 <main class="session-browser">
     <div class="container">
         <header class="browser-header">
+            {#if isMobileView}
+                <button on:click={toggleSidebar} class="menu-btn" aria-label="Toggle menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </button>
+            {/if}
             <h1>Claude Session Browser</h1>
             <button on:click={loadProjects} class="refresh-btn" disabled={loading}>
-                {loading ? 'Loading...' : 'Refresh'}
+                <svg class="refresh-icon" class:spinning={loading} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+                </svg>
+                <span class="refresh-text">{loading ? 'Loading' : 'Refresh'}</span>
             </button>
         </header>
 
@@ -103,12 +141,37 @@
             </div>
         {/if}
 
-        <div class="main-layout">
+        <div class="main-layout" class:mobile-layout={isMobileView}>
+            <!-- Mobile Overlay -->
+            {#if isMobileView && showSidebar}
+                <div class="mobile-overlay" on:click={toggleSidebar}></div>
+            {/if}
+            
             <!-- Left Side: Session Browser -->
-            <div class="browser-section">
-                <div class="browser-layout">
+            <div class="browser-section" class:mobile-sidebar={isMobileView} class:show-sidebar={showSidebar}>
+                <!-- Mobile Tab Navigation -->
+                {#if isMobileView}
+                    <div class="mobile-tabs">
+                        <button 
+                            class="tab-btn" 
+                            class:active={activeTab === 'projects'}
+                            on:click={() => activeTab = 'projects'}
+                        >
+                            Projects
+                        </button>
+                        <button 
+                            class="tab-btn" 
+                            class:active={activeTab === 'sessions'}
+                            on:click={() => activeTab = 'sessions'}
+                        >
+                            Sessions
+                        </button>
+                    </div>
+                {/if}
+                
+                <div class="browser-layout" class:mobile-browser={isMobileView}>
                     <!-- Projects Panel -->
-                    <div class="panel projects-panel">
+                    <div class="panel projects-panel" class:mobile-hidden={isMobileView && activeTab !== 'projects'}>
                         <h2>Projects</h2>
                         <div class="panel-content">
                             {#if loading && projects.length === 0}
@@ -120,7 +183,10 @@
                                     <div 
                                         class="project-item" 
                                         class:selected={selectedProject === project.name}
-                                        on:click={() => selectProject(project)}
+                                        on:click={() => {
+                                            selectProject(project);
+                                            if (isMobileView) activeTab = 'sessions';
+                                        }}
                                     >
                                         <div class="project-header">
                                             <div class="project-name">{cleanProjectName(project.name)}</div>
@@ -137,7 +203,7 @@
                     </div>
 
                     <!-- Sessions Panel -->
-                    <div class="panel sessions-panel">
+                    <div class="panel sessions-panel" class:mobile-hidden={isMobileView && activeTab !== 'sessions'}>
                         <h2>Sessions</h2>
                         <div class="panel-content">
                             {#if !selectedProject}
@@ -151,7 +217,10 @@
                                     <div 
                                         class="session-item"
                                         class:selected={selectedSession === session.id}
-                                        on:click={() => selectSession(session)}
+                                        on:click={() => {
+                                            selectSession(session);
+                                            closeSidebarAndSelect();
+                                        }}
                                     >
                                         <div class="session-header">
                                             <div class="session-id">{session.id.substring(0, 8)}...</div>
@@ -238,6 +307,10 @@
         cursor: pointer;
         font-family: inherit;
         transition: opacity 0.2s;
+        /* Ensure proper Unicode display */
+        font-variant: normal;
+        text-rendering: auto;
+        -webkit-font-smoothing: antialiased;
     }
 
     .refresh-btn:hover {
@@ -258,6 +331,12 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+    }
+
+    .error-icon {
+        font-size: 1.2em;
+        /* Ensure emoji displays properly */
+        font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Android Emoji', 'EmojiOne Color', 'Twemoji Mozilla', sans-serif;
     }
 
     .main-layout {
@@ -484,6 +563,8 @@
         font-size: 4rem;
         margin-bottom: 1rem;
         opacity: 0.5;
+        /* Ensure emoji displays properly */
+        font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Android Emoji', 'EmojiOne Color', 'Twemoji Mozilla', sans-serif;
     }
 
     .empty-claude h3 {
@@ -499,10 +580,131 @@
         max-width: 300px;
     }
 
-    @media (max-width: 1024px) {
+    /* Mobile Menu Button */
+    .menu-btn {
+        background: transparent;
+        border: 2px solid var(--accent);
+        color: var(--accent);
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .menu-btn:hover {
+        background: var(--accent);
+        color: var(--bg);
+    }
+
+    /* Refresh Button Updates */
+    .refresh-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .refresh-icon {
+        transition: transform 0.3s ease;
+    }
+
+    .refresh-icon.spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .refresh-text {
+        display: inline;
+    }
+
+    /* Mobile Overlay */
+    .mobile-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+        backdrop-filter: blur(4px);
+    }
+
+    /* Mobile Sidebar */
+    .mobile-sidebar {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 85%;
+        max-width: 400px;
+        height: 100vh;
+        background: var(--bg);
+        z-index: 999;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+        box-shadow: 2px 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .mobile-sidebar.show-sidebar {
+        left: 0;
+    }
+
+    /* Mobile Tabs */
+    .mobile-tabs {
+        display: flex;
+        background: var(--surface);
+        border-bottom: 1px solid var(--surface-border);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .tab-btn {
+        flex: 1;
+        padding: 1rem;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: var(--text-muted);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+        background: var(--surface-hover);
+    }
+
+    .mobile-browser {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: 1fr !important;
+    }
+
+    .mobile-hidden {
+        display: none !important;
+    }
+
+    /* Tablet Styles */
+    @media (max-width: 1024px) and (min-width: 768px) {
+        .container {
+            padding: 0.75rem;
+        }
+
         .main-layout {
             grid-template-columns: 1fr;
             grid-template-rows: 400px 1fr;
+            gap: 0.75rem;
         }
         
         .browser-layout {
@@ -512,6 +714,221 @@
 
         .panel {
             height: 350px;
+        }
+
+        .browser-header h1 {
+            font-size: 1.5rem;
+        }
+    }
+
+    /* Mobile Styles */
+    @media (max-width: 767px) {
+        .container {
+            padding: 0;
+            max-width: 100%;
+        }
+
+        .browser-header {
+            padding: 1rem;
+            margin-bottom: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .browser-header h1 {
+            font-size: 1.2rem;
+            flex: 1;
+            text-align: center;
+        }
+
+        .refresh-text {
+            display: none;
+        }
+
+        .refresh-btn {
+            padding: 0.5rem;
+            min-width: 40px;
+        }
+
+        .main-layout.mobile-layout {
+            display: block;
+            height: calc(100vh - 70px);
+        }
+
+        .browser-section {
+            height: 100%;
+        }
+
+        .claude-section {
+            height: calc(100vh - 70px);
+            border-radius: 0;
+            border: none;
+        }
+
+        .panel {
+            border-radius: 0;
+            border: none;
+            height: calc(100vh - 120px);
+        }
+
+        .panel h2 {
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+        }
+
+        .project-item, .session-item {
+            padding: 0.875rem 1rem;
+            border-left-width: 4px;
+        }
+
+        .project-item.selected, .session-item.selected {
+            border-left-width: 4px;
+            padding-left: calc(1rem - 4px);
+        }
+
+        .project-name {
+            font-size: 1rem;
+        }
+
+        .project-stats {
+            font-size: 0.7rem;
+        }
+
+        .session-count {
+            padding: 0.125rem 0.35rem;
+            font-size: 0.65rem;
+        }
+
+        .project-path {
+            font-size: 0.75rem;
+        }
+
+        .claude-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .claude-header h2 {
+            font-size: 1rem;
+        }
+
+        .session-info-header {
+            font-size: 0.7rem;
+        }
+
+        .session-id-full {
+            font-size: 0.6rem;
+        }
+
+        .empty-claude {
+            padding: 2rem;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+        }
+
+        .empty-claude h3 {
+            font-size: 1.25rem;
+        }
+
+        .empty-claude p {
+            font-size: 0.9rem;
+        }
+
+        /* Touch-friendly sizes */
+        .project-item, .session-item {
+            min-height: 60px;
+        }
+
+        /* Better scrolling on mobile */
+        .panel-content {
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+
+        /* Hide scrollbars on mobile for cleaner look */
+        .panel-content::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+        }
+    }
+
+    /* Small Mobile Styles */
+    @media (max-width: 400px) {
+        .browser-header h1 {
+            font-size: 1rem;
+        }
+
+        .mobile-sidebar {
+            width: 90%;
+        }
+
+        .project-name {
+            font-size: 0.95rem;
+        }
+
+        .project-stats {
+            flex-direction: row;
+            gap: 0.25rem;
+        }
+    }
+
+    /* Landscape Mobile */
+    @media (max-width: 767px) and (orientation: landscape) {
+        .browser-header {
+            padding: 0.5rem 1rem;
+        }
+
+        .browser-header h1 {
+            font-size: 1rem;
+        }
+
+        .panel {
+            height: calc(100vh - 80px);
+        }
+
+        .claude-section {
+            height: calc(100vh - 60px);
+        }
+    }
+
+    /* High DPI Screens */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .project-item, .session-item {
+            border-bottom-width: 0.5px;
+        }
+
+        .panel {
+            border-width: 0.5px;
+        }
+    }
+
+    /* Accessibility - Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+        .mobile-sidebar {
+            transition: none;
+        }
+
+        .tab-btn, .project-item, .session-item {
+            transition: none;
+        }
+    }
+
+    /* Dark Mode Adjustments for Mobile */
+    @media (max-width: 767px) and (prefers-color-scheme: dark) {
+        .mobile-overlay {
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .browser-header {
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .mobile-sidebar {
+            box-shadow: 2px 0 30px rgba(0, 0, 0, 0.5);
         }
     }
 </style>

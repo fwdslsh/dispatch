@@ -1,5 +1,9 @@
 import { Server } from 'socket.io';
 import { validateKey } from './auth.js';
+import { query } from '@anthropic-ai/claude-code';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+import { readdir, stat, readFile } from 'node:fs/promises';
 
 export function setupSocketIO(httpServer) {
 	const io = new Server(httpServer, {
@@ -79,8 +83,18 @@ export function setupSocketIO(httpServer) {
 				const { claude } = getManagers();
 				if (claude) {
 					claude.setSocketIO(socket);
-					await claude.send(data.id, data.input);
-					console.log(`[SOCKET] Claude message sent via shared manager`);
+					try {
+						await claude.send(data.id, data.input);
+						console.log(`[SOCKET] Claude message sent via shared manager`);
+					} catch (err) {
+						// Fallback: try direct resume if session is unknown
+						if (String(err?.message || '').includes('unknown session')) {
+							console.warn('[SOCKET] Unknown session in manager; attempting direct resume');
+							await directResume(socket, data.id, data.input);
+						} else {
+							throw err;
+						}
+					}
 				}
 			} catch (err) {
 				console.error(`[SOCKET] Claude send error:`, err);
@@ -94,4 +108,59 @@ export function setupSocketIO(httpServer) {
 
 	console.log('[SOCKET] Socket.IO server initialized with shared managers');
 	return io;
+}
+
+async function directResume(socket, id, prompt) {
+	const sessionId = id.startsWith('claude_') ? id.replace(/^claude_/, '') : id;
+	const candidates = [
+		process.env.CLAUDE_PROJECTS_DIR,
+		join(process.env.HOME || homedir(), '.claude', 'projects'),
+		join(process.cwd(), '.dispatch-home', '.claude', 'projects'),
+		join(process.cwd(), '.claude', 'projects')
+	].filter(Boolean);
+
+	let filePath = null;
+	for (const projectsDir of candidates) {
+		try {
+			const entries = await readdir(projectsDir, { withFileTypes: true });
+			for (const e of entries) {
+				const p = join(projectsDir, e.name, `${sessionId}.jsonl`);
+				try {
+					const st = await stat(p);
+					if (st && st.isFile()) {
+						filePath = p;
+						break;
+					}
+				} catch {}
+			}
+			if (filePath) break;
+		} catch {}
+	}
+
+	if (!filePath) throw new Error('unknown session');
+
+	// Extract cwd from jsonl
+	let cwd = process.cwd();
+	try {
+		const content = await readFile(filePath, 'utf-8');
+		const line = (content.split('\n').find((l) => l.includes('"cwd"')) || '').trim();
+		if (line) {
+			const parsed = JSON.parse(line);
+			if (parsed && typeof parsed.cwd === 'string' && parsed.cwd.length > 0) cwd = parsed.cwd;
+		}
+	} catch {}
+
+	const stream = query({
+		prompt,
+		options: {
+			continue: true,
+			resume: sessionId,
+			cwd,
+			env: { ...process.env, HOME: process.env.HOME }
+		}
+	});
+
+	for await (const event of stream) {
+		if (event) socket.emit('message.delta', [event]);
+	}
 }
