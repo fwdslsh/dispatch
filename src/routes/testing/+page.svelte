@@ -461,7 +461,7 @@
             4px 0 24px rgba(0, 0, 0, 0.15),
             2px 0 48px rgba(46, 230, 107, 0.1);
         border-right: 1px solid var(--primary-dim);
-        padding: 0.5rem;
+        padding: 0;
     }
 
     .mobile-sidebar.show-sidebar {
@@ -504,16 +504,18 @@
     /* Mobile Styles */
     @media (max-width: 767px) {
         .container {
-            padding: 0 0.5rem;
+            padding: 0;
+            margin: 0;
             max-width: 100%;
+            width: 100%;
             height: 100vh;
             height: 100dvh;
             overflow: hidden;
         }
 
         .browser-header {
-            padding: 0.75rem;
-            margin: 0 -0.5rem;
+            padding: 0.75rem 1rem;
+            margin: 0;
             margin-bottom: 0;
             position: sticky;
             top: 0;
@@ -542,7 +544,7 @@
             flex-direction: column;
             flex: 1;
             min-height: 0;
-            padding: 0.5rem 0;
+            padding: 0;
         }
 
         .browser-section {
