@@ -204,7 +204,7 @@
 			workspacePath, 
 			projectName,
 			claudeSessionId,
-			shouldResume: resumeSession
+			shouldResume: true
 		};
 		sessions = [...sessions, s];
 		// auto-pin newest into grid if there's room

@@ -1,9 +1,9 @@
 <script>
     import { onMount } from 'svelte';
+    import ClaudePane from '$lib/components/ClaudePane.svelte';
 
     let projects = [];
     let sessions = [];
-    let messages = [];
     let selectedProject = null;
     let selectedSession = null;
     let loading = false;
@@ -29,7 +29,6 @@
     async function selectProject(project) {
         selectedProject = project.name;
         selectedSession = null;
-        messages = [];
         loading = true;
         error = null;
         
@@ -49,21 +48,6 @@
 
     async function selectSession(session) {
         selectedSession = session.id;
-        loading = true;
-        error = null;
-        
-        try {
-            const response = await fetch(`/api/claude/sessions/${encodeURIComponent(selectedProject)}/${encodeURIComponent(session.id)}?full=1`);
-            if (response.ok) {
-                const data = await response.json();
-                messages = data.entries || [];
-            } else {
-                error = 'Failed to load messages';
-            }
-        } catch (err) {
-            error = 'Error loading messages: ' + err.message;
-        }
-        loading = false;
     }
 
     function cleanProjectName(projectName) {
@@ -93,65 +77,6 @@
         return 'Unknown Project';
     }
 
-    function parseMessage(entry) {
-        let role = 'system';
-        let content = 'No content available';
-        let tools = [];
-        let type = 'text';
-        
-        if (entry.message) {
-            const message = entry.message;
-            role = message.role || 'system';
-            
-            if (Array.isArray(message.content)) {
-                const textParts = [];
-                
-                for (const part of message.content) {
-                    if (part.type === 'text') {
-                        textParts.push(part.text);
-                    } else if (part.type === 'tool_use') {
-                        type = 'tool_use';
-                        tools.push({
-                            type: 'tool_use',
-                            name: part.name,
-                            input: part.input,
-                            id: part.id
-                        });
-                    } else if (part.type === 'tool_result') {
-                        tools.push({
-                            type: 'tool_result',
-                            tool_use_id: part.tool_use_id,
-                            content: part.content
-                        });
-                    }
-                }
-                
-                if (textParts.length > 0) {
-                    content = textParts.join('\n\n');
-                }
-            } else if (typeof message.content === 'string') {
-                content = message.content;
-            }
-        }
-        
-        return {
-            role,
-            type,
-            content,
-            tools,
-            timestamp: entry.timestamp,
-            id: entry.id,
-            raw: entry
-        };
-    }
-
-    function getRoleIcon(role) {
-        switch (role) {
-            case 'user': return '👤';
-            case 'assistant': return '🤖';
-            default: return '⚙️';
-        }
-    }
 
     onMount(() => {
         loadProjects();
@@ -178,120 +103,98 @@
             </div>
         {/if}
 
-        <div class="browser-layout">
-            <!-- Projects Panel -->
-            <div class="panel projects-panel">
-                <h2>Projects</h2>
-                <div class="panel-content">
-                    {#if loading && projects.length === 0}
-                        <div class="loading">Loading projects...</div>
-                    {:else if projects.length === 0}
-                        <div class="empty">No projects found</div>
-                    {:else}
-                        {#each projects as project}
-                            <div 
-                                class="project-item" 
-                                class:selected={selectedProject === project.name}
-                                on:click={() => selectProject(project)}
-                            >
-                                <div class="project-header">
-                                    <div class="project-name">{cleanProjectName(project.name)}</div>
-                                    <div class="project-stats">
-                                        <span class="session-count">{project.sessionCount} sessions</span>
-                                        <span class="last-modified">{new Date(project.lastModified).toLocaleDateString()}</span>
-                                    </div>
-                                </div>
-                                <div class="project-path">{project.path.split('/').slice(-2).join('/')}</div>
-                            </div>
-                        {/each}
-                    {/if}
-                </div>
-            </div>
-
-            <!-- Sessions Panel -->
-            <div class="panel sessions-panel">
-                <h2>Sessions</h2>
-                <div class="panel-content">
-                    {#if !selectedProject}
-                        <div class="empty">Select a project to view sessions</div>
-                    {:else if loading && sessions.length === 0}
-                        <div class="loading">Loading sessions...</div>
-                    {:else if sessions.length === 0}
-                        <div class="empty">No sessions found</div>
-                    {:else}
-                        {#each sessions as session}
-                            <div 
-                                class="session-item"
-                                class:selected={selectedSession === session.id}
-                                on:click={() => selectSession(session)}
-                            >
-                                <div class="session-header">
-                                    <div class="session-id">{session.id.substring(0, 8)}...</div>
-                                    <div class="session-size">{Math.round(session.size / 1024)}KB</div>
-                                </div>
-                                <div class="session-info">
-                                    <span class="session-date">{new Date(session.lastModified).toLocaleDateString()}</span>
-                                    <span class="session-time">{new Date(session.lastModified).toLocaleTimeString()}</span>
-                                </div>
-                            </div>
-                        {/each}
-                    {/if}
-                </div>
-            </div>
-
-            <!-- Messages Panel -->
-            <div class="panel messages-panel">
-                <h2>Messages</h2>
-                <div class="panel-content">
-                    {#if !selectedSession}
-                        <div class="empty">Select a session to view messages</div>
-                    {:else if loading && messages.length === 0}
-                        <div class="loading">Loading messages...</div>
-                    {:else if messages.length === 0}
-                        <div class="empty">No messages found</div>
-                    {:else}
-                        <div class="messages-list">
-                            {#each messages as entry}
-                                {@const parsed = parseMessage(entry)}
-                                <div class="message-item" class:tool-message={parsed.type === 'tool_use'}>
-                                    <div class="message-header">
-                                        <span class="role-icon">{getRoleIcon(parsed.role)}</span>
-                                        <span class="role-label">{parsed.role}</span>
-                                        {#if parsed.type === 'tool_use'}
-                                            <span class="tool-badge">Tool Use</span>
-                                        {/if}
-                                        <span class="message-time">
-                                            {new Date(parsed.timestamp).toLocaleTimeString()}
-                                        </span>
-                                    </div>
-                                    
-                                    {#if parsed.content}
-                                        <div class="message-content">
-                                            {parsed.content}
+        <div class="main-layout">
+            <!-- Left Side: Session Browser -->
+            <div class="browser-section">
+                <div class="browser-layout">
+                    <!-- Projects Panel -->
+                    <div class="panel projects-panel">
+                        <h2>Projects</h2>
+                        <div class="panel-content">
+                            {#if loading && projects.length === 0}
+                                <div class="loading">Loading projects...</div>
+                            {:else if projects.length === 0}
+                                <div class="empty">No projects found</div>
+                            {:else}
+                                {#each projects as project}
+                                    <div 
+                                        class="project-item" 
+                                        class:selected={selectedProject === project.name}
+                                        on:click={() => selectProject(project)}
+                                    >
+                                        <div class="project-header">
+                                            <div class="project-name">{cleanProjectName(project.name)}</div>
+                                            <div class="project-stats">
+                                                <span class="session-count">{project.sessionCount} sessions</span>
+                                                <span class="last-modified">{new Date(project.lastModified).toLocaleDateString()}</span>
+                                            </div>
                                         </div>
-                                    {/if}
-
-                                    {#if parsed.tools.length > 0}
-                                        <div class="tools-section">
-                                            {#each parsed.tools as tool}
-                                                <details class="tool-details">
-                                                    <summary>
-                                                        {#if tool.type === 'tool_use'}
-                                                            🔧 {tool.name}
-                                                        {:else}
-                                                            📋 Tool Result
-                                                        {/if}
-                                                    </summary>
-                                                    <pre class="tool-content">{JSON.stringify(tool, null, 2)}</pre>
-                                                </details>
-                                            {/each}
-                                        </div>
-                                    {/if}
-                                </div>
-                            {/each}
+                                        <div class="project-path">{project.path.split('/').slice(-2).join('/')}</div>
+                                    </div>
+                                {/each}
+                            {/if}
                         </div>
-                    {/if}
+                    </div>
+
+                    <!-- Sessions Panel -->
+                    <div class="panel sessions-panel">
+                        <h2>Sessions</h2>
+                        <div class="panel-content">
+                            {#if !selectedProject}
+                                <div class="empty">Select a project to view sessions</div>
+                            {:else if loading && sessions.length === 0}
+                                <div class="loading">Loading sessions...</div>
+                            {:else if sessions.length === 0}
+                                <div class="empty">No sessions found</div>
+                            {:else}
+                                {#each sessions as session}
+                                    <div 
+                                        class="session-item"
+                                        class:selected={selectedSession === session.id}
+                                        on:click={() => selectSession(session)}
+                                    >
+                                        <div class="session-header">
+                                            <div class="session-id">{session.id.substring(0, 8)}...</div>
+                                            <div class="session-size">{Math.round(session.size / 1024)}KB</div>
+                                        </div>
+                                        <div class="session-info">
+                                            <span class="session-date">{new Date(session.lastModified).toLocaleDateString()}</span>
+                                            <span class="session-time">{new Date(session.lastModified).toLocaleTimeString()}</span>
+                                        </div>
+                                    </div>
+                                {/each}
+                            {/if}
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Right Side: Claude Session Interface -->
+            <div class="claude-section">
+                {#if selectedSession}
+                    <div class="claude-header">
+                        <h2>Claude Session</h2>
+                        <div class="session-info-header">
+                            <span class="project-name">{cleanProjectName(selectedProject)}</span>
+                            <span class="session-id-full">{selectedSession}</span>
+                        </div>
+                    </div>
+                    <div class="claude-pane-container">
+                        {#key selectedSession}
+                            <ClaudePane 
+                                sessionId={selectedSession}
+                                claudeSessionId={selectedSession}
+                                shouldResume={true}
+                            />
+                        {/key}
+                    </div>
+                {:else}
+                    <div class="empty-claude">
+                        <div class="empty-icon">🤖</div>
+                        <h3>Select a Session</h3>
+                        <p>Choose a project and session from the left to open an interactive Claude interface</p>
+                    </div>
+                {/if}
             </div>
         </div>
     </div>
@@ -357,11 +260,33 @@
         gap: 0.5rem;
     }
 
-    .browser-layout {
+    .main-layout {
         display: grid;
-        grid-template-columns: 1fr 1fr 2fr;
+        grid-template-columns: 600px 1fr;
         gap: 1rem;
         height: calc(100vh - 200px);
+    }
+
+    .browser-section {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .browser-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 1rem;
+        height: 100%;
+    }
+
+    .claude-section {
+        display: flex;
+        flex-direction: column;
+        background: var(--surface);
+        border: 1px solid var(--surface-border);
+        border-radius: 0.5rem;
+        overflow: hidden;
     }
 
     .panel {
@@ -494,94 +419,6 @@
         opacity: 0.7;
     }
 
-    .messages-list {
-        padding: 0;
-    }
-
-    .message-item {
-        padding: 1rem;
-        border-bottom: 1px solid var(--surface-border);
-    }
-
-    .message-item.tool-message {
-        background: color-mix(in oklch, var(--surface-hover) 50%, transparent 50%);
-        border-left: 2px solid var(--accent);
-        padding-left: calc(1rem - 2px);
-    }
-
-    .message-header {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.9rem;
-    }
-
-    .role-icon {
-        font-size: 1.2rem;
-    }
-
-    .role-label {
-        font-weight: 600;
-        color: var(--accent);
-    }
-
-    .tool-badge {
-        background: var(--accent);
-        color: var(--bg);
-        padding: 0.2rem 0.4rem;
-        border-radius: 0.2rem;
-        font-size: 0.8rem;
-        font-weight: 500;
-    }
-
-    .message-time {
-        margin-left: auto;
-        opacity: 0.6;
-        font-size: 0.8rem;
-    }
-
-    .message-content {
-        background: var(--surface-hover);
-        padding: 0.75rem;
-        border-radius: 0.25rem;
-        white-space: pre-wrap;
-        font-family: var(--font-mono);
-        font-size: 0.9rem;
-        margin-bottom: 0.5rem;
-        line-height: 1.4;
-    }
-
-    .tools-section {
-        margin-top: 0.5rem;
-    }
-
-    .tool-details {
-        margin-bottom: 0.5rem;
-    }
-
-    .tool-details summary {
-        cursor: pointer;
-        padding: 0.5rem;
-        background: var(--surface);
-        border-radius: 0.25rem;
-        font-weight: 500;
-        transition: background 0.2s;
-    }
-
-    .tool-details summary:hover {
-        background: var(--surface-hover);
-    }
-
-    .tool-content {
-        background: var(--bg);
-        padding: 0.5rem;
-        border-radius: 0.25rem;
-        font-size: 0.8rem;
-        overflow-x: auto;
-        margin-top: 0.5rem;
-        border: 1px solid var(--surface-border);
-    }
 
     .loading, .empty {
         padding: 2rem;
@@ -590,14 +427,91 @@
         font-style: italic;
     }
 
+    .claude-header {
+        background: var(--surface-hover);
+        padding: 1rem;
+        border-bottom: 1px solid var(--surface-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .claude-header h2 {
+        margin: 0;
+        color: var(--accent);
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .session-info-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.25rem;
+        font-size: 0.8rem;
+    }
+
+    .session-info-header .project-name {
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .session-id-full {
+        font-family: var(--font-mono);
+        opacity: 0.7;
+        font-size: 0.7rem;
+    }
+
+    .claude-pane-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .empty-claude {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-muted);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-claude h3 {
+        margin: 0 0 1rem 0;
+        color: var(--text);
+        font-size: 1.5rem;
+    }
+
+    .empty-claude p {
+        margin: 0;
+        opacity: 0.8;
+        line-height: 1.5;
+        max-width: 300px;
+    }
+
     @media (max-width: 1024px) {
-        .browser-layout {
+        .main-layout {
             grid-template-columns: 1fr;
-            height: auto;
+            grid-template-rows: 400px 1fr;
         }
         
+        .browser-layout {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr;
+        }
+
         .panel {
-            height: 400px;
+            height: 350px;
         }
     }
 </style>

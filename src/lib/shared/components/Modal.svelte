@@ -1,6 +1,5 @@
 <script>
 	import { onDestroy } from "svelte";
-	import { on } from "svelte/events";
 
 	/**
 	 * Modal Foundation Component
@@ -129,6 +128,7 @@
 	onclick={handleBackdropClick}
 	onkeydown={handleKeydown}
 	tabindex="-1"
+	style={restProps.style}
 >
 	<div
 		id={modalId}
@@ -225,8 +225,10 @@
 	}
 
 	.modal {
-		max-height: 90vh;
-		max-width: 90vw;
+		max-height: var(--modal-max-height, 90vh);
+		min-height: var(--modal-min-height, 200px);
+		max-width: var(--modal-max-width, 90vw);
+		min-width: var(--modal-min-width, 300px);
 		display: flex;
 		flex-direction: column;
 		outline: none;

@@ -31,22 +31,38 @@
 		}
 	}
 
-	// Function to create user-friendly names from paths
+	// Extract meaningful project names from encoded paths
 	function formatProjectName(project) {
-		if (!project.path) return project.name || 'Untitled Project';
+		const projectName = project.name || '';
+		if (!projectName) return 'Untitled Project';
 		
-		// Extract the last meaningful part of the path
-		const pathParts = project.path.split('/');
-		const lastPart = pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2];
+		// These are Claude Code project names which encode the workspace path
+		// Examples:
+		// "-home-founder3-dispatch-home-826f211a-3c86-457a-90ef-e4f8594ed479-dispatch--dispatch-home-workspaces-example1"
+		// "-home-founder3-dispatch-home-826f211a-3c86-457a-90ef-e4f8594ed479-dispatch--dispatch-home-workspaces-new-new"
 		
-		// Remove encoded characters and clean up
-		const cleaned = lastPart
-			.replace(/-/g, ' ')
-			.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
-			.replace(/\s+/g, ' ')
-			.trim();
+		// Look for the last meaningful segment after "workspaces-"
+		const workspaceMatch = projectName.match(/workspaces-([^-]+)(?:-([^-]+))?$/);
+		if (workspaceMatch) {
+			const mainName = workspaceMatch[1];
+			const subName = workspaceMatch[2];
+			
+			if (subName && subName !== mainName) {
+				return `${mainName.charAt(0).toUpperCase() + mainName.slice(1)} - ${subName.charAt(0).toUpperCase() + subName.slice(1)}`;
+			}
+			return mainName.charAt(0).toUpperCase() + mainName.slice(1);
+		}
 		
-		return cleaned || project.name || 'Project';
+		// If no workspaces pattern, look for the last meaningful part
+		const parts = projectName.split('--').pop().split('-');
+		for (let i = parts.length - 1; i >= 0; i--) {
+			const part = parts[i];
+			if (part && part.length > 1 && !['home', 'dispatch', 'founder3'].includes(part)) {
+				return part.charAt(0).toUpperCase() + part.slice(1);
+			}
+		}
+		
+		return 'Project';
 	}
 
 	function filter() {
@@ -200,6 +216,7 @@
 		color: var(--primary);
 	}
 
+
 	.row {
 		display: grid;
 		grid-template-columns: 1fr auto;
@@ -232,43 +249,44 @@
 
 	.browse-btn {
 		padding: var(--space-4);
-		background: linear-gradient(135deg, var(--bg-panel), var(--bg-dark));
-		border: 2px solid var(--primary-dim);
+		background: var(--bg-dark);
+		border: 1px solid var(--primary-dim);
 		color: var(--primary);
 		cursor: pointer;
-		border-radius: 8px;
-		transition: all 0.3s ease;
-		font-size: var(--font-size-3);
+		border-radius: 4px;
+		transition: all 0.2s ease;
+		font-size: var(--font-size-2);
 		min-width: 48px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.browse-btn:hover {
 		border-color: var(--primary);
-		background: linear-gradient(135deg, var(--bg-dark), var(--bg-panel));
-		box-shadow: 0 0 10px rgba(46, 230, 107, 0.3);
+		background: var(--bg-panel);
+		box-shadow: 0 0 6px rgba(46, 230, 107, 0.2);
+		color: var(--text);
 	}
 
 	.panel {
-		position: absolute;
 		inset-inline: 0;
-		top: calc(100% + var(--space-3));
 		background: var(--bg-panel);
-		border: 2px solid var(--primary-dim);
-		border-radius: 8px;
-		max-height: 40vh;
-		overflow: hidden;
+		border: 1px solid var(--primary-dim);
+		border-radius: 4px;
+		
 		box-shadow: 
-			0 8px 32px rgba(0, 0, 0, 0.4),
-			0 0 0 1px rgba(46, 230, 107, 0.1);
-		z-index: 1000;
-		backdrop-filter: blur(8px);
+			0 4px 16px rgba(0, 0, 0, 0.3),
+			0 0 0 1px rgba(46, 230, 107, 0.2);
+		z-index: 1001;
+		backdrop-filter: blur(4px);
 	}
 
 	.bar {
 		display: grid;
 		grid-template-columns: auto 1fr auto auto;
 		gap: var(--space-3);
-		padding: var(--space-4);
+		padding: var(--space-3);
 		background: var(--bg-dark);
 		border-bottom: 1px solid var(--primary-dim);
 		font-family: var(--font-mono);
@@ -289,7 +307,7 @@
 		list-style: none;
 		margin: 0;
 		padding: var(--space-2);
-		max-height: calc(40vh - 60px);
+		max-height: calc(35vh - 50px);
 		overflow-y: auto;
 		scrollbar-width: thin;
 		scrollbar-color: var(--primary) transparent;

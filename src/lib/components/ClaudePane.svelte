@@ -757,7 +757,6 @@
 	}
 	
 	.message-text:hover {
-		transform: translateY(-1px);
 		box-shadow: 
 			0 12px 40px -16px rgba(0, 0, 0, 0.15),
 			inset 0 2px 4px rgba(255, 255, 255, 0.08);
@@ -910,7 +909,6 @@
 			0 0 40px var(--primary-glow),
 			0 16px 60px -20px var(--primary-glow);
 		outline: none;
-		transform: translateY(-2px);
 	}
 	
 	.message-input:focus::before {
@@ -1153,7 +1151,8 @@
 		font-family: var(--font-mono);
 		font-size: 0.9em;
 		color: var(--primary);
-		white-space: nowrap;
+		
+		text-wrap-mode: wrap;
 	}
 	
 	.message-text :global(strong) {

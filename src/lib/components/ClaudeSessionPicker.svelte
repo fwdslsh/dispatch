@@ -15,7 +15,6 @@
 	let filterText = $state('');
 	let filtered = $state([]);
 	let highlight = $state(0);
-	let preview = $state([]); // peek lines (tail)
 
 	async function load() {
 		loading = true;
@@ -36,6 +35,11 @@
 	// Function to create user-friendly session names
 	function formatSessionName(session) {
 		if (!session.id) return 'Session';
+		
+		// For UUID-style IDs, just show a simple session name with first 8 chars
+		if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(session.id)) {
+			return `Session ${session.id.substring(0, 8)}`;
+		}
 		
 		// Clean up session ID for display
 		const cleaned = session.id
@@ -68,12 +72,6 @@
 		filterText = '';
 	}
 
-	async function peekTail(s) {
-		const res = await fetch(
-			`${apiBase}/${encodeURIComponent(project)}/${encodeURIComponent(s.id)}/peek?tail=1&n=10`
-		);
-		if (res.ok) preview = (await res.json()).lines;
-	}
 
 	function key(e) {
 		if (!open) return;
@@ -138,8 +136,6 @@
 					<li class={i === highlight ? 'is-active' : ''}>
 						<button
 							type="button"
-							onmouseover={() => peekTail(s)}
-							onfocus={() => peekTail(s)}
 							onclick={() => choose(s)}
 						>
 							<div class="row2">
@@ -150,9 +146,6 @@
 										>{/if}
 								</div>
 							</div>
-							{#if preview?.length}
-								<pre class="preview">{preview.join('\n')}</pre>
-							{/if}
 						</button>
 					</li>
 				{/each}
@@ -264,14 +257,11 @@
 	}
 
 	.panel {
-		position: absolute;
+	
 		inset-inline: 0;
-		top: calc(100% + var(--space-3));
 		background: var(--bg-panel);
 		border: 2px solid color-mix(in oklab, var(--accent-cyan) 50%, transparent);
 		border-radius: 8px;
-		max-height: 45vh;
-		overflow: hidden;
 		box-shadow: 
 			0 8px 32px rgba(0, 0, 0, 0.4),
 			0 0 0 1px rgba(0, 194, 255, 0.1);
