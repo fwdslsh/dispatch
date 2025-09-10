@@ -1,5 +1,5 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { io } from 'socket.io-client';
 	import Button from '$lib/shared/components/Button.svelte';
@@ -14,14 +14,85 @@
 	let messages = $state([]);
 	let input = $state('');
 	let loading = $state(false);
+	let isWaitingForReply = $state(false);
+	let messagesContainer = $state();
 
-	function send(e) {
+	async function scrollToBottom() {
+		await tick();
+		if (messagesContainer) {
+			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		}
+	}
+	
+	// Auto-scroll when messages change
+	$effect(() => {
+		if (messages.length > 0) {
+			scrollToBottom();
+		}
+	});
+	
+	function formatMessage(text) {
+		if (!text) return '';
+		
+		// Escape HTML first
+		let formatted = text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+		
+		// Convert code blocks
+		formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre class="code-block"><code>$1</code></pre>');
+		
+		// Convert inline code
+		formatted = formatted.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+		
+		// Convert bold text
+		formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+		
+		// Convert italic text
+		formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+		
+		// Convert line breaks
+		formatted = formatted.replace(/\n/g, '<br>');
+		
+		return formatted;
+	}
+
+	async function send(e) {
 		e.preventDefault();
+		console.log('ClaudePane send called with:', { sessionId, input: input.trim(), socketConnected: socket?.connected });
 		if (!input.trim()) return;
+		if (!socket) {
+			console.error('Socket not available');
+			return;
+		}
+		if (!sessionId) {
+			console.error('SessionId not available');
+			return;
+		}
+		
+		const userMessage = input.trim();
 		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-		socket.emit('claude.send', { key, id: sessionId, input });
-		messages = [...messages, { role: 'user', text: input }];
+		
+		// Add user message immediately
+		messages = [...messages, { 
+			role: 'user', 
+			text: userMessage,
+			timestamp: new Date(),
+			id: Date.now()
+		}];
+		
+		// Clear input and show waiting state
 		input = '';
+		isWaitingForReply = true;
+		
+		// Force immediate scroll to user message
+		await scrollToBottom();
+		
+		console.log('Emitting claude.send with:', { key, id: sessionId, input: userMessage });
+		socket.emit('claude.send', { key, id: sessionId, input: userMessage });
 	}
 
 	async function loadPreviousMessages() {
@@ -38,7 +109,8 @@
 				const previousMessages = [];
 				
 				// Parse the .jsonl entries to reconstruct messages
-				for (const entry of data.entries || []) {
+				for (let i = 0; i < (data.entries || []).length; i++) {
+					const entry = data.entries[i];
 					if (entry.type === 'user' && entry.message?.content && Array.isArray(entry.message.content)) {
 						// Extract text from content array
 						const textContent = entry.message.content
@@ -46,7 +118,12 @@
 							.map(c => c.text)
 							.join('');
 						if (textContent) {
-							previousMessages.push({ role: 'user', text: textContent });
+							previousMessages.push({ 
+								role: 'user', 
+								text: textContent,
+								timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(Date.now() - (data.entries.length - i) * 60000),
+								id: `prev_${i}_user`
+							});
 						}
 					} else if (entry.type === 'assistant' && entry.message?.content && Array.isArray(entry.message.content)) {
 						// Extract text from content array
@@ -55,7 +132,12 @@
 							.map(c => c.text)
 							.join('');
 						if (textContent) {
-							previousMessages.push({ role: 'assistant', text: textContent });
+							previousMessages.push({ 
+								role: 'assistant', 
+								text: textContent,
+								timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(Date.now() - (data.entries.length - i) * 60000),
+								id: `prev_${i}_assistant`
+							});
 						}
 					}
 				}
@@ -88,11 +170,44 @@
 			console.log('Claude Socket.IO connected');
 		});
 
-		socket.on('message.delta', (payload) => {
+		socket.on('message.delta', async (payload) => {
 			console.log('Received message.delta:', payload);
+			
+			// Hide typing indicator when response arrives
+			isWaitingForReply = false;
 
 			const result = payload.find((r) => r.type === 'result');
-			messages = [...messages, { role: 'assistant', text: result.result || '' }];
+			messages = [...messages, { 
+				role: 'assistant', 
+				text: result.result || '',
+				timestamp: new Date(),
+				id: Date.now()
+			}];
+			
+			// Scroll to show the new response
+			await scrollToBottom();
+		});
+		
+		// Handle errors to clear typing indicator
+		socket.on('error', (error) => {
+			console.error('Socket error:', error);
+			isWaitingForReply = false;
+			
+			// Add error message if we were waiting for a reply
+			if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
+				messages = [...messages, {
+					role: 'assistant',
+					text: '⚠️ Sorry, I encountered an error processing your request. Please try again.',
+					timestamp: new Date(),
+					id: Date.now(),
+					isError: true
+				}];
+			}
+		});
+		
+		socket.on('disconnect', () => {
+			console.log('Socket disconnected');
+			isWaitingForReply = false;
 		});
 	});
 	onDestroy(() => socket?.disconnect());
@@ -121,7 +236,7 @@
 	</div>
 
 	<!-- Enhanced Messages Container -->
-	<div class="messages" role="log" aria-live="polite" aria-label="Chat messages">
+	<div class="messages" role="log" aria-live="polite" aria-label="Chat messages" bind:this={messagesContainer}>
 		{#if loading && messages.length === 0}
 			<div class="loading-message" transition:fly={{ y: 20, duration: 300 }}>
 				<div class="loading-indicator">
@@ -133,10 +248,10 @@
 			</div>
 		{/if}
 		
-		{#each messages as m, i (i)}
+		{#each messages as m, index (m.id || `msg-${index}`)}
 			<div 
-				class="message message--{m.role}" 
-				transition:fly={{ y: 20, duration: 400, delay: i * 100 }}
+				class="message message--{m.role} {m.isError ? 'message--error' : ''}" 
+				transition:fly={{ y: 20, duration: 400 }}
 				role="article"
 				aria-label="{m.role} message"
 			>
@@ -159,13 +274,43 @@
 					<div class="message-content">
 						<div class="message-header">
 							<span class="message-role">{m.role === 'user' ? 'You' : 'Claude'}</span>
-							<span class="message-time">{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+							<span class="message-time">
+								{m.timestamp ? 
+									new Date(m.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 
+									'--:--'
+								}
+							</span>
 						</div>
-						<div class="message-text">{m.text}</div>
+						<div class="message-text">{@html formatMessage(m.text)}</div>
 					</div>
 				</div>
 			</div>
 		{/each}
+		
+		{#if isWaitingForReply}
+			<div class="message message--assistant typing-indicator" transition:fly={{ y: 20, duration: 300 }}>
+				<div class="message-wrapper">
+					<div class="message-avatar">
+						<div class="ai-avatar-small">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,16.5L18,9.5L16.5,8L11,13.5L7.5,10L6,11.5L11,16.5Z"/>
+							</svg>
+						</div>
+					</div>
+					<div class="message-content">
+						<div class="message-header">
+							<span class="message-role">Claude</span>
+							<span class="message-time typing-status">Typing</span>
+						</div>
+						<div class="typing-animation">
+							<span class="typing-dot"></span>
+							<span class="typing-dot"></span>
+							<span class="typing-dot"></span>
+						</div>
+					</div>
+				</div>
+			</div>
+		{/if}
 		
 		{#if messages.length === 0 && !loading}
 			<div class="welcome-message" transition:fly={{ y: 30, duration: 500 }}>
@@ -179,20 +324,27 @@
 	<!-- Enhanced Input Form -->
 	<form onsubmit={send} class="input-form" role="form">
 		<div class="input-container">
-			<input 
+			<textarea 
 				bind:value={input} 
 				placeholder="Message Claude..." 
 				class="message-input"
-				disabled={loading}
+				disabled={loading || isWaitingForReply}
 				aria-label="Type your message"
 				autocomplete="off"
-			/>
+				onkeydown={(e) => {
+					if (e.key === 'Enter' && !e.shiftKey) {
+						e.preventDefault();
+						send(e);
+					}
+				}}
+				rows="1"
+			></textarea>
 			<Button 
 				type="submit" 
-				text={loading ? "Sending..." : "Send"} 
+				text={isWaitingForReply ? "Waiting..." : loading ? "Sending..." : "Send"} 
 				variant="primary" 
 				augmented="tr-clip bl-clip both"
-				disabled={!input.trim() || loading}
+				disabled={!input.trim() || loading || isWaitingForReply}
 				ariaLabel="Send message"
 				{...{icon: undefined}}
 			/>
@@ -713,7 +865,21 @@
 		position: relative;
 		overflow: hidden;
 		min-height: 56px;
-		resize: none;
+		max-height: 200px;
+		resize: vertical;
+		line-height: 1.5;
+		overflow-y: auto;
+		scrollbar-width: thin;
+		scrollbar-color: var(--primary) transparent;
+	}
+	
+	.message-input::-webkit-scrollbar {
+		width: 6px;
+	}
+	
+	.message-input::-webkit-scrollbar-thumb {
+		background: color-mix(in oklab, var(--primary) 40%, transparent);
+		border-radius: 3px;
 	}
 	
 	.message-input::before {
@@ -870,5 +1036,164 @@
 		.ai-avatar-small {
 			border-width: 3px;
 		}
+	}
+	
+	/* 💬 TYPING INDICATOR ANIMATION */
+	.typing-indicator {
+		opacity: 1;
+		animation: none; /* Override default message animation */
+	}
+	
+	.typing-status {
+		color: var(--primary);
+		font-weight: 600;
+		animation: typingPulse 1.5s ease-in-out infinite;
+	}
+	
+	@keyframes typingPulse {
+		0%, 100% { opacity: 0.6; }
+		50% { opacity: 1; }
+	}
+	
+	.typing-animation {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-4) var(--space-5);
+		background: 
+			linear-gradient(135deg, 
+				color-mix(in oklab, var(--primary) 12%, var(--surface)),
+				color-mix(in oklab, var(--primary) 6%, var(--surface))
+			);
+		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
+		border-radius: 24px;
+		border-bottom-left-radius: 8px;
+		min-height: 48px;
+		box-shadow: 
+			0 8px 32px -12px rgba(0, 0, 0, 0.1),
+			inset 0 1px 2px rgba(255, 255, 255, 0.05);
+	}
+	
+	.typing-dot {
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: var(--primary);
+		opacity: 0.4;
+		animation: typingBounce 1.4s ease-in-out infinite;
+		box-shadow: 0 2px 8px -2px var(--primary-glow);
+	}
+	
+	.typing-dot:nth-child(1) {
+		animation-delay: 0s;
+	}
+	
+	.typing-dot:nth-child(2) {
+		animation-delay: 0.2s;
+	}
+	
+	.typing-dot:nth-child(3) {
+		animation-delay: 0.4s;
+	}
+	
+	@keyframes typingBounce {
+		0%, 60%, 100% {
+			transform: translateY(0);
+			opacity: 0.4;
+		}
+		30% {
+			transform: translateY(-12px);
+			opacity: 1;
+			background: var(--accent-cyan);
+			box-shadow: 
+				0 12px 20px -8px var(--primary-glow),
+				0 0 12px var(--primary-glow);
+		}
+	}
+	
+	/* Smooth scroll to show typing indicator */
+	.typing-indicator {
+		scroll-margin-bottom: var(--space-6);
+	}
+	
+	/* 📝 MESSAGE FORMATTING */
+	.message-text :global(.code-block) {
+		display: block;
+		margin: var(--space-3) 0;
+		padding: var(--space-4);
+		background: 
+			linear-gradient(135deg, 
+				color-mix(in oklab, var(--bg) 95%, var(--primary) 5%),
+				color-mix(in oklab, var(--bg) 98%, var(--primary) 2%)
+			);
+		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+		border-radius: 12px;
+		overflow-x: auto;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		line-height: 1.5;
+		box-shadow: 
+			inset 0 2px 8px rgba(0, 0, 0, 0.1),
+			0 2px 12px -4px rgba(0, 0, 0, 0.1);
+	}
+	
+	.message-text :global(.code-block code) {
+		display: block;
+		color: var(--text);
+		white-space: pre;
+	}
+	
+	.message-text :global(.inline-code) {
+		display: inline;
+		padding: var(--space-1) var(--space-2);
+		background: color-mix(in oklab, var(--primary) 15%, transparent);
+		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
+		border-radius: 6px;
+		font-family: var(--font-mono);
+		font-size: 0.9em;
+		color: var(--primary);
+		white-space: nowrap;
+	}
+	
+	.message-text :global(strong) {
+		font-weight: 700;
+		color: var(--text);
+	}
+	
+	.message-text :global(em) {
+		font-style: italic;
+		color: var(--text);
+	}
+	
+	.message-text :global(br) {
+		display: block;
+		content: '';
+		margin-top: var(--space-2);
+	}
+	
+	/* ⚠️ ERROR MESSAGE STYLING */
+	.message--error .message-text {
+		background: 
+			linear-gradient(135deg, 
+				color-mix(in oklab, var(--error, #ff6b6b) 15%, var(--surface)),
+				color-mix(in oklab, var(--error, #ff6b6b) 8%, var(--surface))
+			);
+		border-color: color-mix(in oklab, var(--error, #ff6b6b) 35%, transparent);
+		color: var(--error, #ff6b6b);
+	}
+	
+	.message--error .ai-avatar-small {
+		background: 
+			linear-gradient(135deg, 
+				color-mix(in oklab, var(--error, #ff6b6b) 20%, transparent),
+				color-mix(in oklab, var(--error, #ff6b6b) 10%, transparent)
+			);
+		border-color: color-mix(in oklab, var(--error, #ff6b6b) 40%, transparent);
+		color: var(--error, #ff6b6b);
+	}
+	
+	.message--error .message-role {
+		color: var(--error, #ff6b6b);
 	}
 </style>

@@ -189,8 +189,8 @@
 		bottom: 0;
 		z-index: 1000;
 		background: 
-			radial-gradient(ellipse at center, rgba(46, 230, 107, 0.08) 0%, transparent 70%),
-			color-mix(in oklab, black 85%, transparent);
+			radial-gradient(ellipse at center, rgba(46, 230, 107, 0.05) 0%, transparent 70%),
+			color-mix(in oklab, black 70%, transparent);
 		backdrop-filter: blur(0px);
 		display: none;
 		align-items: center;
@@ -231,6 +231,7 @@
 		flex-direction: column;
 		outline: none;
 		position: relative;
+		overflow: hidden;
 		
 		/* Enhanced terminal modal styling */
 		background: var(--bg-panel);
@@ -270,8 +271,8 @@
 	}
 
 	.modal--medium {
-		width: 750px;
-		min-height: 450px;
+		width: 900px;
+		min-height: 600px;
 	}
 
 	.modal--large {
@@ -303,8 +304,8 @@
 		content: '';
 		position: absolute;
 		top: 0;
-		left: 0;
-		right: 0;
+		left: 2px;
+		right: 2px;
 		height: 2px;
 		background: linear-gradient(90deg, 
 			transparent, 
@@ -314,6 +315,7 @@
 			transparent
 		);
 		animation: terminalScan 2s linear infinite;
+		overflow: hidden;
 	}
 
 	.modal__title {
@@ -366,12 +368,14 @@
 	/* Enhanced terminal content */
 	.modal__content {
 		flex: 1;
-		overflow-y: auto;
-		padding: var(--space-5);
+		overflow: visible;
+		padding: var(--space-8) var(--space-6);
 		background: var(--bg);
 		color: var(--text-primary);
 		font-family: var(--font-sans);
 		position: relative;
+		min-height: 0;
+		max-height: 70vh;
 	}
 
 	/* Subtle scan lines in content area */
