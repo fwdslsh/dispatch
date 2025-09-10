@@ -1,66 +1,21 @@
 <script>
     import { onMount } from 'svelte';
     import ClaudePane from '$lib/components/ClaudePane.svelte';
+    import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
     
     let isMobileView = $state(false);
     let showSidebar = $state(false);
-    let activeTab = $state('projects'); // 'projects' or 'sessions'
 
     // Persistence keys
     const STORAGE = {
-        activeTab: 'dispatch-testing-active-tab',
-        selectedProject: 'dispatch-testing-selected-project',
-        selectedSession: 'dispatch-testing-selected-session',
         showSidebar: 'dispatch-testing-show-sidebar'
     };
 
-    let projects = $state([]);
-    let sessions = $state([]);
+    // Selection bindings fed from the extracted component
     let selectedProject = $state(null);
     let selectedSession = $state(null);
-    let loading = $state(false);
     let error = $state(null);
-
-    async function loadProjects() {
-        loading = true;
-        error = null;
-        try {
-            const response = await fetch('/api/claude/projects');
-            if (response.ok) {
-                const data = await response.json();
-                projects = data.projects || [];
-            } else {
-                error = 'Failed to load projects';
-            }
-        } catch (err) {
-            error = 'Error loading projects: ' + err.message;
-        }
-        loading = false;
-    }
-
-    async function selectProject(project) {
-        selectedProject = project.name;
-        selectedSession = null;
-        loading = true;
-        error = null;
-        
-        try {
-            const response = await fetch(`/api/claude/projects/${encodeURIComponent(project.name)}/sessions`);
-            if (response.ok) {
-                const data = await response.json();
-                sessions = data.sessions || [];
-            } else {
-                error = 'Failed to load sessions';
-            }
-        } catch (err) {
-            error = 'Error loading sessions: ' + err.message;
-        }
-        loading = false;
-    }
-
-    async function selectSession(session) {
-        selectedSession = session.id;
-    }
+    let menuRef;
 
     function cleanProjectName(projectName) {
         // Handle the ugly path format properly
@@ -90,33 +45,11 @@
     }
 
 
-    let restoring = $state(true);
     onMount(() => {
         // Initial UI state
         checkMobileView();
-
-        // Restore simple UI prefs
-        const savedTab = localStorage.getItem(STORAGE.activeTab);
-        if (savedTab === 'projects' || savedTab === 'sessions') activeTab = savedTab;
         const savedSidebar = localStorage.getItem(STORAGE.showSidebar);
         if (savedSidebar != null) showSidebar = savedSidebar === 'true';
-
-        // Finish restore once data fetched
-        (async () => {
-            await loadProjects();
-
-            const savedProject = localStorage.getItem(STORAGE.selectedProject);
-            const savedSession = localStorage.getItem(STORAGE.selectedSession);
-
-            if (savedProject) {
-                // selectProject only needs .name
-                await selectProject({ name: savedProject });
-                if (savedSession && sessions.some((s) => s.id === savedSession)) {
-                    selectedSession = savedSession;
-                }
-            }
-            restoring = false;
-        })();
 
         window.addEventListener('resize', checkMobileView);
         return () => {
@@ -141,24 +74,8 @@
         }
     }
     
-    // Persistence effects
+    // Persist only the sidebar visibility
     $effect(() => {
-        if (restoring) return;
-        try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.activeTab, activeTab); } catch {}
-    });
-
-    $effect(() => {
-        if (restoring) return;
-        try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.selectedProject, selectedProject || ''); } catch {}
-    });
-
-    $effect(() => {
-        if (restoring) return;
-        try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.selectedSession, selectedSession || ''); } catch {}
-    });
-
-    $effect(() => {
-        if (restoring) return;
         try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.showSidebar, String(showSidebar)); } catch {}
     });
 </script>
@@ -179,11 +96,11 @@
                 </button>
             {/if}
             <h1>Claude Session Browser</h1>
-            <button onclick={loadProjects} class="refresh-btn" disabled={loading} type="button">
-                <svg class="refresh-icon" class:spinning={loading} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button onclick={() => menuRef && menuRef.refresh()} class="refresh-btn" type="button">
+                <svg class="refresh-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
                 </svg>
-                <span class="refresh-text">{loading ? 'Loading' : 'Refresh'}</span>
+                <span class="refresh-text">Refresh</span>
             </button>
         </header>
 
@@ -200,97 +117,15 @@
                 <button class="mobile-overlay" onclick={toggleSidebar} type="button" aria-label="Close sidebar overlay"></button>
             {/if}
             
-            <!-- Left Side: Session Browser -->
+            <!-- Left Side: Session Browser (component) -->
             <div class="browser-section" class:mobile-sidebar={isMobileView} class:show-sidebar={showSidebar}>
-                <!-- Tab Navigation (visible on both mobile and desktop) -->
-                <div class="mobile-tabs" class:desktop-tabs={!isMobileView}>
-                    <button 
-                        class="tab-btn" 
-                        class:active={activeTab === 'projects'}
-                        onclick={() => activeTab = 'projects'}
-                        type="button"
-                    >
-                        Projects
-                    </button>
-                    <button 
-                        class="tab-btn" 
-                        class:active={activeTab === 'sessions'}
-                        onclick={() => activeTab = 'sessions'}
-                        type="button"
-                    >
-                        Sessions
-                    </button>
-                </div>
-                
-                <div class="browser-layout" class:mobile-browser={isMobileView} class:tabbed-layout={true}>
-                    <!-- Projects Panel -->
-                    <div class="panel projects-panel" class:hidden={activeTab !== 'projects'}>
-                        <h2>Projects</h2>
-                        <div class="panel-content">
-                            {#if loading && projects.length === 0}
-                                <div class="loading">Loading projects...</div>
-                            {:else if projects.length === 0}
-                                <div class="empty">No projects found</div>
-                            {:else}
-                                {#each projects as project}
-                                    <button
-                                        type="button"
-                                        class="project-item"
-                                        class:selected={selectedProject === project.name}
-                                        onclick={() => {
-                                            selectProject(project);
-                                            if (isMobileView) activeTab = 'sessions';
-                                        }}
-                                    >
-                                        <div class="project-header">
-                                            <div class="project-name">{cleanProjectName(project.name)}</div>
-                                            <div class="project-stats">
-                                                <span class="session-count">{project.sessionCount} sessions</span>
-                                                <span class="last-modified">{new Date(project.lastModified).toLocaleDateString()}</span>
-                                            </div>
-                                        </div>
-                                        <div class="project-path">{project.path.split('/').slice(-2).join('/')}</div>
-                                    </button>
-                                {/each}
-                            {/if}
-                        </div>
-                    </div>
-
-                    <!-- Sessions Panel -->
-                    <div class="panel sessions-panel" class:hidden={activeTab !== 'sessions'}>
-                        <h2>Sessions</h2>
-                        <div class="panel-content">
-                            {#if !selectedProject}
-                                <div class="empty">Select a project to view sessions</div>
-                            {:else if loading && sessions.length === 0}
-                                <div class="loading">Loading sessions...</div>
-                            {:else if sessions.length === 0}
-                                <div class="empty">No sessions found</div>
-                            {:else}
-                                {#each sessions as session}
-                                    <button
-                                        type="button"
-                                        class="session-item"
-                                        class:selected={selectedSession === session.id}
-                                        onclick={() => {
-                                            selectSession(session);
-                                            closeSidebarAndSelect();
-                                        }}
-                                    >
-                                        <div class="session-header">
-                                            <div class="session-id">{session.id.substring(0, 8)}...</div>
-                                            <div class="session-size">{Math.round(session.size / 1024)}KB</div>
-                                        </div>
-                                        <div class="session-info">
-                                            <span class="session-date">{new Date(session.lastModified).toLocaleDateString()}</span>
-                                            <span class="session-time">{new Date(session.lastModified).toLocaleTimeString()}</span>
-                                        </div>
-                                    </button>
-                                {/each}
-                            {/if}
-                        </div>
-                    </div>
-                </div>
+                <ProjectSessionMenu
+                    bind:this={menuRef}
+                    bind:selectedProject
+                    bind:selectedSession
+                    storagePrefix="dispatch-testing"
+                    on:sessionSelected={() => closeSidebarAndSelect()}
+                />
             </div>
 
             <!-- Right Side: Claude Session Interface -->
@@ -426,17 +261,7 @@
         flex-direction: column;
     }
 
-    .browser-layout {
-        display: grid;
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 1rem;
-        height: 100%;
-    }
-    
-    .browser-layout.tabbed-layout {
-        grid-template-rows: 1fr;
-    }
+    /* menu layout moved into ProjectSessionMenu */
 
     .claude-section {
         display: flex;
@@ -447,177 +272,12 @@
         overflow: hidden;
     }
 
-    .panel {
-        background: var(--surface);
-        border: 1px solid var(--surface-border);
-        border-radius: 0.5rem;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
+    /* panel styles moved into ProjectSessionMenu */
 
-    .panel h2 {
-        background: var(--surface-hover);
-        margin: 0;
-        padding: 1rem;
-        border-bottom: 1px solid var(--surface-border);
-        font-size: 1.1rem;
-        color: var(--accent);
-        font-weight: 600;
-    }
-
-    .panel-content {
-        flex: 1;
-        overflow-y: auto;
-        padding: 0;
-    }
-
-    .project-item, .session-item {
-        padding: 1rem;
-        border-bottom: 1px solid var(--surface-border);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        position: relative;
-        background: transparent;
-        border: none;
-        border-bottom: 1px solid var(--surface-border);
-        width: 100%;
-        text-align: left;
-        font-family: inherit;
-    }
-
-    .project-item::before, .session-item::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: linear-gradient(180deg, var(--primary), var(--accent-cyan));
-        transform: scaleY(0);
-        transition: transform 0.3s ease;
-    }
-
-    .project-item:hover, .session-item:hover {
-        background: linear-gradient(90deg, 
-            color-mix(in oklab, var(--primary) 5%, transparent),
-            transparent
-        );
-        padding-left: calc(1rem + 4px);
-    }
-
-    .project-item:hover::before, .session-item:hover::before {
-        transform: scaleY(0.5);
-    }
-
-    .project-item.selected, .session-item.selected {
-        background: linear-gradient(90deg, 
-            color-mix(in oklab, var(--primary) 10%, var(--surface)),
-            color-mix(in oklab, var(--primary) 2%, var(--surface))
-        );
-        border-left: 3px solid transparent;
-        padding-left: calc(1rem + 4px);
-        font-weight: 600;
-    }
-
-    .project-item.selected::before, .session-item.selected::before {
-        transform: scaleY(1);
-    }
-
-    .project-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 0.5rem;
-    }
-
-    .project-name {
-        font-weight: 700;
-        font-size: 1.1rem;
-        color: var(--text);
-        line-height: 1.2;
-    }
-
-    .project-stats {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 0.15rem;
-        font-size: 0.75rem;
-    }
-
-    .session-count {
-        background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
-        color: var(--bg);
-        padding: 0.15rem 0.4rem;
-        border-radius: 0.75rem;
-        font-weight: 600;
-        font-size: 0.7rem;
-        box-shadow: 0 2px 6px rgba(46, 230, 107, 0.2);
-    }
-
-    .last-modified {
-        opacity: 0.7;
-        font-weight: 500;
-    }
-
-    .project-path {
-        font-size: 0.8rem;
-        opacity: 0.6;
-        font-family: var(--font-mono);
-        background: var(--surface-hover);
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        margin-top: 0.25rem;
-    }
-
-    .session-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.4rem;
-    }
-
-    .session-id {
-        font-family: var(--font-mono);
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: var(--accent);
-    }
-
-    .session-size {
-        background: var(--surface-hover);
-        color: var(--text);
-        padding: 0.15rem 0.4rem;
-        border-radius: 0.25rem;
-        font-size: 0.7rem;
-        font-weight: 600;
-    }
-
-    .session-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.75rem;
-        opacity: 0.8;
-    }
-
-    .session-date {
-        font-weight: 500;
-    }
-
-    .session-time {
-        font-family: var(--font-mono);
-        opacity: 0.7;
-    }
+    /* item styles moved into ProjectSessionMenu */
 
 
-    .loading, .empty {
-        padding: 2rem;
-        text-align: center;
-        color: var(--text-muted);
-        font-style: italic;
-    }
+    /* empty/loading moved into ProjectSessionMenu */
 
     .claude-header {
         background: var(--surface-hover);
@@ -740,9 +400,7 @@
         transition: transform 0.3s ease;
     }
 
-    .refresh-icon.spinning {
-        animation: spin 1s linear infinite;
-    }
+    /* spinning state handled internally if needed */
 
     @keyframes spin {
         from {
@@ -802,104 +460,9 @@
         opacity: 0.3;
     }
 
-    /* Tabs (Mobile and Desktop) */
-    .mobile-tabs {
-        display: flex;
-        background: var(--surface);
-        border-bottom: 2px solid var(--primary-dim);
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* Desktop-specific tab styles */
-    .mobile-tabs.desktop-tabs {
-        background: var(--surface-hover);
-        border-radius: 0.5rem 0.5rem 0 0;
-        border-bottom: 2px solid var(--surface-border);
-        margin-bottom: 0;
-        position: relative;
-        box-shadow: none;
-    }
+    /* tabs moved into ProjectSessionMenu */
 
-    .tab-btn {
-        flex: 1;
-        padding: 1rem;
-        background: transparent;
-        border: none;
-        border-bottom: 3px solid transparent;
-        color: var(--text-muted);
-        font-family: var(--font-mono);
-        font-weight: 600;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
-    }
-
-    .tab-btn::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        width: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--primary), var(--accent-cyan));
-        transition: all 0.3s ease;
-        transform: translateX(-50%);
-    }
-
-    .tab-btn:hover {
-        color: var(--text);
-        background: var(--surface-hover);
-    }
-
-    .tab-btn.active {
-        color: var(--primary);
-        background: color-mix(in oklab, var(--primary) 5%, var(--surface));
-    }
-
-    .tab-btn.active::after {
-        width: 100%;
-    }
-    
-    /* Desktop-specific tab active state */
-    .desktop-tabs .tab-btn {
-        border-radius: 0.5rem 0.5rem 0 0;
-        margin: 0 0.25rem;
-    }
-    
-    .desktop-tabs .tab-btn.active {
-        background: var(--surface);
-        border-bottom-color: var(--surface);
-        box-shadow: 
-            0 -2px 8px -4px rgba(0, 0, 0, 0.1),
-            inset 0 -1px 0 var(--primary);
-        position: relative;
-        z-index: 1;
-    }
-    
-    .desktop-tabs .tab-btn.active::before {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: var(--surface);
-    }
-
-    .mobile-browser {
-        grid-template-columns: 1fr !important;
-        grid-template-rows: 1fr !important;
-    }
-
-    .hidden {
-        display: none !important;
-    }
+    /* legacy helpers removed */
 
     /* Tablet Styles */
     @media (max-width: 1024px) and (min-width: 768px) {
@@ -912,15 +475,7 @@
             grid-template-rows: 400px 1fr;
             gap: 0.75rem;
         }
-        
-        .browser-layout {
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr;
-        }
-
-        .panel {
-            height: 350px;
-        }
+        /* menu layout/styles handled in ProjectSessionMenu */
 
         .browser-header h1 {
             font-size: 1.5rem;
@@ -974,43 +529,9 @@
             border: none;
         }
 
-        .panel {
-            border-radius: 0;
-            border: none;
-            height: calc(100vh - 120px);
-        }
+        /* menu panel/item styles handled in ProjectSessionMenu */
 
-        .panel h2 {
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-        }
-
-        .project-item, .session-item {
-            padding: 0.875rem 1rem;
-            border-left-width: 4px;
-        }
-
-        .project-item.selected, .session-item.selected {
-            border-left-width: 4px;
-            padding-left: calc(1rem - 4px);
-        }
-
-        .project-name {
-            font-size: 1rem;
-        }
-
-        .project-stats {
-            font-size: 0.7rem;
-        }
-
-        .session-count {
-            padding: 0.125rem 0.35rem;
-            font-size: 0.65rem;
-        }
-
-        .project-path {
-            font-size: 0.75rem;
-        }
+        /* menu badges/paths handled in ProjectSessionMenu */
 
         .claude-header {
             padding: 0.75rem 1rem;
@@ -1044,22 +565,7 @@
             font-size: 0.9rem;
         }
 
-        /* Touch-friendly sizes */
-        .project-item, .session-item {
-            min-height: 60px;
-        }
-
-        /* Better scrolling on mobile */
-        .panel-content {
-            -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
-        }
-
-        /* Hide scrollbars on mobile for cleaner look */
-        .panel-content::-webkit-scrollbar {
-            width: 0;
-            height: 0;
-        }
+        /* menu scrolling handled in ProjectSessionMenu */
     }
 
     /* Small Mobile Styles */
@@ -1072,14 +578,7 @@
             width: 90%;
         }
 
-        .project-name {
-            font-size: 0.95rem;
-        }
-
-        .project-stats {
-            flex-direction: row;
-            gap: 0.25rem;
-        }
+        /* menu small-mobile typography handled in ProjectSessionMenu */
     }
 
     /* Landscape Mobile */
@@ -1092,9 +591,7 @@
             font-size: 1rem;
         }
 
-        .panel {
-            height: calc(100vh - 80px);
-        }
+        /* menu panel heights handled in ProjectSessionMenu */
 
         .claude-section {
             height: calc(100vh - 60px);
@@ -1103,13 +600,7 @@
 
     /* High DPI Screens */
     @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-        .project-item, .session-item {
-            border-bottom-width: 0.5px;
-        }
-
-        .panel {
-            border-width: 0.5px;
-        }
+        /* menu high-DPI tweaks handled in ProjectSessionMenu */
     }
 
     /* Accessibility - Reduced Motion */
@@ -1118,9 +609,7 @@
             transition: none;
         }
 
-        .tab-btn, .project-item, .session-item {
-            transition: none;
-        }
+        /* menu reduced motion handled in ProjectSessionMenu */
     }
 
     /* Dark Mode Adjustments for Mobile */

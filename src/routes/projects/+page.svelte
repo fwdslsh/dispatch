@@ -10,9 +10,11 @@
 	import { Button } from '$lib/shared/components';
 	import ClaudeIcon from '$lib/shared/components/Icons/ClaudeIcon.svelte';
 	import TerminalIcon from '$lib/shared/components/Icons/TerminalIcon.svelte';
+	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
 
 	let sessions = $state([]);
 	let workspaces = $state([]);
+	let selectedProject = $state(null);
 
 	// Modal states
 	let terminalModalOpen = $state(false);
@@ -474,48 +476,22 @@ onDestroy(() => {
 
 	<!-- Session Management Sidebar -->
 	<aside class="sidebar" class:collapsed={sidebarCollapsed}>
-		{#if isMobile}
-			<!-- Mobile: Full-width vertical session list -->
-			<h3 class="sidebar-title">Sessions ({sessions.length})</h3>
-			<div class="mobile-session-list">
-				{#each sessions as s, index}
-					{#if s && typeof s === 'object' && 'id' in s && 'type' in s}
-						<button
-							class="mobile-session-item {currentMobileSession === index ? 'active' : ''}"
-							onclick={() => jumpToSession(index)}
-						>
-							<span class="session-type">{s.type === 'claude' ? '🤖' : '⚡'}</span>
-							<div class="session-info">
-								<span class="session-id">{s.id}</span>
-								<span class="session-type-label"
-									>{s.type === 'claude' ? 'Claude Session' : 'Terminal Session'}</span
-								>
-							</div>
-							{#if currentMobileSession === index}
-								<span class="session-current">●</span>
-							{/if}
-						</button>
-					{/if}
-				{/each}
-			</div>
-		{:else}
-			<!-- Desktop: Vertical session list with pinning -->
-			<h3 class="sidebar-title">Sessions ({sessions.length})</h3>
-			<div class="session-list">
-				{#each sessions as s}
-					{#if s && typeof s === 'object' && 'id' in s && 'type' in s}
-						<button
-							class="session-item {pinned.includes(s.id) ? 'pinned' : ''}"
-							onclick={() => togglePin(s.id)}
-						>
-							<span class="session-type">{s.type === 'claude' ? '🤖' : '⚡'}</span>
-							<span class="session-id">{s.id.slice(0, 8)}</span>
-							<span class="session-status">{pinned.includes(s.id) ? '📌' : '○'}</span>
-						</button>
-					{/if}
-				{/each}
-			</div>
-		{/if}
+		<ProjectSessionMenu 
+			storagePrefix="dispatch-projects" 
+			bind:selectedProject
+			on:sessionSelected={(e) => {
+				const sessionId = e.detail?.id;
+				if (!sessionId) return;
+				const projectName = selectedProject || 'project';
+				createClaudeSession({
+					workspacePath: projectName,
+					sessionId,
+					projectName,
+					resumeSession: true,
+					createWorkspace: true
+				});
+			}}
+		/>
 	</aside>
 
 	<!-- Main Workspace -->
@@ -590,7 +566,7 @@ onDestroy(() => {
 		position: relative;
 		height: 100vh;
 		display: grid;
-		grid-template-columns: 200px 1fr;
+		grid-template-columns: 30svw 1fr;
 		grid-template-rows: auto 1fr;
 		grid-template-areas:
 			'header header'
@@ -694,7 +670,7 @@ onDestroy(() => {
 	   ======================================== */
 	.sidebar {
 		grid-area: sidebar;
-		width: 200px;
+		width: 100%;
 		background: var(--bg-panel);
 		border-right: 1px solid var(--primary-dim);
 		padding: var(--space-3);
@@ -714,87 +690,7 @@ onDestroy(() => {
 		pointer-events: none;
 	}
 
-	.sidebar-title {
-		font-family: var(--font-mono);
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: var(--text-secondary);
-		margin: 0 0 var(--space-3) 0;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		opacity: 1;
-		transform: translateY(0);
-		transition:
-			opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1) 0.1s,
-			transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
-	}
 
-	.sidebar.collapsed .sidebar-title {
-		opacity: 0;
-		transform: translateY(-10px);
-		transition-delay: 0s;
-	}
-
-	.session-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-		opacity: 1;
-		transform: translateY(0);
-		transition:
-			opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1) 0.15s,
-			transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.15s;
-	}
-
-	.sidebar.collapsed .session-list {
-		opacity: 0;
-		transform: translateY(-15px);
-		transition-delay: 0s;
-	}
-
-	.session-item {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-2);
-		background: transparent;
-		border: 1px solid transparent;
-		border-radius: 4px;
-		color: var(--text-secondary);
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		text-align: left;
-		width: 100%;
-	}
-
-	.session-item:hover {
-		background: rgba(46, 230, 107, 0.1);
-		border-color: var(--primary-dim);
-		color: var(--text-primary);
-	}
-
-	.session-item.pinned {
-		background: rgba(46, 230, 107, 0.15);
-		border-color: var(--primary);
-		color: var(--primary);
-	}
-
-	.session-type {
-		font-size: 1rem;
-		min-width: 1.25rem;
-	}
-
-	.session-id {
-		flex: 1;
-		font-weight: 600;
-	}
-
-	.session-status {
-		min-width: 1.25rem;
-		text-align: center;
-	}
 
 	/* ========================================
 	   MAXIMUM WORKSPACE AREA
@@ -1054,88 +950,7 @@ onDestroy(() => {
 			/* When collapsed, sidebar shrinks to 0 height via grid animation */
 		}
 
-		/* Mobile full-width session list */
-		.mobile-session-list {
-			display: flex;
-			flex-direction: column;
-			gap: var(--space-2);
-			overflow-y: auto;
-			flex: 1; /* Take remaining space in sidebar */
-			min-height: 0; /* Important for flex child with overflow */
-		}
 
-		.mobile-session-item {
-			display: flex;
-			align-items: center;
-			gap: var(--space-3);
-			padding: var(--space-3) var(--space-4);
-			background: transparent;
-			border: 1px solid var(--primary-dim);
-			border-radius: 6px;
-			color: var(--text-secondary);
-			font-family: var(--font-mono);
-			cursor: pointer;
-			text-align: left;
-			width: 100%;
-			transition: all 0.2s ease;
-		}
-
-		.mobile-session-item:hover {
-			background: rgba(46, 230, 107, 0.1);
-			border-color: var(--primary);
-			color: var(--text-primary);
-		}
-
-		.mobile-session-item.active {
-			background: rgba(46, 230, 107, 0.15);
-			border-color: var(--primary);
-			color: var(--primary);
-			font-weight: 600;
-			box-shadow: 0 0 12px rgba(46, 230, 107, 0.3);
-		}
-
-		.mobile-session-item .session-type {
-			font-size: 1.5rem;
-			min-width: 2rem;
-		}
-
-		.mobile-session-item .session-info {
-			flex: 1;
-			display: flex;
-			flex-direction: column;
-			gap: var(--space-1);
-		}
-
-		.mobile-session-item .session-id {
-			font-weight: 600;
-			font-size: 0.875rem;
-			color: var(--text-primary);
-		}
-
-		.mobile-session-item .session-type-label {
-			font-size: 0.75rem;
-			color: var(--text-muted);
-			text-transform: uppercase;
-			letter-spacing: 0.05em;
-		}
-
-		.mobile-session-item .session-current {
-			color: var(--primary);
-			font-weight: 700;
-			font-size: 1.25rem;
-		}
-
-		/* Desktop session list - unchanged */
-		.session-list {
-			flex-direction: row;
-			flex-wrap: wrap;
-			gap: var(--space-2);
-		}
-
-		.session-item {
-			flex: 0 0 auto;
-			min-width: 80px;
-		}
 
 		.session-grid {
 			grid-template-columns: 1fr !important;
@@ -1188,17 +1003,9 @@ onDestroy(() => {
 		.status-dot {
 			animation: none;
 		}
-
-		.session-item {
-			transition: none;
-		}
 	}
 
-	/* Focus management */
-	.session-item:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
-	}
+	/* Focus management: removed old sidebar session-item styles */
 
 	/* High DPI displays - optimize for developer monitors */
 	@media (min-resolution: 144dpi) {
