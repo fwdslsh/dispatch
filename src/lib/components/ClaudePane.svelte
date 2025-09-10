@@ -16,6 +16,7 @@
 	let loading = $state(false);
 	let isWaitingForReply = $state(false);
 	let messagesContainer = $state();
+	import LiveIconStrip from '$lib/shared/components/LiveIconStrip.svelte';
 	let liveEventIcons = $state([]);
 
 	async function scrollToBottom() {
@@ -91,6 +92,7 @@
 		input = '';
 		isWaitingForReply = true;
 		liveEventIcons = [];
+		// no selection state in parent; handled by LiveIconStrip
 		
 		// Force immediate scroll to user message
 		await scrollToBottom();
@@ -132,9 +134,17 @@
 		// Avoid spamming duplicates back-to-back
 		const last = liveEventIcons[liveEventIcons.length - 1];
 		if (!last || last.symbol !== symbol) {
-			liveEventIcons = [...liveEventIcons, { id, symbol, label }].slice(-12);
+			// Store the full event data for display
+			liveEventIcons = [...liveEventIcons, { 
+				id, 
+				symbol, 
+				label,
+				event: e,
+				timestamp: new Date()
+			}]; // Removed slice to allow unlimited icons
 		}
 	}
+	
 
 	async function loadPreviousMessages() {
 		if (!claudeSessionId) return;
@@ -148,41 +158,84 @@
 			if (response.ok) {
 				const data = await response.json();
 				const previousMessages = [];
-				
-				// Parse the .jsonl entries to reconstruct messages
+
+				// Helpers to build icon objects from entries
+				function iconFromEntry(entry) {
+					if (!entry) return null;
+					try {
+						if (entry.type === 'summary') {
+							return { symbol: '🧾', label: 'Summary', event: entry };
+						}
+						// assistant tool_use events
+						if (entry.type === 'assistant' && entry.message?.content && Array.isArray(entry.message.content)) {
+							const toolItems = entry.message.content.filter((c) => c && c.type === 'tool_use');
+							if (toolItems.length > 0) {
+								const name = (toolItems[0].name || '').toString();
+								const mapped = iconForEventType({ type: 'tool', tool: name });
+								return { ...mapped, event: entry };
+							}
+						}
+						// user tool_result events
+						if (entry.type === 'user' && entry.message?.content) {
+							const content = entry.message.content;
+							const hasToolResult = Array.isArray(content)
+								? content.some((c) => c && c.type === 'tool_result')
+								: (content && typeof content === 'object' && content.type === 'tool_result');
+							if (hasToolResult) {
+								const mapped = iconForEventType({ type: 'tool_result', name: 'tool_result' });
+								return { ...mapped, event: entry };
+							}
+						}
+					} catch {}
+					return null;
+				}
+
+				// Group entries into user turns with assistant results + icon trails
+				let pendingIcons = [];
 				for (let i = 0; i < (data.entries || []).length; i++) {
 					const entry = data.entries[i];
+					const ts = entry.timestamp ? new Date(entry.timestamp) : new Date(Date.now() - (data.entries.length - i) * 60000);
+
+					// User typed text
 					if (entry.type === 'user' && entry.message?.content && Array.isArray(entry.message.content)) {
-						// Extract text from content array
 						const textContent = entry.message.content
-							.filter(c => c && c.type === 'text')
-							.map(c => c.text)
+							.filter((c) => c && c.type === 'text')
+							.map((c) => c.text)
 							.join('');
 						if (textContent) {
-							previousMessages.push({ 
-								role: 'user', 
-								text: textContent,
-								timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(Date.now() - (data.entries.length - i) * 60000),
-								id: `prev_${i}_user`
-							});
+							previousMessages.push({ role: 'user', text: textContent, timestamp: ts, id: `prev_${i}_user` });
+							pendingIcons = [];
+							continue;
 						}
-					} else if (entry.type === 'assistant' && entry.message?.content && Array.isArray(entry.message.content)) {
-						// Extract text from content array
+					}
+
+					// Accumulate non-text events as icons
+					const ic = iconFromEntry(entry);
+					if (ic) {
+						const id = `${i}-${Math.random().toString(36).slice(2, 6)}`;
+						pendingIcons = [...pendingIcons, { id, symbol: ic.symbol, label: ic.label, event: ic.event, timestamp: ts }].slice(-12);
+						continue;
+					}
+
+					// Assistant final text result
+					if (entry.type === 'assistant' && entry.message?.content && Array.isArray(entry.message.content)) {
 						const textContent = entry.message.content
-							.filter(c => c && c.type === 'text')
-							.map(c => c.text)
+							.filter((c) => c && c.type === 'text')
+							.map((c) => c.text)
 							.join('');
 						if (textContent) {
-							previousMessages.push({ 
-								role: 'assistant', 
+							previousMessages.push({
+								role: 'assistant',
 								text: textContent,
-								timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(Date.now() - (data.entries.length - i) * 60000),
-								id: `prev_${i}_assistant`
+								timestamp: ts,
+								id: `prev_${i}_assistant`,
+								iconTrail: pendingIcons
 							});
+							pendingIcons = [];
 						}
 					}
 				}
-				
+
 				messages = previousMessages;
 				if (previousMessages.length > 0) {
 					console.log('Loaded previous messages:', previousMessages.length);
@@ -215,7 +268,6 @@
 			console.log('Received message.delta:', payload);
 			// payload is an array; in our setup typically of length 1
 			for (const evt of payload || []) {
-				console.log('Processing event:', evt);
 				if (evt?.type === 'result') {
 					// Final result: update message content as usual
 					messages = [
@@ -254,6 +306,7 @@
 					isError: true
 				}];
 			}
+			// selection handled within LiveIconStrip component
 		});
 		
 		socket.on('disconnect', () => {
@@ -334,6 +387,9 @@
 							</span>
 						</div>
 						<div class="message-text">{@html formatMessage(m.text)}</div>
+						{#if m.iconTrail && m.iconTrail.length > 0}
+							<LiveIconStrip icons={m.iconTrail} title="Agent activity" />
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -359,13 +415,7 @@
 							<span class="typing-dot"></span>
 							<span class="typing-dot"></span>
 						</div>
-						{#if liveEventIcons.length > 0}
-							<div class="live-event-icons" aria-label="Live agent activity">
-								{#each liveEventIcons as ev (ev.id)}
-									<span class="event-icon" title={ev.label}>{ev.symbol}</span>
-								{/each}
-							</div>
-						{/if}
+						<LiveIconStrip icons={liveEventIcons} title="Live agent activity" />
 					</div>
 				</div>
 			</div>
@@ -379,7 +429,9 @@
 			</div>
 		{/if}
 	</div>
-	
+
+
+
 	<!-- Enhanced Input Form -->
 	<form onsubmit={send} class="input-form" role="form">
 		<div class="input-container">
@@ -793,13 +845,13 @@
 		transition: all 0.3s ease;
 	}
 
-	/* Live event icons under typing bubble */
+	/* Live event icons under typing bubble - no clipping, smooth expansion */
 	.live-event-icons {
 		margin-top: var(--space-3);
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
-		padding: var(--space-2) var(--space-3);
+		padding: var(--space-3) var(--space-3);
 		border-radius: 12px;
 		background: linear-gradient(135deg,
 			color-mix(in oklab, var(--primary) 8%, transparent),
@@ -810,19 +862,179 @@
 			inset 0 1px 2px rgba(255, 255, 255, 0.05),
 			0 4px 16px -10px var(--primary-glow);
 		font-size: 1rem;
+		/* Allow container to expand as needed */
+		min-height: 40px;
+		max-width: 100%;
+		overflow: visible;
+		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 	}
 
 	.event-icon {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 24px;
-		height: 24px;
+		width: 32px;
+		height: 32px;
+		padding: 0;
 		border-radius: 50%;
-		background: color-mix(in oklab, var(--surface) 94%, var(--primary) 6%);
-		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		box-shadow: 0 2px 8px -4px var(--primary-glow);
+		background: linear-gradient(135deg,
+			color-mix(in oklab, var(--surface) 92%, var(--primary) 8%),
+			color-mix(in oklab, var(--surface) 96%, var(--primary) 4%)
+		);
+		border: 2px solid color-mix(in oklab, var(--primary) 20%, transparent);
+		box-shadow: 
+			0 2px 8px -4px var(--primary-glow),
+			inset 0 1px 2px rgba(255, 255, 255, 0.05);
+		cursor: pointer;
+		font-size: 1.1rem;
+		transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+		opacity: 0;
+		transform: translateX(-20px);
+		animation: slideInFromLeft 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+		/* Reset button styles */
+		font-family: inherit;
+		color: inherit;
+		line-height: 1;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
 	}
+
+	.event-icon:hover {
+		transform: translateY(-2px) scale(1.1);
+		border-color: var(--primary);
+		background: linear-gradient(135deg,
+			color-mix(in oklab, var(--primary) 15%, var(--surface)),
+			color-mix(in oklab, var(--primary) 8%, var(--surface))
+		);
+		box-shadow: 
+			0 4px 12px -4px var(--primary-glow),
+			0 0 20px -8px var(--primary-glow),
+			inset 0 1px 4px rgba(255, 255, 255, 0.1);
+	}
+
+	.event-icon:active {
+		transform: translateY(0) scale(1.05);
+	}
+
+	.event-icon.selected {
+		background: linear-gradient(135deg,
+			color-mix(in oklab, var(--primary) 25%, var(--surface)),
+			color-mix(in oklab, var(--primary) 15%, var(--surface))
+		);
+		border-color: var(--primary);
+		box-shadow: 
+			0 0 0 3px color-mix(in oklab, var(--primary) 20%, transparent),
+			0 4px 16px -6px var(--primary-glow),
+			inset 0 2px 4px rgba(255, 255, 255, 0.1);
+		transform: translateY(-2px) scale(1.1);
+	}
+
+	@keyframes slideInFromLeft {
+		from {
+			opacity: 0;
+			transform: translateX(-20px) scale(0.8);
+		}
+		to {
+			opacity: 1;
+			transform: translateX(0) scale(1);
+		}
+	}
+
+	/* Event summary display */
+	.event-summary {
+		margin-top: var(--space-3);
+		padding: var(--space-3) var(--space-4);
+		background: linear-gradient(135deg,
+			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%),
+			color-mix(in oklab, var(--surface) 98%, var(--primary) 2%)
+		);
+		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
+		border-radius: 12px;
+		box-shadow:
+			inset 0 1px 3px rgba(0, 0, 0, 0.05),
+			0 4px 12px -6px rgba(0, 0, 0, 0.1);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		overflow: hidden;
+	}
+
+	.event-summary-header {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-bottom: var(--space-2);
+		padding-bottom: var(--space-2);
+		border-bottom: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
+	}
+
+	.event-summary-icon {
+		font-size: 1.2rem;
+	}
+
+	.event-summary-label {
+		flex: 1;
+		font-weight: 600;
+		color: var(--primary);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		font-size: var(--font-size-0);
+	}
+
+	.event-summary-time {
+		font-size: var(--font-size-0);
+		color: var(--muted);
+		opacity: 0.7;
+	}
+
+	.event-summary-content {
+		color: var(--text);
+		line-height: 1.5;
+		word-break: break-word;
+		opacity: 0.9;
+	}
+
+	.event-summary-content :global(strong) {
+		color: var(--primary);
+		font-weight: 600;
+	}
+	
+	.event-summary-content :global(.event-role) {
+		color: var(--accent-cyan);
+		font-weight: 500;
+		font-size: 0.9em;
+		padding: 2px 6px;
+		background: color-mix(in oklab, var(--accent-cyan) 15%, transparent);
+		border-radius: 4px;
+		border: 1px solid color-mix(in oklab, var(--accent-cyan) 25%, transparent);
+	}
+	
+	.event-summary-content :global(.event-id) {
+		color: var(--muted);
+		font-family: var(--font-mono);
+		font-size: 0.85em;
+		padding: 2px 4px;
+		background: color-mix(in oklab, var(--muted) 10%, transparent);
+		border-radius: 3px;
+		border: 1px solid color-mix(in oklab, var(--muted) 20%, transparent);
+	}
+	
+	.event-summary-content :global(.event-preview) {
+		color: var(--text-secondary);
+		font-style: italic;
+		font-size: 0.9em;
+		line-height: 1.4;
+		display: block;
+		margin-top: var(--space-1);
+		padding: var(--space-2);
+		background: color-mix(in oklab, var(--bg) 50%, transparent);
+		border-radius: 6px;
+		border-left: 3px solid color-mix(in oklab, var(--primary) 30%, transparent);
+		overflow-wrap: break-word;
+	}
+
+	/* Overlay container for event details (works for live and history) */
+
 	
 	.message--user .message-text {
 		background: 
@@ -1080,6 +1292,23 @@
 		.message-input {
 			border-radius: 20px;
 			min-height: 48px;
+		}
+		
+		/* Mobile adjustments for live icons */
+		.live-event-icons {
+			padding: var(--space-2);
+			gap: var(--space-1);
+		}
+		
+		.event-icon {
+			width: 28px;
+			height: 28px;
+			font-size: 0.95rem;
+		}
+		
+		.event-summary {
+			padding: var(--space-2) var(--space-3);
+			font-size: var(--font-size-0);
 		}
 	}
 	

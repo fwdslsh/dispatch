@@ -2,16 +2,24 @@
     import { onMount } from 'svelte';
     import ClaudePane from '$lib/components/ClaudePane.svelte';
     
-    let isMobileView = false;
-    let showSidebar = false;
-    let activeTab = 'projects'; // 'projects' or 'sessions'
+    let isMobileView = $state(false);
+    let showSidebar = $state(false);
+    let activeTab = $state('projects'); // 'projects' or 'sessions'
 
-    let projects = [];
-    let sessions = [];
-    let selectedProject = null;
-    let selectedSession = null;
-    let loading = false;
-    let error = null;
+    // Persistence keys
+    const STORAGE = {
+        activeTab: 'dispatch-testing-active-tab',
+        selectedProject: 'dispatch-testing-selected-project',
+        selectedSession: 'dispatch-testing-selected-session',
+        showSidebar: 'dispatch-testing-show-sidebar'
+    };
+
+    let projects = $state([]);
+    let sessions = $state([]);
+    let selectedProject = $state(null);
+    let selectedSession = $state(null);
+    let loading = $state(false);
+    let error = $state(null);
 
     async function loadProjects() {
         loading = true;
@@ -82,11 +90,35 @@
     }
 
 
+    let restoring = $state(true);
     onMount(() => {
-        loadProjects();
+        // Initial UI state
         checkMobileView();
+
+        // Restore simple UI prefs
+        const savedTab = localStorage.getItem(STORAGE.activeTab);
+        if (savedTab === 'projects' || savedTab === 'sessions') activeTab = savedTab;
+        const savedSidebar = localStorage.getItem(STORAGE.showSidebar);
+        if (savedSidebar != null) showSidebar = savedSidebar === 'true';
+
+        // Finish restore once data fetched
+        (async () => {
+            await loadProjects();
+
+            const savedProject = localStorage.getItem(STORAGE.selectedProject);
+            const savedSession = localStorage.getItem(STORAGE.selectedSession);
+
+            if (savedProject) {
+                // selectProject only needs .name
+                await selectProject({ name: savedProject });
+                if (savedSession && sessions.some((s) => s.id === savedSession)) {
+                    selectedSession = savedSession;
+                }
+            }
+            restoring = false;
+        })();
+
         window.addEventListener('resize', checkMobileView);
-        
         return () => {
             window.removeEventListener('resize', checkMobileView);
         };
@@ -108,6 +140,27 @@
             showSidebar = false;
         }
     }
+    
+    // Persistence effects
+    $effect(() => {
+        if (restoring) return;
+        try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.activeTab, activeTab); } catch {}
+    });
+
+    $effect(() => {
+        if (restoring) return;
+        try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.selectedProject, selectedProject || ''); } catch {}
+    });
+
+    $effect(() => {
+        if (restoring) return;
+        try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.selectedSession, selectedSession || ''); } catch {}
+    });
+
+    $effect(() => {
+        if (restoring) return;
+        try { if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.showSidebar, String(showSidebar)); } catch {}
+    });
 </script>
 
 <svelte:head>
@@ -119,14 +172,14 @@
     <div class="container">
         <header class="browser-header">
             {#if isMobileView}
-                <button on:click={toggleSidebar} class="menu-btn" aria-label="Toggle menu">
+                <button onclick={toggleSidebar} class="menu-btn" aria-label="Toggle menu" type="button">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
                     </svg>
                 </button>
             {/if}
             <h1>Claude Session Browser</h1>
-            <button on:click={loadProjects} class="refresh-btn" disabled={loading}>
+            <button onclick={loadProjects} class="refresh-btn" disabled={loading} type="button">
                 <svg class="refresh-icon" class:spinning={loading} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
                 </svg>
@@ -144,7 +197,7 @@
         <div class="main-layout" class:mobile-layout={isMobileView}>
             <!-- Mobile Overlay -->
             {#if isMobileView && showSidebar}
-                <div class="mobile-overlay" on:click={toggleSidebar}></div>
+                <button class="mobile-overlay" onclick={toggleSidebar} type="button" aria-label="Close sidebar overlay"></button>
             {/if}
             
             <!-- Left Side: Session Browser -->
@@ -155,14 +208,14 @@
                         <button 
                             class="tab-btn" 
                             class:active={activeTab === 'projects'}
-                            on:click={() => activeTab = 'projects'}
+                            onclick={() => activeTab = 'projects'}
                         >
                             Projects
                         </button>
                         <button 
                             class="tab-btn" 
                             class:active={activeTab === 'sessions'}
-                            on:click={() => activeTab = 'sessions'}
+                            onclick={() => activeTab = 'sessions'}
                         >
                             Sessions
                         </button>
@@ -180,10 +233,11 @@
                                 <div class="empty">No projects found</div>
                             {:else}
                                 {#each projects as project}
-                                    <div 
-                                        class="project-item" 
+                                    <button
+                                        type="button"
+                                        class="project-item"
                                         class:selected={selectedProject === project.name}
-                                        on:click={() => {
+                                        onclick={() => {
                                             selectProject(project);
                                             if (isMobileView) activeTab = 'sessions';
                                         }}
@@ -196,7 +250,7 @@
                                             </div>
                                         </div>
                                         <div class="project-path">{project.path.split('/').slice(-2).join('/')}</div>
-                                    </div>
+                                    </button>
                                 {/each}
                             {/if}
                         </div>
@@ -214,10 +268,11 @@
                                 <div class="empty">No sessions found</div>
                             {:else}
                                 {#each sessions as session}
-                                    <div 
+                                    <button
+                                        type="button"
                                         class="session-item"
                                         class:selected={selectedSession === session.id}
-                                        on:click={() => {
+                                        onclick={() => {
                                             selectSession(session);
                                             closeSidebarAndSelect();
                                         }}
@@ -230,7 +285,7 @@
                                             <span class="session-date">{new Date(session.lastModified).toLocaleDateString()}</span>
                                             <span class="session-time">{new Date(session.lastModified).toLocaleTimeString()}</span>
                                         </div>
-                                    </div>
+                                    </button>
                                 {/each}
                             {/if}
                         </div>
@@ -293,33 +348,53 @@
     }
 
     .browser-header h1 {
-        color: var(--accent);
+        background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         font-size: 2rem;
+        font-family: var(--font-mono);
+        font-weight: 800;
         margin: 0;
+        letter-spacing: -0.02em;
+        text-shadow: 0 0 30px rgba(46, 230, 107, 0.2);
     }
 
     .refresh-btn {
-        background: var(--accent);
+        background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
         color: var(--bg);
         border: none;
         padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
+        border-radius: 8px;
         cursor: pointer;
-        font-family: inherit;
-        transition: opacity 0.2s;
+        font-family: var(--font-mono);
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(46, 230, 107, 0.2);
         /* Ensure proper Unicode display */
         font-variant: normal;
         text-rendering: auto;
         -webkit-font-smoothing: antialiased;
     }
 
-    .refresh-btn:hover {
-        opacity: 0.8;
+    .refresh-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(46, 230, 107, 0.4);
+        background: linear-gradient(135deg, var(--accent-cyan), var(--primary));
+    }
+
+    .refresh-btn:active {
+        transform: translateY(0);
     }
 
     .refresh-btn:disabled {
-        opacity: 0.5;
+        opacity: 0.6;
         cursor: not-allowed;
+        transform: none;
+        background: linear-gradient(135deg, 
+            color-mix(in oklab, var(--primary) 60%, var(--surface)),
+            color-mix(in oklab, var(--accent-cyan) 60%, var(--surface))
+        );
     }
 
     .error-banner {
@@ -397,19 +472,52 @@
         padding: 1rem;
         border-bottom: 1px solid var(--surface-border);
         cursor: pointer;
-        transition: background-color 0.15s ease;
+        transition: all 0.2s ease;
         position: relative;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--surface-border);
+        width: 100%;
+        text-align: left;
+        font-family: inherit;
+    }
+
+    .project-item::before, .session-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, var(--primary), var(--accent-cyan));
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
     }
 
     .project-item:hover, .session-item:hover {
-        background: var(--surface-hover);
+        background: linear-gradient(90deg, 
+            color-mix(in oklab, var(--primary) 5%, transparent),
+            transparent
+        );
+        padding-left: calc(1rem + 4px);
+    }
+
+    .project-item:hover::before, .session-item:hover::before {
+        transform: scaleY(0.5);
     }
 
     .project-item.selected, .session-item.selected {
-        background: color-mix(in oklch, var(--accent) 10%, var(--surface) 90%);
-        border-left: 3px solid var(--accent);
-        padding-left: calc(1rem - 3px);
+        background: linear-gradient(90deg, 
+            color-mix(in oklab, var(--primary) 10%, var(--surface)),
+            color-mix(in oklab, var(--primary) 2%, var(--surface))
+        );
+        border-left: 3px solid transparent;
+        padding-left: calc(1rem + 4px);
         font-weight: 600;
+    }
+
+    .project-item.selected::before, .session-item.selected::before {
+        transform: scaleY(1);
     }
 
     .project-header {
@@ -435,12 +543,13 @@
     }
 
     .session-count {
-        background: var(--accent);
+        background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
         color: var(--bg);
         padding: 0.15rem 0.4rem;
         border-radius: 0.75rem;
         font-weight: 600;
         font-size: 0.7rem;
+        box-shadow: 0 2px 6px rgba(46, 230, 107, 0.2);
     }
 
     .last-modified {
@@ -582,21 +691,38 @@
 
     /* Mobile Menu Button */
     .menu-btn {
-        background: transparent;
-        border: 2px solid var(--accent);
-        color: var(--accent);
+        background: var(--surface);
+        border: 2px solid var(--primary);
+        color: var(--primary);
         padding: 0.5rem;
-        border-radius: 0.25rem;
+        border-radius: 8px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s;
+        transition: all 0.3s ease;
+        min-width: 44px;
+        min-height: 44px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        position: relative;
+        z-index: 101;
     }
 
     .menu-btn:hover {
-        background: var(--accent);
+        background: var(--primary);
         color: var(--bg);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(46, 230, 107, 0.3);
+    }
+
+    .menu-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .menu-btn svg {
+        width: 24px;
+        height: 24px;
     }
 
     /* Refresh Button Updates */
@@ -628,7 +754,7 @@
     }
 
     /* Mobile Overlay */
-    .mobile-overlay {
+    .mobile-overlay {      
         position: fixed;
         top: 0;
         left: 0;
@@ -647,25 +773,40 @@
         width: 85%;
         max-width: 400px;
         height: 100vh;
-        background: var(--bg);
+        background: linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg) 95%, var(--surface) 5%));
         z-index: 999;
-        transition: left 0.3s ease;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         overflow-y: auto;
-        box-shadow: 2px 0 20px rgba(0, 0, 0, 0.3);
+        box-shadow: 
+            4px 0 24px rgba(0, 0, 0, 0.15),
+            2px 0 48px rgba(46, 230, 107, 0.1);
+        border-right: 1px solid var(--primary-dim);
     }
 
     .mobile-sidebar.show-sidebar {
         left: 0;
+    }
+    
+    .mobile-sidebar::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 1px;
+        height: 100%;
+        background: linear-gradient(180deg, var(--primary), transparent, var(--accent-cyan));
+        opacity: 0.3;
     }
 
     /* Mobile Tabs */
     .mobile-tabs {
         display: flex;
         background: var(--surface);
-        border-bottom: 1px solid var(--surface-border);
+        border-bottom: 2px solid var(--primary-dim);
         position: sticky;
         top: 0;
         z-index: 10;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .tab-btn {
@@ -675,15 +816,40 @@
         border: none;
         border-bottom: 3px solid transparent;
         color: var(--text-muted);
+        font-family: var(--font-mono);
         font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .tab-btn::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary), var(--accent-cyan));
+        transition: all 0.3s ease;
+        transform: translateX(-50%);
+    }
+
+    .tab-btn:hover {
+        color: var(--text);
+        background: var(--surface-hover);
     }
 
     .tab-btn.active {
-        color: var(--accent);
-        border-bottom-color: var(--accent);
-        background: var(--surface-hover);
+        color: var(--primary);
+        background: color-mix(in oklab, var(--primary) 5%, var(--surface));
+    }
+
+    .tab-btn.active::after {
+        width: 100%;
     }
 
     .mobile-browser {

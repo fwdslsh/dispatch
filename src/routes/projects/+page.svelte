@@ -23,6 +23,17 @@
 	let pinned = $state([]); // array of session IDs to display in grid order
 	let currentMobileSession = $state(0); // current session index for mobile
 
+	// Persistence keys
+	const STORAGE = {
+		layout: 'dispatch-projects-layout',
+		pinned: 'dispatch-projects-pinned',
+		mobileIndex: 'dispatch-projects-current-mobile',
+		sidebar: 'dispatch-sidebar-collapsed'
+	};
+
+	// Prevent persistence effects from overwriting saved state during initial restore
+	let restoring = $state(true);
+
 	// Sidebar state
 	let sidebarCollapsed = $state(false);
 
@@ -264,7 +275,7 @@
 	function toggleSidebar() {
 		sidebarCollapsed = !sidebarCollapsed;
 		// Persist sidebar state
-		localStorage.setItem('dispatch-sidebar-collapsed', sidebarCollapsed.toString());
+		localStorage.setItem(STORAGE.sidebar, sidebarCollapsed.toString());
 	}
 
 	onMount(async () => {
@@ -283,15 +294,69 @@
 		window.addEventListener('resize', updateMobileState);
 
 		// Load saved sidebar state
-		const savedSidebarState = localStorage.getItem('dispatch-sidebar-collapsed');
+		const savedSidebarState = localStorage.getItem(STORAGE.sidebar);
 		if (savedSidebarState) {
 			sidebarCollapsed = savedSidebarState === 'true';
 		}
+
+		// Restore layout preset
+		const savedLayout = localStorage.getItem(STORAGE.layout);
+		if (savedLayout && ['1up', '2up', '4up'].includes(savedLayout)) {
+			layoutPreset = savedLayout;
+		}
+
+		// Restore pinned order exactly as saved (do not filter — avoid wiping on load)
+		try {
+			const rawPinned = localStorage.getItem(STORAGE.pinned);
+			if (rawPinned) {
+				const savedPinned = JSON.parse(rawPinned);
+				if (Array.isArray(savedPinned)) {
+					pinned = savedPinned;
+				}
+			}
+		} catch (e) {
+			console.warn('Failed to restore pinned sessions:', e);
+		}
+
+		// Restore mobile session index
+		const savedMobileIndex = Number.parseInt(localStorage.getItem(STORAGE.mobileIndex) || '0', 10);
+		if (!Number.isNaN(savedMobileIndex)) {
+			const maxIdx = Math.max(
+				0,
+				sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length - 1
+			);
+			currentMobileSession = Math.min(savedMobileIndex, maxIdx);
+		}
+
+		// Finished restoring; allow persistence effects to run
+		restoring = false;
 	});
 
-	onDestroy(() => {
+onDestroy(() => {
 		// Clean up any resources if needed
 		window.removeEventListener('resize', updateMobileState);
+	});
+
+	// Persist key UI state
+	$effect(() => {
+		if (restoring) return;
+		try {
+			if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.layout, layoutPreset);
+		} catch {}
+	});
+
+	$effect(() => {
+		if (restoring) return;
+		try {
+			if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.pinned, JSON.stringify(pinned));
+		} catch {}
+	});
+
+	$effect(() => {
+		if (restoring) return;
+		try {
+			if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.mobileIndex, String(currentMobileSession));
+		} catch {}
 	});
 </script>
 
