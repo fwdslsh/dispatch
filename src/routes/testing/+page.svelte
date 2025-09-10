@@ -161,18 +161,25 @@
 
 <style>
     .session-browser {
-        max-height: 100vh;
+        height: 100vh;
+        height: 100dvh;
         background: var(--bg);
         color: var(--text);
         font-family: var(--font-sans);
-        overflow-x: hidden;
+        overflow: hidden;
         width: 100%;
+        display: flex;
+        flex-direction: column;
     }
 
     .container {
         max-width: 1400px;
         margin: 0 auto;
         padding: 1rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
     .browser-header {
@@ -258,16 +265,16 @@
         display: grid;
         grid-template-columns: 600px 1fr;
         gap: 1rem;
-        height: calc(100vh - 100px);
+        flex: 1;
+        min-height: 0;
         overflow: hidden;
     }
 
     .browser-section {
         display: flex;
         flex-direction: column;
-        max-height: 100%;
-        overflow-y: hidden;
-        padding-bottom: 1rem;
+        min-height: 0;
+        overflow: hidden;
     }
 
     /* menu layout moved into ProjectSessionMenu */
@@ -444,6 +451,7 @@
         width: 85%;
         max-width: 400px;
         height: 100vh;
+        height: 100dvh;
         background: linear-gradient(180deg, var(--bg), color-mix(in oklab, var(--bg) 95%, var(--surface) 5%));
         z-index: 999;
         transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -498,7 +506,9 @@
         .container {
             padding: 0 0.5rem;
             max-width: 100%;
-            overflow-x: hidden;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
         }
 
         .browser-header {
@@ -528,8 +538,10 @@
         }
 
         .main-layout.mobile-layout {
-            display: block;
-            height: calc(100vh - 70px);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
             padding: 0.5rem 0;
         }
 
@@ -538,7 +550,8 @@
         }
 
         .claude-section {
-            height: calc(100vh - 70px);
+            flex: 1;
+            min-height: 0;
             border-radius: 0;
             border: none;
         }
@@ -608,7 +621,13 @@
         /* menu panel heights handled in ProjectSessionMenu */
 
         .claude-section {
-            height: calc(100vh - 60px);
+            flex: 1;
+            min-height: 0;
+        }
+        
+        .container {
+            height: 100vh;
+            height: 100dvh;
         }
     }
 

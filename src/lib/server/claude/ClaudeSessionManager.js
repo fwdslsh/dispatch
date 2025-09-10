@@ -42,11 +42,21 @@ export class ClaudeSessionManager {
 		const realSessionId = sessionId || `${this.nextId++}`;
 		const id = `claude_${realSessionId}`;
 		
+		// Determine if we can actually resume (only when an on-disk conversation exists)
+		let resumeCapable = false;
+		if (sessionId) {
+			try {
+				resumeCapable = await this.#conversationExists(sessionId);
+			} catch {
+				resumeCapable = false;
+			}
+		}
+
 		/** @type {{ workspacePath: string, sessionId: string, resumeCapable: boolean, options: object }} */
 		const sessionData = {
 			workspacePath,
 			sessionId: realSessionId,
-			resumeCapable: !!sessionId, // only true if resuming an existing on-disk session
+			resumeCapable, // true only if resuming an existing on-disk session
 			options: {
 				...this.defaultOptions,
 				cwd: workspacePath,
@@ -85,6 +95,7 @@ export class ClaudeSessionManager {
 
 		try {
 			const debugEnv = { ...process.env, HOME: process.env.HOME };
+			let sawNoConversation = false;
 			// If you want SDK debug logs, uncomment next line
 			// debugEnv.DEBUG = debugEnv.DEBUG || '1';
 			const stream = query({
@@ -98,6 +109,10 @@ export class ClaudeSessionManager {
 					...(s.resumeCapable ? { resume: s.sessionId } : {}),
 					stderr: (data) => {
 						try {
+							const text = String(data || '');
+							if (text.toLowerCase().includes('no conversation found')) {
+								sawNoConversation = true;
+							}
 							console.error(`[Claude stderr ${s.sessionId}]`, data);
 						} catch {}
 					},
@@ -117,10 +132,12 @@ export class ClaudeSessionManager {
 			}
 		} catch (error) {
 			console.error(`Error in Claude session ${id}:`, error);
-			// If the prompt/history is too long, retry without resuming history
+			// If the prompt/history is too long OR resume target missing, retry without resume
 			const msg = String(error?.message || '');
-			const isTooLong = msg.toLowerCase().includes('prompt too long') || msg.toLowerCase().includes('context') && msg.toLowerCase().includes('too') && msg.toLowerCase().includes('long');
-			if (isTooLong) {
+			const lc = msg.toLowerCase();
+			const isTooLong = lc.includes('prompt too long') || (lc.includes('context') && lc.includes('too') && lc.includes('long'));
+			const missingConversation = typeof sawNoConversation !== 'undefined' && sawNoConversation;
+			if (isTooLong || missingConversation) {
 				try {
 					const debugEnv = { ...process.env, HOME: process.env.HOME };
 					const fresh = query({
@@ -155,6 +172,33 @@ export class ClaudeSessionManager {
 				});
 			}
 		}
+	}
+
+	/**
+	 * Check if a conversation exists on disk for a given sessionId
+	 * @param {string} sessionId
+	 */
+	async #conversationExists(sessionId) {
+		const candidates = [
+			process.env.CLAUDE_PROJECTS_DIR,
+			join(process.env.HOME || homedir(), '.claude', 'projects'),
+			join(process.cwd(), '.dispatch-home', '.claude', 'projects'),
+			join(process.cwd(), '.claude', 'projects')
+		].filter(Boolean);
+		for (const projectsDir of candidates) {
+			try {
+				const dirs = await readdir(projectsDir, { withFileTypes: true });
+				for (const d of dirs) {
+					if (!d.isDirectory()) continue;
+					const filePath = join(projectsDir, d.name, `${sessionId}.jsonl`);
+					try {
+						const st = await stat(filePath);
+						if (st && st.isFile()) return true;
+					} catch {}
+				}
+			} catch {}
+		}
+		return false;
 	}
 
 	/**
