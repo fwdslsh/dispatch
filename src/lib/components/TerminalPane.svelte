@@ -5,9 +5,7 @@
 	import { io } from 'socket.io-client';
 	import '@xterm/xterm/css/xterm.css';
 
-	export let ptyId;
-	export let shouldResume = false;
-	export let workspacePath = null;
+	let { ptyId, shouldResume = false, workspacePath = null } = $props();
 	let socket, term, el;
 
 	async function loadTerminalHistory() {
@@ -110,22 +108,23 @@
 			ro = new ResizeObserver(resize);
 			ro.observe(el);
 		}
-	});
 
-	onDestroy(() => {
-		if (socket) {
-			socket.disconnect();
-		}
-		try {
-			// remove listeners and observers
-			window.removeEventListener('resize', resize);
-		} catch (e) {}
-		try {
-			if (ro) ro.disconnect();
-		} catch (e) {}
-		try {
-			if (term) term.dispose();
-		} catch (e) {}
+		// Cleanup function
+		return () => {
+			if (socket) {
+				socket.disconnect();
+			}
+			try {
+				// remove listeners and observers
+				window.removeEventListener('resize', resize);
+			} catch (e) {}
+			try {
+				if (ro) ro.disconnect();
+			} catch (e) {}
+			try {
+				if (term) term.dispose();
+			} catch (e) {}
+		};
 	});
 </script>
 

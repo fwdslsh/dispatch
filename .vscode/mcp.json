@@ -1,0 +1,9 @@
+{
+	"servers": {
+		"svelte": {
+			"url": "https://svelte-llm.stanislav.garden/mcp/mcp",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}

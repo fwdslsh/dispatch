@@ -124,7 +124,7 @@
                     bind:selectedProject
                     bind:selectedSession
                     storagePrefix="dispatch-testing"
-                    on:sessionSelected={() => closeSidebarAndSelect()}
+                    onSessionSelected={() => closeSidebarAndSelect()}
                 />
             </div>
 
@@ -161,7 +161,7 @@
 
 <style>
     .session-browser {
-        min-height: 100vh;
+        max-height: 100vh;
         background: var(--bg);
         color: var(--text);
         font-family: var(--font-sans);
@@ -177,7 +177,6 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 2rem;
         padding-bottom: 1rem;
         border-bottom: 1px solid var(--surface-border);
     }
@@ -253,12 +252,16 @@
         display: grid;
         grid-template-columns: 600px 1fr;
         gap: 1rem;
-        height: calc(100vh - 200px);
+        height: calc(100vh - 100px);
+        overflow: hidden;
     }
 
     .browser-section {
         display: flex;
         flex-direction: column;
+        max-height: 100%;
+        overflow-y: hidden;
+        padding-bottom: 1rem;
     }
 
     /* menu layout moved into ProjectSessionMenu */

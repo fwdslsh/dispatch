@@ -93,6 +93,17 @@ body {
     line-height: 1.45;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    /* Prevent horizontal scrolling due to overflowing children on mobile */
+    overflow-x: hidden;
+}
+
+/* Media and embeds should never overflow the viewport */
+img,
+svg,
+video,
+canvas {
+    max-width: 100%;
+    height: auto;
 }
 
 :focus-visible {

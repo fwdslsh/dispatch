@@ -1,14 +1,20 @@
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
 
-  // Use $props for runes-compatible bindings (writable via destructuring)
-  let { selectedProject, selectedSession, storagePrefix } = $props();
-  // props.selectedProject / props.selectedSession are bindable from parent
-  // props.storagePrefix is optional
+  // Accept props; mark bindable ones and capture callback functions
+  let { 
+    selectedProject = $bindable(), 
+    selectedSession = $bindable(), 
+    storagePrefix, 
+    onProjectSelected,
+    onSessionSelected,
+    onNewSession
+  } = $props();
 
   // Internal state
   let projects = $state([]);
   let sessions = $state([]);
+  let sessionType = $state('claude'); // 'claude' | 'pty'
   let activeTab = $state('projects'); // 'projects' | 'sessions'
   let loading = $state(false);
   let error = $state(null);
@@ -19,10 +25,9 @@
   const STORAGE = $derived({
     activeTab: `${prefix}-active-tab`,
     selectedProject: `${prefix}-selected-project`,
-    selectedSession: `${prefix}-selected-session`
+    selectedSession: `${prefix}-selected-session`,
+    sessionType: `${prefix}-session-type`
   });
-
-  const dispatch = createEventDispatcher();
 
   function cleanProjectName(projectName) {
     if (!projectName) return '';
@@ -49,12 +54,29 @@
     loading = true;
     error = null;
     try {
-      const response = await fetch('/api/claude/projects');
-      if (response.ok) {
-        const data = await response.json();
-        projects = data.projects || [];
+      if (sessionType === 'claude') {
+        const response = await fetch('/api/claude/projects');
+        if (response.ok) {
+          const data = await response.json();
+          projects = data.projects || [];
+        } else {
+          error = 'Failed to load projects';
+        }
       } else {
-        error = 'Failed to load projects';
+        // Terminal workspaces
+        const response = await fetch('/api/workspaces');
+        if (response.ok) {
+          const data = await response.json();
+          const list = data.list || [];
+          projects = list.map((p) => ({
+            name: p.split('/').pop(),
+            path: p,
+            sessionCount: 0,
+            lastModified: null
+          }));
+        } else {
+          error = 'Failed to load workspaces';
+        }
       }
     } catch (err) {
       error = 'Error loading projects: ' + err.message;
@@ -63,12 +85,15 @@
   }
 
   async function selectProject(project) {
-    selectedProject = project?.name || null;
     selectedSession = null;
     loading = true;
     error = null;
     try {
-      if (selectedProject) {
+      if (!project) {
+        selectedProject = null;
+        sessions = [];
+      } else if (sessionType === 'claude') {
+        selectedProject = project?.name || null;
         const response = await fetch(`/api/claude/projects/${encodeURIComponent(selectedProject)}/sessions`);
         if (response.ok) {
           const data = await response.json();
@@ -78,18 +103,35 @@
           error = 'Failed to load sessions';
         }
       } else {
-        sessions = [];
+        // pty: selectedProject is the workspace path
+        selectedProject = project?.path || project?.name || null;
+        if (selectedProject) {
+          const response = await fetch(`/api/sessions?workspace=${encodeURIComponent(selectedProject)}`);
+          if (response.ok) {
+            const data = await response.json();
+            sessions = (data.sessions || []).filter((s) => s.type === 'pty');
+            activeTab = 'sessions';
+          } else {
+            error = 'Failed to load sessions';
+          }
+        } else {
+          sessions = [];
+        }
       }
     } catch (err) {
       error = 'Error loading sessions: ' + err.message;
     }
     loading = false;
-    dispatch('projectSelected', { name: selectedProject });
+    onProjectSelected?.({ detail: { name: selectedProject, type: sessionType } });
   }
 
   function selectSession(session) {
     selectedSession = session?.id || null;
-    dispatch('sessionSelected', { id: selectedSession });
+    // Include type and project context for parent
+    const detail = sessionType === 'claude'
+      ? { id: selectedSession, type: 'claude', projectName: selectedProject }
+      : { id: selectedSession, type: 'pty', workspacePath: selectedProject };
+    onSessionSelected?.({ detail });
   }
 
   onMount(async () => {
@@ -99,6 +141,11 @@
       if (savedTab === 'projects' || savedTab === 'sessions') activeTab = savedTab;
     } catch {}
 
+    try {
+      const savedType = localStorage.getItem(STORAGE.sessionType);
+      if (savedType === 'claude' || savedType === 'pty') sessionType = savedType;
+    } catch {}
+
     await loadProjects();
 
     try {
@@ -106,7 +153,8 @@
       const savedSession = localStorage.getItem(STORAGE.selectedSession);
 
       if (savedProject) {
-        await selectProject({ name: savedProject });
+        const projObj = sessionType === 'claude' ? { name: savedProject } : { path: savedProject, name: savedProject.split('/').pop() };
+        await selectProject(projObj);
         if (savedSession && sessions.some((s) => s.id === savedSession)) {
           selectedSession = savedSession;
         }
@@ -120,14 +168,29 @@
     updateMobile();
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', updateMobile);
-      return () => window.removeEventListener('resize', updateMobile);
     }
+  });
+
+  // Handle resize listener cleanup with $effect
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+
+    const updateMobile = () => {
+      isMobileView = window.innerWidth < 768;
+    };
+
+    window.addEventListener('resize', updateMobile);
+    return () => window.removeEventListener('resize', updateMobile);
   });
 
   // Persistence effects
   $effect(() => {
     if (restoring) return;
     try { localStorage.setItem(STORAGE.activeTab, activeTab); } catch {}
+  });
+  $effect(() => {
+    if (restoring) return;
+    try { localStorage.setItem(STORAGE.sessionType, sessionType); } catch {}
   });
   $effect(() => {
     if (restoring) return;
@@ -142,9 +205,31 @@
   export function refresh() {
     return loadProjects();
   }
+
+  function changeType(type) {
+    if (type === sessionType) return;
+    sessionType = type;
+    // Reset selection and load appropriate projects
+    selectedProject = null;
+    selectedSession = null;
+    sessions = [];
+    loadProjects();
+  }
+
+  function handleNewSessionClick() {
+    const detail = sessionType === 'claude'
+      ? { type: 'claude', projectName: selectedProject }
+      : { type: 'pty', workspacePath: selectedProject };
+    onNewSession?.({ detail });
+  }
 </script>
 
 <div class="menu-root">
+  <!-- Session Type Switcher -->
+  <div class="type-tabs">
+    <button type="button" class="type-btn" class:active={sessionType === 'claude'} onclick={() => changeType('claude')}>Claude</button>
+    <button type="button" class="type-btn" class:active={sessionType === 'pty'} onclick={() => changeType('pty')}>Terminal</button>
+  </div>
   <!-- Tab Navigation (preserving testing page styles) -->
   <div class="mobile-tabs" class:desktop-tabs={!isMobileView}>
     <button
@@ -167,28 +252,32 @@
   <div class="browser-layout" class:mobile-browser={isMobileView} class:tabbed-layout={true}>
     <!-- Projects Panel -->
     <div class="panel" class:hidden={activeTab !== 'projects'}>
-      <h2>Projects</h2>
+      <h2>{sessionType === 'claude' ? 'Claude Projects' : 'Workspaces'}</h2>
       <div class="panel-content">
         {#if loading && projects.length === 0}
-          <div class="status">Loading projects...</div>
+          <div class="status">Loading {sessionType === 'claude' ? 'projects' : 'workspaces'}...</div>
         {:else if projects.length === 0}
-          <div class="status">No projects found</div>
+          <div class="status">No {sessionType === 'claude' ? 'projects' : 'workspaces'} found</div>
         {:else}
           {#each projects as project}
             <button
               type="button"
               class="project-item"
-              class:selected={selectedProject === project.name}
+              class:selected={sessionType === 'claude' ? selectedProject === project.name : selectedProject === project.path}
               onclick={() => selectProject(project)}
             >
               <div class="project-header">
-                <div class="project-name">{cleanProjectName(project.name)}</div>
+                <div class="project-name">{sessionType === 'claude' ? cleanProjectName(project.name) : (project.name || cleanProjectName(project.path))}</div>
                 <div class="project-stats">
                   <span class="session-count">{project.sessionCount} sessions</span>
-                  <span class="last-modified">{new Date(project.lastModified).toLocaleDateString()}</span>
+                  {#if project.lastModified}
+                    <span class="last-modified">{new Date(project.lastModified).toLocaleDateString()}</span>
+                  {/if}
                 </div>
               </div>
-              <div class="project-path">{project.path.split('/').slice(-2).join('/')}</div>
+              {#if project.path}
+                <div class="project-path">{project.path.split('/').slice(-2).join('/')}</div>
+              {/if}
             </button>
           {/each}
         {/if}
@@ -198,9 +287,14 @@
     <!-- Sessions Panel -->
     <div class="panel" class:hidden={activeTab !== 'sessions'}>
       <h2>Sessions</h2>
+      <div class="new-session-row">
+        <button type="button" class="new-session-btn" onclick={handleNewSessionClick}>
+          New {sessionType === 'claude' ? 'Claude' : 'Terminal'} Session
+        </button>
+      </div>
       <div class="panel-content">
         {#if !selectedProject}
-          <div class="status">Select a project to view sessions</div>
+          <div class="status">Select a {sessionType === 'claude' ? 'project' : 'workspace'} to view sessions</div>
         {:else if loading && sessions.length === 0}
           <div class="status">Loading sessions...</div>
         {:else if sessions.length === 0}
@@ -234,7 +328,36 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    height: 100%;
+    height: calc(100% - 5rem); /* leave space for mobile bottom bar */
+    min-width: 0; /* allow shrinking inside sidebar on mobile */
+  }
+
+  .type-tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 2px solid var(--primary-dim);
+  }
+  .type-btn {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+  }
+  .type-btn.active {
+    color: var(--primary);
+    background: color-mix(in oklab, var(--primary) 5%, var(--surface));
   }
 
   /* Tabs (Mobile and Desktop) from testing page */
@@ -272,6 +395,9 @@
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
   }
 
   .tab-btn::after {
@@ -331,6 +457,7 @@
     grid-template-rows: 1fr;
     gap: 1rem;
     height: 100%;
+    min-width: 0; /* prevent overflow in sidebar */
   }
 
   .browser-layout.tabbed-layout { grid-template-rows: 1fr; }
@@ -339,13 +466,6 @@
   /* utility to hide inactive tab panels */
   .hidden { display: none !important; }
 
-  .panels {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-    min-height: 0;
-    flex: 1;
-  }
 
   .panel {
     background: var(--surface);
@@ -355,6 +475,7 @@
     flex-direction: column;
     overflow: hidden;
     min-height: 0;
+    min-width: 0; /* allow shrinking without overflow */
   }
   .panel h2 {
     background: var(--surface-hover);
@@ -369,6 +490,26 @@
     flex: 1;
     overflow-y: auto;
     padding: 0;
+    min-width: 0;
+  }
+
+  .new-session-row {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--surface-border);
+    background: var(--surface-hover);
+  }
+  .new-session-btn {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--primary-dim);
+    background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 8%, var(--surface)), var(--surface));
+    color: var(--text);
+    border-radius: 0.35rem;
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
   }
 
   .project-item, .session-item {
@@ -382,6 +523,10 @@
     width: 100%;
     text-align: left;
     font-family: inherit;
+    overflow: hidden; /* avoid horizontal overflow */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
   }
   .project-item::before, .session-item::before {
     content: '';
@@ -414,12 +559,17 @@
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 0.4rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
   .project-name {
     font-weight: 700;
     font-size: 1rem;
     color: var(--text);
     line-height: 1.2;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .project-stats {
     display: flex;
@@ -447,6 +597,8 @@
     padding: 0.2rem 0.4rem;
     border-radius: 0.25rem;
     margin-top: 0.25rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .session-header {
@@ -455,7 +607,7 @@
     align-items: center;
     margin-bottom: 0.35rem;
   }
-  .session-id { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--accent); }
+  .session-id { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--accent); overflow-wrap: anywhere; }
   .session-size { background: var(--surface-hover); color: var(--text); padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.7rem; font-weight: 600; }
   .session-info { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; opacity: 0.8; }
   .session-date { font-weight: 500; }
@@ -463,7 +615,40 @@
 
   .status { padding: 1.25rem; text-align: center; color: var(--text-muted); font-style: italic; }
 
+  /* Mobile-specific styles and fixes */
+  @media (hover: none) and (pointer: coarse) {
+    /* Remove hover effects on touch devices */
+    .tab-btn:hover,
+    .type-btn:hover {
+      background: inherit;
+    }
+    
+    .project-item:hover,
+    .session-item:hover {
+      background: transparent;
+      padding-left: 1rem;
+    }
+    
+    .project-item:hover::before,
+    .session-item:hover::before {
+      transform: scaleY(0);
+    }
+    
+    /* Add active states for touch feedback */
+    .tab-btn:active,
+    .type-btn:active,
+    .project-item:active,
+    .session-item:active,
+    .new-session-btn:active {
+      opacity: 0.8;
+      transform: scale(0.98);
+    }
+  }
+  
   @media (max-width: 480px) {
+    .menu-root{
+      height: calc(100% - 12rem); /* full height on very small screens */
+    }
     .panel h2 { font-size: 0.9rem; }
     .project-name { font-size: 0.95rem; }
   }

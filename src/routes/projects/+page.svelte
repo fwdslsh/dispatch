@@ -8,8 +8,6 @@
 	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
 	import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
 	import { Button } from '$lib/shared/components';
-	import ClaudeIcon from '$lib/shared/components/Icons/ClaudeIcon.svelte';
-	import TerminalIcon from '$lib/shared/components/Icons/TerminalIcon.svelte';
 	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
 
 	let sessions = $state([]);
@@ -22,26 +20,25 @@
 
 	// Session grid state - responsive layout
 	let layoutPreset = $state('2up'); // '1up' | '2up' | '4up'
-	let pinned = $state([]); // array of session IDs to display in grid order
+	let displayed = $state([]); // array of session IDs to display in grid order (replaces pinned)
 	let currentMobileSession = $state(0); // current session index for mobile
 
 	// Persistence keys
 	const STORAGE = {
 		layout: 'dispatch-projects-layout',
-		pinned: 'dispatch-projects-pinned',
-		mobileIndex: 'dispatch-projects-current-mobile',
-		sidebar: 'dispatch-sidebar-collapsed'
+		mobileIndex: 'dispatch-projects-current-mobile'
 	};
 
 	// Prevent persistence effects from overwriting saved state during initial restore
 	let restoring = $state(true);
 
-	// Sidebar state
-	let sidebarCollapsed = $state(false);
+	// Bottom sheet state
+	let sessionMenuOpen = $state(false);
 
 	// Responsive layout logic
 	let isMobile = $state(false);
 	let cols = $derived(isMobile ? 1 : layoutPreset === '1up' ? 1 : layoutPreset === '2up' ? 2 : 2);
+	const maxVisible = $derived(isMobile ? 1 : layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1);
 	
 	// Layout tracking for responsive behavior
 	let previousCols = $state(cols);
@@ -50,9 +47,9 @@
 	let visible = $derived.by(() => {
 		console.log('DEBUG visible derivation:', {
 			sessionsCount: sessions.length,
-			pinnedCount: pinned.length,
+			displayedCount: displayed.length,
 			sessions: sessions.map((s) => ({ id: s?.id, type: s?.type })),
-			pinned: pinned,
+			displayed,
 			isMobile: isMobile,
 			currentMobileSession: currentMobileSession
 		});
@@ -72,20 +69,12 @@
 			console.log('Mobile result:', result.length, 'index:', validIndex);
 			return result;
 		} else {
-			// Desktop: show based on layout preset and pinned sessions
-			const pinnedSessions = pinned
-				.map((id) => {
-					const found = sessions.find((s) => s && s.id === id);
-					console.log('Looking for session ID:', id, 'found:', !!found, found?.type);
-					return found;
-				})
+			// Desktop: map displayed slots to sessions
+			const ids = displayed.slice(0, maxVisible);
+			const result = ids
+				.map((id) => sessions.find((s) => s && s.id === id))
 				.filter(Boolean);
-
-			console.log('Pinned sessions found:', pinnedSessions.length);
-
-			const maxSessions = layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1;
-			const result = pinnedSessions.slice(0, maxSessions);
-			console.log('Desktop result:', result.length, 'maxSessions:', maxSessions);
+			console.log('Desktop result:', result.length, 'maxVisible:', maxVisible);
 			return result;
 		}
 	});
@@ -131,6 +120,18 @@
 		}
 	}
 
+	function updateDisplayedWithSession(sessionId) {
+		if (isMobile) {
+			const allSessions = sessions.filter((s) => s && s.id);
+			const idx = allSessions.findIndex((s) => s.id === sessionId);
+			if (idx !== -1) currentMobileSession = idx;
+			return;
+		}
+		const without = displayed.filter((id) => id !== sessionId);
+		const head = without.slice(0, Math.max(0, maxVisible - 1));
+		displayed = [...head, sessionId];
+	}
+
 	async function createTerminalSession(workspacePath) {
 		// Ensure workspace exists
 		await fetch('/api/workspaces', {
@@ -148,17 +149,7 @@
 				if (response.success) {
 					const s = { id: response.id, type: 'pty', workspacePath };
 					sessions = [...sessions, s];
-					// auto-pin newest into grid if there's room
-					const maxVisible = isMobile
-						? 1
-						: layoutPreset === '4up'
-							? 4
-							: layoutPreset === '2up'
-								? 2
-								: 1;
-					if (pinned.length < maxVisible) {
-						pinned = [...pinned, response.id];
-					}
+					updateDisplayedWithSession(response.id);
 					resolve();
 				} else {
 					console.error('Failed to create terminal:', response.error);
@@ -220,33 +211,26 @@
 			shouldResume: true
 		};
 		sessions = [...sessions, s];
-		// auto-pin newest into grid if there's room
-		const maxVisible = isMobile ? 1 : layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1;
-		if (pinned.length < maxVisible) {
-			pinned = [...pinned, id];
-		}
+		updateDisplayedWithSession(id);
 	}
 
-	function togglePin(id) {
-		pinned = pinned.includes(id) ? pinned.filter((x) => x !== id) : [...pinned, id];
-	}
+	// Pinning removed — display is controlled by displayed[]
 
 	// Mobile session navigation
 	function nextMobileSession() {
 		const allSessions = sessions.filter(
 			(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
 		);
-		if (currentMobileSession < allSessions.length - 1) {
-			mobileDirection = 1; // Set direction before changing session
-			currentMobileSession++;
-		}
+		if (allSessions.length === 0) return;
+		currentMobileSession = (currentMobileSession + 1) % allSessions.length;
 	}
 
 	function prevMobileSession() {
-		if (currentMobileSession > 0) {
-			mobileDirection = -1; // Set direction before changing session
-			currentMobileSession--;
-		}
+		const allSessions = sessions.filter(
+			(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
+		);
+		if (allSessions.length === 0) return;
+		currentMobileSession = (currentMobileSession - 1 + allSessions.length) % allSessions.length;
 	}
 
 	// Jump to specific session (for mobile session list)
@@ -262,22 +246,36 @@
 
 	// Responsive detection
 	function updateMobileState() {
-		isMobile = window.innerWidth <= 768;
-		if (isMobile) {
-			// Reset to first session when switching to mobile
-			currentMobileSession = 0;
+		const nowMobile = window.innerWidth <= 768;
+		// Only act on transition between desktop and mobile; don't reset index on every resize
+		if (nowMobile !== isMobile) {
+			// Preserve currentMobileSession; avoid resetting to 0 to prevent jumps when virtual keyboard opens
 		}
+		isMobile = nowMobile;
 
-		// On very small screens, collapse sidebar by default
-		if (window.innerWidth <= 480) {
-			sidebarCollapsed = true;
-		}
 	}
 
-	function toggleSidebar() {
-		sidebarCollapsed = !sidebarCollapsed;
-		// Persist sidebar state
-		localStorage.setItem(STORAGE.sidebar, sidebarCollapsed.toString());
+	function toggleSessionMenu() { sessionMenuOpen = !sessionMenuOpen; }
+
+	async function resumeTerminalSession({ terminalId, workspacePath }) {
+		try {
+			const r = await fetch('/api/sessions', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					type: 'pty',
+					workspacePath,
+					options: { resumeSession: true, terminalId }
+				})
+			});
+			if (!r.ok) throw new Error('Failed to resume terminal');
+			const { id } = await r.json();
+			const s = { id, type: 'pty', workspacePath, resumeSession: true };
+			sessions = [...sessions, s];
+			updateDisplayedWithSession(id);
+		} catch (e) {
+			console.error('Error resuming terminal session:', e);
+		}
 	}
 
 	onMount(async () => {
@@ -291,33 +289,25 @@
 			sessions = [];
 		}
 
+		// Initialize displayed slots once after initial load
+		try {
+			const ids = sessions.filter((s) => s && s.id).map((s) => s.id);
+			if (!isMobile && ids.length > 0) {
+				const desired = ids.slice(0, Math.max(1, maxVisible));
+				displayed = desired;
+			}
+		} catch {}
+
 		// Initialize responsive state
 		updateMobileState();
 		window.addEventListener('resize', updateMobileState);
 
-		// Load saved sidebar state
-		const savedSidebarState = localStorage.getItem(STORAGE.sidebar);
-		if (savedSidebarState) {
-			sidebarCollapsed = savedSidebarState === 'true';
-		}
+		// no sidebar state
 
 		// Restore layout preset
 		const savedLayout = localStorage.getItem(STORAGE.layout);
 		if (savedLayout && ['1up', '2up', '4up'].includes(savedLayout)) {
 			layoutPreset = savedLayout;
-		}
-
-		// Restore pinned order exactly as saved (do not filter — avoid wiping on load)
-		try {
-			const rawPinned = localStorage.getItem(STORAGE.pinned);
-			if (rawPinned) {
-				const savedPinned = JSON.parse(rawPinned);
-				if (Array.isArray(savedPinned)) {
-					pinned = savedPinned;
-				}
-			}
-		} catch (e) {
-			console.warn('Failed to restore pinned sessions:', e);
 		}
 
 		// Restore mobile session index
@@ -347,11 +337,14 @@ onDestroy(() => {
 		} catch {}
 	});
 
+	// Keep displayed slots within bounds when layout changes (prune only)
 	$effect(() => {
-		if (restoring) return;
-		try {
-			if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.pinned, JSON.stringify(pinned));
-		} catch {}
+		if (isMobile) return; // mobile uses currentMobileSession
+		maxVisible; // dependency on layout
+		if (displayed.length > maxVisible) {
+			const next = displayed.slice(Math.max(0, displayed.length - maxVisible));
+			if (next.length !== displayed.length) displayed = next;
+		}
 	});
 
 	$effect(() => {
@@ -362,7 +355,7 @@ onDestroy(() => {
 	});
 </script>
 
-<div class="dispatch-workspace" class:sidebar-collapsed={sidebarCollapsed}>
+<div class="dispatch-workspace">
 	<!-- Compact Header -->
 	<header class="header">
 		<div class="header-brand">
@@ -372,53 +365,9 @@ onDestroy(() => {
 			<span class="brand-text">Dispatch</span>
 		</div>
 
-		<!-- Sidebar toggle -->
-		<Button
-			onclick={toggleSidebar}
-			text=""
-			variant="ghost"
-			size="small"
-			augmented="tl-clip br-clip both"
-			ariaLabel={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-			class="sidebar-toggle"
-		>
-			{#snippet icon()}
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					{#if sidebarCollapsed}
-						<path d="M9 18l6-6-6-6"/>
-					{:else}
-						<path d="M15 18l-6-6 6-6"/>
-					{/if}
-				</svg>
-			{/snippet}
-		</Button>
+		<!-- Sessions toggle moved to status bar -->
 
-		<div class="header-actions">
-			<Button
-				onclick={() => (terminalModalOpen = true)}
-				text=""
-				variant="ghost"
-				size="small"
-				augmented="tl-clip br-clip both"
-				ariaLabel="Create terminal session"
-			>
-				{#snippet icon()}
-					<TerminalIcon />
-				{/snippet}
-			</Button>
-			<Button
-				onclick={() => (claudeModalOpen = true)}
-				text=""
-				variant="ghost"
-				size="small"
-				augmented="tl-clip br-clip both"
-				ariaLabel="Create claude session"
-			>
-				{#snippet icon()}
-					<ClaudeIcon />
-				{/snippet}
-			</Button>
-		</div>
+		<div class="header-actions"></div>
 
 		<!-- Layout controls for desktop only -->
 		{#if !isMobile}
@@ -439,60 +388,67 @@ onDestroy(() => {
 			</div>
 		{/if}
 
-		<!-- Mobile session navigation -->
-		{#if isMobile && visible.length > 0}
-			<div class="mobile-session-nav">
-				<Button
-					onclick={prevMobileSession}
-					text="←"
-					variant="ghost"
-					size="small"
-					augmented="tl-clip both"
-					disabled={currentMobileSession === 0}
-				>
-					{#snippet icon()}{/snippet}
-					{#snippet children()}&lt;{/snippet}
-				</Button>
-				<span class="session-counter">
-					{currentMobileSession + 1} / {sessions.filter(
-						(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
-					).length}
-				</span>
-				<Button
-					onclick={nextMobileSession}
-					text="→"
-					variant="ghost"
-					size="small"
-					augmented="br-clip both"
-					disabled={currentMobileSession >=
-						sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length -
-							1}
-				>
-					{#snippet icon()}{/snippet}
-				</Button>
-			</div>
-		{/if}
+		<!-- Mobile session navigation moved to bottom bar -->
 	</header>
 
-	<!-- Session Management Sidebar -->
-	<aside class="sidebar" class:collapsed={sidebarCollapsed}>
-		<ProjectSessionMenu 
-			storagePrefix="dispatch-projects" 
-			bind:selectedProject
-			on:sessionSelected={(e) => {
-				const sessionId = e.detail?.id;
-				if (!sessionId) return;
-				const projectName = selectedProject || 'project';
-				createClaudeSession({
-					workspacePath: projectName,
-					sessionId,
-					projectName,
-					resumeSession: true,
-					createWorkspace: true
-				});
-			}}
-		/>
-	</aside>
+	<!-- Bottom sheet for sessions -->
+	{#if sessionMenuOpen}
+		<div class="session-sheet-backdrop" onclick={() => (sessionMenuOpen = false)}></div>
+		<div class="session-sheet" role="dialog" aria-label="Sessions">
+			<div class="sheet-header">
+				<div class="sheet-title">Sessions</div>
+				<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close">✕</button>
+			</div>
+			<div class="sheet-body">
+				<ProjectSessionMenu 
+					storagePrefix="dispatch-projects" 
+					bind:selectedProject
+					onNewSession={(e) => {
+						const { type } = e.detail || {};
+						if (type === 'claude') {
+							claudeModalOpen = true;
+						} else if (type === 'pty') {
+							terminalModalOpen = true;
+						}
+					}}
+					onSessionSelected={(e) => {
+						const detail = e.detail || {};
+						if (!detail.id) return;
+						// If already running, just show it immediately
+						const existing = sessions.find((s) => {
+							if (!s) return false;
+							if (detail.type === 'claude') {
+								return s.type === 'claude' && (s.claudeSessionId === detail.id || s.sessionId === detail.id || s.id === detail.id);
+							}
+							if (detail.type === 'pty') {
+								return s.type === 'pty' && s.id === detail.id;
+							}
+							return false;
+						});
+						if (existing) {
+							updateDisplayedWithSession(existing.id);
+							sessionMenuOpen = false;
+							return;
+						}
+						if (detail.type === 'claude') {
+							const projectName = detail.projectName || selectedProject || 'project';
+							createClaudeSession({
+								workspacePath: projectName,
+								sessionId: detail.id,
+								projectName,
+								resumeSession: true,
+								createWorkspace: false
+							});
+							sessionMenuOpen = false;
+						} else if (detail.type === 'pty') {
+							resumeTerminalSession({ terminalId: detail.id, workspacePath: detail.workspacePath || selectedProject });
+							sessionMenuOpen = false;
+						}
+					}}
+				/>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Main Workspace -->
 	<main class="main-content" style={`--cols: ${cols};`}>
@@ -520,13 +476,13 @@ onDestroy(() => {
 								: { y: -20, duration: 300, delay: index * 40, easing: cubicOut }
 							}
 						>
-							<div class="terminal-header">
+							<!-- <div class="terminal-header">
 								<div class="terminal-status">
 									<span class="status-dot"></span>
 									<span class="terminal-type">{s.type === 'claude' ? 'Claude' : 'Terminal'}</span>
 								</div>
 								<div class="terminal-info">Session {s.id.slice(0, 6)}</div>
-							</div>
+							</div> -->
 							<div class="terminal-viewport">
 								{#if s.type === 'pty'}
 									<TerminalPane 
@@ -550,6 +506,23 @@ onDestroy(() => {
 	</main>
 </div>
 
+<div class="status-bar">
+  <div class="left-group">
+    {#if isMobile}
+    <button class="bottom-btn" onclick={prevMobileSession} disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length === 0} aria-label="Previous session">←</button>
+    <span class="session-counter">
+      {Math.min(currentMobileSession + 1, sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length)}
+      /
+      {sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length}
+    </span>
+    <button class="bottom-btn" onclick={nextMobileSession} disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length === 0} aria-label="Next session">→</button>
+    {/if}
+  </div>
+  <div class="right-group">
+    <button class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions">{sessionMenuOpen ? 'Close' : 'Sessions'}</button>
+  </div>
+</div>
+
 <!-- Modals -->
 <TerminalSessionModal
 	bind:open={terminalModalOpen}
@@ -565,21 +538,20 @@ onDestroy(() => {
 	.dispatch-workspace {
 		position: relative;
 		height: 100vh;
+		height: 100dvh;
 		display: grid;
-		grid-template-columns: 30svw 1fr;
+		grid-template-columns: 1fr;
 		grid-template-rows: auto 1fr;
 		grid-template-areas:
-			'header header'
-			'sidebar main';
+			'header'
+			'main';
 		background: var(--bg-dark);
 		color: var(--text-primary);
 		overflow: hidden;
+		/* Avoid horizontal overflow on small screens */
+		max-width: 100svw;
+		width: 100%;
 		transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-	}
-
-	/* Collapsed sidebar layout */
-	.dispatch-workspace.sidebar-collapsed {
-		grid-template-columns: 0px 1fr;
 	}
 
 	/* ========================================
@@ -613,6 +585,14 @@ onDestroy(() => {
 		display: flex;
 	}
 
+	/* Ensure header image scales safely */
+	.brand-icon img {
+		max-width: 100%;
+		height: 28px;
+		width: auto;
+		display: block;
+	}
+
 	.brand-text {
 		color: var(--primary);
 		font-size: 1rem;
@@ -640,11 +620,46 @@ onDestroy(() => {
 		letter-spacing: 0.05em;
 	}
 
-	.mobile-session-nav {
+	/* Status bar (always visible) */
+	.status-bar {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.4rem 0.6rem;
+		/* Respect safe-area and prevent layout overflow */
+		padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+		box-sizing: border-box;
+		width: 100%;
+		max-width: 100svw;
+		background: var(--bg-panel);
+		border-top: 1px solid var(--primary-dim);
+		z-index: 50;
+	}
+	.status-bar .left-group,
+	.status-bar .right-group {
 		display: flex;
 		align-items: center;
-		gap: var(--space-3);
-		margin-left: auto;
+		gap: 0.5rem;
+		min-width: 0; /* allow shrinking */
+	}
+	/* Let left group take remaining space; keep right controls tight */
+	.status-bar .left-group { flex: 1 1 auto; }
+	.status-bar .right-group { flex: 0 0 auto; }
+	.bottom-btn {
+		background: var(--surface-hover);
+		border: 1px solid var(--surface-border);
+		color: var(--text);
+		border-radius: 0.35rem;
+		padding: 0.3rem 0.6rem;
+		font-family: var(--font-mono);
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
+		user-select: none;
+		cursor: pointer;
 	}
 
 	/* Sidebar toggle button */
@@ -661,34 +676,13 @@ onDestroy(() => {
 		color: var(--text-secondary);
 		min-width: 40px;
 		text-align: center;
+		overflow: hidden;
+		text-overflow: ellipsis;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
 
-	/* ========================================
-	   COMPACT SIDEBAR - ONLY WHEN NEEDED
-	   ======================================== */
-	.sidebar {
-		grid-area: sidebar;
-		width: 100%;
-		background: var(--bg-panel);
-		border-right: 1px solid var(--primary-dim);
-		padding: var(--space-3);
-		overflow: hidden;
-		flex-shrink: 0;
-		height: 100%;
-		opacity: 1;
-		transform: translateX(0);
-		transition:
-			opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-			transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-	}
-
-	.sidebar.collapsed {
-		opacity: 0;
-		transform: translateX(-100%);
-		pointer-events: none;
-	}
+	/* Sidebar removed — using bottom sheet */
 
 
 
@@ -699,14 +693,16 @@ onDestroy(() => {
 		grid-area: main;
 		overflow: hidden;
 		position: relative;
+		/* Prevent grid child overflow in narrow viewports */
+		min-width: 0;
 	}
 
-	/* Mobile main content - smooth grid-based sliding */
+	/* Main content leaves room for status bar */
+	.main-content { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+
 	@media (max-width: 768px) {
-		.main-content {
-			min-height: 0; /* Important for grid fr units */
-			overflow: hidden; /* Hide content during slide animation */
-		}
+		/* Tighter brand image on mobile */
+		.brand-icon img { height: 22px; }
 	}
 
 	.empty-workspace {
@@ -747,6 +743,8 @@ onDestroy(() => {
 		height: 100%;
 		overflow: hidden;
 		padding: var(--space-2);
+		/* Ensure grid content can shrink to viewport */
+		min-width: 0;
 		
 		/* NO grid transition - instant layout change to prevent snapping */
 	}
@@ -760,6 +758,8 @@ onDestroy(() => {
 		background: var(--bg-panel);
 		border: 1px solid var(--primary-dim);
 		overflow: hidden;
+		/* Allow shrinking inside grid to prevent width overflow */
+		min-width: 0;
 		
 		/* Simple transitions for hover states */
 		transition: border-color 0.2s ease;
@@ -791,9 +791,6 @@ onDestroy(() => {
 	
 	/* Desktop layout change transitions */
 	@media (min-width: 769px) {
-		.session-grid {
-			/* Instant grid layout - no transition to prevent snapping */
-		}
 		
 		.terminal-container {
 			/* Only animate the containers themselves, not the grid */
@@ -827,33 +824,6 @@ onDestroy(() => {
 			}
 		}
 	}
-
-	.terminal-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: var(--space-2) var(--space-3);
-		background: linear-gradient(135deg, var(--bg-dark), var(--bg-panel));
-		border-bottom: 1px solid var(--primary-dim);
-		min-height: 32px; /* Minimal header height */
-		flex-shrink: 0;
-	}
-
-	.terminal-status {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.status-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: var(--primary);
-		box-shadow: 0 0 4px var(--primary-glow);
-		animation: pulse 2s ease-in-out infinite;
-	}
-
 	@keyframes pulse {
 		0%,
 		100% {
@@ -862,22 +832,6 @@ onDestroy(() => {
 		50% {
 			opacity: 0.7;
 		}
-	}
-
-	.terminal-type {
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		font-weight: 600;
-		color: var(--primary);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.terminal-info {
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		color: var(--text-muted);
-		text-transform: uppercase;
 	}
 
 	.terminal-viewport {
@@ -893,33 +847,14 @@ onDestroy(() => {
 	@media (max-width: 768px) {
 		.dispatch-workspace {
 			grid-template-columns: 1fr !important;
-			grid-template-rows: auto 1fr 1fr;
+			grid-template-rows: auto 1fr;
 			grid-template-areas:
 				'header'
-				'sidebar'
 				'main';
-			/* Smooth grid transitions on mobile */
 			transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 			height: 100vh;
+			height: 100dvh; /* dynamic viewport to avoid overflow when URL bar shows */
 			overflow: hidden;
-		}
-
-		/* On mobile, sidebar collapse means hiding sidebar, main takes full space */
-		.dispatch-workspace.sidebar-collapsed {
-			grid-template-rows: auto 0fr 1fr;
-			grid-template-areas:
-				'header'
-				'sidebar'
-				'main';
-		}
-
-		/* When sidebar is open, main content slides down */
-		.dispatch-workspace:not(.sidebar-collapsed) {
-			grid-template-rows: auto 1fr 0fr;
-			grid-template-areas:
-				'header'
-				'sidebar'
-				'main';
 		}
 
 		.header {
@@ -936,83 +871,83 @@ onDestroy(() => {
 			justify-content: center;
 		}
 
-		.sidebar {
-			width: 100%;
-			min-height: 0; /* Important for grid fr units */
-			padding: var(--space-4);
-			border-bottom: 1px solid var(--primary-dim);
-			overflow: hidden; /* Hide content that would overflow during animation */
-			display: flex;
-			flex-direction: column;
+		.session-grid { 
+			grid-template-columns: 1fr !important; 
+			padding: 0; /* Remove padding for flush mobile viewport */
+			gap: 0; /* Remove gaps for flush mobile viewport */
 		}
-
-		.sidebar.collapsed {
-			/* When collapsed, sidebar shrinks to 0 height via grid animation */
-		}
-
-
-
-		.session-grid {
-			grid-template-columns: 1fr !important;
-		}
-
-		.terminal-header {
-			padding: var(--space-2);
-		}
-
-		.brand-text {
-			display: none; /* Save space on mobile */
-		}
+		.brand-text { display: none; }
 	}
 
-	/* Very small screens - keep sidebar toggle but hide sidebar by default */
+	/* Very small screens */
 	@media (max-width: 480px) {
 		.dispatch-workspace {
-			grid-template-rows: min-content 0px auto !important;
+			grid-template-rows: min-content auto !important;
 			grid-template-areas:
 				'header'
-				'sidebar'
 				'main' !important;
 			transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-		}
-
-		/* Force sidebar collapsed by default on very small screens */
-		.dispatch-workspace:not(.sidebar-collapsed) {
-			grid-template-rows: min-content auto 0px !important;
-			grid-template-areas:
-				'header'
-				'sidebar'
-				'main' !important;
-			transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-			main {
-				opacity: 0;
-			}
-		}
-
-		.sidebar {
-			/* Don't force hide - let the collapse state control visibility */
-
-			overflow-y: auto;
 		}
 	}
 
+	/* Session bottom sheet */
+	.session-sheet-backdrop {
+		position: fixed;
+		top: 0; left: 0; right: 0; bottom: 0;
+		background: rgba(0,0,0,0.4);
+		z-index: 60;
+		-webkit-tap-highlight-color: transparent;
+	}
+	.session-sheet {
+		position: fixed;
+		left: 0; right: 0; bottom: 0;
+		background: var(--bg);
+		border-top: 1px solid var(--primary-dim);
+		max-height: 90vh;
+		max-height: 90dvh;
+		height: auto;
+		overflow: hidden;
+		z-index: 70;
+		box-shadow: 0 -8px 24px rgba(0,0,0,0.3);
+		display: flex; 
+		flex-direction: column;
+		transform: translateY(0);
+		transition: transform 0.3s ease-out;
+	}
+	.sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--primary-dim); }
+	.sheet-title { font-family: var(--font-mono); font-weight: 700; color: var(--primary); }
+	.sheet-close { 
+		background: var(--surface-hover); 
+		border: 1px solid var(--surface-border); 
+		color: var(--text); 
+		border-radius: 0.35rem; 
+		padding: 0.25rem 0.5rem;
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
+		user-select: none;
+		cursor: pointer;
+	}
+	.sheet-body { overflow: auto; min-height: 0; padding: 0.5rem; }
+
+	/* Mobile-specific touch improvements */
+	@media (hover: none) and (pointer: coarse) {
+		.bottom-btn:active,
+		.sheet-close:active {
+			opacity: 0.8;
+			transform: scale(0.95);
+		}
+	}
+	
 	/* ========================================
 	   ACCESSIBILITY & PERFORMANCE
 	   ======================================== */
-	@media (prefers-reduced-motion: reduce) {
-		.status-dot {
-			animation: none;
-		}
-	}
+
 
 	/* Focus management: removed old sidebar session-item styles */
 
 	/* High DPI displays - optimize for developer monitors */
 	@media (min-resolution: 144dpi) {
-		.terminal-header {
-			min-height: 28px;
-		}
-
+	
 		.header {
 			min-height: 45px;
 		}
