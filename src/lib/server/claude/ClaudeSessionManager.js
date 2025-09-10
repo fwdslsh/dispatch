@@ -91,6 +91,9 @@ export class ClaudeSessionManager {
 				prompt: userInput,
 				options: {
 					...s.options,
+					// When resuming, keep history bounded to avoid context overflows
+					// Reduce maxTurns specifically for resumed sessions
+					maxTurns: s.resumeCapable ? Math.min(20, this.defaultOptions.maxTurns || 20) : (this.defaultOptions.maxTurns || 20),
 					continue: !!s.resumeCapable,
 					...(s.resumeCapable ? { resume: s.sessionId } : {}),
 					stderr: (data) => {
@@ -114,6 +117,37 @@ export class ClaudeSessionManager {
 			}
 		} catch (error) {
 			console.error(`Error in Claude session ${id}:`, error);
+			// If the prompt/history is too long, retry without resuming history
+			const msg = String(error?.message || '');
+			const isTooLong = msg.toLowerCase().includes('prompt too long') || msg.toLowerCase().includes('context') && msg.toLowerCase().includes('too') && msg.toLowerCase().includes('long');
+			if (isTooLong) {
+				try {
+					const debugEnv = { ...process.env, HOME: process.env.HOME };
+					const fresh = query({
+						prompt: userInput,
+						options: {
+							...s.options,
+							// Start a fresh turn without resuming prior history
+							continue: false,
+							maxTurns: Math.min(20, this.defaultOptions.maxTurns || 20),
+							stderr: (data) => { try { console.error(`[Claude stderr ${s.sessionId}]`, data); } catch {} },
+							env: debugEnv
+						}
+					});
+
+					for await (const event of fresh) {
+						if (event && this.io) this.io.emit('message.delta', [event]);
+					}
+					return;
+				} catch (retryErr) {
+					console.error('Retry without resume failed:', retryErr);
+					if (this.io) {
+						this.io.emit('error', { message: 'Failed to process message', error: String(retryErr?.message || retryErr) });
+					}
+					return;
+				}
+			}
+
 			if (this.io) {
 				this.io.emit('error', {
 					message: 'Failed to process message',

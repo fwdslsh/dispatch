@@ -141,19 +141,61 @@
 	}
 
 	function pushLiveIcon(e) {
-		const { symbol, label } = iconForEventType(e);
-		const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-		// Avoid spamming duplicates back-to-back
-		const last = liveEventIcons[liveEventIcons.length - 1];
-		if (!last || last.symbol !== symbol) {
+		// Enhanced event detection for live events
+		let iconData = null;
+		
+		// Check for tool use in assistant messages
+		if (e?.type === 'assistant' && e?.message?.content && Array.isArray(e.message.content)) {
+			const toolUse = e.message.content.find(c => c && c.type === 'tool_use');
+			if (toolUse) {
+				// Extract tool information and create appropriate icon
+				const toolName = (toolUse.name || '').toString().toLowerCase();
+				const toolInput = toolUse.input || {};
+				
+				// Create event object with tool details
+				const toolEvent = {
+					type: 'tool',
+					tool: toolUse.name,
+					name: toolUse.name,
+					input: toolInput,
+					id: toolUse.id
+				};
+				
+				iconData = iconForEventType(toolEvent);
+				// Store the tool event for activity summary
+				iconData.event = toolEvent;
+			}
+		}
+		
+		// If no icon data extracted yet, use default extraction
+		if (!iconData) {
+			iconData = iconForEventType(e);
+			iconData.event = e;
+		}
+		
+		const { symbol, label, event } = iconData;
+		
+		// More aggressive duplicate prevention
+		// Check if we already have this exact icon type in the last few icons
+		const recentIcons = liveEventIcons.slice(-3);
+		const isDuplicate = recentIcons.some(icon => 
+			icon.symbol === symbol && icon.label === label
+		);
+		
+		// Also limit total icons to prevent overflow
+		if (!isDuplicate && liveEventIcons.length < 20) {
+			const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 			// Store the full event data for display
 			liveEventIcons = [...liveEventIcons, { 
 				id, 
 				symbol, 
 				label,
-				event: e,
+				event: event || e,
 				timestamp: new Date()
-			}]; // Removed slice to allow unlimited icons
+			}];
+			console.log('Added live icon:', { symbol, label, totalIcons: liveEventIcons.length });
+		} else if (liveEventIcons.length >= 20) {
+			console.log('Icon limit reached, not adding more icons');
 		}
 	}
 	
@@ -211,20 +253,35 @@
 						if (entry.type === 'assistant' && entry.message?.content && Array.isArray(entry.message.content)) {
 							const toolItems = entry.message.content.filter((c) => c && c.type === 'tool_use');
 							if (toolItems.length > 0) {
-								const name = (toolItems[0].name || '').toString();
+								const toolUse = toolItems[0];
+								const name = (toolUse.name || '').toString();
 								const mapped = iconForEventType({ type: 'tool', tool: name });
-								return { ...mapped, event: entry };
+								// Provide a simplified event with tool metadata so ActivitySummary can render specifics
+								const event = {
+									type: 'tool',
+									tool: toolUse.name,
+									name: toolUse.name,
+									input: toolUse.input,
+									id: toolUse.id
+								};
+								return { ...mapped, event };
 							}
 						}
 						// user tool_result events
 						if (entry.type === 'user' && entry.message?.content) {
 							const content = entry.message.content;
-							const hasToolResult = Array.isArray(content)
-								? content.some((c) => c && c.type === 'tool_result')
-								: (content && typeof content === 'object' && content.type === 'tool_result');
-							if (hasToolResult) {
+							const toolResultObj = Array.isArray(content)
+								? content.find((c) => c && c.type === 'tool_result')
+								: (content && typeof content === 'object' && content.type === 'tool_result' ? content : null);
+							if (toolResultObj) {
 								const mapped = iconForEventType({ type: 'tool_result', name: 'tool_result' });
-								return { ...mapped, event: entry };
+								// Use the specific tool_result object as event data, and ensure name/tool present
+								const event = {
+									...toolResultObj,
+									name: toolResultObj.name || 'tool_result',
+									tool: toolResultObj.name || 'tool_result'
+								};
+								return { ...mapped, event };
 							}
 						}
 					} catch {}
@@ -312,10 +369,10 @@
 		});
 
 		socket.on('message.delta', async (payload) => {
-			console.log('Received message.delta:', payload);
 			// payload is an array; in our setup typically of length 1
 			for (const evt of payload || []) {
-				console.log('Processing event:', evt);
+				// Skip empty or malformed events
+				if (!evt || typeof evt !== 'object') continue;
 				
 				// Check if this is a text content event from assistant
 				if (evt?.type === 'assistant' && evt?.message?.content) {
@@ -343,7 +400,10 @@
 						isWaitingForReply = true; // Keep waiting for more potential messages
 					} else {
 						// Non-text assistant content (tool use, etc.)
-						pushLiveIcon(evt);
+						// Only push if we have meaningful tool content
+						if (evt.message.content.some && evt.message.content.some(c => c && c.type === 'tool_use')) {
+							pushLiveIcon(evt);
+						}
 					}
 				} else if (evt?.type === 'result') {
 					// Final aggregated result - use if no individual messages were sent
@@ -372,8 +432,22 @@
 					isWaitingForReply = false;
 					liveEventIcons = []; // Clear for next conversation turn
 				} else {
-					// Other event types (tool use, status, etc.) - accumulate as icons
-					pushLiveIcon(evt);
+					// Other event types - be selective about what creates icons
+					// Only create icons for meaningful events
+					const eventType = (evt?.type || '').toLowerCase();
+					const eventName = (evt?.name || evt?.tool || '').toLowerCase();
+					
+					// Skip certain event types that shouldn't create icons
+					if (eventType === 'status' || eventType === 'progress' || eventType === 'ping') {
+						continue;
+					}
+					
+					// Only push icon for tool-related events or specific types
+					if (eventType === 'tool' || eventType === 'tool_use' || eventType === 'tool_result' ||
+					    eventName.includes('read') || eventName.includes('write') || eventName.includes('bash') ||
+					    eventName.includes('grep') || eventName.includes('edit') || eventName.includes('glob')) {
+						pushLiveIcon(evt);
+					}
 				}
 			}
 			// Scroll to show the latest state (icons or final message)

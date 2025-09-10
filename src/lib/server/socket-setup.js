@@ -150,18 +150,37 @@ async function directResume(socket, id, prompt) {
 		}
 	} catch {}
 
-	const stream = query({
-		prompt,
-		options: {
-			continue: true,
-			resume: sessionId,
-			cwd,
-			stderr: (data) => { try { console.error(`[Claude stderr ${sessionId}]`, data); } catch {} },
-			env: { ...process.env, HOME: process.env.HOME }
-		}
-	});
+	try {
+		const stream = query({
+			prompt,
+			options: {
+				continue: true,
+				resume: sessionId,
+				cwd,
+				stderr: (data) => { try { console.error(`[Claude stderr ${sessionId}]`, data); } catch {} },
+				env: { ...process.env, HOME: process.env.HOME }
+			}
+		});
 
-	for await (const event of stream) {
-		if (event) socket.emit('message.delta', [event]);
+		for await (const event of stream) {
+			if (event) socket.emit('message.delta', [event]);
+		}
+	} catch (err) {
+		const msg = String(err?.message || '').toLowerCase();
+		const tooLong = msg.includes('prompt too long') || (msg.includes('context') && msg.includes('too') && msg.includes('long'));
+		if (!tooLong) throw err;
+		// Retry without resuming history
+		const fresh = query({
+			prompt,
+			options: {
+				continue: false,
+				cwd,
+				stderr: (data) => { try { console.error(`[Claude stderr ${sessionId}]`, data); } catch {} },
+				env: { ...process.env, HOME: process.env.HOME }
+			}
+		});
+		for await (const event of fresh) {
+			if (event) socket.emit('message.delta', [event]);
+		}
 	}
 }

@@ -40,10 +40,8 @@
 	let cols = $derived(isMobile ? 1 : layoutPreset === '1up' ? 1 : layoutPreset === '2up' ? 2 : 2);
 	const maxVisible = $derived(isMobile ? 1 : layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1);
 	
-	// Layout tracking for responsive behavior
-	let previousCols = $state(cols);
-	let previousMobileSession = $state(currentMobileSession);
-	let mobileDirection = $state(0); // -1 for left, 1 for right
+    // Layout tracking for responsive behavior
+    let previousCols = $state(0);
 	let visible = $derived.by(() => {
 		console.log('DEBUG visible derivation:', {
 			sessionsCount: sessions.length,
@@ -79,7 +77,7 @@
 		}
 	});
 	
-	// Track layout and mobile session changes
+	// Track layout changes for responsive behavior
 	$effect(() => {
 		previousCols = cols;
 		
@@ -160,25 +158,31 @@
 		});
 	}
 
-	async function createClaudeSession({ workspacePath, sessionId, projectName, resumeSession, createWorkspace = false }) {
+	async function createClaudeSession({
+		workspacePath,
+		sessionId,
+		projectName,
+		resumeSession,
+		createWorkspace = false
+	}) {
 		// For new workspaces, construct the proper path using WORKSPACES_ROOT
 		let actualWorkspacePath = workspacePath;
 		if (createWorkspace) {
 			// The backend will construct the full path using WORKSPACES_ROOT
 			actualWorkspacePath = workspacePath; // Just the project name for new workspaces
 		}
-		
+
 		// Ensure workspace exists
 		const workspaceResponse = await fetch('/api/workspaces', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ 
-				action: createWorkspace ? 'create' : 'open', 
+			body: JSON.stringify({
+				action: createWorkspace ? 'create' : 'open',
 				path: actualWorkspacePath,
-				isNewProject: createWorkspace 
+				isNewProject: createWorkspace
 			})
 		});
-		
+
 		const workspaceData = await workspaceResponse.json();
 		const finalWorkspacePath = workspaceData.path;
 
@@ -202,10 +206,10 @@
 		}
 
 		const { id, sessionId: claudeSessionId } = await r.json();
-		const s = { 
-			id, 
-			type: 'claude', 
-			workspacePath, 
+		const s = {
+			id,
+			type: 'claude',
+			workspacePath,
 			projectName,
 			claudeSessionId,
 			shouldResume: true
@@ -324,7 +328,7 @@
 		restoring = false;
 	});
 
-onDestroy(() => {
+	onDestroy(() => {
 		// Clean up any resources if needed
 		window.removeEventListener('resize', updateMobileState);
 	});
@@ -350,7 +354,8 @@ onDestroy(() => {
 	$effect(() => {
 		if (restoring) return;
 		try {
-			if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE.mobileIndex, String(currentMobileSession));
+			if (typeof localStorage !== 'undefined')
+				localStorage.setItem(STORAGE.mobileIndex, String(currentMobileSession));
 		} catch {}
 	});
 </script>
@@ -464,8 +469,8 @@ onDestroy(() => {
 			<div class="session-grid">
 				{#each visible as s, index (s.id)}
 					{#if s && typeof s === 'object' && 'id' in s && 'type' in s}
-						<div 
-							class="terminal-container" 
+						<div
+							class="terminal-container"
 							style="--animation-index: {index};"
 							in:fly|global={isMobile 
 								? { x: mobileDirection * 60, duration: 350, easing: cubicOut }
@@ -476,23 +481,23 @@ onDestroy(() => {
 								: { y: -20, duration: 300, delay: index * 40, easing: cubicOut }
 							}
 						>
-							<!-- <div class="terminal-header">
+							<div class="terminal-header">
 								<div class="terminal-status">
-									<span class="status-dot"></span>
+									<span class="status-dot {s.type}"></span>
 									<span class="terminal-type">{s.type === 'claude' ? 'Claude' : 'Terminal'}</span>
 								</div>
 								<div class="terminal-info">Session {s.id.slice(0, 6)}</div>
 							</div> -->
 							<div class="terminal-viewport">
 								{#if s.type === 'pty'}
-									<TerminalPane 
-										ptyId={s.id} 
+									<TerminalPane
+										ptyId={s.id}
 										shouldResume={s.resumeSession || false}
 										workspacePath={s.workspacePath}
 									/>
 								{:else}
-									<ClaudePane 
-										sessionId={s.claudeSessionId || s.sessionId || s.id} 
+									<ClaudePane
+										sessionId={s.claudeSessionId || s.sessionId || s.id}
 										claudeSessionId={s.claudeSessionId || s.sessionId}
 										shouldResume={s.resumeSession || false}
 									/>
@@ -595,7 +600,7 @@ onDestroy(() => {
 
 	.brand-text {
 		color: var(--primary);
-		font-size: 1rem;
+		font-size: 1.5rem;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
@@ -739,7 +744,7 @@ onDestroy(() => {
 	.session-grid {
 		display: grid;
 		grid-template-columns: repeat(var(--cols), 1fr);
-		gap: var(--space-2); /* Consistent minimal gaps */
+		gap: var(--space-1); /* Consistent minimal gaps */
 		height: 100%;
 		overflow: hidden;
 		padding: var(--space-2);
@@ -764,22 +769,22 @@ onDestroy(() => {
 		/* Simple transitions for hover states */
 		transition: border-color 0.2s ease;
 	}
-	
+
 	.terminal-container:hover {
 		border-color: var(--primary);
 	}
-	
+
 	/* Mobile session switching with modern CSS */
 	@media (max-width: 768px) {
 		.terminal-container {
-			transition: 
+			transition:
 				transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
 				opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
 				box-shadow 0.2s ease,
 				border-color 0.2s ease;
 			transition-behavior: allow-discrete;
 		}
-		
+
 		/* Mobile starting style - slide from right */
 		@starting-style {
 			.terminal-container {
@@ -788,35 +793,35 @@ onDestroy(() => {
 			}
 		}
 	}
-	
+
 	/* Desktop layout change transitions */
 	@media (min-width: 769px) {
 		
 		.terminal-container {
 			/* Only animate the containers themselves, not the grid */
-			transition: 
+			transition:
 				transform 0.5s cubic-bezier(0.23, 1, 0.32, 1),
 				opacity 0.4s cubic-bezier(0.23, 1, 0.32, 1),
 				box-shadow 0.2s ease,
 				border-color 0.2s ease;
 		}
 	}
-	
+
 	/* Accessibility: reduced motion */
 	@media (prefers-reduced-motion: reduce) {
 		.terminal-container {
 			transition: opacity 0.2s ease;
 		}
-		
+
 		.terminal-container:hover {
 			transform: none !important;
 			box-shadow: none !important;
 		}
-		
+
 		.session-grid {
 			transition: none;
 		}
-		
+
 		@starting-style {
 			.terminal-container {
 				opacity: 0;
@@ -937,7 +942,7 @@ onDestroy(() => {
 			transform: scale(0.95);
 		}
 	}
-	
+
 	/* ========================================
 	   ACCESSIBILITY & PERFORMANCE
 	   ======================================== */

@@ -22,7 +22,7 @@
 			};
 			
 			// Extract interesting properties
-			const skipKeys = ['type', 'tool', 'name', 'input', 'result', 'error', 'success', 'message'];
+			const skipKeys = ['type', 'tool', 'name', 'input', 'result', 'error', 'success', 'message', 'content'];
 			
 			for (const [key, value] of Object.entries(e)) {
 				if (!skipKeys.includes(key) && value !== undefined && value !== null) {
@@ -35,8 +35,22 @@
 				info.inputSummary = getObjectSummary(e.input);
 			}
 			
-			// Add result summary if present
-			if (e.result) {
+			// Check for nested content structure (from JSONL)
+			if (e.content) {
+				// Handle tool_result content structure
+				if (typeof e.content === 'string') {
+					info.resultMessage = e.content;
+				} else if (typeof e.content === 'object') {
+					// Extract from nested content
+					info.resultSummary = getObjectSummary(e.content);
+					if (e.content.message) {
+						info.resultMessage = extractMessageContent(e.content.message);
+					}
+				}
+			}
+			
+			// Add result summary if present (fallback for non-nested structure)
+			if (e.result && !info.resultMessage && !info.resultSummary) {
 				info.resultSummary = getObjectSummary(e.result);
 				// Check if result contains message content
 				if (typeof e.result === 'object' && e.result.message) {
@@ -48,7 +62,7 @@
 			}
 			
 			// Check for message property at top level
-			if (e.message) {
+			if (e.message && !info.messageContent) {
 				info.messageContent = extractMessageContent(e.message);
 			}
 			
@@ -138,6 +152,7 @@
 </script>
 
 <div class="activity-detail generic-activity">
+	Basic
 	{#if eventInfo}
 		<div class="activity-row">
 			<span class="activity-label">Type</span>

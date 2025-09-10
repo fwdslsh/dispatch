@@ -82,7 +82,7 @@
 
 <svelte:head>
     <title>Claude Session Browser</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 </svelte:head>
 
 <main class="session-browser">
@@ -165,6 +165,8 @@
         background: var(--bg);
         color: var(--text);
         font-family: var(--font-sans);
+        overflow-x: hidden;
+        width: 100%;
     }
 
     .container {
@@ -192,6 +194,8 @@
         margin: 0;
         letter-spacing: -0.02em;
         text-shadow: 0 0 30px rgba(46, 230, 107, 0.2);
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
 
     .refresh-btn {
@@ -209,6 +213,8 @@
         font-variant: normal;
         text-rendering: auto;
         -webkit-font-smoothing: antialiased;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
 
     .refresh-btn:hover:not(:disabled) {
@@ -442,10 +448,12 @@
         z-index: 999;
         transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         overflow-y: auto;
+        overflow-x: hidden;
         box-shadow: 
             4px 0 24px rgba(0, 0, 0, 0.15),
             2px 0 48px rgba(46, 230, 107, 0.1);
         border-right: 1px solid var(--primary-dim);
+        padding: 0.5rem;
     }
 
     .mobile-sidebar.show-sidebar {
@@ -488,12 +496,14 @@
     /* Mobile Styles */
     @media (max-width: 767px) {
         .container {
-            padding: 0;
+            padding: 0 0.5rem;
             max-width: 100%;
+            overflow-x: hidden;
         }
 
         .browser-header {
-            padding: 1rem;
+            padding: 0.75rem;
+            margin: 0 -0.5rem;
             margin-bottom: 0;
             position: sticky;
             top: 0;
@@ -520,6 +530,7 @@
         .main-layout.mobile-layout {
             display: block;
             height: calc(100vh - 70px);
+            padding: 0.5rem 0;
         }
 
         .browser-section {

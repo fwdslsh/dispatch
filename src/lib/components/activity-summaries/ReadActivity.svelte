@@ -18,7 +18,7 @@
 					offset: e.offset || null,
 					success: e.result !== undefined || e.success !== false,
 					error: e.error || null,
-					preview: extractPreview(e.result)
+					preview: extractPreview(e.result || e.content)
 				};
 			}
 			
@@ -28,9 +28,9 @@
 					path: e.input.file_path || e.input.path || 'Unknown file',
 					lines: e.input.limit || null,
 					offset: e.input.offset || null,
-					success: e.result !== undefined || e.success !== false,
+					success: e.result !== undefined || e.content !== undefined || e.success !== false,
 					error: e.error || null,
-					preview: extractPreview(e.result)
+					preview: extractPreview(e.result || e.content)
 				};
 			}
 			
@@ -55,6 +55,7 @@
 	function extractPreview(result) {
 		if (!result) return null;
 		
+		// Direct string content
 		if (typeof result === 'string') {
 			// Take first 500 chars as preview for better context
 			const preview = result.substring(0, 500);
@@ -65,8 +66,22 @@
 			};
 		}
 		
+		// Check for nested content property (JSONL structure)
 		if (result.content) {
-			const content = result.content;
+			const content = typeof result.content === 'string' 
+				? result.content 
+				: (result.content.text || JSON.stringify(result.content, null, 2));
+			const preview = content.substring(0, 500);
+			return {
+				text: preview + (content.length > 500 ? '...' : ''),
+				totalLength: content.length,
+				lines: content.split('\n').length
+			};
+		}
+		
+		// Check for text property
+		if (result.text) {
+			const content = result.text;
 			const preview = content.substring(0, 500);
 			return {
 				text: preview + (content.length > 500 ? '...' : ''),
@@ -79,6 +94,17 @@
 		if (result.error) {
 			return {
 				error: result.error
+			};
+		}
+		
+		// For objects, try to extract meaningful data
+		if (typeof result === 'object' && result !== null) {
+			const text = JSON.stringify(result, null, 2);
+			const preview = text.substring(0, 500);
+			return {
+				text: preview + (text.length > 500 ? '...' : ''),
+				totalLength: text.length,
+				lines: text.split('\n').length
 			};
 		}
 		
