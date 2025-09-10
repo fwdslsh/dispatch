@@ -2,9 +2,14 @@
     import { onMount } from 'svelte';
     import ClaudePane from '$lib/components/ClaudePane.svelte';
     import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
+    import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
+    import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
     
     let isMobileView = $state(false);
     let showSidebar = $state(false);
+    let claudeModalOpen = $state(false);
+    let terminalModalOpen = $state(false);
+    let workspaces = $state([]);
 
     // Persistence keys
     const STORAGE = {
@@ -44,12 +49,94 @@
         return 'Unknown Project';
     }
 
+    async function createClaudeSession({ workspacePath, sessionId, projectName, resumeSession, createWorkspace = false }) {
+        try {
+            // Create a new Claude session via API
+            const response = await fetch('/api/claude/sessions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    projectName: workspacePath,
+                    sessionId: resumeSession ? sessionId : undefined,
+                    createWorkspace
+                })
+            });
 
-    onMount(() => {
+            if (!response.ok) {
+                throw new Error('Failed to create Claude session');
+            }
+
+            const data = await response.json();
+            
+            // Select the newly created session
+            selectedProject = workspacePath;
+            selectedSession = data.sessionId || sessionId;
+            
+            // Refresh the menu to show the new session
+            if (menuRef) {
+                await menuRef.refresh();
+            }
+        } catch (err) {
+            console.error('Failed to create Claude session:', err);
+            error = 'Failed to create Claude session: ' + err.message;
+        }
+    }
+
+    async function createTerminalSession({ workspacePath, shell, env }) {
+        try {
+            // Create a new terminal session via API
+            const response = await fetch('/api/sessions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    workspacePath,
+                    type: 'pty',
+                    shell,
+                    env
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create terminal session');
+            }
+
+            const data = await response.json();
+            
+            // Select the newly created session
+            selectedProject = workspacePath;
+            selectedSession = data.sessionId;
+            
+            // Refresh the menu to show the new session
+            if (menuRef) {
+                await menuRef.refresh();
+            }
+        } catch (err) {
+            console.error('Failed to create terminal session:', err);
+            error = 'Failed to create terminal session: ' + err.message;
+        }
+    }
+
+
+    onMount(async () => {
         // Initial UI state
         checkMobileView();
         const savedSidebar = localStorage.getItem(STORAGE.showSidebar);
         if (savedSidebar != null) showSidebar = savedSidebar === 'true';
+
+        // Load workspaces for terminal session modal
+        try {
+            const response = await fetch('/api/workspaces');
+            if (response.ok) {
+                const data = await response.json();
+                workspaces = data.list || [];
+            }
+        } catch (err) {
+            console.error('Failed to load workspaces:', err);
+        }
 
         window.addEventListener('resize', checkMobileView);
         return () => {
@@ -125,6 +212,14 @@
                     bind:selectedSession
                     storagePrefix="dispatch-testing"
                     onSessionSelected={() => closeSidebarAndSelect()}
+                    onNewSession={(e) => {
+                        const { type } = e.detail || {};
+                        if (type === 'claude') {
+                            claudeModalOpen = true;
+                        } else if (type === 'pty') {
+                            terminalModalOpen = true;
+                        }
+                    }}
                 />
             </div>
 
@@ -158,6 +253,10 @@
         </div>
     </div>
 </main>
+
+<!-- Modals for creating new sessions -->
+<ClaudeSessionModal bind:open={claudeModalOpen} onSessionCreate={createClaudeSession} />
+<TerminalSessionModal bind:open={terminalModalOpen} {workspaces} onSessionCreate={createTerminalSession} />
 
 <style>
     .session-browser {

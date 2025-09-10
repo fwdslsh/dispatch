@@ -572,6 +572,9 @@
 		border-bottom: 1px solid var(--primary-dim);
 		min-height: 50px; /* Minimal header height */
 		flex-shrink: 0;
+		position: sticky;
+		top: 0;
+		z-index: 40; /* Below modals but above content */
 	}
 
 	.header-brand {
@@ -863,17 +866,17 @@
 		}
 
 		.header {
-			flex-wrap: wrap;
-			min-height: auto;
-			gap: var(--space-3);
-			padding: var(--space-2);
+			flex-wrap: nowrap; /* Keep items in a single row on mobile */
+			min-height: 44px; /* Consistent height on mobile */
+			gap: var(--space-2);
+			padding: var(--space-2) var(--space-3);
+			position: sticky;
+			top: 0;
+			z-index: 40;
 		}
 
 		.header-layout {
-			margin-left: 0;
-			order: 3;
-			flex-basis: 100%;
-			justify-content: center;
+			display: none; /* Hide layout controls on mobile */
 		}
 
 		.session-grid { 
