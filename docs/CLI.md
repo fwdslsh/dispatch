@@ -21,25 +21,27 @@ node bin/dispatch-cli.js --help
 
 ## Quick Start
 
-1. **Generate configuration file:**
+1. **Initialize environment (recommended for first-time setup):**
+   ```bash
+   dispatch init
+   ```
 
+2. **Or generate configuration file manually:**
    ```bash
    dispatch config
    ```
 
-2. **Start Dispatch:**
-
+3. **Start Dispatch:**
    ```bash
    dispatch start --open
    ```
 
-3. **Check status:**
-
+4. **Check status:**
    ```bash
    dispatch status
    ```
 
-4. **Stop container:**
+5. **Stop container:**
    ```bash
    dispatch stop
    ```
@@ -110,11 +112,60 @@ Check if the Dispatch container is currently running.
 
 ### `dispatch config`
 
-Generate an example configuration file at `~/.dispatch/config.yaml`.
+Generate an example configuration file at `~/.dispatch/config.json`.
+
+### `dispatch init [options]`
+
+Initialize Dispatch environment setup. This command automates the setup process for a new Dispatch environment by creating directories, copying configurations, and preparing the environment for first use.
+
+```bash
+# Interactive setup (default)
+dispatch init
+
+# Non-interactive setup with defaults
+dispatch init --non-interactive
+
+# Custom setup
+dispatch init --dispatch-home ~/my-dispatch --projects-dir ~/my-projects --skip-docker
+```
+
+#### Options:
+- `--skip-docker` - Skip Docker image pull
+- `--skip-cli` - Skip making CLI globally available  
+- `--dispatch-home <path>` - Dispatch home directory (default: ~/dispatch)
+- `--projects-dir <path>` - Projects directory (default: ~/dispatch/projects)
+- `--non-interactive` - Run in non-interactive mode (no prompts, uses defaults)
+
+#### Interactive vs Non-Interactive Mode
+
+**Interactive Mode (default):**
+- Prompts for confirmation before creating directories
+- Asks for custom paths if you don't want defaults
+- Confirms before copying configurations
+- Asks before making CLI globally available
+- Prompts before pulling Docker image
+
+**Non-Interactive Mode (`--non-interactive`):**
+- Uses all default values
+- Creates directories without prompting
+- Automatically copies configurations if they exist
+- Makes CLI globally available without asking
+- Pulls Docker image without confirmation
+- Perfect for automation and scripts
+
+#### What it does:
+1. **Creates directory structure**: Sets up `~/dispatch` with subdirectories for projects, home, and configuration
+2. **Copies configuration**: Copies `~/.claude` and `~/.config/dispatch` directories to dispatch home if they exist
+3. **Updates CLI configuration**: Configures volume mounts to use the new directory structure
+4. **Makes CLI available**: Optionally creates a global symlink for the dispatch command
+5. **Pulls Docker image**: Optionally pulls the latest Dispatch Docker image
+6. **Saves preferences**: Stores initialization settings for future reference in `~/.config/dispatch/init-config.json`
+
+After running `init`, you can immediately use `dispatch start` with the properly configured environment.
 
 ## Configuration
 
-The CLI reads configuration from `~/.dispatch/config.yaml`. Generate an example file with:
+The CLI reads configuration from `~/.dispatch/config.json`. Generate an example file with:
 
 ```bash
 dispatch config
@@ -122,75 +173,68 @@ dispatch config
 
 ### Configuration Options
 
-```yaml
-# Docker image to use
-image: fwdslsh/dispatch:latest
+```json
+{
+  // Docker image to use
+  "image": "fwdslsh/dispatch:latest",
 
-# Port for web interface
-port: 3030
+  // Port for web interface
+  "port": 3030,
 
-# Terminal authentication key (leave null to auto-generate)
-terminalKey: null
+  // Terminal authentication key (leave null to auto-generate)
+  "terminalKey": null,
 
-# Enable public URL tunnel
-enableTunnel: false
+  // Enable public URL tunnel
+  "enableTunnel": false,
 
-# Custom tunnel subdomain (optional)
-ltSubdomain: null
+  // Custom tunnel subdomain (optional)
+  "ltSubdomain": null,
 
-# PTY mode: 'shell' or 'claude'
-ptyMode: shell
+  // PTY mode: 'shell' or 'claude'
+  "ptyMode": "shell",
 
-# Volume mounts
-volumes:
-  # Projects workspace directory
-  projects: ~/dispatch/projects
+  // Volume mounts
+  "volumes": {
+    // Projects workspace directory
+    "projects": "~/dispatch/projects",
 
-  # User home directory (for dotfiles, shell history, etc.)
-  home: ~/dispatch/home
+    // User home directory (for dotfiles, shell history, etc.)
+    "home": "~/dispatch/home",
 
-  # SSH directory (mounted read-only, optional)
-  ssh: ~/.ssh
+    // SSH directory (mounted read-only, optional)
+    "ssh": "~/.ssh",
 
-  # Claude configuration directory (optional)
-  claude: ~/.claude
+    // Claude configuration directory (optional)
+    "claude": "~/.claude",
 
-  # Additional config directory (optional)
-  config: ~/.config
+    // Additional config directory (optional)
+    "config": "~/.config"
+  },
 
-# Build Docker image before running
-build: false
+  // Build Docker image before running
+  "build": false,
 
-# Open browser automatically after starting
-openBrowser: false
+  // Open browser automatically after starting
+  "openBrowser": false,
 
-# Notification settings
-notifications:
-  # Enable notifications when container starts
-  enabled: false
+  // Notification settings
+  "notifications": {
+    // Enable notifications when container starts
+    "enabled": false,
 
-  # Email notification settings
-  email:
-    # Email address to send notifications to
-    to: null
+    // Webhook notification settings (great for Slack, Discord, etc.)
+    "webhook": {
+      // Webhook URL to send POST request to
+      "url": null,
 
-    # SMTP server configuration
-    smtp:
-      host: smtp.gmail.com
-      port: 587
-      secure: false # true for 465, false for other ports
-      user: your-email@gmail.com
-      pass: your-app-password
-
-  # Webhook notification settings (great for Slack, Discord, etc.)
-  webhook:
-    # Webhook URL to send POST request to
-    url: null
-
-    # Optional custom headers
-    headers:
-      Content-Type: application/json
-      # Authorization: Bearer your-token
+      // Optional custom headers
+      "headers": {
+        "Content-Type": "application/json"
+        // "Authorization": "Bearer your-token"
+      }
+    }
+  }
+}
 ```
 
 Command-line options override configuration file settings.
@@ -213,14 +257,24 @@ Additional directories can be mounted:
 
 ## Examples
 
+### First-Time Setup
+
+```bash
+# Initialize environment with automatic setup
+dispatch init
+
+# Start Dispatch with all configurations applied
+dispatch start --open
+```
+
 ### Basic Development Setup
 
 ```bash
-# Generate config
+# Generate config manually
 dispatch config
 
 # Edit config to enable browser opening
-vim ~/.dispatch/config.yaml
+vim ~/.dispatch/config.json
 
 # Start with browser
 dispatch start
@@ -247,6 +301,22 @@ dispatch start --mode claude --claude ~/.claude --open
 dispatch start --projects ~/my-special-project --home ~/dispatch-custom
 ```
 
+### Custom Initialization
+
+```bash
+# Initialize with custom directories
+dispatch init --dispatch-home ~/my-dispatch --projects-dir ~/my-projects
+
+# Initialize without Docker pull and CLI setup
+dispatch init --skip-docker --skip-cli
+
+# Initialize with specific paths non-interactively
+dispatch init --dispatch-home /opt/dispatch --projects-dir /opt/dispatch/workspace --non-interactive
+
+# Quick non-interactive setup for CI/automation
+dispatch init --non-interactive
+```
+
 ### Notifications
 
 #### Email Notifications
@@ -259,7 +329,7 @@ dispatch start --notify-email your-email@gmail.com --smtp-host smtp.gmail.com --
 
 # Using configuration file (recommended for security)
 dispatch config
-# Edit ~/.dispatch/config.yaml to add your email settings
+# Edit ~/.dispatch/config.json to add your webhook settings
 dispatch start
 ```
 

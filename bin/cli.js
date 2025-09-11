@@ -7,6 +7,7 @@ import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import open from 'open';
+import { createInterface } from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,6 +70,115 @@ function loadConfig() {
 
 function generateRandomKey() {
 	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+function createReadlineInterface() {
+	return createInterface({
+		input: process.stdin,
+		output: process.stdout
+	});
+}
+
+function prompt(question) {
+	const rl = createReadlineInterface();
+	return new Promise((resolve) => {
+		rl.question(question, (answer) => {
+			rl.close();
+			resolve(answer.trim());
+		});
+	});
+}
+
+function promptYesNo(question, defaultValue = true) {
+	const defaultStr = defaultValue ? 'Y/n' : 'y/N';
+	return prompt(`${question} (${defaultStr}): `).then(answer => {
+		if (answer === '') return defaultValue;
+		return answer.toLowerCase().startsWith('y');
+	});
+}
+
+function copyDirectoryRecursive(source, target) {
+	if (!fs.existsSync(source)) {
+		return false;
+	}
+
+	if (!fs.existsSync(target)) {
+		fs.mkdirSync(target, { recursive: true });
+	}
+
+	const files = fs.readdirSync(source);
+
+	for (const file of files) {
+		const sourcePath = path.join(source, file);
+		const targetPath = path.join(target, file);
+
+		if (fs.statSync(sourcePath).isDirectory()) {
+			copyDirectoryRecursive(sourcePath, targetPath);
+		} else {
+			fs.copyFileSync(sourcePath, targetPath);
+		}
+	}
+
+	return true;
+}
+
+async function pullDockerImage(imageName) {
+	console.log(`🐳 Pulling Docker image: ${imageName}`);
+
+	return new Promise((resolve, reject) => {
+		const pull = spawn('docker', ['pull', imageName], {
+			stdio: 'inherit'
+		});
+
+		pull.on('close', (code) => {
+			if (code === 0) {
+				console.log('✅ Docker image pulled successfully');
+				resolve();
+			} else {
+				reject(new Error(`Docker pull failed with exit code ${code}`));
+			}
+		});
+	});
+}
+
+function ensureCLIAvailable() {
+	const binPath = process.argv[1]; // Current CLI path
+	const globalBinPath = '/usr/local/bin/dispatch';
+
+	try {
+		// Check if already available globally
+		const result = spawn('which', ['dispatch'], { stdio: 'pipe' });
+		let output = '';
+		result.stdout.on('data', (data) => {
+			output += data.toString();
+		});
+
+		return new Promise((resolve) => {
+			result.on('close', (code) => {
+				if (code === 0 && output.trim()) {
+					console.log('✅ dispatch CLI already available globally');
+					resolve(true);
+				} else {
+					// Try to create symlink
+					try {
+						if (fs.existsSync(globalBinPath)) {
+							fs.unlinkSync(globalBinPath);
+						}
+						fs.symlinkSync(binPath, globalBinPath);
+						console.log('✅ dispatch CLI made available globally');
+						resolve(true);
+					} catch (error) {
+						console.warn('⚠️  Could not make CLI available globally. You may need to run with sudo or add to PATH manually');
+						console.warn(`   Manual command: sudo ln -sf ${binPath} ${globalBinPath}`);
+						resolve(false);
+					}
+				}
+			});
+		});
+	} catch (error) {
+		console.warn('⚠️  Could not check CLI availability:', error.message);
+		return Promise.resolve(false);
+	}
 }
 
 async function sendWebhookNotification(config, url, terminalKey) {
@@ -164,7 +274,7 @@ async function runContainer(config) {
 	const terminalKey = config.terminalKey || generateRandomKey();
 	args.push('-e', `TERMINAL_KEY=${terminalKey}`);
 	args.push('-e', `PTY_MODE=${config.ptyMode}`);
-	args.push('-e', `DISPATCH_CONFIG_DIR=/home/appuser/.config/dispatch`);
+	args.push('-e', `DISPATCH_CONFIG_DIR=/home/dispatch/.config/dispatch`);
 	args.push('-e', `DISPATCH_PROJECTS_DIR=/workspace`);
 
 	if (config.enableTunnel) {
@@ -182,7 +292,7 @@ async function runContainer(config) {
 	// Volume mounts
 	if (config.volumes.home) {
 		const homePath = expandPath(config.volumes.home);
-		args.push('-v', `${homePath}:/home/appuser`);
+		args.push('-v', `${homePath}:/home/dispatch`);
 	}
 
 	if (config.volumes.projects) {
@@ -193,21 +303,21 @@ async function runContainer(config) {
 	if (config.volumes.ssh) {
 		const sshPath = expandPath(config.volumes.ssh);
 		if (fs.existsSync(sshPath)) {
-			args.push('-v', `${sshPath}:/home/appuser/.ssh:ro`);
+			args.push('-v', `${sshPath}:/home/dispatch/.ssh:ro`);
 		}
 	}
 
 	if (config.volumes.claude) {
 		const claudePath = expandPath(config.volumes.claude);
 		if (fs.existsSync(claudePath)) {
-			args.push('-v', `${claudePath}:/home/appuser/.claude`);
+			args.push('-v', `${claudePath}:/home/dispatch/.claude`);
 		}
 	}
 
 	if (config.volumes.config) {
 		const configPath = expandPath(config.volumes.config);
 		if (fs.existsSync(configPath)) {
-			args.push('-v', `${configPath}:/home/appuser/.config`);
+			args.push('-v', `${configPath}:/home/dispatch/.config`);
 		}
 	}
 
@@ -415,6 +525,185 @@ program
 			console.log('📝 Edit this file to customize your Dispatch setup');
 		} catch (error) {
 			console.error('❌ Error creating config file:', error.message);
+			process.exit(1);
+		}
+	});
+
+
+
+program
+	.command('init')
+	.description('Initialize Dispatch environment setup')
+	.option('--skip-docker', 'Skip Docker image pull')
+	.option('--skip-cli', 'Skip making CLI globally available')
+	.option('--dispatch-home <path>', 'Dispatch home directory (default: ~/dispatch)')
+	.option('--projects-dir <path>', 'Projects directory (default: ~/dispatch/projects)')
+	.option('--non-interactive', 'Run in non-interactive mode (no prompts)')
+	.action(async (options) => {
+		try {
+			console.log('🚀 Initializing Dispatch environment...\n');
+
+			// Determine if we're in interactive mode (true by default, false if --non-interactive is set)
+			const isInteractive = !options.nonInteractive;
+
+			// Determine dispatch home directory
+			let dispatchHome = options.dispatchHome || path.join(os.homedir(), 'dispatch');
+
+			if (!options.dispatchHome && isInteractive) {
+				const useCustomHome = await promptYesNo('Use default dispatch home directory ~/dispatch?', true);
+				if (!useCustomHome) {
+					dispatchHome = await prompt('Enter custom dispatch home directory: ');
+					dispatchHome = expandPath(dispatchHome);
+				}
+			}
+
+			console.log(`📁 Using dispatch home: ${dispatchHome}`);
+
+			// Create dispatch directory
+			if (!fs.existsSync(dispatchHome)) {
+				if (isInteractive) {
+					const createDir = await promptYesNo(`Create directory ${dispatchHome}?`, true);
+					if (!createDir) {
+						console.log('❌ Cannot proceed without dispatch home directory');
+						return;
+					}
+				}
+				fs.mkdirSync(dispatchHome, { recursive: true });
+				console.log(`✅ Created directory: ${dispatchHome}`);
+			} else {
+				console.log(`✅ Dispatch home directory already exists: ${dispatchHome}`);
+			}
+
+			// Determine projects directory
+			let projectsDir = options.projectsDir || path.join(dispatchHome, 'projects');
+
+			if (!options.projectsDir && isInteractive) {
+				const useDefaultProjects = await promptYesNo(`Use default projects directory ${path.join(dispatchHome, 'projects')}?`, true);
+				if (!useDefaultProjects) {
+					projectsDir = await prompt('Enter custom projects directory: ');
+					projectsDir = expandPath(projectsDir);
+				}
+			}
+
+			console.log(`📁 Using projects directory: ${projectsDir}`);
+
+			// Create projects directory
+			if (!fs.existsSync(projectsDir)) {
+				fs.mkdirSync(projectsDir, { recursive: true });
+				console.log(`✅ Created projects directory: ${projectsDir}`);
+			} else {
+				console.log(`✅ Projects directory already exists: ${projectsDir}`);
+			}
+
+			// Copy .claude directory if it exists
+			const claudeSourceDir = path.join(os.homedir(), '.claude');
+			const claudeTargetDir = path.join(dispatchHome, '.claude');
+
+			if (fs.existsSync(claudeSourceDir)) {
+				const copyClaude = isInteractive ? await promptYesNo('Copy ~/.claude configuration to dispatch home?', true) : true;
+				if (copyClaude) {
+					if (copyDirectoryRecursive(claudeSourceDir, claudeTargetDir)) {
+						console.log(`✅ Copied .claude configuration to ${claudeTargetDir}`);
+					} else {
+						console.warn('⚠️  Failed to copy .claude configuration');
+					}
+				}
+			} else {
+				console.log('ℹ️  No ~/.claude directory found to copy');
+			}
+
+			// Copy .config/dispatch directory if it exists
+			const configSourceDir = path.join(os.homedir(), '.config', 'dispatch');
+			const configTargetDir = path.join(dispatchHome, '.config', 'dispatch');
+
+			if (fs.existsSync(configSourceDir)) {
+				const copyConfig = isInteractive ? await promptYesNo('Copy ~/.config/dispatch to dispatch home?', true) : true;
+				if (copyConfig) {
+					if (copyDirectoryRecursive(configSourceDir, configTargetDir)) {
+						console.log(`✅ Copied dispatch configuration to ${configTargetDir}`);
+					} else {
+						console.warn('⚠️  Failed to copy dispatch configuration');
+					}
+				}
+			} else {
+				console.log('ℹ️  No ~/.config/dispatch directory found to copy');
+			}
+
+			// Create .config/dispatch directory in dispatch home if it doesn't exist
+			if (!fs.existsSync(configTargetDir)) {
+				fs.mkdirSync(configTargetDir, { recursive: true });
+				console.log(`✅ Created dispatch config directory: ${configTargetDir}`);
+			}
+
+			// Save init configuration
+			const initConfigPath = path.join(configTargetDir, 'init-config.json');
+			const initConfig = {
+				dispatchHome,
+				projectsDir,
+				initDate: new Date().toISOString(),
+				version: '0.0.3'
+			};
+
+			fs.writeFileSync(initConfigPath, JSON.stringify(initConfig, null, 2), 'utf8');
+			console.log(`✅ Saved init configuration to ${initConfigPath}`);
+
+			// Update main CLI configuration to use new paths
+			const configDir = path.join(os.homedir(), '.dispatch');
+			const configPath = path.join(configDir, 'config.json');
+
+			let config = loadConfig();
+			config.volumes.projects = projectsDir;
+			config.volumes.home = path.join(dispatchHome, 'home');
+			config.volumes.claude = path.join(dispatchHome, '.claude');
+			config.volumes.config = path.join(dispatchHome, '.config');
+
+			// Ensure CLI config directory exists
+			if (!fs.existsSync(configDir)) {
+				fs.mkdirSync(configDir, { recursive: true });
+			}
+
+			fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+			console.log(`✅ Updated CLI configuration at ${configPath}`);
+
+			// Ensure home directory exists for container
+			const containerHomeDir = path.join(dispatchHome, 'home');
+			if (!fs.existsSync(containerHomeDir)) {
+				fs.mkdirSync(containerHomeDir, { recursive: true });
+				console.log(`✅ Created container home directory: ${containerHomeDir}`);
+			}
+
+			// Make CLI available globally
+			if (!options.skipCli) {
+				const makeCLIAvailable = isInteractive ? await promptYesNo('Make dispatch CLI available system-wide?', true) : true;
+				if (makeCLIAvailable) {
+					await ensureCLIAvailable();
+				}
+			}
+
+			// Pull Docker image
+			if (!options.skipDocker) {
+				const pullImage = isInteractive ? await promptYesNo('Pull latest Dispatch Docker image?', true) : true;
+				if (pullImage) {
+					try {
+						await pullDockerImage(config.image);
+					} catch (error) {
+						console.warn('⚠️  Failed to pull Docker image:', error.message);
+						console.warn('    You can pull it manually with: docker pull ' + config.image);
+					}
+				}
+			}
+
+			console.log('\n🎉 Dispatch initialization complete!');
+			console.log('\nNext steps:');
+			console.log('  1. Run "dispatch start" to launch your environment');
+			console.log('  2. Open your browser to the provided URL');
+			console.log('  3. Enter the terminal key when prompted');
+			console.log('\nYour files will be mounted from:');
+			console.log(`  - Projects: ${projectsDir}`);
+			console.log(`  - Home: ${containerHomeDir}`);
+
+		} catch (error) {
+			console.error('❌ Error during initialization:', error.message);
 			process.exit(1);
 		}
 	});
