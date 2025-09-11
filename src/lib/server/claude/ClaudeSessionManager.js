@@ -144,6 +144,10 @@ export class ClaudeSessionManager {
 					this.io.emit('message.delta', [event]);
 				}
 			}
+			// Emit a completion event so the session can be marked as idle
+			if (this.io) {
+				this.io.emit('message.complete', { sessionId: key });
+			}
 		} catch (error) {
 			console.error(`Error in Claude session ${id}:`, error);
 			// If the prompt/history is too long OR resume target missing, retry without resume
@@ -168,6 +172,10 @@ export class ClaudeSessionManager {
 
 					for await (const event of fresh) {
 						if (event && this.io) this.io.emit('message.delta', [event]);
+					}
+					// Emit completion event for the fresh query
+					if (this.io) {
+						this.io.emit('message.complete', { sessionId: key });
 					}
 					return;
 				} catch (retryErr) {

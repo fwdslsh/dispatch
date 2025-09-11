@@ -254,6 +254,64 @@
 		currentMobileSession = (currentMobileSession - 1 + allSessions.length) % allSessions.length;
 	}
 
+	// Touch gesture handling for mobile swipe navigation
+	let touchStartX = 0;
+	let touchStartY = 0;
+	let touchEndX = 0;
+	let touchEndY = 0;
+	let isSwipeInProgress = false;
+
+	function handleTouchStart(e) {
+		if (!isMobile) return;
+		
+		// Record touch start position
+		touchStartX = e.changedTouches[0].screenX;
+		touchStartY = e.changedTouches[0].screenY;
+		isSwipeInProgress = true;
+	}
+
+	function handleTouchMove(e) {
+		if (!isMobile || !isSwipeInProgress) return;
+		
+		touchEndX = e.changedTouches[0].screenX;
+		touchEndY = e.changedTouches[0].screenY;
+		
+		// Track movement but don't interfere with scrolling
+	}
+
+	function handleTouchEnd(e) {
+		if (!isMobile || !isSwipeInProgress) return;
+		
+		isSwipeInProgress = false;
+		touchEndX = e.changedTouches[0].screenX;
+		touchEndY = e.changedTouches[0].screenY;
+		
+		handleSwipeGesture();
+	}
+
+	function handleSwipeGesture() {
+		const swipeThreshold = 75; // Minimum distance for a swipe
+		const verticalThreshold = 50; // Maximum vertical movement to still count as horizontal swipe
+		
+		const deltaX = touchEndX - touchStartX;
+		const deltaY = Math.abs(touchEndY - touchStartY);
+		
+		// Check if it's a horizontal swipe (not too much vertical movement)
+		if (deltaY > verticalThreshold || Math.abs(deltaX) < swipeThreshold) {
+			return;
+		}
+		
+		// Detect left swipe (go to next session)
+		if (deltaX < -swipeThreshold) {
+			nextMobileSession();
+		}
+		
+		// Detect right swipe (go to previous session)
+		if (deltaX > swipeThreshold) {
+			prevMobileSession();
+		}
+	}
+
 	// Jump to specific session (for mobile session list)
 	function jumpToSession(sessionIndex) {
 		const allSessions = sessions.filter(
@@ -551,7 +609,13 @@
 	{/if}
 
 	<!-- Main Workspace -->
-	<main class="main-content" style={`--cols: ${cols};`}>
+	<main 
+		class="main-content" 
+		style={`--cols: ${cols};`}
+		ontouchstart={handleTouchStart}
+		ontouchmove={handleTouchMove}
+		ontouchend={handleTouchEnd}
+	>
 		{#if visible.length === 0}
 			<div class="empty-workspace">
 				<div class="empty-content">
@@ -567,8 +631,8 @@
 						<div
 							class="terminal-container"
 							style="--animation-index: {index};"
-							in:fly|global={{ y: 20, duration: 400, delay: index * 60, easing: cubicOut }}
-							out:fly|global={{ y: -20, duration: 300, delay: index * 40, easing: cubicOut }}
+							in:fly|global={{ x: 0, y: isMobile ? 0 : 20, duration: isMobile ? 150 : 250, easing: cubicOut }}
+							out:fly|global={{ x: 0, y: isMobile ? 0 : -20, duration: isMobile ? 100 : 200, easing: cubicOut }}
 							onclick={() => handleSessionFocus(s)}
 							onkeydown={(e) => e.key === 'Enter' && handleSessionFocus(s)}
 							role="button"
@@ -612,6 +676,7 @@
 										sessionId={s.claudeSessionId || s.sessionId || s.id}
 										claudeSessionId={s.claudeSessionId || s.sessionId}
 										shouldResume={s.shouldResume || s.resumeSession || false}
+										workspacePath={s.workspacePath}
 									/>
 								{/if}
 							</div>
@@ -729,6 +794,7 @@
 			pointer-events: none;
 		}
 	}
+
 
 	/* ========================================
 	   COMPACT HEADER - MINIMAL HEIGHT
@@ -957,8 +1023,6 @@
 		padding: var(--space-1);
 		/* Ensure grid content can shrink to viewport */
 		min-width: 0;
-
-		/* NO grid transition - instant layout change to prevent snapping */
 	}
 
 	/* ========================================
@@ -972,6 +1036,8 @@
 		overflow: hidden;
 		/* Allow shrinking inside grid to prevent width overflow */
 		min-width: 0;
+		/* Position context for swipe zone */
+		position: relative;
 
 		/* Simple transitions for hover states */
 		transition: border-color 0.2s ease;
@@ -981,23 +1047,31 @@
 		border-color: var(--primary);
 	}
 
-	/* Mobile session switching with modern CSS */
+	/* Mobile session switching - simple slide animation */
 	@media (max-width: 768px) {
 		.terminal-container {
+			/* Ensure full height is maintained during transitions */
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			/* Smoother, faster transitions for mobile */
 			transition:
-				transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-				opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-				box-shadow 0.2s ease,
-				border-color 0.2s ease;
-			transition-behavior: allow-discrete;
+				opacity 0.15s ease-out;
+			/* Prevent layout reflows */
+			will-change: opacity;
+			contain: layout style;
+			/* Hardware acceleration */
+			transform: translateZ(0);
+			-webkit-transform: translateZ(0);
+			backface-visibility: hidden;
+			-webkit-backface-visibility: hidden;
 		}
-
-		/* Mobile starting style - slide from right */
-		@starting-style {
-			.terminal-container {
-				opacity: 0;
-				transform: translateX(24px) scale(0.97);
-			}
+		
+		/* Ensure child components maintain height */
+		.terminal-viewport {
+			flex: 1 1 auto;
+			min-height: 0;
+			height: 100%;
 		}
 	}
 
@@ -1165,6 +1239,11 @@
 		overflow: hidden;
 		background: var(--bg-dark);
 		min-height: 0; /* Important for flex child */
+		display: flex;
+		flex-direction: column;
+		position: relative;
+		/* Prevent layout shifts */
+		contain: layout;
 	}
 
 	/* ========================================
@@ -1189,10 +1268,17 @@
 			display: none; /* Hide layout controls on mobile */
 		}
 
+		.main-content {
+			/* Ensure full height on mobile */
+			height: 100%;
+		}
+
 		.session-grid {
 			grid-template-columns: 1fr !important;
 			padding: 0; /* Remove padding for flush mobile viewport */
 			gap: 0; /* Remove gaps for flush mobile viewport */
+			/* Ensure grid takes full height */
+			height: 100%;
 		}
 		.brand-text {
 			display: none;

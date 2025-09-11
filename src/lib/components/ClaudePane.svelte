@@ -7,7 +7,7 @@
 	import sessionSocketManager from './SessionSocketManager.js';
 	// Using global styles for inputs
 
-	let { sessionId, claudeSessionId = null, shouldResume = false } = $props();
+	let { sessionId, claudeSessionId = null, shouldResume = false, workspacePath: initialWorkspacePath = '' } = $props();
 
 	/**
 	 * @type {import("socket.io-client").Socket}
@@ -17,10 +17,12 @@
 	let input = $state('');
 	let loading = $state(false);
 	let isWaitingForReply = $state(false);
+	let isCatchingUp = $state(false);
 	let messagesContainer = $state();
 	let liveEventIcons = $state([]);
 	let selectedEventIcon = $state(null);
 	let messageSelectedIcon = $state({});
+	let workspacePath = $state(initialWorkspacePath);
 
 	async function scrollToBottom() {
 		await tick();
@@ -248,6 +250,17 @@
 					entryCount: (data.entries || []).length,
 					summary: data.summary
 				});
+				
+				// Extract workspace path from session data if available
+				if (data.entries && data.entries.length > 0) {
+					for (const entry of data.entries) {
+						if (entry.cwd) {
+							workspacePath = entry.cwd;
+							break;
+						}
+					}
+				}
+				
 				const previousMessages = [];
 
 				// Helpers to build icon objects from entries
@@ -379,24 +392,46 @@
 	onMount(async () => {
 		console.log('ClaudePane mounting with:', { sessionId, claudeSessionId, shouldResume });
 		
-		// Always try to load previous messages if we have a Claude session ID
-		// This handles both explicit resumes and cases where history exists
-		// For active sessions that are being resumed, we should always load history
-		if (claudeSessionId || shouldResume) {
-			await loadPreviousMessages();
-		}
-
-		// Get or create socket for this specific session
+		// Get or create socket for this specific session FIRST
+		// This ensures we don't miss any events while loading history
 		const effectiveSessionId = claudeSessionId || sessionId;
 		socket = sessionSocketManager.getSocket(effectiveSessionId);
 		
-		// Mark this session as active
-		sessionSocketManager.handleSessionFocus(effectiveSessionId);
+		// Set up event listeners immediately before doing anything else
+		// This ensures we capture any ongoing messages from active sessions
 		socket.on('connect', () => {
-			console.log('Claude Socket.IO connected');
+			console.log('Claude Socket.IO connected for session:', effectiveSessionId);
+			// Don't automatically set isWaitingForReply for resumed sessions
+			// Let the backend state determine if the session is actually processing
+			if (shouldResume || claudeSessionId) {
+				console.log('Reconnected to session - checking for ongoing activity');
+				// Only set catching up flag temporarily
+				isCatchingUp = true;
+				// Don't set isWaitingForReply here - let actual messages trigger it
+				// Clear the catching up flag after a short delay if no messages arrive
+				setTimeout(() => {
+					if (isCatchingUp && liveEventIcons.length === 0) {
+						isCatchingUp = false;
+						// Also ensure isWaitingForReply is false if no activity
+						isWaitingForReply = false;
+						console.log('No pending messages detected for session');
+					}
+				}, 2000);
+			}
 		});
 
 		socket.on('message.delta', async (payload) => {
+			// If we receive a message while catching up, clear the flag
+			if (isCatchingUp) {
+				isCatchingUp = false;
+				console.log('Received message from active session - caught up');
+			}
+			
+			// Set waiting for reply when we receive messages
+			if (!isWaitingForReply && payload && payload.length > 0) {
+				isWaitingForReply = true;
+			}
+			
 			// payload is an array; in our setup typically of length 1
 			for (const evt of payload || []) {
 				// Skip empty or malformed events
@@ -457,7 +492,9 @@
 							};
 						}
 					}
+					// Clear waiting state since result indicates completion
 					isWaitingForReply = false;
+					isCatchingUp = false;
 					liveEventIcons = []; // Clear for next conversation turn
 				} else {
 					// Other event types - be selective about what creates icons
@@ -482,10 +519,30 @@
 			await scrollToBottom();
 		});
 		
+		// Handle message completion to clear waiting state
+		socket.on('message.complete', (data) => {
+			console.log('Message complete received:', data);
+			isWaitingForReply = false;
+			isCatchingUp = false;
+			// Clear any remaining live icons if they weren't attached to a message
+			if (liveEventIcons.length > 0 && messages.length > 0) {
+				const lastMessage = messages[messages.length - 1];
+				if (lastMessage.role === 'assistant' && !lastMessage.activityIcons?.length) {
+					// Attach any remaining icons to the last assistant message
+					messages[messages.length - 1] = {
+						...lastMessage,
+						activityIcons: [...liveEventIcons]
+					};
+				}
+			}
+			liveEventIcons = [];
+		});
+
 		// Handle errors to clear typing indicator
 		socket.on('error', (error) => {
 			console.error('Socket error:', error);
 			isWaitingForReply = false;
+			isCatchingUp = false;
 			
 			// Add error message if we were waiting for a reply
 			if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
@@ -507,6 +564,31 @@
 			isWaitingForReply = false;
 			liveEventIcons = [];
 		});
+
+		// Mark this session as active and ensure connection
+		// This must happen AFTER event listeners are set up but BEFORE loading history
+		sessionSocketManager.handleSessionFocus(effectiveSessionId);
+		
+		// Now load previous messages after socket is ready and listening
+		// This ensures we don't miss any events that might arrive while loading
+		if (claudeSessionId || shouldResume) {
+			await loadPreviousMessages();
+		}
+		
+		// Check if session has pending messages from the backend
+		if (socket.connected && (shouldResume || claudeSessionId)) {
+			console.log('Socket already connected - checking session activity state');
+			// Query the backend for actual session state
+			const hasPending = await sessionSocketManager.checkForPendingMessages(effectiveSessionId);
+			if (hasPending) {
+				console.log('Session has pending messages, setting waiting state');
+				isWaitingForReply = true;
+			} else {
+				console.log('Session is idle, no pending messages');
+				isWaitingForReply = false;
+				isCatchingUp = false;
+			}
+		}
 	});
 	onDestroy(() => {
 		// Don't disconnect the socket immediately as it might be used by other panes
@@ -528,7 +610,23 @@
 			</div>
 			<div class="ai-info">
 				<div class="ai-name">Claude</div>
-				<div class="ai-state">{loading ? 'Processing...' : 'Ready'}</div>
+				<div class="ai-state">
+					{#if isCatchingUp}
+						<span class="catching-up">Reconnecting to active session...</span>
+					{:else if loading}
+						Processing...
+					{:else if isWaitingForReply}
+						Thinking...
+					{:else}
+						Ready
+					{/if}
+				</div>
+				{#if workspacePath}
+					<div class="ai-cwd" title="{workspacePath}">
+						<span class="cwd-icon">📁</span>
+						<span class="cwd-path">{workspacePath.split('/').filter(Boolean).pop() || '/'}</span>
+					</div>
+				{/if}
 			</div>
 		</div>
 		<div class="chat-stats">
@@ -753,6 +851,7 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
+		min-height: 0; /* Important for proper flex sizing */
 		background: 
 			radial-gradient(ellipse at top left, 
 				color-mix(in oklab, var(--bg) 95%, var(--primary) 5%),
@@ -762,6 +861,8 @@
 		overflow: hidden;
 		position: relative;
 		container-type: inline-size;
+		/* Ensure stable layout during transitions */
+		contain: layout style;
 	}
 	
 	/* 🎯 INTELLIGENT CHAT HEADER */
@@ -834,6 +935,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
+		flex: 1;
+		min-width: 0; /* Allow text truncation */
 	}
 	
 	.ai-name {
@@ -854,6 +957,48 @@
 		font-weight: 500;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
+	}
+	
+	.ai-cwd {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-top: var(--space-1);
+		padding: var(--space-1) var(--space-2);
+		background: 
+			linear-gradient(135deg, 
+				color-mix(in oklab, var(--primary) 8%, transparent),
+				color-mix(in oklab, var(--primary) 4%, transparent)
+			);
+		border: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
+		border-radius: 12px;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
+		max-width: 350px;
+	}
+	
+	.cwd-icon {
+		font-size: 0.9em;
+		opacity: 0.8;
+	}
+	
+	.cwd-path {
+		color: var(--primary);
+		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		letter-spacing: 0.02em;
+	}
+	
+	.catching-up {
+		color: var(--accent-amber);
+		animation: pulse 1.5s ease-in-out infinite;
+	}
+	
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.5; }
 	}
 	
 	.chat-stats {
@@ -892,7 +1037,9 @@
 	/* 💬 ADVANCED MESSAGES CONTAINER */
 	.messages {
 		flex: 1;
+		min-height: 0; /* Critical for flex children to shrink properly */
 		overflow-y: auto;
+		overflow-x: hidden;
 		padding: var(--space-6) var(--space-6) var(--space-4);
 		scroll-behavior: smooth;
 		scrollbar-width: thin;
@@ -908,6 +1055,9 @@
 		/* Fix touch scrolling on mobile devices */
 		-webkit-overflow-scrolling: touch;
 		overscroll-behavior: contain;
+		/* Prevent layout shift during navigation */
+		will-change: contents;
+		contain: size layout;
 	}
 	
 	.messages::-webkit-scrollbar {
@@ -1417,6 +1567,8 @@
 		box-shadow: 
 			0 -8px 32px -16px rgba(0, 0, 0, 0.1),
 			inset 0 1px 2px color-mix(in oklab, var(--primary) 10%, transparent);
+		flex-shrink: 0; /* Prevent input form from shrinking */
+		margin-top: auto; /* Push to bottom */
 	}
 	
 	.input-container {
@@ -1597,6 +1749,14 @@
 	
 	/* 📱 MOBILE & TOUCH DEVICE OPTIMIZATIONS */
 	@media (max-width: 768px) {
+		.claude-pane {
+			/* Ensure full height on mobile */
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			min-height: 0;
+		}
+		
 		.messages {
 			/* Improve touch scrolling on mobile */
 			-webkit-overflow-scrolling: touch;
@@ -1604,6 +1764,11 @@
 			/* Prevent elastic scrolling issues on iOS */
 			position: relative;
 			touch-action: pan-y;
+			/* Ensure proper height calculation */
+			flex: 1 1 auto;
+			min-height: 0;
+			height: 100%;
+			contain: none; /* Remove contain on mobile for better scrolling */
 		}
 		
 		.chat-header {

@@ -18,7 +18,14 @@ class SessionSocketManager {
 	 */
 	getSocket(sessionId, options = {}) {
 		if (this.sockets.has(sessionId)) {
-			return this.sockets.get(sessionId);
+			const existingSocket = this.sockets.get(sessionId);
+			// If we're getting an existing socket for an active session,
+			// ensure it's connected or reconnecting
+			if (!existingSocket.connected && !existingSocket.connecting) {
+				console.log(`Existing socket for session ${sessionId} is disconnected, reconnecting...`);
+				existingSocket.connect();
+			}
+			return existingSocket;
 		}
 
 		console.log(`Creating new socket for session: ${sessionId}`);
@@ -28,7 +35,14 @@ class SessionSocketManager {
 			query: {
 				sessionId,
 				...options.query
-			}
+			},
+			// Ensure immediate connection for active sessions
+			autoConnect: true,
+			// Reconnection settings for better resilience
+			reconnection: true,
+			reconnectionAttempts: 5,
+			reconnectionDelay: 1000,
+			reconnectionDelayMax: 5000
 		});
 
 		// Track connection status
@@ -47,6 +61,16 @@ class SessionSocketManager {
 
 		socket.on('error', (error) => {
 			console.error(`Socket error for session ${sessionId}:`, error);
+		});
+
+		// Add reconnection attempt handler
+		socket.on('reconnect_attempt', (attemptNumber) => {
+			console.log(`Socket reconnection attempt ${attemptNumber} for session ${sessionId}`);
+		});
+
+		socket.on('reconnect', (attemptNumber) => {
+			console.log(`Socket successfully reconnected for session ${sessionId} after ${attemptNumber} attempts`);
+			socket.isActive = true;
 		});
 
 		this.sockets.set(sessionId, socket);
@@ -147,9 +171,42 @@ class SessionSocketManager {
 		
 		// Ensure socket is connected
 		const socket = this.sockets.get(sessionId);
-		if (socket && !socket.isActive) {
-			this.reconnectSession(sessionId);
+		if (socket) {
+			if (!socket.connected && !socket.connecting) {
+				console.log(`Session ${sessionId} gained focus but socket is disconnected, reconnecting...`);
+				this.reconnectSession(sessionId);
+			} else if (socket.connected) {
+				console.log(`Session ${sessionId} gained focus and socket is already connected`);
+				// Emit a catch-up event to request any missed messages
+				// This is useful for active sessions that might have been processing
+				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+				socket.emit('session.catchup', { 
+					key, 
+					sessionId,
+					timestamp: Date.now() 
+				});
+			} else if (socket.connecting) {
+				console.log(`Session ${sessionId} gained focus and socket is connecting...`);
+			}
 		}
+	}
+	
+	/**
+	 * Check if a session might have pending messages
+	 * @param {string} sessionId - The session to check
+	 * @returns {Promise<boolean>} True if there might be pending messages
+	 */
+	async checkForPendingMessages(sessionId) {
+		const socket = this.sockets.get(sessionId);
+		if (socket && socket.connected) {
+			return new Promise((resolve) => {
+				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+				socket.emit('session.status', { key, sessionId }, (response) => {
+					resolve(response?.hasPendingMessages || false);
+				});
+			});
+		}
+		return false;
 	}
 }
 
