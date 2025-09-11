@@ -1,4 +1,6 @@
 import os from 'node:os';
+import { promises as fs } from 'node:fs';
+import { join } from 'node:path';
 
 let pty;
 try {
@@ -12,8 +14,48 @@ try {
 export class TerminalManager {
 	constructor({ io }) {
 		this.io = io;
-		this.terminals = new Map(); // id -> { term, workspacePath }
+		this.terminals = new Map(); // id -> { term, workspacePath, history }
 		this.nextId = 1;
+		// Create history directory if it doesn't exist
+		this.historyDir = process.env.TERMINAL_HISTORY_DIR || join(os.tmpdir(), 'dispatch-terminal-history');
+		this.initHistoryDir();
+	}
+
+	async initHistoryDir() {
+		try {
+			await fs.mkdir(this.historyDir, { recursive: true });
+		} catch (error) {
+			console.error('Failed to create terminal history directory:', error);
+		}
+	}
+
+	async saveTerminalHistory(id, data) {
+		try {
+			const historyFile = join(this.historyDir, `${id}.log`);
+			await fs.appendFile(historyFile, data, 'utf8');
+		} catch (error) {
+			console.error(`Failed to save terminal history for ${id}:`, error);
+		}
+	}
+
+	async loadTerminalHistory(id) {
+		try {
+			const historyFile = join(this.historyDir, `${id}.log`);
+			const data = await fs.readFile(historyFile, 'utf8');
+			return data;
+		} catch (error) {
+			// File doesn't exist or can't be read, return empty string
+			return '';
+		}
+	}
+
+	async clearTerminalHistory(id) {
+		try {
+			const historyFile = join(this.historyDir, `${id}.log`);
+			await fs.unlink(historyFile);
+		} catch (error) {
+			// File doesn't exist, ignore error
+		}
 	}
 
 	setSocketIO(io) {
@@ -27,14 +69,16 @@ export class TerminalManager {
 	start({
 		workspacePath,
 		shell = os.platform() === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash',
-		env = {}
+		env = {},
+		resume = false,
+		terminalId = null
 	}) {
 		if (!pty) {
 			console.error('Cannot start terminal: node-pty is not available');
 			throw new Error('Terminal functionality not available - node-pty failed to load');
 		}
 
-		const id = `pty_${this.nextId++}`;
+		const id = terminalId || `pty_${this.nextId++}`;
 		console.log(`Creating terminal ${id} with shell ${shell} in ${workspacePath}`);
 
 		try {
@@ -48,12 +92,14 @@ export class TerminalManager {
 					PS1: '\\u@\\h:\\w$ '
 				}
 			});
-			this.terminals.set(id, { term, workspacePath, socket: this.io });
+			this.terminals.set(id, { term, workspacePath, socket: this.io, history: '' });
 
 			term.onData((data) => {
 				const terminalData = this.terminals.get(id);
 				if (terminalData && terminalData.socket) {
 					terminalData.socket.emit('data', data);
+					// Save to history
+					this.saveTerminalHistory(id, data);
 				}
 			});
 
@@ -64,6 +110,9 @@ export class TerminalManager {
 				}
 				this.terminals.delete(id);
 			});
+
+			// Note: History loading is handled by the UI component to avoid duplication
+			// The resume flag is used by the UI to determine if it should load history
 
 			console.log(`Terminal ${id} created successfully`);
 			return { id };
@@ -83,6 +132,8 @@ export class TerminalManager {
 			return;
 		}
 		terminal.term.write(data);
+		// Save user input to history too
+		this.saveTerminalHistory(id, data);
 	}
 
 	resize(id, cols, rows) {
@@ -92,6 +143,11 @@ export class TerminalManager {
 	}
 
 	stop(id) {
-		this.terminals.get(id)?.term.kill();
+		const terminal = this.terminals.get(id);
+		if (terminal) {
+			terminal.term.kill();
+			// Clean up history when terminal is explicitly stopped
+			this.clearTerminalHistory(id);
+		}
 	}
 }

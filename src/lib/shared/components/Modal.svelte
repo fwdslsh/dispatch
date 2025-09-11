@@ -1,6 +1,5 @@
 <script>
 	import { onDestroy } from "svelte";
-	import { on } from "svelte/events";
 
 	/**
 	 * Modal Foundation Component
@@ -129,6 +128,7 @@
 	onclick={handleBackdropClick}
 	onkeydown={handleKeydown}
 	tabindex="-1"
+	style={restProps.style}
 >
 	<div
 		id={modalId}
@@ -189,8 +189,8 @@
 		bottom: 0;
 		z-index: 1000;
 		background: 
-			radial-gradient(ellipse at center, rgba(46, 230, 107, 0.08) 0%, transparent 70%),
-			color-mix(in oklab, black 85%, transparent);
+			radial-gradient(ellipse at center, rgba(46, 230, 107, 0.05) 0%, transparent 70%),
+			color-mix(in oklab, black 70%, transparent);
 		backdrop-filter: blur(0px);
 		display: none;
 		align-items: center;
@@ -225,12 +225,15 @@
 	}
 
 	.modal {
-		max-height: 90vh;
-		max-width: 90vw;
+		max-height: var(--modal-max-height, 90vh);
+		min-height: var(--modal-min-height, 200px);
+		max-width: var(--modal-max-width, 90vw);
+		min-width: var(--modal-min-width, 300px);
 		display: flex;
 		flex-direction: column;
 		outline: none;
 		position: relative;
+		overflow: hidden;
 		
 		/* Enhanced terminal modal styling */
 		background: var(--bg-panel);
@@ -271,7 +274,8 @@
 
 	.modal--medium {
 		width: 600px;
-		min-height: 300px;
+		min-height: 400px;
+		max-height: 80vh;
 	}
 
 	.modal--large {
@@ -303,8 +307,8 @@
 		content: '';
 		position: absolute;
 		top: 0;
-		left: 0;
-		right: 0;
+		left: 2px;
+		right: 2px;
 		height: 2px;
 		background: linear-gradient(90deg, 
 			transparent, 
@@ -314,6 +318,7 @@
 			transparent
 		);
 		animation: terminalScan 2s linear infinite;
+		overflow: hidden;
 	}
 
 	.modal__title {
@@ -366,12 +371,14 @@
 	/* Enhanced terminal content */
 	.modal__content {
 		flex: 1;
-		overflow-y: auto;
-		padding: var(--space-5);
+		overflow: auto;
+		padding: 0;
 		background: var(--bg);
 		color: var(--text-primary);
 		font-family: var(--font-sans);
 		position: relative;
+		min-height: 0;
+		max-height: calc(80vh - 120px);
 	}
 
 	/* Subtle scan lines in content area */

@@ -151,7 +151,14 @@ async function buildImage(imageName) {
 }
 
 async function runContainer(config) {
-	const args = ['run', '-d', '--rm', '--name', 'dispatch', '-p', `${config.port}:3030`];
+	const args = ['run', '-d', '--name', 'dispatch', '-p', `${config.port}:3030`];
+
+	// Add restart policy if requested
+	if (!config.restart || config.restart == true) {
+		args.push('--restart=unless-stopped');
+	} else {
+		args.push('--rm');
+	}
 
 	// Environment variables
 	const terminalKey = config.terminalKey || generateRandomKey();
@@ -252,6 +259,7 @@ program
 	.option('--claude <path>', 'Claude config directory to mount')
 	.option('--config <path>', 'Additional config directory to mount')
 	.option('--notify-webhook <url>', 'Send webhook notification with access link')
+	.option('--restart', 'Restart container automatically on system reboot')
 	.action(async (options) => {
 		try {
 			let config = loadConfig();
@@ -275,6 +283,9 @@ program
 				config.notifications.enabled = true;
 				config.notifications.webhook.url = options.notifyWebhook;
 			}
+
+			// Add restart option to config
+			if (options.restart) config.restart = true;
 
 			// Ensure directories exist
 			ensureDirectories(config);

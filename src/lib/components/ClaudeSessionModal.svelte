@@ -2,39 +2,58 @@
 	import { Modal } from '$lib/shared/components';
 	import ClaudeProjectPicker from './ClaudeProjectPicker.svelte';
 	import ClaudeSessionPicker from './ClaudeSessionPicker.svelte';
+	import DirectoryBrowser from './DirectoryBrowser.svelte';
 
 	let { open = $bindable(false), onSessionCreate } = $props();
 
+	let mode = $state('new');
+	let projectName = $state('');
 	let selectedProject = $state(null);
 	let selectedSession = $state(null);
-	let newProjectName = $state('');
+	let selectedDirectory = $state(null);
+	let projectSource = $state('browse'); // 'browse' for directory browser, 'claude' for existing Claude projects
 	let creating = $state(false);
-	let mode = $state('existing'); // 'existing' | 'new'
 
 	async function handleCreate() {
 		creating = true;
 		try {
-			let projectPath;
-			let sessionId = null;
-
 			if (mode === 'new') {
-				if (!newProjectName.trim()) return;
-				// Create session with new project directory as workspace path
-				// The backend will create the directory if it doesn't exist
-				projectPath = `/workspace/${newProjectName.trim()}`;
+				// Using directory browser for new project
+				if (!selectedDirectory) return;
+				// Use the selected directory as the workspace path
+				await onSessionCreate?.({
+					workspacePath: selectedDirectory,
+					sessionId: null,
+					projectName: projectName || selectedDirectory.split('/').pop() || 'project',
+					resumeSession: false,
+					createWorkspace: false // Don't create a new workspace, use existing directory
+				});
 			} else {
-				if (!selectedProject) return;
-				projectPath = selectedProject.path;
-				sessionId = selectedSession?.id || null;
+				// Existing project mode
+				if (projectSource === 'claude') {
+					// Using existing Claude project
+					if (!selectedProject) return;
+					await onSessionCreate?.({
+						workspacePath: selectedProject.path,
+						sessionId: selectedSession?.id || null,
+						projectName: selectedProject.name,
+						resumeSession: !!selectedSession,
+						createWorkspace: false
+					});
+				} else {
+					// Using directory browser
+					if (!selectedDirectory) return;
+					// Extract project name from the directory path
+					const dirName = selectedDirectory.split('/').pop() || 'project';
+					await onSessionCreate?.({
+						workspacePath: selectedDirectory,
+						sessionId: null,
+						projectName: dirName,
+						resumeSession: false,
+						createWorkspace: false
+					});
+				}
 			}
-
-			await onSessionCreate?.({
-				workspacePath: projectPath,
-				sessionId,
-				projectName: mode === 'new' ? newProjectName.trim() : selectedProject.name,
-				resumeSession: !!sessionId
-			});
-
 			handleClose();
 		} catch (error) {
 			console.error('Failed to create Claude session:', error);
@@ -44,132 +63,481 @@
 	}
 
 	function handleClose() {
+		projectName = '';
 		selectedProject = null;
 		selectedSession = null;
-		newProjectName = '';
-		mode = 'existing';
+		selectedDirectory = null;
+		projectSource = 'browse'; // Reset to browse for new projects
+		mode = 'new';
 		open = false;
 	}
 
 	function handleProjectSelect(project) {
 		selectedProject = project;
-		selectedSession = null; // Reset session when project changes
+		selectedSession = null;
 	}
 
-	const canCreate = $derived.by(() => {
-		if (mode === 'new') {
-			return newProjectName.trim().length > 0;
-		}
-		return selectedProject !== null;
-	});
+	const canCreate = $derived(
+		mode === 'new' 
+			? selectedDirectory !== null
+			: projectSource === 'claude' 
+				? selectedProject !== null
+				: selectedDirectory !== null
+	);
 
-	const createButtonText = $derived.by(() => {
-		if (creating) return 'Creating...';
-		if (mode === 'new') return 'Create Project & Session';
-		if (selectedSession) return 'Resume Session';
-		return 'Create Session';
-	});
+	const createButtonText = $derived(
+		creating
+			? 'Creating...'
+			: mode === 'existing' && selectedSession
+				? 'Resume Session'
+				: 'Create Session'
+	);
 </script>
 
-<Modal bind:open title="Create Claude Session" size="medium" onclose={handleClose}>
+<Modal bind:open title="Create Claude Session" onclose={handleClose} size="medium">
 	{#snippet children()}
-		<div class="form">
+		<div class="terminal-form">
 			<div class="mode-selector">
-				<button
-					type="button"
-					class="button aug {mode === 'existing' ? 'primary' : ''}"
-					data-augmented-ui="l-clip r-clip both"
-					onclick={() => (mode = 'existing')}
-					disabled={creating}
-				>
-					Use Existing Project
-				</button>
-				<button
-					type="button"
-					class="button aug {mode === 'new' ? 'primary' : ''}"
-					data-augmented-ui="l-clip r-clip both"
-					onclick={() => (mode = 'new')}
-					disabled={creating}
-				>
-					Create New Project
-				</button>
+				<div class="tabs">
+					<button
+						type="button"
+						class="tab {mode === 'new' ? 'active' : ''}"
+						onclick={() => {
+							mode = 'new';
+							projectSource = 'browse'; // Default to browse when switching to new mode
+							selectedDirectory = null;
+							selectedProject = null;
+							selectedSession = null;
+						}}
+					>
+						<span class="tab-prefix">01</span> NEW PROJECT
+					</button>
+					<button
+						type="button"
+						class="tab {mode === 'existing' ? 'active' : ''}"
+						onclick={() => {
+							mode = 'existing';
+							projectSource = 'claude'; // Reset to claude when switching to existing mode
+							selectedDirectory = null;
+							projectName = '';
+						}}
+					>
+						<span class="tab-prefix">02</span> EXISTING PROJECT
+					</button>
+				</div>
 			</div>
 
-			{#if mode === 'existing'}
-				<div class="form-group">
-					<div class="label">Claude Code Project</div>
-					<ClaudeProjectPicker
-						bind:selected={selectedProject}
-						onSelect={handleProjectSelect}
-						api="/api/claude/projects"
-					/>
-				</div>
-
-				{#if selectedProject}
-					<div class="form-group">
-						<div class="label">Session (Optional)</div>
-						<ClaudeSessionPicker
-							project={selectedProject.name}
-							bind:selected={selectedSession}
-							apiBase="/api/claude/sessions"
+			<div class="content-area">
+				{#if mode === 'new'}
+					<!-- Directory browser only for new projects -->
+					<div class="input-group">
+						<label>SELECT PROJECT DIRECTORY</label>
+						<DirectoryBrowser
+							bind:selected={selectedDirectory}
+							api="/api/browse"
+							placeholder="Navigate to your project directory..."
+							onSelect={(path) => {
+								// Extract project name from selected directory
+								const dirName = path.split('/').pop() || 'project';
+								projectName = dirName;
+							}}
 						/>
-						<p class="help-text">
-							Leave empty to create a new session, or select an existing session to resume.
-						</p>
+						<div class="hint">
+							Browse and select a directory for your new Claude project
+						</div>
+						{#if selectedDirectory && projectName}
+							<div class="project-name-preview">
+								<span class="preview-label">Project Name:</span>
+								<span class="preview-value">{projectName}</span>
+							</div>
+						{/if}
 					</div>
+				{:else}
+					<!-- Source selector for existing projects -->
+					<div class="input-group">
+						<label>PROJECT SOURCE</label>
+						<div class="source-selector">
+							<button
+								type="button"
+								class="source-tab {projectSource === 'claude' ? 'active' : ''}"
+								onclick={() => {
+									projectSource = 'claude';
+									selectedDirectory = null;
+								}}
+							>
+								<span class="tab-icon">🤖</span>
+								CLAUDE PROJECTS
+							</button>
+							<button
+								type="button"
+								class="source-tab {projectSource === 'browse' ? 'active' : ''}"
+								onclick={() => {
+									projectSource = 'browse';
+									selectedProject = null;
+									selectedSession = null;
+								}}
+							>
+								<span class="tab-icon">📁</span>
+								BROWSE DIRECTORIES
+							</button>
+						</div>
+					</div>
+
+					{#if projectSource === 'claude'}
+						<div class="input-group">
+							<label>SELECT CLAUDE PROJECT</label>
+							<ClaudeProjectPicker
+								bind:selected={selectedProject}
+								onSelect={handleProjectSelect}
+								api="/api/claude/projects"
+							/>
+						</div>
+
+						{#if selectedProject}
+							<div class="input-group">
+								<label>RESUME SESSION <span class="optional">(OPTIONAL)</span></label>
+								<ClaudeSessionPicker
+									project={selectedProject.name}
+									bind:selected={selectedSession}
+									apiBase="/api/claude/sessions"
+								/>
+								<div class="hint">
+									Select a previous session to resume or leave empty for new session
+								</div>
+							</div>
+						{/if}
+					{:else}
+						<div class="input-group">
+							<label>SELECT DIRECTORY</label>
+							<DirectoryBrowser
+								bind:selected={selectedDirectory}
+								api="/api/browse"
+								placeholder="Navigate to your project directory..."
+							/>
+							<div class="hint">
+								Browse and select a directory to start a new Claude session
+							</div>
+						</div>
+					{/if}
 				{/if}
-			{:else}
-				<div class="form-group">
-					<label for="project-name">New Project Name</label>
-					<input
-						id="project-name"
-						type="text"
-						bind:value={newProjectName}
-						placeholder="Enter project name..."
-						disabled={creating}
-					/>
-					<p class="help-text">This will create a new directory and Claude Code project.</p>
-				</div>
-			{/if}
+			</div>
 		</div>
 	{/snippet}
 
 	{#snippet footer()}
-		<button class="button aug" data-augmented-ui="l-clip r-clip both" onclick={handleClose} disabled={creating}>Cancel</button>
-		<button class="button aug primary" data-augmented-ui="l-clip r-clip both" onclick={handleCreate} disabled={!canCreate || creating}>
-			{createButtonText}
-		</button>
+		<div class="terminal-actions">
+			<button class="terminal-btn cancel" onclick={handleClose} disabled={creating}>
+				<span class="btn-prefix">ESC</span> CANCEL
+			</button>
+			<button
+				class="terminal-btn create {!canCreate || creating ? 'disabled' : ''}"
+				onclick={handleCreate}
+				disabled={!canCreate || creating}
+			>
+				<span class="btn-prefix">ENTER</span>
+				{createButtonText.toUpperCase()}
+			</button>
+		</div>
 	{/snippet}
 </Modal>
 
 <style>
-	.form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-5);
+	.terminal-form {
+		padding: 0;
+		background: var(--bg);
+		font-family: var(--font-mono);
+		position: relative;
+		min-height: 300px;
 	}
 
 	.mode-selector {
-		display: flex;
-		gap: var(--space-2);
+		border-bottom: 1px solid var(--primary-dim);
+		background: var(--bg-dark);
+		position: relative;
+		overflow: hidden;
 	}
 
-	.form-group {
+
+	.tabs {
 		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
 	}
 
-	label,
-	.label {
-		font-weight: 500;
+	.tab {
+		flex: 1;
+		background: transparent;
+		border: none;
+		padding: 1rem;
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		cursor: pointer;
+		border-bottom: 2px solid transparent;
+		transition: all 0.2s ease;
+		text-align: center;
+		position: relative;
+	}
+
+
+	.tab:hover {
 		color: var(--text);
+		background: rgba(46, 230, 107, 0.05);
+	}
+
+	.tab.active {
+		color: var(--primary);
+		border-bottom-color: var(--primary);
+		background: rgba(46, 230, 107, 0.1);
+	}
+
+	.tab-prefix {
+		color: var(--accent-amber);
+		margin-right: 0.5rem;
+		font-size: 0.7rem;
+	}
+
+	.content-area {
+		padding: 1.5rem;
+		min-height: 250px;
+		max-height: 50vh;
+		overflow-y: auto;
+		overflow-x: hidden;
+		position: relative;
+		scrollbar-width: thin;
+		scrollbar-color: var(--primary-dim) transparent;
+	}
+
+	.content-area::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	.content-area::-webkit-scrollbar-thumb {
+		background: linear-gradient(180deg, var(--primary-dim), var(--primary));
+		border-radius: 4px;
+	}
+
+	.content-area::-webkit-scrollbar-track {
+		background: rgba(0, 20, 10, 0.3);
+		border-radius: 4px;
+	}
+
+	.input-group {
+		margin-bottom: 1.5rem;
+	}
+
+	.input-group:last-child {
+		margin-bottom: 0;
+	}
+
+	label {
+		display: block;
+		color: var(--primary);
+		font-size: 0.8rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		margin-bottom: 0.75rem;
+		text-transform: uppercase;
+		font-family: var(--font-mono);
+	}
+
+	.optional {
+		color: var(--text-muted);
+		font-size: 0.7rem;
+	}
+
+	.terminal-input {
+		display: flex;
+		align-items: center;
+		background: var(--bg-dark);
+		border: 1px solid var(--primary-dim);
+		border-radius: 0;
+		padding: 0;
+		font-family: var(--font-mono);
+		transition: border-color 0.2s ease;
+	}
+
+	.terminal-input:focus-within {
+		border-color: var(--primary);
+		box-shadow: 0 0 0 1px var(--primary);
+	}
+
+	.prompt {
+		color: var(--accent-amber);
+		padding: 0.75rem;
+		font-weight: bold;
+		font-size: 1rem;
+		background: rgba(0, 0, 0, 0.3);
+		border-right: 1px solid var(--primary-dim);
+	}
+
+	.terminal-input input {
+		flex: 1;
+		background: transparent;
+		border: none;
+		padding: 0.75rem;
+		color: var(--text);
+		font-family: var(--font-mono);
 		font-size: 0.9rem;
 	}
 
-	.help-text {
+	.terminal-input input:focus {
+		outline: none;
+	}
+
+	.terminal-input input::placeholder {
+		color: var(--text-muted);
+		opacity: 0.7;
+	}
+
+	.hint {
 		font-size: 0.8rem;
-		color: var(--muted);
-		margin: 0;
+		color: var(--text-muted);
+		margin-top: 0.5rem;
+		line-height: 1.4;
+		font-family: var(--font-mono);
+	}
+
+	.terminal-actions {
+		display: flex;
+		gap: 1rem;
+		justify-content: flex-end;
+		align-items: center;
+	}
+
+	.terminal-btn {
+		background: var(--bg-dark);
+		border: 1px solid var(--primary-dim);
+		color: var(--text);
+		padding: 0.75rem 1.5rem;
+		font-family: var(--font-mono);
+		font-size: 0.8rem;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		text-transform: uppercase;
+		border-radius: 4px;
+	}
+
+	.terminal-btn:hover:not(:disabled) {
+		border-color: var(--primary);
+		color: var(--primary);
+		background: rgba(46, 230, 107, 0.1);
+		transform: translateY(-1px);
+	}
+
+	.terminal-btn.create {
+		background: var(--primary);
+		color: var(--bg);
+		border-color: var(--primary);
+	}
+
+	.terminal-btn.create:hover:not(:disabled) {
+		background: color-mix(in oklab, var(--primary) 90%, white 10%);
+		box-shadow: 0 2px 8px rgba(46, 230, 107, 0.3);
+		transform: translateY(-2px);
+	}
+
+	.terminal-btn:disabled,
+	.terminal-btn.disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		border-color: var(--text-muted);
+		color: var(--text-muted);
+		background: var(--bg-dark);
+	}
+
+	.btn-prefix {
+		color: var(--accent-amber);
+		margin-right: 0.5rem;
+		font-size: 0.7rem;
+		opacity: 0.8;
+	}
+
+	/* Source selector styles */
+	.source-selector {
+		display: flex;
+		gap: 0.5rem;
+		background: var(--bg-dark);
+		padding: 0.25rem;
+		border: 1px solid var(--primary-dim);
+		border-radius: 4px;
+	}
+
+	.source-tab {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: transparent;
+		border: 1px solid transparent;
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		cursor: pointer;
+		border-radius: 3px;
+		transition: all 0.2s ease;
+		white-space: nowrap;
+	}
+
+	.source-tab:hover {
+		color: var(--text);
+		background: rgba(46, 230, 107, 0.05);
+		border-color: var(--primary-dim);
+	}
+
+	.source-tab.active {
+		background: rgba(46, 230, 107, 0.15);
+		color: var(--primary);
+		border-color: var(--primary);
+	}
+
+	.tab-icon {
+		font-size: 1.2em;
+		flex-shrink: 0;
+	}
+
+	/* Project name preview */
+	.project-name-preview {
+		margin-top: 1rem;
+		padding: 0.75rem;
+		background: rgba(46, 230, 107, 0.05);
+		border: 1px solid var(--primary);
+		border-radius: 4px;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		font-family: var(--font-mono);
+	}
+
+	.preview-label {
+		color: var(--primary);
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.preview-value {
+		color: var(--text);
+		font-size: 0.9rem;
+		font-weight: 500;
+	}
+
+	/* Responsive adjustments */
+	@media (max-width: 768px) {
+		.source-selector {
+			flex-direction: column;
+		}
+
+		.source-tab {
+			justify-content: flex-start;
+			padding: var(--space-2) var(--space-3);
+		}
 	}
 </style>

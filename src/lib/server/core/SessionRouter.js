@@ -14,4 +14,7 @@ export class SessionRouter {
 	byWorkspace(workspacePath) {
 		return this.all().filter((s) => s.workspacePath === workspacePath);
 	}
+	unbind(sessionId) {
+		return this.map.delete(sessionId);
+	}
 }

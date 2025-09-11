@@ -15,7 +15,6 @@
 	let filterText = $state('');
 	let filtered = $state([]);
 	let highlight = $state(0);
-	let preview = $state([]); // peek lines (tail)
 
 	async function load() {
 		loading = true;
@@ -33,9 +32,27 @@
 		}
 	}
 
+	// Function to create user-friendly session names
+	function formatSessionName(session) {
+		if (!session.id) return 'Session';
+		
+		// For UUID-style IDs, just show a simple session name with first 8 chars
+		if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(session.id)) {
+			return `Session ${session.id.substring(0, 8)}`;
+		}
+		
+		// Clean up session ID for display
+		const cleaned = session.id
+			.replace(/^claude_/, 'Session ')
+			.replace(/_/g, ' ')
+			.replace(/\b\w/g, l => l.toUpperCase());
+		
+		return cleaned || 'Session';
+	}
+
 	function applyFilter() {
 		const q = filterText.trim().toLowerCase();
-		filtered = !q ? list : list.filter((s) => s.id.toLowerCase().includes(q));
+		filtered = !q ? list : list.filter((s) => formatSessionName(s).toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
 		highlight = 0;
 	}
 
@@ -47,14 +64,14 @@
 	async function choose(s) {
 		selected = s;
 		open = false;
+		filterText = '';
 	}
 
-	async function peekTail(s) {
-		const res = await fetch(
-			`${apiBase}/${encodeURIComponent(project)}/${encodeURIComponent(s.id)}/peek?tail=1&n=10`
-		);
-		if (res.ok) preview = (await res.json()).lines;
+	function clear() {
+		selected = null;
+		filterText = '';
 	}
+
 
 	function key(e) {
 		if (!open) return;
@@ -75,18 +92,31 @@
 </script>
 
 <div class="cc-session-picker">
-	<div class="row">
-		<input
-			type="text"
-			{placeholder}
-			bind:value={filterText}
-			on:input={applyFilter}
-			on:keydown={key}
-			aria-expanded={open}
-			aria-controls="cc-session-panel"
-		/>
-		<button type="button" on:click={toggle} aria-label="Browse sessions">🗂️</button>
-	</div>
+	{#if selected}
+		<div class="selected-display">
+			<div class="selected-name">{formatSessionName(selected)}</div>
+			<div class="selected-meta">
+				<span>{Math.round((selected.size || 0) / 1024)} KB</span>
+				{#if selected.lastModified}
+					<span>• {new Date(selected.lastModified).toLocaleDateString()}</span>
+				{/if}
+			</div>
+			<button type="button" class="clear-btn" onclick={clear} aria-label="Clear selection">✕</button>
+		</div>
+	{:else}
+		<div class="row">
+			<input
+				type="text"
+				{placeholder}
+				bind:value={filterText}
+				oninput={applyFilter}
+				onkeydown={key}
+				aria-expanded={open}
+				aria-controls="cc-session-panel"
+			/>
+			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse sessions">🗂️</button>
+		</div>
+	{/if}
 
 	{#if open}
 		<div
@@ -97,7 +127,7 @@
 		>
 			<div class="bar">
 				<strong>Sessions in {project}</strong>
-				<span class="spacer" />
+				<span class="spacer"></span>
 				{#if loading}<span>Loading…</span>{/if}
 				{#if error}<span class="err">{error}</span>{/if}
 			</div>
@@ -106,21 +136,16 @@
 					<li class={i === highlight ? 'is-active' : ''}>
 						<button
 							type="button"
-							on:mouseover={() => peekTail(s)}
-							on:focus={() => peekTail(s)}
-							on:click={() => choose(s)}
+							onclick={() => choose(s)}
 						>
 							<div class="row2">
-								<div class="id">{s.id}</div>
+								<div class="id">{formatSessionName(s)}</div>
 								<div class="meta">
 									<span>{Math.round((s.size || 0) / 1024)} KB</span>
-									{#if s.lastModified}<span>• {new Date(s.lastModified).toLocaleString()}</span
+									{#if s.lastModified}<span>• {new Date(s.lastModified).toLocaleDateString()}</span
 										>{/if}
 								</div>
 							</div>
-							{#if preview?.length}
-								<pre class="preview">{preview.join('\n')}</pre>
-							{/if}
 						</button>
 					</li>
 				{/each}
@@ -133,77 +158,257 @@
 </div>
 
 <style>
-	/* minimal structure; theme externally */
 	.cc-session-picker {
 		position: relative;
 		display: grid;
-		gap: 0.25rem;
+		gap: var(--space-3);
 	}
+
+	.selected-display {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
+		background: color-mix(in oklab, var(--bg) 90%, var(--accent-cyan) 10%);
+		border: 2px solid var(--accent-cyan);
+		border-radius: 8px;
+		font-family: var(--font-mono);
+	}
+
+	.selected-name {
+		font-weight: 600;
+		color: var(--accent-cyan);
+		font-size: var(--font-size-2);
+	}
+
+	.selected-meta {
+		flex: 1;
+		font-size: var(--font-size-1);
+		color: var(--text-muted);
+	}
+
+	.clear-btn {
+		background: transparent;
+		border: 1px solid var(--text-muted);
+		color: var(--text-muted);
+		cursor: pointer;
+		padding: var(--space-1);
+		border-radius: 4px;
+		transition: all 0.2s ease;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 12px;
+	}
+
+	.clear-btn:hover {
+		border-color: var(--accent-cyan);
+		color: var(--accent-cyan);
+	}
+
 	.row {
 		display: grid;
 		grid-template-columns: 1fr auto;
-		gap: 0.25rem;
+		gap: var(--space-2);
 		align-items: center;
 	}
-	.panel {
-		position: absolute;
-		inset-inline: 0;
-		top: calc(100% + 0.25rem);
-		border: 1px solid var(--panel-border, #ccc);
-		background: var(--panel-bg, #fff);
-		border-radius: 0.25rem;
-		max-height: 60vh;
-		overflow: auto;
-		box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
-		z-index: 10;
+
+	.row input {
+		padding: var(--space-4);
+		font-size: var(--font-size-2);
+		background: var(--bg-input);
+		border: 2px solid color-mix(in oklab, var(--accent-cyan) 50%, transparent);
+		color: var(--text);
+		border-radius: 8px;
+		font-family: var(--font-mono);
+		transition: all 0.3s ease;
 	}
+
+	.row input:focus {
+		outline: none;
+		border-color: var(--accent-cyan);
+		background: var(--bg);
+		box-shadow: 0 0 0 2px rgba(0, 194, 255, 0.2);
+	}
+
+	.row input::placeholder {
+		color: var(--text-muted);
+		opacity: 0.7;
+	}
+
+	.browse-btn {
+		padding: var(--space-4);
+		background: linear-gradient(135deg, var(--bg-panel), var(--bg-dark));
+		border: 2px solid color-mix(in oklab, var(--accent-cyan) 50%, transparent);
+		color: var(--accent-cyan);
+		cursor: pointer;
+		border-radius: 8px;
+		transition: all 0.3s ease;
+		font-size: var(--font-size-3);
+		min-width: 48px;
+	}
+
+	.browse-btn:hover {
+		border-color: var(--accent-cyan);
+		background: linear-gradient(135deg, var(--bg-dark), var(--bg-panel));
+		box-shadow: 0 0 10px rgba(0, 194, 255, 0.3);
+	}
+
+	.panel {
+	
+		inset-inline: 0;
+		background: var(--bg-panel);
+		border: 2px solid color-mix(in oklab, var(--accent-cyan) 50%, transparent);
+		border-radius: 8px;
+		box-shadow: 
+			0 8px 32px rgba(0, 0, 0, 0.4),
+			0 0 0 1px rgba(0, 194, 255, 0.1);
+		z-index: 1000;
+		backdrop-filter: blur(8px);
+	}
+
 	.bar {
 		display: grid;
 		grid-template-columns: auto 1fr auto auto;
-		gap: 0.5rem;
-		padding: 0.5rem;
-		border-bottom: 1px solid var(--panel-border, #ccc);
+		gap: var(--space-3);
+		padding: var(--space-4);
+		background: var(--bg-dark);
+		border-bottom: 1px solid color-mix(in oklab, var(--accent-cyan) 50%, transparent);
+		font-family: var(--font-mono);
 	}
+
+	.bar strong {
+		color: var(--accent-cyan);
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		font-weight: 600;
+	}
+
 	.spacer {
 		visibility: hidden;
 	}
+
 	.list {
 		list-style: none;
 		margin: 0;
-		padding: 0.25rem;
+		padding: var(--space-2);
+		max-height: calc(45vh - 60px);
+		overflow-y: auto;
+		scrollbar-width: thin;
+		scrollbar-color: var(--accent-cyan) transparent;
 	}
-	li button {
+
+	.list::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.list::-webkit-scrollbar-thumb {
+		background: var(--accent-cyan);
+		border-radius: 3px;
+	}
+
+	.list li {
+		margin-bottom: var(--space-1);
+	}
+
+	.list li button {
 		width: 100%;
 		text-align: left;
-		padding: 0.5rem;
+		padding: var(--space-3);
 		display: grid;
-		gap: 0.25rem;
+		gap: var(--space-2);
+		background: var(--bg);
+		border: 1px solid color-mix(in oklab, var(--accent-cyan) 30%, transparent);
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		color: var(--text);
 	}
+
+	.list li button:hover {
+		background: var(--bg-panel);
+		border-color: var(--accent-cyan);
+		transform: translateY(-1px);
+	}
+
 	.row2 {
 		display: grid;
 		grid-template-columns: 1fr auto;
-		gap: 0.5rem;
+		gap: var(--space-3);
+		align-items: start;
 	}
+
 	.id {
 		font-weight: 600;
+		font-size: var(--font-size-2);
+		color: var(--text);
+		font-family: var(--font-mono);
 	}
+
 	.meta {
-		opacity: 0.8;
-		font-size: 0.9em;
+		font-size: var(--font-size-1);
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+		text-align: right;
 	}
+
+	.meta span:first-child {
+		color: var(--accent-amber);
+		font-weight: 600;
+	}
+
 	.preview {
 		margin: 0;
-		padding: 0.5rem;
-		background: var(--preview-bg, #f6f6f6);
-		border-radius: 0.25rem;
-		max-height: 8rem;
+		padding: var(--space-3);
+		background: color-mix(in oklab, var(--bg-dark) 90%, var(--accent-cyan) 10%);
+		border: 1px solid color-mix(in oklab, var(--accent-cyan) 20%, transparent);
+		border-radius: 4px;
+		max-height: 100px;
 		overflow: auto;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		color: var(--text-muted);
+		line-height: 1.4;
 	}
+
+	.preview::-webkit-scrollbar {
+		width: 4px;
+	}
+
+	.preview::-webkit-scrollbar-thumb {
+		background: color-mix(in oklab, var(--accent-cyan) 40%, transparent);
+		border-radius: 4px;
+	}
+
 	.is-active button {
-		outline: 2px solid var(--accent, #999);
+		background: var(--bg-panel);
+		border-color: var(--accent-cyan);
+		box-shadow: 0 0 0 1px var(--accent-cyan);
 	}
+
+	.is-active .id {
+		color: var(--accent-cyan);
+	}
+
 	.empty,
 	.err {
-		padding: 0.75rem;
+		padding: var(--space-4);
+		text-align: center;
+		font-family: var(--font-mono);
+		font-style: italic;
+		color: var(--text-muted);
+	}
+
+	.err {
+		color: var(--error, #ff6b6b);
+	}
+
+	.bar span:not(.spacer) {
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		color: var(--text-muted);
+		font-style: italic;
 	}
 </style>

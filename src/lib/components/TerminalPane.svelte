@@ -5,10 +5,31 @@
 	import { io } from 'socket.io-client';
 	import '@xterm/xterm/css/xterm.css';
 
-	export let ptyId;
+	let { ptyId, shouldResume = false, workspacePath = null } = $props();
 	let socket, term, el;
 
-	onMount(() => {
+	async function loadTerminalHistory() {
+		if (!shouldResume || !ptyId) return;
+		
+		try {
+			const response = await fetch(`/api/sessions/${encodeURIComponent(ptyId)}/history`);
+			if (response.ok) {
+				const data = await response.json();
+				if (data.history) {
+					console.log(`Loading terminal history for ${ptyId}, size: ${data.history.length} chars`);
+					// Write history to terminal to restore previous state
+					term.write(data.history);
+				}
+			}
+		} catch (error) {
+			console.error('Failed to load terminal history:', error);
+		}
+	}
+
+	onMount(async () => {
+		// Detect touch device
+		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+		
 		term = new Terminal({
 			convertEol: true,
 			cursorBlink: true,
@@ -16,12 +37,23 @@
 			fontSize: 14,
 			lineHeight: 1.2,
 			letterSpacing: 0.5,
+			// Enable better touch scrolling
+			scrollback: 1000,
+			smoothScrollDuration: isTouchDevice ? 0 : 125, // Disable smooth scroll on touch for better performance
+			fastScrollModifier: 'shift',
+			fastScrollSensitivity: 5,
+			scrollSensitivity: isTouchDevice ? 3 : 1, // Increase scroll sensitivity on touch devices
 		});
 		const fitAddon = new FitAddon();
 		term.loadAddon(fitAddon);
 		term.open(el);
 		// Fit once after opening so cols/rows are correct for the initial emit
 		fitAddon.fit();
+
+		// Load history before connecting if resuming
+		if (shouldResume) {
+			await loadTerminalHistory();
+		}
 
 		socket = io();
 		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
@@ -42,10 +74,12 @@
 				rows: term.rows
 			});
 
-			// Send initial enter to trigger prompt
-			setTimeout(() => {
-				socket.emit('terminal.write', { key, id: ptyId, data: '\r' });
-			}, 200);
+			// Send initial enter to trigger prompt (only for new terminals)
+			if (!shouldResume) {
+				setTimeout(() => {
+					socket.emit('terminal.write', { key, id: ptyId, data: '\r' });
+				}, 200);
+			}
 		});
 
 		// Listen for terminal data
@@ -83,22 +117,23 @@
 			ro = new ResizeObserver(resize);
 			ro.observe(el);
 		}
-	});
 
-	onDestroy(() => {
-		if (socket) {
-			socket.disconnect();
-		}
-		try {
-			// remove listeners and observers
-			window.removeEventListener('resize', resize);
-		} catch (e) {}
-		try {
-			if (ro) ro.disconnect();
-		} catch (e) {}
-		try {
-			if (term) term.dispose();
-		} catch (e) {}
+		// Cleanup function
+		return () => {
+			if (socket) {
+				socket.disconnect();
+			}
+			try {
+				// remove listeners and observers
+				window.removeEventListener('resize', resize);
+			} catch (e) {}
+			try {
+				if (ro) ro.disconnect();
+			} catch (e) {}
+			try {
+				if (term) term.dispose();
+			} catch (e) {}
+		};
 	});
 </script>
 
@@ -109,6 +144,9 @@
 		height: 100%;
 		min-height: 400px;
 		overflow: hidden;
+		/* Enable touch scrolling on mobile devices */
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
 	}
 
 	.terminal-container :global(.xterm) {
@@ -118,6 +156,9 @@
 
 	.terminal-container :global(.xterm-viewport) {
 		background: var(--bg) !important;
+		/* Enable smooth touch scrolling */
+		-webkit-overflow-scrolling: touch !important;
+		overscroll-behavior: contain !important;
 	}
 
 	.terminal-container :global(.xterm-screen) {

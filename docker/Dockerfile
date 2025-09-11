@@ -69,7 +69,7 @@ RUN mkdir -p /home/appuser/.config/dispatch /var/lib/dispatch/projects /workspac
     && chown appuser:appuser /home/appuser/.config/dispatch/projects.json \
     && chmod 0644 /home/appuser/.config/dispatch/projects.json
 
-RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @qwen-code/qwen-code@latest
+RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex
 USER appuser
 
 
