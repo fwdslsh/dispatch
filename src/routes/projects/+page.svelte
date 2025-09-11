@@ -479,15 +479,24 @@
 								updateDisplayedWithSession(existing.id);
 							} else {
 								// Create a session entry for this active session
+								// For Claude sessions, ensure we use the correct sessionId for history loading
 								const s = {
 									id: detail.id,
 									type: detail.type,
 									workspacePath: detail.workspacePath,
 									projectName: detail.projectName,
-									claudeSessionId: detail.sessionId,
+									// Use sessionId if provided, otherwise use id as fallback
+									claudeSessionId: detail.sessionId || detail.id,
+									// Always set shouldResume to true for active sessions to trigger history loading
 									shouldResume: true,
 									isActiveSocket: true
 								};
+								console.log('Creating session entry for active session:', {
+									id: s.id,
+									claudeSessionId: s.claudeSessionId,
+									type: s.type,
+									shouldResume: s.shouldResume
+								});
 								sessions = [...sessions, s];
 								updateDisplayedWithSession(detail.id);
 							}
@@ -602,7 +611,7 @@
 									<ClaudePane
 										sessionId={s.claudeSessionId || s.sessionId || s.id}
 										claudeSessionId={s.claudeSessionId || s.sessionId}
-										shouldResume={s.resumeSession || false}
+										shouldResume={s.shouldResume || s.resumeSession || false}
 									/>
 								{/if}
 							</div>

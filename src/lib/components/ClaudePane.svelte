@@ -230,16 +230,24 @@
 	
 
 	async function loadPreviousMessages() {
-		if (!claudeSessionId) return;
+		// Use claudeSessionId if available, otherwise use sessionId
+		const sessionIdToLoad = claudeSessionId || sessionId;
+		if (!sessionIdToLoad) return;
 		
 		loading = true;
 		try {
 			// Use the simplified session lookup endpoint that finds the session by ID alone
-			console.log('Loading Claude history for session:', claudeSessionId);
-			const response = await fetch(`/api/claude/session/${encodeURIComponent(claudeSessionId)}?full=1`);
+			console.log('Loading Claude history for session:', sessionIdToLoad);
+			const response = await fetch(`/api/claude/session/${encodeURIComponent(sessionIdToLoad)}?full=1`);
 			
 			if (response.ok) {
 				const data = await response.json();
+				console.log('Session history loaded:', {
+					sessionId: sessionIdToLoad,
+					project: data.project,
+					entryCount: (data.entries || []).length,
+					summary: data.summary
+				});
 				const previousMessages = [];
 
 				// Helpers to build icon objects from entries
@@ -343,14 +351,26 @@
 				messages = previousMessages;
 				if (previousMessages.length > 0) {
 					console.log('Loaded previous messages:', previousMessages.length);
+					// Scroll to bottom after history is loaded
+					await scrollToBottom();
 				} else {
 					console.log('No previous messages found - this appears to be a new session');
 				}
 			} else {
-				console.warn('Failed to load Claude session history:', response.status, await response.text());
+				const errorText = await response.text();
+				console.warn('Failed to load Claude session history:', {
+					status: response.status,
+					sessionId: sessionIdToLoad,
+					error: errorText
+				});
+				// Don't fail silently - this could be a new session which is OK
+				if (response.status !== 404) {
+					console.error('Unexpected error loading session history');
+				}
 			}
 		} catch (error) {
 			console.error('Failed to load previous messages:', error);
+			// Don't let this prevent the session from working
 		} finally {
 			loading = false;
 		}
@@ -361,7 +381,10 @@
 		
 		// Always try to load previous messages if we have a Claude session ID
 		// This handles both explicit resumes and cases where history exists
-		await loadPreviousMessages();
+		// For active sessions that are being resumed, we should always load history
+		if (claudeSessionId || shouldResume) {
+			await loadPreviousMessages();
+		}
 
 		// Get or create socket for this specific session
 		const effectiveSessionId = claudeSessionId || sessionId;
