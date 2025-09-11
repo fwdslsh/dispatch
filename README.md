@@ -31,16 +31,21 @@ dispatch start --open
 ```
 
 The `init` command will:
+
 - Set up your directory structure (`~/dispatch/projects`, `~/dispatch/home`)
 - Copy existing Claude and Dispatch configurations
 - Configure volume mounts for persistent storage
 - Make the CLI globally available
 - Pull the latest Docker image
+- **Handle Docker permissions automatically** (no host permission changes needed)
 
 For manual setup, you can also generate configuration separately:
+
 ```bash
 dispatch config  # Generate configuration file manually
 ```
+
+**📋 For detailed Docker permissions setup, see [DOCKER_PERMISSIONS.md](DOCKER_PERMISSIONS.md)**
 
 See [CLI Documentation](CLI.md) for full CLI usage.
 
@@ -128,13 +133,15 @@ docker run -p 3030:3030 \
 ## 🎯 Getting Started
 
 ### Using the CLI (Recommended)
+
 1. **Initialize environment**: `dispatch init` (first-time setup)
 2. **Start Dispatch**: `dispatch start --open`
-3. **Enter your password** to authenticate  
+3. **Enter your password** to authenticate
 4. **Click "Create Session"** to start your first terminal
 5. **Start working!** Your terminal is ready to use
 
 ### Using Docker Directly
+
 1. **Run the container** with your chosen password
 2. **Open your browser** to `http://localhost:3030`
 3. **Enter your password** to authenticate

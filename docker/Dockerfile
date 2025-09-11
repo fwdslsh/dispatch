@@ -16,7 +16,7 @@ RUN apt-get update \
 ENV npm_config_build_from_source=true
 
 # Install all deps (including devDeps like node-gyp) so native modules can compile
-RUN npm ci
+RUN npm install --no-save
 
 COPY . .
 
@@ -31,7 +31,8 @@ RUN apt-get update \
        tree jq yq build-essential \
        python3 \
        pkg-config \
-       git gh
+       git gh \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
 ENV NODE_ENV=production \
@@ -50,28 +51,28 @@ ENV NODE_ENV=production \
     HOST_HOME_DIR=/home/dispatch
     
 # Create non-root user with configurable UID/GID
-ARG USER_UID=10001
-ARG USER_GID=10001
-RUN (groupadd -g ${USER_GID} dispatch || true) \
-    && useradd -m -u ${USER_UID} -g ${USER_GID} dispatch
+# Default to common development values, but allow override from build args
+ARG USER_UID=1000
+ARG USER_GID=1000
+RUN groupadd -g ${USER_GID} dispatch 2>/dev/null || true \
+    && useradd -m -u ${USER_UID} -g ${USER_GID} -s /bin/bash dispatch 2>/dev/null || true
 
 WORKDIR /app
 COPY --from=build /app /app
 
-# Create directories for the new directory management structure
-# /home/dispatch/.config/dispatch: Application configuration and project registry
-# /var/lib/dispatch/projects: Project storage root (each project gets a subdirectory)
-# /workspace: Legacy workspace directory for backward compatibility
+# Create directories and set proper ownership
 RUN mkdir -p /home/dispatch/.config/dispatch /var/lib/dispatch/projects /workspace \
-    && chown -R dispatch:dispatch /home/dispatch/.config/dispatch /var/lib/dispatch/projects /app /workspace /home/dispatch \
+    && chown -R dispatch:dispatch /home/dispatch /var/lib/dispatch/projects /app /workspace \
     # Create initial project registry file
     && printf '%s' '{}' > /home/dispatch/.config/dispatch/projects.json \
     && chown dispatch:dispatch /home/dispatch/.config/dispatch/projects.json \
     && chmod 0644 /home/dispatch/.config/dispatch/projects.json
 
+# Install global packages as root before switching user
 RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex
-USER appuser
 
+# Switch to the dispatch user (not appuser)
+USER dispatch
 
 EXPOSE 3030
 

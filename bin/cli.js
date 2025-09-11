@@ -91,7 +91,7 @@ function prompt(question) {
 
 function promptYesNo(question, defaultValue = true) {
 	const defaultStr = defaultValue ? 'Y/n' : 'y/N';
-	return prompt(`${question} (${defaultStr}): `).then(answer => {
+	return prompt(`${question} (${defaultStr}): `).then((answer) => {
 		if (answer === '') return defaultValue;
 		return answer.toLowerCase().startsWith('y');
 	});
@@ -168,7 +168,9 @@ function ensureCLIAvailable() {
 						console.log('✅ dispatch CLI made available globally');
 						resolve(true);
 					} catch (error) {
-						console.warn('⚠️  Could not make CLI available globally. You may need to run with sudo or add to PATH manually');
+						console.warn(
+							'⚠️  Could not make CLI available globally. You may need to run with sudo or add to PATH manually'
+						);
 						console.warn(`   Manual command: sudo ln -sf ${binPath} ${globalBinPath}`);
 						resolve(false);
 					}
@@ -226,15 +228,19 @@ async function sendNotifications(config, url, terminalKey) {
 	}
 }
 
+function ensureDirectoryExists(dirPath) {
+	if (!fs.existsSync(dirPath)) {
+		fs.mkdirSync(dirPath, { recursive: true });
+		console.log(`Created directory: ${dirPath}`);
+	}
+}
+
 function ensureDirectories(config) {
 	// Create directories if they don't exist
 	const dirs = [config.volumes.projects, config.volumes.home].filter(Boolean).map(expandPath);
 
 	dirs.forEach((dir) => {
-		if (!fs.existsSync(dir)) {
-			fs.mkdirSync(dir, { recursive: true });
-			console.log(`Created directory: ${dir}`);
-		}
+		ensureDirectoryExists(dir);
 	});
 }
 
@@ -244,10 +250,29 @@ async function buildImage(imageName) {
 	const dockerfilePath = path.join(__dirname, '..', 'docker', 'Dockerfile');
 	const contextPath = path.join(__dirname, '..');
 
+	// Get current user's UID and GID to pass as build arguments
+	const uid = process.getuid ? process.getuid() : 1000;
+	const gid = process.getgid ? process.getgid() : 1000;
+
 	return new Promise((resolve, reject) => {
-		const build = spawn('docker', ['build', '-f', dockerfilePath, '-t', imageName, contextPath], {
-			stdio: 'inherit'
-		});
+		const build = spawn(
+			'docker',
+			[
+				'build',
+				'-f',
+				dockerfilePath,
+				'-t',
+				imageName,
+				'--build-arg',
+				`USER_UID=${uid}`,
+				'--build-arg',
+				`USER_GID=${gid}`,
+				contextPath
+			],
+			{
+				stdio: 'inherit'
+			}
+		);
 
 		build.on('close', (code) => {
 			if (code === 0) {
@@ -284,19 +309,18 @@ async function runContainer(config) {
 		}
 	}
 
-	// User mapping
-	const uid = process.getuid ? process.getuid() : 1000;
-	const gid = process.getgid ? process.getgid() : 1000;
-	args.push('--user', `${uid}:${gid}`);
+	// Note: No --user flag needed since we build the container with matching UID/GID
 
-	// Volume mounts
+	// Volume mounts - ensure directories exist and are owned by current user
 	if (config.volumes.home) {
 		const homePath = expandPath(config.volumes.home);
+		ensureDirectoryExists(homePath);
 		args.push('-v', `${homePath}:/home/dispatch`);
 	}
 
 	if (config.volumes.projects) {
 		const projectsPath = expandPath(config.volumes.projects);
+		ensureDirectoryExists(projectsPath);
 		args.push('-v', `${projectsPath}:/workspace`);
 	}
 
@@ -310,6 +334,7 @@ async function runContainer(config) {
 	if (config.volumes.claude) {
 		const claudePath = expandPath(config.volumes.claude);
 		if (fs.existsSync(claudePath)) {
+			ensureDirectoryExists(claudePath);
 			args.push('-v', `${claudePath}:/home/dispatch/.claude`);
 		}
 	}
@@ -317,6 +342,7 @@ async function runContainer(config) {
 	if (config.volumes.config) {
 		const configPath = expandPath(config.volumes.config);
 		if (fs.existsSync(configPath)) {
+			ensureDirectoryExists(configPath);
 			args.push('-v', `${configPath}:/home/dispatch/.config`);
 		}
 	}
@@ -529,8 +555,6 @@ program
 		}
 	});
 
-
-
 program
 	.command('init')
 	.description('Initialize Dispatch environment setup')
@@ -550,7 +574,10 @@ program
 			let dispatchHome = options.dispatchHome || path.join(os.homedir(), 'dispatch');
 
 			if (!options.dispatchHome && isInteractive) {
-				const useCustomHome = await promptYesNo('Use default dispatch home directory ~/dispatch?', true);
+				const useCustomHome = await promptYesNo(
+					'Use default dispatch home directory ~/dispatch?',
+					true
+				);
 				if (!useCustomHome) {
 					dispatchHome = await prompt('Enter custom dispatch home directory: ');
 					dispatchHome = expandPath(dispatchHome);
@@ -578,7 +605,10 @@ program
 			let projectsDir = options.projectsDir || path.join(dispatchHome, 'projects');
 
 			if (!options.projectsDir && isInteractive) {
-				const useDefaultProjects = await promptYesNo(`Use default projects directory ${path.join(dispatchHome, 'projects')}?`, true);
+				const useDefaultProjects = await promptYesNo(
+					`Use default projects directory ${path.join(dispatchHome, 'projects')}?`,
+					true
+				);
 				if (!useDefaultProjects) {
 					projectsDir = await prompt('Enter custom projects directory: ');
 					projectsDir = expandPath(projectsDir);
@@ -600,7 +630,9 @@ program
 			const claudeTargetDir = path.join(dispatchHome, '.claude');
 
 			if (fs.existsSync(claudeSourceDir)) {
-				const copyClaude = isInteractive ? await promptYesNo('Copy ~/.claude configuration to dispatch home?', true) : true;
+				const copyClaude = isInteractive
+					? await promptYesNo('Copy ~/.claude configuration to dispatch home?', true)
+					: true;
 				if (copyClaude) {
 					if (copyDirectoryRecursive(claudeSourceDir, claudeTargetDir)) {
 						console.log(`✅ Copied .claude configuration to ${claudeTargetDir}`);
@@ -617,7 +649,9 @@ program
 			const configTargetDir = path.join(dispatchHome, '.config', 'dispatch');
 
 			if (fs.existsSync(configSourceDir)) {
-				const copyConfig = isInteractive ? await promptYesNo('Copy ~/.config/dispatch to dispatch home?', true) : true;
+				const copyConfig = isInteractive
+					? await promptYesNo('Copy ~/.config/dispatch to dispatch home?', true)
+					: true;
 				if (copyConfig) {
 					if (copyDirectoryRecursive(configSourceDir, configTargetDir)) {
 						console.log(`✅ Copied dispatch configuration to ${configTargetDir}`);
@@ -674,7 +708,9 @@ program
 
 			// Make CLI available globally
 			if (!options.skipCli) {
-				const makeCLIAvailable = isInteractive ? await promptYesNo('Make dispatch CLI available system-wide?', true) : true;
+				const makeCLIAvailable = isInteractive
+					? await promptYesNo('Make dispatch CLI available system-wide?', true)
+					: true;
 				if (makeCLIAvailable) {
 					await ensureCLIAvailable();
 				}
@@ -682,7 +718,9 @@ program
 
 			// Pull Docker image
 			if (!options.skipDocker) {
-				const pullImage = isInteractive ? await promptYesNo('Pull latest Dispatch Docker image?', true) : true;
+				const pullImage = isInteractive
+					? await promptYesNo('Pull latest Dispatch Docker image?', true)
+					: true;
 				if (pullImage) {
 					try {
 						await pullDockerImage(config.image);
@@ -701,7 +739,6 @@ program
 			console.log('\nYour files will be mounted from:');
 			console.log(`  - Projects: ${projectsDir}`);
 			console.log(`  - Home: ${containerHomeDir}`);
-
 		} catch (error) {
 			console.error('❌ Error during initialization:', error.message);
 			process.exit(1);

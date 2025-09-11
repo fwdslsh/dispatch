@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      args:
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
     image: fwdslsh/dispatch:latest
     container_name: dispatch
     ports:
@@ -14,25 +17,19 @@ services:
       - PTY_MODE=shell
       - ENABLE_TUNNEL=false
       # Directory management configuration
-      - DISPATCH_CONFIG_DIR=/home/appuser/.config/dispatch
+      - DISPATCH_CONFIG_DIR=/home/dispatch/.config/dispatch
       - DISPATCH_PROJECTS_DIR=/var/lib/dispatch/projects
       - CONTAINER_ENV=true
       # Uncomment for public access:
       # - ENABLE_TUNNEL=true
       # - LT_SUBDOMAIN=my-dispatch
     volumes:
-      # Mount for persistent project storage
-      - dispatch_projects:/var/lib/dispatch/projects
-      # Mount for persistent configuration
-      - dispatch_config:/home/appuser/.config/dispatch
-      # Optional: Mount host directories for persistence
-      # - ./dispatch-projects:/var/lib/dispatch/projects
-      # - ./dispatch-config:/home/appuser/.config/dispatch
+      # Mount for persistent project storage with proper ownership
+      - ./dispatch-projects:/workspace
+      # Mount for persistent home directory
+      - ./dispatch-home:/home/dispatch
+      # Optional: Mount host directories for SSH keys (read-only)
+      # - ~/.ssh:/home/dispatch/.ssh:ro
+      # Optional: Mount Claude config
+      # - ~/.claude:/home/dispatch/.claude
     restart: unless-stopped
-
-volumes:
-  # Named volumes for project and configuration persistence
-  dispatch_projects:
-    driver: local
-  dispatch_config:
-    driver: local
