@@ -1,9 +1,10 @@
 {
-	"name": "dispatch",
+	"name": "@fwdslsh/dispatch",
 	"version": "0.0.4",
 	"description": "Coding agents in Docker accessible via web terminal",
 	"license": "CC-BY-4.0",
 	"type": "module",
+	"private": false,
 	"scripts": {
 		"dev": "TERMINAL_KEY='testkey12345' HOME=\"$(pwd)/.dispatch-home\" WORKSPACES_ROOT=\"$(pwd)/.dispatch-home/workspaces\" vite dev --host",
 		"dev:server": "TERMINAL_KEY='testkey12345' node src/dev-server.js",
