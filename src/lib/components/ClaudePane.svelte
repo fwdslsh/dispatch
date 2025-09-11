@@ -1343,8 +1343,8 @@
 	}
 	
 	@keyframes fadeInOut {
-		0%, 100% { opacity: 0.1; }
-		50% { opacity: 0.35; }
+		0%, 100% { opacity: 0.05; }
+		50% { opacity: 0.25; }
 	}
 	
 	.welcome-message h3 {

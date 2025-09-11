@@ -15,3 +15,5 @@
   - Terminal sessions need to be updated to use something like screen, tmux, or tee to capture full session input and output
   - The user should be able to browser previous sessions and restore the history based on the content from the session logging tool
 - FIXED: Mobile height is slightly off and has overflow on small screens. we need to ensure the layout does not exceed the viewport when on mobile
+- Add a "custom" layout option (only available on desktop) that allows the user to sake session viewports sizable and place them wherever they link in the session grid. the layout configuration should be saved to local storage
+- 

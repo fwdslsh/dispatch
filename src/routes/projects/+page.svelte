@@ -518,7 +518,7 @@
 			<div class="empty-workspace">
 				<div class="empty-content">
 					<div class="empty-icon"></div>
-					<h1>Ready to Code</h1>
+					<h1>Dispatch</h1>
 					<p>Create a terminal or Claude Code session to get started</p>
 				</div>
 			</div>
@@ -653,13 +653,26 @@
 			'header'
 			'main'
 			'footer';
-		background: var(--bg-dark);
+		background: transparent;
 		color: var(--text-primary);
 		overflow: hidden;
 		/* Avoid horizontal overflow on small screens */
 		max-width: 100svw;
 		width: 100%;
 		transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+
+		&::before {
+			content: '';
+			position: absolute;
+			inset: 0;
+			opacity: 0.09;
+			background-image: url('/fwdslsh-green-bg.png');
+			background-repeat: no-repeat;
+			background-position: center center;
+			background-size: contain;
+			pointer-events: none;
+		}
 	}
 
 	/* ========================================
@@ -791,6 +804,7 @@
 		-webkit-tap-highlight-color: transparent;
 		touch-action: manipulation;
 		user-select: none;
+		animation: pulse 2s infinite;
 	}
 
 	.add-session-btn:hover {
@@ -843,16 +857,6 @@
 		/* Prevent grid child overflow in narrow viewports */
 		min-width: 0;
 
-		&::before {
-			content: '';
-			position: absolute;
-			inset: 0;
-			opacity: 0.25;
-			background-image: url('/fwdslsh-green-bg.png');
-			background-repeat: no-repeat;
-			background-position: center center;
-			background-size: contain;
-		}
 	}
 
 	@media (max-width: 768px) {
@@ -877,18 +881,16 @@
 		margin-bottom: var(--space-3);
 	}
 
-	.empty-content h2 {
-		font-family: var(--font-mono);
-		color: var(--text-secondary);
-		margin: 0 0 var(--space-2) 0;
-		font-size: 1.5rem;
+	.empty-content h1 {
+		font-size: 5rem;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+		opacity: 0.75;
+		text-shadow: 0 0 10px var(--glow);
 	}
 
 	.empty-content p {
 		margin: 0;
-		font-size: 0.875rem;
 	}
 
 	.session-grid {
