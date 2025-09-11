@@ -29,7 +29,7 @@ const defaultConfig = {
 		claude: null, // Optional
 		config: null // Optional
 	},
-	build: false, // Whether to build the image first
+	build: false, // Whether to build the image locally (default: pull from Docker Hub)
 	openBrowser: false,
 	notifications: {
 		enabled: false,
@@ -91,7 +91,7 @@ function prompt(question) {
 
 function promptYesNo(question, defaultValue = true) {
 	const defaultStr = defaultValue ? 'Y/n' : 'y/N';
-	return prompt(`${question} (${defaultStr}): `).then(answer => {
+	return prompt(`${question} (${defaultStr}): `).then((answer) => {
 		if (answer === '') return defaultValue;
 		return answer.toLowerCase().startsWith('y');
 	});
@@ -168,7 +168,9 @@ function ensureCLIAvailable() {
 						console.log('✅ dispatch CLI made available globally');
 						resolve(true);
 					} catch (error) {
-						console.warn('⚠️  Could not make CLI available globally. You may need to run with sudo or add to PATH manually');
+						console.warn(
+							'⚠️  Could not make CLI available globally. You may need to run with sudo or add to PATH manually'
+						);
 						console.warn(`   Manual command: sudo ln -sf ${binPath} ${globalBinPath}`);
 						resolve(false);
 					}
@@ -226,28 +228,72 @@ async function sendNotifications(config, url, terminalKey) {
 	}
 }
 
+function ensureDirectoryExists(dirPath) {
+	if (!fs.existsSync(dirPath)) {
+		fs.mkdirSync(dirPath, { recursive: true });
+		console.log(`Created directory: ${dirPath}`);
+	}
+}
+
 function ensureDirectories(config) {
 	// Create directories if they don't exist
 	const dirs = [config.volumes.projects, config.volumes.home].filter(Boolean).map(expandPath);
 
 	dirs.forEach((dir) => {
-		if (!fs.existsSync(dir)) {
-			fs.mkdirSync(dir, { recursive: true });
-			console.log(`Created directory: ${dir}`);
-		}
+		ensureDirectoryExists(dir);
+	});
+}
+
+async function pullImage(imageName) {
+	console.log(`📥 Pulling Docker image from Docker Hub: ${imageName}`);
+	console.log('💡 This ensures compatibility with pre-built images and runtime user mapping');
+
+	return new Promise((resolve, reject) => {
+		const pull = spawn('docker', ['pull', imageName], {
+			stdio: 'inherit'
+		});
+
+		pull.on('close', (code) => {
+			if (code === 0) {
+				console.log('✅ Docker image pulled successfully');
+				resolve();
+			} else {
+				reject(new Error(`Docker pull failed with exit code ${code}`));
+			}
+		});
 	});
 }
 
 async function buildImage(imageName) {
-	console.log(`Building Docker image: ${imageName}`);
+	console.log(`🔨 Building Docker image locally: ${imageName}`);
+	console.log('💡 Note: For most users, pulling from Docker Hub is recommended instead of building locally');
 
 	const dockerfilePath = path.join(__dirname, '..', 'docker', 'Dockerfile');
 	const contextPath = path.join(__dirname, '..');
 
+	// Get current user's UID and GID to pass as build arguments
+	const uid = process.getuid ? process.getuid() : 1000;
+	const gid = process.getgid ? process.getgid() : 1000;
+
 	return new Promise((resolve, reject) => {
-		const build = spawn('docker', ['build', '-f', dockerfilePath, '-t', imageName, contextPath], {
-			stdio: 'inherit'
-		});
+		const build = spawn(
+			'docker',
+			[
+				'build',
+				'-f',
+				dockerfilePath,
+				'-t',
+				imageName,
+				'--build-arg',
+				`USER_UID=${uid}`,
+				'--build-arg',
+				`USER_GID=${gid}`,
+				contextPath
+			],
+			{
+				stdio: 'inherit'
+			}
+		);
 
 		build.on('close', (code) => {
 			if (code === 0) {
@@ -284,19 +330,25 @@ async function runContainer(config) {
 		}
 	}
 
-	// User mapping
+	// Runtime user mapping for Docker Hub compatibility
+	// Pass host UID/GID as environment variables for the entrypoint script
 	const uid = process.getuid ? process.getuid() : 1000;
 	const gid = process.getgid ? process.getgid() : 1000;
-	args.push('--user', `${uid}:${gid}`);
+	args.push('-e', `HOST_UID=${uid}`);
+	args.push('-e', `HOST_GID=${gid}`);
 
-	// Volume mounts
+	console.log(`🔧 Using runtime user mapping: ${uid}:${gid}`);
+
+	// Volume mounts - ensure directories exist
 	if (config.volumes.home) {
 		const homePath = expandPath(config.volumes.home);
+		ensureDirectoryExists(homePath);
 		args.push('-v', `${homePath}:/home/dispatch`);
 	}
 
 	if (config.volumes.projects) {
 		const projectsPath = expandPath(config.volumes.projects);
+		ensureDirectoryExists(projectsPath);
 		args.push('-v', `${projectsPath}:/workspace`);
 	}
 
@@ -310,6 +362,7 @@ async function runContainer(config) {
 	if (config.volumes.claude) {
 		const claudePath = expandPath(config.volumes.claude);
 		if (fs.existsSync(claudePath)) {
+			ensureDirectoryExists(claudePath);
 			args.push('-v', `${claudePath}:/home/dispatch/.claude`);
 		}
 	}
@@ -317,6 +370,7 @@ async function runContainer(config) {
 	if (config.volumes.config) {
 		const configPath = expandPath(config.volumes.config);
 		if (fs.existsSync(configPath)) {
+			ensureDirectoryExists(configPath);
 			args.push('-v', `${configPath}:/home/dispatch/.config`);
 		}
 	}
@@ -400,9 +454,12 @@ program
 			// Ensure directories exist
 			ensureDirectories(config);
 
-			// Build image if requested
+			// Handle image: build locally or pull from Docker Hub
 			if (config.build) {
 				await buildImage(config.image);
+			} else {
+				console.log('🎯 Using Docker Hub image (recommended for most users)');
+				await pullImage(config.image);
 			}
 
 			// Start container
@@ -529,8 +586,6 @@ program
 		}
 	});
 
-
-
 program
 	.command('init')
 	.description('Initialize Dispatch environment setup')
@@ -550,7 +605,10 @@ program
 			let dispatchHome = options.dispatchHome || path.join(os.homedir(), 'dispatch');
 
 			if (!options.dispatchHome && isInteractive) {
-				const useCustomHome = await promptYesNo('Use default dispatch home directory ~/dispatch?', true);
+				const useCustomHome = await promptYesNo(
+					'Use default dispatch home directory ~/dispatch?',
+					true
+				);
 				if (!useCustomHome) {
 					dispatchHome = await prompt('Enter custom dispatch home directory: ');
 					dispatchHome = expandPath(dispatchHome);
@@ -578,7 +636,10 @@ program
 			let projectsDir = options.projectsDir || path.join(dispatchHome, 'projects');
 
 			if (!options.projectsDir && isInteractive) {
-				const useDefaultProjects = await promptYesNo(`Use default projects directory ${path.join(dispatchHome, 'projects')}?`, true);
+				const useDefaultProjects = await promptYesNo(
+					`Use default projects directory ${path.join(dispatchHome, 'projects')}?`,
+					true
+				);
 				if (!useDefaultProjects) {
 					projectsDir = await prompt('Enter custom projects directory: ');
 					projectsDir = expandPath(projectsDir);
@@ -600,7 +661,9 @@ program
 			const claudeTargetDir = path.join(dispatchHome, '.claude');
 
 			if (fs.existsSync(claudeSourceDir)) {
-				const copyClaude = isInteractive ? await promptYesNo('Copy ~/.claude configuration to dispatch home?', true) : true;
+				const copyClaude = isInteractive
+					? await promptYesNo('Copy ~/.claude configuration to dispatch home?', true)
+					: true;
 				if (copyClaude) {
 					if (copyDirectoryRecursive(claudeSourceDir, claudeTargetDir)) {
 						console.log(`✅ Copied .claude configuration to ${claudeTargetDir}`);
@@ -617,7 +680,9 @@ program
 			const configTargetDir = path.join(dispatchHome, '.config', 'dispatch');
 
 			if (fs.existsSync(configSourceDir)) {
-				const copyConfig = isInteractive ? await promptYesNo('Copy ~/.config/dispatch to dispatch home?', true) : true;
+				const copyConfig = isInteractive
+					? await promptYesNo('Copy ~/.config/dispatch to dispatch home?', true)
+					: true;
 				if (copyConfig) {
 					if (copyDirectoryRecursive(configSourceDir, configTargetDir)) {
 						console.log(`✅ Copied dispatch configuration to ${configTargetDir}`);
@@ -674,7 +739,9 @@ program
 
 			// Make CLI available globally
 			if (!options.skipCli) {
-				const makeCLIAvailable = isInteractive ? await promptYesNo('Make dispatch CLI available system-wide?', true) : true;
+				const makeCLIAvailable = isInteractive
+					? await promptYesNo('Make dispatch CLI available system-wide?', true)
+					: true;
 				if (makeCLIAvailable) {
 					await ensureCLIAvailable();
 				}
@@ -682,7 +749,9 @@ program
 
 			// Pull Docker image
 			if (!options.skipDocker) {
-				const pullImage = isInteractive ? await promptYesNo('Pull latest Dispatch Docker image?', true) : true;
+				const pullImage = isInteractive
+					? await promptYesNo('Pull latest Dispatch Docker image?', true)
+					: true;
 				if (pullImage) {
 					try {
 						await pullDockerImage(config.image);
@@ -701,7 +770,6 @@ program
 			console.log('\nYour files will be mounted from:');
 			console.log(`  - Projects: ${projectsDir}`);
 			console.log(`  - Home: ${containerHomeDir}`);
-
 		} catch (error) {
 			console.error('❌ Error during initialization:', error.message);
 			process.exit(1);
