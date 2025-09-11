@@ -26,6 +26,7 @@
 		"test:e2e:report": "npx playwright show-report",
 		"playwright:install": "npx playwright install",
 		"docker:dev": "node bin/cli.js start -k test --projects ~/code/ --home ~/ --build",
+		"docker:start": "node bin/cli.js start -k test --projects ~/code/ --home ~/",
 		"docker:stop": "node bin/cli.js stop"
 	},
 	"bin": {
