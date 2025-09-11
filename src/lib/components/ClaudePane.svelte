@@ -621,15 +621,15 @@
 						Ready
 					{/if}
 				</div>
-				{#if workspacePath}
-					<div class="ai-cwd" title="{workspacePath}">
-						<span class="cwd-icon">📁</span>
-						<span class="cwd-path">{workspacePath.split('/').filter(Boolean).pop() || '/'}</span>
-					</div>
-				{/if}
 			</div>
 		</div>
 		<div class="chat-stats">
+			{#if workspacePath}
+				<div class="stat-item ai-cwd" title="{workspacePath}">
+					<span class="cwd-icon">📁</span>
+					<span class="cwd-path">{workspacePath.split('/').filter(Boolean).pop() || '/'}</span>
+				</div>
+			{/if}
 			<div class="stat-item">
 				<span class="stat-icon">💬</span>
 				<span class="stat-value">{messages.length}</span>
@@ -963,7 +963,12 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		margin-top: var(--space-1);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
+		max-width: 350px;
+	}
+	
+	.stat-item.ai-cwd {
 		padding: var(--space-1) var(--space-2);
 		background: 
 			linear-gradient(135deg, 
@@ -972,9 +977,6 @@
 			);
 		border: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
 		border-radius: 12px;
-		font-family: var(--font-mono);
-		font-size: var(--font-size-0);
-		max-width: 350px;
 	}
 	
 	.cwd-icon {
