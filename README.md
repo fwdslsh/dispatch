@@ -23,11 +23,23 @@ Install the Dispatch CLI for the easiest setup:
 # Install globally
 npm install -g fwdslsh/dispatch
 
-# Generate configuration
-dispatch config
+# Initialize your Dispatch environment (recommended for first-time setup)
+dispatch init
 
 # Start with browser opening automatically
 dispatch start --open
+```
+
+The `init` command will:
+- Set up your directory structure (`~/dispatch/projects`, `~/dispatch/home`)
+- Copy existing Claude and Dispatch configurations
+- Configure volume mounts for persistent storage
+- Make the CLI globally available
+- Pull the latest Docker image
+
+For manual setup, you can also generate configuration separately:
+```bash
+dispatch config  # Generate configuration file manually
 ```
 
 See [CLI Documentation](CLI.md) for full CLI usage.
@@ -115,6 +127,14 @@ docker run -p 3030:3030 \
 
 ## 🎯 Getting Started
 
+### Using the CLI (Recommended)
+1. **Initialize environment**: `dispatch init` (first-time setup)
+2. **Start Dispatch**: `dispatch start --open`
+3. **Enter your password** to authenticate  
+4. **Click "Create Session"** to start your first terminal
+5. **Start working!** Your terminal is ready to use
+
+### Using Docker Directly
 1. **Run the container** with your chosen password
 2. **Open your browser** to `http://localhost:3030`
 3. **Enter your password** to authenticate
