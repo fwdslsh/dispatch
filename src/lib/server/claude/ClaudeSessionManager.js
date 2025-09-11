@@ -93,9 +93,9 @@ export class ClaudeSessionManager {
 		const s = session;
 		console.log(`ClaudeSessionManager: Using session ${key} with sessionId ${s.sessionId}`);
 
+		let sawNoConversation = false;
 		try {
 			const debugEnv = { ...process.env, HOME: process.env.HOME };
-			let sawNoConversation = false;
 			// If you want SDK debug logs, uncomment next line
 			// debugEnv.DEBUG = debugEnv.DEBUG || '1';
 			const stream = query({
