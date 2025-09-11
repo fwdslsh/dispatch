@@ -273,8 +273,9 @@
 	}
 
 	.modal--medium {
-		width: 900px;
-		min-height: 600px;
+		width: 600px;
+		min-height: 400px;
+		max-height: 80vh;
 	}
 
 	.modal--large {
@@ -370,14 +371,14 @@
 	/* Enhanced terminal content */
 	.modal__content {
 		flex: 1;
-		overflow: visible;
-		padding: var(--space-8) var(--space-6);
+		overflow: auto;
+		padding: 0;
 		background: var(--bg);
 		color: var(--text-primary);
 		font-family: var(--font-sans);
 		position: relative;
 		min-height: 0;
-		max-height: 70vh;
+		max-height: calc(80vh - 120px);
 	}
 
 	/* Subtle scan lines in content area */

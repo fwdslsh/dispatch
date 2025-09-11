@@ -4,8 +4,8 @@
 - [DONE] The ProjectSessionMenu should include a way to select the session type and then load the given projects and session for the selected type.
   - [DONE] The new session buttons should be moved to the ProjectSessionMenu and displayed based on the type of session that is selected.
 
-- Add a list of active sockets/sessions in a new section of the project session menu
-- Reconnect to an active socket with the appropriate session pane/component
+- [DONE] Add a list of active sockets/sessions in a new section of the project session menu
+- BUG: Reconnect to an active socket with the appropriate session pane/component
 - Create a ClaudeCommands component that will handle parsing available slashCommands for a given session by parsing jsonl files or websocket messages.
   - It will then provide a button in a toolbar above the message and send controls
   - Click the button will allow you to easily pick a command and enter some additional text before sending the message. This can simply insert the command at the begining of the message control
@@ -14,4 +14,4 @@
 - Integrate ~/.bash_sessions to resume previous terminal sessions
   - Terminal sessions need to be updated to use something like screen, tmux, or tee to capture full session input and output
   - The user should be able to browser previous sessions and restore the history based on the content from the session logging tool
-- BUG: Mobile height is slightly off and has overflow on small screens. we need to ensure the layout does not exceed the viewport when on mobile
+- FIXED: Mobile height is slightly off and has overflow on small screens. we need to ensure the layout does not exceed the viewport when on mobile

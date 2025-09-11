@@ -2,6 +2,7 @@
 	import { Modal } from '$lib/shared/components';
 	import ClaudeProjectPicker from './ClaudeProjectPicker.svelte';
 	import ClaudeSessionPicker from './ClaudeSessionPicker.svelte';
+	import DirectoryBrowser from './DirectoryBrowser.svelte';
 
 	let { open = $bindable(false), onSessionCreate } = $props();
 
@@ -9,29 +10,49 @@
 	let projectName = $state('');
 	let selectedProject = $state(null);
 	let selectedSession = $state(null);
+	let selectedDirectory = $state(null);
+	let projectSource = $state('browse'); // 'browse' for directory browser, 'claude' for existing Claude projects
 	let creating = $state(false);
 
 	async function handleCreate() {
 		creating = true;
 		try {
 			if (mode === 'new') {
-				if (!projectName.trim()) return;
+				// Using directory browser for new project
+				if (!selectedDirectory) return;
+				// Use the selected directory as the workspace path
 				await onSessionCreate?.({
-					workspacePath: projectName.trim(),
+					workspacePath: selectedDirectory,
 					sessionId: null,
-					projectName: projectName.trim(),
+					projectName: projectName || selectedDirectory.split('/').pop() || 'project',
 					resumeSession: false,
-					createWorkspace: true
+					createWorkspace: false // Don't create a new workspace, use existing directory
 				});
 			} else {
-				if (!selectedProject) return;
-				await onSessionCreate?.({
-					workspacePath: selectedProject.path,
-					sessionId: selectedSession?.id || null,
-					projectName: selectedProject.name,
-					resumeSession: !!selectedSession,
-					createWorkspace: false
-				});
+				// Existing project mode
+				if (projectSource === 'claude') {
+					// Using existing Claude project
+					if (!selectedProject) return;
+					await onSessionCreate?.({
+						workspacePath: selectedProject.path,
+						sessionId: selectedSession?.id || null,
+						projectName: selectedProject.name,
+						resumeSession: !!selectedSession,
+						createWorkspace: false
+					});
+				} else {
+					// Using directory browser
+					if (!selectedDirectory) return;
+					// Extract project name from the directory path
+					const dirName = selectedDirectory.split('/').pop() || 'project';
+					await onSessionCreate?.({
+						workspacePath: selectedDirectory,
+						sessionId: null,
+						projectName: dirName,
+						resumeSession: false,
+						createWorkspace: false
+					});
+				}
 			}
 			handleClose();
 		} catch (error) {
@@ -45,6 +66,8 @@
 		projectName = '';
 		selectedProject = null;
 		selectedSession = null;
+		selectedDirectory = null;
+		projectSource = 'browse'; // Reset to browse for new projects
 		mode = 'new';
 		open = false;
 	}
@@ -55,7 +78,11 @@
 	}
 
 	const canCreate = $derived(
-		mode === 'new' ? projectName.trim().length > 0 : selectedProject !== null
+		mode === 'new' 
+			? selectedDirectory !== null
+			: projectSource === 'claude' 
+				? selectedProject !== null
+				: selectedDirectory !== null
 	);
 
 	const createButtonText = $derived(
@@ -67,7 +94,7 @@
 	);
 </script>
 
-<Modal bind:open title="Create Claude Session" onclose={handleClose} size="fullscreen">
+<Modal bind:open title="Create Claude Session" onclose={handleClose} size="medium">
 	{#snippet children()}
 		<div class="terminal-form">
 			<div class="mode-selector">
@@ -75,14 +102,25 @@
 					<button
 						type="button"
 						class="tab {mode === 'new' ? 'active' : ''}"
-						onclick={() => (mode = 'new')}
+						onclick={() => {
+							mode = 'new';
+							projectSource = 'browse'; // Default to browse when switching to new mode
+							selectedDirectory = null;
+							selectedProject = null;
+							selectedSession = null;
+						}}
 					>
 						<span class="tab-prefix">01</span> NEW PROJECT
 					</button>
 					<button
 						type="button"
 						class="tab {mode === 'existing' ? 'active' : ''}"
-						onclick={() => (mode = 'existing')}
+						onclick={() => {
+							mode = 'existing';
+							projectSource = 'claude'; // Reset to claude when switching to existing mode
+							selectedDirectory = null;
+							projectName = '';
+						}}
 					>
 						<span class="tab-prefix">02</span> EXISTING PROJECT
 					</button>
@@ -91,40 +129,93 @@
 
 			<div class="content-area">
 				{#if mode === 'new'}
+					<!-- Directory browser only for new projects -->
 					<div class="input-group">
-						<label for="project-name">PROJECT NAME</label>
-						<div class="terminal-input">
-							<span class="prompt">></span>
-							<input
-								id="project-name"
-								type="text"
-								bind:value={projectName}
-								placeholder="my-awesome-project"
-								disabled={creating}
-							/>
+						<label>SELECT PROJECT DIRECTORY</label>
+						<DirectoryBrowser
+							bind:selected={selectedDirectory}
+							api="/api/browse"
+							placeholder="Navigate to your project directory..."
+							onSelect={(path) => {
+								// Extract project name from selected directory
+								const dirName = path.split('/').pop() || 'project';
+								projectName = dirName;
+							}}
+						/>
+						<div class="hint">
+							Browse and select a directory for your new Claude project
 						</div>
-						<div class="hint">Enter a unique name for your new Claude project workspace</div>
+						{#if selectedDirectory && projectName}
+							<div class="project-name-preview">
+								<span class="preview-label">Project Name:</span>
+								<span class="preview-value">{projectName}</span>
+							</div>
+						{/if}
 					</div>
 				{:else}
+					<!-- Source selector for existing projects -->
 					<div class="input-group">
-						<label>SELECT PROJECT</label>
-						<ClaudeProjectPicker
-							bind:selected={selectedProject}
-							onSelect={handleProjectSelect}
-							api="/api/claude/projects"
-						/>
+						<label>PROJECT SOURCE</label>
+						<div class="source-selector">
+							<button
+								type="button"
+								class="source-tab {projectSource === 'claude' ? 'active' : ''}"
+								onclick={() => {
+									projectSource = 'claude';
+									selectedDirectory = null;
+								}}
+							>
+								<span class="tab-icon">🤖</span>
+								CLAUDE PROJECTS
+							</button>
+							<button
+								type="button"
+								class="source-tab {projectSource === 'browse' ? 'active' : ''}"
+								onclick={() => {
+									projectSource = 'browse';
+									selectedProject = null;
+									selectedSession = null;
+								}}
+							>
+								<span class="tab-icon">📁</span>
+								BROWSE DIRECTORIES
+							</button>
+						</div>
 					</div>
 
-					{#if selectedProject}
+					{#if projectSource === 'claude'}
 						<div class="input-group">
-							<label>RESUME SESSION <span class="optional">(OPTIONAL)</span></label>
-							<ClaudeSessionPicker
-								project={selectedProject.name}
-								bind:selected={selectedSession}
-								apiBase="/api/claude/sessions"
+							<label>SELECT CLAUDE PROJECT</label>
+							<ClaudeProjectPicker
+								bind:selected={selectedProject}
+								onSelect={handleProjectSelect}
+								api="/api/claude/projects"
+							/>
+						</div>
+
+						{#if selectedProject}
+							<div class="input-group">
+								<label>RESUME SESSION <span class="optional">(OPTIONAL)</span></label>
+								<ClaudeSessionPicker
+									project={selectedProject.name}
+									bind:selected={selectedSession}
+									apiBase="/api/claude/sessions"
+								/>
+								<div class="hint">
+									Select a previous session to resume or leave empty for new session
+								</div>
+							</div>
+						{/if}
+					{:else}
+						<div class="input-group">
+							<label>SELECT DIRECTORY</label>
+							<DirectoryBrowser
+								bind:selected={selectedDirectory}
+								api="/api/browse"
+								placeholder="Navigate to your project directory..."
 							/>
 							<div class="hint">
-								Select a previous session to resume or leave empty for new session
+								Browse and select a directory to start a new Claude session
 							</div>
 						</div>
 					{/if}
@@ -155,12 +246,17 @@
 		padding: 0;
 		background: var(--bg);
 		font-family: var(--font-mono);
+		position: relative;
+		min-height: 300px;
 	}
 
 	.mode-selector {
 		border-bottom: 1px solid var(--primary-dim);
 		background: var(--bg-dark);
+		position: relative;
+		overflow: hidden;
 	}
+
 
 	.tabs {
 		display: flex;
@@ -170,17 +266,19 @@
 		flex: 1;
 		background: transparent;
 		border: none;
-		padding: 1rem 1.5rem;
+		padding: 1rem;
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 		font-size: 0.75rem;
 		font-weight: 600;
-		letter-spacing: 0.1em;
+		letter-spacing: 0.08em;
 		cursor: pointer;
 		border-bottom: 2px solid transparent;
 		transition: all 0.2s ease;
-		text-align: left;
+		text-align: center;
+		position: relative;
 	}
+
 
 	.tab:hover {
 		color: var(--text);
@@ -200,14 +298,32 @@
 	}
 
 	.content-area {
-		padding: 2rem;
-		min-height: 300px;
-		max-height: 80svh;
+		padding: 1.5rem;
+		min-height: 250px;
+		max-height: 50vh;
 		overflow-y: auto;
+		overflow-x: hidden;
+		position: relative;
+		scrollbar-width: thin;
+		scrollbar-color: var(--primary-dim) transparent;
+	}
+
+	.content-area::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	.content-area::-webkit-scrollbar-thumb {
+		background: linear-gradient(180deg, var(--primary-dim), var(--primary));
+		border-radius: 4px;
+	}
+
+	.content-area::-webkit-scrollbar-track {
+		background: rgba(0, 20, 10, 0.3);
+		border-radius: 4px;
 	}
 
 	.input-group {
-		margin-bottom: 2rem;
+		margin-bottom: 1.5rem;
 	}
 
 	.input-group:last-child {
@@ -219,7 +335,7 @@
 		color: var(--primary);
 		font-size: 0.8rem;
 		font-weight: 600;
-		letter-spacing: 0.1em;
+		letter-spacing: 0.08em;
 		margin-bottom: 0.75rem;
 		text-transform: uppercase;
 		font-family: var(--font-mono);
@@ -290,7 +406,7 @@
 	}
 
 	.terminal-btn {
-		background: transparent;
+		background: var(--bg-dark);
 		border: 1px solid var(--primary-dim);
 		color: var(--text);
 		padding: 0.75rem 1.5rem;
@@ -301,13 +417,14 @@
 		cursor: pointer;
 		transition: all 0.2s ease;
 		text-transform: uppercase;
+		border-radius: 4px;
 	}
 
 	.terminal-btn:hover:not(:disabled) {
 		border-color: var(--primary);
 		color: var(--primary);
 		background: rgba(46, 230, 107, 0.1);
-		box-shadow: 0 0 10px rgba(46, 230, 107, 0.2);
+		transform: translateY(-1px);
 	}
 
 	.terminal-btn.create {
@@ -318,7 +435,8 @@
 
 	.terminal-btn.create:hover:not(:disabled) {
 		background: color-mix(in oklab, var(--primary) 90%, white 10%);
-		box-shadow: 0 0 15px rgba(46, 230, 107, 0.3);
+		box-shadow: 0 2px 8px rgba(46, 230, 107, 0.3);
+		transform: translateY(-2px);
 	}
 
 	.terminal-btn:disabled,
@@ -335,5 +453,91 @@
 		margin-right: 0.5rem;
 		font-size: 0.7rem;
 		opacity: 0.8;
+	}
+
+	/* Source selector styles */
+	.source-selector {
+		display: flex;
+		gap: 0.5rem;
+		background: var(--bg-dark);
+		padding: 0.25rem;
+		border: 1px solid var(--primary-dim);
+		border-radius: 4px;
+	}
+
+	.source-tab {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		background: transparent;
+		border: 1px solid transparent;
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		cursor: pointer;
+		border-radius: 3px;
+		transition: all 0.2s ease;
+		white-space: nowrap;
+	}
+
+	.source-tab:hover {
+		color: var(--text);
+		background: rgba(46, 230, 107, 0.05);
+		border-color: var(--primary-dim);
+	}
+
+	.source-tab.active {
+		background: rgba(46, 230, 107, 0.15);
+		color: var(--primary);
+		border-color: var(--primary);
+	}
+
+	.tab-icon {
+		font-size: 1.2em;
+		flex-shrink: 0;
+	}
+
+	/* Project name preview */
+	.project-name-preview {
+		margin-top: 1rem;
+		padding: 0.75rem;
+		background: rgba(46, 230, 107, 0.05);
+		border: 1px solid var(--primary);
+		border-radius: 4px;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		font-family: var(--font-mono);
+	}
+
+	.preview-label {
+		color: var(--primary);
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.preview-value {
+		color: var(--text);
+		font-size: 0.9rem;
+		font-weight: 500;
+	}
+
+	/* Responsive adjustments */
+	@media (max-width: 768px) {
+		.source-selector {
+			flex-direction: column;
+		}
+
+		.source-tab {
+			justify-content: flex-start;
+			padding: var(--space-2) var(--space-3);
+		}
 	}
 </style>

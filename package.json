@@ -1,6 +1,6 @@
 {
 	"name": "dispatch",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Coding agents in Docker accessible via web terminal",
 	"license": "CC-BY-4.0",
 	"type": "module",
@@ -23,7 +23,9 @@
 		"test:e2e:debug": "npx playwright test --debug",
 		"test:e2e:ui": "npx playwright test --ui",
 		"test:e2e:report": "npx playwright show-report",
-		"playwright:install": "npx playwright install"
+		"playwright:install": "npx playwright install",
+		"docker:dev": "node bin/dispatch-cli.js start -k test --projects ~/code/ --home ~/ --build",
+		"docker:stop": "node bin/dispatch-cli.js stop"
 	},
 	"bin": {
 		"dispatch": "./bin/dispatch-cli.js"

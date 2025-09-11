@@ -27,6 +27,9 @@
 	}
 
 	onMount(async () => {
+		// Detect touch device
+		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+		
 		term = new Terminal({
 			convertEol: true,
 			cursorBlink: true,
@@ -34,6 +37,12 @@
 			fontSize: 14,
 			lineHeight: 1.2,
 			letterSpacing: 0.5,
+			// Enable better touch scrolling
+			scrollback: 1000,
+			smoothScrollDuration: isTouchDevice ? 0 : 125, // Disable smooth scroll on touch for better performance
+			fastScrollModifier: 'shift',
+			fastScrollSensitivity: 5,
+			scrollSensitivity: isTouchDevice ? 3 : 1, // Increase scroll sensitivity on touch devices
 		});
 		const fitAddon = new FitAddon();
 		term.loadAddon(fitAddon);
@@ -135,6 +144,9 @@
 		height: 100%;
 		min-height: 400px;
 		overflow: hidden;
+		/* Enable touch scrolling on mobile devices */
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
 	}
 
 	.terminal-container :global(.xterm) {
@@ -144,6 +156,9 @@
 
 	.terminal-container :global(.xterm-viewport) {
 		background: var(--bg) !important;
+		/* Enable smooth touch scrolling */
+		-webkit-overflow-scrolling: touch !important;
+		overscroll-behavior: contain !important;
 	}
 
 	.terminal-container :global(.xterm-screen) {

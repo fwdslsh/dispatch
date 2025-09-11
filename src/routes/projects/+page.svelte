@@ -7,6 +7,7 @@
 	import ClaudePane from '$lib/components/ClaudePane.svelte';
 	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
 	import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
+	import CreateSessionModal from '$lib/components/CreateSessionModal.svelte';
 	import { Button } from '$lib/shared/components';
 	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
 
@@ -17,6 +18,7 @@
 	// Modal states
 	let terminalModalOpen = $state(false);
 	let claudeModalOpen = $state(false);
+	let createSessionModalOpen = $state(false);
 
 	// Session grid state - responsive layout
 	let layoutPreset = $state('2up'); // '1up' | '2up' | '4up'
@@ -282,6 +284,14 @@
 		}
 	}
 
+	async function handleUnifiedSessionCreate(params) {
+		if (params.type === 'terminal') {
+			await createTerminalSession(params.workspacePath);
+		} else if (params.type === 'claude') {
+			await createClaudeSession(params);
+		}
+	}
+
 	onMount(async () => {
 		try {
 			workspaces = await listWorkspaces();
@@ -419,11 +429,56 @@
 					onSessionSelected={(e) => {
 						const detail = e.detail || {};
 						if (!detail.id) return;
-						// If already running, just show it immediately
+
+						// For active sessions, just show them immediately
+						if (detail.isActive) {
+							// Check if session is already in our display
+							const existing = sessions.find((s) => {
+								if (!s) return false;
+								if (detail.type === 'claude') {
+									return (
+										s.type === 'claude' &&
+										(s.claudeSessionId === detail.id ||
+											s.sessionId === detail.id ||
+											s.id === detail.id)
+									);
+								}
+								if (detail.type === 'pty') {
+									return s.type === 'pty' && s.id === detail.id;
+								}
+								return false;
+							});
+
+							if (existing) {
+								updateDisplayedWithSession(existing.id);
+							} else {
+								// Create a session entry for this active session
+								const s = {
+									id: detail.id,
+									type: detail.type,
+									workspacePath: detail.workspacePath,
+									projectName: detail.projectName,
+									claudeSessionId: detail.sessionId,
+									shouldResume: true,
+									isActiveSocket: true
+								};
+								sessions = [...sessions, s];
+								updateDisplayedWithSession(detail.id);
+							}
+							sessionMenuOpen = false;
+							return;
+						}
+
+						// For persisted sessions, check if already running first
 						const existing = sessions.find((s) => {
 							if (!s) return false;
 							if (detail.type === 'claude') {
-								return s.type === 'claude' && (s.claudeSessionId === detail.id || s.sessionId === detail.id || s.id === detail.id);
+								return (
+									s.type === 'claude' &&
+									(s.claudeSessionId === detail.id ||
+										s.sessionId === detail.id ||
+										s.id === detail.id)
+								);
 							}
 							if (detail.type === 'pty') {
 								return s.type === 'pty' && s.id === detail.id;
@@ -435,10 +490,12 @@
 							sessionMenuOpen = false;
 							return;
 						}
+
+						// Resume persisted sessions
 						if (detail.type === 'claude') {
 							const projectName = detail.projectName || selectedProject || 'project';
 							createClaudeSession({
-								workspacePath: projectName,
+								workspacePath: detail.workspacePath || projectName,
 								sessionId: detail.id,
 								projectName,
 								resumeSession: true,
@@ -460,9 +517,9 @@
 		{#if visible.length === 0}
 			<div class="empty-workspace">
 				<div class="empty-content">
-					<div class="empty-icon">🚀</div>
-					<h2>Ready to Code</h2>
-					<p>Create a terminal or Claude session to get started</p>
+					<div class="empty-icon"></div>
+					<h1>Ready to Code</h1>
+					<p>Create a terminal or Claude Code session to get started</p>
 				</div>
 			</div>
 		{:else}
@@ -509,23 +566,63 @@
 			</div>
 		{/if}
 	</main>
-</div>
-
-<div class="status-bar">
-  <div class="left-group">
-    {#if isMobile}
-    <button class="bottom-btn" onclick={prevMobileSession} disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length === 0} aria-label="Previous session">←</button>
-    <span class="session-counter">
-      {Math.min(currentMobileSession + 1, sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length)}
-      /
-      {sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length}
-    </span>
-    <button class="bottom-btn" onclick={nextMobileSession} disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length === 0} aria-label="Next session">→</button>
-    {/if}
-  </div>
-  <div class="right-group">
-    <button class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions">{sessionMenuOpen ? 'Close' : 'Sessions'}</button>
-  </div>
+	<footer>
+		<div class="status-bar">
+			<div class="left-group">
+				{#if isMobile}
+					<button
+						class="bottom-btn"
+						onclick={prevMobileSession}
+						disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s)
+							.length === 0}
+						aria-label="Previous session">←</button
+					>
+					<span class="session-counter">
+						{Math.min(
+							currentMobileSession + 1,
+							sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length
+						)}
+						/
+						{sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length}
+					</span>
+					<button
+						class="bottom-btn"
+						onclick={nextMobileSession}
+						disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s)
+							.length === 0}
+						aria-label="Next session">→</button
+					>
+				{/if}
+			</div>
+			<div class="center-group">
+				<button
+					class="add-session-btn"
+					onclick={() => (createSessionModalOpen = true)}
+					aria-label="Create new session"
+					title="Create new session"
+				>
+					<svg
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<line x1="12" y1="5" x2="12" y2="19"></line>
+						<line x1="5" y1="12" x2="19" y2="12"></line>
+					</svg>
+				</button>
+			</div>
+			<div class="right-group">
+				<button class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions"
+					>{sessionMenuOpen ? 'Close' : 'Sessions'}</button
+				>
+			</div>
+		</div>
+	</footer>
 </div>
 
 <!-- Modals -->
@@ -537,6 +634,11 @@
 
 <ClaudeSessionModal bind:open={claudeModalOpen} onSessionCreate={createClaudeSession} />
 
+<CreateSessionModal
+	bind:open={createSessionModalOpen}
+	onSessionCreate={handleUnifiedSessionCreate}
+/>
+
 <style>
 	/* Maximum Screen Space Utilization for Developers */
 
@@ -546,10 +648,11 @@
 		height: 100dvh;
 		display: grid;
 		grid-template-columns: 1fr;
-		grid-template-rows: auto 1fr;
+		grid-template-rows: auto 1fr min-content;
 		grid-template-areas:
 			'header'
-			'main';
+			'main'
+			'footer';
 		background: var(--bg-dark);
 		color: var(--text-primary);
 		overflow: hidden;
@@ -593,7 +696,7 @@
 	/* Ensure header image scales safely */
 	.brand-icon img {
 		max-width: 100%;
-		height: 28px;
+		height: 32px;
 		width: auto;
 		display: block;
 	}
@@ -627,33 +730,37 @@
 
 	/* Status bar (always visible) */
 	.status-bar {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		padding: 0.4rem 0.6rem;
-		/* Respect safe-area and prevent layout overflow */
-		padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
 		box-sizing: border-box;
 		width: 100%;
 		max-width: 100svw;
 		background: var(--bg-panel);
 		border-top: 1px solid var(--primary-dim);
-		z-index: 50;
 	}
 	.status-bar .left-group,
+	.status-bar .center-group,
 	.status-bar .right-group {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 		min-width: 0; /* allow shrinking */
 	}
-	/* Let left group take remaining space; keep right controls tight */
-	.status-bar .left-group { flex: 1 1 auto; }
-	.status-bar .right-group { flex: 0 0 auto; }
+	/* Layout the three groups */
+	.status-bar .left-group {
+		flex: 1 1 0;
+		justify-content: flex-start;
+	}
+	.status-bar .center-group {
+		flex: 0 0 auto;
+		justify-content: center;
+	}
+	.status-bar .right-group {
+		flex: 1 1 0;
+		justify-content: flex-end;
+	}
 	.bottom-btn {
 		background: var(--surface-hover);
 		border: 1px solid var(--surface-border);
@@ -665,6 +772,41 @@
 		touch-action: manipulation;
 		user-select: none;
 		cursor: pointer;
+	}
+
+	.add-session-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		padding: 0;
+		background: var(--primary);
+		border: 2px solid var(--primary);
+		border-radius: 50%;
+		color: var(--bg);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		box-shadow: 0 2px 8px rgba(46, 230, 107, 0.3);
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
+		user-select: none;
+	}
+
+	.add-session-btn:hover {
+		background: color-mix(in oklab, var(--primary) 90%, white 10%);
+		transform: scale(1.1);
+		box-shadow: 0 4px 12px rgba(46, 230, 107, 0.4);
+	}
+
+	.add-session-btn:active {
+		transform: scale(0.95);
+	}
+
+	.add-session-btn svg {
+		width: 24px;
+		height: 24px;
+		stroke-width: 2.5;
 	}
 
 	/* Sidebar toggle button */
@@ -700,10 +842,18 @@
 		position: relative;
 		/* Prevent grid child overflow in narrow viewports */
 		min-width: 0;
-	}
 
-	/* Main content leaves room for status bar */
-	.main-content { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+		&::before {
+			content: '';
+			position: absolute;
+			inset: 0;
+			opacity: 0.25;
+			background-image: url('/fwdslsh-green-bg.png');
+			background-repeat: no-repeat;
+			background-position: center center;
+			background-size: contain;
+		}
+	}
 
 	@media (max-width: 768px) {
 		/* Tighter brand image on mobile */
@@ -853,8 +1003,7 @@
 		.dispatch-workspace {
 			grid-template-columns: 1fr !important;
 			grid-template-rows: 1fr;
-			grid-template-areas:
-				'main';
+			grid-template-areas: 'main';
 			transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 			height: 100vh;
 			height: 100dvh; /* dynamic viewport to avoid overflow when URL bar shows */
@@ -880,10 +1029,14 @@
 	/* Very small screens */
 	@media (max-width: 480px) {
 		.dispatch-workspace {
-			grid-template-rows: 1fr !important;
+			grid-template-rows: 1fr min-content !important;
 			grid-template-areas:
-				'main' !important;
+				'main'
+				'status' !important;
 			transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+			/* Respect safe-area and prevent layout overflow */
+			padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
 		}
 	}
 

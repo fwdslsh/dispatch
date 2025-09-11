@@ -14,8 +14,9 @@
   // Internal state
   let projects = $state([]);
   let sessions = $state([]);
+  let activeSessions = $state([]);
   let sessionType = $state('claude'); // 'claude' | 'pty'
-  let activeTab = $state('projects'); // 'projects' | 'sessions'
+  let activeTab = $state('projects'); // 'projects' | 'sessions' | 'active'
   let loading = $state(false);
   let error = $state(null);
   let restoring = $state(true);
@@ -30,7 +31,7 @@
   });
 
   function cleanProjectName(projectName) {
-    if (!projectName) return '';
+    if (!projectName || typeof projectName !== 'string') return '';
     if (projectName.includes('--dispatch-home-workspaces-')) {
       const match = projectName.match(/--dispatch-home-workspaces-(.+)$/);
       if (match) return match[1].charAt(0).toUpperCase() + match[1].slice(1);
@@ -48,6 +49,32 @@
       return lastPart.charAt(0).toUpperCase() + lastPart.slice(1);
     }
     return projectName;
+  }
+
+  async function loadActiveSessions() {
+    loading = true;
+    error = null;
+    try {
+      const response = await fetch('/api/sessions');
+      if (response.ok) {
+        const data = await response.json();
+        // Filter active sessions by type
+        activeSessions = (data.sessions || [])
+          .filter(s => s && s.isActive && s.type === sessionType)
+          .map(session => ({
+            ...session,
+            displayName: session.title || `${session.type || 'Unknown'} Session`,
+            statusIndicator: '🟢', // Active indicator
+            workspacePath: session.workspacePath || '',
+            projectName: session.projectName || ''
+          }));
+      } else {
+        error = 'Failed to load active sessions';
+      }
+    } catch (err) {
+      error = 'Error loading active sessions: ' + err.message;
+    }
+    loading = false;
   }
 
   async function loadProjects() {
@@ -68,12 +95,14 @@
         if (response.ok) {
           const data = await response.json();
           const list = data.list || [];
-          projects = list.map((p) => ({
-            name: p.split('/').pop(),
-            path: p,
-            sessionCount: 0,
-            lastModified: null
-          }));
+          projects = list
+            .filter(p => p && typeof p === 'string')
+            .map((p) => ({
+              name: p.split('/').pop() || '',
+              path: p,
+              sessionCount: 0,
+              lastModified: null
+            }));
         } else {
           error = 'Failed to load workspaces';
         }
@@ -129,8 +158,33 @@
     selectedSession = session?.id || null;
     // Include type and project context for parent
     const detail = sessionType === 'claude'
-      ? { id: selectedSession, type: 'claude', projectName: selectedProject }
-      : { id: selectedSession, type: 'pty', workspacePath: selectedProject };
+      ? { 
+          id: selectedSession, 
+          type: 'claude', 
+          projectName: session?.projectName || selectedProject,
+          workspacePath: session?.workspacePath,
+          isActive: session?.isActive || false
+        }
+      : { 
+          id: selectedSession, 
+          type: 'pty', 
+          workspacePath: session?.workspacePath || selectedProject,
+          isActive: session?.isActive || false
+        };
+    onSessionSelected?.({ detail });
+  }
+
+  function selectActiveSession(session) {
+    selectedSession = session?.id || null;
+    // For active sessions, we have all the context we need
+    const detail = {
+      id: selectedSession,
+      type: session?.type,
+      workspacePath: session?.workspacePath,
+      projectName: session?.projectName,
+      sessionId: session?.sessionId, // For Claude sessions
+      isActive: true
+    };
     onSessionSelected?.({ detail });
   }
 
@@ -138,7 +192,7 @@
     // Restore UI prefs
     try {
       const savedTab = localStorage.getItem(STORAGE.activeTab);
-      if (savedTab === 'projects' || savedTab === 'sessions') activeTab = savedTab;
+      if (savedTab === 'projects' || savedTab === 'sessions' || savedTab === 'active') activeTab = savedTab;
     } catch {}
 
     try {
@@ -147,6 +201,7 @@
     } catch {}
 
     await loadProjects();
+    await loadActiveSessions();
 
     try {
       const savedProject = localStorage.getItem(STORAGE.selectedProject);
@@ -201,9 +256,9 @@
     try { localStorage.setItem(STORAGE.selectedSession, selectedSession || ''); } catch {}
   });
 
-  // Public method to refresh projects
+  // Public method to refresh projects and active sessions
   export function refresh() {
-    return loadProjects();
+    return Promise.all([loadProjects(), loadActiveSessions()]);
   }
 
   function changeType(type) {
@@ -213,7 +268,9 @@
     selectedProject = null;
     selectedSession = null;
     sessions = [];
+    activeSessions = [];
     loadProjects();
+    loadActiveSessions();
   }
 
   function handleNewSessionClick() {
@@ -234,6 +291,15 @@
   <div class="mobile-tabs" class:desktop-tabs={!isMobileView}>
     <button
       class="tab-btn"
+      class:active={activeTab === 'active'}
+      type="button"
+      onclick={() => (activeTab = 'active')}
+      title="Active running sessions"
+    >
+      Active {#if activeSessions.length > 0}<span class="count-badge">{activeSessions.length}</span>{/if}
+    </button>
+    <button
+      class="tab-btn"
       class:active={activeTab === 'projects'}
       type="button"
       onclick={() => (activeTab = 'projects')}
@@ -250,6 +316,42 @@
   </div>
 
   <div class="browser-layout" class:mobile-browser={isMobileView} class:tabbed-layout={true}>
+    <!-- Active Sessions Panel -->
+    <div class="panel" class:hidden={activeTab !== 'active'}>
+      <h2>Active {sessionType === 'claude' ? 'Claude' : 'Terminal'} Sessions</h2>
+      <div class="panel-content">
+        {#if loading && activeSessions.length === 0}
+          <div class="status">Loading active sessions...</div>
+        {:else if activeSessions.length === 0}
+          <div class="status">No active sessions found</div>
+        {:else}
+          {#each activeSessions as session}
+            <button
+              type="button"
+              class="session-item active-session"
+              class:selected={selectedSession === session.id}
+              onclick={() => selectActiveSession(session)}
+              title="Click to open this active session"
+            >
+              <div class="session-header">
+                <div class="session-id">
+                  <span class="status-indicator">{session.statusIndicator}</span>
+                  {session.id.substring(0, 8)}...
+                </div>
+                <div class="session-type-badge">{session.type.toUpperCase()}</div>
+              </div>
+              <div class="session-info">
+                <div class="session-title">{session.displayName}</div>
+                {#if session.workspacePath}
+                  <div class="workspace-path">{session.workspacePath.split('/').pop()}</div>
+                {/if}
+              </div>
+            </button>
+          {/each}
+        {/if}
+      </div>
+    </div>
+
     <!-- Projects Panel -->
     <div class="panel" class:hidden={activeTab !== 'projects'}>
       <h2>{sessionType === 'claude' ? 'Claude Projects' : 'Workspaces'}</h2>
@@ -267,7 +369,7 @@
               onclick={() => selectProject(project)}
             >
               <div class="project-header">
-                <div class="project-name">{sessionType === 'claude' ? cleanProjectName(project.name) : (project.name || cleanProjectName(project.path))}</div>
+                <div class="project-name">{sessionType === 'claude' ? cleanProjectName(project.name || '') : (project.name || cleanProjectName(project.path || ''))}</div>
                 <div class="project-stats">
                   <span class="session-count">{project.sessionCount} sessions</span>
                   {#if project.lastModified}
@@ -612,6 +714,67 @@
   .session-info { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; opacity: 0.8; }
   .session-date { font-weight: 500; }
   .session-time { font-family: var(--font-mono); opacity: 0.7; }
+
+  /* Active sessions styling */
+  .active-session {
+    border-left: 3px solid var(--accent-green);
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--accent-green) 8%, var(--surface)),
+      color-mix(in oklab, var(--accent-green) 2%, var(--surface))
+    );
+  }
+
+  .active-session:hover {
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--accent-green) 12%, var(--surface)),
+      color-mix(in oklab, var(--accent-green) 4%, var(--surface))
+    );
+  }
+
+  .status-indicator {
+    font-size: 0.7rem;
+    margin-right: 0.3rem;
+  }
+
+  .session-type-badge {
+    background: var(--primary);
+    color: var(--bg);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .session-title {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .workspace-path {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    opacity: 0.7;
+    background: var(--surface-hover);
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+    display: inline-block;
+  }
+
+  .count-badge {
+    background: var(--accent-green);
+    color: var(--bg);
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.5rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    margin-left: 0.3rem;
+    min-width: 1rem;
+    text-align: center;
+    display: inline-block;
+  }
 
   .status { padding: 1.25rem; text-align: center; color: var(--text-muted); font-style: italic; }
 

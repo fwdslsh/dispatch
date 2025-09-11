@@ -665,7 +665,9 @@
 		
 		{#if messages.length === 0 && !loading}
 			<div class="welcome-message" transition:fly={{ y: 30, duration: 500 }}>
-				<div class="welcome-icon">🚀</div>
+				<div class="welcome-icon">
+					<img src="/favicon.png" alt="">
+				</div>
 				<h3>Welcome to Claude</h3>
 				<p>Start a conversation with your AI assistant. Ask questions, get help with coding, or discuss ideas!</p>
 			</div>
@@ -869,6 +871,9 @@
 				color-mix(in oklab, var(--surface) 98%, var(--primary) 2%) 90%,
 				transparent 100%
 			);
+		/* Fix touch scrolling on mobile devices */
+		-webkit-overflow-scrolling: touch;
+		overscroll-behavior: contain;
 	}
 	
 	.messages::-webkit-scrollbar {
@@ -1314,7 +1319,8 @@
 		justify-content: center;
 		text-align: center;
 		padding: var(--space-8);
-		margin: var(--space-8) auto;
+		margin-block: var(--space-8);
+		margin-inline: auto;
 		max-width: 480px;
 		background: 
 			radial-gradient(ellipse at center, 
@@ -1331,13 +1337,14 @@
 	
 	.welcome-icon {
 		font-size: 4rem;
-		margin-bottom: var(--space-4);
-		animation: welcomeBounce 2s ease-in-out infinite;
+		margin-bottom: var(--space-2);
+		animation: fadeInOut 10s ease-in-out infinite;
+		opacity: 0.25;
 	}
 	
-	@keyframes welcomeBounce {
-		0%, 100% { transform: translateY(0); }
-		50% { transform: translateY(-8px); }
+	@keyframes fadeInOut {
+		0%, 100% { opacity: 0.1; }
+		50% { opacity: 0.35; }
 	}
 	
 	.welcome-message h3 {
@@ -1554,6 +1561,46 @@
 		}
 	}
 	
+	/* 📱 MOBILE & TOUCH DEVICE OPTIMIZATIONS */
+	@media (max-width: 768px) {
+		.messages {
+			/* Improve touch scrolling on mobile */
+			-webkit-overflow-scrolling: touch;
+			overscroll-behavior-y: contain;
+			/* Prevent elastic scrolling issues on iOS */
+			position: relative;
+			touch-action: pan-y;
+		}
+		
+		.chat-header {
+			padding: var(--space-3) var(--space-4);
+		}
+		
+		.ai-avatar {
+			width: 40px;
+			height: 40px;
+		}
+		
+		.message-wrapper {
+			max-width: 95%;
+		}
+	}
+	
+	/* Touch-specific optimizations */
+	@media (hover: none) and (pointer: coarse) {
+		.messages {
+			/* Force hardware acceleration for smooth scrolling */
+			transform: translateZ(0);
+			will-change: scroll-position;
+		}
+		
+		/* Increase tap targets for touch */
+		.event-icon {
+			min-width: 44px;
+			min-height: 44px;
+		}
+	}
+
 	/* 🎯 ACCESSIBILITY ENHANCEMENTS */
 	@media (prefers-reduced-motion: reduce) {
 		.message,
