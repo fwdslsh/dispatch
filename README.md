@@ -80,35 +80,25 @@ Mount local directories to preserve your work across container restarts:
 
 ```bash
 # Create directories (no sudo needed!)
-mkdir -p ~/dispatch-config ~/dispatch-projects
+mkdir -p ~/dispatch/home ~/dispatch/projects
 
-# Option 1: Use your current user ID (recommended)
+# Run with runtime user mapping (works with Docker Hub images)
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch-config:/home/appuser/.config/dispatch \
-  -v ~/dispatch-projects:/var/lib/dispatch/projects \
+  -e HOST_UID=$(id -u) \
+  -e HOST_GID=$(id -g) \
+  -v ~/dispatch/projects:/workspace \
+  -v ~/dispatch/home:/home/dispatch \
   fwdslsh/dispatch:latest
-
-# Option 2: Build with your user ID for seamless integration
-docker build -f docker/Dockerfile \
-  --build-arg USER_UID=$(id -u) \
-  --build-arg USER_GID=$(id -g) \
-  -t dispatch-local .
-
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
-  -v ~/dispatch-config:/home/appuser/.config/dispatch \
-  -v ~/dispatch-projects:/var/lib/dispatch/projects \
-  dispatch-local
 ```
 
 This setup provides:
 
-- **Persistent configuration**: Project registry and application settings survive container restarts
-- **Organized project storage**: Each project gets its own dedicated directory with session isolation
+- **Persistent configuration**: Home directory and shell history survive container restarts
+- **Organized project storage**: Projects are saved in `~/dispatch/projects` on your host
 - **Data safety**: Your work is saved on your host machine, not lost when the container stops
-- **No sudo required**: Uses your host user permissions for seamless file access
+- **No sudo required**: Runtime user mapping ensures files are owned by your user
+- **Works with Docker Hub**: No need to build locally - just pull and run
 
 **Security isolation**: The container can only access the two mounted directories you specify.
 
@@ -118,15 +108,16 @@ For the complete setup with both persistence and remote access:
 
 ```bash
 # Create directories (no sudo needed!)
-mkdir -p ~/dispatch-config ~/dispatch-projects
+mkdir -p ~/dispatch/home ~/dispatch/projects
 
 # Run with both features enabled
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
   -e ENABLE_TUNNEL=true \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch-config:/home/appuser/.config/dispatch \
-  -v ~/dispatch-projects:/var/lib/dispatch/projects \
+  -e HOST_UID=$(id -u) \
+  -e HOST_GID=$(id -g) \
+  -v ~/dispatch/projects:/workspace \
+  -v ~/dispatch/home:/home/dispatch \
   fwdslsh/dispatch:latest
 ```
 

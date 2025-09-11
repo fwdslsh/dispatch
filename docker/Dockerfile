@@ -32,6 +32,7 @@ RUN apt-get update \
        python3 \
        pkg-config \
        git gh \
+       gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
@@ -50,8 +51,8 @@ ENV NODE_ENV=production \
     PROJECT_SANDBOX_ENABLED=true \
     HOST_HOME_DIR=/home/dispatch
     
-# Create non-root user with configurable UID/GID
-# Default to common development values, but allow override from build args
+# Create non-root user with default UID/GID (optimized for common development values)
+# Runtime user mapping will adjust these values if needed when using Docker Hub images
 ARG USER_UID=1000
 ARG USER_GID=1000
 RUN groupadd -g ${USER_GID} dispatch 2>/dev/null || true \
@@ -71,9 +72,15 @@ RUN mkdir -p /home/dispatch/.config/dispatch /var/lib/dispatch/projects /workspa
 # Install global packages as root before switching user
 RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex
 
-# Switch to the dispatch user (not appuser)
+# Copy entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Switch to the dispatch user (entrypoint will handle runtime user mapping)
 USER dispatch
 
 EXPOSE 3030
 
+# Use entrypoint for runtime user mapping compatibility with Docker Hub
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["node", "src/app.js"]

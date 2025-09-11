@@ -1,172 +1,301 @@
 #!/usr/bin/env node
 
+/**
+ * Test script to verify Docker permissions and user mapping work correctly.
+ * Tests both local build and Docker Hub scenarios.
+ */
+
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const testDir = '/tmp/dispatch-permission-test';
-const projectsDir = path.join(testDir, 'projects');
-const homeDir = path.join(testDir, 'home');
+const TEST_DIR = '/tmp/dispatch-permission-test';
+const HOST_UID = process.getuid ? process.getuid() : 1000;
+const HOST_GID = process.getgid ? process.getgid() : 1000;
 
-async function runCommand(command, args = [], options = {}) {
-    return new Promise((resolve, reject) => {
-        const proc = spawn(command, args, { 
-            stdio: 'pipe',
-            ...options 
-        });
-        
-        let stdout = '';
-        let stderr = '';
-        
-        proc.stdout?.on('data', (data) => {
-            stdout += data.toString();
-        });
-        
-        proc.stderr?.on('data', (data) => {
-            stderr += data.toString();
-        });
-        
-        proc.on('close', (code) => {
-            if (code === 0) {
-                resolve({ stdout, stderr, code });
-            } else {
-                reject(new Error(`Command failed with code ${code}\nstdout: ${stdout}\nstderr: ${stderr}`));
-            }
-        });
-    });
+console.log('🧪 Testing Dispatch Docker Permissions');
+console.log(`   Host User: ${HOST_UID}:${HOST_GID}`);
+console.log(`   Test Directory: ${TEST_DIR}`);
+
+function cleanup() {
+	console.log('🧹 Cleaning up test environment...');
+	
+	// Stop and remove test containers
+	try {
+		spawn('docker', ['stop', 'dispatch-test'], { stdio: 'ignore' });
+		spawn('docker', ['rm', 'dispatch-test'], { stdio: 'ignore' });
+		spawn('docker', ['stop', 'dispatch-test-local'], { stdio: 'ignore' });
+		spawn('docker', ['rm', 'dispatch-test-local'], { stdio: 'ignore' });
+	} catch (error) {
+		// Ignore cleanup errors
+	}
+	
+	// Remove test directory
+	if (fs.existsSync(TEST_DIR)) {
+		fs.rmSync(TEST_DIR, { recursive: true, force: true });
+	}
 }
 
-async function testDockerPermissions() {
-    console.log('🧪 Testing Docker permissions setup...\n');
-    
-    try {
-        // Clean up any existing test directories
-        if (fs.existsSync(testDir)) {
-            fs.rmSync(testDir, { recursive: true, force: true });
-        }
-        
-        // Create test directories
-        fs.mkdirSync(projectsDir, { recursive: true });
-        fs.mkdirSync(homeDir, { recursive: true });
-        
-        console.log('✅ Created test directories');
-        
-        // Get current user info
-        const uid = process.getuid();
-        const gid = process.getgid();
-        
-        console.log(`📋 Current user: UID=${uid}, GID=${gid}`);
-        
-        // Test 1: Create a simple Dockerfile to test user creation
-        const testDockerfile = `
-FROM alpine:latest
-ARG USER_UID=1000
-ARG USER_GID=1000
-RUN addgroup -g \${USER_GID} testuser 2>/dev/null || true \\
-    && adduser -D -u \${USER_UID} -G testuser testuser 2>/dev/null || true
-USER testuser
-CMD ["id"]
-`;
-        
-        fs.writeFileSync(path.join(testDir, 'Dockerfile'), testDockerfile);
-        console.log('✅ Created test Dockerfile');
-        
-        // Test 2: Build image with current user's UID/GID
-        console.log('🏗️  Building test image...');
-        await runCommand('docker', [
-            'build',
-            '-t', 'dispatch-permission-test',
-            '--build-arg', `USER_UID=${uid}`,
-            '--build-arg', `USER_GID=${gid}`,
-            testDir
-        ]);
-        console.log('✅ Built test image successfully');
-        
-        // Test 3: Run container and check user mapping
-        console.log('🚀 Testing user mapping in container...');
-        const result = await runCommand('docker', [
-            'run', '--rm',
-            '-v', `${projectsDir}:/test-projects`,
-            '-v', `${homeDir}:/test-home`,
-            'dispatch-permission-test'
-        ]);
-        
-        const containerUser = result.stdout.trim();
-        console.log(`📋 Container user: ${containerUser}`);
-        
-        // Test 4: Create files in mounted directories
-        console.log('📝 Testing file creation in mounted directories...');
-        
-        await runCommand('docker', [
-            'run', '--rm',
-            '-v', `${projectsDir}:/test-projects`,
-            '-v', `${homeDir}:/test-home`,
-            'dispatch-permission-test',
-            'sh', '-c', 'echo "test content" > /test-projects/test-file.txt && echo "home content" > /test-home/test-home-file.txt'
-        ]);
-        console.log('✅ Created files in container');
-        
-        // Test 5: Check file ownership on host
-        const projectsFile = path.join(projectsDir, 'test-file.txt');
-        const homeFile = path.join(homeDir, 'test-home-file.txt');
-        
-        if (!fs.existsSync(projectsFile) || !fs.existsSync(homeFile)) {
-            throw new Error('Files were not created in mounted directories');
-        }
-        
-        const projectsStat = fs.statSync(projectsFile);
-        const homeStat = fs.statSync(homeFile);
-        
-        console.log(`📋 Projects file ownership: UID=${projectsStat.uid}, GID=${projectsStat.gid}`);
-        console.log(`📋 Home file ownership: UID=${homeStat.uid}, GID=${homeStat.gid}`);
-        
-        // Verify ownership matches current user
-        if (projectsStat.uid === uid && projectsStat.gid === gid && 
-            homeStat.uid === uid && homeStat.gid === gid) {
-            console.log('✅ File ownership matches host user - SUCCESS!');
-        } else {
-            throw new Error('File ownership does not match host user');
-        }
-        
-        // Test 6: Verify files are readable/writable by host user
-        const projectsContent = fs.readFileSync(projectsFile, 'utf8');
-        const homeContent = fs.readFileSync(homeFile, 'utf8');
-        
-        if (projectsContent.includes('test content') && homeContent.includes('home content')) {
-            console.log('✅ Files are readable by host user');
-        } else {
-            throw new Error('Files are not readable by host user');
-        }
-        
-        // Modify files from host
-        fs.writeFileSync(projectsFile, 'modified by host\n');
-        fs.writeFileSync(homeFile, 'modified by host\n');
-        console.log('✅ Files are writable by host user');
-        
-        console.log('\n🎉 All Docker permission tests passed!');
-        console.log('\nKey results:');
-        console.log('- Container user matches host user UID/GID');
-        console.log('- Files created in container are owned by host user');
-        console.log('- No permission changes required on host');
-        console.log('- Seamless read/write access from both host and container');
-        
-    } catch (error) {
-        console.error('❌ Test failed:', error.message);
-        process.exit(1);
-    } finally {
-        // Clean up
-        try {
-            await runCommand('docker', ['rmi', 'dispatch-permission-test'], { stdio: 'ignore' });
-            if (fs.existsSync(testDir)) {
-                fs.rmSync(testDir, { recursive: true, force: true });
-            }
-            console.log('\n🧹 Cleaned up test resources');
-        } catch (error) {
-            console.warn('⚠️  Warning: Could not clean up all test resources');
-        }
-    }
+function setupTestDirectory() {
+	console.log('📁 Setting up test directories...');
+	
+	// Remove existing test directory
+	if (fs.existsSync(TEST_DIR)) {
+		fs.rmSync(TEST_DIR, { recursive: true, force: true });
+	}
+	
+	// Create test directories
+	fs.mkdirSync(TEST_DIR, { recursive: true });
+	fs.mkdirSync(path.join(TEST_DIR, 'projects'), { recursive: true });
+	fs.mkdirSync(path.join(TEST_DIR, 'home'), { recursive: true });
+	
+	console.log('✅ Test directories created');
 }
 
-// Run the test
-testDockerPermissions().catch(console.error);
+function runCommand(command, args, options = {}) {
+	return new Promise((resolve, reject) => {
+		const child = spawn(command, args, {
+			stdio: 'pipe',
+			...options
+		});
+		
+		let stdout = '';
+		let stderr = '';
+		
+		child.stdout?.on('data', (data) => {
+			stdout += data.toString();
+		});
+		
+		child.stderr?.on('data', (data) => {
+			stderr += data.toString();
+		});
+		
+		child.on('close', (code) => {
+			if (code === 0) {
+				resolve({ stdout, stderr });
+			} else {
+				reject(new Error(`Command failed with code ${code}: ${stderr}`));
+			}
+		});
+	});
+}
+
+async function testDockerHubImage() {
+	console.log('\n🐳 Testing Docker Hub Image with Runtime User Mapping...');
+	
+	try {
+		// Pull the latest image
+		console.log('📥 Pulling Docker Hub image...');
+		await runCommand('docker', ['pull', 'fwdslsh/dispatch:latest']);
+		console.log('✅ Image pulled successfully');
+		
+		// Run container with runtime user mapping
+		console.log('🚀 Starting container with runtime user mapping...');
+		await runCommand('docker', [
+			'run', '-d',
+			'--name', 'dispatch-test',
+			'-p', '3031:3030',
+			'-e', `HOST_UID=${HOST_UID}`,
+			'-e', `HOST_GID=${HOST_GID}`,
+			'-e', 'TERMINAL_KEY=test-key',
+			'-v', `${TEST_DIR}/projects:/workspace`,
+			'-v', `${TEST_DIR}/home:/home/dispatch`,
+			'fwdslsh/dispatch:latest'
+		]);
+		console.log('✅ Container started');
+		
+		// Wait for container to initialize
+		console.log('⏳ Waiting for container to initialize...');
+		await new Promise(resolve => setTimeout(resolve, 5000));
+		
+		// Check container user
+		console.log('👤 Checking container user mapping...');
+		const { stdout: containerUser } = await runCommand('docker', [
+			'exec', 'dispatch-test', 'id'
+		]);
+		console.log(`   Container user: ${containerUser.trim()}`);
+		
+		// Verify user mapping
+		if (containerUser.includes(`uid=${HOST_UID}`) && containerUser.includes(`gid=${HOST_GID}`)) {
+			console.log('✅ User mapping successful');
+		} else {
+			throw new Error('User mapping failed - UID/GID mismatch');
+		}
+		
+		// Test file creation from container
+		console.log('📝 Testing file creation from container...');
+		await runCommand('docker', [
+			'exec', 'dispatch-test', 
+			'touch', '/workspace/container-created-file.txt'
+		]);
+		
+		await runCommand('docker', [
+			'exec', 'dispatch-test',
+			'sh', '-c', 'echo "Hello from container" > /workspace/container-created-file.txt'
+		]);
+		
+		// Check file ownership on host
+		const containerFile = path.join(TEST_DIR, 'projects', 'container-created-file.txt');
+		if (!fs.existsSync(containerFile)) {
+			throw new Error('Container-created file not found on host');
+		}
+		
+		const stats = fs.statSync(containerFile);
+		if (stats.uid === HOST_UID && stats.gid === HOST_GID) {
+			console.log('✅ Container-created file has correct ownership');
+		} else {
+			throw new Error(`File ownership incorrect: ${stats.uid}:${stats.gid} (expected ${HOST_UID}:${HOST_GID})`);
+		}
+		
+		// Test file creation from host
+		console.log('📝 Testing file creation from host...');
+		const hostFile = path.join(TEST_DIR, 'projects', 'host-created-file.txt');
+		fs.writeFileSync(hostFile, 'Hello from host');
+		
+		// Check file accessibility from container
+		const { stdout: fileContent } = await runCommand('docker', [
+			'exec', 'dispatch-test',
+			'cat', '/workspace/host-created-file.txt'
+		]);
+		
+		if (fileContent.trim() === 'Hello from host') {
+			console.log('✅ Host-created file accessible from container');
+		} else {
+			throw new Error('Host-created file not accessible from container');
+		}
+		
+		console.log('✅ Docker Hub image test completed successfully');
+		return true;
+		
+	} catch (error) {
+		console.error('❌ Docker Hub image test failed:', error.message);
+		return false;
+	} finally {
+		// Clean up test container
+		try {
+			await runCommand('docker', ['stop', 'dispatch-test']);
+			await runCommand('docker', ['rm', 'dispatch-test']);
+		} catch (error) {
+			// Ignore cleanup errors
+		}
+	}
+}
+
+async function testLocalBuild() {
+	console.log('\n🔨 Testing Local Build with Build-time User Mapping...');
+	
+	try {
+		// Build image with current user UID/GID
+		console.log('🔨 Building local image with user mapping...');
+		await runCommand('docker', [
+			'build',
+			'-f', 'docker/Dockerfile',
+			'-t', 'dispatch-test-local',
+			'--build-arg', `USER_UID=${HOST_UID}`,
+			'--build-arg', `USER_GID=${HOST_GID}`,
+			'.'
+		]);
+		console.log('✅ Local image built successfully');
+		
+		// Run container
+		console.log('🚀 Starting locally built container...');
+		await runCommand('docker', [
+			'run', '-d',
+			'--name', 'dispatch-test-local',
+			'-p', '3032:3030',
+			'-e', `HOST_UID=${HOST_UID}`,
+			'-e', `HOST_GID=${HOST_GID}`,
+			'-e', 'TERMINAL_KEY=test-key',
+			'-v', `${TEST_DIR}/projects:/workspace`,
+			'-v', `${TEST_DIR}/home:/home/dispatch`,
+			'dispatch-test-local'
+		]);
+		console.log('✅ Container started');
+		
+		// Wait for container to initialize
+		console.log('⏳ Waiting for container to initialize...');
+		await new Promise(resolve => setTimeout(resolve, 5000));
+		
+		// Check container user
+		console.log('👤 Checking container user mapping...');
+		const { stdout: containerUser } = await runCommand('docker', [
+			'exec', 'dispatch-test-local', 'id'
+		]);
+		console.log(`   Container user: ${containerUser.trim()}`);
+		
+		// Verify user mapping
+		if (containerUser.includes(`uid=${HOST_UID}`) && containerUser.includes(`gid=${HOST_GID}`)) {
+			console.log('✅ User mapping successful (build-time)');
+		} else {
+			throw new Error('User mapping failed - UID/GID mismatch');
+		}
+		
+		console.log('✅ Local build test completed successfully');
+		return true;
+		
+	} catch (error) {
+		console.error('❌ Local build test failed:', error.message);
+		return false;
+	} finally {
+		// Clean up test container
+		try {
+			await runCommand('docker', ['stop', 'dispatch-test-local']);
+			await runCommand('docker', ['rm', 'dispatch-test-local']);
+		} catch (error) {
+			// Ignore cleanup errors
+		}
+	}
+}
+
+async function main() {
+	// Setup test environment
+	setupTestDirectory();
+	
+	let dockerHubSuccess = false;
+	let localBuildSuccess = false;
+	
+	try {
+		// Test Docker Hub scenario (primary use case)
+		dockerHubSuccess = await testDockerHubImage();
+		
+		// Test local build scenario  
+		localBuildSuccess = await testLocalBuild();
+		
+	} finally {
+		cleanup();
+	}
+	
+	// Report results
+	console.log('\n📊 Test Results Summary:');
+	console.log(`   Docker Hub Image: ${dockerHubSuccess ? '✅ PASS' : '❌ FAIL'}`);
+	console.log(`   Local Build: ${localBuildSuccess ? '✅ PASS' : '❌ FAIL'}`);
+	
+	if (dockerHubSuccess && localBuildSuccess) {
+		console.log('\n🎉 All tests passed! Docker permissions work correctly.');
+		console.log('✅ Users can pull from Docker Hub and have proper file permissions');
+		console.log('✅ Local builds also work for advanced users');
+		process.exit(0);
+	} else {
+		console.log('\n❌ Some tests failed. Check the errors above.');
+		process.exit(1);
+	}
+}
+
+// Handle cleanup on exit
+process.on('exit', cleanup);
+process.on('SIGINT', () => {
+	cleanup();
+	process.exit(1);
+});
+process.on('SIGTERM', () => {
+	cleanup();
+	process.exit(1);
+});
+
+// Run tests
+main().catch((error) => {
+	console.error('❌ Test execution failed:', error);
+	cleanup();
+	process.exit(1);
+});

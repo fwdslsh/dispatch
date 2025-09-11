@@ -29,7 +29,7 @@ const defaultConfig = {
 		claude: null, // Optional
 		config: null // Optional
 	},
-	build: false, // Whether to build the image first
+	build: false, // Whether to build the image locally (default: pull from Docker Hub)
 	openBrowser: false,
 	notifications: {
 		enabled: false,
@@ -244,8 +244,29 @@ function ensureDirectories(config) {
 	});
 }
 
+async function pullImage(imageName) {
+	console.log(`📥 Pulling Docker image from Docker Hub: ${imageName}`);
+	console.log('💡 This ensures compatibility with pre-built images and runtime user mapping');
+
+	return new Promise((resolve, reject) => {
+		const pull = spawn('docker', ['pull', imageName], {
+			stdio: 'inherit'
+		});
+
+		pull.on('close', (code) => {
+			if (code === 0) {
+				console.log('✅ Docker image pulled successfully');
+				resolve();
+			} else {
+				reject(new Error(`Docker pull failed with exit code ${code}`));
+			}
+		});
+	});
+}
+
 async function buildImage(imageName) {
-	console.log(`Building Docker image: ${imageName}`);
+	console.log(`🔨 Building Docker image locally: ${imageName}`);
+	console.log('💡 Note: For most users, pulling from Docker Hub is recommended instead of building locally');
 
 	const dockerfilePath = path.join(__dirname, '..', 'docker', 'Dockerfile');
 	const contextPath = path.join(__dirname, '..');
@@ -309,9 +330,16 @@ async function runContainer(config) {
 		}
 	}
 
-	// Note: No --user flag needed since we build the container with matching UID/GID
+	// Runtime user mapping for Docker Hub compatibility
+	// Pass host UID/GID as environment variables for the entrypoint script
+	const uid = process.getuid ? process.getuid() : 1000;
+	const gid = process.getgid ? process.getgid() : 1000;
+	args.push('-e', `HOST_UID=${uid}`);
+	args.push('-e', `HOST_GID=${gid}`);
 
-	// Volume mounts - ensure directories exist and are owned by current user
+	console.log(`🔧 Using runtime user mapping: ${uid}:${gid}`);
+
+	// Volume mounts - ensure directories exist
 	if (config.volumes.home) {
 		const homePath = expandPath(config.volumes.home);
 		ensureDirectoryExists(homePath);
@@ -426,9 +454,12 @@ program
 			// Ensure directories exist
 			ensureDirectories(config);
 
-			// Build image if requested
+			// Handle image: build locally or pull from Docker Hub
 			if (config.build) {
 				await buildImage(config.image);
+			} else {
+				console.log('🎯 Using Docker Hub image (recommended for most users)');
+				await pullImage(config.image);
 			}
 
 			// Start container

@@ -2,13 +2,15 @@ version: '3.8'
 
 services:
   dispatch:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-      args:
-        USER_UID: ${USER_UID:-1000}
-        USER_GID: ${USER_GID:-1000}
+    # Use pre-built image from Docker Hub by default
     image: fwdslsh/dispatch:latest
+    # Uncomment the build section below if you want to build locally instead:
+    # build:
+    #   context: .
+    #   dockerfile: docker/Dockerfile
+    #   args:
+    #     USER_UID: ${USER_UID:-1000}
+    #     USER_GID: ${USER_GID:-1000}
     container_name: dispatch
     ports:
       - '3030:3030'
@@ -16,6 +18,9 @@ services:
       - TERMINAL_KEY=change-me-in-production
       - PTY_MODE=shell
       - ENABLE_TUNNEL=false
+      # Runtime user mapping for Docker Hub compatibility
+      - HOST_UID=${USER_UID:-1000}
+      - HOST_GID=${USER_GID:-1000}
       # Directory management configuration
       - DISPATCH_CONFIG_DIR=/home/dispatch/.config/dispatch
       - DISPATCH_PROJECTS_DIR=/var/lib/dispatch/projects
