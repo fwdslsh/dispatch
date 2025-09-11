@@ -40,10 +40,12 @@
 	// Responsive layout logic
 	let isMobile = $state(false);
 	let cols = $derived(isMobile ? 1 : layoutPreset === '1up' ? 1 : layoutPreset === '2up' ? 2 : 2);
-	const maxVisible = $derived(isMobile ? 1 : layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1);
-	
-    // Layout tracking for responsive behavior
-    let previousCols = $state(0);
+	const maxVisible = $derived(
+		isMobile ? 1 : layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1
+	);
+
+	// Layout tracking for responsive behavior
+	let previousCols = $state(0);
 	let visible = $derived.by(() => {
 		console.log('DEBUG visible derivation:', {
 			sessionsCount: sessions.length,
@@ -71,23 +73,15 @@
 		} else {
 			// Desktop: map displayed slots to sessions
 			const ids = displayed.slice(0, maxVisible);
-			const result = ids
-				.map((id) => sessions.find((s) => s && s.id === id))
-				.filter(Boolean);
+			const result = ids.map((id) => sessions.find((s) => s && s.id === id)).filter(Boolean);
 			console.log('Desktop result:', result.length, 'maxVisible:', maxVisible);
 			return result;
 		}
 	});
-	
+
 	// Track layout changes for responsive behavior
 	$effect(() => {
 		previousCols = cols;
-		
-		// Track mobile session direction for animations
-		if (isMobile && currentMobileSession !== previousMobileSession) {
-			mobileDirection = currentMobileSession > previousMobileSession ? 1 : -1;
-			previousMobileSession = currentMobileSession;
-		}
 	});
 
 	async function listWorkspaces() {
@@ -130,6 +124,26 @@
 		const without = displayed.filter((id) => id !== sessionId);
 		const head = without.slice(0, Math.max(0, maxVisible - 1));
 		displayed = [...head, sessionId];
+	}
+
+	function unpinSession(sessionId) {
+		if (isMobile) {
+			// Remove from sessions array entirely for mobile
+			const sessionIndex = sessions.findIndex((s) => s && s.id === sessionId);
+			if (sessionIndex !== -1) {
+				sessions = sessions.filter((s) => s && s.id !== sessionId);
+				// Adjust currentMobileSession if needed
+				const remainingSessions = sessions.filter((s) => s && s.id);
+				if (remainingSessions.length === 0) {
+					currentMobileSession = 0;
+				} else if (currentMobileSession >= remainingSessions.length) {
+					currentMobileSession = remainingSessions.length - 1;
+				}
+			}
+		} else {
+			// Remove from displayed array for desktop
+			displayed = displayed.filter((id) => id !== sessionId);
+		}
 	}
 
 	async function createTerminalSession(workspacePath) {
@@ -245,7 +259,6 @@
 			(s) => s && typeof s === 'object' && 'id' in s && 'type' in s
 		);
 		if (sessionIndex >= 0 && sessionIndex < allSessions.length) {
-			mobileDirection = sessionIndex > currentMobileSession ? 1 : -1;
 			currentMobileSession = sessionIndex;
 		}
 	}
@@ -258,10 +271,11 @@
 			// Preserve currentMobileSession; avoid resetting to 0 to prevent jumps when virtual keyboard opens
 		}
 		isMobile = nowMobile;
-
 	}
 
-	function toggleSessionMenu() { sessionMenuOpen = !sessionMenuOpen; }
+	function toggleSessionMenu() {
+		sessionMenuOpen = !sessionMenuOpen;
+	}
 
 	async function resumeTerminalSession({ terminalId, workspacePath }) {
 		try {
@@ -412,11 +426,13 @@
 		<div class="session-sheet" role="dialog" aria-label="Sessions">
 			<div class="sheet-header">
 				<div class="sheet-title">Sessions</div>
-				<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close">✕</button>
+				<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close"
+					>✕</button
+				>
 			</div>
 			<div class="sheet-body">
-				<ProjectSessionMenu 
-					storagePrefix="dispatch-projects" 
+				<ProjectSessionMenu
+					storagePrefix="dispatch-projects"
 					bind:selectedProject
 					onNewSession={(e) => {
 						const { type } = e.detail || {};
@@ -503,7 +519,10 @@
 							});
 							sessionMenuOpen = false;
 						} else if (detail.type === 'pty') {
-							resumeTerminalSession({ terminalId: detail.id, workspacePath: detail.workspacePath || selectedProject });
+							resumeTerminalSession({
+								terminalId: detail.id,
+								workspacePath: detail.workspacePath || selectedProject
+							});
 							sessionMenuOpen = false;
 						}
 					}}
@@ -529,22 +548,34 @@
 						<div
 							class="terminal-container"
 							style="--animation-index: {index};"
-							in:fly|global={isMobile 
-								? { x: mobileDirection * 60, duration: 350, easing: cubicOut }
-								: { y: 20, duration: 400, delay: index * 60, easing: cubicOut }
-							}
-							out:fly|global={isMobile 
-								? { x: mobileDirection * -60, duration: 300, easing: cubicOut }
-								: { y: -20, duration: 300, delay: index * 40, easing: cubicOut }
-							}
+							in:fly|global={{ y: 20, duration: 400, delay: index * 60, easing: cubicOut }}
+							out:fly|global={{ y: -20, duration: 300, delay: index * 40, easing: cubicOut }}
 						>
 							<div class="terminal-header">
 								<div class="terminal-status">
 									<span class="status-dot {s.type}"></span>
 									<span class="terminal-type">{s.type === 'claude' ? 'Claude' : 'Terminal'}</span>
 								</div>
-								<div class="terminal-info">Session {s.id.slice(0, 6)}</div>
-							</div> -->
+								<div class="terminal-info">
+									<span class="session-id">#{s.id.slice(0, 6)}</span>
+									{#if s.projectName}
+										<span class="project-name">{s.projectName}</span>
+									{/if}
+								</div>
+								<button
+									class="unpin-btn"
+									onclick={() => unpinSession(s.id)}
+									title="Unpin session from grid"
+									aria-label="Unpin session"
+									type="button"
+								>
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+										<path
+											d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+										/>
+									</svg>
+								</button>
+							</div>
 							<div class="terminal-viewport">
 								{#if s.type === 'pty'}
 									<TerminalPane
@@ -845,8 +876,6 @@
 
 	/* Sidebar removed — using bottom sheet */
 
-
-
 	/* ========================================
 	   MAXIMUM WORKSPACE AREA
 	   ======================================== */
@@ -861,7 +890,9 @@
 
 	@media (max-width: 768px) {
 		/* Tighter brand image on mobile */
-		.brand-icon img { height: 22px; }
+		.brand-icon img {
+			height: 22px;
+		}
 	}
 
 	.empty-workspace {
@@ -899,10 +930,10 @@
 		gap: var(--space-1); /* Consistent minimal gaps */
 		height: 100%;
 		overflow: hidden;
-		padding: var(--space-2);
+		padding: var(--space-1);
 		/* Ensure grid content can shrink to viewport */
 		min-width: 0;
-		
+
 		/* NO grid transition - instant layout change to prevent snapping */
 	}
 
@@ -917,7 +948,7 @@
 		overflow: hidden;
 		/* Allow shrinking inside grid to prevent width overflow */
 		min-width: 0;
-		
+
 		/* Simple transitions for hover states */
 		transition: border-color 0.2s ease;
 	}
@@ -948,7 +979,6 @@
 
 	/* Desktop layout change transitions */
 	@media (min-width: 769px) {
-		
 		.terminal-container {
 			/* Only animate the containers themselves, not the grid */
 			transition:
@@ -991,6 +1021,121 @@
 		}
 	}
 
+	/* Terminal header with session info and controls */
+	.terminal-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: var(--space-3) var(--space-4);
+		background: var(--bg-panel);
+		border-bottom: 1px solid var(--primary-dim);
+		min-height: 44px;
+		flex-shrink: 0;
+		gap: var(--space-3);
+	}
+
+	.terminal-status {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.status-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--accent-green);
+		box-shadow: 0 0 8px color-mix(in oklab, var(--accent-green) 60%, transparent);
+		animation: statusPulse 2s ease-in-out infinite;
+	}
+
+	.status-dot.claude {
+		background: var(--primary);
+		box-shadow: 0 0 8px var(--primary-glow);
+	}
+
+	.status-dot.pty {
+		background: var(--accent-amber);
+		box-shadow: 0 0 8px color-mix(in oklab, var(--accent-amber) 60%, transparent);
+	}
+
+	@keyframes statusPulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.6;
+		}
+	}
+
+	.terminal-type {
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		font-weight: 600;
+		color: var(--text-secondary);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.terminal-info {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		flex: 1;
+		min-width: 0;
+	}
+
+	.session-id {
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
+		color: var(--text-muted);
+		background: var(--surface-hover);
+		padding: 2px 6px;
+		border-radius: 4px;
+		border: 1px solid var(--surface-border);
+	}
+
+	.project-name {
+		font-family: var(--font-sans);
+		font-size: var(--font-size-1);
+		color: var(--text);
+		font-weight: 500;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 120px;
+	}
+
+	.unpin-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		padding: 0;
+		background: var(--surface-hover);
+		border: 1px solid var(--surface-border);
+		border-radius: 6px;
+		color: var(--text-muted);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		opacity: 0.7;
+		flex-shrink: 0;
+	}
+
+	.unpin-btn:hover {
+		background: var(--error, #ff6b6b);
+		border-color: var(--error, #ff6b6b);
+		color: white;
+		opacity: 1;
+		transform: scale(1.05);
+	}
+
+	.unpin-btn:active {
+		transform: scale(0.95);
+	}
+
 	.terminal-viewport {
 		flex: 1;
 		overflow: hidden;
@@ -1020,12 +1165,30 @@
 			display: none; /* Hide layout controls on mobile */
 		}
 
-		.session-grid { 
-			grid-template-columns: 1fr !important; 
+		.session-grid {
+			grid-template-columns: 1fr !important;
 			padding: 0; /* Remove padding for flush mobile viewport */
 			gap: 0; /* Remove gaps for flush mobile viewport */
 		}
-		.brand-text { display: none; }
+		.brand-text {
+			display: none;
+		}
+
+		/* Mobile terminal header adjustments */
+		.terminal-header {
+			padding: var(--space-2) var(--space-3);
+			min-height: 40px;
+		}
+
+		.project-name {
+			max-width: 100px;
+			font-size: var(--font-size-0);
+		}
+
+		.unpin-btn {
+			width: 32px;
+			height: 32px;
+		}
 	}
 
 	/* Very small screens */
@@ -1045,14 +1208,19 @@
 	/* Session bottom sheet */
 	.session-sheet-backdrop {
 		position: fixed;
-		top: 0; left: 0; right: 0; bottom: 0;
-		background: rgba(0,0,0,0.4);
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.4);
 		z-index: 60;
 		-webkit-tap-highlight-color: transparent;
 	}
 	.session-sheet {
 		position: fixed;
-		left: 0; right: 0; bottom: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
 		background: var(--bg);
 		border-top: 1px solid var(--primary-dim);
 		max-height: 90vh;
@@ -1060,26 +1228,40 @@
 		height: auto;
 		overflow: hidden;
 		z-index: 70;
-		box-shadow: 0 -8px 24px rgba(0,0,0,0.3);
-		display: flex; 
+		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
+		display: flex;
 		flex-direction: column;
 		transform: translateY(0);
 		transition: transform 0.3s ease-out;
 	}
-	.sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--primary-dim); }
-	.sheet-title { font-family: var(--font-mono); font-weight: 700; color: var(--primary); }
-	.sheet-close { 
-		background: var(--surface-hover); 
-		border: 1px solid var(--surface-border); 
-		color: var(--text); 
-		border-radius: 0.35rem; 
+	.sheet-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.5rem 0.75rem;
+		border-bottom: 1px solid var(--primary-dim);
+	}
+	.sheet-title {
+		font-family: var(--font-mono);
+		font-weight: 700;
+		color: var(--primary);
+	}
+	.sheet-close {
+		background: var(--surface-hover);
+		border: 1px solid var(--surface-border);
+		color: var(--text);
+		border-radius: 0.35rem;
 		padding: 0.25rem 0.5rem;
 		-webkit-tap-highlight-color: transparent;
 		touch-action: manipulation;
 		user-select: none;
 		cursor: pointer;
 	}
-	.sheet-body { overflow: auto; min-height: 0; padding: 0.5rem; }
+	.sheet-body {
+		overflow: auto;
+		min-height: 0;
+		padding: 0.5rem;
+	}
 
 	/* Mobile-specific touch improvements */
 	@media (hover: none) and (pointer: coarse) {
@@ -1094,12 +1276,10 @@
 	   ACCESSIBILITY & PERFORMANCE
 	   ======================================== */
 
-
 	/* Focus management: removed old sidebar session-item styles */
 
 	/* High DPI displays - optimize for developer monitors */
 	@media (min-resolution: 144dpi) {
-	
 		.header {
 			min-height: 45px;
 		}
