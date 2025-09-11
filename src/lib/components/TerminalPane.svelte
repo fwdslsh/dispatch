@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { Terminal } from '@xterm/xterm';
 	import { FitAddon } from '@xterm/addon-fit';
-	import { io } from 'socket.io-client';
+	import sessionSocketManager from './SessionSocketManager.js';
 	import '@xterm/xterm/css/xterm.css';
 
 	let { ptyId, shouldResume = false, workspacePath = null } = $props();
@@ -55,7 +55,10 @@
 			await loadTerminalHistory();
 		}
 
-		socket = io();
+		// Get or create socket for this specific session
+		socket = sessionSocketManager.getSocket(ptyId);
+		sessionSocketManager.handleSessionFocus(ptyId);
+		
 		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 
 		socket.on('connect', () => {
@@ -120,8 +123,10 @@
 
 		// Cleanup function
 		return () => {
+			// Don't disconnect the socket immediately as it might be used by other panes
+			// The SessionSocketManager will handle cleanup when appropriate
 			if (socket) {
-				socket.disconnect();
+				socket.removeAllListeners();
 			}
 			try {
 				// remove listeners and observers

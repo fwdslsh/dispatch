@@ -1,10 +1,10 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { io } from 'socket.io-client';
 	import Button from '$lib/shared/components/Button.svelte';
 	import Markdown from '$lib/shared/components/Markdown.svelte';
 	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
+	import sessionSocketManager from './SessionSocketManager.js';
 	// Using global styles for inputs
 
 	let { sessionId, claudeSessionId = null, shouldResume = false } = $props();
@@ -363,7 +363,12 @@
 		// This handles both explicit resumes and cases where history exists
 		await loadPreviousMessages();
 
-		socket = io();
+		// Get or create socket for this specific session
+		const effectiveSessionId = claudeSessionId || sessionId;
+		socket = sessionSocketManager.getSocket(effectiveSessionId);
+		
+		// Mark this session as active
+		sessionSocketManager.handleSessionFocus(effectiveSessionId);
 		socket.on('connect', () => {
 			console.log('Claude Socket.IO connected');
 		});
@@ -480,7 +485,13 @@
 			liveEventIcons = [];
 		});
 	});
-	onDestroy(() => socket?.disconnect());
+	onDestroy(() => {
+		// Don't disconnect the socket immediately as it might be used by other panes
+		// The SessionSocketManager will handle cleanup when appropriate
+		if (socket) {
+			socket.removeAllListeners();
+		}
+	});
 </script>
 
 <div class="claude-pane">

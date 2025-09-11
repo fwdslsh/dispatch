@@ -10,6 +10,7 @@
 	import CreateSessionModal from '$lib/components/CreateSessionModal.svelte';
 	import { Button } from '$lib/shared/components';
 	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
+	import sessionSocketManager from '$lib/components/SessionSocketManager.js';
 
 	let sessions = $state([]);
 	let workspaces = $state([]);
@@ -225,7 +226,7 @@
 		const s = {
 			id,
 			type: 'claude',
-			workspacePath,
+			workspacePath: finalWorkspacePath, // Use the final workspace path from the API
 			projectName,
 			claudeSessionId,
 			shouldResume: true
@@ -275,6 +276,12 @@
 
 	function toggleSessionMenu() {
 		sessionMenuOpen = !sessionMenuOpen;
+	}
+
+	function handleSessionFocus(session) {
+		console.log('Session focused:', session.id);
+		// Notify the session socket manager about the focus change
+		sessionSocketManager.handleSessionFocus(session.id);
 	}
 
 	async function resumeTerminalSession({ terminalId, workspacePath }) {
@@ -355,6 +362,9 @@
 	onDestroy(() => {
 		// Clean up any resources if needed
 		window.removeEventListener('resize', updateMobileState);
+		
+		// Cleanup session socket manager when leaving the page
+		sessionSocketManager.disconnectAll();
 	});
 
 	// Persist key UI state
@@ -550,6 +560,11 @@
 							style="--animation-index: {index};"
 							in:fly|global={{ y: 20, duration: 400, delay: index * 60, easing: cubicOut }}
 							out:fly|global={{ y: -20, duration: 300, delay: index * 40, easing: cubicOut }}
+							onclick={() => handleSessionFocus(s)}
+							onkeydown={(e) => e.key === 'Enter' && handleSessionFocus(s)}
+							role="button"
+							tabindex="0"
+							aria-label="Focus session {s.id}"
 						>
 							<div class="terminal-header">
 								<div class="terminal-status">

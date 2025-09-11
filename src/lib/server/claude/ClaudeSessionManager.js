@@ -65,6 +65,13 @@ export class ClaudeSessionManager {
 			}
 		};
 		
+		console.log(`[Claude] Creating session ${id} with:`, {
+			workspacePath,
+			sessionId: realSessionId,
+			cwd: sessionData.options.cwd,
+			resumeCapable
+		});
+		
 		this.sessions.set(id, sessionData);
 		// Also map raw session id for clients that pass it directly
 		this.sessions.set(realSessionId, this.sessions.get(id));
@@ -98,6 +105,13 @@ export class ClaudeSessionManager {
 			const debugEnv = { ...process.env, HOME: process.env.HOME };
 			// If you want SDK debug logs, uncomment next line
 			// debugEnv.DEBUG = debugEnv.DEBUG || '1';
+			
+			console.log(`[Claude] Session ${s.sessionId} options:`, {
+				cwd: s.options.cwd,
+				workspacePath: s.workspacePath,
+				resumeCapable: s.resumeCapable
+			});
+			
 			const stream = query({
 				prompt: userInput,
 				options: {
