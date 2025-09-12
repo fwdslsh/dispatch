@@ -7,7 +7,6 @@
 		workspacePath = '',
 		sessionId = '',
 		onCommandInsert = () => {},
-		jsonlSources = [],
 		disabled = false,
 		bind = null
 	} = $props();
@@ -67,113 +66,12 @@
 	}
 
 	/**
-	 * Parse commands from JSONL content
-	 * @param {string} jsonlContent - JSONL content to parse
-	 * @returns {Array} Array of command objects
-	 */
-	function parseCommandsFromJsonl(jsonlContent) {
-		const commands = [];
-		if (!jsonlContent) return commands;
-		
-		const lines = jsonlContent.split('\n').filter(Boolean);
-		for (const line of lines) {
-			try {
-				const obj = JSON.parse(line);
-				
-				// Check various formats for command definitions
-				if (obj.type === 'command' || obj.command) {
-					const cmd = obj.command || obj.name || obj.cmd;
-					if (cmd && cmd.startsWith('/')) {
-						commands.push({
-							name: cmd,
-							title: obj.title || obj.label || cmd,
-							description: obj.description || obj.desc || `Execute ${cmd}`
-						});
-					}
-				}
-				
-				// Check for tools list format
-				if (obj.type === 'tools' && Array.isArray(obj.tools)) {
-					for (const tool of obj.tools) {
-						if (tool.name && tool.name.startsWith('/')) {
-							commands.push({
-								name: tool.name,
-								title: tool.title || tool.name,
-								description: tool.description || `Execute ${tool.name}`
-							});
-						}
-					}
-				}
-				
-				// Check for direct command in message content
-				if (obj.type === 'assistant' && obj.message?.content) {
-					const content = Array.isArray(obj.message.content) 
-						? obj.message.content.filter(c => c.type === 'text').map(c => c.text).join('\n')
-						: (typeof obj.message.content === 'string' ? obj.message.content : '');
-					
-					commands.push(...extractCommandsFromMessage(content));
-				}
-			} catch (error) {
-				// Skip invalid JSON lines
-				console.debug('Failed to parse JSONL line:', line, error);
-			}
-		}
-		
-		// Deduplicate
-		const seen = new Set();
-		return commands.filter(c => {
-			if (seen.has(c.name)) return false;
-			seen.add(c.name);
-			return true;
-		});
-	}
-
-	/**
-	 * Load commands from JSONL sources
-	 */
-	async function loadCommandsFromJsonl() {
-		const allCommands = [];
-		
-		for (const source of jsonlSources) {
-			try {
-				let content = '';
-				
-				if (typeof source === 'string') {
-					// Assume it's a URL or file path
-					if (source.startsWith('http')) {
-						const response = await fetch(source);
-						content = await response.text();
-					} else {
-						// File path - would need server endpoint to read
-						console.warn('File paths not directly supported in browser, use fetch endpoint');
-						continue;
-					}
-				} else if (source.content) {
-					// Direct content
-					content = source.content;
-				}
-				
-				const commands = parseCommandsFromJsonl(content);
-				allCommands.push(...commands);
-			} catch (error) {
-				console.error('Failed to load commands from JSONL source:', source, error);
-			}
-		}
-		
-		return allCommands;
-	}
-
-	/**
 	 * Update available commands from various sources
 	 */
 	async function updateAvailableCommands(messages = []) {
 		let newCommands = [];
 		
-		// 1. Load from JSONL sources
-		const jsonlCommands = await loadCommandsFromJsonl();
-		newCommands.push(...jsonlCommands);
-		
-		// 2. Extract from messages (prioritizing first assistant message)
+		// Extract from messages (prioritizing first assistant message)
 		for (const msg of messages) {
 			if (msg.role === 'assistant' && msg.text) {
 				const commands = extractCommandsFromMessage(msg.text);
@@ -184,7 +82,7 @@
 			}
 		}
 		
-		// 3. Check cache if no commands found yet
+		// Check cache if no commands found yet
 		if (newCommands.length === 0 && workspacePath) {
 			try {
 				const cached = localStorage.getItem(`claude-commands-${workspacePath}`);
@@ -299,13 +197,6 @@
 	// Update commands when workspace changes
 	$effect(() => {
 		if (workspacePath) {
-			updateAvailableCommands(lastParsedMessages);
-		}
-	});
-
-	// Update commands when JSONL sources change
-	$effect(() => {
-		if (jsonlSources.length > 0) {
 			updateAvailableCommands(lastParsedMessages);
 		}
 	});
