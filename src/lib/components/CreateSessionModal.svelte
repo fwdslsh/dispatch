@@ -90,7 +90,7 @@
 	);
 </script>
 
-<Modal bind:open title="Create New Session" onclose={handleClose} size="medium">
+<Modal bind:open title="Create New Session" onclose={handleClose} size="large">
 	{#snippet children()}
 		<div class="session-form">
 			<!-- Session Type Selector -->

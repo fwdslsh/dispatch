@@ -1,4 +1,6 @@
 <script>
+	import { Button } from "$lib/shared/components";
+
 	// Svelte 5 Directory Browser Component
 	let {
 		selected = $bindable(), // selected directory path
@@ -154,7 +156,7 @@
 
 <div class="directory-browser">
 	<!-- Breadcrumb navigation -->
-	<div class="breadcrumb-bar">
+	<div class="breadcrumb-bar" style="display: none;">
 		<div class="breadcrumbs">
 			{#each breadcrumbs as crumb, i}
 				{#if i > 0}
@@ -192,6 +194,21 @@
 		</div>
 	</div>
 
+	<!-- Selected path display -->
+	{#if selected}
+		<div class="selected-display">
+			<span class="selected-label">Selected:</span>
+			<span class="selected-path">{selected}</span>
+			<button
+				type="button"
+				onclick={() => (selected = null)}
+				class="clear-selection"
+				title="Clear selection"
+			>
+				✕
+			</button>
+		</div>
+	{/if}
 	<!-- Search bar -->
 	<div class="search-bar">
 		<input
@@ -208,8 +225,25 @@
 			disabled={loading}
 			title="Select current directory"
 		>
-			Select This Directory
+			✅
 		</button>
+		<Button
+				type="button"
+				onclick={toggleNewDirInput}
+				title="Create new directory"
+				variant="ghost"
+			>
+				📁+
+			</Button>
+			<Button
+				type="button"
+				class="action-btn"
+				onclick={toggleHidden}
+				title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
+				variant="ghost"
+			>
+				{showHidden ? '👁️' : '👁️‍🗨️'}
+			</Button>
 	</div>
 
 	<!-- New directory input -->
@@ -305,21 +339,6 @@
 		{/if}
 	</div>
 
-	<!-- Selected path display -->
-	{#if selected}
-		<div class="selected-display">
-			<span class="selected-label">Selected:</span>
-			<span class="selected-path">{selected}</span>
-			<button
-				type="button"
-				onclick={() => (selected = null)}
-				class="clear-selection"
-				title="Clear selection"
-			>
-				✕
-			</button>
-		</div>
-	{/if}
 </div>
 
 <style>
@@ -950,13 +969,13 @@
 		scrollbar-color: var(--db-primary-dim) transparent;
 		min-height: 220px;
 		height: 320px;
-		background: 
+		/* background: 
 			linear-gradient(180deg, 
 				var(--db-surface) 0%, 
 				var(--db-surface-elevated) 100%),
 			radial-gradient(ellipse at top right, 
 				var(--db-primary-dim) 0%, 
-				transparent 40%);
+				transparent 40%); */
 		border: 1px solid var(--db-border-subtle);
 		border-radius: 12px;
 		padding: calc(var(--space-3) * 1.1);
@@ -968,35 +987,6 @@
 		position: relative;
 	}
 
-	.directory-list::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 40px;
-		background: linear-gradient(180deg, 
-			var(--db-surface-elevated) 0%, 
-			transparent 100%);
-		pointer-events: none;
-		z-index: 1;
-		border-radius: 12px 12px 0 0;
-	}
-
-	.directory-list::after {
-		content: '';
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		height: 40px;
-		background: linear-gradient(0deg, 
-			var(--db-surface-elevated) 0%, 
-			transparent 100%);
-		pointer-events: none;
-		z-index: 1;
-		border-radius: 0 0 12px 12px;
-	}
 
 	.directory-list::-webkit-scrollbar {
 		width: 8px;
@@ -1099,26 +1089,11 @@
 		transition: left 0.4s ease;
 	}
 
-	.item-button:hover:not(:disabled):not(.file) {
-		background: linear-gradient(135deg, 
-			var(--db-primary-dim) 0%, 
-			rgba(20, 40, 30, 0.6) 100%);
-		border-color: var(--db-border-strong);
-		color: var(--db-text-primary);
-		transform: translateX(4px);
-		box-shadow: 
-			0 3px 10px rgba(46, 230, 107, 0.25),
-			inset 0 2px 4px rgba(46, 230, 107, 0.1),
-			inset 0 -1px 2px rgba(0, 0, 0, 0.2);
-	}
 
 	.item-button:hover:not(:disabled):not(.file)::before {
 		transform: translateX(0);
 	}
 
-	.item-button:hover:not(:disabled):not(.file)::after {
-		left: 100%;
-	}
 
 	.item-button:active:not(:disabled):not(.file) {
 		transform: translateX(2px);
@@ -1255,25 +1230,22 @@
 		gap: calc(var(--space-2) * 1.3);
 		padding: calc(var(--space-2) * 1.4) calc(var(--space-3) * 1.2);
 		background: 
-			linear-gradient(135deg, 
-				var(--db-primary-dim) 0%, 
-				var(--db-surface-elevated) 100%),
-			linear-gradient(90deg, 
-				var(--db-accent) 0%, 
-				transparent 50%);
+			linear-gradient(0deg, 
+				var(--db-surface-elevated) 100%);
 		border: 1px solid var(--db-primary);
 		border-radius: 10px;
 		font-size: calc(var(--font-size-1) * 0.95);
 		position: relative;
 		overflow: hidden;
+		opacity: 0;
 		box-shadow: 
 			0 4px 12px var(--db-primary-glow),
 			inset 0 2px 4px rgba(46, 230, 107, 0.15),
 			inset 0 -1px 2px rgba(0, 0, 0, 0.3);
-		animation: slideInScale 0.4s var(--db-transition-bounce);
+		animation: slideInScale 0.4s var(--db-transition-bounce) forwards;
 	}
 
-	.selected-display::before {
+	/* .selected-display::before {
 		content: '';
 		position: absolute;
 		top: 0;
@@ -1285,14 +1257,14 @@
 			var(--db-primary-bright), 
 			var(--db-primary));
 		animation: scanline 2s linear infinite;
-	}
+	} */
 
 	@keyframes slideInScale {
-		from {
+		0% {
 			opacity: 0;
 			transform: scale(0.9) translateY(10px);
 		}
-		to {
+		100% {
 			opacity: 1;
 			transform: scale(1) translateY(0);
 		}
