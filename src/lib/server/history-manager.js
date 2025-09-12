@@ -182,7 +182,7 @@ class HistoryManager {
 			}
 
 			// Sort by last modified, newest first
-			return histories.sort((a, b) => b.lastModified - a.lastModified);
+			return histories.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
 		} catch (error) {
 			console.error('[HISTORY] Failed to list socket histories:', error);
 			return [];
