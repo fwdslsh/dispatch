@@ -4,6 +4,7 @@ import { query } from '@anthropic-ai/claude-code';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { readdir, stat, readFile } from 'node:fs/promises';
+import { historyManager } from './history-manager.js';
 
 // Admin event tracking
 let socketEvents = [];
@@ -31,6 +32,21 @@ function logSocketEvent(socketId, eventType, data = null) {
 		}
 	} catch (error) {
 		// Silently ignore errors
+	}
+
+	// Add to persistent history
+	try {
+		// Determine direction based on event type
+		let direction = 'system';
+		if (eventType.includes('.write') || eventType.includes('.send')) {
+			direction = 'in';
+		} else if (eventType.includes('.data') || eventType.includes('.delta')) {
+			direction = 'out';
+		}
+		
+		historyManager.addEvent(socketId, eventType, direction, data);
+	} catch (error) {
+		console.error('[HISTORY] Failed to log event to history:', error);
 	}
 }
 
@@ -73,10 +89,16 @@ export function setupSocketIO(httpServer) {
 		socket.data = socket.data || {};
 		socket.data.connectedAt = Date.now();
 		socket.data.authenticated = false;
-		logSocketEvent(socket.id, 'connection', { 
+		
+		const connectionMetadata = { 
 			ip: socket.handshake.address || socket.conn.remoteAddress,
 			userAgent: socket.handshake.headers['user-agent']
-		});
+		};
+		
+		// Initialize history tracking for this socket
+		historyManager.initializeSocket(socket.id, connectionMetadata);
+		
+		logSocketEvent(socket.id, 'connection', connectionMetadata);
 
 		// Authentication tracking middleware
 		const originalOn = socket.on.bind(socket);
@@ -250,6 +272,8 @@ export function setupSocketIO(httpServer) {
 			console.log(`[SOCKET] Client disconnected: ${socket.id}`);
 			// Track disconnection for admin console
 			logSocketEvent(socket.id, 'disconnect');
+			// Finalize history for this socket
+			historyManager.finalizeSocket(socket.id);
 		});
 	});
 

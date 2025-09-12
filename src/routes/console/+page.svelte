@@ -10,6 +10,8 @@
 	let activeSockets = [];
 	let socketEvents = [];
 	let serverLogs = [];
+	let socketHistories = [];
+	let selectedHistory = null;
 	let selectedTab = 'sockets';
 	
 	// Authentication state
@@ -43,6 +45,7 @@
 		// Load initial data
 		loadActiveSockets();
 		loadServerLogs();
+		loadSocketHistories();
 		
 		// Set up real-time updates
 		socket.on('admin.socket.connected', (socketInfo) => {
@@ -79,6 +82,35 @@
 			}
 		} catch (error) {
 			console.error('Failed to load server logs:', error);
+		}
+	}
+
+	async function loadSocketHistories() {
+		try {
+			const response = await fetch(`/api/admin/history?key=${encodeURIComponent(terminalKey)}`);
+			if (response.ok) {
+				const data = await response.json();
+				socketHistories = data.histories || [];
+			}
+		} catch (error) {
+			console.error('Failed to load socket histories:', error);
+		}
+	}
+
+	async function loadSocketHistory(socketId) {
+		try {
+			const response = await fetch(`/api/admin/history/${socketId}?key=${encodeURIComponent(terminalKey)}`);
+			if (response.ok) {
+				const data = await response.json();
+				selectedHistory = data.history;
+			} else {
+				selectedHistory = null;
+				alert('Failed to load socket history');
+			}
+		} catch (error) {
+			console.error('Failed to load socket history:', error);
+			selectedHistory = null;
+			alert('Error loading socket history');
 		}
 	}
 	
@@ -118,6 +150,31 @@
 		const minutes = Math.floor(diff / 60000);
 		const seconds = Math.floor((diff % 60000) / 1000);
 		return `${minutes}m ${seconds}s`;
+	}
+
+	function formatFileSize(bytes) {
+		if (bytes === 0) return '0 B';
+		const k = 1024;
+		const sizes = ['B', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+	}
+
+	function getEventTypeClass(eventType) {
+		if (eventType === 'connection') return 'event-connection';
+		if (eventType === 'disconnect') return 'event-disconnect';
+		if (eventType.includes('auth')) return 'event-auth';
+		if (eventType.includes('.send') || eventType.includes('.write')) return 'event-input';
+		if (eventType.includes('.data') || eventType.includes('.delta')) return 'event-output';
+		return 'event-system';
+	}
+
+	function selectSocketHistory(socketId) {
+		loadSocketHistory(socketId);
+	}
+
+	function goBackToHistoryList() {
+		selectedHistory = null;
 	}
 </script>
 
@@ -166,6 +223,12 @@
 				on:click={() => selectedTab = 'events'}
 			>
 				Socket Events ({socketEvents.length})
+			</button>
+			<button
+				class="nav-tab {selectedTab === 'history' ? 'active' : ''}"
+				on:click={() => { selectedTab = 'history'; selectedHistory = null; }}
+			>
+				Socket History ({socketHistories.length})
 			</button>
 			<button
 				class="nav-tab {selectedTab === 'logs' ? 'active' : ''}"
@@ -264,6 +327,145 @@
 								</div>
 							{/each}
 						</div>
+					{/if}
+				</div>
+			{:else if selectedTab === 'history'}
+				<div class="tab-content">
+					{#if selectedHistory}
+						<!-- Individual Socket History View -->
+						<div class="history-detail">
+							<div class="history-header">
+								<button on:click={goBackToHistoryList} class="back-btn">← Back to History List</button>
+								<h2>Socket History: {selectedHistory.socketId}</h2>
+							</div>
+							
+							<div class="history-metadata">
+								<h3>Socket Information</h3>
+								<div class="metadata-grid">
+									<div class="detail-row">
+										<span class="label">Socket ID:</span>
+										<span class="value">{selectedHistory.socketId}</span>
+									</div>
+									<div class="detail-row">
+										<span class="label">Connected:</span>
+										<span class="value">{formatTimestamp(selectedHistory.metadata.connectedAt)}</span>
+									</div>
+									<div class="detail-row">
+										<span class="label">IP Address:</span>
+										<span class="value">{selectedHistory.metadata.ip}</span>
+									</div>
+									<div class="detail-row">
+										<span class="label">User Agent:</span>
+										<span class="value">{selectedHistory.metadata.userAgent}</span>
+									</div>
+									{#if selectedHistory.metadata.sessionType}
+									<div class="detail-row">
+										<span class="label">Session Type:</span>
+										<span class="value session-type {selectedHistory.metadata.sessionType}">{selectedHistory.metadata.sessionType}</span>
+									</div>
+									{/if}
+									{#if selectedHistory.metadata.sessionName}
+									<div class="detail-row">
+										<span class="label">Session Name:</span>
+										<span class="value">{selectedHistory.metadata.sessionName}</span>
+									</div>
+									{/if}
+									{#if selectedHistory.metadata.cwd}
+									<div class="detail-row">
+										<span class="label">Working Directory:</span>
+										<span class="value">{selectedHistory.metadata.cwd}</span>
+									</div>
+									{/if}
+								</div>
+							</div>
+
+							<div class="history-events">
+								<h3>Communication Events ({selectedHistory.events.length})</h3>
+								{#if selectedHistory.events.length === 0}
+									<p class="empty-state">No events recorded</p>
+								{:else}
+									<div class="events-timeline">
+										{#each selectedHistory.events as event}
+											<div class="timeline-event {getEventTypeClass(event.type)}">
+												<div class="event-header">
+													<span class="event-type">{event.type}</span>
+													<span class="event-direction direction-{event.direction}">{event.direction}</span>
+													<span class="event-timestamp">{formatTimestamp(event.timestamp)}</span>
+												</div>
+												{#if event.data}
+													<div class="event-data-container">
+														<pre class="event-data">{JSON.stringify(event.data, null, 2)}</pre>
+													</div>
+												{/if}
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						</div>
+					{:else}
+						<!-- Socket History List View -->
+						<h2>Socket History</h2>
+						<div class="history-controls">
+							<button on:click={loadSocketHistories} class="refresh-btn">Refresh History</button>
+						</div>
+						
+						{#if socketHistories.length === 0}
+							<p class="empty-state">No socket histories available</p>
+						{:else}
+							<div class="history-list">
+								{#each socketHistories as history}
+									<div class="history-card {history.isActive ? 'active' : 'inactive'}">
+										<div class="history-card-header">
+											<h3>Socket {history.socketId}</h3>
+											<div class="history-status">
+												{#if history.isActive}
+													<span class="status-badge active">Active</span>
+												{:else}
+													<span class="status-badge inactive">Disconnected</span>
+												{/if}
+											</div>
+										</div>
+										
+										<div class="history-card-details">
+											<div class="detail-row">
+												<span class="label">Last Modified:</span>
+												<span class="value">{formatTimestamp(history.lastModified)}</span>
+											</div>
+											<div class="detail-row">
+												<span class="label">Events:</span>
+												<span class="value">{history.eventCount}</span>
+											</div>
+											<div class="detail-row">
+												<span class="label">File Size:</span>
+												<span class="value">{formatFileSize(history.size)}</span>
+											</div>
+											{#if history.metadata.sessionType}
+											<div class="detail-row">
+												<span class="label">Type:</span>
+												<span class="value session-type {history.metadata.sessionType}">{history.metadata.sessionType}</span>
+											</div>
+											{/if}
+											{#if history.metadata.ip}
+											<div class="detail-row">
+												<span class="label">IP:</span>
+												<span class="value">{history.metadata.ip}</span>
+											</div>
+											{/if}
+										</div>
+										
+										<div class="history-card-actions">
+											<button 
+												on:click={() => selectSocketHistory(history.socketId)}
+												class="view-btn"
+											>
+												View History
+											</button>
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/if}
 					{/if}
 				</div>
 			{/if}
@@ -583,5 +785,259 @@
 	
 	.log-message {
 		color: #e0e0e0;
+	}
+
+	/* Socket History Styles */
+	.history-controls {
+		margin-bottom: 20px;
+		display: flex;
+		gap: 10px;
+		align-items: center;
+	}
+
+	.history-list {
+		display: grid;
+		gap: 15px;
+	}
+
+	.history-card {
+		background: #2a2a2a;
+		border: 1px solid #444;
+		border-radius: 6px;
+		padding: 20px;
+	}
+
+	.history-card.active {
+		border-color: #28a745;
+		background: #2a3d2a;
+	}
+
+	.history-card-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 15px;
+	}
+
+	.history-card-header h3 {
+		margin: 0;
+		color: #fff;
+		font-size: 18px;
+	}
+
+	.status-badge {
+		padding: 4px 8px;
+		border-radius: 3px;
+		font-size: 12px;
+		font-weight: bold;
+	}
+
+	.status-badge.active {
+		background: #28a745;
+		color: white;
+	}
+
+	.status-badge.inactive {
+		background: #6c757d;
+		color: white;
+	}
+
+	.history-card-details {
+		display: grid;
+		gap: 8px;
+		margin-bottom: 15px;
+	}
+
+	.history-card-actions {
+		display: flex;
+		gap: 10px;
+	}
+
+	.view-btn {
+		padding: 8px 16px;
+		background: #0066cc;
+		border: none;
+		border-radius: 4px;
+		color: white;
+		cursor: pointer;
+		font-size: 14px;
+		transition: background 0.2s;
+	}
+
+	.view-btn:hover {
+		background: #0052a3;
+	}
+
+	.session-type {
+		font-weight: bold;
+		text-transform: uppercase;
+		font-size: 11px;
+		padding: 2px 6px;
+		border-radius: 3px;
+	}
+
+	.session-type.terminal {
+		background: #17a2b8;
+		color: white;
+	}
+
+	.session-type.claude {
+		background: #6f42c1;
+		color: white;
+	}
+
+	/* History Detail View */
+	.history-detail {
+		max-width: 100%;
+	}
+
+	.history-header {
+		display: flex;
+		align-items: center;
+		gap: 20px;
+		margin-bottom: 20px;
+	}
+
+	.back-btn {
+		padding: 8px 16px;
+		background: #444;
+		border: 1px solid #666;
+		border-radius: 4px;
+		color: #e0e0e0;
+		cursor: pointer;
+		transition: background 0.2s;
+		text-decoration: none;
+		font-size: 14px;
+	}
+
+	.back-btn:hover {
+		background: #555;
+	}
+
+	.history-header h2 {
+		margin: 0;
+		color: #fff;
+	}
+
+	.history-metadata {
+		background: #1a1a1a;
+		border: 1px solid #333;
+		border-radius: 6px;
+		padding: 20px;
+		margin-bottom: 20px;
+	}
+
+	.history-metadata h3 {
+		margin: 0 0 15px 0;
+		color: #fff;
+		font-size: 16px;
+	}
+
+	.metadata-grid {
+		display: grid;
+		gap: 10px;
+	}
+
+	.history-events {
+		background: #1a1a1a;
+		border: 1px solid #333;
+		border-radius: 6px;
+		padding: 20px;
+	}
+
+	.history-events h3 {
+		margin: 0 0 20px 0;
+		color: #fff;
+		font-size: 16px;
+	}
+
+	.events-timeline {
+		max-height: 60vh;
+		overflow-y: auto;
+		display: grid;
+		gap: 15px;
+	}
+
+	.timeline-event {
+		background: #2a2a2a;
+		border: 1px solid #444;
+		border-radius: 4px;
+		padding: 15px;
+	}
+
+	.timeline-event.event-connection {
+		border-left: 4px solid #28a745;
+	}
+
+	.timeline-event.event-disconnect {
+		border-left: 4px solid #dc3545;
+	}
+
+	.timeline-event.event-auth {
+		border-left: 4px solid #ffc107;
+	}
+
+	.timeline-event.event-input {
+		border-left: 4px solid #0066cc;
+	}
+
+	.timeline-event.event-output {
+		border-left: 4px solid #17a2b8;
+	}
+
+	.timeline-event.event-system {
+		border-left: 4px solid #6c757d;
+	}
+
+	.timeline-event .event-header {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+		margin-bottom: 10px;
+	}
+
+	.event-direction {
+		font-size: 10px;
+		font-weight: bold;
+		padding: 2px 6px;
+		border-radius: 3px;
+		text-transform: uppercase;
+	}
+
+	.direction-in {
+		background: #0066cc;
+		color: white;
+	}
+
+	.direction-out {
+		background: #17a2b8;
+		color: white;
+	}
+
+	.direction-system {
+		background: #6c757d;
+		color: white;
+	}
+
+	.direction-unknown {
+		background: #444;
+		color: #ccc;
+	}
+
+	.event-data-container {
+		margin-top: 10px;
+	}
+
+	.timeline-event .event-data {
+		background: #1a1a1a;
+		border: 1px solid #333;
+		border-radius: 3px;
+		padding: 10px;
+		font-size: 12px;
+		color: #e0e0e0;
+		overflow-x: auto;
+		margin: 0;
+		max-height: 300px;
+		overflow-y: auto;
 	}
 </style>
