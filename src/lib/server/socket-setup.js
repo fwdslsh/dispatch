@@ -5,6 +5,40 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { readdir, stat, readFile } from 'node:fs/promises';
 
+// Admin event tracking
+let socketEvents = [];
+
+function logSocketEvent(socketId, eventType, data = null) {
+	const event = {
+		socketId,
+		type: eventType,
+		data: data ? JSON.parse(JSON.stringify(data)) : null, // Deep clone to avoid references
+		timestamp: Date.now()
+	};
+	
+	socketEvents.unshift(event);
+	
+	// Keep only the most recent 500 events to prevent memory issues
+	if (socketEvents.length > 500) {
+		socketEvents = socketEvents.slice(0, 500);
+	}
+	
+	// Emit to admin console if needed
+	try {
+		const io = globalThis.__DISPATCH_SOCKET_IO;
+		if (io) {
+			io.emit('admin.event.logged', event);
+		}
+	} catch (error) {
+		// Silently ignore errors
+	}
+}
+
+// Export function to get events for API
+export function getSocketEvents(limit = 100) {
+	return socketEvents.slice(0, Math.min(limit, socketEvents.length));
+}
+
 export function setupSocketIO(httpServer) {
 	const io = new Server(httpServer, {
 		cors: { origin: '*', methods: ['GET', 'POST'] }
@@ -34,6 +68,26 @@ export function setupSocketIO(httpServer) {
 
 	io.on('connection', (socket) => {
 		console.log(`[SOCKET] Client connected: ${socket.id}`);
+		
+		// Track connection for admin console
+		socket.data = socket.data || {};
+		socket.data.connectedAt = Date.now();
+		socket.data.authenticated = false;
+		logSocketEvent(socket.id, 'connection', { 
+			ip: socket.handshake.address || socket.conn.remoteAddress,
+			userAgent: socket.handshake.headers['user-agent']
+		});
+
+		// Authentication tracking middleware
+		const originalOn = socket.on.bind(socket);
+		socket.on = function(event, handler) {
+			return originalOn(event, function(...args) {
+				// Log the event for admin monitoring (exclude sensitive data)
+				const logData = event.includes('key') || event.includes('auth') ? '[REDACTED]' : args[0];
+				logSocketEvent(socket.id, event, logData);
+				return handler.apply(this, args);
+			});
+		};
 
 		// Terminal events
 		socket.on('terminal.start', async (data, callback) => {
@@ -44,6 +98,9 @@ export function setupSocketIO(httpServer) {
 					if (callback) callback({ success: false, error: 'Invalid key' });
 					return;
 				}
+				
+				// Mark as authenticated for admin tracking
+				socket.data.authenticated = true;
 
 				const { terminals } = getManagers();
 				if (!terminals) {
@@ -191,6 +248,8 @@ export function setupSocketIO(httpServer) {
 
 		socket.on('disconnect', () => {
 			console.log(`[SOCKET] Client disconnected: ${socket.id}`);
+			// Track disconnection for admin console
+			logSocketEvent(socket.id, 'disconnect');
 		});
 	});
 
