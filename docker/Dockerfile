@@ -32,7 +32,6 @@ RUN apt-get update \
        python3 \
        pkg-config \
        git gh \
-       gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
@@ -43,44 +42,26 @@ ENV NODE_ENV=production \
     ENABLE_TUNNEL=false \
     LT_SUBDOMAIN= \
     # Directory management configuration
-    DISPATCH_CONFIG_DIR=/home/dispatch/.config/dispatch \
-    DISPATCH_PROJECTS_DIR=/var/lib/dispatch/projects \
+    DISPATCH_CONFIG_DIR=/config \
+    DISPATCH_PROJECTS_DIR=/projects \
     # Container environment flag
     CONTAINER_ENV=true \
     # Project sandboxing configuration
     PROJECT_SANDBOX_ENABLED=true \
     HOST_HOME_DIR=/home/dispatch
-    
-# Create non-root user with default UID/GID (optimized for common development values)
-# Runtime user mapping will adjust these values if needed when using Docker Hub images
-ARG USER_UID=1000
-ARG USER_GID=1000
-RUN groupadd -g ${USER_GID} dispatch 2>/dev/null || true \
-    && useradd -m -u ${USER_UID} -g ${USER_GID} -s /bin/bash dispatch 2>/dev/null || true
 
 WORKDIR /app
 COPY --from=build /app /app
 
-# Create directories and set proper ownership
-RUN mkdir -p /home/dispatch/.config/dispatch /var/lib/dispatch/projects /workspace \
-    && chown -R dispatch:dispatch /home/dispatch /var/lib/dispatch/projects /app /workspace \
-    # Create initial project registry file
-    && printf '%s' '{}' > /home/dispatch/.config/dispatch/projects.json \
-    && chown dispatch:dispatch /home/dispatch/.config/dispatch/projects.json \
-    && chmod 0644 /home/dispatch/.config/dispatch/projects.json
+# Create mount point directories
+# These will be overridden by volume mounts but need to exist
+RUN mkdir -p /config /projects /workspace
 
-# Install global packages as root before switching user
+# Install global packages
 RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex
-
-# Copy entrypoint script
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-# Switch to the dispatch user (entrypoint will handle runtime user mapping)
-USER dispatch
 
 EXPOSE 3030
 
-# Use entrypoint for runtime user mapping compatibility with Docker Hub
-ENTRYPOINT ["/entrypoint.sh"]
+# Run as root - container will handle permissions internally
+# This allows writing to mounted volumes without changing host permissions
 CMD ["node", "src/app.js"]

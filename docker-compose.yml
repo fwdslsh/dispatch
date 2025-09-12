@@ -8,9 +8,6 @@ services:
     # build:
     #   context: .
     #   dockerfile: docker/Dockerfile
-    #   args:
-    #     USER_UID: ${USER_UID:-1000}
-    #     USER_GID: ${USER_GID:-1000}
     container_name: dispatch
     ports:
       - '3030:3030'
@@ -18,23 +15,19 @@ services:
       - TERMINAL_KEY=change-me-in-production
       - PTY_MODE=shell
       - ENABLE_TUNNEL=false
-      # Runtime user mapping for Docker Hub compatibility
-      - HOST_UID=${USER_UID:-1000}
-      - HOST_GID=${USER_GID:-1000}
-      # Directory management configuration
-      - DISPATCH_CONFIG_DIR=/home/dispatch/.config/dispatch
-      - DISPATCH_PROJECTS_DIR=/var/lib/dispatch/projects
+      # Directory paths inside container
+      - DISPATCH_CONFIG_DIR=/config
+      - DISPATCH_PROJECTS_DIR=/projects
       - CONTAINER_ENV=true
       # Uncomment for public access:
       # - ENABLE_TUNNEL=true
       # - LT_SUBDOMAIN=my-dispatch
     volumes:
-      # Mount for persistent project storage with proper ownership
-      - ./dispatch-projects:/workspace
-      # Mount for persistent home directory
-      - ./dispatch-home:/home/dispatch
-      # Optional: Mount host directories for SSH keys (read-only)
-      # - ~/.ssh:/home/dispatch/.ssh:ro
-      # Optional: Mount Claude config
-      # - ~/.claude:/home/dispatch/.claude
+      # Mount two folders: config and projects
+      # The container runs as root internally so it can write to these
+      # without changing host permissions
+      - ./dispatch-config:/config
+      - ./dispatch-projects:/projects
+      # Workspace for temporary files
+      - ./dispatch-workspace:/workspace
     restart: unless-stopped

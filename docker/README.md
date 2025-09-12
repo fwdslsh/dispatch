@@ -1,167 +1,128 @@
 # Dispatch Docker Usage
 
-This document explains how to build and run Dispatch with **project sandboxing** enabled. Dispatch isolates terminal sessions within project directories for enhanced security and organization.
-
-## 🔒 Project Sandboxing Overview
-
-**How it works:**
-
-- Each project creates an isolated directory under `/tmp/dispatch-sessions/{project-id}/`
-- Terminal sessions use the project directory as their `$HOME`
-- Configuration files are copied from the host system home to each project home
-- Sessions are sandboxed and cannot easily escape their project directory
-
-## 📁 Volume Mounting Strategy
-
-Dispatch uses a clear mounting strategy with distinct purposes:
-
-| Host Path             | Container Path          | Purpose              | Notes                              |
-| --------------------- | ----------------------- | -------------------- | ---------------------------------- |
-| `~/dispatch/home`     | `/home/appuser`         | **System Home**      | Shared configs, dotfiles, SSH keys |
-| `~/dispatch/projects` | `/workspace`            | **Legacy Workspace** | Backward compatibility access      |
-| `~/.ssh`              | `/home/appuser/.ssh:ro` | **SSH Keys**         | Read-only SSH access               |
-| `~/.claude`           | `/home/appuser/.claude` | **Claude Config**    | Claude CLI configuration           |
+This document explains how to run Dispatch using Docker with persistent storage.
 
 ## 🚀 Quick Start
 
-### Using the enhanced start script (recommended)
+### Using Docker Compose (recommended)
 
 ```bash
-# Use the enhanced start script with project sandboxing
-chmod +x docker/start-sandboxed.sh
-./docker/start-sandboxed.sh
+# Clone the repository and navigate to it
+git clone https://github.com/fwdslsh/dispatch
+cd dispatch
+
+# Start with docker-compose
+docker-compose up -d
 ```
 
-### Basic run with sandboxing
+### Basic Docker Run
 
 ```bash
-# Create directories for the new structure
-mkdir -p ~/dispatch/{home,projects}
+# Create directories for persistent storage
+mkdir -p dispatch-config dispatch-projects
 
-# Run with project sandboxing enabled
+# Run the container
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
-  -e PROJECT_SANDBOX_ENABLED=true \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch/home:/home/appuser \
-  -v ~/dispatch/projects:/workspace \
+  -v ./dispatch-config:/config \
+  -v ./dispatch-projects:/projects \
   fwdslsh/dispatch:latest
 ```
 
 Open your browser at `http://localhost:3030` and enter the password you set in `TERMINAL_KEY`.
 
-## Run with public URL sharing
+## 📁 Volume Mounts
+
+Dispatch uses a simple volume mounting strategy:
+
+| Host Path              | Container Path | Purpose                        |
+| ---------------------- | -------------- | ------------------------------ |
+| `./dispatch-config`    | `/config`      | Configuration and settings     |
+| `./dispatch-projects`  | `/projects`    | Project files and workspaces   |
+| `./dispatch-workspace` | `/workspace`   | Temporary workspace directory  |
+
+The container runs as root internally, which allows it to write to mounted volumes without changing host permissions. Your host files remain owned by your user.
+
+## Run with Public URL Sharing
 
 ```bash
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-secret-password \
   -e ENABLE_TUNNEL=true \
+  -v ./dispatch-config:/config \
+  -v ./dispatch-projects:/projects \
   fwdslsh/dispatch:latest
 ```
 
-When `ENABLE_TUNNEL=true` the container will attempt to create a public URL. A key is still required for access — `TERMINAL_KEY` provides minimal protection for public mode and must be strong.
+When `ENABLE_TUNNEL=true` the container will create a public URL. Always use a strong `TERMINAL_KEY` when enabling public access.
 
-## Persistent storage (volume mounts)
+## Environment Variables
 
-To keep user data, dotfiles, and project files across container restarts, mount host directories into the container.
-
-```bash
-# Create directories (no sudo needed!)
-mkdir -p ~/dispatch-home ~/dispatch-projects
-
-# Option 1: Use your current user ID (recommended)
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/appuser \
-  -v ~/dispatch-projects:/workspace \
-  fwdslsh/dispatch:latest
-```
-
-Recommended mount points:
-
-- `/home/appuser` — user home directory inside the container (shell history, dotfiles)
-- `/workspace` — where you can keep project folders and code
-
-**Security isolation**: The container can only access the specific directories you mount. No sudo required when using `--user $(id -u):$(id -g)` or building with your user ID.
-
-## Combined: persistence + public URL
-
-```bash
-# Create directories (no sudo needed!)
-mkdir -p ~/dispatch-home ~/dispatch-projects
-
-# Run with persistence and tunneling
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
-  -e ENABLE_TUNNEL=true \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/appuser \
-  -v ~/dispatch-projects:/workspace \
-  fwdslsh/dispatch:latest
-```
-
-## Environment variables
-
-- `TERMINAL_KEY` (required) — password used to authenticate to the web UI
-- `PORT` (default `3030`) — port inside the container
-- `PTY_MODE` (`shell`|`claude`) — default session mode
-- `ENABLE_TUNNEL` (`true`|`false`) — enable public URL sharing
-- `LT_SUBDOMAIN` — optional LocalTunnel subdomain
+- `TERMINAL_KEY` (required) — Password for web UI authentication
+- `PORT` (default: `3030`) — Server port inside the container
+- `PTY_MODE` (default: `shell`) — Default session mode (`shell` or `claude`)
+- `ENABLE_TUNNEL` (default: `false`) — Enable public URL sharing via LocalTunnel
+- `LT_SUBDOMAIN` (optional) — Custom LocalTunnel subdomain
+- `DISPATCH_CONFIG_DIR` (default: `/config`) — Configuration directory path
+- `DISPATCH_PROJECTS_DIR` (default: `/projects`) — Projects directory path
 
 ## Troubleshooting
 
-### Container fails to write to mounted folders
+### Port Conflicts
 
-Symptom: You can access the UI but cannot create files or save in mounted folders.
-
-Fix:
-
-1. Ensure the host directories exist: `mkdir -p ~/dispatch-home ~/dispatch-projects`
-2. Use the recommended permission approach:
+If port 3030 is already in use, map to a different host port:
 
 ```bash
-docker run --user $(id -u):$(id -g) [other options...]
+# Use port 8080 on the host instead
+docker run -p 8080:3030 \
+  -e TERMINAL_KEY=your-secret-password \
+  -v ./dispatch-config:/config \
+  -v ./dispatch-projects:/projects \
+  fwdslsh/dispatch:latest
 ```
 
-3. For read-only access, add `:ro` suffix: `-v ~/dispatch-home:/home/appuser:ro`
+### Tunnel Not Working
 
-### Port conflicts
+- Verify `ENABLE_TUNNEL=true` is set
+- Check network/firewall rules allow outbound connections
+- LocalTunnel may be rate-limited; retry or set a custom `LT_SUBDOMAIN`
 
-If port 3030 on the host is already in use, either stop the conflicting service or map to a different host port:
+### Directory Permissions
+
+The container runs as root internally to handle file permissions transparently. If you need to restrict access, mount volumes as read-only:
 
 ```bash
-# Map host port 3030 to container 3030
-docker run -p 3030:3030 -e TERMINAL_KEY=your-secret-password fwdslsh/dispatch:latest
+docker run -p 3030:3030 \
+  -e TERMINAL_KEY=your-secret-password \
+  -v ./dispatch-config:/config:ro \
+  -v ./dispatch-projects:/projects \
+  fwdslsh/dispatch:latest
 ```
 
-### Tunnel not working
+## Security Notes
 
-- Confirm `ENABLE_TUNNEL=true` is set
-- Check network/firewall rules
-- LocalTunnel may be rate-limited; retry or set `LT_SUBDOMAIN`
+- Always use a strong `TERMINAL_KEY`, especially when enabling public URLs
+- The container provides terminal access - use with appropriate caution
+- Volume mounts restrict container access to specific host directories
 
-## Security notes
+## Building Locally
 
-- `TERMINAL_KEY` is required for all access; use a strong password when enabling public URLs
-- The container runs as a non-root user to reduce risk, but terminal access still allows running commands in that environment — use with care
-
-## Examples (summary)
-
-Run locally (no persistence):
+To build the image locally instead of using Docker Hub:
 
 ```bash
-docker run -p 3030:3030 -e TERMINAL_KEY=secret fwdslsh/dispatch:latest
+# Build the image
+docker build -f docker/Dockerfile -t dispatch:local .
+
+# Run your local build
+docker run -p 3030:3030 \
+  -e TERMINAL_KEY=your-secret-password \
+  -v ./dispatch-config:/config \
+  -v ./dispatch-projects:/projects \
+  dispatch:local
 ```
 
-Run with persistence and custom host port:
+## Further Reading
 
-```bash
-mkdir -p ~/dispatch-home ~/dispatch-projects
-docker run -p 3030:3030 -e TERMINAL_KEY=secret --user $(id -u):$(id -g) -v ~/dispatch-home:/home/appuser -v ~/dispatch-projects:/workspace fwdslsh/dispatch:latest
-```
-
-## Further reading
-
-- See `docker/Dockerfile` for how the image is built and the flexible runtime user configuration
-- See `CONTRIBUTING.md` for development and build instructions
+- See `docker/Dockerfile` for the image build process
+- See `docker-compose.yml` for the complete Docker Compose configuration
+- See `CONTRIBUTING.md` for development instructions
