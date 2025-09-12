@@ -811,7 +811,7 @@
 				bind:value={input} 
 				placeholder="Message Claude..." 
 				class="message-input"
-				disabled={loading || isWaitingForReply}
+				disabled={loading}
 				aria-label="Type your message"
 				autocomplete="off"
 				onkeydown={(e) => {
@@ -824,10 +824,10 @@
 			></textarea>
 			<Button 
 				type="submit" 
-				text={isWaitingForReply ? "Waiting..." : loading ? "Sending..." : "Send"} 
+				text={isWaitingForReply ? "Send" : loading ? "Sending..." : "Send"} 
 				variant="primary" 
 				augmented="tr-clip bl-clip both"
-				disabled={!input.trim() || loading || isWaitingForReply}
+				disabled={!input.trim() || loading}
 				ariaLabel="Send message"
 				{...{icon: undefined}}
 			/>
