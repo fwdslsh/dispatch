@@ -5,6 +5,9 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { readdir, stat, readFile } from 'node:fs/promises';
 import { historyManager } from './history-manager.js';
+import { readFileSync } from 'node:fs';
+import { SOCKET_EVENTS, emitPublicUrlResponse } from './utils/events.js';
+import { logger } from './utils/logger.js';
 
 // Admin event tracking
 let socketEvents = [];
@@ -268,6 +271,51 @@ export function setupSocketIO(httpServer) {
 			console.log(`[SOCKET] session.catchup received:`, data);
 			// This could be used to resend any missed messages if needed
 			// For now, just log it
+		});
+
+		// Public URL retrieval handler
+		socket.on(SOCKET_EVENTS.GET_PUBLIC_URL, (callback) => {
+			logger.debug('SOCKET', 'get-public-url handler called');
+			
+			try {
+				// Get config directory from environment or default
+				const configDir = process.env.DISPATCH_CONFIG_DIR || 
+					(process.platform === 'win32' 
+						? join(process.env.HOME || homedir(), 'dispatch')
+						: join(process.env.HOME || homedir(), '.config', 'dispatch'));
+				
+				const tunnelFile = join(configDir, 'tunnel-url.txt');
+				
+				try {
+					const url = readFileSync(tunnelFile, 'utf-8').trim();
+					if (url) {
+						logger.info('SOCKET', 'Public URL retrieved:', url);
+						if (callback) {
+							callback({ ok: true, url });
+						} else {
+							emitPublicUrlResponse(socket, true, url);
+						}
+						return;
+					}
+				} catch (readError) {
+					// File doesn't exist or can't be read
+					logger.debug('SOCKET', 'Tunnel URL file not found or unreadable:', tunnelFile);
+				}
+				
+				// No URL available
+				if (callback) {
+					callback({ ok: false });
+				} else {
+					emitPublicUrlResponse(socket, false);
+				}
+			} catch (error) {
+				logger.error('SOCKET', 'Error handling get-public-url:', error);
+				if (callback) {
+					callback({ ok: false, error: error.message });
+				} else {
+					emitPublicUrlResponse(socket, false);
+				}
+			}
 		});
 
 		socket.on('disconnect', () => {
