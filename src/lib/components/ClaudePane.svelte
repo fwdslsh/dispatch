@@ -4,6 +4,7 @@
 	import Button from '$lib/shared/components/Button.svelte';
 	import Markdown from '$lib/shared/components/Markdown.svelte';
 	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
+	import ClaudeCommands from './ClaudeCommands.svelte';
 	import sessionSocketManager from './SessionSocketManager.js';
 	import { IconFolder, IconMessage } from '@tabler/icons-svelte';
 	// Using global styles for inputs
@@ -24,9 +25,7 @@
 	let selectedEventIcon = $state(null);
 	let messageSelectedIcon = $state({});
 	let workspacePath = $state(initialWorkspacePath);
-	let availableCommands = $state([]);
-	let commandMenuOpen = $state(false);
-	let commandMenuButton = $state();
+	let claudeCommandsApi = $state();
 
 	async function scrollToBottom() {
 		await tick();
@@ -42,108 +41,15 @@
 		}
 	});
 	
-	// Extract slash commands from message
-	function extractCommandsFromMessage(message) {
-		const commands = [];
-		if (!message || typeof message !== 'string') return commands;
-		// Common formats: lines starting with `/command`, or markdown codeblocks with commands
-		const lines = message.split('\n').map(l => l.trim());
-		for (const l of lines) {
-			if (!l) continue;
-			// direct slash
-			if (l.startsWith('/')) {
-				const cmd = l.split(' ')[0].trim();
-				commands.push({ name: cmd, title: cmd, description: '' });
-				continue;
-			}
-			// "Command: /run-tests" style
-			const m = l.match(/\/?[A-Za-z0-9_\-\/]+/);
-			if (m && m[0].startsWith('/')) {
-				const cmd = m[0];
-				commands.push({ name: cmd, title: cmd, description: '' });
-			}
-		}
-		// Deduplicate by name
-		const seen = new Set();
-		const uniq = [];
-		for (const c of commands) {
-			if (!seen.has(c.name)) {
-				seen.add(c.name);
-				uniq.push(c);
-			}
-		}
-		return uniq;
-	}
-	
-	// Check messages for available commands (usually in first assistant message)
-	function updateAvailableCommands() {
-		// If server provided commands exist, prefer them
-		if (Array.isArray(availableCommands) && availableCommands.length > 0) {
-			// Already set from server or cache
-			return;
-		}
-		// Look for commands in assistant messages, prioritizing the first one
-		for (const msg of messages) {
-			if (msg.role === 'assistant' && msg.text) {
-				const commands = extractCommandsFromMessage(msg.text);
-				if (commands.length > 0) {
-					availableCommands = commands;
-					// Cache commands per workspace
-					if (workspacePath) {
-						try {
-							localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(commands));
-						} catch {}
-					}
-					break; // Use first message with commands
-				}
-			}
-		}
-	}
-	
-	// Load cached commands for workspace
-	function loadCachedCommands() {
-		if (workspacePath) {
-			try {
-				const cached = localStorage.getItem(`claude-commands-${workspacePath}`);
-				if (cached) {
-					availableCommands = JSON.parse(cached) || [];
-				}
-			} catch {}
-		}
-	}
-	
-	// Insert command into input
-	function insertCommand(command) {
+	// Handle command insertion from ClaudeCommands component
+	function handleCommandInsert(command) {
 		input = command + ' ';
-		commandMenuOpen = false;
 		// Focus the input after inserting
 		const inputEl = document.querySelector('.message-input');
 		if (inputEl) {
 			inputEl.focus();
 			// Move cursor to end
 			inputEl.setSelectionRange(input.length, input.length);
-		}
-	}
-	
-	// Toggle command menu
-	function toggleCommandMenu() {
-		commandMenuOpen = !commandMenuOpen;
-		if (commandMenuOpen) {
-			// focus first menu item after render
-			tick().then(() => {
-				const first = document.querySelector('.command-menu-dropdown button');
-				if (first) first.focus();
-			});
-		}
-	}
-	
-	// Close menu when clicking outside
-	function handleClickOutside(event) {
-		if (commandMenuOpen && commandMenuButton && !commandMenuButton.contains(event.target)) {
-			const menu = event.target.closest('.command-menu-dropdown');
-			if (!menu) {
-				commandMenuOpen = false;
-			}
 		}
 	}
 
@@ -473,8 +379,10 @@
 				messages = previousMessages;
 				if (previousMessages.length > 0) {
 					console.log('Loaded previous messages:', previousMessages.length);
-					// Check for commands in loaded messages
-					updateAvailableCommands();
+					// Update commands via ClaudeCommands component
+					if (claudeCommandsApi && claudeCommandsApi.updateCommands) {
+						claudeCommandsApi.updateCommands(previousMessages);
+					}
 					// Scroll to bottom after history is loaded
 					await scrollToBottom();
 				} else {
@@ -573,8 +481,10 @@
 						liveEventIcons = []; // Clear for next accumulation
 						isWaitingForReply = true; // Keep waiting for more potential messages
 						
-						// Check for commands in the message
-						updateAvailableCommands();
+						// Update commands via ClaudeCommands component
+						if (claudeCommandsApi && claudeCommandsApi.updateCommands) {
+							claudeCommandsApi.updateCommands(messages);
+						}
 					} else {
 						// Non-text assistant content (tool use, etc.)
 						// Only push if we have meaningful tool content
@@ -633,56 +543,6 @@
 			await scrollToBottom();
 		});
 
-		// Listen for server-provided tools list and update available commands
-		socket.on('tools.list', (payload) => {
-			try {
-				if (!payload) return;
-				const sid = payload.sessionId || payload.id || null;
-				const commands = Array.isArray(payload.commands) ? payload.commands : [];
-				if (commands.length > 0) {
-					availableCommands = commands.map((c) => {
-						// normalize shape { name, title, description }
-						if (typeof c === 'string') return { name: c, title: c, description: '' };
-						return { name: c.name || c.title || '', title: c.title || c.name || c.name || '', description: c.description || '' };
-					});
-					if (workspacePath) {
-						try { localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands)); } catch {}
-					}
-					// Close menu if it's open so the user can re-open to see the new list
-					commandMenuOpen = false;
-				}
-			} catch (err) {
-				console.error('Failed to handle tools.list payload', err);
-			}
-		});
-
-		// Query session.status immediately so we can populate availableCommands when loading
-		try {
-			const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-			if (socket && socket.connected && effectiveSessionId) {
-				socket.emit('session.status', { key, sessionId: effectiveSessionId }, (response) => {
-					try {
-						if (response && Array.isArray(response.availableCommands) && response.availableCommands.length > 0) {
-							availableCommands = response.availableCommands.map((c) => {
-								if (typeof c === 'string') return { name: c, title: c, description: '' };
-								return { name: c.name || c.title || '', title: c.title || c.name || '', description: c.description || '' };
-							});
-							if (workspacePath) {
-								try { localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands)); } catch {}
-							}
-						}
-					} catch (e) {
-						console.error('Failed to parse session.status response', e);
-					}
-				});
-			}
-		} catch (e) {
-			// ignore
-		}
-
-		// Global click handling to close menus when clicking outside
-		document.addEventListener('click', handleClickOutside);
-		
 		// Handle message completion to clear waiting state
 		socket.on('message.complete', (data) => {
 			console.log('Message complete received:', data);
@@ -760,7 +620,6 @@
 		if (socket) {
 			socket.removeAllListeners();
 		}
-			document.removeEventListener('click', handleClickOutside);
 	});
 </script>
 
@@ -988,15 +847,14 @@
 				rows="1"
 			></textarea>
 			<div class="input-actions">
-				<button
-					bind:this={commandMenuButton}
-					type="button"
-					class="command-menu-button"
-					aria-label="Open command menu"
-					onclick={toggleCommandMenu}
-				>
-					/
-				</button>
+				<ClaudeCommands 
+					{socket}
+					{workspacePath}
+					sessionId={claudeSessionId || sessionId}
+					onCommandInsert={handleCommandInsert}
+					disabled={loading}
+					bind={claudeCommandsApi}
+				/>
 				<Button 
 					type="submit" 
 					text={isWaitingForReply ? "Send" : loading ? "Sending..." : "Send"} 
@@ -1007,22 +865,6 @@
 					{...{icon: undefined}}
 				/>
 			</div>
-			{#if commandMenuOpen}
-				<div class="command-menu-dropdown" transition:fly={{ y: -6, duration: 120 }} role="menu" aria-label="Commands">
-					{#if availableCommands && availableCommands.length > 0}
-						{#each availableCommands as cmd}
-							<button type="button" class="command-menu-item" onclick={() => insertCommand(cmd.name || cmd.title || '')} role="menuitem">
-								<span class="command-title">{cmd.title || cmd.name}</span>
-								{#if cmd.description}
-									<span class="command-desc">{cmd.description}</span>
-								{/if}
-							</button>
-						{/each}
-					{:else}
-						<div class="command-empty">No commands available</div>
-					{/if}
-				</div>
-			{/if}
 		</div>
 		<div class="input-help">
 			<span class="help-text">Press Enter to send • Shift+Enter for new line</span>
@@ -1786,50 +1628,6 @@
 		align-items: center;
 		gap: var(--space-2);
 	}
-
-	.command-menu-button {
-		background: transparent;
-		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: 8px;
-		padding: 8px 10px;
-		font-size: 14px;
-		cursor: pointer;
-		color: var(--text-muted);
-	}
-
-	.command-menu-dropdown {
-		position: absolute;
-		bottom: 64px;
-		right: 12px;
-		min-width: 220px;
-		max-width: 420px;
-		background: var(--surface);
-		border: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
-		border-radius: 8px;
-		box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-		padding: 8px;
-		z-index: 50;
-	}
-
-	.command-menu-item {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		padding: 8px 10px;
-		border-radius: 6px;
-		background: transparent;
-		border: none;
-		width: 100%;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.command-menu-item:hover {
-		background: color-mix(in oklab, var(--primary) 8%, transparent);
-	}
-
-	.command-title { font-weight: 600; }
-	.command-desc { font-size: 12px; color: var(--text-muted); }
 
 	
 	.message-input {
