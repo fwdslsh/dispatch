@@ -26,13 +26,13 @@ export function isValidSessionId(id) {
 }
 
 /**
- * Create session metadata for a specific session type
+ * Create session descriptor for a specific session type
  * @param {string} type - Session type ('claude', 'pty', etc.)
  * @param {string} typeSpecificId - The ID used by the session type implementation
- * @param {object} [additionalMeta={}] - Additional metadata for the session
- * @returns {object} Session metadata object
+ * @param {object} [additionalFields={}] - Additional fields for the session descriptor
+ * @returns {object} Session descriptor object
  */
-export function createSessionMetadata(type, typeSpecificId, additionalMeta = {}) {
+export function createSessionDescriptor(type, typeSpecificId, additionalFields = {}) {
 	if (!type || typeof type !== 'string') {
 		throw new Error('Session type is required and must be a string');
 	}
@@ -45,24 +45,24 @@ export function createSessionMetadata(type, typeSpecificId, additionalMeta = {})
 		type,
 		typeSpecificId,
 		createdAt: Date.now(),
-		...additionalMeta
+		...additionalFields
 	};
 }
 
 /**
- * Extract type-specific ID from session metadata
- * @param {object} sessionDescriptor - Session descriptor with metadata
+ * Extract type-specific ID from session descriptor
+ * @param {object} sessionDescriptor - Session descriptor object
  * @returns {string|null} Type-specific ID or null if not found
  */
 export function getTypeSpecificId(sessionDescriptor) {
-	return sessionDescriptor?.metadata?.typeSpecificId || sessionDescriptor?.typeSpecificId || null;
+	return sessionDescriptor?.typeSpecificId || null;
 }
 
 /**
  * Get session type from session descriptor
- * @param {object} sessionDescriptor - Session descriptor with metadata
+ * @param {object} sessionDescriptor - Session descriptor object
  * @returns {string|null} Session type or null if not found
  */
 export function getSessionType(sessionDescriptor) {
-	return sessionDescriptor?.metadata?.type || sessionDescriptor?.type || null;
+	return sessionDescriptor?.type || null;
 }

@@ -38,65 +38,12 @@ export class ClaudeSessionManager {
 	}
 
 	/**
-	 * Normalize session ID to canonical form (claude_<uuid>)
-	 * @param {string} id - Input ID (could be UUID, claude_UUID, or claude_number)
-	 * @returns {string} Canonical session ID in form claude_<uuid>
-	 */
-	normalizeSessionId(id) {
-		if (!id || typeof id !== 'string') {
-			throw new Error('Invalid session ID: must be a non-empty string');
-		}
-
-		// If it's already in canonical form and looks like a UUID, return as-is
-		if (id.match(/^claude_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-			return id;
-		}
-
-		// If it's a raw UUID, prefix with claude_
-		if (id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-			return `claude_${id}`;
-		}
-
-		// If it starts with claude_ but followed by a number, keep as-is (legacy format)
-		if (id.match(/^claude_\d+$/)) {
-			return id;
-		}
-
-		// If it's just a number, prefix with claude_
-		if (id.match(/^\d+$/)) {
-			return `claude_${id}`;
-		}
-
-		// For any other format, throw an error
-		throw new Error(`Invalid session ID format: ${id}`);
-	}
-
-	/**
-	 * Extract raw session ID (UUID) from normalized ID
-	 * @param {string} normalizedId - Normalized session ID (claude_<uuid>)
-	 * @returns {string|null} Raw UUID or null if not a UUID-based session
-	 */
-	extractSessionUuid(normalizedId) {
-		const match = normalizedId.match(/^claude_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
-		return match ? match[1] : null;
-	}
-
-	/**
-	 * Check if a session ID represents a UUID-based session
-	 * @param {string} id - Session ID to check
-	 * @returns {boolean} True if ID represents a UUID-based session
-	 */
-	isUuidSession(id) {
-		return this.extractSessionUuid(this.normalizeSessionId(id)) !== null;
-	}
-
-	/**
 	 * Return cached commands for a manager key if available
-	 * @param {string} managerKey
+	 * @param {string} claudeSessionId
 	 */
-	getCachedCommands(managerKey) {
+	getCachedCommands(claudeSessionId) {
 		try {
-			const s = this.sessions.get(managerKey);
+			const s = this.sessions.get(claudeSessionId);
 			if (!s || !s.options) return null;
 			const cacheKey = `${s.options.cwd || ''}:${s.options.pathToClaudeCodeExecutable || ''}`;
 			const cached = this._toolsCache.get(cacheKey);
@@ -114,33 +61,25 @@ export class ClaudeSessionManager {
 	 * @param {{ workspacePath: string, options?: object, sessionId?: string, appSessionId?: string }} param0
 	 */
 	async create({ workspacePath, options = {}, sessionId = null, appSessionId = null }) {
-		// Handle Claude-specific session ID normalization
-		let normalizedClaudeId;
-		let realClaudeSessionId;
+		// Generate or use provided Claude session ID
+		let claudeSessionId;
 		
 		if (sessionId) {
-			// If Claude sessionId provided, normalize it
-			try {
-				normalizedClaudeId = this.normalizeSessionId(sessionId);
-				realClaudeSessionId = this.extractSessionUuid(normalizedClaudeId) || sessionId;
-			} catch (error) {
-				logger.warn('Claude', `Invalid Claude session ID format: ${sessionId}, generating new ID`);
-				realClaudeSessionId = `${this.nextId++}`;
-				normalizedClaudeId = `claude_${realClaudeSessionId}`;
-			}
+			// Extract UUID from normalized ID if provided (claude_uuid -> uuid)
+			claudeSessionId = sessionId.startsWith('claude_') ? 
+				sessionId.replace(/^claude_/, '') : sessionId;
 		} else {
 			// Generate new Claude session ID
-			realClaudeSessionId = `${this.nextId++}`;
-			normalizedClaudeId = `claude_${realClaudeSessionId}`;
+			claudeSessionId = `${this.nextId++}`;
 		}
 		
-		logger.debug('Claude', `Creating session with Claude ID: ${normalizedClaudeId}, realClaudeSessionId: ${realClaudeSessionId}, appSessionId: ${appSessionId}`);
+		logger.debug('Claude', `Creating session with Claude ID: ${claudeSessionId}, appSessionId: ${appSessionId}`);
 		
 		// Determine if we can actually resume (only when an on-disk conversation exists)
 		let resumeCapable = false;
 		if (sessionId) {
 			try {
-				resumeCapable = await this.#conversationExists(realClaudeSessionId);
+				resumeCapable = await this.#conversationExists(claudeSessionId);
 			} catch {
 				resumeCapable = false;
 			}
@@ -149,7 +88,7 @@ export class ClaudeSessionManager {
 		/** @type {{ workspacePath: string, sessionId: string, resumeCapable: boolean, options: object, appSessionId?: string }} */
 		const sessionData = {
 			workspacePath,
-			sessionId: realClaudeSessionId,
+			sessionId: claudeSessionId,
 			resumeCapable, // true only if resuming an existing on-disk session
 			appSessionId, // Store application session ID for routing
 			options: {
@@ -160,33 +99,29 @@ export class ClaudeSessionManager {
 			}
 		};
 		
-		logger.info('Claude', `Creating Claude session ${normalizedClaudeId} with:`, {
+		logger.info('Claude', `Creating Claude session ${claudeSessionId} with:`, {
 			workspacePath,
-			sessionId: realClaudeSessionId,
+			sessionId: claudeSessionId,
 			appSessionId,
 			cwd: sessionData.options.cwd,
 			resumeCapable
 		});
 		
-		// Store under the normalized Claude ID for backward compatibility
-		this.sessions.set(normalizedClaudeId, sessionData);
-		// Also map raw Claude session id for clients that pass it directly
-		this.sessions.set(realClaudeSessionId, this.sessions.get(normalizedClaudeId));
+		// Store session data - use Claude session ID as key for Claude manager operations
+		this.sessions.set(claudeSessionId, sessionData);
 		
-		// If appSessionId provided, create mapping for routing
+		// If appSessionId provided, create mapping for routing from app session to Claude session
 		if (appSessionId) {
-			this.sessions.set(appSessionId, this.sessions.get(normalizedClaudeId));
+			this.sessions.set(appSessionId, sessionData);
 		}
 
 		// Fire-and-forget fetch of supported commands for this session; emit to socket when ready
-		this._fetchAndEmitSupportedCommands(normalizedClaudeId, this.sessions.get(normalizedClaudeId)).catch((err) => {
-			logger.error('Claude', 'Failed to fetch supported commands for', normalizedClaudeId, err && err.message ? err.message : err);
+		this._fetchAndEmitSupportedCommands(claudeSessionId, sessionData).catch((err) => {
+			logger.error('Claude', 'Failed to fetch supported commands for', claudeSessionId, err && err.message ? err.message : err);
 		});
 		
 		return { 
-			id: normalizedClaudeId, 
-			claudeId: realClaudeSessionId,
-			appSessionId 
+			claudeId: claudeSessionId
 		};
 	}
 	/**
@@ -340,50 +275,28 @@ export class ClaudeSessionManager {
 
 	/**
 	 * Ensure we have a session object for the provided id.
-	 * Accepts either a manager key (e.g. "claude_<uuid>"), a raw sessionId ("<uuid>"), 
-	 * or a simple numeric key (e.g. "claude_1").
-	 * If not present, attempts to locate the session on disk and hydrate it.
-	 * @param {string} id
+	 * Accepts a Claude session ID and handles hydration from disk if needed.
+	 * @param {string} claudeSessionId - Claude session ID
 	 * @returns {Promise<{ key: string, session: { workspacePath: string, sessionId: string, options: any } }>} 
 	 */
-	async #ensureSession(id) {
-		logger.debug('Claude', `#ensureSession called with id: ${id}`);
+	async #ensureSession(claudeSessionId) {
+		logger.debug('Claude', `#ensureSession called with Claude ID: ${claudeSessionId}`);
 		
-		// Try exact key first
-		let s = this.sessions.get(id);
+		// Try exact Claude session ID first
+		let s = this.sessions.get(claudeSessionId);
 		if (s) {
-			logger.debug('Claude', `Found session in memory with exact key: ${id}`);
-			return { key: id, session: s };
+			logger.debug('Claude', `Found session in memory with Claude ID: ${claudeSessionId}`);
+			return { key: claudeSessionId, session: s };
 		}
 
-		// Check if this looks like a UUID (with or without claude_ prefix)
-		const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ||
-		               /^claude_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+		// Extract session ID if it has claude_ prefix
+		const sessionId = claudeSessionId.startsWith('claude_') ? 
+			claudeSessionId.replace(/^claude_/, '') : claudeSessionId;
 		
-		// Extract sessionId (UUID) from the input
-		let sessionId;
-		if (isUuid) {
-			sessionId = id.startsWith('claude_') ? id.replace(/^claude_/, '') : id;
-		} else if (id.startsWith('claude_')) {
-			// This might be a simple manager ID like "claude_1", we can't hydrate without UUID
-			logger.warn('Claude', `Cannot hydrate session with manager ID ${id} - UUID required`);
-			throw new Error('unknown session - UUID required for hydration');
-		} else {
-			// Assume it's a raw UUID
-			sessionId = id;
-		}
-		
-		const key = `claude_${sessionId}`;
-		s = this.sessions.get(key);
-		if (s) {
-			logger.debug('Claude', `Found session in memory with constructed key: ${key}`);
-			return { key, session: s };
-		}
-		
-		// Also try with just the sessionId as key
+		// Try with extracted session ID
 		s = this.sessions.get(sessionId);
 		if (s) {
-			logger.debug('Claude', `Found session in memory with sessionId: ${sessionId}`);
+			logger.debug('Claude', `Found session in memory with extracted ID: ${sessionId}`);
 			return { key: sessionId, session: s };
 		}
 
@@ -452,48 +365,57 @@ export class ClaudeSessionManager {
 				env: { ...process.env, HOME: process.env.HOME }
 			}
 		};
-		this.sessions.set(key, hydrated);
 		this.sessions.set(sessionId, hydrated);
 		logger.info('Claude', `Hydrated session ${sessionId} @ ${workspacePath} (from ${found.projectsDir})`);
 
 		// After hydrating from disk, proactively fetch supported commands
-		this._fetchAndEmitSupportedCommands(key, this.sessions.get(key)).catch((err) => {
-			logger.error('Claude', 'Failed to fetch supported commands for hydrated', key, err && err.message ? err.message : err);
+		this._fetchAndEmitSupportedCommands(sessionId, hydrated).catch((err) => {
+			logger.error('Claude', 'Failed to fetch supported commands for hydrated', sessionId, err && err.message ? err.message : err);
 		});
-		return { key, session: hydrated };
+		return { key: sessionId, session: hydrated };
 	}
 
 	/**
 	 * Fetch supported commands from the Claude SDK for a given session and emit them to clients.
 	 * Uses an internal cache to avoid repeated CLI calls.
-	 * @param {string} managerKey - the manager id (e.g. 'claude_<uuid>')
+	 * @param {string} claudeSessionId - the Claude session ID
 	 * @param {{ workspacePath: string, sessionId: string, options: object }} sessionData
 	 */
-	async _fetchAndEmitSupportedCommands(managerKey, sessionData) {
+	async _fetchAndEmitSupportedCommands(claudeSessionId, sessionData) {
 		if (!sessionData || !sessionData.options) return;
 		const cacheKey = `${sessionData.options.cwd || ''}:${sessionData.options.pathToClaudeCodeExecutable || ''}`;
 		// Simple cache TTL: 5 minutes
 		const TTL = 5 * 60 * 1000;
 		const cached = this._toolsCache.get(cacheKey);
 		if (cached && (Date.now() - cached.fetchedAt) < TTL) {
-			// Emit cached directly
+			// Emit cached directly - emit to both Claude session ID and app session ID if available
 			if (this.io) {
-				this.io.emit('tools.list', { sessionId: managerKey, commands: cached.commands });
-				// Also emit session.status for consumers that query it
-				this.io.emit('session.status', { sessionId: managerKey, availableCommands: cached.commands });
+				this.io.emit('tools.list', { sessionId: claudeSessionId, commands: cached.commands });
+				this.io.emit('session.status', { sessionId: claudeSessionId, availableCommands: cached.commands });
+				
+				// Also emit for app session if available
+				if (sessionData.appSessionId) {
+					this.io.emit('tools.list', { sessionId: sessionData.appSessionId, commands: cached.commands });
+					this.io.emit('session.status', { sessionId: sessionData.appSessionId, availableCommands: cached.commands });
+				}
 			}
 			return cached.commands;
 		}
 		try {
-			console.log(`[Claude] _fetchAndEmitSupportedCommands for ${managerKey} (cacheKey=${cacheKey}) - invoking SDK`);
+			console.log(`[Claude] _fetchAndEmitSupportedCommands for ${claudeSessionId} (cacheKey=${cacheKey}) - invoking SDK`);
 			const commands = await this._fetchSupportedCommands(sessionData.options);
 			console.log(`[Claude] _fetchAndEmitSupportedCommands received commands:`, Array.isArray(commands) ? commands.length : typeof commands);
 			if (Array.isArray(commands)) {
 				this._toolsCache.set(cacheKey, { commands, fetchedAt: Date.now() });
 				if (this.io) {
-					this.io.emit('tools.list', { sessionId: managerKey, commands });
-					// Also emit session.status so clients can get commands when they requested session status
-					this.io.emit('session.status', { sessionId: managerKey, availableCommands: commands });
+					this.io.emit('tools.list', { sessionId: claudeSessionId, commands });
+					this.io.emit('session.status', { sessionId: claudeSessionId, availableCommands: commands });
+					
+					// Also emit for app session if available
+					if (sessionData.appSessionId) {
+						this.io.emit('tools.list', { sessionId: sessionData.appSessionId, commands });
+						this.io.emit('session.status', { sessionId: sessionData.appSessionId, availableCommands: commands });
+					}
 				}
 			}
 			return commands;

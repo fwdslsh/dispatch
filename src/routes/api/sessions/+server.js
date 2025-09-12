@@ -35,7 +35,7 @@ export async function GET({ url, locals }) {
 	});
 }
 
-import { generateSessionId, createSessionMetadata, getTypeSpecificId, getSessionType } from '../../../lib/server/utils/session-ids.js';
+import { generateSessionId, createSessionDescriptor, getTypeSpecificId, getSessionType } from '../../../lib/server/utils/session-ids.js';
 
 export async function POST({ request, locals }) {
 	const { type, workspacePath, options } = await request.json();
@@ -58,23 +58,16 @@ export async function POST({ request, locals }) {
 			`Shell @ ${workspacePath} (resumed)` : 
 			`Shell @ ${workspacePath}`;
 		
-		// Create session metadata
-		const metadata = createSessionMetadata('pty', terminalResult.id, {
-			terminalId: terminalResult.id,
-			resumeSession: !!resumeSession
-		});
-			
-		const d = { 
-			id: appSessionId, // Use application-managed ID
-			type, 
+		// Create simplified session descriptor
+		const sessionDescriptor = createSessionDescriptor('pty', terminalResult.id, {
+			id: appSessionId,
 			workspacePath, 
 			title,
-			metadata,
 			resumeSession: !!resumeSession
-		};
+		});
 		
-		locals.sessions.bind(appSessionId, d);
-		await locals.workspaces.rememberSession(workspacePath, d);
+		locals.sessions.bind(appSessionId, sessionDescriptor);
+		await locals.workspaces.rememberSession(workspacePath, sessionDescriptor);
 		return new Response(JSON.stringify({ 
 			id: appSessionId, 
 			terminalId: terminalResult.id 
@@ -99,28 +92,19 @@ export async function POST({ request, locals }) {
 			`Claude @ ${projectName} (resumed)` : 
 			`Claude @ ${projectName || workspacePath}`;
 		
-		// Create session metadata
-		const metadata = createSessionMetadata('claude', claudeResult.claudeId, {
-			claudeSessionId: claudeResult.claudeId,
-			claudeManagerId: claudeResult.id, // The manager's normalized ID
+		// Create simplified session descriptor  
+		const sessionDescriptor = createSessionDescriptor('claude', claudeResult.claudeId, {
+			id: appSessionId,
+			workspacePath, 
+			title,
 			resumeSession: !!resumeSession
 		});
 			
-		const d = { 
-			id: appSessionId, // Use application-managed ID
-			type, 
-			workspacePath, 
-			title,
-			metadata,
-			resumeSession: !!resumeSession
-		};
-		
-		locals.sessions.bind(appSessionId, d);
-		await locals.workspaces.rememberSession(workspacePath, d);
+		locals.sessions.bind(appSessionId, sessionDescriptor);
+		await locals.workspaces.rememberSession(workspacePath, sessionDescriptor);
 		return new Response(JSON.stringify({ 
 			id: appSessionId, 
-			claudeId: claudeResult.claudeId,
-			claudeManagerId: claudeResult.id
+			claudeId: claudeResult.claudeId
 		}));
 	}
 	
