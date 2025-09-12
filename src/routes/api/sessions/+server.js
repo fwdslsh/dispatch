@@ -35,55 +35,95 @@ export async function GET({ url, locals }) {
 	});
 }
 
+import { generateSessionId, createSessionMetadata, getTypeSpecificId, getSessionType } from '../../../lib/server/utils/session-ids.js';
+
 export async function POST({ request, locals }) {
 	const { type, workspacePath, options } = await request.json();
+	
 	if (type === 'pty') {
 		const { terminalId, resumeSession } = options || {};
-		const { id } = locals.terminals.start({ 
+		
+		// Generate application-managed session ID
+		const appSessionId = generateSessionId();
+		
+		// Start the terminal session with the app session ID
+		const terminalResult = locals.terminals.start({ 
 			workspacePath, 
 			resume: !!resumeSession,
-			terminalId: resumeSession ? terminalId : null
+			terminalId: resumeSession ? terminalId : null,
+			appSessionId // Pass our ID to the terminal manager
 		});
 		
 		const title = resumeSession ? 
 			`Shell @ ${workspacePath} (resumed)` : 
 			`Shell @ ${workspacePath}`;
+		
+		// Create session metadata
+		const metadata = createSessionMetadata('pty', terminalResult.id, {
+			terminalId: terminalResult.id,
+			resumeSession: !!resumeSession
+		});
 			
 		const d = { 
-			id, 
+			id: appSessionId, // Use application-managed ID
 			type, 
 			workspacePath, 
 			title,
+			metadata,
 			resumeSession: !!resumeSession
 		};
-		locals.sessions.bind(id, d);
+		
+		locals.sessions.bind(appSessionId, d);
 		await locals.workspaces.rememberSession(workspacePath, d);
-		return new Response(JSON.stringify({ id }));
+		return new Response(JSON.stringify({ 
+			id: appSessionId, 
+			terminalId: terminalResult.id 
+		}));
 	}
+	
 	if (type === 'claude') {
 		const { sessionId, projectName, resumeSession } = options || {};
-		const result = await locals.claude.create({ 
+		
+		// Generate application-managed session ID
+		const appSessionId = generateSessionId();
+		
+		// Create Claude session with the app session ID
+		const claudeResult = await locals.claude.create({ 
 			workspacePath, 
 			options, 
-			sessionId: resumeSession ? sessionId : null 
+			sessionId: resumeSession ? sessionId : null,
+			appSessionId // Pass our ID to Claude manager
 		});
 		
 		const title = resumeSession ? 
 			`Claude @ ${projectName} (resumed)` : 
 			`Claude @ ${projectName || workspacePath}`;
+		
+		// Create session metadata
+		const metadata = createSessionMetadata('claude', claudeResult.claudeId, {
+			claudeSessionId: claudeResult.claudeId,
+			claudeManagerId: claudeResult.id, // The manager's normalized ID
+			resumeSession: !!resumeSession
+		});
 			
 		const d = { 
-			id: result.id, 
+			id: appSessionId, // Use application-managed ID
 			type, 
 			workspacePath, 
 			title,
-			sessionId: result.sessionId,
+			metadata,
 			resumeSession: !!resumeSession
 		};
-		locals.sessions.bind(result.id, d);
+		
+		locals.sessions.bind(appSessionId, d);
 		await locals.workspaces.rememberSession(workspacePath, d);
-		return new Response(JSON.stringify({ id: result.id, sessionId: result.sessionId }));
+		return new Response(JSON.stringify({ 
+			id: appSessionId, 
+			claudeId: claudeResult.claudeId,
+			claudeManagerId: claudeResult.id
+		}));
 	}
+	
 	return new Response('Bad Request', { status: 400 });
 }
 
@@ -112,12 +152,19 @@ export async function DELETE({ url, locals }) {
 	// If session is active, stop it
 	const activeSession = locals.sessions.get(sessionId);
 	if (activeSession) {
-		// Stop Claude or terminal session
-		if (activeSession.type === 'claude' && locals.claude) {
+		const sessionType = getSessionType(activeSession);
+		const typeSpecificId = getTypeSpecificId(activeSession);
+		
+		// Stop the appropriate session type
+		if (sessionType === 'claude' && locals.claude && typeSpecificId) {
 			// Claude sessions are managed automatically by the ClaudeSessionManager
+			// Just remove from session router
 			locals.sessions.unbind(sessionId);
-		} else if (activeSession.type === 'pty' && locals.terminals) {
-			locals.terminals.stop(sessionId);
+		} else if (sessionType === 'pty' && locals.terminals && typeSpecificId) {
+			locals.terminals.stop(typeSpecificId);
+			locals.sessions.unbind(sessionId);
+		} else {
+			// Fallback: just remove from session router
 			locals.sessions.unbind(sessionId);
 		}
 	}

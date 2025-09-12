@@ -111,46 +111,47 @@ export class ClaudeSessionManager {
 	}
 
 	/**
-	 * @param {{ workspacePath: string, options?: object, sessionId?: string }} param0
+	 * @param {{ workspacePath: string, options?: object, sessionId?: string, appSessionId?: string }} param0
 	 */
-	async create({ workspacePath, options = {}, sessionId = null }) {
-		// Handle session ID normalization
-		let normalizedId;
-		let realSessionId;
+	async create({ workspacePath, options = {}, sessionId = null, appSessionId = null }) {
+		// Handle Claude-specific session ID normalization
+		let normalizedClaudeId;
+		let realClaudeSessionId;
 		
 		if (sessionId) {
-			// If sessionId provided, normalize it
+			// If Claude sessionId provided, normalize it
 			try {
-				normalizedId = this.normalizeSessionId(sessionId);
-				realSessionId = this.extractSessionUuid(normalizedId) || sessionId;
+				normalizedClaudeId = this.normalizeSessionId(sessionId);
+				realClaudeSessionId = this.extractSessionUuid(normalizedClaudeId) || sessionId;
 			} catch (error) {
-				logger.warn('Claude', `Invalid session ID format: ${sessionId}, generating new ID`);
-				realSessionId = `${this.nextId++}`;
-				normalizedId = `claude_${realSessionId}`;
+				logger.warn('Claude', `Invalid Claude session ID format: ${sessionId}, generating new ID`);
+				realClaudeSessionId = `${this.nextId++}`;
+				normalizedClaudeId = `claude_${realClaudeSessionId}`;
 			}
 		} else {
-			// Generate new session ID
-			realSessionId = `${this.nextId++}`;
-			normalizedId = `claude_${realSessionId}`;
+			// Generate new Claude session ID
+			realClaudeSessionId = `${this.nextId++}`;
+			normalizedClaudeId = `claude_${realClaudeSessionId}`;
 		}
 		
-		logger.debug('Claude', `Creating session with normalized ID: ${normalizedId}, realSessionId: ${realSessionId}`);
+		logger.debug('Claude', `Creating session with Claude ID: ${normalizedClaudeId}, realClaudeSessionId: ${realClaudeSessionId}, appSessionId: ${appSessionId}`);
 		
 		// Determine if we can actually resume (only when an on-disk conversation exists)
 		let resumeCapable = false;
 		if (sessionId) {
 			try {
-				resumeCapable = await this.#conversationExists(realSessionId);
+				resumeCapable = await this.#conversationExists(realClaudeSessionId);
 			} catch {
 				resumeCapable = false;
 			}
 		}
 
-		/** @type {{ workspacePath: string, sessionId: string, resumeCapable: boolean, options: object }} */
+		/** @type {{ workspacePath: string, sessionId: string, resumeCapable: boolean, options: object, appSessionId?: string }} */
 		const sessionData = {
 			workspacePath,
-			sessionId: realSessionId,
+			sessionId: realClaudeSessionId,
 			resumeCapable, // true only if resuming an existing on-disk session
+			appSessionId, // Store application session ID for routing
 			options: {
 				...this.defaultOptions,
 				cwd: workspacePath,
@@ -159,22 +160,34 @@ export class ClaudeSessionManager {
 			}
 		};
 		
-		logger.info('Claude', `Creating session ${normalizedId} with:`, {
+		logger.info('Claude', `Creating Claude session ${normalizedClaudeId} with:`, {
 			workspacePath,
-			sessionId: realSessionId,
+			sessionId: realClaudeSessionId,
+			appSessionId,
 			cwd: sessionData.options.cwd,
 			resumeCapable
 		});
 		
-		this.sessions.set(normalizedId, sessionData);
-		// Also map raw session id for clients that pass it directly
-		this.sessions.set(realSessionId, this.sessions.get(normalizedId));
+		// Store under the normalized Claude ID for backward compatibility
+		this.sessions.set(normalizedClaudeId, sessionData);
+		// Also map raw Claude session id for clients that pass it directly
+		this.sessions.set(realClaudeSessionId, this.sessions.get(normalizedClaudeId));
+		
+		// If appSessionId provided, create mapping for routing
+		if (appSessionId) {
+			this.sessions.set(appSessionId, this.sessions.get(normalizedClaudeId));
+		}
 
 		// Fire-and-forget fetch of supported commands for this session; emit to socket when ready
-		this._fetchAndEmitSupportedCommands(normalizedId, this.sessions.get(normalizedId)).catch((err) => {
-			logger.error('Claude', 'Failed to fetch supported commands for', normalizedId, err && err.message ? err.message : err);
+		this._fetchAndEmitSupportedCommands(normalizedClaudeId, this.sessions.get(normalizedClaudeId)).catch((err) => {
+			logger.error('Claude', 'Failed to fetch supported commands for', normalizedClaudeId, err && err.message ? err.message : err);
 		});
-		return { id: normalizedId, sessionId: realSessionId };
+		
+		return { 
+			id: normalizedClaudeId, 
+			claudeId: realClaudeSessionId,
+			appSessionId 
+		};
 	}
 	/**
 	 * @param {any} workspacePath
@@ -244,8 +257,10 @@ export class ClaudeSessionManager {
 				}
 			}
 			// Emit a completion event so the session can be marked as idle
+			// Use appSessionId if available, otherwise fall back to the key
 			if (this.io) {
-				this.io.emit('message.complete', { sessionId: key });
+				const emitSessionId = s.appSessionId || key;
+				this.io.emit('message.complete', { sessionId: emitSessionId });
 			}
 		} catch (error) {
 			logger.error('Claude', `Error in Claude session ${id}:`, error);
@@ -274,7 +289,8 @@ export class ClaudeSessionManager {
 					}
 					// Emit completion event for the fresh query
 					if (this.io) {
-						this.io.emit('message.complete', { sessionId: key });
+						const emitSessionId = s.appSessionId || key;
+						this.io.emit('message.complete', { sessionId: emitSessionId });
 					}
 					return;
 				} catch (retryErr) {
