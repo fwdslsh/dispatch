@@ -1,4 +1,6 @@
 <script>
+	import { IconX, IconArchive } from '@tabler/icons-svelte';
+	
 	// Props
 	let {
 		project = '', // required
@@ -101,7 +103,7 @@
 					<span>• {new Date(selected.lastModified).toLocaleDateString()}</span>
 				{/if}
 			</div>
-			<button type="button" class="clear-btn" onclick={clear} aria-label="Clear selection">✕</button>
+			<button type="button" class="clear-btn" onclick={clear} aria-label="Clear selection"><IconX size={14} /></button>
 		</div>
 	{:else}
 		<div class="row">
@@ -114,7 +116,7 @@
 				aria-expanded={open}
 				aria-controls="cc-session-panel"
 			/>
-			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse sessions">🗂️</button>
+			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse sessions"><IconArchive size={18} /></button>
 		</div>
 	{/if}
 

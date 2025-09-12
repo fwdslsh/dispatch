@@ -10,6 +10,8 @@
 	import CreateSessionModal from '$lib/components/CreateSessionModal.svelte';
 	import { Button } from '$lib/shared/components';
 	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
+	import sessionSocketManager from '$lib/components/SessionSocketManager.js';
+	import { IconX } from '@tabler/icons-svelte';
 
 	let sessions = $state([]);
 	let workspaces = $state([]);
@@ -148,11 +150,16 @@
 
 	async function createTerminalSession(workspacePath) {
 		// Ensure workspace exists
-		await fetch('/api/workspaces', {
+		const wsResp = await fetch('/api/workspaces', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ action: 'open', path: workspacePath })
 		});
+		if (!wsResp.ok) {
+			const j = await wsResp.json().catch(() => null);
+			console.error('Failed to open workspace:', j?.error || wsResp.statusText);
+			throw new Error(j?.error || 'Failed to open workspace');
+		}
 
 		// Create terminal via Socket.IO
 		const socket = io();
@@ -181,6 +188,14 @@
 		resumeSession,
 		createWorkspace = false
 	}) {
+		console.log('createClaudeSession called with:', {
+			workspacePath,
+			sessionId,
+			projectName,
+			resumeSession,
+			createWorkspace
+		});
+		
 		// For new workspaces, construct the proper path using WORKSPACES_ROOT
 		let actualWorkspacePath = workspacePath;
 		if (createWorkspace) {
@@ -189,6 +204,7 @@
 		}
 
 		// Ensure workspace exists
+		console.log('Ensuring workspace exists...');
 		const workspaceResponse = await fetch('/api/workspaces', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
@@ -198,11 +214,18 @@
 				isNewProject: createWorkspace
 			})
 		});
+		if (!workspaceResponse.ok) {
+			const j = await workspaceResponse.json().catch(() => null);
+			console.error('Failed to ensure workspace:', j?.error || workspaceResponse.statusText);
+			throw new Error(j?.error || 'Failed to ensure workspace');
+		}
 
 		const workspaceData = await workspaceResponse.json();
 		const finalWorkspacePath = workspaceData.path;
+		console.log('Workspace ready:', finalWorkspacePath);
 
 		// Create Claude session via API
+		console.log('Creating Claude session via API...');
 		const r = await fetch('/api/sessions', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
@@ -218,20 +241,33 @@
 		});
 
 		if (!r.ok) {
+			const errorText = await r.text();
+			console.error('Failed to create Claude session:', r.status, errorText);
 			throw new Error(`Failed to create Claude session: ${r.statusText}`);
 		}
 
-		const { id, sessionId: claudeSessionId } = await r.json();
+		const responseData = await r.json();
+		console.log('Claude session created:', responseData);
+		
+		const { id, sessionId: claudeSessionId } = responseData;
 		const s = {
 			id,
 			type: 'claude',
-			workspacePath,
+			workspacePath: finalWorkspacePath, // Use the final workspace path from the API
 			projectName,
 			claudeSessionId,
 			shouldResume: true
 		};
+		
+		console.log('Adding session to sessions array:', s);
 		sessions = [...sessions, s];
+		console.log('Current sessions:', sessions);
+		
+		console.log('Updating displayed sessions with ID:', id);
 		updateDisplayedWithSession(id);
+		console.log('Current displayed:', displayed);
+		
+		console.log('Claude session creation complete');
 	}
 
 	// Pinning removed — display is controlled by displayed[]
@@ -251,6 +287,64 @@
 		);
 		if (allSessions.length === 0) return;
 		currentMobileSession = (currentMobileSession - 1 + allSessions.length) % allSessions.length;
+	}
+
+	// Touch gesture handling for mobile swipe navigation
+	let touchStartX = 0;
+	let touchStartY = 0;
+	let touchEndX = 0;
+	let touchEndY = 0;
+	let isSwipeInProgress = false;
+
+	function handleTouchStart(e) {
+		if (!isMobile) return;
+
+		// Record touch start position
+		touchStartX = e.changedTouches[0].screenX;
+		touchStartY = e.changedTouches[0].screenY;
+		isSwipeInProgress = true;
+	}
+
+	function handleTouchMove(e) {
+		if (!isMobile || !isSwipeInProgress) return;
+
+		touchEndX = e.changedTouches[0].screenX;
+		touchEndY = e.changedTouches[0].screenY;
+
+		// Track movement but don't interfere with scrolling
+	}
+
+	function handleTouchEnd(e) {
+		if (!isMobile || !isSwipeInProgress) return;
+
+		isSwipeInProgress = false;
+		touchEndX = e.changedTouches[0].screenX;
+		touchEndY = e.changedTouches[0].screenY;
+
+		handleSwipeGesture();
+	}
+
+	function handleSwipeGesture() {
+		const swipeThreshold = 75; // Minimum distance for a swipe
+		const verticalThreshold = 50; // Maximum vertical movement to still count as horizontal swipe
+
+		const deltaX = touchEndX - touchStartX;
+		const deltaY = Math.abs(touchEndY - touchStartY);
+
+		// Check if it's a horizontal swipe (not too much vertical movement)
+		if (deltaY > verticalThreshold || Math.abs(deltaX) < swipeThreshold) {
+			return;
+		}
+
+		// Detect left swipe (go to next session)
+		if (deltaX < -swipeThreshold) {
+			nextMobileSession();
+		}
+
+		// Detect right swipe (go to previous session)
+		if (deltaX > swipeThreshold) {
+			prevMobileSession();
+		}
 	}
 
 	// Jump to specific session (for mobile session list)
@@ -277,6 +371,12 @@
 		sessionMenuOpen = !sessionMenuOpen;
 	}
 
+	function handleSessionFocus(session) {
+		console.log('Session focused:', session.id);
+		// Notify the session socket manager about the focus change
+		sessionSocketManager.handleSessionFocus(session.id);
+	}
+
 	async function resumeTerminalSession({ terminalId, workspacePath }) {
 		try {
 			const r = await fetch('/api/sessions', {
@@ -300,9 +400,9 @@
 
 	async function handleUnifiedSessionCreate(params) {
 		if (params.type === 'terminal') {
-			await createTerminalSession(params.workspacePath);
+			return await createTerminalSession(params.workspacePath);
 		} else if (params.type === 'claude') {
-			await createClaudeSession(params);
+			return await createClaudeSession(params);
 		}
 	}
 
@@ -355,6 +455,9 @@
 	onDestroy(() => {
 		// Clean up any resources if needed
 		window.removeEventListener('resize', updateMobileState);
+
+		// Cleanup session socket manager when leaving the page
+		sessionSocketManager.disconnectAll();
 	});
 
 	// Persist key UI state
@@ -421,71 +524,32 @@
 	</header>
 
 	<!-- Bottom sheet for sessions -->
-	{#if sessionMenuOpen}
-		<div class="session-sheet-backdrop" onclick={() => (sessionMenuOpen = false)}></div>
-		<div class="session-sheet" role="dialog" aria-label="Sessions">
-			<div class="sheet-header">
-				<div class="sheet-title">Sessions</div>
-				<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close"
-					>✕</button
-				>
-			</div>
-			<div class="sheet-body">
-				<ProjectSessionMenu
-					storagePrefix="dispatch-projects"
-					bind:selectedProject
-					onNewSession={(e) => {
-						const { type } = e.detail || {};
-						if (type === 'claude') {
-							claudeModalOpen = true;
-						} else if (type === 'pty') {
-							terminalModalOpen = true;
-						}
-					}}
-					onSessionSelected={(e) => {
-						const detail = e.detail || {};
-						if (!detail.id) return;
+	<div class="session-sheet" class:open={sessionMenuOpen} role="dialog" aria-label="Sessions">
+		<div class="sheet-header">
+			<div class="sheet-title">Sessions</div>
+			<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close"
+				><IconX size={14} /></button
+			>
+		</div>
+		<div class="sheet-body">
+			<ProjectSessionMenu
+				storagePrefix="dispatch-projects"
+				bind:selectedProject
+				onNewSession={(e) => {
+					const { type } = e.detail || {};
+					if (type === 'claude') {
+						claudeModalOpen = true;
+					} else if (type === 'pty') {
+						terminalModalOpen = true;
+					}
+				}}
+				onSessionSelected={(e) => {
+					const detail = e.detail || {};
+					if (!detail.id) return;
 
-						// For active sessions, just show them immediately
-						if (detail.isActive) {
-							// Check if session is already in our display
-							const existing = sessions.find((s) => {
-								if (!s) return false;
-								if (detail.type === 'claude') {
-									return (
-										s.type === 'claude' &&
-										(s.claudeSessionId === detail.id ||
-											s.sessionId === detail.id ||
-											s.id === detail.id)
-									);
-								}
-								if (detail.type === 'pty') {
-									return s.type === 'pty' && s.id === detail.id;
-								}
-								return false;
-							});
-
-							if (existing) {
-								updateDisplayedWithSession(existing.id);
-							} else {
-								// Create a session entry for this active session
-								const s = {
-									id: detail.id,
-									type: detail.type,
-									workspacePath: detail.workspacePath,
-									projectName: detail.projectName,
-									claudeSessionId: detail.sessionId,
-									shouldResume: true,
-									isActiveSocket: true
-								};
-								sessions = [...sessions, s];
-								updateDisplayedWithSession(detail.id);
-							}
-							sessionMenuOpen = false;
-							return;
-						}
-
-						// For persisted sessions, check if already running first
+					// For active sessions, just show them immediately
+					if (detail.isActive) {
+						// Check if session is already in our display
 						const existing = sessions.find((s) => {
 							if (!s) return false;
 							if (detail.type === 'claude') {
@@ -501,38 +565,87 @@
 							}
 							return false;
 						});
+
 						if (existing) {
 							updateDisplayedWithSession(existing.id);
-							sessionMenuOpen = false;
-							return;
+						} else {
+							// Create a session entry for this active session
+							// For Claude sessions, ensure we use the correct sessionId for history loading
+							const s = {
+								id: detail.id,
+								type: detail.type,
+								workspacePath: detail.workspacePath,
+								projectName: detail.projectName,
+								// Use sessionId if provided, otherwise use id as fallback
+								claudeSessionId: detail.sessionId || detail.id,
+								// Always set shouldResume to true for active sessions to trigger history loading
+								shouldResume: true,
+								isActiveSocket: true
+							};
+							console.log('Creating session entry for active session:', {
+								id: s.id,
+								claudeSessionId: s.claudeSessionId,
+								type: s.type,
+								shouldResume: s.shouldResume
+							});
+							sessions = [...sessions, s];
+							updateDisplayedWithSession(detail.id);
 						}
+						sessionMenuOpen = false;
+						return;
+					}
 
-						// Resume persisted sessions
+					// For persisted sessions, check if already running first
+					const existing = sessions.find((s) => {
+						if (!s) return false;
 						if (detail.type === 'claude') {
-							const projectName = detail.projectName || selectedProject || 'project';
-							createClaudeSession({
-								workspacePath: detail.workspacePath || projectName,
-								sessionId: detail.id,
-								projectName,
-								resumeSession: true,
-								createWorkspace: false
-							});
-							sessionMenuOpen = false;
-						} else if (detail.type === 'pty') {
-							resumeTerminalSession({
-								terminalId: detail.id,
-								workspacePath: detail.workspacePath || selectedProject
-							});
-							sessionMenuOpen = false;
+							return (
+								s.type === 'claude' &&
+								(s.claudeSessionId === detail.id || s.sessionId === detail.id || s.id === detail.id)
+							);
 						}
-					}}
-				/>
-			</div>
+						if (detail.type === 'pty') {
+							return s.type === 'pty' && s.id === detail.id;
+						}
+						return false;
+					});
+					if (existing) {
+						updateDisplayedWithSession(existing.id);
+						sessionMenuOpen = false;
+						return;
+					}
+
+					// Resume persisted sessions
+					if (detail.type === 'claude') {
+						const projectName = detail.projectName || selectedProject || 'project';
+						createClaudeSession({
+							workspacePath: detail.workspacePath || projectName,
+							sessionId: detail.id,
+							projectName,
+							resumeSession: true,
+							createWorkspace: false
+						});
+						sessionMenuOpen = false;
+					} else if (detail.type === 'pty') {
+						resumeTerminalSession({
+							terminalId: detail.id,
+							workspacePath: detail.workspacePath || selectedProject
+						});
+						sessionMenuOpen = false;
+					}
+				}}
+			/>
 		</div>
-	{/if}
+	</div>
 
 	<!-- Main Workspace -->
-	<main class="main-content" style={`--cols: ${cols};`}>
+	<main
+		class="main-content"
+		style={`--cols: ${cols};`}
+		ontouchstart={handleTouchStart}
+		ontouchmove={handleTouchMove}
+		ontouchend={handleTouchEnd}
+	>
 		{#if visible.length === 0}
 			<div class="empty-workspace">
 				<div class="empty-content">
@@ -548,8 +661,23 @@
 						<div
 							class="terminal-container"
 							style="--animation-index: {index};"
-							in:fly|global={{ y: 20, duration: 400, delay: index * 60, easing: cubicOut }}
-							out:fly|global={{ y: -20, duration: 300, delay: index * 40, easing: cubicOut }}
+							in:fly|global={{
+								x: 0,
+								y: isMobile ? 0 : 20,
+								duration: isMobile ? 150 : 250,
+								easing: cubicOut
+							}}
+							out:fly|global={{
+								x: 0,
+								y: isMobile ? 0 : -20,
+								duration: isMobile ? 100 : 200,
+								easing: cubicOut
+							}}
+							onclick={() => handleSessionFocus(s)}
+							onkeydown={(e) => e.key === 'Enter' && handleSessionFocus(s)}
+							role="button"
+							tabindex="0"
+							aria-label="Focus session {s.id}"
 						>
 							<div class="terminal-header">
 								<div class="terminal-status">
@@ -587,7 +715,8 @@
 									<ClaudePane
 										sessionId={s.claudeSessionId || s.sessionId || s.id}
 										claudeSessionId={s.claudeSessionId || s.sessionId}
-										shouldResume={s.resumeSession || false}
+										shouldResume={s.shouldResume || s.resumeSession || false}
+										workspacePath={s.workspacePath}
 									/>
 								{/if}
 							</div>
@@ -691,7 +820,6 @@
 		max-width: 100svw;
 		width: 100%;
 		transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
 
 		&::before {
 			content: '';
@@ -885,7 +1013,6 @@
 		position: relative;
 		/* Prevent grid child overflow in narrow viewports */
 		min-width: 0;
-
 	}
 
 	@media (max-width: 768px) {
@@ -933,8 +1060,6 @@
 		padding: var(--space-1);
 		/* Ensure grid content can shrink to viewport */
 		min-width: 0;
-
-		/* NO grid transition - instant layout change to prevent snapping */
 	}
 
 	/* ========================================
@@ -948,6 +1073,8 @@
 		overflow: hidden;
 		/* Allow shrinking inside grid to prevent width overflow */
 		min-width: 0;
+		/* Position context for swipe zone */
+		position: relative;
 
 		/* Simple transitions for hover states */
 		transition: border-color 0.2s ease;
@@ -957,23 +1084,30 @@
 		border-color: var(--primary);
 	}
 
-	/* Mobile session switching with modern CSS */
+	/* Mobile session switching - simple slide animation */
 	@media (max-width: 768px) {
 		.terminal-container {
-			transition:
-				transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-				opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-				box-shadow 0.2s ease,
-				border-color 0.2s ease;
-			transition-behavior: allow-discrete;
+			/* Ensure full height is maintained during transitions */
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			/* Smoother, faster transitions for mobile */
+			transition: opacity 0.15s ease-out;
+			/* Prevent layout reflows */
+			will-change: opacity;
+			contain: layout style;
+			/* Hardware acceleration */
+			transform: translateZ(0);
+			-webkit-transform: translateZ(0);
+			backface-visibility: hidden;
+			-webkit-backface-visibility: hidden;
 		}
 
-		/* Mobile starting style - slide from right */
-		@starting-style {
-			.terminal-container {
-				opacity: 0;
-				transform: translateX(24px) scale(0.97);
-			}
+		/* Ensure child components maintain height */
+		.terminal-viewport {
+			flex: 1 1 auto;
+			min-height: 0;
+			height: 100%;
 		}
 	}
 
@@ -1141,6 +1275,11 @@
 		overflow: hidden;
 		background: var(--bg-dark);
 		min-height: 0; /* Important for flex child */
+		display: flex;
+		flex-direction: column;
+		position: relative;
+		/* Prevent layout shifts */
+		contain: layout;
 	}
 
 	/* ========================================
@@ -1165,10 +1304,17 @@
 			display: none; /* Hide layout controls on mobile */
 		}
 
+		.main-content {
+			/* Ensure full height on mobile */
+			height: 100%;
+		}
+
 		.session-grid {
 			grid-template-columns: 1fr !important;
 			padding: 0; /* Remove padding for flush mobile viewport */
 			gap: 0; /* Remove gaps for flush mobile viewport */
+			/* Ensure grid takes full height */
+			height: 100%;
 		}
 		.brand-text {
 			display: none;
@@ -1208,31 +1354,32 @@
 	/* Session bottom sheet */
 	.session-sheet-backdrop {
 		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
+		inset: 0;
 		background: rgba(0, 0, 0, 0.4);
 		z-index: 60;
 		-webkit-tap-highlight-color: transparent;
+		display: none;
 	}
 	.session-sheet {
 		position: fixed;
 		left: 0;
 		right: 0;
-		bottom: 0;
 		background: var(--bg);
 		border-top: 1px solid var(--primary-dim);
-		max-height: 90vh;
-		max-height: 90dvh;
-		height: auto;
+		height: calc(100dvh - 60px);
 		overflow: hidden;
 		z-index: 70;
 		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
 		display: flex;
 		flex-direction: column;
+		transform: translateY(100dvh);
+		opacity: 0;
+		transition: transform 0.15s ease-out;
+		transition-property: all;
+	}
+	.session-sheet.open {
 		transform: translateY(0);
-		transition: transform 0.3s ease-out;
+		opacity: 0.975;
 	}
 	.sheet-header {
 		display: flex;
@@ -1258,9 +1405,48 @@
 		cursor: pointer;
 	}
 	.sheet-body {
-		overflow: auto;
-		min-height: 0;
-		padding: 0.5rem;
+		overflow: hidden;
+		min-height: 100%;
+		padding: 0;
+	}
+
+	/* Mobile-specific styles for session sheet to take remaining viewport */
+	@media (max-width: 768px) {
+		.session-sheet {
+			/* Calculate height: viewport height minus status bar (approximately 60px) */
+			height: calc(100vh - 60px);
+			height: calc(100dvh - 60px);
+			max-height: calc(100vh - 60px);
+			max-height: calc(100dvh - 60px);
+			/* Ensure it doesn't go higher than the status bar */
+			top: auto;
+		}
+
+		.sheet-header {
+			/* More compact header on mobile */
+			padding: 0.4rem 0.6rem;
+			flex-shrink: 0;
+		}
+
+		.sheet-body {
+			/* Make the body scrollable and take remaining space */
+			flex: 1;
+			overflow-y: auto;
+			-webkit-overflow-scrolling: touch;
+			/* Add some breathing room at the bottom for iOS safe area */
+			padding-bottom: env(safe-area-inset-bottom, 1rem);
+		}
+	}
+
+	/* Very small screens - adjust for exact status bar height */
+	@media (max-width: 480px) {
+		.session-sheet {
+			/* Fine-tune for smaller screens where status bar might be different */
+			height: calc(100vh - 56px);
+			height: calc(100dvh - 56px);
+			max-height: calc(100vh - 56px);
+			max-height: calc(100dvh - 56px);
+		}
 	}
 
 	/* Mobile-specific touch improvements */

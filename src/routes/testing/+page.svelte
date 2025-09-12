@@ -239,6 +239,7 @@
                                 sessionId={selectedSession}
                                 claudeSessionId={selectedSession}
                                 shouldResume={true}
+                                workspacePath={selectedProject ? selectedProject.replace(/^home--/, '/home/').replace(/--/g, '/') : ''}
                             />
                         {/key}
                     </div>

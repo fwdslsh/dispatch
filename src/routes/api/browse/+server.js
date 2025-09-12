@@ -5,8 +5,8 @@ import { homedir } from 'node:os';
 
 // Get the base directory for browsing (can be configured via environment)
 function getBaseDirectory() {
-	// Use DISPATCH_PROJECTS_DIR if set, otherwise use home directory
-	return process.env.DISPATCH_PROJECTS_DIR || homedir();
+	// Use WORKSPACES_ROOT if set, otherwise fall back to DISPATCH_PROJECTS_DIR or home directory
+	return process.env.WORKSPACES_ROOT || process.env.DISPATCH_PROJECTS_DIR || homedir();
 }
 
 // Validate that the requested path is within allowed bounds
@@ -29,6 +29,7 @@ function isPathAllowed(requestedPath) {
 
 export async function GET({ url }) {
 	try {
+		// If no path is provided, start in the workspaces root directory
 		const requestedPath = url.searchParams.get('path') || getBaseDirectory();
 		const showHidden = url.searchParams.get('showHidden') === 'true';
 		

@@ -1,13 +1,14 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { io } from 'socket.io-client';
 	import Button from '$lib/shared/components/Button.svelte';
 	import Markdown from '$lib/shared/components/Markdown.svelte';
 	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
+	import sessionSocketManager from './SessionSocketManager.js';
+	import { IconFolder, IconMessage } from '@tabler/icons-svelte';
 	// Using global styles for inputs
 
-	let { sessionId, claudeSessionId = null, shouldResume = false } = $props();
+	let { sessionId, claudeSessionId = null, shouldResume = false, workspacePath: initialWorkspacePath = '' } = $props();
 
 	/**
 	 * @type {import("socket.io-client").Socket}
@@ -17,10 +18,15 @@
 	let input = $state('');
 	let loading = $state(false);
 	let isWaitingForReply = $state(false);
+	let isCatchingUp = $state(false);
 	let messagesContainer = $state();
 	let liveEventIcons = $state([]);
 	let selectedEventIcon = $state(null);
 	let messageSelectedIcon = $state({});
+	let workspacePath = $state(initialWorkspacePath);
+	let availableCommands = $state([]);
+	let commandMenuOpen = $state(false);
+	let commandMenuButton = $state();
 
 	async function scrollToBottom() {
 		await tick();
@@ -35,6 +41,111 @@
 			scrollToBottom();
 		}
 	});
+	
+	// Extract slash commands from message
+	function extractCommandsFromMessage(message) {
+		const commands = [];
+		if (!message || typeof message !== 'string') return commands;
+		// Common formats: lines starting with `/command`, or markdown codeblocks with commands
+		const lines = message.split('\n').map(l => l.trim());
+		for (const l of lines) {
+			if (!l) continue;
+			// direct slash
+			if (l.startsWith('/')) {
+				const cmd = l.split(' ')[0].trim();
+				commands.push({ name: cmd, title: cmd, description: '' });
+				continue;
+			}
+			// "Command: /run-tests" style
+			const m = l.match(/\/?[A-Za-z0-9_\-\/]+/);
+			if (m && m[0].startsWith('/')) {
+				const cmd = m[0];
+				commands.push({ name: cmd, title: cmd, description: '' });
+			}
+		}
+		// Deduplicate by name
+		const seen = new Set();
+		const uniq = [];
+		for (const c of commands) {
+			if (!seen.has(c.name)) {
+				seen.add(c.name);
+				uniq.push(c);
+			}
+		}
+		return uniq;
+	}
+	
+	// Check messages for available commands (usually in first assistant message)
+	function updateAvailableCommands() {
+		// If server provided commands exist, prefer them
+		if (Array.isArray(availableCommands) && availableCommands.length > 0) {
+			// Already set from server or cache
+			return;
+		}
+		// Look for commands in assistant messages, prioritizing the first one
+		for (const msg of messages) {
+			if (msg.role === 'assistant' && msg.text) {
+				const commands = extractCommandsFromMessage(msg.text);
+				if (commands.length > 0) {
+					availableCommands = commands;
+					// Cache commands per workspace
+					if (workspacePath) {
+						try {
+							localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(commands));
+						} catch {}
+					}
+					break; // Use first message with commands
+				}
+			}
+		}
+	}
+	
+	// Load cached commands for workspace
+	function loadCachedCommands() {
+		if (workspacePath) {
+			try {
+				const cached = localStorage.getItem(`claude-commands-${workspacePath}`);
+				if (cached) {
+					availableCommands = JSON.parse(cached) || [];
+				}
+			} catch {}
+		}
+	}
+	
+	// Insert command into input
+	function insertCommand(command) {
+		input = command + ' ';
+		commandMenuOpen = false;
+		// Focus the input after inserting
+		const inputEl = document.querySelector('.message-input');
+		if (inputEl) {
+			inputEl.focus();
+			// Move cursor to end
+			inputEl.setSelectionRange(input.length, input.length);
+		}
+	}
+	
+	// Toggle command menu
+	function toggleCommandMenu() {
+		commandMenuOpen = !commandMenuOpen;
+		if (commandMenuOpen) {
+			// focus first menu item after render
+			tick().then(() => {
+				const first = document.querySelector('.command-menu-dropdown button');
+				if (first) first.focus();
+			});
+		}
+	}
+	
+	// Close menu when clicking outside
+	function handleClickOutside(event) {
+		if (commandMenuOpen && commandMenuButton && !commandMenuButton.contains(event.target)) {
+			const menu = event.target.closest('.command-menu-dropdown');
+			if (!menu) {
+				commandMenuOpen = false;
+			}
+		}
+	}
 
 	async function send(e) {
 		e.preventDefault();
@@ -230,16 +341,35 @@
 	
 
 	async function loadPreviousMessages() {
-		if (!claudeSessionId) return;
+		// Use claudeSessionId if available, otherwise use sessionId
+		const sessionIdToLoad = claudeSessionId || sessionId;
+		if (!sessionIdToLoad) return;
 		
 		loading = true;
 		try {
 			// Use the simplified session lookup endpoint that finds the session by ID alone
-			console.log('Loading Claude history for session:', claudeSessionId);
-			const response = await fetch(`/api/claude/session/${encodeURIComponent(claudeSessionId)}?full=1`);
+			console.log('Loading Claude history for session:', sessionIdToLoad);
+			const response = await fetch(`/api/claude/session/${encodeURIComponent(sessionIdToLoad)}?full=1`);
 			
 			if (response.ok) {
 				const data = await response.json();
+				console.log('Session history loaded:', {
+					sessionId: sessionIdToLoad,
+					project: data.project,
+					entryCount: (data.entries || []).length,
+					summary: data.summary
+				});
+				
+				// Extract workspace path from session data if available
+				if (data.entries && data.entries.length > 0) {
+					for (const entry of data.entries) {
+						if (entry.cwd) {
+							workspacePath = entry.cwd;
+							break;
+						}
+					}
+				}
+				
 				const previousMessages = [];
 
 				// Helpers to build icon objects from entries
@@ -343,14 +473,28 @@
 				messages = previousMessages;
 				if (previousMessages.length > 0) {
 					console.log('Loaded previous messages:', previousMessages.length);
+					// Check for commands in loaded messages
+					updateAvailableCommands();
+					// Scroll to bottom after history is loaded
+					await scrollToBottom();
 				} else {
 					console.log('No previous messages found - this appears to be a new session');
 				}
 			} else {
-				console.warn('Failed to load Claude session history:', response.status, await response.text());
+				const errorText = await response.text();
+				console.warn('Failed to load Claude session history:', {
+					status: response.status,
+					sessionId: sessionIdToLoad,
+					error: errorText
+				});
+				// Don't fail silently - this could be a new session which is OK
+				if (response.status !== 404) {
+					console.error('Unexpected error loading session history');
+				}
 			}
 		} catch (error) {
 			console.error('Failed to load previous messages:', error);
+			// Don't let this prevent the session from working
 		} finally {
 			loading = false;
 		}
@@ -359,16 +503,46 @@
 	onMount(async () => {
 		console.log('ClaudePane mounting with:', { sessionId, claudeSessionId, shouldResume });
 		
-		// Always try to load previous messages if we have a Claude session ID
-		// This handles both explicit resumes and cases where history exists
-		await loadPreviousMessages();
-
-		socket = io();
+		// Get or create socket for this specific session FIRST
+		// This ensures we don't miss any events while loading history
+		const effectiveSessionId = claudeSessionId || sessionId;
+		socket = sessionSocketManager.getSocket(effectiveSessionId);
+		
+		// Set up event listeners immediately before doing anything else
+		// This ensures we capture any ongoing messages from active sessions
 		socket.on('connect', () => {
-			console.log('Claude Socket.IO connected');
+			console.log('Claude Socket.IO connected for session:', effectiveSessionId);
+			// Don't automatically set isWaitingForReply for resumed sessions
+			// Let the backend state determine if the session is actually processing
+			if (shouldResume || claudeSessionId) {
+				console.log('Reconnected to session - checking for ongoing activity');
+				// Only set catching up flag temporarily
+				isCatchingUp = true;
+				// Don't set isWaitingForReply here - let actual messages trigger it
+				// Clear the catching up flag after a short delay if no messages arrive
+				setTimeout(() => {
+					if (isCatchingUp && liveEventIcons.length === 0) {
+						isCatchingUp = false;
+						// Also ensure isWaitingForReply is false if no activity
+						isWaitingForReply = false;
+						console.log('No pending messages detected for session');
+					}
+				}, 2000);
+			}
 		});
 
 		socket.on('message.delta', async (payload) => {
+			// If we receive a message while catching up, clear the flag
+			if (isCatchingUp) {
+				isCatchingUp = false;
+				console.log('Received message from active session - caught up');
+			}
+			
+			// Set waiting for reply when we receive messages
+			if (!isWaitingForReply && payload && payload.length > 0) {
+				isWaitingForReply = true;
+			}
+			
 			// payload is an array; in our setup typically of length 1
 			for (const evt of payload || []) {
 				// Skip empty or malformed events
@@ -398,6 +572,9 @@
 						];
 						liveEventIcons = []; // Clear for next accumulation
 						isWaitingForReply = true; // Keep waiting for more potential messages
+						
+						// Check for commands in the message
+						updateAvailableCommands();
 					} else {
 						// Non-text assistant content (tool use, etc.)
 						// Only push if we have meaningful tool content
@@ -429,7 +606,9 @@
 							};
 						}
 					}
+					// Clear waiting state since result indicates completion
 					isWaitingForReply = false;
+					isCatchingUp = false;
 					liveEventIcons = []; // Clear for next conversation turn
 				} else {
 					// Other event types - be selective about what creates icons
@@ -453,17 +632,87 @@
 			// Scroll to show the latest state (icons or final message)
 			await scrollToBottom();
 		});
+
+		// Listen for server-provided tools list and update available commands
+		socket.on('tools.list', (payload) => {
+			try {
+				if (!payload) return;
+				const sid = payload.sessionId || payload.id || null;
+				const commands = Array.isArray(payload.commands) ? payload.commands : [];
+				if (commands.length > 0) {
+					availableCommands = commands.map((c) => {
+						// normalize shape { name, title, description }
+						if (typeof c === 'string') return { name: c, title: c, description: '' };
+						return { name: c.name || c.title || '', title: c.title || c.name || c.name || '', description: c.description || '' };
+					});
+					if (workspacePath) {
+						try { localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands)); } catch {}
+					}
+					// Close menu if it's open so the user can re-open to see the new list
+					commandMenuOpen = false;
+				}
+			} catch (err) {
+				console.error('Failed to handle tools.list payload', err);
+			}
+		});
+
+		// Query session.status immediately so we can populate availableCommands when loading
+		try {
+			const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+			if (socket && socket.connected && effectiveSessionId) {
+				socket.emit('session.status', { key, sessionId: effectiveSessionId }, (response) => {
+					try {
+						if (response && Array.isArray(response.availableCommands) && response.availableCommands.length > 0) {
+							availableCommands = response.availableCommands.map((c) => {
+								if (typeof c === 'string') return { name: c, title: c, description: '' };
+								return { name: c.name || c.title || '', title: c.title || c.name || '', description: c.description || '' };
+							});
+							if (workspacePath) {
+								try { localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands)); } catch {}
+							}
+						}
+					} catch (e) {
+						console.error('Failed to parse session.status response', e);
+					}
+				});
+			}
+		} catch (e) {
+			// ignore
+		}
+
+		// Global click handling to close menus when clicking outside
+		document.addEventListener('click', handleClickOutside);
 		
+		// Handle message completion to clear waiting state
+		socket.on('message.complete', (data) => {
+			console.log('Message complete received:', data);
+			isWaitingForReply = false;
+			isCatchingUp = false;
+			// Clear any remaining live icons if they weren't attached to a message
+			if (liveEventIcons.length > 0 && messages.length > 0) {
+				const lastMessage = messages[messages.length - 1];
+				if (lastMessage.role === 'assistant' && !lastMessage.activityIcons?.length) {
+					// Attach any remaining icons to the last assistant message
+					messages[messages.length - 1] = {
+						...lastMessage,
+						activityIcons: [...liveEventIcons]
+					};
+				}
+			}
+			liveEventIcons = [];
+		});
+
 		// Handle errors to clear typing indicator
 		socket.on('error', (error) => {
 			console.error('Socket error:', error);
 			isWaitingForReply = false;
+			isCatchingUp = false;
 			
 			// Add error message if we were waiting for a reply
 			if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
 				messages = [...messages, {
 					role: 'assistant',
-					text: '⚠️ Sorry, I encountered an error processing your request. Please try again.',
+					text: '⚠ Sorry, I encountered an error processing your request. Please try again.',
 					timestamp: new Date(),
 					id: Date.now(),
 					isError: true,
@@ -479,8 +728,40 @@
 			isWaitingForReply = false;
 			liveEventIcons = [];
 		});
+
+		// Mark this session as active and ensure connection
+		// This must happen AFTER event listeners are set up but BEFORE loading history
+		sessionSocketManager.handleSessionFocus(effectiveSessionId);
+		
+		// Now load previous messages after socket is ready and listening
+		// This ensures we don't miss any events that might arrive while loading
+		if (claudeSessionId || shouldResume) {
+			await loadPreviousMessages();
+		}
+		
+		// Check if session has pending messages from the backend
+		if (socket.connected && (shouldResume || claudeSessionId)) {
+			console.log('Socket already connected - checking session activity state');
+			// Query the backend for actual session state
+			const hasPending = await sessionSocketManager.checkForPendingMessages(effectiveSessionId);
+			if (hasPending) {
+				console.log('Session has pending messages, setting waiting state');
+				isWaitingForReply = true;
+			} else {
+				console.log('Session is idle, no pending messages');
+				isWaitingForReply = false;
+				isCatchingUp = false;
+			}
+		}
 	});
-	onDestroy(() => socket?.disconnect());
+	onDestroy(() => {
+		// Don't disconnect the socket immediately as it might be used by other panes
+		// The SessionSocketManager will handle cleanup when appropriate
+		if (socket) {
+			socket.removeAllListeners();
+		}
+			document.removeEventListener('click', handleClickOutside);
+	});
 </script>
 
 <div class="claude-pane">
@@ -494,12 +775,28 @@
 			</div>
 			<div class="ai-info">
 				<div class="ai-name">Claude</div>
-				<div class="ai-state">{loading ? 'Processing...' : 'Ready'}</div>
+				<div class="ai-state">
+					{#if isCatchingUp}
+						<span class="catching-up">Reconnecting to active session...</span>
+					{:else if loading}
+						Processing...
+					{:else if isWaitingForReply}
+						Thinking...
+					{:else}
+						Ready
+					{/if}
+				</div>
 			</div>
 		</div>
 		<div class="chat-stats">
+			{#if workspacePath}
+				<div class="stat-item ai-cwd" title="{workspacePath}">
+					<span class="cwd-icon"><IconFolder size={16} /></span>
+					<span class="cwd-path">{workspacePath.split('/').filter(Boolean).pop() || '/'}</span>
+				</div>
+			{/if}
 			<div class="stat-item">
-				<span class="stat-icon">💬</span>
+				<span class="stat-icon"><IconMessage size={16} /></span>
 				<span class="stat-value">{messages.length}</span>
 			</div>
 		</div>
@@ -556,10 +853,6 @@
 						</div>
 						{#if m.activityIcons && m.activityIcons.length > 0}
 							<div class="activity-icons-container">
-								<div class="activity-icons-header">
-									<span class="activity-icons-label">Activity Trail</span>
-									<span class="activity-icons-count">{m.activityIcons.length} actions</span>
-								</div>
 								<div class="live-event-icons static" aria-label="Agent activity">
 									{#each m.activityIcons as ev, index (ev.id)}
 										{@const isSelected = messageSelectedIcon[`${m.id}-${ev.id}`]}
@@ -683,7 +976,7 @@
 				bind:value={input} 
 				placeholder="Message Claude..." 
 				class="message-input"
-				disabled={loading || isWaitingForReply}
+				disabled={loading}
 				aria-label="Type your message"
 				autocomplete="off"
 				onkeydown={(e) => {
@@ -694,15 +987,42 @@
 				}}
 				rows="1"
 			></textarea>
-			<Button 
-				type="submit" 
-				text={isWaitingForReply ? "Waiting..." : loading ? "Sending..." : "Send"} 
-				variant="primary" 
-				augmented="tr-clip bl-clip both"
-				disabled={!input.trim() || loading || isWaitingForReply}
-				ariaLabel="Send message"
-				{...{icon: undefined}}
-			/>
+			<div class="input-actions">
+				<button
+					bind:this={commandMenuButton}
+					type="button"
+					class="command-menu-button"
+					aria-label="Open command menu"
+					onclick={toggleCommandMenu}
+				>
+					/
+				</button>
+				<Button 
+					type="submit" 
+					text={isWaitingForReply ? "Send" : loading ? "Sending..." : "Send"} 
+					variant="primary" 
+					augmented="tr-clip bl-clip both"
+					disabled={!input.trim() || loading}
+					ariaLabel="Send message"
+					{...{icon: undefined}}
+				/>
+			</div>
+			{#if commandMenuOpen}
+				<div class="command-menu-dropdown" transition:fly={{ y: -6, duration: 120 }} role="menu" aria-label="Commands">
+					{#if availableCommands && availableCommands.length > 0}
+						{#each availableCommands as cmd}
+							<button type="button" class="command-menu-item" onclick={() => insertCommand(cmd.name || cmd.title || '')} role="menuitem">
+								<span class="command-title">{cmd.title || cmd.name}</span>
+								{#if cmd.description}
+									<span class="command-desc">{cmd.description}</span>
+								{/if}
+							</button>
+						{/each}
+					{:else}
+						<div class="command-empty">No commands available</div>
+					{/if}
+				</div>
+			{/if}
 		</div>
 		<div class="input-help">
 			<span class="help-text">Press Enter to send • Shift+Enter for new line</span>
@@ -719,6 +1039,7 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
+		min-height: 0; /* Important for proper flex sizing */
 		background: 
 			radial-gradient(ellipse at top left, 
 				color-mix(in oklab, var(--bg) 95%, var(--primary) 5%),
@@ -728,6 +1049,8 @@
 		overflow: hidden;
 		position: relative;
 		container-type: inline-size;
+		/* Ensure stable layout during transitions */
+		contain: layout style;
 	}
 	
 	/* 🎯 INTELLIGENT CHAT HEADER */
@@ -800,6 +1123,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
+		flex: 1;
+		min-width: 0; /* Allow text truncation */
 	}
 	
 	.ai-name {
@@ -820,6 +1145,50 @@
 		font-weight: 500;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
+	}
+	
+	.ai-cwd {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
+		max-width: 350px;
+	}
+	
+	.stat-item.ai-cwd {
+		padding: var(--space-1) var(--space-2);
+		background: 
+			linear-gradient(135deg, 
+				color-mix(in oklab, var(--primary) 8%, transparent),
+				color-mix(in oklab, var(--primary) 4%, transparent)
+			);
+		border: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
+		border-radius: 12px;
+	}
+	
+	.cwd-icon {
+		font-size: 0.9em;
+		opacity: 0.8;
+	}
+	
+	.cwd-path {
+		color: var(--primary);
+		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		letter-spacing: 0.02em;
+	}
+	
+	.catching-up {
+		color: var(--accent-amber);
+		animation: pulse 1.5s ease-in-out infinite;
+	}
+	
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.5; }
 	}
 	
 	.chat-stats {
@@ -858,7 +1227,9 @@
 	/* 💬 ADVANCED MESSAGES CONTAINER */
 	.messages {
 		flex: 1;
+		min-height: 0; /* Critical for flex children to shrink properly */
 		overflow-y: auto;
+		overflow-x: hidden;
 		padding: var(--space-6) var(--space-6) var(--space-4);
 		scroll-behavior: smooth;
 		scrollbar-width: thin;
@@ -874,6 +1245,9 @@
 		/* Fix touch scrolling on mobile devices */
 		-webkit-overflow-scrolling: touch;
 		overscroll-behavior: contain;
+		/* Prevent layout shift during navigation */
+		will-change: contents;
+		contain: size layout;
 	}
 	
 	.messages::-webkit-scrollbar {
@@ -1092,14 +1466,33 @@
 		transition: all 0.3s ease;
 	}
 
-	/* Live event icons under typing bubble - no clipping, smooth expansion */
+	/* Activity icons container - transparent background */
+	.activity-icons-container {
+		margin-top: var(--space-2);
+		background: transparent;
+	}
+
+	/* Live event icons - transparent for static, subtle background for live */
 	.live-event-icons {
-		margin-top: var(--space-3);
+		margin-top: var(--space-1);
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
 		padding: var(--space-3) var(--space-3);
 		border-radius: 12px;
+		background: transparent;
+		border: none;
+		box-shadow: none;
+		font-size: 0.85rem;
+		/* Allow container to expand as needed */
+		min-height: 40px;
+		max-width: 100%;
+		overflow: visible;
+		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+	}
+	
+	/* Add subtle background only for live (non-static) event icons during typing */
+	.live-event-icons:not(.static) {
 		background: linear-gradient(135deg,
 			color-mix(in oklab, var(--primary) 8%, transparent),
 			color-mix(in oklab, var(--primary) 4%, transparent)
@@ -1108,20 +1501,14 @@
 		box-shadow:
 			inset 0 1px 2px rgba(255, 255, 255, 0.05),
 			0 4px 16px -10px var(--primary-glow);
-		font-size: 1rem;
-		/* Allow container to expand as needed */
-		min-height: 40px;
-		max-width: 100%;
-		overflow: visible;
-		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 	}
 
 	.event-icon {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 32px;
-		height: 32px;
+		width: 26px;
+		height: 26px;
 		padding: 0;
 		border-radius: 50%;
 		background: linear-gradient(135deg,
@@ -1383,6 +1770,8 @@
 		box-shadow: 
 			0 -8px 32px -16px rgba(0, 0, 0, 0.1),
 			inset 0 1px 2px color-mix(in oklab, var(--primary) 10%, transparent);
+		flex-shrink: 0; /* Prevent input form from shrinking */
+		margin-top: auto; /* Push to bottom */
 	}
 	
 	.input-container {
@@ -1391,6 +1780,57 @@
 		gap: var(--space-4);
 		position: relative;
 	}
+
+	.input-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.command-menu-button {
+		background: transparent;
+		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+		border-radius: 8px;
+		padding: 8px 10px;
+		font-size: 14px;
+		cursor: pointer;
+		color: var(--text-muted);
+	}
+
+	.command-menu-dropdown {
+		position: absolute;
+		bottom: 64px;
+		right: 12px;
+		min-width: 220px;
+		max-width: 420px;
+		background: var(--surface);
+		border: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
+		border-radius: 8px;
+		box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+		padding: 8px;
+		z-index: 50;
+	}
+
+	.command-menu-item {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		padding: 8px 10px;
+		border-radius: 6px;
+		background: transparent;
+		border: none;
+		width: 100%;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.command-menu-item:hover {
+		background: color-mix(in oklab, var(--primary) 8%, transparent);
+	}
+
+	.command-title { font-weight: 600; }
+	.command-desc { font-size: 12px; color: var(--text-muted); }
+
 	
 	.message-input {
 		flex: 1;
@@ -1550,9 +1990,9 @@
 		}
 		
 		.event-icon {
-			width: 28px;
-			height: 28px;
-			font-size: 0.95rem;
+			width: 24px;
+			height: 24px;
+			font-size: 0.8rem;
 		}
 		
 		.event-summary {
@@ -1563,6 +2003,14 @@
 	
 	/* 📱 MOBILE & TOUCH DEVICE OPTIMIZATIONS */
 	@media (max-width: 768px) {
+		.claude-pane {
+			/* Ensure full height on mobile */
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			min-height: 0;
+		}
+		
 		.messages {
 			/* Improve touch scrolling on mobile */
 			-webkit-overflow-scrolling: touch;
@@ -1570,6 +2018,11 @@
 			/* Prevent elastic scrolling issues on iOS */
 			position: relative;
 			touch-action: pan-y;
+			/* Ensure proper height calculation */
+			flex: 1 1 auto;
+			min-height: 0;
+			height: 100%;
+			contain: none; /* Remove contain on mobile for better scrolling */
 		}
 		
 		.chat-header {
@@ -1594,10 +2047,18 @@
 			will-change: scroll-position;
 		}
 		
-		/* Increase tap targets for touch */
+		/* Increase tap targets for touch while keeping visual size small */
 		.event-icon {
-			min-width: 44px;
-			min-height: 44px;
+			position: relative;
+			min-width: 36px;
+			min-height: 36px;
+		}
+		
+		.event-icon::before {
+			content: '';
+			position: absolute;
+			inset: -6px;
+			/* Creates larger touch target without affecting visual size */
 		}
 	}
 

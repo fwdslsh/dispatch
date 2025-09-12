@@ -10,6 +10,25 @@ export function setupSocketIO(httpServer) {
 		cors: { origin: '*', methods: ['GET', 'POST'] }
 	});
 
+	// If API services were initialized earlier, give them the server-level io
+	// so managers can emit broadcast events (e.g. tools.list) even when no
+	// individual socket has called setSocketIO.
+	try {
+		// Access the already-initialized API services if present. Avoid calling
+		// getManagers() here since it's declared later in the file.
+		const managers = globalThis.__API_SERVICES || {};
+		if (managers) {
+			if (managers.terminals && typeof managers.terminals.setSocketIO === 'function') {
+				managers.terminals.setSocketIO(io);
+			}
+			if (managers.claude && typeof managers.claude.setSocketIO === 'function') {
+				managers.claude.setSocketIO(io);
+			}
+		}
+	} catch (e) {
+		console.error('[SOCKET] Failed to attach server io to managers:', e && e.message ? e.message : e);
+	}
+
 	// Get shared managers from hooks.server.js
 	const getManagers = () => globalThis.__API_SERVICES || {};
 
@@ -80,8 +99,13 @@ export function setupSocketIO(httpServer) {
 			try {
 				if (!validateKey(data.key)) return;
 
-				const { claude } = getManagers();
+				const { claude, sessions } = getManagers();
 				if (claude) {
+					// Set session as processing before starting
+					if (sessions) {
+						sessions.setProcessing(data.id);
+					}
+					
 					claude.setSocketIO(socket);
 					try {
 						await claude.send(data.id, data.input);
@@ -90,15 +114,79 @@ export function setupSocketIO(httpServer) {
 						// Fallback: try direct resume if session is unknown
 						if (String(err?.message || '').includes('unknown session')) {
 							console.warn('[SOCKET] Unknown session in manager; attempting direct resume');
-							await directResume(socket, data.id, data.input);
+							await directResume(socket, data.id, data.input, sessions);
 						} else {
 							throw err;
 						}
+					} finally {
+						// Don't reset here - let the message completion handle it
 					}
 				}
 			} catch (err) {
 				console.error(`[SOCKET] Claude send error:`, err);
+				// Ensure we reset to idle on error
+				const { sessions } = getManagers();
+				if (sessions) {
+					sessions.setIdle(data.id);
+				}
 			}
+		});
+
+		// Session status check event
+		socket.on('session.status', (data, callback) => {
+			console.log(`[SOCKET] session.status received:`, data);
+			try {
+				if (!validateKey(data.key)) {
+					if (callback) callback({ success: false, error: 'Invalid key' });
+					return;
+				}
+
+				const { sessions, claude } = getManagers();
+				if (sessions && data.sessionId) {
+					const activityState = sessions.getActivityState(data.sessionId);
+					const hasPendingMessages = activityState === 'processing' || activityState === 'streaming';
+					console.log(`[SOCKET] Session ${data.sessionId} activity state: ${activityState}, hasPending: ${hasPendingMessages}`);
+					// Try to include cached availableCommands from the Claude manager if available
+					let availableCommands = null;
+					try {
+						if (claude && typeof claude.getCachedCommands === 'function') {
+							availableCommands = claude.getCachedCommands(`claude_${data.sessionId}`) || claude.getCachedCommands(data.sessionId);
+						} else if (claude && claude._toolsCache) {
+							// Best-effort: derive cache key from known session mapping on the claude manager
+							const s = claude.sessions && claude.sessions.get(`claude_${data.sessionId}`) || claude.sessions && claude.sessions.get(data.sessionId);
+							if (s && s.options) {
+								const cacheKey = `${s.options.cwd || ''}:${s.options.pathToClaudeCodeExecutable || ''}`;
+								const cached = claude._toolsCache.get(cacheKey);
+								availableCommands = cached ? cached.commands : null;
+							}
+						}
+					} catch (e) {
+						availableCommands = null;
+					}
+					if (callback) callback({ 
+						success: true, 
+						activityState,
+						hasPendingMessages,
+						availableCommands: Array.isArray(availableCommands) ? availableCommands : undefined
+					});
+				} else {
+					if (callback) callback({ 
+						success: true, 
+						activityState: 'idle',
+						hasPendingMessages: false 
+					});
+				}
+			} catch (err) {
+				console.error(`[SOCKET] Session status error:`, err);
+				if (callback) callback({ success: false, error: err.message });
+			}
+		});
+
+		// Session catchup event - for when a session regains focus
+		socket.on('session.catchup', (data) => {
+			console.log(`[SOCKET] session.catchup received:`, data);
+			// This could be used to resend any missed messages if needed
+			// For now, just log it
 		});
 
 		socket.on('disconnect', () => {
@@ -110,8 +198,13 @@ export function setupSocketIO(httpServer) {
 	return io;
 }
 
-async function directResume(socket, id, prompt) {
+async function directResume(socket, id, prompt, sessions) {
 	const sessionId = id.startsWith('claude_') ? id.replace(/^claude_/, '') : id;
+	
+	// Track as processing if sessions manager available
+	if (sessions) {
+		sessions.setProcessing(id);
+	}
 	const candidates = [
 		process.env.CLAUDE_PROJECTS_DIR,
 		join(process.env.HOME || homedir(), '.claude', 'projects'),
@@ -165,10 +258,22 @@ async function directResume(socket, id, prompt) {
 		for await (const event of stream) {
 			if (event) socket.emit('message.delta', [event]);
 		}
+		// Emit completion event
+		socket.emit('message.complete', { sessionId: id });
+		// Reset to idle after completion
+		if (sessions) {
+			sessions.setIdle(id);
+		}
 	} catch (err) {
 		const msg = String(err?.message || '').toLowerCase();
 		const tooLong = msg.includes('prompt too long') || (msg.includes('context') && msg.includes('too') && msg.includes('long'));
-		if (!tooLong) throw err;
+		if (!tooLong) {
+			// Reset to idle on error
+			if (sessions) {
+				sessions.setIdle(id);
+			}
+			throw err;
+		}
 		// Retry without resuming history
 		const fresh = query({
 			prompt,
@@ -181,6 +286,12 @@ async function directResume(socket, id, prompt) {
 		});
 		for await (const event of fresh) {
 			if (event) socket.emit('message.delta', [event]);
+		}
+		// Emit completion event
+		socket.emit('message.complete', { sessionId: id });
+		// Reset to idle after fresh query completes
+		if (sessions) {
+			sessions.setIdle(id);
 		}
 	}
 }

@@ -14,6 +14,9 @@ export async function GET({ params, url }) {
 
 	try {
 		const root = projectsRoot();
+		
+		
+
 		const projects = await readdir(root);
 
 		// Search all projects for the session file

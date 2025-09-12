@@ -21,17 +21,27 @@ export class WorkspaceManager {
 		return names.filter((d) => d.isDirectory()).map((d) => path.join(this.rootDir, d.name));
 	}
 	async open(dir) {
-		const stat = await fs.stat(dir);
-		if (!stat.isDirectory()) throw new Error('Not a directory');
-		this.index.workspaces[dir] ??= { lastActive: Date.now(), sessions: [] };
-		await this.#persist();
-		return { path: dir };
+	if (typeof dir !== 'string' || dir.trim() === '') throw new Error('Invalid directory');
+	// Resolve to absolute path
+	const resolved = path.resolve(dir);
+	// Ensure it's inside configured rootDir
+	const rel = path.relative(this.rootDir, resolved);
+	if (rel.startsWith('..')) throw new Error('Workspace path outside root');
+	const stat = await fs.stat(resolved);
+	if (!stat.isDirectory()) throw new Error('Not a directory');
+	this.index.workspaces[resolved] ??= { lastActive: Date.now(), sessions: [] };
+	await this.#persist();
+	return { path: resolved };
 	}
 	async create(dir) {
-		await fs.mkdir(dir, { recursive: true });
-		this.index.workspaces[dir] ??= { lastActive: Date.now(), sessions: [] };
-		await this.#persist();
-		return { path: dir };
+	if (typeof dir !== 'string' || dir.trim() === '') throw new Error('Invalid directory');
+	const resolved = path.resolve(dir);
+	const rel = path.relative(this.rootDir, resolved);
+	if (rel.startsWith('..')) throw new Error('Workspace path outside root');
+	await fs.mkdir(resolved, { recursive: true });
+	this.index.workspaces[resolved] ??= { lastActive: Date.now(), sessions: [] };
+	await this.#persist();
+	return { path: resolved };
 	}
 	async clone(fromPath, toPath) {
 		await fs.cp(fromPath, toPath, { recursive: true, errorOnExist: false });

@@ -3,6 +3,7 @@
 	import ClaudeProjectPicker from './ClaudeProjectPicker.svelte';
 	import ClaudeSessionPicker from './ClaudeSessionPicker.svelte';
 	import DirectoryBrowser from './DirectoryBrowser.svelte';
+	import { IconRobot, IconFolder } from '@tabler/icons-svelte';
 
 	let { open = $bindable(false), onSessionCreate } = $props();
 
@@ -17,9 +18,15 @@
 	async function handleCreate() {
 		creating = true;
 		try {
+			console.log('ClaudeSessionModal: Starting session creation', { mode, projectSource });
+			
 			if (mode === 'new') {
 				// Using directory browser for new project
-				if (!selectedDirectory) return;
+				if (!selectedDirectory) {
+					console.error('No directory selected');
+					return;
+				}
+				console.log('Creating new session with directory:', selectedDirectory);
 				// Use the selected directory as the workspace path
 				await onSessionCreate?.({
 					workspacePath: selectedDirectory,
@@ -32,7 +39,11 @@
 				// Existing project mode
 				if (projectSource === 'claude') {
 					// Using existing Claude project
-					if (!selectedProject) return;
+					if (!selectedProject) {
+						console.error('No project selected');
+						return;
+					}
+					console.log('Creating session for existing Claude project:', selectedProject);
 					await onSessionCreate?.({
 						workspacePath: selectedProject.path,
 						sessionId: selectedSession?.id || null,
@@ -42,7 +53,11 @@
 					});
 				} else {
 					// Using directory browser
-					if (!selectedDirectory) return;
+					if (!selectedDirectory) {
+						console.error('No directory selected');
+						return;
+					}
+					console.log('Creating session with existing directory:', selectedDirectory);
 					// Extract project name from the directory path
 					const dirName = selectedDirectory.split('/').pop() || 'project';
 					await onSessionCreate?.({
@@ -54,9 +69,11 @@
 					});
 				}
 			}
+			console.log('ClaudeSessionModal: Session created successfully, closing modal');
 			handleClose();
 		} catch (error) {
 			console.error('Failed to create Claude session:', error);
+			alert(`Failed to create session: ${error.message || 'Unknown error'}`);
 		} finally {
 			creating = false;
 		}
@@ -94,7 +111,7 @@
 	);
 </script>
 
-<Modal bind:open title="Create Claude Session" onclose={handleClose} size="medium">
+<Modal bind:open title="Create Claude Session" onclose={handleClose} size="large">
 	{#snippet children()}
 		<div class="terminal-form">
 			<div class="mode-selector">
@@ -165,7 +182,7 @@
 									selectedDirectory = null;
 								}}
 							>
-								<span class="tab-icon">🤖</span>
+								<span class="tab-icon"><IconRobot size={20} /></span>
 								CLAUDE PROJECTS
 							</button>
 							<button
@@ -177,7 +194,7 @@
 									selectedSession = null;
 								}}
 							>
-								<span class="tab-icon">📁</span>
+								<span class="tab-icon"><IconFolder size={20} /></span>
 								BROWSE DIRECTORIES
 							</button>
 						</div>
@@ -299,8 +316,8 @@
 
 	.content-area {
 		padding: 1.5rem;
-		min-height: 250px;
-		max-height: 50vh;
+		min-height: 400px;
+		max-height: 60vh;
 		overflow-y: auto;
 		overflow-x: hidden;
 		position: relative;
@@ -531,6 +548,12 @@
 
 	/* Responsive adjustments */
 	@media (max-width: 768px) {
+		.content-area {
+			min-height: 300px;
+			max-height: 70vh;
+			padding: 1rem;
+		}
+
 		.source-selector {
 			flex-direction: column;
 		}
@@ -538,6 +561,27 @@
 		.source-tab {
 			justify-content: flex-start;
 			padding: var(--space-2) var(--space-3);
+		}
+
+		.terminal-form {
+			min-height: auto;
+		}
+
+		.mode-selector {
+			position: sticky;
+			top: 0;
+			z-index: 10;
+			background: var(--bg-dark);
+		}
+
+		.tabs {
+			flex-direction: column;
+		}
+
+		.tab {
+			width: 100%;
+			text-align: left;
+			padding: 0.75rem 1rem;
 		}
 	}
 </style>
