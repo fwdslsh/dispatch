@@ -5,6 +5,7 @@
 	import Markdown from '$lib/shared/components/Markdown.svelte';
 	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
 	import sessionSocketManager from './SessionSocketManager.js';
+	import { IconFolder, IconMessage } from '@tabler/icons-svelte';
 	// Using global styles for inputs
 
 	let { sessionId, claudeSessionId = null, shouldResume = false, workspacePath: initialWorkspacePath = '' } = $props();
@@ -711,7 +712,7 @@
 			if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
 				messages = [...messages, {
 					role: 'assistant',
-					text: '⚠️ Sorry, I encountered an error processing your request. Please try again.',
+					text: '⚠ Sorry, I encountered an error processing your request. Please try again.',
 					timestamp: new Date(),
 					id: Date.now(),
 					isError: true,
@@ -790,12 +791,12 @@
 		<div class="chat-stats">
 			{#if workspacePath}
 				<div class="stat-item ai-cwd" title="{workspacePath}">
-					<span class="cwd-icon">📁</span>
+					<span class="cwd-icon"><IconFolder size={16} /></span>
 					<span class="cwd-path">{workspacePath.split('/').filter(Boolean).pop() || '/'}</span>
 				</div>
 			{/if}
 			<div class="stat-item">
-				<span class="stat-icon">💬</span>
+				<span class="stat-icon"><IconMessage size={16} /></span>
 				<span class="stat-value">{messages.length}</span>
 			</div>
 		</div>

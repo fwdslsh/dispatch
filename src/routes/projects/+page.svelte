@@ -11,6 +11,7 @@
 	import { Button } from '$lib/shared/components';
 	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
 	import sessionSocketManager from '$lib/components/SessionSocketManager.js';
+	import { IconX } from '@tabler/icons-svelte';
 
 	let sessions = $state([]);
 	let workspaces = $state([]);
@@ -187,6 +188,14 @@
 		resumeSession,
 		createWorkspace = false
 	}) {
+		console.log('createClaudeSession called with:', {
+			workspacePath,
+			sessionId,
+			projectName,
+			resumeSession,
+			createWorkspace
+		});
+		
 		// For new workspaces, construct the proper path using WORKSPACES_ROOT
 		let actualWorkspacePath = workspacePath;
 		if (createWorkspace) {
@@ -195,6 +204,7 @@
 		}
 
 		// Ensure workspace exists
+		console.log('Ensuring workspace exists...');
 		const workspaceResponse = await fetch('/api/workspaces', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
@@ -212,8 +222,10 @@
 
 		const workspaceData = await workspaceResponse.json();
 		const finalWorkspacePath = workspaceData.path;
+		console.log('Workspace ready:', finalWorkspacePath);
 
 		// Create Claude session via API
+		console.log('Creating Claude session via API...');
 		const r = await fetch('/api/sessions', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
@@ -229,10 +241,15 @@
 		});
 
 		if (!r.ok) {
+			const errorText = await r.text();
+			console.error('Failed to create Claude session:', r.status, errorText);
 			throw new Error(`Failed to create Claude session: ${r.statusText}`);
 		}
 
-		const { id, sessionId: claudeSessionId } = await r.json();
+		const responseData = await r.json();
+		console.log('Claude session created:', responseData);
+		
+		const { id, sessionId: claudeSessionId } = responseData;
 		const s = {
 			id,
 			type: 'claude',
@@ -241,8 +258,16 @@
 			claudeSessionId,
 			shouldResume: true
 		};
+		
+		console.log('Adding session to sessions array:', s);
 		sessions = [...sessions, s];
+		console.log('Current sessions:', sessions);
+		
+		console.log('Updating displayed sessions with ID:', id);
 		updateDisplayedWithSession(id);
+		console.log('Current displayed:', displayed);
+		
+		console.log('Claude session creation complete');
 	}
 
 	// Pinning removed — display is controlled by displayed[]
@@ -375,9 +400,9 @@
 
 	async function handleUnifiedSessionCreate(params) {
 		if (params.type === 'terminal') {
-			await createTerminalSession(params.workspacePath);
+			return await createTerminalSession(params.workspacePath);
 		} else if (params.type === 'claude') {
-			await createClaudeSession(params);
+			return await createClaudeSession(params);
 		}
 	}
 
@@ -503,7 +528,7 @@
 		<div class="sheet-header">
 			<div class="sheet-title">Sessions</div>
 			<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close"
-				>✕</button
+				><IconX size={14} /></button
 			>
 		</div>
 		<div class="sheet-body">

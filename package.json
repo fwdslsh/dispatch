@@ -37,6 +37,7 @@
 		"@battlefieldduck/xterm-svelte": "^2.1.0",
 		"@floating-ui/dom": "^1.7.4",
 		"@sveltejs/adapter-node": "*",
+		"@tabler/icons-svelte": "^3.26.0",
 		"@xterm/addon-fit": "^0.10.0",
 		"@xterm/xterm": "^5.5.0",
 		"ansi_up": "^6.0.6",

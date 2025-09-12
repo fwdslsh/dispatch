@@ -1,5 +1,6 @@
 <script>
 	import { Button } from "$lib/shared/components";
+	import { IconFolder, IconFolderPlus, IconEye, IconEyeOff, IconX, IconFile, IconCheck } from '@tabler/icons-svelte';
 
 	// Svelte 5 Directory Browser Component
 	let {
@@ -180,7 +181,7 @@
 				title="Create new directory"
 				class:active={showNewDirInput}
 			>
-				📁+
+				<IconFolderPlus size={16} />
 			</button>
 			<button
 				type="button"
@@ -189,7 +190,11 @@
 				title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
 				class:active={showHidden}
 			>
-				{showHidden ? '👁️' : '👁️‍🗨️'}
+				{#if showHidden}
+					<IconEye size={16} />
+				{:else}
+					<IconEyeOff size={16} />
+				{/if}
 			</button>
 		</div>
 	</div>
@@ -205,7 +210,7 @@
 				class="clear-selection"
 				title="Clear selection"
 			>
-				✕
+				<IconX size={16} />
 			</button>
 		</div>
 	{/if}
@@ -225,7 +230,7 @@
 			disabled={loading}
 			title="Select current directory"
 		>
-			✅
+			<IconCheck size={20} />
 		</button>
 		<Button
 				type="button"
@@ -233,7 +238,7 @@
 				title="Create new directory"
 				variant="ghost"
 			>
-				📁+
+				<IconFolderPlus size={16} />
 			</Button>
 			<Button
 				type="button"
@@ -242,7 +247,11 @@
 				title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
 				variant="ghost"
 			>
-				{showHidden ? '👁️' : '👁️‍🗨️'}
+				{#if showHidden}
+					<IconEye size={16} />
+				{:else}
+					<IconEyeOff size={16} />
+				{/if}
 			</Button>
 	</div>
 
@@ -293,7 +302,7 @@
 		{#if currentPath !== '/'}
 			<div class="list-item parent-dir">
 				<button type="button" onclick={goUp} disabled={loading} class="item-button">
-					<span class="icon">📁</span>
+					<span class="icon"><IconFolder size={20} /></span>
 					<span class="name">..</span>
 					<span class="type">parent directory</span>
 				</button>
@@ -309,7 +318,7 @@
 						disabled={loading}
 						class="item-button"
 					>
-						<span class="icon">📁</span>
+						<span class="icon"><IconFolder size={20} /></span>
 						<span class="name">{entry.name}</span>
 						<span class="type">directory</span>
 					</button>
@@ -320,11 +329,11 @@
 						class="quick-select"
 						title="Select this directory"
 					>
-						✓
+						<IconCheck size={16} />
 					</button>
 				{:else}
 					<div class="item-button file">
-						<span class="icon">📄</span>
+						<span class="icon"><IconFile size={20} /></span>
 						<span class="name">{entry.name}</span>
 						<span class="type">file</span>
 					</div>
@@ -379,8 +388,8 @@
 				var(--db-primary-dim) 0%, 
 				transparent 50%);
 		border: 1px solid var(--db-border-subtle);
-		border-radius: 16px;
-		padding: calc(var(--space-4) * 1.25);
+		border-radius: 12px;
+		padding: calc(var(--space-3) * 1);
 		font-family: var(--font-mono);
 		width: 100%;
 		position: relative;
@@ -968,7 +977,8 @@
 		scrollbar-width: thin;
 		scrollbar-color: var(--db-primary-dim) transparent;
 		min-height: 220px;
-		height: 320px;
+		height: 280px;
+		max-height: 400px;
 		/* background: 
 			linear-gradient(180deg, 
 				var(--db-surface) 0%, 
