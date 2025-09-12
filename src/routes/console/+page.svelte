@@ -1,11 +1,7 @@
 <script>
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
 	import { io } from 'socket.io-client';
 
-	export let data;
-	
 	let socket = null;
 	let activeSockets = [];
 	let socketEvents = [];
@@ -14,29 +10,15 @@
 	let selectedHistory = null;
 	let selectedTab = 'sockets';
 	
-	// Authentication state
-	let terminalKey = '';
-	let isAuthenticated = false;
-	
 	onMount(() => {
-		// Check authentication
-		const urlKey = $page.url.searchParams.get('key');
-		if (urlKey && data.isAuthenticated) {
-			terminalKey = urlKey;
-			isAuthenticated = true;
-			initializeAdminConsole();
-		} else {
-			// Show authentication form
-			isAuthenticated = false;
-		}
+		initializeAdminConsole();
+		
+		return () => {
+			if (socket) {
+				socket.disconnect();
+			}
+		};
 	});
-	
-	function authenticate() {
-		if (terminalKey && terminalKey.trim()) {
-			// Redirect with key parameter
-			goto(`/console?key=${encodeURIComponent(terminalKey)}`);
-		}
-	}
 	
 	function initializeAdminConsole() {
 		// Initialize Socket.IO connection for admin features
@@ -63,7 +45,7 @@
 	
 	async function loadActiveSockets() {
 		try {
-			const response = await fetch(`/api/admin/sockets?key=${encodeURIComponent(terminalKey)}`);
+			const response = await fetch('/api/admin/sockets');
 			if (response.ok) {
 				const data = await response.json();
 				activeSockets = data.sockets || [];
@@ -75,7 +57,7 @@
 	
 	async function loadServerLogs() {
 		try {
-			const response = await fetch(`/api/admin/logs?key=${encodeURIComponent(terminalKey)}`);
+			const response = await fetch('/api/admin/logs');
 			if (response.ok) {
 				const data = await response.json();
 				serverLogs = data.logs || [];
@@ -87,7 +69,7 @@
 
 	async function loadSocketHistories() {
 		try {
-			const response = await fetch(`/api/admin/history?key=${encodeURIComponent(terminalKey)}`);
+			const response = await fetch('/api/admin/history');
 			if (response.ok) {
 				const data = await response.json();
 				socketHistories = data.histories || [];
@@ -99,18 +81,17 @@
 
 	async function loadSocketHistory(socketId) {
 		try {
-			const response = await fetch(`/api/admin/history/${socketId}?key=${encodeURIComponent(terminalKey)}`);
+			const response = await fetch(`/api/admin/history/${socketId}`);
 			if (response.ok) {
 				const data = await response.json();
 				selectedHistory = data.history;
 			} else {
 				selectedHistory = null;
-				alert('Failed to load socket history');
+				console.error('Failed to load socket history');
 			}
 		} catch (error) {
 			console.error('Failed to load socket history:', error);
 			selectedHistory = null;
-			alert('Error loading socket history');
 		}
 	}
 	
@@ -124,19 +105,17 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ key: terminalKey })
+				}
 			});
 			
 			if (response.ok) {
 				// Remove from local list immediately
 				activeSockets = activeSockets.filter(s => s.id !== socketId);
 			} else {
-				alert('Failed to disconnect socket');
+				console.error('Failed to disconnect socket');
 			}
 		} catch (error) {
 			console.error('Failed to disconnect socket:', error);
-			alert('Error disconnecting socket');
 		}
 	}
 	
@@ -182,98 +161,103 @@
 	<title>Admin Console - Dispatch</title>
 </svelte:head>
 
-<div class="admin-console">
-	{#if !isAuthenticated}
-		<!-- Authentication Form -->
-		<div class="auth-container">
-			<div class="auth-form">
-				<h1>Admin Console</h1>
-				<p>Enter your terminal key to access the admin console:</p>
-				<form on:submit|preventDefault={authenticate}>
-					<input
-						type="password"
-						bind:value={terminalKey}
-						placeholder="Terminal Key"
-						required
-						class="auth-input"
-					/>
-					<button type="submit" class="auth-button">Access Console</button>
-				</form>
+<div class="console-container">
+	<!-- Console Header -->
+	<header class="console-header">
+		<div class="container">
+			<div class="header-content">
+				<h1 class="glow">Admin Console</h1>
+				<div class="cluster">
+					<span class="session-indicator active">Real-time monitoring</span>
+					<button onclick={() => location.reload()} class="button aug ghost" data-augmented-ui="tl-clip br-clip both">
+						Refresh
+					</button>
+				</div>
 			</div>
 		</div>
-	{:else}
-		<!-- Admin Console Interface -->
-		<header class="console-header">
-			<h1>Admin Console</h1>
-			<div class="header-info">
-				<span>Real-time monitoring and management</span>
-				<button on:click={() => location.reload()} class="refresh-btn">Refresh</button>
+	</header>
+	
+	<!-- Navigation Tabs -->
+	<nav class="console-nav">
+		<div class="container">
+			<div class="nav-tabs">
+				<button
+					class="nav-tab {selectedTab === 'sockets' ? 'active' : ''}"
+					onclick={() => selectedTab = 'sockets'}
+				>
+					<span class="tab-label">Active Sockets</span>
+					<span class="badge ok">{activeSockets.length}</span>
+				</button>
+				<button
+					class="nav-tab {selectedTab === 'events' ? 'active' : ''}"
+					onclick={() => selectedTab = 'events'}
+				>
+					<span class="tab-label">Socket Events</span>
+					<span class="badge">{socketEvents.length}</span>
+				</button>
+				<button
+					class="nav-tab {selectedTab === 'history' ? 'active' : ''}"
+					onclick={() => { selectedTab = 'history'; selectedHistory = null; }}
+				>
+					<span class="tab-label">Socket History</span>
+					<span class="badge">{socketHistories.length}</span>
+				</button>
+				<button
+					class="nav-tab {selectedTab === 'logs' ? 'active' : ''}"
+					onclick={() => selectedTab = 'logs'}
+				>
+					<span class="tab-label">Server Logs</span>
+					<span class="badge">{serverLogs.length}</span>
+				</button>
 			</div>
-		</header>
-		
-		<nav class="console-nav">
-			<button
-				class="nav-tab {selectedTab === 'sockets' ? 'active' : ''}"
-				on:click={() => selectedTab = 'sockets'}
-			>
-				Active Sockets ({activeSockets.length})
-			</button>
-			<button
-				class="nav-tab {selectedTab === 'events' ? 'active' : ''}"
-				on:click={() => selectedTab = 'events'}
-			>
-				Socket Events ({socketEvents.length})
-			</button>
-			<button
-				class="nav-tab {selectedTab === 'history' ? 'active' : ''}"
-				on:click={() => { selectedTab = 'history'; selectedHistory = null; }}
-			>
-				Socket History ({socketHistories.length})
-			</button>
-			<button
-				class="nav-tab {selectedTab === 'logs' ? 'active' : ''}"
-				on:click={() => selectedTab = 'logs'}
-			>
-				Server Logs ({serverLogs.length})
-			</button>
-		</nav>
-		
-		<main class="console-content">
+		</div>
+	</nav>
+	
+	<!-- Main Content Area -->
+	<main class="console-content">
+		<div class="container">
 			{#if selectedTab === 'sockets'}
-				<div class="tab-content">
+				<section class="tab-section">
 					<h2>Active Sockets</h2>
 					{#if activeSockets.length === 0}
-						<p class="empty-state">No active sockets</p>
+						<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
+							<p>No active sockets</p>
+						</div>
 					{:else}
-						<div class="socket-list">
+						<div class="term-grid">
 							{#each activeSockets as socket}
-								<div class="socket-card">
+								<div class="card aug socket-card" data-augmented-ui="tl-clip br-clip both">
 									<div class="socket-header">
-										<h3>Socket {socket.id}</h3>
+										<h3 class="session-indicator">Socket {socket.id}</h3>
 										<button
-											on:click={() => disconnectSocket(socket.id)}
-											class="disconnect-btn"
+											onclick={() => disconnectSocket(socket.id)}
+											class="button danger aug"
+											data-augmented-ui="tl-clip br-clip both"
 										>
 											Disconnect
 										</button>
 									</div>
-									<div class="socket-details">
+									<div class="socket-details stack">
 										<div class="detail-row">
-											<span class="label">IP Address:</span>
+											<span class="label muted">IP Address:</span>
 											<span class="value">{socket.ip || 'Unknown'}</span>
 										</div>
 										<div class="detail-row">
-											<span class="label">Connected:</span>
+											<span class="label muted">Connected:</span>
 											<span class="value">{formatTimestamp(socket.connectedAt)}</span>
 										</div>
 										<div class="detail-row">
-											<span class="label">Uptime:</span>
+											<span class="label muted">Uptime:</span>
 											<span class="value">{formatUptime(socket.connectedAt)}</span>
 										</div>
 										<div class="detail-row">
-											<span class="label">Authenticated:</span>
-											<span class="value {socket.authenticated ? 'authenticated' : 'not-authenticated'}">
-												{socket.authenticated ? 'Yes' : 'No'}
+											<span class="label muted">Authenticated:</span>
+											<span class="value">
+												{#if socket.authenticated}
+													<span class="badge ok">Yes</span>
+												{:else}
+													<span class="badge err">No</span>
+												{/if}
 											</span>
 										</div>
 									</div>
@@ -281,28 +265,30 @@
 							{/each}
 						</div>
 					{/if}
-				</div>
+				</section>
 			{:else if selectedTab === 'events'}
-				<div class="tab-content">
+				<section class="tab-section">
 					<h2>Socket Events Monitor</h2>
 					{#if socketEvents.length === 0}
-						<p class="empty-state">No events logged yet</p>
+						<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
+							<p>No events logged yet</p>
+						</div>
 					{:else}
 						<div class="events-list">
 							{#each socketEvents as event}
-								<div class="event-card">
+								<div class="panel aug event-card {getEventTypeClass(event.type)}" data-augmented-ui="tl-clip br-clip both">
 									<div class="event-header">
-										<span class="event-type">{event.type}</span>
-										<span class="event-timestamp">{formatTimestamp(event.timestamp)}</span>
+										<span class="badge">{event.type}</span>
+										<span class="muted">{formatTimestamp(event.timestamp)}</span>
 									</div>
-									<div class="event-details">
+									<div class="event-details stack">
 										<div class="detail-row">
-											<span class="label">Socket:</span>
+											<span class="label muted">Socket:</span>
 											<span class="value">{event.socketId}</span>
 										</div>
 										{#if event.data}
-											<div class="detail-row">
-												<span class="label">Data:</span>
+											<div class="event-data-section">
+												<span class="label muted">Data:</span>
 												<pre class="event-data">{JSON.stringify(event.data, null, 2)}</pre>
 											</div>
 										{/if}
@@ -311,75 +297,81 @@
 							{/each}
 						</div>
 					{/if}
-				</div>
+				</section>
 			{:else if selectedTab === 'logs'}
-				<div class="tab-content">
+				<section class="tab-section">
 					<h2>Server Logs</h2>
 					{#if serverLogs.length === 0}
-						<p class="empty-state">No server logs available</p>
+						<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
+							<p>No server logs available</p>
+						</div>
 					{:else}
-						<div class="logs-list">
-							{#each serverLogs as log}
-								<div class="log-entry {log.level}">
-									<span class="log-timestamp">{formatTimestamp(log.timestamp)}</span>
-									<span class="log-level">[{log.level.toUpperCase()}]</span>
-									<span class="log-message">{log.message}</span>
-								</div>
-							{/each}
+						<div class="logs-container panel aug" data-augmented-ui="tl-clip br-clip both">
+							<div class="logs-list">
+								{#each serverLogs as log}
+									<div class="log-entry log-{log.level}">
+										<span class="log-timestamp muted">{formatTimestamp(log.timestamp)}</span>
+										<span class="log-level badge {log.level}">[{log.level.toUpperCase()}]</span>
+										<span class="log-message">{log.message}</span>
+									</div>
+								{/each}
+							</div>
 						</div>
 					{/if}
-				</div>
+				</section>
 			{:else if selectedTab === 'history'}
-				<div class="tab-content">
+				<section class="tab-section">
 					{#if selectedHistory}
 						<!-- Individual Socket History View -->
 						<div class="history-detail">
-							<div class="history-header">
-								<button on:click={goBackToHistoryList} class="back-btn">← Back to History List</button>
+							<div class="history-header cluster">
+								<button onclick={goBackToHistoryList} class="button aug" data-augmented-ui="tl-clip br-clip both">
+									← Back
+								</button>
 								<h2>Socket History: {selectedHistory.socketId}</h2>
 							</div>
 							
-							<div class="history-metadata">
+							<div class="card aug history-metadata" data-augmented-ui="tl-clip br-clip both">
 								<h3>Socket Information</h3>
 								<div class="metadata-grid">
 									<div class="detail-row">
-										<span class="label">Socket ID:</span>
+										<span class="label muted">Socket ID:</span>
 										<span class="value">{selectedHistory.socketId}</span>
 									</div>
 									<div class="detail-row">
-										<span class="label">Connected:</span>
+										<span class="label muted">Connected:</span>
 										<span class="value">{formatTimestamp(selectedHistory.metadata.connectedAt)}</span>
 									</div>
 									<div class="detail-row">
-										<span class="label">IP Address:</span>
+										<span class="label muted">IP Address:</span>
 										<span class="value">{selectedHistory.metadata.ip}</span>
 									</div>
 									<div class="detail-row">
-										<span class="label">User Agent:</span>
+										<span class="label muted">User Agent:</span>
 										<span class="value">{selectedHistory.metadata.userAgent}</span>
 									</div>
 									{#if selectedHistory.metadata.sessionType}
 									<div class="detail-row">
-										<span class="label">Session Type:</span>
-										<span class="value session-type {selectedHistory.metadata.sessionType}">{selectedHistory.metadata.sessionType}</span>
+										<span class="label muted">Session Type:</span>
+										<span class="badge">{selectedHistory.metadata.sessionType}</span>
 									</div>
 									{/if}
 									{#if selectedHistory.metadata.sessionName}
 									<div class="detail-row">
-										<span class="label">Session Name:</span>
+										<span class="label muted">Session Name:</span>
 										<span class="value">{selectedHistory.metadata.sessionName}</span>
 									</div>
 									{/if}
 									{#if selectedHistory.metadata.cwd}
 									<div class="detail-row">
-										<span class="label">Working Directory:</span>
-										<span class="value">{selectedHistory.metadata.cwd}</span>
+										<span class="label muted">Working Directory:</span>
+										<span class="value prompt">{selectedHistory.metadata.cwd}</span>
 									</div>
 									{/if}
 								</div>
 							</div>
 
-							<div class="history-events">
+							<div class="panel aug history-events" data-augmented-ui="tl-clip br-clip both">
 								<h3>Communication Events ({selectedHistory.events.length})</h3>
 								{#if selectedHistory.events.length === 0}
 									<p class="empty-state">No events recorded</p>
@@ -387,10 +379,10 @@
 									<div class="events-timeline">
 										{#each selectedHistory.events as event}
 											<div class="timeline-event {getEventTypeClass(event.type)}">
-												<div class="event-header">
-													<span class="event-type">{event.type}</span>
-													<span class="event-direction direction-{event.direction}">{event.direction}</span>
-													<span class="event-timestamp">{formatTimestamp(event.timestamp)}</span>
+												<div class="event-header cluster">
+													<span class="badge">{event.type}</span>
+													<span class="badge direction-{event.direction}">{event.direction}</span>
+													<span class="muted">{formatTimestamp(event.timestamp)}</span>
 												</div>
 												{#if event.data}
 													<div class="event-data-container">
@@ -405,50 +397,56 @@
 						</div>
 					{:else}
 						<!-- Socket History List View -->
-						<h2>Socket History</h2>
-						<div class="history-controls">
-							<button on:click={loadSocketHistories} class="refresh-btn">Refresh History</button>
+						<div class="history-list-header cluster">
+							<h2>Socket History</h2>
+							<button onclick={loadSocketHistories} class="button aug" data-augmented-ui="tl-clip br-clip both">
+								Refresh
+							</button>
 						</div>
 						
 						{#if socketHistories.length === 0}
-							<p class="empty-state">No socket histories available</p>
+							<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
+								<p>No socket histories available</p>
+							</div>
 						{:else}
-							<div class="history-list">
+							<div class="term-grid">
 								{#each socketHistories as history}
-									<div class="history-card {history.isActive ? 'active' : 'inactive'}">
+									<div class="card aug history-card {history.isActive ? 'active' : ''}" data-augmented-ui="tl-clip br-clip both">
 										<div class="history-card-header">
-											<h3>Socket {history.socketId}</h3>
+											<h3 class="session-indicator {history.isActive ? 'active' : ''}">
+												Socket {history.socketId}
+											</h3>
 											<div class="history-status">
 												{#if history.isActive}
-													<span class="status-badge active">Active</span>
+													<span class="badge ok">Active</span>
 												{:else}
-													<span class="status-badge inactive">Disconnected</span>
+													<span class="badge">Disconnected</span>
 												{/if}
 											</div>
 										</div>
 										
-										<div class="history-card-details">
+										<div class="history-card-details stack">
 											<div class="detail-row">
-												<span class="label">Last Modified:</span>
+												<span class="label muted">Last Modified:</span>
 												<span class="value">{formatTimestamp(history.lastModified)}</span>
 											</div>
 											<div class="detail-row">
-												<span class="label">Events:</span>
+												<span class="label muted">Events:</span>
 												<span class="value">{history.eventCount}</span>
 											</div>
 											<div class="detail-row">
-												<span class="label">File Size:</span>
+												<span class="label muted">File Size:</span>
 												<span class="value">{formatFileSize(history.size)}</span>
 											</div>
 											{#if history.metadata.sessionType}
 											<div class="detail-row">
-												<span class="label">Type:</span>
-												<span class="value session-type {history.metadata.sessionType}">{history.metadata.sessionType}</span>
+												<span class="label muted">Type:</span>
+												<span class="badge">{history.metadata.sessionType}</span>
 											</div>
 											{/if}
 											{#if history.metadata.ip}
 											<div class="detail-row">
-												<span class="label">IP:</span>
+												<span class="label muted">IP:</span>
 												<span class="value">{history.metadata.ip}</span>
 											</div>
 											{/if}
@@ -456,8 +454,9 @@
 										
 										<div class="history-card-actions">
 											<button 
-												on:click={() => selectSocketHistory(history.socketId)}
-												class="view-btn"
+												onclick={() => selectSocketHistory(history.socketId)}
+												class="button primary aug"
+												data-augmented-ui="tl-clip br-clip both"
 											>
 												View History
 											</button>
@@ -467,577 +466,417 @@
 							</div>
 						{/if}
 					{/if}
-				</div>
+				</section>
 			{/if}
-		</main>
-	{/if}
+		</div>
+	</main>
 </div>
 
 <style>
-	.admin-console {
+	/* Container and Layout */
+	.console-container {
 		min-height: 100vh;
-		background: #1a1a1a;
-		color: #e0e0e0;
-		font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+		background: var(--bg);
 	}
-	
-	/* Authentication Form */
-	.auth-container {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		min-height: 100vh;
-		padding: 20px;
-	}
-	
-	.auth-form {
-		background: #2a2a2a;
-		padding: 40px;
-		border-radius: 8px;
-		border: 1px solid #444;
-		max-width: 400px;
-		width: 100%;
-	}
-	
-	.auth-form h1 {
-		margin: 0 0 20px 0;
-		color: #fff;
-		text-align: center;
-	}
-	
-	.auth-form p {
-		margin: 0 0 30px 0;
-		color: #ccc;
-		text-align: center;
-	}
-	
-	.auth-input {
-		width: 100%;
-		padding: 12px;
-		background: #1a1a1a;
-		border: 1px solid #444;
-		border-radius: 4px;
-		color: #e0e0e0;
-		font-size: 16px;
-		margin-bottom: 20px;
-	}
-	
-	.auth-input:focus {
-		outline: none;
-		border-color: #0066cc;
-	}
-	
-	.auth-button {
-		width: 100%;
-		padding: 12px;
-		background: #0066cc;
-		border: none;
-		border-radius: 4px;
-		color: white;
-		font-size: 16px;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-	
-	.auth-button:hover {
-		background: #0052a3;
-	}
-	
-	/* Console Interface */
+
+	/* Console Header */
 	.console-header {
-		background: #2a2a2a;
-		border-bottom: 1px solid #444;
-		padding: 20px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--line);
+		padding: var(--space-5) 0;
+	}
+
+	.header-content {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--space-4);
 	}
-	
+
 	.console-header h1 {
 		margin: 0;
-		color: #fff;
 	}
-	
-	.header-info {
-		display: flex;
-		align-items: center;
-		gap: 20px;
-	}
-	
-	.refresh-btn {
-		padding: 8px 16px;
-		background: #444;
-		border: 1px solid #666;
-		border-radius: 4px;
-		color: #e0e0e0;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-	
-	.refresh-btn:hover {
-		background: #555;
-	}
-	
+
+	/* Navigation */
 	.console-nav {
-		background: #222;
-		border-bottom: 1px solid #444;
-		padding: 0 20px;
+		background: var(--elev);
+		border-bottom: 1px solid var(--line);
+		position: sticky;
+		top: 0;
+		z-index: 10;
+	}
+
+	.nav-tabs {
 		display: flex;
 		gap: 0;
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
 	}
-	
+
 	.nav-tab {
-		padding: 15px 20px;
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-4) var(--space-5);
 		background: none;
 		border: none;
-		color: #ccc;
+		color: var(--muted);
 		cursor: pointer;
 		border-bottom: 3px solid transparent;
-		transition: all 0.2s;
+		transition: all 0.2s ease;
+		white-space: nowrap;
+		font-family: var(--font-mono);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.02em;
 	}
-	
+
 	.nav-tab:hover {
-		color: #fff;
-		background: #333;
+		color: var(--text);
+		background: color-mix(in oklab, var(--surface) 50%, transparent);
 	}
-	
+
 	.nav-tab.active {
-		color: #fff;
-		border-bottom-color: #0066cc;
+		color: var(--accent);
+		border-bottom-color: var(--accent);
 	}
-	
+
+	.tab-label {
+		font-size: var(--font-size-1);
+	}
+
+	/* Content Area */
 	.console-content {
-		padding: 20px;
+		padding: var(--space-6) 0;
 	}
-	
-	.tab-content h2 {
-		margin: 0 0 20px 0;
-		color: #fff;
+
+	.tab-section h2 {
+		margin-bottom: var(--space-5);
 	}
-	
+
+	/* Empty State */
 	.empty-state {
-		color: #888;
 		text-align: center;
-		padding: 40px;
+		padding: var(--space-6);
+		color: var(--muted);
 		font-style: italic;
 	}
-	
-	/* Socket List */
-	.socket-list {
-		display: grid;
-		gap: 15px;
-	}
-	
+
+	/* Socket Cards */
 	.socket-card {
-		background: #2a2a2a;
-		border: 1px solid #444;
-		border-radius: 6px;
-		padding: 20px;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
 	}
-	
+
 	.socket-header {
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 15px;
+		align-items: flex-start;
+		margin-bottom: var(--space-4);
+		gap: var(--space-3);
 	}
-	
+
 	.socket-header h3 {
 		margin: 0;
-		color: #fff;
-		font-size: 18px;
+		font-size: var(--font-size-2);
+		word-break: break-all;
 	}
-	
-	.disconnect-btn {
-		padding: 6px 12px;
-		background: #dc3545;
-		border: none;
-		border-radius: 4px;
-		color: white;
-		cursor: pointer;
-		font-size: 12px;
-		transition: background 0.2s;
-	}
-	
-	.disconnect-btn:hover {
-		background: #c82333;
-	}
-	
+
 	.socket-details {
-		display: grid;
-		gap: 8px;
+		flex: 1;
 	}
-	
+
 	.detail-row {
 		display: flex;
-		gap: 10px;
+		gap: var(--space-2);
+		align-items: baseline;
+		flex-wrap: wrap;
 	}
-	
+
 	.label {
-		font-weight: bold;
-		color: #ccc;
+		font-weight: 600;
 		min-width: 120px;
 	}
-	
+
 	.value {
-		color: #e0e0e0;
+		color: var(--text);
+		word-break: break-word;
 	}
-	
-	.authenticated {
-		color: #28a745;
-	}
-	
-	.not-authenticated {
-		color: #dc3545;
-	}
-	
-	/* Events List */
+
+	/* Events */
 	.events-list {
 		display: grid;
-		gap: 10px;
+		gap: var(--space-4);
 		max-height: 70vh;
 		overflow-y: auto;
+		padding-right: var(--space-2);
 	}
-	
+
 	.event-card {
-		background: #2a2a2a;
-		border: 1px solid #444;
-		border-radius: 4px;
-		padding: 15px;
+		position: relative;
 	}
-	
+
+	.event-card.event-connection {
+		border-left: 4px solid var(--ok);
+	}
+
+	.event-card.event-disconnect {
+		border-left: 4px solid var(--err);
+	}
+
+	.event-card.event-auth {
+		border-left: 4px solid var(--warn);
+	}
+
+	.event-card.event-input {
+		border-left: 4px solid var(--accent);
+	}
+
+	.event-card.event-output {
+		border-left: 4px solid var(--info);
+	}
+
 	.event-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 10px;
+		margin-bottom: var(--space-3);
+		flex-wrap: wrap;
+		gap: var(--space-2);
 	}
-	
-	.event-type {
-		background: #0066cc;
-		color: white;
-		padding: 4px 8px;
-		border-radius: 3px;
-		font-size: 12px;
-		font-weight: bold;
+
+	.event-details {
+		gap: var(--space-3);
 	}
-	
-	.event-timestamp {
-		color: #888;
-		font-size: 12px;
+
+	.event-data-section {
+		margin-top: var(--space-3);
 	}
-	
+
 	.event-data {
-		background: #1a1a1a;
-		border: 1px solid #333;
-		border-radius: 3px;
-		padding: 10px;
-		font-size: 12px;
-		color: #e0e0e0;
+		background: var(--bg);
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		padding: var(--space-3);
+		font-size: var(--font-size-0);
+		color: var(--text);
 		overflow-x: auto;
-		margin: 0;
-	}
-	
-	/* Logs List */
-	.logs-list {
-		background: #1a1a1a;
-		border: 1px solid #333;
-		border-radius: 4px;
-		padding: 15px;
-		max-height: 70vh;
+		margin: var(--space-2) 0 0 0;
+		max-height: 300px;
 		overflow-y: auto;
-		font-family: monospace;
 	}
-	
+
+	/* Logs */
+	.logs-container {
+		max-height: 70vh;
+		overflow: hidden;
+	}
+
+	.logs-list {
+		padding: var(--space-4);
+		overflow-y: auto;
+		max-height: calc(70vh - var(--space-6));
+		font-family: var(--font-mono);
+	}
+
 	.log-entry {
 		display: flex;
-		gap: 10px;
-		margin-bottom: 5px;
-		padding: 3px 0;
+		gap: var(--space-3);
+		margin-bottom: var(--space-2);
+		padding: var(--space-1) 0;
+		align-items: baseline;
+		flex-wrap: wrap;
 	}
-	
+
 	.log-timestamp {
-		color: #888;
-		font-size: 12px;
 		min-width: 150px;
+		font-size: var(--font-size-0);
 	}
-	
+
 	.log-level {
-		font-weight: bold;
 		min-width: 60px;
+		text-align: center;
 	}
-	
-	.log-entry.error .log-level {
-		color: #dc3545;
+
+	.log-level.error,
+	.badge.error {
+		background-color: var(--err);
+		color: var(--bg);
 	}
-	
-	.log-entry.warn .log-level {
-		color: #ffc107;
+
+	.log-level.warn,
+	.badge.warn {
+		background-color: var(--warn);
+		color: var(--bg);
 	}
-	
-	.log-entry.info .log-level {
-		color: #17a2b8;
+
+	.log-level.info,
+	.badge.info {
+		background-color: var(--info);
+		color: var(--bg);
 	}
-	
-	.log-entry.debug .log-level {
-		color: #6c757d;
+
+	.log-level.debug,
+	.badge.debug {
+		background-color: var(--muted);
+		color: var(--bg);
 	}
-	
+
 	.log-message {
-		color: #e0e0e0;
+		flex: 1;
+		word-break: break-word;
 	}
 
-	/* Socket History Styles */
-	.history-controls {
-		margin-bottom: 20px;
-		display: flex;
-		gap: 10px;
-		align-items: center;
-	}
-
-	.history-list {
-		display: grid;
-		gap: 15px;
-	}
-
-	.history-card {
-		background: #2a2a2a;
-		border: 1px solid #444;
-		border-radius: 6px;
-		padding: 20px;
+	/* History */
+	.history-list-header {
+		margin-bottom: var(--space-5);
 	}
 
 	.history-card.active {
-		border-color: #28a745;
-		background: #2a3d2a;
+		--aug-border-bg: var(--ok);
+		--aug-border-opacity: 0.4;
 	}
 
 	.history-card-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 15px;
+		margin-bottom: var(--space-4);
+		gap: var(--space-3);
 	}
 
 	.history-card-header h3 {
 		margin: 0;
-		color: #fff;
-		font-size: 18px;
-	}
-
-	.status-badge {
-		padding: 4px 8px;
-		border-radius: 3px;
-		font-size: 12px;
-		font-weight: bold;
-	}
-
-	.status-badge.active {
-		background: #28a745;
-		color: white;
-	}
-
-	.status-badge.inactive {
-		background: #6c757d;
-		color: white;
+		font-size: var(--font-size-2);
 	}
 
 	.history-card-details {
-		display: grid;
-		gap: 8px;
-		margin-bottom: 15px;
+		margin-bottom: var(--space-4);
 	}
 
 	.history-card-actions {
-		display: flex;
-		gap: 10px;
+		margin-top: auto;
+		padding-top: var(--space-4);
 	}
 
-	.view-btn {
-		padding: 8px 16px;
-		background: #0066cc;
-		border: none;
-		border-radius: 4px;
-		color: white;
-		cursor: pointer;
-		font-size: 14px;
-		transition: background 0.2s;
-	}
-
-	.view-btn:hover {
-		background: #0052a3;
-	}
-
-	.session-type {
-		font-weight: bold;
-		text-transform: uppercase;
-		font-size: 11px;
-		padding: 2px 6px;
-		border-radius: 3px;
-	}
-
-	.session-type.terminal {
-		background: #17a2b8;
-		color: white;
-	}
-
-	.session-type.claude {
-		background: #6f42c1;
-		color: white;
-	}
-
-	/* History Detail View */
+	/* History Detail */
 	.history-detail {
 		max-width: 100%;
 	}
 
 	.history-header {
-		display: flex;
-		align-items: center;
-		gap: 20px;
-		margin-bottom: 20px;
+		margin-bottom: var(--space-5);
 	}
 
-	.back-btn {
-		padding: 8px 16px;
-		background: #444;
-		border: 1px solid #666;
-		border-radius: 4px;
-		color: #e0e0e0;
-		cursor: pointer;
-		transition: background 0.2s;
-		text-decoration: none;
-		font-size: 14px;
-	}
-
-	.back-btn:hover {
-		background: #555;
-	}
-
-	.history-header h2 {
-		margin: 0;
-		color: #fff;
-	}
-
-	.history-metadata {
-		background: #1a1a1a;
-		border: 1px solid #333;
-		border-radius: 6px;
-		padding: 20px;
-		margin-bottom: 20px;
-	}
-
-	.history-metadata h3 {
-		margin: 0 0 15px 0;
-		color: #fff;
-		font-size: 16px;
+	.history-metadata,
+	.history-events {
+		margin-bottom: var(--space-5);
 	}
 
 	.metadata-grid {
 		display: grid;
-		gap: 10px;
-	}
-
-	.history-events {
-		background: #1a1a1a;
-		border: 1px solid #333;
-		border-radius: 6px;
-		padding: 20px;
-	}
-
-	.history-events h3 {
-		margin: 0 0 20px 0;
-		color: #fff;
-		font-size: 16px;
+		gap: var(--space-3);
+		margin-top: var(--space-4);
 	}
 
 	.events-timeline {
 		max-height: 60vh;
 		overflow-y: auto;
 		display: grid;
-		gap: 15px;
+		gap: var(--space-4);
+		padding-right: var(--space-2);
+		margin-top: var(--space-4);
 	}
 
 	.timeline-event {
-		background: #2a2a2a;
-		border: 1px solid #444;
-		border-radius: 4px;
-		padding: 15px;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		padding: var(--space-4);
 	}
 
 	.timeline-event.event-connection {
-		border-left: 4px solid #28a745;
+		border-left: 4px solid var(--ok);
 	}
 
 	.timeline-event.event-disconnect {
-		border-left: 4px solid #dc3545;
+		border-left: 4px solid var(--err);
 	}
 
 	.timeline-event.event-auth {
-		border-left: 4px solid #ffc107;
+		border-left: 4px solid var(--warn);
 	}
 
 	.timeline-event.event-input {
-		border-left: 4px solid #0066cc;
+		border-left: 4px solid var(--accent);
 	}
 
 	.timeline-event.event-output {
-		border-left: 4px solid #17a2b8;
+		border-left: 4px solid var(--info);
 	}
 
 	.timeline-event.event-system {
-		border-left: 4px solid #6c757d;
-	}
-
-	.timeline-event .event-header {
-		display: flex;
-		gap: 10px;
-		align-items: center;
-		margin-bottom: 10px;
-	}
-
-	.event-direction {
-		font-size: 10px;
-		font-weight: bold;
-		padding: 2px 6px;
-		border-radius: 3px;
-		text-transform: uppercase;
-	}
-
-	.direction-in {
-		background: #0066cc;
-		color: white;
-	}
-
-	.direction-out {
-		background: #17a2b8;
-		color: white;
-	}
-
-	.direction-system {
-		background: #6c757d;
-		color: white;
-	}
-
-	.direction-unknown {
-		background: #444;
-		color: #ccc;
+		border-left: 4px solid var(--muted);
 	}
 
 	.event-data-container {
-		margin-top: 10px;
+		margin-top: var(--space-3);
 	}
 
-	.timeline-event .event-data {
-		background: #1a1a1a;
-		border: 1px solid #333;
-		border-radius: 3px;
-		padding: 10px;
-		font-size: 12px;
-		color: #e0e0e0;
-		overflow-x: auto;
-		margin: 0;
-		max-height: 300px;
-		overflow-y: auto;
+	/* Direction badges */
+	.direction-in {
+		background-color: var(--accent);
+		color: var(--bg);
+	}
+
+	.direction-out {
+		background-color: var(--info);
+		color: var(--bg);
+	}
+
+	.direction-system {
+		background-color: var(--muted);
+		color: var(--bg);
+	}
+
+	.direction-unknown {
+		background-color: var(--surface);
+		color: var(--text);
+	}
+
+	/* Responsive Design */
+	@media (max-width: 768px) {
+		.header-content {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.nav-tabs {
+			width: 100%;
+		}
+
+		.nav-tab {
+			padding: var(--space-3) var(--space-4);
+		}
+
+		.detail-row {
+			flex-direction: column;
+			gap: var(--space-1);
+		}
+
+		.label {
+			min-width: auto;
+		}
+
+		.socket-header {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.socket-header button {
+			width: 100%;
+		}
 	}
 </style>

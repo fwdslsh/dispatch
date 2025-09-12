@@ -17,6 +17,20 @@
 	let commandMenuButton = $state();
 	let lastParsedMessages = $state([]);
 
+	// Utility: shallow compare command lists by name/title to avoid redundant writes
+	function commandsEqual(a, b) {
+		if (a === b) return true;
+		if (!Array.isArray(a) || !Array.isArray(b)) return false;
+		if (a.length !== b.length) return false;
+		for (let i = 0; i < a.length; i++) {
+			const ai = a[i] || {};
+			const bi = b[i] || {};
+			if (ai.name !== bi.name) return false;
+			if (ai.title !== bi.title) return false;
+		}
+		return true;
+	}
+
 	/**
 	 * Parse slash commands from text content
 	 * @param {string} message - Text to parse for commands
@@ -95,20 +109,23 @@
 			}
 		}
 		
-		// Deduplicate and update
+		// Deduplicate
 		const seen = new Set();
-		availableCommands = newCommands.filter(c => {
+		const deduped = newCommands.filter(c => {
 			if (!c.name || seen.has(c.name)) return false;
 			seen.add(c.name);
 			return true;
 		});
-		
-		// Cache the results
-		if (workspacePath && availableCommands.length > 0) {
-			try {
-				localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands));
-			} catch (error) {
-				console.error('Failed to cache commands:', error);
+		// Only update state if it actually changed
+		if (!commandsEqual(availableCommands, deduped)) {
+			availableCommands = deduped;
+			// Cache the results when we update
+			if (workspacePath && availableCommands.length > 0) {
+				try {
+					localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands));
+				} catch (error) {
+					console.error('Failed to cache commands:', error);
+				}
 			}
 		}
 	}
@@ -122,7 +139,7 @@
 			
 			const commands = Array.isArray(payload.commands) ? payload.commands : [];
 			if (commands.length > 0) {
-				availableCommands = commands.map((c) => {
+				const normalized = commands.map((c) => {
 					// Normalize shape { name, title, description }
 					if (typeof c === 'string') {
 						return { name: c, title: c, description: `Execute ${c}` };
@@ -133,18 +150,19 @@
 						description: c.description || `Execute ${c.name || c.title || ''}` 
 					};
 				});
-				
-				// Cache commands
-				if (workspacePath) {
-					try {
-						localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands));
-					} catch (error) {
-						console.error('Failed to cache WebSocket commands:', error);
+				if (!commandsEqual(availableCommands, normalized)) {
+					availableCommands = normalized;
+					// Cache commands when updated
+					if (workspacePath) {
+						try {
+							localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands));
+						} catch (error) {
+							console.error('Failed to cache WebSocket commands:', error);
+						}
 					}
+					// Close menu so user can re-open to see new list
+					commandMenuOpen = false;
 				}
-				
-				// Close menu so user can re-open to see new list
-				commandMenuOpen = false;
 			}
 		} catch (error) {
 			console.error('Failed to handle tools.list payload:', error);
@@ -212,7 +230,7 @@
 				socket.emit('session.status', { key, sessionId }, (response) => {
 					try {
 						if (response && Array.isArray(response.availableCommands) && response.availableCommands.length > 0) {
-							availableCommands = response.availableCommands.map((c) => {
+							const normalized = response.availableCommands.map((c) => {
 								if (typeof c === 'string') {
 									return { name: c, title: c, description: `Execute ${c}` };
 								}
@@ -222,12 +240,14 @@
 									description: c.description || `Execute ${c.name || c.title || ''}` 
 								};
 							});
-							
-							if (workspacePath) {
-								try {
-									localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands));
-								} catch (error) {
-									console.error('Failed to cache session commands:', error);
+							if (!commandsEqual(availableCommands, normalized)) {
+								availableCommands = normalized;
+								if (workspacePath) {
+									try {
+										localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands));
+									} catch (error) {
+										console.error('Failed to cache session commands:', error);
+									}
 								}
 							}
 						}
@@ -263,7 +283,9 @@
 			if (workspacePath) {
 				try {
 					localStorage.removeItem(`claude-commands-${workspacePath}`);
-					availableCommands = [];
+					if (!(Array.isArray(availableCommands) && availableCommands.length === 0)) {
+						availableCommands = [];
+					}
 				} catch (error) {
 					console.error('Failed to clear command cache:', error);
 				}

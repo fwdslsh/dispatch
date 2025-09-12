@@ -120,7 +120,8 @@
 		if (isMobile) {
 			const allSessions = sessions.filter((s) => s && s.id);
 			const idx = allSessions.findIndex((s) => s.id === sessionId);
-			if (idx !== -1) currentMobileSession = idx;
+			// Only update when it actually changes to avoid re-triggering derivations
+			if (idx !== -1 && currentMobileSession !== idx) currentMobileSession = idx;
 			return;
 		}
 		const without = displayed.filter((id) => id !== sessionId);
@@ -168,8 +169,11 @@
 		return new Promise((resolve, reject) => {
 			socket.emit('terminal.start', { key, workspacePath }, (response) => {
 				if (response.success) {
-					const s = { id: response.id, type: 'pty', workspacePath };
-					sessions = [...sessions, s];
+					const existing = sessions.find((s) => s && s.id === response.id);
+					if (!existing) {
+						const s = { id: response.id, type: 'pty', workspacePath };
+						sessions = [...sessions, s];
+					}
 					updateDisplayedWithSession(response.id);
 					resolve();
 				} else {
@@ -250,23 +254,24 @@
 		console.log('Claude session created:', responseData);
 		
 		const { id, sessionId: claudeSessionId } = responseData;
-		const s = {
-			id,
-			type: 'claude',
-			workspacePath: finalWorkspacePath, // Use the final workspace path from the API
-			projectName,
-			claudeSessionId,
-			shouldResume: true
-		};
-		
-		console.log('Adding session to sessions array:', s);
-		sessions = [...sessions, s];
-		console.log('Current sessions:', sessions);
-		
+		// Avoid duplicate inserts if session already present
+		const existing = sessions.find((s) => s && s.id === id);
+		if (!existing) {
+			const s = {
+				id,
+				type: 'claude',
+				workspacePath: finalWorkspacePath, // Use the final workspace path from the API
+				projectName,
+				claudeSessionId,
+				shouldResume: true
+			};
+			console.log('Adding session to sessions array:', s);
+			sessions = [...sessions, s];
+			console.log('Current sessions:', sessions);
+		}
 		console.log('Updating displayed sessions with ID:', id);
 		updateDisplayedWithSession(id);
 		console.log('Current displayed:', displayed);
-		
 		console.log('Claude session creation complete');
 	}
 
@@ -360,11 +365,11 @@
 	// Responsive detection
 	function updateMobileState() {
 		const nowMobile = window.innerWidth <= 768;
-		// Only act on transition between desktop and mobile; don't reset index on every resize
+		// Only update when the value actually changes to avoid unnecessary reactive churn
 		if (nowMobile !== isMobile) {
 			// Preserve currentMobileSession; avoid resetting to 0 to prevent jumps when virtual keyboard opens
+			isMobile = nowMobile;
 		}
-		isMobile = nowMobile;
 	}
 
 	function toggleSessionMenu() {
