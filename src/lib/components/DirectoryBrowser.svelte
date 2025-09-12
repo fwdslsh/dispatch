@@ -157,7 +157,7 @@
 
 <div class="directory-browser">
 	<!-- Breadcrumb navigation -->
-	<div class="breadcrumb-bar" style="display: none;">
+	<div class="breadcrumb-bar" aria-label="Breadcrumbs">
 		<div class="breadcrumbs">
 			{#each breadcrumbs as crumb, i}
 				{#if i > 0}

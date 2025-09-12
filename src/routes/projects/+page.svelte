@@ -21,6 +21,8 @@
 	let terminalModalOpen = $state(false);
 	let claudeModalOpen = $state(false);
 	let createSessionModalOpen = $state(false);
+	let createSessionInitialType = $state('claude');
+	let quickCreating = $state(false);
 
 	// Session grid state - responsive layout
 	let layoutPreset = $state('2up'); // '1up' | '2up' | '4up'
@@ -380,6 +382,29 @@
 		console.log('Session focused:', session.id);
 		// Notify the session socket manager about the focus change
 		sessionSocketManager.handleSessionFocus(session.id);
+	}
+
+	async function quickCreateClaude() {
+		try {
+			quickCreating = true;
+			const projectName = `project-${Date.now().toString(36)}`;
+			await createClaudeSession({
+				workspacePath: projectName,
+				sessionId: null,
+				projectName,
+				resumeSession: false,
+				createWorkspace: true
+			});
+		} catch (e) {
+			console.error('Quick create Claude failed:', e);
+		} finally {
+			quickCreating = false;
+		}
+	}
+
+	function openTerminalCreation() {
+		createSessionInitialType = 'terminal';
+		createSessionModalOpen = true;
 	}
 
 	async function resumeTerminalSession({ terminalId, workspacePath }) {
@@ -761,8 +786,25 @@
 			</div>
 			<div class="center-group">
 				<button
+					class="bottom-btn primary"
+					onclick={quickCreateClaude}
+					disabled={quickCreating}
+					aria-label="New Claude Session"
+					title="New Claude Session"
+				>
+					{quickCreating ? 'Creating…' : 'New Claude'}
+				</button>
+				<button
+					class="bottom-btn"
+					onclick={openTerminalCreation}
+					aria-label="New Terminal Session"
+					title="New Terminal Session"
+				>
+					New Terminal
+				</button>
+				<button
 					class="add-session-btn"
-					onclick={() => (createSessionModalOpen = true)}
+					onclick={() => { createSessionInitialType = 'claude'; createSessionModalOpen = true; }}
 					aria-label="Create new session"
 					title="Create new session"
 				>
@@ -801,6 +843,7 @@
 
 <CreateSessionModal
 	bind:open={createSessionModalOpen}
+	initialType={createSessionInitialType}
 	onSessionCreate={handleUnifiedSessionCreate}
 />
 
@@ -949,6 +992,13 @@
 		touch-action: manipulation;
 		user-select: none;
 		cursor: pointer;
+	}
+
+	/* Hide New Claude and New Terminal buttons on mobile */
+	@media (max-width: 768px) {
+		.center-group .bottom-btn:not(.add-session-btn) {
+			display: none;
+		}
 	}
 
 	.add-session-btn {

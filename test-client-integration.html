@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Claude Session History Loading</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Testing Claude Session History Loading</h1>
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message) {
+            const p = document.createElement('p');
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            output.appendChild(p);
+            console.log(message);
+        }
+        
+        async function testSessionHistory() {
+            log('Starting test...');
+            
+            // Test 1: Check if the API endpoint is accessible
+            try {
+                log('Testing API endpoint accessibility...');
+                const response = await fetch('http://localhost:5174/api/sessions');
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✓ API accessible. Found ${data.sessions?.length || 0} sessions`);
+                } else {
+                    log(`✗ API returned status ${response.status}`);
+                }
+            } catch (error) {
+                log(`✗ API error: ${error.message}`);
+            }
+            
+            // Test 2: Check Claude projects endpoint
+            try {
+                log('Testing Claude projects endpoint...');
+                const response = await fetch('http://localhost:5174/api/claude/projects');
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✓ Claude projects accessible. Found ${data.projects?.length || 0} projects`);
+                } else {
+                    log(`✗ Claude projects returned status ${response.status}`);
+                }
+            } catch (error) {
+                log(`✗ Claude projects error: ${error.message}`);
+            }
+            
+            // Test 3: Test session history endpoint with a mock session ID
+            try {
+                log('Testing session history endpoint...');
+                const testSessionId = 'test-session-' + Date.now();
+                const response = await fetch(`http://localhost:5174/api/claude/session/${testSessionId}?full=1`);
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✓ History endpoint works. Entries: ${data.entries?.length || 0}`);
+                    if (data.entries?.length === 0) {
+                        log('  (Empty history as expected for new session)');
+                    }
+                } else {
+                    log(`✗ History endpoint returned status ${response.status}`);
+                }
+            } catch (error) {
+                log(`✗ History endpoint error: ${error.message}`);
+            }
+            
+            // Test 4: Check Socket.IO connection
+            try {
+                log('Testing Socket.IO connection...');
+                const socket = io('http://localhost:5174', {
+                    transports: ['websocket', 'polling']
+                });
+                
+                socket.on('connect', () => {
+                    log('✓ Socket.IO connected successfully');
+                    socket.disconnect();
+                });
+                
+                socket.on('connect_error', (error) => {
+                    log(`✗ Socket.IO connection error: ${error.message}`);
+                });
+                
+                // Give it 3 seconds to connect
+                setTimeout(() => {
+                    if (!socket.connected) {
+                        log('✗ Socket.IO connection timeout');
+                        socket.disconnect();
+                    }
+                }, 3000);
+            } catch (error) {
+                log(`✗ Socket.IO error: ${error.message}`);
+            }
+            
+            log('Test completed. Check results above.');
+        }
+        
+        // Run test when page loads
+        window.addEventListener('load', testSessionHistory);
+    </script>
+</body>
+</html>

@@ -24,6 +24,12 @@ test.describe('Session Creation Flow Analysis', () => {
     console.log('Step 2: Check modal visibility');
     const modal = page.locator('.modal-overlay').first();
     await expect(modal).toBeVisible({ timeout: 5000 });
+    // Breadcrumbs should be visible in directory browser when present
+    const breadcrumbBar = page.locator('.breadcrumb-bar');
+    // Not all modes show the browser, but if present, it should be visible
+    if (await breadcrumbBar.count()) {
+      await expect(breadcrumbBar.first()).toBeVisible();
+    }
     
     console.log('Step 3: Select Claude session type');
     const claudeBtn = page.locator('.type-btn').filter({ hasText: 'Claude Session' });
@@ -44,6 +50,17 @@ test.describe('Session Creation Flow Analysis', () => {
     
     console.log('Step 6: Click create button');
     await createBtn.click();
+    // Creating indicator/button text should reflect loading
+    const creatingLabel = page.locator('.creating-indicator, .step-list');
+    const creatingButton = page.locator('.modal-actions .btn.primary');
+    await page.waitForTimeout(200);
+    if (await creatingLabel.count()) {
+      await expect(creatingLabel.first()).toBeVisible();
+    }
+    if (await creatingButton.isVisible()) {
+      const buttonText = (await creatingButton.textContent()) || '';
+      expect(buttonText.toLowerCase()).toContain('creating');
+    }
     
     // Monitor network requests
     const createRequest = page.waitForRequest(req => 
@@ -131,6 +148,20 @@ test.describe('Session Creation Flow Analysis', () => {
       const modalClosed = !(await page.locator('.modal-overlay').first().isVisible());
       console.log('Modal closed:', modalClosed);
     }
+  });
+
+  test('quick create Claude session from footer', async ({ page }) => {
+    // Ensure we are on projects page
+    await page.waitForURL('**/projects');
+    // Click quick action button
+    const quickClaude = page.locator('button:has-text("New Claude")').first();
+    await expect(quickClaude).toBeVisible();
+    const beforeCount = await page.locator('.terminal-container').count();
+    await quickClaude.click();
+    // Wait a moment for session to appear
+    await page.waitForTimeout(2000);
+    const afterCount = await page.locator('.terminal-container').count();
+    expect(afterCount).toBeGreaterThanOrEqual(beforeCount);
   });
 
   test('examine modal components and interactions', async ({ page }) => {

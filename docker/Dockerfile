@@ -58,9 +58,8 @@ ENV NODE_ENV=production \
     DEFAULT_UID=$USER_UID \
     DEFAULT_GID=$USER_GID
 
-WORKDIR /app
-COPY --from=build /app /app
-
+RUN mkdir -p /home/dispatch
+RUN mkdir /app
 # Create non-root user for security
 # Note: node image already has 'node' user with UID 1000, so we'll modify it
 RUN usermod -l dispatch -d /home/dispatch node \
@@ -74,14 +73,17 @@ RUN mkdir -p /config /projects /workspace /tmp/dispatch-sessions \
     && chown -R dispatch:dispatch /config /projects /workspace /tmp/dispatch-sessions \
     && chown -R dispatch:dispatch /app
 
-# Copy entrypoint script
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 # Install global packages
 RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex
 
 EXPOSE 3030
+
+WORKDIR /app
+COPY --from=build /app /app
+
+# Copy entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Use the entrypoint script for user mapping and start the application
 ENTRYPOINT ["/entrypoint.sh"]

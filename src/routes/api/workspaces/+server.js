@@ -27,16 +27,23 @@ export async function POST({ request, locals }) {
 	try {
 		if (action === 'open') {
 			const p = _sanitizeRequestedPath(rawPath);
-			// If the client provided an absolute path, resolve it; otherwise resolve against workspaceRoot
-			const fullPath = pathModule.isAbsolute(p) ? pathModule.resolve(p) : pathModule.join(workspaceRoot, p);
-			// Prevent escapes outside the root
-			const rel = pathModule.relative(workspaceRoot, fullPath);
-			if (rel.startsWith('..')) throw new Error('Workspace path is outside of the configured WORKSPACES_ROOT');
-			// If the resolved fullPath exists, open it via WorkspaceManager
+			// If the client provided an absolute path, validate it and return directly without persisting
+			if (pathModule.isAbsolute(p)) {
+				const fullAbs = pathModule.resolve(p);
+				const st = await fs.stat(fullAbs).catch(() => null);
+				if (st && st.isDirectory()) {
+					// Do NOT persist absolute paths outside WORKSPACES_ROOT; just return the path
+					return new Response(JSON.stringify({ path: fullAbs }), { headers: { 'content-type': 'application/json' } });
+				}
+				// If absolute path doesn't exist, fall through to project lookup below
+			}
+
+			// For relative paths, resolve against WORKSPACES_ROOT and persist via WorkspaceManager
+			const fullPath = pathModule.join(workspaceRoot, p);
 			try {
 				const st = await fs.stat(fullPath);
 				if (st.isDirectory()) {
-					return new Response(JSON.stringify(await locals.workspaces.open(fullPath)));
+					return new Response(JSON.stringify(await locals.workspaces.open(fullPath)), { headers: { 'content-type': 'application/json' } });
 				}
 			} catch (e) {
 				// not found under WORKSPACES_ROOT - fall through to try resolving as a Claude project name
@@ -52,7 +59,11 @@ export async function POST({ request, locals }) {
 
 			for (const projectsDir of candidates) {
 				try {
-					const candidatePath = pathModule.join(projectsDir, p);
+					// If the client sent a full path that happens to live under a known projects dir,
+					// honor it as-is; otherwise treat `p` as a project name under that dir
+					const candidatePath = pathModule.isAbsolute(p)
+						? pathModule.resolve(p)
+						: pathModule.join(projectsDir, p);
 					const st = await fs.stat(candidatePath);
 					if (st.isDirectory()) {
 						// Return the actual project folder path directly (do not persist in workspaces index)

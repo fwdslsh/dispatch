@@ -3,7 +3,7 @@
 	import ClaudeProjectPicker from './ClaudeProjectPicker.svelte';
 	import DirectoryBrowser from './DirectoryBrowser.svelte';
 	
-	let { open = $bindable(false), onSessionCreate } = $props();
+	let { open = $bindable(false), onSessionCreate, initialType = 'claude' } = $props();
 
 	// Form state
 	let sessionType = $state('claude'); // 'claude' | 'terminal'
@@ -11,10 +11,18 @@
 	let selectedDirectory = $state(null);
 	let selectedClaudeProject = $state(null);
 	let creating = $state(false);
+	let state = $state('idle'); // idle | creating | error | success
+	let errorMessage = $state('');
+	let workspaceCreated = $state(false);
+	let sessionCreated = $state(false);
 	let mode = $state('new'); // 'new' | 'existing'
 
 	async function handleCreate() {
 		creating = true;
+		state = 'creating';
+		errorMessage = '';
+		workspaceCreated = false;
+		sessionCreated = false;
 		try {
 			if (sessionType === 'claude') {
 				if (mode === 'new') {
@@ -28,6 +36,8 @@
 						resumeSession: false,
 						createWorkspace: true
 					});
+					workspaceCreated = true; // backend handles create+open
+					sessionCreated = true;
 				} else {
 					// Existing Claude project or directory
 					if (selectedClaudeProject) {
@@ -39,6 +49,8 @@
 							resumeSession: false,
 							createWorkspace: false
 						});
+						workspaceCreated = true;
+						sessionCreated = true;
 					} else if (selectedDirectory) {
 						const dirName = selectedDirectory.split('/').pop() || 'project';
 						await onSessionCreate?.({
@@ -49,6 +61,8 @@
 							resumeSession: false,
 							createWorkspace: false
 						});
+						workspaceCreated = true;
+						sessionCreated = true;
 					}
 				}
 			} else {
@@ -58,10 +72,15 @@
 					type: 'terminal',
 					workspacePath: selectedDirectory
 				});
+				workspaceCreated = true;
+				sessionCreated = true;
 			}
+			state = 'success';
 			handleClose();
 		} catch (error) {
 			console.error('Failed to create session:', error);
+			state = 'error';
+			errorMessage = error?.message || String(error);
 		} finally {
 			creating = false;
 		}
@@ -74,8 +93,25 @@
 		selectedDirectory = null;
 		selectedClaudeProject = null;
 		mode = 'new';
+		state = 'idle';
+		errorMessage = '';
+		workspaceCreated = false;
+		sessionCreated = false;
 		open = false;
 	}
+
+	// Allow parent to seed initial session type when opening
+	$effect(() => {
+		if (open) {
+			sessionType = initialType === 'terminal' ? 'terminal' : 'claude';
+			// when terminal selected, ensure mode is 'existing'
+			if (sessionType === 'terminal') {
+				mode = 'existing';
+				projectName = '';
+				selectedClaudeProject = null;
+			}
+		}
+	});
 
 	const canCreate = $derived(
 		sessionType === 'terminal' 
@@ -92,7 +128,18 @@
 
 <Modal bind:open title="Create New Session" onclose={handleClose} size="large">
 	{#snippet children()}
-		<div class="session-form">
+		<div class="session-form" data-testid="session-form">
+			{#if state === 'error'}
+				<div class="error-banner" role="alert">{errorMessage}</div>
+			{/if}
+			{#if state === 'creating'}
+				<div class="creating-indicator">
+					<div class="step-list">
+						<div class={workspaceCreated ? 'done' : 'active'}>Creating/opening workspace...</div>
+						<div class={sessionCreated ? 'done' : workspaceCreated ? 'active' : ''}>Starting session...</div>
+					</div>
+				</div>
+			{/if}
 			<!-- Session Type Selector -->
 			<div class="type-selector">
 				<button
@@ -226,6 +273,37 @@
 		flex-direction: column;
 		gap: var(--space-5);
 		font-family: var(--font-sans);
+	}
+
+	.error-banner {
+		background: rgba(255, 65, 65, 0.1);
+		border: 1px solid rgba(255, 65, 65, 0.3);
+		color: #ff6565;
+		padding: var(--space-3);
+		border-radius: 6px;
+	}
+
+	.creating-indicator {
+		background: var(--bg-dark);
+		border: 1px solid var(--surface-border);
+		border-radius: 6px;
+		padding: var(--space-3);
+	}
+
+	.step-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
+	}
+
+	.step-list .active {
+		color: var(--text);
+	}
+
+	.step-list .done {
+		color: var(--primary);
 	}
 
 	.type-selector {

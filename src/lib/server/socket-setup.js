@@ -208,6 +208,8 @@ export function setupSocketIO(httpServer) {
 				if (sessions) {
 					sessions.setIdle(data.id);
 				}
+				// Proactively notify the client of the error so the UI can react
+				try { socket.emit('error', { message: 'Claude send failed', error: String(err?.message || err) }); } catch {}
 			}
 		});
 

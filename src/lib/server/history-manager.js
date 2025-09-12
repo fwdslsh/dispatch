@@ -112,7 +112,12 @@ class HistoryManager {
 			if (!historyEntry) return;
 
 			const filePath = join(this.historyDir, `${socketId}.json`);
-			await fs.writeFile(filePath, JSON.stringify(historyEntry, null, 2));
+			const tempPath = `${filePath}.tmp`;
+			const payload = JSON.stringify(historyEntry, null, 2);
+
+			// Write atomically to avoid truncated/corrupt JSON files
+			await fs.writeFile(tempPath, payload);
+			await fs.rename(tempPath, filePath);
 		} catch (error) {
 			console.error(`[HISTORY] Failed to save history for socket ${socketId}:`, error);
 		}
@@ -144,8 +149,13 @@ class HistoryManager {
 		try {
 			const filePath = join(this.historyDir, `${socketId}.json`);
 			const content = await fs.readFile(filePath, 'utf-8');
+			if (!content || !content.trim()) return null;
 			return JSON.parse(content);
 		} catch (error) {
+			// Gracefully handle corrupt or partial JSON files
+			if (error?.name === 'SyntaxError') {
+				console.warn(`[HISTORY] Skipping corrupt history for socket ${socketId}: ${error.message}`);
+			}
 			return null;
 		}
 	}
@@ -165,6 +175,11 @@ class HistoryManager {
 						const filePath = join(this.historyDir, file);
 						const stats = await fs.stat(filePath);
 						const content = await fs.readFile(filePath, 'utf-8');
+						if (!content || !content.trim()) {
+							// Empty file; likely a previous partial write. Skip quietly.
+							console.warn(`[HISTORY] Skipping empty history file ${file}`);
+							continue;
+						}
 						const history = JSON.parse(content);
 						
 						histories.push({
@@ -176,7 +191,12 @@ class HistoryManager {
 							isActive: this.socketHistories.has(socketId)
 						});
 					} catch (error) {
-						console.error(`[HISTORY] Failed to read history file ${file}:`, error);
+						// Don't spam errors for transient partial JSON; log a warning and skip
+						if (error?.name === 'SyntaxError') {
+							console.warn(`[HISTORY] Skipping corrupt history file ${file}: ${error.message}`);
+						} else {
+							console.error(`[HISTORY] Failed to read history file ${file}:`, error);
+						}
 					}
 				}
 			}
