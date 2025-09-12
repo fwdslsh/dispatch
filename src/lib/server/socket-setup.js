@@ -15,7 +15,7 @@ import { getTypeSpecificId, getSessionType } from './utils/session-ids.js';
  * Route application session ID to appropriate session type manager
  * @param {string} appSessionId - Application-managed session ID
  * @param {object} managers - Available managers (sessions, claude, terminals)
- * @returns {object|null} Routing result with typeId and manager info
+ * @returns {object|null} Routing result with typeSpecificId and manager info
  */
 function routeSessionId(appSessionId, managers) {
 	if (!appSessionId || !managers?.sessions) {
@@ -406,7 +406,9 @@ export function setupSocketIO(httpServer) {
 }
 
 async function directResume(socket, claudeSessionId, prompt, sessions, appSessionId = null) {
-	const sessionId = claudeSessionId.startsWith('claude_') ? claudeSessionId.replace(/^claude_/, '') : claudeSessionId;
+	// Extract session ID if it has claude_ prefix
+	const sessionId = claudeSessionId.startsWith('claude_') ? 
+		claudeSessionId.replace(/^claude_/, '') : claudeSessionId;
 	
 	// Track as processing if sessions manager available (use app session ID if provided)
 	const trackingId = appSessionId || claudeSessionId;
