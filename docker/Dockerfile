@@ -16,7 +16,7 @@ RUN apt-get update \
 ENV npm_config_build_from_source=true
 
 # Install all deps (including devDeps like node-gyp) so native modules can compile
-RUN npm install --no-save
+RUN npm ci
 
 COPY . .
 
@@ -26,15 +26,20 @@ RUN npm run build
 # Runtime stage
 FROM node:22-bookworm-slim
 
+# Install required packages including gosu for user switching
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        tree jq yq build-essential \
        python3 \
        pkg-config \
        git gh \
+       gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables
+ARG USER_UID=1000
+ARG USER_GID=1000
+
 ENV NODE_ENV=production \
     PORT=3030 \
     TERMINAL_KEY=change-me \
@@ -48,20 +53,36 @@ ENV NODE_ENV=production \
     CONTAINER_ENV=true \
     # Project sandboxing configuration
     PROJECT_SANDBOX_ENABLED=true \
-    HOST_HOME_DIR=/home/dispatch
+    HOST_HOME_DIR=/home/dispatch \
+    # User mapping configuration
+    DEFAULT_UID=$USER_UID \
+    DEFAULT_GID=$USER_GID
 
 WORKDIR /app
 COPY --from=build /app /app
 
-# Create mount point directories
+# Create non-root user for security
+# Note: node image already has 'node' user with UID 1000, so we'll modify it
+RUN usermod -l dispatch -d /home/dispatch node \
+    && groupmod -n dispatch node \
+    && mkdir -p /home/dispatch \
+    && chown dispatch:dispatch /home/dispatch
+
+# Create mount point directories with proper ownership
 # These will be overridden by volume mounts but need to exist
-RUN mkdir -p /config /projects /workspace
+RUN mkdir -p /config /projects /workspace /tmp/dispatch-sessions \
+    && chown -R dispatch:dispatch /config /projects /workspace /tmp/dispatch-sessions \
+    && chown -R dispatch:dispatch /app
+
+# Copy entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Install global packages
 RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex
 
 EXPOSE 3030
 
-# Run as root - container will handle permissions internally
-# This allows writing to mounted volumes without changing host permissions
+# Use the entrypoint script for user mapping and start the application
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["node", "src/app.js"]
