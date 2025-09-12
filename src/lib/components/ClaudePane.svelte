@@ -689,7 +689,6 @@
 						{#if m.activityIcons && m.activityIcons.length > 0}
 							<div class="activity-icons-container">
 								<div class="activity-icons-header">
-									<span class="activity-icons-label">Activity Trail</span>
 									<span class="activity-icons-count">{m.activityIcons.length} actions</span>
 								</div>
 								<div class="live-event-icons static" aria-label="Agent activity">
@@ -1278,14 +1277,48 @@
 		transition: all 0.3s ease;
 	}
 
-	/* Live event icons under typing bubble - no clipping, smooth expansion */
-	.live-event-icons {
+	/* Activity icons container - transparent background */
+	.activity-icons-container {
 		margin-top: var(--space-3);
+		background: transparent;
+	}
+	
+	.activity-icons-header {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		margin-bottom: var(--space-2);
+		padding-right: var(--space-3);
+	}
+	
+	.activity-icons-count {
+		font-size: var(--font-size-0);
+		color: var(--text-muted);
+		opacity: 0.7;
+		font-family: var(--font-mono);
+	}
+
+	/* Live event icons - transparent for static, subtle background for live */
+	.live-event-icons {
+		margin-top: var(--space-1);
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
 		padding: var(--space-3) var(--space-3);
 		border-radius: 12px;
+		background: transparent;
+		border: none;
+		box-shadow: none;
+		font-size: 1rem;
+		/* Allow container to expand as needed */
+		min-height: 40px;
+		max-width: 100%;
+		overflow: visible;
+		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+	}
+	
+	/* Add subtle background only for live (non-static) event icons during typing */
+	.live-event-icons:not(.static) {
 		background: linear-gradient(135deg,
 			color-mix(in oklab, var(--primary) 8%, transparent),
 			color-mix(in oklab, var(--primary) 4%, transparent)
@@ -1294,12 +1327,6 @@
 		box-shadow:
 			inset 0 1px 2px rgba(255, 255, 255, 0.05),
 			0 4px 16px -10px var(--primary-glow);
-		font-size: 1rem;
-		/* Allow container to expand as needed */
-		min-height: 40px;
-		max-width: 100%;
-		overflow: visible;
-		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 	}
 
 	.event-icon {
