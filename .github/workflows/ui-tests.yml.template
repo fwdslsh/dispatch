@@ -1,0 +1,87 @@
+name: UI Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  ui-tests:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright browsers
+      run: |
+        npx playwright install --with-deps chromium
+        # Fallback for CI environments
+        npx playwright install-deps || true
+    
+    - name: Run UI tests
+      env:
+        TERMINAL_KEY: 'testkey12345'
+        PTY_MODE: 'shell'
+        NODE_ENV: 'test'
+      run: npm run test:ui
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
+    
+    - name: Upload screenshots
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ui-screenshots
+        path: test-results/*.png
+        retention-days: 7
+
+  ui-tests-mobile:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps webkit
+    
+    - name: Run mobile-specific tests
+      env:
+        TERMINAL_KEY: 'testkey12345'
+        PTY_MODE: 'shell'
+        NODE_ENV: 'test'
+      run: npx playwright test --config=playwright-ui.config.js --project="Mobile*"
+    
+    - name: Upload mobile test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: mobile-test-results
+        path: test-results/
+        retention-days: 7
