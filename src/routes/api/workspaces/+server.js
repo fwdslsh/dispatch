@@ -2,7 +2,7 @@ import pathModule from 'node:path';
 import { promises as fs } from 'node:fs';
 import { homedir } from 'node:os';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
-import { assertInWorkspacesRoot, createSafeWorkspacePath, sanitizePath, isValidDirectory } from '$lib/server/utils/paths.js';
+import { sanitizePath, isValidDirectory } from '$lib/server/utils/paths.js';
 import { logger } from '$lib/server/utils/logger.js';
 
 export async function GET({ locals }) {
@@ -42,12 +42,12 @@ export async function POST({ request, locals }) {
 				// If absolute path doesn't exist, fall through to project lookup below
 			}
 
-			// For relative paths, resolve against WORKSPACES_ROOT with validation
+			// For relative paths, resolve against WORKSPACES_ROOT but don't enforce restrictions
+			const fullPath = pathModule.join(workspaceRoot, p);
 			try {
-				const safePath = createSafeWorkspacePath(p, workspaceRoot);
-				if (await isValidDirectory(safePath)) {
-					logger.debug('WorkspaceAPI', `Opened workspace path: ${safePath}`);
-					return new Response(JSON.stringify(await locals.workspaces.open(safePath)), { headers: { 'content-type': 'application/json' } });
+				if (await isValidDirectory(fullPath)) {
+					logger.debug('WorkspaceAPI', `Opened workspace path: ${fullPath}`);
+					return new Response(JSON.stringify(await locals.workspaces.open(fullPath)), { headers: { 'content-type': 'application/json' } });
 				}
 			} catch (e) {
 				logger.debug('WorkspaceAPI', `Path not found in workspace root: ${e.message}`);
@@ -79,11 +79,14 @@ export async function POST({ request, locals }) {
 			const projectName = _sanitizeRequestedPath(rawPath);
 			logger.debug('WorkspaceAPI', `Creating workspace: ${projectName}`);
 			
-			// Use our safe path creation with validation
-			const safePath = createSafeWorkspacePath(projectName, workspaceRoot);
-			logger.info('WorkspaceAPI', `Creating workspace at: ${safePath}`);
+			// Allow creation in any directory, just resolve the path
+			const targetPath = pathModule.isAbsolute(projectName) 
+				? pathModule.resolve(projectName)
+				: pathModule.join(workspaceRoot, projectName);
 			
-			return new Response(JSON.stringify(await locals.workspaces.create(safePath)), {
+			logger.info('WorkspaceAPI', `Creating workspace at: ${targetPath}`);
+			
+			return new Response(JSON.stringify(await locals.workspaces.create(targetPath)), {
 				headers: { 'content-type': 'application/json' }
 			});
 		}
@@ -91,26 +94,18 @@ export async function POST({ request, locals }) {
 		if (action === 'clone') {
 			logger.debug('WorkspaceAPI', `Cloning workspace from ${from} to ${to}`);
 			
-			// Sanitize and validate both paths
+			// Sanitize both paths but allow any accessible directory
 			const sanitizedFrom = _sanitizeRequestedPath(from);
 			const sanitizedTo = _sanitizeRequestedPath(to);
 			
-			// Create safe paths with validation
+			// Resolve paths without enforcing workspace boundaries
 			const fromPath = pathModule.isAbsolute(sanitizedFrom) 
 				? pathModule.resolve(sanitizedFrom)
-				: createSafeWorkspacePath(sanitizedFrom, workspaceRoot);
+				: pathModule.join(workspaceRoot, sanitizedFrom);
 				
 			const toPath = pathModule.isAbsolute(sanitizedTo)
 				? pathModule.resolve(sanitizedTo)
-				: createSafeWorkspacePath(sanitizedTo, workspaceRoot);
-			
-			// Additional validation for workspace root if not absolute
-			if (!pathModule.isAbsolute(sanitizedFrom)) {
-				assertInWorkspacesRoot(fromPath, workspaceRoot);
-			}
-			if (!pathModule.isAbsolute(sanitizedTo)) {
-				assertInWorkspacesRoot(toPath, workspaceRoot);
-			}
+				: pathModule.join(workspaceRoot, sanitizedTo);
 			
 			logger.info('WorkspaceAPI', `Cloning workspace: ${fromPath} -> ${toPath}`);
 			return new Response(JSON.stringify(await locals.workspaces.clone(fromPath, toPath)), {

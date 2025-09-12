@@ -1,6 +1,12 @@
 /**
- * Path validation utilities to prevent path traversal attacks
- * and ensure paths remain within expected boundaries
+ * Path validation utilities
+ * 
+ * This module provides both restrictive path validation (for workspace boundaries)
+ * and basic sanitization (for general path cleaning without restrictions).
+ * 
+ * Use basic sanitization when sessions should be able to access any directory
+ * the server process can read. Use restrictive validation only when workspace
+ * boundaries need to be enforced for specific features.
  */
 import { resolve, relative, isAbsolute, join } from 'node:path';
 import { stat } from 'node:fs/promises';
@@ -80,6 +86,7 @@ export function safeResolve(requestedPath, rootPath) {
 
 /**
  * Sanitize a path by removing potentially dangerous characters
+ * This provides basic sanitization without restricting directory access
  * @param {string} path - Path to sanitize
  * @returns {string} Sanitized path
  */
@@ -88,14 +95,34 @@ export function sanitizePath(path) {
 		return '';
 	}
 	
-	// Remove null bytes and other control characters
+	// Remove null bytes and other control characters that could cause issues
 	let sanitized = path.replace(/[\x00-\x1f\x7f]/g, '');
 	
-	// Remove Windows reserved characters
+	// Remove Windows reserved characters that could cause filesystem issues
 	sanitized = sanitized.replace(/[<>:"|?*]/g, '');
 	
-	// Remove leading/trailing whitespace and dots
-	sanitized = sanitized.trim().replace(/^\.+|\.+$/g, '');
+	// Remove leading/trailing whitespace but preserve relative path indicators like '../'
+	sanitized = sanitized.trim();
+	
+	return sanitized;
+}
+
+/**
+ * Enhanced sanitization that also removes path traversal indicators
+ * Use this when you want to prevent directory traversal while still sanitizing
+ * @param {string} path - Path to sanitize
+ * @returns {string} Sanitized path with traversal prevention
+ */
+export function sanitizePathStrict(path) {
+	if (!path || typeof path !== 'string') {
+		return '';
+	}
+	
+	// Start with basic sanitization
+	let sanitized = sanitizePath(path);
+	
+	// Remove leading/trailing dots that could indicate current/parent directory
+	sanitized = sanitized.replace(/^\.+|\.+$/g, '');
 	
 	return sanitized;
 }
