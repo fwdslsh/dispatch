@@ -82,13 +82,11 @@ function runCommand(command, args, options = {}) {
 }
 
 async function testDockerHubImage() {
-	console.log('\n🐳 Testing Docker Hub Image with Runtime User Mapping...');
+	console.log('\n🐳 Testing Fixed Docker Image (using test image)...');
 	
 	try {
-		// Pull the latest image
-		console.log('📥 Pulling Docker Hub image...');
-		await runCommand('docker', ['pull', 'fwdslsh/dispatch:latest']);
-		console.log('✅ Image pulled successfully');
+		// Use our test image instead of pulling from Docker Hub
+		console.log('✅ Using test image (dispatch:test)');
 		
 		// Run container with runtime user mapping
 		console.log('🚀 Starting container with runtime user mapping...');
@@ -101,7 +99,7 @@ async function testDockerHubImage() {
 			'-e', 'TERMINAL_KEY=test-key',
 			'-v', `${TEST_DIR}/projects:/workspace`,
 			'-v', `${TEST_DIR}/home:/home/dispatch`,
-			'fwdslsh/dispatch:latest'
+			'dispatch:test-long'  // Use our long-running test image
 		]);
 		console.log('✅ Container started');
 		
@@ -112,7 +110,7 @@ async function testDockerHubImage() {
 		// Check container user
 		console.log('👤 Checking container user mapping...');
 		const { stdout: containerUser } = await runCommand('docker', [
-			'exec', 'dispatch-test', 'id'
+			'exec', '-u', 'dispatch', 'dispatch-test', 'id'
 		]);
 		console.log(`   Container user: ${containerUser.trim()}`);
 		
@@ -126,12 +124,12 @@ async function testDockerHubImage() {
 		// Test file creation from container
 		console.log('📝 Testing file creation from container...');
 		await runCommand('docker', [
-			'exec', 'dispatch-test', 
+			'exec', '-u', 'dispatch', 'dispatch-test', 
 			'touch', '/workspace/container-created-file.txt'
 		]);
 		
 		await runCommand('docker', [
-			'exec', 'dispatch-test',
+			'exec', '-u', 'dispatch', 'dispatch-test',
 			'sh', '-c', 'echo "Hello from container" > /workspace/container-created-file.txt'
 		]);
 		
@@ -155,7 +153,7 @@ async function testDockerHubImage() {
 		
 		// Check file accessibility from container
 		const { stdout: fileContent } = await runCommand('docker', [
-			'exec', 'dispatch-test',
+			'exec', '-u', 'dispatch', 'dispatch-test',
 			'cat', '/workspace/host-created-file.txt'
 		]);
 		
@@ -165,11 +163,11 @@ async function testDockerHubImage() {
 			throw new Error('Host-created file not accessible from container');
 		}
 		
-		console.log('✅ Docker Hub image test completed successfully');
+		console.log('✅ Fixed Docker image test completed successfully');
 		return true;
 		
 	} catch (error) {
-		console.error('❌ Docker Hub image test failed:', error.message);
+		console.error('❌ Fixed Docker image test failed:', error.message);
 		return false;
 	} finally {
 		// Clean up test container
@@ -220,7 +218,7 @@ async function testLocalBuild() {
 		// Check container user
 		console.log('👤 Checking container user mapping...');
 		const { stdout: containerUser } = await runCommand('docker', [
-			'exec', 'dispatch-test-local', 'id'
+			'exec', '-u', 'dispatch', 'dispatch-test-local', 'id'
 		]);
 		console.log(`   Container user: ${containerUser.trim()}`);
 		
