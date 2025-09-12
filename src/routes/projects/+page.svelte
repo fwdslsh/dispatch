@@ -149,11 +149,16 @@
 
 	async function createTerminalSession(workspacePath) {
 		// Ensure workspace exists
-		await fetch('/api/workspaces', {
+		const wsResp = await fetch('/api/workspaces', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ action: 'open', path: workspacePath })
 		});
+		if (!wsResp.ok) {
+			const j = await wsResp.json().catch(() => null);
+			console.error('Failed to open workspace:', j?.error || wsResp.statusText);
+			throw new Error(j?.error || 'Failed to open workspace');
+		}
 
 		// Create terminal via Socket.IO
 		const socket = io();
@@ -199,6 +204,11 @@
 				isNewProject: createWorkspace
 			})
 		});
+		if (!workspaceResponse.ok) {
+			const j = await workspaceResponse.json().catch(() => null);
+			console.error('Failed to ensure workspace:', j?.error || workspaceResponse.statusText);
+			throw new Error(j?.error || 'Failed to ensure workspace');
+		}
 
 		const workspaceData = await workspaceResponse.json();
 		const finalWorkspacePath = workspaceData.path;
@@ -263,7 +273,7 @@
 
 	function handleTouchStart(e) {
 		if (!isMobile) return;
-		
+
 		// Record touch start position
 		touchStartX = e.changedTouches[0].screenX;
 		touchStartY = e.changedTouches[0].screenY;
@@ -272,40 +282,40 @@
 
 	function handleTouchMove(e) {
 		if (!isMobile || !isSwipeInProgress) return;
-		
+
 		touchEndX = e.changedTouches[0].screenX;
 		touchEndY = e.changedTouches[0].screenY;
-		
+
 		// Track movement but don't interfere with scrolling
 	}
 
 	function handleTouchEnd(e) {
 		if (!isMobile || !isSwipeInProgress) return;
-		
+
 		isSwipeInProgress = false;
 		touchEndX = e.changedTouches[0].screenX;
 		touchEndY = e.changedTouches[0].screenY;
-		
+
 		handleSwipeGesture();
 	}
 
 	function handleSwipeGesture() {
 		const swipeThreshold = 75; // Minimum distance for a swipe
 		const verticalThreshold = 50; // Maximum vertical movement to still count as horizontal swipe
-		
+
 		const deltaX = touchEndX - touchStartX;
 		const deltaY = Math.abs(touchEndY - touchStartY);
-		
+
 		// Check if it's a horizontal swipe (not too much vertical movement)
 		if (deltaY > verticalThreshold || Math.abs(deltaX) < swipeThreshold) {
 			return;
 		}
-		
+
 		// Detect left swipe (go to next session)
 		if (deltaX < -swipeThreshold) {
 			nextMobileSession();
 		}
-		
+
 		// Detect right swipe (go to previous session)
 		if (deltaX > swipeThreshold) {
 			prevMobileSession();
@@ -420,7 +430,7 @@
 	onDestroy(() => {
 		// Clean up any resources if needed
 		window.removeEventListener('resize', updateMobileState);
-		
+
 		// Cleanup session socket manager when leaving the page
 		sessionSocketManager.disconnectAll();
 	});
@@ -489,80 +499,32 @@
 	</header>
 
 	<!-- Bottom sheet for sessions -->
-	{#if sessionMenuOpen}
-		<div class="session-sheet-backdrop" onclick={() => (sessionMenuOpen = false)}></div>
-		<div class="session-sheet" role="dialog" aria-label="Sessions">
-			<div class="sheet-header">
-				<div class="sheet-title">Sessions</div>
-				<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close"
-					>✕</button
-				>
-			</div>
-			<div class="sheet-body">
-				<ProjectSessionMenu
-					storagePrefix="dispatch-projects"
-					bind:selectedProject
-					onNewSession={(e) => {
-						const { type } = e.detail || {};
-						if (type === 'claude') {
-							claudeModalOpen = true;
-						} else if (type === 'pty') {
-							terminalModalOpen = true;
-						}
-					}}
-					onSessionSelected={(e) => {
-						const detail = e.detail || {};
-						if (!detail.id) return;
+	<div class="session-sheet" class:open={sessionMenuOpen} role="dialog" aria-label="Sessions">
+		<div class="sheet-header">
+			<div class="sheet-title">Sessions</div>
+			<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close"
+				>✕</button
+			>
+		</div>
+		<div class="sheet-body">
+			<ProjectSessionMenu
+				storagePrefix="dispatch-projects"
+				bind:selectedProject
+				onNewSession={(e) => {
+					const { type } = e.detail || {};
+					if (type === 'claude') {
+						claudeModalOpen = true;
+					} else if (type === 'pty') {
+						terminalModalOpen = true;
+					}
+				}}
+				onSessionSelected={(e) => {
+					const detail = e.detail || {};
+					if (!detail.id) return;
 
-						// For active sessions, just show them immediately
-						if (detail.isActive) {
-							// Check if session is already in our display
-							const existing = sessions.find((s) => {
-								if (!s) return false;
-								if (detail.type === 'claude') {
-									return (
-										s.type === 'claude' &&
-										(s.claudeSessionId === detail.id ||
-											s.sessionId === detail.id ||
-											s.id === detail.id)
-									);
-								}
-								if (detail.type === 'pty') {
-									return s.type === 'pty' && s.id === detail.id;
-								}
-								return false;
-							});
-
-							if (existing) {
-								updateDisplayedWithSession(existing.id);
-							} else {
-								// Create a session entry for this active session
-								// For Claude sessions, ensure we use the correct sessionId for history loading
-								const s = {
-									id: detail.id,
-									type: detail.type,
-									workspacePath: detail.workspacePath,
-									projectName: detail.projectName,
-									// Use sessionId if provided, otherwise use id as fallback
-									claudeSessionId: detail.sessionId || detail.id,
-									// Always set shouldResume to true for active sessions to trigger history loading
-									shouldResume: true,
-									isActiveSocket: true
-								};
-								console.log('Creating session entry for active session:', {
-									id: s.id,
-									claudeSessionId: s.claudeSessionId,
-									type: s.type,
-									shouldResume: s.shouldResume
-								});
-								sessions = [...sessions, s];
-								updateDisplayedWithSession(detail.id);
-							}
-							sessionMenuOpen = false;
-							return;
-						}
-
-						// For persisted sessions, check if already running first
+					// For active sessions, just show them immediately
+					if (detail.isActive) {
+						// Check if session is already in our display
 						const existing = sessions.find((s) => {
 							if (!s) return false;
 							if (detail.type === 'claude') {
@@ -578,39 +540,82 @@
 							}
 							return false;
 						});
+
 						if (existing) {
 							updateDisplayedWithSession(existing.id);
-							sessionMenuOpen = false;
-							return;
+						} else {
+							// Create a session entry for this active session
+							// For Claude sessions, ensure we use the correct sessionId for history loading
+							const s = {
+								id: detail.id,
+								type: detail.type,
+								workspacePath: detail.workspacePath,
+								projectName: detail.projectName,
+								// Use sessionId if provided, otherwise use id as fallback
+								claudeSessionId: detail.sessionId || detail.id,
+								// Always set shouldResume to true for active sessions to trigger history loading
+								shouldResume: true,
+								isActiveSocket: true
+							};
+							console.log('Creating session entry for active session:', {
+								id: s.id,
+								claudeSessionId: s.claudeSessionId,
+								type: s.type,
+								shouldResume: s.shouldResume
+							});
+							sessions = [...sessions, s];
+							updateDisplayedWithSession(detail.id);
 						}
+						sessionMenuOpen = false;
+						return;
+					}
 
-						// Resume persisted sessions
+					// For persisted sessions, check if already running first
+					const existing = sessions.find((s) => {
+						if (!s) return false;
 						if (detail.type === 'claude') {
-							const projectName = detail.projectName || selectedProject || 'project';
-							createClaudeSession({
-								workspacePath: detail.workspacePath || projectName,
-								sessionId: detail.id,
-								projectName,
-								resumeSession: true,
-								createWorkspace: false
-							});
-							sessionMenuOpen = false;
-						} else if (detail.type === 'pty') {
-							resumeTerminalSession({
-								terminalId: detail.id,
-								workspacePath: detail.workspacePath || selectedProject
-							});
-							sessionMenuOpen = false;
+							return (
+								s.type === 'claude' &&
+								(s.claudeSessionId === detail.id || s.sessionId === detail.id || s.id === detail.id)
+							);
 						}
-					}}
-				/>
-			</div>
+						if (detail.type === 'pty') {
+							return s.type === 'pty' && s.id === detail.id;
+						}
+						return false;
+					});
+					if (existing) {
+						updateDisplayedWithSession(existing.id);
+						sessionMenuOpen = false;
+						return;
+					}
+
+					// Resume persisted sessions
+					if (detail.type === 'claude') {
+						const projectName = detail.projectName || selectedProject || 'project';
+						createClaudeSession({
+							workspacePath: detail.workspacePath || projectName,
+							sessionId: detail.id,
+							projectName,
+							resumeSession: true,
+							createWorkspace: false
+						});
+						sessionMenuOpen = false;
+					} else if (detail.type === 'pty') {
+						resumeTerminalSession({
+							terminalId: detail.id,
+							workspacePath: detail.workspacePath || selectedProject
+						});
+						sessionMenuOpen = false;
+					}
+				}}
+			/>
 		</div>
-	{/if}
+	</div>
 
 	<!-- Main Workspace -->
-	<main 
-		class="main-content" 
+	<main
+		class="main-content"
 		style={`--cols: ${cols};`}
 		ontouchstart={handleTouchStart}
 		ontouchmove={handleTouchMove}
@@ -631,8 +636,18 @@
 						<div
 							class="terminal-container"
 							style="--animation-index: {index};"
-							in:fly|global={{ x: 0, y: isMobile ? 0 : 20, duration: isMobile ? 150 : 250, easing: cubicOut }}
-							out:fly|global={{ x: 0, y: isMobile ? 0 : -20, duration: isMobile ? 100 : 200, easing: cubicOut }}
+							in:fly|global={{
+								x: 0,
+								y: isMobile ? 0 : 20,
+								duration: isMobile ? 150 : 250,
+								easing: cubicOut
+							}}
+							out:fly|global={{
+								x: 0,
+								y: isMobile ? 0 : -20,
+								duration: isMobile ? 100 : 200,
+								easing: cubicOut
+							}}
 							onclick={() => handleSessionFocus(s)}
 							onkeydown={(e) => e.key === 'Enter' && handleSessionFocus(s)}
 							role="button"
@@ -781,7 +796,6 @@
 		width: 100%;
 		transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
-
 		&::before {
 			content: '';
 			position: absolute;
@@ -794,7 +808,6 @@
 			pointer-events: none;
 		}
 	}
-
 
 	/* ========================================
 	   COMPACT HEADER - MINIMAL HEIGHT
@@ -975,7 +988,6 @@
 		position: relative;
 		/* Prevent grid child overflow in narrow viewports */
 		min-width: 0;
-
 	}
 
 	@media (max-width: 768px) {
@@ -1055,8 +1067,7 @@
 			display: flex;
 			flex-direction: column;
 			/* Smoother, faster transitions for mobile */
-			transition:
-				opacity 0.15s ease-out;
+			transition: opacity 0.15s ease-out;
 			/* Prevent layout reflows */
 			will-change: opacity;
 			contain: layout style;
@@ -1066,7 +1077,7 @@
 			backface-visibility: hidden;
 			-webkit-backface-visibility: hidden;
 		}
-		
+
 		/* Ensure child components maintain height */
 		.terminal-viewport {
 			flex: 1 1 auto;
@@ -1318,31 +1329,32 @@
 	/* Session bottom sheet */
 	.session-sheet-backdrop {
 		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
+		inset: 0;
 		background: rgba(0, 0, 0, 0.4);
 		z-index: 60;
 		-webkit-tap-highlight-color: transparent;
+		display: none;
 	}
 	.session-sheet {
 		position: fixed;
 		left: 0;
 		right: 0;
-		bottom: 0;
 		background: var(--bg);
 		border-top: 1px solid var(--primary-dim);
-		max-height: 90vh;
-		max-height: 90dvh;
-		height: auto;
+		height: calc(100dvh - 60px);
 		overflow: hidden;
 		z-index: 70;
 		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
 		display: flex;
 		flex-direction: column;
+		transform: translateY(100dvh);
+		opacity: 0;
+		transition: transform 0.15s ease-out;
+		transition-property: all;
+	}
+	.session-sheet.open {
 		transform: translateY(0);
-		transition: transform 0.3s ease-out;
+		opacity: 0.975;
 	}
 	.sheet-header {
 		display: flex;
@@ -1368,9 +1380,9 @@
 		cursor: pointer;
 	}
 	.sheet-body {
-		overflow: auto;
-		min-height: 0;
-		padding: 0.5rem;
+		overflow: hidden;
+		min-height: 100%;
+		padding: 0;
 	}
 
 	/* Mobile-specific styles for session sheet to take remaining viewport */
@@ -1384,13 +1396,13 @@
 			/* Ensure it doesn't go higher than the status bar */
 			top: auto;
 		}
-		
+
 		.sheet-header {
 			/* More compact header on mobile */
 			padding: 0.4rem 0.6rem;
 			flex-shrink: 0;
 		}
-		
+
 		.sheet-body {
 			/* Make the body scrollable and take remaining space */
 			flex: 1;
@@ -1400,7 +1412,7 @@
 			padding-bottom: env(safe-area-inset-bottom, 1rem);
 		}
 	}
-	
+
 	/* Very small screens - adjust for exact status bar height */
 	@media (max-width: 480px) {
 		.session-sheet {

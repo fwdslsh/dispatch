@@ -558,7 +558,7 @@
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
     gap: 1rem;
-    height: 100%;
+    min-height: 100%;
     min-width: 0; /* prevent overflow in sidebar */
   }
 

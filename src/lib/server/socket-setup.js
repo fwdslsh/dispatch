@@ -10,6 +10,25 @@ export function setupSocketIO(httpServer) {
 		cors: { origin: '*', methods: ['GET', 'POST'] }
 	});
 
+	// If API services were initialized earlier, give them the server-level io
+	// so managers can emit broadcast events (e.g. tools.list) even when no
+	// individual socket has called setSocketIO.
+	try {
+		// Access the already-initialized API services if present. Avoid calling
+		// getManagers() here since it's declared later in the file.
+		const managers = globalThis.__API_SERVICES || {};
+		if (managers) {
+			if (managers.terminals && typeof managers.terminals.setSocketIO === 'function') {
+				managers.terminals.setSocketIO(io);
+			}
+			if (managers.claude && typeof managers.claude.setSocketIO === 'function') {
+				managers.claude.setSocketIO(io);
+			}
+		}
+	} catch (e) {
+		console.error('[SOCKET] Failed to attach server io to managers:', e && e.message ? e.message : e);
+	}
+
 	// Get shared managers from hooks.server.js
 	const getManagers = () => globalThis.__API_SERVICES || {};
 
@@ -122,15 +141,33 @@ export function setupSocketIO(httpServer) {
 					return;
 				}
 
-				const { sessions } = getManagers();
+				const { sessions, claude } = getManagers();
 				if (sessions && data.sessionId) {
 					const activityState = sessions.getActivityState(data.sessionId);
 					const hasPendingMessages = activityState === 'processing' || activityState === 'streaming';
 					console.log(`[SOCKET] Session ${data.sessionId} activity state: ${activityState}, hasPending: ${hasPendingMessages}`);
+					// Try to include cached availableCommands from the Claude manager if available
+					let availableCommands = null;
+					try {
+						if (claude && typeof claude.getCachedCommands === 'function') {
+							availableCommands = claude.getCachedCommands(`claude_${data.sessionId}`) || claude.getCachedCommands(data.sessionId);
+						} else if (claude && claude._toolsCache) {
+							// Best-effort: derive cache key from known session mapping on the claude manager
+							const s = claude.sessions && claude.sessions.get(`claude_${data.sessionId}`) || claude.sessions && claude.sessions.get(data.sessionId);
+							if (s && s.options) {
+								const cacheKey = `${s.options.cwd || ''}:${s.options.pathToClaudeCodeExecutable || ''}`;
+								const cached = claude._toolsCache.get(cacheKey);
+								availableCommands = cached ? cached.commands : null;
+							}
+						}
+					} catch (e) {
+						availableCommands = null;
+					}
 					if (callback) callback({ 
 						success: true, 
 						activityState,
-						hasPendingMessages 
+						hasPendingMessages,
+						availableCommands: Array.isArray(availableCommands) ? availableCommands : undefined
 					});
 				} else {
 					if (callback) callback({ 

@@ -14,6 +14,9 @@ export class ClaudeSessionManager {
 		this.sessions = new Map(); // id -> { workspacePath, options }
 		this.nextId = 1;
 
+		// Cache supported commands per workspace or CLI path
+		this._toolsCache = new Map(); // key -> { commands, fetchedAt }
+
 		// Get the absolute path to the CLI executable
 		const cliPath = resolve(process.cwd(), './node_modules/.bin/claude');
 
@@ -29,6 +32,22 @@ export class ClaudeSessionManager {
 
 		// Projects reader to help locate existing sessions on disk when resuming
 		this.projectsReader = new ClaudeProjectsReader(join(process.env.HOME || homedir(), '.claude', 'projects'));
+	}
+
+	/**
+	 * Return cached commands for a manager key if available
+	 * @param {string} managerKey
+	 */
+	getCachedCommands(managerKey) {
+		try {
+			const s = this.sessions.get(managerKey);
+			if (!s || !s.options) return null;
+			const cacheKey = `${s.options.cwd || ''}:${s.options.pathToClaudeCodeExecutable || ''}`;
+			const cached = this._toolsCache.get(cacheKey);
+			return cached ? cached.commands : null;
+		} catch (e) {
+			return null;
+		}
 	}
 
 	setSocketIO(io) {
@@ -75,6 +94,11 @@ export class ClaudeSessionManager {
 		this.sessions.set(id, sessionData);
 		// Also map raw session id for clients that pass it directly
 		this.sessions.set(realSessionId, this.sessions.get(id));
+
+		// Fire-and-forget fetch of supported commands for this session; emit to socket when ready
+		this._fetchAndEmitSupportedCommands(id, this.sessions.get(id)).catch((err) => {
+			console.error('[Claude] Failed to fetch supported commands for', id, err && err.message ? err.message : err);
+		});
 		return { id, sessionId: realSessionId };
 	}
 	/**
@@ -348,6 +372,70 @@ export class ClaudeSessionManager {
 		this.sessions.set(key, hydrated);
 		this.sessions.set(sessionId, hydrated);
 		console.log(`[Claude] Hydrated session ${sessionId} @ ${workspacePath} (from ${found.projectsDir})`);
+
+		// After hydrating from disk, proactively fetch supported commands
+		this._fetchAndEmitSupportedCommands(key, this.sessions.get(key)).catch((err) => {
+			console.error('[Claude] Failed to fetch supported commands for hydrated', key, err && err.message ? err.message : err);
+		});
 		return { key, session: hydrated };
+	}
+
+	/**
+	 * Fetch supported commands from the Claude SDK for a given session and emit them to clients.
+	 * Uses an internal cache to avoid repeated CLI calls.
+	 * @param {string} managerKey - the manager id (e.g. 'claude_<uuid>')
+	 * @param {{ workspacePath: string, sessionId: string, options: object }} sessionData
+	 */
+	async _fetchAndEmitSupportedCommands(managerKey, sessionData) {
+		if (!sessionData || !sessionData.options) return;
+		const cacheKey = `${sessionData.options.cwd || ''}:${sessionData.options.pathToClaudeCodeExecutable || ''}`;
+		// Simple cache TTL: 5 minutes
+		const TTL = 5 * 60 * 1000;
+		const cached = this._toolsCache.get(cacheKey);
+		if (cached && (Date.now() - cached.fetchedAt) < TTL) {
+			// Emit cached directly
+			if (this.io) {
+				this.io.emit('tools.list', { sessionId: managerKey, commands: cached.commands });
+				// Also emit session.status for consumers that query it
+				this.io.emit('session.status', { sessionId: managerKey, availableCommands: cached.commands });
+			}
+			return cached.commands;
+		}
+		try {
+			const commands = await this._fetchSupportedCommands(sessionData.options);
+			if (Array.isArray(commands)) {
+				this._toolsCache.set(cacheKey, { commands, fetchedAt: Date.now() });
+				if (this.io) {
+					this.io.emit('tools.list', { sessionId: managerKey, commands });
+					// Also emit session.status so clients can get commands when they requested session status
+					this.io.emit('session.status', { sessionId: managerKey, availableCommands: commands });
+				}
+			}
+			return commands;
+		} catch (err) {
+			throw err;
+		}
+	}
+
+	/**
+	 * Low-level call into the SDK to obtain supported commands.
+	 * Creates a streaming query (empty prompt) so `supportedCommands()` is available.
+	 * @param {object} options - options to pass to the SDK (cwd, env, pathToClaudeCodeExecutable, etc.)
+	 */
+	async _fetchSupportedCommands(options) {
+		// empty async iterable prompt to force streaming mode
+		const emptyPrompt = (async function* () {})();
+		const q = query({ prompt: emptyPrompt, options: { ...options } });
+		try {
+			const supportedFn = q['supportedCommands'];
+			const commands = supportedFn ? await supportedFn.call(q) : null;
+			return commands;
+		} finally {
+			// best-effort cleanup: try interrupting the query to stop the child process
+			try {
+				const interruptFn = q['interrupt'];
+				if (interruptFn) await interruptFn.call(q);
+			} catch (e) {}
+		}
 	}
 }

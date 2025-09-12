@@ -4,7 +4,7 @@
  * Simple test to verify the Claude session history API endpoint works correctly
  */
 
-import { projectsRoot } from './src/lib/server/claude/cc-root.js';
+import { projectsRoot } from '../../src/lib/server/claude/cc-root.js';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
@@ -102,7 +102,7 @@ async function main() {
 	
 	console.log('\n2. Testing the API endpoint...');
 	// Import and test the API endpoint
-	const { GET } = await import('./src/routes/api/claude/session/[id]/+server.js');
+	const { GET } = await import('../../src/routes/api/claude/session/[id]/+server.js');
 	
 	// Test with full=1 to get all entries
 	const mockRequest = {

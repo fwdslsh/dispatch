@@ -10,10 +10,10 @@
  * 4. Verifying that history is loaded correctly
  */
 
-import { ClaudeSessionManager } from './src/lib/server/claude/ClaudeSessionManager.js';
-import { SessionRouter } from './src/lib/server/core/SessionRouter.js';
-import { WorkspaceManager } from './src/lib/server/core/WorkspaceManager.js';
-import { projectsRoot } from './src/lib/server/claude/cc-root.js';
+import { ClaudeSessionManager } from '../../src/lib/server/claude/ClaudeSessionManager.js';
+import { SessionRouter } from '../../src/lib/server/core/SessionRouter.js';
+import { WorkspaceManager } from '../../src/lib/server/core/WorkspaceManager.js';
+import { projectsRoot } from '../../src/lib/server/claude/cc-root.js';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
@@ -161,7 +161,7 @@ async function main() {
 	
 	console.log('\n4. Testing history loading via API endpoint...');
 	// Test the API endpoint directly
-	const { GET } = await import('./src/routes/api/claude/session/[id]/+server.js');
+	const { GET } = await import('../../src/routes/api/claude/session/[id]/+server.js');
 	
 	const mockRequest = {
 		params: { id: session.sessionId },
