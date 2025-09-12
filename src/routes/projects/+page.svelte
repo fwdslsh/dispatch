@@ -1373,6 +1373,45 @@
 		padding: 0.5rem;
 	}
 
+	/* Mobile-specific styles for session sheet to take remaining viewport */
+	@media (max-width: 768px) {
+		.session-sheet {
+			/* Calculate height: viewport height minus status bar (approximately 60px) */
+			height: calc(100vh - 60px);
+			height: calc(100dvh - 60px);
+			max-height: calc(100vh - 60px);
+			max-height: calc(100dvh - 60px);
+			/* Ensure it doesn't go higher than the status bar */
+			top: auto;
+		}
+		
+		.sheet-header {
+			/* More compact header on mobile */
+			padding: 0.4rem 0.6rem;
+			flex-shrink: 0;
+		}
+		
+		.sheet-body {
+			/* Make the body scrollable and take remaining space */
+			flex: 1;
+			overflow-y: auto;
+			-webkit-overflow-scrolling: touch;
+			/* Add some breathing room at the bottom for iOS safe area */
+			padding-bottom: env(safe-area-inset-bottom, 1rem);
+		}
+	}
+	
+	/* Very small screens - adjust for exact status bar height */
+	@media (max-width: 480px) {
+		.session-sheet {
+			/* Fine-tune for smaller screens where status bar might be different */
+			height: calc(100vh - 56px);
+			height: calc(100dvh - 56px);
+			max-height: calc(100vh - 56px);
+			max-height: calc(100dvh - 56px);
+		}
+	}
+
 	/* Mobile-specific touch improvements */
 	@media (hover: none) and (pointer: coarse) {
 		.bottom-btn:active,
