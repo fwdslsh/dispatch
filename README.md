@@ -181,6 +181,22 @@ For detailed setup and troubleshooting, see the [**Claude Authentication Guide**
 
 **Note**: Claude integration requires the Claude CLI to be available in the container.
 
+## 🛠️ Admin Console
+
+Dispatch includes a powerful admin console for monitoring and managing your deployment:
+
+- **Real-time Socket Monitoring**: View all active connections with IP addresses, connection times, and authentication status
+- **Socket Management**: Disconnect problematic connections directly from the web interface
+- **Event Tracking**: Monitor all socket events (connections, disconnections, etc.) with full audit trail
+- **Server Logs**: View server logs with different levels (INFO, DEBUG, ERROR) and timestamps
+- **Extensible Design**: Framework ready for additional monitoring and management features
+
+### Access the Admin Console
+
+Navigate to `/console?key=your-terminal-key` using the same authentication key as your main application.
+
+For detailed information and API documentation, see the [**Admin Console Guide**](docs/admin-console.md).
+
 ## ⚙️ Configuration
 
 Customize Dispatch with these environment variables:
