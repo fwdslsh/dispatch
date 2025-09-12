@@ -241,23 +241,25 @@ if (claudeSessionId || shouldResume) {
 
 ## Recommendations
 
-### Immediate Actions
-1. Fix type errors in SessionSocketManager
-2. Update test file imports
-3. Add proper error handling to critical paths
-4. Document component props and functions
+> **Note**: High-priority recommendations triaged on 2025-09-12 as part of issue #44. Creating specific GitHub issues for actionable items.
 
-### Short-term Improvements
-1. Refactor session management to single source of truth
-2. Implement proper loading states
-3. Add input validation to API endpoints
-4. Fix mobile navigation issues
+### Immediate Actions (Converting to GitHub Issues)
+1. [TRIAGED → ISSUE TBD] Fix type errors in SessionSocketManager
+2. [TRIAGED → ISSUE TBD] Update test file imports  
+3. [TRIAGED → ISSUE TBD] Add proper error handling to critical paths
+4. [TRIAGED → ISSUE TBD] Document component props and functions
 
-### Long-term Refactoring
-1. Split large components into smaller, focused ones
-2. Implement proper state management solution
-3. Add comprehensive test coverage
-4. Improve build configuration and environment handling
+### Short-term Improvements (Will Create Issues)
+1. [TRIAGED → ISSUE TBD] Refactor session management to single source of truth
+2. [TRIAGED → ISSUE TBD] Implement proper loading states
+3. [TRIAGED → ISSUE TBD] Add input validation to API endpoints
+4. [TRIAGED → ISSUE TBD] Fix mobile navigation issues
+
+### Long-term Refactoring (Future Issues)
+1. [TRIAGED] Split large components into smaller, focused ones
+2. [TRIAGED] Implement proper state management solution
+3. [TRIAGED] Add comprehensive test coverage
+4. [TRIAGED] Improve build configuration and environment handling
 
 ## Conclusion
 
