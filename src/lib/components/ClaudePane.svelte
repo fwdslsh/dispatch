@@ -688,9 +688,6 @@
 						</div>
 						{#if m.activityIcons && m.activityIcons.length > 0}
 							<div class="activity-icons-container">
-								<div class="activity-icons-header">
-									<span class="activity-icons-count">{m.activityIcons.length} actions</span>
-								</div>
 								<div class="live-event-icons static" aria-label="Agent activity">
 									{#each m.activityIcons as ev, index (ev.id)}
 										{@const isSelected = messageSelectedIcon[`${m.id}-${ev.id}`]}
@@ -1279,23 +1276,8 @@
 
 	/* Activity icons container - transparent background */
 	.activity-icons-container {
-		margin-top: var(--space-3);
+		margin-top: var(--space-2);
 		background: transparent;
-	}
-	
-	.activity-icons-header {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		margin-bottom: var(--space-2);
-		padding-right: var(--space-3);
-	}
-	
-	.activity-icons-count {
-		font-size: var(--font-size-0);
-		color: var(--text-muted);
-		opacity: 0.7;
-		font-family: var(--font-mono);
 	}
 
 	/* Live event icons - transparent for static, subtle background for live */
@@ -1309,7 +1291,7 @@
 		background: transparent;
 		border: none;
 		box-shadow: none;
-		font-size: 1rem;
+		font-size: 0.85rem;
 		/* Allow container to expand as needed */
 		min-height: 40px;
 		max-width: 100%;
@@ -1333,8 +1315,8 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 32px;
-		height: 32px;
+		width: 26px;
+		height: 26px;
 		padding: 0;
 		border-radius: 50%;
 		background: linear-gradient(135deg,
@@ -1765,9 +1747,9 @@
 		}
 		
 		.event-icon {
-			width: 28px;
-			height: 28px;
-			font-size: 0.95rem;
+			width: 24px;
+			height: 24px;
+			font-size: 0.8rem;
 		}
 		
 		.event-summary {
@@ -1822,10 +1804,18 @@
 			will-change: scroll-position;
 		}
 		
-		/* Increase tap targets for touch */
+		/* Increase tap targets for touch while keeping visual size small */
 		.event-icon {
-			min-width: 44px;
-			min-height: 44px;
+			position: relative;
+			min-width: 36px;
+			min-height: 36px;
+		}
+		
+		.event-icon::before {
+			content: '';
+			position: absolute;
+			inset: -6px;
+			/* Creates larger touch target without affecting visual size */
 		}
 	}
 
