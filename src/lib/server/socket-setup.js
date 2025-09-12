@@ -145,7 +145,7 @@ export function setupSocketIO(httpServer) {
 		});
 
 		socket.on('terminal.write', (data) => {
-			console.log(`[SOCKET] terminal.write received:`, data);
+			logger.debug('SOCKET', 'terminal write received:', data);
 			try {
 				if (!validateKey(data.key)) return;
 
@@ -154,15 +154,15 @@ export function setupSocketIO(httpServer) {
 					// Update the socket reference to ensure output goes to the current connection
 					terminals.setSocketIO(socket);
 					terminals.write(data.id, data.data);
-					console.log(`[SOCKET] Data written to terminal ${data.id} via shared manager`);
+					logger.debug('SOCKET', `Data written to terminal ${data.id} via shared manager`);
 				}
 			} catch (err) {
-				console.error(`[SOCKET] Terminal write error:`, err);
+				logger.error('SOCKET', 'Terminal write error:', err);
 			}
 		});
 
-		socket.on('terminal.resize', (data) => {
-			console.log(`[SOCKET] terminal.resize received:`, data);
+		socket.on(SOCKET_EVENTS.TERMINAL_RESIZE, (data) => {
+			logger.debug('SOCKET', 'terminal resize received:', data);
 			try {
 				if (!validateKey(data.key)) return;
 
@@ -176,8 +176,8 @@ export function setupSocketIO(httpServer) {
 		});
 
 		// Claude events
-		socket.on('claude.send', async (data) => {
-			console.log(`[SOCKET] claude.send received:`, data);
+		socket.on(SOCKET_EVENTS.CLAUDE_SEND, async (data) => {
+			logger.debug('SOCKET', 'claude.send received:', data);
 			try {
 				if (!validateKey(data.key)) return;
 
@@ -217,8 +217,8 @@ export function setupSocketIO(httpServer) {
 		});
 
 		// Session status check event
-		socket.on('session.status', (data, callback) => {
-			console.log(`[SOCKET] session.status received:`, data);
+		socket.on(SOCKET_EVENTS.SESSION_STATUS, (data, callback) => {
+			logger.debug('SOCKET', 'session.status received:', data);
 			try {
 				if (!validateKey(data.key)) {
 					if (callback) callback({ success: false, error: 'Invalid key' });
@@ -229,7 +229,7 @@ export function setupSocketIO(httpServer) {
 				if (sessions && data.sessionId) {
 					const activityState = sessions.getActivityState(data.sessionId);
 					const hasPendingMessages = activityState === 'processing' || activityState === 'streaming';
-					console.log(`[SOCKET] Session ${data.sessionId} activity state: ${activityState}, hasPending: ${hasPendingMessages}`);
+					logger.debug('SOCKET', `Session ${data.sessionId} activity state: ${activityState}, hasPending: ${hasPendingMessages}`);
 					// Try to include cached availableCommands from the Claude manager if available
 					let availableCommands = null;
 					try {
@@ -261,14 +261,14 @@ export function setupSocketIO(httpServer) {
 					});
 				}
 			} catch (err) {
-				console.error(`[SOCKET] Session status error:`, err);
+				logger.error('SOCKET', 'Session status error:', err);
 				if (callback) callback({ success: false, error: err.message });
 			}
 		});
 
 		// Session catchup event - for when a session regains focus
-		socket.on('session.catchup', (data) => {
-			console.log(`[SOCKET] session.catchup received:`, data);
+		socket.on(SOCKET_EVENTS.SESSION_CATCHUP, (data) => {
+			logger.debug('SOCKET', 'session.catchup received:', data);
 			// This could be used to resend any missed messages if needed
 			// For now, just log it
 		});
@@ -318,8 +318,8 @@ export function setupSocketIO(httpServer) {
 			}
 		});
 
-		socket.on('disconnect', () => {
-			console.log(`[SOCKET] Client disconnected: ${socket.id}`);
+		socket.on(SOCKET_EVENTS.DISCONNECT, () => {
+			logger.debug('SOCKET', `Client disconnected: ${socket.id}`);
 			// Track disconnection for admin console
 			logSocketEvent(socket.id, 'disconnect');
 			// Finalize history for this socket

@@ -4,6 +4,9 @@ import { resolve, join } from 'path';
 import { homedir } from 'node:os';
 import { readdir, stat, readFile } from 'node:fs/promises';
 import { ClaudeProjectsReader } from '../core/ClaudeProjectsReader.js';
+import { projectsRoot } from './cc-root.js';
+import { buildClaudeOptions } from '../utils/env.js';
+import { logger } from '../utils/logger.js';
 
 export class ClaudeSessionManager {
 	/**
@@ -97,7 +100,7 @@ export class ClaudeSessionManager {
 
 		// Fire-and-forget fetch of supported commands for this session; emit to socket when ready
 		this._fetchAndEmitSupportedCommands(id, this.sessions.get(id)).catch((err) => {
-			console.error('[Claude] Failed to fetch supported commands for', id, err && err.message ? err.message : err);
+			logger.error('Claude', 'Failed to fetch supported commands for', id, err && err.message ? err.message : err);
 		});
 		return { id, sessionId: realSessionId };
 	}
@@ -114,15 +117,15 @@ export class ClaudeSessionManager {
 	 * @param {any} userInput
 	 */
 	async send(id, userInput) {
-		console.log(`ClaudeSessionManager: send to session ${id}:`, userInput);
-		console.log(`ClaudeSessionManager: HOME=${process.env.HOME}`);
-		console.log(`ClaudeSessionManager: Current sessions:`, Array.from(this.sessions.keys()));
+		logger.debug('Claude', `send to session ${id}:`, userInput);
+		logger.debug('Claude', `HOME=${process.env.HOME}`);
+		logger.debug('Claude', `Current sessions:`, Array.from(this.sessions.keys()));
 
 		// Resolve or lazily hydrate a session mapping for this id
 		const { key, session } = await this.#ensureSession(id);
 		/** @type {{ workspacePath: string, sessionId: string, resumeCapable?: boolean, options: object }} */
 		const s = session;
-		console.log(`ClaudeSessionManager: Using session ${key} with sessionId ${s.sessionId}`);
+		logger.debug('Claude', `Using session ${key} with sessionId ${s.sessionId}`);
 
 		let sawNoConversation = false;
 		try {
@@ -130,7 +133,7 @@ export class ClaudeSessionManager {
 			// If you want SDK debug logs, uncomment next line
 			// debugEnv.DEBUG = debugEnv.DEBUG || '1';
 			
-			console.log(`[Claude] Session ${s.sessionId} options:`, {
+			logger.debug('Claude', `Session ${s.sessionId} options:`, {
 				cwd: s.options.cwd,
 				workspacePath: s.workspacePath,
 				resumeCapable: s.resumeCapable
@@ -151,7 +154,7 @@ export class ClaudeSessionManager {
 							if (text.toLowerCase().includes('no conversation found')) {
 								sawNoConversation = true;
 							}
-							console.error(`[Claude stderr ${s.sessionId}]`, data);
+							logger.error('Claude', `stderr ${s.sessionId}`, data);
 						} catch {}
 					},
 					env: debugEnv
@@ -159,7 +162,7 @@ export class ClaudeSessionManager {
 			});
 
 			if (!stream || typeof stream[Symbol.asyncIterator] !== 'function') {
-				console.error('Query did not return a valid async iterator');
+				logger.error('Claude', 'Query did not return a valid async iterator');
 				return;
 			}
 
@@ -173,7 +176,7 @@ export class ClaudeSessionManager {
 				this.io.emit('message.complete', { sessionId: key });
 			}
 		} catch (error) {
-			console.error(`Error in Claude session ${id}:`, error);
+			logger.error('Claude', `Error in Claude session ${id}:`, error);
 			// If the prompt/history is too long OR resume target missing, retry without resume
 			const msg = String(error?.message || '');
 			const lc = msg.toLowerCase();
@@ -225,24 +228,24 @@ export class ClaudeSessionManager {
 	 * @param {string} sessionId
 	 */
 	async #conversationExists(sessionId) {
-		const candidates = [
-			process.env.CLAUDE_PROJECTS_DIR,
-			join(process.env.HOME || homedir(), '.claude', 'projects'),
-			join(process.cwd(), '.dispatch-home', '.claude', 'projects'),
-			join(process.cwd(), '.claude', 'projects')
-		].filter(Boolean);
-		for (const projectsDir of candidates) {
-			try {
-				const dirs = await readdir(projectsDir, { withFileTypes: true });
-				for (const d of dirs) {
-					if (!d.isDirectory()) continue;
-					const filePath = join(projectsDir, d.name, `${sessionId}.jsonl`);
-					try {
-						const st = await stat(filePath);
-						if (st && st.isFile()) return true;
-					} catch {}
-				}
-			} catch {}
+		try {
+			const baseProjectsRoot = projectsRoot();
+			logger.debug('Claude', `Checking for conversation ${sessionId} in projects root:`, baseProjectsRoot);
+			
+			const dirs = await readdir(baseProjectsRoot, { withFileTypes: true });
+			for (const d of dirs) {
+				if (!d.isDirectory()) continue;
+				const filePath = join(baseProjectsRoot, d.name, `${sessionId}.jsonl`);
+				try {
+					const st = await stat(filePath);
+					if (st && st.isFile()) {
+						logger.debug('Claude', `Found conversation file:`, filePath);
+						return true;
+					}
+				} catch {}
+			}
+		} catch (error) {
+			logger.warn('Claude', 'Error checking for conversation existence:', error.message);
 		}
 		return false;
 	}
@@ -256,12 +259,12 @@ export class ClaudeSessionManager {
 	 * @returns {Promise<{ key: string, session: { workspacePath: string, sessionId: string, options: any } }>} 
 	 */
 	async #ensureSession(id) {
-		console.log(`[Claude] #ensureSession called with id: ${id}`);
+		logger.debug('Claude', `#ensureSession called with id: ${id}`);
 		
 		// Try exact key first
 		let s = this.sessions.get(id);
 		if (s) {
-			console.log(`[Claude] Found session in memory with exact key: ${id}`);
+			logger.debug('Claude', `Found session in memory with exact key: ${id}`);
 			return { key: id, session: s };
 		}
 
@@ -275,7 +278,7 @@ export class ClaudeSessionManager {
 			sessionId = id.startsWith('claude_') ? id.replace(/^claude_/, '') : id;
 		} else if (id.startsWith('claude_')) {
 			// This might be a simple manager ID like "claude_1", we can't hydrate without UUID
-			console.log(`[Claude] Cannot hydrate session with manager ID ${id} - UUID required`);
+			logger.warn('Claude', `Cannot hydrate session with manager ID ${id} - UUID required`);
 			throw new Error('unknown session - UUID required for hydration');
 		} else {
 			// Assume it's a raw UUID
@@ -285,52 +288,44 @@ export class ClaudeSessionManager {
 		const key = `claude_${sessionId}`;
 		s = this.sessions.get(key);
 		if (s) {
-			console.log(`[Claude] Found session in memory with constructed key: ${key}`);
+			logger.debug('Claude', `Found session in memory with constructed key: ${key}`);
 			return { key, session: s };
 		}
 		
 		// Also try with just the sessionId as key
 		s = this.sessions.get(sessionId);
 		if (s) {
-			console.log(`[Claude] Found session in memory with sessionId: ${sessionId}`);
+			logger.debug('Claude', `Found session in memory with sessionId: ${sessionId}`);
 			return { key: sessionId, session: s };
 		}
 
-		// Hydrate from disk by scanning candidate projects directories for the session jsonl
-		const candidates = [
-			// Explicit env var if provided
-			process.env.CLAUDE_PROJECTS_DIR,
-			// HOME-based default (dev sets HOME to .dispatch-home)
-			join(process.env.HOME || homedir(), '.claude', 'projects'),
-			// Fallback to repo-local .dispatch-home
-			join(process.cwd(), '.dispatch-home', '.claude', 'projects'),
-			// Fallback to repo-local .claude (some setups)
-			join(process.cwd(), '.claude', 'projects')
-		].filter(Boolean);
+		// Hydrate from disk by scanning projects directory for the session jsonl
+		logger.debug('Claude', `Attempting to hydrate session ${sessionId} from disk`);
+		
 		let found = null;
-		for (const projectsDir of candidates) {
-			try { console.log(`[Claude] Looking for session ${sessionId} in ${projectsDir}`); } catch {}
-			try {
-				const dirs = await readdir(projectsDir, { withFileTypes: true });
-				for (const d of dirs) {
-					if (!d.isDirectory()) continue;
-					const filePath = join(projectsDir, d.name, `${sessionId}.jsonl`);
-					try {
-						const st = await stat(filePath);
-						if (st && st.isFile()) {
-							found = { projectDirName: d.name, filePath, projectsDir };
-							break;
-						}
-					} catch {}
-				}
-				if (found) break;
-			} catch (e) {
-				// ignore scan errors for this candidate
+		try {
+			const baseProjectsRoot = projectsRoot();
+			logger.debug('Claude', `Looking for session ${sessionId} in:`, baseProjectsRoot);
+			
+			const dirs = await readdir(baseProjectsRoot, { withFileTypes: true });
+			for (const d of dirs) {
+				if (!d.isDirectory()) continue;
+				const filePath = join(baseProjectsRoot, d.name, `${sessionId}.jsonl`);
+				try {
+					const st = await stat(filePath);
+					if (st && st.isFile()) {
+						found = { projectDirName: d.name, filePath, projectsDir: baseProjectsRoot };
+						logger.debug('Claude', `Found session file:`, filePath);
+						break;
+					}
+				} catch {}
 			}
+		} catch (error) {
+			logger.error('Claude', 'Error scanning projects directory:', error.message);
 		}
 
 		if (!found) {
-			console.warn(`[Claude] Session ${sessionId} not found in any projects dir`);
+			logger.warn('Claude', `Session ${sessionId} not found in projects directory`);
 			throw new Error('unknown session');
 		}
 
@@ -371,11 +366,11 @@ export class ClaudeSessionManager {
 		};
 		this.sessions.set(key, hydrated);
 		this.sessions.set(sessionId, hydrated);
-		console.log(`[Claude] Hydrated session ${sessionId} @ ${workspacePath} (from ${found.projectsDir})`);
+		logger.info('Claude', `Hydrated session ${sessionId} @ ${workspacePath} (from ${found.projectsDir})`);
 
 		// After hydrating from disk, proactively fetch supported commands
 		this._fetchAndEmitSupportedCommands(key, this.sessions.get(key)).catch((err) => {
-			console.error('[Claude] Failed to fetch supported commands for hydrated', key, err && err.message ? err.message : err);
+			logger.error('Claude', 'Failed to fetch supported commands for hydrated', key, err && err.message ? err.message : err);
 		});
 		return { key, session: hydrated };
 	}
@@ -415,7 +410,7 @@ export class ClaudeSessionManager {
 			}
 			return commands;
 		} catch (err) {
-			console.error('[Claude] Error fetching supported commands:', err && err.message ? err.message : err);
+			logger.error('Claude', 'Error fetching supported commands:', err && err.message ? err.message : err);
 			throw err;
 		}
 	}
@@ -428,12 +423,12 @@ export class ClaudeSessionManager {
 	async _fetchSupportedCommands(options) {
 		// empty async iterable prompt to force streaming mode
 		const emptyPrompt = (async function* () {})();
-		console.log('[Claude] _fetchSupportedCommands called with options:', { cwd: options && options.cwd, path: options && options.pathToClaudeCodeExecutable });
+		logger.debug('Claude', '_fetchSupportedCommands called with options:', { cwd: options && options.cwd, path: options && options.pathToClaudeCodeExecutable });
 		const q = query({ prompt: emptyPrompt, options: { ...options } });
 		try {
 			const supportedFn = q && q['supportedCommands'];
 			if (!supportedFn) {
-				console.warn('[Claude] Query instance has no supportedCommands() function');
+				logger.warn('Claude', 'Query instance has no supportedCommands() function');
 				return null;
 			}
 			let commands = null;
