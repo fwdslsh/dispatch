@@ -38,6 +38,59 @@ export class ClaudeSessionManager {
 	}
 
 	/**
+	 * Normalize session ID to canonical form (claude_<uuid>)
+	 * @param {string} id - Input ID (could be UUID, claude_UUID, or claude_number)
+	 * @returns {string} Canonical session ID in form claude_<uuid>
+	 */
+	normalizeSessionId(id) {
+		if (!id || typeof id !== 'string') {
+			throw new Error('Invalid session ID: must be a non-empty string');
+		}
+
+		// If it's already in canonical form and looks like a UUID, return as-is
+		if (id.match(/^claude_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+			return id;
+		}
+
+		// If it's a raw UUID, prefix with claude_
+		if (id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+			return `claude_${id}`;
+		}
+
+		// If it starts with claude_ but followed by a number, keep as-is (legacy format)
+		if (id.match(/^claude_\d+$/)) {
+			return id;
+		}
+
+		// If it's just a number, prefix with claude_
+		if (id.match(/^\d+$/)) {
+			return `claude_${id}`;
+		}
+
+		// For any other format, throw an error
+		throw new Error(`Invalid session ID format: ${id}`);
+	}
+
+	/**
+	 * Extract raw session ID (UUID) from normalized ID
+	 * @param {string} normalizedId - Normalized session ID (claude_<uuid>)
+	 * @returns {string|null} Raw UUID or null if not a UUID-based session
+	 */
+	extractSessionUuid(normalizedId) {
+		const match = normalizedId.match(/^claude_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+		return match ? match[1] : null;
+	}
+
+	/**
+	 * Check if a session ID represents a UUID-based session
+	 * @param {string} id - Session ID to check
+	 * @returns {boolean} True if ID represents a UUID-based session
+	 */
+	isUuidSession(id) {
+		return this.extractSessionUuid(this.normalizeSessionId(id)) !== null;
+	}
+
+	/**
 	 * Return cached commands for a manager key if available
 	 * @param {string} managerKey
 	 */
@@ -61,14 +114,33 @@ export class ClaudeSessionManager {
 	 * @param {{ workspacePath: string, options?: object, sessionId?: string }} param0
 	 */
 	async create({ workspacePath, options = {}, sessionId = null }) {
-		const realSessionId = sessionId || `${this.nextId++}`;
-		const id = `claude_${realSessionId}`;
+		// Handle session ID normalization
+		let normalizedId;
+		let realSessionId;
+		
+		if (sessionId) {
+			// If sessionId provided, normalize it
+			try {
+				normalizedId = this.normalizeSessionId(sessionId);
+				realSessionId = this.extractSessionUuid(normalizedId) || sessionId;
+			} catch (error) {
+				logger.warn('Claude', `Invalid session ID format: ${sessionId}, generating new ID`);
+				realSessionId = `${this.nextId++}`;
+				normalizedId = `claude_${realSessionId}`;
+			}
+		} else {
+			// Generate new session ID
+			realSessionId = `${this.nextId++}`;
+			normalizedId = `claude_${realSessionId}`;
+		}
+		
+		logger.debug('Claude', `Creating session with normalized ID: ${normalizedId}, realSessionId: ${realSessionId}`);
 		
 		// Determine if we can actually resume (only when an on-disk conversation exists)
 		let resumeCapable = false;
 		if (sessionId) {
 			try {
-				resumeCapable = await this.#conversationExists(sessionId);
+				resumeCapable = await this.#conversationExists(realSessionId);
 			} catch {
 				resumeCapable = false;
 			}
@@ -87,22 +159,22 @@ export class ClaudeSessionManager {
 			}
 		};
 		
-		console.log(`[Claude] Creating session ${id} with:`, {
+		logger.info('Claude', `Creating session ${normalizedId} with:`, {
 			workspacePath,
 			sessionId: realSessionId,
 			cwd: sessionData.options.cwd,
 			resumeCapable
 		});
 		
-		this.sessions.set(id, sessionData);
+		this.sessions.set(normalizedId, sessionData);
 		// Also map raw session id for clients that pass it directly
-		this.sessions.set(realSessionId, this.sessions.get(id));
+		this.sessions.set(realSessionId, this.sessions.get(normalizedId));
 
 		// Fire-and-forget fetch of supported commands for this session; emit to socket when ready
-		this._fetchAndEmitSupportedCommands(id, this.sessions.get(id)).catch((err) => {
-			logger.error('Claude', 'Failed to fetch supported commands for', id, err && err.message ? err.message : err);
+		this._fetchAndEmitSupportedCommands(normalizedId, this.sessions.get(normalizedId)).catch((err) => {
+			logger.error('Claude', 'Failed to fetch supported commands for', normalizedId, err && err.message ? err.message : err);
 		});
-		return { id, sessionId: realSessionId };
+		return { id: normalizedId, sessionId: realSessionId };
 	}
 	/**
 	 * @param {any} workspacePath
