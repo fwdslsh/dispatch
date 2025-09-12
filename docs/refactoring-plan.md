@@ -191,10 +191,16 @@ Acceptance criteria
 
 ## Quick Wins (Can ship incrementally)
 
-- Implement `get-public-url` in `socket-setup.js` and wire to `PublicUrlDisplay`.
-- Replace magic strings for events with constants file (`socket-events.js`).
-- Add `clickOutside` action and use it in `CommandMenu` to remove document‑level listeners (safer, testable).
-- Reduce log noise behind `DISPATCH_LOG_LEVEL` gate.
+> **Note**: Quick wins triaged on 2025-09-12 as part of issue #44. Converting to GitHub issues.
+
+- [TRIAGED → ISSUE TBD] **Implement `get-public-url` in `socket-setup.js`** and wire to `PublicUrlDisplay`.
+  - Priority: High (missing handler confirmed - PublicUrlDisplay emits but no server handler)
+- [TRIAGED → ISSUE TBD] **Replace magic strings for events** with constants file (`socket-events.js`).
+  - Priority: Medium (no constants file currently exists)
+- [TRIAGED → ISSUE TBD] **Add `clickOutside` action** and use it in `CommandMenu` to remove document‑level listeners (safer, testable).
+  - Priority: Medium (safer event handling)
+- [TRIAGED → ISSUE TBD] **Reduce log noise** behind `DISPATCH_LOG_LEVEL` gate.
+  - Priority: Low (no log level gating currently exists)
 
 ---
 
@@ -208,20 +214,22 @@ Acceptance criteria
 
 ## Implementation Checklist (Condensed)
 
+> **Note**: Checklist triaged on 2025-09-12 as part of issue #44. High-impact items will be converted to individual GitHub issues.
+
 - Server
-  - [ ] Add `utils/env.js`, `utils/events.js`, `utils/logger.js` and swap call sites.
-  - [ ] Use `projectsRoot()` everywhere; remove duplicated candidate scans.
-  - [ ] Delete `directResume` and call `ClaudeSessionManager.send()` exclusively.
-  - [ ] Add `get-public-url` socket handler.
+  - [TRIAGED] Add `utils/env.js`, `utils/events.js`, `utils/logger.js` and swap call sites.
+  - [TRIAGED] Use `projectsRoot()` everywhere; remove duplicated candidate scans.
+  - [TRIAGED] Delete `directResume` and call `ClaudeSessionManager.send()` exclusively.
+  - [TRIAGED] Add `get-public-url` socket handler.
 
 - Frontend
-  - [ ] Create `claude/` subcomponents; move logic to `chat-store.js` and `commands.js`.
-  - [ ] Add `shared/actions/clickOutside.js`; replace document listeners.
-  - [ ] Replace event name strings with constants.
+  - [TRIAGED] Create `claude/` subcomponents; move logic to `chat-store.js` and `commands.js`.
+  - [TRIAGED] Add `shared/actions/clickOutside.js`; replace document listeners.
+  - [TRIAGED] Replace event name strings with constants.
 
 - Tests/Docs
-  - [ ] Fix broken tests and add new unit tests for utilities.
-  - [ ] Update CLI docs and add socket event contract to README.
+  - [TRIAGED] Fix broken tests and add new unit tests for utilities.
+  - [TRIAGED] Update CLI docs and add socket event contract to README.
 
 ---
 
