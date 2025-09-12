@@ -180,7 +180,8 @@
 										bind:selected={selectedDirectory}
 										onSelect={() => selectedClaudeProject = null}
 										api="/api/browse"
-										placeholder="Select a directory..."
+										startPath=""
+										placeholder="Select a directory from workspaces..."
 									/>
 								</div>
 							</div>
@@ -193,6 +194,7 @@
 						<DirectoryBrowser
 							bind:selected={selectedDirectory}
 							api="/api/browse"
+							startPath=""
 							placeholder="Navigate to your working directory..."
 						/>
 						<div class="hint">Choose the directory where the terminal will start</div>

@@ -402,7 +402,9 @@ export class ClaudeSessionManager {
 			return cached.commands;
 		}
 		try {
+			console.log(`[Claude] _fetchAndEmitSupportedCommands for ${managerKey} (cacheKey=${cacheKey}) - invoking SDK`);
 			const commands = await this._fetchSupportedCommands(sessionData.options);
+			console.log(`[Claude] _fetchAndEmitSupportedCommands received commands:`, Array.isArray(commands) ? commands.length : typeof commands);
 			if (Array.isArray(commands)) {
 				this._toolsCache.set(cacheKey, { commands, fetchedAt: Date.now() });
 				if (this.io) {
@@ -413,6 +415,7 @@ export class ClaudeSessionManager {
 			}
 			return commands;
 		} catch (err) {
+			console.error('[Claude] Error fetching supported commands:', err && err.message ? err.message : err);
 			throw err;
 		}
 	}
@@ -425,10 +428,22 @@ export class ClaudeSessionManager {
 	async _fetchSupportedCommands(options) {
 		// empty async iterable prompt to force streaming mode
 		const emptyPrompt = (async function* () {})();
+		console.log('[Claude] _fetchSupportedCommands called with options:', { cwd: options && options.cwd, path: options && options.pathToClaudeCodeExecutable });
 		const q = query({ prompt: emptyPrompt, options: { ...options } });
 		try {
-			const supportedFn = q['supportedCommands'];
-			const commands = supportedFn ? await supportedFn.call(q) : null;
+			const supportedFn = q && q['supportedCommands'];
+			if (!supportedFn) {
+				console.warn('[Claude] Query instance has no supportedCommands() function');
+				return null;
+			}
+			let commands = null;
+			try {
+				commands = await supportedFn.call(q);
+				console.log('[Claude] supportedCommands() returned:', Array.isArray(commands) ? `${commands.length} commands` : typeof commands);
+			} catch (e) {
+				console.error('[Claude] supportedCommands() threw error:', e && e.message ? e.message : e);
+				throw e;
+			}
 			return commands;
 		} finally {
 			// best-effort cleanup: try interrupting the query to stop the child process
