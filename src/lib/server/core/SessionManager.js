@@ -178,7 +178,9 @@ export class SessionManager {
 	async sendToSession(sessionId, input) {
 		const descriptor = this.router.get(sessionId);
 		if (!descriptor) {
-			throw new Error(`Session ${sessionId} not found`);
+			// Tolerate writes to sessions that are not active (e.g. after HMR or page reload)
+			logger.warn('SESSION', `sendToSession: session ${sessionId} not found`);
+			return; // no-op to avoid noisy errors during reconnect
 		}
 
 		const sessionType = this.sessionTypes[descriptor.type];
@@ -210,7 +212,9 @@ export class SessionManager {
 	async sessionOperation(sessionId, operation, params) {
 		const descriptor = this.router.get(sessionId);
 		if (!descriptor) {
-			throw new Error(`Session ${sessionId} not found`);
+			// Gracefully ignore ops for non-existent sessions (common during reconnection)
+			logger.warn('SESSION', `sessionOperation: session ${sessionId} not found for ${operation}`);
+			return null;
 		}
 
 		const sessionType = this.sessionTypes[descriptor.type];
