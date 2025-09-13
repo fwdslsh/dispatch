@@ -33,6 +33,72 @@
 	}
 
 	/**
+	 * Normalize session ID to handle multiple formats from server
+	 * Strips 'claude_' prefix and converts to string for consistent comparison
+	 * @param {string|number} id - Session ID from server or client
+	 * @returns {string|null} Normalized session ID or null for invalid inputs
+	 */
+	function normalizeSessionId(id) {
+		if (id === null || id === undefined) return null;
+		return String(id).replace(/^claude_/, '');
+	}
+
+	/**
+	 * Check if two session IDs match after normalization
+	 * @param {string|number} id1 - First session ID
+	 * @param {string|number} id2 - Second session ID
+	 * @returns {boolean} True if IDs match after normalization
+	 */
+	function sessionIdsMatch(id1, id2) {
+		const normalized1 = normalizeSessionId(id1);
+		const normalized2 = normalizeSessionId(id2);
+
+		// Return false if either normalized result is null (from null/undefined inputs)
+		if (normalized1 === null || normalized2 === null) {
+			return false;
+		}
+
+		return normalized1 === normalized2;
+	}
+
+	/**
+	 * Determine if a WebSocket event payload is intended for a specific session
+	 * @param {Object} payload - WebSocket event payload containing sessionId
+	 * @param {string|number} sessionId - Our session ID
+	 * @param {string|number} claudeSessionId - Our Claude session ID (optional)
+	 * @returns {boolean} True if payload is for our session
+	 */
+	function isEventForSession(payload, sessionId, claudeSessionId = null) {
+		if (!payload || payload.sessionId === null || payload.sessionId === undefined) return false;
+
+		// Check if we have any session IDs (note: 0 is a valid session ID)
+		const hasSessionId = sessionId !== null && sessionId !== undefined;
+		const hasClaudeId = claudeSessionId !== null && claudeSessionId !== undefined;
+		if (!hasSessionId && !hasClaudeId) return false;
+
+		const payloadId = normalizeSessionId(payload.sessionId);
+		if (payloadId === null) return false;
+
+		// Check against app session ID if provided
+		if (hasSessionId) {
+			const ourAppId = normalizeSessionId(sessionId);
+			if (ourAppId !== null && sessionIdsMatch(payloadId, ourAppId)) {
+				return true;
+			}
+		}
+
+		// Check against Claude session ID if provided
+		if (hasClaudeId) {
+			const ourClaudeId = normalizeSessionId(claudeSessionId);
+			if (ourClaudeId !== null && sessionIdsMatch(payloadId, ourClaudeId)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Parse slash commands from text content
 	 * @param {string} message - Text to parse for commands
 	 * @returns {Array} Array of command objects
@@ -143,24 +209,35 @@
 			console.log('[ClaudeCommands] Received tools.list event:', payload);
 			if (!payload) return;
 
-			// Check if this event is for our session
+			// Check if this event is for our session using normalized session IDs
 			// Backend emits with both Claude session ID and app session ID
 			// We need to accept events that match either our sessionId or claudeSessionId
-			if (payload.sessionId && (sessionId || claudeSessionId)) {
-				const payloadId = String(payload.sessionId);
-				const ourAppId = String(sessionId || '');
-				const ourClaudeId = String(claudeSessionId || '');
+			console.log('[ClaudeCommands] Event filtering debug:', {
+				payloadSessionId: payload.sessionId,
+				normalizedPayloadId: normalizeSessionId(payload.sessionId),
+				ourSessionId: sessionId,
+				ourClaudeSessionId: claudeSessionId,
+				normalizedOurSessionId: normalizeSessionId(sessionId),
+				normalizedOurClaudeId: normalizeSessionId(claudeSessionId)
+			});
 
-				// Accept if payload matches either our app session ID or Claude session ID
-				const isForOurSession = payloadId === ourAppId || payloadId === ourClaudeId;
-
-				if (!isForOurSession) {
-					console.log(
-						`[ClaudeCommands] Ignoring tools.list for different session: ${payloadId} !== ${ourAppId} or ${ourClaudeId}`
-					);
-					return;
-				}
+			if (!isEventForSession(payload, sessionId, claudeSessionId)) {
+				console.log(
+					`[ClaudeCommands] Ignoring tools.list for different session: ${payload.sessionId} (normalized: ${normalizeSessionId(payload.sessionId)}) !== our IDs: ${sessionId} or ${claudeSessionId}`
+				);
+				return;
+			} else {
+				console.log(`[ClaudeCommands] Accepting tools.list for our session`);
 			}
+
+			// Add debug logging before processing commands
+			console.log('[ClaudeCommands] Processing commands:', {
+				currentAvailableCount: availableCommands.length,
+				newCommandsCount: Array.isArray(payload.commands) ? payload.commands.length : 0,
+				newCommandsSample: Array.isArray(payload.commands)
+					? payload.commands.slice(0, 3).map((c) => c.name || c.title || c)
+					: 'not-array'
+			});
 
 			const commands = Array.isArray(payload.commands) ? payload.commands : [];
 			console.log(`[ClaudeCommands] Received ${commands.length} commands for session ${sessionId}`);
@@ -178,10 +255,17 @@
 					};
 				});
 				if (!commandsEqual(availableCommands, normalized)) {
+					console.log('[ClaudeCommands] Commands are different, updating availableCommands:', {
+						oldCount: availableCommands.length,
+						newCount: normalized.length,
+						oldSample: availableCommands.slice(0, 3).map((c) => c.name || c.title),
+						newSample: normalized.slice(0, 3).map((c) => c.name || c.title)
+					});
 					availableCommands = normalized;
 					console.log(
 						`[ClaudeCommands] Updated available commands to ${availableCommands.length} items`
 					);
+					console.log('[ClaudeCommands] Final availableCommands state:', availableCommands);
 					// Cache commands when updated
 					if (workspacePath) {
 						try {
@@ -195,6 +279,11 @@
 					}
 					// Close menu so user can re-open to see new list
 					commandMenuOpen = false;
+				} else {
+					console.log('[ClaudeCommands] Commands are equal, no update needed:', {
+						currentCount: availableCommands.length,
+						incomingCount: normalized.length
+					});
 				}
 			}
 		} catch (error) {
@@ -206,7 +295,7 @@
 	 * Insert command into message input
 	 */
 	function insertCommand(command) {
-		onCommandInsert(command);
+		onCommandInsert('/' + command);
 		commandMenuOpen = false;
 	}
 
@@ -218,6 +307,33 @@
 
 		commandMenuOpen = !commandMenuOpen;
 		if (commandMenuOpen) {
+			// If we have no commands, request a refresh from the server
+			if (availableCommands.length === 0 && socket && (sessionId || claudeSessionId)) {
+				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+				const querySessionId = sessionId || claudeSessionId;
+
+				console.log(
+					`[ClaudeCommands] No commands available, requesting refresh for session: ${querySessionId}`
+				);
+				socket.emit(
+					'commands.refresh',
+					{
+						key,
+						sessionId: querySessionId
+					},
+					(response) => {
+						console.log(`[ClaudeCommands] commands.refresh response:`, response);
+						if (response && response.success && Array.isArray(response.commands)) {
+							// Handle the refreshed commands
+							handleToolsList({
+								sessionId: querySessionId,
+								commands: response.commands
+							});
+						}
+					}
+				);
+			}
+
 			// Focus first menu item after render
 			tick().then(() => {
 				const first = document.querySelector('.claude-commands-dropdown button');
@@ -253,7 +369,14 @@
 	// });
 
 	onMount(() => {
-		console.log(`[ClaudeCommands] Component mounted - sessionId: ${sessionId}, claudeSessionId: ${claudeSessionId}`);
+		console.log(
+			`[ClaudeCommands] Component mounted - sessionId: ${sessionId}, claudeSessionId: ${claudeSessionId}`
+		);
+		console.log(`[ClaudeCommands] Socket state:`, {
+			exists: !!socket,
+			connected: socket?.connected,
+			id: socket?.id
+		});
 
 		// Set up WebSocket listeners
 		if (socket) {
@@ -314,6 +437,9 @@
 	onDestroy(() => {
 		if (socket) {
 			socket.off('tools.list', handleToolsList);
+			try {
+				socket.off('session.id.updated');
+			} catch {}
 		}
 		document.removeEventListener('click', handleClickOutside);
 	});
@@ -374,6 +500,39 @@
 			<div class="dropdown-header">
 				<span class="dropdown-title">Slash Commands</span>
 				<span class="dropdown-subtitle">{availableCommands.length} available</span>
+				{#if socket && (sessionId || claudeSessionId)}
+					<button
+						type="button"
+						class="refresh-button"
+						onclick={() => {
+							const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+							const querySessionId = sessionId || claudeSessionId;
+							console.log(
+								`[ClaudeCommands] Manual refresh requested for session: ${querySessionId}`
+							);
+							socket.emit(
+								'commands.refresh',
+								{
+									key,
+									sessionId: querySessionId
+								},
+								(response) => {
+									console.log(`[ClaudeCommands] commands.refresh response:`, response);
+									if (response && response.success && Array.isArray(response.commands)) {
+										handleToolsList({
+											sessionId: querySessionId,
+											commands: response.commands
+										});
+									}
+								}
+							);
+						}}
+						title="Refresh commands"
+						aria-label="Refresh commands"
+					>
+						↻
+					</button>
+				{/if}
 			</div>
 
 			{#if availableCommands.length > 0}
@@ -517,6 +676,9 @@
 			color-mix(in oklab, var(--primary) 8%, transparent),
 			color-mix(in oklab, var(--primary) 4%, transparent)
 		);
+		display: flex;
+		flex-direction: column;
+		position: relative;
 	}
 
 	.dropdown-title {
@@ -535,6 +697,35 @@
 		font-size: var(--font-size-0);
 		color: var(--muted);
 		margin-top: var(--space-1);
+	}
+
+	.refresh-button {
+		position: absolute;
+		top: var(--space-3);
+		right: var(--space-3);
+		width: 24px;
+		height: 24px;
+		border-radius: 6px;
+		background: transparent;
+		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+		color: var(--primary);
+		font-size: 14px;
+		line-height: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.refresh-button:hover {
+		background: color-mix(in oklab, var(--primary) 10%, transparent);
+		border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+		transform: rotate(90deg);
+	}
+
+	.refresh-button:active {
+		transform: rotate(180deg);
 	}
 
 	.commands-list {

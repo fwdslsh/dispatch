@@ -1,40 +1,50 @@
 export async function GET({ url, locals }) {
-	const workspace = url.searchParams.get('workspace');
+    const workspace = url.searchParams.get('workspace');
+    const include = url.searchParams.get('include'); // 'all' to include unpinned
 
-	// Get active sessions from SessionRouter
-	const activeSessions = locals.sessions
-		.all()
-		.filter((s) => !workspace || s.workspacePath === workspace);
+    // Determine pinnedOnly flag
+    const pinnedOnly = include === 'all' ? false : true;
 
-	// Get persisted sessions from WorkspaceManager (SQLite-backed)
-	const persistedSessions = await locals.workspaces.getAllSessions();
-	const filteredPersisted = workspace
-		? persistedSessions.filter((s) => s.workspacePath === workspace)
-		: persistedSessions;
+    // Get persisted sessions (pinned by default)
+    const persistedSessions = await locals.workspaces.getAllSessions(pinnedOnly);
+    const filteredPersisted = workspace
+        ? persistedSessions.filter((s) => s.workspacePath === workspace)
+        : persistedSessions;
 
-	// Merge active and persisted sessions, with active taking precedence
-	const sessionMap = new Map();
+    // Build a set of pinned IDs when pinnedOnly requested
+    const pinnedIds = new Set(filteredPersisted.map((s) => s.id));
 
-	// First add persisted sessions
-	filteredPersisted.forEach((session) => {
-		sessionMap.set(session.id, session);
-	});
+    // Get active sessions from SessionRouter and filter by workspace
+    const activeSessionsRaw = locals.sessions
+        .all()
+        .filter((s) => !workspace || s.workspacePath === workspace);
 
-	// Then override with active sessions (which have current state)
-	activeSessions.forEach((session) => {
-		const existing = sessionMap.get(session.id);
-		sessionMap.set(session.id, {
-			...existing, // Keep persisted data like sessionId
-			...session, // Override with active data
-			isActive: true
-		});
-	});
+    // Always include active sessions; pinnedOnly only affects persisted entries
+    const activeSessions = activeSessionsRaw;
 
-	const allSessions = Array.from(sessionMap.values());
+    // Merge active and persisted sessions, with active taking precedence
+    const sessionMap = new Map();
 
-	return new Response(JSON.stringify({ sessions: allSessions }), {
-		headers: { 'content-type': 'application/json' }
-	});
+    // First add persisted sessions
+    filteredPersisted.forEach((session) => {
+        sessionMap.set(session.id, session);
+    });
+
+    // Then override with active sessions (which have current state)
+    activeSessions.forEach((session) => {
+        const existing = sessionMap.get(session.id);
+        sessionMap.set(session.id, {
+            ...existing,
+            ...session,
+            isActive: true
+        });
+    });
+
+    const allSessions = Array.from(sessionMap.values());
+
+    return new Response(JSON.stringify({ sessions: allSessions }), {
+        headers: { 'content-type': 'application/json' }
+    });
 }
 
 import { getTypeSpecificId, getSessionType } from '../../../lib/server/utils/session-ids.js';
@@ -50,10 +60,29 @@ export async function POST({ request, locals }) {
 			options
 		});
 
+
+		// Guard against placeholder/invalid Claude IDs; allow UI to fall back to unified sessionId
+		const mapField = type === 'pty' ? 'terminalId' : 'claudeId';
+		let mappedId = session.typeSpecificId;
+		if (type === 'claude') {
+			try {
+				const v = String(mappedId || '').trim();
+				const looksUUID = /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i.test(v);
+				const looksLong = v.length >= 16; // Claude Code JSONL filenames are long-ish
+				const hasAlpha = /[a-z]/i.test(v);
+				const isOnlyDigits = /^\d+$/.test(v);
+				if (!v || isOnlyDigits || (!looksUUID && !looksLong && !hasAlpha)) {
+					mappedId = null;
+				}
+			} catch {
+				mappedId = null;
+			}
+		}
+
 		return new Response(
 			JSON.stringify({
 				id: session.id,
-				[type === 'pty' ? 'terminalId' : 'claudeId']: session.typeSpecificId
+				[mapField]: mappedId
 			})
 		);
 	} catch (error) {
@@ -63,14 +92,24 @@ export async function POST({ request, locals }) {
 }
 
 export async function PUT({ request, locals }) {
-	const { action, sessionId, workspacePath, newTitle } = await request.json();
+    const { action, sessionId, workspacePath, newTitle } = await request.json();
 
-	if (action === 'rename') {
-		await locals.workspaces.renameSession(workspacePath, sessionId, newTitle);
-		return new Response(JSON.stringify({ success: true }));
-	}
+    if (action === 'rename') {
+        await locals.workspaces.renameSession(workspacePath, sessionId, newTitle);
+        return new Response(JSON.stringify({ success: true }));
+    }
 
-	return new Response('Bad Request', { status: 400 });
+    if (action === 'unpin') {
+        await locals.workspaces.setPinned(workspacePath, sessionId, false);
+        return new Response(JSON.stringify({ success: true }));
+    }
+
+    if (action === 'pin') {
+        await locals.workspaces.setPinned(workspacePath, sessionId, true);
+        return new Response(JSON.stringify({ success: true }));
+    }
+
+    return new Response('Bad Request', { status: 400 });
 }
 
 export async function DELETE({ url, locals }) {

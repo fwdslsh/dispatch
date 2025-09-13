@@ -62,11 +62,11 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
-		padding: var(--space-3) var(--space-3);
+		/* padding: var(--space-3) var(--space-3); */
 		/* border-radius: 12px; */
-		box-shadow:
+		/* box-shadow:
 			inset 0 1px 2px rgba(255, 255, 255, 0.05),
-			0 4px 16px -10px var(--primary-glow);
+			0 4px 16px -10px var(--primary-glow); */
 		font-size: 1rem;
 		min-height: 40px;
 		max-width: 100%;

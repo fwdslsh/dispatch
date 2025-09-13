@@ -9,6 +9,7 @@
 		IconFile,
 		IconCheck
 	} from '@tabler/icons-svelte';
+	import { STORAGE_CONFIG } from '$lib/shared/utils/constants.js';
 
 	// Svelte 5 Directory Browser Component
 	let {
@@ -19,8 +20,26 @@
 		onSelect
 	} = $props();
 
-	// Start in the workspaces root directory by default (the API will handle this)
-	let currentPath = $state(startPath || '');
+	// Determine initial path:
+	// - Prefer explicit startPath prop if provided
+	// - Otherwise use user's saved defaultWorkingDirectory from settings (if any)
+	// - Otherwise leave empty and let API default to WORKSPACES_ROOT
+	function getUserDefaultDirectory() {
+		try {
+			if (typeof localStorage === 'undefined') return '';
+			const raw = localStorage.getItem(STORAGE_CONFIG.SETTINGS_KEY);
+			if (!raw) return '';
+			const settings = JSON.parse(raw);
+			return settings?.defaultWorkingDirectory || '';
+		} catch (e) {
+			return '';
+		}
+	}
+
+	let initialPath = startPath || getUserDefaultDirectory() || '';
+
+	// Start in the user's default directory when set; otherwise API defaults to WORKSPACES_ROOT
+	let currentPath = $state(initialPath);
 	let loading = $state(false);
 	let error = $state('');
 	let entries = $state([]);
@@ -31,6 +50,7 @@
 	let showNewDirInput = $state(false);
 	let newDirName = $state('');
 	let creatingDir = $state(false);
+	let triedFallback = $state(false);
 
 	// Parse path into breadcrumbs
 	function updateBreadcrumbs(path) {
@@ -61,6 +81,12 @@
 		} catch (e) {
 			error = e.message || String(e);
 			entries = [];
+			// If the preferred start path was invalid, gracefully fall back to default base
+			if (path && !triedFallback) {
+				triedFallback = true;
+				await browse('');
+				return;
+			}
 		} finally {
 			loading = false;
 		}

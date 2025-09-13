@@ -54,19 +54,19 @@ function logSocketEvent(socketId, eventType, data = null) {
 		// Silently ignore errors
 	}
 
-	// Add to persistent history
-	try {
-		let direction = 'system';
-		if (eventType.includes('.write') || eventType.includes('.send')) {
-			direction = 'in';
-		} else if (eventType.includes('.data') || eventType.includes('.delta')) {
-			direction = 'out';
+		// Add to persistent history (use safeData to avoid non-serializable inputs)
+		try {
+			let direction = 'system';
+			if (eventType.includes('.write') || eventType.includes('.send')) {
+				direction = 'in';
+			} else if (eventType.includes('.data') || eventType.includes('.delta')) {
+				direction = 'out';
+			}
+			historyManager.addEvent(socketId, eventType, direction, safeData);
+		} catch (error) {
+			console.error('[HISTORY] Failed to log event to history:', error);
 		}
-		historyManager.addEvent(socketId, eventType, direction, data);
-	} catch (error) {
-		console.error('[HISTORY] Failed to log event to history:', error);
 	}
-}
 
 export function getSocketEvents(limit = 100) {
 	return socketEvents.slice(0, Math.min(limit, socketEvents.length));
@@ -115,6 +115,21 @@ export function setupSocketIO(httpServer) {
 				return handler.apply(this, args);
 			});
 		};
+
+		// Authentication event - validates a key without starting a terminal
+		socket.on('auth', (key, callback) => {
+			try {
+				if (validateKey(key)) {
+					socket.data.authenticated = true;
+					if (callback) callback({ success: true });
+				} else {
+					socket.data.authenticated = false;
+					if (callback) callback({ success: false, error: 'Invalid key' });
+				}
+			} catch (err) {
+				if (callback) callback({ success: false, error: err?.message || 'Auth error' });
+			}
+		});
 
 		// Terminal start event (creates new terminal session)
 		socket.on('terminal.start', async (data, callback) => {
@@ -297,6 +312,55 @@ export function setupSocketIO(httpServer) {
 		socket.on(SOCKET_EVENTS.SESSION_CATCHUP, (data) => {
 			logger.debug('SOCKET', 'session.catchup received:', data);
 			// Could be used to resend missed messages if needed
+		});
+
+		// Commands refresh event - for reconnection scenarios
+		socket.on('commands.refresh', async (data, callback) => {
+			logger.debug('SOCKET', 'commands.refresh received:', data);
+			try {
+				if (!validateKey(data.key)) {
+					if (callback) callback({ success: false, error: 'Invalid key' });
+					return;
+				}
+
+				const { sessionManager } = getServices();
+
+				if (sessionManager && sessionManager.refreshCommands && data.sessionId) {
+					try {
+						const commands = await sessionManager.refreshCommands(data.sessionId);
+						logger.debug('SOCKET', `Commands refreshed for session ${data.sessionId}:`,
+							Array.isArray(commands) ? `${commands.length} commands` : 'null');
+
+						if (callback) {
+							callback({
+								success: true,
+								commands: commands || [],
+								sessionId: data.sessionId
+							});
+						}
+					} catch (error) {
+						logger.error('SOCKET', 'Commands refresh error:', error);
+						if (callback) {
+							callback({
+								success: false,
+								error: error.message,
+								sessionId: data.sessionId
+							});
+						}
+					}
+				} else {
+					if (callback) {
+						callback({
+							success: false,
+							error: 'Session manager or refresh method not available',
+							sessionId: data.sessionId
+						});
+					}
+				}
+			} catch (err) {
+				logger.error('SOCKET', 'Commands refresh handler error:', err);
+				if (callback) callback({ success: false, error: err.message });
+			}
 		});
 
 		// Public URL retrieval

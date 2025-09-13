@@ -18,7 +18,8 @@
 	// State
 	let sessionType = $state('claude');
 	let activeSessions = $state([]);
-	let selectedWorkspace = $state('/workspace');
+	let previousSessions = $state([]);
+	let selectedWorkspace = $state('');
 	let showDirectoryPicker = $state(false);
 	let loading = $state(false);
 	let error = $state(null);
@@ -47,6 +48,25 @@
 			error = 'Error loading sessions: ' + err.message;
 		}
 		loading = false;
+	}
+
+	// Load previous (persisted) sessions across all types, not currently active
+	async function loadPreviousSessions() {
+		try {
+			const response = await fetch('/api/sessions?include=all');
+			if (!response.ok) return;
+			const data = await response.json();
+			const all = Array.isArray(data.sessions) ? data.sessions : [];
+			previousSessions = all
+				.filter((s) => s && !s.isActive)
+				.map((s) => ({
+					id: s.id,
+					type: s.type,
+					workspacePath: s.workspacePath,
+					title: s.title || `${s.type} Session`,
+					pinned: s.pinned === true || s.pinned === 1 || false
+				}));
+		} catch {}
 	}
 
 	// Handle directory selection
@@ -124,15 +144,13 @@
 	// Initialize
 	onMount(async () => {
 		await loadActiveSessions();
-		// Set default workspace to /workspace
-		if (!selectedWorkspace) {
-			selectedWorkspace = '/workspace';
-		}
+		await loadPreviousSessions();
+		// Leave empty so DirectoryBrowser defaults to user setting or WORKSPACES_ROOT
 	});
 
 	// Public refresh method
 	export function refresh() {
-		return loadActiveSessions();
+		return Promise.all([loadActiveSessions(), loadPreviousSessions()]);
 	}
 </script>
 
@@ -171,7 +189,7 @@
 				</div>
 				<DirectoryBrowser
 					bind:selected={selectedWorkspace}
-					startPath={selectedWorkspace || '/workspace'}
+					startPath={selectedWorkspace || ''}
 					onSelect={handleDirectorySelect}
 				/>
 				<div class="picker-actions">
@@ -182,8 +200,64 @@
 					>
 						Cancel
 					</Button>
-				</div>
+</div>
+
+	<!-- Previous Sessions (all types) -->
+	<div class="sessions-panel previous">
+		<div class="panel-header">
+			<div class="header-content">
+				<h2>Previous Sessions</h2>
 			</div>
+			{#if previousSessions.length > 0}
+				<span class="count-badge">{previousSessions.length}</span>
+			{/if}
+		</div>
+
+		<div class="previous-list">
+			{#if previousSessions.length === 0}
+				<div class="status">No previous sessions</div>
+			{:else}
+				<table class="prev-table">
+					<thead>
+						<tr>
+							<th>Type</th>
+							<th>Title</th>
+							<th>Workspace</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each previousSessions as ps (ps.id)}
+							<tr>
+								<td>{ps.type === 'claude' ? 'Claude' : 'Terminal'}</td>
+								<td>{ps.title}</td>
+								<td title={ps.workspacePath}>{ps.workspacePath}</td>
+								<td class="actions">
+									<Button
+										variant="ghost"
+										augmented="none"
+										onclick={() =>
+											onSessionSelected?.({
+												detail: {
+													id: ps.id,
+													type: ps.type,
+													workspacePath: ps.workspacePath,
+													isActive: false
+												}
+											})
+										}
+									>
+										Resume
+									</Button>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			{/if}
+		</div>
+	</div>
+</div>
 		{:else}
 			<div class="form-group">
 				<label class="form-label">
@@ -362,6 +436,36 @@
 		border: 2px solid var(--primary-dim);
 		border-radius: 6px;
 		overflow: hidden;
+	}
+
+	.sessions-panel.previous {
+		margin-top: var(--space-4);
+	}
+
+	.previous-list {
+		padding: var(--space-2);
+		overflow: auto;
+	}
+
+	.prev-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.875rem;
+	}
+
+	.prev-table th,
+	.prev-table td {
+		padding: 8px 10px;
+		border-bottom: 1px solid var(--primary-dim);
+		text-align: left;
+		vertical-align: middle;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow: hidden;
+	}
+
+	.prev-table .actions {
+		text-align: right;
 	}
 
 	.panel-header {

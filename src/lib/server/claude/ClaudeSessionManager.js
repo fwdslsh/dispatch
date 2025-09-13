@@ -2,7 +2,8 @@ import { query } from '@anthropic-ai/claude-code';
 
 import { resolve, join } from 'path';
 import { homedir } from 'node:os';
-import { readdir, stat, readFile } from 'node:fs/promises';
+import { readdir, stat, readFile, mkdir, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { ClaudeProjectsReader } from '../core/ClaudeProjectsReader.js';
 import { projectsRoot } from './cc-root.js';
 import { buildClaudeOptions } from '../utils/env.js';
@@ -68,24 +69,39 @@ export class ClaudeSessionManager {
 	}
 
 	setSocketIO(io) {
+		// Store the Socket.IO instance
+		// This could be either a global server instance (for broadcasting)
+		// or a specific client socket (for client-specific events)
 		this.io = io;
+
+		// Debug what type of instance this is
+		console.log('🔧 [ClaudeSessionManager] setSocketIO called with:', {
+			hasSocketsProperty: !!(io && io.sockets),
+			hasEmitMethod: !!(io && io.emit),
+			constructorName: io?.constructor?.name,
+			isSocketIO: !!(io && io.sockets && io.emit)
+		});
+
+		// If this is a server instance (has a 'sockets' property), store it as the global server
+		// for broadcasting events to all clients
+		if (io && io.sockets) {
+			this.serverIO = io;
+			console.log('🔧 [ClaudeSessionManager] Set serverIO for broadcasting');
+		}
 	}
 
 	/**
 	 * @param {{ workspacePath: string, options?: object, sessionId?: string, appSessionId?: string }} param0
 	 */
 	async create({ workspacePath, options = {}, sessionId = null, appSessionId = null }) {
-		// Generate or use provided Claude session ID
-		let claudeSessionId;
-
+		// Normalize provided Claude session ID if present, otherwise generate a real one now
+		let claudeSessionId = null;
 		if (sessionId) {
-			// Extract UUID from normalized ID if provided (claude_uuid -> uuid)
 			claudeSessionId = sessionId.startsWith('claude_')
 				? sessionId.replace(/^claude_/, '')
 				: sessionId;
 		} else {
-			// Generate new Claude session ID
-			claudeSessionId = `${this.nextId++}`;
+			claudeSessionId = randomUUID();
 		}
 
 		logger.debug(
@@ -95,15 +111,8 @@ export class ClaudeSessionManager {
 
 		// Determine if we can actually resume (only when an on-disk conversation exists)
 		let resumeCapable = false;
-		if (sessionId) {
-			try {
-				resumeCapable = await this.#conversationExists(claudeSessionId);
-			} catch {
-				resumeCapable = false;
-			}
-		}
 
-		/** @type {{ workspacePath: string, sessionId: string, resumeCapable: boolean, options: object, appSessionId?: string }} */
+		/** @type {{ workspacePath: string, sessionId: string|null, resumeCapable: boolean, options: object, appSessionId?: string }} */
 		const sessionData = {
 			workspacePath,
 			sessionId: claudeSessionId,
@@ -125,13 +134,31 @@ export class ClaudeSessionManager {
 			resumeCapable
 		});
 
-		// Store session data - use Claude session ID as key for Claude manager operations
-		this.sessions.set(claudeSessionId, sessionData);
-
-		// If appSessionId provided, create mapping for routing from app session to Claude session
-		if (appSessionId) {
-			this.sessions.set(appSessionId, sessionData);
+		// Ensure a real on-disk session exists so the ID is valid immediately
+		try {
+			const base = projectsRoot();
+			const projectDir = options?.projectName || this.#encodeProjectPath(workspacePath);
+			const dirPath = join(base, projectDir);
+			await mkdir(dirPath, { recursive: true });
+			const filePath = join(dirPath, `${claudeSessionId}.jsonl`);
+			try {
+				// Only create if it doesn't already exist
+				await stat(filePath);
+				resumeCapable = true;
+			} catch {
+				// Create an empty JSONL to initialize the session
+				await writeFile(filePath, '', 'utf-8');
+				resumeCapable = true;
+			}
+			// Update flag in session data
+			sessionData.resumeCapable = resumeCapable;
+		} catch (e) {
+			logger.warn('Claude', 'Failed to initialize on-disk session file:', e?.message || e);
 		}
+
+		// Store session data mappings
+		if (appSessionId) this.sessions.set(appSessionId, sessionData);
+		this.sessions.set(claudeSessionId, sessionData);
 
 		// Save session metadata to database
 		try {
@@ -146,7 +173,7 @@ export class ClaudeSessionManager {
 			logger.error('Claude', 'Failed to save session to database:', error);
 		}
 
-		// Fire-and-forget fetch of supported commands for this session; emit to socket when ready
+		// Fire-and-forget publish of supported commands for this session; emit to socket when ready
 		this._fetchAndEmitSupportedCommands(claudeSessionId, sessionData).catch((err) => {
 			logger.error(
 				'Claude',
@@ -224,11 +251,55 @@ export class ClaudeSessionManager {
 				return;
 			}
 
+			let sawAnyEvent = false;
 			for await (const event of stream) {
+				sawAnyEvent = true;
 				if (event && this.io) {
 					this.io.emit('message.delta', [event]);
 				}
 			}
+
+			// After first response, if we didn't have a concrete Claude session ID, try to detect it now
+			try {
+				if (s && (!s.sessionId || /^\d+$/.test(String(s.sessionId))) && !s.resumeCapable) {
+					const projectDir = s.options?.projectName || this.#encodeProjectPath(s.workspacePath);
+					const files = await this.#listProjectSessionFiles(projectDir);
+					if (files && files.length > 0) {
+						const newId = files[0].id;
+						if (newId && newId !== s.sessionId) {
+							// Update in-memory mapping
+							const oldId = s.sessionId;
+							s.sessionId = newId;
+							this.sessions.set(newId, s);
+
+							// Persist to DB
+							try {
+								await databaseManager.addClaudeSession(
+									newId,
+									s.workspacePath,
+									newId,
+									s.appSessionId,
+									true
+								);
+							} catch {}
+
+							// Update router descriptor to route future messages by the real typeSpecificId
+							try {
+								const services = globalThis.__API_SERVICES || {};
+								if (services.sessions) {
+									services.sessions.updateTypeSpecificId(s.appSessionId, newId);
+								}
+								if (services.workspaces) {
+									await services.workspaces.updateTypeSpecificId(s.workspacePath, s.appSessionId, newId);
+								}
+
+								// Optionally emit updated commands/status under the new session ID
+								this._fetchAndEmitSupportedCommands(newId, s).catch(() => {});
+							} catch {}
+						}
+					}
+				}
+			} catch {}
 			// Emit a completion event so the session can be marked as idle
 			// Use appSessionId if available, otherwise fall back to the key
 			if (this.io) {
@@ -433,7 +504,37 @@ export class ClaudeSessionManager {
 				err && err.message ? err.message : err
 			);
 		});
-		return { key: sessionId, session: hydrated };
+			return { key: sessionId, session: hydrated };
+	}
+
+	#encodeProjectPath(workspacePath) {
+		try {
+			if (!workspacePath || typeof workspacePath !== 'string') return '';
+			return workspacePath.replace(/^\//, '-').replace(/\//g, '-');
+		} catch {
+			return '';
+		}
+	}
+
+	async #listProjectSessionFiles(projectDir) {
+		const baseProjectsRoot = projectsRoot();
+		const dirPath = join(baseProjectsRoot, projectDir);
+		try {
+			const files = await readdir(dirPath, { withFileTypes: true });
+			const result = [];
+			for (const f of files) {
+				if (f.isFile() && f.name.endsWith('.jsonl')) {
+					const filePath = join(dirPath, f.name);
+					try {
+						const st = await stat(filePath);
+						result.push({ id: f.name.replace(/\.jsonl$/, ''), mtimeMs: st.mtimeMs || 0 });
+					} catch {}
+				}
+			}
+			return result.sort((a, b) => b.mtimeMs - a.mtimeMs);
+		} catch {
+			return [];
+		}
 	}
 
 	/**
@@ -443,31 +544,50 @@ export class ClaudeSessionManager {
 	 * @param {{ workspacePath: string, sessionId: string, options: object, appSessionId?: string }} sessionData
 	 */
 	async _fetchAndEmitSupportedCommands(claudeSessionId, sessionData) {
-		if (!sessionData || !sessionData.options) return;
+		console.log('🔥 [DEBUG] _fetchAndEmitSupportedCommands called - NEW IMPLEMENTATION!');
+		console.log('🔥 [DEBUG] sessionData:', sessionData);
+		if (!sessionData || !sessionData.options) {
+			console.log('🔥 [DEBUG] Early return - no sessionData or options');
+			return;
+		}
 		const cacheKey = `${sessionData.options.cwd || ''}:${sessionData.options.pathToClaudeCodeExecutable || ''}`;
+		console.log('🔥 [DEBUG] cacheKey:', cacheKey);
 		// Simple cache TTL: 5 minutes
 		const TTL = 5 * 60 * 1000;
 		const cached = this._toolsCache.get(cacheKey);
+		console.log('🔥 [DEBUG] cached result:', !!cached, cached ? 'age:' + (Date.now() - cached.fetchedAt) : 'none');
 		if (cached && Date.now() - cached.fetchedAt < TTL) {
 			// Emit cached directly - emit to both Claude session ID and app session ID if available
-			if (this.io) {
-				this.io.emit('tools.list', { sessionId: claudeSessionId, commands: cached.commands });
-				this.io.emit('session.status', {
+			// Use global server instance for broadcasting if available, otherwise use current io
+			const emitIO = this.serverIO || this.io || globalThis.__DISPATCH_SOCKET_IO;
+			console.log('🔍 [DEBUG] Socket.IO instance check for cached:', {
+				hasServerIO: !!this.serverIO,
+				hasLocalIO: !!this.io,
+				hasGlobalIO: !!globalThis.__DISPATCH_SOCKET_IO,
+				usingIO: !!emitIO
+			});
+			if (emitIO) {
+				console.log(`[Claude] Emitting cached tools.list for session ${claudeSessionId} with ${cached.commands.length} commands`);
+				emitIO.emit('tools.list', { sessionId: claudeSessionId, commands: cached.commands });
+				emitIO.emit('session.status', {
 					sessionId: claudeSessionId,
 					availableCommands: cached.commands
 				});
 
 				// Also emit for app session if available
 				if (sessionData.appSessionId) {
-					this.io.emit('tools.list', {
+					console.log(`[Claude] Emitting cached tools.list for app session ${sessionData.appSessionId}`);
+					emitIO.emit('tools.list', {
 						sessionId: sessionData.appSessionId,
 						commands: cached.commands
 					});
-					this.io.emit('session.status', {
+					emitIO.emit('session.status', {
 						sessionId: sessionData.appSessionId,
 						availableCommands: cached.commands
 					});
 				}
+			} else {
+				console.log(`[Claude] No Socket.IO instance available to emit cached commands for ${claudeSessionId}`);
 			}
 			return cached.commands;
 		}
@@ -475,28 +595,43 @@ export class ClaudeSessionManager {
 			console.log(
 				`[Claude] _fetchAndEmitSupportedCommands for ${claudeSessionId} (cacheKey=${cacheKey}) - invoking SDK`
 			);
+			console.log('🔥 [DEBUG] About to call _fetchSupportedCommands...');
 			const commands = await this._fetchSupportedCommands(sessionData.options);
+			console.log('🔥 [DEBUG] _fetchSupportedCommands completed!');
 			console.log(
 				`[Claude] _fetchAndEmitSupportedCommands received commands:`,
 				Array.isArray(commands) ? commands.length : typeof commands
 			);
 			if (Array.isArray(commands)) {
 				this._toolsCache.set(cacheKey, { commands, fetchedAt: Date.now() });
-				if (this.io) {
-					this.io.emit('tools.list', { sessionId: claudeSessionId, commands });
-					this.io.emit('session.status', {
+
+				// Use global server instance for broadcasting if available, otherwise use current io
+				const emitIO = this.serverIO || this.io || globalThis.__DISPATCH_SOCKET_IO;
+				console.log('🔍 [DEBUG] Socket.IO instance check for fresh commands:', {
+					hasServerIO: !!this.serverIO,
+					hasLocalIO: !!this.io,
+					hasGlobalIO: !!globalThis.__DISPATCH_SOCKET_IO,
+					usingIO: !!emitIO
+				});
+				if (emitIO) {
+					console.log(`[Claude] Emitting fresh tools.list for session ${claudeSessionId} with ${commands.length} commands`);
+					emitIO.emit('tools.list', { sessionId: claudeSessionId, commands });
+					emitIO.emit('session.status', {
 						sessionId: claudeSessionId,
 						availableCommands: commands
 					});
 
 					// Also emit for app session if available
 					if (sessionData.appSessionId) {
-						this.io.emit('tools.list', { sessionId: sessionData.appSessionId, commands });
-						this.io.emit('session.status', {
+						console.log(`[Claude] Emitting fresh tools.list for app session ${sessionData.appSessionId}`);
+						emitIO.emit('tools.list', { sessionId: sessionData.appSessionId, commands });
+						emitIO.emit('session.status', {
 							sessionId: sessionData.appSessionId,
 							availableCommands: commands
 						});
 					}
+				} else {
+					console.log(`[Claude] No Socket.IO instance available to emit fresh commands for ${claudeSessionId}`);
 				}
 			}
 			return commands;
@@ -543,10 +678,32 @@ export class ClaudeSessionManager {
 			return commands;
 		} finally {
 			// best-effort cleanup: try interrupting the query to stop the child process
+			console.log('🔥 [DEBUG] In finally block, about to call interrupt...');
 			try {
 				const interruptFn = q['interrupt'];
-				if (interruptFn) await interruptFn.call(q);
-			} catch (e) {}
+				console.log('🔥 [DEBUG] interruptFn exists:', !!interruptFn);
+				if (interruptFn) {
+					console.log('🔥 [DEBUG] Calling interrupt function (no await)...');
+					interruptFn.call(q).catch(() => {}); // Fire-and-forget cleanup
+					console.log('🔥 [DEBUG] Interrupt function called (fire-and-forget)');
+				}
+			} catch (e) {
+				console.log('🔥 [DEBUG] Interrupt function threw error:', e);
+			}
+			console.log('🔥 [DEBUG] Finally block completed');
+		}
+	}
+
+	/**
+	 * Refresh commands for an existing session by triggering command discovery
+	 * This is useful when clients reconnect to existing sessions
+	 * @param {string} sessionId - The Claude session ID
+	 * @returns {Promise<Array|null>} Array of commands or null if session not found
+	 */
+	async refreshCommands(sessionId) {
+		const session = this.sessions.get(sessionId);
+		if (session) {
+			return this._fetchAndEmitSupportedCommands(sessionId, session);
 		}
 	}
 }

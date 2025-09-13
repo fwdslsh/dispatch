@@ -63,12 +63,12 @@
 
 	async function send(e) {
 		e.preventDefault();
-		// Use claudeSessionId if available (for resumed sessions), otherwise sessionId
-		const effectiveSessionId = claudeSessionId || sessionId;
+		// For Socket.IO communications, always use the unified sessionId
+		// claudeSessionId is for display/resume purposes only
 		console.log('ClaudePane send called with:', {
 			sessionId,
 			claudeSessionId,
-			effectiveSessionId,
+			socketSessionId: sessionId, // This is what we send to Socket.IO
 			input: input.trim(),
 			socketConnected: socket?.connected
 		});
@@ -77,7 +77,7 @@
 			console.error('Socket not available');
 			return;
 		}
-		if (!effectiveSessionId) {
+		if (!sessionId) {
 			console.error('SessionId not available');
 			return;
 		}
@@ -105,8 +105,8 @@
 		// Force immediate scroll to user message
 		await scrollToBottom();
 
-		console.log('Emitting claude.send with:', { key, id: effectiveSessionId, input: userMessage });
-		socket.emit('claude.send', { key, id: effectiveSessionId, input: userMessage });
+		console.log('Emitting claude.send with:', { key, id: sessionId, input: userMessage });
+		socket.emit('claude.send', { key, id: sessionId, input: userMessage });
 	}
 
 	// Icon mapping is handled by getIconForEvent
@@ -392,13 +392,13 @@
 
 		// Get or create socket for this specific session FIRST
 		// This ensures we don't miss any events while loading history
-		const effectiveSessionId = claudeSessionId || sessionId;
-		socket = sessionSocketManager.getSocket(effectiveSessionId);
+		// Use unified sessionId for socket management to align with message routing
+		socket = sessionSocketManager.getSocket(sessionId);
 
 		// Set up event listeners immediately before doing anything else
 		// This ensures we capture any ongoing messages from active sessions
 		socket.on('connect', () => {
-			console.log('Claude Socket.IO connected for session:', effectiveSessionId);
+			console.log('Claude Socket.IO connected for session:', sessionId);
 			// Don't automatically set isWaitingForReply for resumed sessions
 			// Let the backend state determine if the session is actually processing
 			if (shouldResume || claudeSessionId) {
@@ -540,6 +540,22 @@
 		});
 
 		// Handle message completion to clear waiting state
+
+		// Keep client session IDs in sync with server updates
+		socket.on('session.id.updated', (payload) => {
+			try {
+				if (!payload || payload.type !== 'claude') return;
+				if (payload.sessionId !== sessionId) return; // Only handle our own pane
+				if (payload.newTypeSpecificId) {
+					console.log('Updating claudeSessionId from server event:', payload);
+					claudeSessionId = payload.newTypeSpecificId;
+					shouldResume = true;
+				}
+			} catch (e) {
+				console.error('Failed to handle session.id.updated:', e);
+			}
+		});
+
 		socket.on('message.complete', (data) => {
 			console.log('Message complete received:', data);
 			isWaitingForReply = false;
@@ -591,7 +607,7 @@
 
 		// Mark this session as active and ensure connection
 		// This must happen AFTER event listeners are set up but BEFORE loading history
-		sessionSocketManager.handleSessionFocus(effectiveSessionId);
+		sessionSocketManager.handleSessionFocus(sessionId);
 
 		// Now load previous messages after socket is ready and listening
 		// This ensures we don't miss any events that might arrive while loading
@@ -603,7 +619,7 @@
 		if (socket.connected && (shouldResume || claudeSessionId)) {
 			console.log('Socket already connected - checking session activity state');
 			// Query the backend for actual session state
-			const hasPending = await sessionSocketManager.checkForPendingMessages(effectiveSessionId);
+			const hasPending = await sessionSocketManager.checkForPendingMessages(sessionId);
 			if (hasPending) {
 				console.log('Session has pending messages, setting waiting state');
 				isWaitingForReply = true;
@@ -618,6 +634,7 @@
 		// Don't disconnect the socket immediately as it might be used by other panes
 		// The SessionSocketManager will handle cleanup when appropriate
 		if (socket) {
+			try { socket.off('session.id.updated'); } catch {}
 			socket.removeAllListeners();
 		}
 		// Resize listener cleanup is handled by the $effect

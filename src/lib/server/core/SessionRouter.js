@@ -61,4 +61,19 @@ export class SessionRouter {
 	setIdle(sessionId) {
 		this.setActivityState(sessionId, 'idle');
 	}
+
+	// Update helpers
+	updateTypeSpecificId(sessionId, newTypeSpecificId) {
+		if (!this.map.has(sessionId)) return false;
+		const existing = this.map.get(sessionId) || {};
+		this.map.set(sessionId, { ...existing, typeSpecificId: newTypeSpecificId });
+		return true;
+	}
+
+	updateDescriptor(sessionId, partial) {
+		if (!this.map.has(sessionId)) return false;
+		const existing = this.map.get(sessionId) || {};
+		this.map.set(sessionId, { ...existing, ...partial });
+		return true;
+	}
 }

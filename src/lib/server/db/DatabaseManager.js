@@ -90,11 +90,19 @@ export class DatabaseManager {
 				session_type TEXT, -- 'claude', 'pty'
 				type_specific_id TEXT,
 				title TEXT,
+				pinned INTEGER DEFAULT 1,
 				created_at INTEGER,
 				updated_at INTEGER,
 				FOREIGN KEY (workspace_path) REFERENCES workspaces(path)
 			)
 		`);
+
+		// Ensure pinned column exists (for existing installations)
+		try {
+			await this.run('ALTER TABLE workspace_sessions ADD COLUMN pinned INTEGER DEFAULT 1');
+		} catch (e) {
+			// Ignore if column already exists
+		}
 
 		// Terminal history table
 		await this.run(`
@@ -307,22 +315,33 @@ export class DatabaseManager {
 	}
 
 	// Workspace session methods
-	async addWorkspaceSession(sessionId, workspacePath, sessionType, typeSpecificId, title) {
+	async addWorkspaceSession(sessionId, workspacePath, sessionType, typeSpecificId, title, pinned = 1) {
 		const now = Date.now();
 		await this.run(
-			'INSERT OR REPLACE INTO workspace_sessions (id, workspace_path, session_type, type_specific_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-			[sessionId, workspacePath, sessionType, typeSpecificId, title, now, now]
+			'INSERT OR REPLACE INTO workspace_sessions (id, workspace_path, session_type, type_specific_id, title, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+			[sessionId, workspacePath, sessionType, typeSpecificId, title, pinned, now, now]
 		);
 	}
 
-	async getWorkspaceSessions(workspacePath) {
+	async getWorkspaceSessions(workspacePath, pinnedOnly = true) {
+		if (pinnedOnly) {
+			return await this.all(
+				'SELECT * FROM workspace_sessions WHERE workspace_path = ? AND pinned = 1 ORDER BY updated_at DESC',
+				[workspacePath]
+			);
+		}
 		return await this.all(
 			'SELECT * FROM workspace_sessions WHERE workspace_path = ? ORDER BY updated_at DESC',
 			[workspacePath]
 		);
 	}
 
-	async getAllSessions() {
+	async getAllSessions(pinnedOnly = true) {
+		if (pinnedOnly) {
+			return await this.all(
+				'SELECT * FROM workspace_sessions WHERE pinned = 1 ORDER BY updated_at DESC'
+			);
+		}
 		return await this.all('SELECT * FROM workspace_sessions ORDER BY updated_at DESC');
 	}
 
@@ -337,6 +356,20 @@ export class DatabaseManager {
 		await this.run(
 			'UPDATE workspace_sessions SET title = ?, updated_at = ? WHERE workspace_path = ? AND id = ?',
 			[newTitle, Date.now(), workspacePath, sessionId]
+		);
+	}
+
+	async updateWorkspaceSessionTypeId(workspacePath, sessionId, newTypeSpecificId) {
+		await this.run(
+			'UPDATE workspace_sessions SET type_specific_id = ?, updated_at = ? WHERE workspace_path = ? AND id = ?',
+			[newTypeSpecificId, Date.now(), workspacePath, sessionId]
+		);
+	}
+
+	async setWorkspaceSessionPinned(workspacePath, sessionId, pinned) {
+		await this.run(
+			'UPDATE workspace_sessions SET pinned = ?, updated_at = ? WHERE workspace_path = ? AND id = ?',
+			[pinned ? 1 : 0, Date.now(), workspacePath, sessionId]
 		);
 	}
 

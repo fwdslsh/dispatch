@@ -7,42 +7,47 @@
 	let error = $state('');
 	let loading = $state(false);
 
-	onMount(() => {
-		// Check if already authenticated
-		const storedKey = localStorage.getItem('dispatch-auth-key');
-		if (storedKey) {
-			// Test if stored key works by attempting a simple Socket.IO connection
-			const socket = io({ transports: ['websocket', 'polling'] });
-			socket.emit('terminal.start', { key: storedKey, workspacePath: '/tmp' }, (resp) => {
-				if (resp?.success !== false || resp?.error !== 'Invalid key') {
-					// Key works (or at least isn't rejected for auth reasons)
-					goto('/projects');
-				} else {
-					// Key is invalid, clear it
-					localStorage.removeItem('dispatch-auth-key');
-				}
-				socket.disconnect();
-			});
-			return;
-		}
-	});
+    onMount(async () => {
+        // Check if already authenticated via HTTP (more robust than socket for login)
+        const storedKey = localStorage.getItem('dispatch-auth-key');
+        if (storedKey) {
+            try {
+                const r = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
+                if (r.ok) {
+                    goto('/projects');
+                } else {
+                    localStorage.removeItem('dispatch-auth-key');
+                }
+            } catch {
+                // Ignore; user can try manual login
+            }
+            return;
+        }
+    });
 
-	async function handleLogin(e) {
-		e.preventDefault();
-		loading = true;
-		error = '';
-		const socket = io({ transports: ['websocket', 'polling'] });
-		socket.emit('terminal.start', { key, workspacePath: '/tmp' }, (resp) => {
-			loading = false;
-			if (resp?.success !== false || resp?.error !== 'Invalid key') {
-				localStorage.setItem('dispatch-auth-key', key);
-				goto('/projects');
-			} else {
-				error = 'Invalid key';
-			}
-			socket.disconnect();
-		});
-	}
+    async function handleLogin(e) {
+        e.preventDefault();
+        loading = true;
+        error = '';
+        try {
+            const r = await fetch('/api/auth/check', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ key })
+            });
+            loading = false;
+            if (r.ok) {
+                localStorage.setItem('dispatch-auth-key', key);
+                goto('/projects');
+            } else {
+                const j = await r.json().catch(() => ({}));
+                error = j?.error || 'Invalid key';
+            }
+        } catch {
+            loading = false;
+            error = 'Unable to reach server';
+        }
+    }
 </script>
 
 <svelte:head>

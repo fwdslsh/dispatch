@@ -72,7 +72,14 @@ export class WorkspaceManager {
 
 		// Determine session type and type-specific ID, preferring descriptor fields
 		let sessionType = sessionDescriptor.type || 'unknown';
-		let typeSpecificId = sessionDescriptor.typeSpecificId || sessionDescriptor.id;
+		let typeSpecificId = sessionDescriptor.typeSpecificId;
+		// For Claude sessions, allow empty typeSpecificId until the real ID is known
+		if (sessionType === 'claude') {
+			typeSpecificId = typeof typeSpecificId === 'string' ? typeSpecificId : '';
+		} else {
+			// For other types, fall back to descriptor.id when missing
+			typeSpecificId = typeSpecificId || sessionDescriptor.id;
+		}
 
 		// Legacy fallback based on ID prefixes
 		if (sessionType === 'unknown' && typeof sessionDescriptor.id === 'string') {
@@ -90,7 +97,8 @@ export class WorkspaceManager {
 			dir,
 			sessionType,
 			typeSpecificId,
-			sessionDescriptor.title || sessionDescriptor.name || 'Untitled Session'
+			sessionDescriptor.title || sessionDescriptor.name || 'Untitled Session',
+			1
 		);
 	}
 	async getIndex() {
@@ -119,21 +127,26 @@ export class WorkspaceManager {
 
 		return index;
 	}
-	async getAllSessions() {
+	async getAllSessions(pinnedOnly = true) {
 		// Return all sessions from database
 		try {
-			const sessions = await databaseManager.getAllSessions();
+			const sessions = await databaseManager.getAllSessions(pinnedOnly);
 			return sessions.map((session) => ({
 				id: session.id,
 				title: session.title,
 				type: session.session_type,
 				typeSpecificId: session.type_specific_id,
-				workspacePath: session.workspace_path
+				workspacePath: session.workspace_path,
+				pinned: session.pinned === 1 || session.pinned === true
 			}));
 		} catch (error) {
 			console.error('[WORKSPACE] Failed to get sessions from database:', error);
 			return [];
 		}
+	}
+
+	async setPinned(workspacePath, sessionId, pinned) {
+		await databaseManager.setWorkspaceSessionPinned(workspacePath, sessionId, pinned);
 	}
 	async removeSession(workspacePath, sessionId) {
 		// Remove from database
@@ -142,5 +155,13 @@ export class WorkspaceManager {
 	async renameSession(workspacePath, sessionId, newTitle) {
 		// Update in database
 		await databaseManager.renameWorkspaceSession(workspacePath, sessionId, newTitle);
+	}
+
+	async updateTypeSpecificId(workspacePath, sessionId, newTypeSpecificId) {
+		await databaseManager.updateWorkspaceSessionTypeId(
+			workspacePath,
+			sessionId,
+			newTypeSpecificId
+		);
 	}
 }

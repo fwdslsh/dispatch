@@ -22,9 +22,9 @@
 
 	// Set default workspace path (will be set when modal opens)
 	async function setDefaultWorkspace() {
-		// Default to /workspace if no path is set
+		// Do not hardcode a default; let DirectoryBrowser pick from user settings or WORKSPACES_ROOT
 		if (!workspacePath) {
-			workspacePath = '/workspace';
+			workspacePath = '';
 		}
 	}
 
@@ -147,11 +147,11 @@
 					
 					{#if showDirectoryBrowser}
 						<div class="directory-browser-container">
-							<DirectoryBrowser
-								bind:selected={workspacePath}
-								startPath={workspacePath || '/workspace'}
-								onSelect={handleDirectorySelect}
-							/>
+								<DirectoryBrowser
+									bind:selected={workspacePath}
+									startPath={workspacePath || ''}
+									onSelect={handleDirectorySelect}
+								/>
 							<Button
 								variant="secondary"
 								augmented="tl-clip br-clip both"

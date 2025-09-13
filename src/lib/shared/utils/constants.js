@@ -25,11 +25,11 @@ export const UI_CONFIG = {
 };
 
 export const STORAGE_CONFIG = {
-	// localStorage keys
-	AUTH_TOKEN_KEY: 'dispatch-auth-token',
-	SESSION_ID_KEY: 'dispatch-session-id',
-	THEME_KEY: 'dispatch-theme',
-	SETTINGS_KEY: 'dispatch-settings',
+    // localStorage keys
+    AUTH_TOKEN_KEY: 'dispatch-auth-key',
+    SESSION_ID_KEY: 'dispatch-session-id',
+    THEME_KEY: 'dispatch-theme',
+    SETTINGS_KEY: 'dispatch-settings',
 
 	// Session storage keys
 	TEMP_DATA_KEY: 'dispatch-temp',

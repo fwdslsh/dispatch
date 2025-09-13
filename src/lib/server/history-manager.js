@@ -108,15 +108,37 @@ class HistoryManager {
 	 * Sanitize sensitive data before storing
 	 */
 	sanitizeData(data) {
-		if (!data) return null;
+		if (data === null || data === undefined) return null;
 
-		// Deep clone to avoid modifying original
-		const sanitized = JSON.parse(JSON.stringify(data));
+		// Preserve primitives as-is
+		const t = typeof data;
+		if (t === 'string' || t === 'number' || t === 'boolean') return data;
 
-		// Remove or redact sensitive fields
-		if (sanitized.key) sanitized.key = '[REDACTED]';
-		if (sanitized.password) sanitized.password = '[REDACTED]';
-		if (sanitized.token) sanitized.token = '[REDACTED]';
+		// Handle non-serializable types gracefully
+		if (t === 'function') return '[non-serializable:function]';
+		if (t === 'symbol') return '[non-serializable:symbol]';
+
+		let sanitized = null;
+		try {
+			// Prefer structuredClone when available
+			if (typeof globalThis.structuredClone === 'function') {
+				sanitized = structuredClone(data);
+			} else {
+				const s = JSON.stringify(data);
+				// JSON.stringify can return undefined for unsupported inputs
+				sanitized = typeof s === 'string' ? JSON.parse(s) : null;
+			}
+		} catch {
+			// Fall back to a safe placeholder
+			sanitized = null;
+		}
+
+		// Remove or redact sensitive fields when we have an object
+		if (sanitized && typeof sanitized === 'object') {
+			if (sanitized.key) sanitized.key = '[REDACTED]';
+			if (sanitized.password) sanitized.password = '[REDACTED]';
+			if (sanitized.token) sanitized.token = '[REDACTED]';
+		}
 
 		return sanitized;
 	}

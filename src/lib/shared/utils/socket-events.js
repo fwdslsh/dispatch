@@ -25,6 +25,7 @@ export const SOCKET_EVENTS = {
 	SESSION_STATUS: 'session.status',
 	SESSION_END: 'session.end',
 	SESSION_DETACH: 'session.detach',
+	SESSION_ID_UPDATED: 'session.id.updated',
 	SESSION_CATCHUP: 'session.catchup',
 
 	// Claude-specific events

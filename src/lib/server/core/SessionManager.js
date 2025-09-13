@@ -192,7 +192,8 @@ export class SessionManager {
 				sessionType.manager.write(descriptor.typeSpecificId, input);
 				break;
 			case 'claude':
-				await sessionType.manager.send(descriptor.typeSpecificId, input);
+				// Use typeSpecificId when available; otherwise fall back to the unified app session id
+				await sessionType.manager.send(descriptor.typeSpecificId || descriptor.id, input);
 				break;
 			default:
 				throw new Error(`Session type ${descriptor.type} doesn't support input`);
@@ -245,6 +246,43 @@ export class SessionManager {
 		}
 	}
 
+	/**
+	 * Refresh commands for a session (delegates to type-specific manager)
+	 * @param {string} sessionId Unified session ID
+	 * @returns {Promise<Array|null>} Array of commands or null
+	 */
+	async refreshCommands(sessionId) {
+		const descriptor = this.router.get(sessionId);
+		if (!descriptor) {
+			logger.warn('SESSION', `Session ${sessionId} not found for command refresh`);
+			return null;
+		}
+
+		const sessionType = this.sessionTypes[descriptor.type];
+		if (!sessionType || !sessionType.manager) {
+			logger.warn('SESSION', `No manager for session type: ${descriptor.type}`);
+			return null;
+		}
+
+		// Check if the manager supports command refresh
+		const refreshMethod = sessionType.manager.refreshCommands;
+		if (!refreshMethod || typeof refreshMethod !== 'function') {
+			logger.warn('SESSION', `Session type ${descriptor.type} doesn't support command refresh`);
+			return null;
+		}
+
+		try {
+			// Call refresh with the type-specific ID
+			const commands = await refreshMethod.call(sessionType.manager, descriptor.typeSpecificId);
+			logger.debug('SESSION', `Refreshed commands for ${descriptor.type} session ${sessionId}:`,
+				Array.isArray(commands) ? `${commands.length} commands` : 'null');
+			return commands;
+		} catch (error) {
+			logger.error('SESSION', `Failed to refresh commands for session ${sessionId}:`, error);
+			throw error;
+		}
+	}
+
 	// Private helper methods
 
 	_buildCreateParams(type, workspacePath, options, sessionId) {
@@ -273,12 +311,24 @@ export class SessionManager {
 	_buildDescriptor(type, typeSpecificId, workspacePath, options, sessionId) {
 		const title = this._generateTitle(type, workspacePath, options);
 
-		return createSessionDescriptor(type, typeSpecificId, {
+		// Be tolerant to missing/placeholder typeSpecificId for Claude sessions
+		let safeTypeSpecificId = typeSpecificId;
+		if (type === 'claude') {
+			safeTypeSpecificId = typeof typeSpecificId === 'string' ? typeSpecificId : '';
+		} else if (!safeTypeSpecificId) {
+			safeTypeSpecificId = sessionId;
+		}
+
+		// Construct descriptor inline to avoid strict validation issues during HMR
+		return {
 			id: sessionId,
+			type,
+			typeSpecificId: safeTypeSpecificId,
 			workspacePath,
 			title,
-			resumeSession: !!options.resumeSession
-		});
+			resumeSession: !!options.resumeSession,
+			createdAt: Date.now()
+		};
 	}
 
 	_generateTitle(type, workspacePath, options) {

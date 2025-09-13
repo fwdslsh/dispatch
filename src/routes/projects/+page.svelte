@@ -133,25 +133,71 @@
 		displayed = [...head, sessionId];
 	}
 
-	function unpinSession(sessionId) {
-		if (isMobile) {
-			// Remove from sessions array entirely for mobile
-			const sessionIndex = sessions.findIndex((s) => s && s.id === sessionId);
-			if (sessionIndex !== -1) {
-				sessions = sessions.filter((s) => s && s.id !== sessionId);
-				// Adjust currentMobileSession if needed
-				const remainingSessions = sessions.filter((s) => s && s.id);
-				if (remainingSessions.length === 0) {
-					currentMobileSession = 0;
-				} else if (currentMobileSession >= remainingSessions.length) {
-					currentMobileSession = remainingSessions.length - 1;
-				}
+	async function closeSession(sessionId) {
+		// Find the session to get its workspace path
+		const session = sessions.find((s) => s && s.id === sessionId);
+		if (!session) return;
+
+		try {
+			// Call the DELETE endpoint to properly close the session
+			const response = await fetch(`/api/sessions?sessionId=${encodeURIComponent(sessionId)}&workspacePath=${encodeURIComponent(session.workspacePath)}`, {
+				method: 'DELETE'
+			});
+
+			if (!response.ok) {
+				console.error('Failed to close session:', response.status);
 			}
-		} else {
-			// Remove from displayed array for desktop
-			displayed = displayed.filter((id) => id !== sessionId);
+
+			// Remove from local state
+			if (isMobile) {
+				// Remove from sessions array entirely for mobile
+				const sessionIndex = sessions.findIndex((s) => s && s.id === sessionId);
+				if (sessionIndex !== -1) {
+					sessions = sessions.filter((s) => s && s.id !== sessionId);
+					// Adjust currentMobileSession if needed
+					const remainingSessions = sessions.filter((s) => s && s.id);
+					if (remainingSessions.length === 0) {
+						currentMobileSession = 0;
+					} else if (currentMobileSession >= remainingSessions.length) {
+						currentMobileSession = remainingSessions.length - 1;
+					}
+				}
+			} else {
+				// Remove from displayed array for desktop
+				displayed = displayed.filter((id) => id !== sessionId);
+			}
+
+			// Remove from sessions array so it doesn't show as active
+			sessions = sessions.filter((s) => s && s.id !== sessionId);
+		} catch (error) {
+			console.error('Error closing session:', error);
 		}
 	}
+
+    // Unpin a session from the current workspace without deleting history
+    const onUnpinSession = async (sessionId) => {
+        const session = sessions.find((s) => s && s.id === sessionId);
+        if (!session) return;
+
+        try {
+            await fetch('/api/sessions', {
+                method: 'PUT',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ action: 'unpin', sessionId, workspacePath: session.workspacePath })
+            });
+        } catch {}
+
+        // Update local UI state to hide the unpinned session
+        if (isMobile) {
+            sessions = sessions.filter((s) => s && s.id !== sessionId);
+            const remaining = sessions.filter((s) => s && s.id);
+            if (remaining.length === 0) currentMobileSession = 0;
+            else if (currentMobileSession >= remaining.length) currentMobileSession = remaining.length - 1;
+        } else {
+            displayed = displayed.filter((id) => id !== sessionId);
+            sessions = sessions.filter((s) => s && s.id !== sessionId);
+        }
+    }
 
 	async function createTerminalSession(workspacePath) {
 		// Ensure workspace exists
@@ -273,6 +319,24 @@
 			console.log('Adding session to sessions array:', s);
 			sessions = [...sessions, s];
 			console.log('Current sessions:', sessions);
+		}
+
+
+		// Always refresh from the backend to ensure consistency
+		try {
+			const before = sessions.length;
+			sessions = await loadSessions();
+			console.log(`Refreshed sessions from API (before=${before}, after=${sessions.length})`);
+			// Ensure the newly created session is present locally; if not, add it as a fallback
+			if (!sessions.find((s) => s && s.id === id)) {
+				console.warn('Session missing from API response; adding local fallback');
+				sessions = [
+					...sessions,
+					{ id, type: 'claude', workspacePath: finalWorkspacePath, projectName, claudeSessionId, shouldResume: true }
+				];
+			}
+		} catch (e) {
+			console.warn('Failed to refresh sessions after creation:', e);
 		}
 		console.log('Updating displayed sessions with ID:', id);
 		updateDisplayedWithSession(id);
@@ -734,13 +798,13 @@
 										<span class="project-name">{s.projectName}</span>
 									{/if}
 								</div>
-								<button
-									class="unpin-btn"
-									onclick={() => unpinSession(s.id)}
-									title="Unpin session from grid"
-									aria-label="Unpin session"
-									type="button"
-								>
+                            <button
+                                class="unpin-btn"
+                                onclick={(e) => { e.stopPropagation?.(); onUnpinSession(s.id); }}
+                                title="Close session"
+                                aria-label="Close session"
+                                type="button"
+                            >
 									<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
 										<path
 											d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"

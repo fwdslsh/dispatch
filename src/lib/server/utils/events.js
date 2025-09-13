@@ -25,6 +25,7 @@ export const SOCKET_EVENTS = {
 	SESSION_STATUS: 'session.status',
 	SESSION_END: 'session.end',
 	SESSION_DETACH: 'session.detach',
+	SESSION_ID_UPDATED: 'session.id.updated',
 
 	// Claude-specific events
 	CLAUDE_SEND: 'claude.send',
