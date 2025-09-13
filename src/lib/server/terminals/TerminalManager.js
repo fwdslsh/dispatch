@@ -71,7 +71,8 @@ export class TerminalManager {
 		shell = os.platform() === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash',
 		env = {},
 		resume = false,
-		terminalId = null
+		terminalId = null,
+		appSessionId = null
 	}) {
 		if (!pty) {
 			console.error('Cannot start terminal: node-pty is not available');
@@ -79,7 +80,7 @@ export class TerminalManager {
 		}
 
 		const id = terminalId || `pty_${this.nextId++}`;
-		console.log(`Creating terminal ${id} with shell ${shell} in ${workspacePath}`);
+		console.log(`Creating terminal ${id} with shell ${shell} in ${workspacePath}${appSessionId ? ` (app session: ${appSessionId})` : ''}`);
 
 		try {
 			const term = pty.spawn(shell, [], {
@@ -92,7 +93,13 @@ export class TerminalManager {
 					PS1: '\\u@\\h:\\w$ '
 				}
 			});
-			this.terminals.set(id, { term, workspacePath, socket: this.io, history: '' });
+			this.terminals.set(id, { 
+				term, 
+				workspacePath, 
+				socket: this.io, 
+				history: '',
+				appSessionId // Store application session ID for routing
+			});
 
 			term.onData((data) => {
 				const terminalData = this.terminals.get(id);

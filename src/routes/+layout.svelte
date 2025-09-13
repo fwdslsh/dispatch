@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import '$lib/shared/styles/retro.css';
-	import { getStoredAuthToken } from '$lib/shared/utils/socket-auth.js';
+import { getStoredAuthToken } from '$lib/shared/utils/socket-auth.js';
 
 	let { data, children } = $props();
 
@@ -17,5 +17,11 @@
 		}
 	});
 </script>
+
+<svelte:head>
+  <link rel="preload" href="/fonts/exo-2/7cHmv4okm5zmbtYoK-4.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/share-tech-mono/J7aHnp1uDWRBEqV98dVQztYldFcLowEF.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/protest-revolution/ProtestRevolution-Regular-latin.woff2" as="font" type="font/woff2" crossorigin>
+</svelte:head>
 
 {@render children()}

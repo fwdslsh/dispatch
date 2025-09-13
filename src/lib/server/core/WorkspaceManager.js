@@ -18,7 +18,9 @@ export class WorkspaceManager {
 	}
 	async list() {
 		const names = await fs.readdir(this.rootDir, { withFileTypes: true });
-		return names.filter((d) => d.isDirectory()).map((d) => path.join(this.rootDir, d.name));
+		return names
+			.filter((d) => d.isDirectory() && !d.name.startsWith('.'))
+			.map((d) => path.join(this.rootDir, d.name));
 	}
 	async open(dir) {
 	if (typeof dir !== 'string' || dir.trim() === '') throw new Error('Invalid directory');

@@ -1,12 +1,19 @@
 import { io } from 'socket.io-client';
 
 /**
+ * @typedef {Object} SocketMetadata
+ * @property {string} sessionId - Session identifier
+ * @property {boolean} isActive - Whether socket is active
+ */
+
+/**
  * SessionSocketManager - Manages socket connections per session pane
  * Ensures each session pane has its own socket context and proper cleanup
  */
 class SessionSocketManager {
 	constructor() {
 		this.sockets = new Map(); // sessionId -> socket instance
+		this.socketMetadata = new WeakMap(); // socket -> SocketMetadata
 		this.activeSession = null;
 	}
 
@@ -14,7 +21,7 @@ class SessionSocketManager {
 	 * Get or create a socket connection for a specific session
 	 * @param {string} sessionId - The session identifier
 	 * @param {Object} options - Socket connection options
-	 * @returns {Socket} Socket.IO client instance
+	 * @returns {import('socket.io-client').Socket} Socket.IO client instance
 	 */
 	getSocket(sessionId, options = {}) {
 		if (this.sockets.has(sessionId)) {
@@ -45,18 +52,26 @@ class SessionSocketManager {
 			reconnectionDelayMax: 5000
 		});
 
-		// Track connection status
-		socket.sessionId = sessionId;
-		socket.isActive = false;
+		// Track metadata using WeakMap instead of attaching to socket
+		this.socketMetadata.set(socket, {
+			sessionId,
+			isActive: false
+		});
 
 		socket.on('connect', () => {
 			console.log(`Socket connected for session ${sessionId}`);
-			socket.isActive = true;
+			const metadata = this.socketMetadata.get(socket);
+			if (metadata) {
+				metadata.isActive = true;
+			}
 		});
 
 		socket.on('disconnect', (reason) => {
 			console.log(`Socket disconnected for session ${sessionId}:`, reason);
-			socket.isActive = false;
+			const metadata = this.socketMetadata.get(socket);
+			if (metadata) {
+				metadata.isActive = false;
+			}
 		});
 
 		socket.on('error', (error) => {
@@ -70,7 +85,10 @@ class SessionSocketManager {
 
 		socket.on('reconnect', (attemptNumber) => {
 			console.log(`Socket successfully reconnected for session ${sessionId} after ${attemptNumber} attempts`);
-			socket.isActive = true;
+			const metadata = this.socketMetadata.get(socket);
+			if (metadata) {
+				metadata.isActive = true;
+			}
 		});
 
 		this.sockets.set(sessionId, socket);
@@ -132,7 +150,10 @@ class SessionSocketManager {
 	 */
 	isConnected(sessionId) {
 		const socket = this.sockets.get(sessionId);
-		return socket && socket.isActive;
+		if (!socket) return false;
+		
+		const metadata = this.socketMetadata.get(socket);
+		return socket.connected && (metadata ? metadata.isActive : false);
 	}
 
 	/**
@@ -142,8 +163,9 @@ class SessionSocketManager {
 	getConnectionStatus() {
 		const status = {};
 		for (const [sessionId, socket] of this.sockets.entries()) {
+			const metadata = this.socketMetadata.get(socket);
 			status[sessionId] = {
-				connected: socket.isActive,
+				connected: metadata ? metadata.isActive : false,
 				id: socket.id
 			};
 		}
