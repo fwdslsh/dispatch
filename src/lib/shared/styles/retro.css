@@ -1005,7 +1005,386 @@ body::before {
 	}
 }
 
-/* 12) Nesting guidance (v2):
+/* 12) UI Component Utility Classes */
+
+/* Button Groups - for type toggles */
+.btn-group {
+	display: flex;
+	background: linear-gradient(135deg, 
+		color-mix(in oklab, var(--surface) 90%, var(--accent) 10%), 
+		color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%));
+	border: 2px solid var(--line);
+	border-radius: 0;
+	padding: 0.5rem;
+	gap: 0.5rem;
+	box-shadow: inset 0 2px 4px color-mix(in oklab, var(--bg) 10%, black);
+}
+
+.btn-group .button {
+	flex: 1;
+	border: 2px solid var(--line);
+	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	position: relative;
+	overflow: hidden;
+}
+
+.btn-group .button::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, var(--glow), transparent);
+	transition: left 0.5s ease;
+}
+
+.btn-group .button:hover:not(.active)::before {
+	left: 100%;
+}
+
+.btn-group .button.active {
+	background: linear-gradient(135deg, var(--accent), var(--accent-cyan));
+	color: var(--bg);
+	border-color: var(--accent);
+	box-shadow: 
+		0 0 20px var(--glow),
+		0 0 40px var(--glow),
+		inset 0 1px 0 color-mix(in oklab, var(--text) 20%, transparent);
+	transform: translateY(-1px);
+	text-shadow: 0 0 8px color-mix(in oklab, var(--bg) 30%, black);
+}
+
+/* Icon-only buttons */
+.btn-icon-only {
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.2rem;
+}
+
+/* Workspace/Directory Selector */
+.workspace-selector {
+	width: 100%;
+	padding: 1rem 1.25rem;
+	background: linear-gradient(135deg, 
+		color-mix(in oklab, var(--surface) 90%, var(--primary) 10%), 
+		color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%));
+	border: 2px solid var(--surface-border);
+	border-radius: 0;
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-size: 0.9rem;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	position: relative;
+	overflow: hidden;
+}
+
+.workspace-selector:hover:not(:disabled) {
+	background: linear-gradient(135deg, 
+		color-mix(in oklab, var(--primary) 15%, var(--surface)), 
+		color-mix(in oklab, var(--primary) 8%, var(--surface)));
+	border-color: var(--primary);
+	box-shadow: 
+		0 0 20px rgba(46, 230, 107, 0.2),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	transform: translateY(-1px);
+}
+
+.workspace-selector__icon {
+	font-size: 1.2em;
+	color: var(--primary);
+	filter: drop-shadow(0 0 6px rgba(46, 230, 107, 0.3));
+}
+
+.workspace-selector:hover:not(:disabled) .workspace-selector__icon {
+	filter: drop-shadow(0 0 10px rgba(46, 230, 107, 0.5));
+	transform: scale(1.1);
+}
+
+.workspace-selector__path {
+	flex: 1;
+}
+
+.workspace-selector__arrow {
+	color: var(--text-muted);
+	transition: transform 0.3s ease;
+}
+
+.workspace-selector:hover:not(:disabled) .workspace-selector__arrow {
+	transform: translateY(2px);
+	color: var(--primary);
+}
+
+.workspace-selector:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Modal Actions - for modal footer button layouts */
+.modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.75rem;
+	padding: 1.25rem;
+	border-top: 1px solid var(--surface-border);
+	background: var(--surface-hover);
+}
+
+@media (max-width: 768px) {
+	.modal-actions {
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+	
+	.modal-actions .button {
+		width: 100%;
+		justify-content: center;
+	}
+}
+
+/* Form Section - for consistent form layouts */
+.form-section {
+	margin-bottom: 2rem;
+	position: relative;
+}
+
+.form-section__label {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+	font-weight: 700;
+	color: var(--primary);
+	font-size: 1rem;
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	text-shadow: 0 0 8px rgba(46, 230, 107, 0.3);
+}
+
+.form-section__label-icon {
+	font-size: 1.1em;
+	filter: drop-shadow(0 0 6px rgba(46, 230, 107, 0.4));
+}
+
+/* Icon Text combinations */
+.icon-text {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.icon-text__icon {
+	font-size: 1.1em;
+	filter: drop-shadow(0 0 6px var(--glow));
+}
+
+/* Type Selection Cards */
+.type-card {
+	padding: 1.5rem 1rem;
+	background: linear-gradient(135deg, 
+		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%), 
+		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%));
+	border: 2px solid var(--surface-border);
+	border-radius: 0;
+	color: var(--text-muted);
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	text-align: left;
+	position: relative;
+	overflow: hidden;
+}
+
+.type-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, rgba(46, 230, 107, 0.1), transparent);
+	transition: left 0.5s ease;
+}
+
+.type-card:hover:not(:disabled)::before {
+	left: 100%;
+}
+
+.type-card__content {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	position: relative;
+	z-index: 1;
+}
+
+.type-card__icon {
+	font-size: 2rem;
+	filter: drop-shadow(0 0 8px rgba(46, 230, 107, 0.3));
+}
+
+.type-card__info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.type-card__title {
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: var(--text);
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.type-card__desc {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	opacity: 0.8;
+}
+
+.type-card:hover:not(:disabled) {
+	background: linear-gradient(135deg, 
+		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)), 
+		color-mix(in oklab, var(--primary) 10%, var(--surface-hover)));
+	border-color: var(--primary);
+	box-shadow: 
+		0 0 20px rgba(46, 230, 107, 0.3),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	transform: translateY(-2px);
+}
+
+.type-card:hover:not(:disabled) .type-card__icon {
+	filter: drop-shadow(0 0 12px rgba(46, 230, 107, 0.6));
+	transform: scale(1.1);
+}
+
+.type-card.active {
+	background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+	border-color: var(--primary);
+	color: var(--bg);
+	box-shadow: 
+		0 0 30px rgba(46, 230, 107, 0.4),
+		0 0 60px rgba(46, 230, 107, 0.2),
+		inset 0 1px 0 rgba(255, 255, 255, 0.2);
+	transform: translateY(-3px) scale(1.02);
+}
+
+.type-card.active .type-card__title,
+.type-card.active .type-card__desc {
+	color: var(--bg);
+	text-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+.type-card.active .type-card__icon {
+	filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+	transform: scale(1.15);
+}
+
+.type-card:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Session Item Cards */
+.session-card {
+	width: 100%;
+	padding: 1rem;
+	margin-bottom: 0.75rem;
+	background: linear-gradient(135deg, 
+		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%), 
+		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%));
+	border: 2px solid var(--surface-border);
+	border-radius: 0;
+	text-align: left;
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	position: relative;
+	overflow: hidden;
+}
+
+.session-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, rgba(46, 230, 107, 0.1), transparent);
+	transition: left 0.5s ease;
+}
+
+.session-card:hover::before {
+	left: 100%;
+}
+
+.session-card:hover {
+	background: linear-gradient(135deg, 
+		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)), 
+		color-mix(in oklab, var(--primary) 10%, var(--surface-hover)));
+	border-color: var(--primary);
+	box-shadow: 
+		0 0 20px rgba(46, 230, 107, 0.2),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	transform: translateY(-1px);
+}
+
+.session-card.selected {
+	background: linear-gradient(135deg, 
+		color-mix(in oklab, var(--primary) 25%, var(--surface)), 
+		color-mix(in oklab, var(--primary) 15%, var(--surface)));
+	border-color: var(--primary);
+	box-shadow: 
+		0 0 0 2px var(--primary) inset,
+		0 0 30px rgba(46, 230, 107, 0.3),
+		inset 0 1px 0 rgba(255, 255, 255, 0.2);
+	transform: translateY(-2px) scale(1.02);
+}
+
+/* Error message styling */
+.error-message {
+	padding: 1rem;
+	background: linear-gradient(135deg, 
+		color-mix(in oklab, var(--secondary) 15%, var(--surface)), 
+		color-mix(in oklab, var(--secondary) 8%, var(--surface)));
+	border: 2px solid var(--secondary);
+	border-radius: 0;
+	color: var(--secondary);
+	font-size: 0.9rem;
+	font-family: var(--font-mono);
+	font-weight: 600;
+	box-shadow: 
+		0 0 20px rgba(255, 107, 107, 0.2),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	position: relative;
+}
+
+/* Type Selection Grid */
+.type-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+}
+
+@media (max-width: 768px) {
+	.type-grid {
+		grid-template-columns: 1fr;
+		gap: 0.75rem;
+	}
+}
+
+/* 13) Nesting guidance (v2):
    If you nest augmented elements, place a reset layer between them:
    [data-augmented-ui] [data-augmented-ui-reset] [data-augmented-ui]
    This ensures independent shapes & borders in modern browsers. */

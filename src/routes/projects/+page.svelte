@@ -841,6 +841,15 @@
 				</button>
 			</div>
 			<div class="right-group">
+				<button 
+					class="bottom-btn" 
+					onclick={() => settingsModalOpen = true}
+					aria-label="Open settings"
+					title="Settings"
+					type="button"
+				>
+					<IconSettings size={18} />
+				</button>
 				<button class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions"
 					>{sessionMenuOpen ? 'Close' : 'Sessions'}</button
 				>
@@ -1011,6 +1020,41 @@
 		touch-action: manipulation;
 		user-select: none;
 		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.25rem;
+		transition: all 0.2s ease;
+	}
+
+	.bottom-btn:hover:not(:disabled) {
+		background: var(--surface-active, color-mix(in oklab, var(--surface-hover) 80%, white 20%));
+		border-color: var(--primary-dim);
+		color: var(--primary);
+	}
+
+	.bottom-btn:active:not(:disabled) {
+		transform: scale(0.95);
+		opacity: 0.9;
+	}
+
+	.bottom-btn.primary {
+		background: var(--primary);
+		border-color: var(--primary);
+		color: var(--bg);
+	}
+
+	.bottom-btn.primary:hover:not(:disabled) {
+		background: color-mix(in oklab, var(--primary) 90%, white 10%);
+		border-color: var(--primary);
+	}
+
+	/* Ensure icons display properly in bottom buttons */
+	.bottom-btn :global(svg) {
+		width: 18px;
+		height: 18px;
+		display: block;
+		flex-shrink: 0;
 	}
 
 	/* Hide New Claude and New Terminal buttons on mobile */

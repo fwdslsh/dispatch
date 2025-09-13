@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import ClaudePane from '$lib/components/ClaudePane.svelte';
-	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
+	import ProjectSessionMenuSimplified from '$lib/shared/components/ProjectSessionMenuSimplified.svelte';
 	import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
 	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
 	import { IconAlertTriangle } from '@tabler/icons-svelte';
@@ -236,7 +236,7 @@
 				class:mobile-sidebar={isMobileView}
 				class:show-sidebar={showSidebar}
 			>
-				<ProjectSessionMenu
+				<ProjectSessionMenuSimplifiedSimplified
 					bind:this={menuRef}
 					bind:selectedProject
 					bind:selectedSession
@@ -418,7 +418,7 @@
 		overflow: hidden;
 	}
 
-	/* menu layout moved into ProjectSessionMenu */
+	/* menu layout moved into ProjectSessionMenuSimplified */
 
 	.claude-section {
 		display: flex;
@@ -429,11 +429,11 @@
 		overflow: hidden;
 	}
 
-	/* panel styles moved into ProjectSessionMenu */
+	/* panel styles moved into ProjectSessionMenuSimplified */
 
-	/* item styles moved into ProjectSessionMenu */
+	/* item styles moved into ProjectSessionMenuSimplified */
 
-	/* empty/loading moved into ProjectSessionMenu */
+	/* empty/loading moved into ProjectSessionMenuSimplified */
 
 	.claude-header {
 		background: var(--surface-hover);
@@ -625,7 +625,7 @@
 		opacity: 0.3;
 	}
 
-	/* tabs moved into ProjectSessionMenu */
+	/* tabs moved into ProjectSessionMenuSimplified */
 
 	/* legacy helpers removed */
 
@@ -640,7 +640,7 @@
 			grid-template-rows: 400px 1fr;
 			gap: 0.75rem;
 		}
-		/* menu layout/styles handled in ProjectSessionMenu */
+		/* menu layout/styles handled in ProjectSessionMenuSimplified */
 
 		.browser-header h1 {
 			font-size: 1.5rem;
@@ -704,9 +704,9 @@
 			border: none;
 		}
 
-		/* menu panel/item styles handled in ProjectSessionMenu */
+		/* menu panel/item styles handled in ProjectSessionMenuSimplified */
 
-		/* menu badges/paths handled in ProjectSessionMenu */
+		/* menu badges/paths handled in ProjectSessionMenuSimplified */
 
 		.claude-header {
 			padding: 0.75rem 1rem;
@@ -740,7 +740,7 @@
 			font-size: 0.9rem;
 		}
 
-		/* menu scrolling handled in ProjectSessionMenu */
+		/* menu scrolling handled in ProjectSessionMenuSimplified */
 	}
 
 	/* Small Mobile Styles */
@@ -753,7 +753,7 @@
 			width: 90%;
 		}
 
-		/* menu small-mobile typography handled in ProjectSessionMenu */
+		/* menu small-mobile typography handled in ProjectSessionMenuSimplified */
 	}
 
 	/* Landscape Mobile */
@@ -766,7 +766,7 @@
 			font-size: 1rem;
 		}
 
-		/* menu panel heights handled in ProjectSessionMenu */
+		/* menu panel heights handled in ProjectSessionMenuSimplified */
 
 		.claude-section {
 			flex: 1;
@@ -781,7 +781,7 @@
 
 	/* High DPI Screens */
 	@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-		/* menu high-DPI tweaks handled in ProjectSessionMenu */
+		/* menu high-DPI tweaks handled in ProjectSessionMenuSimplified */
 	}
 
 	/* Accessibility - Reduced Motion */
@@ -790,7 +790,7 @@
 			transition: none;
 		}
 
-		/* menu reduced motion handled in ProjectSessionMenu */
+		/* menu reduced motion handled in ProjectSessionMenuSimplified */
 	}
 
 	/* Dark Mode Adjustments for Mobile */

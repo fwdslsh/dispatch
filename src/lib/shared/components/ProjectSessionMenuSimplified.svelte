@@ -1,6 +1,8 @@
 <script>
 	import { onMount } from 'svelte';
 	import DirectoryBrowser from '$lib/components/DirectoryBrowser.svelte';
+	import Button from './Button.svelte';
+	import SessionCard from './SessionCard.svelte';
 	import { IconRobot, IconTerminal2, IconFolder, IconChevronDown, IconX, IconPlus, IconActivity, IconBolt } from '@tabler/icons-svelte';
 
 	// Props
@@ -136,23 +138,25 @@
 
 <div class="menu-root" data-augmented-ui="tl-clip tr-clip bl-clip br-clip both">
 	<!-- Session Type Toggle -->
-	<div class="type-tabs">
-		<button
-			type="button"
-			class="type-btn"
-			class:active={sessionType === 'claude'}
+	<div class="btn-group" data-augmented-ui="tl-clip tr-clip bl-clip br-clip both">
+		<Button
+			variant="ghost"
+			augmented="tl-clip br-clip both"
+			class={sessionType === 'claude' ? 'active' : ''}
 			onclick={() => changeType('claude')}
-			data-augmented-ui="tl-clip br-clip both"
-			><span class="type-icon"><IconRobot size={18} /></span><span>Claude</span></button
 		>
-		<button
-			type="button"
-			class="type-btn"
-			class:active={sessionType === 'pty'}
+			{#snippet icon()}<IconRobot size={18} />{/snippet}
+			Claude
+		</Button>
+		<Button
+			variant="ghost"
+			augmented="tl-clip br-clip both"
+			class={sessionType === 'pty' ? 'active' : ''}
 			onclick={() => changeType('pty')}
-			data-augmented-ui="tl-clip br-clip both"
-			><span class="type-icon"><IconTerminal2 size={18} /></span><span>Terminal</span></button
 		>
+			{#snippet icon()}<IconTerminal2 size={18} />{/snippet}
+			Terminal
+		</Button>
 	</div>
 
 	<!-- Create Session Section -->
@@ -229,31 +233,11 @@
 				<div class="status">No active {sessionType} sessions</div>
 			{:else}
 				{#each activeSessions as session}
-					<button
-						type="button"
-						class="session-item"
-						class:selected={selectedSession === session.id}
+					<SessionCard
+						{session}
+						selected={selectedSession === session.id}
 						onclick={() => selectSession(session)}
-						data-augmented-ui="tl-clip br-clip both"
-					>
-						<div class="session-header">
-							<div class="session-type-badge">
-								<span class="type-icon">{#if session.type === 'claude'}<IconRobot size={16} />{:else}<IconTerminal2 size={16} />{/if}</span>
-								<span class="type-text">{session.type.toUpperCase()}</span>
-							</div>
-							<div class="session-status">
-								<span class="status-dot"></span>
-								<span class="status-text">ACTIVE</span>
-							</div>
-						</div>
-						<div class="session-content">
-							<div class="session-title">{session.title}</div>
-							<div class="session-workspace">
-								<span class="workspace-icon-small"><IconFolder size={14} /></span>
-								<span>{session.workspacePath.split('/').pop() || 'root'}</span>
-							</div>
-						</div>
-					</button>
+					/>
 				{/each}
 			{/if}
 		</div>
@@ -278,183 +262,11 @@
 		position: relative;
 	}
 
-	/* Type Toggle */
-	.type-tabs {
-		display: flex;
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--surface) 90%, var(--accent) 10%), 
-			color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%));
-		border: 2px solid var(--line);
-		border-radius: 0;
-		padding: 0.5rem;
-		gap: 0.5rem;
-		box-shadow: inset 0 2px 4px color-mix(in oklab, var(--bg) 10%, black);
-	}
-
-	.type-btn {
-		flex: 1;
-		padding: 1rem;
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--surface) 80%, var(--accent) 20%), 
-			color-mix(in oklab, var(--surface) 90%, var(--accent) 10%));
-		border: 2px solid var(--line);
-		border-radius: 0;
-		color: var(--muted);
-		font-weight: 700;
-		font-family: var(--font-mono);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		cursor: pointer;
-		transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		justify-content: center;
-		position: relative;
-		overflow: hidden;
-	}
-
-	.type-btn::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: -100%;
-		width: 100%;
-		height: 100%;
-		background: linear-gradient(90deg, transparent, var(--glow), transparent);
-		transition: left 0.5s ease;
-	}
-
-	.type-icon {
-		font-size: 1.1em;
-		filter: drop-shadow(0 0 6px var(--glow));
-	}
-
-	.type-btn.active {
-		background: linear-gradient(135deg, var(--accent), var(--accent-cyan));
-		color: var(--bg);
-		border-color: var(--accent);
-		box-shadow: 
-			0 0 20px var(--glow),
-			0 0 40px var(--glow),
-			inset 0 1px 0 color-mix(in oklab, var(--text) 20%, transparent);
-		transform: translateY(-1px);
-		text-shadow: 0 0 8px color-mix(in oklab, var(--bg) 30%, black);
-	}
-
-	.type-btn.active .type-icon {
-		filter: drop-shadow(0 0 10px color-mix(in oklab, var(--text) 50%, transparent));
-		transform: scale(1.1);
-	}
-
-	.type-btn:not(.active):hover {
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--accent) 15%, var(--surface)), 
-			color-mix(in oklab, var(--accent) 8%, var(--surface)));
-		color: var(--text);
-		border-color: var(--primary-dim);
-		box-shadow: 0 0 15px var(--glow);
-		transform: translateY(-1px);
-	}
-
-	.type-btn:not(.active):hover::before {
-		left: 100%;
-	}
-
-	.type-btn:not(.active):hover .type-icon {
-		filter: drop-shadow(0 0 8px var(--glow));
-		transform: scale(1.05);
-	}
-
 	/* Create Section */
 	.create-section {
 		display: flex;
 		gap: 1rem;
 		flex-direction: column;
-	}
-
-	.workspace-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.workspace-label {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-weight: 700;
-		color: var(--primary);
-		font-family: var(--font-mono);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		font-size: 0.9rem;
-		text-shadow: 0 0 6px rgba(46, 230, 107, 0.3);
-	}
-
-	.label-icon {
-		filter: drop-shadow(0 0 6px rgba(46, 230, 107, 0.4));
-	}
-
-	.workspace-btn {
-		padding: 1rem 1.25rem;
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%), 
-			color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%));
-		border: 2px solid var(--surface-border);
-		border-radius: 0;
-		color: var(--text);
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		font-weight: 600;
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		cursor: pointer;
-		transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-		position: relative;
-		overflow: hidden;
-	}
-
-	.workspace-icon {
-		font-size: 1.2em;
-		color: var(--primary);
-		filter: drop-shadow(0 0 6px rgba(46, 230, 107, 0.3));
-	}
-
-	.workspace-path {
-		flex: 1;
-	}
-
-	.workspace-arrow {
-		color: var(--text-muted);
-		transition: transform 0.3s ease;
-	}
-
-	.workspace-btn:hover:not(:disabled) {
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--primary) 15%, var(--surface)), 
-			color-mix(in oklab, var(--primary) 8%, var(--surface)));
-		border-color: var(--primary);
-		box-shadow: 
-			0 0 20px rgba(46, 230, 107, 0.2),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1);
-		transform: translateY(-1px);
-	}
-
-	.workspace-btn:hover:not(:disabled) .workspace-arrow {
-		transform: translateY(2px);
-		color: var(--primary);
-	}
-
-	.workspace-btn:hover:not(:disabled) .workspace-icon {
-		filter: drop-shadow(0 0 10px rgba(46, 230, 107, 0.5));
-		transform: scale(1.1);
-	}
-
-	.workspace-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
 	}
 
 	.directory-picker-container {
@@ -489,81 +301,11 @@
 
 	.cancel-picker-btn {
 		margin-top: 1rem;
-		padding: 0.75rem 1.5rem;
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--surface) 80%, var(--secondary) 20%), 
-			color-mix(in oklab, var(--surface) 90%, var(--secondary) 10%));
-		border: 2px solid var(--secondary);
-		border-radius: 0;
-		color: var(--secondary);
-		font-size: 0.9rem;
-		font-weight: 700;
-		font-family: var(--font-mono);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		cursor: pointer;
-		transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 		width: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-	}
-
-	.cancel-picker-btn:hover {
-		background: linear-gradient(135deg, var(--secondary), #ff7b7b);
-		color: var(--bg);
-		box-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
-		transform: translateY(-1px);
 	}
 
 	.create-btn {
-		padding: 1rem 1.5rem;
-		background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
-		border: 2px solid var(--primary);
-		border-radius: 0;
-		color: var(--bg);
-		font-weight: 700;
-		font-family: var(--font-mono);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		cursor: pointer;
-		transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.75rem;
-		box-shadow: 
-			0 0 20px rgba(46, 230, 107, 0.3),
-			inset 0 1px 0 rgba(255, 255, 255, 0.2);
-		position: relative;
-		overflow: hidden;
-	}
-
-	.create-icon {
-		font-size: 1.1em;
-		filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));
-	}
-
-	.create-btn:hover:not(:disabled) {
-		transform: translateY(-2px) scale(1.02);
-		box-shadow: 
-			0 0 30px rgba(46, 230, 107, 0.5),
-			0 0 60px rgba(46, 230, 107, 0.2),
-			inset 0 1px 0 rgba(255, 255, 255, 0.3);
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--primary) 110%, white 10%), 
-			color-mix(in oklab, var(--accent-cyan) 110%, white 10%));
-	}
-
-	.create-btn:hover:not(:disabled) .create-icon {
-		filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
-		transform: scale(1.1);
-	}
-
-	.create-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
+		width: 100%;
 	}
 
 	/* Sessions Panel */
@@ -650,158 +392,6 @@
 		padding: 0.5rem;
 	}
 
-	/* Session Items */
-	.session-item {
-		width: 100%;
-		padding: 1rem;
-		margin-bottom: 0.75rem;
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%), 
-			color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%));
-		border: 2px solid var(--surface-border);
-		border-radius: 0;
-		text-align: left;
-		cursor: pointer;
-		transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-		position: relative;
-		overflow: hidden;
-	}
-
-	.session-item::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: -100%;
-		width: 100%;
-		height: 100%;
-		background: linear-gradient(90deg, transparent, rgba(46, 230, 107, 0.1), transparent);
-		transition: left 0.5s ease;
-	}
-
-	.session-item:hover {
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--primary) 20%, var(--surface-hover)), 
-			color-mix(in oklab, var(--primary) 10%, var(--surface-hover)));
-		border-color: var(--primary);
-		box-shadow: 
-			0 0 20px rgba(46, 230, 107, 0.2),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1);
-		transform: translateY(-1px);
-	}
-
-	.session-item:hover::before {
-		left: 100%;
-	}
-
-	.session-item.selected {
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--primary) 25%, var(--surface)), 
-			color-mix(in oklab, var(--primary) 15%, var(--surface)));
-		border-color: var(--primary);
-		box-shadow: 
-			0 0 0 2px var(--primary) inset,
-			0 0 30px rgba(46, 230, 107, 0.3),
-			inset 0 1px 0 rgba(255, 255, 255, 0.2);
-		transform: translateY(-2px) scale(1.02);
-	}
-
-	.session-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 0.75rem;
-		position: relative;
-		z-index: 1;
-	}
-
-	.session-type-badge {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
-		color: var(--bg);
-		padding: 0.4rem 0.75rem;
-		border: 1px solid var(--primary);
-		border-radius: 0;
-		box-shadow: 
-			0 0 10px rgba(46, 230, 107, 0.3),
-			inset 0 1px 0 rgba(255, 255, 255, 0.2);
-	}
-
-	.session-type-badge .type-icon {
-		font-size: 0.9em;
-		filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
-	}
-
-	.session-type-badge .type-text {
-		font-size: 0.7rem;
-		font-weight: 700;
-		font-family: var(--font-mono);
-		letter-spacing: 0.05em;
-		text-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
-	}
-
-	.session-status {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		font-size: 0.7rem;
-		font-weight: 700;
-		font-family: var(--font-mono);
-		color: var(--primary);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.status-dot {
-		width: 6px;
-		height: 6px;
-		background: var(--primary);
-		border-radius: 50%;
-		box-shadow: 0 0 8px rgba(46, 230, 107, 0.6);
-		animation: pulse-dot 2s ease-in-out infinite;
-	}
-
-	@keyframes pulse-dot {
-		0%, 100% {
-			box-shadow: 0 0 8px rgba(46, 230, 107, 0.6);
-		}
-		50% {
-			box-shadow: 0 0 15px rgba(46, 230, 107, 0.9);
-		}
-	}
-
-	.session-content {
-		position: relative;
-		z-index: 1;
-	}
-
-	.session-title {
-		font-weight: 700;
-		color: var(--text);
-		margin-bottom: 0.5rem;
-		font-family: var(--font-mono);
-		font-size: 1rem;
-		text-shadow: 0 0 6px rgba(46, 230, 107, 0.2);
-	}
-
-	.session-workspace {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-family: var(--font-mono);
-		font-size: 0.8rem;
-		color: var(--text-muted);
-		opacity: 0.9;
-		font-weight: 600;
-	}
-
-	.workspace-icon-small {
-		font-size: 0.9em;
-		color: var(--primary);
-		filter: drop-shadow(0 0 4px rgba(46, 230, 107, 0.3));
-	}
-
 	/* Status Messages */
 	.status {
 		padding: 2rem;
@@ -822,20 +412,6 @@
 			gap: 1rem;
 		}
 
-		.type-tabs {
-			padding: 0.3rem;
-		}
-
-		.type-btn {
-			padding: 0.8rem;
-			font-size: 0.85rem;
-			gap: 0.4rem;
-		}
-
-		.type-icon {
-			font-size: 1em;
-		}
-
 		.sessions-header {
 			padding: 1rem;
 		}
@@ -846,21 +422,6 @@
 
 		.sessions-header h2 {
 			font-size: 1rem;
-		}
-
-		.session-item {
-			padding: 0.85rem;
-			margin-bottom: 0.6rem;
-		}
-
-		.session-type-badge {
-			padding: 0.3rem 0.6rem;
-			gap: 0.4rem;
-		}
-
-		.create-btn {
-			padding: 0.9rem 1.25rem;
-			gap: 0.6rem;
 		}
 	}
 </style>
