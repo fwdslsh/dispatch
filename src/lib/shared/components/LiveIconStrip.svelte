@@ -44,10 +44,7 @@
 		gap: var(--space-2);
 		padding: var(--space-3) var(--space-3);
 		border-radius: 12px;
-		background: linear-gradient(135deg,
-			color-mix(in oklab, var(--primary) 8%, transparent),
-			color-mix(in oklab, var(--primary) 4%, transparent)
-		);
+		
 		border: 1px solid color-mix(in oklab, var(--primary) 18%, transparent);
 		box-shadow:
 			inset 0 1px 2px rgba(255, 255, 255, 0.05),

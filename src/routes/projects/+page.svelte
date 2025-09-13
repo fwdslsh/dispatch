@@ -255,7 +255,7 @@
 		const responseData = await r.json();
 		console.log('Claude session created:', responseData);
 		
-		const { id, sessionId: claudeSessionId } = responseData;
+		const { id, claudeId: claudeSessionId } = responseData;
 		// Avoid duplicate inserts if session already present
 		const existing = sessions.find((s) => s && s.id === id);
 		if (!existing) {
@@ -743,7 +743,7 @@
 									/>
 								{:else}
 									<ClaudePane
-										sessionId={s.claudeSessionId || s.sessionId || s.id}
+										sessionId={s.id}
 										claudeSessionId={s.claudeSessionId || s.sessionId}
 										shouldResume={s.shouldResume || s.resumeSession || false}
 										workspacePath={s.workspacePath}

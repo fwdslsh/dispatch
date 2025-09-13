@@ -850,7 +850,7 @@
 				<ClaudeCommands 
 					{socket}
 					{workspacePath}
-					sessionId={claudeSessionId || sessionId}
+					sessionId={sessionId}
 					onCommandInsert={handleCommandInsert}
 					disabled={loading}
 					bind={claudeCommandsApi}

@@ -37,6 +37,7 @@
 	 * @returns {Array} Array of command objects
 	 */
 	function extractCommandsFromMessage(message) {
+		console.log('[ClaudeCommands] Extracting commands from message:', message);
 		const commands = [];
 		if (!message || typeof message !== 'string') return commands;
 		
@@ -135,9 +136,27 @@
 	 */
 	function handleToolsList(payload) {
 		try {
+			console.log('[ClaudeCommands] Received tools.list event:', payload);	
 			if (!payload) return;
 			
+			// Check if this event is for our session
+			// Backend emits with both Claude session ID and app session ID
+			// We need to accept events that match our sessionId
+			if (payload.sessionId && sessionId) {
+				// Accept if payload sessionId matches our sessionId
+				// Also handle the case where our sessionId might be numeric (Claude ID)
+				const payloadId = String(payload.sessionId);
+				const ourId = String(sessionId);
+				
+				if (payloadId !== ourId) {
+					console.log(`[ClaudeCommands] Ignoring tools.list for different session: ${payloadId} !== ${ourId}`);
+					return;
+				}
+			}
+			
 			const commands = Array.isArray(payload.commands) ? payload.commands : [];
+			console.log(`[ClaudeCommands] Received ${commands.length} commands for session ${sessionId}`);
+			
 			if (commands.length > 0) {
 				const normalized = commands.map((c) => {
 					// Normalize shape { name, title, description }
@@ -152,6 +171,7 @@
 				});
 				if (!commandsEqual(availableCommands, normalized)) {
 					availableCommands = normalized;
+					console.log(`[ClaudeCommands] Updated available commands to ${availableCommands.length} items`);
 					// Cache commands when updated
 					if (workspacePath) {
 						try {
@@ -205,29 +225,32 @@
 		}
 	}
 
-	// Update commands when messages change
-	$effect(() => {
-		if (lastParsedMessages !== lastParsedMessages) {
-			updateAvailableCommands(lastParsedMessages);
-		}
-	});
+	// // Update commands when messages change
+	// $effect(() => {
+	// 	if (lastParsedMessages !== lastParsedMessages) {
+	// 		updateAvailableCommands(lastParsedMessages);
+	// 	}
+	// });
 
-	// Update commands when workspace changes
-	$effect(() => {
-		if (workspacePath) {
-			updateAvailableCommands(lastParsedMessages);
-		}
-	});
+	// // Update commands when workspace changes
+	// $effect(() => {
+	// 	if (workspacePath) {
+	// 		updateAvailableCommands(lastParsedMessages);
+	// 	}
+	// });
 
 	onMount(() => {
 		// Set up WebSocket listeners
 		if (socket) {
+			console.log(`[ClaudeCommands] Setting up tools.list listener for sessionId: ${sessionId}`);
 			socket.on('tools.list', handleToolsList);
 			
 			// Query session status for existing commands
 			if (sessionId) {
 				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+				console.log(`[ClaudeCommands] Querying session.status for sessionId: ${sessionId}`);
 				socket.emit('session.status', { key, sessionId }, (response) => {
+					console.log(`[ClaudeCommands] session.status response:`, response);
 					try {
 						if (response && Array.isArray(response.availableCommands) && response.availableCommands.length > 0) {
 							const normalized = response.availableCommands.map((c) => {
