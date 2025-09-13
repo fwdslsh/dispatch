@@ -18,7 +18,8 @@ export default defineConfig({
 		'working-directory.spec.js',
 		'working-directory-validation.spec.js',
 		'socket-reconnection.spec.js',
-		'workspace-terminal-interactions.spec.js'
+		'workspace-terminal-interactions.spec.js',
+		'terminal-session-resumption.spec.js'
 	],
 	
 	// Ignore Claude-specific test files

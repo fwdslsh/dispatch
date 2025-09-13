@@ -31,7 +31,10 @@
 		"playwright:install": "npx playwright install",
 		"docker:dev": "node bin/cli.js start -k test --projects ~/code/ --home ~/ --build",
 		"docker:start": "node bin/cli.js start -k test --projects ~/code/ --home ~/",
-		"docker:stop": "node bin/cli.js stop"
+		"docker:stop": "node bin/cli.js stop",
+		"migrate": "node scripts/migrate.js",
+		"test:database": "node scripts/test-database.js",
+		"test:managers": "node scripts/test-managers.js"
 	},
 	"bin": {
 		"dispatch": "./bin/cli.js"
@@ -57,6 +60,7 @@
 		"prismjs": "^1.30.0",
 		"socket.io": "^4.8.1",
 		"socket.io-client": "^4.8.1",
+		"sqlite3": "^5.1.7",
 		"svelte-virtual-list": "^3.0.1"
 	},
 	"devDependencies": {

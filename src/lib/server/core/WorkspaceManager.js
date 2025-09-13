@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { databaseManager } from '../db/DatabaseManager.js';
 
 export class WorkspaceManager {
 	constructor({ rootDir, indexFile }) {
@@ -7,13 +8,47 @@ export class WorkspaceManager {
 		this.indexFile = indexFile;
 		this.index = { workspaces: {} };
 		console.log('WorkspaceManager initialized with:', { rootDir, indexFile });
+		this.initializeDatabase();
+	}
+
+	async initializeDatabase() {
+		try {
+			await databaseManager.init();
+		} catch (error) {
+			console.error('[WORKSPACE] Failed to initialize database:', error);
+		}
 	}
 	async init() {
 		await fs.mkdir(path.dirname(this.indexFile), { recursive: true });
+
+		// Load from database instead of file
 		try {
-			this.index = JSON.parse(await fs.readFile(this.indexFile, 'utf8'));
-		} catch {
-			await this.#persist();
+			const workspaces = await databaseManager.listWorkspaces();
+			this.index = { workspaces: {} };
+
+			for (const workspace of workspaces) {
+				this.index.workspaces[workspace.path] = {
+					lastActive: workspace.last_active,
+					sessions: []
+				};
+
+				// Load sessions for this workspace
+				const sessions = await databaseManager.getWorkspaceSessions(workspace.path);
+				this.index.workspaces[workspace.path].sessions = sessions.map((session) => ({
+					id: session.id,
+					title: session.title,
+					type: session.session_type,
+					typeSpecificId: session.type_specific_id
+				}));
+			}
+		} catch (error) {
+			console.error('[WORKSPACE] Failed to load from database:', error);
+			// Fallback to file-based loading for migration
+			try {
+				this.index = JSON.parse(await fs.readFile(this.indexFile, 'utf8'));
+			} catch {
+				await this.#persist();
+			}
 		}
 	}
 	async list() {
@@ -23,27 +58,36 @@ export class WorkspaceManager {
 			.map((d) => path.join(this.rootDir, d.name));
 	}
 	async open(dir) {
-	if (typeof dir !== 'string' || dir.trim() === '') throw new Error('Invalid directory');
-	// Resolve to absolute path
-	const resolved = path.resolve(dir);
-	// Ensure it's inside configured rootDir
-	const rel = path.relative(this.rootDir, resolved);
-	if (rel.startsWith('..')) throw new Error('Workspace path outside root');
-	const stat = await fs.stat(resolved);
-	if (!stat.isDirectory()) throw new Error('Not a directory');
-	this.index.workspaces[resolved] ??= { lastActive: Date.now(), sessions: [] };
-	await this.#persist();
-	return { path: resolved };
+		if (typeof dir !== 'string' || dir.trim() === '') throw new Error('Invalid directory');
+		// Resolve to absolute path
+		const resolved = path.resolve(dir);
+		// Ensure it's inside configured rootDir
+		const rel = path.relative(this.rootDir, resolved);
+		if (rel.startsWith('..')) throw new Error('Workspace path outside root');
+		const stat = await fs.stat(resolved);
+		if (!stat.isDirectory()) throw new Error('Not a directory');
+
+		// Create or update workspace in database
+		await databaseManager.createWorkspace(resolved);
+		await databaseManager.updateWorkspaceActivity(resolved);
+
+		this.index.workspaces[resolved] ??= { lastActive: Date.now(), sessions: [] };
+		await this.#persist();
+		return { path: resolved };
 	}
 	async create(dir) {
-	if (typeof dir !== 'string' || dir.trim() === '') throw new Error('Invalid directory');
-	const resolved = path.resolve(dir);
-	const rel = path.relative(this.rootDir, resolved);
-	if (rel.startsWith('..')) throw new Error('Workspace path outside root');
-	await fs.mkdir(resolved, { recursive: true });
-	this.index.workspaces[resolved] ??= { lastActive: Date.now(), sessions: [] };
-	await this.#persist();
-	return { path: resolved };
+		if (typeof dir !== 'string' || dir.trim() === '') throw new Error('Invalid directory');
+		const resolved = path.resolve(dir);
+		const rel = path.relative(this.rootDir, resolved);
+		if (rel.startsWith('..')) throw new Error('Workspace path outside root');
+		await fs.mkdir(resolved, { recursive: true });
+
+		// Create workspace in database
+		await databaseManager.createWorkspace(resolved);
+
+		this.index.workspaces[resolved] ??= { lastActive: Date.now(), sessions: [] };
+		await this.#persist();
+		return { path: resolved };
 	}
 	async clone(fromPath, toPath) {
 		await fs.cp(fromPath, toPath, { recursive: true, errorOnExist: false });
@@ -55,40 +99,80 @@ export class WorkspaceManager {
 		if (i >= 0) ws.sessions[i] = sessionDescriptor;
 		else ws.sessions.push(sessionDescriptor);
 		ws.lastActive = Date.now();
+
+		// Determine session type and type-specific ID
+		let sessionType = 'unknown';
+		let typeSpecificId = sessionDescriptor.id;
+
+		if (sessionDescriptor.id.startsWith('claude_')) {
+			sessionType = 'claude';
+			typeSpecificId = sessionDescriptor.id.replace(/^claude_/, '');
+		} else if (sessionDescriptor.id.startsWith('pty_')) {
+			sessionType = 'pty';
+		}
+
+		// Save to database
+		await databaseManager.addWorkspaceSession(
+			sessionDescriptor.id,
+			dir,
+			sessionType,
+			typeSpecificId,
+			sessionDescriptor.title || sessionDescriptor.name || 'Untitled Session'
+		);
+
 		await this.#persist();
 	}
 	async getIndex() {
 		return this.index;
 	}
 	async getAllSessions() {
-		// Return all sessions from all workspaces
-		const allSessions = [];
-		for (const [workspacePath, workspace] of Object.entries(this.index.workspaces)) {
-			for (const session of workspace.sessions || []) {
-				allSessions.push({
-					...session,
-					workspacePath
-				});
+		// Return all sessions from database
+		try {
+			const sessions = await databaseManager.getAllSessions();
+			return sessions.map((session) => ({
+				id: session.id,
+				title: session.title,
+				type: session.session_type,
+				typeSpecificId: session.type_specific_id,
+				workspacePath: session.workspace_path
+			}));
+		} catch (error) {
+			console.error('[WORKSPACE] Failed to get sessions from database:', error);
+			// Fallback to in-memory index
+			const allSessions = [];
+			for (const [workspacePath, workspace] of Object.entries(this.index.workspaces)) {
+				for (const session of workspace.sessions || []) {
+					allSessions.push({
+						...session,
+						workspacePath
+					});
+				}
 			}
+			return allSessions;
 		}
-		return allSessions;
 	}
 	async removeSession(workspacePath, sessionId) {
 		const ws = this.index.workspaces[workspacePath];
 		if (ws?.sessions) {
-			ws.sessions = ws.sessions.filter(s => s.id !== sessionId);
+			ws.sessions = ws.sessions.filter((s) => s.id !== sessionId);
 			await this.#persist();
 		}
+
+		// Remove from database
+		await databaseManager.removeWorkspaceSession(workspacePath, sessionId);
 	}
 	async renameSession(workspacePath, sessionId, newTitle) {
 		const ws = this.index.workspaces[workspacePath];
 		if (ws?.sessions) {
-			const session = ws.sessions.find(s => s.id === sessionId);
+			const session = ws.sessions.find((s) => s.id === sessionId);
 			if (session) {
 				session.title = newTitle;
 				await this.#persist();
 			}
 		}
+
+		// Update in database
+		await databaseManager.renameWorkspaceSession(workspacePath, sessionId, newTitle);
 	}
 	async #persist() {
 		await fs.writeFile(this.indexFile, JSON.stringify(this.index, null, 2));

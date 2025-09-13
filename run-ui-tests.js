@@ -18,7 +18,8 @@ const coreTestFiles = [
 	'e2e/working-directory.spec.js',
 	'e2e/working-directory-validation.spec.js',
 	'e2e/socket-reconnection.spec.js',
-	'e2e/workspace-terminal-interactions.spec.js'
+	'e2e/workspace-terminal-interactions.spec.js',
+	'e2e/terminal-session-resumption.spec.js'
 ];
 
 // Server-side integration tests
