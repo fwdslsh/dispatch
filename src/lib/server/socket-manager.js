@@ -6,8 +6,8 @@
 
 export async function getSocketSetup() {
 	console.log('[SOCKET] Using simplified session architecture');
-	const { setupSocketIO } = await import('./socket-setup-simplified.js');
+	const { setupSocketIO } = await import('./socket-setup.js');
 	return { setupSocketIO, mode: 'simplified' };
 }
 
-export { getSocketEvents } from './socket-setup-simplified.js';
+export { getSocketEvents } from './socket-setup.js';

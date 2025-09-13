@@ -1,5 +1,5 @@
 <script>
-	import { Modal } from '$lib/shared/components';
+	import { Modal, Button } from '$lib/shared/components';
 	import ClaudeProjectPicker from './ClaudeProjectPicker.svelte';
 	import DirectoryBrowser from './DirectoryBrowser.svelte';
 
@@ -124,7 +124,7 @@
 	const createButtonText = $derived(creating ? 'Creating...' : 'Create Session');
 </script>
 
-<Modal bind:open title="Create New Session" onclose={handleClose} size="large">
+<Modal bind:open title="Create New Session" onclose={handleClose} size="large" augmented="tl-clip tr-clip bl-clip br-clip both">
 	{#snippet children()}
 		<div class="session-form" data-testid="session-form">
 			{#if state === 'error'}
@@ -252,12 +252,22 @@
 	{/snippet}
 
 	{#snippet footer()}
-		<div class="modal-actions">
-			<button class="btn cancel" onclick={handleClose} disabled={creating}> Cancel </button>
-			<button class="btn primary" onclick={handleCreate} disabled={!canCreate || creating}>
-				{createButtonText}
-			</button>
-		</div>
+		<Button
+			variant="ghost"
+			augmented="none"
+			onclick={handleClose}
+			disabled={creating}
+		>
+			Cancel
+		</Button>
+		<Button
+			variant="primary"
+			augmented="tl-clip br-clip both"
+			onclick={handleCreate}
+			disabled={!canCreate || creating}
+		>
+			{createButtonText}
+		</Button>
 	{/snippet}
 </Modal>
 
@@ -485,51 +495,6 @@
 		right: 0;
 	}
 
-	.modal-actions {
-		display: flex;
-		gap: var(--space-3);
-		justify-content: flex-end;
-	}
-
-	.btn {
-		padding: var(--space-3) var(--space-5);
-		border-radius: 6px;
-		font-weight: 600;
-		font-size: 0.875rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		border: 1px solid transparent;
-		font-family: inherit;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.btn.cancel {
-		background: var(--surface);
-		border-color: var(--surface-border);
-		color: var(--text-muted);
-	}
-
-	.btn.cancel:hover:not(:disabled) {
-		background: var(--surface-hover);
-		color: var(--text);
-	}
-
-	.btn.primary {
-		background: var(--primary);
-		color: var(--bg);
-		border-color: var(--primary);
-	}
-
-	.btn.primary:hover:not(:disabled) {
-		background: color-mix(in oklab, var(--primary) 90%, white 10%);
-		box-shadow: 0 0 12px rgba(46, 230, 107, 0.3);
-	}
-
-	.btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
 
 	/* Responsive adjustments */
 	@media (max-width: 768px) {

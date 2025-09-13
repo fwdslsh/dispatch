@@ -30,6 +30,7 @@ describe('ClaudeCommands', () => {
 				socket: null,
 				workspacePath: '/test/workspace',
 				sessionId: 'test-session',
+				claudeSessionId: 'claude-123',
 				onCommandInsert: vi.fn()
 			}
 		});
@@ -67,5 +68,110 @@ describe('ClaudeCommands', () => {
 		const button = container.querySelector('.command-menu-button');
 		expect(button.disabled).toBe(true);
 		expect(button.getAttribute('title')).toBe('Commands unavailable');
+	});
+
+	it('accepts commands for app session ID', async () => {
+		const mockSocket = {
+			on: vi.fn(),
+			emit: vi.fn(),
+			off: vi.fn()
+		};
+
+		const component = render(ClaudeCommands, {
+			props: {
+				socket: mockSocket,
+				workspacePath: '/test/workspace',
+				sessionId: 'app-session-123',
+				claudeSessionId: 'claude-456',
+				onCommandInsert: vi.fn()
+			}
+		});
+
+		// Simulate receiving tools.list event with app session ID
+		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'tools.list')[1];
+
+		// Mock console.log to capture logs
+		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+		handleToolsList({
+			sessionId: 'app-session-123',
+			commands: ['clear', 'compact']
+		});
+
+		expect(consoleSpy).toHaveBeenCalledWith(
+			'[ClaudeCommands] Received 2 commands for session app-session-123'
+		);
+
+		consoleSpy.mockRestore();
+	});
+
+	it('accepts commands for Claude session ID', async () => {
+		const mockSocket = {
+			on: vi.fn(),
+			emit: vi.fn(),
+			off: vi.fn()
+		};
+
+		const component = render(ClaudeCommands, {
+			props: {
+				socket: mockSocket,
+				workspacePath: '/test/workspace',
+				sessionId: 'app-session-123',
+				claudeSessionId: 'claude-456',
+				onCommandInsert: vi.fn()
+			}
+		});
+
+		// Simulate receiving tools.list event with Claude session ID
+		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'tools.list')[1];
+
+		// Mock console.log to capture logs
+		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+		handleToolsList({
+			sessionId: 'claude-456',
+			commands: ['clear', 'compact']
+		});
+
+		expect(consoleSpy).toHaveBeenCalledWith(
+			'[ClaudeCommands] Received 2 commands for session app-session-123'
+		);
+
+		consoleSpy.mockRestore();
+	});
+
+	it('rejects commands for different session ID', async () => {
+		const mockSocket = {
+			on: vi.fn(),
+			emit: vi.fn(),
+			off: vi.fn()
+		};
+
+		const component = render(ClaudeCommands, {
+			props: {
+				socket: mockSocket,
+				workspacePath: '/test/workspace',
+				sessionId: 'app-session-123',
+				claudeSessionId: 'claude-456',
+				onCommandInsert: vi.fn()
+			}
+		});
+
+		// Simulate receiving tools.list event with different session ID
+		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'tools.list')[1];
+
+		// Mock console.log to capture logs
+		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+		handleToolsList({
+			sessionId: 'different-session-789',
+			commands: ['clear', 'compact']
+		});
+
+		expect(consoleSpy).toHaveBeenCalledWith(
+			'[ClaudeCommands] Ignoring tools.list for different session: different-session-789 !== app-session-123 or claude-456'
+		);
+
+		consoleSpy.mockRestore();
 	});
 });

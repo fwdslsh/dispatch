@@ -53,34 +53,39 @@
 - Production-ready containerization
 - Vite build system with hot reload development
 
-## Phase 1: Enhanced User Experience (4-6 weeks)
+## Phase 1: Component Architecture & UX Stabilization (In Progress - Beta Prep)
 
-**Goal:** Improve desktop and mobile UX with better session management
-**Success Criteria:** Intuitive interface with improved mobile support and session organization
+**Goal:** Stabilize component architecture and improve UX for beta release
+**Success Criteria:** Simplified, maintainable component system with consistent UX patterns
 
-### Must-Have Features
+### Features In Progress
 
-**Desktop UX Improvements:**
+**Component Architecture Refactoring:**
+
+- [x] Simplified session creation modal (CreateSessionModalSimplified.svelte)
+- [x] Streamlined project session menu (ProjectSessionMenuSimplified.svelte)
+- [x] New reusable components (FormSection, IconButton, SessionCard, TypeCard, WorkspaceSelector)
+- [x] Removed legacy components (Card, Container, HeaderToolbar, ValidationMessage)
+- [x] Updated component index and styling (retro.css improvements)
+
+**UX Improvements:**
 
 - [x] Enhanced session management interface with search and filtering
 - [x] Improved terminal sizing and font customization
 - [x] Keyboard shortcuts and hotkeys for common actions
 - [x] Better visual feedback for connection states and errors
-
-**Mobile UX Enhancements:**
-
 - [x] Optimized mobile keyboard handling and input methods
 - [x] Improved touch interactions for terminal operations
 - [x] Mobile-specific UI adaptations and gestures
 - [x] Better viewport management for small screens
 
-**Settings Management:**
+**Stabilization Tasks:**
 
-- User preferences storage (font size, theme, shortcuts)
-- Session configuration options (shell, environment variables)
-- Terminal appearance customization
-- Export/import of user settings
-- Name sessions, use session name as session folder name to allow easy identification of folders
+- [ ] Complete component refactoring on refactor/components branch
+- [ ] Comprehensive testing of simplified components
+- [ ] E2E test updates for new component architecture
+- [ ] Settings management improvements (user preferences, session config)
+- [ ] Session naming and workspace organization features
 
 ## Phase 2: Authentication & Security (3-4 weeks)
 

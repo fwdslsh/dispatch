@@ -136,12 +136,12 @@
 	}
 </script>
 
-<div class="menu-root" data-augmented-ui="tl-clip tr-clip bl-clip br-clip both">
+<div class="menu-root">
 	<!-- Session Type Toggle -->
-	<div class="btn-group" data-augmented-ui="tl-clip tr-clip bl-clip br-clip both">
+	<div class="type-selector">
 		<Button
 			variant="ghost"
-			augmented="tl-clip br-clip both"
+			augmented="none"
 			class={sessionType === 'claude' ? 'active' : ''}
 			onclick={() => changeType('claude')}
 		>
@@ -150,7 +150,7 @@
 		</Button>
 		<Button
 			variant="ghost"
-			augmented="tl-clip br-clip both"
+			augmented="none"
 			class={sessionType === 'pty' ? 'active' : ''}
 			onclick={() => changeType('pty')}
 		>
@@ -162,61 +162,65 @@
 	<!-- Create Session Section -->
 	<div class="create-section">
 		{#if showDirectoryPicker}
-			<div class="directory-picker-container" data-augmented-ui="tl-clip br-clip both">
+			<div class="directory-picker-panel">
 				<div class="picker-header">
-					<span class="picker-title"><IconFolder size={18} /> Select Directory</span>
+					<label class="picker-label">
+						<IconFolder size={18} />
+						Select Directory
+					</label>
 				</div>
 				<DirectoryBrowser
 					bind:selected={selectedWorkspace}
 					startPath={selectedWorkspace || '/workspace'}
 					onSelect={handleDirectorySelect}
 				/>
-				<button
-					type="button"
-					class="cancel-picker-btn"
-					onclick={() => (showDirectoryPicker = false)}
-					data-augmented-ui="tl-clip br-clip both"
-				>
-					<span><IconX size={16} /></span>
-					<span>Cancel</span>
-				</button>
+				<div class="picker-actions">
+					<Button
+						variant="ghost"
+						augmented="none"
+						onclick={() => (showDirectoryPicker = false)}
+					>
+						Cancel
+					</Button>
+				</div>
 			</div>
 		{:else}
-			<div class="workspace-section">
-				<label class="workspace-label">
-					<span class="label-icon"><IconFolder size={16} /></span>
-					<span>Workspace</span>
+			<div class="form-group">
+				<label class="form-label">
+					<IconFolder size={16} />
+					Workspace Directory
 				</label>
-				<button
-					type="button"
-					class="workspace-btn"
+				<Button
+					variant="ghost"
+					augmented="none"
 					onclick={() => (showDirectoryPicker = true)}
 					disabled={loading}
-					data-augmented-ui="tl-clip br-clip both"
+					class="directory-button"
 				>
-					<span class="workspace-icon"><IconFolder size={20} /></span>
-					<span class="workspace-path">{formatPath(selectedWorkspace)}</span>
-					<span class="workspace-arrow"><IconChevronDown size={16} /></span>
-				</button>
+					<span class="directory-path">{formatPath(selectedWorkspace)}</span>
+					<IconChevronDown size={16} />
+				</Button>
 			</div>
-			<button
-				type="button"
-				class="create-btn"
+			<Button
+				variant="primary"
+				augmented="tl-clip br-clip both"
 				onclick={createSession}
 				disabled={loading || !selectedWorkspace}
-				data-augmented-ui="tl-clip br-clip both"
+				{loading}
 			>
-				<span class="create-icon">{#if loading}<IconBolt size={18} />{:else}<IconPlus size={18} />{/if}</span>
-				<span>New {sessionType === 'claude' ? 'Claude' : 'Terminal'} Session</span>
-			</button>
+				{#snippet icon()}
+					{#if loading}<IconBolt size={18} />{:else}<IconPlus size={18} />{/if}
+				{/snippet}
+				New {sessionType === 'claude' ? 'Claude' : 'Terminal'} Session
+			</Button>
 		{/if}
 	</div>
 
 	<!-- Active Sessions -->
-	<div class="sessions-panel" data-augmented-ui="tl-clip br-clip both">
-		<div class="sessions-header">
+	<div class="sessions-panel">
+		<div class="panel-header">
 			<div class="header-content">
-				<span class="header-icon"><IconActivity size={20} /></span>
+				<IconActivity size={20} />
 				<h2>Active Sessions</h2>
 			</div>
 			{#if activeSessions.length > 0}
@@ -248,64 +252,105 @@
 	.menu-root {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: var(--space-5);
 		height: 100%;
-		padding: 1.5rem;
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--surface) 95%, var(--accent) 5%), 
-			color-mix(in oklab, var(--surface) 98%, var(--accent-cyan) 2%));
-		border: 2px solid var(--primary-dim);
-		box-shadow: 
-			0 10px 30px color-mix(in oklab, var(--bg) 20%, black),
-			0 0 40px var(--glow),
-			inset 0 1px 0 color-mix(in oklab, var(--text) 10%, transparent);
-		position: relative;
-	}
-
-	/* Create Section */
-	.create-section {
-		display: flex;
-		gap: 1rem;
-		flex-direction: column;
-	}
-
-	.directory-picker-container {
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%), 
-			color-mix(in oklab, var(--surface) 98%, var(--accent-cyan) 2%));
+		padding: var(--space-5);
+		background: var(--bg);
 		border: 2px solid var(--primary-dim);
 		border-radius: 0;
-		padding: 1.5rem;
+	}
+
+	/* Session Type Selector */
+	.type-selector {
+		display: flex;
+		gap: var(--space-2);
+		background: var(--bg-dark);
+		border: 1px solid var(--surface-border);
+		border-radius: 6px;
+		padding: var(--space-1);
+	}
+
+	.type-selector :global(.btn.active) {
+		background: var(--surface);
+		border-color: var(--primary-dim);
+		color: var(--primary);
+	}
+
+	/* Create Session Section */
+	.create-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+
+	.form-group {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.form-label {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-weight: 600;
+		color: var(--text);
+		font-size: 0.875rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		font-family: var(--font-mono);
+	}
+
+	.directory-button {
+		justify-content: space-between !important;
+		text-align: left;
+		background: var(--bg-dark) !important;
+		border: 1px solid var(--surface-border) !important;
+	}
+
+	.directory-button:hover {
+		border-color: var(--primary-dim) !important;
+	}
+
+	.directory-path {
+		flex: 1;
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
+		color: var(--text-muted);
+	}
+
+	/* Directory Picker Panel */
+	.directory-picker-panel {
+		background: var(--surface);
+		border: 2px solid var(--primary-dim);
+		border-radius: 6px;
+		padding: var(--space-4);
 		max-height: 400px;
 		overflow-y: auto;
-		box-shadow: 
-			0 10px 25px rgba(0, 0, 0, 0.2),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1);
 	}
 
 	.picker-header {
-		margin-bottom: 1rem;
-		padding-bottom: 0.75rem;
-		border-bottom: 2px solid var(--primary-dim);
+		margin-bottom: var(--space-4);
+		padding-bottom: var(--space-3);
+		border-bottom: 1px solid var(--primary-dim);
 	}
 
-	.picker-title {
-		font-family: var(--font-mono);
-		font-weight: 700;
+	.picker-label {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-weight: 600;
 		color: var(--primary);
+		font-size: 0.875rem;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		text-shadow: 0 0 8px rgba(46, 230, 107, 0.3);
-		font-size: 1.1rem;
+		font-family: var(--font-mono);
 	}
 
-	.cancel-picker-btn {
-		margin-top: 1rem;
-		width: 100%;
-	}
-
-	.create-btn {
-		width: 100%;
+	.picker-actions {
+		margin-top: var(--space-4);
+		display: flex;
+		justify-content: flex-end;
 	}
 
 	/* Sessions Panel */
@@ -313,115 +358,82 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%), 
-			color-mix(in oklab, var(--surface) 98%, var(--accent-cyan) 2%));
+		background: var(--surface);
 		border: 2px solid var(--primary-dim);
-		border-radius: 0;
+		border-radius: 6px;
 		overflow: hidden;
-		box-shadow: 
-			0 10px 25px rgba(0, 0, 0, 0.2),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1);
 	}
 
-	.sessions-header {
+	.panel-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 1.25rem;
-		background: linear-gradient(135deg, 
-			color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%), 
-			color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%));
-		border-bottom: 2px solid var(--primary-dim);
-		position: relative;
-	}
-
-	.sessions-header::after {
-		content: '';
-		position: absolute;
-		bottom: -1px;
-		left: 0;
-		right: 0;
-		height: 1px;
-		background: linear-gradient(90deg, transparent, var(--primary), transparent);
+		padding: var(--space-4);
+		background: var(--bg-dark);
+		border-bottom: 1px solid var(--primary-dim);
 	}
 
 	.header-content {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		gap: var(--space-3);
+		color: var(--text);
 	}
 
-	.header-icon {
-		font-size: 1.3rem;
-		color: var(--primary);
-		filter: drop-shadow(0 0 8px rgba(46, 230, 107, 0.4));
-	}
-
-	.sessions-header h2 {
+	.panel-header h2 {
 		margin: 0;
-		font-size: 1.1rem;
-		font-weight: 700;
+		font-size: 1rem;
+		font-weight: 600;
 		font-family: var(--font-mono);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 		color: var(--text);
-		text-shadow: 0 0 8px rgba(46, 230, 107, 0.2);
 	}
 
 	.count-badge {
-		background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+		background: var(--primary);
 		color: var(--bg);
-		padding: 0.3rem 0.75rem;
-		border: 1px solid var(--primary);
-		border-radius: 0;
-		font-size: 0.8rem;
-		font-weight: 700;
+		padding: var(--space-1) var(--space-3);
+		border-radius: 4px;
+		font-size: 0.75rem;
+		font-weight: 600;
 		font-family: var(--font-mono);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		box-shadow: 
-			0 0 15px rgba(46, 230, 107, 0.3),
-			inset 0 1px 0 rgba(255, 255, 255, 0.2);
-		text-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
 	}
 
 	.sessions-list {
 		flex: 1;
 		overflow-y: auto;
-		padding: 0.5rem;
+		padding: var(--space-2);
 	}
 
 	/* Status Messages */
 	.status {
-		padding: 2rem;
+		padding: var(--space-6) var(--space-4);
 		text-align: center;
 		color: var(--text-muted);
-		font-style: italic;
+		font-size: 0.875rem;
+		font-family: var(--font-mono);
 	}
 
 	.status.error {
-		color: var(--error, #ff4444);
-		font-style: normal;
+		color: var(--err);
 	}
 
 	/* Mobile Responsive */
 	@media (max-width: 768px) {
 		.menu-root {
-			padding: 1rem;
-			gap: 1rem;
+			padding: var(--space-4);
+			gap: var(--space-4);
 		}
 
-		.sessions-header {
-			padding: 1rem;
+		.panel-header {
+			padding: var(--space-3);
 		}
 
-		.header-icon {
-			font-size: 1.1rem;
-		}
-
-		.sessions-header h2 {
-			font-size: 1rem;
+		.type-selector {
+			flex-direction: column;
 		}
 	}
 </style>

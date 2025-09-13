@@ -796,6 +796,7 @@
 					{socket}
 					{workspacePath}
 					{sessionId}
+					{claudeSessionId}
 					onCommandInsert={handleCommandInsert}
 					disabled={loading}
 					bind={claudeCommandsApi}

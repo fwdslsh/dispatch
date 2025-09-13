@@ -7,6 +7,7 @@
 	"private": false,
 	"scripts": {
 		"dev": "TERMINAL_KEY='testkey12345' HOME=\"$(pwd)/.dispatch-home\" WORKSPACES_ROOT=\"$(pwd)/.dispatch-home/workspaces\" vite dev --host",
+		"dev:local": "TERMINAL_KEY='testkey12345' WORKSPACES_ROOT=\"$HOME/code\" vite dev --host",
 		"dev:server": "TERMINAL_KEY='testkey12345' node src/dev-server.js",
 		"dev:no-key": "TERMINAL_KEY='' vite dev --host",
 		"dev:tunnel": "TERMINAL_KEY=testkey12345 ENABLE_TUNNEL=true vite dev --host",
@@ -37,7 +38,6 @@
 		"docker:dev": "node bin/cli.js start -k test --projects ~/code/ --home ~/ --build",
 		"docker:start": "node bin/cli.js start -k test --projects ~/code/ --home ~/",
 		"docker:stop": "node bin/cli.js stop",
-		"migrate": "node scripts/migrate.js",
 		"test:database": "node scripts/test-database.js",
 		"test:managers": "node scripts/test-managers.js"
 	},

@@ -535,11 +535,14 @@ a:hover {
 	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
-/* 6) Forms */
+/* 6) Forms - Comprehensive state management */
 input[type='text'],
 input[type='search'],
 input[type='password'],
 input[type='email'],
+input[type='url'],
+input[type='tel'],
+input[type='number'],
 select,
 textarea {
 	width: 100%;
@@ -552,7 +555,10 @@ textarea {
 	transition:
 		border-color 0.15s ease,
 		box-shadow 0.15s ease,
-		background 0.15s ease;
+		background 0.15s ease,
+		color 0.15s ease,
+		transform 0.1s ease;
+	position: relative;
 }
 
 input::placeholder,
@@ -560,12 +566,84 @@ textarea::placeholder {
 	color: color-mix(in oklab, var(--muted) 70%, transparent);
 }
 
+/* Hover states */
+input:hover:not(:disabled):not(:focus),
+select:hover:not(:disabled):not(:focus),
+textarea:hover:not(:disabled):not(:focus) {
+	border-color: color-mix(in oklab, var(--accent) 60%, var(--line));
+	background: color-mix(in oklab, var(--surface) 95%, var(--accent) 5%);
+}
+
+/* Focus states */
 input:focus,
 select:focus,
 textarea:focus {
 	border-color: var(--accent);
-	box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
+	background: color-mix(in oklab, var(--surface) 98%, var(--accent) 2%);
+	box-shadow: 
+		0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent),
+		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent);
 	outline: none;
+	transform: translateY(-1px);
+}
+
+/* Active states */
+input:active:not(:disabled),
+select:active:not(:disabled),
+textarea:active:not(:disabled) {
+	transform: translateY(0);
+}
+
+/* Disabled states */
+input:disabled,
+select:disabled,
+textarea:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	background: color-mix(in oklab, var(--surface) 70%, transparent);
+	border-color: color-mix(in oklab, var(--line) 50%, transparent);
+	color: var(--muted);
+}
+
+/* Invalid states */
+input:invalid:not(:focus),
+select:invalid:not(:focus),
+textarea:invalid:not(:focus) {
+	border-color: var(--err);
+	background: color-mix(in oklab, var(--surface) 95%, var(--err) 5%);
+}
+
+input:invalid:focus,
+select:invalid:focus,
+textarea:invalid:focus {
+	border-color: var(--err);
+	box-shadow: 
+		0 0 0 3px color-mix(in oklab, var(--err) 30%, transparent),
+		inset 0 0 0 1px color-mix(in oklab, var(--err) 20%, transparent);
+}
+
+/* Valid states (for forms with validation) */
+input:valid:not(:placeholder-shown):not(:focus),
+select:valid:not(:focus),
+textarea:valid:not(:placeholder-shown):not(:focus) {
+	border-color: var(--ok);
+	background: color-mix(in oklab, var(--surface) 98%, var(--ok) 2%);
+}
+
+/* Required field indication */
+input:required,
+select:required,
+textarea:required {
+	box-shadow: inset 2px 0 0 color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+input:required:focus,
+select:required:focus,
+textarea:required:focus {
+	box-shadow: 
+		0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent),
+		inset 2px 0 0 var(--accent),
+		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent);
 }
 
 /* Augmented input rails (use data-augmented-ui on a wrapper) */
@@ -587,7 +665,7 @@ textarea:focus {
 	);
 }
 
-/* 7) Buttons */
+/* 7) Buttons - Comprehensive state management */
 .button {
 	--btn-bg: color-mix(in oklab, var(--surface) 88%, black 12%);
 	--btn-border: color-mix(in oklab, var(--accent) 40%, transparent);
@@ -610,29 +688,131 @@ textarea:focus {
 	transition:
 		transform 0.06s ease,
 		box-shadow 0.15s ease,
-		border-color 0.15s ease;
+		border-color 0.15s ease,
+		background 0.15s ease,
+		color 0.15s ease,
+		opacity 0.15s ease;
+	position: relative;
+	overflow: hidden;
 }
 
-.button:hover {
+.button::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+	transition: left 0.5s ease;
+	pointer-events: none;
+}
+
+.button:hover:not(:disabled) {
+	border-color: var(--accent);
+	background: color-mix(in oklab, var(--btn-bg) 90%, var(--accent) 10%);
+	box-shadow:
+		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent),
+		0 0 24px -6px var(--glow);
+}
+
+.button:hover:not(:disabled)::before {
+	left: 100%;
+}
+
+.button:active:not(:disabled) {
+	transform: translateY(1px) scale(0.98);
+	box-shadow:
+		inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent),
+		0 0 12px -4px var(--glow);
+}
+
+.button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	box-shadow:
+		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent),
+		0 0 18px -8px var(--glow),
+		0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent);
+}
+
+.button:disabled,
+.button.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+	border-color: var(--line);
+	color: var(--muted);
+	background: color-mix(in oklab, var(--btn-bg) 70%, transparent);
+	box-shadow: none;
+	transform: none;
+}
+
+/* Button Variants */
+.button.primary {
+	--btn-bg: var(--accent);
+	--btn-border: var(--accent);
+	color: var(--bg);
+	background: var(--accent);
 	border-color: var(--accent);
 }
 
-.button:active {
-	transform: translateY(1px);
+.button.primary:hover:not(:disabled) {
+	background: color-mix(in oklab, var(--accent) 90%, white 10%);
+	border-color: color-mix(in oklab, var(--accent) 90%, white 10%);
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+		0 0 30px var(--glow);
 }
 
-.button.primary {
-	background: color-mix(in oklab, var(--btn-bg) 70%, var(--accent) 30%);
+.button.secondary {
+	--btn-bg: transparent;
+	--btn-border: var(--accent);
+	color: var(--accent);
+	background: transparent;
+}
+
+.button.secondary:hover:not(:disabled) {
+	background: color-mix(in oklab, var(--accent) 10%, transparent);
+	color: color-mix(in oklab, var(--accent) 90%, white 10%);
+}
+
+.button.ghost {
+	--btn-bg: transparent;
+	--btn-border: transparent;
+	color: var(--text);
+	background: transparent;
+	border-color: transparent;
+	box-shadow: none;
+}
+
+.button.ghost:hover:not(:disabled) {
+	background: color-mix(in oklab, var(--accent) 8%, transparent);
+	border-color: color-mix(in oklab, var(--accent) 30%, transparent);
+	color: var(--accent);
+	box-shadow: 0 0 16px -8px var(--glow);
 }
 
 .button.warn {
-	border-color: var(--warn);
+	--btn-border: var(--warn);
 	color: var(--warn);
+	border-color: var(--warn);
+}
+
+.button.warn:hover:not(:disabled) {
+	background: color-mix(in oklab, var(--warn) 8%, transparent);
+	border-color: color-mix(in oklab, var(--warn) 80%, transparent);
 }
 
 .button.danger {
-	border-color: var(--err);
+	--btn-border: var(--err);
 	color: var(--err);
+	border-color: var(--err);
+}
+
+.button.danger:hover:not(:disabled) {
+	background: color-mix(in oklab, var(--err) 8%, transparent);
+	border-color: color-mix(in oklab, var(--err) 80%, transparent);
 }
 
 /* Register custom properties for transitions */
@@ -692,6 +872,9 @@ textarea:focus {
 		--font-size-3: 1.05rem;
 		--font-size-4: 1.25rem;
 		--font-size-5: 1.5rem;
+		
+		/* Touch target minimum size (44px per WCAG) */
+		--touch-target-min: 44px;
 	}
 
 	body {
@@ -705,8 +888,8 @@ textarea:focus {
 	button,
 	.button,
 	[role='button'] {
-		min-height: 44px;
-		min-width: 44px;
+		min-height: var(--touch-target-min);
+		min-width: var(--touch-target-min);
 		/* Remove tap highlight */
 		-webkit-tap-highlight-color: transparent;
 		-webkit-user-select: none;
@@ -718,6 +901,7 @@ textarea:focus {
 	input,
 	textarea,
 	select {
+		min-height: var(--touch-target-min);
 		font-size: 16px; /* Prevent zoom on iOS */
 		/* Remove tap highlight */
 		-webkit-tap-highlight-color: transparent;
@@ -731,9 +915,18 @@ textarea:focus {
 	select,
 	[role='button'],
 	[role='link'],
+	[role='tab'],
+	[role='tabpanel'],
 	[tabindex] {
 		-webkit-tap-highlight-color: transparent;
 		-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+	}
+	
+	/* Ensure clickable cards have proper touch targets */
+	.type-card,
+	.session-card,
+	.workspace-selector {
+		min-height: var(--touch-target-min);
 	}
 }
 
@@ -751,6 +944,113 @@ textarea:focus {
 	:root {
 		--font-size-4: 1.125rem;
 		--font-size-5: 1.25rem;
+		--space-6: 0.875rem;
+		--space-7: 1.125rem;
+	}
+	
+	/* Extra small touch targets for very small screens */
+	button,
+	.button,
+	[role='button'] {
+		min-height: 40px;
+		min-width: 40px;
+		font-size: 0.85rem;
+	}
+	
+	/* Adjust modal sizes */
+	.modal,
+	.dialog-container {
+		width: 95vw;
+		max-height: 90vh;
+		margin: 1rem;
+	}
+}
+
+/* Tablet landscape adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+	:root {
+		/* Tablet-optimized spacing */
+		--space-4: 0.875rem;
+		--space-5: 1.125rem;
+		--space-6: 1.5rem;
+	}
+	
+	/* Tablet touch targets - slightly smaller than mobile */
+	button,
+	.button,
+	[role='button'] {
+		min-height: 40px;
+		min-width: 40px;
+	}
+	
+	/* Tablet-optimized containers */
+	.container {
+		max-width: 900px;
+		padding: 0 var(--space-5);
+	}
+}
+
+/* High DPI / Retina display adjustments */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
+	/* Ensure crisp borders on high DPI displays */
+	.button,
+	input,
+	textarea,
+	select,
+	.card,
+	.panel {
+		border-width: 0.5px;
+	}
+	
+	/* Crisper box shadows */
+	.button {
+		box-shadow:
+			inset 0 0 0 0.5px color-mix(in oklab, var(--accent) 10%, transparent),
+			0 0 18px -8px var(--glow);
+	}
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+	
+	/* Keep essential focus indicators */
+	:focus-visible {
+		transition: outline-color 0.15s ease;
+	}
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+	:root {
+		--accent: #00ff88;
+		--primary: #00ff88;
+		--text: #ffffff;
+		--bg: #000000;
+		--surface: #111111;
+		--line: #444444;
+	}
+	
+	.button,
+	input,
+	textarea,
+	select {
+		border-width: 2px;
+	}
+	
+	.button:focus-visible,
+	input:focus,
+	textarea:focus,
+	select:focus {
+		outline: 3px solid var(--accent);
+		outline-offset: 2px;
 	}
 }
 

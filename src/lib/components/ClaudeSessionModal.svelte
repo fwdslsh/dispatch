@@ -1,5 +1,5 @@
 <script>
-	import { Modal } from '$lib/shared/components';
+	import { Modal, Button } from '$lib/shared/components';
 	import ClaudeProjectPicker from './ClaudeProjectPicker.svelte';
 	import ClaudeSessionPicker from './ClaudeSessionPicker.svelte';
 	import DirectoryBrowser from './DirectoryBrowser.svelte';
@@ -111,7 +111,7 @@
 	);
 </script>
 
-<Modal bind:open title="Create Claude Session" onclose={handleClose} size="large">
+<Modal bind:open title="Create Claude Session" onclose={handleClose} size="large" augmented="tl-clip tr-clip bl-clip br-clip both">
 	{#snippet children()}
 		<div class="terminal-form">
 			<div class="mode-selector">
@@ -148,11 +148,13 @@
 				{#if mode === 'new'}
 					<!-- Directory browser only for new projects -->
 					<div class="input-group">
-						<label>SELECT PROJECT DIRECTORY</label>
+						<label for="directory-browser-new" id="directory-label-new">SELECT PROJECT DIRECTORY</label>
 						<DirectoryBrowser
+							id="directory-browser-new"
 							bind:selected={selectedDirectory}
 							api="/api/browse"
 							placeholder="Navigate to your project directory..."
+							aria-labelledby="directory-label-new"
 							onSelect={(path) => {
 								// Extract project name from selected directory
 								const dirName = path.split('/').pop() || 'project';
@@ -170,11 +172,14 @@
 				{:else}
 					<!-- Source selector for existing projects -->
 					<div class="input-group">
-						<label>PROJECT SOURCE</label>
+						<label id="project-source-label">PROJECT SOURCE</label>
 						<div class="source-selector">
 							<button
 								type="button"
 								class="source-tab {projectSource === 'claude' ? 'active' : ''}"
+								aria-labelledby="project-source-label"
+								aria-pressed={projectSource === 'claude'}
+								role="tab"
 								onclick={() => {
 									projectSource = 'claude';
 									selectedDirectory = null;
@@ -186,6 +191,9 @@
 							<button
 								type="button"
 								class="source-tab {projectSource === 'browse' ? 'active' : ''}"
+								aria-labelledby="project-source-label"
+								aria-pressed={projectSource === 'browse'}
+								role="tab"
 								onclick={() => {
 									projectSource = 'browse';
 									selectedProject = null;
@@ -200,21 +208,25 @@
 
 					{#if projectSource === 'claude'}
 						<div class="input-group">
-							<label>SELECT CLAUDE PROJECT</label>
+							<label for="claude-project-picker" id="claude-project-label">SELECT CLAUDE PROJECT</label>
 							<ClaudeProjectPicker
+								id="claude-project-picker"
 								bind:selected={selectedProject}
 								onSelect={handleProjectSelect}
 								api="/api/claude/projects"
+								aria-labelledby="claude-project-label"
 							/>
 						</div>
 
 						{#if selectedProject}
 							<div class="input-group">
-								<label>RESUME SESSION <span class="optional">(OPTIONAL)</span></label>
+								<label for="claude-session-picker" id="claude-session-label">RESUME SESSION <span class="optional">(OPTIONAL)</span></label>
 								<ClaudeSessionPicker
+									id="claude-session-picker"
 									project={selectedProject.name}
 									bind:selected={selectedSession}
 									apiBase="/api/claude/sessions"
+									aria-labelledby="claude-session-label"
 								/>
 								<div class="hint">
 									Select a previous session to resume or leave empty for new session
@@ -223,11 +235,13 @@
 						{/if}
 					{:else}
 						<div class="input-group">
-							<label>SELECT DIRECTORY</label>
+							<label for="directory-browser-existing" id="directory-label-existing">SELECT DIRECTORY</label>
 							<DirectoryBrowser
+								id="directory-browser-existing"
 								bind:selected={selectedDirectory}
 								api="/api/browse"
 								placeholder="Navigate to your project directory..."
+								aria-labelledby="directory-label-existing"
 							/>
 							<div class="hint">Browse and select a directory to start a new Claude session</div>
 						</div>
@@ -238,19 +252,25 @@
 	{/snippet}
 
 	{#snippet footer()}
-		<div class="terminal-actions">
-			<button class="terminal-btn cancel" onclick={handleClose} disabled={creating}>
-				<span class="btn-prefix">ESC</span> CANCEL
-			</button>
-			<button
-				class="terminal-btn create {!canCreate || creating ? 'disabled' : ''}"
-				onclick={handleCreate}
-				disabled={!canCreate || creating}
-			>
-				<span class="btn-prefix">ENTER</span>
-				{createButtonText.toUpperCase()}
-			</button>
-		</div>
+		<Button
+			variant="ghost"
+			augmented="none"
+			onclick={handleClose}
+			disabled={creating}
+			ariaLabel="Cancel session creation"
+		>
+			Cancel
+		</Button>
+		<Button
+			variant="primary"
+			augmented="tl-clip br-clip both"
+			onclick={handleCreate}
+			disabled={!canCreate || creating}
+			loading={creating}
+			ariaLabel="Create new Claude session"
+		>
+			{createButtonText}
+		</Button>
 	{/snippet}
 </Modal>
 
@@ -409,62 +429,7 @@
 		font-family: var(--font-mono);
 	}
 
-	.terminal-actions {
-		display: flex;
-		gap: 1rem;
-		justify-content: flex-end;
-		align-items: center;
-	}
-
-	.terminal-btn {
-		background: var(--bg-dark);
-		border: 1px solid var(--primary-dim);
-		color: var(--text);
-		padding: 0.75rem 1.5rem;
-		font-family: var(--font-mono);
-		font-size: 0.8rem;
-		font-weight: 600;
-		letter-spacing: 0.05em;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		text-transform: uppercase;
-		border-radius: 4px;
-	}
-
-	.terminal-btn:hover:not(:disabled) {
-		border-color: var(--primary);
-		color: var(--primary);
-		background: rgba(46, 230, 107, 0.1);
-		transform: translateY(-1px);
-	}
-
-	.terminal-btn.create {
-		background: var(--primary);
-		color: var(--bg);
-		border-color: var(--primary);
-	}
-
-	.terminal-btn.create:hover:not(:disabled) {
-		background: color-mix(in oklab, var(--primary) 90%, white 10%);
-		box-shadow: 0 2px 8px rgba(46, 230, 107, 0.3);
-		transform: translateY(-2px);
-	}
-
-	.terminal-btn:disabled,
-	.terminal-btn.disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-		border-color: var(--text-muted);
-		color: var(--text-muted);
-		background: var(--bg-dark);
-	}
-
-	.btn-prefix {
-		color: var(--accent-amber);
-		margin-right: 0.5rem;
-		font-size: 0.7rem;
-		opacity: 0.8;
-	}
+	/* Removed terminal-actions and terminal-btn styles - using shared Button component now */
 
 	/* Source selector styles */
 	.source-selector {

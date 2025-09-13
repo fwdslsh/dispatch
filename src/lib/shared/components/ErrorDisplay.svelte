@@ -24,6 +24,9 @@
 		// Event handlers
 		ondismiss = undefined,
 
+		// Children content
+		children = undefined,
+
 		// HTML attributes
 		class: customClass = '',
 		...restProps
@@ -54,7 +57,15 @@
 <div class={errorClasses} role="alert" aria-live="polite" {...restProps}>
 	{#if showIcon}
 		<div class="error-display__icon" aria-hidden="true">
-			<svelte:component this={icons[severity]} size={20} />
+			{#if severity === 'error'}
+				<IconX size={20} />
+			{:else if severity === 'warning'}
+				<IconAlertTriangle size={20} />
+			{:else if severity === 'info'}
+				<IconInfoCircle size={20} />
+			{:else if severity === 'success'}
+				<IconCheck size={20} />
+			{/if}
 		</div>
 	{/if}
 
@@ -70,11 +81,9 @@
 		{/if}
 
 		<!-- Allow for custom content -->
-		{#if $$slots.default}
-			<div class="error-display__slot">
-				<slot></slot>
-			</div>
-		{/if}
+		<div class="error-display__slot">
+			{@render children?.()}
+		</div>
 	</div>
 
 	{#if dismissible}

@@ -364,28 +364,6 @@
 		font-weight: 600;
 	}
 
-	.preview {
-		margin: 0;
-		padding: var(--space-3);
-		background: color-mix(in oklab, var(--bg-dark) 90%, var(--accent-cyan) 10%);
-		border: 1px solid color-mix(in oklab, var(--accent-cyan) 20%, transparent);
-		border-radius: 4px;
-		max-height: 100px;
-		overflow: auto;
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		color: var(--text-muted);
-		line-height: 1.4;
-	}
-
-	.preview::-webkit-scrollbar {
-		width: 4px;
-	}
-
-	.preview::-webkit-scrollbar-thumb {
-		background: color-mix(in oklab, var(--accent-cyan) 40%, transparent);
-		border-radius: 4px;
-	}
 
 	.is-active button {
 		background: var(--bg-panel);

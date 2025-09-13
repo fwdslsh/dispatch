@@ -6,6 +6,7 @@
 		socket = null,
 		workspacePath = '',
 		sessionId = '',
+		claudeSessionId = null,
 		onCommandInsert = () => {},
 		disabled = false,
 		bind = null
@@ -144,16 +145,18 @@
 
 			// Check if this event is for our session
 			// Backend emits with both Claude session ID and app session ID
-			// We need to accept events that match our sessionId
-			if (payload.sessionId && sessionId) {
-				// Accept if payload sessionId matches our sessionId
-				// Also handle the case where our sessionId might be numeric (Claude ID)
+			// We need to accept events that match either our sessionId or claudeSessionId
+			if (payload.sessionId && (sessionId || claudeSessionId)) {
 				const payloadId = String(payload.sessionId);
-				const ourId = String(sessionId);
+				const ourAppId = String(sessionId || '');
+				const ourClaudeId = String(claudeSessionId || '');
 
-				if (payloadId !== ourId) {
+				// Accept if payload matches either our app session ID or Claude session ID
+				const isForOurSession = payloadId === ourAppId || payloadId === ourClaudeId;
+
+				if (!isForOurSession) {
 					console.log(
-						`[ClaudeCommands] Ignoring tools.list for different session: ${payloadId} !== ${ourId}`
+						`[ClaudeCommands] Ignoring tools.list for different session: ${payloadId} !== ${ourAppId} or ${ourClaudeId}`
 					);
 					return;
 				}
@@ -250,16 +253,19 @@
 	// });
 
 	onMount(() => {
+		console.log(`[ClaudeCommands] Component mounted - sessionId: ${sessionId}, claudeSessionId: ${claudeSessionId}`);
+
 		// Set up WebSocket listeners
 		if (socket) {
 			console.log(`[ClaudeCommands] Setting up tools.list listener for sessionId: ${sessionId}`);
 			socket.on('tools.list', handleToolsList);
 
 			// Query session status for existing commands
-			if (sessionId) {
+			const querySessionId = sessionId || claudeSessionId;
+			if (querySessionId) {
 				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-				console.log(`[ClaudeCommands] Querying session.status for sessionId: ${sessionId}`);
-				socket.emit('session.status', { key, sessionId }, (response) => {
+				console.log(`[ClaudeCommands] Querying session.status for sessionId: ${querySessionId}`);
+				socket.emit('session.status', { key, sessionId: querySessionId }, (response) => {
 					console.log(`[ClaudeCommands] session.status response:`, response);
 					try {
 						if (

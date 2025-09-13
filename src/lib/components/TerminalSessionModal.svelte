@@ -1,5 +1,5 @@
 <script>
-	import { Modal } from '$lib/shared/components';
+	import { Modal, Button } from '$lib/shared/components';
 
 	let { open = $bindable(false), workspaces = [], onSessionCreate } = $props();
 
@@ -27,7 +27,7 @@
 	}
 </script>
 
-<Modal bind:open title="Create Terminal Session" size="small" onclose={handleClose}>
+<Modal bind:open title="Create Terminal Session" size="medium" onclose={handleClose} augmented="tl-clip tr-clip bl-clip br-clip both">
 	{#snippet children()}
 		<div class="form">
 			<div class="form-group">
@@ -43,20 +43,22 @@
 	{/snippet}
 
 	{#snippet footer()}
-		<button
-			class="button aug"
-			data-augmented-ui="l-clip r-clip both"
+		<Button
+			variant="ghost"
+			augmented="none"
 			onclick={handleClose}
-			disabled={creating}>Cancel</button
+			disabled={creating}
 		>
-		<button
-			class="button aug primary"
-			data-augmented-ui="l-clip r-clip both"
+			Cancel
+		</Button>
+		<Button
+			variant="primary"
+			augmented="tl-clip br-clip both"
 			onclick={handleCreate}
 			disabled={!selectedWorkspace || creating}
 		>
 			{creating ? 'Creating...' : 'Create Terminal'}
-		</button>
+		</Button>
 	{/snippet}
 </Modal>
 
