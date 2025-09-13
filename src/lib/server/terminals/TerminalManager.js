@@ -1,6 +1,7 @@
 import os from 'node:os';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { databaseManager } from '../db/DatabaseManager.js';
 
 let pty;
 try {
@@ -16,45 +17,40 @@ export class TerminalManager {
 		this.io = io;
 		this.terminals = new Map(); // id -> { term, workspacePath, history }
 		this.nextId = 1;
-		// Create history directory if it doesn't exist
-		this.historyDir = process.env.TERMINAL_HISTORY_DIR || join(os.tmpdir(), 'dispatch-terminal-history');
-		this.initHistoryDir();
+		// Terminal history is now stored in database instead of files
+		this.initializeDatabase();
 	}
 
-	async initHistoryDir() {
+	async initializeDatabase() {
 		try {
-			await fs.mkdir(this.historyDir, { recursive: true });
+			await databaseManager.init();
 		} catch (error) {
-			console.error('Failed to create terminal history directory:', error);
+			console.error('[TERMINAL] Failed to initialize database:', error);
 		}
 	}
 
 	async saveTerminalHistory(id, data) {
 		try {
-			const historyFile = join(this.historyDir, `${id}.log`);
-			await fs.appendFile(historyFile, data, 'utf8');
+			await databaseManager.addTerminalHistory(id, data);
 		} catch (error) {
-			console.error(`Failed to save terminal history for ${id}:`, error);
+			console.error(`[TERMINAL] Failed to save terminal history for ${id}:`, error);
 		}
 	}
 
 	async loadTerminalHistory(id) {
 		try {
-			const historyFile = join(this.historyDir, `${id}.log`);
-			const data = await fs.readFile(historyFile, 'utf8');
-			return data;
+			return await databaseManager.getTerminalHistory(id);
 		} catch (error) {
-			// File doesn't exist or can't be read, return empty string
+			console.error(`[TERMINAL] Failed to load terminal history for ${id}:`, error);
 			return '';
 		}
 	}
 
 	async clearTerminalHistory(id) {
 		try {
-			const historyFile = join(this.historyDir, `${id}.log`);
-			await fs.unlink(historyFile);
+			await databaseManager.clearTerminalHistory(id);
 		} catch (error) {
-			// File doesn't exist, ignore error
+			console.error(`[TERMINAL] Failed to clear terminal history for ${id}:`, error);
 		}
 	}
 
@@ -80,7 +76,9 @@ export class TerminalManager {
 		}
 
 		const id = terminalId || `pty_${this.nextId++}`;
-		console.log(`Creating terminal ${id} with shell ${shell} in ${workspacePath}${appSessionId ? ` (app session: ${appSessionId})` : ''}`);
+		console.log(
+			`Creating terminal ${id} with shell ${shell} in ${workspacePath}${appSessionId ? ` (app session: ${appSessionId})` : ''}`
+		);
 
 		try {
 			const term = pty.spawn(shell, [], {
@@ -93,10 +91,10 @@ export class TerminalManager {
 					PS1: '\\u@\\h:\\w$ '
 				}
 			});
-			this.terminals.set(id, { 
-				term, 
-				workspacePath, 
-				socket: this.io, 
+			this.terminals.set(id, {
+				term,
+				workspacePath,
+				socket: this.io,
 				history: '',
 				appSessionId // Store application session ID for routing
 			});

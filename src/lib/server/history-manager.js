@@ -1,21 +1,17 @@
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { databaseManager } from './db/DatabaseManager.js';
 
 class HistoryManager {
 	constructor() {
-		// Use $HOME/.dispatch/history as the storage directory
-		this.historyDir = join(process.env.HOME || homedir(), '.dispatch', 'history');
 		this.socketHistories = new Map(); // In-memory cache for active sockets
 		this._saveQueues = new Map(); // Per-socket save queues to serialize writes
-		this.initializeHistoryDir();
+		this.initializeDatabase();
 	}
 
-	async initializeHistoryDir() {
+	async initializeDatabase() {
 		try {
-			await fs.mkdir(this.historyDir, { recursive: true });
+			await databaseManager.init();
 		} catch (error) {
-			console.error('[HISTORY] Failed to create history directory:', error);
+			console.error('[HISTORY] Failed to initialize database:', error);
 		}
 	}
 
@@ -38,7 +34,13 @@ class HistoryManager {
 		};
 
 		this.socketHistories.set(socketId, historyEntry);
-		await this.saveSocketHistory(socketId);
+
+		// Save to database
+		try {
+			await databaseManager.createSession(socketId, socketId, historyEntry.metadata);
+		} catch (error) {
+			console.error('[HISTORY] Failed to create session in database:', error);
+		}
 	}
 
 	/**
@@ -46,7 +48,7 @@ class HistoryManager {
 	 */
 	async addEvent(socketId, eventType, direction = 'unknown', data = null) {
 		let historyEntry = this.socketHistories.get(socketId);
-		
+
 		// If socket not initialized, create minimal entry
 		if (!historyEntry) {
 			await this.initializeSocket(socketId, {});
@@ -65,8 +67,19 @@ class HistoryManager {
 		// Update metadata based on event type
 		this.updateMetadataFromEvent(historyEntry, eventType, data);
 
-		// Save to disk (async, don't block)
-		setImmediate(() => this.saveSocketHistory(socketId));
+		// Save to database (async, don't block)
+		setImmediate(() => this.saveEventToDatabase(socketId, eventType, direction, data));
+	}
+
+	/**
+	 * Save event to database
+	 */
+	async saveEventToDatabase(socketId, eventType, direction, data) {
+		try {
+			await databaseManager.addSessionEvent(socketId, socketId, eventType, direction, data);
+		} catch (error) {
+			console.error(`[HISTORY] Failed to save event to database for socket ${socketId}:`, error);
+		}
 	}
 
 	/**
@@ -92,53 +105,32 @@ class HistoryManager {
 	 */
 	sanitizeData(data) {
 		if (!data) return null;
-		
+
 		// Deep clone to avoid modifying original
 		const sanitized = JSON.parse(JSON.stringify(data));
-		
+
 		// Remove or redact sensitive fields
 		if (sanitized.key) sanitized.key = '[REDACTED]';
 		if (sanitized.password) sanitized.password = '[REDACTED]';
 		if (sanitized.token) sanitized.token = '[REDACTED]';
-		
+
 		return sanitized;
 	}
 
 	/**
-	 * Save socket history to disk
+	 * Save socket history to database (deprecated - now handled by saveEventToDatabase)
 	 */
 	async saveSocketHistory(socketId) {
-		// Queue saves per-socket to avoid concurrent rename/write races
-		const run = async () => {
+		// This method is now deprecated but kept for compatibility
+		// Individual events are saved in saveEventToDatabase
+		const historyEntry = this.socketHistories.get(socketId);
+		if (historyEntry) {
 			try {
-				const historyEntry = this.socketHistories.get(socketId);
-				if (!historyEntry) return;
-
-				// Ensure directory exists in case initialization hasn't completed
-				await fs.mkdir(this.historyDir, { recursive: true });
-
-				const filePath = join(this.historyDir, `${socketId}.json`);
-				// Unique temp file to avoid clashes between concurrent writers
-				const tempPath = `${filePath}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
-				const payload = JSON.stringify(historyEntry, null, 2);
-
-				// Write atomically to avoid truncated/corrupt JSON files
-				await fs.writeFile(tempPath, payload);
-				await fs.rename(tempPath, filePath);
+				await databaseManager.updateSession(socketId, historyEntry.metadata);
 			} catch (error) {
-				console.error(`[HISTORY] Failed to save history for socket ${socketId}:`, error);
+				console.error(`[HISTORY] Failed to update session metadata for socket ${socketId}:`, error);
 			}
-		};
-
-		const last = this._saveQueues.get(socketId) || Promise.resolve();
-		const next = last.then(run, run);
-		this._saveQueues.set(socketId, next.finally(() => {
-			// If this is the last task, clean up the queue entry
-			if (this._saveQueues.get(socketId) === next) {
-				this._saveQueues.delete(socketId);
-			}
-		}));
-		return next;
+		}
 	}
 
 	/**
@@ -146,7 +138,17 @@ class HistoryManager {
 	 */
 	async finalizeSocket(socketId) {
 		await this.addEvent(socketId, 'disconnect', 'system');
-		
+
+		// Mark session as disconnected in database
+		try {
+			await databaseManager.disconnectSession(socketId);
+		} catch (error) {
+			console.error(
+				`[HISTORY] Failed to mark session as disconnected for socket ${socketId}:`,
+				error
+			);
+		}
+
 		// Keep the history in memory for a short time in case of reconnection
 		setTimeout(() => {
 			this.socketHistories.delete(socketId);
@@ -163,17 +165,25 @@ class HistoryManager {
 			return memoryHistory;
 		}
 
-		// Try disk
+		// Try database
 		try {
-			const filePath = join(this.historyDir, `${socketId}.json`);
-			const content = await fs.readFile(filePath, 'utf-8');
-			if (!content || !content.trim()) return null;
-			return JSON.parse(content);
+			const session = await databaseManager.getSession(socketId);
+			if (!session) return null;
+
+			const events = await databaseManager.getSessionHistory(socketId);
+
+			return {
+				socketId,
+				metadata: session.metadata || {},
+				events: events.map((event) => ({
+					timestamp: event.timestamp,
+					type: event.event_type,
+					direction: event.direction,
+					data: event.data
+				}))
+			};
 		} catch (error) {
-			// Gracefully handle corrupt or partial JSON files
-			if (error?.name === 'SyntaxError') {
-				console.warn(`[HISTORY] Skipping corrupt history for socket ${socketId}: ${error.message}`);
-			}
+			console.error(`[HISTORY] Failed to get socket history for ${socketId}:`, error);
 			return null;
 		}
 	}
@@ -183,44 +193,7 @@ class HistoryManager {
 	 */
 	async listSocketHistories() {
 		try {
-			const files = await fs.readdir(this.historyDir);
-			const histories = [];
-
-			for (const file of files) {
-				if (file.endsWith('.json')) {
-					const socketId = file.replace('.json', '');
-					try {
-						const filePath = join(this.historyDir, file);
-						const stats = await fs.stat(filePath);
-						const content = await fs.readFile(filePath, 'utf-8');
-						if (!content || !content.trim()) {
-							// Empty file; likely a previous partial write. Skip quietly.
-							console.warn(`[HISTORY] Skipping empty history file ${file}`);
-							continue;
-						}
-						const history = JSON.parse(content);
-						
-						histories.push({
-							socketId,
-							lastModified: stats.mtime,
-							size: stats.size,
-							eventCount: history.events?.length || 0,
-							metadata: history.metadata || {},
-							isActive: this.socketHistories.has(socketId)
-						});
-					} catch (error) {
-						// Don't spam errors for transient partial JSON; log a warning and skip
-						if (error?.name === 'SyntaxError') {
-							console.warn(`[HISTORY] Skipping corrupt history file ${file}: ${error.message}`);
-						} else {
-							console.error(`[HISTORY] Failed to read history file ${file}:`, error);
-						}
-					}
-				}
-			}
-
-			// Sort by last modified, newest first
-			return histories.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
+			return await databaseManager.listSessionHistories();
 		} catch (error) {
 			console.error('[HISTORY] Failed to list socket histories:', error);
 			return [];
@@ -228,24 +201,12 @@ class HistoryManager {
 	}
 
 	/**
-	 * Delete old history files (cleanup)
+	 * Delete old history data (cleanup)
 	 */
-	async cleanup(maxAgeMs = 7 * 24 * 60 * 60 * 1000) { // 7 days default
+	async cleanup(maxAgeMs = 7 * 24 * 60 * 60 * 1000) {
+		// 7 days default
 		try {
-			const files = await fs.readdir(this.historyDir);
-			const now = Date.now();
-
-			for (const file of files) {
-				if (file.endsWith('.json')) {
-					const filePath = join(this.historyDir, file);
-					const stats = await fs.stat(filePath);
-					
-					if (now - stats.mtime.getTime() > maxAgeMs) {
-						await fs.unlink(filePath);
-						console.log(`[HISTORY] Cleaned up old history file: ${file}`);
-					}
-				}
-			}
+			await databaseManager.cleanupOldData(maxAgeMs);
 		} catch (error) {
 			console.error('[HISTORY] Failed to cleanup old histories:', error);
 		}

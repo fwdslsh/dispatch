@@ -3,10 +3,16 @@ import { WorkspaceManager } from './lib/server/core/WorkspaceManager.js';
 import { SessionRouter } from './lib/server/core/SessionRouter.js';
 import { TerminalManager } from './lib/server/terminals/TerminalManager.js';
 import { ClaudeSessionManager } from './lib/server/claude/ClaudeSessionManager.js';
+import { databaseManager } from './lib/server/db/DatabaseManager.js';
 
-// Initialize services for API endpoints (but not for Socket.IO which is handled separately)
+// Initialize database and services for API endpoints (but not for Socket.IO which is handled separately)
 if (!globalThis.__API_SERVICES) {
 	try {
+		// Initialize database first
+		databaseManager.init().catch((err) => {
+			console.error('[APP] Failed to initialize database:', err);
+		});
+
 		const sessions = new SessionRouter();
 		const workspaces = new WorkspaceManager({
 			rootDir: process.env.WORKSPACES_ROOT || './.workspaces',

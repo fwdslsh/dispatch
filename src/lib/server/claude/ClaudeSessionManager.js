@@ -7,6 +7,7 @@ import { ClaudeProjectsReader } from '../core/ClaudeProjectsReader.js';
 import { projectsRoot } from './cc-root.js';
 import { buildClaudeOptions } from '../utils/env.js';
 import { logger } from '../utils/logger.js';
+import { databaseManager } from '../db/DatabaseManager.js';
 
 export class ClaudeSessionManager {
 	/**
@@ -34,7 +35,20 @@ export class ClaudeSessionManager {
 		};
 
 		// Projects reader to help locate existing sessions on disk when resuming
-		this.projectsReader = new ClaudeProjectsReader(join(process.env.HOME || homedir(), '.claude', 'projects'));
+		this.projectsReader = new ClaudeProjectsReader(
+			join(process.env.HOME || homedir(), '.claude', 'projects')
+		);
+
+		// Initialize database
+		this.initializeDatabase();
+	}
+
+	async initializeDatabase() {
+		try {
+			await databaseManager.init();
+		} catch (error) {
+			console.error('[CLAUDE] Failed to initialize database:', error);
+		}
 	}
 
 	/**
@@ -63,18 +77,22 @@ export class ClaudeSessionManager {
 	async create({ workspacePath, options = {}, sessionId = null, appSessionId = null }) {
 		// Generate or use provided Claude session ID
 		let claudeSessionId;
-		
+
 		if (sessionId) {
 			// Extract UUID from normalized ID if provided (claude_uuid -> uuid)
-			claudeSessionId = sessionId.startsWith('claude_') ? 
-				sessionId.replace(/^claude_/, '') : sessionId;
+			claudeSessionId = sessionId.startsWith('claude_')
+				? sessionId.replace(/^claude_/, '')
+				: sessionId;
 		} else {
 			// Generate new Claude session ID
 			claudeSessionId = `${this.nextId++}`;
 		}
-		
-		logger.debug('Claude', `Creating session with Claude ID: ${claudeSessionId}, appSessionId: ${appSessionId}`);
-		
+
+		logger.debug(
+			'Claude',
+			`Creating session with Claude ID: ${claudeSessionId}, appSessionId: ${appSessionId}`
+		);
+
 		// Determine if we can actually resume (only when an on-disk conversation exists)
 		let resumeCapable = false;
 		if (sessionId) {
@@ -98,7 +116,7 @@ export class ClaudeSessionManager {
 				env: { ...process.env, HOME: process.env.HOME }
 			}
 		};
-		
+
 		logger.info('Claude', `Creating Claude session ${claudeSessionId} with:`, {
 			workspacePath,
 			sessionId: claudeSessionId,
@@ -106,21 +124,39 @@ export class ClaudeSessionManager {
 			cwd: sessionData.options.cwd,
 			resumeCapable
 		});
-		
+
 		// Store session data - use Claude session ID as key for Claude manager operations
 		this.sessions.set(claudeSessionId, sessionData);
-		
+
 		// If appSessionId provided, create mapping for routing from app session to Claude session
 		if (appSessionId) {
 			this.sessions.set(appSessionId, sessionData);
 		}
 
+		// Save session metadata to database
+		try {
+			await databaseManager.addClaudeSession(
+				claudeSessionId,
+				workspacePath,
+				claudeSessionId,
+				appSessionId,
+				resumeCapable
+			);
+		} catch (error) {
+			logger.error('Claude', 'Failed to save session to database:', error);
+		}
+
 		// Fire-and-forget fetch of supported commands for this session; emit to socket when ready
 		this._fetchAndEmitSupportedCommands(claudeSessionId, sessionData).catch((err) => {
-			logger.error('Claude', 'Failed to fetch supported commands for', claudeSessionId, err && err.message ? err.message : err);
+			logger.error(
+				'Claude',
+				'Failed to fetch supported commands for',
+				claudeSessionId,
+				err && err.message ? err.message : err
+			);
 		});
-		
-		return { 
+
+		return {
 			claudeId: claudeSessionId
 		};
 	}
@@ -143,7 +179,7 @@ export class ClaudeSessionManager {
 
 		// Resolve or lazily hydrate a session mapping for this id
 		const { key, session } = await this.#ensureSession(id);
-		/** @type {{ workspacePath: string, sessionId: string, resumeCapable?: boolean, options: object }} */
+		/** @type {{ workspacePath: string, sessionId: string, resumeCapable?: boolean, options: object, appSessionId?: string }} */
 		const s = session;
 		logger.debug('Claude', `Using session ${key} with sessionId ${s.sessionId}`);
 
@@ -152,20 +188,22 @@ export class ClaudeSessionManager {
 			const debugEnv = { ...process.env, HOME: process.env.HOME };
 			// If you want SDK debug logs, uncomment next line
 			// debugEnv.DEBUG = debugEnv.DEBUG || '1';
-			
+
 			logger.debug('Claude', `Session ${s.sessionId} options:`, {
 				cwd: s.options.cwd,
 				workspacePath: s.workspacePath,
 				resumeCapable: s.resumeCapable
 			});
-			
+
 			const stream = query({
 				prompt: userInput,
 				options: {
 					...s.options,
 					// When resuming, keep history bounded to avoid context overflows
 					// Reduce maxTurns specifically for resumed sessions
-					maxTurns: s.resumeCapable ? Math.min(20, this.defaultOptions.maxTurns || 20) : (this.defaultOptions.maxTurns || 20),
+					maxTurns: s.resumeCapable
+						? Math.min(20, this.defaultOptions.maxTurns || 20)
+						: this.defaultOptions.maxTurns || 20,
 					continue: !!s.resumeCapable,
 					...(s.resumeCapable ? { resume: s.sessionId } : {}),
 					stderr: (data) => {
@@ -202,7 +240,9 @@ export class ClaudeSessionManager {
 			// If the prompt/history is too long OR resume target missing, retry without resume
 			const msg = String(error?.message || '');
 			const lc = msg.toLowerCase();
-			const isTooLong = lc.includes('prompt too long') || (lc.includes('context') && lc.includes('too') && lc.includes('long'));
+			const isTooLong =
+				lc.includes('prompt too long') ||
+				(lc.includes('context') && lc.includes('too') && lc.includes('long'));
 			const missingConversation = typeof sawNoConversation !== 'undefined' && sawNoConversation;
 			if (isTooLong || missingConversation) {
 				try {
@@ -214,7 +254,11 @@ export class ClaudeSessionManager {
 							// Start a fresh turn without resuming prior history
 							continue: false,
 							maxTurns: Math.min(20, this.defaultOptions.maxTurns || 20),
-							stderr: (data) => { try { console.error(`[Claude stderr ${s.sessionId}]`, data); } catch {} },
+							stderr: (data) => {
+								try {
+									console.error(`[Claude stderr ${s.sessionId}]`, data);
+								} catch {}
+							},
 							env: debugEnv
 						}
 					});
@@ -231,7 +275,10 @@ export class ClaudeSessionManager {
 				} catch (retryErr) {
 					console.error('Retry without resume failed:', retryErr);
 					if (this.io) {
-						this.io.emit('error', { message: 'Failed to process message', error: String(retryErr?.message || retryErr) });
+						this.io.emit('error', {
+							message: 'Failed to process message',
+							error: String(retryErr?.message || retryErr)
+						});
 					}
 					return;
 				}
@@ -253,8 +300,12 @@ export class ClaudeSessionManager {
 	async #conversationExists(sessionId) {
 		try {
 			const baseProjectsRoot = projectsRoot();
-			logger.debug('Claude', `Checking for conversation ${sessionId} in projects root:`, baseProjectsRoot);
-			
+			logger.debug(
+				'Claude',
+				`Checking for conversation ${sessionId} in projects root:`,
+				baseProjectsRoot
+			);
+
 			const dirs = await readdir(baseProjectsRoot, { withFileTypes: true });
 			for (const d of dirs) {
 				if (!d.isDirectory()) continue;
@@ -277,11 +328,11 @@ export class ClaudeSessionManager {
 	 * Ensure we have a session object for the provided id.
 	 * Accepts a Claude session ID and handles hydration from disk if needed.
 	 * @param {string} claudeSessionId - Claude session ID
-	 * @returns {Promise<{ key: string, session: { workspacePath: string, sessionId: string, options: any } }>} 
+	 * @returns {Promise<{ key: string, session: { workspacePath: string, sessionId: string, options: any, appSessionId?: string } }>}
 	 */
 	async #ensureSession(claudeSessionId) {
 		logger.debug('Claude', `#ensureSession called with Claude ID: ${claudeSessionId}`);
-		
+
 		// Try exact Claude session ID first
 		let s = this.sessions.get(claudeSessionId);
 		if (s) {
@@ -290,9 +341,10 @@ export class ClaudeSessionManager {
 		}
 
 		// Extract session ID if it has claude_ prefix
-		const sessionId = claudeSessionId.startsWith('claude_') ? 
-			claudeSessionId.replace(/^claude_/, '') : claudeSessionId;
-		
+		const sessionId = claudeSessionId.startsWith('claude_')
+			? claudeSessionId.replace(/^claude_/, '')
+			: claudeSessionId;
+
 		// Try with extracted session ID
 		s = this.sessions.get(sessionId);
 		if (s) {
@@ -302,12 +354,12 @@ export class ClaudeSessionManager {
 
 		// Hydrate from disk by scanning projects directory for the session jsonl
 		logger.debug('Claude', `Attempting to hydrate session ${sessionId} from disk`);
-		
+
 		let found = null;
 		try {
 			const baseProjectsRoot = projectsRoot();
 			logger.debug('Claude', `Looking for session ${sessionId} in:`, baseProjectsRoot);
-			
+
 			const dirs = await readdir(baseProjectsRoot, { withFileTypes: true });
 			for (const d of dirs) {
 				if (!d.isDirectory()) continue;
@@ -354,11 +406,12 @@ export class ClaudeSessionManager {
 		}
 
 		// Register hydrated session with sane defaults
-		/** @type {{ workspacePath: string, sessionId: string, resumeCapable: boolean, options: object }} */
+		/** @type {{ workspacePath: string, sessionId: string, resumeCapable: boolean, options: object, appSessionId?: string }} */
 		const hydrated = {
 			workspacePath,
 			sessionId,
 			resumeCapable: true,
+			appSessionId: null, // No app session ID for hydrated sessions
 			options: {
 				...this.defaultOptions,
 				cwd: workspacePath,
@@ -366,11 +419,19 @@ export class ClaudeSessionManager {
 			}
 		};
 		this.sessions.set(sessionId, hydrated);
-		logger.info('Claude', `Hydrated session ${sessionId} @ ${workspacePath} (from ${found.projectsDir})`);
+		logger.info(
+			'Claude',
+			`Hydrated session ${sessionId} @ ${workspacePath} (from ${found.projectsDir})`
+		);
 
 		// After hydrating from disk, proactively fetch supported commands
 		this._fetchAndEmitSupportedCommands(sessionId, hydrated).catch((err) => {
-			logger.error('Claude', 'Failed to fetch supported commands for hydrated', sessionId, err && err.message ? err.message : err);
+			logger.error(
+				'Claude',
+				'Failed to fetch supported commands for hydrated',
+				sessionId,
+				err && err.message ? err.message : err
+			);
 		});
 		return { key: sessionId, session: hydrated };
 	}
@@ -379,7 +440,7 @@ export class ClaudeSessionManager {
 	 * Fetch supported commands from the Claude SDK for a given session and emit them to clients.
 	 * Uses an internal cache to avoid repeated CLI calls.
 	 * @param {string} claudeSessionId - the Claude session ID
-	 * @param {{ workspacePath: string, sessionId: string, options: object }} sessionData
+	 * @param {{ workspacePath: string, sessionId: string, options: object, appSessionId?: string }} sessionData
 	 */
 	async _fetchAndEmitSupportedCommands(claudeSessionId, sessionData) {
 		if (!sessionData || !sessionData.options) return;
@@ -387,40 +448,64 @@ export class ClaudeSessionManager {
 		// Simple cache TTL: 5 minutes
 		const TTL = 5 * 60 * 1000;
 		const cached = this._toolsCache.get(cacheKey);
-		if (cached && (Date.now() - cached.fetchedAt) < TTL) {
+		if (cached && Date.now() - cached.fetchedAt < TTL) {
 			// Emit cached directly - emit to both Claude session ID and app session ID if available
 			if (this.io) {
 				this.io.emit('tools.list', { sessionId: claudeSessionId, commands: cached.commands });
-				this.io.emit('session.status', { sessionId: claudeSessionId, availableCommands: cached.commands });
-				
+				this.io.emit('session.status', {
+					sessionId: claudeSessionId,
+					availableCommands: cached.commands
+				});
+
 				// Also emit for app session if available
 				if (sessionData.appSessionId) {
-					this.io.emit('tools.list', { sessionId: sessionData.appSessionId, commands: cached.commands });
-					this.io.emit('session.status', { sessionId: sessionData.appSessionId, availableCommands: cached.commands });
+					this.io.emit('tools.list', {
+						sessionId: sessionData.appSessionId,
+						commands: cached.commands
+					});
+					this.io.emit('session.status', {
+						sessionId: sessionData.appSessionId,
+						availableCommands: cached.commands
+					});
 				}
 			}
 			return cached.commands;
 		}
 		try {
-			console.log(`[Claude] _fetchAndEmitSupportedCommands for ${claudeSessionId} (cacheKey=${cacheKey}) - invoking SDK`);
+			console.log(
+				`[Claude] _fetchAndEmitSupportedCommands for ${claudeSessionId} (cacheKey=${cacheKey}) - invoking SDK`
+			);
 			const commands = await this._fetchSupportedCommands(sessionData.options);
-			console.log(`[Claude] _fetchAndEmitSupportedCommands received commands:`, Array.isArray(commands) ? commands.length : typeof commands);
+			console.log(
+				`[Claude] _fetchAndEmitSupportedCommands received commands:`,
+				Array.isArray(commands) ? commands.length : typeof commands
+			);
 			if (Array.isArray(commands)) {
 				this._toolsCache.set(cacheKey, { commands, fetchedAt: Date.now() });
 				if (this.io) {
 					this.io.emit('tools.list', { sessionId: claudeSessionId, commands });
-					this.io.emit('session.status', { sessionId: claudeSessionId, availableCommands: commands });
-					
+					this.io.emit('session.status', {
+						sessionId: claudeSessionId,
+						availableCommands: commands
+					});
+
 					// Also emit for app session if available
 					if (sessionData.appSessionId) {
 						this.io.emit('tools.list', { sessionId: sessionData.appSessionId, commands });
-						this.io.emit('session.status', { sessionId: sessionData.appSessionId, availableCommands: commands });
+						this.io.emit('session.status', {
+							sessionId: sessionData.appSessionId,
+							availableCommands: commands
+						});
 					}
 				}
 			}
 			return commands;
 		} catch (err) {
-			logger.error('Claude', 'Error fetching supported commands:', err && err.message ? err.message : err);
+			logger.error(
+				'Claude',
+				'Error fetching supported commands:',
+				err && err.message ? err.message : err
+			);
 			throw err;
 		}
 	}
@@ -433,7 +518,10 @@ export class ClaudeSessionManager {
 	async _fetchSupportedCommands(options) {
 		// empty async iterable prompt to force streaming mode
 		const emptyPrompt = (async function* () {})();
-		logger.debug('Claude', '_fetchSupportedCommands called with options:', { cwd: options && options.cwd, path: options && options.pathToClaudeCodeExecutable });
+		logger.debug('Claude', '_fetchSupportedCommands called with options:', {
+			cwd: options && options.cwd,
+			path: options && options.pathToClaudeCodeExecutable
+		});
 		const q = query({ prompt: emptyPrompt, options: { ...options } });
 		try {
 			const supportedFn = q && q['supportedCommands'];
@@ -444,7 +532,10 @@ export class ClaudeSessionManager {
 			let commands = null;
 			try {
 				commands = await supportedFn.call(q);
-				console.log('[Claude] supportedCommands() returned:', Array.isArray(commands) ? `${commands.length} commands` : typeof commands);
+				console.log(
+					'[Claude] supportedCommands() returned:',
+					Array.isArray(commands) ? `${commands.length} commands` : typeof commands
+				);
 			} catch (e) {
 				console.error('[Claude] supportedCommands() threw error:', e && e.message ? e.message : e);
 				throw e;
