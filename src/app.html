@@ -31,6 +31,20 @@
 			crossorigin="anonymous"
 			href="https://unpkg.com/augmented-ui@2/augmented-ui.min.css"
 		/>
+		<style>
+			/* Global tap highlight removal for mobile devices */
+			* {
+				-webkit-tap-highlight-color: transparent;
+				-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+			}
+			
+			/* Ensure interactive elements don't show tap highlight */
+			a, button, input, textarea, select, 
+			[role="button"], [role="link"], [tabindex] {
+				-webkit-tap-highlight-color: transparent;
+				-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+			}
+		</style>
 		%sveltekit.head%
 	</head>
 

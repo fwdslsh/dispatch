@@ -300,6 +300,9 @@
 *::after {
 	box-sizing: border-box;
 	transition-behavior: allow-discrete;
+	/* Remove tap highlight on mobile */
+	-webkit-tap-highlight-color: transparent;
+	-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
 html,
@@ -689,6 +692,11 @@ textarea:focus {
 	[role='button'] {
 		min-height: 44px;
 		min-width: 44px;
+		/* Remove tap highlight */
+		-webkit-tap-highlight-color: transparent;
+		-webkit-user-select: none;
+		user-select: none;
+		touch-action: manipulation;
 	}
 
 	/* Improve input/textarea on mobile */
@@ -696,6 +704,21 @@ textarea:focus {
 	textarea,
 	select {
 		font-size: 16px; /* Prevent zoom on iOS */
+		/* Remove tap highlight */
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	/* Remove tap highlight from all interactive elements */
+	a,
+	button,
+	input,
+	textarea,
+	select,
+	[role='button'],
+	[role='link'],
+	[tabindex] {
+		-webkit-tap-highlight-color: transparent;
+		-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 	}
 }
 

@@ -483,7 +483,7 @@
 	.claude-commands-dropdown {
 		position: absolute;
 		bottom: calc(100% + var(--space-2));
-		right: 0;
+		left: 0;
 		min-width: 280px;
 		max-width: 420px;
 		max-height: 400px;
@@ -630,7 +630,6 @@
 		.claude-commands-dropdown {
 			min-width: 240px;
 			max-width: calc(100vw - var(--space-6));
-			right: auto;
 			left: 0;
 		}
 

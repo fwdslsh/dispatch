@@ -4,6 +4,7 @@
 	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
 	import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
 	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
+	import { IconAlertTriangle } from '@tabler/icons-svelte';
 
 	let isMobileView = $state(false);
 	let showSidebar = $state(false);
@@ -211,7 +212,9 @@
 
 		{#if error}
 			<div class="error-banner">
-				<span class="error-icon">⚠️</span>
+				<span class="error-icon">
+					<IconAlertTriangle size={20} />
+				</span>
 				{error}
 			</div>
 		{/if}

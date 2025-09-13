@@ -1,6 +1,7 @@
 <script>
-	import { formatClaudeEventSummary } from '$lib/shared/utils/claudeEvents.js';
-	let { icons = [], title = 'Agent activity' } = $props();
+	import ActivitySummary from '$lib/components/activity-summaries/ActivitySummary.svelte';
+	import { IconCircle } from '@tabler/icons-svelte';
+	let { icons = [], title = 'Agent activity', staticMode = false } = $props();
 	let selected = $state(null);
 
 	function toggle(icon) {
@@ -9,7 +10,7 @@
 </script>
 
 {#if icons && icons.length > 0}
-	<div class="live-event-icons" aria-label={title}>
+	<div class="live-event-icons {staticMode ? 'static' : ''}" aria-label={title}>
 		{#each icons as ev, index (ev.id)}
 			<button
 				type="button"
@@ -19,7 +20,12 @@
 				onclick={() => toggle(ev)}
 				aria-label={`${ev.label} - Click for details`}
 			>
-				{ev.symbol}
+				{#if ev.Icon}
+					<svelte:component this={ev.Icon} size={16} stroke={2} />
+				{:else}
+					<!-- Fallback icon if Icon is missing -->
+					<IconCircle size={16} stroke={2} />
+				{/if}
 			</button>
 		{/each}
 	</div>
@@ -28,17 +34,23 @@
 {#if selected}
 	<div class="event-summary">
 		<div class="event-summary-header">
-			<span class="event-summary-icon">{selected.symbol}</span>
+			<span class="event-summary-icon">
+				{#if selected.Icon}
+					<svelte:component this={selected.Icon} size={18} stroke={2} />
+				{/if}
+			</span>
 			<span class="event-summary-label">{selected.label}</span>
-			<span class="event-summary-time"
-				>{(selected.timestamp || new Date()).toLocaleTimeString('en-US', {
+			<span class="event-summary-time">
+				{(selected.timestamp || new Date()).toLocaleTimeString('en-US', {
 					hour: '2-digit',
 					minute: '2-digit',
 					second: '2-digit'
-				})}</span
-			>
+				})}
+			</span>
 		</div>
-		<div class="event-summary-content">{@html formatClaudeEventSummary(selected.event)}</div>
+		<div class="event-summary-content">
+			<ActivitySummary icon={selected} />
+		</div>
 	</div>
 {/if}
 
@@ -49,9 +61,7 @@
 		flex-wrap: wrap;
 		gap: var(--space-2);
 		padding: var(--space-3) var(--space-3);
-		/* border-radius: 12px;
-		
-		border: 1px solid color-mix(in oklab, var(--primary) 18%, transparent); */
+		/* border-radius: 12px; */
 		box-shadow:
 			inset 0 1px 2px rgba(255, 255, 255, 0.05),
 			0 4px 16px -10px var(--primary-glow);
@@ -62,6 +72,20 @@
 		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 	}
 
+	/* Static variant: no background or shadow */
+	.live-event-icons.static {
+		box-shadow: none;
+		background: transparent;
+		padding: var(--space-2) 0;
+	}
+
+	/* Ensure Tabler icons inherit color properly */
+	.event-icon :global(svg) {
+		color: currentColor;
+		stroke: currentColor;
+		fill: none;
+	}
+
 	.event-icon {
 		display: inline-flex;
 		align-items: center;
@@ -70,11 +94,11 @@
 		height: 32px;
 		padding: 0;
 		border-radius: 50%;
-		/* background: linear-gradient(135deg,
+		background: linear-gradient(135deg,
 			color-mix(in oklab, var(--surface) 92%, var(--primary) 8%),
 			color-mix(in oklab, var(--surface) 96%, var(--primary) 4%)
 		);
-		border: 2px solid color-mix(in oklab, var(--primary) 20%, transparent); */
+		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
 		box-shadow:
 			0 2px 8px -4px var(--primary-glow),
 			inset 0 1px 2px rgba(255, 255, 255, 0.05);
@@ -85,14 +109,18 @@
 		transform: translateX(-20px);
 		animation: slideInFromLeft 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 		font-family: inherit;
-		color: inherit;
+		color: var(--muted);
 		line-height: 1;
 		appearance: none;
+		/* Remove mobile tap highlight */
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
+		user-select: none;
 	}
 
 	.event-icon:hover {
 		transform: translateY(-2px) scale(1.1);
-		border-color: var(--primary);
+		border-color: color-mix(in oklab, var(--primary) 40%, transparent);
 		background: linear-gradient(
 			135deg,
 			color-mix(in oklab, var(--primary) 15%, var(--surface)),
@@ -102,6 +130,7 @@
 			0 4px 12px -4px var(--primary-glow),
 			0 0 20px -8px var(--primary-glow),
 			inset 0 1px 4px rgba(255, 255, 255, 0.1);
+		color: var(--text);
 	}
 
 	.event-icon.selected {
@@ -111,8 +140,9 @@
 			color-mix(in oklab, var(--primary) 15%, var(--surface))
 		);
 		color: var(--primary);
+		border-color: color-mix(in oklab, var(--primary) 50%, transparent);
 		box-shadow:
-			0 0 0 3px color-mix(in oklab, var(--primary) 20%, transparent),
+			0 0 0 2px color-mix(in oklab, var(--primary) 20%, transparent),
 			0 4px 16px -6px var(--primary-glow),
 			inset 0 2px 4px rgba(255, 255, 255, 0.1);
 		transform: translateY(-2px) scale(1.1);
@@ -155,7 +185,10 @@
 		border-bottom: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
 	}
 	.event-summary-icon {
-		font-size: 1.2rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--primary);
 	}
 	.event-summary-label {
 		flex: 1;
@@ -221,6 +254,10 @@
 			width: 28px;
 			height: 28px;
 			font-size: 0.95rem;
+		}
+		.event-icon :global(svg) {
+			width: 14px;
+			height: 14px;
 		}
 		.event-summary {
 			padding: var(--space-2) var(--space-3);

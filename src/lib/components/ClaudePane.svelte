@@ -6,7 +6,9 @@
 	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
 	import ClaudeCommands from './ClaudeCommands.svelte';
 	import sessionSocketManager from './SessionSocketManager.js';
-	import { IconFolder, IconMessage } from '@tabler/icons-svelte';
+	import { IconFolder, IconMessage, IconAlertTriangle } from '@tabler/icons-svelte';
+	import LiveIconStrip from '$lib/shared/components/LiveIconStrip.svelte';
+	import { getIconForEvent } from '$lib/shared/icons/claudeEventIcons.js';
 	// Using global styles for inputs
 
 	let {
@@ -27,8 +29,6 @@
 	let isCatchingUp = $state(false);
 	let messagesContainer = $state();
 	let liveEventIcons = $state([]);
-	let selectedEventIcon = $state(null);
-	let messageSelectedIcon = $state({});
 	let workspacePath = $state(initialWorkspacePath);
 	let claudeCommandsApi = $state();
 
@@ -106,76 +106,7 @@
 		socket.emit('claude.send', { key, id: effectiveSessionId, input: userMessage });
 	}
 
-	function iconForEventType(e) {
-		try {
-			const type = (e?.type || '').toString().toLowerCase();
-
-			// Handle assistant events with tool_use content
-			if (type === 'assistant' && e?.message?.content && Array.isArray(e.message.content)) {
-				const toolItems = e.message.content.filter((c) => c && c.type === 'tool_use');
-				if (toolItems.length > 0) {
-					const toolName = (toolItems[0].name || '').toString().toLowerCase();
-					// Tool name specific icons
-					if (toolName.includes('read')) return { symbol: '📖', label: 'Read files' };
-					if (toolName.includes('write')) return { symbol: '📝', label: 'Write files' };
-					if (toolName.includes('edit')) return { symbol: '✏️', label: 'Edit files' };
-					if (toolName.includes('bash') || toolName.includes('shell') || toolName.includes('exec'))
-						return { symbol: '💻', label: 'Run command' };
-					if (toolName.includes('grep') || toolName.includes('search'))
-						return { symbol: '🔎', label: 'Search' };
-					if (toolName.includes('glob')) return { symbol: '✨', label: 'Glob match' };
-					if (toolName.includes('web')) return { symbol: '🌐', label: 'Web' };
-					if (toolName.includes('task')) return { symbol: '📋', label: 'Task' };
-					if (toolName.includes('todo')) return { symbol: '✅', label: 'Todo' };
-					return { symbol: '🛠️', label: 'Tool: ' + toolItems[0].name };
-				}
-			}
-
-			// Handle user events with tool_result content
-			if (type === 'user' && e?.message?.content) {
-				const content = e.message.content;
-				const hasToolResult = Array.isArray(content)
-					? content.some((c) => c && c.type === 'tool_result')
-					: content && typeof content === 'object' && content.type === 'tool_result';
-				if (hasToolResult) {
-					return { symbol: '✔️', label: 'Tool result' };
-				}
-			}
-
-			// Direct tool/name based detection for simpler events
-			const tool = (e?.tool || e?.name || '').toString().toLowerCase();
-			if (tool) {
-				if (tool.includes('read')) return { symbol: '📖', label: 'Read files' };
-				if (tool.includes('write')) return { symbol: '📝', label: 'Write files' };
-				if (tool.includes('edit')) return { symbol: '✏️', label: 'Edit files' };
-				if (tool.includes('bash') || tool.includes('shell') || tool.includes('exec'))
-					return { symbol: '💻', label: 'Run command' };
-				if (tool.includes('grep') || tool.includes('search'))
-					return { symbol: '🔎', label: 'Search' };
-				if (tool.includes('glob')) return { symbol: '✨', label: 'Glob match' };
-				if (tool.includes('web')) return { symbol: '🌐', label: 'Web' };
-				if (tool.includes('task')) return { symbol: '📋', label: 'Task' };
-				if (tool.includes('todo')) return { symbol: '✅', label: 'Todo' };
-			}
-
-			// Generic type-based icons
-			if (type === 'summary') return { symbol: '🧾', label: 'Summary' };
-			if (type === 'result') return { symbol: '✅', label: 'Result' };
-			if (type === 'tool_result') return { symbol: '✔️', label: 'Tool result' };
-			if (type.includes('status') || type.includes('progress'))
-				return { symbol: '⏳', label: 'Working' };
-			if (type.includes('think') || type.includes('plan'))
-				return { symbol: '🧠', label: 'Thinking' };
-			if (type.includes('assistant')) return { symbol: '🤖', label: 'Assistant' };
-			if (type.includes('user')) return { symbol: '👤', label: 'User' };
-			if (type.includes('tool')) return { symbol: '🛠️', label: 'Tool' };
-			if (type.includes('message')) return { symbol: '💬', label: 'Message' };
-
-			return { symbol: '🔹', label: type || 'Event' };
-		} catch (err) {
-			return { symbol: '🔹', label: 'Event' };
-		}
-	}
+	// Icon mapping is handled by getIconForEvent
 
 	function pushLiveIcon(e) {
 		// Enhanced event detection for live events
@@ -198,7 +129,7 @@
 					id: toolUse.id
 				};
 
-				iconData = iconForEventType(toolEvent);
+				iconData = getIconForEvent(toolEvent);
 				// Store the tool event for activity summary
 				iconData.event = toolEvent;
 			}
@@ -206,16 +137,16 @@
 
 		// If no icon data extracted yet, use default extraction
 		if (!iconData) {
-			iconData = iconForEventType(e);
+		iconData = getIconForEvent(e);
 			iconData.event = e;
 		}
 
-		const { symbol, label, event } = iconData;
+		const { Icon, label, event } = iconData;
 
 		// More aggressive duplicate prevention
 		// Check if we already have this exact icon type in the last few icons
 		const recentIcons = liveEventIcons.slice(-3);
-		const isDuplicate = recentIcons.some((icon) => icon.symbol === symbol && icon.label === label);
+		const isDuplicate = recentIcons.some((icon) => icon.label === label);
 
 		// Also limit total icons to prevent overflow
 		if (!isDuplicate && liveEventIcons.length < 20) {
@@ -225,44 +156,19 @@
 				...liveEventIcons,
 				{
 					id,
-					symbol,
+					Icon,
 					label,
 					event: event || e,
 					timestamp: new Date()
 				}
 			];
-			console.log('Added live icon:', { symbol, label, totalIcons: liveEventIcons.length });
+			console.log('Added live icon:', { label, totalIcons: liveEventIcons.length });
 		} else if (liveEventIcons.length >= 20) {
 			console.log('Icon limit reached, not adding more icons');
 		}
 	}
 
-	function selectEventIcon(icon, messageId = null) {
-		if (messageId) {
-			// For completed message icons
-			const key = `${messageId}-${icon.id}`;
-			if (messageSelectedIcon[key]) {
-				messageSelectedIcon = { ...messageSelectedIcon, [key]: null };
-			} else {
-				// Clear other selections for this message
-				const newSelected = {};
-				for (const k in messageSelectedIcon) {
-					if (!k.startsWith(`${messageId}-`)) {
-						newSelected[k] = messageSelectedIcon[k];
-					}
-				}
-				newSelected[key] = icon;
-				messageSelectedIcon = newSelected;
-			}
-		} else {
-			// For typing indicator icons
-			if (selectedEventIcon?.id === icon.id) {
-				selectedEventIcon = null;
-			} else {
-				selectedEventIcon = icon;
-			}
-		}
-	}
+	// Selection handled inside LiveIconStrip instances
 
 	// ActivitySummary component handles event formatting with rich details
 
@@ -305,7 +211,7 @@
 					if (!entry) return null;
 					try {
 						if (entry.type === 'summary') {
-							return { symbol: '🧾', label: 'Summary', event: entry };
+							return { ...(getIconForEvent({ type: 'summary' })), event: entry };
 						}
 						// assistant tool_use events
 						if (
@@ -317,7 +223,7 @@
 							if (toolItems.length > 0) {
 								const toolUse = toolItems[0];
 								const name = (toolUse.name || '').toString();
-								const mapped = iconForEventType({ type: 'tool', tool: name });
+								const mapped = getIconForEvent({ type: 'tool', tool: name });
 								// Provide a simplified event with tool metadata so ActivitySummary can render specifics
 								const event = {
 									type: 'tool',
@@ -338,7 +244,7 @@
 									? content
 									: null;
 							if (toolResultObj) {
-								const mapped = iconForEventType({ type: 'tool_result', name: 'tool_result' });
+								const mapped = getIconForEvent({ type: 'tool_result', name: 'tool_result' });
 								// Use the specific tool_result object as event data, and ensure name/tool present
 								const event = {
 									...toolResultObj,
@@ -390,7 +296,7 @@
 							...pendingIcons,
 							{
 								id,
-								symbol: ic.symbol,
+								Icon: ic.Icon,
 								label: ic.label,
 								event: ic.event || entry,
 								timestamp: ts
@@ -637,10 +543,11 @@
 					...messages,
 					{
 						role: 'assistant',
-						text: '⚠ Sorry, I encountered an error processing your request. Please try again.',
+						text: 'Sorry, I encountered an error processing your request. Please try again.',
 						timestamp: new Date(),
 						id: Date.now(),
 						isError: true,
+						errorIcon: IconAlertTriangle,
 						activityIcons: [...liveEventIcons] // Preserve any activities that happened before error
 					}
 				];
@@ -788,52 +695,16 @@
 							</span>
 						</div>
 						<div class="message-text">
+							{#if m.isError && m.errorIcon}
+								<div class="error-icon-wrapper">
+									<svelte:component this={m.errorIcon} size={20} />
+								</div>
+							{/if}
 							<Markdown content={m.text} />
 						</div>
 						{#if m.activityIcons && m.activityIcons.length > 0}
 							<div class="activity-icons-container">
-								<div class="live-event-icons static" aria-label="Agent activity">
-									{#each m.activityIcons as ev, index (ev.id)}
-										{@const isSelected = messageSelectedIcon[`${m.id}-${ev.id}`]}
-										<button
-											class="event-icon static"
-											class:selected={isSelected}
-											title={ev.label}
-											onclick={() => selectEventIcon(ev, m.id)}
-											type="button"
-											aria-label="{ev.label} - Click for details"
-										>
-											{ev.symbol}
-										</button>
-									{/each}
-								</div>
-								{#if messageSelectedIcon}
-									{@const selectedIcon = Object.values(messageSelectedIcon).find(
-										(icon) =>
-											icon &&
-											Object.keys(messageSelectedIcon).find(
-												(k) => k.startsWith(`${m.id}-`) && messageSelectedIcon[k] === icon
-											)
-									)}
-									{#if selectedIcon}
-										<div class="event-summary static" transition:fly={{ y: -10, duration: 200 }}>
-											<div class="event-summary-header">
-												<span class="event-summary-icon">{selectedIcon.symbol}</span>
-												<span class="event-summary-label">{selectedIcon.label}</span>
-												<span class="event-summary-time">
-													{selectedIcon.timestamp.toLocaleTimeString('en-US', {
-														hour: '2-digit',
-														minute: '2-digit',
-														second: '2-digit'
-													})}
-												</span>
-											</div>
-											<div class="event-summary-content">
-												<ActivitySummary icon={selectedIcon} />
-											</div>
-										</div>
-									{/if}
-								{/if}
+								<LiveIconStrip icons={m.activityIcons} title="Agent activity" staticMode={true} />
 							</div>
 						{/if}
 					</div>
@@ -867,39 +738,7 @@
 							<span class="typing-dot"></span>
 						</div>
 						{#if liveEventIcons.length > 0}
-							<div class="live-event-icons" aria-label="Live agent activity">
-								{#each liveEventIcons as ev, index (ev.id)}
-									<button
-										class="event-icon"
-										class:selected={selectedEventIcon?.id === ev.id}
-										title={ev.label}
-										onclick={() => selectEventIcon(ev)}
-										style="animation-delay: {index * 0.05}s"
-										type="button"
-										aria-label="{ev.label} - Click for details"
-									>
-										{ev.symbol}
-									</button>
-								{/each}
-							</div>
-							{#if selectedEventIcon}
-								<div class="event-summary" transition:fly={{ y: -10, duration: 200 }}>
-									<div class="event-summary-header">
-										<span class="event-summary-icon">{selectedEventIcon.symbol}</span>
-										<span class="event-summary-label">{selectedEventIcon.label}</span>
-										<span class="event-summary-time">
-											{selectedEventIcon.timestamp.toLocaleTimeString('en-US', {
-												hour: '2-digit',
-												minute: '2-digit',
-												second: '2-digit'
-											})}
-										</span>
-									</div>
-									<div class="event-summary-content">
-										<ActivitySummary icon={selectedEventIcon} />
-									</div>
-								</div>
-							{/if}
+							<LiveIconStrip icons={liveEventIcons} title="Live agent activity" />
 						{/if}
 					</div>
 				</div>
@@ -923,6 +762,16 @@
 	<!-- Enhanced Input Form -->
 	<form onsubmit={send} class="input-form" role="form">
 		<div class="input-container">
+			<div class="input-actions input-actions--left">
+				<ClaudeCommands
+					{socket}
+					{workspacePath}
+					{sessionId}
+					onCommandInsert={handleCommandInsert}
+					disabled={loading}
+					bind={claudeCommandsApi}
+				/>
+			</div>
 			<textarea
 				bind:value={input}
 				placeholder="Message Claude..."
@@ -938,15 +787,7 @@
 				}}
 				rows="1"
 			></textarea>
-			<div class="input-actions">
-				<ClaudeCommands
-					{socket}
-					{workspacePath}
-					{sessionId}
-					onCommandInsert={handleCommandInsert}
-					disabled={loading}
-					bind={claudeCommandsApi}
-				/>
+			<div class="input-actions input-actions--right">
 				<Button
 					type="submit"
 					text={isWaitingForReply ? 'Send' : loading ? 'Sending...' : 'Send'}
@@ -959,13 +800,13 @@
 			</div>
 		</div>
 		<div class="input-help">
-			<span class="help-text">Press Enter to send • Shift+Enter for new line</span>
+			<span class="help-text">Press Enter to send · Shift+Enter for new line</span>
 		</div>
 	</form>
 </div>
 
 <style>
-	/* 🏆 AWARD-WINNING CHAT INTERFACE 2025 🏆
+	/* AWARD-WINNING CHAT INTERFACE 2025
 	   Features: Advanced glass-morphism, spatial design, micro-interactions,
 	   professional typography, and cutting-edge UX patterns */
 
@@ -987,7 +828,7 @@
 		contain: layout style;
 	}
 
-	/* 🎯 INTELLIGENT CHAT HEADER */
+	/* INTELLIGENT CHAT HEADER */
 	.chat-header {
 		display: flex;
 		align-items: center;
@@ -1164,7 +1005,7 @@
 		font-weight: 700;
 	}
 
-	/* 💬 ADVANCED MESSAGES CONTAINER */
+	/* ADVANCED MESSAGES CONTAINER */
 	.messages {
 		flex: 1;
 		min-height: 0; /* Critical for flex children to shrink properly */
@@ -1210,7 +1051,7 @@
 		border-radius: 12px;
 	}
 
-	/* 🌟 LOADING STATE */
+	/* LOADING STATE */
 	.loading-message {
 		display: flex;
 		align-items: center;
@@ -1272,7 +1113,7 @@
 		font-style: italic;
 	}
 
-	/* 🎨 MESSAGE BUBBLES - REVOLUTIONARY DESIGN */
+	/* MESSAGE BUBBLES - REVOLUTIONARY DESIGN */
 	.message {
 		margin-bottom: var(--space-5);
 		opacity: 0;
@@ -1414,205 +1255,7 @@
 		background: transparent;
 	}
 
-	/* Live event icons - transparent for static, subtle background for live */
-	.live-event-icons {
-		margin-top: var(--space-1);
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2);
-		padding: var(--space-3) var(--space-3);
-		border-radius: 12px;
-		background: transparent;
-		border: none;
-		box-shadow: none;
-		font-size: 0.85rem;
-		/* Allow container to expand as needed */
-		min-height: 40px;
-		max-width: 100%;
-		overflow: visible;
-		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-	}
 
-	/* Add subtle background only for live (non-static) event icons during typing */
-	.live-event-icons:not(.static) {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 8%, transparent),
-			color-mix(in oklab, var(--primary) 4%, transparent)
-		);
-		border: 1px solid color-mix(in oklab, var(--primary) 18%, transparent);
-		box-shadow:
-			inset 0 1px 2px rgba(255, 255, 255, 0.05),
-			0 4px 16px -10px var(--primary-glow);
-	}
-
-	.event-icon {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 26px;
-		height: 26px;
-		padding: 0;
-		border-radius: 50%;
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--surface) 92%, var(--primary) 8%),
-			color-mix(in oklab, var(--surface) 96%, var(--primary) 4%)
-		);
-		border: 2px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		box-shadow:
-			0 2px 8px -4px var(--primary-glow),
-			inset 0 1px 2px rgba(255, 255, 255, 0.05);
-		cursor: pointer;
-		font-size: 1.1rem;
-		transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-		opacity: 0;
-		transform: translateX(-20px);
-		animation: slideInFromLeft 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-		/* Reset button styles */
-		font-family: inherit;
-		color: inherit;
-		line-height: 1;
-		-webkit-appearance: none;
-		-moz-appearance: none;
-		appearance: none;
-	}
-
-	.event-icon:hover {
-		transform: translateY(-2px) scale(1.1);
-		border-color: var(--primary);
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 15%, var(--surface)),
-			color-mix(in oklab, var(--primary) 8%, var(--surface))
-		);
-		box-shadow:
-			0 4px 12px -4px var(--primary-glow),
-			0 0 20px -8px var(--primary-glow),
-			inset 0 1px 4px rgba(255, 255, 255, 0.1);
-	}
-
-	.event-icon:active {
-		transform: translateY(0) scale(1.05);
-	}
-
-	.event-icon.selected {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 25%, var(--surface)),
-			color-mix(in oklab, var(--primary) 15%, var(--surface))
-		);
-		border-color: var(--primary);
-		box-shadow:
-			0 0 0 3px color-mix(in oklab, var(--primary) 20%, transparent),
-			0 4px 16px -6px var(--primary-glow),
-			inset 0 2px 4px rgba(255, 255, 255, 0.1);
-		transform: translateY(-2px) scale(1.1);
-	}
-
-	@keyframes slideInFromLeft {
-		from {
-			opacity: 0;
-			transform: translateX(-20px) scale(0.8);
-		}
-		to {
-			opacity: 1;
-			transform: translateX(0) scale(1);
-		}
-	}
-
-	/* Event summary display */
-	.event-summary {
-		margin-top: var(--space-3);
-		padding: var(--space-3) var(--space-4);
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%),
-			color-mix(in oklab, var(--surface) 98%, var(--primary) 2%)
-		);
-		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		border-radius: 12px;
-		box-shadow:
-			inset 0 1px 3px rgba(0, 0, 0, 0.05),
-			0 4px 12px -6px rgba(0, 0, 0, 0.1);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		overflow: hidden;
-	}
-
-	.event-summary-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-bottom: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
-	}
-
-	.event-summary-icon {
-		font-size: 1.2rem;
-	}
-
-	.event-summary-label {
-		flex: 1;
-		font-weight: 600;
-		color: var(--primary);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		font-size: var(--font-size-0);
-	}
-
-	.event-summary-time {
-		font-size: var(--font-size-0);
-		color: var(--muted);
-		opacity: 0.7;
-	}
-
-	.event-summary-content {
-		color: var(--text);
-		line-height: 1.5;
-		word-break: break-word;
-		opacity: 0.9;
-	}
-
-	.event-summary-content :global(strong) {
-		color: var(--primary);
-		font-weight: 600;
-	}
-
-	.event-summary-content :global(.event-role) {
-		color: var(--accent-cyan);
-		font-weight: 500;
-		font-size: 0.9em;
-		padding: 2px 6px;
-		background: color-mix(in oklab, var(--accent-cyan) 15%, transparent);
-		border-radius: 4px;
-		border: 1px solid color-mix(in oklab, var(--accent-cyan) 25%, transparent);
-	}
-
-	.event-summary-content :global(.event-id) {
-		color: var(--muted);
-		font-family: var(--font-mono);
-		font-size: 0.85em;
-		padding: 2px 4px;
-		background: color-mix(in oklab, var(--muted) 10%, transparent);
-		border-radius: 3px;
-		border: 1px solid color-mix(in oklab, var(--muted) 20%, transparent);
-	}
-
-	.event-summary-content :global(.event-preview) {
-		color: var(--text-secondary);
-		font-style: italic;
-		font-size: 0.9em;
-		line-height: 1.4;
-		display: block;
-		margin-top: var(--space-1);
-		padding: var(--space-2);
-		background: color-mix(in oklab, var(--bg) 50%, transparent);
-		border-radius: 6px;
-		border-left: 3px solid color-mix(in oklab, var(--primary) 30%, transparent);
-		overflow-wrap: break-word;
-	}
 
 	/* Overlay container for event details (works for live and history) */
 
@@ -1644,7 +1287,7 @@
 			inset 0 2px 4px rgba(255, 255, 255, 0.08);
 	}
 
-	/* 🌟 WELCOME MESSAGE */
+	/* WELCOME MESSAGE */
 	.welcome-message {
 		display: flex;
 		flex-direction: column;
@@ -1706,7 +1349,7 @@
 		margin: 0;
 	}
 
-	/* 🚀 REVOLUTIONARY INPUT INTERFACE */
+	/* REVOLUTIONARY INPUT INTERFACE */
 	.input-form {
 		padding: var(--space-6);
 		background: linear-gradient(
@@ -1728,7 +1371,7 @@
 	.input-container {
 		display: flex;
 		align-items: stretch;
-		gap: var(--space-4);
+		gap: var(--space-3);
 		position: relative;
 	}
 
@@ -1736,10 +1379,20 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
+		flex-shrink: 0;
+	}
+
+	.input-actions--left {
+		order: 1;
+	}
+
+	.input-actions--right {
+		order: 3;
 	}
 
 	.message-input {
 		flex: 1;
+		order: 2;
 		padding: var(--space-5) var(--space-6);
 		font-family: var(--font-sans);
 		font-size: var(--font-size-2);
@@ -1855,7 +1508,7 @@
 		letter-spacing: 0.1em;
 	}
 
-	/* 📱 RESPONSIVE DESIGN */
+	/* RESPONSIVE DESIGN */
 	@container (max-width: 480px) {
 		.chat-header {
 			padding: var(--space-3) var(--space-4);
@@ -1885,34 +1538,27 @@
 		}
 
 		.input-container {
-			flex-direction: column;
-			align-items: stretch;
+			gap: var(--space-2);
 		}
 
 		.message-input {
 			border-radius: 20px;
 			min-height: 48px;
+			padding: var(--space-4) var(--space-5);
 		}
 
-		/* Mobile adjustments for live icons */
-		.live-event-icons {
-			padding: var(--space-2);
-			gap: var(--space-1);
+		.input-actions--left {
+			order: 1;
 		}
 
-		.event-icon {
-			width: 24px;
-			height: 24px;
-			font-size: 0.8rem;
+		.input-actions--right {
+			order: 3;
 		}
 
-		.event-summary {
-			padding: var(--space-2) var(--space-3);
-			font-size: var(--font-size-0);
-		}
+
 	}
 
-	/* 📱 MOBILE & TOUCH DEVICE OPTIMIZATIONS */
+	/* MOBILE & TOUCH DEVICE OPTIMIZATIONS */
 	@media (max-width: 768px) {
 		.claude-pane {
 			/* Ensure full height on mobile */
@@ -1959,21 +1605,9 @@
 		}
 
 		/* Increase tap targets for touch while keeping visual size small */
-		.event-icon {
-			position: relative;
-			min-width: 36px;
-			min-height: 36px;
-		}
-
-		.event-icon::before {
-			content: '';
-			position: absolute;
-			inset: -6px;
-			/* Creates larger touch target without affecting visual size */
-		}
 	}
 
-	/* 🎯 ACCESSIBILITY ENHANCEMENTS */
+	/* ACCESSIBILITY ENHANCEMENTS */
 	@media (prefers-reduced-motion: reduce) {
 		.message,
 		.ai-avatar,
@@ -2016,7 +1650,7 @@
 		}
 	}
 
-	/* 💬 TYPING INDICATOR ANIMATION */
+	/* TYPING INDICATOR ANIMATION */
 	.typing-indicator {
 		opacity: 1;
 		animation: none; /* Override default message animation */
@@ -2104,7 +1738,15 @@
 
 	/* Message text container - Markdown component handles content styles */
 
-	/* ⚠️ ERROR MESSAGE STYLING */
+	.error-icon-wrapper {
+		display: inline-flex;
+		align-items: center;
+		margin-right: var(--space-2);
+		color: var(--error, #ff6b6b);
+		vertical-align: middle;
+	}
+
+	/* ERROR MESSAGE STYLING */
 	.message--error .message-text {
 		background: linear-gradient(
 			135deg,
