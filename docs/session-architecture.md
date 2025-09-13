@@ -1,8 +1,8 @@
-# Session Architecture - Simplified Approach
+# Session Architecture
 
 ## Overview
 
-The simplified session architecture provides a clean abstraction layer that shields the application from session type details while keeping the implementation straightforward for a POC application.
+The session architecture provides a clean abstraction layer that shields the application from session type details while keeping the implementation straightforward and extensible.
 
 ## Key Components
 
@@ -24,19 +24,11 @@ Currently supported session types:
 
 New session types can be added by registering them in the `sessionTypes` object.
 
-### 3. Simplified Socket.IO Setup
+### 3. Socket.IO Setup
 
-The simplified socket setup (`socket-setup-simplified.js`) uses the SessionManager for all operations, removing the need for complex routing logic.
+The socket setup (`socket-setup-simplified.js`) uses the SessionManager for all operations with clean routing logic.
 
 ## Usage
-
-### Enabling Simplified Architecture
-
-Set the environment variable to use the simplified implementation:
-
-```bash
-USE_SIMPLIFIED_SESSIONS=true npm run dev
-```
 
 ### Creating a Session
 
@@ -84,29 +76,20 @@ await sessionManager.sessionOperation(sessionId, 'resize', {
 await sessionManager.stopSession(sessionId);
 ```
 
-## Benefits of Simplified Architecture
+## Benefits of the Architecture
 
 1. **Single Interface**: One `SessionManager` handles all session types
 2. **Type Abstraction**: Application code doesn't need to know about session type details
 3. **Easy Extension**: New session types can be added by registering them
 4. **Unified IDs**: Consistent ID management across all session types
-5. **Simplified Socket.IO**: Cleaner event handling without complex routing
+5. **Clean Socket.IO**: Event handling without complex routing
 
-## Comparison with Original Architecture
+## Architecture Design Principles
 
-### Original Approach
-
-- Direct interaction with TerminalManager and ClaudeSessionManager
-- Complex routing logic in socket-setup.js
-- Session type awareness throughout the codebase
-- Multiple ID formats and conversions
-
-### Simplified Approach
-
-- Single SessionManager interface
+- Single SessionManager interface for all session operations
 - Type-specific logic encapsulated in registry
-- Unified session IDs throughout
-- Clean separation of concerns
+- Unified session IDs throughout the application
+- Clean separation of concerns between session types
 
 ## Adding New Session Types
 
@@ -129,92 +112,132 @@ this.sessionTypes = {
 
 3. The new type is now available through the unified interface
 
-## Migration Path
+## Frontend Session Management
 
-The architecture supports gradual migration:
+### Session Creation Workflow
 
-1. Both implementations coexist (controlled by `USE_SIMPLIFIED_SESSIONS`)
-2. API endpoints can use SessionManager while maintaining backward compatibility
-3. Frontend remains unchanged (uses unified session IDs)
-4. Can switch between implementations for testing
+The simplified session creation follows these principles:
 
-## Code Changes Required
+1. **Type Selection First**: User selects session type (pty/claude)
+2. **Workspace Selection**: User selects or creates a workspace directory
+3. **Optional Configuration**: Session types can provide additional options
+4. **Single API Call**: Frontend calls `/api/sessions` with type and workspace
 
-### 1. Update Socket Manager Default (`src/lib/server/socket-manager.js`)
-
-Change the default to use simplified sessions:
+#### Simplified UI Flow
 
 ```javascript
-// Change from:
-const USE_SIMPLIFIED = process.env.USE_SIMPLIFIED_SESSIONS === 'true';
+// Simple session creation
+const session = await fetch('/api/sessions', {
+  method: 'POST',
+  body: JSON.stringify({
+    type: 'pty',        // or 'claude'
+    workspacePath: '/path/to/workspace',
+    options: {}         // Type-specific options
+  })
+});
 
-// To:
-const USE_SIMPLIFIED = process.env.USE_SIMPLIFIED_SESSIONS !== 'false';
-```
-
-This makes simplified the default, requiring `USE_SIMPLIFIED_SESSIONS=false` to use original.
-
-### 2. Update Package.json Scripts
-
-Add convenience scripts for testing both modes:
-
-```json
+// Returns unified session object
 {
-	"scripts": {
-		"dev:original": "USE_SIMPLIFIED_SESSIONS=false npm run dev",
-		"dev:simplified": "npm run dev", // Default is simplified
-		"test:original": "USE_SIMPLIFIED_SESSIONS=false npm test",
-		"test:simplified": "npm test" // Default is simplified
-	}
+  id: 'uuid-v4',
+  type: 'pty',
+  typeSpecificId: 'pty_1',
+  workspacePath: '/path/to/workspace'
 }
 ```
 
-### 3. Ensure API Endpoints Use SessionManager
+### ProjectSessionMenu Simplification
 
-The `/api/sessions` endpoint already supports SessionManager. Verify other endpoints:
+The ProjectSessionMenu component should focus on:
 
-- `POST /api/sessions` - ✓ Already uses SessionManager with fallback
-- `DELETE /api/sessions` - ✓ Already uses SessionManager with fallback
-- WebSocket handlers - ✓ Already use SessionManager in simplified mode
+1. **Active Sessions Tab**: Primary view showing all active workspace sessions
+2. **Session Type Toggle**: Switch between claude/pty session types
+3. **Quick Create**: Simple button to create new session of selected type
 
-### 4. Update Development Server Messages
+#### Simplified Component Structure
 
-Add clear messaging about which architecture is in use:
+```svelte
+<script>
+	// Simplified state
+	let sessionType = $state('claude');
+	let activeSessions = $state([]);
+	let selectedWorkspace = $state(null);
 
-- `src/app.js` - ✓ Already logs mode
-- `vite.config.js` - ✓ Already logs mode
-- Add to startup banner for clarity
+	// Load active sessions for current type
+	async function loadActiveSessions() {
+		const response = await fetch('/api/sessions');
+		const data = await response.json();
 
-### 5. Documentation Updates
+		activeSessions = data.sessions
+			.filter((s) => s.isActive && s.type === sessionType)
+			.map((session) => ({
+				id: session.id,
+				type: session.type,
+				workspacePath: session.workspacePath,
+				title: session.title || `${session.type} Session`
+			}));
+	}
 
-Update README and other docs to reflect simplified as default:
+	// Simple session creation
+	async function createSession() {
+		const response = await fetch('/api/sessions', {
+			method: 'POST',
+			body: JSON.stringify({
+				type: sessionType,
+				workspacePath: selectedWorkspace || '/workspace/default'
+			})
+		});
 
-- Default behavior is simplified sessions
-- Original can be enabled with `USE_SIMPLIFIED_SESSIONS=false`
-- All examples use simplified by default
+		const session = await response.json();
+		activeSessions = [...activeSessions, session];
+		selectSession(session);
+	}
+</script>
+```
+
+### Session State Management
+
+Frontend maintains minimal session state:
+
+```javascript
+// Session object structure
+{
+  id: string,           // Unified session ID
+  type: string,         // Session type (pty/claude)
+  workspacePath: string,// Workspace directory
+  isActive: boolean,    // Connection status
+  title?: string        // Display name
+}
+```
+
+### Socket.IO Integration
+
+Simplified socket events use unified session IDs:
+
+```javascript
+// Start session
+socket.emit('session.start', {
+	id: sessionId,
+	key: authKey
+});
+
+// Send input (type-agnostic)
+socket.emit('session.input', {
+	id: sessionId,
+	data: inputData
+});
+
+// Receive output
+socket.on('session.output', ({ id, data }) => {
+	// Handle output for any session type
+});
+```
 
 ## Testing
 
-Run tests with simplified architecture (default):
+Run tests:
 
 ```bash
 npm test
-```
-
-Run tests with original architecture:
-
-```bash
-USE_SIMPLIFIED_SESSIONS=false npm test
-```
-
-Compare both implementations:
-
-```bash
-# Test simplified (default)
-npm run test:simplified
-
-# Test original
-npm run test:original
 ```
 
 ## Future Enhancements

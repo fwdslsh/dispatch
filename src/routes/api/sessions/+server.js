@@ -42,29 +42,24 @@ import { getTypeSpecificId, getSessionType } from '../../../lib/server/utils/ses
 export async function POST({ request, locals }) {
 	const { type, workspacePath, options } = await request.json();
 
-	// Use the unified SessionManager if available, fallback to old approach
-	if (locals.sessionManager) {
-		try {
-			const session = await locals.sessionManager.createSession({
-				type,
-				workspacePath,
-				options
-			});
+	// Always use the unified SessionManager
+	try {
+		const session = await locals.sessionManager.createSession({
+			type,
+			workspacePath,
+			options
+		});
 
-			return new Response(
-				JSON.stringify({
-					id: session.id,
-					[type === 'pty' ? 'terminalId' : 'claudeId']: session.typeSpecificId
-				})
-			);
-		} catch (error) {
-			console.error('[API] Session creation failed:', error);
-			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-		}
+		return new Response(
+			JSON.stringify({
+				id: session.id,
+				[type === 'pty' ? 'terminalId' : 'claudeId']: session.typeSpecificId
+			})
+		);
+	} catch (error) {
+		console.error('[API] Session creation failed:', error);
+		return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 	}
-
-	// Fallback to legacy implementation (shouldn't happen in normal operation)
-	return new Response('Session manager not available', { status: 503 });
 }
 
 export async function PUT({ request, locals }) {
@@ -86,23 +81,12 @@ export async function DELETE({ url, locals }) {
 		return new Response('Missing sessionId or workspacePath', { status: 400 });
 	}
 
-	// Use the unified SessionManager if available
-	if (locals.sessionManager) {
-		try {
-			const success = await locals.sessionManager.stopSession(sessionId);
-			return new Response(JSON.stringify({ success }));
-		} catch (error) {
-			console.error('[API] Session deletion failed:', error);
-			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-		}
+	// Always use the unified SessionManager
+	try {
+		const success = await locals.sessionManager.stopSession(sessionId);
+		return new Response(JSON.stringify({ success }));
+	} catch (error) {
+		console.error('[API] Session deletion failed:', error);
+		return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 	}
-
-	// Fallback to legacy implementation
-	await locals.workspaces.removeSession(workspacePath, sessionId);
-	const activeSession = locals.sessions.get(sessionId);
-	if (activeSession) {
-		locals.sessions.unbind(sessionId);
-	}
-
-	return new Response(JSON.stringify({ success: true }));
 }

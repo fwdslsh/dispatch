@@ -7,10 +7,10 @@
 	import ClaudePane from '$lib/components/ClaudePane.svelte';
 	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
 	import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
-	import CreateSessionModal from '$lib/components/CreateSessionModal.svelte';
+	import CreateSessionModalSimplified from '$lib/components/CreateSessionModalSimplified.svelte';
 	import SettingsModal from '$lib/components/Settings/SettingsModal.svelte';
 	import { Button } from '$lib/shared/components';
-	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
+	import ProjectSessionMenuSimplified from '$lib/shared/components/ProjectSessionMenuSimplified.svelte';
 	import sessionSocketManager from '$lib/components/SessionSocketManager.js';
 	import { IconX, IconSettings } from '@tabler/icons-svelte';
 
@@ -572,9 +572,13 @@
 			>
 		</div>
 		<div class="sheet-body">
-			<ProjectSessionMenu
+			<ProjectSessionMenuSimplified
 				storagePrefix="dispatch-projects"
 				bind:selectedProject
+				onProjectSelected={(e) => {
+					// Handle project selection if needed
+					console.log('Project selected:', e.detail);
+				}}
 				onNewSession={(e) => {
 					const { type } = e.detail || {};
 					if (type === 'claude') {
@@ -854,10 +858,10 @@
 
 <ClaudeSessionModal bind:open={claudeModalOpen} onSessionCreate={createClaudeSession} />
 
-<CreateSessionModal
+<CreateSessionModalSimplified
 	bind:open={createSessionModalOpen}
 	initialType={createSessionInitialType}
-	onSessionCreate={handleUnifiedSessionCreate}
+	on:created={handleUnifiedSessionCreate}
 />
 
 <SettingsModal bind:open={settingsModalOpen} />

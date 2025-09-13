@@ -188,8 +188,8 @@
 		bottom: 0;
 		z-index: 1000;
 		background:
-			radial-gradient(ellipse at center, rgba(46, 230, 107, 0.05) 0%, transparent 70%),
-			color-mix(in oklab, black 70%, transparent);
+			radial-gradient(ellipse at center, var(--glow) 0%, transparent 70%),
+			color-mix(in oklab, var(--bg) 70%, transparent);
 		backdrop-filter: blur(0px);
 		display: none;
 		align-items: center;
@@ -236,8 +236,8 @@
 		position: relative;
 		overflow: hidden;
 
-		/* Enhanced terminal modal styling */
-		background: var(--bg-panel);
+		/* Use consistent design system colors */
+		background: var(--surface);
 		border: 2px solid var(--primary-dim);
 		border-radius: 0;
 
@@ -256,10 +256,10 @@
 		opacity: 1;
 		transform: perspective(1000px) translate3d(0, 0, 0) scale(1);
 		box-shadow:
-			var(--glow-primary),
-			inset 0 0 60px rgba(46, 230, 107, 0.03),
-			inset 0 0 20px rgba(0, 0, 0, 0.8),
-			0 15px 50px rgba(0, 0, 0, 0.7);
+			0 0 20px var(--glow),
+			inset 0 0 60px var(--glow),
+			inset 0 0 20px color-mix(in oklab, var(--bg) 80%, black),
+			0 15px 50px color-mix(in oklab, var(--bg) 30%, black);
 
 		@starting-style {
 			opacity: 0;
@@ -298,7 +298,7 @@
 		justify-content: space-between;
 		padding: var(--space-4) var(--space-5);
 		flex-shrink: 0;
-		background: linear-gradient(135deg, var(--bg-dark), var(--bg-panel));
+		background: linear-gradient(135deg, var(--bg), var(--surface));
 		border-bottom: 2px solid var(--primary-dim);
 		position: relative;
 	}
@@ -314,9 +314,9 @@
 		background: linear-gradient(
 			90deg,
 			transparent,
-			var(--primary),
+			var(--accent),
 			var(--accent-amber),
-			var(--primary),
+			var(--accent),
 			transparent
 		);
 		animation: terminalScan 2s linear infinite;
@@ -327,12 +327,12 @@
 		font-size: 1.2rem;
 		font-weight: 700;
 		font-family: var(--font-mono);
-		color: var(--primary);
+		color: var(--accent);
 		margin: 0;
 		line-height: 1.2;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
-		text-shadow: 0 0 8px var(--primary-glow);
+		text-shadow: 0 0 8px var(--glow);
 	}
 
 	/* Terminal prompt prefix for title */
@@ -345,7 +345,7 @@
 	.modal__close {
 		background: transparent;
 		border: 1px solid var(--primary-dim);
-		color: var(--text-muted);
+		color: var(--muted);
 		cursor: pointer;
 		padding: var(--space-2);
 		transition: all 0.3s ease;
@@ -358,11 +358,11 @@
 	}
 
 	.modal__close:hover {
-		color: var(--primary);
-		border-color: var(--primary);
-		background: rgba(46, 230, 107, 0.1);
-		box-shadow: 0 0 10px var(--primary-glow);
-		text-shadow: 0 0 5px var(--primary-glow);
+		color: var(--accent);
+		border-color: var(--accent);
+		background: color-mix(in oklab, var(--accent) 10%, transparent);
+		box-shadow: 0 0 10px var(--glow);
+		text-shadow: 0 0 5px var(--glow);
 	}
 
 	@keyframes terminalScan {
@@ -380,7 +380,7 @@
 		overflow: auto;
 		padding: 0;
 		background: var(--bg);
-		color: var(--text-primary);
+		color: var(--text);
 		font-family: var(--font-sans);
 		position: relative;
 		min-height: 0;
@@ -407,7 +407,7 @@
 	.modal__footer {
 		padding: var(--space-4) var(--space-5);
 		border-top: 2px solid var(--primary-dim);
-		background: linear-gradient(135deg, var(--bg-dark), var(--bg-panel));
+		background: linear-gradient(135deg, var(--bg), var(--surface));
 		flex-shrink: 0;
 		display: flex;
 		gap: var(--space-3);
@@ -424,7 +424,7 @@
 		left: 0;
 		right: 0;
 		height: 2px;
-		background: linear-gradient(90deg, transparent, var(--primary), transparent);
+		background: linear-gradient(90deg, transparent, var(--accent), transparent);
 	}
 
 	/* Modern CSS animations replace old keyframes */

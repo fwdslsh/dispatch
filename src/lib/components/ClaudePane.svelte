@@ -31,6 +31,9 @@
 	let liveEventIcons = $state([]);
 	let workspacePath = $state(initialWorkspacePath);
 	let claudeCommandsApi = $state();
+	
+	// Detect if user is on a mobile device
+	let isMobile = $state(false);
 
 	async function scrollToBottom() {
 		await tick();
@@ -360,6 +363,30 @@
 		}
 	}
 
+	// Mobile detection with resize handling
+	function checkMobile() {
+		return (
+			('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+			window.innerWidth <= 768
+		);
+	}
+
+	// Effect for handling resize events
+	$effect(() => {
+		function handleResize() {
+			isMobile = checkMobile();
+		}
+
+		if (typeof window !== 'undefined') {
+			isMobile = checkMobile();
+			window.addEventListener('resize', handleResize);
+			
+			return () => {
+				window.removeEventListener('resize', handleResize);
+			};
+		}
+	});
+	
 	onMount(async () => {
 		console.log('ClaudePane mounting with:', { sessionId, claudeSessionId, shouldResume });
 
@@ -593,6 +620,7 @@
 		if (socket) {
 			socket.removeAllListeners();
 		}
+		// Resize listener cleanup is handled by the $effect
 	});
 </script>
 
@@ -696,8 +724,9 @@
 						</div>
 						<div class="message-text">
 							{#if m.isError && m.errorIcon}
+								{@const ErrorIcon = m.errorIcon}
 								<div class="error-icon-wrapper">
-									<svelte:component this={m.errorIcon} size={20} />
+									<ErrorIcon size={20} />
 								</div>
 							{/if}
 							<Markdown content={m.text} />
@@ -760,7 +789,7 @@
 	</div>
 
 	<!-- Enhanced Input Form -->
-	<form onsubmit={send} class="input-form" role="form">
+	<form onsubmit={send} class="input-form">
 		<div class="input-container">
 			<div class="input-actions input-actions--left">
 				<ClaudeCommands
@@ -780,7 +809,9 @@
 				aria-label="Type your message"
 				autocomplete="off"
 				onkeydown={(e) => {
-					if (e.key === 'Enter' && !e.shiftKey) {
+					// On desktop: Enter sends, Shift+Enter adds newline
+					// On mobile: Enter always adds newline (send via button)
+					if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
 						e.preventDefault();
 						send(e);
 					}
@@ -800,7 +831,13 @@
 			</div>
 		</div>
 		<div class="input-help">
-			<span class="help-text">Press Enter to send · Shift+Enter for new line</span>
+			<span class="help-text">
+				{#if isMobile}
+					Press Enter for new line · Tap Send button to send
+				{:else}
+					Press Enter to send · Shift+Enter for new line
+				{/if}
+			</span>
 		</div>
 	</form>
 </div>

@@ -21,7 +21,8 @@
 				aria-label={`${ev.label} - Click for details`}
 			>
 				{#if ev.Icon}
-					<svelte:component this={ev.Icon} size={16} stroke={2} />
+					{@const IconComponent = ev.Icon}
+					<IconComponent size={16} stroke={2} />
 				{:else}
 					<!-- Fallback icon if Icon is missing -->
 					<IconCircle size={16} stroke={2} />
@@ -36,7 +37,8 @@
 		<div class="event-summary-header">
 			<span class="event-summary-icon">
 				{#if selected.Icon}
-					<svelte:component this={selected.Icon} size={18} stroke={2} />
+					{@const IconComponent = selected.Icon}
+					<IconComponent size={18} stroke={2} />
 				{/if}
 			</span>
 			<span class="event-summary-label">{selected.label}</span>

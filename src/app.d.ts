@@ -4,6 +4,7 @@ import type { TerminalManager } from '$lib/server/terminals/TerminalManager';
 import type { ClaudeSessionManager } from '$lib/server/claude/ClaudeSessionManager';
 import type { SessionRouter } from '$lib/server/core/SessionRouter';
 import type { WorkspaceManager } from '$lib/server/core/WorkspaceManager';
+import type { SessionManager } from '$lib/server/core/SessionManager';
 
 declare global {
 	namespace App {
@@ -13,6 +14,7 @@ declare global {
 			claude: ClaudeSessionManager;
 			sessions: SessionRouter;
 			workspaces: WorkspaceManager;
+			sessionManager: SessionManager;
 		}
 		// interface PageData {}
 		// interface Platform {}

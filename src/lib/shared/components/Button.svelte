@@ -41,7 +41,7 @@
 		id = undefined,
 
 		// Snippet props
-		icon,
+		icon = undefined,
 		children = undefined,
 		...restProps
 	} = $props();
@@ -129,108 +129,119 @@
 </button>
 
 <style>
-	/* Clean minimal button styling */
+	/* Button styles that work with global .button class from retro.css */
 	.button {
+		/* Remove conflicting overrides, inherit from global styles */
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
 		white-space: nowrap;
 		position: relative;
-
-		/* Clean outline style with minimal background */
-		background: rgba(46, 230, 107, 0.05) !important;
-		border: 1px solid var(--primary-dim) !important;
-		color: var(--text-primary) !important;
-		font-family: var(--font-mono) !important;
-		font-weight: 600 !important;
-		text-transform: uppercase !important;
-		letter-spacing: 0.05em !important;
-
-		/* No glow by default */
-		box-shadow: none !important;
-		transition: all 0.2s ease !important;
+		
+		/* Use system variables consistently */
+		background: color-mix(in oklab, var(--accent) 5%, var(--surface));
+		border: 1px solid var(--primary-dim);
+		color: var(--text);
+		font-family: var(--font-mono);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		border-radius: 8px;
+		
+		/* Smooth transitions */
+		transition: all 0.2s ease;
+		box-shadow: none;
 	}
 
 	.button:hover {
-		background: rgba(46, 230, 107, 0.1) !important;
-		border-color: var(--primary) !important;
-		/* Prominent outer glow on hover */
-		box-shadow:
-			0 0 20px rgba(46, 230, 107, 0.6),
-			0 0 40px rgba(46, 230, 107, 0.3) !important;
-	}
-	.button:active,
-	.button.active {
-		/* Depressed look with inner glow */
-		background: rgba(46, 230, 107, 0.15) !important;
-		border-color: var(--primary) !important;
-		box-shadow: inset 0 0 8px rgba(46, 230, 107, 0.3) !important;
+		background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+		border-color: var(--accent);
+		box-shadow: 0 0 20px var(--glow);
 	}
 
-	/* Ghost variant - same clean styling */
+	.button:active,
+	.button.active {
+		background: color-mix(in oklab, var(--accent) 15%, var(--surface));
+		border-color: var(--accent);
+		box-shadow: inset 0 0 8px var(--glow);
+		transform: translateY(1px);
+	}
+
+	/* Primary variant */
+	.button.primary {
+		background: color-mix(in oklab, var(--accent) 20%, var(--surface));
+		border-color: var(--accent);
+		color: var(--text);
+	}
+
+	.button.primary:hover {
+		background: color-mix(in oklab, var(--accent) 30%, var(--surface));
+		box-shadow: 0 0 25px var(--glow);
+	}
+
+	/* Ghost variant */
 	.button.ghost {
-		background: transparent !important;
-		border: 1px solid var(--primary-dim) !important;
-		color: var(--text-secondary) !important;
-		box-shadow: none !important;
+		background: transparent;
+		border: 1px solid var(--primary-dim);
+		color: var(--muted);
 	}
 
 	.button.ghost:hover {
-		background: rgba(46, 230, 107, 0.08) !important;
-		border-color: var(--primary) !important;
-		color: var(--primary) !important;
-		/* Prominent outer glow on hover */
-		box-shadow:
-			0 0 18px rgba(46, 230, 107, 0.5),
-			0 0 35px rgba(46, 230, 107, 0.25) !important;
+		background: color-mix(in oklab, var(--accent) 8%, transparent);
+		border-color: var(--accent);
+		color: var(--accent);
+		box-shadow: 0 0 18px var(--glow);
 	}
 
 	.button.ghost:active,
 	.button.ghost.active {
-		background: rgba(46, 230, 107, 0.12) !important;
-		color: var(--primary) !important;
-		border-color: var(--primary) !important;
-		/* Simple inner glow for depressed look */
-		box-shadow: inset 0 0 6px rgba(46, 230, 107, 0.25) !important;
+		background: color-mix(in oklab, var(--accent) 12%, transparent);
+		box-shadow: inset 0 0 6px var(--glow);
 	}
 
+	/* Danger variant */
 	.button.danger {
-		background: linear-gradient(135deg, var(--secondary), #ff5252) !important;
-		border-color: var(--secondary) !important;
-		box-shadow:
-			0 0 20px rgba(255, 107, 107, 0.3),
-			inset 0 2px 0 rgba(255, 255, 255, 0.2),
-			inset 0 -2px 0 rgba(0, 0, 0, 0.2) !important;
+		background: color-mix(in oklab, var(--err) 20%, var(--surface));
+		border-color: var(--err);
+		color: var(--text);
 	}
 
+	.button.danger:hover {
+		background: color-mix(in oklab, var(--err) 30%, var(--surface));
+		box-shadow: 0 0 20px color-mix(in oklab, var(--err) 40%, transparent);
+	}
+
+	/* Warning variant */
 	.button.warn {
-		background: linear-gradient(135deg, var(--accent-amber), #ffdd44) !important;
-		border-color: var(--accent-amber) !important;
-		color: var(--bg-dark) !important;
-		box-shadow:
-			0 0 20px rgba(255, 209, 102, 0.3),
-			inset 0 2px 0 rgba(255, 255, 255, 0.2),
-			inset 0 -2px 0 rgba(0, 0, 0, 0.2) !important;
+		background: color-mix(in oklab, var(--warn) 20%, var(--surface));
+		border-color: var(--warn);
+		color: var(--text);
 	}
 
-	/* Loading and disabled states */
+	.button.warn:hover {
+		background: color-mix(in oklab, var(--warn) 30%, var(--surface));
+		box-shadow: 0 0 20px color-mix(in oklab, var(--warn) 40%, transparent);
+	}
+
+	/* Disabled state */
 	.button:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
 		pointer-events: none;
-		transform: none !important;
-		background: var(--text-muted) !important;
-		border-color: var(--text-muted) !important;
-		box-shadow: none !important;
+		transform: none;
+		background: var(--muted);
+		border-color: var(--muted);
+		box-shadow: none;
 	}
 
+	/* Text states */
 	.btn__text--hidden {
 		opacity: 0;
 		width: 0;
 		overflow: hidden;
 	}
 
-	/* Enhanced terminal spinner */
+	/* Spinner */
 	.btn__spinner {
 		display: flex;
 		align-items: center;
@@ -252,31 +263,15 @@
 		}
 	}
 
-	/* Terminal glow animation */
-	@keyframes terminalGlow {
-		0%,
-		100% {
-			box-shadow:
-				0 0 20px var(--primary-glow),
-				inset 0 2px 0 rgba(255, 255, 255, 0.2),
-				inset 0 -2px 0 rgba(0, 0, 0, 0.2);
-		}
-		50% {
-			box-shadow:
-				var(--glow-strong),
-				inset 0 2px 0 rgba(255, 255, 255, 0.2),
-				inset 0 -2px 0 rgba(0, 0, 0, 0.2);
-		}
-	}
-
-	/* Add subtle glow animation for primary buttons */
-	.button.primary {
-		animation: terminalGlow 3s ease-in-out infinite;
+	/* Ensure augmented-ui styles work properly */
+	.button.aug {
+		border-radius: 0; /* Remove radius for augmented-ui */
+		background: color-mix(in oklab, var(--accent) 5%, var(--surface));
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.button.primary {
-			animation: none;
+		.button {
+			transition: opacity 0.2s ease;
 		}
 	}
 </style>

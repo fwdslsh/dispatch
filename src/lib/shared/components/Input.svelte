@@ -218,7 +218,7 @@
 		font-size: 0.875rem;
 		font-weight: 600;
 		font-family: var(--font-mono);
-		color: var(--text-secondary);
+		color: var(--muted);
 		display: flex;
 		align-items: center;
 		gap: var(--space-1);
@@ -243,35 +243,35 @@
 		width: 100%;
 	}
 
-	/* Enhanced terminal input styling - override global styles */
+	/* Enhanced terminal input styling using design system variables */
 	input,
 	textarea {
-		background: rgba(18, 26, 23, 0.6) !important;
-		border: 2px solid var(--primary-dim) !important;
-		border-radius: 0 !important;
-		color: var(--text-primary) !important;
-		font-family: var(--font-mono) !important;
+		background: color-mix(in oklab, var(--surface) 60%, var(--bg));
+		border: 2px solid var(--primary-dim);
+		border-radius: 0;
+		color: var(--text);
+		font-family: var(--font-mono);
 
 		/* Terminal styling */
 		box-shadow:
-			inset 0 0 20px rgba(0, 0, 0, 0.5),
-			0 0 10px var(--primary-glow) !important;
+			inset 0 0 20px color-mix(in oklab, var(--bg) 50%, black),
+			0 0 10px var(--glow);
 
-		transition: all 0.3s ease !important;
+		transition: all 0.3s ease;
 		position: relative;
 	}
 
 	input:focus,
 	textarea:focus {
-		border-color: var(--primary) !important;
-		background: rgba(18, 26, 23, 0.8) !important;
-		color: var(--primary-bright) !important;
+		border-color: var(--accent);
+		background: color-mix(in oklab, var(--surface) 80%, var(--bg));
+		color: var(--accent);
 		box-shadow:
-			inset 0 0 20px rgba(0, 0, 0, 0.5),
-			var(--glow-primary),
-			0 0 0 3px var(--primary-glow) !important;
-		text-shadow: 0 0 8px var(--primary-glow) !important;
-		outline: none !important;
+			inset 0 0 20px color-mix(in oklab, var(--bg) 50%, black),
+			0 0 20px var(--glow),
+			0 0 0 3px var(--glow);
+		text-shadow: 0 0 8px var(--glow);
+		outline: none;
 	}
 
 	/* Textarea specific */
@@ -326,7 +326,7 @@
 	.input__help {
 		font-size: 0.75rem;
 		font-family: var(--font-mono);
-		color: var(--text-muted);
+		color: var(--muted);
 		line-height: 1.4;
 	}
 
@@ -351,22 +351,22 @@
 	.input__error {
 		font-size: 0.75rem;
 		font-family: var(--font-mono);
-		color: var(--secondary);
+		color: var(--err);
 		line-height: 1.4;
 		display: flex;
 		align-items: center;
 		gap: var(--space-1);
-		background: rgba(255, 107, 107, 0.1);
+		background: color-mix(in oklab, var(--err) 10%, transparent);
 		padding: var(--space-2);
-		border: 1px solid rgba(255, 107, 107, 0.3);
-		text-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
+		border: 1px solid color-mix(in oklab, var(--err) 30%, transparent);
+		text-shadow: 0 0 5px color-mix(in oklab, var(--err) 30%, transparent);
 	}
 
 	.input__error::before {
 		content: '!';
-		color: var(--secondary);
+		color: var(--err);
 		font-weight: bold;
-		border: 1px solid var(--secondary);
+		border: 1px solid var(--err);
 		border-radius: 50%;
 		width: 12px;
 		height: 12px;
@@ -382,22 +382,22 @@
 	.input__warning {
 		font-size: 0.75rem;
 		font-family: var(--font-mono);
-		color: var(--accent-amber);
+		color: var(--warn);
 		line-height: 1.4;
 		display: flex;
 		align-items: center;
 		gap: var(--space-1);
-		background: rgba(255, 209, 102, 0.1);
+		background: color-mix(in oklab, var(--warn) 10%, transparent);
 		padding: var(--space-2);
-		border: 1px solid rgba(255, 209, 102, 0.3);
-		text-shadow: 0 0 5px rgba(255, 209, 102, 0.3);
+		border: 1px solid color-mix(in oklab, var(--warn) 30%, transparent);
+		text-shadow: 0 0 5px color-mix(in oklab, var(--warn) 30%, transparent);
 	}
 
 	.input__warning::before {
 		content: '!';
-		color: var(--accent-amber);
+		color: var(--warn);
 		font-weight: bold;
-		border: 1px solid var(--accent-amber);
+		border: 1px solid var(--warn);
 		border-radius: 50%;
 		width: 12px;
 		height: 12px;
