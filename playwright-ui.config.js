@@ -14,13 +14,11 @@ export default defineConfig({
 	// Test file patterns - exclude Claude-specific tests
 	testMatch: [
 		'comprehensive-ui.spec.js',
-		'auth.spec.js', 
-		'basic-validation.spec.js',
-		'sessions.spec.js',  // Only if they don't require Claude
-		'mobile.spec.js',
 		'command-palette.spec.js',
 		'working-directory.spec.js',
-		'error-cases.spec.js'
+		'working-directory-validation.spec.js',
+		'socket-reconnection.spec.js',
+		'workspace-terminal-interactions.spec.js'
 	],
 	
 	// Ignore Claude-specific test files

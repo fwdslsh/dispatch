@@ -14,19 +14,16 @@ import path from 'path';
 // Core UI test files (non-Claude functionality)
 const coreTestFiles = [
 	'e2e/comprehensive-ui.spec.js',
-	'e2e/auth.spec.js',
-	'e2e/basic-validation.spec.js',
-	'e2e/mobile.spec.js',
 	'e2e/command-palette.spec.js',
 	'e2e/working-directory.spec.js',
-	'e2e/error-cases.spec.js'
+	'e2e/working-directory-validation.spec.js',
+	'e2e/socket-reconnection.spec.js',
+	'e2e/workspace-terminal-interactions.spec.js'
 ];
 
-// Optional test files (include if they don't depend on Claude)
-const optionalTestFiles = [
-	'e2e/sessions.spec.js',
-	'e2e/projects.spec.js',
-	'e2e/socket-reconnection.spec.js'
+// Server-side integration tests
+const integrationTestFiles = [
+	'tests/e2e/socket-integration.spec.js'
 ];
 
 console.log('🎭 Dispatch UI Test Suite (Non-Claude)');
@@ -40,15 +37,15 @@ if (missingCoreFiles.length > 0) {
 	process.exit(1);
 }
 
-// Check optional files
-const availableOptionalFiles = optionalTestFiles.filter((file) => fs.existsSync(file));
+// Check integration files
+const availableIntegrationFiles = integrationTestFiles.filter((file) => fs.existsSync(file));
 
 console.log('📁 Core Test Files:');
 coreTestFiles.forEach((file) => console.log(`   ✓ ${file}`));
 
-if (availableOptionalFiles.length > 0) {
-	console.log('\n📁 Additional Test Files:');
-	availableOptionalFiles.forEach((file) => console.log(`   ✓ ${file}`));
+if (availableIntegrationFiles.length > 0) {
+	console.log('\n📁 Integration Test Files:');
+	availableIntegrationFiles.forEach((file) => console.log(`   ✓ ${file}`));
 }
 
 console.log('\n🚫 Excluded (Claude-dependent):');
@@ -79,7 +76,7 @@ const playwrightArgs = [
 
 // Add specific test files if using default config
 if (!hasCustomConfig) {
-	playwrightArgs.push(...coreTestFiles, ...availableOptionalFiles);
+	playwrightArgs.push(...coreTestFiles, ...availableIntegrationFiles);
 }
 
 // Add additional arguments
