@@ -8,10 +8,11 @@
 	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
 	import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
 	import CreateSessionModal from '$lib/components/CreateSessionModal.svelte';
+	import SettingsModal from '$lib/components/Settings/SettingsModal.svelte';
 	import { Button } from '$lib/shared/components';
 	import ProjectSessionMenu from '$lib/shared/components/ProjectSessionMenu.svelte';
 	import sessionSocketManager from '$lib/components/SessionSocketManager.js';
-	import { IconX } from '@tabler/icons-svelte';
+	import { IconX, IconSettings } from '@tabler/icons-svelte';
 
 	let sessions = $state([]);
 	let workspaces = $state([]);
@@ -21,6 +22,7 @@
 	let terminalModalOpen = $state(false);
 	let claudeModalOpen = $state(false);
 	let createSessionModalOpen = $state(false);
+	let settingsModalOpen = $state(false);
 	let createSessionInitialType = $state('claude');
 	let quickCreating = $state(false);
 
@@ -529,7 +531,17 @@
 
 		<!-- Sessions toggle moved to status bar -->
 
-		<div class="header-actions"></div>
+		<div class="header-actions">
+			<Button
+				onclick={() => settingsModalOpen = true}
+				variant="ghost"
+				size="small"
+				title="Open Settings"
+				augmented="tl-clip br-clip both"
+			>
+				<IconSettings size={18} />
+			</Button>
+		</div>
 
 		<!-- Layout controls for desktop only -->
 		{#if !isMobile}
@@ -846,6 +858,8 @@
 	initialType={createSessionInitialType}
 	onSessionCreate={handleUnifiedSessionCreate}
 />
+
+<SettingsModal bind:open={settingsModalOpen} />
 
 <style>
 	/* Maximum Screen Space Utilization for Developers */
