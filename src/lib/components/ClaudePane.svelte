@@ -137,7 +137,7 @@
 
 		// If no icon data extracted yet, use default extraction
 		if (!iconData) {
-		iconData = getIconForEvent(e);
+			iconData = getIconForEvent(e);
 			iconData.event = e;
 		}
 
@@ -211,7 +211,7 @@
 					if (!entry) return null;
 					try {
 						if (entry.type === 'summary') {
-							return { ...(getIconForEvent({ type: 'summary' })), event: entry };
+							return { ...getIconForEvent({ type: 'summary' }), event: entry };
 						}
 						// assistant tool_use events
 						if (
@@ -1255,8 +1255,6 @@
 		background: transparent;
 	}
 
-
-
 	/* Overlay container for event details (works for live and history) */
 
 	.message--user .message-text {
@@ -1554,8 +1552,6 @@
 		.input-actions--right {
 			order: 3;
 		}
-
-
 	}
 
 	/* MOBILE & TOUCH DEVICE OPTIMIZATIONS */

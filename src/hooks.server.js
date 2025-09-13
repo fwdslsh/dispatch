@@ -1,6 +1,7 @@
 import { sequence } from '@sveltejs/kit/hooks';
 import { WorkspaceManager } from './lib/server/core/WorkspaceManager.js';
 import { SessionRouter } from './lib/server/core/SessionRouter.js';
+import { SessionManager } from './lib/server/core/SessionManager.js';
 import { TerminalManager } from './lib/server/terminals/TerminalManager.js';
 import { ClaudeSessionManager } from './lib/server/claude/ClaudeSessionManager.js';
 import { databaseManager } from './lib/server/db/DatabaseManager.js';
@@ -27,10 +28,24 @@ if (!globalThis.__API_SERVICES) {
 		const terminals = new TerminalManager({ io: null });
 		const claude = new ClaudeSessionManager({ io: null });
 
-		globalThis.__API_SERVICES = { sessions, workspaces, terminals, claude };
+		// Create unified session manager
+		const sessionManager = new SessionManager({
+			sessionRouter: sessions,
+			workspaceManager: workspaces,
+			terminalManager: terminals,
+			claudeManager: claude
+		});
+
+		globalThis.__API_SERVICES = { sessions, workspaces, terminals, claude, sessionManager };
 	} catch (error) {
 		console.error('Failed to initialize API services:', error);
-		globalThis.__API_SERVICES = { sessions: null, workspaces: null, terminals: null, claude: null };
+		globalThis.__API_SERVICES = {
+			sessions: null,
+			workspaces: null,
+			terminals: null,
+			claude: null,
+			sessionManager: null
+		};
 	}
 }
 
@@ -40,6 +55,7 @@ export const handle = sequence(async ({ event, resolve }) => {
 	event.locals.workspaces = globalThis.__API_SERVICES?.workspaces;
 	event.locals.terminals = globalThis.__API_SERVICES?.terminals;
 	event.locals.claude = globalThis.__API_SERVICES?.claude;
+	event.locals.sessionManager = globalThis.__API_SERVICES?.sessionManager;
 
 	return resolve(event);
 });

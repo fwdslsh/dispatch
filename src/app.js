@@ -127,8 +127,12 @@ initializeDirectories()
 		// Create HTTP server with SvelteKit handler
 		const server = http.createServer(handler);
 
-		// Initialize Socket.IO with shared managers
-		const { setupSocketIO } = await import('./lib/server/socket-setup.js');
+		// Initialize Socket.IO with configurable implementation
+		const { getSocketSetup } = await import('./lib/server/socket-manager.js');
+		const { setupSocketIO, mode } = await getSocketSetup();
+		console.log('===============================================');
+		console.log(`[APP] Session Architecture: ${mode.toUpperCase()}`);
+		console.log('===============================================');
 		const io = setupSocketIO(server);
 
 		// Store globally for API endpoints if needed

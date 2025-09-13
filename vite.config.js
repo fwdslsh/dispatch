@@ -1,20 +1,24 @@
 import devtoolsJson from 'vite-plugin-devtools-json';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import { setupSocketIO } from './src/lib/server/socket-setup.js';
 
 function socketIOPlugin() {
 	return {
 		name: 'socketio',
-		configureServer(server) {
+		async configureServer(server) {
 			if (!server.httpServer) return;
 
-			console.log('[DEV] Setting up Socket.IO with shared managers...');
+			console.log('[DEV] Setting up Socket.IO...');
+			const { getSocketSetup } = await import('./src/lib/server/socket-manager.js');
+			const { setupSocketIO, mode } = await getSocketSetup();
+			console.log('===============================================');
+			console.log(`[DEV] Session Architecture: ${mode.toUpperCase()}`);
+			console.log('===============================================');
 			const io = setupSocketIO(server.httpServer);
 
 			// Store globally for API endpoints if needed
 			globalThis.__DISPATCH_SOCKET_IO = io;
-			console.log('[DEV] Socket.IO ready with shared managers');
+			console.log('[DEV] Socket.IO ready');
 		}
 	};
 }

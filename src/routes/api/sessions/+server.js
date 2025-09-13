@@ -37,87 +37,34 @@ export async function GET({ url, locals }) {
 	});
 }
 
-import {
-	generateSessionId,
-	createSessionDescriptor,
-	getTypeSpecificId,
-	getSessionType
-} from '../../../lib/server/utils/session-ids.js';
+import { getTypeSpecificId, getSessionType } from '../../../lib/server/utils/session-ids.js';
 
 export async function POST({ request, locals }) {
 	const { type, workspacePath, options } = await request.json();
 
-	if (type === 'pty') {
-		const { terminalId, resumeSession } = options || {};
+	// Use the unified SessionManager if available, fallback to old approach
+	if (locals.sessionManager) {
+		try {
+			const session = await locals.sessionManager.createSession({
+				type,
+				workspacePath,
+				options
+			});
 
-		// Generate application-managed session ID
-		const appSessionId = generateSessionId();
-
-		// Start the terminal session with the app session ID
-		const terminalResult = locals.terminals.start({
-			workspacePath,
-			resume: !!resumeSession,
-			terminalId: resumeSession ? terminalId : null,
-			appSessionId // Pass our ID to the terminal manager
-		});
-
-		const title = resumeSession ? `Shell @ ${workspacePath} (resumed)` : `Shell @ ${workspacePath}`;
-
-		// Create simplified session descriptor
-		const sessionDescriptor = createSessionDescriptor('pty', terminalResult.id, {
-			id: appSessionId,
-			workspacePath,
-			title,
-			resumeSession: !!resumeSession
-		});
-
-		locals.sessions.bind(appSessionId, sessionDescriptor);
-		await locals.workspaces.rememberSession(workspacePath, sessionDescriptor);
-		return new Response(
-			JSON.stringify({
-				id: appSessionId,
-				terminalId: terminalResult.id
-			})
-		);
+			return new Response(
+				JSON.stringify({
+					id: session.id,
+					[type === 'pty' ? 'terminalId' : 'claudeId']: session.typeSpecificId
+				})
+			);
+		} catch (error) {
+			console.error('[API] Session creation failed:', error);
+			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+		}
 	}
 
-	if (type === 'claude') {
-		const { sessionId, projectName, resumeSession } = options || {};
-
-		// Generate application-managed session ID
-		const appSessionId = generateSessionId();
-
-		// Create Claude session with the app session ID
-		const claudeResult = await locals.claude.create({
-			workspacePath,
-			options,
-			sessionId: resumeSession ? sessionId : null,
-			appSessionId // Pass our ID to Claude manager
-		});
-
-		const title = resumeSession
-			? `Claude @ ${projectName} (resumed)`
-			: `Claude @ ${projectName || workspacePath}`;
-
-		// Create simplified session descriptor
-		const sessionDescriptor = createSessionDescriptor('claude', claudeResult.claudeId, {
-			id: appSessionId,
-			workspacePath,
-			title,
-			resumeSession: !!resumeSession
-		});
-
-		locals.sessions.bind(appSessionId, sessionDescriptor);
-		await locals.workspaces.rememberSession(workspacePath, sessionDescriptor);
-		return new Response(
-			JSON.stringify({
-				id: appSessionId,
-				claudeId: claudeResult.claudeId
-			})
-		);
-	}
-
-	return new Response('Bad Request', { status: 400 });
+	// Fallback to legacy implementation (shouldn't happen in normal operation)
+	return new Response('Session manager not available', { status: 503 });
 }
 
 export async function PUT({ request, locals }) {
@@ -139,27 +86,22 @@ export async function DELETE({ url, locals }) {
 		return new Response('Missing sessionId or workspacePath', { status: 400 });
 	}
 
-	// Remove from persisted sessions (SQLite-backed)
-	await locals.workspaces.removeSession(workspacePath, sessionId);
+	// Use the unified SessionManager if available
+	if (locals.sessionManager) {
+		try {
+			const success = await locals.sessionManager.stopSession(sessionId);
+			return new Response(JSON.stringify({ success }));
+		} catch (error) {
+			console.error('[API] Session deletion failed:', error);
+			return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+		}
+	}
 
-	// If session is active, stop it
+	// Fallback to legacy implementation
+	await locals.workspaces.removeSession(workspacePath, sessionId);
 	const activeSession = locals.sessions.get(sessionId);
 	if (activeSession) {
-		const sessionType = getSessionType(activeSession);
-		const typeSpecificId = getTypeSpecificId(activeSession);
-
-		// Stop the appropriate session type
-		if (sessionType === 'claude' && locals.claude && typeSpecificId) {
-			// Claude sessions are managed automatically by the ClaudeSessionManager
-			// Just remove from session router
-			locals.sessions.unbind(sessionId);
-		} else if (sessionType === 'pty' && locals.terminals && typeSpecificId) {
-			locals.terminals.stop(typeSpecificId);
-			locals.sessions.unbind(sessionId);
-		} else {
-			// Fallback: just remove from session router
-			locals.sessions.unbind(sessionId);
-		}
+		locals.sessions.unbind(sessionId);
 	}
 
 	return new Response(JSON.stringify({ success: true }));

@@ -94,7 +94,8 @@
 		height: 32px;
 		padding: 0;
 		border-radius: 50%;
-		background: linear-gradient(135deg,
+		background: linear-gradient(
+			135deg,
 			color-mix(in oklab, var(--surface) 92%, var(--primary) 8%),
 			color-mix(in oklab, var(--surface) 96%, var(--primary) 4%)
 		);
