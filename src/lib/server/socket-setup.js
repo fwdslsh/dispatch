@@ -193,6 +193,13 @@ export function setupSocketIO(httpServer) {
 				// Route application session ID to terminal session
 				const routing = routeSessionId(data.id, managers);
 				if (!routing || routing.sessionType !== 'pty') {
+					// Fallback: treat provided id as a direct terminal ID (e.g. "pty_1")
+					if (managers?.terminals && typeof managers.terminals.write === 'function') {
+						managers.terminals.setSocketIO(socket);
+						managers.terminals.write(data.id, data.data);
+						logger.debug('SOCKET', `Data written to terminal ${data.id} via fallback direct routing`);
+						return;
+					}
 					logger.warn('SOCKET', `Invalid or non-PTY session for terminal.write: ${data.id}`);
 					return;
 				}
@@ -210,7 +217,7 @@ export function setupSocketIO(httpServer) {
 			}
 		});
 
-		socket.on(SOCKET_EVENTS.TERMINAL_RESIZE, (data) => {
+			socket.on(SOCKET_EVENTS.TERMINAL_RESIZE, (data) => {
 			logger.debug('SOCKET', 'terminal resize received:', data);
 			try {
 				if (!validateKey(data.key)) return;
@@ -220,6 +227,12 @@ export function setupSocketIO(httpServer) {
 				// Route application session ID to terminal session
 				const routing = routeSessionId(data.id, managers);
 				if (!routing || routing.sessionType !== 'pty') {
+					// Fallback: treat provided id as a direct terminal ID (e.g. "pty_1")
+					if (managers?.terminals && typeof managers.terminals.resize === 'function') {
+						managers.terminals.resize(data.id, data.cols, data.rows);
+						logger.debug('SOCKET', `Terminal ${data.id} resized via fallback direct routing`);
+						return;
+					}
 					logger.warn('SOCKET', `Invalid or non-PTY session for terminal.resize: ${data.id}`);
 					return;
 				}

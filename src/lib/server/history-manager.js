@@ -7,6 +7,7 @@ class HistoryManager {
 		// Use $HOME/.dispatch/history as the storage directory
 		this.historyDir = join(process.env.HOME || homedir(), '.dispatch', 'history');
 		this.socketHistories = new Map(); // In-memory cache for active sockets
+		this._saveQueues = new Map(); // Per-socket save queues to serialize writes
 		this.initializeHistoryDir();
 	}
 
@@ -107,20 +108,37 @@ class HistoryManager {
 	 * Save socket history to disk
 	 */
 	async saveSocketHistory(socketId) {
-		try {
-			const historyEntry = this.socketHistories.get(socketId);
-			if (!historyEntry) return;
+		// Queue saves per-socket to avoid concurrent rename/write races
+		const run = async () => {
+			try {
+				const historyEntry = this.socketHistories.get(socketId);
+				if (!historyEntry) return;
 
-			const filePath = join(this.historyDir, `${socketId}.json`);
-			const tempPath = `${filePath}.tmp`;
-			const payload = JSON.stringify(historyEntry, null, 2);
+				// Ensure directory exists in case initialization hasn't completed
+				await fs.mkdir(this.historyDir, { recursive: true });
 
-			// Write atomically to avoid truncated/corrupt JSON files
-			await fs.writeFile(tempPath, payload);
-			await fs.rename(tempPath, filePath);
-		} catch (error) {
-			console.error(`[HISTORY] Failed to save history for socket ${socketId}:`, error);
-		}
+				const filePath = join(this.historyDir, `${socketId}.json`);
+				// Unique temp file to avoid clashes between concurrent writers
+				const tempPath = `${filePath}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+				const payload = JSON.stringify(historyEntry, null, 2);
+
+				// Write atomically to avoid truncated/corrupt JSON files
+				await fs.writeFile(tempPath, payload);
+				await fs.rename(tempPath, filePath);
+			} catch (error) {
+				console.error(`[HISTORY] Failed to save history for socket ${socketId}:`, error);
+			}
+		};
+
+		const last = this._saveQueues.get(socketId) || Promise.resolve();
+		const next = last.then(run, run);
+		this._saveQueues.set(socketId, next.finally(() => {
+			// If this is the last task, clean up the queue entry
+			if (this._saveQueues.get(socketId) === next) {
+				this._saveQueues.delete(socketId);
+			}
+		}));
+		return next;
 	}
 
 	/**
