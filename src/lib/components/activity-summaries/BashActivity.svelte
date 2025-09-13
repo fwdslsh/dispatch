@@ -1,13 +1,13 @@
 <script>
 	import './shared-styles.css';
-	
+
 	let { event } = $props();
-	
+
 	let commandInfo = $derived(parseBashEvent(event));
-	
+
 	function parseBashEvent(e) {
 		if (!e) return null;
-		
+
 		try {
 			const input = e.input || e;
 			return {
@@ -28,7 +28,7 @@
 			};
 		}
 	}
-	
+
 	function extractOutput(result) {
 		if (!result) return null;
 		if (typeof result === 'string') return result;
@@ -36,14 +36,14 @@
 		if (result.stdout) return result.stdout;
 		return null;
 	}
-	
+
 	function extractExitCode(result) {
 		if (!result) return null;
 		if (result.exitCode !== undefined) return result.exitCode;
 		if (result.exit_code !== undefined) return result.exit_code;
 		return null;
 	}
-	
+
 	function formatCommand(cmd) {
 		if (!cmd) return '';
 		// Truncate very long commands
@@ -52,10 +52,10 @@
 		}
 		return cmd;
 	}
-	
+
 	function formatOutput(output) {
 		if (!output) return null;
-		
+
 		// Limit output lines for display
 		const lines = output.split('\n');
 		if (lines.length > 20) {
@@ -65,7 +65,7 @@
 				totalLines: lines.length
 			};
 		}
-		
+
 		return {
 			preview: output,
 			truncated: false,
@@ -84,12 +84,12 @@
 				</span>
 			</div>
 		{/if}
-		
+
 		<div class="activity-row">
 			<span class="activity-label">Command</span>
 		</div>
 		<pre class="activity-code command-display">{formatCommand(commandInfo.command)}</pre>
-		
+
 		{#if commandInfo.runInBackground}
 			<div class="activity-row">
 				<span class="activity-label">Mode</span>
@@ -98,7 +98,7 @@
 				</span>
 			</div>
 		{/if}
-		
+
 		{#if commandInfo.timeout}
 			<div class="activity-row">
 				<span class="activity-label">Timeout</span>
@@ -107,7 +107,7 @@
 				</span>
 			</div>
 		{/if}
-		
+
 		{#if commandInfo.output}
 			{@const outputInfo = formatOutput(commandInfo.output)}
 			<div class="activity-result">
@@ -127,7 +127,7 @@
 				{/if}
 			</div>
 		{/if}
-		
+
 		<div class="activity-row">
 			<span class="activity-label">Status</span>
 			<span class="activity-value">
@@ -157,12 +157,12 @@
 		border-color: color-mix(in oklab, var(--accent-cyan) 15%, transparent);
 		color: var(--text);
 	}
-	
+
 	.output-display {
 		max-height: 300px;
 		overflow-y: auto;
 	}
-	
+
 	.activity-badge {
 		display: inline-block;
 		padding: 2px 6px;
@@ -172,13 +172,13 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
-	
+
 	.activity-badge.background {
 		background: color-mix(in oklab, var(--accent-cyan) 20%, transparent);
 		color: var(--accent-cyan);
 		border: 1px solid color-mix(in oklab, var(--accent-cyan) 30%, transparent);
 	}
-	
+
 	.muted {
 		opacity: 0.7;
 		font-size: 0.9em;

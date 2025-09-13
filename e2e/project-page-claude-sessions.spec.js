@@ -29,7 +29,7 @@ test.describe('Project Page - Claude Session Management', () => {
 
 		// Check layout controls
 		await expect(page.locator('.layout-controls')).toBeVisible();
-		
+
 		// Take screenshot for visual verification
 		await page.screenshot({ path: 'test-results/project-page-initial.png', fullPage: true });
 	});
@@ -81,7 +81,9 @@ test.describe('Project Page - Claude Session Management', () => {
 		await expect(page.locator('.tab.active')).toContainText('EXISTING PROJECT');
 
 		// Check for project picker component
-		await expect(page.locator('.project-picker, .session-picker, .picker-container')).toBeVisible({ timeout: 5000 });
+		await expect(page.locator('.project-picker, .session-picker, .picker-container')).toBeVisible({
+			timeout: 5000
+		});
 
 		// Switch back to NEW PROJECT
 		await page.click('.tab:has-text("NEW PROJECT")');
@@ -257,7 +259,7 @@ test.describe('Project Page - Claude Session Management', () => {
 
 		// Click on first session to pin it
 		await sessionItems.first().click();
-		
+
 		// Verify session appears in grid
 		await expect(page.locator('.session-pane')).toBeVisible();
 
@@ -272,7 +274,7 @@ test.describe('Project Page - Claude Session Management', () => {
 	test('should handle mobile responsive layout', async ({ page }) => {
 		// Set mobile viewport
 		await page.setViewportSize({ width: 375, height: 812 });
-		
+
 		await page.goto('/projects');
 		await page.waitForSelector('.dispatch-workspace');
 
@@ -331,13 +333,13 @@ test.describe('Project Page - Claude Session Management', () => {
 
 		// Click to collapse sidebar
 		await toggleButton.click();
-		
+
 		// Check that sidebar is collapsed
 		await expect(page.locator('.dispatch-workspace')).toHaveClass(/sidebar-collapsed/);
 
 		// Click to expand sidebar
 		await toggleButton.click();
-		
+
 		// Check that sidebar is expanded
 		await expect(page.locator('.dispatch-workspace')).not.toHaveClass(/sidebar-collapsed/);
 	});
@@ -347,7 +349,9 @@ test.describe('Project Page - Claude Session Management', () => {
 		await page.waitForSelector('.dispatch-workspace');
 
 		// Toggle sidebar
-		const toggleButton = page.locator('button[title*="sidebar"], button[aria-label*="sidebar"]').first();
+		const toggleButton = page
+			.locator('button[title*="sidebar"], button[aria-label*="sidebar"]')
+			.first();
 		await toggleButton.click();
 
 		// Check localStorage

@@ -10,14 +10,14 @@ const execAsync = promisify(exec);
 /**
  * Claude Authentication API
  * GET: Check authentication status
- * POST: Manual API key authentication  
+ * POST: Manual API key authentication
  * DELETE: Sign out/clear credentials
  */
 
 export async function GET() {
 	try {
 		// Check if Claude CLI is available and authenticated
-		const { stdout, stderr } = await execAsync('claude auth status', { 
+		const { stdout, stderr } = await execAsync('claude auth status', {
 			timeout: 5000,
 			env: { ...process.env, PATH: process.env.PATH }
 		});
@@ -36,7 +36,7 @@ export async function GET() {
 		}
 	} catch (error) {
 		console.error('Claude auth status check failed:', error);
-		
+
 		// If Claude CLI is not available, return not authenticated
 		if (error.message?.includes('command not found') || error.message?.includes('not found')) {
 			return json({
@@ -46,11 +46,14 @@ export async function GET() {
 			});
 		}
 
-		return json({
-			authenticated: false,
-			status: 'error',
-			error: 'Failed to check authentication status'
-		}, { status: 500 });
+		return json(
+			{
+				authenticated: false,
+				status: 'error',
+				error: 'Failed to check authentication status'
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -59,18 +62,24 @@ export async function POST({ request }) {
 		const { apiKey } = await request.json();
 
 		if (!apiKey || typeof apiKey !== 'string') {
-			return json({
-				success: false,
-				error: 'API key is required'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'API key is required'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Validate API key format (Anthropic keys start with sk-ant-)
 		if (!apiKey.startsWith('sk-ant-')) {
-			return json({
-				success: false,
-				error: 'Invalid API key format'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'Invalid API key format'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Try to authenticate with the API key using Claude CLI
@@ -86,18 +95,23 @@ export async function POST({ request }) {
 			});
 		} catch (authError) {
 			console.error('Claude API key auth failed:', authError);
-			return json({
-				success: false,
-				error: 'Invalid API key or authentication failed'
-			}, { status: 401 });
+			return json(
+				{
+					success: false,
+					error: 'Invalid API key or authentication failed'
+				},
+				{ status: 401 }
+			);
 		}
-
 	} catch (error) {
 		console.error('Claude auth POST error:', error);
-		return json({
-			success: false,
-			error: 'Authentication request failed'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Authentication request failed'
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -121,12 +135,14 @@ export async function DELETE() {
 			success: true,
 			message: 'Signed out successfully'
 		});
-
 	} catch (error) {
 		console.error('Claude sign out failed:', error);
-		return json({
-			success: false,
-			error: 'Failed to sign out'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to sign out'
+			},
+			{ status: 500 }
+		);
 	}
 }

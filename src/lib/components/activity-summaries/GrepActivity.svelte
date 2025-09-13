@@ -1,13 +1,13 @@
 <script>
 	import './shared-styles.css';
-	
+
 	let { event } = $props();
-	
+
 	const searchInfo = $derived(parseGrepEvent(event));
-	
+
 	function parseGrepEvent(e) {
 		if (!e) return null;
-		
+
 		try {
 			const input = e.input || e;
 			return {
@@ -34,13 +34,13 @@
 			};
 		}
 	}
-	
+
 	function extractResults(result) {
 		if (!result) return null;
-		
+
 		if (typeof result === 'string') {
 			// Parse string results into lines
-			const lines = result.split('\n').filter(l => l.trim());
+			const lines = result.split('\n').filter((l) => l.trim());
 			return {
 				type: 'text',
 				count: lines.length,
@@ -48,7 +48,7 @@
 				truncated: lines.length > 10
 			};
 		}
-		
+
 		if (Array.isArray(result)) {
 			return {
 				type: 'files',
@@ -57,7 +57,7 @@
 				truncated: result.length > 10
 			};
 		}
-		
+
 		if (result.matches) {
 			return {
 				type: 'matches',
@@ -65,10 +65,10 @@
 				files: result.files || []
 			};
 		}
-		
+
 		return null;
 	}
-	
+
 	function formatPath(path) {
 		if (!path) return 'Current directory';
 		if (path === '.') return 'Current directory';
@@ -78,7 +78,7 @@
 		}
 		return path;
 	}
-	
+
 	function formatPattern(pattern) {
 		if (!pattern) return '';
 		if (pattern.length > 100) {
@@ -96,7 +96,7 @@
 				<code class="search-pattern">{formatPattern(searchInfo.pattern)}</code>
 			</span>
 		</div>
-		
+
 		<div class="activity-row">
 			<span class="activity-label">Location</span>
 			<span class="activity-value">
@@ -105,7 +105,7 @@
 				</span>
 			</span>
 		</div>
-		
+
 		{#if searchInfo.glob || searchInfo.type}
 			<div class="activity-row">
 				<span class="activity-label">Filter</span>
@@ -119,7 +119,7 @@
 				</span>
 			</div>
 		{/if}
-		
+
 		{#if searchInfo.caseInsensitive || searchInfo.contextLines.both > 0 || searchInfo.contextLines.before > 0 || searchInfo.contextLines.after > 0}
 			<div class="activity-row">
 				<span class="activity-label">Options</span>
@@ -140,16 +140,17 @@
 				</span>
 			</div>
 		{/if}
-		
+
 		{#if searchInfo.results}
 			<div class="activity-result">
 				<div class="activity-row">
 					<span class="activity-label">Results</span>
 					<span class="activity-value">
-						{searchInfo.results.count} {searchInfo.results.type === 'files' ? 'files' : 'matches'} found
+						{searchInfo.results.count}
+						{searchInfo.results.type === 'files' ? 'files' : 'matches'} found
 					</span>
 				</div>
-				
+
 				{#if searchInfo.results.preview && searchInfo.results.preview.length > 0}
 					<ul class="activity-list">
 						{#each searchInfo.results.preview as item}
@@ -164,7 +165,7 @@
 				{/if}
 			</div>
 		{/if}
-		
+
 		{#if searchInfo.error}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
@@ -175,9 +176,7 @@
 		{:else if searchInfo.success}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
-				<span class="activity-value activity-success">
-					Search completed
-				</span>
+				<span class="activity-value activity-success"> Search completed </span>
 			</div>
 		{/if}
 	{:else}
@@ -195,8 +194,9 @@
 		font-family: var(--font-mono);
 		font-size: 0.9em;
 	}
-	
-	.filter-badge, .option-badge {
+
+	.filter-badge,
+	.option-badge {
 		display: inline-block;
 		padding: 2px 6px;
 		border-radius: 4px;

@@ -2,7 +2,7 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
 
-	let { 
+	let {
 		socket = null,
 		workspacePath = '',
 		sessionId = '',
@@ -40,40 +40,40 @@
 		console.log('[ClaudeCommands] Extracting commands from message:', message);
 		const commands = [];
 		if (!message || typeof message !== 'string') return commands;
-		
+
 		// Common formats: lines starting with `/command`, or markdown codeblocks with commands
-		const lines = message.split('\n').map(l => l.trim());
+		const lines = message.split('\n').map((l) => l.trim());
 		for (const l of lines) {
 			if (!l) continue;
-			
+
 			// Direct slash command
 			if (l.startsWith('/')) {
 				const parts = l.split(' ');
 				const cmd = parts[0].trim();
 				const description = parts.slice(1).join(' ').trim();
-				commands.push({ 
-					name: cmd, 
-					title: cmd, 
-					description: description || `Execute ${cmd}` 
+				commands.push({
+					name: cmd,
+					title: cmd,
+					description: description || `Execute ${cmd}`
 				});
 				continue;
 			}
-			
+
 			// "Command: /run-tests" style
 			const match = l.match(/Command:\s*(\/?[A-Za-z0-9_\-\/]+)/);
 			if (match && match[1].startsWith('/')) {
 				const cmd = match[1];
-				commands.push({ 
-					name: cmd, 
-					title: cmd, 
-					description: `Execute ${cmd}` 
+				commands.push({
+					name: cmd,
+					title: cmd,
+					description: `Execute ${cmd}`
 				});
 			}
 		}
-		
+
 		// Deduplicate by name
 		const seen = new Set();
-		return commands.filter(c => {
+		return commands.filter((c) => {
 			if (seen.has(c.name)) return false;
 			seen.add(c.name);
 			return true;
@@ -85,7 +85,7 @@
 	 */
 	async function updateAvailableCommands(messages = []) {
 		let newCommands = [];
-		
+
 		// Extract from messages (prioritizing first assistant message)
 		for (const msg of messages) {
 			if (msg.role === 'assistant' && msg.text) {
@@ -96,7 +96,7 @@
 				}
 			}
 		}
-		
+
 		// Check cache if no commands found yet
 		if (newCommands.length === 0 && workspacePath) {
 			try {
@@ -109,10 +109,10 @@
 				console.error('Failed to load cached commands:', error);
 			}
 		}
-		
+
 		// Deduplicate
 		const seen = new Set();
-		const deduped = newCommands.filter(c => {
+		const deduped = newCommands.filter((c) => {
 			if (!c.name || seen.has(c.name)) return false;
 			seen.add(c.name);
 			return true;
@@ -123,7 +123,10 @@
 			// Cache the results when we update
 			if (workspacePath && availableCommands.length > 0) {
 				try {
-					localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands));
+					localStorage.setItem(
+						`claude-commands-${workspacePath}`,
+						JSON.stringify(availableCommands)
+					);
 				} catch (error) {
 					console.error('Failed to cache commands:', error);
 				}
@@ -136,9 +139,9 @@
 	 */
 	function handleToolsList(payload) {
 		try {
-			console.log('[ClaudeCommands] Received tools.list event:', payload);	
+			console.log('[ClaudeCommands] Received tools.list event:', payload);
 			if (!payload) return;
-			
+
 			// Check if this event is for our session
 			// Backend emits with both Claude session ID and app session ID
 			// We need to accept events that match our sessionId
@@ -147,35 +150,42 @@
 				// Also handle the case where our sessionId might be numeric (Claude ID)
 				const payloadId = String(payload.sessionId);
 				const ourId = String(sessionId);
-				
+
 				if (payloadId !== ourId) {
-					console.log(`[ClaudeCommands] Ignoring tools.list for different session: ${payloadId} !== ${ourId}`);
+					console.log(
+						`[ClaudeCommands] Ignoring tools.list for different session: ${payloadId} !== ${ourId}`
+					);
 					return;
 				}
 			}
-			
+
 			const commands = Array.isArray(payload.commands) ? payload.commands : [];
 			console.log(`[ClaudeCommands] Received ${commands.length} commands for session ${sessionId}`);
-			
+
 			if (commands.length > 0) {
 				const normalized = commands.map((c) => {
 					// Normalize shape { name, title, description }
 					if (typeof c === 'string') {
 						return { name: c, title: c, description: `Execute ${c}` };
 					}
-					return { 
-						name: c.name || c.title || '', 
-						title: c.title || c.name || '', 
-						description: c.description || `Execute ${c.name || c.title || ''}` 
+					return {
+						name: c.name || c.title || '',
+						title: c.title || c.name || '',
+						description: c.description || `Execute ${c.name || c.title || ''}`
 					};
 				});
 				if (!commandsEqual(availableCommands, normalized)) {
 					availableCommands = normalized;
-					console.log(`[ClaudeCommands] Updated available commands to ${availableCommands.length} items`);
+					console.log(
+						`[ClaudeCommands] Updated available commands to ${availableCommands.length} items`
+					);
 					// Cache commands when updated
 					if (workspacePath) {
 						try {
-							localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands));
+							localStorage.setItem(
+								`claude-commands-${workspacePath}`,
+								JSON.stringify(availableCommands)
+							);
 						} catch (error) {
 							console.error('Failed to cache WebSocket commands:', error);
 						}
@@ -202,7 +212,7 @@
 	 */
 	function toggleCommandMenu() {
 		if (disabled) return;
-		
+
 		commandMenuOpen = !commandMenuOpen;
 		if (commandMenuOpen) {
 			// Focus first menu item after render
@@ -244,7 +254,7 @@
 		if (socket) {
 			console.log(`[ClaudeCommands] Setting up tools.list listener for sessionId: ${sessionId}`);
 			socket.on('tools.list', handleToolsList);
-			
+
 			// Query session status for existing commands
 			if (sessionId) {
 				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
@@ -252,22 +262,29 @@
 				socket.emit('session.status', { key, sessionId }, (response) => {
 					console.log(`[ClaudeCommands] session.status response:`, response);
 					try {
-						if (response && Array.isArray(response.availableCommands) && response.availableCommands.length > 0) {
+						if (
+							response &&
+							Array.isArray(response.availableCommands) &&
+							response.availableCommands.length > 0
+						) {
 							const normalized = response.availableCommands.map((c) => {
 								if (typeof c === 'string') {
 									return { name: c, title: c, description: `Execute ${c}` };
 								}
-								return { 
-									name: c.name || c.title || '', 
-									title: c.title || c.name || '', 
-									description: c.description || `Execute ${c.name || c.title || ''}` 
+								return {
+									name: c.name || c.title || '',
+									title: c.title || c.name || '',
+									description: c.description || `Execute ${c.name || c.title || ''}`
 								};
 							});
 							if (!commandsEqual(availableCommands, normalized)) {
 								availableCommands = normalized;
 								if (workspacePath) {
 									try {
-										localStorage.setItem(`claude-commands-${workspacePath}`, JSON.stringify(availableCommands));
+										localStorage.setItem(
+											`claude-commands-${workspacePath}`,
+											JSON.stringify(availableCommands)
+										);
 									} catch (error) {
 										console.error('Failed to cache session commands:', error);
 									}
@@ -280,10 +297,10 @@
 				});
 			}
 		}
-		
+
 		// Global click handling
 		document.addEventListener('click', handleClickOutside);
-		
+
 		// Initial load
 		updateAvailableCommands(lastParsedMessages);
 	});
@@ -342,24 +359,24 @@
 	</button>
 
 	{#if commandMenuOpen}
-		<div 
-			class="claude-commands-dropdown" 
-			transition:fly={{ y: -6, duration: 120 }} 
-			role="menu" 
+		<div
+			class="claude-commands-dropdown"
+			transition:fly={{ y: -6, duration: 120 }}
+			role="menu"
 			aria-label="Available commands"
 		>
 			<div class="dropdown-header">
 				<span class="dropdown-title">Slash Commands</span>
 				<span class="dropdown-subtitle">{availableCommands.length} available</span>
 			</div>
-			
+
 			{#if availableCommands.length > 0}
 				<div class="commands-list">
 					{#each availableCommands as cmd}
-						<button 
-							type="button" 
-							class="command-item" 
-							onclick={() => insertCommand(cmd.name || cmd.title || '')} 
+						<button
+							type="button"
+							class="command-item"
+							onclick={() => insertCommand(cmd.name || cmd.title || '')}
 							role="menuitem"
 							title={cmd.description}
 						>
@@ -398,11 +415,11 @@
 		align-items: center;
 		gap: var(--space-1);
 		padding: var(--space-2) var(--space-3);
-		background: 
-			linear-gradient(135deg, 
-				color-mix(in oklab, var(--primary) 10%, transparent),
-				color-mix(in oklab, var(--primary) 5%, transparent)
-			);
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--primary) 10%, transparent),
+			color-mix(in oklab, var(--primary) 5%, transparent)
+		);
 		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
 		border-radius: 8px;
 		font-family: var(--font-mono);
@@ -417,11 +434,11 @@
 	}
 
 	.command-menu-button:hover {
-		background: 
-			linear-gradient(135deg, 
-				color-mix(in oklab, var(--primary) 15%, transparent),
-				color-mix(in oklab, var(--primary) 8%, transparent)
-			);
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--primary) 15%, transparent),
+			color-mix(in oklab, var(--primary) 8%, transparent)
+		);
 		border-color: color-mix(in oklab, var(--primary) 30%, transparent);
 		color: var(--primary);
 		transform: translateY(-1px);
@@ -429,14 +446,14 @@
 	}
 
 	.command-menu-button.active {
-		background: 
-			linear-gradient(135deg, 
-				color-mix(in oklab, var(--primary) 20%, transparent),
-				color-mix(in oklab, var(--primary) 12%, transparent)
-			);
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--primary) 20%, transparent),
+			color-mix(in oklab, var(--primary) 12%, transparent)
+		);
 		border-color: var(--primary);
 		color: var(--primary);
-		box-shadow: 
+		box-shadow:
 			0 0 0 2px color-mix(in oklab, var(--primary) 25%, transparent),
 			0 4px 16px -6px var(--primary-glow);
 	}
@@ -470,14 +487,14 @@
 		min-width: 280px;
 		max-width: 420px;
 		max-height: 400px;
-		background: 
-			linear-gradient(135deg, 
-				color-mix(in oklab, var(--surface) 95%, var(--primary) 5%),
-				color-mix(in oklab, var(--surface) 98%, var(--primary) 2%)
-			);
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%),
+			color-mix(in oklab, var(--surface) 98%, var(--primary) 2%)
+		);
 		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
 		border-radius: 12px;
-		box-shadow: 
+		box-shadow:
 			0 12px 40px -8px rgba(0, 0, 0, 0.15),
 			0 4px 20px -4px var(--primary-glow),
 			inset 0 1px 2px rgba(255, 255, 255, 0.05);
@@ -489,11 +506,11 @@
 	.dropdown-header {
 		padding: var(--space-4) var(--space-4) var(--space-3);
 		border-bottom: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
-		background: 
-			linear-gradient(135deg, 
-				color-mix(in oklab, var(--primary) 8%, transparent),
-				color-mix(in oklab, var(--primary) 4%, transparent)
-			);
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--primary) 8%, transparent),
+			color-mix(in oklab, var(--primary) 4%, transparent)
+		);
 	}
 
 	.dropdown-title {
@@ -549,11 +566,11 @@
 	}
 
 	.command-item:hover {
-		background: 
-			linear-gradient(135deg, 
-				color-mix(in oklab, var(--primary) 12%, transparent),
-				color-mix(in oklab, var(--primary) 6%, transparent)
-			);
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--primary) 12%, transparent),
+			color-mix(in oklab, var(--primary) 6%, transparent)
+		);
 		border-color: color-mix(in oklab, var(--primary) 25%, transparent);
 		transform: translateY(-1px);
 		box-shadow: 0 4px 12px -6px var(--primary-glow);
@@ -616,11 +633,11 @@
 			right: auto;
 			left: 0;
 		}
-		
+
 		.command-item {
 			padding: var(--space-2) var(--space-3);
 		}
-		
+
 		.commands-empty {
 			padding: var(--space-4) var(--space-3);
 		}

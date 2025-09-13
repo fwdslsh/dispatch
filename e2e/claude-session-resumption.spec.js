@@ -105,9 +105,11 @@ test.describe('Claude Session Resumption', () => {
 
 		// Verify Claude pane appears with resumed session
 		await expect(page.locator('.claude-pane')).toBeVisible({ timeout: 10000 });
-		
+
 		// Check for resume indicator if present
-		const resumeIndicator = page.locator('.session-status:has-text("Resumed"), .session-badge:has-text("Resumed")');
+		const resumeIndicator = page.locator(
+			'.session-status:has-text("Resumed"), .session-badge:has-text("Resumed")'
+		);
 		if (await resumeIndicator.isVisible({ timeout: 5000 })) {
 			await expect(resumeIndicator).toBeVisible();
 		}
@@ -142,7 +144,7 @@ test.describe('Claude Session Resumption', () => {
 						},
 						{
 							role: 'assistant',
-							content: 'Of course! I\'d be happy to help you with Python.',
+							content: "Of course! I'd be happy to help you with Python.",
 							timestamp: new Date(Date.now() - 3570000).toISOString()
 						}
 					]
@@ -184,25 +186,31 @@ test.describe('Claude Session Resumption', () => {
 
 		// Check if history is displayed
 		const messageElements = page.locator('.message, .chat-message');
-		
+
 		// Wait for messages to load
 		await page.waitForTimeout(2000);
-		
+
 		// Verify that previous messages are visible
 		const messageCount = await messageElements.count();
 		expect(messageCount).toBeGreaterThan(0);
 
 		// Check for specific message content if visible
-		const userMessage = page.locator('.message:has-text("Hello Claude"), .chat-message:has-text("Hello Claude")');
-		const assistantMessage = page.locator('.message:has-text("How can I help you"), .chat-message:has-text("How can I help you")');
-		
+		const userMessage = page.locator(
+			'.message:has-text("Hello Claude"), .chat-message:has-text("Hello Claude")'
+		);
+		const assistantMessage = page.locator(
+			'.message:has-text("How can I help you"), .chat-message:has-text("How can I help you")'
+		);
+
 		if (await userMessage.isVisible({ timeout: 5000 })) {
 			await expect(userMessage).toBeVisible();
 			await expect(assistantMessage).toBeVisible();
 		}
 	});
 
-	test('should handle session ID properly when sending messages to resumed session', async ({ page }) => {
+	test('should handle session ID properly when sending messages to resumed session', async ({
+		page
+	}) => {
 		await page.goto('/projects');
 		await page.waitForSelector('.dispatch-workspace');
 
@@ -240,7 +248,7 @@ test.describe('Claude Session Resumption', () => {
 			window.__capturedEmissions = [];
 			const originalEmit = window.io?.prototype?.emit || (() => {});
 			if (window.io && window.io.prototype) {
-				window.io.prototype.emit = function(event, data) {
+				window.io.prototype.emit = function (event, data) {
 					if (event === 'claude.send') {
 						window.__capturedEmissions.push({ event, data });
 					}
@@ -273,24 +281,26 @@ test.describe('Claude Session Resumption', () => {
 
 		// Check captured emissions
 		const emissions = await page.evaluate(() => window.__capturedEmissions);
-		
+
 		if (emissions && emissions.length > 0) {
 			capturedEmission = emissions[0];
 			// Verify the correct session ID is used
 			expect(capturedEmission.data.id).toBeTruthy();
-			expect([sessionId, claudeSessionId, `claude_${sessionId}`]).toContain(capturedEmission.data.id);
+			expect([sessionId, claudeSessionId, `claude_${sessionId}`]).toContain(
+				capturedEmission.data.id
+			);
 		}
 
 		// Also check console logs for debugging
 		const consoleLogs = [];
-		page.on('console', msg => {
+		page.on('console', (msg) => {
 			if (msg.text().includes('claude.send') || msg.text().includes('sessionId')) {
 				consoleLogs.push(msg.text());
 			}
 		});
 
 		// Verify no errors occurred
-		const errorLogs = consoleLogs.filter(log => log.toLowerCase().includes('error'));
+		const errorLogs = consoleLogs.filter((log) => log.toLowerCase().includes('error'));
 		expect(errorLogs).toHaveLength(0);
 	});
 
@@ -329,7 +339,7 @@ test.describe('Claude Session Resumption', () => {
 		// Verify no sessions are shown or "No sessions" message appears
 		const noSessionsMessage = page.locator('.no-sessions, .empty-message, text=/no.*session/i');
 		const sessionCount = await page.locator('.session-item, .session-option').count();
-		
+
 		if (sessionCount === 0) {
 			// Either no sessions message should be visible, or button should say "Create Session"
 			const createButton = page.locator('button:has-text("Create Session")');
@@ -411,7 +421,7 @@ test.describe('Claude Session Resumption', () => {
 
 		// Monitor console for error handling
 		const errorLogs = [];
-		page.on('console', msg => {
+		page.on('console', (msg) => {
 			if (msg.type() === 'error') {
 				errorLogs.push(msg.text());
 			}
@@ -439,7 +449,7 @@ test.describe('Claude Session Resumption', () => {
 		// Check if error is displayed to user
 		const errorMessage = page.locator('.error, .error-message, .alert-danger');
 		const errorVisible = await errorMessage.isVisible({ timeout: 5000 });
-		
+
 		if (errorVisible) {
 			await expect(errorMessage).toContainText(/fail|error/i);
 		}

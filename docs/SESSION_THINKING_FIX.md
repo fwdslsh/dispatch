@@ -1,7 +1,9 @@
 # Session "Thinking" State Fix
 
 ## Problem
+
 All Claude sessions were appearing to be in a "thinking" state with the send button disabled, even for:
+
 - Brand new sessions that haven't processed any messages
 - Sessions that have completed processing and are idle
 - Sessions that were resumed but aren't actively processing
@@ -42,46 +44,50 @@ All Claude sessions were appearing to be in a "thinking" state with the send but
 ## Key Changes
 
 ### ClaudePane.svelte
+
 ```javascript
 // OLD: Automatically assumed sessions were thinking
 if (shouldResume || claudeSessionId) {
-    isWaitingForReply = true; // Always set
+	isWaitingForReply = true; // Always set
 }
 
 // NEW: Check actual backend state
 if (shouldResume || claudeSessionId) {
-    const hasPending = await sessionSocketManager.checkForPendingMessages(effectiveSessionId);
-    isWaitingForReply = hasPending; // Only if actually processing
+	const hasPending = await sessionSocketManager.checkForPendingMessages(effectiveSessionId);
+	isWaitingForReply = hasPending; // Only if actually processing
 }
 ```
 
 ### socket-setup.js
+
 ```javascript
 // Added session status check
 socket.on('session.status', (data, callback) => {
-    const activityState = sessions.getActivityState(data.sessionId);
-    const hasPendingMessages = activityState === 'processing' || activityState === 'streaming';
-    callback({ success: true, activityState, hasPendingMessages });
+	const activityState = sessions.getActivityState(data.sessionId);
+	const hasPendingMessages = activityState === 'processing' || activityState === 'streaming';
+	callback({ success: true, activityState, hasPendingMessages });
 });
 ```
 
 ### ClaudeSessionManager.js
+
 ```javascript
 // Emit completion after processing
 for await (const event of stream) {
-    if (event && this.io) {
-        this.io.emit('message.delta', [event]);
-    }
+	if (event && this.io) {
+		this.io.emit('message.delta', [event]);
+	}
 }
 // New: Emit completion event
 if (this.io) {
-    this.io.emit('message.complete', { sessionId: key });
+	this.io.emit('message.complete', { sessionId: key });
 }
 ```
 
 ## Testing
 
 Created test file `tests/session-thinking-fix.test.js` that verifies:
+
 1. New sessions start in "Ready" state, not "Thinking..."
 2. Send button is enabled for new sessions
 3. Sessions complete properly and clear thinking state
@@ -90,6 +96,7 @@ Created test file `tests/session-thinking-fix.test.js` that verifies:
 ## Impact
 
 Users will now see:
+
 - ✅ New sessions ready to accept input immediately
 - ✅ Resumed sessions show correct state (not always "thinking")
 - ✅ Send button enabled when session is actually ready
@@ -106,6 +113,7 @@ Users will now see:
 ## Verification
 
 To verify the fix:
+
 1. Start the development server: `npm run dev`
 2. Navigate to `/projects`
 3. Create a new Claude session

@@ -12,12 +12,12 @@ export const SOCKET_EVENTS = {
 	CONNECT_ERROR: 'connect_error',
 	RECONNECT: 'reconnect',
 	RECONNECT_ATTEMPT: 'reconnect_attempt',
-	
+
 	// Authentication events
 	AUTH: 'auth',
 	AUTH_SUCCESS: 'auth.success',
 	AUTH_ERROR: 'auth.error',
-	
+
 	// Session management events
 	SESSION_CREATE: 'session.create',
 	SESSION_ATTACH: 'session.attach',
@@ -25,29 +25,29 @@ export const SOCKET_EVENTS = {
 	SESSION_STATUS: 'session.status',
 	SESSION_END: 'session.end',
 	SESSION_DETACH: 'session.detach',
-	
+
 	// Claude-specific events
 	CLAUDE_SEND: 'claude.send',
 	CLAUDE_MESSAGE_DELTA: 'claude.message.delta',
 	CLAUDE_MESSAGE_COMPLETE: 'claude.message.complete',
 	CLAUDE_ERROR: 'claude.error',
 	CLAUDE_TOOLS_AVAILABLE: 'claude.tools.available',
-	
+
 	// Terminal events
 	TERMINAL_INPUT: 'terminal.input',
 	TERMINAL_OUTPUT: 'terminal.output',
 	TERMINAL_RESIZE: 'terminal.resize',
 	TERMINAL_ERROR: 'terminal.error',
-	
+
 	// Workspace events
 	WORKSPACE_LIST: 'workspace.list',
 	WORKSPACE_CREATE: 'workspace.create',
 	WORKSPACE_OPEN: 'workspace.open',
-	
+
 	// Admin/system events
 	ADMIN_EVENT_LOGGED: 'admin.event.logged',
 	SYSTEM_STATUS: 'system.status',
-	
+
 	// Public URL events
 	GET_PUBLIC_URL: 'get-public-url',
 	PUBLIC_URL_RESPONSE: 'public-url-response'
@@ -93,12 +93,15 @@ export function emitMessageComplete(socket, sessionId, message, metadata = {}) {
  * @param {Object} metadata - Additional metadata
  */
 export function emitError(socket, sessionId, error, metadata = {}) {
-	const errorData = error instanceof Error ? {
-		message: error.message,
-		stack: error.stack,
-		name: error.name
-	} : { message: String(error) };
-	
+	const errorData =
+		error instanceof Error
+			? {
+					message: error.message,
+					stack: error.stack,
+					name: error.name
+				}
+			: { message: String(error) };
+
 	socket.emit(SOCKET_EVENTS.CLAUDE_ERROR, {
 		sessionId,
 		error: errorData,

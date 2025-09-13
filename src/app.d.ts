@@ -13,7 +13,6 @@ declare global {
 			claude: ClaudeSessionManager;
 			sessions: SessionRouter;
 			workspaces: WorkspaceManager;
-
 		}
 		// interface PageData {}
 		// interface Platform {}

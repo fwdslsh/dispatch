@@ -136,7 +136,7 @@
 		gap: var(--space-2);
 		white-space: nowrap;
 		position: relative;
-		
+
 		/* Clean outline style with minimal background */
 		background: rgba(46, 230, 107, 0.05) !important;
 		border: 1px solid var(--primary-dim) !important;
@@ -145,17 +145,19 @@
 		font-weight: 600 !important;
 		text-transform: uppercase !important;
 		letter-spacing: 0.05em !important;
-		
+
 		/* No glow by default */
 		box-shadow: none !important;
 		transition: all 0.2s ease !important;
 	}
-	
+
 	.button:hover {
 		background: rgba(46, 230, 107, 0.1) !important;
 		border-color: var(--primary) !important;
 		/* Prominent outer glow on hover */
-		box-shadow: 0 0 20px rgba(46, 230, 107, 0.6), 0 0 40px rgba(46, 230, 107, 0.3) !important;
+		box-shadow:
+			0 0 20px rgba(46, 230, 107, 0.6),
+			0 0 40px rgba(46, 230, 107, 0.3) !important;
 	}
 	.button:active,
 	.button.active {
@@ -164,7 +166,7 @@
 		border-color: var(--primary) !important;
 		box-shadow: inset 0 0 8px rgba(46, 230, 107, 0.3) !important;
 	}
-	
+
 	/* Ghost variant - same clean styling */
 	.button.ghost {
 		background: transparent !important;
@@ -178,7 +180,9 @@
 		border-color: var(--primary) !important;
 		color: var(--primary) !important;
 		/* Prominent outer glow on hover */
-		box-shadow: 0 0 18px rgba(46, 230, 107, 0.5), 0 0 35px rgba(46, 230, 107, 0.25) !important;
+		box-shadow:
+			0 0 18px rgba(46, 230, 107, 0.5),
+			0 0 35px rgba(46, 230, 107, 0.25) !important;
 	}
 
 	.button.ghost:active,
@@ -198,7 +202,7 @@
 			inset 0 2px 0 rgba(255, 255, 255, 0.2),
 			inset 0 -2px 0 rgba(0, 0, 0, 0.2) !important;
 	}
-	
+
 	.button.warn {
 		background: linear-gradient(135deg, var(--accent-amber), #ffdd44) !important;
 		border-color: var(--accent-amber) !important;
@@ -247,28 +251,29 @@
 			transform: rotate(360deg);
 		}
 	}
-	
+
 	/* Terminal glow animation */
 	@keyframes terminalGlow {
-		0%, 100% { 
+		0%,
+		100% {
 			box-shadow:
 				0 0 20px var(--primary-glow),
 				inset 0 2px 0 rgba(255, 255, 255, 0.2),
 				inset 0 -2px 0 rgba(0, 0, 0, 0.2);
 		}
-		50% { 
+		50% {
 			box-shadow:
 				var(--glow-strong),
 				inset 0 2px 0 rgba(255, 255, 255, 0.2),
 				inset 0 -2px 0 rgba(0, 0, 0, 0.2);
 		}
 	}
-	
+
 	/* Add subtle glow animation for primary buttons */
 	.button.primary {
 		animation: terminalGlow 3s ease-in-out infinite;
 	}
-	
+
 	@media (prefers-reduced-motion: reduce) {
 		.button.primary {
 			animation: none;

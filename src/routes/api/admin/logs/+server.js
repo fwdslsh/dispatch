@@ -5,12 +5,12 @@ import { validateKey } from '$lib/server/auth.js';
 export async function GET({ url }) {
 	// Get the terminal key from query parameters
 	const key = url.searchParams.get('key');
-	
+
 	// Validate the key
 	if (!validateKey(key)) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
-	
+
 	// For now, return an empty logs array since we don't have a logging system yet
 	// In a production environment, this would read from actual log files or a logging service
 	return json({

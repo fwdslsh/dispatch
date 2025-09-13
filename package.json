@@ -19,6 +19,7 @@
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
+		"test:core": "HOME=\\\"$(pwd)\\\" npm run -s test:managers",
 		"test:e2e": "node run-e2e-tests.js",
 		"test:e2e:headed": "node run-e2e-tests.js --headed",
 		"test:e2e:debug": "npx playwright test --debug",

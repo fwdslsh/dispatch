@@ -43,8 +43,18 @@
 	{/snippet}
 
 	{#snippet footer()}
-		<button class="button aug" data-augmented-ui="l-clip r-clip both" onclick={handleClose} disabled={creating}>Cancel</button>
-		<button class="button aug primary" data-augmented-ui="l-clip r-clip both" onclick={handleCreate} disabled={!selectedWorkspace || creating}>
+		<button
+			class="button aug"
+			data-augmented-ui="l-clip r-clip both"
+			onclick={handleClose}
+			disabled={creating}>Cancel</button
+		>
+		<button
+			class="button aug primary"
+			data-augmented-ui="l-clip r-clip both"
+			onclick={handleCreate}
+			disabled={!selectedWorkspace || creating}
+		>
 			{creating ? 'Creating...' : 'Create Terminal'}
 		</button>
 	{/snippet}

@@ -9,13 +9,15 @@ test.describe('Terminal Session Resumption', () => {
 		});
 	});
 
-	test('should create terminal session, enter commands, close and resume with history preserved', async ({ page }) => {
+	test('should create terminal session, enter commands, close and resume with history preserved', async ({
+		page
+	}) => {
 		await page.goto('/projects');
 		await page.waitForSelector('.dispatch-workspace');
 
 		const sessionId = `terminal_session_${Date.now()}`;
 		let terminalHistory = '';
-		
+
 		// Mock workspace API
 		await page.route('/api/workspaces', async (route) => {
 			if (route.request().method() === 'GET') {
@@ -23,9 +25,7 @@ test.describe('Terminal Session Resumption', () => {
 					status: 200,
 					contentType: 'application/json',
 					body: JSON.stringify({
-						list: [
-							{ path: '/workspace/test-project', name: 'test-project' }
-						]
+						list: [{ path: '/workspace/test-project', name: 'test-project' }]
 					})
 				});
 			} else {
@@ -33,7 +33,7 @@ test.describe('Terminal Session Resumption', () => {
 			}
 		});
 
-		// Mock terminal session creation 
+		// Mock terminal session creation
 		await page.route('/api/sessions', async (route) => {
 			if (route.request().method() === 'POST') {
 				const requestData = await route.request().postDataJSON();
@@ -109,17 +109,17 @@ test.describe('Terminal Session Resumption', () => {
 			if (window.io) {
 				const originalEmit = window.io.prototype.emit;
 				window.__originalSocketEmit = originalEmit;
-				
-				window.io.prototype.emit = function(event, data) {
+
+				window.io.prototype.emit = function (event, data) {
 					if (event === 'terminal.write' && data.data) {
 						window.__terminalData.push(data.data);
-						
+
 						// Simulate terminal echo and prompt
 						setTimeout(() => {
 							if (this.listeners && this.listeners('data')) {
 								// Echo the command back
 								this.emit('data', data.data);
-								
+
 								// Simulate command output
 								if (data.data.includes('pwd')) {
 									this.emit('data', '\r\n/workspace/test-project\r\n$ ');
@@ -136,7 +136,7 @@ test.describe('Terminal Session Resumption', () => {
 							}
 						}, 100);
 					}
-					
+
 					return originalEmit.call(this, event, data);
 				};
 			}
@@ -147,12 +147,12 @@ test.describe('Terminal Session Resumption', () => {
 
 		// Simulate entering commands in terminal
 		const commands = ['pwd', 'ls -la', 'echo "Hello from terminal"'];
-		
+
 		for (const command of commands) {
 			// Type command
 			await page.keyboard.type(command);
 			await page.waitForTimeout(200);
-			
+
 			// Press Enter
 			await page.keyboard.press('Enter');
 			await page.waitForTimeout(500);
@@ -160,9 +160,10 @@ test.describe('Terminal Session Resumption', () => {
 
 		// Capture what was written to terminal
 		const terminalCommands = await page.evaluate(() => window.__terminalData || []);
-		
+
 		// Build expected terminal history
-		terminalHistory = terminalCommands.join('') + 
+		terminalHistory =
+			terminalCommands.join('') +
 			'\r\n/workspace/test-project\r\n$ ' +
 			'\r\nREADME.md\tpackage.json\tsrc/\r\n$ ' +
 			'\r\nHello from terminal\r\n$ ';
@@ -171,7 +172,7 @@ test.describe('Terminal Session Resumption', () => {
 
 		// Now close the session by navigating away or closing the pane
 		await page.click('.session-close, .close-button, [data-testid="close-session"]');
-		
+
 		// Wait for session to close
 		await page.waitForTimeout(1000);
 
@@ -210,12 +211,12 @@ test.describe('Terminal Session Resumption', () => {
 			// If session not visible in sidebar, create new session and it should resume
 			await page.click('.header-actions button:has-text("Terminal")');
 			await page.waitForSelector('.modal-overlay');
-			
+
 			const workspaceSelector = page.locator('select#workspace, .workspace-selector');
 			if (await workspaceSelector.isVisible()) {
 				await workspaceSelector.selectOption({ index: 0 });
 			}
-			
+
 			await page.click('button:has-text("Create"), button:has-text("Start Terminal")');
 			await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
 		}
@@ -237,7 +238,7 @@ test.describe('Terminal Session Resumption', () => {
 		// Check that key elements from our session are preserved
 		expect(terminalContent).toContain('/workspace/test-project');
 		expect(terminalContent).toContain('Hello from terminal');
-		
+
 		// Verify we can continue working in the resumed session
 		await page.keyboard.type('echo "Session resumed successfully"');
 		await page.keyboard.press('Enter');
@@ -471,7 +472,7 @@ test.describe('Terminal Session Resumption', () => {
 
 		// Monitor console for error handling
 		const consoleLogs = [];
-		page.on('console', msg => {
+		page.on('console', (msg) => {
 			consoleLogs.push(msg.text());
 		});
 
@@ -492,9 +493,8 @@ test.describe('Terminal Session Resumption', () => {
 		await expect(terminal).toBeVisible();
 
 		// Verify error was logged but didn't break the terminal
-		const errorLogs = consoleLogs.filter(log => 
-			log.toLowerCase().includes('error') && 
-			log.toLowerCase().includes('history')
+		const errorLogs = consoleLogs.filter(
+			(log) => log.toLowerCase().includes('error') && log.toLowerCase().includes('history')
 		);
 		expect(errorLogs.length).toBeGreaterThan(0);
 
@@ -553,15 +553,17 @@ test.describe('Terminal Session Resumption', () => {
 				}
 			} else if (route.request().method() === 'GET') {
 				// Return session in list after creation
-				const sessions = sessionCreated ? [
-					{
-						id: sessionId,
-						type: 'terminal',
-						workspacePath: '/workspace/list-test',
-						shell: '/bin/bash'
-					}
-				] : [];
-				
+				const sessions = sessionCreated
+					? [
+							{
+								id: sessionId,
+								type: 'terminal',
+								workspacePath: '/workspace/list-test',
+								shell: '/bin/bash'
+							}
+						]
+					: [];
+
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -596,7 +598,9 @@ test.describe('Terminal Session Resumption', () => {
 		await expect(sessionItem).toBeVisible({ timeout: 5000 });
 
 		// Verify it's identified as a terminal session
-		const terminalIcon = page.locator('.session-item .terminal-icon, .session-item [data-icon="terminal"]');
+		const terminalIcon = page.locator(
+			'.session-item .terminal-icon, .session-item [data-icon="terminal"]'
+		);
 		if (await terminalIcon.isVisible({ timeout: 2000 })) {
 			await expect(terminalIcon).toBeVisible();
 		}

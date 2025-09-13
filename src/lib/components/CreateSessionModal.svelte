@@ -2,7 +2,7 @@
 	import { Modal } from '$lib/shared/components';
 	import ClaudeProjectPicker from './ClaudeProjectPicker.svelte';
 	import DirectoryBrowser from './DirectoryBrowser.svelte';
-	
+
 	let { open = $bindable(false), onSessionCreate, initialType = 'claude' } = $props();
 
 	// Form state
@@ -114,16 +114,14 @@
 	});
 
 	const canCreate = $derived(
-		sessionType === 'terminal' 
+		sessionType === 'terminal'
 			? selectedDirectory !== null
 			: mode === 'new'
 				? projectName.trim().length > 0
 				: selectedClaudeProject !== null || selectedDirectory !== null
 	);
 
-	const createButtonText = $derived(
-		creating ? 'Creating...' : 'Create Session'
-	);
+	const createButtonText = $derived(creating ? 'Creating...' : 'Create Session');
 </script>
 
 <Modal bind:open title="Create New Session" onclose={handleClose} size="large">
@@ -136,7 +134,9 @@
 				<div class="creating-indicator">
 					<div class="step-list">
 						<div class={workspaceCreated ? 'done' : 'active'}>Creating/opening workspace...</div>
-						<div class={sessionCreated ? 'done' : workspaceCreated ? 'active' : ''}>Starting session...</div>
+						<div class={sessionCreated ? 'done' : workspaceCreated ? 'active' : ''}>
+							Starting session...
+						</div>
 					</div>
 				</div>
 			{/if}
@@ -216,7 +216,7 @@
 									<label class="sub-label">Claude Projects</label>
 									<ClaudeProjectPicker
 										bind:selected={selectedClaudeProject}
-										onSelect={() => selectedDirectory = null}
+										onSelect={() => (selectedDirectory = null)}
 										api="/api/claude/projects"
 									/>
 								</div>
@@ -225,7 +225,7 @@
 									<label class="sub-label">Browse Directory</label>
 									<DirectoryBrowser
 										bind:selected={selectedDirectory}
-										onSelect={() => selectedClaudeProject = null}
+										onSelect={() => (selectedClaudeProject = null)}
 										api="/api/browse"
 										startPath=""
 										placeholder="Select a directory from workspaces..."
@@ -253,14 +253,8 @@
 
 	{#snippet footer()}
 		<div class="modal-actions">
-			<button class="btn cancel" onclick={handleClose} disabled={creating}>
-				Cancel
-			</button>
-			<button
-				class="btn primary"
-				onclick={handleCreate}
-				disabled={!canCreate || creating}
-			>
+			<button class="btn cancel" onclick={handleClose} disabled={creating}> Cancel </button>
+			<button class="btn primary" onclick={handleCreate} disabled={!canCreate || creating}>
 				{createButtonText}
 			</button>
 		</div>

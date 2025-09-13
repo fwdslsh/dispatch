@@ -1,9 +1,9 @@
 /**
  * Path validation utilities
- * 
+ *
  * This module provides both restrictive path validation (for workspace boundaries)
  * and basic sanitization (for general path cleaning without restrictions).
- * 
+ *
  * Use basic sanitization when sessions should be able to access any directory
  * the server process can read. Use restrictive validation only when workspace
  * boundaries need to be enforced for specific features.
@@ -20,12 +20,12 @@ import { logger } from './logger.js';
  */
 export function isPathWithinRoot(targetPath, rootPath) {
 	if (!targetPath || !rootPath) return false;
-	
+
 	try {
 		const resolvedTarget = resolve(targetPath);
 		const resolvedRoot = resolve(rootPath);
 		const relativePath = relative(resolvedRoot, resolvedTarget);
-		
+
 		// Path is safe if it doesn't start with '..' and isn't absolute after relativization
 		return !relativePath.startsWith('..') && !isAbsolute(relativePath);
 	} catch (error) {
@@ -43,13 +43,15 @@ export function isPathWithinRoot(targetPath, rootPath) {
  */
 export function assertInWorkspacesRoot(workspacePath, workspaceRoot = null) {
 	const root = workspaceRoot || process.env.WORKSPACES_ROOT || process.cwd();
-	
+
 	if (!isPathWithinRoot(workspacePath, root)) {
-		const error = new Error(`Path traversal denied: ${workspacePath} is outside workspace root ${root}`);
+		const error = new Error(
+			`Path traversal denied: ${workspacePath} is outside workspace root ${root}`
+		);
 		logger.error('PathValidation', error.message);
 		throw error;
 	}
-	
+
 	logger.debug('PathValidation', `Path validated: ${workspacePath} is within ${root}`);
 }
 
@@ -64,23 +66,21 @@ export function safeResolve(requestedPath, rootPath) {
 	if (!requestedPath || typeof requestedPath !== 'string') {
 		throw new Error('Invalid path: must be a non-empty string');
 	}
-	
+
 	// Normalize the requested path
 	const cleanPath = requestedPath.trim();
 	if (!cleanPath) {
 		throw new Error('Invalid path: cannot be empty or whitespace');
 	}
-	
+
 	// Resolve the path
-	const resolvedPath = isAbsolute(cleanPath) 
-		? resolve(cleanPath)
-		: resolve(rootPath, cleanPath);
-	
+	const resolvedPath = isAbsolute(cleanPath) ? resolve(cleanPath) : resolve(rootPath, cleanPath);
+
 	// Validate it's within the root
 	if (!isPathWithinRoot(resolvedPath, rootPath)) {
 		throw new Error(`Path traversal denied: requested path would escape root directory`);
 	}
-	
+
 	return resolvedPath;
 }
 
@@ -94,16 +94,16 @@ export function sanitizePath(path) {
 	if (!path || typeof path !== 'string') {
 		return '';
 	}
-	
+
 	// Remove null bytes and other control characters that could cause issues
 	let sanitized = path.replace(/[\x00-\x1f\x7f]/g, '');
-	
+
 	// Remove Windows reserved characters that could cause filesystem issues
 	sanitized = sanitized.replace(/[<>:"|?*]/g, '');
-	
+
 	// Remove leading/trailing whitespace but preserve relative path indicators like '../'
 	sanitized = sanitized.trim();
-	
+
 	return sanitized;
 }
 
@@ -117,13 +117,13 @@ export function sanitizePathStrict(path) {
 	if (!path || typeof path !== 'string') {
 		return '';
 	}
-	
+
 	// Start with basic sanitization
 	let sanitized = sanitizePath(path);
-	
+
 	// Remove leading/trailing dots that could indicate current/parent directory
 	sanitized = sanitized.replace(/^\.+|\.+$/g, '');
-	
+
 	return sanitized;
 }
 
@@ -156,12 +156,12 @@ export function createSafeWorkspacePath(requestedPath, workspaceRoot) {
 	if (!sanitized) {
 		throw new Error('Invalid path after sanitization');
 	}
-	
+
 	// Then safely resolve it
 	const safePath = safeResolve(sanitized, workspaceRoot);
-	
+
 	// Validate it's within workspace root
 	assertInWorkspacesRoot(safePath, workspaceRoot);
-	
+
 	return safePath;
 }

@@ -22,15 +22,21 @@ const LOG_LEVEL_NAMES = {
 // Parse log level from environment variable
 function parseLogLevel(levelStr) {
 	if (!levelStr) return LOG_LEVELS.INFO; // Default to INFO
-	
+
 	const normalized = levelStr.toUpperCase();
 	switch (normalized) {
-		case 'DEBUG': return LOG_LEVELS.DEBUG;
-		case 'INFO': return LOG_LEVELS.INFO;
-		case 'WARN': return LOG_LEVELS.WARN;
-		case 'ERROR': return LOG_LEVELS.ERROR;
-		case 'NONE': return LOG_LEVELS.NONE;
-		default: return LOG_LEVELS.INFO;
+		case 'DEBUG':
+			return LOG_LEVELS.DEBUG;
+		case 'INFO':
+			return LOG_LEVELS.INFO;
+		case 'WARN':
+			return LOG_LEVELS.WARN;
+		case 'ERROR':
+			return LOG_LEVELS.ERROR;
+		case 'NONE':
+			return LOG_LEVELS.NONE;
+		default:
+			return LOG_LEVELS.INFO;
 	}
 }
 
@@ -52,7 +58,7 @@ function formatLogMessage(level, component, message, ...args) {
 /**
  * Log at DEBUG level
  * @param {string} component - Component name
- * @param {string} message - Log message  
+ * @param {string} message - Log message
  * @param {...any} args - Additional arguments
  */
 export function debug(component, message, ...args) {

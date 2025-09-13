@@ -1,6 +1,6 @@
 <script>
 	import { IconX, IconFolder } from '@tabler/icons-svelte';
-	
+
 	// Svelte 5 (runes)
 	let {
 		selected = $bindable(), // { name, path, sessionCount, lastModified }
@@ -37,24 +37,24 @@
 	function formatProjectName(project) {
 		const projectName = project.name || '';
 		if (!projectName) return 'Untitled Project';
-		
+
 		// These are Claude Code project names which encode the workspace path
 		// Examples:
 		// "-home-founder3-dispatch-home-826f211a-3c86-457a-90ef-e4f8594ed479-dispatch--dispatch-home-workspaces-example1"
 		// "-home-founder3-dispatch-home-826f211a-3c86-457a-90ef-e4f8594ed479-dispatch--dispatch-home-workspaces-new-new"
-		
+
 		// Look for the last meaningful segment after "workspaces-"
 		const workspaceMatch = projectName.match(/workspaces-([^-]+)(?:-([^-]+))?$/);
 		if (workspaceMatch) {
 			const mainName = workspaceMatch[1];
 			const subName = workspaceMatch[2];
-			
+
 			if (subName && subName !== mainName) {
 				return `${mainName.charAt(0).toUpperCase() + mainName.slice(1)} - ${subName.charAt(0).toUpperCase() + subName.slice(1)}`;
 			}
 			return mainName.charAt(0).toUpperCase() + mainName.slice(1);
 		}
-		
+
 		// If no workspaces pattern, look for the last meaningful part
 		const parts = projectName.split('--').pop().split('-');
 		for (let i = parts.length - 1; i >= 0; i--) {
@@ -63,7 +63,7 @@
 				return part.charAt(0).toUpperCase() + part.slice(1);
 			}
 		}
-		
+
 		return 'Project';
 	}
 
@@ -122,7 +122,9 @@
 					<span>• {new Date(selected.lastModified).toLocaleDateString()}</span>
 				{/if}
 			</div>
-			<button type="button" class="clear-btn" onclick={clear} aria-label="Clear selection"><IconX size={14} /></button>
+			<button type="button" class="clear-btn" onclick={clear} aria-label="Clear selection"
+				><IconX size={14} /></button
+			>
 		</div>
 	{:else}
 		<div class="row">
@@ -135,7 +137,9 @@
 				aria-expanded={open}
 				aria-controls="cc-panel"
 			/>
-			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse projects"><IconFolder size={18} /></button>
+			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse projects"
+				><IconFolder size={18} /></button
+			>
 		</div>
 	{/if}
 
@@ -154,7 +158,8 @@
 							<div class="name">{formatProjectName(p)}</div>
 							<div class="meta">
 								<span>{p.sessionCount || 0} sessions</span>
-								{#if p.lastModified}<span>• {new Date(p.lastModified).toLocaleDateString()}</span>{/if}
+								{#if p.lastModified}<span>• {new Date(p.lastModified).toLocaleDateString()}</span
+									>{/if}
 							</div>
 						</button>
 					</li>
@@ -218,7 +223,6 @@
 		color: var(--primary);
 	}
 
-
 	.row {
 		display: grid;
 		grid-template-columns: 1fr auto;
@@ -276,8 +280,8 @@
 		background: var(--bg-panel);
 		border: 1px solid var(--primary-dim);
 		border-radius: 4px;
-		
-		box-shadow: 
+
+		box-shadow:
 			0 4px 16px rgba(0, 0, 0, 0.3),
 			0 0 0 1px rgba(46, 230, 107, 0.2);
 		z-index: 1001;

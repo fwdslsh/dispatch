@@ -1,6 +1,6 @@
 <script>
 	import { IconX, IconArchive } from '@tabler/icons-svelte';
-	
+
 	// Props
 	let {
 		project = '', // required
@@ -37,24 +37,28 @@
 	// Function to create user-friendly session names
 	function formatSessionName(session) {
 		if (!session.id) return 'Session';
-		
+
 		// For UUID-style IDs, just show a simple session name with first 8 chars
 		if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(session.id)) {
 			return `Session ${session.id.substring(0, 8)}`;
 		}
-		
+
 		// Clean up session ID for display
 		const cleaned = session.id
 			.replace(/^claude_/, 'Session ')
 			.replace(/_/g, ' ')
-			.replace(/\b\w/g, l => l.toUpperCase());
-		
+			.replace(/\b\w/g, (l) => l.toUpperCase());
+
 		return cleaned || 'Session';
 	}
 
 	function applyFilter() {
 		const q = filterText.trim().toLowerCase();
-		filtered = !q ? list : list.filter((s) => formatSessionName(s).toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
+		filtered = !q
+			? list
+			: list.filter(
+					(s) => formatSessionName(s).toLowerCase().includes(q) || s.id.toLowerCase().includes(q)
+				);
 		highlight = 0;
 	}
 
@@ -73,7 +77,6 @@
 		selected = null;
 		filterText = '';
 	}
-
 
 	function key(e) {
 		if (!open) return;
@@ -103,7 +106,9 @@
 					<span>• {new Date(selected.lastModified).toLocaleDateString()}</span>
 				{/if}
 			</div>
-			<button type="button" class="clear-btn" onclick={clear} aria-label="Clear selection"><IconX size={14} /></button>
+			<button type="button" class="clear-btn" onclick={clear} aria-label="Clear selection"
+				><IconX size={14} /></button
+			>
 		</div>
 	{:else}
 		<div class="row">
@@ -116,7 +121,9 @@
 				aria-expanded={open}
 				aria-controls="cc-session-panel"
 			/>
-			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse sessions"><IconArchive size={18} /></button>
+			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse sessions"
+				><IconArchive size={18} /></button
+			>
 		</div>
 	{/if}
 
@@ -136,10 +143,7 @@
 			<ul class="list" role="listbox">
 				{#each filtered as s, i}
 					<li class={i === highlight ? 'is-active' : ''}>
-						<button
-							type="button"
-							onclick={() => choose(s)}
-						>
+						<button type="button" onclick={() => choose(s)}>
 							<div class="row2">
 								<div class="id">{formatSessionName(s)}</div>
 								<div class="meta">
@@ -259,12 +263,11 @@
 	}
 
 	.panel {
-	
 		inset-inline: 0;
 		background: var(--bg-panel);
 		border: 2px solid color-mix(in oklab, var(--accent-cyan) 50%, transparent);
 		border-radius: 8px;
-		box-shadow: 
+		box-shadow:
 			0 8px 32px rgba(0, 0, 0, 0.4),
 			0 0 0 1px rgba(0, 194, 255, 0.1);
 		z-index: 1000;

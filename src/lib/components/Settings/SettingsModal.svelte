@@ -11,9 +11,7 @@
 	 * Main settings interface with tabbed sections for different configuration areas
 	 */
 
-	let {
-		open = $bindable(false)
-	} = $props();
+	let { open = $bindable(false) } = $props();
 
 	// Active tab state
 	let activeTab = $state('global');
@@ -27,15 +25,10 @@
 	];
 
 	// Get active tab component
-	const activeTabData = $derived(tabs.find(tab => tab.id === activeTab));
+	const activeTabData = $derived(tabs.find((tab) => tab.id === activeTab));
 </script>
 
-<Modal 
-	bind:open 
-	title="Settings" 
-	size="large"
-	augmented="tl-clip tr-clip bl-clip br-clip both"
->
+<Modal bind:open title="Settings" size="large" augmented="tl-clip tr-clip bl-clip br-clip both">
 	<div class="settings-container">
 		<!-- Settings Navigation -->
 		<nav class="settings-nav" role="tablist" aria-label="Settings sections">
@@ -43,7 +36,7 @@
 				<button
 					class="settings-tab"
 					class:active={activeTab === tab.id}
-					onclick={() => activeTab = tab.id}
+					onclick={() => (activeTab = tab.id)}
 					role="tab"
 					aria-selected={activeTab === tab.id}
 					aria-controls="settings-panel-{tab.id}"
@@ -58,8 +51,8 @@
 		<!-- Settings Content -->
 		<main class="settings-content">
 			{#if activeTabData}
-				<div 
-					class="settings-panel" 
+				<div
+					class="settings-panel"
 					role="tabpanel"
 					aria-labelledby="settings-tab-{activeTab}"
 					id="settings-panel-{activeTab}"

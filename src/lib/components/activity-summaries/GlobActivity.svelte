@@ -1,13 +1,13 @@
 <script>
 	import './shared-styles.css';
-	
+
 	let { event } = $props();
-	
+
 	const globInfo = $derived(parseGlobEvent(event));
-	
+
 	function parseGlobEvent(e) {
 		if (!e) return null;
-		
+
 		try {
 			const input = e.input || e;
 			return {
@@ -25,10 +25,10 @@
 			};
 		}
 	}
-	
+
 	function extractResults(result) {
 		if (!result) return null;
-		
+
 		if (Array.isArray(result)) {
 			return {
 				count: result.length,
@@ -36,19 +36,19 @@
 				truncated: result.length > 15
 			};
 		}
-		
+
 		if (typeof result === 'string') {
-			const files = result.split('\n').filter(f => f.trim());
+			const files = result.split('\n').filter((f) => f.trim());
 			return {
 				count: files.length,
 				files: files.slice(0, 15),
 				truncated: files.length > 15
 			};
 		}
-		
+
 		return null;
 	}
-	
+
 	function formatPath(path) {
 		if (!path) return 'Current directory';
 		if (path === '.') return 'Current directory';
@@ -58,7 +58,7 @@
 		}
 		return path;
 	}
-	
+
 	function formatFile(file) {
 		const parts = file.split('/');
 		if (parts.length > 3) {
@@ -76,7 +76,7 @@
 				<code class="glob-pattern">{globInfo.pattern}</code>
 			</span>
 		</div>
-		
+
 		<div class="activity-row">
 			<span class="activity-label">Location</span>
 			<span class="activity-value">
@@ -85,16 +85,17 @@
 				</span>
 			</span>
 		</div>
-		
+
 		{#if globInfo.results}
 			<div class="activity-result">
 				<div class="activity-row">
 					<span class="activity-label">Matches</span>
 					<span class="activity-value">
-						{globInfo.results.count} {globInfo.results.count === 1 ? 'file' : 'files'} found
+						{globInfo.results.count}
+						{globInfo.results.count === 1 ? 'file' : 'files'} found
 					</span>
 				</div>
-				
+
 				{#if globInfo.results.files && globInfo.results.files.length > 0}
 					<ul class="activity-list file-list">
 						{#each globInfo.results.files as file}
@@ -109,7 +110,7 @@
 				{/if}
 			</div>
 		{/if}
-		
+
 		{#if globInfo.error}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
@@ -120,9 +121,7 @@
 		{:else if globInfo.success}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
-				<span class="activity-value activity-success">
-					Pattern matched successfully
-				</span>
+				<span class="activity-value activity-success"> Pattern matched successfully </span>
 			</div>
 		{/if}
 	{:else}
@@ -140,7 +139,7 @@
 		font-family: var(--font-mono);
 		font-size: 0.9em;
 	}
-	
+
 	.file-list {
 		max-height: 200px;
 		overflow-y: auto;

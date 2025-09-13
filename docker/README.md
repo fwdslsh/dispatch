@@ -35,11 +35,11 @@ Open your browser at `http://localhost:3030` and enter the password you set in `
 
 Dispatch uses a simple volume mounting strategy:
 
-| Host Path              | Container Path | Purpose                        |
-| ---------------------- | -------------- | ------------------------------ |
-| `./dispatch-config`    | `/config`      | Configuration and settings     |
-| `./dispatch-projects`  | `/projects`    | Project files and workspaces   |
-| `./dispatch-workspace` | `/workspace`   | Temporary workspace directory  |
+| Host Path              | Container Path | Purpose                       |
+| ---------------------- | -------------- | ----------------------------- |
+| `./dispatch-config`    | `/config`      | Configuration and settings    |
+| `./dispatch-projects`  | `/projects`    | Project files and workspaces  |
+| `./dispatch-workspace` | `/workspace`   | Temporary workspace directory |
 
 The container runs as root internally, which allows it to write to mounted volumes without changing host permissions. Your host files remain owned by your user.
 

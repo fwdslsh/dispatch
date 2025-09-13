@@ -93,7 +93,6 @@
 			setTimeout(() => {
 				saveStatus = '';
 			}, 3000);
-
 		} catch (error) {
 			console.error('Failed to save workspace settings:', error);
 			saveStatus = 'Failed to save workspace settings';
@@ -139,13 +138,13 @@
 	// Validate directory path
 	function validatePath(path) {
 		if (!path) return true; // Empty is ok - will use system default
-		
+
 		// Basic path validation
 		const isAbsolute = path.startsWith('/') || /^[A-Za-z]:[\\/]/.test(path);
 		if (!isAbsolute) {
 			return 'Path must be absolute (start with / on Unix or C:\\ on Windows)';
 		}
-		
+
 		return true;
 	}
 
@@ -184,7 +183,7 @@
 		<!-- Default Working Directory -->
 		<section class="settings-section">
 			<h4 class="section-title">Default Working Directory</h4>
-			
+
 			<div class="input-group">
 				<label for="working-dir" class="input-label">Directory Path</label>
 				<div class="directory-input">
@@ -224,7 +223,7 @@
 		{#if workspaceHistory.length > 0}
 			<section class="settings-section">
 				<h4 class="section-title">Recent Workspaces</h4>
-				
+
 				<div class="workspace-history">
 					{#each workspaceHistory as workspace}
 						<div class="history-item">
@@ -245,13 +244,7 @@
 				</div>
 
 				<div class="history-actions">
-					<Button
-						onclick={clearHistory}
-						variant="ghost"
-						size="small"
-					>
-						Clear History
-					</Button>
+					<Button onclick={clearHistory} variant="ghost" size="small">Clear History</Button>
 				</div>
 			</section>
 		{/if}
@@ -259,14 +252,10 @@
 		<!-- Workspace Behavior -->
 		<section class="settings-section">
 			<h4 class="section-title">Workspace Behavior</h4>
-			
+
 			<div class="input-group">
 				<label class="checkbox-label">
-					<input 
-						type="checkbox" 
-						bind:checked={autoCreateProjects}
-						class="checkbox-input"
-					>
+					<input type="checkbox" bind:checked={autoCreateProjects} class="checkbox-input" />
 					<span class="checkbox-text">Auto-create project directories</span>
 				</label>
 				<p class="input-help">
@@ -276,47 +265,37 @@
 
 			<div class="input-group">
 				<label class="checkbox-label">
-					<input 
-						type="checkbox" 
-						bind:checked={rememberLastWorkspace}
-						class="checkbox-input"
-					>
+					<input type="checkbox" bind:checked={rememberLastWorkspace} class="checkbox-input" />
 					<span class="checkbox-text">Remember last workspace</span>
 				</label>
-				<p class="input-help">
-					Automatically open the last used workspace on startup
-				</p>
+				<p class="input-help">Automatically open the last used workspace on startup</p>
 			</div>
 		</section>
 
 		<!-- Quick Actions -->
 		<section class="settings-section">
 			<h4 class="section-title">Quick Actions</h4>
-			
+
 			<div class="quick-actions">
 				<Button
-					onclick={() => defaultWorkingDirectory = '/home/user/projects'}
+					onclick={() => (defaultWorkingDirectory = '/home/user/projects')}
 					variant="ghost"
 					size="small"
 				>
 					<IconFolderPlus size={16} />
 					Set to ~/projects
 				</Button>
-				
+
 				<Button
-					onclick={() => defaultWorkingDirectory = '/home/user/code'}
+					onclick={() => (defaultWorkingDirectory = '/home/user/code')}
 					variant="ghost"
 					size="small"
 				>
 					<IconFolderPlus size={16} />
 					Set to ~/code
 				</Button>
-				
-				<Button
-					onclick={() => defaultWorkingDirectory = ''}
-					variant="ghost"
-					size="small"
-				>
+
+				<Button onclick={() => (defaultWorkingDirectory = '')} variant="ghost" size="small">
 					<IconFolder size={16} />
 					Use System Default
 				</Button>
@@ -326,7 +305,11 @@
 
 	<!-- Footer with save status -->
 	<footer class="settings-footer">
-		<div class="save-status" class:success={saveStatus.includes('success')} class:error={saveStatus.includes('Failed')}>
+		<div
+			class="save-status"
+			class:success={saveStatus.includes('success')}
+			class:error={saveStatus.includes('Failed')}
+		>
 			{saveStatus}
 		</div>
 		<div class="settings-actions">

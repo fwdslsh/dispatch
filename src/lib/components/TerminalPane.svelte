@@ -10,7 +10,7 @@
 
 	async function loadTerminalHistory() {
 		if (!shouldResume || !ptyId) return;
-		
+
 		try {
 			const response = await fetch(`/api/sessions/${encodeURIComponent(ptyId)}/history`);
 			if (response.ok) {
@@ -29,7 +29,7 @@
 	onMount(async () => {
 		// Detect touch device
 		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-		
+
 		term = new Terminal({
 			convertEol: true,
 			cursorBlink: true,
@@ -42,7 +42,7 @@
 			smoothScrollDuration: isTouchDevice ? 0 : 125, // Disable smooth scroll on touch for better performance
 			fastScrollModifier: 'shift',
 			fastScrollSensitivity: 5,
-			scrollSensitivity: isTouchDevice ? 3 : 1, // Increase scroll sensitivity on touch devices
+			scrollSensitivity: isTouchDevice ? 3 : 1 // Increase scroll sensitivity on touch devices
 		});
 		const fitAddon = new FitAddon();
 		term.loadAddon(fitAddon);
@@ -58,7 +58,7 @@
 		// Get or create socket for this specific session
 		socket = sessionSocketManager.getSocket(ptyId);
 		sessionSocketManager.handleSessionFocus(ptyId);
-		
+
 		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 
 		socket.on('connect', () => {

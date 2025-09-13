@@ -2,7 +2,7 @@
 
 /**
  * Dispatch UI Test Suite Runner
- * 
+ *
  * Runs the comprehensive e2e UI test suite focusing on non-Claude functionality.
  * This ensures reliable CI execution without external API dependencies.
  */
@@ -23,9 +23,7 @@ const coreTestFiles = [
 ];
 
 // Server-side integration tests
-const integrationTestFiles = [
-	'tests/e2e/socket-integration.spec.js'
-];
+const integrationTestFiles = ['tests/e2e/socket-integration.spec.js'];
 
 console.log('🎭 Dispatch UI Test Suite (Non-Claude)');
 console.log('=====================================\n');
@@ -68,12 +66,7 @@ const isDebug = args.includes('--debug');
 const isUI = args.includes('--ui');
 
 // Build Playwright command
-const playwrightArgs = [
-	'npx',
-	'playwright',
-	'test',
-	`--config=${configFile}`
-];
+const playwrightArgs = ['npx', 'playwright', 'test', `--config=${configFile}`];
 
 // Add specific test files if using default config
 if (!hasCustomConfig) {
@@ -86,7 +79,7 @@ if (isDebug) playwrightArgs.push('--debug');
 if (isUI) playwrightArgs.push('--ui');
 
 // Add other passed arguments (excluding our custom ones)
-const otherArgs = args.filter(arg => !['--headed', '--debug', '--ui'].includes(arg));
+const otherArgs = args.filter((arg) => !['--headed', '--debug', '--ui'].includes(arg));
 playwrightArgs.push(...otherArgs);
 
 console.log('🚀 Starting UI tests...\n');
@@ -127,12 +120,12 @@ playwrightProcess.on('close', (code) => {
 		console.log('   ✅ Error handling and edge cases');
 		console.log('   ✅ Command palette and keyboard shortcuts');
 		console.log('   ✅ Working directory functionality');
-		
+
 		console.log('\n🚫 Intentionally Excluded:');
 		console.log('   ⊗ Claude session functionality (external API dependency)');
 		console.log('   ⊗ Claude-specific UI components');
 		console.log('   ⊗ Activity summaries requiring Claude API');
-		
+
 		console.log('\n💡 View detailed results:');
 		console.log('   • npx playwright show-report');
 		console.log('   • Check test-results/ directory');

@@ -1,5 +1,5 @@
 <script>
-	import { onDestroy } from "svelte";
+	import { onDestroy } from 'svelte';
 
 	/**
 	 * Modal Foundation Component
@@ -99,7 +99,7 @@
 			// Focus trap - focus the modal
 			const modalElement = document.getElementById(modalId);
 			modalElement?.focus();
-			
+
 			// Initialize mobile state
 			updateMobileState();
 			window.addEventListener('resize', updateMobileState);
@@ -108,7 +108,6 @@
 			document.body.style.overflow = '';
 			window.removeEventListener('resize', updateMobileState);
 		}
-
 	});
 	onDestroy(() => {
 		// Ensure body scroll is restored
@@ -132,52 +131,52 @@
 >
 	<div
 		id={modalId}
-		class="{modalClasses}"
+		class={modalClasses}
 		class:open
 		data-augmented-ui={augmentedAttr}
 		tabindex="-1"
 		{...restProps}
 	>
-			{#if title || showCloseButton}
-				<header class="modal__header">
-					{#if title}
-						<h2 class="modal__title" id={titleId}>
-							{title}
-						</h2>
-					{/if}
+		{#if title || showCloseButton}
+			<header class="modal__header">
+				{#if title}
+					<h2 class="modal__title" id={titleId}>
+						{title}
+					</h2>
+				{/if}
 
-					{#if showCloseButton}
-						<button class="modal__close" onclick={close} aria-label="Close modal" type="button">
-							<svg
-								width="24"
-								height="24"
-								viewBox="0 0 24 24"
-								fill="none"
-								xmlns="http://www.w3.org/2000/svg"
-							>
-								<path
-									d="M18 6L6 18M6 6L18 18"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-								/>
-							</svg>
-						</button>
-					{/if}
-				</header>
-			{/if}
+				{#if showCloseButton}
+					<button class="modal__close" onclick={close} aria-label="Close modal" type="button">
+						<svg
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							xmlns="http://www.w3.org/2000/svg"
+						>
+							<path
+								d="M18 6L6 18M6 6L18 18"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+						</svg>
+					</button>
+				{/if}
+			</header>
+		{/if}
 
-			<div class="modal__content" id={contentId}>
-				{@render children()}
-			</div>
-
-			{#if footer}
-				<footer class="modal__footer">
-					{@render footer()}
-				</footer>
-			{/if}
+		<div class="modal__content" id={contentId}>
+			{@render children()}
 		</div>
+
+		{#if footer}
+			<footer class="modal__footer">
+				{@render footer()}
+			</footer>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -188,7 +187,7 @@
 		right: 0;
 		bottom: 0;
 		z-index: 1000;
-		background: 
+		background:
 			radial-gradient(ellipse at center, rgba(46, 230, 107, 0.05) 0%, transparent 70%),
 			color-mix(in oklab, black 70%, transparent);
 		backdrop-filter: blur(0px);
@@ -197,27 +196,29 @@
 		justify-content: center;
 		padding: var(--space-4);
 		outline: none;
-		
+
 		/* Modern CSS dialog-style animations */
 		opacity: 0;
-		transition: 
+		transition:
 			display 0.3s allow-discrete,
 			overlay 0.3s allow-discrete,
 			opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1),
 			backdrop-filter 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-		
+
 		/* Terminal grid overlay */
-		background-image: 
+		background-image:
 			radial-gradient(circle at 25% 25%, var(--scan-line) 1px, transparent 1px),
 			radial-gradient(circle at 75% 75%, var(--scan-line) 1px, transparent 1px);
-		background-size: 50px 50px, 30px 30px;
+		background-size:
+			50px 50px,
+			30px 30px;
 	}
-	
+
 	.modal-backdrop.open {
 		display: flex;
 		opacity: 1;
 		backdrop-filter: blur(12px);
-		
+
 		@starting-style {
 			opacity: 0;
 			backdrop-filter: blur(0px);
@@ -234,23 +235,23 @@
 		outline: none;
 		position: relative;
 		overflow: hidden;
-		
+
 		/* Enhanced terminal modal styling */
 		background: var(--bg-panel);
 		border: 2px solid var(--primary-dim);
 		border-radius: 0;
-		
+
 		/* Terminal lighting effects */
 		box-shadow: none;
-		
+
 		/* Modern CSS modal animations */
 		opacity: 0;
 		transform: perspective(1000px) translate3d(0, -20px, -30px) scale(0.95);
-		transition: 
+		transition:
 			opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1),
 			transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 	}
-	
+
 	.modal.open {
 		opacity: 1;
 		transform: perspective(1000px) translate3d(0, 0, 0) scale(1);
@@ -259,7 +260,7 @@
 			inset 0 0 60px rgba(46, 230, 107, 0.03),
 			inset 0 0 20px rgba(0, 0, 0, 0.8),
 			0 15px 50px rgba(0, 0, 0, 0.7);
-		
+
 		@starting-style {
 			opacity: 0;
 			transform: perspective(1000px) translate3d(0, -20px, -30px) scale(0.95);
@@ -310,11 +311,12 @@
 		left: 2px;
 		right: 2px;
 		height: 2px;
-		background: linear-gradient(90deg, 
-			transparent, 
-			var(--primary), 
-			var(--accent-amber), 
-			var(--primary), 
+		background: linear-gradient(
+			90deg,
+			transparent,
+			var(--primary),
+			var(--accent-amber),
+			var(--primary),
 			transparent
 		);
 		animation: terminalScan 2s linear infinite;
@@ -364,8 +366,12 @@
 	}
 
 	@keyframes terminalScan {
-		0% { transform: translateX(-100%); }
-		100% { transform: translateX(100%); }
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(100%);
+		}
 	}
 
 	/* Enhanced terminal content */
@@ -418,11 +424,7 @@
 		left: 0;
 		right: 0;
 		height: 2px;
-		background: linear-gradient(90deg, 
-			transparent, 
-			var(--primary), 
-			transparent
-		);
+		background: linear-gradient(90deg, transparent, var(--primary), transparent);
 	}
 
 	/* Modern CSS animations replace old keyframes */
@@ -443,7 +445,7 @@
 			margin: 0;
 			/* Simplify mobile styling */
 			border: 1px solid var(--primary-dim);
-			box-shadow: 
+			box-shadow:
 				0 4px 20px rgba(0, 0, 0, 0.5),
 				0 0 20px rgba(46, 230, 107, 0.1);
 		}
@@ -505,11 +507,11 @@
 		.modal {
 			animation: none;
 		}
-		
+
 		.modal__header::before {
 			animation: none;
 		}
-		
+
 		.modal__content::before {
 			display: none;
 		}

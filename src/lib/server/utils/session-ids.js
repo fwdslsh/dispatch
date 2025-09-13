@@ -36,11 +36,11 @@ export function createSessionDescriptor(type, typeSpecificId, additionalFields =
 	if (!type || typeof type !== 'string') {
 		throw new Error('Session type is required and must be a string');
 	}
-	
+
 	if (!typeSpecificId || typeof typeSpecificId !== 'string') {
 		throw new Error('Type-specific ID is required and must be a string');
 	}
-	
+
 	return {
 		type,
 		typeSpecificId,

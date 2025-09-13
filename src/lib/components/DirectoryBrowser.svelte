@@ -1,6 +1,14 @@
 <script>
-	import { Button } from "$lib/shared/components";
-	import { IconFolder, IconFolderPlus, IconEye, IconEyeOff, IconX, IconFile, IconCheck } from '@tabler/icons-svelte';
+	import { Button } from '$lib/shared/components';
+	import {
+		IconFolder,
+		IconFolderPlus,
+		IconEye,
+		IconEyeOff,
+		IconX,
+		IconFile,
+		IconCheck
+	} from '@tabler/icons-svelte';
 
 	// Svelte 5 Directory Browser Component
 	let {
@@ -60,9 +68,7 @@
 
 	function filter() {
 		const q = query.trim().toLowerCase();
-		filtered = !q
-			? entries
-			: entries.filter((e) => e.name.toLowerCase().includes(q));
+		filtered = !q ? entries : entries.filter((e) => e.name.toLowerCase().includes(q));
 	}
 
 	function navigateTo(path) {
@@ -98,32 +104,32 @@
 		creatingDir = true;
 		error = '';
 		const dirName = newDirName.trim();
-		
+
 		try {
 			// Properly join paths, handling the case where currentPath ends with /
-			const dirPath = currentPath.endsWith('/') 
-				? currentPath + dirName 
+			const dirPath = currentPath.endsWith('/')
+				? currentPath + dirName
 				: currentPath + '/' + dirName;
 			const res = await fetch('/api/browse/create', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ path: dirPath })
 			});
-			
+
 			if (!res.ok) {
 				const data = await res.json();
 				throw new Error(data.error || `Failed to create directory`);
 			}
-			
+
 			// Refresh the directory listing
 			await browse(currentPath);
-			
+
 			// Clear the input and hide the form
 			newDirName = '';
 			showNewDirInput = false;
-			
+
 			// Optionally select the new directory
-			const newDir = entries.find(e => e.name === dirName);
+			const newDir = entries.find((e) => e.name === dirName);
 			if (newDir) {
 				selectDirectory(newDir.path);
 			}
@@ -216,13 +222,7 @@
 	{/if}
 	<!-- Search bar -->
 	<div class="search-bar">
-		<input
-			type="text"
-			bind:value={query}
-			placeholder={placeholder}
-			disabled={loading}
-			class="search-input"
-		/>
+		<input type="text" bind:value={query} {placeholder} disabled={loading} class="search-input" />
 		<button
 			type="button"
 			class="select-btn"
@@ -232,27 +232,22 @@
 		>
 			<IconCheck size={20} />
 		</button>
+		<Button type="button" onclick={toggleNewDirInput} title="Create new directory" variant="ghost">
+			<IconFolderPlus size={16} />
+		</Button>
 		<Button
-				type="button"
-				onclick={toggleNewDirInput}
-				title="Create new directory"
-				variant="ghost"
-			>
-				<IconFolderPlus size={16} />
-			</Button>
-			<Button
-				type="button"
-				class="action-btn"
-				onclick={toggleHidden}
-				title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
-				variant="ghost"
-			>
-				{#if showHidden}
-					<IconEye size={16} />
-				{:else}
-					<IconEyeOff size={16} />
-				{/if}
-			</Button>
+			type="button"
+			class="action-btn"
+			onclick={toggleHidden}
+			title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
+			variant="ghost"
+		>
+			{#if showHidden}
+				<IconEye size={16} />
+			{:else}
+				<IconEyeOff size={16} />
+			{/if}
+		</Button>
 	</div>
 
 	<!-- New directory input -->
@@ -274,12 +269,7 @@
 			>
 				{creatingDir ? 'Creating...' : 'Create'}
 			</button>
-			<button
-				type="button"
-				class="cancel-btn"
-				onclick={toggleNewDirInput}
-				disabled={creatingDir}
-			>
+			<button type="button" class="cancel-btn" onclick={toggleNewDirInput} disabled={creatingDir}>
 				Cancel
 			</button>
 		</div>
@@ -347,7 +337,6 @@
 			</div>
 		{/if}
 	</div>
-
 </div>
 
 <style>
@@ -380,13 +369,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: calc(var(--space-3) * 1.2);
-		background: 
-			linear-gradient(135deg, 
-				var(--db-bg-gradient-start) 0%, 
-				var(--db-bg-gradient-end) 100%),
-			radial-gradient(circle at 20% 80%, 
-				var(--db-primary-dim) 0%, 
-				transparent 50%);
+		background:
+			linear-gradient(135deg, var(--db-bg-gradient-start) 0%, var(--db-bg-gradient-end) 100%),
+			radial-gradient(circle at 20% 80%, var(--db-primary-dim) 0%, transparent 50%);
 		border: 1px solid var(--db-border-subtle);
 		border-radius: 12px;
 		padding: calc(var(--space-3) * 1);
@@ -394,7 +379,7 @@
 		width: 100%;
 		position: relative;
 		overflow: hidden;
-		box-shadow: 
+		box-shadow:
 			var(--db-shadow-lg),
 			inset 0 2px 4px rgba(46, 230, 107, 0.05),
 			inset 0 -1px 2px rgba(0, 0, 0, 0.5);
@@ -408,10 +393,7 @@
 		left: -2px;
 		right: -2px;
 		bottom: -2px;
-		background: linear-gradient(45deg, 
-			var(--db-primary-dim), 
-			transparent, 
-			var(--db-primary-dim));
+		background: linear-gradient(45deg, var(--db-primary-dim), transparent, var(--db-primary-dim));
 		border-radius: 16px;
 		opacity: 0;
 		transition: opacity var(--db-transition-smooth);
@@ -424,8 +406,12 @@
 	}
 
 	@keyframes shimmer {
-		0% { background-position: -200% 0; }
-		100% { background-position: 200% 0; }
+		0% {
+			background-position: -200% 0;
+		}
+		100% {
+			background-position: 200% 0;
+		}
 	}
 
 	/* Breadcrumb bar */
@@ -434,13 +420,9 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: calc(var(--space-2) * 1.25) calc(var(--space-3) * 1.1);
-		background: 
-			linear-gradient(90deg, 
-				var(--db-surface-elevated) 0%, 
-				var(--db-surface) 100%),
-			linear-gradient(180deg, 
-				rgba(46, 230, 107, 0.03) 0%, 
-				transparent 100%);
+		background:
+			linear-gradient(90deg, var(--db-surface-elevated) 0%, var(--db-surface) 100%),
+			linear-gradient(180deg, rgba(46, 230, 107, 0.03) 0%, transparent 100%);
 		border: 1px solid var(--db-border-subtle);
 		border-radius: 10px;
 		min-height: 44px;
@@ -449,7 +431,7 @@
 		scrollbar-width: thin;
 		scrollbar-color: var(--db-primary-dim) transparent;
 		backdrop-filter: blur(10px) saturate(1.2);
-		box-shadow: 
+		box-shadow:
 			var(--db-shadow-sm),
 			inset 0 2px 4px rgba(46, 230, 107, 0.02),
 			inset 0 -1px 2px rgba(0, 0, 0, 0.3);
@@ -463,10 +445,7 @@
 		left: 0;
 		right: 0;
 		height: 1px;
-		background: linear-gradient(90deg, 
-			transparent, 
-			var(--db-primary-dim), 
-			transparent);
+		background: linear-gradient(90deg, transparent, var(--db-primary-dim), transparent);
 		opacity: 0.5;
 	}
 
@@ -509,9 +488,7 @@
 
 	.breadcrumb-item:hover:not(:disabled) {
 		color: var(--db-primary-bright);
-		background: linear-gradient(135deg, 
-			var(--db-primary-dim) 0%, 
-			transparent 100%);
+		background: linear-gradient(135deg, var(--db-primary-dim) 0%, transparent 100%);
 		transform: translateY(-1px);
 	}
 
@@ -562,9 +539,7 @@
 		left: 50%;
 		width: 0;
 		height: 0;
-		background: radial-gradient(circle, 
-			var(--db-primary-glow) 0%, 
-			transparent 70%);
+		background: radial-gradient(circle, var(--db-primary-glow) 0%, transparent 70%);
 		transition: all var(--db-transition-smooth);
 		transform: translate(-50%, -50%);
 		border-radius: 50%;
@@ -574,7 +549,7 @@
 		border-color: var(--db-border-strong);
 		color: var(--db-primary-bright);
 		transform: translateY(-2px);
-		box-shadow: 
+		box-shadow:
 			var(--db-shadow-md),
 			0 0 12px var(--db-primary-glow);
 	}
@@ -589,12 +564,10 @@
 	}
 
 	.action-btn.active {
-		background: linear-gradient(135deg, 
-			var(--db-primary) 0%, 
-			var(--db-accent) 100%);
+		background: linear-gradient(135deg, var(--db-primary) 0%, var(--db-accent) 100%);
 		color: var(--bg);
 		border-color: var(--db-primary);
-		box-shadow: 
+		box-shadow:
 			var(--db-shadow-md),
 			0 0 16px var(--db-primary-glow),
 			inset 0 1px 2px rgba(255, 255, 255, 0.2);
@@ -610,9 +583,7 @@
 	.search-input {
 		flex: 1;
 		padding: calc(var(--space-2) * 1.3) calc(var(--space-3) * 1.1);
-		background: linear-gradient(135deg, 
-			var(--db-surface) 0%, 
-			var(--db-surface-elevated) 100%);
+		background: linear-gradient(135deg, var(--db-surface) 0%, var(--db-surface-elevated) 100%);
 		border: 1px solid var(--db-border-subtle);
 		color: var(--db-text-primary);
 		font-family: var(--font-mono);
@@ -621,7 +592,7 @@
 		letter-spacing: 0.01em;
 		border-radius: 10px;
 		transition: all var(--db-transition-fast);
-		box-shadow: 
+		box-shadow:
 			inset 0 2px 4px rgba(0, 0, 0, 0.2),
 			inset 0 -1px 2px rgba(0, 0, 0, 0.1);
 	}
@@ -634,12 +605,14 @@
 	.search-input:focus {
 		outline: none;
 		border-color: var(--db-primary);
-		box-shadow: 
+		box-shadow:
 			0 0 0 3px var(--db-primary-dim),
 			inset 0 2px 4px rgba(0, 0, 0, 0.1);
-		background: linear-gradient(135deg, 
-			var(--db-surface-elevated) 0%, 
-			rgba(46, 230, 107, 0.05) 100%);
+		background: linear-gradient(
+			135deg,
+			var(--db-surface-elevated) 0%,
+			rgba(46, 230, 107, 0.05) 100%
+		);
 	}
 
 	.search-input::placeholder {
@@ -650,9 +623,7 @@
 
 	.select-btn {
 		padding: calc(var(--space-2) * 1.4) calc(var(--space-4) * 1.1);
-		background: linear-gradient(135deg, 
-			var(--db-primary) 0%, 
-			var(--db-accent) 100%);
+		background: linear-gradient(135deg, var(--db-primary) 0%, var(--db-accent) 100%);
 		color: var(--bg-dark);
 		border: 1px solid var(--db-primary);
 		font-family: var(--font-mono);
@@ -664,7 +635,7 @@
 		cursor: pointer;
 		white-space: nowrap;
 		transition: all var(--db-transition-smooth);
-		box-shadow: 
+		box-shadow:
 			0 4px 12px var(--db-primary-dim),
 			inset 0 2px 4px rgba(255, 255, 255, 0.15),
 			inset 0 -2px 4px rgba(0, 0, 0, 0.2);
@@ -681,9 +652,7 @@
 		left: 50%;
 		width: 120%;
 		height: 120%;
-		background: radial-gradient(circle, 
-			rgba(255, 255, 255, 0.3) 0%, 
-			transparent 70%);
+		background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
 		transform: translate(-50%, -50%) scale(0);
 		transition: transform var(--db-transition-smooth);
 		border-radius: 50%;
@@ -696,19 +665,14 @@
 		left: -100%;
 		width: 100%;
 		height: 100%;
-		background: linear-gradient(90deg, 
-			transparent, 
-			rgba(255, 255, 255, 0.25), 
-			transparent);
+		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
 		transition: left 0.6s ease;
 	}
 
 	.select-btn:hover:not(:disabled) {
-		background: linear-gradient(135deg, 
-			var(--db-primary-bright) 0%, 
-			var(--db-primary) 100%);
+		background: linear-gradient(135deg, var(--db-primary-bright) 0%, var(--db-primary) 100%);
 		transform: translateY(-2px) scale(1.02);
-		box-shadow: 
+		box-shadow:
 			0 6px 20px var(--db-primary-glow),
 			0 0 30px var(--db-primary-dim),
 			inset 0 2px 4px rgba(255, 255, 255, 0.25);
@@ -724,7 +688,7 @@
 
 	.select-btn:active:not(:disabled) {
 		transform: translateY(0) scale(1);
-		box-shadow: 
+		box-shadow:
 			0 2px 8px var(--db-primary-dim),
 			inset 0 2px 4px rgba(0, 0, 0, 0.2);
 	}
@@ -740,18 +704,14 @@
 		display: flex;
 		gap: calc(var(--space-2) * 1.3);
 		padding: calc(var(--space-3) * 1.2);
-		background: 
-			linear-gradient(135deg, 
-				var(--db-primary-dim) 0%, 
-				var(--db-surface-elevated) 100%),
-			radial-gradient(circle at 0% 50%, 
-				var(--db-accent) 0%, 
-				transparent 30%);
+		background:
+			linear-gradient(135deg, var(--db-primary-dim) 0%, var(--db-surface-elevated) 100%),
+			radial-gradient(circle at 0% 50%, var(--db-accent) 0%, transparent 30%);
 		border: 1px solid var(--db-primary);
 		border-radius: 10px;
 		align-items: center;
 		position: relative;
-		box-shadow: 
+		box-shadow:
 			0 6px 16px var(--db-primary-dim),
 			inset 0 2px 4px rgba(46, 230, 107, 0.15),
 			inset 0 -2px 4px rgba(0, 0, 0, 0.3);
@@ -766,9 +726,7 @@
 		left: -50%;
 		width: 200%;
 		height: 200%;
-		background: radial-gradient(circle, 
-			var(--db-primary-glow) 0%, 
-			transparent 70%);
+		background: radial-gradient(circle, var(--db-primary-glow) 0%, transparent 70%);
 		animation: rotate 10s linear infinite;
 		opacity: 0.1;
 	}
@@ -785,8 +743,12 @@
 	}
 
 	@keyframes rotate {
-		from { transform: rotate(0deg); }
-		to { transform: rotate(360deg); }
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.new-dir-input {
@@ -801,7 +763,7 @@
 		letter-spacing: 0.01em;
 		border-radius: 8px;
 		transition: all var(--db-transition-fast);
-		box-shadow: 
+		box-shadow:
 			inset 0 2px 4px rgba(0, 0, 0, 0.3),
 			inset 0 -1px 2px rgba(0, 0, 0, 0.2);
 		z-index: 1;
@@ -809,20 +771,24 @@
 
 	.new-dir-input:hover {
 		border-color: var(--db-primary);
-		background: linear-gradient(135deg, 
-			var(--db-bg-gradient-start) 0%, 
-			rgba(46, 230, 107, 0.05) 100%);
+		background: linear-gradient(
+			135deg,
+			var(--db-bg-gradient-start) 0%,
+			rgba(46, 230, 107, 0.05) 100%
+		);
 	}
 
 	.new-dir-input:focus {
 		outline: none;
 		border-color: var(--db-primary-bright);
-		box-shadow: 
+		box-shadow:
 			0 0 0 3px var(--db-primary-dim),
 			inset 0 2px 4px rgba(0, 0, 0, 0.2);
-		background: linear-gradient(135deg, 
-			var(--db-surface-elevated) 0%, 
-			rgba(46, 230, 107, 0.08) 100%);
+		background: linear-gradient(
+			135deg,
+			var(--db-surface-elevated) 0%,
+			rgba(46, 230, 107, 0.08) 100%
+		);
 	}
 
 	.new-dir-input::placeholder {
@@ -833,9 +799,7 @@
 
 	.create-btn {
 		padding: calc(var(--space-2) * 1.3) calc(var(--space-4) * 1.1);
-		background: linear-gradient(135deg, 
-			var(--db-primary) 0%, 
-			var(--db-accent) 100%);
+		background: linear-gradient(135deg, var(--db-primary) 0%, var(--db-accent) 100%);
 		color: var(--bg-dark);
 		border: 1px solid var(--db-primary);
 		font-family: var(--font-mono);
@@ -847,7 +811,7 @@
 		cursor: pointer;
 		white-space: nowrap;
 		transition: all var(--db-transition-fast);
-		box-shadow: 
+		box-shadow:
 			0 3px 10px var(--db-primary-dim),
 			inset 0 2px 4px rgba(255, 255, 255, 0.2);
 		position: relative;
@@ -855,11 +819,9 @@
 	}
 
 	.create-btn:hover:not(:disabled) {
-		background: linear-gradient(135deg, 
-			var(--db-primary-bright) 0%, 
-			var(--db-primary) 100%);
+		background: linear-gradient(135deg, var(--db-primary-bright) 0%, var(--db-primary) 100%);
 		transform: translateY(-2px);
-		box-shadow: 
+		box-shadow:
 			0 5px 15px var(--db-primary-glow),
 			inset 0 2px 4px rgba(255, 255, 255, 0.3);
 	}
@@ -911,13 +873,11 @@
 	/* Status bar */
 	.status-bar {
 		padding: calc(var(--space-2) * 1.3) calc(var(--space-3) * 1.1);
-		background: linear-gradient(135deg, 
-			var(--db-surface) 0%, 
-			var(--db-surface-elevated) 100%);
+		background: linear-gradient(135deg, var(--db-surface) 0%, var(--db-surface-elevated) 100%);
 		border: 1px solid var(--db-border-subtle);
 		border-radius: 8px;
 		font-size: calc(var(--font-size-1) * 0.95);
-		box-shadow: 
+		box-shadow:
 			var(--db-shadow-sm),
 			inset 0 1px 2px rgba(0, 0, 0, 0.2);
 		position: relative;
@@ -931,17 +891,18 @@
 		left: 0;
 		width: 100%;
 		height: 100%;
-		background: linear-gradient(90deg, 
-			transparent, 
-			var(--db-primary-dim), 
-			transparent);
+		background: linear-gradient(90deg, transparent, var(--db-primary-dim), transparent);
 		animation: statusSweep 2s linear infinite;
 		opacity: 0.3;
 	}
 
 	@keyframes statusSweep {
-		0% { transform: translateX(-100%); }
-		100% { transform: translateX(100%); }
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(100%);
+		}
 	}
 
 	.loading {
@@ -953,8 +914,13 @@
 	}
 
 	@keyframes loadingPulse {
-		0%, 100% { opacity: 0.7; }
-		50% { opacity: 1; }
+		0%,
+		100% {
+			opacity: 0.7;
+		}
+		50% {
+			opacity: 1;
+		}
 	}
 
 	.error {
@@ -965,9 +931,23 @@
 	}
 
 	@keyframes errorShake {
-		0%, 100% { transform: translateX(0); }
-		10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-		20%, 40%, 60%, 80% { transform: translateX(2px); }
+		0%,
+		100% {
+			transform: translateX(0);
+		}
+		10%,
+		30%,
+		50%,
+		70%,
+		90% {
+			transform: translateX(-2px);
+		}
+		20%,
+		40%,
+		60%,
+		80% {
+			transform: translateX(2px);
+		}
 	}
 
 	/* Directory list */
@@ -990,13 +970,12 @@
 		border-radius: 12px;
 		padding: calc(var(--space-3) * 1.1);
 		backdrop-filter: blur(6px) saturate(1.1);
-		box-shadow: 
+		box-shadow:
 			inset 0 4px 12px rgba(0, 0, 0, 0.3),
 			inset 0 -2px 4px rgba(0, 0, 0, 0.2),
 			inset 0 1px 2px var(--db-primary-dim);
 		position: relative;
 	}
-
 
 	.directory-list::-webkit-scrollbar {
 		width: 8px;
@@ -1009,17 +988,13 @@
 	}
 
 	.directory-list::-webkit-scrollbar-thumb {
-		background: linear-gradient(180deg, 
-			var(--db-primary-dim) 0%, 
-			var(--db-accent) 100%);
+		background: linear-gradient(180deg, var(--db-primary-dim) 0%, var(--db-accent) 100%);
 		border-radius: 4px;
 		border: 1px solid var(--db-border-subtle);
 	}
 
 	.directory-list::-webkit-scrollbar-thumb:hover {
-		background: linear-gradient(180deg, 
-			var(--db-primary) 0%, 
-			var(--db-accent) 100%);
+		background: linear-gradient(180deg, var(--db-primary) 0%, var(--db-accent) 100%);
 	}
 
 	.list-item {
@@ -1030,11 +1005,21 @@
 		animation: fadeInUp 0.3s ease-out backwards;
 	}
 
-	.list-item:nth-child(1) { animation-delay: 0.05s; }
-	.list-item:nth-child(2) { animation-delay: 0.1s; }
-	.list-item:nth-child(3) { animation-delay: 0.15s; }
-	.list-item:nth-child(4) { animation-delay: 0.2s; }
-	.list-item:nth-child(5) { animation-delay: 0.25s; }
+	.list-item:nth-child(1) {
+		animation-delay: 0.05s;
+	}
+	.list-item:nth-child(2) {
+		animation-delay: 0.1s;
+	}
+	.list-item:nth-child(3) {
+		animation-delay: 0.15s;
+	}
+	.list-item:nth-child(4) {
+		animation-delay: 0.2s;
+	}
+	.list-item:nth-child(5) {
+		animation-delay: 0.25s;
+	}
 
 	@keyframes fadeInUp {
 		from {
@@ -1053,9 +1038,7 @@
 		align-items: center;
 		gap: calc(var(--space-2) * 1.2);
 		padding: calc(var(--space-2) * 1.3) calc(var(--space-3) * 1.1);
-		background: linear-gradient(135deg, 
-			rgba(15, 25, 20, 0.6) 0%, 
-			rgba(10, 20, 15, 0.4) 100%);
+		background: linear-gradient(135deg, rgba(15, 25, 20, 0.6) 0%, rgba(10, 20, 15, 0.4) 100%);
 		border: 1px solid transparent;
 		color: var(--db-text-secondary);
 		font-family: var(--font-mono);
@@ -1068,7 +1051,7 @@
 		transition: all var(--db-transition-fast);
 		position: relative;
 		overflow: hidden;
-		box-shadow: 
+		box-shadow:
 			0 1px 3px rgba(0, 0, 0, 0.2),
 			inset 0 1px 2px rgba(0, 0, 0, 0.1);
 	}
@@ -1092,18 +1075,13 @@
 		left: -100%;
 		width: 100%;
 		height: 100%;
-		background: linear-gradient(90deg, 
-			transparent, 
-			var(--db-primary-dim), 
-			transparent);
+		background: linear-gradient(90deg, transparent, var(--db-primary-dim), transparent);
 		transition: left 0.4s ease;
 	}
-
 
 	.item-button:hover:not(:disabled):not(.file)::before {
 		transform: translateX(0);
 	}
-
 
 	.item-button:active:not(:disabled):not(.file) {
 		transform: translateX(2px);
@@ -1112,9 +1090,7 @@
 	.item-button.file {
 		opacity: 0.5;
 		cursor: default;
-		background: linear-gradient(135deg, 
-			rgba(10, 15, 12, 0.4) 0%, 
-			rgba(5, 10, 8, 0.3) 100%);
+		background: linear-gradient(135deg, rgba(10, 15, 12, 0.4) 0%, rgba(5, 10, 8, 0.3) 100%);
 	}
 
 	.item-button:disabled {
@@ -1124,14 +1100,12 @@
 
 	.parent-dir .item-button {
 		color: var(--accent-amber);
-		background: linear-gradient(135deg, 
-			rgba(255, 193, 7, 0.08) 0%, 
-			rgba(15, 25, 20, 0.4) 100%);
+		background: linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(15, 25, 20, 0.4) 100%);
 	}
 
 	.parent-dir .item-button:hover {
 		border-color: rgba(255, 193, 7, 0.3);
-		box-shadow: 
+		box-shadow:
 			0 3px 10px rgba(255, 193, 7, 0.2),
 			inset 0 2px 4px rgba(255, 193, 7, 0.1);
 	}
@@ -1198,7 +1172,7 @@
 		color: var(--bg-dark);
 		border-color: var(--db-primary);
 		transform: scale(1.05);
-		box-shadow: 
+		box-shadow:
 			0 0 12px var(--db-primary-glow),
 			var(--db-shadow-md);
 	}
@@ -1229,8 +1203,13 @@
 	}
 
 	@keyframes pulse {
-		0%, 100% { opacity: 0.5; }
-		50% { opacity: 0.8; }
+		0%,
+		100% {
+			opacity: 0.5;
+		}
+		50% {
+			opacity: 0.8;
+		}
 	}
 
 	/* Selected display */
@@ -1239,16 +1218,14 @@
 		align-items: center;
 		gap: calc(var(--space-2) * 1.3);
 		padding: calc(var(--space-2) * 1.4) calc(var(--space-3) * 1.2);
-		background: 
-			linear-gradient(0deg, 
-				var(--db-surface-elevated) 100%);
+		background: linear-gradient(0deg, var(--db-surface-elevated) 100%);
 		border: 1px solid var(--db-primary);
 		border-radius: 10px;
 		font-size: calc(var(--font-size-1) * 0.95);
 		position: relative;
 		overflow: hidden;
 		opacity: 0;
-		box-shadow: 
+		box-shadow:
 			0 4px 12px var(--db-primary-glow),
 			inset 0 2px 4px rgba(46, 230, 107, 0.15),
 			inset 0 -1px 2px rgba(0, 0, 0, 0.3);
@@ -1281,8 +1258,12 @@
 	}
 
 	@keyframes scanline {
-		0% { transform: translateX(-100%); }
-		100% { transform: translateX(100%); }
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(100%);
+		}
 	}
 
 	.selected-label {
@@ -1323,7 +1304,7 @@
 		color: var(--db-primary-bright);
 		background: rgba(46, 230, 107, 0.1);
 		transform: scale(1.05);
-		box-shadow: 
+		box-shadow:
 			0 0 8px var(--db-primary-glow),
 			var(--db-shadow-sm);
 	}

@@ -7,6 +7,7 @@ This repository includes a comprehensive Playwright-based UI test suite that val
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js >= 22
 - npm packages installed: `npm install`
 
@@ -32,6 +33,7 @@ npm run test:ui:ui
 ### What Gets Tested
 
 **✅ Comprehensive Coverage (110 tests across 5 browsers):**
+
 - **Authentication Flow** - Login, logout, session persistence, error handling
 - **Project Management** - Project creation, navigation, layout validation
 - **Terminal Sessions** - Creation, management, multi-session handling, lifecycle
@@ -41,6 +43,7 @@ npm run test:ui:ui
 - **Error Handling** - Network errors, invalid URLs, graceful degradation
 
 **🚫 Intentionally Excluded (for CI reliability):**
+
 - Claude session functionality (requires external API)
 - Claude-specific UI components
 - Activity summaries requiring Claude API

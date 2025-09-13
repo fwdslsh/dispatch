@@ -11,7 +11,7 @@ The Dispatch UI Test Suite is a comprehensive Playwright-based end-to-end testin
 The test suite is organized into focused test categories:
 
 - **Authentication Flow** - Login, logout, session persistence
-- **Project Management** - Project creation, navigation, lifecycle  
+- **Project Management** - Project creation, navigation, lifecycle
 - **Terminal Session Management** - Terminal creation, multi-session handling, lifecycle
 - **Console/Admin Page Validation** - Admin interface functionality and display
 - **Responsive and Mobile Layout** - Cross-device compatibility and responsive design
@@ -243,19 +243,23 @@ npm run test:ui:headed
 ### Common Issues
 
 **Tests fail due to authentication**
+
 - Verify `TERMINAL_KEY` environment variable is set
 - Check that auth flow matches application behavior
 
 **Screenshots don't match**
+
 - Update visual baselines if changes are intentional
 - Check for font rendering differences across environments
 
 **Timeouts in CI**
+
 - Increase timeout values in configuration
 - Check for network latency issues
 - Verify dev server startup time
 
 **Missing elements**
+
 - Update selectors when UI structure changes
 - Add proper wait conditions for dynamic content
 - Check element visibility requirements

@@ -15,8 +15,7 @@ if (!globalThis.__API_SERVICES) {
 
 		const sessions = new SessionRouter();
 		const workspaces = new WorkspaceManager({
-			rootDir: process.env.WORKSPACES_ROOT || './.workspaces',
-			indexFile: (process.env.WORKSPACES_ROOT || './.workspaces') + '/.dispatch/hub-index.json'
+			rootDir: process.env.WORKSPACES_ROOT || './.workspaces'
 		});
 
 		// Initialize workspaces asynchronously

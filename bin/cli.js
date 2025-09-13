@@ -266,7 +266,9 @@ async function pullImage(imageName) {
 
 async function buildImage(imageName) {
 	console.log(`🔨 Building Docker image locally: ${imageName}`);
-	console.log('💡 Note: For most users, pulling from Docker Hub is recommended instead of building locally');
+	console.log(
+		'💡 Note: For most users, pulling from Docker Hub is recommended instead of building locally'
+	);
 
 	const dockerfilePath = path.join(__dirname, '..', 'docker', 'Dockerfile');
 	const contextPath = path.join(__dirname, '..');

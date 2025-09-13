@@ -14,7 +14,7 @@ function isPathAllowed(requestedPath) {
 	const base = getBaseDirectory();
 	const resolved = resolve(requestedPath);
 	const normalizedBase = normalize(base);
-	
+
 	// Allow browsing within the base directory and its parents (for navigation)
 	// But don't allow access to system directories like /etc, /usr, etc.
 	const systemDirs = ['/etc', '/usr/bin', '/usr/sbin', '/bin', '/sbin', '/proc', '/sys', '/dev'];
@@ -23,7 +23,7 @@ function isPathAllowed(requestedPath) {
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -32,36 +32,27 @@ export async function GET({ url }) {
 		// If no path is provided, start in the workspaces root directory
 		const requestedPath = url.searchParams.get('path') || getBaseDirectory();
 		const showHidden = url.searchParams.get('showHidden') === 'true';
-		
+
 		// Resolve and validate the path
 		const resolvedPath = resolve(requestedPath);
-		
+
 		if (!isPathAllowed(resolvedPath)) {
-			return json(
-				{ error: 'Access denied to this directory' },
-				{ status: 403 }
-			);
+			return json({ error: 'Access denied to this directory' }, { status: 403 });
 		}
-		
+
 		// Check if the path exists and is a directory
 		const pathStat = await stat(resolvedPath).catch(() => null);
 		if (!pathStat) {
-			return json(
-				{ error: 'Path does not exist' },
-				{ status: 404 }
-			);
+			return json({ error: 'Path does not exist' }, { status: 404 });
 		}
-		
+
 		if (!pathStat.isDirectory()) {
-			return json(
-				{ error: 'Path is not a directory' },
-				{ status: 400 }
-			);
+			return json({ error: 'Path is not a directory' }, { status: 400 });
 		}
-		
+
 		// Read directory contents
 		const items = await readdir(resolvedPath, { withFileTypes: true });
-		
+
 		// Filter and map entries
 		const entries = [];
 		for (const item of items) {
@@ -69,18 +60,18 @@ export async function GET({ url }) {
 			if (!showHidden && item.name.startsWith('.')) {
 				continue;
 			}
-			
+
 			// Skip certain system files/directories
 			if (['.git', 'node_modules', '.svelte-kit', 'dist', 'build'].includes(item.name)) {
 				continue;
 			}
-			
+
 			const itemPath = join(resolvedPath, item.name);
-			
+
 			// Get additional stats for the item
 			const itemStat = await stat(itemPath).catch(() => null);
 			if (!itemStat) continue;
-			
+
 			entries.push({
 				name: item.name,
 				path: itemPath,
@@ -90,25 +81,21 @@ export async function GET({ url }) {
 				modified: itemStat.mtime.toISOString()
 			});
 		}
-		
+
 		// Sort entries: directories first, then alphabetically
 		entries.sort((a, b) => {
 			if (a.isDirectory && !b.isDirectory) return -1;
 			if (!a.isDirectory && b.isDirectory) return 1;
 			return a.name.localeCompare(b.name);
 		});
-		
+
 		return json({
 			path: resolvedPath,
 			entries,
 			parent: resolvedPath !== '/' ? resolve(resolvedPath, '..') : null
 		});
-		
 	} catch (error) {
 		console.error('Directory browse error:', error);
-		return json(
-			{ error: error.message || 'Failed to browse directory' },
-			{ status: 500 }
-		);
+		return json({ error: error.message || 'Failed to browse directory' }, { status: 500 });
 	}
 }

@@ -1,14 +1,14 @@
 <script>
 	import './shared-styles.css';
 	import Markdown from '$lib/shared/components/Markdown.svelte';
-	
+
 	let { event, type = 'Unknown', tool = '' } = $props();
-	
+
 	const eventInfo = $derived(parseGenericEvent(event));
-	
+
 	function parseGenericEvent(e) {
 		if (!e) return null;
-		
+
 		try {
 			const info = {
 				type: e.type || type,
@@ -20,21 +20,31 @@
 				error: e.error || null,
 				properties: []
 			};
-			
+
 			// Extract interesting properties
-			const skipKeys = ['type', 'tool', 'name', 'input', 'result', 'error', 'success', 'message', 'content'];
-			
+			const skipKeys = [
+				'type',
+				'tool',
+				'name',
+				'input',
+				'result',
+				'error',
+				'success',
+				'message',
+				'content'
+			];
+
 			for (const [key, value] of Object.entries(e)) {
 				if (!skipKeys.includes(key) && value !== undefined && value !== null) {
 					info.properties.push({ key, value: formatValue(value) });
 				}
 			}
-			
+
 			// Add input summary if present
 			if (e.input) {
 				info.inputSummary = getObjectSummary(e.input);
 			}
-			
+
 			// Check for nested content structure (from JSONL)
 			if (e.content) {
 				// Handle tool_result content structure
@@ -48,7 +58,7 @@
 					}
 				}
 			}
-			
+
 			// Add result summary if present (fallback for non-nested structure)
 			if (e.result && !info.resultMessage && !info.resultSummary) {
 				info.resultSummary = getObjectSummary(e.result);
@@ -60,12 +70,12 @@
 					info.resultMessage = e.result;
 				}
 			}
-			
+
 			// Check for message property at top level
 			if (e.message && !info.messageContent) {
 				info.messageContent = extractMessageContent(e.message);
 			}
-			
+
 			return info;
 		} catch (err) {
 			return {
@@ -74,7 +84,7 @@
 			};
 		}
 	}
-	
+
 	function formatValue(value) {
 		if (value === null) return 'null';
 		if (value === undefined) return 'undefined';
@@ -94,59 +104,59 @@
 		}
 		return String(value);
 	}
-	
+
 	function extractMessageContent(message) {
 		if (!message) return null;
-		
+
 		// If message is a string, return it
 		if (typeof message === 'string') {
 			return message;
 		}
-		
+
 		// If message has content array (Claude API format)
 		if (message.content && Array.isArray(message.content)) {
 			const textParts = message.content
-				.filter(part => part.type === 'text')
-				.map(part => part.text);
+				.filter((part) => part.type === 'text')
+				.map((part) => part.text);
 			if (textParts.length > 0) {
 				return textParts.join('\n');
 			}
 		}
-		
+
 		// If message has text property
 		if (message.text) {
 			return message.text;
 		}
-		
+
 		// If message has content as string
 		if (message.content && typeof message.content === 'string') {
 			return message.content;
 		}
-		
+
 		return null;
 	}
-	
+
 	function getObjectSummary(obj) {
 		if (!obj) return null;
-		
+
 		if (typeof obj === 'string') {
 			return obj.substring(0, 200) + (obj.length > 200 ? '...' : '');
 		}
-		
+
 		if (Array.isArray(obj)) {
 			return `Array with ${obj.length} items`;
 		}
-		
+
 		if (typeof obj === 'object') {
 			const keys = Object.keys(obj);
-			const preview = keys.slice(0, 5).map(k => `${k}: ${formatValue(obj[k])}`);
+			const preview = keys.slice(0, 5).map((k) => `${k}: ${formatValue(obj[k])}`);
 			return {
 				keys: keys.length,
 				preview,
 				truncated: keys.length > 5
 			};
 		}
-		
+
 		return formatValue(obj);
 	}
 </script>
@@ -163,7 +173,7 @@
 				{/if}
 			</span>
 		</div>
-		
+
 		{#if eventInfo.properties.length > 0}
 			<div class="activity-result">
 				<div class="activity-row">
@@ -179,7 +189,7 @@
 				</ul>
 			</div>
 		{/if}
-		
+
 		{#if eventInfo.inputSummary}
 			<div class="activity-result">
 				<div class="activity-row">
@@ -203,7 +213,7 @@
 				{/if}
 			</div>
 		{/if}
-		
+
 		{#if eventInfo.messageContent}
 			<div class="activity-result">
 				<div class="activity-row">
@@ -214,7 +224,7 @@
 				</div>
 			</div>
 		{/if}
-		
+
 		{#if eventInfo.resultMessage}
 			<div class="activity-result">
 				<div class="activity-row">
@@ -247,7 +257,7 @@
 				{/if}
 			</div>
 		{/if}
-		
+
 		{#if eventInfo.error}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
@@ -258,9 +268,7 @@
 		{:else if eventInfo.success}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
-				<span class="activity-value activity-success">
-					Completed
-				</span>
+				<span class="activity-value activity-success"> Completed </span>
 			</div>
 		{/if}
 	{:else}
@@ -281,38 +289,38 @@
 		color: var(--primary);
 		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
 	}
-	
+
 	.tool-name {
 		margin-left: var(--space-2);
 		font-family: var(--font-mono);
 		font-size: 0.9em;
 		opacity: 0.8;
 	}
-	
+
 	.property-list {
 		list-style: none;
 		padding: 0;
 		margin: var(--space-2) 0;
 		font-size: 0.9em;
 	}
-	
+
 	.property-list li {
 		padding: var(--space-1) var(--space-2);
 		border-bottom: 1px solid color-mix(in oklab, var(--primary) 5%, transparent);
 	}
-	
+
 	.prop-key {
 		font-weight: 600;
 		color: var(--muted);
 		margin-right: var(--space-2);
 	}
-	
+
 	.prop-value {
 		color: var(--text);
 		font-family: var(--font-mono);
 		font-size: 0.9em;
 	}
-	
+
 	.activity-message-content {
 		padding: var(--space-3);
 		background: color-mix(in oklab, var(--bg) 50%, transparent);
@@ -322,7 +330,7 @@
 		max-height: 400px;
 		overflow-y: auto;
 	}
-	
+
 	.activity-message-content :global(.markdown-content) {
 		font-size: 0.9em;
 		line-height: 1.5;

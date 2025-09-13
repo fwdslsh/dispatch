@@ -134,7 +134,7 @@ initializeDirectories()
 		// Store globally for API endpoints if needed
 		globalThis.__DISPATCH_SOCKET_IO = io;
 
-		server.listen(PORT, "0.0.0.0", () => {
+		server.listen(PORT, '0.0.0.0', () => {
 			console.log(`dispatch running at http://localhost:${PORT}`);
 			console.log(`Config Dir: ${configDir}`);
 			console.log(`Projects Dir: ${projectsDir}`);

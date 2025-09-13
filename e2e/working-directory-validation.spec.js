@@ -15,13 +15,13 @@ test.describe('Working Directory Validation', () => {
 			await page.waitForSelector('.dispatch-workspace');
 
 			let capturedWorkspacePath;
-			
+
 			// Mock workspace creation to capture the path
 			await page.route('/api/workspaces', async (route) => {
 				if (route.request().method() === 'POST') {
 					const requestData = await route.request().postDataJSON();
 					capturedWorkspacePath = requestData.path;
-					
+
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
@@ -38,11 +38,11 @@ test.describe('Working Directory Validation', () => {
 			await page.route('/api/sessions', async (route) => {
 				if (route.request().method() === 'POST') {
 					const requestData = await route.request().postDataJSON();
-					
+
 					// Verify the workspacePath matches what user selected
 					expect(requestData.workspacePath).toBe('/workspace/selected-directory');
 					expect(requestData.type).toBe('pty');
-					
+
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
@@ -98,10 +98,10 @@ test.describe('Working Directory Validation', () => {
 					contentType: 'application/json',
 					body: JSON.stringify({
 						directories: [
-							{ 
-								name: 'my-project', 
-								path: '/workspace/my-project', 
-								type: 'directory' 
+							{
+								name: 'my-project',
+								path: '/workspace/my-project',
+								type: 'directory'
 							}
 						]
 					})
@@ -128,11 +128,11 @@ test.describe('Working Directory Validation', () => {
 				if (route.request().method() === 'POST') {
 					const requestData = await route.request().postDataJSON();
 					capturedClaudeOptions = requestData;
-					
+
 					// Critical validation: Claude should get the selected directory
 					expect(requestData.type).toBe('claude');
 					expect(requestData.workspacePath).toBe('/workspace/my-project');
-					
+
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
@@ -151,7 +151,9 @@ test.describe('Working Directory Validation', () => {
 			await page.waitForSelector('.modal-overlay');
 
 			// Use directory browser to select directory
-			const directoryBrowser = page.locator('.directory-browser, [data-testid="directory-browser"]');
+			const directoryBrowser = page.locator(
+				'.directory-browser, [data-testid="directory-browser"]'
+			);
 			if (await directoryBrowser.isVisible()) {
 				// Click browse button or directory field
 				await page.click('button[data-testid="browse-directory"], .browse-button');
@@ -159,7 +161,10 @@ test.describe('Working Directory Validation', () => {
 				await page.click('.directory-item:has-text("my-project")');
 			} else {
 				// Fallback: fill directory input directly
-				await page.fill('input[placeholder*="directory"], input[name*="directory"]', '/workspace/my-project');
+				await page.fill(
+					'input[placeholder*="directory"], input[name*="directory"]',
+					'/workspace/my-project'
+				);
 			}
 
 			await page.click('button:has-text("Create Session")');
@@ -195,10 +200,10 @@ test.describe('Working Directory Validation', () => {
 				if (route.request().method() === 'POST') {
 					const requestData = await route.request().postDataJSON();
 					capturedClaudeConfig = requestData;
-					
+
 					// Verify that the backend will receive the correct working directory
 					expect(requestData.workspacePath).toBe('/workspace/claude-project');
-					
+
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
@@ -231,7 +236,10 @@ test.describe('Working Directory Validation', () => {
 			await page.waitForSelector('.modal-overlay');
 
 			// Select directory
-			await page.fill('input[placeholder*="directory"], input[name*="directory"]', '/workspace/claude-project');
+			await page.fill(
+				'input[placeholder*="directory"], input[name*="directory"]',
+				'/workspace/claude-project'
+			);
 			await page.click('button:has-text("Create Session")');
 
 			await page.waitForSelector('.modal-overlay', { state: 'hidden' });
@@ -251,7 +259,7 @@ test.describe('Working Directory Validation', () => {
 			await page.route('/api/browse*', async (route) => {
 				const url = route.request().url();
 				const path = new URL(url).searchParams.get('path') || '/';
-				
+
 				if (path === '/') {
 					await route.fulfill({
 						status: 200,
@@ -293,7 +301,7 @@ test.describe('Working Directory Validation', () => {
 				if (route.request().method() === 'POST') {
 					const requestData = await route.request().postDataJSON();
 					selectedDirectory = requestData.workspacePath;
-					
+
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
@@ -331,7 +339,7 @@ test.describe('Working Directory Validation', () => {
 				await page.click('.directory-item:has-text("workspace")');
 				await page.waitForSelector('.directory-item:has-text("project1")');
 				await page.click('.directory-item:has-text("project1")');
-				
+
 				// Confirm selection
 				await page.click('button:has-text("Select"), button:has-text("Choose")');
 			}
@@ -351,7 +359,7 @@ test.describe('Working Directory Validation', () => {
 			await page.route('/api/browse*', async (route) => {
 				const url = route.request().url();
 				const path = new URL(url).searchParams.get('path');
-				
+
 				if (path === '/restricted') {
 					await route.fulfill({
 						status: 403,
@@ -365,9 +373,7 @@ test.describe('Working Directory Validation', () => {
 						status: 200,
 						contentType: 'application/json',
 						body: JSON.stringify({
-							directories: [
-								{ name: 'restricted', path: '/restricted', type: 'directory' }
-							]
+							directories: [{ name: 'restricted', path: '/restricted', type: 'directory' }]
 						})
 					});
 				}
@@ -380,10 +386,12 @@ test.describe('Working Directory Validation', () => {
 			const directoryBrowser = page.locator('.directory-browser');
 			if (await directoryBrowser.isVisible()) {
 				await page.click('.directory-item:has-text("restricted")');
-				
+
 				// Should show error message
 				await expect(page.locator('.error-message, .alert-error')).toBeVisible();
-				await expect(page.locator('.error-message, .alert-error')).toContainText(/permission denied/i);
+				await expect(page.locator('.error-message, .alert-error')).toContainText(
+					/permission denied/i
+				);
 			}
 		});
 	});
@@ -406,7 +414,7 @@ test.describe('Working Directory Validation', () => {
 				await page.route('/api/workspaces', async (route) => {
 					if (route.request().method() === 'POST') {
 						const requestData = await route.request().postDataJSON();
-						
+
 						if (requestData.path === invalidPath) {
 							await route.fulfill({
 								status: 400,
@@ -437,7 +445,7 @@ test.describe('Working Directory Validation', () => {
 
 				// Should show validation error
 				await expect(page.locator('.error-message, .alert-error')).toBeVisible();
-				
+
 				// Close modal for next iteration
 				await page.click('button:has-text("Cancel"), .modal-close');
 				await page.waitForSelector('.modal-overlay', { state: 'hidden' });
@@ -465,12 +473,12 @@ test.describe('Working Directory Validation', () => {
 
 			for (const testCase of testCases) {
 				let capturedPath;
-				
+
 				await page.route('/api/workspaces', async (route) => {
 					if (route.request().method() === 'POST') {
 						const requestData = await route.request().postDataJSON();
 						capturedPath = requestData.path;
-						
+
 						await route.fulfill({
 							status: 200,
 							contentType: 'application/json',
@@ -512,7 +520,7 @@ test.describe('Working Directory Validation', () => {
 
 				await page.fill('input[placeholder*="directory"]', testCase.input);
 				await page.click('button:has-text("Create Session")');
-				
+
 				await page.waitForSelector('.modal-overlay', { state: 'hidden' });
 
 				// Verify path was normalized (or at least not rejected)
@@ -535,7 +543,7 @@ test.describe('Working Directory Validation', () => {
 				if (route.request().method() === 'POST') {
 					const requestData = await route.request().postDataJSON();
 					persistedPath = requestData.workspacePath;
-					
+
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
@@ -602,7 +610,7 @@ test.describe('Working Directory Validation', () => {
 
 			// Session should be restored with same working directory
 			await expect(page.locator('.session-item')).toBeVisible();
-			
+
 			// The working directory should be preserved in session metadata
 			expect(persistedPath).toBe(testDirectory);
 		});

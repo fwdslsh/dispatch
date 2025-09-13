@@ -22,21 +22,25 @@ node bin/dispatch-cli.js --help
 ## Quick Start
 
 1. **Initialize environment (recommended for first-time setup):**
+
    ```bash
    dispatch init
    ```
 
 2. **Or generate configuration file manually:**
+
    ```bash
    dispatch config
    ```
 
 3. **Start Dispatch:**
+
    ```bash
    dispatch start --open
    ```
 
 4. **Check status:**
+
    ```bash
    dispatch status
    ```
@@ -130,8 +134,9 @@ dispatch init --dispatch-home ~/my-dispatch --projects-dir ~/my-projects --skip-
 ```
 
 #### Options:
+
 - `--skip-docker` - Skip Docker image pull
-- `--skip-cli` - Skip making CLI globally available  
+- `--skip-cli` - Skip making CLI globally available
 - `--dispatch-home <path>` - Dispatch home directory (default: ~/dispatch)
 - `--projects-dir <path>` - Projects directory (default: ~/dispatch/projects)
 - `--non-interactive` - Run in non-interactive mode (no prompts, uses defaults)
@@ -139,6 +144,7 @@ dispatch init --dispatch-home ~/my-dispatch --projects-dir ~/my-projects --skip-
 #### Interactive vs Non-Interactive Mode
 
 **Interactive Mode (default):**
+
 - Prompts for confirmation before creating directories
 - Asks for custom paths if you don't want defaults
 - Confirms before copying configurations
@@ -146,6 +152,7 @@ dispatch init --dispatch-home ~/my-dispatch --projects-dir ~/my-projects --skip-
 - Prompts before pulling Docker image
 
 **Non-Interactive Mode (`--non-interactive`):**
+
 - Uses all default values
 - Creates directories without prompting
 - Automatically copies configurations if they exist
@@ -154,6 +161,7 @@ dispatch init --dispatch-home ~/my-dispatch --projects-dir ~/my-projects --skip-
 - Perfect for automation and scripts
 
 #### What it does:
+
 1. **Creates directory structure**: Sets up `~/dispatch` with subdirectories for projects, home, and configuration
 2. **Copies configuration**: Copies `~/.claude` and `~/.config/dispatch` directories to dispatch home if they exist
 3. **Updates CLI configuration**: Configures volume mounts to use the new directory structure
@@ -175,65 +183,65 @@ dispatch config
 
 ```json
 {
-  // Docker image to use
-  "image": "fwdslsh/dispatch:latest",
+	// Docker image to use
+	"image": "fwdslsh/dispatch:latest",
 
-  // Port for web interface
-  "port": 3030,
+	// Port for web interface
+	"port": 3030,
 
-  // Terminal authentication key (leave null to auto-generate)
-  "terminalKey": null,
+	// Terminal authentication key (leave null to auto-generate)
+	"terminalKey": null,
 
-  // Enable public URL tunnel
-  "enableTunnel": false,
+	// Enable public URL tunnel
+	"enableTunnel": false,
 
-  // Custom tunnel subdomain (optional)
-  "ltSubdomain": null,
+	// Custom tunnel subdomain (optional)
+	"ltSubdomain": null,
 
-  // PTY mode: 'shell' or 'claude'
-  "ptyMode": "shell",
+	// PTY mode: 'shell' or 'claude'
+	"ptyMode": "shell",
 
-  // Volume mounts
-  "volumes": {
-    // Projects workspace directory
-    "projects": "~/dispatch/projects",
+	// Volume mounts
+	"volumes": {
+		// Projects workspace directory
+		"projects": "~/dispatch/projects",
 
-    // User home directory (for dotfiles, shell history, etc.)
-    "home": "~/dispatch/home",
+		// User home directory (for dotfiles, shell history, etc.)
+		"home": "~/dispatch/home",
 
-    // SSH directory (mounted read-only, optional)
-    "ssh": "~/.ssh",
+		// SSH directory (mounted read-only, optional)
+		"ssh": "~/.ssh",
 
-    // Claude configuration directory (optional)
-    "claude": "~/.claude",
+		// Claude configuration directory (optional)
+		"claude": "~/.claude",
 
-    // Additional config directory (optional)
-    "config": "~/.config"
-  },
+		// Additional config directory (optional)
+		"config": "~/.config"
+	},
 
-  // Build Docker image before running
-  "build": false,
+	// Build Docker image before running
+	"build": false,
 
-  // Open browser automatically after starting
-  "openBrowser": false,
+	// Open browser automatically after starting
+	"openBrowser": false,
 
-  // Notification settings
-  "notifications": {
-    // Enable notifications when container starts
-    "enabled": false,
+	// Notification settings
+	"notifications": {
+		// Enable notifications when container starts
+		"enabled": false,
 
-    // Webhook notification settings (great for Slack, Discord, etc.)
-    "webhook": {
-      // Webhook URL to send POST request to
-      "url": null,
+		// Webhook notification settings (great for Slack, Discord, etc.)
+		"webhook": {
+			// Webhook URL to send POST request to
+			"url": null,
 
-      // Optional custom headers
-      "headers": {
-        "Content-Type": "application/json"
-        // "Authorization": "Bearer your-token"
-      }
-    }
-  }
+			// Optional custom headers
+			"headers": {
+				"Content-Type": "application/json"
+				// "Authorization": "Bearer your-token"
+			}
+		}
+	}
 }
 ```
 

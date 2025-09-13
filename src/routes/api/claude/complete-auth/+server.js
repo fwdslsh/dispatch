@@ -17,35 +17,47 @@ export async function POST({ request }) {
 		const { sessionId, authCode } = await request.json();
 
 		if (!sessionId || !authCode) {
-			return json({
-				success: false,
-				error: 'Session ID and authorization code are required'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'Session ID and authorization code are required'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Validate session
 		const session = oauthSessions.get(sessionId);
 		if (!session) {
-			return json({
-				success: false,
-				error: 'Invalid or expired session'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'Invalid or expired session'
+				},
+				{ status: 400 }
+			);
 		}
 
 		if (session.completed) {
-			return json({
-				success: false,
-				error: 'Session already completed'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'Session already completed'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Validate authorization code format
 		const authCodeTrimmed = authCode.trim();
 		if (authCodeTrimmed.length < 10) {
-			return json({
-				success: false,
-				error: 'Invalid authorization code format'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'Invalid authorization code format'
+				},
+				{ status: 400 }
+			);
 		}
 
 		try {
@@ -73,34 +85,44 @@ export async function POST({ request }) {
 				});
 			} else {
 				console.error('Claude auth completion failed:', stdout, stderr);
-				return json({
-					success: false,
-					error: 'Authentication failed - invalid authorization code'
-				}, { status: 401 });
+				return json(
+					{
+						success: false,
+						error: 'Authentication failed - invalid authorization code'
+					},
+					{ status: 401 }
+				);
 			}
-
 		} catch (execError) {
 			console.error('Claude auth completion exec failed:', execError);
-			
+
 			// Check for specific error messages
 			if (execError.message?.includes('invalid') || execError.message?.includes('expired')) {
-				return json({
-					success: false,
-					error: 'Invalid or expired authorization code'
-				}, { status: 401 });
+				return json(
+					{
+						success: false,
+						error: 'Invalid or expired authorization code'
+					},
+					{ status: 401 }
+				);
 			}
 
-			return json({
-				success: false,
-				error: 'Authentication completion failed'
-			}, { status: 500 });
+			return json(
+				{
+					success: false,
+					error: 'Authentication completion failed'
+				},
+				{ status: 500 }
+			);
 		}
-
 	} catch (error) {
 		console.error('Complete auth error:', error);
-		return json({
-			success: false,
-			error: 'Authentication request failed'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Authentication request failed'
+			},
+			{ status: 500 }
+		);
 	}
 }

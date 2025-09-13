@@ -19,10 +19,11 @@ The new `e2e/comprehensive-ui.spec.js` provides complete coverage for:
 ## Files Removed (Redundant)
 
 ### `/e2e` directory:
+
 - ❌ `auth.spec.js` - Auth flows covered in comprehensive suite
 - ❌ `basic-validation.spec.js` - Basic validation covered in comprehensive suite
 - ❌ `error-cases.spec.js` - Error handling covered in comprehensive suite
-- ❌ `mobile.spec.js` - Responsive testing covered in comprehensive suite  
+- ❌ `mobile.spec.js` - Responsive testing covered in comprehensive suite
 - ❌ `projects.spec.js` - Project management covered in comprehensive suite
 - ❌ `projects-mobile-screenshot.spec.js` - Visual testing covered in comprehensive suite
 - ❌ `session-creation-flow.spec.js` - Session creation covered in comprehensive suite
@@ -30,6 +31,7 @@ The new `e2e/comprehensive-ui.spec.js` provides complete coverage for:
 - ❌ `sessions.spec.js` - Session functionality covered in comprehensive suite
 
 ### `/tests/e2e` directory:
+
 - ❌ `basic.spec.js` - Basic flows covered in comprehensive suite
 - ❌ `comprehensive-app-test.spec.js` - Earlier comprehensive test, now redundant
 - ❌ `comprehensive-session-test.spec.js` - Session testing covered in comprehensive suite
@@ -45,9 +47,11 @@ The new `e2e/comprehensive-ui.spec.js` provides complete coverage for:
 ## Files Kept (Unique Functionality)
 
 ### Core UI Suite:
+
 - ✅ `comprehensive-ui.spec.js` - **NEW**: Main comprehensive test suite
 
 ### Claude-Specific Tests (Excluded from main CI):
+
 - ✅ `activity-summaries.spec.js` - Claude activity summary functionality
 - ✅ `activity-summary-simple.spec.js` - Claude activity summary variations
 - ✅ `claude-session-resumption.spec.js` - Claude session persistence
@@ -55,6 +59,7 @@ The new `e2e/comprehensive-ui.spec.js` provides complete coverage for:
 - ✅ `project-page-claude-sessions.spec.js` - Claude project integration
 
 ### Unique Functionality Tests:
+
 - ✅ `command-palette.spec.js` - Command palette and keyboard shortcuts
 - ✅ `socket-reconnection.spec.js` - Socket disconnection/reconnection handling
 - ✅ `working-directory.spec.js` - Working directory functionality
@@ -62,12 +67,15 @@ The new `e2e/comprehensive-ui.spec.js` provides complete coverage for:
 - ✅ `workspace-terminal-interactions.spec.js` - Complex terminal interactions
 
 ### Server-Side Integration:
+
 - ✅ `socket-integration.spec.js` - Socket.IO server-side testing
 
 ## Test Configurations Updated
 
 ### `playwright-ui.config.js`:
+
 Updated to run only non-Claude tests for reliable CI:
+
 - `comprehensive-ui.spec.js` (main suite)
 - `command-palette.spec.js`
 - `working-directory.spec.js`
@@ -76,18 +84,23 @@ Updated to run only non-Claude tests for reliable CI:
 - `workspace-terminal-interactions.spec.js`
 
 ### `playwright.config.js`:
+
 Runs all tests in `/e2e` directory including Claude-specific tests for comprehensive local testing.
 
 ## Testing Strategy
 
 ### CI/Production Testing:
+
 Use `npm run test:ui` which runs `playwright-ui.config.js`:
+
 - Excludes Claude functionality to ensure reliable CI
 - Covers all core user-facing functionality
 - Includes unique UI features (command palette, working directory, etc.)
 
 ### Development Testing:
+
 Use `npm run test:e2e` which runs `playwright.config.js`:
+
 - Includes all tests including Claude functionality
 - Useful for full local validation
 - May require Claude CLI setup for complete testing
@@ -103,6 +116,7 @@ Use `npm run test:e2e` which runs `playwright.config.js`:
 ## Validation
 
 After cleanup, the test suite should be validated by:
+
 1. Running `npm run test:ui` to ensure comprehensive coverage
 2. Running `npm run test:e2e` for full local validation
 3. Checking that all unique functionality is still tested

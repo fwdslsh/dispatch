@@ -225,7 +225,7 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
-	
+
 	/* Terminal label prefix */
 	.input__label::before {
 		content: '> ';
@@ -244,23 +244,25 @@
 	}
 
 	/* Enhanced terminal input styling - override global styles */
-	input, textarea {
+	input,
+	textarea {
 		background: rgba(18, 26, 23, 0.6) !important;
 		border: 2px solid var(--primary-dim) !important;
 		border-radius: 0 !important;
 		color: var(--text-primary) !important;
 		font-family: var(--font-mono) !important;
-		
+
 		/* Terminal styling */
 		box-shadow:
 			inset 0 0 20px rgba(0, 0, 0, 0.5),
 			0 0 10px var(--primary-glow) !important;
-		
+
 		transition: all 0.3s ease !important;
 		position: relative;
 	}
-	
-	input:focus, textarea:focus {
+
+	input:focus,
+	textarea:focus {
 		border-color: var(--primary) !important;
 		background: rgba(18, 26, 23, 0.8) !important;
 		color: var(--primary-bright) !important;
@@ -279,9 +281,10 @@
 		height: auto;
 		line-height: 1.5;
 	}
-	
+
 	/* Terminal cursor effect simulation */
-	input:focus::after, textarea:focus::after {
+	input:focus::after,
+	textarea:focus::after {
 		content: '';
 		position: absolute;
 		right: 8px;
@@ -326,7 +329,7 @@
 		color: var(--text-muted);
 		line-height: 1.4;
 	}
-	
+
 	.input__help::before {
 		content: 'i';
 		color: var(--accent-cyan);
@@ -358,7 +361,7 @@
 		border: 1px solid rgba(255, 107, 107, 0.3);
 		text-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
 	}
-	
+
 	.input__error::before {
 		content: '!';
 		color: var(--secondary);
@@ -389,7 +392,7 @@
 		border: 1px solid rgba(255, 209, 102, 0.3);
 		text-shadow: 0 0 5px rgba(255, 209, 102, 0.3);
 	}
-	
+
 	.input__warning::before {
 		content: '!';
 		color: var(--accent-amber);

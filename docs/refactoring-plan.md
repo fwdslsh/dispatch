@@ -241,4 +241,3 @@ Acceptance criteria
 - `src/routes/api/claude/cc-root.js:1` – projects root resolver (use everywhere).
 - `src/lib/components/SessionSocketManager.js:17` – custom props on socket instance (avoid; use WeakMap).
 - `src/lib/components/ClaudePane.svelte:1` – monolithic UI; split into feature components.
-

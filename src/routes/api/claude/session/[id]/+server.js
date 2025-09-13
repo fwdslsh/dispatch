@@ -14,8 +14,6 @@ export async function GET({ params, url }) {
 
 	try {
 		const root = projectsRoot();
-		
-		
 
 		const projects = await readdir(root);
 
@@ -58,7 +56,14 @@ export async function GET({ params, url }) {
 						{ count: 0, roles: {}, lastAt: null }
 					);
 
-					return json({ project: projectName, id, size: st.size, lastModified: st.mtimeMs, summary, entries });
+					return json({
+						project: projectName,
+						id,
+						size: st.size,
+						lastModified: st.mtimeMs,
+						summary,
+						entries
+					});
 				}
 			} catch (e) {
 				// File doesn't exist in this project, continue searching
@@ -67,7 +72,14 @@ export async function GET({ params, url }) {
 		}
 
 		// Session not found - return empty result for new sessions
-		return json({ project: null, id, size: 0, lastModified: null, summary: { count: 0, roles: {}, lastAt: null }, entries: [] });
+		return json({
+			project: null,
+			id,
+			size: 0,
+			lastModified: null,
+			summary: { count: 0, roles: {}, lastAt: null },
+			entries: []
+		});
 	} catch (err) {
 		console.error('Error looking up Claude session:', err);
 		throw error(500, 'Failed to look up session');

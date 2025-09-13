@@ -9,40 +9,40 @@
 	let socketHistories = [];
 	let selectedHistory = null;
 	let selectedTab = 'sockets';
-	
+
 	onMount(() => {
 		initializeAdminConsole();
-		
+
 		return () => {
 			if (socket) {
 				socket.disconnect();
 			}
 		};
 	});
-	
+
 	function initializeAdminConsole() {
 		// Initialize Socket.IO connection for admin features
 		socket = io();
-		
+
 		// Load initial data
 		loadActiveSockets();
 		loadServerLogs();
 		loadSocketHistories();
-		
+
 		// Set up real-time updates
 		socket.on('admin.socket.connected', (socketInfo) => {
 			activeSockets = [...activeSockets, socketInfo];
 		});
-		
+
 		socket.on('admin.socket.disconnected', (socketId) => {
-			activeSockets = activeSockets.filter(s => s.id !== socketId);
+			activeSockets = activeSockets.filter((s) => s.id !== socketId);
 		});
-		
+
 		socket.on('admin.event.logged', (eventData) => {
 			socketEvents = [eventData, ...socketEvents].slice(0, 100); // Keep last 100 events
 		});
 	}
-	
+
 	async function loadActiveSockets() {
 		try {
 			const response = await fetch('/api/admin/sockets');
@@ -54,7 +54,7 @@
 			console.error('Failed to load active sockets:', error);
 		}
 	}
-	
+
 	async function loadServerLogs() {
 		try {
 			const response = await fetch('/api/admin/logs');
@@ -94,12 +94,12 @@
 			selectedHistory = null;
 		}
 	}
-	
+
 	async function disconnectSocket(socketId) {
 		if (!confirm(`Are you sure you want to disconnect socket ${socketId}?`)) {
 			return;
 		}
-		
+
 		try {
 			const response = await fetch(`/api/admin/sockets/${socketId}/disconnect`, {
 				method: 'POST',
@@ -107,10 +107,10 @@
 					'Content-Type': 'application/json'
 				}
 			});
-			
+
 			if (response.ok) {
 				// Remove from local list immediately
-				activeSockets = activeSockets.filter(s => s.id !== socketId);
+				activeSockets = activeSockets.filter((s) => s.id !== socketId);
 			} else {
 				console.error('Failed to disconnect socket');
 			}
@@ -118,11 +118,11 @@
 			console.error('Failed to disconnect socket:', error);
 		}
 	}
-	
+
 	function formatTimestamp(timestamp) {
 		return new Date(timestamp).toLocaleString();
 	}
-	
+
 	function formatUptime(connectedAt) {
 		const now = Date.now();
 		const diff = now - connectedAt;
@@ -169,42 +169,49 @@
 				<h1 class="glow">Admin Console</h1>
 				<div class="cluster">
 					<span class="session-indicator active">Real-time monitoring</span>
-					<button onclick={() => location.reload()} class="button aug ghost" data-augmented-ui="tl-clip br-clip both">
+					<button
+						onclick={() => location.reload()}
+						class="button aug ghost"
+						data-augmented-ui="tl-clip br-clip both"
+					>
 						Refresh
 					</button>
 				</div>
 			</div>
 		</div>
 	</header>
-	
+
 	<!-- Navigation Tabs -->
 	<nav class="console-nav">
 		<div class="container">
 			<div class="nav-tabs">
 				<button
 					class="nav-tab {selectedTab === 'sockets' ? 'active' : ''}"
-					onclick={() => selectedTab = 'sockets'}
+					onclick={() => (selectedTab = 'sockets')}
 				>
 					<span class="tab-label">Active Sockets</span>
 					<span class="badge ok">{activeSockets.length}</span>
 				</button>
 				<button
 					class="nav-tab {selectedTab === 'events' ? 'active' : ''}"
-					onclick={() => selectedTab = 'events'}
+					onclick={() => (selectedTab = 'events')}
 				>
 					<span class="tab-label">Socket Events</span>
 					<span class="badge">{socketEvents.length}</span>
 				</button>
 				<button
 					class="nav-tab {selectedTab === 'history' ? 'active' : ''}"
-					onclick={() => { selectedTab = 'history'; selectedHistory = null; }}
+					onclick={() => {
+						selectedTab = 'history';
+						selectedHistory = null;
+					}}
 				>
 					<span class="tab-label">Socket History</span>
 					<span class="badge">{socketHistories.length}</span>
 				</button>
 				<button
 					class="nav-tab {selectedTab === 'logs' ? 'active' : ''}"
-					onclick={() => selectedTab = 'logs'}
+					onclick={() => (selectedTab = 'logs')}
 				>
 					<span class="tab-label">Server Logs</span>
 					<span class="badge">{serverLogs.length}</span>
@@ -212,7 +219,7 @@
 			</div>
 		</div>
 	</nav>
-	
+
 	<!-- Main Content Area -->
 	<main class="console-content">
 		<div class="container">
@@ -276,7 +283,10 @@
 					{:else}
 						<div class="events-list">
 							{#each socketEvents as event}
-								<div class="panel aug event-card {getEventTypeClass(event.type)}" data-augmented-ui="tl-clip br-clip both">
+								<div
+									class="panel aug event-card {getEventTypeClass(event.type)}"
+									data-augmented-ui="tl-clip br-clip both"
+								>
 									<div class="event-header">
 										<span class="badge">{event.type}</span>
 										<span class="muted">{formatTimestamp(event.timestamp)}</span>
@@ -325,12 +335,16 @@
 						<!-- Individual Socket History View -->
 						<div class="history-detail">
 							<div class="history-header cluster">
-								<button onclick={goBackToHistoryList} class="button aug" data-augmented-ui="tl-clip br-clip both">
+								<button
+									onclick={goBackToHistoryList}
+									class="button aug"
+									data-augmented-ui="tl-clip br-clip both"
+								>
 									← Back
 								</button>
 								<h2>Socket History: {selectedHistory.socketId}</h2>
 							</div>
-							
+
 							<div class="card aug history-metadata" data-augmented-ui="tl-clip br-clip both">
 								<h3>Socket Information</h3>
 								<div class="metadata-grid">
@@ -340,7 +354,9 @@
 									</div>
 									<div class="detail-row">
 										<span class="label muted">Connected:</span>
-										<span class="value">{formatTimestamp(selectedHistory.metadata.connectedAt)}</span>
+										<span class="value"
+											>{formatTimestamp(selectedHistory.metadata.connectedAt)}</span
+										>
 									</div>
 									<div class="detail-row">
 										<span class="label muted">IP Address:</span>
@@ -351,22 +367,22 @@
 										<span class="value">{selectedHistory.metadata.userAgent}</span>
 									</div>
 									{#if selectedHistory.metadata.sessionType}
-									<div class="detail-row">
-										<span class="label muted">Session Type:</span>
-										<span class="badge">{selectedHistory.metadata.sessionType}</span>
-									</div>
+										<div class="detail-row">
+											<span class="label muted">Session Type:</span>
+											<span class="badge">{selectedHistory.metadata.sessionType}</span>
+										</div>
 									{/if}
 									{#if selectedHistory.metadata.sessionName}
-									<div class="detail-row">
-										<span class="label muted">Session Name:</span>
-										<span class="value">{selectedHistory.metadata.sessionName}</span>
-									</div>
+										<div class="detail-row">
+											<span class="label muted">Session Name:</span>
+											<span class="value">{selectedHistory.metadata.sessionName}</span>
+										</div>
 									{/if}
 									{#if selectedHistory.metadata.cwd}
-									<div class="detail-row">
-										<span class="label muted">Working Directory:</span>
-										<span class="value prompt">{selectedHistory.metadata.cwd}</span>
-									</div>
+										<div class="detail-row">
+											<span class="label muted">Working Directory:</span>
+											<span class="value prompt">{selectedHistory.metadata.cwd}</span>
+										</div>
 									{/if}
 								</div>
 							</div>
@@ -399,11 +415,15 @@
 						<!-- Socket History List View -->
 						<div class="history-list-header cluster">
 							<h2>Socket History</h2>
-							<button onclick={loadSocketHistories} class="button aug" data-augmented-ui="tl-clip br-clip both">
+							<button
+								onclick={loadSocketHistories}
+								class="button aug"
+								data-augmented-ui="tl-clip br-clip both"
+							>
 								Refresh
 							</button>
 						</div>
-						
+
 						{#if socketHistories.length === 0}
 							<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
 								<p>No socket histories available</p>
@@ -411,7 +431,10 @@
 						{:else}
 							<div class="term-grid">
 								{#each socketHistories as history}
-									<div class="card aug history-card {history.isActive ? 'active' : ''}" data-augmented-ui="tl-clip br-clip both">
+									<div
+										class="card aug history-card {history.isActive ? 'active' : ''}"
+										data-augmented-ui="tl-clip br-clip both"
+									>
 										<div class="history-card-header">
 											<h3 class="session-indicator {history.isActive ? 'active' : ''}">
 												Socket {history.socketId}
@@ -424,7 +447,7 @@
 												{/if}
 											</div>
 										</div>
-										
+
 										<div class="history-card-details stack">
 											<div class="detail-row">
 												<span class="label muted">Last Modified:</span>
@@ -439,21 +462,21 @@
 												<span class="value">{formatFileSize(history.size)}</span>
 											</div>
 											{#if history.metadata.sessionType}
-											<div class="detail-row">
-												<span class="label muted">Type:</span>
-												<span class="badge">{history.metadata.sessionType}</span>
-											</div>
+												<div class="detail-row">
+													<span class="label muted">Type:</span>
+													<span class="badge">{history.metadata.sessionType}</span>
+												</div>
 											{/if}
 											{#if history.metadata.ip}
-											<div class="detail-row">
-												<span class="label muted">IP:</span>
-												<span class="value">{history.metadata.ip}</span>
-											</div>
+												<div class="detail-row">
+													<span class="label muted">IP:</span>
+													<span class="value">{history.metadata.ip}</span>
+												</div>
 											{/if}
 										</div>
-										
+
 										<div class="history-card-actions">
-											<button 
+											<button
 												onclick={() => selectSocketHistory(history.socketId)}
 												class="button primary aug"
 												data-augmented-ui="tl-clip br-clip both"

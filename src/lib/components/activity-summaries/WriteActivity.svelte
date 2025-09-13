@@ -1,13 +1,13 @@
 <script>
 	import './shared-styles.css';
-	
+
 	let { event } = $props();
-	
+
 	let fileInfo = $derived(parseWriteEvent(event));
-	
+
 	function parseWriteEvent(e) {
 		if (!e) return null;
-		
+
 		try {
 			const input = e.input || e;
 			return {
@@ -25,12 +25,12 @@
 			};
 		}
 	}
-	
+
 	function detectIfNewFile(e) {
 		// Try to detect if this was creating a new file
 		return e.creating || e.isNew || false;
 	}
-	
+
 	function formatPath(path) {
 		if (!path) return 'Unknown';
 		const parts = path.split('/');
@@ -39,17 +39,17 @@
 		}
 		return path;
 	}
-	
+
 	function getContentPreview(content) {
 		if (!content) return 'Empty file';
 		const lines = content.split('\n');
 		const lineCount = lines.length;
 		const charCount = content.length;
-		
+
 		// Show first few lines
 		const preview = lines.slice(0, 5).join('\n');
 		const truncated = lines.length > 5;
-		
+
 		return { preview, lineCount, charCount, truncated };
 	}
 </script>
@@ -67,15 +67,17 @@
 				{/if}
 			</span>
 		</div>
-		
+
 		{@const contentInfo = getContentPreview(fileInfo.content)}
 		<div class="activity-row">
 			<span class="activity-label">Size</span>
 			<span class="activity-value">
-				{typeof contentInfo === 'string' ? contentInfo : `${contentInfo.lineCount} lines, ${contentInfo.charCount} characters`}
+				{typeof contentInfo === 'string'
+					? contentInfo
+					: `${contentInfo.lineCount} lines, ${contentInfo.charCount} characters`}
 			</span>
 		</div>
-		
+
 		{#if typeof contentInfo === 'object' && contentInfo.preview}
 			<div class="activity-result">
 				<div class="activity-row">
@@ -89,7 +91,7 @@
 				{/if}
 			</div>
 		{/if}
-		
+
 		{#if fileInfo.error}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
@@ -100,9 +102,7 @@
 		{:else if fileInfo.success}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
-				<span class="activity-value activity-success">
-					File written successfully
-				</span>
+				<span class="activity-value activity-success"> File written successfully </span>
 			</div>
 		{/if}
 	{:else}
@@ -121,7 +121,7 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
-	
+
 	.activity-badge.new {
 		background: color-mix(in oklab, var(--ok) 20%, transparent);
 		color: var(--ok);

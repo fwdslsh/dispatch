@@ -100,6 +100,7 @@ docker run -d \
 5. **Application starts** with the correctly mapped user
 
 This approach works with:
+
 - ✅ **Docker Hub images** (no building required)
 - ✅ **Locally built images** (for customization)
 - ✅ **Any host user UID/GID** (not limited to 1000:1000)
@@ -145,12 +146,14 @@ docker exec dispatch id
 ### Docker Hub vs Local Build
 
 **Docker Hub (Recommended):**
+
 - ✅ Faster setup (no build time)
 - ✅ Always up-to-date
 - ✅ Works with runtime user mapping
 - ✅ No Docker build requirements
 
 **Local Build:**
+
 - ⚙️ Customization options
 - ⚙️ Development/testing
 - ⏱️ Longer setup time
@@ -173,8 +176,10 @@ docker run --rm -it \
   fwdslsh/dispatch:latest \
   /bin/bash
 ```
+
 docker exec dispatch id
-```
+
+````
 
 ### Files Have Wrong Owner
 
@@ -198,7 +203,7 @@ You can customize the setup by editing `~/.dispatch/config.json`:
 		"config": "~/.config"
 	}
 }
-```
+````
 
 ## Security Notes
 

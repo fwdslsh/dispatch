@@ -9,22 +9,26 @@ Navigate to `/console?key=your-terminal-key` to access the admin console. The sa
 ## Features
 
 ### Active Sockets Viewer
+
 - Lists all currently connected sockets
 - Shows socket ID, IP address, connection time, uptime, and authentication status
 - Real-time updates as sockets connect and disconnect
 
 ### Socket Management
+
 - Disconnect individual sockets with confirmation dialog
 - Immediate removal from active sockets list
 - Events are logged for audit trail
 
 ### Socket Events Monitor
+
 - Real-time tracking of all socket events (connect, disconnect, etc.)
 - Shows event type, timestamp, socket ID, and event data
 - Keeps the most recent 500 events to prevent memory issues
 - Events include connection details like IP address and User Agent
 
 ### Server Logs Viewer
+
 - Displays server logs with different levels (INFO, DEBUG, ERROR, WARN)
 - Timestamps for all log entries
 - Configurable log retention (default: 1000 most recent entries)
@@ -33,14 +37,17 @@ Navigate to `/console?key=your-terminal-key` to access the admin console. The sa
 ## API Endpoints
 
 ### Socket Management
+
 - `GET /api/admin/sockets?key=<TERMINAL_KEY>` - List active sockets
 - `POST /api/admin/sockets/{socketId}/disconnect` - Disconnect specific socket
 
 ### Monitoring
+
 - `GET /api/admin/events?key=<TERMINAL_KEY>` - Get socket events history
 - `GET /api/admin/logs?key=<TERMINAL_KEY>` - Get server logs
 
 ### Query Parameters
+
 - `limit` - Limit number of results (default: 100)
 - `level` - Filter logs by level (info, debug, error, warn)
 - `socketId` - Filter events by specific socket ID
@@ -64,19 +71,22 @@ The admin console is designed for easy extension with additional utilities:
 ## Development
 
 ### Adding Server Logs
+
 ```javascript
 // From any server-side module
 if (typeof globalThis._addServerLog === 'function') {
-    globalThis._addServerLog('info', 'Your log message');
+	globalThis._addServerLog('info', 'Your log message');
 }
 ```
 
 ### Adding Socket Event Tracking
+
 Socket events are automatically tracked in the Socket.IO setup. Custom events can be logged using the `logSocketEvent` function in `/src/lib/server/socket-setup.js`.
 
 ## Future Enhancements
 
 The admin console framework supports easy addition of:
+
 - Performance metrics and charts
 - Rate limiting toggles and configuration
 - User session management

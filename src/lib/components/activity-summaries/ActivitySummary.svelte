@@ -6,21 +6,21 @@
 	import GrepActivity from './GrepActivity.svelte';
 	import GlobActivity from './GlobActivity.svelte';
 	import GenericActivity from './GenericActivity.svelte';
-	
+
 	let { icon } = $props();
-	
+
 	// Determine which component to use based on the event
 	let activityComponent = $derived(getActivityComponent(icon));
-	
+
 	function getActivityComponent(iconData) {
 		if (!iconData || !iconData.event) {
 			return { component: GenericActivity, props: { event: null } };
 		}
-		
+
 		const event = iconData.event;
 		const tool = (event.tool || event.name || '').toString().toLowerCase();
 		const type = (event.type || '').toString().toLowerCase();
-		
+
 		// Map tools to their specific components
 		if (tool.includes('read')) {
 			return { component: ReadActivity, props: { event } };
@@ -40,25 +40,22 @@
 		if (tool.includes('glob')) {
 			return { component: GlobActivity, props: { event } };
 		}
-		
+
 		// Fallback to generic component
-		return { 
-			component: GenericActivity, 
-			props: { 
-				event, 
+		return {
+			component: GenericActivity,
+			props: {
+				event,
 				type: type || 'Activity',
 				tool: tool || ''
-			} 
+			}
 		};
 	}
 </script>
 
 <div class="activity-summary-wrapper">
 	{#if activityComponent}
-		<svelte:component 
-			this={activityComponent.component} 
-			{...activityComponent.props} 
-		/>
+		<svelte:component this={activityComponent.component} {...activityComponent.props} />
 	{:else}
 		<div class="activity-error">No activity data available</div>
 	{/if}
@@ -69,7 +66,7 @@
 		width: 100%;
 		overflow: hidden;
 	}
-	
+
 	.activity-error {
 		color: var(--err);
 		font-family: var(--font-mono);

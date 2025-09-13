@@ -7,22 +7,25 @@ export async function GET({ url }) {
 	try {
 		// Get the Socket.IO server instance
 		const io = globalThis.__DISPATCH_SOCKET_IO;
-		
+
 		if (!io) {
-			return new Response(JSON.stringify({ 
-				error: 'Socket.IO server not available',
-				sockets: [] 
-			}), {
-				status: 503,
-				headers: { 'content-type': 'application/json' }
-			});
+			return new Response(
+				JSON.stringify({
+					error: 'Socket.IO server not available',
+					sockets: []
+				}),
+				{
+					status: 503,
+					headers: { 'content-type': 'application/json' }
+				}
+			);
 		}
 
 		// Get all connected sockets
 		const sockets = await io.fetchSockets();
-		
+
 		// Extract relevant information from each socket
-		const socketInfo = sockets.map(socket => ({
+		const socketInfo = sockets.map((socket) => ({
 			id: socket.id,
 			connected: socket.connected,
 			disconnected: socket.disconnected,
@@ -39,26 +42,29 @@ export async function GET({ url }) {
 
 		// Optional: filter by room if provided
 		const room = url.searchParams.get('room');
-		const filteredSockets = room 
-			? socketInfo.filter(s => s.rooms.includes(room))
-			: socketInfo;
+		const filteredSockets = room ? socketInfo.filter((s) => s.rooms.includes(room)) : socketInfo;
 
-		return new Response(JSON.stringify({ 
-			sockets: filteredSockets,
-			total: filteredSockets.length,
-			timestamp: new Date().toISOString()
-		}), {
-			headers: { 'content-type': 'application/json' }
-		});
-		
+		return new Response(
+			JSON.stringify({
+				sockets: filteredSockets,
+				total: filteredSockets.length,
+				timestamp: new Date().toISOString()
+			}),
+			{
+				headers: { 'content-type': 'application/json' }
+			}
+		);
 	} catch (error) {
 		console.error('[API] Error fetching sockets:', error);
-		return new Response(JSON.stringify({ 
-			error: error.message,
-			sockets: [] 
-		}), {
-			status: 500,
-			headers: { 'content-type': 'application/json' }
-		});
+		return new Response(
+			JSON.stringify({
+				error: error.message,
+				sockets: []
+			}),
+			{
+				status: 500,
+				headers: { 'content-type': 'application/json' }
+			}
+		);
 	}
 }

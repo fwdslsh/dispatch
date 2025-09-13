@@ -12,18 +12,14 @@
  * @param {string[]} [options.excludeSelector] - CSS selectors to exclude from outside clicks
  */
 export function clickOutside(node, options = {}) {
-	const {
-		enabled = true,
-		eventName = 'clickOutside',
-		excludeSelector = []
-	} = options;
+	const { enabled = true, eventName = 'clickOutside', excludeSelector = [] } = options;
 
 	function handleClick(event) {
 		if (!enabled) return;
-		
+
 		// Check if the clicked target is inside the node
 		if (node.contains(event.target)) return;
-		
+
 		// Check if the clicked target matches any excluded selectors
 		if (excludeSelector.length > 0) {
 			for (const selector of excludeSelector) {
@@ -32,11 +28,13 @@ export function clickOutside(node, options = {}) {
 				}
 			}
 		}
-		
+
 		// Dispatch custom event
-		node.dispatchEvent(new CustomEvent(eventName, {
-			detail: { originalEvent: event }
-		}));
+		node.dispatchEvent(
+			new CustomEvent(eventName, {
+				detail: { originalEvent: event }
+			})
+		);
 	}
 
 	// Add event listener if enabled
@@ -47,19 +45,19 @@ export function clickOutside(node, options = {}) {
 	return {
 		update(newOptions = {}) {
 			const newConfig = { ...options, ...newOptions };
-			
+
 			// Remove old listener
 			document.removeEventListener('click', handleClick, true);
-			
+
 			// Add new listener if enabled
 			if (newConfig.enabled) {
 				document.addEventListener('click', handleClick, true);
 			}
-			
+
 			// Update options
 			Object.assign(options, newConfig);
 		},
-		
+
 		destroy() {
 			document.removeEventListener('click', handleClick, true);
 		}
@@ -80,9 +78,9 @@ export function clickOutsideEscape(node, options = {}) {
 
 	function handleClick(event) {
 		if (!enabled) return;
-		
+
 		if (node.contains(event.target)) return;
-		
+
 		if (excludeSelector.length > 0) {
 			for (const selector of excludeSelector) {
 				if (event.target.closest(selector)) {
@@ -90,20 +88,24 @@ export function clickOutsideEscape(node, options = {}) {
 				}
 			}
 		}
-		
-		node.dispatchEvent(new CustomEvent(clickEventName, {
-			detail: { originalEvent: event, type: 'click' }
-		}));
+
+		node.dispatchEvent(
+			new CustomEvent(clickEventName, {
+				detail: { originalEvent: event, type: 'click' }
+			})
+		);
 	}
 
 	function handleKeydown(event) {
 		if (!enabled) return;
-		
+
 		if (event.key === 'Escape' || event.keyCode === 27) {
 			event.preventDefault();
-			node.dispatchEvent(new CustomEvent(escapeEventName, {
-				detail: { originalEvent: event, type: 'escape' }
-			}));
+			node.dispatchEvent(
+				new CustomEvent(escapeEventName, {
+					detail: { originalEvent: event, type: 'escape' }
+				})
+			);
 		}
 	}
 
@@ -116,21 +118,21 @@ export function clickOutsideEscape(node, options = {}) {
 	return {
 		update(newOptions = {}) {
 			const newConfig = { ...options, ...newOptions };
-			
+
 			// Remove old listeners
 			document.removeEventListener('click', handleClick, true);
 			document.removeEventListener('keydown', handleKeydown);
-			
+
 			// Add new listeners if enabled
 			if (newConfig.enabled) {
 				document.addEventListener('click', handleClick, true);
 				document.addEventListener('keydown', handleKeydown);
 			}
-			
+
 			// Update options
 			Object.assign(options, newConfig);
 		},
-		
+
 		destroy() {
 			document.removeEventListener('click', handleClick, true);
 			document.removeEventListener('keydown', handleKeydown);

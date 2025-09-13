@@ -22,7 +22,10 @@ export function formatClaudeEventSummary(event) {
 					} else if (item.type === 'tool_result') {
 						summary += `<br><strong>Result:</strong> ${item.tool_use_id ? `for ${item.tool_use_id}` : 'available'}`;
 						if (item.content) {
-							const preview = typeof item.content === 'string' ? item.content.substring(0, 60) : JSON.stringify(item.content).substring(0, 60);
+							const preview =
+								typeof item.content === 'string'
+									? item.content.substring(0, 60)
+									: JSON.stringify(item.content).substring(0, 60);
 							summary += `<br><span class="event-preview">${preview}${preview.length >= 60 ? '...' : ''}</span>`;
 						}
 					}
@@ -32,15 +35,18 @@ export function formatClaudeEventSummary(event) {
 			const toolName = event.name || event.tool || 'unknown';
 			summary += `<br><strong>Tool:</strong> ${toolName}`;
 			if (event.input) {
-				const inputStr = typeof event.input === 'object' ? JSON.stringify(event.input) : event.input.toString();
+				const inputStr =
+					typeof event.input === 'object' ? JSON.stringify(event.input) : event.input.toString();
 				const preview = inputStr.substring(0, 100);
 				summary += `<br><strong>Input:</strong> ${preview}${inputStr.length > 100 ? '...' : ''}`;
 			}
 		} else if (type === 'tool_result') {
 			summary += `<br><strong>Tool Result</strong>`;
-			if (event.tool_use_id) summary += ` <span class="event-id">${event.tool_use_id.substring(0, 8)}...</span>`;
+			if (event.tool_use_id)
+				summary += ` <span class="event-id">${event.tool_use_id.substring(0, 8)}...</span>`;
 			if (event.content) {
-				const contentStr = typeof event.content === 'string' ? event.content : JSON.stringify(event.content);
+				const contentStr =
+					typeof event.content === 'string' ? event.content : JSON.stringify(event.content);
 				const preview = contentStr.substring(0, 100);
 				summary += `<br><span class="event-preview">${preview}${contentStr.length > 100 ? '...' : ''}</span>`;
 			}
@@ -53,12 +59,14 @@ export function formatClaudeEventSummary(event) {
 			const tool = event.tool || event.name || '';
 			if (tool) summary += ` - <strong>${tool}</strong>`;
 			if (event.input) {
-				const inputStr = typeof event.input === 'object' ? JSON.stringify(event.input) : event.input.toString();
+				const inputStr =
+					typeof event.input === 'object' ? JSON.stringify(event.input) : event.input.toString();
 				const preview = inputStr.substring(0, 80);
 				summary += `<br><strong>Input:</strong> ${preview}${inputStr.length > 80 ? '...' : ''}`;
 			}
 			if (event.result) {
-				const resultStr = typeof event.result === 'object' ? JSON.stringify(event.result) : event.result.toString();
+				const resultStr =
+					typeof event.result === 'object' ? JSON.stringify(event.result) : event.result.toString();
 				const preview = resultStr.substring(0, 80);
 				summary += `<br><strong>Result:</strong> ${preview}${resultStr.length > 80 ? '...' : ''}`;
 			}
@@ -68,4 +76,3 @@ export function formatClaudeEventSummary(event) {
 		return 'Event details unavailable';
 	}
 }
-

@@ -166,27 +166,28 @@
 			throw new Error(j?.error || 'Failed to open workspace');
 		}
 
-		// Create terminal via Socket.IO
-		const socket = io();
-		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-
-		return new Promise((resolve, reject) => {
-			socket.emit('terminal.start', { key, workspacePath }, (response) => {
-				if (response.success) {
-					const existing = sessions.find((s) => s && s.id === response.id);
-					if (!existing) {
-						const s = { id: response.id, type: 'pty', workspacePath };
-						sessions = [...sessions, s];
-					}
-					updateDisplayedWithSession(response.id);
-					resolve();
-				} else {
-					console.error('Failed to create terminal:', response.error);
-					reject(new Error(response.error));
-				}
-				socket.disconnect();
-			});
+		// Create terminal via API so it is registered in the session router
+		const r = await fetch('/api/sessions', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({
+				type: 'pty',
+				workspacePath,
+				options: { resumeSession: false }
+			})
 		});
+		if (!r.ok) {
+			const errorText = await r.text().catch(() => '');
+			console.error('Failed to create terminal session:', r.status, errorText);
+			throw new Error('Failed to create terminal session');
+		}
+		const { id, terminalId } = await r.json();
+		const existing = sessions.find((s) => s && s.id === id);
+		if (!existing) {
+			const s = { id, type: 'pty', workspacePath, terminalId, resumeSession: false };
+			sessions = [...sessions, s];
+		}
+		updateDisplayedWithSession(id);
 	}
 
 	async function createClaudeSession({
@@ -203,7 +204,7 @@
 			resumeSession,
 			createWorkspace
 		});
-		
+
 		// For new workspaces, construct the proper path using WORKSPACES_ROOT
 		let actualWorkspacePath = workspacePath;
 		if (createWorkspace) {
@@ -256,7 +257,7 @@
 
 		const responseData = await r.json();
 		console.log('Claude session created:', responseData);
-		
+
 		const { id, claudeId: claudeSessionId } = responseData;
 		// Avoid duplicate inserts if session already present
 		const existing = sessions.find((s) => s && s.id === id);
@@ -531,9 +532,25 @@
 
 		<!-- Sessions toggle moved to status bar -->
 
-		<div class="header-actions">
+		<div class="header-actions"></div>
+
+		<!-- Layout controls for desktop only -->
+		<div class="header-layout">
+			<span class="layout-label">Layout:</span>
+			{#each ['1up', '2up', '4up'] as preset}
+				<Button
+					onclick={() => (layoutPreset = preset)}
+					text={preset}
+					variant={layoutPreset === preset ? 'primary' : 'ghost'}
+					class={layoutPreset === preset ? 'active' : ''}
+					size="small"
+					augmented="tl-clip br-clip both"
+				>
+					{preset}
+				</Button>
+			{/each}
 			<Button
-				onclick={() => settingsModalOpen = true}
+				onclick={() => (settingsModalOpen = true)}
 				variant="ghost"
 				size="small"
 				title="Open Settings"
@@ -542,25 +559,6 @@
 				<IconSettings size={18} />
 			</Button>
 		</div>
-
-		<!-- Layout controls for desktop only -->
-		{#if !isMobile}
-			<div class="header-layout">
-				<span class="layout-label">Layout:</span>
-				{#each ['1up', '2up', '4up'] as preset}
-					<Button
-						onclick={() => (layoutPreset = preset)}
-						text={preset}
-						variant={layoutPreset === preset ? 'primary' : 'ghost'}
-						class={layoutPreset === preset ? 'active' : ''}
-						size="small"
-						augmented="tl-clip br-clip both"
-					>
-						{preset}
-					</Button>
-				{/each}
-			</div>
-		{/if}
 
 		<!-- Mobile session navigation moved to bottom bar -->
 	</header>
@@ -747,17 +745,17 @@
 								</button>
 							</div>
 							<div class="terminal-viewport">
-								{#if s.type === 'pty'}
-									<TerminalPane
-										ptyId={s.id}
-										shouldResume={s.resumeSession || false}
-										workspacePath={s.workspacePath}
-									/>
-								{:else}
+								{#if s.type === 'claude'}
 									<ClaudePane
 										sessionId={s.id}
 										claudeSessionId={s.claudeSessionId || s.sessionId}
 										shouldResume={s.shouldResume || s.resumeSession || false}
+										workspacePath={s.workspacePath}
+									/>
+								{:else}
+									<TerminalPane
+										ptyId={s.id}
+										shouldResume={s.resumeSession || false}
 										workspacePath={s.workspacePath}
 									/>
 								{/if}
@@ -816,7 +814,10 @@
 				</button>
 				<button
 					class="add-session-btn"
-					onclick={() => { createSessionInitialType = 'claude'; createSessionModalOpen = true; }}
+					onclick={() => {
+						createSessionInitialType = 'claude';
+						createSessionModalOpen = true;
+					}}
 					aria-label="Create new session"
 					title="Create new session"
 				>

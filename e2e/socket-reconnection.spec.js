@@ -18,15 +18,15 @@ test.describe('Socket Reconnection Functionality', () => {
 			await page.addInitScript(() => {
 				// Store original io function
 				const originalIo = window.io;
-				
+
 				// Track socket instances and their state
 				window.socketInstances = new Map();
 				window.networkConnected = true;
-				
+
 				// Override io function to track sockets
-				window.io = function(options = {}) {
+				window.io = function (options = {}) {
 					const sessionId = options.query?.sessionId || 'default';
-					
+
 					// Create mock socket that simulates real Socket.IO behavior
 					const mockSocket = {
 						connected: window.networkConnected,
@@ -35,7 +35,7 @@ test.describe('Socket Reconnection Functionality', () => {
 						isActive: window.networkConnected,
 						id: `socket_${sessionId}_${Date.now()}`,
 						events: new Map(),
-						
+
 						connect() {
 							if (window.networkConnected) {
 								this.connected = true;
@@ -58,45 +58,49 @@ test.describe('Socket Reconnection Functionality', () => {
 								}, 1000);
 							}
 						},
-						
+
 						disconnect() {
 							this.connected = false;
 							this.connecting = false;
 							this.isActive = false;
 							this.emit('disconnect', 'manual disconnect');
 						},
-						
+
 						emit(event, data, callback) {
 							console.log(`Socket ${this.sessionId} emit:`, event, data);
 							if (callback && typeof callback === 'function') {
 								// Simulate successful responses for auth and session events
-								if (event.includes('auth') || event.includes('terminal.') || event.includes('session.')) {
+								if (
+									event.includes('auth') ||
+									event.includes('terminal.') ||
+									event.includes('session.')
+								) {
 									setTimeout(() => callback({ success: true, id: this.sessionId }), 100);
 								}
 							}
 						},
-						
+
 						on(event, handler) {
 							if (!this.events.has(event)) {
 								this.events.set(event, []);
 							}
 							this.events.get(event).push(handler);
 						},
-						
+
 						removeAllListeners() {
 							this.events.clear();
 						},
-						
+
 						// Helper to trigger events
 						triggerEvent(event, ...args) {
 							const handlers = this.events.get(event) || [];
-							handlers.forEach(handler => handler(...args));
+							handlers.forEach((handler) => handler(...args));
 						}
 					};
-					
+
 					// Store socket instance
 					window.socketInstances.set(sessionId, mockSocket);
-					
+
 					// Set up automatic disconnect on network loss
 					const checkNetwork = () => {
 						if (!window.networkConnected && mockSocket.connected) {
@@ -105,9 +109,9 @@ test.describe('Socket Reconnection Functionality', () => {
 							mockSocket.triggerEvent('disconnect', 'transport close');
 						}
 					};
-					
+
 					setInterval(checkNetwork, 100);
-					
+
 					return mockSocket;
 				};
 			});
@@ -211,8 +215,8 @@ test.describe('Socket Reconnection Functionality', () => {
 			await page.addInitScript(() => {
 				window.socketInstances = new Map();
 				window.networkConnected = true;
-				
-				window.io = function(options = {}) {
+
+				window.io = function (options = {}) {
 					const sessionId = options.query?.sessionId || 'default';
 					const mockSocket = {
 						connected: true,
@@ -220,14 +224,14 @@ test.describe('Socket Reconnection Functionality', () => {
 						isActive: true,
 						id: `socket_${sessionId}`,
 						events: new Map(),
-						
-						connect() { 
-							this.connected = true; 
+
+						connect() {
+							this.connected = true;
 							this.isActive = true;
 							this.triggerEvent('connect');
 						},
-						disconnect() { 
-							this.connected = false; 
+						disconnect() {
+							this.connected = false;
 							this.isActive = false;
 							this.triggerEvent('disconnect');
 						},
@@ -238,13 +242,15 @@ test.describe('Socket Reconnection Functionality', () => {
 							}
 							this.events.get(event).push(handler);
 						},
-						removeAllListeners() { this.events.clear(); },
+						removeAllListeners() {
+							this.events.clear();
+						},
 						triggerEvent(event, ...args) {
 							const handlers = this.events.get(event) || [];
-							handlers.forEach(handler => handler(...args));
+							handlers.forEach((handler) => handler(...args));
 						}
 					};
-					
+
 					window.socketInstances.set(sessionId, mockSocket);
 					return mockSocket;
 				};
@@ -259,7 +265,12 @@ test.describe('Socket Reconnection Functionality', () => {
 						body: JSON.stringify({
 							sessions: [
 								{ id: 'terminal_1', type: 'pty', workspacePath: '/workspace/project1' },
-								{ id: 'claude_1', type: 'claude', workspacePath: '/workspace/project2', sessionId: 'claude-session-1' }
+								{
+									id: 'claude_1',
+									type: 'claude',
+									workspacePath: '/workspace/project2',
+									sessionId: 'claude-session-1'
+								}
 							]
 						})
 					});
@@ -274,7 +285,7 @@ test.describe('Socket Reconnection Functionality', () => {
 			// Pin multiple sessions
 			await page.click('.session-item:nth-child(1)');
 			await page.waitForSelector('.session-pane');
-			
+
 			await page.click('.session-item:nth-child(2)');
 			await page.waitForSelector('.session-pane:nth-child(2)');
 
@@ -329,12 +340,14 @@ test.describe('Socket Reconnection Functionality', () => {
 						status: 200,
 						contentType: 'application/json',
 						body: JSON.stringify({
-							sessions: [{
-								id: 'claude_status_test',
-								type: 'claude',
-								workspacePath: '/workspace/test',
-								sessionId: 'claude-session-status'
-							}]
+							sessions: [
+								{
+									id: 'claude_status_test',
+									type: 'claude',
+									workspacePath: '/workspace/test',
+									sessionId: 'claude-session-status'
+								}
+							]
 						})
 					});
 				} else {
@@ -370,8 +383,8 @@ test.describe('Socket Reconnection Functionality', () => {
 			await page.evaluate(() => {
 				window.connectionState = 'connecting';
 				// Trigger a manual update to the Claude pane if needed
-				const event = new CustomEvent('socket-reconnecting', { 
-					detail: { sessionId: 'claude_status_test' } 
+				const event = new CustomEvent('socket-reconnecting', {
+					detail: { sessionId: 'claude_status_test' }
 				});
 				document.dispatchEvent(event);
 			});
@@ -416,12 +429,14 @@ test.describe('Socket Reconnection Functionality', () => {
 						status: 200,
 						contentType: 'application/json',
 						body: JSON.stringify({
-							sessions: [{
-								id: 'catchup_test',
-								type: 'claude',
-								workspacePath: '/workspace/test',
-								sessionId: 'catchup-session'
-							}]
+							sessions: [
+								{
+									id: 'catchup_test',
+									type: 'claude',
+									workspacePath: '/workspace/test',
+									sessionId: 'catchup-session'
+								}
+							]
 						})
 					});
 				} else {
@@ -441,12 +456,12 @@ test.describe('Socket Reconnection Functionality', () => {
 				await page.click('.session-item:nth-child(2)');
 				await page.waitForTimeout(100);
 			}
-			
+
 			await page.click('.session-item:first-child');
 
 			// Check if catch-up events were triggered
 			const catchupEventCount = await page.evaluate(() => window.catchupEvents.length);
-			
+
 			// Catch-up should be triggered when session regains focus
 			expect(catchupEventCount).toBeGreaterThan(0);
 		});
@@ -464,12 +479,14 @@ test.describe('Socket Reconnection Functionality', () => {
 						status: 200,
 						contentType: 'application/json',
 						body: JSON.stringify({
-							sessions: [{
-								id: 'ui_feedback_test',
-								type: 'claude',
-								workspacePath: '/workspace/test',
-								sessionId: 'ui-feedback-session'
-							}]
+							sessions: [
+								{
+									id: 'ui_feedback_test',
+									type: 'claude',
+									workspacePath: '/workspace/test',
+									sessionId: 'ui-feedback-session'
+								}
+							]
 						})
 					});
 				} else {
@@ -486,7 +503,7 @@ test.describe('Socket Reconnection Functionality', () => {
 
 			// Look for connection status elements
 			const aiStateElement = page.locator('.claude-pane .ai-state');
-			
+
 			if (await aiStateElement.isVisible()) {
 				const stateText = await aiStateElement.textContent();
 				// Should show some state indicator (not necessarily reconnecting in normal cases)
@@ -496,7 +513,7 @@ test.describe('Socket Reconnection Functionality', () => {
 			// Verify that the pane is functional (no error states visible)
 			const claudePane = page.locator('.claude-pane');
 			await expect(claudePane).toBeVisible();
-			
+
 			// Should not show error indicators
 			const errorElements = page.locator('.error, .alert-error, .connection-error');
 			const errorCount = await errorElements.count();

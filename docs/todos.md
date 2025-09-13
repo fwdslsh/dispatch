@@ -3,6 +3,7 @@
 > **Note**: This file was triaged on 2025-09-12 as part of issue #44. All actionable items have been converted to GitHub issues or marked with their current status.
 
 ## Completed Items
+
 - [DONE] The session prev/next buttons on mobile view should be located at the bottom of the view port to the left and the side bar toggle should be in the same row on the right side of the screen
 - [DONE] The ProjectSessionMenu should include a way to select the session type and then load the given projects and session for the selected type.
   - [DONE] The new session buttons should be moved to the ProjectSessionMenu and displayed based on the type of session that is selected.
@@ -35,4 +36,4 @@
 
 - [TRIAGED → ISSUE TBD] **Add a "custom" layout option** (only available on desktop) that allows the user to make session viewports sizable and place them wherever they like in the session grid. The layout configuration should be saved to local storage
   - Priority: Low
-  - Action: Feature issue created 
+  - Action: Feature issue created

@@ -4,7 +4,8 @@ class HistoryManager {
 	constructor() {
 		this.socketHistories = new Map(); // In-memory cache for active sockets
 		this._saveQueues = new Map(); // Per-socket save queues to serialize writes
-		this.initializeDatabase();
+		// Ensure database initialization is awaited before any operations
+		this.dbReady = this.initializeDatabase();
 	}
 
 	async initializeDatabase() {
@@ -19,6 +20,7 @@ class HistoryManager {
 	 * Initialize history tracking for a new socket
 	 */
 	async initializeSocket(socketId, metadata = {}) {
+		await this.dbReady;
 		const historyEntry = {
 			socketId,
 			metadata: {
@@ -47,6 +49,7 @@ class HistoryManager {
 	 * Add an event to socket history
 	 */
 	async addEvent(socketId, eventType, direction = 'unknown', data = null) {
+		await this.dbReady;
 		let historyEntry = this.socketHistories.get(socketId);
 
 		// If socket not initialized, create minimal entry
@@ -75,6 +78,7 @@ class HistoryManager {
 	 * Save event to database
 	 */
 	async saveEventToDatabase(socketId, eventType, direction, data) {
+		await this.dbReady;
 		try {
 			await databaseManager.addSessionEvent(socketId, socketId, eventType, direction, data);
 		} catch (error) {
@@ -123,6 +127,7 @@ class HistoryManager {
 	async saveSocketHistory(socketId) {
 		// This method is now deprecated but kept for compatibility
 		// Individual events are saved in saveEventToDatabase
+		await this.dbReady;
 		const historyEntry = this.socketHistories.get(socketId);
 		if (historyEntry) {
 			try {
@@ -137,6 +142,7 @@ class HistoryManager {
 	 * Clean up history for disconnected socket
 	 */
 	async finalizeSocket(socketId) {
+		await this.dbReady;
 		await this.addEvent(socketId, 'disconnect', 'system');
 
 		// Mark session as disconnected in database
@@ -159,6 +165,7 @@ class HistoryManager {
 	 * Get history for a specific socket
 	 */
 	async getSocketHistory(socketId) {
+		await this.dbReady;
 		// Try memory first
 		const memoryHistory = this.socketHistories.get(socketId);
 		if (memoryHistory) {
@@ -192,6 +199,7 @@ class HistoryManager {
 	 * List all available socket histories
 	 */
 	async listSocketHistories() {
+		await this.dbReady;
 		try {
 			return await databaseManager.listSessionHistories();
 		} catch (error) {
@@ -205,6 +213,7 @@ class HistoryManager {
 	 */
 	async cleanup(maxAgeMs = 7 * 24 * 60 * 60 * 1000) {
 		// 7 days default
+		await this.dbReady;
 		try {
 			await databaseManager.cleanupOldData(maxAgeMs);
 		} catch (error) {

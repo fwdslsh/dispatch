@@ -8,7 +8,7 @@ import { databaseManager } from './DatabaseManager.js';
  */
 export class DataMigrator {
 	constructor() {
-		this.homeDir = process.env.HOME || homedir();
+		this.homeDir = join(process.cwd(), '.dispatch-home'); // || process.env.HOME || homedir();
 		this.dispatchDir = join(this.homeDir, '.dispatch');
 		this.historyDir = join(this.dispatchDir, 'history');
 	}

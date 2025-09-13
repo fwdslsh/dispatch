@@ -2,7 +2,13 @@
 	import { onMount } from 'svelte';
 	import { Button, ConfirmationDialog } from '$lib/shared/components';
 	import { STORAGE_CONFIG } from '$lib/shared/utils/constants.js';
-	import { IconTrash, IconDownload, IconUpload, IconAlertTriangle, IconCheck } from '@tabler/icons-svelte';
+	import {
+		IconTrash,
+		IconDownload,
+		IconUpload,
+		IconAlertTriangle,
+		IconCheck
+	} from '@tabler/icons-svelte';
 
 	/**
 	 * Storage Settings Component
@@ -45,8 +51,10 @@
 					// Categorize storage items
 					let category = 'other';
 					if (key.includes('dispatch-session')) category = 'sessions';
-					else if (key.includes('dispatch-settings') || key.includes('dispatch-theme')) category = 'settings';
-					else if (key.includes('dispatch-projects') || key.includes('dispatch-workspace')) category = 'workspace';
+					else if (key.includes('dispatch-settings') || key.includes('dispatch-theme'))
+						category = 'settings';
+					else if (key.includes('dispatch-projects') || key.includes('dispatch-workspace'))
+						category = 'workspace';
 					else if (key.includes('dispatch-terminal')) category = 'terminal';
 					else if (key.includes('dispatch')) category = 'app';
 
@@ -72,7 +80,6 @@
 				percentage,
 				items
 			};
-
 		} catch (error) {
 			console.error('Failed to calculate storage usage:', error);
 			storageUsage = {
@@ -96,7 +103,7 @@
 	// Group storage items by category
 	const groupedItems = $derived(() => {
 		const groups = {};
-		storageUsage.items.forEach(item => {
+		storageUsage.items.forEach((item) => {
 			if (!groups[item.category]) {
 				groups[item.category] = [];
 			}
@@ -132,8 +139,8 @@
 
 				case 'sessions':
 					storageUsage.items
-						.filter(item => item.category === 'sessions')
-						.forEach(item => {
+						.filter((item) => item.category === 'sessions')
+						.forEach((item) => {
 							localStorage.removeItem(item.key);
 							clearedCount++;
 						});
@@ -141,8 +148,8 @@
 
 				case 'settings':
 					storageUsage.items
-						.filter(item => item.category === 'settings')
-						.forEach(item => {
+						.filter((item) => item.category === 'settings')
+						.forEach((item) => {
 							localStorage.removeItem(item.key);
 							clearedCount++;
 						});
@@ -150,8 +157,8 @@
 
 				case 'cache':
 					storageUsage.items
-						.filter(item => ['workspace', 'terminal', 'other'].includes(item.category))
-						.forEach(item => {
+						.filter((item) => ['workspace', 'terminal', 'other'].includes(item.category))
+						.forEach((item) => {
 							localStorage.removeItem(item.key);
 							clearedCount++;
 						});
@@ -165,7 +172,6 @@
 			setTimeout(() => {
 				statusMessage = '';
 			}, 3000);
-
 		} catch (error) {
 			console.error('Failed to clear storage:', error);
 			statusMessage = 'Failed to clear storage';
@@ -207,7 +213,6 @@
 			setTimeout(() => {
 				statusMessage = '';
 			}, 3000);
-
 		} catch (error) {
 			console.error('Failed to export data:', error);
 			statusMessage = 'Failed to export data';
@@ -252,7 +257,6 @@
 			setTimeout(() => {
 				statusMessage = '';
 			}, 3000);
-
 		} catch (error) {
 			console.error('Failed to import data:', error);
 			statusMessage = 'Failed to import data - invalid file format';
@@ -306,15 +310,12 @@
 		<!-- Storage Usage Overview -->
 		<section class="settings-section">
 			<h4 class="section-title">Storage Usage</h4>
-			
+
 			<div class="usage-overview">
 				<div class="usage-bar">
-					<div 
-						class="usage-fill {usageStatus}" 
-						style="width: {storageUsage.percentage}%"
-					></div>
+					<div class="usage-fill {usageStatus}" style="width: {storageUsage.percentage}%"></div>
 				</div>
-				
+
 				<div class="usage-stats">
 					<div class="stat">
 						<span class="stat-label">Used:</span>
@@ -353,7 +354,7 @@
 		{#if Object.keys(groupedItems).length > 0}
 			<section class="settings-section">
 				<h4 class="section-title">Storage Breakdown</h4>
-				
+
 				<div class="storage-categories">
 					{#each Object.entries(groupedItems) as [category, items]}
 						<div class="category-row">
@@ -373,27 +374,17 @@
 		<!-- Data Management -->
 		<section class="settings-section">
 			<h4 class="section-title">Data Management</h4>
-			
+
 			<div class="data-actions">
 				<div class="action-group">
 					<h5>Export & Import</h5>
 					<p>Backup or restore your application data</p>
 					<div class="action-buttons">
-						<Button
-							onclick={exportData}
-							variant="ghost"
-							size="small"
-							disabled={loading}
-						>
+						<Button onclick={exportData} variant="ghost" size="small" disabled={loading}>
 							<IconDownload size={16} />
 							Export Data
 						</Button>
-						<Button
-							onclick={importData}
-							variant="ghost"
-							size="small"
-							disabled={loading}
-						>
+						<Button onclick={importData} variant="ghost" size="small" disabled={loading}>
 							<IconUpload size={16} />
 							Import Data
 						</Button>
@@ -405,7 +396,7 @@
 		<!-- Clear Storage Options -->
 		<section class="settings-section">
 			<h4 class="section-title">Clear Storage</h4>
-			
+
 			<div class="clear-options">
 				<div class="clear-option">
 					<div class="option-info">
@@ -477,7 +468,13 @@
 
 	<!-- Status Messages -->
 	{#if statusMessage}
-		<div class="status-message" class:success={statusMessage.includes('success') || statusMessage.includes('Cleared') || statusMessage.includes('Imported') || statusMessage.includes('Exported')}>
+		<div
+			class="status-message"
+			class:success={statusMessage.includes('success') ||
+				statusMessage.includes('Cleared') ||
+				statusMessage.includes('Imported') ||
+				statusMessage.includes('Exported')}
+		>
 			{statusMessage}
 		</div>
 	{/if}

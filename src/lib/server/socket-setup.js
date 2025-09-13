@@ -21,30 +21,33 @@ function routeSessionId(appSessionId, managers) {
 	if (!appSessionId || !managers?.sessions) {
 		return null;
 	}
-	
+
 	// Get session descriptor from sessions router
 	const sessionDescriptor = managers.sessions.get(appSessionId);
 	if (!sessionDescriptor) {
 		logger.debug('SOCKET', `No session descriptor found for app session ID: ${appSessionId}`);
 		return null;
 	}
-	
+
 	const sessionType = getSessionType(sessionDescriptor);
 	const typeSpecificId = getTypeSpecificId(sessionDescriptor);
-	
+
 	if (!sessionType || !typeSpecificId) {
-		logger.warn('SOCKET', `Session ${appSessionId} missing type or type-specific ID:`, { sessionType, typeSpecificId });
+		logger.warn('SOCKET', `Session ${appSessionId} missing type or type-specific ID:`, {
+			sessionType,
+			typeSpecificId
+		});
 		return null;
 	}
-	
+
 	logger.debug('SOCKET', `Routing session ${appSessionId} -> ${sessionType}:${typeSpecificId}`);
-	
+
 	return {
 		sessionType,
 		typeSpecificId,
 		sessionDescriptor,
-		manager: sessionType === 'claude' ? managers.claude : 
-		         sessionType === 'pty' ? managers.terminals : null
+		manager:
+			sessionType === 'claude' ? managers.claude : sessionType === 'pty' ? managers.terminals : null
 	};
 }
 
@@ -52,20 +55,43 @@ function routeSessionId(appSessionId, managers) {
 let socketEvents = [];
 
 function logSocketEvent(socketId, eventType, data = null) {
+	// Safely clone data for logging; avoid JSON.parse on undefined/non-serializable
+	let safeData = null;
+	try {
+		if (data === null || data === undefined) {
+			safeData = null;
+		} else if (typeof data === 'string' || typeof data === 'number' || typeof data === 'boolean') {
+			safeData = data;
+		} else if (typeof data === 'object') {
+			// Prefer structuredClone when available to preserve types without JSON pitfalls
+			if (typeof globalThis.structuredClone === 'function') {
+				safeData = structuredClone(data);
+			} else {
+				const s = JSON.stringify(data);
+				safeData = typeof s === 'string' ? JSON.parse(s) : null;
+			}
+		} else {
+			// functions, symbols, bigint, etc. -> skip
+			safeData = null;
+		}
+	} catch {
+		safeData = null;
+	}
+
 	const event = {
 		socketId,
 		type: eventType,
-		data: data ? JSON.parse(JSON.stringify(data)) : null, // Deep clone to avoid references
+		data: safeData,
 		timestamp: Date.now()
 	};
-	
+
 	socketEvents.unshift(event);
-	
+
 	// Keep only the most recent 500 events to prevent memory issues
 	if (socketEvents.length > 500) {
 		socketEvents = socketEvents.slice(0, 500);
 	}
-	
+
 	// Emit to admin console if needed
 	try {
 		const io = globalThis.__DISPATCH_SOCKET_IO;
@@ -85,7 +111,7 @@ function logSocketEvent(socketId, eventType, data = null) {
 		} else if (eventType.includes('.data') || eventType.includes('.delta')) {
 			direction = 'out';
 		}
-		
+
 		historyManager.addEvent(socketId, eventType, direction, data);
 	} catch (error) {
 		console.error('[HISTORY] Failed to log event to history:', error);
@@ -118,34 +144,38 @@ export function setupSocketIO(httpServer) {
 			}
 		}
 	} catch (e) {
-		console.error('[SOCKET] Failed to attach server io to managers:', e && e.message ? e.message : e);
+		console.error(
+			'[SOCKET] Failed to attach server io to managers:',
+			e && e.message ? e.message : e
+		);
 	}
 
 	// Get shared managers from hooks.server.js
 	const getManagers = () => globalThis.__API_SERVICES || {};
 
-	io.on('connection', (socket) => {
+	io.on('connection', async (socket) => {
 		console.log(`[SOCKET] Client connected: ${socket.id}`);
-		
+
 		// Track connection for admin console
 		socket.data = socket.data || {};
 		socket.data.connectedAt = Date.now();
 		socket.data.authenticated = false;
-		
-		const connectionMetadata = { 
+
+		const connectionMetadata = {
 			ip: socket.handshake.address || socket.conn.remoteAddress,
 			userAgent: socket.handshake.headers['user-agent']
 		};
-		
-		// Initialize history tracking for this socket
-		historyManager.initializeSocket(socket.id, connectionMetadata);
-		
+
+		// Initialize history tracking for this socket and ensure the
+		// corresponding session row exists before any events are saved.
+		await historyManager.initializeSocket(socket.id, connectionMetadata);
+
 		logSocketEvent(socket.id, 'connection', connectionMetadata);
 
 		// Authentication tracking middleware
 		const originalOn = socket.on.bind(socket);
-		socket.on = function(event, handler) {
-			return originalOn(event, function(...args) {
+		socket.on = function (event, handler) {
+			return originalOn(event, function (...args) {
 				// Log the event for admin monitoring (exclude sensitive data)
 				const logData = event.includes('key') || event.includes('auth') ? '[REDACTED]' : args[0];
 				logSocketEvent(socket.id, event, logData);
@@ -162,7 +192,7 @@ export function setupSocketIO(httpServer) {
 					if (callback) callback({ success: false, error: 'Invalid key' });
 					return;
 				}
-				
+
 				// Mark as authenticated for admin tracking
 				socket.data.authenticated = true;
 
@@ -189,7 +219,7 @@ export function setupSocketIO(httpServer) {
 				if (!validateKey(data.key)) return;
 
 				const managers = getManagers();
-				
+
 				// Route application session ID to terminal session
 				const routing = routeSessionId(data.id, managers);
 				if (!routing || routing.sessionType !== 'pty') {
@@ -197,33 +227,39 @@ export function setupSocketIO(httpServer) {
 					if (managers?.terminals && typeof managers.terminals.write === 'function') {
 						managers.terminals.setSocketIO(socket);
 						managers.terminals.write(data.id, data.data);
-						logger.debug('SOCKET', `Data written to terminal ${data.id} via fallback direct routing`);
+						logger.debug(
+							'SOCKET',
+							`Data written to terminal ${data.id} via fallback direct routing`
+						);
 						return;
 					}
 					logger.warn('SOCKET', `Invalid or non-PTY session for terminal.write: ${data.id}`);
 					return;
 				}
-				
+
 				const { typeSpecificId, manager: terminals } = routing;
-				
+
 				if (terminals) {
 					// Update the socket reference to ensure output goes to the current connection
 					terminals.setSocketIO(socket);
 					terminals.write(typeSpecificId, data.data);
-					logger.debug('SOCKET', `Data written to terminal ${typeSpecificId} via shared manager (app session: ${data.id})`);
+					logger.debug(
+						'SOCKET',
+						`Data written to terminal ${typeSpecificId} via shared manager (app session: ${data.id})`
+					);
 				}
 			} catch (err) {
 				logger.error('SOCKET', 'Terminal write error:', err);
 			}
 		});
 
-			socket.on(SOCKET_EVENTS.TERMINAL_RESIZE, (data) => {
+		socket.on(SOCKET_EVENTS.TERMINAL_RESIZE, (data) => {
 			logger.debug('SOCKET', 'terminal resize received:', data);
 			try {
 				if (!validateKey(data.key)) return;
 
 				const managers = getManagers();
-				
+
 				// Route application session ID to terminal session
 				const routing = routeSessionId(data.id, managers);
 				if (!routing || routing.sessionType !== 'pty') {
@@ -236,12 +272,15 @@ export function setupSocketIO(httpServer) {
 					logger.warn('SOCKET', `Invalid or non-PTY session for terminal.resize: ${data.id}`);
 					return;
 				}
-				
+
 				const { typeSpecificId, manager: terminals } = routing;
-				
+
 				if (terminals) {
 					terminals.resize(typeSpecificId, data.cols, data.rows);
-					logger.debug('SOCKET', `Terminal ${typeSpecificId} resized via shared manager (app session: ${data.id})`);
+					logger.debug(
+						'SOCKET',
+						`Terminal ${typeSpecificId} resized via shared manager (app session: ${data.id})`
+					);
 				}
 			} catch (err) {
 				console.error(`[SOCKET] Terminal resize error:`, err);
@@ -256,26 +295,28 @@ export function setupSocketIO(httpServer) {
 
 				const managers = getManagers();
 				const { sessions } = managers;
-				
+
 				// Route application session ID to Claude session
 				const routing = routeSessionId(data.id, managers);
 				if (!routing || routing.sessionType !== 'claude') {
 					throw new Error(`Invalid or non-Claude session: ${data.id}`);
 				}
-				
+
 				const { typeSpecificId, manager: claude } = routing;
-				
+
 				if (claude) {
 					// Set session as processing before starting (use app session ID)
 					if (sessions) {
 						sessions.setProcessing(data.id);
 					}
-					
+
 					claude.setSocketIO(socket);
 					try {
 						// Use Claude-specific ID for the Claude manager
 						await claude.send(typeSpecificId, data.input);
-						console.log(`[SOCKET] Claude message sent via shared manager (app session: ${data.id}, claude session: ${typeSpecificId})`);
+						console.log(
+							`[SOCKET] Claude message sent via shared manager (app session: ${data.id}, claude session: ${typeSpecificId})`
+						);
 					} catch (err) {
 						// Fallback: try direct resume if session is unknown
 						if (String(err?.message || '').includes('unknown session')) {
@@ -296,7 +337,12 @@ export function setupSocketIO(httpServer) {
 					sessions.setIdle(data.id);
 				}
 				// Proactively notify the client of the error so the UI can react
-				try { socket.emit('error', { message: 'Claude send failed', error: String(err?.message || err) }); } catch {}
+				try {
+					socket.emit('error', {
+						message: 'Claude send failed',
+						error: String(err?.message || err)
+					});
+				} catch {}
 			}
 		});
 
@@ -311,13 +357,17 @@ export function setupSocketIO(httpServer) {
 
 				const managers = getManagers();
 				const { sessions } = managers;
-				
+
 				if (sessions && data.sessionId) {
 					// Use application session ID for activity tracking
 					const activityState = sessions.getActivityState(data.sessionId);
-					const hasPendingMessages = activityState === 'processing' || activityState === 'streaming';
-					logger.debug('SOCKET', `Session ${data.sessionId} activity state: ${activityState}, hasPending: ${hasPendingMessages}`);
-					
+					const hasPendingMessages =
+						activityState === 'processing' || activityState === 'streaming';
+					logger.debug(
+						'SOCKET',
+						`Session ${data.sessionId} activity state: ${activityState}, hasPending: ${hasPendingMessages}`
+					);
+
 					// Try to get available commands from the appropriate session type
 					let availableCommands = null;
 					try {
@@ -333,19 +383,21 @@ export function setupSocketIO(httpServer) {
 						logger.debug('SOCKET', 'Error fetching cached commands:', e.message);
 						availableCommands = null;
 					}
-					
-					if (callback) callback({ 
-						success: true, 
-						activityState,
-						hasPendingMessages,
-						availableCommands: Array.isArray(availableCommands) ? availableCommands : undefined
-					});
+
+					if (callback)
+						callback({
+							success: true,
+							activityState,
+							hasPendingMessages,
+							availableCommands: Array.isArray(availableCommands) ? availableCommands : undefined
+						});
 				} else {
-					if (callback) callback({ 
-						success: true, 
-						activityState: 'idle',
-						hasPendingMessages: false 
-					});
+					if (callback)
+						callback({
+							success: true,
+							activityState: 'idle',
+							hasPendingMessages: false
+						});
 				}
 			} catch (err) {
 				logger.error('SOCKET', 'Session status error:', err);
@@ -363,16 +415,17 @@ export function setupSocketIO(httpServer) {
 		// Public URL retrieval handler
 		socket.on(SOCKET_EVENTS.GET_PUBLIC_URL, (callback) => {
 			logger.debug('SOCKET', 'get-public-url handler called');
-			
+
 			try {
 				// Get config directory from environment or default
-				const configDir = process.env.DISPATCH_CONFIG_DIR || 
-					(process.platform === 'win32' 
+				const configDir =
+					process.env.DISPATCH_CONFIG_DIR ||
+					(process.platform === 'win32'
 						? join(process.env.HOME || homedir(), 'dispatch')
 						: join(process.env.HOME || homedir(), '.config', 'dispatch'));
-				
+
 				const tunnelFile = join(configDir, 'tunnel-url.txt');
-				
+
 				try {
 					const url = readFileSync(tunnelFile, 'utf-8').trim();
 					if (url) {
@@ -388,7 +441,7 @@ export function setupSocketIO(httpServer) {
 					// File doesn't exist or can't be read
 					logger.debug('SOCKET', 'Tunnel URL file not found or unreadable:', tunnelFile);
 				}
-				
+
 				// No URL available
 				if (callback) {
 					callback({ ok: false });
@@ -420,9 +473,10 @@ export function setupSocketIO(httpServer) {
 
 async function directResume(socket, claudeSessionId, prompt, sessions, appSessionId = null) {
 	// Extract session ID if it has claude_ prefix
-	const sessionId = claudeSessionId.startsWith('claude_') ? 
-		claudeSessionId.replace(/^claude_/, '') : claudeSessionId;
-	
+	const sessionId = claudeSessionId.startsWith('claude_')
+		? claudeSessionId.replace(/^claude_/, '')
+		: claudeSessionId;
+
 	// Track as processing if sessions manager available (use app session ID if provided)
 	const trackingId = appSessionId || claudeSessionId;
 	if (sessions) {
@@ -473,7 +527,11 @@ async function directResume(socket, claudeSessionId, prompt, sessions, appSessio
 				continue: true,
 				resume: sessionId,
 				cwd,
-				stderr: (data) => { try { console.error(`[Claude stderr ${sessionId}]`, data); } catch {} },
+				stderr: (data) => {
+					try {
+						console.error(`[Claude stderr ${sessionId}]`, data);
+					} catch {}
+				},
 				env: { ...process.env, HOME: process.env.HOME }
 			}
 		});
@@ -489,7 +547,9 @@ async function directResume(socket, claudeSessionId, prompt, sessions, appSessio
 		}
 	} catch (err) {
 		const msg = String(err?.message || '').toLowerCase();
-		const tooLong = msg.includes('prompt too long') || (msg.includes('context') && msg.includes('too') && msg.includes('long'));
+		const tooLong =
+			msg.includes('prompt too long') ||
+			(msg.includes('context') && msg.includes('too') && msg.includes('long'));
 		if (!tooLong) {
 			// Reset to idle on error (use tracking ID)
 			if (sessions) {
@@ -503,7 +563,11 @@ async function directResume(socket, claudeSessionId, prompt, sessions, appSessio
 			options: {
 				continue: false,
 				cwd,
-				stderr: (data) => { try { console.error(`[Claude stderr ${sessionId}]`, data); } catch {} },
+				stderr: (data) => {
+					try {
+						console.error(`[Claude stderr ${sessionId}]`, data);
+					} catch {}
+				},
 				env: { ...process.env, HOME: process.env.HOME }
 			}
 		});

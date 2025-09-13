@@ -60,7 +60,7 @@
 	// Save settings to localStorage
 	async function saveSettings() {
 		if (saving) return;
-		
+
 		saving = true;
 		saveStatus = '';
 
@@ -89,7 +89,6 @@
 			setTimeout(() => {
 				saveStatus = '';
 			}, 3000);
-
 		} catch (error) {
 			console.error('Failed to save settings:', error);
 			saveStatus = 'Failed to save settings';
@@ -129,7 +128,7 @@
 		<!-- Theme Settings -->
 		<section class="settings-section">
 			<h4 class="section-title">Appearance</h4>
-			
+
 			<div class="input-group">
 				<label for="theme-select" class="input-label">Theme</label>
 				<select id="theme-select" bind:value={theme} class="select-input">
@@ -142,22 +141,14 @@
 
 			<div class="input-group">
 				<label class="checkbox-label">
-					<input 
-						type="checkbox" 
-						bind:checked={enableAnimations}
-						class="checkbox-input"
-					>
+					<input type="checkbox" bind:checked={enableAnimations} class="checkbox-input" />
 					<span class="checkbox-text">Enable animations and transitions</span>
 				</label>
 			</div>
 
 			<div class="input-group">
 				<label class="checkbox-label">
-					<input 
-						type="checkbox" 
-						bind:checked={enableSoundEffects}
-						class="checkbox-input"
-					>
+					<input type="checkbox" bind:checked={enableSoundEffects} class="checkbox-input" />
 					<span class="checkbox-text">Enable sound effects</span>
 				</label>
 			</div>
@@ -166,7 +157,7 @@
 		<!-- Workspace Settings -->
 		<section class="settings-section">
 			<h4 class="section-title">Workspace</h4>
-			
+
 			<div class="input-group">
 				<label for="layout-select" class="input-label">Default Layout</label>
 				<select id="layout-select" bind:value={defaultLayout} class="select-input">
@@ -179,11 +170,7 @@
 
 			<div class="input-group">
 				<label class="checkbox-label">
-					<input 
-						type="checkbox" 
-						bind:checked={autoSaveEnabled}
-						class="checkbox-input"
-					>
+					<input type="checkbox" bind:checked={autoSaveEnabled} class="checkbox-input" />
 					<span class="checkbox-text">Auto-save session state</span>
 				</label>
 				<p class="input-help">Automatically save your workspace state</p>
@@ -193,7 +180,7 @@
 		<!-- Session Settings -->
 		<section class="settings-section">
 			<h4 class="section-title">Sessions</h4>
-			
+
 			<div class="input-group">
 				<label for="timeout-input" class="input-label">Session Timeout (minutes)</label>
 				<Input
@@ -211,16 +198,15 @@
 
 	<!-- Actions -->
 	<footer class="settings-footer">
-		<div class="save-status" class:success={saveStatus.includes('success')} class:error={saveStatus.includes('Failed')}>
+		<div
+			class="save-status"
+			class:success={saveStatus.includes('success')}
+			class:error={saveStatus.includes('Failed')}
+		>
 			{saveStatus}
 		</div>
 		<div class="settings-actions">
-			<Button
-				onclick={resetToDefaults}
-				variant="ghost"
-				size="small"
-				disabled={saving}
-			>
+			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
 				Reset Defaults
 			</Button>
 			<Button

@@ -15,19 +15,19 @@ import { homedir } from 'node:os';
  */
 export function buildExecEnv({ cwd, extraEnv = {}, preserveHome = true } = {}) {
 	const baseEnv = { ...process.env };
-	
+
 	// Ensure HOME is set if preserveHome is true
 	if (preserveHome && !baseEnv.HOME) {
 		baseEnv.HOME = homedir();
 	}
-	
+
 	// Add working directory to PATH if provided
 	if (cwd) {
 		const currentPath = baseEnv.PATH || '';
 		const cwdBin = resolve(cwd, 'node_modules', '.bin');
 		baseEnv.PATH = currentPath ? `${cwdBin}:${currentPath}` : cwdBin;
 	}
-	
+
 	// Merge additional environment variables
 	return {
 		...baseEnv,
@@ -52,7 +52,7 @@ export function buildClaudeOptions(options) {
 	if (!options || !options.cwd) {
 		throw new Error('cwd is required for Claude options');
 	}
-	
+
 	const {
 		cwd,
 		pathToClaude,
@@ -63,11 +63,11 @@ export function buildClaudeOptions(options) {
 		permissionMode = 'bypassPermissions',
 		extraEnv = {}
 	} = options;
-	
+
 	// Default path to Claude executable if not provided
 	const defaultClaudePath = resolve(process.cwd(), './node_modules/.bin/claude');
 	const claudePath = pathToClaude || defaultClaudePath;
-	
+
 	return {
 		cwd,
 		maxTurns,
@@ -93,14 +93,9 @@ export function buildTerminalOptions(options) {
 	if (!options || !options.cwd) {
 		throw new Error('cwd is required for terminal options');
 	}
-	
-	const {
-		cwd,
-		shell = process.env.SHELL || '/bin/bash',
-		args = [],
-		extraEnv = {}
-	} = options;
-	
+
+	const { cwd, shell = process.env.SHELL || '/bin/bash', args = [], extraEnv = {} } = options;
+
 	return {
 		cwd,
 		shell,
@@ -119,7 +114,7 @@ export function normalizeWorkspacePath(workspacePath, defaultPath = process.cwd(
 	if (!workspacePath || typeof workspacePath !== 'string') {
 		return resolve(defaultPath);
 	}
-	
+
 	try {
 		return resolve(workspacePath);
 	} catch (error) {

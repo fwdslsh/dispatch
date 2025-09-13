@@ -37,7 +37,7 @@
 		try {
 			const response = await fetch('/api/claude/auth');
 			const data = await response.json();
-			
+
 			if (response.ok) {
 				isAuthenticated = data.authenticated;
 				authStatus = data.authenticated ? 'authenticated' : 'not_authenticated';
@@ -58,7 +58,7 @@
 	// Start OAuth authentication flow
 	async function startOAuthFlow() {
 		if (loading) return;
-		
+
 		loading = true;
 		authError = '';
 		statusMessage = '';
@@ -75,8 +75,9 @@
 				oauthUrl = data.authUrl;
 				sessionId = data.sessionId;
 				showCodeInput = true;
-				statusMessage = 'Authorization URL generated. Please complete authentication in the new tab.';
-				
+				statusMessage =
+					'Authorization URL generated. Please complete authentication in the new tab.';
+
 				// Open OAuth URL in new tab
 				window.open(oauthUrl, '_blank', 'width=600,height=700');
 			} else {
@@ -93,7 +94,7 @@
 	// Complete OAuth authentication with authorization code
 	async function completeAuth() {
 		if (!authCode.trim() || loading) return;
-		
+
 		loading = true;
 		authError = '';
 		statusMessage = '';
@@ -131,7 +132,7 @@
 	// Manual API key authentication (fallback)
 	async function authenticateWithApiKey() {
 		if (!apiKey.trim() || loading) return;
-		
+
 		loading = true;
 		authError = '';
 		statusMessage = '';
@@ -166,7 +167,7 @@
 	// Sign out
 	async function signOut() {
 		if (loading) return;
-		
+
 		loading = true;
 		authError = '';
 		statusMessage = '';
@@ -226,14 +227,7 @@
 					<h4>Connected to Claude</h4>
 					<p>Your Claude account is authenticated and ready to use.</p>
 				</div>
-				<Button
-					onclick={signOut}
-					variant="ghost"
-					size="small"
-					disabled={loading}
-				>
-					Sign Out
-				</Button>
+				<Button onclick={signOut} variant="ghost" size="small" disabled={loading}>Sign Out</Button>
 			</div>
 		{:else if authStatus === 'not_authenticated'}
 			<!-- Not Authenticated State -->
@@ -254,12 +248,7 @@
 					<div class="auth-method">
 						<h5>Recommended: OAuth Authentication</h5>
 						<p>Secure authentication through Anthropic's official OAuth flow.</p>
-						<Button
-							onclick={startOAuthFlow}
-							variant="primary"
-							disabled={loading}
-							loading={loading}
-						>
+						<Button onclick={startOAuthFlow} variant="primary" disabled={loading} {loading}>
 							<IconExternalLink size={16} />
 							Login with Claude
 						</Button>
@@ -272,11 +261,7 @@
 					<div class="auth-method">
 						<h5>Manual: API Key</h5>
 						<p>Enter your Claude API key directly (less secure).</p>
-						<Button
-							onclick={() => showManualAuth = true}
-							variant="ghost"
-							size="small"
-						>
+						<Button onclick={() => (showManualAuth = true)} variant="ghost" size="small">
 							<IconKey size={16} />
 							Use API Key
 						</Button>
@@ -286,10 +271,8 @@
 				<!-- OAuth Code Input -->
 				<div class="auth-flow">
 					<h4>Complete Authentication</h4>
-					<p>
-						After authorizing in the popup window, paste the authorization code below:
-					</p>
-					
+					<p>After authorizing in the popup window, paste the authorization code below:</p>
+
 					<div class="code-input">
 						<Input
 							bind:value={authCode}
@@ -301,18 +284,12 @@
 					</div>
 
 					<div class="flow-actions">
-						<Button
-							onclick={cancelFlow}
-							variant="ghost"
-							size="small"
-						>
-							Cancel
-						</Button>
+						<Button onclick={cancelFlow} variant="ghost" size="small">Cancel</Button>
 						<Button
 							onclick={completeAuth}
 							variant="primary"
 							disabled={!authCode.trim() || loading}
-							loading={loading}
+							{loading}
 						>
 							Complete Authentication
 						</Button>
@@ -320,7 +297,13 @@
 
 					{#if oauthUrl}
 						<div class="oauth-url">
-							<p>If the popup was blocked, <a href={oauthUrl} target="_blank" rel="noopener noreferrer">click here to open manually</a>.</p>
+							<p>
+								If the popup was blocked, <a
+									href={oauthUrl}
+									target="_blank"
+									rel="noopener noreferrer">click here to open manually</a
+								>.
+							</p>
 						</div>
 					{/if}
 				</div>
@@ -329,10 +312,12 @@
 				<div class="auth-flow">
 					<h4>API Key Authentication</h4>
 					<p>
-						Enter your Claude API key. You can find this in your 
-						<a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">Anthropic Console</a>.
+						Enter your Claude API key. You can find this in your
+						<a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer"
+							>Anthropic Console</a
+						>.
 					</p>
-					
+
 					<div class="key-input">
 						<Input
 							bind:value={apiKey}
@@ -345,18 +330,12 @@
 					</div>
 
 					<div class="flow-actions">
-						<Button
-							onclick={cancelFlow}
-							variant="ghost"
-							size="small"
-						>
-							Cancel
-						</Button>
+						<Button onclick={cancelFlow} variant="ghost" size="small">Cancel</Button>
 						<Button
 							onclick={authenticateWithApiKey}
 							variant="primary"
 							disabled={!apiKey.trim() || loading}
-							loading={loading}
+							{loading}
 						>
 							Authenticate
 						</Button>
@@ -366,13 +345,7 @@
 		{:else if authStatus === 'error'}
 			<!-- Error State -->
 			<ErrorDisplay error={authError} />
-			<Button
-				onclick={checkAuthStatus}
-				variant="ghost"
-				size="small"
-			>
-				Retry
-			</Button>
+			<Button onclick={checkAuthStatus} variant="ghost" size="small">Retry</Button>
 		{/if}
 
 		<!-- Status Messages -->

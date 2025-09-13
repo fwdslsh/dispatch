@@ -1,14 +1,14 @@
 <script>
 	import './shared-styles.css';
-	
+
 	let { event } = $props();
-	
+
 	// Parse the event to extract file read information
 	let fileInfo = $derived(parseReadEvent(event));
-	
+
 	function parseReadEvent(e) {
 		if (!e) return null;
-		
+
 		try {
 			// Check for direct file path in event
 			if (e.file_path || e.path) {
@@ -21,7 +21,7 @@
 					preview: extractPreview(e.result || e.content)
 				};
 			}
-			
+
 			// Check for input object with file_path
 			if (e.input && typeof e.input === 'object') {
 				return {
@@ -33,7 +33,7 @@
 					preview: extractPreview(e.result || e.content)
 				};
 			}
-			
+
 			// Fallback parsing
 			return {
 				path: 'Unknown file',
@@ -51,10 +51,10 @@
 			};
 		}
 	}
-	
+
 	function extractPreview(result) {
 		if (!result) return null;
-		
+
 		// Direct string content
 		if (typeof result === 'string') {
 			// Take first 500 chars as preview for better context
@@ -65,12 +65,13 @@
 				lines: result.split('\n').length
 			};
 		}
-		
+
 		// Check for nested content property (JSONL structure)
 		if (result.content) {
-			const content = typeof result.content === 'string' 
-				? result.content 
-				: (result.content.text || JSON.stringify(result.content, null, 2));
+			const content =
+				typeof result.content === 'string'
+					? result.content
+					: result.content.text || JSON.stringify(result.content, null, 2);
 			const preview = content.substring(0, 500);
 			return {
 				text: preview + (content.length > 500 ? '...' : ''),
@@ -78,7 +79,7 @@
 				lines: content.split('\n').length
 			};
 		}
-		
+
 		// Check for text property
 		if (result.text) {
 			const content = result.text;
@@ -89,14 +90,14 @@
 				lines: content.split('\n').length
 			};
 		}
-		
+
 		// Check for error in result
 		if (result.error) {
 			return {
 				error: result.error
 			};
 		}
-		
+
 		// For objects, try to extract meaningful data
 		if (typeof result === 'object' && result !== null) {
 			const text = JSON.stringify(result, null, 2);
@@ -107,10 +108,10 @@
 				lines: text.split('\n').length
 			};
 		}
-		
+
 		return null;
 	}
-	
+
 	function formatPath(path) {
 		if (!path) return 'Unknown';
 		// Show just the last 2-3 parts of the path for readability
@@ -132,7 +133,7 @@
 				</span>
 			</span>
 		</div>
-		
+
 		{#if fileInfo.offset || fileInfo.lines}
 			<div class="activity-row">
 				<span class="activity-label">Range</span>
@@ -147,7 +148,7 @@
 				</span>
 			</div>
 		{/if}
-		
+
 		{#if fileInfo.success && fileInfo.preview}
 			<div class="activity-result">
 				<div class="activity-row">
@@ -170,7 +171,7 @@
 				{/if}
 			</div>
 		{/if}
-		
+
 		{#if fileInfo.error}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
@@ -181,9 +182,7 @@
 		{:else if fileInfo.success}
 			<div class="activity-row">
 				<span class="activity-label">Status</span>
-				<span class="activity-value activity-success">
-					File read successfully
-				</span>
+				<span class="activity-value activity-success"> File read successfully </span>
 			</div>
 		{/if}
 	{:else}

@@ -5,11 +5,12 @@ import os from 'node:os';
 
 export async function GET({ params }) {
 	const { id } = params;
-	
+
 	// Get terminal history directory
-	const historyDir = process.env.TERMINAL_HISTORY_DIR || join(os.tmpdir(), 'dispatch-terminal-history');
+	const historyDir =
+		process.env.TERMINAL_HISTORY_DIR || join(os.tmpdir(), 'dispatch-terminal-history');
 	const historyFile = join(historyDir, `${id}.log`);
-	
+
 	try {
 		const history = await fs.readFile(historyFile, 'utf8');
 		return json({ history });

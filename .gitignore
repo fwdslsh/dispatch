@@ -149,3 +149,4 @@ playwright-report/
 .dispatch-home/
 .remove
 .workspaces
+.dispatch/

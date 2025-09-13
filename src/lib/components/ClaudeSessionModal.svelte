@@ -19,7 +19,7 @@
 		creating = true;
 		try {
 			console.log('ClaudeSessionModal: Starting session creation', { mode, projectSource });
-			
+
 			if (mode === 'new') {
 				// Using directory browser for new project
 				if (!selectedDirectory) {
@@ -95,9 +95,9 @@
 	}
 
 	const canCreate = $derived(
-		mode === 'new' 
+		mode === 'new'
 			? selectedDirectory !== null
-			: projectSource === 'claude' 
+			: projectSource === 'claude'
 				? selectedProject !== null
 				: selectedDirectory !== null
 	);
@@ -159,9 +159,7 @@
 								projectName = dirName;
 							}}
 						/>
-						<div class="hint">
-							Browse and select a directory for your new Claude project
-						</div>
+						<div class="hint">Browse and select a directory for your new Claude project</div>
 						{#if selectedDirectory && projectName}
 							<div class="project-name-preview">
 								<span class="preview-label">Project Name:</span>
@@ -231,9 +229,7 @@
 								api="/api/browse"
 								placeholder="Navigate to your project directory..."
 							/>
-							<div class="hint">
-								Browse and select a directory to start a new Claude session
-							</div>
+							<div class="hint">Browse and select a directory to start a new Claude session</div>
 						</div>
 					{/if}
 				{/if}
@@ -274,7 +270,6 @@
 		overflow: hidden;
 	}
 
-
 	.tabs {
 		display: flex;
 	}
@@ -295,7 +290,6 @@
 		text-align: center;
 		position: relative;
 	}
-
 
 	.tab:hover {
 		color: var(--text);

@@ -20,9 +20,7 @@ test.describe('Terminal Session Basic Test', () => {
 					status: 200,
 					contentType: 'application/json',
 					body: JSON.stringify({
-						list: [
-							{ path: '/workspace/test-terminal', name: 'test-terminal' }
-						]
+						list: [{ path: '/workspace/test-terminal', name: 'test-terminal' }]
 					})
 				});
 			} else {
@@ -30,7 +28,7 @@ test.describe('Terminal Session Basic Test', () => {
 			}
 		});
 
-		// Mock terminal session creation 
+		// Mock terminal session creation
 		await page.route('/api/sessions', async (route) => {
 			if (route.request().method() === 'POST') {
 				const requestData = await route.request().postDataJSON();

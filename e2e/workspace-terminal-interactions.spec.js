@@ -82,7 +82,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 
 		// Create terminal session
 		await page.click('button:has-text("Create"), button:has-text("Start Terminal")');
-		
+
 		// Wait for modal to close
 		await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
 
@@ -134,9 +134,13 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 		await expect(sessionItems).toHaveCount(2);
 
 		// Verify different icons for different session types
-		const claudeIcon = page.locator('.session-item:has(.claude-icon), .session-item:has-text("Mixed Project")');
-		const terminalIcon = page.locator('.session-item:has(.terminal-icon), .session-item:has-text("terminal")');
-		
+		const claudeIcon = page.locator(
+			'.session-item:has(.claude-icon), .session-item:has-text("Mixed Project")'
+		);
+		const terminalIcon = page.locator(
+			'.session-item:has(.terminal-icon), .session-item:has-text("terminal")'
+		);
+
 		await expect(claudeIcon).toBeVisible();
 		await expect(terminalIcon).toBeVisible();
 
@@ -210,7 +214,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 
 		// Create session with new workspace
 		await page.click('button:has-text("Create Session")');
-		
+
 		// Wait for modal to close
 		await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
 
@@ -259,7 +263,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 
 		// Get all options
 		const options = await workspaceSelector.locator('option').allTextContents();
-		
+
 		// Verify workspaces are listed (might include a "Select workspace" option)
 		expect(options.length).toBeGreaterThanOrEqual(mockWorkspaces.length);
 		expect(options.join(' ')).toContain('alpha');
@@ -318,12 +322,14 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 		await expect(allSessions).toHaveCount(4);
 
 		// Look for workspace filter if it exists
-		const workspaceFilter = page.locator('.workspace-filter, select[name="workspace-filter"], .filter-workspace');
-		
+		const workspaceFilter = page.locator(
+			'.workspace-filter, select[name="workspace-filter"], .filter-workspace'
+		);
+
 		if (await workspaceFilter.isVisible({ timeout: 5000 })) {
 			// Select first workspace
 			await workspaceFilter.selectOption({ value: '/workspace/workspace1' });
-			
+
 			// Check filtered results
 			await page.waitForTimeout(500); // Wait for filter to apply
 			const filteredSessions = page.locator('.session-item:visible');
@@ -368,10 +374,12 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 		// Get initial terminal dimensions
 		const initialDimensions = await page.evaluate(() => {
 			const terminal = document.querySelector('.xterm-screen, .terminal-pane');
-			return terminal ? {
-				width: terminal.offsetWidth,
-				height: terminal.offsetHeight
-			} : null;
+			return terminal
+				? {
+						width: terminal.offsetWidth,
+						height: terminal.offsetHeight
+					}
+				: null;
 		});
 
 		// Change layout from 1UP to 2UP
@@ -381,10 +389,12 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 		// Get new dimensions
 		const newDimensions = await page.evaluate(() => {
 			const terminal = document.querySelector('.xterm-screen, .terminal-pane');
-			return terminal ? {
-				width: terminal.offsetWidth,
-				height: terminal.offsetHeight
-			} : null;
+			return terminal
+				? {
+						width: terminal.offsetWidth,
+						height: terminal.offsetHeight
+					}
+				: null;
 		});
 
 		// Terminal should have resized (width should be different in split view)
@@ -503,7 +513,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 		const sessionGrid = page.locator('.session-grid');
 		const sessionPanes = sessionGrid.locator('.session-pane');
 		const paneCount = await sessionPanes.count();
-		
+
 		// Should either have no panes or show placeholder
 		expect(paneCount).toBe(0);
 	});

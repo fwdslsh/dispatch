@@ -3,13 +3,13 @@ import { test, expect } from '@playwright/test';
 
 /**
  * Comprehensive UI Test Suite for Dispatch
- * 
+ *
  * This test suite covers all major UI flows and UX validation,
  * EXCLUDING Claude sessions to ensure reliable CI execution.
- * 
+ *
  * Coverage:
  * - Authentication flows
- * - Project creation and navigation  
+ * - Project creation and navigation
  * - Terminal session management
  * - Console/admin page validation
  * - Responsive/mobile layout
@@ -45,7 +45,7 @@ test.describe('Authentication Flow', () => {
 			// Test valid authentication
 			await authInput.fill(TEST_AUTH_KEY);
 			await page.locator('button[type="submit"]').click();
-			
+
 			// Should redirect to projects
 			await page.waitForURL('**/projects');
 		}
@@ -87,7 +87,7 @@ test.describe('Authentication Flow', () => {
 		const logoutButton = page.locator('button[aria-label="Logout"], button:has-text("Logout")');
 		if (await logoutButton.isVisible()) {
 			await logoutButton.click();
-			
+
 			// Should redirect to login page
 			await page.waitForURL('/');
 			await expect(page.locator('input[type="password"]')).toBeVisible();
@@ -113,7 +113,7 @@ test.describe('Project Management', () => {
 
 		// Check main layout elements
 		await expect(page.locator('.dispatch-workspace, .workspace, .main-content')).toBeVisible();
-		
+
 		// Check header elements
 		const header = page.locator('header, .header, .header-brand');
 		if (await header.isVisible()) {
@@ -122,11 +122,11 @@ test.describe('Project Management', () => {
 
 		// Check for session-related UI elements
 		await expect(page.locator('.sidebar, .sessions-list, .project-sidebar')).toBeVisible();
-		
+
 		// Take screenshot for visual validation
-		await page.screenshot({ 
-			path: 'test-results/projects-page-layout.png', 
-			fullPage: true 
+		await page.screenshot({
+			path: 'test-results/projects-page-layout.png',
+			fullPage: true
 		});
 	});
 
@@ -153,19 +153,21 @@ test.describe('Project Management', () => {
 
 		if (createButton) {
 			await createButton.click();
-			
+
 			// Look for project name input
 			const nameInput = page.locator('input[placeholder*="name" i], input[name*="name" i]').first();
 			if (await nameInput.isVisible()) {
 				const projectName = `test-project-${Date.now()}`;
 				await nameInput.fill(projectName);
-				
+
 				// Submit the form
-				const submitButton = page.locator('button[type="submit"], button:has-text("Create")').first();
+				const submitButton = page
+					.locator('button[type="submit"], button:has-text("Create")')
+					.first();
 				if (await submitButton.isVisible()) {
 					await submitButton.click();
 					await page.waitForTimeout(2000);
-					
+
 					// Verify project was created (check for redirect or success)
 					const url = page.url();
 					expect(url).toMatch(/\/projects/);
@@ -186,15 +188,15 @@ test.describe('Project Management', () => {
 			// Click on first project
 			await projectLinks.first().click();
 			await page.waitForTimeout(1000);
-			
+
 			// Verify we navigated to a specific project
 			const currentUrl = page.url();
 			expect(currentUrl).toMatch(/\/projects\/[^\/]+/);
-			
+
 			// Go back to projects list
 			await page.goto('/projects');
 			await page.waitForLoadState('networkidle');
-			
+
 			// Verify we're back at projects list
 			await expect(page).toHaveURL(/.*\/projects$/);
 		}
@@ -257,9 +259,9 @@ test.describe('Terminal Session Management', () => {
 
 			if (terminalFound) {
 				// Take screenshot of terminal session
-				await page.screenshot({ 
+				await page.screenshot({
 					path: 'test-results/terminal-session-created.png',
-					fullPage: true 
+					fullPage: true
 				});
 			}
 		}
@@ -280,7 +282,7 @@ test.describe('Terminal Session Management', () => {
 		}
 
 		// Take screenshot of sidebar
-		await page.screenshot({ 
+		await page.screenshot({
 			path: 'test-results/sessions-sidebar.png',
 			clip: { x: 0, y: 0, width: 300, height: 800 }
 		});
@@ -294,7 +296,9 @@ test.describe('Terminal Session Management', () => {
 		const initialSessions = await page.locator('.session-item, .session').count();
 
 		// Try to create a new terminal session
-		const createButton = page.locator('button:has-text("Terminal"), button:has-text("New Session")').first();
+		const createButton = page
+			.locator('button:has-text("Terminal"), button:has-text("New Session")')
+			.first();
 		if (await createButton.isVisible()) {
 			await createButton.click();
 			await page.waitForTimeout(3000);
@@ -304,13 +308,15 @@ test.describe('Terminal Session Management', () => {
 			if (newSessions > initialSessions) {
 				// Session was created successfully
 				const latestSession = page.locator('.session-item, .session').last();
-				
+
 				// Try to close the session
-				const closeButton = latestSession.locator('button[title*="close" i], button[aria-label*="close" i], .close-button');
+				const closeButton = latestSession.locator(
+					'button[title*="close" i], button[aria-label*="close" i], .close-button'
+				);
 				if (await closeButton.isVisible()) {
 					await closeButton.click();
 					await page.waitForTimeout(1000);
-					
+
 					// Verify session was closed
 					const finalSessions = await page.locator('.session-item, .session').count();
 					expect(finalSessions).toBeLessThanOrEqual(newSessions);
@@ -324,13 +330,15 @@ test.describe('Terminal Session Management', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Try to create multiple sessions
-		const createButton = page.locator('button:has-text("Terminal"), button:has-text("New Session")').first();
-		
+		const createButton = page
+			.locator('button:has-text("Terminal"), button:has-text("New Session")')
+			.first();
+
 		if (await createButton.isVisible()) {
 			// Create first session
 			await createButton.click();
 			await page.waitForTimeout(2000);
-			
+
 			// Create second session
 			await createButton.click();
 			await page.waitForTimeout(2000);
@@ -341,17 +349,17 @@ test.describe('Terminal Session Management', () => {
 
 			// Test switching between sessions
 			const sessions = page.locator('.session-item, .session');
-			if (await sessions.count() > 1) {
+			if ((await sessions.count()) > 1) {
 				await sessions.nth(0).click();
 				await page.waitForTimeout(500);
-				
+
 				await sessions.nth(1).click();
 				await page.waitForTimeout(500);
-				
+
 				// Take screenshot showing multiple sessions
-				await page.screenshot({ 
+				await page.screenshot({
 					path: 'test-results/multiple-sessions.png',
-					fullPage: true 
+					fullPage: true
 				});
 			}
 		}
@@ -377,7 +385,7 @@ test.describe('Console/Admin Page Validation', () => {
 		// Check for console/admin page elements
 		const adminElements = [
 			'.admin-console',
-			'.console-container', 
+			'.console-container',
 			'.admin-panel',
 			'h1:has-text("Console")',
 			'h1:has-text("Admin")'
@@ -393,9 +401,9 @@ test.describe('Console/Admin Page Validation', () => {
 		}
 
 		// Take screenshot of console page
-		await page.screenshot({ 
+		await page.screenshot({
 			path: 'test-results/console-page.png',
-			fullPage: true 
+			fullPage: true
 		});
 
 		// If console page exists, verify it has useful information
@@ -403,7 +411,7 @@ test.describe('Console/Admin Page Validation', () => {
 			// Look for typical admin information
 			const infoElements = [
 				':has-text("Socket")',
-				':has-text("Session")', 
+				':has-text("Session")',
 				':has-text("Connection")',
 				':has-text("Log")',
 				':has-text("Status")'
@@ -426,7 +434,7 @@ test.describe('Console/Admin Page Validation', () => {
 		// Check for proper headings structure
 		const headings = page.locator('h1, h2, h3');
 		const headingCount = await headings.count();
-		
+
 		if (headingCount > 0) {
 			// Verify headings have text content
 			for (let i = 0; i < Math.min(headingCount, 3); i++) {
@@ -438,7 +446,7 @@ test.describe('Console/Admin Page Validation', () => {
 
 		// Check for navigation elements
 		const navElements = page.locator('nav, .navigation, .menu');
-		if (await navElements.count() > 0) {
+		if ((await navElements.count()) > 0) {
 			await expect(navElements.first()).toBeVisible();
 		}
 	});
@@ -463,9 +471,9 @@ test.describe('Responsive and Mobile Layout', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Take mobile screenshot
-		await page.screenshot({ 
+		await page.screenshot({
 			path: 'test-results/mobile-layout.png',
-			fullPage: true 
+			fullPage: true
 		});
 
 		// Check that content is still accessible
@@ -474,7 +482,7 @@ test.describe('Responsive and Mobile Layout', () => {
 
 		// Check for mobile-friendly navigation
 		const mobileNav = page.locator('.mobile-nav, .hamburger, .menu-toggle, nav');
-		if (await mobileNav.count() > 0) {
+		if ((await mobileNav.count()) > 0) {
 			await expect(mobileNav.first()).toBeVisible();
 		}
 	});
@@ -486,9 +494,9 @@ test.describe('Responsive and Mobile Layout', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Take tablet screenshot
-		await page.screenshot({ 
+		await page.screenshot({
 			path: 'test-results/tablet-layout.png',
-			fullPage: true 
+			fullPage: true
 		});
 
 		// Verify layout adapts properly
@@ -520,7 +528,7 @@ test.describe('Responsive and Mobile Layout', () => {
 			await expect(coreElements.first()).toBeVisible();
 
 			// Take screenshot for this viewport
-			await page.screenshot({ 
+			await page.screenshot({
 				path: `test-results/layout-${viewport.name}.png`,
 				fullPage: false // Just viewport for comparison
 			});
@@ -545,15 +553,15 @@ test.describe('Visual Regression and Layout Validation', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Take full page screenshot for baseline
-		await page.screenshot({ 
+		await page.screenshot({
 			path: 'test-results/visual-baseline.png',
-			fullPage: true 
+			fullPage: true
 		});
 
 		// Check key layout elements have proper CSS
 		const workspace = page.locator('.workspace, .dispatch-workspace').first();
 		if (await workspace.isVisible()) {
-			const styles = await workspace.evaluate(el => {
+			const styles = await workspace.evaluate((el) => {
 				const computed = window.getComputedStyle(el);
 				return {
 					display: computed.display,
@@ -561,7 +569,7 @@ test.describe('Visual Regression and Layout Validation', () => {
 					overflow: computed.overflow
 				};
 			});
-			
+
 			// Verify basic layout styles
 			expect(styles.display).not.toBe('none');
 		}
@@ -579,7 +587,7 @@ test.describe('Visual Regression and Layout Validation', () => {
 			for (let i = 0; i < Math.min(buttonCount, 5); i++) {
 				const button = buttons.nth(i);
 				if (await button.isVisible()) {
-					const styles = await button.evaluate(el => {
+					const styles = await button.evaluate((el) => {
 						const computed = window.getComputedStyle(el);
 						return {
 							cursor: computed.cursor,
@@ -587,7 +595,7 @@ test.describe('Visual Regression and Layout Validation', () => {
 							border: computed.border
 						};
 					});
-					
+
 					// Verify button has interactive styling
 					expect(styles.cursor).toBe('pointer');
 				}
@@ -601,25 +609,25 @@ test.describe('Visual Regression and Layout Validation', () => {
 
 		// Check for proper heading structure
 		const h1 = page.locator('h1');
-		if (await h1.count() > 0) {
+		if ((await h1.count()) > 0) {
 			await expect(h1.first()).toBeVisible();
 		}
 
 		// Check for proper link styling
 		const links = page.locator('a');
 		const linkCount = await links.count();
-		
+
 		if (linkCount > 0) {
 			const firstLink = links.first();
 			if (await firstLink.isVisible()) {
-				const styles = await firstLink.evaluate(el => {
+				const styles = await firstLink.evaluate((el) => {
 					const computed = window.getComputedStyle(el);
 					return {
 						color: computed.color,
 						textDecoration: computed.textDecoration
 					};
 				});
-				
+
 				// Verify links have proper styling
 				expect(styles.color).toBeTruthy();
 			}
@@ -638,7 +646,7 @@ test.describe('Visual Regression and Layout Validation', () => {
 			for (let i = 0; i < Math.min(inputCount, 3); i++) {
 				const input = inputs.nth(i);
 				if (await input.isVisible()) {
-					const styles = await input.evaluate(el => {
+					const styles = await input.evaluate((el) => {
 						const computed = window.getComputedStyle(el);
 						return {
 							border: computed.border,
@@ -646,7 +654,7 @@ test.describe('Visual Regression and Layout Validation', () => {
 							fontSize: computed.fontSize
 						};
 					});
-					
+
 					// Verify inputs have proper styling
 					expect(styles.border).toBeTruthy();
 					expect(styles.padding).not.toBe('0px');
@@ -673,14 +681,16 @@ test.describe('Error Handling and Edge Cases', () => {
 		await page.waitForLoadState('networkidle');
 
 		// Simulate network failure for specific requests
-		await page.route('/api/sessions', route => route.abort());
-		
+		await page.route('/api/sessions', (route) => route.abort());
+
 		// Try to create a session and see if error is handled
-		const createButton = page.locator('button:has-text("Terminal"), button:has-text("New Session")').first();
+		const createButton = page
+			.locator('button:has-text("Terminal"), button:has-text("New Session")')
+			.first();
 		if (await createButton.isVisible()) {
 			await createButton.click();
 			await page.waitForTimeout(2000);
-			
+
 			// Check for error message or graceful degradation
 			const errorMessage = page.locator('.error, .alert, .notification');
 			// Don't fail if no error message - just checking for graceful handling
@@ -694,9 +704,10 @@ test.describe('Error Handling and Edge Cases', () => {
 
 		// Should either redirect or show appropriate error
 		const url = page.url();
-		const isOnErrorPage = url.includes('/projects') || 
-							  (await page.locator('.error, .not-found, h1:has-text("404")').count() > 0);
-		
+		const isOnErrorPage =
+			url.includes('/projects') ||
+			(await page.locator('.error, .not-found, h1:has-text("404")').count()) > 0;
+
 		expect(isOnErrorPage).toBeTruthy();
 	});
 
@@ -707,7 +718,7 @@ test.describe('Error Handling and Edge Cases', () => {
 		// Navigate to console and back
 		await page.goto('/console');
 		await page.waitForLoadState('networkidle');
-		
+
 		await page.goto('/projects');
 		await page.waitForLoadState('networkidle');
 
