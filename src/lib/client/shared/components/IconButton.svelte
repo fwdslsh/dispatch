@@ -3,8 +3,6 @@
 	 * IconButton Component
 	 * Icon-only button for close, actions, etc.
 	 */
-	import Button from './Button.svelte';
-
 	// Props
 	let {
 		children = undefined,
@@ -12,7 +10,6 @@
 		size = 'medium',
 		disabled = false,
 		loading = false,
-		augmented = 'tl-clip br-clip both',
 		ariaLabel = undefined,
 		onclick = undefined,
 		class: customClass = '',
@@ -20,67 +17,144 @@
 	} = $props();
 </script>
 
-<Button
-	{variant}
-	{size}
+<button
 	{disabled}
-	{loading}
-	{augmented}
-	{ariaLabel}
+	class:loading
+	aria-labelledby={ariaLabel}
 	{onclick}
-	class="btn-icon-only {customClass}"
+	class="btn-icon-only {customClass} {variant}"
 	{...restProps}
 >
 	{#if children}
 		{@render children()}
 	{/if}
-</Button>
+</button>
 
 <style>
-	/* Icon-only button specific styles to ensure proper sizing and styling */
-	:global(.btn-icon-only) {
-		--aug-tl: 6px;
-		--aug-br: 6px;
-		--aug-border-all: 1px;
-		--aug-border-bg: var(--accent);
-		--aug-border-opacity: 0.3;
-		--aug-inlay-all: 0px;
 
-		width: 2.5rem;
-		height: 2.5rem;
-		min-width: 2.5rem;
-		min-height: 2.5rem;
+	:root{
+		--transition-duration: 0.5s;
+	}
+	/* Icon-only button specific styles - minimal styling with only color change on hover */
+	.btn-icon-only {
+		width: auto;
 		padding: 0;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		font-size: 1.2rem;
+		border: none;
+		background: none;
+		cursor: pointer;
+		transition: all var(--transition-duration) ease-in-out;
 
 		/* Ensure proper touch targets on mobile */
 		@media (max-width: 768px) {
-			width: 2.75rem;
-			height: 2.75rem;
-			min-width: 2.75rem;
-			min-height: 2.75rem;
+			padding: var(--space-2);
 		}
 	}
 
-	:global(.btn-icon-only:hover) {
-		--aug-tl: 8px;
-		--aug-br: 8px;
-		--aug-border-opacity: 0.5;
-		--aug-inlay-all: 1px;
-		--aug-inlay-bg: color-mix(in oklab, var(--accent) 10%, transparent);
-		--aug-inlay-opacity: 0.4;
+	.btn-icon-only:hover {
+		transition: all var(--transition-duration) ease-in-out;
+		color: var(--accent);
 	}
 
-	:global(.btn-icon-only:active),
-	:global(.btn-icon-only.active) {
-		--aug-tl: 4px;
-		--aug-br: 4px;
-		--aug-border-opacity: 0.8;
-		--aug-inlay-all: 1px;
-		--aug-inlay-opacity: 0.6;
-		transform: scale(0.95);
+	/* Primary variant */
+	.btn-icon-only.primary {
+		color: var(--accent);
 	}
+
+	.btn-icon-only.primary:hover {
+		color: var(--accent);
+	}
+
+	:global(.btn-icon-only.primary svg) {
+		filter: drop-shadow(0 0 2px var(--accent));
+	}
+
+	:global(.btn-icon-only.primary:hover svg) {
+		filter: drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 8px var(--accent));
+	}
+
+	/* Secondary/Warning variant */
+	.btn-icon-only.secondary,
+	.btn-icon-only.warn {
+		color: var(--warn);
+	}
+
+	.btn-icon-only.secondary:hover,
+	.btn-icon-only.warn:hover {
+		color: var(--warn);
+	}
+
+	:global(.btn-icon-only.secondary svg),
+	:global(.btn-icon-only.warn svg) {
+		filter: drop-shadow(0 0 2px var(--warn));
+	}
+
+	:global(.btn-icon-only.secondary:hover svg),
+	:global(.btn-icon-only.warn:hover svg) {
+		filter: drop-shadow(0 0 4px var(--warn)) drop-shadow(0 0 8px var(--warn));
+	}
+
+	/* Danger variant */
+	.btn-icon-only.danger {
+		color: var(--err);
+	}
+
+	.btn-icon-only.danger:hover {
+		color: var(--err);
+	}
+
+	:global(.btn-icon-only.danger svg) {
+		filter: drop-shadow(0 0 2px var(--err));
+	}
+
+	:global(.btn-icon-only.danger:hover svg) {
+		filter: drop-shadow(0 0 4px var(--err)) drop-shadow(0 0 8px var(--err));
+	}
+
+	/* Ghost variant (default - minimal styling) */
+	.btn-icon-only.ghost {
+		color: var(--muted);
+	}
+
+	.btn-icon-only.ghost:hover {
+		color: var(--accent);
+	}
+
+	:global(.btn-icon-only.ghost svg) {
+		filter: none;
+	}
+
+	:global(.btn-icon-only.ghost:hover svg) {
+		filter: drop-shadow(0 0 3px var(--accent));
+	}
+	:global(.btn-icon-only svg) {
+		transition: all var(--transition-duration) ease-in-out;
+		width: 1.5rem;
+	}
+	:global(.btn-icon-only:hover svg) {
+		filter: drop-shadow(0 0 3px var(--primary-glow));
+		transition: all var(--transition-duration) ease-in-out;
+	}
+
+	.btn-icon-only:active,
+	.btn-icon-only.active {
+		color: var(--primary);
+	}
+
+	/* Disabled state */
+	.btn-icon-only:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		pointer-events: none;
+		color: var(--muted);
+	}
+
+	:global(.btn-icon-only:disabled svg) {
+		filter: none;
+	}
+
+	
 </style>

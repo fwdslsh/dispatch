@@ -138,11 +138,36 @@ export class WorkspaceManager {
 				type: session.session_type,
 				typeSpecificId: session.type_specific_id,
 				workspacePath: session.workspace_path,
-				pinned: session.pinned === 1 || session.pinned === true
+				pinned: session.pinned === 1 || session.pinned === true,
+				createdAt: session.created_at,
+				lastActivity: session.updated_at
 			}));
 		} catch (error) {
 			logger.error('[WORKSPACE] Failed to get sessions from database:', error);
 			return [];
+		}
+	}
+
+	async getSession(workspacePath, sessionId) {
+		// Get a specific session from database
+		try {
+			const session = await getDatabaseManager().getWorkspaceSession(workspacePath, sessionId);
+			if (session) {
+				return {
+					id: session.id,
+					title: session.title,
+					sessionType: session.session_type,
+					typeSpecificId: session.type_specific_id,
+					workspacePath: session.workspace_path,
+					pinned: session.pinned === 1 || session.pinned === true,
+					createdAt: session.created_at,
+					lastActivity: session.updated_at
+				};
+			}
+			return null;
+		} catch (error) {
+			logger.error('[WORKSPACE] Failed to get session from database:', error);
+			return null;
 		}
 	}
 

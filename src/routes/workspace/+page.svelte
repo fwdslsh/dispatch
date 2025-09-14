@@ -1,17 +1,18 @@
 <script>
 	import { onDestroy, onMount } from 'svelte';
-	import { fly, scale } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
 	import ClaudePane from '$lib/client/claude/ClaudePane.svelte';
 	import TerminalSessionModal from '$lib/client/terminal/TerminalSessionModal.svelte';
-	import ClaudeSessionModal from '$lib/client/claude/ClaudeSessionModal.svelte';
 	import CreateSessionModalSimplified from '$lib/client/shared/components/CreateSessionModalSimplified.svelte';
 	import SettingsModal from '$lib/client/shared/components/Settings/SettingsModal.svelte';
 	import { Button } from '$lib/client/shared/components';
 	import ProjectSessionMenuSimplified from '$lib/client/shared/components/ProjectSessionMenuSimplified.svelte';
 	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager.js';
 	import { IconX, IconSettings } from '@tabler/icons-svelte';
+	import IconButton from '$lib/client/shared/components/IconButton.svelte';
+	import ClaudeSessionModal from '$lib/client/claude/ClaudeSessionModal.svelte';
 
 	let sessions = $state([]);
 	let workspaces = $state([]);
@@ -506,8 +507,7 @@
 	}
 
 	// Handle session creation events from CreateSessionModalSimplified
-	async function handleUnifiedSessionCreate(event) {
-		const detail = event?.detail || event || {};
+	function handleUnifiedSessionCreate(detail) {
 		const { id, type, workspacePath, typeSpecificId } = detail;
 		if (!id || !type || !workspacePath) return;
 
@@ -633,9 +633,8 @@
 
 		<!-- Layout controls for desktop only -->
 		<div class="header-layout">
-			<span class="layout-label">Layout:</span>
 			{#each ['1up', '2up', '4up'] as preset}
-				<Button
+				<IconButton
 					onclick={() => (layoutPreset = preset)}
 					text={preset}
 					variant={layoutPreset === preset ? 'primary' : 'ghost'}
@@ -644,17 +643,8 @@
 					augmented="tl-clip br-clip both"
 				>
 					{preset}
-				</Button>
+				</IconButton>
 			{/each}
-			<Button
-				onclick={() => (settingsModalOpen = true)}
-				variant="ghost"
-				size="small"
-				title="Open Settings"
-				augmented="tl-clip br-clip both"
-			>
-				<IconSettings size={18} />
-			</Button>
 		</div>
 
 		<!-- Mobile session navigation moved to bottom bar -->
@@ -664,18 +654,13 @@
 	<div class="session-sheet" class:open={sessionMenuOpen} role="dialog" aria-label="Sessions">
 		<div class="sheet-header">
 			<div class="sheet-title">Sessions</div>
-			<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close"
-				><IconX size={14} /></button
+			<IconButton class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close"
+				><IconX size={14} /></IconButton
 			>
 		</div>
 		<div class="sheet-body">
 			<ProjectSessionMenuSimplified
-				storagePrefix="dispatch-projects"
 				bind:selectedWorkspace
-				onWorkspaceSelected={(e) => {
-					// Handle project selection if needed
-					console.log('Project selected:', e.detail);
-				}}
 				onNewSession={(e) => {
 					const { type } = e.detail || {};
 					if (type === 'claude') {
@@ -831,7 +816,7 @@
 										<span class="project-name">{s.projectName}</span>
 									{/if}
 								</div>
-								<button
+								<IconButton
 									class="unpin-btn"
 									onclick={(e) => {
 										e.stopPropagation?.();
@@ -839,14 +824,10 @@
 									}}
 									title="Close session"
 									aria-label="Close session"
-									type="button"
+									variant="danger"
 								>
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-										<path
-											d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-										/>
-									</svg>
-								</button>
+									<IconX size={12} />
+								</IconButton>
 							</div>
 							<div class="terminal-viewport">
 								{#if s.type === 'claude'}
@@ -899,23 +880,7 @@
 				{/if}
 			</div>
 			<div class="center-group">
-				<button
-					class="bottom-btn primary"
-					onclick={quickCreateClaude}
-					disabled={quickCreating}
-					aria-label="New Claude Session"
-					title="New Claude Session"
-				>
-					{quickCreating ? 'Creating…' : 'New Claude'}
-				</button>
-				<button
-					class="bottom-btn"
-					onclick={openTerminalCreation}
-					aria-label="New Terminal Session"
-					title="New Terminal Session"
-				>
-					New Terminal
-				</button>
+				
 				<button
 					class="add-session-btn"
 					onclick={() => {
@@ -941,7 +906,7 @@
 				</button>
 			</div>
 			<div class="right-group">
-				<button
+				<IconButton
 					class="bottom-btn"
 					onclick={() => (settingsModalOpen = true)}
 					aria-label="Open settings"
@@ -949,9 +914,9 @@
 					type="button"
 				>
 					<IconSettings size={18} />
-				</button>
-				<button class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions"
-					>{sessionMenuOpen ? 'Close' : 'Sessions'}</button
+				</IconButton>
+				<Button class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions"
+					>{sessionMenuOpen ? 'Close' : 'Sessions'}</Button
 				>
 			</div>
 		</div>
@@ -970,7 +935,7 @@
 <CreateSessionModalSimplified
 	bind:open={createSessionModalOpen}
 	initialType={createSessionInitialType}
-	on:created={handleUnifiedSessionCreate}
+	oncreated={handleUnifiedSessionCreate}
 />
 
 <SettingsModal bind:open={settingsModalOpen} />
@@ -1378,7 +1343,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: var(--space-3) var(--space-4);
+		padding-inline: var(--space-3);
 		background: var(--bg-panel);
 		border-bottom: 1px solid var(--primary-dim);
 		min-height: 44px;

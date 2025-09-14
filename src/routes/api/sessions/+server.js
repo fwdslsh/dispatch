@@ -50,10 +50,55 @@ export async function GET({ url, locals }) {
 import { getTypeSpecificId, getSessionType } from '../../../lib/server/utils/session-ids.js';
 
 export async function POST({ request, locals }) {
-	const { type, workspacePath, options } = await request.json();
+	const { type, workspacePath, options, resume, sessionId } = await request.json();
 
-	// Always use the unified SessionManager
 	try {
+		// If resuming a session, handle it differently
+		if (resume && sessionId) {
+			// Check if session is already active
+			const existingActiveSession = locals.sessions.get(sessionId);
+			if (existingActiveSession) {
+				// Session is already active, just return its info
+				return new Response(
+					JSON.stringify({
+						id: existingActiveSession.id,
+						typeSpecificId: existingActiveSession.typeSpecificId,
+						resumed: true
+					})
+				);
+			}
+
+			// Get session details from database
+			const persistedSession = await locals.workspaces.getSession(workspacePath, sessionId);
+			if (persistedSession) {
+				// Create a new session with resume options
+				const session = await locals.sessionManager.createSession({
+					type: persistedSession.sessionType,
+					workspacePath: persistedSession.workspacePath,
+					options: {
+						...options,
+						resume: true,
+						terminalId: persistedSession.typeSpecificId, // For terminal sessions
+						claudeSessionId: persistedSession.typeSpecificId // For Claude sessions
+					}
+				});
+
+				return new Response(
+					JSON.stringify({
+						id: session.id,
+						typeSpecificId: session.typeSpecificId,
+						resumed: true
+					})
+				);
+			} else {
+				return new Response(
+					JSON.stringify({ error: 'Session not found' }),
+					{ status: 404 }
+				);
+			}
+		}
+
+		// Always use the unified SessionManager for new sessions
 		const session = await locals.sessionManager.createSession({
 			type,
 			workspacePath,
@@ -85,7 +130,20 @@ export async function POST({ request, locals }) {
 		);
 	} catch (error) {
 		console.error('[API] Session creation failed:', error);
-		return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+		
+		// Provide more specific error messages for common issues
+		let errorMessage = error.message;
+		let statusCode = 500;
+		
+		if (error.message?.includes('node-pty failed to load')) {
+			errorMessage = 'Terminal functionality is temporarily unavailable. Please try again in a moment.';
+			statusCode = 503; // Service Unavailable
+		} else if (error.message?.includes('Vite module runner has been closed')) {
+			errorMessage = 'Development server is restarting. Please try again in a moment.';
+			statusCode = 503; // Service Unavailable
+		}
+		
+		return new Response(JSON.stringify({ error: errorMessage }), { status: statusCode });
 	}
 }
 

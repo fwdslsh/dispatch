@@ -1,5 +1,6 @@
 <script>
 	import { IconX, IconArchive } from '@tabler/icons-svelte';
+	import IconButton from '../shared/components/IconButton.svelte';
 
 	// Props
 	let {
@@ -106,8 +107,8 @@
 					<span>• {new Date(selected.lastModified).toLocaleDateString()}</span>
 				{/if}
 			</div>
-			<button type="button" class="clear-btn" onclick={clear} aria-label="Clear selection"
-				><IconX size={14} /></button
+			<IconButton type="button" class="clear-btn" onclick={clear} aria-label="Clear selection"
+				><IconX size={14} /></IconButton
 			>
 		</div>
 	{:else}

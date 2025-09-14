@@ -10,6 +10,8 @@
 		IconCheck
 	} from '@tabler/icons-svelte';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
+	import IconButton from './IconButton.svelte';
+	import Input from './Input.svelte';
 
 	// Svelte 5 Directory Browser Component
 	let {
@@ -205,30 +207,30 @@
 				</button>
 			{/each}
 		</div>
-		<div class="breadcrumb-actions">
-			<button
+		<!-- <div class="breadcrumb-actions">
+			<Button
 				type="button"
 				class="action-btn"
 				onclick={toggleNewDirInput}
 				title="Create new directory"
-				class:active={showNewDirInput}
+				active={showNewDirInput}
 			>
 				<IconFolderPlus size={16} />
-			</button>
-			<button
+			</Button>
+			<Button
 				type="button"
 				class="action-btn"
 				onclick={toggleHidden}
 				title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
-				class:active={showHidden}
+				active={showHidden}
 			>
 				{#if showHidden}
 					<IconEye size={16} />
 				{:else}
 					<IconEyeOff size={16} />
 				{/if}
-			</button>
-		</div>
+			</Button>
+		</div> -->
 	</div>
 
 	<!-- Selected path display -->
@@ -236,28 +238,29 @@
 		<div class="selected-display">
 			<span class="selected-label">Selected:</span>
 			<span class="selected-path">{selected}</span>
-			<button
+		
+			<IconButton
 				type="button"
 				onclick={() => (selected = null)}
 				class="clear-selection"
 				title="Clear selection"
 			>
 				<IconX size={16} />
-			</button>
+			</IconButton>
 		</div>
 	{/if}
 	<!-- Search bar -->
 	<div class="search-bar">
-		<input type="text" bind:value={query} {placeholder} disabled={loading} class="search-input" />
-		<button
+		<Input type="text" bind:value={query} {placeholder} disabled={loading} class="search-input" />
+		<Button
 			type="button"
-			class="select-btn"
+			
 			onclick={selectCurrent}
 			disabled={loading}
 			title="Select current directory"
 		>
 			<IconCheck size={20} />
-		</button>
+		</Button>
 		<Button type="button" onclick={toggleNewDirInput} title="Create new directory" variant="ghost">
 			<IconFolderPlus size={16} />
 		</Button>
@@ -279,7 +282,7 @@
 	<!-- New directory input -->
 	{#if showNewDirInput}
 		<div class="new-dir-form">
-			<input
+			<Input
 				type="text"
 				bind:value={newDirName}
 				placeholder="Enter new directory name..."
@@ -287,17 +290,17 @@
 				class="new-dir-input"
 				onkeydown={(e) => e.key === 'Enter' && createNewDirectory()}
 			/>
-			<button
+			<Button
 				type="button"
 				class="create-btn"
 				onclick={createNewDirectory}
 				disabled={creatingDir || !newDirName.trim()}
 			>
 				{creatingDir ? 'Creating...' : 'Create'}
-			</button>
-			<button type="button" class="cancel-btn" onclick={toggleNewDirInput} disabled={creatingDir}>
+			</Button>
+			<Button type="button" class="cancel-btn" onclick={toggleNewDirInput} disabled={creatingDir}>
 				Cancel
-			</button>
+			</Button>
 		</div>
 	{/if}
 
@@ -338,7 +341,7 @@
 						<span class="name">{entry.name}</span>
 						<span class="type">directory</span>
 					</button>
-					<button
+					<IconButton
 						type="button"
 						onclick={() => selectDirectory(entry.path)}
 						disabled={loading}
@@ -346,7 +349,7 @@
 						title="Select this directory"
 					>
 						<IconCheck size={16} />
-					</button>
+					</IconButton>
 				{:else}
 					<div class="item-button file">
 						<span class="icon"><IconFile size={20} /></span>

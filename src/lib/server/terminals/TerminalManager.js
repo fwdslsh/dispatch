@@ -7,17 +7,40 @@ import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 import { logger } from '../utils/logger.js';
 
 let pty;
+let ptyLoadAttempted = false;
+let ptyLoadError = null;
+
 async function ensurePtyLoaded() {
     if (pty) return pty;
+    if (ptyLoadAttempted && !pty) return null; // Don't retry if we already failed
+    
+    ptyLoadAttempted = true;
     try {
+        // In development, Vite might be restarting - let's handle this gracefully
         pty = await import('node-pty');
         logger.info('TERMINAL', 'node-pty loaded successfully');
+        ptyLoadError = null;
         return pty;
     } catch (err) {
+        ptyLoadError = err;
         logger.error('Failed to load node-pty:', err);
+        // In development mode, if Vite module runner is closed, try to restart
+        if (err.message?.includes('Vite module runner has been closed')) {
+            logger.warn('TERMINAL', 'Vite module runner closed - terminal functionality temporarily unavailable');
+            // Reset the attempt flag so we can try again later
+            ptyLoadAttempted = false;
+        }
         pty = null;
         return null;
     }
+}
+
+// Reset function to allow retrying after Vite restarts
+export function resetPtyState() {
+    pty = null;
+    ptyLoadAttempted = false;
+    ptyLoadError = null;
+    logger.info('TERMINAL', 'Reset node-pty loading state for retry');
 }
 
 export class TerminalManager {
@@ -90,7 +113,11 @@ export class TerminalManager {
         const loadedPty = await ensurePtyLoaded();
         if (!loadedPty) {
             logger.error('TERMINAL', 'Cannot start terminal: node-pty is not available');
-            throw new Error('Terminal functionality not available - node-pty failed to load');
+            // Provide a more helpful error message
+            const errorMsg = ptyLoadError?.message?.includes('Vite module runner has been closed') 
+                ? 'Terminal functionality temporarily unavailable - development server restarting'
+                : 'Terminal functionality not available - node-pty failed to load';
+            throw new Error(errorMsg);
         }
 
         const id = terminalId || `pty_${this.nextId++}`;

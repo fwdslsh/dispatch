@@ -345,6 +345,13 @@ export class DatabaseManager {
 		);
 	}
 
+	async getWorkspaceSession(workspacePath, sessionId) {
+		return await this.get(
+			'SELECT * FROM workspace_sessions WHERE workspace_path = ? AND id = ?',
+			[workspacePath, sessionId]
+		);
+	}
+
 	async getAllSessions(pinnedOnly = true) {
 		if (pinnedOnly) {
 			return await this.all(

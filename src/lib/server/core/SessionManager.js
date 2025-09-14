@@ -306,7 +306,7 @@ export class SessionManager {
 				return {
 					workspacePath,
 					options,
-					sessionId: options.sessionId,
+					sessionId: options.claudeSessionId || options.sessionId,
 					appSessionId: sessionId
 				};
 			default:

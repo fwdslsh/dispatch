@@ -57,6 +57,10 @@
 		class: customClass = '',
 		style = '',
 		id = undefined,
+
+		// Augmented UI
+		augmented = 'tl-clip br-clip both',
+		
 		...restProps
 	} = $props();
 
@@ -118,7 +122,7 @@
 	}
 </script>
 
-<div class="input-wrapper">
+<div class="input-wrapper" data-augmented-ui={augmented}>
 	{#if label}
 		<label for={inputId} class="input__label" id={labelId}>
 			{label}

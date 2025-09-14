@@ -1,5 +1,7 @@
 <script>
 	import { onDestroy } from 'svelte';
+	import IconButton from './IconButton.svelte';
+	import { IconX } from '@tabler/icons-svelte';
 
 	/**
 	 * Modal Foundation Component
@@ -146,7 +148,10 @@
 				{/if}
 
 				{#if showCloseButton}
-					<button class="modal__close" onclick={close} aria-label="Close modal" type="button">
+				<IconButton variant="danger" onclick={close} aria-label="Close modal">
+					<IconX size={18}  />
+				</IconButton>
+					<!-- <button class="modal__close" onclick={close} aria-label="Close modal" type="button">
 						<svg
 							width="24"
 							height="24"
@@ -162,7 +167,7 @@
 								stroke-linejoin="round"
 							/>
 						</svg>
-					</button>
+					</button> -->
 				{/if}
 			</header>
 		{/if}

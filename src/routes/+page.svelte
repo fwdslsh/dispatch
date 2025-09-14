@@ -3,6 +3,8 @@
 	import { io } from 'socket.io-client';
 	import { PublicUrlDisplay, ErrorDisplay } from '$lib/client/shared/components';
 	import { onMount } from 'svelte';
+	import Button from '$lib/client/shared/components/Button.svelte';
+	import Input from '$lib/client/shared/components/Input.svelte';
 	let key = $state('');
 	let error = $state('');
 	let loading = $state(false);
@@ -51,7 +53,7 @@
 </script>
 
 <svelte:head>
-	<title>dispatch - Terminal Access</title>
+	<title>dispatch</title>
 </svelte:head>
 
 <main class="login-page">
@@ -62,22 +64,16 @@
 
 			<div class="card aug" data-augmented-ui="tl-clip br-clip both">
 				<form onsubmit={handleLogin}>
-					<input
+					<Input
 						bind:value={key}
 						type="password"
 						placeholder="terminal key"
 						required
 						disabled={loading}
-						autocomplete="off"
 					/>
-					<button
-						class="button primary aug"
-						type="submit"
-						disabled={loading}
-						data-augmented-ui="l-clip r-clip both"
-					>
+					<Button class="button primary aug" type="submit" disabled={loading}>
 						{loading ? 'connecting...' : 'connect'}
-					</button>
+					</Button>
 				</form>
 			</div>
 

@@ -1,5 +1,4 @@
 <script>
-	import { createEventDispatcher } from 'svelte';
 	import Modal from '$lib/client/shared/components/Modal.svelte';
 	import DirectoryBrowser from './DirectoryBrowser.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
@@ -9,7 +8,7 @@
 	import { IconBolt, IconRobot, IconTerminal2, IconFolder, IconPlus } from '@tabler/icons-svelte';
 
 	// Props
-	let { open = $bindable(false), initialType = 'claude' } = $props();
+	let { open = $bindable(false), initialType = 'claude', oncreated } = $props();
 
 	// State
 	let sessionType = $state(initialType);
@@ -17,8 +16,6 @@
 	let showDirectoryBrowser = $state(false);
 	let loading = $state(false);
 	let error = $state(null);
-
-	const dispatch = createEventDispatcher();
 
 	// Set default workspace path (will be set when modal opens)
 	async function setDefaultWorkspace() {
@@ -52,12 +49,14 @@
 
 			if (response.ok) {
 				const session = await response.json();
-				dispatch('created', {
-					id: session.id,
-					type: sessionType,
-					workspacePath,
-					typeSpecificId: session.typeSpecificId
-				});
+				if (oncreated) {
+					oncreated({
+						id: session.id,
+						type: sessionType,
+						workspacePath,
+						typeSpecificId: session.typeSpecificId
+					});
+				}
 				open = false;
 			} else {
 				const errorText = await response.text();

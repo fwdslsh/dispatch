@@ -1,5 +1,6 @@
 <script>
 	import { IconX, IconFolder } from '@tabler/icons-svelte';
+	import IconButton from '../shared/components/IconButton.svelte';
 
 	// Svelte 5 (runes)
 	let {
@@ -122,20 +123,20 @@
 					<span>• {new Date(selected.lastModified).toLocaleDateString()}</span>
 				{/if}
 			</div>
-			<button type="button" class="clear-btn" onclick={clear} aria-label="Clear selection"
-				><IconX size={14} /></button
+			<IconButton type="button" class="clear-btn" onclick={clear} aria-label="Clear selection"
+				><IconX size={14} /></IconButton
 			>
 		</div>
 	{:else}
 		<div class="row">
-            <input
-            	type="text"
-            	{placeholder}
-            	bind:value={query}
-            	oninput={filter}
-            	onkeydown={key}
-            	aria-controls="cc-panel"
-            />
+			<input
+				type="text"
+				{placeholder}
+				bind:value={query}
+				oninput={filter}
+				onkeydown={key}
+				aria-controls="cc-panel"
+			/>
 			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse projects"
 				><IconFolder size={18} /></button
 			>
