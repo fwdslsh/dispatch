@@ -3,7 +3,6 @@
  * Controlled by DISPATCH_LOG_LEVEL environment variable
  */
 
-
 import { databaseManager } from '../db/DatabaseManager.js';
 
 const LOG_LEVELS = {
@@ -67,12 +66,15 @@ function formatLogMessage(level, component, message, ...args) {
  */
 
 function logToDatabase(level, component, message, args) {
-	databaseManager.init()
-    .then(() => databaseManager.addLog(level, component, message, args && args.length ? args : null))
-    .catch((err) => {
-      // Fallback: log DB error to console, but do not throw
-      console.error('[LOGGER] Failed to write log to database:', err);
-    });
+	databaseManager
+		.init()
+		.then(() =>
+			databaseManager.addLog(level, component, message, args && args.length ? args : null)
+		)
+		.catch((err) => {
+			// Fallback: log DB error to console, but do not throw
+			console.error('[LOGGER] Failed to write log to database:', err);
+		});
 }
 
 /**
@@ -83,10 +85,10 @@ function logToDatabase(level, component, message, args) {
  */
 
 export function debug(component, message, ...args) {
-  if (currentLogLevel <= LOG_LEVELS.DEBUG) {
-    console.log(...formatLogMessage('DEBUG', component, message, ...args));
-    void logToDatabase('DEBUG', component, message, args);
-  }
+	if (currentLogLevel <= LOG_LEVELS.DEBUG) {
+		console.log(...formatLogMessage('DEBUG', component, message, ...args));
+		void logToDatabase('DEBUG', component, message, args);
+	}
 }
 
 /**
@@ -97,10 +99,10 @@ export function debug(component, message, ...args) {
  */
 
 export function info(component, message, ...args) {
-  if (currentLogLevel <= LOG_LEVELS.INFO) {
-    console.log(...formatLogMessage('INFO', component, message, ...args));
-    void logToDatabase('INFO', component, message, args);
-  }
+	if (currentLogLevel <= LOG_LEVELS.INFO) {
+		console.log(...formatLogMessage('INFO', component, message, ...args));
+		void logToDatabase('INFO', component, message, args);
+	}
 }
 
 /**
@@ -111,10 +113,10 @@ export function info(component, message, ...args) {
  */
 
 export function warn(component, message, ...args) {
-  if (currentLogLevel <= LOG_LEVELS.WARN) {
-    console.warn(...formatLogMessage('WARN', component, message, ...args));
-    void logToDatabase('WARN', component, message, args);
-  }
+	if (currentLogLevel <= LOG_LEVELS.WARN) {
+		console.warn(...formatLogMessage('WARN', component, message, ...args));
+		void logToDatabase('WARN', component, message, args);
+	}
 }
 
 /**
@@ -125,10 +127,10 @@ export function warn(component, message, ...args) {
  */
 
 export function error(component, message, ...args) {
-  if (currentLogLevel <= LOG_LEVELS.ERROR) {
-    console.error(...formatLogMessage('ERROR', component, message, ...args));
-    void logToDatabase('ERROR', component, message, args);
-  }
+	if (currentLogLevel <= LOG_LEVELS.ERROR) {
+		console.error(...formatLogMessage('ERROR', component, message, ...args));
+		void logToDatabase('ERROR', component, message, args);
+	}
 }
 
 /**

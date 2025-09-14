@@ -18,6 +18,7 @@ services:
       # Directory paths inside container
       - DISPATCH_CONFIG_DIR=/config
       - DISPATCH_PROJECTS_DIR=/projects
+      - DISPATCH_WORKSPACE_DIR=/workspace
       - CONTAINER_ENV=true
       # Uncomment for public access:
       # - ENABLE_TUNNEL=true

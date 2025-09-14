@@ -44,7 +44,7 @@ export class SessionRouter {
 	setActivityState(sessionId, state) {
 		if (this.map.has(sessionId)) {
 			this.activityState.set(sessionId, state);
-			   logger.info('SESSION_ROUTER', `Session ${sessionId} activity: ${state}`);
+			logger.info('SESSION_ROUTER', `Session ${sessionId} activity: ${state}`);
 		}
 	}
 

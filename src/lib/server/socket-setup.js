@@ -55,19 +55,19 @@ function logSocketEvent(socketId, eventType, data = null) {
 		// Silently ignore errors
 	}
 
-		// Add to persistent history (use safeData to avoid non-serializable inputs)
-		try {
-			let direction = 'system';
-			if (eventType.includes('.write') || eventType.includes('.send')) {
-				direction = 'in';
-			} else if (eventType.includes('.data') || eventType.includes('.delta')) {
-				direction = 'out';
-			}
-			historyManager.addEvent(socketId, eventType, direction, safeData);
-		} catch (error) {
-			console.error('[HISTORY] Failed to log event to history:', error);
+	// Add to persistent history (use safeData to avoid non-serializable inputs)
+	try {
+		let direction = 'system';
+		if (eventType.includes('.write') || eventType.includes('.send')) {
+			direction = 'in';
+		} else if (eventType.includes('.data') || eventType.includes('.delta')) {
+			direction = 'out';
 		}
+		historyManager.addEvent(socketId, eventType, direction, safeData);
+	} catch (error) {
+		console.error('[HISTORY] Failed to log event to history:', error);
 	}
+}
 
 export function getSocketEvents(limit = 100) {
 	return socketEvents.slice(0, Math.min(limit, socketEvents.length));
@@ -134,10 +134,10 @@ export function setupSocketIO(httpServer) {
 
 		// Terminal start event (creates new terminal session)
 		socket.on('terminal.start', async (data, callback) => {
-			   logger.info('SOCKET', `[terminal.start received]`, JSON.stringify(data));
+			logger.info('SOCKET', `[terminal.start received]`, JSON.stringify(data));
 			try {
 				if (!validateKey(data.key)) {
-					   logger.info('SOCKET', `Invalid key for terminal.start`);
+					logger.info('SOCKET', `Invalid key for terminal.start`);
 					if (callback) callback({ success: false, error: 'Invalid key' });
 					return;
 				}
@@ -157,13 +157,13 @@ export function setupSocketIO(httpServer) {
 							env: data.env
 						}
 					});
-					   logger.info('SOCKET', `Terminal session created: ${session.id}`);
+					logger.info('SOCKET', `Terminal session created: ${session.id}`);
 					if (callback) callback({ success: true, id: session.id });
 				} else if (terminals) {
 					// Fallback to direct terminal manager
 					terminals.setSocketIO(socket);
 					const result = terminals.start(data);
-					   logger.info('SOCKET', `Terminal ${result.id} created directly`);
+					logger.info('SOCKET', `Terminal ${result.id} created directly`);
 					if (callback) callback({ success: true, ...result });
 				} else {
 					throw new Error('No session management available');
@@ -231,7 +231,7 @@ export function setupSocketIO(httpServer) {
 					try {
 						sessionManager.setSocketIO(socket);
 						await sessionManager.sendToSession(data.id, data.input);
-						   logger.info('SOCKET', `Claude message sent via session manager`);
+						logger.info('SOCKET', `Claude message sent via session manager`);
 					} finally {
 						// Will be reset to idle when message completes
 					}
@@ -269,7 +269,12 @@ export function setupSocketIO(httpServer) {
 				}
 			} catch (e) {
 				logger.error('SOCKET', 'CLAUDE_AUTH_START error:', e);
-				try { socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, { success: false, error: String(e?.message || e) }); } catch {}
+				try {
+					socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, {
+						success: false,
+						error: String(e?.message || e)
+					});
+				} catch {}
 			}
 		});
 
@@ -283,13 +288,23 @@ export function setupSocketIO(httpServer) {
 				}
 				const code = String(data.code || '').trim();
 				if (!code) {
-					try { socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, { success: false, error: 'Missing authorization code' }); } catch {}
+					try {
+						socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, {
+							success: false,
+							error: 'Missing authorization code'
+						});
+					} catch {}
 					return;
 				}
 				claudeAuthManager.submitCode(socket, code);
 			} catch (e) {
 				logger.error('SOCKET', 'CLAUDE_AUTH_CODE error:', e);
-				try { socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, { success: false, error: String(e?.message || e) }); } catch {}
+				try {
+					socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, {
+						success: false,
+						error: String(e?.message || e)
+					});
+				} catch {}
 			}
 		});
 
@@ -352,8 +367,6 @@ export function setupSocketIO(httpServer) {
 			logger.debug('SOCKET', 'session.catchup received:', data);
 			// Could be used to resend missed messages if needed
 		});
-
-
 
 		// Commands refresh event - canonical Claude name
 		socket.on(SOCKET_EVENTS.CLAUDE_COMMANDS_REFRESH, async (data, callback) => {
@@ -450,6 +463,6 @@ export function setupSocketIO(httpServer) {
 		});
 	});
 
-		logger.info('SOCKET', 'Simplified Socket.IO server initialized');
+	logger.info('SOCKET', 'Simplified Socket.IO server initialized');
 	return io;
 }

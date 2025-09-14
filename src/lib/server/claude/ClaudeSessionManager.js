@@ -77,18 +77,18 @@ export class ClaudeSessionManager {
 		this.io = io;
 
 		// Debug what type of instance this is
-		   logger.info('Claude', '[ClaudeSessionManager] setSocketIO called with:', {
-			   hasSocketsProperty: !!(io && io.sockets),
-			   hasEmitMethod: !!(io && io.emit),
-			   constructorName: io?.constructor?.name,
-			   isSocketIO: !!(io && io.sockets && io.emit)
-		   });
+		logger.info('Claude', '[ClaudeSessionManager] setSocketIO called with:', {
+			hasSocketsProperty: !!(io && io.sockets),
+			hasEmitMethod: !!(io && io.emit),
+			constructorName: io?.constructor?.name,
+			isSocketIO: !!(io && io.sockets && io.emit)
+		});
 
 		// If this is a server instance (has a 'sockets' property), store it as the global server
 		// for broadcasting events to all clients
 		if (io && io.sockets) {
 			this.serverIO = io;
-			   logger.info('Claude', '[ClaudeSessionManager] Set serverIO for broadcasting');
+			logger.info('Claude', '[ClaudeSessionManager] Set serverIO for broadcasting');
 		}
 	}
 
@@ -257,7 +257,9 @@ export class ClaudeSessionManager {
 			for await (const event of stream) {
 				sawAnyEvent = true;
 				if (event && this.io) {
-					try { this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]); } catch {}
+					try {
+						this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]);
+					} catch {}
 					// Auto-start OAuth flow if Claude asks user to run /login
 					try {
 						if (
@@ -307,7 +309,11 @@ export class ClaudeSessionManager {
 									services.sessions.updateTypeSpecificId(s.appSessionId, newId);
 								}
 								if (services.workspaces) {
-									await services.workspaces.updateTypeSpecificId(s.workspacePath, s.appSessionId, newId);
+									await services.workspaces.updateTypeSpecificId(
+										s.workspacePath,
+										s.appSessionId,
+										newId
+									);
 								}
 
 								// Optionally emit updated commands/status under the new session ID
@@ -319,10 +325,12 @@ export class ClaudeSessionManager {
 			} catch {}
 			// Emit a completion event so the session can be marked as idle
 			// Use appSessionId if available, otherwise fall back to the key
-				if (this.io) {
-					const emitSessionId = s.appSessionId || key;
-					try { this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId }); } catch {}
-				}
+			if (this.io) {
+				const emitSessionId = s.appSessionId || key;
+				try {
+					this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId });
+				} catch {}
+			}
 		} catch (error) {
 			logger.error('Claude', `Error in Claude session ${id}:`, error);
 			// If the prompt/history is too long OR resume target missing, retry without resume
@@ -353,13 +361,17 @@ export class ClaudeSessionManager {
 
 					for await (const event of fresh) {
 						if (event && this.io) {
-							try { this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]); } catch {}
+							try {
+								this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]);
+							} catch {}
 						}
 					}
 					// Emit completion event for the fresh query
 					if (this.io) {
 						const emitSessionId = s.appSessionId || key;
-						try { this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId }); } catch {}
+						try {
+							this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId });
+						} catch {}
 					}
 					return;
 				} catch (retryErr) {
@@ -523,7 +535,7 @@ export class ClaudeSessionManager {
 				err && err.message ? err.message : err
 			);
 		});
-			return { key: sessionId, session: hydrated };
+		return { key: sessionId, session: hydrated };
 	}
 
 	#encodeProjectPath(workspacePath) {
@@ -574,7 +586,11 @@ export class ClaudeSessionManager {
 		// Simple cache TTL: 5 minutes
 		const TTL = 5 * 60 * 1000;
 		const cached = this._toolsCache.get(cacheKey);
-		console.log('🔥 [DEBUG] cached result:', !!cached, cached ? 'age:' + (Date.now() - cached.fetchedAt) : 'none');
+		console.log(
+			'🔥 [DEBUG] cached result:',
+			!!cached,
+			cached ? 'age:' + (Date.now() - cached.fetchedAt) : 'none'
+		);
 		if (cached && Date.now() - cached.fetchedAt < TTL) {
 			// Emit cached directly - emit to both Claude session ID and app session ID if available
 			// Use global server instance for broadcasting if available, otherwise use current io
@@ -585,9 +601,17 @@ export class ClaudeSessionManager {
 				hasGlobalIO: !!globalThis.__DISPATCH_SOCKET_IO,
 				usingIO: !!emitIO
 			});
-				if (emitIO) {
-					   logger.info('Claude', `Emitting tools for session ${claudeSessionId} (cached: ${cached.commands.length})`);
-					try { emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, { sessionId: claudeSessionId, commands: cached.commands }); } catch {}
+			if (emitIO) {
+				logger.info(
+					'Claude',
+					`Emitting tools for session ${claudeSessionId} (cached: ${cached.commands.length})`
+				);
+				try {
+					emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, {
+						sessionId: claudeSessionId,
+						commands: cached.commands
+					});
+				} catch {}
 				emitIO.emit('session.status', {
 					sessionId: claudeSessionId,
 					availableCommands: cached.commands
@@ -595,23 +619,34 @@ export class ClaudeSessionManager {
 
 				// Also emit for app session if available
 				if (sessionData.appSessionId) {
-						   logger.info('Claude', `Emitting tools for app session ${sessionData.appSessionId} (cached)`);
-						try { emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, { sessionId: sessionData.appSessionId, commands: cached.commands }); } catch {}
+					logger.info(
+						'Claude',
+						`Emitting tools for app session ${sessionData.appSessionId} (cached)`
+					);
+					try {
+						emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, {
+							sessionId: sessionData.appSessionId,
+							commands: cached.commands
+						});
+					} catch {}
 					emitIO.emit('session.status', {
 						sessionId: sessionData.appSessionId,
 						availableCommands: cached.commands
 					});
 				}
 			} else {
-				   logger.info('Claude', `No Socket.IO instance available to emit cached commands for ${claudeSessionId}`);
+				logger.info(
+					'Claude',
+					`No Socket.IO instance available to emit cached commands for ${claudeSessionId}`
+				);
 			}
 			return cached.commands;
 		}
 		try {
-			   logger.info(
-				   'Claude',
-				   `_fetchAndEmitSupportedCommands for ${claudeSessionId} (cacheKey=${cacheKey}) - invoking SDK`
-			   );
+			logger.info(
+				'Claude',
+				`_fetchAndEmitSupportedCommands for ${claudeSessionId} (cacheKey=${cacheKey}) - invoking SDK`
+			);
 			console.log('🔥 [DEBUG] About to call _fetchSupportedCommands...');
 			const commands = await this._fetchSupportedCommands(sessionData.options);
 			console.log('🔥 [DEBUG] _fetchSupportedCommands completed!');
@@ -631,8 +666,16 @@ export class ClaudeSessionManager {
 					usingIO: !!emitIO
 				});
 				if (emitIO) {
-					   logger.info('Claude', `Emitting tools for session ${claudeSessionId} (fresh: ${commands.length})`);
-					try { emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, { sessionId: claudeSessionId, commands }); } catch {}
+					logger.info(
+						'Claude',
+						`Emitting tools for session ${claudeSessionId} (fresh: ${commands.length})`
+					);
+					try {
+						emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, {
+							sessionId: claudeSessionId,
+							commands
+						});
+					} catch {}
 					emitIO.emit('session.status', {
 						sessionId: claudeSessionId,
 						availableCommands: commands
@@ -640,15 +683,26 @@ export class ClaudeSessionManager {
 
 					// Also emit for app session if available
 					if (sessionData.appSessionId) {
-						   logger.info('Claude', `Emitting tools for app session ${sessionData.appSessionId} (fresh)`);
-						try { emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, { sessionId: sessionData.appSessionId, commands }); } catch {}
+						logger.info(
+							'Claude',
+							`Emitting tools for app session ${sessionData.appSessionId} (fresh)`
+						);
+						try {
+							emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, {
+								sessionId: sessionData.appSessionId,
+								commands
+							});
+						} catch {}
 						emitIO.emit('session.status', {
 							sessionId: sessionData.appSessionId,
 							availableCommands: commands
 						});
 					}
 				} else {
-					   logger.info('Claude', `No Socket.IO instance available to emit fresh commands for ${claudeSessionId}`);
+					logger.info(
+						'Claude',
+						`No Socket.IO instance available to emit fresh commands for ${claudeSessionId}`
+					);
 				}
 			}
 			return commands;

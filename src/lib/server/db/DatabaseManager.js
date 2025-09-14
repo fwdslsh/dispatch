@@ -10,7 +10,8 @@ import { logger } from '../utils/logger.js';
 export class DatabaseManager {
 	constructor(dbPath = null) {
 		// Default to ~/.dispatch/data if no path provided
-		this.dbPath = dbPath || join((process.env.HOME || homedir()), '.dispatch', 'data', 'workspace.db');
+		this.dbPath =
+			dbPath || join(process.env.HOME || homedir(), '.dispatch', 'data', 'workspace.db');
 		this.db = null;
 		this.isInitialized = false;
 	}
@@ -36,9 +37,9 @@ export class DatabaseManager {
 			await this.createTables();
 
 			this.isInitialized = true;
-			   logger.info('DATABASE', `Initialized SQLite database at: ${this.dbPath}`);
+			logger.info('DATABASE', `Initialized SQLite database at: ${this.dbPath}`);
 		} catch (error) {
-			   logger.error('DATABASE', 'Failed to initialize:', error);
+			logger.error('DATABASE', 'Failed to initialize:', error);
 			throw error;
 		}
 	}
@@ -316,7 +317,14 @@ export class DatabaseManager {
 	}
 
 	// Workspace session methods
-	async addWorkspaceSession(sessionId, workspacePath, sessionType, typeSpecificId, title, pinned = 1) {
+	async addWorkspaceSession(
+		sessionId,
+		workspacePath,
+		sessionType,
+		typeSpecificId,
+		title,
+		pinned = 1
+	) {
 		const now = Date.now();
 		await this.run(
 			'INSERT OR REPLACE INTO workspace_sessions (id, workspace_path, session_type, type_specific_id, title, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -475,10 +483,10 @@ export class DatabaseManager {
 			cutoff
 		]);
 
-		   logger.info(
-			   'DATABASE',
-			   `Cleanup completed: ${historyResult.changes} history entries, ${logsResult.changes} logs, ${terminalResult.changes} terminal history entries removed`
-		   );
+		logger.info(
+			'DATABASE',
+			`Cleanup completed: ${historyResult.changes} history entries, ${logsResult.changes} logs, ${terminalResult.changes} terminal history entries removed`
+		);
 	}
 }
 

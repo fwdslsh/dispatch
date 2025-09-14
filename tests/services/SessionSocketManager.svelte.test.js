@@ -47,7 +47,7 @@ if (typeof globalThis.localStorage === 'undefined') {
 
 // Import after mocking
 const { default: sessionSocketManager } = await import(
-	'../../src/lib/components/SessionSocketManager.js'
+	'../../src/lib/client/shared/components/SessionSocketManager.js'
 );
 
 describe('SessionSocketManager', () => {

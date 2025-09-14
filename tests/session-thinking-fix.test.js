@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Session Thinking State Fix', () => {
 	test.beforeEach(async ({ page }) => {
 		// Navigate to the projects page
-		await page.goto('http://localhost:3030/projects');
+		await page.goto('http://localhost:3030/workspace');
 
 		// Set auth key
 		await page.evaluate(() => {

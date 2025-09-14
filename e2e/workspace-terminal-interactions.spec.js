@@ -10,7 +10,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 	});
 
 	test('should create terminal session in workspace', async ({ page }) => {
-		await page.goto('/projects');
+		await page.goto('/workspace');
 		await page.waitForSelector('.dispatch-workspace');
 
 		// Mock workspace API
@@ -91,7 +91,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 	});
 
 	test('should display both Claude and Terminal sessions in same workspace', async ({ page }) => {
-		await page.goto('/projects');
+		await page.goto('/workspace');
 		await page.waitForSelector('.dispatch-workspace');
 
 		const workspacePath = '/workspace/mixed-sessions';
@@ -157,7 +157,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 	});
 
 	test('should handle workspace creation for new projects', async ({ page }) => {
-		await page.goto('/projects');
+		await page.goto('/workspace');
 		await page.waitForSelector('.dispatch-workspace');
 
 		const newProjectName = `test-workspace-${Date.now()}`;
@@ -227,7 +227,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 	});
 
 	test('should list available workspaces in terminal modal', async ({ page }) => {
-		await page.goto('/projects');
+		await page.goto('/workspace');
 		await page.waitForSelector('.dispatch-workspace');
 
 		// Mock workspaces list
@@ -272,7 +272,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 	});
 
 	test('should filter sessions by workspace in sidebar', async ({ page }) => {
-		await page.goto('/projects');
+		await page.goto('/workspace');
 		await page.waitForSelector('.dispatch-workspace');
 
 		// Mock sessions from different workspaces
@@ -338,7 +338,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 	});
 
 	test('should handle terminal resize when layout changes', async ({ page }) => {
-		await page.goto('/projects');
+		await page.goto('/workspace');
 		await page.waitForSelector('.dispatch-workspace');
 
 		// Create a terminal session
@@ -404,7 +404,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 	});
 
 	test('should maintain session state when switching between sessions', async ({ page }) => {
-		await page.goto('/projects');
+		await page.goto('/workspace');
 		await page.waitForSelector('.dispatch-workspace');
 
 		// Mock multiple sessions
@@ -468,7 +468,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 	});
 
 	test('should show appropriate empty states', async ({ page }) => {
-		await page.goto('/projects');
+		await page.goto('/workspace');
 		await page.waitForSelector('.dispatch-workspace');
 
 		// Mock empty sessions list

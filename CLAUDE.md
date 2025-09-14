@@ -18,6 +18,9 @@ npm install
 # Development server with hot reload (sets TERMINAL_KEY=testkey12345, runs on --host)
 npm run dev
 
+# Development server with local workspace (uses $HOME/code as workspace root)
+npm run dev:local
+
 # Development server only (no client)
 npm run dev:server
 
@@ -58,6 +61,8 @@ npm run test:core     # Test core managers
 npm run test:managers # Test manager classes specifically
 npm run test:ui       # Run UI-specific tests
 npm run test:ui:headed # Run UI tests with browser visible
+npm run test:database # Test database operations
+npm run test:managers # Test workspace managers
 
 # Start production server (includes build + LocalTunnel enabled)
 npm start
@@ -66,7 +71,8 @@ npm start
 node src/app.js
 
 # CLI tool access
-./bin/dispatch-cli.js
+./bin/cli.js
+node bin/cli.js
 
 # Docker development commands
 npm run docker:dev    # Start in dev mode with build
@@ -81,11 +87,26 @@ npm run docker:stop   # Stop Docker containers
 - **Frontend**: SvelteKit application with xterm.js terminal emulator
 - **Backend**: Express server with Socket.IO for WebSocket communication
 - **Terminal Management**: node-pty integration for spawning terminal sessions
-- **Workspace Management**: WorkspaceManager class handles workspace/project organization
+- **Workspace Management**: WorkspaceManager handles flexible directory-based workspace organization
 - **Session Management**: Unified SessionManager coordinates all session types via SessionRouter
 - **Claude Integration**: ClaudeSessionManager provides Claude Code session management
 - **Authentication**: ClaudeAuthManager handles OAuth flow via PTY
+- **Database**: SQLite persistence for workspace metadata and session history
 - **Containerization**: Multi-stage Docker build with non-root execution
+
+### Project/Workspace Structure Changes (Major Refactor)
+
+The application has undergone a major refactoring to simplify the project structure:
+
+**Previous Structure**: Separate "Projects" and "Workspaces" concepts caused confusion
+**New Structure**: Unified workspace-based approach where everything is a workspace
+
+**Key Changes**:
+- Removed separate projects interface (`/workspace` route is now the main interface)
+- Workspaces can be any directory path (not restricted to WORKSPACES_ROOT)
+- Claude project directories are automatically discovered from Claude Code's projects root
+- Database tracks all workspaces and their sessions regardless of location
+- Sessions are tied to workspace paths directly
 
 ### High-Level Architecture
 
@@ -93,10 +114,10 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 
 **SvelteKit Frontend**:
 
-- Main interface at `/` for terminal sessions
-- Project management interface at `/projects`
+- Main interface at `/workspace` for all session management (refactored from separate projects/workspaces)
 - Uses xterm.js for terminal emulation with Socket.IO for real-time communication
 - Svelte 5 with modern reactive patterns
+- Responsive layout with mobile support (swipe gestures, bottom sheet navigation)
 
 **Socket.IO Layer** (`src/lib/server/socket-setup.js`):
 
@@ -109,10 +130,35 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 
 - `SessionManager`: Unified abstraction over all session types with routing
 - `SessionRouter`: In-memory session mapping and routing
-- `WorkspaceManager`: Directory-based workspace management with database persistence
+- `WorkspaceManager`: Flexible directory-based workspace management with database persistence
 - `TerminalManager`: PTY session management with dynamic Socket.IO reference handling
 - `ClaudeSessionManager`: Claude Code integration using `@anthropic-ai/claude-code` package
 - `ClaudeAuthManager`: OAuth authentication flow management via PTY
+- `DatabaseManager`: SQLite database for persistent workspace and session metadata
+
+### Frontend File Organization
+
+The frontend code has been reorganized for better maintainability:
+
+```
+src/lib/client/
+├── claude/               # Claude-specific components
+│   ├── activity-summaries/  # Activity type renderers
+│   ├── ClaudeAuth.svelte
+│   ├── ClaudePane.svelte
+│   └── ClaudeSessionModal.svelte
+├── terminal/            # Terminal-specific components
+│   ├── TerminalPane.svelte
+│   └── TerminalSessionModal.svelte
+└── shared/              # Shared components and utilities
+    ├── components/      # Reusable UI components
+    │   ├── Button.svelte
+    │   ├── Modal.svelte
+    │   ├── Settings/   # Settings-related components
+    │   └── ProjectSessionMenuSimplified.svelte
+    ├── icons/          # Icon components
+    └── utils/          # Shared utilities
+```
 
 ### Session Architecture
 
@@ -129,10 +175,11 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 
 ### Workspace and Session Model
 
-**Workspaces**: Directory-based workspaces with persistent metadata
+**Workspaces**: Flexible directory-based workspaces with persistent metadata
 
-- Stored in `WORKSPACES_ROOT` (default: `~/.dispatch-home/workspaces`)
-- SQLite database tracks workspace metadata and session history
+- Can be any accessible directory (not restricted to WORKSPACES_ROOT)
+- Claude projects automatically discovered from Claude Code's project directory
+- SQLite database tracks all workspace metadata and session history
 - Each workspace is an isolated directory environment
 
 **Sessions**: Ephemeral session instances within workspaces
@@ -140,6 +187,16 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 - Sessions inherit workspace directory as working directory
 - Session routing via `SessionRouter` maps unified IDs to session descriptors
 - Sessions persist until explicitly terminated or disconnected
+- Pinned/unpinned state controls visibility in UI
+
+### Database Schema
+
+The application uses SQLite for persistence with the following key tables:
+
+- `workspaces`: Tracks all workspace directories with metadata
+- `workspace_sessions`: Associates sessions with workspaces, includes pinned state
+- `session_history`: Audit trail of session events
+- `claude_sessions`: Claude-specific session metadata
 
 ### Authentication & Security
 
@@ -148,6 +205,7 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 - **Session isolation**: Each session contained in separate workspace directory
 - **WebSocket authentication**: Auth required before terminal operations
 - **Claude OAuth**: Secure authentication via interactive PTY-based flow
+- **Path sanitization**: All workspace paths are sanitized to prevent traversal attacks
 
 ## Environment Configuration
 
@@ -159,12 +217,13 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 
 - `PORT`: Server port (default: `3030`)
 - `HOME`: User home directory for workspace initialization
-- `WORKSPACES_ROOT`: Root directory for workspaces (default: `$HOME/.dispatch-home/workspaces`)
+- `WORKSPACES_ROOT`: Default root directory for workspaces (default: `$HOME/.dispatch-home/workspaces`)
 - `DISPATCH_CONFIG_DIR`: Configuration directory (default: `$HOME/.config/dispatch`)
-- `DISPATCH_PROJECTS_DIR`: Projects root directory (default: `/workspace` in container)
+- `DISPATCH_PROJECTS_DIR`: Legacy - now uses workspace paths directly
 - `ENABLE_TUNNEL`: Enable LocalTunnel (default: `false`)
 - `LT_SUBDOMAIN`: Optional LocalTunnel subdomain
 - `CONTAINER_ENV`: Container environment flag (default: `true` in Docker)
+- `HOST_UID`/`HOST_GID`: Runtime user mapping for proper file permissions
 
 ## Socket.IO API
 
@@ -181,6 +240,7 @@ The application uses Socket.IO for all real-time communication:
 - `claude.auth.code(data)` - Submit OAuth authorization code
 - `claude.commands.refresh(data, callback)` - Refresh available Claude commands
 - `session.status(data, callback)` - Get session status and activity state
+- `session.catchup(data)` - Request missed messages for a session
 - `get-public-url(callback)` - Retrieve public tunnel URL
 
 ### Server Events
@@ -196,6 +256,22 @@ The application uses Socket.IO for all real-time communication:
 
 ## Core Service Classes
 
+### WorkspaceManager (`src/lib/server/core/WorkspaceManager.js`)
+
+Manages flexible workspace lifecycle with database persistence:
+
+```javascript
+// Key methods
+async init()                    // Initialize workspace root directory
+async list()                    // List all workspace directories
+async open(dir)                 // Open existing workspace (any accessible directory)
+async create(dir)               // Create new workspace
+async clone(fromPath, toPath)   // Clone workspace
+async rememberSession(dir, sessionDescriptor) // Persist session info
+async getAllSessions(pinnedOnly = true)  // Get all sessions across workspaces
+async setPinned(workspacePath, sessionId, pinned) // Set session pinned state
+```
+
 ### SessionManager (`src/lib/server/core/SessionManager.js`)
 
 Unified session management across all session types:
@@ -205,21 +281,10 @@ Unified session management across all session types:
 async createSession({type, workspacePath, options}) // Create session of any type
 async sendToSession(sessionId, data)               // Send data to session
 async sessionOperation(sessionId, operation, params) // Perform operations like resize
+async stopSession(sessionId)                       // Terminate session
 getSession(sessionId)                              // Get session descriptor
 setSocketIO(socket)                                // Update Socket.IO for real-time communication
-```
-
-### WorkspaceManager (`src/lib/server/core/WorkspaceManager.js`)
-
-Manages workspace lifecycle with SQLite persistence:
-
-```javascript
-// Key methods
-async init()                    // Initialize workspace database
-async list()                    // List all workspace directories
-async open(dir)                 // Open/create workspace
-async clone(fromPath, toPath)   // Clone workspace
-async rememberSession(dir, sessionDescriptor) // Persist session info
+async refreshCommands(sessionId)                   // Refresh Claude commands
 ```
 
 ### SessionRouter (`src/lib/server/core/SessionRouter.js`)
@@ -230,10 +295,25 @@ Maps unified session IDs to session descriptors:
 // Key methods
 bind(sessionId, descriptor)     // Register session with routing info
 get(sessionId)                 // Get session descriptor
-all()                          // Get all sessions
+all()                          // Get all active sessions
 byWorkspace(workspacePath)     // Filter sessions by workspace
 setProcessing(sessionId)       // Mark session as processing
 setIdle(sessionId)             // Mark session as idle
+getActivityState(sessionId)    // Get current activity state
+```
+
+### DatabaseManager (`src/lib/server/db/DatabaseManager.js`)
+
+SQLite database management for persistence:
+
+```javascript
+// Key methods
+async init()                    // Initialize database and run migrations
+async createWorkspace(path)     // Create workspace record
+async updateWorkspaceActivity(path) // Update last accessed time
+async addWorkspaceSession(...)  // Add session to workspace
+async getWorkspaceSessions(path, pinnedOnly) // Get sessions for workspace
+async setPinned(workspacePath, sessionId, pinned) // Set session pinned state
 ```
 
 ### ClaudeSessionManager (`src/lib/server/claude/ClaudeSessionManager.js`)
@@ -285,6 +365,7 @@ submitCode(socket, code)             // Submit authorization code
 - Non-root user execution (`appuser`, uid 10001)
 - Minimal runtime dependencies
 - Isolated workspace directories with proper permissions
+- Runtime user mapping support via HOST_UID/HOST_GID
 
 ### LocalTunnel Integration
 
@@ -329,7 +410,8 @@ submitCode(socket, code)             // Submit authorization code
 
 **Terminal Integration**: Uses `@battlefieldduck/xterm-svelte` for terminal UI
 **UI Framework**: Augmented UI for futuristic styling components
-**State Management**: Modern Svelte 5 reactive patterns
+**State Management**: Modern Svelte 5 reactive patterns with `$state` and `$derived`
+**Responsive Design**: Mobile-first with swipe gestures and bottom sheet navigation
 
 ## Testing & Debugging
 
@@ -342,7 +424,8 @@ The project uses Vitest with separate client/server test projects:
 - **E2E tests**: Full Playwright integration testing
 - **Core tests**: Manager-specific tests for core functionality
 - **UI tests**: Browser-based UI component tests
-- **Debugging Tools**: Various test scripts for specific features
+- **Database tests**: SQLite database operation tests
+- **Debugging Tools**: Scripts in `.debug/` for testing specific features
 
 ### Development Mode
 
@@ -359,24 +442,25 @@ For production:
 2. Mount persistent volumes for workspace data
 3. Configure proper directory permissions for container user
 4. Claude Code integration requires Claude CLI in container
+5. Use HOST_UID/HOST_GID for proper file permissions in mounted volumes
 
 ## Key Dependencies & Versions
 
 - **Node.js**: >=22 (see `.nvmrc` and `package.json` engines)
-- **@anthropic-ai/claude-code**: Claude Code CLI integration
+- **@anthropic-ai/claude-code**: Claude Code CLI integration (v1.0.98)
 - **xterm.js**: Terminal emulator with Svelte wrapper (`@battlefieldduck/xterm-svelte`)
 - **Socket.IO**: Real-time bidirectional communication (v4.8.1)
 - **node-pty**: Pseudoterminal management (via Claude Code package)
 - **augmented-ui**: Futuristic UI components
 - **SvelteKit**: Full-stack web framework with adapter-node
 - **Vitest**: Testing framework with Playwright integration
-- **SQLite**: Database for workspace and session persistence
+- **SQLite**: Database for workspace and session persistence (sqlite3 v5.1.7)
 - **Commander**: CLI argument parsing
 
 ## Runtime Requirements & Constraints
 
 - Container runs as non-root user (`appuser`, uid 10001)
-- Workspace directories require proper permissions for container user
+- Workspace directories can be anywhere accessible to the user
 - Workspaces persist when using persistent volume mounts
 - Sessions are ephemeral and tied to workspace lifecycle
 - Claude integration requires network access for API calls
@@ -404,6 +488,14 @@ For production:
 - Workspace metadata and session history
 - Database initialization and error handling
 - Migration support for schema changes
+- Pinned/unpinned state for session visibility control
+
+### Flexible Workspace Management
+
+- Workspaces can be any accessible directory
+- Claude projects automatically discovered from Claude Code's project root
+- No restriction to WORKSPACES_ROOT (can use absolute paths)
+- Database tracks all workspaces regardless of location
 
 ### Authentication Flow
 
@@ -420,3 +512,32 @@ Access at `/console?key=your-terminal-key` for:
 - Event history and tracking
 - Server logs and debugging
 - Connection management
+
+## API Endpoints
+
+### Session Management
+
+- `GET /api/sessions` - List all sessions (active and persisted)
+  - Query params: `workspace`, `include=all` (to include unpinned)
+- `POST /api/sessions` - Create new session
+- `PUT /api/sessions` - Update session (rename, pin/unpin)
+- `DELETE /api/sessions` - Terminate session
+
+### Workspace Management
+
+- `GET /api/workspaces` - List all workspaces
+- `POST /api/workspaces` - Open/create workspace
+  - Actions: `open`, `create`, `clone`
+  - Supports absolute paths and Claude project discovery
+
+### Claude Integration
+
+- `GET /api/claude/projects` - List Claude projects
+- `GET /api/claude/sessions/[project]` - Get Claude sessions for project
+- `POST /api/claude/auth` - Check Claude authentication status
+
+## UI Routes
+
+- `/workspace` - Main interface for session and workspace management
+- `/console` - Admin console (requires authentication)
+- `/testing` - Development testing interface

@@ -7,7 +7,7 @@
 import { logger } from './utils/logger.js';
 
 export async function getSocketSetup() {
-		logger.info('SOCKET', 'Using simplified session architecture');
+	logger.info('SOCKET', 'Using simplified session architecture');
 	const { setupSocketIO } = await import('./socket-setup.js');
 	return { setupSocketIO, mode: 'simplified' };
 }

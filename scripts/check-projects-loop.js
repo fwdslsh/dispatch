@@ -1,4 +1,4 @@
-// Headless check script using Playwright to detect repeating console logs on /projects
+// Headless check script using Playwright to detect repeating console logs on /workspace
 import { chromium } from 'playwright';
 
 (async function main() {
@@ -13,7 +13,7 @@ import { chromium } from 'playwright';
 	});
 
 	// Navigate to projects page (allow overriding via TARGET_URL env var)
-	const target = process.env.TARGET_URL || 'http://localhost:5173/projects';
+	const target = process.env.TARGET_URL || 'http://localhost:5173/workspace';
 	console.log('Navigating to', target);
 	await page.goto(target, { waitUntil: 'domcontentloaded' });
 

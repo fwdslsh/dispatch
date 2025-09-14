@@ -1,24 +1,23 @@
-
 import { json } from '@sveltejs/kit';
 import { validateKey } from '$lib/server/auth.js';
 import { databaseManager } from '$lib/server/db/DatabaseManager.js';
 
 export async function GET({ url }) {
-       // Get the terminal key from Authorization header or query parameters
-       let key = null;
-       if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
-	       const auth = arguments[0].request.headers.get('authorization');
-	       if (auth && auth.startsWith('Bearer ')) {
-		       key = auth.slice(7);
-	       }
-       }
-       if (!key) {
-	       key = url.searchParams.get('key');
-       }
-       // Validate the key
-       if (!validateKey(key)) {
-	       return json({ error: 'Unauthorized' }, { status: 401 });
-       }
+	// Get the terminal key from Authorization header or query parameters
+	let key = null;
+	if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
+		const auth = arguments[0].request.headers.get('authorization');
+		if (auth && auth.startsWith('Bearer ')) {
+			key = auth.slice(7);
+		}
+	}
+	if (!key) {
+		key = url.searchParams.get('key');
+	}
+	// Validate the key
+	if (!validateKey(key)) {
+		return json({ error: 'Unauthorized' }, { status: 401 });
+	}
 
 	// Parse query params for limit, level, component
 	const limit = Math.max(1, Math.min(1000, parseInt(url.searchParams.get('limit') || '100')));

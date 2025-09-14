@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 
 // Import the normalization functions from the test file (since they're tested and exported)
-import { normalizeSessionId, sessionIdsMatch, isEventForSession } from './session-id-normalization.test.js';
+import {
+	normalizeSessionId,
+	sessionIdsMatch,
+	isEventForSession
+} from './session-id-normalization.test.js';
 
 describe('ClaudeCommands Session ID Matching - Real-world Integration', () => {
 	describe('Server-Client Communication Scenarios', () => {
@@ -131,7 +135,9 @@ describe('ClaudeCommands Session ID Matching - Real-world Integration', () => {
 					client.sessionId,
 					client.claudeSessionId
 				);
-				expect(result, `Scenario ${index + 1} should ${shouldMatch ? 'match' : 'not match'}`).toBe(shouldMatch);
+				expect(result, `Scenario ${index + 1} should ${shouldMatch ? 'match' : 'not match'}`).toBe(
+					shouldMatch
+				);
 			});
 		});
 

@@ -20,4 +20,3 @@ export async function POST({ request }) {
 		return json({ success: false, error: 'Malformed request' }, { status: 400 });
 	}
 }
-

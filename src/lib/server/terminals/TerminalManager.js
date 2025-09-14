@@ -1,18 +1,8 @@
-import os from 'node:os';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
 import { databaseManager } from '../db/DatabaseManager.js';
 import { SOCKET_EVENTS } from '../utils/events.js';
 import { logger } from '../utils/logger.js';
 
 let pty;
-try {
-	pty = await import('node-pty');
-	logger.info('TERMINAL', 'node-pty loaded successfully');
-} catch (err) {
-	logger.error('Failed to load node-pty:', err);
-	pty = null;
-}
 
 export class TerminalManager {
 	constructor({ io }) {
@@ -21,8 +11,19 @@ export class TerminalManager {
 		this.nextId = 1;
 		// Terminal history is now stored in database instead of files
 		this.initializeDatabase();
+		this.initializePty();
 	}
 
+	async initializePty() {
+		if (pty) return; // Already initialized
+		try {
+			pty = await import('node-pty');
+			logger.info('TERMINAL', 'node-pty loaded successfully');
+		} catch (err) {
+			logger.error('Failed to load node-pty:', err);
+			pty = null;
+		}
+	}
 	async initializeDatabase() {
 		try {
 			await databaseManager.init();
@@ -66,7 +67,7 @@ export class TerminalManager {
 
 	start({
 		workspacePath,
-		shell = os.platform() === 'win32' ? 'powershell.exe' : process.env.SHELL || 'bash',
+		shell = process.env.SHELL || 'bash',
 		env = {},
 		resume = false,
 		terminalId = null,

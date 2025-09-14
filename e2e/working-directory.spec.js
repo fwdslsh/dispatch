@@ -16,10 +16,10 @@ test.describe('Working Directory Functionality', () => {
 		}
 
 		// Go to projects
-		await page.goto('/projects');
+		await page.goto('/workspace');
 
 		// Get or create a project for testing
-		const projectLinks = page.locator('a[href*="/projects/"]');
+		const projectLinks = page.locator('a[href*="/workspace/"]');
 		const projectCount = await projectLinks.count();
 
 		if (projectCount > 0) {
@@ -56,7 +56,7 @@ test.describe('Working Directory Functionality', () => {
 		}
 
 		// Should be on project page now
-		await expect(page).toHaveURL(/.*\/projects\/[a-f0-9-]+/);
+		await expect(page).toHaveURL(/.*\/workspace\/[a-f0-9-]+/);
 	});
 
 	test('should show directory picker for session creation', async ({ page }) => {

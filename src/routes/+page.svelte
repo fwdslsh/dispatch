@@ -1,53 +1,53 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { io } from 'socket.io-client';
-	import { PublicUrlDisplay, ErrorDisplay } from '$lib/shared/components';
+	import { PublicUrlDisplay, ErrorDisplay } from '$lib/client/shared/components';
 	import { onMount } from 'svelte';
 	let key = $state('');
 	let error = $state('');
 	let loading = $state(false);
 
-    onMount(async () => {
-        // Check if already authenticated via HTTP (more robust than socket for login)
-        const storedKey = localStorage.getItem('dispatch-auth-key');
-        if (storedKey) {
-            try {
-                const r = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
-                if (r.ok) {
-                    goto('/projects');
-                } else {
-                    localStorage.removeItem('dispatch-auth-key');
-                }
-            } catch {
-                // Ignore; user can try manual login
-            }
-            return;
-        }
-    });
+	onMount(async () => {
+		// Check if already authenticated via HTTP (more robust than socket for login)
+		const storedKey = localStorage.getItem('dispatch-auth-key');
+		if (storedKey) {
+			try {
+				const r = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
+				if (r.ok) {
+					goto('/workspace');
+				} else {
+					localStorage.removeItem('dispatch-auth-key');
+				}
+			} catch {
+				// Ignore; user can try manual login
+			}
+			return;
+		}
+	});
 
-    async function handleLogin(e) {
-        e.preventDefault();
-        loading = true;
-        error = '';
-        try {
-            const r = await fetch('/api/auth/check', {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ key })
-            });
-            loading = false;
-            if (r.ok) {
-                localStorage.setItem('dispatch-auth-key', key);
-                goto('/projects');
-            } else {
-                const j = await r.json().catch(() => ({}));
-                error = j?.error || 'Invalid key';
-            }
-        } catch {
-            loading = false;
-            error = 'Unable to reach server';
-        }
-    }
+	async function handleLogin(e) {
+		e.preventDefault();
+		loading = true;
+		error = '';
+		try {
+			const r = await fetch('/api/auth/check', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ key })
+			});
+			loading = false;
+			if (r.ok) {
+				localStorage.setItem('dispatch-auth-key', key);
+				goto('/workspace');
+			} else {
+				const j = await r.json().catch(() => ({}));
+				error = j?.error || 'Invalid key';
+			}
+		} catch {
+			loading = false;
+			error = 'Unable to reach server';
+		}
+	}
 </script>
 
 <svelte:head>

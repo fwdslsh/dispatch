@@ -1,6 +1,5 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { EOL } from 'node:os';
 
 /** Read up to `limitBytes` from file tail, split into non-empty lines */
 export async function readTailLines(file, limitLines = 200, limitBytes = 512 * 1024) {

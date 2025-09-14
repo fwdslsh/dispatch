@@ -396,9 +396,7 @@ describe('Session Status Handler Logic', () => {
 
 			sessionStatusHandler({ key: 'valid', sessionId: 'claude-empty' }, mockCallback);
 
-			expect(mockCallback).toHaveBeenCalledWith(
-				expect.objectContaining({ availableCommands: [] })
-			);
+			expect(mockCallback).toHaveBeenCalledWith(expect.objectContaining({ availableCommands: [] }));
 		});
 
 		it('should return null when commands cache returns null', () => {

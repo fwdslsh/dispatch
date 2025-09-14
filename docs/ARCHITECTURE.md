@@ -39,12 +39,12 @@ graph TB
         Terminal[xterm.js]
         Claude[Claude Chat UI]
     end
-    
+
     subgraph "Communication Layer"
         SocketIO[Socket.IO]
         REST[REST APIs]
     end
-    
+
     subgraph "Service Layer"
         SM[SessionManager]
         SR[SessionRouter]
@@ -52,49 +52,49 @@ graph TB
         TM[TerminalManager]
         CM[ClaudeSessionManager]
     end
-    
+
     subgraph "Data Layer"
         SQLite[SQLite Database]
         FS[File System]
         Memory[In-Memory Store]
     end
-    
+
     subgraph "External Services"
         PTY[node-pty]
         ClaudeAPI[Claude Code SDK]
     end
-    
+
     Browser --> UI
     UI --> Terminal
     UI --> Claude
     UI <--> SocketIO
     UI <--> REST
-    
+
     SocketIO --> SM
     REST --> WM
-    
+
     SM --> SR
     SM --> TM
     SM --> CM
     SR --> Memory
     WM --> SQLite
     WM --> FS
-    
+
     TM --> PTY
     CM --> ClaudeAPI
 ```
 
 ### Component Responsibilities
 
-| Component | Responsibility | Technology |
-|-----------|---------------|------------|
-| Frontend | User interface, terminal emulation | SvelteKit, xterm.js |
-| Socket.IO Layer | Real-time bidirectional communication | Socket.IO 4.x |
-| SessionManager | Unified session abstraction | Node.js service |
-| SessionRouter | Session mapping and routing | In-memory store |
-| WorkspaceManager | Workspace lifecycle and persistence | SQLite + filesystem |
-| TerminalManager | PTY session management | node-pty |
-| ClaudeSessionManager | AI session integration | Claude Code SDK |
+| Component            | Responsibility                        | Technology          |
+| -------------------- | ------------------------------------- | ------------------- |
+| Frontend             | User interface, terminal emulation    | SvelteKit, xterm.js |
+| Socket.IO Layer      | Real-time bidirectional communication | Socket.IO 4.x       |
+| SessionManager       | Unified session abstraction           | Node.js service     |
+| SessionRouter        | Session mapping and routing           | In-memory store     |
+| WorkspaceManager     | Workspace lifecycle and persistence   | SQLite + filesystem |
+| TerminalManager      | PTY session management                | node-pty            |
+| ClaudeSessionManager | AI session integration                | Claude Code SDK     |
 
 ## Frontend Architecture
 
@@ -105,22 +105,22 @@ graph TD
     App[App.svelte]
     App --> AuthPage[+page.svelte - Auth]
     App --> ProjectsPage[projects/+page.svelte]
-    
+
     ProjectsPage --> Layout[Layout Components]
     ProjectsPage --> Terminal[TerminalPane]
     ProjectsPage --> Claude[ClaudePane]
     ProjectsPage --> Modals[Session Modals]
-    
+
     Terminal --> XTerm[xterm.js]
     Terminal --> SSM[SessionSocketManager]
-    
+
     Claude --> Chat[Chat Interface]
     Claude --> SSM2[SessionSocketManager]
-    
+
     Modals --> CreateModal[CreateSessionModal]
     Modals --> ClaudeModal[ClaudeSessionModal]
     Modals --> TerminalModal[TerminalSessionModal]
-    
+
     SSM --> SocketClient[Socket.IO Client]
     SSM2 --> SocketClient
 ```
@@ -132,19 +132,17 @@ The frontend uses Svelte 5's reactive primitives for state management:
 ```javascript
 // Modern reactive pattern example
 class SessionStore {
-    sessions = $state([]);
-    activeSession = $state(null);
-    
-    activeSessions = $derived(
-        this.sessions.filter(s => s.status === 'active')
-    );
-    
-    constructor() {
-        $effect(() => {
-            // React to state changes
-            this.persistState();
-        });
-    }
+	sessions = $state([]);
+	activeSession = $state(null);
+
+	activeSessions = $derived(this.sessions.filter((s) => s.status === 'active'));
+
+	constructor() {
+		$effect(() => {
+			// React to state changes
+			this.persistState();
+		});
+	}
 }
 ```
 
@@ -180,7 +178,7 @@ sequenceDiagram
     participant SSM as SessionSocketManager
     participant Socket as Socket.IO
     participant Backend
-    
+
     User->>UI: Input action
     UI->>SSM: Emit event
     SSM->>Socket: Send authenticated event
@@ -202,36 +200,36 @@ graph LR
         Hooks[hooks.server.js]
         SocketSetup[socket-setup.js]
     end
-    
+
     subgraph "Core Services"
         SM[SessionManager]
         SR[SessionRouter]
         WM[WorkspaceManager]
     end
-    
+
     subgraph "Session Type Managers"
         TM[TerminalManager]
         CM[ClaudeSessionManager]
         CAM[ClaudeAuthManager]
     end
-    
+
     subgraph "Shared Resources"
         API[__API_SERVICES]
         DB[Database]
     end
-    
+
     App --> Hooks
     Hooks --> API
     SocketSetup --> API
-    
+
     API --> SM
     API --> SR
     API --> WM
-    
+
 SM --> TM
 SM --> CM
 SM --> CAM
-    
+
     WM --> DB
     SR --> DB
 ```
@@ -244,29 +242,29 @@ Unified abstraction layer for all session types:
 
 ```javascript
 class SessionManager {
-    constructor(dependencies) {
-        this.sessionRouter = dependencies.sessionRouter;
-        this.workspaceManager = dependencies.workspaceManager;
-        this.sessionTypes = new Map();
-    }
-    
-    registerType(type, manager) {
-        this.sessionTypes.set(type, manager);
-    }
-    
-    async create({ type, workspacePath, options }) {
-        const manager = this.sessionTypes.get(type);
-        const unifiedId = generateId();
-        const session = await manager.create(options);
-        
-        this.sessionRouter.bind(unifiedId, {
-            type,
-            specificId: session.id,
-            workspacePath
-        });
-        
-        return { id: unifiedId, ...session };
-    }
+	constructor(dependencies) {
+		this.sessionRouter = dependencies.sessionRouter;
+		this.workspaceManager = dependencies.workspaceManager;
+		this.sessionTypes = new Map();
+	}
+
+	registerType(type, manager) {
+		this.sessionTypes.set(type, manager);
+	}
+
+	async create({ type, workspacePath, options }) {
+		const manager = this.sessionTypes.get(type);
+		const unifiedId = generateId();
+		const session = await manager.create(options);
+
+		this.sessionRouter.bind(unifiedId, {
+			type,
+			specificId: session.id,
+			workspacePath
+		});
+
+		return { id: unifiedId, ...session };
+	}
 }
 ```
 
@@ -276,31 +274,31 @@ Manages workspace lifecycle with database persistence:
 
 ```javascript
 class WorkspaceManager {
-    async open(dir) {
-        // Validate path security
-        const safePath = this.validatePath(dir);
-        
-        // Create/open workspace
-        await this.ensureDirectory(safePath);
-        
-        // Update database
-        await this.db.upsertWorkspace({
-            path: safePath,
-            lastAccessed: new Date()
-        });
-        
-        return this.getWorkspaceInfo(safePath);
-    }
-    
-    async rememberSession(workspacePath, sessionDescriptor) {
-        // Persist session association
-        await this.db.insertWorkspaceSession({
-            workspacePath,
-            sessionId: sessionDescriptor.id,
-            sessionType: sessionDescriptor.type,
-            metadata: sessionDescriptor
-        });
-    }
+	async open(dir) {
+		// Validate path security
+		const safePath = this.validatePath(dir);
+
+		// Create/open workspace
+		await this.ensureDirectory(safePath);
+
+		// Update database
+		await this.db.upsertWorkspace({
+			path: safePath,
+			lastAccessed: new Date()
+		});
+
+		return this.getWorkspaceInfo(safePath);
+	}
+
+	async rememberSession(workspacePath, sessionDescriptor) {
+		// Persist session association
+		await this.db.insertWorkspaceSession({
+			workspacePath,
+			sessionId: sessionDescriptor.id,
+			sessionType: sessionDescriptor.type,
+			metadata: sessionDescriptor
+		});
+	}
 }
 ```
 
@@ -310,25 +308,25 @@ In-memory session mapping and routing:
 
 ```javascript
 class SessionRouter {
-    constructor() {
-        this.sessions = new Map();
-        this.workspaceSessions = new Map();
-    }
-    
-    bind(sessionId, descriptor) {
-        this.sessions.set(sessionId, {
-            ...descriptor,
-            createdAt: Date.now(),
-            lastActivity: Date.now()
-        });
-        
-        // Update workspace mapping
-        const workspacePath = descriptor.workspacePath;
-        if (!this.workspaceSessions.has(workspacePath)) {
-            this.workspaceSessions.set(workspacePath, new Set());
-        }
-        this.workspaceSessions.get(workspacePath).add(sessionId);
-    }
+	constructor() {
+		this.sessions = new Map();
+		this.workspaceSessions = new Map();
+	}
+
+	bind(sessionId, descriptor) {
+		this.sessions.set(sessionId, {
+			...descriptor,
+			createdAt: Date.now(),
+			lastActivity: Date.now()
+		});
+
+		// Update workspace mapping
+		const workspacePath = descriptor.workspacePath;
+		if (!this.workspaceSessions.has(workspacePath)) {
+			this.workspaceSessions.set(workspacePath, new Set());
+		}
+		this.workspaceSessions.get(workspacePath).add(sessionId);
+	}
 }
 ```
 
@@ -342,7 +340,7 @@ classDiagram
         +send(id, data)
         +stop(id)
     }
-    
+
     class BaseSessionType {
         <<interface>>
         +create(options)
@@ -350,21 +348,21 @@ classDiagram
         +stop(id)
         +setSocketIO(socket)
     }
-    
+
     class TerminalManager {
         +start(workspacePath, shell, env)
         +write(id, data)
         +resize(id, cols, rows)
         +kill(id)
     }
-    
+
     class ClaudeSessionManager {
         +create(workspacePath, options)
         +send(id, input)
         +hydrateSession(id)
         +list(workspacePath)
     }
-    
+
     SessionManager --> BaseSessionType
     BaseSessionType <|-- TerminalManager
     BaseSessionType <|-- ClaudeSessionManager
@@ -382,22 +380,22 @@ sequenceDiagram
     participant SessionManager
     participant TerminalManager
     participant ClaudeManager
-    
+
     Client->>SocketIO: connect
     SocketIO->>Client: connected
-    
+
     Client->>SocketIO: terminal.start
     SocketIO->>Auth: validateKey
     Auth->>SocketIO: authorized
     SocketIO->>SessionManager: create(type: 'pty')
     SessionManager->>TerminalManager: start()
     TerminalManager->>Client: session.created
-    
+
     Client->>SocketIO: terminal.write
     SocketIO->>SessionManager: send(id, data)
     SessionManager->>TerminalManager: write(id, data)
     TerminalManager->>Client: data(output)
-    
+
     Client->>SocketIO: claude.send
     SocketIO->>SessionManager: send(id, input)
     SessionManager->>ClaudeManager: send(id, input)
@@ -408,63 +406,63 @@ sequenceDiagram
 
 #### Client → Server Events
 
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `terminal.start` | `{key, workspacePath, shell, env}` | Create new terminal session |
-| `terminal.write` | `{key, id, data}` | Send input to terminal |
-| `terminal.resize` | `{key, id, cols, rows}` | Resize terminal dimensions |
-| `claude.send` | `{key, id, input}` | Send message to Claude |
-| `session.stop` | `{key, id}` | Terminate session |
+| Event             | Payload                            | Description                 |
+| ----------------- | ---------------------------------- | --------------------------- |
+| `terminal.start`  | `{key, workspacePath, shell, env}` | Create new terminal session |
+| `terminal.write`  | `{key, id, data}`                  | Send input to terminal      |
+| `terminal.resize` | `{key, id, cols, rows}`            | Resize terminal dimensions  |
+| `claude.send`     | `{key, id, input}`                 | Send message to Claude      |
+| `session.stop`    | `{key, id}`                        | Terminate session           |
 
 #### Server → Client Events
 
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `data` | `string` | Terminal output data |
-| `claude.message.delta` | `Event[]` | Claude response stream |
-| `session.created` | `{id, type, workspace}` | Session creation confirmation |
-| `session.ended` | `{id, exitCode}` | Session termination |
-| `error` | `{message, code}` | Error notification |
+| Event                  | Payload                 | Description                   |
+| ---------------------- | ----------------------- | ----------------------------- |
+| `data`                 | `string`                | Terminal output data          |
+| `claude.message.delta` | `Event[]`               | Claude response stream        |
+| `session.created`      | `{id, type, workspace}` | Session creation confirmation |
+| `session.ended`        | `{id, exitCode}`        | Session termination           |
+| `error`                | `{message, code}`       | Error notification            |
 
 ### Connection Management
 
 ```javascript
 // Socket.IO connection lifecycle management
 class ConnectionManager {
-    constructor(io) {
-        this.io = io;
-        this.connections = new Map();
-        this.setupMiddleware();
-    }
-    
-    setupMiddleware() {
-        // Authentication middleware
-        this.io.use(async (socket, next) => {
-            const key = socket.handshake.auth.key;
-            if (await this.validateKey(key)) {
-                socket.data.authenticated = true;
-                next();
-            } else {
-                next(new Error('Authentication failed'));
-            }
-        });
-    }
-    
-    handleConnection(socket) {
-        // Track connection
-        this.connections.set(socket.id, {
-            connectedAt: Date.now(),
-            sessions: new Set()
-        });
-        
-        // Setup event handlers
-        this.setupEventHandlers(socket);
-        
-        // Cleanup on disconnect
-        socket.on('disconnect', () => {
-            this.handleDisconnect(socket);
-        });
-    }
+	constructor(io) {
+		this.io = io;
+		this.connections = new Map();
+		this.setupMiddleware();
+	}
+
+	setupMiddleware() {
+		// Authentication middleware
+		this.io.use(async (socket, next) => {
+			const key = socket.handshake.auth.key;
+			if (await this.validateKey(key)) {
+				socket.data.authenticated = true;
+				next();
+			} else {
+				next(new Error('Authentication failed'));
+			}
+		});
+	}
+
+	handleConnection(socket) {
+		// Track connection
+		this.connections.set(socket.id, {
+			connectedAt: Date.now(),
+			sessions: new Set()
+		});
+
+		// Setup event handlers
+		this.setupEventHandlers(socket);
+
+		// Cleanup on disconnect
+		socket.on('disconnect', () => {
+			this.handleDisconnect(socket);
+		});
+	}
 }
 ```
 
@@ -513,34 +511,34 @@ enum SessionStatus {
 ```javascript
 // Session type registration pattern
 class SessionTypeRegistry {
-    constructor() {
-        this.types = new Map();
-        this.validators = new Map();
-    }
-    
-    register(type, config) {
-        this.types.set(type, {
-            manager: config.manager,
-            validator: config.validator,
-            defaultOptions: config.defaultOptions
-        });
-    }
-    
-    async createSession(type, options) {
-        const config = this.types.get(type);
-        if (!config) {
-            throw new Error(`Unknown session type: ${type}`);
-        }
-        
-        // Validate options
-        const validatedOptions = await config.validator(options);
-        
-        // Create session
-        return config.manager.create({
-            ...config.defaultOptions,
-            ...validatedOptions
-        });
-    }
+	constructor() {
+		this.types = new Map();
+		this.validators = new Map();
+	}
+
+	register(type, config) {
+		this.types.set(type, {
+			manager: config.manager,
+			validator: config.validator,
+			defaultOptions: config.defaultOptions
+		});
+	}
+
+	async createSession(type, options) {
+		const config = this.types.get(type);
+		if (!config) {
+			throw new Error(`Unknown session type: ${type}`);
+		}
+
+		// Validate options
+		const validatedOptions = await config.validator(options);
+
+		// Create session
+		return config.manager.create({
+			...config.defaultOptions,
+			...validatedOptions
+		});
+	}
 }
 ```
 
@@ -617,23 +615,23 @@ graph TD
         SocketConnections[Socket Connections]
         RouteMap[Session Route Map]
     end
-    
+
     subgraph "Persistent Data"
         SQLite[SQLite Database]
         FileSystem[File System]
     end
-    
+
     subgraph "Hybrid Storage"
         SessionHistory[Session History]
         ClaudeConversations[Claude Conversations]
     end
-    
+
     ActiveSessions --> RouteMap
     SocketConnections --> ActiveSessions
-    
+
     SessionHistory --> SQLite
     SessionHistory --> FileSystem
-    
+
     ClaudeConversations --> FileSystem
     ClaudeConversations --> SQLite
 ```
@@ -682,30 +680,36 @@ CREATE TABLE claude_sessions (
 
 ```javascript
 class DataRetentionManager {
-    constructor(db, config) {
-        this.db = db;
-        this.retentionDays = config.retentionDays || 30;
-    }
-    
-    async cleanupOldData() {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - this.retentionDays);
-        
-        // Clean old session history
-        await this.db.run(`
+	constructor(db, config) {
+		this.db = db;
+		this.retentionDays = config.retentionDays || 30;
+	}
+
+	async cleanupOldData() {
+		const cutoffDate = new Date();
+		cutoffDate.setDate(cutoffDate.getDate() - this.retentionDays);
+
+		// Clean old session history
+		await this.db.run(
+			`
             DELETE FROM session_history 
             WHERE timestamp < ?
-        `, cutoffDate);
-        
-        // Clean terminal history
-        await this.db.run(`
+        `,
+			cutoffDate
+		);
+
+		// Clean terminal history
+		await this.db.run(
+			`
             DELETE FROM terminal_history 
             WHERE timestamp < ?
-        `, cutoffDate);
-        
-        // Archive old Claude conversations
-        await this.archiveClaudeConversations(cutoffDate);
-    }
+        `,
+			cutoffDate
+		);
+
+		// Archive old Claude conversations
+		await this.archiveClaudeConversations(cutoffDate);
+	}
 }
 ```
 
@@ -719,24 +723,24 @@ graph TB
         SharedKey[Shared Key Auth]
         TokenValidation[Token Validation]
     end
-    
+
     subgraph "Authorization Layer"
         WorkspaceAccess[Workspace Access Control]
         SessionPermissions[Session Permissions]
     end
-    
+
     subgraph "Security Boundaries"
         PathValidation[Path Traversal Prevention]
         InputSanitization[Input Sanitization]
         RateLimiting[Rate Limiting]
     end
-    
+
     subgraph "Container Security"
         NonRoot[Non-root User]
         ReadOnlyFS[Read-only Filesystem]
         ResourceLimits[Resource Limits]
     end
-    
+
     SharedKey --> TokenValidation
     TokenValidation --> WorkspaceAccess
     WorkspaceAccess --> SessionPermissions
@@ -752,10 +756,10 @@ sequenceDiagram
     participant Server
     participant Auth
     participant Session
-    
+
     Client->>Server: Connect with key
     Server->>Auth: Validate key
-    
+
     alt Valid Key
         Auth->>Server: Authorized
         Server->>Session: Create session
@@ -770,34 +774,34 @@ sequenceDiagram
 
 ```javascript
 class SecurityManager {
-    constructor(config) {
-        this.terminalKey = config.TERMINAL_KEY;
-        this.workspaceRoot = config.WORKSPACES_ROOT;
-        this.rateLimiter = new RateLimiter(config.rateLimits);
-    }
-    
-    // Path traversal prevention
-    validatePath(requestedPath) {
-        const resolved = path.resolve(this.workspaceRoot, requestedPath);
-        if (!resolved.startsWith(this.workspaceRoot)) {
-            throw new SecurityError('Path traversal attempt detected');
-        }
-        return resolved;
-    }
-    
-    // Input sanitization
-    sanitizeInput(input) {
-        // Remove control characters except specific allowed ones
-        return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-    }
-    
-    // Rate limiting
-    async checkRateLimit(clientId, action) {
-        const allowed = await this.rateLimiter.check(clientId, action);
-        if (!allowed) {
-            throw new SecurityError('Rate limit exceeded');
-        }
-    }
+	constructor(config) {
+		this.terminalKey = config.TERMINAL_KEY;
+		this.workspaceRoot = config.WORKSPACES_ROOT;
+		this.rateLimiter = new RateLimiter(config.rateLimits);
+	}
+
+	// Path traversal prevention
+	validatePath(requestedPath) {
+		const resolved = path.resolve(this.workspaceRoot, requestedPath);
+		if (!resolved.startsWith(this.workspaceRoot)) {
+			throw new SecurityError('Path traversal attempt detected');
+		}
+		return resolved;
+	}
+
+	// Input sanitization
+	sanitizeInput(input) {
+		// Remove control characters except specific allowed ones
+		return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+	}
+
+	// Rate limiting
+	async checkRateLimit(clientId, action) {
+		const allowed = await this.rateLimiter.check(clientId, action);
+		if (!allowed) {
+			throw new SecurityError('Rate limit exceeded');
+		}
+	}
 }
 ```
 
@@ -812,25 +816,25 @@ graph LR
         Dev[Vite Dev Server]
         Test[Test Suite]
     end
-    
+
     subgraph "Build Stage"
         Compile[SvelteKit Build]
         Bundle[Bundle Assets]
         Optimize[Optimization]
     end
-    
+
     subgraph "Container Build"
         DockerBuild[Docker Multi-stage]
         Security[Security Scan]
         Push[Registry Push]
     end
-    
+
     subgraph "Deployment"
         Pull[Pull Image]
         Configure[Environment Config]
         Run[Container Runtime]
     end
-    
+
     Code --> Dev
     Dev --> Test
     Test --> Compile
@@ -882,7 +886,7 @@ services:
       - workspace-data:/data/workspaces
       - db-data:/data
     ports:
-      - "3030:3030"
+      - '3030:3030'
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -902,24 +906,24 @@ graph TB
         ComponentTests[Component Tests]
         UtilTests[Utility Tests]
     end
-    
+
     subgraph "Integration Tests"
         APITests[API Tests]
         SocketTests[Socket.IO Tests]
         DBTests[Database Tests]
     end
-    
+
     subgraph "E2E Tests"
         UITests[UI Flow Tests]
         SessionTests[Session Tests]
         AuthTests[Auth Tests]
     end
-    
+
     subgraph "Performance Tests"
         LoadTests[Load Tests]
         StressTests[Stress Tests]
     end
-    
+
     ServiceTests --> APITests
     ComponentTests --> UITests
     APITests --> SessionTests
@@ -932,24 +936,24 @@ graph TB
 ```javascript
 // vitest.config.js
 export default defineConfig({
-    test: {
-        projects: [
-            {
-                name: 'client',
-                environment: 'happy-dom',
-                include: ['src/**/*.client.test.js']
-            },
-            {
-                name: 'server',
-                environment: 'node',
-                include: ['src/**/*.server.test.js']
-            }
-        ],
-        coverage: {
-            reporter: ['text', 'json', 'html'],
-            exclude: ['node_modules', '.svelte-kit']
-        }
-    }
+	test: {
+		projects: [
+			{
+				name: 'client',
+				environment: 'happy-dom',
+				include: ['src/**/*.client.test.js']
+			},
+			{
+				name: 'server',
+				environment: 'node',
+				include: ['src/**/*.server.test.js']
+			}
+		],
+		coverage: {
+			reporter: ['text', 'json', 'html'],
+			exclude: ['node_modules', '.svelte-kit']
+		}
+	}
 });
 ```
 
@@ -958,55 +962,55 @@ export default defineConfig({
 ```javascript
 // Service layer test
 describe('SessionManager', () => {
-    let manager;
-    let mockRouter;
-    let mockWorkspace;
-    
-    beforeEach(() => {
-        mockRouter = createMockRouter();
-        mockWorkspace = createMockWorkspace();
-        manager = new SessionManager({
-            sessionRouter: mockRouter,
-            workspaceManager: mockWorkspace
-        });
-    });
-    
-    test('should create session with unified ID', async () => {
-        const session = await manager.create({
-            type: 'pty',
-            workspacePath: '/test',
-            options: { shell: '/bin/bash' }
-        });
-        
-        expect(session.id).toMatch(/^[a-z0-9]{8}$/);
-        expect(mockRouter.bind).toHaveBeenCalledWith(
-            session.id,
-            expect.objectContaining({ type: 'pty' })
-        );
-    });
+	let manager;
+	let mockRouter;
+	let mockWorkspace;
+
+	beforeEach(() => {
+		mockRouter = createMockRouter();
+		mockWorkspace = createMockWorkspace();
+		manager = new SessionManager({
+			sessionRouter: mockRouter,
+			workspaceManager: mockWorkspace
+		});
+	});
+
+	test('should create session with unified ID', async () => {
+		const session = await manager.create({
+			type: 'pty',
+			workspacePath: '/test',
+			options: { shell: '/bin/bash' }
+		});
+
+		expect(session.id).toMatch(/^[a-z0-9]{8}$/);
+		expect(mockRouter.bind).toHaveBeenCalledWith(
+			session.id,
+			expect.objectContaining({ type: 'pty' })
+		);
+	});
 });
 
 // E2E test
 test('complete session lifecycle', async ({ page }) => {
-    // Authenticate
-    await page.goto('/');
-    await page.fill('#terminal-key', 'testkey12345');
-    await page.click('button[type="submit"]');
-    
-    // Create session
-    await page.click('[data-testid="new-session"]');
-    await page.selectOption('[name="type"]', 'terminal');
-    await page.click('[data-testid="create"]');
-    
-    // Verify terminal
-    await expect(page.locator('.xterm')).toBeVisible();
-    
-    // Send command
-    await page.keyboard.type('echo "test"');
-    await page.keyboard.press('Enter');
-    
-    // Verify output
-    await expect(page.locator('.xterm')).toContainText('test');
+	// Authenticate
+	await page.goto('/');
+	await page.fill('#terminal-key', 'testkey12345');
+	await page.click('button[type="submit"]');
+
+	// Create session
+	await page.click('[data-testid="new-session"]');
+	await page.selectOption('[name="type"]', 'terminal');
+	await page.click('[data-testid="create"]');
+
+	// Verify terminal
+	await expect(page.locator('.xterm')).toBeVisible();
+
+	// Send command
+	await page.keyboard.type('echo "test"');
+	await page.keyboard.press('Enter');
+
+	// Verify output
+	await expect(page.locator('.xterm')).toContainText('test');
 });
 ```
 
@@ -1028,18 +1032,18 @@ interface ISessionManager {
 
 class SessionManager implements ISessionManager {
     constructor(private deps: SessionManagerDeps) {}
-    
+
     // Implementation with clear dependencies
 }
 
 // Dependency injection container
 class ServiceContainer {
     private services = new Map();
-    
+
     register<T>(token: string, factory: () => T): void {
         this.services.set(token, factory);
     }
-    
+
     get<T>(token: string): T {
         return this.services.get(token)();
     }
@@ -1056,14 +1060,14 @@ class ServiceContainer {
 // Proposed event bus implementation
 class EventBus extends EventEmitter {
     private handlers = new Map<string, Set<Handler>>();
-    
+
     subscribe(event: string, handler: Handler): void {
         if (!this.handlers.has(event)) {
             this.handlers.set(event, new Set());
         }
         this.handlers.get(event).add(handler);
     }
-    
+
     publish(event: string, data: any): void {
         const handlers = this.handlers.get(event);
         if (handlers) {
@@ -1077,7 +1081,7 @@ class WorkspaceManager {
     constructor(private eventBus: EventBus) {
         this.eventBus.subscribe('session.created', this.handleSessionCreated);
     }
-    
+
     async open(path: string) {
         const workspace = await this.createWorkspace(path);
         this.eventBus.publish('workspace.opened', workspace);
@@ -1097,12 +1101,12 @@ class CircuitBreaker {
     private failureCount = 0;
     private lastFailureTime = 0;
     private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
-    
+
     constructor(
         private threshold = 5,
         private timeout = 60000
     ) {}
-    
+
     async execute<T>(fn: () => Promise<T>): Promise<T> {
         if (this.state === 'OPEN') {
             if (Date.now() - this.lastFailureTime > this.timeout) {
@@ -1111,7 +1115,7 @@ class CircuitBreaker {
                 throw new Error('Circuit breaker is OPEN');
             }
         }
-        
+
         try {
             const result = await fn();
             this.onSuccess();
@@ -1121,12 +1125,12 @@ class CircuitBreaker {
             throw error;
         }
     }
-    
+
     private onSuccess(): void {
         this.failureCount = 0;
         this.state = 'CLOSED';
     }
-    
+
     private onFailure(): void {
         this.failureCount++;
         this.lastFailureTime = Date.now();
@@ -1155,7 +1159,7 @@ interface IWorkspaceRepository {
 // Implementation
 class SQLiteWorkspaceRepository implements IWorkspaceRepository {
     constructor(private db: Database) {}
-    
+
     async findByPath(path: string): Promise<Workspace> {
         const row = await this.db.get(
             'SELECT * FROM workspaces WHERE path = ?',
@@ -1163,7 +1167,7 @@ class SQLiteWorkspaceRepository implements IWorkspaceRepository {
         );
         return this.mapRowToWorkspace(row);
     }
-    
+
     private mapRowToWorkspace(row: any): Workspace {
         return new Workspace({
             id: row.id,
@@ -1176,7 +1180,7 @@ class SQLiteWorkspaceRepository implements IWorkspaceRepository {
 // Usage in service
 class WorkspaceManager {
     constructor(private repository: IWorkspaceRepository) {}
-    
+
     async open(path: string): Promise<Workspace> {
         let workspace = await this.repository.findByPath(path);
         if (!workspace) {
@@ -1198,17 +1202,17 @@ class WorkspaceManager {
 // Monitoring service
 class MonitoringService {
     private metrics = new Map<string, number>();
-    
+
     incrementCounter(name: string, tags?: object): void {
         const key = this.buildKey(name, tags);
         this.metrics.set(key, (this.metrics.get(key) || 0) + 1);
     }
-    
+
     recordGauge(name: string, value: number, tags?: object): void {
         const key = this.buildKey(name, tags);
         this.metrics.set(key, value);
     }
-    
+
     recordHistogram(name: string, value: number, tags?: object): void {
         // Record distribution metrics
     }
@@ -1233,26 +1237,26 @@ class SessionManager {
         private monitoring: MonitoringService,
         private logger: Logger
     ) {}
-    
+
     async create(type: string, options: object): Promise<Session> {
         const startTime = Date.now();
-        
+
         try {
             const session = await this.doCreate(type, options);
-            
+
             this.monitoring.incrementCounter('session.created', { type });
             this.monitoring.recordHistogram(
                 'session.creation.duration',
                 Date.now() - startTime,
                 { type }
             );
-            
+
             this.logger.log('info', 'Session created', {
                 sessionId: session.id,
                 type,
                 duration: Date.now() - startTime
             });
-            
+
             return session;
         } catch (error) {
             this.monitoring.incrementCounter('session.creation.failed', { type });
@@ -1282,7 +1286,7 @@ class CreateSessionSaga {
         this.registerSession,
         this.notifyClients
     ];
-    
+
     private compensations = [
         this.releaseWorkspace,
         this.releaseResources,
@@ -1290,10 +1294,10 @@ class CreateSessionSaga {
         this.unregisterSession,
         null // No compensation for notification
     ];
-    
+
     async execute(params: CreateSessionParams): Promise<Session> {
         const completed = [];
-        
+
         try {
             let result = params;
             for (const step of this.steps) {
@@ -1371,13 +1375,13 @@ app.post('/api/sessions',
 class CacheManager {
     private memory = new Map();
     private redis?: RedisClient;
-    
+
     async get<T>(key: string): Promise<T | null> {
         // L1: Memory cache
         if (this.memory.has(key)) {
             return this.memory.get(key);
         }
-        
+
         // L2: Redis cache
         if (this.redis) {
             const value = await this.redis.get(key);
@@ -1387,13 +1391,13 @@ class CacheManager {
                 return parsed;
             }
         }
-        
+
         return null;
     }
-    
+
     async set<T>(key: string, value: T, ttl?: number): Promise<void> {
         this.memory.set(key, value);
-        
+
         if (this.redis) {
             await this.redis.set(
                 key,
@@ -1401,7 +1405,7 @@ class CacheManager {
                 ttl ? ['EX', ttl] : []
             );
         }
-        
+
         if (ttl) {
             setTimeout(() => this.memory.delete(key), ttl * 1000);
         }
@@ -1414,18 +1418,18 @@ class WorkspaceManager {
         private cache: CacheManager,
         private repository: IWorkspaceRepository
     ) {}
-    
+
     async getWorkspace(path: string): Promise<Workspace> {
         const cacheKey = `workspace:${path}`;
-        
+
         let workspace = await this.cache.get<Workspace>(cacheKey);
         if (workspace) {
             return workspace;
         }
-        
+
         workspace = await this.repository.findByPath(path);
         await this.cache.set(cacheKey, workspace, 300); // 5 min TTL
-        
+
         return workspace;
     }
 }
@@ -1441,14 +1445,14 @@ class WorkspaceManager {
 // Health check service
 class HealthCheckService {
     private checks = new Map<string, HealthCheck>();
-    
+
     register(name: string, check: HealthCheck): void {
         this.checks.set(name, check);
     }
-    
+
     async checkHealth(): Promise<HealthStatus> {
         const results = new Map<string, CheckResult>();
-        
+
         for (const [name, check] of this.checks) {
             try {
                 const start = Date.now();
@@ -1464,10 +1468,10 @@ class HealthCheckService {
                 });
             }
         }
-        
+
         const healthy = Array.from(results.values())
             .every(r => r.status === 'healthy');
-        
+
         return {
             status: healthy ? 'healthy' : 'unhealthy',
             checks: Object.fromEntries(results)
@@ -1478,7 +1482,7 @@ class HealthCheckService {
 // Health check implementations
 class DatabaseHealthCheck implements HealthCheck {
     constructor(private db: Database) {}
-    
+
     async check(): Promise<void> {
         await this.db.get('SELECT 1');
     }
@@ -1486,7 +1490,7 @@ class DatabaseHealthCheck implements HealthCheck {
 
 class ClaudeHealthCheck implements HealthCheck {
     constructor(private claude: ClaudeService) {}
-    
+
     async check(): Promise<void> {
         await this.claude.ping();
     }
@@ -1509,12 +1513,12 @@ app.get('/health', async (req, res) => {
 ```typescript
 // Strong typing for domain models
 interface Session {
-    readonly id: string;
-    readonly type: SessionType;
-    readonly workspacePath: string;
-    readonly status: SessionStatus;
-    readonly createdAt: Date;
-    readonly lastActivity: Date;
+	readonly id: string;
+	readonly type: SessionType;
+	readonly workspacePath: string;
+	readonly status: SessionStatus;
+	readonly createdAt: Date;
+	readonly lastActivity: Date;
 }
 
 type SessionType = 'pty' | 'claude';
@@ -1522,32 +1526,32 @@ type SessionStatus = 'created' | 'active' | 'suspended' | 'terminated';
 
 // Type-safe event system
 interface SessionEvents {
-    'session.created': { session: Session };
-    'session.terminated': { sessionId: string; reason: string };
-    'session.error': { sessionId: string; error: Error };
+	'session.created': { session: Session };
+	'session.terminated': { sessionId: string; reason: string };
+	'session.error': { sessionId: string; error: Error };
 }
 
 class TypedEventEmitter<T extends Record<string, any>> {
-    private emitter = new EventEmitter();
-    
-    on<K extends keyof T>(event: K, handler: (data: T[K]) => void): void {
-        this.emitter.on(event as string, handler);
-    }
-    
-    emit<K extends keyof T>(event: K, data: T[K]): void {
-        this.emitter.emit(event as string, data);
-    }
+	private emitter = new EventEmitter();
+
+	on<K extends keyof T>(event: K, handler: (data: T[K]) => void): void {
+		this.emitter.on(event as string, handler);
+	}
+
+	emit<K extends keyof T>(event: K, data: T[K]): void {
+		this.emitter.emit(event as string, data);
+	}
 }
 
 // Usage
 class SessionManager {
-    private events = new TypedEventEmitter<SessionEvents>();
-    
-    async create(params: CreateSessionParams): Promise<Session> {
-        const session = await this.doCreate(params);
-        this.events.emit('session.created', { session });
-        return session;
-    }
+	private events = new TypedEventEmitter<SessionEvents>();
+
+	async create(params: CreateSessionParams): Promise<Session> {
+		const session = await this.doCreate(params);
+		this.events.emit('session.created', { session });
+		return session;
+	}
 }
 ```
 
@@ -1567,6 +1571,7 @@ The Dispatch application demonstrates solid architectural foundations with clear
 10. **Strong typing** for code quality
 
 Implementing these recommendations will result in a more robust, maintainable, and scalable architecture that can evolve with changing requirements while maintaining high code quality and system reliability.
+
 #### ClaudeAuthManager (`src/lib/server/claude/ClaudeAuthManager.js`)
 
 Runs the OAuth flow for Claude via a real PTY:

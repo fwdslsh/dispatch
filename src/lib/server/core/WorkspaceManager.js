@@ -159,10 +159,6 @@ export class WorkspaceManager {
 	}
 
 	async updateTypeSpecificId(workspacePath, sessionId, newTypeSpecificId) {
-		await databaseManager.updateWorkspaceSessionTypeId(
-			workspacePath,
-			sessionId,
-			newTypeSpecificId
-		);
+		await databaseManager.updateWorkspaceSessionTypeId(workspacePath, sessionId, newTypeSpecificId);
 	}
 }

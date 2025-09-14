@@ -278,8 +278,11 @@ export class SessionManager {
 		try {
 			// Call refresh with the type-specific ID
 			const commands = await refreshMethod.call(sessionType.manager, descriptor.typeSpecificId);
-			logger.debug('SESSION', `Refreshed commands for ${descriptor.type} session ${sessionId}:`,
-				Array.isArray(commands) ? `${commands.length} commands` : 'null');
+			logger.debug(
+				'SESSION',
+				`Refreshed commands for ${descriptor.type} session ${sessionId}:`,
+				Array.isArray(commands) ? `${commands.length} commands` : 'null'
+			);
 			return commands;
 		} catch (error) {
 			logger.error('SESSION', `Failed to refresh commands for session ${sessionId}:`, error);

@@ -18,7 +18,7 @@ test.describe('Mobile Swipe Navigation', () => {
 			localStorage.setItem('dispatch-auth-key', 'testkey12345');
 		});
 
-		await page.goto('/projects');
+		await page.goto('/workspace');
 	});
 
 	test('should show swipe indicators when multiple sessions exist', async ({ page }) => {
@@ -179,7 +179,7 @@ test.describe('Desktop (No Swipe)', () => {
 		await page.evaluate(() => {
 			localStorage.setItem('dispatch-auth-key', 'testkey12345');
 		});
-		await page.goto('/projects');
+		await page.goto('/workspace');
 
 		// Swipe indicators should not be visible on desktop
 		const swipeIndicators = page.locator('.swipe-indicators');

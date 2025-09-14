@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
-import ClaudeCommands from '../../src/lib/components/ClaudeCommands.svelte';
+import ClaudeCommands from '../../src/lib/client/claude/ClaudeCommands.svelte';
 
 // Mock localStorage
 const mockLocalStorage = {
@@ -88,7 +88,9 @@ describe('ClaudeCommands', () => {
 		});
 
 		// Simulate receiving tools.available event with app session ID
-		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'claude.tools.available')[1];
+		const handleToolsList = mockSocket.on.mock.calls.find(
+			(call) => call[0] === 'claude.tools.available'
+		)[1];
 
 		// Mock console.log to capture logs
 		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -123,7 +125,9 @@ describe('ClaudeCommands', () => {
 		});
 
 		// Simulate receiving tools.available event with Claude session ID
-		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'claude.tools.available')[1];
+		const handleToolsList = mockSocket.on.mock.calls.find(
+			(call) => call[0] === 'claude.tools.available'
+		)[1];
 
 		// Mock console.log to capture logs
 		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -158,7 +162,9 @@ describe('ClaudeCommands', () => {
 		});
 
 		// Simulate receiving tools.available event with different session ID
-		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'claude.tools.available')[1];
+		const handleToolsList = mockSocket.on.mock.calls.find(
+			(call) => call[0] === 'claude.tools.available'
+		)[1];
 
 		// Mock console.log to capture logs
 		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});

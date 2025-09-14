@@ -15,7 +15,7 @@ vi.mock('../../src/lib/server/utils/logger.js', () => ({
 	}
 }));
 
-	describe('Socket.IO Claude Commands Refresh Handler', () => {
+describe('Socket.IO Claude Commands Refresh Handler', () => {
 	let mockServices;
 	let commandsRefreshHandler;
 
@@ -47,8 +47,11 @@ vi.mock('../../src/lib/server/utils/logger.js', () => ({
 				if (sessionManager && sessionManager.refreshCommands && data.sessionId) {
 					try {
 						const commands = await sessionManager.refreshCommands(data.sessionId);
-						logger.debug('SOCKET', `Commands refreshed for session ${data.sessionId}:`,
-							Array.isArray(commands) ? `${commands.length} commands` : 'null');
+						logger.debug(
+							'SOCKET',
+							`Commands refreshed for session ${data.sessionId}:`,
+							Array.isArray(commands) ? `${commands.length} commands` : 'null'
+						);
 
 						if (callback) {
 							callback({
@@ -348,9 +351,7 @@ vi.mock('../../src/lib/server/utils/logger.js', () => ({
 
 			await commandsRefreshHandler({ key: 'valid', sessionId }, mockCallback);
 
-			expect(mockCallback).toHaveBeenCalledWith(
-				expect.objectContaining({ sessionId: sessionId })
-			);
+			expect(mockCallback).toHaveBeenCalledWith(expect.objectContaining({ sessionId: sessionId }));
 		});
 	});
 });

@@ -9,6 +9,7 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 The system **already has a command discovery implementation** that is currently working:
 
 **Server-Side (ClaudeSessionManager.js:445-551)**:
+
 - `_fetchAndEmitSupportedCommands()` method fires when Claude sessions are created (line 150)
 - Uses Claude Code SDK's `query.supportedCommands()` API to fetch available commands
 - Emits two Socket.IO events: `tools.list` and `session.status` with command data
@@ -16,6 +17,7 @@ The system **already has a command discovery implementation** that is currently 
 - Emits to both Claude session ID and app session ID if available
 
 **Client-Side (ClaudeCommands.svelte:138-310)**:
+
 - Listens for `tools.list` Socket.IO event to receive commands
 - Queries `session.status` on mount to get existing commands
 - Caches commands in localStorage per workspace
@@ -30,26 +32,32 @@ The system **already has a command discovery implementation** that is currently 
 ## Identified Issues
 
 ### Issue 1: Socket.IO Event Routing Mismatch
+
 **Problem**: Session ID routing between server and client is inconsistent.
 
 **Technical Details**:
+
 - Server emits with `claudeSessionId` (numeric: "1", "2", etc.) from `ClaudeSessionManager.js:454`
 - Server also emits with `appSessionId` if available from `ClaudeSessionManager.js:461`
 - Client expects `sessionId` matching its session identifier in `ClaudeCommands.svelte:148-160`
 - Session ID format mismatches cause client to ignore server events
 
 ### Issue 2: Missing Socket.IO Handler Registration
+
 **Problem**: No server-side handler for client `session.status` requests in Socket.IO setup.
 
 **Technical Details**:
+
 - Client emits `session.status` in `ClaudeCommands.svelte:262`
 - Server `socket-setup.js:243` has `session.status` handler but missing `availableCommands` field
 - Handler doesn't query Claude sessions for command data - only returns basic session info
 
 ### Issue 3: Commands Not Persisting Across Reconnects
+
 **Problem**: Commands are not reliably available when clients reconnect to existing sessions.
 
 **Technical Details**:
+
 - `_fetchAndEmitSupportedCommands()` only fires on session creation
 - Reconnecting clients don't trigger command discovery
 - localStorage cache may be stale or empty
@@ -57,35 +65,41 @@ The system **already has a command discovery implementation** that is currently 
 ## Required Technical Changes
 
 ### 1. Fix Socket.IO Session Routing
+
 **File**: `src/lib/server/claude/ClaudeSessionManager.js:454-470`
+
 ```javascript
 // Ensure consistent session ID format in emit calls
 this.io.emit('tools.list', {
-  sessionId: sessionData.appSessionId || claudeSessionId,
-  commands: cached.commands
+	sessionId: sessionData.appSessionId || claudeSessionId,
+	commands: cached.commands
 });
 ```
 
 ### 2. Enhance Socket.IO Session Status Handler
+
 **File**: `src/lib/server/socket-setup.js:243-286`
+
 ```javascript
 // Add Claude commands lookup to session.status handler
 const { sessionManager, sessions, claude } = getServices();
 const session = sessionManager.getSession(data.sessionId);
 if (session && session.type === 'claude') {
-  const commands = claude.getCachedCommands(data.sessionId);
-  callback({
-    success: true,
-    activityState,
-    hasPendingMessages,
-    availableCommands: commands || [],
-    sessionInfo: session
-  });
+	const commands = claude.getCachedCommands(data.sessionId);
+	callback({
+		success: true,
+		activityState,
+		hasPendingMessages,
+		availableCommands: commands || [],
+		sessionInfo: session
+	});
 }
 ```
 
 ### 3. Add Reconnection Command Discovery
+
 **File**: `src/lib/server/claude/ClaudeSessionManager.js`
+
 ```javascript
 // Add method to refresh commands for existing sessions
 async refreshCommands(sessionId) {
@@ -97,7 +111,9 @@ async refreshCommands(sessionId) {
 ```
 
 ### 4. Client Session ID Normalization
+
 **File**: `src/lib/components/ClaudeCommands.svelte:148-160`
+
 ```javascript
 // Handle multiple session ID formats from server
 const normalizeSessionId = (id) => String(id).replace(/^claude_/, '');

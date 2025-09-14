@@ -155,7 +155,7 @@ describe('ClaudeSessionManager - Reconnection Command Discovery', () => {
 
 			// Set up existing session with expired cache
 			manager.sessions.set(sessionId, sessionData);
-			const expiredTime = Date.now() - (6 * 60 * 1000); // 6 minutes ago (TTL is 5 minutes)
+			const expiredTime = Date.now() - 6 * 60 * 1000; // 6 minutes ago (TTL is 5 minutes)
 			manager._toolsCache.set('/test/workspace:/mock/claude', {
 				commands: ['old-command'],
 				fetchedAt: expiredTime

@@ -1,9 +1,8 @@
 <script>
 	import { onMount } from 'svelte';
-	import ClaudePane from '$lib/components/ClaudePane.svelte';
-	import ProjectSessionMenuSimplified from '$lib/shared/components/ProjectSessionMenuSimplified.svelte';
-	import ClaudeSessionModal from '$lib/components/ClaudeSessionModal.svelte';
-	import TerminalSessionModal from '$lib/components/TerminalSessionModal.svelte';
+	import ClaudePane from '$lib/client/claude/ClaudePane.svelte';
+	import ClaudeSessionModal from '$lib/client/claude/ClaudeSessionModal.svelte';
+	import TerminalSessionModal from '$lib/client/terminal/TerminalSessionModal.svelte';
 	import { IconAlertTriangle } from '@tabler/icons-svelte';
 
 	let isMobileView = $state(false);
@@ -18,7 +17,7 @@
 	};
 
 	// Selection bindings fed from the extracted component
-let selectedWorkspace = $state(null);
+	let selectedWorkspace = $state(null);
 	let selectedSession = $state(null);
 	let error = $state(null);
 	let menuRef;

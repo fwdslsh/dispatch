@@ -16,18 +16,18 @@ console.log('3. Watch the server logs for debug output');
 console.log('4. Check if commands appear in the UI');
 
 try {
-    let command;
-    if (platform() === 'darwin') {
-        command = `open "${url}"`;
-    } else if (platform() === 'win32') {
-        command = `start "${url}"`;
-    } else {
-        command = `xdg-open "${url}"`;
-    }
+	let command;
+	if (platform() === 'darwin') {
+		command = `open "${url}"`;
+	} else if (platform() === 'win32') {
+		command = `start "${url}"`;
+	} else {
+		command = `xdg-open "${url}"`;
+	}
 
-    console.log(`Running: ${command}`);
-    execSync(command);
+	console.log(`Running: ${command}`);
+	execSync(command);
 } catch (error) {
-    console.error('Failed to open browser:', error.message);
-    console.log(`Please manually visit: ${url}`);
+	console.error('Failed to open browser:', error.message);
+	console.log(`Please manually visit: ${url}`);
 }

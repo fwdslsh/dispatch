@@ -11,7 +11,7 @@ test.describe('Working Directory Validation', () => {
 
 	test.describe('Directory Selection and Propagation', () => {
 		test('should correctly set working directory for terminal sessions', async ({ page }) => {
-			await page.goto('/projects');
+			await page.goto('/workspace');
 			await page.waitForSelector('.dispatch-workspace');
 
 			let capturedWorkspacePath;
@@ -86,7 +86,7 @@ test.describe('Working Directory Validation', () => {
 		});
 
 		test('should correctly set working directory for Claude sessions', async ({ page }) => {
-			await page.goto('/projects');
+			await page.goto('/workspace');
 			await page.waitForSelector('.dispatch-workspace');
 
 			let capturedClaudeOptions;
@@ -175,7 +175,7 @@ test.describe('Working Directory Validation', () => {
 		});
 
 		test('should propagate working directory to Claude CLI process', async ({ page }) => {
-			await page.goto('/projects');
+			await page.goto('/workspace');
 			await page.waitForSelector('.dispatch-workspace');
 
 			// This test verifies that the ClaudeSessionManager receives correct cwd
@@ -252,7 +252,7 @@ test.describe('Working Directory Validation', () => {
 
 	test.describe('Directory Browser Integration', () => {
 		test('should browse and select directories correctly', async ({ page }) => {
-			await page.goto('/projects');
+			await page.goto('/workspace');
 			await page.waitForSelector('.dispatch-workspace');
 
 			// Mock browse API with nested directories
@@ -352,7 +352,7 @@ test.describe('Working Directory Validation', () => {
 		});
 
 		test('should handle directory access errors gracefully', async ({ page }) => {
-			await page.goto('/projects');
+			await page.goto('/workspace');
 			await page.waitForSelector('.dispatch-workspace');
 
 			// Mock browse API with permission error
@@ -398,7 +398,7 @@ test.describe('Working Directory Validation', () => {
 
 	test.describe('Working Directory Validation', () => {
 		test('should validate directory paths for security', async ({ page }) => {
-			await page.goto('/projects');
+			await page.goto('/workspace');
 			await page.waitForSelector('.dispatch-workspace');
 
 			const invalidPaths = [
@@ -453,7 +453,7 @@ test.describe('Working Directory Validation', () => {
 		});
 
 		test('should normalize directory paths correctly', async ({ page }) => {
-			await page.goto('/projects');
+			await page.goto('/workspace');
 			await page.waitForSelector('.dispatch-workspace');
 
 			const testCases = [
@@ -532,7 +532,7 @@ test.describe('Working Directory Validation', () => {
 
 	test.describe('Session Working Directory Persistence', () => {
 		test('should maintain working directory across session lifecycle', async ({ page }) => {
-			await page.goto('/projects');
+			await page.goto('/workspace');
 			await page.waitForSelector('.dispatch-workspace');
 
 			const testDirectory = '/workspace/persistent-test';

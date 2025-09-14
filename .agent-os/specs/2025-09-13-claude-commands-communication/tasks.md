@@ -9,7 +9,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 - [x] 1. Fix Socket.IO Session Routing in ClaudeSessionManager
   - [x] 1.1 Write tests for session ID routing behavior
-  - [x] 1.2 Update _fetchAndEmitSupportedCommands() to use consistent session ID format
+  - [x] 1.2 Update \_fetchAndEmitSupportedCommands() to use consistent session ID format
   - [x] 1.3 Ensure both Claude session ID and app session ID are handled properly
   - [x] 1.4 Test Socket.IO event emission with correct session identifiers
   - [x] 1.5 Verify all tests pass

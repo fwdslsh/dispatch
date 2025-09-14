@@ -165,14 +165,18 @@ describe('Socket.IO Session Status Handler', () => {
 		it('should return session not found for nonexistent session', (done) => {
 			mockServices.sessionManager.getSession.mockReturnValue(null);
 
-			clientSocket.emit('session.status', { key: 'valid', sessionId: 'nonexistent' }, (response) => {
-				expect(response).toEqual({
-					success: false,
-					error: 'Session not found'
-				});
-				expect(mockServices.sessionManager.getSession).toHaveBeenCalledWith('nonexistent');
-				done();
-			});
+			clientSocket.emit(
+				'session.status',
+				{ key: 'valid', sessionId: 'nonexistent' },
+				(response) => {
+					expect(response).toEqual({
+						success: false,
+						error: 'Session not found'
+					});
+					expect(mockServices.sessionManager.getSession).toHaveBeenCalledWith('nonexistent');
+					done();
+				}
+			);
 		});
 
 		it('should return basic session info without commands for non-Claude session', (done) => {
@@ -241,16 +245,20 @@ describe('Socket.IO Session Status Handler', () => {
 			mockServices.sessions.getActivityState.mockReturnValue('streaming');
 			mockServices.sessionManager.getCachedCommands.mockReturnValue(['analyze', 'debug']);
 
-			clientSocket.emit('session.status', { key: 'valid', sessionId: 'claude-stream' }, (response) => {
-				expect(response).toEqual({
-					success: true,
-					activityState: 'streaming',
-					hasPendingMessages: true,
-					availableCommands: ['analyze', 'debug'],
-					sessionInfo: mockSession
-				});
-				done();
-			});
+			clientSocket.emit(
+				'session.status',
+				{ key: 'valid', sessionId: 'claude-stream' },
+				(response) => {
+					expect(response).toEqual({
+						success: true,
+						activityState: 'streaming',
+						hasPendingMessages: true,
+						availableCommands: ['analyze', 'debug'],
+						sessionInfo: mockSession
+					});
+					done();
+				}
+			);
 		});
 	});
 
@@ -376,11 +384,15 @@ describe('Socket.IO Session Status Handler', () => {
 			mockServices.sessions.getActivityState.mockReturnValue('idle');
 			mockServices.sessionManager.getCachedCommands.mockReturnValue([]);
 
-			clientSocket.emit('session.status', { key: 'valid', sessionId: 'claude-empty' }, (response) => {
-				expect(response.availableCommands).toEqual([]);
-				expect(response.success).toBe(true);
-				done();
-			});
+			clientSocket.emit(
+				'session.status',
+				{ key: 'valid', sessionId: 'claude-empty' },
+				(response) => {
+					expect(response.availableCommands).toEqual([]);
+					expect(response.success).toBe(true);
+					done();
+				}
+			);
 		});
 
 		it('should return null when commands cache returns null', (done) => {
@@ -389,11 +401,15 @@ describe('Socket.IO Session Status Handler', () => {
 			mockServices.sessions.getActivityState.mockReturnValue('idle');
 			mockServices.sessionManager.getCachedCommands.mockReturnValue(null);
 
-			clientSocket.emit('session.status', { key: 'valid', sessionId: 'claude-null' }, (response) => {
-				expect(response.availableCommands).toBeNull();
-				expect(response.success).toBe(true);
-				done();
-			});
+			clientSocket.emit(
+				'session.status',
+				{ key: 'valid', sessionId: 'claude-null' },
+				(response) => {
+					expect(response.availableCommands).toBeNull();
+					expect(response.success).toBe(true);
+					done();
+				}
+			);
 		});
 
 		it('should return commands with proper format', (done) => {
@@ -407,11 +423,15 @@ describe('Socket.IO Session Status Handler', () => {
 			mockServices.sessions.getActivityState.mockReturnValue('idle');
 			mockServices.sessionManager.getCachedCommands.mockReturnValue(expectedCommands);
 
-			clientSocket.emit('session.status', { key: 'valid', sessionId: 'claude-formatted' }, (response) => {
-				expect(response.availableCommands).toEqual(expectedCommands);
-				expect(response.success).toBe(true);
-				done();
-			});
+			clientSocket.emit(
+				'session.status',
+				{ key: 'valid', sessionId: 'claude-formatted' },
+				(response) => {
+					expect(response.availableCommands).toEqual(expectedCommands);
+					expect(response.success).toBe(true);
+					done();
+				}
+			);
 		});
 	});
 });
