@@ -1,5 +1,5 @@
 import { databaseManager } from '../db/DatabaseManager.js';
-import { SOCKET_EVENTS } from '../utils/events.js';
+import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 import { logger } from '../utils/logger.js';
 
 let pty;

@@ -3,7 +3,7 @@
  * Provides single source of truth for all socket event names
  */
 
-import { SOCKET_EVENTS } from '$lib/shared/socket-events';
+import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 
 /**
  * Emit a message delta event

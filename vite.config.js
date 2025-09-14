@@ -1,6 +1,8 @@
+
 import devtoolsJson from 'vite-plugin-devtools-json';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { fileURLToPath, URL } from 'node:url';
 
 function socketIOPlugin() {
 	return {
@@ -24,6 +26,11 @@ function socketIOPlugin() {
 }
 
 export default defineConfig({
+	resolve: {
+		alias: {
+			$lib: fileURLToPath(new URL('./src/lib', import.meta.url)),
+		},
+	},
 	plugins: [sveltekit(), socketIOPlugin(), devtoolsJson()],
 	test: {
 		expect: { requireAssertions: true },

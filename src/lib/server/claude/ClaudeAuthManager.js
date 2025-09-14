@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { SOCKET_EVENTS } from '../utils/events.js';
 import { logger } from '../utils/logger.js';
+import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 
 let pty;
 try {

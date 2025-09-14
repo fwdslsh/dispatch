@@ -1,12 +1,12 @@
 import { Server } from 'socket.io';
 import { validateKey } from './auth.js';
-import { SOCKET_EVENTS } from './utils/events.js';
 import { logger } from './utils/logger.js';
 import { historyManager } from './history-manager.js';
 import { readFileSync } from 'node:fs';
 import { claudeAuthManager } from './claude/ClaudeAuthManager.js';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { SOCKET_EVENTS } from '../shared/socket-events.js';
 
 // Admin event tracking
 let socketEvents = [];

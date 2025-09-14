@@ -8,7 +8,7 @@ import { ClaudeProjectsReader } from './ClaudeProjectsReader.js';
 import { projectsRoot } from './cc-root.js';
 import { buildClaudeOptions } from '../utils/env.js';
 import { logger } from '../utils/logger.js';
-import { SOCKET_EVENTS } from '../utils/events.js';
+import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 import { databaseManager } from '../db/DatabaseManager.js';
 import { claudeAuthManager } from './ClaudeAuthManager.js';
 

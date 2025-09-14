@@ -102,6 +102,7 @@ The application has undergone a major refactoring to simplify the project struct
 **New Structure**: Unified workspace-based approach where everything is a workspace
 
 **Key Changes**:
+
 - Removed separate projects interface (`/workspace` route is now the main interface)
 - Workspaces can be any directory path (not restricted to WORKSPACES_ROOT)
 - Claude project directories are automatically discovered from Claude Code's projects root
@@ -170,6 +171,7 @@ src/lib/client/
 - Socket.IO references are dynamically updated across all managers for real-time communication
 
 **Session Types**:
+
 - `pty`: Terminal sessions via node-pty
 - `claude`: Claude Code sessions via `@anthropic-ai/claude-code`
 
@@ -293,13 +295,13 @@ Maps unified session IDs to session descriptors:
 
 ```javascript
 // Key methods
-bind(sessionId, descriptor)     // Register session with routing info
-get(sessionId)                 // Get session descriptor
-all()                          // Get all active sessions
-byWorkspace(workspacePath)     // Filter sessions by workspace
-setProcessing(sessionId)       // Mark session as processing
-setIdle(sessionId)             // Mark session as idle
-getActivityState(sessionId)    // Get current activity state
+bind(sessionId, descriptor); // Register session with routing info
+get(sessionId); // Get session descriptor
+all(); // Get all active sessions
+byWorkspace(workspacePath); // Filter sessions by workspace
+setProcessing(sessionId); // Mark session as processing
+setIdle(sessionId); // Mark session as idle
+getActivityState(sessionId); // Get current activity state
 ```
 
 ### DatabaseManager (`src/lib/server/db/DatabaseManager.js`)
@@ -335,11 +337,11 @@ Manages PTY terminal sessions with dynamic Socket.IO handling:
 
 ```javascript
 // Key methods
-start({ workspacePath, shell, env }) // Create terminal session
-write(id, data)                      // Send input to terminal
-resize(id, cols, rows)               // Resize terminal
-stop(id)                             // Kill terminal session
-setSocketIO(socket)                  // Update Socket.IO reference for all terminals
+start({ workspacePath, shell, env }); // Create terminal session
+write(id, data); // Send input to terminal
+resize(id, cols, rows); // Resize terminal
+stop(id); // Kill terminal session
+setSocketIO(socket); // Update Socket.IO reference for all terminals
 ```
 
 ### ClaudeAuthManager (`src/lib/server/claude/ClaudeAuthManager.js`)
@@ -348,8 +350,8 @@ Handles Claude OAuth authentication via PTY:
 
 ```javascript
 // Key methods
-start(socket)                        // Start OAuth flow
-submitCode(socket, code)             // Submit authorization code
+start(socket); // Start OAuth flow
+submitCode(socket, code); // Submit authorization code
 // Emits: claude.auth.url, claude.auth.complete, claude.auth.error
 ```
 
