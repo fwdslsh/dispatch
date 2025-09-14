@@ -31,7 +31,11 @@ import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 	let messagesContainer = $state();
 	let liveEventIcons = $state([]);
 	let workspacePath = $state(initialWorkspacePath);
-	let claudeCommandsApi = $state();
+    let claudeCommandsApi = $state();
+    let authStartRequested = $state(false);
+    let authAwaitingCode = $state(false);
+    let authInProgress = $state(false);
+    let pendingAuthUrl = $state('');
 	
 	// Detect if user is on a mobile device
 	let isMobile = $state(false);
@@ -84,6 +88,34 @@ import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 		}
 
 		const userMessage = input.trim();
+		authStartRequested = false; // reset per user turn
+
+		// If we're awaiting an OAuth authorization code, route this input to the auth handler via WebSocket
+		if (authAwaitingCode && userMessage) {
+			try {
+				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+				// do not push a normal user message — treat this as out-of-band code
+				authInProgress = true;
+				const code = userMessage;
+				input = '';
+				// Emit auth code to server
+				socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_CODE, { key, code });
+				// Show a lightweight status message
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: 'Submitting authorization code…',
+						timestamp: new Date(),
+						id: Date.now()
+					}
+				];
+				await scrollToBottom();
+			} catch (err) {
+				console.error('Failed to send auth code:', err);
+			}
+			return;
+		}
 		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 
 		// Add user message immediately
@@ -479,13 +511,36 @@ import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 					}
 					}
 				} else if (evt?.type === 'result') {
-					// Final aggregated result - use if no individual messages were sent
-					// Check if we have pending activities that weren't attached to a message yet
-					if (
+					// Final aggregated result. If is_error is set, display as an error message
+					const isError = !!evt.is_error;
+
+					// If this is an error result, remove assistant messages from the current turn
+					if (isError && messages.length > 0) {
+						let lastUserIdx = -1;
+						for (let i = messages.length - 1; i >= 0; i--) {
+							if (messages[i]?.role === 'user') {
+								lastUserIdx = i;
+								break;
+							}
+						}
+						if (lastUserIdx >= 0) {
+							messages = messages.filter((m, idx) => !(idx > lastUserIdx && m?.role === 'assistant'));
+						} else {
+							// No user found; trim trailing assistant messages
+							let cut = messages.length - 1;
+							for (; cut >= 0 && messages[cut]?.role === 'assistant'; cut--) {}
+							messages = messages.slice(0, cut + 1);
+						}
+					}
+
+					// Decide whether to append a new message or update the last one
+					const shouldAppend =
+						isError ||
 						liveEventIcons.length > 0 ||
 						!messages.length ||
-						messages[messages.length - 1].role !== 'assistant'
-					) {
+						messages[messages.length - 1].role !== 'assistant';
+
+					if (shouldAppend) {
 						messages = [
 							...messages,
 							{
@@ -493,7 +548,8 @@ import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 								text: evt.result || '',
 								timestamp: new Date(),
 								id: Date.now(),
-								activityIcons: [...liveEventIcons] // Preserve any remaining icons
+								// For error results, omit prior activity icons
+								...(isError ? { isError: true, errorIcon: IconAlertTriangle } : { activityIcons: [...liveEventIcons] })
 							}
 						];
 					} else {
@@ -502,10 +558,40 @@ import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 						if (lastMessage.role === 'assistant' && !lastMessage.text && evt.result) {
 							messages[messages.length - 1] = {
 								...lastMessage,
-								text: evt.result
+								text: evt.result,
+								...(isError ? { isError: true, errorIcon: IconAlertTriangle } : {})
 							};
+						} else if (isError) {
+							// If we already had assistant text and this is an error result,
+							// append a distinct error message so it’s not dropped
+							messages = [
+								...messages,
+								{
+									role: 'assistant',
+									text: evt.result || '',
+									timestamp: new Date(),
+									id: Date.now(),
+									// Do not include activity icons for error results
+									isError: true,
+									errorIcon: IconAlertTriangle
+								}
+							];
 						}
 					}
+
+					// If error indicates login is required, proactively trigger OAuth start via WebSockets
+					try {
+						const resultText = String(evt.result || '');
+						const mentionsLogin = /please\s+run\s+\/login/i.test(resultText) || resultText.includes('/login');
+						if (isError && mentionsLogin && socket && !authStartRequested) {
+							authStartRequested = true;
+							const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+							socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_START, { key });
+						}
+					} catch (e) {
+						console.error('Failed to proactively start auth flow:', e);
+					}
+
 					// Clear waiting state since result indicates completion
 					isWaitingForReply = false;
 					isCatchingUp = false;
@@ -543,6 +629,69 @@ import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 
 		// Attach both canonical and legacy event names to the same handler
 socket.on(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, handleClaudeMessageDelta);
+
+		// OAuth URL received from server — show link and prompt for code
+		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, (payload) => {
+			try {
+				const url = String(payload?.url || '');
+				pendingAuthUrl = url;
+				authAwaitingCode = true;
+				authInProgress = false;
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: `Login required.\n\nOpen this link to authenticate:\n\n${url}\n\n${payload?.instructions || 'Then paste the authorization code here.'}`,
+						timestamp: new Date(),
+						id: Date.now()
+					}
+				];
+				// Also hint in the input placeholder
+				const inputEl = document.querySelector('.message-input');
+				if (inputEl) inputEl.placeholder = 'Paste authorization code and press Enter';
+				scrollToBottom();
+			} catch (e) {
+				console.error('Failed to handle CLAUDE_AUTH_URL:', e);
+			}
+		});
+
+		// OAuth completed
+		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, () => {
+			try {
+				authAwaitingCode = false;
+				authInProgress = false;
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: 'Authentication complete. You can retry your request.',
+						timestamp: new Date(),
+						id: Date.now()
+					}
+				];
+				scrollToBottom();
+			} catch {}
+		});
+
+		// OAuth error
+		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, (payload) => {
+			try {
+				authAwaitingCode = false;
+				authInProgress = false;
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: `Authentication failed. ${payload?.error || ''}`,
+						timestamp: new Date(),
+						id: Date.now(),
+						isError: true,
+						errorIcon: IconAlertTriangle
+					}
+				];
+				scrollToBottom();
+			} catch {}
+		});
 
 		// Handle message completion to clear waiting state
 

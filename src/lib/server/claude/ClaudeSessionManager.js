@@ -10,6 +10,7 @@ import { buildClaudeOptions } from '../utils/env.js';
 import { logger } from '../utils/logger.js';
 import { SOCKET_EVENTS } from '../utils/events.js';
 import { databaseManager } from '../db/DatabaseManager.js';
+import { claudeAuthManager } from './ClaudeAuthManager.js';
 
 export class ClaudeSessionManager {
 	/**
@@ -257,6 +258,21 @@ export class ClaudeSessionManager {
 				sawAnyEvent = true;
 				if (event && this.io) {
 					try { this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]); } catch {}
+					// Auto-start OAuth flow if Claude asks user to run /login
+					try {
+						if (
+							event?.type === 'result' &&
+							(event?.is_error || String(event?.subtype || '').toLowerCase() === 'error')
+						) {
+							const msg = String(event?.result || event?.message || '');
+							if (/\bplease\s+run\s+\/login\b/i.test(msg) || msg.includes('/login')) {
+								// this.io is a Socket when set by socket-setup; guard against Server
+								if (this.io && typeof this.io.emit === 'function' && this.io.id) {
+									claudeAuthManager.start(this.io);
+								}
+							}
+						}
+					} catch {}
 				}
 			}
 

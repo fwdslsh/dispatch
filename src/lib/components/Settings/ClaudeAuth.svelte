@@ -1,7 +1,10 @@
 <script>
-	import { onMount } from 'svelte';
-	import { Button, Input, LoadingSpinner, ErrorDisplay } from '$lib/shared/components';
-	import { IconCloudCheck, IconCloudX, IconKey, IconExternalLink } from '@tabler/icons-svelte';
+    import { onMount, onDestroy } from 'svelte';
+    import { Button, Input, LoadingSpinner, ErrorDisplay } from '$lib/shared/components';
+    import { IconCloudCheck, IconCloudX, IconKey, IconExternalLink } from '@tabler/icons-svelte';
+    import { io } from 'socket.io-client';
+    import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
+    import { STORAGE_CONFIG } from '$lib/shared/utils/constants.js';
 
 	/**
 	 * Claude Authentication Component
@@ -14,11 +17,12 @@
 	let authError = $state('');
 	let loading = $state(false);
 
-	// OAuth flow state
-	let oauthUrl = $state('');
-	let authCode = $state('');
-	let showCodeInput = $state(false);
-	let sessionId = $state('');
+    // OAuth flow state (WebSocket-based)
+    let oauthUrl = $state('');
+    let authCode = $state('');
+    let showCodeInput = $state(false);
+    let sessionId = $state(''); // retained for API parity; not used in WS flow
+    let socket = $state();
 
 	// Manual API key state
 	let showManualAuth = $state(false);
@@ -27,9 +31,55 @@
 	// Status messages
 	let statusMessage = $state('');
 
-	onMount(async () => {
-		await checkAuthStatus();
-	});
+    onMount(async () => {
+        await checkAuthStatus();
+
+        // Initialize a general Socket.IO connection for auth events
+        socket = io({ autoConnect: true, reconnection: true });
+
+        const handleAuthUrl = (payload) => {
+            try {
+                const url = String(payload?.url || '');
+                oauthUrl = url;
+                showCodeInput = true;
+                statusMessage = payload?.instructions || 'Open the link, then paste the code here.';
+                // Open OAuth URL in a new tab for convenience
+                if (url) {
+                    try { window.open(url, '_blank', 'width=600,height=700'); } catch {}
+                }
+            } catch (e) {
+                authError = 'Failed to start authentication.';
+            }
+        };
+
+        const handleAuthComplete = () => {
+            showCodeInput = false;
+            authCode = '';
+            oauthUrl = '';
+            statusMessage = 'Authentication completed successfully!';
+            checkAuthStatus();
+        };
+
+        const handleAuthError = (payload) => {
+            authError = payload?.error || 'Authentication failed.';
+            showCodeInput = true; // allow retry by keeping input visible
+        };
+
+        socket.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
+        socket.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
+        socket.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
+
+        onDestroy(() => {
+            if (socket) {
+                try {
+                    socket.off(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
+                    socket.off(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
+                    socket.off(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
+                } catch {}
+                try { socket.disconnect(); } catch {}
+            }
+        });
+    });
 
 	// Check current authentication status
 	async function checkAuthStatus() {
@@ -55,79 +105,63 @@
 		}
 	}
 
-	// Start OAuth authentication flow
-	async function startOAuthFlow() {
-		if (loading) return;
+    // Start OAuth authentication flow (WebSocket)
+    async function startOAuthFlow() {
+        if (loading) return;
+        loading = true;
+        authError = '';
+        statusMessage = '';
+        try {
+            if (!socket) {
+                socket = io({ autoConnect: true, reconnection: true });
+            }
+            const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY) || 'testkey12345';
 
-		loading = true;
-		authError = '';
-		statusMessage = '';
+            // Ensure socket is connected before emitting
+            if (!socket.connected) {
+                await new Promise((resolve) => {
+                    const onConnect = () => {
+                        try { socket.off('connect', onConnect); } catch {}
+                        // authenticate this socket context for consistency
+                        try {
+                            const authKey = key;
+                            socket.emit('auth', authKey, () => {});
+                        } catch {}
+                        resolve();
+                    };
+                    socket.on('connect', onConnect);
+                    // If already connecting, wait; otherwise, force connect
+                    if (!socket.connecting) socket.connect();
+                });
+            }
 
-		try {
-			const response = await fetch('/api/claude/setup-token', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' }
-			});
+            socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_START, { key });
+            statusMessage = 'Requesting authorization URL...';
+        } catch (error) {
+            console.error('OAuth setup (WS) failed:', error);
+            authError = 'Failed to start authentication process';
+        } finally {
+            loading = false;
+        }
+    }
 
-			const data = await response.json();
-
-			if (response.ok && data.success) {
-				oauthUrl = data.authUrl;
-				sessionId = data.sessionId;
-				showCodeInput = true;
-				statusMessage =
-					'Authorization URL generated. Please complete authentication in the new tab.';
-
-				// Open OAuth URL in new tab
-				window.open(oauthUrl, '_blank', 'width=600,height=700');
-			} else {
-				authError = data.error || 'Failed to initiate OAuth flow';
-			}
-		} catch (error) {
-			console.error('OAuth setup failed:', error);
-			authError = 'Failed to start authentication process';
-		} finally {
-			loading = false;
-		}
-	}
-
-	// Complete OAuth authentication with authorization code
-	async function completeAuth() {
-		if (!authCode.trim() || loading) return;
-
-		loading = true;
-		authError = '';
-		statusMessage = '';
-
-		try {
-			const response = await fetch('/api/claude/complete-auth', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					sessionId,
-					authCode: authCode.trim()
-				})
-			});
-
-			const data = await response.json();
-
-			if (response.ok && data.success) {
-				statusMessage = 'Authentication completed successfully!';
-				showCodeInput = false;
-				authCode = '';
-				oauthUrl = '';
-				sessionId = '';
-				await checkAuthStatus();
-			} else {
-				authError = data.error || 'Invalid authorization code';
-			}
-		} catch (error) {
-			console.error('Auth completion failed:', error);
-			authError = 'Failed to complete authentication';
-		} finally {
-			loading = false;
-		}
-	}
+    // Complete OAuth authentication with authorization code (WebSocket)
+    async function completeAuth() {
+        if (!authCode.trim() || loading) return;
+        loading = true;
+        authError = '';
+        statusMessage = '';
+        try {
+            const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY) || 'testkey12345';
+            socket?.emit(SOCKET_EVENTS.CLAUDE_AUTH_CODE, { key, code: authCode.trim() });
+            statusMessage = 'Submitting authorization code...';
+        } catch (error) {
+            console.error('Auth completion (WS) failed:', error);
+            authError = 'Failed to submit authorization code';
+        } finally {
+            loading = false;
+        }
+    }
 
 	// Manual API key authentication (fallback)
 	async function authenticateWithApiKey() {

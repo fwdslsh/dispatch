@@ -4,6 +4,7 @@ import { SOCKET_EVENTS } from './utils/events.js';
 import { logger } from './utils/logger.js';
 import { historyManager } from './history-manager.js';
 import { readFileSync } from 'node:fs';
+import { claudeAuthManager } from './claude/ClaudeAuthManager.js';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -251,6 +252,44 @@ export function setupSocketIO(httpServer) {
 						error: String(err?.message || err)
 					});
 				} catch {}
+			}
+		});
+
+		// Claude OAuth: explicit start (optional; server may auto-start on detection)
+		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_START, (data = {}) => {
+			try {
+				logger.info('SOCKET', 'CLAUDE_AUTH_START received');
+				if (!validateKey(data.key)) {
+					logger.warn('SOCKET', 'CLAUDE_AUTH_START invalid key');
+					return;
+				}
+				const ok = claudeAuthManager.start(socket);
+				if (!ok) {
+					logger.error('SOCKET', 'Failed to start Claude auth PTY');
+				}
+			} catch (e) {
+				logger.error('SOCKET', 'CLAUDE_AUTH_START error:', e);
+				try { socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, { success: false, error: String(e?.message || e) }); } catch {}
+			}
+		});
+
+		// Claude OAuth: submit authorization code
+		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_CODE, (data = {}) => {
+			try {
+				logger.info('SOCKET', 'CLAUDE_AUTH_CODE received');
+				if (!validateKey(data.key)) {
+					logger.warn('SOCKET', 'CLAUDE_AUTH_CODE invalid key');
+					return;
+				}
+				const code = String(data.code || '').trim();
+				if (!code) {
+					try { socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, { success: false, error: 'Missing authorization code' }); } catch {}
+					return;
+				}
+				claudeAuthManager.submitCode(socket, code);
+			} catch (e) {
+				logger.error('SOCKET', 'CLAUDE_AUTH_CODE error:', e);
+				try { socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, { success: false, error: String(e?.message || e) }); } catch {}
 			}
 		});
 

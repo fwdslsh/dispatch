@@ -35,6 +35,13 @@ export const SOCKET_EVENTS = {
 	CLAUDE_TOOLS_AVAILABLE: 'claude.tools.available',
 	CLAUDE_COMMANDS_REFRESH: 'claude.commands.refresh',
 
+	// Claude authentication (OAuth) events
+	CLAUDE_AUTH_START: 'claude.auth.start',
+	CLAUDE_AUTH_URL: 'claude.auth.url',
+	CLAUDE_AUTH_CODE: 'claude.auth.code',
+	CLAUDE_AUTH_COMPLETE: 'claude.auth.complete',
+	CLAUDE_AUTH_ERROR: 'claude.auth.error',
+
 	// Terminal events
 	TERMINAL_INPUT: 'terminal.input',
 	TERMINAL_OUTPUT: 'terminal.output',
