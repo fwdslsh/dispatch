@@ -212,6 +212,7 @@ graph LR
     subgraph "Session Type Managers"
         TM[TerminalManager]
         CM[ClaudeSessionManager]
+        CAM[ClaudeAuthManager]
     end
     
     subgraph "Shared Resources"
@@ -227,8 +228,9 @@ graph LR
     API --> SR
     API --> WM
     
-    SM --> TM
-    SM --> CM
+SM --> TM
+SM --> CM
+SM --> CAM
     
     WM --> DB
     SR --> DB
@@ -1565,3 +1567,11 @@ The Dispatch application demonstrates solid architectural foundations with clear
 10. **Strong typing** for code quality
 
 Implementing these recommendations will result in a more robust, maintainable, and scalable architecture that can evolve with changing requirements while maintaining high code quality and system reliability.
+#### ClaudeAuthManager (`src/lib/server/claude/ClaudeAuthManager.js`)
+
+Runs the OAuth flow for Claude via a real PTY:
+
+- Spawns `claude setup-token` using node‑pty
+- Extracts and emits OAuth URL over Socket.IO (`claude.auth.url`)
+- Accepts pasted code via `claude.auth.code`, writes CRLF to PTY
+- Detects success/timeout/invalid code and emits `claude.auth.complete`/`claude.auth.error`

@@ -7,6 +7,7 @@
 - Static assets: `static/`. Build artifacts: `.svelte-kit/`, `build/`.
 - Tests: unit/integration in `tests/`; end‑to‑end in `e2e/` (Playwright).
 - Ops: `docker/` and `docker-compose.yml`.
+- Debugging Tools: `.debug/` contains scripts to help test various features
 
 ## Build, Test, Run
 

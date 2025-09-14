@@ -1,10 +1,14 @@
-# Claude Authentication Workflow
+# Claude Authentication Workflow (WebSocket‑Driven)
 
-This document explains the workflow for authenticating Claude from the projects page in Dispatch. The authentication process enables users to access Claude AI features through an interactive web interface.
+This document explains how Dispatch authenticates Anthropic’s Claude via a real‑time, Socket.IO‑based flow. The server runs the Claude CLI in a PTY (node‑pty), streams the OAuth URL to the client, and accepts the pasted authorization code to complete login.
 
 ## Overview
 
-The Claude authentication workflow provides a seamless way for users to authenticate with Anthropic's Claude AI service directly from the Dispatch projects page, eliminating the need to manually run command-line authentication tools.
+- Server runs `claude setup-token` in a PTY.
+- Client receives an OAuth URL over WebSockets, opens it, then pastes back the authorization code.
+- Client sends the code over WebSockets; the server writes it to the PTY and reports completion.
+
+No REST endpoints are used to start or complete the flow. The only REST endpoint that remains is `/api/claude/auth` for status checks and optional API‑key auth.
 
 ## Workflow Steps
 
@@ -18,41 +22,19 @@ When users access the projects page, the system automatically checks if Claude i
 
 ### 2. Login Prompt
 
-If Claude is not authenticated, the projects page displays an authentication interface with:
+If Claude is not authenticated, the Settings page shows a “Login with Claude” button that starts the OAuth flow via WebSockets.
 
-- Clear indication that Claude authentication is required
-- A **"Login to Claude"** button to initiate the authentication process
-- Information about what Claude authentication enables
+### 3. Start Flow (WebSocket)
 
-### 3. Trigger Setup
+When the user clicks “Login with Claude”, the client ensures the socket is connected and authenticated, then emits:
 
-When the user clicks the "Login to Claude" button:
+- `claude.auth.start` with `{ key }`
 
-- **POST `/api/claude/setup-token`** - Server initiates the setup process
-- The server runs `claude setup-token` command internally
-- Response includes:
-  - OAuth authorization URL for Anthropic login
-  - Session identifier for tracking the authentication process
-  - Instructions for the user
+The server starts `claude setup-token` in a PTY for that socket and will emit the OAuth URL when ready.
 
 ### 4. Receive OAuth URL
 
-The server responds with:
-
-```json
-{
-	"success": true,
-	"authUrl": "https://console.anthropic.com/login?code=xyz...",
-	"sessionId": "auth-session-uuid",
-	"instructions": "Click the link to log in to Anthropic, then paste the authorization code below"
-}
-```
-
-The UI then displays:
-
-- A **clickable link** that opens the OAuth flow in a new tab
-- A **text input field** for entering the authorization code
-- Clear instructions for the authentication process
+The server emits `claude.auth.url` with `{ url, instructions }`. The UI opens the link in a new tab and shows a code input.
 
 ### 5. User Authentication
 
@@ -74,70 +56,17 @@ Back in the Dispatch interface:
 
 ### 7. Complete Login
 
-When the user clicks "Confirm":
+When the user clicks “Confirm”, the client emits `claude.auth.code` with `{ key, code }`. The server writes the code to the PTY, watches for success, and emits `claude.auth.complete` (or `claude.auth.error`).
 
-- **POST `/api/claude/complete-auth`** - Sends the authorization code to server
-- Server validates the code with Anthropic's API
-- If valid: Token is stored in `credentials.json` in the project directory
-- **Authentication status updates** - Context refreshes across the application
-- **Success confirmation** - User sees confirmation message
-- **Session creation enabled** - Claude session options become available
+## Socket Events
 
-## API Endpoints
+- `claude.auth.start` (client → server): `{ key }`
+- `claude.auth.url` (server → client): `{ url, instructions? }`
+- `claude.auth.code` (client → server): `{ key, code }`
+- `claude.auth.complete` (server → client): `{ success: true }`
+- `claude.auth.error` (server → client): `{ success: false, error }`
 
-### Authentication Status Check
-
-```http
-GET /api/claude/auth
-```
-
-**Response:**
-
-```json
-{
-  "authenticated": true|false,
-  "error": null|"error message",
-  "hint": "suggested action if not authenticated"
-}
-```
-
-### Initiate Setup Token
-
-```http
-POST /api/claude/setup-token
-```
-
-**Response:**
-
-```json
-{
-	"success": true,
-	"authUrl": "https://console.anthropic.com/login?code=...",
-	"sessionId": "auth-session-uuid",
-	"instructions": "Authentication instructions"
-}
-```
-
-### Complete Authentication
-
-```http
-POST /api/claude/complete-auth
-
-Content-Type: application/json
-{
-  "sessionId": "auth-session-uuid",
-  "authCode": "user-provided-authorization-code"
-}
-```
-
-**Response:**
-
-```json
-{
-	"success": true,
-	"message": "Authentication completed successfully"
-}
-```
+The Claude chat pane also auto‑starts the flow when an error result mentions “/login” and prompts the user to paste the code inline.
 
 ## Error Handling
 
@@ -148,15 +77,7 @@ Content-Type: application/json
 - User enters incorrect or expired authorization code
 - API returns validation error
 
-**Response:**
-
-```json
-{
-	"success": false,
-	"error": "Invalid authorization code",
-	"canRetry": true
-}
-```
+Server emits `claude.auth.error` and the UI keeps the input visible for retry.
 
 **UI Behavior:**
 
@@ -164,22 +85,14 @@ Content-Type: application/json
 - Keep input field active for retry
 - Provide option to generate new OAuth URL
 
-### Network Issues
+### Network Issues / Timeout
 
 **Symptoms:**
 
 - Server cannot reach Anthropic's authentication servers
 - Timeout during token validation
 
-**Response:**
-
-```json
-{
-	"success": false,
-	"error": "Network timeout - please check your connection and try again",
-	"canRetry": true
-}
-```
+Server emits `claude.auth.error` with a timeout message; start the flow again.
 
 **UI Behavior:**
 
@@ -194,15 +107,7 @@ Content-Type: application/json
 - Authentication session expires before completion
 - User takes too long to complete OAuth flow
 
-**Response:**
-
-```json
-{
-	"success": false,
-	"error": "Authentication session expired",
-	"canRetry": false
-}
-```
+Start a new flow; the server will spawn a fresh PTY.
 
 **UI Behavior:**
 
@@ -217,16 +122,7 @@ Content-Type: application/json
 - Claude CLI not installed or not accessible
 - Permission issues with credentials storage
 
-**Response:**
-
-```json
-{
-	"success": false,
-	"error": "Claude CLI not properly configured",
-	"hint": "Contact administrator to install Claude CLI",
-	"canRetry": false
-}
-```
+The Settings page will surface an error; install the CLI and retry.
 
 **UI Behavior:**
 
@@ -391,34 +287,24 @@ CLAUDE_AUTH_TIMEOUT=600000
 
 ### Claude CLI Installation
 
-The Docker image must include the Claude CLI:
-
-```dockerfile
-# Install Claude CLI
-RUN npm install -g @anthropic-ai/claude-cli
-
-# Ensure Claude CLI is accessible
-RUN which claude || echo "Claude CLI not found"
-```
+The runtime must include the Claude CLI (provided by `@anthropic-ai/claude-code`). Dispatch prefers the project‑local binary at `node_modules/.bin/claude`, falling back to a system `claude`.
 
 ## Related Files
 
 ### Frontend Components
 
-- `src/lib/contexts/claude-auth-context.svelte.js` - Authentication state management
-- `src/routes/projects/[id]/+page.svelte` - Project page with Claude auth integration
-- `src/lib/components/ClaudeAuthFlow.svelte` - Authentication flow component (to be created)
+- `src/lib/components/ClaudePane.svelte` — Inline chat‑driven OAuth flow
+- `src/lib/components/Settings/ClaudeAuth.svelte` — Manual OAuth flow and API‑key fallback
 
-### Backend API
+### Server
 
-- `src/routes/api/claude/auth/+server.js` - Authentication status endpoint
-- `src/routes/api/claude/setup-token/+server.js` - Initiate authentication (to be created)
-- `src/routes/api/claude/complete-auth/+server.js` - Complete authentication (to be created)
+- `src/lib/server/claude/ClaudeAuthManager.js` — PTY OAuth runner and URL/code parser
+- `src/lib/server/socket-setup.js` — WebSocket handlers for auth start/code and events
+- `src/lib/server/utils/events.js` — Event name constants (includes auth events)
 
-### Authentication Service
+### Status/API‑Key Fallback
 
-- `src/lib/server/claude-auth-middleware.js` - Authentication middleware
-- `src/lib/services/claude-auth-service.js` - Authentication service logic (to be created)
+- `src/routes/api/claude/auth/+server.js` — Status check, API‑key login, and logout
 
 ## Testing
 

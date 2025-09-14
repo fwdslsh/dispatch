@@ -73,7 +73,9 @@ class ClaudeAuthManager {
         ...process.env,
         CI: '1',
         FORCE_COLOR: '0',
-        TERM: process.env.TERM || 'xterm-256color'
+        TERM: process.env.TERM || 'xterm-256color',
+        // Prevent external browser from opening on hosts that respect BROWSER
+        BROWSER: 'echo'
       };
 
       const localCli = resolve(process.cwd(), 'node_modules', '.bin', 'claude');
