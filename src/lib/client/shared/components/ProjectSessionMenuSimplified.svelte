@@ -26,8 +26,7 @@
 
 	// State
 	let sessionType = $state('claude');
-	let activeSessions = $state([]);
-	let previousSessions = $state([]);
+	let allSessions = $state([]);
 	let selectedDirectory = $state('');
 	let showDirectoryPicker = $state(false);
 	let currentTab = $state('active'); // 'active', 'create', 'browse'
@@ -35,23 +34,33 @@
 	let error = $state(null);
 	let searchTerm = $state('');
 
-	// Load active sessions
-	async function loadActiveSessions() {
+	// Load all sessions (both active and inactive)
+	async function loadAllSessions() {
 		loading = true;
 		error = null;
 		try {
-			const response = await fetch('/api/sessions');
+			const response = await fetch('/api/sessions?include=all');
 			if (response.ok) {
 				const data = await response.json();
-				activeSessions = (data.sessions || [])
-					.filter((s) => s && s.isActive && s.type === sessionType)
+				const sessions = data.sessions || [];
+				allSessions = sessions
+					.filter((s) => s && s.id)
 					.map((session) => ({
 						id: session.id,
 						type: session.type,
 						workspacePath: session.workspacePath,
 						title: session.title || `${session.type} Session`,
-						isActive: true
-					}));
+						isActive: session.isActive || false,
+						pinned: session.pinned === true || session.pinned === 1 || false,
+						createdAt: session.createdAt ? new Date(session.createdAt) : new Date(),
+						lastActivity: session.lastActivity ? new Date(session.lastActivity) : new Date()
+					}))
+					.sort((a, b) => {
+						// Sort by active first, then by last activity
+						if (a.isActive && !b.isActive) return -1;
+						if (!a.isActive && b.isActive) return 1;
+						return b.lastActivity - a.lastActivity;
+					});
 			} else {
 				error = 'Failed to load sessions';
 			}
@@ -61,32 +70,10 @@
 		loading = false;
 	}
 
-	// Load previous (persisted) sessions across all types, not currently active
-	async function loadPreviousSessions() {
-		try {
-			const response = await fetch('/api/sessions?include=all');
-			if (!response.ok) return;
-			const data = await response.json();
-			const all = Array.isArray(data.sessions) ? data.sessions : [];
-			previousSessions = all
-				.filter((s) => s && !s.isActive)
-				.map((s) => ({
-					id: s.id,
-					type: s.type,
-					workspacePath: s.workspacePath,
-					title: s.title || `${s.type} Session`,
-					pinned: s.pinned === true || s.pinned === 1 || false,
-					createdAt: s.createdAt ? new Date(s.createdAt) : new Date(),
-					lastActivity: s.lastActivity ? new Date(s.lastActivity) : new Date()
-				}))
-				.sort((a, b) => b.lastActivity - a.lastActivity); // Sort by most recent activity
-		} catch {}
-	}
-
-	// Filter previous sessions based on search term and session type
-	const filteredPreviousSessions = $derived(previousSessions.filter((session) => {
+	// Filter sessions based on search term and session type
+	const filteredSessions = $derived(allSessions.filter((session) => {
 		// Filter by session type
-		if (currentTab === 'browse' && sessionType !== 'all' && session.type !== sessionType) {
+		if (sessionType !== 'all' && session.type !== sessionType) {
 			return false;
 		}
 		// Filter by search term
@@ -139,7 +126,7 @@
 
 			if (response.ok) {
 				const session = await response.json();
-				await loadActiveSessions();
+				await loadAllSessions();
 				selectSession(session);
 				onNewSession?.({ detail: { ...session } });
 			} else {
@@ -170,10 +157,14 @@
 		if (type === sessionType) return;
 		sessionType = type;
 		selectedSession = null;
-		if (currentTab === 'active') {
-			loadActiveSessions();
-		}
 	}
+
+	// Auto-set sessionType to a valid type when switching to create tab
+	$effect(() => {
+		if (currentTab === 'create' && sessionType === 'all') {
+			sessionType = 'claude';
+		}
+	});
 
 	// Format date for display
 	function formatDate(date) {
@@ -214,7 +205,7 @@
 					isActive: true
 				};
 				
-				await loadActiveSessions();
+				await loadAllSessions();
 				selectSession(sessionToResume);
 				onSessionSelected?.({
 					detail: {
@@ -253,19 +244,296 @@
 
 	// Initialize
 	onMount(async () => {
-		await loadActiveSessions();
-		await loadPreviousSessions();
+		await loadAllSessions();
 		// Leave empty so DirectoryBrowser defaults to user setting or WORKSPACES_ROOT
 	});
 
 	// Public refresh method
 	export function refresh() {
-		return Promise.all([loadActiveSessions(), loadPreviousSessions()]);
+		return loadAllSessions();
 	}
 </script>
 
 <div class="menu-root">
-	<!-- Navigation Tabs -->
+	<!-- Tab Content Container -->
+	<div class="tab-content">
+		<!-- Session Type Toggle (shown for active and browse tabs) -->
+		{#if currentTab === 'active' || currentTab === 'browse'}
+			<div class="type-selector">
+				<Button
+					variant="ghost"
+					augmented="none"
+					class={sessionType === 'all' ? 'active' : ''}
+					onclick={() => changeType('all')}
+				>
+					All
+				</Button>
+				<Button
+					variant="ghost"
+					augmented="none"
+					class={sessionType === 'claude' ? 'active' : ''}
+					onclick={() => changeType('claude')}
+				>
+					{#snippet icon()}<IconRobot size={18} />{/snippet}
+					Claude
+				</Button>
+				<Button
+					variant="ghost"
+					augmented="none"
+					class={sessionType === 'pty' ? 'active' : ''}
+					onclick={() => changeType('pty')}
+				>
+					{#snippet icon()}<IconTerminal2 size={18} />{/snippet}
+					Terminal
+				</Button>
+			</div>
+		{/if}
+
+		<!-- Tab Content -->
+		{#if currentTab === 'active'}
+			<!-- Active Sessions with Search and Filters -->
+			<div class="sessions-panel">
+				<div class="panel-header">
+					<div class="header-content">
+						<IconActivity size={20} />
+						<h2>Active Sessions</h2>
+					</div>
+					{#if filteredSessions.filter(s => s.isActive).length > 0}
+						<span class="count-badge">{filteredSessions.filter(s => s.isActive).length}</span>
+					{/if}
+				</div>
+
+				<!-- Search Filter -->
+				<div class="search-container">
+					<div class="search-input-wrapper">
+						<IconSearch size={16} />
+						<input
+							type="text"
+							placeholder="Search active sessions..."
+							bind:value={searchTerm}
+							class="search-input"
+						/>
+						{#if searchTerm}
+							<button class="clear-search" onclick={() => (searchTerm = '')}>
+								<IconX size={14} />
+							</button>
+						{/if}
+					</div>
+				</div>
+
+				<div class="sessions-list">
+					{#if loading}
+						<div class="status">Loading sessions...</div>
+					{:else if error}
+						<div class="status error">{error}</div>
+					{:else}
+						{@const activeSessions = filteredSessions.filter(s => s.isActive)}
+						{#if activeSessions.length === 0}
+							<div class="status">
+								{searchTerm
+									? `No active sessions match "${searchTerm}"`
+									: sessionType === 'all'
+										? 'No active sessions found'
+										: `No active ${sessionType} sessions found`}
+							</div>
+						{:else}
+							{#each activeSessions as session (session.id)}
+								<div class="session-card active-session">
+									<div class="session-header">
+										<div class="session-type-icon">
+											{#if session.type === 'claude'}
+												<IconRobot size={16} />
+											{:else}
+												<IconTerminal2 size={16} />
+											{/if}
+										</div>
+										<div class="session-info">
+											<div class="session-title">
+												{session.title}
+												<span class="active-badge">Active</span>
+											</div>
+											<div class="session-meta">
+												<span class="session-workspace" title={session.workspacePath}>
+													{session.workspacePath}
+												</span>
+												<span class="session-date">{formatDate(session.lastActivity)}</span>
+											</div>
+										</div>
+										<Button
+											variant="primary"
+											augmented="none"
+											onclick={() => selectSession(session)}
+											class="action-button"
+										>
+											Connect
+										</Button>
+									</div>
+								</div>
+							{/each}
+						{/if}
+					{/if}
+				</div>
+			</div>
+		{:else if currentTab === 'create'}
+			<!-- Create Session Section -->
+			<div class="create-section">
+				<!-- Session Type Toggle for create tab -->
+				<div class="type-selector">
+					<Button
+						variant="ghost"
+						augmented="none"
+						class={sessionType === 'claude' ? 'active' : ''}
+						onclick={() => changeType('claude')}
+					>
+						{#snippet icon()}<IconRobot size={18} />{/snippet}
+						Claude
+					</Button>
+					<Button
+						variant="ghost"
+						augmented="none"
+						class={sessionType === 'pty' ? 'active' : ''}
+						onclick={() => changeType('pty')}
+					>
+						{#snippet icon()}<IconTerminal2 size={18} />{/snippet}
+						Terminal
+					</Button>
+				</div>
+
+				{#if showDirectoryPicker}
+					<div class="directory-picker-panel">
+						<div class="picker-header">
+							<label class="picker-label">
+								<IconFolder size={18} />
+								Select Directory
+							</label>
+						</div>
+						<DirectoryBrowser
+							bind:selected={selectedDirectory}
+							startPath={selectedDirectory || ''}
+							onSelect={handleDirectorySelect}
+						/>
+						<div class="picker-actions">
+							<Button variant="ghost" augmented="none" onclick={() => (showDirectoryPicker = false)}>
+								Cancel
+							</Button>
+						</div>
+					</div>
+				{:else}
+					<div class="form-group">
+						<label class="form-label">
+							<IconFolder size={16} />
+							Workspace Directory
+						</label>
+						<Button
+							variant="ghost"
+							augmented="none"
+							onclick={() => (showDirectoryPicker = true)}
+							disabled={loading}
+							class="directory-button"
+						>
+							<span class="directory-path">{formatPath(selectedDirectory)}</span>
+							<IconChevronDown size={16} />
+						</Button>
+					</div>
+					<Button
+						variant="primary"
+						augmented="tl-clip br-clip both"
+						onclick={createSession}
+						disabled={loading || !selectedDirectory}
+						{loading}
+					>
+						{#snippet icon()}
+							{#if loading}<IconBolt size={18} />{:else}<IconPlus size={18} />{/if}
+						{/snippet}
+						New {sessionType === 'claude' ? 'Claude' : 'Terminal'} Session
+					</Button>
+				{/if}
+			</div>
+		{:else if currentTab === 'browse'}
+			<!-- Browse Historical Sessions -->
+			<div class="sessions-panel">
+				<div class="panel-header">
+					<div class="header-content">
+						<IconHistory size={20} />
+						<h2>Browse Sessions</h2>
+					</div>
+					{#if filteredSessions.filter(s => !s.isActive).length > 0}
+						<span class="count-badge">{filteredSessions.filter(s => !s.isActive).length}</span>
+					{/if}
+				</div>
+
+				<!-- Search Filter -->
+				<div class="search-container">
+					<div class="search-input-wrapper">
+						<IconSearch size={16} />
+						<input
+							type="text"
+							placeholder="Search sessions..."
+							bind:value={searchTerm}
+							class="search-input"
+						/>
+						{#if searchTerm}
+							<button class="clear-search" onclick={() => (searchTerm = '')}>
+								<IconX size={14} />
+							</button>
+						{/if}
+					</div>
+				</div>
+
+				<div class="sessions-list">
+					{#if loading}
+						<div class="status">Loading sessions...</div>
+					{:else if error}
+						<div class="status error">{error}</div>
+					{:else}
+						{@const historicalSessions = filteredSessions.filter(s => !s.isActive)}
+						{#if historicalSessions.length === 0}
+							<div class="status">
+								{searchTerm
+									? `No historical sessions match "${searchTerm}"`
+									: sessionType === 'all'
+										? 'No historical sessions found'
+										: `No historical ${sessionType} sessions found`}
+							</div>
+						{:else}
+							{#each historicalSessions as session (session.id)}
+								<div class="session-card inactive-session">
+									<div class="session-header">
+										<div class="session-type-icon">
+											{#if session.type === 'claude'}
+												<IconRobot size={16} />
+											{:else}
+												<IconTerminal2 size={16} />
+											{/if}
+										</div>
+										<div class="session-info">
+											<div class="session-title">{session.title}</div>
+											<div class="session-meta">
+												<span class="session-workspace" title={session.workspacePath}>
+													{session.workspacePath}
+												</span>
+												<span class="session-date">{formatDate(session.lastActivity)}</span>
+											</div>
+										</div>
+										<Button
+											variant="ghost"
+											augmented="none"
+											onclick={() => resumeSession(session)}
+											class="action-button"
+										>
+											Resume
+										</Button>
+									</div>
+								</div>
+							{/each}
+						{/if}
+					{/if}
+				</div>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Navigation Tabs at the bottom -->
 	<div class="tab-navigation">
 		<Button
 			variant="ghost"
@@ -289,241 +557,18 @@
 			variant="ghost"
 			augmented="none"
 			class={currentTab === 'browse' ? 'active' : ''}
-			onclick={() => {
-				currentTab = 'browse';
-				loadPreviousSessions();
-			}}
+			onclick={() => (currentTab = 'browse')}
 		>
 			{#snippet icon()}<IconHistory size={16} />{/snippet}
 			Browse
 		</Button>
 	</div>
-
-	<!-- Session Type Toggle (shown for active and browse tabs) -->
-	{#if currentTab === 'active' || currentTab === 'browse'}
-		<div class="type-selector">
-			{#if currentTab === 'browse'}
-				<Button
-					variant="ghost"
-					augmented="none"
-					class={sessionType === 'all' ? 'active' : ''}
-					onclick={() => changeType('all')}
-				>
-					All
-				</Button>
-			{/if}
-			<Button
-				variant="ghost"
-				augmented="none"
-				class={sessionType === 'claude' ? 'active' : ''}
-				onclick={() => changeType('claude')}
-			>
-				{#snippet icon()}<IconRobot size={18} />{/snippet}
-				Claude
-			</Button>
-			<Button
-				variant="ghost"
-				augmented="none"
-				class={sessionType === 'pty' ? 'active' : ''}
-				onclick={() => changeType('pty')}
-			>
-				{#snippet icon()}<IconTerminal2 size={18} />{/snippet}
-				Terminal
-			</Button>
-		</div>
-	{/if}
-
-	<!-- Tab Content -->
-	{#if currentTab === 'active'}
-		<!-- Active Sessions -->
-		<div class="sessions-panel">
-			<div class="panel-header">
-				<div class="header-content">
-					<IconActivity size={20} />
-					<h2>Active Sessions</h2>
-				</div>
-				{#if activeSessions.length > 0}
-					<span class="count-badge">{activeSessions.length}</span>
-				{/if}
-			</div>
-
-			<div class="sessions-list">
-				{#if loading && activeSessions.length === 0}
-					<div class="status">Loading sessions...</div>
-				{:else if error}
-					<div class="status error">{error}</div>
-				{:else if activeSessions.length === 0}
-					<div class="status">No active {sessionType} sessions</div>
-				{:else}
-					{#each activeSessions as session}
-						<SessionCard
-							{session}
-							selected={selectedSession === session.id}
-							onclick={() => selectSession(session)}
-						/>
-					{/each}
-				{/if}
-			</div>
-		</div>
-	{:else if currentTab === 'create'}
-		<!-- Create Session Section -->
-		<div class="create-section">
-			<!-- Session Type Toggle for create tab -->
-			<div class="type-selector">
-				<Button
-					variant="ghost"
-					augmented="none"
-					class={sessionType === 'claude' ? 'active' : ''}
-					onclick={() => changeType('claude')}
-				>
-					{#snippet icon()}<IconRobot size={18} />{/snippet}
-					Claude
-				</Button>
-				<Button
-					variant="ghost"
-					augmented="none"
-					class={sessionType === 'pty' ? 'active' : ''}
-					onclick={() => changeType('pty')}
-				>
-					{#snippet icon()}<IconTerminal2 size={18} />{/snippet}
-					Terminal
-				</Button>
-			</div>
-
-			{#if showDirectoryPicker}
-				<div class="directory-picker-panel">
-					<div class="picker-header">
-						<label class="picker-label">
-							<IconFolder size={18} />
-							Select Directory
-						</label>
-					</div>
-					<DirectoryBrowser
-						bind:selected={selectedDirectory}
-						startPath={selectedDirectory || ''}
-						onSelect={handleDirectorySelect}
-					/>
-					<div class="picker-actions">
-						<Button variant="ghost" augmented="none" onclick={() => (showDirectoryPicker = false)}>
-							Cancel
-						</Button>
-					</div>
-				</div>
-			{:else}
-				<div class="form-group">
-					<label class="form-label">
-						<IconFolder size={16} />
-						Workspace Directory
-					</label>
-					<Button
-						variant="ghost"
-						augmented="none"
-						onclick={() => (showDirectoryPicker = true)}
-						disabled={loading}
-						class="directory-button"
-					>
-						<span class="directory-path">{formatPath(selectedDirectory)}</span>
-						<IconChevronDown size={16} />
-					</Button>
-				</div>
-				<Button
-					variant="primary"
-					augmented="tl-clip br-clip both"
-					onclick={createSession}
-					disabled={loading || !selectedDirectory}
-					{loading}
-				>
-					{#snippet icon()}
-						{#if loading}<IconBolt size={18} />{:else}<IconPlus size={18} />{/if}
-					{/snippet}
-					New {sessionType === 'claude' ? 'Claude' : 'Terminal'} Session
-				</Button>
-			{/if}
-		</div>
-	{:else if currentTab === 'browse'}
-		<!-- Browse Previous Sessions -->
-		<div class="sessions-panel">
-			<div class="panel-header">
-				<div class="header-content">
-					<IconHistory size={20} />
-					<h2>Previous Sessions</h2>
-				</div>
-				{#if filteredPreviousSessions.length > 0}
-					<span class="count-badge">{filteredPreviousSessions.length}</span>
-				{/if}
-			</div>
-
-			<!-- Search Filter -->
-			<div class="search-container">
-				<div class="search-input-wrapper">
-					<IconSearch size={16} />
-					<input
-						type="text"
-						placeholder="Search sessions..."
-						bind:value={searchTerm}
-						class="search-input"
-					/>
-					{#if searchTerm}
-						<button class="clear-search" onclick={() => (searchTerm = '')}>
-							<IconX size={14} />
-						</button>
-					{/if}
-				</div>
-			</div>
-
-			<div class="previous-sessions-list">
-				{#if loading}
-					<div class="status">Loading previous sessions...</div>
-				{:else if filteredPreviousSessions.length === 0}
-					<div class="status">
-						{searchTerm
-							? `No sessions match "${searchTerm}"`
-							: sessionType === 'all'
-								? 'No previous sessions'
-								: `No previous ${sessionType} sessions`}
-					</div>
-				{:else}
-					{#each filteredPreviousSessions as session (session.id)}
-						<div class="previous-session-card">
-							<div class="session-header">
-								<div class="session-type-icon">
-									{#if session.type === 'claude'}
-										<IconRobot size={16} />
-									{:else}
-										<IconTerminal2 size={16} />
-									{/if}
-								</div>
-								<div class="session-info">
-									<div class="session-title">{session.title}</div>
-									<div class="session-meta">
-										<span class="session-workspace" title={session.workspacePath}>
-											{session.workspacePath}
-										</span>
-										<span class="session-date">{formatDate(session.lastActivity)}</span>
-									</div>
-								</div>
-								<Button
-									variant="primary"
-									augmented="none"
-									onclick={() => resumeSession(session)}
-									class="resume-button"
-								>
-									Resume
-								</Button>
-							</div>
-						</div>
-					{/each}
-				{/if}
-			</div>
-		</div>
-	{/if}
 </div>
 
 <style>
 	.menu-root {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
 		height: 100%;
 		padding: var(--space-5);
 		background: var(--bg);
@@ -539,6 +584,18 @@
 		border: 1px solid var(--surface-border);
 		border-radius: 6px;
 		padding: var(--space-1);
+		flex-shrink: 0; /* Prevent shrinking */
+		margin-top: var(--space-4);
+	}
+
+	/* Tab Content Container */
+	.tab-content {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+		min-height: 0;
+		overflow: hidden;
 	}
 
 	.tab-navigation :global(.btn) {
@@ -641,28 +698,30 @@
 
 	/* Sessions Panel */
 	.sessions-panel {
-		flex: 1;
 		display: flex;
 		flex-direction: column;
-		background: var(--surface);
-		border: 2px solid var(--primary-dim);
-		border-radius: 6px;
+		flex: 1;
 		min-height: 0;
+		background: var(--bg);
+		border: 1px solid var(--surface-border);
+		border-radius: 8px;
+		overflow: hidden;
 	}
 
 	.panel-header {
 		display: flex;
-		justify-content: space-between;
 		align-items: center;
+		justify-content: space-between;
 		padding: var(--space-4);
+		border-bottom: 1px solid var(--surface-border);
 		background: var(--bg-dark);
-		border-bottom: 1px solid var(--primary-dim);
+		flex-shrink: 0;
 	}
 
 	.header-content {
 		display: flex;
 		align-items: center;
-		gap: var(--space-3);
+		gap: var(--space-2);
 	}
 
 	.header-content h2 {
@@ -670,38 +729,41 @@
 		font-size: 1rem;
 		font-weight: 600;
 		color: var(--text);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		font-family: var(--font-mono);
 	}
 
 	.count-badge {
 		background: var(--primary);
-		color: var(--bg);
+		color: white;
+		font-size: 0.7rem;
+		font-weight: 600;
 		padding: 2px 8px;
 		border-radius: 12px;
-		font-size: 0.75rem;
-		font-weight: 600;
-		font-family: var(--font-mono);
+		min-width: 20px;
+		text-align: center;
 	}
 
 	.sessions-list {
 		flex: 1;
 		overflow-y: auto;
-		padding: var(--space-2);
+		padding: var(--space-3);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
+		min-height: 200px;
 	}
 
 	.status {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: var(--space-5);
+		padding: var(--space-6);
 		color: var(--text-muted);
-		font-size: 0.875rem;
+		font-size: 0.9rem;
 		text-align: center;
+		min-height: 120px;
+		border: 2px dashed var(--surface-border);
+		border-radius: 8px;
+		margin: var(--space-4);
 	}
 
 	.status.error {
@@ -712,6 +774,8 @@
 	.search-container {
 		padding: var(--space-3) var(--space-4);
 		border-bottom: 1px solid var(--surface-border);
+		background: var(--bg);
+		flex-shrink: 0;
 	}
 
 	.search-input-wrapper {
@@ -756,45 +820,62 @@
 		color: var(--text);
 	}
 
-	/* Previous Sessions List */
-	.previous-sessions-list {
-		flex: 1;
-		overflow-y: auto;
-		padding: var(--space-2);
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
 
-	.previous-session-card {
+	/* Unified Session Cards */
+	.session-card {
 		background: var(--bg);
 		border: 1px solid var(--surface-border);
-		border-radius: 6px;
-		padding: var(--space-3);
+		border-radius: 8px;
+		padding: var(--space-4);
 		transition: all 0.2s ease;
+		cursor: pointer;
+		margin-bottom: var(--space-2);
 	}
 
-	.previous-session-card:hover {
+	.session-card:hover {
 		border-color: var(--primary-dim);
 		background: var(--bg-light);
+		transform: translateY(-1px);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	}
+
+	.session-card.active-session {
+		border-color: var(--success);
+		background: rgba(var(--success-rgb), 0.05);
+		box-shadow: 0 0 0 1px rgba(var(--success-rgb), 0.1);
+	}
+
+	.session-card.active-session:hover {
+		background: rgba(var(--success-rgb), 0.1);
+		box-shadow: 0 2px 12px rgba(var(--success-rgb), 0.2);
+	}
+
+	.session-card.inactive-session {
+		border-color: var(--surface-border);
+		opacity: 0.9;
+	}
+
+	.session-card.inactive-session:hover {
+		opacity: 1;
 	}
 
 	.session-header {
 		display: flex;
 		align-items: center;
-		gap: var(--space-3);
+		gap: var(--space-4);
 	}
 
 	.session-type-icon {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 32px;
-		height: 32px;
+		width: 40px;
+		height: 40px;
 		background: var(--surface);
-		border: 1px solid var(--primary-dim);
-		border-radius: 6px;
+		border: 2px solid var(--primary-dim);
+		border-radius: 8px;
 		color: var(--primary);
+		flex-shrink: 0;
 	}
 
 	.session-info {
@@ -805,31 +886,52 @@
 	.session-title {
 		font-weight: 600;
 		color: var(--text);
-		font-size: 0.875rem;
-		margin-bottom: 2px;
+		font-size: 1rem;
+		margin-bottom: var(--space-1);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
 	}
 
 	.session-meta {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
-		font-size: 0.75rem;
-		color: var(--text-muted);
-		font-family: var(--font-mono);
+		gap: var(--space-1);
+		font-size: 0.8rem;
 	}
 
 	.session-workspace {
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		max-width: 300px;
 	}
 
 	.session-date {
 		color: var(--text-dim);
+		font-size: 0.7rem;
 	}
+
+	.active-badge {
+		display: inline-block;
+		background: var(--success);
+		color: white;
+		font-size: 0.6rem;
+		font-weight: 600;
+		padding: 2px 6px;
+		border-radius: 4px;
+		margin-left: var(--space-2);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	
 
 	:global(.resume-button) {
 		flex-shrink: 0;
@@ -839,6 +941,27 @@
 
 	/* Responsive adjustments */
 	@media (max-width: 768px) {
+		.menu-root {
+			padding: var(--space-3);
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			border: none;
+		}
+
+		.tab-navigation {
+			margin-top: var(--space-3);
+			margin-bottom: 0;
+		}
+
+		.tab-content {
+			flex: 1;
+			min-height: 0;
+			overflow-y: auto;
+			/* Add padding to prevent content from being cut off */
+			padding-bottom: var(--space-2);
+		}
+
 		.session-meta {
 			flex-direction: column;
 		}

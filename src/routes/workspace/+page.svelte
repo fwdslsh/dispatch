@@ -10,7 +10,7 @@
 	import { Button } from '$lib/client/shared/components';
 	import ProjectSessionMenuSimplified from '$lib/client/shared/components/ProjectSessionMenuSimplified.svelte';
 	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager.js';
-	import { IconX, IconSettings } from '@tabler/icons-svelte';
+	import { IconX, IconSettings, IconAdjustmentsAlt, IconUserScreen, IconDualScreen, IconSquareToggleHorizontal, IconBorderVertical, IconBorderHorizontal, IconSquare, IconSquareDashed } from '@tabler/icons-svelte';
 	import IconButton from '$lib/client/shared/components/IconButton.svelte';
 	import ClaudeSessionModal from '$lib/client/claude/ClaudeSessionModal.svelte';
 
@@ -633,18 +633,34 @@
 
 		<!-- Layout controls for desktop only -->
 		<div class="header-layout">
-			{#each ['1up', '2up', '4up'] as preset}
-				<IconButton
-					onclick={() => (layoutPreset = preset)}
-					text={preset}
-					variant={layoutPreset === preset ? 'primary' : 'ghost'}
-					class={layoutPreset === preset ? 'active' : ''}
+			
+			<IconButton
+					onclick={() => (layoutPreset = '1up')}
+					text={'1up'}
+					variant={layoutPreset === '1up' ? 'primary' : 'ghost'}
+					class={layoutPreset === '1up' ? 'active' : ''}
 					size="small"
-					augmented="tl-clip br-clip both"
 				>
-					{preset}
+					<IconSquareDashed size={18} />
 				</IconButton>
-			{/each}
+			<IconButton
+					onclick={() => (layoutPreset = '2up')}
+					text={'2up'}
+					variant={layoutPreset === '2up' ? 'primary' : 'ghost'}
+					class={layoutPreset === '2up' ? 'active' : ''}
+					size="small"
+				>
+					<IconBorderVertical size={18} />
+				</IconButton>
+			<IconButton
+					onclick={() => (layoutPreset = '4up')}
+					text={'4up'}
+					variant={layoutPreset === '4up' ? 'primary' : 'ghost'}
+					class={layoutPreset === '4up' ? 'active' : ''}
+					size="small"
+				>
+					<IconBorderHorizontal size={18} />
+				</IconButton>
 		</div>
 
 		<!-- Mobile session navigation moved to bottom bar -->
@@ -808,7 +824,7 @@
 							<div class="terminal-header">
 								<div class="terminal-status">
 									<span class="status-dot {s.type}"></span>
-									<span class="terminal-type">{s.type === 'claude' ? 'Claude' : 'Terminal'}</span>
+									<!-- <span class="terminal-type">{s.type === 'claude' ? 'Claude' : 'Terminal'}</span> -->
 								</div>
 								<div class="terminal-info">
 									<span class="session-id">#{s.id.slice(0, 6)}</span>
@@ -913,7 +929,7 @@
 					title="Settings"
 					type="button"
 				>
-					<IconSettings size={18} />
+					<IconAdjustmentsAlt size={18} />
 				</IconButton>
 				<Button class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions"
 					>{sessionMenuOpen ? 'Close' : 'Sessions'}</Button
@@ -983,7 +999,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-4);
-		padding: var(--space-3);
+		padding-inline: var(--space-3);
 		background: var(--bg-panel);
 		border-bottom: 1px solid var(--primary-dim);
 		min-height: 50px; /* Minimal header height */
@@ -1547,15 +1563,16 @@
 		position: fixed;
 		left: 0;
 		right: 0;
+		bottom: 56px; /* Position above status bar which is ~60px */
+		padding-bottom: 56px; /* Account for status bar height */
 		background: var(--bg);
 		border-top: 1px solid var(--primary-dim);
-		height: calc(100dvh - 60px);
+		height: calc(100dvh - 56px); /* Account for both status bar and some margin */
 		overflow: hidden;
 		z-index: 70;
 		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
 		display: flex;
 		flex-direction: column;
-		transform: translateY(100dvh);
 		opacity: 0;
 		transition: transform 0.15s ease-out;
 		transition-property: all;
@@ -1596,13 +1613,12 @@
 	/* Mobile-specific styles for session sheet to take remaining viewport */
 	@media (max-width: 768px) {
 		.session-sheet {
-			/* Calculate height: viewport height minus status bar (approximately 60px) */
-			height: calc(100vh - 60px);
+			/* Position above status bar */
+			bottom: 60px; /* Status bar height on mobile */
+			/* Calculate height: viewport height minus status bar and top margin */
 			height: calc(100dvh - 60px);
-			max-height: calc(100vh - 60px);
-			max-height: calc(100dvh - 60px);
-			/* Ensure it doesn't go higher than the status bar */
-			top: auto;
+			/* Start position when closed */
+			transform: translateY(calc(100% + 60px));
 		}
 
 		.sheet-header {
@@ -1624,11 +1640,12 @@
 	/* Very small screens - adjust for exact status bar height */
 	@media (max-width: 480px) {
 		.session-sheet {
-			/* Fine-tune for smaller screens where status bar might be different */
-			height: calc(100vh - 56px);
-			height: calc(100dvh - 56px);
-			max-height: calc(100vh - 56px);
-			max-height: calc(100dvh - 56px);
+			/* Fine-tune position for smaller screens */
+			bottom: 60px; /* Slightly smaller status bar on very small screens */
+			padding-bottom: 60px;
+			height: calc(100dvh - 60px);
+			
+			transform: translateY(calc(100% + 52px));
 		}
 	}
 

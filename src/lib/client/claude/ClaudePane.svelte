@@ -5,11 +5,18 @@
 	import Markdown from '$lib/client/shared/components/Markdown.svelte';
 	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
 	import ClaudeCommands from './ClaudeCommands.svelte';
-	import { IconFolder, IconMessage, IconAlertTriangle } from '@tabler/icons-svelte';
+	import {
+		IconFolder,
+		IconMessage,
+		IconAlertTriangle,
+		IconSparkles,
+		IconLoader
+	} from '@tabler/icons-svelte';
 	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import { getIconForEvent } from '$lib/client/shared/icons/claudeEventIcons.js';
 	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager';
+	import ProgressDown from '@tabler/icons-svelte/icons/progress-down';
 	// Using global styles for inputs
 
 	let {
@@ -46,6 +53,15 @@
 			messagesContainer.scrollTop = messagesContainer.scrollHeight;
 		}
 	}
+
+	const status = $derived.by(() => {
+		if (authInProgress) return 'auth-in-progress';
+		if (authAwaitingCode) return 'awaiting-auth-code';
+		if (loading) return 'loading';
+		if (isCatchingUp) return 'catching-up';
+		if (isWaitingForReply) return 'thinking';
+		return 'idle';
+	});
 
 	// Auto-scroll when messages change
 	$effect(() => {
@@ -805,18 +821,30 @@
 <div class="claude-pane">
 	<!-- Chat Header with AI Status -->
 	<div class="chat-header">
-		<div class="ai-status">
+		<div
+			class="ai-status {status}"
+			title={isWaitingForReply ? 'thinking...' : loading ? 'loading...' : 'idle'}
+		>
 			<div class="ai-avatar">
-				<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="ai-icon">
-					<path
-						d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,16.5L18,9.5L16.5,8L11,13.5L7.5,10L6,11.5L11,16.5Z"
-					/>
-				</svg>
+				{#if isCatchingUp}
+					<IconLoader size={16} class="ai-icon spinning" />
+					<span class="catching-up">Reconnecting to active session...</span>
+				{:else if loading}
+					<ProgressDown size={16} class="ai-icon" />
+				{:else if isWaitingForReply}
+					<IconSparkles size={16} class="ai-icon glowing" />
+				{:else}
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="ai-icon">
+						<path
+							d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,16.5L18,9.5L16.5,8L11,13.5L7.5,10L6,11.5L11,16.5Z"
+						/>
+					</svg>
+				{/if}
 			</div>
 			<div class="ai-info">
 				<div class="ai-name">Claude</div>
-				<div class="ai-state">
-					{#if isCatchingUp}
+				<!--<div class="ai-state">
+					 {#if isCatchingUp}
 						<span class="catching-up">Reconnecting to active session...</span>
 					{:else if loading}
 						Processing...
@@ -825,7 +853,7 @@
 					{:else}
 						Ready
 					{/if}
-				</div>
+				</div> -->
 			</div>
 		</div>
 		<div class="chat-stats">
@@ -850,7 +878,9 @@
 		aria-label="Chat messages"
 		bind:this={messagesContainer}
 	>
-		{#if loading && messages.length === 0}
+		{#if isCatchingUp}
+			<span class="catching-up">Reconnecting to active session...</span>
+		{:else if loading && messages.length === 0}
 			<div class="loading-message" transition:fly={{ y: 20, duration: 300 }}>
 				<div class="loading-indicator">
 					<div class="pulse-ring"></div>
@@ -969,20 +999,12 @@
 	<!-- Enhanced Input Form -->
 	<form onsubmit={send} class="input-form">
 		<div class="input-container">
-			<div class="input-actions input-actions--left">
-				<ClaudeCommands
-					{socket}
-					{workspacePath}
-					{sessionId}
-					{claudeSessionId}
-					onCommandInsert={handleCommandInsert}
-					disabled={loading}
-					bind={claudeCommandsApi}
-				/>
-			</div>
+			<div class="input-actions input-actions--left"></div>
 			<textarea
 				bind:value={input}
-				placeholder="Message Claude..."
+				placeholder={isMobile
+					? 'Tap Send button to send'
+					: 'Press Enter to send, Shift+Enter for new line'}
 				class="message-input"
 				disabled={loading}
 				aria-label="Type your message"
@@ -998,25 +1020,26 @@
 				rows="1"
 			></textarea>
 			<div class="input-actions input-actions--right">
-				<Button
-					type="submit"
-					text={isWaitingForReply ? 'Send' : loading ? 'Sending...' : 'Send'}
-					variant="primary"
-					augmented="tr-clip bl-clip both"
-					disabled={!input.trim() || loading}
-					ariaLabel="Send message"
-					{...{ icon: undefined }}
+				<ClaudeCommands
+					{socket}
+					{workspacePath}
+					{sessionId}
+					{claudeSessionId}
+					onCommandInsert={handleCommandInsert}
+					disabled={loading}
+					bind={claudeCommandsApi}
 				/>
 			</div>
 		</div>
 		<div class="input-help">
-			<span class="help-text">
-				{#if isMobile}
-					Press Enter for new line · Tap Send button to send
-				{:else}
-					Press Enter to send · Shift+Enter for new line
-				{/if}
-			</span>
+			<Button
+				type="submit"
+				text={isWaitingForReply ? 'Send' : loading ? 'Sending...' : 'Send'}
+				variant="primary"
+				augmented="tr-clip bl-clip both"
+				disabled={!input.trim() || loading}
+				ariaLabel="Send message"
+			/>
 		</div>
 	</form>
 </div>
@@ -1049,7 +1072,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: var(--space-4) var(--space-6);
+		padding-inline: var(--space-4);
+		padding-block: var(--space-1);
 		background: linear-gradient(
 			135deg,
 			color-mix(in oklab, var(--surface) 92%, var(--primary) 8%),
@@ -1068,14 +1092,18 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-4);
+
+		&.thinking {
+			color: var(--accent-cyan);
+		}
 	}
 
 	.ai-avatar {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 48px;
-		height: 48px;
+		width: 32px;
+		height: 32px;
 		background: radial-gradient(
 			ellipse at center,
 			color-mix(in oklab, var(--primary) 15%, transparent),
@@ -1091,6 +1119,22 @@
 			0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent);
 		transition: all 0.3s ease;
 		animation: avatarPulse 4s ease-in-out infinite;
+	}
+
+	.thinking > .ai-avatar {
+		background: radial-gradient(
+			ellipse at center,
+			color-mix(in oklab, var(--accent-cyan) 15%, transparent),
+			color-mix(in oklab, var(--accent-cyan) 5%, transparent)
+		);
+		border: 2px solid color-mix(in oklab, var(--accent-cyan) 30%, transparent);
+		border-radius: 50%;
+		color: var(--accent-cyan);
+		backdrop-filter: blur(8px);
+		box-shadow:
+			0 8px 32px -12px var(--accent-cyan-glow),
+			inset 0 2px 4px color-mix(in oklab, var(--accent-cyan) 15%, transparent),
+			0 0 0 1px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
 	}
 
 	@keyframes avatarPulse {
@@ -1114,6 +1158,7 @@
 	.ai-info {
 		display: flex;
 		flex-direction: column;
+		align-items: center;
 		gap: var(--space-1);
 		flex: 1;
 		min-width: 0; /* Allow text truncation */
@@ -1198,7 +1243,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding: var(--space-2) var(--space-4);
+		padding: var(--space-1) var(--space-2);
 		background: linear-gradient(
 			135deg,
 			color-mix(in oklab, var(--primary) 10%, transparent),
@@ -1210,10 +1255,6 @@
 		font-size: var(--font-size-1);
 		font-weight: 600;
 		backdrop-filter: blur(4px);
-	}
-
-	.stat-icon {
-		font-size: 1em;
 	}
 
 	.stat-value {
@@ -1503,6 +1544,7 @@
 
 	/* WELCOME MESSAGE */
 	.welcome-message {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -1511,6 +1553,7 @@
 		padding: var(--space-8);
 		margin-block: var(--space-8);
 		margin-inline: auto;
+		min-height: 200px;
 		max-width: 480px;
 		background: radial-gradient(
 			ellipse at center,
@@ -1529,7 +1572,10 @@
 		font-size: 4rem;
 		margin-bottom: var(--space-2);
 		animation: fadeInOut 10s ease-in-out infinite;
-		opacity: 0.25;
+		opacity: 0.05;
+		position: absolute;
+		inset: 0;
+		display: none;
 	}
 
 	@keyframes fadeInOut {
@@ -1538,7 +1584,7 @@
 			opacity: 0.05;
 		}
 		50% {
-			opacity: 0.25;
+			opacity: 0.1;
 		}
 	}
 
@@ -1565,7 +1611,7 @@
 
 	/* REVOLUTIONARY INPUT INTERFACE */
 	.input-form {
-		padding: var(--space-6);
+		padding: var(--space-3);
 		background: linear-gradient(
 			135deg,
 			color-mix(in oklab, var(--surface) 88%, var(--primary) 12%),
@@ -1604,6 +1650,9 @@
 		order: 3;
 	}
 
+	:global(.message-input button) {
+		width: 100%;
+	}
 	.message-input {
 		flex: 1;
 		order: 2;

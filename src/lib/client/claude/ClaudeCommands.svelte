@@ -2,6 +2,7 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
+	import IconButton from '../shared/components/IconButton.svelte';
 
 	let {
 		socket = null,
@@ -479,11 +480,10 @@
 </script>
 
 <div class="claude-commands" class:disabled>
-	<button
+	<IconButton
 		bind:this={commandMenuButton}
 		type="button"
 		class="command-menu-button"
-		class:active={commandMenuOpen}
 		aria-label="Open command menu"
 		onclick={toggleCommandMenu}
 		{disabled}
@@ -493,7 +493,7 @@
 		{#if availableCommands.length > 0}
 			<span class="command-count">{availableCommands.length}</span>
 		{/if}
-	</button>
+	</IconButton>
 
 	{#if commandMenuOpen}
 		<div
@@ -580,61 +580,6 @@
 		pointer-events: none;
 	}
 
-	.command-menu-button {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-		padding: var(--space-2) var(--space-3);
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 10%, transparent),
-			color-mix(in oklab, var(--primary) 5%, transparent)
-		);
-		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: 8px;
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		font-weight: 600;
-		color: var(--text-muted);
-		cursor: pointer;
-		transition: all 0.2s ease;
-		min-width: 40px;
-		height: 36px;
-		justify-content: center;
-	}
-
-	.command-menu-button:hover {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 15%, transparent),
-			color-mix(in oklab, var(--primary) 8%, transparent)
-		);
-		border-color: color-mix(in oklab, var(--primary) 30%, transparent);
-		color: var(--primary);
-		transform: translateY(-1px);
-		box-shadow: 0 4px 12px -4px var(--primary-glow);
-	}
-
-	.command-menu-button.active {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 20%, transparent),
-			color-mix(in oklab, var(--primary) 12%, transparent)
-		);
-		border-color: var(--primary);
-		color: var(--primary);
-		box-shadow:
-			0 0 0 2px color-mix(in oklab, var(--primary) 25%, transparent),
-			0 4px 16px -6px var(--primary-glow);
-	}
-
-	.command-menu-button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-		transform: none;
-		box-shadow: none;
-	}
-
 	.command-icon {
 		font-size: 1.2em;
 		line-height: 1;
@@ -653,7 +598,7 @@
 	.claude-commands-dropdown {
 		position: absolute;
 		bottom: calc(100% + var(--space-2));
-		left: 0;
+		right: 25px;
 		min-width: 280px;
 		max-width: 420px;
 		max-height: 400px;
