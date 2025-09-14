@@ -1,16 +1,18 @@
-import { databaseManager } from './db/DatabaseManager.js';
+import { getDatabaseManager } from './db/DatabaseManager.js';
 
 class HistoryManager {
+	#databaseManager;
 	constructor() {
 		this.socketHistories = new Map(); // In-memory cache for active sockets
 		this._saveQueues = new Map(); // Per-socket save queues to serialize writes
+		this.#databaseManager = getDatabaseManager();
 		// Ensure database initialization is awaited before any operations
 		this.dbReady = this.initializeDatabase();
 	}
 
 	async initializeDatabase() {
 		try {
-			await databaseManager.init();
+			await this.#databaseManager.init();
 		} catch (error) {
 			console.error('[HISTORY] Failed to initialize database:', error);
 		}
@@ -39,7 +41,7 @@ class HistoryManager {
 
 		// Save to database
 		try {
-			await databaseManager.createSession(socketId, socketId, historyEntry.metadata);
+			await this.#databaseManager.createSession(socketId, socketId, historyEntry.metadata);
 		} catch (error) {
 			console.error('[HISTORY] Failed to create session in database:', error);
 		}
@@ -80,7 +82,7 @@ class HistoryManager {
 	async saveEventToDatabase(socketId, eventType, direction, data) {
 		await this.dbReady;
 		try {
-			await databaseManager.addSessionEvent(socketId, socketId, eventType, direction, data);
+			await this.#databaseManager.addSessionEvent(socketId, socketId, eventType, direction, data);
 		} catch (error) {
 			console.error(`[HISTORY] Failed to save event to database for socket ${socketId}:`, error);
 		}
@@ -153,7 +155,7 @@ class HistoryManager {
 		const historyEntry = this.socketHistories.get(socketId);
 		if (historyEntry) {
 			try {
-				await databaseManager.updateSession(socketId, historyEntry.metadata);
+				await this.#databaseManager.updateSession(socketId, historyEntry.metadata);
 			} catch (error) {
 				console.error(`[HISTORY] Failed to update session metadata for socket ${socketId}:`, error);
 			}
@@ -169,7 +171,7 @@ class HistoryManager {
 
 		// Mark session as disconnected in database
 		try {
-			await databaseManager.disconnectSession(socketId);
+			await this.#databaseManager.disconnectSession(socketId);
 		} catch (error) {
 			console.error(
 				`[HISTORY] Failed to mark session as disconnected for socket ${socketId}:`,
@@ -196,10 +198,10 @@ class HistoryManager {
 
 		// Try database
 		try {
-			const session = await databaseManager.getSession(socketId);
+			const session = await this.#databaseManager.getSession(socketId);
 			if (!session) return null;
 
-			const events = await databaseManager.getSessionHistory(socketId);
+			const events = await this.#databaseManager.getSessionHistory(socketId);
 
 			return {
 				socketId,
@@ -223,7 +225,7 @@ class HistoryManager {
 	async listSocketHistories() {
 		await this.dbReady;
 		try {
-			return await databaseManager.listSessionHistories();
+			return await this.#databaseManager.listSessionHistories();
 		} catch (error) {
 			console.error('[HISTORY] Failed to list socket histories:', error);
 			return [];
@@ -237,7 +239,7 @@ class HistoryManager {
 		// 7 days default
 		await this.dbReady;
 		try {
-			await databaseManager.cleanupOldData(maxAgeMs);
+			await this.#databaseManager.cleanupOldData(maxAgeMs);
 		} catch (error) {
 			console.error('[HISTORY] Failed to cleanup old histories:', error);
 		}

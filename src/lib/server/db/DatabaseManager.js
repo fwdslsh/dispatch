@@ -490,5 +490,11 @@ export class DatabaseManager {
 	}
 }
 
-// Export singleton instance
-export const databaseManager = new DatabaseManager();
+// Export singleton instance, but only initialize at runtime
+let databaseManager;
+export function getDatabaseManager() {
+	if (!databaseManager) {
+		databaseManager = new DatabaseManager();
+	}
+	return databaseManager;
+}

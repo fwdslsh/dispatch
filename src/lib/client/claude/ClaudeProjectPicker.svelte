@@ -128,15 +128,14 @@
 		</div>
 	{:else}
 		<div class="row">
-			<input
-				type="text"
-				{placeholder}
-				bind:value={query}
-				oninput={filter}
-				onkeydown={key}
-				aria-expanded={open}
-				aria-controls="cc-panel"
-			/>
+            <input
+            	type="text"
+            	{placeholder}
+            	bind:value={query}
+            	oninput={filter}
+            	onkeydown={key}
+            	aria-controls="cc-panel"
+            />
 			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse projects"
 				><IconFolder size={18} /></button
 			>

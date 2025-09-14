@@ -112,15 +112,14 @@
 		</div>
 	{:else}
 		<div class="row">
-			<input
-				type="text"
-				{placeholder}
-				bind:value={filterText}
-				oninput={applyFilter}
-				onkeydown={key}
-				aria-expanded={open}
-				aria-controls="cc-session-panel"
-			/>
+            <input
+            	type="text"
+            	{placeholder}
+            	bind:value={filterText}
+            	oninput={applyFilter}
+            	onkeydown={key}
+            	aria-controls="cc-session-panel"
+            />
 			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse sessions"
 				><IconArchive size={18} /></button
 			>

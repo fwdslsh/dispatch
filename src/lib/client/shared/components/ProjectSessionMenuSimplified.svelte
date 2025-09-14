@@ -379,16 +379,7 @@
 		font-family: var(--font-mono);
 	}
 
-	.directory-button {
-		justify-content: space-between !important;
-		text-align: left;
-		background: var(--bg-dark) !important;
-		border: 1px solid var(--surface-border) !important;
-	}
 
-	.directory-button:hover {
-		border-color: var(--primary-dim) !important;
-	}
 
 	.directory-path {
 		flex: 1;

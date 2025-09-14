@@ -31,7 +31,7 @@
 <Modal bind:open title="Settings" size="large" augmented="tl-clip tr-clip bl-clip br-clip both">
 	<div class="settings-container">
 		<!-- Settings Navigation -->
-		<nav class="settings-nav" role="tablist" aria-label="Settings sections">
+	<nav class="settings-nav" aria-label="Settings sections">
 			{#each tabs as tab}
 				<button
 					class="settings-tab"
@@ -42,7 +42,9 @@
 					aria-controls="settings-panel-{tab.id}"
 					id="settings-tab-{tab.id}"
 				>
-					<svelte:component this={tab.icon} size={18} />
+					{#key tab.icon}
+						<tab.icon size={18} />
+					{/key}
 					<span class="tab-label">{tab.label}</span>
 				</button>
 			{/each}
@@ -57,7 +59,9 @@
 					aria-labelledby="settings-tab-{activeTab}"
 					id="settings-panel-{activeTab}"
 				>
-					<svelte:component this={activeTabData.component} />
+					{#key activeTabData.component}
+						<activeTabData.component />
+					{/key}
 				</div>
 			{/if}
 		</main>

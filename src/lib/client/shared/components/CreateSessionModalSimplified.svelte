@@ -155,7 +155,6 @@
 							variant="secondary"
 							augmented="tl-clip br-clip both"
 							onclick={() => (showDirectoryBrowser = false)}
-							class="cancel-browser-btn"
 						>
 							Cancel
 						</Button>
@@ -233,10 +232,7 @@
 		box-shadow: inset 0 0 10px var(--glow);
 	}
 
-	.cancel-browser-btn {
-		margin-top: var(--space-3);
-		width: 100%;
-	}
+
 
 	.error-message {
 		background: color-mix(in oklab, var(--err) 10%, var(--surface));

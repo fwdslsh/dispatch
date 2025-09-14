@@ -41,7 +41,7 @@
 		// Form integration
 		form = undefined,
 		autocomplete = undefined,
-		autofocus = false,
+		// autofocus removed for accessibility compliance
 
 		// Event handlers
 		oninput = undefined,
@@ -139,7 +139,7 @@
 				{required}
 				{form}
 				{autocomplete}
-				{autofocus}
+               
 				{rows}
 				{cols}
 				{style}
@@ -166,7 +166,7 @@
 				{required}
 				{form}
 				{autocomplete}
-				{autofocus}
+               
 				{style}
 				maxlength={maxLength}
 				aria-label={ariaLabel}

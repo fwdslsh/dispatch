@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { databaseManager } from '../db/DatabaseManager.js';
+import { getDatabaseManager } from '../db/DatabaseManager.js';
 import { logger } from '../utils/logger.js';
 
 export class WorkspaceManager {
@@ -12,7 +12,7 @@ export class WorkspaceManager {
 
 	async initializeDatabase() {
 		try {
-			await databaseManager.init();
+			await getDatabaseManager().init();
 		} catch (error) {
 			logger.error('[WORKSPACE] Failed to initialize database:', error);
 		}
@@ -42,8 +42,8 @@ export class WorkspaceManager {
 		if (!stat.isDirectory()) throw new Error('Not a directory');
 
 		// Create or update workspace in database
-		await databaseManager.createWorkspace(resolved);
-		await databaseManager.updateWorkspaceActivity(resolved);
+		await getDatabaseManager().createWorkspace(resolved);
+		await getDatabaseManager().updateWorkspaceActivity(resolved);
 		return { path: resolved };
 	}
 	async create(dir) {
@@ -54,7 +54,7 @@ export class WorkspaceManager {
 		await fs.mkdir(resolved, { recursive: true });
 
 		// Create workspace in database
-		await databaseManager.createWorkspace(resolved);
+		await getDatabaseManager().createWorkspace(resolved);
 		return { path: resolved };
 	}
 	async clone(fromPath, toPath) {
@@ -66,7 +66,7 @@ export class WorkspaceManager {
 		// This is important for absolute paths (e.g. Claude project folders)
 		// that may not have been opened via the workspaces API.
 		try {
-			await databaseManager.createWorkspace(dir);
+			await getDatabaseManager().createWorkspace(dir);
 		} catch (error) {
 			logger.error('[WORKSPACE] Failed to ensure workspace exists before saving session:', error);
 		}
@@ -93,7 +93,7 @@ export class WorkspaceManager {
 		}
 
 		// Save to database
-		await databaseManager.addWorkspaceSession(
+		await getDatabaseManager().addWorkspaceSession(
 			sessionDescriptor.id,
 			dir,
 			sessionType,
@@ -107,14 +107,14 @@ export class WorkspaceManager {
 		const index = { workspaces: {} };
 
 		try {
-			const workspaces = await databaseManager.listWorkspaces();
+			const workspaces = await getDatabaseManager().listWorkspaces();
 			for (const workspace of workspaces) {
 				const wsPath = workspace.path;
 				index.workspaces[wsPath] = {
 					lastActive: workspace.last_active,
 					sessions: []
 				};
-				const sessions = await databaseManager.getWorkspaceSessions(wsPath);
+				const sessions = await getDatabaseManager().getWorkspaceSessions(wsPath);
 				index.workspaces[wsPath].sessions = sessions.map((session) => ({
 					id: session.id,
 					title: session.title,
@@ -131,7 +131,7 @@ export class WorkspaceManager {
 	async getAllSessions(pinnedOnly = true) {
 		// Return all sessions from database
 		try {
-			const sessions = await databaseManager.getAllSessions(pinnedOnly);
+			const sessions = await getDatabaseManager().getAllSessions(pinnedOnly);
 			return sessions.map((session) => ({
 				id: session.id,
 				title: session.title,
@@ -147,18 +147,18 @@ export class WorkspaceManager {
 	}
 
 	async setPinned(workspacePath, sessionId, pinned) {
-		await databaseManager.setWorkspaceSessionPinned(workspacePath, sessionId, pinned);
+		await getDatabaseManager().setWorkspaceSessionPinned(workspacePath, sessionId, pinned);
 	}
 	async removeSession(workspacePath, sessionId) {
 		// Remove from database
-		await databaseManager.removeWorkspaceSession(workspacePath, sessionId);
+		await getDatabaseManager().removeWorkspaceSession(workspacePath, sessionId);
 	}
 	async renameSession(workspacePath, sessionId, newTitle) {
 		// Update in database
-		await databaseManager.renameWorkspaceSession(workspacePath, sessionId, newTitle);
+		await getDatabaseManager().renameWorkspaceSession(workspacePath, sessionId, newTitle);
 	}
 
 	async updateTypeSpecificId(workspacePath, sessionId, newTypeSpecificId) {
-		await databaseManager.updateWorkspaceSessionTypeId(workspacePath, sessionId, newTypeSpecificId);
+		await getDatabaseManager().updateWorkspaceSessionTypeId(workspacePath, sessionId, newTypeSpecificId);
 	}
 }

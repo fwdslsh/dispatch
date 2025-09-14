@@ -3,8 +3,8 @@
  * Controlled by DISPATCH_LOG_LEVEL environment variable
  */
 
-import { databaseManager } from '../db/DatabaseManager.js';
-
+import { getDatabaseManager } from '../db/DatabaseManager.js';
+let _dbManager;
 const LOG_LEVELS = {
 	DEBUG: 0,
 	INFO: 1,
@@ -66,10 +66,23 @@ function formatLogMessage(level, component, message, ...args) {
  */
 
 function logToDatabase(level, component, message, args) {
-	databaseManager
+	// Prevent DB logging during Vite build/SSR/static analysis
+	// Vite sets VITE_SSR or VITE_BUILD env vars during build/SSR
+	if (
+		process.env.VITE_SSR === 'true' ||
+		process.env.VITE_BUILD === 'true' ||
+		process.env.BUILD === 'true' 
+	) {
+		// No-op during build/SSR/test
+		return;
+	}
+	if (!_dbManager)
+		_dbManager = getDatabaseManager();
+
+	_dbManager
 		.init()
 		.then(() =>
-			databaseManager.addLog(level, component, message, args && args.length ? args : null)
+			_dbManager.addLog(level, component, message, args && args.length ? args : null)
 		)
 		.catch((err) => {
 			// Fallback: log DB error to console, but do not throw

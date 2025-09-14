@@ -3,13 +3,19 @@ import { existsSync } from 'node:fs';
 import { logger } from '../utils/logger.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 
+
 let pty;
-try {
-	pty = await import('node-pty');
-	logger.info('CLAUDE', 'node-pty loaded successfully');
-} catch (err) {
-	logger.error('Failed to load node-pty:', err);
-	pty = null;
+async function ensurePtyLoaded() {
+	if (pty) return pty;
+	try {
+		pty = await import('node-pty');
+		logger.info('CLAUDE', 'node-pty loaded successfully');
+		return pty;
+	} catch (err) {
+		logger.error('Failed to load node-pty:', err);
+		pty = null;
+		return null;
+	}
 }
 
 class ClaudeAuthManager {
@@ -73,145 +79,146 @@ class ClaudeAuthManager {
 		return acc || null;
 	}
 
-	/** Start an interactive PTY session to run `claude setup-token` */
-	start(socket) {
-		try {
-			const key = socket.id;
-			// If already running, do nothing
-			if (this.sessions.has(key)) {
-				logger.info('CLAUDE', `Auth session already running for socket ${key}`);
+		/** Start an interactive PTY session to run `claude setup-token` */
+		async start(socket) {
+			try {
+				const key = socket.id;
+				// If already running, do nothing
+				if (this.sessions.has(key)) {
+					logger.info('CLAUDE', `Auth session already running for socket ${key}`);
+					return true;
+				}
+
+				const env = {
+					...process.env,
+					CI: '1',
+					FORCE_COLOR: '0',
+					TERM: process.env.TERM || 'xterm-256color',
+					// Prevent external browser from opening on hosts that respect BROWSER
+					BROWSER: 'echo'
+				};
+
+				const localCli = resolve(process.cwd(), 'node_modules', '.bin', 'claude');
+				let exe = existsSync(localCli) ? localCli : 'claude';
+				let args = ['setup-token'];
+
+				logger.info('CLAUDE', `Starting OAuth flow with: ${[exe, ...args].join(' ')}`);
+
+				const loadedPty = await ensurePtyLoaded();
+				if (!loadedPty) {
+					logger.error('CLAUDE', 'Cannot start auth PTY: node-pty is not available');
+					try {
+						socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, {
+							success: false,
+							error: 'Terminal functionality not available - node-pty failed to load'
+						});
+					} catch {}
+					return false;
+				}
+
+				const p = loadedPty.spawn(exe, args, {
+					name: 'xterm-color',
+					cols: 100,
+					rows: 30,
+					cwd: process.cwd(),
+					env
+				});
+
+				const state = { p, buffer: '', startedAt: Date.now(), awaitingCode: true, finished: false };
+				this.sessions.set(key, state);
+
+				p.onData((data) => {
+					try {
+						state.buffer += String(data || '');
+						if (state.finished) return;
+						const plain = this.stripAnsi(state.buffer);
+						if (state.codeSubmitted) {
+							const lower = plain.toLowerCase();
+							if (
+								lower.includes('success') ||
+								lower.includes('authenticated') ||
+								lower.includes('you are now logged in') ||
+								lower.includes('token saved') ||
+								lower.includes('credentials saved') ||
+								lower.includes('authentication complete')
+							) {
+								state.finished = true;
+								try {
+									socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, { success: true });
+								} catch {}
+								logger.info('CLAUDE', 'Auth flow reported success; terminating PTY');
+								try {
+									state.p.kill();
+								} catch {}
+								return;
+							}
+							if (lower.includes('invalid') || lower.includes('expired') || lower.includes('error')) {
+								state.finished = true;
+								try {
+									socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, {
+										success: false,
+										error: 'Authorization code rejected'
+									});
+								} catch {}
+								logger.warn('CLAUDE', 'Auth flow reported error; terminating PTY');
+								try {
+									state.p.kill();
+								} catch {}
+								return;
+							}
+						}
+						const url = this.extractAuthUrl(state.buffer);
+						if (url) {
+							// Send URL once
+							if (!state.urlEmitted) {
+								state.urlEmitted = true;
+								const payload = {
+									url,
+									instructions:
+										'Open the link to authenticate, then paste the authorization code here.'
+								};
+								try {
+									socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_URL, payload);
+								} catch {}
+								logger.info('CLAUDE', 'Auth URL emitted to client');
+							}
+						}
+					} catch (e) {
+						logger.warn('CLAUDE', 'Error processing PTY data:', e?.message || e);
+					}
+				});
+
+				p.onExit(({ exitCode }) => {
+					try {
+						if (state.finished) return;
+						// If exited while awaiting code, treat as failure; otherwise success-ish
+						const ok = !!state.codeSubmitted && exitCode === 0;
+						try {
+							socket.emit(
+								ok ? SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE : SOCKET_EVENTS.CLAUDE_AUTH_ERROR,
+								ok ? { success: true } : { success: false, error: 'Authentication did not complete' }
+							);
+						} catch {
+							logger.warn('CLAUDE', 'Failed to emit auth completion event to client');
+						}
+						state.finished = true;
+					} finally {
+						this.cleanup(key);
+					}
+				});
+
 				return true;
-			}
-
-			const env = {
-				...process.env,
-				CI: '1',
-				FORCE_COLOR: '0',
-				TERM: process.env.TERM || 'xterm-256color',
-				// Prevent external browser from opening on hosts that respect BROWSER
-				BROWSER: 'echo'
-			};
-
-			const localCli = resolve(process.cwd(), 'node_modules', '.bin', 'claude');
-			let exe = existsSync(localCli) ? localCli : 'claude';
-			let args = ['setup-token'];
-
-			logger.info('CLAUDE', `Starting OAuth flow with: ${[exe, ...args].join(' ')}`);
-
-			if (!pty) {
-				logger.error('CLAUDE', 'Cannot start auth PTY: node-pty is not available');
+			} catch (error) {
+				logger.error('CLAUDE', 'Failed to start auth PTY:', error);
 				try {
 					socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, {
 						success: false,
-						error: 'Terminal functionality not available - node-pty failed to load'
+						error: String(error?.message || error)
 					});
 				} catch {}
 				return false;
 			}
-
-			const p = pty.spawn(exe, args, {
-				name: 'xterm-color',
-				cols: 100,
-				rows: 30,
-				cwd: process.cwd(),
-				env
-			});
-
-			const state = { p, buffer: '', startedAt: Date.now(), awaitingCode: true, finished: false };
-			this.sessions.set(key, state);
-
-			p.onData((data) => {
-				try {
-					state.buffer += String(data || '');
-					if (state.finished) return;
-					const plain = this.stripAnsi(state.buffer);
-					if (state.codeSubmitted) {
-						const lower = plain.toLowerCase();
-						if (
-							lower.includes('success') ||
-							lower.includes('authenticated') ||
-							lower.includes('you are now logged in') ||
-							lower.includes('token saved') ||
-							lower.includes('credentials saved') ||
-							lower.includes('authentication complete')
-						) {
-							state.finished = true;
-							try {
-								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, { success: true });
-							} catch {}
-							logger.info('CLAUDE', 'Auth flow reported success; terminating PTY');
-							try {
-								state.p.kill();
-							} catch {}
-							return;
-						}
-						if (lower.includes('invalid') || lower.includes('expired') || lower.includes('error')) {
-							state.finished = true;
-							try {
-								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, {
-									success: false,
-									error: 'Authorization code rejected'
-								});
-							} catch {}
-							logger.warn('CLAUDE', 'Auth flow reported error; terminating PTY');
-							try {
-								state.p.kill();
-							} catch {}
-							return;
-						}
-					}
-					const url = this.extractAuthUrl(state.buffer);
-					if (url) {
-						// Send URL once
-						if (!state.urlEmitted) {
-							state.urlEmitted = true;
-							const payload = {
-								url,
-								instructions:
-									'Open the link to authenticate, then paste the authorization code here.'
-							};
-							try {
-								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_URL, payload);
-							} catch {}
-							logger.info('CLAUDE', 'Auth URL emitted to client');
-						}
-					}
-				} catch (e) {
-					logger.warn('CLAUDE', 'Error processing PTY data:', e?.message || e);
-				}
-			});
-
-			p.onExit(({ exitCode }) => {
-				try {
-					if (state.finished) return;
-					// If exited while awaiting code, treat as failure; otherwise success-ish
-					const ok = !!state.codeSubmitted && exitCode === 0;
-					try {
-						socket.emit(
-							ok ? SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE : SOCKET_EVENTS.CLAUDE_AUTH_ERROR,
-							ok ? { success: true } : { success: false, error: 'Authentication did not complete' }
-						);
-					} catch {
-						logger.warn('CLAUDE', 'Failed to emit auth completion event to client');
-					}
-					state.finished = true;
-				} finally {
-					this.cleanup(key);
-				}
-			});
-
-			return true;
-		} catch (error) {
-			logger.error('CLAUDE', 'Failed to start auth PTY:', error);
-			try {
-				socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, {
-					success: false,
-					error: String(error?.message || error)
-				});
-			} catch {}
-			return false;
 		}
-	}
 
 	/** Submit authorization code back into the PTY */
 	submitCode(socket, code) {

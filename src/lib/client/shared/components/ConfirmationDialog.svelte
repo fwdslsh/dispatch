@@ -67,7 +67,7 @@
 					class:button-danger={dangerous}
 					onclick={handleConfirm}
 					aria-label="Confirm action"
-					autofocus
+                   
 				>
 					{confirmText}
 				</button>

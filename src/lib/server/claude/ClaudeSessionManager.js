@@ -9,10 +9,11 @@ import { projectsRoot } from './cc-root.js';
 import { buildClaudeOptions } from '../utils/env.js';
 import { logger } from '../utils/logger.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
-import { databaseManager } from '../db/DatabaseManager.js';
+import { getDatabaseManager } from '../db/DatabaseManager.js';
 import { claudeAuthManager } from './ClaudeAuthManager.js';
 
 export class ClaudeSessionManager {
+	#databaseManager = getDatabaseManager();
 	/**
 	 * @param {{ io: any }} param0
 	 */
@@ -48,7 +49,7 @@ export class ClaudeSessionManager {
 
 	async initializeDatabase() {
 		try {
-			await databaseManager.init();
+			await this.#databaseManager.init();
 		} catch (error) {
 			console.error('[CLAUDE] Failed to initialize database:', error);
 		}
@@ -164,7 +165,7 @@ export class ClaudeSessionManager {
 
 		// Save session metadata to database
 		try {
-			await databaseManager.addClaudeSession(
+			await this.#databaseManager.addClaudeSession(
 				claudeSessionId,
 				workspacePath,
 				claudeSessionId,
@@ -266,6 +267,8 @@ export class ClaudeSessionManager {
 							event?.type === 'result' &&
 							(event?.is_error || String(event?.subtype || '').toLowerCase() === 'error')
 						) {
+							//HACK: should type these properly
+							// @ts-ignore
 							const msg = String(event?.result || event?.message || '');
 							if (/\bplease\s+run\s+\/login\b/i.test(msg) || msg.includes('/login')) {
 								// this.io is a Socket when set by socket-setup; guard against Server
@@ -293,7 +296,7 @@ export class ClaudeSessionManager {
 
 							// Persist to DB
 							try {
-								await databaseManager.addClaudeSession(
+								await this.#databaseManager.addClaudeSession(
 									newId,
 									s.workspacePath,
 									newId,

@@ -158,11 +158,9 @@
 							>SELECT PROJECT DIRECTORY</label
 						>
 						<DirectoryBrowser
-							id="directory-browser-new"
 							bind:selected={selectedDirectory}
 							api="/api/browse"
 							placeholder="Navigate to your project directory..."
-							aria-labelledby="directory-label-new"
 							onSelect={(path) => {
 								// Extract project name from selected directory
 								const dirName = path.split('/').pop() || 'project';
@@ -180,14 +178,12 @@
 				{:else}
 					<!-- Source selector for existing projects -->
 					<div class="input-group">
-						<label id="project-source-label">PROJECT SOURCE</label>
+						<label id="project-source-label" for="project-source-claude">PROJECT SOURCE</label>
 						<div class="source-selector">
 							<button
+								id="project-source-claude"
 								type="button"
 								class="source-tab {projectSource === 'claude' ? 'active' : ''}"
-								aria-labelledby="project-source-label"
-								aria-pressed={projectSource === 'claude'}
-								role="tab"
 								onclick={() => {
 									projectSource = 'claude';
 									selectedDirectory = null;
@@ -197,11 +193,9 @@
 								CLAUDE PROJECTS
 							</button>
 							<button
+								id="project-source-browse"
 								type="button"
 								class="source-tab {projectSource === 'browse' ? 'active' : ''}"
-								aria-labelledby="project-source-label"
-								aria-pressed={projectSource === 'browse'}
-								role="tab"
 								onclick={() => {
 									projectSource = 'browse';
 									selectedProject = null;
@@ -209,7 +203,7 @@
 								}}
 							>
 								<span class="tab-icon"><IconFolder size={20} /></span>
-								BROWSE DIRECTORIES
+								BROWSE PROJECTS
 							</button>
 						</div>
 					</div>
@@ -220,11 +214,9 @@
 								>SELECT CLAUDE PROJECT</label
 							>
 							<ClaudeProjectPicker
-								id="claude-project-picker"
 								bind:selected={selectedProject}
 								onSelect={handleProjectSelect}
 								api="/api/claude/projects"
-								aria-labelledby="claude-project-label"
 							/>
 						</div>
 
@@ -234,11 +226,9 @@
 									>RESUME SESSION <span class="optional">(OPTIONAL)</span></label
 								>
 								<ClaudeSessionPicker
-									id="claude-session-picker"
 									project={selectedProject.name}
 									bind:selected={selectedSession}
 									apiBase="/api/claude/sessions"
-									aria-labelledby="claude-session-label"
 								/>
 								<div class="hint">
 									Select a previous session to resume or leave empty for new session
@@ -251,11 +241,9 @@
 								>SELECT DIRECTORY</label
 							>
 							<DirectoryBrowser
-								id="directory-browser-existing"
 								bind:selected={selectedDirectory}
 								api="/api/browse"
 								placeholder="Navigate to your project directory..."
-								aria-labelledby="directory-label-existing"
 							/>
 							<div class="hint">Browse and select a directory to start a new Claude session</div>
 						</div>
@@ -391,49 +379,7 @@
 		font-size: 0.7rem;
 	}
 
-	.terminal-input {
-		display: flex;
-		align-items: center;
-		background: var(--bg-dark);
-		border: 1px solid var(--primary-dim);
-		border-radius: 0;
-		padding: 0;
-		font-family: var(--font-mono);
-		transition: border-color 0.2s ease;
-	}
 
-	.terminal-input:focus-within {
-		border-color: var(--primary);
-		box-shadow: 0 0 0 1px var(--primary);
-	}
-
-	.prompt {
-		color: var(--accent-amber);
-		padding: 0.75rem;
-		font-weight: bold;
-		font-size: 1rem;
-		background: rgba(0, 0, 0, 0.3);
-		border-right: 1px solid var(--primary-dim);
-	}
-
-	.terminal-input input {
-		flex: 1;
-		background: transparent;
-		border: none;
-		padding: 0.75rem;
-		color: var(--text);
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-	}
-
-	.terminal-input input:focus {
-		outline: none;
-	}
-
-	.terminal-input input::placeholder {
-		color: var(--text-muted);
-		opacity: 0.7;
-	}
 
 	.hint {
 		font-size: 0.8rem;

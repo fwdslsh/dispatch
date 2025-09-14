@@ -411,25 +411,7 @@
 		height: 100%;
 	}
 
-	.settings-header {
-		border-bottom: 1px solid var(--primary-dim);
-		padding-bottom: var(--space-4);
-	}
-
-	.settings-title {
-		font-family: var(--font-mono);
-		font-size: 1.4rem;
-		color: var(--primary);
-		margin: 0 0 var(--space-2) 0;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.settings-description {
-		color: var(--text-muted);
-		margin: 0;
-		font-size: 0.9rem;
-	}
+       /* Removed duplicate .settings-header, .settings-title, .settings-description selectors (shared with WorkspaceSettings) */
 
 	.auth-content {
 		flex: 1;
@@ -464,13 +446,7 @@
 		background: rgba(255, 187, 0, 0.05);
 	}
 
-	.status-icon.success {
-		color: var(--primary);
-	}
-
-	.status-icon.warning {
-		color: var(--accent-amber);
-	}
+       /* Removed unused .status-icon.success and .status-icon.warning selectors */
 
 	.status-info {
 		flex: 1;

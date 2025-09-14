@@ -1,8 +1,9 @@
 import { json } from '@sveltejs/kit';
 import { validateKey } from '$lib/server/auth.js';
-import { databaseManager } from '$lib/server/db/DatabaseManager.js';
+import { getDatabaseManager } from '$lib/server/db/DatabaseManager.js';
 
 export async function GET({ url }) {
+	const databaseManager = getDatabaseManager();
 	// Get the terminal key from Authorization header or query parameters
 	let key = null;
 	if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
