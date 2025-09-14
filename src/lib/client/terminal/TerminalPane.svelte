@@ -81,13 +81,15 @@
 
 		// Get or create socket for this specific session
 		socket = sessionSocketManager.getSocket(sessionId);
+		console.log('[TERMINAL] Creating socket for session:', sessionId);
 		sessionSocketManager.handleSessionFocus(sessionId);
 
 		socket.on(SOCKET_EVENTS.CONNECTION, () => {
-			console.log('Socket.IO connected');
+			console.log('[TERMINAL] Socket connected for session:', sessionId);
 
 			// Handle user input
 			term.onData((data) => {
+				console.log('[TERMINAL] Sending input for session:', sessionId);
 				socket.emit(SOCKET_EVENTS.TERMINAL_WRITE, { key, id: sessionId, data });
 			});
 
@@ -102,6 +104,7 @@
 			// Send initial enter to trigger prompt (only for new terminals)
 			if (!shouldResume) {
 				setTimeout(() => {
+					console.log('[TERMINAL] Sending initial enter for session:', sessionId);
 					socket.emit(SOCKET_EVENTS.TERMINAL_WRITE, { key, id: sessionId, data: '\r' });
 				}, 200);
 			}
@@ -110,9 +113,14 @@
 		// Listen for terminal data (canonical)
 		socket.on(SOCKET_EVENTS.TERMINAL_OUTPUT, (payload) => {
 			try {
+				console.log('[TERMINAL] Output received for session:', sessionId, payload);
 				const text = typeof payload === 'string' ? payload : payload?.data;
-				if (text) term.write(text);
-			} catch {}
+				if (text) {
+					term.write(text);
+				}
+			} catch (e) {
+				console.error('[TERMINAL] Error handling output:', e);
+			}
 		});
 
 		// Listen for terminal exit (canonical)

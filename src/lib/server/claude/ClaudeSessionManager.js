@@ -96,7 +96,10 @@ export class ClaudeSessionManager {
 	/**
 	 * @param {{ workspacePath: string, options?: object, sessionId?: string, appSessionId?: string }} param0
 	 */
-	async create({ workspacePath, options = {}, sessionId = null, appSessionId = null }) {
+			/**
+			 * @param {{ workspacePath: string, options?: object, sessionId?: string, appSessionId?: string, socket?: any }} param0
+			 */
+			async create({ workspacePath, options = {}, sessionId = null, appSessionId = null, socket = null }) {
 		// Normalize provided Claude session ID if present, otherwise generate a real one now
 		let claudeSessionId = null;
 		if (sessionId) {
@@ -115,19 +118,20 @@ export class ClaudeSessionManager {
 		// Determine if we can actually resume (only when an on-disk conversation exists)
 		let resumeCapable = false;
 
-		/** @type {{ workspacePath: string, sessionId: string|null, resumeCapable: boolean, options: object, appSessionId?: string }} */
-		const sessionData = {
-			workspacePath,
-			sessionId: claudeSessionId,
-			resumeCapable, // true only if resuming an existing on-disk session
-			appSessionId, // Store application session ID for routing
-			options: {
-				...this.defaultOptions,
-				cwd: workspacePath,
-				...options,
-				env: { ...process.env, HOME: process.env.HOME }
-			}
-		};
+		   /** @type {{ workspacePath: string, sessionId: string|null, resumeCapable: boolean, options: object, appSessionId?: string, socket?: any }} */
+		   const sessionData = {
+			   workspacePath,
+			   sessionId: claudeSessionId,
+			   resumeCapable, // true only if resuming an existing on-disk session
+			   appSessionId, // Store application session ID for routing
+			   options: {
+				   ...this.defaultOptions,
+				   cwd: workspacePath,
+				   ...options,
+				   env: { ...process.env, HOME: process.env.HOME }
+			   },
+			   socket: socket || options?.socket // Attach socket if provided
+		   };
 
 		logger.info('Claude', `Creating Claude session ${claudeSessionId} with:`, {
 			workspacePath,
@@ -209,7 +213,7 @@ export class ClaudeSessionManager {
 
 		// Resolve or lazily hydrate a session mapping for this id
 		const { key, session } = await this.#ensureSession(id);
-		/** @type {{ workspacePath: string, sessionId: string, resumeCapable?: boolean, options: object, appSessionId?: string }} */
+		/** @type {{ workspacePath: string, sessionId: string, resumeCapable?: boolean, options: object, appSessionId?: string, socket?: any }} */
 		const s = session;
 		logger.debug('Claude', `Using session ${key} with sessionId ${s.sessionId}`);
 
@@ -255,31 +259,30 @@ export class ClaudeSessionManager {
 			}
 
 			let sawAnyEvent = false;
-			for await (const event of stream) {
-				sawAnyEvent = true;
-				if (event && this.io) {
-					try {
-						this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]);
-					} catch {}
-					// Auto-start OAuth flow if Claude asks user to run /login
-					try {
-						if (
-							event?.type === 'result' &&
-							(event?.is_error || String(event?.subtype || '').toLowerCase() === 'error')
-						) {
-							//HACK: should type these properly
-							// @ts-ignore
-							const msg = String(event?.result || event?.message || '');
-							if (/\bplease\s+run\s+\/login\b/i.test(msg) || msg.includes('/login')) {
-								// this.io is a Socket when set by socket-setup; guard against Server
-								if (this.io && typeof this.io.emit === 'function' && this.io.id) {
-									claudeAuthManager.start(this.io);
-								}
-							}
-						}
-					} catch {}
-				}
-			}
+			   for await (const event of stream) {
+				   sawAnyEvent = true;
+				   if (event && s.socket) {
+					   try {
+						   s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]);
+					   } catch {}
+					   // Auto-start OAuth flow if Claude asks user to run /login
+					   try {
+						   if (
+							   event?.type === 'result' &&
+							   (event?.is_error || String(event?.subtype || '').toLowerCase() === 'error')
+						   ) {
+							   //HACK: should type these properly
+							   // @ts-ignore
+							   const msg = String(event?.result || event?.message || '');
+							   if (/\bplease\s+run\s+\/login\b/i.test(msg) || msg.includes('/login')) {
+								   if (s.socket && typeof s.socket.emit === 'function') {
+									   claudeAuthManager.start(s.socket);
+								   }
+							   }
+						   }
+					   } catch {}
+				   }
+			   }
 
 			// After first response, if we didn't have a concrete Claude session ID, try to detect it now
 			try {
@@ -328,12 +331,12 @@ export class ClaudeSessionManager {
 			} catch {}
 			// Emit a completion event so the session can be marked as idle
 			// Use appSessionId if available, otherwise fall back to the key
-			if (this.io) {
-				const emitSessionId = s.appSessionId || key;
-				try {
-					this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId });
-				} catch {}
-			}
+			   if (s.socket) {
+				   const emitSessionId = s.appSessionId || key;
+				   try {
+					   s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId });
+				   } catch {}
+			   }
 		} catch (error) {
 			logger.error('Claude', `Error in Claude session ${id}:`, error);
 			// If the prompt/history is too long OR resume target missing, retry without resume
@@ -362,20 +365,20 @@ export class ClaudeSessionManager {
 						}
 					});
 
-					for await (const event of fresh) {
-						if (event && this.io) {
-							try {
-								this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]);
-							} catch {}
-						}
-					}
-					// Emit completion event for the fresh query
-					if (this.io) {
-						const emitSessionId = s.appSessionId || key;
-						try {
-							this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId });
-						} catch {}
-					}
+					   for await (const event of fresh) {
+						   if (event && s.socket) {
+							   try {
+								   s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]);
+							   } catch {}
+						   }
+					   }
+					   // Emit completion event for the fresh query
+					   if (s.socket) {
+						   const emitSessionId = s.appSessionId || key;
+						   try {
+							   s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId });
+						   } catch {}
+					   }
 					return;
 				} catch (retryErr) {
 					console.error('Retry without resume failed:', retryErr);

@@ -231,6 +231,7 @@
 			throw new Error('Failed to create terminal session');
 		}
 		const { id } = await r.json();
+		console.log('[WORKSPACE] Terminal session created with ID:', id);
 		const existing = sessions.find((s) => s && s.id === id);
 		if (!existing) {
 			const s = { id, type: 'pty', workspacePath, resumeSession: false };

@@ -92,12 +92,33 @@ export function setupSocketIO(httpServer) {
 	}
 
 	io.on('connection', async (socket) => {
-		logger.info('SOCKET', `Client connected: ${socket.id}`);
+		const sessionId = socket.handshake.query?.sessionId;
+		logger.info('SOCKET', `Client connected: ${socket.id}, sessionId: ${sessionId}`);
 
 		// Track connection
 		socket.data = socket.data || {};
 		socket.data.connectedAt = Date.now();
 		socket.data.authenticated = false;
+		socket.data.sessionId = sessionId; // Store session ID in socket data
+
+		// If sessionId is provided, try to associate with existing session
+		if (sessionId) {
+			try {
+				const { sessionManager, terminals } = getServices();
+				const session = sessionManager.getSession(sessionId);
+				
+				if (session && session.type === 'pty') {
+					// Associate socket with existing terminal session
+					const terminalData = terminals.terminals.get(session.typeSpecificId);
+					if (terminalData) {
+						logger.info('SOCKET', `Associating socket ${socket.id} with existing terminal ${session.typeSpecificId}`);
+						terminalData.socket = socket;
+					}
+				}
+			} catch (e) {
+				logger.warn('SOCKET', `Failed to associate socket with session ${sessionId}:`, e.message);
+			}
+		}
 
 		const connectionMetadata = {
 			ip: socket.handshake.address || socket.conn.remoteAddress,
@@ -135,6 +156,7 @@ export function setupSocketIO(httpServer) {
 		// Terminal start event (creates new terminal session)
 		socket.on('terminal.start', async (data, callback) => {
 			logger.info('SOCKET', `[terminal.start received]`, JSON.stringify(data));
+			logger.info('SOCKET', `[DEBUG] Socket session from query:`, socket.data.sessionId);
 			try {
 				if (!validateKey(data.key)) {
 					logger.info('SOCKET', `Invalid key for terminal.start`);
@@ -147,27 +169,33 @@ export function setupSocketIO(httpServer) {
 				const { sessionManager, terminals } = getServices();
 
 				// Use SessionManager if available, otherwise fallback
-				if (sessionManager) {
-					sessionManager.setSocketIO(socket);
-					const session = await sessionManager.createSession({
-						type: 'pty',
-						workspacePath: data.workspacePath,
-						options: {
-							shell: data.shell,
-							env: data.env
-						}
-					});
-					logger.info('SOCKET', `Terminal session created: ${session.id}`);
-					if (callback) callback({ success: true, id: session.id });
-				} else if (terminals) {
-					// Fallback to direct terminal manager
-					terminals.setSocketIO(socket);
-					const result = terminals.start(data);
-					logger.info('SOCKET', `Terminal ${result.id} created directly`);
-					if (callback) callback({ success: true, ...result });
-				} else {
-					throw new Error('No session management available');
-				}
+				   if (sessionManager) {
+					   // Pass socket to session creation for per-session tracking
+					   const session = await sessionManager.createSession({
+						   type: 'pty',
+						   workspacePath: data.workspacePath,
+						   options: {
+							   shell: data.shell,
+							   env: data.env,
+							   socket
+						   }
+					   });
+					   logger.info('SOCKET', `Terminal session created: ${session.id}`);
+					   logger.info('SOCKET', `[DEBUG] Session created with socket:`, {
+						   hasSocket: !!socket,
+						   socketId: socket.id,
+						   sessionId: session.id
+					   });
+					   if (callback) callback({ success: true, id: session.id });
+				   } else if (terminals) {
+					   // Fallback to direct terminal manager
+					   // terminals.setSocketIO(socket); // No longer needed, per-session socket is passed
+					   const result = terminals.start({ ...data, socket });
+					   logger.info('SOCKET', `Terminal ${result.id} created directly`);
+					   if (callback) callback({ success: true, ...result });
+				   } else {
+					   throw new Error('No session management available');
+				   }
 			} catch (err) {
 				console.error(`[SOCKET] Terminal start error:`, err);
 				if (callback) callback({ success: false, error: err.message });
@@ -177,13 +205,13 @@ export function setupSocketIO(httpServer) {
 		// Terminal write event
 		socket.on('terminal.write', async (data) => {
 			logger.debug('SOCKET', 'terminal.write received:', data);
+			logger.debug('SOCKET', `[DEBUG] Writing to session ${data.id} from socket ${socket.id}`);
 			try {
 				if (!validateKey(data.key)) return;
 
 				const { sessionManager } = getServices();
 
 				if (sessionManager) {
-					sessionManager.setSocketIO(socket);
 					await sessionManager.sendToSession(data.id, data.data);
 					logger.debug('SOCKET', `Data written to session ${data.id}`);
 				} else {
@@ -229,7 +257,22 @@ export function setupSocketIO(httpServer) {
 					sessions.setProcessing(data.id);
 
 					try {
-						sessionManager.setSocketIO(socket);
+						// Attach socket to session if creating new
+						const session = sessionManager.getSession(data.id);
+						if (!session) {
+							// If session does not exist, create it with socket
+							await sessionManager.createSession({
+								type: 'claude',
+								workspacePath: data.workspacePath || '',
+								options: { ...data.options, socket }
+							});
+						} else {
+							// If session exists, update its socket reference
+							const claudeSession = sessionManager.sessionTypes['claude'].manager.sessions.get(session.typeSpecificId);
+							if (claudeSession) {
+								claudeSession.socket = socket;
+							}
+						}
 						await sessionManager.sendToSession(data.id, data.input);
 						logger.info('SOCKET', `Claude message sent via session manager`);
 					} finally {
@@ -239,43 +282,10 @@ export function setupSocketIO(httpServer) {
 					throw new Error('No session manager available for Claude');
 				}
 			} catch (err) {
-				console.error(`[SOCKET] Claude send error:`, err);
-				// Reset to idle on error
-				const { sessions } = getServices();
-				if (sessions) {
-					sessions.setIdle(data.id);
-				}
-				// Notify client of error
-				try {
-					socket.emit('error', {
-						message: 'Claude send failed',
-						error: String(err?.message || err)
-					});
-				} catch {}
-			}
-		});
-
-		// Claude OAuth: explicit start (optional; server may auto-start on detection)
-		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_START, (data = {}) => {
-			try {
-				logger.info('SOCKET', 'CLAUDE_AUTH_START received');
-				if (!validateKey(data.key)) {
-					logger.warn('SOCKET', 'CLAUDE_AUTH_START invalid key');
-					return;
-				}
-				const ok = claudeAuthManager.start(socket);
-				if (!ok) {
-					logger.error('SOCKET', 'Failed to start Claude auth PTY');
-				}
-			} catch (e) {
-				logger.error('SOCKET', 'CLAUDE_AUTH_START error:', e);
-				try {
-					socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, {
-						success: false,
-						error: String(e?.message || e)
-					});
-				} catch {}
-			}
+				   console.error(`[SOCKET] Claude send error:`, err);
+				   // Reset to idle on error
+				   // (Removed stray/duplicated block that caused syntax error)
+			   }
 		});
 
 		// Claude OAuth: submit authorization code

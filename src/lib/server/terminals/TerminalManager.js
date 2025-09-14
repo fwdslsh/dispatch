@@ -62,13 +62,24 @@ export class TerminalManager {
     }
 
     // Async method to actually start the terminal
+    /**
+     * @param {object} opts
+     * @param {string} opts.workspacePath
+     * @param {string} [opts.shell]
+     * @param {object} [opts.env]
+     * @param {boolean} [opts.resume]
+     * @param {string} [opts.terminalId]
+     * @param {string} [opts.appSessionId]
+     * @param {any} [opts.socket]
+     */
     async startAsync({
         workspacePath,
         shell,
         env,
         resume,
         terminalId,
-        appSessionId
+        appSessionId,
+        socket
     }) {
         shell = shell || process.env.SHELL || 'bash';
         env = env || {};
@@ -99,19 +110,31 @@ export class TerminalManager {
         this.terminals.set(id, {
             term,
             workspacePath,
-            socket: this.io,
+            socket: socket || this.io,
             history: '',
             appSessionId // Store application session ID for routing
+        });
+
+        logger.info('TERMINAL', `Terminal ${id} created successfully`);
+        logger.debug('TERMINAL', `Terminal ${id} socket info:`, {
+            hasSocket: !!(socket || this.io),
+            socketType: socket ? 'per-session' : 'global',
+            socketConnected: socket ? socket.connected : 'N/A'
         });
 
         term.onData((data) => {
             const terminalData = this.terminals.get(id);
             if (terminalData && terminalData.socket) {
                 try {
+                    logger.debug('TERMINAL', `Emitting output to socket for terminal ${id}`);
                     terminalData.socket.emit(SOCKET_EVENTS.TERMINAL_OUTPUT, { sessionId: id, data });
-                } catch {}
+                } catch (e) {
+                    logger.error('TERMINAL', `Error emitting terminal output:`, e);
+                }
                 // Save to history
                 this.saveTerminalHistory(id, data);
+            } else {
+                logger.debug('TERMINAL', `No socket available for terminal ${id} - data will be lost`);
             }
         });
 
@@ -141,6 +164,7 @@ export class TerminalManager {
             );
             return;
         }
+        logger.debug('TERMINAL', `[DEBUG] Writing to terminal ${id}:`, data);
         terminal.term.write(data);
         // Save user input to history too
         this.saveTerminalHistory(id, data);
