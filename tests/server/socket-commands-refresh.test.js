@@ -15,7 +15,7 @@ vi.mock('../../src/lib/server/utils/logger.js', () => ({
 	}
 }));
 
-describe('Socket.IO Commands Refresh Handler', () => {
+	describe('Socket.IO Claude Commands Refresh Handler', () => {
 	let mockServices;
 	let commandsRefreshHandler;
 
@@ -32,10 +32,10 @@ describe('Socket.IO Commands Refresh Handler', () => {
 		// Mock global services
 		globalThis.__API_SERVICES = mockServices;
 
-		// Define the commands.refresh handler logic (extracted from socket-setup.js)
+		// Define the claude.commands.refresh handler logic (extracted from socket-setup.js)
 		commandsRefreshHandler = async (data, callback) => {
 			const { logger } = await import('../../src/lib/server/utils/logger.js');
-			logger.debug('SOCKET', 'commands.refresh received:', data);
+			logger.debug('SOCKET', 'claude.commands.refresh received:', data);
 			try {
 				if (!mockValidateKey(data.key)) {
 					if (callback) callback({ success: false, error: 'Invalid key' });

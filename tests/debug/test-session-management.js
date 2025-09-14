@@ -107,7 +107,7 @@ async function testSocketConnection(sessionId, type) {
 					input: 'What is my current working directory? Please use pwd command to show me.'
 				});
 
-				socket.on('message.delta', (data) => {
+				socket.on('claude.message.delta', (data) => {
 					console.log('📤 Claude response received:', data);
 				});
 

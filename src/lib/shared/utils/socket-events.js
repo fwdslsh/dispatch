@@ -34,12 +34,18 @@ export const SOCKET_EVENTS = {
 	CLAUDE_MESSAGE_COMPLETE: 'claude.message.complete',
 	CLAUDE_ERROR: 'claude.error',
 	CLAUDE_TOOLS_AVAILABLE: 'claude.tools.available',
+	// Commands refresh
+	CLAUDE_COMMANDS_REFRESH: 'claude.commands.refresh',
 
 	// Terminal events
 	TERMINAL_INPUT: 'terminal.input',
+	// Terminal events (canonical)
 	TERMINAL_OUTPUT: 'terminal.output',
 	TERMINAL_RESIZE: 'terminal.resize',
 	TERMINAL_ERROR: 'terminal.error',
+	TERMINAL_EXIT: 'terminal.exit',
+	// Terminal input
+	TERMINAL_WRITE: 'terminal.write',
 
 	// Workspace events
 	WORKSPACE_LIST: 'workspace.list',
@@ -54,9 +60,7 @@ export const SOCKET_EVENTS = {
 	GET_PUBLIC_URL: 'get-public-url',
 	PUBLIC_URL_RESPONSE: 'public-url-response',
 
-	// Legacy events (for backwards compatibility)
-	MESSAGE_DELTA: 'message.delta',
-	MESSAGE_COMPLETE: 'message.complete'
+    // No legacy event constants after Phase 5
 };
 
 // Event name aliases for common patterns
@@ -84,8 +88,6 @@ export const SESSION_EVENTS = {
 
 export const CLAUDE_EVENTS = {
 	SEND: SOCKET_EVENTS.CLAUDE_SEND,
-	MESSAGE_DELTA: SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA,
-	MESSAGE_COMPLETE: SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE,
 	ERROR: SOCKET_EVENTS.CLAUDE_ERROR,
 	TOOLS_AVAILABLE: SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE
 };

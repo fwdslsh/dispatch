@@ -28,7 +28,7 @@ async function testCommandRefresh() {
     console.log('Session created:', sessionData);
 
     const sessionId = sessionData.id;
-    const claudeId = sessionData.claudeId;
+    const claudeId = sessionData.typeSpecificId;
 
     // Connect to Socket.IO
     console.log('\n2. Connecting to Socket.IO...');
@@ -40,9 +40,9 @@ async function testCommandRefresh() {
         socket.on('connect', () => {
             console.log('Connected to Socket.IO, id:', socket.id);
 
-            // Listen for tools.list events
-            socket.on('tools.list', (data) => {
-                console.log('\n📥 Received tools.list event:', {
+            // Listen for tools.available events
+            socket.on('claude.tools.available', (data) => {
+                console.log('\n📥 Received claude.tools.available event:', {
                     sessionId: data.sessionId,
                     commandCount: data.commands?.length || 0,
                     firstCommand: data.commands?.[0]
@@ -50,16 +50,16 @@ async function testCommandRefresh() {
             });
 
             // Test 1: Request commands for a non-existent session
-            console.log('\n3. Testing commands.refresh for non-existent session...');
-            socket.emit('commands.refresh', {
+            console.log('\n3. Testing claude.commands.refresh for non-existent session...');
+            socket.emit('claude.commands.refresh', {
                 key: TERMINAL_KEY,
                 sessionId: 'non-existent-session'
             }, (response) => {
                 console.log('Response for non-existent session:', response);
 
                 // Test 2: Request commands for our created session
-                console.log('\n4. Testing commands.refresh for our session...');
-                socket.emit('commands.refresh', {
+                console.log('\n4. Testing claude.commands.refresh for our session...');
+                socket.emit('claude.commands.refresh', {
                     key: TERMINAL_KEY,
                     sessionId: sessionId
                 }, (response) => {
@@ -82,8 +82,8 @@ async function testCommandRefresh() {
 
                     // Test 3: Try with Claude session ID instead
                     if (claudeId) {
-                        console.log('\n5. Testing commands.refresh with Claude ID...');
-                        socket.emit('commands.refresh', {
+                        console.log('\n5. Testing claude.commands.refresh with Claude ID...');
+                        socket.emit('claude.commands.refresh', {
                             key: TERMINAL_KEY,
                             sessionId: claudeId
                         }, (response2) => {

@@ -22,8 +22,8 @@ All Claude sessions were appearing to be in a "thinking" state with the send but
 
 - **Don't Auto-Set Waiting State**: Removed automatic `isWaitingForReply = true` when resuming sessions
 - **Check Backend State**: Added call to `sessionSocketManager.checkForPendingMessages()` to query actual session state
-- **Handle Completion Events**: Added listener for `message.complete` event to properly clear waiting state
-- **Clear State on Results**: Ensure `result` events in message.delta also clear the waiting state
+- **Handle Completion Events**: Added listener for `claude.message.complete` event to properly clear waiting state
+- **Clear State on Results**: Ensure `result` events in `claude.message.delta` also clear the waiting state
 
 ### 2. Backend Activity Tracking (SessionRouter.js)
 
@@ -33,12 +33,12 @@ All Claude sessions were appearing to be in a "thinking" state with the send but
 ### 3. Socket Communication (socket-setup.js)
 
 - **Session Status Event**: Added `session.status` event handler to check session activity state
-- **Completion Events**: Emit `message.complete` events when Claude messages finish processing
+- **Completion Events**: Emit `claude.message.complete` events when Claude messages finish processing
 - **State Synchronization**: Properly set session states during processing
 
 ### 4. Session Manager Updates (ClaudeSessionManager.js)
 
-- **Emit Completion Events**: Added `message.complete` emission after stream completion
+- **Emit Completion Events**: Added `claude.message.complete` emission after stream completion
 - **Consistent Completion**: Ensure completion events are emitted for both normal and retry flows
 
 ## Key Changes
@@ -75,12 +75,12 @@ socket.on('session.status', (data, callback) => {
 // Emit completion after processing
 for await (const event of stream) {
 	if (event && this.io) {
-		this.io.emit('message.delta', [event]);
+		this.io.emit('claude.message.delta', [event]);
 	}
 }
 // New: Emit completion event
 if (this.io) {
-	this.io.emit('message.complete', { sessionId: key });
+	this.io.emit('claude.message.complete', { sessionId: key });
 }
 ```
 

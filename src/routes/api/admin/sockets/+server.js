@@ -2,11 +2,19 @@ import { json } from '@sveltejs/kit';
 import { validateKey } from '$lib/server/auth.js';
 
 export async function GET({ url }) {
-	const key = url.searchParams.get('key');
-
-	if (!validateKey(key)) {
-		return json({ error: 'Invalid authentication key' }, { status: 401 });
-	}
+       let key = null;
+       if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
+	       const auth = arguments[0].request.headers.get('authorization');
+	       if (auth && auth.startsWith('Bearer ')) {
+		       key = auth.slice(7);
+	       }
+       }
+       if (!key) {
+	       key = url.searchParams.get('key');
+       }
+       if (!validateKey(key)) {
+	       return json({ error: 'Invalid authentication key' }, { status: 401 });
+       }
 
 	try {
 		// Get the Socket.IO instance from global state

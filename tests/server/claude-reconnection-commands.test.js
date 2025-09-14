@@ -132,7 +132,7 @@ describe('ClaudeSessionManager - Reconnection Command Discovery', () => {
 			const result = await manager.refreshCommands(sessionId);
 
 			// Should use cached commands without fetching
-			expect(mockIO.emit).toHaveBeenCalledWith('tools.list', {
+			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
 				sessionId: sessionId,
 				commands: cachedCommands
 			});
@@ -173,7 +173,7 @@ describe('ClaudeSessionManager - Reconnection Command Discovery', () => {
 
 			// Should fetch fresh commands and emit them
 			expect(mockQuery.supportedCommands).toHaveBeenCalled();
-			expect(mockIO.emit).toHaveBeenCalledWith('tools.list', {
+			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
 				sessionId: sessionId,
 				commands: freshCommands
 			});
@@ -203,11 +203,11 @@ describe('ClaudeSessionManager - Reconnection Command Discovery', () => {
 			const result = await manager.refreshCommands(claudeSessionId);
 
 			// Should emit to both Claude and app session IDs
-			expect(mockIO.emit).toHaveBeenCalledWith('tools.list', {
+			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
 				sessionId: claudeSessionId,
 				commands: commands
 			});
-			expect(mockIO.emit).toHaveBeenCalledWith('tools.list', {
+			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
 				sessionId: appSessionId,
 				commands: commands
 			});

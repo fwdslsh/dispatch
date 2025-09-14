@@ -56,7 +56,7 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 	});
 
 	describe('_fetchAndEmitSupportedCommands session ID routing', () => {
-		it('should emit tools.list with Claude session ID when no app session ID provided', async () => {
+		it('should emit claude.tools.available with Claude session ID when no app session ID provided', async () => {
 			const claudeSessionId = '123';
 			const sessionData = {
 				workspacePath: '/test/workspace',
@@ -75,13 +75,13 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 
 			await manager._fetchAndEmitSupportedCommands(claudeSessionId, sessionData);
 
-			expect(mockIO.emit).toHaveBeenCalledWith('tools.list', {
+			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
 				sessionId: claudeSessionId,
 				commands: ['clear', 'compact']
 			});
 		});
 
-		it('should emit tools.list with app session ID when provided', async () => {
+		it('should emit claude.tools.available with app session ID when provided', async () => {
 			const claudeSessionId = '123';
 			const appSessionId = 'app-session-456';
 			const sessionData = {
@@ -102,7 +102,7 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 
 			await manager._fetchAndEmitSupportedCommands(claudeSessionId, sessionData);
 
-			expect(mockIO.emit).toHaveBeenCalledWith('tools.list', {
+			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
 				sessionId: appSessionId, // Should use appSessionId, not claudeSessionId
 				commands: ['clear', 'compact']
 			});
@@ -181,12 +181,12 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 
 			await manager._fetchAndEmitSupportedCommands(claudeSessionId, sessionData);
 
-			// Should emit tools.list for both sessions
-			expect(mockIO.emit).toHaveBeenCalledWith('tools.list', {
+			// Should emit tools.available for both sessions
+			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
 				sessionId: claudeSessionId,
 				commands: ['clear', 'compact']
 			});
-			expect(mockIO.emit).toHaveBeenCalledWith('tools.list', {
+			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
 				sessionId: appSessionId,
 				commands: ['clear', 'compact']
 			});
@@ -201,7 +201,7 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 				availableCommands: ['clear', 'compact']
 			});
 
-			expect(mockIO.emit).toHaveBeenCalledTimes(4); // 2 tools.list + 2 session.status
+			expect(mockIO.emit).toHaveBeenCalledTimes(4); // 2 tools.available + 2 session.status
 		});
 	});
 

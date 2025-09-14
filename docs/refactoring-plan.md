@@ -16,7 +16,7 @@ This plan proposes targeted refactors to improve maintainability, consistency, a
 - Monolithic UI component: `src/lib/components/ClaudePane.svelte` (>1,000 lines) mixes socket, data, and presentation concerns.
 - Event names and error handling are inconsistent; many silent catch blocks and heavy console noise.
 - Inconsistent path roots for Claude projects; multiple candidate roots hardcoded across files.
-- Public URL UI emits `get-public-url` with no matching server handler.
+- Public URL handler implemented (`get-public-url`).
 - Docs/CLI mismatch: docs reference `bin/dispatch-cli.js`, package exposes `bin/cli.js`.
 
 ---
@@ -27,7 +27,7 @@ Scope: remove duplicated hydration/resume logic and centralize session state + a
 
 - Consolidate hydration and resume into `ClaudeSessionManager` only.
   - Replace the ad‑hoc `directResume()` in `src/lib/server/socket-setup.js:190` with calls to `ClaudeSessionManager.#ensureSession()` and `send()`.
-  - Normalize accepted IDs to a single canonical key form (`claude_<uuid>`), with helper methods for extracting/normalizing.
+  - Use unified app `sessionId` (UUID) for routing and track per-type `typeSpecificId` (e.g., Claude JSONL id); normalize/hydrate in `ClaudeSessionManager`.
 
 - Standardize projects root resolution in one place.
   - Use `src/lib/server/claude/cc-root.js` from all consumers. Remove/replace candidate arrays in:
@@ -40,7 +40,7 @@ Scope: remove duplicated hydration/resume logic and centralize session state + a
 
 - Standardize Socket.IO event names and emission helpers.
   - Add `src/lib/server/utils/events.js` exporting string constants and small emit helpers (e.g., `emitMessageDelta`, `emitComplete`, `emitError`).
-  - Replace string literals in `ClaudeSessionManager.send()` and `socket-setup.js`.
+  - Replace string literals in `ClaudeSessionManager.send()` and `socket-setup.js` (DONE).
 
 Acceptance criteria
 
@@ -69,7 +69,7 @@ Acceptance criteria
 
 - All path computations for Claude sessions go through `cc-root.js`.
 - Server logs are controllable via env and reduced in production.
-- `PublicUrlDisplay` shows the URL when `ENABLE_TUNNEL=true` without code changes.
+  - `PublicUrlDisplay` shows the URL when `ENABLE_TUNNEL=true` without code changes (DONE).
 
 ---
 
@@ -195,8 +195,8 @@ Acceptance criteria
 
 - [TRIAGED → ISSUE TBD] **Implement `get-public-url` in `socket-setup.js`** and wire to `PublicUrlDisplay`.
   - Priority: High (missing handler confirmed - PublicUrlDisplay emits but no server handler)
-- [TRIAGED → ISSUE TBD] **Replace magic strings for events** with constants file (`socket-events.js`).
-  - Priority: Medium (no constants file currently exists)
+- [DONE] **Replace magic strings for events** with constants (`utils/events.js`, `shared/utils/socket-events.js`).
+  - Priority: Medium (completed)
 - [TRIAGED → ISSUE TBD] **Add `clickOutside` action** and use it in `CommandMenu` to remove document‑level listeners (safer, testable).
   - Priority: Medium (safer event handling)
 - [TRIAGED → ISSUE TBD] **Reduce log noise** behind `DISPATCH_LOG_LEVEL` gate.
@@ -207,7 +207,7 @@ Acceptance criteria
 ## Risk Mitigation
 
 - Keep behavior‑preserving refactors small and incremental; wire new utilities and keep old code paths until covered by tests, then remove.
-- Add E2E probes where UI depends on event timing (e.g., `message.complete`, resume flows).
+- Add E2E probes where UI depends on event timing (e.g., `claude.message.complete`, resume flows).
 - Do not alter Anthropic SDK usage semantics; isolate changes to composition and error handling.
 
 ---

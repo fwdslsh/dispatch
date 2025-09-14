@@ -7,10 +7,10 @@
 
 	// Props
 	let {
-		selectedProject = $bindable(),
+		selectedWorkspace = $bindable(),
 		selectedSession = $bindable(),
 		storagePrefix,
-		onProjectSelected,
+		onWorkspaceSelected,
 		onSessionSelected,
 		onNewSession
 	} = $props();
@@ -19,7 +19,7 @@
 	let sessionType = $state('claude');
 	let activeSessions = $state([]);
 	let previousSessions = $state([]);
-	let selectedWorkspace = $state('');
+let selectedDirectory = $state('');
 	let showDirectoryPicker = $state(false);
 	let loading = $state(false);
 	let error = $state(null);
@@ -70,10 +70,10 @@
 	}
 
 	// Handle directory selection
-	function handleDirectorySelect(path) {
-		selectedWorkspace = path;
-		showDirectoryPicker = false;
-	}
+function handleDirectorySelect(path) {
+	selectedDirectory = path;
+	showDirectoryPicker = false;
+}
 
 	// Format path for display
 	function formatPath(path) {
@@ -87,10 +87,10 @@
 
 	// Create new session
 	async function createSession() {
-		if (!selectedWorkspace) {
-			error = 'Please select a workspace first';
-			return;
-		}
+    if (!selectedDirectory) {
+		error = 'Please select a workspace first';
+		return;
+	}
 
 		loading = true;
 		error = null;
@@ -100,7 +100,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					type: sessionType,
-					workspacePath: selectedWorkspace,
+					workspacePath: selectedDirectory,
 					options: {}
 				})
 			});
@@ -188,8 +188,8 @@
 					</label>
 				</div>
 				<DirectoryBrowser
-					bind:selected={selectedWorkspace}
-					startPath={selectedWorkspace || ''}
+					bind:selected={selectedDirectory}
+					startPath={selectedDirectory || ''}
 					onSelect={handleDirectorySelect}
 				/>
 				<div class="picker-actions">
@@ -271,7 +271,7 @@
 					disabled={loading}
 					class="directory-button"
 				>
-					<span class="directory-path">{formatPath(selectedWorkspace)}</span>
+					<span class="directory-path">{formatPath(selectedDirectory)}</span>
 					<IconChevronDown size={16} />
 				</Button>
 			</div>
@@ -279,7 +279,7 @@
 				variant="primary"
 				augmented="tl-clip br-clip both"
 				onclick={createSession}
-				disabled={loading || !selectedWorkspace}
+				disabled={loading || !selectedDirectory}
 				{loading}
 			>
 				{#snippet icon()}

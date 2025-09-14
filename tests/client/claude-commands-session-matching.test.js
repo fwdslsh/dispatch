@@ -10,7 +10,7 @@ describe('ClaudeCommands Session ID Matching - Real-world Integration', () => {
 			const clientSessionId = 'app-session-123';
 			const clientClaudeSessionId = 'claude_456';
 
-			// Server emits tools.list with numeric Claude session ID
+			// Server emits tools.available with numeric Claude session ID
 			const serverPayload = {
 				sessionId: 456,
 				commands: ['clear', 'help', 'status']
@@ -25,7 +25,7 @@ describe('ClaudeCommands Session ID Matching - Real-world Integration', () => {
 			const clientSessionId = 'app-session-789';
 			const clientClaudeSessionId = 'claude_101';
 
-			// Server emits tools.list with app session ID
+			// Server emits tools.available with app session ID
 			const serverPayload = {
 				sessionId: 'app-session-789',
 				commands: ['compact', 'analyze']
@@ -176,7 +176,7 @@ describe('ClaudeCommands Session ID Matching - Real-world Integration', () => {
 			const sessionId = 'app-session-test';
 			const claudeSessionId = 'claude_test';
 
-			// Mock tools.list payload scenarios
+			// Mock tools.available payload scenarios
 			const testCases = [
 				{
 					name: 'App session ID match',
@@ -207,7 +207,7 @@ describe('ClaudeCommands Session ID Matching - Real-world Integration', () => {
 		});
 
 		it('should handle session.status response matching', () => {
-			// Similar to tools.list, session.status responses should also be filtered
+			// Similar to tools.available, session.status responses should also be filtered
 			// though the current implementation queries specific sessions
 
 			const sessionId = 'query-session';
@@ -222,7 +222,7 @@ describe('ClaudeCommands Session ID Matching - Real-world Integration', () => {
 			};
 
 			// For session.status, the client queries a specific session so the response
-			// should match the query. This is a different pattern than tools.list events.
+			// should match the query. This is a different pattern than tools.available events.
 			expect(statusResponse.sessionId).toBe(sessionId);
 		});
 	});

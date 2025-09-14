@@ -18,7 +18,7 @@
 	};
 
 	// Selection bindings fed from the extracted component
-	let selectedProject = $state(null);
+let selectedWorkspace = $state(null);
 	let selectedSession = $state(null);
 	let error = $state(null);
 	let menuRef;
@@ -78,7 +78,7 @@
 			const data = await response.json();
 
 			// Select the newly created session
-			selectedProject = workspacePath;
+			selectedWorkspace = workspacePath;
 			selectedSession = data.sessionId || sessionId;
 
 			// Refresh the menu to show the new session
@@ -114,7 +114,7 @@
 			const data = await response.json();
 
 			// Select the newly created session
-			selectedProject = workspacePath;
+			selectedWorkspace = workspacePath;
 			selectedSession = data.sessionId;
 
 			// Refresh the menu to show the new session
@@ -238,7 +238,7 @@
 			>
 				<ProjectSessionMenuSimplifiedSimplified
 					bind:this={menuRef}
-					bind:selectedProject
+					bind:selectedWorkspace
 					bind:selectedSession
 					storagePrefix="dispatch-testing"
 					onSessionSelected={() => closeSidebarAndSelect()}
@@ -259,7 +259,7 @@
 					<div class="claude-header">
 						<h2>Claude Session</h2>
 						<div class="session-info-header">
-							<span class="project-name">{cleanProjectName(selectedProject)}</span>
+							<span class="project-name">{cleanProjectName(selectedWorkspace)}</span>
 							<span class="session-id-full">{selectedSession}</span>
 						</div>
 					</div>
@@ -269,8 +269,8 @@
 								sessionId={selectedSession}
 								claudeSessionId={selectedSession}
 								shouldResume={true}
-								workspacePath={selectedProject
-									? selectedProject.replace(/^home--/, '/home/').replace(/--/g, '/')
+								workspacePath={selectedWorkspace
+									? selectedWorkspace.replace(/^home--/, '/home/').replace(/--/g, '/')
 									: ''}
 							/>
 						{/key}

@@ -28,7 +28,7 @@ async function test() {
     console.log('Session created:', sessionData);
 
     const sessionId = sessionData.id;
-    const claudeId = sessionData.claudeId;
+    const claudeId = sessionData.typeSpecificId;
 
     // Connect to Socket.IO
     console.log('\n2. Connecting to Socket.IO...');
@@ -38,9 +38,9 @@ async function test() {
         socket.on('connect', () => {
             console.log('Connected to Socket.IO, id:', socket.id);
 
-            // Listen for tools.list events
-            socket.on('tools.list', (data) => {
-                console.log('\n📥 Received tools.list event:');
+            // Listen for tools.available events
+            socket.on('claude.tools.available', (data) => {
+                console.log('\n📥 Received claude.tools.available event:');
                 console.log('  Session ID:', data.sessionId);
                 console.log('  Command count:', data.commands?.length || 0);
                 console.log('  Sample commands:', data.commands?.slice(0, 3).map(c => c.name || c.title || c));
@@ -49,7 +49,7 @@ async function test() {
             // Wait a bit for any automatic events, then trigger a refresh
             setTimeout(() => {
                 console.log('\n3. Manually triggering command refresh...');
-                socket.emit('commands.refresh', {
+                socket.emit('claude.commands.refresh', {
                     key: TERMINAL_KEY,
                     sessionId: sessionId
                 }, (response) => {

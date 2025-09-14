@@ -1,3 +1,4 @@
+
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { io } from 'socket.io-client';
@@ -19,7 +20,11 @@
 			}
 		};
 	});
-
+// Helper to get Authorization header from localStorage
+function getAuthHeaders() {
+	const key = typeof localStorage !== 'undefined' ? localStorage.getItem('dispatch-auth-key') : null;
+	return key ? { 'Authorization': `Bearer ${key}` } : {};
+}
 	function initializeAdminConsole() {
 		// Initialize Socket.IO connection for admin features
 		socket = io();
@@ -45,7 +50,7 @@
 
 	async function loadActiveSockets() {
 		try {
-			const response = await fetch('/api/admin/sockets');
+			   const response = await fetch('/api/admin/sockets', { headers: getAuthHeaders() });
 			if (response.ok) {
 				const data = await response.json();
 				activeSockets = data.sockets || [];
@@ -57,7 +62,12 @@
 
 	async function loadServerLogs() {
 		try {
-			const response = await fetch('/api/admin/logs');
+	       // Add ?key=test in dev mode for API auth
+	       let logsUrl = '/api/admin/logs';
+	       if (import.meta.env && import.meta.env.DEV) {
+		       logsUrl += '?key=test';
+	       }
+			   const response = await fetch(logsUrl, { headers: getAuthHeaders() });
 			if (response.ok) {
 				const data = await response.json();
 				serverLogs = data.logs || [];
@@ -69,7 +79,7 @@
 
 	async function loadSocketHistories() {
 		try {
-			const response = await fetch('/api/admin/history');
+			   const response = await fetch('/api/admin/history', { headers: getAuthHeaders() });
 			if (response.ok) {
 				const data = await response.json();
 				socketHistories = data.histories || [];
@@ -81,7 +91,7 @@
 
 	async function loadSocketHistory(socketId) {
 		try {
-			const response = await fetch(`/api/admin/history/${socketId}`);
+			   const response = await fetch(`/api/admin/history/${socketId}`, { headers: getAuthHeaders() });
 			if (response.ok) {
 				const data = await response.json();
 				selectedHistory = data.history;
@@ -101,12 +111,13 @@
 		}
 
 		try {
-			const response = await fetch(`/api/admin/sockets/${socketId}/disconnect`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
+	       const response = await fetch(`/api/admin/sockets/${socketId}/disconnect`, {
+		       method: 'POST',
+		       headers: {
+			       ...getAuthHeaders(),
+			       'Content-Type': 'application/json'
+		       }
+	       });
 
 			if (response.ok) {
 				// Remove from local list immediately
@@ -449,30 +460,30 @@
 										</div>
 
 										<div class="history-card-details stack">
-											<div class="detail-row">
-												<span class="label muted">Last Modified:</span>
-												<span class="value">{formatTimestamp(history.lastModified)}</span>
-											</div>
-											<div class="detail-row">
-												<span class="label muted">Events:</span>
-												<span class="value">{history.eventCount}</span>
-											</div>
-											<div class="detail-row">
-												<span class="label muted">File Size:</span>
-												<span class="value">{formatFileSize(history.size)}</span>
-											</div>
-											{#if history.metadata.sessionType}
-												<div class="detail-row">
-													<span class="label muted">Type:</span>
-													<span class="badge">{history.metadata.sessionType}</span>
-												</div>
-											{/if}
-											{#if history.metadata.ip}
-												<div class="detail-row">
-													<span class="label muted">IP:</span>
-													<span class="value">{history.metadata.ip}</span>
-												</div>
-											{/if}
+										   <div class="detail-row">
+											   <span class="label muted">Created:</span>
+											   <span class="value">{formatTimestamp(history.createdAt)}</span>
+										   </div>
+										   <div class="detail-row">
+											   <span class="label muted">Last Updated:</span>
+											   <span class="value">{formatTimestamp(history.updatedAt)}</span>
+										   </div>
+										   <div class="detail-row">
+											   <span class="label muted">Last Event:</span>
+											   <span class="value">{history.lastEventTime ? formatTimestamp(history.lastEventTime) : '—'}</span>
+										   </div>
+										   <div class="detail-row">
+											   <span class="label muted">Events:</span>
+											   <span class="value">{history.eventCount}</span>
+										   </div>
+										   <div class="detail-row">
+											   <span class="label muted">IP:</span>
+											   <span class="value">{history.metadata?.ip || '—'}</span>
+										   </div>
+										   <div class="detail-row">
+											   <span class="label muted">User Agent:</span>
+											   <span class="value">{history.metadata?.userAgent || '—'}</span>
+										   </div>
 										</div>
 
 										<div class="history-card-actions">

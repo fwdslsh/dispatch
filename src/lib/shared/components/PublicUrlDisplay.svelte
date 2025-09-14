@@ -1,5 +1,6 @@
 <script>
-	import { io } from 'socket.io-client';
+import { io } from 'socket.io-client';
+import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 
 	let publicUrl = $state(null);
 	let socket = null; // Not reactive - doesn't need to be
@@ -7,14 +8,14 @@
 
 	function connectSocket() {
 		socket = io({ transports: ['websocket', 'polling'] }); // This is correct for direct socket usage
-		socket.on('connect', () => {
+		socket.on(SOCKET_EVENTS.CONNECTION, () => {
 			pollPublicUrl();
 		});
 	}
 
 	function pollPublicUrl() {
 		if (socket) {
-			socket.emit('get-public-url', (resp) => {
+			socket.emit(SOCKET_EVENTS.GET_PUBLIC_URL, (resp) => {
 				if (resp.ok) {
 					publicUrl = resp.url;
 				}

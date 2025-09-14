@@ -52,13 +52,12 @@
 
 			if (response.ok) {
 				const session = await response.json();
-				dispatch('created', {
-					id: session.id,
-					type: sessionType,
-					workspacePath,
-					terminalId: session.terminalId,
-					claudeId: session.claudeId
-				});
+					dispatch('created', {
+						id: session.id,
+						type: sessionType,
+						workspacePath,
+						typeSpecificId: session.typeSpecificId
+					});
 				open = false;
 			} else {
 				const errorText = await response.text();

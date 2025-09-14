@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 
 /**
  * @typedef {Object} SocketMetadata
@@ -58,7 +59,7 @@ class SessionSocketManager {
 			isActive: false
 		});
 
-		socket.on('connect', () => {
+		socket.on(SOCKET_EVENTS.CONNECTION, () => {
 			console.log(`Socket connected for session ${sessionId}`);
 			const metadata = this.socketMetadata.get(socket);
 			if (metadata) {
@@ -66,7 +67,7 @@ class SessionSocketManager {
 			}
 		});
 
-		socket.on('disconnect', (reason) => {
+		socket.on(SOCKET_EVENTS.DISCONNECT, (reason) => {
 			console.log(`Socket disconnected for session ${sessionId}:`, reason);
 			const metadata = this.socketMetadata.get(socket);
 			if (metadata) {
@@ -74,16 +75,16 @@ class SessionSocketManager {
 			}
 		});
 
-		socket.on('error', (error) => {
+		socket.on(SOCKET_EVENTS.ERROR, (error) => {
 			console.error(`Socket error for session ${sessionId}:`, error);
 		});
 
 		// Add reconnection attempt handler
-		socket.on('reconnect_attempt', (attemptNumber) => {
+		socket.on(SOCKET_EVENTS.RECONNECT_ATTEMPT, (attemptNumber) => {
 			console.log(`Socket reconnection attempt ${attemptNumber} for session ${sessionId}`);
 		});
 
-		socket.on('reconnect', (attemptNumber) => {
+		socket.on(SOCKET_EVENTS.RECONNECT, (attemptNumber) => {
 			console.log(
 				`Socket successfully reconnected for session ${sessionId} after ${attemptNumber} attempts`
 			);
@@ -206,11 +207,11 @@ class SessionSocketManager {
 				// Emit a catch-up event to request any missed messages
 				// This is useful for active sessions that might have been processing
 				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-				socket.emit('session.catchup', {
-					key,
-					sessionId,
-					timestamp: Date.now()
-				});
+			socket.emit(SOCKET_EVENTS.SESSION_CATCHUP, {
+				key,
+				sessionId,
+				timestamp: Date.now()
+			});
 			} else if (socket.connecting) {
 				console.log(`Session ${sessionId} gained focus and socket is connecting...`);
 			}
@@ -227,7 +228,7 @@ class SessionSocketManager {
 		if (socket && socket.connected) {
 			return new Promise((resolve) => {
 				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-				socket.emit('session.status', { key, sessionId }, (response) => {
+			socket.emit(SOCKET_EVENTS.SESSION_STATUS, { key, sessionId }, (response) => {
 					resolve(response?.hasPendingMessages || false);
 				});
 			});

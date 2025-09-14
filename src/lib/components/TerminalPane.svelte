@@ -2,21 +2,22 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { Terminal } from '@xterm/xterm';
 	import { FitAddon } from '@xterm/addon-fit';
-	import sessionSocketManager from './SessionSocketManager.js';
+import sessionSocketManager from './SessionSocketManager.js';
+import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 	import '@xterm/xterm/css/xterm.css';
 
-	let { ptyId, shouldResume = false, workspacePath = null } = $props();
+	let { sessionId, shouldResume = false, workspacePath = null } = $props();
 	let socket, term, el;
 
 	async function loadTerminalHistory() {
-		if (!shouldResume || !ptyId) return;
+		if (!shouldResume || !sessionId) return;
 
 		try {
-			const response = await fetch(`/api/sessions/${encodeURIComponent(ptyId)}/history`);
+			const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/history`);
 			if (response.ok) {
 				const data = await response.json();
 				if (data.history) {
-					console.log(`Loading terminal history for ${ptyId}, size: ${data.history.length} chars`);
+					console.log(`Loading terminal history for ${sessionId}, size: ${data.history.length} chars`);
 					// Write history to terminal to restore previous state
 					term.write(data.history);
 				}
@@ -56,43 +57,48 @@
 		}
 
 		// Get or create socket for this specific session
-		socket = sessionSocketManager.getSocket(ptyId);
-		sessionSocketManager.handleSessionFocus(ptyId);
+		socket = sessionSocketManager.getSocket(sessionId);
+		sessionSocketManager.handleSessionFocus(sessionId);
 
 		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 
-		socket.on('connect', () => {
+		socket.on(SOCKET_EVENTS.CONNECTION, () => {
 			console.log('Socket.IO connected');
 
 			// Handle user input
 			term.onData((data) => {
-				socket.emit('terminal.write', { key, id: ptyId, data });
+			socket.emit(SOCKET_EVENTS.TERMINAL_WRITE, { key, id: sessionId, data });
 			});
 
 			// Send initial size
-			socket.emit('terminal.resize', {
-				key,
-				id: ptyId,
-				cols: term.cols,
-				rows: term.rows
-			});
+		socket.emit(SOCKET_EVENTS.TERMINAL_RESIZE, {
+			key,
+			id: sessionId,
+			cols: term.cols,
+			rows: term.rows
+		});
 
 			// Send initial enter to trigger prompt (only for new terminals)
 			if (!shouldResume) {
 				setTimeout(() => {
-					socket.emit('terminal.write', { key, id: ptyId, data: '\r' });
+					socket.emit(SOCKET_EVENTS.TERMINAL_WRITE, { key, id: sessionId, data: '\r' });
 				}, 200);
 			}
 		});
 
-		// Listen for terminal data
-		socket.on('data', (data) => {
-			term.write(data);
+		// Listen for terminal data (canonical)
+		socket.on(SOCKET_EVENTS.TERMINAL_OUTPUT, (payload) => {
+			try {
+				const text = typeof payload === 'string' ? payload : payload?.data;
+				if (text) term.write(text);
+			} catch {}
 		});
 
-		// Listen for terminal exit
-		socket.on('exit', (data) => {
-			console.log('Terminal exited with code:', data.exitCode);
+		// Listen for terminal exit (canonical)
+		socket.on(SOCKET_EVENTS.TERMINAL_EXIT, (payload) => {
+			try {
+				console.log('Terminal exited with code:', payload?.exitCode);
+			} catch {}
 		});
 
 		// Handle window resize and ensure terminal fits its container
@@ -105,9 +111,9 @@
 			}
 
 			if (socket && socket.connected) {
-				socket.emit('terminal.resize', {
+				socket.emit(SOCKET_EVENTS.TERMINAL_RESIZE, {
 					key,
-					id: ptyId,
+					id: sessionId,
 					cols: term.cols,
 					rows: term.rows
 				});

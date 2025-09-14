@@ -91,7 +91,7 @@ export function setupSocketIO(httpServer) {
 	}
 
 	io.on('connection', async (socket) => {
-		console.log(`[SOCKET] Client connected: ${socket.id}`);
+		logger.info('SOCKET', `Client connected: ${socket.id}`);
 
 		// Track connection
 		socket.data = socket.data || {};
@@ -133,10 +133,10 @@ export function setupSocketIO(httpServer) {
 
 		// Terminal start event (creates new terminal session)
 		socket.on('terminal.start', async (data, callback) => {
-			console.log(`[SOCKET] terminal.start received:`, data);
+			   logger.info('SOCKET', `[terminal.start received]`, JSON.stringify(data));
 			try {
 				if (!validateKey(data.key)) {
-					console.log(`[SOCKET] Invalid key for terminal.start`);
+					   logger.info('SOCKET', `Invalid key for terminal.start`);
 					if (callback) callback({ success: false, error: 'Invalid key' });
 					return;
 				}
@@ -156,13 +156,13 @@ export function setupSocketIO(httpServer) {
 							env: data.env
 						}
 					});
-					console.log(`[SOCKET] Terminal session created: ${session.id}`);
+					   logger.info('SOCKET', `Terminal session created: ${session.id}`);
 					if (callback) callback({ success: true, id: session.id });
 				} else if (terminals) {
 					// Fallback to direct terminal manager
 					terminals.setSocketIO(socket);
 					const result = terminals.start(data);
-					console.log(`[SOCKET] Terminal ${result.id} created directly`);
+					   logger.info('SOCKET', `Terminal ${result.id} created directly`);
 					if (callback) callback({ success: true, ...result });
 				} else {
 					throw new Error('No session management available');
@@ -230,7 +230,7 @@ export function setupSocketIO(httpServer) {
 					try {
 						sessionManager.setSocketIO(socket);
 						await sessionManager.sendToSession(data.id, data.input);
-						console.log(`[SOCKET] Claude message sent via session manager`);
+						   logger.info('SOCKET', `Claude message sent via session manager`);
 					} finally {
 						// Will be reset to idle when message completes
 					}
@@ -314,9 +314,11 @@ export function setupSocketIO(httpServer) {
 			// Could be used to resend missed messages if needed
 		});
 
-		// Commands refresh event - for reconnection scenarios
-		socket.on('commands.refresh', async (data, callback) => {
-			logger.debug('SOCKET', 'commands.refresh received:', data);
+
+
+		// Commands refresh event - canonical Claude name
+		socket.on(SOCKET_EVENTS.CLAUDE_COMMANDS_REFRESH, async (data, callback) => {
+			logger.debug('SOCKET', 'claude.commands.refresh received:', data);
 			try {
 				if (!validateKey(data.key)) {
 					if (callback) callback({ success: false, error: 'Invalid key' });
@@ -328,8 +330,11 @@ export function setupSocketIO(httpServer) {
 				if (sessionManager && sessionManager.refreshCommands && data.sessionId) {
 					try {
 						const commands = await sessionManager.refreshCommands(data.sessionId);
-						logger.debug('SOCKET', `Commands refreshed for session ${data.sessionId}:`,
-							Array.isArray(commands) ? `${commands.length} commands` : 'null');
+						logger.debug(
+							'SOCKET',
+							`Commands refreshed for session ${data.sessionId}:`,
+							Array.isArray(commands) ? `${commands.length} commands` : 'null'
+						);
 
 						if (callback) {
 							callback({
@@ -406,6 +411,6 @@ export function setupSocketIO(httpServer) {
 		});
 	});
 
-	console.log('[SOCKET] Simplified Socket.IO server initialized');
+		logger.info('SOCKET', 'Simplified Socket.IO server initialized');
 	return io;
 }

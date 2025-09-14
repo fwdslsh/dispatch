@@ -7,7 +7,8 @@
 	import ClaudeCommands from './ClaudeCommands.svelte';
 	import sessionSocketManager from './SessionSocketManager.js';
 	import { IconFolder, IconMessage, IconAlertTriangle } from '@tabler/icons-svelte';
-	import LiveIconStrip from '$lib/shared/components/LiveIconStrip.svelte';
+import LiveIconStrip from '$lib/shared/components/LiveIconStrip.svelte';
+import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 	import { getIconForEvent } from '$lib/shared/icons/claudeEventIcons.js';
 	// Using global styles for inputs
 
@@ -106,7 +107,7 @@
 		await scrollToBottom();
 
 		console.log('Emitting claude.send with:', { key, id: sessionId, input: userMessage });
-		socket.emit('claude.send', { key, id: sessionId, input: userMessage });
+		socket.emit(SOCKET_EVENTS.CLAUDE_SEND, { key, id: sessionId, input: userMessage });
 	}
 
 	// Icon mapping is handled by getIconForEvent
@@ -397,7 +398,7 @@
 
 		// Set up event listeners immediately before doing anything else
 		// This ensures we capture any ongoing messages from active sessions
-		socket.on('connect', () => {
+		socket.on(SOCKET_EVENTS.CONNECTION, () => {
 			console.log('Claude Socket.IO connected for session:', sessionId);
 			// Don't automatically set isWaitingForReply for resumed sessions
 			// Let the backend state determine if the session is actually processing
@@ -418,7 +419,8 @@
 			}
 		});
 
-		socket.on('message.delta', async (payload) => {
+		// Shared handler for Claude message delta (canonical + legacy)
+		const handleClaudeMessageDelta = async (payload) => {
 			// If we receive a message while catching up, clear the flag
 			if (isCatchingUp) {
 				isCatchingUp = false;
@@ -473,8 +475,8 @@
 							evt.message.content.some &&
 							evt.message.content.some((c) => c && c.type === 'tool_use')
 						) {
-							pushLiveIcon(evt);
-						}
+						pushLiveIcon(evt);
+					}
 					}
 				} else if (evt?.type === 'result') {
 					// Final aggregated result - use if no individual messages were sent
@@ -537,12 +539,15 @@
 			}
 			// Scroll to show the latest state (icons or final message)
 			await scrollToBottom();
-		});
+		};
+
+		// Attach both canonical and legacy event names to the same handler
+socket.on(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, handleClaudeMessageDelta);
 
 		// Handle message completion to clear waiting state
 
 		// Keep client session IDs in sync with server updates
-		socket.on('session.id.updated', (payload) => {
+socket.on(SOCKET_EVENTS.SESSION_ID_UPDATED, (payload) => {
 			try {
 				if (!payload || payload.type !== 'claude') return;
 				if (payload.sessionId !== sessionId) return; // Only handle our own pane
@@ -556,7 +561,7 @@
 			}
 		});
 
-		socket.on('message.complete', (data) => {
+		const handleClaudeMessageComplete = (data) => {
 			console.log('Message complete received:', data);
 			isWaitingForReply = false;
 			isCatchingUp = false;
@@ -572,10 +577,13 @@
 				}
 			}
 			liveEventIcons = [];
-		});
+		};
+
+		// Attach both canonical and legacy complete events
+socket.on(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, handleClaudeMessageComplete);
 
 		// Handle errors to clear typing indicator
-		socket.on('error', (error) => {
+socket.on(SOCKET_EVENTS.ERROR, (error) => {
 			console.error('Socket error:', error);
 			isWaitingForReply = false;
 			isCatchingUp = false;
@@ -599,7 +607,7 @@
 			// selection handled within LiveIconStrip component
 		});
 
-		socket.on('disconnect', () => {
+socket.on(SOCKET_EVENTS.DISCONNECT, () => {
 			console.log('Socket disconnected');
 			isWaitingForReply = false;
 			liveEventIcons = [];

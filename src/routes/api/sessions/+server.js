@@ -62,7 +62,6 @@ export async function POST({ request, locals }) {
 
 
 		// Guard against placeholder/invalid Claude IDs; allow UI to fall back to unified sessionId
-		const mapField = type === 'pty' ? 'terminalId' : 'claudeId';
 		let mappedId = session.typeSpecificId;
 		if (type === 'claude') {
 			try {
@@ -79,12 +78,12 @@ export async function POST({ request, locals }) {
 			}
 		}
 
-		return new Response(
-			JSON.stringify({
-				id: session.id,
-				[mapField]: mappedId
-			})
-		);
+        return new Response(
+            JSON.stringify({
+                id: session.id,
+                typeSpecificId: mappedId || null
+            })
+        );
 	} catch (error) {
 		console.error('[API] Session creation failed:', error);
 		return new Response(JSON.stringify({ error: error.message }), { status: 500 });

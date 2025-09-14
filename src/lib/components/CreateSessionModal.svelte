@@ -181,7 +181,7 @@
 								selectedDirectory = null;
 							}}
 						>
-							New Project
+						New Claude Project
 						</button>
 						<button
 							type="button"
@@ -191,13 +191,13 @@
 								projectName = '';
 							}}
 						>
-							Existing Project
+						Existing Claude Project or Directory
 						</button>
 					</div>
 
 					{#if mode === 'new'}
 						<div class="form-group">
-							<label for="project-name">Project Name</label>
+							<label for="project-name">Claude Project Name</label>
 							<input
 								id="project-name"
 								type="text"
@@ -210,7 +210,7 @@
 						</div>
 					{:else}
 						<div class="form-group">
-							<label>Choose Project Source</label>
+							<label>Choose Source</label>
 							<div class="source-options">
 								<div class="source-option">
 									<label class="sub-label">Claude Projects</label>

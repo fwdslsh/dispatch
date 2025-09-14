@@ -87,8 +87,8 @@ describe('ClaudeCommands', () => {
 			}
 		});
 
-		// Simulate receiving tools.list event with app session ID
-		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'tools.list')[1];
+		// Simulate receiving tools.available event with app session ID
+		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'claude.tools.available')[1];
 
 		// Mock console.log to capture logs
 		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -122,8 +122,8 @@ describe('ClaudeCommands', () => {
 			}
 		});
 
-		// Simulate receiving tools.list event with Claude session ID
-		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'tools.list')[1];
+		// Simulate receiving tools.available event with Claude session ID
+		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'claude.tools.available')[1];
 
 		// Mock console.log to capture logs
 		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -157,8 +157,8 @@ describe('ClaudeCommands', () => {
 			}
 		});
 
-		// Simulate receiving tools.list event with different session ID
-		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'tools.list')[1];
+		// Simulate receiving tools.available event with different session ID
+		const handleToolsList = mockSocket.on.mock.calls.find(call => call[0] === 'claude.tools.available')[1];
 
 		// Mock console.log to capture logs
 		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -169,7 +169,7 @@ describe('ClaudeCommands', () => {
 		});
 
 		expect(consoleSpy).toHaveBeenCalledWith(
-			'[ClaudeCommands] Ignoring tools.list for different session: different-session-789 !== app-session-123 or claude-456'
+			'[ClaudeCommands] Ignoring tools.available for different session: different-session-789 !== app-session-123 or claude-456'
 		);
 
 		consoleSpy.mockRestore();

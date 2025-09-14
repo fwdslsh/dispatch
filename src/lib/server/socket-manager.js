@@ -4,8 +4,10 @@
  * that shields the application from session type details
  */
 
+import { logger } from './utils/logger.js';
+
 export async function getSocketSetup() {
-	console.log('[SOCKET] Using simplified session architecture');
+		logger.info('SOCKET', 'Using simplified session architecture');
 	const { setupSocketIO } = await import('./socket-setup.js');
 	return { setupSocketIO, mode: 'simplified' };
 }

@@ -1,11 +1,12 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { databaseManager } from '../db/DatabaseManager.js';
+import { logger } from '../utils/logger.js';
 
 export class WorkspaceManager {
 	constructor({ rootDir }) {
 		this.rootDir = rootDir;
-		console.log('WorkspaceManager initialized with:', { rootDir });
+		logger.info('WORKSPACE', `WorkspaceManager initialized with: ${rootDir}`);
 		this.initializeDatabase();
 	}
 
@@ -13,7 +14,7 @@ export class WorkspaceManager {
 		try {
 			await databaseManager.init();
 		} catch (error) {
-			console.error('[WORKSPACE] Failed to initialize database:', error);
+			logger.error('[WORKSPACE] Failed to initialize database:', error);
 		}
 	}
 	async init() {
@@ -21,7 +22,7 @@ export class WorkspaceManager {
 		try {
 			await fs.mkdir(this.rootDir, { recursive: true });
 		} catch (error) {
-			console.error('[WORKSPACE] Failed to ensure rootDir exists:', error);
+			logger.error('[WORKSPACE] Failed to ensure rootDir exists:', error);
 		}
 	}
 	async list() {
@@ -67,7 +68,7 @@ export class WorkspaceManager {
 		try {
 			await databaseManager.createWorkspace(dir);
 		} catch (error) {
-			console.error('[WORKSPACE] Failed to ensure workspace exists before saving session:', error);
+			logger.error('[WORKSPACE] Failed to ensure workspace exists before saving session:', error);
 		}
 
 		// Determine session type and type-specific ID, preferring descriptor fields
@@ -122,7 +123,7 @@ export class WorkspaceManager {
 				}));
 			}
 		} catch (error) {
-			console.error('[WORKSPACE] Failed to build index from database:', error);
+			logger.error('[WORKSPACE] Failed to build index from database:', error);
 		}
 
 		return index;
@@ -140,7 +141,7 @@ export class WorkspaceManager {
 				pinned: session.pinned === 1 || session.pinned === true
 			}));
 		} catch (error) {
-			console.error('[WORKSPACE] Failed to get sessions from database:', error);
+			logger.error('[WORKSPACE] Failed to get sessions from database:', error);
 			return [];
 		}
 	}

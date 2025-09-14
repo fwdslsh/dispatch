@@ -2,6 +2,7 @@ import sqlite3 from 'sqlite3';
 import { promises as fs } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
+import { logger } from '../utils/logger.js';
 
 /**
  * Centralized SQLite database manager for all Dispatch server-side storage
@@ -9,7 +10,7 @@ import { homedir } from 'node:os';
 export class DatabaseManager {
 	constructor(dbPath = null) {
 		// Default to ~/.dispatch/data if no path provided
-		this.dbPath = dbPath || join(process.env.HOME || homedir(), '.dispatch', 'data');
+		this.dbPath = dbPath || join((process.env.HOME || homedir()), '.dispatch', 'data', 'workspace.db');
 		this.db = null;
 		this.isInitialized = false;
 	}
@@ -35,9 +36,9 @@ export class DatabaseManager {
 			await this.createTables();
 
 			this.isInitialized = true;
-			console.log(`[DATABASE] Initialized SQLite database at: ${this.dbPath}`);
+			   logger.info('DATABASE', `Initialized SQLite database at: ${this.dbPath}`);
 		} catch (error) {
-			console.error('[DATABASE] Failed to initialize:', error);
+			   logger.error('DATABASE', 'Failed to initialize:', error);
 			throw error;
 		}
 	}
@@ -474,9 +475,10 @@ export class DatabaseManager {
 			cutoff
 		]);
 
-		console.log(
-			`[DATABASE] Cleanup completed: ${historyResult.changes} history entries, ${logsResult.changes} logs, ${terminalResult.changes} terminal history entries removed`
-		);
+		   logger.info(
+			   'DATABASE',
+			   `Cleanup completed: ${historyResult.changes} history entries, ${logsResult.changes} logs, ${terminalResult.changes} terminal history entries removed`
+		   );
 	}
 }
 

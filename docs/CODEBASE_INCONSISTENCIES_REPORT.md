@@ -78,8 +78,11 @@ this.sessions.set(sessionId, descriptor);
 **Example**:
 
 ```javascript
-// Testing page
+// Testing page (old)
 selectedProject.replace(/^home--/, '/home/').replace(/--/g, '/');
+
+// Testing page (current)
+selectedWorkspace.replace(/^home--/, '/home/').replace(/--/g, '/');
 
 // Projects page
 workspacePath: finalWorkspacePath; // Direct path

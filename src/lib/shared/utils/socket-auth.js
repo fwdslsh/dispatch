@@ -7,6 +7,7 @@
 
 import { io } from 'socket.io-client';
 import { STORAGE_CONFIG } from './constants.js';
+import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 
 /**
  * Get stored authentication token
@@ -83,7 +84,7 @@ export async function testAuthKey(key) {
 			resolve(false);
 		}, 5000);
 
-		socket.on('connect', () => {
+		socket.on(SOCKET_EVENTS.CONNECTION, () => {
 			socket.emit('auth', key, (response) => {
 				clearTimeout(timeout);
 				socket.disconnect();
@@ -92,7 +93,7 @@ export async function testAuthKey(key) {
 		});
 
 		// Handle connection errors
-		socket.on('connect_error', () => {
+		socket.on(SOCKET_EVENTS.CONNECT_ERROR, () => {
 			clearTimeout(timeout);
 			socket.disconnect();
 			resolve(false);

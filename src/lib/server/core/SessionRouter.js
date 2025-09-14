@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger.js';
+
 export class SessionRouter {
 	constructor() {
 		this.map = new Map();
@@ -42,7 +44,7 @@ export class SessionRouter {
 	setActivityState(sessionId, state) {
 		if (this.map.has(sessionId)) {
 			this.activityState.set(sessionId, state);
-			console.log(`[SessionRouter] Session ${sessionId} activity: ${state}`);
+			   logger.info('SESSION_ROUTER', `Session ${sessionId} activity: ${state}`);
 		}
 	}
 

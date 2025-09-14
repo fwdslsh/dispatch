@@ -25,7 +25,7 @@ export class SessionManager {
 				manager: this.claude,
 				createMethod: 'create',
 				stopMethod: null, // Claude sessions auto-manage
-				getIdField: (result) => result.claudeId
+				getIdField: (result) => result.typeSpecificId
 			}
 		};
 	}

@@ -151,9 +151,9 @@ The application uses Socket.IO for all real-time communication:
 
 ### Server Events
 
-- `data(output)` - Terminal output data
-- `exit({exitCode})` - Terminal session ended
-- `message.delta(events)` - Claude response events array
+- `terminal.output({sessionId, data})` - Terminal output data
+- `terminal.exit({sessionId, exitCode})` - Terminal session ended
+- `claude.message.delta(events)` - Claude response events array
 - `error(data)` - Error messages
 
 ## Core Service Classes

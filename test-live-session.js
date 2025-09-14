@@ -15,9 +15,9 @@ const socket = io(SERVER_URL, {
 socket.on('connect', () => {
     console.log('Connected to Socket.IO, id:', socket.id);
 
-    // Listen for ALL tools.list events (no filtering)
-    socket.on('tools.list', (data) => {
-        console.log('\n📥 Received tools.list event:');
+    // Listen for ALL tools.available events (no filtering)
+    socket.on('claude.tools.available', (data) => {
+        console.log('\n📥 Received claude.tools.available event:');
         console.log('  Session ID:', data.sessionId);
         console.log('  Command count:', data.commands?.length || 0);
         console.log('  First few commands:', data.commands?.slice(0, 3).map(c => c.name || c.title || c));

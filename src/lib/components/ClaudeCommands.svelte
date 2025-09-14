@@ -1,6 +1,7 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
+import { SOCKET_EVENTS } from '$lib/shared/utils/socket-events.js';
 
 	let {
 		socket = null,
@@ -202,11 +203,11 @@
 	}
 
 	/**
-	 * Handle commands from WebSocket tools.list event
+	 * Handle commands from WebSocket claude.tools.available event
 	 */
 	function handleToolsList(payload) {
 		try {
-			console.log('[ClaudeCommands] Received tools.list event:', payload);
+    console.log('[ClaudeCommands] Received tools.available event:', payload);
 			if (!payload) return;
 
 			// Check if this event is for our session using normalized session IDs
@@ -223,11 +224,11 @@
 
 			if (!isEventForSession(payload, sessionId, claudeSessionId)) {
 				console.log(
-					`[ClaudeCommands] Ignoring tools.list for different session: ${payload.sessionId} (normalized: ${normalizeSessionId(payload.sessionId)}) !== our IDs: ${sessionId} or ${claudeSessionId}`
+					`[ClaudeCommands] Ignoring tools.available for different session: ${payload.sessionId} (normalized: ${normalizeSessionId(payload.sessionId)}) !== our IDs: ${sessionId} or ${claudeSessionId}`
 				);
 				return;
 			} else {
-				console.log(`[ClaudeCommands] Accepting tools.list for our session`);
+				console.log(`[ClaudeCommands] Accepting tools.available for our session`);
 			}
 
 			// Add debug logging before processing commands
@@ -287,7 +288,7 @@
 				}
 			}
 		} catch (error) {
-			console.error('Failed to handle tools.list payload:', error);
+			console.error('Failed to handle tools.available payload:', error);
 		}
 	}
 
@@ -316,13 +317,13 @@
 					`[ClaudeCommands] No commands available, requesting refresh for session: ${querySessionId}`
 				);
 				socket.emit(
-					'commands.refresh',
+					SOCKET_EVENTS.CLAUDE_COMMANDS_REFRESH,
 					{
 						key,
 						sessionId: querySessionId
 					},
 					(response) => {
-						console.log(`[ClaudeCommands] commands.refresh response:`, response);
+						console.log(`[ClaudeCommands] claude.commands.refresh response:`, response);
 						if (response && response.success && Array.isArray(response.commands)) {
 							// Handle the refreshed commands
 							handleToolsList({
@@ -380,15 +381,15 @@
 
 		// Set up WebSocket listeners
 		if (socket) {
-			console.log(`[ClaudeCommands] Setting up tools.list listener for sessionId: ${sessionId}`);
-			socket.on('tools.list', handleToolsList);
+			console.log(`[ClaudeCommands] Setting up tools listeners for sessionId: ${sessionId}`);
+			socket.on(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, handleToolsList);
 
 			// Query session status for existing commands
 			const querySessionId = sessionId || claudeSessionId;
 			if (querySessionId) {
 				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 				console.log(`[ClaudeCommands] Querying session.status for sessionId: ${querySessionId}`);
-				socket.emit('session.status', { key, sessionId: querySessionId }, (response) => {
+				socket.emit(SOCKET_EVENTS.SESSION_STATUS, { key, sessionId: querySessionId }, (response) => {
 					console.log(`[ClaudeCommands] session.status response:`, response);
 					try {
 						if (
@@ -436,7 +437,7 @@
 
 	onDestroy(() => {
 		if (socket) {
-			socket.off('tools.list', handleToolsList);
+			socket.off(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, handleToolsList);
 			try {
 				socket.off('session.id.updated');
 			} catch {}
@@ -510,14 +511,14 @@
 							console.log(
 								`[ClaudeCommands] Manual refresh requested for session: ${querySessionId}`
 							);
-							socket.emit(
-								'commands.refresh',
-								{
-									key,
-									sessionId: querySessionId
-								},
+						socket.emit(
+							SOCKET_EVENTS.CLAUDE_COMMANDS_REFRESH,
+							{
+								key,
+								sessionId: querySessionId
+							},
 								(response) => {
-									console.log(`[ClaudeCommands] commands.refresh response:`, response);
+									console.log(`[ClaudeCommands] claude.commands.refresh response:`, response);
 									if (response && response.success && Array.isArray(response.commands)) {
 										handleToolsList({
 											sessionId: querySessionId,

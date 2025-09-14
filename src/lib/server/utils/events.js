@@ -33,12 +33,14 @@ export const SOCKET_EVENTS = {
 	CLAUDE_MESSAGE_COMPLETE: 'claude.message.complete',
 	CLAUDE_ERROR: 'claude.error',
 	CLAUDE_TOOLS_AVAILABLE: 'claude.tools.available',
+	CLAUDE_COMMANDS_REFRESH: 'claude.commands.refresh',
 
 	// Terminal events
 	TERMINAL_INPUT: 'terminal.input',
 	TERMINAL_OUTPUT: 'terminal.output',
 	TERMINAL_RESIZE: 'terminal.resize',
 	TERMINAL_ERROR: 'terminal.error',
+	TERMINAL_EXIT: 'terminal.exit',
 
 	// Workspace events
 	WORKSPACE_LIST: 'workspace.list',

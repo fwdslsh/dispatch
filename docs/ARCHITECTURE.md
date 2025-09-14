@@ -399,7 +399,7 @@ sequenceDiagram
     Client->>SocketIO: claude.send
     SocketIO->>SessionManager: send(id, input)
     SessionManager->>ClaudeManager: send(id, input)
-    ClaudeManager->>Client: message.delta(events)
+    ClaudeManager->>Client: claude.message.delta(events)
 ```
 
 ### Event Types and Payloads
@@ -419,7 +419,7 @@ sequenceDiagram
 | Event | Payload | Description |
 |-------|---------|-------------|
 | `data` | `string` | Terminal output data |
-| `message.delta` | `Event[]` | Claude response stream |
+| `claude.message.delta` | `Event[]` | Claude response stream |
 | `session.created` | `{id, type, workspace}` | Session creation confirmation |
 | `session.ended` | `{id, exitCode}` | Session termination |
 | `error` | `{message, code}` | Error notification |

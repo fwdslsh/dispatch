@@ -2,13 +2,15 @@ import os from 'node:os';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { databaseManager } from '../db/DatabaseManager.js';
+import { SOCKET_EVENTS } from '../utils/events.js';
+import { logger } from '../utils/logger.js';
 
 let pty;
 try {
 	pty = await import('node-pty');
-	console.log('node-pty loaded successfully');
+	logger.info('TERMINAL', 'node-pty loaded successfully');
 } catch (err) {
-	console.error('Failed to load node-pty:', err);
+	logger.error('Failed to load node-pty:', err);
 	pty = null;
 }
 
@@ -25,7 +27,7 @@ export class TerminalManager {
 		try {
 			await databaseManager.init();
 		} catch (error) {
-			console.error('[TERMINAL] Failed to initialize database:', error);
+			logger.error('[TERMINAL] Failed to initialize database:', error);
 		}
 	}
 
@@ -33,7 +35,7 @@ export class TerminalManager {
 		try {
 			await databaseManager.addTerminalHistory(id, data);
 		} catch (error) {
-			console.error(`[TERMINAL] Failed to save terminal history for ${id}:`, error);
+			logger.error(`[TERMINAL] Failed to save terminal history for ${id}:`, error);
 		}
 	}
 
@@ -41,7 +43,7 @@ export class TerminalManager {
 		try {
 			return await databaseManager.getTerminalHistory(id);
 		} catch (error) {
-			console.error(`[TERMINAL] Failed to load terminal history for ${id}:`, error);
+			logger.error(`[TERMINAL] Failed to load terminal history for ${id}:`, error);
 			return '';
 		}
 	}
@@ -50,7 +52,7 @@ export class TerminalManager {
 		try {
 			await databaseManager.clearTerminalHistory(id);
 		} catch (error) {
-			console.error(`[TERMINAL] Failed to clear terminal history for ${id}:`, error);
+			logger.error(`[TERMINAL] Failed to clear terminal history for ${id}:`, error);
 		}
 	}
 
@@ -71,12 +73,13 @@ export class TerminalManager {
 		appSessionId = null
 	}) {
 		if (!pty) {
-			console.error('Cannot start terminal: node-pty is not available');
+			logger.error('TERMINAL', 'Cannot start terminal: node-pty is not available');
 			throw new Error('Terminal functionality not available - node-pty failed to load');
 		}
 
 		const id = terminalId || `pty_${this.nextId++}`;
-		console.log(
+		logger.info(
+			'TERMINAL',
 			`Creating terminal ${id} with shell ${shell} in ${workspacePath}${appSessionId ? ` (app session: ${appSessionId})` : ''}`
 		);
 
@@ -102,7 +105,9 @@ export class TerminalManager {
 			term.onData((data) => {
 				const terminalData = this.terminals.get(id);
 				if (terminalData && terminalData.socket) {
-					terminalData.socket.emit('data', data);
+					try {
+						terminalData.socket.emit(SOCKET_EVENTS.TERMINAL_OUTPUT, { sessionId: id, data });
+					} catch {}
 					// Save to history
 					this.saveTerminalHistory(id, data);
 				}
@@ -111,7 +116,9 @@ export class TerminalManager {
 			term.onExit(({ exitCode }) => {
 				const terminalData = this.terminals.get(id);
 				if (terminalData && terminalData.socket) {
-					terminalData.socket.emit('exit', { exitCode });
+					try {
+						terminalData.socket.emit(SOCKET_EVENTS.TERMINAL_EXIT, { sessionId: id, exitCode });
+					} catch {}
 				}
 				this.terminals.delete(id);
 			});
@@ -119,10 +126,10 @@ export class TerminalManager {
 			// Note: History loading is handled by the UI component to avoid duplication
 			// The resume flag is used by the UI to determine if it should load history
 
-			console.log(`Terminal ${id} created successfully`);
+			logger.info('TERMINAL', `Terminal ${id} created successfully`);
 			return { id };
 		} catch (err) {
-			console.error(`Failed to create terminal ${id}:`, err);
+			logger.error('TERMINAL', `Failed to create terminal ${id}:`, err);
 			throw err;
 		}
 	}
@@ -130,9 +137,9 @@ export class TerminalManager {
 	write(id, data) {
 		const terminal = this.terminals.get(id);
 		if (!terminal) {
-			console.error(
-				`Terminal ${id} not found. Available terminals:`,
-				Array.from(this.terminals.keys())
+			logger.error(
+				'TERMINAL',
+				`Terminal ${id} not found. Available terminals: ${Array.from(this.terminals.keys()).join(', ')}`
 			);
 			return;
 		}
@@ -142,7 +149,7 @@ export class TerminalManager {
 	}
 
 	resize(id, cols, rows) {
-		console.log(`Resizing terminal ${id} to ${cols}x${rows}`);
+		logger.info('TERMINAL', `Resizing terminal ${id} to ${cols}x${rows}`);
 		const terminal = this.terminals.get(id);
 		if (terminal) terminal.term.resize(cols, rows);
 	}

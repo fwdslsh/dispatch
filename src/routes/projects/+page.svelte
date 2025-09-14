@@ -16,7 +16,7 @@
 
 	let sessions = $state([]);
 	let workspaces = $state([]);
-	let selectedProject = $state(null);
+let selectedWorkspace = $state(null);
 
 	// Modal states
 	let terminalModalOpen = $state(false);
@@ -227,10 +227,10 @@
 			console.error('Failed to create terminal session:', r.status, errorText);
 			throw new Error('Failed to create terminal session');
 		}
-		const { id, terminalId } = await r.json();
+		const { id } = await r.json();
 		const existing = sessions.find((s) => s && s.id === id);
 		if (!existing) {
-			const s = { id, type: 'pty', workspacePath, terminalId, resumeSession: false };
+			const s = { id, type: 'pty', workspacePath, resumeSession: false };
 			sessions = [...sessions, s];
 		}
 		updateDisplayedWithSession(id);
@@ -304,7 +304,7 @@
 		const responseData = await r.json();
 		console.log('Claude session created:', responseData);
 
-		const { id, claudeId: claudeSessionId } = responseData;
+		const { id, typeSpecificId: claudeSessionId } = responseData;
 		// Avoid duplicate inserts if session already present
 		const existing = sessions.find((s) => s && s.id === id);
 		if (!existing) {
@@ -638,8 +638,8 @@
 		<div class="sheet-body">
 			<ProjectSessionMenuSimplified
 				storagePrefix="dispatch-projects"
-				bind:selectedProject
-				onProjectSelected={(e) => {
+				bind:selectedWorkspace
+				onWorkspaceSelected={(e) => {
 					// Handle project selection if needed
 					console.log('Project selected:', e.detail);
 				}}
@@ -725,7 +725,7 @@
 
 					// Resume persisted sessions
 					if (detail.type === 'claude') {
-						const projectName = detail.projectName || selectedProject || 'project';
+						const projectName = detail.projectName || selectedWorkspace || 'project';
 						createClaudeSession({
 							workspacePath: detail.workspacePath || projectName,
 							sessionId: detail.id,
@@ -737,7 +737,7 @@
 					} else if (detail.type === 'pty') {
 						resumeTerminalSession({
 							terminalId: detail.id,
-							workspacePath: detail.workspacePath || selectedProject
+							workspacePath: detail.workspacePath || selectedWorkspace
 						});
 						sessionMenuOpen = false;
 					}
@@ -822,7 +822,7 @@
 									/>
 								{:else}
 									<TerminalPane
-										ptyId={s.id}
+										sessionId={s.id}
 										shouldResume={s.resumeSession || false}
 										workspacePath={s.workspacePath}
 									/>
