@@ -495,12 +495,35 @@ let selectedWorkspace = $state(null);
 		}
 	}
 
-	async function handleUnifiedSessionCreate(params) {
-		if (params.type === 'terminal') {
-			return await createTerminalSession(params.workspacePath);
-		} else if (params.type === 'claude') {
-			return await createClaudeSession(params);
+	// Handle session creation events from CreateSessionModalSimplified
+	async function handleUnifiedSessionCreate(event) {
+		const detail = event?.detail || event || {};
+		const { id, type, workspacePath, typeSpecificId } = detail;
+		if (!id || !type || !workspacePath) return;
+
+		// Normalize type and construct local session object without re-creating via API
+		const normalizedType = type === 'terminal' ? 'pty' : type; // support both labels
+		const exists = sessions.find((s) => s && s.id === id);
+		if (!exists) {
+			const session =
+				normalizedType === 'claude'
+					? {
+						id,
+						type: 'claude',
+						workspacePath,
+						claudeSessionId: typeSpecificId,
+						shouldResume: false
+					}
+					: {
+						id,
+						type: 'pty',
+						workspacePath,
+						resumeSession: false
+					};
+			sessions = [...sessions, session];
 		}
+
+		updateDisplayedWithSession(id);
 	}
 
 	onMount(async () => {

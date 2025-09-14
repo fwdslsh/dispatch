@@ -6,7 +6,8 @@
 // Re-export server events for consistency
 export const SOCKET_EVENTS = {
 	// Connection events
-	CONNECTION: 'connection',
+	// On the client, the event is 'connect' (server uses 'connection')
+	CONNECTION: 'connect',
 	DISCONNECT: 'disconnect',
 	ERROR: 'error',
 	CONNECT_ERROR: 'connect_error',
