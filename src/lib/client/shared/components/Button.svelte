@@ -129,109 +129,15 @@
 </button>
 
 <style>
-	/* Button styles that work with global .button class from retro.css */
+	/* Button component styles - minimal overrides, leverage global .button class */
+
+	/* Component-specific layout only */
 	.button {
-		/* Remove conflicting overrides, inherit from global styles */
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-2);
 		white-space: nowrap;
 		position: relative;
-
-		/* Use system variables consistently */
-		background: color-mix(in oklab, var(--accent) 5%, var(--surface));
-		border: 1px solid var(--primary-dim);
-		color: var(--text);
-		font-family: var(--font-mono);
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		border-radius: 8px;
-
-		/* Smooth transitions */
-		transition: all 0.2s ease;
-		box-shadow: none;
-	}
-
-	.button:hover {
-		background: color-mix(in oklab, var(--accent) 10%, var(--surface));
-		border-color: var(--accent);
-		box-shadow: 0 0 20px var(--glow);
-	}
-
-	.button:active,
-	.button.active {
-		background: color-mix(in oklab, var(--accent) 15%, var(--surface));
-		border-color: var(--accent);
-		box-shadow: inset 0 0 8px var(--glow);
-		transform: translateY(1px);
-	}
-
-	/* Primary variant */
-	.button.primary {
-		background: color-mix(in oklab, var(--accent) 20%, var(--surface));
-		border-color: var(--accent);
-		color: var(--text);
-	}
-
-	.button.primary:hover {
-		background: color-mix(in oklab, var(--accent) 30%, var(--surface));
-		box-shadow: 0 0 25px var(--glow);
-	}
-
-	/* Ghost variant */
-	.button.ghost {
-		background: transparent;
-		border: 1px solid var(--primary-dim);
-		color: var(--muted);
-	}
-
-	.button.ghost:hover {
-		background: color-mix(in oklab, var(--accent) 8%, transparent);
-		border-color: var(--accent);
-		color: var(--accent);
-		box-shadow: 0 0 18px var(--glow);
-	}
-
-	.button.ghost:active,
-	.button.ghost.active {
-		background: color-mix(in oklab, var(--accent) 12%, transparent);
-		box-shadow: inset 0 0 6px var(--glow);
-	}
-
-	/* Danger variant */
-	.button.danger {
-		background: color-mix(in oklab, var(--err) 20%, var(--surface));
-		border-color: var(--err);
-		color: var(--text);
-	}
-
-	.button.danger:hover {
-		background: color-mix(in oklab, var(--err) 30%, var(--surface));
-		box-shadow: 0 0 20px color-mix(in oklab, var(--err) 40%, transparent);
-	}
-
-	/* Warning variant */
-	.button.warn {
-		background: color-mix(in oklab, var(--warn) 20%, var(--surface));
-		border-color: var(--warn);
-		color: var(--text);
-	}
-
-	.button.warn:hover {
-		background: color-mix(in oklab, var(--warn) 30%, var(--surface));
-		box-shadow: 0 0 20px color-mix(in oklab, var(--warn) 40%, transparent);
-	}
-
-	/* Disabled state */
-	.button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-		pointer-events: none;
-		transform: none;
-		background: var(--muted);
-		border-color: var(--muted);
-		box-shadow: none;
 	}
 
 	/* Text states */
@@ -239,6 +145,7 @@
 		opacity: 0;
 		width: 0;
 		overflow: hidden;
+		transition: all 0.2s ease;
 	}
 
 	/* Spinner */
@@ -254,18 +161,19 @@
 		border: 2px solid currentColor;
 		border-top: 2px solid transparent;
 		border-radius: 50%;
-		animation: terminalSpin 1s linear infinite;
+		animation: spin 1s linear infinite;
 	}
 
-	/* Ensure augmented-ui styles work properly */
+	/* Ensure augmented-ui compatibility */
 	.button.aug {
-		border-radius: 0; /* Remove radius for augmented-ui */
-		background: color-mix(in oklab, var(--accent) 5%, var(--surface));
+		border-radius: 0;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.button {
-			transition: opacity 0.2s ease;
+		.btn__text--hidden,
+		.spinner {
+			transition: none;
+			animation: none;
 		}
 	}
 </style>

@@ -172,17 +172,7 @@
 	}
 }
 
-/* Aliases for backward compatibility */
-@keyframes terminalSpin {
-	from {
-		transform: rotate(0deg);
-	}
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-/* Scan/sweep animations */
+/* Scan/sweep animations - consolidated */
 @keyframes terminalScan {
 	0% {
 		transform: translateX(-100%);

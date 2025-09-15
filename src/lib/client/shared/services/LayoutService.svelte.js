@@ -16,6 +16,7 @@
  * @property {LayoutPreset} preset
  * @property {number} columns
  * @property {number} maxVisible
+ * @property {string} orientation
  */
 
 export class LayoutService {
@@ -332,7 +333,7 @@ export class LayoutService {
 	 * @returns {LayoutPreset}
 	 */
 	cycleLayoutPreset() {
-		const presets = Object.keys(this.LAYOUT_PRESETS);
+		const presets = /** @type {LayoutPreset[]} */ (Object.keys(this.LAYOUT_PRESETS));
 		const currentIndex = presets.indexOf(this.state.preset);
 		const nextIndex = (currentIndex + 1) % presets.length;
 		const nextPreset = presets[nextIndex];

@@ -80,7 +80,9 @@ export class SessionApiClient {
 				errorMessage = errorBody || response.statusText;
 			}
 
-			const error = new Error(errorMessage);
+			const error = /** @type {Error & {status?: number, statusText?: string, code?: string}} */ (
+				new Error(errorMessage)
+			);
 			error.status = response.status;
 			error.statusText = response.statusText;
 
@@ -104,9 +106,9 @@ export class SessionApiClient {
 
 	/**
 	 * List sessions with optional filtering
-	 * @param {Object} options
-	 * @param {string} options.workspace - Filter by workspace path
-	 * @param {boolean} options.includeAll - Include unpinned sessions
+	 * @param {Object} [options] - List options
+	 * @param {string} [options.workspace] - Filter by workspace path
+	 * @param {boolean} [options.includeAll=false] - Include unpinned sessions
 	 * @returns {Promise<{sessions: Session[]}>}
 	 */
 	async list({ workspace, includeAll = false } = {}) {
@@ -170,7 +172,7 @@ export class SessionApiClient {
 	 * @param {'rename'|'pin'|'unpin'} options.action - Update action
 	 * @param {string} options.sessionId - Session ID
 	 * @param {string} options.workspacePath - Workspace path
-	 * @param {string} options.newTitle - New title (for rename)
+	 * @param {string} [options.newTitle] - New title (for rename)
 	 * @returns {Promise<{success: boolean}>}
 	 */
 	async update({ action, sessionId, workspacePath, newTitle }) {

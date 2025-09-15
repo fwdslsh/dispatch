@@ -68,7 +68,7 @@ describe('LayoutViewModel', () => {
 		};
 
 		// Create ViewModel instance
-		viewModel = new LayoutViewModel(mockLayoutService, mockPersistence);
+		viewModel = new LayoutViewModel(mockLayoutService);
 	});
 
 	afterEach(() => {
@@ -280,15 +280,17 @@ describe('LayoutViewModel', () => {
 			expect(viewModel.previousCols).toBe(3);
 		});
 
-		it('should end transition after timeout', (done) => {
+		it('should end transition after timeout', async () => {
 			viewModel.transitioning = true;
 
 			// Simulate transition end
-			setTimeout(() => {
-				viewModel.transitioning = false;
-				expect(viewModel.transitioning).toBe(false);
-				done();
-			}, 100);
+			await new Promise((resolve) => {
+				setTimeout(() => {
+					viewModel.transitioning = false;
+					expect(viewModel.transitioning).toBe(false);
+					resolve();
+				}, 100);
+			});
 		});
 	});
 

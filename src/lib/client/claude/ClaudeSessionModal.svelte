@@ -244,6 +244,7 @@
 								bind:selected={selectedDirectory}
 								api="/api/browse"
 								placeholder="Navigate to your project directory..."
+								onSelect={() => {}}
 							/>
 							<div class="hint">Browse and select a directory to start a new Claude session</div>
 						</div>

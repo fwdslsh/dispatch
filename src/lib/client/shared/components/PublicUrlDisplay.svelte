@@ -129,9 +129,6 @@
 			0 0 20px var(--secondary-muted);
 	}
 
-	.public-url-link:active {
-	}
-
 	.copy-button {
 		background: rgba(255, 255, 255, 0.02);
 		border: 1px solid var(--secondary);
@@ -158,9 +155,6 @@
 				0 0 20px var(--secondary-muted);
 			filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
 		}
-	}
-
-	.copy-button:active {
 	}
 
 	.copy-button svg {

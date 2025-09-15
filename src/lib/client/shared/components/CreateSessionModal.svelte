@@ -1,6 +1,6 @@
 <script>
 	import { Modal, Button } from '$lib/client/shared/components';
-	import ClaudeProjectPicker from './ClaudeProjectPicker.svelte';
+	import ClaudeProjectPicker from '../../claude/ClaudeProjectPicker.svelte';
 	import DirectoryBrowser from './DirectoryBrowser.svelte';
 
 	let { open = $bindable(false), onSessionCreate, initialType = 'claude' } = $props();
@@ -249,6 +249,7 @@
 							api="/api/browse"
 							startPath=""
 							placeholder="Navigate to your working directory..."
+							onSelect={() => {}}
 						/>
 						<div class="hint">Choose the directory where the terminal will start</div>
 					</div>

@@ -24,8 +24,8 @@
 	 * @property {string} close
 	 * @property {string} focusNext
 	 * @property {string} focusPrev
-	 * @property {string} grow
-	 * @property {string} shrink
+	 * @property {string} growHeight
+	 * @property {string} shrinkHeight
 	 */
 
 	// Props (runes)
@@ -49,11 +49,11 @@
 	const DEFAULT_KEYMAP = {
 		addRight: 'Control+Enter',
 		addDown: 'Control+Shift+Enter',
-		close: 'Control+w',
+		close: 'Control+Shift+x',
 		focusNext: 'Alt+ArrowRight',
 		focusPrev: 'Alt+ArrowLeft',
-		grow: 'Control+ArrowUp',
-		shrink: 'Control+ArrowDown'
+		growHeight: 'Control+ArrowUp',
+		shrinkHeight: 'Control+ArrowDown'
 	};
 
 	/** @type {Keymap} */
@@ -194,15 +194,23 @@
 	}
 
 	// Keyboard resize: adjust the immediate parent split's ratio
+	/** @param {'width'|'height'} dimension Dimension to resize */
 	/** @param {number} step Ratio delta, e.g., 0.05 */
-	function resizeFocused(step) {
+	function resizeFocused(dimension, step) {
 		const ctx = findContext(root, focused, null, null);
 		if (!ctx || !ctx.parent) return;
 
-		// Focus is in 'a' if it resides under parent.a (even nested)
-		const focusInA = containsLeaf(ctx.parent.a, focused);
+		// For now, just resize the immediate parent split
+		// TODO: In the future, we could walk up to find the right direction
+		const targetSplit = ctx.parent;
+
+		// Focus is in 'a' if it resides under targetSplit.a (even nested)
+		const focusInA = containsLeaf(targetSplit.a, focused);
 		const delta = focusInA ? step : -step;
-		ctx.parent.ratio = clamp(ctx.parent.ratio + delta, 0.1, 0.9);
+		const newRatio = clamp(targetSplit.ratio + delta, 0.1, 0.9);
+
+		// Use the same callback system as drag resizing
+		handleRatioUpdate(targetSplit, newRatio);
 	}
 
 	/**
@@ -253,13 +261,13 @@
 				e.preventDefault();
 				focusPrev();
 				break;
-			case KM.grow:
+			case KM.growHeight:
 				e.preventDefault();
-				resizeFocused(+0.05);
+				resizeFocused('height', +0.05);
 				break;
-			case KM.shrink:
+			case KM.shrinkHeight:
 				e.preventDefault();
-				resizeFocused(-0.05);
+				resizeFocused('height', -0.05);
 				break;
 		}
 	}
@@ -269,11 +277,21 @@
 		focused = id;
 	}
 
+	// Handle ratio updates from Split components (for drag resizing)
+	function handleRatioUpdate(node, newRatio) {
+		node.ratio = newRatio;
+	}
+
 	// Seed a simple split if no initial layout
 	let initialized = $state(false);
 	$effect(() => {
 		if (!initialized && initial == null) {
-			root = makeSplit(direction, makeLeaf('root'), makeLeaf(rid()), 0.5);
+			root = makeSplit(
+				/** @type {'row'|'column'} */ (direction),
+				makeLeaf('root'),
+				makeLeaf(rid()),
+				0.5
+			);
 			initialized = true;
 		}
 	});
@@ -293,12 +311,20 @@
 	onkeydown={onKey}
 >
 	{#if root.type === 'leaf'}
-		<Tile id={root.id} {focused} onfocus={handleFocus}>
+		<Tile id={/** @type {Leaf} */ (root).id} {focused} onfocus={handleFocus}>
 			{#snippet children()}
-				{@render tile({ focused, tileId: root.id })}
+				{@render tile({ focused, tileId: /** @type {Leaf} */ (root).id })}
 			{/snippet}
 		</Tile>
 	{:else}
-		<Split node={root} {gap} {minSize} {focused} {tile} onfocus={handleFocus} />
+		<Split
+			node={root}
+			{gap}
+			{minSize}
+			{focused}
+			{tile}
+			onfocus={handleFocus}
+			onratioupdate={handleRatioUpdate}
+		/>
 	{/if}
 </div>

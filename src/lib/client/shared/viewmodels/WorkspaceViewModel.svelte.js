@@ -274,7 +274,7 @@ export class WorkspaceViewModel {
 		this.workspaces.sort((a, b) => {
 			const dateA = new Date(a.lastAccessed || 0);
 			const dateB = new Date(b.lastAccessed || 0);
-			return dateB - dateA;
+			return dateB.getTime() - dateA.getTime();
 		});
 	}
 

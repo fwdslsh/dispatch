@@ -11,7 +11,7 @@
 	// Settings state
 	let theme = $state('retro'); // Default theme
 	let autoSaveEnabled = $state(true);
-	let sessionTimeoutMinutes = $state(30);
+	let sessionTimeoutMinutes = $state('30');
 	let defaultLayout = $state('2up');
 	let enableAnimations = $state(true);
 	let enableSoundEffects = $state(false);
@@ -41,7 +41,7 @@
 				const settings = JSON.parse(storedSettings);
 				theme = settings.theme || 'retro';
 				autoSaveEnabled = settings.autoSaveEnabled ?? true;
-				sessionTimeoutMinutes = settings.sessionTimeoutMinutes || 30;
+				sessionTimeoutMinutes = String(settings.sessionTimeoutMinutes || 30);
 				defaultLayout = settings.defaultLayout || '2up';
 				enableAnimations = settings.enableAnimations ?? true;
 				enableSoundEffects = settings.enableSoundEffects ?? false;
@@ -68,7 +68,7 @@
 			const settings = {
 				theme,
 				autoSaveEnabled,
-				sessionTimeoutMinutes,
+				sessionTimeoutMinutes: parseInt(sessionTimeoutMinutes) || 30,
 				defaultLayout,
 				enableAnimations,
 				enableSoundEffects,
@@ -101,7 +101,7 @@
 	async function resetToDefaults() {
 		theme = 'retro';
 		autoSaveEnabled = true;
-		sessionTimeoutMinutes = 30;
+		sessionTimeoutMinutes = '30';
 		defaultLayout = '2up';
 		enableAnimations = true;
 		enableSoundEffects = false;

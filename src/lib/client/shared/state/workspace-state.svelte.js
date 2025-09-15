@@ -31,7 +31,7 @@ export const workspaceState = $state({
 // Getter function for computed values that need to be used in state functions
 export function getAvailableWorkspaces() {
 	return [...workspaceState.all, ...workspaceState.claudeProjects].filter(
-		(workspace, index, self) => index === self.findIndex(w => w.path === workspace.path)
+		(workspace, index, self) => index === self.findIndex((w) => w.path === workspace.path)
 	);
 }
 
@@ -210,7 +210,7 @@ export function sortWorkspacesByName() {
 
 export function sortWorkspacesByLastAccessed() {
 	workspaceState.recent = workspaceState.recent.sort(
-		(a, b) => new Date(b.lastAccessed || 0) - new Date(a.lastAccessed || 0)
+		(a, b) => new Date(b.lastAccessed || 0).getTime() - new Date(a.lastAccessed || 0).getTime()
 	);
 }
 

@@ -31,7 +31,12 @@
 
 	// Debug logging
 	$effect(() => {
-		console.log('[ClaudePane] Props received:', { sessionId, claudeSessionId, shouldResume, workspacePath: initialWorkspacePath });
+		console.log('[ClaudePane] Props received:', {
+			sessionId,
+			claudeSessionId,
+			shouldResume,
+			workspacePath: initialWorkspacePath
+		});
 	});
 
 	/**
@@ -82,7 +87,9 @@
 	function handleCommandInsert(command) {
 		input = command + ' ';
 		// Focus the input after inserting
-		const inputEl = document.querySelector('.message-input');
+		const inputEl = /** @type {HTMLInputElement | null} */ (
+			document.querySelector('.message-input')
+		);
 		if (inputEl) {
 			inputEl.focus();
 			// Move cursor to end
@@ -673,7 +680,9 @@
 					}
 				];
 				// Also hint in the input placeholder
-				const inputEl = document.querySelector('.message-input');
+				const inputEl = /** @type {HTMLInputElement | null} */ (
+					document.querySelector('.message-input')
+				);
 				if (inputEl) inputEl.placeholder = 'Paste authorization code and press Enter';
 				scrollToBottom();
 			} catch (e) {

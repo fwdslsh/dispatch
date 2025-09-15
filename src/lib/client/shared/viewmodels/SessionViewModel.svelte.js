@@ -30,7 +30,7 @@ export class SessionViewModel {
 	/**
 	 * @param {import('../services/SessionApiClient.js').SessionApiClient} sessionApi
 	 * @param {import('../services/PersistenceService.js').PersistenceService} persistence
-	 * @param {import('../services/LayoutService.js').LayoutService} layoutService
+	 * @param {import('../services/LayoutService.svelte.js').LayoutService} layoutService
 	 */
 	constructor(sessionApi, persistence, layoutService) {
 		this.sessionApi = sessionApi;
@@ -112,7 +112,7 @@ export class SessionViewModel {
 			console.log('[SessionViewModel] Loaded sessions from API:', result.sessions);
 
 			// Filter out any sessions without valid IDs
-			this.sessions = (result.sessions || []).filter(s => s && s.id);
+			this.sessions = (result.sessions || []).filter((s) => s && s.id);
 			console.log('[SessionViewModel] Valid sessions after filtering:', this.sessions);
 
 			// Update active sessions map
@@ -146,7 +146,9 @@ export class SessionViewModel {
 			const result = await this.sessionApi.create({
 				type,
 				workspacePath,
-				options
+				options,
+				resume: false,
+				sessionId: null
 			});
 
 			// Create session object
@@ -192,9 +194,11 @@ export class SessionViewModel {
 
 		try {
 			const result = await this.sessionApi.create({
+				type: 'pty', // Default to pty for resume, could be made configurable
+				workspacePath,
+				options: {},
 				resume: true,
-				sessionId,
-				workspacePath
+				sessionId
 			});
 
 			// Update session state
@@ -412,7 +416,7 @@ export class SessionViewModel {
 		if (this.sessions.length > 0) {
 			this.currentMobileSession = (this.currentMobileSession + 1) % this.sessions.length;
 			this.saveDisplayState();
-		this.syncToGlobalState();
+			this.syncToGlobalState();
 		}
 	}
 
@@ -424,7 +428,7 @@ export class SessionViewModel {
 			this.currentMobileSession =
 				(this.currentMobileSession - 1 + this.sessions.length) % this.sessions.length;
 			this.saveDisplayState();
-		this.syncToGlobalState();
+			this.syncToGlobalState();
 		}
 	}
 
@@ -472,7 +476,7 @@ export class SessionViewModel {
 	restoreDisplayState() {
 		const savedDisplayed = this.persistence.get('dispatch-displayed-sessions', []);
 		// Only restore session IDs that actually exist in loaded sessions
-		this.displayed = savedDisplayed.filter(id => this.sessions.some(s => s.id === id));
+		this.displayed = savedDisplayed.filter((id) => this.sessions.some((s) => s.id === id));
 		this.currentMobileSession = this.persistence.get('dispatch-mobile-index', 0);
 
 		console.log('[SessionViewModel] Restored display state - valid IDs:', this.displayed);
@@ -500,7 +504,7 @@ export class SessionViewModel {
 		this.sessions.sort((a, b) => {
 			const dateA = new Date(a.lastActivity || 0);
 			const dateB = new Date(b.lastActivity || 0);
-			return dateB - dateA;
+			return dateB.getTime() - dateA.getTime();
 		});
 	}
 
@@ -584,17 +588,20 @@ export class SessionViewModel {
 	 */
 	syncToGlobalState() {
 		// Filter sessions to ensure they have valid IDs
-		const validSessions = this.sessions.filter(s => s && s.id);
+		const validSessions = this.sessions.filter((s) => s && s.id);
 
 		// Update global all sessions
 		setAllSessions([...validSessions]);
 
 		// Update global displayed sessions - use sessions that should be visible
 		const displayedSessions = this.layoutService.isMobile()
-			? this.visibleSessions.filter(s => s && s.id)  // Mobile: use the derived visible sessions
-			: this.displayed.map(id => this.getSession(id)).filter(s => s && s.id); // Desktop: use displayed IDs
+			? this.visibleSessions.filter((s) => s && s.id) // Mobile: use the derived visible sessions
+			: this.displayed.map((id) => this.getSession(id)).filter((s) => s && s.id); // Desktop: use displayed IDs
 
-		console.log('[SessionViewModel] Syncing to global state, displayed sessions:', displayedSessions);
+		console.log(
+			'[SessionViewModel] Syncing to global state, displayed sessions:',
+			displayedSessions
+		);
 		setDisplayedSessions([...displayedSessions]);
 	}
 

@@ -16,7 +16,7 @@ describe('SessionViewModel', () => {
 		mockSessionApi = {
 			list: vi.fn().mockResolvedValue([]),
 			create: vi.fn().mockResolvedValue({ id: 'new-session', type: 'pty' }),
-			stop: vi.fn().mockResolvedValue(),
+			delete: vi.fn().mockResolvedValue(),
 			pin: vi.fn().mockResolvedValue(),
 			unpin: vi.fn().mockResolvedValue(),
 			rename: vi.fn().mockResolvedValue()

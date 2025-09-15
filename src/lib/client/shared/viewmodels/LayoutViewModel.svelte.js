@@ -92,7 +92,7 @@ export class LayoutViewModel {
 	 */
 	setLayoutPreset(preset) {
 		this.layoutService.setLayoutPreset(preset);
-		this.layoutPreset = preset;
+		// Note: this.layoutPreset updates automatically via $derived
 	}
 
 	/**
@@ -101,10 +101,9 @@ export class LayoutViewModel {
 	 */
 	cycleLayoutPreset() {
 		const newPreset = this.layoutService.cycleLayoutPreset();
-		this.layoutPreset = newPreset;
+		// Note: this.layoutPreset updates automatically via $derived
 		return newPreset;
 	}
-
 
 	/**
 	 * Toggle mobile menu

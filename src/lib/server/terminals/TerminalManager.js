@@ -27,10 +27,7 @@ async function ensurePtyLoaded() {
 		logger.error('Failed to load node-pty:', err);
 		// In development mode, if Vite module runner is closed, allow retry on next call
 		if (err.message?.includes('Vite module runner has been closed')) {
-			logger.warn(
-				'TERMINAL',
-				'Vite module runner closed - resetting for retry on next attempt'
-			);
+			logger.warn('TERMINAL', 'Vite module runner closed - resetting for retry on next attempt');
 			// Reset the attempt flag so we can try again immediately on next call
 			ptyLoadAttempted = false;
 		}

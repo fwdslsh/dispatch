@@ -28,7 +28,16 @@
 	const activeTabData = $derived(tabs.find((tab) => tab.id === activeTab));
 </script>
 
-<Modal {onclose} bind:open title="Settings" size="large" augmented="tl-clip tr-clip bl-clip br-clip both">
+<Modal
+	{onclose}
+	bind:open
+	title="Settings"
+	size="large"
+	augmented="tl-clip tr-clip bl-clip br-clip both"
+>
+	{#snippet footer()}
+		<!-- No footer needed for settings modal -->
+	{/snippet}
 	<div class="settings-container">
 		<!-- Settings Navigation -->
 		<nav class="settings-nav" aria-label="Settings sections">

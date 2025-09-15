@@ -65,7 +65,9 @@ export class WorkspaceApiClient {
 				errorMessage = errorBody || response.statusText;
 			}
 
-			const error = new Error(errorMessage);
+			const error = /** @type {Error & {status?: number, statusText?: string}} */ (
+				new Error(errorMessage)
+			);
 			error.status = response.status;
 			error.statusText = response.statusText;
 			throw error;

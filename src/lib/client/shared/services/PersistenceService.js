@@ -17,7 +17,7 @@ import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 
 export class PersistenceService {
 	/**
-	 * @param {PersistenceConfig} config
+	 * @param {Partial<PersistenceConfig>} [config]
 	 */
 	constructor(config = {}) {
 		this.config = {

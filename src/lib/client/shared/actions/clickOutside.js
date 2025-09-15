@@ -4,12 +4,16 @@
  */
 
 /**
+ * @typedef {Object} ClickOutsideOptions
+ * @property {boolean} [enabled=true] - Whether the action is enabled
+ * @property {string} [eventName='clickOutside'] - Name of event to dispatch
+ * @property {string[]} [excludeSelector] - CSS selectors to exclude from outside clicks
+ */
+
+/**
  * Click outside action - dispatches 'clickOutside' event when user clicks outside the element
  * @param {HTMLElement} node - The DOM node to monitor
- * @param {Object} [options] - Configuration options
- * @param {boolean} [options.enabled=true] - Whether the action is enabled
- * @param {string} [options.eventName='clickOutside'] - Name of event to dispatch
- * @param {string[]} [options.excludeSelector] - CSS selectors to exclude from outside clicks
+ * @param {ClickOutsideOptions} [options] - Configuration options
  */
 export function clickOutside(node, options = {}) {
 	const { enabled = true, eventName = 'clickOutside', excludeSelector = [] } = options;
@@ -43,6 +47,7 @@ export function clickOutside(node, options = {}) {
 	}
 
 	return {
+		/** @param {ClickOutsideOptions} [newOptions] */
 		update(newOptions = {}) {
 			const newConfig = { ...options, ...newOptions };
 
@@ -65,8 +70,18 @@ export function clickOutside(node, options = {}) {
 }
 
 /**
+ * @typedef {Object} ClickOutsideEscapeOptions
+ * @property {boolean} [enabled=true] - Whether the action is enabled
+ * @property {string} [clickEventName='clickOutside'] - Name of click event to dispatch
+ * @property {string} [escapeEventName='escape'] - Name of escape event to dispatch
+ * @property {string[]} [excludeSelector] - CSS selectors to exclude from outside clicks
+ */
+
+/**
  * Enhanced click outside action with escape key support
  * Usage: <div use:clickOutsideEscape on:clickOutside={handleClose} on:escape={handleClose}>
+ * @param {HTMLElement} node - The DOM node to monitor
+ * @param {ClickOutsideEscapeOptions} [options] - Configuration options
  */
 export function clickOutsideEscape(node, options = {}) {
 	const {
@@ -116,6 +131,7 @@ export function clickOutsideEscape(node, options = {}) {
 	}
 
 	return {
+		/** @param {ClickOutsideEscapeOptions} [newOptions] */
 		update(newOptions = {}) {
 			const newConfig = { ...options, ...newOptions };
 

@@ -1,16 +1,55 @@
 /* Fill the screen for the demo */
-.demo-host { inline-size: 100%; block-size: 100vh; }
+.demo-host {
+	inline-size: 100%;
+	block-size: 100vh;
+}
 
 /* Structural hooks for the WM. No visual theming. */
-.wm-root { display: flex; inline-size: 100%; block-size: 100%; overflow: hidden; outline: none; }
-.wm-split { display: flex; inline-size: 100%; block-size: 100%; }
-.wm-split[data-dir="row"] { flex-direction: row; }
-.wm-split[data-dir="column"] { flex-direction: column; }
+.wm-root {
+	display: flex;
+	inline-size: 100%;
+	block-size: 100%;
+	overflow: hidden;
+	outline: none;
+}
+.wm-split {
+	display: flex;
+	inline-size: 100%;
+	block-size: 100%;
+}
+.wm-split[data-dir='row'] {
+	flex-direction: row;
+}
+.wm-split[data-dir='column'] {
+	flex-direction: column;
+}
 
-.wm-pane { display: flex; min-inline-size: 0; min-block-size: 0; }
-.wm-pane-a, .wm-pane-b { overflow: hidden; }
+.wm-pane {
+	display: flex;
+	min-inline-size: 0;
+	min-block-size: 0;
+}
+.wm-pane-a,
+.wm-pane-b {
+	overflow: hidden;
+}
 
-.wm-divider[data-dir="row"] { inline-size: var(--wm-gap, 6px); block-size: 100%; cursor: col-resize; flex: 0 0 auto; }
-.wm-divider[data-dir="column"] { block-size: var(--wm-gap, 6px); inline-size: 100%; cursor: row-resize; flex: 0 0 auto; }
+.wm-divider[data-dir='row'] {
+	inline-size: var(--wm-gap, 6px);
+	block-size: 100%;
+	cursor: col-resize;
+	flex: 0 0 auto;
+}
+.wm-divider[data-dir='column'] {
+	block-size: var(--wm-gap, 6px);
+	inline-size: 100%;
+	cursor: row-resize;
+	flex: 0 0 auto;
+}
 
-.wm-tile { display: flex; inline-size: 100%; block-size: 100%; overflow: auto; }
+.wm-tile {
+	display: flex;
+	inline-size: 100%;
+	block-size: 100%;
+	overflow: auto;
+}

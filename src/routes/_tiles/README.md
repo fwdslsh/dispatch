@@ -5,18 +5,21 @@ This is a comprehensive demonstration of the tiling window manager component bui
 ## Demo Features
 
 🪟 **Dynamic Layout Management**
+
 - Create horizontal and vertical splits
 - Drag-to-resize dividers
 - Keyboard-driven navigation
 - Focus management with visual indicators
 
 🎯 **Interactive Examples**
+
 - Sample content for different use cases
 - Editable tile titles and content
 - Real-time focus indicators
 - Collapsible instructions panel
 
 ⌨️ **Keyboard Shortcuts**
+
 - `Ctrl+Enter` - Split right (horizontal)
 - `Ctrl+Shift+Enter` - Split down (vertical)
 - `Ctrl+W` - Close current tile
@@ -27,11 +30,13 @@ This is a comprehensive demonstration of the tiling window manager component bui
 ## Usage
 
 1. **Start the development server:**
+
    ```bash
    npm run dev
    ```
 
 2. **Visit the demo page:**
+
    ```
    http://localhost:5174/_tiles/
    ```
@@ -62,6 +67,7 @@ WindowManager.svelte     # Main container and layout logic
 ## Customization
 
 The window manager supports:
+
 - Custom keyboard shortcuts via `keymap` prop
 - Adjustable gap sizes and minimum tile sizes
 - Custom tile content via snippet rendering
@@ -71,11 +77,13 @@ The window manager supports:
 ## Testing
 
 Comprehensive test suite available in `tests/components/window-manager/`:
+
 - Unit tests for each component
 - Integration tests for complete workflows
 - Browser-based testing with Playwright
 
 Run tests with:
+
 ```bash
 npm run test:unit -- tests/components/window-manager/
 ```

@@ -1,7 +1,7 @@
 <svelte:options runes={true} />
 
 <script>
-	import WindowManager from "$lib/client/shared/components/window-manager/WindowManager.svelte";
+	import WindowManager from '$lib/client/shared/components/window-manager/WindowManager.svelte';
 
 	/** @type {Record<string, string>} */
 	let titles = $state({});
@@ -107,7 +107,10 @@ The drag-to-resize feature works really well!
 		/* Global styles for the demo */
 		body {
 			margin: 0;
-			font-family: system-ui, -apple-system, sans-serif;
+			font-family:
+				system-ui,
+				-apple-system,
+				sans-serif;
 			background: #1a1a1a;
 			color: #fff;
 		}
@@ -122,10 +125,7 @@ The drag-to-resize feature works really well!
 			<p>Interactive tiling window manager built with Svelte 5 runes</p>
 		</div>
 		<div class="header-controls">
-			<button
-				class="toggle-btn"
-				onclick={() => showInstructions = !showInstructions}
-			>
+			<button class="toggle-btn" onclick={() => (showInstructions = !showInstructions)}>
 				{showInstructions ? 'Hide' : 'Show'} Instructions
 			</button>
 		</div>
@@ -190,10 +190,7 @@ The drag-to-resize feature works really well!
 							{focused === tileId ? '🎯 Focused' : ''}
 						</div>
 						{#if !content[tileId] && tileId !== 'root'}
-							<button
-								class="sample-btn"
-								onclick={() => setContent(tileId, getNextSampleContent())}
-							>
+							<button class="sample-btn" onclick={() => setContent(tileId, getNextSampleContent())}>
 								📄 Add Sample
 							</button>
 						{/if}
@@ -328,11 +325,11 @@ The drag-to-resize feature works really well!
 		height: 100%;
 	}
 
-	:global(.wm-split[data-dir="row"]) {
+	:global(.wm-split[data-dir='row']) {
 		flex-direction: row;
 	}
 
-	:global(.wm-split[data-dir="column"]) {
+	:global(.wm-split[data-dir='column']) {
 		flex-direction: column;
 	}
 
@@ -352,12 +349,12 @@ The drag-to-resize feature works really well!
 		background: #777;
 	}
 
-	:global(.wm-split[data-dir="row"] .wm-divider) {
+	:global(.wm-split[data-dir='row'] .wm-divider) {
 		width: 4px;
 		cursor: col-resize;
 	}
 
-	:global(.wm-split[data-dir="column"] .wm-divider) {
+	:global(.wm-split[data-dir='column'] .wm-divider) {
 		height: 4px;
 		cursor: row-resize;
 	}
@@ -375,7 +372,7 @@ The drag-to-resize feature works really well!
 		transition: all 0.2s;
 	}
 
-	:global(.wm-tile[data-focused="true"]) {
+	:global(.wm-tile[data-focused='true']) {
 		background: #333;
 		box-shadow: inset 0 0 0 2px #0066cc;
 	}

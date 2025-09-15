@@ -99,7 +99,10 @@
 
 			// Reset transition state after animation
 			setTimeout(() => {
-				layoutViewModel.transitioning = false;
+				if (layoutViewModel) {
+					// Guard against component cleanup
+					layoutViewModel.transitioning = false;
+				}
 			}, 300);
 		}
 	});
@@ -219,7 +222,8 @@
 			});
 		} else {
 			// Show manual installation instructions
-			const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+			const isIOS =
+				/iPad|iPhone|iPod/.test(navigator.userAgent) && !(/** @type {any} */ (window).MSStream);
 			if (isIOS) {
 				alert(
 					'To install this app on iOS:\n1. Tap the share button ⎙\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install'
@@ -283,7 +287,7 @@
 			workspacePath,
 			typeSpecificId
 		});
-		modalViewModel.closeModal('createSession')
+		modalViewModel.closeModal('createSession');
 	}
 </script>
 

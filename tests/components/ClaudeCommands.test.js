@@ -7,7 +7,9 @@ const mockLocalStorage = {
 	getItem: vi.fn(),
 	setItem: vi.fn(),
 	removeItem: vi.fn(),
-	clear: vi.fn()
+	clear: vi.fn(),
+	length: 0,
+	key: vi.fn()
 };
 
 // Mock fetch
@@ -65,8 +67,10 @@ describe('ClaudeCommands', () => {
 			}
 		});
 
-		const button = container.querySelector('.command-menu-button');
-		expect(button.disabled).toBe(true);
+		const button = /** @type {HTMLButtonElement | null} */ (
+			container.querySelector('.command-menu-button')
+		);
+		expect(button?.disabled).toBe(true);
 		expect(button.getAttribute('title')).toBe('Commands unavailable');
 	});
 

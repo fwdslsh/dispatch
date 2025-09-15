@@ -11,6 +11,10 @@ import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 /**
  * @typedef {Object} SocketConfig
  * @property {string} url - Socket.IO server URL
+ * @property {string} socketUrl - Alternative URL property
+ * @property {string} apiBaseUrl - API base URL
+ * @property {string} authTokenKey - Auth token key
+ * @property {boolean} debug - Debug flag
  * @property {Object} options - Socket.IO connection options
  * @property {boolean} autoReconnect - Auto-reconnect on failure
  * @property {number} reconnectAttempts - Maximum reconnect attempts
@@ -19,7 +23,7 @@ import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 
 export class SocketService {
 	/**
-	 * @param {SocketConfig} config
+	 * @param {Partial<SocketConfig>} [config]
 	 */
 	constructor(config = {}) {
 		this.config = {
@@ -250,7 +254,7 @@ export class SocketService {
 	/**
 	 * Listen for server events
 	 * @param {string} event - Event name
-	 * @param {Function} handler - Event handler
+	 * @param {(...args: any[]) => void} handler - Event handler
 	 * @returns {Function} Cleanup function
 	 */
 	on(event, handler) {
@@ -273,7 +277,7 @@ export class SocketService {
 	/**
 	 * Remove event listener
 	 * @param {string} event - Event name
-	 * @param {Function} handler - Event handler
+	 * @param {(...args: any[]) => void} handler - Event handler
 	 */
 	off(event, handler) {
 		if (this.socket) {
@@ -289,7 +293,7 @@ export class SocketService {
 	/**
 	 * Listen for events once
 	 * @param {string} event - Event name
-	 * @param {Function} handler - Event handler
+	 * @param {(...args: any[]) => void} handler - Event handler
 	 */
 	once(event, handler) {
 		if (this.socket) {

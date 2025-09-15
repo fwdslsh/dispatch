@@ -97,8 +97,9 @@ export class ModalViewModel {
 
 		document.addEventListener('click', (e) => {
 			// Handle backdrop clicks for dismissible modals
-			if (e.target?.classList.contains('modal-backdrop')) {
-				const modalId = e.target.getAttribute('data-modal-id');
+			const target = /** @type {Element | null} */ (e.target);
+			if (target?.classList.contains('modal-backdrop')) {
+				const modalId = target.getAttribute('data-modal-id');
 				if (modalId && this.isModalDismissible(modalId)) {
 					this.closeModal(modalId);
 				}

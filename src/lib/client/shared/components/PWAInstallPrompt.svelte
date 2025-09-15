@@ -10,12 +10,12 @@
 
 	onMount(() => {
 		// Check if iOS
-		isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+		isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(/** @type {any} */ (window).MSStream);
 
 		// Check if app is already installed
 		if (
 			window.matchMedia('(display-mode: standalone)').matches ||
-			window.navigator.standalone === true
+			/** @type {any} */ (window.navigator).standalone === true
 		) {
 			isInstalled = true;
 			console.log('[PWA] App is already installed');

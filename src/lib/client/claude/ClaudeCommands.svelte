@@ -341,7 +341,9 @@
 
 			// Focus first menu item after render
 			tick().then(() => {
-				const first = document.querySelector('.claude-commands-dropdown button');
+				const first = /** @type {HTMLButtonElement | null} */ (
+					document.querySelector('.claude-commands-dropdown button')
+				);
 				if (first) first.focus();
 			});
 		}

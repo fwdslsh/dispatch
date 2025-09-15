@@ -193,7 +193,7 @@ export class ErrorService {
 	 */
 	classifyError(error, context = {}) {
 		const message = typeof error === 'string' ? error : error.message || '';
-		const status = error?.status || context?.status;
+		const status = /** @type {any} */ (error)?.status || context?.status;
 
 		// Network errors
 		if (status === 0 || message.includes('fetch')) {
@@ -296,7 +296,7 @@ export class ErrorService {
 	getErrorStats() {
 		const stats = {};
 		const now = new Date();
-		const lastHour = new Date(now - 60 * 60 * 1000);
+		const lastHour = new Date(now.getTime() - 60 * 60 * 1000);
 
 		// Count by category
 		const byCategory = {};

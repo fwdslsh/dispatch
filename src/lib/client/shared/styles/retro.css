@@ -1415,7 +1415,157 @@ body::before {
 	}
 }
 
-/* 13) Nesting guidance (v2):
+/* 13) Enhanced Utility Classes for Common Interaction Patterns */
+
+/* Glow Effect Utilities */
+.glow-subtle {
+	box-shadow: 0 0 8px var(--glow);
+}
+.glow-medium {
+	box-shadow: 0 0 16px var(--glow);
+}
+.glow-strong {
+	box-shadow: 0 0 24px var(--glow);
+}
+.glow-intense {
+	box-shadow:
+		0 0 32px var(--glow),
+		0 0 64px var(--glow);
+}
+
+.glow-inset-subtle {
+	box-shadow: inset 0 0 6px var(--glow);
+}
+.glow-inset-medium {
+	box-shadow: inset 0 0 12px var(--glow);
+}
+
+/* Scale Transform Utilities */
+.scale-hover {
+	transition: transform 0.2s ease;
+}
+.scale-hover:hover {
+	transform: scale(1.05);
+}
+.scale-hover-strong:hover {
+	transform: scale(1.1);
+}
+.scale-active:active {
+	transform: scale(0.95);
+}
+
+/* Combined Interactive Effects */
+.interactive-glow {
+	transition: all 0.2s ease;
+}
+
+.interactive-glow:hover {
+	box-shadow: 0 0 20px var(--glow);
+	transform: translateY(-1px);
+}
+
+.interactive-glow:active {
+	box-shadow: inset 0 0 8px var(--glow);
+	transform: translateY(0) scale(0.98);
+}
+
+/* Loading State Utilities */
+.loading-pulse {
+	animation: loadingPulse 1.5s ease-in-out infinite;
+}
+
+.loading-shimmer {
+	background: linear-gradient(90deg, transparent 0%, var(--glow) 50%, transparent 100%);
+	background-size: 200% 100%;
+	animation: shimmer 2s linear infinite;
+}
+
+/* State Indicator Utilities */
+.state-active::before {
+	content: '● ';
+	color: var(--accent);
+	animation: statusPulse 2s ease-in-out infinite;
+}
+
+.state-inactive::before {
+	content: '◦ ';
+	color: var(--muted);
+}
+
+.state-processing::before {
+	content: '⟳ ';
+	color: var(--accent-cyan);
+	animation: spin 1s linear infinite;
+}
+
+/* Layout Utilities */
+.flex-center {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.flex-between {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.flex-gap-sm {
+	gap: var(--space-2);
+}
+.flex-gap-md {
+	gap: var(--space-3);
+}
+.flex-gap-lg {
+	gap: var(--space-4);
+}
+
+/* Text Utilities */
+.text-terminal {
+	font-family: var(--font-mono);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.text-accent {
+	color: var(--accent);
+}
+.text-muted {
+	color: var(--muted);
+}
+.text-success {
+	color: var(--ok);
+}
+.text-warning {
+	color: var(--warn);
+}
+.text-error {
+	color: var(--err);
+}
+
+/* Terminal Effects Utilities */
+.terminal-blink {
+	animation: cursorBlink 1s step-end infinite;
+}
+
+.terminal-scan::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: repeating-linear-gradient(
+		0deg,
+		transparent 0px,
+		transparent 2px,
+		var(--scan-line) 3px,
+		transparent 4px
+	);
+	pointer-events: none;
+	opacity: 0.3;
+}
+
+/* 14) Nesting guidance (v2):
    If you nest augmented elements, place a reset layer between them:
    [data-augmented-ui] [data-augmented-ui-reset] [data-augmented-ui]
    This ensures independent shapes & borders in modern browsers. */

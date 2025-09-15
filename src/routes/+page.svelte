@@ -17,7 +17,7 @@
 		// Detect if running as PWA
 		isPWA =
 			window.matchMedia('(display-mode: standalone)').matches ||
-			window.navigator.standalone === true ||
+			/** @type {any} */ (window.navigator).standalone === true ||
 			document.referrer.includes('android-app://');
 
 		// Initialize current URL and input

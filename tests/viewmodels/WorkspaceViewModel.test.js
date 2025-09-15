@@ -36,7 +36,7 @@ describe('WorkspaceViewModel', () => {
 		};
 
 		// Create ViewModel instance
-		viewModel = new WorkspaceViewModel(mockWorkspaceApi, mockPersistence, mockClaudeApi);
+		viewModel = new WorkspaceViewModel(mockWorkspaceApi, mockPersistence);
 	});
 
 	afterEach(() => {
