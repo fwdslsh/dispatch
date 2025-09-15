@@ -307,6 +307,7 @@
 	/* Additional consistent aliases for components */
 	--text-primary: var(--text);
 	--text-secondary: var(--muted);
+	--color-primary: var(--primary); /* Alias for PWA components */
 	--text-muted: var(--muted);
 	--text-dim: color-mix(in oklab, var(--muted) 70%, transparent);
 	--bg-dark: var(--bg);

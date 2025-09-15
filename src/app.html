@@ -4,6 +4,16 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		
+		<!-- PWA Support -->
+		<link rel="manifest" href="%sveltekit.assets%/manifest.json" />
+		<meta name="theme-color" content="#00ff00" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/icon-192.png" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="apple-mobile-web-app-title" content="Dispatch" />
+		<meta name="application-name" content="Dispatch Terminal" />
+		<meta name="description" content="Interactive terminal sessions accessible via browser" />
 		<link
 			rel="preload"
 			href="/fonts/exo-2/7cHmv4okm5zmbtYoK-4.woff2"
@@ -32,6 +42,27 @@
 			href="https://unpkg.com/augmented-ui@2/augmented-ui.min.css"
 		/>
 		<style>
+			/* Prevent pull-to-refresh on mobile devices */
+			html {
+				overscroll-behavior: none;
+				touch-action: pan-x pan-y;
+			}
+
+			body {
+				/* Fixed positioning prevents pull-to-refresh */
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+				overscroll-behavior: none;
+				touch-action: pan-x pan-y;
+				-webkit-overflow-scrolling: touch;
+			}
+
 			/* Global tap highlight removal for mobile devices */
 			* {
 				-webkit-tap-highlight-color: transparent;
@@ -56,5 +87,20 @@
 
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
+		
+		<!-- PWA Service Worker Registration -->
+		<script>
+			if ('serviceWorker' in navigator) {
+				window.addEventListener('load', () => {
+					navigator.serviceWorker.register('/service-worker.js')
+						.then((registration) => {
+							console.log('[PWA] Service Worker registered:', registration);
+						})
+						.catch((error) => {
+							console.log('[PWA] Service Worker registration failed:', error);
+						});
+				});
+			}
+		</script>
 	</body>
 </html>

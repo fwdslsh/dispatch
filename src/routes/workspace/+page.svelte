@@ -27,6 +27,8 @@
 	} from '@tabler/icons-svelte';
 	import IconButton from '$lib/client/shared/components/IconButton.svelte';
 	import ClaudeSessionModal from '$lib/client/claude/ClaudeSessionModal.svelte';
+	import PWAInstallPrompt from '$lib/client/shared/components/PWAInstallPrompt.svelte';
+	import PWAUpdateNotification from '$lib/client/shared/components/PWAUpdateNotification.svelte';
 
 	let sessions = $state([]);
 	let workspaces = $state([]);
@@ -406,6 +408,35 @@
 		currentMobileSession = (currentMobileSession - 1 + allSessions.length) % allSessions.length;
 	}
 
+	// PWA Installation handling
+	let deferredPrompt = $state(null);
+
+	function handleInstallPWA() {
+		if (deferredPrompt) {
+			// Use deferred prompt if available
+			deferredPrompt.prompt();
+			deferredPrompt.userChoice.then((choiceResult) => {
+				if (choiceResult.outcome === 'accepted') {
+					console.log('[PWA] User accepted the install prompt');
+				} else {
+					console.log('[PWA] User dismissed the install prompt');
+				}
+				deferredPrompt = null;
+			});
+		} else {
+			// For browsers that don't support beforeinstallprompt or if prompt was already used
+			// Show manual installation instructions
+			const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+			if (isIOS) {
+				alert('To install this app on iOS:\n1. Tap the share button ⎙\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install');
+			} else {
+				// For other browsers, show generic instructions
+				alert('To install this app:\n1. Look for an install icon in your browser\'s address bar\n2. Or check your browser\'s menu for "Install" or "Add to Home Screen" option');
+			}
+		}
+	}
+
 	// Touch gesture handling for mobile swipe navigation
 	let touchStartX = 0;
 	let touchStartY = 0;
@@ -587,6 +618,17 @@
 				displayed = desired;
 			}
 		} catch {}
+		
+		// Check for PWA shortcut parameters
+		const urlParams = new URLSearchParams(window.location.search);
+		const newSessionType = urlParams.get('new');
+		if (newSessionType === 'terminal' || newSessionType === 'claude') {
+			// Auto-open create session modal with the specified type
+			createSessionInitialType = newSessionType;
+			createSessionModalOpen = true;
+			// Clean up the URL
+			window.history.replaceState({}, '', '/workspace');
+		}
 
 		// Initialize responsive state
 		updateMobileState();
@@ -608,6 +650,17 @@
 				sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length - 1
 			);
 			currentMobileSession = Math.min(savedMobileIndex, maxIdx);
+		}
+
+		// PWA install prompt setup
+		if (typeof window !== 'undefined') {
+			window.addEventListener('beforeinstallprompt', (e) => {
+				// Prevent the default prompt
+				e.preventDefault();
+				// Store the event for later use
+				deferredPrompt = e;
+				console.log('[PWA] Install prompt available');
+			});
 		}
 
 		// Finished restoring; allow persistence effects to run
@@ -955,6 +1008,15 @@
 			</div>
 			<div class="right-group">
 				<IconButton
+					class="bottom-btn install-btn"
+					onclick={handleInstallPWA}
+					aria-label="Install app"
+					title="Install App"
+					type="button"
+				>
+					<IconAppWindow size={18} />
+				</IconButton>
+				<IconButton
 					class="bottom-btn"
 					onclick={() => (settingsModalOpen = true)}
 					aria-label="Open settings"
@@ -996,6 +1058,9 @@
 
 <SettingsModal bind:open={settingsModalOpen} />
 
+<PWAInstallPrompt />
+<PWAUpdateNotification />
+
 <style>
 	/* Maximum Screen Space Utilization for Developers */
 
@@ -1017,6 +1082,9 @@
 		max-width: 100svw;
 		width: 100%;
 		transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		/* Prevent pull-to-refresh on the workspace container */
+		overscroll-behavior: none;
+		touch-action: pan-x pan-y;
 
 		&::before {
 			content: '';
@@ -1245,6 +1313,9 @@
 		position: relative;
 		/* Prevent grid child overflow in narrow viewports */
 		min-width: 0;
+		/* Prevent pull-to-refresh on the main content area */
+		overscroll-behavior: none;
+		touch-action: pan-x pan-y;
 	}
 
 	@media (max-width: 768px) {

@@ -1,0 +1,49 @@
+{
+  "name": "Dispatch",
+  "short_name": "Dispatch",
+  "description": "Interactive AI agent & terminal sessions accessible via browser",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00ff00",
+  "orientation": "any",
+  "categories": ["developer", "tools", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Terminal Session",
+      "short_name": "Terminal",
+      "description": "Start a new terminal session",
+      "url": "/workspace?new=terminal",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New Claude Session",
+      "short_name": "Claude",
+      "description": "Start a new Claude AI session",
+      "url": "/workspace?new=claude",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
