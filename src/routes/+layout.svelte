@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import '$lib/client/shared/styles/retro.css';
+	import '$lib/client/shared/styles/index.css';
 	import { getStoredAuthToken } from '$lib/client/shared/socket-auth.js';
 
 	let { data, children } = $props();

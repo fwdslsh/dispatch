@@ -71,22 +71,24 @@
 	}
 
 	// Filter sessions based on search term and session type
-	const filteredSessions = $derived(allSessions.filter((session) => {
-		// Filter by session type
-		if (sessionType !== 'all' && session.type !== sessionType) {
-			return false;
-		}
-		// Filter by search term
-		if (searchTerm) {
-			const term = searchTerm.toLowerCase();
-			return (
-				session.title.toLowerCase().includes(term) ||
-				session.workspacePath.toLowerCase().includes(term) ||
-				session.type.toLowerCase().includes(term)
-			);
-		}
-		return true;
-	}));
+	const filteredSessions = $derived(
+		allSessions.filter((session) => {
+			// Filter by session type
+			if (sessionType !== 'all' && session.type !== sessionType) {
+				return false;
+			}
+			// Filter by search term
+			if (searchTerm) {
+				const term = searchTerm.toLowerCase();
+				return (
+					session.title.toLowerCase().includes(term) ||
+					session.workspacePath.toLowerCase().includes(term) ||
+					session.type.toLowerCase().includes(term)
+				);
+			}
+			return true;
+		})
+	);
 
 	// Handle directory selection
 	function handleDirectorySelect(path) {
@@ -204,7 +206,7 @@
 					resumeSession: true,
 					isActive: true
 				};
-				
+
 				await loadAllSessions();
 				selectSession(sessionToResume);
 				onSessionSelected?.({
@@ -213,13 +215,13 @@
 						shouldResume: true
 					}
 				});
-				
+
 				// Switch to active sessions tab
 				currentTab = 'active';
 			} else {
 				const errorData = await response.text();
 				let errorMessage = 'Failed to resume session';
-				
+
 				try {
 					const errorObj = JSON.parse(errorData);
 					errorMessage = errorObj.error || errorMessage;
@@ -227,7 +229,7 @@
 					// If not JSON, use the raw text
 					errorMessage = errorData || errorMessage;
 				}
-				
+
 				// Show user-friendly messages for common errors
 				if (errorMessage.includes('temporarily unavailable')) {
 					error = 'Session creation is temporarily unavailable. Please try again in a moment.';
@@ -298,8 +300,8 @@
 						<IconActivity size={20} />
 						<h2>Active Sessions</h2>
 					</div>
-					{#if filteredSessions.filter(s => s.isActive).length > 0}
-						<span class="count-badge">{filteredSessions.filter(s => s.isActive).length}</span>
+					{#if filteredSessions.filter((s) => s.isActive).length > 0}
+						<span class="count-badge">{filteredSessions.filter((s) => s.isActive).length}</span>
 					{/if}
 				</div>
 
@@ -327,7 +329,7 @@
 					{:else if error}
 						<div class="status error">{error}</div>
 					{:else}
-						{@const activeSessions = filteredSessions.filter(s => s.isActive)}
+						{@const activeSessions = filteredSessions.filter((s) => s.isActive)}
 						{#if activeSessions.length === 0}
 							<div class="status">
 								{searchTerm
@@ -338,8 +340,10 @@
 							</div>
 						{:else}
 							{#each activeSessions as session (session.id)}
-								<div 
-									class="session-card active-session {selectedSession === session.id ? 'selected' : ''}"
+								<div
+									class="session-card active-session {selectedSession === session.id
+										? 'selected'
+										: ''}"
 									onclick={() => selectSession(session)}
 									role="button"
 									tabindex="0"
@@ -427,7 +431,11 @@
 							onSelect={handleDirectorySelect}
 						/>
 						<div class="picker-actions">
-							<Button variant="ghost" augmented="none" onclick={() => (showDirectoryPicker = false)}>
+							<Button
+								variant="ghost"
+								augmented="none"
+								onclick={() => (showDirectoryPicker = false)}
+							>
 								Cancel
 							</Button>
 						</div>
@@ -471,8 +479,8 @@
 						<IconHistory size={20} />
 						<h2>Browse Sessions</h2>
 					</div>
-					{#if filteredSessions.filter(s => !s.isActive).length > 0}
-						<span class="count-badge">{filteredSessions.filter(s => !s.isActive).length}</span>
+					{#if filteredSessions.filter((s) => !s.isActive).length > 0}
+						<span class="count-badge">{filteredSessions.filter((s) => !s.isActive).length}</span>
 					{/if}
 				</div>
 
@@ -500,7 +508,7 @@
 					{:else if error}
 						<div class="status error">{error}</div>
 					{:else}
-						{@const historicalSessions = filteredSessions.filter(s => !s.isActive)}
+						{@const historicalSessions = filteredSessions.filter((s) => !s.isActive)}
 						{#if historicalSessions.length === 0}
 							<div class="status">
 								{searchTerm
@@ -511,8 +519,10 @@
 							</div>
 						{:else}
 							{#each historicalSessions as session (session.id)}
-								<div 
-									class="session-card inactive-session {selectedSession === session.id ? 'selected' : ''}"
+								<div
+									class="session-card inactive-session {selectedSession === session.id
+										? 'selected'
+										: ''}"
 									onclick={() => selectSession(session)}
 									role="button"
 									tabindex="0"
@@ -874,6 +884,7 @@
 	/* Unified Session Cards */
 	.session-card {
 		background: var(--bg);
+		min-height: 100px;
 		border: 1px solid var(--surface-border);
 		border-radius: 8px;
 		padding: var(--space-4);
@@ -881,6 +892,9 @@
 		cursor: pointer;
 		margin-bottom: var(--space-2);
 		outline: none;
+		width: 100%;
+		position: relative;
+		overflow: hidden;
 	}
 
 	.session-card:hover {

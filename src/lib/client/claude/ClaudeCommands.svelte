@@ -2,7 +2,9 @@
 	import { onMount, onDestroy, tick } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
+	import Button from '$lib/client/shared/components/Button.svelte';
 	import IconButton from '../shared/components/IconButton.svelte';
+	import { IconRefresh, IconRefreshDot } from '@tabler/icons-svelte';
 
 	let {
 		socket = null,
@@ -19,6 +21,7 @@
 	let commandMenuOpen = $state(false);
 	let commandMenuButton = $state();
 	let lastParsedMessages = $state([]);
+	let isRefreshing = $state(false);
 
 	// Utility: shallow compare command lists by name/title to avoid redundant writes
 	function commandsEqual(a, b) {
@@ -348,9 +351,13 @@
 	 * Close menu when clicking outside
 	 */
 	function handleClickOutside(event) {
-		if (commandMenuOpen && commandMenuButton && !commandMenuButton.contains(event.target)) {
+		if (commandMenuOpen) {
+			// Check if click is inside the command menu dropdown
 			const menu = event.target.closest('.claude-commands-dropdown');
-			if (!menu) {
+			// Check if click is inside the command button
+			const button = event.target.closest('.claude-commands');
+
+			if (!menu && !button) {
 				commandMenuOpen = false;
 			}
 		}
@@ -480,20 +487,17 @@
 </script>
 
 <div class="claude-commands" class:disabled>
-	<IconButton
+	<Button
 		bind:this={commandMenuButton}
 		type="button"
-		class="command-menu-button"
-		aria-label="Open command menu"
+		ariaLabel="Open command menu"
 		onclick={toggleCommandMenu}
 		{disabled}
 		title={disabled ? 'Commands unavailable' : 'Show available commands'}
+		variant="primary"
 	>
 		<span class="command-icon">/</span>
-		{#if availableCommands.length > 0}
-			<span class="command-count">{availableCommands.length}</span>
-		{/if}
-	</IconButton>
+	</Button>
 
 	{#if commandMenuOpen}
 		<div
@@ -506,37 +510,43 @@
 				<span class="dropdown-title">Slash Commands</span>
 				<span class="dropdown-subtitle">{availableCommands.length} available</span>
 				{#if socket && (sessionId || claudeSessionId)}
-					<button
-						type="button"
-						class="refresh-button"
-						onclick={() => {
-							const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-							const querySessionId = sessionId || claudeSessionId;
-							console.log(
-								`[ClaudeCommands] Manual refresh requested for session: ${querySessionId}`
-							);
-							socket.emit(
-								SOCKET_EVENTS.CLAUDE_COMMANDS_REFRESH,
-								{
-									key,
-									sessionId: querySessionId
-								},
-								(response) => {
-									console.log(`[ClaudeCommands] claude.commands.refresh response:`, response);
-									if (response && response.success && Array.isArray(response.commands)) {
-										handleToolsList({
-											sessionId: querySessionId,
-											commands: response.commands
-										});
+					<div class="refresh-container">
+						<IconButton
+							type="button"
+							onclick={() => {
+								isRefreshing = true;
+								const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+								const querySessionId = sessionId || claudeSessionId;
+								console.log(
+									`[ClaudeCommands] Manual refresh requested for session: ${querySessionId}`
+								);
+								socket.emit(
+									SOCKET_EVENTS.CLAUDE_COMMANDS_REFRESH,
+									{
+										key,
+										sessionId: querySessionId
+									},
+									(response) => {
+										console.log(`[ClaudeCommands] claude.commands.refresh response:`, response);
+										if (response && response.success && Array.isArray(response.commands)) {
+											handleToolsList({
+												sessionId: querySessionId,
+												commands: response.commands
+											});
+										}
+										isRefreshing = false;
 									}
-								}
-							);
-						}}
-						title="Refresh commands"
-						aria-label="Refresh commands"
-					>
-						↻
-					</button>
+								);
+							}}
+							title="Refresh commands"
+							ariaLabel="Refresh commands"
+							variant="ghost"
+							size="small"
+							class="refresh-button {isRefreshing ? 'spinning' : ''}"
+						>
+							<IconRefresh size={20} />
+						</IconButton>
+					</div>
 				{/if}
 			</div>
 
@@ -580,25 +590,10 @@
 		pointer-events: none;
 	}
 
-	.command-icon {
-		font-size: 1.2em;
-		line-height: 1;
-	}
-
-	.command-count {
-		font-size: 0.75em;
-		padding: 2px 4px;
-		background: var(--primary);
-		color: var(--surface);
-		border-radius: 4px;
-		min-width: 16px;
-		text-align: center;
-	}
-
 	.claude-commands-dropdown {
 		position: absolute;
 		bottom: calc(100% + var(--space-2));
-		right: 25px;
+
 		min-width: 280px;
 		max-width: 420px;
 		max-height: 400px;
@@ -649,33 +644,10 @@
 		margin-top: var(--space-1);
 	}
 
-	.refresh-button {
+	.refresh-container {
 		position: absolute;
-		top: var(--space-3);
-		right: var(--space-3);
-		width: 24px;
-		height: 24px;
-		border-radius: 6px;
-		background: transparent;
-		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		color: var(--primary);
-		font-size: 14px;
-		line-height: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.refresh-button:hover {
-		background: color-mix(in oklab, var(--primary) 10%, transparent);
-		border-color: color-mix(in oklab, var(--primary) 40%, transparent);
-		transform: rotate(90deg);
-	}
-
-	.refresh-button:active {
-		transform: rotate(180deg);
+		right: var(--space-4);
+		top: var(--space-2);
 	}
 
 	.commands-list {

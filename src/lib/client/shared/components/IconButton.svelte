@@ -22,7 +22,7 @@
 	class:loading
 	aria-labelledby={ariaLabel}
 	{onclick}
-	class="btn-icon-only {customClass} {variant}"
+	class="btn-icon-only fade-in {customClass} {variant}"
 	{...restProps}
 >
 	{#if children}
@@ -99,7 +99,7 @@
 
 	/* Danger variant */
 	.btn-icon-only.danger {
-		color: var(--err);
+		color: var(--err-dim);
 	}
 
 	.btn-icon-only.danger:hover {

@@ -10,7 +10,7 @@
 	import { Button } from '$lib/client/shared/components';
 	import ProjectSessionMenuSimplified from '$lib/client/shared/components/ProjectSessionMenuSimplified.svelte';
 	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager.js';
-	import { IconX, IconSettings, IconAdjustmentsAlt, IconUserScreen, IconDualScreen, IconSquareToggleHorizontal, IconBorderVertical, IconBorderHorizontal, IconSquare, IconSquareDashed } from '@tabler/icons-svelte';
+	import { IconX, IconSettings, IconAdjustmentsAlt, IconUserScreen, IconDualScreen, IconSquareToggleHorizontal, IconBorderVertical, IconBorderHorizontal, IconSquare, IconSquareDashed, IconAppWindow, IconCodeMinus, IconCodeDots } from '@tabler/icons-svelte';
 	import IconButton from '$lib/client/shared/components/IconButton.svelte';
 	import ClaudeSessionModal from '$lib/client/claude/ClaudeSessionModal.svelte';
 
@@ -641,7 +641,7 @@
 					class={layoutPreset === '1up' ? 'active' : ''}
 					size="small"
 				>
-					<IconSquareDashed size={18} />
+					<IconAppWindow size={18} />
 				</IconButton>
 			<IconButton
 					onclick={() => (layoutPreset = '2up')}
@@ -833,7 +833,6 @@
 									{/if}
 								</div>
 								<IconButton
-									class="unpin-btn"
 									onclick={(e) => {
 										e.stopPropagation?.();
 										onUnpinSession(s.id);
@@ -871,12 +870,12 @@
 		<div class="status-bar">
 			<div class="left-group">
 				{#if isMobile}
-					<button
+					<IconButton
 						class="bottom-btn"
 						onclick={prevMobileSession}
 						disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s)
 							.length === 0}
-						aria-label="Previous session">←</button
+						aria-label="Previous session">←</IconButton
 					>
 					<span class="session-counter">
 						{Math.min(
@@ -886,12 +885,12 @@
 						/
 						{sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length}
 					</span>
-					<button
+					<IconButton
 						class="bottom-btn"
 						onclick={nextMobileSession}
 						disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s)
 							.length === 0}
-						aria-label="Next session">→</button
+						aria-label="Next session">→</IconButton
 					>
 				{/if}
 			</div>
@@ -931,9 +930,17 @@
 				>
 					<IconAdjustmentsAlt size={18} />
 				</IconButton>
-				<Button class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions"
-					>{sessionMenuOpen ? 'Close' : 'Sessions'}</Button
-				>
+				<IconButton class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions"
+					>
+					{#if sessionMenuOpen}
+						<IconCodeMinus size={18} />
+					{:else}
+						<IconCodeDots size={18} />
+
+					{/if}
+					
+					
+			</IconButton>
 			</div>
 		</div>
 	</footer>
@@ -1138,12 +1145,6 @@
 		flex-shrink: 0;
 	}
 
-	/* Hide New Claude and New Terminal buttons on mobile */
-	@media (max-width: 768px) {
-		.center-group .bottom-btn:not(.add-session-btn) {
-			display: none;
-		}
-	}
 
 	.add-session-btn {
 		display: flex;
@@ -1440,34 +1441,7 @@
 		max-width: 120px;
 	}
 
-	.unpin-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 28px;
-		height: 28px;
-		padding: 0;
-		background: var(--surface-hover);
-		border: 1px solid var(--surface-border);
-		border-radius: 6px;
-		color: var(--text-muted);
-		cursor: pointer;
-		transition: all 0.2s ease;
-		opacity: 0.7;
-		flex-shrink: 0;
-	}
-
-	.unpin-btn:hover {
-		background: var(--error, #ff6b6b);
-		border-color: var(--error, #ff6b6b);
-		color: white;
-		opacity: 1;
-		transform: scale(1.05);
-	}
-
-	.unpin-btn:active {
-		transform: scale(0.95);
-	}
+	
 
 	.terminal-viewport {
 		flex: 1;
