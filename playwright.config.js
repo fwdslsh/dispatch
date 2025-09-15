@@ -25,8 +25,14 @@ export default defineConfig({
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		/* Capture video on failure */
-		video: 'retain-on-failure'
+		video: 'retain-on-failure',
+
+		/* Test setup options */
+		ignoreHTTPSErrors: true
 	},
+
+	/* Global setup to disable service worker */
+	globalSetup: './e2e/global-setup.js',
 
 	/* Configure projects for major browsers */
 	projects: [
@@ -48,11 +54,17 @@ export default defineConfig({
 		/* Test against mobile viewports. */
 		{
 			name: 'Mobile Chrome',
-			use: { ...devices['Pixel 5'] }
+			use: {
+				...devices['Pixel 5'],
+				hasTouch: true
+			}
 		},
 		{
 			name: 'Mobile Safari',
-			use: { ...devices['iPhone 12'] }
+			use: {
+				...devices['iPhone 12'],
+				hasTouch: true
+			}
 		}
 
 		/* Test against branded browsers. */

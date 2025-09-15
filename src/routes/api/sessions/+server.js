@@ -31,12 +31,12 @@ export async function GET({ url, locals }) {
 	// For active sessions, check if they exist in persisted sessions to get their pinned state
 	activeSessionsRaw.forEach((session) => {
 		const existing = sessionMap.get(session.id);
-		
+
 		// If pinnedOnly is true and this session exists in persisted but is unpinned, skip it
 		if (pinnedOnly && existing && !existing.pinned) {
 			return; // Skip unpinned sessions when pinnedOnly is true
 		}
-		
+
 		// If pinnedOnly is true and this session doesn't exist in persisted sessions yet,
 		// include it (new sessions should be visible)
 		sessionMap.set(session.id, {
@@ -98,10 +98,7 @@ export async function POST({ request, locals }) {
 					})
 				);
 			} else {
-				return new Response(
-					JSON.stringify({ error: 'Session not found' }),
-					{ status: 404 }
-				);
+				return new Response(JSON.stringify({ error: 'Session not found' }), { status: 404 });
 			}
 		}
 
@@ -137,19 +134,20 @@ export async function POST({ request, locals }) {
 		);
 	} catch (error) {
 		console.error('[API] Session creation failed:', error);
-		
+
 		// Provide more specific error messages for common issues
 		let errorMessage = error.message;
 		let statusCode = 500;
-		
+
 		if (error.message?.includes('node-pty failed to load')) {
-			errorMessage = 'Terminal functionality is temporarily unavailable. Please try again in a moment.';
+			errorMessage =
+				'Terminal functionality is temporarily unavailable. Please try again in a moment.';
 			statusCode = 503; // Service Unavailable
 		} else if (error.message?.includes('Vite module runner has been closed')) {
 			errorMessage = 'Development server is restarting. Please try again in a moment.';
 			statusCode = 503; // Service Unavailable
 		}
-		
+
 		return new Response(JSON.stringify({ error: errorMessage }), { status: statusCode });
 	}
 }

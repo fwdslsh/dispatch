@@ -42,8 +42,6 @@ canvas {
 	height: auto;
 }
 
-
-
 :focus-visible {
 	outline: 2px solid var(--focus);
 	outline-offset: 2px;
@@ -66,9 +64,11 @@ canvas {
 }
 
 ::-webkit-scrollbar-thumb {
-	background: linear-gradient(180deg,
-			var(--accent),
-			color-mix(in oklab, var(--accent), transparent 35%));
+	background: linear-gradient(
+		180deg,
+		var(--accent),
+		color-mix(in oklab, var(--accent), transparent 35%)
+	);
 	border-radius: 8px;
 }
 
@@ -155,7 +155,7 @@ a:hover {
 	padding: 0 var(--space-4);
 }
 
-.stack>*+* {
+.stack > * + * {
 	margin-top: var(--space-4);
 }
 
@@ -355,10 +355,12 @@ textarea:required:focus {
 	--aug-border-all: 2px;
 	--aug-border-bg: linear-gradient(90deg, var(--accent), transparent, var(--accent));
 	--aug-inlay-all: 1px;
-	--aug-inlay-bg: linear-gradient(90deg,
-			transparent,
-			color-mix(in oklab, var(--accent) 20%, transparent),
-			transparent);
+	--aug-inlay-bg: linear-gradient(
+		90deg,
+		transparent,
+		color-mix(in oklab, var(--accent) 20%, transparent),
+		transparent
+	);
 }
 
 /* 7) Buttons - Comprehensive state management */
@@ -688,9 +690,7 @@ textarea:required:focus {
 }
 
 /* High DPI / Retina display adjustments */
-@media (-webkit-min-device-pixel-ratio: 2),
-(min-resolution: 2dppx) {
-
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
 	/* Ensure crisp borders on high DPI displays */
 	.button,
 	input,
@@ -711,7 +711,6 @@ textarea:required:focus {
 
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
-
 	*,
 	*::before,
 	*::after {
@@ -917,10 +916,12 @@ tbody tr:hover {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: repeating-linear-gradient(0deg,
-			color-mix(in oklab, var(--text) 2%, transparent) 0px,
-			transparent 1px,
-			transparent 3px);
+	background: repeating-linear-gradient(
+		0deg,
+		color-mix(in oklab, var(--text) 2%, transparent) 0px,
+		transparent 1px,
+		transparent 3px
+	);
 	mix-blend-mode: overlay;
 	opacity: 0.06;
 	pointer-events: none;
@@ -960,11 +961,13 @@ body::before {
 	left: 0;
 	width: 100%;
 	height: 100%;
-	background: repeating-linear-gradient(0deg,
-			transparent 0px,
-			transparent 2px,
-			color-mix(in oklab, var(--accent) 2%, transparent) 3px,
-			transparent 4px);
+	background: repeating-linear-gradient(
+		0deg,
+		transparent 0px,
+		transparent 2px,
+		color-mix(in oklab, var(--accent) 2%, transparent) 3px,
+		transparent 4px
+	);
 	pointer-events: none;
 	z-index: 1000;
 	opacity: 0.3;
@@ -991,7 +994,6 @@ body::before {
 }
 
 @keyframes pulse {
-
 	0%,
 	100% {
 		opacity: 1;
@@ -1063,7 +1065,6 @@ body::before {
 	font-size: 1.2rem;
 }
 
-
 .spinning {
 	animation: spin 2s linear infinite;
 }
@@ -1084,9 +1085,11 @@ body::before {
 .workspace-selector {
 	width: 100%;
 	padding: 1rem 1.25rem;
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
-			color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
+		color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%)
+	);
 	border: 2px solid var(--surface-border);
 	border-radius: 0;
 	color: var(--text);
@@ -1103,9 +1106,11 @@ body::before {
 }
 
 .workspace-selector:hover:not(:disabled) {
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--primary) 15%, var(--surface)),
-			color-mix(in oklab, var(--primary) 8%, var(--surface)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 15%, var(--surface)),
+		color-mix(in oklab, var(--primary) 8%, var(--surface))
+	);
 	border-color: var(--primary);
 	box-shadow:
 		0 0 20px rgba(46, 230, 107, 0.2),
@@ -1205,9 +1210,11 @@ body::before {
 /* Type Selection Cards */
 .type-card {
 	padding: 1.5rem 1rem;
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
-			color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
+		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%)
+	);
 	border: 2px solid var(--surface-border);
 	border-radius: 0;
 	color: var(--text-muted);
@@ -1269,9 +1276,11 @@ body::before {
 }
 
 .type-card:hover:not(:disabled) {
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
-			color-mix(in oklab, var(--primary) 10%, var(--surface-hover)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
+		color-mix(in oklab, var(--primary) 10%, var(--surface-hover))
+	);
 	border-color: var(--primary);
 	box-shadow:
 		0 0 20px rgba(46, 230, 107, 0.3),
@@ -1316,9 +1325,11 @@ body::before {
 	width: 100%;
 	padding: 1rem;
 	margin-bottom: 0.75rem;
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
-			color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
+		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%)
+	);
 	border: 2px solid var(--surface-border);
 	border-radius: 0;
 	text-align: left;
@@ -1344,9 +1355,11 @@ body::before {
 }
 
 .session-card:hover {
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
-			color-mix(in oklab, var(--primary) 10%, var(--surface-hover)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
+		color-mix(in oklab, var(--primary) 10%, var(--surface-hover))
+	);
 	border-color: var(--primary);
 	box-shadow:
 		0 0 20px rgba(46, 230, 107, 0.2),
@@ -1355,9 +1368,11 @@ body::before {
 }
 
 .session-card.selected {
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--primary) 25%, var(--surface)),
-			color-mix(in oklab, var(--primary) 15%, var(--surface)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 25%, var(--surface)),
+		color-mix(in oklab, var(--primary) 15%, var(--surface))
+	);
 	border-color: var(--primary);
 	box-shadow:
 		0 0 0 2px var(--primary) inset,
@@ -1369,9 +1384,11 @@ body::before {
 /* Error message styling */
 .error-message {
 	padding: 1rem;
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--secondary) 15%, var(--surface)),
-			color-mix(in oklab, var(--secondary) 8%, var(--surface)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--secondary) 15%, var(--surface)),
+		color-mix(in oklab, var(--secondary) 8%, var(--surface))
+	);
 	border: 2px solid var(--secondary);
 	border-radius: 0;
 	color: var(--secondary);

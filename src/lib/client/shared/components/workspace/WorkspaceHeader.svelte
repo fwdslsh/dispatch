@@ -34,11 +34,7 @@
 		<LayoutControls />
 
 		<div class="header-actions">
-			<IconButton
-				class="logout-btn"
-				onclick={onLogout}
-				aria-label="Logout"
-			>
+			<IconButton class="logout-btn" onclick={onLogout} aria-label="Logout">
 				<IconLogout size={18} />
 			</IconButton>
 		</div>

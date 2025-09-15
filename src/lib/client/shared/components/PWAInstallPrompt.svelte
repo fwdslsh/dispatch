@@ -1,25 +1,27 @@
 <script>
 	import { onMount } from 'svelte';
-	
+
 	let showInstallPrompt = $state(false);
 	let deferredPrompt = null;
 	let isInstalled = $state(false);
 	let canInstall = $state(false);
 	let isIOS = $state(false);
 	let showManualPrompt = $state(false);
-	
+
 	onMount(() => {
 		// Check if iOS
 		isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-		
+
 		// Check if app is already installed
-		if (window.matchMedia('(display-mode: standalone)').matches || 
-			window.navigator.standalone === true) {
+		if (
+			window.matchMedia('(display-mode: standalone)').matches ||
+			window.navigator.standalone === true
+		) {
 			isInstalled = true;
 			console.log('[PWA] App is already installed');
 			return;
 		}
-		
+
 		// For iOS, show manual install instructions after a delay
 		if (isIOS && !isInstalled) {
 			// Check if we've shown the prompt before
@@ -30,7 +32,7 @@
 				}, 3000); // Show after 3 seconds
 			}
 		}
-		
+
 		// Listen for beforeinstallprompt event (Chrome/Edge/Samsung)
 		window.addEventListener('beforeinstallprompt', (e) => {
 			console.log('[PWA] beforeinstallprompt event fired');
@@ -42,7 +44,7 @@
 			// Show our custom install prompt
 			showInstallPrompt = true;
 		});
-		
+
 		// Listen for successful installation
 		window.addEventListener('appinstalled', () => {
 			console.log('[PWA] App was installed');
@@ -52,41 +54,44 @@
 			deferredPrompt = null;
 			canInstall = false;
 		});
-		
+
 		// Check if the PWA can be installed (for debugging)
 		console.log('[PWA] Service Worker support:', 'serviceWorker' in navigator);
-		console.log('[PWA] HTTPS or localhost:', window.location.protocol === 'https:' || window.location.hostname === 'localhost');
+		console.log(
+			'[PWA] HTTPS or localhost:',
+			window.location.protocol === 'https:' || window.location.hostname === 'localhost'
+		);
 		console.log('[PWA] Display mode:', window.matchMedia('(display-mode: standalone)').matches);
 	});
-	
+
 	async function handleInstall() {
 		if (!deferredPrompt) {
 			console.log('[PWA] No deferred prompt available');
 			return;
 		}
-		
+
 		// Show the browser's install prompt
 		deferredPrompt.prompt();
-		
+
 		// Wait for the user's response
 		const { outcome } = await deferredPrompt.userChoice;
-		
+
 		if (outcome === 'accepted') {
 			console.log('[PWA] User accepted the install prompt');
 		} else {
 			console.log('[PWA] User dismissed the install prompt');
 		}
-		
+
 		// Clear the deferred prompt
 		deferredPrompt = null;
 		showInstallPrompt = false;
 		canInstall = false;
 	}
-	
+
 	function dismissPrompt() {
 		showInstallPrompt = false;
 	}
-	
+
 	function dismissManualPrompt() {
 		showManualPrompt = false;
 		// Remember that we've shown the iOS prompt
@@ -108,9 +113,7 @@
 				<button class="install-btn" onclick={handleInstall} data-augmented-ui="tl-clip br-clip exe">
 					Install
 				</button>
-				<button class="dismiss-btn" onclick={dismissPrompt}>
-					Not Now
-				</button>
+				<button class="dismiss-btn" onclick={dismissPrompt}> Not Now </button>
 			</div>
 		</div>
 	</div>
@@ -122,9 +125,7 @@
 			<div class="prompt-icon">📱</div>
 			<div class="prompt-text">
 				<h3>Install Dispatch</h3>
-				<p class="ios-instructions">
-					To install this app on iOS:
-				</p>
+				<p class="ios-instructions">To install this app on iOS:</p>
 				<ol class="ios-steps">
 					<li>Tap the share button <span class="ios-icon">⎙</span></li>
 					<li>Scroll down and tap "Add to Home Screen"</li>
@@ -132,9 +133,7 @@
 				</ol>
 			</div>
 			<div class="prompt-actions">
-				<button class="dismiss-btn full-width" onclick={dismissManualPrompt}>
-					Got it
-				</button>
+				<button class="dismiss-btn full-width" onclick={dismissManualPrompt}> Got it </button>
 			</div>
 		</div>
 	</div>
@@ -156,7 +155,7 @@
 		width: calc(100% - 40px);
 		animation: slideUp 0.3s ease-out;
 	}
-	
+
 	@keyframes slideUp {
 		from {
 			transform: translateX(-50%) translateY(100%);
@@ -167,44 +166,44 @@
 			opacity: 1;
 		}
 	}
-	
+
 	.prompt-content {
 		display: flex;
 		gap: 1rem;
 		align-items: center;
 		flex-wrap: wrap;
 	}
-	
+
 	.prompt-icon {
 		font-size: 2rem;
 		flex-shrink: 0;
 	}
-	
+
 	.prompt-text {
 		flex: 1;
 		min-width: 200px;
 	}
-	
+
 	.prompt-text h3 {
 		margin: 0;
 		font-size: 1.1rem;
 		color: var(--color-primary);
 		font-family: 'Exo 2', sans-serif;
 	}
-	
+
 	.prompt-text p {
 		margin: 0.25rem 0 0;
 		font-size: 0.9rem;
 		color: #aaa;
 	}
-	
+
 	.prompt-actions {
 		display: flex;
 		gap: 0.5rem;
 		width: 100%;
 		margin-top: 0.5rem;
 	}
-	
+
 	.install-btn,
 	.dismiss-btn {
 		padding: 0.5rem 1rem;
@@ -215,26 +214,26 @@
 		font-family: 'Share Tech Mono', monospace;
 		transition: all 0.2s ease;
 	}
-	
+
 	.install-btn {
 		background: var(--color-primary);
 		--aug-border-all: 1px;
 		--aug-border-bg: var(--color-primary);
 		flex: 1;
 	}
-	
+
 	.install-btn:hover {
 		filter: brightness(1.2);
 	}
-	
+
 	.dismiss-btn {
 		color: #777;
 	}
-	
+
 	.dismiss-btn:hover {
 		color: #aaa;
 	}
-	
+
 	@media (max-width: 480px) {
 		.pwa-install-prompt {
 			bottom: 0;
@@ -246,24 +245,24 @@
 			border-radius: 0;
 		}
 	}
-	
+
 	/* iOS-specific styles */
 	.ios-instructions {
 		margin: 0.5rem 0;
 		color: #ccc;
 	}
-	
+
 	.ios-steps {
 		margin: 0.5rem 0 0.5rem 1.5rem;
 		padding: 0;
 		color: #aaa;
 		font-size: 0.85rem;
 	}
-	
+
 	.ios-steps li {
 		margin: 0.25rem 0;
 	}
-	
+
 	.ios-icon {
 		display: inline-block;
 		background: #333;
@@ -273,7 +272,7 @@
 		vertical-align: middle;
 		margin: 0 0.2rem;
 	}
-	
+
 	.dismiss-btn.full-width {
 		width: 100%;
 	}

@@ -94,7 +94,9 @@ describe('WorkspaceViewModel', () => {
 
 			// $derived.by should reactively filter
 			expect(viewModel.filteredWorkspaces).toHaveLength(2);
-			expect(viewModel.filteredWorkspaces.every(w => w.name.toLowerCase().includes('project'))).toBe(true);
+			expect(
+				viewModel.filteredWorkspaces.every((w) => w.name.toLowerCase().includes('project'))
+			).toBe(true);
 		});
 
 		it('should filter by workspace path', () => {
@@ -272,7 +274,10 @@ describe('WorkspaceViewModel', () => {
 
 			expect(viewModel.selectedWorkspace).toBe('/selected/workspace');
 			expect(viewModel.isWorkspaceSelected).toBe(true);
-			expect(mockPersistence.set).toHaveBeenCalledWith('dispatch-last-workspace', '/selected/workspace');
+			expect(mockPersistence.set).toHaveBeenCalledWith(
+				'dispatch-last-workspace',
+				'/selected/workspace'
+			);
 		});
 
 		it('should check if workspace exists', async () => {
@@ -320,9 +325,7 @@ describe('WorkspaceViewModel', () => {
 			expect(viewModel.isWorkspaceSelected).toBe(false);
 
 			// Load workspaces
-			mockWorkspaceApi.list.mockResolvedValue([
-				{ path: '/ws1', name: 'Workspace 1' }
-			]);
+			mockWorkspaceApi.list.mockResolvedValue([{ path: '/ws1', name: 'Workspace 1' }]);
 			await viewModel.loadWorkspaces();
 
 			expect(viewModel.hasWorkspaces).toBe(true);

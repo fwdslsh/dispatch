@@ -168,7 +168,7 @@ export class ModalViewModel {
 		this.activeModals.delete(modalId);
 
 		// Remove from stack
-		this.modalStack = this.modalStack.filter(id => id !== modalId);
+		this.modalStack = this.modalStack.filter((id) => id !== modalId);
 
 		// Update global overlay
 		this.updateGlobalOverlay();
@@ -193,7 +193,7 @@ export class ModalViewModel {
 	 */
 	closeAllModals() {
 		const modalIds = [...this.modalStack];
-		modalIds.forEach(id => this.closeModal(id));
+		modalIds.forEach((id) => this.closeModal(id));
 	}
 
 	/**
@@ -446,7 +446,7 @@ export class ModalViewModel {
 		this.quickCreateType = 'claude';
 
 		// Reset individual modal states
-		Object.keys(this.modals).forEach(modalId => {
+		Object.keys(this.modals).forEach((modalId) => {
 			this.modals[modalId].open = false;
 			this.modals[modalId].data = null;
 		});

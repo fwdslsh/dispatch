@@ -13,7 +13,6 @@ export const uiState = $state({
 		isMobile: false,
 		isTablet: false,
 		isDesktop: true,
-		sidebarCollapsed: false,
 		showBottomSheet: false,
 		bottomSheetHeight: 300
 	},
@@ -79,7 +78,6 @@ export const uiState = $state({
 // - layoutColumns: uiState.layout.isMobile ? 1 : (uiState.layout.preset === '2up' || uiState.layout.preset === '4up' ? 2 : (uiState.layout.preset === 'grid' ? (uiState.layout.isTablet ? 2 : 3) : 1))
 // - canUseGridLayout: !uiState.layout.isMobile
 // - shouldShowMobileNav: uiState.layout.isMobile
-// - shouldUseSidebar: !uiState.layout.isMobile
 
 // Layout functions
 export function setLayoutPreset(preset) {
@@ -176,7 +174,7 @@ export function setAuthLoading(loading) {
 }
 
 export function clearAllLoading() {
-	Object.keys(uiState.loading).forEach(key => {
+	Object.keys(uiState.loading).forEach((key) => {
 		uiState.loading[key] = false;
 	});
 }
@@ -205,7 +203,7 @@ export function clearError(type) {
 }
 
 export function clearAllErrors() {
-	Object.keys(uiState.errors).forEach(key => {
+	Object.keys(uiState.errors).forEach((key) => {
 		uiState.errors[key] = null;
 	});
 }
@@ -233,7 +231,7 @@ export function addNotification(notification) {
 }
 
 export function removeNotification(id) {
-	uiState.notifications = uiState.notifications.filter(n => n.id !== id);
+	uiState.notifications = uiState.notifications.filter((n) => n.id !== id);
 }
 
 export function clearAllNotifications() {
@@ -282,7 +280,7 @@ export function addAnnouncement(message, priority = 'polite') {
 	// Auto-remove after announcement
 	setTimeout(() => {
 		uiState.focus.announcements = uiState.focus.announcements.filter(
-			a => a.timestamp !== Date.now()
+			(a) => a.timestamp !== Date.now()
 		);
 	}, 1000);
 }

@@ -330,9 +330,7 @@ export class PersistenceService {
 
 		for (const { key, value } of sessionHistory) {
 			if (Array.isArray(value)) {
-				const filtered = value.filter(
-					item => item.timestamp && item.timestamp > oneMonthAgo
-				);
+				const filtered = value.filter((item) => item.timestamp && item.timestamp > oneMonthAgo);
 				if (filtered.length < value.length) {
 					this.set(key, filtered);
 					cleaned++;

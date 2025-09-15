@@ -126,7 +126,7 @@ export class ErrorService {
 	setupRecoveryStrategies() {
 		this.recoveryStrategies.set('NETWORK_ERROR', async () => {
 			// Simple retry logic
-			return new Promise(resolve => {
+			return new Promise((resolve) => {
 				setTimeout(() => {
 					resolve({ success: false, message: 'Manual retry required' });
 				}, 1000);
@@ -206,7 +206,11 @@ export class ErrorService {
 		}
 
 		// Terminal errors
-		if (message.includes('pty') || message.includes('terminal') || context.component === 'terminal') {
+		if (
+			message.includes('pty') ||
+			message.includes('terminal') ||
+			context.component === 'terminal'
+		) {
 			return 'TERMINAL';
 		}
 
@@ -312,7 +316,7 @@ export class ErrorService {
 			recent: recentErrors.length,
 			byCategory,
 			mostCommon: Object.entries(byCategory)
-				.sort(([,a], [,b]) => b - a)
+				.sort(([, a], [, b]) => b - a)
 				.slice(0, 3)
 				.map(([category, count]) => ({ category, count }))
 		};
@@ -348,11 +352,15 @@ export class ErrorService {
 	 * @returns {string}
 	 */
 	exportErrorLog() {
-		return JSON.stringify({
-			timestamp: new Date().toISOString(),
-			errors: this.errorLog,
-			stats: this.getErrorStats()
-		}, null, 2);
+		return JSON.stringify(
+			{
+				timestamp: new Date().toISOString(),
+				errors: this.errorLog,
+				stats: this.getErrorStats()
+			},
+			null,
+			2
+		);
 	}
 
 	/**

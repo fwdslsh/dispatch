@@ -9,5 +9,10 @@
 		"**/.svelte-kit": true,
 		"**/build": true
 	},
-	"cSpell.words": ["appuser", "sandboxing", "Unsubscribers"]
+	"cSpell.words": [
+		"appuser",
+		"sandboxing",
+		"Unsubscribers",
+		"viewmodels"
+	]
 }

@@ -7,7 +7,7 @@ export async function GET({ params }) {
 	try {
 		const db = getDatabaseManager();
 		await db.init();
-		
+
 		// Get terminal history from database
 		const history = await db.getTerminalHistory(id);
 		return json({ history });

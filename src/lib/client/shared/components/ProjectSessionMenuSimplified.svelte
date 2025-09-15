@@ -13,9 +13,7 @@
 		IconHistory,
 		IconSearch,
 		IconTerminal,
-
 		IconAsterisk
-
 	} from '@tabler/icons-svelte';
 	import IconClaude from './Icons/IconClaude.svelte';
 
@@ -262,7 +260,6 @@
 <div class="menu-root">
 	<!-- Tab Content Container -->
 	<div class="tab-content">
-
 		<!-- Tab Content -->
 		{#if currentTab === 'active'}
 			<!-- Active Sessions with Search and Filters -->
@@ -276,7 +273,6 @@
 						<span class="count-badge">{filteredSessions.filter((s) => s.isActive).length}</span>
 					{/if}
 				</div>
-
 
 				<div class="sessions-list">
 					{#if loading}
@@ -347,7 +343,6 @@
 		{:else if currentTab === 'create'}
 			<!-- Create Session Section -->
 			<div class="create-section">
-
 				{#if showDirectoryPicker}
 					<div class="directory-picker-panel">
 						<div class="picker-header">
@@ -414,7 +409,6 @@
 						<span class="count-badge">{filteredSessions.filter((s) => !s.isActive).length}</span>
 					{/if}
 				</div>
-
 
 				<div class="sessions-list">
 					{#if loading}
@@ -666,7 +660,6 @@
 		}
 	}
 
-
 	/* Create Session Section */
 	.create-section {
 		display: flex;
@@ -830,7 +823,7 @@
 	.search-container {
 		background: var(--bg);
 		flex-shrink: 0;
-		
+
 		border-bottom: none;
 		padding: var(--space-3) 0;
 	}
@@ -1003,7 +996,4 @@
 		font-size: 0.7rem;
 		flex-shrink: 0;
 	}
-
-	
-
 </style>

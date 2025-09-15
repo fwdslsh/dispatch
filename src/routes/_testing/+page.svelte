@@ -557,7 +557,6 @@
 		transition: transform 0.3s ease;
 	}
 
-
 	.refresh-text {
 		display: inline;
 	}

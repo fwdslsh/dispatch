@@ -67,7 +67,6 @@
 					class:button-danger={dangerous}
 					onclick={handleConfirm}
 					aria-label="Confirm action"
-                   
 				>
 					{confirmText}
 				</button>
@@ -77,7 +76,6 @@
 {/if}
 
 <style>
-
 	.dialog-backdrop {
 		position: fixed;
 		top: 0;
@@ -183,7 +181,6 @@
 		color: var(--secondary);
 		background: none;
 	}
-
 
 	@media (max-width: 768px) {
 		.dialog-container {

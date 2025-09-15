@@ -58,7 +58,7 @@ class ServiceContainer {
 		});
 
 		this.registerFactory('layout', async () => {
-			const { LayoutService } = await import('./LayoutService.js');
+			const { LayoutService } = await import('./LayoutService.svelte.js');
 			const persistence = await this.get('persistence');
 			return new LayoutService(persistence);
 		});
@@ -69,7 +69,7 @@ class ServiceContainer {
 		});
 
 		this.registerFactory('socket', async () => {
-			const { SocketService } = await import('./SocketService.js');
+			const { SocketService } = await import('./SocketService.svelte.js');
 			return new SocketService(this.config);
 		});
 
@@ -223,7 +223,7 @@ export function useServiceContainer() {
 	if (!container) {
 		throw new Error(
 			'ServiceContainer not found in context. ' +
-			'Make sure to call provideServiceContainer() in a parent component.'
+				'Make sure to call provideServiceContainer() in a parent component.'
 		);
 	}
 	return container;

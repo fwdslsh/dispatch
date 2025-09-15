@@ -1,6 +1,7 @@
 # Workspace Page Refactoring Plan
 
 ## Executive Summary
+
 The `/workspace` page (`src/routes/workspace/+page.svelte`) is a large monolithic component (1,636 lines) that violates multiple SOLID principles. This document outlines a comprehensive refactoring plan to decompose it into cleanly encapsulated, maintainable components.
 
 ## Current Architecture Analysis
@@ -11,7 +12,7 @@ The `/workspace` page (`src/routes/workspace/+page.svelte`) is a large monolithi
    - The main component handles: UI state, session management, workspace operations, layout management, modal control, persistence, touch gestures, and responsive behavior
    - 650+ lines of JavaScript logic mixed with 1000+ lines of template and styles
 
-2. **Open/Closed Principle (OCP) Violations**  
+2. **Open/Closed Principle (OCP) Violations**
    - Adding new session types requires modifying multiple places in the component
    - Layout presets are hardcoded with no extension mechanism
    - Session creation logic is tightly coupled to UI
@@ -31,6 +32,7 @@ The `/workspace` page (`src/routes/workspace/+page.svelte`) is a large monolithi
    - Tight coupling to specific UI libraries and frameworks
 
 ### Code Smells
+
 - **God Object**: Main component does everything
 - **Feature Envy**: Component manages state that belongs elsewhere
 - **Shotgun Surgery**: Changes require modifications in multiple places
@@ -42,6 +44,7 @@ The `/workspace` page (`src/routes/workspace/+page.svelte`) is a large monolithi
 ## Proposed Architecture
 
 ### Core Design Principles
+
 1. **Separation of Concerns**: Isolate business logic, state management, UI components, and services
 2. **Composition over Inheritance**: Use component composition and dependency injection
 3. **Domain-Driven Design**: Model sessions, workspaces, and layouts as domain entities
@@ -112,24 +115,26 @@ The `/workspace` page (`src/routes/workspace/+page.svelte`) is a large monolithi
 ## Detailed Component Specifications
 
 ### 1. WorkspacePage.svelte (Orchestrator)
+
 **Responsibility**: Top-level orchestration and dependency injection setup
+
 ```svelte
 <script>
-  import { setupServices } from './services/ServiceContainer.svelte.js';
-  import { WorkspaceViewModel } from './viewmodels/WorkspaceViewModel.svelte.js';
-  import WorkspaceContent from './WorkspaceContent.svelte';
-  import { onMount } from 'svelte';
-  
-  // Setup DI container in context
-  const services = setupServices();
-  
-  // Create ViewModels with injected services
-  const workspaceVM = new WorkspaceViewModel(services.workspaceApiClient);
-  const sessionVM = new SessionViewModel(services.sessionApiClient);
-  
-  onMount(() => {
-    workspaceVM.initialize();
-  });
+	import { setupServices } from './services/ServiceContainer.svelte.js';
+	import { WorkspaceViewModel } from './viewmodels/WorkspaceViewModel.svelte.js';
+	import WorkspaceContent from './WorkspaceContent.svelte';
+	import { onMount } from 'svelte';
+
+	// Setup DI container in context
+	const services = setupServices();
+
+	// Create ViewModels with injected services
+	const workspaceVM = new WorkspaceViewModel(services.workspaceApiClient);
+	const sessionVM = new SessionViewModel(services.sessionApiClient);
+
+	onMount(() => {
+		workspaceVM.initialize();
+	});
 </script>
 
 <WorkspaceContent {workspaceVM} {sessionVM} />
@@ -138,253 +143,260 @@ The `/workspace` page (`src/routes/workspace/+page.svelte`) is a large monolithi
 ### 2. Service Container (Dependency Injection)
 
 #### ServiceContainer.svelte.js
+
 **Responsibility**: DI container using Svelte's context API
+
 ```javascript
 import { setContext, getContext } from 'svelte';
 
 const SERVICES_KEY = Symbol('services');
 
 export class ServiceContainer {
-  constructor() {
-    // Initialize API clients
-    this.workspaceApiClient = new WorkspaceApiClient('/api');
-    this.sessionApiClient = new SessionApiClient('/api');
-    this.layoutService = new LayoutService();
-    this.persistenceService = new PersistenceService('dispatch');
-  }
+	constructor() {
+		// Initialize API clients
+		this.workspaceApiClient = new WorkspaceApiClient('/api');
+		this.sessionApiClient = new SessionApiClient('/api');
+		this.layoutService = new LayoutService();
+		this.persistenceService = new PersistenceService('dispatch');
+	}
 }
 
 export function setupServices() {
-  const container = new ServiceContainer();
-  setContext(SERVICES_KEY, container);
-  return container;
+	const container = new ServiceContainer();
+	setContext(SERVICES_KEY, container);
+	return container;
 }
 
 export function getServices() {
-  return getContext(SERVICES_KEY);
+	return getContext(SERVICES_KEY);
 }
 ```
 
 ### 3. ViewModels (Business Logic with Runes)
 
 #### WorkspaceViewModel.svelte.js
+
 **Responsibility**: Workspace state and operations using runes
+
 ```javascript
 export class WorkspaceViewModel {
-  // Reactive state using $state
-  workspaces = $state([]);
-  currentWorkspace = $state(null);
-  isLoading = $state(false);
-  
-  // Derived state using $derived
-  hasWorkspaces = $derived(this.workspaces.length > 0);
-  workspaceName = $derived(this.currentWorkspace?.name || 'No workspace');
-  
-  constructor(apiClient) {
-    this.#apiClient = apiClient;
-  }
-  
-  async loadWorkspaces() {
-    this.isLoading = true;
-    try {
-      this.workspaces = await this.#apiClient.list();
-    } finally {
-      this.isLoading = false;
-    }
-  }
-  
-  async selectWorkspace(workspace) {
-    this.currentWorkspace = workspace;
-    // Additional logic...
-  }
+	// Reactive state using $state
+	workspaces = $state([]);
+	currentWorkspace = $state(null);
+	isLoading = $state(false);
+
+	// Derived state using $derived
+	hasWorkspaces = $derived(this.workspaces.length > 0);
+	workspaceName = $derived(this.currentWorkspace?.name || 'No workspace');
+
+	constructor(apiClient) {
+		this.#apiClient = apiClient;
+	}
+
+	async loadWorkspaces() {
+		this.isLoading = true;
+		try {
+			this.workspaces = await this.#apiClient.list();
+		} finally {
+			this.isLoading = false;
+		}
+	}
+
+	async selectWorkspace(workspace) {
+		this.currentWorkspace = workspace;
+		// Additional logic...
+	}
 }
 ```
 
 #### SessionViewModel.svelte.js
+
 **Responsibility**: Session management with reactive state
+
 ```javascript
 export class SessionViewModel {
-  sessions = $state([]);
-  displayedSessions = $state([]);
-  selectedSession = $state(null);
-  
-  // Derived state
-  pinnedSessions = $derived(
-    this.sessions.filter(s => s.pinned)
-  );
-  
-  activeSessions = $derived(
-    this.sessions.filter(s => s.isActive)
-  );
-  
-  sessionCount = $derived(this.sessions.length);
-  
-  constructor(apiClient) {
-    this.#apiClient = apiClient;
-  }
-  
-  async createSession(type, config) {
-    const session = await this.#apiClient.create(type, config);
-    this.sessions.push(session);
-    return session;
-  }
-  
-  async closeSession(id) {
-    await this.#apiClient.close(id);
-    this.sessions = this.sessions.filter(s => s.id !== id);
-  }
-  
-  pinSession(id) {
-    const session = this.sessions.find(s => s.id === id);
-    if (session) session.pinned = true;
-  }
+	sessions = $state([]);
+	displayedSessions = $state([]);
+	selectedSession = $state(null);
+
+	// Derived state
+	pinnedSessions = $derived(this.sessions.filter((s) => s.pinned));
+
+	activeSessions = $derived(this.sessions.filter((s) => s.isActive));
+
+	sessionCount = $derived(this.sessions.length);
+
+	constructor(apiClient) {
+		this.#apiClient = apiClient;
+	}
+
+	async createSession(type, config) {
+		const session = await this.#apiClient.create(type, config);
+		this.sessions.push(session);
+		return session;
+	}
+
+	async closeSession(id) {
+		await this.#apiClient.close(id);
+		this.sessions = this.sessions.filter((s) => s.id !== id);
+	}
+
+	pinSession(id) {
+		const session = this.sessions.find((s) => s.id === id);
+		if (session) session.pinned = true;
+	}
 }
 ```
 
 ### 4. Feature Components (Views using snippets)
 
 #### SessionGrid.svelte
+
 **Responsibility**: Grid layout and session rendering using snippets
+
 ```svelte
 <script>
-  let { sessions, layout, sessionItem } = $props();
-  
-  // Use $derived for reactive grid styles
-  let gridColumns = $derived(layout === '2up' ? 2 : layout === '4up' ? 2 : 1);
+	let { sessions, layout, sessionItem } = $props();
+
+	// Use $derived for reactive grid styles
+	let gridColumns = $derived(layout === '2up' ? 2 : layout === '4up' ? 2 : 1);
 </script>
 
 <div class="session-grid" style:--columns={gridColumns}>
-  {#each sessions as session (session.id)}
-    {@render sessionItem(session)}
-  {/each}
+	{#each sessions as session (session.id)}
+		{@render sessionItem(session)}
+	{/each}
 </div>
 ```
 
 #### SessionContainer.svelte
+
 **Responsibility**: Individual session wrapper with reactive state
+
 ```svelte
 <script>
-  let { session, onClose, onPin, header, content } = $props();
-  
-  let isFocused = $state(false);
-  let isLoading = $state(true);
-  
-  // Derived state for styling
-  let containerClass = $derived(
-    `session-container ${isFocused ? 'focused' : ''} ${session.type}`
-  );
+	let { session, onClose, onPin, header, content } = $props();
+
+	let isFocused = $state(false);
+	let isLoading = $state(true);
+
+	// Derived state for styling
+	let containerClass = $derived(`session-container ${isFocused ? 'focused' : ''} ${session.type}`);
 </script>
 
 <div class={containerClass}>
-  {@render header({ session, onClose, onPin })}
-  {@render content({ session, isLoading })}
+	{@render header({ session, onClose, onPin })}
+	{@render content({ session, isLoading })}
 </div>
 ```
 
 #### SessionViewport.svelte
+
 **Responsibility**: Session content rendering with dynamic components
+
 ```svelte
 <script>
-  import ClaudePane from '$lib/client/claude/ClaudePane.svelte';
-  import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
-  
-  let { session, isLoading } = $props();
-  
-  // Dynamic component selection
-  let Component = $derived(
-    session.type === 'claude' ? ClaudePane : TerminalPane
-  );
+	import ClaudePane from '$lib/client/claude/ClaudePane.svelte';
+	import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
+
+	let { session, isLoading } = $props();
+
+	// Dynamic component selection
+	let Component = $derived(session.type === 'claude' ? ClaudePane : TerminalPane);
 </script>
 
 {#if Component}
-  <Component {session} {isLoading} />
+	<Component {session} {isLoading} />
 {/if}
 ```
 
 ### 5. API Clients (Data Layer)
 
 #### WorkspaceApiClient.js
+
 ```javascript
 /**
  * API client for workspace operations
  */
 export class WorkspaceApiClient {
-  #baseUrl;
-  
-  constructor(baseUrl = '/api') {
-    this.#baseUrl = baseUrl;
-  }
-  
-  /**
-   * List all workspaces
-   * @returns {Promise<Workspace[]>}
-   */
-  async list() {
-    const res = await fetch(`${this.#baseUrl}/workspaces`);
-    if (!res.ok) throw new Error(`Failed to list workspaces`);
-    return res.json();
-  }
-  
-  /**
-   * Open a workspace
-   * @param {string} path - Workspace path
-   * @returns {Promise<Workspace>}
-   */
-  async open(path) {
-    const res = await fetch(`${this.#baseUrl}/workspaces`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'open', path })
-    });
-    if (!res.ok) throw new Error(`Failed to open workspace`);
-    return res.json();
-  }
+	#baseUrl;
+
+	constructor(baseUrl = '/api') {
+		this.#baseUrl = baseUrl;
+	}
+
+	/**
+	 * List all workspaces
+	 * @returns {Promise<Workspace[]>}
+	 */
+	async list() {
+		const res = await fetch(`${this.#baseUrl}/workspaces`);
+		if (!res.ok) throw new Error(`Failed to list workspaces`);
+		return res.json();
+	}
+
+	/**
+	 * Open a workspace
+	 * @param {string} path - Workspace path
+	 * @returns {Promise<Workspace>}
+	 */
+	async open(path) {
+		const res = await fetch(`${this.#baseUrl}/workspaces`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ action: 'open', path })
+		});
+		if (!res.ok) throw new Error(`Failed to open workspace`);
+		return res.json();
+	}
 }
 ```
 
 #### SessionApiClient.js
+
 ```javascript
 /**
  * API client for session operations
  */
 export class SessionApiClient {
-  #baseUrl;
-  
-  constructor(baseUrl = '/api') {
-    this.#baseUrl = baseUrl;
-  }
-  
-  /**
-   * Create a new session
-   * @param {string} type - Session type (claude|pty)
-   * @param {Object} config - Session configuration
-   * @returns {Promise<Session>}
-   */
-  async create(type, config) {
-    const res = await fetch(`${this.#baseUrl}/sessions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, ...config })
-    });
-    if (!res.ok) throw new Error(`Failed to create session`);
-    return res.json();
-  }
-  
-  /**
-   * List all sessions
-   * @param {boolean} includeUnpinned - Include unpinned sessions
-   * @returns {Promise<Session[]>}
-   */
-  async list(includeUnpinned = false) {
-    const params = includeUnpinned ? '?include=all' : '';
-    const res = await fetch(`${this.#baseUrl}/sessions${params}`);
-    if (!res.ok) throw new Error(`Failed to list sessions`);
-    return res.json();
-  }
+	#baseUrl;
+
+	constructor(baseUrl = '/api') {
+		this.#baseUrl = baseUrl;
+	}
+
+	/**
+	 * Create a new session
+	 * @param {string} type - Session type (claude|pty)
+	 * @param {Object} config - Session configuration
+	 * @returns {Promise<Session>}
+	 */
+	async create(type, config) {
+		const res = await fetch(`${this.#baseUrl}/sessions`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ type, ...config })
+		});
+		if (!res.ok) throw new Error(`Failed to create session`);
+		return res.json();
+	}
+
+	/**
+	 * List all sessions
+	 * @param {boolean} includeUnpinned - Include unpinned sessions
+	 * @returns {Promise<Session[]>}
+	 */
+	async list(includeUnpinned = false) {
+		const params = includeUnpinned ? '?include=all' : '';
+		const res = await fetch(`${this.#baseUrl}/sessions${params}`);
+		if (!res.ok) throw new Error(`Failed to list sessions`);
+		return res.json();
+	}
 }
 ```
 
 #### LayoutService.js
+
 ```javascript
 class LayoutService {
   calculateGrid(preset, isMobile)
@@ -395,12 +407,13 @@ class LayoutService {
 ```
 
 #### PersistenceService.js
+
 ```javascript
 class PersistenceService {
   constructor(namespace = 'dispatch') {
     this.namespace = namespace;
   }
-  
+
   save(key, value)
   load(key, defaultValue)
   remove(key)
@@ -409,6 +422,7 @@ class PersistenceService {
 ```
 
 #### TouchGestureService.js
+
 ```javascript
 class TouchGestureService {
   constructor(element, options) {
@@ -416,7 +430,7 @@ class TouchGestureService {
     this.onSwipeLeft = options.onSwipeLeft;
     this.onSwipeRight = options.onSwipeRight;
   }
-  
+
   start()
   stop()
   handleTouchStart(e)
@@ -428,6 +442,7 @@ class TouchGestureService {
 ### 6. Shared State (Runes-based reactive state)
 
 #### session-state.svelte.js
+
 ```javascript
 /**
  * Shared session state using Svelte 5 runes
@@ -436,170 +451,166 @@ class TouchGestureService {
 
 // Reactive state using $state
 export const sessionState = $state({
-  all: [],
-  displayed: [],
-  selected: null
+	all: [],
+	displayed: [],
+	selected: null
 });
 
 // Derived state using $derived
-export const pinnedSessions = $derived(
-  sessionState.all.filter(s => s.pinned)
-);
+export const pinnedSessions = $derived(sessionState.all.filter((s) => s.pinned));
 
-export const activeSessions = $derived(
-  sessionState.all.filter(s => s.isActive)
-);
+export const activeSessions = $derived(sessionState.all.filter((s) => s.isActive));
 
-export const sessionCount = $derived(
-  sessionState.all.length
-);
+export const sessionCount = $derived(sessionState.all.length);
 
 // State mutation functions
 export function addSession(session) {
-  sessionState.all.push(session);
+	sessionState.all.push(session);
 }
 
 export function removeSession(id) {
-  sessionState.all = sessionState.all.filter(s => s.id !== id);
+	sessionState.all = sessionState.all.filter((s) => s.id !== id);
 }
 
 export function selectSession(session) {
-  sessionState.selected = session;
+	sessionState.selected = session;
 }
 
 export function setDisplayedSessions(sessions) {
-  sessionState.displayed = sessions;
+	sessionState.displayed = sessions;
 }
 ```
 
 #### workspace-state.svelte.js
+
 ```javascript
 /**
  * Shared workspace state
  */
 export const workspaceState = $state({
-  current: null,
-  all: [],
-  isLoading: false
+	current: null,
+	all: [],
+	isLoading: false
 });
 
-export const currentWorkspaceName = $derived(
-  workspaceState.current?.name || 'No workspace'
-);
+export const currentWorkspaceName = $derived(workspaceState.current?.name || 'No workspace');
 
 export function setCurrentWorkspace(workspace) {
-  workspaceState.current = workspace;
+	workspaceState.current = workspace;
 }
 
 export function setWorkspaces(workspaces) {
-  workspaceState.all = workspaces;
+	workspaceState.all = workspaces;
 }
 ```
 
 ### 7. Models (Domain Objects)
 
 #### Session.js
+
 ```javascript
 export class Session {
-  constructor(id, type, workspacePath, options = {}) {
-    this.id = id;
-    this.type = type;
-    this.workspacePath = workspacePath;
-    this.pinned = options.pinned || false;
-    this.title = options.title || `${type} Session`;
-    this.createdAt = options.createdAt || new Date();
-    this.lastActivity = options.lastActivity || new Date();
-    this.isActive = options.isActive || false;
-  }
+	constructor(id, type, workspacePath, options = {}) {
+		this.id = id;
+		this.type = type;
+		this.workspacePath = workspacePath;
+		this.pinned = options.pinned || false;
+		this.title = options.title || `${type} Session`;
+		this.createdAt = options.createdAt || new Date();
+		this.lastActivity = options.lastActivity || new Date();
+		this.isActive = options.isActive || false;
+	}
 
-  get displayName() {
-    return this.title || `${this.type} #${this.id.slice(0, 6)}`;
-  }
+	get displayName() {
+		return this.title || `${this.type} #${this.id.slice(0, 6)}`;
+	}
 
-  get statusClass() {
-    return this.type === 'claude' ? 'claude' : 'pty';
-  }
+	get statusClass() {
+		return this.type === 'claude' ? 'claude' : 'pty';
+	}
 
-  toJSON() {
-    return {
-      id: this.id,
-      type: this.type,
-      workspacePath: this.workspacePath,
-      pinned: this.pinned,
-      title: this.title,
-      createdAt: this.createdAt.toISOString(),
-      lastActivity: this.lastActivity.toISOString(),
-      isActive: this.isActive
-    };
-  }
+	toJSON() {
+		return {
+			id: this.id,
+			type: this.type,
+			workspacePath: this.workspacePath,
+			pinned: this.pinned,
+			title: this.title,
+			createdAt: this.createdAt.toISOString(),
+			lastActivity: this.lastActivity.toISOString(),
+			isActive: this.isActive
+		};
+	}
 }
 ```
 
 #### SessionFactory.js
+
 ```javascript
 export class SessionFactory {
-  static create(type, config) {
-    switch(type) {
-      case 'claude':
-        return new ClaudeSession(config);
-      case 'pty':
-      case 'terminal':
-        return new TerminalSession(config);
-      default:
-        throw new Error(`Unknown session type: ${type}`);
-    }
-  }
+	static create(type, config) {
+		switch (type) {
+			case 'claude':
+				return new ClaudeSession(config);
+			case 'pty':
+			case 'terminal':
+				return new TerminalSession(config);
+			default:
+				throw new Error(`Unknown session type: ${type}`);
+		}
+	}
 
-  static fromJSON(data) {
-    return new Session(
-      data.id,
-      data.type,
-      data.workspacePath,
-      {
-        pinned: data.pinned,
-        title: data.title,
-        createdAt: new Date(data.createdAt),
-        lastActivity: new Date(data.lastActivity),
-        isActive: data.isActive
-      }
-    );
-  }
+	static fromJSON(data) {
+		return new Session(data.id, data.type, data.workspacePath, {
+			pinned: data.pinned,
+			title: data.title,
+			createdAt: new Date(data.createdAt),
+			lastActivity: new Date(data.lastActivity),
+			isActive: data.isActive
+		});
+	}
 }
 ```
 
 ## Migration Strategy
 
 ### Phase 1: Setup Svelte 5 Infrastructure (Week 1)
+
 1. Create ServiceContainer with DI pattern
 2. Implement API client classes
 3. Setup context-based dependency injection
 4. Write unit tests for API clients
 
 ### Phase 2: Implement ViewModels with Runes (Week 1)
+
 1. Create ViewModels using `.svelte.js` files
 2. Migrate state to `$state` runes
 3. Implement `$derived` for computed values
 4. Test ViewModel reactivity
 
 ### Phase 3: Extract Feature Components with Snippets (Week 2)
+
 1. Extract SessionGrid using snippet patterns
 2. Extract StatusBar with callback props
 3. Extract Header with `$props()` destructuring
 4. Replace slots with snippets
 
 ### Phase 4: Wire Up MVVM Pattern (Week 2)
+
 1. Connect ViewModels to Views
 2. Implement context-based service injection
 3. Remove prop drilling using context
 4. Test ViewModel-View integration
 
 ### Phase 5: Extract Modals with Runes (Week 3)
+
 1. Create ModalViewModel with `$state`
 2. Extract modal components using snippets
 3. Implement modal state with runes
 4. Test modal reactivity
 
 ### Phase 6: Polish and Optimize (Week 3)
+
 1. Convert remaining stores to runes
 2. Optimize with `$state.raw` for large data
 3. Add `$effect` for side effects only where needed
@@ -608,24 +619,28 @@ export class SessionFactory {
 ## Testing Strategy
 
 ### Unit Tests
+
 - API client methods with mocked fetch
 - ViewModel business logic and runes reactivity
 - Model validations and factories
 - Utility functions
 
 ### Component Tests
+
 - Component rendering with `$props()`
 - Snippet composition patterns
 - Callback prop interactions
 - Runes-based state changes
 
 ### Integration Tests
+
 - Context-based DI container
 - ViewModel-View integration
 - Modal workflows with runes
 - Session lifecycle with reactive state
 
 ### E2E Tests
+
 - Complete user workflows
 - Session creation/management
 - Layout changes
@@ -697,6 +712,7 @@ export class SessionFactory {
 ### Unit Tests Required
 
 #### Service Layer Tests
+
 1. **WorkspaceApiClient Tests** (`tests/unit/services/WorkspaceApiClient.test.js`)
    - Test list() with successful response
    - Test list() with network error
@@ -736,6 +752,7 @@ export class SessionFactory {
    - Mock touch events
 
 #### ViewModel Tests
+
 6. **WorkspaceViewModel Tests** (`tests/unit/viewmodels/WorkspaceViewModel.test.js`)
    - Test reactive state updates with $state
    - Test derived state calculations with $derived
@@ -765,6 +782,7 @@ export class SessionFactory {
    - Test nested modal handling
 
 #### Model Tests
+
 10. **Session Model Tests** (`tests/unit/models/Session.test.js`)
     - Test Session constructor
     - Test displayName computation
@@ -861,6 +879,7 @@ export class SessionFactory {
 ## Task Checklist
 
 ### Phase 0: Preparation & Planning (Pre-requisites)
+
 - [ ] **0.1** Create feature branch for refactoring work
 - [ ] **0.2** Set up test infrastructure for new test suites
 - [ ] **0.3** Document existing API contracts for backward compatibility
@@ -872,6 +891,7 @@ export class SessionFactory {
 ### Phase 1: Setup Svelte 5 Infrastructure (Week 1)
 
 #### Service Container Setup
+
 - [ ] **1.1** Create `ServiceContainer.svelte.js` with DI pattern
   - Implement service registration
   - Set up context API integration
@@ -900,6 +920,7 @@ export class SessionFactory {
 ### Phase 2: Implement ViewModels with Runes (Week 1)
 
 #### ViewModel Implementation
+
 - [ ] **2.1** Create `WorkspaceViewModel.svelte.js`
   - Convert workspace state to `$state` runes
   - Implement `$derived` for computed properties
@@ -927,6 +948,7 @@ export class SessionFactory {
 ### Phase 3: Extract Feature Components with Snippets (Week 2)
 
 #### Component Extraction
+
 - [ ] **3.1** Extract Header components
   - Create `WorkspaceHeader.svelte`
   - Create `BrandLogo.svelte`
@@ -957,6 +979,7 @@ export class SessionFactory {
 ### Phase 4: Wire Up MVVM Pattern (Week 2)
 
 #### Integration Tasks
+
 - [ ] **4.1** Create main `WorkspacePage.svelte` orchestrator
   - Set up DI container
   - Initialize ViewModels
@@ -982,6 +1005,7 @@ export class SessionFactory {
 ### Phase 5: Extract Modals with Runes (Week 3)
 
 #### Modal Refactoring
+
 - [ ] **5.1** Create `ModalManager.svelte`
   - Implement modal orchestration
   - Add modal stacking support
@@ -1006,6 +1030,7 @@ export class SessionFactory {
 ### Phase 6: Polish and Optimize (Week 3)
 
 #### Optimization Tasks
+
 - [ ] **6.1** Performance optimization
   - Implement code splitting
   - Add lazy loading for modals
@@ -1032,6 +1057,7 @@ export class SessionFactory {
 ### Phase 7: Cleanup and Documentation (Week 4)
 
 #### Finalization Tasks
+
 - [ ] **7.1** Remove backward compatibility code
   - Delete old component files
   - Remove feature flags
@@ -1051,6 +1077,7 @@ export class SessionFactory {
 ## Success Criteria
 
 ### Scope
+
 - **In Scope:**
   - Complete refactoring of `/workspace` page and all child components
   - Migration to Svelte 5 runes and modern patterns
@@ -1066,6 +1093,7 @@ export class SessionFactory {
   - Other pages/routes (focus on `/workspace` only)
 
 ### Acceptance Criteria
+
 1. **Functional Requirements:**
    - All existing functionality preserved
    - No user-visible changes during normal operation
@@ -1096,6 +1124,7 @@ export class SessionFactory {
    - Type safety via JSDoc annotations
 
 ### Backward Compatibility Notes
+
 - **During Migration:**
   - Feature flags control gradual rollout
   - Old and new components coexist temporarily
@@ -1111,6 +1140,7 @@ export class SessionFactory {
   - Deprecated patterns eliminated
 
 ### Risk Management
+
 1. **High Risk Items:**
    - Session state synchronization
    - Touch gesture handling
@@ -1136,6 +1166,7 @@ This refactoring will transform the monolithic `/workspace` page into a maintain
 - **Type safety** with JSDoc annotations and explicit contracts
 
 Key Svelte 5 improvements over the previous approach:
+
 - **Runes instead of stores** for simpler, more intuitive reactive state
 - **Snippets instead of slots** for better composition and type safety
 - **Context as DI container** eliminating prop drilling

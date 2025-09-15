@@ -7,32 +7,27 @@
 
 export class LayoutViewModel {
 	/**
-	 * @param {import('../services/LayoutService.js').LayoutService} layoutService
-	 * @param {import('../services/PersistenceService.js').PersistenceService} persistence
+	 * @param {import('../services/LayoutService.svelte.js').LayoutService} layoutService
 	 */
-	constructor(layoutService, persistence) {
+	constructor(layoutService) {
 		this.layoutService = layoutService;
-		this.persistence = persistence;
 
 		// Observable state using Svelte 5 runes
-		this.layoutPreset = $state(layoutService.state.preset);
-		this.isMobile = $state(layoutService.state.isMobile);
-		this.isTablet = $state(layoutService.state.isTablet);
-		this.isDesktop = $state(layoutService.state.isDesktop);
+		// Derived values from layout service to avoid state duplication
+		this.layoutPreset = $derived(this.layoutService.state.preset);
+		this.isMobile = $derived(this.layoutService.state.isMobile);
+		this.isTablet = $derived(this.layoutService.state.isTablet);
+		this.isDesktop = $derived(this.layoutService.state.isDesktop);
+		this.orientation = $derived(this.layoutService.state.orientation);
 
 		// Derived layout calculations
 		this.columns = $derived(this.layoutService.columns);
 		this.maxVisible = $derived(this.layoutService.maxVisible);
 		this.deviceType = $derived(this.getDeviceType());
 
-		// Sidebar state
-		this.sidebarCollapsed = $state(false);
-		this.sidebarWidth = $state(280);
-
 		// Mobile-specific state
 		this.showMobileMenu = $state(false);
 		this.keyboardVisible = $state(false);
-		this.orientation = $state(layoutService.state.orientation);
 
 		// Layout transitions
 		this.transitioning = $state(false);
@@ -42,90 +37,43 @@ export class LayoutViewModel {
 		this.gridGap = $state(16);
 		this.itemMinWidth = $state(300);
 
-		// Initialize
-		this.initialize();
+		// Setup reactive effects directly in constructor (required for Svelte 5)
+		//this.setupEffects();
 	}
 
 	/**
-	 * Initialize the view model
+	 * Setup reactive effects - called directly from constructor
 	 */
-	initialize() {
-		// Sync with layout service state
-		this.syncWithLayoutService();
+	// setupEffects() {
+	// 	// Handle mobile state changes through explicit method calls
+	// 	// Note: isMobile, isTablet, etc. are now derived values declared in constructor
+	// 	$effect(() => {
+	// 		// Only trigger method calls, don't mutate state directly
+	// 		if (this.isMobile) {
+	// 			this.handleMobileStateChange();
+	// 		}
+	// 	});
 
-		// Load persistent sidebar state
-		this.loadSidebarState();
+	// 	// Track column changes for transitions
+	// 	$effect(() => {
+	// 		if (this.columns !== this.previousCols) {
+	// 			this.transitioning = true;
+	// 			this.previousCols = this.columns;
 
-		// Setup reactive effects
-		this.setupEffects();
-	}
+	// 			// Reset transition state after animation
+	// 			setTimeout(() => {
+	// 				this.transitioning = false;
+	// 			}, 300);
+	// 		}
+	// 	});
+	// }
 
 	/**
-	 * Sync state with layout service
+	 * Handle mobile state changes explicitly
 	 */
-	syncWithLayoutService() {
-		// Subscribe to layout service state changes
-		$effect(() => {
-			this.isMobile = this.layoutService.state.isMobile;
-			this.isTablet = this.layoutService.state.isTablet;
-			this.isDesktop = this.layoutService.state.isDesktop;
-			this.orientation = this.layoutService.state.orientation;
-
-			// Auto-collapse sidebar on mobile
-			if (this.isMobile) {
-				this.sidebarCollapsed = true;
-				this.showMobileMenu = false;
-			}
-		});
-
-		// Watch for layout preset changes
-		$effect(() => {
-			this.layoutPreset = this.layoutService.state.preset;
-		});
-	}
-
-	/**
-	 * Load sidebar state from persistence
-	 */
-	loadSidebarState() {
-		const sidebarState = this.layoutService.getSidebarState();
-		this.sidebarCollapsed = sidebarState.collapsed || false;
-		this.sidebarWidth = sidebarState.width || 280;
-	}
-
-	/**
-	 * Save sidebar state to persistence
-	 */
-	saveSidebarState() {
-		this.layoutService.setSidebarState({
-			collapsed: this.sidebarCollapsed,
-			width: this.sidebarWidth
-		});
-	}
-
-	/**
-	 * Setup reactive effects
-	 */
-	setupEffects() {
-		// Track column changes for transitions
-		$effect(() => {
-			if (this.columns !== this.previousCols) {
-				this.transitioning = true;
-				this.previousCols = this.columns;
-
-				// Reset transition state after animation
-				setTimeout(() => {
-					this.transitioning = false;
-				}, 300);
-			}
-		});
-
-		// Save sidebar state when it changes
-		$effect(() => {
-			if (this.sidebarCollapsed !== undefined) {
-				this.saveSidebarState();
-			}
-		});
+	handleMobileStateChange() {
+		// Close mobile menu on mobile
+		this.showMobileMenu = false;
 	}
 
 	/**
@@ -157,26 +105,6 @@ export class LayoutViewModel {
 		return newPreset;
 	}
 
-	/**
-	 * Toggle sidebar collapsed state
-	 */
-	toggleSidebar() {
-		this.sidebarCollapsed = !this.sidebarCollapsed;
-	}
-
-	/**
-	 * Show sidebar (uncollapse)
-	 */
-	showSidebar() {
-		this.sidebarCollapsed = false;
-	}
-
-	/**
-	 * Hide sidebar (collapse)
-	 */
-	hideSidebar() {
-		this.sidebarCollapsed = true;
-	}
 
 	/**
 	 * Toggle mobile menu
@@ -284,23 +212,9 @@ export class LayoutViewModel {
 		classes.push(`layout-${this.layoutPreset}`);
 		classes.push(`orientation-${this.orientation}`);
 
-		if (this.sidebarCollapsed) classes.push('sidebar-collapsed');
 		if (this.showMobileMenu) classes.push('mobile-menu-open');
 		if (this.keyboardVisible) classes.push('keyboard-visible');
 		if (this.transitioning) classes.push('transitioning');
-
-		return classes;
-	}
-
-	/**
-	 * Get sidebar classes
-	 * @returns {string[]}
-	 */
-	getSidebarClasses() {
-		const classes = ['sidebar'];
-
-		if (this.sidebarCollapsed) classes.push('collapsed');
-		if (this.isMobile) classes.push('mobile');
 
 		return classes;
 	}
@@ -310,15 +224,10 @@ export class LayoutViewModel {
 	 * @returns {Object}
 	 */
 	getMainContentStyles() {
-		const styles = {
-			transition: 'margin-left 300ms ease'
+		return {
+			width: '100%',
+			height: '100%'
 		};
-
-		if (!this.isMobile && !this.sidebarCollapsed) {
-			styles.marginLeft = `${this.sidebarWidth}px`;
-		}
-
-		return styles;
 	}
 
 	/**
@@ -331,6 +240,19 @@ export class LayoutViewModel {
 		// This method can trigger additional UI-specific updates
 		if (this.isMobile && this.showMobileMenu) {
 			// Close mobile menu on resize to prevent layout issues
+			this.closeMobileMenu();
+		}
+	}
+
+	/**
+	 * Update responsive state - triggers viewport updates
+	 */
+	updateResponsiveState() {
+		// Delegate to the layout service to update viewport dimensions and orientation
+		this.layoutService.updateViewport();
+
+		// Trigger any additional responsive behavior
+		if (this.isMobile && this.showMobileMenu) {
 			this.closeMobileMenu();
 		}
 	}
@@ -350,13 +272,11 @@ export class LayoutViewModel {
 
 	/**
 	 * Check if layout supports feature
-	 * @param {'sidebar'|'multiColumn'|'gestures'|'keyboard'} feature
+	 * @param {'multiColumn'|'gestures'|'keyboard'} feature
 	 * @returns {boolean}
 	 */
 	supportsFeature(feature) {
 		switch (feature) {
-			case 'sidebar':
-				return !this.isMobile;
 			case 'multiColumn':
 				return this.columns > 1;
 			case 'gestures':
@@ -378,7 +298,6 @@ export class LayoutViewModel {
 			deviceType: this.deviceType,
 			columns: this.columns,
 			maxVisible: this.maxVisible,
-			sidebarCollapsed: this.sidebarCollapsed,
 			showMobileMenu: this.showMobileMenu,
 			keyboardVisible: this.keyboardVisible,
 			orientation: this.orientation,
@@ -393,7 +312,6 @@ export class LayoutViewModel {
 		this.showMobileMenu = false;
 		this.keyboardVisible = false;
 		this.transitioning = false;
-		// Don't reset sidebar state as it should persist
 	}
 
 	/**

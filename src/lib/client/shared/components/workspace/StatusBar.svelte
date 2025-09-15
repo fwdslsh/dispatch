@@ -31,7 +31,7 @@
 
 	// Derived values from state
 	const currentBreakpoint = $derived(
-		uiState.layout.isMobile ? 'mobile' : (uiState.layout.isTablet ? 'tablet' : 'desktop')
+		uiState.layout.isMobile ? 'mobile' : uiState.layout.isTablet ? 'tablet' : 'desktop'
 	);
 	const sessionCount = $derived(sessionState.all.length);
 
@@ -44,12 +44,7 @@
 	<div class="status-bar">
 		<!-- Left group: System actions -->
 		<div class="left-group">
-			<IconButton
-				class="logout-btn"
-				onclick={onLogout}
-				aria-label="Logout"
-				title="Logout"
-			>
+			<IconButton class="logout-btn" onclick={onLogout} aria-label="Logout" title="Logout">
 				<IconLogout2 size={18} />
 			</IconButton>
 
@@ -80,10 +75,7 @@
 		<!-- Right group: Navigation and session menu -->
 		<div class="right-group">
 			{#if isMobile}
-				<MobileNavigation
-					{onNavigateSession}
-					disabled={!hasActiveSessions}
-				/>
+				<MobileNavigation {onNavigateSession} disabled={!hasActiveSessions} />
 			{/if}
 
 			<IconButton

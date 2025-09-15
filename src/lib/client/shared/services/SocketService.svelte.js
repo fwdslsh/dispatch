@@ -335,7 +335,7 @@ export class SocketService {
 	unregisterSessionHandlers(sessionId) {
 		const cleanupFunctions = this.sessionHandlers.get(sessionId);
 		if (cleanupFunctions) {
-			cleanupFunctions.forEach(cleanup => cleanup());
+			cleanupFunctions.forEach((cleanup) => cleanup());
 			this.sessionHandlers.delete(sessionId);
 		}
 	}
@@ -369,7 +369,7 @@ export class SocketService {
 
 		// Filter out old messages (older than 30 seconds)
 		const now = Date.now();
-		const validMessages = queue.filter(msg => now - msg.timestamp < 30000);
+		const validMessages = queue.filter((msg) => now - msg.timestamp < 30000);
 
 		// Send valid messages
 		for (const msg of validMessages) {
@@ -417,7 +417,7 @@ export class SocketService {
 	clearAllHandlers() {
 		// Clear session handlers
 		for (const cleanupFunctions of this.sessionHandlers.values()) {
-			cleanupFunctions.forEach(cleanup => cleanup());
+			cleanupFunctions.forEach((cleanup) => cleanup());
 		}
 		this.sessionHandlers.clear();
 

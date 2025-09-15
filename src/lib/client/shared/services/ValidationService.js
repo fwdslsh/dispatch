@@ -42,7 +42,8 @@ export class ValidationService {
 			required: false,
 			pattern: VALIDATION_CONFIG.SESSION_NAME_PATTERN,
 			maxLength: 100,
-			message: 'Session name must be 1-100 characters (letters, numbers, spaces, hyphens, dots, underscores)'
+			message:
+				'Session name must be 1-100 characters (letters, numbers, spaces, hyphens, dots, underscores)'
 		});
 
 		// Workspace path validation
@@ -369,7 +370,7 @@ export class ValidationService {
 		const errors = [];
 		for (const [field, result] of Object.entries(results)) {
 			if (result.errors) {
-				errors.push(...result.errors.map(error => `${field}: ${error}`));
+				errors.push(...result.errors.map((error) => `${field}: ${error}`));
 			}
 		}
 		return errors;
@@ -384,7 +385,7 @@ export class ValidationService {
 		const warnings = [];
 		for (const [field, result] of Object.entries(results)) {
 			if (result.warnings) {
-				warnings.push(...result.warnings.map(warning => `${field}: ${warning}`));
+				warnings.push(...result.warnings.map((warning) => `${field}: ${warning}`));
 			}
 		}
 		return warnings;

@@ -4,14 +4,14 @@
 	import ClaudeAuth from '../../../claude/ClaudeAuth.svelte';
 	import WorkspaceSettings from './WorkspaceSettings.svelte';
 	import StorageSettings from './StorageSettings.svelte';
-	import { IconSettings, IconUser, IconCloud, IconFolder, IconTrash } from '@tabler/icons-svelte';
+	import { IconSettings, IconCloud, IconFolder, IconTrash } from '@tabler/icons-svelte';
 
 	/**
 	 * Settings Modal Component
 	 * Main settings interface with tabbed sections for different configuration areas
 	 */
 
-	let { open = $bindable(false) } = $props();
+	let { open = $bindable(false), onclose = () => {} } = $props();
 
 	// Active tab state
 	let activeTab = $state('global');
@@ -28,10 +28,10 @@
 	const activeTabData = $derived(tabs.find((tab) => tab.id === activeTab));
 </script>
 
-<Modal bind:open title="Settings" size="large" augmented="tl-clip tr-clip bl-clip br-clip both">
+<Modal {onclose} bind:open title="Settings" size="large" augmented="tl-clip tr-clip bl-clip br-clip both">
 	<div class="settings-container">
 		<!-- Settings Navigation -->
-	<nav class="settings-nav" aria-label="Settings sections">
+		<nav class="settings-nav" aria-label="Settings sections">
 			{#each tabs as tab}
 				<button
 					class="settings-tab"

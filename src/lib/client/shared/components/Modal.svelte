@@ -148,9 +148,9 @@
 				{/if}
 
 				{#if showCloseButton}
-				<IconButton variant="danger" onclick={close} aria-label="Close modal">
-					<IconX size={18}  />
-				</IconButton>
+					<IconButton variant="danger" onclick={close} aria-label="Close modal">
+						<IconX size={18} />
+					</IconButton>
 					<!-- <button class="modal__close" onclick={close} aria-label="Close modal" type="button">
 						<svg
 							width="24"
@@ -369,7 +369,6 @@
 		box-shadow: 0 0 10px var(--glow);
 		text-shadow: 0 0 5px var(--glow);
 	}
-
 
 	/* Enhanced terminal content */
 	.modal__content {

@@ -229,7 +229,8 @@ export class TouchGestureService {
 			}
 
 			// Call specific direction handlers
-			const directionHandler = handlers[`onSwipe${direction.charAt(0).toUpperCase() + direction.slice(1)}`];
+			const directionHandler =
+				handlers[`onSwipe${direction.charAt(0).toUpperCase() + direction.slice(1)}`];
 			if (directionHandler) {
 				directionHandler({
 					distance,
@@ -334,7 +335,7 @@ export class TouchGestureService {
 			},
 			destroy() {
 				cleanup();
-				Object.keys(handlers).forEach(key => delete handlers[key]);
+				Object.keys(handlers).forEach((key) => delete handlers[key]);
 			}
 		};
 	}

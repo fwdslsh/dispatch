@@ -604,9 +604,9 @@
 		height: 280px;
 		height: calc(100dvh - 525px);
 
-				height: clamp(400px, 30vh, 500px);
-				max-height: 100%;
-		
+		height: clamp(400px, 30vh, 500px);
+		max-height: 100%;
+
 		/* background: linear-gradient(180deg, 
 				var(--db-surface) 0%, 
 				var(--db-surface-elevated) 100%),
@@ -774,7 +774,6 @@
 		letter-spacing: 0.03em;
 	}
 
-
 	.empty-message {
 		text-align: center;
 		padding: calc(var(--space-6) * 1.5);
@@ -839,8 +838,4 @@
 		font-weight: 500;
 		letter-spacing: 0.01em;
 	}
-
-	
-
-	
 </style>

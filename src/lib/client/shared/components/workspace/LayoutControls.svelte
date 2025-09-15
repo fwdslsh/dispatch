@@ -8,11 +8,7 @@
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { setLayoutPreset, uiState } from '$lib/client/shared/state/ui-state.svelte.js';
 	import IconButton from '../IconButton.svelte';
-	import {
-		IconAppWindow,
-		IconBorderVertical,
-		IconBorderHorizontal
-	} from '@tabler/icons-svelte';
+	import { IconAppWindow, IconBorderVertical, IconBorderHorizontal } from '@tabler/icons-svelte';
 
 	// Get current layout from UI state
 	const currentLayout = $derived(uiState.layout.preset);

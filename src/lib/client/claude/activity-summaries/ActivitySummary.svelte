@@ -53,27 +53,26 @@
 	}
 </script>
 
-
 <div class="activity-summary-wrapper">
-       {#if activityComponent}
-	       {#if activityComponent.component === ReadActivity}
-		       <ReadActivity {...activityComponent.props} />
-	       {:else if activityComponent.component === WriteActivity}
-		       <WriteActivity {...activityComponent.props} />
-	       {:else if activityComponent.component === EditActivity}
-		       <EditActivity {...activityComponent.props} />
-	       {:else if activityComponent.component === BashActivity}
-		       <BashActivity {...activityComponent.props} />
-	       {:else if activityComponent.component === GrepActivity}
-		       <GrepActivity {...activityComponent.props} />
-	       {:else if activityComponent.component === GlobActivity}
-		       <GlobActivity {...activityComponent.props} />
-	       {:else}
-		       <GenericActivity {...activityComponent.props} />
-	       {/if}
-       {:else}
-	       <div class="activity-error">No activity data available</div>
-       {/if}
+	{#if activityComponent}
+		{#if activityComponent.component === ReadActivity}
+			<ReadActivity {...activityComponent.props} />
+		{:else if activityComponent.component === WriteActivity}
+			<WriteActivity {...activityComponent.props} />
+		{:else if activityComponent.component === EditActivity}
+			<EditActivity {...activityComponent.props} />
+		{:else if activityComponent.component === BashActivity}
+			<BashActivity {...activityComponent.props} />
+		{:else if activityComponent.component === GrepActivity}
+			<GrepActivity {...activityComponent.props} />
+		{:else if activityComponent.component === GlobActivity}
+			<GlobActivity {...activityComponent.props} />
+		{:else}
+			<GenericActivity {...activityComponent.props} />
+		{/if}
+	{:else}
+		<div class="activity-error">No activity data available</div>
+	{/if}
 </div>
 
 <style>

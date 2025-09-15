@@ -84,16 +84,16 @@ describe('SessionViewModel', () => {
 			const pinned = viewModel.pinnedSessions;
 
 			expect(pinned).toHaveLength(2);
-			expect(pinned.every(s => s.pinned)).toBe(true);
-			expect(pinned.map(s => s.id)).toEqual(['pinned-1', 'pinned-2']);
+			expect(pinned.every((s) => s.pinned)).toBe(true);
+			expect(pinned.map((s) => s.id)).toEqual(['pinned-1', 'pinned-2']);
 		});
 
 		it('should filter unpinned sessions correctly with $derived.by', () => {
 			const unpinned = viewModel.unpinnedSessions;
 
 			expect(unpinned).toHaveLength(2);
-			expect(unpinned.every(s => !s.pinned)).toBe(true);
-			expect(unpinned.map(s => s.id)).toEqual(['unpinned-1', 'unpinned-2']);
+			expect(unpinned.every((s) => !s.pinned)).toBe(true);
+			expect(unpinned.map((s) => s.id)).toEqual(['unpinned-1', 'unpinned-2']);
 		});
 
 		it('should show visible sessions based on desktop layout', () => {
@@ -103,7 +103,7 @@ describe('SessionViewModel', () => {
 			const visible = viewModel.visibleSessions;
 
 			expect(visible).toHaveLength(2);
-			expect(visible.map(s => s.id)).toEqual(['pinned-1', 'unpinned-1']);
+			expect(visible.map((s) => s.id)).toEqual(['pinned-1', 'unpinned-1']);
 		});
 
 		it('should show single session on mobile layout', () => {

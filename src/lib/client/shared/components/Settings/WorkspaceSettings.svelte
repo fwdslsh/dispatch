@@ -192,7 +192,7 @@
 						bind:value={defaultWorkingDirectory}
 						placeholder={workspaceRoot || '/home/user/workspace'}
 						class="path-input"
-							   error={!isValidPath ? String(pathValidation) : ''}
+						error={!isValidPath ? String(pathValidation) : ''}
 					/>
 					<Button
 						onclick={browseDirectory}
@@ -334,7 +334,7 @@
 		gap: var(--space-4);
 	}
 
-       /* Removed duplicate .settings-header, .settings-title, .settings-description selectors (shared with ClaudeAuth) */
+	/* Removed duplicate .settings-header, .settings-title, .settings-description selectors (shared with ClaudeAuth) */
 
 	.settings-content {
 		flex: 1;
@@ -387,7 +387,7 @@
 		align-items: flex-start;
 	}
 
-       /* Removed unused .path-input selector */
+	/* Removed unused .path-input selector */
 
 	.current-workspace {
 		margin-top: var(--space-3);

@@ -379,8 +379,6 @@
 		font-size: 0.7rem;
 	}
 
-
-
 	.hint {
 		font-size: 0.8rem;
 		color: var(--text-muted);

@@ -411,7 +411,7 @@
 		height: 100%;
 	}
 
-       /* Removed duplicate .settings-header, .settings-title, .settings-description selectors (shared with WorkspaceSettings) */
+	/* Removed duplicate .settings-header, .settings-title, .settings-description selectors (shared with WorkspaceSettings) */
 
 	.auth-content {
 		flex: 1;
@@ -446,7 +446,7 @@
 		background: rgba(255, 187, 0, 0.05);
 	}
 
-       /* Removed unused .status-icon.success and .status-icon.warning selectors */
+	/* Removed unused .status-icon.success and .status-icon.warning selectors */
 
 	.status-info {
 		flex: 1;

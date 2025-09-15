@@ -115,7 +115,6 @@
 		animation: pulse-dot 2s ease-in-out infinite;
 	}
 
-
 	.session-content {
 		position: relative;
 		z-index: 1;

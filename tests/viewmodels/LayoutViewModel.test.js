@@ -5,10 +5,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LayoutViewModel } from '../../src/lib/client/shared/viewmodels/LayoutViewModel.svelte.js';
 
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-	writable: true,
-	value: vi.fn().mockImplementation(query => ({
+// Mock DOM environment for Node.js tests
+const windowMock = {
+	matchMedia: vi.fn().mockImplementation((query) => ({
 		matches: false,
 		media: query,
 		onchange: null,
@@ -16,29 +15,60 @@ Object.defineProperty(window, 'matchMedia', {
 		removeListener: vi.fn(),
 		addEventListener: vi.fn(),
 		removeEventListener: vi.fn(),
-		dispatchEvent: vi.fn(),
+		dispatchEvent: vi.fn()
 	})),
+	innerWidth: 1024,
+	innerHeight: 768,
+	addEventListener: vi.fn(),
+	removeEventListener: vi.fn()
+};
+
+// Set up global window mock
+Object.defineProperty(globalThis, 'window', {
+	writable: true,
+	value: windowMock
 });
 
 describe('LayoutViewModel', () => {
 	let mockLayoutService;
+	let mockPersistence;
 	let viewModel;
 
 	beforeEach(() => {
-		// Mock LayoutService
+		// Mock LayoutService with proper state structure
 		mockLayoutService = {
+			state: {
+				preset: '1up',
+				isMobile: false,
+				isTablet: false,
+				isDesktop: true,
+				orientation: 'landscape'
+			},
+			columns: 4,
+			maxVisible: 4,
 			init: vi.fn(),
 			destroy: vi.fn(),
-			isMobile: vi.fn().mockReturnValue(false),
-			isTablet: vi.fn().mockReturnValue(false),
-			isDesktop: vi.fn().mockReturnValue(true),
-			maxVisible: 4,
 			updateMaxVisible: vi.fn(),
-			onLayoutChange: vi.fn()
+			onLayoutChange: vi.fn(),
+			getSidebarState: vi.fn().mockReturnValue({ collapsed: false, width: 280 }),
+			setSidebarState: vi.fn(),
+			setLayoutPreset: vi.fn(),
+			cycleLayoutPreset: vi.fn().mockReturnValue('2up'),
+			calculateGrid: vi.fn().mockReturnValue({ rows: 2, columns: 2, itemsPerRow: [2, 2] }),
+			getOptimalPreset: vi.fn().mockReturnValue('2up'),
+			supportsTouch: vi.fn().mockReturnValue(false)
+		};
+
+		// Mock PersistenceService
+		mockPersistence = {
+			get: vi.fn(),
+			set: vi.fn(),
+			remove: vi.fn(),
+			clear: vi.fn()
 		};
 
 		// Create ViewModel instance
-		viewModel = new LayoutViewModel(mockLayoutService);
+		viewModel = new LayoutViewModel(mockLayoutService, mockPersistence);
 	});
 
 	afterEach(() => {
@@ -300,7 +330,7 @@ describe('LayoutViewModel', () => {
 				removeListener: vi.fn(),
 				addEventListener: vi.fn(),
 				removeEventListener: vi.fn(),
-				dispatchEvent: vi.fn(),
+				dispatchEvent: vi.fn()
 			}));
 
 			viewModel.handleBreakpointChange('(max-width: 768px)', true);
@@ -318,7 +348,7 @@ describe('LayoutViewModel', () => {
 				removeListener: vi.fn(),
 				addEventListener: vi.fn(),
 				removeEventListener: vi.fn(),
-				dispatchEvent: vi.fn(),
+				dispatchEvent: vi.fn()
 			}));
 
 			viewModel.handleBreakpointChange('(max-width: 1024px)', true);

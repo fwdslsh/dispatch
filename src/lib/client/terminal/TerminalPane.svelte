@@ -52,6 +52,16 @@
 	}
 
 	onMount(async () => {
+		// Debug logging for undefined sessionId issue
+		console.log('[TERMINAL] TerminalPane mounted with sessionId:', sessionId);
+		console.log('[TERMINAL] TerminalPane props:', { sessionId, shouldResume, workspacePath });
+
+		// Safety check - don't proceed if sessionId is invalid
+		if (!sessionId || sessionId === 'undefined') {
+			console.error('[TERMINAL] Invalid sessionId, cannot initialize terminal');
+			return;
+		}
+
 		// Detect touch device
 		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 		key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';

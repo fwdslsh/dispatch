@@ -12,7 +12,8 @@
 		IconSparkles,
 		IconLoader,
 		IconUser,
-		IconUserCode
+		IconUserCode,
+		IconProgressDown
 	} from '@tabler/icons-svelte';
 	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
@@ -27,6 +28,11 @@
 		shouldResume = false,
 		workspacePath: initialWorkspacePath = ''
 	} = $props();
+
+	// Debug logging
+	$effect(() => {
+		console.log('[ClaudePane] Props received:', { sessionId, claudeSessionId, shouldResume, workspacePath: initialWorkspacePath });
+	});
 
 	/**
 	 * @type {import("socket.io-client").Socket}
@@ -832,11 +838,11 @@
 					<IconLoader size={16} class="ai-icon spinning" />
 					<span class="catching-up">Reconnecting to active session...</span>
 				{:else if loading}
-					<ProgressDown size={16} class="ai-icon" />
+					<IconProgressDown size={16} class="ai-icon" />
 				{:else if isWaitingForReply}
 					<IconSparkles size={16} class="ai-icon glowing" />
 				{:else}
-					<IconClaude size={16}  />
+					<IconClaude size={16} />
 				{/if}
 			</div>
 			<div class="ai-info">
@@ -898,7 +904,7 @@
 					<div class="message-avatar">
 						{#if m.role === 'user'}
 							<div class="user-avatar">
-								<IconUserCode size={16} />	
+								<IconUserCode size={16} />
 							</div>
 						{:else}
 							<div class="ai-avatar-small">
@@ -1122,7 +1128,6 @@
 			0 0 0 1px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
 	}
 
-
 	.ai-info {
 		display: flex;
 		flex-direction: column;
@@ -1190,7 +1195,6 @@
 		color: var(--accent-amber);
 		animation: pulse 1.5s ease-in-out infinite;
 	}
-
 
 	.chat-stats {
 		display: flex;
@@ -1309,7 +1313,6 @@
 		animation-delay: 0.4s;
 	}
 
-
 	.loading-text {
 		font-family: var(--font-sans);
 		font-size: var(--font-size-2);
@@ -1323,7 +1326,6 @@
 		opacity: 0;
 		animation: messageSlideIn 0.5s ease-out forwards;
 	}
-
 
 	.message-wrapper {
 		display: flex;
@@ -1515,7 +1517,6 @@
 		display: none;
 	}
 
-
 	.welcome-message h3 {
 		font-family: var(--font-mono);
 		font-size: var(--font-size-4);
@@ -1610,7 +1611,7 @@
 	:global(.message-input button) {
 		width: 100%;
 	}
-	
+
 	.message-input {
 		width: 100%;
 		height: 100%;
@@ -1648,7 +1649,6 @@
 		box-shadow: none !important;
 	}
 
-
 	.message-input::placeholder {
 		color: color-mix(in oklab, var(--muted) 80%, var(--primary) 20%);
 		font-style: italic;
@@ -1676,7 +1676,7 @@
 	}
 
 	/* Send button - take up remaining space */
-	.input-actions :global(.button[type="submit"]) {
+	.input-actions :global(.button[type='submit']) {
 		flex: 1; /* Take up remaining space */
 		min-width: 120px; /* Keep minimum width for usability */
 	}
@@ -1844,7 +1844,6 @@
 		animation: typingPulse 1.5s ease-in-out infinite;
 	}
 
-
 	.typing-animation {
 		display: flex;
 		align-items: center;
@@ -1886,7 +1885,6 @@
 	.typing-dot:nth-child(3) {
 		animation-delay: 0.4s;
 	}
-
 
 	/* Smooth scroll to show typing indicator */
 	.typing-indicator {

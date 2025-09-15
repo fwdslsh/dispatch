@@ -31,8 +31,7 @@
 </button>
 
 <style>
-
-	:root{
+	:root {
 		--transition-duration: 0.5s;
 	}
 	/* Icon-only button specific styles - minimal styling with only color change on hover */
@@ -155,6 +154,4 @@
 	:global(.btn-icon-only:disabled svg) {
 		filter: none;
 	}
-
-	
 </style>

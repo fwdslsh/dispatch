@@ -10,10 +10,7 @@
 	import { sessionState } from '$lib/client/shared/state/session-state.svelte.js';
 
 	// Props
-	let {
-		onNavigateSession = () => {},
-		disabled = false
-	} = $props();
+	let { onNavigateSession = () => {}, disabled = false } = $props();
 
 	// Derived values from state
 	const sessionCount = $derived(sessionState.all.length);
@@ -48,12 +45,7 @@
 		</span>
 	{/if}
 
-	<IconButton
-		class="bottom-btn nav-btn"
-		onclick={handleNext}
-		{disabled}
-		aria-label="Next session"
-	>
+	<IconButton class="bottom-btn nav-btn" onclick={handleNext} {disabled} aria-label="Next session">
 		<IconPlayerTrackNext size={18} />
 	</IconButton>
 </div>

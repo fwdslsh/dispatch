@@ -5,6 +5,14 @@
  * Handles all session-related state and business logic.
  */
 
+import {
+	sessionState,
+	setAllSessions,
+	setDisplayedSessions,
+	addSession,
+	removeSession
+} from '../state/session-state.svelte.js';
+
 /**
  * @typedef {Object} Session
  * @property {string} id
@@ -49,15 +57,15 @@ export class SessionViewModel {
 
 		// Derived state
 		this.pinnedSessions = $derived.by(() => {
-			return this.sessions.filter(s => s.pinned);
+			return this.sessions.filter((s) => s.pinned);
 		});
 		this.unpinnedSessions = $derived.by(() => {
-			return this.sessions.filter(s => !s.pinned);
+			return this.sessions.filter((s) => !s.pinned);
 		});
 		this.visibleSessions = $derived.by(() => {
 			if (this.layoutService.isMobile()) {
 				// Mobile: show current session from all sessions
-				const allSessions = this.sessions.filter(s => s && s.id);
+				const allSessions = this.sessions.filter((s) => s && s.id);
 				if (allSessions.length === 0) return [];
 				const validIndex = Math.min(this.currentMobileSession, allSessions.length - 1);
 				return allSessions.slice(validIndex, validIndex + 1);
@@ -65,7 +73,7 @@ export class SessionViewModel {
 				// Desktop: map displayed slots to sessions
 				const maxVisible = this.layoutService.maxVisible;
 				const ids = this.displayed.slice(0, maxVisible);
-				return ids.map(id => this.getSession(id)).filter(Boolean);
+				return ids.map((id) => this.getSession(id)).filter(Boolean);
 			}
 		});
 		this.sessionCount = $derived(this.sessions.length);
@@ -84,7 +92,7 @@ export class SessionViewModel {
 	 */
 	async initialize() {
 		await this.loadSessions();
-		this.restoreDisplayState();
+		// restoreDisplayState is now called at the end of loadSessions to ensure proper sync
 	}
 
 	/**
@@ -101,13 +109,21 @@ export class SessionViewModel {
 			};
 
 			const result = await this.sessionApi.list(options);
-			this.sessions = result.sessions || [];
+			console.log('[SessionViewModel] Loaded sessions from API:', result.sessions);
+
+			// Filter out any sessions without valid IDs
+			this.sessions = (result.sessions || []).filter(s => s && s.id);
+			console.log('[SessionViewModel] Valid sessions after filtering:', this.sessions);
 
 			// Update active sessions map
 			this.updateActiveSessionsMap();
 
 			// Sort sessions
 			this.sortSessions();
+
+			// Restore display state after loading sessions
+			this.restoreDisplayState();
+			// Note: restoreDisplayState calls syncToGlobalState at the end
 		} catch (error) {
 			this.error = error.message || 'Failed to load sessions';
 			console.error('[SessionViewModel] Load error:', error);
@@ -182,7 +198,7 @@ export class SessionViewModel {
 			});
 
 			// Update session state
-			const session = this.sessions.find(s => s.id === sessionId);
+			const session = this.sessions.find((s) => s.id === sessionId);
 			if (session) {
 				session.isActive = true;
 				session.lastActivity = new Date().toISOString();
@@ -222,7 +238,7 @@ export class SessionViewModel {
 
 			// Remove from display if on mobile
 			if (this.layoutService.isMobile()) {
-				this.sessions = this.sessions.filter(s => s.id !== sessionId);
+				this.sessions = this.sessions.filter((s) => s.id !== sessionId);
 				this.adjustMobileIndex();
 			} else {
 				// Remove from displayed array for desktop
@@ -292,8 +308,53 @@ export class SessionViewModel {
 		}
 	}
 
+	/**
+	 * Handle session created from external source (like modal)
+	 * @param {Object} sessionData
+	 * @param {string} sessionData.id
+	 * @param {string} sessionData.type
+	 * @param {string} sessionData.workspacePath
+	 * @param {string} sessionData.typeSpecificId
+	 */
+	handleSessionCreated(sessionData) {
+		const { id, type, workspacePath, typeSpecificId } = sessionData;
 
+		// Validate required fields
+		if (!id || !type) {
+			console.error('[SessionViewModel] Invalid session data - missing id or type:', sessionData);
+			return;
+		}
 
+		// Create session object
+		const newSession = {
+			id,
+			typeSpecificId,
+			workspacePath,
+			sessionType: type,
+			type: type, // Add type field for compatibility with global state
+			isActive: true,
+			pinned: true,
+			title: `New ${type} session`,
+			createdAt: new Date().toISOString(),
+			lastActivity: new Date().toISOString()
+		};
+
+		// Add to sessions if not already present
+		const existingSession = this.getSession(id);
+		if (!existingSession) {
+			this.sessions.push(newSession);
+			this.activeSessions.set(id, newSession);
+
+			// Sort sessions
+			this.sortSessions();
+		}
+
+		// Update display
+		this.addToDisplay(id);
+
+		// Update global session state
+		this.syncToGlobalState();
+	}
 
 	/**
 	 * Add session to display
@@ -302,7 +363,7 @@ export class SessionViewModel {
 	addToDisplay(sessionId) {
 		if (this.layoutService.isMobile()) {
 			// Find session index and set as current
-			const index = this.sessions.findIndex(s => s.id === sessionId);
+			const index = this.sessions.findIndex((s) => s.id === sessionId);
 			if (index !== -1) {
 				this.currentMobileSession = index;
 			}
@@ -310,13 +371,14 @@ export class SessionViewModel {
 			// Desktop: add to displayed array
 			if (!this.displayed.includes(sessionId)) {
 				const maxVisible = this.layoutService.maxVisible;
-				const without = this.displayed.filter(id => id !== sessionId);
+				const without = this.displayed.filter((id) => id !== sessionId);
 				const head = without.slice(0, Math.max(0, maxVisible - 1));
 				this.displayed = [...head, sessionId];
 			}
 		}
 
 		this.saveDisplayState();
+		this.syncToGlobalState();
 	}
 
 	/**
@@ -324,8 +386,9 @@ export class SessionViewModel {
 	 * @param {string} sessionId
 	 */
 	removeFromDisplay(sessionId) {
-		this.displayed = this.displayed.filter(id => id !== sessionId);
+		this.displayed = this.displayed.filter((id) => id !== sessionId);
 		this.saveDisplayState();
+		this.syncToGlobalState();
 	}
 
 	/**
@@ -339,6 +402,7 @@ export class SessionViewModel {
 			this.currentMobileSession = sessionCount - 1;
 		}
 		this.saveDisplayState();
+		this.syncToGlobalState();
 	}
 
 	/**
@@ -348,6 +412,7 @@ export class SessionViewModel {
 		if (this.sessions.length > 0) {
 			this.currentMobileSession = (this.currentMobileSession + 1) % this.sessions.length;
 			this.saveDisplayState();
+		this.syncToGlobalState();
 		}
 	}
 
@@ -359,7 +424,38 @@ export class SessionViewModel {
 			this.currentMobileSession =
 				(this.currentMobileSession - 1 + this.sessions.length) % this.sessions.length;
 			this.saveDisplayState();
+		this.syncToGlobalState();
 		}
+	}
+
+	/**
+	 * Navigate to next session (alias for mobile navigation)
+	 */
+	navigateToNextSession() {
+		this.nextMobileSession();
+	}
+
+	/**
+	 * Navigate to previous session (alias for mobile navigation)
+	 */
+	navigateToPrevSession() {
+		this.previousMobileSession();
+	}
+
+	/**
+	 * Handle session selected from UI
+	 * @param {Object} sessionData
+	 * @param {string} sessionData.id
+	 */
+	handleSessionSelected(sessionData) {
+		const { id } = sessionData;
+		if (!id) return;
+
+		// Update display to show this session
+		this.addToDisplay(id);
+
+		// Set as selected
+		this.selectedSessionId = id;
 	}
 
 	/**
@@ -374,8 +470,15 @@ export class SessionViewModel {
 	 * Restore display state from persistence
 	 */
 	restoreDisplayState() {
-		this.displayed = this.persistence.get('dispatch-displayed-sessions', []);
+		const savedDisplayed = this.persistence.get('dispatch-displayed-sessions', []);
+		// Only restore session IDs that actually exist in loaded sessions
+		this.displayed = savedDisplayed.filter(id => this.sessions.some(s => s.id === id));
 		this.currentMobileSession = this.persistence.get('dispatch-mobile-index', 0);
+
+		console.log('[SessionViewModel] Restored display state - valid IDs:', this.displayed);
+
+		// Sync after restoring to ensure UI gets valid sessions
+		this.syncToGlobalState();
 	}
 
 	/**
@@ -407,7 +510,7 @@ export class SessionViewModel {
 	 * @returns {Session|null}
 	 */
 	getSession(sessionId) {
-		return this.sessions.find(s => s.id === sessionId) || null;
+		return this.sessions.find((s) => s.id === sessionId) || null;
 	}
 
 	/**
@@ -474,6 +577,25 @@ export class SessionViewModel {
 		this.error = null;
 		this.creatingSession = false;
 		this.sessionActivity.clear();
+	}
+
+	/**
+	 * Sync local state to global session state
+	 */
+	syncToGlobalState() {
+		// Filter sessions to ensure they have valid IDs
+		const validSessions = this.sessions.filter(s => s && s.id);
+
+		// Update global all sessions
+		setAllSessions([...validSessions]);
+
+		// Update global displayed sessions - use sessions that should be visible
+		const displayedSessions = this.layoutService.isMobile()
+			? this.visibleSessions.filter(s => s && s.id)  // Mobile: use the derived visible sessions
+			: this.displayed.map(id => this.getSession(id)).filter(s => s && s.id); // Desktop: use displayed IDs
+
+		console.log('[SessionViewModel] Syncing to global state, displayed sessions:', displayedSessions);
+		setDisplayedSessions([...displayedSessions]);
 	}
 
 	/**

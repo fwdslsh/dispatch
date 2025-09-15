@@ -10,9 +10,11 @@ import { getDatabaseManager } from './lib/server/db/DatabaseManager.js';
 if (!globalThis.__API_SERVICES) {
 	try {
 		// Initialize database first
-		getDatabaseManager().init().catch((err) => {
-			console.error('[APP] Failed to initialize database:', err);
-		});
+		getDatabaseManager()
+			.init()
+			.catch((err) => {
+				console.error('[APP] Failed to initialize database:', err);
+			});
 
 		const sessions = new SessionRouter();
 		const workspaces = new WorkspaceManager({

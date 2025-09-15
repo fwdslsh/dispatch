@@ -35,9 +35,12 @@ Your core responsibilities:
 
 - Design reactive state using Svelte stores for global state
 - Implement local component state with $state rune
-- Create derived state with $derived for computed values
+- Create derived state with $derived for computed values and $derived.by for computed values using function
 - Handle side effects properly with $effect rune
+- Avoid mutating state in effects to prevent infinite loops
+- use onMount and onDestroy to handle proper component initialization and destruction
 - Ensure unidirectional data flow patterns
+- Ensure Svelte runes are only used in .svelte or .svelte.js files
 
 **SvelteKit Integration:**
 

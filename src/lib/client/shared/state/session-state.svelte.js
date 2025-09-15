@@ -33,14 +33,14 @@ export const sessionState = $state({
 
 // State mutation functions
 export function addSession(session) {
-	if (!sessionState.all.find(s => s.id === session.id)) {
+	if (!sessionState.all.find((s) => s.id === session.id)) {
 		sessionState.all.push(session);
 	}
 }
 
 export function removeSession(id) {
-	sessionState.all = sessionState.all.filter(s => s.id !== id);
-	sessionState.displayed = sessionState.displayed.filter(s => s.id !== id);
+	sessionState.all = sessionState.all.filter((s) => s.id !== id);
+	sessionState.displayed = sessionState.displayed.filter((s) => s.id !== id);
 
 	// Adjust mobile session index if needed
 	if (sessionState.currentMobileSession >= sessionState.displayed.length) {
@@ -49,12 +49,12 @@ export function removeSession(id) {
 }
 
 export function updateSession(id, updates) {
-	const session = sessionState.all.find(s => s.id === id);
+	const session = sessionState.all.find((s) => s.id === id);
 	if (session) {
 		Object.assign(session, updates);
 	}
 
-	const displayedSession = sessionState.displayed.find(s => s.id === id);
+	const displayedSession = sessionState.displayed.find((s) => s.id === id);
 	if (displayedSession) {
 		Object.assign(displayedSession, updates);
 	}
@@ -78,14 +78,14 @@ export function setAllSessions(sessions) {
 }
 
 export function toggleSessionPin(id) {
-	const session = sessionState.all.find(s => s.id === id);
+	const session = sessionState.all.find((s) => s.id === id);
 	if (session) {
 		session.pinned = !session.pinned;
 	}
 }
 
 export function setSessionActive(id, isActive) {
-	const session = sessionState.all.find(s => s.id === id);
+	const session = sessionState.all.find((s) => s.id === id);
 	if (session) {
 		session.isActive = isActive;
 	}
@@ -140,13 +140,13 @@ export function updateSessionOrder(newOrder) {
 
 // Session filtering helpers
 export function getSessionsByWorkspace(workspacePath) {
-	return sessionState.all.filter(s => s.workspacePath === workspacePath);
+	return sessionState.all.filter((s) => s.workspacePath === workspacePath);
 }
 
 export function getSessionsByType(type) {
-	return sessionState.all.filter(s => s.type === type);
+	return sessionState.all.filter((s) => s.type === type);
 }
 
 export function getSessionById(id) {
-	return sessionState.all.find(s => s.id === id);
+	return sessionState.all.find((s) => s.id === id);
 }

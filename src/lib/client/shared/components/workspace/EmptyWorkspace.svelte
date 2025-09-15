@@ -6,9 +6,7 @@
 -->
 <script>
 	// Props
-	let {
-		onCreateSession = () => {}
-	} = $props();
+	let { onCreateSession = () => {} } = $props();
 
 	function handleCreateClaude() {
 		onCreateSession('claude');

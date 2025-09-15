@@ -9,12 +9,7 @@
 	import { IconX } from '@tabler/icons-svelte';
 
 	// Props
-	let {
-		session,
-		onClose = () => {},
-		onUnpin = () => {},
-		index = 0
-	} = $props();
+	let { session, onClose = () => {}, onUnpin = () => {}, index = 0 } = $props();
 
 	// Session display info
 	const sessionId = $derived(session.id?.slice(0, 6) || 'unknown');
@@ -132,7 +127,8 @@
 
 	/* Animation for status dot */
 	@keyframes statusPulse {
-		0%, 100% {
+		0%,
+		100% {
 			opacity: 1;
 		}
 		50% {

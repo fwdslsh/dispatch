@@ -200,7 +200,6 @@
 		}
 	}
 
-
 	/* High contrast mode support */
 	@media (prefers-contrast: high) {
 		.spinner--primary .spinner__circle {

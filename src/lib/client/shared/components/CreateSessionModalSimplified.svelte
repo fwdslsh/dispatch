@@ -57,6 +57,7 @@
 						typeSpecificId: session.typeSpecificId
 					});
 				}
+				// Close the modal by setting open to false
 				open = false;
 			} else {
 				const errorText = await response.text();
@@ -230,8 +231,6 @@
 		/* Use consistent design system borders */
 		box-shadow: inset 0 0 10px var(--glow);
 	}
-
-
 
 	.error-message {
 		background: color-mix(in oklab, var(--err) 10%, var(--surface));

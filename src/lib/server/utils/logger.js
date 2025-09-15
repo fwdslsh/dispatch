@@ -71,19 +71,16 @@ function logToDatabase(level, component, message, args) {
 	if (
 		process.env.VITE_SSR === 'true' ||
 		process.env.VITE_BUILD === 'true' ||
-		process.env.BUILD === 'true' 
+		process.env.BUILD === 'true'
 	) {
 		// No-op during build/SSR/test
 		return;
 	}
-	if (!_dbManager)
-		_dbManager = getDatabaseManager();
+	if (!_dbManager) _dbManager = getDatabaseManager();
 
 	_dbManager
 		.init()
-		.then(() =>
-			_dbManager.addLog(level, component, message, args && args.length ? args : null)
-		)
+		.then(() => _dbManager.addLog(level, component, message, args && args.length ? args : null))
 		.catch((err) => {
 			// Fallback: log DB error to console, but do not throw
 			console.error('[LOGGER] Failed to write log to database:', err);

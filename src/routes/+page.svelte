@@ -1,6 +1,5 @@
 <script>
 	import { goto } from '$app/navigation';
-	import { io } from 'socket.io-client';
 	import { PublicUrlDisplay, ErrorDisplay } from '$lib/client/shared/components';
 	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
@@ -16,7 +15,8 @@
 
 	onMount(async () => {
 		// Detect if running as PWA
-		isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+		isPWA =
+			window.matchMedia('(display-mode: standalone)').matches ||
 			window.navigator.standalone === true ||
 			document.referrer.includes('android-app://');
 
@@ -126,7 +126,8 @@
 
 		/* Animated matrix background */
 		background:
-			linear-gradient(135deg,
+			linear-gradient(
+				135deg,
 				color-mix(in oklab, var(--bg) 95%, var(--primary) 5%) 0%,
 				var(--bg) 50%,
 				color-mix(in oklab, var(--bg) 98%, var(--accent-cyan) 2%) 100%
@@ -141,7 +142,8 @@
 		background-attachment: fixed, local;
 		animation: matrixFlow 120s linear infinite;
 
-		h1, p {
+		h1,
+		p {
 			margin: 0;
 		}
 	}
@@ -149,10 +151,14 @@
 	/* Subtle matrix flow animation */
 	@keyframes matrixFlow {
 		0% {
-			background-position: 0 0, 0 0;
+			background-position:
+				0 0,
+				0 0;
 		}
 		100% {
-			background-position: 0 0, -64px -64px;
+			background-position:
+				0 0,
+				-64px -64px;
 		}
 	}
 
@@ -165,15 +171,18 @@
 		right: 0;
 		bottom: 0;
 		background:
-			radial-gradient(circle at 30% 20%,
+			radial-gradient(
+				circle at 30% 20%,
 				color-mix(in oklab, var(--primary) 8%, transparent) 0%,
 				transparent 50%
 			),
-			radial-gradient(circle at 70% 80%,
+			radial-gradient(
+				circle at 70% 80%,
 				color-mix(in oklab, var(--accent-cyan) 6%, transparent) 0%,
 				transparent 50%
 			),
-			radial-gradient(circle at 50% 50%,
+			radial-gradient(
+				circle at 50% 50%,
 				color-mix(in oklab, var(--accent-amber) 4%, transparent) 0%,
 				transparent 60%
 			);
@@ -182,9 +191,19 @@
 	}
 
 	@keyframes atmosphericShift {
-		0%, 100% { opacity: 0.6; transform: scale(1); }
-		33% { opacity: 0.8; transform: scale(1.02); }
-		66% { opacity: 0.4; transform: scale(0.98); }
+		0%,
+		100% {
+			opacity: 0.6;
+			transform: scale(1);
+		}
+		33% {
+			opacity: 0.8;
+			transform: scale(1.02);
+		}
+		66% {
+			opacity: 0.4;
+			transform: scale(0.98);
+		}
 	}
 
 	/* Scanning line effect */
@@ -195,7 +214,8 @@
 		left: -100%;
 		width: 100%;
 		height: 2px;
-		background: linear-gradient(90deg,
+		background: linear-gradient(
+			90deg,
 			transparent 0%,
 			color-mix(in oklab, var(--primary) 5%, transparent) 20%,
 			color-mix(in oklab, var(--primary) 8%, transparent) 40%,
@@ -251,7 +271,8 @@
 		font-family: var(--font-accent);
 		font-size: clamp(2.5rem, 5vw, 4rem);
 		font-weight: 400;
-		background: linear-gradient(135deg,
+		background: linear-gradient(
+			135deg,
 			var(--primary) 0%,
 			var(--primary-bright) 50%,
 			var(--accent-cyan) 100%
@@ -269,7 +290,8 @@
 	}
 
 	@keyframes titlePulse {
-		0%, 100% {
+		0%,
+		100% {
 			filter: brightness(1);
 			text-shadow:
 				0 0 20px var(--primary-glow),
@@ -328,7 +350,8 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background: linear-gradient(135deg,
+		background: linear-gradient(
+			135deg,
 			color-mix(in oklab, var(--primary) 3%, transparent) 0%,
 			transparent 50%,
 			color-mix(in oklab, var(--accent-cyan) 2%, transparent) 100%
@@ -436,23 +459,44 @@
 		width: 200%;
 		height: 200%;
 		background-image:
-			radial-gradient(circle at 20% 30%, color-mix(in oklab, var(--primary) 5%, transparent) 1px, transparent 1px),
-			radial-gradient(circle at 80% 70%, color-mix(in oklab, var(--accent-cyan) 4%, transparent) 1px, transparent 1px),
-			radial-gradient(circle at 40% 80%, color-mix(in oklab, var(--accent-amber) 3%, transparent) 1px, transparent 1px);
-		background-size: 100px 100px, 150px 150px, 120px 120px;
+			radial-gradient(
+				circle at 20% 30%,
+				color-mix(in oklab, var(--primary) 5%, transparent) 1px,
+				transparent 1px
+			),
+			radial-gradient(
+				circle at 80% 70%,
+				color-mix(in oklab, var(--accent-cyan) 4%, transparent) 1px,
+				transparent 1px
+			),
+			radial-gradient(
+				circle at 40% 80%,
+				color-mix(in oklab, var(--accent-amber) 3%, transparent) 1px,
+				transparent 1px
+			);
+		background-size:
+			100px 100px,
+			150px 150px,
+			120px 120px;
 		animation: particleDrift 60s linear infinite;
 		pointer-events: none;
 		z-index: -1;
 	}
 
 	@keyframes particleDrift {
-		0% { transform: translateX(0) translateY(0) rotate(0deg); }
-		100% { transform: translateX(-100px) translateY(-100px) rotate(360deg); }
+		0% {
+			transform: translateX(0) translateY(0) rotate(0deg);
+		}
+		100% {
+			transform: translateX(-100px) translateY(-100px) rotate(360deg);
+		}
 	}
 
 	/* Error and loading state enhancements */
 	:global(.error-display) {
-		animation: errorSlideIn 0.4s ease-out, errorShake 0.5s ease-in-out 0.4s;
+		animation:
+			errorSlideIn 0.4s ease-out,
+			errorShake 0.5s ease-in-out 0.4s;
 	}
 
 	@keyframes errorSlideIn {
@@ -473,7 +517,8 @@
 	}
 
 	@keyframes loadingPulse {
-		0%, 100% {
+		0%,
+		100% {
 			box-shadow:
 				0 8px 32px color-mix(in oklab, var(--bg) 80%, transparent),
 				0 0 0 1px color-mix(in oklab, var(--accent-cyan) 10%, transparent);

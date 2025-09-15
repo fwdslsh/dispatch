@@ -26,8 +26,14 @@ export const workspaceState = $state({
 // - hasClaudeProjects: workspaceState.claudeProjects.length > 0
 // - isWorkspaceSelected: workspaceState.current !== null
 // - totalWorkspaceCount: workspaceState.all.length
-// - availableWorkspaces: [...workspaceState.all, ...workspaceState.claudeProjects].filter((workspace, index, self) => index === self.findIndex(w => w.path === workspace.path))
-// - workspaceSelectOptions: availableWorkspaces.map(workspace => ({ value: workspace.path, label: workspace.name || workspace.path.split('/').pop(), type: workspace.type || 'regular' }))
+// - workspaceSelectOptions: getAvailableWorkspaces().map(workspace => ({ value: workspace.path, label: workspace.name || workspace.path.split('/').pop(), type: workspace.type || 'regular' }))
+
+// Getter function for computed values that need to be used in state functions
+export function getAvailableWorkspaces() {
+	return [...workspaceState.all, ...workspaceState.claudeProjects].filter(
+		(workspace, index, self) => index === self.findIndex(w => w.path === workspace.path)
+	);
+}
 
 // State mutation functions
 export function setCurrentWorkspace(workspace) {
@@ -47,13 +53,13 @@ export function setClaudeProjects(projects) {
 }
 
 export function addWorkspace(workspace) {
-	if (!workspaceState.all.find(w => w.path === workspace.path)) {
+	if (!workspaceState.all.find((w) => w.path === workspace.path)) {
 		workspaceState.all.push(workspace);
 	}
 }
 
 export function updateWorkspace(path, updates) {
-	const workspace = workspaceState.all.find(w => w.path === path);
+	const workspace = workspaceState.all.find((w) => w.path === path);
 	if (workspace) {
 		Object.assign(workspace, updates);
 	}
@@ -64,15 +70,15 @@ export function updateWorkspace(path, updates) {
 	}
 
 	// Update in recent list if present
-	const recentWorkspace = workspaceState.recent.find(w => w.path === path);
+	const recentWorkspace = workspaceState.recent.find((w) => w.path === path);
 	if (recentWorkspace) {
 		Object.assign(recentWorkspace, updates);
 	}
 }
 
 export function removeWorkspace(path) {
-	workspaceState.all = workspaceState.all.filter(w => w.path !== path);
-	workspaceState.recent = workspaceState.recent.filter(w => w.path !== path);
+	workspaceState.all = workspaceState.all.filter((w) => w.path !== path);
+	workspaceState.recent = workspaceState.recent.filter((w) => w.path !== path);
 
 	// Clear current workspace if it was removed
 	if (workspaceState.current?.path === path) {
@@ -82,7 +88,7 @@ export function removeWorkspace(path) {
 
 export function addToRecentWorkspaces(workspace) {
 	// Remove if already in recent list
-	workspaceState.recent = workspaceState.recent.filter(w => w.path !== workspace.path);
+	workspaceState.recent = workspaceState.recent.filter((w) => w.path !== workspace.path);
 
 	// Add to beginning
 	workspaceState.recent.unshift({
@@ -117,7 +123,7 @@ export function setHasLoadedInitial(loaded) {
 
 // Workspace operations
 export function openWorkspace(path) {
-	const workspace = availableWorkspaces.find(w => w.path === path);
+	const workspace = getAvailableWorkspaces().find((w) => w.path === path);
 	if (workspace) {
 		setCurrentWorkspace(workspace);
 		addToRecentWorkspaces(workspace);
@@ -142,7 +148,7 @@ export function createWorkspace(path, name) {
 }
 
 export function cloneWorkspace(fromPath, toPath, name) {
-	const sourceWorkspace = availableWorkspaces.find(w => w.path === fromPath);
+	const sourceWorkspace = getAvailableWorkspaces().find((w) => w.path === fromPath);
 	if (!sourceWorkspace) {
 		throw new Error(`Source workspace not found: ${fromPath}`);
 	}
@@ -164,7 +170,7 @@ export function cloneWorkspace(fromPath, toPath, name) {
 
 // Utility functions
 export function getWorkspaceByPath(path) {
-	return availableWorkspaces.find(w => w.path === path);
+	return getAvailableWorkspaces().find((w) => w.path === path);
 }
 
 export function isCurrentWorkspace(path) {
@@ -177,7 +183,7 @@ export function getWorkspaceType(path) {
 }
 
 export function isClaudeProject(path) {
-	return workspaceState.claudeProjects.some(p => p.path === path);
+	return workspaceState.claudeProjects.some((p) => p.path === path);
 }
 
 // Bulk operations
@@ -203,11 +209,11 @@ export function sortWorkspacesByName() {
 }
 
 export function sortWorkspacesByLastAccessed() {
-	workspaceState.recent = workspaceState.recent.sort((a, b) =>
-		new Date(b.lastAccessed || 0) - new Date(a.lastAccessed || 0)
+	workspaceState.recent = workspaceState.recent.sort(
+		(a, b) => new Date(b.lastAccessed || 0) - new Date(a.lastAccessed || 0)
 	);
 }
 
 export function filterWorkspacesByType(type) {
-	return workspaceState.all.filter(w => w.type === type);
+	return workspaceState.all.filter((w) => w.type === type);
 }

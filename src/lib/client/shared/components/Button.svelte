@@ -129,7 +129,6 @@
 </button>
 
 <style>
-
 	/* Button styles that work with global .button class from retro.css */
 	.button {
 		/* Remove conflicting overrides, inherit from global styles */
@@ -257,7 +256,6 @@
 		border-radius: 50%;
 		animation: terminalSpin 1s linear infinite;
 	}
-
 
 	/* Ensure augmented-ui styles work properly */
 	.button.aug {

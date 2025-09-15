@@ -6,9 +6,7 @@
 -->
 <script>
 	// Props
-	let {
-		onCreateSession = () => {}
-	} = $props();
+	let { onCreateSession = () => {} } = $props();
 
 	function handleClick() {
 		// Default to Claude session creation
@@ -77,7 +75,8 @@
 
 	/* Pulsing animation */
 	@keyframes pulse {
-		0%, 100% {
+		0%,
+		100% {
 			box-shadow: 0 2px 8px rgba(46, 230, 107, 0.3);
 		}
 		50% {

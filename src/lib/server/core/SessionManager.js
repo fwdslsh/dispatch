@@ -56,11 +56,11 @@ export class SessionManager {
 
 			// Call the create method with unified parameters
 			const createParams = this._buildCreateParams(type, workspacePath, options, sessionId);
-			   // Pass socket through options if present
-			   if (options && options.socket) {
-				   createParams.socket = options.socket;
-			   }
-			   const result = await createMethod.call(sessionType.manager, createParams);
+			// Pass socket through options if present
+			if (options && options.socket) {
+				createParams.socket = options.socket;
+			}
+			const result = await createMethod.call(sessionType.manager, createParams);
 
 			// Extract the type-specific ID
 			const typeSpecificId = sessionType.getIdField(result);
@@ -246,7 +246,7 @@ export class SessionManager {
 	 */
 	setSocketIO(socket) {
 		// Pass through to type-specific managers that need it
-		   // No-op: per-session socket assignment is handled at session creation time.
+		// No-op: per-session socket assignment is handled at session creation time.
 	}
 
 	/**

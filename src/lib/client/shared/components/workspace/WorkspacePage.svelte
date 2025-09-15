@@ -1,16 +1,13 @@
-<!--
-	WorkspacePage.svelte
-
-	Main workspace page orchestrator using MVVM architecture
-	Replaces the monolithic 1,771-line workspace component
--->
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 
 	// Services and ViewModels
-	import { provideServiceContainer, useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import {
+		provideServiceContainer,
+		useServiceContainer
+	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { WorkspaceViewModel } from '$lib/client/shared/viewmodels/WorkspaceViewModel.svelte.js';
 	import { SessionViewModel } from '$lib/client/shared/viewmodels/SessionViewModel.svelte.js';
 	import { LayoutViewModel } from '$lib/client/shared/viewmodels/LayoutViewModel.svelte.js';
@@ -55,17 +52,24 @@
 	// ViewModels
 	let workspaceViewModel = $state();
 	let sessionViewModel = $state();
+
+	/** @type {LayoutViewModel} */
 	let layoutViewModel = $state();
 	let modalViewModel = $state();
 
 	// Modal state from ViewModels
-	const activeModal = $derived(modalViewModel?.activeModal);
+	const activeModal = $derived(
+		modalViewModel?.topModalId ? modalViewModel.activeModals.get(modalViewModel.topModalId) : null
+	);
 	const sessionMenuOpen = $derived(uiState.layout.showBottomSheet);
+
+	// Reactive modal open state for binding
+	let createSessionModalOpen = $state(false);
 
 	// Derived values from state
 	const visibleSessions = $derived(sessionState.displayed);
 	const currentBreakpoint = $derived(
-		uiState.layout.isMobile ? 'mobile' : (uiState.layout.isTablet ? 'tablet' : 'desktop')
+		uiState.layout.isMobile ? 'mobile' : uiState.layout.isTablet ? 'tablet' : 'desktop'
 	);
 
 	// Session data from state
@@ -77,6 +81,44 @@
 
 	// PWA installation handling
 	let deferredPrompt = $state(null);
+
+	// Handle mobile state changes through explicit method calls
+	// Note: isMobile, isTablet, etc. are now derived values declared in constructor
+	$effect(() => {
+		// Only trigger method calls, don't mutate state directly
+		if (layoutViewModel?.isMobile) {
+			layoutViewModel.handleMobileStateChange();
+		}
+	});
+
+	// Track column changes for transitions
+	$effect(() => {
+		if (layoutViewModel && layoutViewModel.columns !== layoutViewModel.previousCols) {
+			layoutViewModel.transitioning = true;
+			layoutViewModel.previousCols = layoutViewModel.columns;
+
+			// Reset transition state after animation
+			setTimeout(() => {
+				layoutViewModel.transitioning = false;
+			}, 300);
+		}
+	});
+
+	// Sync createSessionModalOpen with activeModal state
+	$effect(() => {
+		if (activeModal?.type === 'createSession') {
+			createSessionModalOpen = activeModal.open;
+		} else if (createSessionModalOpen) {
+			createSessionModalOpen = false;
+		}
+	});
+
+	// Sync back to ModalViewModel when createSessionModalOpen changes to false
+	$effect(() => {
+		if (!createSessionModalOpen && activeModal?.type === 'createSession') {
+			modalViewModel.closeModal('createSession');
+		}
+	});
 
 	// Initialization
 	onMount(async () => {
@@ -111,13 +153,16 @@
 
 		workspaceViewModel = new WorkspaceViewModel(workspaceApi, persistence);
 		sessionViewModel = new SessionViewModel(sessionApi, persistence, layout);
-		layoutViewModel = new LayoutViewModel(layout, persistence);
+
+		layoutViewModel = new LayoutViewModel(layout);
 		modalViewModel = new ModalViewModel();
 
 		// Load initial data
 		await workspaceViewModel.loadWorkspaces();
 		await workspaceViewModel.loadRecentWorkspaces();
+		console.log('[WorkspacePage] Loading sessions...');
 		await sessionViewModel.loadSessions();
+		console.log('[WorkspacePage] Sessions loaded');
 
 		// Initialize responsive state
 		layoutViewModel.updateResponsiveState();
@@ -176,19 +221,27 @@
 			// Show manual installation instructions
 			const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 			if (isIOS) {
-				alert('To install this app on iOS:\n1. Tap the share button ⎙\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install');
+				alert(
+					'To install this app on iOS:\n1. Tap the share button ⎙\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install'
+				);
 			} else {
-				alert('To install this app:\n1. Look for an install icon in your browser\'s address bar\n2. Or check your browser\'s menu for "Install" or "Add to Home Screen" option');
+				alert(
+					'To install this app:\n1. Look for an install icon in your browser\'s address bar\n2. Or check your browser\'s menu for "Install" or "Add to Home Screen" option'
+				);
 			}
 		}
 	}
 
 	function handleOpenSettings() {
-		modalViewModel.openModal('settings');
+		if (modalViewModel) {
+			modalViewModel.openModal('settings');
+		}
 	}
 
 	function handleCreateSession(type = 'claude') {
-		modalViewModel.openModal('create-session', { initialType: type });
+		if (modalViewModel) {
+			modalViewModel.openCreateSessionModal(type);
+		}
 	}
 
 	function handleToggleSessionMenu() {
@@ -230,6 +283,7 @@
 			workspacePath,
 			typeSpecificId
 		});
+		modalViewModel.closeModal('createSession')
 	}
 </script>
 
@@ -273,10 +327,7 @@
 		{#if displayedSessions.length === 0}
 			<EmptyWorkspace onCreateSession={handleCreateSession} />
 		{:else}
-			<SessionGrid
-				sessions={displayedSessions}
-				onSessionFocus={handleSessionFocus}
-			>
+			<SessionGrid sessions={displayedSessions} onSessionFocus={handleSessionFocus}>
 				{#snippet sessionContainer(session, index)}
 					<SessionContainer
 						{session}
@@ -285,20 +336,11 @@
 						onUnpin={handleSessionUnpin}
 					>
 						{#snippet header({ session, onClose, onUnpin, index })}
-							<SessionHeader
-								{session}
-								{onClose}
-								{onUnpin}
-								{index}
-							/>
+							<SessionHeader {session} {onClose} {onUnpin} {index} />
 						{/snippet}
 
 						{#snippet content({ session, isLoading, index })}
-							<SessionViewport
-								{session}
-								{isLoading}
-								{index}
-							/>
+							<SessionViewport {session} {isLoading} {index} />
 						{/snippet}
 					</SessionContainer>
 				{/snippet}
@@ -308,30 +350,26 @@
 
 	<!-- Status Bar -->
 	<StatusBar
-		{onLogout}
-		{onInstallPWA}
-		{onOpenSettings}
-		{onCreateSession}
-		{onToggleSessionMenu}
-		{onNavigateSession}
+		onLogout={handleLogout}
+		onInstallPWA={handleInstallPWA}
+		onOpenSettings={handleOpenSettings}
+		onCreateSession={handleCreateSession}
+		onToggleSessionMenu={handleToggleSessionMenu}
+		onNavigateSession={handleNavigateSession}
 		{sessionMenuOpen}
 	/>
 </div>
 
 <!-- Modals -->
 {#if activeModal}
-	{#if activeModal.type === 'create-session'}
+	{#if activeModal.type === 'createSession'}
 		<CreateSessionModalSimplified
-			open={true}
-			initialType={activeModal.data?.initialType || 'claude'}
+			bind:open={createSessionModalOpen}
+			initialType={activeModal.data?.type || 'claude'}
 			oncreated={handleSessionCreate}
-			onClose={() => modalViewModel.closeModal()}
 		/>
 	{:else if activeModal.type === 'settings'}
-		<SettingsModal
-			open={true}
-			onClose={() => modalViewModel.closeModal()}
-		/>
+		<SettingsModal open={true} onclose={() => modalViewModel.closeModal('settings')} />
 	{/if}
 {/if}
 
@@ -397,7 +435,9 @@
 		flex-direction: column;
 		opacity: 0;
 		transform: translateY(100%);
-		transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+		transition:
+			transform 0.15s ease-out,
+			opacity 0.15s ease-out;
 	}
 
 	.session-sheet.open {

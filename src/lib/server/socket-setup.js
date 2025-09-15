@@ -106,12 +106,15 @@ export function setupSocketIO(httpServer) {
 			try {
 				const { sessionManager, terminals } = getServices();
 				const session = sessionManager.getSession(sessionId);
-				
+
 				if (session && session.type === 'pty') {
 					// Associate socket with existing terminal session
 					const terminalData = terminals.terminals.get(session.typeSpecificId);
 					if (terminalData) {
-						logger.info('SOCKET', `Associating socket ${socket.id} with existing terminal ${session.typeSpecificId}`);
+						logger.info(
+							'SOCKET',
+							`Associating socket ${socket.id} with existing terminal ${session.typeSpecificId}`
+						);
 						terminalData.socket = socket;
 					}
 				}
@@ -169,33 +172,33 @@ export function setupSocketIO(httpServer) {
 				const { sessionManager, terminals } = getServices();
 
 				// Use SessionManager if available, otherwise fallback
-				   if (sessionManager) {
-					   // Pass socket to session creation for per-session tracking
-					   const session = await sessionManager.createSession({
-						   type: 'pty',
-						   workspacePath: data.workspacePath,
-						   options: {
-							   shell: data.shell,
-							   env: data.env,
-							   socket
-						   }
-					   });
-					   logger.info('SOCKET', `Terminal session created: ${session.id}`);
-					   logger.info('SOCKET', `[DEBUG] Session created with socket:`, {
-						   hasSocket: !!socket,
-						   socketId: socket.id,
-						   sessionId: session.id
-					   });
-					   if (callback) callback({ success: true, id: session.id });
-				   } else if (terminals) {
-					   // Fallback to direct terminal manager
-					   // terminals.setSocketIO(socket); // No longer needed, per-session socket is passed
-					   const result = terminals.start({ ...data, socket });
-					   logger.info('SOCKET', `Terminal ${result.id} created directly`);
-					   if (callback) callback({ success: true, ...result });
-				   } else {
-					   throw new Error('No session management available');
-				   }
+				if (sessionManager) {
+					// Pass socket to session creation for per-session tracking
+					const session = await sessionManager.createSession({
+						type: 'pty',
+						workspacePath: data.workspacePath,
+						options: {
+							shell: data.shell,
+							env: data.env,
+							socket
+						}
+					});
+					logger.info('SOCKET', `Terminal session created: ${session.id}`);
+					logger.info('SOCKET', `[DEBUG] Session created with socket:`, {
+						hasSocket: !!socket,
+						socketId: socket.id,
+						sessionId: session.id
+					});
+					if (callback) callback({ success: true, id: session.id });
+				} else if (terminals) {
+					// Fallback to direct terminal manager
+					// terminals.setSocketIO(socket); // No longer needed, per-session socket is passed
+					const result = terminals.start({ ...data, socket });
+					logger.info('SOCKET', `Terminal ${result.id} created directly`);
+					if (callback) callback({ success: true, ...result });
+				} else {
+					throw new Error('No session management available');
+				}
 			} catch (err) {
 				console.error(`[SOCKET] Terminal start error:`, err);
 				if (callback) callback({ success: false, error: err.message });
@@ -268,7 +271,9 @@ export function setupSocketIO(httpServer) {
 							});
 						} else {
 							// If session exists, update its socket reference
-							const claudeSession = sessionManager.sessionTypes['claude'].manager.sessions.get(session.typeSpecificId);
+							const claudeSession = sessionManager.sessionTypes['claude'].manager.sessions.get(
+								session.typeSpecificId
+							);
 							if (claudeSession) {
 								claudeSession.socket = socket;
 							}
@@ -282,10 +287,10 @@ export function setupSocketIO(httpServer) {
 					throw new Error('No session manager available for Claude');
 				}
 			} catch (err) {
-				   console.error(`[SOCKET] Claude send error:`, err);
-				   // Reset to idle on error
-				   // (Removed stray/duplicated block that caused syntax error)
-			   }
+				console.error(`[SOCKET] Claude send error:`, err);
+				// Reset to idle on error
+				// (Removed stray/duplicated block that caused syntax error)
+			}
 		});
 
 		// Claude OAuth: submit authorization code

@@ -60,7 +60,7 @@
 
 		// Augmented UI
 		augmented = 'tl-clip br-clip both',
-		
+
 		...restProps
 	} = $props();
 
@@ -143,7 +143,6 @@
 				{required}
 				{form}
 				{autocomplete}
-               
 				{rows}
 				{cols}
 				{style}
@@ -170,7 +169,6 @@
 				{required}
 				{form}
 				{autocomplete}
-               
 				{style}
 				maxlength={maxLength}
 				aria-label={ariaLabel}

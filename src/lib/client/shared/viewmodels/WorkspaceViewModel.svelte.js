@@ -46,7 +46,7 @@ export class WorkspaceViewModel {
 			}
 
 			const query = this.searchQuery.toLowerCase();
-			return this.workspaces.filter(w => {
+			return this.workspaces.filter((w) => {
 				const name = (w.name || '').toLowerCase();
 				const path = (w.path || '').toLowerCase();
 				return name.includes(query) || path.includes(query);
@@ -211,7 +211,7 @@ export class WorkspaceViewModel {
 	 * @param {string} path
 	 */
 	selectWorkspace(path) {
-		const workspace = this.workspaces.find(w => w.path === path);
+		const workspace = this.workspaces.find((w) => w.path === path);
 
 		if (workspace) {
 			this.selectedWorkspace = workspace;
@@ -237,7 +237,7 @@ export class WorkspaceViewModel {
 	 */
 	addToRecent(path) {
 		// Remove if already exists
-		this.recentWorkspaces = this.recentWorkspaces.filter(w => w !== path);
+		this.recentWorkspaces = this.recentWorkspaces.filter((w) => w !== path);
 
 		// Add to beginning
 		this.recentWorkspaces.unshift(path);
@@ -255,7 +255,7 @@ export class WorkspaceViewModel {
 	 * @param {string} path
 	 */
 	removeFromRecent(path) {
-		this.recentWorkspaces = this.recentWorkspaces.filter(w => w !== path);
+		this.recentWorkspaces = this.recentWorkspaces.filter((w) => w !== path);
 		this.saveRecentWorkspaces();
 	}
 
@@ -278,14 +278,13 @@ export class WorkspaceViewModel {
 		});
 	}
 
-
 	/**
 	 * Check if a workspace exists
 	 * @param {string} path
 	 * @returns {boolean}
 	 */
 	hasWorkspace(path) {
-		return this.workspaces.some(w => w.path === path);
+		return this.workspaces.some((w) => w.path === path);
 	}
 
 	/**
@@ -294,7 +293,7 @@ export class WorkspaceViewModel {
 	 * @returns {Workspace|null}
 	 */
 	getWorkspace(path) {
-		return this.workspaces.find(w => w.path === path) || null;
+		return this.workspaces.find((w) => w.path === path) || null;
 	}
 
 	/**

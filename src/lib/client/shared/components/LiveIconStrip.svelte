@@ -151,7 +151,6 @@
 		transform: translateY(-2px) scale(1.1);
 	}
 
-
 	.event-summary {
 		margin-top: var(--space-3);
 		padding: var(--space-3) var(--space-4);

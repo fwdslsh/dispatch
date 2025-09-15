@@ -9,32 +9,39 @@
 	import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
 
 	// Props
-	let {
-		session,
-		isLoading = false,
-		index = 0
-	} = $props();
+	let { session, isLoading = false, index = 0 } = $props();
 
 	// Dynamic component selection based on session type
-	const Component = $derived(
-		session.type === 'claude' ? ClaudePane : TerminalPane
-	);
+	const Component = $derived(session.type === 'claude' ? ClaudePane : TerminalPane);
 
 	// Session-specific props for the rendered component
 	const sessionProps = $derived(() => {
+		console.log('[SessionViewport] Processing session:', session);
+		console.log('[SessionViewport] Session ID:', session?.id);
+		console.log('[SessionViewport] Session type:', session?.type);
+
+		if (!session || !session.id) {
+			console.error('[SessionViewport] Invalid session - missing ID');
+			return {};
+		}
+
 		if (session.type === 'claude') {
-			return {
+			const props = {
 				sessionId: session.id,
-				claudeSessionId: session.claudeSessionId || session.sessionId,
+				claudeSessionId: session.claudeSessionId || session.typeSpecificId || session.sessionId,
 				shouldResume: session.shouldResume || session.resumeSession || false,
 				workspacePath: session.workspacePath
 			};
+			console.log('[SessionViewport] Claude props:', props);
+			return props;
 		} else {
-			return {
+			const props = {
 				sessionId: session.id,
 				shouldResume: session.resumeSession || false,
 				workspacePath: session.workspacePath
 			};
+			console.log('[SessionViewport] Terminal props:', props);
+			return props;
 		}
 	});
 </script>
@@ -46,7 +53,7 @@
 			<p>Loading {session.type === 'claude' ? 'Claude' : 'Terminal'} session...</p>
 		</div>
 	{:else if Component}
-		<Component {...sessionProps} />
+		<Component {...sessionProps()} />
 	{:else}
 		<div class="error-state">
 			<p>Unknown session type: {session.type}</p>
@@ -116,7 +123,11 @@
 
 	/* Animation for loading spinner */
 	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 </style>

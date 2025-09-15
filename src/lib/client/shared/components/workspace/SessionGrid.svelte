@@ -10,23 +10,23 @@
 	import { uiState } from '$lib/client/shared/state/ui-state.svelte.js';
 
 	// Props
-	let {
-		sessions = [],
-		onSessionFocus = () => {},
-		sessionContainer
-	} = $props();
+	let { sessions = [], onSessionFocus = () => {}, sessionContainer } = $props();
 
 	// Derived values from state
 	const currentBreakpoint = $derived(
-		uiState.layout.isMobile ? 'mobile' : (uiState.layout.isTablet ? 'tablet' : 'desktop')
+		uiState.layout.isMobile ? 'mobile' : uiState.layout.isTablet ? 'tablet' : 'desktop'
 	);
 	const layoutColumns = $derived(() => {
 		if (uiState.layout.isMobile) return 1;
 		switch (uiState.layout.preset) {
-			case '2up': return 2;
-			case '4up': return 2;
-			case 'grid': return uiState.layout.isTablet ? 2 : 3;
-			default: return 1;
+			case '2up':
+				return 2;
+			case '4up':
+				return 2;
+			case 'grid':
+				return uiState.layout.isTablet ? 2 : 3;
+			default:
+				return 1;
 		}
 	});
 
