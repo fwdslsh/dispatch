@@ -8,7 +8,24 @@ describe('WindowManager', () => {
 	beforeEach(() => {
 		// Mock crypto.randomUUID for consistent testing
 		if (!globalThis.crypto) {
-			globalThis.crypto = {};
+			globalThis.crypto = {
+				randomUUID: vi.fn().mockReturnValue('test-uuid-123'),
+				subtle: {
+					decrypt: vi.fn(),
+					deriveBits: vi.fn(),
+					deriveKey: vi.fn(),
+					digest: vi.fn(),
+					encrypt: vi.fn(),
+					exportKey: vi.fn(),
+					generateKey: vi.fn(),
+					importKey: vi.fn(),
+					sign: vi.fn(),
+					unwrapKey: vi.fn(),
+					verify: vi.fn(),
+					wrapKey: vi.fn()
+				},
+				getRandomValues: vi.fn()
+			};
 		}
 		globalThis.crypto.randomUUID = vi.fn().mockReturnValue('test-uuid-123');
 

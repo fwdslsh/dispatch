@@ -37,26 +37,60 @@ describe('LayoutViewModel', () => {
 	beforeEach(() => {
 		// Mock LayoutService with proper state structure
 		mockLayoutService = {
+			persistence: mockPersistence,
+			BREAKPOINTS: { mobile: 768, tablet: 1024, desktop: 1280 },
+			LAYOUT_PRESETS: {
+				'1up': { columns: 1, maxVisible: 1 },
+				'2up': { columns: 2, maxVisible: 2 },
+				'4up': { columns: 2, maxVisible: 4 }
+			},
+			STORAGE_KEYS: {
+				layout: 'dispatch-layout',
+				mobileIndex: 'dispatch-mobile-index',
+				sidebarState: 'dispatch-sidebar-state'
+			},
+			mediaQueries: new Map(),
+			columns: 4,
+			maxVisible: 4,
 			state: {
-				preset: '1up',
+				preset: /** @type {'1up'} */ ('1up'),
 				isMobile: false,
 				isTablet: false,
 				isDesktop: true,
-				orientation: 'landscape'
+				orientation: 'landscape',
+				viewportWidth: 1024,
+				viewportHeight: 768
 			},
-			columns: 4,
-			maxVisible: 4,
-			init: vi.fn(),
-			destroy: vi.fn(),
-			updateMaxVisible: vi.fn(),
-			onLayoutChange: vi.fn(),
+			initialize: vi.fn(),
+			dispose: vi.fn(),
 			getSidebarState: vi.fn().mockReturnValue({ collapsed: false, width: 280 }),
 			setSidebarState: vi.fn(),
 			setLayoutPreset: vi.fn(),
 			cycleLayoutPreset: vi.fn().mockReturnValue('2up'),
 			calculateGrid: vi.fn().mockReturnValue({ rows: 2, columns: 2, itemsPerRow: [2, 2] }),
 			getOptimalPreset: vi.fn().mockReturnValue('2up'),
-			supportsTouch: vi.fn().mockReturnValue(false)
+			supportsTouch: vi.fn().mockReturnValue(false),
+			isMobile: vi.fn().mockReturnValue(false),
+			isTablet: vi.fn().mockReturnValue(false),
+			isDesktop: vi.fn().mockReturnValue(true),
+			getDeviceType: vi.fn().mockReturnValue('desktop'),
+			calculateColumns: vi.fn().mockReturnValue(4),
+			calculateMaxVisible: vi.fn().mockReturnValue(4),
+			loadLayoutPreset: vi.fn(),
+			getMobileSessionIndex: vi.fn().mockReturnValue(0),
+			setMobileSessionIndex: vi.fn(),
+			setupMediaQueries: vi.fn(),
+			updateViewport: vi.fn(),
+			updateOrientation: vi.fn(),
+			getState: vi.fn().mockReturnValue({
+				preset: /** @type {'1up'} */ ('1up'),
+				isMobile: false,
+				isTablet: false,
+				isDesktop: true,
+				orientation: 'landscape',
+				viewportWidth: 1024,
+				viewportHeight: 768
+			})
 		};
 
 		// Mock PersistenceService

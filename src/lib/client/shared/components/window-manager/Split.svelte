@@ -3,7 +3,7 @@
 	import Split from './Split.svelte';
 
 	/**
-	 * @typedef {import('./WindowManager.svelte').LayoutNode} LayoutNode
+	 * @typedef {import('./types.js').LayoutNode} LayoutNode
 	 * @typedef {Extract<LayoutNode, {type:'split'}>} SplitNode
 	 */
 

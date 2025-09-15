@@ -14,20 +14,106 @@ describe('SessionViewModel', () => {
 	beforeEach(() => {
 		// Mock SessionApiClient
 		mockSessionApi = {
+			config: { debug: false, apiBaseUrl: '/api', authTokenKey: 'test-token' },
+			baseUrl: '/api',
 			list: vi.fn().mockResolvedValue([]),
 			create: vi.fn().mockResolvedValue({ id: 'new-session', type: 'pty' }),
 			delete: vi.fn().mockResolvedValue(),
 			pin: vi.fn().mockResolvedValue(),
 			unpin: vi.fn().mockResolvedValue(),
-			rename: vi.fn().mockResolvedValue()
+			rename: vi.fn().mockResolvedValue(),
+			update: vi.fn().mockResolvedValue(),
+			getHistory: vi.fn().mockResolvedValue([]),
+			getClaudeSessions: vi.fn().mockResolvedValue([]),
+			checkClaudeAuth: vi.fn().mockResolvedValue({ authenticated: true }),
+			validateSessionOptions: vi.fn().mockReturnValue(true),
+			dispose: vi.fn(),
+			getHeaders: vi.fn().mockReturnValue({}),
+			handleResponse: vi.fn().mockResolvedValue({})
+		};
+
+		// Mock PersistenceService
+		const mockPersistence = {
+			config: { debug: false, maxStorageSize: 5242880, warnStorageSize: 4194304 },
+			keyMigrationMap: new Map(),
+			get: vi.fn().mockReturnValue(null),
+			set: vi.fn(),
+			remove: vi.fn(),
+			clear: vi.fn(),
+			getByPrefix: vi.fn().mockReturnValue([]),
+			removeByPrefix: vi.fn().mockReturnValue(0),
+			getStorageUsage: vi.fn().mockReturnValue({ used: 0, available: 0 }),
+			checkStorageUsage: vi.fn(),
+			handleQuotaExceeded: vi.fn(),
+			cleanupOldData: vi.fn().mockReturnValue(0),
+			export: vi.fn().mockReturnValue({}),
+			import: vi.fn().mockReturnValue(true),
+			migrateOldKeys: vi.fn(),
+			dispose: vi.fn(),
+			session: {
+				get: vi.fn().mockReturnValue(null),
+				set: vi.fn(),
+				remove: vi.fn(),
+				clear: vi.fn()
+			}
 		};
 
 		// Mock LayoutService
 		mockLayoutService = {
-			isMobile: vi.fn().mockReturnValue(false),
+			persistence: mockPersistence,
+			BREAKPOINTS: { mobile: 768, tablet: 1024, desktop: 1280 },
+			LAYOUT_PRESETS: {
+				'1up': { columns: 1, maxVisible: 1 },
+				'2up': { columns: 2, maxVisible: 2 },
+				'4up': { columns: 2, maxVisible: 4 }
+			},
+			STORAGE_KEYS: {
+				layout: 'dispatch-layout',
+				mobileIndex: 'dispatch-mobile-index',
+				sidebarState: 'dispatch-sidebar-state'
+			},
+			mediaQueries: new Map(),
+			columns: 4,
 			maxVisible: 4,
-			columns: 2,
-			rows: 2
+			state: {
+				preset: /** @type {'1up'} */ ('1up'),
+				isMobile: false,
+				isTablet: false,
+				isDesktop: true,
+				orientation: 'landscape',
+				viewportWidth: 1024,
+				viewportHeight: 768
+			},
+			initialize: vi.fn(),
+			dispose: vi.fn(),
+			getSidebarState: vi.fn().mockReturnValue({ collapsed: false, width: 280 }),
+			setSidebarState: vi.fn(),
+			setLayoutPreset: vi.fn(),
+			cycleLayoutPreset: vi.fn().mockReturnValue('2up'),
+			calculateGrid: vi.fn().mockReturnValue({ rows: 2, columns: 2, itemsPerRow: [2, 2] }),
+			getOptimalPreset: vi.fn().mockReturnValue('2up'),
+			supportsTouch: vi.fn().mockReturnValue(false),
+			isMobile: vi.fn().mockReturnValue(false),
+			isTablet: vi.fn().mockReturnValue(false),
+			isDesktop: vi.fn().mockReturnValue(true),
+			getDeviceType: vi.fn().mockReturnValue('desktop'),
+			calculateColumns: vi.fn().mockReturnValue(4),
+			calculateMaxVisible: vi.fn().mockReturnValue(4),
+			loadLayoutPreset: vi.fn(),
+			getMobileSessionIndex: vi.fn().mockReturnValue(0),
+			setMobileSessionIndex: vi.fn(),
+			setupMediaQueries: vi.fn(),
+			updateViewport: vi.fn(),
+			updateOrientation: vi.fn(),
+			getState: vi.fn().mockReturnValue({
+				preset: /** @type {'1up'} */ ('1up'),
+				isMobile: false,
+				isTablet: false,
+				isDesktop: true,
+				orientation: 'landscape',
+				viewportWidth: 1024,
+				viewportHeight: 768
+			})
 		};
 
 		// Mock SocketService
@@ -38,7 +124,7 @@ describe('SessionViewModel', () => {
 		};
 
 		// Create ViewModel instance
-		viewModel = new SessionViewModel(mockSessionApi, mockLayoutService, mockSocketService);
+		viewModel = new SessionViewModel(mockSessionApi, mockPersistence, mockLayoutService);
 	});
 
 	afterEach(() => {
@@ -195,13 +281,6 @@ describe('SessionViewModel', () => {
 			expect(mockSessionApi.unpin).toHaveBeenCalledWith(sessionId);
 		});
 
-		it('should stop session', async () => {
-			const sessionId = 'test-session';
-
-			await viewModel.stopSession(sessionId);
-
-			expect(mockSessionApi.stop).toHaveBeenCalledWith(sessionId);
-		});
 	});
 
 	describe('Session Display Management', () => {

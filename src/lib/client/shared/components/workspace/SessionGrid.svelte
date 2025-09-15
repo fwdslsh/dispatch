@@ -31,7 +31,7 @@
 	});
 
 	// Reactive layout calculations
-	const gridColumns = $derived(layoutColumns);
+	const gridColumns = $derived(layoutColumns());
 	const isMobile = $derived(currentBreakpoint === 'mobile');
 
 	// Touch gesture state for mobile navigation

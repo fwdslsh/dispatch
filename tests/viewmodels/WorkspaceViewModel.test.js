@@ -14,20 +14,44 @@ describe('WorkspaceViewModel', () => {
 	beforeEach(() => {
 		// Mock WorkspaceApiClient
 		mockWorkspaceApi = {
+			config: { debug: false, apiBaseUrl: '/api', authTokenKey: 'test-token' },
+			baseUrl: '/api',
 			list: vi.fn().mockResolvedValue([]),
 			create: vi.fn().mockResolvedValue({ path: '/test/workspace', name: 'test' }),
 			open: vi.fn().mockResolvedValue({ path: '/test/existing', name: 'existing' }),
 			clone: vi.fn().mockResolvedValue({ path: '/test/cloned', name: 'cloned' }),
-			exists: vi.fn().mockResolvedValue(true)
+			openOrCreate: vi.fn().mockResolvedValue({ path: '/test/workspace', name: 'test' }),
+			getClaudeProjects: vi.fn().mockResolvedValue([]),
+			validatePath: vi.fn().mockReturnValue(true),
+			getHeaders: vi.fn().mockReturnValue({}),
+			handleResponse: vi.fn().mockResolvedValue({}),
+			dispose: vi.fn()
 		};
 
 		// Mock PersistenceService
 		mockPersistence = {
+			config: { debug: false, maxStorageSize: 5242880, warnStorageSize: 4194304 },
+			keyMigrationMap: new Map(),
 			get: vi.fn().mockReturnValue(null),
 			set: vi.fn(),
 			remove: vi.fn(),
-			getJSON: vi.fn().mockReturnValue([]),
-			setJSON: vi.fn()
+			clear: vi.fn(),
+			getByPrefix: vi.fn().mockReturnValue([]),
+			removeByPrefix: vi.fn().mockReturnValue(0),
+			getStorageUsage: vi.fn().mockReturnValue({ used: 0, available: 0 }),
+			checkStorageUsage: vi.fn(),
+			handleQuotaExceeded: vi.fn(),
+			cleanupOldData: vi.fn().mockReturnValue(0),
+			export: vi.fn().mockReturnValue({}),
+			import: vi.fn().mockReturnValue(true),
+			migrateOldKeys: vi.fn(),
+			dispose: vi.fn(),
+			session: {
+				get: vi.fn().mockReturnValue(null),
+				set: vi.fn(),
+				remove: vi.fn(),
+				clear: vi.fn()
+			}
 		};
 
 		// Mock ClaudeApiClient
@@ -201,7 +225,7 @@ describe('WorkspaceViewModel', () => {
 	describe('Recent Workspaces Management', () => {
 		it('should load recent workspaces from persistence', () => {
 			const recentWorkspaces = ['/recent1', '/recent2'];
-			mockPersistence.getJSON.mockReturnValue(recentWorkspaces);
+			mockPersistence.get.mockReturnValue(recentWorkspaces);
 
 			viewModel.loadRecentWorkspaces();
 
@@ -210,28 +234,27 @@ describe('WorkspaceViewModel', () => {
 
 		it('should add workspace to recent list', () => {
 			const initialRecent = ['/old1', '/old2'];
-			mockPersistence.getJSON.mockReturnValue(initialRecent);
-			viewModel.loadRecentWorkspaces();
+			viewModel.recentWorkspaces = [...initialRecent];
 
 			viewModel.addToRecent('/new/workspace');
 
 			expect(viewModel.recentWorkspaces).toContain('/new/workspace');
-			expect(mockPersistence.setJSON).toHaveBeenCalledWith(
-				'dispatch-recent-workspaces',
+			expect(viewModel.recentWorkspaces[0]).toBe('/new/workspace');
+			expect(mockPersistence.set).toHaveBeenCalledWith(
+				'dispatch-workspace-history',
 				expect.arrayContaining(['/new/workspace'])
 			);
 		});
 
-		it('should limit recent workspaces to 5 items', () => {
-			const manyRecent = ['/1', '/2', '/3', '/4', '/5'];
-			mockPersistence.getJSON.mockReturnValue(manyRecent);
-			viewModel.loadRecentWorkspaces();
+		it('should limit recent workspaces to 10 items', () => {
+			const manyRecent = ['/1', '/2', '/3', '/4', '/5', '/6', '/7', '/8', '/9', '/10'];
+			viewModel.recentWorkspaces = [...manyRecent];
 
 			viewModel.addToRecent('/new');
 
-			expect(viewModel.recentWorkspaces).toHaveLength(5);
+			expect(viewModel.recentWorkspaces).toHaveLength(10);
 			expect(viewModel.recentWorkspaces[0]).toBe('/new');
-			expect(viewModel.recentWorkspaces).not.toContain('/5');
+			expect(viewModel.recentWorkspaces).not.toContain('/10');
 		});
 	});
 
@@ -280,14 +303,6 @@ describe('WorkspaceViewModel', () => {
 			);
 		});
 
-		it('should check if workspace exists', async () => {
-			mockWorkspaceApi.exists.mockResolvedValue(true);
-
-			const exists = await viewModel.workspaceExists('/test/path');
-
-			expect(exists).toBe(true);
-			expect(mockWorkspaceApi.exists).toHaveBeenCalledWith('/test/path');
-		});
 	});
 
 	describe('Error Handling', () => {

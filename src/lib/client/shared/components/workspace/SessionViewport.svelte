@@ -22,7 +22,7 @@
 
 		if (!session || !session.id) {
 			console.error('[SessionViewport] Invalid session - missing ID');
-			return {};
+			return null;
 		}
 
 		if (session.type === 'claude') {
@@ -52,7 +52,7 @@
 			<div class="loading-spinner"></div>
 			<p>Loading {session.type === 'claude' ? 'Claude' : 'Terminal'} session...</p>
 		</div>
-	{:else if Component}
+	{:else if Component && sessionProps()}
 		<Component {...sessionProps()} />
 	{:else}
 		<div class="error-state">

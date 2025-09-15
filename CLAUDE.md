@@ -94,20 +94,27 @@ npm run docker:stop   # Stop Docker containers
 - **Database**: SQLite persistence for workspace metadata and session history
 - **Containerization**: Multi-stage Docker build with non-root execution
 
-### Project/Workspace Structure Changes (Major Refactor)
+### MVVM Architecture Refactor (Major Refactor)
 
-The application has undergone a major refactoring to simplify the project structure:
+The application has undergone a comprehensive refactoring to implement MVVM (Model-View-ViewModel) architecture using Svelte 5:
 
-**Previous Structure**: Separate "Projects" and "Workspaces" concepts caused confusion
-**New Structure**: Unified workspace-based approach where everything is a workspace
+**Structure**: Clean MVVM separation with Svelte 5 runes and dependency injection
 
-**Key Changes**:
+**Key Architectural Changes**:
 
-- Removed separate projects interface (`/workspace` route is now the main interface)
-- Workspaces can be any directory path (not restricted to WORKSPACES_ROOT)
-- Claude project directories are automatically discovered from Claude Code's projects root
-- Database tracks all workspaces and their sessions regardless of location
-- Sessions are tied to workspace paths directly
+- **MVVM Pattern**: Clear separation between View (Svelte components), ViewModel (business logic), and Model (data services)
+- **Svelte 5 Runes**: Modern reactive state management using `$state`, `$derived`, and `$derived.by`
+- **Dependency Injection**: ServiceContainer pattern for managing service lifecycles and dependencies
+- **Unified Workspace Model**: Simplified from separate "Projects"/"Workspaces" to unified workspace-based approach
+- **Modular Component Structure**: Organized into domain-specific folders (claude/, terminal/, shared/)
+- **Service Layer**: Clean API clients, state management, and business logic separation
+
+**MVVM Components**:
+
+- `WorkspaceViewModel`: Manages workspace state, operations, and business logic
+- `SessionViewModel`: Handles session lifecycle, display state, and activity tracking
+- `LayoutViewModel`: Controls UI layout, mobile/desktop modes, and responsive behavior
+- `ServiceContainer`: Dependency injection container with lazy-loaded services
 
 ### High-Level Architecture
 
@@ -137,29 +144,49 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 - `ClaudeAuthManager`: OAuth authentication flow management via PTY
 - `DatabaseManager`: SQLite database for persistent workspace and session metadata
 
-### Frontend File Organization
+### MVVM Frontend Architecture
 
-The frontend code has been reorganized for better maintainability:
+The frontend follows clean MVVM architecture with domain-driven organization:
 
 ```
 src/lib/client/
-├── claude/               # Claude-specific components
-│   ├── activity-summaries/  # Activity type renderers
+├── claude/                    # Claude-specific UI components
+│   ├── activity-summaries/    # Activity type renderers
 │   ├── ClaudeAuth.svelte
 │   ├── ClaudePane.svelte
 │   └── ClaudeSessionModal.svelte
-├── terminal/            # Terminal-specific components
+├── terminal/                  # Terminal-specific UI components
 │   ├── TerminalPane.svelte
 │   └── TerminalSessionModal.svelte
-└── shared/              # Shared components and utilities
-    ├── components/      # Reusable UI components
-    │   ├── Button.svelte
-    │   ├── Modal.svelte
-    │   ├── Settings/   # Settings-related components
-    │   └── ProjectSessionMenuSimplified.svelte
-    ├── icons/          # Icon components
-    └── utils/          # Shared utilities
+└── shared/                    # Shared MVVM infrastructure
+    ├── components/            # Reusable UI components (Views)
+    │   ├── workspace/         # Workspace-specific components
+    │   ├── window-manager/    # Tiling window management
+    │   └── Modal.svelte, Button.svelte, etc.
+    ├── viewmodels/           # Business logic layer (ViewModels)
+    │   ├── WorkspaceViewModel.svelte.js
+    │   ├── SessionViewModel.svelte.js
+    │   ├── LayoutViewModel.svelte.js
+    │   └── ModalViewModel.svelte.js
+    ├── services/             # Data layer and API clients (Models)
+    │   ├── ServiceContainer.svelte.js  # Dependency injection
+    │   ├── WorkspaceApiClient.js
+    │   ├── SessionApiClient.js
+    │   ├── SocketService.svelte.js
+    │   └── PersistenceService.js
+    ├── state/               # Global reactive state
+    │   ├── session-state.svelte.js
+    │   ├── workspace-state.svelte.js
+    │   └── ui-state.svelte.js
+    └── utils/               # Shared utilities and helpers
 ```
+
+**MVVM Pattern Implementation**:
+
+- **Views**: Svelte components that handle only presentation and user interaction
+- **ViewModels**: Business logic classes using Svelte 5 runes for reactive state management
+- **Models**: API clients and services that handle data persistence and external communication
+- **Dependency Injection**: ServiceContainer manages service lifecycles and provides clean dependencies
 
 ### Session Architecture
 
@@ -355,6 +382,69 @@ submitCode(socket, code); // Submit authorization code
 // Emits: claude.auth.url, claude.auth.complete, claude.auth.error
 ```
 
+## MVVM ViewModels (Frontend)
+
+### WorkspaceViewModel (`src/lib/client/shared/viewmodels/WorkspaceViewModel.svelte.js`)
+
+Manages all workspace-related state and operations:
+
+```javascript
+// Key reactive state
+this.workspaces = $state([]);           // All available workspaces
+this.selectedWorkspace = $state(null);  // Currently selected workspace
+this.loading = $state(false);           // Loading state
+this.claudeProjects = $state([]);       // Discovered Claude projects
+
+// Derived state
+this.hasWorkspaces = $derived(this.workspaces.length > 0);
+this.filteredWorkspaces = $derived.by(() => /* search logic */);
+
+// Key methods
+async openWorkspace(path)              // Open existing workspace
+async createWorkspace(path)            // Create new workspace
+async cloneWorkspace(from, to)         // Clone workspace
+selectWorkspace(path)                  // Select workspace for use
+```
+
+### SessionViewModel (`src/lib/client/shared/viewmodels/SessionViewModel.svelte.js`)
+
+Manages session lifecycle and display state:
+
+```javascript
+// Key reactive state
+this.sessions = $state([]);              // All sessions
+this.activeSessions = $state(new Map()); // Active session tracking
+this.displayed = $state([]);             // Desktop session display slots
+this.currentMobileSession = $state(0);   // Mobile session index
+
+// Derived state
+this.visibleSessions = $derived.by(() => /* mobile/desktop logic */);
+this.pinnedSessions = $derived.by(() => /* pinned filtering */);
+
+// Key methods
+async createSession(type, workspacePath, options) // Create new session
+async resumeSession(sessionId, workspacePath)     // Resume existing session
+async closeSession(sessionId)                     // Terminate session
+handleSessionCreated(sessionData)                 // Handle external creation
+addToDisplay(sessionId)                          // Add to display
+```
+
+### ServiceContainer (`src/lib/client/shared/services/ServiceContainer.svelte.js`)
+
+Dependency injection container for clean architecture:
+
+```javascript
+// Service registration and access
+registerFactory(name, factory)    // Register lazy-loaded service
+async get(name)                   // Get or create service instance
+getSync(name)                     // Get already-instantiated service
+
+// Usage in components
+const container = useServiceContainer();
+const workspaceApi = await container.get('workspaceApi');
+const sessionApi = await container.get('sessionApi');
+```
+
 ## Docker Integration
 
 ### Multi-stage Build
@@ -410,10 +500,13 @@ submitCode(socket, code); // Submit authorization code
 
 ### Frontend Components
 
+**MVVM Architecture**: Clean separation of concerns with ViewModels handling business logic
+**Svelte 5 Runes**: Modern reactive state management using `$state`, `$derived`, and `$derived.by`
+**Dependency Injection**: ServiceContainer pattern for clean service management and testing
 **Terminal Integration**: Uses `@battlefieldduck/xterm-svelte` for terminal UI
 **UI Framework**: Augmented UI for futuristic styling components
-**State Management**: Modern Svelte 5 reactive patterns with `$state` and `$derived`
 **Responsive Design**: Mobile-first with swipe gestures and bottom sheet navigation
+**Window Management**: Tiling window manager with keyboard shortcuts and split layouts
 
 ## Testing & Debugging
 
@@ -498,6 +591,27 @@ For production:
 - Claude projects automatically discovered from Claude Code's project root
 - No restriction to WORKSPACES_ROOT (can use absolute paths)
 - Database tracks all workspaces regardless of location
+
+### MVVM Development Patterns
+
+**ViewModel Structure**: Each ViewModel follows consistent patterns:
+- Constructor injection of dependencies (API clients, services)
+- Reactive state using Svelte 5 runes (`$state`, `$derived`, `$derived.by`)
+- Async methods for external operations (API calls, persistence)
+- State synchronization with global stores
+- Error handling and loading states
+
+**Service Container Usage**:
+- Lazy-loaded service instantiation for performance
+- Context-based dependency injection using Svelte's `setContext`/`getContext`
+- Singleton services with proper lifecycle management
+- Easy testing with `createTestContainer()`
+
+**Component Communication**:
+- Parent components provide ServiceContainer via context
+- Child components access services through `useService()` or `useServiceSync()`
+- ViewModels handle all business logic and state management
+- Components focus purely on presentation and user interaction
 
 ### Authentication Flow
 
