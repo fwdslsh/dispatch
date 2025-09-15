@@ -44,25 +44,15 @@
 	<div class="status-bar">
 		<!-- Left group: System actions -->
 		<div class="left-group">
-			<IconButton class="logout-btn" onclick={onLogout} aria-label="Logout" title="Logout">
+			<IconButton onclick={onLogout} aria-label="Logout" title="Logout">
 				<IconLogout2 size={18} />
 			</IconButton>
 
-			<IconButton
-				class="bottom-btn install-btn"
-				onclick={onInstallPWA}
-				aria-label="Install app"
-				title="Install App"
-			>
+			<IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
 				<IconAppWindow size={18} />
 			</IconButton>
 
-			<IconButton
-				class="bottom-btn"
-				onclick={onOpenSettings}
-				aria-label="Open settings"
-				title="Settings"
-			>
+			<IconButton onclick={onOpenSettings} aria-label="Open settings" title="Settings">
 				<IconAdjustmentsAlt size={18} />
 			</IconButton>
 		</div>
@@ -78,11 +68,7 @@
 				<MobileNavigation {onNavigateSession} disabled={!hasActiveSessions} />
 			{/if}
 
-			<IconButton
-				class="bottom-btn primary"
-				onclick={onToggleSessionMenu}
-				aria-label="Open sessions"
-			>
+			<IconButton onclick={onToggleSessionMenu} aria-label="Open sessions">
 				{#if sessionMenuOpen}
 					<IconCodeMinus size={18} />
 				{:else}
@@ -132,67 +118,6 @@
 	.right-group {
 		flex: 1 1 0;
 		justify-content: flex-end;
-	}
-
-	/* Button styles */
-	:global(.bottom-btn) {
-		background: var(--surface-hover);
-		border: 1px solid var(--surface-border);
-		color: var(--text);
-		border-radius: 0.35rem;
-		padding: 0.3rem 0.6rem;
-		font-family: var(--font-mono);
-		-webkit-tap-highlight-color: transparent;
-		touch-action: manipulation;
-		user-select: none;
-		cursor: pointer;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.25rem;
-		transition: all 0.2s ease;
-	}
-
-	:global(.bottom-btn:hover:not(:disabled)) {
-		background: var(--surface-active, color-mix(in oklab, var(--surface-hover) 80%, white 20%));
-		border-color: var(--primary-dim);
-		color: var(--primary);
-	}
-
-	:global(.bottom-btn:active:not(:disabled)) {
-		transform: scale(0.95);
-		opacity: 0.9;
-	}
-
-	:global(.bottom-btn.primary) {
-		background: var(--primary);
-		border-color: var(--primary);
-		color: var(--bg);
-	}
-
-	:global(.bottom-btn.primary:hover:not(:disabled)) {
-		background: color-mix(in oklab, var(--primary) 90%, white 10%);
-		border-color: var(--primary);
-	}
-
-	:global(.bottom-btn svg) {
-		width: 18px;
-		height: 18px;
-		display: block;
-		flex-shrink: 0;
-	}
-
-	:global(.logout-btn) {
-		background: #222;
-		color: #fff;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		transition: background 0.2s;
-	}
-
-	:global(.logout-btn:hover) {
-		background: #444;
 	}
 
 	/* Mobile-specific touch improvements */

@@ -1,0 +1,304 @@
+<script>
+	import Split from './Split.svelte';
+	import Tile from './Tile.svelte';
+
+	/**
+	 * @typedef {object} Leaf
+	 * @property {'leaf'} type
+	 * @property {string} id
+	 *
+	 * @typedef {object} SplitNode
+	 * @property {'split'} type
+	 * @property {'row'|'column'} dir
+	 * @property {LayoutNode} a
+	 * @property {LayoutNode} b
+	 * @property {number} ratio  // 0..1 portion for "a"
+	 *
+	 * @typedef {Leaf | SplitNode} LayoutNode
+	 */
+
+	/**
+	 * @typedef {object} Keymap
+	 * @property {string} addRight
+	 * @property {string} addDown
+	 * @property {string} close
+	 * @property {string} focusNext
+	 * @property {string} focusPrev
+	 * @property {string} grow
+	 * @property {string} shrink
+	 */
+
+	// Props (runes)
+	let {
+		/** @type {LayoutNode|null} */ initial = null,
+		/** @type {'row'|'column'} */ direction = 'row',
+		/** @type {number} */ gap = 6,
+		/** @type {number} */ minSize = 48,
+		/** @type {Partial<Keymap>} */ keymap = {},
+		/** @type {import('svelte').Snippet<[{focused: string, tileId: string}]>} */ tile
+	} = $props();
+
+	/** @type {LayoutNode} */
+	let root = $state(initial ?? makeLeaf('root'));
+	/** @type {string} */
+	let focused = $state('root');
+	/** @type {HTMLElement|null} */
+	let containerEl = $state(null);
+
+	/** @type {Keymap} */
+	const DEFAULT_KEYMAP = {
+		addRight: 'Control+Enter',
+		addDown: 'Control+Shift+Enter',
+		close: 'Control+w',
+		focusNext: 'Alt+ArrowRight',
+		focusPrev: 'Alt+ArrowLeft',
+		grow: 'Control+ArrowUp',
+		shrink: 'Control+ArrowDown'
+	};
+
+	/** @type {Keymap} */
+	let KM = $derived({ ...DEFAULT_KEYMAP, ...keymap });
+
+	// ---- helpers --------------------------------------------------------------
+
+	/** @param {string} id */
+	function makeLeaf(id) {
+		return { type: /** @type {'leaf'} */ ('leaf'), id };
+	}
+
+	/**
+	 * @param {'row'|'column'} dir
+	 * @param {LayoutNode} a
+	 * @param {LayoutNode} b
+	 * @param {number} ratio
+	 * @returns {SplitNode}
+	 */
+	function makeSplit(dir, a, b, ratio = 0.5) {
+		return { type: /** @type {'split'} */ ('split'), dir, a, b, ratio };
+	}
+
+	/** @param {LayoutNode} n */
+	function isLeaf(n) {
+		return n.type === 'leaf';
+	}
+
+	/** @returns {string} */
+	function rid() {
+		// prefer crypto.randomUUID if available
+		if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+		return Math.random().toString(36).slice(2, 9);
+	}
+
+	/**
+	 * Find a leaf and return traversal context.
+	 * @param {LayoutNode} node
+	 * @param {string} leafId
+	 * @param {SplitNode|null} parent
+	 * @param {SplitNode|null} grand
+	 * @returns {{ node: Leaf, parent: SplitNode|null, grand: SplitNode|null, side: 'a'|'b' }|null}
+	 */
+	function findContext(node, leafId, parent = null, grand = null) {
+		if (isLeaf(node))
+			return node.id === leafId ? { node, parent, grand, side: /** @type {'a'} */ ('a') } : null;
+		// search "a"
+		const inA = isLeaf(node.a)
+			? node.a.id === leafId
+				? { node: node.a, parent: node, grand, side: /** @type {'a'} */ ('a') }
+				: null
+			: findContext(node.a, leafId, node, parent);
+		if (inA) return inA;
+		// search "b"
+		const inB = isLeaf(node.b)
+			? node.b.id === leafId
+				? { node: node.b, parent: node, grand, side: /** @type {'b'} */ ('b') }
+				: null
+			: findContext(node.b, leafId, node, parent);
+		return inB;
+	}
+
+	/**
+	 * Flatten leaves in DFS order.
+	 * @param {LayoutNode} node
+	 * @param {string[]} out
+	 */
+	function flattenLeaves(node, out = []) {
+		if (isLeaf(node)) {
+			out.push(node.id);
+			return out;
+		}
+		flattenLeaves(node.a, out);
+		flattenLeaves(node.b, out);
+		return out;
+	}
+
+	// ---- actions --------------------------------------------------------------
+
+	/** @param {'row'|'column'} dir */
+	function splitBesideCurrent(dir) {
+		const ctx = findContext(root, focused, null, null);
+		const newLeaf = makeLeaf(rid());
+
+		if (!ctx || !ctx.parent) {
+			// root is leaf
+			root = makeSplit(dir, root, newLeaf, 0.5);
+			focused = newLeaf.id;
+			return;
+		}
+
+		// Replace the focused leaf with a split of (leaf,newLeaf)
+		const split = makeSplit(dir, ctx.node, newLeaf, 0.5);
+		if (ctx.parent.a === ctx.node) ctx.parent.a = split;
+		else ctx.parent.b = split;
+		focused = newLeaf.id;
+	}
+
+	function closeFocused() {
+		const ctx = findContext(root, focused, null, null);
+		if (!ctx) return;
+
+		if (!ctx.parent) {
+			// Root leaf: keep a fresh one to prevent empty tree
+			root = makeLeaf('root');
+			focused = 'root';
+			return;
+		}
+
+		// Collapse parent by promoting sibling
+		const sibling = ctx.parent.a === ctx.node ? ctx.parent.b : ctx.parent.a;
+		if (!ctx.grand) {
+			// Parent is root
+			root = sibling;
+			focused = isLeaf(sibling) ? sibling.id : firstLeafId(sibling);
+			return;
+		}
+		if (ctx.grand.a === ctx.parent) ctx.grand.a = sibling;
+		else ctx.grand.b = sibling;
+		focused = isLeaf(sibling) ? sibling.id : firstLeafId(sibling);
+	}
+
+	/** @param {LayoutNode} node */
+	function firstLeafId(node) {
+		return isLeaf(node) ? node.id : firstLeafId(node.a);
+	}
+
+	function focusNext() {
+		const ids = flattenLeaves(root);
+		const i = Math.max(0, ids.indexOf(focused));
+		focused = ids[(i + 1) % ids.length];
+	}
+
+	function focusPrev() {
+		const ids = flattenLeaves(root);
+		const i = Math.max(0, ids.indexOf(focused));
+		focused = ids[(i - 1 + ids.length) % ids.length];
+	}
+
+	// Keyboard resize: adjust the immediate parent split's ratio
+	/** @param {number} step Ratio delta, e.g., 0.05 */
+	function resizeFocused(step) {
+		const ctx = findContext(root, focused, null, null);
+		if (!ctx || !ctx.parent) return;
+
+		// Focus is in 'a' if it resides under parent.a (even nested)
+		const focusInA = containsLeaf(ctx.parent.a, focused);
+		const delta = focusInA ? step : -step;
+		ctx.parent.ratio = clamp(ctx.parent.ratio + delta, 0.1, 0.9);
+	}
+
+	/**
+	 * @param {LayoutNode} node
+	 * @param {string} leafId
+	 */
+	function containsLeaf(node, leafId) {
+		if (isLeaf(node)) return node.id === leafId;
+		return containsLeaf(node.a, leafId) || containsLeaf(node.b, leafId);
+	}
+
+	/** @param {number} v @param {number} a @param {number} b */
+	function clamp(v, a, b) {
+		return Math.min(b, Math.max(a, v));
+	}
+
+	// ---- keyboard handler -----------------------------------------------------
+
+	/** @param {KeyboardEvent} e */
+	function onKey(e) {
+		const combo = [
+			e.ctrlKey ? 'Control' : null,
+			e.shiftKey ? 'Shift' : null,
+			e.altKey ? 'Alt' : null,
+			e.key
+		]
+			.filter(Boolean)
+			.join('+');
+
+		switch (combo) {
+			case KM.addRight:
+				e.preventDefault();
+				splitBesideCurrent('row');
+				break;
+			case KM.addDown:
+				e.preventDefault();
+				splitBesideCurrent('column');
+				break;
+			case KM.close:
+				e.preventDefault();
+				closeFocused();
+				break;
+			case KM.focusNext:
+				e.preventDefault();
+				focusNext();
+				break;
+			case KM.focusPrev:
+				e.preventDefault();
+				focusPrev();
+				break;
+			case KM.grow:
+				e.preventDefault();
+				resizeFocused(+0.05);
+				break;
+			case KM.shrink:
+				e.preventDefault();
+				resizeFocused(-0.05);
+				break;
+		}
+	}
+
+	// Handle focus events from child components
+	function handleFocus(id) {
+		focused = id;
+	}
+
+	// Seed a simple split if no initial layout
+	let initialized = $state(false);
+	$effect(() => {
+		if (!initialized && initial == null) {
+			root = makeSplit(direction, makeLeaf('root'), makeLeaf(rid()), 0.5);
+			initialized = true;
+		}
+	});
+</script>
+
+<!--
+  Structural classes only; no visual styles.
+  Provide layout sizing via your global CSS (e.g., make .wm-root fill its parent).
+-->
+<div
+	bind:this={containerEl}
+	class="wm-root"
+	role="region"
+	data-gap={gap}
+	data-minsize={minSize}
+	tabindex="1"
+	onkeydown={onKey}
+>
+	{#if root.type === 'leaf'}
+		<Tile id={root.id} {focused} onfocus={handleFocus}>
+			{#snippet children()}
+				{@render tile({ focused, tileId: root.id })}
+			{/snippet}
+		</Tile>
+	{:else}
+		<Split node={root} {gap} {minSize} {focused} {tile} onfocus={handleFocus} />
+	{/if}
+</div>
