@@ -3,7 +3,8 @@
 	 * SessionCard Component
 	 * Card for displaying session information with status
 	 */
-	import { IconRobot, IconTerminal2, IconFolder } from '@tabler/icons-svelte';
+	import { IconTerminal2, IconFolder } from '@tabler/icons-svelte';
+	import IconClaude from './Icons/IconClaude.svelte';
 
 	// Props
 	let {
@@ -34,7 +35,7 @@
 		<div class="session-type-badge">
 			<span class="type-icon">
 				{#if session.type === 'claude'}
-					<IconRobot size={16} />
+					<IconClaude size={16} />
 				{:else}
 					<IconTerminal2 size={16} />
 				{/if}

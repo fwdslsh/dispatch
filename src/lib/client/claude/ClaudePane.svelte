@@ -10,13 +10,15 @@
 		IconMessage,
 		IconAlertTriangle,
 		IconSparkles,
-		IconLoader
+		IconLoader,
+		IconUser,
+		IconUserCode
 	} from '@tabler/icons-svelte';
 	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import { getIconForEvent } from '$lib/client/shared/icons/claudeEventIcons.js';
 	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager';
-	import ProgressDown from '@tabler/icons-svelte/icons/progress-down';
+	import IconClaude from '../shared/components/Icons/IconClaude.svelte';
 	// Using global styles for inputs
 
 	let {
@@ -834,11 +836,7 @@
 				{:else if isWaitingForReply}
 					<IconSparkles size={16} class="ai-icon glowing" />
 				{:else}
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="ai-icon">
-						<path
-							d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,16.5L18,9.5L16.5,8L11,13.5L7.5,10L6,11.5L11,16.5Z"
-						/>
-					</svg>
+					<IconClaude size={16}  />
 				{/if}
 			</div>
 			<div class="ai-info">
@@ -878,9 +876,7 @@
 		aria-label="Chat messages"
 		bind:this={messagesContainer}
 	>
-		{#if isCatchingUp}
-			<span class="catching-up">Reconnecting to active session...</span>
-		{:else if loading && messages.length === 0}
+		{#if loading && messages.length === 0}
 			<div class="loading-message" transition:fly={{ y: 20, duration: 300 }}>
 				<div class="loading-indicator">
 					<div class="pulse-ring"></div>
@@ -902,19 +898,11 @@
 					<div class="message-avatar">
 						{#if m.role === 'user'}
 							<div class="user-avatar">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-									<path
-										d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
-									/>
-								</svg>
+								<IconUserCode size={16} />	
 							</div>
 						{:else}
 							<div class="ai-avatar-small">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-									<path
-										d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,16.5L18,9.5L16.5,8L11,13.5L7.5,10L6,11.5L11,16.5Z"
-									/>
-								</svg>
+								<IconClaude size={16} />
 							</div>
 						{/if}
 					</div>
@@ -957,17 +945,13 @@
 				<div class="message-wrapper">
 					<div class="message-avatar">
 						<div class="ai-avatar-small">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-								<path
-									d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,16.5L18,9.5L16.5,8L11,13.5L7.5,10L6,11.5L11,16.5Z"
-								/>
-							</svg>
+							<IconClaude size={16} />
 						</div>
 					</div>
 					<div class="message-content">
 						<div class="message-header">
 							<span class="message-role">Claude</span>
-							<span class="message-time typing-status">Typing</span>
+							<span class="message-time typing-status">--:--</span>
 						</div>
 						<div class="typing-animation">
 							<span class="typing-dot"></span>
@@ -1855,7 +1839,7 @@
 	}
 
 	.typing-status {
-		color: var(--primary);
+		color: var(--muted);
 		font-weight: 600;
 		animation: typingPulse 1.5s ease-in-out infinite;
 	}

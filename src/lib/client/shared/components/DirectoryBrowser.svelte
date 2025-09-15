@@ -238,7 +238,7 @@
 		<div class="selected-display">
 			<span class="selected-label">Selected:</span>
 			<span class="selected-path">{selected}</span>
-		
+
 			<IconButton
 				type="button"
 				onclick={() => (selected = null)}
@@ -252,31 +252,37 @@
 	<!-- Search bar -->
 	<div class="search-bar">
 		<Input type="text" bind:value={query} {placeholder} disabled={loading} class="search-input" />
-		<Button
-			type="button"
-			
-			onclick={selectCurrent}
-			disabled={loading}
-			title="Select current directory"
-		>
-			<IconCheck size={20} />
-		</Button>
-		<Button type="button" onclick={toggleNewDirInput} title="Create new directory" variant="ghost">
-			<IconFolderPlus size={16} />
-		</Button>
-		<Button
-			type="button"
-			class="action-btn"
-			onclick={toggleHidden}
-			title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
-			variant="ghost"
-		>
-			{#if showHidden}
-				<IconEye size={16} />
-			{:else}
-				<IconEyeOff size={16} />
-			{/if}
-		</Button>
+		<div class="btn-group">
+			<IconButton
+				type="button"
+				onclick={selectCurrent}
+				disabled={loading}
+				title="Select current directory"
+			>
+				<IconCheck size={20} />
+			</IconButton>
+			<IconButton
+				type="button"
+				onclick={toggleNewDirInput}
+				title="Create new directory"
+				variant="ghost"
+			>
+				<IconFolderPlus size={16} />
+			</IconButton>
+			<IconButton
+				type="button"
+				class="action-btn"
+				onclick={toggleHidden}
+				title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
+				variant="ghost"
+			>
+				{#if showHidden}
+					<IconEye size={16} />
+				{:else}
+					<IconEyeOff size={16} />
+				{/if}
+			</IconButton>
+		</div>
 	</div>
 
 	<!-- New directory input -->
@@ -369,31 +375,6 @@
 </div>
 
 <style>
-	/* CSS Variables for theming */
-	.directory-browser {
-		--db-primary: #2ee66b;
-		--db-primary-bright: #4dff85;
-		--db-primary-dim: rgba(46, 230, 107, 0.3);
-		--db-primary-glow: rgba(46, 230, 107, 0.5);
-		--db-accent: #1fa758;
-		--db-bg-gradient-start: #0a1410;
-		--db-bg-gradient-end: #061008;
-		--db-surface: rgba(15, 25, 20, 0.8);
-		--db-surface-elevated: rgba(20, 35, 28, 0.9);
-		--db-border-subtle: rgba(46, 230, 107, 0.15);
-		--db-border-strong: rgba(46, 230, 107, 0.4);
-		--db-text-primary: #e8f5ed;
-		--db-text-secondary: #a8d5ba;
-		--db-text-muted: #6b9f7f;
-		--db-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
-		--db-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-		--db-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-		--db-shadow-glow: 0 0 20px var(--db-primary-glow);
-		--db-transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-		--db-transition-smooth: 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-		--db-transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-	}
-
 	.directory-browser {
 		display: flex;
 		flex-direction: column;
@@ -472,7 +453,6 @@
 	.breadcrumbs {
 		display: flex;
 		align-items: center;
-		gap: var(--space-1);
 		flex: 1;
 		min-width: 0;
 	}
@@ -533,190 +513,12 @@
 		margin: 0 calc(var(--space-1) * 0.5);
 	}
 
-	.breadcrumb-actions {
-		display: flex;
-		gap: var(--space-2);
-	}
-
-	.action-btn {
-		background: var(--db-surface);
-		border: 1px solid var(--db-border-subtle);
-		color: var(--db-text-muted);
-		padding: calc(var(--space-1) * 1.3) calc(var(--space-2) * 1.2);
-		border-radius: 8px;
-		cursor: pointer;
-		font-size: calc(var(--font-size-1) * 1.1);
-		transition: all var(--db-transition-fast);
-		position: relative;
-		overflow: hidden;
-		box-shadow: var(--db-shadow-sm);
-	}
-
-	.action-btn::before {
-		content: '';
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 0;
-		height: 0;
-		background: radial-gradient(circle, var(--db-primary-glow) 0%, transparent 70%);
-		transition: all var(--db-transition-smooth);
-		transform: translate(-50%, -50%);
-		border-radius: 50%;
-	}
-
-	.action-btn:hover {
-		border-color: var(--db-border-strong);
-		color: var(--db-primary-bright);
-		transform: translateY(-2px);
-		box-shadow:
-			var(--db-shadow-md),
-			0 0 12px var(--db-primary-glow);
-	}
-
-	.action-btn:hover::before {
-		width: 100px;
-		height: 100px;
-	}
-
-	.action-btn:active {
-		transform: translateY(0);
-	}
-
-	.action-btn.active {
-		background: linear-gradient(135deg, var(--db-primary) 0%, var(--db-accent) 100%);
-		color: var(--bg);
-		border-color: var(--db-primary);
-		box-shadow:
-			var(--db-shadow-md),
-			0 0 16px var(--db-primary-glow),
-			inset 0 1px 2px rgba(255, 255, 255, 0.2);
-	}
-
 	/* Search bar */
 	.search-bar {
 		display: flex;
+		flex-direction: row;
 		gap: calc(var(--space-2) * 1.3);
 		align-items: center;
-	}
-
-	.search-input {
-		flex: 1;
-		padding: calc(var(--space-2) * 1.3) calc(var(--space-3) * 1.1);
-		background: linear-gradient(135deg, var(--db-surface) 0%, var(--db-surface-elevated) 100%);
-		border: 1px solid var(--db-border-subtle);
-		color: var(--db-text-primary);
-		font-family: var(--font-mono);
-		font-size: calc(var(--font-size-1) * 0.95);
-		font-weight: 400;
-		letter-spacing: 0.01em;
-		border-radius: 10px;
-		transition: all var(--db-transition-fast);
-		box-shadow:
-			inset 0 2px 4px rgba(0, 0, 0, 0.2),
-			inset 0 -1px 2px rgba(0, 0, 0, 0.1);
-	}
-
-	.search-input:hover {
-		border-color: var(--db-border-strong);
-		background: var(--db-surface-elevated);
-	}
-
-	.search-input:focus {
-		outline: none;
-		border-color: var(--db-primary);
-		box-shadow:
-			0 0 0 3px var(--db-primary-dim),
-			inset 0 2px 4px rgba(0, 0, 0, 0.1);
-		background: linear-gradient(
-			135deg,
-			var(--db-surface-elevated) 0%,
-			rgba(46, 230, 107, 0.05) 100%
-		);
-	}
-
-	.search-input::placeholder {
-		color: var(--db-text-muted);
-		opacity: 0.6;
-		font-style: italic;
-	}
-
-	.select-btn {
-		padding: calc(var(--space-2) * 1.4) calc(var(--space-4) * 1.1);
-		background: linear-gradient(135deg, var(--db-primary) 0%, var(--db-accent) 100%);
-		color: var(--bg-dark);
-		border: 1px solid var(--db-primary);
-		font-family: var(--font-mono);
-		font-size: calc(var(--font-size-1) * 0.95);
-		font-weight: 600;
-		letter-spacing: 0.03em;
-		text-transform: uppercase;
-		border-radius: 10px;
-		cursor: pointer;
-		white-space: nowrap;
-		transition: all var(--db-transition-smooth);
-		box-shadow:
-			0 4px 12px var(--db-primary-dim),
-			inset 0 2px 4px rgba(255, 255, 255, 0.15),
-			inset 0 -2px 4px rgba(0, 0, 0, 0.2);
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-		position: relative;
-		overflow: hidden;
-		transform: perspective(1px) translateZ(0);
-	}
-
-	.select-btn::before {
-		content: '';
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 120%;
-		height: 120%;
-		background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-		transform: translate(-50%, -50%) scale(0);
-		transition: transform var(--db-transition-smooth);
-		border-radius: 50%;
-	}
-
-	.select-btn::after {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: -100%;
-		width: 100%;
-		height: 100%;
-		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
-		transition: left 0.6s ease;
-	}
-
-	.select-btn:hover:not(:disabled) {
-		background: linear-gradient(135deg, var(--db-primary-bright) 0%, var(--db-primary) 100%);
-		transform: translateY(-2px) scale(1.02);
-		box-shadow:
-			0 6px 20px var(--db-primary-glow),
-			0 0 30px var(--db-primary-dim),
-			inset 0 2px 4px rgba(255, 255, 255, 0.25);
-	}
-
-	.select-btn:hover:not(:disabled)::before {
-		transform: translate(-50%, -50%) scale(1);
-	}
-
-	.select-btn:hover:not(:disabled)::after {
-		left: 100%;
-	}
-
-	.select-btn:active:not(:disabled) {
-		transform: translateY(0) scale(1);
-		box-shadow:
-			0 2px 8px var(--db-primary-dim),
-			inset 0 2px 4px rgba(0, 0, 0, 0.2);
-	}
-
-	.select-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-		filter: grayscale(0.5);
 	}
 
 	/* New directory form */
@@ -749,125 +551,6 @@
 		background: radial-gradient(circle, var(--db-primary-glow) 0%, transparent 70%);
 		animation: rotate 10s linear infinite;
 		opacity: 0.1;
-	}
-
-	.new-dir-input {
-		flex: 1;
-		padding: calc(var(--space-2) * 1.3) calc(var(--space-3) * 1.1);
-		background: var(--db-bg-gradient-start);
-		border: 1px solid var(--db-border-strong);
-		color: var(--db-text-primary);
-		font-family: var(--font-mono);
-		font-size: calc(var(--font-size-1) * 0.95);
-		font-weight: 400;
-		letter-spacing: 0.01em;
-		border-radius: 8px;
-		transition: all var(--db-transition-fast);
-		box-shadow:
-			inset 0 2px 4px rgba(0, 0, 0, 0.3),
-			inset 0 -1px 2px rgba(0, 0, 0, 0.2);
-		z-index: 1;
-	}
-
-	.new-dir-input:hover {
-		border-color: var(--db-primary);
-		background: linear-gradient(
-			135deg,
-			var(--db-bg-gradient-start) 0%,
-			rgba(46, 230, 107, 0.05) 100%
-		);
-	}
-
-	.new-dir-input:focus {
-		outline: none;
-		border-color: var(--db-primary-bright);
-		box-shadow:
-			0 0 0 3px var(--db-primary-dim),
-			inset 0 2px 4px rgba(0, 0, 0, 0.2);
-		background: linear-gradient(
-			135deg,
-			var(--db-surface-elevated) 0%,
-			rgba(46, 230, 107, 0.08) 100%
-		);
-	}
-
-	.new-dir-input::placeholder {
-		color: var(--db-text-muted);
-		opacity: 0.5;
-		font-style: italic;
-	}
-
-	.create-btn {
-		padding: calc(var(--space-2) * 1.3) calc(var(--space-4) * 1.1);
-		background: linear-gradient(135deg, var(--db-primary) 0%, var(--db-accent) 100%);
-		color: var(--bg-dark);
-		border: 1px solid var(--db-primary);
-		font-family: var(--font-mono);
-		font-size: calc(var(--font-size-1) * 0.95);
-		font-weight: 600;
-		letter-spacing: 0.03em;
-		text-transform: uppercase;
-		border-radius: 8px;
-		cursor: pointer;
-		white-space: nowrap;
-		transition: all var(--db-transition-fast);
-		box-shadow:
-			0 3px 10px var(--db-primary-dim),
-			inset 0 2px 4px rgba(255, 255, 255, 0.2);
-		position: relative;
-		z-index: 1;
-	}
-
-	.create-btn:hover:not(:disabled) {
-		background: linear-gradient(135deg, var(--db-primary-bright) 0%, var(--db-primary) 100%);
-		transform: translateY(-2px);
-		box-shadow:
-			0 5px 15px var(--db-primary-glow),
-			inset 0 2px 4px rgba(255, 255, 255, 0.3);
-	}
-
-	.create-btn:active:not(:disabled) {
-		transform: translateY(0);
-	}
-
-	.create-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-		filter: grayscale(0.3);
-	}
-
-	.cancel-btn {
-		padding: calc(var(--space-2) * 1.2) calc(var(--space-3) * 1.1);
-		background: rgba(0, 0, 0, 0.4);
-		color: var(--db-text-secondary);
-		border: 1px solid var(--db-border-subtle);
-		font-family: var(--font-mono);
-		font-size: calc(var(--font-size-1) * 0.95);
-		font-weight: 500;
-		letter-spacing: 0.02em;
-		border-radius: 8px;
-		cursor: pointer;
-		transition: all var(--db-transition-fast);
-		box-shadow: var(--db-shadow-sm);
-		position: relative;
-		z-index: 1;
-	}
-
-	.cancel-btn:hover:not(:disabled) {
-		background: var(--db-surface-elevated);
-		color: var(--db-text-primary);
-		border-color: var(--db-border-strong);
-		transform: translateY(-1px);
-		box-shadow: var(--db-shadow-md);
-	}
-
-	.cancel-btn:active:not(:disabled) {
-		transform: translateY(0);
-	}
-
-	.cancel-btn:disabled {
-		opacity: 0.3;
-		cursor: not-allowed;
 	}
 
 	/* Status bar */
@@ -919,9 +602,12 @@
 		scrollbar-color: var(--db-primary-dim) transparent;
 		min-height: 220px;
 		height: 280px;
-		max-height: 400px;
-		/* background: 
-			linear-gradient(180deg, 
+		height: calc(100dvh - 525px);
+
+				height: clamp(400px, 30vh, 500px);
+				max-height: 100%;
+		
+		/* background: linear-gradient(180deg, 
 				var(--db-surface) 0%, 
 				var(--db-surface-elevated) 100%),
 			radial-gradient(ellipse at top right, 
@@ -937,7 +623,6 @@
 			inset 0 1px 2px var(--db-primary-dim);
 		position: relative;
 	}
-
 	.directory-list::-webkit-scrollbar {
 		width: 8px;
 	}
@@ -1089,57 +774,6 @@
 		letter-spacing: 0.03em;
 	}
 
-	.quick-select {
-		padding: calc(var(--space-1) * 1.2) calc(var(--space-2) * 1.1);
-		background: var(--db-surface);
-		border: 1px solid var(--db-border-strong);
-		color: var(--db-primary);
-		font-weight: 600;
-		border-radius: 6px;
-		cursor: pointer;
-		transition: all var(--db-transition-fast);
-		flex-shrink: 0;
-		box-shadow: var(--db-shadow-sm);
-		position: relative;
-		overflow: hidden;
-	}
-
-	.quick-select::before {
-		content: '';
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 0;
-		height: 0;
-		background: var(--db-primary);
-		transition: all var(--db-transition-smooth);
-		transform: translate(-50%, -50%);
-		border-radius: 50%;
-		z-index: 0;
-	}
-
-	.quick-select:hover:not(:disabled) {
-		color: var(--bg-dark);
-		border-color: var(--db-primary);
-		transform: scale(1.05);
-		box-shadow:
-			0 0 12px var(--db-primary-glow),
-			var(--db-shadow-md);
-	}
-
-	.quick-select:hover:not(:disabled)::before {
-		width: 100px;
-		height: 100px;
-	}
-
-	.quick-select:active:not(:disabled) {
-		transform: scale(0.98);
-	}
-
-	.quick-select:disabled {
-		opacity: 0.3;
-		cursor: not-allowed;
-	}
 
 	.empty-message {
 		text-align: center;
@@ -1206,81 +840,7 @@
 		letter-spacing: 0.01em;
 	}
 
-	.clear-selection {
-		background: rgba(0, 0, 0, 0.3);
-		border: 1px solid var(--db-border-strong);
-		color: var(--db-text-secondary);
-		padding: 4px 8px;
-		border-radius: 6px;
-		cursor: pointer;
-		font-size: calc(var(--font-size-0) * 0.9);
-		font-weight: 600;
-		transition: all var(--db-transition-fast);
-		box-shadow: var(--db-shadow-sm);
-	}
+	
 
-	.clear-selection:hover {
-		border-color: var(--db-primary);
-		color: var(--db-primary-bright);
-		background: rgba(46, 230, 107, 0.1);
-		transform: scale(1.05);
-		box-shadow:
-			0 0 8px var(--db-primary-glow),
-			var(--db-shadow-sm);
-	}
-
-	.clear-selection:active {
-		transform: scale(0.95);
-	}
-
-	/* Responsive design */
-	@media (max-width: 768px) {
-		.directory-browser {
-			border-radius: 8px;
-			padding: var(--space-3);
-		}
-
-		.directory-list {
-			height: 40vh;
-			max-height: 400px;
-		}
-
-		.breadcrumb-bar {
-			flex-wrap: wrap;
-			gap: var(--space-2);
-		}
-
-		.breadcrumb-actions {
-			width: 100%;
-			justify-content: flex-end;
-		}
-
-		.search-bar {
-			flex-direction: column;
-		}
-
-		.search-input,
-		.select-btn {
-			width: 100%;
-		}
-
-		.new-dir-form {
-			flex-wrap: wrap;
-		}
-
-		.new-dir-input {
-			width: 100%;
-		}
-
-		.create-btn,
-		.cancel-btn {
-			flex: 1;
-		}
-	}
-
-	@media (min-width: 769px) {
-		.directory-list {
-			height: clamp(300px, 40vh, 500px);
-		}
-	}
+	
 </style>

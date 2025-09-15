@@ -701,8 +701,11 @@
 	<div class="session-sheet" class:open={sessionMenuOpen} role="dialog" aria-label="Sessions">
 		<div class="sheet-header">
 			<div class="sheet-title">Sessions</div>
-			<IconButton class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close"
-				><IconX size={14} /></IconButton
+			<IconButton
+				variant="danger"
+				class="sheet-close"
+				onclick={() => (sessionMenuOpen = false)}
+				aria-label="Close"><IconX size={14} /></IconButton
 			>
 		</div>
 		<div class="sheet-body">
@@ -994,7 +997,6 @@
 <SettingsModal bind:open={settingsModalOpen} />
 
 <style>
-
 	/* Maximum Screen Space Utilization for Developers */
 
 	.dispatch-workspace {
@@ -1547,7 +1549,7 @@
 		right: 0;
 		bottom: 0; /* Start at the bottom */
 		background: var(--bg);
-		border-top: 1px solid var(--primary-dim);
+		border: none;
 		height: calc(100dvh - 56px); /* Account for status bar height */
 		overflow: hidden;
 		z-index: 50; /* Lower than status bar to avoid conflicts */
@@ -1568,8 +1570,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0.5rem 0.75rem;
-		border-bottom: 1px solid var(--primary-dim);
+		padding: 0 var(--space-3);
+		border-bottom: 1px solid var(--primary-muted);
 	}
 	.sheet-title {
 		font-family: var(--font-mono);
@@ -1598,8 +1600,9 @@
 		.session-sheet {
 			/* Fine-tune position for smaller screens */
 
-			height: calc(100dvh - 0px);
+			height: calc(100% - 56px);
 
+			min-height: calc(100% - 56px);
 			transform: translateY(calc(100% + 52px));
 		}
 

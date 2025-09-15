@@ -1,7 +1,7 @@
 /* Common CSS Animations - Extracted from .svelte files */
 
 /* Basic fade animations */
-@keyframes fade-in {
+@keyframes fadeIn {
   from {
     opacity: 0;
   }
@@ -11,16 +11,7 @@
 }
 
 .fade-in {
-  animation: fade-in 0.4s ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  animation: fadeIn 0.4s ease-in;
 }
 
 @keyframes fadeInOut {
@@ -173,18 +164,16 @@
 
 /* Spin/rotate animations */
 @keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
   to {
     transform: rotate(360deg);
   }
 }
 
+/* Aliases for backward compatibility */
 @keyframes terminalSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes rotate {
   from {
     transform: rotate(0deg);
   }

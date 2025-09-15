@@ -4,8 +4,6 @@
 	import Button from './Button.svelte';
 	import SessionCard from './SessionCard.svelte';
 	import {
-		IconRobot,
-		IconTerminal2,
 		IconFolder,
 		IconChevronDown,
 		IconX,
@@ -13,8 +11,13 @@
 		IconActivity,
 		IconBolt,
 		IconHistory,
-		IconSearch
+		IconSearch,
+		IconTerminal,
+
+		IconAsterisk
+
 	} from '@tabler/icons-svelte';
+	import IconClaude from './Icons/IconClaude.svelte';
 
 	// Props
 	let {
@@ -25,7 +28,7 @@
 	} = $props();
 
 	// State
-	let sessionType = $state('claude');
+	let sessionType = $state('all');
 	let allSessions = $state([]);
 	let selectedDirectory = $state('');
 	let showDirectoryPicker = $state(false);
@@ -259,37 +262,6 @@
 <div class="menu-root">
 	<!-- Tab Content Container -->
 	<div class="tab-content">
-		<!-- Session Type Toggle (shown for active and browse tabs) -->
-		{#if currentTab === 'active' || currentTab === 'browse'}
-			<div class="type-selector">
-				<Button
-					variant="ghost"
-					augmented="none"
-					class={sessionType === 'all' ? 'active' : ''}
-					onclick={() => changeType('all')}
-				>
-					All
-				</Button>
-				<Button
-					variant="ghost"
-					augmented="none"
-					class={sessionType === 'claude' ? 'active' : ''}
-					onclick={() => changeType('claude')}
-				>
-					{#snippet icon()}<IconRobot size={18} />{/snippet}
-					Claude
-				</Button>
-				<Button
-					variant="ghost"
-					augmented="none"
-					class={sessionType === 'pty' ? 'active' : ''}
-					onclick={() => changeType('pty')}
-				>
-					{#snippet icon()}<IconTerminal2 size={18} />{/snippet}
-					Terminal
-				</Button>
-			</div>
-		{/if}
 
 		<!-- Tab Content -->
 		{#if currentTab === 'active'}
@@ -305,23 +277,6 @@
 					{/if}
 				</div>
 
-				<!-- Search Filter -->
-				<div class="search-container">
-					<div class="search-input-wrapper">
-						<IconSearch size={16} />
-						<input
-							type="text"
-							placeholder="Search active sessions..."
-							bind:value={searchTerm}
-							class="search-input"
-						/>
-						{#if searchTerm}
-							<button class="clear-search" onclick={() => (searchTerm = '')}>
-								<IconX size={14} />
-							</button>
-						{/if}
-					</div>
-				</div>
 
 				<div class="sessions-list">
 					{#if loading}
@@ -341,7 +296,7 @@
 						{:else}
 							{#each activeSessions as session (session.id)}
 								<div
-									class="session-card active-session {selectedSession === session.id
+									class="session-card inactive-session {selectedSession === session.id
 										? 'selected'
 										: ''}"
 									onclick={() => selectSession(session)}
@@ -357,16 +312,13 @@
 									<div class="session-header">
 										<div class="session-type-icon">
 											{#if session.type === 'claude'}
-												<IconRobot size={16} />
+												<IconClaude size={16} />
 											{:else}
-												<IconTerminal2 size={16} />
+												<IconTerminal size={16} />
 											{/if}
 										</div>
 										<div class="session-info">
-											<div class="session-title">
-												{session.title}
-												<span class="active-badge">Active</span>
-											</div>
+											<div class="session-title">{session.title}</div>
 											<div class="session-meta">
 												<span class="session-workspace" title={session.workspacePath}>
 													{session.workspacePath}
@@ -375,7 +327,7 @@
 											</div>
 										</div>
 										<Button
-											variant="primary"
+											variant="ghost"
 											augmented="none"
 											onclick={(e) => {
 												e.stopPropagation();
@@ -395,27 +347,6 @@
 		{:else if currentTab === 'create'}
 			<!-- Create Session Section -->
 			<div class="create-section">
-				<!-- Session Type Toggle for create tab -->
-				<div class="type-selector">
-					<Button
-						variant="ghost"
-						augmented="none"
-						class={sessionType === 'claude' ? 'active' : ''}
-						onclick={() => changeType('claude')}
-					>
-						{#snippet icon()}<IconRobot size={18} />{/snippet}
-						Claude
-					</Button>
-					<Button
-						variant="ghost"
-						augmented="none"
-						class={sessionType === 'pty' ? 'active' : ''}
-						onclick={() => changeType('pty')}
-					>
-						{#snippet icon()}<IconTerminal2 size={18} />{/snippet}
-						Terminal
-					</Button>
-				</div>
 
 				{#if showDirectoryPicker}
 					<div class="directory-picker-panel">
@@ -484,23 +415,6 @@
 					{/if}
 				</div>
 
-				<!-- Search Filter -->
-				<div class="search-container">
-					<div class="search-input-wrapper">
-						<IconSearch size={16} />
-						<input
-							type="text"
-							placeholder="Search sessions..."
-							bind:value={searchTerm}
-							class="search-input"
-						/>
-						{#if searchTerm}
-							<button class="clear-search" onclick={() => (searchTerm = '')}>
-								<IconX size={14} />
-							</button>
-						{/if}
-					</div>
-				</div>
 
 				<div class="sessions-list">
 					{#if loading}
@@ -536,9 +450,9 @@
 									<div class="session-header">
 										<div class="session-type-icon">
 											{#if session.type === 'claude'}
-												<IconRobot size={16} />
+												<IconClaude size={16} />
 											{:else}
-												<IconTerminal2 size={16} />
+												<IconTerminal size={16} />
 											{/if}
 										</div>
 										<div class="session-info">
@@ -571,36 +485,111 @@
 		{/if}
 	</div>
 
-	<!-- Navigation Tabs at the bottom -->
-	<div class="tab-navigation">
-		<Button
-			variant="ghost"
-			augmented="none"
-			class={currentTab === 'active' ? 'active' : ''}
-			onclick={() => (currentTab = 'active')}
-		>
-			{#snippet icon()}<IconActivity size={16} />{/snippet}
-			Active
-		</Button>
-		<Button
-			variant="ghost"
-			augmented="none"
-			class={currentTab === 'create' ? 'active' : ''}
-			onclick={() => (currentTab = 'create')}
-		>
-			{#snippet icon()}<IconPlus size={16} />{/snippet}
-			Create
-		</Button>
-		<Button
-			variant="ghost"
-			augmented="none"
-			class={currentTab === 'browse' ? 'active' : ''}
-			onclick={() => (currentTab = 'browse')}
-		>
-			{#snippet icon()}<IconHistory size={16} />{/snippet}
-			Browse
-		</Button>
+	<!-- Bottom Navigation Row -->
+	<div class="bottom-navigation">
+		<!-- Left: Session Type Filters -->
+		<div class="session-type-buttons">
+			{#if currentTab === 'active' || currentTab === 'browse'}
+				<Button
+					variant="ghost"
+					augmented="none"
+					class={sessionType === 'all' ? 'active' : ''}
+					onclick={() => changeType('all')}
+				>
+					{#snippet icon()}<IconAsterisk size={16} />{/snippet}
+					<span class="button-text">All</span>
+				</Button>
+				<Button
+					variant="ghost"
+					augmented="none"
+					class={sessionType === 'claude' ? 'active' : ''}
+					onclick={() => changeType('claude')}
+				>
+					{#snippet icon()}<IconClaude size={16} />{/snippet}
+					<span class="button-text">Claude</span>
+				</Button>
+				<Button
+					variant="ghost"
+					augmented="none"
+					class={sessionType === 'pty' ? 'active' : ''}
+					onclick={() => changeType('pty')}
+				>
+					{#snippet icon()}<IconTerminal size={16} />{/snippet}
+					<span class="button-text">Terminal</span>
+				</Button>
+			{:else if currentTab === 'create'}
+				<Button
+					variant="ghost"
+					augmented="none"
+					class={sessionType === 'claude' ? 'active' : ''}
+					onclick={() => changeType('claude')}
+				>
+					{#snippet icon()}<IconClaude size={16} />{/snippet}
+					<span class="button-text">Claude</span>
+				</Button>
+				<Button
+					variant="ghost"
+					augmented="none"
+					class={sessionType === 'pty' ? 'active' : ''}
+					onclick={() => changeType('pty')}
+				>
+					{#snippet icon()}<IconTerminal size={16} />{/snippet}
+					<span class="button-text">Terminal</span>
+				</Button>
+			{/if}
+		</div>
+
+		<!-- Right: Tab Navigation -->
+		<div class="tab-buttons">
+			<Button
+				variant="ghost"
+				augmented="none"
+				class={currentTab === 'browse' ? 'active' : ''}
+				onclick={() => (currentTab = 'browse')}
+			>
+				{#snippet icon()}<IconHistory size={16} />{/snippet}
+				<span class="button-text">Browse</span>
+			</Button>
+			<Button
+				variant="ghost"
+				augmented="none"
+				class={currentTab === 'active' ? 'active' : ''}
+				onclick={() => (currentTab = 'active')}
+			>
+				{#snippet icon()}<IconActivity size={16} />{/snippet}
+				<span class="button-text">Active</span>
+			</Button>
+			<!-- <Button
+				variant="ghost"
+				augmented="none"
+				class={currentTab === 'create' ? 'active' : ''}
+				onclick={() => (currentTab = 'create')}
+			>
+				{#snippet icon()}<IconPlus size={16} />{/snippet}
+				<span class="button-text">Create</span>
+			</Button> -->
+		</div>
 	</div>
+
+	<!-- Search Bar for Active and Browse tabs (moved to bottom) -->
+	{#if currentTab === 'active' || currentTab === 'browse'}
+		<div class="search-container bottom-search">
+			<div class="search-input-wrapper">
+				<IconSearch size={16} />
+				<input
+					type="text"
+					placeholder={currentTab === 'active' ? 'Search active sessions...' : 'Search sessions...'}
+					bind:value={searchTerm}
+					class="search-input"
+				/>
+				{#if searchTerm}
+					<button class="clear-search" onclick={() => (searchTerm = '')}>
+						<IconX size={14} />
+					</button>
+				{/if}
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -608,20 +597,31 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		padding: var(--space-5);
-	
+		padding-inline: var(--space-2);
 	}
 
-	/* Tab Navigation */
-	.tab-navigation {
+	/* Bottom Navigation */
+	.bottom-navigation {
 		display: flex;
-		gap: var(--space-1);
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--space-2);
 		background: var(--bg-dark);
 		border: 1px solid var(--surface-border);
 		border-radius: 6px;
 		padding: var(--space-1);
-		flex-shrink: 0; /* Prevent shrinking */
+		flex-shrink: 0;
 		margin-top: var(--space-4);
+	}
+
+	.session-type-buttons {
+		display: flex;
+		gap: var(--space-1);
+	}
+
+	.tab-buttons {
+		display: flex;
+		gap: var(--space-1);
 	}
 
 	/* Tab Content Container */
@@ -634,33 +634,38 @@
 		overflow: hidden;
 	}
 
-	.tab-navigation :global(.btn) {
-		flex: 1;
-		justify-content: center;
-		font-size: 0.875rem;
-	}
-
-	.tab-navigation :global(.btn.active) {
-		background: var(--surface);
-		border-color: var(--primary-dim);
-		color: var(--primary);
-	}
-
-	/* Session Type Selector */
-	.type-selector {
+	.session-type-buttons :global(.btn),
+	.tab-buttons :global(.btn) {
+		padding: var(--space-2) var(--space-3);
+		font-size: 0.8rem;
+		min-width: 2.5rem;
+		height: 2.5rem;
 		display: flex;
-		gap: var(--space-2);
-		background: var(--bg-dark);
-		border: 1px solid var(--surface-border);
-		border-radius: 6px;
-		padding: var(--space-1);
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-1);
 	}
 
-	.type-selector :global(.btn.active) {
+	.session-type-buttons :global(.btn.active),
+	.tab-buttons :global(.btn.active) {
 		background: var(--surface);
 		border-color: var(--primary-dim);
 		color: var(--primary);
 	}
+
+	/* Hide button text on small screens */
+	@media (max-width: 768px) {
+		.button-text {
+			display: none;
+		}
+
+		.session-type-buttons :global(.btn),
+		.tab-buttons :global(.btn) {
+			min-width: 2.5rem;
+			padding: var(--space-2);
+		}
+	}
+
 
 	/* Create Session Section */
 	.create-section {
@@ -700,7 +705,6 @@
 		border: 2px solid var(--primary-dim);
 		border-radius: 6px;
 		padding: var(--space-4);
-		max-height: 400px;
 		overflow-y: auto;
 	}
 
@@ -708,7 +712,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: var(--space-4);
+		margin-bottom: var(--space-2);
 	}
 
 	.picker-label {
@@ -737,11 +741,6 @@
 		display: flex;
 		flex-direction: column;
 		flex: 1;
-		min-height: 0;
-		max-height: 100%;
-		background: var(--bg);
-		border: 1px solid var(--surface-border);
-		border-radius: 8px;
 		overflow: hidden;
 	}
 
@@ -786,7 +785,6 @@
 		padding: var(--space-3);
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
 		min-height: 200px;
 		max-height: calc(100vh - 300px);
 		scrollbar-width: thin;
@@ -830,10 +828,11 @@
 
 	/* Search Container */
 	.search-container {
-		padding: var(--space-3) var(--space-4);
-		border-bottom: 1px solid var(--surface-border);
 		background: var(--bg);
 		flex-shrink: 0;
+		
+		border-bottom: none;
+		padding: var(--space-3) 0;
 	}
 
 	.search-input-wrapper {
@@ -877,7 +876,6 @@
 		background: var(--surface);
 		color: var(--text);
 	}
-
 
 	/* Unified Session Cards */
 	.session-card {
@@ -955,11 +953,11 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 40px;
-		height: 40px;
-		background: var(--surface);
+		width: 48px;
+		height: 48px;
+		/* background: var(--surface);
 		border: 2px solid var(--primary-dim);
-		border-radius: 8px;
+		border-radius: 8px; */
 		color: var(--primary);
 		flex-shrink: 0;
 	}
@@ -1006,68 +1004,6 @@
 		flex-shrink: 0;
 	}
 
-	.active-badge {
-		display: inline-block;
-		background: var(--success);
-		color: white;
-		font-size: 0.6rem;
-		font-weight: 600;
-		padding: 2px 6px;
-		border-radius: 4px;
-		margin-left: var(--space-2);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
 	
 
-	:global(.resume-button) {
-		flex-shrink: 0;
-		font-size: 0.75rem;
-		padding: 6px 12px;
-	}
-
-	/* Responsive adjustments */
-	@media (max-width: 768px) {
-		.menu-root {
-			padding: var(--space-3);
-			height: 100%;
-			display: flex;
-			flex-direction: column;
-			border: none;
-		}
-
-		.tab-navigation {
-			margin-top: var(--space-3);
-			margin-bottom: 0;
-		}
-
-		.tab-content {
-			flex: 1;
-			min-height: 0;
-			overflow: hidden;
-			/* Add padding to prevent content from being cut off */
-			padding-bottom: var(--space-2);
-		}
-
-		.sessions-list {
-			max-height: calc(100vh - 400px);
-			padding: var(--space-2);
-		}
-
-		.session-header {
-			flex-direction: column;
-			align-items: stretch;
-			gap: var(--space-2);
-		}
-
-		.session-meta {
-			min-height: auto;
-		}
-
-		.action-button {
-			align-self: flex-end;
-			min-width: 60px;
-		}
-	}
 </style>
