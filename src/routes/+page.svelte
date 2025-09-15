@@ -197,9 +197,10 @@
 		height: 2px;
 		background: linear-gradient(90deg,
 			transparent 0%,
-			color-mix(in oklab, var(--primary) 20%, transparent) 20%,
-			var(--primary) 50%,
-			color-mix(in oklab, var(--primary) 20%, transparent) 80%,
+			color-mix(in oklab, var(--primary) 5%, transparent) 20%,
+			color-mix(in oklab, var(--primary) 8%, transparent) 40%,
+			color-mix(in oklab, var(--accent-cyan) 6%, transparent) 60%,
+			color-mix(in oklab, var(--accent-cyan) 3%, transparent) 80%,
 			transparent 100%
 		);
 		animation: scanLinePassage 8s ease-in-out infinite;
@@ -411,15 +412,21 @@
 	}
 
 	/* Enhanced button hover effects */
-	form :global(button:hover) {
+	/* form :global(button:hover) {
 		animation: buttonPulse 0.6s ease-in-out;
 	}
 
 	@keyframes buttonPulse {
-		0%, 100% { transform: scale(1); }
-		50% { transform: scale(1.02); }
+		0%, 100% {
+			transform: scale(1);
+			opacity: 1;
+		}
+		50% {
+			transform: scale(1.02);
+			opacity: 1;
+		}
 	}
-
+ */
 	/* Floating particles effect */
 	.login-content::before {
 		content: '';
@@ -483,6 +490,10 @@
 	@media (max-width: 480px) {
 		.login-container {
 			padding: var(--space-4);
+		}
+
+		.login-content h1 {
+			font-size: clamp(3rem, 8vw, 4.5rem);
 		}
 
 		form {

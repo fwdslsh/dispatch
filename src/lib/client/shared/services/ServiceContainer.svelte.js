@@ -1,0 +1,267 @@
+/**
+ * ServiceContainer.svelte.js
+ *
+ * Central dependency injection container for the application.
+ * Provides singleton services that can be injected into ViewModels and components.
+ *
+ * Uses Svelte context API for proper scoping and lifecycle management.
+ * All services are lazily instantiated and cached for performance.
+ */
+
+import { getContext, setContext } from 'svelte';
+
+const SERVICE_CONTAINER_KEY = Symbol('service-container');
+
+/**
+ * Service configuration and factory definitions
+ */
+class ServiceContainer {
+	constructor() {
+		// Service instances cache
+		this.services = new Map();
+
+		// Service factories
+		this.factories = new Map();
+
+		// Service configuration
+		this.config = $state({
+			apiBaseUrl: '',
+			socketUrl: '',
+			authTokenKey: 'dispatch-auth-key',
+			debug: false
+		});
+
+		// Register core service factories
+		this.registerCoreServices();
+	}
+
+	/**
+	 * Register core service factories
+	 * These are lazy-loaded when first requested
+	 */
+	registerCoreServices() {
+		// API Clients
+		this.registerFactory('workspaceApi', async () => {
+			const { WorkspaceApiClient } = await import('./WorkspaceApiClient.js');
+			return new WorkspaceApiClient(this.config);
+		});
+
+		this.registerFactory('sessionApi', async () => {
+			const { SessionApiClient } = await import('./SessionApiClient.js');
+			return new SessionApiClient(this.config);
+		});
+
+		// Core Services
+		this.registerFactory('persistence', async () => {
+			const { PersistenceService } = await import('./PersistenceService.js');
+			return new PersistenceService(this.config);
+		});
+
+		this.registerFactory('layout', async () => {
+			const { LayoutService } = await import('./LayoutService.js');
+			const persistence = await this.get('persistence');
+			return new LayoutService(persistence);
+		});
+
+		this.registerFactory('touchGesture', async () => {
+			const { TouchGestureService } = await import('./TouchGestureService.js');
+			return new TouchGestureService();
+		});
+
+		this.registerFactory('socket', async () => {
+			const { SocketService } = await import('./SocketService.js');
+			return new SocketService(this.config);
+		});
+
+		this.registerFactory('validation', async () => {
+			const { ValidationService } = await import('./ValidationService.js');
+			return new ValidationService();
+		});
+
+		this.registerFactory('error', async () => {
+			const { ErrorService } = await import('./ErrorService.js');
+			return new ErrorService(this.config);
+		});
+	}
+
+	/**
+	 * Register a service factory
+	 * @param {string} name - Service name
+	 * @param {Function} factory - Factory function that creates the service
+	 */
+	registerFactory(name, factory) {
+		this.factories.set(name, factory);
+	}
+
+	/**
+	 * Register a singleton service instance
+	 * @param {string} name - Service name
+	 * @param {*} instance - Service instance
+	 */
+	registerInstance(name, instance) {
+		this.services.set(name, instance);
+	}
+
+	/**
+	 * Get or create a service instance
+	 * @param {string} name - Service name
+	 * @returns {Promise<*>} Service instance
+	 */
+	async get(name) {
+		// Return cached instance if available
+		if (this.services.has(name)) {
+			return this.services.get(name);
+		}
+
+		// Create instance using factory
+		if (this.factories.has(name)) {
+			const factory = this.factories.get(name);
+			const instance = await factory();
+			this.services.set(name, instance);
+			return instance;
+		}
+
+		throw new Error(`Service '${name}' not registered`);
+	}
+
+	/**
+	 * Get a service synchronously (must already be instantiated)
+	 * @param {string} name - Service name
+	 * @returns {*} Service instance
+	 */
+	getSync(name) {
+		if (this.services.has(name)) {
+			return this.services.get(name);
+		}
+		throw new Error(`Service '${name}' not instantiated. Use get() for lazy loading.`);
+	}
+
+	/**
+	 * Check if a service is registered
+	 * @param {string} name - Service name
+	 * @returns {boolean}
+	 */
+	has(name) {
+		return this.factories.has(name) || this.services.has(name);
+	}
+
+	/**
+	 * Check if a service is instantiated
+	 * @param {string} name - Service name
+	 * @returns {boolean}
+	 */
+	isInstantiated(name) {
+		return this.services.has(name);
+	}
+
+	/**
+	 * Update configuration
+	 * @param {Object} updates - Configuration updates
+	 */
+	configure(updates) {
+		Object.assign(this.config, updates);
+	}
+
+	/**
+	 * Reset a service (remove from cache)
+	 * @param {string} name - Service name
+	 */
+	reset(name) {
+		this.services.delete(name);
+	}
+
+	/**
+	 * Reset all services
+	 */
+	resetAll() {
+		this.services.clear();
+	}
+
+	/**
+	 * Dispose of a service (call cleanup if available)
+	 * @param {string} name - Service name
+	 */
+	async dispose(name) {
+		const service = this.services.get(name);
+		if (service && typeof service.dispose === 'function') {
+			await service.dispose();
+		}
+		this.services.delete(name);
+	}
+
+	/**
+	 * Dispose of all services
+	 */
+	async disposeAll() {
+		for (const [name, service] of this.services) {
+			if (typeof service.dispose === 'function') {
+				await service.dispose();
+			}
+		}
+		this.services.clear();
+	}
+}
+
+/**
+ * Create and provide a service container in the component tree
+ * @param {Object} config - Initial configuration
+ * @returns {ServiceContainer}
+ */
+export function provideServiceContainer(config = {}) {
+	const container = new ServiceContainer();
+	container.configure(config);
+	setContext(SERVICE_CONTAINER_KEY, container);
+	return container;
+}
+
+/**
+ * Get the service container from context
+ * @returns {ServiceContainer}
+ */
+export function useServiceContainer() {
+	const container = getContext(SERVICE_CONTAINER_KEY);
+	if (!container) {
+		throw new Error(
+			'ServiceContainer not found in context. ' +
+			'Make sure to call provideServiceContainer() in a parent component.'
+		);
+	}
+	return container;
+}
+
+/**
+ * Hook to get a specific service
+ * @param {string} name - Service name
+ * @returns {Promise<*>} Service instance
+ */
+export async function useService(name) {
+	const container = useServiceContainer();
+	return container.get(name);
+}
+
+/**
+ * Hook to get a specific service synchronously
+ * @param {string} name - Service name
+ * @returns {*} Service instance
+ */
+export function useServiceSync(name) {
+	const container = useServiceContainer();
+	return container.getSync(name);
+}
+
+/**
+ * Create a standalone container for testing
+ * @param {Object} config - Configuration
+ * @returns {ServiceContainer}
+ */
+export function createTestContainer(config = {}) {
+	const container = new ServiceContainer();
+	container.configure({
+		...config,
+		debug: true
+	});
+	return container;
+}
+
+// Export the class for type definitions
+export { ServiceContainer };
