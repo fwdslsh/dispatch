@@ -999,27 +999,28 @@
 	<!-- Enhanced Input Form -->
 	<form onsubmit={send} class="input-form">
 		<div class="input-container">
-			<div class="input-actions input-actions--left"></div>
-			<textarea
-				bind:value={input}
-				placeholder={isMobile
-					? 'Tap Send button to send'
-					: 'Press Enter to send, Shift+Enter for new line'}
-				class="message-input"
-				disabled={loading}
-				aria-label="Type your message"
-				autocomplete="off"
-				onkeydown={(e) => {
-					// On desktop: Enter sends, Shift+Enter adds newline
-					// On mobile: Enter always adds newline (send via button)
-					if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
-						e.preventDefault();
-						send(e);
-					}
-				}}
-				rows="1"
-			></textarea>
-			<div class="input-actions input-actions--right">
+			<div class="message-input-wrapper" data-augmented-ui="tl-clip br-clip both">
+				<textarea
+					bind:value={input}
+					placeholder={isMobile
+						? 'Tap Send button to send'
+						: 'Press Enter to send, Shift+Enter for new line'}
+					class="message-input"
+					disabled={loading}
+					aria-label="Type your message"
+					autocomplete="off"
+					onkeydown={(e) => {
+						// On desktop: Enter sends, Shift+Enter adds newline
+						// On mobile: Enter always adds newline (send via button)
+						if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
+							e.preventDefault();
+							send(e);
+						}
+					}}
+					rows="2"
+				></textarea>
+			</div>
+			<div class="input-actions">
 				<ClaudeCommands
 					{socket}
 					{workspacePath}
@@ -1029,17 +1030,15 @@
 					disabled={loading}
 					bind={claudeCommandsApi}
 				/>
+				<Button
+					type="submit"
+					text={isWaitingForReply ? 'Send' : loading ? 'Sending...' : 'Send'}
+					variant="primary"
+					augmented="tr-clip bl-clip both"
+					disabled={!input.trim() || loading}
+					ariaLabel="Send message"
+				/>
 			</div>
-		</div>
-		<div class="input-help">
-			<Button
-				type="submit"
-				text={isWaitingForReply ? 'Send' : loading ? 'Sending...' : 'Send'}
-				variant="primary"
-				augmented="tr-clip bl-clip both"
-				disabled={!input.trim() || loading}
-				ariaLabel="Send message"
-			/>
 		</div>
 	</form>
 </div>
@@ -1630,8 +1629,8 @@
 
 	.input-container {
 		display: flex;
-		align-items: stretch;
-		gap: var(--space-3);
+		flex-direction: column;
+		gap: var(--space-5); /* Increased gap for more vertical spacing */
 		position: relative;
 	}
 
@@ -1642,47 +1641,67 @@
 		flex-shrink: 0;
 	}
 
-	.input-actions--left {
-		order: 1;
+	/* Message input wrapper with augmented-ui styling */
+	.message-input-wrapper {
+		width: 100%;
+		position: relative;
+		--aug-border: 2px;
+		--aug-border-bg: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+		--aug-border-fallback-color: var(--primary);
+		--aug-tl: 12px;
+		--aug-br: 12px;
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--surface) 93%, var(--primary) 7%),
+			color-mix(in oklab, var(--surface) 96%, var(--primary) 4%)
+		);
+		backdrop-filter: blur(12px) saturate(120%);
+		box-shadow:
+			inset 0 2px 12px rgba(0, 0, 0, 0.08),
+			0 4px 32px -8px rgba(0, 0, 0, 0.15),
+			0 0 0 1px color-mix(in oklab, var(--primary) 15%, transparent);
+		transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 	}
 
-	.input-actions--right {
-		order: 3;
+	.message-input-wrapper:focus-within {
+		--aug-border: 3px;
+		--aug-border-bg: linear-gradient(135deg, var(--accent-cyan), var(--primary));
+		background: radial-gradient(
+			ellipse at center,
+			color-mix(in oklab, var(--surface) 88%, var(--primary) 12%),
+			color-mix(in oklab, var(--surface) 94%, var(--primary) 6%)
+		);
+		box-shadow:
+			inset 0 2px 16px rgba(0, 0, 0, 0.05),
+			0 0 0 4px color-mix(in oklab, var(--primary) 25%, transparent),
+			0 0 60px var(--primary-glow),
+			0 20px 80px -20px var(--primary-glow);
 	}
 
 	:global(.message-input button) {
 		width: 100%;
 	}
+	
 	.message-input {
-		flex: 1;
-		order: 2;
-		padding: var(--space-5) var(--space-6);
+		width: 100%;
+		height: 100%;
+		padding: var(--space-5) var(--space-5); /* Increased vertical padding */
 		font-family: var(--font-sans);
 		font-size: var(--font-size-2);
 		font-weight: 500;
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%),
-			color-mix(in oklab, var(--surface) 98%, var(--primary) 2%)
-		);
-		border: 2px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: 24px;
+		background: transparent;
+		border: none;
 		color: var(--text);
-		backdrop-filter: blur(8px);
-		transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-		box-shadow:
-			inset 0 2px 8px rgba(0, 0, 0, 0.05),
-			0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent),
-			0 4px 24px -8px rgba(0, 0, 0, 0.1);
 		position: relative;
 		overflow: hidden;
-		min-height: 56px;
+		min-height: 100px; /* Increased minimum height */
 		max-height: 200px;
 		resize: vertical;
-		line-height: 1.5;
+		line-height: 1.6;
 		overflow-y: auto;
 		scrollbar-width: thin;
-		scrollbar-color: var(--primary) transparent;
+		scrollbar-color: color-mix(in oklab, var(--primary) 30%, transparent) transparent;
+		outline: none;
 	}
 
 	.message-input::-webkit-scrollbar {
@@ -1694,39 +1713,10 @@
 		border-radius: 3px;
 	}
 
-	.message-input::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(
-			90deg,
-			transparent,
-			color-mix(in oklab, var(--primary) 5%, transparent),
-			transparent
-		);
-		opacity: 0;
-		transition: opacity 0.5s ease;
-		pointer-events: none;
-	}
-
 	.message-input:focus {
-		border-color: var(--primary);
-		background: radial-gradient(
-			ellipse at top,
-			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
-			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%)
-		);
-		box-shadow:
-			inset 0 2px 8px rgba(0, 0, 0, 0.03),
-			0 0 0 3px color-mix(in oklab, var(--primary) 25%, transparent),
-			0 0 40px var(--primary-glow),
-			0 16px 60px -20px var(--primary-glow);
-		outline: none;
-	}
-
-	.message-input:focus::before {
-		opacity: 1;
-		animation: inputShimmer 2s ease-in-out infinite;
+		outline: none !important;
+		border: none !important;
+		box-shadow: none !important;
 	}
 
 	@keyframes inputShimmer {
@@ -1739,15 +1729,9 @@
 	}
 
 	.message-input::placeholder {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--muted) 70%, transparent),
-			color-mix(in oklab, var(--primary) 30%, transparent)
-		);
-		background-clip: text;
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
+		color: color-mix(in oklab, var(--muted) 80%, var(--primary) 20%);
 		font-style: italic;
+		opacity: 0.7;
 	}
 
 	.message-input:disabled {
@@ -1756,10 +1740,24 @@
 		transform: none;
 	}
 
-	.input-help {
-		display: flex;
+	/* Buttons in the actions area */
+	.input-actions :global(.button) {
+		min-width: 120px;
 		justify-content: center;
-		margin-top: var(--space-3);
+		font-weight: 600;
+		letter-spacing: 0.05em;
+	}
+
+	/* Commands button - compact size */
+	.input-actions :global(button:first-child) {
+		min-width: unset;
+		flex-shrink: 0; /* Keep commands button at its natural size */
+	}
+
+	/* Send button - take up remaining space */
+	.input-actions :global(.button[type="submit"]) {
+		flex: 1; /* Take up remaining space */
+		min-width: 120px; /* Keep minimum width for usability */
 	}
 
 	.help-text {
@@ -1801,21 +1799,23 @@
 		}
 
 		.input-container {
-			gap: var(--space-2);
+			gap: var(--space-4); /* Maintain good vertical spacing on mobile */
+		}
+
+		.message-input-wrapper {
+			--aug-tl: 8px;
+			--aug-br: 8px;
 		}
 
 		.message-input {
-			border-radius: 20px;
-			min-height: 48px;
-			padding: var(--space-4) var(--space-5);
+			min-height: 80px; /* Increased height on mobile too */
+			padding: var(--space-4) var(--space-4);
+			font-size: var(--font-size-1);
 		}
 
-		.input-actions--left {
-			order: 1;
-		}
-
-		.input-actions--right {
-			order: 3;
+		.input-actions :global(.button) {
+			min-width: 80px;
+			font-size: var(--font-size-1);
 		}
 	}
 

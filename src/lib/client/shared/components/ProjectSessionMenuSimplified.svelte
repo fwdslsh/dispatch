@@ -338,7 +338,18 @@
 							</div>
 						{:else}
 							{#each activeSessions as session (session.id)}
-								<div class="session-card active-session">
+								<div 
+									class="session-card active-session {selectedSession === session.id ? 'selected' : ''}"
+									onclick={() => selectSession(session)}
+									role="button"
+									tabindex="0"
+									onkeydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											selectSession(session);
+										}
+									}}
+								>
 									<div class="session-header">
 										<div class="session-type-icon">
 											{#if session.type === 'claude'}
@@ -362,7 +373,10 @@
 										<Button
 											variant="primary"
 											augmented="none"
-											onclick={() => selectSession(session)}
+											onclick={(e) => {
+												e.stopPropagation();
+												selectSession(session);
+											}}
 											class="action-button"
 										>
 											Connect
@@ -497,7 +511,18 @@
 							</div>
 						{:else}
 							{#each historicalSessions as session (session.id)}
-								<div class="session-card inactive-session">
+								<div 
+									class="session-card inactive-session {selectedSession === session.id ? 'selected' : ''}"
+									onclick={() => selectSession(session)}
+									role="button"
+									tabindex="0"
+									onkeydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											selectSession(session);
+										}
+									}}
+								>
 									<div class="session-header">
 										<div class="session-type-icon">
 											{#if session.type === 'claude'}
@@ -518,7 +543,10 @@
 										<Button
 											variant="ghost"
 											augmented="none"
-											onclick={() => resumeSession(session)}
+											onclick={(e) => {
+												e.stopPropagation();
+												resumeSession(session);
+											}}
 											class="action-button"
 										>
 											Resume
@@ -702,6 +730,7 @@
 		flex-direction: column;
 		flex: 1;
 		min-height: 0;
+		max-height: 100%;
 		background: var(--bg);
 		border: 1px solid var(--surface-border);
 		border-radius: 8px;
@@ -745,11 +774,32 @@
 	.sessions-list {
 		flex: 1;
 		overflow-y: auto;
+		overflow-x: hidden;
 		padding: var(--space-3);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
 		min-height: 200px;
+		max-height: calc(100vh - 300px);
+		scrollbar-width: thin;
+		scrollbar-color: var(--surface-border) transparent;
+	}
+
+	.sessions-list::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.sessions-list::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.sessions-list::-webkit-scrollbar-thumb {
+		background: var(--surface-border);
+		border-radius: 3px;
+	}
+
+	.sessions-list::-webkit-scrollbar-thumb:hover {
+		background: var(--text-muted);
 	}
 
 	.status {
@@ -830,6 +880,7 @@
 		transition: all 0.2s ease;
 		cursor: pointer;
 		margin-bottom: var(--space-2);
+		outline: none;
 	}
 
 	.session-card:hover {
@@ -837,6 +888,17 @@
 		background: var(--bg-light);
 		transform: translateY(-1px);
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	}
+
+	.session-card:focus {
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+	}
+
+	.session-card.selected {
+		border-color: var(--primary);
+		background: rgba(var(--primary-rgb), 0.05);
+		box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.2);
 	}
 
 	.session-card.active-session {
@@ -850,12 +912,24 @@
 		box-shadow: 0 2px 12px rgba(var(--success-rgb), 0.2);
 	}
 
+	.session-card.active-session.selected {
+		border-color: var(--success);
+		background: rgba(var(--success-rgb), 0.15);
+		box-shadow: 0 0 0 2px rgba(var(--success-rgb), 0.3);
+	}
+
 	.session-card.inactive-session {
 		border-color: var(--surface-border);
 		opacity: 0.9;
 	}
 
 	.session-card.inactive-session:hover {
+		opacity: 1;
+	}
+
+	.session-card.inactive-session.selected {
+		border-color: var(--primary);
+		background: rgba(var(--primary-rgb), 0.05);
 		opacity: 1;
 	}
 
@@ -881,6 +955,7 @@
 	.session-info {
 		flex: 1;
 		min-width: 0;
+		overflow: hidden;
 	}
 
 	.session-title {
@@ -888,12 +963,11 @@
 		color: var(--text);
 		font-size: 1rem;
 		margin-bottom: var(--space-1);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
+		min-height: 1.5rem;
+		line-height: 1.5;
 	}
 
 	.session-meta {
@@ -901,21 +975,23 @@
 		flex-direction: column;
 		gap: var(--space-1);
 		font-size: 0.8rem;
+		min-height: 2.5rem;
 	}
 
 	.session-workspace {
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 		font-size: 0.75rem;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		max-width: 300px;
+		word-break: break-all;
+		line-height: 1.3;
+		max-width: 100%;
+		display: block;
 	}
 
 	.session-date {
 		color: var(--text-dim);
 		font-size: 0.7rem;
+		flex-shrink: 0;
 	}
 
 	.active-badge {
@@ -957,23 +1033,29 @@
 		.tab-content {
 			flex: 1;
 			min-height: 0;
-			overflow-y: auto;
+			overflow: hidden;
 			/* Add padding to prevent content from being cut off */
 			padding-bottom: var(--space-2);
 		}
 
-		.session-meta {
-			flex-direction: column;
+		.sessions-list {
+			max-height: calc(100vh - 400px);
+			padding: var(--space-2);
 		}
-		
+
 		.session-header {
 			flex-direction: column;
 			align-items: stretch;
 			gap: var(--space-2);
 		}
 
-		:global(.resume-button) {
+		.session-meta {
+			min-height: auto;
+		}
+
+		.action-button {
 			align-self: flex-end;
+			min-width: 60px;
 		}
 	}
 </style>

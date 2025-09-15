@@ -1563,22 +1563,21 @@
 		position: fixed;
 		left: 0;
 		right: 0;
-		bottom: 56px; /* Position above status bar which is ~60px */
-		padding-bottom: 56px; /* Account for status bar height */
+		bottom: 0; /* Start at the bottom */
 		background: var(--bg);
 		border-top: 1px solid var(--primary-dim);
-		height: calc(100dvh - 56px); /* Account for both status bar and some margin */
+		height: calc(100dvh - 56px); /* Account for status bar height */
 		overflow: hidden;
-		z-index: 70;
+		z-index: 50; /* Lower than status bar to avoid conflicts */
 		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
 		display: flex;
 		flex-direction: column;
 		opacity: 0;
-		transition: transform 0.15s ease-out;
-		transition-property: all;
+		transform: translateY(100%);
+		transition: transform 0.15s ease-out, opacity 0.15s ease-out;
 	}
 	.session-sheet.open {
-		transform: translateY(0);
+		transform: translateY(-56px); /* Move up by status bar height */
 		opacity: 0.975;
 	}
 	.sheet-header {
