@@ -2,6 +2,8 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
+	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
 	import ClaudePane from '$lib/client/claude/ClaudePane.svelte';
 	import TerminalSessionModal from '$lib/client/terminal/TerminalSessionModal.svelte';
@@ -23,7 +25,11 @@
 		IconSquareDashed,
 		IconAppWindow,
 		IconCodeMinus,
-		IconCodeDots
+		IconCodeDots,
+		IconLogout,
+		IconLogout2,
+		IconPlayerTrackNext,
+		IconPlayerTrackPrev
 	} from '@tabler/icons-svelte';
 	import IconButton from '$lib/client/shared/components/IconButton.svelte';
 	import ClaudeSessionModal from '$lib/client/claude/ClaudeSessionModal.svelte';
@@ -65,7 +71,12 @@
 	const maxVisible = $derived(
 		isMobile ? 1 : layoutPreset === '4up' ? 4 : layoutPreset === '2up' ? 2 : 1
 	);
-
+	function logout() {
+		if (typeof localStorage !== 'undefined') {
+			localStorage.removeItem('dispatch-auth-key');
+		}
+		goto('/');
+	}
 	// Layout tracking for responsive behavior
 	let previousCols = $state(0);
 	let visible = $derived.by(() => {
@@ -429,10 +440,14 @@
 			const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
 			if (isIOS) {
-				alert('To install this app on iOS:\n1. Tap the share button ⎙\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install');
+				alert(
+					'To install this app on iOS:\n1. Tap the share button ⎙\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install'
+				);
 			} else {
 				// For other browsers, show generic instructions
-				alert('To install this app:\n1. Look for an install icon in your browser\'s address bar\n2. Or check your browser\'s menu for "Install" or "Add to Home Screen" option');
+				alert(
+					'To install this app:\n1. Look for an install icon in your browser\'s address bar\n2. Or check your browser\'s menu for "Install" or "Add to Home Screen" option'
+				);
 			}
 		}
 	}
@@ -600,6 +615,30 @@
 	}
 
 	onMount(async () => {
+		// Check authentication first - redirect to login if not authenticated
+		if (browser) {
+			const storedKey = localStorage.getItem('dispatch-auth-key');
+			if (!storedKey) {
+				console.log('No auth key found, redirecting to login');
+				goto('/');
+				return;
+			}
+
+			// Verify the key is still valid
+			try {
+				const response = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
+				if (!response.ok) {
+					console.log('Auth key invalid, redirecting to login');
+					localStorage.removeItem('dispatch-auth-key');
+					goto('/');
+					return;
+				}
+			} catch (error) {
+				console.error('Failed to verify auth key:', error);
+				// On network error, allow access but log the issue
+			}
+		}
+
 		try {
 			workspaces = await listWorkspaces();
 			sessions = await loadSessions();
@@ -618,7 +657,7 @@
 				displayed = desired;
 			}
 		} catch {}
-		
+
 		// Check for PWA shortcut parameters
 		const urlParams = new URLSearchParams(window.location.search);
 		const newSessionType = urlParams.get('new');
@@ -714,7 +753,11 @@
 
 		<!-- Sessions toggle moved to status bar -->
 
-		<div class="header-actions"></div>
+		<div class="header-actions">
+			<IconButton class="logout-btn" onclick={logout}>
+				<IconLogout size={18} />
+			</IconButton>
+		</div>
 
 		<!-- Layout controls for desktop only -->
 		<div class="header-layout">
@@ -956,30 +999,28 @@
 	<footer>
 		<div class="status-bar">
 			<div class="left-group">
-				{#if isMobile}
-					<IconButton
-						class="bottom-btn"
-						onclick={prevMobileSession}
-						disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s)
-							.length === 0}
-						aria-label="Previous session">←</IconButton
-					>
-					<span class="session-counter">
-						{Math.min(
-							currentMobileSession + 1,
-							sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length
-						)}
-						/
-						{sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length}
-					</span>
-					<IconButton
-						class="bottom-btn"
-						onclick={nextMobileSession}
-						disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s)
-							.length === 0}
-						aria-label="Next session">→</IconButton
-					>
-				{/if}
+				<IconButton class="logout-btn" onclick={logout}>
+					<IconLogout2 size={18} />
+				</IconButton>
+				
+				<IconButton
+					class="bottom-btn install-btn"
+					onclick={handleInstallPWA}
+					aria-label="Install app"
+					title="Install App"
+					type="button"
+				>
+					<IconAppWindow size={18} />
+				</IconButton>
+				<IconButton
+					class="bottom-btn"
+					onclick={() => (settingsModalOpen = true)}
+					aria-label="Open settings"
+					title="Settings"
+					type="button"
+				>
+					<IconAdjustmentsAlt size={18} />
+				</IconButton>
 			</div>
 			<div class="center-group">
 				<button
@@ -1007,24 +1048,34 @@
 				</button>
 			</div>
 			<div class="right-group">
-				<IconButton
-					class="bottom-btn install-btn"
-					onclick={handleInstallPWA}
-					aria-label="Install app"
-					title="Install App"
-					type="button"
-				>
-					<IconAppWindow size={18} />
-				</IconButton>
-				<IconButton
-					class="bottom-btn"
-					onclick={() => (settingsModalOpen = true)}
-					aria-label="Open settings"
-					title="Settings"
-					type="button"
-				>
-					<IconAdjustmentsAlt size={18} />
-				</IconButton>
+				{#if isMobile}
+					<IconButton
+						class="bottom-btn"
+						onclick={prevMobileSession}
+						disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s)
+							.length === 0}
+						aria-label="Previous session"
+					>
+						<IconPlayerTrackPrev size={18} /></IconButton
+					>
+					<!-- <span class="session-counter">
+						{Math.min(
+							currentMobileSession + 1,
+							sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length
+						)}
+						/
+						{sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s).length}
+					</span> -->
+					<IconButton
+						class="bottom-btn"
+						onclick={nextMobileSession}
+						disabled={sessions.filter((s) => s && typeof s === 'object' && 'id' in s && 'type' in s)
+							.length === 0}
+						aria-label="Next session"
+					>
+						<IconPlayerTrackNext size={18} />
+					</IconButton>
+				{/if}
 				<IconButton
 					class="bottom-btn primary"
 					onclick={toggleSessionMenu}
@@ -1062,6 +1113,20 @@
 <PWAUpdateNotification />
 
 <style>
+	.logout-btn {
+		margin-left: 1rem;
+		padding: 0.5em 1em;
+		background: #222;
+		color: #fff;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 1em;
+		transition: background 0.2s;
+	}
+	.logout-btn:hover {
+		background: #444;
+	}
 	/* Maximum Screen Space Utilization for Developers */
 
 	.dispatch-workspace {
