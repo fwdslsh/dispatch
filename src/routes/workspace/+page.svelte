@@ -10,7 +10,21 @@
 	import { Button } from '$lib/client/shared/components';
 	import ProjectSessionMenuSimplified from '$lib/client/shared/components/ProjectSessionMenuSimplified.svelte';
 	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager.js';
-	import { IconX, IconSettings, IconAdjustmentsAlt, IconUserScreen, IconDualScreen, IconSquareToggleHorizontal, IconBorderVertical, IconBorderHorizontal, IconSquare, IconSquareDashed, IconAppWindow, IconCodeMinus, IconCodeDots } from '@tabler/icons-svelte';
+	import {
+		IconX,
+		IconSettings,
+		IconAdjustmentsAlt,
+		IconUserScreen,
+		IconDualScreen,
+		IconSquareToggleHorizontal,
+		IconBorderVertical,
+		IconBorderHorizontal,
+		IconSquare,
+		IconSquareDashed,
+		IconAppWindow,
+		IconCodeMinus,
+		IconCodeDots
+	} from '@tabler/icons-svelte';
 	import IconButton from '$lib/client/shared/components/IconButton.svelte';
 	import ClaudeSessionModal from '$lib/client/claude/ClaudeSessionModal.svelte';
 
@@ -113,7 +127,17 @@
 				return [];
 			}
 			const j = await r.json();
-			return j.sessions || [];
+			const sessions = j.sessions || [];
+			console.log(
+				'[WORKSPACE] Loaded sessions:',
+				sessions.map((s) => ({
+					id: s.id,
+					pinned: s.pinned,
+					isActive: s.isActive,
+					type: s.type
+				}))
+			);
+			return sessions;
 		} catch (error) {
 			console.error('Error loading sessions:', error);
 			return [];
@@ -183,12 +207,20 @@
 		if (!session) return;
 
 		try {
-			await fetch('/api/sessions', {
+			const response = await fetch('/api/sessions', {
 				method: 'PUT',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ action: 'unpin', sessionId, workspacePath: session.workspacePath })
 			});
-		} catch {}
+
+			if (!response.ok) {
+				console.error('Failed to unpin session:', response.status);
+				return; // Don't update UI if the backend operation failed
+			}
+		} catch (error) {
+			console.error('Error unpinning session:', error);
+			return; // Don't update UI if there was an error
+		}
 
 		// Update local UI state to hide the unpinned session
 		if (isMobile) {
@@ -633,34 +665,33 @@
 
 		<!-- Layout controls for desktop only -->
 		<div class="header-layout">
-			
 			<IconButton
-					onclick={() => (layoutPreset = '1up')}
-					text={'1up'}
-					variant={layoutPreset === '1up' ? 'primary' : 'ghost'}
-					class={layoutPreset === '1up' ? 'active' : ''}
-					size="small"
-				>
-					<IconAppWindow size={18} />
-				</IconButton>
+				onclick={() => (layoutPreset = '1up')}
+				text={'1up'}
+				variant={layoutPreset === '1up' ? 'primary' : 'ghost'}
+				class={layoutPreset === '1up' ? 'active' : ''}
+				size="small"
+			>
+				<IconAppWindow size={18} />
+			</IconButton>
 			<IconButton
-					onclick={() => (layoutPreset = '2up')}
-					text={'2up'}
-					variant={layoutPreset === '2up' ? 'primary' : 'ghost'}
-					class={layoutPreset === '2up' ? 'active' : ''}
-					size="small"
-				>
-					<IconBorderVertical size={18} />
-				</IconButton>
+				onclick={() => (layoutPreset = '2up')}
+				text={'2up'}
+				variant={layoutPreset === '2up' ? 'primary' : 'ghost'}
+				class={layoutPreset === '2up' ? 'active' : ''}
+				size="small"
+			>
+				<IconBorderVertical size={18} />
+			</IconButton>
 			<IconButton
-					onclick={() => (layoutPreset = '4up')}
-					text={'4up'}
-					variant={layoutPreset === '4up' ? 'primary' : 'ghost'}
-					class={layoutPreset === '4up' ? 'active' : ''}
-					size="small"
-				>
-					<IconBorderHorizontal size={18} />
-				</IconButton>
+				onclick={() => (layoutPreset = '4up')}
+				text={'4up'}
+				variant={layoutPreset === '4up' ? 'primary' : 'ghost'}
+				class={layoutPreset === '4up' ? 'active' : ''}
+				size="small"
+			>
+				<IconBorderHorizontal size={18} />
+			</IconButton>
 		</div>
 
 		<!-- Mobile session navigation moved to bottom bar -->
@@ -895,7 +926,6 @@
 				{/if}
 			</div>
 			<div class="center-group">
-				
 				<button
 					class="add-session-btn"
 					onclick={() => {
@@ -930,17 +960,17 @@
 				>
 					<IconAdjustmentsAlt size={18} />
 				</IconButton>
-				<IconButton class="bottom-btn primary" onclick={toggleSessionMenu} aria-label="Open sessions"
-					>
+				<IconButton
+					class="bottom-btn primary"
+					onclick={toggleSessionMenu}
+					aria-label="Open sessions"
+				>
 					{#if sessionMenuOpen}
 						<IconCodeMinus size={18} />
 					{:else}
 						<IconCodeDots size={18} />
-
 					{/if}
-					
-					
-			</IconButton>
+				</IconButton>
 			</div>
 		</div>
 	</footer>
@@ -964,6 +994,7 @@
 <SettingsModal bind:open={settingsModalOpen} />
 
 <style>
+
 	/* Maximum Screen Space Utilization for Developers */
 
 	.dispatch-workspace {
@@ -1145,7 +1176,6 @@
 		flex-shrink: 0;
 	}
 
-
 	.add-session-btn {
 		display: flex;
 		align-items: center;
@@ -1304,24 +1334,23 @@
 		}
 
 		/* Ensure child components maintain height */
-		.terminal-viewport {
+		/* .terminal-viewport {
 			flex: 1 1 auto;
 			min-height: 0;
 			height: 100%;
-		}
+		} */
 	}
 
 	/* Desktop layout change transitions */
-	@media (min-width: 769px) {
+	/* @media (min-width: 769px) {
 		.terminal-container {
-			/* Only animate the containers themselves, not the grid */
 			transition:
 				transform 0.5s cubic-bezier(0.23, 1, 0.32, 1),
 				opacity 0.4s cubic-bezier(0.23, 1, 0.32, 1),
 				box-shadow 0.2s ease,
 				border-color 0.2s ease;
 		}
-	}
+	} */
 
 	/* Accessibility: reduced motion */
 	@media (prefers-reduced-motion: reduce) {
@@ -1343,15 +1372,6 @@
 				opacity: 0;
 				transform: none;
 			}
-		}
-	}
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0.7;
 		}
 	}
 
@@ -1393,16 +1413,6 @@
 		box-shadow: 0 0 8px color-mix(in oklab, var(--accent-amber) 60%, transparent);
 	}
 
-	@keyframes statusPulse {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0.6;
-		}
-	}
-
 	.terminal-type {
 		font-family: var(--font-mono);
 		font-size: var(--font-size-1);
@@ -1440,8 +1450,6 @@
 		text-overflow: ellipsis;
 		max-width: 120px;
 	}
-
-	
 
 	.terminal-viewport {
 		flex: 1;
@@ -1548,7 +1556,9 @@
 		flex-direction: column;
 		opacity: 0;
 		transform: translateY(100%);
-		transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+		transition:
+			transform 0.15s ease-out,
+			opacity 0.15s ease-out;
 	}
 	.session-sheet.open {
 		transform: translateY(-56px); /* Move up by status bar height */
@@ -1579,46 +1589,22 @@
 	}
 	.sheet-body {
 		overflow: hidden;
-		min-height: 100%;
+		min-height: calc(100% - var(--space-6));
 		padding: 0;
-	}
-
-	/* Mobile-specific styles for session sheet to take remaining viewport */
-	@media (max-width: 768px) {
-		.session-sheet {
-			/* Position above status bar */
-			bottom: 60px; /* Status bar height on mobile */
-			/* Calculate height: viewport height minus status bar and top margin */
-			height: calc(100dvh - 60px);
-			/* Start position when closed */
-			transform: translateY(calc(100% + 60px));
-		}
-
-		.sheet-header {
-			/* More compact header on mobile */
-			padding: 0.4rem 0.6rem;
-			flex-shrink: 0;
-		}
-
-		.sheet-body {
-			/* Make the body scrollable and take remaining space */
-			flex: 1;
-			overflow-y: auto;
-			-webkit-overflow-scrolling: touch;
-			/* Add some breathing room at the bottom for iOS safe area */
-			padding-bottom: env(safe-area-inset-bottom, 1rem);
-		}
 	}
 
 	/* Very small screens - adjust for exact status bar height */
 	@media (max-width: 480px) {
 		.session-sheet {
 			/* Fine-tune position for smaller screens */
-			bottom: 60px; /* Slightly smaller status bar on very small screens */
-			padding-bottom: 60px;
-			height: calc(100dvh - 60px);
-			
+
+			height: calc(100dvh - 0px);
+
 			transform: translateY(calc(100% + 52px));
+		}
+
+		.sheet-body {
+			min-height: calc(100% - 60px);
 		}
 	}
 

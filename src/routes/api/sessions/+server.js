@@ -19,9 +19,6 @@ export async function GET({ url, locals }) {
 		.all()
 		.filter((s) => !workspace || s.workspacePath === workspace);
 
-	// Always include active sessions; pinnedOnly only affects persisted entries
-	const activeSessions = activeSessionsRaw;
-
 	// Merge active and persisted sessions, with active taking precedence
 	const sessionMap = new Map();
 
@@ -30,13 +27,23 @@ export async function GET({ url, locals }) {
 		sessionMap.set(session.id, session);
 	});
 
-	// Then override with active sessions (which have current state)
-	activeSessions.forEach((session) => {
+	// Then add active sessions
+	// For active sessions, check if they exist in persisted sessions to get their pinned state
+	activeSessionsRaw.forEach((session) => {
 		const existing = sessionMap.get(session.id);
+		
+		// If pinnedOnly is true and this session exists in persisted but is unpinned, skip it
+		if (pinnedOnly && existing && !existing.pinned) {
+			return; // Skip unpinned sessions when pinnedOnly is true
+		}
+		
+		// If pinnedOnly is true and this session doesn't exist in persisted sessions yet,
+		// include it (new sessions should be visible)
 		sessionMap.set(session.id, {
 			...existing,
 			...session,
-			isActive: true
+			isActive: true,
+			pinned: existing ? existing.pinned : true // Default to pinned for new sessions
 		});
 	});
 

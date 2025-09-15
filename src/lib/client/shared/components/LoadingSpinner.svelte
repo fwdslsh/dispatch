@@ -175,11 +175,6 @@
 	}
 
 	/* Animation */
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
 
 	/* Reduced motion support */
 	@media (prefers-reduced-motion: reduce) {
@@ -205,17 +200,6 @@
 		}
 	}
 
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 0.6;
-			transform: translate(-50%, -50%) scale(1);
-		}
-		50% {
-			opacity: 1;
-			transform: translate(-50%, -50%) scale(1.2);
-		}
-	}
 
 	/* High contrast mode support */
 	@media (prefers-contrast: high) {

@@ -434,15 +434,6 @@
 		animation: shimmer 3s linear infinite;
 	}
 
-	@keyframes shimmer {
-		0% {
-			background-position: -200% 0;
-		}
-		100% {
-			background-position: 200% 0;
-		}
-	}
-
 	/* Breadcrumb bar */
 	.breadcrumb-bar {
 		display: flex;
@@ -760,26 +751,6 @@
 		opacity: 0.1;
 	}
 
-	@keyframes expandIn {
-		from {
-			opacity: 0;
-			transform: scaleY(0.8) translateY(-20px);
-		}
-		to {
-			opacity: 1;
-			transform: scaleY(1) translateY(0);
-		}
-	}
-
-	@keyframes rotate {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
 	.new-dir-input {
 		flex: 1;
 		padding: calc(var(--space-2) * 1.3) calc(var(--space-3) * 1.1);
@@ -925,15 +896,6 @@
 		opacity: 0.3;
 	}
 
-	@keyframes statusSweep {
-		0% {
-			transform: translateX(-100%);
-		}
-		100% {
-			transform: translateX(100%);
-		}
-	}
-
 	.loading {
 		color: var(--db-primary-bright);
 		font-style: italic;
@@ -942,41 +904,11 @@
 		animation: loadingPulse 1.5s ease-in-out infinite;
 	}
 
-	@keyframes loadingPulse {
-		0%,
-		100% {
-			opacity: 0.7;
-		}
-		50% {
-			opacity: 1;
-		}
-	}
-
 	.error {
 		color: #ff6b6b;
 		font-weight: 500;
 		letter-spacing: 0.01em;
 		animation: errorShake 0.5s ease-in-out;
-	}
-
-	@keyframes errorShake {
-		0%,
-		100% {
-			transform: translateX(0);
-		}
-		10%,
-		30%,
-		50%,
-		70%,
-		90% {
-			transform: translateX(-2px);
-		}
-		20%,
-		40%,
-		60%,
-		80% {
-			transform: translateX(2px);
-		}
 	}
 
 	/* Directory list */
@@ -1048,17 +980,6 @@
 	}
 	.list-item:nth-child(5) {
 		animation-delay: 0.25s;
-	}
-
-	@keyframes fadeInUp {
-		from {
-			opacity: 0;
-			transform: translateY(10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
 	}
 
 	.item-button {
@@ -1231,16 +1152,6 @@
 		animation: pulse 2s ease-in-out infinite;
 	}
 
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 0.5;
-		}
-		50% {
-			opacity: 0.8;
-		}
-	}
-
 	/* Selected display */
 	.selected-display {
 		display: flex;
@@ -1268,32 +1179,12 @@
 		left: 0;
 		width: 100%;
 		height: 2px;
-		background: linear-gradient(90deg, 
-			var(--db-primary), 
-			var(--db-primary-bright), 
+		background: linear-gradient(90deg,
+			var(--db-primary),
+			var(--db-primary-bright),
 			var(--db-primary));
 		animation: scanline 2s linear infinite;
 	} */
-
-	@keyframes slideInScale {
-		0% {
-			opacity: 0;
-			transform: scale(0.9) translateY(10px);
-		}
-		100% {
-			opacity: 1;
-			transform: scale(1) translateY(0);
-		}
-	}
-
-	@keyframes scanline {
-		0% {
-			transform: translateX(-100%);
-		}
-		100% {
-			transform: translateX(100%);
-		}
-	}
 
 	.selected-label {
 		color: var(--db-primary-bright);

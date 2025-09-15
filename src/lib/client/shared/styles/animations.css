@@ -1,4 +1,6 @@
-/* Smooth fade-in animation */
+/* Common CSS Animations - Extracted from .svelte files */
+
+/* Basic fade animations */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -10,4 +12,293 @@
 
 .fade-in {
   animation: fade-in 0.4s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInOut {
+  0%,
+  100% {
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide animations */
+@keyframes slideIn {
+  from {
+    transform: scale(0.9) translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes slideInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pulse animations */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes statusPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(46, 230, 107, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(46, 230, 107, 0.9);
+  }
+}
+
+@keyframes loadingPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes avatarPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 8px 32px -12px var(--primary-glow),
+      inset 0 2px 4px color-mix(in oklab, var(--primary) 15%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow:
+      0 12px 40px -8px var(--primary-glow),
+      inset 0 2px 8px color-mix(in oklab, var(--primary) 20%, transparent),
+      0 0 0 2px color-mix(in oklab, var(--primary) 20%, transparent);
+  }
+}
+
+@keyframes pulseRing {
+  0%,
+  60%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  30% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
+}
+
+@keyframes typingPulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Spin/rotate animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes terminalSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Scan/sweep animations */
+@keyframes terminalScan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes statusSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes inputShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Shimmer/glow animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Bounce/movement animations */
+@keyframes typingBounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-12px);
+    opacity: 1;
+    background: var(--accent-cyan);
+    box-shadow:
+      0 12px 20px -8px var(--primary-glow),
+      0 0 12px var(--primary-glow);
+  }
+}
+
+/* Expand/scale animations */
+@keyframes expandIn {
+  from {
+    opacity: 0;
+    transform: scaleY(0.8) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+/* Shake/error animations */
+@keyframes errorShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-2px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+/* Cursor blink animation */
+@keyframes cursorBlink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
 }

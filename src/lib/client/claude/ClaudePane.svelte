@@ -1044,6 +1044,8 @@
 </div>
 
 <style>
+	@import '../shared/styles/animations.css';
+
 	/* AWARD-WINNING CHAT INTERFACE 2025
 	   Features: Advanced glass-morphism, spatial design, micro-interactions,
 	   professional typography, and cutting-edge UX patterns */
@@ -1136,23 +1138,6 @@
 			0 0 0 1px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
 	}
 
-	@keyframes avatarPulse {
-		0%,
-		100% {
-			transform: scale(1);
-			box-shadow:
-				0 8px 32px -12px var(--primary-glow),
-				inset 0 2px 4px color-mix(in oklab, var(--primary) 15%, transparent),
-				0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent);
-		}
-		50% {
-			transform: scale(1.05);
-			box-shadow:
-				0 12px 40px -8px var(--primary-glow),
-				inset 0 2px 8px color-mix(in oklab, var(--primary) 20%, transparent),
-				0 0 0 2px color-mix(in oklab, var(--primary) 20%, transparent);
-		}
-	}
 
 	.ai-info {
 		display: flex;
@@ -1222,15 +1207,6 @@
 		animation: pulse 1.5s ease-in-out infinite;
 	}
 
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0.5;
-		}
-	}
 
 	.chat-stats {
 		display: flex;
@@ -1349,18 +1325,6 @@
 		animation-delay: 0.4s;
 	}
 
-	@keyframes pulseRing {
-		0%,
-		60%,
-		100% {
-			transform: scale(1);
-			opacity: 0.6;
-		}
-		30% {
-			transform: scale(1.4);
-			opacity: 1;
-		}
-	}
 
 	.loading-text {
 		font-family: var(--font-sans);
@@ -1376,16 +1340,6 @@
 		animation: messageSlideIn 0.5s ease-out forwards;
 	}
 
-	@keyframes messageSlideIn {
-		from {
-			opacity: 0;
-			transform: translateY(20px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
 
 	.message-wrapper {
 		display: flex;
@@ -1577,15 +1531,6 @@
 		display: none;
 	}
 
-	@keyframes fadeInOut {
-		0%,
-		100% {
-			opacity: 0.05;
-		}
-		50% {
-			opacity: 0.1;
-		}
-	}
 
 	.welcome-message h3 {
 		font-family: var(--font-mono);
@@ -1719,14 +1664,6 @@
 		box-shadow: none !important;
 	}
 
-	@keyframes inputShimmer {
-		0% {
-			transform: translateX(-100%);
-		}
-		100% {
-			transform: translateX(100%);
-		}
-	}
 
 	.message-input::placeholder {
 		color: color-mix(in oklab, var(--muted) 80%, var(--primary) 20%);
@@ -1923,15 +1860,6 @@
 		animation: typingPulse 1.5s ease-in-out infinite;
 	}
 
-	@keyframes typingPulse {
-		0%,
-		100% {
-			opacity: 0.6;
-		}
-		50% {
-			opacity: 1;
-		}
-	}
 
 	.typing-animation {
 		display: flex;
@@ -1975,22 +1903,6 @@
 		animation-delay: 0.4s;
 	}
 
-	@keyframes typingBounce {
-		0%,
-		60%,
-		100% {
-			transform: translateY(0);
-			opacity: 0.4;
-		}
-		30% {
-			transform: translateY(-12px);
-			opacity: 1;
-			background: var(--accent-cyan);
-			box-shadow:
-				0 12px 20px -8px var(--primary-glow),
-				0 0 12px var(--primary-glow);
-		}
-	}
 
 	/* Smooth scroll to show typing indicator */
 	.typing-indicator {

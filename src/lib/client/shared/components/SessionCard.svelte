@@ -114,15 +114,6 @@
 		animation: pulse-dot 2s ease-in-out infinite;
 	}
 
-	@keyframes pulse-dot {
-		0%,
-		100% {
-			box-shadow: 0 0 8px rgba(46, 230, 107, 0.6);
-		}
-		50% {
-			box-shadow: 0 0 15px rgba(46, 230, 107, 0.9);
-		}
-	}
 
 	.session-content {
 		position: relative;

@@ -77,6 +77,7 @@
 {/if}
 
 <style>
+
 	.dialog-backdrop {
 		position: fixed;
 		top: 0;
@@ -183,25 +184,6 @@
 		background: none;
 	}
 
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
-	}
-
-	@keyframes slideIn {
-		from {
-			transform: scale(0.9) translateY(-20px);
-			opacity: 0;
-		}
-		to {
-			transform: scale(1) translateY(0);
-			opacity: 1;
-		}
-	}
 
 	@media (max-width: 768px) {
 		.dialog-container {

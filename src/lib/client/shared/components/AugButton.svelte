@@ -129,6 +129,7 @@
 </button>
 
 <style>
+
 	/* Button styles that work with global .button class from retro.css */
 	.button {
 		/* Remove conflicting overrides, inherit from global styles */
@@ -257,11 +258,6 @@
 		animation: terminalSpin 1s linear infinite;
 	}
 
-	@keyframes terminalSpin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
 
 	/* Ensure augmented-ui styles work properly */
 	.button.aug {

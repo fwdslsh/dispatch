@@ -370,14 +370,6 @@
 		text-shadow: 0 0 5px var(--glow);
 	}
 
-	@keyframes terminalScan {
-		0% {
-			transform: translateX(-100%);
-		}
-		100% {
-			transform: translateX(100%);
-		}
-	}
 
 	/* Enhanced terminal content */
 	.modal__content {

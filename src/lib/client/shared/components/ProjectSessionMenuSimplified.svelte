@@ -609,9 +609,7 @@
 		flex-direction: column;
 		height: 100%;
 		padding: var(--space-5);
-		background: var(--bg);
-		border: 2px solid var(--primary-dim);
-		border-radius: 0;
+	
 	}
 
 	/* Tab Navigation */

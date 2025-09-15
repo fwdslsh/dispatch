@@ -151,16 +151,6 @@
 		transform: translateY(-2px) scale(1.1);
 	}
 
-	@keyframes slideInFromLeft {
-		from {
-			opacity: 0;
-			transform: translateX(-20px) scale(0.8);
-		}
-		to {
-			opacity: 1;
-			transform: translateX(0) scale(1);
-		}
-	}
 
 	.event-summary {
 		margin-top: var(--space-3);
