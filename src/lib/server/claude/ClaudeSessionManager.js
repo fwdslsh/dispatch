@@ -11,14 +11,16 @@ import { logger } from '../utils/logger.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 import { getDatabaseManager } from '../db/DatabaseManager.js';
 import { claudeAuthManager } from './ClaudeAuthManager.js';
+import { emitWithBuffer } from '../utils/events.js';
 
 export class ClaudeSessionManager {
 	#databaseManager = getDatabaseManager();
 	/**
-	 * @param {{ io: any }} param0
+	 * @param {{ io: any, sessionRouter?: any }} param0
 	 */
-	constructor({ io }) {
+	constructor({ io, sessionRouter = null }) {
 		this.io = io;
+		this.sessionRouter = sessionRouter; // Store reference to session router for buffering
 		this.sessions = new Map(); // id -> { workspacePath, options }
 		this.nextId = 1;
 
@@ -91,6 +93,11 @@ export class ClaudeSessionManager {
 			this.serverIO = io;
 			logger.info('Claude', '[ClaudeSessionManager] Set serverIO for broadcasting');
 		}
+	}
+
+	setSessionRouter(sessionRouter) {
+		this.sessionRouter = sessionRouter;
+		logger.info('Claude', '[ClaudeSessionManager] Session router set for message buffering');
 	}
 
 	/**
@@ -223,6 +230,11 @@ export class ClaudeSessionManager {
 		const s = session;
 		logger.debug('Claude', `Using session ${key} with sessionId ${s.sessionId}`);
 
+		// Set processing state when starting to handle the message
+		if (this.sessionRouter && s.appSessionId) {
+			this.sessionRouter.setProcessing(s.appSessionId);
+		}
+
 		let sawNoConversation = false;
 		try {
 			const debugEnv = { ...process.env, HOME: process.env.HOME };
@@ -266,11 +278,29 @@ export class ClaudeSessionManager {
 
 			let sawAnyEvent = false;
 			for await (const event of stream) {
+				if (!sawAnyEvent) {
+					// Set streaming state when first event is received
+					if (this.sessionRouter && s.appSessionId) {
+						this.sessionRouter.setStreaming(s.appSessionId);
+					}
+				}
 				sawAnyEvent = true;
-				if (event && s.socket) {
-					try {
-						s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]);
-					} catch {}
+				if (event) {
+					// Always emit and buffer, even if socket is null
+					const messageData = {
+						sessionId: s.appSessionId || id,
+						events: [event],
+						timestamp: Date.now()
+					};
+					
+					// Use emitWithBuffer to ensure messages are buffered
+					emitWithBuffer(
+						s.socket,
+						SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA,
+						messageData,
+						this.sessionRouter
+					);
+					
 					// Auto-start OAuth flow if Claude asks user to run /login
 					try {
 						if (
@@ -335,16 +365,32 @@ export class ClaudeSessionManager {
 					}
 				}
 			} catch {}
+			// Set idle state when stream completes
+			if (this.sessionRouter && s.appSessionId) {
+				this.sessionRouter.setIdle(s.appSessionId);
+			}
+			
 			// Emit a completion event so the session can be marked as idle
 			// Use appSessionId if available, otherwise fall back to the key
-			if (s.socket) {
-				const emitSessionId = s.appSessionId || key;
-				try {
-					s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId });
-				} catch {}
-			}
+			const emitSessionId = s.appSessionId || key;
+			const completeData = {
+				sessionId: emitSessionId,
+				timestamp: Date.now()
+			};
+			
+			// Always emit and buffer, even if socket is null
+			emitWithBuffer(
+				s.socket,
+				SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE,
+				completeData,
+				this.sessionRouter
+			);
 		} catch (error) {
 			logger.error('Claude', `Error in Claude session ${id}:`, error);
+			// Set idle state on error
+			if (this.sessionRouter && s.appSessionId) {
+				this.sessionRouter.setIdle(s.appSessionId);
+			}
 			// If the prompt/history is too long OR resume target missing, retry without resume
 			const msg = String(error?.message || '');
 			const lc = msg.toLowerCase();
@@ -371,23 +417,56 @@ export class ClaudeSessionManager {
 						}
 					});
 
+					let sawFreshEvent = false;
 					for await (const event of fresh) {
-						if (event && s.socket) {
-							try {
-								s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, [event]);
-							} catch {}
+						if (!sawFreshEvent && this.sessionRouter && s.appSessionId) {
+							// Set streaming state when first event is received in retry
+							this.sessionRouter.setStreaming(s.appSessionId);
+						}
+						sawFreshEvent = true;
+						if (event) {
+							// Always emit and buffer, even if socket is null
+							const messageData = {
+								sessionId: s.appSessionId || key,
+								events: [event],
+								timestamp: Date.now()
+							};
+							
+							// Use emitWithBuffer to ensure messages are buffered
+							emitWithBuffer(
+								s.socket,
+								SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA,
+								messageData,
+								this.sessionRouter
+							);
 						}
 					}
-					// Emit completion event for the fresh query
-					if (s.socket) {
-						const emitSessionId = s.appSessionId || key;
-						try {
-							s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, { sessionId: emitSessionId });
-						} catch {}
+					// Set idle state when retry stream completes
+					if (this.sessionRouter && s.appSessionId) {
+						this.sessionRouter.setIdle(s.appSessionId);
 					}
+					
+					// Emit completion event for the fresh query
+					const emitSessionId = s.appSessionId || key;
+					const completeData = {
+						sessionId: emitSessionId,
+						timestamp: Date.now()
+					};
+					
+					// Always emit and buffer, even if socket is null
+					emitWithBuffer(
+						s.socket,
+						SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE,
+						completeData,
+						this.sessionRouter
+					);
 					return;
 				} catch (retryErr) {
 					console.error('Retry without resume failed:', retryErr);
+					// Set idle state on retry error
+					if (this.sessionRouter && s.appSessionId) {
+						this.sessionRouter.setIdle(s.appSessionId);
+					}
 					if (this.io) {
 						this.io.emit('error', {
 							message: 'Failed to process message',

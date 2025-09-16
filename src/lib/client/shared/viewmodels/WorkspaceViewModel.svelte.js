@@ -32,6 +32,10 @@ export class WorkspaceViewModel {
 
 		// Claude projects
 		this.claudeProjects = $state([]);
+		
+		// Session history loading coordination
+		this.sessionHistoryLoadQueue = $state(new Set()); // sessionIds currently loading history
+		this.sessionHistoryLoadedSet = $state(new Set()); // sessionIds that have loaded history
 
 		// Derived state
 		this.hasWorkspaces = $derived(this.workspaces.length > 0);
@@ -326,6 +330,78 @@ export class WorkspaceViewModel {
 	}
 
 	/**
+	 * Start loading history for a session
+	 * @param {string} sessionId
+	 * @returns {boolean} True if history load was started, false if already loading or loaded
+	 */
+	startSessionHistoryLoad(sessionId) {
+		// Check if already loaded or loading
+		if (this.sessionHistoryLoadedSet.has(sessionId) || this.sessionHistoryLoadQueue.has(sessionId)) {
+			console.log(`[WorkspaceViewModel] Session ${sessionId} history already loaded or loading`);
+			return false;
+		}
+		
+		// Add to loading queue
+		this.sessionHistoryLoadQueue.add(sessionId);
+		console.log(`[WorkspaceViewModel] Started history load for session ${sessionId}`);
+		return true;
+	}
+	
+	/**
+	 * Mark session history as loaded
+	 * @param {string} sessionId
+	 */
+	completeSessionHistoryLoad(sessionId) {
+		// Remove from queue and add to loaded set
+		this.sessionHistoryLoadQueue.delete(sessionId);
+		this.sessionHistoryLoadedSet.add(sessionId);
+		console.log(`[WorkspaceViewModel] Completed history load for session ${sessionId}`);
+	}
+	
+	/**
+	 * Check if session history is loaded
+	 * @param {string} sessionId
+	 * @returns {boolean}
+	 */
+	isSessionHistoryLoaded(sessionId) {
+		return this.sessionHistoryLoadedSet.has(sessionId);
+	}
+	
+	/**
+	 * Check if session history is currently loading
+	 * @param {string} sessionId
+	 * @returns {boolean}
+	 */
+	isSessionHistoryLoading(sessionId) {
+		return this.sessionHistoryLoadQueue.has(sessionId);
+	}
+	
+	/**
+	 * Check if any session is loading history
+	 * @returns {boolean}
+	 */
+	hasAnySessionLoadingHistory() {
+		return this.sessionHistoryLoadQueue.size > 0;
+	}
+	
+	/**
+	 * Clear history loading state for a session
+	 * @param {string} sessionId
+	 */
+	clearSessionHistoryState(sessionId) {
+		this.sessionHistoryLoadQueue.delete(sessionId);
+		this.sessionHistoryLoadedSet.delete(sessionId);
+	}
+	
+	/**
+	 * Clear all history loading states
+	 */
+	clearAllHistoryStates() {
+		this.sessionHistoryLoadQueue.clear();
+		this.sessionHistoryLoadedSet.clear();
+	}
+
+	/**
 	 * Get state summary for debugging
 	 * @returns {Object}
 	 */
@@ -336,7 +412,9 @@ export class WorkspaceViewModel {
 			loading: this.loading,
 			error: this.error,
 			recent: this.recentWorkspaces.length,
-			claudeProjects: this.claudeProjects.length
+			claudeProjects: this.claudeProjects.length,
+			historyLoading: this.sessionHistoryLoadQueue.size,
+			historyLoaded: this.sessionHistoryLoadedSet.size
 		};
 	}
 
@@ -345,5 +423,6 @@ export class WorkspaceViewModel {
 	 */
 	dispose() {
 		this.reset();
+		this.clearAllHistoryStates();
 	}
 }

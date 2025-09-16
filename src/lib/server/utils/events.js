@@ -125,3 +125,58 @@ export function emitPublicUrlResponse(socket, ok, url = null, metadata = {}) {
 		...metadata
 	});
 }
+
+/**
+ * Emit an event with automatic buffering for session history
+ * @param {import('socket.io').Socket} socket - Socket instance (can be null for buffering only)
+ * @param {string} eventType - Event type constant from SOCKET_EVENTS
+ * @param {Object} data - Event data including sessionId
+ * @param {import('../core/SessionRouter.js').SessionRouter} sessionRouter - Session router for buffering
+ */
+export function emitWithBuffer(socket, eventType, data, sessionRouter) {
+	// Always buffer the message if we have a sessionRouter and sessionId
+	if (sessionRouter && data.sessionId) {
+		sessionRouter.bufferMessage(data.sessionId, eventType, data);
+	}
+
+	// Emit to socket if available
+	if (socket) {
+		try {
+			socket.emit(eventType, data);
+		} catch (error) {
+			// Socket might be disconnected, but we've already buffered the message
+			console.debug('Failed to emit to socket, message buffered:', error.message);
+		}
+	}
+}
+
+/**
+ * Send buffered messages to a client
+ * @param {import('socket.io').Socket} socket - Socket instance
+ * @param {string} sessionId - Session identifier
+ * @param {number} sinceTimestamp - Timestamp to get messages since (optional)
+ * @param {import('../core/SessionRouter.js').SessionRouter} sessionRouter - Session router for buffering
+ */
+export function sendBufferedMessages(socket, sessionId, sinceTimestamp, sessionRouter) {
+	if (!sessionRouter || !socket) return;
+
+	const messages = sessionRouter.getBufferedMessages(sessionId, sinceTimestamp);
+	
+	if (messages.length > 0) {
+		// Send each buffered message in order
+		for (const message of messages) {
+			try {
+				socket.emit(message.eventType, message.data);
+			} catch (error) {
+				console.debug('Failed to send buffered message:', error.message);
+			}
+		}
+		
+		// Emit a catchup complete event
+		socket.emit(SOCKET_EVENTS.SESSION_CATCHUP_COMPLETE, {
+			sessionId,
+			messageCount: messages.length,
+			timestamp: Date.now()
+		});
+	}
+}

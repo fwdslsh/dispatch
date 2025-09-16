@@ -18,7 +18,7 @@
 
 	function handleClose(e) {
 		e.stopPropagation?.();
-		onUnpin(session.id);
+		onClose(session.id);
 	}
 </script>
 

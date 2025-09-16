@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { databaseManager } from '../src/lib/server/db/DatabaseManager.js';
+import { DatabaseManager } from '../src/lib/server/db/DatabaseManager.js';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -13,9 +13,7 @@ async function testDatabase() {
 		tmpdir(),
 		`dispatch-test-${Date.now()}-${Math.random().toString(36).slice(2)}.db`
 	);
-	const testDb = new (await import('../src/lib/server/db/DatabaseManager.js')).DatabaseManager(
-		testDbPath
-	);
+	const testDb = new DatabaseManager(testDbPath);
 
 	try {
 		// Initialize database

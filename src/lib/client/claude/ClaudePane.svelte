@@ -766,6 +766,16 @@
 		// Attach both canonical and legacy complete events
 		socket.on(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, handleClaudeMessageComplete);
 
+		// Handle session catchup complete event
+		socket.on(SOCKET_EVENTS.SESSION_CATCHUP_COMPLETE, (data) => {
+			console.log('Session catchup complete:', data);
+			isCatchingUp = false;
+			// Update last message timestamp if provided
+			if (data?.lastTimestamp) {
+				sessionSocketManager.updateLastMessageTimestamp(sessionId, data.lastTimestamp);
+			}
+		});
+
 		// Handle errors to clear typing indicator
 		socket.on(SOCKET_EVENTS.ERROR, (error) => {
 			console.error('Socket error:', error);
@@ -805,6 +815,36 @@
 		// This ensures we don't miss any events that might arrive while loading
 		if (claudeSessionId || shouldResume) {
 			await loadPreviousMessages();
+			
+			// After loading file-based history, also request buffered messages
+			// This catches any messages that were sent while disconnected
+			if (socket.connected) {
+				console.log('Loading buffered messages from server for session:', sessionId);
+				isCatchingUp = true;
+				
+				try {
+					// Request messages buffered on the server
+					// The server will replay them through normal channels
+					const bufferedMessages = await sessionSocketManager.loadSessionHistory(sessionId);
+					console.log(`Loaded ${bufferedMessages.length} buffered messages for session ${sessionId}`);
+					
+					// The messages will be replayed through normal event handlers
+					// Just wait a bit for them to arrive
+					if (bufferedMessages.length > 0) {
+						// Give time for replayed messages to be processed
+						await new Promise(resolve => setTimeout(resolve, 500));
+					}
+				} catch (error) {
+					console.error('Failed to load buffered messages:', error);
+				} finally {
+					// Clear catching up state if no messages are actively arriving
+					setTimeout(() => {
+						if (isCatchingUp && !isWaitingForReply) {
+							isCatchingUp = false;
+						}
+					}, 1000);
+				}
+			}
 		}
 
 		// Check if session has pending messages from the backend

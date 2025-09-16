@@ -16,6 +16,8 @@ class SessionSocketManager {
 		this.sockets = new Map(); // sessionId -> socket instance
 		this.socketMetadata = new WeakMap(); // socket -> SocketMetadata
 		this.activeSession = null;
+		this.lastMessageTimestamps = new Map(); // sessionId -> timestamp
+		this.historyLoadPromises = new Map(); // sessionId -> Promise
 	}
 
 	/**
@@ -234,6 +236,108 @@ class SessionSocketManager {
 			});
 		}
 		return false;
+	}
+
+	/**
+	 * Load session history from server buffers
+	 * @param {string} sessionId - The session to load history for
+	 * @param {number} [sinceTimestamp] - Optional timestamp to load messages since
+	 * @returns {Promise<Array>} Array of buffered messages
+	 */
+	async loadSessionHistory(sessionId, sinceTimestamp = null) {
+		// Prevent duplicate history loads for the same session
+		if (this.historyLoadPromises.has(sessionId)) {
+			console.log(`History load already in progress for session ${sessionId}`);
+			return this.historyLoadPromises.get(sessionId);
+		}
+
+		const socket = this.sockets.get(sessionId);
+		if (!socket || !socket.connected) {
+			console.warn(`Cannot load history for session ${sessionId}: socket not connected`);
+			return [];
+		}
+
+		const loadPromise = new Promise((resolve, reject) => {
+			const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+			const lastTimestamp = sinceTimestamp || this.lastMessageTimestamps.get(sessionId) || 0;
+			
+			console.log(`Loading history for session ${sessionId} since timestamp ${lastTimestamp}`);
+			
+			// Set up timeout in case server doesn't respond
+			const timeout = setTimeout(() => {
+				this.historyLoadPromises.delete(sessionId);
+				reject(new Error('History load timeout'));
+			}, 10000);
+
+			// Request buffered messages from server
+			socket.emit(
+				SOCKET_EVENTS.SESSION_HISTORY_LOAD,
+				{
+					key,
+					sessionId,
+					sinceTimestamp: lastTimestamp,
+					replay: true // Request messages to be replayed through normal channels
+				},
+				(response) => {
+					clearTimeout(timeout);
+					this.historyLoadPromises.delete(sessionId);
+					
+					if (response?.error) {
+						console.error(`Failed to load history for session ${sessionId}:`, response.error);
+						reject(new Error(response.error));
+					} else {
+						console.log(`Loaded ${response?.messageCount || 0} messages for session ${sessionId}`);
+						// Update last timestamp if messages were loaded
+						if (response?.messages && response.messages.length > 0) {
+							const lastMsg = response.messages[response.messages.length - 1];
+							if (lastMsg.timestamp) {
+								this.updateLastMessageTimestamp(sessionId, lastMsg.timestamp);
+							}
+						}
+						resolve(response?.messages || []);
+					}
+				}
+			);
+		});
+
+		this.historyLoadPromises.set(sessionId, loadPromise);
+		
+		try {
+			return await loadPromise;
+		} catch (error) {
+			console.error(`Error loading history for session ${sessionId}:`, error);
+			return [];
+		}
+	}
+
+	/**
+	 * Update the last received message timestamp for a session
+	 * @param {string} sessionId - The session ID
+	 * @param {number} timestamp - The timestamp to update
+	 */
+	updateLastTimestamp(sessionId, timestamp) {
+		const current = this.lastMessageTimestamps.get(sessionId) || 0;
+		if (timestamp > current) {
+			this.lastMessageTimestamps.set(sessionId, timestamp);
+		}
+	}
+	
+	/**
+	 * Alias for updateLastTimestamp for backward compatibility
+	 * @param {string} sessionId - The session ID
+	 * @param {number} timestamp - The timestamp to update
+	 */
+	updateLastMessageTimestamp(sessionId, timestamp) {
+		this.updateLastTimestamp(sessionId, timestamp);
+	}
+
+	/**
+	 * Clear history loading state for a session
+	 * @param {string} sessionId - The session ID
+	 */
+	clearHistoryLoadState(sessionId) {
+		this.historyLoadPromises.delete(sessionId);
+		this.lastMessageTimestamps.delete(sessionId);
 	}
 }
 

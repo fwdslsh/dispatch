@@ -101,6 +101,32 @@ export function setupSocketIO(httpServer) {
 		socket.data.authenticated = false;
 		socket.data.sessionId = sessionId; // Store session ID in socket data
 
+		// Wrap socket.emit to buffer messages for session history
+		const originalEmit = socket.emit.bind(socket);
+		socket.emit = function(eventType, ...args) {
+			// Buffer certain message types for session replay
+			const bufferableEvents = [
+				SOCKET_EVENTS.TERMINAL_OUTPUT,
+				SOCKET_EVENTS.TERMINAL_EXIT,
+				SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA,
+				SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE,
+				SOCKET_EVENTS.CLAUDE_ERROR,
+				SOCKET_EVENTS.TERMINAL_ERROR
+			];
+
+			if (bufferableEvents.includes(eventType) && args[0]?.sessionId) {
+				const { sessions } = getServices();
+				if (sessions) {
+					// Buffer the message for this session
+					sessions.bufferMessage(args[0].sessionId, eventType, args[0]);
+					logger.debug('SOCKET', `Buffered ${eventType} for session ${args[0].sessionId}`);
+				}
+			}
+
+			// Call the original emit
+			return originalEmit.call(this, eventType, ...args);
+		};
+
 		// If sessionId is provided, try to associate with existing session
 		if (sessionId) {
 			try {
@@ -256,9 +282,6 @@ export function setupSocketIO(httpServer) {
 				const { sessionManager, sessions } = getServices();
 
 				if (sessionManager && sessions) {
-					// Set processing state
-					sessions.setProcessing(data.id);
-
 					try {
 						// Attach socket to session if creating new
 						const session = sessionManager.getSession(data.id);
@@ -280,16 +303,20 @@ export function setupSocketIO(httpServer) {
 						}
 						await sessionManager.sendToSession(data.id, data.input);
 						logger.info('SOCKET', `Claude message sent via session manager`);
-					} finally {
-						// Will be reset to idle when message completes
+					} catch (err) {
+						console.error(`[SOCKET] Claude send error:`, err);
+						// Reset to idle on error if session exists
+						const session = sessionManager.getSession(data.id);
+						if (session) {
+							sessions.setIdle(data.id);
+						}
+						throw err; // Re-throw for outer catch
 					}
 				} else {
 					throw new Error('No session manager available for Claude');
 				}
 			} catch (err) {
 				console.error(`[SOCKET] Claude send error:`, err);
-				// Reset to idle on error
-				// (Removed stray/duplicated block that caused syntax error)
 			}
 		});
 
@@ -381,6 +408,65 @@ export function setupSocketIO(httpServer) {
 		socket.on(SOCKET_EVENTS.SESSION_CATCHUP, (data) => {
 			logger.debug('SOCKET', 'session.catchup received:', data);
 			// Could be used to resend missed messages if needed
+		});
+
+		// Session history load event - loads buffered messages for a session
+		socket.on(SOCKET_EVENTS.SESSION_HISTORY_LOAD, (data, callback) => {
+			logger.debug('SOCKET', 'session.history.load received:', data);
+			try {
+				if (!validateKey(data.key)) {
+					if (callback) callback({ success: false, error: 'Invalid key' });
+					return;
+				}
+
+				const { sessions } = getServices();
+				
+				if (!sessions || !data.sessionId) {
+					if (callback) callback({ success: false, error: 'Session router not available or sessionId missing' });
+					return;
+				}
+
+				// Get buffered messages for the session
+				const sinceTimestamp = data.sinceTimestamp || 0;
+				const messages = sessions.getBufferedMessages(data.sessionId, sinceTimestamp);
+				
+				logger.info('SOCKET', `Loading ${messages.length} buffered messages for session ${data.sessionId}`);
+				
+				if (callback) {
+					callback({
+						success: true,
+						sessionId: data.sessionId,
+						messages: messages,
+						count: messages.length
+					});
+				}
+
+				// Optionally emit the messages directly to the socket
+				if (data.replay) {
+					if (messages.length > 0) {
+						messages.forEach(msg => {
+							try {
+								socket.emit(msg.eventType, msg.data);
+							} catch (err) {
+								logger.error('SOCKET', `Failed to replay message ${msg.eventType}:`, err);
+							}
+						});
+					}
+					
+					// Always emit completion event when replay is requested
+					const lastTimestamp = messages.length > 0 
+						? messages[messages.length - 1].timestamp 
+						: Date.now();
+					socket.emit(SOCKET_EVENTS.SESSION_CATCHUP_COMPLETE, {
+						sessionId: data.sessionId,
+						messageCount: messages.length,
+						lastTimestamp
+					});
+				}
+			} catch (err) {
+				logger.error('SOCKET', 'Session history load error:', err);
+				if (callback) callback({ success: false, error: err.message });
+			}
 		});
 
 		// Commands refresh event - canonical Claude name
@@ -477,6 +563,19 @@ export function setupSocketIO(httpServer) {
 			historyManager.finalizeSocket(socket.id);
 		});
 	});
+
+	// Set up periodic cleanup of expired message buffers
+	setInterval(() => {
+		try {
+			const { sessions } = getServices();
+			if (sessions && sessions.cleanupExpiredBuffers) {
+				sessions.cleanupExpiredBuffers();
+				logger.debug('SOCKET', 'Cleaned up expired message buffers');
+			}
+		} catch (err) {
+			logger.error('SOCKET', 'Error cleaning up expired buffers:', err);
+		}
+	}, 60000); // Clean up every minute
 
 	logger.info('SOCKET', 'Simplified Socket.IO server initialized');
 	return io;

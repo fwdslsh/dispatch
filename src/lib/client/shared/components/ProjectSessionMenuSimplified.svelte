@@ -200,24 +200,18 @@
 			if (response.ok) {
 				const resumedSession = await response.json();
 				// Update our session with resume flag
-				const sessionToResume = {
-					...session,
-					id: resumedSession.id || session.id,
-					shouldResume: true,
-					resumeSession: true,
-					isActive: true
-				};
-
+				const resumedId = resumedSession.id || session.id;
 				await loadAllSessions();
-				selectSession(sessionToResume);
+				selectedSession = resumedId;
 				onSessionSelected?.({
 					detail: {
-						...sessionToResume,
+						id: resumedId,
+						type: session.type,
+						workspacePath: session.workspacePath,
+						isActive: true,
 						shouldResume: true
 					}
 				});
-
-				// Switch to active sessions tab
 				currentTab = 'active';
 			} else {
 				const errorData = await response.text();
@@ -291,50 +285,15 @@
 							</div>
 						{:else}
 							{#each activeSessions as session (session.id)}
-								<div
-									class="session-card inactive-session {selectedSession === session.id
-										? 'selected'
-										: ''}"
-									onclick={() => selectSession(session)}
-									role="button"
-									tabindex="0"
-									onkeydown={(e) => {
-										if (e.key === 'Enter' || e.key === ' ') {
-											e.preventDefault();
-											selectSession(session);
-										}
-									}}
-								>
-									<div class="session-header">
-										<div class="session-type-icon">
-											{#if session.type === 'claude'}
-												<IconClaude size={16} />
-											{:else}
-												<IconTerminal size={16} />
-											{/if}
-										</div>
-										<div class="session-info">
-											<div class="session-title">{session.title}</div>
-											<div class="session-meta">
-												<span class="session-workspace" title={session.workspacePath}>
-													{session.workspacePath}
-												</span>
-												<span class="session-date">{formatDate(session.lastActivity)}</span>
-											</div>
-										</div>
-										<Button
-											variant="ghost"
-											augmented="none"
-											onclick={(e) => {
-												e.stopPropagation();
-												selectSession(session);
-											}}
-											class="action-button"
-										>
-											Connect
-										</Button>
-									</div>
-								</div>
+								<SessionCard
+									{session}
+									{selectedSession}
+									onSelect={selectSession}
+									onAction={selectSession}
+									actionLabel="Connect"
+									{formatDate}
+									isActive={true}
+								/>
 							{/each}
 						{/if}
 					{/if}
@@ -427,50 +386,15 @@
 							</div>
 						{:else}
 							{#each historicalSessions as session (session.id)}
-								<div
-									class="session-card inactive-session {selectedSession === session.id
-										? 'selected'
-										: ''}"
-									onclick={() => selectSession(session)}
-									role="button"
-									tabindex="0"
-									onkeydown={(e) => {
-										if (e.key === 'Enter' || e.key === ' ') {
-											e.preventDefault();
-											selectSession(session);
-										}
-									}}
-								>
-									<div class="session-header">
-										<div class="session-type-icon">
-											{#if session.type === 'claude'}
-												<IconClaude size={16} />
-											{:else}
-												<IconTerminal size={16} />
-											{/if}
-										</div>
-										<div class="session-info">
-											<div class="session-title">{session.title}</div>
-											<div class="session-meta">
-												<span class="session-workspace" title={session.workspacePath}>
-													{session.workspacePath}
-												</span>
-												<span class="session-date">{formatDate(session.lastActivity)}</span>
-											</div>
-										</div>
-										<Button
-											variant="ghost"
-											augmented="none"
-											onclick={(e) => {
-												e.stopPropagation();
-												resumeSession(session);
-											}}
-											class="action-button"
-										>
-											Resume
-										</Button>
-									</div>
-								</div>
+								<SessionCard
+									{session}
+									{selectedSession}
+									onSelect={selectSession}
+									onAction={resumeSession}
+									actionLabel="Resume"
+									{formatDate}
+									isActive={false}
+								/>
 							{/each}
 						{/if}
 					{/if}
@@ -870,130 +794,4 @@
 		color: var(--text);
 	}
 
-	/* Unified Session Cards */
-	.session-card {
-		background: var(--bg);
-		min-height: 100px;
-		border: 1px solid var(--surface-border);
-		border-radius: 8px;
-		padding: var(--space-4);
-		transition: all 0.2s ease;
-		cursor: pointer;
-		margin-bottom: var(--space-2);
-		outline: none;
-		width: 100%;
-		position: relative;
-		overflow: hidden;
-	}
-
-	.session-card:hover {
-		border-color: var(--primary-dim);
-		background: var(--bg-light);
-		transform: translateY(-1px);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-	}
-
-	.session-card:focus {
-		border-color: var(--primary);
-		box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
-	}
-
-	.session-card.selected {
-		border-color: var(--primary);
-		background: rgba(var(--primary-rgb), 0.05);
-		box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.2);
-	}
-
-	.session-card.active-session {
-		border-color: var(--success);
-		background: rgba(var(--success-rgb), 0.05);
-		box-shadow: 0 0 0 1px rgba(var(--success-rgb), 0.1);
-	}
-
-	.session-card.active-session:hover {
-		background: rgba(var(--success-rgb), 0.1);
-		box-shadow: 0 2px 12px rgba(var(--success-rgb), 0.2);
-	}
-
-	.session-card.active-session.selected {
-		border-color: var(--success);
-		background: rgba(var(--success-rgb), 0.15);
-		box-shadow: 0 0 0 2px rgba(var(--success-rgb), 0.3);
-	}
-
-	.session-card.inactive-session {
-		border-color: var(--surface-border);
-		opacity: 0.9;
-	}
-
-	.session-card.inactive-session:hover {
-		opacity: 1;
-	}
-
-	.session-card.inactive-session.selected {
-		border-color: var(--primary);
-		background: rgba(var(--primary-rgb), 0.05);
-		opacity: 1;
-	}
-
-	.session-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-4);
-	}
-
-	.session-type-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 48px;
-		height: 48px;
-		/* background: var(--surface);
-		border: 2px solid var(--primary-dim);
-		border-radius: 8px; */
-		color: var(--primary);
-		flex-shrink: 0;
-	}
-
-	.session-info {
-		flex: 1;
-		min-width: 0;
-		overflow: hidden;
-	}
-
-	.session-title {
-		font-weight: 600;
-		color: var(--text);
-		font-size: 1rem;
-		margin-bottom: var(--space-1);
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-height: 1.5rem;
-		line-height: 1.5;
-	}
-
-	.session-meta {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-		font-size: 0.8rem;
-		min-height: 2.5rem;
-	}
-
-	.session-workspace {
-		color: var(--text-muted);
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		word-break: break-all;
-		line-height: 1.3;
-		max-width: 100%;
-		display: block;
-	}
-
-	.session-date {
-		color: var(--text-dim);
-		font-size: 0.7rem;
-		flex-shrink: 0;
-	}
 </style>

@@ -82,6 +82,10 @@ export class SessionViewModel {
 
 		// Session activity tracking
 		this.sessionActivity = $state(new Map()); // id -> activity state
+		
+		// Session history loading state
+		this.historyLoadingState = $state(new Map()); // id -> { loading: boolean, timestamp: number }
+		this.lastMessageTimestamps = $state(new Map()); // id -> timestamp
 
 		// Initialize
 		this.initialize();
@@ -542,6 +546,58 @@ export class SessionViewModel {
 	 */
 	getSessionActivity(sessionId) {
 		return this.sessionActivity.get(sessionId) || 'idle';
+	}
+	
+	/**
+	 * Set history loading state for a session
+	 * @param {string} sessionId
+	 * @param {boolean} isLoading
+	 */
+	setHistoryLoadingState(sessionId, isLoading) {
+		const currentState = this.historyLoadingState.get(sessionId) || {};
+		this.historyLoadingState.set(sessionId, {
+			loading: isLoading,
+			timestamp: isLoading ? Date.now() : currentState.timestamp
+		});
+	}
+	
+	/**
+	 * Check if session is loading history
+	 * @param {string} sessionId
+	 * @returns {boolean}
+	 */
+	isLoadingHistory(sessionId) {
+		const state = this.historyLoadingState.get(sessionId);
+		return state?.loading || false;
+	}
+	
+	/**
+	 * Update last message timestamp for a session
+	 * @param {string} sessionId
+	 * @param {number} timestamp
+	 */
+	updateLastMessageTimestamp(sessionId, timestamp) {
+		this.lastMessageTimestamps.set(sessionId, timestamp);
+	}
+	
+	/**
+	 * Get last message timestamp for a session
+	 * @param {string} sessionId
+	 * @returns {number|null}
+	 */
+	getLastMessageTimestamp(sessionId) {
+		return this.lastMessageTimestamps.get(sessionId) || null;
+	}
+	
+	/**
+	 * Check if any sessions are loading history
+	 * @returns {boolean}
+	 */
+	hasAnyLoadingHistory() {
+		for (const [_, state] of this.historyLoadingState) {
+			if (state?.loading) return true;
+		}
+		return false;
 	}
 
 	/**

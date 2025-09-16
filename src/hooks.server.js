@@ -27,8 +27,8 @@ if (!globalThis.__API_SERVICES) {
 		});
 
 		// Create managers without Socket.IO for API use
-		const terminals = new TerminalManager({ io: null });
-		const claude = new ClaudeSessionManager({ io: null });
+		const terminals = new TerminalManager({ io: null, sessionRouter: sessions });
+		const claude = new ClaudeSessionManager({ io: null, sessionRouter: sessions });
 
 		// Create unified session manager
 		const sessionManager = new SessionManager({

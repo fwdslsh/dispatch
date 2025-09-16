@@ -1,6 +1,7 @@
 import { getDatabaseManager } from '../db/DatabaseManager.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 import { logger } from '../utils/logger.js';
+import { emitWithBuffer } from '../utils/events.js';
 
 let pty;
 let ptyLoadAttempted = false;
@@ -45,8 +46,9 @@ export function resetPtyState() {
 }
 
 export class TerminalManager {
-	constructor({ io }) {
+	constructor({ io, sessionRouter = null }) {
 		this.io = io;
+		this.sessionRouter = sessionRouter; // Store reference to session router for buffering
 		this.terminals = new Map(); // id -> { term, workspacePath, history }
 		this.nextId = 1;
 		// Terminal history is now stored in database instead of files
@@ -70,6 +72,11 @@ export class TerminalManager {
 		} catch (error) {
 			logger.error('[TERMINAL] Failed to initialize database:', error);
 		}
+	}
+
+	setSessionRouter(sessionRouter) {
+		this.sessionRouter = sessionRouter;
+		logger.info('TERMINAL', 'Session router set for message buffering');
 	}
 
 	async saveTerminalHistory(id, data) {
@@ -132,7 +139,8 @@ export class TerminalManager {
 			workspacePath,
 			socket: socket || this.io,
 			history: '',
-			appSessionId // Store application session ID for routing
+			appSessionId, // Store application session ID for routing
+			idleTimer: null // Timer for debouncing idle state
 		});
 
 		logger.info('TERMINAL', `Terminal ${id} created successfully`);
@@ -144,27 +152,71 @@ export class TerminalManager {
 
 		term.onData((data) => {
 			const terminalData = this.terminals.get(id);
-			if (terminalData && terminalData.socket) {
-				try {
-					logger.debug('TERMINAL', `Emitting output to socket for terminal ${id}`);
-					terminalData.socket.emit(SOCKET_EVENTS.TERMINAL_OUTPUT, { sessionId: id, data });
-				} catch (e) {
-					logger.error('TERMINAL', `Error emitting terminal output:`, e);
+			
+			// Set streaming state when terminal outputs data
+			if (this.sessionRouter && appSessionId) {
+				this.sessionRouter.setStreaming(appSessionId);
+				// Debounce setting back to idle
+				if (terminalData && terminalData.idleTimer) {
+					clearTimeout(terminalData.idleTimer);
 				}
-				// Save to history
-				this.saveTerminalHistory(id, data);
-			} else {
-				logger.debug('TERMINAL', `No socket available for terminal ${id} - data will be lost`);
+				if (terminalData) {
+					terminalData.idleTimer = setTimeout(() => {
+						if (this.sessionRouter && appSessionId) {
+							this.sessionRouter.setIdle(appSessionId);
+						}
+						delete terminalData.idleTimer;
+					}, 500); // Wait 500ms of no output before going idle
+				}
 			}
+			
+			// Always emit and buffer, even if socket is null
+			const messageData = {
+				sessionId: appSessionId || id,
+				data,
+				timestamp: Date.now()
+			};
+			
+			// Use emitWithBuffer to ensure messages are buffered
+			emitWithBuffer(
+				terminalData?.socket,
+				SOCKET_EVENTS.TERMINAL_OUTPUT,
+				messageData,
+				this.sessionRouter
+			);
+			
+			// Save to history
+			this.saveTerminalHistory(id, data);
 		});
 
 		term.onExit(({ exitCode }) => {
 			const terminalData = this.terminals.get(id);
-			if (terminalData && terminalData.socket) {
-				try {
-					terminalData.socket.emit(SOCKET_EVENTS.TERMINAL_EXIT, { sessionId: id, exitCode });
-				} catch {}
+			
+			// Clear any pending idle timer
+			if (terminalData && terminalData.idleTimer) {
+				clearTimeout(terminalData.idleTimer);
 			}
+			
+			// Set idle state when terminal exits
+			if (this.sessionRouter && appSessionId) {
+				this.sessionRouter.setIdle(appSessionId);
+			}
+			
+			// Always emit and buffer, even if socket is null
+			const messageData = {
+				sessionId: appSessionId || id,
+				exitCode,
+				timestamp: Date.now()
+			};
+			
+			// Use emitWithBuffer to ensure messages are buffered
+			emitWithBuffer(
+				terminalData?.socket,
+				SOCKET_EVENTS.TERMINAL_EXIT,
+				messageData,
+				this.sessionRouter
+			);
+			
 			this.terminals.delete(id);
 		});
 
@@ -184,6 +236,16 @@ export class TerminalManager {
 			);
 			return;
 		}
+		// Set processing state when user writes to terminal
+		if (this.sessionRouter && terminal.appSessionId) {
+			this.sessionRouter.setProcessing(terminal.appSessionId);
+			// Set back to idle after a short delay since terminal commands complete quickly
+			setTimeout(() => {
+				if (this.sessionRouter && terminal.appSessionId) {
+					this.sessionRouter.setIdle(terminal.appSessionId);
+				}
+			}, 100);
+		}
 		logger.debug('TERMINAL', `[DEBUG] Writing to terminal ${id}:`, data);
 		terminal.term.write(data);
 		// Save user input to history too
@@ -199,9 +261,28 @@ export class TerminalManager {
 	stop(id) {
 		const terminal = this.terminals.get(id);
 		if (terminal) {
+			// Clear any pending idle timer
+			if (terminal.idleTimer) {
+				clearTimeout(terminal.idleTimer);
+			}
+			// Set idle state when terminal is stopped
+			if (this.sessionRouter && terminal.appSessionId) {
+				this.sessionRouter.setIdle(terminal.appSessionId);
+			}
 			terminal.term.kill();
 			// Clean up history when terminal is explicitly stopped
 			this.clearTerminalHistory(id);
+		}
+	}
+
+	async loadTerminalHistory(id) {
+		try {
+			const history = await getDatabaseManager().getTerminalHistory(id);
+			// getTerminalHistory already returns a concatenated string
+			return history || '';
+		} catch (error) {
+			logger.error(`[TERMINAL] Failed to load terminal history for ${id}:`, error);
+			return '';
 		}
 	}
 

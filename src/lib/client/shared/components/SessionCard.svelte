@@ -1,148 +1,198 @@
 <script>
-	/**
-	 * SessionCard Component
-	 * Card for displaying session information with status
-	 */
-	import { IconTerminal2, IconFolder } from '@tabler/icons-svelte';
+	import Button from './Button.svelte';
 	import IconClaude from './Icons/IconClaude.svelte';
+	import { IconTerminal } from '@tabler/icons-svelte';
 
 	// Props
 	let {
-		session = {},
-		selected = false,
-		augmented = 'tl-clip br-clip both',
-		onclick = undefined,
-		class: customClass = '',
-		...restProps
+		session,
+		selectedSession = null,
+		onSelect,
+		onAction,
+		actionLabel = 'Connect',
+		formatDate,
+		isActive = false
 	} = $props();
 
-	// Get workspace display name
-	function getWorkspaceName(path) {
-		if (!path) return 'root';
-		return path.split('/').pop() || 'root';
+	// Handle session selection
+	function handleSelect() {
+		onSelect?.(session);
 	}
+
+	// Handle action button click
+	function handleAction(e) {
+		e.stopPropagation();
+		onAction?.(session);
+	}
+
+	// Handle keyboard navigation
+	function handleKeydown(e) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handleSelect();
+		}
+	}
+
+	const sessionId = $derived(`#${session.id?.slice(0, 6) || 'unknown'}`);
 </script>
 
-<button
-	type="button"
-	class="session-card {customClass}"
-	class:selected
-	data-augmented-ui={augmented}
-	{onclick}
-	{...restProps}
+<div
+	class="session-card {isActive ? 'active-session' : 'inactive-session'} {selectedSession === session.id ? 'selected' : ''}"
+	onclick={handleSelect}
+	role="button"
+	tabindex="0"
+	onkeydown={handleKeydown}
 >
 	<div class="session-header">
-		<div class="session-type-badge">
-			<span class="type-icon">
-				{#if session.type === 'claude'}
-					<IconClaude size={16} />
-				{:else}
-					<IconTerminal2 size={16} />
-				{/if}
-			</span>
-			<span class="type-text">{session.type?.toUpperCase() || 'SESSION'}</span>
+		<div class="session-type-icon">
+			{#if session.type === 'claude'}
+				<IconClaude size={16} />
+			{:else}
+				<IconTerminal size={16} />
+			{/if}
 		</div>
-		<div class="session-status">
-			<span class="status-dot"></span>
-			<span class="status-text">ACTIVE</span>
+		<div class="session-info">
+			<div class="session-title">{session.title} ({sessionId})</div>
+			<div class="session-meta">
+				<span class="session-workspace" title={session.workspacePath}>
+					{session.workspacePath}
+				</span>
+				<span class="session-date">{formatDate(session.lastActivity)}</span>
+			</div>
 		</div>
+		<Button
+			variant="ghost"
+			augmented="none"
+			onclick={handleAction}
+			class="action-button"
+		>
+			{actionLabel}
+		</Button>
 	</div>
-	<div class="session-content">
-		<div class="session-title">{session.title || `${session.type} Session`}</div>
-		<div class="session-workspace">
-			<span class="workspace-icon-small"><IconFolder size={14} /></span>
-			<span>{getWorkspaceName(session.workspacePath)}</span>
-		</div>
-	</div>
-</button>
+</div>
 
 <style>
-	/* Use CSS utility classes from retro.css */
+	/* Unified Session Cards */
+	.session-card {
+		background: var(--bg);
+		min-height: 100px;
+		border: 1px solid var(--surface-border);
+		border-radius: 8px;
+		padding: var(--space-4);
+		transition: all 0.2s ease;
+		cursor: pointer;
+		margin-bottom: var(--space-2);
+		outline: none;
+		width: 100%;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.session-card:hover {
+		border-color: var(--primary-dim);
+		background: var(--bg-light);
+		transform: translateY(-1px);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	}
+
+	.session-card:focus {
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+	}
+
+	.session-card.selected {
+		border-color: var(--primary);
+		background: rgba(var(--primary-rgb), 0.05);
+		box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.2);
+	}
+
+	.session-card.active-session {
+		border-color: var(--success);
+		background: rgba(var(--success-rgb), 0.05);
+		box-shadow: 0 0 0 1px rgba(var(--success-rgb), 0.1);
+	}
+
+	.session-card.active-session:hover {
+		background: rgba(var(--success-rgb), 0.1);
+		box-shadow: 0 2px 12px rgba(var(--success-rgb), 0.2);
+	}
+
+	.session-card.active-session.selected {
+		border-color: var(--success);
+		background: rgba(var(--success-rgb), 0.15);
+		box-shadow: 0 0 0 2px rgba(var(--success-rgb), 0.3);
+	}
+
+	.session-card.inactive-session {
+		border-color: var(--surface-border);
+		opacity: 0.9;
+	}
+
+	.session-card.inactive-session:hover {
+		opacity: 1;
+	}
+
+	.session-card.inactive-session.selected {
+		border-color: var(--primary);
+		background: rgba(var(--primary-rgb), 0.05);
+		opacity: 1;
+	}
+
 	.session-header {
 		display: flex;
-		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 0.75rem;
-		position: relative;
-		z-index: 1;
+		gap: var(--space-4);
 	}
 
-	.session-type-badge {
+	.session-type-icon {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
-		color: var(--bg);
-		padding: 0.4rem 0.75rem;
-		border: 1px solid var(--primary);
-		border-radius: 0;
-		box-shadow:
-			0 0 10px rgba(46, 230, 107, 0.3),
-			inset 0 1px 0 rgba(255, 255, 255, 0.2);
-	}
-
-	.session-type-badge .type-icon {
-		font-size: 0.9em;
-		filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
-	}
-
-	.session-type-badge .type-text {
-		font-size: 0.7rem;
-		font-weight: 700;
-		font-family: var(--font-mono);
-		letter-spacing: 0.05em;
-		text-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
-	}
-
-	.session-status {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		font-size: 0.7rem;
-		font-weight: 700;
-		font-family: var(--font-mono);
+		justify-content: center;
+		width: 48px;
+		height: 48px;
 		color: var(--primary);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		flex-shrink: 0;
 	}
 
-	.status-dot {
-		width: 6px;
-		height: 6px;
-		background: var(--primary);
-		border-radius: 50%;
-		box-shadow: 0 0 8px rgba(46, 230, 107, 0.6);
-		animation: pulse-dot 2s ease-in-out infinite;
-	}
-
-	.session-content {
-		position: relative;
-		z-index: 1;
+	.session-info {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
 	}
 
 	.session-title {
-		font-weight: 700;
+		font-weight: 600;
 		color: var(--text);
-		margin-bottom: 0.5rem;
-		font-family: var(--font-mono);
 		font-size: 1rem;
-		text-shadow: 0 0 6px rgba(46, 230, 107, 0.2);
+		margin-bottom: var(--space-1);
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 1.5rem;
+		line-height: 1.5;
+	}
+
+	.session-meta {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		font-size: 0.8rem;
+		min-height: 2.5rem;
 	}
 
 	.session-workspace {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-family: var(--font-mono);
-		font-size: 0.8rem;
 		color: var(--text-muted);
-		opacity: 0.9;
-		font-weight: 600;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		word-break: break-all;
+		line-height: 1.3;
+		max-width: 100%;
+		display: block;
 	}
 
-	.workspace-icon-small {
-		font-size: 0.9em;
-		color: var(--primary);
-		filter: drop-shadow(0 0 4px rgba(46, 230, 107, 0.3));
+	.session-date {
+		color: var(--text-dim);
+		font-size: 0.7rem;
+		flex-shrink: 0;
 	}
 </style>
