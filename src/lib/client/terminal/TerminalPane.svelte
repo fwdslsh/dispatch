@@ -11,7 +11,7 @@
 	let socket, term, el;
 	// Also observe container size changes (e.g., parent layout changes)
 	let ro;
-	
+
 	// State for history loading
 	let isCatchingUp = $state(false);
 	let historyLoaded = false;
@@ -41,14 +41,16 @@
 		try {
 			console.log('[TERMINAL] Loading buffered messages from server for session:', sessionId);
 			isCatchingUp = true;
-			
+
 			// Request buffered messages from the server
 			// The server will replay them through normal TERMINAL_OUTPUT events
 			const bufferedMessages = await sessionSocketManager.loadSessionHistory(sessionId);
-			console.log(`[TERMINAL] Loaded ${bufferedMessages.length} buffered messages for session ${sessionId}`);
-			
+			console.log(
+				`[TERMINAL] Loaded ${bufferedMessages.length} buffered messages for session ${sessionId}`
+			);
+
 			historyLoaded = true;
-			
+
 			// Clear catching up state after a short delay if no messages are actively arriving
 			setTimeout(() => {
 				if (isCatchingUp) {
@@ -133,7 +135,7 @@
 					isCatchingUp = false;
 					console.log('[TERMINAL] Received output from active session - caught up');
 				}
-				
+
 				console.log('[TERMINAL] Output received for session:', sessionId, payload);
 				const text = typeof payload === 'string' ? payload : payload?.data;
 				if (text) {
@@ -151,7 +153,7 @@
 				isCatchingUp = false; // Clear catching up state on exit
 			} catch {}
 		});
-		
+
 		// Handle session catchup complete event
 		socket.on(SOCKET_EVENTS.SESSION_CATCHUP_COMPLETE, (data) => {
 			console.log('[TERMINAL] Session catchup complete:', data);
@@ -168,12 +170,12 @@
 			ro = new ResizeObserver(resize);
 			ro.observe(el);
 		}
-		
+
 		// Load buffered messages after socket is ready and listening
 		// This ensures we don't miss any events that might arrive while loading
 		if (shouldResume) {
 			await loadBufferedHistory();
-			
+
 			// Check if session has pending messages from the backend
 			if (socket.connected) {
 				console.log('[TERMINAL] Socket already connected - checking session activity state');
@@ -225,21 +227,22 @@
 		position: relative;
 		height: 100%;
 	}
-	
+
 	.terminal-loading {
 		position: absolute;
 		top: 0;
 		left: 0;
 		right: 0;
 		z-index: 10;
-		background: linear-gradient(to bottom, 
+		background: linear-gradient(
+			to bottom,
 			color-mix(in oklab, var(--bg) 95%, var(--accent) 5%),
 			color-mix(in oklab, var(--bg) 80%, transparent)
 		);
 		padding: var(--space-3);
 		animation: fadeIn 0.3s ease-in;
 	}
-	
+
 	.loading-message {
 		display: flex;
 		align-items: center;
@@ -248,20 +251,28 @@
 		font-size: 0.875rem;
 		font-family: var(--font-mono);
 	}
-	
+
 	.loading-icon {
 		display: inline-block;
 		animation: spin 1s linear infinite;
 	}
-	
+
 	@keyframes spin {
-		from { transform: rotate(0deg); }
-		to { transform: rotate(360deg); }
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
-	
+
 	@keyframes fadeIn {
-		from { opacity: 0; }
-		to { opacity: 1; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.terminal-container {

@@ -595,6 +595,7 @@ For production:
 ### MVVM Development Patterns
 
 **ViewModel Structure**: Each ViewModel follows consistent patterns:
+
 - Constructor injection of dependencies (API clients, services)
 - Reactive state using Svelte 5 runes (`$state`, `$derived`, `$derived.by`)
 - Async methods for external operations (API calls, persistence)
@@ -602,12 +603,14 @@ For production:
 - Error handling and loading states
 
 **Service Container Usage**:
+
 - Lazy-loaded service instantiation for performance
 - Context-based dependency injection using Svelte's `setContext`/`getContext`
 - Singleton services with proper lifecycle management
 - Easy testing with `createTestContainer()`
 
 **Component Communication**:
+
 - Parent components provide ServiceContainer via context
 - Child components access services through `useService()` or `useServiceSync()`
 - ViewModels handle all business logic and state management

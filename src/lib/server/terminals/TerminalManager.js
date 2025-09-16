@@ -152,7 +152,7 @@ export class TerminalManager {
 
 		term.onData((data) => {
 			const terminalData = this.terminals.get(id);
-			
+
 			// Set streaming state when terminal outputs data
 			if (this.sessionRouter && appSessionId) {
 				this.sessionRouter.setStreaming(appSessionId);
@@ -169,14 +169,14 @@ export class TerminalManager {
 					}, 500); // Wait 500ms of no output before going idle
 				}
 			}
-			
+
 			// Always emit and buffer, even if socket is null
 			const messageData = {
 				sessionId: appSessionId || id,
 				data,
 				timestamp: Date.now()
 			};
-			
+
 			// Use emitWithBuffer to ensure messages are buffered
 			emitWithBuffer(
 				terminalData?.socket,
@@ -184,31 +184,31 @@ export class TerminalManager {
 				messageData,
 				this.sessionRouter
 			);
-			
+
 			// Save to history
 			this.saveTerminalHistory(id, data);
 		});
 
 		term.onExit(({ exitCode }) => {
 			const terminalData = this.terminals.get(id);
-			
+
 			// Clear any pending idle timer
 			if (terminalData && terminalData.idleTimer) {
 				clearTimeout(terminalData.idleTimer);
 			}
-			
+
 			// Set idle state when terminal exits
 			if (this.sessionRouter && appSessionId) {
 				this.sessionRouter.setIdle(appSessionId);
 			}
-			
+
 			// Always emit and buffer, even if socket is null
 			const messageData = {
 				sessionId: appSessionId || id,
 				exitCode,
 				timestamp: Date.now()
 			};
-			
+
 			// Use emitWithBuffer to ensure messages are buffered
 			emitWithBuffer(
 				terminalData?.socket,
@@ -216,7 +216,7 @@ export class TerminalManager {
 				messageData,
 				this.sessionRouter
 			);
-			
+
 			this.terminals.delete(id);
 		});
 

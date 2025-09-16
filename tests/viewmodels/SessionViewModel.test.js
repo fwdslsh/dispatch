@@ -280,7 +280,6 @@ describe('SessionViewModel', () => {
 
 			expect(mockSessionApi.unpin).toHaveBeenCalledWith(sessionId);
 		});
-
 	});
 
 	describe('Session Display Management', () => {

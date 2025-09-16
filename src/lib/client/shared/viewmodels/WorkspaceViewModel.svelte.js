@@ -32,7 +32,7 @@ export class WorkspaceViewModel {
 
 		// Claude projects
 		this.claudeProjects = $state([]);
-		
+
 		// Session history loading coordination
 		this.sessionHistoryLoadQueue = $state(new Set()); // sessionIds currently loading history
 		this.sessionHistoryLoadedSet = $state(new Set()); // sessionIds that have loaded history
@@ -336,17 +336,20 @@ export class WorkspaceViewModel {
 	 */
 	startSessionHistoryLoad(sessionId) {
 		// Check if already loaded or loading
-		if (this.sessionHistoryLoadedSet.has(sessionId) || this.sessionHistoryLoadQueue.has(sessionId)) {
+		if (
+			this.sessionHistoryLoadedSet.has(sessionId) ||
+			this.sessionHistoryLoadQueue.has(sessionId)
+		) {
 			console.log(`[WorkspaceViewModel] Session ${sessionId} history already loaded or loading`);
 			return false;
 		}
-		
+
 		// Add to loading queue
 		this.sessionHistoryLoadQueue.add(sessionId);
 		console.log(`[WorkspaceViewModel] Started history load for session ${sessionId}`);
 		return true;
 	}
-	
+
 	/**
 	 * Mark session history as loaded
 	 * @param {string} sessionId
@@ -357,7 +360,7 @@ export class WorkspaceViewModel {
 		this.sessionHistoryLoadedSet.add(sessionId);
 		console.log(`[WorkspaceViewModel] Completed history load for session ${sessionId}`);
 	}
-	
+
 	/**
 	 * Check if session history is loaded
 	 * @param {string} sessionId
@@ -366,7 +369,7 @@ export class WorkspaceViewModel {
 	isSessionHistoryLoaded(sessionId) {
 		return this.sessionHistoryLoadedSet.has(sessionId);
 	}
-	
+
 	/**
 	 * Check if session history is currently loading
 	 * @param {string} sessionId
@@ -375,7 +378,7 @@ export class WorkspaceViewModel {
 	isSessionHistoryLoading(sessionId) {
 		return this.sessionHistoryLoadQueue.has(sessionId);
 	}
-	
+
 	/**
 	 * Check if any session is loading history
 	 * @returns {boolean}
@@ -383,7 +386,7 @@ export class WorkspaceViewModel {
 	hasAnySessionLoadingHistory() {
 		return this.sessionHistoryLoadQueue.size > 0;
 	}
-	
+
 	/**
 	 * Clear history loading state for a session
 	 * @param {string} sessionId
@@ -392,7 +395,7 @@ export class WorkspaceViewModel {
 		this.sessionHistoryLoadQueue.delete(sessionId);
 		this.sessionHistoryLoadedSet.delete(sessionId);
 	}
-	
+
 	/**
 	 * Clear all history loading states
 	 */

@@ -9,7 +9,6 @@
 	 * @typedef {import('./types.js').Keymap} Keymap
 	 */
 
-
 	// Props (runes)
 	let {
 		/** @type {LayoutNode|null} */ initial = null,
@@ -283,6 +282,7 @@
   Structural classes only; no visual styles.
   Provide layout sizing via your global CSS (e.g., make .wm-root fill its parent).
 -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
 	bind:this={containerEl}
 	class="wm-root"

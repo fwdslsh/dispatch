@@ -9,7 +9,6 @@
 		useServiceContainer
 	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { WorkspaceViewModel } from '$lib/client/shared/viewmodels/WorkspaceViewModel.svelte.js';
-	import { SessionViewModel } from '$lib/client/shared/viewmodels/SessionViewModel.svelte.js';
 	import { LayoutViewModel } from '$lib/client/shared/viewmodels/LayoutViewModel.svelte.js';
 	import { ModalViewModel } from '$lib/client/shared/viewmodels/ModalViewModel.svelte.js';
 
@@ -21,6 +20,7 @@
 	// Components
 	import WorkspaceHeader from './WorkspaceHeader.svelte';
 	import SessionGrid from './SessionGrid.svelte';
+	import SessionWindowManager from './SessionWindowManager.svelte';
 	import SessionContainer from './SessionContainer.svelte';
 	import SessionHeader from './SessionHeader.svelte';
 	import SessionViewport from './SessionViewport.svelte';
@@ -49,9 +49,14 @@
 		debug: false
 	});
 
-	// ViewModels
+	// ViewModels and Services
 	let workspaceViewModel = $state();
 	let sessionViewModel = $state();
+	let windowViewModel = $state();
+	let tileAssignmentService = $state();
+
+	// Component references
+	let sessionWindowManager = $state();
 
 	/** @type {LayoutViewModel} */
 	let layoutViewModel = $state();
@@ -76,8 +81,27 @@
 	const displayedSessions = $derived(visibleSessions || []);
 	const currentWorkspace = $derived(workspaceState.current);
 
+	// Debug effect to track session state changes
+	$effect(() => {
+		console.log('[WorkspacePage] Session state updated:');
+		console.log('- sessionState.all.length:', sessionState.all.length);
+		console.log('- sessionState.displayed.length:', sessionState.displayed.length);
+		console.log('- visibleSessions.length:', visibleSessions.length);
+		console.log('- displayedSessions.length:', displayedSessions.length);
+		console.log('- useWindowManager:', useWindowManager);
+		if (displayedSessions.length > 0) {
+			console.log('- Sample displayedSession:', {
+				id: displayedSessions[0]?.id,
+				title: displayedSessions[0]?.title,
+				type: displayedSessions[0]?.type
+			});
+		}
+	});
+
 	// Responsive state
 	const isMobile = $derived(currentBreakpoint === 'mobile');
+	// Use WindowManager on desktop if we have any sessions (not just displayed ones)
+	const useWindowManager = $derived(!isMobile);
 
 	// PWA installation handling
 	let deferredPrompt = $state(null);
@@ -123,6 +147,14 @@
 		}
 	});
 
+	// Set up reactive session observation for tile assignment
+	$effect(() => {
+		if (tileAssignmentService && displayedSessions) {
+			// Update the service with current sessions for reactive observation
+			tileAssignmentService.currentSessions = displayedSessions;
+		}
+	});
+
 	// Initialization
 	onMount(async () => {
 		// Authentication check
@@ -149,13 +181,17 @@
 
 		// Initialize ViewModels
 		const workspaceApi = await container.get('workspaceApi');
-		const sessionApi = await container.get('sessionApi');
 		const persistence = await container.get('persistence');
 		const layout = await container.get('layout');
 		const socketService = await container.get('socket');
 
+		// Create WorkspaceViewModel directly (not shared with other components)
 		workspaceViewModel = new WorkspaceViewModel(workspaceApi, persistence);
-		sessionViewModel = new SessionViewModel(sessionApi, persistence, layout);
+
+		// Get shared ViewModels from container (ensures proper dependency order)
+		sessionViewModel = await container.get('sessionViewModel');
+		windowViewModel = await container.get('windowViewModel');
+		tileAssignmentService = await container.get('tileAssignmentService');
 
 		layoutViewModel = new LayoutViewModel(layout);
 		modalViewModel = new ModalViewModel();
@@ -166,6 +202,8 @@
 		console.log('[WorkspacePage] Loading sessions...');
 		await sessionViewModel.loadSessions();
 		console.log('[WorkspacePage] Sessions loaded');
+
+		// TileAssignmentService is set up reactively via $effect above
 
 		// Initialize responsive state
 		layoutViewModel.updateResponsiveState();
@@ -243,6 +281,8 @@
 	}
 
 	function handleCreateSession(type = 'claude') {
+		// Clean session creation flow - no interception
+		// The TileAssignmentService will handle tile assignment reactively after session creation
 		if (modalViewModel) {
 			modalViewModel.openCreateSessionModal(type);
 		}
@@ -270,7 +310,13 @@
 	}
 
 	function handleSessionClose(sessionId) {
+		// Close session in SessionViewModel
 		sessionViewModel.closeSession(sessionId);
+
+		// Notify WindowViewModel for tile management
+		if (windowViewModel && !isMobile) {
+			windowViewModel.handleSessionClosed(sessionId);
+		}
 	}
 
 	function handleSessionUnpin(sessionId) {
@@ -281,12 +327,19 @@
 		const { id, type, workspacePath, typeSpecificId } = detail;
 		if (!id || !type || !workspacePath) return;
 
+		// Handle session creation in SessionViewModel
 		sessionViewModel.handleSessionCreated({
 			id,
 			type: type === 'terminal' ? 'pty' : type,
 			workspacePath,
 			typeSpecificId
 		});
+
+		// Notify WindowViewModel for tile management
+		if (windowViewModel && !isMobile) {
+			windowViewModel.handleSessionCreated(id);
+		}
+
 		modalViewModel.closeModal('createSession');
 	}
 </script>
@@ -330,7 +383,20 @@
 	<main class="main-content">
 		{#if displayedSessions.length === 0}
 			<EmptyWorkspace onCreateSession={handleCreateSession} />
+		{:else if useWindowManager && windowViewModel}
+			<!-- Desktop: Use tiling window manager -->
+			<SessionWindowManager
+				{windowViewModel}
+				{tileAssignmentService}
+				sessions={displayedSessions}
+				onSessionFocus={handleSessionFocus}
+				onSessionClose={handleSessionClose}
+				onSessionUnpin={handleSessionUnpin}
+				onCreateSession={handleCreateSession}
+				bind:this={sessionWindowManager}
+			/>
 		{:else}
+			<!-- Mobile: Use traditional grid layout -->
 			<SessionGrid sessions={displayedSessions} onSessionFocus={handleSessionFocus}>
 				{#snippet sessionContainer(session, index)}
 					<SessionContainer
@@ -387,7 +453,7 @@
 		height: 100dvh;
 		display: grid;
 		grid-template-columns: 1fr;
-		grid-template-rows: auto 1fr min-content;
+		grid-template-rows: min-content 1fr min-content;
 		grid-template-areas:
 			'header'
 			'main'
@@ -481,31 +547,9 @@
 		padding: 0;
 	}
 
-	/* Mobile layout */
-	@media (max-width: 768px) {
-		.dispatch-workspace {
-			grid-template-columns: 1fr !important;
-			grid-template-rows: 1fr;
-			grid-template-areas: 'main';
-			transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-			height: 100vh;
-			height: 100dvh;
-			overflow: hidden;
-		}
-
-		.main-content {
-			height: 100%;
-		}
-	}
-
 	/* Very small screens */
 	@media (max-width: 480px) {
 		.dispatch-workspace {
-			grid-template-rows: 1fr min-content !important;
-			grid-template-areas:
-				'main'
-				'footer' !important;
-			transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 			padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
 		}
 

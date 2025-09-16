@@ -161,7 +161,7 @@ export function sendBufferedMessages(socket, sessionId, sinceTimestamp, sessionR
 	if (!sessionRouter || !socket) return;
 
 	const messages = sessionRouter.getBufferedMessages(sessionId, sinceTimestamp);
-	
+
 	if (messages.length > 0) {
 		// Send each buffered message in order
 		for (const message of messages) {
@@ -171,7 +171,7 @@ export function sendBufferedMessages(socket, sessionId, sinceTimestamp, sessionR
 				console.debug('Failed to send buffered message:', error.message);
 			}
 		}
-		
+
 		// Emit a catchup complete event
 		socket.emit(SOCKET_EVENTS.SESSION_CATCHUP_COMPLETE, {
 			sessionId,

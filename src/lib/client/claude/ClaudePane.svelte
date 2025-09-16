@@ -815,24 +815,26 @@
 		// This ensures we don't miss any events that might arrive while loading
 		if (claudeSessionId || shouldResume) {
 			await loadPreviousMessages();
-			
+
 			// After loading file-based history, also request buffered messages
 			// This catches any messages that were sent while disconnected
 			if (socket.connected) {
 				console.log('Loading buffered messages from server for session:', sessionId);
 				isCatchingUp = true;
-				
+
 				try {
 					// Request messages buffered on the server
 					// The server will replay them through normal channels
 					const bufferedMessages = await sessionSocketManager.loadSessionHistory(sessionId);
-					console.log(`Loaded ${bufferedMessages.length} buffered messages for session ${sessionId}`);
-					
+					console.log(
+						`Loaded ${bufferedMessages.length} buffered messages for session ${sessionId}`
+					);
+
 					// The messages will be replayed through normal event handlers
 					// Just wait a bit for them to arrive
 					if (bufferedMessages.length > 0) {
 						// Give time for replayed messages to be processed
-						await new Promise(resolve => setTimeout(resolve, 500));
+						await new Promise((resolve) => setTimeout(resolve, 500));
 					}
 				} catch (error) {
 					console.error('Failed to load buffered messages:', error);

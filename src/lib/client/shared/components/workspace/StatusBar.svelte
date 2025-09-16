@@ -44,13 +44,13 @@
 	<div class="status-bar">
 		<!-- Left group: System actions -->
 		<div class="left-group">
-			<IconButton onclick={onLogout} aria-label="Logout" title="Logout">
+			<!-- <IconButton onclick={onLogout} aria-label="Logout" title="Logout">
 				<IconLogout2 size={18} />
 			</IconButton>
 
 			<IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
 				<IconAppWindow size={18} />
-			</IconButton>
+			</IconButton> -->
 
 			<IconButton onclick={onOpenSettings} aria-label="Open settings" title="Settings">
 				<IconAdjustmentsAlt size={18} />

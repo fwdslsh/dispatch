@@ -103,7 +103,7 @@ export function setupSocketIO(httpServer) {
 
 		// Wrap socket.emit to buffer messages for session history
 		const originalEmit = socket.emit.bind(socket);
-		socket.emit = function(eventType, ...args) {
+		socket.emit = function (eventType, ...args) {
 			// Buffer certain message types for session replay
 			const bufferableEvents = [
 				SOCKET_EVENTS.TERMINAL_OUTPUT,
@@ -420,18 +420,25 @@ export function setupSocketIO(httpServer) {
 				}
 
 				const { sessions } = getServices();
-				
+
 				if (!sessions || !data.sessionId) {
-					if (callback) callback({ success: false, error: 'Session router not available or sessionId missing' });
+					if (callback)
+						callback({
+							success: false,
+							error: 'Session router not available or sessionId missing'
+						});
 					return;
 				}
 
 				// Get buffered messages for the session
 				const sinceTimestamp = data.sinceTimestamp || 0;
 				const messages = sessions.getBufferedMessages(data.sessionId, sinceTimestamp);
-				
-				logger.info('SOCKET', `Loading ${messages.length} buffered messages for session ${data.sessionId}`);
-				
+
+				logger.info(
+					'SOCKET',
+					`Loading ${messages.length} buffered messages for session ${data.sessionId}`
+				);
+
 				if (callback) {
 					callback({
 						success: true,
@@ -444,7 +451,7 @@ export function setupSocketIO(httpServer) {
 				// Optionally emit the messages directly to the socket
 				if (data.replay) {
 					if (messages.length > 0) {
-						messages.forEach(msg => {
+						messages.forEach((msg) => {
 							try {
 								socket.emit(msg.eventType, msg.data);
 							} catch (err) {
@@ -452,11 +459,10 @@ export function setupSocketIO(httpServer) {
 							}
 						});
 					}
-					
+
 					// Always emit completion event when replay is requested
-					const lastTimestamp = messages.length > 0 
-						? messages[messages.length - 1].timestamp 
-						: Date.now();
+					const lastTimestamp =
+						messages.length > 0 ? messages[messages.length - 1].timestamp : Date.now();
 					socket.emit(SOCKET_EVENTS.SESSION_CATCHUP_COMPLETE, {
 						sessionId: data.sessionId,
 						messageCount: messages.length,

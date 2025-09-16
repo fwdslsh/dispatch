@@ -31,11 +31,11 @@ export class ClaudeSessionManager {
 		const cliPath = resolve(process.cwd(), './node_modules/.bin/claude');
 
 		this.defaultOptions = {
-			maxTurns: 50,
+			maxTurns: 500,
 			outputStyle: 'semantic-html',
-			customSystemPrompt:
-				'You are a helpful coding assistant integrated into a web terminal interface.',
-			allowedTools: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'WebSearch', 'Task'],
+			// customSystemPrompt:
+			// 	'You are a helpful coding assistant integrated into a web terminal interface.',
+			// allowedTools: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'WebSearch', 'Task'],
 			permissionMode: 'bypassPermissions',
 			pathToClaudeCodeExecutable: cliPath
 		};
@@ -292,7 +292,7 @@ export class ClaudeSessionManager {
 						events: [event],
 						timestamp: Date.now()
 					};
-					
+
 					// Use emitWithBuffer to ensure messages are buffered
 					emitWithBuffer(
 						s.socket,
@@ -300,7 +300,7 @@ export class ClaudeSessionManager {
 						messageData,
 						this.sessionRouter
 					);
-					
+
 					// Auto-start OAuth flow if Claude asks user to run /login
 					try {
 						if (
@@ -369,7 +369,7 @@ export class ClaudeSessionManager {
 			if (this.sessionRouter && s.appSessionId) {
 				this.sessionRouter.setIdle(s.appSessionId);
 			}
-			
+
 			// Emit a completion event so the session can be marked as idle
 			// Use appSessionId if available, otherwise fall back to the key
 			const emitSessionId = s.appSessionId || key;
@@ -377,7 +377,7 @@ export class ClaudeSessionManager {
 				sessionId: emitSessionId,
 				timestamp: Date.now()
 			};
-			
+
 			// Always emit and buffer, even if socket is null
 			emitWithBuffer(
 				s.socket,
@@ -431,7 +431,7 @@ export class ClaudeSessionManager {
 								events: [event],
 								timestamp: Date.now()
 							};
-							
+
 							// Use emitWithBuffer to ensure messages are buffered
 							emitWithBuffer(
 								s.socket,
@@ -445,14 +445,14 @@ export class ClaudeSessionManager {
 					if (this.sessionRouter && s.appSessionId) {
 						this.sessionRouter.setIdle(s.appSessionId);
 					}
-					
+
 					// Emit completion event for the fresh query
 					const emitSessionId = s.appSessionId || key;
 					const completeData = {
 						sessionId: emitSessionId,
 						timestamp: Date.now()
 					};
-					
+
 					// Always emit and buffer, even if socket is null
 					emitWithBuffer(
 						s.socket,

@@ -82,7 +82,7 @@ export class SessionViewModel {
 
 		// Session activity tracking
 		this.sessionActivity = $state(new Map()); // id -> activity state
-		
+
 		// Session history loading state
 		this.historyLoadingState = $state(new Map()); // id -> { loading: boolean, timestamp: number }
 		this.lastMessageTimestamps = $state(new Map()); // id -> timestamp
@@ -109,15 +109,30 @@ export class SessionViewModel {
 		try {
 			const options = {
 				workspace: this.filterByWorkspace,
-				includeAll: !this.showOnlyPinned
+				includeAll: true // Always include all sessions initially, filter client-side if needed
 			};
 
 			const result = await this.sessionApi.list(options);
 			console.log('[SessionViewModel] Loaded sessions from API:', result.sessions);
 
-			// Filter out any sessions without valid IDs
-			this.sessions = (result.sessions || []).filter((s) => s && s.id);
-			console.log('[SessionViewModel] Valid sessions after filtering:', this.sessions);
+			// Filter and normalize sessions to ensure they have all required fields
+			this.sessions = (result.sessions || [])
+				.filter((s) => s && s.id)
+				.map((session) => ({
+					id: session.id,
+					typeSpecificId: session.typeSpecificId,
+					workspacePath: session.workspacePath,
+					sessionType: session.type, // API uses 'type', we use 'sessionType' internally
+					type: session.type, // Keep both for compatibility
+					isActive: session.isActive !== undefined ? session.isActive : true,
+					pinned: session.pinned !== undefined ? session.pinned : true,
+					title: session.title || `${session.type} session`,
+					createdAt: session.createdAt || new Date().toISOString(),
+					lastActivity: session.lastActivity || new Date().toISOString(),
+					activityState: session.activityState || 'idle',
+					resumeSession: session.resumeSession || false
+				}));
+			console.log('[SessionViewModel] Normalized sessions:', this.sessions.length, 'sessions loaded');
 
 			// Update active sessions map
 			this.updateActiveSessionsMap();
@@ -483,7 +498,19 @@ export class SessionViewModel {
 		this.displayed = savedDisplayed.filter((id) => this.sessions.some((s) => s.id === id));
 		this.currentMobileSession = this.persistence.get('dispatch-mobile-index', 0);
 
-		console.log('[SessionViewModel] Restored display state - valid IDs:', this.displayed);
+		console.log('[SessionViewModel] Restored display state - valid IDs:', $state.snapshot(this.displayed));
+
+		// If no displayed sessions but we have pinned sessions, auto-display them for desktop
+		if (this.displayed.length === 0 && !this.layoutService.isMobile()) {
+			const pinnedSessions = this.sessions.filter((s) => s.pinned);
+			if (pinnedSessions.length > 0) {
+				// Auto-display up to maxVisible pinned sessions
+				const maxVisible = this.layoutService.maxVisible || 4;
+				this.displayed = pinnedSessions.slice(0, maxVisible).map((s) => s.id);
+				console.log('[SessionViewModel] Auto-displaying pinned sessions:', $state.snapshot(this.displayed));
+				this.saveDisplayState();
+			}
+		}
 
 		// Sync after restoring to ensure UI gets valid sessions
 		this.syncToGlobalState();
@@ -547,7 +574,7 @@ export class SessionViewModel {
 	getSessionActivity(sessionId) {
 		return this.sessionActivity.get(sessionId) || 'idle';
 	}
-	
+
 	/**
 	 * Set history loading state for a session
 	 * @param {string} sessionId
@@ -560,7 +587,7 @@ export class SessionViewModel {
 			timestamp: isLoading ? Date.now() : currentState.timestamp
 		});
 	}
-	
+
 	/**
 	 * Check if session is loading history
 	 * @param {string} sessionId
@@ -570,7 +597,7 @@ export class SessionViewModel {
 		const state = this.historyLoadingState.get(sessionId);
 		return state?.loading || false;
 	}
-	
+
 	/**
 	 * Update last message timestamp for a session
 	 * @param {string} sessionId
@@ -579,7 +606,7 @@ export class SessionViewModel {
 	updateLastMessageTimestamp(sessionId, timestamp) {
 		this.lastMessageTimestamps.set(sessionId, timestamp);
 	}
-	
+
 	/**
 	 * Get last message timestamp for a session
 	 * @param {string} sessionId
@@ -588,7 +615,7 @@ export class SessionViewModel {
 	getLastMessageTimestamp(sessionId) {
 		return this.lastMessageTimestamps.get(sessionId) || null;
 	}
-	
+
 	/**
 	 * Check if any sessions are loading history
 	 * @returns {boolean}
@@ -643,22 +670,43 @@ export class SessionViewModel {
 	 * Sync local state to global session state
 	 */
 	syncToGlobalState() {
-		// Filter sessions to ensure they have valid IDs
-		const validSessions = this.sessions.filter((s) => s && s.id);
+		try {
+			console.log('[SessionViewModel] Starting syncToGlobalState...');
 
-		// Update global all sessions
-		setAllSessions([...validSessions]);
+			// Filter sessions to ensure they have valid IDs
+			const validSessions = this.sessions.filter((s) => s && s.id);
+			console.log('[SessionViewModel] Valid sessions count:', validSessions.length);
 
-		// Update global displayed sessions - use sessions that should be visible
-		const displayedSessions = this.layoutService.isMobile()
-			? this.visibleSessions.filter((s) => s && s.id) // Mobile: use the derived visible sessions
-			: this.displayed.map((id) => this.getSession(id)).filter((s) => s && s.id); // Desktop: use displayed IDs
+			// Update global all sessions
+			console.log('[SessionViewModel] Calling setAllSessions...');
+			setAllSessions([...validSessions]);
+			console.log('[SessionViewModel] setAllSessions completed');
 
-		console.log(
-			'[SessionViewModel] Syncing to global state, displayed sessions:',
-			displayedSessions
-		);
-		setDisplayedSessions([...displayedSessions]);
+			// Update global displayed sessions - use sessions that should be visible
+			const displayedSessions = this.layoutService.isMobile()
+				? this.visibleSessions.filter((s) => s && s.id) // Mobile: use the derived visible sessions
+				: this.displayed.map((id) => this.getSession(id)).filter((s) => s && s.id); // Desktop: use displayed IDs
+
+			// Use $state.snapshot for proper logging without Svelte warnings
+			console.log('[SessionViewModel] Syncing to global state:');
+			console.log('- All sessions count:', validSessions.length);
+			console.log('- Displayed session IDs:', $state.snapshot(this.displayed));
+			console.log('- Displayed sessions count:', displayedSessions.length);
+			console.log('- Sample session structure:', validSessions[0] ? {
+				id: validSessions[0].id,
+				title: validSessions[0].title,
+				type: validSessions[0].type || validSessions[0].sessionType,
+				pinned: validSessions[0].pinned,
+				isActive: validSessions[0].isActive
+			} : 'No sessions');
+
+			console.log('[SessionViewModel] Calling setDisplayedSessions...');
+			setDisplayedSessions([...displayedSessions]);
+			console.log('[SessionViewModel] setDisplayedSessions completed - syncToGlobalState finished successfully');
+		} catch (error) {
+			console.error('[SessionViewModel] ERROR in syncToGlobalState:', error);
+			console.error('[SessionViewModel] Error stack:', error.stack);
+		}
 	}
 
 	/**

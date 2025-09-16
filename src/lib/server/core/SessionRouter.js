@@ -109,7 +109,10 @@ export class SessionRouter {
 		// Update timestamp
 		this.bufferTimestamps.set(sessionId, Date.now());
 
-		logger.debug('SESSION_ROUTER', `Buffered message for session ${sessionId}, buffer size: ${buffer.length}`);
+		logger.debug(
+			'SESSION_ROUTER',
+			`Buffered message for session ${sessionId}, buffer size: ${buffer.length}`
+		);
 	}
 
 	getBufferedMessages(sessionId, sinceTimestamp = 0) {
@@ -127,7 +130,7 @@ export class SessionRouter {
 
 		// Return messages since the specified timestamp
 		if (sinceTimestamp > 0) {
-			return buffer.filter(msg => msg.timestamp > sinceTimestamp);
+			return buffer.filter((msg) => msg.timestamp > sinceTimestamp);
 		}
 
 		return [...buffer]; // Return copy of all messages

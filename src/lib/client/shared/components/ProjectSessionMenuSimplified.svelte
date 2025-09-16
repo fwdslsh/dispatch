@@ -242,7 +242,7 @@
 	// Initialize
 	onMount(async () => {
 		await loadAllSessions();
-		// Leave empty so DirectoryBrowser defaults to user setting or WORKSPACES_ROOT
+		// DirectoryBrowser will now default to WORKSPACES_ROOT when no startPath is provided
 	});
 
 	// Public refresh method
@@ -793,5 +793,4 @@
 		background: var(--surface);
 		color: var(--text);
 	}
-
 </style>

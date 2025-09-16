@@ -14,32 +14,21 @@
 
 	// Props
 	let { onLogout = () => {} } = $props();
-
-	// Get services
-	const container = useServiceContainer();
-
-	// Derived values from ui state
-	const shouldUseSidebar = $derived(!uiState.layout.isMobile);
-
-	// Only show header on desktop
-	const showHeader = $derived(shouldUseSidebar);
 </script>
 
-{#if showHeader}
-	<header class="workspace-header">
-		<BrandLogo />
+<header class="workspace-header">
+	<BrandLogo />
 
-		<div class="header-spacer"></div>
+	<div class="header-spacer"></div>
 
-		<LayoutControls />
+	<LayoutControls />
 
-		<div class="header-actions">
-			<IconButton class="logout-btn" onclick={onLogout} aria-label="Logout">
-				<IconLogout size={18} />
-			</IconButton>
-		</div>
-	</header>
-{/if}
+	<div class="header-actions">
+		<IconButton onclick={onLogout} aria-label="Logout">
+			<IconLogout size={18} />
+		</IconButton>
+	</div>
+</header>
 
 <style>
 	.workspace-header {
@@ -62,26 +51,10 @@
 		gap: var(--space-3);
 	}
 
-	:global(.logout-btn) {
-		margin-left: 1rem;
-		padding: 0.5em 1em;
-		background: #222;
-		color: #fff;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 1em;
-		transition: background 0.2s;
-	}
-
-	:global(.logout-btn:hover) {
-		background: #444;
-	}
-
 	/* Hide on mobile */
-	@media (max-width: 768px) {
+	/* @media (max-width: 768px) {
 		.workspace-header {
 			display: none;
 		}
-	}
+	} */
 </style>

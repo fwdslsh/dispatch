@@ -19,7 +19,7 @@
 
 	// Set default workspace path (will be set when modal opens)
 	async function setDefaultWorkspace() {
-		// Do not hardcode a default; let DirectoryBrowser pick from user settings or WORKSPACES_ROOT
+		// DirectoryBrowser will now default to WORKSPACES_ROOT when workspacePath is empty
 		if (!workspacePath) {
 			workspacePath = '';
 		}

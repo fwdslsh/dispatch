@@ -37,7 +37,10 @@
 </script>
 
 <div
-	class="session-card {isActive ? 'active-session' : 'inactive-session'} {selectedSession === session.id ? 'selected' : ''}"
+	class="session-card {isActive ? 'active-session' : 'inactive-session'} {selectedSession ===
+	session.id
+		? 'selected'
+		: ''}"
 	onclick={handleSelect}
 	role="button"
 	tabindex="0"
@@ -60,12 +63,7 @@
 				<span class="session-date">{formatDate(session.lastActivity)}</span>
 			</div>
 		</div>
-		<Button
-			variant="ghost"
-			augmented="none"
-			onclick={handleAction}
-			class="action-button"
-		>
+		<Button variant="ghost" augmented="none" onclick={handleAction} class="action-button">
 			{actionLabel}
 		</Button>
 	</div>

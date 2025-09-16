@@ -25,22 +25,22 @@
 	// Determine initial path:
 	// - Prefer explicit startPath prop if provided
 	// - Otherwise use user's saved defaultWorkingDirectory from settings (if any)
-	// - Otherwise leave empty and let API default to WORKSPACES_ROOT
+	// - Otherwise use null to signal we need to fetch the server's default
 	function getUserDefaultDirectory() {
 		try {
-			if (typeof localStorage === 'undefined') return '';
+			if (typeof localStorage === 'undefined') return null;
 			const raw = localStorage.getItem(STORAGE_CONFIG.SETTINGS_KEY);
-			if (!raw) return '';
+			if (!raw) return null;
 			const settings = JSON.parse(raw);
-			return settings?.defaultWorkingDirectory || '';
+			return settings?.defaultWorkingDirectory || null;
 		} catch (e) {
-			return '';
+			return null;
 		}
 	}
 
-	let initialPath = startPath || getUserDefaultDirectory() || '';
+	let initialPath = startPath || getUserDefaultDirectory();
 
-	// Start in the user's default directory when set; otherwise API defaults to WORKSPACES_ROOT
+	// Start with the initial path, or null if we need to fetch the server's default
 	let currentPath = $state(initialPath);
 	let loading = $state(false);
 	let error = $state('');
@@ -69,7 +69,12 @@
 		loading = true;
 		error = '';
 		try {
-			const params = new URLSearchParams({ path, showHidden: showHidden.toString() });
+			// If path is null, don't send it as a param - let the server use its default
+			const params = new URLSearchParams({ showHidden: showHidden.toString() });
+			if (path !== null && path !== undefined) {
+				params.set('path', path);
+			}
+			
 			const res = await fetch(`${api}?${params}`);
 			if (!res.ok) {
 				const text = await res.text();
@@ -86,7 +91,7 @@
 			// If the preferred start path was invalid, gracefully fall back to default base
 			if (path && !triedFallback) {
 				triedFallback = true;
-				await browse('');
+				await browse(null); // Use null to get server's default
 				return;
 			}
 		} finally {
@@ -179,6 +184,7 @@
 	// Initialize on mount
 	$effect(() => {
 		if (!entries.length && !loading && !error) {
+			// Pass currentPath even if it's null - the browse function will handle it
 			browse(currentPath);
 		}
 	});

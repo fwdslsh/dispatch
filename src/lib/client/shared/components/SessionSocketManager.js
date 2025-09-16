@@ -260,9 +260,9 @@ class SessionSocketManager {
 		const loadPromise = new Promise((resolve, reject) => {
 			const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 			const lastTimestamp = sinceTimestamp || this.lastMessageTimestamps.get(sessionId) || 0;
-			
+
 			console.log(`Loading history for session ${sessionId} since timestamp ${lastTimestamp}`);
-			
+
 			// Set up timeout in case server doesn't respond
 			const timeout = setTimeout(() => {
 				this.historyLoadPromises.delete(sessionId);
@@ -281,7 +281,7 @@ class SessionSocketManager {
 				(response) => {
 					clearTimeout(timeout);
 					this.historyLoadPromises.delete(sessionId);
-					
+
 					if (response?.error) {
 						console.error(`Failed to load history for session ${sessionId}:`, response.error);
 						reject(new Error(response.error));
@@ -301,7 +301,7 @@ class SessionSocketManager {
 		});
 
 		this.historyLoadPromises.set(sessionId, loadPromise);
-		
+
 		try {
 			return await loadPromise;
 		} catch (error) {
@@ -321,7 +321,7 @@ class SessionSocketManager {
 			this.lastMessageTimestamps.set(sessionId, timestamp);
 		}
 	}
-	
+
 	/**
 	 * Alias for updateLastTimestamp for backward compatibility
 	 * @param {string} sessionId - The session ID

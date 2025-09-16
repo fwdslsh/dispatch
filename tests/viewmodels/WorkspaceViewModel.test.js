@@ -302,7 +302,6 @@ describe('WorkspaceViewModel', () => {
 				'/selected/workspace'
 			);
 		});
-
 	});
 
 	describe('Error Handling', () => {

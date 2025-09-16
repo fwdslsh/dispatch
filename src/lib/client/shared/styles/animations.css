@@ -281,3 +281,306 @@
 		opacity: 0;
 	}
 }
+
+/* ================================================================
+   WINDOW MANAGER SPECIFIC ANIMATIONS
+   Professional micro-interactions for tiling interface
+   ================================================================ */
+
+/* Tile focus animations */
+@keyframes tile-focus-appear {
+	from {
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		border-color: var(--line);
+	}
+	to {
+		box-shadow:
+			0 0 0 2px var(--primary-glow),
+			0 4px 12px rgba(0, 0, 0, 0.15);
+		border-color: var(--accent);
+	}
+}
+
+@keyframes tile-focus-pulse {
+	0%,
+	100% {
+		box-shadow:
+			0 0 0 2px var(--primary-glow),
+			0 4px 12px rgba(0, 0, 0, 0.15);
+	}
+	50% {
+		box-shadow:
+			0 0 0 3px var(--primary-glow),
+			0 6px 16px rgba(0, 0, 0, 0.2);
+	}
+}
+
+/* Divider interaction animations */
+@keyframes divider-hover {
+	from {
+		background: var(--line);
+		box-shadow: none;
+		transform: scale(1);
+	}
+	to {
+		background: var(--accent);
+		box-shadow: 0 0 12px var(--primary-glow);
+		transform: scale(1.1);
+	}
+}
+
+@keyframes divider-drag-pulse {
+	0% {
+		box-shadow: 0 0 8px var(--primary-glow);
+	}
+	50% {
+		box-shadow: 0 0 20px var(--primary-glow);
+	}
+	100% {
+		box-shadow: 0 0 8px var(--primary-glow);
+	}
+}
+
+/* Pane resize smoothing */
+@keyframes pane-resize {
+	from {
+		opacity: 0.9;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+/* Empty tile states */
+@keyframes empty-tile-appear {
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+		border-color: transparent;
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+		border-color: var(--line);
+	}
+}
+
+@keyframes empty-tile-focus {
+	0%,
+	100% {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px var(--primary-glow);
+	}
+	50% {
+		border-color: var(--primary-bright);
+		box-shadow: 0 0 0 3px var(--primary-glow);
+	}
+}
+
+@keyframes empty-tile-icon-bounce {
+	0%,
+	100% {
+		transform: scale(1) translateY(0);
+	}
+	50% {
+		transform: scale(1.2) translateY(-4px);
+	}
+}
+
+/* Window layout transitions */
+@keyframes layout-split {
+	from {
+		opacity: 0;
+		transform: scale(0.9);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes layout-collapse {
+	from {
+		opacity: 1;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.9);
+	}
+}
+
+/* Keyboard shortcut overlay */
+@keyframes shortcut-overlay-appear {
+	from {
+		opacity: 0;
+		transform: translate(-50%, -50%) scale(0.9);
+		backdrop-filter: blur(0px);
+	}
+	to {
+		opacity: 1;
+		transform: translate(-50%, -50%) scale(1);
+		backdrop-filter: blur(8px);
+	}
+}
+
+@keyframes shortcut-key-highlight {
+	from {
+		background: var(--bg);
+		border-color: var(--line);
+		color: var(--text-muted);
+	}
+	to {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: var(--bg);
+		box-shadow: 0 0 8px var(--primary-glow);
+	}
+}
+
+/* Floating hint animations */
+@keyframes hint-float-in {
+	from {
+		opacity: 0;
+		transform: translateY(-10px) scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes hint-glow {
+	0%,
+	100% {
+		box-shadow:
+			0 0 0 1px var(--primary-glow),
+			0 4px 12px rgba(0, 0, 0, 0.2);
+	}
+	50% {
+		box-shadow:
+			0 0 0 2px var(--primary-glow),
+			0 6px 16px rgba(0, 0, 0, 0.3);
+	}
+}
+
+/* Responsive layout transitions */
+@keyframes mobile-to-desktop {
+	from {
+		grid-template-columns: 1fr;
+		gap: 0;
+	}
+	to {
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: var(--space-3);
+	}
+}
+
+@keyframes desktop-to-mobile {
+	from {
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: var(--space-3);
+	}
+	to {
+		grid-template-columns: 1fr;
+		gap: 0;
+	}
+}
+
+/* Accessibility-friendly alternatives */
+@media (prefers-reduced-motion: reduce) {
+	/* Disable complex animations, keep essential feedback */
+	@keyframes tile-focus-appear {
+		from {
+			border-color: var(--line);
+		}
+		to {
+			border-color: var(--accent);
+		}
+	}
+
+	@keyframes divider-hover {
+		from {
+			background: var(--line);
+		}
+		to {
+			background: var(--accent);
+		}
+	}
+
+	@keyframes empty-tile-appear {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	/* Remove all pulsing and scaling animations */
+	@keyframes tile-focus-pulse,
+	@keyframes divider-drag-pulse,
+	@keyframes empty-tile-focus,
+	@keyframes empty-tile-icon-bounce,
+	@keyframes hint-glow {
+		from,
+		to {
+			transform: none;
+			box-shadow: none;
+		}
+	}
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+	@keyframes tile-focus-appear {
+		from {
+			border-color: var(--line);
+			border-width: 2px;
+		}
+		to {
+			border-color: var(--accent);
+			border-width: 3px;
+		}
+	}
+
+	@keyframes divider-hover {
+		from {
+			background: var(--line);
+			border: 1px solid transparent;
+		}
+		to {
+			background: var(--accent);
+			border: 1px solid var(--text-primary);
+		}
+	}
+}
+
+/* ================================================================
+   UTILITY ANIMATION CLASSES
+   Apply these to elements for consistent motion
+   ================================================================ */
+
+.wm-animate-focus {
+	animation: tile-focus-appear 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-divider-hover {
+	animation: divider-hover 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-empty-appear {
+	animation: empty-tile-appear 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-layout-split {
+	animation: layout-split 0.25s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-layout-collapse {
+	animation: layout-collapse 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-hint-in {
+	animation: hint-float-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) 0.5s forwards;
+}
