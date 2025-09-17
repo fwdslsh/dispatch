@@ -20,7 +20,8 @@
 		onSessionFocus = () => {},
 		onSessionClose = () => {},
 		onSessionUnpin = () => {},
-		onCreateSession = () => {}
+		onCreateSession = () => {},
+		onCreateSessionDirect = null
 	} = $props();
 
 	// Window manager configuration from ViewModel with safe defaults
@@ -45,49 +46,52 @@
 	// Auto-assign sessions to tiles when sessions change
 	$effect(() => {
 		if (sessions.length > 0) {
-			console.log('[SessionWindowManager] Auto-assigning sessions to tiles:', sessions.length, 'sessions');
-
-			// Clear existing mappings
-			tileToSessionMap.clear();
-			sessionToTileMap.clear();
-
 			// Get available tile IDs from WindowManager by checking the DOM
 			const tileElements = document.querySelectorAll('[data-tile-id]');
 			const availableTileIds = Array.from(tileElements).map(el => el.getAttribute('data-tile-id')).filter(Boolean);
 
-			console.log(`[SessionWindowManager] Found ${availableTileIds.length} available tiles:`, availableTileIds);
+			// Only update if we actually have tiles and sessions aren't already mapped correctly
+			if (availableTileIds.length > 0) {
+				const needsUpdate = sessions.some(session => !sessionToTileMap.has(session.id));
 
-			// Assign sessions to available tiles
-			sessions.forEach((session, index) => {
-				if (session && session.id && index < availableTileIds.length) {
-					const tileId = availableTileIds[index];
-					tileToSessionMap.set(tileId, session);
-					sessionToTileMap.set(session.id, tileId);
-					console.log(`[SessionWindowManager] Mapped session ${session.id} to tile ${tileId}`);
+				if (needsUpdate) {
+					console.log('[SessionWindowManager] Auto-assigning sessions to tiles:', sessions.length, 'sessions');
+					console.log(`[SessionWindowManager] Found ${availableTileIds.length} available tiles:`, availableTileIds);
+
+					// Build new mappings without modifying state until the end
+					const newTileToSessionMap = new Map();
+					const newSessionToTileMap = new Map();
+
+					// First, preserve existing valid mappings
+					for (const [tileId, session] of tileToSessionMap) {
+						if (sessions.find(s => s.id === session.id) && availableTileIds.includes(tileId)) {
+							newTileToSessionMap.set(tileId, session);
+							newSessionToTileMap.set(session.id, tileId);
+						}
+					}
+
+					// Then assign new sessions to available tiles
+					for (const session of sessions) {
+						if (!newSessionToTileMap.has(session.id)) {
+							const unmappedTileId = availableTileIds.find(tileId => !newTileToSessionMap.has(tileId));
+							if (unmappedTileId) {
+								newTileToSessionMap.set(unmappedTileId, session);
+								newSessionToTileMap.set(session.id, unmappedTileId);
+								console.log(`[SessionWindowManager] Mapped session ${session.id} to tile ${unmappedTileId}`);
+							}
+						}
+					}
+
+					// Update maps only once at the end
+					tileToSessionMap = newTileToSessionMap;
+					sessionToTileMap = newSessionToTileMap;
 				}
-			});
+			}
 		}
 	});
 
 	// Helper to get session assigned to a tile using our mapping
 	function getSessionForTile(tileId) {
-		// Ensure mapping is up to date when called from template
-		if (sessions.length > 0 && tileToSessionMap.size === 0) {
-			// Mapping not initialized yet, do it now
-			const tileElements = document.querySelectorAll('[data-tile-id]');
-			const availableTileIds = Array.from(tileElements).map(el => el.getAttribute('data-tile-id')).filter(Boolean);
-
-			sessions.forEach((session, index) => {
-				if (session && session.id && index < availableTileIds.length) {
-					const tileIdForSession = availableTileIds[index];
-					tileToSessionMap.set(tileIdForSession, session);
-					sessionToTileMap.set(session.id, tileIdForSession);
-				}
-			});
-
-			console.log(`[SessionWindowManager] Lazy-initialized mapping for ${tileToSessionMap.size} tiles`);
-		}
-
 		const session = tileToSessionMap.get(tileId);
 		if (session) {
 			const index = sessions.findIndex(s => s.id === session.id);
@@ -120,7 +124,7 @@
 	}
 
 	// Handle creating a session in a specific tile
-	function handleCreateSessionInTile(type, tileId) {
+	async function handleCreateSessionInTile(type, tileId) {
 		// Optionally tell the assignment service this tile should get the next session of this type
 		try {
 			if (tileAssignmentService && tileAssignmentService.setTargetTileForType) {
@@ -130,8 +134,12 @@
 			console.warn('[SessionWindowManager] Failed to set target tile for type:', error);
 		}
 
-		// Trigger normal session creation flow
-		onCreateSession(type);
+		// Use direct creation if available (bypasses modal), otherwise use normal flow
+		if (onCreateSessionDirect) {
+			await onCreateSessionDirect(type);
+		} else {
+			onCreateSession(type);
+		}
 	}
 
 	// Handle general session creation (from modal/menu) - use focused tile if available
@@ -369,5 +377,24 @@
 
 	.empty-tile.error .empty-tile-content {
 		color: var(--error-text, #ff8888);
+	}
+
+	.error-tile {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: 2px dashed var(--error-border, #aa4444);
+		border-radius: 4px;
+		background: var(--error-bg, #3a1515);
+		color: var(--error-text, #ff8888);
+		pointer-events: auto;
+	}
+
+	.error-content {
+		text-align: center;
+		font-size: 0.9rem;
+		opacity: 0.8;
 	}
 </style>

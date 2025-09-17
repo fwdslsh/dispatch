@@ -175,6 +175,14 @@ export class LayoutService {
 			return 1;
 		}
 
+		// For desktop users using WindowManager, allow unlimited sessions
+		// WindowManager handles dynamic tiling, so no artificial limit needed
+		if (!this.state.isMobile) {
+			// Return high limit for WindowManager mode (effectively unlimited)
+			// WindowManager can handle any reasonable number of sessions
+			return 50;
+		}
+
 		const preset = this.LAYOUT_PRESETS[this.state.preset];
 		return preset ? preset.maxVisible : 2;
 	}

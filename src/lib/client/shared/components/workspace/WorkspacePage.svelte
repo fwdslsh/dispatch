@@ -288,6 +288,45 @@
 		}
 	}
 
+	// Direct session creation for empty tiles (bypasses modal)
+	async function handleCreateSessionDirect(type, workspacePath = null) {
+		let targetPath = workspacePath || currentWorkspace?.path;
+
+		// If no workspace is available, create a default one
+		if (!targetPath) {
+			try {
+				// Create a default workspace with timestamp
+				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+				const defaultWorkspaceName = `workspace-${timestamp}`;
+
+				// Use the workspace view model to create a default workspace
+				if (workspaceViewModel) {
+					const result = await workspaceViewModel.createWorkspace(defaultWorkspaceName);
+					targetPath = result.path;
+				} else {
+					// Fall back to modal
+					handleCreateSession(type);
+					return;
+				}
+			} catch (error) {
+				console.error('Failed to create default workspace:', error);
+				// Fall back to modal
+				handleCreateSession(type);
+				return;
+			}
+		}
+
+		try {
+			// Convert 'terminal' to 'pty' for API compatibility
+			const apiType = type === 'terminal' ? 'pty' : type;
+			await sessionViewModel.createSession(apiType, targetPath);
+		} catch (error) {
+			console.error('Failed to create session directly:', error);
+			// Fall back to modal on error
+			handleCreateSession(type);
+		}
+	}
+
 	function handleToggleSessionMenu() {
 		if (sessionMenuOpen) {
 			uiState.layout.showBottomSheet = false;
@@ -381,9 +420,7 @@
 
 	<!-- Main Content -->
 	<main class="main-content">
-		{#if displayedSessions.length === 0}
-			<EmptyWorkspace onCreateSession={handleCreateSession} />
-		{:else if useWindowManager && windowViewModel}
+		{#if useWindowManager && windowViewModel}
 			<!-- Desktop: Use tiling window manager -->
 			<SessionWindowManager
 				{windowViewModel}
@@ -393,6 +430,7 @@
 				onSessionClose={handleSessionClose}
 				onSessionUnpin={handleSessionUnpin}
 				onCreateSession={handleCreateSession}
+				onCreateSessionDirect={handleCreateSessionDirect}
 				bind:this={sessionWindowManager}
 			/>
 		{:else}

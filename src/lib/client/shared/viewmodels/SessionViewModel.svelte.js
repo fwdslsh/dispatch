@@ -504,9 +504,10 @@ export class SessionViewModel {
 		if (this.displayed.length === 0 && !this.layoutService.isMobile()) {
 			const pinnedSessions = this.sessions.filter((s) => s.pinned);
 			if (pinnedSessions.length > 0) {
-				// Auto-display up to maxVisible pinned sessions
-				const maxVisible = this.layoutService.maxVisible || 4;
-				this.displayed = pinnedSessions.slice(0, maxVisible).map((s) => s.id);
+				// Auto-display only a reasonable number (2-4) for initial load, regardless of maxVisible
+				// User can add more sessions manually if needed
+				const initialDisplayLimit = Math.min(4, pinnedSessions.length);
+				this.displayed = pinnedSessions.slice(0, initialDisplayLimit).map((s) => s.id);
 				console.log('[SessionViewModel] Auto-displaying pinned sessions:', $state.snapshot(this.displayed));
 				this.saveDisplayState();
 			}
