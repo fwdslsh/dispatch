@@ -1,7 +1,6 @@
 import { getDatabaseManager } from '../db/DatabaseManager.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 import { logger } from '../utils/logger.js';
-import { emitWithBuffer } from '../utils/events.js';
 
 let pty;
 let ptyLoadAttempted = false;
@@ -46,9 +45,9 @@ export function resetPtyState() {
 }
 
 export class TerminalManager {
-	constructor({ io, sessionRouter = null }) {
+	constructor({ io, sessionRegistry = null }) {
 		this.io = io;
-		this.sessionRouter = sessionRouter; // Store reference to session router for buffering
+		this.sessionRegistry = sessionRegistry;
 		this.terminals = new Map(); // id -> { term, workspacePath, history }
 		this.nextId = 1;
 		// Terminal history is now stored in database instead of files
@@ -74,9 +73,9 @@ export class TerminalManager {
 		}
 	}
 
-	setSessionRouter(sessionRouter) {
-		this.sessionRouter = sessionRouter;
-		logger.info('TERMINAL', 'Session router set for message buffering');
+	setSessionRegistry(sessionRegistry) {
+		this.sessionRegistry = sessionRegistry;
+		logger.info('TERMINAL', 'Session registry set for activity + buffering');
 	}
 
 	async saveTerminalHistory(id, data) {
@@ -154,17 +153,15 @@ export class TerminalManager {
 			const terminalData = this.terminals.get(id);
 
 			// Set streaming state when terminal outputs data
-			if (this.sessionRouter && appSessionId) {
-				this.sessionRouter.setStreaming(appSessionId);
+			if (appSessionId) {
+				this.#setActivity(appSessionId, 'streaming');
 				// Debounce setting back to idle
 				if (terminalData && terminalData.idleTimer) {
 					clearTimeout(terminalData.idleTimer);
 				}
 				if (terminalData) {
 					terminalData.idleTimer = setTimeout(() => {
-						if (this.sessionRouter && appSessionId) {
-							this.sessionRouter.setIdle(appSessionId);
-						}
+						this.#setActivity(appSessionId, 'idle');
 						delete terminalData.idleTimer;
 					}, 500); // Wait 500ms of no output before going idle
 				}
@@ -177,12 +174,11 @@ export class TerminalManager {
 				timestamp: Date.now()
 			};
 
-			// Use emitWithBuffer to ensure messages are buffered
-			emitWithBuffer(
+			this.#emitWithBuffer(
+				appSessionId || id,
 				terminalData?.socket,
 				SOCKET_EVENTS.TERMINAL_OUTPUT,
-				messageData,
-				this.sessionRouter
+				messageData
 			);
 
 			// Save to history
@@ -198,8 +194,8 @@ export class TerminalManager {
 			}
 
 			// Set idle state when terminal exits
-			if (this.sessionRouter && appSessionId) {
-				this.sessionRouter.setIdle(appSessionId);
+			if (appSessionId) {
+				this.#setActivity(appSessionId, 'idle');
 			}
 
 			// Always emit and buffer, even if socket is null
@@ -209,12 +205,11 @@ export class TerminalManager {
 				timestamp: Date.now()
 			};
 
-			// Use emitWithBuffer to ensure messages are buffered
-			emitWithBuffer(
+			this.#emitWithBuffer(
+				appSessionId || id,
 				terminalData?.socket,
 				SOCKET_EVENTS.TERMINAL_EXIT,
-				messageData,
-				this.sessionRouter
+				messageData
 			);
 
 			this.terminals.delete(id);
@@ -237,12 +232,12 @@ export class TerminalManager {
 			return;
 		}
 		// Set processing state when user writes to terminal
-		if (this.sessionRouter && terminal.appSessionId) {
-			this.sessionRouter.setProcessing(terminal.appSessionId);
+		if (terminal.appSessionId) {
+			this.#setActivity(terminal.appSessionId, 'processing');
 			// Set back to idle after a short delay since terminal commands complete quickly
 			setTimeout(() => {
-				if (this.sessionRouter && terminal.appSessionId) {
-					this.sessionRouter.setIdle(terminal.appSessionId);
+				if (terminal.appSessionId) {
+					this.#setActivity(terminal.appSessionId, 'idle');
 				}
 			}, 100);
 		}
@@ -266,8 +261,8 @@ export class TerminalManager {
 				clearTimeout(terminal.idleTimer);
 			}
 			// Set idle state when terminal is stopped
-			if (this.sessionRouter && terminal.appSessionId) {
-				this.sessionRouter.setIdle(terminal.appSessionId);
+			if (terminal.appSessionId) {
+				this.#setActivity(terminal.appSessionId, 'idle');
 			}
 			terminal.term.kill();
 			// Clean up history when terminal is explicitly stopped
@@ -292,5 +287,35 @@ export class TerminalManager {
 		} catch (error) {
 			logger.error(`[TERMINAL] Failed to clear terminal history for ${id}:`, error);
 		}
+	}
+
+	#setActivity(sessionId, state) {
+		if (!sessionId) return;
+		if (this.sessionRegistry) {
+			this.sessionRegistry.setActivityState(sessionId, state);
+			return;
+		}
+	}
+
+	#emitWithBuffer(sessionId, socket, eventType, data) {
+		if (!sessionId) {
+			if (socket) {
+				socket.emit(eventType, data);
+			}
+			return;
+		}
+
+		if (this.sessionRegistry) {
+			this.sessionRegistry.emitToSocket(sessionId, socket, eventType, data);
+			return;
+		}
+
+		if (socket) {
+			socket.emit(eventType, data);
+		}
+	}
+
+	getTerminal(sessionId) {
+		return this.terminals.get(sessionId) || null;
 	}
 }

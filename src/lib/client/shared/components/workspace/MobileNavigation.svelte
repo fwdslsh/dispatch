@@ -4,20 +4,19 @@
 	Mobile session navigation controls for switching between sessions
 	Provides previous/next buttons and session counter
 -->
+
 <script>
 	import IconButton from '../IconButton.svelte';
 	import { IconPlayerTrackNext, IconPlayerTrackPrev } from '@tabler/icons-svelte';
-	import { sessionState } from '$lib/client/shared/state/session-state.svelte.js';
 
 	// Props
-	let { onNavigateSession = () => {}, disabled = false } = $props();
+	let {
+		onNavigateSession = () => {},
+		disabled = false,
+		currentIndex = 0,
+		totalSessions = 0
+	} = $props();
 
-	// Derived values from state
-	const sessionCount = $derived(sessionState.all.length);
-
-	// Current session info for display
-	const currentIndex = $derived(sessionState.currentMobileSession);
-	const totalSessions = $derived(sessionCount);
 	const currentDisplay = $derived(Math.min(currentIndex + 1, totalSessions));
 
 	function handlePrevious() {

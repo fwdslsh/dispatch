@@ -32,13 +32,13 @@ test.describe('Terminal Session Basic Test', () => {
 		await page.route('/api/sessions', async (route) => {
 			if (route.request().method() === 'POST') {
 				const requestData = await route.request().postDataJSON();
-				if (requestData.type === 'terminal') {
+				if (requestData.type === 'pty') {
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
 						body: JSON.stringify({
 							id: 'test_terminal_123',
-							type: 'terminal',
+							type: 'pty',
 							workspacePath: requestData.workspacePath,
 							shell: '/bin/bash'
 						})

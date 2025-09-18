@@ -1,6 +1,8 @@
 <script>
+	import { onMount } from 'svelte';
 	import Split from './Split.svelte';
 	import Tile from './Tile.svelte';
+	import { on } from 'svelte/events';
 
 	/**
 	 * @typedef {import('./types.js').LayoutNode} LayoutNode
@@ -16,6 +18,8 @@
 		/** @type {number} */ gap = 6,
 		/** @type {number} */ minSize = 48,
 		/** @type {Partial<Keymap>} */ keymap = {},
+			onfocuschange = (e) => {},
+			onlayoutchange = (e) => {},
 		/** @type {import('svelte').Snippet<[{focused: string, tileId: string}]>} */ tile
 	} = $props();
 
@@ -123,6 +127,7 @@
 			// root is leaf
 			root = makeSplit(dir, root, newLeaf, 0.5);
 			focused = newLeaf.id;
+			onlayoutchange?.({ detail: { layout: root } });
 			return;
 		}
 
@@ -131,6 +136,7 @@
 		if (ctx.parent.a === ctx.node) ctx.parent.a = split;
 		else ctx.parent.b = split;
 		focused = newLeaf.id;
+		onlayoutchange?.({ detail: { layout: root } });
 	}
 
 	function closeFocused() {
@@ -141,6 +147,7 @@
 			// Root leaf: keep a fresh one to prevent empty tree
 			root = makeLeaf('root');
 			focused = 'root';
+			onlayoutchange?.({ detail: { layout: root } });
 			return;
 		}
 
@@ -150,11 +157,13 @@
 			// Parent is root
 			root = sibling;
 			focused = isLeaf(sibling) ? sibling.id : firstLeafId(sibling);
+			onlayoutchange?.({ detail: { layout: root } });
 			return;
 		}
 		if (ctx.grand.a === ctx.parent) ctx.grand.a = sibling;
 		else ctx.grand.b = sibling;
 		focused = isLeaf(sibling) ? sibling.id : firstLeafId(sibling);
+		onlayoutchange?.({ detail: { layout: root } });
 	}
 
 	/** @param {LayoutNode} node */
@@ -256,16 +265,18 @@
 	// Handle focus events from child components
 	function handleFocus(id) {
 		focused = id;
+		onfocuschange?.({ detail: { id } });
 	}
 
 	// Handle ratio updates from Split components (for drag resizing)
 	function handleRatioUpdate(node, newRatio) {
 		node.ratio = newRatio;
+		onlayoutchange?.({ detail: { layout: root } });
 	}
 
 	// Seed a simple split if no initial layout
 	let initialized = $state(false);
-	$effect(() => {
+	onMount(() => {
 		if (!initialized && initial == null) {
 			root = makeSplit(
 				/** @type {'row'|'column'} */ (direction),
@@ -274,6 +285,8 @@
 				0.5
 			);
 			initialized = true;
+			// Fire layout change event to notify listeners of initial layout
+			onlayoutchange?.({ detail: { layout: root } });
 		}
 	});
 </script>

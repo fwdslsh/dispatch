@@ -9,17 +9,31 @@ function socketIOPlugin() {
 		async configureServer(server) {
 			if (!server.httpServer) return;
 
-			console.log('[DEV] Setting up Socket.IO...');
+			console.log('[DEV] Setting up Socket.IO with dependency injection...');
+
+			// Initialize server services with dependency injection
+			const { getServerServiceContainer } = await import('./src/lib/server/core/ServerServiceContainer.js');
+			const serverContainer = getServerServiceContainer({
+				dbPath: process.env.DB_PATH || '~/.dispatch/data/workspace.db',
+				workspacesRoot: process.env.WORKSPACES_ROOT || '~/.dispatch-home/workspaces',
+				configDir: process.env.DISPATCH_CONFIG_DIR || '~/.config/dispatch',
+				debug: process.env.DEBUG === 'true'
+			});
+
+			// Initialize all services
+			await serverContainer.initialize();
+			console.log('[DEV] Server services initialized');
+
 			const { getSocketSetup } = await import('./src/lib/server/socket-manager.js');
 			const { setupSocketIO, mode } = await getSocketSetup();
 			console.log('===============================================');
 			console.log(`[DEV] Session Architecture: ${mode.toUpperCase()}`);
 			console.log('===============================================');
-			const io = setupSocketIO(server.httpServer);
+			const io = setupSocketIO(server.httpServer, serverContainer);
 
-			// Store globally for API endpoints if needed
-			globalThis.__DISPATCH_SOCKET_IO = io;
-			console.log('[DEV] Socket.IO ready');
+			// Update services with Socket.IO instance for real-time communication
+			serverContainer.setSocketIO(io);
+			console.log('[DEV] Socket.IO ready with dependency injection');
 		}
 	};
 }

@@ -18,7 +18,7 @@
 
 	// Derived state for styling
 	const containerClass = $derived(
-		`session-container ${isFocused ? 'focused' : ''} ${session.type}`
+		`session-container ${isFocused ? 'focused' : ''} ${session.type || session.sessionType}`
 	);
 
 	// Loading state - sessions start as loading until they're ready

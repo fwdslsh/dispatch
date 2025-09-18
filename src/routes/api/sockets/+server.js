@@ -3,10 +3,9 @@
  * GET /api/sockets - Returns list of active socket connections
  */
 
-export async function GET({ url }) {
+export async function GET({ url, locals }) {
 	try {
-		// Get the Socket.IO server instance
-		const io = globalThis.__DISPATCH_SOCKET_IO;
+		const io = locals?.serviceContainer?.getSocketIO?.() || null;
 
 		if (!io) {
 			return new Response(

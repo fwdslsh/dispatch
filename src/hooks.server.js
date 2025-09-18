@@ -1,63 +1,55 @@
 import { sequence } from '@sveltejs/kit/hooks';
-import { WorkspaceManager } from './lib/server/core/WorkspaceManager.js';
-import { SessionRouter } from './lib/server/core/SessionRouter.js';
-import { SessionManager } from './lib/server/core/SessionManager.js';
-import { TerminalManager } from './lib/server/terminals/TerminalManager.js';
-import { ClaudeSessionManager } from './lib/server/claude/ClaudeSessionManager.js';
-import { getDatabaseManager } from './lib/server/db/DatabaseManager.js';
+import { getServerServiceContainer } from './lib/server/core/ServerServiceContainer.js';
+import { logger } from './lib/server/utils/logger.js';
 
-// Initialize database and services for API endpoints (but not for Socket.IO which is handled separately)
-if (!globalThis.__API_SERVICES) {
+// Initialize server services using dependency injection container
+let serverContainer = null;
+
+async function initializeServerServices() {
+	if (serverContainer) return serverContainer;
+
 	try {
-		// Initialize database first
-		getDatabaseManager()
-			.init()
-			.catch((err) => {
-				console.error('[APP] Failed to initialize database:', err);
-			});
-
-		const sessions = new SessionRouter();
-		const workspaces = new WorkspaceManager({
-			rootDir: process.env.WORKSPACES_ROOT || '.'
+		// Create service container with configuration
+		serverContainer = getServerServiceContainer({
+			dbPath: process.env.DB_PATH || '~/.dispatch/data/workspace.db',
+			workspacesRoot: process.env.WORKSPACES_ROOT || '~/.dispatch-home/workspaces',
+			configDir: process.env.DISPATCH_CONFIG_DIR || '~/.config/dispatch',
+			debug: process.env.DEBUG === 'true'
 		});
 
-		// Initialize workspaces asynchronously
-		workspaces.init().catch((err) => {
-			console.error('Failed to initialize workspaces:', err);
-		});
+		// Initialize all services
+		await serverContainer.initialize();
 
-		// Create managers without Socket.IO for API use
-		const terminals = new TerminalManager({ io: null, sessionRouter: sessions });
-		const claude = new ClaudeSessionManager({ io: null, sessionRouter: sessions });
+		logger.info('HOOKS_SERVER', 'Server services initialized successfully');
+		return serverContainer;
 
-		// Create unified session manager
-		const sessionManager = new SessionManager({
-			sessionRouter: sessions,
-			workspaceManager: workspaces,
-			terminalManager: terminals,
-			claudeManager: claude
-		});
-
-		globalThis.__API_SERVICES = { sessions, workspaces, terminals, claude, sessionManager };
 	} catch (error) {
-		console.error('Failed to initialize API services:', error);
-		globalThis.__API_SERVICES = {
-			sessions: null,
-			workspaces: null,
-			terminals: null,
-			claude: null,
-			sessionManager: null
-		};
+		logger.error('HOOKS_SERVER', 'Failed to initialize server services:', error);
+		throw error;
 	}
 }
 
+// Initialize services immediately
+initializeServerServices().catch((error) => {
+	logger.error('HOOKS_SERVER', 'Critical error during service initialization:', error);
+	process.exit(1);
+});
+
 export const handle = sequence(async ({ event, resolve }) => {
-	// Make services available to API endpoints
-	event.locals.sessions = globalThis.__API_SERVICES?.sessions;
-	event.locals.workspaces = globalThis.__API_SERVICES?.workspaces;
-	event.locals.terminals = globalThis.__API_SERVICES?.terminals;
-	event.locals.claude = globalThis.__API_SERVICES?.claude;
-	event.locals.sessionManager = globalThis.__API_SERVICES?.sessionManager;
+	// Ensure services are initialized
+	const container = await initializeServerServices();
+
+	// Make services available to API endpoints via dependency injection
+	event.locals.database = container.get('database');
+	event.locals.workspaceManager = container.get('workspaceManager');
+	event.locals.sessionRegistry = container.get('sessionRegistry');
+	event.locals.terminalManager = container.get('terminalManager');
+	event.locals.claudeSessionManager = container.get('claudeSessionManager');
+	event.locals.claudeAuthManager = container.get('claudeAuthManager');
+	event.locals.messageBuffer = container.get('messageBuffer');
+
+	// Provide easy access to the container itself for services that need multiple dependencies
+	event.locals.serviceContainer = container;
 
 	return resolve(event);
 });

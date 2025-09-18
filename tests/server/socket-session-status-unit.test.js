@@ -24,17 +24,12 @@ describe('Session Status Handler Logic', () => {
 
 		// Setup mock services
 		mockServices = {
-			sessionManager: {
+			sessionRegistry: {
 				getSession: vi.fn(),
+				getActivityState: vi.fn(),
 				getCachedCommands: vi.fn()
-			},
-			sessions: {
-				getActivityState: vi.fn()
 			}
 		};
-
-		// Mock global services
-		globalThis.__API_SERVICES = mockServices;
 
 		// Define the session.status handler logic (extracted from socket-setup.js)
 		sessionStatusHandler = (data, callback) => {
@@ -44,19 +39,19 @@ describe('Session Status Handler Logic', () => {
 					return;
 				}
 
-				const { sessionManager, sessions } = mockServices;
+				const { sessionRegistry } = mockServices;
 
-				if (sessionManager && sessions && data.sessionId) {
-					const session = sessionManager.getSession(data.sessionId);
+				if (sessionRegistry && data.sessionId) {
+					const session = sessionRegistry.getSession(data.sessionId);
 					if (session) {
-						const activityState = sessions.getActivityState(data.sessionId);
+						const activityState = sessionRegistry.getActivityState(data.sessionId);
 						const hasPendingMessages =
 							activityState === 'processing' || activityState === 'streaming';
 
 						// Get cached commands if available
 						let availableCommands = null;
-						if (sessionManager.getCachedCommands) {
-							availableCommands = sessionManager.getCachedCommands(data.sessionId);
+						if (sessionRegistry.getCachedCommands) {
+							availableCommands = sessionRegistry.getCachedCommands(data.sessionId);
 						}
 
 						if (callback)
@@ -91,7 +86,6 @@ describe('Session Status Handler Logic', () => {
 
 	afterEach(() => {
 		vi.restoreAllMocks();
-		delete globalThis.__API_SERVICES;
 	});
 
 	describe('Authentication', () => {
@@ -109,7 +103,7 @@ describe('Session Status Handler Logic', () => {
 
 		it('should accept requests with valid key', () => {
 			mockValidateKey.mockReturnValue(true);
-			mockServices.sessionManager.getSession.mockReturnValue(null); // No session found
+			mockServices.sessionRegistry.getSession.mockReturnValue(null); // No session found
 			const mockCallback = vi.fn();
 
 			sessionStatusHandler({ key: 'valid', sessionId: 'test-123' }, mockCallback);
@@ -127,7 +121,7 @@ describe('Session Status Handler Logic', () => {
 		});
 
 		it('should return session not found for nonexistent session', () => {
-			mockServices.sessionManager.getSession.mockReturnValue(null);
+			mockServices.sessionRegistry.getSession.mockReturnValue(null);
 			const mockCallback = vi.fn();
 
 			sessionStatusHandler({ key: 'valid', sessionId: 'nonexistent' }, mockCallback);
@@ -136,14 +130,14 @@ describe('Session Status Handler Logic', () => {
 				success: false,
 				error: 'Session not found'
 			});
-			expect(mockServices.sessionManager.getSession).toHaveBeenCalledWith('nonexistent');
+			expect(mockServices.sessionRegistry.getSession).toHaveBeenCalledWith('nonexistent');
 		});
 
 		it('should return basic session info without commands for non-Claude session', () => {
-			const mockSession = { id: 'test-123', type: 'terminal', workspacePath: '/test' };
-			mockServices.sessionManager.getSession.mockReturnValue(mockSession);
-			mockServices.sessions.getActivityState.mockReturnValue('idle');
-			mockServices.sessionManager.getCachedCommands.mockReturnValue(null);
+			const mockSession = { id: 'test-123', type: 'pty', workspacePath: '/test' };
+			mockServices.sessionRegistry.getSession.mockReturnValue(mockSession);
+			mockServices.sessionRegistry.getActivityState.mockReturnValue('idle');
+			mockServices.sessionRegistry.getCachedCommands.mockReturnValue(null);
 			const mockCallback = vi.fn();
 
 			sessionStatusHandler({ key: 'valid', sessionId: 'test-123' }, mockCallback);
@@ -161,9 +155,9 @@ describe('Session Status Handler Logic', () => {
 			const mockSession = { id: 'claude-456', type: 'claude', workspacePath: '/test' };
 			const mockCommands = ['clear', 'compact', 'run-tests'];
 
-			mockServices.sessionManager.getSession.mockReturnValue(mockSession);
-			mockServices.sessions.getActivityState.mockReturnValue('idle');
-			mockServices.sessionManager.getCachedCommands.mockReturnValue(mockCommands);
+			mockServices.sessionRegistry.getSession.mockReturnValue(mockSession);
+			mockServices.sessionRegistry.getActivityState.mockReturnValue('idle');
+			mockServices.sessionRegistry.getCachedCommands.mockReturnValue(mockCommands);
 			const mockCallback = vi.fn();
 
 			sessionStatusHandler({ key: 'valid', sessionId: 'claude-456' }, mockCallback);
@@ -175,16 +169,16 @@ describe('Session Status Handler Logic', () => {
 				availableCommands: mockCommands,
 				sessionInfo: mockSession
 			});
-			expect(mockServices.sessionManager.getCachedCommands).toHaveBeenCalledWith('claude-456');
+			expect(mockServices.sessionRegistry.getCachedCommands).toHaveBeenCalledWith('claude-456');
 		});
 
 		it('should return processing state for active Claude session', () => {
 			const mockSession = { id: 'claude-789', type: 'claude', workspacePath: '/test' };
 			const mockCommands = ['clear', 'help'];
 
-			mockServices.sessionManager.getSession.mockReturnValue(mockSession);
-			mockServices.sessions.getActivityState.mockReturnValue('processing');
-			mockServices.sessionManager.getCachedCommands.mockReturnValue(mockCommands);
+			mockServices.sessionRegistry.getSession.mockReturnValue(mockSession);
+			mockServices.sessionRegistry.getActivityState.mockReturnValue('processing');
+			mockServices.sessionRegistry.getCachedCommands.mockReturnValue(mockCommands);
 			const mockCallback = vi.fn();
 
 			sessionStatusHandler({ key: 'valid', sessionId: 'claude-789' }, mockCallback);

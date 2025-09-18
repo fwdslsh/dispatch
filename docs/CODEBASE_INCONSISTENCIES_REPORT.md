@@ -46,7 +46,7 @@ This report documents various inconsistencies, issues, and areas for improvement
 **Components Involved**:
 
 - `ClaudeSessionManager`
-- `SessionRouter`
+- `SessionRegistry`
 - `SessionSocketManager`
 - Workspace Manager
 
@@ -63,7 +63,7 @@ This report documents various inconsistencies, issues, and areas for improvement
 this.sessions.set(id, sessionData);
 this.sessions.set(realSessionId, this.sessions.get(id)); // Duplicate mapping
 
-// In SessionRouter
+// In SessionRegistry
 this.sessions.set(sessionId, descriptor);
 ```
 

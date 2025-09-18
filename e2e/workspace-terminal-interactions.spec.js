@@ -61,13 +61,13 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 		await page.route('/api/sessions', async (route) => {
 			if (route.request().method() === 'POST') {
 				const requestData = await route.request().postDataJSON();
-				if (requestData.type === 'terminal') {
+				if (requestData.type === 'pty') {
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
 						body: JSON.stringify({
 							id: `terminal_${Date.now()}`,
-							type: 'terminal',
+							type: 'pty',
 							workspacePath: requestData.workspacePath,
 							shell: requestData.shell || '/bin/bash'
 						})
@@ -113,7 +113,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 							},
 							{
 								id: 'terminal_1',
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: workspacePath,
 								shell: '/bin/bash'
 							}
@@ -291,7 +291,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 							},
 							{
 								id: 'terminal_ws1_1',
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: '/workspace/workspace1'
 							},
 							{
@@ -302,7 +302,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 							},
 							{
 								id: 'terminal_ws2_1',
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: '/workspace/workspace2'
 							}
 						]
@@ -351,7 +351,7 @@ test.describe('Workspace and Terminal Session Interactions', () => {
 						sessions: [
 							{
 								id: 'terminal_resize_test',
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: '/workspace/resize-test',
 								shell: '/bin/bash'
 							}

@@ -1,17 +1,19 @@
 /**
  * SessionViewModel.svelte.js
  *
- * ViewModel for session management using Svelte 5 runes.
- * Handles all session-related state and business logic.
+ * Session management ViewModel using Svelte 5 runes and direct state management.
+ * Handles session business logic and coordinates with AppState.
+ *
+ * ARCHITECTURE PRINCIPLES:
+ * - Pure business logic (no UI concerns)
+ * - Direct state mutations via focused state managers
+ * - Single responsibility (session CRUD operations)
+ * - No complex action dispatching or bidirectional dependencies
  */
 
-import {
-	sessionState,
-	setAllSessions,
-	setDisplayedSessions,
-	addSession,
-	removeSession
-} from '../state/session-state.svelte.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('session:viewmodel');
 
 /**
  * @typedef {Object} Session
@@ -24,690 +26,548 @@ import {
  * @property {string} title
  * @property {string} createdAt
  * @property {string} lastActivity
+ * @property {string} activityState
  */
 
 export class SessionViewModel {
 	/**
+	 * @param {import('../state/AppState.svelte.js').AppState} appStateManager
 	 * @param {import('../services/SessionApiClient.js').SessionApiClient} sessionApi
-	 * @param {import('../services/PersistenceService.js').PersistenceService} persistence
-	 * @param {import('../services/LayoutService.svelte.js').LayoutService} layoutService
 	 */
-	constructor(sessionApi, persistence, layoutService) {
+	constructor(appStateManager, sessionApi) {
+		this.appStateManager = appStateManager;
 		this.sessionApi = sessionApi;
-		this.persistence = persistence;
-		this.layoutService = layoutService;
 
-		// Observable state using Svelte 5 runes
-		this.sessions = $state([]);
-		this.activeSessions = $state(new Map()); // id -> session
-		this.loading = $state(false);
-		this.error = $state(null);
-
-		// Session display state
-		this.displayed = $state([]); // Array of session IDs to display
-		this.currentMobileSession = $state(0);
-
-		// Session operation state
-		this.creatingSession = $state(false);
-		this.selectedSessionId = $state(null);
-
-		// Filter state
-		this.showOnlyPinned = $state(true);
-		this.filterByWorkspace = $state(null);
-
-		// Derived state
-		this.pinnedSessions = $derived.by(() => {
-			return this.sessions.filter((s) => s.pinned);
+		// Pure business state - no UI concerns
+		this.operationState = $state({
+			loading: false,
+			creating: false,
+			error: null,
+			lastOperation: null
 		});
-		this.unpinnedSessions = $derived.by(() => {
-			return this.sessions.filter((s) => !s.pinned);
-		});
-		this.visibleSessions = $derived.by(() => {
-			if (this.layoutService.isMobile()) {
-				// Mobile: show current session from all sessions
-				const allSessions = this.sessions.filter((s) => s && s.id);
-				if (allSessions.length === 0) return [];
-				const validIndex = Math.min(this.currentMobileSession, allSessions.length - 1);
-				return allSessions.slice(validIndex, validIndex + 1);
-			} else {
-				// Desktop: map displayed slots to sessions
-				const maxVisible = this.layoutService.maxVisible;
-				const ids = this.displayed.slice(0, maxVisible);
-				return ids.map((id) => this.getSession(id)).filter(Boolean);
-			}
-		});
-		this.sessionCount = $derived(this.sessions.length);
-		this.activeSessionCount = $derived(this.activeSessions.size);
-		this.hasActiveSessions = $derived(this.activeSessions.size > 0);
 
-		// Session activity tracking
-		this.sessionActivity = $state(new Map()); // id -> activity state
+		// Session lifecycle tracking
+		this.sessionOperations = $state(new Map()); // id -> operation state
 
-		// Session history loading state
-		this.historyLoadingState = $state(new Map()); // id -> { loading: boolean, timestamp: number }
-		this.lastMessageTimestamps = $state(new Map()); // id -> timestamp
+		// Derived business logic state from AppState
+		this.sessions = $derived(this.appStateManager.sessions.sessions);
+		this.pinnedSessions = $derived(this.appStateManager.sessions.pinnedSessions);
+		this.activeSessions = $derived(this.appStateManager.sessions.activeSessions);
+		this.sessionCount = $derived(this.appStateManager.sessions.sessionCount);
+		this.hasActiveSessions = $derived(this.appStateManager.sessions.hasActiveSessions);
 
-		// Initialize
+		// Initialize business logic
 		this.initialize();
 	}
 
+	// =================================================================
+	// INITIALIZATION
+	// =================================================================
+
 	/**
-	 * Initialize the view model
+	 * Initialize the ViewModel
 	 */
 	async initialize() {
 		await this.loadSessions();
-		// restoreDisplayState is now called at the end of loadSessions to ensure proper sync
 	}
 
+	// =================================================================
+	// SESSION BUSINESS OPERATIONS
+	// =================================================================
+
 	/**
-	 * Load sessions from API
+	 * Load sessions from API and dispatch to AppStateManager
 	 */
-	async loadSessions() {
-		this.loading = true;
-		this.error = null;
+	async loadSessions(filters = {}) {
+		this.operationState.loading = true;
+		this.operationState.error = null;
+		this.operationState.lastOperation = 'load';
+
+		// Set loading state
+		this.appStateManager.sessions.setLoading(true);
 
 		try {
-			const options = {
-				workspace: this.filterByWorkspace,
-				includeAll: true // Always include all sessions initially, filter client-side if needed
-			};
+			// Respect UI state for showOnlyPinned unless explicitly overridden
+			const shouldIncludeAll = filters.includeAll ?? (!this.appStateManager.ui.display.showOnlyPinned);
+			const requestOptions = { includeAll: shouldIncludeAll };
+			if (filters.workspace) {
+				requestOptions.workspace = filters.workspace;
+			}
 
-			const result = await this.sessionApi.list(options);
-			console.log('[SessionViewModel] Loaded sessions from API:', result.sessions);
+			const result = await this.sessionApi.list(requestOptions);
+			log.info('Loaded sessions from API', result.sessions?.length || 0);
 
-			// Filter and normalize sessions to ensure they have all required fields
-			this.sessions = (result.sessions || [])
-				.filter((s) => s && s.id)
-				.map((session) => ({
-					id: session.id,
-					typeSpecificId: session.typeSpecificId,
-					workspacePath: session.workspacePath,
-					sessionType: session.type, // API uses 'type', we use 'sessionType' internally
-					type: session.type, // Keep both for compatibility
-					isActive: session.isActive !== undefined ? session.isActive : true,
-					pinned: session.pinned !== undefined ? session.pinned : true,
-					title: session.title || `${session.type} session`,
-					createdAt: session.createdAt || new Date().toISOString(),
-					lastActivity: session.lastActivity || new Date().toISOString(),
-					activityState: session.activityState || 'idle',
-					resumeSession: session.resumeSession || false
-				}));
-			console.log('[SessionViewModel] Normalized sessions:', this.sessions.length, 'sessions loaded');
+			// Validate and normalize sessions
+			const validatedSessions = this.validateAndNormalizeSessions(result.sessions || []);
 
-			// Update active sessions map
-			this.updateActiveSessionsMap();
+			// Load sessions into AppState
+			this.appStateManager.loadSessions(validatedSessions);
 
-			// Sort sessions
-			this.sortSessions();
+			log.info('Successfully loaded sessions');
 
-			// Restore display state after loading sessions
-			this.restoreDisplayState();
-			// Note: restoreDisplayState calls syncToGlobalState at the end
 		} catch (error) {
-			this.error = error.message || 'Failed to load sessions';
-			console.error('[SessionViewModel] Load error:', error);
+			log.error('Failed to load sessions', error);
+
+			this.operationState.error = error.message || 'Failed to load sessions';
+			this.appStateManager.sessions.setError(error.message);
+
 		} finally {
-			this.loading = false;
+			this.operationState.loading = false;
+			this.appStateManager.sessions.setLoading(false);
 		}
 	}
 
 	/**
 	 * Create a new session
-	 * @param {'pty'|'claude'} type
-	 * @param {string} workspacePath
-	 * @param {Object} options
+	 * @param {Object} params Session creation parameters
+	 * @param {string} params.type Session type
+	 * @param {string} params.workspacePath Workspace path
+	 * @param {Object} [params.options={}] Additional session options
 	 */
-	async createSession(type, workspacePath, options = {}) {
-		this.creatingSession = true;
-		this.error = null;
+	async createSession({ type, workspacePath, options = {} }) {
+		if (this.operationState.creating) {
+			log.warn('Session creation already in progress');
+			return null;
+		}
+
+		this.operationState.creating = true;
+		this.operationState.error = null;
+		this.operationState.lastOperation = 'create';
+
+		// Dispatch creating state
+		this.appStateManager.ui.setLoading('creatingSession', true);
 
 		try {
-			const result = await this.sessionApi.create({
+			const sessionData = {
 				type,
 				workspacePath,
-				options,
-				resume: false,
-				sessionId: null
-			});
-
-			// Create session object
-			const newSession = {
-				id: result.id,
-				typeSpecificId: result.typeSpecificId,
-				workspacePath,
-				sessionType: type,
-				isActive: true,
-				pinned: true,
-				title: options.title || `New ${type} session`,
-				createdAt: new Date().toISOString(),
-				lastActivity: new Date().toISOString()
+				...options
 			};
 
-			// Add to sessions
-			this.sessions.push(newSession);
-			this.activeSessions.set(result.id, newSession);
+			log.info('Creating session', sessionData);
+			const result = await this.sessionApi.create(sessionData);
 
-			// Update display
-			this.addToDisplay(result.id);
+			const newSession = this.validateAndNormalizeSession(result);
+			log.info('Session created successfully', newSession.id);
 
-			// Sort sessions
-			this.sortSessions();
+			// Add session to AppState
+			this.appStateManager.createSession(newSession);
 
-			return result;
+			return newSession;
+
 		} catch (error) {
-			this.error = error.message || 'Failed to create session';
-			throw error;
+			log.error('Failed to create session', error);
+
+			this.operationState.error = error.message || 'Failed to create session';
+			this.appStateManager.sessions.setError(error.message);
+
+			return null;
+
 		} finally {
-			this.creatingSession = false;
+			this.operationState.creating = false;
+			this.appStateManager.ui.setLoading('creatingSession', false);
 		}
 	}
 
 	/**
-	 * Resume an existing session
-	 * @param {string} sessionId
-	 * @param {string} workspacePath
+	 * Update session properties
+	 * @param {string} sessionId - Session ID
+	 * @param {Object} updates - Updates to apply
 	 */
-	async resumeSession(sessionId, workspacePath) {
-		this.loading = true;
-		this.error = null;
+	async updateSession(sessionId, updates) {
+		try {
+			log.info('Updating session', sessionId, updates);
+
+			// Convert to API client format
+			const action = updates.pinned !== undefined ? (updates.pinned ? 'pin' : 'unpin') : 'rename';
+			const result = await this.sessionApi.update({
+				action,
+				sessionId,
+				workspacePath: updates.workspacePath || '',
+				newTitle: updates.title
+			});
+			const updatedSession = this.validateAndNormalizeSession(result);
+
+			// Dispatch update to AppStateManager
+			this.appStateManager.sessions.updateSession(sessionId, updatedSession);
+
+			log.info('Session updated successfully', sessionId);
+			return updatedSession;
+
+		} catch (error) {
+			log.error('Failed to update session', error);
+			this.operationState.error = error.message || 'Failed to update session';
+
+			// Dispatch error
+			this.appStateManager.sessions.setError(error.message);
+
+			return null;
+		}
+	}
+
+	/**
+	 * Toggle session pinned state
+	 * @param {string} sessionId - Session ID
+	 */
+	async toggleSessionPin(sessionId) {
+		const session = this.getSession(sessionId);
+		if (!session) {
+			log.warn('Session not found for pin toggle', sessionId);
+			return;
+		}
+
+		return this.updateSession(sessionId, { pinned: !session.pinned });
+	}
+
+	/**
+	 * Unpin a session
+	 * @param {string} sessionId - Session ID
+	 */
+	async unpinSession(sessionId) {
+		const session = this.getSession(sessionId);
+		if (!session) {
+			log.warn('Session not found for unpin', sessionId);
+			return;
+		}
+
+		if (!session.pinned) {
+			log.debug('Session already unpinned', sessionId);
+			return;
+		}
 
 		try {
-			const result = await this.sessionApi.create({
-				type: 'pty', // Default to pty for resume, could be made configurable
-				workspacePath,
-				options: {},
-				resume: true,
-				sessionId
-			});
+			await this.sessionApi.unpin(sessionId, session.workspacePath);
 
-			// Update session state
-			const session = this.sessions.find((s) => s.id === sessionId);
-			if (session) {
-				session.isActive = true;
-				session.lastActivity = new Date().toISOString();
-				this.activeSessions.set(sessionId, session);
-			}
+			// Update session in state via AppStateManager
+			const updatedSession = { ...session, pinned: false };
+			this.appStateManager.sessions.updateSession(sessionId, updatedSession);
 
-			// Update display
-			this.addToDisplay(sessionId);
+			log.info('Session unpinned successfully', sessionId);
 
-			return result;
 		} catch (error) {
-			this.error = error.message || 'Failed to resume session';
-			throw error;
-		} finally {
-			this.loading = false;
+			log.error('Failed to unpin session', error);
+			this.operationState.error = error.message || 'Failed to unpin session';
+
+			// Dispatch error
+			this.appStateManager.sessions.setError(error.message);
 		}
 	}
 
 	/**
 	 * Close/terminate a session
-	 * @param {string} sessionId
+	 * @param {string} sessionId - Session ID
 	 */
 	async closeSession(sessionId) {
-		const session = this.getSession(sessionId);
-		if (!session) return;
-
-		this.error = null;
-
 		try {
-			await this.sessionApi.delete(sessionId, session.workspacePath);
+			log.info('Closing session', sessionId);
 
-			// Remove from active sessions
-			this.activeSessions.delete(sessionId);
+			// Mark session operation as in progress
+			this.sessionOperations.set(sessionId, { operation: 'closing', timestamp: Date.now() });
 
-			// Update session state
-			session.isActive = false;
+			// Get session to obtain workspacePath for API call
+			const session = this.getSession(sessionId);
+			if (!session) {
+				throw new Error(`Session ${sessionId} not found`);
+			}
 
-			// Remove from display if on mobile
-			if (this.layoutService.isMobile()) {
-				this.sessions = this.sessions.filter((s) => s.id !== sessionId);
-				this.adjustMobileIndex();
+			// Ensure workspacePath is valid
+			const workspacePath = session.workspacePath || '';
+			if (!workspacePath) {
+				log.warn('Session has missing workspacePath, attempting fallback', sessionId);
+				// Try to get from current workspace selection as fallback
+				const currentWorkspace = this.appStateManager.workspaces.selectedWorkspace;
+				let fallbackPath = currentWorkspace?.path || '';
+
+				// If still no valid workspace path, use a default or force cleanup
+				if (!fallbackPath) {
+					log.warn('No valid workspace path available, forcing session cleanup', sessionId);
+					// Use a placeholder path for corrupted sessions
+					fallbackPath = '/tmp/corrupted-session-cleanup';
+				}
+
+				await this.sessionApi.delete(sessionId, fallbackPath);
 			} else {
-				// Remove from displayed array for desktop
-				this.removeFromDisplay(sessionId);
+				await this.sessionApi.delete(sessionId, workspacePath);
 			}
+
+			// Dispatch session removal to AppStateManager
+			this.appStateManager.removeSession(sessionId);
+
+			log.info('Session closed successfully', sessionId);
+
 		} catch (error) {
-			this.error = error.message || 'Failed to close session';
-			throw error;
+			log.error('Failed to close session', error);
+			this.operationState.error = error.message || 'Failed to close session';
+
+			// Dispatch error
+			this.appStateManager.sessions.setError(error.message);
+
+		} finally {
+			this.sessionOperations.delete(sessionId);
 		}
 	}
 
 	/**
-	 * Pin a session
-	 * @param {string} sessionId
-	 */
-	async pinSession(sessionId) {
-		const session = this.getSession(sessionId);
-		if (!session || session.pinned) return;
-
-		try {
-			await this.sessionApi.pin(sessionId, session.workspacePath);
-			session.pinned = true;
-		} catch (error) {
-			this.error = error.message || 'Failed to pin session';
-			throw error;
-		}
-	}
-
-	/**
-	 * Unpin a session
-	 * @param {string} sessionId
-	 */
-	async unpinSession(sessionId) {
-		const session = this.getSession(sessionId);
-		if (!session || !session.pinned) return;
-
-		try {
-			await this.sessionApi.unpin(sessionId, session.workspacePath);
-			session.pinned = false;
-
-			// Remove from display if showing only pinned
-			if (this.showOnlyPinned) {
-				this.removeFromDisplay(sessionId);
-			}
-		} catch (error) {
-			this.error = error.message || 'Failed to unpin session';
-			throw error;
-		}
-	}
-
-	/**
-	 * Rename a session
-	 * @param {string} sessionId
-	 * @param {string} newTitle
-	 */
-	async renameSession(sessionId, newTitle) {
-		const session = this.getSession(sessionId);
-		if (!session) return;
-
-		try {
-			await this.sessionApi.rename(sessionId, session.workspacePath, newTitle);
-			session.title = newTitle;
-			session.lastActivity = new Date().toISOString();
-		} catch (error) {
-			this.error = error.message || 'Failed to rename session';
-			throw error;
-		}
-	}
-
-	/**
-	 * Handle session created from external source (like modal)
-	 * @param {Object} sessionData
-	 * @param {string} sessionData.id
-	 * @param {string} sessionData.type
-	 * @param {string} sessionData.workspacePath
-	 * @param {string} sessionData.typeSpecificId
+	 * Handle external session creation (e.g., from Socket.IO events)
+	 * @param {Object} sessionData - Session data
+	 * @param {string} sessionData.id - Session ID
+	 * @param {string} sessionData.type - Session type
+	 * @param {string} sessionData.workspacePath - Workspace path
+	 * @param {string} sessionData.typeSpecificId - Type-specific ID
 	 */
 	handleSessionCreated(sessionData) {
 		const { id, type, workspacePath, typeSpecificId } = sessionData;
 
 		// Validate required fields
 		if (!id || !type) {
-			console.error('[SessionViewModel] Invalid session data - missing id or type:', sessionData);
+			log.error('Invalid session data - missing id or type:', sessionData);
 			return;
 		}
 
-		// Create session object
+		// Create normalized session object
 		const newSession = {
 			id,
 			typeSpecificId,
 			workspacePath,
 			sessionType: type,
-			type: type, // Add type field for compatibility with global state
+			type: type, // Keep for compatibility
 			isActive: true,
 			pinned: true,
 			title: `New ${type} session`,
 			createdAt: new Date().toISOString(),
-			lastActivity: new Date().toISOString()
+			lastActivity: new Date().toISOString(),
+			activityState: 'idle'
 		};
 
-		// Add to sessions if not already present
-		const existingSession = this.getSession(id);
-		if (!existingSession) {
-			this.sessions.push(newSession);
-			this.activeSessions.set(id, newSession);
+		// Dispatch session creation to AppStateManager
+		this.appStateManager.createSession(newSession);
 
-			// Sort sessions
-			this.sortSessions();
-		}
-
-		// Update display
-		this.addToDisplay(id);
-
-		// Update global session state
-		this.syncToGlobalState();
+		log.info('Session created externally', id);
 	}
 
 	/**
-	 * Add session to display
-	 * @param {string} sessionId
+	 * Handle session selection from UI components (like ProjectSessionMenu)
+	 * @param {Object} sessionData - Session data from UI component
+	 * @param {string} sessionData.id - Session ID
+	 * @param {string} sessionData.type - Session type
+	 * @param {string} sessionData.workspacePath - Workspace path
+	 * @param {boolean} sessionData.shouldResume - Whether this is a resume operation
 	 */
-	addToDisplay(sessionId) {
-		if (this.layoutService.isMobile()) {
-			// Find session index and set as current
-			const index = this.sessions.findIndex((s) => s.id === sessionId);
-			if (index !== -1) {
-				this.currentMobileSession = index;
+	async handleSessionSelected(sessionData) {
+		const { id, type, workspacePath, shouldResume } = sessionData;
+
+		try {
+			if (shouldResume) {
+				// This is a session resume operation
+				await this.resumeSession(id, workspacePath);
+			} else {
+				// This is just selecting an existing active session
+				// Update the AppState to focus on this session
+				this.appStateManager.sessions.updateSession(id, { isActive: true });
+
+				// Add to display if not already visible
+				if (!this.appStateManager.ui.display.displayedSessionIds.includes(id)) {
+					this.appStateManager.ui.addToDisplay(id);
+				}
 			}
-		} else {
-			// Desktop: add to displayed array
-			if (!this.displayed.includes(sessionId)) {
-				const maxVisible = this.layoutService.maxVisible;
-				const without = this.displayed.filter((id) => id !== sessionId);
-				const head = without.slice(0, Math.max(0, maxVisible - 1));
-				this.displayed = [...head, sessionId];
-			}
-		}
 
-		this.saveDisplayState();
-		this.syncToGlobalState();
-	}
-
-	/**
-	 * Remove session from display
-	 * @param {string} sessionId
-	 */
-	removeFromDisplay(sessionId) {
-		this.displayed = this.displayed.filter((id) => id !== sessionId);
-		this.saveDisplayState();
-		this.syncToGlobalState();
-	}
-
-	/**
-	 * Adjust mobile session index after removal
-	 */
-	adjustMobileIndex() {
-		const sessionCount = this.sessions.length;
-		if (sessionCount === 0) {
-			this.currentMobileSession = 0;
-		} else if (this.currentMobileSession >= sessionCount) {
-			this.currentMobileSession = sessionCount - 1;
-		}
-		this.saveDisplayState();
-		this.syncToGlobalState();
-	}
-
-	/**
-	 * Navigate to next mobile session
-	 */
-	nextMobileSession() {
-		if (this.sessions.length > 0) {
-			this.currentMobileSession = (this.currentMobileSession + 1) % this.sessions.length;
-			this.saveDisplayState();
-			this.syncToGlobalState();
+			log.info('Session selected successfully', id);
+		} catch (error) {
+			log.error('Failed to handle session selection', error);
+			throw error;
 		}
 	}
 
 	/**
-	 * Navigate to previous mobile session
+	 * Resume an existing session
+	 * @param {string} sessionId - Session ID
+	 * @param {string} workspacePath - Workspace path
 	 */
-	previousMobileSession() {
-		if (this.sessions.length > 0) {
-			this.currentMobileSession =
-				(this.currentMobileSession - 1 + this.sessions.length) % this.sessions.length;
-			this.saveDisplayState();
-			this.syncToGlobalState();
+	async resumeSession(sessionId, workspacePath) {
+		try {
+			log.info('Resuming session', sessionId);
+
+			// Resume is handled via create with resume flag
+			const result = await this.sessionApi.create({
+				type: 'pty', // Default to pty for resume
+				workspacePath,
+				options: {},
+				resume: true,
+				sessionId
+			});
+			const resumedSession = this.validateAndNormalizeSession(result);
+
+			// Dispatch session update to AppStateManager
+			this.appStateManager.sessions.updateSession(sessionId, { ...resumedSession, isActive: true });
+
+			log.info('Session resumed successfully', sessionId);
+			return resumedSession;
+
+		} catch (error) {
+			log.error('Failed to resume session', error);
+			this.operationState.error = error.message || 'Failed to resume session';
+
+			// Dispatch error
+			this.appStateManager.sessions.setError(error.message);
+
+			return null;
 		}
 	}
 
-	/**
-	 * Navigate to next session (alias for mobile navigation)
-	 */
+
+	// =================================================================
+	// MOBILE NAVIGATION HELPERS
+	// =================================================================
+
 	navigateToNextSession() {
-		this.nextMobileSession();
+		this.appStateManager.navigateMobile('next');
 	}
 
-	/**
-	 * Navigate to previous session (alias for mobile navigation)
-	 */
 	navigateToPrevSession() {
-		this.previousMobileSession();
+		this.appStateManager.navigateMobile('prev');
 	}
 
+	setMobileSessionIndex(index) {
+		this.appStateManager.navigateMobile(Number(index));
+	}
+
+	// =================================================================
+	// ACTIVITY AND STATUS TRACKING
+	// =================================================================
+
 	/**
-	 * Handle session selected from UI
-	 * @param {Object} sessionData
-	 * @param {string} sessionData.id
+	 * Update session activity state
+	 * @param {string} sessionId - Session ID
+	 * @param {string} activityState - New activity state
 	 */
-	handleSessionSelected(sessionData) {
-		const { id } = sessionData;
-		if (!id) return;
-
-		// Update display to show this session
-		this.addToDisplay(id);
-
-		// Set as selected
-		this.selectedSessionId = id;
+	updateSessionActivity(sessionId, activityState) {
+		// Update activity in AppState
+		this.appStateManager.sessions.updateActivity(sessionId, activityState, Date.now());
 	}
 
 	/**
-	 * Save display state to persistence
+	 * Check if session operation is in progress
+	 * @param {string} sessionId - Session ID
+	 * @returns {boolean}
 	 */
-	saveDisplayState() {
-		this.persistence.set('dispatch-displayed-sessions', this.displayed);
-		this.persistence.set('dispatch-mobile-index', this.currentMobileSession);
+	isSessionOperationInProgress(sessionId) {
+		return this.sessionOperations.has(sessionId);
 	}
 
 	/**
-	 * Restore display state from persistence
+	 * Get session operation state
+	 * @param {string} sessionId - Session ID
+	 * @returns {Object|null}
 	 */
-	restoreDisplayState() {
-		const savedDisplayed = this.persistence.get('dispatch-displayed-sessions', []);
-		// Only restore session IDs that actually exist in loaded sessions
-		this.displayed = savedDisplayed.filter((id) => this.sessions.some((s) => s.id === id));
-		this.currentMobileSession = this.persistence.get('dispatch-mobile-index', 0);
-
-		console.log('[SessionViewModel] Restored display state - valid IDs:', $state.snapshot(this.displayed));
-
-		// If no displayed sessions but we have pinned sessions, auto-display them for desktop
-		if (this.displayed.length === 0 && !this.layoutService.isMobile()) {
-			const pinnedSessions = this.sessions.filter((s) => s.pinned);
-			if (pinnedSessions.length > 0) {
-				// Auto-display only a reasonable number (2-4) for initial load, regardless of maxVisible
-				// User can add more sessions manually if needed
-				const initialDisplayLimit = Math.min(4, pinnedSessions.length);
-				this.displayed = pinnedSessions.slice(0, initialDisplayLimit).map((s) => s.id);
-				console.log('[SessionViewModel] Auto-displaying pinned sessions:', $state.snapshot(this.displayed));
-				this.saveDisplayState();
-			}
-		}
-
-		// Sync after restoring to ensure UI gets valid sessions
-		this.syncToGlobalState();
+	getSessionOperationState(sessionId) {
+		return this.sessionOperations.get(sessionId) || null;
 	}
 
-	/**
-	 * Update active sessions map
-	 */
-	updateActiveSessionsMap() {
-		this.activeSessions.clear();
-		for (const session of this.sessions) {
-			if (session.isActive) {
-				this.activeSessions.set(session.id, session);
-			}
-		}
-	}
+	// =================================================================
+	// QUERY METHODS
+	// =================================================================
 
 	/**
-	 * Sort sessions by last activity
-	 */
-	sortSessions() {
-		this.sessions.sort((a, b) => {
-			const dateA = new Date(a.lastActivity || 0);
-			const dateB = new Date(b.lastActivity || 0);
-			return dateB.getTime() - dateA.getTime();
-		});
-	}
-
-	/**
-	 * Get a session by ID
-	 * @param {string} sessionId
+	 * Get session by ID
+	 * @param {string} sessionId - Session ID
 	 * @returns {Session|null}
 	 */
 	getSession(sessionId) {
-		return this.sessions.find((s) => s.id === sessionId) || null;
+		return this.appStateManager.sessions.getSession(sessionId);
 	}
 
 	/**
-	 * Check if session is active
-	 * @param {string} sessionId
-	 * @returns {boolean}
+	 * Get sessions by workspace
+	 * @param {string} workspacePath - Workspace path
+	 * @returns {Session[]}
 	 */
-	isSessionActive(sessionId) {
-		return this.activeSessions.has(sessionId);
+	getSessionsByWorkspace(workspacePath) {
+		return this.appStateManager.sessions.getSessionsByWorkspace(workspacePath);
 	}
 
 	/**
-	 * Set session activity state
-	 * @param {string} sessionId
-	 * @param {'idle'|'processing'|'streaming'} state
+	 * Get sessions by type
+	 * @param {string} sessionType - Session type
+	 * @returns {Session[]}
 	 */
-	setSessionActivity(sessionId, state) {
-		this.sessionActivity.set(sessionId, state);
+	getSessionsByType(sessionType) {
+		return this.appStateManager.sessions.getSessionsByType(sessionType);
+	}
+
+	// =================================================================
+	// VALIDATION AND NORMALIZATION
+	// =================================================================
+
+	/**
+	 * Validate and normalize sessions array
+	 * @param {Array} sessions - Raw sessions from API
+	 * @returns {Session[]}
+	 */
+	validateAndNormalizeSessions(sessions) {
+		return sessions
+			.filter(s => s && s.id)
+			.map(session => this.validateAndNormalizeSession(session));
 	}
 
 	/**
-	 * Get session activity state
-	 * @param {string} sessionId
-	 * @returns {'idle'|'processing'|'streaming'|null}
+	 * Validate and normalize a single session
+	 * @param {Object} session - Raw session from API
+	 * @returns {Session}
 	 */
-	getSessionActivity(sessionId) {
-		return this.sessionActivity.get(sessionId) || 'idle';
-	}
-
-	/**
-	 * Set history loading state for a session
-	 * @param {string} sessionId
-	 * @param {boolean} isLoading
-	 */
-	setHistoryLoadingState(sessionId, isLoading) {
-		const currentState = this.historyLoadingState.get(sessionId) || {};
-		this.historyLoadingState.set(sessionId, {
-			loading: isLoading,
-			timestamp: isLoading ? Date.now() : currentState.timestamp
-		});
-	}
-
-	/**
-	 * Check if session is loading history
-	 * @param {string} sessionId
-	 * @returns {boolean}
-	 */
-	isLoadingHistory(sessionId) {
-		const state = this.historyLoadingState.get(sessionId);
-		return state?.loading || false;
-	}
-
-	/**
-	 * Update last message timestamp for a session
-	 * @param {string} sessionId
-	 * @param {number} timestamp
-	 */
-	updateLastMessageTimestamp(sessionId, timestamp) {
-		this.lastMessageTimestamps.set(sessionId, timestamp);
-	}
-
-	/**
-	 * Get last message timestamp for a session
-	 * @param {string} sessionId
-	 * @returns {number|null}
-	 */
-	getLastMessageTimestamp(sessionId) {
-		return this.lastMessageTimestamps.get(sessionId) || null;
-	}
-
-	/**
-	 * Check if any sessions are loading history
-	 * @returns {boolean}
-	 */
-	hasAnyLoadingHistory() {
-		for (const [_, state] of this.historyLoadingState) {
-			if (state?.loading) return true;
+	validateAndNormalizeSession(session) {
+		// Ensure workspacePath is defined
+		const workspacePath = session.workspacePath || '';
+		if (!workspacePath) {
+			log.warn('Session loaded with missing workspacePath', session.id);
 		}
-		return false;
+
+		return {
+			id: session.id,
+			typeSpecificId: session.typeSpecificId,
+			workspacePath: workspacePath,
+			sessionType: session.type || session.sessionType,
+			isActive: session.isActive !== undefined ? session.isActive : true,
+			pinned: session.pinned !== undefined ? session.pinned : true,
+			title: session.title || `${session.type || session.sessionType} session`,
+			createdAt: session.createdAt || new Date().toISOString(),
+			lastActivity: session.lastActivity || new Date().toISOString(),
+			activityState: session.activityState || 'idle'
+		};
+	}
+
+	// =================================================================
+	// ERROR HANDLING
+	// =================================================================
+
+	/**
+	 * Clear current error state
+	 */
+	clearError() {
+		this.operationState.error = null;
+
+		// Clear error in AppStateManager
+		this.appStateManager.sessions.clearError();
 	}
 
 	/**
-	 * Filter sessions by workspace
-	 * @param {string|null} workspacePath
+	 * Get current error state
+	 * @returns {string|null}
 	 */
-	setWorkspaceFilter(workspacePath) {
-		this.filterByWorkspace = workspacePath;
-		this.loadSessions();
+	getCurrentError() {
+		return this.operationState.error || this.appStateManager.ui.errors.sessions;
 	}
 
-	/**
-	 * Toggle pinned filter
-	 */
-	togglePinnedFilter() {
-		this.showOnlyPinned = !this.showOnlyPinned;
-		this.loadSessions();
-	}
+	// =================================================================
+	// LIFECYCLE AND CLEANUP
+	// =================================================================
 
 	/**
-	 * Refresh sessions
+	 * Cleanup resources
 	 */
-	async refresh() {
-		await this.loadSessions();
-	}
-
-	/**
-	 * Reset all state
-	 */
-	reset() {
-		this.sessions = [];
-		this.activeSessions.clear();
-		this.displayed = [];
-		this.currentMobileSession = 0;
-		this.selectedSessionId = null;
-		this.loading = false;
-		this.error = null;
-		this.creatingSession = false;
-		this.sessionActivity.clear();
-	}
-
-	/**
-	 * Sync local state to global session state
-	 */
-	syncToGlobalState() {
-		try {
-			console.log('[SessionViewModel] Starting syncToGlobalState...');
-
-			// Filter sessions to ensure they have valid IDs
-			const validSessions = this.sessions.filter((s) => s && s.id);
-			console.log('[SessionViewModel] Valid sessions count:', validSessions.length);
-
-			// Update global all sessions
-			console.log('[SessionViewModel] Calling setAllSessions...');
-			setAllSessions([...validSessions]);
-			console.log('[SessionViewModel] setAllSessions completed');
-
-			// Update global displayed sessions - use sessions that should be visible
-			const displayedSessions = this.layoutService.isMobile()
-				? this.visibleSessions.filter((s) => s && s.id) // Mobile: use the derived visible sessions
-				: this.displayed.map((id) => this.getSession(id)).filter((s) => s && s.id); // Desktop: use displayed IDs
-
-			// Use $state.snapshot for proper logging without Svelte warnings
-			console.log('[SessionViewModel] Syncing to global state:');
-			console.log('- All sessions count:', validSessions.length);
-			console.log('- Displayed session IDs:', $state.snapshot(this.displayed));
-			console.log('- Displayed sessions count:', displayedSessions.length);
-			console.log('- Sample session structure:', validSessions[0] ? {
-				id: validSessions[0].id,
-				title: validSessions[0].title,
-				type: validSessions[0].type || validSessions[0].sessionType,
-				pinned: validSessions[0].pinned,
-				isActive: validSessions[0].isActive
-			} : 'No sessions');
-
-			console.log('[SessionViewModel] Calling setDisplayedSessions...');
-			setDisplayedSessions([...displayedSessions]);
-			console.log('[SessionViewModel] setDisplayedSessions completed - syncToGlobalState finished successfully');
-		} catch (error) {
-			console.error('[SessionViewModel] ERROR in syncToGlobalState:', error);
-			console.error('[SessionViewModel] Error stack:', error.stack);
-		}
+	dispose() {
+		this.sessionOperations.clear();
+		this.operationState.error = null;
+		log.debug('Disposed');
 	}
 
 	/**
@@ -716,21 +576,10 @@ export class SessionViewModel {
 	 */
 	getState() {
 		return {
-			sessions: this.sessions.length,
-			active: this.activeSessions.size,
-			displayed: this.displayed.length,
-			currentMobile: this.currentMobileSession,
-			loading: this.loading,
-			error: this.error,
-			pinned: this.pinnedSessions.length,
-			unpinned: this.unpinnedSessions.length
+			operationState: { ...this.operationState },
+			sessionOperations: new Map(this.sessionOperations),
+			sessionCount: this.sessionCount,
+			hasActiveSessions: this.hasActiveSessions
 		};
-	}
-
-	/**
-	 * Dispose of resources
-	 */
-	dispose() {
-		this.reset();
 	}
 }

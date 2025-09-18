@@ -13,7 +13,7 @@
 	}
 
 	function handleCreateTerminal() {
-		onCreateSession('terminal');
+		onCreateSession('pty');
 	}
 </script>
 

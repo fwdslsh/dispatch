@@ -1,25 +1,16 @@
 import { json } from '@sveltejs/kit';
 import { validateKey } from '$lib/server/auth.js';
 
-export async function POST({ params, request }) {
+export async function POST({ params, request, locals }) {
 	const { socketId } = params;
-	let key = null;
 	const auth = request.headers.get('authorization');
-	if (auth && auth.startsWith('Bearer ')) {
-		key = auth.slice(7);
-	}
-	if (!key) {
-		// fallback to body for backward compatibility
-		const body = await request.json();
-		key = body.key;
-	}
+	const key = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
 	if (!validateKey(key)) {
 		return json({ error: 'Invalid authentication key' }, { status: 401 });
 	}
 
 	try {
-		// Get the Socket.IO instance from global state
-		const io = globalThis.__DISPATCH_SOCKET_IO;
+		const io = locals?.serviceContainer?.getSocketIO?.() || null;
 
 		if (!io) {
 			return json({ error: 'Socket.IO server not available' }, { status: 500 });

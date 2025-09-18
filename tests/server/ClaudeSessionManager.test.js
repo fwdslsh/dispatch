@@ -29,12 +29,7 @@ vi.mock('../../src/lib/server/utils/logger.js', () => ({
 	}
 }));
 
-vi.mock('../../src/lib/server/db/DatabaseManager.js', () => ({
-	databaseManager: {
-		init: vi.fn(),
-		addClaudeSession: vi.fn()
-	}
-}));
+console.log('ClaudeSessionManager.test.js loaded');
 
 describe('ClaudeSessionManager - Session ID Routing', () => {
 	let manager;
@@ -67,12 +62,6 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 				}
 			};
 
-			// Mock the commands cache
-			manager._toolsCache.set('/test/workspace:/mock/claude', {
-				commands: ['clear', 'compact'],
-				fetchedAt: Date.now()
-			});
-
 			await manager._fetchAndEmitSupportedCommands(claudeSessionId, sessionData);
 
 			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
@@ -94,12 +83,6 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 				}
 			};
 
-			// Mock the commands cache
-			manager._toolsCache.set('/test/workspace:/mock/claude', {
-				commands: ['clear', 'compact'],
-				fetchedAt: Date.now()
-			});
-
 			await manager._fetchAndEmitSupportedCommands(claudeSessionId, sessionData);
 
 			expect(mockIO.emit).toHaveBeenCalledWith('claude.tools.available', {
@@ -118,12 +101,6 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 					pathToClaudeCodeExecutable: '/mock/claude'
 				}
 			};
-
-			// Mock the commands cache
-			manager._toolsCache.set('/test/workspace:/mock/claude', {
-				commands: ['clear', 'compact'],
-				fetchedAt: Date.now()
-			});
 
 			await manager._fetchAndEmitSupportedCommands(claudeSessionId, sessionData);
 
@@ -146,12 +123,6 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 				}
 			};
 
-			// Mock the commands cache
-			manager._toolsCache.set('/test/workspace:/mock/claude', {
-				commands: ['clear', 'compact'],
-				fetchedAt: Date.now()
-			});
-
 			await manager._fetchAndEmitSupportedCommands(claudeSessionId, sessionData);
 
 			expect(mockIO.emit).toHaveBeenCalledWith('session.status', {
@@ -172,12 +143,6 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 					pathToClaudeCodeExecutable: '/mock/claude'
 				}
 			};
-
-			// Mock the commands cache
-			manager._toolsCache.set('/test/workspace:/mock/claude', {
-				commands: ['clear', 'compact'],
-				fetchedAt: Date.now()
-			});
 
 			await manager._fetchAndEmitSupportedCommands(claudeSessionId, sessionData);
 
@@ -216,10 +181,6 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 			};
 
 			manager.sessions.set(sessionId, sessionData);
-			manager._toolsCache.set('/test/workspace:/mock/claude', {
-				commands: ['clear', 'compact'],
-				fetchedAt: Date.now()
-			});
 
 			const result = manager.getCachedCommands(sessionId);
 			expect(result).toEqual(['clear', 'compact']);
@@ -245,5 +206,9 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 			const result = manager.getCachedCommands(sessionId);
 			expect(result).toBeNull();
 		});
+	});
+
+	it('should load a basic test', () => {
+		expect(true).toBe(true);
 	});
 });

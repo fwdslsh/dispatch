@@ -5,34 +5,21 @@
 
 	// Services and ViewModels
 	import {
-		provideServiceContainer,
-		useServiceContainer
+		provideServiceContainer
 	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { WorkspaceViewModel } from '$lib/client/shared/viewmodels/WorkspaceViewModel.svelte.js';
 	import { LayoutViewModel } from '$lib/client/shared/viewmodels/LayoutViewModel.svelte.js';
-	import { ModalViewModel } from '$lib/client/shared/viewmodels/ModalViewModel.svelte.js';
-
-	// State modules
-	import { sessionState } from '$lib/client/shared/state/session-state.svelte.js';
-	import { workspaceState } from '$lib/client/shared/state/workspace-state.svelte.js';
-	import { uiState } from '$lib/client/shared/state/ui-state.svelte.js';
+	import { createLogger } from '$lib/client/shared/utils/logger.js';
 
 	// Components
 	import WorkspaceHeader from './WorkspaceHeader.svelte';
-	import SessionGrid from './SessionGrid.svelte';
 	import SessionWindowManager from './SessionWindowManager.svelte';
-	import SessionContainer from './SessionContainer.svelte';
-	import SessionHeader from './SessionHeader.svelte';
-	import SessionViewport from './SessionViewport.svelte';
 	import StatusBar from './StatusBar.svelte';
-	import EmptyWorkspace from './EmptyWorkspace.svelte';
 
 	// Modals
-	import TerminalSessionModal from '$lib/client/terminal/TerminalSessionModal.svelte';
-	import ClaudeSessionModal from '$lib/client/claude/ClaudeSessionModal.svelte';
-	import CreateSessionModalSimplified from '$lib/client/shared/components/CreateSessionModalSimplified.svelte';
+	import CreateSessionModal from '$lib/client/shared/components/CreateSessionModal.svelte';
 	import SettingsModal from '$lib/client/shared/components/Settings/SettingsModal.svelte';
-	import ProjectSessionMenuSimplified from '$lib/client/shared/components/ProjectSessionMenuSimplified.svelte';
+	import ProjectSessionMenu from '$lib/client/shared/components/ProjectSessionMenu.svelte';
 
 	// PWA components
 	import PWAInstallPrompt from '$lib/client/shared/components/PWAInstallPrompt.svelte';
@@ -50,61 +37,51 @@
 	});
 
 	// ViewModels and Services
+	const log = createLogger('workspace:page');
 	let workspaceViewModel = $state();
 	let sessionViewModel = $state();
-	let windowViewModel = $state();
-	let tileAssignmentService = $state();
 
 	// Component references
 	let sessionWindowManager = $state();
 
 	/** @type {LayoutViewModel} */
 	let layoutViewModel = $state();
-	let modalViewModel = $state();
 
-	// Modal state from ViewModels
-	const activeModal = $derived(
-		modalViewModel?.topModalId ? modalViewModel.activeModals.get(modalViewModel.topModalId) : null
+	// activeModal: { type: string, data: any } | null
+	let activeModal = $state(null);
+
+	let sessionMenuOpen = $state(false);
+
+	// Derived modal open state - simple check against activeModal.type
+	const createSessionModalOpen = $derived(activeModal?.type === 'createSession');
+
+	// Simple session count from sessionViewModel
+	const totalSessions = $derived(sessionViewModel?.sessions?.length ?? 0);
+	const hasActiveSessions = $derived(totalSessions > 0);
+	const currentMobileSessionIndex = $derived(
+		sessionViewModel?.currentMobileSession ?? 0
 	);
-	const sessionMenuOpen = $derived(uiState.layout.showBottomSheet);
-
-	// Reactive modal open state for binding
-	let createSessionModalOpen = $state(false);
-
-	// Derived values from state
-	const visibleSessions = $derived(sessionState.displayed);
+	const currentWorkspace = $derived(workspaceViewModel?.selectedWorkspace ?? null);
 	const currentBreakpoint = $derived(
-		uiState.layout.isMobile ? 'mobile' : uiState.layout.isTablet ? 'tablet' : 'desktop'
+		layoutViewModel
+			? layoutViewModel.isMobile
+				? 'mobile'
+				: layoutViewModel.isTablet
+					? 'tablet'
+					: 'desktop'
+			: 'desktop'
 	);
 
-	// Session data from state
-	const displayedSessions = $derived(visibleSessions || []);
-	const currentWorkspace = $derived(workspaceState.current);
-
-	// Debug effect to track session state changes
-	$effect(() => {
-		console.log('[WorkspacePage] Session state updated:');
-		console.log('- sessionState.all.length:', sessionState.all.length);
-		console.log('- sessionState.displayed.length:', sessionState.displayed.length);
-		console.log('- visibleSessions.length:', visibleSessions.length);
-		console.log('- displayedSessions.length:', displayedSessions.length);
-		console.log('- useWindowManager:', useWindowManager);
-		if (displayedSessions.length > 0) {
-			console.log('- Sample displayedSession:', {
-				id: displayedSessions[0]?.id,
-				title: displayedSessions[0]?.title,
-				type: displayedSessions[0]?.type
-			});
-		}
-	});
+	// Debug effect removed to prevent unnecessary reactive updates
 
 	// Responsive state
-	const isMobile = $derived(currentBreakpoint === 'mobile');
-	// Use WindowManager on desktop if we have any sessions (not just displayed ones)
-	const useWindowManager = $derived(!isMobile);
+	const isMobile = $derived(layoutViewModel?.isMobile ?? currentBreakpoint === 'mobile');
+	const layoutColumns = $derived(layoutViewModel?.columns ?? 1);
 
 	// PWA installation handling
 	let deferredPrompt = $state(null);
+	let lastWorkspacePath = undefined;
+	let __removeWorkspacePageListeners = $state(null);
 
 	// Handle mobile state changes through explicit method calls
 	// Note: isMobile, isTablet, etc. are now derived values declared in constructor
@@ -131,29 +108,11 @@
 		}
 	});
 
-	// Sync createSessionModalOpen with activeModal state
-	$effect(() => {
-		if (activeModal?.type === 'createSession') {
-			createSessionModalOpen = activeModal.open;
-		} else if (createSessionModalOpen) {
-			createSessionModalOpen = false;
-		}
-	});
+	// Simplified state management - no complex app state dispatch needed
 
-	// Sync back to ModalViewModel when createSessionModalOpen changes to false
-	$effect(() => {
-		if (!createSessionModalOpen && activeModal?.type === 'createSession') {
-			modalViewModel.closeModal('createSession');
-		}
-	});
+	// Sessions map directly to tiles by index using WindowViewModel
 
-	// Set up reactive session observation for tile assignment
-	$effect(() => {
-		if (tileAssignmentService && displayedSessions) {
-			// Update the service with current sessions for reactive observation
-			tileAssignmentService.currentSessions = displayedSessions;
-		}
-	});
+	// Modal state is now derived from activeModal - no more bidirectional sync needed!
 
 	// Initialization
 	onMount(async () => {
@@ -161,7 +120,7 @@
 		if (browser) {
 			const storedKey = localStorage.getItem('dispatch-auth-key');
 			if (!storedKey) {
-				console.log('No auth key found, redirecting to login');
+				log.info('No auth key found, redirecting to login');
 				goto('/');
 				return;
 			}
@@ -169,13 +128,13 @@
 			try {
 				const response = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
 				if (!response.ok) {
-					console.log('Auth key invalid, redirecting to login');
+					log.warn('Auth key invalid, redirecting to login');
 					localStorage.removeItem('dispatch-auth-key');
 					goto('/');
 					return;
 				}
 			} catch (error) {
-				console.error('Failed to verify auth key:', error);
+				log.error('Failed to verify auth key', error);
 			}
 		}
 
@@ -188,55 +147,67 @@
 		// Create WorkspaceViewModel directly (not shared with other components)
 		workspaceViewModel = new WorkspaceViewModel(workspaceApi, persistence);
 
-		// Get shared ViewModels from container (ensures proper dependency order)
+		// Get shared ViewModels from container
 		sessionViewModel = await container.get('sessionViewModel');
-		windowViewModel = await container.get('windowViewModel');
-		tileAssignmentService = await container.get('tileAssignmentService');
 
-		layoutViewModel = new LayoutViewModel(layout);
-		modalViewModel = new ModalViewModel();
+	layoutViewModel = new LayoutViewModel(layout);
 
 		// Load initial data
 		await workspaceViewModel.loadWorkspaces();
 		await workspaceViewModel.loadRecentWorkspaces();
-		console.log('[WorkspacePage] Loading sessions...');
+		log.info('Loading sessions...');
 		await sessionViewModel.loadSessions();
-		console.log('[WorkspacePage] Sessions loaded');
-
-		// TileAssignmentService is set up reactively via $effect above
+		log.info('Sessions loaded');
 
 		// Initialize responsive state
 		layoutViewModel.updateResponsiveState();
 
 		// Setup PWA install prompt
 		if (typeof window !== 'undefined') {
-			window.addEventListener('beforeinstallprompt', (e) => {
+			function handleBeforeInstallPrompt(e) {
 				e.preventDefault();
 				deferredPrompt = e;
-				console.log('[PWA] Install prompt available');
-			});
+				log.info('PWA install prompt available');
+			}
 
-			window.addEventListener('resize', () => {
-				layoutViewModel.updateResponsiveState();
-			});
+			function handleResize() {
+				try {
+					layoutViewModel?.updateResponsiveState();
+				} catch (err) {
+					log.warn('Failed to update responsive state on resize', err);
+				}
+			}
+
+			window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+			window.addEventListener('resize', handleResize);
+
+			// Store cleanup handlers on the component instance for onDestroy
+			__removeWorkspacePageListeners = () => {
+				window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+				window.removeEventListener('resize', handleResize);
+			};
 		}
 
 		// Check for PWA shortcut parameters
 		const urlParams = new URLSearchParams(window.location.search);
 		const newSessionType = urlParams.get('new');
-		if (newSessionType === 'terminal' || newSessionType === 'claude') {
-			modalViewModel.openModal('create-session', { initialType: newSessionType });
+		if (newSessionType === 'pty' || newSessionType === 'claude') {
+			// Use local modal helper to open create-session modal
+			openCreateSessionModal(newSessionType);
 			window.history.replaceState({}, '', '/workspace');
 		}
 	});
 
 	onDestroy(() => {
-		if (typeof window !== 'undefined') {
-			window.removeEventListener('resize', () => {
-				layoutViewModel?.updateResponsiveState();
-			});
-		}
-		sessionSocketManager.disconnectAll();
+			try {
+				if (typeof __removeWorkspacePageListeners === 'function') {
+					__removeWorkspacePageListeners();
+				}
+			} catch (err) {
+				log.warn('Error during cleanup of workspace page listeners', err);
+			}
+
+			sessionSocketManager.disconnectAll();
 	});
 
 	// Event handlers
@@ -252,9 +223,9 @@
 			deferredPrompt.prompt();
 			deferredPrompt.userChoice.then((choiceResult) => {
 				if (choiceResult.outcome === 'accepted') {
-					console.log('[PWA] User accepted the install prompt');
+					log.info('PWA install prompt accepted');
 				} else {
-					console.log('[PWA] User dismissed the install prompt');
+					log.info('PWA install prompt dismissed');
 				}
 				deferredPrompt = null;
 			});
@@ -275,17 +246,14 @@
 	}
 
 	function handleOpenSettings() {
-		if (modalViewModel) {
-			modalViewModel.openModal('settings');
-		}
+		// Open settings modal locally
+		activeModal = { type: 'settings', data: null };
 	}
 
 	function handleCreateSession(type = 'claude') {
 		// Clean session creation flow - no interception
-		// The TileAssignmentService will handle tile assignment reactively after session creation
-		if (modalViewModel) {
-			modalViewModel.openCreateSessionModal(type);
-		}
+		// WindowViewModel handles tile assignment after session creation
+		openCreateSessionModal(type);
 	}
 
 	// Direct session creation for empty tiles (bypasses modal)
@@ -309,7 +277,7 @@
 					return;
 				}
 			} catch (error) {
-				console.error('Failed to create default workspace:', error);
+				log.error('Failed to create default workspace', error);
 				// Fall back to modal
 				handleCreateSession(type);
 				return;
@@ -319,43 +287,34 @@
 		try {
 			// Convert 'terminal' to 'pty' for API compatibility
 			const apiType = type === 'terminal' ? 'pty' : type;
-			await sessionViewModel.createSession(apiType, targetPath);
+			await sessionViewModel.createSession({ type: apiType, workspacePath: targetPath });
 		} catch (error) {
-			console.error('Failed to create session directly:', error);
+			log.error('Failed to create session directly', error);
 			// Fall back to modal on error
 			handleCreateSession(type);
 		}
 	}
 
 	function handleToggleSessionMenu() {
-		if (sessionMenuOpen) {
-			uiState.layout.showBottomSheet = false;
-		} else {
-			uiState.layout.showBottomSheet = true;
-		}
+		sessionMenuOpen = !sessionMenuOpen;
 	}
 
 	function handleNavigateSession(direction) {
 		if (direction === 'next') {
-			sessionViewModel.navigateToNextSession();
+			sessionViewModel?.navigateToNextSession();
 		} else if (direction === 'prev') {
-			sessionViewModel.navigateToPrevSession();
+			sessionViewModel?.navigateToPrevSession();
 		}
 	}
 
 	function handleSessionFocus(session) {
-		console.log('Session focused:', session.id);
+		if(sessionSocketManager.activeSession == session.id) return;
 		sessionSocketManager.handleSessionFocus(session.id);
 	}
 
 	function handleSessionClose(sessionId) {
 		// Close session in SessionViewModel
 		sessionViewModel.closeSession(sessionId);
-
-		// Notify WindowViewModel for tile management
-		if (windowViewModel && !isMobile) {
-			windowViewModel.handleSessionClosed(sessionId);
-		}
 	}
 
 	function handleSessionUnpin(sessionId) {
@@ -374,12 +333,19 @@
 			typeSpecificId
 		});
 
-		// Notify WindowViewModel for tile management
-		if (windowViewModel && !isMobile) {
-			windowViewModel.handleSessionCreated(id);
+		// Close local create session modal if open
+		if (activeModal?.type === 'createSession') {
+			activeModal = null;
 		}
+	}
 
-		modalViewModel.closeModal('createSession');
+	// Local modal helpers
+	function openCreateSessionModal(type = 'claude') {
+		activeModal = { type: 'createSession', data: { type } };
+	}
+
+	function closeActiveModal() {
+		activeModal = null;
 	}
 </script>
 
@@ -387,7 +353,7 @@
 	<!-- Service container is provided via context -->
 
 	<!-- Header (desktop only) -->
-	<WorkspaceHeader onLogout={handleLogout} />
+	<WorkspaceHeader onLogout={handleLogout} {layoutViewModel} />
 
 	<!-- Bottom sheet for sessions -->
 	{#if sessionMenuOpen}
@@ -396,22 +362,26 @@
 				<div class="sheet-title">Sessions</div>
 				<button
 					class="sheet-close"
-					onclick={() => (uiState.layout.showBottomSheet = false)}
+					onclick={() => sessionMenuOpen = false}
 					aria-label="Close"
 				>
 					✕
 				</button>
 			</div>
 			<div class="sheet-body">
-				<ProjectSessionMenuSimplified
-					bind:selectedWorkspace={workspaceState.current}
+				<ProjectSessionMenu
+					bind:selectedWorkspace={workspaceViewModel.selectedWorkspace}
 					onNewSession={(e) => {
 						const { type } = e.detail || {};
 						handleCreateSession(type);
 					}}
-					onSessionSelected={(e) => {
-						sessionViewModel.handleSessionSelected(e.detail);
-						uiState.layout.showBottomSheet = false;
+					onSessionSelected={async (e) => {
+						try {
+							await sessionViewModel.handleSessionSelected(e.detail);
+						} catch (error) {
+							console.error('Error resuming session:', error);
+						}
+						sessionMenuOpen = false;
 					}}
 				/>
 			</div>
@@ -420,40 +390,14 @@
 
 	<!-- Main Content -->
 	<main class="main-content">
-		{#if useWindowManager && windowViewModel}
-			<!-- Desktop: Use tiling window manager -->
-			<SessionWindowManager
-				{windowViewModel}
-				{tileAssignmentService}
-				sessions={displayedSessions}
-				onSessionFocus={handleSessionFocus}
-				onSessionClose={handleSessionClose}
-				onSessionUnpin={handleSessionUnpin}
-				onCreateSession={handleCreateSession}
-				onCreateSessionDirect={handleCreateSessionDirect}
-				bind:this={sessionWindowManager}
-			/>
-		{:else}
-			<!-- Mobile: Use traditional grid layout -->
-			<SessionGrid sessions={displayedSessions} onSessionFocus={handleSessionFocus}>
-				{#snippet sessionContainer(session, index)}
-					<SessionContainer
-						{session}
-						{index}
-						onClose={handleSessionClose}
-						onUnpin={handleSessionUnpin}
-					>
-						{#snippet header({ session, onClose, onUnpin, index })}
-							<SessionHeader {session} {onClose} {onUnpin} {index} />
-						{/snippet}
-
-						{#snippet content({ session, isLoading, index })}
-							<SessionViewport {session} {isLoading} {index} />
-						{/snippet}
-					</SessionContainer>
-				{/snippet}
-			</SessionGrid>
-		{/if}
+		<SessionWindowManager
+			sessions={sessionViewModel?.sessions ?? []}
+			onSessionFocus={handleSessionFocus}
+			onSessionClose={handleSessionClose}
+			onSessionUnpin={handleSessionUnpin}
+			onCreateSession={handleCreateSession}
+			bind:this={sessionWindowManager}
+		/>
 	</main>
 
 	<!-- Status Bar -->
@@ -465,19 +409,25 @@
 		onToggleSessionMenu={handleToggleSessionMenu}
 		onNavigateSession={handleNavigateSession}
 		{sessionMenuOpen}
+		{isMobile}
+		{hasActiveSessions}
+		sessionCount={totalSessions}
+		currentSessionIndex={currentMobileSessionIndex}
+		{totalSessions}
 	/>
 </div>
 
 <!-- Modals -->
 {#if activeModal}
 	{#if activeModal.type === 'createSession'}
-		<CreateSessionModalSimplified
-			bind:open={createSessionModalOpen}
+		<CreateSessionModal
+			open={createSessionModalOpen}
 			initialType={activeModal.data?.type || 'claude'}
 			oncreated={handleSessionCreate}
+			onclose={closeActiveModal}
 		/>
 	{:else if activeModal.type === 'settings'}
-		<SettingsModal open={true} onclose={() => modalViewModel.closeModal('settings')} />
+		<SettingsModal open={true} onclose={closeActiveModal} />
 	{/if}
 {/if}
 

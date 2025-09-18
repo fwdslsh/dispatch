@@ -29,7 +29,7 @@
 
 	/**
 	 * Create a new session and assign it to a tile
-	 * @param {'terminal' | 'claude'} type
+	 * @param {'terminal' | 'claude'} type - UI type, converted internally to 'pty' | 'claude'
 	 * @param {string} tileId - Optional tile ID to assign to
 	 */
 	async function createSession(type, tileId = null) {
@@ -68,7 +68,7 @@
 
 	/**
 	 * Create a session for a specific tile
-	 * @param {'terminal' | 'claude'} type
+	 * @param {'terminal' | 'claude'} type - UI type, converted internally to 'pty' | 'claude'
 	 * @param {string} tileId
 	 */
 	function createSessionForTile(type, tileId) {

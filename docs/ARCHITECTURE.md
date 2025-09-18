@@ -46,8 +46,8 @@ graph TB
     end
 
     subgraph "Service Layer"
-        SM[SessionManager]
-        SR[SessionRouter]
+        SR[SessionRegistry]
+        MB[MessageBuffer]
         WM[WorkspaceManager]
         TM[TerminalManager]
         CM[ClaudeSessionManager]
@@ -70,13 +70,13 @@ graph TB
     UI <--> SocketIO
     UI <--> REST
 
-    SocketIO --> SM
+    SocketIO --> SR
     REST --> WM
 
-    SM --> SR
-    SM --> TM
-    SM --> CM
-    SR --> Memory
+    SR --> MB
+    SR --> TM
+    SR --> CM
+    MB --> Memory
     WM --> SQLite
     WM --> FS
 
@@ -86,15 +86,15 @@ graph TB
 
 ### Component Responsibilities
 
-| Component            | Responsibility                        | Technology          |
-| -------------------- | ------------------------------------- | ------------------- |
-| Frontend             | User interface, terminal emulation    | SvelteKit, xterm.js |
-| Socket.IO Layer      | Real-time bidirectional communication | Socket.IO 4.x       |
-| SessionManager       | Unified session abstraction           | Node.js service     |
-| SessionRouter        | Session mapping and routing           | In-memory store     |
-| WorkspaceManager     | Workspace lifecycle and persistence   | SQLite + filesystem |
-| TerminalManager      | PTY session management                | node-pty            |
-| ClaudeSessionManager | AI session integration                | Claude Code SDK     |
+| Component            | Responsibility                           | Technology          |
+| -------------------- | ---------------------------------------- | ------------------- |
+| Frontend             | User interface, terminal emulation       | SvelteKit, xterm.js |
+| Socket.IO Layer      | Real-time bidirectional communication    | Socket.IO 4.x       |
+| SessionRegistry      | Session lifecycle + module orchestration | Node.js service     |
+| MessageBuffer        | Session message replay buffer            | In-memory store     |
+| WorkspaceManager     | Workspace lifecycle and persistence      | SQLite + filesystem |
+| TerminalManager      | PTY session management                   | node-pty            |
+| ClaudeSessionManager | AI session integration                   | Claude Code SDK     |
 
 ## Frontend Architecture
 
@@ -202,8 +202,8 @@ graph LR
     end
 
     subgraph "Core Services"
-        SM[SessionManager]
-        SR[SessionRouter]
+        SR[SessionRegistry]
+        MB[MessageBuffer]
         WM[WorkspaceManager]
     end
 
@@ -214,58 +214,57 @@ graph LR
     end
 
     subgraph "Shared Resources"
-        API[__API_SERVICES]
+        API[Service Container]
         DB[Database]
+        Memory[In-Memory Store]
     end
 
     App --> Hooks
     Hooks --> API
     SocketSetup --> API
 
-    API --> SM
     API --> SR
     API --> WM
 
-SM --> TM
-SM --> CM
-SM --> CAM
+SR --> TM
+SR --> CM
+SR --> CAM
+SR --> MB
 
     WM --> DB
-    SR --> DB
+    MB --> Memory
 ```
 
 ### Core Service Classes
 
-#### SessionManager (`src/lib/server/session-manager.js`)
+#### SessionRegistry (`src/lib/server/core/SessionRegistry.js`)
 
-Unified abstraction layer for all session types:
+`SessionRegistry` is the primary orchestration layer for server-side sessions. It owns the active-session index and coordinates directly with `TerminalManager` and `ClaudeSessionManager`.
+
+Key responsibilities:
+
+- Maintain the canonical map of application session IDs to type-specific metadata
+- Delegate `create`, `send`, `performOperation`, `stop`, and `refreshCommands` calls to the concrete managers
+- Persist session metadata through `WorkspaceManager`
+- Coordinate message buffering and socket emission via `MessageBuffer`
+
+Example usage:
 
 ```javascript
-class SessionManager {
-	constructor(dependencies) {
-		this.sessionRouter = dependencies.sessionRouter;
-		this.workspaceManager = dependencies.workspaceManager;
-		this.sessionTypes = new Map();
-	}
+const registry = new SessionRegistry({
+	workspaceManager,
+	messageBuffer,
+	terminalManager,
+	claudeSessionManager
+});
 
-	registerType(type, manager) {
-		this.sessionTypes.set(type, manager);
-	}
+const session = await registry.createSession({
+	type: 'claude',
+	workspacePath: '/workspace/project',
+	options: { socket }
+});
 
-	async create({ type, workspacePath, options }) {
-		const manager = this.sessionTypes.get(type);
-		const unifiedId = generateId();
-		const session = await manager.create(options);
-
-		this.sessionRouter.bind(unifiedId, {
-			type,
-			specificId: session.id,
-			workspacePath
-		});
-
-		return { id: unifiedId, ...session };
-	}
-}
+await registry.sendToSession(session.id, userInput);
 ```
 
 #### WorkspaceManager (`src/lib/server/core/WorkspaceManager.js`)
@@ -302,70 +301,33 @@ class WorkspaceManager {
 }
 ```
 
-#### SessionRouter (`src/lib/server/core/SessionRouter.js`)
-
-In-memory session mapping and routing:
-
-```javascript
-class SessionRouter {
-	constructor() {
-		this.sessions = new Map();
-		this.workspaceSessions = new Map();
-	}
-
-	bind(sessionId, descriptor) {
-		this.sessions.set(sessionId, {
-			...descriptor,
-			createdAt: Date.now(),
-			lastActivity: Date.now()
-		});
-
-		// Update workspace mapping
-		const workspacePath = descriptor.workspacePath;
-		if (!this.workspaceSessions.has(workspacePath)) {
-			this.workspaceSessions.set(workspacePath, new Set());
-		}
-		this.workspaceSessions.get(workspacePath).add(sessionId);
-	}
-}
-```
-
-### Session Type Architecture
+### Session Module Architecture
 
 ```mermaid
 classDiagram
-    class SessionManager {
-        +registerType(type, manager)
-        +create(type, options)
-        +send(id, data)
-        +stop(id)
-    }
-
-    class BaseSessionType {
-        <<interface>>
-        +create(options)
-        +send(id, data)
-        +stop(id)
-        +setSocketIO(socket)
+    class SessionRegistry {
+        +createSession(params)
+        +sendToSession(id, payload)
+        +performOperation(id, operation, params)
+        +terminateSession(id)
     }
 
     class TerminalManager {
-        +start(workspacePath, shell, env)
+        +start(options)
         +write(id, data)
         +resize(id, cols, rows)
-        +kill(id)
+        +stop(id)
     }
 
     class ClaudeSessionManager {
-        +create(workspacePath, options)
+        +create(ctx)
         +send(id, input)
-        +hydrateSession(id)
-        +list(workspacePath)
+        +refreshCommands(id)
+        +getCachedCommands(id)
     }
 
-    SessionManager --> BaseSessionType
-    BaseSessionType <|-- TerminalManager
-    BaseSessionType <|-- ClaudeSessionManager
+    SessionRegistry --> TerminalManager
+    SessionRegistry --> ClaudeSessionManager
 ```
 
 ## Communication Layer
@@ -377,9 +339,9 @@ sequenceDiagram
     participant Client
     participant SocketIO
     participant Auth
-    participant SessionManager
-    participant TerminalManager
-    participant ClaudeManager
+    participant SessionRegistry
+    participant TerminalModule
+    participant ClaudeModule
 
     Client->>SocketIO: connect
     SocketIO->>Client: connected
@@ -387,19 +349,19 @@ sequenceDiagram
     Client->>SocketIO: terminal.start
     SocketIO->>Auth: validateKey
     Auth->>SocketIO: authorized
-    SocketIO->>SessionManager: create(type: 'pty')
-    SessionManager->>TerminalManager: start()
-    TerminalManager->>Client: session.created
+    SocketIO->>SessionRegistry: createSession(type:'pty')
+    SessionRegistry->>TerminalModule: create(ctx)
+    TerminalModule->>Client: session.created
 
     Client->>SocketIO: terminal.write
-    SocketIO->>SessionManager: send(id, data)
-    SessionManager->>TerminalManager: write(id, data)
-    TerminalManager->>Client: data(output)
+    SocketIO->>SessionRegistry: sendToSession(id,data)
+    SessionRegistry->>TerminalModule: send(ctx)
+    TerminalModule->>Client: data(output)
 
     Client->>SocketIO: claude.send
-    SocketIO->>SessionManager: send(id, input)
-    SessionManager->>ClaudeManager: send(id, input)
-    ClaudeManager->>Client: claude.message.delta(events)
+    SocketIO->>SessionRegistry: sendToSession(id,input)
+    SessionRegistry->>ClaudeModule: send(ctx)
+    ClaudeModule->>Client: claude.message.delta(events)
 ```
 
 ### Event Types and Payloads
@@ -961,30 +923,45 @@ export default defineConfig({
 
 ```javascript
 // Service layer test
-describe('SessionManager', () => {
-	let manager;
-	let mockRouter;
+describe('SessionRegistry', () => {
+	let registry;
 	let mockWorkspace;
+	let mockBuffer;
+	let terminalManager;
+	let claudeManager;
 
 	beforeEach(() => {
-		mockRouter = createMockRouter();
 		mockWorkspace = createMockWorkspace();
-		manager = new SessionManager({
-			sessionRouter: mockRouter,
-			workspaceManager: mockWorkspace
+		mockBuffer = createMockMessageBuffer();
+		terminalManager = {
+			start: vi.fn(async () => ({ id: 'pty_1' })),
+			write: vi.fn(),
+			resize: vi.fn(),
+			stop: vi.fn()
+		};
+		claudeManager = {
+			create: vi.fn(async () => ({ typeSpecificId: 'claude-1' }))
+		};
+
+		registry = new SessionRegistry({
+			workspaceManager: mockWorkspace,
+			messageBuffer: mockBuffer,
+			terminalManager,
+			claudeSessionManager: claudeManager
 		});
 	});
 
-	test('should create session with unified ID', async () => {
-		const session = await manager.create({
+	it('creates terminal sessions via direct manager', async () => {
+		const session = await registry.createSession({
 			type: 'pty',
 			workspacePath: '/test',
 			options: { shell: '/bin/bash' }
 		});
 
-		expect(session.id).toMatch(/^[a-z0-9]{8}$/);
-		expect(mockRouter.bind).toHaveBeenCalledWith(
-			session.id,
+		expect(session.type).toBe('pty');
+		expect(terminalManager.start).toHaveBeenCalled();
+		expect(mockWorkspace.rememberSession).toHaveBeenCalledWith(
+			'/test',
 			expect.objectContaining({ type: 'pty' })
 		);
 	});
@@ -1023,29 +1000,39 @@ test('complete session lifecycle', async ({ page }) => {
 **Recommendation**: Implement dependency injection and interface-based design.
 
 ```javascript
-// Proposed improvement: Interface-based services
-interface ISessionManager {
-    create(type: string, options: object): Promise<Session>;
-    stop(id: string): Promise<void>;
-    send(id: string, data: any): Promise<void>;
+// Proposed improvement: constructor-injected drivers
+interface SessionDrivers {
+    terminalManager: TerminalManager;
+    claudeSessionManager: ClaudeSessionManager;
 }
 
-class SessionManager implements ISessionManager {
-    constructor(private deps: SessionManagerDeps) {}
+class SessionRegistry {
+    constructor(private deps: SessionDrivers & SessionRegistryDeps) {}
 
-    // Implementation with clear dependencies
+    async createSession(request: CreateSessionRequest): Promise<SessionDescriptor> {
+        switch (request.type) {
+            case 'pty':
+                return this.createTerminalSession(request);
+            case 'claude':
+                return this.createClaudeSession(request);
+            default:
+                throw new Error(`Unsupported session type: ${request.type}`);
+        }
+    }
 }
 
 // Dependency injection container
 class ServiceContainer {
     private services = new Map();
 
-    register<T>(token: string, factory: () => T): void {
-        this.services.set(token, factory);
+    register<T>(token: string, instance: T): void {
+        this.services.set(token, () => instance);
     }
 
     get<T>(token: string): T {
-        return this.services.get(token)();
+        const factory = this.services.get(token);
+        if (!factory) throw new Error(`Service not registered: ${token}`);
+        return factory();
     }
 }
 ```
@@ -1232,7 +1219,7 @@ class Logger {
 }
 
 // Usage
-class SessionManager {
+class SessionRegistry {
     constructor(
         private monitoring: MonitoringService,
         private logger: Logger
@@ -1544,7 +1531,7 @@ class TypedEventEmitter<T extends Record<string, any>> {
 }
 
 // Usage
-class SessionManager {
+class SessionRegistry {
 	private events = new TypedEventEmitter<SessionEvents>();
 
 	async create(params: CreateSessionParams): Promise<Session> {

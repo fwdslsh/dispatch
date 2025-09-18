@@ -40,6 +40,12 @@ class ServiceContainer {
 	 * These are lazy-loaded when first requested
 	 */
 	registerCoreServices() {
+		// Central State Manager (Singleton)
+		this.registerFactory('appStateManager', async () => {
+			const { AppState } = await import('../state/AppState.svelte.js');
+			return new AppState();
+		});
+
 		// API Clients
 		this.registerFactory('workspaceApi', async () => {
 			const { WorkspaceApiClient } = await import('./WorkspaceApiClient.js');
@@ -86,25 +92,16 @@ class ServiceContainer {
 		// ViewModels
 		this.registerFactory('sessionViewModel', async () => {
 			const { SessionViewModel } = await import('../viewmodels/SessionViewModel.svelte.js');
+			const appStateManager = await this.get('appStateManager');
 			const sessionApi = await this.get('sessionApi');
-			const persistence = await this.get('persistence');
-			const layout = await this.get('layout');
-			return new SessionViewModel(sessionApi, persistence, layout);
+			return new SessionViewModel(appStateManager, sessionApi);
 		});
 
 		this.registerFactory('windowViewModel', async () => {
 			const { WindowViewModel } = await import('../viewmodels/WindowViewModel.svelte.js');
-			const sessionViewModel = await this.get('sessionViewModel');
-			const persistence = await this.get('persistence');
-			const layout = await this.get('layout');
-			return new WindowViewModel(sessionViewModel, persistence, layout);
+			return new WindowViewModel();
 		});
 
-		this.registerFactory('tileAssignmentService', async () => {
-			const { TileAssignmentService } = await import('./TileAssignmentService.svelte.js');
-			const windowViewModel = await this.get('windowViewModel');
-			return new TileAssignmentService(windowViewModel);
-		});
 	}
 
 	/**
@@ -114,6 +111,13 @@ class ServiceContainer {
 	 */
 	registerFactory(name, factory) {
 		this.factories.set(name, factory);
+	}
+
+	assertInstance(name, instance) {
+		if (!instance) {
+			throw new Error(`[ServiceContainer] Factory for "${name}" returned an invalid instance`);
+		}
+		return instance;
 	}
 
 	/**
@@ -139,7 +143,7 @@ class ServiceContainer {
 		// Create instance using factory
 		if (this.factories.has(name)) {
 			const factory = this.factories.get(name);
-			const instance = await factory();
+			const instance = this.assertInstance(name, await factory());
 			this.services.set(name, instance);
 			return instance;
 		}

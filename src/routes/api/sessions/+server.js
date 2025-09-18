@@ -6,7 +6,7 @@ export async function GET({ url, locals }) {
 	const pinnedOnly = include === 'all' ? false : true;
 
 	// Get persisted sessions (pinned by default)
-	const persistedSessions = await locals.workspaces.getAllSessions(pinnedOnly);
+	const persistedSessions = await locals.workspaceManager.getAllSessions(pinnedOnly);
 	const filteredPersisted = workspace
 		? persistedSessions.filter((s) => s.workspacePath === workspace)
 		: persistedSessions;
@@ -14,10 +14,8 @@ export async function GET({ url, locals }) {
 	// Build a set of pinned IDs when pinnedOnly requested
 	const pinnedIds = new Set(filteredPersisted.map((s) => s.id));
 
-	// Get active sessions from SessionRouter and filter by workspace
-	const activeSessionsRaw = locals.sessions
-		.all()
-		.filter((s) => !workspace || s.workspacePath === workspace);
+	// Get active sessions from SessionRegistry and filter by workspace
+	const activeSessionsRaw = locals.sessionRegistry.listSessions(workspace);
 
 	// Merge active and persisted sessions, with active taking precedence
 	const sessionMap = new Map();
@@ -63,7 +61,7 @@ export async function POST({ request, locals }) {
 		// If resuming a session, handle it differently
 		if (resume && sessionId) {
 			// Check if session is already active
-			const existingActiveSession = locals.sessions.get(sessionId);
+			const existingActiveSession = locals.sessionRegistry.getSession(sessionId);
 			if (existingActiveSession) {
 				// Session is already active, just return its info
 				return new Response(
@@ -76,10 +74,10 @@ export async function POST({ request, locals }) {
 			}
 
 			// Get session details from database
-			const persistedSession = await locals.workspaces.getSession(workspacePath, sessionId);
+			const persistedSession = await locals.workspaceManager.getSession(workspacePath, sessionId);
 			if (persistedSession) {
 				// Create a new session with resume options
-				const session = await locals.sessionManager.createSession({
+				const session = await locals.sessionRegistry.createSession({
 					type: persistedSession.sessionType,
 					workspacePath: persistedSession.workspacePath,
 					options: {
@@ -102,8 +100,8 @@ export async function POST({ request, locals }) {
 			}
 		}
 
-		// Always use the unified SessionManager for new sessions
-		const session = await locals.sessionManager.createSession({
+		// Always use the unified SessionRegistry for new sessions
+		const session = await locals.sessionRegistry.createSession({
 			type,
 			workspacePath,
 			options
@@ -156,17 +154,17 @@ export async function PUT({ request, locals }) {
 	const { action, sessionId, workspacePath, newTitle } = await request.json();
 
 	if (action === 'rename') {
-		await locals.workspaces.renameSession(workspacePath, sessionId, newTitle);
+		await locals.workspaceManager.renameSession(workspacePath, sessionId, newTitle);
 		return new Response(JSON.stringify({ success: true }));
 	}
 
 	if (action === 'unpin') {
-		await locals.workspaces.setPinned(workspacePath, sessionId, false);
+		await locals.workspaceManager.setPinned(workspacePath, sessionId, false);
 		return new Response(JSON.stringify({ success: true }));
 	}
 
 	if (action === 'pin') {
-		await locals.workspaces.setPinned(workspacePath, sessionId, true);
+		await locals.workspaceManager.setPinned(workspacePath, sessionId, true);
 		return new Response(JSON.stringify({ success: true }));
 	}
 
@@ -177,13 +175,39 @@ export async function DELETE({ url, locals }) {
 	const sessionId = url.searchParams.get('sessionId');
 	const workspacePath = url.searchParams.get('workspacePath');
 
-	if (!sessionId || !workspacePath) {
-		return new Response('Missing sessionId or workspacePath', { status: 400 });
+	if (!sessionId) {
+		return new Response('Missing sessionId', { status: 400 });
 	}
 
-	// Always use the unified SessionManager
+	// Allow empty workspacePath for corrupted session cleanup
+	if (!workspacePath) {
+		console.warn(`[API] Received session deletion request with empty workspacePath for session ${sessionId}, treating as corrupted session cleanup`);
+	}
+
+	// Always use the unified SessionRegistry
 	try {
-		const success = await locals.sessionManager.stopSession(sessionId);
+		// Handle corrupted sessions with missing or invalid workspace paths
+		if (workspacePath && workspacePath !== '/tmp/corrupted-session-cleanup') {
+			// Normal case: unpin the session in the database to prevent it from reappearing on reload
+			await locals.workspaceManager.setPinned(workspacePath, sessionId, false);
+		} else {
+			// Corrupted session case: try to find and clean up from all workspaces
+			console.warn(`[API] Cleaning up corrupted session ${sessionId} with workspacePath: ${workspacePath}`);
+			try {
+				// Try to unpin from all workspaces (this is a bit heavy but necessary for cleanup)
+				const allSessions = await locals.workspaceManager.getAllSessions(false); // Get all sessions including unpinned
+				const corruptedSession = allSessions.find(s => s.id === sessionId);
+				if (corruptedSession && corruptedSession.workspacePath) {
+					await locals.workspaceManager.setPinned(corruptedSession.workspacePath, sessionId, false);
+					console.log(`[API] Found and unpinned corrupted session in workspace: ${corruptedSession.workspacePath}`);
+				}
+			} catch (cleanupError) {
+				console.warn(`[API] Could not find corrupted session in database, proceeding with termination: ${cleanupError.message}`);
+			}
+		}
+
+		// Then terminate the active session
+		const success = await locals.sessionRegistry.terminateSession(sessionId);
 		return new Response(JSON.stringify({ success }));
 	} catch (error) {
 		console.error('[API] Session deletion failed:', error);

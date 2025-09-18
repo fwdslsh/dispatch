@@ -4,19 +4,12 @@
 	Main status bar component with left, center, and right groups
 	Integrates mobile navigation, create session button, and action buttons
 -->
+
 <script>
-	import { uiState } from '$lib/client/shared/state/ui-state.svelte.js';
-	import { sessionState } from '$lib/client/shared/state/session-state.svelte.js';
 	import MobileNavigation from './MobileNavigation.svelte';
 	import CreateSessionButton from './CreateSessionButton.svelte';
 	import IconButton from '../IconButton.svelte';
-	import {
-		IconLogout2,
-		IconAppWindow,
-		IconAdjustmentsAlt,
-		IconCodeDots,
-		IconCodeMinus
-	} from '@tabler/icons-svelte';
+	import { IconAdjustmentsAlt, IconCodeDots, IconCodeMinus } from '@tabler/icons-svelte';
 
 	// Props
 	let {
@@ -26,18 +19,13 @@
 		onCreateSession = () => {},
 		onToggleSessionMenu = () => {},
 		onNavigateSession = () => {},
-		sessionMenuOpen = false
+		sessionMenuOpen = false,
+		isMobile = false,
+		hasActiveSessions = false,
+		sessionCount = 0,
+		currentSessionIndex = 0,
+		totalSessions = 0
 	} = $props();
-
-	// Derived values from state
-	const currentBreakpoint = $derived(
-		uiState.layout.isMobile ? 'mobile' : uiState.layout.isTablet ? 'tablet' : 'desktop'
-	);
-	const sessionCount = $derived(sessionState.all.length);
-
-	// Reactive state
-	const isMobile = $derived(currentBreakpoint === 'mobile');
-	const hasActiveSessions = $derived(sessionCount > 0);
 </script>
 
 <footer class="status-bar-container">
@@ -64,9 +52,14 @@
 
 		<!-- Right group: Navigation and session menu -->
 		<div class="right-group">
-			{#if isMobile}
-				<MobileNavigation {onNavigateSession} disabled={!hasActiveSessions} />
-			{/if}
+		{#if isMobile}
+			<MobileNavigation
+				{onNavigateSession}
+				disabled={!hasActiveSessions}
+				currentIndex={currentSessionIndex}
+				totalSessions={totalSessions}
+			/>
+		{/if}
 
 			<IconButton onclick={onToggleSessionMenu} aria-label="Open sessions">
 				{#if sessionMenuOpen}

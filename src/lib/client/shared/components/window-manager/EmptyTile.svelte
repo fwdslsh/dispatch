@@ -9,7 +9,7 @@
 	let {
 		/** @type {string} */ tileId,
 		/** @type {boolean} */ focused = false,
-		/** @type {(type: 'terminal' | 'claude') => void} */ onCreateSession = () => {},
+		/** @type {(type: 'pty' | 'claude') => void} */ onCreateSession = () => {},
 		/** @type {() => void} */ onShowHelp = () => {}
 	} = $props();
 
@@ -25,7 +25,7 @@
 			case 't':
 			case 'T':
 				event.preventDefault();
-				onCreateSession('terminal');
+				onCreateSession('pty');
 				break;
 			case 'c':
 			case 'C':
@@ -52,8 +52,8 @@
 	class:focused
 	class:hovering
 	data-tile-id={tileId}
-	on:mouseenter={() => (hovering = true)}
-	on:mouseleave={() => (hovering = false)}
+	onmouseenter={() => (hovering = true)}
+	onmouseleave={() => (hovering = false)}
 	role="button"
 	tabindex="0"
 	aria-label="Empty tile - press T for terminal, C for Claude, or ? for help"
@@ -86,8 +86,8 @@
 	<div class="wm-empty-tile-actions">
 		<button
 			class="wm-empty-tile-action wm-action-terminal"
-			on:click={() => onCreateSession('terminal')}
-			on:focus={triggerPulse}
+			onclick={() => onCreateSession('pty')}
+			onfocus={triggerPulse}
 		>
 			<span class="action-icon">🖥️</span>
 			<span>Terminal</span>
@@ -98,8 +98,8 @@
 
 		<button
 			class="wm-empty-tile-action wm-action-claude"
-			on:click={() => onCreateSession('claude')}
-			on:focus={triggerPulse}
+			onclick={() => onCreateSession('claude')}
+			onfocus={triggerPulse}
 		>
 			<span class="action-icon">🤖</span>
 			<span>Claude</span>
@@ -112,7 +112,8 @@
 	<!-- Focused help hint -->
 	{#if focused}
 		<div class="wm-empty-tile-help">
-			<button class="wm-help-button" on:click={onShowHelp} aria-label="Show keyboard shortcuts">
+			<!-- @ts-ignore - Function type mismatch with event handler -->
+			<button class="wm-help-button" onclick={onShowHelp} aria-label="Show keyboard shortcuts">
 				<span>?</span> Show all shortcuts
 			</button>
 		</div>

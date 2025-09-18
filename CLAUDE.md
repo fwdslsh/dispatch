@@ -88,7 +88,7 @@ npm run docker:stop   # Stop Docker containers
 - **Backend**: Express server with Socket.IO for WebSocket communication
 - **Terminal Management**: node-pty integration for spawning terminal sessions
 - **Workspace Management**: WorkspaceManager handles flexible directory-based workspace organization
-- **Session Management**: Unified SessionManager coordinates all session types via SessionRouter
+- **Session Management**: SessionRegistry coordinates all session types via explicit modules
 - **Claude Integration**: ClaudeSessionManager provides Claude Code session management
 - **Authentication**: ClaudeAuthManager handles OAuth flow via PTY
 - **Database**: SQLite persistence for workspace metadata and session history
@@ -136,8 +136,8 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 
 **Backend Services** (initialized in `src/hooks.server.js`):
 
-- `SessionManager`: Unified abstraction over all session types with routing
-- `SessionRouter`: In-memory session mapping and routing
+- `SessionRegistry`: Module-driven abstraction over all session types
+- `SessionRegistry`: Module-driven session orchestration and lifecycle
 - `WorkspaceManager`: Flexible directory-based workspace management with database persistence
 - `TerminalManager`: PTY session management with dynamic Socket.IO reference handling
 - `ClaudeSessionManager`: Claude Code integration using `@anthropic-ai/claude-code` package
@@ -192,8 +192,8 @@ src/lib/client/
 
 **Unified Session Model**: All sessions (terminal/Claude) are managed through a common interface:
 
-- `SessionManager` provides unified API for creating, managing, and routing to specific session types
-- `SessionRouter` maps unified session IDs to session descriptors containing type and routing info
+- `SessionRegistry` provides the unified API for creating, managing, and routing session types
+- `SessionRegistry` maintains unified session metadata (type, routing, socket state)
 - Individual managers (`TerminalManager`, `ClaudeSessionManager`) handle type-specific operations
 - Socket.IO references are dynamically updated across all managers for real-time communication
 
@@ -214,7 +214,7 @@ src/lib/client/
 **Sessions**: Ephemeral session instances within workspaces
 
 - Sessions inherit workspace directory as working directory
-- Session routing via `SessionRouter` maps unified IDs to session descriptors
+- Session routing via `SessionRegistry` maps unified IDs to module-managed descriptors
 - Sessions persist until explicitly terminated or disconnected
 - Pinned/unpinned state controls visibility in UI
 
@@ -301,34 +301,19 @@ async getAllSessions(pinnedOnly = true)  // Get all sessions across workspaces
 async setPinned(workspacePath, sessionId, pinned) // Set session pinned state
 ```
 
-### SessionManager (`src/lib/server/core/SessionManager.js`)
+### SessionRegistry (`src/lib/server/core/SessionRegistry.js`)
 
-Unified session management across all session types:
-
-```javascript
-// Key methods
-async createSession({type, workspacePath, options}) // Create session of any type
-async sendToSession(sessionId, data)               // Send data to session
-async sessionOperation(sessionId, operation, params) // Perform operations like resize
-async stopSession(sessionId)                       // Terminate session
-getSession(sessionId)                              // Get session descriptor
-setSocketIO(socket)                                // Update Socket.IO for real-time communication
-async refreshCommands(sessionId)                   // Refresh Claude commands
-```
-
-### SessionRouter (`src/lib/server/core/SessionRouter.js`)
-
-Maps unified session IDs to session descriptors:
+Direct orchestration of first-party managers:
 
 ```javascript
 // Key methods
-bind(sessionId, descriptor); // Register session with routing info
-get(sessionId); // Get session descriptor
-all(); // Get all active sessions
-byWorkspace(workspacePath); // Filter sessions by workspace
-setProcessing(sessionId); // Mark session as processing
-setIdle(sessionId); // Mark session as idle
-getActivityState(sessionId); // Get current activity state
+async createSession({ type, workspacePath, options })
+async sendToSession(sessionId, payload)
+async performOperation(sessionId, operation, params)
+async terminateSession(sessionId)
+getSession(sessionId)                           // Session descriptor + metadata
+getActivityState(sessionId)
+getCachedCommands(sessionId)
 ```
 
 ### DatabaseManager (`src/lib/server/db/DatabaseManager.js`)
@@ -475,13 +460,13 @@ const sessionApi = await container.get('sessionApi');
 - Initializes directories and starts HTTP server
 - Integrates SvelteKit handler with Socket.IO via `setupSocketIO()`
 - Manages LocalTunnel lifecycle
-- Sets up global `__DISPATCH_SOCKET_IO` for API endpoint access
+- Server-side routes resolve Socket.IO through `ServerServiceContainer.getSocketIO()`
 
 **Shared Service Architecture** (`src/hooks.server.js`):
 
 - Initializes global `__API_SERVICES` with shared manager instances
 - Provides service access to both API endpoints and Socket.IO handlers
-- All managers (WorkspaceManager, SessionRouter, TerminalManager, ClaudeSessionManager, SessionManager) are shared
+- All managers (WorkspaceManager, SessionRegistry, MessageBuffer, TerminalManager, ClaudeSessionManager) are shared
 - Database initialization and error handling
 
 **Socket.IO Integration** (`src/lib/server/socket-setup.js`):
@@ -572,8 +557,8 @@ For production:
 
 ### Unified Session Management
 
-- `SessionManager` provides consistent API for all session types
-- `SessionRouter` handles unified ID mapping and session state tracking
+- `SessionRegistry` provides consistent APIs for all session types
+- `SessionRegistry` handles unified ID mapping, buffering, and session state tracking
 - Type-specific managers handle implementation details
 - Activity state tracking (`processing`, `streaming`, `idle`) for UI feedback
 

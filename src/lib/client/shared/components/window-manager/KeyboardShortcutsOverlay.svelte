@@ -77,7 +77,7 @@
 	<!-- Backdrop -->
 	<div
 		class="wm-shortcuts-backdrop"
-		on:click={handleBackdropClick}
+		onclick={handleBackdropClick}
 		role="button"
 		tabindex="-1"
 		aria-label="Close keyboard shortcuts"
@@ -92,7 +92,8 @@
 	>
 		<header class="wm-shortcuts-header">
 			<h2 id="shortcuts-title" class="wm-shortcuts-title">⌨️ Keyboard Shortcuts</h2>
-			<button class="wm-shortcuts-close" on:click={onClose} aria-label="Close shortcuts">
+			<!-- @ts-ignore - Function type mismatch with event handler -->
+			<button class="wm-shortcuts-close" onclick={onClose} aria-label="Close shortcuts">
 				✕
 			</button>
 		</header>

@@ -4,16 +4,15 @@
 	Extracted header component with brand logo and layout controls
 	Uses ViewModels for state management and business logic
 -->
+
 <script>
-	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
-	import { uiState } from '$lib/client/shared/state/ui-state.svelte.js';
 	import BrandLogo from './BrandLogo.svelte';
 	import LayoutControls from './LayoutControls.svelte';
 	import IconButton from '../IconButton.svelte';
 	import { IconLogout } from '@tabler/icons-svelte';
 
 	// Props
-	let { onLogout = () => {} } = $props();
+	let { onLogout = () => {}, layoutViewModel = null } = $props();
 </script>
 
 <header class="workspace-header">
@@ -21,7 +20,7 @@
 
 	<div class="header-spacer"></div>
 
-	<LayoutControls />
+	<LayoutControls {layoutViewModel} />
 
 	<div class="header-actions">
 		<IconButton onclick={onLogout} aria-label="Logout">

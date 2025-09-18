@@ -18,10 +18,33 @@ export default [
 	{
 		languageOptions: {
 			globals: { ...globals.browser, ...globals.node }
+		},
+		rules: {
+			'no-console': 'off'
 		}
 	},
 	{
 		files: ['**/*.svelte', '**/*.svelte.js'],
 		languageOptions: { parserOptions: { svelteConfig } }
+	},
+	{
+		files: [
+			'src/lib/client/shared/components/workspace/**/*',
+			'src/lib/client/shared/viewmodels/**/*',
+			'src/lib/server/claude/**/*'
+		],
+		rules: {
+			'no-console': 'error'
+		}
+	},
+	{
+		files: [
+			'src/lib/client/shared/utils/logger.js',
+			'src/lib/server/utils/logger.js',
+			'src/lib/client/shared/viewmodels/SessionViewModel.backup.svelte.js'
+		],
+		rules: {
+			'no-console': 'off'
+		}
 	}
 ];

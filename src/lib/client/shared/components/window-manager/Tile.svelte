@@ -1,10 +1,28 @@
 <script>
+	import { createEventDispatcher } from 'svelte';
+
 	let {
 		/** @type {string} */ id,
 		/** @type {string} */ focused = '',
 		/** @type {import('svelte').Snippet} */ children,
 		/** @type {(id: string) => void} */ onfocus = () => {}
 	} = $props();
+
+	const dispatch = createEventDispatcher();
+	let lastId = id;
+
+	$effect(() => {
+		if (id !== lastId) {
+			dispatch('tileUnmounted', { id: lastId });
+			lastId = id;
+			dispatch('tileMounted', { id });
+		}
+	});
+
+	$effect(() => {
+		dispatch('tileMounted', { id });
+		return () => dispatch('tileUnmounted', { id });
+	});
 
 	// Handle focus events by calling parent's onfocus handler
 	function focusSelf() {

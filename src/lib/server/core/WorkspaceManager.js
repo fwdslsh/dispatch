@@ -71,25 +71,16 @@ export class WorkspaceManager {
 			logger.error('[WORKSPACE] Failed to ensure workspace exists before saving session:', error);
 		}
 
-		// Determine session type and type-specific ID, preferring descriptor fields
-		let sessionType = sessionDescriptor.type || 'unknown';
+		if (!sessionDescriptor?.type) {
+			throw new Error('Session descriptor requires a type');
+		}
+
+		const sessionType = sessionDescriptor.type;
 		let typeSpecificId = sessionDescriptor.typeSpecificId;
-		// For Claude sessions, allow empty typeSpecificId until the real ID is known
 		if (sessionType === 'claude') {
 			typeSpecificId = typeof typeSpecificId === 'string' ? typeSpecificId : '';
 		} else {
-			// For other types, fall back to descriptor.id when missing
 			typeSpecificId = typeSpecificId || sessionDescriptor.id;
-		}
-
-		// Legacy fallback based on ID prefixes
-		if (sessionType === 'unknown' && typeof sessionDescriptor.id === 'string') {
-			if (sessionDescriptor.id.startsWith('claude_')) {
-				sessionType = 'claude';
-				typeSpecificId = sessionDescriptor.id.replace(/^claude_/, '');
-			} else if (sessionDescriptor.id.startsWith('pty_')) {
-				sessionType = 'pty';
-			}
 		}
 
 		// Save to database

@@ -277,7 +277,6 @@
 
 	.terminal-container {
 		height: 100%;
-		min-height: 400px;
 		overflow: hidden;
 		/* Enable touch scrolling on mobile devices */
 		-webkit-overflow-scrolling: touch;

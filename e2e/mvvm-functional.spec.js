@@ -49,7 +49,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 			sessions: [
 				{
 					id: 'test-session-1',
-					type: 'terminal',
+					type: 'pty',
 					title: 'Terminal Session',
 					pinned: true,
 					isActive: true
@@ -75,7 +75,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 		// Mock some sessions
 		await setupApiMocks(page, {
 			sessions: [
-				{ id: 'session1', type: 'terminal', title: 'Terminal 1', pinned: true },
+				{ id: 'session1', type: 'pty', title: 'Terminal 1', pinned: true },
 				{ id: 'session2', type: 'claude', title: 'Claude 1', pinned: true }
 			]
 		});

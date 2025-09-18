@@ -62,7 +62,7 @@ test.describe('Debug Session Display Issue', () => {
 			const createResponse = await page.request.post(`${BASE_URL}/api/sessions`, {
 				data: {
 					action: 'create',
-					type: 'terminal',
+					type: 'pty',
 					workspacePath: '/home/founder3/code/github/fwdslsh/dispatch/.testing-home/workspaces/test',
 					title: 'Debug Test Session'
 				}

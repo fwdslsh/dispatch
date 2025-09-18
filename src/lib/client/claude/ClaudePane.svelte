@@ -479,7 +479,7 @@
 			}
 		});
 
-		// Shared handler for Claude message delta (canonical + legacy)
+		// Shared handler for Claude message delta
 		const handleClaudeMessageDelta = async (payload) => {
 			// If we receive a message while catching up, clear the flag
 			if (isCatchingUp) {
@@ -487,13 +487,16 @@
 				console.log('Received message from active session - caught up');
 			}
 
+			// Extract events array from payload (payload has structure {sessionId, events, timestamp})
+			const events = payload?.events || payload || [];
+
 			// Set waiting for reply when we receive messages
-			if (!isWaitingForReply && payload && payload.length > 0) {
+			if (!isWaitingForReply && events && events.length > 0) {
 				isWaitingForReply = true;
 			}
 
-			// payload is an array; in our setup typically of length 1
-			for (const evt of payload || []) {
+			// events is an array; in our setup typically of length 1
+			for (const evt of events) {
 				// Skip empty or malformed events
 				if (!evt || typeof evt !== 'object') continue;
 
@@ -660,7 +663,7 @@
 			await scrollToBottom();
 		};
 
-		// Attach both canonical and legacy event names to the same handler
+		// Attach canonical event handler
 		socket.on(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, handleClaudeMessageDelta);
 
 		// OAuth URL received from server — show link and prompt for code
@@ -763,7 +766,7 @@
 			liveEventIcons = [];
 		};
 
-		// Attach both canonical and legacy complete events
+		// Attach canonical complete event handler
 		socket.on(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, handleClaudeMessageComplete);
 
 		// Handle session catchup complete event

@@ -17,7 +17,7 @@
 	let {
 		selected = $bindable(), // selected directory path
 		api = '/api/browse',
-		startPath = '',
+		startPath = '.',
 		placeholder = 'Browse directories...',
 		onSelect
 	} = $props();
@@ -186,6 +186,14 @@
 		if (!entries.length && !loading && !error) {
 			// Pass currentPath even if it's null - the browse function will handle it
 			browse(currentPath);
+		}
+	});
+
+	// Auto-select the default directory if no selection has been made
+	$effect(() => {
+		if (currentPath && !selected && entries.length > 0) {
+			selected = currentPath;
+			onSelect?.(currentPath);
 		}
 	});
 

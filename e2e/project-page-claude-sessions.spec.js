@@ -235,7 +235,7 @@ test.describe('Project Page - Claude Session Management', () => {
 						},
 						{
 							id: 'terminal_1',
-							type: 'terminal',
+							type: 'pty',
 							workspacePath: '/workspace/project1'
 						},
 						{

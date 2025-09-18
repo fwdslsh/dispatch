@@ -37,13 +37,13 @@ test.describe('Terminal Session Resumption', () => {
 		await page.route('/api/sessions', async (route) => {
 			if (route.request().method() === 'POST') {
 				const requestData = await route.request().postDataJSON();
-				if (requestData.type === 'terminal') {
+				if (requestData.type === 'pty') {
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
 						body: JSON.stringify({
 							id: sessionId,
-							type: 'terminal',
+							type: 'pty',
 							workspacePath: requestData.workspacePath,
 							shell: requestData.shell || '/bin/bash'
 						})
@@ -186,7 +186,7 @@ test.describe('Terminal Session Resumption', () => {
 						sessions: [
 							{
 								id: sessionId,
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: '/workspace/test-project',
 								shell: '/bin/bash',
 								status: 'inactive'
@@ -290,13 +290,13 @@ test.describe('Terminal Session Resumption', () => {
 						sessions: [
 							{
 								id: session1Id,
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: '/workspace/project1',
 								shell: '/bin/bash'
 							},
 							{
 								id: session2Id,
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: '/workspace/project2',
 								shell: '/bin/bash'
 							}
@@ -374,7 +374,7 @@ test.describe('Terminal Session Resumption', () => {
 						sessions: [
 							{
 								id: sessionId,
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: '/workspace/persistent-test',
 								shell: '/bin/bash'
 							}
@@ -449,7 +449,7 @@ test.describe('Terminal Session Resumption', () => {
 						sessions: [
 							{
 								id: sessionId,
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: '/workspace/broken-test',
 								shell: '/bin/bash'
 							}
@@ -536,14 +536,14 @@ test.describe('Terminal Session Resumption', () => {
 		await page.route('/api/sessions', async (route) => {
 			if (route.request().method() === 'POST') {
 				const requestData = await route.request().postDataJSON();
-				if (requestData.type === 'terminal') {
+				if (requestData.type === 'pty') {
 					sessionCreated = true;
 					await route.fulfill({
 						status: 200,
 						contentType: 'application/json',
 						body: JSON.stringify({
 							id: sessionId,
-							type: 'terminal',
+							type: 'pty',
 							workspacePath: requestData.workspacePath,
 							shell: '/bin/bash'
 						})
@@ -557,7 +557,7 @@ test.describe('Terminal Session Resumption', () => {
 					? [
 							{
 								id: sessionId,
-								type: 'terminal',
+								type: 'pty',
 								workspacePath: '/workspace/list-test',
 								shell: '/bin/bash'
 							}

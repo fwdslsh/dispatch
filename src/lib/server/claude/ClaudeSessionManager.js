@@ -11,21 +11,19 @@ import { logger } from '../utils/logger.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 import { getDatabaseManager } from '../db/DatabaseManager.js';
 import { claudeAuthManager } from './ClaudeAuthManager.js';
-import { emitWithBuffer } from '../utils/events.js';
+import { ClaudeCommandCache } from './ClaudeCommandCache.js';
+import { ClaudeStreamRunner } from './ClaudeStreamRunner.js';
 
 export class ClaudeSessionManager {
 	#databaseManager = getDatabaseManager();
-	/**
-	 * @param {{ io: any, sessionRouter?: any }} param0
-	 */
-	constructor({ io, sessionRouter = null }) {
+	constructor({ io, sessionRegistry = null }) {
 		this.io = io;
-		this.sessionRouter = sessionRouter; // Store reference to session router for buffering
+		this.sessionRegistry = sessionRegistry;
 		this.sessions = new Map(); // id -> { workspacePath, options }
 		this.nextId = 1;
 
-		// Cache supported commands per workspace or CLI path
-		this._toolsCache = new Map(); // key -> { commands, fetchedAt }
+		this.commandCache = new ClaudeCommandCache({ log: logger });
+		this.streamRunner = new ClaudeStreamRunner({ queryFn: query, log: logger });
 
 		// Get the absolute path to the CLI executable
 		const cliPath = resolve(process.cwd(), './node_modules/.bin/claude');
@@ -53,7 +51,7 @@ export class ClaudeSessionManager {
 		try {
 			await this.#databaseManager.init();
 		} catch (error) {
-			console.error('[CLAUDE] Failed to initialize database:', error);
+			logger.error('Claude', 'Failed to initialize database', error);
 		}
 	}
 
@@ -65,9 +63,7 @@ export class ClaudeSessionManager {
 		try {
 			const s = this.sessions.get(claudeSessionId);
 			if (!s || !s.options) return null;
-			const cacheKey = `${s.options.cwd || ''}:${s.options.pathToClaudeCodeExecutable || ''}`;
-			const cached = this._toolsCache.get(cacheKey);
-			return cached ? cached.commands : null;
+			return this.commandCache.get(s.options) || null;
 		} catch (e) {
 			return null;
 		}
@@ -95,9 +91,21 @@ export class ClaudeSessionManager {
 		}
 	}
 
-	setSessionRouter(sessionRouter) {
-		this.sessionRouter = sessionRouter;
-		logger.info('Claude', '[ClaudeSessionManager] Session router set for message buffering');
+	setSessionRegistry(sessionRegistry) {
+		this.sessionRegistry = sessionRegistry;
+		logger.info('Claude', '[ClaudeSessionManager] Session registry set for activity + buffering');
+	}
+
+	attachSocket({ appSessionId, typeSpecificId, socket }) {
+		if (!socket) return;
+		if (appSessionId) {
+			const appSession = this.sessions.get(appSessionId);
+			if (appSession) appSession.socket = socket;
+		}
+		if (typeSpecificId) {
+			const claudeSession = this.sessions.get(typeSpecificId);
+			if (claudeSession) claudeSession.socket = socket;
+		}
 	}
 
 	/**
@@ -165,7 +173,7 @@ export class ClaudeSessionManager {
 				// Only create if it doesn't already exist
 				await stat(filePath);
 				resumeCapable = true;
-			} catch {
+			} catch (error) {
 				// Create an empty JSONL to initialize the session
 				await writeFile(filePath, '', 'utf-8');
 				resumeCapable = true;
@@ -222,105 +230,95 @@ export class ClaudeSessionManager {
 	async send(id, userInput) {
 		logger.debug('Claude', `send to session ${id}:`, userInput);
 		logger.debug('Claude', `HOME=${process.env.HOME}`);
-		logger.debug('Claude', `Current sessions:`, Array.from(this.sessions.keys()));
+		logger.debug('Claude', 'Current sessions:', Array.from(this.sessions.keys()));
 
-		// Resolve or lazily hydrate a session mapping for this id
 		const { key, session } = await this.#ensureSession(id);
 		/** @type {{ workspacePath: string, sessionId: string, resumeCapable?: boolean, options: object, appSessionId?: string, socket?: any }} */
 		const s = session;
 		logger.debug('Claude', `Using session ${key} with sessionId ${s.sessionId}`);
 
-		// Set processing state when starting to handle the message
-		if (this.sessionRouter && s.appSessionId) {
-			this.sessionRouter.setProcessing(s.appSessionId);
+		if (s.appSessionId) {
+			this.#setActivity(s.appSessionId, 'processing');
 		}
 
-		let sawNoConversation = false;
-		try {
-			const debugEnv = { ...process.env, HOME: process.env.HOME };
-			// If you want SDK debug logs, uncomment next line
-			// debugEnv.DEBUG = debugEnv.DEBUG || '1';
+		const debugEnv = { ...process.env, HOME: process.env.HOME };
 
+		const onActivityChange = (state) => {
+			if (s.appSessionId) {
+				this.#setActivity(s.appSessionId, state);
+			}
+		};
+
+		const emitDelta = (event) => {
+			const targetSessionId = s.appSessionId || id;
+			const messageData = {
+				sessionId: targetSessionId,
+				events: [event],
+				timestamp: Date.now()
+			};
+			this.#emitWithBuffer(
+				targetSessionId,
+				s.socket,
+				SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA,
+				messageData
+			);
+
+			try {
+				if (
+					event?.type === 'result' &&
+					(event?.is_error || String(event?.subtype || '').toLowerCase() === 'error')
+				) {
+					const msg = String(event?.result || event?.message || '');
+					if (/\bplease\s+run\s+\/login\b/i.test(msg) || msg.includes('/login')) {
+						if (s.socket && typeof s.socket.emit === 'function') {
+							claudeAuthManager.start(s.socket);
+						}
+					}
+				}
+			} catch (error) {}
+		};
+
+		const emitCompletion = () => {
+			const emitSessionId = s.appSessionId || key;
+			const completeData = {
+				sessionId: emitSessionId,
+				timestamp: Date.now()
+			};
+			this.#emitWithBuffer(
+				emitSessionId,
+				s.socket,
+				SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE,
+				completeData
+			);
+		};
+
+		const emitStreamError = (error) => {
+			if (this.io) {
+				this.io.emit('error', {
+					message: 'Failed to process message',
+					error: String(error?.message || error)
+				});
+			}
+		};
+
+		try {
 			logger.debug('Claude', `Session ${s.sessionId} options:`, {
 				cwd: s.options.cwd,
 				workspacePath: s.workspacePath,
 				resumeCapable: s.resumeCapable
 			});
 
-			const stream = query({
-				prompt: userInput,
-				options: {
-					...s.options,
-					// When resuming, keep history bounded to avoid context overflows
-					// Reduce maxTurns specifically for resumed sessions
-					maxTurns: s.resumeCapable
-						? Math.min(20, this.defaultOptions.maxTurns || 20)
-						: this.defaultOptions.maxTurns || 20,
-					continue: !!s.resumeCapable,
-					...(s.resumeCapable ? { resume: s.sessionId } : {}),
-					stderr: (data) => {
-						try {
-							const text = String(data || '');
-							if (text.toLowerCase().includes('no conversation found')) {
-								sawNoConversation = true;
-							}
-							logger.error('Claude', `stderr ${s.sessionId}`, data);
-						} catch {}
-					},
-					env: debugEnv
-				}
+			await this.streamRunner.run({
+				session: s,
+				userInput,
+				defaultOptions: this.defaultOptions,
+				env: debugEnv,
+				onDelta: emitDelta,
+				onComplete: emitCompletion,
+				onError: emitStreamError,
+				onActivityChange
 			});
 
-			if (!stream || typeof stream[Symbol.asyncIterator] !== 'function') {
-				logger.error('Claude', 'Query did not return a valid async iterator');
-				return;
-			}
-
-			let sawAnyEvent = false;
-			for await (const event of stream) {
-				if (!sawAnyEvent) {
-					// Set streaming state when first event is received
-					if (this.sessionRouter && s.appSessionId) {
-						this.sessionRouter.setStreaming(s.appSessionId);
-					}
-				}
-				sawAnyEvent = true;
-				if (event) {
-					// Always emit and buffer, even if socket is null
-					const messageData = {
-						sessionId: s.appSessionId || id,
-						events: [event],
-						timestamp: Date.now()
-					};
-
-					// Use emitWithBuffer to ensure messages are buffered
-					emitWithBuffer(
-						s.socket,
-						SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA,
-						messageData,
-						this.sessionRouter
-					);
-
-					// Auto-start OAuth flow if Claude asks user to run /login
-					try {
-						if (
-							event?.type === 'result' &&
-							(event?.is_error || String(event?.subtype || '').toLowerCase() === 'error')
-						) {
-							//HACK: should type these properly
-							// @ts-ignore
-							const msg = String(event?.result || event?.message || '');
-							if (/\bplease\s+run\s+\/login\b/i.test(msg) || msg.includes('/login')) {
-								if (s.socket && typeof s.socket.emit === 'function') {
-									claudeAuthManager.start(s.socket);
-								}
-							}
-						}
-					} catch {}
-				}
-			}
-
-			// After first response, if we didn't have a concrete Claude session ID, try to detect it now
 			try {
 				if (s && (!s.sessionId || /^\d+$/.test(String(s.sessionId))) && !s.resumeCapable) {
 					const projectDir = s.options?.projectName || this.#encodeProjectPath(s.workspacePath);
@@ -328,12 +326,10 @@ export class ClaudeSessionManager {
 					if (files && files.length > 0) {
 						const newId = files[0].id;
 						if (newId && newId !== s.sessionId) {
-							// Update in-memory mapping
 							const oldId = s.sessionId;
 							s.sessionId = newId;
 							this.sessions.set(newId, s);
 
-							// Persist to DB
 							try {
 								await this.#databaseManager.addClaudeSession(
 									newId,
@@ -342,147 +338,30 @@ export class ClaudeSessionManager {
 									s.appSessionId,
 									true
 								);
-							} catch {}
+							} catch (error) {}
 
-							// Update router descriptor to route future messages by the real typeSpecificId
 							try {
-								const services = globalThis.__API_SERVICES || {};
-								if (services.sessions) {
-									services.sessions.updateTypeSpecificId(s.appSessionId, newId);
+								if (this.sessionRegistry) {
+									this.sessionRegistry.updateTypeSpecificId(s.appSessionId, newId);
 								}
-								if (services.workspaces) {
-									await services.workspaces.updateTypeSpecificId(
+								if (this.#databaseManager) {
+									await this.#databaseManager.updateTypeSpecificId(
 										s.workspacePath,
 										s.appSessionId,
 										newId
 									);
 								}
 
-								// Optionally emit updated commands/status under the new session ID
 								this._fetchAndEmitSupportedCommands(newId, s).catch(() => {});
-							} catch {}
+							} catch (error) {
+								logger.warn('Claude', 'Failed to update session metadata after ID change', error);
+							}
 						}
 					}
 				}
-			} catch {}
-			// Set idle state when stream completes
-			if (this.sessionRouter && s.appSessionId) {
-				this.sessionRouter.setIdle(s.appSessionId);
-			}
-
-			// Emit a completion event so the session can be marked as idle
-			// Use appSessionId if available, otherwise fall back to the key
-			const emitSessionId = s.appSessionId || key;
-			const completeData = {
-				sessionId: emitSessionId,
-				timestamp: Date.now()
-			};
-
-			// Always emit and buffer, even if socket is null
-			emitWithBuffer(
-				s.socket,
-				SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE,
-				completeData,
-				this.sessionRouter
-			);
+			} catch (error) {}
 		} catch (error) {
 			logger.error('Claude', `Error in Claude session ${id}:`, error);
-			// Set idle state on error
-			if (this.sessionRouter && s.appSessionId) {
-				this.sessionRouter.setIdle(s.appSessionId);
-			}
-			// If the prompt/history is too long OR resume target missing, retry without resume
-			const msg = String(error?.message || '');
-			const lc = msg.toLowerCase();
-			const isTooLong =
-				lc.includes('prompt too long') ||
-				(lc.includes('context') && lc.includes('too') && lc.includes('long'));
-			const missingConversation = typeof sawNoConversation !== 'undefined' && sawNoConversation;
-			if (isTooLong || missingConversation) {
-				try {
-					const debugEnv = { ...process.env, HOME: process.env.HOME };
-					const fresh = query({
-						prompt: userInput,
-						options: {
-							...s.options,
-							// Start a fresh turn without resuming prior history
-							continue: false,
-							maxTurns: Math.min(20, this.defaultOptions.maxTurns || 20),
-							stderr: (data) => {
-								try {
-									console.error(`[Claude stderr ${s.sessionId}]`, data);
-								} catch {}
-							},
-							env: debugEnv
-						}
-					});
-
-					let sawFreshEvent = false;
-					for await (const event of fresh) {
-						if (!sawFreshEvent && this.sessionRouter && s.appSessionId) {
-							// Set streaming state when first event is received in retry
-							this.sessionRouter.setStreaming(s.appSessionId);
-						}
-						sawFreshEvent = true;
-						if (event) {
-							// Always emit and buffer, even if socket is null
-							const messageData = {
-								sessionId: s.appSessionId || key,
-								events: [event],
-								timestamp: Date.now()
-							};
-
-							// Use emitWithBuffer to ensure messages are buffered
-							emitWithBuffer(
-								s.socket,
-								SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA,
-								messageData,
-								this.sessionRouter
-							);
-						}
-					}
-					// Set idle state when retry stream completes
-					if (this.sessionRouter && s.appSessionId) {
-						this.sessionRouter.setIdle(s.appSessionId);
-					}
-
-					// Emit completion event for the fresh query
-					const emitSessionId = s.appSessionId || key;
-					const completeData = {
-						sessionId: emitSessionId,
-						timestamp: Date.now()
-					};
-
-					// Always emit and buffer, even if socket is null
-					emitWithBuffer(
-						s.socket,
-						SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE,
-						completeData,
-						this.sessionRouter
-					);
-					return;
-				} catch (retryErr) {
-					console.error('Retry without resume failed:', retryErr);
-					// Set idle state on retry error
-					if (this.sessionRouter && s.appSessionId) {
-						this.sessionRouter.setIdle(s.appSessionId);
-					}
-					if (this.io) {
-						this.io.emit('error', {
-							message: 'Failed to process message',
-							error: String(retryErr?.message || retryErr)
-						});
-					}
-					return;
-				}
-			}
-
-			if (this.io) {
-				this.io.emit('error', {
-					message: 'Failed to process message',
-					error: error.message
-				});
-			}
 		}
 	}
 
@@ -509,7 +388,7 @@ export class ClaudeSessionManager {
 						logger.debug('Claude', `Found conversation file:`, filePath);
 						return true;
 					}
-				} catch {}
+				} catch (error) {}
 			}
 		} catch (error) {
 			logger.warn('Claude', 'Error checking for conversation existence:', error.message);
@@ -564,7 +443,7 @@ export class ClaudeSessionManager {
 						logger.debug('Claude', `Found session file:`, filePath);
 						break;
 					}
-				} catch {}
+				} catch (error) {}
 			}
 		} catch (error) {
 			logger.error('Claude', 'Error scanning projects directory:', error.message);
@@ -586,9 +465,9 @@ export class ClaudeSessionManager {
 					if (parsed && typeof parsed.cwd === 'string' && parsed.cwd.length > 0) {
 						workspacePath = parsed.cwd;
 					}
-				} catch {}
+				} catch (error) {}
 			}
-		} catch {}
+		} catch (error) {}
 
 		// Fallback to decoding project dir name if cwd not found in file
 		if (!workspacePath) {
@@ -633,7 +512,7 @@ export class ClaudeSessionManager {
 		try {
 			if (!workspacePath || typeof workspacePath !== 'string') return '';
 			return workspacePath.replace(/^\//, '-').replace(/\//g, '-');
-		} catch {
+		} catch (error) {
 			return '';
 		}
 	}
@@ -650,11 +529,11 @@ export class ClaudeSessionManager {
 					try {
 						const st = await stat(filePath);
 						result.push({ id: f.name.replace(/\.jsonl$/, ''), mtimeMs: st.mtimeMs || 0 });
-					} catch {}
+					} catch (error) {}
 				}
 			}
 			return result.sort((a, b) => b.mtimeMs - a.mtimeMs);
-		} catch {
+		} catch (error) {
 			return [];
 		}
 	}
@@ -666,144 +545,83 @@ export class ClaudeSessionManager {
 	 * @param {{ workspacePath: string, sessionId: string, options: object, appSessionId?: string }} sessionData
 	 */
 	async _fetchAndEmitSupportedCommands(claudeSessionId, sessionData) {
-		console.log('🔥 [DEBUG] _fetchAndEmitSupportedCommands called - NEW IMPLEMENTATION!');
-		console.log('🔥 [DEBUG] sessionData:', sessionData);
+		logger.debug('Claude', '_fetchAndEmitSupportedCommands invoked', {
+			claudeSessionId,
+			sessionData
+		});
 		if (!sessionData || !sessionData.options) {
-			console.log('🔥 [DEBUG] Early return - no sessionData or options');
+			logger.debug('Claude', 'No session data or options; skipping command fetch', {
+				claudeSessionId
+			});
 			return;
 		}
-		const cacheKey = `${sessionData.options.cwd || ''}:${sessionData.options.pathToClaudeCodeExecutable || ''}`;
-		console.log('🔥 [DEBUG] cacheKey:', cacheKey);
-		// Simple cache TTL: 5 minutes
-		const TTL = 5 * 60 * 1000;
-		const cached = this._toolsCache.get(cacheKey);
-		console.log(
-			'🔥 [DEBUG] cached result:',
-			!!cached,
-			cached ? 'age:' + (Date.now() - cached.fetchedAt) : 'none'
-		);
-		if (cached && Date.now() - cached.fetchedAt < TTL) {
-			// Emit cached directly - emit to both Claude session ID and app session ID if available
-			// Use global server instance for broadcasting if available, otherwise use current io
-			const emitIO = this.serverIO || this.io || globalThis.__DISPATCH_SOCKET_IO;
-			console.log('🔍 [DEBUG] Socket.IO instance check for cached:', {
+
+		try {
+			const { commands, fromCache } = await this.commandCache.getOrFetch(sessionData.options, () =>
+				this._fetchSupportedCommands(sessionData.options)
+			);
+
+			if (!Array.isArray(commands) || commands.length === 0) {
+				logger.debug('Claude', 'No commands available to emit', {
+					claudeSessionId,
+					fromCache
+				});
+				return;
+			}
+
+			const emitIO = this.serverIO || this.io;
+			logger.debug('Claude', 'Socket.IO instance availability for commands', {
 				hasServerIO: !!this.serverIO,
 				hasLocalIO: !!this.io,
-				hasGlobalIO: !!globalThis.__DISPATCH_SOCKET_IO,
-				usingIO: !!emitIO
+				usingIO: !!emitIO,
+				fromCache
 			});
-			if (emitIO) {
+
+			if (!emitIO) {
 				logger.info(
 					'Claude',
-					`Emitting tools for session ${claudeSessionId} (cached: ${cached.commands.length})`
+					`No Socket.IO instance available to emit ${fromCache ? 'cached' : 'fresh'} commands for ${claudeSessionId}`
+				);
+				return commands;
+			}
+
+			const source = fromCache ? 'cached' : 'fresh';
+			logger.info(
+				'Claude',
+				`Emitting ${source} tools for session ${claudeSessionId} (${commands.length})`
+			);
+			try {
+				emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, {
+					sessionId: claudeSessionId,
+					commands
+				});
+			} catch (error) {}
+			emitIO.emit('session.status', {
+				sessionId: claudeSessionId,
+				availableCommands: commands
+			});
+
+			if (sessionData.appSessionId) {
+				logger.info(
+					'Claude',
+					`Emitting ${source} tools for app session ${sessionData.appSessionId}`
 				);
 				try {
 					emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, {
-						sessionId: claudeSessionId,
-						commands: cached.commands
-					});
-				} catch {}
-				emitIO.emit('session.status', {
-					sessionId: claudeSessionId,
-					availableCommands: cached.commands
-				});
-
-				// Also emit for app session if available
-				if (sessionData.appSessionId) {
-					logger.info(
-						'Claude',
-						`Emitting tools for app session ${sessionData.appSessionId} (cached)`
-					);
-					try {
-						emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, {
-							sessionId: sessionData.appSessionId,
-							commands: cached.commands
-						});
-					} catch {}
-					emitIO.emit('session.status', {
 						sessionId: sessionData.appSessionId,
-						availableCommands: cached.commands
+						commands
 					});
-				}
-			} else {
-				logger.info(
-					'Claude',
-					`No Socket.IO instance available to emit cached commands for ${claudeSessionId}`
-				);
-			}
-			return cached.commands;
-		}
-		try {
-			logger.info(
-				'Claude',
-				`_fetchAndEmitSupportedCommands for ${claudeSessionId} (cacheKey=${cacheKey}) - invoking SDK`
-			);
-			console.log('🔥 [DEBUG] About to call _fetchSupportedCommands...');
-			const commands = await this._fetchSupportedCommands(sessionData.options);
-			console.log('🔥 [DEBUG] _fetchSupportedCommands completed!');
-			console.log(
-				`[Claude] _fetchAndEmitSupportedCommands received commands:`,
-				Array.isArray(commands) ? commands.length : typeof commands
-			);
-			if (Array.isArray(commands)) {
-				this._toolsCache.set(cacheKey, { commands, fetchedAt: Date.now() });
-
-				// Use global server instance for broadcasting if available, otherwise use current io
-				const emitIO = this.serverIO || this.io || globalThis.__DISPATCH_SOCKET_IO;
-				console.log('🔍 [DEBUG] Socket.IO instance check for fresh commands:', {
-					hasServerIO: !!this.serverIO,
-					hasLocalIO: !!this.io,
-					hasGlobalIO: !!globalThis.__DISPATCH_SOCKET_IO,
-					usingIO: !!emitIO
+				} catch (error) {}
+				emitIO.emit('session.status', {
+					sessionId: sessionData.appSessionId,
+					availableCommands: commands
 				});
-				if (emitIO) {
-					logger.info(
-						'Claude',
-						`Emitting tools for session ${claudeSessionId} (fresh: ${commands.length})`
-					);
-					try {
-						emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, {
-							sessionId: claudeSessionId,
-							commands
-						});
-					} catch {}
-					emitIO.emit('session.status', {
-						sessionId: claudeSessionId,
-						availableCommands: commands
-					});
-
-					// Also emit for app session if available
-					if (sessionData.appSessionId) {
-						logger.info(
-							'Claude',
-							`Emitting tools for app session ${sessionData.appSessionId} (fresh)`
-						);
-						try {
-							emitIO.emit(SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE, {
-								sessionId: sessionData.appSessionId,
-								commands
-							});
-						} catch {}
-						emitIO.emit('session.status', {
-							sessionId: sessionData.appSessionId,
-							availableCommands: commands
-						});
-					}
-				} else {
-					logger.info(
-						'Claude',
-						`No Socket.IO instance available to emit fresh commands for ${claudeSessionId}`
-					);
-				}
 			}
+
 			return commands;
-		} catch (err) {
-			logger.error(
-				'Claude',
-				'Error fetching supported commands:',
-				err && err.message ? err.message : err
-			);
-			throw err;
+		} catch (error) {
+			logger.error('Claude', 'Failed to fetch supported commands', error);
+			throw error;
 		}
 	}
 
@@ -829,30 +647,28 @@ export class ClaudeSessionManager {
 			let commands = null;
 			try {
 				commands = await supportedFn.call(q);
-				console.log(
-					'[Claude] supportedCommands() returned:',
-					Array.isArray(commands) ? `${commands.length} commands` : typeof commands
-				);
+				logger.debug('Claude', 'supportedCommands() returned', {
+					type: Array.isArray(commands) ? 'array' : typeof commands,
+					count: Array.isArray(commands) ? commands.length : undefined
+				});
 			} catch (e) {
-				console.error('[Claude] supportedCommands() threw error:', e && e.message ? e.message : e);
+				logger.error('Claude', 'supportedCommands() threw error', e);
 				throw e;
 			}
 			return commands;
 		} finally {
-			// best-effort cleanup: try interrupting the query to stop the child process
-			console.log('🔥 [DEBUG] In finally block, about to call interrupt...');
 			try {
 				const interruptFn = q['interrupt'];
-				console.log('🔥 [DEBUG] interruptFn exists:', !!interruptFn);
+				logger.debug('Claude', 'Interrupt function present', { hasInterrupt: !!interruptFn });
 				if (interruptFn) {
-					console.log('🔥 [DEBUG] Calling interrupt function (no await)...');
+					logger.debug('Claude', 'Calling interrupt function (fire-and-forget)');
 					interruptFn.call(q).catch(() => {}); // Fire-and-forget cleanup
-					console.log('🔥 [DEBUG] Interrupt function called (fire-and-forget)');
+					logger.debug('Claude', 'Interrupt function invocation completed');
 				}
 			} catch (e) {
-				console.log('🔥 [DEBUG] Interrupt function threw error:', e);
+				logger.warn('Claude', 'Interrupt function threw error', e);
 			}
-			console.log('🔥 [DEBUG] Finally block completed');
+			logger.debug('Claude', 'Interrupt cleanup finished');
 		}
 	}
 
@@ -866,6 +682,30 @@ export class ClaudeSessionManager {
 		const session = this.sessions.get(sessionId);
 		if (session) {
 			return this._fetchAndEmitSupportedCommands(sessionId, session);
+		}
+	}
+
+	#setActivity(sessionId, state) {
+		if (!sessionId) return;
+		if (this.sessionRegistry) {
+			this.sessionRegistry.setActivityState(sessionId, state);
+		}
+	}
+
+	#emitWithBuffer(sessionId, socket, eventType, data) {
+		if (!sessionId) {
+			if (socket) {
+				socket.emit(eventType, data);
+			}
+			return;
+		}
+
+		if (this.sessionRegistry) {
+			this.sessionRegistry.emitToSocket(sessionId, socket, eventType, data);
+			return;
+		}
+		if (socket) {
+			socket.emit(eventType, data);
 		}
 	}
 }

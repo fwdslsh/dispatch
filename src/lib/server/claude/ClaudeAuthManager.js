@@ -289,4 +289,6 @@ class ClaudeAuthManager {
 	}
 }
 
+// Export both the class and singleton instance for compatibility
+export { ClaudeAuthManager };
 export const claudeAuthManager = new ClaudeAuthManager();

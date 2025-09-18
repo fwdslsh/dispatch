@@ -105,8 +105,10 @@ class SessionSocketManager {
 	 * @param {string} sessionId - The session to make active
 	 */
 	setActiveSession(sessionId) {
-		this.activeSession = sessionId;
-		console.log(`Active session changed to: ${sessionId}`);
+		if (this.activeSession !== sessionId) {
+			this.activeSession = sessionId;
+			console.log(`Active session changed to: ${sessionId}`);
+		}
 	}
 
 	/**
@@ -194,28 +196,32 @@ class SessionSocketManager {
 	 * @param {string} sessionId - The session that gained focus
 	 */
 	handleSessionFocus(sessionId) {
+		const wasActiveSession = this.activeSession === sessionId;
 		this.setActiveSession(sessionId);
 
-		// Ensure socket is connected
-		const socket = this.sockets.get(sessionId);
-		if (socket) {
-			if (!socket.connected && !socket.connecting) {
-				console.log(
-					`Session ${sessionId} gained focus but socket is disconnected, reconnecting...`
-				);
-				this.reconnectSession(sessionId);
-			} else if (socket.connected) {
-				console.log(`Session ${sessionId} gained focus and socket is already connected`);
-				// Emit a catch-up event to request any missed messages
-				// This is useful for active sessions that might have been processing
-				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-				socket.emit(SOCKET_EVENTS.SESSION_CATCHUP, {
-					key,
-					sessionId,
-					timestamp: Date.now()
-				});
-			} else if (socket.connecting) {
-				console.log(`Session ${sessionId} gained focus and socket is connecting...`);
+		// Only do socket work if this is a new active session
+		if (!wasActiveSession) {
+			// Ensure socket is connected
+			const socket = this.sockets.get(sessionId);
+			if (socket) {
+				if (!socket.connected && !socket.connecting) {
+					console.log(
+						`Session ${sessionId} gained focus but socket is disconnected, reconnecting...`
+					);
+					this.reconnectSession(sessionId);
+				} else if (socket.connected) {
+					console.log(`Session ${sessionId} gained focus and socket is already connected`);
+					// Emit a catch-up event to request any missed messages
+					// This is useful for active sessions that might have been processing
+					const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+					socket.emit(SOCKET_EVENTS.SESSION_CATCHUP, {
+						key,
+						sessionId,
+						timestamp: Date.now()
+					});
+				} else if (socket.connecting) {
+					console.log(`Session ${sessionId} gained focus and socket is connecting...`);
+				}
 			}
 		}
 	}

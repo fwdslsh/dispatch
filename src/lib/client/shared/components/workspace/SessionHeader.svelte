@@ -13,8 +13,8 @@
 
 	// Session display info
 	const sessionId = $derived(session.id?.slice(0, 6) || 'unknown');
-	const sessionType = $derived(session.type === 'claude' ? 'Claude' : 'Terminal');
-	const statusDotClass = $derived(`status-dot ${session.type}`);
+	const sessionType = $derived((session.type || session.sessionType) === 'claude' ? 'Claude' : 'Terminal');
+	const statusDotClass = $derived(`status-dot ${session.type || session.sessionType}`);
 
 	function handleClose(e) {
 		e.stopPropagation?.();

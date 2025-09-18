@@ -1,120 +1,99 @@
 <!--
 	SessionWindowManager.svelte
 
-	Integration component that combines WindowManager with session management.
-	Provides the tile-based layout for desktop sessions using MVVM architecture.
-	Uses TileAssignmentService for clean reactive session-to-tile assignment.
+	Desktop window manager wrapper that binds WindowViewModel state to the
+	WindowManager layout component. WindowViewModel now owns the
+	session-to-tile mapping; this wrapper simply renders tiles and proxies
+	interactions back to the view model.
 -->
 <script>
 	import WindowManager from '../window-manager/WindowManager.svelte';
 	import SessionContainer from './SessionContainer.svelte';
 	import SessionHeader from './SessionHeader.svelte';
 	import SessionViewport from './SessionViewport.svelte';
-	import EmptyWorkspace from './EmptyWorkspace.svelte';
 
-	// Props
 	let {
-		windowViewModel,
-		tileAssignmentService,
 		sessions = [],
 		onSessionFocus = () => {},
 		onSessionClose = () => {},
 		onSessionUnpin = () => {},
-		onCreateSession = () => {},
-		onCreateSessionDirect = null
+		onCreateSession = () => {}
 	} = $props();
 
-	// Window manager configuration from ViewModel with safe defaults
-	const windowConfig = $derived({
-		gap: windowViewModel?.windowGap || 6,
-		minSize: windowViewModel?.minTileSize || 200,
-		keymap: windowViewModel?.keymap || {
-			addRight: 'Control+Enter',
-			addDown: 'Control+Shift+Enter',
-			close: 'Control+Shift+x',
-			focusNext: 'Alt+ArrowRight',
-			focusPrev: 'Alt+ArrowLeft',
-			growHeight: 'Control+ArrowUp',
-			shrinkHeight: 'Control+ArrowDown'
-		}
+	// Simple window manager configuration
+	const windowConfig = {
+		gap: 6,
+		minSize: 200,
+		keymap: {}
+	};
+
+	// Let WindowManager create its own layout
+	const layoutTree = null;
+
+	// Reactive session-to-tile mapping using Svelte 5 runes
+	let tileIds = $state(new Set());
+
+	// Create a reactive mapping of sessions to tiles
+	const sessionTileMap = $derived.by(() => {
+		const tileArray = Array.from(tileIds).sort();
+		const map = new Map();
+
+		// Distribute sessions across available tiles
+		sessions.forEach((session, index) => {
+			const tileIndex = index % Math.max(tileArray.length, 1);
+			const tileId = tileArray[tileIndex] || 'root';
+
+			if (!map.has(tileId)) {
+				map.set(tileId, []);
+			}
+			map.get(tileId).push(session);
+		});
+
+		console.log('[SessionWindowManager] Session-to-tile mapping:', {
+			availableTiles: tileArray,
+			sessionCount: sessions.length,
+			mapping: Object.fromEntries(map)
+		});
+
+		return map;
 	});
 
-	// Create a mapping between WindowManager's real tile IDs and sessions
-	let tileToSessionMap = $state(new Map());
-	let sessionToTileMap = $state(new Map());
+	// Get the session for a specific tile - now reactive
+	const getTileSession = (tileId) => {
+		const tileSessions = sessionTileMap.get(tileId) || [];
+		return tileSessions[0] || null;
+	};
 
-	// Auto-assign sessions to tiles when sessions change
-	$effect(() => {
-		if (sessions.length > 0) {
-			// Get available tile IDs from WindowManager by checking the DOM
-			const tileElements = document.querySelectorAll('[data-tile-id]');
-			const availableTileIds = Array.from(tileElements).map(el => el.getAttribute('data-tile-id')).filter(Boolean);
-
-			// Only update if we actually have tiles and sessions aren't already mapped correctly
-			if (availableTileIds.length > 0) {
-				const needsUpdate = sessions.some(session => !sessionToTileMap.has(session.id));
-
-				if (needsUpdate) {
-					console.log('[SessionWindowManager] Auto-assigning sessions to tiles:', sessions.length, 'sessions');
-					console.log(`[SessionWindowManager] Found ${availableTileIds.length} available tiles:`, availableTileIds);
-
-					// Build new mappings without modifying state until the end
-					const newTileToSessionMap = new Map();
-					const newSessionToTileMap = new Map();
-
-					// First, preserve existing valid mappings
-					for (const [tileId, session] of tileToSessionMap) {
-						if (sessions.find(s => s.id === session.id) && availableTileIds.includes(tileId)) {
-							newTileToSessionMap.set(tileId, session);
-							newSessionToTileMap.set(session.id, tileId);
-						}
-					}
-
-					// Then assign new sessions to available tiles
-					for (const session of sessions) {
-						if (!newSessionToTileMap.has(session.id)) {
-							const unmappedTileId = availableTileIds.find(tileId => !newTileToSessionMap.has(tileId));
-							if (unmappedTileId) {
-								newTileToSessionMap.set(unmappedTileId, session);
-								newSessionToTileMap.set(session.id, unmappedTileId);
-								console.log(`[SessionWindowManager] Mapped session ${session.id} to tile ${unmappedTileId}`);
-							}
-						}
-					}
-
-					// Update maps only once at the end
-					tileToSessionMap = newTileToSessionMap;
-					sessionToTileMap = newSessionToTileMap;
-				}
+	function handleFocusChange(event) {
+		const tileId = event?.detail?.id;
+		if (tileId) {
+			const session = getTileSession(tileId);
+			if (session) {
+				onSessionFocus(session);
 			}
 		}
-	});
-
-	// Helper to get session assigned to a tile using our mapping
-	function getSessionForTile(tileId) {
-		const session = tileToSessionMap.get(tileId);
-		if (session) {
-			const index = sessions.findIndex(s => s.id === session.id);
-			return { session, index: index >= 0 ? index : 0 };
-		}
-		return null;
 	}
 
-	// Handle tile focus from WindowManager
-	function handleTileFocus(tileId) {
-		// Sync focus to WindowViewModel
-		if (windowViewModel) {
-			windowViewModel.syncFocusFromWindowManager(tileId);
-		}
-
-		// If tile has a session, also focus it
-		const sessionData = getSessionForTile(tileId);
-		if (sessionData) {
-			onSessionFocus(sessionData.session);
+	function handleLayoutChange(event) {
+		// Update available tile IDs when layout changes
+		const layout = event?.detail?.layout;
+		if (layout) {
+			const newTileIds = new Set();
+			collectTileIds(layout, newTileIds);
+			console.log('[SessionWindowManager] Layout changed, tile IDs:', Array.from(newTileIds));
+			tileIds = newTileIds;
 		}
 	}
 
-	// Handle session actions
+	function collectTileIds(node, tileIds) {
+		if (node.type === 'leaf') {
+			tileIds.add(node.id);
+		} else if (node.type === 'split') {
+			collectTileIds(node.a, tileIds);
+			collectTileIds(node.b, tileIds);
+		}
+	}
+
 	function handleSessionClose(sessionId) {
 		onSessionClose(sessionId);
 	}
@@ -123,94 +102,55 @@
 		onSessionUnpin(sessionId);
 	}
 
-	// Handle creating a session in a specific tile
-	async function handleCreateSessionInTile(type, tileId) {
-		// Optionally tell the assignment service this tile should get the next session of this type
-		try {
-			if (tileAssignmentService && tileAssignmentService.setTargetTileForType) {
-				tileAssignmentService.setTargetTileForType(tileId, type);
-			}
-		} catch (error) {
-			console.warn('[SessionWindowManager] Failed to set target tile for type:', error);
-		}
-
-		// Use direct creation if available (bypasses modal), otherwise use normal flow
-		if (onCreateSessionDirect) {
-			await onCreateSessionDirect(type);
-		} else {
-			onCreateSession(type);
-		}
-	}
-
-	// Handle general session creation (from modal/menu) - use focused tile if available
-	function handleCreateSession(type) {
-		// Optionally tell the assignment service to use the focused tile for the next session
-		try {
-			if (tileAssignmentService && tileAssignmentService.setFocusedTileAsTarget) {
-				tileAssignmentService.setFocusedTileAsTarget(type);
-			}
-		} catch (error) {
-			console.warn('[SessionWindowManager] Failed to set focused tile as target:', error);
-		}
-
-		// Always proceed with normal session creation
+	function handleCreateSessionInTile(type) {
 		onCreateSession(type);
 	}
 
-	// Expose function for parent component
-	export { handleCreateSession };
+	
 </script>
 
-<!-- Window manager with session tiles - always show WindowManager, even with no sessions -->
-<WindowManager
-	direction="row"
-	gap={windowConfig.gap}
-	minSize={windowConfig.minSize}
-	keymap={windowConfig.keymap}
->
+<div class="window-manager-wrapper">
+	<WindowManager
+		initial={layoutTree}
+		direction="row"
+		gap={windowConfig.gap}
+		minSize={windowConfig.minSize}
+		keymap={windowConfig.keymap}
+		onfocuschange={handleFocusChange}
+		onlayoutchange={handleLayoutChange}
+	>
 		{#snippet tile({ focused, tileId })}
-			{@const sessionData = getSessionForTile(tileId)}
-			{@const isFocused = focused === tileId}
+			{@const session = getTileSession(tileId)}
+			{@const sessionIndex = session ? sessions.indexOf(session) : -1}
+			{#if session}
+				<SessionContainer
+					{session}
+					index={sessionIndex}
+					onClose={handleSessionClose}
+					onUnpin={handleSessionUnpin}
+				>
+					{#snippet header({ session, onClose, onUnpin, index })}
+						<SessionHeader {session} {onClose} {onUnpin} {index} />
+					{/snippet}
 
-			{#if sessionData}
-				<div class="session-tile" class:focused={isFocused} onclick={() => handleTileFocus(tileId)}>
-					<SessionContainer
-						session={sessionData.session}
-						index={sessionData.index}
-						onClose={handleSessionClose}
-						onUnpin={handleSessionUnpin}
-					>
-						{#snippet header({ session, onClose, onUnpin, index })}
-							<SessionHeader {session} {onClose} {onUnpin} {index} />
-						{/snippet}
-
-						{#snippet content({ session, isLoading, index })}
-							<SessionViewport {session} {isLoading} {index} />
-						{/snippet}
-					</SessionContainer>
-				</div>
+					{#snippet content({ session, isLoading, index })}
+						<SessionViewport {session} {isLoading} {index} />
+					{/snippet}
+				</SessionContainer>
 			{:else}
-				<!-- Empty tile - allow creating new sessions -->
-				<div class="empty-tile" class:focused={isFocused} onclick={() => handleTileFocus(tileId)}>
+				<div class="empty-tile" data-focused={String(focused === tileId)}>
 					<div class="empty-tile-content">
-						<p>Empty Tile</p>
-						<p class="help-text">Click to focus, then use Ctrl+Enter to split</p>
+						<p>No session assigned</p>
 						<div class="empty-actions">
 							<button
 								class="create-session-btn"
-								onclick={(e) => {
-									e.stopPropagation();
-									handleCreateSessionInTile('terminal', tileId);
-								}}
+								onclick={() => handleCreateSessionInTile('terminal')}
 							>
 								+ Terminal
 							</button>
 							<button
 								class="create-session-btn"
-								onclick={(e) => {
-									e.stopPropagation();
-									handleCreateSessionInTile('claude', tileId);
-								}}
+								onclick={() => handleCreateSessionInTile('claude')}
 							>
 								+ Claude
 							</button>
@@ -220,8 +160,70 @@
 			{/if}
 		{/snippet}
 	</WindowManager>
+</div>
 
 <style>
+	.window-manager-wrapper {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		box-sizing: border-box;
+	}
+
+	.empty-tile {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+		gap: 0.75rem;
+		border: 2px dashed var(--surface-border);
+		border-radius: 6px;
+		background: var(--surface-hover);
+		padding: 1.25rem;
+		width: 100%;
+		height: 100%;
+		box-sizing: border-box;
+	}
+
+	.empty-tile[data-focused='true'] {
+		border-color: var(--primary);
+		background: var(--primary-alpha);
+	}
+
+	.empty-tile-content {
+		text-align: center;
+		color: var(--text-muted);
+	}
+
+	.empty-tile-content p {
+		margin: 0;
+		font-size: 0.9rem;
+		opacity: 0.75;
+	}
+
+	.empty-actions {
+		display: flex;
+		gap: 0.5rem;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+	.create-session-btn {
+		background: var(--primary);
+		color: var(--primary-contrast);
+		border: none;
+		border-radius: var(--radius);
+		padding: var(--space-2) var(--space-3);
+		font-family: var(--font-mono);
+		font-size: var(--text-sm);
+		cursor: pointer;
+		transition: background-color 0.2s ease;
+	}
+
+	.create-session-btn:hover {
+		background: var(--primary-hover);
+	}
+
 	/* Ensure WindowManager fills container */
 	:global(.wm-root) {
 		width: 100%;
@@ -287,114 +289,5 @@
 		flex-direction: column;
 		cursor: pointer;
 		outline: none;
-	}
-
-	.session-tile {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-		border-radius: 4px;
-		border: 1px solid var(--surface-border);
-		background: var(--bg);
-		transition: border-color 0.2s ease;
-		pointer-events: auto;
-	}
-
-	.session-tile.focused {
-		border-color: var(--primary);
-		box-shadow: 0 0 0 1px var(--primary-alpha);
-	}
-
-	.empty-tile {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: 2px dashed var(--surface-border);
-		border-radius: 4px;
-		background: var(--surface-hover);
-		transition: border-color 0.2s ease;
-		pointer-events: auto;
-	}
-
-	.empty-tile.focused {
-		border-color: var(--primary);
-		background: var(--primary-alpha);
-	}
-
-	.empty-tile-content {
-		text-align: center;
-		color: var(--text-muted);
-	}
-
-	.empty-tile-content p {
-		margin: 0 0 1rem 0;
-		font-size: 0.9rem;
-		opacity: 0.7;
-	}
-
-	.help-text {
-		font-size: 0.75rem !important;
-		opacity: 0.5 !important;
-		margin: 0 0 1.5rem 0 !important;
-	}
-
-	.empty-actions {
-		display: flex;
-		gap: 0.5rem;
-		justify-content: center;
-		flex-wrap: wrap;
-	}
-
-	.create-session-btn {
-		background: var(--primary);
-		color: var(--primary-contrast);
-		border: none;
-		border-radius: var(--radius);
-		padding: var(--space-2) var(--space-3);
-		font-family: var(--font-mono);
-		font-size: var(--text-sm);
-		cursor: pointer;
-		transition: background-color 0.2s ease;
-		pointer-events: auto;
-	}
-
-	.create-session-btn:hover {
-		background: var(--primary-hover);
-	}
-
-	.create-session-btn:active {
-		background: var(--primary-active);
-	}
-
-	.empty-tile.error {
-		background: var(--error-bg, #3a1515);
-		border-color: var(--error-border, #aa4444);
-	}
-
-	.empty-tile.error .empty-tile-content {
-		color: var(--error-text, #ff8888);
-	}
-
-	.error-tile {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: 2px dashed var(--error-border, #aa4444);
-		border-radius: 4px;
-		background: var(--error-bg, #3a1515);
-		color: var(--error-text, #ff8888);
-		pointer-events: auto;
-	}
-
-	.error-content {
-		text-align: center;
-		font-size: 0.9rem;
-		opacity: 0.8;
 	}
 </style>

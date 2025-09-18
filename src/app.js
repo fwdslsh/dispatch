@@ -41,24 +41,14 @@ const configDir = expandTilde(
 			? path.join(actualHome, 'dispatch')
 			: path.join(actualHome, '.config', 'dispatch'))
 );
-const projectsDir = expandTilde(
-	process.env.DISPATCH_PROJECTS_DIR ||
-		(process.platform === 'win32'
-			? path.join(actualHome, 'dispatch-projects')
-			: process.env.CONTAINER_ENV
-				? '/workspace'
-				: path.join(actualHome, 'dispatch-projects'))
-);
+// Note: DISPATCH_PROJECTS_DIR is legacy - workspaces can be any accessible directory
 
 async function initializeDirectories() {
 	try {
 		console.log(`[DIRECTORY] Config Directory: ${configDir}`);
-		console.log(`[DIRECTORY] Projects Directory: ${projectsDir}`);
 
 		fs.mkdirSync(configDir, { recursive: true });
-		fs.mkdirSync(projectsDir, { recursive: true });
 		fs.accessSync(configDir, fs.constants.W_OK);
-		fs.accessSync(projectsDir, fs.constants.W_OK);
 
 		console.log('Directories initialized successfully');
 	} catch (err) {
@@ -124,24 +114,37 @@ initializeDirectories()
 			process.exit(1);
 		}
 
+		// Initialize server services with dependency injection
+		const { getServerServiceContainer } = await import('./lib/server/core/ServerServiceContainer.js');
+		const serverContainer = getServerServiceContainer({
+			dbPath: process.env.DB_PATH || path.join(actualHome, '.dispatch', 'data', 'workspace.db'),
+			workspacesRoot: process.env.WORKSPACES_ROOT || path.join(actualHome, '.dispatch-home', 'workspaces'),
+			configDir: configDir,
+			debug: process.env.DEBUG === 'true'
+		});
+
+		// Initialize all services
+		await serverContainer.initialize();
+		console.log('[APP] Server services initialized');
+
 		// Create HTTP server with SvelteKit handler
 		const server = http.createServer(handler);
 
-		// Initialize Socket.IO with configurable implementation
+		// Initialize Socket.IO with dependency injection
 		const { getSocketSetup } = await import('./lib/server/socket-manager.js');
 		const { setupSocketIO, mode } = await getSocketSetup();
 		console.log('===============================================');
 		console.log(`[APP] Session Architecture: ${mode.toUpperCase()}`);
 		console.log('===============================================');
-		const io = setupSocketIO(server);
+		const io = setupSocketIO(server, serverContainer);
 
-		// Store globally for API endpoints if needed
-		globalThis.__DISPATCH_SOCKET_IO = io;
+		// Update services with Socket.IO instance for real-time communication
+		serverContainer.setSocketIO(io);
 
 		server.listen(PORT, '0.0.0.0', () => {
 			console.log(`dispatch running at http://localhost:${PORT}`);
 			console.log(`Config Dir: ${configDir}`);
-			console.log(`Projects Dir: ${projectsDir}`);
+			console.log('Workspaces can be created anywhere accessible to the user');
 			startLocalTunnel();
 		});
 

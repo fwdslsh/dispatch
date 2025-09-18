@@ -5,43 +5,46 @@
 	Renders Claude or Terminal pane based on session type
 -->
 <script>
-	import ClaudePane from '$lib/client/claude/ClaudePane.svelte';
-	import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
+	import { getClientSessionModule } from '$lib/client/shared/session-modules/index.js';
+	import { createLogger } from '$lib/client/shared/utils/logger.js';
+
+	const log = createLogger('workspace:session-viewport');
 
 	// Props
 	let { session, isLoading = false, index = 0 } = $props();
 
-	// Dynamic component selection based on session type
-	const Component = $derived(session.type === 'claude' ? ClaudePane : TerminalPane);
+	const sessionModule = $derived(() => {
+		if (!session || !(session.type || session.sessionType)) return null;
+		return getClientSessionModule(session.type || session.sessionType);
+	});
+
+	const Component = $derived.by(() => sessionModule()?.component ?? null);
+
 
 	// Session-specific props for the rendered component
 	const sessionProps = $derived(() => {
-		console.log('[SessionViewport] Processing session:', session);
-		console.log('[SessionViewport] Session ID:', session?.id);
-		console.log('[SessionViewport] Session type:', session?.type);
+		if (session && session.id) {
+			log.debug('Processing session', { id: session.id, type: session.type || session.sessionType, index });
+		}
 
 		if (!session || !session.id) {
-			console.error('[SessionViewport] Invalid session - missing ID');
+			log.error('Invalid session - missing ID', session);
 			return null;
 		}
 
-		if (session.type === 'claude') {
-			const props = {
-				sessionId: session.id,
-				claudeSessionId: session.claudeSessionId || session.typeSpecificId || session.sessionId,
-				shouldResume: session.shouldResume || session.resumeSession || false,
-				workspacePath: session.workspacePath
-			};
-			console.log('[SessionViewport] Claude props:', props);
+		const moduleDef = sessionModule();
+		if (!moduleDef) {
+			log.error('No session module registered for type', session.type || session.sessionType);
+			return null;
+		}
+
+		try {
+			const props = moduleDef.prepareProps(session);
+			log.debug('Prepared session props', { type: session.type || session.sessionType, props });
 			return props;
-		} else {
-			const props = {
-				sessionId: session.id,
-				shouldResume: session.resumeSession || false,
-				workspacePath: session.workspacePath
-			};
-			console.log('[SessionViewport] Terminal props:', props);
-			return props;
+		} catch (error) {
+			log.error('Failed to prepare session props', error);
+			return null;
 		}
 	});
 </script>
@@ -50,13 +53,13 @@
 	{#if isLoading}
 		<div class="loading-indicator">
 			<div class="loading-spinner"></div>
-			<p>Loading {session.type === 'claude' ? 'Claude' : 'Terminal'} session...</p>
+			<p>Loading {(session.type || session.sessionType) === 'claude' ? 'Claude' : 'Terminal'} session...</p>
 		</div>
 	{:else if Component && sessionProps()}
 		<Component {...sessionProps()} />
 	{:else}
 		<div class="error-state">
-			<p>Unknown session type: {session.type}</p>
+			<p>Unknown session type: {session.type || session.sessionType}</p>
 		</div>
 	{/if}
 </div>
@@ -71,6 +74,7 @@
 		flex-direction: column;
 		position: relative;
 		contain: layout;
+		text-align: justify;
 	}
 
 	.loading-indicator {

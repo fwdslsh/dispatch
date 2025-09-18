@@ -25,10 +25,10 @@ All Claude sessions were appearing to be in a "thinking" state with the send but
 - **Handle Completion Events**: Added listener for `claude.message.complete` event to properly clear waiting state
 - **Clear State on Results**: Ensure `result` events in `claude.message.delta` also clear the waiting state
 
-### 2. Backend Activity Tracking (SessionRouter.js)
+### 2. Backend Activity Tracking (SessionRegistry.js)
 
-- **Activity State Tracking**: Already had `activityState` tracking ('idle', 'processing', 'streaming')
-- **State Methods**: Methods to set processing, streaming, and idle states
+- **Activity State Tracking**: `SessionRegistry` exposes `setActivityState` and `getActivityState`
+- **State Methods**: Terminal/Claude modules call into the registry to mark `processing`, `streaming`, `idle`
 
 ### 3. Socket Communication (socket-setup.js)
 

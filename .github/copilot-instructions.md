@@ -12,56 +12,54 @@ Essential commands
 - Start (production): `npm start` or use Docker (see `Dockerfile`). `start.sh` also execs `node src/app.js`.
 - Typecheck: `npm run check` and `npm run check:watch`.
 
-Project constraints & conventions
+```markdown
+# Copilot instructions — Dispatch (condensed)
 
-- Node >= 22 (see `.nvmrc` / `package.json` engines). Use `nvm use` in local dev.
-- Non-root runtime: Docker image creates `appuser` (uid 10001); session dirs live in `PTY_ROOT` (default `/tmp/dispatch-sessions`).
-- Sessions persist in a simple JSON store and ephemeral session directories — search `src/lib/server/session-store.js` and `sessions.json`.
+Short goal: Make contributors productive quickly. Focus on the SvelteKit frontend, Socket.IO layer, and PTY/session managers in `src/lib/server`.
 
-Where to look first (fast map)
+Quick commands (dev + CI)
 
-- HTTP + SvelteKit handler: `src/app.js` -> imports `../build/handler.js` and starts Socket.IO.
-- Socket entrypoints / auth: `src/lib/server/socket-handler.js` (look for `handleConnection`).
-- PTY lifecycle: `src/lib/server/terminal.js` (TerminalManager / spawn logic, environment setup, mode switching).
-- Session persistence: `src/lib/server/session-store.js` (stores sessions at `PTY_ROOT/sessions.json`).
-- Frontend terminal: `src/lib/components/Terminal.svelte` and chat/aux UI in `Chat.svelte`.
-- LocalTunnel integration: `src/app.js` (spawns `npx localtunnel`, writes `/tmp/tunnel-url.txt`).
+- Install: `npm install` (Node >= 22)
+- Dev (hot-reload): `npm run dev` (dev script sets `TERMINAL_KEY=test` and serves on :3030)
+- Build/preview: `npm run build` then `npm run preview`
+- Start (prod): `npm start` or `node src/app.js`
+- Typecheck: `npm run check` (Svelte-check via `jsconfig.json`)
+- Tests: `npm test` (Vitest), E2E: `npm run test:e2e` (Playwright)
 
-Runtime & integration details worth knowing
+Where to start (important files)
 
-- Socket.IO API (all real-time session operations):
-  - `auth(key, cb)` — authenticate with `TERMINAL_KEY`.
-  - `create({mode, cols, rows, meta}, cb)` — create a new session; returns `{ok, sessionId}`.
-  - `attach({sessionId, cols, rows}, cb)` — attach to an existing session.
-  - `list(cb)` — list sessions.
-  - `input`, `resize`, `end`, `detach` — runtime I/O and lifecycle events.
-- PTY modes: `PTY_MODE` env var selects default (`shell` or `claude`). Claude mode spawns the external `claude` CLI if installed.
-- Tunnel: when `ENABLE_TUNNEL=true` app spawns `npx localtunnel --port <PORT>` and writes URL to `/tmp/tunnel-url.txt`.
+- `src/app.js` — production entry, LocalTunnel wiring, Socket.IO bootstrap
+- `src/lib/server/socket-handler.js` — authentication and socket event routing
+- `src/lib/server/terminal.js` (TerminalManager) — PTY spawn, env, mode switching (`shell` vs `claude`)
+- `src/lib/server/session-store.js` — persistent session JSON store and shape
+- `src/lib/server/core/*` — `SessionManager`, `SessionRouter`, `WorkspaceManager`, `DatabaseManager` (SQLite)
+- `src/lib/client/*` — MVVM ViewModels and Svelte 5 runes (views under `shared/components`, viewmodels under `shared/viewmodels`)
 
-Editing guidelines for common tasks
+Key conventions & patterns (project-specific)
 
-- Add/modify socket events: update `socket-handler.js`, then update frontend client usage in `Terminal.svelte` / `Chat.svelte`.
-- Change PTY behavior: update `terminal.js` (spawn args, env setup) and ensure session-store updates are synchronous-safe.
-- Persisted session shape: follow existing JSON structure in `sessions.json` — modify `session-store.js` when changing fields.
-- Docker: Dockerfile uses multi-stage build and expects runtime defaults in ENV (see `Dockerfile` for `PORT`, `PTY_ROOT`, `PTY_MODE`). Building with Claude requires installing the Claude CLI in the image.
+- MVVM with Svelte 5 runes: Views are pure presentation; business logic lives in ViewModels (`src/lib/client/shared/viewmodels`). Look for `$state`, `$derived` usage.
+- Unified Session API: `SessionManager.createSession({type, workspacePath, options})` supports `pty` and `claude` types. Routing is done via `SessionRouter`.
+- Socket.IO contract: auth first (`auth(key)`), then session ops (`terminal.start`, `terminal.write`, `terminal.resize`, `claude.send`, etc.). See `CLAUDE.md` for full event names.
+- Env-driven behavior: `TERMINAL_KEY`, `PTY_MODE` (`shell|claude`), `ENABLE_TUNNEL`, `WORKSPACES_ROOT`.
+- Non-root container: production image runs as `appuser` (uid 10001). Files and volume mounts must respect ownership.
 
-Debug & dev tips (concrete)
+Editing rules for common tasks
 
-- Dev server: `npm run dev` exposes Vite host; use browser at `http://localhost:3030` and key `test` (dev script).
-- Production local run: `TERMINAL_KEY=your-key node src/app.js` or use `start.sh` for a small wrapper that prepares `PTY_ROOT`.
-- Check tunnel output: when enabled, see `/tmp/tunnel-url.txt` for the public URL.
-- If PTY spawn fails, inspect `src/lib/server/terminal.js` and ensure the CLI exists (e.g., `claude`) and container has execute permissions.
+- Add socket events: modify `socket-handler.js` and mirror client calls in `src/lib/client/*` (Terminal or Claude panes).
+- Change PTY spawn/behavior: edit `terminal.js` and ensure session persistence in `session-store.js` remains compatible.
+- Add workspace/session persistence fields: update `session-store.js` and `src/lib/server/db/*` migrations.
 
-Testing & CI pointers
+Quick debugging tips
 
-- Playwright is a dependency; add tests under a `tests/` folder if needed and shell out to `playwright` from npm scripts.
-- Keep type checking green: `npm run check` (uses `svelte-check` with `jsconfig.json`).
+- Reproduce locally with `npm run dev` and use browser at `http://localhost:3030` with key `test`.
+- Check LocalTunnel URL at `/tmp/tunnel-url.txt` when `ENABLE_TUNNEL=true`.
+- If PTY/Claude fails, confirm the CLI is present in container and inspect `src/lib/server/terminal.js` for spawn args.
 
-When in doubt
+Files to reference when making cross-cutting changes
 
-- Trace a user action from front-end -> `build/handler.js` -> `src/app.js` -> Socket.IO -> `socket-handler.js` -> `terminal.js`.
-- Update the small surface areas: socket events, terminal spawn, session-store; these three files cover most runtime changes.
+- `src/app.js`, `src/lib/server/socket-handler.js`, `src/lib/server/terminal.js`, `src/lib/server/session-store.js`, `src/lib/server/core/SessionManager.js`, `src/lib/server/core/SessionRouter.js`, `src/lib/server/core/WorkspaceManager.js`
 
+If anything is missing or you'd like more examples (event payloads, session JSON schema, or a short workflow for adding a socket event + test), tell me which area to expand.
+
+``` 
 Files referenced: `src/app.js`, `start.sh`, `Dockerfile`, `package.json`, `src/lib/server/socket-handler.js`, `src/lib/server/terminal.js`, `src/lib/server/session-store.js`, `src/lib/components/Terminal.svelte`, `src/lib/components/Chat.svelte`, sessions stored in `PTY_ROOT/sessions.json` at runtime.
-
-If anything above is unclear or you want more examples (e.g., exact event payloads, session JSON schema, or a short workflow for adding a socket event + test), tell me which part and I'll expand.

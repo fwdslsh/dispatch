@@ -5,6 +5,10 @@
  * Handles all workspace-related state and business logic.
  */
 
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('workspace:viewmodel');
+
 /**
  * @typedef {Object} Workspace
  * @property {string} path
@@ -88,7 +92,7 @@ export class WorkspaceViewModel {
 			this.sortWorkspaces();
 		} catch (error) {
 			this.error = error.message || 'Failed to load workspaces';
-			console.error('[WorkspaceViewModel] Load error:', error);
+			log.error('Failed to load workspaces', error);
 		} finally {
 			this.loading = false;
 		}
@@ -102,7 +106,7 @@ export class WorkspaceViewModel {
 			this.claudeProjects = await this.workspaceApi.getClaudeProjects();
 		} catch (error) {
 			// Don't show error for Claude projects as they're optional
-			console.debug('[WorkspaceViewModel] Claude projects not available:', error);
+			log.debug('Claude projects not available', error);
 		}
 	}
 
@@ -132,14 +136,15 @@ export class WorkspaceViewModel {
 		try {
 			const result = await this.workspaceApi.open(path);
 
-			// Select the opened workspace
-			this.selectWorkspace(result.path);
-
 			// Add to recent workspaces
 			this.addToRecent(result.path);
 
-			// Reload workspace list
+			// Reload workspace list FIRST to ensure it's in the list
 			await this.loadWorkspaces();
+
+			// THEN select the opened workspace - now it should be in the list
+			// This prevents recursive calls to openWorkspace
+			this.selectWorkspace(result.path);
 
 			return result;
 		} catch (error) {
@@ -162,14 +167,15 @@ export class WorkspaceViewModel {
 		try {
 			const result = await this.workspaceApi.create(path, isNewProject);
 
-			// Select the created workspace
-			this.selectWorkspace(result.path);
-
 			// Add to recent workspaces
 			this.addToRecent(result.path);
 
-			// Reload workspace list
+			// Reload workspace list FIRST to ensure it's in the list
 			await this.loadWorkspaces();
+
+			// THEN select the created workspace - now it should be in the list
+			// This prevents recursive calls to openWorkspace
+			this.selectWorkspace(result.path);
 
 			return result;
 		} catch (error) {
@@ -192,14 +198,15 @@ export class WorkspaceViewModel {
 		try {
 			const result = await this.workspaceApi.clone(from, to);
 
-			// Select the cloned workspace
-			this.selectWorkspace(result.path);
-
 			// Add to recent workspaces
 			this.addToRecent(result.path);
 
-			// Reload workspace list
+			// Reload workspace list FIRST to ensure it's in the list
 			await this.loadWorkspaces();
+
+			// THEN select the cloned workspace - now it should be in the list
+			// This prevents recursive calls to openWorkspace
+			this.selectWorkspace(result.path);
 
 			return result;
 		} catch (error) {
@@ -340,13 +347,13 @@ export class WorkspaceViewModel {
 			this.sessionHistoryLoadedSet.has(sessionId) ||
 			this.sessionHistoryLoadQueue.has(sessionId)
 		) {
-			console.log(`[WorkspaceViewModel] Session ${sessionId} history already loaded or loading`);
+			log.debug('Session history already loaded or loading', sessionId);
 			return false;
 		}
 
 		// Add to loading queue
 		this.sessionHistoryLoadQueue.add(sessionId);
-		console.log(`[WorkspaceViewModel] Started history load for session ${sessionId}`);
+		log.debug('Started history load for session', sessionId);
 		return true;
 	}
 
@@ -358,7 +365,7 @@ export class WorkspaceViewModel {
 		// Remove from queue and add to loaded set
 		this.sessionHistoryLoadQueue.delete(sessionId);
 		this.sessionHistoryLoadedSet.add(sessionId);
-		console.log(`[WorkspaceViewModel] Completed history load for session ${sessionId}`);
+		log.debug('Completed history load for session', sessionId);
 	}
 
 	/**
