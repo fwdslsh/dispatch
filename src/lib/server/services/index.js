@@ -12,6 +12,9 @@ import { safeCallAsync } from '../utils/method-utils.js';
 import path from 'node:path';
 import os from 'node:os';
 
+// Global service instances - shared across all processes
+let globalServicesInstance = null;
+
 // Resolve tilde paths
 function resolveConfigPaths(config) {
 	const homeDir = os.homedir();

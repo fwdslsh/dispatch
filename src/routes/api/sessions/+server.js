@@ -77,11 +77,11 @@ export async function POST({ request, locals }) {
 		const appSessionId = sessionId || generateSessionId();
 
 		if (type === 'pty' || type === 'terminal') {
-			// Create terminal session
+			// Create terminal session directly
 			result = await locals.services.terminalManager.start({
 				workspacePath: workspacePath || '/tmp',
-				shell: options?.shell,
-				env: options?.env,
+				shell: options?.shell || 'bash',
+				env: options?.env || {},
 				appSessionId
 			});
 
@@ -89,8 +89,8 @@ export async function POST({ request, locals }) {
 			await locals.services.database.addSession(
 				appSessionId,
 				'pty',
-				result.id,
-				options?.title || 'Terminal',
+				result.id, // Store the actual PTY session ID
+				options?.title || `Terminal (${options?.shell || 'bash'})`,
 				workspacePath || '/tmp'
 			);
 

@@ -20,9 +20,11 @@ export class TerminalManager {
 	constructor({ io, databaseManager }) {
 		this.io = io;
 		this.databaseManager = databaseManager;
-		this.terminals = new Map(); // sessionId -> { term }
+		this.instanceId = Math.random().toString(36).substr(2, 9);
+		this.terminals = new Map(); // sessionId -> { term } - local processes only
 		// Terminal history is now stored in database instead of files
 		// Initialization moved to runtime methods
+		logger.warn('TERMINAL', `[INSTANCE-${this.instanceId}] TerminalManager created`);
 	}
 
 	// Set Socket.IO instance for real-time communication
@@ -63,7 +65,7 @@ export class TerminalManager {
 
 		const loadedPty = await ensurePtyLoaded();
 
-		logger.info('TERMINAL', `Creating terminal ${appSessionId} with shell ${shell} in ${workspacePath}`);
+		logger.info('TERMINAL', `[INSTANCE-${this.instanceId}] Creating terminal ${appSessionId} with shell ${shell} in ${workspacePath}`);
 
 		const term = loadedPty.spawn(shell, [], {
 			name: 'xterm-color',
@@ -75,7 +77,7 @@ export class TerminalManager {
 
 		this.terminals.set(appSessionId, { term });
 
-		logger.info('TERMINAL', `Terminal ${appSessionId} created successfully`);
+		logger.info('TERMINAL', `[INSTANCE-${this.instanceId}] Terminal ${appSessionId} created successfully, local terminals: ${this.terminals.size}`);
 
 		term.onData((data) => {
 			// Emit data via global Socket.IO
@@ -97,7 +99,7 @@ export class TerminalManager {
 				timestamp: Date.now()
 			});
 
-			// Remove terminal
+			// Remove terminal from local map
 			this.terminals.delete(appSessionId);
 		});
 
@@ -110,13 +112,11 @@ export class TerminalManager {
 	write(sessionId, data) {
 		const terminal = this.terminals.get(sessionId);
 		if (!terminal) {
-			logger.error(
-				'TERMINAL',
-				`Terminal ${sessionId} not found. Available terminals: ${Array.from(this.terminals.keys()).join(', ')}`
-			);
+			logger.warn('TERMINAL', `[INSTANCE-${this.instanceId}] Terminal ${sessionId} not found in this process. Available: ${Array.from(this.terminals.keys()).join(', ')}`);
 			return;
 		}
-		logger.debug('TERMINAL', `Writing to terminal ${sessionId}:`, data);
+
+		logger.debug('TERMINAL', `[INSTANCE-${this.instanceId}] Writing to terminal ${sessionId}:`, data);
 		terminal.term.write(data);
 		// Save user input to history too
 		this.saveTerminalHistory(sessionId, data);
@@ -127,6 +127,8 @@ export class TerminalManager {
 		const terminal = this.terminals.get(sessionId);
 		if (terminal) {
 			terminal.term.resize(cols, rows);
+		} else {
+			logger.warn('TERMINAL', `[INSTANCE-${this.instanceId}] Terminal ${sessionId} not found in this process for resize`);
 		}
 	}
 
@@ -136,8 +138,11 @@ export class TerminalManager {
 			terminal.term.kill();
 			// Clean up history when terminal is explicitly stopped
 			this.clearTerminalHistory(sessionId);
-			// Remove terminal
+			// Remove terminal from local map
 			this.terminals.delete(sessionId);
+			logger.info('TERMINAL', `[INSTANCE-${this.instanceId}] Terminal session ${sessionId} stopped`);
+		} else {
+			logger.warn('TERMINAL', `[INSTANCE-${this.instanceId}] Terminal ${sessionId} not found in this process for stop`);
 		}
 	}
 

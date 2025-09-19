@@ -7,7 +7,6 @@ import { claudeAuthManager } from './claude/ClaudeAuthManager.js';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { SOCKET_EVENTS } from '../shared/socket-events.js';
-import { createSocketErrorHandler } from './utils/error-handling.js';
 import { safeClone } from './utils/data-utils.js';
 import { hasMethod } from './utils/method-utils.js';
 
@@ -104,16 +103,15 @@ export function setupSocketIO(httpServer, services) {
 	// @ts-ignore - Adding custom property to Socket.IO instance
 	io.historyManager = historyManager;
 
-	// Create standardized socket error handler
-	const handleSocketError = createSocketErrorHandler('SOCKET');
-
 	// Set Socket.IO on services that need it
 	if (services) {
 		try {
 			if (hasMethod(services.claudeSessionManager, 'setSocketIO')) {
+				logger.info('SOCKET_SETUP', 'Setting Socket.IO on ClaudeSessionManager');
 				services.claudeSessionManager.setSocketIO(io);
 			}
 			if (hasMethod(services.terminalManager, 'setSocketIO')) {
+				logger.info('SOCKET_SETUP', 'Setting Socket.IO on TerminalManager');
 				services.terminalManager.setSocketIO(io);
 			}
 		} catch (error) {
@@ -168,29 +166,46 @@ io.on('connection', async (socket) => {
 		logSocketEvent(socket.id, 'connection', connectionMetadata);
 
 		// Authentication event - validates a key without starting a terminal
-		socket.on('auth', handleSocketError(
-			(key, callback) => requireValidKey(socket, key, callback),
-			'auth'
-		));
+		socket.on('auth', (key, callback) => {
+			try {
+				logger.info('SOCKET', `Auth event received from ${socket.id}`);
+				if (requireValidKey(socket, key, callback)) {
+					// Key is valid, send success response
+					if (callback) callback({ success: true });
+				}
+				// Error response already sent by requireValidKey if key was invalid
+			} catch (error) {
+				logger.error('SOCKET', 'Auth handler error:', error);
+				if (callback) callback({ success: false, error: 'Authentication failed' });
+			}
+		});
 
-		// Terminal start event (creates new terminal session)
-		socket.on('terminal.start', handleSocketError(async (data, callback) => {
-			if (!requireValidKey(socket, data.key, callback)) return;
+		// Terminal start event - Validate existing terminal session
+		socket.on('terminal.start', async (data, callback) => {
+			try {
+				if (!requireValidKey(socket, data.key, callback)) return;
 
-			const { terminalManager } = getServicesOrThrow(getServices);
+				const { terminalManager } = getServicesOrThrow(getServices);
 
-			// Generate app session ID if not provided
-			const appSessionId = data.sessionId || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+				if (!data.sessionId) {
+					if (callback) callback({ success: false, error: 'sessionId required' });
+					return;
+				}
 
-			const session = await terminalManager.start({
-				workspacePath: data.workspacePath || '/tmp',
-				shell: data.shell,
-				env: data.env,
-				appSessionId
-			});
-			logger.info('SOCKET', `Terminal session created: ${session.id} (app session: ${appSessionId})`);
-			if (callback) callback({ success: true, id: appSessionId, typeSpecificId: session.id });
-		}, 'terminal.start'));
+				// Check if terminal exists (PTY should already be created by API)
+				const terminal = terminalManager.getTerminal(data.sessionId);
+				if (!terminal) {
+					if (callback) callback({ success: false, error: 'Terminal session not found' });
+					return;
+				}
+
+				logger.info('SOCKET', `Terminal ${data.sessionId} ready for interaction`);
+				if (callback) callback({ success: true, id: data.sessionId, typeSpecificId: data.sessionId });
+			} catch (error) {
+				logger.error('SOCKET', 'Terminal start handler error:', error);
+				if (callback) callback({ success: false, error: 'Terminal start failed' });
+			}
+		});
 
 		// Terminal write event
 		socket.on('terminal.write', async (data) => {

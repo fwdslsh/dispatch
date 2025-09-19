@@ -1,6 +1,10 @@
-const TERMINAL_KEY = process.env.TERMINAL_KEY || 'testkey12345';
+const TERMINAL_KEY = process.env.TERMINAL_KEY ?? 'testkey12345';
 
 export function validateKey(key) {
+	// If TERMINAL_KEY is explicitly set to empty string, allow any key
+	if (TERMINAL_KEY === '') {
+		return true;
+	}
 	return key === TERMINAL_KEY;
 }
 

@@ -22,11 +22,11 @@
 <header class="workspace-header">
 	<BrandLogo />
 
-	<LayoutControls viewMode={viewMode} onSelectView={onViewModeChange} />
 
 	<div class="header-spacer"></div>
 
 	<div class="header-actions">
+	<LayoutControls viewMode={viewMode} onSelectView={onViewModeChange} />
 		<IconButton onclick={onLogout} aria-label="Logout">
 			<IconLogout size={18} />
 		</IconButton>

@@ -9,21 +9,22 @@ function socketIOPlugin() {
 		async configureServer(server) {
 			if (!server.httpServer) return;
 
-			console.log('[DEV] Setting up Socket.IO with services...');
+			console.log('[DEV] Setting up Socket.IO with shared services...');
 
-			// Import the getServices function from hooks.server.js to reuse the same services
-			const { getGlobalServices } = await import('./src/lib/server/services/shared.js');
+			// Import the shared services from hooks.server.js
+			const { getGlobalServices } = await import('./src/hooks.server.js');
 			const services = await getGlobalServices();
 
-			console.log('[DEV] Server services initialized');
+			console.log('[DEV] Using shared services from hooks.server.js');
 
 			const { setupSocketIO } = await import('./src/lib/server/socket-setup.js');
 			const io = setupSocketIO(server.httpServer, services);
 
-			console.log('[DEV] Socket.IO ready with services');
+			console.log('[DEV] Socket.IO ready with shared services');
 		}
 	};
 }
+
 
 export default defineConfig({
 	resolve: {
