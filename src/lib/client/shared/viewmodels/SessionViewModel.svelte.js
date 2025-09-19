@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import sessionSocketManager from '../components/SessionSocketManager.js';
 
 const log = createLogger('session:viewmodel');
 
@@ -22,7 +23,7 @@ const log = createLogger('session:viewmodel');
  * @property {string} workspacePath
  * @property {'pty'|'claude'} sessionType
  * @property {boolean} isActive
- * @property {boolean} pinned
+ * @property {boolean} inLayout
  * @property {string} title
  * @property {string} createdAt
  * @property {string} lastActivity
@@ -51,7 +52,7 @@ export class SessionViewModel {
 
 		// Derived business logic state from AppState
 		this.sessions = $derived(this.appStateManager.sessions.sessions);
-		this.pinnedSessions = $derived(this.appStateManager.sessions.pinnedSessions);
+		this.inLayoutSessions = $derived(this.appStateManager.sessions.inLayoutSessions);
 		this.activeSessions = $derived(this.appStateManager.sessions.activeSessions);
 		this.sessionCount = $derived(this.appStateManager.sessions.sessionCount);
 		this.hasActiveSessions = $derived(this.appStateManager.sessions.hasActiveSessions);
@@ -88,7 +89,8 @@ export class SessionViewModel {
 
 		try {
 			// Respect UI state for showOnlyPinned unless explicitly overridden
-			const shouldIncludeAll = filters.includeAll ?? (!this.appStateManager.ui.display.showOnlyPinned);
+			const shouldIncludeAll =
+				filters.includeAll ?? !this.appStateManager.ui.display.showOnlyPinned;
 			const requestOptions = { includeAll: shouldIncludeAll };
 			if (filters.workspace) {
 				requestOptions.workspace = filters.workspace;
@@ -100,17 +102,18 @@ export class SessionViewModel {
 			// Validate and normalize sessions
 			const validatedSessions = this.validateAndNormalizeSessions(result.sessions || []);
 
+			// Sessions now manage their own socket connections
+			// No need to register with socket manager
+
 			// Load sessions into AppState
 			this.appStateManager.loadSessions(validatedSessions);
 
 			log.info('Successfully loaded sessions');
-
 		} catch (error) {
 			log.error('Failed to load sessions', error);
 
 			this.operationState.error = error.message || 'Failed to load sessions';
 			this.appStateManager.sessions.setError(error.message);
-
 		} finally {
 			this.operationState.loading = false;
 			this.appStateManager.sessions.setLoading(false);
@@ -150,11 +153,13 @@ export class SessionViewModel {
 			const newSession = this.validateAndNormalizeSession(result);
 			log.info('Session created successfully', newSession.id);
 
+			// Automatically register session with socket manager
+			sessionSocketManager.registerSession(newSession.id);
+
 			// Add session to AppState
 			this.appStateManager.createSession(newSession);
 
 			return newSession;
-
 		} catch (error) {
 			log.error('Failed to create session', error);
 
@@ -162,7 +167,6 @@ export class SessionViewModel {
 			this.appStateManager.sessions.setError(error.message);
 
 			return null;
-
 		} finally {
 			this.operationState.creating = false;
 			this.appStateManager.ui.setLoading('creatingSession', false);
@@ -178,12 +182,10 @@ export class SessionViewModel {
 		try {
 			log.info('Updating session', sessionId, updates);
 
-			// Convert to API client format
-			const action = updates.pinned !== undefined ? (updates.pinned ? 'pin' : 'unpin') : 'rename';
+			// Convert to API client format - only support rename now
 			const result = await this.sessionApi.update({
-				action,
+				action: 'rename',
 				sessionId,
-				workspacePath: updates.workspacePath || '',
 				newTitle: updates.title
 			});
 			const updatedSession = this.validateAndNormalizeSession(result);
@@ -193,7 +195,6 @@ export class SessionViewModel {
 
 			log.info('Session updated successfully', sessionId);
 			return updatedSession;
-
 		} catch (error) {
 			log.error('Failed to update session', error);
 			this.operationState.error = error.message || 'Failed to update session';
@@ -206,47 +207,81 @@ export class SessionViewModel {
 	}
 
 	/**
-	 * Toggle session pinned state
+	 * Toggle session layout state (add/remove from layout)
 	 * @param {string} sessionId - Session ID
 	 */
 	async toggleSessionPin(sessionId) {
 		const session = this.getSession(sessionId);
 		if (!session) {
-			log.warn('Session not found for pin toggle', sessionId);
+			log.warn('Session not found for layout toggle', sessionId);
 			return;
 		}
 
-		return this.updateSession(sessionId, { pinned: !session.pinned });
+		if (session.inLayout) {
+			await this.removeFromLayout(sessionId);
+		} else {
+			// Add to first available tile - this would need tile management
+			log.info('Adding session to layout would require tile selection', sessionId);
+		}
 	}
 
 	/**
-	 * Unpin a session
+	 * Remove a session from layout
 	 * @param {string} sessionId - Session ID
 	 */
-	async unpinSession(sessionId) {
+	async removeFromLayout(sessionId) {
 		const session = this.getSession(sessionId);
 		if (!session) {
-			log.warn('Session not found for unpin', sessionId);
+			log.warn('Session not found for layout removal', sessionId);
 			return;
 		}
 
-		if (!session.pinned) {
-			log.debug('Session already unpinned', sessionId);
+		if (!session.inLayout) {
+			log.debug('Session already not in layout', sessionId);
 			return;
 		}
 
 		try {
-			await this.sessionApi.unpin(sessionId, session.workspacePath);
+			await this.sessionApi.removeLayout(sessionId);
 
 			// Update session in state via AppStateManager
-			const updatedSession = { ...session, pinned: false };
+			const updatedSession = { ...session, inLayout: false };
 			this.appStateManager.sessions.updateSession(sessionId, updatedSession);
 
-			log.info('Session unpinned successfully', sessionId);
-
+			log.info('Session removed from layout successfully', sessionId);
 		} catch (error) {
-			log.error('Failed to unpin session', error);
-			this.operationState.error = error.message || 'Failed to unpin session';
+			log.error('Failed to remove session from layout', error);
+			this.operationState.error = error.message || 'Failed to remove session from layout';
+
+			// Dispatch error
+			this.appStateManager.sessions.setError(error.message);
+		}
+	}
+
+	/**
+	 * Add a session to a specific tile layout
+	 * @param {string} sessionId - Session ID
+	 * @param {string} tileId - Tile ID (e.g., 'tile-1', 'tile-2')
+	 * @param {number} position - Position within tile
+	 */
+	async addToLayout(sessionId, tileId, position = 0) {
+		const session = this.getSession(sessionId);
+		if (!session) {
+			log.warn('Session not found for layout addition', sessionId);
+			return;
+		}
+
+		try {
+			await this.sessionApi.setLayout(sessionId, tileId, position);
+
+			// Update session in state via AppStateManager
+			const updatedSession = { ...session, inLayout: true, tileId, position };
+			this.appStateManager.sessions.updateSession(sessionId, updatedSession);
+
+			log.info('Session added to layout successfully', { sessionId, tileId, position });
+		} catch (error) {
+			log.error('Failed to add session to layout', error);
+			this.operationState.error = error.message || 'Failed to add session to layout';
 
 			// Dispatch error
 			this.appStateManager.sessions.setError(error.message);
@@ -285,23 +320,23 @@ export class SessionViewModel {
 					fallbackPath = '/tmp/corrupted-session-cleanup';
 				}
 
-				await this.sessionApi.delete(sessionId, fallbackPath);
+				await this.sessionApi.delete(sessionId);
 			} else {
-				await this.sessionApi.delete(sessionId, workspacePath);
+				await this.sessionApi.delete(sessionId);
 			}
 
 			// Dispatch session removal to AppStateManager
+			// Cleanup socket manager registration
+			sessionSocketManager.disconnectSession(sessionId);
 			this.appStateManager.removeSession(sessionId);
 
 			log.info('Session closed successfully', sessionId);
-
 		} catch (error) {
 			log.error('Failed to close session', error);
 			this.operationState.error = error.message || 'Failed to close session';
 
 			// Dispatch error
 			this.appStateManager.sessions.setError(error.message);
-
 		} finally {
 			this.sessionOperations.delete(sessionId);
 		}
@@ -332,12 +367,15 @@ export class SessionViewModel {
 			sessionType: type,
 			type: type, // Keep for compatibility
 			isActive: true,
-			pinned: true,
+			inLayout: false,
 			title: `New ${type} session`,
 			createdAt: new Date().toISOString(),
 			lastActivity: new Date().toISOString(),
 			activityState: 'idle'
 		};
+
+		// Automatically register session with socket manager
+		sessionSocketManager.registerSession(newSession.id);
 
 		// Dispatch session creation to AppStateManager
 		this.appStateManager.createSession(newSession);
@@ -397,12 +435,14 @@ export class SessionViewModel {
 			});
 			const resumedSession = this.validateAndNormalizeSession(result);
 
+			// Automatically register resumed session with socket manager
+			sessionSocketManager.registerSession(sessionId);
+
 			// Dispatch session update to AppStateManager
 			this.appStateManager.sessions.updateSession(sessionId, { ...resumedSession, isActive: true });
 
 			log.info('Session resumed successfully', sessionId);
 			return resumedSession;
-
 		} catch (error) {
 			log.error('Failed to resume session', error);
 			this.operationState.error = error.message || 'Failed to resume session';
@@ -413,7 +453,6 @@ export class SessionViewModel {
 			return null;
 		}
 	}
-
 
 	// =================================================================
 	// MOBILE NAVIGATION HELPERS
@@ -505,8 +544,8 @@ export class SessionViewModel {
 	 */
 	validateAndNormalizeSessions(sessions) {
 		return sessions
-			.filter(s => s && s.id)
-			.map(session => this.validateAndNormalizeSession(session));
+			.filter((s) => s && s.id)
+			.map((session) => this.validateAndNormalizeSession(session));
 	}
 
 	/**
@@ -515,19 +554,15 @@ export class SessionViewModel {
 	 * @returns {Session}
 	 */
 	validateAndNormalizeSession(session) {
-		// Ensure workspacePath is defined
-		const workspacePath = session.workspacePath || '';
-		if (!workspacePath) {
-			log.warn('Session loaded with missing workspacePath', session.id);
-		}
-
+		// In simplified architecture, sessions don't need workspacePath
+		// They manage their own working directories once created
 		return {
 			id: session.id,
 			typeSpecificId: session.typeSpecificId,
-			workspacePath: workspacePath,
+			workspacePath: session.workingDirectory || session.workspacePath || '',
 			sessionType: session.type || session.sessionType,
 			isActive: session.isActive !== undefined ? session.isActive : true,
-			pinned: session.pinned !== undefined ? session.pinned : true,
+			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tileId,
 			title: session.title || `${session.type || session.sessionType} session`,
 			createdAt: session.createdAt || new Date().toISOString(),
 			lastActivity: session.lastActivity || new Date().toISOString(),

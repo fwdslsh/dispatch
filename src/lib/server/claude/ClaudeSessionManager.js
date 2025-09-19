@@ -9,16 +9,17 @@ import { projectsRoot } from './cc-root.js';
 import { buildClaudeOptions } from '../utils/env.js';
 import { logger } from '../utils/logger.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
-import { getDatabaseManager } from '../db/DatabaseManager.js';
 import { claudeAuthManager } from './ClaudeAuthManager.js';
 import { ClaudeCommandCache } from './ClaudeCommandCache.js';
 import { ClaudeStreamRunner } from './ClaudeStreamRunner.js';
+import { findSessionFile, sessionFileExists, getFilesByExtension } from '../utils/file-scanning.js';
+import { safeExecute } from '../utils/error-handling.js';
+import { hasMethod } from '../utils/method-utils.js';
 
 export class ClaudeSessionManager {
-	#databaseManager = getDatabaseManager();
-	constructor({ io, sessionRegistry = null }) {
+	constructor({ io, databaseManager }) {
+		this.databaseManager = databaseManager;
 		this.io = io;
-		this.sessionRegistry = sessionRegistry;
 		this.sessions = new Map(); // id -> { workspacePath, options }
 		this.nextId = 1;
 
@@ -49,7 +50,7 @@ export class ClaudeSessionManager {
 
 	async initializeDatabase() {
 		try {
-			await this.#databaseManager.init();
+			await this.databaseManager.init();
 		} catch (error) {
 			logger.error('Claude', 'Failed to initialize database', error);
 		}
@@ -70,31 +71,13 @@ export class ClaudeSessionManager {
 	}
 
 	setSocketIO(io) {
-		// Store the Socket.IO instance
-		// This could be either a global server instance (for broadcasting)
-		// or a specific client socket (for client-specific events)
 		this.io = io;
-
-		// Debug what type of instance this is
-		logger.info('Claude', '[ClaudeSessionManager] setSocketIO called with:', {
-			hasSocketsProperty: !!(io && io.sockets),
-			hasEmitMethod: !!(io && io.emit),
-			constructorName: io?.constructor?.name,
-			isSocketIO: !!(io && io.sockets && io.emit)
-		});
-
-		// If this is a server instance (has a 'sockets' property), store it as the global server
-		// for broadcasting events to all clients
-		if (io && io.sockets) {
+		if (io?.sockets) {
 			this.serverIO = io;
-			logger.info('Claude', '[ClaudeSessionManager] Set serverIO for broadcasting');
 		}
 	}
 
-	setSessionRegistry(sessionRegistry) {
-		this.sessionRegistry = sessionRegistry;
-		logger.info('Claude', '[ClaudeSessionManager] Session registry set for activity + buffering');
-	}
+	// Session registry removed - now using direct socket communication
 
 	attachSocket({ appSessionId, typeSpecificId, socket }) {
 		if (!socket) return;
@@ -121,87 +104,134 @@ export class ClaudeSessionManager {
 		appSessionId = null,
 		socket = null
 	}) {
-		// Normalize provided Claude session ID if present, otherwise generate a real one now
-		let claudeSessionId = null;
-		if (sessionId) {
-			claudeSessionId = sessionId.startsWith('claude_')
-				? sessionId.replace(/^claude_/, '')
-				: sessionId;
-		} else {
-			claudeSessionId = randomUUID();
-		}
+		const claudeSessionId = this.#normalizeSessionId(sessionId);
+		const sessionData = this.#buildSessionData({
+			claudeSessionId,
+			workspacePath,
+			appSessionId,
+			options,
+			socket
+		});
 
 		logger.debug(
 			'Claude',
 			`Creating session with Claude ID: ${claudeSessionId}, appSessionId: ${appSessionId}`
 		);
 
-		// Determine if we can actually resume (only when an on-disk conversation exists)
-		let resumeCapable = false;
+		await this.#ensureSessionFile(sessionData);
+		this.#registerSession(sessionData);
+		await this.#persistToDatabase(sessionData);
+		this.#fetchCommandsAsync(claudeSessionId, sessionData);
 
-		/** @type {{ workspacePath: string, sessionId: string|null, resumeCapable: boolean, options: object, appSessionId?: string, socket?: any }} */
-		const sessionData = {
+		return { typeSpecificId: claudeSessionId };
+	}
+
+	/**
+	 * Check if session needs ID update based on file discovery
+	 * @param {object} session - Session object to check
+	 * @returns {boolean} True if session needs ID update
+	 */
+	#needsIdUpdate(session) {
+		return session &&
+			   (!session.sessionId || /^\d+$/.test(String(session.sessionId))) &&
+			   !session.resumeCapable;
+	}
+
+	/**
+	 * Update session metadata after ID change
+	 * @param {object} session - Session object
+	 * @param {string} newId - New session ID
+	 * @param {string} oldId - Old session ID
+	 */
+	async #updateSessionMetadata(session, newId, oldId) {
+		// Update in-memory sessions
+		this.sessions.set(newId, session);
+
+		// Update database records
+		await safeExecute(
+			() => this.databaseManager.addClaudeSession(newId, session.workspacePath, newId, session.appSessionId, true),
+			'Claude',
+			'Failed to add session to database'
+		);
+
+		// Update workspace database
+		await safeExecute(async () => {
+			if (this.databaseManager) {
+				await this.databaseManager.updateTypeSpecificId(session.workspacePath, session.appSessionId, newId);
+			}
+		}, 'Claude', 'Failed to update session metadata after ID change');
+
+		// Refresh commands asynchronously
+		this._fetchAndEmitSupportedCommands(newId, session).catch(() => {});
+	}
+
+	#normalizeSessionId(sessionId) {
+		if (sessionId) {
+			return sessionId.startsWith('claude_')
+				? sessionId.replace(/^claude_/, '')
+				: sessionId;
+		}
+		return randomUUID();
+	}
+
+	#buildSessionData({ claudeSessionId, workspacePath, appSessionId, options, socket }) {
+		return {
 			workspacePath,
 			sessionId: claudeSessionId,
-			resumeCapable, // true only if resuming an existing on-disk session
-			appSessionId, // Store application session ID for routing
+			resumeCapable: false, // Will be updated by #ensureSessionFile
+			appSessionId,
 			options: {
 				...this.defaultOptions,
 				cwd: workspacePath,
 				...options,
 				env: { ...process.env, HOME: process.env.HOME }
 			},
-			socket: socket || options?.socket // Attach socket if provided
+			socket: socket || options?.socket
 		};
+	}
 
-		logger.info('Claude', `Creating Claude session ${claudeSessionId} with:`, {
-			workspacePath,
-			sessionId: claudeSessionId,
-			appSessionId,
-			cwd: sessionData.options.cwd,
-			resumeCapable
-		});
-
-		// Ensure a real on-disk session exists so the ID is valid immediately
+	async #ensureSessionFile(sessionData) {
 		try {
 			const base = projectsRoot();
-			const projectDir = options?.projectName || this.#encodeProjectPath(workspacePath);
+			const projectDir = sessionData.options?.projectName || this.#encodeProjectPath(sessionData.workspacePath);
 			const dirPath = join(base, projectDir);
 			await mkdir(dirPath, { recursive: true });
-			const filePath = join(dirPath, `${claudeSessionId}.jsonl`);
+			const filePath = join(dirPath, `${sessionData.sessionId}.jsonl`);
+
 			try {
-				// Only create if it doesn't already exist
 				await stat(filePath);
-				resumeCapable = true;
+				sessionData.resumeCapable = true;
 			} catch (error) {
-				// Create an empty JSONL to initialize the session
 				await writeFile(filePath, '', 'utf-8');
-				resumeCapable = true;
+				sessionData.resumeCapable = true;
 			}
-			// Update flag in session data
-			sessionData.resumeCapable = resumeCapable;
 		} catch (e) {
 			logger.warn('Claude', 'Failed to initialize on-disk session file:', e?.message || e);
 		}
+	}
 
-		// Store session data mappings
-		if (appSessionId) this.sessions.set(appSessionId, sessionData);
-		this.sessions.set(claudeSessionId, sessionData);
+	#registerSession(sessionData) {
+		if (sessionData.appSessionId) {
+			this.sessions.set(sessionData.appSessionId, sessionData);
+		}
+		this.sessions.set(sessionData.sessionId, sessionData);
+	}
 
-		// Save session metadata to database
+	async #persistToDatabase(sessionData) {
 		try {
-			await this.#databaseManager.addClaudeSession(
-				claudeSessionId,
-				workspacePath,
-				claudeSessionId,
-				appSessionId,
-				resumeCapable
+			await this.databaseManager.addClaudeSession(
+				sessionData.sessionId,
+				sessionData.workspacePath,
+				sessionData.sessionId,
+				sessionData.appSessionId,
+				sessionData.resumeCapable
 			);
 		} catch (error) {
 			logger.error('Claude', 'Failed to save session to database:', error);
 		}
+	}
 
-		// Fire-and-forget publish of supported commands for this session; emit to socket when ready
+	#fetchCommandsAsync(claudeSessionId, sessionData) {
 		this._fetchAndEmitSupportedCommands(claudeSessionId, sessionData).catch((err) => {
 			logger.error(
 				'Claude',
@@ -210,19 +240,30 @@ export class ClaudeSessionManager {
 				err && err.message ? err.message : err
 			);
 		});
-
-		return {
-			typeSpecificId: claudeSessionId
-		};
 	}
+
 	/**
-	 * @param {any} workspacePath
+	 * List all active Claude sessions
+	 * @param {string} [workspacePath] - Optional filter by workspace path
 	 */
 	list(workspacePath) {
-		return Array.from(this.sessions.entries())
-			.filter(([, v]) => v.workspacePath === workspacePath)
-			.map(([id, v]) => ({ id, ...v }));
+		const entries = Array.from(this.sessions.entries());
+		const filtered = workspacePath
+			? entries.filter(([, v]) => v.workspacePath === workspacePath)
+			: entries;
+		return filtered.map(([id, v]) => ({ id, ...v }));
 	}
+
+	/**
+	 * Terminate a Claude session
+	 * @param {string} id - Session ID to terminate
+	 */
+	async terminate(id) {
+		logger.info('Claude', `Terminating session ${id}`);
+		this.sessions.delete(id);
+		// TODO: Cleanup any Claude Code processes if needed
+	}
+
 	/**
 	 * @param {any} id
 	 * @param {any} userInput
@@ -237,16 +278,12 @@ export class ClaudeSessionManager {
 		const s = session;
 		logger.debug('Claude', `Using session ${key} with sessionId ${s.sessionId}`);
 
-		if (s.appSessionId) {
-			this.#setActivity(s.appSessionId, 'processing');
-		}
+		// Activity state tracking is now handled by UI layer
 
 		const debugEnv = { ...process.env, HOME: process.env.HOME };
 
 		const onActivityChange = (state) => {
-			if (s.appSessionId) {
-				this.#setActivity(s.appSessionId, state);
-			}
+			// Activity state tracking is now handled by UI layer
 		};
 
 		const emitDelta = (event) => {
@@ -256,12 +293,12 @@ export class ClaudeSessionManager {
 				events: [event],
 				timestamp: Date.now()
 			};
-			this.#emitWithBuffer(
-				targetSessionId,
-				s.socket,
-				SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA,
-				messageData
-			);
+			// Emit directly to socket
+			if (s.socket) {
+				s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, messageData);
+			} else if (this.io) {
+				this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, messageData);
+			}
 
 			try {
 				if (
@@ -270,7 +307,7 @@ export class ClaudeSessionManager {
 				) {
 					const msg = String(event?.result || event?.message || '');
 					if (/\bplease\s+run\s+\/login\b/i.test(msg) || msg.includes('/login')) {
-						if (s.socket && typeof s.socket.emit === 'function') {
+						if (hasMethod(s.socket, 'emit')) {
 							claudeAuthManager.start(s.socket);
 						}
 					}
@@ -284,12 +321,12 @@ export class ClaudeSessionManager {
 				sessionId: emitSessionId,
 				timestamp: Date.now()
 			};
-			this.#emitWithBuffer(
-				emitSessionId,
-				s.socket,
-				SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE,
-				completeData
-			);
+			// Emit directly to socket
+			if (s.socket) {
+				s.socket.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, completeData);
+			} else if (this.io) {
+				this.io.emit(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, completeData);
+			}
 		};
 
 		const emitStreamError = (error) => {
@@ -320,7 +357,7 @@ export class ClaudeSessionManager {
 			});
 
 			try {
-				if (s && (!s.sessionId || /^\d+$/.test(String(s.sessionId))) && !s.resumeCapable) {
+				if (this.#needsIdUpdate(s)) {
 					const projectDir = s.options?.projectName || this.#encodeProjectPath(s.workspacePath);
 					const files = await this.#listProjectSessionFiles(projectDir);
 					if (files && files.length > 0) {
@@ -328,34 +365,7 @@ export class ClaudeSessionManager {
 						if (newId && newId !== s.sessionId) {
 							const oldId = s.sessionId;
 							s.sessionId = newId;
-							this.sessions.set(newId, s);
-
-							try {
-								await this.#databaseManager.addClaudeSession(
-									newId,
-									s.workspacePath,
-									newId,
-									s.appSessionId,
-									true
-								);
-							} catch (error) {}
-
-							try {
-								if (this.sessionRegistry) {
-									this.sessionRegistry.updateTypeSpecificId(s.appSessionId, newId);
-								}
-								if (this.#databaseManager) {
-									await this.#databaseManager.updateTypeSpecificId(
-										s.workspacePath,
-										s.appSessionId,
-										newId
-									);
-								}
-
-								this._fetchAndEmitSupportedCommands(newId, s).catch(() => {});
-							} catch (error) {
-								logger.warn('Claude', 'Failed to update session metadata after ID change', error);
-							}
+							await this.#updateSessionMetadata(s, newId, oldId);
 						}
 					}
 				}
@@ -370,30 +380,14 @@ export class ClaudeSessionManager {
 	 * @param {string} sessionId
 	 */
 	async #conversationExists(sessionId) {
-		try {
-			const baseProjectsRoot = projectsRoot();
-			logger.debug(
-				'Claude',
-				`Checking for conversation ${sessionId} in projects root:`,
-				baseProjectsRoot
-			);
+		const baseProjectsRoot = projectsRoot();
+		logger.debug('Claude', `Checking for conversation ${sessionId} in projects root:`, baseProjectsRoot);
 
-			const dirs = await readdir(baseProjectsRoot, { withFileTypes: true });
-			for (const d of dirs) {
-				if (!d.isDirectory()) continue;
-				const filePath = join(baseProjectsRoot, d.name, `${sessionId}.jsonl`);
-				try {
-					const st = await stat(filePath);
-					if (st && st.isFile()) {
-						logger.debug('Claude', `Found conversation file:`, filePath);
-						return true;
-					}
-				} catch (error) {}
-			}
-		} catch (error) {
-			logger.warn('Claude', 'Error checking for conversation existence:', error.message);
+		const exists = await sessionFileExists(baseProjectsRoot, sessionId, { component: 'Claude' });
+		if (exists) {
+			logger.debug('Claude', `Found conversation file for session ${sessionId}`);
 		}
-		return false;
+		return exists;
 	}
 
 	/**
@@ -427,27 +421,10 @@ export class ClaudeSessionManager {
 		// Hydrate from disk by scanning projects directory for the session jsonl
 		logger.debug('Claude', `Attempting to hydrate session ${sessionId} from disk`);
 
-		let found = null;
-		try {
-			const baseProjectsRoot = projectsRoot();
-			logger.debug('Claude', `Looking for session ${sessionId} in:`, baseProjectsRoot);
+		const baseProjectsRoot = projectsRoot();
+		logger.debug('Claude', `Looking for session ${sessionId} in:`, baseProjectsRoot);
 
-			const dirs = await readdir(baseProjectsRoot, { withFileTypes: true });
-			for (const d of dirs) {
-				if (!d.isDirectory()) continue;
-				const filePath = join(baseProjectsRoot, d.name, `${sessionId}.jsonl`);
-				try {
-					const st = await stat(filePath);
-					if (st && st.isFile()) {
-						found = { projectDirName: d.name, filePath, projectsDir: baseProjectsRoot };
-						logger.debug('Claude', `Found session file:`, filePath);
-						break;
-					}
-				} catch (error) {}
-			}
-		} catch (error) {
-			logger.error('Claude', 'Error scanning projects directory:', error.message);
-		}
+		const found = await findSessionFile(baseProjectsRoot, sessionId, { component: 'Claude' });
 
 		if (!found) {
 			logger.warn('Claude', `Session ${sessionId} not found in projects directory`);
@@ -520,22 +497,16 @@ export class ClaudeSessionManager {
 	async #listProjectSessionFiles(projectDir) {
 		const baseProjectsRoot = projectsRoot();
 		const dirPath = join(baseProjectsRoot, projectDir);
-		try {
-			const files = await readdir(dirPath, { withFileTypes: true });
-			const result = [];
-			for (const f of files) {
-				if (f.isFile() && f.name.endsWith('.jsonl')) {
-					const filePath = join(dirPath, f.name);
-					try {
-						const st = await stat(filePath);
-						result.push({ id: f.name.replace(/\.jsonl$/, ''), mtimeMs: st.mtimeMs || 0 });
-					} catch (error) {}
-				}
-			}
-			return result.sort((a, b) => b.mtimeMs - a.mtimeMs);
-		} catch (error) {
-			return [];
-		}
+
+		const files = await getFilesByExtension(dirPath, '.jsonl', {
+			sortBy: 'newest',
+			component: 'Claude'
+		});
+
+		return files.map(file => ({
+			id: file.name.replace(/\.jsonl$/, ''),
+			mtimeMs: file.mtimeMs || 0
+		}));
 	}
 
 	/**
@@ -685,27 +656,12 @@ export class ClaudeSessionManager {
 		}
 	}
 
-	#setActivity(sessionId, state) {
-		if (!sessionId) return;
-		if (this.sessionRegistry) {
-			this.sessionRegistry.setActivityState(sessionId, state);
-		}
-	}
-
-	#emitWithBuffer(sessionId, socket, eventType, data) {
-		if (!sessionId) {
-			if (socket) {
-				socket.emit(eventType, data);
-			}
-			return;
-		}
-
-		if (this.sessionRegistry) {
-			this.sessionRegistry.emitToSocket(sessionId, socket, eventType, data);
-			return;
-		}
-		if (socket) {
-			socket.emit(eventType, data);
-		}
+	/**
+	 * Get session by ID for socket handlers
+	 * @param {string} sessionId - The session ID to lookup
+	 * @returns {object|null} Session object or null if not found
+	 */
+	getSession(sessionId) {
+		return this.sessions.get(sessionId) || null;
 	}
 }

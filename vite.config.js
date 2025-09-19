@@ -9,31 +9,18 @@ function socketIOPlugin() {
 		async configureServer(server) {
 			if (!server.httpServer) return;
 
-			console.log('[DEV] Setting up Socket.IO with dependency injection...');
+			console.log('[DEV] Setting up Socket.IO with services...');
 
-			// Initialize server services with dependency injection
-			const { getServerServiceContainer } = await import('./src/lib/server/core/ServerServiceContainer.js');
-			const serverContainer = getServerServiceContainer({
-				dbPath: process.env.DB_PATH || '~/.dispatch/data/workspace.db',
-				workspacesRoot: process.env.WORKSPACES_ROOT || '~/.dispatch-home/workspaces',
-				configDir: process.env.DISPATCH_CONFIG_DIR || '~/.config/dispatch',
-				debug: process.env.DEBUG === 'true'
-			});
+			// Import the getServices function from hooks.server.js to reuse the same services
+			const { getGlobalServices } = await import('./src/lib/server/services/shared.js');
+			const services = await getGlobalServices();
 
-			// Initialize all services
-			await serverContainer.initialize();
 			console.log('[DEV] Server services initialized');
 
-			const { getSocketSetup } = await import('./src/lib/server/socket-manager.js');
-			const { setupSocketIO, mode } = await getSocketSetup();
-			console.log('===============================================');
-			console.log(`[DEV] Session Architecture: ${mode.toUpperCase()}`);
-			console.log('===============================================');
-			const io = setupSocketIO(server.httpServer, serverContainer);
+			const { setupSocketIO } = await import('./src/lib/server/socket-setup.js');
+			const io = setupSocketIO(server.httpServer, services);
 
-			// Update services with Socket.IO instance for real-time communication
-			serverContainer.setSocketIO(io);
-			console.log('[DEV] Socket.IO ready with dependency injection');
+			console.log('[DEV] Socket.IO ready with services');
 		}
 	};
 }

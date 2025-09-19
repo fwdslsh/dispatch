@@ -22,21 +22,15 @@ export class SessionState {
 		this.lastMessageTimestamps = $state(new Map());
 
 		// Derived state
-		this.pinnedSessions = $derived.by(() =>
-			this.sessions.filter(s => s.pinned)
-		);
+		this.inLayoutSessions = $derived.by(() => this.sessions.filter((s) => s.inLayout));
 
-		this.activeSessions = $derived.by(() =>
-			this.sessions.filter(s => s.isActive)
-		);
+		this.activeSessions = $derived.by(() => this.sessions.filter((s) => s.isActive));
 
 		this.claudeSessions = $derived.by(() =>
-			this.sessions.filter(s => s.sessionType === 'claude')
+			this.sessions.filter((s) => s.sessionType === 'claude')
 		);
 
-		this.terminalSessions = $derived.by(() =>
-			this.sessions.filter(s => s.sessionType === 'pty')
-		);
+		this.terminalSessions = $derived.by(() => this.sessions.filter((s) => s.sessionType === 'pty'));
 
 		this.sessionCount = $derived(this.sessions.length);
 		this.hasActiveSessions = $derived(this.activeSessions.length > 0);
@@ -44,13 +38,13 @@ export class SessionState {
 
 	// Session CRUD operations
 	loadSessions(sessions) {
-		this.sessions = sessions.map(session => ({
+		this.sessions = sessions.map((session) => ({
 			id: session.id,
 			typeSpecificId: session.typeSpecificId,
 			workspacePath: session.workspacePath,
 			sessionType: session.type || session.sessionType,
 			isActive: session.isActive !== undefined ? session.isActive : true,
-			pinned: session.pinned !== undefined ? session.pinned : true,
+			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tile_id,
 			title: session.title || `${session.type} session`,
 			createdAt: session.createdAt || new Date().toISOString(),
 			lastActivity: session.lastActivity || new Date().toISOString(),
@@ -67,14 +61,14 @@ export class SessionState {
 			createdAt: new Date().toISOString(),
 			lastActivity: new Date().toISOString(),
 			isActive: true,
-			pinned: true
+			inLayout: false
 		};
 		this.sessions.push(newSession);
 		log.info('Session added', newSession.id);
 	}
 
 	updateSession(sessionId, updates) {
-		const index = this.sessions.findIndex(s => s.id === sessionId);
+		const index = this.sessions.findIndex((s) => s.id === sessionId);
 		if (index >= 0) {
 			this.sessions[index] = { ...this.sessions[index], ...updates };
 			log.info('Session updated', sessionId);
@@ -82,7 +76,7 @@ export class SessionState {
 	}
 
 	removeSession(sessionId) {
-		this.sessions = this.sessions.filter(s => s.id !== sessionId);
+		this.sessions = this.sessions.filter((s) => s.id !== sessionId);
 		this.sessionActivity.delete(sessionId);
 		this.lastMessageTimestamps.delete(sessionId);
 		log.info('Session removed', sessionId);
@@ -98,15 +92,15 @@ export class SessionState {
 
 	// Query methods
 	getSession(sessionId) {
-		return this.sessions.find(s => s.id === sessionId) || null;
+		return this.sessions.find((s) => s.id === sessionId) || null;
 	}
 
 	getSessionsByWorkspace(workspacePath) {
-		return this.sessions.filter(s => s.workspacePath === workspacePath);
+		return this.sessions.filter((s) => s.workspacePath === workspacePath);
 	}
 
 	getSessionsByType(sessionType) {
-		return this.sessions.filter(s => s.sessionType === sessionType);
+		return this.sessions.filter((s) => s.sessionType === sessionType);
 	}
 
 	// Loading and error state

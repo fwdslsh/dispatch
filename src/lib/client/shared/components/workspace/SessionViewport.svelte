@@ -20,11 +20,14 @@
 
 	const Component = $derived.by(() => sessionModule()?.component ?? null);
 
-
 	// Session-specific props for the rendered component
 	const sessionProps = $derived(() => {
 		if (session && session.id) {
-			log.debug('Processing session', { id: session.id, type: session.type || session.sessionType, index });
+			log.debug('Processing session', {
+				id: session.id,
+				type: session.type || session.sessionType,
+				index
+			});
 		}
 
 		if (!session || !session.id) {
@@ -53,7 +56,9 @@
 	{#if isLoading}
 		<div class="loading-indicator">
 			<div class="loading-spinner"></div>
-			<p>Loading {(session.type || session.sessionType) === 'claude' ? 'Claude' : 'Terminal'} session...</p>
+			<p>
+				Loading {(session.type || session.sessionType) === 'claude' ? 'Claude' : 'Terminal'} session...
+			</p>
 		</div>
 	{:else if Component && sessionProps()}
 		<Component {...sessionProps()} />

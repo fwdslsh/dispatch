@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { validateKey } from '$lib/server/auth.js';
+import { getActiveSocketIO } from '$lib/server/socket-setup.js';
 
 export async function POST({ params, request, locals }) {
 	const { socketId } = params;
@@ -10,7 +11,7 @@ export async function POST({ params, request, locals }) {
 	}
 
 	try {
-		const io = locals?.serviceContainer?.getSocketIO?.() || null;
+		const io = getActiveSocketIO();
 
 		if (!io) {
 			return json({ error: 'Socket.IO server not available' }, { status: 500 });

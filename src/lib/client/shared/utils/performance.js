@@ -32,11 +32,11 @@ export function debounce(func, wait, immediate = false) {
  */
 export function throttle(func, limit) {
 	let inThrottle;
-	return function(...args) {
+	return function (...args) {
 		if (!inThrottle) {
 			func.apply(this, args);
 			inThrottle = true;
-			setTimeout(() => inThrottle = false, limit);
+			setTimeout(() => (inThrottle = false), limit);
 		}
 	};
 }
@@ -71,7 +71,7 @@ export class StateBatcher {
 		const updates = this.pendingUpdates.splice(0);
 		this.batchTimeout = null;
 
-		updates.forEach(updateFn => {
+		updates.forEach((updateFn) => {
 			try {
 				updateFn();
 			} catch (error) {
@@ -137,13 +137,18 @@ export class PerformanceMonitor {
 					duration,
 					timestamp: Date.now()
 				});
-				console.warn(`[PerformanceMonitor] Slow operation: ${operationName} took ${duration.toFixed(2)}ms`);
+				console.warn(
+					`[PerformanceMonitor] Slow operation: ${operationName} took ${duration.toFixed(2)}ms`
+				);
 			}
 
 			return result;
 		} catch (error) {
 			const duration = performance.now() - start;
-			console.error(`[PerformanceMonitor] Operation ${operationName} failed after ${duration.toFixed(2)}ms:`, error);
+			console.error(
+				`[PerformanceMonitor] Operation ${operationName} failed after ${duration.toFixed(2)}ms:`,
+				error
+			);
 			throw error;
 		}
 	}

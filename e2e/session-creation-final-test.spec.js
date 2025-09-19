@@ -36,7 +36,9 @@ test.describe('Session Creation Final Test', () => {
 		console.log(`✓ Initial session tiles: ${initialSessionTiles}`);
 
 		// Try to create a terminal session
-		const terminalBtn = page.locator('.empty-tile .create-session-btn:has-text("Terminal")').first();
+		const terminalBtn = page
+			.locator('.empty-tile .create-session-btn:has-text("Terminal")')
+			.first();
 		if (await terminalBtn.isVisible()) {
 			console.log('✓ Clicking terminal creation button...');
 			await terminalBtn.click();
@@ -87,7 +89,9 @@ test.describe('Session Creation Final Test', () => {
 					console.log('✅ SUCCESS: Splitting created new empty tile');
 
 					// Try to create another session in the new empty tile
-					const secondTerminalBtn = page.locator('.empty-tile .create-session-btn:has-text("Terminal")').first();
+					const secondTerminalBtn = page
+						.locator('.empty-tile .create-session-btn:has-text("Terminal")')
+						.first();
 					if (await secondTerminalBtn.isVisible()) {
 						await secondTerminalBtn.click();
 						await page.waitForTimeout(3000);

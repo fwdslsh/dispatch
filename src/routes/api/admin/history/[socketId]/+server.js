@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { validateKey } from '$lib/server/auth.js';
-import { historyManager } from '$lib/server/history-manager.js';
+import { createHistoryManager } from '$lib/server/history-manager.js';
 
-export async function GET({ params, url }) {
+export async function GET({ params, url, locals }) {
 	let key = null;
 	if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
 		const auth = arguments[0].request.headers.get('authorization');
@@ -24,6 +24,7 @@ export async function GET({ params, url }) {
 	}
 
 	try {
+		const historyManager = createHistoryManager(locals.services.database);
 		const history = await historyManager.getSocketHistory(socketId);
 
 		if (!history) {

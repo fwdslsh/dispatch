@@ -106,7 +106,7 @@
 <Modal
 	bind:open
 	title="Create New Session"
-	size="medium"
+	size="fullscreen"
 	closeOnBackdrop={true}
 	closeOnEscape={true}
 	showCloseButton={true}
@@ -151,30 +151,14 @@
 			<FormSection label="Working Directory">
 				{#snippet icon()}<IconFolder size={18} />{/snippet}
 
-				{#if showDirectoryBrowser}
-					<div class="directory-browser-container">
-						<DirectoryBrowser
-							bind:selected={workspacePath}
-							startPath={workspacePath || ''}
-							onSelect={handleDirectorySelect}
-						/>
-						<Button
-							variant="secondary"
-							augmented="tl-clip br-clip both"
-							onclick={() => (showDirectoryBrowser = false)}
-						>
-							Cancel
-						</Button>
-					</div>
-				{:else}
-					<WorkspaceSelector
-						bind:selectedPath={workspacePath}
-						disabled={loading}
-						placeholder="Select directory..."
-						onClick={() => (showDirectoryBrowser = true)}
-						aria-label="Select workspace directory"
+				<div class="directory-browser-container">
+					<DirectoryBrowser
+						bind:selected={workspacePath}
+						startPath={workspacePath || ''}
+						onSelect={handleDirectorySelect}
 					/>
-				{/if}
+			
+				</div>
 			</FormSection>
 
 			<!-- Error Display -->

@@ -52,7 +52,7 @@
 						workspacePath: session.workspacePath,
 						title: session.title || `${session.type} Session`,
 						isActive: session.isActive || false,
-						pinned: session.pinned === true || session.pinned === 1 || false,
+						inLayout: session.inLayout === true || !!session.tile_id,
 						createdAt: session.createdAt ? new Date(session.createdAt) : new Date(),
 						lastActivity: session.lastActivity ? new Date(session.lastActivity) : new Date()
 					}))

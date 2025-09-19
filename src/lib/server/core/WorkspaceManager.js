@@ -1,29 +1,24 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { getDatabaseManager } from '../db/DatabaseManager.js';
 import { logger } from '../utils/logger.js';
+import { createDbErrorHandler, safeExecute } from '../utils/error-handling.js';
 
 export class WorkspaceManager {
-	constructor({ rootDir }) {
+	constructor({ rootDir, databaseManager }) {
 		this.rootDir = rootDir;
+		this.databaseManager = databaseManager;
 		logger.info('WORKSPACE', `WorkspaceManager initialized with: ${rootDir}`);
-		this.initializeDatabase();
-	}
 
-	async initializeDatabase() {
-		try {
-			await getDatabaseManager().init();
-		} catch (error) {
-			logger.error('[WORKSPACE] Failed to initialize database:', error);
-		}
+		// Create standardized error handlers
+		this.handleDbError = createDbErrorHandler('WORKSPACE');
 	}
 	async init() {
 		// Ensure the workspaces root directory exists for operations like list()
-		try {
-			await fs.mkdir(this.rootDir, { recursive: true });
-		} catch (error) {
-			logger.error('[WORKSPACE] Failed to ensure rootDir exists:', error);
-		}
+		await safeExecute(
+			() => fs.mkdir(this.rootDir, { recursive: true }),
+			'WORKSPACE',
+			'Failed to ensure rootDir exists'
+		);
 	}
 	async list() {
 		const names = await fs.readdir(this.rootDir, { withFileTypes: true });
@@ -42,8 +37,8 @@ export class WorkspaceManager {
 		if (!stat.isDirectory()) throw new Error('Not a directory');
 
 		// Create or update workspace in database
-		await getDatabaseManager().createWorkspace(resolved);
-		await getDatabaseManager().updateWorkspaceActivity(resolved);
+		await this.databaseManager.createWorkspace(resolved);
+		await this.databaseManager.updateWorkspaceActivity(resolved);
 		return { path: resolved };
 	}
 	async create(dir) {
@@ -54,7 +49,7 @@ export class WorkspaceManager {
 		await fs.mkdir(resolved, { recursive: true });
 
 		// Create workspace in database
-		await getDatabaseManager().createWorkspace(resolved);
+		await this.databaseManager.createWorkspace(resolved);
 		return { path: resolved };
 	}
 	async clone(fromPath, toPath) {
@@ -65,11 +60,11 @@ export class WorkspaceManager {
 		// Ensure a corresponding workspace row exists in the database.
 		// This is important for absolute paths (e.g. Claude project folders)
 		// that may not have been opened via the workspaces API.
-		try {
-			await getDatabaseManager().createWorkspace(dir);
-		} catch (error) {
-			logger.error('[WORKSPACE] Failed to ensure workspace exists before saving session:', error);
-		}
+		await safeExecute(
+			() => this.databaseManager.createWorkspace(dir),
+			'WORKSPACE',
+			'Failed to ensure workspace exists before saving session'
+		);
 
 		if (!sessionDescriptor?.type) {
 			throw new Error('Session descriptor requires a type');
@@ -84,28 +79,29 @@ export class WorkspaceManager {
 		}
 
 		// Save to database
-		await getDatabaseManager().addWorkspaceSession(
+		await this.databaseManager.addSession(
 			sessionDescriptor.id,
-			dir,
 			sessionType,
 			typeSpecificId,
 			sessionDescriptor.title || sessionDescriptor.name || 'Untitled Session',
-			1
+			dir, // working directory
+			1 // pinned
 		);
 	}
 	async getIndex() {
 		// Build index object from the database
 		const index = { workspaces: {} };
 
-		try {
-			const workspaces = await getDatabaseManager().listWorkspaces();
+		const buildIndex = this.handleDbError(async () => {
+			const workspaces = await this.databaseManager.listWorkspaces();
 			for (const workspace of workspaces) {
 				const wsPath = workspace.path;
 				index.workspaces[wsPath] = {
 					lastActive: workspace.last_active,
 					sessions: []
 				};
-				const sessions = await getDatabaseManager().getWorkspaceSessions(wsPath);
+				const allSessions = await this.databaseManager.getAllSessions(true); // Get all pinned sessions
+			const sessions = allSessions.filter(session => session.working_directory === wsPath);
 				index.workspaces[wsPath].sessions = sessions.map((session) => ({
 					id: session.id,
 					title: session.title,
@@ -113,36 +109,33 @@ export class WorkspaceManager {
 					typeSpecificId: session.type_specific_id
 				}));
 			}
-		} catch (error) {
-			logger.error('[WORKSPACE] Failed to build index from database:', error);
-		}
+		}, 'Failed to build index from database');
+		await buildIndex();
 
 		return index;
 	}
 	async getAllSessions(pinnedOnly = true) {
 		// Return all sessions from database
-		try {
-			const sessions = await getDatabaseManager().getAllSessions(pinnedOnly);
+		const getSessions = this.handleDbError(async () => {
+			const sessions = await this.databaseManager.getAllSessions(pinnedOnly);
 			return sessions.map((session) => ({
 				id: session.id,
 				title: session.title,
 				type: session.session_type,
 				typeSpecificId: session.type_specific_id,
-				workspacePath: session.workspace_path,
+				workspacePath: session.working_directory,
 				pinned: session.pinned === 1 || session.pinned === true,
 				createdAt: session.created_at,
 				lastActivity: session.updated_at
 			}));
-		} catch (error) {
-			logger.error('[WORKSPACE] Failed to get sessions from database:', error);
-			return [];
-		}
+		}, 'Failed to get sessions from database');
+		return await getSessions() || [];
 	}
 
 	async getSession(workspacePath, sessionId) {
 		// Get a specific session from database
-		try {
-			const session = await getDatabaseManager().getWorkspaceSession(workspacePath, sessionId);
+		const getSession = this.handleDbError(async () => {
+			const session = await this.databaseManager.getWorkspaceSession(workspacePath, sessionId);
 			if (session) {
 				return {
 					id: session.id,
@@ -156,26 +149,24 @@ export class WorkspaceManager {
 				};
 			}
 			return null;
-		} catch (error) {
-			logger.error('[WORKSPACE] Failed to get session from database:', error);
-			return null;
-		}
+		}, 'Failed to get session from database');
+		return await getSession();
 	}
 
 	async setPinned(workspacePath, sessionId, pinned) {
-		await getDatabaseManager().setWorkspaceSessionPinned(workspacePath, sessionId, pinned);
+		await this.databaseManager.setWorkspaceSessionPinned(workspacePath, sessionId, pinned);
 	}
 	async removeSession(workspacePath, sessionId) {
 		// Remove from database
-		await getDatabaseManager().removeWorkspaceSession(workspacePath, sessionId);
+		await this.databaseManager.removeWorkspaceSession(workspacePath, sessionId);
 	}
 	async renameSession(workspacePath, sessionId, newTitle) {
 		// Update in database
-		await getDatabaseManager().renameWorkspaceSession(workspacePath, sessionId, newTitle);
+		await this.databaseManager.renameWorkspaceSession(workspacePath, sessionId, newTitle);
 	}
 
 	async updateTypeSpecificId(workspacePath, sessionId, newTypeSpecificId) {
-		await getDatabaseManager().updateWorkspaceSessionTypeId(
+		await this.databaseManager.updateWorkspaceSessionTypeId(
 			workspacePath,
 			sessionId,
 			newTypeSpecificId

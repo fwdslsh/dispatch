@@ -3,7 +3,7 @@
  * Controlled by DISPATCH_LOG_LEVEL environment variable
  */
 
-import { getDatabaseManager } from '../db/DatabaseManager.js';
+import { DatabaseManager } from '../db/DatabaseManager.js';
 let _dbManager;
 const LOG_LEVELS = {
 	DEBUG: 0,
@@ -76,7 +76,7 @@ function logToDatabase(level, component, message, args) {
 		// No-op during build/SSR/test
 		return;
 	}
-	if (!_dbManager) _dbManager = getDatabaseManager();
+	if (!_dbManager) _dbManager = new DatabaseManager();
 
 	_dbManager
 		.init()

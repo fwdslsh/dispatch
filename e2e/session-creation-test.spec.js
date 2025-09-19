@@ -40,17 +40,23 @@ test.describe('Session Creation Test', () => {
 		console.log(`✓ Empty tiles available: ${emptyTiles}`);
 
 		// Look for terminal creation buttons in empty tiles
-		const terminalButtons = await page.locator('.empty-tile .create-session-btn:has-text("Terminal")').count();
+		const terminalButtons = await page
+			.locator('.empty-tile .create-session-btn:has-text("Terminal")')
+			.count();
 		console.log(`✓ Terminal creation buttons: ${terminalButtons}`);
 
 		// Look for Claude creation buttons in empty tiles
-		const claudeButtons = await page.locator('.empty-tile .create-session-btn:has-text("Claude")').count();
+		const claudeButtons = await page
+			.locator('.empty-tile .create-session-btn:has-text("Claude")')
+			.count();
 		console.log(`✓ Claude creation buttons: ${claudeButtons}`);
 
 		// Try to create a terminal session if button is available
 		if (terminalButtons > 0) {
 			console.log('✓ Attempting to create terminal session...');
-			const terminalBtn = page.locator('.empty-tile .create-session-btn:has-text("Terminal")').first();
+			const terminalBtn = page
+				.locator('.empty-tile .create-session-btn:has-text("Terminal")')
+				.first();
 			await terminalBtn.click();
 			await page.waitForTimeout(3000); // Wait for session creation
 
@@ -73,14 +79,13 @@ test.describe('Session Creation Test', () => {
 		console.log(`✓ Error tiles: ${errorTiles} (should be 0)`);
 
 		// Look for session creation console logs
-		const creationLogs = consoleLogs.filter(log =>
-			log.includes('SessionWindowManager') ||
-			log.includes('session') ||
-			log.includes('tile')
+		const creationLogs = consoleLogs.filter(
+			(log) =>
+				log.includes('SessionWindowManager') || log.includes('session') || log.includes('tile')
 		);
 
 		console.log('\n=== SESSION CREATION LOGS ===');
-		creationLogs.slice(-10).forEach(log => console.log(log));
+		creationLogs.slice(-10).forEach((log) => console.log(log));
 
 		// Take screenshot
 		await page.screenshot({

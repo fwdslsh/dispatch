@@ -10,7 +10,6 @@
 		session,
 		index = 0,
 		onClose = () => {},
-		onUnpin = () => {},
 		isFocused = false,
 		header,
 		content
@@ -33,7 +32,7 @@
 </script>
 
 <div class={containerClass}>
-	{@render header({ session, onClose, onUnpin, index })}
+	{@render header({ session, onClose, index })}
 	{@render content({ session, isLoading, index })}
 </div>
 

@@ -88,6 +88,7 @@ The current MVVM implementation violates several architectural principles:
 **Priority: CRITICAL** - Fixes the infinite loop blocking development
 
 #### Task 1.1: Eliminate Bidirectional Modal State Sync
+
 - **File**: `src/lib/client/shared/components/workspace/WorkspacePage.svelte`
 - **Action**: Remove the bidirectional `$effect` blocks (lines 135 and 144)
 - **Replace with**: Single unidirectional state flow from ModalViewModel to component
@@ -95,17 +96,17 @@ The current MVVM implementation violates several architectural principles:
 ```javascript
 // REMOVE these bidirectional effects:
 $effect(() => {
-    if (activeModal?.type === 'createSession') {
-        createSessionModalOpen = activeModal.open;
-    } else if (createSessionModalOpen) {
-        createSessionModalOpen = false;
-    }
+	if (activeModal?.type === 'createSession') {
+		createSessionModalOpen = activeModal.open;
+	} else if (createSessionModalOpen) {
+		createSessionModalOpen = false;
+	}
 });
 
 $effect(() => {
-    if (!createSessionModalOpen && activeModal?.type === 'createSession') {
-        modalViewModel.closeModal('createSession');
-    }
+	if (!createSessionModalOpen && activeModal?.type === 'createSession') {
+		modalViewModel.closeModal('createSession');
+	}
 });
 
 // REPLACE with single derived state:
@@ -113,6 +114,7 @@ const createSessionModalOpen = $derived(activeModal?.type === 'createSession' &&
 ```
 
 #### Task 1.2: Debounce Global State Synchronization
+
 - **File**: `src/lib/client/shared/viewmodels/SessionViewModel.svelte.js`
 - **Action**: Implement debounced `syncToGlobalState()` to prevent cascading updates
 
@@ -137,12 +139,14 @@ private performSyncToGlobalState() {
 ```
 
 #### Task 1.3: Remove Excessive Reactive Effects
+
 - **File**: `src/lib/client/shared/components/workspace/WorkspacePage.svelte`
 - **Action**: Consolidate or remove excessive $effect blocks
 - **Keep only**: Essential effects for responsive layout and authentication
 - **Remove**: Debugging effects, tile assignment reactive updates
 
 #### Task 1.4: Fix TileAssignmentService Coupling
+
 - **File**: `src/lib/client/shared/components/workspace/SessionWindowManager.svelte`
 - **Action**: Use proper lifecycle methods instead of reactive assignments
 - **Replace**: `tileAssignmentService.currentSessions = displayedSessions` with method calls
@@ -152,6 +156,7 @@ private performSyncToGlobalState() {
 **Priority: HIGH** - Establishes proper architectural foundations
 
 #### Task 2.1: Implement Unidirectional Data Flow
+
 - **Goal**: Establish clear data flow: Actions → ViewModels → State → Views
 - **Pattern**: Flux/Redux-style unidirectional flow adapted for Svelte 5
 
@@ -162,46 +167,49 @@ User Action → ViewModel Method → State Update → Derived UI State
 ```
 
 #### Task 2.2: Create Proper ViewModel Boundaries
+
 - **WorkspaceViewModel**: Pure workspace operations (CRUD, persistence)
 - **SessionViewModel**: Pure session operations (lifecycle, state tracking)
 - **LayoutViewModel**: Pure UI layout logic (responsive, mobile/desktop)
 - **Remove**: Cross-cutting concerns and UI state management from business ViewModels
 
 #### Task 2.3: Implement State Management Layer
+
 - **Create**: `src/lib/client/shared/state/AppStateManager.svelte.js`
 - **Purpose**: Central coordinator for all reactive state
 - **Pattern**: Single source of truth with derived views
 
 ```javascript
 export class AppStateManager {
-    constructor() {
-        this.workspaces = $state([]);
-        this.sessions = $state([]);
-        this.ui = $state({
-            layout: {},
-            modals: {},
-            display: {}
-        });
+	constructor() {
+		this.workspaces = $state([]);
+		this.sessions = $state([]);
+		this.ui = $state({
+			layout: {},
+			modals: {},
+			display: {}
+		});
 
-        // Derived state with proper memoization
-        this.visibleSessions = $derived.by(() => {
-            // Compute visible sessions based on ui.display and sessions
-        });
-    }
+		// Derived state with proper memoization
+		this.visibleSessions = $derived.by(() => {
+			// Compute visible sessions based on ui.display and sessions
+		});
+	}
 
-    // Single action dispatcher to prevent cascading updates
-    dispatch(action) {
-        switch(action.type) {
-            case 'SESSION_CREATED':
-                this.handleSessionCreated(action.payload);
-                break;
-            // ...
-        }
-    }
+	// Single action dispatcher to prevent cascading updates
+	dispatch(action) {
+		switch (action.type) {
+			case 'SESSION_CREATED':
+				this.handleSessionCreated(action.payload);
+				break;
+			// ...
+		}
+	}
 }
 ```
 
 #### Task 2.4: Refactor Service Container Usage
+
 - **Enhance**: `ServiceContainer.svelte.js` with proper lifecycle management
 - **Add**: Service disposal and cleanup patterns
 - **Implement**: Singleton vs. instance service patterns
@@ -211,16 +219,19 @@ export class AppStateManager {
 **Priority: MEDIUM** - Implements ARCHITECTURAL_REVIEW.md recommendations
 
 #### Task 3.1: Simplify Session Management Architecture
+
 - **Remove**: SessionManager abstraction layer (as recommended in review)
 - **Direct**: API endpoints communicate with type-specific managers
 - **Consolidate**: SessionRouter functionality into a simple registry
 
 #### Task 3.2: Eliminate Global State Dependencies
+
 - **Replace**: `globalThis.__API_SERVICES` with proper dependency injection
 - **Implement**: Service container pattern for server-side services
 - **Remove**: Dynamic socket reference updating across managers
 
 #### Task 3.3: Consolidate Message Buffering
+
 - **Unify**: Multiple buffering systems into single service
 - **Simplify**: Message replay semantics
 - **Remove**: Overlapping buffer implementations
@@ -230,16 +241,19 @@ export class AppStateManager {
 **Priority: HIGH** - Ensures changes don't break existing functionality
 
 #### Task 4.1: Implement ViewModel Unit Tests
+
 - **Create**: Test suites for each ViewModel with proper mocking
 - **Test**: State transitions, error handling, and business logic
 - **Mock**: External dependencies (APIs, services)
 
 #### Task 4.2: Create Integration Tests for Reactive Flows
+
 - **Test**: Complete user workflows (create session, switch workspaces)
 - **Validate**: No infinite loops or excessive re-renders
 - **Monitor**: Performance impact of reactive changes
 
 #### Task 4.3: Add E2E Tests for Critical Paths
+
 - **Cover**: Session creation flow that currently has infinite loops
 - **Test**: Mobile and desktop responsive behavior
 - **Validate**: Modal interactions and state management
@@ -249,11 +263,13 @@ export class AppStateManager {
 **Priority: LOW** - Polish and optimization
 
 #### Task 5.1: Implement State Change Monitoring
+
 - **Add**: Development-mode reactive state change tracking
 - **Warn**: About potential infinite loops or excessive updates
 - **Log**: Performance metrics for state updates
 
 #### Task 5.2: Create Architectural Documentation
+
 - **Document**: New MVVM patterns and best practices
 - **Create**: Component communication guidelines
 - **Add**: Troubleshooting guide for reactive issues
@@ -261,21 +277,25 @@ export class AppStateManager {
 ## Implementation Priority Matrix
 
 ### Critical (Fix Immediately)
+
 1. **Bidirectional Modal State Sync Fix** - Highest impact, lowest risk
 2. **Debounce Global State Sync** - High impact, low risk
 3. **Remove Excessive Effects** - High impact, medium risk
 
 ### High Priority (Within 1 week)
+
 4. **Unidirectional Data Flow** - High impact, medium risk
 5. **ViewModel Boundary Cleanup** - Medium impact, low risk
 6. **State Management Layer** - High impact, high risk
 
 ### Medium Priority (Within 2 weeks)
+
 7. **Server Session Simplification** - Medium impact, medium risk
 8. **Global State Elimination** - Medium impact, low risk
 9. **Message Buffer Consolidation** - Low impact, low risk
 
 ### Low Priority (As time permits)
+
 10. **Testing Architecture** - Low impact, high value
 11. **Performance Monitoring** - Low impact, high value
 12. **Documentation** - Low impact, high value
@@ -283,15 +303,18 @@ export class AppStateManager {
 ## Risk Assessment
 
 ### High Risk Changes
+
 - **State Management Layer Refactor**: Could break existing functionality
 - **ViewModel Boundary Changes**: May require extensive component updates
 - **Unidirectional Data Flow**: Significant architectural change
 
 ### Medium Risk Changes
+
 - **Server Session Simplification**: Well-understood changes from review
 - **TileAssignmentService Decoupling**: Isolated to window management
 
 ### Low Risk Changes
+
 - **Modal State Sync Fix**: Simple, isolated change
 - **Effect Consolidation**: Removing code reduces complexity
 - **Debounced Sync**: Additive change, preserves existing behavior
@@ -299,16 +322,19 @@ export class AppStateManager {
 ## Success Metrics
 
 ### Immediate Success (Phase 1)
+
 - ✅ No infinite loops when creating sessions
 - ✅ Modal state transitions work correctly
 - ✅ Reduced console log noise from excessive effects
 
 ### Short-term Success (Phases 2-3)
+
 - ✅ Clear unidirectional data flow
 - ✅ Simplified server-side architecture
 - ✅ Improved component testability
 
 ### Long-term Success (Phases 4-5)
+
 - ✅ Comprehensive test coverage
 - ✅ Performance monitoring and optimization
 - ✅ Clear architectural documentation

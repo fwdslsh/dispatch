@@ -16,7 +16,7 @@
 		sessions = [],
 		onSessionFocus = () => {},
 		onSessionClose = () => {},
-		onSessionUnpin = () => {},
+		onSessionAssignToTile = () => {},
 		onCreateSession = () => {}
 	} = $props();
 
@@ -33,15 +33,36 @@
 	// Reactive session-to-tile mapping using Svelte 5 runes
 	let tileIds = $state(new Set());
 
-	// Create a reactive mapping of sessions to tiles
+	// Track sessions we've already auto-assigned to prevent repeated attempts
+	const autoAssignedSessions = new Set();
+
+	// Create a reactive mapping of sessions to tiles based on database layout
 	const sessionTileMap = $derived.by(() => {
 		const tileArray = Array.from(tileIds).sort();
 		const map = new Map();
 
-		// Distribute sessions across available tiles
-		sessions.forEach((session, index) => {
-			const tileIndex = index % Math.max(tileArray.length, 1);
-			const tileId = tileArray[tileIndex] || 'root';
+		// Group sessions by their assigned tile_id from database
+		sessions.forEach((session) => {
+			// Use session's tile_id if available, otherwise assign to first tile or 'root'
+			let tileId = session.tile_id;
+
+			if (!tileId || !tileIds.has(tileId)) {
+				// Session not assigned to a tile, assign to first available tile
+				tileId = tileArray[0] || 'root';
+
+				// Auto-assign to layout if not already assigned
+				// Only auto-assign if session has been active for a moment (not brand new)
+				if (session.isActive && tileArray.length > 0 && !autoAssignedSessions.has(session.id)) {
+					// Mark as auto-assigned to prevent repeated attempts
+					autoAssignedSessions.add(session.id);
+
+					// Delay assignment slightly to ensure database is ready
+					setTimeout(() => {
+						console.log('[SessionWindowManager] Auto-assigning session to tile:', { sessionId: session.id, tileId });
+						onSessionAssignToTile?.(session.id, tileId);
+					}, 100);
+				}
+			}
 
 			if (!map.has(tileId)) {
 				map.set(tileId, []);
@@ -49,7 +70,7 @@
 			map.get(tileId).push(session);
 		});
 
-		console.log('[SessionWindowManager] Session-to-tile mapping:', {
+		console.log('[SessionWindowManager] Session-to-tile mapping (database-driven):', {
 			availableTiles: tileArray,
 			sessionCount: sessions.length,
 			mapping: Object.fromEntries(map)
@@ -98,15 +119,9 @@
 		onSessionClose(sessionId);
 	}
 
-	function handleSessionUnpin(sessionId) {
-		onSessionUnpin(sessionId);
-	}
-
 	function handleCreateSessionInTile(type) {
 		onCreateSession(type);
 	}
-
-	
 </script>
 
 <div class="window-manager-wrapper">
@@ -127,10 +142,9 @@
 					{session}
 					index={sessionIndex}
 					onClose={handleSessionClose}
-					onUnpin={handleSessionUnpin}
 				>
-					{#snippet header({ session, onClose, onUnpin, index })}
-						<SessionHeader {session} {onClose} {onUnpin} {index} />
+					{#snippet header({ session, onClose, index })}
+						<SessionHeader {session} {onClose} {index} />
 					{/snippet}
 
 					{#snippet content({ session, isLoading, index })}
@@ -144,7 +158,7 @@
 						<div class="empty-actions">
 							<button
 								class="create-session-btn"
-								onclick={() => handleCreateSessionInTile('terminal')}
+								onclick={() => handleCreateSessionInTile('pty')}
 							>
 								+ Terminal
 							</button>
@@ -257,7 +271,7 @@
 
 	/* Divider styling for drag resize */
 	:global(.wm-divider) {
-		background: #555;
+		background: var(--surface-border);
 		position: relative;
 		transition: background-color 0.2s;
 		flex-shrink: 0;

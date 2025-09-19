@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ClaudeStreamRunner } from '../../src/lib/server/claude/ClaudeStreamRunner.js';
 
-
 const createLogStub = () => ({
 	info: () => {},
 	debug: () => {},

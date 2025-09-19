@@ -5,6 +5,7 @@
 After conducting a comprehensive analysis of the CSS architecture in the Dispatch application, I've identified significant opportunities for optimization and consolidation. The codebase currently contains **6 global CSS files** and **50+ Svelte components with embedded styles**, resulting in approximately **2,500+ lines of CSS** with substantial duplication and inconsistency.
 
 ### Key Findings:
+
 - **30-40% duplicate CSS rules** across components and global styles
 - **12 duplicate animation keyframes** with identical or near-identical implementations
 - **Inconsistent color usage** - hardcoded values alongside CSS variables
@@ -13,6 +14,7 @@ After conducting a comprehensive analysis of the CSS architecture in the Dispatc
 - **Poor CSS variable organization** with 350+ lines dedicated to font-face definitions
 
 ### Potential Improvements:
+
 - **Reduce CSS footprint by ~35%** through consolidation
 - **Improve load time** by eliminating redundant animations and styles
 - **Enhance maintainability** with consistent design tokens
@@ -23,46 +25,59 @@ After conducting a comprehensive analysis of the CSS architecture in the Dispatc
 ### 1. Duplicate CSS Rules and Declarations
 
 #### Animation Duplicates
+
 Found **multiple identical animation keyframes** defined across files:
 
-| Animation | Locations | Status |
-|-----------|-----------|---------|
-| `fadeIn` | animations.css:4-11, Multiple components | Duplicate |
-| `pulse` | animations.css:84-92, retro.css:996-1005 | Duplicate |
-| `spin` | animations.css:166-173, retro.css:1074-1082 | Duplicate |
-| `shimmer` | animations.css:213-220 | Could consolidate |
-| Terminal scan animations | animations.css has 4 identical scan animations (176-210) | Redundant |
+| Animation                | Locations                                                | Status            |
+| ------------------------ | -------------------------------------------------------- | ----------------- |
+| `fadeIn`                 | animations.css:4-11, Multiple components                 | Duplicate         |
+| `pulse`                  | animations.css:84-92, retro.css:996-1005                 | Duplicate         |
+| `spin`                   | animations.css:166-173, retro.css:1074-1082              | Duplicate         |
+| `shimmer`                | animations.css:213-220                                   | Could consolidate |
+| Terminal scan animations | animations.css has 4 identical scan animations (176-210) | Redundant         |
 
 **Specific duplicates in animations.css:**
+
 ```css
 /* These are all identical animations with different names */
-@keyframes terminalScan { /* Line 176 */ }
-@keyframes statusSweep { /* Line 185 */ }
-@keyframes scanline { /* Line 194 */ }
-@keyframes inputShimmer { /* Line 203 */ }
+@keyframes terminalScan {
+	/* Line 176 */
+}
+@keyframes statusSweep {
+	/* Line 185 */
+}
+@keyframes scanline {
+	/* Line 194 */
+}
+@keyframes inputShimmer {
+	/* Line 203 */
+}
 ```
 
 #### Component Style Duplicates
 
 **Session Card Pattern** - Repeated across multiple components:
+
 ```css
 /* Found in: SessionCard.svelte, TypeCard (retro.css), session-card class (retro.css) */
 .session-card {
-  background: /* variations of surface/bg */;
-  border: 1px solid var(--surface-border);
-  border-radius: 8px;
-  padding: var(--space-4);
-  transition: all 0.2s ease;
-  /* ... */
+	background: /* variations of surface/bg */;
+	border: 1px solid var(--surface-border);
+	border-radius: 8px;
+	padding: var(--space-4);
+	transition: all 0.2s ease;
+	/* ... */
 }
 ```
 
 **Button Styles** - Multiple definitions:
+
 - `retro.css`: Lines 367-853 (comprehensive button system)
 - Individual component overrides in 15+ components
 - Augmented button styles defined 3 times
 
 **Modal/Dialog Patterns** - Repeated implementations:
+
 - Modal backdrop styles in 5+ components
 - Dialog container styles duplicated
 - Animation patterns repeated
@@ -70,6 +85,7 @@ Found **multiple identical animation keyframes** defined across files:
 ### 2. Inconsistent Naming Conventions
 
 #### Color Variable Chaos
+
 ```css
 /* Multiple ways to reference the same green color */
 --primary: #2ee66b;
@@ -81,6 +97,7 @@ rgba(46, 230, 107, ...)  /* Hardcoded in components */
 ```
 
 #### Spacing Inconsistencies
+
 ```css
 /* Global variables defined but not consistently used */
 --space-0 through --space-8  /* Defined in variables.css */
@@ -93,20 +110,26 @@ gap: 0.75rem;   /* Instead of var(--space-3) */
 ### 3. Unused and Redundant Styles
 
 #### Font-Face Overload
+
 **350+ lines** in `variables.css` dedicated to font-face definitions for fonts that may not all be used:
+
 - Exo 2: 10 font-face declarations (lines 41-154)
 - Protest Revolution: 6 font-face declarations (lines 156-239)
 - Multiple unicode-range subsets that may never load
 
 #### Window Manager Duplication
+
 Two complete implementations of window manager styles:
+
 1. `window-manager.css` - 544 lines
 2. `animations.css` - Window manager section (lines 286-587)
 
 Both define similar animations and utilities with slight variations.
 
 #### Augmented UI Redundancy
+
 Augmented UI properties registered multiple times:
+
 - `retro.css`: Lines 516-551 (@property definitions)
 - Repeated in component styles
 - Could be consolidated into single registration
@@ -114,7 +137,9 @@ Augmented UI properties registered multiple times:
 ### 4. Component-Specific Issues
 
 #### LiveIconStrip.svelte
+
 Excessive inline color mixing that could use CSS variables:
+
 ```css
 /* 30+ instances of color-mix */
 color-mix(in oklab, var(--surface) 92%, var(--primary) 8%)
@@ -124,25 +149,32 @@ color-mix(in oklab, var(--primary) 20%, transparent)
 ```
 
 #### SessionCard.svelte
+
 Defines 15+ state variations inline that could be utility classes:
+
 ```css
-.session-card.active-session { }
-.session-card.inactive-session { }
-.session-card.selected { }
+.session-card.active-session {
+}
+.session-card.inactive-session {
+}
+.session-card.selected {
+}
 /* Plus all combinations */
 ```
 
 ### 5. Global Style Architecture Issues
 
 #### Multiple Style Systems Competing
+
 1. **Retro Terminal Theme** (retro.css) - 1572 lines
-2. **Window Manager System** (window-manager.css) - 544 lines  
+2. **Window Manager System** (window-manager.css) - 544 lines
 3. **Component-specific styles** - 50+ files
 4. **Utility animations** (animations.css) - 587 lines
 
 These systems overlap significantly without clear boundaries.
 
 #### Variables.css Problems
+
 - **Duplicate color definitions**: Primary color defined 5+ ways
 - **Directory-browser specific variables** (lines 327-349) should be component-scoped
 - **Missing semantic tokens**: No clear success/error/warning token system
@@ -152,100 +184,127 @@ These systems overlap significantly without clear boundaries.
 ### 1. Immediate Consolidation Opportunities
 
 #### Create Unified Animation Library
+
 ```css
 /* animations/core.css - Single source of truth */
-@keyframes fade-in { }
-@keyframes fade-out { }
-@keyframes slide-in { }
-@keyframes pulse { }
-@keyframes spin { }
+@keyframes fade-in {
+}
+@keyframes fade-out {
+}
+@keyframes slide-in {
+}
+@keyframes pulse {
+}
+@keyframes spin {
+}
 
 /* animations/window-manager.css - Feature-specific */
-@keyframes tile-focus { }
-@keyframes divider-hover { }
+@keyframes tile-focus {
+}
+@keyframes divider-hover {
+}
 ```
 
 #### Consolidate Color System
+
 ```css
 /* tokens/colors.css */
 :root {
-  /* Base palette */
-  --green-500: #2ee66b;
-  
-  /* Semantic tokens */
-  --color-primary: var(--green-500);
-  --color-surface: #121a17;
-  --color-background: #0c1210;
-  
-  /* Component tokens */
-  --button-primary-bg: var(--color-primary);
-  --card-border: var(--color-surface);
+	/* Base palette */
+	--green-500: #2ee66b;
+
+	/* Semantic tokens */
+	--color-primary: var(--green-500);
+	--color-surface: #121a17;
+	--color-background: #0c1210;
+
+	/* Component tokens */
+	--button-primary-bg: var(--color-primary);
+	--card-border: var(--color-surface);
 }
 ```
 
 #### Standardize Component Patterns
+
 ```css
 /* patterns/cards.css */
 .card-base {
-  /* Shared card styles */
+	/* Shared card styles */
 }
 
 .card--session {
-  /* Session-specific modifiers */
+	/* Session-specific modifiers */
 }
 
 .card--active {
-  /* State modifiers */
+	/* State modifiers */
 }
 ```
 
 ### 2. CSS Variable Strategy
 
 #### Proposed Token Structure
+
 ```css
 :root {
-  /* 1. Primitive tokens (raw values) */
-  --green-100: #e6f9ef;
-  --green-500: #2ee66b;
-  --green-900: #0a3d1f;
-  
-  /* 2. Semantic tokens (meaning) */
-  --color-primary: var(--green-500);
-  --color-success: var(--green-500);
-  --color-error: #ef476f;
-  
-  /* 3. Component tokens (usage) */
-  --button-primary: var(--color-primary);
-  --input-border: var(--color-border);
-  
-  /* 4. Computed tokens (derived) */
-  --primary-10: color-mix(in oklab, var(--color-primary) 10%, transparent);
-  --primary-20: color-mix(in oklab, var(--color-primary) 20%, transparent);
+	/* 1. Primitive tokens (raw values) */
+	--green-100: #e6f9ef;
+	--green-500: #2ee66b;
+	--green-900: #0a3d1f;
+
+	/* 2. Semantic tokens (meaning) */
+	--color-primary: var(--green-500);
+	--color-success: var(--green-500);
+	--color-error: #ef476f;
+
+	/* 3. Component tokens (usage) */
+	--button-primary: var(--color-primary);
+	--input-border: var(--color-border);
+
+	/* 4. Computed tokens (derived) */
+	--primary-10: color-mix(in oklab, var(--color-primary) 10%, transparent);
+	--primary-20: color-mix(in oklab, var(--color-primary) 20%, transparent);
 }
 ```
 
 ### 3. Utility Class System
 
 #### Recommended Utility Classes
+
 ```css
 /* utilities/spacing.css */
-.p-0 { padding: var(--space-0); }
-.p-1 { padding: var(--space-1); }
+.p-0 {
+	padding: var(--space-0);
+}
+.p-1 {
+	padding: var(--space-1);
+}
 /* ... through space-8 */
 
 /* utilities/effects.css */
-.glow-sm { box-shadow: 0 0 8px var(--glow); }
-.glow-md { box-shadow: 0 0 16px var(--glow); }
-.glow-lg { box-shadow: 0 0 24px var(--glow); }
+.glow-sm {
+	box-shadow: 0 0 8px var(--glow);
+}
+.glow-md {
+	box-shadow: 0 0 16px var(--glow);
+}
+.glow-lg {
+	box-shadow: 0 0 24px var(--glow);
+}
 
 /* utilities/state.css */
-.interactive { transition: all 0.2s ease; }
-.interactive:hover { transform: translateY(-1px); }
+.interactive {
+	transition: all 0.2s ease;
+}
+.interactive:hover {
+	transform: translateY(-1px);
+}
 ```
 
 ### 4. Component Styling Best Practices
 
 #### Use Composition Over Duplication
+
 ```svelte
 <!-- Instead of defining all styles inline -->
 <div class="session-card active selected">
@@ -262,6 +321,7 @@ These systems overlap significantly without clear boundaries.
 ```
 
 #### Prefer Global Utilities
+
 ```svelte
 <!-- Bad: Inline transitions -->
 <style>
@@ -277,24 +337,28 @@ These systems overlap significantly without clear boundaries.
 ### 5. Migration Plan
 
 #### Phase 1: Foundation (Week 1)
+
 1. **Audit and document** all animation keyframes
 2. **Create unified animations.css** with deduplicated animations
 3. **Establish color token system** in variables.css
 4. **Remove hardcoded color values** from components
 
 #### Phase 2: Consolidation (Week 2)
+
 1. **Extract common component patterns** to global styles
 2. **Create utility class system** for spacing, effects, states
 3. **Consolidate button styles** into single source
 4. **Merge window manager styles** into one file
 
 #### Phase 3: Component Refactoring (Week 3-4)
+
 1. **Refactor SessionCard** to use global patterns
 2. **Update Modal components** to share base styles
 3. **Standardize form inputs** across application
 4. **Remove redundant component styles**
 
 #### Phase 4: Optimization (Week 5)
+
 1. **Implement CSS purging** for unused styles
 2. **Optimize font loading** (subset fonts, remove unused)
 3. **Minify and bundle** CSS files
@@ -303,88 +367,97 @@ These systems overlap significantly without clear boundaries.
 ## Code Examples
 
 ### Before: Component with Duplicate Styles
+
 ```svelte
 <!-- SessionCard.svelte -->
 <style>
-  .session-card {
-    background: var(--bg);
-    border: 1px solid var(--surface-border);
-    border-radius: 8px;
-    padding: var(--space-4);
-    transition: all 0.2s ease;
-    /* 50+ more lines */
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
+	.session-card {
+		background: var(--bg);
+		border: 1px solid var(--surface-border);
+		border-radius: 8px;
+		padding: var(--space-4);
+		transition: all 0.2s ease;
+		/* 50+ more lines */
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
 </style>
 ```
 
 ### After: Component Using Global Patterns
+
 ```svelte
 <!-- SessionCard.svelte -->
 <script>
-  import { clsx } from 'clsx';
-  
-  $: cardClass = clsx(
-    'card',
-    'card--session',
-    isActive && 'is-active',
-    isSelected && 'is-selected'
-  );
+	import { clsx } from 'clsx';
+
+	$: cardClass = clsx(
+		'card',
+		'card--session',
+		isActive && 'is-active',
+		isSelected && 'is-selected'
+	);
 </script>
 
 <div class={cardClass}>
-  <!-- Content -->
+	<!-- Content -->
 </div>
 
 <style>
-  /* Only truly unique styles */
-  .card--session {
-    --card-icon-size: 48px;
-  }
+	/* Only truly unique styles */
+	.card--session {
+		--card-icon-size: 48px;
+	}
 </style>
 ```
 
 ### Global Pattern Definition
+
 ```css
 /* styles/patterns/cards.css */
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-  transition: var(--transition-default);
+	background: var(--surface);
+	border: 1px solid var(--border-color);
+	border-radius: var(--radius-md);
+	padding: var(--space-4);
+	transition: var(--transition-default);
 }
 
 .card:hover {
-  border-color: var(--primary-dim);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+	border-color: var(--primary-dim);
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-sm);
 }
 
 .card.is-active {
-  border-color: var(--success);
-  background: var(--success-bg);
+	border-color: var(--success);
+	background: var(--success-bg);
 }
 
 .card.is-selected {
-  border-color: var(--primary);
-  box-shadow: var(--shadow-primary);
+	border-color: var(--primary);
+	box-shadow: var(--shadow-primary);
 }
 ```
 
 ## Performance Impact
 
 ### Current State
+
 - **Total CSS Size**: ~120KB (unminified)
 - **Duplicate Rules**: ~40KB (33%)
 - **Unused Styles**: ~25KB (estimated)
 - **Load Time Impact**: 200-300ms on slower connections
 
 ### After Optimization
+
 - **Projected CSS Size**: ~60KB (50% reduction)
 - **Improved Caching**: Single animation file cached once
 - **Faster Parse Time**: Reduced specificity and simpler selectors
@@ -402,18 +475,21 @@ These systems overlap significantly without clear boundaries.
 ## Priority Actions
 
 ### High Priority (Do First)
+
 1. ✅ Consolidate duplicate animations into single file
 2. ✅ Fix color variable inconsistencies
 3. ✅ Extract button styles to global patterns
 4. ✅ Remove hardcoded color values
 
 ### Medium Priority
+
 1. Create utility class system
 2. Consolidate card/modal patterns
 3. Optimize font loading
 4. Standardize spacing usage
 
 ### Low Priority
+
 1. Component-specific optimizations
 2. Advanced CSS features (container queries)
 3. Print styles cleanup

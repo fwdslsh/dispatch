@@ -159,21 +159,13 @@
 						>
 						<DirectoryBrowser
 							bind:selected={selectedDirectory}
-							api="/api/browse"
 							placeholder="Navigate to your project directory..."
 							onSelect={(path) => {
 								// Extract project name from selected directory
 								const dirName = path.split('/').pop() || 'project';
 								projectName = dirName;
 							}}
-						/>
-						<div class="hint">Browse and select a directory for your new Claude project</div>
-						{#if selectedDirectory && projectName}
-							<div class="project-name-preview">
-								<span class="preview-label">Project Name:</span>
-								<span class="preview-value">{projectName}</span>
-							</div>
-						{/if}
+						/>						
 					</div>
 				{:else}
 					<!-- Source selector for existing projects -->
@@ -437,33 +429,7 @@
 		flex-shrink: 0;
 	}
 
-	/* Project name preview */
-	.project-name-preview {
-		margin-top: 1rem;
-		padding: 0.75rem;
-		background: rgba(46, 230, 107, 0.05);
-		border: 1px solid var(--primary);
-		border-radius: 4px;
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		font-family: var(--font-mono);
-	}
-
-	.preview-label {
-		color: var(--primary);
-		font-size: 0.75rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.preview-value {
-		color: var(--text);
-		font-size: 0.9rem;
-		font-weight: 500;
-	}
-
+	
 	/* Responsive adjustments */
 	@media (max-width: 768px) {
 		.content-area {

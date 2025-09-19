@@ -1,36 +1,31 @@
 import { Server } from 'socket.io';
 import { validateKey } from './auth.js';
 import { logger } from './utils/logger.js';
-import { historyManager } from './history-manager.js';
+import { createHistoryManager } from './history-manager.js';
 import { readFileSync } from 'node:fs';
 import { claudeAuthManager } from './claude/ClaudeAuthManager.js';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { SOCKET_EVENTS } from '../shared/socket-events.js';
+import { createSocketErrorHandler } from './utils/error-handling.js';
+import { safeClone } from './utils/data-utils.js';
+import { hasMethod } from './utils/method-utils.js';
 
 // Admin event tracking
 let socketEvents = [];
 let activeIO = null;
 
+/**
+ * Get the active Socket.IO instance
+ * @returns {object|null} Socket.IO server instance
+ */
+export function getActiveSocketIO() {
+	return activeIO;
+}
+
 function logSocketEvent(socketId, eventType, data = null) {
 	// Safely clone data for logging
-	let safeData = null;
-	try {
-		if (data === null || data === undefined) {
-			safeData = null;
-		} else if (typeof data === 'string' || typeof data === 'number' || typeof data === 'boolean') {
-			safeData = data;
-		} else if (typeof data === 'object') {
-			if (typeof globalThis.structuredClone === 'function') {
-				safeData = structuredClone(data);
-			} else {
-				const s = JSON.stringify(data);
-				safeData = typeof s === 'string' ? JSON.parse(s) : null;
-			}
-		}
-	} catch {
-		safeData = null;
-	}
+	const safeData = safeClone(data);
 
 	const event = {
 		socketId,
@@ -64,7 +59,10 @@ function logSocketEvent(socketId, eventType, data = null) {
 		} else if (eventType.includes('.data') || eventType.includes('.delta')) {
 			direction = 'out';
 		}
-		historyManager.addEvent(socketId, eventType, direction, safeData);
+		// Use the historyManager from the setupSocketIO closure
+		if (activeIO && activeIO.historyManager) {
+			activeIO.historyManager.addEvent(socketId, eventType, direction, safeData);
+		}
 	} catch (error) {
 		console.error('[HISTORY] Failed to log event to history:', error);
 	}
@@ -85,56 +83,52 @@ function requireValidKey(socket, key, callback) {
 	return true;
 }
 
-export function setupSocketIO(httpServer, serverContainer) {
+
+// Helper to get services with error handling
+function getServicesOrThrow(getServices) {
+	const services = getServices();
+	if (!services.terminalManager || !services.claudeSessionManager) {
+		throw new Error('Managers not available');
+	}
+	return services;
+}
+
+export function setupSocketIO(httpServer, services) {
 	const io = new Server(httpServer, {
 		cors: { origin: '*', methods: ['GET', 'POST'] }
 	});
 	activeIO = io;
 
-	if (serverContainer && typeof serverContainer.setSocketIO === 'function') {
+	// Create history manager with database from services
+	const historyManager = createHistoryManager(services?.database);
+	// @ts-ignore - Adding custom property to Socket.IO instance
+	io.historyManager = historyManager;
+
+	// Create standardized socket error handler
+	const handleSocketError = createSocketErrorHandler('SOCKET');
+
+	// Set Socket.IO on services that need it
+	if (services) {
 		try {
-			serverContainer.setSocketIO(io);
+			if (hasMethod(services.claudeSessionManager, 'setSocketIO')) {
+				services.claudeSessionManager.setSocketIO(io);
+			}
+			if (hasMethod(services.terminalManager, 'setSocketIO')) {
+				services.terminalManager.setSocketIO(io);
+			}
 		} catch (error) {
-			logger.error(
-				'SOCKET_SETUP',
-				'Failed to register Socket.IO instance with service container:',
-				error
-			);
+			logger.error('SOCKET_SETUP', 'Failed to register Socket.IO instance with services:', error);
 		}
 	}
 
-	// Get services from dependency injection container
+	// Get services - now just return the passed services
 	const getServices = () => {
-		if (!serverContainer) {
-			logger.error('SOCKET_SETUP', 'ServerServiceContainer not provided');
+		if (!services) {
+			logger.error('SOCKET_SETUP', 'Services not provided');
 			return {};
 		}
-
-		try {
-			return {
-				database: serverContainer.get('database'),
-				workspaceManager: serverContainer.get('workspaceManager'),
-				sessionRegistry: serverContainer.get('sessionRegistry'),
-				terminalManager: serverContainer.get('terminalManager'),
-				claudeSessionManager: serverContainer.get('claudeSessionManager'),
-				claudeAuthManager: serverContainer.get('claudeAuthManager'),
-				messageBuffer: serverContainer.get('messageBuffer')
-			};
-		} catch (error) {
-			logger.error('SOCKET_SETUP', 'Failed to get services from container:', error);
-			return {};
-		}
+		return services;
 	};
-
-	// Pass Socket.IO to session manager for real-time communication
-	try {
-		const { sessionRegistry } = getServices();
-		if (sessionRegistry) {
-			sessionRegistry.setSocketIO(io);
-		}
-	} catch (e) {
-		console.error('[SOCKET] Failed to attach io to session manager:', e);
-	}
 
 	// Packet logging middleware
 	io.use((socket, next) => {
@@ -154,34 +148,16 @@ export function setupSocketIO(httpServer, serverContainer) {
 		next();
 	});
 
-	io.on('connection', async (socket) => {
+io.on('connection', async (socket) => {
 		const sessionId = socket.handshake.query?.sessionId;
 		logger.info('SOCKET', `Client connected: ${socket.id}, sessionId: ${sessionId}`);
 
 		// Track connection (auth state already initialized in middleware)
 		socket.data.connectedAt = Date.now();
-		socket.data.sessionId = sessionId; // Store session ID in socket data
+		socket.data.sessionId = sessionId; // Store session ID for session-based connections
 
-		// If sessionId is provided, try to associate with existing session
-		if (sessionId) {
-			try {
-				const { sessionRegistry, terminalManager } = getServices();
-				const session = sessionRegistry.getSession(sessionId);
-
-				if (session && session.type === 'pty') {
-					const terminalData = terminalManager?.getTerminal?.(session.typeSpecificId);
-					if (terminalData) {
-						logger.info(
-							'SOCKET',
-							`Associating socket ${socket.id} with existing terminal ${session.typeSpecificId}`
-						);
-						terminalData.socket = socket;
-					}
-				}
-			} catch (e) {
-				logger.warn('SOCKET', `Failed to associate socket with session ${sessionId}:`, e.message);
-			}
-		}
+		// Session-based connections handle session association dynamically through event routing
+		// Sessions will manage their own working directories once created
 
 		const connectionMetadata = {
 			ip: socket.handshake.address || socket.conn.remoteAddress,
@@ -192,65 +168,37 @@ export function setupSocketIO(httpServer, serverContainer) {
 		logSocketEvent(socket.id, 'connection', connectionMetadata);
 
 		// Authentication event - validates a key without starting a terminal
-		socket.on('auth', (key, callback) => {
-			try {
-				requireValidKey(socket, key, callback);
-			} catch (err) {
-				if (callback) callback({ success: false, error: err?.message || 'Auth error' });
-			}
-		});
+		socket.on('auth', handleSocketError(
+			(key, callback) => requireValidKey(socket, key, callback),
+			'auth'
+		));
 
 		// Terminal start event (creates new terminal session)
-		socket.on('terminal.start', async (data, callback) => {
+		socket.on('terminal.start', handleSocketError(async (data, callback) => {
 			if (!requireValidKey(socket, data.key, callback)) return;
 
-			logger.info('SOCKET', `[terminal.start received]`, JSON.stringify(data));
-			logger.info('SOCKET', `[DEBUG] Socket session from query:`, socket.data.sessionId);
-			try {
+			const { terminalManager } = getServicesOrThrow(getServices);
 
-				const { sessionRegistry } = getServices();
+			// Generate app session ID if not provided
+			const appSessionId = data.sessionId || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-				if (!sessionRegistry) {
-					throw new Error('Session registry not available');
-				}
-
-				const session = await sessionRegistry.createSession({
-					type: 'pty',
-					workspacePath: data.workspacePath,
-					options: {
-						shell: data.shell,
-						env: data.env,
-						socket
-					}
-				});
-				logger.info('SOCKET', `Terminal session created: ${session.id}`);
-				logger.info('SOCKET', `[DEBUG] Session created with socket:`, {
-					hasSocket: !!socket,
-					socketId: socket.id,
-					sessionId: session.id
-				});
-				if (callback) callback({ success: true, id: session.id });
-			} catch (err) {
-				console.error(`[SOCKET] Terminal start error:`, err);
-				if (callback) callback({ success: false, error: err.message });
-			}
-		});
+			const session = await terminalManager.start({
+				workspacePath: data.workspacePath || '/tmp',
+				shell: data.shell,
+				env: data.env,
+				appSessionId,
+				socket
+			});
+			logger.info('SOCKET', `Terminal session created: ${session.id} (app session: ${appSessionId})`);
+			if (callback) callback({ success: true, id: appSessionId, typeSpecificId: session.id });
+		}, 'terminal.start'));
 
 		// Terminal write event
 		socket.on('terminal.write', async (data) => {
 			if (!requireValidKey(socket, data.key)) return;
-			logger.debug('SOCKET', 'terminal.write received:', data);
-			logger.debug('SOCKET', `[DEBUG] Writing to session ${data.id} from socket ${socket.id}`);
 			try {
-
-				const { sessionRegistry } = getServices();
-
-				if (sessionRegistry) {
-					await sessionRegistry.sendToSession(data.id, data.data);
-					logger.debug('SOCKET', `Data written to session ${data.id}`);
-				} else {
-					logger.warn('SOCKET', 'No session manager available for terminal.write');
-				}
+				const { terminalManager } = getServicesOrThrow(getServices);
+				terminalManager.write(data.id, data.data);
 			} catch (err) {
 				logger.error('SOCKET', 'Terminal write error:', err);
 			}
@@ -261,17 +209,13 @@ export function setupSocketIO(httpServer, serverContainer) {
 			if (!requireValidKey(socket, data.key)) return;
 			logger.debug('SOCKET', 'terminal.resize received:', data);
 			try {
+				const { terminalManager } = getServices();
 
-				const { sessionRegistry } = getServices();
-
-				if (!sessionRegistry) {
-					throw new Error('Session registry not available for terminal resize');
+				if (!terminalManager) {
+					throw new Error('Terminal manager not available for terminal resize');
 				}
 
-				await sessionRegistry.performOperation(data.id, 'resize', {
-					cols: data.cols,
-					rows: data.rows
-				});
+				terminalManager.resize(data.id, data.cols, data.rows);
 				logger.debug('SOCKET', `Terminal ${data.id} resized`);
 			} catch (err) {
 				console.error(`[SOCKET] Terminal resize error:`, err);
@@ -281,43 +225,21 @@ export function setupSocketIO(httpServer, serverContainer) {
 		// Claude send event
 		socket.on(SOCKET_EVENTS.CLAUDE_SEND, async (data) => {
 			if (!requireValidKey(socket, data.key)) return;
-			logger.debug('SOCKET', 'claude.send received:', data);
 			try {
+				const { claudeSessionManager } = getServicesOrThrow(getServices);
 
-				const { sessionRegistry, claudeSessionManager } = getServices();
-
-				if (!sessionRegistry || !claudeSessionManager) {
-					throw new Error('Claude services not available');
+				// Get existing session or create new one
+				let session = claudeSessionManager.getSession(data.id);
+				if (!session) {
+					session = await claudeSessionManager.create({
+						workspacePath: data.workspacePath || '/tmp',
+						options: { ...data.options, socket }
+					});
 				}
 
-				try {
-					let session = sessionRegistry.getSession(data.id);
-					if (!session) {
-						session = await sessionRegistry.createSession({
-							type: 'claude',
-							workspacePath: data.workspacePath || '',
-							options: { ...data.options, socket }
-						});
-					} else {
-						claudeSessionManager.attachSocket({
-							appSessionId: session.id,
-							typeSpecificId: session.typeSpecificId,
-							socket
-						});
-					}
-
-					await sessionRegistry.sendToSession(session.id, data.input);
-					logger.info('SOCKET', `Claude message sent via session registry`);
-				} catch (err) {
-					console.error(`[SOCKET] Claude send error:`, err);
-					const session = sessionRegistry.getSession(data.id);
-					if (session) {
-						sessionRegistry.setIdle(session.id);
-					}
-					throw err;
-				}
+				await claudeSessionManager.send(data.id, data.input);
 			} catch (err) {
-				console.error(`[SOCKET] Claude send error:`, err);
+				logger.error('SOCKET', 'Claude send error:', err);
 			}
 		});
 
@@ -353,29 +275,24 @@ export function setupSocketIO(httpServer, serverContainer) {
 			if (!requireValidKey(socket, data.key, callback)) return;
 			logger.debug('SOCKET', 'session.status received:', data);
 			try {
+				const { terminalManager, claudeSessionManager } = getServices();
 
-				const { sessionRegistry } = getServices();
+				if (data.sessionId) {
+					// Try to find session in either manager
+					let session = terminalManager?.getTerminal(data.sessionId) || claudeSessionManager?.getSession(data.sessionId);
 
-				if (sessionRegistry && data.sessionId) {
-					const session = sessionRegistry.getSession(data.sessionId);
 					if (session) {
-						const activityState = sessionRegistry.getActivityState(data.sessionId);
-						const hasPendingMessages =
-							activityState === 'processing' || activityState === 'streaming';
-
-						// Get cached commands if available
-						let availableCommands = null;
-						if (sessionRegistry.getCachedCommands) {
-							availableCommands = sessionRegistry.getCachedCommands(data.sessionId);
-						}
+						// Default activity state - managers would need to track this if needed
+						const activityState = 'idle';
+						const hasPendingMessages = false;
 
 						if (callback)
 							callback({
 								success: true,
 								activityState,
 								hasPendingMessages,
-								availableCommands,
-								sessionInfo: session
+								availableCommands: null,
+								sessionInfo: { id: data.sessionId }
 							});
 					} else {
 						if (callback)
@@ -405,44 +322,39 @@ export function setupSocketIO(httpServer, serverContainer) {
 			// Could be used to resend missed messages if needed
 		});
 
-		// Session history load event - loads buffered messages for a session
-		socket.on(SOCKET_EVENTS.SESSION_HISTORY_LOAD, (data, callback) => {
+		// Session history load event - loads historical terminal/claude data
+		socket.on(SOCKET_EVENTS.SESSION_HISTORY_LOAD, async (data, callback) => {
 			if (!requireValidKey(socket, data.key, callback)) return;
 			logger.debug('SOCKET', 'session.history.load received:', data);
 			try {
+				const { terminalManager } = getServices();
 
-				const { sessionRegistry } = getServices();
-
-				if (!sessionRegistry || !data.sessionId) {
+				if (!data.sessionId) {
 					if (callback)
 						callback({
 							success: false,
-							error: 'Session router not available or sessionId missing'
+							error: 'sessionId missing'
 						});
 					return;
 				}
 
-				// Get buffered messages for the session
-				const sinceTimestamp = data.sinceTimestamp || 0;
-				const messages = sessionRegistry.getBufferedMessages(data.sessionId, sinceTimestamp);
+				// Load terminal history if available
+				let historyData = '';
+				if (terminalManager?.loadTerminalHistory) {
+					historyData = await terminalManager.loadTerminalHistory(data.sessionId);
+				}
 
 				logger.info(
 					'SOCKET',
-					`Loading ${messages.length} buffered messages for session ${data.sessionId}`
+					`Loading history for session ${data.sessionId}: ${historyData.length} chars`
 				);
 
 				if (callback) {
 					callback({
 						success: true,
 						sessionId: data.sessionId,
-						messages: messages,
-						count: messages.length
+						history: historyData
 					});
-				}
-
-				// Optionally emit the messages directly to the socket
-				if (data.replay) {
-					sessionRegistry.replayBufferedMessages(socket, data.sessionId, sinceTimestamp);
 				}
 			} catch (err) {
 				logger.error('SOCKET', 'Session history load error:', err);
@@ -455,12 +367,11 @@ export function setupSocketIO(httpServer, serverContainer) {
 			if (!requireValidKey(socket, data.key, callback)) return;
 			logger.debug('SOCKET', 'claude.commands.refresh received:', data);
 			try {
+				const { claudeSessionManager } = getServices();
 
-				const { sessionRegistry } = getServices();
-
-				if (sessionRegistry.refreshCommands && data.sessionId) {
+				if (claudeSessionManager?.refreshCommands && data.sessionId) {
 					try {
-						const commands = await sessionRegistry.refreshCommands(data.sessionId);
+						const commands = await claudeSessionManager.refreshCommands(data.sessionId);
 						logger.debug(
 							'SOCKET',
 							`Commands refreshed for session ${data.sessionId}:`,
@@ -488,7 +399,7 @@ export function setupSocketIO(httpServer, serverContainer) {
 					if (callback) {
 						callback({
 							success: false,
-							error: 'Session manager or refresh method not available',
+							error: 'Claude session manager or refresh method not available',
 							sessionId: data.sessionId
 						});
 					}
@@ -542,18 +453,6 @@ export function setupSocketIO(httpServer, serverContainer) {
 		});
 	});
 
-	// Set up periodic cleanup of expired message buffers
-	setInterval(() => {
-		try {
-			const { sessionRegistry } = getServices();
-			if (sessionRegistry && sessionRegistry.cleanupExpiredBuffers) {
-				sessionRegistry.cleanupExpiredBuffers();
-				logger.debug('SOCKET', 'Cleaned up expired message buffers');
-			}
-		} catch (err) {
-			logger.error('SOCKET', 'Error cleaning up expired buffers:', err);
-		}
-	}, 60000); // Clean up every minute
 
 	logger.info('SOCKET', 'Simplified Socket.IO server initialized');
 	return io;

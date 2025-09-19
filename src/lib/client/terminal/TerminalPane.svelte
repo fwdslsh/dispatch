@@ -7,7 +7,7 @@
 	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager';
 
 	const fitAddon = new FitAddon();
-	let { sessionId, shouldResume = false, workspacePath = null } = $props();
+	let { sessionId, shouldResume = false } = $props();
 	let socket, term, el;
 	// Also observe container size changes (e.g., parent layout changes)
 	let ro;
@@ -66,7 +66,7 @@
 	onMount(async () => {
 		// Debug logging for undefined sessionId issue
 		console.log('[TERMINAL] TerminalPane mounted with sessionId:', sessionId);
-		console.log('[TERMINAL] TerminalPane props:', { sessionId, shouldResume, workspacePath });
+		console.log('[TERMINAL] TerminalPane props:', { sessionId, shouldResume });
 
 		// Safety check - don't proceed if sessionId is invalid
 		if (!sessionId || sessionId === 'undefined') {
@@ -96,9 +96,9 @@
 		// Fit once after opening so cols/rows are correct for the initial emit
 		fitAddon.fit();
 
-		// Get or create socket for this specific session
+		// Get shared socket connection and register this session
 		socket = sessionSocketManager.getSocket(sessionId);
-		console.log('[TERMINAL] Creating socket for session:', sessionId);
+		console.log('[TERMINAL] Connecting session to shared socket:', sessionId);
 		sessionSocketManager.handleSessionFocus(sessionId);
 
 		socket.on(SOCKET_EVENTS.CONNECTION, () => {

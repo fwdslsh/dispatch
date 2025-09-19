@@ -43,7 +43,17 @@ describe('ClaudeSessionManager - Session ID Routing', () => {
 			emit: vi.fn()
 		};
 
-		manager = new ClaudeSessionManager({ io: mockIO });
+		// Mock database manager
+		const mockDatabase = {
+			init: vi.fn(),
+			addClaudeSession: vi.fn(),
+			updateTypeSpecificId: vi.fn()
+		};
+
+		manager = new ClaudeSessionManager({
+			io: mockIO,
+			databaseManager: mockDatabase
+		});
 	});
 
 	afterEach(() => {

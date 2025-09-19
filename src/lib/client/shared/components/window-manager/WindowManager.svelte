@@ -18,8 +18,8 @@
 		/** @type {number} */ gap = 6,
 		/** @type {number} */ minSize = 48,
 		/** @type {Partial<Keymap>} */ keymap = {},
-			onfocuschange = (e) => {},
-			onlayoutchange = (e) => {},
+		onfocuschange = (e) => {},
+		onlayoutchange = (e) => {},
 		/** @type {import('svelte').Snippet<[{focused: string, tileId: string}]>} */ tile
 	} = $props();
 

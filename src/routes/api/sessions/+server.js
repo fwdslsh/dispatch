@@ -1,135 +1,136 @@
 export async function GET({ url, locals }) {
-	const workspace = url.searchParams.get('workspace');
-	const include = url.searchParams.get('include'); // 'all' to include unpinned
+	const includeInactive = url.searchParams.get('include') === 'all';
 
-	// Determine pinnedOnly flag
-	const pinnedOnly = include === 'all' ? false : true;
+	// Get persisted sessions with layout info from database
+	const persistedSessions = await locals.services.database.getSessionsWithLayout();
 
-	// Get persisted sessions (pinned by default)
-	const persistedSessions = await locals.workspaceManager.getAllSessions(pinnedOnly);
-	const filteredPersisted = workspace
-		? persistedSessions.filter((s) => s.workspacePath === workspace)
-		: persistedSessions;
+	// Get active terminal sessions
+	const activeTerminals = locals.services.terminalManager.listSessions();
 
-	// Build a set of pinned IDs when pinnedOnly requested
-	const pinnedIds = new Set(filteredPersisted.map((s) => s.id));
+	// Get active Claude sessions
+	const activeClaude = locals.services.claudeSessionManager.list();
 
-	// Get active sessions from SessionRegistry and filter by workspace
-	const activeSessionsRaw = locals.sessionRegistry.listSessions(workspace);
-
-	// Merge active and persisted sessions, with active taking precedence
+	// Merge all sessions
 	const sessionMap = new Map();
 
 	// First add persisted sessions
-	filteredPersisted.forEach((session) => {
-		sessionMap.set(session.id, session);
-	});
-
-	// Then add active sessions
-	// For active sessions, check if they exist in persisted sessions to get their pinned state
-	activeSessionsRaw.forEach((session) => {
-		const existing = sessionMap.get(session.id);
-
-		// If pinnedOnly is true and this session exists in persisted but is unpinned, skip it
-		if (pinnedOnly && existing && !existing.pinned) {
-			return; // Skip unpinned sessions when pinnedOnly is true
-		}
-
-		// If pinnedOnly is true and this session doesn't exist in persisted sessions yet,
-		// include it (new sessions should be visible)
+	persistedSessions.forEach((session) => {
 		sessionMap.set(session.id, {
-			...existing,
 			...session,
-			isActive: true,
-			pinned: existing ? existing.pinned : true // Default to pinned for new sessions
+			isActive: false,
+			inLayout: !!session.tile_id
 		});
 	});
 
-	const allSessions = Array.from(sessionMap.values());
+	// Add active terminal sessions
+	activeTerminals.forEach((terminal) => {
+		const existing = sessionMap.get(terminal.id);
+		sessionMap.set(terminal.id, {
+			...existing,
+			id: terminal.id,
+			typeSpecificId: terminal.id,
+			type: 'pty',
+			sessionType: 'pty',
+			title: terminal.title || 'Terminal',
+			workingDirectory: terminal.workspacePath,
+			isActive: true,
+			inLayout: existing ? existing.inLayout : false
+		});
+	});
+
+	// Add active Claude sessions
+	activeClaude.forEach((claude) => {
+		const existing = sessionMap.get(claude.id);
+		sessionMap.set(claude.id, {
+			...existing,
+			id: claude.id,
+			typeSpecificId: claude.id,
+			type: 'claude',
+			sessionType: 'claude',
+			title: claude.title || 'Claude',
+			workingDirectory: claude.workspacePath,
+			isActive: true,
+			inLayout: existing ? existing.inLayout : false
+		});
+	});
+
+	let allSessions = Array.from(sessionMap.values());
+
+	// Filter by layout status unless 'include=all' specified
+	if (!includeInactive) {
+		allSessions = allSessions.filter(session => session.isActive || session.inLayout);
+	}
 
 	return new Response(JSON.stringify({ sessions: allSessions }), {
 		headers: { 'content-type': 'application/json' }
 	});
 }
 
-import { getTypeSpecificId, getSessionType } from '../../../lib/server/utils/session-ids.js';
+// Generate unique session ID
+function generateSessionId() {
+	return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
 
 export async function POST({ request, locals }) {
 	const { type, workspacePath, options, resume, sessionId } = await request.json();
 
 	try {
-		// If resuming a session, handle it differently
-		if (resume && sessionId) {
-			// Check if session is already active
-			const existingActiveSession = locals.sessionRegistry.getSession(sessionId);
-			if (existingActiveSession) {
-				// Session is already active, just return its info
-				return new Response(
-					JSON.stringify({
-						id: existingActiveSession.id,
-						typeSpecificId: existingActiveSession.typeSpecificId,
-						resumed: true
-					})
-				);
-			}
+		let result;
+		const appSessionId = sessionId || generateSessionId();
 
-			// Get session details from database
-			const persistedSession = await locals.workspaceManager.getSession(workspacePath, sessionId);
-			if (persistedSession) {
-				// Create a new session with resume options
-				const session = await locals.sessionRegistry.createSession({
-					type: persistedSession.sessionType,
-					workspacePath: persistedSession.workspacePath,
-					options: {
-						...options,
-						resume: true,
-						terminalId: persistedSession.typeSpecificId, // For terminal sessions
-						claudeSessionId: persistedSession.typeSpecificId // For Claude sessions
-					}
-				});
+		if (type === 'pty' || type === 'terminal') {
+			// Create terminal session
+			result = await locals.services.terminalManager.start({
+				workspacePath: workspacePath || '/tmp',
+				shell: options?.shell,
+				env: options?.env,
+				resume: resume || false,
+				terminalId: options?.terminalId,
+				appSessionId
+			});
 
-				return new Response(
-					JSON.stringify({
-						id: session.id,
-						typeSpecificId: session.typeSpecificId,
-						resumed: true
-					})
-				);
-			} else {
-				return new Response(JSON.stringify({ error: 'Session not found' }), { status: 404 });
-			}
+			// Save to database
+			await locals.services.database.addSession(
+				appSessionId,
+				'pty',
+				result.id,
+				options?.title || 'Terminal',
+				workspacePath || '/tmp'
+			);
+
+			return new Response(
+				JSON.stringify({
+					id: appSessionId,
+					typeSpecificId: result.id
+				})
+			);
+		} else if (type === 'claude') {
+			// Create Claude session
+			result = await locals.services.claudeSessionManager.create({
+				workspacePath: workspacePath || '/tmp',
+				options,
+				sessionId: options?.claudeSessionId,
+				appSessionId
+			});
+
+			// Save to database
+			await locals.services.database.addSession(
+				appSessionId,
+				'claude',
+				result?.typeSpecificId || appSessionId,
+				result?.title || options?.projectName || 'Claude',
+				workspacePath || '/tmp'
+			);
+
+			return new Response(
+				JSON.stringify({
+					id: appSessionId,
+					typeSpecificId: result?.typeSpecificId || null
+				})
+			);
+		} else {
+			return new Response(JSON.stringify({ error: 'Invalid session type' }), { status: 400 });
 		}
-
-		// Always use the unified SessionRegistry for new sessions
-		const session = await locals.sessionRegistry.createSession({
-			type,
-			workspacePath,
-			options
-		});
-
-		// Guard against placeholder/invalid Claude IDs; allow UI to fall back to unified sessionId
-		let mappedId = session.typeSpecificId;
-		if (type === 'claude') {
-			try {
-				const v = String(mappedId || '').trim();
-				const looksUUID = /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i.test(v);
-				const looksLong = v.length >= 16; // Claude Code JSONL filenames are long-ish
-				const hasAlpha = /[a-z]/i.test(v);
-				const isOnlyDigits = /^\d+$/.test(v);
-				if (!v || isOnlyDigits || (!looksUUID && !looksLong && !hasAlpha)) {
-					mappedId = null;
-				}
-			} catch {
-				mappedId = null;
-			}
-		}
-
-		return new Response(
-			JSON.stringify({
-				id: session.id,
-				typeSpecificId: mappedId || null
-			})
-		);
 	} catch (error) {
 		console.error('[API] Session creation failed:', error);
 
@@ -151,20 +152,20 @@ export async function POST({ request, locals }) {
 }
 
 export async function PUT({ request, locals }) {
-	const { action, sessionId, workspacePath, newTitle } = await request.json();
+	const { action, sessionId, newTitle, tileId, position } = await request.json();
 
 	if (action === 'rename') {
-		await locals.workspaceManager.renameSession(workspacePath, sessionId, newTitle);
+		await locals.services.database.renameSession(sessionId, newTitle);
 		return new Response(JSON.stringify({ success: true }));
 	}
 
-	if (action === 'unpin') {
-		await locals.workspaceManager.setPinned(workspacePath, sessionId, false);
+	if (action === 'setLayout') {
+		await locals.services.database.setSessionLayout(sessionId, tileId, position || 0);
 		return new Response(JSON.stringify({ success: true }));
 	}
 
-	if (action === 'pin') {
-		await locals.workspaceManager.setPinned(workspacePath, sessionId, true);
+	if (action === 'removeLayout') {
+		await locals.services.database.removeSessionLayout(sessionId);
 		return new Response(JSON.stringify({ success: true }));
 	}
 
@@ -173,42 +174,31 @@ export async function PUT({ request, locals }) {
 
 export async function DELETE({ url, locals }) {
 	const sessionId = url.searchParams.get('sessionId');
-	const workspacePath = url.searchParams.get('workspacePath');
 
 	if (!sessionId) {
 		return new Response('Missing sessionId', { status: 400 });
 	}
 
-	// Allow empty workspacePath for corrupted session cleanup
-	if (!workspacePath) {
-		console.warn(`[API] Received session deletion request with empty workspacePath for session ${sessionId}, treating as corrupted session cleanup`);
-	}
-
-	// Always use the unified SessionRegistry
 	try {
-		// Handle corrupted sessions with missing or invalid workspace paths
-		if (workspacePath && workspacePath !== '/tmp/corrupted-session-cleanup') {
-			// Normal case: unpin the session in the database to prevent it from reappearing on reload
-			await locals.workspaceManager.setPinned(workspacePath, sessionId, false);
-		} else {
-			// Corrupted session case: try to find and clean up from all workspaces
-			console.warn(`[API] Cleaning up corrupted session ${sessionId} with workspacePath: ${workspacePath}`);
-			try {
-				// Try to unpin from all workspaces (this is a bit heavy but necessary for cleanup)
-				const allSessions = await locals.workspaceManager.getAllSessions(false); // Get all sessions including unpinned
-				const corruptedSession = allSessions.find(s => s.id === sessionId);
-				if (corruptedSession && corruptedSession.workspacePath) {
-					await locals.workspaceManager.setPinned(corruptedSession.workspacePath, sessionId, false);
-					console.log(`[API] Found and unpinned corrupted session in workspace: ${corruptedSession.workspacePath}`);
-				}
-			} catch (cleanupError) {
-				console.warn(`[API] Could not find corrupted session in database, proceeding with termination: ${cleanupError.message}`);
+		// Get session info from database to know which manager to call
+		const session = await locals.services.database.getAppSession(sessionId);
+
+		// Remove session from layout so it doesn't reappear in tiles
+		await locals.services.database.removeSessionLayout(sessionId);
+
+		// Terminate the active session based on type
+		if (session) {
+			if (session.session_type === 'pty') {
+				locals.services.terminalManager.stop(session.type_specific_id);
+			} else if (session.session_type === 'claude') {
+				await locals.services.claudeSessionManager.terminate(session.type_specific_id);
 			}
 		}
 
-		// Then terminate the active session
-		const success = await locals.sessionRegistry.terminateSession(sessionId);
-		return new Response(JSON.stringify({ success }));
+		// Remove from database
+		await locals.services.database.deleteSession(sessionId);
+
+		return new Response(JSON.stringify({ success: true }));
 	} catch (error) {
 		console.error('[API] Session deletion failed:', error);
 		return new Response(JSON.stringify({ error: error.message }), { status: 500 });

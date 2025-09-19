@@ -23,7 +23,7 @@ export class AppState {
 		this.visibleSessions = $derived.by(() => {
 			if (this.ui.layout.isMobile) {
 				// Mobile: show current session only
-				const validSessions = this.sessions.sessions.filter(s => s && s.id);
+				const validSessions = this.sessions.sessions.filter((s) => s && s.id);
 				if (validSessions.length === 0) return [];
 				const validIndex = Math.min(this.ui.layout.currentMobileSession, validSessions.length - 1);
 				return validSessions.slice(validIndex, validIndex + 1);
@@ -31,7 +31,7 @@ export class AppState {
 				// Desktop: map displayed slots to sessions
 				const maxVisible = this.ui.layout.maxVisible;
 				const ids = this.ui.display.displayedSessionIds.slice(0, maxVisible);
-				return ids.map(id => this.sessions.getSession(id)).filter(Boolean);
+				return ids.map((id) => this.sessions.getSession(id)).filter(Boolean);
 			}
 		});
 
@@ -42,7 +42,7 @@ export class AppState {
 
 		this.currentDisplayedSession = $derived.by(() => {
 			if (!this.ui.layout.isMobile) return null;
-			const validSessions = this.sessions.sessions.filter(s => s && s.id);
+			const validSessions = this.sessions.sessions.filter((s) => s && s.id);
 			const validIndex = Math.min(this.ui.layout.currentMobileSession, validSessions.length - 1);
 			return validSessions[validIndex] || null;
 		});
@@ -58,7 +58,7 @@ export class AppState {
 
 		// Auto-populate display
 		const visibleLimit = this.ui.layout.maxVisible || Math.max(1, sessions.length);
-		const sessionIds = sessions.slice(0, visibleLimit).map(s => s.id);
+		const sessionIds = sessions.slice(0, visibleLimit).map((s) => s.id);
 		this.ui.setDisplayedSessions(sessionIds);
 	}
 
@@ -98,7 +98,7 @@ export class AppState {
 		return {
 			sessions: {
 				count: this.sessions.sessionCount,
-				pinned: this.sessions.pinnedSessions.length,
+				inLayout: this.sessions.inLayoutSessions.length,
 				active: this.sessions.activeSessions.length
 			},
 			workspaces: {

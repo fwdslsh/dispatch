@@ -16,8 +16,6 @@
 	/** @type {Map<string, string>} Tile ID to Session ID mapping */
 	let tileSessionMap = $state(new Map());
 
-	/** @type {string} */
-	let workspacePath = $state('/workspace');
 
 	/** @type {boolean} */
 	let showInstructions = $state(true);
@@ -38,7 +36,6 @@
 		const newSession = {
 			id: sessionId,
 			type: type === 'terminal' ? 'pty' : 'claude',
-			workspacePath,
 			isActive: false,
 			name: `${type === 'terminal' ? 'Terminal' : 'Claude'} ${sessionCounter}`,
 			isPinned: true
@@ -355,9 +352,9 @@
 										<p>Initializing {session.type === 'pty' ? 'terminal' : 'Claude'} session...</p>
 									</div>
 								{:else if session.type === 'pty'}
-									<TerminalPane sessionId={session.id} workspacePath={session.workspacePath} />
+									<TerminalPane sessionId={session.id} />
 								{:else if session.type === 'claude'}
-									<ClaudePane sessionId={session.id} workspacePath={session.workspacePath} />
+									<ClaudePane sessionId={session.id} />
 								{/if}
 							</div>
 						{/snippet}

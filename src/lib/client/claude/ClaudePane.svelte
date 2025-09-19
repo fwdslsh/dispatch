@@ -25,8 +25,7 @@
 	let {
 		sessionId,
 		claudeSessionId = null,
-		shouldResume = false,
-		workspacePath: initialWorkspacePath = ''
+		shouldResume = false
 	} = $props();
 
 	// Debug logging
@@ -34,8 +33,7 @@
 		console.log('[ClaudePane] Props received:', {
 			sessionId,
 			claudeSessionId,
-			shouldResume,
-			workspacePath: initialWorkspacePath
+			shouldResume
 		});
 	});
 
@@ -50,7 +48,6 @@
 	let isCatchingUp = $state(false);
 	let messagesContainer = $state();
 	let liveEventIcons = $state([]);
-	let workspacePath = $state(initialWorkspacePath);
 	let claudeCommandsApi = $state();
 	let authStartRequested = $state(false);
 	let authAwaitingCode = $state(false);
@@ -261,15 +258,8 @@
 					summary: data.summary
 				});
 
-				// Extract workspace path from session data if available
-				if (data.entries && data.entries.length > 0) {
-					for (const entry of data.entries) {
-						if (entry.cwd) {
-							workspacePath = entry.cwd;
-							break;
-						}
-					}
-				}
+				// Note: Sessions now manage their own working directories
+				// No need to extract workspace path from session data
 
 				const previousMessages = [];
 
@@ -451,13 +441,11 @@
 	onMount(async () => {
 		console.log('ClaudePane mounting with:', { sessionId, claudeSessionId, shouldResume });
 
-		// Get or create socket for this specific session FIRST
-		// This ensures we don't miss any events while loading history
-		// Use unified sessionId for socket management to align with message routing
+		// Get shared socket connection and register this session
+		console.log('Connecting session to shared socket:', sessionId);
 		socket = sessionSocketManager.getSocket(sessionId);
 
-		// Set up event listeners immediately before doing anything else
-		// This ensures we capture any ongoing messages from active sessions
+		// Set up event listeners immediately after socket creation
 		socket.on(SOCKET_EVENTS.CONNECTION, () => {
 			console.log('Claude Socket.IO connected for session:', sessionId);
 			// Don't automatically set isWaitingForReply for resumed sessions
@@ -775,7 +763,7 @@
 			isCatchingUp = false;
 			// Update last message timestamp if provided
 			if (data?.lastTimestamp) {
-				sessionSocketManager.updateLastMessageTimestamp(sessionId, data.lastTimestamp);
+				sessionSocketManager.updateLastTimestamp(sessionId, data.lastTimestamp);
 			}
 		});
 
@@ -915,12 +903,6 @@
 			</div>
 		</div>
 		<div class="chat-stats">
-			{#if workspacePath}
-				<div class="stat-item ai-cwd" title={workspacePath}>
-					<span class="cwd-icon"><IconFolder size={16} /></span>
-					<span class="cwd-path">{workspacePath.split('/').filter(Boolean).pop() || '/'}</span>
-				</div>
-			{/if}
 			<div class="stat-item">
 				<span class="stat-icon"><IconMessage size={16} /></span>
 				<span class="stat-value">{messages.length}</span>
@@ -1067,7 +1049,6 @@
 			<div class="input-actions">
 				<ClaudeCommands
 					{socket}
-					{workspacePath}
 					{sessionId}
 					{claudeSessionId}
 					onCommandInsert={handleCommandInsert}
@@ -1211,39 +1192,6 @@
 		letter-spacing: 0.1em;
 	}
 
-	.ai-cwd {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-0);
-		max-width: 350px;
-	}
-
-	.stat-item.ai-cwd {
-		padding: var(--space-1) var(--space-2);
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 8%, transparent),
-			color-mix(in oklab, var(--primary) 4%, transparent)
-		);
-		border: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
-		border-radius: 12px;
-	}
-
-	.cwd-icon {
-		font-size: 0.9em;
-		opacity: 0.8;
-	}
-
-	.cwd-path {
-		color: var(--primary);
-		font-weight: 600;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		letter-spacing: 0.02em;
-	}
 
 	.catching-up {
 		color: var(--accent-amber);

@@ -4,9 +4,7 @@
 	import { goto } from '$app/navigation';
 
 	// Services and ViewModels
-	import {
-		provideServiceContainer
-	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import { provideServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { WorkspaceViewModel } from '$lib/client/shared/viewmodels/WorkspaceViewModel.svelte.js';
 	import { LayoutViewModel } from '$lib/client/shared/viewmodels/LayoutViewModel.svelte.js';
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
@@ -14,6 +12,7 @@
 	// Components
 	import WorkspaceHeader from './WorkspaceHeader.svelte';
 	import SessionWindowManager from './SessionWindowManager.svelte';
+	import SingleSessionView from './SingleSessionView.svelte';
 	import StatusBar from './StatusBar.svelte';
 
 	// Modals
@@ -46,6 +45,8 @@
 
 	/** @type {LayoutViewModel} */
 	let layoutViewModel = $state();
+	let workspaceViewMode = $state('window-manager');
+	let activeSessionId = $state(null);
 
 	// activeModal: { type: string, data: any } | null
 	let activeModal = $state(null);
@@ -56,11 +57,23 @@
 	const createSessionModalOpen = $derived(activeModal?.type === 'createSession');
 
 	// Simple session count from sessionViewModel
-	const totalSessions = $derived(sessionViewModel?.sessions?.length ?? 0);
+	const sessionsList = $derived(sessionViewModel?.sessions ?? []);
+	const totalSessions = $derived(sessionsList.length);
 	const hasActiveSessions = $derived(totalSessions > 0);
-	const currentMobileSessionIndex = $derived(
-		sessionViewModel?.currentMobileSession ?? 0
-	);
+	const selectedSingleSession = $derived(() => {
+		if (!sessionsList.length) return null;
+		if (activeSessionId) {
+			return sessionsList.find((session) => session.id === activeSessionId) ?? sessionsList[0];
+		}
+		return sessionsList[0];
+	});
+	const currentSessionIndex = $derived(() => {
+		if (!selectedSingleSession) return 0;
+		const index = sessionsList.findIndex((session) => session.id === selectedSingleSession.id);
+		return index >= 0 ? index : 0;
+	});
+	const isSingleSessionView = $derived(workspaceViewMode === 'single-session');
+	const isWindowManagerView = $derived(!isSingleSessionView);
 	const currentWorkspace = $derived(workspaceViewModel?.selectedWorkspace ?? null);
 	const currentBreakpoint = $derived(
 		layoutViewModel
@@ -150,7 +163,7 @@
 		// Get shared ViewModels from container
 		sessionViewModel = await container.get('sessionViewModel');
 
-	layoutViewModel = new LayoutViewModel(layout);
+		layoutViewModel = new LayoutViewModel(layout);
 
 		// Load initial data
 		await workspaceViewModel.loadWorkspaces();
@@ -199,18 +212,22 @@
 	});
 
 	onDestroy(() => {
-			try {
-				if (typeof __removeWorkspacePageListeners === 'function') {
-					__removeWorkspacePageListeners();
-				}
-			} catch (err) {
-				log.warn('Error during cleanup of workspace page listeners', err);
+		try {
+			if (typeof __removeWorkspacePageListeners === 'function') {
+				__removeWorkspacePageListeners();
 			}
+		} catch (err) {
+			log.warn('Error during cleanup of workspace page listeners', err);
+		}
 
-			sessionSocketManager.disconnectAll();
+		sessionSocketManager.disconnectAll();
 	});
 
 	// Event handlers
+	function setWorkspaceViewMode(mode) {
+		workspaceViewMode = mode;
+	}
+
 	function handleLogout() {
 		if (typeof localStorage !== 'undefined') {
 			localStorage.removeItem('dispatch-auth-key');
@@ -287,11 +304,35 @@
 		try {
 			// Convert 'terminal' to 'pty' for API compatibility
 			const apiType = type === 'terminal' ? 'pty' : type;
-			await sessionViewModel.createSession({ type: apiType, workspacePath: targetPath });
+			const newSession = await sessionViewModel.createSession({
+				type: apiType,
+				workspacePath: targetPath
+			});
+			if (newSession?.id) {
+				updateActiveSession(newSession.id);
+			}
 		} catch (error) {
 			log.error('Failed to create session directly', error);
 			// Fall back to modal on error
 			handleCreateSession(type);
+		}
+	}
+
+	function updateActiveSession(id) {
+		if (!id) {
+			if (activeSessionId !== null) {
+				activeSessionId = null;
+			}
+			return;
+		}
+
+		if (activeSessionId !== id) {
+			activeSessionId = id;
+		}
+
+		const index = sessionsList.findIndex((session) => session.id === id);
+		if (index >= 0) {
+			sessionViewModel?.setMobileSessionIndex?.(index);
 		}
 	}
 
@@ -300,30 +341,58 @@
 	}
 
 	function handleNavigateSession(direction) {
+		if (!sessionsList.length) return;
+
+		const currentIndex = sessionsList.findIndex((session) => session.id === activeSessionId);
+		const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+
 		if (direction === 'next') {
+			const nextIndex = Math.min(safeIndex + 1, sessionsList.length - 1);
+			const targetSession = sessionsList[nextIndex] ?? sessionsList[safeIndex];
+			if (targetSession) {
+				updateActiveSession(targetSession.id);
+			}
 			sessionViewModel?.navigateToNextSession();
 		} else if (direction === 'prev') {
+			const prevIndex = Math.max(safeIndex - 1, 0);
+			const targetSession = sessionsList[prevIndex] ?? sessionsList[safeIndex];
+			if (targetSession) {
+				updateActiveSession(targetSession.id);
+			}
 			sessionViewModel?.navigateToPrevSession();
 		}
 	}
 
 	function handleSessionFocus(session) {
-		if(sessionSocketManager.activeSession == session.id) return;
+		if (!session) return;
+		updateActiveSession(session.id);
+		if (sessionSocketManager.activeSession == session.id) return;
 		sessionSocketManager.handleSessionFocus(session.id);
 	}
 
 	function handleSessionClose(sessionId) {
+		const currentSessions = sessionsList;
+		const currentIndex = currentSessions.findIndex((session) => session.id === sessionId);
+		const fallbackSession =
+			currentSessions[currentIndex + 1] ?? currentSessions[currentIndex - 1] ?? null;
+
 		// Close session in SessionViewModel
 		sessionViewModel.closeSession(sessionId);
+
+		if (sessionId === activeSessionId) {
+			updateActiveSession(fallbackSession?.id ?? null);
+		}
 	}
 
-	function handleSessionUnpin(sessionId) {
-		sessionViewModel.unpinSession(sessionId);
+	function handleSessionAssignToTile(sessionId, tileId) {
+		sessionViewModel.addToLayout(sessionId, tileId);
 	}
 
 	function handleSessionCreate(detail) {
 		const { id, type, workspacePath, typeSpecificId } = detail;
 		if (!id || !type || !workspacePath) return;
+
+		updateActiveSession(id);
 
 		// Handle session creation in SessionViewModel
 		sessionViewModel.handleSessionCreated({
@@ -347,24 +416,38 @@
 	function closeActiveModal() {
 		activeModal = null;
 	}
+
+	$effect(() => {
+		if (!sessionsList.length) {
+			updateActiveSession(null);
+			return;
+		}
+
+		if (!activeSessionId) {
+			const fallbackId = sessionsList[0]?.id ?? null;
+			if (fallbackId) {
+				updateActiveSession(fallbackId);
+			}
+		}
+	});
 </script>
 
 <div class="dispatch-workspace">
 	<!-- Service container is provided via context -->
 
 	<!-- Header (desktop only) -->
-	<WorkspaceHeader onLogout={handleLogout} {layoutViewModel} />
+	<WorkspaceHeader
+		onLogout={handleLogout}
+		viewMode={workspaceViewMode}
+		onViewModeChange={setWorkspaceViewMode}
+	/>
 
 	<!-- Bottom sheet for sessions -->
 	{#if sessionMenuOpen}
 		<div class="session-sheet" class:open={sessionMenuOpen} role="dialog" aria-label="Sessions">
 			<div class="sheet-header">
 				<div class="sheet-title">Sessions</div>
-				<button
-					class="sheet-close"
-					onclick={() => sessionMenuOpen = false}
-					aria-label="Close"
-				>
+				<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close">
 					✕
 				</button>
 			</div>
@@ -376,6 +459,11 @@
 						handleCreateSession(type);
 					}}
 					onSessionSelected={async (e) => {
+						const selectedId = e.detail?.id;
+						if (selectedId) {
+							updateActiveSession(selectedId);
+						}
+
 						try {
 							await sessionViewModel.handleSessionSelected(e.detail);
 						} catch (error) {
@@ -390,14 +478,24 @@
 
 	<!-- Main Content -->
 	<main class="main-content">
-		<SessionWindowManager
-			sessions={sessionViewModel?.sessions ?? []}
-			onSessionFocus={handleSessionFocus}
-			onSessionClose={handleSessionClose}
-			onSessionUnpin={handleSessionUnpin}
-			onCreateSession={handleCreateSession}
-			bind:this={sessionWindowManager}
-		/>
+		{#if isWindowManagerView}
+			<SessionWindowManager
+				sessions={sessionsList}
+				onSessionFocus={handleSessionFocus}
+				onSessionClose={handleSessionClose}
+				onSessionAssignToTile={handleSessionAssignToTile}
+				onCreateSession={handleCreateSession}
+				bind:this={sessionWindowManager}
+			/>
+		{:else}
+			<SingleSessionView
+				session={selectedSingleSession}
+				sessionIndex={currentSessionIndex}
+				onSessionFocus={handleSessionFocus}
+				onSessionClose={handleSessionClose}
+				onCreateSession={handleCreateSession}
+			/>
+		{/if}
 	</main>
 
 	<!-- Status Bar -->
@@ -412,8 +510,9 @@
 		{isMobile}
 		{hasActiveSessions}
 		sessionCount={totalSessions}
-		currentSessionIndex={currentMobileSessionIndex}
+		currentSessionIndex={currentSessionIndex}
 		{totalSessions}
+		viewMode={workspaceViewMode}
 	/>
 </div>
 

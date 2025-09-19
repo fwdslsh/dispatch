@@ -129,10 +129,10 @@ The application follows a clean separation between frontend UI, Socket.IO commun
 
 **Socket.IO Layer** (`src/lib/server/socket-setup.js`):
 
-- Handles real-time bidirectional communication
+- Handles real-time bidirectional communication with workspace-based connections
 - Uses shared service managers from global `__API_SERVICES`
 - Manages authentication and session lifecycle
-- Routes messages between frontend and backend services
+- Routes messages by sessionId while sharing sockets per workspace
 
 **Backend Services** (initialized in `src/hooks.server.js`):
 
@@ -554,6 +554,13 @@ For production:
 - `__API_SERVICES` global provides shared service instances
 - Services are initialized once in `hooks.server.js` and reused across Socket.IO and API endpoints
 - Socket.IO references are dynamically updated across managers for real-time communication
+
+### Workspace-Based Socket Management
+
+- SessionSocketManager reuses one socket connection per workspace for all sessions in that workspace
+- Sessions are differentiated by sessionId in event payloads while sharing the underlying socket
+- Reduces resource usage and simplifies connection management
+- Automatic socket cleanup when all sessions in a workspace are closed
 
 ### Unified Session Management
 

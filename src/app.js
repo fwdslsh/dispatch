@@ -114,32 +114,24 @@ initializeDirectories()
 			process.exit(1);
 		}
 
-		// Initialize server services with dependency injection
-		const { getServerServiceContainer } = await import('./lib/server/core/ServerServiceContainer.js');
-		const serverContainer = getServerServiceContainer({
+		// Initialize server services
+		const { initializeServices } = await import('./lib/server/services/index.js');
+		const services = await initializeServices({
 			dbPath: process.env.DB_PATH || path.join(actualHome, '.dispatch', 'data', 'workspace.db'),
-			workspacesRoot: process.env.WORKSPACES_ROOT || path.join(actualHome, '.dispatch-home', 'workspaces'),
+			workspacesRoot:
+				process.env.WORKSPACES_ROOT || path.join(actualHome, '.dispatch-home', 'workspaces'),
 			configDir: configDir,
 			debug: process.env.DEBUG === 'true'
 		});
 
-		// Initialize all services
-		await serverContainer.initialize();
 		console.log('[APP] Server services initialized');
 
 		// Create HTTP server with SvelteKit handler
 		const server = http.createServer(handler);
 
-		// Initialize Socket.IO with dependency injection
-		const { getSocketSetup } = await import('./lib/server/socket-manager.js');
-		const { setupSocketIO, mode } = await getSocketSetup();
-		console.log('===============================================');
-		console.log(`[APP] Session Architecture: ${mode.toUpperCase()}`);
-		console.log('===============================================');
-		const io = setupSocketIO(server, serverContainer);
-
-		// Update services with Socket.IO instance for real-time communication
-		serverContainer.setSocketIO(io);
+		// Initialize Socket.IO with services
+		const { setupSocketIO } = await import('./lib/server/socket-setup.js');
+		const io = setupSocketIO(server, services);
 
 		server.listen(PORT, '0.0.0.0', () => {
 			console.log(`dispatch running at http://localhost:${PORT}`);

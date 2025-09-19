@@ -90,7 +90,13 @@ export class ClaudeStreamRunner {
 				maxTurns
 			});
 
-			const options = buildStreamOptions({ session, env, resume, onStderr: handleStderr, maxTurns });
+			const options = buildStreamOptions({
+				session,
+				env,
+				resume,
+				onStderr: handleStderr,
+				maxTurns
+			});
 			const stream = this.queryFn({ prompt: userInput, options });
 			if (!stream || typeof stream[Symbol.asyncIterator] !== 'function') {
 				throw new Error('Claude stream did not return an async iterator');

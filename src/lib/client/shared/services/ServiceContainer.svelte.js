@@ -69,24 +69,9 @@ class ServiceContainer {
 			return new LayoutService(persistence);
 		});
 
-		this.registerFactory('touchGesture', async () => {
-			const { TouchGestureService } = await import('./TouchGestureService.js');
-			return new TouchGestureService();
-		});
-
 		this.registerFactory('socket', async () => {
 			const { SocketService } = await import('./SocketService.svelte.js');
 			return new SocketService(this.config);
-		});
-
-		this.registerFactory('validation', async () => {
-			const { ValidationService } = await import('./ValidationService.js');
-			return new ValidationService();
-		});
-
-		this.registerFactory('error', async () => {
-			const { ErrorService } = await import('./ErrorService.js');
-			return new ErrorService(this.config);
 		});
 
 		// ViewModels
@@ -101,7 +86,6 @@ class ServiceContainer {
 			const { WindowViewModel } = await import('../viewmodels/WindowViewModel.svelte.js');
 			return new WindowViewModel();
 		});
-
 	}
 
 	/**

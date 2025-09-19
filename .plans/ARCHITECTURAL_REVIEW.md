@@ -40,23 +40,23 @@ This review analyzes the server-side implementation of the Dispatch application,
 
 ```javascript
 class SessionRegistry {
-  constructor() {
-    this.managers = new Map(); // type -> manager instance
-    this.sessions = new Map(); // id -> session descriptor
-  }
+	constructor() {
+		this.managers = new Map(); // type -> manager instance
+		this.sessions = new Map(); // id -> session descriptor
+	}
 
-  registerSessionType(type, managerFactory) {
-    this.managers.set(type, managerFactory());
-  }
+	registerSessionType(type, managerFactory) {
+		this.managers.set(type, managerFactory());
+	}
 
-  async createSession(type, workspacePath, options) {
-    const manager = this.managers.get(type);
-    if (!manager) throw new Error(`Unsupported session type: ${type}`);
+	async createSession(type, workspacePath, options) {
+		const manager = this.managers.get(type);
+		if (!manager) throw new Error(`Unsupported session type: ${type}`);
 
-    const session = await manager.create(workspacePath, options);
-    this.sessions.set(session.id, { type, manager, session });
-    return session;
-  }
+		const session = await manager.create(workspacePath, options);
+		this.sessions.set(session.id, { type, manager, session });
+		return session;
+	}
 }
 
 // Adding new session types becomes trivial:
@@ -111,34 +111,34 @@ globalThis.__DISPATCH_SOCKET_IO = io;
 
 ```javascript
 class AuthenticationManager {
-  constructor() {
-    this.strategies = new Map();
-    this.middleware = [];
-  }
+	constructor() {
+		this.strategies = new Map();
+		this.middleware = [];
+	}
 
-  registerStrategy(name, strategy) {
-    this.strategies.set(name, strategy);
-  }
+	registerStrategy(name, strategy) {
+		this.strategies.set(name, strategy);
+	}
 
-  async authenticate(request, strategyName = 'default') {
-    const strategy = this.strategies.get(strategyName);
-    if (!strategy) throw new Error(`Unknown auth strategy: ${strategyName}`);
+	async authenticate(request, strategyName = 'default') {
+		const strategy = this.strategies.get(strategyName);
+		if (!strategy) throw new Error(`Unknown auth strategy: ${strategyName}`);
 
-    return await strategy.authenticate(request);
-  }
+		return await strategy.authenticate(request);
+	}
 
-  // Middleware for Socket.IO and Express
-  createMiddleware(strategyName) {
-    return async (req, res, next) => {
-      try {
-        const user = await this.authenticate(req, strategyName);
-        req.user = user;
-        next();
-      } catch (error) {
-        res.status(401).json({ error: 'Authentication failed' });
-      }
-    };
-  }
+	// Middleware for Socket.IO and Express
+	createMiddleware(strategyName) {
+		return async (req, res, next) => {
+			try {
+				const user = await this.authenticate(req, strategyName);
+				req.user = user;
+				next();
+			} catch (error) {
+				res.status(401).json({ error: 'Authentication failed' });
+			}
+		};
+	}
 }
 
 // Adding new auth methods becomes straightforward:
@@ -239,21 +239,21 @@ export const claudeAuthManager = new ClaudeAuthManager();
 
 ```javascript
 class SessionRegistry {
-  constructor() {
-    this.sessions = new Map(); // id -> { type, manager, metadata }
-  }
+	constructor() {
+		this.sessions = new Map(); // id -> { type, manager, metadata }
+	}
 
-  register(id, type, manager, metadata) {
-    this.sessions.set(id, { type, manager, metadata, createdAt: Date.now() });
-  }
+	register(id, type, manager, metadata) {
+		this.sessions.set(id, { type, manager, metadata, createdAt: Date.now() });
+	}
 
-  get(id) {
-    return this.sessions.get(id);
-  }
+	get(id) {
+		return this.sessions.get(id);
+	}
 
-  remove(id) {
-    this.sessions.delete(id);
-  }
+	remove(id) {
+		this.sessions.delete(id);
+	}
 }
 ```
 
@@ -417,23 +417,23 @@ class SessionService {
 
 ```javascript
 class ServiceContainer {
-  constructor() {
-    this.services = new Map();
-    this.factories = new Map();
-  }
+	constructor() {
+		this.services = new Map();
+		this.factories = new Map();
+	}
 
-  register(name, factory) {
-    this.factories.set(name, factory);
-  }
+	register(name, factory) {
+		this.factories.set(name, factory);
+	}
 
-  get(name) {
-    if (!this.services.has(name)) {
-      const factory = this.factories.get(name);
-      if (!factory) throw new Error(`Service ${name} not registered`);
-      this.services.set(name, factory(this));
-    }
-    return this.services.get(name);
-  }
+	get(name) {
+		if (!this.services.has(name)) {
+			const factory = this.factories.get(name);
+			if (!factory) throw new Error(`Service ${name} not registered`);
+			this.services.set(name, factory(this));
+		}
+		return this.services.get(name);
+	}
 }
 ```
 

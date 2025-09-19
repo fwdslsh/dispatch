@@ -1,86 +1,40 @@
-import { getDatabaseManager } from '../db/DatabaseManager.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 import { logger } from '../utils/logger.js';
 
-let pty;
-let ptyLoadAttempted = false;
-let ptyLoadError = null;
+let pty = null;
 
 async function ensurePtyLoaded() {
 	if (pty) return pty;
 
-	// In development mode, always allow retry if the previous error was Vite-related
-	const isViteError = ptyLoadError?.message?.includes('Vite module runner has been closed');
-	if (ptyLoadAttempted && !pty && !isViteError) {
-		return null; // Don't retry for non-Vite errors
-	}
-
-	ptyLoadAttempted = true;
 	try {
-		// In development, Vite might be restarting - let's handle this gracefully
 		pty = await import('node-pty');
 		logger.info('TERMINAL', 'node-pty loaded successfully');
-		ptyLoadError = null;
 		return pty;
 	} catch (err) {
-		ptyLoadError = err;
-		logger.error('Failed to load node-pty:', err);
-		// In development mode, if Vite module runner is closed, allow retry on next call
-		if (err.message?.includes('Vite module runner has been closed')) {
-			logger.warn('TERMINAL', 'Vite module runner closed - resetting for retry on next attempt');
-			// Reset the attempt flag so we can try again immediately on next call
-			ptyLoadAttempted = false;
-		}
-		pty = null;
-		return null;
+		logger.error('TERMINAL', 'Failed to load node-pty:', err);
+		throw new Error(`Terminal functionality not available: ${err.message}`);
 	}
-}
-
-// Reset function to allow retrying after Vite restarts
-export function resetPtyState() {
-	pty = null;
-	ptyLoadAttempted = false;
-	ptyLoadError = null;
-	logger.info('TERMINAL', 'Reset node-pty loading state for retry');
 }
 
 export class TerminalManager {
-	constructor({ io, sessionRegistry = null }) {
+	constructor({ io, databaseManager }) {
 		this.io = io;
-		this.sessionRegistry = sessionRegistry;
-		this.terminals = new Map(); // id -> { term, workspacePath, history }
+		this.databaseManager = databaseManager;
+		this.terminals = new Map(); // pty_id -> { term, workspacePath, history, appSessionId }
+		this.appSessionMap = new Map(); // appSessionId -> pty_id
 		this.nextId = 1;
 		// Terminal history is now stored in database instead of files
 		// Initialization moved to runtime methods
 	}
 
-	async initializePty() {
-		if (pty) return; // Already initialized
-		try {
-			pty = await import('node-pty');
-			logger.info('TERMINAL', 'node-pty loaded successfully');
-		} catch (err) {
-			logger.error('Failed to load node-pty:', err);
-			pty = null;
-		}
-	}
-
-	async initializeDatabase() {
-		try {
-			await getDatabaseManager().init();
-		} catch (error) {
-			logger.error('[TERMINAL] Failed to initialize database:', error);
-		}
-	}
-
-	setSessionRegistry(sessionRegistry) {
-		this.sessionRegistry = sessionRegistry;
-		logger.info('TERMINAL', 'Session registry set for activity + buffering');
+	// Set Socket.IO instance for real-time communication
+	setSocketIO(io) {
+		this.io = io;
 	}
 
 	async saveTerminalHistory(id, data) {
 		try {
-			await getDatabaseManager().addTerminalHistory(id, data);
+			await this.databaseManager.addTerminalHistory(id, data);
 		} catch (error) {
 			logger.error(`[TERMINAL] Failed to save terminal history for ${id}:`, error);
 		}
@@ -110,14 +64,6 @@ export class TerminalManager {
 		appSessionId = appSessionId || null;
 
 		const loadedPty = await ensurePtyLoaded();
-		if (!loadedPty) {
-			logger.error('TERMINAL', 'Cannot start terminal: node-pty is not available');
-			// Provide a more helpful error message
-			const errorMsg = ptyLoadError?.message?.includes('Vite module runner has been closed')
-				? 'Terminal functionality temporarily unavailable - development server restarting'
-				: 'Terminal functionality not available - node-pty failed to load';
-			throw new Error(errorMsg);
-		}
 
 		const id = terminalId || `pty_${this.nextId++}`;
 		logger.info(
@@ -142,6 +88,12 @@ export class TerminalManager {
 			idleTimer: null // Timer for debouncing idle state
 		});
 
+		// Store app session ID mapping for lookup
+		if (appSessionId) {
+			this.appSessionMap.set(appSessionId, id);
+			logger.debug('TERMINAL', `App session mapping: ${appSessionId} -> ${id}. Total mappings: ${this.appSessionMap.size}`);
+		}
+
 		logger.info('TERMINAL', `Terminal ${id} created successfully`);
 		logger.debug('TERMINAL', `Terminal ${id} socket info:`, {
 			hasSocket: !!(socket || this.io),
@@ -152,20 +104,8 @@ export class TerminalManager {
 		term.onData((data) => {
 			const terminalData = this.terminals.get(id);
 
-			// Set streaming state when terminal outputs data
-			if (appSessionId) {
-				this.#setActivity(appSessionId, 'streaming');
-				// Debounce setting back to idle
-				if (terminalData && terminalData.idleTimer) {
-					clearTimeout(terminalData.idleTimer);
-				}
-				if (terminalData) {
-					terminalData.idleTimer = setTimeout(() => {
-						this.#setActivity(appSessionId, 'idle');
-						delete terminalData.idleTimer;
-					}, 500); // Wait 500ms of no output before going idle
-				}
-			}
+			// Activity state tracking is now handled by UI layer
+			// Removed sessionRegistry dependency for streaming state
 
 			// Always emit and buffer, even if socket is null
 			const messageData = {
@@ -174,12 +114,12 @@ export class TerminalManager {
 				timestamp: Date.now()
 			};
 
-			this.#emitWithBuffer(
-				appSessionId || id,
-				terminalData?.socket,
-				SOCKET_EVENTS.TERMINAL_OUTPUT,
-				messageData
-			);
+			// Emit directly to socket
+			if (terminalData?.socket) {
+				terminalData.socket.emit(SOCKET_EVENTS.TERMINAL_OUTPUT, messageData);
+			} else if (this.io) {
+				this.io.emit(SOCKET_EVENTS.TERMINAL_OUTPUT, messageData);
+			}
 
 			// Save to history
 			this.saveTerminalHistory(id, data);
@@ -193,10 +133,7 @@ export class TerminalManager {
 				clearTimeout(terminalData.idleTimer);
 			}
 
-			// Set idle state when terminal exits
-			if (appSessionId) {
-				this.#setActivity(appSessionId, 'idle');
-			}
+			// Activity state tracking is now handled by UI layer
 
 			// Always emit and buffer, even if socket is null
 			const messageData = {
@@ -205,14 +142,18 @@ export class TerminalManager {
 				timestamp: Date.now()
 			};
 
-			this.#emitWithBuffer(
-				appSessionId || id,
-				terminalData?.socket,
-				SOCKET_EVENTS.TERMINAL_EXIT,
-				messageData
-			);
+			// Emit directly to socket
+			if (terminalData?.socket) {
+				terminalData.socket.emit(SOCKET_EVENTS.TERMINAL_EXIT, messageData);
+			} else if (this.io) {
+				this.io.emit(SOCKET_EVENTS.TERMINAL_EXIT, messageData);
+			}
 
+			// Remove from both maps
 			this.terminals.delete(id);
+			if (terminalData?.appSessionId) {
+				this.appSessionMap.delete(terminalData.appSessionId);
+			}
 		});
 
 		// Note: History loading is handled by the UI component to avoid duplication
@@ -223,24 +164,24 @@ export class TerminalManager {
 	}
 
 	write(id, data) {
-		const terminal = this.terminals.get(id);
+		// Check if id is an app session ID first
+		let ptyId = id;
+		if (this.appSessionMap.has(id)) {
+			ptyId = this.appSessionMap.get(id);
+			logger.debug('TERMINAL', `Resolved app session ${id} to PTY ${ptyId}`);
+		} else {
+			logger.debug('TERMINAL', `Using direct PTY ID: ${id}`);
+		}
+
+		const terminal = this.terminals.get(ptyId);
 		if (!terminal) {
 			logger.error(
 				'TERMINAL',
-				`Terminal ${id} not found. Available terminals: ${Array.from(this.terminals.keys()).join(', ')}`
+				`Terminal ${id} (pty: ${ptyId}) not found. Available terminals: ${Array.from(this.terminals.keys()).join(', ')}, App sessions: ${Array.from(this.appSessionMap.keys()).join(', ')}`
 			);
 			return;
 		}
-		// Set processing state when user writes to terminal
-		if (terminal.appSessionId) {
-			this.#setActivity(terminal.appSessionId, 'processing');
-			// Set back to idle after a short delay since terminal commands complete quickly
-			setTimeout(() => {
-				if (terminal.appSessionId) {
-					this.#setActivity(terminal.appSessionId, 'idle');
-				}
-			}, 100);
-		}
+		// Activity state tracking is now handled by UI layer
 		logger.debug('TERMINAL', `[DEBUG] Writing to terminal ${id}:`, data);
 		terminal.term.write(data);
 		// Save user input to history too
@@ -249,30 +190,60 @@ export class TerminalManager {
 
 	resize(id, cols, rows) {
 		logger.info('TERMINAL', `Resizing terminal ${id} to ${cols}x${rows}`);
-		const terminal = this.terminals.get(id);
+
+		// Check if id is an app session ID first
+		let ptyId = id;
+		if (this.appSessionMap.has(id)) {
+			ptyId = this.appSessionMap.get(id);
+		}
+
+		const terminal = this.terminals.get(ptyId);
 		if (terminal) terminal.term.resize(cols, rows);
 	}
 
 	stop(id) {
-		const terminal = this.terminals.get(id);
+		// Check if id is an app session ID first
+		let ptyId = id;
+		if (this.appSessionMap.has(id)) {
+			ptyId = this.appSessionMap.get(id);
+		}
+
+		const terminal = this.terminals.get(ptyId);
 		if (terminal) {
 			// Clear any pending idle timer
 			if (terminal.idleTimer) {
 				clearTimeout(terminal.idleTimer);
 			}
-			// Set idle state when terminal is stopped
-			if (terminal.appSessionId) {
-				this.#setActivity(terminal.appSessionId, 'idle');
-			}
+			// Activity state tracking is now handled by UI layer
 			terminal.term.kill();
 			// Clean up history when terminal is explicitly stopped
-			this.clearTerminalHistory(id);
+			this.clearTerminalHistory(ptyId);
+
+			// Remove from both maps
+			this.terminals.delete(ptyId);
+			if (terminal.appSessionId) {
+				this.appSessionMap.delete(terminal.appSessionId);
+			}
 		}
+	}
+
+	// List all active terminal sessions
+	listSessions() {
+		const sessions = [];
+		this.terminals.forEach((terminal, id) => {
+			sessions.push({
+				id: terminal.appSessionId || id,
+				typeSpecificId: id,
+				workspacePath: terminal.workspacePath,
+				title: terminal.title || 'Terminal'
+			});
+		});
+		return sessions;
 	}
 
 	async loadTerminalHistory(id) {
 		try {
-			const history = await getDatabaseManager().getTerminalHistory(id);
+			const history = await this.databaseManager.getTerminalHistory(id);
 			// getTerminalHistory already returns a concatenated string
 			return history || '';
 		} catch (error) {
@@ -283,39 +254,19 @@ export class TerminalManager {
 
 	async clearTerminalHistory(id) {
 		try {
-			await getDatabaseManager().clearTerminalHistory(id);
+			await this.databaseManager.clearTerminalHistory(id);
 		} catch (error) {
 			logger.error(`[TERMINAL] Failed to clear terminal history for ${id}:`, error);
 		}
 	}
 
-	#setActivity(sessionId, state) {
-		if (!sessionId) return;
-		if (this.sessionRegistry) {
-			this.sessionRegistry.setActivityState(sessionId, state);
-			return;
-		}
-	}
-
-	#emitWithBuffer(sessionId, socket, eventType, data) {
-		if (!sessionId) {
-			if (socket) {
-				socket.emit(eventType, data);
-			}
-			return;
-		}
-
-		if (this.sessionRegistry) {
-			this.sessionRegistry.emitToSocket(sessionId, socket, eventType, data);
-			return;
-		}
-
-		if (socket) {
-			socket.emit(eventType, data);
-		}
-	}
-
 	getTerminal(sessionId) {
-		return this.terminals.get(sessionId) || null;
+		// Check if sessionId is an app session ID first
+		let ptyId = sessionId;
+		if (this.appSessionMap.has(sessionId)) {
+			ptyId = this.appSessionMap.get(sessionId);
+		}
+
+		return this.terminals.get(ptyId) || null;
 	}
 }

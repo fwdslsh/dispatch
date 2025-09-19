@@ -6,21 +6,19 @@ import type { SessionRegistry } from '$lib/server/core/SessionRegistry';
 import type { TerminalManager } from '$lib/server/terminals/TerminalManager';
 import type { ClaudeSessionManager } from '$lib/server/claude/ClaudeSessionManager';
 import type { ClaudeAuthManager } from '$lib/server/claude/ClaudeAuthManager';
-import type { MessageBuffer } from '$lib/server/core/MessageBuffer';
-import type { ServerServiceContainer } from '$lib/server/core/ServerServiceContainer';
 
 declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			database: DatabaseManager;
-			workspaceManager: WorkspaceManager;
-			sessionRegistry: SessionRegistry;
-			terminalManager: TerminalManager;
-			claudeSessionManager: ClaudeSessionManager;
-			claudeAuthManager: ClaudeAuthManager;
-			messageBuffer: MessageBuffer;
-			serviceContainer: ServerServiceContainer;
+			services: {
+				database: DatabaseManager;
+				workspaceManager: WorkspaceManager;
+				sessionRegistry: SessionRegistry;
+				terminalManager: TerminalManager;
+				claudeSessionManager: ClaudeSessionManager;
+				claudeAuthManager: ClaudeAuthManager;
+			};
 		}
 		// interface PageData {}
 		// interface Platform {}

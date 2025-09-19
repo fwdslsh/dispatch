@@ -53,8 +53,8 @@ export class UIState {
 		// Derived state
 		this.canNavigateLeft = $derived(this.layout.currentMobileSession > 0);
 		this.hasActiveModal = $derived(this.modals.activeModal !== null);
-		this.isLoading = $derived(Object.values(this.loading).some(loading => loading));
-		this.hasErrors = $derived(Object.values(this.errors).some(error => error !== null));
+		this.isLoading = $derived(Object.values(this.loading).some((loading) => loading));
+		this.hasErrors = $derived(Object.values(this.errors).some((error) => error !== null));
 	}
 
 	// Layout management
@@ -77,7 +77,10 @@ export class UIState {
 		if (typeof index === 'number') {
 			this.layout.currentMobileSession = Math.max(0, Math.min(index, maxSessions - 1));
 		} else if (index === 'next') {
-			this.layout.currentMobileSession = Math.min(this.layout.currentMobileSession + 1, maxSessions - 1);
+			this.layout.currentMobileSession = Math.min(
+				this.layout.currentMobileSession + 1,
+				maxSessions - 1
+			);
 		} else if (index === 'previous' || index === 'prev') {
 			this.layout.currentMobileSession = Math.max(this.layout.currentMobileSession - 1, 0);
 		}
@@ -95,14 +98,16 @@ export class UIState {
 	addToDisplay(sessionId) {
 		if (!this.display.displayedSessionIds.includes(sessionId)) {
 			const maxVisible = this.layout.maxVisible;
-			const currentIds = this.display.displayedSessionIds.filter(id => id !== sessionId);
+			const currentIds = this.display.displayedSessionIds.filter((id) => id !== sessionId);
 			const headIds = currentIds.slice(0, Math.max(0, maxVisible - 1));
 			this.display.displayedSessionIds = [...headIds, sessionId];
 		}
 	}
 
 	removeFromDisplay(sessionId) {
-		this.display.displayedSessionIds = this.display.displayedSessionIds.filter(id => id !== sessionId);
+		this.display.displayedSessionIds = this.display.displayedSessionIds.filter(
+			(id) => id !== sessionId
+		);
 	}
 
 	// Modal management
@@ -131,7 +136,7 @@ export class UIState {
 	}
 
 	clearAllLoading() {
-		Object.keys(this.loading).forEach(key => {
+		Object.keys(this.loading).forEach((key) => {
 			this.loading[key] = false;
 		});
 	}
@@ -145,7 +150,7 @@ export class UIState {
 		if (scope) {
 			this.errors[scope] = null;
 		} else {
-			Object.keys(this.errors).forEach(key => {
+			Object.keys(this.errors).forEach((key) => {
 				this.errors[key] = null;
 			});
 		}

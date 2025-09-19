@@ -9,7 +9,13 @@
 	import MobileNavigation from './MobileNavigation.svelte';
 	import CreateSessionButton from './CreateSessionButton.svelte';
 	import IconButton from '../IconButton.svelte';
-	import { IconAdjustmentsAlt, IconCodeDots, IconCodeMinus } from '@tabler/icons-svelte';
+	import {
+		IconAdjustmentsAlt,
+		IconCodeDots,
+		IconCodeMinus,
+		IconPlayerTrackNext,
+		IconPlayerTrackPrev
+	} from '@tabler/icons-svelte';
 
 	// Props
 	let {
@@ -24,8 +30,16 @@
 		hasActiveSessions = false,
 		sessionCount = 0,
 		currentSessionIndex = 0,
-		totalSessions = 0
+		totalSessions = 0,
+		viewMode = 'window-manager'
 	} = $props();
+
+	const singleSessionActive = $derived(viewMode === 'single-session');
+	const desktopNavDisabled = $derived(!hasActiveSessions || totalSessions <= 1);
+	const desktopPrevDisabled = $derived(desktopNavDisabled || currentSessionIndex <= 0);
+	const desktopNextDisabled = $derived(
+		desktopNavDisabled || currentSessionIndex >= Math.max(totalSessions - 1, 0)
+	);
 </script>
 
 <footer class="status-bar-container">
@@ -57,8 +71,36 @@
 				{onNavigateSession}
 				disabled={!hasActiveSessions}
 				currentIndex={currentSessionIndex}
-				totalSessions={totalSessions}
+				{totalSessions}
 			/>
+		{/if}
+
+		{#if !isMobile && singleSessionActive}
+			<div class="desktop-navigation">
+				<IconButton
+					onclick={() => onNavigateSession('prev')}
+					disabled={desktopPrevDisabled}
+					aria-label="Previous session"
+					title="Previous session"
+				>
+					<IconPlayerTrackPrev size={18} />
+				</IconButton>
+
+				{#if totalSessions > 0}
+					<span class="session-counter">
+						{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}
+					</span>
+				{/if}
+
+				<IconButton
+					onclick={() => onNavigateSession('next')}
+					disabled={desktopNextDisabled}
+					aria-label="Next session"
+					title="Next session"
+				>
+					<IconPlayerTrackNext size={18} />
+				</IconButton>
+			</div>
 		{/if}
 
 			<IconButton onclick={onToggleSessionMenu} aria-label="Open sessions">
@@ -111,6 +153,21 @@
 	.right-group {
 		flex: 1 1 0;
 		justify-content: flex-end;
+	}
+
+	.desktop-navigation {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-right: 0.5rem;
+	}
+
+	.desktop-navigation .session-counter {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+		min-width: 40px;
+		text-align: center;
 	}
 
 	/* Mobile-specific touch improvements */

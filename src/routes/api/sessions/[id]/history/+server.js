@@ -1,12 +1,13 @@
 import { json, error } from '@sveltejs/kit';
-import { getDatabaseManager } from '$lib/server/db/DatabaseManager.js';
 
-export async function GET({ params }) {
+export async function GET({ params, locals }) {
 	const { id } = params;
 
 	try {
-		const db = getDatabaseManager();
-		await db.init();
+		const db = locals.services?.database;
+		if (!db) {
+			throw new Error('Database not available');
+		}
 
 		// Get terminal history from database
 		const history = await db.getTerminalHistory(id);

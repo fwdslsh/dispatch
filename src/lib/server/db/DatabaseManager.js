@@ -6,6 +6,7 @@ import { logger } from '../utils/logger.js';
 
 /**
  * Centralized SQLite database manager for all Dispatch server-side storage
+ * Simplified schema without workspace path dependencies
  */
 export class DatabaseManager {
 	constructor(dbPath = null) {
@@ -33,6 +34,9 @@ export class DatabaseManager {
 			await this.run('PRAGMA journal_mode=WAL');
 			await this.run('PRAGMA foreign_keys=ON');
 
+			// Run migrations first
+			await this.runMigrations();
+
 			// Create tables
 			await this.createTables();
 
@@ -45,12 +49,75 @@ export class DatabaseManager {
 	}
 
 	/**
+	 * Run database migrations to update schema
+	 */
+	async runMigrations() {
+		try {
+			// Check if old app_sessions table exists
+			const tables = await this.all(
+				"SELECT name FROM sqlite_master WHERE type='table' AND name='app_sessions'"
+			);
+
+			if (tables.length > 0) {
+				logger.info('DATABASE', 'Migrating from app_sessions to sessions table...');
+
+				// Check if new sessions table exists
+				const newTableExists = await this.all(
+					"SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'"
+				);
+
+				if (newTableExists.length === 0) {
+					// Create new sessions table from app_sessions data
+					await this.run(`
+						CREATE TABLE IF NOT EXISTS sessions (
+							id TEXT PRIMARY KEY,
+							session_type TEXT,
+							type_specific_id TEXT,
+							title TEXT,
+							working_directory TEXT,
+							created_at INTEGER,
+							updated_at INTEGER
+						)
+					`);
+
+					// Migrate data from app_sessions to sessions (without pinned field)
+					await this.run(`
+						INSERT INTO sessions (id, session_type, type_specific_id, title, working_directory, created_at, updated_at)
+						SELECT id, session_type, type_specific_id, title, working_directory, created_at, updated_at
+						FROM app_sessions
+					`);
+				}
+
+				// Drop the old app_sessions table
+				await this.run('DROP TABLE IF EXISTS app_sessions');
+				logger.info('DATABASE', 'Migration complete: app_sessions -> sessions');
+			}
+
+			// Check if old sessions table exists with wrong schema (socket sessions)
+			const sessionCols = await this.all(
+				"PRAGMA table_info(sessions)"
+			);
+
+			// If sessions table exists but has socket_id column, rename it
+			const hasSocketId = sessionCols.some(col => col.name === 'socket_id');
+			if (hasSocketId) {
+				logger.info('DATABASE', 'Renaming old socket sessions table...');
+				await this.run('ALTER TABLE sessions RENAME TO socket_sessions');
+			}
+
+		} catch (error) {
+			logger.warn('DATABASE', 'Migration error (continuing anyway):', error);
+			// Continue anyway - tables will be created fresh if needed
+		}
+	}
+
+	/**
 	 * Create all required tables
 	 */
 	async createTables() {
-		// Sessions table for active socket sessions
+		// Socket sessions table for active socket connections
 		await this.run(`
-			CREATE TABLE IF NOT EXISTS sessions (
+			CREATE TABLE IF NOT EXISTS socket_sessions (
 				id TEXT PRIMARY KEY,
 				socket_id TEXT,
 				metadata TEXT, -- JSON blob
@@ -70,11 +137,11 @@ export class DatabaseManager {
 				direction TEXT, -- 'in', 'out', 'system'
 				data TEXT, -- JSON blob
 				timestamp INTEGER,
-				FOREIGN KEY (session_id) REFERENCES sessions(id)
+				FOREIGN KEY (session_id) REFERENCES socket_sessions(id)
 			)
 		`);
 
-		// Workspaces table
+		// Workspaces table (for UI workspace management only)
 		await this.run(`
 			CREATE TABLE IF NOT EXISTS workspaces (
 				path TEXT PRIMARY KEY,
@@ -84,27 +151,30 @@ export class DatabaseManager {
 			)
 		`);
 
-		// Workspace sessions mapping table
+		// Sessions table (simplified - no pinned field, no workspace dependency)
 		await this.run(`
-			CREATE TABLE IF NOT EXISTS workspace_sessions (
+			CREATE TABLE IF NOT EXISTS sessions (
 				id TEXT PRIMARY KEY,
-				workspace_path TEXT,
 				session_type TEXT, -- 'claude', 'pty'
 				type_specific_id TEXT,
 				title TEXT,
-				pinned INTEGER DEFAULT 1,
+				working_directory TEXT, -- Session's working directory (optional)
 				created_at INTEGER,
-				updated_at INTEGER,
-				FOREIGN KEY (workspace_path) REFERENCES workspaces(path)
+				updated_at INTEGER
 			)
 		`);
 
-		// Ensure pinned column exists (for existing installations)
-		try {
-			await this.run('ALTER TABLE workspace_sessions ADD COLUMN pinned INTEGER DEFAULT 1');
-		} catch (e) {
-			// Ignore if column already exists
-		}
+		// Session layout table (maps sessions to UI tiles)
+		await this.run(`
+			CREATE TABLE IF NOT EXISTS session_layout (
+				session_id TEXT PRIMARY KEY, -- One session can only be in one tile
+				tile_id TEXT NOT NULL,       -- 'tile-1', 'tile-2', etc
+				position INTEGER DEFAULT 0,  -- Position within tile (for ordering)
+				created_at INTEGER,
+				updated_at INTEGER,
+				FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+			)
+		`);
 
 		// Terminal history table
 		await this.run(`
@@ -120,7 +190,7 @@ export class DatabaseManager {
 		await this.run(`
 			CREATE TABLE IF NOT EXISTS claude_sessions (
 				id TEXT PRIMARY KEY,
-				workspace_path TEXT,
+				working_directory TEXT, -- Working directory for Claude session
 				session_id TEXT, -- The actual Claude session ID
 				app_session_id TEXT, -- Application session ID for routing
 				resume_capable BOOLEAN,
@@ -149,22 +219,19 @@ export class DatabaseManager {
 			'CREATE INDEX IF NOT EXISTS idx_session_history_timestamp ON session_history(timestamp)'
 		);
 		await this.run(
-			'CREATE INDEX IF NOT EXISTS idx_workspace_sessions_workspace ON workspace_sessions(workspace_path)'
+			'CREATE INDEX IF NOT EXISTS idx_sessions_type ON sessions(session_type)'
 		);
 		await this.run(
-			'CREATE INDEX IF NOT EXISTS idx_terminal_history_terminal_id ON terminal_history(terminal_id)'
+			'CREATE INDEX IF NOT EXISTS idx_session_layout_tile ON session_layout(tile_id)'
 		);
-		await this.run(
-			'CREATE INDEX IF NOT EXISTS idx_claude_sessions_app_session ON claude_sessions(app_session_id)'
-		);
+		await this.run('CREATE INDEX IF NOT EXISTS idx_terminal_history ON terminal_history(terminal_id)');
 		await this.run('CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp)');
-		await this.run('CREATE INDEX IF NOT EXISTS idx_logs_component ON logs(component)');
 	}
 
 	/**
-	 * Execute a SQL statement with parameters
+	 * Promise wrapper for SQLite run method
 	 */
-	async run(sql, params = []) {
+	run(sql, params = []) {
 		return new Promise((resolve, reject) => {
 			this.db.run(sql, params, function (err) {
 				if (err) reject(err);
@@ -174,9 +241,9 @@ export class DatabaseManager {
 	}
 
 	/**
-	 * Execute a SELECT query and return first row
+	 * Promise wrapper for SQLite get method
 	 */
-	async get(sql, params = []) {
+	get(sql, params = []) {
 		return new Promise((resolve, reject) => {
 			this.db.get(sql, params, (err, row) => {
 				if (err) reject(err);
@@ -186,9 +253,9 @@ export class DatabaseManager {
 	}
 
 	/**
-	 * Execute a SELECT query and return all rows
+	 * Promise wrapper for SQLite all method
 	 */
-	async all(sql, params = []) {
+	all(sql, params = []) {
 		return new Promise((resolve, reject) => {
 			this.db.all(sql, params, (err, rows) => {
 				if (err) reject(err);
@@ -198,32 +265,32 @@ export class DatabaseManager {
 	}
 
 	/**
-	 * Close the database connection
+	 * Close database connection
 	 */
-	async close() {
-		if (this.db) {
-			await new Promise((resolve, reject) => {
-				this.db.close((err) => {
-					if (err) reject(err);
-					else resolve();
-				});
+	close() {
+		return new Promise((resolve, reject) => {
+			this.db.close((err) => {
+				if (err) reject(err);
+				else resolve();
 			});
-			this.db = null;
-			this.isInitialized = false;
-		}
+		});
 	}
 
-	// Session management methods
+	// ===== SESSION MANAGEMENT METHODS =====
+
 	async createSession(sessionId, socketId, metadata = {}) {
 		const now = Date.now();
-		await this.run(
-			'INSERT OR REPLACE INTO sessions (id, socket_id, metadata, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-			[sessionId, socketId, JSON.stringify(metadata), now, now]
-		);
+		await this.run('INSERT OR REPLACE INTO socket_sessions (id, socket_id, metadata, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', [
+			sessionId,
+			socketId,
+			JSON.stringify(metadata),
+			now,
+			now
+		]);
 	}
 
 	async updateSession(sessionId, metadata) {
-		await this.run('UPDATE sessions SET metadata = ?, updated_at = ? WHERE id = ?', [
+		await this.run('UPDATE socket_sessions SET metadata = ?, updated_at = ? WHERE id = ?', [
 			JSON.stringify(metadata),
 			Date.now(),
 			sessionId
@@ -231,7 +298,7 @@ export class DatabaseManager {
 	}
 
 	async getSession(sessionId) {
-		const row = await this.get('SELECT * FROM sessions WHERE id = ?', [sessionId]);
+		const row = await this.get('SELECT * FROM socket_sessions WHERE id = ?', [sessionId]);
 		if (row && row.metadata) {
 			row.metadata = JSON.parse(row.metadata);
 		}
@@ -239,157 +306,187 @@ export class DatabaseManager {
 	}
 
 	async disconnectSession(sessionId) {
-		await this.run('UPDATE sessions SET disconnected_at = ? WHERE id = ?', [Date.now(), sessionId]);
+		await this.run('UPDATE socket_sessions SET disconnected_at = ? WHERE id = ?', [Date.now(), sessionId]);
 	}
 
-	// Session history methods
 	async addSessionEvent(sessionId, socketId, eventType, direction, data = null) {
-		await this.run(
-			'INSERT INTO session_history (session_id, socket_id, event_type, direction, data, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-			[sessionId, socketId, eventType, direction, data ? JSON.stringify(data) : null, Date.now()]
-		);
-	}
-
-	async getSessionHistory(sessionId) {
-		const rows = await this.all(
-			'SELECT * FROM session_history WHERE session_id = ? ORDER BY timestamp ASC',
-			[sessionId]
-		);
-		return rows.map((row) => ({
-			...row,
-			data: row.data ? JSON.parse(row.data) : null
-		}));
-	}
-
-	async listSessionHistories() {
-		const rows = await this.all(`
-			SELECT 
-				s.id as session_id,
-				s.socket_id,
-				s.metadata,
-				s.created_at,
-				s.updated_at,
-				s.disconnected_at,
-				COUNT(h.id) as event_count,
-				MAX(h.timestamp) as last_event_time
-			FROM sessions s
-			LEFT JOIN session_history h ON s.id = h.session_id
-			GROUP BY s.id
-			ORDER BY s.updated_at DESC
-		`);
-
-		return rows.map((row) => ({
-			sessionId: row.session_id,
-			socketId: row.socket_id,
-			metadata: row.metadata ? JSON.parse(row.metadata) : {},
-			eventCount: row.event_count,
-			createdAt: new Date(row.created_at),
-			updatedAt: new Date(row.updated_at),
-			lastEventTime: row.last_event_time ? new Date(row.last_event_time) : null,
-			isActive: !row.disconnected_at
-		}));
-	}
-
-	// Workspace methods
-	async createWorkspace(path) {
-		const now = Date.now();
-		await this.run(
-			'INSERT OR REPLACE INTO workspaces (path, last_active, created_at, updated_at) VALUES (?, ?, ?, ?)',
-			[path, now, now, now]
-		);
-	}
-
-	async updateWorkspaceActivity(path) {
-		const now = Date.now();
-		await this.run('UPDATE workspaces SET last_active = ?, updated_at = ? WHERE path = ?', [
-			now,
-			now,
-			path
+		await this.run('INSERT INTO session_history (session_id, socket_id, event_type, direction, data, timestamp) VALUES (?, ?, ?, ?, ?, ?)', [
+			sessionId,
+			socketId,
+			eventType,
+			direction,
+			data ? JSON.stringify(data) : null,
+			Date.now()
 		]);
 	}
 
-	async getWorkspace(path) {
-		return await this.get('SELECT * FROM workspaces WHERE path = ?', [path]);
+	async getSessionHistory(sessionId) {
+		const rows = await this.all('SELECT * FROM session_history WHERE session_id = ? ORDER BY timestamp ASC', [sessionId]);
+		return rows.map(row => {
+			if (row.data) {
+				try {
+					row.data = JSON.parse(row.data);
+				} catch (e) {
+					// Keep as string if parsing fails
+				}
+			}
+			return row;
+		});
+	}
+
+	async getRecentSessionEvents(sessionId, sinceTimestamp = null, maxMessages = 100) {
+		const whereClause = sinceTimestamp
+			? 'WHERE session_id = ? AND timestamp > ?'
+			: 'WHERE session_id = ?';
+		const params = sinceTimestamp ? [sessionId, sinceTimestamp] : [sessionId];
+
+		const rows = await this.all(
+			`SELECT * FROM session_history ${whereClause} ORDER BY timestamp DESC LIMIT ?`,
+			[...params, maxMessages]
+		);
+
+		return rows.reverse().map(row => {
+			if (row.data) {
+				try {
+					row.data = JSON.parse(row.data);
+				} catch (e) {
+					// Keep as string if parsing fails
+				}
+			}
+			return row;
+		});
+	}
+
+	async listSessionHistories() {
+		return await this.all('SELECT DISTINCT session_id FROM session_history ORDER BY session_id');
+	}
+
+	// ===== WORKSPACE MANAGEMENT METHODS =====
+
+	async createWorkspace(path) {
+		const now = Date.now();
+		await this.run('INSERT OR IGNORE INTO workspaces (path, created_at, updated_at) VALUES (?, ?, ?)', [
+			path,
+			now,
+			now
+		]);
+	}
+
+	async updateWorkspaceActivity(path) {
+		await this.run('UPDATE workspaces SET last_active = ?, updated_at = ? WHERE path = ?', [
+			Date.now(),
+			Date.now(),
+			path
+		]);
 	}
 
 	async listWorkspaces() {
 		return await this.all('SELECT * FROM workspaces ORDER BY last_active DESC');
 	}
 
-	// Workspace session methods
-	async addWorkspaceSession(
+	// ===== APPLICATION SESSION METHODS =====
+
+	async addSession(
 		sessionId,
-		workspacePath,
 		sessionType,
 		typeSpecificId,
 		title,
-		pinned = 1
+		workingDirectory = null
 	) {
 		const now = Date.now();
 		await this.run(
-			'INSERT OR REPLACE INTO workspace_sessions (id, workspace_path, session_type, type_specific_id, title, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-			[sessionId, workspacePath, sessionType, typeSpecificId, title, pinned, now, now]
+			'INSERT OR REPLACE INTO sessions (id, session_type, type_specific_id, title, working_directory, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+			[sessionId, sessionType, typeSpecificId, title, workingDirectory, now, now]
 		);
 	}
 
-	async getWorkspaceSessions(workspacePath, pinnedOnly = true) {
-		if (pinnedOnly) {
-			return await this.all(
-				'SELECT * FROM workspace_sessions WHERE workspace_path = ? AND pinned = 1 ORDER BY updated_at DESC',
-				[workspacePath]
-			);
-		}
+	async getAllSessions() {
 		return await this.all(
-			'SELECT * FROM workspace_sessions WHERE workspace_path = ? ORDER BY updated_at DESC',
-			[workspacePath]
+			'SELECT * FROM sessions ORDER BY updated_at DESC'
 		);
 	}
 
-	async getWorkspaceSession(workspacePath, sessionId) {
-		return await this.get('SELECT * FROM workspace_sessions WHERE workspace_path = ? AND id = ?', [
-			workspacePath,
-			sessionId
-		]);
+	async getAppSession(sessionId) {
+		return await this.get('SELECT * FROM sessions WHERE id = ?', [sessionId]);
 	}
 
-	async getAllSessions(pinnedOnly = true) {
-		if (pinnedOnly) {
-			return await this.all(
-				'SELECT * FROM workspace_sessions WHERE pinned = 1 ORDER BY updated_at DESC'
-			);
-		}
-		return await this.all('SELECT * FROM workspace_sessions ORDER BY updated_at DESC');
+	async deleteSession(sessionId) {
+		await this.run('DELETE FROM sessions WHERE id = ?', [sessionId]);
 	}
 
-	async removeWorkspaceSession(workspacePath, sessionId) {
-		await this.run('DELETE FROM workspace_sessions WHERE workspace_path = ? AND id = ?', [
-			workspacePath,
-			sessionId
-		]);
-	}
-
-	async renameWorkspaceSession(workspacePath, sessionId, newTitle) {
+	async renameSession(sessionId, newTitle) {
 		await this.run(
-			'UPDATE workspace_sessions SET title = ?, updated_at = ? WHERE workspace_path = ? AND id = ?',
-			[newTitle, Date.now(), workspacePath, sessionId]
+			'UPDATE sessions SET title = ?, updated_at = ? WHERE id = ?',
+			[newTitle, Date.now(), sessionId]
 		);
 	}
 
-	async updateWorkspaceSessionTypeId(workspacePath, sessionId, newTypeSpecificId) {
+	async updateSessionTypeId(sessionId, newTypeSpecificId) {
 		await this.run(
-			'UPDATE workspace_sessions SET type_specific_id = ?, updated_at = ? WHERE workspace_path = ? AND id = ?',
-			[newTypeSpecificId, Date.now(), workspacePath, sessionId]
+			'UPDATE sessions SET type_specific_id = ?, updated_at = ? WHERE id = ?',
+			[newTypeSpecificId, Date.now(), sessionId]
 		);
 	}
 
-	async setWorkspaceSessionPinned(workspacePath, sessionId, pinned) {
+	// ===== SESSION LAYOUT METHODS =====
+
+	/**
+	 * Add or update session layout (which tile it's displayed in)
+	 */
+	async setSessionLayout(sessionId, tileId, position = 0) {
+		const now = Date.now();
 		await this.run(
-			'UPDATE workspace_sessions SET pinned = ?, updated_at = ? WHERE workspace_path = ? AND id = ?',
-			[pinned ? 1 : 0, Date.now(), workspacePath, sessionId]
+			'INSERT OR REPLACE INTO session_layout (session_id, tile_id, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+			[sessionId, tileId, position, now, now]
 		);
 	}
 
-	// Terminal history methods
+	/**
+	 * Remove session from layout (no longer displayed)
+	 */
+	async removeSessionLayout(sessionId) {
+		await this.run('DELETE FROM session_layout WHERE session_id = ?', [sessionId]);
+	}
+
+	/**
+	 * Get all sessions with their layout info
+	 */
+	async getSessionsWithLayout() {
+		return await this.all(`
+			SELECT s.*, l.tile_id, l.position
+			FROM sessions s
+			LEFT JOIN session_layout l ON s.id = l.session_id
+			ORDER BY s.updated_at DESC
+		`);
+	}
+
+	/**
+	 * Get sessions for a specific tile
+	 */
+	async getSessionsForTile(tileId) {
+		return await this.all(`
+			SELECT s.*, l.tile_id, l.position
+			FROM sessions s
+			INNER JOIN session_layout l ON s.id = l.session_id
+			WHERE l.tile_id = ?
+			ORDER BY l.position, s.created_at
+		`, [tileId]);
+	}
+
+	/**
+	 * Get current layout (all tile assignments)
+	 */
+	async getCurrentLayout() {
+		return await this.all(`
+			SELECT l.session_id, l.tile_id, l.position, s.title, s.session_type
+			FROM session_layout l
+			INNER JOIN sessions s ON l.session_id = s.id
+			ORDER BY l.tile_id, l.position
+		`);
+	}
+
+	// ===== TERMINAL HISTORY METHODS =====
+
 	async addTerminalHistory(terminalId, data) {
 		await this.run('INSERT INTO terminal_history (terminal_id, data, timestamp) VALUES (?, ?, ?)', [
 			terminalId,
@@ -398,110 +495,84 @@ export class DatabaseManager {
 		]);
 	}
 
-	async getTerminalHistory(terminalId) {
-		const rows = await this.all(
-			'SELECT * FROM terminal_history WHERE terminal_id = ? ORDER BY timestamp ASC',
-			[terminalId]
+	async getTerminalHistory(terminalId, limit = 1000) {
+		return await this.all(
+			'SELECT * FROM terminal_history WHERE terminal_id = ? ORDER BY timestamp ASC LIMIT ?',
+			[terminalId, limit]
 		);
-		return rows.map((row) => row.data).join('');
 	}
 
-	async clearTerminalHistory(terminalId) {
-		await this.run('DELETE FROM terminal_history WHERE terminal_id = ?', [terminalId]);
-	}
+	// ===== CLAUDE SESSION METHODS =====
 
-	// Claude session methods
-	async addClaudeSession(id, workspacePath, sessionId, appSessionId, resumeCapable) {
+	async addClaudeSession(id, workingDirectory, sessionId, appSessionId, resumeCapable) {
 		const now = Date.now();
 		await this.run(
-			'INSERT OR REPLACE INTO claude_sessions (id, workspace_path, session_id, app_session_id, resume_capable, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-			[id, workspacePath, sessionId, appSessionId, resumeCapable, now, now]
+			'INSERT OR REPLACE INTO claude_sessions (id, working_directory, session_id, app_session_id, resume_capable, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+			[id, workingDirectory, sessionId, appSessionId, resumeCapable, now, now]
 		);
 	}
 
 	async getClaudeSession(id) {
-		return await this.get('SELECT * FROM claude_sessions WHERE id = ? OR app_session_id = ?', [
-			id,
-			id
-		]);
+		return await this.get('SELECT * FROM claude_sessions WHERE id = ?', [id]);
 	}
 
-	async listClaudeSessions(workspacePath = null) {
-		if (workspacePath) {
+	async listClaudeSessions(workingDirectory = null) {
+		if (workingDirectory) {
 			return await this.all(
-				'SELECT * FROM claude_sessions WHERE workspace_path = ? ORDER BY updated_at DESC',
-				[workspacePath]
+				'SELECT * FROM claude_sessions WHERE working_directory = ? ORDER BY updated_at DESC',
+				[workingDirectory]
 			);
 		}
 		return await this.all('SELECT * FROM claude_sessions ORDER BY updated_at DESC');
 	}
 
-	// Logging methods
-	async addLog(level, component, message, data = null) {
-		await this.run(
-			'INSERT INTO logs (level, component, message, data, timestamp) VALUES (?, ?, ?, ?, ?)',
-			[level, component, message, data ? JSON.stringify(data) : null, Date.now()]
-		);
+	async deleteClaudeSession(id) {
+		await this.run('DELETE FROM claude_sessions WHERE id = ?', [id]);
 	}
 
-	async getLogs(limit = 100, component = null, level = null) {
-		let sql = 'SELECT * FROM logs';
-		const params = [];
-		const conditions = [];
+	// ===== LOGGING METHODS =====
 
-		if (component) {
-			conditions.push('component = ?');
+	async addLog(level, component, message, data = null) {
+		await this.run('INSERT INTO logs (level, component, message, data, timestamp) VALUES (?, ?, ?, ?, ?)', [
+			level,
+			component,
+			message,
+			data ? JSON.stringify(data) : null,
+			Date.now()
+		]);
+	}
+
+	async getLogs(component = null, level = null, limit = 100) {
+		let whereClause = '';
+		const params = [];
+
+		if (component && level) {
+			whereClause = 'WHERE component = ? AND level = ?';
+			params.push(component, level);
+		} else if (component) {
+			whereClause = 'WHERE component = ?';
 			params.push(component);
-		}
-		if (level) {
-			conditions.push('level = ?');
+		} else if (level) {
+			whereClause = 'WHERE level = ?';
 			params.push(level);
 		}
 
-		if (conditions.length > 0) {
-			sql += ' WHERE ' + conditions.join(' AND ');
-		}
-
-		sql += ' ORDER BY timestamp DESC LIMIT ?';
 		params.push(limit);
 
-		const rows = await this.all(sql, params);
-		return rows.map((row) => ({
-			...row,
-			data: row.data ? JSON.parse(row.data) : null
-		}));
-	}
-
-	// Cleanup methods
-	async cleanupOldData(maxAgeMs = 7 * 24 * 60 * 60 * 1000) {
-		// 7 days default
-		const cutoff = Date.now() - maxAgeMs;
-
-		// Clean up old session history
-		const historyResult = await this.run('DELETE FROM session_history WHERE timestamp < ?', [
-			cutoff
-		]);
-
-		// Clean up old logs
-		const logsResult = await this.run('DELETE FROM logs WHERE timestamp < ?', [cutoff]);
-
-		// Clean up old terminal history
-		const terminalResult = await this.run('DELETE FROM terminal_history WHERE timestamp < ?', [
-			cutoff
-		]);
-
-		logger.info(
-			'DATABASE',
-			`Cleanup completed: ${historyResult.changes} history entries, ${logsResult.changes} logs, ${terminalResult.changes} terminal history entries removed`
+		const rows = await this.all(
+			`SELECT * FROM logs ${whereClause} ORDER BY timestamp DESC LIMIT ?`,
+			params
 		);
-	}
-}
 
-// Export singleton instance, but only initialize at runtime
-let databaseManager;
-export function getDatabaseManager() {
-	if (!databaseManager) {
-		databaseManager = new DatabaseManager();
+		return rows.map(row => {
+			if (row.data) {
+				try {
+					row.data = JSON.parse(row.data);
+				} catch (e) {
+					// Keep as string if parsing fails
+				}
+			}
+			return row;
+		});
 	}
-	return databaseManager;
 }

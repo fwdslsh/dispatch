@@ -60,6 +60,6 @@ Files to reference when making cross-cutting changes
 - `src/app.js`, `src/lib/server/socket-handler.js`, `src/lib/server/terminal.js`, `src/lib/server/session-store.js`, `src/lib/server/core/SessionManager.js`, `src/lib/server/core/SessionRouter.js`, `src/lib/server/core/WorkspaceManager.js`
 
 If anything is missing or you'd like more examples (event payloads, session JSON schema, or a short workflow for adding a socket event + test), tell me which area to expand.
+```
 
-``` 
 Files referenced: `src/app.js`, `start.sh`, `Dockerfile`, `package.json`, `src/lib/server/socket-handler.js`, `src/lib/server/terminal.js`, `src/lib/server/session-store.js`, `src/lib/components/Terminal.svelte`, `src/lib/components/Chat.svelte`, sessions stored in `PTY_ROOT/sessions.json` at runtime.

@@ -51,25 +51,30 @@ test.describe('Final Session Display Test', () => {
 			console.log(`✓ Session containers: ${sessionContainers}`);
 
 			// Check if sessions are somewhere in the DOM but not in tiles
-			const allSessionElements = await page.locator('[data-session-id], .terminal-pane, .claude-pane, .session-viewport').count();
+			const allSessionElements = await page
+				.locator('[data-session-id], .terminal-pane, .claude-pane, .session-viewport')
+				.count();
 			console.log(`✓ Total session elements in DOM: ${allSessionElements}`);
 		}
 
 		// Look for specific console logs that indicate success
-		const relevantLogs = consoleLogs.filter(log =>
-			log.includes('SessionWindowManager') ||
-			log.includes('Added tile for session') ||
-			log.includes('TerminalPane mounted') ||
-			log.includes('sessionState.displayed.length')
+		const relevantLogs = consoleLogs.filter(
+			(log) =>
+				log.includes('SessionWindowManager') ||
+				log.includes('Added tile for session') ||
+				log.includes('TerminalPane mounted') ||
+				log.includes('sessionState.displayed.length')
 		);
 
 		console.log('\n=== KEY CONSOLE LOGS ===');
-		relevantLogs.slice(-10).forEach(log => console.log(log));
+		relevantLogs.slice(-10).forEach((log) => console.log(log));
 
 		// Final assessment
 		const hasBackendSessions = sessionsData.sessions?.length > 0;
 		const hasWindowManager = isVisible;
-		const sessionElements = await page.locator('.terminal-pane, .claude-pane, .session-viewport').count();
+		const sessionElements = await page
+			.locator('.terminal-pane, .claude-pane, .session-viewport')
+			.count();
 
 		console.log('\n=== FINAL ASSESSMENT ===');
 		console.log(`✓ Backend has sessions: ${hasBackendSessions}`);

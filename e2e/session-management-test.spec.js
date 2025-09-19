@@ -37,7 +37,9 @@ test.describe('Session Management Tests', () => {
 
 		// Test 1: Create a terminal session via empty tile button
 		console.log('\n--- Test 1: Creating Terminal Session ---');
-		const terminalBtn = page.locator('.empty-tile .create-session-btn:has-text("Terminal")').first();
+		const terminalBtn = page
+			.locator('.empty-tile .create-session-btn:has-text("Terminal")')
+			.first();
 		if (await terminalBtn.isVisible()) {
 			console.log('✓ Clicking terminal creation button...');
 			await terminalBtn.click();
@@ -51,7 +53,7 @@ test.describe('Session Management Tests', () => {
 			console.log(`✓ Modal appeared: ${modalVisible}`);
 
 			if (modalVisible) {
-				console.log('⚠️ Modal detected - checking if it\'s directory picker');
+				console.log("⚠️ Modal detected - checking if it's directory picker");
 
 				// Look for workspace/directory picker elements
 				const workspaceInput = page.locator('input[type="text"]').first();
@@ -95,7 +97,11 @@ test.describe('Session Management Tests', () => {
 				console.log('\n--- Test 2: Closing Terminal Session ---');
 
 				// Look for close button in session header
-				const closeBtn = page.locator('.session-tile .session-header button[title*="Close"], .session-tile .session-header button:has-text("×"), .session-tile .session-header .close-btn').first();
+				const closeBtn = page
+					.locator(
+						'.session-tile .session-header button[title*="Close"], .session-tile .session-header button:has-text("×"), .session-tile .session-header .close-btn'
+					)
+					.first();
 				const closeBtnVisible = await closeBtn.isVisible();
 				console.log(`✓ Close button visible: ${closeBtnVisible}`);
 
@@ -130,7 +136,9 @@ test.describe('Session Management Tests', () => {
 						await contextMenu.click({ button: 'right' });
 						await page.waitForTimeout(1000);
 
-						const contextMenuItems = await page.locator('[role="menu"], .context-menu, .dropdown-menu').count();
+						const contextMenuItems = await page
+							.locator('[role="menu"], .context-menu, .dropdown-menu')
+							.count();
 						console.log(`✓ Context menu items: ${contextMenuItems}`);
 					}
 				}
@@ -165,7 +173,9 @@ test.describe('Session Management Tests', () => {
 		console.log('\n=== DIRECTORY PICKER TEST ===');
 
 		// Try to create a session to trigger directory picker
-		const terminalBtn = page.locator('.empty-tile .create-session-btn:has-text("Terminal")').first();
+		const terminalBtn = page
+			.locator('.empty-tile .create-session-btn:has-text("Terminal")')
+			.first();
 		if (await terminalBtn.isVisible()) {
 			await terminalBtn.click();
 			await page.waitForTimeout(2000);
@@ -177,7 +187,11 @@ test.describe('Session Management Tests', () => {
 
 			if (modalVisible) {
 				// Test modal elements
-				const modalTitle = await page.locator('.modal-title, .modal h1, .modal h2').first().textContent().catch(() => 'No title found');
+				const modalTitle = await page
+					.locator('.modal-title, .modal h1, .modal h2')
+					.first()
+					.textContent()
+					.catch(() => 'No title found');
 				console.log(`✓ Modal title: ${modalTitle}`);
 
 				// Test input field

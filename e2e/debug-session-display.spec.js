@@ -54,7 +54,7 @@ test.describe('Debug Session Display Issue', () => {
 
 		// Print all console logs to see debug output
 		console.log('\n=== Browser Console Logs ===');
-		consoleLogs.forEach(log => console.log(log));
+		consoleLogs.forEach((log) => console.log(log));
 
 		// If no sessions exist, create one and see what happens
 		if (!sessionsData.sessions || sessionsData.sessions.length === 0) {
@@ -63,7 +63,8 @@ test.describe('Debug Session Display Issue', () => {
 				data: {
 					action: 'create',
 					type: 'pty',
-					workspacePath: '/home/founder3/code/github/fwdslsh/dispatch/.testing-home/workspaces/test',
+					workspacePath:
+						'/home/founder3/code/github/fwdslsh/dispatch/.testing-home/workspaces/test',
 					title: 'Debug Test Session'
 				}
 			});
@@ -76,7 +77,7 @@ test.describe('Debug Session Display Issue', () => {
 			// Check console logs again after session creation
 			console.log('\n=== Console logs after session creation ===');
 			const newLogs = consoleLogs.slice(-20); // Get last 20 logs
-			newLogs.forEach(log => console.log(log));
+			newLogs.forEach((log) => console.log(log));
 
 			// Check if session now appears in UI
 			const sessionTilesAfter = await page.locator('.session-tile').count();

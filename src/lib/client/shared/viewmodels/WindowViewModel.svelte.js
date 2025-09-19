@@ -1,15 +1,14 @@
 /**
  * Minimal WindowViewModel for UI tile tracking.
+ * Simplified implementation for basic session-to-tile mapping.
  */
 
 export class WindowViewModel {
 	constructor() {
 		this.windowGap = $state(6);
 		this.minTileSize = $state(200);
-		this.keymap = $state({});
-
 		this.sessions = $state([]);
-		this.tileAssignments = $state([]); // [tileId, sessionId]
+		this.tileAssignments = $state([]);
 	}
 
 	syncSessionsToTiles(sessions = []) {
@@ -20,18 +19,5 @@ export class WindowViewModel {
 	getSessionForTile(tileId) {
 		if (!tileId) return null;
 		return this.sessions.find((session) => session.id === tileId) || null;
-	}
-
-	focusTile(tileId) {
-		// No-op for now; focus is handled by SessionWindowManager callbacks.
-	}
-
-	clearTileAssignment(tileId) {
-		if (!tileId) return;
-		this.tileAssignments = this.tileAssignments.filter(([id]) => id !== tileId);
-	}
-
-	saveLayout() {
-		// Persisting layout is optional for this simplified implementation.
 	}
 }

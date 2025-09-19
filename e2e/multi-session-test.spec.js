@@ -112,15 +112,16 @@ test.describe('Multi-Session WindowManager Test', () => {
 		console.log(`✓ Error tiles: ${errorTiles}`);
 
 		// Look for relevant console logs
-		const layoutLogs = consoleLogs.filter(log =>
-			log.includes('SessionWindowManager') ||
-			log.includes('generateLayout') ||
-			log.includes('session tiles') ||
-			log.includes('displayed.length')
+		const layoutLogs = consoleLogs.filter(
+			(log) =>
+				log.includes('SessionWindowManager') ||
+				log.includes('generateLayout') ||
+				log.includes('session tiles') ||
+				log.includes('displayed.length')
 		);
 
 		console.log('\n=== RELEVANT CONSOLE LOGS ===');
-		layoutLogs.slice(-15).forEach(log => console.log(log));
+		layoutLogs.slice(-15).forEach((log) => console.log(log));
 
 		// Take screenshot
 		await page.screenshot({
@@ -135,7 +136,9 @@ test.describe('Multi-Session WindowManager Test', () => {
 		console.log(`✓ Claude panes: ${claudePanes}`);
 		console.log(`✓ Layout complexity: ${splits} splits, ${panes} panes`);
 		console.log(`✓ Error tiles: ${errorTiles} (should be 0)`);
-		console.log(`✓ Multi-session support: ${finalSessionTiles > 2 ? 'WORKING' : 'NEEDS IMPROVEMENT'}`);
+		console.log(
+			`✓ Multi-session support: ${finalSessionTiles > 2 ? 'WORKING' : 'NEEDS IMPROVEMENT'}`
+		);
 		console.log('✓ Screenshot saved: e2e/screenshots/multi-session-test.png');
 		console.log('🎉 MULTI-SESSION TEST COMPLETE');
 	});

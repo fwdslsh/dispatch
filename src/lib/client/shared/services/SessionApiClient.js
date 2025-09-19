@@ -13,7 +13,7 @@
  * @property {string} workspacePath - Associated workspace path
  * @property {'pty'|'claude'} sessionType - Session type
  * @property {boolean} isActive - Whether session is currently active
- * @property {boolean} pinned - Whether session is pinned
+ * @property {boolean} inLayout - Whether session is displayed in layout
  * @property {string} title - Session title
  * @property {string} createdAt - ISO string creation time
  * @property {string} lastActivity - ISO string last activity time
@@ -108,7 +108,7 @@ export class SessionApiClient {
 	 * List sessions with optional filtering
 	 * @param {Object} [options] - List options
 	 * @param {string} [options.workspace] - Filter by workspace path
-	 * @param {boolean} [options.includeAll=false] - Include unpinned sessions
+	 * @param {boolean} [options.includeAll=false] - Include sessions not in layout
 	 * @returns {Promise<{sessions: Session[]}>}
 	 */
 	async list({ workspace, includeAll = false } = {}) {
@@ -167,24 +167,29 @@ export class SessionApiClient {
 	}
 
 	/**
-	 * Update a session (rename, pin/unpin)
+	 * Update a session (rename, setLayout, removeLayout)
 	 * @param {Object} options
-	 * @param {'rename'|'pin'|'unpin'} options.action - Update action
+	 * @param {'rename'|'setLayout'|'removeLayout'} options.action - Update action
 	 * @param {string} options.sessionId - Session ID
-	 * @param {string} options.workspacePath - Workspace path
 	 * @param {string} [options.newTitle] - New title (for rename)
+	 * @param {string} [options.tileId] - Tile ID (for layout actions)
+	 * @param {number} [options.position] - Position (for layout actions)
 	 * @returns {Promise<{success: boolean}>}
 	 */
-	async update({ action, sessionId, workspacePath, newTitle }) {
+	async update({ action, sessionId, newTitle, tileId, position }) {
 		try {
 			const body = {
 				action,
-				sessionId,
-				workspacePath
+				sessionId
 			};
 
 			if (action === 'rename' && newTitle) {
 				body.newTitle = newTitle;
+			}
+
+			if (action === 'setLayout') {
+				body.tileId = tileId;
+				body.position = position || 0;
 			}
 
 			const response = await fetch(`${this.baseUrl}/api/sessions`, {
@@ -205,14 +210,12 @@ export class SessionApiClient {
 	/**
 	 * Delete/terminate a session
 	 * @param {string} sessionId - Session ID
-	 * @param {string} workspacePath - Workspace path
 	 * @returns {Promise<{success: boolean}>}
 	 */
-	async delete(sessionId, workspacePath) {
+	async delete(sessionId) {
 		try {
 			const params = new URLSearchParams({
-				sessionId,
-				workspacePath
+				sessionId
 			});
 
 			const response = await fetch(`${this.baseUrl}/api/sessions?${params}`, {
@@ -232,45 +235,108 @@ export class SessionApiClient {
 	/**
 	 * Rename a session (convenience method)
 	 * @param {string} sessionId
-	 * @param {string} workspacePath
 	 * @param {string} newTitle
 	 * @returns {Promise<{success: boolean}>}
 	 */
-	async rename(sessionId, workspacePath, newTitle) {
+	async rename(sessionId, newTitle) {
 		return this.update({
 			action: 'rename',
 			sessionId,
-			workspacePath,
 			newTitle
 		});
 	}
 
 	/**
-	 * Pin a session (convenience method)
+	 * Add session to layout (convenience method)
 	 * @param {string} sessionId
-	 * @param {string} workspacePath
+	 * @param {string} tileId
+	 * @param {number} position
 	 * @returns {Promise<{success: boolean}>}
 	 */
-	async pin(sessionId, workspacePath) {
+	async setLayout(sessionId, tileId, position = 0) {
 		return this.update({
-			action: 'pin',
+			action: 'setLayout',
 			sessionId,
-			workspacePath
+			tileId,
+			position
 		});
 	}
 
 	/**
-	 * Unpin a session (convenience method)
+	 * Remove session from layout (convenience method)
 	 * @param {string} sessionId
-	 * @param {string} workspacePath
 	 * @returns {Promise<{success: boolean}>}
 	 */
-	async unpin(sessionId, workspacePath) {
+	async removeLayout(sessionId) {
 		return this.update({
-			action: 'unpin',
-			sessionId,
-			workspacePath
+			action: 'removeLayout',
+			sessionId
 		});
+	}
+
+	// ===== LAYOUT MANAGEMENT =====
+
+	/**
+	 * Get current layout (all tile assignments)
+	 * @returns {Promise<{layout: Array}>}
+	 */
+	async getLayout() {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/sessions/layout`, {
+				method: 'GET',
+				headers: this.getHeaders()
+			});
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to get layout:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Set session layout via dedicated endpoint
+	 * @param {string} sessionId
+	 * @param {string} tileId
+	 * @param {number} position
+	 * @returns {Promise<{success: boolean}>}
+	 */
+	async setSessionLayout(sessionId, tileId, position = 0) {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/sessions/layout`, {
+				method: 'POST',
+				headers: this.getHeaders(),
+				body: JSON.stringify({ sessionId, tileId, position })
+			});
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to set layout:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Remove session from layout via dedicated endpoint
+	 * @param {string} sessionId
+	 * @returns {Promise<{success: boolean}>}
+	 */
+	async removeSessionLayout(sessionId) {
+		try {
+			const params = new URLSearchParams({ sessionId });
+			const response = await fetch(`${this.baseUrl}/api/sessions/layout?${params}`, {
+				method: 'DELETE',
+				headers: this.getHeaders()
+			});
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to remove layout:', error);
+			}
+			throw error;
+		}
 	}
 
 	/**

@@ -140,7 +140,7 @@ socket.emit('session.catchup', {
 ### ✅ Session panes maintain their association with the correct socket after reconnection
 
 - **Status:** VERIFIED
-- **Implementation:** SessionSocketManager tracks sockets by sessionId
+- **Implementation:** SessionSocketManager tracks sockets by workspacePath, with sessions mapped to workspaces
 - **Testing:** Multi-session scenarios with independent reconnections
 
 ### ✅ UI shows appropriate loading/reconnecting states

@@ -6,7 +6,7 @@ import { sanitizePath, isValidDirectory } from '$lib/server/utils/paths.js';
 import { logger } from '$lib/server/utils/logger.js';
 
 export async function GET({ locals }) {
-	const list = await locals.workspaceManager.list();
+	const list = await locals.services.workspaceManager.list();
 	return new Response(JSON.stringify({ list }), {
 		headers: { 'content-type': 'application/json' }
 	});
@@ -49,7 +49,7 @@ export async function POST({ request, locals }) {
 			try {
 				if (await isValidDirectory(fullPath)) {
 					logger.debug('WorkspaceAPI', `Opened workspace path: ${fullPath}`);
-					return new Response(JSON.stringify(await locals.workspaceManager.open(fullPath)), {
+					return new Response(JSON.stringify(await locals.services.workspaceManager.open(fullPath)), {
 						headers: { 'content-type': 'application/json' }
 					});
 				}
@@ -95,7 +95,7 @@ export async function POST({ request, locals }) {
 
 			logger.info('WorkspaceAPI', `Creating workspace at: ${targetPath}`);
 
-			return new Response(JSON.stringify(await locals.workspaceManager.create(targetPath)), {
+			return new Response(JSON.stringify(await locals.services.workspaceManager.create(targetPath)), {
 				headers: { 'content-type': 'application/json' }
 			});
 		}
@@ -117,7 +117,7 @@ export async function POST({ request, locals }) {
 				: pathModule.join(workspaceRoot, sanitizedTo);
 
 			logger.info('WorkspaceAPI', `Cloning workspace: ${fromPath} -> ${toPath}`);
-			return new Response(JSON.stringify(await locals.workspaceManager.clone(fromPath, toPath)), {
+			return new Response(JSON.stringify(await locals.services.workspaceManager.clone(fromPath, toPath)), {
 				headers: { 'content-type': 'application/json' }
 			});
 		}

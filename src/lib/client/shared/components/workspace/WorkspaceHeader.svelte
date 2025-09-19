@@ -12,15 +12,19 @@
 	import { IconLogout } from '@tabler/icons-svelte';
 
 	// Props
-	let { onLogout = () => {}, layoutViewModel = null } = $props();
+	let {
+		onLogout = () => {},
+		viewMode = 'window-manager',
+		onViewModeChange = () => {}
+	} = $props();
 </script>
 
 <header class="workspace-header">
 	<BrandLogo />
 
-	<div class="header-spacer"></div>
+	<LayoutControls viewMode={viewMode} onSelectView={onViewModeChange} />
 
-	<LayoutControls {layoutViewModel} />
+	<div class="header-spacer"></div>
 
 	<div class="header-actions">
 		<IconButton onclick={onLogout} aria-label="Logout">

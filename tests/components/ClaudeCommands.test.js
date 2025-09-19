@@ -30,7 +30,6 @@ describe('ClaudeCommands', () => {
 		const { container } = render(ClaudeCommands, {
 			props: {
 				socket: null,
-				workspacePath: '/test/workspace',
 				sessionId: 'test-session',
 				claudeSessionId: 'claude-123',
 				onCommandInsert: vi.fn()
@@ -46,7 +45,6 @@ describe('ClaudeCommands', () => {
 		const { container } = render(ClaudeCommands, {
 			props: {
 				socket: null,
-				workspacePath: '/test/workspace',
 				sessionId: 'test-session',
 				onCommandInsert: vi.fn()
 			}
@@ -60,7 +58,6 @@ describe('ClaudeCommands', () => {
 		const { container } = render(ClaudeCommands, {
 			props: {
 				socket: null,
-				workspacePath: '/test/workspace',
 				sessionId: 'test-session',
 				onCommandInsert: vi.fn(),
 				disabled: true
@@ -84,7 +81,6 @@ describe('ClaudeCommands', () => {
 		const component = render(ClaudeCommands, {
 			props: {
 				socket: mockSocket,
-				workspacePath: '/test/workspace',
 				sessionId: 'app-session-123',
 				claudeSessionId: 'claude-456',
 				onCommandInsert: vi.fn()
@@ -121,7 +117,6 @@ describe('ClaudeCommands', () => {
 		const component = render(ClaudeCommands, {
 			props: {
 				socket: mockSocket,
-				workspacePath: '/test/workspace',
 				sessionId: 'app-session-123',
 				claudeSessionId: 'claude-456',
 				onCommandInsert: vi.fn()
@@ -158,7 +153,6 @@ describe('ClaudeCommands', () => {
 		const component = render(ClaudeCommands, {
 			props: {
 				socket: mockSocket,
-				workspacePath: '/test/workspace',
 				sessionId: 'app-session-123',
 				claudeSessionId: 'claude-456',
 				onCommandInsert: vi.fn()

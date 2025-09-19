@@ -3,9 +3,11 @@
  * GET /api/sockets - Returns list of active socket connections
  */
 
+import { getActiveSocketIO } from '$lib/server/socket-setup.js';
+
 export async function GET({ url, locals }) {
 	try {
-		const io = locals?.serviceContainer?.getSocketIO?.() || null;
+		const io = getActiveSocketIO();
 
 		if (!io) {
 			return new Response(

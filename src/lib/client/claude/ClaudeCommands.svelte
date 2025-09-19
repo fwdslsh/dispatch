@@ -8,7 +8,6 @@
 
 	let {
 		socket = null,
-		workspacePath = '',
 		sessionId = '',
 		claudeSessionId = null,
 		onCommandInsert = () => {},
@@ -170,9 +169,9 @@
 		}
 
 		// Check cache if no commands found yet
-		if (newCommands.length === 0 && workspacePath) {
+		if (newCommands.length === 0 && sessionId) {
 			try {
-				const cached = localStorage.getItem(`claude-commands-${workspacePath}`);
+				const cached = localStorage.getItem(`claude-commands-${sessionId}`);
 				if (cached) {
 					const cachedCommands = JSON.parse(cached) || [];
 					newCommands.push(...cachedCommands);
@@ -193,10 +192,10 @@
 		if (!commandsEqual(availableCommands, deduped)) {
 			availableCommands = deduped;
 			// Cache the results when we update
-			if (workspacePath && availableCommands.length > 0) {
+			if (sessionId && availableCommands.length > 0) {
 				try {
 					localStorage.setItem(
-						`claude-commands-${workspacePath}`,
+						`claude-commands-${sessionId}`,
 						JSON.stringify(availableCommands)
 					);
 				} catch (error) {
@@ -272,10 +271,10 @@
 					);
 					console.log('[ClaudeCommands] Final availableCommands state:', availableCommands);
 					// Cache commands when updated
-					if (workspacePath) {
+					if (sessionId) {
 						try {
 							localStorage.setItem(
-								`claude-commands-${workspacePath}`,
+								`claude-commands-${sessionId}`,
 								JSON.stringify(availableCommands)
 							);
 						} catch (error) {
@@ -374,7 +373,7 @@
 
 	// // Update commands when workspace changes
 	// $effect(() => {
-	// 	if (workspacePath) {
+	// 	if (sessionId) {
 	// 		updateAvailableCommands(lastParsedMessages);
 	// 	}
 	// });
@@ -422,10 +421,10 @@
 								});
 								if (!commandsEqual(availableCommands, normalized)) {
 									availableCommands = normalized;
-									if (workspacePath) {
+									if (sessionId) {
 										try {
 											localStorage.setItem(
-												`claude-commands-${workspacePath}`,
+												`claude-commands-${sessionId}`,
 												JSON.stringify(availableCommands)
 											);
 										} catch (error) {
@@ -467,9 +466,9 @@
 		},
 		getCommands: () => availableCommands,
 		clearCache: () => {
-			if (workspacePath) {
+			if (sessionId) {
 				try {
-					localStorage.removeItem(`claude-commands-${workspacePath}`);
+					localStorage.removeItem(`claude-commands-${sessionId}`);
 					if (!(Array.isArray(availableCommands) && availableCommands.length === 0)) {
 						availableCommands = [];
 					}

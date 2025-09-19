@@ -19,9 +19,7 @@ export class WorkspaceState {
 
 		// Derived state
 		this.hasWorkspaces = $derived(this.workspaces.length > 0);
-		this.claudeProjects = $derived.by(() =>
-			this.workspaces.filter(w => w.isClaudeProject)
-		);
+		this.claudeProjects = $derived.by(() => this.workspaces.filter((w) => w.isClaudeProject));
 	}
 
 	// Workspace operations
@@ -38,20 +36,20 @@ export class WorkspaceState {
 	}
 
 	addWorkspace(workspace) {
-		if (!this.workspaces.find(w => w.path === workspace.path)) {
+		if (!this.workspaces.find((w) => w.path === workspace.path)) {
 			this.workspaces.push(workspace);
 		}
 	}
 
 	updateWorkspace(path, updates) {
-		const index = this.workspaces.findIndex(w => w.path === path);
+		const index = this.workspaces.findIndex((w) => w.path === path);
 		if (index >= 0) {
 			this.workspaces[index] = { ...this.workspaces[index], ...updates };
 		}
 	}
 
 	removeWorkspace(path) {
-		this.workspaces = this.workspaces.filter(w => w.path !== path);
+		this.workspaces = this.workspaces.filter((w) => w.path !== path);
 		if (this.selectedWorkspace === path) {
 			this.selectedWorkspace = null;
 		}
@@ -59,7 +57,7 @@ export class WorkspaceState {
 
 	// Query methods
 	getWorkspace(path) {
-		return this.workspaces.find(w => w.path === path) || null;
+		return this.workspaces.find((w) => w.path === path) || null;
 	}
 
 	// Loading and error state

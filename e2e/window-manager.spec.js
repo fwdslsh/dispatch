@@ -38,7 +38,9 @@ test.describe('WindowManager Session Management', () => {
 				console.log('✓ Clicked + button in status bar');
 			} else {
 				// Method 3: Try buttons in empty tiles
-				const tileButton = page.locator(`.empty-tile button:has-text("${type === 'terminal' ? 'Terminal' : 'Claude'}")`).first();
+				const tileButton = page
+					.locator(`.empty-tile button:has-text("${type === 'terminal' ? 'Terminal' : 'Claude'}")`)
+					.first();
 				if (await tileButton.isVisible({ timeout: 1000 }).catch(() => false)) {
 					await tileButton.click();
 					console.log(`✓ Clicked ${type} button in empty tile`);
@@ -54,7 +56,9 @@ test.describe('WindowManager Session Management', () => {
 			console.log('✓ Modal appeared');
 
 			// Select session type if needed
-			const typeButton = page.locator(`button:has-text("${type === 'terminal' ? 'Terminal' : 'Claude'}")`).first();
+			const typeButton = page
+				.locator(`button:has-text("${type === 'terminal' ? 'Terminal' : 'Claude'}")`)
+				.first();
 			if (await typeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
 				await typeButton.click();
 				console.log(`✓ Selected ${type} session type`);
@@ -62,7 +66,9 @@ test.describe('WindowManager Session Management', () => {
 
 			// Enter session name if provided
 			if (name) {
-				const nameInput = page.locator('input[placeholder*="name"], input[placeholder*="Name"]').first();
+				const nameInput = page
+					.locator('input[placeholder*="name"], input[placeholder*="Name"]')
+					.first();
 				if (await nameInput.isVisible({ timeout: 1000 }).catch(() => false)) {
 					await nameInput.fill(name);
 					console.log(`✓ Entered session name: ${name}`);
@@ -70,7 +76,9 @@ test.describe('WindowManager Session Management', () => {
 			}
 
 			// Create the session
-			const createButton = page.locator('button:has-text("Create"), button:has-text("Start")').first();
+			const createButton = page
+				.locator('button:has-text("Create"), button:has-text("Start")')
+				.first();
 			await createButton.click();
 			console.log('✓ Clicked create button in modal');
 		}
@@ -232,13 +240,17 @@ test.describe('WindowManager Session Management', () => {
 		console.log('✓ Page reloaded');
 
 		// Check if we need to resume sessions
-		const sessionMenu = page.locator('[aria-label*="session"], button:has-text("Sessions")').first();
+		const sessionMenu = page
+			.locator('[aria-label*="session"], button:has-text("Sessions")')
+			.first();
 		if (await sessionMenu.isVisible({ timeout: 2000 }).catch(() => false)) {
 			await sessionMenu.click();
 			console.log('✓ Opened session menu');
 
 			// Look for resume option
-			const resumeButton = page.locator('button:has-text("Resume"), button:has-text("Open")').first();
+			const resumeButton = page
+				.locator('button:has-text("Resume"), button:has-text("Open")')
+				.first();
 			if (await resumeButton.isVisible({ timeout: 2000 }).catch(() => false)) {
 				await resumeButton.click();
 				console.log('✓ Clicked resume button');
@@ -371,7 +383,9 @@ test.describe('WindowManager Error Handling', () => {
 		for (let i = 0; i < attempts; i++) {
 			try {
 				// Try to create session without waiting
-				const createButton = page.locator('button:has-text("Terminal"), button:has-text("Claude")').first();
+				const createButton = page
+					.locator('button:has-text("Terminal"), button:has-text("Claude")')
+					.first();
 				if (await createButton.isVisible({ timeout: 500 }).catch(() => false)) {
 					await createButton.click();
 					successCount++;

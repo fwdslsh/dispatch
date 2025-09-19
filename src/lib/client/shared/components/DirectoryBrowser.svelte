@@ -12,10 +12,11 @@
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import IconButton from './IconButton.svelte';
 	import Input from './Input.svelte';
+	import { onMount } from 'svelte';
 
 	// Svelte 5 Directory Browser Component
 	let {
-		selected = $bindable(), // selected directory path
+		selected = $bindable('./'), // selected directory path
 		api = '/api/browse',
 		startPath = '.',
 		placeholder = 'Browse directories...',
@@ -53,6 +54,10 @@
 	let newDirName = $state('');
 	let creatingDir = $state(false);
 	let triedFallback = $state(false);
+	let isOpen = $state(false);
+	let displaySelection = $derived.by(() =>
+		selected && String(selected).trim() ? selected : placeholder
+	);
 
 	// Parse path into breadcrumbs
 	function updateBreadcrumbs(path) {
@@ -74,7 +79,7 @@
 			if (path !== null && path !== undefined) {
 				params.set('path', path);
 			}
-			
+
 			const res = await fetch(`${api}?${params}`);
 			if (!res.ok) {
 				const text = await res.text();
@@ -84,6 +89,10 @@
 			currentPath = data.path || path;
 			entries = data.entries || [];
 			updateBreadcrumbs(currentPath);
+			if (!selected) {
+				selected = currentPath;
+				onSelect?.(currentPath);
+			}
 			filter();
 		} catch (e) {
 			error = e.message || String(e);
@@ -112,6 +121,7 @@
 	function selectDirectory(path) {
 		selected = path;
 		onSelect?.(path);
+		isOpen = false;
 	}
 
 	function selectCurrent() {
@@ -190,7 +200,7 @@
 	});
 
 	// Auto-select the default directory if no selection has been made
-	$effect(() => {
+	onMount(() => {
 		if (currentPath && !selected && entries.length > 0) {
 			selected = currentPath;
 			onSelect?.(currentPath);
@@ -203,9 +213,20 @@
 	});
 </script>
 
-<div class="directory-browser">
+{#if !isOpen}
+	<button
+		type="button"
+		class="directory-summary"
+		onclick={() => (isOpen = true)}
+		aria-expanded={isOpen}
+	>
+		<span class="summary-icon"><IconFolder size={18} /></span>
+		<span class="summary-text">{displaySelection}</span>
+	</button>
+{:else}
+	<div class="directory-browser">
 	<!-- Breadcrumb navigation -->
-	<div class="breadcrumb-bar" aria-label="Breadcrumbs">
+	<div class="breadcrumb-bar" class:selected={selected > ''} aria-label="Breadcrumbs">
 		<div class="breadcrumbs">
 			{#each breadcrumbs as crumb, i}
 				{#if i > 0}
@@ -221,34 +242,20 @@
 				</button>
 			{/each}
 		</div>
-		<!-- <div class="breadcrumb-actions">
-			<Button
+		<div class="breadcrumb-actions">
+			<IconButton
 				type="button"
-				class="action-btn"
-				onclick={toggleNewDirInput}
-				title="Create new directory"
-				active={showNewDirInput}
+				onclick={() => (isOpen = false)}
+				title="Close directory browser"
+				variant="ghost"
 			>
-				<IconFolderPlus size={16} />
-			</Button>
-			<Button
-				type="button"
-				class="action-btn"
-				onclick={toggleHidden}
-				title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
-				active={showHidden}
-			>
-				{#if showHidden}
-					<IconEye size={16} />
-				{:else}
-					<IconEyeOff size={16} />
-				{/if}
-			</Button>
-		</div> -->
+				<IconX size={16} />
+			</IconButton>
+		</div>
 	</div>
 
 	<!-- Selected path display -->
-	{#if selected}
+	<!-- {#if selected}
 		<div class="selected-display">
 			<span class="selected-label">Selected:</span>
 			<span class="selected-path">{selected}</span>
@@ -262,7 +269,7 @@
 				<IconX size={16} />
 			</IconButton>
 		</div>
-	{/if}
+	{/if} -->
 	<!-- Search bar -->
 	<div class="search-bar">
 		<Input type="text" bind:value={query} {placeholder} disabled={loading} class="search-input" />
@@ -387,8 +394,59 @@
 		{/if}
 	</div>
 </div>
+{/if}
 
 <style>
+	.directory-summary {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		height: 44px;
+		width: 100%;
+		padding: 0 calc(var(--space-3) * 1.1);
+		border-radius: 10px;
+		border: 1px solid var(--db-border-subtle);
+		background:
+			linear-gradient(135deg, rgba(15, 25, 20, 0.35) 0%, rgba(10, 20, 15, 0.2) 100%),
+			linear-gradient(180deg, rgba(46, 230, 107, 0.05) 0%, transparent 100%);
+		color: var(--db-text-secondary);
+		font-family: var(--font-mono);
+		font-size: calc(var(--font-size-1) * 0.95);
+		cursor: pointer;
+		transition: all var(--db-transition-fast);
+		box-shadow:
+			var(--db-shadow-sm),
+			inset 0 1px 2px rgba(46, 230, 107, 0.08);
+	}
+
+	.directory-summary:hover {
+		transform: translateY(-1px);
+		box-shadow:
+			0 4px 12px rgba(0, 0, 0, 0.25),
+			inset 0 1px 3px rgba(46, 230, 107, 0.12);
+		border-color: rgba(46, 230, 107, 0.35);
+	}
+
+	.directory-summary:focus-visible {
+		outline: 2px solid var(--db-primary);
+		outline-offset: 2px;
+	}
+
+	.summary-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--db-primary);
+	}
+
+	.summary-text {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		text-align: left;
+	}
+
 	.directory-browser {
 		display: flex;
 		flex-direction: column;
@@ -408,6 +466,12 @@
 			inset 0 2px 4px rgba(46, 230, 107, 0.05),
 			inset 0 -1px 2px rgba(0, 0, 0, 0.5);
 		transition: all var(--db-transition-smooth);
+	}
+
+	.breadcrumb-actions {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
 	}
 
 	.directory-browser::before {
@@ -464,6 +528,16 @@
 		opacity: 0.5;
 	}
 
+	.breadcrumb-bar.selected::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 1px;
+		background: linear-gradient(90deg, transparent, var(--db-primary-glow), transparent);
+		opacity: 0.5;
+	}
 	.breadcrumbs {
 		display: flex;
 		align-items: center;

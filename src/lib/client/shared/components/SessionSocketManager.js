@@ -2,51 +2,51 @@ import { io } from 'socket.io-client';
 import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 
 /**
- * @typedef {Object} SocketMetadata
- * @property {string} sessionId - Session identifier
- * @property {boolean} isActive - Whether socket is active
- */
-
-/**
- * SessionSocketManager - Manages socket connections per session pane
- * Ensures each session pane has its own socket context and proper cleanup
+ * SessionSocketManager - Simplified socket management with single shared connection
+ * All sessions use the same socket connection with session-based message routing
  */
 class SessionSocketManager {
 	constructor() {
-		this.sockets = new Map(); // sessionId -> socket instance
-		this.socketMetadata = new WeakMap(); // socket -> SocketMetadata
-		this.activeSession = null;
+		this.socket = null; // Single shared socket
+		this.activeSessions = new Set(); // Set of active session IDs
+		this.activeSession = null; // Currently focused session
 		this.lastMessageTimestamps = new Map(); // sessionId -> timestamp
 		this.historyLoadPromises = new Map(); // sessionId -> Promise
+		this._isConnected = false;
+		this._isConnecting = false;
 	}
 
 	/**
-	 * Get or create a socket connection for a specific session
-	 * @param {string} sessionId - The session identifier
-	 * @param {Object} options - Socket connection options
+	 * Get the shared socket connection, creating it if necessary
+	 * Automatically associates the session with the socket
+	 * @param {string} sessionId - The session identifier to associate
+	 * @param {Object} [options] - Socket connection options (only used for initial creation)
 	 * @returns {import('socket.io-client').Socket} Socket.IO client instance
 	 */
 	getSocket(sessionId, options = {}) {
-		if (this.sockets.has(sessionId)) {
-			const existingSocket = this.sockets.get(sessionId);
-			// If we're getting an existing socket for an active session,
-			// ensure it's connected or reconnecting
-			if (!existingSocket.connected && !existingSocket.connecting) {
-				console.log(`Existing socket for session ${sessionId} is disconnected, reconnecting...`);
-				existingSocket.connect();
+		console.log(`Getting socket for session: ${sessionId}`);
+
+		// Associate this session with the socket
+		this.activeSessions.add(sessionId);
+
+		// If we already have a socket, return it
+		if (this.socket) {
+			console.log(`Using existing shared socket for session ${sessionId}`);
+
+			// Ensure socket is connected
+			if (!this.socket.connected && !this._isConnecting) {
+				console.log(`Shared socket is disconnected, reconnecting...`);
+				this.socket.connect();
 			}
-			return existingSocket;
+			return this.socket;
 		}
 
-		console.log(`Creating new socket for session: ${sessionId}`);
-		const socket = io({
+		// Create the shared socket
+		console.log(`Creating shared socket (first session: ${sessionId})`);
+		this.socket = io({
 			...options,
-			// Add session context to socket
-			query: {
-				sessionId,
-				...options.query
-			},
-			// Ensure immediate connection for active sessions
+			// No need to pass sessionId in query since we'll send it with messages
+			// Ensure immediate connection
 			autoConnect: true,
 			// Reconnection settings for better resilience
 			reconnection: true,
@@ -55,50 +55,52 @@ class SessionSocketManager {
 			reconnectionDelayMax: 5000
 		});
 
-		// Track metadata using WeakMap instead of attaching to socket
-		this.socketMetadata.set(socket, {
-			sessionId,
-			isActive: false
-		});
+		// Set up socket event handlers once
+		this._setupSocketHandlers();
 
-		socket.on(SOCKET_EVENTS.CONNECTION, () => {
-			console.log(`Socket connected for session ${sessionId}`);
-			const metadata = this.socketMetadata.get(socket);
-			if (metadata) {
-				metadata.isActive = true;
-			}
-		});
-
-		socket.on(SOCKET_EVENTS.DISCONNECT, (reason) => {
-			console.log(`Socket disconnected for session ${sessionId}:`, reason);
-			const metadata = this.socketMetadata.get(socket);
-			if (metadata) {
-				metadata.isActive = false;
-			}
-		});
-
-		socket.on(SOCKET_EVENTS.ERROR, (error) => {
-			console.error(`Socket error for session ${sessionId}:`, error);
-		});
-
-		// Add reconnection attempt handler
-		socket.on(SOCKET_EVENTS.RECONNECT_ATTEMPT, (attemptNumber) => {
-			console.log(`Socket reconnection attempt ${attemptNumber} for session ${sessionId}`);
-		});
-
-		socket.on(SOCKET_EVENTS.RECONNECT, (attemptNumber) => {
-			console.log(
-				`Socket successfully reconnected for session ${sessionId} after ${attemptNumber} attempts`
-			);
-			const metadata = this.socketMetadata.get(socket);
-			if (metadata) {
-				metadata.isActive = true;
-			}
-		});
-
-		this.sockets.set(sessionId, socket);
-		return socket;
+		return this.socket;
 	}
+
+	/**
+	 * Set up socket event handlers for the shared connection
+	 * @private
+	 */
+	_setupSocketHandlers() {
+		if (!this.socket) return;
+
+		this.socket.on(SOCKET_EVENTS.CONNECTION, () => {
+			console.log('Shared socket connected');
+			this._isConnected = true;
+			this._isConnecting = false;
+		});
+
+		this.socket.on(SOCKET_EVENTS.DISCONNECT, (reason) => {
+			console.log('Shared socket disconnected:', reason);
+			this._isConnected = false;
+			this._isConnecting = false;
+		});
+
+		this.socket.on(SOCKET_EVENTS.ERROR, (error) => {
+			console.error('Shared socket error:', error);
+		});
+
+		this.socket.on('connecting', () => {
+			console.log('Shared socket connecting...');
+			this._isConnecting = true;
+		});
+
+		this.socket.on(SOCKET_EVENTS.RECONNECT_ATTEMPT, (attemptNumber) => {
+			console.log(`Shared socket reconnection attempt ${attemptNumber}`);
+			this._isConnecting = true;
+		});
+
+		this.socket.on(SOCKET_EVENTS.RECONNECT, (attemptNumber) => {
+			console.log(`Shared socket successfully reconnected after ${attemptNumber} attempts`);
+			this._isConnected = true;
+			this._isConnecting = false;
+		});
+	}
+
 
 	/**
 	 * Set the active session - this helps with UI focus management
@@ -120,74 +122,66 @@ class SessionSocketManager {
 	}
 
 	/**
-	 * Disconnect and cleanup a specific session socket
-	 * @param {string} sessionId - The session to cleanup
+	 * Remove a session from the active sessions set
+	 * If no sessions remain, disconnect the shared socket
+	 * @param {string} sessionId - The session to remove
 	 */
 	disconnectSession(sessionId) {
-		const socket = this.sockets.get(sessionId);
-		if (socket) {
-			console.log(`Disconnecting socket for session: ${sessionId}`);
-			socket.removeAllListeners();
-			socket.disconnect();
-			this.sockets.delete(sessionId);
-		}
+		console.log(`Removing session ${sessionId} from active sessions`);
+
+		this.activeSessions.delete(sessionId);
 
 		if (this.activeSession === sessionId) {
 			this.activeSession = null;
 		}
+
+		// If no sessions remain, disconnect the shared socket
+		if (this.activeSessions.size === 0 && this.socket) {
+			console.log('No active sessions remain, disconnecting shared socket');
+			this.socket.removeAllListeners();
+			this.socket.disconnect();
+			this.socket = null;
+			this._isConnected = false;
+			this._isConnecting = false;
+		}
 	}
 
 	/**
-	 * Cleanup all socket connections
+	 * Cleanup all sessions and disconnect the shared socket
 	 */
 	disconnectAll() {
-		console.log('Disconnecting all session sockets');
-		for (const [sessionId, socket] of this.sockets.entries()) {
-			socket.removeAllListeners();
-			socket.disconnect();
-		}
-		this.sockets.clear();
+		console.log('Disconnecting all sessions and shared socket');
+		this.activeSessions.clear();
 		this.activeSession = null;
+
+		if (this.socket) {
+			this.socket.removeAllListeners();
+			this.socket.disconnect();
+			this.socket = null;
+			this._isConnected = false;
+			this._isConnecting = false;
+		}
 	}
 
 	/**
-	 * Check if a session has an active socket connection
+	 * Check if a session has access to the shared socket connection
 	 * @param {string} sessionId - The session to check
-	 * @returns {boolean} True if socket is connected
+	 * @returns {boolean} True if socket is connected and session is active
 	 */
 	isConnected(sessionId) {
-		const socket = this.sockets.get(sessionId);
-		if (!socket) return false;
-
-		const metadata = this.socketMetadata.get(socket);
-		return socket.connected && (metadata ? metadata.isActive : false);
+		return this.activeSessions.has(sessionId) && this._isConnected;
 	}
 
 	/**
-	 * Get connection status for all sessions
-	 * @returns {Object} Map of sessionId to connection status
-	 */
-	getConnectionStatus() {
-		const status = {};
-		for (const [sessionId, socket] of this.sockets.entries()) {
-			const metadata = this.socketMetadata.get(socket);
-			status[sessionId] = {
-				connected: metadata ? metadata.isActive : false,
-				id: socket.id
-			};
-		}
-		return status;
-	}
-
-	/**
-	 * Reconnect a specific session socket
-	 * @param {string} sessionId - The session to reconnect
+	 * Reconnect the shared socket (affects all sessions)
+	 * @param {string} sessionId - The session requesting reconnection (for logging)
 	 */
 	reconnectSession(sessionId) {
-		const socket = this.sockets.get(sessionId);
-		if (socket) {
-			console.log(`Reconnecting socket for session: ${sessionId}`);
-			socket.connect();
+		if (this.socket) {
+			console.log(`Reconnecting shared socket (requested by session ${sessionId})`);
+			this.socket.connect();
+		} else {
+			console.log(`No shared socket exists, session ${sessionId} may need to call getSocket()`);
 		}
 	}
 
@@ -199,29 +193,30 @@ class SessionSocketManager {
 		const wasActiveSession = this.activeSession === sessionId;
 		this.setActiveSession(sessionId);
 
+		// Ensure session is registered
+		this.activeSessions.add(sessionId);
+
 		// Only do socket work if this is a new active session
 		if (!wasActiveSession) {
-			// Ensure socket is connected
-			const socket = this.sockets.get(sessionId);
-			if (socket) {
-				if (!socket.connected && !socket.connecting) {
-					console.log(
-						`Session ${sessionId} gained focus but socket is disconnected, reconnecting...`
-					);
+			// Ensure shared socket is connected
+			if (this.socket) {
+				if (!this._isConnected && !this._isConnecting) {
+					console.log(`Session ${sessionId} gained focus but socket is disconnected, reconnecting...`);
 					this.reconnectSession(sessionId);
-				} else if (socket.connected) {
+				} else if (this._isConnected) {
 					console.log(`Session ${sessionId} gained focus and socket is already connected`);
 					// Emit a catch-up event to request any missed messages
-					// This is useful for active sessions that might have been processing
 					const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-					socket.emit(SOCKET_EVENTS.SESSION_CATCHUP, {
+					this.socket.emit(SOCKET_EVENTS.SESSION_CATCHUP, {
 						key,
 						sessionId,
 						timestamp: Date.now()
 					});
-				} else if (socket.connecting) {
+				} else if (this._isConnecting) {
 					console.log(`Session ${sessionId} gained focus and socket is connecting...`);
 				}
+			} else {
+				console.log(`No socket exists for session ${sessionId} - will be created when needed`);
 			}
 		}
 	}
@@ -232,11 +227,10 @@ class SessionSocketManager {
 	 * @returns {Promise<boolean>} True if there might be pending messages
 	 */
 	async checkForPendingMessages(sessionId) {
-		const socket = this.sockets.get(sessionId);
-		if (socket && socket.connected) {
+		if (this.socket && this._isConnected) {
 			return new Promise((resolve) => {
 				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-				socket.emit(SOCKET_EVENTS.SESSION_STATUS, { key, sessionId }, (response) => {
+				this.socket.emit(SOCKET_EVENTS.SESSION_STATUS, { key, sessionId }, (response) => {
 					resolve(response?.hasPendingMessages || false);
 				});
 			});
@@ -257,9 +251,8 @@ class SessionSocketManager {
 			return this.historyLoadPromises.get(sessionId);
 		}
 
-		const socket = this.sockets.get(sessionId);
-		if (!socket || !socket.connected) {
-			console.warn(`Cannot load history for session ${sessionId}: socket not connected`);
+		if (!this.socket || !this._isConnected) {
+			console.warn(`Cannot load history for session ${sessionId}: shared socket not connected`);
 			return [];
 		}
 
@@ -276,7 +269,7 @@ class SessionSocketManager {
 			}, 10000);
 
 			// Request buffered messages from server
-			socket.emit(
+			this.socket.emit(
 				SOCKET_EVENTS.SESSION_HISTORY_LOAD,
 				{
 					key,
@@ -297,7 +290,7 @@ class SessionSocketManager {
 						if (response?.messages && response.messages.length > 0) {
 							const lastMsg = response.messages[response.messages.length - 1];
 							if (lastMsg.timestamp) {
-								this.updateLastMessageTimestamp(sessionId, lastMsg.timestamp);
+								this.updateLastTimestamp(sessionId, lastMsg.timestamp);
 							}
 						}
 						resolve(response?.messages || []);
@@ -329,22 +322,35 @@ class SessionSocketManager {
 	}
 
 	/**
-	 * Alias for updateLastTimestamp for backward compatibility
-	 * @param {string} sessionId - The session ID
-	 * @param {number} timestamp - The timestamp to update
+	 * Automatically associate a session with the shared socket
+	 * Creates the socket if it doesn't exist
+	 * @param {string} sessionId - The session to register
+	 * @param {Object} [options] - Socket options (only used if creating new socket)
+	 * @returns {import('socket.io-client').Socket} The shared socket instance
 	 */
-	updateLastMessageTimestamp(sessionId, timestamp) {
-		this.updateLastTimestamp(sessionId, timestamp);
+	registerSession(sessionId, options = {}) {
+		console.log(`Registering session ${sessionId} with socket manager`);
+
+		// This is the same as getSocket but with a clearer name for automatic registration
+		return this.getSocket(sessionId, options);
 	}
 
 	/**
-	 * Clear history loading state for a session
-	 * @param {string} sessionId - The session ID
+	 * Get all currently active session IDs
+	 * @returns {Set<string>} Set of active session IDs
 	 */
-	clearHistoryLoadState(sessionId) {
-		this.historyLoadPromises.delete(sessionId);
-		this.lastMessageTimestamps.delete(sessionId);
+	getActiveSessions() {
+		return new Set(this.activeSessions);
 	}
+
+	/**
+	 * Check if the shared socket exists and is connected
+	 * @returns {boolean} True if socket is connected
+	 */
+	isSocketConnected() {
+		return this.socket && this._isConnected;
+	}
+
 }
 
 // Create global singleton instance

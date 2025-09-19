@@ -30,11 +30,15 @@ test.describe('Simple Session Creation Test', () => {
 			console.log(`✓ Empty tiles: ${emptyTiles}`);
 
 			// Look for terminal buttons
-			const terminalButtons = await page.locator('.empty-tile .create-session-btn:has-text("Terminal")').count();
+			const terminalButtons = await page
+				.locator('.empty-tile .create-session-btn:has-text("Terminal")')
+				.count();
 			console.log(`✓ Terminal buttons: ${terminalButtons}`);
 
 			// Look for Claude buttons
-			const claudeButtons = await page.locator('.empty-tile .create-session-btn:has-text("Claude")').count();
+			const claudeButtons = await page
+				.locator('.empty-tile .create-session-btn:has-text("Claude")')
+				.count();
 			console.log(`✓ Claude buttons: ${claudeButtons}`);
 
 			// Look for error tiles
