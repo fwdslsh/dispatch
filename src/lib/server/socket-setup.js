@@ -186,8 +186,7 @@ io.on('connection', async (socket) => {
 				workspacePath: data.workspacePath || '/tmp',
 				shell: data.shell,
 				env: data.env,
-				appSessionId,
-				socket
+				appSessionId
 			});
 			logger.info('SOCKET', `Terminal session created: ${session.id} (app session: ${appSessionId})`);
 			if (callback) callback({ success: true, id: appSessionId, typeSpecificId: session.id });

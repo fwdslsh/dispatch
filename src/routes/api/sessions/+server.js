@@ -32,7 +32,6 @@ export async function GET({ url, locals }) {
 			type: 'pty',
 			sessionType: 'pty',
 			title: terminal.title || 'Terminal',
-			workingDirectory: terminal.workspacePath,
 			isActive: true,
 			inLayout: existing ? existing.inLayout : false
 		});
@@ -48,7 +47,6 @@ export async function GET({ url, locals }) {
 			type: 'claude',
 			sessionType: 'claude',
 			title: claude.title || 'Claude',
-			workingDirectory: claude.workspacePath,
 			isActive: true,
 			inLayout: existing ? existing.inLayout : false
 		});
@@ -84,8 +82,6 @@ export async function POST({ request, locals }) {
 				workspacePath: workspacePath || '/tmp',
 				shell: options?.shell,
 				env: options?.env,
-				resume: resume || false,
-				terminalId: options?.terminalId,
 				appSessionId
 			});
 
