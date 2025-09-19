@@ -12,7 +12,6 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import sessionSocketManager from '../components/SessionSocketManager.js';
 
 const log = createLogger('session:viewmodel');
 
@@ -98,9 +97,11 @@ export class SessionViewModel {
 
 			const result = await this.sessionApi.list(requestOptions);
 			log.info('Loaded sessions from API', result.sessions?.length || 0);
+			console.log('[SessionViewModel] Raw API response:', result.sessions);
 
 			// Validate and normalize sessions
 			const validatedSessions = this.validateAndNormalizeSessions(result.sessions || []);
+			console.log('[SessionViewModel] Validated sessions:', validatedSessions);
 
 			// Sessions now manage their own socket connections
 			// No need to register with socket manager
@@ -154,7 +155,7 @@ export class SessionViewModel {
 			log.info('Session created successfully', newSession.id);
 
 			// Automatically register session with socket manager
-			sessionSocketManager.registerSession(newSession.id);
+			// Socket registration handled automatically by RunSessionClient when attaching
 
 			// Add session to AppState
 			this.appStateManager.createSession(newSession);
@@ -272,7 +273,13 @@ export class SessionViewModel {
 		}
 
 		try {
-			await this.sessionApi.setLayout(sessionId, tileId, position);
+			// Get the actual clientId from localStorage (same as RunSessionClient)
+			const clientId = localStorage.getItem('clientId') || crypto.randomUUID();
+			if (!localStorage.getItem('clientId')) {
+				localStorage.setItem('clientId', clientId);
+			}
+
+			await this.sessionApi.setLayout(sessionId, tileId, position, clientId);
 
 			// Update session in state via AppStateManager
 			const updatedSession = { ...session, inLayout: true, tileId, position };
@@ -327,7 +334,7 @@ export class SessionViewModel {
 
 			// Dispatch session removal to AppStateManager
 			// Cleanup socket manager registration
-			sessionSocketManager.disconnectSession(sessionId);
+			// Socket cleanup handled automatically by RunSessionClient when detaching
 			this.appStateManager.removeSession(sessionId);
 
 			log.info('Session closed successfully', sessionId);
@@ -374,8 +381,7 @@ export class SessionViewModel {
 			activityState: 'idle'
 		};
 
-		// Automatically register session with socket manager
-		sessionSocketManager.registerSession(newSession.id);
+		// RunSessionClient handles session registration automatically
 
 		// Dispatch session creation to AppStateManager
 		this.appStateManager.createSession(newSession);
@@ -436,7 +442,7 @@ export class SessionViewModel {
 			const resumedSession = this.validateAndNormalizeSession(result);
 
 			// Automatically register resumed session with socket manager
-			sessionSocketManager.registerSession(sessionId);
+			// Socket registration handled automatically by RunSessionClient when attaching
 
 			// Dispatch session update to AppStateManager
 			this.appStateManager.sessions.updateSession(sessionId, { ...resumedSession, isActive: true });

@@ -1,10 +1,7 @@
 // See https://kit.svelte.dev/docs/types#app
 // for information about these interfaces
 import type { DatabaseManager } from '$lib/server/db/DatabaseManager';
-import type { WorkspaceManager } from '$lib/server/core/WorkspaceManager';
-import type { SessionRegistry } from '$lib/server/core/SessionRegistry';
-import type { TerminalManager } from '$lib/server/terminals/TerminalManager';
-import type { ClaudeSessionManager } from '$lib/server/claude/ClaudeSessionManager';
+import type { RunSessionManager } from '$lib/server/runtime/RunSessionManager';
 import type { ClaudeAuthManager } from '$lib/server/claude/ClaudeAuthManager';
 
 declare global {
@@ -13,10 +10,7 @@ declare global {
 		interface Locals {
 			services: {
 				database: DatabaseManager;
-				workspaceManager: WorkspaceManager;
-				sessionRegistry: SessionRegistry;
-				terminalManager: TerminalManager;
-				claudeSessionManager: ClaudeSessionManager;
+				runSessionManager: RunSessionManager;
 				claudeAuthManager: ClaudeAuthManager;
 			};
 		}

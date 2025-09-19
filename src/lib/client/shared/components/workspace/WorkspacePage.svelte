@@ -5,7 +5,7 @@
 
 	// Services and ViewModels
 	import { provideServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
-	import { WorkspaceViewModel } from '$lib/client/shared/viewmodels/WorkspaceViewModel.svelte.js';
+	// WorkspaceViewModel removed - obsolete in unified architecture
 	import { LayoutViewModel } from '$lib/client/shared/viewmodels/LayoutViewModel.svelte.js';
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
 
@@ -24,8 +24,7 @@
 	import PWAInstallPrompt from '$lib/client/shared/components/PWAInstallPrompt.svelte';
 	import PWAUpdateNotification from '$lib/client/shared/components/PWAUpdateNotification.svelte';
 
-	// Session socket manager
-	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager.js';
+	// SessionSocketManager removed - RunSessionClient now handles socket management automatically
 
 	// Initialize service container
 	const container = provideServiceContainer({
@@ -37,7 +36,7 @@
 
 	// ViewModels and Services
 	const log = createLogger('workspace:page');
-	let workspaceViewModel = $state();
+	// workspaceViewModel removed - obsolete in unified architecture
 	let sessionViewModel = $state();
 
 	// Component references
@@ -57,24 +56,28 @@
 	const createSessionModalOpen = $derived(activeModal?.type === 'createSession');
 
 	// Simple session count from sessionViewModel
-	const sessionsList = $derived(sessionViewModel?.sessions ?? []);
+	const sessionsList = $derived.by(() => {
+		const sessions = sessionViewModel?.sessions ?? [];
+		console.log('[WorkspacePage] SessionsList derived, count:', sessions.length, sessions);
+		return sessions;
+	});
 	const totalSessions = $derived(sessionsList.length);
 	const hasActiveSessions = $derived(totalSessions > 0);
-	const selectedSingleSession = $derived(() => {
+	const selectedSingleSession = $derived.by(() => {
 		if (!sessionsList.length) return null;
 		if (activeSessionId) {
 			return sessionsList.find((session) => session.id === activeSessionId) ?? sessionsList[0];
 		}
 		return sessionsList[0];
 	});
-	const currentSessionIndex = $derived(() => {
+	const currentSessionIndex = $derived.by(() => {
 		if (!selectedSingleSession) return 0;
 		const index = sessionsList.findIndex((session) => session.id === selectedSingleSession.id);
 		return index >= 0 ? index : 0;
 	});
 	const isSingleSessionView = $derived(workspaceViewMode === 'single-session');
 	const isWindowManagerView = $derived(!isSingleSessionView);
-	const currentWorkspace = $derived(workspaceViewModel?.selectedWorkspace ?? null);
+	// currentWorkspace removed - sessions manage their own working directories
 	const currentBreakpoint = $derived(
 		layoutViewModel
 			? layoutViewModel.isMobile
@@ -152,25 +155,19 @@
 		}
 
 		// Initialize ViewModels
-		const workspaceApi = await container.get('workspaceApi');
 		const persistence = await container.get('persistence');
 		const layout = await container.get('layout');
 		const socketService = await container.get('socket');
-
-		// Create WorkspaceViewModel directly (not shared with other components)
-		workspaceViewModel = new WorkspaceViewModel(workspaceApi, persistence);
 
 		// Get shared ViewModels from container
 		sessionViewModel = await container.get('sessionViewModel');
 
 		layoutViewModel = new LayoutViewModel(layout);
 
-		// Load initial data
-		await workspaceViewModel.loadWorkspaces();
-		await workspaceViewModel.loadRecentWorkspaces();
+		// Load initial data - workspace loading removed in unified architecture
 		log.info('Loading sessions...');
 		await sessionViewModel.loadSessions();
-		log.info('Sessions loaded');
+		log.info('Sessions loaded, count:', sessionViewModel.sessions.length);
 
 		// Initialize responsive state
 		layoutViewModel.updateResponsiveState();
@@ -220,7 +217,7 @@
 			log.warn('Error during cleanup of workspace page listeners', err);
 		}
 
-		sessionSocketManager.disconnectAll();
+		// RunSessionClient handles disconnection automatically
 	});
 
 	// Event handlers
@@ -275,31 +272,8 @@
 
 	// Direct session creation for empty tiles (bypasses modal)
 	async function handleCreateSessionDirect(type, workspacePath = null) {
-		let targetPath = workspacePath || currentWorkspace?.path;
-
-		// If no workspace is available, create a default one
-		if (!targetPath) {
-			try {
-				// Create a default workspace with timestamp
-				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-				const defaultWorkspaceName = `workspace-${timestamp}`;
-
-				// Use the workspace view model to create a default workspace
-				if (workspaceViewModel) {
-					const result = await workspaceViewModel.createWorkspace(defaultWorkspaceName);
-					targetPath = result.path;
-				} else {
-					// Fall back to modal
-					handleCreateSession(type);
-					return;
-				}
-			} catch (error) {
-				log.error('Failed to create default workspace', error);
-				// Fall back to modal
-				handleCreateSession(type);
-				return;
-			}
-		}
+		// Use provided path or default to current working directory
+		let targetPath = workspacePath || process.env.HOME || '/tmp';
 
 		try {
 			// Convert 'terminal' to 'pty' for API compatibility
@@ -366,8 +340,7 @@
 	function handleSessionFocus(session) {
 		if (!session) return;
 		updateActiveSession(session.id);
-		if (sessionSocketManager.activeSession == session.id) return;
-		sessionSocketManager.handleSessionFocus(session.id);
+		// Session focus is now handled automatically by RunSessionClient
 	}
 
 	function handleSessionClose(sessionId) {
@@ -453,7 +426,6 @@
 			</div>
 			<div class="sheet-body">
 				<ProjectSessionMenu
-					bind:selectedWorkspace={workspaceViewModel.selectedWorkspace}
 					onNewSession={(e) => {
 						const { type } = e.detail || {};
 						handleCreateSession(type);

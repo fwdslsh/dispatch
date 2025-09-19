@@ -16,6 +16,7 @@
 		IconAsterisk
 	} from '@tabler/icons-svelte';
 	import IconClaude from './Icons/IconClaude.svelte';
+	import { SessionApiClient } from '$lib/client/shared/services/SessionApiClient.js';
 
 	// Props
 	let {
@@ -35,36 +36,38 @@
 	let error = $state(null);
 	let searchTerm = $state('');
 
+	// API client
+	const sessionApi = new SessionApiClient({
+		apiBaseUrl: '',
+		authTokenKey: 'terminal-key',
+		debug: false
+	});
+
 	// Load all sessions (both active and inactive)
 	async function loadAllSessions() {
 		loading = true;
 		error = null;
 		try {
-			const response = await fetch('/api/sessions?include=all');
-			if (response.ok) {
-				const data = await response.json();
-				const sessions = data.sessions || [];
-				allSessions = sessions
-					.filter((s) => s && s.id)
-					.map((session) => ({
-						id: session.id,
-						type: session.type,
-						workspacePath: session.workspacePath,
-						title: session.title || `${session.type} Session`,
-						isActive: session.isActive || false,
-						inLayout: session.inLayout === true || !!session.tile_id,
-						createdAt: session.createdAt ? new Date(session.createdAt) : new Date(),
-						lastActivity: session.lastActivity ? new Date(session.lastActivity) : new Date()
-					}))
-					.sort((a, b) => {
-						// Sort by active first, then by last activity
-						if (a.isActive && !b.isActive) return -1;
-						if (!a.isActive && b.isActive) return 1;
-						return b.lastActivity - a.lastActivity;
-					});
-			} else {
-				error = 'Failed to load sessions';
-			}
+			const data = await sessionApi.list({ includeAll: true });
+			const sessions = data.sessions || [];
+			allSessions = sessions
+				.filter((s) => s && s.id)
+				.map((session) => ({
+					id: session.id,
+					type: session.type,
+					workspacePath: session.workspacePath,
+					title: session.title || `${session.type} Session`,
+					isActive: session.isActive || false,
+					inLayout: session.inLayout === true || !!session.tileId,
+					createdAt: session.createdAt ? new Date(session.createdAt) : new Date(),
+					lastActivity: session.lastActivity ? new Date(session.lastActivity) : new Date()
+				}))
+				.sort((a, b) => {
+					// Sort by active first, then by last activity
+					if (a.isActive && !b.isActive) return -1;
+					if (!a.isActive && b.isActive) return 1;
+					return b.lastActivity.getTime() - a.lastActivity.getTime();
+				});
 		} catch (err) {
 			error = 'Error loading sessions: ' + err.message;
 		}
@@ -117,25 +120,14 @@
 		loading = true;
 		error = null;
 		try {
-			const response = await fetch('/api/sessions', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					type: sessionType,
-					workspacePath: selectedDirectory,
-					options: {}
-				})
+			const session = await sessionApi.create({
+				type: /** @type {'pty' | 'claude'} */ (sessionType),
+				workspacePath: selectedDirectory,
+				options: {}
 			});
-
-			if (response.ok) {
-				const session = await response.json();
-				await loadAllSessions();
-				selectSession(session);
-				onNewSession?.({ detail: { ...session } });
-			} else {
-				const errorData = await response.text();
-				error = `Failed to create session: ${errorData}`;
-			}
+			await loadAllSessions();
+			selectSession(session);
+			onNewSession?.({ detail: { ...session } });
 		} catch (err) {
 			error = 'Error creating session: ' + err.message;
 		}

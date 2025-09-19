@@ -112,8 +112,7 @@
 	<!-- Focused help hint -->
 	{#if focused}
 		<div class="wm-empty-tile-help">
-			<!-- @ts-ignore - Function type mismatch with event handler -->
-			<button class="wm-help-button" onclick={onShowHelp} aria-label="Show keyboard shortcuts">
+			<button class="wm-help-button" onclick={() => onShowHelp()} aria-label="Show keyboard shortcuts">
 				<span>?</span> Show all shortcuts
 			</button>
 		</div>

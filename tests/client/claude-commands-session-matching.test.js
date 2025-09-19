@@ -9,8 +9,8 @@ import {
 
 describe('ClaudeCommands Session ID Matching - Real-world Integration', () => {
 	describe('Server-Client Communication Scenarios', () => {
-		it('should accept commands from ClaudeSessionManager emitting with claudeSessionId', () => {
-			// Scenario: ClaudeSessionManager.js:454 emits with numeric claudeSessionId
+		it('should accept commands from RunSessionManager emitting with claudeSessionId', () => {
+			// Scenario: RunSessionManager emits with numeric claudeSessionId
 			const clientSessionId = 'app-session-123';
 			const clientClaudeSessionId = 'claude_456';
 
@@ -24,8 +24,8 @@ describe('ClaudeCommands Session ID Matching - Real-world Integration', () => {
 			expect(shouldAccept).toBe(true);
 		});
 
-		it('should accept commands from ClaudeSessionManager emitting with appSessionId', () => {
-			// Scenario: ClaudeSessionManager.js:461 emits with appSessionId if available
+		it('should accept commands from RunSessionManager emitting with appSessionId', () => {
+			// Scenario: RunSessionManager emits with appSessionId if available
 			const clientSessionId = 'app-session-789';
 			const clientClaudeSessionId = 'claude_101';
 

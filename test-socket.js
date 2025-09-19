@@ -10,32 +10,26 @@ socket.on('connect', () => {
     // Test the session we just created
     const sessionId = '1758305679462-quz9ma9u7';
 
-    console.log(`[${new Date().toLocaleTimeString()}] Attempting to start terminal session: ${sessionId}`);
+    console.log(`[${new Date().toLocaleTimeString()}] Attempting to attach to run:${sessionId}`);
 
-    socket.emit('terminal.start', {
-        key: '', // No key required in dev:no-key mode
-        sessionId: sessionId
-    }, (response) => {
-        console.log(`[${new Date().toLocaleTimeString()}] Terminal start response:`, response);
+    // Attach to run session and request backlog
+    socket.emit('run:attach', { runId: sessionId, afterSeq: 0 }, (response) => {
+        console.log(`[${new Date().toLocaleTimeString()}] run:attach response:`, response);
 
         if (response.success) {
-            console.log(`[${new Date().toLocaleTimeString()}] Terminal session ready, sending test command...`);
+            console.log(`[${new Date().toLocaleTimeString()}] Attached to run:${sessionId}, sending test input...`);
 
-            // Send a test command
-            socket.emit('terminal.write', {
-                key: '',
-                id: sessionId,
-                data: 'echo "Hello from Socket.IO!"\n'
-            });
+            // Send a test command via unified API
+            socket.emit('run:input', { runId: sessionId, data: 'echo "Hello from Socket.IO!"\n' });
         } else {
-            console.error(`[${new Date().toLocaleTimeString()}] Failed to start terminal:`, response.error);
+            console.error(`[${new Date().toLocaleTimeString()}] Failed to attach to run:`, response.error);
             process.exit(1);
         }
     });
 
-    // Listen for terminal output
-    socket.on('terminal.output', (data) => {
-        console.log(`[${new Date().toLocaleTimeString()}] Terminal output from ${data.sessionId}:`, JSON.stringify(data.data));
+    // Listen for run events
+    socket.on('run:event', (data) => {
+        console.log(`[${new Date().toLocaleTimeString()}] run:event from ${data.runId}:`, data);
     });
 });
 

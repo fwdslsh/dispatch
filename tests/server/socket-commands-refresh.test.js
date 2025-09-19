@@ -22,9 +22,9 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 
-		// Setup mock services
+		// Setup mock services using the new RunSessionManager API name
 		mockServices = {
-			sessionManager: {
+			runSessionManager: {
 				refreshCommands: vi.fn()
 			}
 		};
@@ -42,11 +42,11 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 					return;
 				}
 
-				const { sessionManager } = globalThis.__API_SERVICES || {};
+				const { runSessionManager } = globalThis.__API_SERVICES || {};
 
-				if (sessionManager && sessionManager.refreshCommands && data.sessionId) {
+				if (runSessionManager && runSessionManager.refreshCommands && data.sessionId) {
 					try {
-						const commands = await sessionManager.refreshCommands(data.sessionId);
+						const commands = await runSessionManager.refreshCommands(data.sessionId);
 						logger.debug(
 							'SOCKET',
 							`Commands refreshed for session ${data.sessionId}:`,
@@ -107,7 +107,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 
 		it('should accept requests with valid key', async () => {
 			mockValidateKey.mockReturnValue(true);
-			mockServices.sessionManager.refreshCommands.mockResolvedValue(['clear', 'help']);
+			mockServices.runSessionManager.refreshCommands.mockResolvedValue(['clear', 'help']);
 			const mockCallback = vi.fn();
 
 			await commandsRefreshHandler({ key: 'valid', sessionId: 'test-123' }, mockCallback);
@@ -128,12 +128,12 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 		it('should refresh commands for existing session', async () => {
 			const sessionId = 'claude-456';
 			const mockCommands = ['clear', 'compact', 'run-tests'];
-			mockServices.sessionManager.refreshCommands.mockResolvedValue(mockCommands);
+			mockServices.runSessionManager.refreshCommands.mockResolvedValue(mockCommands);
 			const mockCallback = vi.fn();
 
 			await commandsRefreshHandler({ key: 'valid', sessionId }, mockCallback);
 
-			expect(mockServices.sessionManager.refreshCommands).toHaveBeenCalledWith(sessionId);
+			expect(mockServices.runSessionManager.refreshCommands).toHaveBeenCalledWith(sessionId);
 			expect(mockCallback).toHaveBeenCalledWith({
 				success: true,
 				commands: mockCommands,
@@ -143,7 +143,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 
 		it('should handle null commands response', async () => {
 			const sessionId = 'claude-null';
-			mockServices.sessionManager.refreshCommands.mockResolvedValue(null);
+			mockServices.runSessionManager.refreshCommands.mockResolvedValue(null);
 			const mockCallback = vi.fn();
 
 			await commandsRefreshHandler({ key: 'valid', sessionId }, mockCallback);
@@ -157,7 +157,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 
 		it('should handle undefined commands response', async () => {
 			const sessionId = 'claude-undefined';
-			mockServices.sessionManager.refreshCommands.mockResolvedValue(undefined);
+			mockServices.runSessionManager.refreshCommands.mockResolvedValue(undefined);
 			const mockCallback = vi.fn();
 
 			await commandsRefreshHandler({ key: 'valid', sessionId }, mockCallback);
@@ -171,7 +171,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 
 		it('should handle empty commands array', async () => {
 			const sessionId = 'claude-empty';
-			mockServices.sessionManager.refreshCommands.mockResolvedValue([]);
+			mockServices.runSessionManager.refreshCommands.mockResolvedValue([]);
 			const mockCallback = vi.fn();
 
 			await commandsRefreshHandler({ key: 'valid', sessionId }, mockCallback);
@@ -192,7 +192,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 		it('should handle refreshCommands throwing error', async () => {
 			const sessionId = 'claude-error';
 			const error = new Error('Command fetch failed');
-			mockServices.sessionManager.refreshCommands.mockRejectedValue(error);
+			mockServices.runSessionManager.refreshCommands.mockRejectedValue(error);
 			const mockCallback = vi.fn();
 
 			await commandsRefreshHandler({ key: 'valid', sessionId }, mockCallback);
@@ -220,7 +220,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 
 		it('should handle sessionManager without refreshCommands method', async () => {
 			const incompleteServices = {
-				sessionManager: {} // Missing refreshCommands method
+				runSessionManager: {} // Missing refreshCommands method
 			};
 			globalThis.__API_SERVICES = incompleteServices;
 			const mockCallback = vi.fn();
@@ -268,7 +268,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 		});
 
 		it('should handle missing callback gracefully', async () => {
-			mockServices.sessionManager.refreshCommands.mockResolvedValue(['clear']);
+			mockServices.runSessionManager.refreshCommands.mockResolvedValue(['clear']);
 
 			// Should not throw when callback is undefined
 			await expect(async () => {
@@ -277,7 +277,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 		});
 
 		it('should handle missing callback in error case gracefully', async () => {
-			mockServices.sessionManager.refreshCommands.mockRejectedValue(new Error('Test error'));
+			mockServices.runSessionManager.refreshCommands.mockRejectedValue(new Error('Test error'));
 
 			// Should not throw when callback is undefined
 			await expect(async () => {
@@ -303,13 +303,13 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 		it('should support client reconnection triggering command refresh', async () => {
 			const sessionId = 'claude-reconnect';
 			const cachedCommands = ['clear', 'help', 'status'];
-			mockServices.sessionManager.refreshCommands.mockResolvedValue(cachedCommands);
+			mockServices.runSessionManager.refreshCommands.mockResolvedValue(cachedCommands);
 			const mockCallback = vi.fn();
 
 			// Simulate client reconnecting and requesting command refresh
 			await commandsRefreshHandler({ key: 'valid', sessionId }, mockCallback);
 
-			expect(mockServices.sessionManager.refreshCommands).toHaveBeenCalledWith(sessionId);
+			expect(mockServices.runSessionManager.refreshCommands).toHaveBeenCalledWith(sessionId);
 			expect(mockCallback).toHaveBeenCalledWith({
 				success: true,
 				commands: cachedCommands,
@@ -320,7 +320,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 		it('should handle multiple concurrent refresh requests', async () => {
 			const sessionId = 'claude-concurrent';
 			const commands = ['clear', 'debug'];
-			mockServices.sessionManager.refreshCommands.mockResolvedValue(commands);
+			mockServices.runSessionManager.refreshCommands.mockResolvedValue(commands);
 			const mockCallback1 = vi.fn();
 			const mockCallback2 = vi.fn();
 
@@ -330,7 +330,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 				commandsRefreshHandler({ key: 'valid', sessionId }, mockCallback2)
 			]);
 
-			expect(mockServices.sessionManager.refreshCommands).toHaveBeenCalledTimes(2);
+			expect(mockServices.runSessionManager.refreshCommands).toHaveBeenCalledTimes(2);
 			expect(mockCallback1).toHaveBeenCalledWith({
 				success: true,
 				commands: commands,
@@ -346,7 +346,7 @@ describe('Socket.IO Claude Commands Refresh Handler', () => {
 		it('should preserve session ID in response for client routing', async () => {
 			const sessionId = 'claude-routing-test';
 			const commands = ['analyze'];
-			mockServices.sessionManager.refreshCommands.mockResolvedValue(commands);
+			mockServices.runSessionManager.refreshCommands.mockResolvedValue(commands);
 			const mockCallback = vi.fn();
 
 			await commandsRefreshHandler({ key: 'valid', sessionId }, mockCallback);

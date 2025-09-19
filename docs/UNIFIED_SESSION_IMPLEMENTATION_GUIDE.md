@@ -170,6 +170,8 @@ export class RunSessionManager {
 }
 ```
 
+Note: legacy socket events such as `terminal.start`, `terminal.write`, `claude.send`, and similar handlers have been removed in favor of the unified `run:*` event API. Update any client code or tests that rely on those legacy events.
+
 ### Process Adapters (Simplified)
 
 Replace complex TerminalManager and ClaudeSessionManager with simple adapters:

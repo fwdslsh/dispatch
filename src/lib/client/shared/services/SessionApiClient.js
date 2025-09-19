@@ -9,23 +9,23 @@
 /**
  * @typedef {Object} Session
  * @property {string} id - Unified session ID
- * @property {string} typeSpecificId - Type-specific ID (terminal/Claude)
- * @property {string} workspacePath - Associated workspace path
- * @property {'pty'|'claude'} sessionType - Session type
+ * @property {string} type - Session kind/type (e.g. 'pty' or 'claude')
+ * @property {string} workspacePath - Associated workspace path (cwd)
  * @property {boolean} isActive - Whether session is currently active
  * @property {boolean} inLayout - Whether session is displayed in layout
+ * @property {string} tileId - Optional tile id when placed in layout
  * @property {string} title - Session title
- * @property {string} createdAt - ISO string creation time
- * @property {string} lastActivity - ISO string last activity time
+ * @property {string|number|Date} createdAt - Creation timestamp
+ * @property {string|number|Date} lastActivity - Last activity timestamp
  */
 
 /**
  * @typedef {Object} CreateSessionOptions
  * @property {'pty'|'claude'} type - Session type
  * @property {string} workspacePath - Workspace for the session
- * @property {Object} options - Type-specific options
- * @property {boolean} resume - Whether to resume existing session
- * @property {string} sessionId - Session ID when resuming
+ * @property {Object} [options] - Type-specific options
+ * @property {boolean} [resume] - Whether to resume existing session
+ * @property {string} [sessionId] - Session ID when resuming
  */
 
 /**
@@ -124,7 +124,37 @@ export class SessionApiClient {
 			});
 
 			const data = await this.handleResponse(response);
-			return { sessions: data.sessions || [] };
+			// Normalize session objects to the shape UI expects. Server may return
+			// fields like `kind`, `cwd`, `tileId`, `created_at`, `last_activity`.
+			const raw = data.sessions || [];
+			const sessions = raw.map((s) => {
+				if (!s) return null;
+				// Accept multiple possible field names for compatibility
+				const id = s.id || s.runId || s.run_id || s.sessionId || s.session_id;
+				const type = s.type || s.kind || s.sessionType || s.kind_name || 'pty';
+				const workspacePath = s.workspacePath || s.cwd || (s.meta && s.meta.cwd) || '';
+				const isActive = s.isActive === true || s.isLive === true || s.status === 'running' || s.status === 'active';
+				const tileIdValue = s.tile_id || s.tileId || (s.inLayout ? s.tileId : undefined);
+				const inLayout = s.inLayout === true || !!tileIdValue || s.in_layout === true;
+				const title = s.title || s.name || `${type} Session`;
+				const createdAt = s.createdAt || s.created_at || s.created || null;
+				const lastActivity = s.lastActivity || s.last_activity || s.updatedAt || s.updated_at || null;
+
+				return {
+					id,
+					type,
+					workspacePath,
+					isActive,
+					inLayout,
+					tileId: tileIdValue,  // Convert to camelCase for UI consistency
+					title,
+					createdAt,
+					lastActivity,
+					_raw: s
+				};
+			}).filter(Boolean);
+
+			return { sessions };
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to list sessions:', error);
@@ -141,8 +171,8 @@ export class SessionApiClient {
 	async create({ type, workspacePath, options = {}, resume = false, sessionId = null }) {
 		try {
 			const body = {
-				type,
-				workspacePath,
+				kind: type,  // API expects 'kind' not 'type'
+				cwd: workspacePath,  // API expects 'cwd' not 'workspacePath'
 				options
 			};
 
@@ -174,13 +204,14 @@ export class SessionApiClient {
 	 * @param {string} [options.newTitle] - New title (for rename)
 	 * @param {string} [options.tileId] - Tile ID (for layout actions)
 	 * @param {number} [options.position] - Position (for layout actions)
+	 * @param {string} [options.clientId] - Client ID (for layout actions)
 	 * @returns {Promise<{success: boolean}>}
 	 */
-	async update({ action, sessionId, newTitle, tileId, position }) {
+	async update({ action, sessionId, newTitle, tileId, position, clientId }) {
 		try {
 			const body = {
 				action,
-				sessionId
+				runId: sessionId  // Server expects runId parameter
 			};
 
 			if (action === 'rename' && newTitle) {
@@ -190,6 +221,7 @@ export class SessionApiClient {
 			if (action === 'setLayout') {
 				body.tileId = tileId;
 				body.position = position || 0;
+				body.clientId = clientId;  // Include required clientId parameter
 			}
 
 			const response = await fetch(`${this.baseUrl}/api/sessions`, {
@@ -215,7 +247,7 @@ export class SessionApiClient {
 	async delete(sessionId) {
 		try {
 			const params = new URLSearchParams({
-				sessionId
+				runId: sessionId  // Server expects runId parameter
 			});
 
 			const response = await fetch(`${this.baseUrl}/api/sessions?${params}`, {
@@ -251,14 +283,16 @@ export class SessionApiClient {
 	 * @param {string} sessionId
 	 * @param {string} tileId
 	 * @param {number} position
+	 * @param {string} clientId
 	 * @returns {Promise<{success: boolean}>}
 	 */
-	async setLayout(sessionId, tileId, position = 0) {
+	async setLayout(sessionId, tileId, position = 0, clientId) {
 		return this.update({
 			action: 'setLayout',
 			sessionId,
 			tileId,
-			position
+			position,
+			clientId
 		});
 	}
 
@@ -300,14 +334,20 @@ export class SessionApiClient {
 	 * @param {string} sessionId
 	 * @param {string} tileId
 	 * @param {number} position
+	 * @param {string} clientId
 	 * @returns {Promise<{success: boolean}>}
 	 */
-	async setSessionLayout(sessionId, tileId, position = 0) {
+	async setSessionLayout(sessionId, tileId, position = 0, clientId) {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/sessions/layout`, {
 				method: 'POST',
 				headers: this.getHeaders(),
-				body: JSON.stringify({ sessionId, tileId, position })
+				body: JSON.stringify({
+					runId: sessionId,  // Server expects runId parameter
+					tileId,
+					position,
+					clientId
+				})
 			});
 			return await this.handleResponse(response);
 		} catch (error) {
@@ -325,7 +365,7 @@ export class SessionApiClient {
 	 */
 	async removeSessionLayout(sessionId) {
 		try {
-			const params = new URLSearchParams({ sessionId });
+			const params = new URLSearchParams({ runId: sessionId });  // Server expects runId parameter
 			const response = await fetch(`${this.baseUrl}/api/sessions/layout?${params}`, {
 				method: 'DELETE',
 				headers: this.getHeaders()

@@ -47,10 +47,6 @@ class ServiceContainer {
 		});
 
 		// API Clients
-		this.registerFactory('workspaceApi', async () => {
-			const { WorkspaceApiClient } = await import('./WorkspaceApiClient.js');
-			return new WorkspaceApiClient(this.config);
-		});
 
 		this.registerFactory('sessionApi', async () => {
 			const { SessionApiClient } = await import('./SessionApiClient.js');

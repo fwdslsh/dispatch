@@ -71,74 +71,60 @@ test.describe('Terminal Session Resumption', () => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
-					body: JSON.stringify({
-						history: terminalHistory
-					})
+					body: JSON.stringify({ history: terminalHistory })
 				});
 			} else {
 				await route.continue();
 			}
 		});
 
-		// Create terminal session
-		await page.click('.header-actions button:has-text("Terminal")');
-		await page.waitForSelector('.modal-overlay');
-
-		// Select workspace
-		const workspaceSelector = page.locator('select#workspace, .workspace-selector');
-		if (await workspaceSelector.isVisible()) {
-			await workspaceSelector.selectOption({ index: 0 });
-		}
-
-		// Create terminal session
-		await page.click('button:has-text("Create"), button:has-text("Start Terminal")');
-		await page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
-
-		// Wait for terminal pane to appear
-		await expect(page.locator('.terminal-pane, .xterm-container')).toBeVisible({ timeout: 10000 });
-
-		// Set up socket.io interception to capture terminal data
+		// Intercept socket.io incoming 'run:event' messages in the browser context
 		await page.evaluateOnNewDocument(() => {
 			window.__terminalData = [];
-			window.__originalSocketEmit = null;
-		});
-
-		// Intercept socket.io to capture terminal data
-		await page.evaluate(() => {
-			// Mock socket.io behavior for terminal
-			if (window.io) {
-				const originalEmit = window.io.prototype.emit;
-				window.__originalSocketEmit = originalEmit;
-
-				window.io.prototype.emit = function (event, data) {
-					if (event === 'terminal.write' && data.data) {
-						window.__terminalData.push(data.data);
-
-						// Simulate terminal echo and prompt
-						setTimeout(() => {
-							if (this.listeners && this.listeners('data')) {
-								// Echo the command back
-								this.emit('data', data.data);
-
-								// Simulate command output
-								if (data.data.includes('pwd')) {
-									this.emit('data', '\r\n/workspace/test-project\r\n$ ');
-								} else if (data.data.includes('ls')) {
-									this.emit('data', '\r\nREADME.md\tpackage.json\tsrc/\r\n$ ');
-								} else if (data.data.includes('echo')) {
-									const match = data.data.match(/echo\s+["']?([^"'\r\n]+)["']?/);
-									if (match) {
-										this.emit('data', `\r\n${match[1]}\r\n$ `);
+			// Wrap when socket.io is available in the page
+			const attachRunEventHook = () => {
+				try {
+					if (!window.io || !window.io.Socket) return;
+					const proto = window.io.Socket.prototype;
+					const origOn = proto.on;
+					proto.on = function (evt, cb) {
+						if (evt === 'run:event' && typeof cb === 'function') {
+							const wrapped = function (eventData) {
+								try {
+									if (eventData && typeof eventData.channel === 'string' && eventData.channel.startsWith('pty')) {
+										const payload = eventData.payload;
+										if (typeof payload === 'string') {
+											window.__terminalData.push(payload);
+										} else if (payload && payload.toString) {
+											window.__terminalData.push(payload.toString());
+										} else {
+											window.__terminalData.push(JSON.stringify(payload));
+										}
 									}
-								} else if (data.data === '\r') {
-									this.emit('data', '\r\n$ ');
+								} catch (err) {
+									// ignore
 								}
-							}
-						}, 100);
-					}
+								return cb.apply(this, arguments);
+							};
+							return origOn.call(this, evt, wrapped);
+						}
+						return origOn.call(this, evt, cb);
+					};
+				} catch (e) {
+					// ignore
+				}
+			};
 
-					return originalEmit.call(this, event, data);
-				};
+			// If io is loaded later, attempt to attach periodically
+			if (window.io && window.io.Socket) {
+				attachRunEventHook();
+			} else {
+				const t = setInterval(() => {
+					if (window.io && window.io.Socket) {
+						clearInterval(t);
+						attachRunEventHook();
+					}
+				}, 200);
 			}
 		});
 

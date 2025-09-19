@@ -133,6 +133,9 @@ initializeDirectories()
 		const { setupSocketIO } = await import('./lib/server/socket-setup.js');
 		const io = setupSocketIO(server, services);
 
+		// Set Socket.IO instance on RunSessionManager for real-time events (BEFORE any operations)
+		services.runSessionManager.setSocketIO(io);
+
 		server.listen(PORT, '0.0.0.0', () => {
 			console.log(`dispatch running at http://localhost:${PORT}`);
 			console.log(`Config Dir: ${configDir}`);

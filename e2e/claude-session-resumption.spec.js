@@ -242,14 +242,14 @@ test.describe('Claude Session Resumption', () => {
 			}
 		});
 
-		// Track socket.io emissions
+		// Track socket.io emissions for unified run:input
 		let capturedEmission = null;
 		await page.evaluateOnNewDocument(() => {
 			window.__capturedEmissions = [];
 			const originalEmit = window.io?.prototype?.emit || (() => {});
 			if (window.io && window.io.prototype) {
 				window.io.prototype.emit = function (event, data) {
-					if (event === 'claude.send') {
+					if (event === 'run:input' || event === 'run:attach') {
 						window.__capturedEmissions.push({ event, data });
 					}
 					return originalEmit.call(this, event, data);

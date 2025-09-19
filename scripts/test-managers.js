@@ -2,7 +2,6 @@
 
 import { historyManager } from '../src/lib/server/history-manager.js';
 import { WorkspaceManager } from '../src/lib/server/core/WorkspaceManager.js';
-import { TerminalManager } from '../src/lib/server/terminals/TerminalManager.js';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promises as fs } from 'node:fs';
@@ -71,31 +70,6 @@ async function testManagers() {
 			console.log('✅ Sessions retrieved correctly');
 		} else {
 			throw new Error('Session retrieval failed');
-		}
-
-		// Test TerminalManager
-		console.log('\n--- Testing TerminalManager ---');
-		const terminals = new TerminalManager({ io: null });
-		console.log('✅ TerminalManager initialized');
-
-		await terminals.saveTerminalHistory('test-terminal', 'echo "hello"\r\nhello\r\n');
-		console.log('✅ Terminal history saved');
-
-		const termHistory = await terminals.loadTerminalHistory('test-terminal');
-		if (termHistory.includes('hello')) {
-			console.log('✅ Terminal history loaded correctly');
-		} else {
-			throw new Error('Terminal history load failed');
-		}
-
-		await terminals.clearTerminalHistory('test-terminal');
-		console.log('✅ Terminal history cleared');
-
-		const clearedHistory = await terminals.loadTerminalHistory('test-terminal');
-		if (clearedHistory === '') {
-			console.log('✅ Terminal history clear verified');
-		} else {
-			throw new Error('Terminal history clear failed');
 		}
 
 		console.log('\n🎉 All manager integration tests passed!');

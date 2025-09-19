@@ -38,18 +38,20 @@ export class SessionState {
 
 	// Session CRUD operations
 	loadSessions(sessions) {
+		console.log('[SessionState] Loading sessions:', sessions);
 		this.sessions = sessions.map((session) => ({
 			id: session.id,
 			typeSpecificId: session.typeSpecificId,
 			workspacePath: session.workspacePath,
 			sessionType: session.type || session.sessionType,
 			isActive: session.isActive !== undefined ? session.isActive : true,
-			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tile_id,
+			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tileId,
 			title: session.title || `${session.type} session`,
 			createdAt: session.createdAt || new Date().toISOString(),
 			lastActivity: session.lastActivity || new Date().toISOString(),
 			activityState: session.activityState || 'idle'
 		}));
+		console.log('[SessionState] Processed sessions:', this.sessions);
 		this.loading = false;
 		this.error = null;
 		log.info('Sessions loaded', { count: this.sessions.length });

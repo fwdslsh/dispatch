@@ -1,6 +1,11 @@
 import { defineConfig } from 'vitest';
 
 export default defineConfig({
+	resolve: {
+		alias: {
+			$lib: './src/lib'
+		}
+	},
 	test: {
 		include: ['**/*.test.js'],
 		globals: true,

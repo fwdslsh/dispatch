@@ -25,7 +25,7 @@ export async function GET({ url, locals }) {
 	const component = url.searchParams.get('component') || null;
 
 	try {
-		const logs = await databaseManager.getLogs(limit, component, level);
+		const logs = await databaseManager.getLogs(component, level, limit);
 		return json({ logs });
 	} catch (error) {
 		console.error('Failed to fetch logs from database:', error);

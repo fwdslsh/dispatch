@@ -2,21 +2,22 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { Terminal } from '@xterm/xterm';
 	import { FitAddon } from '@xterm/addon-fit';
-	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import '@xterm/xterm/css/xterm.css';
-	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager';
+	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 
 	const fitAddon = new FitAddon();
 	let { sessionId, shouldResume = false } = $props();
-	let socket, term, el;
+	let term, el;
 	// Also observe container size changes (e.g., parent layout changes)
 	let ro;
 
 	// State for history loading
 	let isCatchingUp = $state(false);
 	let historyLoaded = false;
+	let isAttached = false;
+	let connectionError = $state(null);
 
-	let key; // = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 	// Handle window resize and ensure terminal fits its container
 	const resize = () => {
 		// Fit terminal to container first so cols/rows update
@@ -26,40 +27,39 @@
 			// fit may throw if terminal not yet attached; ignore
 		}
 
-		if (socket && socket.connected) {
-			socket.emit(SOCKET_EVENTS.TERMINAL_RESIZE, {
-				key,
-				id: sessionId,
-				cols: term.cols,
-				rows: term.rows
-			});
+		if (isAttached && runSessionClient.getStatus().connected) {
+			try {
+				runSessionClient.resizeTerminal(sessionId, term.cols, term.rows);
+			} catch (error) {
+				console.error('[TERMINAL] Failed to resize terminal:', error);
+			}
 		}
 	};
-	async function loadBufferedHistory() {
-		if (!shouldResume || !sessionId || historyLoaded) return;
-
+	// Event handler for terminal data from run session
+	function handleRunEvent(event) {
 		try {
-			console.log('[TERMINAL] Loading buffered messages from server for session:', sessionId);
-			isCatchingUp = true;
+			// If we receive output while catching up, clear the flag
+			if (isCatchingUp) {
+				isCatchingUp = false;
+				console.log('[TERMINAL] Received output from active session - caught up');
+			}
 
-			// Request buffered messages from the server
-			// The server will replay them through normal TERMINAL_OUTPUT events
-			const bufferedMessages = await sessionSocketManager.loadSessionHistory(sessionId);
-			console.log(
-				`[TERMINAL] Loaded ${bufferedMessages.length} buffered messages for session ${sessionId}`
-			);
+			console.log('[TERMINAL] Event received:', event);
 
-			historyLoaded = true;
-
-			// Clear catching up state after a short delay if no messages are actively arriving
-			setTimeout(() => {
-				if (isCatchingUp) {
-					isCatchingUp = false;
+			// Handle different event channels
+			if (event.channel === 'pty:stdout' || event.channel === 'pty:stderr') {
+				const data = event.payload;
+				if (data) {
+					// Convert Uint8Array to string if needed
+					const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
+					term.write(text);
 				}
-			}, 1000);
-		} catch (error) {
-			console.error('[TERMINAL] Failed to load buffered history:', error);
-			isCatchingUp = false;
+			} else if (event.channel === 'pty:exit') {
+				console.log('[TERMINAL] Terminal exited with code:', event.payload?.exitCode);
+				isCatchingUp = false;
+			}
+		} catch (e) {
+			console.error('[TERMINAL] Error handling run event:', e);
 		}
 	}
 
@@ -76,7 +76,8 @@
 
 		// Detect touch device
 		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-		key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+
+		// Initialize terminal
 		term = new Terminal({
 			convertEol: true,
 			cursorBlink: true,
@@ -93,76 +94,64 @@
 		});
 		term.loadAddon(fitAddon);
 		term.open(el);
-		// Fit once after opening so cols/rows are correct for the initial emit
+		// Fit once after opening so cols/rows are correct for the initial resize
 		fitAddon.fit();
 
-		// Get shared socket connection and register this session
-		socket = sessionSocketManager.getSocket(sessionId);
-		console.log('[TERMINAL] Connecting session to shared socket:', sessionId);
-		sessionSocketManager.handleSessionFocus(sessionId);
+		try {
+			// Authenticate if not already done
+			if (!runSessionClient.getStatus().authenticated) {
+				await runSessionClient.authenticate(key);
+			}
 
-		socket.on(SOCKET_EVENTS.CONNECTION, () => {
-			console.log('[TERMINAL] Socket connected for session:', sessionId);
+			// Attach to the run session and get backlog
+			console.log('[TERMINAL] Attaching to run session:', sessionId);
+			isCatchingUp = shouldResume;
+
+			const result = await runSessionClient.attachToRunSession(sessionId, handleRunEvent, 0);
+			isAttached = true;
+			connectionError = null;
+			console.log('[TERMINAL] Attached to run session:', result);
 
 			// Handle user input
 			term.onData((data) => {
 				console.log('[TERMINAL] Sending input for session:', sessionId);
-				socket.emit(SOCKET_EVENTS.TERMINAL_WRITE, { key, id: sessionId, data });
+				try {
+					runSessionClient.sendInput(sessionId, data);
+				} catch (error) {
+					console.error('[TERMINAL] Failed to send input:', error);
+				}
 			});
 
-			// Send initial size
-			socket.emit(SOCKET_EVENTS.TERMINAL_RESIZE, {
-				key,
-				id: sessionId,
-				cols: term.cols,
-				rows: term.rows
-			});
+			// Send initial resize
+			runSessionClient.resizeTerminal(sessionId, term.cols, term.rows);
 
 			// Send initial enter to trigger prompt (only for new terminals)
 			if (!shouldResume) {
 				setTimeout(() => {
 					console.log('[TERMINAL] Sending initial enter for session:', sessionId);
-					socket.emit(SOCKET_EVENTS.TERMINAL_WRITE, { key, id: sessionId, data: '\r' });
+					try {
+						runSessionClient.sendInput(sessionId, '\r');
+					} catch (error) {
+						console.error('[TERMINAL] Failed to send initial enter:', error);
+					}
 				}, 200);
 			}
-		});
 
-		// Listen for terminal data (canonical)
-		socket.on(SOCKET_EVENTS.TERMINAL_OUTPUT, (payload) => {
-			try {
-				// If we receive output while catching up, clear the flag
-				if (isCatchingUp) {
-					isCatchingUp = false;
-					console.log('[TERMINAL] Received output from active session - caught up');
-				}
-
-				console.log('[TERMINAL] Output received for session:', sessionId, payload);
-				const text = typeof payload === 'string' ? payload : payload?.data;
-				if (text) {
-					term.write(text);
-				}
-			} catch (e) {
-				console.error('[TERMINAL] Error handling output:', e);
+			// Clear catching up state after a delay if no messages arrived
+			if (shouldResume) {
+				setTimeout(() => {
+					if (isCatchingUp) {
+						isCatchingUp = false;
+						console.log('[TERMINAL] Timeout reached, clearing catching up state');
+					}
+				}, 2000);
 			}
-		});
 
-		// Listen for terminal exit (canonical)
-		socket.on(SOCKET_EVENTS.TERMINAL_EXIT, (payload) => {
-			try {
-				console.log('Terminal exited with code:', payload?.exitCode);
-				isCatchingUp = false; // Clear catching up state on exit
-			} catch {}
-		});
-
-		// Handle session catchup complete event
-		socket.on(SOCKET_EVENTS.SESSION_CATCHUP_COMPLETE, (data) => {
-			console.log('[TERMINAL] Session catchup complete:', data);
+		} catch (error) {
+			console.error('[TERMINAL] Failed to attach to run session:', error);
+			connectionError = `Failed to connect: ${error.message}`;
 			isCatchingUp = false;
-			// Update last message timestamp if provided
-			if (data?.lastTimestamp) {
-				sessionSocketManager.updateLastTimestamp(sessionId, data.lastTimestamp);
-			}
-		});
+		}
 
 		window.addEventListener('resize', resize);
 
@@ -170,33 +159,19 @@
 			ro = new ResizeObserver(resize);
 			ro.observe(el);
 		}
-
-		// Load buffered messages after socket is ready and listening
-		// This ensures we don't miss any events that might arrive while loading
-		if (shouldResume) {
-			await loadBufferedHistory();
-
-			// Check if session has pending messages from the backend
-			if (socket.connected) {
-				console.log('[TERMINAL] Socket already connected - checking session activity state');
-				// Query the backend for actual session state
-				const hasPending = await sessionSocketManager.checkForPendingMessages(sessionId);
-				if (!hasPending) {
-					console.log('[TERMINAL] Session is idle, no pending messages');
-					isCatchingUp = false;
-				}
-			}
-		}
 	});
 
 	onDestroy(() => {
-		// Cleanup handled in onMount return function
-
-		// Don't disconnect the socket immediately as it might be used by other panes
-		// The SessionSocketManager will handle cleanup when appropriate
-		if (socket) {
-			socket.removeAllListeners();
+		// Detach from run session
+		if (isAttached && sessionId) {
+			try {
+				runSessionClient.detachFromRunSession(sessionId);
+				console.log('[TERMINAL] Detached from run session:', sessionId);
+			} catch (error) {
+				console.error('[TERMINAL] Failed to detach from run session:', error);
+			}
 		}
+
 		try {
 			// remove listeners and observers
 			window.removeEventListener('resize', resize);

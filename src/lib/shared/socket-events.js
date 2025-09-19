@@ -31,31 +31,19 @@ export const SOCKET_EVENTS = {
 	SESSION_CATCHUP_COMPLETE: 'session.catchup.complete',
 	SESSION_HISTORY_LOAD: 'session.history.load',
 
-	// Claude-specific events
-	CLAUDE_SEND: 'claude.send',
-	CLAUDE_MESSAGE_DELTA: 'claude.message.delta',
-	CLAUDE_MESSAGE_COMPLETE: 'claude.message.complete',
-	CLAUDE_ERROR: 'claude.error',
-	CLAUDE_TOOLS_AVAILABLE: 'claude.tools.available',
-	// Commands refresh
-	CLAUDE_COMMANDS_REFRESH: 'claude.commands.refresh',
-
-	// Claude authentication (OAuth) events
+	// Claude authentication (OAuth) events - still needed for auth flow
 	CLAUDE_AUTH_START: 'claude.auth.start',
 	CLAUDE_AUTH_URL: 'claude.auth.url',
 	CLAUDE_AUTH_CODE: 'claude.auth.code',
 	CLAUDE_AUTH_COMPLETE: 'claude.auth.complete',
 	CLAUDE_AUTH_ERROR: 'claude.auth.error',
 
-	// Terminal events
-	TERMINAL_INPUT: 'terminal.input',
-	// Terminal events (canonical)
-	TERMINAL_OUTPUT: 'terminal.output',
-	TERMINAL_RESIZE: 'terminal.resize',
-	TERMINAL_ERROR: 'terminal.error',
-	TERMINAL_EXIT: 'terminal.exit',
-	// Terminal input
-	TERMINAL_WRITE: 'terminal.write',
+	// Unified run session events (preferred)
+	RUN_ATTACH: 'run:attach',
+	RUN_INPUT: 'run:input',
+	RUN_RESIZE: 'run:resize',
+	RUN_CLOSE: 'run:close',
+	RUN_EVENT: 'run:event',
 
 	// Workspace events
 	WORKSPACE_LIST: 'workspace.list',
@@ -98,75 +86,19 @@ export const SESSION_EVENTS = {
 	HISTORY_LOAD: SOCKET_EVENTS.SESSION_HISTORY_LOAD
 };
 
-export const CLAUDE_EVENTS = {
-	SEND: SOCKET_EVENTS.CLAUDE_SEND,
-	ERROR: SOCKET_EVENTS.CLAUDE_ERROR,
-	TOOLS_AVAILABLE: SOCKET_EVENTS.CLAUDE_TOOLS_AVAILABLE
+export const CLAUDE_AUTH_EVENTS = {
+	START: SOCKET_EVENTS.CLAUDE_AUTH_START,
+	URL: SOCKET_EVENTS.CLAUDE_AUTH_URL,
+	CODE: SOCKET_EVENTS.CLAUDE_AUTH_CODE,
+	COMPLETE: SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE,
+	ERROR: SOCKET_EVENTS.CLAUDE_AUTH_ERROR
 };
 
-export const TERMINAL_EVENTS = {
-	INPUT: SOCKET_EVENTS.TERMINAL_INPUT,
-	OUTPUT: SOCKET_EVENTS.TERMINAL_OUTPUT,
-	RESIZE: SOCKET_EVENTS.TERMINAL_RESIZE,
-	ERROR: SOCKET_EVENTS.TERMINAL_ERROR
+export const RUN_SESSION_EVENTS = {
+	ATTACH: SOCKET_EVENTS.RUN_ATTACH,
+	INPUT: SOCKET_EVENTS.RUN_INPUT,
+	RESIZE: SOCKET_EVENTS.RUN_RESIZE,
+	CLOSE: SOCKET_EVENTS.RUN_CLOSE,
+	EVENT: SOCKET_EVENTS.RUN_EVENT
 };
 
-// // Socket.IO Event Constants
-// export const SOCKET_EVENTS = {
-// 	// Connection events
-// 	CONNECTION: 'connection',
-// 	DISCONNECT: 'disconnect',
-// 	ERROR: 'error',
-// 	CONNECT_ERROR: 'connect_error',
-// 	RECONNECT: 'reconnect',
-// 	RECONNECT_ATTEMPT: 'reconnect_attempt',
-
-// 	// Authentication events
-// 	AUTH: 'auth',
-// 	AUTH_SUCCESS: 'auth.success',
-// 	AUTH_ERROR: 'auth.error',
-
-// 	// Session management events
-// 	SESSION_CREATE: 'session.create',
-// 	SESSION_ATTACH: 'session.attach',
-// 	SESSION_LIST: 'session.list',
-// 	SESSION_STATUS: 'session.status',
-// 	SESSION_END: 'session.end',
-// 	SESSION_DETACH: 'session.detach',
-// 	SESSION_ID_UPDATED: 'session.id.updated',
-
-// 	// Claude-specific events
-// 	CLAUDE_SEND: 'claude.send',
-// 	CLAUDE_MESSAGE_DELTA: 'claude.message.delta',
-// 	CLAUDE_MESSAGE_COMPLETE: 'claude.message.complete',
-// 	CLAUDE_ERROR: 'claude.error',
-// 	CLAUDE_TOOLS_AVAILABLE: 'claude.tools.available',
-// 	CLAUDE_COMMANDS_REFRESH: 'claude.commands.refresh',
-
-// 	// Claude authentication (OAuth) events
-// 	CLAUDE_AUTH_START: 'claude.auth.start',
-// 	CLAUDE_AUTH_URL: 'claude.auth.url',
-// 	CLAUDE_AUTH_CODE: 'claude.auth.code',
-// 	CLAUDE_AUTH_COMPLETE: 'claude.auth.complete',
-// 	CLAUDE_AUTH_ERROR: 'claude.auth.error',
-
-// 	// Terminal events
-// 	TERMINAL_INPUT: 'terminal.input',
-// 	TERMINAL_OUTPUT: 'terminal.output',
-// 	TERMINAL_RESIZE: 'terminal.resize',
-// 	TERMINAL_ERROR: 'terminal.error',
-// 	TERMINAL_EXIT: 'terminal.exit',
-
-// 	// Workspace events
-// 	WORKSPACE_LIST: 'workspace.list',
-// 	WORKSPACE_CREATE: 'workspace.create',
-// 	WORKSPACE_OPEN: 'workspace.open',
-
-// 	// Admin/system events
-// 	ADMIN_EVENT_LOGGED: 'admin.event.logged',
-// 	SYSTEM_STATUS: 'system.status',
-
-// 	// Public URL events
-// 	GET_PUBLIC_URL: 'get-public-url',
-// 	PUBLIC_URL_RESPONSE: 'public-url-response'
-// };

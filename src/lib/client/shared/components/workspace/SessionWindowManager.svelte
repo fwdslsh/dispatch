@@ -31,7 +31,7 @@
 	const layoutTree = null;
 
 	// Reactive session-to-tile mapping using Svelte 5 runes
-	let tileIds = $state(new Set());
+	let tileIds = $state(new Set(['root'])); // Initialize with default root tile
 
 	// Track sessions we've already auto-assigned to prevent repeated attempts
 	const autoAssignedSessions = new Set();
@@ -41,14 +41,42 @@
 		const tileArray = Array.from(tileIds).sort();
 		const map = new Map();
 
-		// Group sessions by their assigned tile_id from database
+		// Initialize tile counters for distribution
+		const tileSessionCounts = new Map();
+		tileArray.forEach(id => tileSessionCounts.set(id, 0));
+
+		// First pass: count sessions already assigned to tiles
 		sessions.forEach((session) => {
-			// Use session's tile_id if available, otherwise assign to first tile or 'root'
-			let tileId = session.tile_id;
+			if (session.tileId && tileIds.has(session.tileId)) {
+				const currentCount = tileSessionCounts.get(session.tileId) || 0;
+				tileSessionCounts.set(session.tileId, currentCount + 1);
+			}
+		});
+
+		// Second pass: assign sessions to tiles and build mapping
+		sessions.forEach((session) => {
+			let tileId = session.tileId;
 
 			if (!tileId || !tileIds.has(tileId)) {
-				// Session not assigned to a tile, assign to first available tile
-				tileId = tileArray[0] || 'root';
+				// Session not assigned to a tile, distribute across available tiles
+				if (tileArray.length > 0) {
+					// Find tile with least sessions for even distribution
+					let minCount = Infinity;
+					let selectedTile = tileArray[0];
+
+					for (const [tileIdOption, count] of tileSessionCounts) {
+						if (count < minCount) {
+							minCount = count;
+							selectedTile = tileIdOption;
+						}
+					}
+					tileId = selectedTile;
+
+					// Update the counter for the selected tile
+					tileSessionCounts.set(selectedTile, tileSessionCounts.get(selectedTile) + 1);
+				} else {
+					tileId = 'root';
+				}
 
 				// Auto-assign to layout if not already assigned
 				// Only auto-assign if session has been active for a moment (not brand new)

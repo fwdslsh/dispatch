@@ -38,10 +38,9 @@
 			index={sessionIndex}
 			isFocused={true}
 			onClose={onSessionClose}
-			onUnpin={onSessionUnpin}
 		>
-			{#snippet header({ session, onClose, onUnpin, index })}
-				<SessionHeader {session} {onClose} {onUnpin} {index} />
+			{#snippet header({ session, onClose, index })}
+				<SessionHeader {session} {onClose} {index} />
 			{/snippet}
 
 			{#snippet content({ session, isLoading, index })}

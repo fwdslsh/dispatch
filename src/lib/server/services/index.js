@@ -4,11 +4,10 @@
 
 import { logger } from '../utils/logger.js';
 import { DatabaseManager } from '../db/DatabaseManager.js';
-import { WorkspaceManager } from '../core/WorkspaceManager.js';
-import { TerminalManager } from '../terminals/TerminalManager.js';
-import { ClaudeSessionManager } from '../claude/ClaudeSessionManager.js';
+import { RunSessionManager } from '../runtime/RunSessionManager.js';
+import { PtyAdapter } from '../adapters/PtyAdapter.js';
+import { ClaudeAdapter } from '../adapters/ClaudeAdapter.js';
 import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
-import { safeCallAsync } from '../utils/method-utils.js';
 import path from 'node:path';
 import os from 'node:os';
 
@@ -36,7 +35,7 @@ function resolveConfigPaths(config) {
 }
 
 /**
- * Initialize all server services
+ * Initialize all server services with unified session architecture
  * @param {object} config Service configuration
  * @returns {Promise<object>} Services object
  */
@@ -49,46 +48,41 @@ export async function initializeServices(config = {}) {
 	};
 
 	try {
-		logger.info('SERVICES', 'Initializing server services...');
+		logger.info('SERVICES', 'Initializing unified session architecture services...');
 		const resolvedConfig = resolveConfigPaths(serviceConfig);
 
 		// 1. Database (no dependencies)
 		const database = new DatabaseManager(resolvedConfig.dbPath);
 		await database.init();
 
-		// 2. Workspace Manager (depends on database)
-		const workspaceManager = new WorkspaceManager({
-			rootDir: resolvedConfig.workspacesRoot,
-			databaseManager: database
-		});
-		await workspaceManager.init();
+		// REMOVED: WorkspaceManager - obsolete in unified architecture
 
-		// 3. Terminal Manager (no Socket.IO initially, will be set later)
-		const terminalManager = new TerminalManager({
-			io: null,
-			databaseManager: database
-		});
+		// 3. Create RunSessionManager (no Socket.IO initially, will be set later)
+		const runSessionManager = new RunSessionManager(database, null);
 
-		// 4. Claude Managers (no Socket.IO initially, will be set later)
-		const claudeSessionManager = new ClaudeSessionManager({
-			io: null,
-			databaseManager: database
-		});
+		// 4. Create and register adapters
+		const ptyAdapter = new PtyAdapter();
+		const claudeAdapter = new ClaudeAdapter();
 
+		runSessionManager.registerAdapter('pty', ptyAdapter);
+		runSessionManager.registerAdapter('claude', claudeAdapter);
+
+		// 5. Claude Auth Manager (for OAuth flow)
 		const claudeAuthManager = new ClaudeAuthManager();
 
 		const services = {
 			database,
-			workspaceManager,
-			terminalManager,
-			claudeSessionManager,
+			runSessionManager,
+			ptyAdapter,
+			claudeAdapter,
 			claudeAuthManager
 		};
 
-		logger.info('SERVICES', 'All services initialized successfully');
+		logger.info('SERVICES', 'Unified session architecture services initialized successfully');
+		logger.info('SERVICES', `RunSessionManager stats:`, runSessionManager.getStats());
 		return services;
 	} catch (error) {
-		logger.error('SERVICES', 'Failed to initialize server services:', error);
+		logger.error('SERVICES', 'Failed to initialize unified session services:', error);
 		throw error;
 	}
 }

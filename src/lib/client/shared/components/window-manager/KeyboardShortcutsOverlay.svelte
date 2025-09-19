@@ -92,8 +92,7 @@
 	>
 		<header class="wm-shortcuts-header">
 			<h2 id="shortcuts-title" class="wm-shortcuts-title">⌨️ Keyboard Shortcuts</h2>
-			<!-- @ts-ignore - Function type mismatch with event handler -->
-			<button class="wm-shortcuts-close" onclick={onClose} aria-label="Close shortcuts"> ✕ </button>
+			<button class="wm-shortcuts-close" onclick={() => onClose()} aria-label="Close shortcuts"> ✕ </button>
 		</header>
 
 		<div class="wm-shortcuts-grid">

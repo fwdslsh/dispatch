@@ -2,7 +2,6 @@
 	import { Modal } from '$lib/client/shared/components';
 	import GlobalSettings from './GlobalSettings.svelte';
 	import ClaudeAuth from '../../../claude/ClaudeAuth.svelte';
-	import WorkspaceSettings from './WorkspaceSettings.svelte';
 	import StorageSettings from './StorageSettings.svelte';
 	import { IconSettings, IconCloud, IconFolder, IconTrash } from '@tabler/icons-svelte';
 
@@ -20,7 +19,6 @@
 	const tabs = [
 		{ id: 'global', label: 'Global', icon: IconSettings, component: GlobalSettings },
 		{ id: 'claude', label: 'Claude', icon: IconCloud, component: ClaudeAuth },
-		{ id: 'workspace', label: 'Workspace', icon: IconFolder, component: WorkspaceSettings },
 		{ id: 'storage', label: 'Storage', icon: IconTrash, component: StorageSettings }
 	];
 

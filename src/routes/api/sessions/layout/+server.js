@@ -3,9 +3,10 @@
  * Manages session-to-tile mappings for persistent window layouts
  */
 
-export async function GET({ locals }) {
+export async function GET({ url, locals }) {
 	try {
-		const layout = await locals.services.database.getCurrentLayout();
+		const clientId = url.searchParams.get('clientId') || 'default';
+		const layout = await locals.services.database.getWorkspaceLayout(clientId);
 		return new Response(JSON.stringify({ layout }), {
 			headers: { 'content-type': 'application/json' }
 		});
@@ -17,13 +18,18 @@ export async function GET({ locals }) {
 
 export async function POST({ request, locals }) {
 	try {
-		const { sessionId, tileId, position = 0 } = await request.json();
+		const { runId, sessionId, tileId, clientId = 'default' } = await request.json();
 
-		if (!sessionId || !tileId) {
-			return new Response('Missing sessionId or tileId', { status: 400 });
+		// Accept both runId and sessionId for backward compatibility
+		const actualRunId = runId || sessionId;
+
+		if (!actualRunId || !tileId) {
+			return new Response(JSON.stringify({
+				error: 'Missing required parameters: runId, tileId'
+			}), { status: 400 });
 		}
 
-		await locals.services.database.setSessionLayout(sessionId, tileId, position);
+		await locals.services.database.setWorkspaceLayout(actualRunId, clientId, tileId);
 		return new Response(JSON.stringify({ success: true }));
 	} catch (error) {
 		console.error('[API] Layout update failed:', error);
@@ -33,20 +39,21 @@ export async function POST({ request, locals }) {
 
 export async function DELETE({ url, locals }) {
 	try {
+		const runId = url.searchParams.get('runId');
 		const sessionId = url.searchParams.get('sessionId');
 		const tileId = url.searchParams.get('tileId');
 
-		if (sessionId) {
+		// Accept both runId and sessionId for backward compatibility
+		const actualRunId = runId || sessionId;
+		const clientId = url.searchParams.get('clientId') || 'default';
+
+		if (actualRunId) {
 			// Remove specific session from layout
-			await locals.services.database.removeSessionLayout(sessionId);
-		} else if (tileId) {
-			// Remove all sessions from specific tile
-			const sessions = await locals.services.database.getSessionsForTile(tileId);
-			for (const session of sessions) {
-				await locals.services.database.removeSessionLayout(session.id);
-			}
+			await locals.services.database.removeWorkspaceLayout(actualRunId, clientId);
 		} else {
-			return new Response('Missing sessionId or tileId', { status: 400 });
+			return new Response(JSON.stringify({
+				error: 'Missing runId parameter'
+			}), { status: 400 });
 		}
 
 		return new Response(JSON.stringify({ success: true }));

@@ -35,10 +35,6 @@ export const STORAGE_CONFIG = {
 	TEMP_DATA_KEY: 'dispatch-temp',
 	NAVIGATION_STATE_KEY: 'dispatch-nav',
 
-	// Key prefixes
-	SESSION_HISTORY_PREFIX: 'dispatch-session-history-',
-	TERMINAL_STATE_PREFIX: 'dispatch-terminal-',
-
 	// Storage limits (in bytes)
 	MAX_STORAGE_SIZE: 10 * 1024 * 1024, // 10MB
 	WARN_STORAGE_SIZE: 8 * 1024 * 1024 // 8MB

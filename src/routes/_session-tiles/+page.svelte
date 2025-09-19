@@ -310,9 +310,8 @@
 						{session}
 						isFocused={focused === tileId}
 						onClose={() => closeSession(sessionId)}
-						onUnpin={() => togglePin(sessionId)}
 					>
-						{#snippet header({ session, onClose, onUnpin })}
+						{#snippet header({ session, onClose })}
 							<div class="session-header">
 								<div class="session-title">
 									{#if session.type === 'pty'}
@@ -328,7 +327,7 @@
 								<div class="session-controls">
 									<button
 										class="control-btn"
-										onclick={onUnpin}
+										onclick={() => togglePin(sessionId)}
 										title={session.isPinned ? 'Unpin session' : 'Pin session'}
 									>
 										{#if session.isPinned}

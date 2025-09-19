@@ -126,7 +126,7 @@
 			<div class="help-section">
 				<button
 					class="help-button"
-					onclick={onShowShortcuts}
+					onclick={() => onShowShortcuts()}
 					aria-label="Show keyboard shortcuts (? key)"
 				>
 					<IconKeyboard size={14} />

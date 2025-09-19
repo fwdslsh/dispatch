@@ -6,6 +6,7 @@
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';
 	import TypeCard from '$lib/client/shared/components/TypeCard.svelte';
 	import { IconBolt, IconRobot, IconTerminal2, IconFolder, IconPlus } from '@tabler/icons-svelte';
+	import { SessionApiClient } from '$lib/client/shared/services/SessionApiClient.js';
 
 	// Props
 	let { open = $bindable(false), initialType = 'claude', oncreated, onclose } = $props();
@@ -16,6 +17,13 @@
 	let showDirectoryBrowser = $state(false);
 	let loading = $state(false);
 	let error = $state(null);
+
+	// API client
+	const sessionApi = new SessionApiClient({
+		apiBaseUrl: '',
+		authTokenKey: 'terminal-key',
+		debug: false
+	});
 
 	// Set default workspace path (will be set when modal opens)
 	async function setDefaultWorkspace() {
@@ -36,33 +44,23 @@
 		error = null;
 
 		try {
-			// Create the session using unified API
-			const response = await fetch('/api/sessions', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					type: sessionType,
-					workspacePath,
-					options: {}
-				})
+			// Create the session using SessionApiClient
+			const session = await sessionApi.create({
+				type: /** @type {'pty' | 'claude'} */ (sessionType),
+				workspacePath,
+				options: {}
 			});
 
-			if (response.ok) {
-				const session = await response.json();
-				if (oncreated) {
-					oncreated({
-						id: session.id,
-						type: sessionType,
-						workspacePath,
-						typeSpecificId: session.typeSpecificId
-					});
-				}
-				// Close the modal by setting open to false
-				open = false;
-			} else {
-				const errorText = await response.text();
-				error = `Failed to create session: ${errorText}`;
+			if (oncreated) {
+				oncreated({
+					id: session.id,
+					type: sessionType,
+					workspacePath,
+					typeSpecificId: session.typeSpecificId
+				});
 			}
+			// Close the modal by setting open to false
+			open = false;
 		} catch (err) {
 			error = 'Error creating session: ' + err.message;
 		} finally {

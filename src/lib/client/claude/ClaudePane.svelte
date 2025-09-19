@@ -16,9 +16,8 @@
 		IconProgressDown
 	} from '@tabler/icons-svelte';
 	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
-	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import { getIconForEvent } from '$lib/client/shared/icons/claudeEventIcons.js';
-	import sessionSocketManager from '$lib/client/shared/components/SessionSocketManager';
+	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 	import IconClaude from '../shared/components/Icons/IconClaude.svelte';
 	// Using global styles for inputs
 
@@ -37,10 +36,6 @@
 		});
 	});
 
-	/**
-	 * @type {import("socket.io-client").Socket}
-	 */
-	let socket = $state();
 	let messages = $state([]);
 	let input = $state('');
 	let loading = $state(false);
@@ -53,6 +48,9 @@
 	let authAwaitingCode = $state(false);
 	let authInProgress = $state(false);
 	let pendingAuthUrl = $state('');
+	let isAttached = $state(false);
+	let connectionError = $state(null);
+	let lastError = $state(null);
 
 	// Detect if user is on a mobile device
 	let isMobile = $state(false);
@@ -65,6 +63,7 @@
 	}
 
 	const status = $derived.by(() => {
+		if (connectionError) return 'connection-error';
 		if (authInProgress) return 'auth-in-progress';
 		if (authAwaitingCode) return 'awaiting-auth-code';
 		if (loading) return 'loading';
@@ -101,13 +100,12 @@
 		console.log('ClaudePane send called with:', {
 			sessionId,
 			claudeSessionId,
-			socketSessionId: sessionId, // This is what we send to Socket.IO
 			input: input.trim(),
-			socketConnected: socket?.connected
+			runSessionConnected: runSessionClient.getStatus().connected
 		});
 		if (!input.trim()) return;
-		if (!socket) {
-			console.error('Socket not available');
+		if (!isAttached) {
+			console.error('Not attached to run session');
 			return;
 		}
 		if (!sessionId) {
@@ -118,16 +116,16 @@
 		const userMessage = input.trim();
 		authStartRequested = false; // reset per user turn
 
-		// If we're awaiting an OAuth authorization code, route this input to the auth handler via WebSocket
+		// If we're awaiting an OAuth authorization code, handle this through runSessionClient
 		if (authAwaitingCode && userMessage) {
 			try {
-				const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 				// do not push a normal user message — treat this as out-of-band code
 				authInProgress = true;
 				const code = userMessage;
 				input = '';
-				// Emit auth code to server
-				socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_CODE, { key, code });
+				// Send auth code through run session client
+				// Note: This might need to be handled differently depending on how the unified Claude adapter handles auth
+				runSessionClient.sendInput(sessionId, `/auth ${code}`);
 				// Show a lightweight status message
 				messages = [
 					...messages,
@@ -144,7 +142,6 @@
 			}
 			return;
 		}
-		const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 
 		// Add user message immediately
 		messages = [
@@ -166,8 +163,206 @@
 		// Force immediate scroll to user message
 		await scrollToBottom();
 
-		console.log('Emitting claude.send with:', { key, id: sessionId, input: userMessage });
-		socket.emit(SOCKET_EVENTS.CLAUDE_SEND, { key, id: sessionId, input: userMessage });
+		console.log('Sending input to run session:', { sessionId, input: userMessage });
+		try {
+			runSessionClient.sendInput(sessionId, userMessage);
+		} catch (error) {
+			console.error('Failed to send input to Claude session:', error);
+			lastError = `Failed to send message: ${error.message}`;
+			// Add error message to chat
+			messages = [
+				...messages,
+				{
+					role: 'system',
+					text: `Error: Failed to send message - ${error.message}`,
+					timestamp: new Date(),
+					id: Date.now(),
+					isError: true,
+					errorIcon: IconAlertTriangle
+				}
+			];
+			loading = false;
+			isWaitingForReply = false;
+		}
+	}
+
+	// Event handler for Claude data from run session
+	function handleRunEvent(event) {
+		try {
+			// If we receive a message while catching up, clear the flag
+			if (isCatchingUp) {
+				isCatchingUp = false;
+				console.log('[CLAUDE] Received message from active session - caught up');
+			}
+
+			console.log('[CLAUDE] Event received:', event);
+
+			// Handle different Claude event channels
+			if (event.channel === 'claude:message') {
+				// Handle Claude message events
+				const events = event.payload?.events || [event.payload];
+
+				// Process Claude message delta events inline
+				try {
+					// If we receive a message while catching up, clear the flag
+					if (isCatchingUp) {
+						isCatchingUp = false;
+						console.log('Received message from active session - caught up');
+					}
+
+					// Set waiting for reply when we receive messages
+					if (!isWaitingForReply && events && events.length > 0) {
+						isWaitingForReply = true;
+					}
+
+					// Process each event in the events array
+					for (const evt of events) {
+						// Skip empty or malformed events
+						if (!evt || typeof evt !== 'object') continue;
+
+						// Handle assistant messages with text content
+						if (evt?.type === 'assistant' && evt?.message?.content) {
+							const textContent = Array.isArray(evt.message.content)
+								? evt.message.content
+										.filter((c) => c && c.type === 'text')
+										.map((c) => c.text)
+										.join('')
+								: evt.message.content.type === 'text'
+									? evt.message.content.text
+									: '';
+
+							if (textContent) {
+								// Create a new assistant message with accumulated activities
+								messages = [
+									...messages,
+									{
+										role: 'assistant',
+										text: textContent,
+										timestamp: new Date(),
+										id: Date.now(),
+										activityIcons: [...liveEventIcons] // Attach accumulated activities
+									}
+								];
+								liveEventIcons = []; // Clear for next accumulation
+								isWaitingForReply = true; // Keep waiting for more potential messages
+							} else {
+								// Non-text assistant content (tool use, etc.)
+								if (
+									evt.message.content.some &&
+									evt.message.content.some((c) => c && c.type === 'tool_use')
+								) {
+									pushLiveIcon(evt);
+								}
+							}
+						} else if (evt?.type === 'result') {
+							// Handle result events - clear waiting state
+							isWaitingForReply = false;
+							isCatchingUp = false;
+
+							const isError = !!evt.is_error;
+							if (isError) {
+								// Add error message
+								messages = [
+									...messages,
+									{
+										role: 'assistant',
+										text: evt.result || 'An error occurred',
+										timestamp: new Date(),
+										id: Date.now(),
+										isError: true,
+										errorIcon: IconAlertTriangle
+									}
+								];
+							} else if (evt.result) {
+								// Add successful result
+								messages = [
+									...messages,
+									{
+										role: 'assistant',
+										text: evt.result,
+										timestamp: new Date(),
+										id: Date.now(),
+										activityIcons: [...liveEventIcons]
+									}
+								];
+							}
+							liveEventIcons = []; // Clear for next conversation turn
+						} else {
+							// Other event types - be selective about what creates icons
+							const eventType = (evt?.type || '').toLowerCase();
+							const eventName = (evt?.name || evt?.tool || '').toLowerCase();
+
+							// Skip certain event types that shouldn't create icons
+							if (eventType === 'status' || eventType === 'progress' || eventType === 'ping') {
+								continue;
+							}
+
+							// Only push icon for tool-related events or specific types
+							if (
+								eventType === 'tool' ||
+								eventType === 'tool_use' ||
+								eventType === 'tool_result' ||
+								eventName.includes('read') ||
+								eventName.includes('write') ||
+								eventName.includes('bash') ||
+								eventName.includes('grep') ||
+								eventName.includes('edit') ||
+								eventName.includes('glob')
+							) {
+								pushLiveIcon(evt);
+							}
+						}
+					}
+					// Scroll to show the latest state
+					scrollToBottom();
+				} catch (e) {
+					console.error('[CLAUDE] Error processing claude:message event:', e);
+				}
+			} else if (event.channel === 'claude:auth_url') {
+				// Handle OAuth URL events
+				const url = event.payload?.url || '';
+				pendingAuthUrl = url;
+				authAwaitingCode = true;
+				authInProgress = false;
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: `Login required.\n\nOpen this link to authenticate:\n\n${url}\n\n${event.payload?.instructions || 'Then paste the authorization code here.'}`,
+						timestamp: new Date(),
+						id: Date.now()
+					}
+				];
+			} else if (event.channel === 'claude:auth_complete') {
+				authAwaitingCode = false;
+				authInProgress = false;
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: 'Authentication complete. You can retry your request.',
+						timestamp: new Date(),
+						id: Date.now()
+					}
+				];
+			} else if (event.channel === 'claude:auth_error') {
+				authAwaitingCode = false;
+				authInProgress = false;
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: `Authentication failed. ${event.payload?.error || ''}`,
+						timestamp: new Date(),
+						id: Date.now(),
+						isError: true,
+						errorIcon: IconAlertTriangle
+					}
+				];
+			}
+		} catch (e) {
+			console.error('[CLAUDE] Error handling run event:', e);
+		}
 	}
 
 	// Icon mapping is handled by getIconForEvent
@@ -441,428 +636,55 @@
 	onMount(async () => {
 		console.log('ClaudePane mounting with:', { sessionId, claudeSessionId, shouldResume });
 
-		// Get shared socket connection and register this session
-		console.log('Connecting session to shared socket:', sessionId);
-		socket = sessionSocketManager.getSocket(sessionId);
+		try {
+			// Authenticate if not already done
+			const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+			if (!runSessionClient.getStatus().authenticated) {
+				await runSessionClient.authenticate(key);
+			}
 
-		// Set up event listeners immediately after socket creation
-		socket.on(SOCKET_EVENTS.CONNECTION, () => {
-			console.log('Claude Socket.IO connected for session:', sessionId);
-			// Don't automatically set isWaitingForReply for resumed sessions
-			// Let the backend state determine if the session is actually processing
-			if (shouldResume || claudeSessionId) {
-				console.log('Reconnected to session - checking for ongoing activity');
-				// Only set catching up flag temporarily
-				isCatchingUp = true;
-				// Don't set isWaitingForReply here - let actual messages trigger it
-				// Clear the catching up flag after a short delay if no messages arrive
+			// Attach to the run session and get backlog
+			console.log('[CLAUDE] Attaching to run session:', sessionId);
+			isCatchingUp = shouldResume;
+
+			const result = await runSessionClient.attachToRunSession(sessionId, handleRunEvent, 0);
+			isAttached = true;
+			connectionError = null;
+			console.log('[CLAUDE] Attached to run session:', result);
+
+			// Clear catching up state after a delay if no messages arrived
+			if (shouldResume) {
 				setTimeout(() => {
-					if (isCatchingUp && liveEventIcons.length === 0) {
+					if (isCatchingUp) {
 						isCatchingUp = false;
-						// Also ensure isWaitingForReply is false if no activity
 						isWaitingForReply = false;
-						console.log('No pending messages detected for session');
+						console.log('[CLAUDE] Timeout reached, clearing catching up state');
 					}
 				}, 2000);
 			}
-		});
 
-		// Shared handler for Claude message delta
-		const handleClaudeMessageDelta = async (payload) => {
-			// If we receive a message while catching up, clear the flag
-			if (isCatchingUp) {
-				isCatchingUp = false;
-				console.log('Received message from active session - caught up');
-			}
-
-			// Extract events array from payload (payload has structure {sessionId, events, timestamp})
-			const events = payload?.events || payload || [];
-
-			// Set waiting for reply when we receive messages
-			if (!isWaitingForReply && events && events.length > 0) {
-				isWaitingForReply = true;
-			}
-
-			// events is an array; in our setup typically of length 1
-			for (const evt of events) {
-				// Skip empty or malformed events
-				if (!evt || typeof evt !== 'object') continue;
-
-				// Check if this is a text content event from assistant
-				if (evt?.type === 'assistant' && evt?.message?.content) {
-					// Extract text content if available
-					const textContent = Array.isArray(evt.message.content)
-						? evt.message.content
-								.filter((c) => c && c.type === 'text')
-								.map((c) => c.text)
-								.join('')
-						: evt.message.content.type === 'text'
-							? evt.message.content.text
-							: '';
-
-					if (textContent) {
-						// Create a new assistant message with accumulated activities
-						messages = [
-							...messages,
-							{
-								role: 'assistant',
-								text: textContent,
-								timestamp: new Date(),
-								id: Date.now(),
-								activityIcons: [...liveEventIcons] // Attach accumulated activities
-							}
-						];
-						liveEventIcons = []; // Clear for next accumulation
-						isWaitingForReply = true; // Keep waiting for more potential messages
-
-						// Update commands via ClaudeCommands component
-						if (claudeCommandsApi && claudeCommandsApi.updateCommands) {
-							claudeCommandsApi.updateCommands(messages);
-						}
-					} else {
-						// Non-text assistant content (tool use, etc.)
-						// Only push if we have meaningful tool content
-						if (
-							evt.message.content.some &&
-							evt.message.content.some((c) => c && c.type === 'tool_use')
-						) {
-							pushLiveIcon(evt);
-						}
-					}
-				} else if (evt?.type === 'result') {
-					// Final aggregated result. If is_error is set, display as an error message
-					const isError = !!evt.is_error;
-
-					// If this is an error result, remove assistant messages from the current turn
-					if (isError && messages.length > 0) {
-						let lastUserIdx = -1;
-						for (let i = messages.length - 1; i >= 0; i--) {
-							if (messages[i]?.role === 'user') {
-								lastUserIdx = i;
-								break;
-							}
-						}
-						if (lastUserIdx >= 0) {
-							messages = messages.filter(
-								(m, idx) => !(idx > lastUserIdx && m?.role === 'assistant')
-							);
-						} else {
-							// No user found; trim trailing assistant messages
-							let cut = messages.length - 1;
-							for (; cut >= 0 && messages[cut]?.role === 'assistant'; cut--) {}
-							messages = messages.slice(0, cut + 1);
-						}
-					}
-
-					// Decide whether to append a new message or update the last one
-					const shouldAppend =
-						isError ||
-						liveEventIcons.length > 0 ||
-						!messages.length ||
-						messages[messages.length - 1].role !== 'assistant';
-
-					if (shouldAppend) {
-						messages = [
-							...messages,
-							{
-								role: 'assistant',
-								text: evt.result || '',
-								timestamp: new Date(),
-								id: Date.now(),
-								// For error results, omit prior activity icons
-								...(isError
-									? { isError: true, errorIcon: IconAlertTriangle }
-									: { activityIcons: [...liveEventIcons] })
-							}
-						];
-					} else {
-						// Update the last assistant message with the final result if needed
-						const lastMessage = messages[messages.length - 1];
-						if (lastMessage.role === 'assistant' && !lastMessage.text && evt.result) {
-							messages[messages.length - 1] = {
-								...lastMessage,
-								text: evt.result,
-								...(isError ? { isError: true, errorIcon: IconAlertTriangle } : {})
-							};
-						} else if (isError) {
-							// If we already had assistant text and this is an error result,
-							// append a distinct error message so it’s not dropped
-							messages = [
-								...messages,
-								{
-									role: 'assistant',
-									text: evt.result || '',
-									timestamp: new Date(),
-									id: Date.now(),
-									// Do not include activity icons for error results
-									isError: true,
-									errorIcon: IconAlertTriangle
-								}
-							];
-						}
-					}
-
-					// If error indicates login is required, proactively trigger OAuth start via WebSockets
-					try {
-						const resultText = String(evt.result || '');
-						const mentionsLogin =
-							/please\s+run\s+\/login/i.test(resultText) || resultText.includes('/login');
-						if (isError && mentionsLogin && socket && !authStartRequested) {
-							authStartRequested = true;
-							const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
-							socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_START, { key });
-						}
-					} catch (e) {
-						console.error('Failed to proactively start auth flow:', e);
-					}
-
-					// Clear waiting state since result indicates completion
-					isWaitingForReply = false;
-					isCatchingUp = false;
-					liveEventIcons = []; // Clear for next conversation turn
-				} else {
-					// Other event types - be selective about what creates icons
-					// Only create icons for meaningful events
-					const eventType = (evt?.type || '').toLowerCase();
-					const eventName = (evt?.name || evt?.tool || '').toLowerCase();
-
-					// Skip certain event types that shouldn't create icons
-					if (eventType === 'status' || eventType === 'progress' || eventType === 'ping') {
-						continue;
-					}
-
-					// Only push icon for tool-related events or specific types
-					if (
-						eventType === 'tool' ||
-						eventType === 'tool_use' ||
-						eventType === 'tool_result' ||
-						eventName.includes('read') ||
-						eventName.includes('write') ||
-						eventName.includes('bash') ||
-						eventName.includes('grep') ||
-						eventName.includes('edit') ||
-						eventName.includes('glob')
-					) {
-						pushLiveIcon(evt);
-					}
-				}
-			}
-			// Scroll to show the latest state (icons or final message)
-			await scrollToBottom();
-		};
-
-		// Attach canonical event handler
-		socket.on(SOCKET_EVENTS.CLAUDE_MESSAGE_DELTA, handleClaudeMessageDelta);
-
-		// OAuth URL received from server — show link and prompt for code
-		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, (payload) => {
-			try {
-				const url = String(payload?.url || '');
-				pendingAuthUrl = url;
-				authAwaitingCode = true;
-				authInProgress = false;
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: `Login required.\n\nOpen this link to authenticate:\n\n${url}\n\n${payload?.instructions || 'Then paste the authorization code here.'}`,
-						timestamp: new Date(),
-						id: Date.now()
-					}
-				];
-				// Also hint in the input placeholder
-				const inputEl = /** @type {HTMLInputElement | null} */ (
-					document.querySelector('.message-input')
-				);
-				if (inputEl) inputEl.placeholder = 'Paste authorization code and press Enter';
-				scrollToBottom();
-			} catch (e) {
-				console.error('Failed to handle CLAUDE_AUTH_URL:', e);
-			}
-		});
-
-		// OAuth completed
-		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, () => {
-			try {
-				authAwaitingCode = false;
-				authInProgress = false;
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: 'Authentication complete. You can retry your request.',
-						timestamp: new Date(),
-						id: Date.now()
-					}
-				];
-				scrollToBottom();
-			} catch {}
-		});
-
-		// OAuth error
-		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, (payload) => {
-			try {
-				authAwaitingCode = false;
-				authInProgress = false;
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: `Authentication failed. ${payload?.error || ''}`,
-						timestamp: new Date(),
-						id: Date.now(),
-						isError: true,
-						errorIcon: IconAlertTriangle
-					}
-				];
-				scrollToBottom();
-			} catch {}
-		});
-
-		// Handle message completion to clear waiting state
-
-		// Keep client session IDs in sync with server updates
-		socket.on(SOCKET_EVENTS.SESSION_ID_UPDATED, (payload) => {
-			try {
-				if (!payload || payload.type !== 'claude') return;
-				if (payload.sessionId !== sessionId) return; // Only handle our own pane
-				if (payload.newTypeSpecificId) {
-					console.log('Updating claudeSessionId from server event:', payload);
-					claudeSessionId = payload.newTypeSpecificId;
-					shouldResume = true;
-				}
-			} catch (e) {
-				console.error('Failed to handle session.id.updated:', e);
-			}
-		});
-
-		const handleClaudeMessageComplete = (data) => {
-			console.log('Message complete received:', data);
-			isWaitingForReply = false;
+		} catch (error) {
+			console.error('[CLAUDE] Failed to attach to run session:', error);
+			connectionError = `Failed to connect: ${error.message}`;
 			isCatchingUp = false;
-			// Clear any remaining live icons if they weren't attached to a message
-			if (liveEventIcons.length > 0 && messages.length > 0) {
-				const lastMessage = messages[messages.length - 1];
-				if (lastMessage.role === 'assistant' && !lastMessage.activityIcons?.length) {
-					// Attach any remaining icons to the last assistant message
-					messages[messages.length - 1] = {
-						...lastMessage,
-						activityIcons: [...liveEventIcons]
-					};
-				}
-			}
-			liveEventIcons = [];
-		};
-
-		// Attach canonical complete event handler
-		socket.on(SOCKET_EVENTS.CLAUDE_MESSAGE_COMPLETE, handleClaudeMessageComplete);
-
-		// Handle session catchup complete event
-		socket.on(SOCKET_EVENTS.SESSION_CATCHUP_COMPLETE, (data) => {
-			console.log('Session catchup complete:', data);
-			isCatchingUp = false;
-			// Update last message timestamp if provided
-			if (data?.lastTimestamp) {
-				sessionSocketManager.updateLastTimestamp(sessionId, data.lastTimestamp);
-			}
-		});
-
-		// Handle errors to clear typing indicator
-		socket.on(SOCKET_EVENTS.ERROR, (error) => {
-			console.error('Socket error:', error);
-			isWaitingForReply = false;
-			isCatchingUp = false;
-
-			// Add error message if we were waiting for a reply
-			if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: 'Sorry, I encountered an error processing your request. Please try again.',
-						timestamp: new Date(),
-						id: Date.now(),
-						isError: true,
-						errorIcon: IconAlertTriangle,
-						activityIcons: [...liveEventIcons] // Preserve any activities that happened before error
-					}
-				];
-			}
-			liveEventIcons = [];
-			// selection handled within LiveIconStrip component
-		});
-
-		socket.on(SOCKET_EVENTS.DISCONNECT, () => {
-			console.log('Socket disconnected');
-			isWaitingForReply = false;
-			liveEventIcons = [];
-		});
-
-		// Mark this session as active and ensure connection
-		// This must happen AFTER event listeners are set up but BEFORE loading history
-		sessionSocketManager.handleSessionFocus(sessionId);
-
-		// Now load previous messages after socket is ready and listening
-		// This ensures we don't miss any events that might arrive while loading
-		if (claudeSessionId || shouldResume) {
-			await loadPreviousMessages();
-
-			// After loading file-based history, also request buffered messages
-			// This catches any messages that were sent while disconnected
-			if (socket.connected) {
-				console.log('Loading buffered messages from server for session:', sessionId);
-				isCatchingUp = true;
-
-				try {
-					// Request messages buffered on the server
-					// The server will replay them through normal channels
-					const bufferedMessages = await sessionSocketManager.loadSessionHistory(sessionId);
-					console.log(
-						`Loaded ${bufferedMessages.length} buffered messages for session ${sessionId}`
-					);
-
-					// The messages will be replayed through normal event handlers
-					// Just wait a bit for them to arrive
-					if (bufferedMessages.length > 0) {
-						// Give time for replayed messages to be processed
-						await new Promise((resolve) => setTimeout(resolve, 500));
-					}
-				} catch (error) {
-					console.error('Failed to load buffered messages:', error);
-				} finally {
-					// Clear catching up state if no messages are actively arriving
-					setTimeout(() => {
-						if (isCatchingUp && !isWaitingForReply) {
-							isCatchingUp = false;
-						}
-					}, 1000);
-				}
-			}
 		}
 
-		// Check if session has pending messages from the backend
-		if (socket.connected && (shouldResume || claudeSessionId)) {
-			console.log('Socket already connected - checking session activity state');
-			// Query the backend for actual session state
-			const hasPending = await sessionSocketManager.checkForPendingMessages(sessionId);
-			if (hasPending) {
-				console.log('Session has pending messages, setting waiting state');
-				isWaitingForReply = true;
-			} else {
-				console.log('Session is idle, no pending messages');
-				isWaitingForReply = false;
-				isCatchingUp = false;
-			}
+		// Event handling is now done through RunSessionClient via handleRunEvent
+
+		// Load previous messages if this is a resumed session
+		if (claudeSessionId || shouldResume) {
+			await loadPreviousMessages();
 		}
 	});
 	onDestroy(() => {
-		// Don't disconnect the socket immediately as it might be used by other panes
-		// The SessionSocketManager will handle cleanup when appropriate
-		if (socket) {
+		// Detach from run session
+		if (isAttached && sessionId) {
 			try {
-				socket.off('session.id.updated');
-			} catch {}
-			socket.removeAllListeners();
+				runSessionClient.detachFromRunSession(sessionId);
+				console.log('[CLAUDE] Detached from run session:', sessionId);
+			} catch (error) {
+				console.error('[CLAUDE] Failed to detach from run session:', error);
+			}
 		}
 		// Resize listener cleanup is handled by the $effect
 	});
@@ -1048,7 +870,6 @@
 			</div>
 			<div class="input-actions">
 				<ClaudeCommands
-					{socket}
 					{sessionId}
 					{claudeSessionId}
 					onCommandInsert={handleCommandInsert}
