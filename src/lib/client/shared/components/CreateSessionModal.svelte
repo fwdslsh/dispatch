@@ -6,7 +6,7 @@
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';
 	import TypeCard from '$lib/client/shared/components/TypeCard.svelte';
 	import { IconBolt, IconRobot, IconTerminal2, IconFolder, IconPlus } from '@tabler/icons-svelte';
-	import { SessionApiClient } from '$lib/client/shared/services/SessionApiClient.js';
+	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 
 	// Props
 	let { open = $bindable(false), initialType = 'claude', oncreated, onclose } = $props();
@@ -17,12 +17,28 @@
 	let showDirectoryBrowser = $state(false);
 	let loading = $state(false);
 	let error = $state(null);
+	let sessionApi = $state(null);
 
-	// API client
-	const sessionApi = new SessionApiClient({
-		apiBaseUrl: '',
-		authTokenKey: 'terminal-key',
-		debug: false
+	// Get API client from service container
+	$effect(() => {
+		// Get the service container and initialize the API client
+		try {
+			const container = useServiceContainer();
+			const maybePromise = container.get('sessionApi');
+			if (maybePromise && typeof maybePromise.then === 'function') {
+				maybePromise.then(api => {
+					sessionApi = api;
+				}).catch((error) => {
+					console.error('Failed to get sessionApi from service container:', error);
+					// Don't fall back to static import - let the service container handle it
+				});
+			} else {
+				sessionApi = maybePromise;
+			}
+		} catch (e) {
+			console.error('Failed to access service container:', e);
+			// Don't fall back to static import - service container should be available
+		}
 	});
 
 	// Set default workspace path (will be set when modal opens)
@@ -37,6 +53,11 @@
 	async function createSession() {
 		if (!workspacePath) {
 			error = 'Please select a workspace';
+			return;
+		}
+
+		if (!sessionApi) {
+			error = 'API client not initialized';
 			return;
 		}
 

@@ -3,6 +3,8 @@
  * Fixed to provide isActive field for proper UI filtering
  */
 
+import { normalizeSessionKind } from '$lib/shared/session-kind.js';
+
 export async function GET({ url, locals }) {
 	const includeAll = url.searchParams.get('include') === 'all';
 
@@ -53,19 +55,40 @@ export async function GET({ url, locals }) {
 }
 
 export async function POST({ request, locals }) {
-	const { kind, cwd, options = {} } = await request.json();
+	const { kind, type, cwd, resume = false, sessionId, options = {} } = await request.json();
 
-	// Validate required parameters
-	if (!kind || (kind !== 'pty' && kind !== 'claude')) {
-		return new Response(JSON.stringify({
-			error: 'Invalid or missing kind. Must be "pty" or "claude"'
-		}), { status: 400 });
-	}
+	const rawKind = kind ?? type;
+	const normalizedKind = normalizeSessionKind(rawKind);
 
 	try {
+		if (resume && sessionId) {
+			const status = await locals.services.runSessionManager.getSessionStatus(sessionId);
+			if (!status) {
+				return new Response(JSON.stringify({ error: 'Session not found' }), { status: 404 });
+			}
+
+			const statusKind = normalizeSessionKind(status?.kind) || normalizedKind;
+
+			return new Response(JSON.stringify({
+				runId: sessionId,
+				success: true,
+				resumed: true,
+				kind: statusKind,
+				type: statusKind
+			}), {
+				headers: { 'content-type': 'application/json' }
+			});
+		}
+
+		if (!normalizedKind) {
+			return new Response(JSON.stringify({
+				error: 'Invalid or missing kind. Must be "pty" or "claude"'
+			}), { status: 400 });
+		}
+
 		// Create run session using unified manager
 		const { runId } = await locals.services.runSessionManager.createRunSession({
-			kind,
+			kind: normalizedKind,
 			meta: {
 				cwd: cwd || process.env.WORKSPACES_ROOT || process.env.HOME,
 				options
@@ -74,7 +97,9 @@ export async function POST({ request, locals }) {
 
 		return new Response(JSON.stringify({
 			runId,
-			success: true
+			success: true,
+			kind: normalizedKind,
+			type: normalizedKind
 		}), {
 			headers: { 'content-type': 'application/json' }
 		});
@@ -93,7 +118,8 @@ export async function POST({ request, locals }) {
 			errorMessage = 'Claude Code functionality is temporarily unavailable. Please try again in a moment.';
 			statusCode = 503;
 		} else if (error.message?.includes('No adapter')) {
-			errorMessage = `Session type "${kind}" is not supported`;
+			const errorKind = normalizeSessionKind(kind) || normalizeSessionKind(type) || rawKind;
+			errorMessage = `Session type "${errorKind || 'unknown'}" is not supported`;
 			statusCode = 400;
 		}
 

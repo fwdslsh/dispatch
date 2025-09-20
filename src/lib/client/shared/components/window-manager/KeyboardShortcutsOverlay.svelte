@@ -69,6 +69,14 @@
 			onClose();
 		}
 	}
+
+	// Handle backdrop keyboard events
+	function handleBackdropKeydown(event) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			onClose();
+		}
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -78,8 +86,9 @@
 	<div
 		class="wm-shortcuts-backdrop"
 		onclick={handleBackdropClick}
+		onkeydown={handleBackdropKeydown}
 		role="button"
-		tabindex="-1"
+		tabindex="0"
 		aria-label="Close keyboard shortcuts"
 	></div>
 

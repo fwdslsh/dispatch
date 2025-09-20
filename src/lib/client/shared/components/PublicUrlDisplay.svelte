@@ -7,7 +7,9 @@
 	let pollInterval = null; // Not reactive - doesn't need to be
 
 	function connectSocket() {
-		socket = io({ transports: ['websocket', 'polling'] }); // This is correct for direct socket usage
+		// Use current origin for socket connection to support remote access
+		const socketUrl = typeof window !== 'undefined' ? window.location.origin : '';
+		socket = io(socketUrl, { transports: ['websocket', 'polling'] });
 		socket.on(SOCKET_EVENTS.CONNECTION, () => {
 			pollPublicUrl();
 		});

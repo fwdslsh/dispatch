@@ -202,26 +202,7 @@
 		color: var(--text-muted);
 	}
 
-	.clear-btn {
-		background: transparent;
-		border: 1px solid var(--text-muted);
-		color: var(--text-muted);
-		cursor: pointer;
-		padding: var(--space-1);
-		border-radius: 4px;
-		transition: all 0.2s ease;
-		width: 24px;
-		height: 24px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 12px;
-	}
 
-	.clear-btn:hover {
-		border-color: var(--primary);
-		color: var(--primary);
-	}
 
 	.row {
 		display: grid;

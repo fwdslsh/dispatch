@@ -138,6 +138,14 @@
 			dispatch('close');
 		}
 	}
+
+	// Handle backdrop keyboard events
+	function handleBackdropKeydown(event) {
+		if (event.key === 'Enter' || event.key === ' ') {
+			event.preventDefault();
+			dispatch('close');
+		}
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -147,9 +155,11 @@
 	<div
 		class="shortcuts-backdrop"
 		onclick={handleBackdropClick}
+		onkeydown={handleBackdropKeydown}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="shortcuts-title"
+		tabindex="0"
 	>
 		<!-- Modal -->
 		<div class="shortcuts-modal">
@@ -168,9 +178,10 @@
 			<div class="modal-content">
 				<div class="shortcuts-grid">
 					{#each shortcuts as category}
+						{@const IconComponent = category.icon}
 						<div class="shortcut-category">
 							<div class="category-header">
-								<svelte:component this={category.icon} size={18} />
+								<IconComponent size={18} />
 								<h3>{category.category}</h3>
 							</div>
 							<div class="category-shortcuts">

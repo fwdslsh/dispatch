@@ -16,7 +16,8 @@
 		IconAsterisk
 	} from '@tabler/icons-svelte';
 	import IconClaude from './Icons/IconClaude.svelte';
-	import { SessionApiClient } from '$lib/client/shared/services/SessionApiClient.js';
+	import { normalizeSessionKind } from '$lib/shared/session-kind.js';
+	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 
 	// Props
 	let {
@@ -35,16 +36,33 @@
 	let loading = $state(false);
 	let error = $state(null);
 	let searchTerm = $state('');
+	let sessionApi = $state(null);
 
-	// API client
-	const sessionApi = new SessionApiClient({
-		apiBaseUrl: '',
-		authTokenKey: 'terminal-key',
-		debug: false
+	// Get API client from service container
+	$effect(() => {
+		// Get the service container and initialize the API client
+		try {
+			const container = useServiceContainer();
+			const maybePromise = container.get('sessionApi');
+			if (maybePromise && typeof maybePromise.then === 'function') {
+				maybePromise.then(api => {
+					sessionApi = api;
+				}).catch((error) => {
+					console.error('Failed to get sessionApi from service container:', error);
+					// Don't fall back to static import - let the service container handle it
+				});
+			} else {
+				sessionApi = maybePromise;
+			}
+		} catch (e) {
+			console.error('Failed to access service container:', e);
+			// Don't fall back to static import - service container should be available
+		}
 	});
 
 	// Load all sessions (both active and inactive)
 	async function loadAllSessions() {
+		if (!sessionApi) return;
 		loading = true;
 		error = null;
 		try {
@@ -75,6 +93,7 @@
 	}
 
 	// Filter sessions based on search term and session type
+
 	const filteredSessions = $derived(
 		allSessions.filter((session) => {
 			// Filter by session type
@@ -114,6 +133,11 @@
 	async function createSession() {
 		if (!selectedDirectory) {
 			error = 'Please select a workspace first';
+			return;
+		}
+
+		if (!sessionApi) {
+			error = 'API client not initialized';
 			return;
 		}
 
@@ -177,12 +201,13 @@
 	// Resume a previous session
 	async function resumeSession(session) {
 		try {
+			const normalizedType = normalizeSessionKind(session.type) || 'pty';
 			// Call the session resume endpoint with proper parameters
 			const response = await fetch('/api/sessions', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					type: session.type,
+					type: normalizedType,
 					workspacePath: session.workspacePath,
 					resume: true,
 					sessionId: session.id
@@ -198,7 +223,7 @@
 				onSessionSelected?.({
 					detail: {
 						id: resumedId,
-						type: session.type,
+						type: normalizedType,
 						workspacePath: session.workspacePath,
 						isActive: true,
 						shouldResume: true

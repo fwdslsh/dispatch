@@ -86,16 +86,20 @@ class HistoryManager {
 	 * Update socket metadata based on events
 	 */
 	updateMetadataFromEvent(historyEntry, eventType, data) {
-		if (eventType === 'terminal.start' && data) {
-			historyEntry.metadata.sessionType = 'terminal';
+		if (eventType === 'run:attach' && data) {
+			historyEntry.metadata.sessionType = data.kind || 'unknown';
 			if (data.cwd) historyEntry.metadata.cwd = data.cwd;
 			if (data.name) historyEntry.metadata.sessionName = data.name;
-		} else if (eventType === 'claude.send') {
-			historyEntry.metadata.sessionType = 'claude';
-			if (data && data.cwd) historyEntry.metadata.cwd = data.cwd;
-		} else if (eventType.startsWith('terminal.')) {
-			historyEntry.metadata.sessionType = 'terminal';
-		} else if (eventType.startsWith('claude.')) {
+		} else if (eventType.startsWith('run:')) {
+			// Unified session events
+			if (data && data.kind) {
+				historyEntry.metadata.sessionType = data.kind;
+			}
+			if (data && data.cwd) {
+				historyEntry.metadata.cwd = data.cwd;
+			}
+		} else if (eventType.startsWith('claude.auth')) {
+			// Claude authentication events are still valid
 			historyEntry.metadata.sessionType = 'claude';
 		}
 	}

@@ -4,7 +4,7 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Markdown from '$lib/client/shared/components/Markdown.svelte';
 	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
-	import ClaudeCommands from './ClaudeCommands.svelte';
+
 	import {
 		IconFolder,
 		IconMessage,
@@ -43,7 +43,7 @@
 	let isCatchingUp = $state(false);
 	let messagesContainer = $state();
 	let liveEventIcons = $state([]);
-	let claudeCommandsApi = $state();
+
 	let authStartRequested = $state(false);
 	let authAwaitingCode = $state(false);
 	let authInProgress = $state(false);
@@ -85,19 +85,7 @@
 		}
 	});
 
-	// Handle command insertion from ClaudeCommands component
-	function handleCommandInsert(command) {
-		input = command + ' ';
-		// Focus the input after inserting
-		const inputEl = /** @type {HTMLInputElement | null} */ (
-			document.querySelector('.message-input')
-		);
-		if (inputEl) {
-			inputEl.focus();
-			// Move cursor to end
-			inputEl.setSelectionRange(input.length, input.length);
-		}
-	}
+
 
 	async function send(e) {
 		e.preventDefault();
@@ -591,10 +579,6 @@
 				messages = previousMessages;
 				if (previousMessages.length > 0) {
 					console.log('Loaded previous messages:', previousMessages.length);
-					// Update commands via ClaudeCommands component
-					if (claudeCommandsApi && claudeCommandsApi.updateCommands) {
-						claudeCommandsApi.updateCommands(previousMessages);
-					}
 					// Scroll to bottom after history is loaded
 					await scrollToBottom();
 				} else {
@@ -877,13 +861,6 @@
 				></textarea>
 			</div>
 			<div class="input-actions">
-				<ClaudeCommands
-					{sessionId}
-					{claudeSessionId}
-					onCommandInsert={handleCommandInsert}
-					disabled={loading}
-					bind={claudeCommandsApi}
-				/>
 				<Button
 					type="submit"
 					text={isWaitingForReply ? 'Send' : loading ? 'Sending...' : 'Send'}

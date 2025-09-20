@@ -518,10 +518,38 @@
 	}
 
 	/* Remove all pulsing and scaling animations */
-	@keyframes tile-focus-pulse,
-	@keyframes divider-drag-pulse,
-	@keyframes empty-tile-focus,
-	@keyframes empty-tile-icon-bounce,
+	@keyframes tile-focus-pulse {
+		from,
+		to {
+			transform: none;
+			box-shadow: none;
+		}
+	}
+
+	@keyframes divider-drag-pulse {
+		from,
+		to {
+			transform: none;
+			box-shadow: none;
+		}
+	}
+
+	@keyframes empty-tile-focus {
+		from,
+		to {
+			transform: none;
+			box-shadow: none;
+		}
+	}
+
+	@keyframes empty-tile-icon-bounce {
+		from,
+		to {
+			transform: none;
+			box-shadow: none;
+		}
+	}
+
 	@keyframes hint-glow {
 		from,
 		to {

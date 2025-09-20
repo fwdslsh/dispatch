@@ -873,57 +873,5 @@
 		animation: pulse 2s ease-in-out infinite;
 	}
 
-	/* Selected display */
-	.selected-display {
-		display: flex;
-		align-items: center;
-		gap: calc(var(--space-2) * 1.3);
-		padding: calc(var(--space-2) * 1.4) calc(var(--space-3) * 1.2);
-		background: linear-gradient(0deg, var(--db-surface-elevated) 100%);
-		border: 1px solid var(--db-primary);
-		border-radius: 10px;
-		font-size: calc(var(--font-size-1) * 0.95);
-		position: relative;
-		overflow: hidden;
-		opacity: 0;
-		box-shadow:
-			0 4px 12px var(--db-primary-glow),
-			inset 0 2px 4px rgba(46, 230, 107, 0.15),
-			inset 0 -1px 2px rgba(0, 0, 0, 0.3);
-		animation: slideInScale 0.4s var(--db-transition-bounce) forwards;
-	}
 
-	/* .selected-display::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 2px;
-		background: linear-gradient(90deg,
-			var(--db-primary),
-			var(--db-primary-bright),
-			var(--db-primary));
-		animation: scanline 2s linear infinite;
-	} */
-
-	.selected-label {
-		color: var(--db-primary-bright);
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		font-size: calc(var(--font-size-0) * 0.85);
-		text-shadow: 0 0 8px var(--db-primary-glow);
-	}
-
-	.selected-path {
-		flex: 1;
-		color: var(--db-text-primary);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		font-family: var(--font-mono);
-		font-weight: 500;
-		letter-spacing: 0.01em;
-	}
 </style>

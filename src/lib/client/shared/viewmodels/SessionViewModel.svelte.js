@@ -12,13 +12,14 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { normalizeSessionKind } from '../../../shared/session-kind.js';
+import { getClientId } from '../utils/uuid.js';
 
 const log = createLogger('session:viewmodel');
 
 /**
  * @typedef {Object} Session
  * @property {string} id
- * @property {string} typeSpecificId
  * @property {string} workspacePath
  * @property {'pty'|'claude'} sessionType
  * @property {boolean} isActive
@@ -274,10 +275,7 @@ export class SessionViewModel {
 
 		try {
 			// Get the actual clientId from localStorage (same as RunSessionClient)
-			const clientId = localStorage.getItem('clientId') || crypto.randomUUID();
-			if (!localStorage.getItem('clientId')) {
-				localStorage.setItem('clientId', clientId);
-			}
+			const clientId = getClientId();
 
 			await this.sessionApi.setLayout(sessionId, tileId, position, clientId);
 
@@ -355,10 +353,9 @@ export class SessionViewModel {
 	 * @param {string} sessionData.id - Session ID
 	 * @param {string} sessionData.type - Session type
 	 * @param {string} sessionData.workspacePath - Workspace path
-	 * @param {string} sessionData.typeSpecificId - Type-specific ID
 	 */
 	handleSessionCreated(sessionData) {
-		const { id, type, workspacePath, typeSpecificId } = sessionData;
+			const { id, type, workspacePath } = sessionData;
 
 		// Validate required fields
 		if (!id || !type) {
@@ -369,10 +366,9 @@ export class SessionViewModel {
 		// Create normalized session object
 		const newSession = {
 			id,
-			typeSpecificId,
 			workspacePath,
 			sessionType: type,
-			type: type, // Keep for compatibility
+			type,
 			isActive: true,
 			inLayout: false,
 			title: `New ${type} session`,
@@ -431,10 +427,15 @@ export class SessionViewModel {
 		try {
 			log.info('Resuming session', sessionId);
 
+			const existingSession = this.appStateManager.sessions.getSession(sessionId);
+			const normalizedType =
+				normalizeSessionKind(existingSession?.sessionType || existingSession?.type) || 'pty';
+			const resolvedWorkspace = existingSession?.workspacePath || workspacePath || '';
+
 			// Resume is handled via create with resume flag
 			const result = await this.sessionApi.create({
-				type: 'pty', // Default to pty for resume
-				workspacePath,
+				type: normalizedType,
+				workspacePath: resolvedWorkspace,
 				options: {},
 				resume: true,
 				sessionId
@@ -564,7 +565,6 @@ export class SessionViewModel {
 		// They manage their own working directories once created
 		return {
 			id: session.id,
-			typeSpecificId: session.typeSpecificId,
 			workspacePath: session.workingDirectory || session.workspacePath || '',
 			sessionType: session.type || session.sessionType,
 			isActive: session.isActive !== undefined ? session.isActive : true,

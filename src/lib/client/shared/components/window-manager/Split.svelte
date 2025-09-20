@@ -80,7 +80,11 @@
 <div class="wm-split" data-dir={node.dir} bind:this={splitEl}>
 	<div class="wm-pane wm-pane-a" style={`flex:${node.ratio} 1 0;`} data-min={minSize}>
 		{#if node.a?.type === 'leaf'}
-			<Tile id={node.a.id} {focused} onfocus={handleFocus}>
+			<Tile
+				id={node.a.id}
+				{focused}
+				onfocus={handleFocus}
+			>
 				{@render tile({ focused, tileId: node.a.id })}
 			</Tile>
 		{:else if node.a?.type === 'split'}
@@ -90,7 +94,7 @@
 
 	<!-- Divider (unstyled) -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<!-- svelte-ignore a11y_role_has_required_aria -->
+		<!-- svelte-ignore a11y_role_has_required_aria_props -->
 	<div
 		class="wm-divider"
 		role="separator"
@@ -103,7 +107,11 @@
 
 	<div class="wm-pane wm-pane-b" style={`flex:${1 - node.ratio} 1 0;`} data-min={minSize}>
 		{#if node.b?.type === 'leaf'}
-			<Tile id={node.b.id} {focused} onfocus={handleFocus}>
+			<Tile
+				id={node.b.id}
+				{focused}
+				onfocus={handleFocus}
+			>
 				{@render tile({ focused, tileId: node.b.id })}
 			</Tile>
 		{:else if node.b?.type === 'split'}

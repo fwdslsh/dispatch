@@ -27,7 +27,8 @@
 	}
 	function initializeAdminConsole() {
 		// Initialize Socket.IO connection for admin features
-		socket = io();
+		// Use current origin for socket connection to support remote access
+		socket = io(window.location.origin);
 
 		// Load initial data
 		loadActiveSockets();

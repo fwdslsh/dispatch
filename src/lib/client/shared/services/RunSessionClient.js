@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
 import { createLogger } from '../utils/logger';
+import { getClientId } from '../utils/uuid';
 
 
 /**
@@ -7,26 +8,19 @@ import { createLogger } from '../utils/logger';
  * Replaces multiple session management classes with single interface
  */
 export class RunSessionClient {
-	constructor() {
+	constructor(config = {}) {
+		this.config = {
+			socketUrl: '',
+			apiBaseUrl: '',
+			...config
+		};
 		this.socket = null;
-		this.clientId = this.ensureClientId();
+		this.clientId = getClientId();
 		this.attachedSessions = new Map(); // runId -> { lastSeq, onEvent }
 		this.connected = false;
 		this.authenticated = false;
 		this.logger = createLogger('RunSessionClient');
 		this.connect();
-	}
-
-	/**
-	 * Ensure stable clientId in localStorage
-	 */
-	ensureClientId() {
-		let id = localStorage.getItem('clientId');
-		if (!id) {
-			id = crypto.randomUUID();
-			localStorage.setItem('clientId', id);
-		}
-		return id;
 	}
 
 	/**
@@ -37,7 +31,9 @@ export class RunSessionClient {
 			return;
 		}
 
-		this.socket = io({ path: '/socket.io' });
+		// Use configured URL or current origin for socket connection
+		const socketUrl = this.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+		this.socket = io(socketUrl, { path: '/socket.io' });
 
 		this.socket.on('connect', () => {
 			this.logger.info('Connected to server');
@@ -100,7 +96,8 @@ export class RunSessionClient {
 	 * Create a new run session
 	 */
 	async createRunSession(kind, cwd, options = {}) {
-		const response = await fetch('/api/sessions', {
+		const baseUrl = this.config.apiBaseUrl || '';
+		const response = await fetch(`${baseUrl}/api/sessions`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ kind, cwd, options })
@@ -224,7 +221,8 @@ export class RunSessionClient {
 	 * Get list of run sessions
 	 */
 	async listRunSessions(kind = null) {
-		const url = kind ? `/api/sessions?kind=${encodeURIComponent(kind)}` : '/api/sessions';
+		const baseUrl = this.config.apiBaseUrl || '';
+		const url = kind ? `${baseUrl}/api/sessions?kind=${encodeURIComponent(kind)}` : `${baseUrl}/api/sessions`;
 		const response = await fetch(url);
 		const result = await response.json();
 
@@ -239,7 +237,8 @@ export class RunSessionClient {
 	 * Delete a run session
 	 */
 	async deleteRunSession(runId) {
-		const response = await fetch(`/api/sessions?runId=${encodeURIComponent(runId)}`, {
+		const baseUrl = this.config.apiBaseUrl || '';
+		const response = await fetch(`${baseUrl}/api/sessions?runId=${encodeURIComponent(runId)}`, {
 			method: 'DELETE'
 		});
 
@@ -258,7 +257,8 @@ export class RunSessionClient {
 	 * Set workspace layout for current client
 	 */
 	async setWorkspaceLayout(runId, tileId) {
-		const response = await fetch('/api/sessions', {
+		const baseUrl = this.config.apiBaseUrl || '';
+		const response = await fetch(`${baseUrl}/api/sessions`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -281,7 +281,8 @@ export class RunSessionClient {
 	 * Remove workspace layout for current client
 	 */
 	async removeWorkspaceLayout(runId) {
-		const response = await fetch('/api/sessions', {
+		const baseUrl = this.config.apiBaseUrl || '';
+		const response = await fetch(`${baseUrl}/api/sessions`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -303,7 +304,8 @@ export class RunSessionClient {
 	 * Get workspace layout for current client
 	 */
 	async getWorkspaceLayout() {
-		const response = await fetch('/api/sessions', {
+		const baseUrl = this.config.apiBaseUrl || '';
+		const response = await fetch(`${baseUrl}/api/sessions`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -354,5 +356,9 @@ export class RunSessionClient {
 	}
 }
 
-// Export singleton instance
-export const runSessionClient = new RunSessionClient();
+// Export singleton instance with default config
+// Can be reconfigured via runSessionClient.config
+export const runSessionClient = new RunSessionClient({
+	socketUrl: typeof window !== 'undefined' ? window.location.origin : '',
+	apiBaseUrl: ''
+});

@@ -3,6 +3,7 @@
 	import Split from './Split.svelte';
 	import Tile from './Tile.svelte';
 	import { on } from 'svelte/events';
+	import { generateUUID } from '../../utils/uuid.js';
 
 	/**
 	 * @typedef {import('./types.js').LayoutNode} LayoutNode
@@ -69,9 +70,7 @@
 
 	/** @returns {string} */
 	function rid() {
-		// prefer crypto.randomUUID if available
-		if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-		return Math.random().toString(36).slice(2, 9);
+		return generateUUID();
 	}
 
 	/**
@@ -305,7 +304,6 @@
 	role="region"
 	data-gap={gap}
 	data-minsize={minSize}
-	tabindex="1"
 	onkeydown={onKey}
 >
 	{#if root.type === 'leaf'}

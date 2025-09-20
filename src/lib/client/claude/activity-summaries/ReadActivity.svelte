@@ -190,8 +190,4 @@
 	{/if}
 </div>
 
-<style>
-	.read-activity {
-		/* Component specific styles if needed */
-	}
-</style>
+

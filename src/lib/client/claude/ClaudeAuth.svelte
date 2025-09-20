@@ -5,6 +5,7 @@
 	import { io } from 'socket.io-client';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
+	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 
 	/**
 	 * Claude Authentication Component
@@ -21,7 +22,7 @@
 	let oauthUrl = $state('');
 	let authCode = $state('');
 	let showCodeInput = $state(false);
-	let sessionId = $state(''); // retained for API parity; not used in WS flow
+// removed unused sessionId (was retained for API parity; not used in WS flow)
 	let socket = $state();
 
 	// Manual API key state
@@ -31,11 +32,25 @@
 	// Status messages
 	let statusMessage = $state('');
 
+	// Service container for configuration
+	let container = null;
+	let socketUrl = '';
+	
+	// Try to get service container for configuration
+	try {
+		container = useServiceContainer();
+		socketUrl = container.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+	} catch (e) {
+		// Fallback if container is not available (not in context)
+		socketUrl = typeof window !== 'undefined' ? window.location.origin : '';
+	}
+
 	onMount(async () => {
 		await checkAuthStatus();
 
 		// Initialize a general Socket.IO connection for auth events
-		socket = io({ autoConnect: true, reconnection: true });
+		// Use configured URL or current origin for socket connection to support remote access
+		socket = io(socketUrl, { autoConnect: true, reconnection: true });
 
 		const handleAuthUrl = (payload) => {
 			try {
@@ -117,7 +132,8 @@
 		statusMessage = '';
 		try {
 			if (!socket) {
-				socket = io({ autoConnect: true, reconnection: true });
+				// Use configured URL or current origin for socket connection to support remote access
+				socket = io(socketUrl, { autoConnect: true, reconnection: true });
 			}
 			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY) || 'testkey12345';
 
@@ -239,7 +255,6 @@
 		authCode = '';
 		apiKey = '';
 		oauthUrl = '';
-		sessionId = '';
 		authError = '';
 		statusMessage = '';
 	}

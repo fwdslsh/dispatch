@@ -33,12 +33,24 @@ export function clearAuthToken() {
 }
 
 /**
+ * Get socket URL from configuration or fall back to current origin
+ * @param {Object} config - Configuration object with socketUrl
+ * @returns {string} Socket URL to use for connection
+ */
+function getSocketUrl(config = {}) {
+	return config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+}
+
+/**
  * Create authenticated Socket.IO connection
  * @param {Object} options - Socket.IO connection options
+ * @param {Object} config - Configuration object with socketUrl
  * @returns {Promise<Object>} Promise resolving to {socket, authenticated}
  */
-export async function createAuthenticatedSocket(options = {}) {
-	const socket = io({ transports: ['websocket', 'polling'], ...options });
+export async function createAuthenticatedSocket(options = {}, config = {}) {
+	// Use configured URL or current origin for socket connection to support remote access
+	const socketUrl = getSocketUrl(config);
+	const socket = io(socketUrl, { transports: ['websocket', 'polling'], ...options });
 
 	return new Promise((resolve, reject) => {
 		const token = getStoredAuthToken();
@@ -72,10 +84,13 @@ export async function createAuthenticatedSocket(options = {}) {
 /**
  * Test authentication with a specific key
  * @param {string} key - Authentication key to test
+ * @param {Object} config - Configuration object with socketUrl
  * @returns {Promise<boolean>} Promise resolving to authentication result
  */
-export async function testAuthKey(key) {
-	const socket = io({ transports: ['websocket', 'polling'] });
+export async function testAuthKey(key, config = {}) {
+	// Use configured URL or current origin for socket connection to support remote access
+	const socketUrl = getSocketUrl(config);
+	const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
 
 	return new Promise((resolve) => {
 		// Set a timeout to prevent hanging
@@ -117,22 +132,24 @@ export async function authenticateSocket(socket, key) {
 
 /**
  * Check if user is currently authenticated
+ * @param {Object} config - Configuration object with socketUrl
  * @returns {Promise<boolean>} Promise resolving to authentication status
  */
-export async function isAuthenticated() {
+export async function isAuthenticated(config = {}) {
 	const token = getStoredAuthToken();
 	if (!token) return false;
 
-	return await testAuthKey(token);
+	return await testAuthKey(token, config);
 }
 
 /**
  * Attempt auto-authentication with development key
  * @param {string} devKey - Development key to test (default: 'testkey12345')
+ * @param {Object} config - Configuration object with socketUrl
  * @returns {Promise<boolean>} Promise resolving to authentication result
  */
-export async function tryAutoAuth(devKey = 'testkey12345') {
-	const success = await testAuthKey(devKey);
+export async function tryAutoAuth(devKey = 'testkey12345', config = {}) {
+	const success = await testAuthKey(devKey, config);
 	if (success) {
 		storeAuthToken(devKey);
 	}

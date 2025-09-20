@@ -300,18 +300,6 @@ export class PersistenceService {
 	cleanupOldData() {
 		let cleaned = 0;
 
-		// Clean up old Claude commands cache
-		const claudeCommands = this.getByPrefix('claude-commands-');
-		const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-
-		for (const { key, value } of claudeCommands) {
-			if (value && value.timestamp && value.timestamp < oneWeekAgo) {
-				if (this.remove(key)) {
-					cleaned++;
-				}
-			}
-		}
-
 		// Clean up old command cache
 		const commandCache = this.getByPrefix('command-cache-');
 		const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;

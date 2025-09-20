@@ -33,7 +33,7 @@ terminal_history (id, terminal_id, data, timestamp)
 claude_sessions (id, working_directory, session_id, app_session_id, resume_capable, created_at, updated_at)
 socket_sessions (id, socket_id, metadata, created_at, updated_at, disconnected_at)
 session_history (id, session_id, socket_id, event_type, direction, data, timestamp)
-```
+```js
 
 ### Problems with Current Design
 
@@ -537,7 +537,7 @@ export class RunSessionManager {
 }
 ```
 
-3. **Create adapters**:
+1. **Create adapters**:
 
 ```javascript
 // src/lib/server/adapters/PtyAdapter.js
@@ -918,6 +918,7 @@ const claudeRun = await fetch('/api/sessions', {
 - `includePartialMessages`: Enable streaming message deltas
 - And all other options from the SDK `Options` type
 
+```js
 export async function DELETE({ url, locals }) {
   const runId = url.searchParams.get('runId');
   
@@ -950,6 +951,7 @@ INSERT OR REPLACE INTO workspace_layout
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
+```
 
 ```
 

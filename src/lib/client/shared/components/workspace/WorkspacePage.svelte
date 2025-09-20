@@ -26,10 +26,11 @@
 
 	// SessionSocketManager removed - RunSessionClient now handles socket management automatically
 
-	// Initialize service container
+	// Initialize service container with proper URLs for remote connections
+	// Use relative URLs that work for both local and remote access
 	const container = provideServiceContainer({
-		apiBaseUrl: '',
-		socketUrl: '',
+		apiBaseUrl: '', // Empty string means use current origin for API calls
+		socketUrl: typeof window !== 'undefined' ? window.location.origin : '', // Use current origin for socket connections
 		authTokenKey: 'dispatch-auth-key',
 		debug: false
 	});

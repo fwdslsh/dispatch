@@ -76,8 +76,6 @@ describe('LayoutViewModel', () => {
 			getDeviceType: vi.fn().mockReturnValue('desktop'),
 			calculateColumns: vi.fn().mockReturnValue(4),
 			calculateMaxVisible: vi.fn().mockReturnValue(4),
-			updateMaxVisible: vi.fn(),
-			onLayoutChange: vi.fn(),
 			loadLayoutPreset: vi.fn(),
 			getMobileSessionIndex: vi.fn().mockReturnValue(0),
 			setMobileSessionIndex: vi.fn(),
@@ -372,24 +370,7 @@ describe('LayoutViewModel', () => {
 			expect(mockLayoutService.isMobile).toHaveBeenCalled();
 		});
 
-		it('should update service max visible when layout changes', () => {
-			viewModel.setLayoutPreset('1up');
-
-			// In real implementation, this would be called by an effect
-			// Simulate layout service applying the preset and derived update
-			mockLayoutService.columns = 1;
-			mockLayoutService.maxVisible = 1;
-			viewModel.columns = 1;
-			viewModel.maxVisible = 1;
-			mockLayoutService.updateMaxVisible(viewModel.maxVisible);
-
-			expect(mockLayoutService.updateMaxVisible).toHaveBeenCalledWith(1);
-		});
-
-		it('should register layout change callback with service', () => {
-			// In real implementation, this would be set up in constructor
-			expect(mockLayoutService.onLayoutChange).toBeDefined();
-		});
+		// Removed tests for updateMaxVisible and onLayoutChange as these methods do not exist on LayoutService
 	});
 
 	describe('Responsive Breakpoints', () => {

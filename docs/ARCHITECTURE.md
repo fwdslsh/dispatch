@@ -46,11 +46,10 @@ graph TB
     end
 
     subgraph "Service Layer"
-        SR[SessionRegistry]
-        MB[MessageBuffer]
+        RSM[RunSessionManager]
         WM[WorkspaceManager]
-        TM[TerminalManager]
-        CM[ClaudeSessionManager]
+        PA[PtyAdapter]
+        CA[ClaudeAdapter]
     end
 
     subgraph "Data Layer"
@@ -70,18 +69,17 @@ graph TB
     UI <--> SocketIO
     UI <--> REST
 
-    SocketIO --> SR
+    SocketIO --> RSM
     REST --> WM
 
-    SR --> MB
-    SR --> TM
-    SR --> CM
-    MB --> Memory
+    RSM --> PA
+    RSM --> CA
+    RSM --> SQLite
     WM --> SQLite
     WM --> FS
 
-    TM --> PTY
-    CM --> ClaudeAPI
+    PA --> PTY
+    CA --> ClaudeAPI
 ```
 
 ### Component Responsibilities
@@ -90,11 +88,10 @@ graph TB
 | -------------------- | ---------------------------------------- | ------------------- |
 | Frontend             | User interface, terminal emulation       | SvelteKit, xterm.js |
 | Socket.IO Layer      | Real-time bidirectional communication    | Socket.IO 4.x       |
-| SessionRegistry      | Session lifecycle + module orchestration | Node.js service     |
-| MessageBuffer        | Session message replay buffer            | In-memory store     |
+| RunSessionManager    | Unified session/event management         | Event-sourced       |
 | WorkspaceManager     | Workspace lifecycle and persistence      | SQLite + filesystem |
-| TerminalManager      | PTY session management                   | node-pty            |
-| ClaudeSessionManager | AI session integration                   | Claude Code SDK     |
+| PtyAdapter           | PTY session management                   | node-pty            |
+| ClaudeAdapter        | AI session integration                   | Claude Code SDK     |
 
 ## Frontend Architecture
 
@@ -202,15 +199,13 @@ graph LR
     end
 
     subgraph "Core Services"
-        SR[SessionRegistry]
-        MB[MessageBuffer]
+        RSM[RunSessionManager]
         WM[WorkspaceManager]
     end
 
-    subgraph "Session Type Managers"
-        TM[TerminalManager]
-        CM[ClaudeSessionManager]
-        CAM[ClaudeAuthManager]
+    subgraph "Session Adapters"
+        PA[PtyAdapter]
+        CA[ClaudeAdapter]
     end
 
     subgraph "Shared Resources"
@@ -223,48 +218,43 @@ graph LR
     Hooks --> API
     SocketSetup --> API
 
-    API --> SR
+    API --> RSM
     API --> WM
 
-SR --> TM
-SR --> CM
-SR --> CAM
-SR --> MB
+    RSM --> PA
+    RSM --> CA
 
     WM --> DB
-    MB --> Memory
 ```
 
 ### Core Service Classes
 
-#### SessionRegistry (`src/lib/server/core/SessionRegistry.js`)
+#### RunSessionManager (`src/lib/server/runtime/RunSessionManager.js`)
 
-`SessionRegistry` is the primary orchestration layer for server-side sessions. It owns the active-session index and coordinates directly with `TerminalManager` and `ClaudeSessionManager`.
+`RunSessionManager` is the unified event-sourced session manager. It handles all session orchestration, event history, and adapter integration for both PTY and Claude sessions.
 
 Key responsibilities:
 
-- Maintain the canonical map of application session IDs to type-specific metadata
-- Delegate `create`, `send`, `performOperation`, `stop`, and `refreshCommands` calls to the concrete managers
-- Persist session metadata through `WorkspaceManager`
-- Coordinate message buffering and socket emission via `MessageBuffer`
+- Maintain the canonical map of run session IDs to adapter instances
+- Coordinate event-sourced session history with monotonic sequence numbers
+- Delegate session operations to appropriate adapters (PTY, Claude)
+- Emit real-time events to Socket.IO clients
+- Provide session resume capabilities through event replay
 
 Example usage:
 
 ```javascript
-const registry = new SessionRegistry({
-	workspaceManager,
-	messageBuffer,
-	terminalManager,
-	claudeSessionManager
+const runSessionManager = new RunSessionManager({
+	adapters: [ptyAdapter, claudeAdapter],
+	db: databaseManager
 });
 
-const session = await registry.createSession({
-	type: 'claude',
-	workspacePath: '/workspace/project',
-	options: { socket }
+const { runId } = await runSessionManager.createRunSession({
+	kind: 'pty',
+	meta: { cwd: '/workspace/project', shell: '/bin/bash' }
 });
 
-await registry.sendToSession(session.id, userInput);
+await runSessionManager.sendInput(runId, 'ls -la\n');
 ```
 
 #### WorkspaceManager (`src/lib/server/core/WorkspaceManager.js`)
@@ -305,29 +295,28 @@ class WorkspaceManager {
 
 ```mermaid
 classDiagram
-    class SessionRegistry {
-        +createSession(params)
-        +sendToSession(id, payload)
-        +performOperation(id, operation, params)
-        +terminateSession(id)
+    class RunSessionManager {
+        +createRunSession(params)
+        +sendInput(runId, data)
+        +attachToRunSession(runId, onEvent)
+        +closeRunSession(runId)
     }
 
-    class TerminalManager {
-        +start(options)
-        +write(id, data)
-        +resize(id, cols, rows)
-        +stop(id)
+    class PtyAdapter {
+        +create(options)
+        +input.write(data)
+        +resize(cols, rows)
+        +close()
     }
 
-    class ClaudeSessionManager {
-        +create(ctx)
-        +send(id, input)
-        +refreshCommands(id)
-        +getCachedCommands(id)
+    class ClaudeAdapter {
+        +create(options)
+        +input.write(data)
+        +close()
     }
 
-    SessionRegistry --> TerminalManager
-    SessionRegistry --> ClaudeSessionManager
+    RunSessionManager --> PtyAdapter
+    RunSessionManager --> ClaudeAdapter
 ```
 
 ## Communication Layer
@@ -346,45 +335,44 @@ sequenceDiagram
     Client->>SocketIO: connect
     SocketIO->>Client: connected
 
-    Client->>SocketIO: terminal.start
+    Client->>SocketIO: auth
     SocketIO->>Auth: validateKey
     Auth->>SocketIO: authorized
-    SocketIO->>SessionRegistry: createSession(type:'pty')
-    SessionRegistry->>TerminalModule: create(ctx)
-    TerminalModule->>Client: session.created
+    
+    Client->>SocketIO: run:attach
+    SocketIO->>RunSessionManager: attachToRunSession(runId)
+    RunSessionManager->>Client: event backlog
+    
+    Client->>SocketIO: run:input
+    SocketIO->>RunSessionManager: sendInput(runId, data)
+    RunSessionManager->>PtyAdapter: input.write(data)
+    PtyAdapter->>Client: run:event(pty:stdout)
 
-    Client->>SocketIO: terminal.write
-    SocketIO->>SessionRegistry: sendToSession(id,data)
-    SessionRegistry->>TerminalModule: send(ctx)
-    TerminalModule->>Client: data(output)
-
-    Client->>SocketIO: claude.send
-    SocketIO->>SessionRegistry: sendToSession(id,input)
-    SessionRegistry->>ClaudeModule: send(ctx)
-    ClaudeModule->>Client: claude.message.delta(events)
+    Client->>SocketIO: run:input  
+    SocketIO->>RunSessionManager: sendInput(runId, input)
+    RunSessionManager->>ClaudeAdapter: input.write(input)
+    ClaudeAdapter->>Client: run:event(claude:message)
 ```
 
 ### Event Types and Payloads
 
 #### Client → Server Events
 
-| Event             | Payload                            | Description                 |
-| ----------------- | ---------------------------------- | --------------------------- |
-| `terminal.start`  | `{key, workspacePath, shell, env}` | Create new terminal session |
-| `terminal.write`  | `{key, id, data}`                  | Send input to terminal      |
-| `terminal.resize` | `{key, id, cols, rows}`            | Resize terminal dimensions  |
-| `claude.send`     | `{key, id, input}`                 | Send message to Claude      |
-| `session.stop`    | `{key, id}`                        | Terminate session           |
+| Event         | Payload                           | Description                 |
+| ------------- | --------------------------------- | --------------------------- |
+| `auth`        | `authKey`                         | Authenticate connection     |
+| `run:attach`  | `{runId, afterSeq}`               | Attach to run session       |
+| `run:input`   | `{runId, data}`                   | Send input to session       |
+| `run:resize`  | `{runId, cols, rows}`             | Resize terminal dimensions  |
+| `run:close`   | `{runId}`                         | Close run session          |
 
 #### Server → Client Events
 
-| Event                  | Payload                 | Description                   |
-| ---------------------- | ----------------------- | ----------------------------- |
-| `data`                 | `string`                | Terminal output data          |
-| `claude.message.delta` | `Event[]`               | Claude response stream        |
-| `session.created`      | `{id, type, workspace}` | Session creation confirmation |
-| `session.ended`        | `{id, exitCode}`        | Session termination           |
-| `error`                | `{message, code}`       | Error notification            |
+| Event       | Payload                         | Description                   |
+| ----------- | ------------------------------- | ----------------------------- |
+| `run:event` | `{runId, seq, channel, payload}` | Session event stream          |
+| `auth.success` | `{success: true}`            | Authentication success        |
+| `auth.error`   | `{error: message}`           | Authentication failure        |
 
 ### Connection Management
 
@@ -448,23 +436,21 @@ stateDiagram-v2
 
 ```javascript
 // Unified session descriptor
-interface SessionDescriptor {
-    id: string;              // Unified session ID
-    type: 'pty' | 'claude';  // Session type
-    specificId: string;      // Type-specific ID
-    workspacePath: string;   // Associated workspace
-    status: SessionStatus;   // Current status
-    createdAt: number;       // Creation timestamp
-    lastActivity: number;    // Last activity time
-    metadata: object;        // Type-specific metadata
+interface RunSession {
+    runId: string;               // Unique run session ID
+    kind: 'pty' | 'claude';     // Session type
+    status: SessionStatus;      // Current status
+    createdAt: number;          // Creation timestamp
+    updatedAt: number;          // Last update time
+    meta: object;               // Kind-specific metadata
 }
 
 // Session status enumeration
 enum SessionStatus {
-    CREATED = 'created',
-    ACTIVE = 'active',
-    SUSPENDED = 'suspended',
-    TERMINATED = 'terminated'
+    STARTING = 'starting',
+    RUNNING = 'running',
+    STOPPED = 'stopped',
+    ERROR = 'error'
 }
 ```
 

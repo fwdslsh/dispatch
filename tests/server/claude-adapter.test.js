@@ -19,7 +19,6 @@ vi.mock('@anthropic-ai/claude-code', () => {
 				};
 			})();
 
-			generator.interrupt = vi.fn();
 			return generator;
 		})
 	};

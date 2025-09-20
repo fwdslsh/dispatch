@@ -3,8 +3,9 @@
  *
  * API client for session-related operations.
  * Encapsulates all HTTP requests for session management.
- * Maintains backward compatibility with existing API contracts.
  */
+
+import { normalizeSessionKind } from '../../../shared/session-kind.js';
 
 /**
  * @typedef {Object} Session
@@ -132,9 +133,9 @@ export class SessionApiClient {
 			console.log('[SessionApiClient] Raw sessions array:', raw);
 			const sessions = raw.map((s) => {
 				if (!s) return null;
-				// Accept multiple possible field names for compatibility
 				const id = s.id || s.runId || s.run_id || s.sessionId || s.session_id;
-				const type = s.type || s.kind || s.sessionType || s.kind_name || 'pty';
+				const type =
+					normalizeSessionKind(s.type || s.kind || s.sessionType || s.kind_name || 'pty') || 'pty';
 				const workspacePath = s.workspacePath || s.cwd || (s.meta && s.meta.cwd) || '';
 				const isActive = s.isActive === true || s.isLive === true || s.status === 'running' || s.status === 'active';
 				const tileIdValue = s.tile_id || s.tileId || (s.inLayout ? s.tileId : undefined);
@@ -179,12 +180,16 @@ export class SessionApiClient {
 	/**
 	 * Create a new session
 	 * @param {CreateSessionOptions} options
-	 * @returns {Promise<{id: string, typeSpecificId: string|null, resumed?: boolean}>}
 	 */
 	async create({ type, workspacePath, options = {}, resume = false, sessionId = null }) {
 		try {
+			const normalizedType = normalizeSessionKind(type);
+			if (!normalizedType) {
+				throw new Error(`Invalid session type: ${type}`);
+			}
+
 			const body = {
-				kind: type,  // API expects 'kind' not 'type'
+				kind: normalizedType,  // API expects 'kind' not 'type'
 				cwd: workspacePath,  // API expects 'cwd' not 'workspacePath'
 				options
 			};
@@ -216,17 +221,20 @@ export class SessionApiClient {
 
 			return {
 				id,
-				typeSpecificId: raw?.typeSpecificId ?? raw?.type_specific_id ?? null,
-				// Preserve kind so downstream callers can normalize properly
-				type,
-				sessionType: type,
+				// Preserve normalized kind so downstream callers have canonical values
+				type: normalizedType,
+				sessionType: normalizedType,
 				workspacePath,
 				isActive: true,
 				inLayout: false,
 				resumed: raw?.resumed ?? (resume && !!sessionId) ?? false,
 				title:
 					raw?.title ||
-					(type === 'claude' ? 'Claude session' : type === 'pty' ? 'Terminal session' : `${type} session`),
+					(normalizedType === 'claude'
+						? 'Claude session'
+						: normalizedType === 'pty'
+						? 'Terminal session'
+						: `${normalizedType} session`),
 				createdAt: raw?.createdAt || new Date().toISOString(),
 				lastActivity: raw?.lastActivity || new Date().toISOString(),
 				activityState: raw?.activityState || 'launching',

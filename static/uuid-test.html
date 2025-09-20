@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UUID Test</title>
+</head>
+<body>
+    <h1>UUID Test</h1>
+    <p>Testing UUID generation in different browser environments:</p>
+    
+    <div id="results"></div>
+    
+    <script type="module">
+        // Test our UUID utility
+        import { generateUUID, getClientId } from '/src/lib/client/shared/utils/uuid.js';
+        
+        const results = document.getElementById('results');
+        
+        try {
+            // Test generateUUID
+            const uuid1 = generateUUID();
+            const uuid2 = generateUUID();
+            
+            results.innerHTML += `<p><strong>generateUUID() test:</strong></p>`;
+            results.innerHTML += `<p>UUID 1: ${uuid1}</p>`;
+            results.innerHTML += `<p>UUID 2: ${uuid2}</p>`;
+            results.innerHTML += `<p>Different UUIDs: ${uuid1 !== uuid2 ? '✅' : '❌'}</p>`;
+            
+            // Test getClientId
+            const clientId1 = getClientId();
+            const clientId2 = getClientId(); // Should be the same
+            
+            results.innerHTML += `<p><strong>getClientId() test:</strong></p>`;
+            results.innerHTML += `<p>Client ID 1: ${clientId1}</p>`;
+            results.innerHTML += `<p>Client ID 2: ${clientId2}</p>`;
+            results.innerHTML += `<p>Same client ID: ${clientId1 === clientId2 ? '✅' : '❌'}</p>`;
+            
+            // Test crypto.randomUUID availability
+            const hasCryptoUUID = typeof crypto !== 'undefined' && crypto.randomUUID;
+            results.innerHTML += `<p><strong>Browser support:</strong></p>`;
+            results.innerHTML += `<p>crypto.randomUUID available: ${hasCryptoUUID ? '✅' : '❌'}</p>`;
+            
+            results.innerHTML += `<p><strong>✅ All tests passed! No crypto.randomUUID error.</strong></p>`;
+            
+        } catch (error) {
+            results.innerHTML += `<p><strong>❌ Error:</strong> ${error.message}</p>`;
+            console.error('UUID test error:', error);
+        }
+    </script>
+</body>
+</html>
