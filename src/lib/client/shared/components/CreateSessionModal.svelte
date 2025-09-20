@@ -11,6 +11,7 @@
 	import IconFolder from './Icons/IconFolder.svelte';
 	import IconPlus from './Icons/IconPlus.svelte';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import { getClientSessionModule } from '$lib/client/shared/session-modules/index.js';
 
 	// Props
 	let { open = $bindable(false), initialType = 'claude', oncreated, onclose } = $props();
@@ -22,6 +23,12 @@
 	let loading = $state(false);
 	let error = $state(null);
 	let sessionApi = $state(null);
+	let sessionSettings = $state({});
+
+	// Reset settings when session type changes
+	$effect(() => {
+		sessionSettings = {};
+	});
 
 	// Get API client from service container
 	$effect(() => {
@@ -73,7 +80,7 @@
 			const session = await sessionApi.create({
 				type: /** @type {'pty' | 'claude'} */ (sessionType),
 				workspacePath,
-				options: {}
+				options: sessionSettings
 			});
 
 			if (oncreated) {
@@ -115,6 +122,7 @@
 			setDefaultWorkspace();
 			error = null;
 			showDirectoryBrowser = false;
+			sessionSettings = {};
 		}
 	});
 
@@ -183,6 +191,18 @@
 			
 				</div>
 			</FormSection>
+
+			<!-- Session Type Settings -->
+			{#if sessionType}
+				{@const currentModule = getClientSessionModule(sessionType)}
+				{#if currentModule?.settingsComponent}
+					{@const SettingsComponent = currentModule.settingsComponent}
+					<SettingsComponent 
+						bind:settings={sessionSettings}
+						disabled={loading}
+					/>
+				{/if}
+			{/if}
 
 			<!-- Error Display -->
 			{#if error}
