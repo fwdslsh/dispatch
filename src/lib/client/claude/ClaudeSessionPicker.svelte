@@ -1,5 +1,6 @@
 <script>
-	import { IconX, IconArchive } from '@tabler/icons-svelte';
+	import IconX from '../shared/components/Icons/IconX.svelte';
+	import IconArchive from '../shared/components/Icons/IconArchive.svelte';
 	import IconButton from '../shared/components/IconButton.svelte';
 
 	// Props

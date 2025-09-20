@@ -3,7 +3,10 @@
 	 * ErrorDisplay Foundation Component
 	 * Standardized error message presentation with different severity levels
 	 */
-	import { IconX, IconAlertTriangle, IconCheck, IconInfoCircle } from '@tabler/icons-svelte';
+	import IconX from './Icons/IconX.svelte';
+	import IconAlertTriangle from './Icons/IconAlertTriangle.svelte';
+	import IconCheck from './Icons/IconCheck.svelte';
+	import IconInfoCircle from './Icons/IconInfoCircle.svelte';
 
 	// Props with defaults
 	let {

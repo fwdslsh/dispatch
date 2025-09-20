@@ -1,7 +1,7 @@
 <script>
 	import { onDestroy } from 'svelte';
 	import IconButton from './IconButton.svelte';
-	import { IconX } from '@tabler/icons-svelte';
+	import IconX from './Icons/IconX.svelte';
 
 	/**
 	 * Modal Foundation Component

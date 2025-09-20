@@ -9,7 +9,8 @@
 	import BrandLogo from './BrandLogo.svelte';
 	import LayoutControls from './LayoutControls.svelte';
 	import IconButton from '../IconButton.svelte';
-	import { IconAppWindow, IconLogout } from '@tabler/icons-svelte';
+	import IconAppWindow from '../Icons/IconAppWindow.svelte';
+	import IconLogout from '../Icons/IconLogout.svelte';
 
 	// Props
 	let {

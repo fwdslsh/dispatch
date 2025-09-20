@@ -1,23 +1,21 @@
-import {
-	IconFileText,
-	IconFileCode,
-	IconEdit,
-	IconTerminal2,
-	IconSearch,
-	IconAsterisk,
-	IconWorld,
-	IconChecklist,
-	IconSquareCheck,
-	IconReceipt,
-	IconCircleCheck,
-	IconTool,
-	IconHourglassEmpty,
-	IconBrain,
-	IconRobot,
-	IconUser,
-	IconMessage,
-	IconDots
-} from '@tabler/icons-svelte';
+import IconFileText from '../components/Icons/IconFileText.svelte';
+import IconFileCode from '../components/Icons/IconFileCode.svelte';
+import IconEdit from '../components/Icons/IconEdit.svelte';
+import IconTerminal2 from '../components/Icons/IconTerminal2.svelte';
+import IconSearch from '../components/Icons/IconSearch.svelte';
+import IconAsterisk from '../components/Icons/IconAsterisk.svelte';
+import IconWorld from '../components/Icons/IconWorld.svelte';
+import IconChecklist from '../components/Icons/IconChecklist.svelte';
+import IconSquareCheck from '../components/Icons/IconSquareCheck.svelte';
+import IconReceipt from '../components/Icons/IconReceipt.svelte';
+import IconCircleCheck from '../components/Icons/IconCircleCheck.svelte';
+import IconTool from '../components/Icons/IconTool.svelte';
+import IconHourglassEmpty from '../components/Icons/IconHourglassEmpty.svelte';
+import IconBrain from '../components/Icons/IconBrain.svelte';
+import IconRobot from '../components/Icons/IconRobot.svelte';
+import IconUser from '../components/Icons/IconUser.svelte';
+import IconMessage from '../components/Icons/IconMessage.svelte';
+import IconDots from '../components/Icons/IconDots.svelte';
 
 // Maps a Claude/Tool event to a Tabler icon component and human label
 export function getIconForEvent(event) {

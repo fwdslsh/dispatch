@@ -3,7 +3,8 @@
 	 * WorkspaceSelector Component
 	 * Directory picker with dropdown functionality
 	 */
-	import { IconFolder, IconChevronDown } from '@tabler/icons-svelte';
+	import IconFolder from './Icons/IconFolder.svelte';
+	import IconChevronDown from './Icons/IconChevronDown.svelte';
 
 	// Props
 	let {

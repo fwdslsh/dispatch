@@ -1,6 +1,6 @@
 <script>
 	import ActivitySummary from '$lib/client/claude/activity-summaries/ActivitySummary.svelte';
-	import { IconCircle } from '@tabler/icons-svelte';
+	import IconCircle from './Icons/IconCircle.svelte';
 	let { icons = [], title = 'Agent activity', staticMode = false } = $props();
 	let selected = $state(null);
 

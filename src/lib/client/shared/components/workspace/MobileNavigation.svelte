@@ -7,7 +7,8 @@
 
 <script>
 	import IconButton from '../IconButton.svelte';
-	import { IconPlayerTrackNext, IconPlayerTrackPrev } from '@tabler/icons-svelte';
+	import IconPlayerTrackNext from '../Icons/IconPlayerTrackNext.svelte';
+	import IconPlayerTrackPrev from '../Icons/IconPlayerTrackPrev.svelte';
 
 	// Props
 	let {

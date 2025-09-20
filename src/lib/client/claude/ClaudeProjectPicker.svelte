@@ -1,5 +1,6 @@
 <script>
-	import { IconX, IconFolder } from '@tabler/icons-svelte';
+	import IconX from '../shared/components/Icons/IconX.svelte';
+	import IconFolder from '../shared/components/Icons/IconFolder.svelte';
 	import IconButton from '../shared/components/IconButton.svelte';
 
 	// Svelte 5 (runes)

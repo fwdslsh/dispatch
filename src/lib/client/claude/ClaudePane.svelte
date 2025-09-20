@@ -5,16 +5,14 @@
 	import Markdown from '$lib/client/shared/components/Markdown.svelte';
 	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
 
-	import {
-		IconFolder,
-		IconMessage,
-		IconAlertTriangle,
-		IconSparkles,
-		IconLoader,
-		IconUser,
-		IconUserCode,
-		IconProgressDown
-	} from '@tabler/icons-svelte';
+	import IconFolder from '../shared/components/Icons/IconFolder.svelte';
+	import IconMessage from '../shared/components/Icons/IconMessage.svelte';
+	import IconAlertTriangle from '../shared/components/Icons/IconAlertTriangle.svelte';
+	import IconSparkles from '../shared/components/Icons/IconSparkles.svelte';
+	import IconLoader from '../shared/components/Icons/IconLoader.svelte';
+	import IconUser from '../shared/components/Icons/IconUser.svelte';
+	import IconUserCode from '../shared/components/Icons/IconUserCode.svelte';
+	import IconProgressDown from '../shared/components/Icons/IconProgressDown.svelte';
 	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
 	import { getIconForEvent } from '$lib/client/shared/icons/claudeEventIcons.js';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';

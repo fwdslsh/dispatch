@@ -3,13 +3,11 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import ConfirmationDialog from '$lib/client/shared/components/ConfirmationDialog.svelte';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
-	import {
-		IconTrash,
-		IconDownload,
-		IconUpload,
-		IconAlertTriangle,
-		IconCheck
-	} from '@tabler/icons-svelte';
+	import IconTrash from '../Icons/IconTrash.svelte';
+	import IconDownload from '../Icons/IconDownload.svelte';
+	import IconUpload from '../Icons/IconUpload.svelte';
+	import IconAlertTriangle from '../Icons/IconAlertTriangle.svelte';
+	import IconCheck from '../Icons/IconCheck.svelte';
 
 	/**
 	 * Storage Settings Component

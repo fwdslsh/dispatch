@@ -6,7 +6,10 @@
 	import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
 	import ClaudePane from '$lib/client/claude/ClaudePane.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
-	import { IconTerminal, IconX, IconPin, IconPinnedOff } from '@tabler/icons-svelte';
+	import IconTerminal from '$lib/client/shared/components/Icons/IconTerminal.svelte';
+	import IconX from '$lib/client/shared/components/Icons/IconX.svelte';
+	import IconPin from '$lib/client/shared/components/Icons/IconPin.svelte';
+	import IconPinnedOff from '$lib/client/shared/components/Icons/IconPinnedOff.svelte';
 	import IconClaude from '$lib/client/shared/components/Icons/IconClaude.svelte';
 
 	// Session management state

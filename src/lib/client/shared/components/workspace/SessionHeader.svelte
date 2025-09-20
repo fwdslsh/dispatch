@@ -6,7 +6,7 @@
 -->
 <script>
 	import IconButton from '../IconButton.svelte';
-	import { IconX } from '@tabler/icons-svelte';
+	import IconX from '../Icons/IconX.svelte';
 
 	// Props
 	let { session, onClose = () => {}, index = 0 } = $props();

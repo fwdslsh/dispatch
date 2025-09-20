@@ -9,13 +9,11 @@
 	import MobileNavigation from './MobileNavigation.svelte';
 	import CreateSessionButton from './CreateSessionButton.svelte';
 	import IconButton from '../IconButton.svelte';
-	import {
-		IconAdjustmentsAlt,
-		IconCodeDots,
-		IconCodeMinus,
-		IconPlayerTrackNext,
-		IconPlayerTrackPrev
-	} from '@tabler/icons-svelte';
+	import IconAdjustmentsAlt from '../Icons/IconAdjustmentsAlt.svelte';
+	import IconCodeDots from '../Icons/IconCodeDots.svelte';
+	import IconCodeMinus from '../Icons/IconCodeMinus.svelte';
+	import IconPlayerTrackNext from '../Icons/IconPlayerTrackNext.svelte';
+	import IconPlayerTrackPrev from '../Icons/IconPlayerTrackPrev.svelte';
 
 	// Props
 	let {

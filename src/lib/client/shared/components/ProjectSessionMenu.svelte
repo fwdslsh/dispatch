@@ -3,18 +3,16 @@
 	import DirectoryBrowser from '$lib/client/shared/components/DirectoryBrowser.svelte';
 	import Button from './Button.svelte';
 	import SessionCard from './SessionCard.svelte';
-	import {
-		IconFolder,
-		IconChevronDown,
-		IconX,
-		IconPlus,
-		IconActivity,
-		IconBolt,
-		IconHistory,
-		IconSearch,
-		IconTerminal,
-		IconAsterisk
-	} from '@tabler/icons-svelte';
+	import IconFolder from './Icons/IconFolder.svelte';
+	import IconChevronDown from './Icons/IconChevronDown.svelte';
+	import IconX from './Icons/IconX.svelte';
+	import IconPlus from './Icons/IconPlus.svelte';
+	import IconActivity from './Icons/IconActivity.svelte';
+	import IconBolt from './Icons/IconBolt.svelte';
+	import IconHistory from './Icons/IconHistory.svelte';
+	import IconSearch from './Icons/IconSearch.svelte';
+	import IconTerminal from './Icons/IconTerminal.svelte';
+	import IconAsterisk from './Icons/IconAsterisk.svelte';
 	import IconClaude from './Icons/IconClaude.svelte';
 	import { normalizeSessionKind } from '$lib/shared/session-kind.js';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';

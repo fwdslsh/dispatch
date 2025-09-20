@@ -4,7 +4,10 @@
 	import Input from '$lib/client/shared/components/Input.svelte';
 	import LoadingSpinner from '$lib/client/shared/components/LoadingSpinner.svelte';
 	import ErrorDisplay from '$lib/client/shared/components/ErrorDisplay.svelte';
-	import { IconCloudCheck, IconCloudX, IconKey, IconExternalLink } from '@tabler/icons-svelte';
+	import IconCloudCheck from '../shared/components/Icons/IconCloudCheck.svelte';
+	import IconCloudX from '../shared/components/Icons/IconCloudX.svelte';
+	import IconKey from '../shared/components/Icons/IconKey.svelte';
+	import IconExternalLink from '../shared/components/Icons/IconExternalLink.svelte';
 	import { io } from 'socket.io-client';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';

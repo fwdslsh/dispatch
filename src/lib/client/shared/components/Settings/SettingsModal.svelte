@@ -3,7 +3,10 @@
 	import GlobalSettings from './GlobalSettings.svelte';
 	import ClaudeAuth from '../../../claude/ClaudeAuth.svelte';
 	import StorageSettings from './StorageSettings.svelte';
-	import { IconSettings, IconCloud, IconFolder, IconTrash } from '@tabler/icons-svelte';
+	import IconSettings from '../Icons/IconSettings.svelte';
+	import IconCloud from '../Icons/IconCloud.svelte';
+	import IconFolder from '../Icons/IconFolder.svelte';
+	import IconTrash from '../Icons/IconTrash.svelte';
 
 	/**
 	 * Settings Modal Component

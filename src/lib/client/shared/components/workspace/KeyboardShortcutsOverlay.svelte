@@ -6,17 +6,15 @@
 -->
 <script>
 	import { createEventDispatcher } from 'svelte';
-	import {
-		IconX,
-		IconKeyboard,
-		IconTerminal,
-		IconPlus,
-		IconMinus,
-		IconArrowLeft,
-		IconArrowRight,
-		IconArrowUp,
-		IconArrowDown
-	} from '@tabler/icons-svelte';
+	import IconX from '../Icons/IconX.svelte';
+	import IconKeyboard from '../Icons/IconKeyboard.svelte';
+	import IconTerminal from '../Icons/IconTerminal.svelte';
+	import IconPlus from '../Icons/IconPlus.svelte';
+	import IconMinus from '../Icons/IconMinus.svelte';
+	import IconArrowLeft from '../Icons/IconArrowLeft.svelte';
+	import IconArrowRight from '../Icons/IconArrowRight.svelte';
+	import IconArrowUp from '../Icons/IconArrowUp.svelte';
+	import IconArrowDown from '../Icons/IconArrowDown.svelte';
 	import IconClaude from '../Icons/IconClaude.svelte';
 	import Button from '../Button.svelte';
 

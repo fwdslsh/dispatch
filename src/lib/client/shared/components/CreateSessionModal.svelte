@@ -5,7 +5,11 @@
 	import WorkspaceSelector from '$lib/client/shared/components/WorkspaceSelector.svelte';
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';
 	import TypeCard from '$lib/client/shared/components/TypeCard.svelte';
-	import { IconBolt, IconRobot, IconTerminal2, IconFolder, IconPlus } from '@tabler/icons-svelte';
+	import IconBolt from './Icons/IconBolt.svelte';
+	import IconRobot from './Icons/IconRobot.svelte';
+	import IconTerminal2 from './Icons/IconTerminal2.svelte';
+	import IconFolder from './Icons/IconFolder.svelte';
+	import IconPlus from './Icons/IconPlus.svelte';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 
 	// Props

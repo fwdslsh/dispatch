@@ -1,7 +1,7 @@
 <script>
 	import Button from './Button.svelte';
 	import IconClaude from './Icons/IconClaude.svelte';
-	import { IconTerminal } from '@tabler/icons-svelte';
+	import IconTerminal from './Icons/IconTerminal.svelte';
 
 	// Props
 	let {

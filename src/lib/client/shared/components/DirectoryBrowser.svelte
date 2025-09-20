@@ -1,14 +1,12 @@
 <script>
 	import Button from '$lib/client/shared/components/Button.svelte';
-	import {
-		IconFolder,
-		IconFolderPlus,
-		IconEye,
-		IconEyeOff,
-		IconX,
-		IconFile,
-		IconCheck
-	} from '@tabler/icons-svelte';
+	import IconFolder from './Icons/IconFolder.svelte';
+	import IconFolderPlus from './Icons/IconFolderPlus.svelte';
+	import IconEye from './Icons/IconEye.svelte';
+	import IconEyeOff from './Icons/IconEyeOff.svelte';
+	import IconX from './Icons/IconX.svelte';
+	import IconFile from './Icons/IconFile.svelte';
+	import IconCheck from './Icons/IconCheck.svelte';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import IconButton from './IconButton.svelte';
 	import Input from './Input.svelte';

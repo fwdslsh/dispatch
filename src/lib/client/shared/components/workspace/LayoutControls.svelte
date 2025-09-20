@@ -3,7 +3,8 @@
 -->
 <script>
 	import IconButton from '../IconButton.svelte';
-	import { IconLayoutGrid, IconDeviceDesktop } from '@tabler/icons-svelte';
+	import IconLayoutGrid from '../Icons/IconLayoutGrid.svelte';
+	import IconDeviceDesktop from '../Icons/IconDeviceDesktop.svelte';
 
 	let {
 		viewMode = 'window-manager',
