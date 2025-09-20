@@ -16,7 +16,7 @@ After installation, you can use the `dispatch` command from anywhere.
 
 ```bash
 npm install
-node bin/dispatch-cli.js --help
+node bin/cli.js --help
 ```
 
 ## Quick Start
