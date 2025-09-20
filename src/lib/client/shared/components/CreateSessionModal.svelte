@@ -10,6 +10,7 @@
 	import IconTerminal2 from './Icons/IconTerminal2.svelte';
 	import IconFolder from './Icons/IconFolder.svelte';
 	import IconPlus from './Icons/IconPlus.svelte';
+	import IconEdit from './Icons/IconEdit.svelte';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { getClientSessionModule } from '$lib/client/shared/session-modules/index.js';
 
@@ -78,7 +79,7 @@
 		try {
 			// Create the session using SessionApiClient
 			const session = await sessionApi.create({
-				type: /** @type {'pty' | 'claude'} */ (sessionType),
+				type: /** @type {'pty' | 'claude' | 'file-editor'} */ (sessionType),
 				workspacePath,
 				options: sessionSettings
 			});
@@ -174,6 +175,18 @@
 						tabindex="0"
 					>
 						{#snippet icon()}<IconTerminal2 size={32} />{/snippet}
+					</TypeCard>
+					<TypeCard
+						title="File Editor"
+						description="Browse, edit, and upload files"
+						active={sessionType === 'file-editor'}
+						disabled={loading}
+						onclick={() => (sessionType = 'file-editor')}
+						aria-label="Select File Editor session type"
+						role="button"
+						tabindex="0"
+					>
+						{#snippet icon()}<IconEdit size={32} />{/snippet}
 					</TypeCard>
 				</div>
 			</FormSection>

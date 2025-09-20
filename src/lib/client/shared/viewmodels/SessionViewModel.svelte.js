@@ -21,7 +21,7 @@ const log = createLogger('session:viewmodel');
  * @typedef {Object} Session
  * @property {string} id
  * @property {string} workspacePath
- * @property {'pty'|'claude'} sessionType
+ * @property {'pty'|'claude'|'file-editor'} sessionType
  * @property {boolean} isActive
  * @property {boolean} inLayout
  * @property {string} title

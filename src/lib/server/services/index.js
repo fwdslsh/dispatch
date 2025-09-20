@@ -7,6 +7,7 @@ import { DatabaseManager } from '../db/DatabaseManager.js';
 import { RunSessionManager } from '../runtime/RunSessionManager.js';
 import { PtyAdapter } from '../adapters/PtyAdapter.js';
 import { ClaudeAdapter } from '../adapters/ClaudeAdapter.js';
+import { FileEditorAdapter } from '../adapters/FileEditorAdapter.js';
 import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
 import path from 'node:path';
 import os from 'node:os';
@@ -65,9 +66,11 @@ export async function initializeServices(config = {}) {
 		// 4. Create and register adapters
 		const ptyAdapter = new PtyAdapter();
 		const claudeAdapter = new ClaudeAdapter();
+		const fileEditorAdapter = new FileEditorAdapter();
 
 		runSessionManager.registerAdapter('pty', ptyAdapter);
 		runSessionManager.registerAdapter('claude', claudeAdapter);
+		runSessionManager.registerAdapter('file-editor', fileEditorAdapter);
 
 		// 5. Claude Auth Manager (for OAuth flow)
 		const claudeAuthManager = new ClaudeAuthManager();
@@ -77,6 +80,7 @@ export async function initializeServices(config = {}) {
 			runSessionManager,
 			ptyAdapter,
 			claudeAdapter,
+			fileEditorAdapter,
 			claudeAuthManager
 		};
 

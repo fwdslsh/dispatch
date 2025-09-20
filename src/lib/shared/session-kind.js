@@ -1,7 +1,7 @@
 /**
  * Normalize various session type aliases to canonical kinds.
  * @param {string | null | undefined} value
- * @returns {'pty' | 'claude' | null}
+ * @returns {'pty' | 'claude' | 'file-editor' | null}
  */
 export function normalizeSessionKind(value) {
 	if (!value) return null;
@@ -24,6 +24,12 @@ export function normalizeSessionKind(value) {
 		case 'claude-code':
 		case 'claudecode':
 			return 'claude';
+		case 'file-editor':
+		case 'file_editor':
+		case 'fileeditor':
+		case 'editor':
+		case 'file':
+			return 'file-editor';
 		default:
 			return null;
 	}

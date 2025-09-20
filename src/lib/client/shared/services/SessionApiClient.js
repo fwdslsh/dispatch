@@ -10,7 +10,7 @@ import { normalizeSessionKind } from '../../../shared/session-kind.js';
 /**
  * @typedef {Object} Session
  * @property {string} id - Unified session ID
- * @property {string} type - Session kind/type (e.g. 'pty' or 'claude')
+ * @property {string} type - Session kind/type (e.g. 'pty', 'claude', or 'file-editor')
  * @property {string} workspacePath - Associated workspace path (cwd)
  * @property {boolean} isActive - Whether session is currently active
  * @property {boolean} inLayout - Whether session is displayed in layout
@@ -22,7 +22,7 @@ import { normalizeSessionKind } from '../../../shared/session-kind.js';
 
 /**
  * @typedef {Object} CreateSessionOptions
- * @property {'pty'|'claude'} type - Session type
+ * @property {'pty'|'claude'|'file-editor'} type - Session type
  * @property {string} workspacePath - Workspace for the session
  * @property {Object} [options] - Type-specific options
  * @property {boolean} [resume] - Whether to resume existing session
@@ -516,7 +516,7 @@ export class SessionApiClient {
 			return false;
 		}
 
-		if (!['pty', 'claude'].includes(options.type)) {
+		if (!['pty', 'claude', 'file-editor'].includes(options.type)) {
 			return false;
 		}
 

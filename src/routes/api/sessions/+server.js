@@ -29,7 +29,7 @@ export async function GET({ url, locals }) {
 			return {
 				id: row.run_id,
 				type: row.kind,
-				title: `${row.kind === 'pty' ? 'Terminal' : 'Claude'} Session`,
+				title: `${row.kind === 'pty' ? 'Terminal' : row.kind === 'claude' ? 'Claude' : row.kind === 'file-editor' ? 'File Editor' : row.kind} Session`,
 				workspacePath: meta.cwd || meta.workspacePath || '',
 				isActive: row.status === 'running',  // KEY FIX: Add isActive field
 				createdAt: row.created_at,
@@ -84,7 +84,7 @@ export async function POST({ request, locals }) {
 
 		if (!normalizedKind) {
 			return new Response(JSON.stringify({
-				error: 'Invalid or missing kind. Must be "pty" or "claude"'
+				error: 'Invalid or missing kind. Must be "pty", "claude", or "file-editor"'
 			}), { status: 400 });
 		}
 

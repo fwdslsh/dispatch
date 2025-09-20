@@ -1,5 +1,6 @@
 import { terminalSessionModule } from './terminal.js';
 import { claudeSessionModule } from './claude.js';
+import { fileEditorSessionModule } from './file-editor.js';
 
 const moduleMap = new Map();
 
@@ -29,4 +30,4 @@ export function listClientSessionModules() {
 	return Array.from(new Set(moduleMap.values()));
 }
 
-registerClientSessionModules(terminalSessionModule, claudeSessionModule);
+registerClientSessionModules(terminalSessionModule, claudeSessionModule, fileEditorSessionModule);
