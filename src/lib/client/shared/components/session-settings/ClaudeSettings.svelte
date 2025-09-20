@@ -14,11 +14,20 @@
 
 	// Default Claude settings based on SDK documentation
 	let model = $state(settings.model || 'claude-3-5-sonnet-20241022');
-	let temperature = $state(settings.temperature || 0.7);
-	let maxTokens = $state(settings.maxTokens || 4096);
-	let systemPrompt = $state(settings.systemPrompt || '');
-	let topP = $state(settings.topP || 1.0);
-	let topK = $state(settings.topK || 5);
+	let customSystemPrompt = $state(settings.customSystemPrompt || '');
+	let appendSystemPrompt = $state(settings.appendSystemPrompt || '');
+	let maxTurns = $state(settings.maxTurns || undefined);
+	let maxThinkingTokens = $state(settings.maxThinkingTokens || undefined);
+	let fallbackModel = $state(settings.fallbackModel || '');
+	let includePartialMessages = $state(settings.includePartialMessages || false);
+	let continueConversation = $state(settings.continue || false);
+	let permissionMode = $state(settings.permissionMode || 'default');
+	let executable = $state(settings.executable || 'auto');
+	let executableArgs = $state(settings.executableArgs || '');
+	let allowedTools = $state(settings.allowedTools || '');
+	let disallowedTools = $state(settings.disallowedTools || '');
+	let additionalDirectories = $state(settings.additionalDirectories || '');
+	let strictMcpConfig = $state(settings.strictMcpConfig || false);
 
 	// Available Claude models
 	const availableModels = [
@@ -29,16 +38,45 @@
 		{ value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
 	];
 
+	// Permission modes
+	const permissionModes = [
+		{ value: 'default', label: 'Default' },
+		{ value: 'ask', label: 'Ask for permissions' },
+		{ value: 'allow', label: 'Allow all' }
+	];
+
+	// JavaScript executables
+	const executables = [
+		{ value: 'auto', label: 'Auto-detect' },
+		{ value: 'node', label: 'Node.js' },
+		{ value: 'bun', label: 'Bun' },
+		{ value: 'deno', label: 'Deno' }
+	];
+
 	// Update settings binding when values change
 	$effect(() => {
-		settings = {
+		const cleanSettings = {
 			model,
-			temperature,
-			maxTokens,
-			systemPrompt: systemPrompt.trim() || undefined,
-			topP,
-			topK
+			customSystemPrompt: customSystemPrompt.trim() || undefined,
+			appendSystemPrompt: appendSystemPrompt.trim() || undefined,
+			maxTurns: maxTurns || undefined,
+			maxThinkingTokens: maxThinkingTokens || undefined,
+			fallbackModel: fallbackModel.trim() || undefined,
+			includePartialMessages: includePartialMessages || undefined,
+			continue: continueConversation || undefined,
+			permissionMode: permissionMode !== 'default' ? permissionMode : undefined,
+			executable: executable !== 'auto' ? executable : undefined,
+			executableArgs: executableArgs.trim() ? executableArgs.split(',').map(arg => arg.trim()).filter(Boolean) : undefined,
+			allowedTools: allowedTools.trim() ? allowedTools.split(',').map(tool => tool.trim()).filter(Boolean) : undefined,
+			disallowedTools: disallowedTools.trim() ? disallowedTools.split(',').map(tool => tool.trim()).filter(Boolean) : undefined,
+			additionalDirectories: additionalDirectories.trim() ? additionalDirectories.split(',').map(dir => dir.trim()).filter(Boolean) : undefined,
+			strictMcpConfig: strictMcpConfig || undefined
 		};
+
+		// Remove undefined values
+		settings = Object.fromEntries(
+			Object.entries(cleanSettings).filter(([_, value]) => value !== undefined)
+		);
 	});
 </script>
 
@@ -46,7 +84,7 @@
 	{#snippet icon()}<IconRobot size={18} />{/snippet}
 
 	<div class="claude-settings">
-		<!-- Model Selection -->
+		<!-- Model Configuration -->
 		<div class="setting-group">
 			<label for="claude-model" class="setting-label">Model</label>
 			<select 
@@ -61,52 +99,83 @@
 			</select>
 		</div>
 
-		<!-- Temperature -->
 		<div class="setting-group">
-			<label for="claude-temperature" class="setting-label">
-				Temperature ({temperature})
-			</label>
-			<input 
-				id="claude-temperature"
-				type="range" 
-				min="0" 
-				max="1" 
-				step="0.1"
-				class="setting-slider"
-				bind:value={temperature}
-				{disabled}
-			/>
-			<div class="slider-info">
-				<span>More Focused</span>
-				<span>More Creative</span>
-			</div>
-		</div>
-
-		<!-- Max Tokens -->
-		<div class="setting-group">
-			<label for="claude-max-tokens" class="setting-label">Max Tokens</label>
-			<input 
-				id="claude-max-tokens"
-				type="number" 
-				min="1" 
-				max="8192" 
+			<label for="claude-fallback-model" class="setting-label">Fallback Model (Optional)</label>
+			<select 
+				id="claude-fallback-model" 
 				class="setting-input"
-				bind:value={maxTokens}
+				bind:value={fallbackModel}
 				{disabled}
-			/>
+			>
+				<option value="">No fallback</option>
+				{#each availableModels as modelOption}
+					<option value={modelOption.value}>{modelOption.label}</option>
+				{/each}
+			</select>
 		</div>
 
-		<!-- System Prompt -->
+		<!-- System Prompts -->
 		<div class="setting-group">
-			<label for="claude-system-prompt" class="setting-label">System Prompt (Optional)</label>
+			<label for="claude-custom-system-prompt" class="setting-label">Custom System Prompt (Optional)</label>
 			<textarea 
-				id="claude-system-prompt"
+				id="claude-custom-system-prompt"
 				class="setting-textarea"
 				rows="3"
-				placeholder="Enter custom instructions for Claude..."
-				bind:value={systemPrompt}
+				placeholder="Replace the default system prompt entirely..."
+				bind:value={customSystemPrompt}
 				{disabled}
 			></textarea>
+		</div>
+
+		<div class="setting-group">
+			<label for="claude-append-system-prompt" class="setting-label">Append System Prompt (Optional)</label>
+			<textarea 
+				id="claude-append-system-prompt"
+				class="setting-textarea"
+				rows="2"
+				placeholder="Text to append to the default system prompt..."
+				bind:value={appendSystemPrompt}
+				{disabled}
+			></textarea>
+		</div>
+
+		<!-- Session Control -->
+		<div class="setting-group">
+			<label class="setting-label">
+				<input 
+					type="checkbox" 
+					class="setting-checkbox"
+					bind:checked={continueConversation}
+					{disabled}
+				/>
+				Continue most recent conversation
+			</label>
+		</div>
+
+		<div class="setting-group">
+			<label for="claude-max-turns" class="setting-label">Max Turns (Optional)</label>
+			<input 
+				id="claude-max-turns"
+				type="number" 
+				min="1" 
+				class="setting-input"
+				placeholder="No limit"
+				bind:value={maxTurns}
+				{disabled}
+			/>
+		</div>
+
+		<div class="setting-group">
+			<label for="claude-max-thinking-tokens" class="setting-label">Max Thinking Tokens (Optional)</label>
+			<input 
+				id="claude-max-thinking-tokens"
+				type="number" 
+				min="1"
+				class="setting-input"
+				placeholder="No limit"
+				bind:value={maxThinkingTokens}
+				{disabled}
+			/>
 		</div>
 
 		<!-- Advanced Settings -->
@@ -114,32 +183,103 @@
 			<summary class="advanced-toggle">Advanced Settings</summary>
 			
 			<div class="setting-group">
-				<label for="claude-top-p" class="setting-label">
-					Top P ({topP})
-				</label>
+				<label for="claude-permission-mode" class="setting-label">Permission Mode</label>
+				<select 
+					id="claude-permission-mode" 
+					class="setting-input"
+					bind:value={permissionMode}
+					{disabled}
+				>
+					{#each permissionModes as mode}
+						<option value={mode.value}>{mode.label}</option>
+					{/each}
+				</select>
+			</div>
+
+			<div class="setting-group">
+				<label for="claude-executable" class="setting-label">JavaScript Runtime</label>
+				<select 
+					id="claude-executable" 
+					class="setting-input"
+					bind:value={executable}
+					{disabled}
+				>
+					{#each executables as exec}
+						<option value={exec.value}>{exec.label}</option>
+					{/each}
+				</select>
+			</div>
+
+			<div class="setting-group">
+				<label for="claude-executable-args" class="setting-label">Executable Arguments (comma-separated)</label>
 				<input 
-					id="claude-top-p"
-					type="range" 
-					min="0" 
-					max="1" 
-					step="0.05"
-					class="setting-slider"
-					bind:value={topP}
+					id="claude-executable-args"
+					type="text" 
+					class="setting-input"
+					placeholder="--flag1, --flag2=value"
+					bind:value={executableArgs}
 					{disabled}
 				/>
 			</div>
 
 			<div class="setting-group">
-				<label for="claude-top-k" class="setting-label">Top K</label>
+				<label for="claude-allowed-tools" class="setting-label">Allowed Tools (comma-separated)</label>
 				<input 
-					id="claude-top-k"
-					type="number" 
-					min="1" 
-					max="20" 
+					id="claude-allowed-tools"
+					type="text" 
 					class="setting-input"
-					bind:value={topK}
+					placeholder="tool1, tool2, tool3"
+					bind:value={allowedTools}
 					{disabled}
 				/>
+			</div>
+
+			<div class="setting-group">
+				<label for="claude-disallowed-tools" class="setting-label">Disallowed Tools (comma-separated)</label>
+				<input 
+					id="claude-disallowed-tools"
+					type="text" 
+					class="setting-input"
+					placeholder="tool1, tool2, tool3"
+					bind:value={disallowedTools}
+					{disabled}
+				/>
+			</div>
+
+			<div class="setting-group">
+				<label for="claude-additional-directories" class="setting-label">Additional Directories (comma-separated)</label>
+				<input 
+					id="claude-additional-directories"
+					type="text" 
+					class="setting-input"
+					placeholder="/path1, /path2, /path3"
+					bind:value={additionalDirectories}
+					{disabled}
+				/>
+			</div>
+
+			<div class="setting-group">
+				<label class="setting-label">
+					<input 
+						type="checkbox" 
+						class="setting-checkbox"
+						bind:checked={includePartialMessages}
+						{disabled}
+					/>
+					Include partial message events
+				</label>
+			</div>
+
+			<div class="setting-group">
+				<label class="setting-label">
+					<input 
+						type="checkbox" 
+						class="setting-checkbox"
+						bind:checked={strictMcpConfig}
+						{disabled}
+					/>
+					Enforce strict MCP validation
+				</label>
 			</div>
 		</details>
 	</div>
@@ -181,48 +321,17 @@
 		font-size: var(--font-size-1);
 	}
 
+	.setting-checkbox {
+		width: auto;
+		margin-right: var(--space-2);
+		accent-color: var(--primary);
+	}
+
 	.setting-input:focus,
 	.setting-textarea:focus {
 		outline: none;
 		border-color: var(--primary);
 		box-shadow: 0 0 5px var(--glow);
-	}
-
-	.setting-slider {
-		-webkit-appearance: none;
-		appearance: none;
-		height: 4px;
-		background: var(--primary-dim);
-		border-radius: 0;
-		outline: none;
-	}
-
-	.setting-slider::-webkit-slider-thumb {
-		-webkit-appearance: none;
-		appearance: none;
-		width: 16px;
-		height: 16px;
-		background: var(--primary);
-		border-radius: 0;
-		cursor: pointer;
-		border: 2px solid var(--background);
-	}
-
-	.setting-slider::-moz-range-thumb {
-		width: 16px;
-		height: 16px;
-		background: var(--primary);
-		border-radius: 0;
-		cursor: pointer;
-		border: 2px solid var(--background);
-	}
-
-	.slider-info {
-		display: flex;
-		justify-content: space-between;
-		font-size: var(--font-size-0);
-		color: var(--text-secondary);
-		font-family: var(--font-mono);
 	}
 
 	.advanced-settings {
