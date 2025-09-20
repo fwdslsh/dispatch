@@ -218,6 +218,9 @@
 				const resumedSession = await response.json();
 				// Update our session with resume flag
 				const resumedId = resumedSession.id || session.id;
+
+				// Small delay to ensure server has finished updating session status
+				await new Promise(resolve => setTimeout(resolve, 500));
 				await loadAllSessions();
 				selectedSession = resumedId;
 				onSessionSelected?.({
@@ -258,12 +261,20 @@
 
 	// Initialize
 	onMount(async () => {
+		// Wait for sessionApi to be initialized
+		while (!sessionApi) {
+			await new Promise(resolve => setTimeout(resolve, 50));
+		}
 		await loadAllSessions();
 		// DirectoryBrowser will now default to WORKSPACES_ROOT when no startPath is provided
 	});
 
 	// Public refresh method
-	export function refresh() {
+	export async function refresh() {
+		// Wait for sessionApi to be initialized
+		while (!sessionApi) {
+			await new Promise(resolve => setTimeout(resolve, 50));
+		}
 		return loadAllSessions();
 	}
 </script>

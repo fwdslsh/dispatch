@@ -400,6 +400,9 @@ export class SessionViewModel {
 			if (shouldResume) {
 				// This is a session resume operation
 				await this.resumeSession(id, workspacePath);
+
+				// Reload sessions to pick up the updated status from server
+				await this.loadSessions();
 			} else {
 				// This is just selecting an existing active session
 				// Update the AppState to focus on this session
@@ -445,8 +448,17 @@ export class SessionViewModel {
 			// Automatically register resumed session with socket manager
 			// Socket registration handled automatically by RunSessionClient when attaching
 
-			// Dispatch session update to AppStateManager
-			this.appStateManager.sessions.updateSession(sessionId, { ...resumedSession, isActive: true });
+			// Check if session exists in current sessions, if not create it, otherwise update it
+			const existingInState = this.appStateManager.sessions.getSession(sessionId);
+			if (existingInState) {
+				// Update existing session
+				log.info('Updating existing session in state', sessionId);
+				this.appStateManager.sessions.updateSession(sessionId, { ...resumedSession, isActive: true });
+			} else {
+				// Create new session (this automatically adds it to the UI)
+				log.info('Creating new session in state', sessionId);
+				this.appStateManager.createSession({ ...resumedSession, isActive: true });
+			}
 
 			log.info('Session resumed successfully', sessionId);
 			return resumedSession;

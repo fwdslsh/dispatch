@@ -12,7 +12,7 @@ export class RunSessionManager {
 		this.liveRuns = new Map(); // runId -> { proc, nextSeq }
 		this.adapters = new Map(); // kind -> adapter instance
 
-		logger.info('RUNSESSION', 'RunSessionManager initialized');
+		logger.info('RUNSESSION', 'RunSessionManager initialized with resume capability');
 	}
 
 	/**
@@ -241,8 +241,7 @@ export class RunSessionManager {
 	}
 
 	/**
-	 * Resume a run session (reconnect to existing process if possible)
-	 * Note: This is a simplified version - full resume would require process persistence
+	 * Resume a run session (restart the process with the same runId)
 	 */
 	async resumeRunSession(runId) {
 		try {
@@ -253,20 +252,61 @@ export class RunSessionManager {
 
 			// Check if already live
 			if (this.liveRuns.has(runId)) {
+				logger.info('RUNSESSION', `Session ${runId} already live, no need to resume`);
 				return { runId, resumed: false, reason: 'Already live' };
 			}
 
-			// For now, we can only "resume" by providing the event history
-			// True process resume would require process persistence mechanisms
-			const events = await this.getEventsSince(runId, 0);
+			// Get the appropriate adapter
+			const adapter = this.adapters.get(session.kind);
+			if (!adapter) {
+				throw new Error(`No adapter registered for kind: ${session.kind}`);
+			}
 
-			logger.info('RUNSESSION', `Resume requested for ${runId}, ${events.length} events available`);
+			// Parse the meta data
+			const meta = typeof session.meta === 'string' ? JSON.parse(session.meta) : session.meta;
+			logger.info('RUNSESSION', `Resume metadata for ${runId}:`, { kind: session.kind, meta });
+
+			// Create process adapter with event callback (same as createRunSession)
+			let proc;
+			try {
+				proc = await adapter.create({
+					...meta,
+					onEvent: (ev) => this.recordAndEmit(runId, ev)
+				});
+				logger.info('RUNSESSION', `Successfully created ${session.kind} adapter for resume of ${runId}`);
+			} catch (adapterError) {
+				logger.error('RUNSESSION', `Adapter creation failed for ${session.kind} session ${runId}:`, adapterError);
+				throw adapterError;
+			}
+
+			// Track live run with next sequence number
+			this.liveRuns.set(runId, {
+				proc,
+				nextSeq: await this.db.getNextSequenceNumber(runId),
+				kind: session.kind
+			});
+
+			// Update status to running
+			await this.db.updateRunSessionStatus(runId, 'running');
+
+			// Get recent history (last 10 events) to replay for context
+			const recentEvents = await this.getEventsSince(runId, 0);
+			const last10Events = recentEvents.slice(-10);
+
+			// Emit recent events to provide context
+			if (last10Events.length > 0) {
+				logger.info('RUNSESSION', `Replaying ${last10Events.length} recent events for resumed session ${runId}`);
+				last10Events.forEach(event => {
+					this.io.to(`run:${runId}`).emit('run:event', event);
+				});
+			}
+
+			logger.info('RUNSESSION', `Resumed ${session.kind} run session: ${runId}`);
 			return {
 				runId,
-				resumed: false,
-				reason: 'Process resume not implemented',
-				eventsAvailable: events.length,
-				lastEventSeq: events.length > 0 ? events[events.length - 1].seq : 0
+				resumed: true,
+				kind: session.kind,
+				recentEventsCount: last10Events.length
 			};
 
 		} catch (error) {

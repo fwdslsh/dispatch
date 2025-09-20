@@ -62,22 +62,24 @@ export async function POST({ request, locals }) {
 
 	try {
 		if (resume && sessionId) {
-			const status = await locals.services.runSessionManager.getSessionStatus(sessionId);
-			if (!status) {
-				return new Response(JSON.stringify({ error: 'Session not found' }), { status: 404 });
+			try {
+				// Actually resume the session (restart the process)
+				const resumeResult = await locals.services.runSessionManager.resumeRunSession(sessionId);
+
+				return new Response(JSON.stringify({
+					runId: resumeResult.runId,
+					id: resumeResult.runId,
+					success: true,
+					resumed: resumeResult.resumed,
+					kind: resumeResult.kind,
+					type: resumeResult.kind,
+					reason: resumeResult.reason
+				}), {
+					headers: { 'content-type': 'application/json' }
+				});
+			} catch (error) {
+				return new Response(JSON.stringify({ error: error.message }), { status: 404 });
 			}
-
-			const statusKind = normalizeSessionKind(status?.kind) || normalizedKind;
-
-			return new Response(JSON.stringify({
-				runId: sessionId,
-				success: true,
-				resumed: true,
-				kind: statusKind,
-				type: statusKind
-			}), {
-				headers: { 'content-type': 'application/json' }
-			});
 		}
 
 		if (!normalizedKind) {
