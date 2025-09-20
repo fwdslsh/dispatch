@@ -1,106 +1,122 @@
 # Dispatch
 
-**Web-based terminal access with AI assistance - accessible from anywhere with just a browser.**
+**Containerized web terminal with AI-powered coding assistance via Claude Code.**
 
-Dispatch provides secure, containerized terminal sessions through your web browser. Perfect for remote development, education, and AI-assisted coding with Claude integration.
+Dispatch provides browser-based access to isolated development environments with integrated terminal sessions and Claude AI assistance. Built with SvelteKit, Socket.IO, and node-pty for real-time terminal interaction.
 
-## ✨ What You Get
+## ✨ Features
+
+- **🖥️ Browser-Based Terminal**: Full terminal access through any modern web browser
+- **🤖 Claude Code Integration**: AI-powered coding assistance with interactive authentication
+- **🔒 Secure Sessions**: Key-based authentication with persistent session management
+- **📦 Containerized**: Isolated Docker environments for safe code execution
+- **🌐 Remote Access**: Optional public URL sharing via LocalTunnel
+- **💾 Persistent Storage**: Mount local directories for code and configuration
+- **🎯 Session Management**: Event-sourced session architecture with replay capability
+- **📊 Admin Console**: Built-in monitoring and management interface
 
 
 ## 🚀 Quick Start
 
 ### Option 1: Using the CLI (Recommended)
 
-Install the Dispatch CLI for the easiest setup:
-
 ```bash
-# Install globally
-npm install -g fwdslsh/dispatch
+# Clone and install the CLI
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+npm install -g .
 
-# Initialize your Dispatch environment (recommended for first-time setup)
+# Initialize environment (first-time setup)
 dispatch init
 
-# Start with browser opening automatically
+# Start Dispatch
 dispatch start --open
 ```
 
 The `init` command will:
+- Create necessary directories with proper permissions
+- Generate a secure authentication key
+- Set up configuration file at `~/.dispatch/config.json`
+- Prepare volume mounts for persistence
 
+See [CLI Documentation](docs/CLI.md) for full command reference.
 
-For manual setup, you can also generate configuration separately:
-
-```bash
-dispatch config  # Generate configuration file manually
-```
-
-**📋 For detailed Docker permissions setup, see [DOCKER_PERMISSIONS.md](DOCKER_PERMISSIONS.md)**
-
-See [CLI Documentation](CLI.md) for full CLI usage.
-
-### Option 2: Run with Docker (Direct)
+### Option 2: Run with Docker Directly
 
 ```bash
-# Start Dispatch with your password
-docker run -p 3030:3030 -e TERMINAL_KEY=your-secret-password fwdslsh/dispatch:latest
+# Quick start with minimal setup
+docker run -d -p 3030:3030 \
+  -e TERMINAL_KEY=your-secret-password \
+  --name dispatch \
+  fwdslsh/dispatch:latest
 
 # Open http://localhost:3030 in your browser
-# Enter your password and click "Create Session"
 ```
 
-**That's it!** You now have a secure web terminal running.
-
-### With Public URL Sharing
-
-Perfect for remote access or sharing with team members:
+### Option 3: Using Docker Compose
 
 ```bash
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
-  -e ENABLE_TUNNEL=true \
-  fwdslsh/dispatch:latest
+# Clone the repository
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+
+# Edit docker-compose.yml to set your TERMINAL_KEY
+# Then start the service
+docker-compose up -d
+
+# Open http://localhost:3030
 ```
 
-The container will display a public URL you can access from anywhere.
+## 📦 Installation Options
 
-### With Persistent Storage
-
-Mount local directories to preserve your work across container restarts:
+### Development Setup
 
 ```bash
-# Create directories (no sudo needed!)
-mkdir -p ~/dispatch/home ~/dispatch/projects
+# Clone repository
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
 
-# Run with runtime user mapping (works with Docker Hub images)
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
+# Install dependencies (requires Node.js 22+)
+nvm use  # or install Node.js 22+
+npm install
+
+# Run in development mode
+npm run dev  # Runs on http://localhost:5173 with test key: testkey12345
+
+# Run tests
+npm test         # Unit tests
+npm run test:e2e # End-to-end tests
+```
+
+### Production Deployment
+
+#### With Persistent Storage
+
+```bash
+# Create directories for persistence
+mkdir -p ~/dispatch/projects ~/dispatch/home ~/dispatch/config
+
+# Run with volume mounts
+docker run -d -p 3030:3030 \
+  -e TERMINAL_KEY=your-secure-password \
   -e HOST_UID=$(id -u) \
   -e HOST_GID=$(id -g) \
   -v ~/dispatch/projects:/workspace \
   -v ~/dispatch/home:/home/dispatch \
+  -v ~/dispatch/config:/config \
+  --name dispatch \
   fwdslsh/dispatch:latest
 ```
 
-This setup provides:
-
-
-**Security isolation**: The container can only access the two mounted directories you specify.
-
-### Combined: Persistent Storage + Public URL
-
-For the complete setup with both persistence and remote access:
+#### With Public URL Access
 
 ```bash
-# Create directories (no sudo needed!)
-mkdir -p ~/dispatch/home ~/dispatch/projects
-
-# Run with both features enabled
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
+# Enable LocalTunnel for remote access
+docker run -d -p 3030:3030 \
+  -e TERMINAL_KEY=your-secure-password \
   -e ENABLE_TUNNEL=true \
-  -e HOST_UID=$(id -u) \
-  -e HOST_GID=$(id -g) \
-  -v ~/dispatch/projects:/workspace \
-  -v ~/dispatch/home:/home/dispatch \
+  -e LT_SUBDOMAIN=my-dispatch \
+  --name dispatch \
   fwdslsh/dispatch:latest
 ```
 
@@ -126,10 +142,16 @@ docker run -p 3030:3030 \
 
 Dispatch organizes your work into projects with isolated sessions:
 
-**Projects**: Logical containers for related work (e.g., "web-app", "data-analysis")
+- **Projects**: Logical containers for related work (e.g., "web-app", "data-analysis")
+  - Each project has its own workspace directory
+  - Sessions within a project share the same filesystem
+  - Projects can be pinned for quick access
 
-
-**Sessions**: Individual terminal instances within a project
+- **Sessions**: Individual terminal instances within a project
+  - Multiple sessions can run simultaneously
+  - Sessions persist across browser refreshes
+  - Event-sourced architecture enables session replay
+  - Automatic reconnection on network interruptions
 
 
 ## 🤖 AI-Powered Development with Claude
@@ -148,6 +170,16 @@ docker run -p 3030:3030 \
 
 Dispatch provides a seamless web-based authentication flow for Claude AI:
 
+1. **Start a Claude session** - Select "Claude Code" when creating a new session
+2. **Authenticate via browser** - Click the authentication link that appears
+3. **Authorize access** - Log in to your Anthropic account and approve access
+4. **Start coding with AI** - Claude is now available in your terminal
+
+Features:
+- **Interactive authentication** - No need to manually copy API keys
+- **Secure token storage** - Credentials are encrypted and stored securely
+- **Session persistence** - Authentication survives container restarts
+- **Multi-session support** - Use Claude across multiple terminal sessions
 
 For detailed setup and troubleshooting, see the [**Claude Authentication Guide**](docs/claude-authentication.md).
 
@@ -157,6 +189,12 @@ For detailed setup and troubleshooting, see the [**Claude Authentication Guide**
 
 Dispatch includes a powerful admin console for monitoring and managing your deployment:
 
+- **Real-time monitoring** - View active sessions and system status
+- **Session management** - Start, stop, and manage terminal sessions
+- **Event streaming** - Watch Socket.IO events in real-time
+- **Database explorer** - Browse and query the SQLite database
+- **API testing** - Interactive API endpoint testing
+- **Performance metrics** - Monitor resource usage and performance
 
 ### Access the Admin Console
 
@@ -224,38 +262,91 @@ docker run -p 3030:3030 \
 
 **Dispatch provides terminal access that can execute system commands.** Use responsibly:
 
+- Always use strong, unique passwords for TERMINAL_KEY
+- Never expose Dispatch directly to the internet without proper authentication
+- Be cautious with volume mounts - only mount directories you trust
+- Regularly review access logs via the admin console
+- Consider network isolation for sensitive environments
+
 
 ### Security Features
 
+- **Key-based authentication** - Protect access with strong passwords
+- **Container isolation** - Each instance runs in its own Docker container
+- **Non-root execution** - Runs as unprivileged user (uid 10001)
+- **Path sanitization** - Prevents directory traversal attacks
+- **Session encryption** - Secure WebSocket communication
+- **Token management** - Secure storage of API credentials
 
 ### Best Practices
+
+1. **Use strong passwords** - Generate secure TERMINAL_KEY values
+2. **Limit network exposure** - Use reverse proxy with HTTPS in production
+3. **Regular updates** - Keep the container image updated
+4. **Monitor access logs** - Review admin console for suspicious activity
+5. **Restrict volume mounts** - Only mount necessary directories
+6. **Network segmentation** - Run in isolated network when possible
 
 
 ## 🎯 Use Cases
 
-**Remote Development**: Access your development environment from anywhere
+- **Remote Development**: Access your development environment from anywhere
+  - Work on projects from any device with a browser
+  - Consistent environment across different machines
+  - No local setup required
 
-**Education**: Provide students with consistent, isolated coding environments
+- **Education**: Provide students with consistent, isolated coding environments
+  - Standardized development environments for courses
+  - Easy distribution without installation headaches
+  - Monitor and assist student progress
 
-**Team Collaboration**: Share temporary environments with colleagues
+- **Team Collaboration**: Share temporary environments with colleagues
+  - Pair programming with shared terminal access
+  - Quick environment provisioning for demos
+  - Reproducible development setups
 
-**AI-Assisted Coding**: Get intelligent help with Claude Code integration
+- **AI-Assisted Coding**: Get intelligent help with Claude Code integration
+  - Interactive AI pair programming
+  - Code generation and refactoring assistance
+  - Natural language to code translation
 
-**DevOps Tasks**: Run administrative commands in isolated containers
+- **DevOps Tasks**: Run administrative commands in isolated containers
+  - Safe testing of system configurations
+  - Isolated troubleshooting environments
+  - Temporary access for contractors
 
 ## 🆘 Troubleshooting
 
-**Can't log in?**
+### Can't log in?
+- Verify your TERMINAL_KEY is set correctly
+- Check that you're using the correct URL format: `http://localhost:3030`
+- Clear browser cookies and try again
+- Check container logs: `docker logs dispatch`
 
+### Container won't start?
+- Ensure port 3030 is not already in use: `lsof -i :3030`
+- Check Docker is running: `docker info`
+- Verify you have enough disk space: `df -h`
+- Review container logs for errors: `docker logs dispatch`
 
-**Container won't start?**
+### Public URL not working?
+- Confirm ENABLE_TUNNEL=true is set
+- Check firewall settings allow outbound connections
+- Verify LocalTunnel service is accessible
+- Try without custom subdomain first
+- Check container logs for tunnel errors
 
+### Cannot write to mounted directories?
+- Check directory permissions: `ls -la ~/dispatch/projects`
+- Ensure proper ownership (uid 10001): `sudo chown -R 10001:10001 ~/dispatch/projects`
+- Verify Docker has access to the host directories
+- Use HOST_UID and HOST_GID for user mapping
 
-**Public URL not working?**
-
-
-**Cannot write to mounted directories?**
-
+### Session disconnects frequently?
+- Check network stability
+- Increase WebSocket timeout settings
+- Review browser console for errors
+- Consider using a reverse proxy with proper WebSocket support
 
 **Need more help?** Check our [GitHub Issues](https://github.com/fwdslsh/dispatch/issues) or create a new issue.
 
@@ -264,11 +355,70 @@ docker run -p 3030:3030 \
 Want to help improve Dispatch? We'd love your contributions!
 
 See our [**Contributing Guide**](CONTRIBUTING.md) for:
+- Development setup instructions
+- Code style guidelines
+- Testing requirements
+- Pull request process
+- Issue reporting guidelines
 
+### Quick Development Start
+
+```bash
+# Clone and setup
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+nvm use
+npm install
+
+# Run tests
+npm test          # Unit tests
+npm run test:e2e  # Integration tests
+
+# Start development
+npm run dev       # http://localhost:5173 with test key
+```
+
+
+## 🏗️ Architecture Overview
+
+Dispatch is built with modern web technologies:
+
+- **Frontend**: SvelteKit 2.x with Svelte 5 (MVVM architecture)
+- **Backend**: Node.js 22+ with Socket.IO for real-time communication
+- **Terminal**: xterm.js with node-pty for TTY emulation
+- **Database**: SQLite for session persistence and event sourcing
+- **Container**: Docker with multi-stage builds for optimized images
+- **Authentication**: Key-based auth with secure session management
+
+### Key Features
+
+- **Event-sourced sessions** - Full session history with replay capability
+- **Unified session architecture** - Single manager for all session types
+- **Real-time synchronization** - Multiple clients can share sessions
+- **Graceful reconnection** - Automatic recovery from network issues
+- **Extensible adapter pattern** - Easy to add new session types
+
+## 📚 Documentation
+
+- [CLI Documentation](docs/CLI.md) - Complete CLI command reference
+- [Claude Authentication Guide](docs/claude-authentication.md) - Claude AI setup
+- [Admin Console Guide](docs/admin-console.md) - Admin interface documentation
+- [Architecture Overview](docs/architecture.md) - Technical architecture details
+- [API Reference](docs/api.md) - REST and Socket.IO API documentation
+
+## 🔗 Related Projects
+
+Dispatch is part of the fwdslsh ecosystem:
+
+- [**fwdslsh/unify**](https://github.com/fwdslsh/unify) - Static site generator
+- [**fwdslsh/giv**](https://github.com/fwdslsh/giv) - AI-powered Git assistant
+- [**fwdslsh/inform**](https://github.com/fwdslsh/inform) - Web content crawler
+- [**fwdslsh/catalog**](https://github.com/fwdslsh/catalog) - Documentation indexer
 
 ## 📄 License
 
 Creative Commons Attribution 4.0 International License - see [LICENSE](LICENSE) file for details.
 
+---
 
-**Ready to start?** Run the Docker command above and open `http://localhost:3030` in your browser! 🚀
+**Ready to start?** Run `dispatch init && dispatch start --open` to get your development environment up and running in seconds! 🚀
