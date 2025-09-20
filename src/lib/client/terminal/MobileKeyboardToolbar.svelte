@@ -287,14 +287,15 @@
 	}
 
 	.key-button.ctrl {
-		background: var(--accent-subtle, #dc2626);
-		border-color: var(--accent-muted, #ef4444);
-		color: var(--text-on-accent, #fff);
+		background: var(--accent-alpha);
+		border-color: var(--accent);
+		color: var(--accent);
 	}
 
 	.key-button.ctrl:hover:not(:disabled) {
-		background: var(--accent, #ef4444);
-		border-color: var(--accent-bright, #f87171);
+		background: var(--accent);
+		border-color: var(--accent);
+		color: var(--bg);
 	}
 
 	/* Responsive adjustments */

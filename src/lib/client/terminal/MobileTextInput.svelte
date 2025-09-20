@@ -1,22 +1,19 @@
 <!--
 	MobileTextInput.svelte
-	
+
 	Mobile-friendly text input area for terminal sessions.
 	Provides easier typing on mobile devices with autocomplete and suggestions.
 -->
 <script>
-	import { createEventDispatcher } from 'svelte';
-
-	// Props
-	let { 
+	// Props with callbacks using runes mode
+	let {
 		placeholder = 'Type commands here...',
 		disabled = false,
 		visible = true,
 		autoFocus = false,
-		multiline = false
+		multiline = false,
+		onSubmit = () => {}  // Callback function for submit events
 	} = $props();
-
-	const dispatch = createEventDispatcher();
 
 	let inputValue = $state('');
 	let inputElement = $state();
@@ -38,22 +35,31 @@
 		'python', 'node', 'java', 'gcc', 'make'
 	];
 
-	let suggestions = $state([]);
-	let showSuggestions = $state(false);
+	let suggestionsSuppressed = $state(false);
 	let selectedSuggestionIndex = $state(-1);
 
-	// Update suggestions based on input
+	// Derive suggestions from input value - this prevents reactive loops
+	const suggestions = $derived.by(() => {
+		const trimmedInput = inputValue.trim();
+		if (trimmedInput.length > 0) {
+			return commonCommands.filter(cmd =>
+				cmd.toLowerCase().startsWith(trimmedInput.toLowerCase())
+			).slice(0, 5); // Limit to 5 suggestions
+		}
+		return [];
+	});
+
+	const showSuggestions = $derived(suggestions.length > 0 && !suggestionsSuppressed);
+
+	// Reset selected index when suggestions change
 	$effect(() => {
-		if (inputValue.trim().length > 0) {
-			const filtered = commonCommands.filter(cmd => 
-				cmd.toLowerCase().startsWith(inputValue.toLowerCase().trim())
-			);
-			suggestions = filtered.slice(0, 5); // Limit to 5 suggestions
-			showSuggestions = suggestions.length > 0;
-			selectedSuggestionIndex = -1;
-		} else {
-			showSuggestions = false;
-			suggestions = [];
+		selectedSuggestionIndex = -1;
+	});
+
+	// Clear suppression when user types (input value changes)
+	$effect(() => {
+		if (inputValue.trim().length > 0 && suggestionsSuppressed) {
+			suggestionsSuppressed = false;
 		}
 	});
 
@@ -70,9 +76,9 @@
 					commandHistory = commandHistory.slice(-50);
 				}
 			}
-			
-			// Dispatch the command
-			dispatch('submit', { 
+
+			// Call the submit callback
+			onSubmit({
 				command: command + '\r',  // Add carriage return for terminal
 				text: command
 			});
@@ -80,7 +86,7 @@
 			// Clear input and reset history navigation
 			inputValue = '';
 			historyIndex = -1;
-			showSuggestions = false;
+			suggestionsSuppressed = false;
 		}
 	}
 
@@ -126,7 +132,7 @@
 
 			case 'Escape':
 				event.preventDefault();
-				showSuggestions = false;
+				suggestionsSuppressed = true;
 				selectedSuggestionIndex = -1;
 				break;
 		}
@@ -160,7 +166,7 @@
 
 	function applySuggestion(suggestion) {
 		inputValue = suggestion;
-		showSuggestions = false;
+		suggestionsSuppressed = true;
 		selectedSuggestionIndex = -1;
 		
 		// Focus back to input
@@ -259,10 +265,10 @@
 	.mobile-text-input {
 		display: flex;
 		flex-direction: column;
-		background: var(--surface-elevated, #1a1a1a);
-		border-top: 1px solid var(--surface-border, #333);
-		padding: 0.75rem;
-		gap: 0.5rem;
+		background: var(--bg, #0a0a0a);
+		border-top: 1px solid var(--border, #333);
+		padding: var(--space-3);
+		gap: var(--space-2);
 	}
 
 	.mobile-text-input.disabled {
@@ -273,26 +279,26 @@
 	.suggestions {
 		display: flex;
 		flex-direction: column;
-		background: var(--surface-panel, #222);
-		border: 1px solid var(--surface-border, #333);
-		border-radius: 6px;
+		background: color-mix(in oklab, var(--bg) 90%, var(--accent) 10%);
+		border: 1px solid var(--accent-alpha);
+		border-radius: var(--radius-2);
 		max-height: 150px;
 		overflow-y: auto;
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 	}
 
 	.suggestion-item {
 		background: transparent;
 		border: none;
-		color: var(--text-muted, #aaa);
-		font-family: var(--font-mono, monospace);
+		color: var(--text-muted);
+		font-family: var(--font-mono);
 		font-size: 0.875rem;
-		padding: 0.5rem 0.75rem;
+		padding: var(--space-2) var(--space-3);
 		text-align: left;
 		cursor: pointer;
 		transition: background 0.15s ease;
-		border-bottom: 1px solid var(--surface-border, #333);
+		border-bottom: 1px solid var(--border);
 	}
 
 	.suggestion-item:last-child {
@@ -301,42 +307,42 @@
 
 	.suggestion-item:hover,
 	.suggestion-item.selected {
-		background: var(--surface-hover, #2a2a2a);
-		color: var(--text-primary, #fff);
+		background: color-mix(in oklab, var(--bg) 80%, var(--accent) 20%);
+		color: var(--text);
 	}
 
 	.suggestion-item.selected {
-		background: var(--accent-alpha, rgba(14, 165, 233, 0.1));
-		color: var(--accent, #0ea5e9);
+		background: var(--accent-alpha);
+		color: var(--accent);
 	}
 
 	.input-container {
 		display: flex;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		align-items: flex-end;
 	}
 
 	.text-input {
 		flex: 1;
-		background: var(--surface-panel, #222);
-		border: 1px solid var(--surface-border, #333);
-		border-radius: 6px;
-		color: var(--text-primary, #fff);
-		font-family: var(--font-mono, monospace);
+		background: color-mix(in oklab, var(--bg) 95%, var(--accent) 5%);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-2);
+		color: var(--text);
+		font-family: var(--font-mono);
 		font-size: 0.9rem;
-		padding: 0.75rem;
+		padding: var(--space-3);
 		outline: none;
 		transition: border-color 0.15s ease, box-shadow 0.15s ease;
 		resize: none;
 	}
 
 	.text-input:focus {
-		border-color: var(--accent, #0ea5e9);
-		box-shadow: 0 0 0 2px var(--accent-alpha, rgba(14, 165, 233, 0.1));
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px var(--accent-alpha);
 	}
 
 	.text-input::placeholder {
-		color: var(--text-muted, #666);
+		color: var(--text-muted);
 	}
 
 	.text-input.multiline {
@@ -345,11 +351,11 @@
 	}
 
 	.send-button {
-		background: var(--accent, #0ea5e9);
-		border: 1px solid var(--accent, #0ea5e9);
-		border-radius: 6px;
-		color: var(--text-on-accent, #fff);
-		padding: 0.75rem;
+		background: var(--accent);
+		border: 1px solid var(--accent);
+		border-radius: var(--radius-2);
+		color: var(--bg);
+		padding: var(--space-3);
 		cursor: pointer;
 		transition: all 0.15s ease;
 		display: flex;
@@ -360,45 +366,45 @@
 	}
 
 	.send-button:hover:not(:disabled) {
-		background: var(--accent-bright, #38bdf8);
+		background: color-mix(in oklab, var(--accent) 90%, #fff 10%);
 		transform: translateY(-1px);
-		box-shadow: 0 2px 8px var(--accent-alpha, rgba(14, 165, 233, 0.3));
+		box-shadow: 0 2px 8px var(--accent-alpha);
 	}
 
 	.send-button:active:not(:disabled) {
 		transform: translateY(0);
-		box-shadow: 0 1px 4px var(--accent-alpha, rgba(14, 165, 233, 0.2));
+		box-shadow: 0 1px 4px var(--accent-alpha);
 	}
 
 	.send-button:disabled {
-		background: var(--surface-muted, #333);
-		border-color: var(--surface-border, #444);
-		color: var(--text-muted, #666);
+		background: var(--border);
+		border-color: var(--border);
+		color: var(--text-muted);
 		cursor: not-allowed;
 		transform: none;
 	}
 
 	.input-hint {
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-mono);
 		font-size: 0.75rem;
-		color: var(--text-muted, #666);
+		color: var(--text-muted);
 		text-align: center;
-		margin-top: 0.25rem;
+		margin-top: var(--space-1);
 	}
 
 	/* Responsive adjustments */
 	@media (max-width: 480px) {
 		.mobile-text-input {
-			padding: 0.625rem;
+			padding: var(--space-2);
 		}
 
 		.text-input {
 			font-size: 0.875rem;
-			padding: 0.625rem;
+			padding: var(--space-2);
 		}
 
 		.send-button {
-			padding: 0.625rem;
+			padding: var(--space-2);
 			min-width: 2.5rem;
 			min-height: 2.5rem;
 		}

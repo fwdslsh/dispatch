@@ -15,15 +15,11 @@
 
 	// State for history loading
 	let isCatchingUp = $state(false);
-	let historyLoaded = $state(false);
 	let isAttached = $state(false);
-	let connectionError = $state(null);
 
 	// Mobile interface state
 	let isMobile = $state(false);
 	let isCompactMobile = $state(false);
-	let showMobileKeyboard = $state(false);
-	let showMobileInput = $state(true);
 	let mobileInputDisabled = $state(false);
 
 	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
@@ -52,18 +48,8 @@
 
 	// Update mobile state on window resize
 	const updateMobileState = () => {
-		const wasMobile = isMobile;
 		isMobile = detectMobile();
-		isCompactMobile = isMobile && window.innerWidth <= 480;
-		
-		// Show mobile components on mobile devices
-		if (isMobile && !wasMobile) {
-			showMobileKeyboard = true;
-			showMobileInput = true;
-		} else if (!isMobile && wasMobile) {
-			showMobileKeyboard = false;
-			showMobileInput = false;
-		}
+		isCompactMobile = isMobile && window.innerWidth <= 480;		
 	};
 
 	// Handle mobile keyboard key press
@@ -80,8 +66,8 @@
 	};
 
 	// Handle mobile text input submit
-	const handleMobileTextSubmit = (event) => {
-		const { command } = event.detail;
+	const handleMobileTextSubmit = (data) => {
+		const { command } = data;
 		if (isAttached && runSessionClient.getStatus().connected) {
 			try {
 				console.log('[TERMINAL] Sending mobile command:', command);
@@ -133,10 +119,7 @@
 		// Detect mobile device and initialize mobile state
 		isMobile = detectMobile();
 		isCompactMobile = isMobile && window.innerWidth <= 480;
-		if (isMobile) {
-			showMobileKeyboard = true;
-			showMobileInput = true;
-		}
+		
 
 		// Detect touch device
 		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -173,7 +156,6 @@
 
 			const result = await runSessionClient.attachToRunSession(sessionId, handleRunEvent, 0);
 			isAttached = true;
-			connectionError = null;
 			console.log('[TERMINAL] Attached to run session:', result);
 
 			// Handle user input
@@ -189,18 +171,6 @@
 			// Send initial resize
 			runSessionClient.resizeTerminal(sessionId, term.cols, term.rows);
 
-			// Send initial enter to trigger prompt (only for new terminals)
-			if (!shouldResume) {
-				setTimeout(() => {
-					console.log('[TERMINAL] Sending initial enter for session:', sessionId);
-					try {
-						runSessionClient.sendInput(sessionId, '\r');
-					} catch (error) {
-						console.error('[TERMINAL] Failed to send initial enter:', error);
-					}
-				}, 200);
-			}
-
 			// Clear catching up state after a delay if no messages arrived
 			if (shouldResume) {
 				setTimeout(() => {
@@ -212,8 +182,7 @@
 			}
 
 		} catch (error) {
-			console.error('[TERMINAL] Failed to attach to run session:', error);
-			connectionError = `Failed to connect: ${error.message}`;
+			console.error('[TERMINAL] Failed to attach to run session:', error);			connectionError = `Failed to connect: ${error.message}`;
 			isCatchingUp = false;
 		}
 
@@ -264,17 +233,6 @@
 		</div>
 	{/if}
 	
-	<!-- Mobile text input area for easier typing -->
-	{#if isMobile && showMobileInput}
-		<MobileTextInput
-			visible={true}
-			disabled={mobileInputDisabled || !isAttached}
-			placeholder="Type commands here..."
-			autoFocus={false}
-			on:submit={handleMobileTextSubmit}
-		/>
-	{/if}
-	
 	<!-- Terminal container with touch layer for mobile scrolling -->
 	<div class="terminal-container" class:mobile={isMobile}>
 		{#if isMobile}
@@ -283,14 +241,21 @@
 		{/if}
 		<div bind:this={el} class="xterm-container"></div>
 	</div>
-	
+
 	<!-- Mobile keyboard toolbar -->
-	{#if isMobile && showMobileKeyboard}
+	{#if isMobile}
 		<MobileKeyboardToolbar
 			visible={true}
 			disabled={mobileInputDisabled || !isAttached}
 			compact={isCompactMobile}
 			on:keypress={handleMobileKeypress}
+		/>
+		<MobileTextInput
+			visible={true}
+			disabled={mobileInputDisabled || !isAttached}
+			placeholder="Type commands here..."
+			autoFocus={false}
+			onSubmit={handleMobileTextSubmit}
 		/>
 	{/if}
 </div>
@@ -373,7 +338,7 @@
 		right: 0;
 		bottom: 0;
 		z-index: 1;
-		pointer-events: auto;
+		pointer-events: none;
 		/* Allow touch scrolling but prevent text selection */
 		touch-action: pan-y;
 		user-select: none;
@@ -390,7 +355,7 @@
 	.terminal-container :global(.xterm) {
 		padding: var(--space-3);
 		font-family: var(--font-mono) !important;
-		height: 100% !important;
+		
 	}
 
 	.terminal-container :global(.xterm-viewport) {
@@ -414,14 +379,11 @@
 
 	/* Mobile-specific adjustments */
 	@media (max-width: 768px) {
-		.terminal-wrapper {
-			height: 100vh; /* Use full viewport height on mobile */
-		}
+		
 
-		.terminal-container {
-			/* Reduce padding on mobile for more space */
+		/* .terminal-container {
 			overflow: hidden;
-		}
+		} */
 
 		.terminal-container :global(.xterm) {
 			padding: var(--space-2);
@@ -432,28 +394,23 @@
 			touch-action: pan-y;
 		}
 
-		/* Hide scrollbars on mobile for cleaner look */
+		/* Hide scrollbars on mobile for cleaner look 
 		.terminal-container :global(.xterm-viewport)::-webkit-scrollbar {
 			display: none;
 		}
 
 		.terminal-container :global(.xterm-viewport) {
 			scrollbar-width: none;
-		}
+		}*/
 	}
 
 	/* Very small screens */
 	@media (max-width: 480px) {
 		.terminal-container :global(.xterm) {
 			padding: var(--space-1);
-			font-size: 13px;
+			font-size: 1.2rem;
 		}
 	}
 
-	/* Landscape mobile orientation */
-	@media (max-width: 768px) and (orientation: landscape) {
-		.terminal-wrapper {
-			height: 100vh;
-		}
-	}
+	
 </style>
