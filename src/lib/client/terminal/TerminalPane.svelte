@@ -4,8 +4,6 @@
 	import { FitAddon } from '@xterm/addon-fit';
 	import '@xterm/xterm/css/xterm.css';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
-	import MobileKeyboardToolbar from './MobileKeyboardToolbar.svelte';
-	import MobileTextInput from './MobileTextInput.svelte';
 	import MobileTerminalView from './MobileTerminalView.svelte';
 
 	const fitAddon = new FitAddon();
@@ -25,27 +23,6 @@
 	// Detect if device supports touch and is mobile
 	function detectTouchDevice() {
 		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
-	}
-
-	// Mobile input handlers
-	function handleMobileKeypress(event) {
-		if (term && isAttached) {
-			try {
-				runSessionClient.sendInput(sessionId, event.detail.key);
-			} catch (error) {
-				console.error('[TERMINAL] Failed to send mobile key input:', error);
-			}
-		}
-	}
-
-	function handleMobileSubmit(event) {
-		if (term && isAttached) {
-			try {
-				runSessionClient.sendInput(sessionId, event.detail.command);
-			} catch (error) {
-				console.error('[TERMINAL] Failed to send mobile text input:', error);
-			}
-		}
 	}
 
 
@@ -235,20 +212,6 @@
 		<div class="terminal-container">
 			<div bind:this={el} class="xterm-container"></div>
 		</div>
-
-		<!-- Mobile input components -->
-		<MobileKeyboardToolbar
-			visible={true}
-			disabled={!isAttached}
-			on:keypress={handleMobileKeypress}
-		/>
-
-		<MobileTextInput
-			visible={true}
-			disabled={!isAttached}
-			onSubmit={handleMobileSubmit}
-			placeholder="Type commands here..."
-		/>
 	{/if}
 </div>
 
