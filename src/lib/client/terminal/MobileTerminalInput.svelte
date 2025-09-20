@@ -113,62 +113,62 @@
 
 <div class="mobile-input-wrapper {visible ? 'visible' : 'hidden'}">
 	{#if showToolbar}
-		<div class="simple-keyboard">
-			<!-- Row 1: Arrow Keys in compact 2x2 grid -->
-			<div class="keyboard-row arrows">
-				<button class="key-btn arrow" onclick={() => sendSpecialKey('\x1B[A')} {disabled} title="Up">↑</button>
-				<button class="key-btn arrow" onclick={() => sendSpecialKey('\x1B[B')} {disabled} title="Down">↓</button>
-				<button class="key-btn arrow" onclick={() => sendSpecialKey('\x1B[D')} {disabled} title="Left">←</button>
-				<button class="key-btn arrow" onclick={() => sendSpecialKey('\x1B[C')} {disabled} title="Right">→</button>
+		<div class="compact-keyboard">
+			<!-- Single row: Essential terminal-only keys -->
+			<div class="main-row">
+				<!-- Left side: Less common keys -->
+				<div class="left-keys">
+					<Button variant="ghost" text="|" onclick={() => sendSpecialKey('|')} {disabled} ariaLabel="Pipe" />
+					<Button variant="ghost" text="$" onclick={() => sendSpecialKey('$')} {disabled} ariaLabel="Dollar" />
+					<Button variant="ghost" text="~" onclick={() => sendSpecialKey('~')} {disabled} ariaLabel="Tilde" />
+				</div>
+
+				<!-- Right side: Most common actions for right thumb -->
+				<div class="right-keys">
+					<Button
+						variant="danger"
+						text="^C"
+						onclick={() => sendSpecialKey('\x03')}
+						{disabled}
+						ariaLabel="Interrupt (Ctrl+C)"
+					/>
+					<Button
+						variant="outline"
+						text="TAB"
+						onclick={() => sendSpecialKey('\t')}
+						{disabled}
+						ariaLabel="Tab completion"
+					/>
+					<Button
+						variant="primary"
+						text="ENTER"
+						onclick={() => sendSpecialKey('\r')}
+						{disabled}
+						ariaLabel="Execute command"
+					/>
+				</div>
 			</div>
 
-			<!-- Row 2: Essential Controls -->
-			<div class="keyboard-row controls">
-				<button class="key-btn action primary" onclick={() => sendSpecialKey('\t')} {disabled}>TAB</button>
-				<button class="key-btn action" onclick={() => sendSpecialKey(' ')} {disabled}>SPACE</button>
-				<button class="key-btn danger" onclick={() => sendSpecialKey('\x03')} {disabled}>^C</button>
-				<button class="key-btn action" onclick={() => sendSpecialKey('\x1b')} {disabled}>ESC</button>
-			</div>
-
-			<!-- Row 3: Terminal Symbols (not available on mobile keyboards) -->
-			<div class="keyboard-row symbols">
-				<button class="key-btn symbol" onclick={() => sendSpecialKey('|')} {disabled}>|</button>
-				<button class="key-btn symbol" onclick={() => sendSpecialKey('&')} {disabled}>&</button>
-				<button class="key-btn symbol" onclick={() => sendSpecialKey('>')} {disabled}>&gt;</button>
-				<button class="key-btn symbol" onclick={() => sendSpecialKey('<')} {disabled}>&lt;</button>
-				<button class="key-btn symbol" onclick={() => sendSpecialKey('$')} {disabled}>$</button>
-				<button class="key-btn symbol" onclick={() => sendSpecialKey('~')} {disabled}>~</button>
-			</div>
-
-			<!-- Expandable Terminal Controls -->
+			<!-- Expandable row for additional keys -->
 			{#if expandedSection}
-				<div class="more-keys">
-					<button class="key-btn" onclick={() => sendSpecialKey('\x04')} {disabled} title="EOF">^D</button>
-					<button class="key-btn" onclick={() => sendSpecialKey('\x1a')} {disabled} title="Suspend">^Z</button>
-					<button class="key-btn" onclick={() => sendSpecialKey('\x0c')} {disabled} title="Clear Screen">^L</button>
-					<button class="key-btn" onclick={() => sendSpecialKey('\x1B[H')} {disabled}>HOME</button>
-					<button class="key-btn" onclick={() => sendSpecialKey('\x1B[F')} {disabled}>END</button>
-					<button class="key-btn" onclick={() => sendSpecialKey('\x1B[5~')} {disabled}>PAGE↑</button>
+				<div class="expanded-row">
+					<!-- Navigation -->
+					<Button variant="secondary" text="↑" onclick={() => sendSpecialKey('\x1B[A')} {disabled} ariaLabel="Up" />
+					<Button variant="secondary" text="↓" onclick={() => sendSpecialKey('\x1B[B')} {disabled} ariaLabel="Down" />
+					<Button variant="secondary" text="←" onclick={() => sendSpecialKey('\x1B[D')} {disabled} ariaLabel="Left" />
+					<Button variant="secondary" text="→" onclick={() => sendSpecialKey('\x1B[C')} {disabled} ariaLabel="Right" />
+					<!-- Control Keys -->
+					<Button variant="ghost" text="^Z" onclick={() => sendSpecialKey('\x1a')} {disabled} ariaLabel="Suspend" />
+					<Button variant="ghost" text="^D" onclick={() => sendSpecialKey('\x04')} {disabled} ariaLabel="EOF" />
+					<Button variant="ghost" text="^L" onclick={() => sendSpecialKey('\x0c')} {disabled} ariaLabel="Clear" />
+					<Button variant="ghost" text="ESC" onclick={() => sendSpecialKey('\x1b')} {disabled} ariaLabel="Escape" />
+					<!-- Additional Symbols -->
+					<Button variant="ghost" text=">" onclick={() => sendSpecialKey('>')} {disabled} ariaLabel="Redirect" />
+					<Button variant="ghost" text="<" onclick={() => sendSpecialKey('<')} {disabled} ariaLabel="Input" />
+					<Button variant="ghost" text="&" onclick={() => sendSpecialKey('&')} {disabled} ariaLabel="Background" />
+					<Button variant="ghost" text=";" onclick={() => sendSpecialKey(';')} {disabled} ariaLabel="Semicolon" />
 				</div>
 			{/if}
-
-			<!-- Footer -->
-			<div class="keyboard-footer">
-				<Button
-					variant="secondary"
-					text={wrapMode === 'wrap' ? 'No Wrap' : 'Wrap'}
-					onclick={() => toggleWrapMode()}
-					{disabled}
-					ariaLabel="Toggle text wrap mode"
-				/>
-				<Button
-					variant="outline"
-					text={expandedSection ? 'Less Keys' : 'More Keys'}
-					onclick={() => expandedSection = expandedSection ? null : 'more'}
-					{disabled}
-					ariaLabel={expandedSection ? 'Hide additional keys' : 'Show additional keys'}
-				/>
-			</div>
 		</div>
 	{/if}
 
@@ -188,32 +188,34 @@
 					rows={showToolbar ? 1 : 2}
 				></textarea>
 			</div>
-			<div class="input-actions">
-				<button
-					type="button"
-					class="toolbar-toggle-btn"
-					onclick={() => showToolbar = !showToolbar}
-					title={showToolbar ? 'Hide toolbar' : 'Show toolbar'}
-					aria-label={showToolbar ? 'Hide toolbar' : 'Show toolbar'}
-				>
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						{#if showToolbar}
-							<path d="M6 15l6-6 6 6"/>
-						{:else}
-							<rect x="3" y="3" width="18" height="18" rx="2"/>
-							<path d="M7 8h10M7 12h10M7 16h10"/>
-						{/if}
-					</svg>
-				</button>
+		</div>
+
+		<!-- Bottom actions row -->
+		<div class="bottom-actions">
+			<Button
+				type="submit"
+				text="Send"
+				variant="primary"
+				{disabled}
+				ariaLabel="Send command"
+				augmented="tr-clip bl-clip both"
+			/>
+			<Button
+				variant="outline"
+				text={showToolbar ? 'Hide' : 'Keys'}
+				onclick={() => showToolbar = !showToolbar}
+				{disabled}
+				ariaLabel={showToolbar ? 'Hide toolbar' : 'Show toolbar'}
+			/>
+			{#if showToolbar}
 				<Button
-					type="submit"
-					text="Send"
-					variant="primary"
+					variant="ghost"
+					text={expandedSection ? '−' : '+'}
+					onclick={() => expandedSection = expandedSection ? null : 'more'}
 					{disabled}
-					ariaLabel="Send command"
-					augmented="tr-clip bl-clip both"
+					ariaLabel={expandedSection ? 'Less keys' : 'More keys'}
 				/>
-			</div>
+			{/if}
 		</div>
 		{#if commandHistory.length > 0}
 			<div class="input-hint">
@@ -245,215 +247,92 @@
 		display: none;
 	}
 
-	/* SIMPLE MOBILE KEYBOARD */
-	.simple-keyboard {
+	/* COMPACT MOBILE KEYBOARD */
+	.compact-keyboard {
 		background: linear-gradient(
 			135deg,
 			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%),
 			color-mix(in oklab, var(--surface) 98%, var(--primary) 2%)
 		);
 		border-bottom: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		padding: var(--space-3);
+		padding: var(--space-2);
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-2);
 		backdrop-filter: blur(8px) saturate(110%);
 	}
 
-	.keyboard-row {
+	/* Compact layout - single main row */
+	.main-row {
 		display: flex;
+		justify-content: space-between;
+		align-items: center;
 		gap: var(--space-2);
-		align-items: stretch;
 	}
 
-	/* Arrow key group - compact 2x2 grid */
-	.keyboard-row.arrows {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		grid-template-rows: repeat(2, 1fr);
-		max-width: 200px;
-		margin: 0 auto;
+	.left-keys {
+		display: flex;
+		gap: var(--space-1);
 	}
 
-	.keyboard-row.arrows .key-btn:nth-child(1) { grid-column: 2; grid-row: 1; } /* Up */
-	.keyboard-row.arrows .key-btn:nth-child(2) { grid-column: 2; grid-row: 2; } /* Down */
-	.keyboard-row.arrows .key-btn:nth-child(3) { grid-column: 1; grid-row: 2; } /* Left */
-	.keyboard-row.arrows .key-btn:nth-child(4) { grid-column: 3; grid-row: 2; } /* Right */
-
-	/* Essential controls row */
-	.keyboard-row.controls {
+	.right-keys {
 		display: flex;
 		gap: var(--space-2);
 	}
 
-	.keyboard-row.controls .key-btn {
-		flex: 1;
-	}
-
-	/* Symbols row - grid layout */
-	.keyboard-row.symbols {
+	.expanded-row {
 		display: grid;
 		grid-template-columns: repeat(6, 1fr);
 		gap: var(--space-2);
-	}
-
-	.key-btn {
-		min-height: 44px;
-		min-width: 44px;
-		padding: var(--space-2) var(--space-3);
-		background: color-mix(in oklab, var(--surface) 85%, var(--primary) 15%);
-		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		border-radius: 8px;
-		color: var(--text);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.06s ease;
-		touch-action: manipulation;
-		-webkit-tap-highlight-color: transparent;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow:
-			0 2px 4px -1px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px color-mix(in oklab, var(--primary) 5%, transparent);
-		position: relative;
-		overflow: hidden;
-	}
-
-	.key-btn:hover:not(:disabled) {
-		background: color-mix(in oklab, var(--surface) 75%, var(--primary) 25%);
-		border-color: color-mix(in oklab, var(--primary) 40%, transparent);
-		transform: translateY(-1px);
-		box-shadow:
-			0 4px 8px -2px rgba(0, 0, 0, 0.15),
-			0 0 20px var(--primary-glow);
-	}
-
-	.key-btn:active:not(:disabled) {
-		transform: translateY(0) scale(0.98);
-		box-shadow:
-			0 1px 2px -1px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px color-mix(in oklab, var(--primary) 8%, transparent);
-	}
-
-	/* Arrow keys - primary style */
-	.key-btn.arrow {
-		background: linear-gradient(135deg, var(--primary), var(--primary-bright));
-		color: var(--bg);
-		border-color: var(--primary);
-		font-size: var(--font-size-3);
-		min-height: 48px;
-		min-width: 56px;
-	}
-
-	.key-btn.arrow:hover:not(:disabled) {
-		background: linear-gradient(135deg, var(--primary-bright), var(--accent-cyan));
-		border-color: var(--primary-bright);
-	}
-
-	/* Action keys - secondary style */
-	.key-btn.action {
-		background: color-mix(in oklab, var(--surface) 70%, var(--accent-cyan) 30%);
-		border-color: color-mix(in oklab, var(--accent-cyan) 40%, transparent);
-		color: var(--text);
-	}
-
-	.key-btn.action.primary {
-		background: linear-gradient(135deg, var(--accent-cyan), var(--primary));
-		color: var(--bg);
-		border-color: var(--accent-cyan);
-	}
-
-	/* Danger key - Ctrl+C */
-	.key-btn.danger {
-		background: color-mix(in oklab, var(--surface) 80%, var(--err) 20%);
-		color: var(--err);
-		border-color: color-mix(in oklab, var(--err) 30%, transparent);
-	}
-
-	.key-btn.danger:hover:not(:disabled) {
-		background: color-mix(in oklab, var(--surface) 70%, var(--err) 30%);
-		border-color: color-mix(in oklab, var(--err) 50%, transparent);
-		color: color-mix(in oklab, var(--err) 90%, white 10%);
-	}
-
-	/* Symbol keys - compact */
-	.key-btn.symbol {
-		background: color-mix(in oklab, var(--surface) 90%, var(--accent-magenta) 10%);
-		border-color: color-mix(in oklab, var(--accent-magenta) 20%, transparent);
-		color: var(--text);
-		font-size: var(--font-size-2);
-		min-width: 48px;
-		flex-shrink: 0;
-	}
-
-	/* More keys section */
-	.more-keys {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: var(--space-2);
-		padding: var(--space-2);
-		background: color-mix(in oklab, var(--surface) 95%, transparent);
-		border-radius: 8px;
-		border: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
-		margin-top: var(--space-1);
-	}
-
-	.more-keys .key-btn {
-		min-width: 0;
-	}
-
-	/* Keyboard footer */
-	.keyboard-footer {
-		display: flex;
-		gap: var(--space-2);
-		justify-content: space-between;
 		margin-top: var(--space-2);
 		padding-top: var(--space-2);
 		border-top: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
 	}
 
-	.keyboard-footer :global(.button) {
-		flex: 1;
-		min-width: 0;
-		height: 40px;
-		font-size: var(--font-size-0);
-		padding: var(--space-2) var(--space-3);
+	/* Global button overrides for keyboard */
+	.compact-keyboard :global(.button) {
+		min-height: 40px;
+		font-family: var(--font-mono);
+		font-weight: 600;
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
 	}
 
-	.key-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-		transform: none !important;
-		box-shadow: none !important;
+	.left-keys :global(.button) {
+		min-width: 36px;
+		padding: var(--space-1) var(--space-2);
 	}
+
+	.right-keys :global(.button) {
+		min-width: 60px;
+	}
+
+	/* Bottom actions row */
+	.bottom-actions {
+		display: flex;
+		gap: var(--space-2);
+		align-items: center;
+		padding-top: var(--space-2);
+	}
+
+	.bottom-actions :global(.button:first-child) {
+		flex: 1;
+	}
+
+
 
 	/* MOBILE OPTIMIZATION */
 	@media (max-width: 480px) {
-		.simple-keyboard {
+		.compact-keyboard {
 			padding: var(--space-2);
 		}
 
-		.key-btn {
-			min-height: 48px;
-			font-size: var(--font-size-1);
-			padding: var(--space-2);
+		.expanded-row {
+			grid-template-columns: repeat(3, 1fr);
 		}
 
-		.key-btn.arrow {
-			min-height: 52px;
-			min-width: 60px;
-			font-size: var(--font-size-3);
-		}
-
-		.keyboard-row.arrows {
-			max-width: 180px;
-		}
-
-		.more-keys {
-			grid-template-columns: repeat(2, 1fr);
+		.left-keys {
+			gap: var(--space-1);
 		}
 	}
 
@@ -478,22 +357,13 @@
 	}
 
 	/* Compact form when toolbar is open */
-	.simple-keyboard ~ .input-form {
+	.compact-keyboard ~ .input-form {
 		padding: var(--space-2) var(--space-3);
 	}
 
 	.input-container {
-		display: flex;
-		gap: var(--space-2);
-		align-items: stretch;
 		position: relative;
-	}
-
-	.input-actions {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		flex-shrink: 0;
+		margin-bottom: var(--space-2);
 	}
 
 	.message-input-wrapper {
@@ -547,7 +417,7 @@
 	}
 
 	/* Compact when toolbar is open */
-	.simple-keyboard ~ .input-form .message-input {
+	.compact-keyboard ~ .input-form .message-input {
 		min-height: 36px;
 		padding: var(--space-2) var(--space-3);
 		line-height: 1.2;
@@ -580,54 +450,6 @@
 		transform: none;
 	}
 
-	.toolbar-toggle-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 44px;
-		height: 44px;
-		padding: 0;
-		background: color-mix(in oklab, var(--surface) 85%, var(--primary) 15%);
-		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		border-radius: 8px;
-		color: var(--primary);
-		cursor: pointer;
-		transition: all 0.06s ease;
-		backdrop-filter: blur(4px);
-		box-shadow:
-			0 2px 4px -1px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px color-mix(in oklab, var(--primary) 5%, transparent);
-		flex-shrink: 0;
-	}
-
-	.toolbar-toggle-btn:hover {
-		background: color-mix(in oklab, var(--surface) 75%, var(--primary) 25%);
-		border-color: color-mix(in oklab, var(--primary) 40%, transparent);
-		transform: translateY(-1px);
-		box-shadow:
-			0 4px 8px -2px rgba(0, 0, 0, 0.15),
-			0 0 20px var(--primary-glow);
-	}
-
-	.toolbar-toggle-btn:active {
-		transform: translateY(0) scale(0.98);
-		box-shadow:
-			0 1px 2px -1px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px color-mix(in oklab, var(--primary) 8%, transparent);
-	}
-
-	.input-actions :global(.button) {
-		min-width: 80px;
-		height: 44px;
-		justify-content: center;
-		font-weight: 600;
-		font-size: var(--font-size-1);
-		padding: var(--space-2) var(--space-3);
-	}
-
-	.input-actions :global(.button[type='submit']) {
-		min-width: 80px;
-	}
 
 	.input-hint {
 		font-family: var(--font-mono);
