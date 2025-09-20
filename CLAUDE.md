@@ -96,11 +96,6 @@ src/lib/client/
 - Display slot management for tiling window manager
 - Mobile/desktop responsive behavior
 
-**LayoutViewModel** - UI layout and responsive design:
-- Window manager state (tiles, splits, active pane)
-- Mobile detection and swipe gestures
-- Keyboard shortcuts
-
 **ServiceContainer** - Dependency injection:
 - Lazy-loaded service instantiation
 - Context-based dependency injection

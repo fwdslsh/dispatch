@@ -1,5 +1,5 @@
 <script>
-	import { Button } from '$lib/client/shared/components';
+	import Button from '$lib/client/shared/components/Button.svelte';
 	import {
 		IconFolder,
 		IconFolderPlus,

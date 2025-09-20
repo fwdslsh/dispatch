@@ -1,5 +1,5 @@
 
-// Unified Socket.IO event constants for frontend and backend (post-unified session refactor)
+// Unified Socket.IO event constants for frontend and backend
 export const SOCKET_EVENTS = {
   // Core connection/auth events
   CONNECTION: 'connect',
@@ -12,7 +12,7 @@ export const SOCKET_EVENTS = {
   AUTH_SUCCESS: 'auth.success',
   AUTH_ERROR: 'auth.error',
 
-  // Unified run session events (the only session events used)
+  // Run session events
   RUN_ATTACH: 'run:attach',
   RUN_INPUT: 'run:input',
   RUN_RESIZE: 'run:resize',

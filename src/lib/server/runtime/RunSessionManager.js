@@ -162,14 +162,17 @@ export class RunSessionManager {
 
 		const proc = live.proc;
 		if (typeof proc[operation] !== 'function') {
-			throw new Error(`Operation ${operation} not supported by ${live.kind} adapter`);
+			// Log the unsupported operation but don't throw - some operations are adapter-specific
+			logger.warn('RUNSESSION', `Operation ${operation} not supported by ${live.kind} adapter for run ${runId}`);
+			return null;
 		}
 
 		try {
 			return proc[operation](...params);
 		} catch (error) {
-			logger.error('RUNSESSION', `Failed to perform ${operation} on ${runId}:`, error);
-			throw error;
+			logger.error('RUNSESSION', `Failed to perform ${operation} on ${runId}:`, error.message);
+			// Don't re-throw the error to prevent crashes - log and return null instead
+			return null;
 		}
 	}
 
@@ -177,27 +180,33 @@ export class RunSessionManager {
 	 * Close a run session
 	 */
 	async closeRunSession(runId) {
-		const live = this.liveRuns.get(runId);
-		if (live) {
-			try {
-				// Close the process
-				if (live.proc.close) {
-					live.proc.close();
+		try {
+			const live = this.liveRuns.get(runId);
+			if (live) {
+				try {
+					// Close the process
+					if (live.proc && typeof live.proc.close === 'function') {
+						live.proc.close();
+					}
+				} catch (error) {
+					logger.warn('RUNSESSION', `Error closing process for ${runId}:`, error.message || 'Unknown error');
 				}
-			} catch (error) {
-				logger.warn('RUNSESSION', `Error closing process for ${runId}:`, error);
+
+				// Remove from live runs
+				this.liveRuns.delete(runId);
 			}
 
-			// Remove from live runs
-			this.liveRuns.delete(runId);
-		}
-
-		try {
-			// Update database status
-			await this.db.updateRunSessionStatus(runId, 'stopped');
-			logger.info('RUNSESSION', `Closed run session: ${runId}`);
+			try {
+				// Update database status
+				await this.db.updateRunSessionStatus(runId, 'stopped');
+				logger.info('RUNSESSION', `Closed run session: ${runId}`);
+			} catch (error) {
+				logger.error('RUNSESSION', `Failed to update status for closed session ${runId}:`, error.message || 'Unknown error');
+			}
 		} catch (error) {
-			logger.error('RUNSESSION', `Failed to update status for closed session ${runId}:`, error);
+			// Ultimate safety net to prevent any unhandled errors from propagating
+			logger.error('RUNSESSION', `Unexpected error closing run session ${runId}:`, error.message || 'Unknown error');
+			// Don't re-throw to prevent crashes
 		}
 	}
 

@@ -56,6 +56,7 @@ export class ClaudeAdapter {
 		});
 
 		let activeQuery = null;
+		let isClosing = false;
 
 		const emitClaudeEvent = (rawEvent) => {
 			if (!rawEvent) return;
@@ -82,6 +83,11 @@ export class ClaudeAdapter {
 			kind: 'claude',
 			input: {
 				async write(/** @type {string | Uint8Array} */ data) {
+					if (isClosing) {
+						logger.warn('CLAUDE_ADAPTER', 'Ignoring input - adapter is closing');
+						return;
+					}
+
 					const message = typeof data === 'string' ? data : new TextDecoder().decode(data);
 
 					// Create new query with the message
@@ -90,32 +96,48 @@ export class ClaudeAdapter {
 						options: claudeOptions
 					});
 
+					// Remove interrupt method to prevent issues
+					if (activeQuery && activeQuery.interrupt) {
+						delete activeQuery.interrupt;
+					}
+
 					// Stream messages as events
 					try {
 						for await (const messageEvent of activeQuery) {
+							if (isClosing) break; // Stop processing if we're closing
 							emitClaudeEvent(messageEvent);
 						}
 					} catch (error) {
-						logger.error('CLAUDE_ADAPTER', 'Claude query error:', error);
-						onEvent({
-							channel: 'claude:error',
-							type: 'execution_error',
-							payload: {
-								error: error.message,
-								stack: error.stack
-							}
-						});
+						if (!isClosing) {
+							logger.error('CLAUDE_ADAPTER', 'Claude query error:', error);
+							onEvent({
+								channel: 'claude:error',
+								type: 'execution_error',
+								payload: {
+									error: error.message,
+									stack: error.stack
+								}
+							});
+						}
 					}
 				}
 			},
 			close() {
-				if (activeQuery && activeQuery.interrupt) {
-					try {
-						activeQuery.interrupt();
-						logger.info('CLAUDE_ADAPTER', 'Claude query interrupted');
-					} catch (error) {
-						logger.warn('CLAUDE_ADAPTER', 'Failed to interrupt Claude query:', error);
+				try {
+					// Set closing flag to stop processing new events
+					isClosing = true;
+
+					// Log that we're closing gracefully without interrupting
+					if (activeQuery) {
+						logger.info('CLAUDE_ADAPTER', 'Claude adapter closing - allowing query to complete naturally');
+					} else {
+						logger.info('CLAUDE_ADAPTER', 'Claude adapter closing - no active query');
 					}
+				} catch (error) {
+					logger.warn('CLAUDE_ADAPTER', 'Error during close:', error.message || 'Unknown error');
+				} finally {
+					// Clear reference to allow garbage collection
+					activeQuery = null;
 				}
 			},
 			// Expose any additional methods that might be useful

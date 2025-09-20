@@ -1,5 +1,5 @@
 <script>
-	import { Modal } from '$lib/client/shared/components';
+	import Modal from '$lib/client/shared/components/Modal.svelte';
 	import GlobalSettings from './GlobalSettings.svelte';
 	import ClaudeAuth from '../../../claude/ClaudeAuth.svelte';
 	import StorageSettings from './StorageSettings.svelte';

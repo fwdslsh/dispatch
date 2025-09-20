@@ -2,11 +2,10 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
-
+	import { innerWidth } from 'svelte/reactivity/window';
 	// Services and ViewModels
 	import { provideServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	// WorkspaceViewModel removed - obsolete in unified architecture
-	import { LayoutViewModel } from '$lib/client/shared/viewmodels/LayoutViewModel.svelte.js';
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
 
 	// Components
@@ -41,10 +40,6 @@
 	let sessionViewModel = $state();
 
 	// Component references
-	let sessionWindowManager = $state();
-
-	/** @type {LayoutViewModel} */
-	let layoutViewModel = $state();
 	let workspaceViewMode = $state('window-manager');
 	let activeSessionId = $state(null);
 
@@ -59,7 +54,8 @@
 	// Simple session count from sessionViewModel
 	const sessionsList = $derived.by(() => {
 		const sessions = sessionViewModel?.sessions ?? [];
-		console.log('[WorkspacePage] SessionsList derived, count:', sessions.length, sessions);
+
+		log.info('[WorkspacePage] SessionsList derived, count:', sessions.length, sessions);
 		return sessions;
 	});
 	const totalSessions = $derived(sessionsList.length);
@@ -78,58 +74,18 @@
 	});
 	const isSingleSessionView = $derived(workspaceViewMode === 'single-session');
 	const isWindowManagerView = $derived(!isSingleSessionView);
-	// currentWorkspace removed - sessions manage their own working directories
-	const currentBreakpoint = $derived(
-		layoutViewModel
-			? layoutViewModel.isMobile
-				? 'mobile'
-				: layoutViewModel.isTablet
-					? 'tablet'
-					: 'desktop'
-			: 'desktop'
-	);
 
-	// Debug effect removed to prevent unnecessary reactive updates
 
 	// Responsive state
-	const isMobile = $derived(layoutViewModel?.isMobile ?? currentBreakpoint === 'mobile');
-	const layoutColumns = $derived(layoutViewModel?.columns ?? 1);
-
+	const isMobile = $derived(innerWidth.current <= 500);
+	$effect(() => {
+		if (innerWidth.current <= 500) {
+			setWorkspaceViewMode('single-session');
+		}
+	});
 	// PWA installation handling
 	let deferredPrompt = $state(null);
-	let lastWorkspacePath = undefined;
 	let __removeWorkspacePageListeners = $state(null);
-
-	// Handle mobile state changes through explicit method calls
-	// Note: isMobile, isTablet, etc. are now derived values declared in constructor
-	$effect(() => {
-		// Only trigger method calls, don't mutate state directly
-		if (layoutViewModel?.isMobile) {
-			layoutViewModel.handleMobileStateChange();
-		}
-	});
-
-	// Track column changes for transitions
-	$effect(() => {
-		if (layoutViewModel && layoutViewModel.columns !== layoutViewModel.previousCols) {
-			layoutViewModel.transitioning = true;
-			layoutViewModel.previousCols = layoutViewModel.columns;
-
-			// Reset transition state after animation
-			setTimeout(() => {
-				if (layoutViewModel) {
-					// Guard against component cleanup
-					layoutViewModel.transitioning = false;
-				}
-			}, 300);
-		}
-	});
-
-	// Simplified state management - no complex app state dispatch needed
-
-	// Sessions map directly to tiles by index using WindowViewModel
-
-	// Modal state is now derived from activeModal - no more bidirectional sync needed!
 
 	// Initialization
 	onMount(async () => {
@@ -155,23 +111,13 @@
 			}
 		}
 
-		// Initialize ViewModels
-		const persistence = await container.get('persistence');
-		const layout = await container.get('layout');
-		const socketService = await container.get('socket');
-
 		// Get shared ViewModels from container
 		sessionViewModel = await container.get('sessionViewModel');
-
-		layoutViewModel = new LayoutViewModel(layout);
 
 		// Load initial data - workspace loading removed in unified architecture
 		log.info('Loading sessions...');
 		await sessionViewModel.loadSessions();
 		log.info('Sessions loaded, count:', sessionViewModel.sessions.length);
-
-		// Initialize responsive state
-		layoutViewModel.updateResponsiveState();
 
 		// Setup PWA install prompt
 		if (typeof window !== 'undefined') {
@@ -181,21 +127,11 @@
 				log.info('PWA install prompt available');
 			}
 
-			function handleResize() {
-				try {
-					layoutViewModel?.updateResponsiveState();
-				} catch (err) {
-					log.warn('Failed to update responsive state on resize', err);
-				}
-			}
-
 			window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-			window.addEventListener('resize', handleResize);
 
 			// Store cleanup handlers on the component instance for onDestroy
 			__removeWorkspacePageListeners = () => {
 				window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-				window.removeEventListener('resize', handleResize);
 			};
 		}
 
@@ -223,6 +159,7 @@
 
 	// Event handlers
 	function setWorkspaceViewMode(mode) {
+		log.info('Setting workspace view mode to', mode);
 		workspaceViewMode = mode;
 	}
 
@@ -270,7 +207,6 @@
 		// For SessionWindowManager buttons, create session directly
 		openCreateSessionModal(type);
 	}
-
 
 	function updateActiveSession(id) {
 		if (!id) {
@@ -392,6 +328,7 @@
 	<WorkspaceHeader
 		onLogout={handleLogout}
 		viewMode={workspaceViewMode}
+		onInstallPWA={handleInstallPWA}
 		onViewModeChange={setWorkspaceViewMode}
 	/>
 
@@ -437,7 +374,6 @@
 				onSessionClose={handleSessionClose}
 				onSessionAssignToTile={handleSessionAssignToTile}
 				onCreateSession={handleCreateSession}
-				bind:this={sessionWindowManager}
 			/>
 		{:else}
 			<SingleSessionView
@@ -462,7 +398,7 @@
 		{isMobile}
 		{hasActiveSessions}
 		sessionCount={totalSessions}
-		currentSessionIndex={currentSessionIndex}
+		{currentSessionIndex}
 		{totalSessions}
 		viewMode={workspaceViewMode}
 	/>

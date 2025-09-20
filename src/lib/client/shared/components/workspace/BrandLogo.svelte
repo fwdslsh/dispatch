@@ -46,10 +46,6 @@
 	/* Mobile adjustments */
 	@media (max-width: 768px) {
 		.brand-icon img {
-			height: 22px;
-		}
-
-		.brand-text {
 			display: none;
 		}
 	}

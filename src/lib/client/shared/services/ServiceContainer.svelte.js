@@ -54,17 +54,6 @@ class ServiceContainer {
 		});
 
 		// Core Services
-		this.registerFactory('persistence', async () => {
-			const { PersistenceService } = await import('./PersistenceService.js');
-			return new PersistenceService(this.config);
-		});
-
-		this.registerFactory('layout', async () => {
-			const { LayoutService } = await import('./LayoutService.svelte.js');
-			const persistence = await this.get('persistence');
-			return new LayoutService(persistence);
-		});
-
 		this.registerFactory('socket', async () => {
 			const { SocketService } = await import('./SocketService.svelte.js');
 			return new SocketService(this.config);
@@ -76,11 +65,6 @@ class ServiceContainer {
 			const appStateManager = await this.get('appStateManager');
 			const sessionApi = await this.get('sessionApi');
 			return new SessionViewModel(appStateManager, sessionApi);
-		});
-
-		this.registerFactory('windowViewModel', async () => {
-			const { WindowViewModel } = await import('../viewmodels/WindowViewModel.svelte.js');
-			return new WindowViewModel();
 		});
 	}
 

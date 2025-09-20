@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
-	import { Button, Input } from '$lib/client/shared/components';
+	import Button from '$lib/client/shared/components/Button.svelte';
+	import Input from '$lib/client/shared/components/Input.svelte';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 
 	/**

@@ -38,7 +38,7 @@ export class SessionState {
 
 	// Session CRUD operations
 	loadSessions(sessions) {
-		console.log('[SessionState] Loading sessions:', sessions);
+		log.info('[SessionState] Loading sessions:', sessions);
 		this.sessions = sessions.map((session) => ({
 			id: session.id,
 			typeSpecificId: session.typeSpecificId,
@@ -51,7 +51,7 @@ export class SessionState {
 			lastActivity: session.lastActivity || new Date().toISOString(),
 			activityState: session.activityState || 'idle'
 		}));
-		console.log('[SessionState] Processed sessions:', this.sessions);
+		log.info('[SessionState] Processed sessions:', this.sessions);
 		this.loading = false;
 		this.error = null;
 		log.info('Sessions loaded', { count: this.sessions.length });

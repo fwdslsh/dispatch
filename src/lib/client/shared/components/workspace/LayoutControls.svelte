@@ -1,8 +1,5 @@
 <!--
-	LayoutControls.svelte
-
 	Layout control buttons for switching between different workspace layouts
-	Integrates with LayoutViewModel for state management
 -->
 <script>
 	import IconButton from '../IconButton.svelte';
@@ -54,5 +51,11 @@
 
 	.layout-controls :global(.btn-icon-only.active svg) {
 		color: var(--text-primary);
+	}
+
+	@media (max-width: 500px) {
+		.layout-controls {
+			display: none;
+		}
 	}
 </style>

@@ -37,12 +37,12 @@
 	>
 		<IconPlayerTrackPrev size={18} />
 	</IconButton>
-
+<!-- 
 	{#if totalSessions > 0}
 		<span class="session-counter">
 			{currentDisplay} / {totalSessions}
 		</span>
-	{/if}
+	{/if} -->
 
 	<IconButton class="bottom-btn nav-btn" onclick={handleNext} {disabled} aria-label="Next session">
 		<IconPlayerTrackNext size={18} />
@@ -53,21 +53,9 @@
 	.mobile-navigation {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 1rem;
 	}
 
-	.session-counter {
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		color: var(--text-secondary);
-		min-width: 40px;
-		text-align: center;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		padding: 0 0.25rem;
-	}
 
 	:global(.nav-btn:disabled) {
 		opacity: 0.5;
@@ -91,12 +79,8 @@
 	/* Very small screens - compact layout */
 	@media (max-width: 480px) {
 		.mobile-navigation {
-			gap: 0.25rem;
+			gap: 0.75rem;
 		}
 
-		.session-counter {
-			min-width: 35px;
-			font-size: 0.7rem;
-		}
 	}
 </style>

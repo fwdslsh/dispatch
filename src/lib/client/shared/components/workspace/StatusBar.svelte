@@ -53,10 +53,14 @@
 			<IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
 				<IconAppWindow size={18} />
 			</IconButton> -->
-
 			<IconButton onclick={onOpenSettings} aria-label="Open settings" title="Settings">
 				<IconAdjustmentsAlt size={18} />
 			</IconButton>
+			{#if totalSessions > 0}
+				<span class="session-counter">
+					{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}
+				</span>
+			{/if}
 		</div>
 
 		<!-- Center group: Main create session button -->
@@ -66,42 +70,42 @@
 
 		<!-- Right group: Navigation and session menu -->
 		<div class="right-group">
-		{#if isMobile}
-			<MobileNavigation
-				{onNavigateSession}
-				disabled={!hasActiveSessions}
-				currentIndex={currentSessionIndex}
-				{totalSessions}
-			/>
-		{/if}
+			{#if isMobile}
+				<MobileNavigation
+					{onNavigateSession}
+					disabled={!hasActiveSessions}
+					currentIndex={currentSessionIndex}
+					{totalSessions}
+				/>
+			{/if}
 
-		{#if !isMobile && singleSessionActive}
-			<div class="desktop-navigation">
-				<IconButton
-					onclick={() => onNavigateSession('prev')}
-					disabled={desktopPrevDisabled}
-					aria-label="Previous session"
-					title="Previous session"
-				>
-					<IconPlayerTrackPrev size={18} />
-				</IconButton>
+			{#if !isMobile && singleSessionActive}
+				<div class="desktop-navigation">
+					<IconButton
+						onclick={() => onNavigateSession('prev')}
+						disabled={desktopPrevDisabled}
+						aria-label="Previous session"
+						title="Previous session"
+					>
+						<IconPlayerTrackPrev size={18} />
+					</IconButton>
 
-				{#if totalSessions > 0}
-					<span class="session-counter">
-						{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}
-					</span>
-				{/if}
+					{#if totalSessions > 0}
+						<span class="session-counter">
+							{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}
+						</span>
+					{/if}
 
-				<IconButton
-					onclick={() => onNavigateSession('next')}
-					disabled={desktopNextDisabled}
-					aria-label="Next session"
-					title="Next session"
-				>
-					<IconPlayerTrackNext size={18} />
-				</IconButton>
-			</div>
-		{/if}
+					<IconButton
+						onclick={() => onNavigateSession('next')}
+						disabled={desktopNextDisabled}
+						aria-label="Next session"
+						title="Next session"
+					>
+						<IconPlayerTrackNext size={18} />
+					</IconButton>
+				</div>
+			{/if}
 
 			<IconButton onclick={onToggleSessionMenu} aria-label="Open sessions">
 				{#if sessionMenuOpen}

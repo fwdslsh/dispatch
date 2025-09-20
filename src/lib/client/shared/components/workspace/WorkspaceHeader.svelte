@@ -9,24 +9,27 @@
 	import BrandLogo from './BrandLogo.svelte';
 	import LayoutControls from './LayoutControls.svelte';
 	import IconButton from '../IconButton.svelte';
-	import { IconLogout } from '@tabler/icons-svelte';
+	import { IconAppWindow, IconLogout } from '@tabler/icons-svelte';
 
 	// Props
 	let {
 		onLogout = () => {},
 		viewMode = 'window-manager',
-		onViewModeChange = () => {}
+		onViewModeChange = () => {},
+		onInstallPWA = () => {}
 	} = $props();
 </script>
 
 <header class="workspace-header">
 	<BrandLogo />
 
-
 	<div class="header-spacer"></div>
 
 	<div class="header-actions">
-	<LayoutControls viewMode={viewMode} onSelectView={onViewModeChange} />
+		<IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
+			<IconAppWindow size={18} />
+		</IconButton>
+		<LayoutControls {viewMode} onSelectView={onViewModeChange} />
 		<IconButton onclick={onLogout} aria-label="Logout">
 			<IconLogout size={18} />
 		</IconButton>
@@ -53,11 +56,4 @@
 		display: flex;
 		gap: var(--space-3);
 	}
-
-	/* Hide on mobile */
-	/* @media (max-width: 768px) {
-		.workspace-header {
-			display: none;
-		}
-	} */
 </style>

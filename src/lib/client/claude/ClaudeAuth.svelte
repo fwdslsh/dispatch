@@ -1,6 +1,9 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
-	import { Button, Input, LoadingSpinner, ErrorDisplay } from '$lib/client/shared/components';
+	import Button from '$lib/client/shared/components/Button.svelte';
+	import Input from '$lib/client/shared/components/Input.svelte';
+	import LoadingSpinner from '$lib/client/shared/components/LoadingSpinner.svelte';
+	import ErrorDisplay from '$lib/client/shared/components/ErrorDisplay.svelte';
 	import { IconCloudCheck, IconCloudX, IconKey, IconExternalLink } from '@tabler/icons-svelte';
 	import { io } from 'socket.io-client';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';

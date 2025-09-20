@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
-	import { Button, ConfirmationDialog } from '$lib/client/shared/components';
+	import Button from '$lib/client/shared/components/Button.svelte';
+	import ConfirmationDialog from '$lib/client/shared/components/ConfirmationDialog.svelte';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import {
 		IconTrash,

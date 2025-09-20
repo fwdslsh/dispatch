@@ -1,6 +1,7 @@
 <script>
 	import { goto } from '$app/navigation';
-	import { PublicUrlDisplay, ErrorDisplay } from '$lib/client/shared/components';
+	import PublicUrlDisplay from '$lib/client/shared/components/PublicUrlDisplay.svelte';
+	import ErrorDisplay from '$lib/client/shared/components/ErrorDisplay.svelte';
 	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
