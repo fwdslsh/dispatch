@@ -125,6 +125,7 @@ export class RunSessionClient {
 			}
 
 			this.socket.emit('run:attach', { runId, afterSeq }, (response) => {
+				console.log('[RunSessionClient] Attach response:', response);
 				if (response?.success) {
 					// Store attachment info
 					this.attachedSessions.set(runId, {
@@ -132,6 +133,8 @@ export class RunSessionClient {
 						onEvent,
 						onError
 					});
+
+					console.log('[RunSessionClient] Stored attachment for runId:', runId, 'Total attachments:', this.attachedSessions.size);
 
 					// Process backlog events
 					if (response.events && Array.isArray(response.events)) {
@@ -164,6 +167,7 @@ export class RunSessionClient {
 			throw new Error('Not authenticated');
 		}
 
+		console.log('[RunSessionClient] Sending input:', { runId, data, connected: this.connected, authenticated: this.authenticated });
 		this.socket.emit('run:input', { runId, data });
 	}
 
@@ -197,12 +201,15 @@ export class RunSessionClient {
 	 * Handle incoming run events
 	 */
 	handleRunEvent(event) {
+		console.log('[RunSessionClient] Received run event:', event);
 		const attachment = this.attachedSessions.get(event.runId);
 		if (attachment) {
 			// Update last sequence
 			attachment.lastSeq = Math.max(attachment.lastSeq, event.seq || 0);
 			// Forward event to handler
 			attachment.onEvent(event);
+		} else {
+			console.warn('[RunSessionClient] No attachment found for runId:', event.runId, 'Available attachments:', Array.from(this.attachedSessions.keys()));
 		}
 	}
 

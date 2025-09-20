@@ -118,6 +118,7 @@ export class SessionApiClient {
 			if (includeAll) params.append('include', 'all');
 
 			const url = `${this.baseUrl}/api/sessions${params.toString() ? '?' + params : ''}`;
+			console.log('[SessionApiClient] Fetching URL:', url);
 
 			const response = await fetch(url, {
 				headers: this.getHeaders()
@@ -127,6 +128,8 @@ export class SessionApiClient {
 			// Normalize session objects to the shape UI expects. Server may return
 			// fields like `kind`, `cwd`, `tileId`, `created_at`, `last_activity`.
 			const raw = data.sessions || [];
+			console.log('[SessionApiClient] Raw API data:', data);
+			console.log('[SessionApiClient] Raw sessions array:', raw);
 			const sessions = raw.map((s) => {
 				if (!s) return null;
 				// Accept multiple possible field names for compatibility
@@ -140,7 +143,7 @@ export class SessionApiClient {
 				const createdAt = s.createdAt || s.created_at || s.created || null;
 				const lastActivity = s.lastActivity || s.last_activity || s.updatedAt || s.updated_at || null;
 
-				return {
+				const normalized = {
 					id,
 					type,
 					workspacePath,
@@ -152,7 +155,17 @@ export class SessionApiClient {
 					lastActivity,
 					_raw: s
 				};
+
+				if (!id) {
+					console.log('[SessionApiClient] Session missing ID, filtering out:', s);
+					return null;
+				}
+
+				return normalized;
 			}).filter(Boolean);
+
+			console.log('[SessionApiClient] Normalized sessions count:', sessions.length);
+			console.log('[SessionApiClient] First normalized session:', sessions[0]);
 
 			return { sessions };
 		} catch (error) {
@@ -187,7 +200,38 @@ export class SessionApiClient {
 				body: JSON.stringify(body)
 			});
 
-			return await this.handleResponse(response);
+			const raw = await this.handleResponse(response);
+			const id =
+				raw?.id ||
+				raw?.runId ||
+				raw?.run_id ||
+				raw?.sessionId ||
+				raw?.session_id ||
+				sessionId ||
+				null;
+
+			if (!id && this.config.debug) {
+				console.warn('[SessionApiClient] Session create response missing id field', raw);
+			}
+
+			return {
+				id,
+				typeSpecificId: raw?.typeSpecificId ?? raw?.type_specific_id ?? null,
+				// Preserve kind so downstream callers can normalize properly
+				type,
+				sessionType: type,
+				workspacePath,
+				isActive: true,
+				inLayout: false,
+				resumed: raw?.resumed ?? (resume && !!sessionId) ?? false,
+				title:
+					raw?.title ||
+					(type === 'claude' ? 'Claude session' : type === 'pty' ? 'Terminal session' : `${type} session`),
+				createdAt: raw?.createdAt || new Date().toISOString(),
+				lastActivity: raw?.lastActivity || new Date().toISOString(),
+				activityState: raw?.activityState || 'launching',
+				_raw: raw
+			};
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to create session:', error);

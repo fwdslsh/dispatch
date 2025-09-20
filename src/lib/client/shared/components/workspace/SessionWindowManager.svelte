@@ -30,87 +30,34 @@
 	// Let WindowManager create its own layout
 	const layoutTree = null;
 
-	// Reactive session-to-tile mapping using Svelte 5 runes
-	let tileIds = $state(new Set(['root'])); // Initialize with default root tile
+	// Available tile IDs from WindowManager
+	let tileIds = $state(new Set(['root']));
+	let windowManagerRef = $state(null);
 
-	// Track sessions we've already auto-assigned to prevent repeated attempts
-	const autoAssignedSessions = new Set();
+	const tileOrder = $derived.by(() => Array.from(tileIds));
 
-	// Create a reactive mapping of sessions to tiles based on database layout
-	const sessionTileMap = $derived.by(() => {
-		const tileArray = Array.from(tileIds).sort();
-		const map = new Map();
+	// Ensure there is enough layout surface for every session
+	$effect(() => {
+		if (!windowManagerRef?.splitBesideCurrent) return;
+		const tilesAvailable = tileIds.size;
+		const additionalTilesNeeded = sessions.length - tilesAvailable;
+		if (additionalTilesNeeded <= 0) return;
 
-		// Initialize tile counters for distribution
-		const tileSessionCounts = new Map();
-		tileArray.forEach(id => tileSessionCounts.set(id, 0));
-
-		// First pass: count sessions already assigned to tiles
-		sessions.forEach((session) => {
-			if (session.tileId && tileIds.has(session.tileId)) {
-				const currentCount = tileSessionCounts.get(session.tileId) || 0;
-				tileSessionCounts.set(session.tileId, currentCount + 1);
+		for (let i = 0; i < additionalTilesNeeded; i += 1) {
+			try {
+				windowManagerRef.splitBesideCurrent('row');
+			} catch (error) {
+				console.warn('[SessionWindowManager] Failed to auto-split layout', error);
+				break;
 			}
-		});
-
-		// Second pass: assign sessions to tiles and build mapping
-		sessions.forEach((session) => {
-			let tileId = session.tileId;
-
-			if (!tileId || !tileIds.has(tileId)) {
-				// Session not assigned to a tile, distribute across available tiles
-				if (tileArray.length > 0) {
-					// Find tile with least sessions for even distribution
-					let minCount = Infinity;
-					let selectedTile = tileArray[0];
-
-					for (const [tileIdOption, count] of tileSessionCounts) {
-						if (count < minCount) {
-							minCount = count;
-							selectedTile = tileIdOption;
-						}
-					}
-					tileId = selectedTile;
-
-					// Update the counter for the selected tile
-					tileSessionCounts.set(selectedTile, tileSessionCounts.get(selectedTile) + 1);
-				} else {
-					tileId = 'root';
-				}
-
-				// Auto-assign to layout if not already assigned
-				// Only auto-assign if session has been active for a moment (not brand new)
-				if (session.isActive && tileArray.length > 0 && !autoAssignedSessions.has(session.id)) {
-					// Mark as auto-assigned to prevent repeated attempts
-					autoAssignedSessions.add(session.id);
-
-					// Delay assignment slightly to ensure database is ready
-					setTimeout(() => {
-						console.log('[SessionWindowManager] Auto-assigning session to tile:', { sessionId: session.id, tileId });
-						onSessionAssignToTile?.(session.id, tileId);
-					}, 100);
-				}
-			}
-
-			if (!map.has(tileId)) {
-				map.set(tileId, []);
-			}
-			map.get(tileId).push(session);
-		});
-
-		console.log('[SessionWindowManager] Session-to-tile mapping (database-driven):', {
-			availableTiles: tileArray,
-			sessionCount: sessions.length,
-			mapping: Object.fromEntries(map)
-		});
-
-		return map;
+		}
 	});
 
-	// Get the session for a specific tile - now reactive
+	// Simple positional mapping – session N is rendered in tile N
 	const getTileSession = (tileId) => {
-		const tileSessions = sessionTileMap.get(tileId) || [];
-		return tileSessions[0] || null;
+		const index = tileOrder.indexOf(tileId);
+		if (index === -1) return null;
+		return sessions[index] ?? null;
 	};
 
 	function handleFocusChange(event) {
@@ -148,12 +95,17 @@
 	}
 
 	function handleCreateSessionInTile(type) {
-		onCreateSession(type);
+		console.log('[SessionWindowManager] Creating session in tile:', type);
+		// Call the direct creation function instead of opening modal
+		if (typeof onCreateSession === 'function') {
+			onCreateSession(type);
+		}
 	}
 </script>
 
 <div class="window-manager-wrapper">
 	<WindowManager
+		bind:this={windowManagerRef}
 		initial={layoutTree}
 		direction="row"
 		gap={windowConfig.gap}

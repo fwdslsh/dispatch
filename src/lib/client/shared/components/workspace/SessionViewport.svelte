@@ -60,8 +60,10 @@
 				Loading {(session.type || session.sessionType) === 'claude' ? 'Claude' : 'Terminal'} session...
 			</p>
 		</div>
-	{:else if Component && sessionProps()}
-		<Component {...sessionProps()} />
+		{:else if Component && sessionProps()}
+			{#key session.id}
+				<Component {...sessionProps()} />
+			{/key}
 	{:else}
 		<div class="error-state">
 			<p>Unknown session type: {session.type || session.sessionType}</p>

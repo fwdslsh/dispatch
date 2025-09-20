@@ -71,6 +71,9 @@ export function setupSocketIO(httpServer, services) {
 		throw new Error('RunSessionManager is required for socket setup');
 	}
 
+	// Ensure the RunSessionManager can emit real-time events through this Socket.IO instance
+	runSessionManager.setSocketIO(io);
+
 	// Packet logging middleware
 	io.use((socket, next) => {
 		socket.use((packet, next) => {

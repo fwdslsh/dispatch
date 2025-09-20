@@ -25,20 +25,13 @@ export class LayoutViewModel {
 		this.maxVisible = $derived(this.layoutService.maxVisible);
 		this.deviceType = $derived(this.getDeviceType());
 
-		// Row state (not always provided by layoutService)
-		this.rows = $state(2);
-
 		// Mobile-specific state
 		this.showMobileMenu = $state(false);
 		this.keyboardVisible = $state(false);
 
 		// Layout transitions
 		this.transitioning = $state(false);
-		// Default previousCols to a sensible value so tests relying on it pass
-		this.previousCols = $state(2);
-
-		// Sidebar state (tests expect sidebarOpen)
-		this.sidebarOpen = $state(false);
+		this.previousCols = $state(0);
 
 		// Grid layout state
 		this.gridGap = $state(16);
@@ -46,80 +39,6 @@ export class LayoutViewModel {
 
 		// Setup reactive effects directly in constructor (required for Svelte 5)
 		//this.setupEffects();
-	}
-
-	/**
-	 * Update layout for mobile devices
-	 */
-	updateForMobile() {
-		this.isMobile = true;
-		this.isTablet = false;
-		this.setLayoutPreset('1up');
-	}
-
-	/**
-	 * Update layout for tablet devices
-	 */
-	updateForTablet() {
-		this.isMobile = false;
-		this.isTablet = true;
-		this.setLayoutPreset('2up');
-	}
-
-	/**
-	 * Update layout for desktop devices
-	 */
-	updateForDesktop() {
-		this.isMobile = false;
-		this.isTablet = false;
-		this.setLayoutPreset('4up');
-	}
-
-	/**
-	 * Toggle sidebar open/closed
-	 */
-	toggleSidebar() {
-		this.sidebarOpen = !this.sidebarOpen;
-	}
-
-	openSidebar() {
-		this.sidebarOpen = true;
-	}
-
-	closeSidebar() {
-		this.sidebarOpen = false;
-	}
-
-	/**
-	 * Allow tests to set a custom grid layout
-	 * @param {number} columns
-	 * @param {number} rows
-	 */
-	setCustomLayout(columns, rows) {
-		if (!Number.isInteger(columns) || !Number.isInteger(rows)) return;
-		if (columns <= 0 || rows <= 0) return;
-		// Cap to reasonable maximums
-		const cap = 4;
-		this.columns = Math.min(columns, cap);
-		this.rows = Math.min(rows, cap);
-		this.maxVisible = Math.min(this.columns * this.rows, cap * cap);
-	}
-
-	/**
-	 * Handle breakpoint change events (simple matcher for tests)
-	 * @param {string} query
-	 * @param {boolean} matches
-	 */
-	handleBreakpointChange(query, matches) {
-		if (!query || typeof matches !== 'boolean') return;
-
-		// Very small matcher logic used in tests
-		if (query.includes('768px')) {
-			if (matches) this.updateForMobile();
-		}
-		if (query.includes('1024px')) {
-			if (matches) this.updateForTablet();
-		}
 	}
 
 	/**

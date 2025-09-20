@@ -289,6 +289,9 @@
 			onlayoutchange?.({ detail: { layout: root } });
 		}
 	});
+
+	// Expose core layout helpers to parent components
+	export { splitBesideCurrent, closeFocused };
 </script>
 
 <!--

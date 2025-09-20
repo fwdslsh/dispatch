@@ -265,32 +265,11 @@
 	}
 
 	function handleCreateSession(type = 'claude') {
-		// Clean session creation flow - no interception
-		// WindowViewModel handles tile assignment after session creation
+		console.log('[WorkspacePage] handleCreateSession called:', type);
+		// For SessionWindowManager buttons, create session directly
 		openCreateSessionModal(type);
 	}
 
-	// Direct session creation for empty tiles (bypasses modal)
-	async function handleCreateSessionDirect(type, workspacePath = null) {
-		// Use provided path or default to current working directory
-		let targetPath = workspacePath || process.env.HOME || '/tmp';
-
-		try {
-			// Convert 'terminal' to 'pty' for API compatibility
-			const apiType = type === 'terminal' ? 'pty' : type;
-			const newSession = await sessionViewModel.createSession({
-				type: apiType,
-				workspacePath: targetPath
-			});
-			if (newSession?.id) {
-				updateActiveSession(newSession.id);
-			}
-		} catch (error) {
-			log.error('Failed to create session directly', error);
-			// Fall back to modal on error
-			handleCreateSession(type);
-		}
-	}
 
 	function updateActiveSession(id) {
 		if (!id) {
