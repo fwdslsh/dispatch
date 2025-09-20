@@ -1,371 +1,85 @@
-# Claude Authentication Workflow (WebSocket‑Driven)
+# Setting Up Claude AI Integration
 
-This document explains how Dispatch authenticates Anthropic’s Claude via a real‑time, Socket.IO‑based flow. The server runs the Claude CLI in a PTY (node‑pty), streams the OAuth URL to the client, and accepts the pasted authorization code to complete login.
+This guide shows you how to connect Claude AI to your Dispatch terminal for intelligent coding assistance.
 
-## Overview
+## What You Need
 
-- Server runs `claude setup-token` in a PTY.
-- Client receives an OAuth URL over WebSockets, opens it, then pastes back the authorization code.
-- Client sends the code over WebSockets; the server writes it to the PTY and reports completion.
+- A Dispatch terminal session running
+- An Anthropic account (free accounts work)
+- A web browser for authentication
 
-No REST endpoints are used to start or complete the flow. The only REST endpoint that remains is `/api/claude/auth` for status checks and optional API‑key auth.
+## Quick Setup
 
-## Workflow Steps
+### Step 1: Start Claude Mode
 
-### 1. Authentication Status Check
+When creating a new session in Dispatch, choose "Claude Code" instead of "Shell":
 
-When users access the projects page, the system automatically checks if Claude is already authenticated:
+1. **Click "Create Session"** in Dispatch
+2. **Select "Claude Code"** from the session type dropdown
+3. **Click "Start Session"**
 
-- **GET `/api/claude/auth`** - Checks current authentication status
-- If authenticated: Users can create Claude sessions immediately
-- If not authenticated: Login prompt is displayed
+### Step 2: Authenticate with Anthropic
 
-### 2. Login Prompt
+When you start a Claude session for the first time, you'll need to connect it to your Anthropic account:
 
-If Claude is not authenticated, the Settings page shows a “Login with Claude” button that starts the OAuth flow via WebSockets.
+1. **Click "Login with Claude"** when prompted
+2. **Click the authentication link** that appears (opens in a new browser tab)
+3. **Log in to your Anthropic account** in the new tab
+4. **Authorize Dispatch** to access Claude on your behalf
+5. **Copy the authorization code** that Anthropic gives you
+6. **Paste the code** back into Dispatch and click "Confirm"
 
-### 3. Start Flow (WebSocket)
+That's it! Claude is now connected and ready to help with your coding.
 
-When the user clicks “Login with Claude”, the client ensures the socket is connected and authenticated, then emits:
+## Using Claude AI
 
-- `claude.auth.start` with `{ key }`
+Once authenticated, you can:
 
-The server starts `claude setup-token` in a PTY for that socket and will emit the OAuth URL when ready.
-
-### 4. Receive OAuth URL
-
-The server emits `claude.auth.url` with `{ url, instructions }`. The UI opens the link in a new tab and shows a code input.
-
-### 5. User Authentication
-
-The user follows these steps:
-
-1. **Click the OAuth link** - Opens Anthropic's login page in a new browser tab
-2. **Log in to Anthropic** - User enters their Anthropic account credentials
-3. **Authorize the application** - User grants permission to Claude CLI
-4. **Receive authorization code** - Anthropic provides a unique authorization code
-5. **Copy the code** - User copies the authorization code to clipboard
-
-### 6. Paste & Confirm
-
-Back in the Dispatch interface:
-
-1. **Paste authorization code** - User pastes the code into the text input field
-2. **Click "Confirm"** - Initiates the token validation process
-3. **Real-time validation** - UI provides immediate feedback on code format
-
-### 7. Complete Login
-
-When the user clicks “Confirm”, the client emits `claude.auth.code` with `{ key, code }`. The server writes the code to the PTY, watches for success, and emits `claude.auth.complete` (or `claude.auth.error`).
-
-## Socket Events
-
-- `claude.auth.start` (client → server): `{ key }`
-- `claude.auth.url` (server → client): `{ url, instructions? }`
-- `claude.auth.code` (client → server): `{ key, code }`
-- `claude.auth.complete` (server → client): `{ success: true }`
-- `claude.auth.error` (server → client): `{ success: false, error }`
-
-The Claude chat pane also auto‑starts the flow when an error result mentions “/login” and prompts the user to paste the code inline.
-
-## Error Handling
-
-### Invalid Authorization Code
-
-**Symptoms:**
-
-- User enters incorrect or expired authorization code
-- API returns validation error
-
-Server emits `claude.auth.error` and the UI keeps the input visible for retry.
-
-**UI Behavior:**
-
-- Display clear error message
-- Keep input field active for retry
-- Provide option to generate new OAuth URL
-
-### Network Issues / Timeout
-
-**Symptoms:**
-
-- Server cannot reach Anthropic's authentication servers
-- Timeout during token validation
-
-Server emits `claude.auth.error` with a timeout message; start the flow again.
-
-**UI Behavior:**
-
-- Display network error message
-- Provide "Retry" button
-- Suggest checking internet connection
-
-### Session Expired
-
-**Symptoms:**
-
-- Authentication session expires before completion
-- User takes too long to complete OAuth flow
-
-Start a new flow; the server will spawn a fresh PTY.
-
-**UI Behavior:**
-
-- Display session expired message
-- Automatically restart authentication flow
-- Clear any stored session data
-
-### Server Configuration Issues
-
-**Symptoms:**
-
-- Claude CLI not installed or not accessible
-- Permission issues with credentials storage
-
-The Settings page will surface an error; install the CLI and retry.
-
-**UI Behavior:**
-
-- Display configuration error
-- Show administrator contact information
-- Disable authentication attempts until resolved
-
-## UI/UX Implementation Notes
-
-### Authentication Flow Interface
-
-The authentication interface should provide a smooth, guided experience:
-
-#### Initial State (Not Authenticated)
-
-```html
-<div class="claude-auth-prompt">
-	<div class="auth-icon">🤖</div>
-	<h3>Claude AI Authentication Required</h3>
-	<p>Connect to Claude AI to access intelligent coding assistance and enhanced project features.</p>
-	<button class="btn-primary" onclick="startAuth()">
-		<span class="icon">🔗</span>
-		Login to Claude
-	</button>
-</div>
-```
-
-#### Authentication Flow (Active)
-
-```html
-<div class="claude-auth-flow">
-	<div class="auth-step">
-		<h4>Step 1: Authorize with Anthropic</h4>
-		<a href="{{authUrl}}" target="_blank" class="btn-link">
-			<span class="icon">🌐</span>
-			Open Anthropic Login
-		</a>
-	</div>
-
-	<div class="auth-step">
-		<h4>Step 2: Enter Authorization Code</h4>
-		<input
-			type="text"
-			placeholder="Paste your authorization code here"
-			class="auth-code-input"
-			bind:value="{authCode}"
-		/>
-		<button class="btn-primary" onclick="completeAuth()" disabled="{!authCode.trim()}">
-			Confirm Authentication
-		</button>
-	</div>
-</div>
-```
-
-#### Success State
-
-```html
-<div class="claude-auth-success">
-	<div class="success-icon">✅</div>
-	<h3>Claude AI Connected Successfully!</h3>
-	<p>You can now create Claude-powered sessions for your projects.</p>
-</div>
-```
-
-### Mobile Responsive Design
-
-The authentication flow must work seamlessly on mobile devices:
-
-#### Mobile Considerations
-
-- **Touch-friendly buttons** - Minimum 44px touch targets
-- **Readable text** - 16px minimum font size to prevent zoom
-- **Proper viewport** - Handle keyboard appearance gracefully
-- **Copy/paste optimization** - Easy code copying on mobile browsers
-
-#### Mobile Layout Adjustments
-
-```css
-@media (max-width: 768px) {
-	.claude-auth-flow {
-		padding: 1rem;
-		margin: 0.5rem;
-	}
-
-	.auth-code-input {
-		font-size: 16px; /* Prevent zoom on iOS */
-		padding: 12px;
-		width: 100%;
-	}
-
-	.btn-primary {
-		width: 100%;
-		padding: 14px;
-		font-size: 16px;
-	}
-}
-```
-
-### Loading States
-
-Provide clear feedback during async operations:
-
-#### During OAuth URL Generation
-
-```html
-<div class="auth-loading">
-	<div class="spinner"></div>
-	<p>Preparing authentication...</p>
-</div>
-```
-
-#### During Token Validation
-
-```html
-<div class="auth-validating">
-	<div class="spinner"></div>
-	<p>Validating authorization code...</p>
-</div>
-```
-
-### Security Considerations
-
-#### Client-Side Security
-
-- **No token storage** - Never store authentication tokens in browser storage
-- **Session timeout** - Authentication sessions expire after 10 minutes
-- **HTTPS requirement** - All authentication endpoints require HTTPS in production
-
-#### Server-Side Security
-
-- **Token encryption** - Store credentials securely in project directories
-- **Access control** - Validate user permissions before authentication operations
-- **Rate limiting** - Prevent abuse of authentication endpoints
-
-## Integration with Docker
-
-When running in Docker environments, additional considerations apply:
-
-### Volume Mounting for Credentials
-
-Ensure Claude credentials persist across container restarts:
-
-```bash
-# Mount Claude credentials directory
-docker run -v ~/.claude:/home/appuser/.claude dispatch:latest
-```
-
-### Environment Variables
-
-Configure Claude authentication behavior:
-
-```bash
-# Enable Claude authentication
-CLAUDE_AUTH_ENABLED=true
-
-# Set credentials path (optional)
-CLAUDE_CREDENTIALS_PATH=/home/appuser/.claude
-
-# Authentication timeout (optional)
-CLAUDE_AUTH_TIMEOUT=600000
-```
-
-### Claude CLI Installation
-
-The runtime must include the Claude CLI (provided by `@anthropic-ai/claude-code`). Dispatch prefers the project‑local binary at `node_modules/.bin/claude`, falling back to a system `claude`.
-
-## Related Files
-
-### Frontend Components
-
-- `src/lib/components/ClaudePane.svelte` — Inline chat‑driven OAuth flow
-- `src/lib/components/Settings/ClaudeAuth.svelte` — Manual OAuth flow and API‑key fallback
-
-### Server
-
-- `src/lib/server/claude/ClaudeAuthManager.js` — PTY OAuth runner and URL/code parser
-- `src/lib/server/socket-setup.js` — WebSocket handlers for auth start/code and events
-- `src/lib/server/utils/events.js` — Event name constants (includes auth events)
-
-### Status/API‑Key Fallback
-
-- `src/routes/api/claude/auth/+server.js` — Status check, API‑key login, and logout
-
-## Testing
-
-### Manual Testing Checklist
-
-- [ ] Authentication status check on page load
-- [ ] Login button initiates OAuth flow correctly
-- [ ] OAuth URL opens in new tab
-- [ ] Authorization code input accepts valid codes
-- [ ] Error handling for invalid codes
-- [ ] Success confirmation after completion
-- [ ] Credential persistence across sessions
-- [ ] Mobile interface functionality
-
-### Automated Testing
-
-Implement tests for:
-
-- Authentication API endpoints
-- Error handling scenarios
-- UI component interactions
-- Mobile responsive behavior
-
-### Docker Testing
-
-Test in containerized environment:
-
-- Claude CLI availability
-- Credential storage persistence
-- Network connectivity to Anthropic APIs
+- **Ask coding questions**: "How do I write a function to sort an array?"
+- **Get code explanations**: "What does this code do?"
+- **Debug problems**: "Why isn't this working?"
+- **Refactor code**: "How can I make this code better?"
+- **Learn new concepts**: "Explain how React hooks work"
 
 ## Troubleshooting
 
-### Common Issues
+### "Authentication failed" error
+- Make sure you copied the entire authorization code
+- Check that the code hasn't expired (they're only valid for a few minutes)
+- Try the authentication process again
 
-#### "Claude CLI not found"
+### "Claude not available" message
+- Your Dispatch instance needs to have the Claude CLI installed
+- Contact your system administrator if you're using a shared instance
 
-- **Cause:** Claude CLI not installed in container
-- **Solution:** Ensure Claude CLI is installed via npm or included in Docker image
+### Session won't start
+- Make sure you have an active internet connection
+- Try refreshing the page and starting a new session
+- Check that your Anthropic account is active
 
-#### "Permission denied when writing credentials"
+## Need More Help?
 
-- **Cause:** Insufficient permissions for credentials directory
-- **Solution:** Check directory permissions and Docker volume mounts
-
-#### "Authentication timeout"
-
-- **Cause:** User took too long to complete OAuth flow
-- **Solution:** Restart authentication process with new OAuth URL
-
-#### "Network connection failed"
-
-- **Cause:** Cannot reach Anthropic's authentication servers
-- **Solution:** Check internet connectivity and firewall settings
-
-### Support Resources
-
-- [Claude CLI Documentation](https://github.com/anthropics/claude-cli)
-- [Anthropic API Documentation](https://docs.anthropic.com/)
-- [Docker Authentication Issues](https://github.com/anthropics/claude-code/issues/434)
+- Check the [main documentation](../README.md) for general Dispatch help
+- Visit [Anthropic's support](https://support.anthropic.com) for account-related issues
+- Report bugs or ask questions on our [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
 
 ---
 
-This documentation provides a comprehensive guide for implementing and using the Claude authentication workflow in Dispatch. For implementation details and code examples, refer to the related source files listed above.
+## Technical Details (For Developers)
+
+*This section contains technical implementation details that most users can skip.*
+
+The authentication uses a WebSocket-driven flow where:
+- Server runs `claude setup-token` in a PTY process
+- Client receives OAuth URL over WebSockets and opens it in new tab
+- User completes OAuth flow and receives authorization code
+- Client sends code back over WebSockets to complete authentication
+
+Socket events used:
+- `claude.auth.start` - Begin authentication flow
+- `claude.auth.url` - Receive OAuth URL
+- `claude.auth.code` - Submit authorization code
+- `claude.auth.complete` - Authentication completed
+- `claude.auth.error` - Authentication failed
+
+Only one REST endpoint is used: `GET /api/claude/auth` for status checks.

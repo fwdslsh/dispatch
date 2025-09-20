@@ -1,7 +1,7 @@
 {
 	"name": "@fwdslsh/dispatch",
 	"version": "0.1.1",
-	"description": "Coding agents in Docker accessible via web terminal",
+	"description": "A web-based terminal that runs anywhere - develop, collaborate, and code with AI assistance right in your browser",
 	"license": "CC-BY-4.0",
 	"type": "module",
 	"private": false,
