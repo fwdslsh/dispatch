@@ -16,11 +16,29 @@
 	// State for history loading
 	let isCatchingUp = $state(false);
 	let isAttached = $state(false);
+	let connectionError = $state(null);
 
-	// Mobile interface state
-	let isMobile = $state(false);
-	let isCompactMobile = $state(false);
-	let mobileInputDisabled = $state(false);
+	// Mobile input handlers
+	function handleMobileKeypress(event) {
+		if (term && isAttached) {
+			try {
+				runSessionClient.sendInput(sessionId, event.detail.key);
+			} catch (error) {
+				console.error('[TERMINAL] Failed to send mobile key input:', error);
+			}
+		}
+	}
+
+	function handleMobileSubmit(event) {
+		if (term && isAttached) {
+			try {
+				runSessionClient.sendInput(sessionId, event.detail.command);
+			} catch (error) {
+				console.error('[TERMINAL] Failed to send mobile text input:', error);
+			}
+		}
+	}
+
 
 	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 	// Handle window resize and ensure terminal fits its container
@@ -41,42 +59,6 @@
 		}
 	};
 
-	// Mobile device detection
-	const detectMobile = () => {
-		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
-	};
-
-	// Update mobile state on window resize
-	const updateMobileState = () => {
-		isMobile = detectMobile();
-		isCompactMobile = isMobile && window.innerWidth <= 480;		
-	};
-
-	// Handle mobile keyboard key press
-	const handleMobileKeypress = (event) => {
-		const { key } = event.detail;
-		if (isAttached && runSessionClient.getStatus().connected) {
-			try {
-				console.log('[TERMINAL] Sending mobile key:', key);
-				runSessionClient.sendInput(sessionId, key);
-			} catch (error) {
-				console.error('[TERMINAL] Failed to send mobile key:', error);
-			}
-		}
-	};
-
-	// Handle mobile text input submit
-	const handleMobileTextSubmit = (data) => {
-		const { command } = data;
-		if (isAttached && runSessionClient.getStatus().connected) {
-			try {
-				console.log('[TERMINAL] Sending mobile command:', command);
-				runSessionClient.sendInput(sessionId, command);
-			} catch (error) {
-				console.error('[TERMINAL] Failed to send mobile command:', error);
-			}
-		}
-	};
 	// Event handler for terminal data from run session
 	function handleRunEvent(event) {
 		try {
@@ -116,13 +98,8 @@
 			return;
 		}
 
-		// Detect mobile device and initialize mobile state
-		isMobile = detectMobile();
-		isCompactMobile = isMobile && window.innerWidth <= 480;
 		
 
-		// Detect touch device
-		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 		// Initialize terminal
 		term = new Terminal({
@@ -132,12 +109,7 @@
 			fontSize: 14,
 			lineHeight: 1.2,
 			letterSpacing: 0.5,
-			// Enable better touch scrolling
-			scrollback: 1000,
-			smoothScrollDuration: isTouchDevice ? 0 : 125, // Disable smooth scroll on touch for better performance
-			fastScrollModifier: 'shift',
-			fastScrollSensitivity: 5,
-			scrollSensitivity: isTouchDevice ? 3 : 1 // Increase scroll sensitivity on touch devices
+			scrollback: 1000
 		});
 		term.loadAddon(fitAddon);
 		term.open(el);
@@ -187,12 +159,10 @@
 		}
 
 		window.addEventListener('resize', resize);
-		window.addEventListener('resize', updateMobileState);
 
 		if (typeof ResizeObserver !== 'undefined') {
 			ro = new ResizeObserver(() => {
 				resize();
-				updateMobileState();
 			});
 			ro.observe(el);
 		}
@@ -212,7 +182,6 @@
 		try {
 			// remove listeners and observers
 			window.removeEventListener('resize', resize);
-			window.removeEventListener('resize', updateMobileState);
 		} catch (e) {}
 		try {
 			if (ro) ro.disconnect();
@@ -233,31 +202,25 @@
 		</div>
 	{/if}
 	
-	<!-- Terminal container with touch layer for mobile scrolling -->
-	<div class="terminal-container" class:mobile={isMobile}>
-		{#if isMobile}
-			<!-- Invisible touch layer for better mobile scrolling -->
-			<div class="touch-scroll-layer"></div>
-		{/if}
+	<!-- Terminal container -->
+	<div class="terminal-container">
 		<div bind:this={el} class="xterm-container"></div>
 	</div>
 
-	<!-- Mobile keyboard toolbar -->
-	{#if isMobile}
-		<MobileKeyboardToolbar
-			visible={true}
-			disabled={mobileInputDisabled || !isAttached}
-			compact={isCompactMobile}
-			on:keypress={handleMobileKeypress}
-		/>
-		<MobileTextInput
-			visible={true}
-			disabled={mobileInputDisabled || !isAttached}
-			placeholder="Type commands here..."
-			autoFocus={false}
-			onSubmit={handleMobileTextSubmit}
-		/>
-	{/if}
+	<!-- Mobile input components -->
+	<MobileKeyboardToolbar
+		visible={true}
+		disabled={!isAttached}
+		on:keypress={handleMobileKeypress}
+	/>
+
+	<MobileTextInput
+		visible={true}
+		disabled={!isAttached}
+		onSubmit={handleMobileSubmit}
+		placeholder="Type commands here..."
+	/>
+
 </div>
 
 <style>
@@ -318,32 +281,11 @@
 	.terminal-container {
 		flex: 1;
 		overflow: hidden;
-		/* Enable touch scrolling on mobile devices */
-		-webkit-overflow-scrolling: touch;
-		overscroll-behavior: contain;
 		position: relative;
 		min-height: 0;
 	}
 
-	.terminal-container.mobile {
-		/* Adjustments for mobile layout */
-		display: flex;
-		flex-direction: column;
-	}
 
-	.touch-scroll-layer {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		z-index: 1;
-		pointer-events: none;
-		/* Allow touch scrolling but prevent text selection */
-		touch-action: pan-y;
-		user-select: none;
-		background: transparent;
-	}
 
 	.xterm-container {
 		flex: 1;
@@ -360,9 +302,6 @@
 
 	.terminal-container :global(.xterm-viewport) {
 		background: var(--bg) !important;
-		/* Enable smooth touch scrolling */
-		-webkit-overflow-scrolling: touch !important;
-		overscroll-behavior: contain !important;
 	}
 
 	.terminal-container :global(.xterm-screen) {
@@ -379,29 +318,9 @@
 
 	/* Mobile-specific adjustments */
 	@media (max-width: 768px) {
-		
-
-		/* .terminal-container {
-			overflow: hidden;
-		} */
-
 		.terminal-container :global(.xterm) {
 			padding: var(--space-2);
 		}
-
-		/* Improve touch interaction on mobile */
-		.terminal-container :global(.xterm-viewport) {
-			touch-action: pan-y;
-		}
-
-		/* Hide scrollbars on mobile for cleaner look 
-		.terminal-container :global(.xterm-viewport)::-webkit-scrollbar {
-			display: none;
-		}
-
-		.terminal-container :global(.xterm-viewport) {
-			scrollbar-width: none;
-		}*/
 	}
 
 	/* Very small screens */
