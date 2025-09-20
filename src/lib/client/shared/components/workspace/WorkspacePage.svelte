@@ -202,10 +202,49 @@
 		activeModal = { type: 'settings', data: null };
 	}
 
-	function handleCreateSession(type = 'claude') {
+	async function handleCreateSession(type = 'claude') {
 		console.log('[WorkspacePage] handleCreateSession called:', type);
-		// For SessionWindowManager buttons, create session directly
+		// For quick-create buttons, create session directly with default workspace
+		if (sessionViewModel) {
+			try {
+				// Use a default workspace path - either the stored default or workspace root
+				const defaultWorkspace = getUserDefaultWorkspace() || '/home/runner/work/dispatch/dispatch/.testing-home/workspaces';
+				
+				await sessionViewModel.createSession({
+					type: type,
+					workspacePath: defaultWorkspace,
+					options: {}
+				});
+				
+				log.info(`Created ${type} session directly with workspace: ${defaultWorkspace}`);
+			} catch (error) {
+				log.error(`Failed to create ${type} session:`, error);
+				// Fall back to opening the modal if direct creation fails
+				openCreateSessionModal(type);
+			}
+		} else {
+			// Fallback to modal if sessionViewModel not available
+			openCreateSessionModal(type);
+		}
+	}
+
+	// Function to handle create session button (opens modal)
+	function handleCreateSessionModal(type = 'claude') {
+		console.log('[WorkspacePage] handleCreateSessionModal called:', type);
 		openCreateSessionModal(type);
+	}
+
+	// Helper to get user's default workspace
+	function getUserDefaultWorkspace() {
+		try {
+			if (typeof localStorage === 'undefined') return null;
+			const raw = localStorage.getItem('dispatch-settings');
+			if (!raw) return null;
+			const settings = JSON.parse(raw);
+			return settings?.defaultWorkingDirectory || null;
+		} catch (e) {
+			return null;
+		}
 	}
 
 	function updateActiveSession(id) {
@@ -391,7 +430,7 @@
 		onLogout={handleLogout}
 		onInstallPWA={handleInstallPWA}
 		onOpenSettings={handleOpenSettings}
-		onCreateSession={handleCreateSession}
+		onCreateSession={handleCreateSessionModal}
 		onToggleSessionMenu={handleToggleSessionMenu}
 		onNavigateSession={handleNavigateSession}
 		{sessionMenuOpen}

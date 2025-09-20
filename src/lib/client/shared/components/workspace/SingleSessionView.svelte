@@ -58,6 +58,9 @@
 				<button class="create-session" onclick={() => create('claude')}>
 					+ Claude Session
 				</button>
+				<button class="create-session" onclick={() => create('file-editor')}>
+					+ File Editor Session
+				</button>
 			</div>
 		</div>
 	{/if}

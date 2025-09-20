@@ -148,6 +148,12 @@
 							>
 								+ Claude
 							</button>
+							<button
+								class="create-session-btn"
+								onclick={() => handleCreateSessionInTile('file-editor')}
+							>
+								+ File Editor
+							</button>
 						</div>
 					</div>
 				</div>
