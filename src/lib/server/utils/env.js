@@ -59,7 +59,26 @@ export function buildClaudeOptions(options) {
 		maxTurns = 50,
 		outputStyle = 'semantic-html',
 		customSystemPrompt = 'You are a helpful coding assistant integrated into a web terminal interface.',
-		allowedTools = ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'WebSearch', 'Task'],
+		allowedTools = [
+			'Agent',
+			'Bash',
+			'BashOutput',
+			'ExitPlanMode',
+			'FileEdit',
+			'FileMultiEdit',
+			'FileRead',
+			'FileWrite',
+			'Glob',
+			'Grep',
+			'KillShell',
+			'ListMcpResources',
+			'Mcp',
+			'NotebookEdit',
+			'ReadMcpResource',
+			'TodoWrite',
+			'WebFetch',
+			'WebSearch'
+		],
 		permissionMode = 'bypassPermissions',
 		extraEnv = {}
 	} = options;

@@ -32,7 +32,7 @@ export class ClaudeAdapter {
 		const claudeOptions = {
 			cwd: cwd || process.env.WORKSPACES_ROOT || process.env.HOME,
 			model: options.model,
-			permissionMode: options.permissionMode || 'default',
+			permissionMode: options.permissionMode || 'bypassPermissions',
 			maxTurns: options.maxTurns,
 			env: options.env || {},
 			additionalDirectories: options.additionalDirectories || [],
@@ -129,7 +129,10 @@ export class ClaudeAdapter {
 
 					// Log that we're closing gracefully without interrupting
 					if (activeQuery) {
-						logger.info('CLAUDE_ADAPTER', 'Claude adapter closing - allowing query to complete naturally');
+						logger.info(
+							'CLAUDE_ADAPTER',
+							'Claude adapter closing - allowing query to complete naturally'
+						);
 					} else {
 						logger.info('CLAUDE_ADAPTER', 'Claude adapter closing - no active query');
 					}
