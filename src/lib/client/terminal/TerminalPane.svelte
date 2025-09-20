@@ -4,6 +4,7 @@
 	import { FitAddon } from '@xterm/addon-fit';
 	import '@xterm/xterm/css/xterm.css';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
+	import MobileTerminalView from './MobileTerminalView.svelte';
 
 	const fitAddon = new FitAddon();
 	let { sessionId, shouldResume = false } = $props();
@@ -13,9 +14,17 @@
 
 	// State for history loading
 	let isCatchingUp = $state(false);
-	let historyLoaded = false;
-	let isAttached = false;
+	let isAttached = $state(false);
 	let connectionError = $state(null);
+
+	// Mobile detection
+	let isTouchDevice = $state(false);
+
+	// Detect if device supports touch and is mobile
+	function detectTouchDevice() {
+		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
+	}
+
 
 	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 	// Handle window resize and ensure terminal fits its container
@@ -35,6 +44,7 @@
 			}
 		}
 	};
+
 	// Event handler for terminal data from run session
 	function handleRunEvent(event) {
 		try {
@@ -74,8 +84,18 @@
 			return;
 		}
 
-		// Detect touch device
-		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+		// Detect if we should use touch-optimized mobile view
+		isTouchDevice = detectTouchDevice();
+		console.log('[TERMINAL] Touch device detected:', isTouchDevice);
+
+		// If touch device, don't initialize xterm.js - let MobileTerminalView handle it
+		if (isTouchDevice) {
+			return;
+		}
+
+		// Detect touch device for xterm.js optimizations (for non-mobile touch devices)
+		const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
 
 		// Initialize terminal
 		term = new Terminal({
@@ -85,12 +105,12 @@
 			fontSize: 14,
 			lineHeight: 1.2,
 			letterSpacing: 0.5,
-			// Enable better touch scrolling
+			// Enable better touch scrolling for non-mobile touch devices
 			scrollback: 1000,
-			smoothScrollDuration: isTouchDevice ? 0 : 125, // Disable smooth scroll on touch for better performance
+			smoothScrollDuration: isTouch ? 0 : 125, // Disable smooth scroll on touch for better performance
 			fastScrollModifier: 'shift',
 			fastScrollSensitivity: 5,
-			scrollSensitivity: isTouchDevice ? 3 : 1 // Increase scroll sensitivity on touch devices
+			scrollSensitivity: isTouch ? 3 : 1 // Increase scroll sensitivity on touch devices
 		});
 		term.loadAddon(fitAddon);
 		term.open(el);
@@ -109,7 +129,6 @@
 
 			const result = await runSessionClient.attachToRunSession(sessionId, handleRunEvent, 0);
 			isAttached = true;
-			connectionError = null;
 			console.log('[TERMINAL] Attached to run session:', result);
 
 			// Handle user input
@@ -125,18 +144,6 @@
 			// Send initial resize
 			runSessionClient.resizeTerminal(sessionId, term.cols, term.rows);
 
-			// Send initial enter to trigger prompt (only for new terminals)
-			if (!shouldResume) {
-				setTimeout(() => {
-					console.log('[TERMINAL] Sending initial enter for session:', sessionId);
-					try {
-						runSessionClient.sendInput(sessionId, '\r');
-					} catch (error) {
-						console.error('[TERMINAL] Failed to send initial enter:', error);
-					}
-				}, 200);
-			}
-
 			// Clear catching up state after a delay if no messages arrived
 			if (shouldResume) {
 				setTimeout(() => {
@@ -148,15 +155,16 @@
 			}
 
 		} catch (error) {
-			console.error('[TERMINAL] Failed to attach to run session:', error);
-			connectionError = `Failed to connect: ${error.message}`;
+			console.error('[TERMINAL] Failed to attach to run session:', error);			connectionError = `Failed to connect: ${error.message}`;
 			isCatchingUp = false;
 		}
 
 		window.addEventListener('resize', resize);
 
 		if (typeof ResizeObserver !== 'undefined') {
-			ro = new ResizeObserver(resize);
+			ro = new ResizeObserver(() => {
+				resize();
+			});
 			ro.observe(el);
 		}
 	});
@@ -186,21 +194,33 @@
 </script>
 
 <div class="terminal-wrapper">
-	{#if isCatchingUp}
-		<div class="terminal-loading">
-			<div class="loading-message">
-				<span class="loading-icon">⟳</span>
-				<span>Reconnecting to terminal session...</span>
+	{#if isTouchDevice}
+		<!-- Mobile terminal view for touch devices -->
+		<MobileTerminalView {sessionId} {shouldResume} />
+	{:else}
+		<!-- Desktop xterm.js terminal view -->
+		{#if isCatchingUp}
+			<div class="terminal-loading">
+				<div class="loading-message">
+					<span class="loading-icon">⟳</span>
+					<span>Reconnecting to terminal session...</span>
+				</div>
 			</div>
+		{/if}
+		
+		<!-- Terminal container -->
+		<div class="terminal-container">
+			<div bind:this={el} class="xterm-container"></div>
 		</div>
 	{/if}
-	<div bind:this={el} class="terminal-container"></div>
 </div>
 
 <style>
 	.terminal-wrapper {
 		position: relative;
 		height: 100%;
+		display: flex;
+		flex-direction: column;
 	}
 
 	.terminal-loading {
@@ -251,23 +271,29 @@
 	}
 
 	.terminal-container {
-		height: 100%;
+		flex: 1;
 		overflow: hidden;
-		/* Enable touch scrolling on mobile devices */
-		-webkit-overflow-scrolling: touch;
-		overscroll-behavior: contain;
+		position: relative;
+		min-height: 0;
+	}
+
+
+
+	.xterm-container {
+		flex: 1;
+		height: 100%;
+		position: relative;
+		z-index: 0;
 	}
 
 	.terminal-container :global(.xterm) {
 		padding: var(--space-3);
 		font-family: var(--font-mono) !important;
+		
 	}
 
 	.terminal-container :global(.xterm-viewport) {
 		background: var(--bg) !important;
-		/* Enable smooth touch scrolling */
-		-webkit-overflow-scrolling: touch !important;
-		overscroll-behavior: contain !important;
 	}
 
 	.terminal-container :global(.xterm-screen) {
@@ -281,4 +307,21 @@
 	.terminal-container :global(.xterm-selection) {
 		background: color-mix(in oklab, var(--accent) 30%, transparent) !important;
 	}
+
+	/* Mobile-specific adjustments */
+	@media (max-width: 768px) {
+		.terminal-container :global(.xterm) {
+			padding: var(--space-2);
+		}
+	}
+
+	/* Very small screens */
+	@media (max-width: 480px) {
+		.terminal-container :global(.xterm) {
+			padding: var(--space-1);
+			font-size: 1.2rem;
+		}
+	}
+
+	
 </style>
