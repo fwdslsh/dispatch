@@ -1,21 +1,24 @@
 {
-	"permissions": {
-		"allow": [
-			"Bash(find:*)",
-			"Bash(git checkout:*)",
-			"Bash(npm run test:unit:*)",
-			"mcp__svelte-llm__list_sections",
-			"mcp__svelte-llm__get_documentation",
-			"Bash(npm test:*)",
-			"Bash(git add:*)",
-			"Bash(git commit:*)",
-			"Bash(git push:*)",
-			"Bash(git fetch:*)",
-			"Bash(npm run build:*)",
-			"Bash(npm run test:*)",
-			"Bash(npm run check:*)"
-		]
-	},
-	"enableAllProjectMcpServers": true,
-	"enabledMcpjsonServers": ["svelte-llm"]
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm run test:unit:*)",
+      "mcp__svelte-llm__list_sections",
+      "mcp__svelte-llm__get_documentation",
+      "Bash(npm test:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm run check:*)",
+      "Bash(curl:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "svelte-llm"
+  ]
 }
