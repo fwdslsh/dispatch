@@ -13,7 +13,7 @@
 	} = $props();
 
 	// Default Claude settings based on SDK documentation
-	let model = $state(settings.model || 'claude-3-5-sonnet-20241022');
+	let model = $state(settings.model || '');
 	let customSystemPrompt = $state(settings.customSystemPrompt || '');
 	let appendSystemPrompt = $state(settings.appendSystemPrompt || '');
 	let maxTurns = $state(settings.maxTurns || undefined);
@@ -31,6 +31,7 @@
 
 	// Available Claude models
 	const availableModels = [
+		{ value: '', label: 'Use default model' },
 		{ value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (Latest)' },
 		{ value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
 		{ value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
@@ -56,7 +57,7 @@
 	// Update settings binding when values change
 	$effect(() => {
 		const cleanSettings = {
-			model,
+			model: model.trim() || undefined,
 			customSystemPrompt: customSystemPrompt.trim() || undefined,
 			appendSystemPrompt: appendSystemPrompt.trim() || undefined,
 			maxTurns: maxTurns || undefined,
@@ -86,9 +87,9 @@
 	<div class="claude-settings">
 		<!-- Model Configuration -->
 		<div class="setting-group">
-			<label for="claude-model" class="setting-label">Model</label>
-			<select 
-				id="claude-model" 
+			<label for="claude-model" class="setting-label">Model (Optional)</label>
+			<select
+				id="claude-model"
 				class="setting-input"
 				bind:value={model}
 				{disabled}
@@ -107,7 +108,7 @@
 				bind:value={fallbackModel}
 				{disabled}
 			>
-				<option value="">No fallback</option>
+				<option value="">Use default fallback</option>
 				{#each availableModels as modelOption}
 					<option value={modelOption.value}>{modelOption.label}</option>
 				{/each}

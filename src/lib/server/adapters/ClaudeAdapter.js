@@ -31,7 +31,7 @@ export class ClaudeAdapter {
 		// Prepare Claude Code SDK options with defaults
 		const claudeOptions = {
 			cwd: cwd || process.env.WORKSPACES_ROOT || process.env.HOME,
-			model: options.model,
+			model: options.model || undefined,
 			permissionMode: options.permissionMode || 'bypassPermissions',
 			maxTurns: options.maxTurns,
 			env: options.env || {},
