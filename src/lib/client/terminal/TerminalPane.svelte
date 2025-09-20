@@ -6,6 +6,7 @@
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 	import MobileKeyboardToolbar from './MobileKeyboardToolbar.svelte';
 	import MobileTextInput from './MobileTextInput.svelte';
+	import MobileTerminalView from './MobileTerminalView.svelte';
 
 	const fitAddon = new FitAddon();
 	let { sessionId, shouldResume = false } = $props();
@@ -17,6 +18,14 @@
 	let isCatchingUp = $state(false);
 	let isAttached = $state(false);
 	let connectionError = $state(null);
+
+	// Mobile detection
+	let isTouchDevice = $state(false);
+
+	// Detect if device supports touch and is mobile
+	function detectTouchDevice() {
+		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
+	}
 
 	// Mobile input handlers
 	function handleMobileKeypress(event) {
@@ -98,7 +107,17 @@
 			return;
 		}
 
-		
+		// Detect if we should use touch-optimized mobile view
+		isTouchDevice = detectTouchDevice();
+		console.log('[TERMINAL] Touch device detected:', isTouchDevice);
+
+		// If touch device, don't initialize xterm.js - let MobileTerminalView handle it
+		if (isTouchDevice) {
+			return;
+		}
+
+		// Detect touch device for xterm.js optimizations (for non-mobile touch devices)
+		const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 
 		// Initialize terminal
@@ -109,7 +128,12 @@
 			fontSize: 14,
 			lineHeight: 1.2,
 			letterSpacing: 0.5,
-			scrollback: 1000
+			// Enable better touch scrolling for non-mobile touch devices
+			scrollback: 1000,
+			smoothScrollDuration: isTouch ? 0 : 125, // Disable smooth scroll on touch for better performance
+			fastScrollModifier: 'shift',
+			fastScrollSensitivity: 5,
+			scrollSensitivity: isTouch ? 3 : 1 // Increase scroll sensitivity on touch devices
 		});
 		term.loadAddon(fitAddon);
 		term.open(el);
@@ -193,34 +217,39 @@
 </script>
 
 <div class="terminal-wrapper">
-	{#if isCatchingUp}
-		<div class="terminal-loading">
-			<div class="loading-message">
-				<span class="loading-icon">⟳</span>
-				<span>Reconnecting to terminal session...</span>
+	{#if isTouchDevice}
+		<!-- Mobile terminal view for touch devices -->
+		<MobileTerminalView {sessionId} {shouldResume} />
+	{:else}
+		<!-- Desktop xterm.js terminal view -->
+		{#if isCatchingUp}
+			<div class="terminal-loading">
+				<div class="loading-message">
+					<span class="loading-icon">⟳</span>
+					<span>Reconnecting to terminal session...</span>
+				</div>
 			</div>
+		{/if}
+		
+		<!-- Terminal container -->
+		<div class="terminal-container">
+			<div bind:this={el} class="xterm-container"></div>
 		</div>
+
+		<!-- Mobile input components -->
+		<MobileKeyboardToolbar
+			visible={true}
+			disabled={!isAttached}
+			on:keypress={handleMobileKeypress}
+		/>
+
+		<MobileTextInput
+			visible={true}
+			disabled={!isAttached}
+			onSubmit={handleMobileSubmit}
+			placeholder="Type commands here..."
+		/>
 	{/if}
-	
-	<!-- Terminal container -->
-	<div class="terminal-container">
-		<div bind:this={el} class="xterm-container"></div>
-	</div>
-
-	<!-- Mobile input components -->
-	<MobileKeyboardToolbar
-		visible={true}
-		disabled={!isAttached}
-		on:keypress={handleMobileKeypress}
-	/>
-
-	<MobileTextInput
-		visible={true}
-		disabled={!isAttached}
-		onSubmit={handleMobileSubmit}
-		placeholder="Type commands here..."
-	/>
-
 </div>
 
 <style>
