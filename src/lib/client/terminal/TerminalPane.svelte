@@ -4,6 +4,8 @@
 	import { FitAddon } from '@xterm/addon-fit';
 	import '@xterm/xterm/css/xterm.css';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
+	import MobileKeyboardToolbar from './MobileKeyboardToolbar.svelte';
+	import MobileTextInput from './MobileTextInput.svelte';
 
 	const fitAddon = new FitAddon();
 	let { sessionId, shouldResume = false } = $props();
@@ -13,9 +15,16 @@
 
 	// State for history loading
 	let isCatchingUp = $state(false);
-	let historyLoaded = false;
-	let isAttached = false;
+	let historyLoaded = $state(false);
+	let isAttached = $state(false);
 	let connectionError = $state(null);
+
+	// Mobile interface state
+	let isMobile = $state(false);
+	let isCompactMobile = $state(false);
+	let showMobileKeyboard = $state(false);
+	let showMobileInput = $state(true);
+	let mobileInputDisabled = $state(false);
 
 	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 	// Handle window resize and ensure terminal fits its container
@@ -32,6 +41,53 @@
 				runSessionClient.resizeTerminal(sessionId, term.cols, term.rows);
 			} catch (error) {
 				console.error('[TERMINAL] Failed to resize terminal:', error);
+			}
+		}
+	};
+
+	// Mobile device detection
+	const detectMobile = () => {
+		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
+	};
+
+	// Update mobile state on window resize
+	const updateMobileState = () => {
+		const wasMobile = isMobile;
+		isMobile = detectMobile();
+		isCompactMobile = isMobile && window.innerWidth <= 480;
+		
+		// Show mobile components on mobile devices
+		if (isMobile && !wasMobile) {
+			showMobileKeyboard = true;
+			showMobileInput = true;
+		} else if (!isMobile && wasMobile) {
+			showMobileKeyboard = false;
+			showMobileInput = false;
+		}
+	};
+
+	// Handle mobile keyboard key press
+	const handleMobileKeypress = (event) => {
+		const { key } = event.detail;
+		if (isAttached && runSessionClient.getStatus().connected) {
+			try {
+				console.log('[TERMINAL] Sending mobile key:', key);
+				runSessionClient.sendInput(sessionId, key);
+			} catch (error) {
+				console.error('[TERMINAL] Failed to send mobile key:', error);
+			}
+		}
+	};
+
+	// Handle mobile text input submit
+	const handleMobileTextSubmit = (event) => {
+		const { command } = event.detail;
+		if (isAttached && runSessionClient.getStatus().connected) {
+			try {
+				console.log('[TERMINAL] Sending mobile command:', command);
+				runSessionClient.sendInput(sessionId, command);
+			} catch (error) {
+				console.error('[TERMINAL] Failed to send mobile command:', error);
 			}
 		}
 	};
@@ -72,6 +128,14 @@
 		if (!sessionId || sessionId === 'undefined') {
 			console.error('[TERMINAL] Invalid sessionId, cannot initialize terminal');
 			return;
+		}
+
+		// Detect mobile device and initialize mobile state
+		isMobile = detectMobile();
+		isCompactMobile = isMobile && window.innerWidth <= 480;
+		if (isMobile) {
+			showMobileKeyboard = true;
+			showMobileInput = true;
 		}
 
 		// Detect touch device
@@ -154,9 +218,13 @@
 		}
 
 		window.addEventListener('resize', resize);
+		window.addEventListener('resize', updateMobileState);
 
 		if (typeof ResizeObserver !== 'undefined') {
-			ro = new ResizeObserver(resize);
+			ro = new ResizeObserver(() => {
+				resize();
+				updateMobileState();
+			});
 			ro.observe(el);
 		}
 	});
@@ -175,6 +243,7 @@
 		try {
 			// remove listeners and observers
 			window.removeEventListener('resize', resize);
+			window.removeEventListener('resize', updateMobileState);
 		} catch (e) {}
 		try {
 			if (ro) ro.disconnect();
@@ -194,13 +263,44 @@
 			</div>
 		</div>
 	{/if}
-	<div bind:this={el} class="terminal-container"></div>
+	
+	<!-- Mobile text input area for easier typing -->
+	{#if isMobile && showMobileInput}
+		<MobileTextInput
+			visible={true}
+			disabled={mobileInputDisabled || !isAttached}
+			placeholder="Type commands here..."
+			autoFocus={false}
+			on:submit={handleMobileTextSubmit}
+		/>
+	{/if}
+	
+	<!-- Terminal container with touch layer for mobile scrolling -->
+	<div class="terminal-container" class:mobile={isMobile}>
+		{#if isMobile}
+			<!-- Invisible touch layer for better mobile scrolling -->
+			<div class="touch-scroll-layer"></div>
+		{/if}
+		<div bind:this={el} class="xterm-container"></div>
+	</div>
+	
+	<!-- Mobile keyboard toolbar -->
+	{#if isMobile && showMobileKeyboard}
+		<MobileKeyboardToolbar
+			visible={true}
+			disabled={mobileInputDisabled || !isAttached}
+			compact={isCompactMobile}
+			on:keypress={handleMobileKeypress}
+		/>
+	{/if}
 </div>
 
 <style>
 	.terminal-wrapper {
 		position: relative;
 		height: 100%;
+		display: flex;
+		flex-direction: column;
 	}
 
 	.terminal-loading {
@@ -251,16 +351,46 @@
 	}
 
 	.terminal-container {
-		height: 100%;
+		flex: 1;
 		overflow: hidden;
 		/* Enable touch scrolling on mobile devices */
 		-webkit-overflow-scrolling: touch;
 		overscroll-behavior: contain;
+		position: relative;
+		min-height: 0;
+	}
+
+	.terminal-container.mobile {
+		/* Adjustments for mobile layout */
+		display: flex;
+		flex-direction: column;
+	}
+
+	.touch-scroll-layer {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 1;
+		pointer-events: auto;
+		/* Allow touch scrolling but prevent text selection */
+		touch-action: pan-y;
+		user-select: none;
+		background: transparent;
+	}
+
+	.xterm-container {
+		flex: 1;
+		height: 100%;
+		position: relative;
+		z-index: 0;
 	}
 
 	.terminal-container :global(.xterm) {
 		padding: var(--space-3);
 		font-family: var(--font-mono) !important;
+		height: 100% !important;
 	}
 
 	.terminal-container :global(.xterm-viewport) {
@@ -280,5 +410,50 @@
 
 	.terminal-container :global(.xterm-selection) {
 		background: color-mix(in oklab, var(--accent) 30%, transparent) !important;
+	}
+
+	/* Mobile-specific adjustments */
+	@media (max-width: 768px) {
+		.terminal-wrapper {
+			height: 100vh; /* Use full viewport height on mobile */
+		}
+
+		.terminal-container {
+			/* Reduce padding on mobile for more space */
+			overflow: hidden;
+		}
+
+		.terminal-container :global(.xterm) {
+			padding: var(--space-2);
+		}
+
+		/* Improve touch interaction on mobile */
+		.terminal-container :global(.xterm-viewport) {
+			touch-action: pan-y;
+		}
+
+		/* Hide scrollbars on mobile for cleaner look */
+		.terminal-container :global(.xterm-viewport)::-webkit-scrollbar {
+			display: none;
+		}
+
+		.terminal-container :global(.xterm-viewport) {
+			scrollbar-width: none;
+		}
+	}
+
+	/* Very small screens */
+	@media (max-width: 480px) {
+		.terminal-container :global(.xterm) {
+			padding: var(--space-1);
+			font-size: 13px;
+		}
+	}
+
+	/* Landscape mobile orientation */
+	@media (max-width: 768px) and (orientation: landscape) {
+		.terminal-wrapper {
+			height: 100vh;
+		}
 	}
 </style>
