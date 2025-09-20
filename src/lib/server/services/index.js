@@ -54,6 +54,8 @@ export async function initializeServices(config = {}) {
 		// 1. Database (no dependencies)
 		const database = new DatabaseManager(resolvedConfig.dbPath);
 		await database.init();
+		await database.markAllSessionsStopped();
+		logger.info('SERVICES', 'Cleared stale running sessions on startup');
 
 		// REMOVED: WorkspaceManager - obsolete in unified architecture
 

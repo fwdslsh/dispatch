@@ -57,6 +57,26 @@ export class ClaudeAdapter {
 
 		let activeQuery = null;
 
+		const emitClaudeEvent = (rawEvent) => {
+			if (!rawEvent) return;
+
+			let serialized;
+			try {
+				serialized = JSON.parse(JSON.stringify(rawEvent));
+			} catch (error) {
+				logger.warn('CLAUDE_ADAPTER', 'Failed to serialize Claude event', error);
+				return;
+			}
+
+			onEvent({
+				channel: 'claude:message',
+				type: serialized.type || 'event',
+				payload: {
+					events: [serialized]
+				}
+			});
+		};
+
 		// Return adapter interface
 		return {
 			kind: 'claude',
@@ -73,56 +93,7 @@ export class ClaudeAdapter {
 					// Stream messages as events
 					try {
 						for await (const messageEvent of activeQuery) {
-							if (messageEvent.type === 'assistant') {
-								onEvent({
-									channel: 'claude:message',
-									type: 'assistant',
-									payload: {
-										content: messageEvent.message.content,
-										messageId: messageEvent.message.id || null
-									}
-								});
-							} else if (messageEvent.type === 'result') {
-								onEvent({
-									channel: 'claude:result',
-									type: messageEvent.subtype,
-									payload: {
-										result: messageEvent.subtype === 'success' ? messageEvent.result : null,
-										isError: messageEvent.is_error,
-										usage: messageEvent.usage,
-										totalCostUsd: messageEvent.total_cost_usd,
-										durationMs: messageEvent.duration_ms
-									}
-								});
-							} else if (messageEvent.type === 'stream_event') {
-								// Handle streaming deltas if includePartialMessages is enabled
-								onEvent({
-									channel: 'claude:delta',
-									type: 'stream',
-									payload: {
-										event: messageEvent.event
-									}
-								});
-							} else if (messageEvent.type === 'user') {
-								// Log user messages for completeness
-								onEvent({
-									channel: 'claude:message',
-									type: 'user',
-									payload: {
-										content: messageEvent.message.content,
-										messageId: messageEvent.message.id || null
-									}
-								});
-							} else if (messageEvent.type === 'system') {
-								// Handle system messages (init or compact_boundary)
-								onEvent({
-									channel: 'claude:system',
-									type: messageEvent.subtype,
-									payload: {
-										data: messageEvent
-									}
-								});
-							}
+							emitClaudeEvent(messageEvent);
 						}
 					} catch (error) {
 						logger.error('CLAUDE_ADAPTER', 'Claude query error:', error);

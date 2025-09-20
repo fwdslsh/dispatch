@@ -51,6 +51,12 @@
 	let isAttached = $state(false);
 	let connectionError = $state(null);
 	let lastError = $state(null);
+	let messageSequence = 0;
+
+	function nextMessageId() {
+		messageSequence = (messageSequence + 1) % Number.MAX_SAFE_INTEGER;
+		return `${Date.now()}-${messageSequence}`;
+	}
 
 	// Detect if user is on a mobile device
 	let isMobile = $state(false);
@@ -150,7 +156,7 @@
 				role: 'user',
 				text: userMessage,
 				timestamp: new Date(),
-				id: Date.now()
+				id: nextMessageId()
 			}
 		];
 
@@ -176,7 +182,7 @@
 					role: 'system',
 					text: `Error: Failed to send message - ${error.message}`,
 					timestamp: new Date(),
-					id: Date.now(),
+					id: nextMessageId(),
 					isError: true,
 					errorIcon: IconAlertTriangle
 				}
@@ -216,6 +222,7 @@
 					}
 
 					// Process each event in the events array
+					let assistantTextAdded = false;
 					for (const evt of events) {
 						// Skip empty or malformed events
 						if (!evt || typeof evt !== 'object') continue;
@@ -233,18 +240,19 @@
 
 							if (textContent) {
 								// Create a new assistant message with accumulated activities
-								messages = [
-									...messages,
-									{
-										role: 'assistant',
-										text: textContent,
-										timestamp: new Date(),
-										id: Date.now(),
-										activityIcons: [...liveEventIcons] // Attach accumulated activities
-									}
-								];
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: textContent,
+						timestamp: new Date(),
+						id: nextMessageId(),
+						activityIcons: [...liveEventIcons] // Attach accumulated activities
+					}
+				];
 								liveEventIcons = []; // Clear for next accumulation
 								isWaitingForReply = true; // Keep waiting for more potential messages
+								assistantTextAdded = true;
 							} else {
 								// Non-text assistant content (tool use, etc.)
 								if (
@@ -262,29 +270,29 @@
 							const isError = !!evt.is_error;
 							if (isError) {
 								// Add error message
-								messages = [
-									...messages,
-									{
-										role: 'assistant',
-										text: evt.result || 'An error occurred',
-										timestamp: new Date(),
-										id: Date.now(),
-										isError: true,
-										errorIcon: IconAlertTriangle
-									}
-								];
-							} else if (evt.result) {
+							messages = [
+								...messages,
+								{
+									role: 'assistant',
+									text: evt.result || 'An error occurred',
+									timestamp: new Date(),
+									id: nextMessageId(),
+									isError: true,
+									errorIcon: IconAlertTriangle
+								}
+							];
+							} else if (evt.result && !assistantTextAdded) {
 								// Add successful result
-								messages = [
-									...messages,
-									{
-										role: 'assistant',
-										text: evt.result,
-										timestamp: new Date(),
-										id: Date.now(),
-										activityIcons: [...liveEventIcons]
-									}
-								];
+							messages = [
+								...messages,
+								{
+									role: 'assistant',
+									text: evt.result,
+									timestamp: new Date(),
+									id: nextMessageId(),
+									activityIcons: [...liveEventIcons]
+								}
+							];
 							}
 							liveEventIcons = []; // Clear for next conversation turn
 						} else {
@@ -330,35 +338,35 @@
 						role: 'assistant',
 						text: `Login required.\n\nOpen this link to authenticate:\n\n${url}\n\n${event.payload?.instructions || 'Then paste the authorization code here.'}`,
 						timestamp: new Date(),
-						id: Date.now()
+						id: nextMessageId()
 					}
 				];
 			} else if (event.channel === 'claude:auth_complete') {
 				authAwaitingCode = false;
 				authInProgress = false;
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: 'Authentication complete. You can retry your request.',
-						timestamp: new Date(),
-						id: Date.now()
-					}
-				];
+		messages = [
+			...messages,
+			{
+				role: 'assistant',
+				text: 'Authentication complete. You can retry your request.',
+				timestamp: new Date(),
+				id: nextMessageId()
+			}
+		];
 			} else if (event.channel === 'claude:auth_error') {
 				authAwaitingCode = false;
 				authInProgress = false;
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: `Authentication failed. ${event.payload?.error || ''}`,
-						timestamp: new Date(),
-						id: Date.now(),
-						isError: true,
-						errorIcon: IconAlertTriangle
-					}
-				];
+		messages = [
+			...messages,
+			{
+				role: 'assistant',
+				text: `Authentication failed. ${event.payload?.error || ''}`,
+				timestamp: new Date(),
+				id: nextMessageId(),
+				isError: true,
+				errorIcon: IconAlertTriangle
+			}
+		];
 			}
 		} catch (e) {
 			console.error('[CLAUDE] Error handling run event:', e);

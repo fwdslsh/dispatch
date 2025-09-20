@@ -183,6 +183,18 @@ export class DatabaseManager {
 	}
 
 	/**
+	 * Mark all sessions as stopped (used on startup to reset stale state)
+	 */
+	async markAllSessionsStopped() {
+		await this.run(
+			`UPDATE sessions
+			 SET status='stopped', updated_at=?
+			 WHERE status='running'`,
+			[Date.now()]
+		);
+	}
+
+	/**
 	 * Update run session status
 	 */
 	async updateRunSessionStatus(runId, status) {
