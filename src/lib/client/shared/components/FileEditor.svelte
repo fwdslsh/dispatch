@@ -6,6 +6,7 @@
 	import IconFileText from './Icons/IconFileText.svelte';
 	import IconCheck from './Icons/IconCheck.svelte';
 	import IconX from './Icons/IconX.svelte';
+	import ConfirmationDialog from './ConfirmationDialog.svelte';
 
 	// Props
 	let {
@@ -39,6 +40,9 @@
 		}
 	}
 
+	let showDiscardConfirm = $state(false);
+	let showCloseConfirm = $state(false);
+
 	// Handle save
 	function handleSave() {
 		if (onSave && canSave) {
@@ -48,27 +52,45 @@
 
 	// Handle cancel
 	function handleCancel() {
-		if (isDirty && !confirm('You have unsaved changes. Are you sure you want to discard them?')) {
+		if (isDirty) {
+			showDiscardConfirm = true;
 			return;
 		}
 
-		// Reset content to original
-		content = originalContent;
-
-		if (onCancel) {
-			onCancel();
-		}
+		discardChanges();
 	}
 
 	// Handle close
 	function handleClose() {
-		if (isDirty && !confirm('You have unsaved changes. Are you sure you want to close?')) {
+		if (isDirty) {
+			showCloseConfirm = true;
 			return;
 		}
 
-		if (onClose) {
-			onClose();
-		}
+		onClose?.();
+	}
+
+	function discardChanges() {
+		content = originalContent;
+		onCancel?.();
+	}
+
+	function confirmClose() {
+		showCloseConfirm = false;
+		onClose?.();
+	}
+
+	function confirmDiscard() {
+		showDiscardConfirm = false;
+		discardChanges();
+	}
+
+	function cancelDiscard() {
+		showDiscardConfirm = false;
+	}
+
+	function cancelCloseConfirm() {
+		showCloseConfirm = false;
 	}
 
 	// Keyboard shortcuts
@@ -161,6 +183,26 @@
 		<p>No file selected</p>
 	</div>
 {/if}
+
+<ConfirmationDialog
+	bind:show={showDiscardConfirm}
+	title="Discard changes?"
+	message="You have unsaved changes. Are you sure you want to discard them?"
+	confirmText="Discard"
+	cancelText="Keep editing"
+	onconfirm={confirmDiscard}
+	oncancel={cancelDiscard}
+/>
+
+<ConfirmationDialog
+	bind:show={showCloseConfirm}
+	title="Close without saving?"
+	message="You have unsaved changes. Are you sure you want to close?"
+	confirmText="Close without saving"
+	cancelText="Keep editing"
+	onconfirm={confirmClose}
+	oncancel={cancelCloseConfirm}
+/>
 
 <style>
 	.file-editor {

@@ -22,7 +22,7 @@
 	// Drag divider to set node.ratio
 	/** @param {MouseEvent|TouchEvent} ev */
 	function startDrag(ev) {
-		ev.preventDefault();
+		//ev.preventDefault();
 		if (!splitEl) return;
 
 		const isRow = node.dir === 'row';

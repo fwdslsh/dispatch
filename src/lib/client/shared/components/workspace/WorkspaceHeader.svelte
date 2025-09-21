@@ -16,10 +16,14 @@
 
 	// Props
 	let {
+		hasActiveSessions = false,
+		sessionCount = 0,
+		currentSessionIndex = 0,
 		onLogout = () => {},
 		viewMode = 'window-manager',
 		onViewModeChange = () => {},
-		onInstallPWA = () => {}
+		onInstallPWA = () => {},
+		isSingleSessionMode = false
 	} = $props();
 
 	// Help modal state
@@ -37,12 +41,24 @@
 	<div class="header-spacer"></div>
 
 	<div class="header-actions">
-		<IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
+		<!-- <IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
 			<IconAppWindow size={18} />
-		</IconButton>
-		<IconButton onclick={handleHelpClick} aria-label="Keyboard shortcuts" title="Keyboard Shortcuts">
-			<IconInfoCircle size={18} />
-		</IconButton>
+		</IconButton> -->
+		{#if !isSingleSessionMode}
+			<IconButton
+				onclick={handleHelpClick}
+				aria-label="Keyboard shortcuts"
+				title="Keyboard Shortcuts"
+			>
+				<IconInfoCircle size={18} />
+			</IconButton>
+		{:else if sessionCount > 0}
+			<div class="session-info">
+				<span class="session-counter">
+					{Math.min(currentSessionIndex + 1, sessionCount)} / {sessionCount}
+				</span>
+			</div>
+		{/if}
 		<LayoutControls {viewMode} onSelectView={onViewModeChange} />
 		<IconButton onclick={onLogout} aria-label="Logout">
 			<IconLogout size={18} />
@@ -72,5 +88,11 @@
 	.header-actions {
 		display: flex;
 		gap: var(--space-3);
+	}
+	.session-info {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	
 	}
 </style>
