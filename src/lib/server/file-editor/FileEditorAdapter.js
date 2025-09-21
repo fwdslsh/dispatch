@@ -15,8 +15,13 @@ export class FileEditorAdapter {
 	 */
 	async create({ cwd, options = {}, onEvent }) {
 		// Create an EventEmitter-based process for file editor sessions
+		// Use the passed cwd if provided, otherwise fall back to environment defaults
+		// Note: The session API should already resolve the proper directory, but we maintain
+		// defensive fallback logic to ensure a valid working directory is always available
+		const workingDirectory = cwd || process.env.WORKSPACES_ROOT || process.env.HOME;
+
 		const proc = new FileEditorProcess({
-			cwd: cwd || process.env.WORKSPACES_ROOT || process.env.HOME,
+			cwd: workingDirectory,
 			options,
 			onEvent
 		});

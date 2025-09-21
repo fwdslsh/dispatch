@@ -2,9 +2,11 @@
 	import Modal from '$lib/client/shared/components/Modal.svelte';
 	import GlobalSettings from './GlobalSettings.svelte';
 	import ClaudeAuth from '../../../claude/ClaudeAuth.svelte';
+	import ClaudeDefaults from './ClaudeDefaults.svelte';
 	import StorageSettings from './StorageSettings.svelte';
 	import IconSettings from '../Icons/IconSettings.svelte';
 	import IconCloud from '../Icons/IconCloud.svelte';
+	import IconRobot from '../Icons/IconRobot.svelte';
 	import IconFolder from '../Icons/IconFolder.svelte';
 	import IconTrash from '../Icons/IconTrash.svelte';
 
@@ -21,7 +23,8 @@
 	// Available settings tabs
 	const tabs = [
 		{ id: 'global', label: 'Global', icon: IconSettings, component: GlobalSettings },
-		{ id: 'claude', label: 'Claude', icon: IconCloud, component: ClaudeAuth },
+		{ id: 'claude-auth', label: 'Claude Auth', icon: IconCloud, component: ClaudeAuth },
+		{ id: 'claude-defaults', label: 'Claude Defaults', icon: IconRobot, component: ClaudeDefaults },
 		{ id: 'storage', label: 'Storage', icon: IconTrash, component: StorageSettings }
 	];
 

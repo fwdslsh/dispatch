@@ -96,11 +96,7 @@
 		height: 32px;
 		padding: 0;
 		border-radius: 50%;
-		background: linear-gradient(
-			135deg,
-			var(--surface-primary-92),
-			var(--surface-primary-96)
-		);
+		background: linear-gradient(135deg, var(--surface-primary-92), var(--surface-primary-96));
 		border: 1px solid var(--primary-glow-20);
 		box-shadow:
 			0 2px 8px -4px var(--primary-glow),
@@ -124,11 +120,7 @@
 	.event-icon:hover {
 		transform: translateY(-2px) scale(1.1);
 		border-color: var(--primary-glow-40);
-		background: linear-gradient(
-			135deg,
-			var(--primary-surface-15),
-			var(--primary-surface-8)
-		);
+		background: linear-gradient(135deg, var(--primary-surface-15), var(--primary-surface-8));
 		box-shadow:
 			0 4px 12px -4px var(--primary-glow),
 			0 0 20px -8px var(--primary-glow),
@@ -137,11 +129,7 @@
 	}
 
 	.event-icon.selected {
-		background: linear-gradient(
-			135deg,
-			var(--primary-surface-25),
-			var(--primary-surface-15)
-		);
+		background: linear-gradient(135deg, var(--primary-surface-25), var(--primary-surface-15));
 		color: var(--primary);
 		border-color: var(--primary-glow-50);
 		box-shadow:
@@ -154,11 +142,7 @@
 	.event-summary {
 		margin-top: var(--space-3);
 		padding: var(--space-3) var(--space-4);
-		background: linear-gradient(
-			135deg,
-			var(--surface-primary-95),
-			var(--surface-primary-98)
-		);
+		background: linear-gradient(135deg, var(--surface-primary-95), var(--surface-primary-98));
 		border: 1px solid var(--primary-glow-25);
 		border-radius: 12px;
 		box-shadow:

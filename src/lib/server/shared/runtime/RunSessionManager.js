@@ -48,18 +48,24 @@ export class RunSessionManager {
 				throw new Error(`No adapter registered for kind: ${kind}`);
 			}
 
+			// Track live run with next sequence number BEFORE creating adapter
+			// This prevents race conditions where adapter initialization events
+			// compete with the in-memory sequence counter setup
+			const nextSeq = await this.db.getNextSequenceNumber(runId);
+			this.liveRuns.set(runId, {
+				proc: null, // Will be set after adapter creation
+				nextSeq,
+				kind
+			});
+
 			// Create process adapter with event callback
 			const proc = await adapter.create({
 				...meta,
 				onEvent: (ev) => this.recordAndEmit(runId, ev)
 			});
 
-			// Track live run with next sequence number
-			this.liveRuns.set(runId, {
-				proc,
-				nextSeq: await this.db.getNextSequenceNumber(runId),
-				kind
-			});
+			// Update the live run record with the actual process
+			this.liveRuns.get(runId).proc = proc;
 
 			// Update status to running
 			await this.db.updateRunSessionStatus(runId, 'running');
@@ -68,6 +74,10 @@ export class RunSessionManager {
 			return { runId };
 		} catch (error) {
 			logger.error('RUNSESSION', `Failed to create run session ${runId}:`, error);
+
+			// Clean up live run entry if it was added
+			this.liveRuns.delete(runId);
+
 			// Update status to error if session was created
 			try {
 				await this.db.updateRunSessionStatus(runId, 'error');
@@ -289,6 +299,16 @@ export class RunSessionManager {
 			const meta = typeof session.meta === 'string' ? JSON.parse(session.meta) : session.meta;
 			logger.info('RUNSESSION', `Resume metadata for ${runId}:`, { kind: session.kind, meta });
 
+			// Track live run with next sequence number BEFORE creating adapter
+			// This prevents race conditions where adapter initialization events
+			// compete with the in-memory sequence counter setup
+			const nextSeq = await this.db.getNextSequenceNumber(runId);
+			this.liveRuns.set(runId, {
+				proc: null, // Will be set after adapter creation
+				nextSeq,
+				kind: session.kind
+			});
+
 			// Create process adapter with event callback (same as createRunSession)
 			let proc;
 			try {
@@ -306,15 +326,13 @@ export class RunSessionManager {
 					`Adapter creation failed for ${session.kind} session ${runId}:`,
 					adapterError
 				);
+				// Clean up live run entry if adapter creation failed
+				this.liveRuns.delete(runId);
 				throw adapterError;
 			}
 
-			// Track live run with next sequence number
-			this.liveRuns.set(runId, {
-				proc,
-				nextSeq: await this.db.getNextSequenceNumber(runId),
-				kind: session.kind
-			});
+			// Update the live run record with the actual process
+			this.liveRuns.get(runId).proc = proc;
 
 			// Update status to running
 			await this.db.updateRunSessionStatus(runId, 'running');

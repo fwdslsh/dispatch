@@ -3,6 +3,9 @@ import ClaudeSettings from '$lib/client/claude/ClaudeSettings.svelte';
 import ClaudeHeader from '$lib/client/claude/ClaudeHeader.svelte';
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
+/**
+ * @type {import('$lib/client/shared/types.js').ISessionModule} ISessionModule
+ */
 export const claudeSessionModule = {
 	type: SESSION_TYPE.CLAUDE,
 	component: ClaudePane,

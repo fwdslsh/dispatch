@@ -116,11 +116,23 @@ export async function POST({ request, locals }) {
 			);
 		}
 
+		// Get default workspace directory from settings
+		let defaultWorkspaceDir = null;
+		try {
+			const globalSettings = await locals.services.database.getSettingsByCategory('global');
+			defaultWorkspaceDir = globalSettings?.defaultWorkspaceDirectory || null;
+		} catch (error) {
+			console.warn('[Sessions API] Failed to load default workspace directory setting:', error);
+		}
+
+		// Determine the working directory with user preference override
+		const workingDirectory = cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
+
 		// Create run session using unified manager
 		const { runId } = await locals.services.runSessionManager.createRunSession({
 			kind: sessionKind,
 			meta: {
-				cwd: cwd || process.env.WORKSPACES_ROOT || process.env.HOME,
+				cwd: workingDirectory,
 				options
 			}
 		});

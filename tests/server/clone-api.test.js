@@ -12,11 +12,11 @@ describe('Directory Clone API', () => {
 		// Create test directories
 		await mkdir(testDir, { recursive: true });
 		await mkdir(sourceDir, { recursive: true });
-		
+
 		// Create test files in source directory
 		await writeFile(join(sourceDir, 'file1.txt'), 'Hello World');
 		await writeFile(join(sourceDir, 'file2.js'), 'console.log("test");');
-		
+
 		// Create subdirectory with files
 		const subDir = join(sourceDir, 'subdir');
 		await mkdir(subDir, { recursive: true });
