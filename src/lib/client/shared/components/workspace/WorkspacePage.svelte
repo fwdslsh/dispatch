@@ -229,8 +229,7 @@
 		if (sessionViewModel) {
 			try {
 				// Use a default workspace path - either the stored default or workspace root
-				const defaultWorkspace =
-					getUserDefaultWorkspace();
+				const defaultWorkspace = getUserDefaultWorkspace();
 
 				await sessionViewModel.createSession({
 					type: type,

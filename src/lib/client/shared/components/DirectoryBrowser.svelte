@@ -46,14 +46,14 @@
 	let uploadFiles = $state(null);
 	let uploading = $state(false);
 	let fileInputId = $state(`file-upload-${Math.random().toString(36).substr(2, 9)}`);
-	
+
 	// Clone directory state
 	let showCloneDirInput = $state(false);
 	let cloneSourcePath = $state('');
 	let cloneTargetPath = $state('');
 	let cloningDir = $state(false);
 	let cloneOverwrite = $state(false);
-	
+
 	let displaySelection = $derived.by(() =>
 		selected && String(selected).trim() ? selected : placeholder
 	);
@@ -483,11 +483,7 @@
 						onkeydown={(e) => e.key === 'Enter' && cloneDirectory()}
 					/>
 					<label class="clone-overwrite-option">
-						<input
-							type="checkbox"
-							bind:checked={cloneOverwrite}
-							disabled={cloningDir}
-						/>
+						<input type="checkbox" bind:checked={cloneOverwrite} disabled={cloningDir} />
 						Overwrite if target exists
 					</label>
 				</div>
@@ -500,7 +496,12 @@
 					>
 						{cloningDir ? 'Cloning...' : 'Clone Directory'}
 					</Button>
-					<Button type="button" class="cancel-btn" onclick={toggleCloneDirInput} disabled={cloningDir}>
+					<Button
+						type="button"
+						class="cancel-btn"
+						onclick={toggleCloneDirInput}
+						disabled={cloningDir}
+					>
 						Cancel
 					</Button>
 				</div>
@@ -892,7 +893,7 @@
 		z-index: 1;
 	}
 
-	.clone-overwrite-option input[type="checkbox"] {
+	.clone-overwrite-option input[type='checkbox'] {
 		accent-color: var(--db-primary);
 	}
 

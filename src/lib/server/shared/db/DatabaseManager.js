@@ -143,7 +143,7 @@ export class DatabaseManager {
 			} catch (err) {
 				if (err.code === 'SQLITE_BUSY' && attempt < retries - 1) {
 					// Wait with exponential backoff
-					await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+					await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 100));
 					continue;
 				}
 				throw err;
@@ -165,7 +165,7 @@ export class DatabaseManager {
 				});
 			} catch (err) {
 				if (err.code === 'SQLITE_BUSY' && attempt < retries - 1) {
-					await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+					await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 100));
 					continue;
 				}
 				throw err;
@@ -187,7 +187,7 @@ export class DatabaseManager {
 				});
 			} catch (err) {
 				if (err.code === 'SQLITE_BUSY' && attempt < retries - 1) {
-					await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+					await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 100));
 					continue;
 				}
 				throw err;
@@ -214,17 +214,19 @@ export class DatabaseManager {
 	 */
 	async createRunSession(runId, kind, meta, ownerUserId = null) {
 		// Queue this write operation to prevent concurrent writes
-		this.writeQueue = this.writeQueue.then(async () => {
-			const now = Date.now();
-			await this.run(
-				`INSERT INTO sessions(run_id, owner_user_id, kind, status, created_at, updated_at, meta_json)
+		this.writeQueue = this.writeQueue
+			.then(async () => {
+				const now = Date.now();
+				await this.run(
+					`INSERT INTO sessions(run_id, owner_user_id, kind, status, created_at, updated_at, meta_json)
 				 VALUES(?, ?, ?, 'starting', ?, ?, ?)`,
-				[runId, ownerUserId, kind, now, now, JSON.stringify(meta)]
-			);
-		}).catch(err => {
-			// Re-throw to maintain error propagation
-			throw err;
-		});
+					[runId, ownerUserId, kind, now, now, JSON.stringify(meta)]
+				);
+			})
+			.catch((err) => {
+				// Re-throw to maintain error propagation
+				throw err;
+			});
 
 		return this.writeQueue;
 	}
@@ -306,20 +308,24 @@ export class DatabaseManager {
 	 */
 	async appendSessionEvent(runId, seq, channel, type, payload) {
 		// Queue this write operation to prevent concurrent writes
-		this.writeQueue = this.writeQueue.then(async () => {
-			const ts = Date.now();
-			const buf =
-				payload instanceof Uint8Array ? payload : new TextEncoder().encode(JSON.stringify(payload));
+		this.writeQueue = this.writeQueue
+			.then(async () => {
+				const ts = Date.now();
+				const buf =
+					payload instanceof Uint8Array
+						? payload
+						: new TextEncoder().encode(JSON.stringify(payload));
 
-			await this.run(
-				`INSERT INTO session_events(run_id, seq, channel, type, payload, ts) VALUES(?,?,?,?,?,?)`,
-				[runId, seq, channel, type, buf, ts]
-			);
+				await this.run(
+					`INSERT INTO session_events(run_id, seq, channel, type, payload, ts) VALUES(?,?,?,?,?,?)`,
+					[runId, seq, channel, type, buf, ts]
+				);
 
-			return { runId, seq, channel, type, payload, ts };
-		}).catch(err => {
-			throw err;
-		});
+				return { runId, seq, channel, type, payload, ts };
+			})
+			.catch((err) => {
+				throw err;
+			});
 
 		return this.writeQueue;
 	}

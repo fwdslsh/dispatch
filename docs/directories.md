@@ -78,6 +78,7 @@ Sessions provide isolated working directories for parallel work, similar to Git 
 Dispatch supports cloning directories through the DirectoryBrowser component, available across all session types (terminal, Claude, file-editor).
 
 **Features:**
+
 - **Visual Interface**: Clone button integrated into DirectoryBrowser toolbar
 - **Auto-Suggestion**: Automatically suggests target path with "-clone" suffix
 - **Validation**: Comprehensive validation preventing dangerous operations
@@ -85,6 +86,7 @@ Dispatch supports cloning directories through the DirectoryBrowser component, av
 - **Security**: Prevents copying directories into themselves or subdirectories
 
 **Usage:**
+
 1. Navigate to the desired directory in the DirectoryBrowser
 2. Click the clone directory button in the toolbar
 3. Review the auto-populated source path
@@ -93,6 +95,7 @@ Dispatch supports cloning directories through the DirectoryBrowser component, av
 6. Click "Clone Directory" to execute
 
 **API Endpoint:**
+
 ```javascript
 POST /api/browse/clone
 {
@@ -103,6 +106,7 @@ POST /api/browse/clone
 ```
 
 **Security Measures:**
+
 - Validates source directory exists and is accessible
 - Prevents copying into system directories (/proc, /sys, /dev)
 - Blocks copying directory into itself or subdirectories
