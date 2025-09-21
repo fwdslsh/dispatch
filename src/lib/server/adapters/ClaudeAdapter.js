@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger.js';
+import { SESSION_TYPE } from '../../shared/session-types.js';
 
 /**
  * @typedef {import('@anthropic-ai/claude-code').Options} ClaudeOptions
@@ -80,7 +81,7 @@ export class ClaudeAdapter {
 
 		// Return adapter interface
 		return {
-			kind: 'claude',
+			kind: SESSION_TYPE.CLAUDE,
 			input: {
 				async write(/** @type {string | Uint8Array} */ data) {
 					if (isClosing) {

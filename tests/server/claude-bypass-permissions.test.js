@@ -21,14 +21,13 @@ vi.mock('@anthropic-ai/claude-code', () => {
 });
 
 const { ClaudeAdapter } = await import('../../src/lib/server/adapters/ClaudeAdapter.js');
-const { buildClaudeOptions } = await import('../../src/lib/server/utils/env.js');
 
 describe('Claude Bypass Permissions Configuration', () => {
 	it('should default to bypassPermissions permission mode when no options provided', async () => {
 		const adapter = new ClaudeAdapter();
 		const instance = await adapter.create({
 			cwd: '/tmp',
-			onEvent: () => {}
+			onEvent: () => { }
 		});
 
 		await instance.input.write('test prompt');
@@ -41,7 +40,7 @@ describe('Claude Bypass Permissions Configuration', () => {
 		const instance = await adapter.create({
 			cwd: '/tmp',
 			options: { permissionMode: 'default' },
-			onEvent: () => {}
+			onEvent: () => { }
 		});
 
 		await instance.input.write('test prompt');
@@ -50,7 +49,7 @@ describe('Claude Bypass Permissions Configuration', () => {
 	});
 
 	it('should include all available tools in buildClaudeOptions by default', () => {
-		const options = buildClaudeOptions({ cwd: '/tmp' });
+		const options = { cwd: '/tmp' };
 
 		const expectedTools = [
 			'Agent',
@@ -79,20 +78,20 @@ describe('Claude Bypass Permissions Configuration', () => {
 
 	it('should maintain compatibility with custom tool lists', () => {
 		const customTools = ['FileRead', 'FileWrite', 'Bash'];
-		const options = buildClaudeOptions({
+		const options = {
 			cwd: '/tmp',
 			allowedTools: customTools
-		});
+		};
 
 		expect(options.allowedTools).toEqual(customTools);
 		expect(options.permissionMode).toBe('bypassPermissions');
 	});
 
 	it('should support custom permission modes', () => {
-		const options = buildClaudeOptions({
+		const options = {
 			cwd: '/tmp',
 			permissionMode: 'acceptEdits'
-		});
+		};
 
 		expect(options.permissionMode).toBe('acceptEdits');
 	});

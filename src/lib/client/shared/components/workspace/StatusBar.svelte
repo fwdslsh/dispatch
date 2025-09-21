@@ -54,11 +54,11 @@
 			<IconButton onclick={onOpenSettings} aria-label="Open settings" title="Settings">
 				<IconAdjustmentsAlt size={18} />
 			</IconButton>
-			{#if totalSessions > 0}
+			<!-- {#if totalSessions > 0}
 				<span class="session-counter">
 					{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}
 				</span>
-			{/if}
+			{/if} -->
 		</div>
 
 		<!-- Center group: Main create session button -->
@@ -87,12 +87,12 @@
 					>
 						<IconPlayerTrackPrev size={18} />
 					</IconButton>
-
+<!-- 
 					{#if totalSessions > 0}
 						<span class="session-counter">
 							{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}
 						</span>
-					{/if}
+					{/if} -->
 
 					<IconButton
 						onclick={() => onNavigateSession('next')}

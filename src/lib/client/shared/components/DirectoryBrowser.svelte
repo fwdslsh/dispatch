@@ -10,6 +10,7 @@
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import IconButton from './IconButton.svelte';
 	import Input from './Input.svelte';
+	import IconUpload from './Icons/IconUpload.svelte';
 	import { onMount } from 'svelte';
 
 	// Svelte 5 Directory Browser Component
@@ -18,41 +19,32 @@
 		api = '/api/browse',
 		startPath = '.',
 		placeholder = 'Browse directories...',
-		onSelect
+		onSelect,
+		onNavigate = null, // (path) => void - called when user navigates to a directory
+		// Optional file operations
+		showFileActions = false,
+		onFileOpen = null, // (file) => void
+		onFileUpload = null, // (files, currentDirectory) => void
+		// Control initial state
+		isAlwaysOpen = false // Force the browser to stay open (don't show collapsed state)
 	} = $props();
 
-	// Determine initial path:
-	// - Prefer explicit startPath prop if provided
-	// - Otherwise use user's saved defaultWorkingDirectory from settings (if any)
-	// - Otherwise use null to signal we need to fetch the server's default
-	function getUserDefaultDirectory() {
-		try {
-			if (typeof localStorage === 'undefined') return null;
-			const raw = localStorage.getItem(STORAGE_CONFIG.SETTINGS_KEY);
-			if (!raw) return null;
-			const settings = JSON.parse(raw);
-			return settings?.defaultWorkingDirectory || null;
-		} catch (e) {
-			return null;
-		}
-	}
-
-	let initialPath = startPath || getUserDefaultDirectory();
-
-	// Start with the initial path, or null if we need to fetch the server's default
-	let currentPath = $state(initialPath);
+	// Start with the provided startPath, or null to use server default
+	let currentPath = $state(startPath || null);
 	let loading = $state(false);
 	let error = $state('');
 	let entries = $state([]);
 	let breadcrumbs = $state([]);
 	let query = $state('');
-	let filtered = $state([]);
 	let showHidden = $state(false);
 	let showNewDirInput = $state(false);
 	let newDirName = $state('');
 	let creatingDir = $state(false);
 	let triedFallback = $state(false);
-	let isOpen = $state(false);
+	let isOpen = $state(isAlwaysOpen);
+	let uploadFiles = $state(null);
+	let uploading = $state(false);
+	let fileInputId = $state(`file-upload-${Math.random().toString(36).substr(2, 9)}`);
 	let displaySelection = $derived.by(() =>
 		selected && String(selected).trim() ? selected : placeholder
 	);
@@ -89,9 +81,11 @@
 			updateBreadcrumbs(currentPath);
 			if (!selected) {
 				selected = currentPath;
-				onSelect?.(currentPath);
+				// Only call onSelect if this is user navigation, not initialization
+				if (path !== null && path !== undefined) {
+					onSelect?.(currentPath);
+				}
 			}
-			filter();
 		} catch (e) {
 			error = e.message || String(e);
 			entries = [];
@@ -106,20 +100,23 @@
 		}
 	}
 
-	function filter() {
+	const filtered = $derived.by(() => {
 		const q = query.trim().toLowerCase();
-		filtered = !q ? entries : entries.filter((e) => e.name.toLowerCase().includes(q));
-	}
+		return !q ? entries : entries.filter((e) => e.name.toLowerCase().includes(q));
+	});
 
 	function navigateTo(path) {
 		query = '';
 		browse(path);
+		onNavigate?.(path);
 	}
 
 	function selectDirectory(path) {
 		selected = path;
 		onSelect?.(path);
-		isOpen = false;
+		if (!isAlwaysOpen) {
+			isOpen = false;
+		}
 	}
 
 	function selectCurrent() {
@@ -189,26 +186,47 @@
 		}
 	}
 
+	// Handle file opening
+	function openFile(file) {
+		if (onFileOpen) {
+			onFileOpen(file);
+		}
+	}
+
+	// Handle file upload
+	async function handleFileUpload() {
+		if (!uploadFiles || uploadFiles.length === 0 || !onFileUpload) return;
+
+		uploading = true;
+		error = '';
+
+		try {
+			await onFileUpload(uploadFiles, currentPath);
+			uploadFiles = null;
+			// Refresh directory after upload
+			await browse(currentPath);
+		} catch (e) {
+			error = e.message || 'Failed to upload files';
+		} finally {
+			uploading = false;
+		}
+	}
+
+	// Trigger file upload dialog
+	function triggerFileUpload() {
+		const fileInput = document.getElementById(fileInputId);
+		if (fileInput) {
+			fileInput.click();
+		}
+	}
+
 	// Initialize on mount
-	$effect(() => {
-		if (!entries.length && !loading && !error) {
-			// Pass currentPath even if it's null - the browse function will handle it
-			browse(currentPath);
-		}
-	});
-
-	// Auto-select the default directory if no selection has been made
 	onMount(() => {
-		if (currentPath && !selected && entries.length > 0) {
-			selected = currentPath;
-			onSelect?.(currentPath);
-		}
+		console.log('[DirectoryBrowser] Initializing with startPath:', startPath, currentPath);
+		browse(currentPath);
 	});
 
-	// Update filter when query changes
-	$effect(() => {
-		filter();
-	});
+
 </script>
 
 {#if !isOpen}
@@ -223,37 +241,39 @@
 	</button>
 {:else}
 	<div class="directory-browser">
-	<!-- Breadcrumb navigation -->
-	<div class="breadcrumb-bar" class:selected={selected > ''} aria-label="Breadcrumbs">
-		<div class="breadcrumbs">
-			{#each breadcrumbs as crumb, i}
-				{#if i > 0}
-					<span class="separator">/</span>
+		<!-- Breadcrumb navigation -->
+		<div class="breadcrumb-bar" class:selected={selected > ''} aria-label="Breadcrumbs">
+			<div class="breadcrumbs">
+				{#each breadcrumbs as crumb, i}
+					{#if i > 0}
+						<span class="separator">/</span>
+					{/if}
+					<button
+						type="button"
+						class="breadcrumb-item"
+						onclick={() => navigateTo(crumb.path)}
+						disabled={loading}
+					>
+						{crumb.name}
+					</button>
+				{/each}
+			</div>
+			<div class="breadcrumb-actions">
+				{#if !isAlwaysOpen}
+					<IconButton
+						type="button"
+						onclick={() => (isOpen = false)}
+						title="Close directory browser"
+						variant="ghost"
+					>
+						<IconX size={16} />
+					</IconButton>
 				{/if}
-				<button
-					type="button"
-					class="breadcrumb-item"
-					onclick={() => navigateTo(crumb.path)}
-					disabled={loading}
-				>
-					{crumb.name}
-				</button>
-			{/each}
+			</div>
 		</div>
-		<div class="breadcrumb-actions">
-			<IconButton
-				type="button"
-				onclick={() => (isOpen = false)}
-				title="Close directory browser"
-				variant="ghost"
-			>
-				<IconX size={16} />
-			</IconButton>
-		</div>
-	</div>
 
-	<!-- Selected path display -->
-	<!-- {#if selected}
+		<!-- Selected path display -->
+		<!-- {#if selected}
 		<div class="selected-display">
 			<span class="selected-label">Selected:</span>
 			<span class="selected-path">{selected}</span>
@@ -268,130 +288,169 @@
 			</IconButton>
 		</div>
 	{/if} -->
-	<!-- Search bar -->
-	<div class="search-bar">
-		<Input type="text" bind:value={query} {placeholder} disabled={loading} class="search-input" />
-		<div class="btn-group">
-			<IconButton
-				type="button"
-				onclick={selectCurrent}
-				disabled={loading}
-				title="Select current directory"
-			>
-				<IconCheck size={20} />
-			</IconButton>
-			<IconButton
-				type="button"
-				onclick={toggleNewDirInput}
-				title="Create new directory"
-				variant="ghost"
-			>
-				<IconFolderPlus size={16} />
-			</IconButton>
-			<IconButton
-				type="button"
-				class="action-btn"
-				onclick={toggleHidden}
-				title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
-				variant="ghost"
-			>
-				{#if showHidden}
-					<IconEye size={16} />
-				{:else}
-					<IconEyeOff size={16} />
-				{/if}
-			</IconButton>
-		</div>
-	</div>
-
-	<!-- New directory input -->
-	{#if showNewDirInput}
-		<div class="new-dir-form">
-			<Input
-				type="text"
-				bind:value={newDirName}
-				placeholder="Enter new directory name..."
-				disabled={creatingDir}
-				class="new-dir-input"
-				onkeydown={(e) => e.key === 'Enter' && createNewDirectory()}
-			/>
-			<Button
-				type="button"
-				class="create-btn"
-				onclick={createNewDirectory}
-				disabled={creatingDir || !newDirName.trim()}
-			>
-				{creatingDir ? 'Creating...' : 'Create'}
-			</Button>
-			<Button type="button" class="cancel-btn" onclick={toggleNewDirInput} disabled={creatingDir}>
-				Cancel
-			</Button>
-		</div>
-	{/if}
-
-	<!-- Status bar -->
-	{#if loading || error}
-		<div class="status-bar">
-			{#if loading}
-				<span class="loading">Loading...</span>
-			{/if}
-			{#if error}
-				<span class="error">{error}</span>
-			{/if}
-		</div>
-	{/if}
-
-	<!-- Directory listing -->
-	<div class="directory-list">
-		{#if currentPath !== '/'}
-			<div class="list-item parent-dir">
-				<button type="button" onclick={goUp} disabled={loading} class="item-button">
-					<span class="icon"><IconFolder size={20} /></span>
-					<span class="name">..</span>
-					<span class="type">parent directory</span>
-				</button>
-			</div>
-		{/if}
-
-		{#each filtered as entry}
-			<div class="list-item">
-				{#if entry.isDirectory}
-					<button
-						type="button"
-						onclick={() => navigateTo(entry.path)}
-						disabled={loading}
-						class="item-button"
-					>
-						<span class="icon"><IconFolder size={20} /></span>
-						<span class="name">{entry.name}</span>
-						<span class="type">directory</span>
-					</button>
+		<!-- Search bar -->
+		<div class="search-bar">
+			<Input type="text" bind:value={query} {placeholder} disabled={loading} class="search-input" />
+			<div class="btn-group">
+				{#if !isAlwaysOpen}
 					<IconButton
 						type="button"
-						onclick={() => selectDirectory(entry.path)}
+						onclick={selectCurrent}
 						disabled={loading}
-						class="quick-select"
-						title="Select this directory"
+						title="Select current directory"
 					>
-						<IconCheck size={16} />
+						<IconCheck size={20} />
 					</IconButton>
-				{:else}
-					<div class="item-button file">
-						<span class="icon"><IconFile size={20} /></span>
-						<span class="name">{entry.name}</span>
-						<span class="type">file</span>
-					</div>
 				{/if}
+				<IconButton
+					type="button"
+					onclick={toggleNewDirInput}
+					title="Create new directory"
+					variant="ghost"
+				>
+					<IconFolderPlus size={16} />
+				</IconButton>
+				{#if showFileActions && onFileUpload}
+					<IconButton
+						type="button"
+						onclick={triggerFileUpload}
+						title="Upload files"
+						variant="ghost"
+						disabled={uploading}
+					>
+						<IconUpload size={16} />
+					</IconButton>
+				{/if}
+				<IconButton
+					type="button"
+					class="action-btn"
+					onclick={toggleHidden}
+					title={showHidden ? 'Hide hidden files' : 'Show hidden files'}
+					variant="ghost"
+				>
+					{#if showHidden}
+						<IconEye size={16} />
+					{:else}
+						<IconEyeOff size={16} />
+					{/if}
+				</IconButton>
 			</div>
-		{/each}
+		</div>
 
-		{#if !loading && filtered.length === 0 && !error}
-			<div class="empty-message">
-				{query ? 'No matching items' : 'This directory is empty'}
+		<!-- File upload input -->
+		{#if showFileActions && onFileUpload}
+			<input
+				type="file"
+				multiple
+				bind:files={uploadFiles}
+				style="display: none"
+				id={fileInputId}
+				onchange={handleFileUpload}
+			/>
+		{/if}
+
+		<!-- New directory input -->
+		{#if showNewDirInput}
+			<div class="new-dir-form">
+				<Input
+					type="text"
+					bind:value={newDirName}
+					placeholder="Enter new directory name..."
+					disabled={creatingDir}
+					class="new-dir-input"
+					onkeydown={(e) => e.key === 'Enter' && createNewDirectory()}
+				/>
+				<Button
+					type="button"
+					class="create-btn"
+					onclick={createNewDirectory}
+					disabled={creatingDir || !newDirName.trim()}
+				>
+					{creatingDir ? 'Creating...' : 'Create'}
+				</Button>
+				<Button type="button" class="cancel-btn" onclick={toggleNewDirInput} disabled={creatingDir}>
+					Cancel
+				</Button>
 			</div>
 		{/if}
+
+		<!-- Status bar -->
+		{#if loading || error}
+			<div class="status-bar">
+				{#if loading}
+					<span class="loading">Loading...</span>
+				{/if}
+				{#if error}
+					<span class="error">{error}</span>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Directory listing -->
+		<div class="directory-list">
+			{#if currentPath !== '/'}
+				<div class="list-item parent-dir">
+					<button type="button" onclick={goUp} disabled={loading} class="item-button">
+						<span class="icon"><IconFolder size={20} /></span>
+						<span class="name">..</span>
+						<span class="type">parent directory</span>
+					</button>
+				</div>
+			{/if}
+
+			{#each filtered as entry}
+				<div class="list-item">
+					{#if entry.isDirectory}
+						<button
+							type="button"
+							onclick={() => navigateTo(entry.path)}
+							disabled={loading}
+							class="item-button"
+						>
+							<span class="icon"><IconFolder size={20} /></span>
+							<span class="name">{entry.name}</span>
+							<span class="type">directory</span>
+						</button>
+						{#if !isAlwaysOpen}
+							<IconButton
+								type="button"
+								onclick={() => selectDirectory(entry.path)}
+								disabled={loading}
+								class="quick-select"
+								title="Select this directory"
+							>
+								<IconCheck size={16} />
+							</IconButton>
+						{/if}
+					{:else if showFileActions && onFileOpen}
+						<button
+							type="button"
+							class="item-button file interactive"
+							onclick={() => openFile(entry)}
+							disabled={loading}
+							title="Open file"
+						>
+							<span class="icon"><IconFile size={20} /></span>
+							<span class="name">{entry.name}</span>
+							<span class="type">file</span>
+						</button>
+					{:else}
+						<div class="item-button file">
+							<span class="icon"><IconFile size={20} /></span>
+							<span class="name">{entry.name}</span>
+							<span class="type">file</span>
+						</div>
+					{/if}
+				</div>
+			{/each}
+
+			{#if !loading && filtered.length === 0 && !error}
+				<div class="empty-message">
+					{query ? 'No matching items' : 'This directory is empty'}
+				</div>
+			{/if}
+		</div>
 	</div>
-</div>
 {/if}
 
 <style>
@@ -457,6 +516,7 @@
 		padding: calc(var(--space-3) * 1);
 		font-family: var(--font-mono);
 		width: 100%;
+		height: 100%;
 		position: relative;
 		overflow: hidden;
 		box-shadow:
@@ -687,11 +747,7 @@
 		scrollbar-width: thin;
 		scrollbar-color: var(--db-primary-dim) transparent;
 		min-height: 220px;
-		height: 280px;
-		height: calc(100dvh - 525px);
-
-		height: clamp(400px, 30vh, 500px);
-		max-height: 100%;
+		height: 100%;
 
 		/* background: linear-gradient(180deg, 
 				var(--db-surface) 0%, 
@@ -814,6 +870,20 @@
 		background: linear-gradient(135deg, rgba(10, 15, 12, 0.4) 0%, rgba(5, 10, 8, 0.3) 100%);
 	}
 
+	.item-button.file.interactive {
+		opacity: 0.8;
+		cursor: pointer;
+		background: linear-gradient(135deg, rgba(15, 25, 20, 0.6) 0%, rgba(10, 20, 15, 0.4) 100%);
+	}
+
+	.item-button.file.interactive:hover {
+		opacity: 1;
+		border-color: rgba(46, 230, 107, 0.3);
+		box-shadow:
+			0 3px 10px rgba(46, 230, 107, 0.2),
+			inset 0 2px 4px rgba(46, 230, 107, 0.1);
+	}
+
 	.item-button:disabled {
 		opacity: 0.3;
 		cursor: not-allowed;
@@ -871,5 +941,93 @@
 		animation: pulse 2s ease-in-out infinite;
 	}
 
+	/* Animations */
+	@keyframes pulse {
+		0%,
+		100% {
+			opacity: 0.7;
+		}
+		50% {
+			opacity: 0.4;
+		}
+	}
 
+	@keyframes fadeInUp {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes expandIn {
+		from {
+			opacity: 0;
+			transform: scaleY(0.8);
+		}
+		to {
+			opacity: 1;
+			transform: scaleY(1);
+		}
+	}
+
+	@keyframes rotate {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@keyframes statusSweep {
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(100%);
+		}
+	}
+
+	@keyframes loadingPulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.5;
+		}
+	}
+
+	@keyframes errorShake {
+		0%,
+		100% {
+			transform: translateX(0);
+		}
+		10%,
+		30%,
+		50%,
+		70%,
+		90% {
+			transform: translateX(-3px);
+		}
+		20%,
+		40%,
+		60%,
+		80% {
+			transform: translateX(3px);
+		}
+	}
+
+	@keyframes shimmer {
+		0% {
+			transform: translateX(-100%);
+		}
+		100% {
+			transform: translateX(100%);
+		}
+	}
 </style>

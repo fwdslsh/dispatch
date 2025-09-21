@@ -10,11 +10,13 @@
 	import IconTerminal2 from './Icons/IconTerminal2.svelte';
 	import IconFolder from './Icons/IconFolder.svelte';
 	import IconPlus from './Icons/IconPlus.svelte';
+	import IconEdit from './Icons/IconEdit.svelte';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { getClientSessionModule } from '$lib/client/shared/session-modules/index.js';
+	import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
 	// Props
-	let { open = $bindable(false), initialType = 'claude', oncreated, onclose } = $props();
+	let { open = $bindable(false), initialType = SESSION_TYPE.CLAUDE, oncreated, onclose } = $props();
 
 	// State
 	let sessionType = $state(initialType);
@@ -78,7 +80,7 @@
 		try {
 			// Create the session using SessionApiClient
 			const session = await sessionApi.create({
-				type: /** @type {'pty' | 'claude'} */ (sessionType),
+				type: sessionType,
 				workspacePath,
 				options: sessionSettings
 			});
@@ -154,9 +156,9 @@
 					<TypeCard
 						title="Claude Code"
 						description="AI-powered coding assistant"
-						active={sessionType === 'claude'}
+						active={sessionType === SESSION_TYPE.CLAUDE}
 						disabled={loading}
-						onclick={() => (sessionType = 'claude')}
+						onclick={() => (sessionType = SESSION_TYPE.CLAUDE)}
 						aria-label="Select Claude Code session type"
 						role="button"
 						tabindex="0"
@@ -166,14 +168,26 @@
 					<TypeCard
 						title="Terminal"
 						description="Direct shell access"
-						active={sessionType === 'pty'}
+						active={sessionType === SESSION_TYPE.PTY}
 						disabled={loading}
-						onclick={() => (sessionType = 'pty')}
+						onclick={() => (sessionType = SESSION_TYPE.PTY)}
 						aria-label="Select Terminal session type"
 						role="button"
 						tabindex="0"
 					>
 						{#snippet icon()}<IconTerminal2 size={32} />{/snippet}
+					</TypeCard>
+					<TypeCard
+						title="File Editor"
+						description="Browse, edit, and upload files"
+						active={sessionType === SESSION_TYPE.FILE_EDITOR}
+						disabled={loading}
+						onclick={() => (sessionType = SESSION_TYPE.FILE_EDITOR)}
+						aria-label="Select File Editor session type"
+						role="button"
+						tabindex="0"
+					>
+						{#snippet icon()}<IconEdit size={32} />{/snippet}
 					</TypeCard>
 				</div>
 			</FormSection>

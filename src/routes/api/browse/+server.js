@@ -11,14 +11,11 @@ function getBaseDirectory() {
 
 // Validate that the requested path is within allowed bounds
 function isPathAllowed(requestedPath) {
-	const base = getBaseDirectory();
 	const resolved = resolve(requestedPath);
-	const normalizedBase = normalize(base);
 
-	// Allow browsing within the base directory and its parents (for navigation)
-	// But don't allow access to system directories like /etc, /usr, etc.
-	const systemDirs = ['/etc', '/usr/bin', '/usr/sbin', '/bin', '/sbin', '/proc', '/sys', '/dev'];
-	for (const dir of systemDirs) {
+	// Only block access to truly sensitive system directories
+	const blockedDirs = ['/proc', '/sys', '/dev'];
+	for (const dir of blockedDirs) {
 		if (resolved.startsWith(dir)) {
 			return false;
 		}
@@ -61,10 +58,7 @@ export async function GET({ url }) {
 				continue;
 			}
 
-			// Skip certain system files/directories
-			if (['.git', 'node_modules', '.svelte-kit', 'dist', 'build'].includes(item.name)) {
-				continue;
-			}
+			// Allow all directories and files (user can decide what to browse)
 
 			const itemPath = join(resolvedPath, item.name);
 

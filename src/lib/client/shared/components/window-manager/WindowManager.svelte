@@ -220,11 +220,14 @@
 
 	/** @param {KeyboardEvent} e */
 	function onKey(e) {
+		// Normalize key to lowercase for consistent matching
+		const normalizedKey = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+
 		const combo = [
 			e.ctrlKey ? 'Control' : null,
 			e.shiftKey ? 'Shift' : null,
 			e.altKey ? 'Alt' : null,
-			e.key
+			normalizedKey
 		]
 			.filter(Boolean)
 			.join('+');

@@ -3,7 +3,25 @@
  * Fixed to provide isActive field for proper UI filtering
  */
 
-import { normalizeSessionKind } from '$lib/shared/session-kind.js';
+import { SESSION_TYPE, isValidSessionType } from '$lib/shared/session-types.js';
+
+/**
+ * Get title for session type
+ * @param {string} kind Session kind
+ * @returns {string} Session title
+ */
+function getSessionTitle(kind) {
+	switch (kind) {
+		case SESSION_TYPE.CLAUDE:
+			return 'Claude Session';
+		case SESSION_TYPE.PTY:
+			return 'Terminal Session';
+		case SESSION_TYPE.FILE_EDITOR:
+			return 'File Editor Session';
+		default:
+			return `${kind} Session`;
+	}
+}
 
 export async function GET({ url, locals }) {
 	const includeAll = url.searchParams.get('include') === 'all';
@@ -29,7 +47,7 @@ export async function GET({ url, locals }) {
 			return {
 				id: row.run_id,
 				type: row.kind,
-				title: `${row.kind === 'pty' ? 'Terminal' : 'Claude'} Session`,
+				title: getSessionTitle(row.kind),
 				workspacePath: meta.cwd || meta.workspacePath || '',
 				isActive: row.status === 'running',  // KEY FIX: Add isActive field
 				createdAt: row.created_at,
@@ -57,8 +75,7 @@ export async function GET({ url, locals }) {
 export async function POST({ request, locals }) {
 	const { kind, type, cwd, resume = false, sessionId, options = {} } = await request.json();
 
-	const rawKind = kind ?? type;
-	const normalizedKind = normalizeSessionKind(rawKind);
+	const sessionKind = kind ?? type;
 
 	try {
 		if (resume && sessionId) {
@@ -82,15 +99,15 @@ export async function POST({ request, locals }) {
 			}
 		}
 
-		if (!normalizedKind) {
+		if (!isValidSessionType(sessionKind)) {
 			return new Response(JSON.stringify({
-				error: 'Invalid or missing kind. Must be "pty" or "claude"'
+				error: `Invalid or missing kind. Must be one of: ${Object.values(SESSION_TYPE).join(', ')}`
 			}), { status: 400 });
 		}
 
 		// Create run session using unified manager
 		const { runId } = await locals.services.runSessionManager.createRunSession({
-			kind: normalizedKind,
+			kind: sessionKind,
 			meta: {
 				cwd: cwd || process.env.WORKSPACES_ROOT || process.env.HOME,
 				options
@@ -100,8 +117,8 @@ export async function POST({ request, locals }) {
 		return new Response(JSON.stringify({
 			runId,
 			success: true,
-			kind: normalizedKind,
-			type: normalizedKind
+			kind: sessionKind,
+			type: sessionKind
 		}), {
 			headers: { 'content-type': 'application/json' }
 		});
@@ -114,14 +131,13 @@ export async function POST({ request, locals }) {
 		let statusCode = 500;
 
 		if (error.message?.includes('node-pty')) {
-			errorMessage = 'Terminal functionality is temporarily unavailable. Please try again in a moment.';
+			errorMessage = `${SESSION_TYPE.PTY} functionality is temporarily unavailable. Please try again in a moment.`;
 			statusCode = 503;
 		} else if (error.message?.includes('claude-code')) {
-			errorMessage = 'Claude Code functionality is temporarily unavailable. Please try again in a moment.';
+			errorMessage = `${SESSION_TYPE.CLAUDE} functionality is temporarily unavailable. Please try again in a moment.`;
 			statusCode = 503;
 		} else if (error.message?.includes('No adapter')) {
-			const errorKind = normalizeSessionKind(kind) || normalizeSessionKind(type) || rawKind;
-			errorMessage = `Session type "${errorKind || 'unknown'}" is not supported`;
+			errorMessage = `Session type "${sessionKind || 'unknown'}" is not supported`;
 			statusCode = 400;
 		}
 

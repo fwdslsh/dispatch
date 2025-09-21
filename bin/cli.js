@@ -513,19 +513,42 @@ program
 program
 	.command('stop')
 	.description('Stop the Dispatch container')
-	.action(async () => {
+	.option('--rm', 'Remove the Dispatch container after it stops')
+	.action(async (options) => {
 		try {
 			console.log('🛑 Stopping Dispatch container...');
 
-			const stop = spawn('docker', ['stop', 'dispatch'], { stdio: 'inherit' });
+			const stopCode = await new Promise((resolve) => {
+				const stop = spawn('docker', ['stop', 'dispatch'], { stdio: 'inherit' });
 
-			stop.on('close', (code) => {
-				if (code === 0) {
-					console.log('✅ Container stopped successfully');
-				} else {
-					console.log('⚠️  Container may not have been running');
-				}
+				stop.on('close', (code) => {
+					resolve(code);
+				});
 			});
+
+			if (stopCode === 0) {
+				console.log('✅ Container stopped successfully');
+			} else {
+				console.log('⚠️  Container may not have been running');
+			}
+
+			if (options.rm) {
+				console.log('🧹 Removing Dispatch container...');
+
+				const rmCode = await new Promise((resolve) => {
+					const rm = spawn('docker', ['rm', 'dispatch'], { stdio: 'inherit' });
+
+					rm.on('close', (code) => {
+						resolve(code);
+					});
+				});
+
+				if (rmCode === 0) {
+					console.log('🗑️  Container removed successfully');
+				} else {
+					console.log('⚠️  Failed to remove container (it may already be removed)');
+				}
+			}
 		} catch (error) {
 			console.error('❌ Error:', error.message);
 			process.exit(1);

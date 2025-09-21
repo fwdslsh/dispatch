@@ -14,7 +14,7 @@
 	import IconTerminal from './Icons/IconTerminal.svelte';
 	import IconAsterisk from './Icons/IconAsterisk.svelte';
 	import IconClaude from './Icons/IconClaude.svelte';
-	import { normalizeSessionKind } from '$lib/shared/session-kind.js';
+	import { SESSION_TYPE } from '$lib/shared/session-types.js';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 
 	// Props
@@ -199,13 +199,13 @@
 	// Resume a previous session
 	async function resumeSession(session) {
 		try {
-			const normalizedType = normalizeSessionKind(session.type) || 'pty';
+			const sessionType = session.type || SESSION_TYPE.PTY;
 			// Call the session resume endpoint with proper parameters
 			const response = await fetch('/api/sessions', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					type: normalizedType,
+					type: sessionType,
 					workspacePath: session.workspacePath,
 					resume: true,
 					sessionId: session.id
@@ -224,7 +224,7 @@
 				onSessionSelected?.({
 					detail: {
 						id: resumedId,
-						type: normalizedType,
+						type: sessionType,
 						workspacePath: session.workspacePath,
 						isActive: true,
 						shouldResume: true

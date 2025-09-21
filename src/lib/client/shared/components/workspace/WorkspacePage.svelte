@@ -18,6 +18,8 @@
 	import CreateSessionModal from '$lib/client/shared/components/CreateSessionModal.svelte';
 	import SettingsModal from '$lib/client/shared/components/Settings/SettingsModal.svelte';
 	import ProjectSessionMenu from '$lib/client/shared/components/ProjectSessionMenu.svelte';
+	import Modal from '$lib/client/shared/components/Modal.svelte';
+	import Button from '$lib/client/shared/components/Button.svelte';
 
 	// PWA components
 	import PWAInstallPrompt from '$lib/client/shared/components/PWAInstallPrompt.svelte';
@@ -43,7 +45,27 @@
 	let workspaceViewMode = $state('window-manager');
 	let activeSessionId = $state(null);
 
-	// activeModal: { type: string, data: any } | null
+	const PWA_INSTALL_GUIDES = {
+		ios: {
+			title: 'Install Dispatch on iOS',
+			description: 'Add Dispatch to your home screen to launch it like a native app:',
+			steps: [
+				'Tap the share button (the square with an arrow) in Safari.',
+				'Scroll down and choose "Add to Home Screen".',
+				'Tap "Add" to confirm.'
+			]
+		},
+		default: {
+			title: 'Install Dispatch',
+			description: 'Install Dispatch as a Progressive Web App using your browser:',
+			steps: [
+				'Look for an install icon in the address bar.',
+				'Or open the browser menu and choose "Install" or "Add to Home Screen".'
+			]
+		}
+	};
+
+	// activeModal: { type: 'createSession' | 'settings' | 'pwaInstructions', data: any } | null
 	let activeModal = $state(null);
 
 	let sessionMenuOpen = $state(false);
@@ -74,7 +96,6 @@
 	});
 	const isSingleSessionView = $derived(workspaceViewMode === 'single-session');
 	const isWindowManagerView = $derived(!isSingleSessionView);
-
 
 	// Responsive state
 	const isMobile = $derived(innerWidth.current <= 500);
@@ -185,15 +206,9 @@
 			// Show manual installation instructions
 			const isIOS =
 				/iPad|iPhone|iPod/.test(navigator.userAgent) && !(/** @type {any} */ (window).MSStream);
-			if (isIOS) {
-				alert(
-					'To install this app on iOS:\n1. Tap the share button ⎙\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" to install'
-				);
-			} else {
-				alert(
-					'To install this app:\n1. Look for an install icon in your browser\'s address bar\n2. Or check your browser\'s menu for "Install" or "Add to Home Screen" option'
-				);
-			}
+			const guide = isIOS ? PWA_INSTALL_GUIDES.ios : PWA_INSTALL_GUIDES.default;
+			log.info('Showing manual PWA install instructions', { platform: isIOS ? 'ios' : 'default' });
+			activeModal = { type: 'pwaInstructions', data: guide };
 		}
 	}
 
@@ -202,10 +217,49 @@
 		activeModal = { type: 'settings', data: null };
 	}
 
-	function handleCreateSession(type = 'claude') {
+	async function handleCreateSession(type = 'claude') {
 		console.log('[WorkspacePage] handleCreateSession called:', type);
-		// For SessionWindowManager buttons, create session directly
+		// For quick-create buttons, create session directly with default workspace
+		if (sessionViewModel) {
+			try {
+				// Use a default workspace path - either the stored default or workspace root
+				const defaultWorkspace = getUserDefaultWorkspace() || '/home/runner/work/dispatch/dispatch/.testing-home/workspaces';
+
+				await sessionViewModel.createSession({
+					type: type,
+					workspacePath: defaultWorkspace,
+					options: {}
+				});
+
+				log.info(`Created ${type} session directly with workspace: ${defaultWorkspace}`);
+			} catch (error) {
+				log.error(`Failed to create ${type} session:`, error);
+				// Fall back to opening the modal if direct creation fails
+				openCreateSessionModal(type);
+			}
+		} else {
+			// Fallback to modal if sessionViewModel not available
+			openCreateSessionModal(type);
+		}
+	}
+
+	// Function to handle create session button (opens modal)
+	function handleCreateSessionModal(type = 'claude') {
+		console.log('[WorkspacePage] handleCreateSessionModal called:', type);
 		openCreateSessionModal(type);
+	}
+
+	// Helper to get user's default workspace
+	function getUserDefaultWorkspace() {
+		try {
+			if (typeof localStorage === 'undefined') return null;
+			const raw = localStorage.getItem('dispatch-settings');
+			if (!raw) return null;
+			const settings = JSON.parse(raw);
+			return settings?.defaultWorkingDirectory || null;
+		} catch (e) {
+			return null;
+		}
 	}
 
 	function updateActiveSession(id) {
@@ -391,7 +445,7 @@
 		onLogout={handleLogout}
 		onInstallPWA={handleInstallPWA}
 		onOpenSettings={handleOpenSettings}
-		onCreateSession={handleCreateSession}
+		onCreateSession={handleCreateSessionModal}
 		onToggleSessionMenu={handleToggleSessionMenu}
 		onNavigateSession={handleNavigateSession}
 		{sessionMenuOpen}
@@ -413,8 +467,30 @@
 			oncreated={handleSessionCreate}
 			onclose={closeActiveModal}
 		/>
-	{:else if activeModal.type === 'settings'}
+{:else if activeModal.type === 'settings'}
 		<SettingsModal open={true} onclose={closeActiveModal} />
+	{:else if activeModal.type === 'pwaInstructions'}
+		<Modal open={true} title={activeModal.data?.title} size="small" onclose={closeActiveModal}>
+			{#snippet children()}
+				<div class="pwa-instructions">
+					{#if activeModal.data?.description}
+						<p>{activeModal.data.description}</p>
+					{/if}
+					{#if activeModal.data?.steps?.length}
+						<ol class="pwa-instructions__steps">
+							{#each activeModal.data.steps as step}
+								<li>{step}</li>
+							{/each}
+						</ol>
+					{/if}
+				</div>
+			{/snippet}
+			{#snippet footer()}
+				<div class="modal-actions">
+					<Button variant="primary" onclick={closeActiveModal}>Got it</Button>
+				</div>
+			{/snippet}
+		</Modal>
 	{/if}
 {/if}
 
@@ -483,6 +559,36 @@
 		transition:
 			transform 0.15s ease-out,
 			opacity 0.15s ease-out;
+	}
+
+	.pwa-instructions {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+		line-height: 1.6;
+	}
+
+	.pwa-instructions p {
+		margin: 0;
+		color: var(--text-secondary);
+	}
+
+	.pwa-instructions__steps {
+		margin: 0;
+		padding-left: 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.pwa-instructions__steps li {
+		color: var(--text-primary);
+	}
+
+	.modal-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: var(--space-3);
 	}
 
 	.session-sheet.open {

@@ -205,11 +205,7 @@ export function setupSocketIO(httpServer, services) {
 			} catch (error) {
 				logger.error('SOCKET', `Failed to close run:${runId}:`, error);
 			}
-		});
-
-		// Note: legacy compatibility handlers (terminal.* / claude.*) were removed
-		// in favor of the unified run:* event API. Clients and tests should use
-		// 'run:attach', 'run:input', 'run:resize', and 'run:close' instead.
+		});		
 
 		// ===== ADMIN AND UTILITY HANDLERS =====
 
