@@ -449,12 +449,7 @@
 				<h4>Branches</h4>
 
 				<div class="branch-actions">
-					<Input
-						bind:value={newBranchName}
-						placeholder="New branch name..."
-						type="text"
-						class="new-branch-input"
-					/>
+					<Input bind:value={newBranchName} placeholder="New branch name..." type="text" />
 					<Button onclick={createBranch} disabled={!newBranchName.trim() || loading} size="sm">
 						Create
 					</Button>
@@ -488,7 +483,6 @@
 					bind:value={commitMessage}
 					placeholder="Enter commit message..."
 					type="text"
-					class="commit-message-input"
 					onkeydown={(e) => e.key === 'Enter' && commitChanges()}
 				/>
 				<div class="commit-actions">
@@ -502,10 +496,22 @@
 
 		<!-- File diff modal -->
 		{#if showDiff}
-			<div class="git-diff-modal" onclick={() => (showDiff = null)}>
-				<div class="diff-content" onclick={(e) => e.stopPropagation()}>
+			<div
+				class="git-diff-modal"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="diff-title"
+				onclick={() => (showDiff = null)}
+				onkeydown={(e) => e.key === 'Escape' && (showDiff = null)}
+			>
+				<div
+					class="diff-content"
+					role="document"
+					onclick={(e) => e.stopPropagation()}
+					onkeydown={(e) => e.stopPropagation()}
+				>
 					<div class="diff-header">
-						<h4>Diff: {showDiff}</h4>
+						<h4 id="diff-title">Diff: {showDiff}</h4>
 						<IconButton onclick={() => (showDiff = null)} variant="ghost">
 							<IconX size={16} />
 						</IconButton>
@@ -634,7 +640,7 @@
 		margin-bottom: 12px;
 	}
 
-	.new-branch-input {
+	.branch-actions input {
 		flex: 1;
 	}
 
@@ -664,13 +670,13 @@
 		font-weight: 500;
 	}
 
-	.commit-message-input {
-		margin-bottom: 12px;
-	}
-
 	.commit-actions {
 		display: flex;
 		gap: 8px;
+	}
+
+	.commit-actions input {
+		margin-bottom: 12px;
 	}
 
 	.git-diff-modal {
