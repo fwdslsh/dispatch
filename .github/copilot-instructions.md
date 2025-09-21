@@ -1,4 +1,5 @@
 <!-- Concise Copilot instructions for Dispatch -->
+
 # Copilot instructions (condensed)
 
 Be small, precise, and follow project conventions. This file highlights the essential patterns and touchpoints
@@ -26,6 +27,7 @@ an AI agent needs to be productive in Dispatch.
   - To add a session type: add adapter in `src/lib/server/adapters/`, register it with `RunSessionManager.registerAdapter()`, and add client UI under `src/lib/client/`.
 
 If you want more detail on adapter registration, DB schema, or exact Socket.IO event flows, tell me which area to expand and I'll extend this file with precise file paths and examples.
+
 <!-- .github/copilot-instructions.md - guidance for AI coding agents working on Dispatch -->
 
 # Copilot instructions for this repository

@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import Split from './Split.svelte';
 	import Tile from './Tile.svelte';
-	import { on } from 'svelte/events';
 	import { generateUUID } from '../../utils/uuid.js';
 
 	/**
@@ -19,9 +18,11 @@
 		/** @type {number} */ gap = 6,
 		/** @type {number} */ minSize = 48,
 		/** @type {Partial<Keymap>} */ keymap = {},
+		/** @type {boolean} */ showEditMode = false,
 		onfocuschange = (e) => {},
 		onlayoutchange = (e) => {},
-		/** @type {import('svelte').Snippet<[{focused: string, tileId: string}]>} */ tile
+		oneditmodetoggle = (e) => {},
+		/** @type {import('svelte').Snippet<[{focused: string, tileId: string, editMode: boolean, onSplitRight: () => void, onSplitDown: () => void, onClose: () => void}]>} */ tile
 	} = $props();
 
 	/** @type {LayoutNode} */
@@ -30,6 +31,8 @@
 	let focused = $state('root');
 	/** @type {HTMLElement|null} */
 	let containerEl = $state(null);
+	/** @type {boolean} */
+	let editMode = $state(showEditMode);
 
 	/** @type {Keymap} */
 	const DEFAULT_KEYMAP = {
@@ -294,6 +297,41 @@
 
 	// Expose core layout helpers to parent components
 	export { splitBesideCurrent, closeFocused };
+
+	// Edit mode toggle
+	function toggleEditMode() {
+		editMode = !editMode;
+		oneditmodetoggle?.({ detail: { editMode } });
+	}
+
+	// Helper to temporarily set focus to a tile, perform an action, then restore previous focus
+	function withTileFocus(tileId, action) {
+		const prevFocused = focused;
+		focused = tileId;
+		try {
+			action();
+		} finally {
+			focused = prevFocused;
+		}
+	}
+
+	// Tile action handlers for UI buttons
+	function handleSplitRight(tileId) {
+		withTileFocus(tileId, () => splitBesideCurrent('row'));
+	}
+
+	function handleSplitDown(tileId) {
+		withTileFocus(tileId, () => splitBesideCurrent('column'));
+	}
+
+	function handleCloseTile(tileId) {
+		withTileFocus(tileId, () => closeFocused());
+	}
+
+	// Sync edit mode with prop
+	$effect(() => {
+		editMode = showEditMode;
+	});
 </script>
 
 <!--
@@ -307,12 +345,29 @@
 	role="region"
 	data-gap={gap}
 	data-minsize={minSize}
+	data-edit-mode={String(editMode)}
 	onkeydown={onKey}
 >
+	<!-- Edit mode toggle button -->
+	<!-- {#if editMode || showEditMode !== undefined}
+		<div class="wm-edit-controls">
+			<button class="wm-edit-toggle" onclick={toggleEditMode} type="button">
+				{editMode ? '✓ Edit Mode' : '✏️ Edit Mode'}
+			</button>
+		</div>
+	{/if} -->
+
 	{#if root.type === 'leaf'}
 		<Tile id={/** @type {Leaf} */ (root).id} {focused} onfocus={handleFocus}>
 			{#snippet children()}
-				{@render tile({ focused, tileId: /** @type {Leaf} */ (root).id })}
+				{@render tile({
+					focused,
+					tileId: /** @type {Leaf} */ (root).id,
+					editMode,
+					onSplitRight: () => handleSplitRight(/** @type {Leaf} */ (root).id),
+					onSplitDown: () => handleSplitDown(/** @type {Leaf} */ (root).id),
+					onClose: () => handleCloseTile(/** @type {Leaf} */ (root).id)
+				})}
 			{/snippet}
 		</Tile>
 	{:else}
@@ -322,8 +377,43 @@
 			{minSize}
 			{focused}
 			{tile}
+			{editMode}
+			onSplitRight={handleSplitRight}
+			onSplitDown={handleSplitDown}
+			onClose={handleCloseTile}
 			onfocus={handleFocus}
 			onratioupdate={handleRatioUpdate}
 		/>
 	{/if}
 </div>
+
+<style>
+	.wm-edit-controls {
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: 20;
+		padding: var(--space-2, 0.5rem);
+	}
+
+	.wm-edit-toggle {
+		background: var(--surface-raised, #333);
+		border: 1px solid var(--surface-border, #555);
+		color: var(--text-primary, #fff);
+		padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+		border-radius: var(--radius, 0.25rem);
+		font-size: var(--text-sm, 0.875rem);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		backdrop-filter: blur(4px);
+	}
+
+	.wm-edit-toggle:hover {
+		background: var(--surface-active, #555);
+		border-color: var(--primary, #0066cc);
+	}
+
+	.wm-root {
+		position: relative;
+	}
+</style>

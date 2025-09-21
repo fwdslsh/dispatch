@@ -1,5 +1,7 @@
 import { logger } from '../shared/utils/logger.js';
 import { SESSION_TYPE } from '../../shared/session-types.js';
+import { homedir } from 'node:os';
+import { resolve } from 'node:path';
 
 /**
  * PTY adapter for terminal sessions using node-pty
@@ -37,10 +39,16 @@ export class PtyAdapter {
 			throw new Error(`Terminal functionality not available: ${error.message}`);
 		}
 
+		// Expand tilde in cwd if present
+		let expandedCwd = cwd || process.env.WORKSPACES_ROOT || process.env.HOME;
+		if (expandedCwd && expandedCwd.startsWith('~/')) {
+			expandedCwd = resolve(homedir(), expandedCwd.slice(2));
+		}
+
 		// Prepare node-pty options with defaults
 		const ptyOptions = {
 			// Working directory
-			cwd: cwd || process.env.WORKSPACES_ROOT || process.env.HOME,
+			cwd: expandedCwd,
 
 			// Environment variables
 			env: options.env ? { ...process.env, ...options.env } : process.env,
@@ -86,7 +94,13 @@ export class PtyAdapter {
 			encoding: ptyOptions.encoding
 		});
 
-		const term = pty.spawn(shell, args, ptyOptions);
+		let term;
+		try {
+			term = pty.spawn(shell, args, ptyOptions);
+		} catch (error) {
+			logger.error('PTY_ADAPTER', 'Failed to spawn terminal:', error);
+			throw new Error(`Failed to spawn terminal: ${error.message}`);
+		}
 
 		// Set up event handlers
 		term.onData((data) => {

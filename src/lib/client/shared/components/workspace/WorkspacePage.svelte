@@ -44,6 +44,7 @@
 	// Component references
 	let workspaceViewMode = $state('window-manager');
 	let activeSessionId = $state(null);
+	let editModeEnabled = $state(false);
 
 	const PWA_INSTALL_GUIDES = {
 		ios: {
@@ -184,6 +185,11 @@
 		workspaceViewMode = mode;
 	}
 
+	function toggleEditMode() {
+		editModeEnabled = !editModeEnabled;
+		log.info('Edit mode toggled:', editModeEnabled);
+	}
+
 	function handleLogout() {
 		if (typeof localStorage !== 'undefined') {
 			localStorage.removeItem('dispatch-auth-key');
@@ -224,8 +230,7 @@
 			try {
 				// Use a default workspace path - either the stored default or workspace root
 				const defaultWorkspace =
-					getUserDefaultWorkspace() ||
-					'/home/runner/work/dispatch/dispatch/.testing-home/workspaces';
+					getUserDefaultWorkspace();
 
 				await sessionViewModel.createSession({
 					type: type,
@@ -258,7 +263,7 @@
 			const raw = localStorage.getItem('dispatch-settings');
 			if (!raw) return null;
 			const settings = JSON.parse(raw);
-			return settings?.defaultWorkingDirectory || null;
+			return settings?.defaultWorkingDirectory || '~/';
 		} catch (e) {
 			return null;
 		}
@@ -384,6 +389,8 @@
 	<WorkspaceHeader
 		onLogout={handleLogout}
 		viewMode={workspaceViewMode}
+		{editModeEnabled}
+		onEditModeToggle={toggleEditMode}
 		onInstallPWA={handleInstallPWA}
 		onViewModeChange={setWorkspaceViewMode}
 	/>
@@ -426,6 +433,7 @@
 		{#if isWindowManagerView}
 			<SessionWindowManager
 				sessions={sessionsList}
+				showEditMode={editModeEnabled}
 				onSessionFocus={handleSessionFocus}
 				onSessionClose={handleSessionClose}
 				onSessionAssignToTile={handleSessionAssignToTile}

@@ -12,9 +12,13 @@
 		/** @type {number} */ gap = 6,
 		/** @type {number} */ minSize = 48,
 		/** @type {string} */ focused = '',
-		/** @type {import('svelte').Snippet<[{focused: string, tileId: string}]>} */ tile,
+		/** @type {boolean} */ editMode = false,
+		/** @type {import('svelte').Snippet<[{focused: string, tileId: string, editMode: boolean, onSplitRight: () => void, onSplitDown: () => void, onClose: () => void}]>} */ tile,
 		/** @type {(id: string) => void} */ onfocus = () => {},
-		/** @type {(node: SplitNode, ratio: number) => void} */ onratioupdate = () => {}
+		/** @type {(node: SplitNode, ratio: number) => void} */ onratioupdate = () => {},
+		/** @type {(tileId: string) => void} */ onSplitRight = () => {},
+		/** @type {(tileId: string) => void} */ onSplitDown = () => {},
+		/** @type {(tileId: string) => void} */ onClose = () => {}
 	} = $props();
 
 	/** @type {HTMLElement|null} */ let splitEl = $state(null);
@@ -81,10 +85,29 @@
 	<div class="wm-pane wm-pane-a" style={`flex:${node.ratio} 1 0;`} data-min={minSize}>
 		{#if node.a?.type === 'leaf'}
 			<Tile id={node.a.id} {focused} onfocus={handleFocus}>
-				{@render tile({ focused, tileId: node.a.id })}
+				{@render tile({
+					focused,
+					tileId: node.a.id,
+					editMode,
+					onSplitRight: () => onSplitRight(node.a.id),
+					onSplitDown: () => onSplitDown(node.a.id),
+					onClose: () => onClose(node.a.id)
+				})}
 			</Tile>
 		{:else if node.a?.type === 'split'}
-			<Split node={node.a} {gap} {minSize} {focused} {tile} onfocus={handleFocus} {onratioupdate} />
+			<Split
+				node={node.a}
+				{gap}
+				{minSize}
+				{focused}
+				{tile}
+				{editMode}
+				{onSplitRight}
+				{onSplitDown}
+				{onClose}
+				onfocus={handleFocus}
+				{onratioupdate}
+			/>
 		{/if}
 	</div>
 
@@ -104,10 +127,29 @@
 	<div class="wm-pane wm-pane-b" style={`flex:${1 - node.ratio} 1 0;`} data-min={minSize}>
 		{#if node.b?.type === 'leaf'}
 			<Tile id={node.b.id} {focused} onfocus={handleFocus}>
-				{@render tile({ focused, tileId: node.b.id })}
+				{@render tile({
+					focused,
+					tileId: node.b.id,
+					editMode,
+					onSplitRight: () => onSplitRight(node.b.id),
+					onSplitDown: () => onSplitDown(node.b.id),
+					onClose: () => onClose(node.b.id)
+				})}
 			</Tile>
 		{:else if node.b?.type === 'split'}
-			<Split node={node.b} {gap} {minSize} {focused} {tile} onfocus={handleFocus} {onratioupdate} />
+			<Split
+				node={node.b}
+				{gap}
+				{minSize}
+				{focused}
+				{tile}
+				{editMode}
+				{onSplitRight}
+				{onSplitDown}
+				{onClose}
+				onfocus={handleFocus}
+				{onratioupdate}
+			/>
 		{/if}
 	</div>
 </div>
