@@ -288,24 +288,20 @@ export class SettingsService {
 
 	/**
 	 * Get fallback defaults when server is unavailable
+	 * Only includes settings that are actually used in the application
 	 */
 	getFallbackDefaults() {
 		return {
 			global: {
-				theme: 'retro',
-				defaultLayout: '2up',
-				autoSaveEnabled: true,
-				sessionTimeoutMinutes: 30,
-				enableAnimations: true,
-				enableSoundEffects: false
+				theme: 'retro' // Used in data-theme attribute setting
 			},
 			claude: {
 				model: 'claude-3-5-sonnet-20241022',
 				permissionMode: 'default',
+				executable: 'auto',
 				maxTurns: null,
 				includePartialMessages: false,
-				continueConversation: false,
-				executable: 'auto'
+				continueConversation: false
 			}
 		};
 	}

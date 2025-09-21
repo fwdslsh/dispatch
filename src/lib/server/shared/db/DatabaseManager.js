@@ -118,14 +118,12 @@ export class DatabaseManager {
 			)
 		`);
 
-		// Server settings table for system-wide defaults
+		// Server settings table for system-wide defaults (JSON objects per category)
 		await this.run(`
 			CREATE TABLE IF NOT EXISTS settings (
-				key TEXT PRIMARY KEY,
-				value TEXT NOT NULL,           -- JSON-encoded value
-				category TEXT NOT NULL,       -- 'global', 'claude', 'terminal', etc.
-				description TEXT,             -- Human-readable description
-				is_sensitive BOOLEAN DEFAULT 0, -- Whether this contains sensitive data
+				category TEXT PRIMARY KEY,    -- 'global', 'claude', 'terminal', etc.
+				settings_json TEXT NOT NULL, -- JSON object containing all settings for this category
+				description TEXT,            -- Human-readable description of the category
 				created_at INTEGER NOT NULL,
 				updated_at INTEGER NOT NULL
 			)
@@ -142,7 +140,7 @@ export class DatabaseManager {
 			'CREATE INDEX IF NOT EXISTS ix_workspace_layout_client ON workspace_layout(client_id)'
 		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_logs_timestamp ON logs(timestamp)');
-		await this.run('CREATE INDEX IF NOT EXISTS ix_settings_category ON settings(category)');
+		// No index needed since category is the primary key
 	}
 
 	/**
@@ -484,185 +482,127 @@ export class DatabaseManager {
 	}
 
 	/**
-	 * Settings Management Methods
+	 * Settings Management Methods - JSON objects per category
 	 */
-
-	/**
-	 * Get a setting value by key
-	 * @param {string} key - Setting key
-	 * @returns {Promise<any>} Setting value (parsed from JSON)
-	 */
-	async getSetting(key) {
-		const row = await this.get('SELECT value FROM settings WHERE key = ?', [key]);
-		if (!row) return null;
-		try {
-			return JSON.parse(row.value);
-		} catch (e) {
-			console.warn(`Failed to parse setting '${key}':`, e);
-			return row.value;
-		}
-	}
 
 	/**
 	 * Get all settings for a category
 	 * @param {string} category - Setting category ('global', 'claude', etc.)
-	 * @returns {Promise<Object>} Key-value pairs of settings
+	 * @returns {Promise<Object>} Settings object for the category
 	 */
 	async getSettingsByCategory(category) {
-		const rows = await this.all('SELECT key, value FROM settings WHERE category = ?', [category]);
-		const settings = {};
-		for (const row of rows) {
-			try {
-				settings[row.key] = JSON.parse(row.value);
-			} catch (e) {
-				console.warn(`Failed to parse setting '${row.key}':`, e);
-				settings[row.key] = row.value;
-			}
+		const row = await this.get('SELECT settings_json FROM settings WHERE category = ?', [category]);
+		if (!row) return {};
+		try {
+			return JSON.parse(row.settings_json);
+		} catch (e) {
+			console.warn(`Failed to parse settings for category '${category}':`, e);
+			return {};
 		}
-		return settings;
 	}
 
 	/**
 	 * Get all settings with metadata
-	 * @returns {Promise<Array>} Array of setting objects with metadata
+	 * @returns {Promise<Array>} Array of setting categories with metadata
 	 */
 	async getAllSettings() {
 		const rows = await this.all(`
-			SELECT key, value, category, description, is_sensitive, created_at, updated_at 
+			SELECT category, settings_json, description, created_at, updated_at 
 			FROM settings 
-			ORDER BY category, key
+			ORDER BY category
 		`);
 		return rows.map((row) => {
 			try {
-				row.value = JSON.parse(row.value);
+				row.settings = JSON.parse(row.settings_json);
 			} catch (e) {
-				// Keep as string if parsing fails
+				row.settings = {};
 			}
+			delete row.settings_json; // Remove raw JSON from response
 			return row;
 		});
 	}
 
 	/**
-	 * Set a setting value
-	 * @param {string} key - Setting key
-	 * @param {any} value - Setting value (will be JSON encoded)
+	 * Set settings for a category
 	 * @param {string} category - Setting category
+	 * @param {Object} settings - Settings object for this category
 	 * @param {string} description - Optional description
-	 * @param {boolean} isSensitive - Whether this setting contains sensitive data
 	 */
-	async setSetting(key, value, category, description = null, isSensitive = false) {
+	async setSettingsForCategory(category, settings, description = null) {
 		const now = Date.now();
-		const valueJson = JSON.stringify(value);
+		const settingsJson = JSON.stringify(settings);
 
 		await this.run(
 			`INSERT OR REPLACE INTO settings 
-			 (key, value, category, description, is_sensitive, created_at, updated_at) 
-			 VALUES (?, ?, ?, ?, ?, 
-			         COALESCE((SELECT created_at FROM settings WHERE key = ?), ?), 
+			 (category, settings_json, description, created_at, updated_at) 
+			 VALUES (?, ?, ?, 
+			         COALESCE((SELECT created_at FROM settings WHERE category = ?), ?), 
 			         ?)`,
-			[key, valueJson, category, description, isSensitive ? 1 : 0, key, now, now]
+			[category, settingsJson, description, category, now, now]
 		);
 	}
 
 	/**
-	 * Delete a setting
-	 * @param {string} key - Setting key
+	 * Update specific setting in a category
+	 * @param {string} category - Setting category
+	 * @param {string} key - Setting key within the category
+	 * @param {any} value - Setting value
 	 */
-	async deleteSetting(key) {
-		await this.run('DELETE FROM settings WHERE key = ?', [key]);
+	async updateSettingInCategory(category, key, value) {
+		// Get current settings for category
+		const currentSettings = await this.getSettingsByCategory(category);
+		
+		// Update the specific key
+		currentSettings[key] = value;
+		
+		// Save back to database
+		await this.setSettingsForCategory(category, currentSettings);
 	}
 
 	/**
-	 * Initialize default settings
+	 * Delete a settings category
+	 * @param {string} category - Setting category
+	 */
+	async deleteSettingsCategory(category) {
+		await this.run('DELETE FROM settings WHERE category = ?', [category]);
+	}
+
+	/**
+	 * Initialize default settings with only actually used settings
 	 */
 	async initializeDefaultSettings() {
-		const defaults = [
-			// Global defaults
+		const categories = [
+			// Global settings - only include settings that are actually used
 			{
-				key: 'global.theme',
-				value: 'retro',
 				category: 'global',
-				description: 'Default application theme'
+				settings: {
+					theme: 'retro' // Used in data-theme attribute setting
+				},
+				description: 'Global application settings'
 			},
+			// Claude settings - used in session creation
 			{
-				key: 'global.defaultLayout',
-				value: '2up',
-				category: 'global',
-				description: 'Default workspace layout'
-			},
-			{
-				key: 'global.autoSaveEnabled',
-				value: true,
-				category: 'global',
-				description: 'Enable automatic saving of work'
-			},
-			{
-				key: 'global.sessionTimeoutMinutes',
-				value: 30,
-				category: 'global',
-				description: 'Session timeout in minutes'
-			},
-			{
-				key: 'global.enableAnimations',
-				value: true,
-				category: 'global',
-				description: 'Enable UI animations'
-			},
-			{
-				key: 'global.enableSoundEffects',
-				value: false,
-				category: 'global',
-				description: 'Enable sound effects'
-			},
-			// Claude defaults
-			{
-				key: 'claude.model',
-				value: 'claude-3-5-sonnet-20241022',
 				category: 'claude',
-				description: 'Default Claude model for new sessions'
-			},
-			{
-				key: 'claude.permissionMode',
-				value: 'default',
-				category: 'claude',
-				description: 'Default permission mode for Claude sessions'
-			},
-			{
-				key: 'claude.maxTurns',
-				value: null,
-				category: 'claude',
-				description: 'Maximum turns per Claude session'
-			},
-			{
-				key: 'claude.includePartialMessages',
-				value: false,
-				category: 'claude',
-				description: 'Include partial messages in Claude responses'
-			},
-			{
-				key: 'claude.continueConversation',
-				value: false,
-				category: 'claude',
-				description: 'Continue conversations by default'
-			},
-			{
-				key: 'claude.executable',
-				value: 'auto',
-				category: 'claude',
-				description: 'Default JavaScript executable for Claude sessions'
+				settings: {
+					model: 'claude-3-5-sonnet-20241022',
+					permissionMode: 'default',
+					executable: 'auto',
+					maxTurns: null,
+					includePartialMessages: false,
+					continueConversation: false
+				},
+				description: 'Default Claude session settings'
 			}
 		];
 
-		for (const setting of defaults) {
-			// Only insert if the setting doesn't already exist
-			const existing = await this.getSetting(setting.key);
-			if (existing === null) {
-				await this.setSetting(
-					setting.key,
-					setting.value,
-					setting.category,
-					setting.description,
-					false
+		for (const categoryData of categories) {
+			// Only insert if the category doesn't already exist
+			const existing = await this.getSettingsByCategory(categoryData.category);
+			if (Object.keys(existing).length === 0) {
+				await this.setSettingsForCategory(
+					categoryData.category,
+					categoryData.settings,
+					categoryData.description
 				);
 			}
 		}

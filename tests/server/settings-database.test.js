@@ -4,7 +4,7 @@ import path from 'path';
 import { tmpdir } from 'os';
 import { rmSync } from 'fs';
 
-describe('Settings Database Integration', () => {
+describe('Settings Database Integration - JSON per Category', () => {
 	let db;
 	let tempDbPath;
 
@@ -26,84 +26,86 @@ describe('Settings Database Integration', () => {
 		}
 	});
 
-	describe('Settings Management', () => {
+	describe('Settings Management - JSON Objects per Category', () => {
 		it('should initialize default settings', async () => {
 			// Check that default settings are created
 			const globalSettings = await db.getSettingsByCategory('global');
-			expect(globalSettings).toHaveProperty('global.theme');
-			expect(globalSettings['global.theme']).toBe('retro');
-			expect(globalSettings).toHaveProperty('global.autoSaveEnabled');
-			expect(globalSettings['global.autoSaveEnabled']).toBe(true);
+			expect(globalSettings).toHaveProperty('theme');
+			expect(globalSettings.theme).toBe('retro');
 
 			const claudeSettings = await db.getSettingsByCategory('claude');
-			expect(claudeSettings).toHaveProperty('claude.model');
-			expect(claudeSettings['claude.model']).toBe('claude-3-5-sonnet-20241022');
-			expect(claudeSettings).toHaveProperty('claude.permissionMode');
-			expect(claudeSettings['claude.permissionMode']).toBe('default');
+			expect(claudeSettings).toHaveProperty('model');
+			expect(claudeSettings.model).toBe('claude-3-5-sonnet-20241022');
+			expect(claudeSettings).toHaveProperty('permissionMode');
+			expect(claudeSettings.permissionMode).toBe('default');
 		});
 
-		it('should get and set individual settings', async () => {
-			// Set a custom setting
-			await db.setSetting('test.value', 'custom_value', 'test', 'Test setting');
-
-			// Retrieve the setting
-			const value = await db.getSetting('test.value');
-			expect(value).toBe('custom_value');
-
-			// Check it appears in category
-			const testSettings = await db.getSettingsByCategory('test');
-			expect(testSettings).toHaveProperty('test.value');
-			expect(testSettings['test.value']).toBe('custom_value');
-		});
-
-		it('should handle JSON values correctly', async () => {
-			// Set complex JSON value
-			const complexValue = {
-				enabled: true,
-				options: ['a', 'b', 'c'],
-				config: { nested: true }
+		it('should get and set category settings', async () => {
+			// Set a custom settings object for a category
+			const testSettings = {
+				testSetting1: 'value1',
+				testSetting2: 42,
+				testSetting3: { nested: true }
 			};
 
-			await db.setSetting('test.complex', complexValue, 'test');
+			await db.setSettingsForCategory('test', testSettings, 'Test category');
+
+			// Retrieve the settings
+			const retrieved = await db.getSettingsByCategory('test');
+			expect(retrieved).toEqual(testSettings);
+		});
+
+		it('should handle complex JSON values correctly', async () => {
+			// Set complex JSON object
+			const complexSettings = {
+				enabled: true,
+				options: ['a', 'b', 'c'],
+				config: { 
+					nested: true,
+					numbers: [1, 2, 3],
+					nullValue: null
+				}
+			};
+
+			await db.setSettingsForCategory('complex', complexSettings);
 
 			// Retrieve and verify
-			const retrieved = await db.getSetting('test.complex');
-			expect(retrieved).toEqual(complexValue);
+			const retrieved = await db.getSettingsByCategory('complex');
+			expect(retrieved).toEqual(complexSettings);
 		});
 
-		it('should update existing settings', async () => {
-			// Update an existing default setting
-			await db.setSetting('global.theme', 'dark', 'global', 'Updated theme');
+		it('should update existing category settings', async () => {
+			// Update an existing default category
+			const newGlobalSettings = {
+				theme: 'dark',
+				newSetting: 'added'
+			};
 
-			const theme = await db.getSetting('global.theme');
-			expect(theme).toBe('dark');
+			await db.setSettingsForCategory('global', newGlobalSettings, 'Updated global settings');
 
-			// Verify it maintains other properties
-			const allSettings = await db.getAllSettings();
-			const themeSetting = allSettings.find(s => s.key === 'global.theme');
-			expect(themeSetting.category).toBe('global');
-			expect(themeSetting.description).toBe('Updated theme');
+			const settings = await db.getSettingsByCategory('global');
+			expect(settings.theme).toBe('dark');
+			expect(settings.newSetting).toBe('added');
 		});
 
-		it('should delete settings', async () => {
-			// Add a setting
-			await db.setSetting('temp.setting', 'temporary', 'temp');
-			expect(await db.getSetting('temp.setting')).toBe('temporary');
+		it('should update individual setting in category', async () => {
+			// Update a specific setting within a category
+			await db.updateSettingInCategory('global', 'theme', 'light');
+
+			const settings = await db.getSettingsByCategory('global');
+			expect(settings.theme).toBe('light');
+			// Other settings should remain unchanged
+			expect(settings).toHaveProperty('theme');
+		});
+
+		it('should delete settings categories', async () => {
+			// Add a category
+			await db.setSettingsForCategory('temp', { temporary: true });
+			expect(await db.getSettingsByCategory('temp')).toEqual({ temporary: true });
 
 			// Delete it
-			await db.deleteSetting('temp.setting');
-			expect(await db.getSetting('temp.setting')).toBeNull();
-		});
-
-		it('should handle sensitive settings', async () => {
-			// Set sensitive setting
-			await db.setSetting('claude.apiKey', 'sk-ant-12345', 'claude', 'API Key', true);
-
-			// Verify it's marked as sensitive
-			const allSettings = await db.getAllSettings();
-			const apiKeySetting = allSettings.find(s => s.key === 'claude.apiKey');
-			expect(apiKeySetting.is_sensitive).toBe(1);
-			expect(apiKeySetting.value).toBe('sk-ant-12345');
+			await db.deleteSettingsCategory('temp');
+			expect(await db.getSettingsByCategory('temp')).toEqual({});
 		});
 
 		it('should get all settings with metadata', async () => {
@@ -114,19 +116,34 @@ describe('Settings Database Integration', () => {
 
 			// Check structure
 			const firstSetting = allSettings[0];
-			expect(firstSetting).toHaveProperty('key');
-			expect(firstSetting).toHaveProperty('value');
 			expect(firstSetting).toHaveProperty('category');
+			expect(firstSetting).toHaveProperty('settings');
 			expect(firstSetting).toHaveProperty('created_at');
 			expect(firstSetting).toHaveProperty('updated_at');
+			expect(firstSetting).not.toHaveProperty('settings_json'); // Should be parsed
 		});
 
-		it('should handle non-existent settings gracefully', async () => {
-			const nonExistent = await db.getSetting('does.not.exist');
-			expect(nonExistent).toBeNull();
+		it('should handle non-existent categories gracefully', async () => {
+			const nonExistent = await db.getSettingsByCategory('does_not_exist');
+			expect(nonExistent).toEqual({});
+		});
 
-			const emptyCategory = await db.getSettingsByCategory('empty');
-			expect(emptyCategory).toEqual({});
+		it('should preserve timestamps on updates', async () => {
+			// Get initial timestamps
+			const allBefore = await db.getAllSettings();
+			const globalBefore = allBefore.find(s => s.category === 'global');
+			const createdAtBefore = globalBefore.created_at;
+
+			// Wait a bit and update
+			await new Promise(resolve => setTimeout(resolve, 10));
+			await db.updateSettingInCategory('global', 'theme', 'updated');
+
+			// Check timestamps
+			const allAfter = await db.getAllSettings();
+			const globalAfter = allAfter.find(s => s.category === 'global');
+			
+			expect(globalAfter.created_at).toBe(createdAtBefore); // Should be preserved
+			expect(globalAfter.updated_at).toBeGreaterThan(globalAfter.created_at); // Should be updated
 		});
 	});
 });

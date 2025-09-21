@@ -50,11 +50,6 @@
 	// Update local component state from settings service
 	function updateLocalState() {
 		theme = settingsService.get('global.theme', 'retro');
-		autoSaveEnabled = settingsService.get('global.autoSaveEnabled', true);
-		sessionTimeoutMinutes = settingsService.get('global.sessionTimeoutMinutes', 30).toString();
-		defaultLayout = settingsService.get('global.defaultLayout', '2up');
-		enableAnimations = settingsService.get('global.enableAnimations', true);
-		enableSoundEffects = settingsService.get('global.enableSoundEffects', false);
 	}
 
 	// Save settings using the new service
@@ -65,13 +60,8 @@
 		saveStatus = '';
 
 		try {
-			// Save as client overrides (localStorage)
+			// Save as client override (localStorage)
 			settingsService.setClientOverride('global.theme', theme);
-			settingsService.setClientOverride('global.autoSaveEnabled', autoSaveEnabled);
-			settingsService.setClientOverride('global.sessionTimeoutMinutes', parseInt(sessionTimeoutMinutes) || 30);
-			settingsService.setClientOverride('global.defaultLayout', defaultLayout);
-			settingsService.setClientOverride('global.enableAnimations', enableAnimations);
-			settingsService.setClientOverride('global.enableSoundEffects', enableSoundEffects);
 
 			// Legacy theme storage for immediate theme application
 			localStorage.setItem(STORAGE_CONFIG.THEME_KEY, theme);
@@ -137,13 +127,13 @@
 	<header class="settings-header">
 		<h3 class="settings-title">Global Preferences</h3>
 		<p class="settings-description">
-			Configure global application settings and workspace defaults. Settings with a 
-			<span class="override-indicator">●</span> are customized from server defaults.
+			Configure global application settings. Only settings that are actually used in the application are shown.
+			Settings with a <span class="override-indicator">●</span> are customized from server defaults.
 		</p>
 	</header>
 
 	<div class="settings-content">
-		<!-- Theme Settings -->
+		<!-- Theme Settings - The only global setting actually used -->
 		<section class="settings-section">
 			<h4 class="section-title">Appearance</h4>
 
@@ -159,90 +149,7 @@
 						<option value={themeOption.value}>{themeOption.label}</option>
 					{/each}
 				</select>
-				<p class="input-help">Choose your preferred visual theme</p>
-			</div>
-
-			<div class="input-group">
-				<label class="checkbox-label">
-					<input type="checkbox" bind:checked={enableAnimations} class="checkbox-input" />
-					<span class="checkbox-text">
-						Enable animations and transitions
-						{#if hasClientOverride('global.enableAnimations')}
-							<span class="override-indicator" title="Customized from server default: {getServerDefault('global.enableAnimations')}">●</span>
-						{/if}
-					</span>
-				</label>
-			</div>
-
-			<div class="input-group">
-				<label class="checkbox-label">
-					<input type="checkbox" bind:checked={enableSoundEffects} class="checkbox-input" />
-					<span class="checkbox-text">
-						Enable sound effects
-						{#if hasClientOverride('global.enableSoundEffects')}
-							<span class="override-indicator" title="Customized from server default: {getServerDefault('global.enableSoundEffects')}">●</span>
-						{/if}
-					</span>
-				</label>
-			</div>
-		</section>
-
-		<!-- Workspace Settings -->
-		<section class="settings-section">
-			<h4 class="section-title">Workspace</h4>
-
-			<div class="input-group">
-				<label for="layout-select" class="input-label">
-					Default Layout
-					{#if hasClientOverride('global.defaultLayout')}
-						<span class="override-indicator" title="Customized from server default: {getServerDefault('global.defaultLayout')}">●</span>
-					{/if}
-				</label>
-				<select id="layout-select" bind:value={defaultLayout} class="select-input">
-					{#each layouts as layoutOption}
-						<option value={layoutOption.value}>{layoutOption.label}</option>
-					{/each}
-				</select>
-				<p class="input-help">Default panel layout for new sessions</p>
-			</div>
-
-			<div class="input-group">
-				<label class="checkbox-label">
-					<input type="checkbox" bind:checked={autoSaveEnabled} class="checkbox-input" />
-					<span class="checkbox-text">
-						Auto-save session state
-						{#if hasClientOverride('global.autoSaveEnabled')}
-							<span class="override-indicator" title="Customized from server default: {getServerDefault('global.autoSaveEnabled')}">●</span>
-						{/if}
-					</span>
-				</label>
-				<p class="input-help">Automatically save your workspace state</p>
-			</div>
-		</section>
-
-		<!-- Session Settings -->
-		<section class="settings-section">
-			<h4 class="section-title">Sessions</h4>
-
-			<div class="input-group">
-				<label for="timeout-input" class="input-label">
-					Session Timeout (minutes)
-					{#if hasClientOverride('global.sessionTimeoutMinutes')}
-						<span class="override-indicator" title="Customized from server default: {getServerDefault('global.sessionTimeoutMinutes')}">●</span>
-					{/if}
-				</label>
-
-			<div class="input-group">
-				<label for="timeout-input" class="input-label">Session Timeout (minutes)</label>
-				<Input
-					id="timeout-input"
-					type="number"
-					bind:value={sessionTimeoutMinutes}
-					min="5"
-					max="720"
-					placeholder="30"
-				/>
-				<p class="input-help">Inactive session timeout (5-720 minutes)</p>
+				<p class="input-help">Choose your preferred visual theme (applied to HTML data-theme attribute)</p>
 			</div>
 		</section>
 	</div>

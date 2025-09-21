@@ -1,6 +1,6 @@
 /**
  * Settings API
- * Manages server-side settings stored in the database
+ * Manages server-side settings stored as JSON objects per category
  */
 
 import { json } from '@sveltejs/kit';
@@ -9,8 +9,7 @@ import { validateKey } from '$lib/server/shared/auth.js';
 /**
  * GET - Retrieve settings
  * Query parameters:
- * - category: Filter by category (optional)
- * - key: Get specific setting (optional)
+ * - category: Get specific category (optional)
  * - metadata: Include metadata (default: false)
  */
 export async function GET({ url, locals }) {
@@ -19,7 +18,6 @@ export async function GET({ url, locals }) {
 		return json({ error: 'Database service not available' }, { status: 500 });
 	}
 
-	const key = url.searchParams.get('key');
 	const authKey = url.searchParams.get('authKey');
 	const category = url.searchParams.get('category');
 	const includeMetadata = url.searchParams.get('metadata') === 'true';
@@ -32,32 +30,20 @@ export async function GET({ url, locals }) {
 	try {
 		let result;
 
-		if (key) {
-			// Get specific setting
-			const value = await databaseManager.getSetting(key);
-			result = { [key]: value };
-		} else if (category) {
-			// Get settings by category
+		if (category) {
+			// Get settings for specific category
 			result = await databaseManager.getSettingsByCategory(category);
 		} else if (includeMetadata) {
 			// Get all settings with metadata (admin only)
 			const allSettings = await databaseManager.getAllSettings();
-			result = { settings: allSettings };
+			result = { categories: allSettings };
 		} else {
 			// Get all settings without metadata (public)
-			const categories = ['global', 'claude', 'terminal'];
+			const categories = ['global', 'claude'];
 			result = {};
 			for (const cat of categories) {
 				const settings = await databaseManager.getSettingsByCategory(cat);
-				// Filter out sensitive settings for public access
-				const filtered = {};
-				for (const [k, v] of Object.entries(settings)) {
-					// Don't expose API keys or other sensitive data in public endpoint
-					if (!k.includes('apiKey') && !k.includes('secret') && !k.includes('token')) {
-						filtered[k] = v;
-					}
-				}
-				result[cat] = filtered;
+				result[cat] = settings;
 			}
 		}
 
@@ -70,7 +56,7 @@ export async function GET({ url, locals }) {
 
 /**
  * POST - Update settings
- * Body: { key, value, category?, description?, isSensitive? } or { settings: [...] }
+ * Body: { category, settings, description? }
  */
 export async function POST({ request, locals }) {
 	const databaseManager = locals.services?.database;
@@ -95,23 +81,12 @@ export async function POST({ request, locals }) {
 			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		if (body.settings && Array.isArray(body.settings)) {
-			// Bulk update
-			for (const setting of body.settings) {
-				const { key, value, category, description, isSensitive = false } = setting;
-				if (!key || !category) {
-					continue; // Skip invalid entries
-				}
-				await databaseManager.setSetting(key, value, category, description, isSensitive);
-			}
-		} else {
-			// Single setting update
-			const { key, value, category, description, isSensitive = false } = body;
-			if (!key || !category) {
-				return json({ error: 'Missing required fields: key, category' }, { status: 400 });
-			}
-			await databaseManager.setSetting(key, value, category, description, isSensitive);
+		const { category, settings, description } = body;
+		if (!category || !settings || typeof settings !== 'object') {
+			return json({ error: 'Missing required fields: category, settings (object)' }, { status: 400 });
 		}
+
+		await databaseManager.setSettingsForCategory(category, settings, description);
 
 		return json({ success: true });
 	} catch (error) {
@@ -121,9 +96,9 @@ export async function POST({ request, locals }) {
 }
 
 /**
- * DELETE - Delete setting
+ * DELETE - Delete settings category
  * Query parameters:
- * - key: Setting key to delete
+ * - category: Settings category to delete
  */
 export async function DELETE({ url, request, locals }) {
 	const databaseManager = locals.services?.database;
@@ -131,9 +106,9 @@ export async function DELETE({ url, request, locals }) {
 		return json({ error: 'Database service not available' }, { status: 500 });
 	}
 
-	const key = url.searchParams.get('key');
-	if (!key) {
-		return json({ error: 'Missing setting key' }, { status: 400 });
+	const category = url.searchParams.get('category');
+	if (!category) {
+		return json({ error: 'Missing category parameter' }, { status: 400 });
 	}
 
 	// Get auth key from headers
@@ -149,10 +124,10 @@ export async function DELETE({ url, request, locals }) {
 	}
 
 	try {
-		await databaseManager.deleteSetting(key);
+		await databaseManager.deleteSettingsCategory(category);
 		return json({ success: true });
 	} catch (error) {
-		console.error('Failed to delete setting:', error);
-		return json({ error: 'Failed to delete setting' }, { status: 500 });
+		console.error('Failed to delete settings category:', error);
+		return json({ error: 'Failed to delete settings category' }, { status: 500 });
 	}
 }
