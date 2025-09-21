@@ -166,6 +166,7 @@ The drag-to-resize feature works really well!
 		<WindowManager
 			gap={4}
 			minSize={200}
+			showEditMode={true}
 			keymap={{
 				addRight: 'Control+Enter',
 				addDown: 'Control+Shift+Enter',
@@ -176,8 +177,76 @@ The drag-to-resize feature works really well!
 				shrink: 'Control+ArrowDown'
 			}}
 		>
-			{#snippet tile({ focused, tileId })}
+			{#snippet tile({ focused, tileId, editMode, onSplitRight, onSplitDown, onClose })}
 				<div class="tile-content" class:focused={focused === tileId}>
+					<!-- Tile Controls for Edit Mode -->
+					{#if editMode}
+						<div class="tile-controls">
+							<div class="tile-controls-group">
+								<button class="control-btn split-right" onclick={onSplitRight} title="Split Right">
+									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+										<rect
+											x="1"
+											y="2"
+											width="6"
+											height="12"
+											rx="1"
+											stroke="currentColor"
+											fill="none"
+											stroke-width="1.5"
+										/>
+										<rect
+											x="9"
+											y="2"
+											width="6"
+											height="12"
+											rx="1"
+											stroke="currentColor"
+											fill="none"
+											stroke-width="1.5"
+										/>
+									</svg>
+								</button>
+
+								<button class="control-btn split-down" onclick={onSplitDown} title="Split Down">
+									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+										<rect
+											x="2"
+											y="1"
+											width="12"
+											height="6"
+											rx="1"
+											stroke="currentColor"
+											fill="none"
+											stroke-width="1.5"
+										/>
+										<rect
+											x="2"
+											y="9"
+											width="12"
+											height="6"
+											rx="1"
+											stroke="currentColor"
+											fill="none"
+											stroke-width="1.5"
+										/>
+									</svg>
+								</button>
+
+								<button class="control-btn close" onclick={onClose} title="Close Tile">
+									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+										<path
+											d="M12 4L4 12M4 4l8 8"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+									</svg>
+								</button>
+							</div>
+						</div>
+					{/if}
+
 					<div class="tile-header">
 						<input
 							class="tile-title"
@@ -188,6 +257,9 @@ The drag-to-resize feature works really well!
 						/>
 						<div class="tile-status">
 							{focused === tileId ? '🎯 Focused' : ''}
+							{#if editMode}
+								<span class="edit-indicator">✏️ Edit Mode</span>
+							{/if}
 						</div>
 						{#if !content[tileId] && tileId !== 'root'}
 							<button class="sample-btn" onclick={() => setContent(tileId, getNextSampleContent())}>
@@ -458,5 +530,67 @@ The drag-to-resize feature works really well!
 
 	.tile-textarea:focus {
 		background: #333;
+	}
+
+	/* Tile Controls for Edit Mode */
+	.tile-controls {
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+		z-index: 10;
+		background: rgba(0, 0, 0, 0.8);
+		border: 1px solid #555;
+		border-radius: 0.25rem;
+		padding: 0.25rem;
+		backdrop-filter: blur(4px);
+	}
+
+	.tile-controls-group {
+		display: flex;
+		gap: 0.25rem;
+		align-items: center;
+	}
+
+	.control-btn {
+		background: #444;
+		border: 1px solid #555;
+		color: #fff;
+		padding: 0.375rem;
+		border-radius: 0.25rem;
+		cursor: pointer;
+		transition: all 0.2s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+	}
+
+	.control-btn:hover {
+		background: #555;
+		border-color: #666;
+		transform: translateY(-1px);
+	}
+
+	.control-btn.split-right:hover,
+	.control-btn.split-down:hover {
+		background: #0066cc;
+		border-color: #0088ff;
+	}
+
+	.control-btn.close:hover {
+		background: #cc3300;
+		border-color: #ff4411;
+	}
+
+	.edit-indicator {
+		color: #00cc66;
+		font-size: 0.7rem;
+		margin-left: 0.5rem;
+	}
+
+	/* Ensure controls are positioned relative to tile content */
+	.tile-content {
+		position: relative;
 	}
 </style>

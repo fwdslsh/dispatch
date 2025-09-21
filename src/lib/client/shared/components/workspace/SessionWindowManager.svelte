@@ -17,7 +17,8 @@
 		onSessionFocus = () => {},
 		onSessionClose = () => {},
 		onSessionAssignToTile = () => {},
-		onCreateSession = () => {}
+		onCreateSession = () => {},
+		/** @type {boolean} */ showEditMode = false
 	} = $props();
 
 	// Simple window manager configuration
@@ -33,6 +34,9 @@
 	// Available tile IDs from WindowManager
 	let tileIds = $state(new Set(['root']));
 	let windowManagerRef = $state(null);
+
+	// Edit mode state
+	let editMode = $state(showEditMode);
 
 	const tileOrder = $derived.by(() => Array.from(tileIds));
 
@@ -100,6 +104,16 @@
 			onCreateSession(type);
 		}
 	}
+
+	// Handle edit mode toggle
+	function handleEditModeToggle(event) {
+		editMode = event.detail.editMode;
+	}
+
+	// Sync edit mode with prop
+	$effect(() => {
+		editMode = showEditMode;
+	});
 </script>
 
 <div class="window-manager-wrapper">
@@ -110,10 +124,12 @@
 		gap={windowConfig.gap}
 		minSize={windowConfig.minSize}
 		keymap={windowConfig.keymap}
+		showEditMode={editMode}
 		onfocuschange={handleFocusChange}
 		onlayoutchange={handleLayoutChange}
+		oneditmodetoggle={handleEditModeToggle}
 	>
-		{#snippet tile({ focused, tileId })}
+		{#snippet tile({ focused, tileId, editMode, onSplitRight, onSplitDown, onClose })}
 			{@const session = getTileSession(tileId)}
 			{@const sessionIndex = session ? sessions.indexOf(session) : -1}
 			{#if session}
@@ -127,9 +143,81 @@
 					{/snippet}
 				</SessionContainer>
 			{:else}
-				<div class="empty-tile" data-focused={String(focused === tileId)}>
+				<div
+					class="empty-tile"
+					class:edit-mode={editMode}
+					data-focused={String(focused === tileId)}
+				>
+					<!-- Tile Controls for Edit Mode -->
+					{#if editMode}
+						<div class="tile-controls">
+							<div class="tile-controls-group">
+								<button class="control-btn split-right" onclick={onSplitRight} title="Split Right">
+									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+										<rect
+											x="1"
+											y="2"
+											width="6"
+											height="12"
+											rx="1"
+											stroke="currentColor"
+											fill="none"
+											stroke-width="1.5"
+										/>
+										<rect
+											x="9"
+											y="2"
+											width="6"
+											height="12"
+											rx="1"
+											stroke="currentColor"
+											fill="none"
+											stroke-width="1.5"
+										/>
+									</svg>
+								</button>
+
+								<button class="control-btn split-down" onclick={onSplitDown} title="Split Down">
+									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+										<rect
+											x="2"
+											y="1"
+											width="12"
+											height="6"
+											rx="1"
+											stroke="currentColor"
+											fill="none"
+											stroke-width="1.5"
+										/>
+										<rect
+											x="2"
+											y="9"
+											width="12"
+											height="6"
+											rx="1"
+											stroke="currentColor"
+											fill="none"
+											stroke-width="1.5"
+										/>
+									</svg>
+								</button>
+
+								<button class="control-btn close" onclick={onClose} title="Close Tile">
+									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+										<path
+											d="M12 4L4 12M4 4l8 8"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="round"
+										/>
+									</svg>
+								</button>
+							</div>
+						</div>
+					{/if}
+
 					<div class="empty-tile-content">
-						<p>No session assigned</p>
+						<p>No session assigned {editMode ? '• Edit Mode Active' : ''}</p>
 						<div class="empty-actions">
 							<button class="create-session-btn" onclick={() => handleCreateSessionInTile('pty')}>
 								+ Terminal
@@ -281,5 +369,61 @@
 		flex-direction: column;
 		cursor: pointer;
 		outline: none;
+	}
+
+	/* Tile Controls for Edit Mode */
+	.tile-controls {
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+		z-index: 10;
+		background: var(--surface-raised);
+		border: 1px solid var(--surface-border);
+		border-radius: var(--radius);
+		padding: var(--space-1);
+		backdrop-filter: blur(4px);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.tile-controls-group {
+		display: flex;
+		gap: var(--space-1);
+		align-items: center;
+	}
+
+	.control-btn {
+		background: var(--surface-active);
+		border: 1px solid var(--surface-border);
+		color: var(--text-primary);
+		padding: var(--space-1);
+		border-radius: var(--radius);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+	}
+
+	.control-btn:hover {
+		background: var(--surface-hover);
+		border-color: var(--primary);
+		transform: translateY(-1px);
+	}
+
+	.control-btn.split-right:hover,
+	.control-btn.split-down:hover {
+		background: var(--primary);
+		color: var(--primary-contrast);
+	}
+
+	.control-btn.close:hover {
+		background: var(--danger);
+		color: var(--danger-contrast);
+	}
+
+	.empty-tile.edit-mode {
+		position: relative;
 	}
 </style>

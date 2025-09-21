@@ -23,7 +23,9 @@
 		viewMode = 'window-manager',
 		onViewModeChange = () => {},
 		onInstallPWA = () => {},
-		isSingleSessionMode = false
+		isSingleSessionMode = false,
+		editModeEnabled = false,
+		onEditModeToggle = () => {}
 	} = $props();
 
 	// Help modal state
@@ -32,6 +34,11 @@
 	// Handle help button click
 	function handleHelpClick() {
 		showHelpModal = true;
+	}
+
+	// Handle edit mode toggle
+	function handleEditModeToggle() {
+		onEditModeToggle();
 	}
 </script>
 
@@ -52,6 +59,20 @@
 			>
 				<IconInfoCircle size={18} />
 			</IconButton>
+			{#if viewMode === 'window-manager'}
+				<IconButton
+					onclick={handleEditModeToggle}
+					variant={editModeEnabled ? 'primary' : 'ghost'}
+					aria-label={editModeEnabled ? 'Disable edit mode' : 'Enable edit mode'}
+					title={editModeEnabled ? 'Disable Edit Mode' : 'Enable Edit Mode'}
+				>
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+						<path
+							d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+						/>
+					</svg>
+				</IconButton>
+			{/if}
 		{:else if sessionCount > 0}
 			<div class="session-info">
 				<span class="session-counter">

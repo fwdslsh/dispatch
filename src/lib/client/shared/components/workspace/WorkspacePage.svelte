@@ -44,6 +44,7 @@
 	// Component references
 	let workspaceViewMode = $state('window-manager');
 	let activeSessionId = $state(null);
+	let editModeEnabled = $state(false);
 
 	const PWA_INSTALL_GUIDES = {
 		ios: {
@@ -182,6 +183,11 @@
 	function setWorkspaceViewMode(mode) {
 		log.info('Setting workspace view mode to', mode);
 		workspaceViewMode = mode;
+	}
+
+	function toggleEditMode() {
+		editModeEnabled = !editModeEnabled;
+		log.info('Edit mode toggled:', editModeEnabled);
 	}
 
 	function handleLogout() {
@@ -384,6 +390,8 @@
 	<WorkspaceHeader
 		onLogout={handleLogout}
 		viewMode={workspaceViewMode}
+		{editModeEnabled}
+		onEditModeToggle={toggleEditMode}
 		onInstallPWA={handleInstallPWA}
 		onViewModeChange={setWorkspaceViewMode}
 	/>
@@ -426,6 +434,7 @@
 		{#if isWindowManagerView}
 			<SessionWindowManager
 				sessions={sessionsList}
+				showEditMode={editModeEnabled}
 				onSessionFocus={handleSessionFocus}
 				onSessionClose={handleSessionClose}
 				onSessionAssignToTile={handleSessionAssignToTile}
