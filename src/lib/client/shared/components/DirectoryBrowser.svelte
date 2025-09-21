@@ -2,6 +2,7 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import IconFolder from './Icons/IconFolder.svelte';
 	import IconFolderPlus from './Icons/IconFolderPlus.svelte';
+	import IconFolderClone from './Icons/IconFolderClone.svelte';
 	import IconEye from './Icons/IconEye.svelte';
 	import IconEyeOff from './Icons/IconEyeOff.svelte';
 	import IconX from './Icons/IconX.svelte';
@@ -45,6 +46,14 @@
 	let uploadFiles = $state(null);
 	let uploading = $state(false);
 	let fileInputId = $state(`file-upload-${Math.random().toString(36).substr(2, 9)}`);
+	
+	// Clone directory state
+	let showCloneDirInput = $state(false);
+	let cloneSourcePath = $state('');
+	let cloneTargetPath = $state('');
+	let cloningDir = $state(false);
+	let cloneOverwrite = $state(false);
+	
 	let displaySelection = $derived.by(() =>
 		selected && String(selected).trim() ? selected : placeholder
 	);
@@ -186,6 +195,74 @@
 		}
 	}
 
+	// Clone directory functions
+	function toggleCloneDirInput() {
+		showCloneDirInput = !showCloneDirInput;
+		if (!showCloneDirInput) {
+			cloneSourcePath = '';
+			cloneTargetPath = '';
+			cloneOverwrite = false;
+			error = '';
+		}
+	}
+
+	function initCloneFromCurrent() {
+		cloneSourcePath = currentPath;
+		const baseName = currentPath.split('/').pop() || 'directory';
+		cloneTargetPath = currentPath.endsWith('/')
+			? `${currentPath}${baseName}-clone`
+			: `${currentPath}-clone`;
+		showCloneDirInput = true;
+	}
+
+	async function cloneDirectory() {
+		if (!cloneSourcePath.trim() || !cloneTargetPath.trim()) {
+			error = 'Both source and target paths are required';
+			return;
+		}
+
+		cloningDir = true;
+		error = '';
+
+		try {
+			const res = await fetch('/api/browse/clone', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					sourcePath: cloneSourcePath.trim(),
+					targetPath: cloneTargetPath.trim(),
+					overwrite: cloneOverwrite
+				})
+			});
+
+			if (!res.ok) {
+				const data = await res.json();
+				throw new Error(data.error || 'Failed to clone directory');
+			}
+
+			// Refresh the directory listing
+			await browse(currentPath);
+
+			// Clear the form and hide it
+			cloneSourcePath = '';
+			cloneTargetPath = '';
+			cloneOverwrite = false;
+			showCloneDirInput = false;
+
+			// Optionally navigate to the cloned directory if it's in the current view
+			const result = await res.json();
+			const targetBaseName = result.targetPath.split('/').pop();
+			const newDir = entries.find((e) => e.name === targetBaseName);
+			if (newDir) {
+				selectDirectory(newDir.path);
+			}
+		} catch (e) {
+			error = e.message || 'Failed to clone directory';
+		} finally {
+			cloningDir = false;
+		}
+	}
+
 	// Handle file opening
 	function openFile(file) {
 		if (onFileOpen) {
@@ -308,6 +385,15 @@
 				>
 					<IconFolderPlus size={16} />
 				</IconButton>
+				<IconButton
+					type="button"
+					onclick={initCloneFromCurrent}
+					title="Clone current directory"
+					variant="ghost"
+					disabled={loading}
+				>
+					<IconFolderClone size={16} />
+				</IconButton>
 				{#if showFileActions && onFileUpload}
 					<IconButton
 						type="button"
@@ -369,6 +455,55 @@
 				<Button type="button" class="cancel-btn" onclick={toggleNewDirInput} disabled={creatingDir}>
 					Cancel
 				</Button>
+			</div>
+		{/if}
+
+		<!-- Clone directory input -->
+		{#if showCloneDirInput}
+			<div class="clone-dir-form">
+				<div class="clone-dir-header">
+					<h4>Clone Directory</h4>
+				</div>
+				<div class="clone-dir-fields">
+					<Input
+						type="text"
+						bind:value={cloneSourcePath}
+						placeholder="Source directory path..."
+						disabled={cloningDir}
+						class="clone-source-input"
+						label="Source Directory"
+					/>
+					<Input
+						type="text"
+						bind:value={cloneTargetPath}
+						placeholder="Target directory path..."
+						disabled={cloningDir}
+						class="clone-target-input"
+						label="Target Directory"
+						onkeydown={(e) => e.key === 'Enter' && cloneDirectory()}
+					/>
+					<label class="clone-overwrite-option">
+						<input
+							type="checkbox"
+							bind:checked={cloneOverwrite}
+							disabled={cloningDir}
+						/>
+						Overwrite if target exists
+					</label>
+				</div>
+				<div class="clone-dir-actions">
+					<Button
+						type="button"
+						class="clone-btn"
+						onclick={cloneDirectory}
+						disabled={cloningDir || !cloneSourcePath.trim() || !cloneTargetPath.trim()}
+					>
+						{cloningDir ? 'Cloning...' : 'Clone Directory'}
+					</Button>
+					<Button type="button" class="cancel-btn" onclick={toggleCloneDirInput} disabled={cloningDir}>
+						Cancel
+					</Button>
+				</div>
 			</div>
 		{/if}
 
@@ -695,6 +830,78 @@
 		background: radial-gradient(circle, var(--db-primary-glow) 0%, transparent 70%);
 		animation: rotate 10s linear infinite;
 		opacity: 0.1;
+	}
+
+	/* Clone directory form */
+	.clone-dir-form {
+		display: flex;
+		flex-direction: column;
+		gap: calc(var(--space-3) * 1.2);
+		padding: calc(var(--space-3) * 1.2);
+		background:
+			linear-gradient(135deg, var(--db-primary-dim) 0%, var(--db-surface-elevated) 100%),
+			radial-gradient(circle at 0% 50%, var(--db-accent) 0%, transparent 30%);
+		border: 1px solid var(--db-primary);
+		border-radius: 10px;
+		position: relative;
+		box-shadow:
+			0 6px 16px var(--db-primary-dim),
+			inset 0 2px 4px rgba(46, 230, 107, 0.15),
+			inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+		animation: expandIn 0.4s var(--db-transition-bounce);
+		overflow: hidden;
+	}
+
+	.clone-dir-form::before {
+		content: '';
+		position: absolute;
+		top: -50%;
+		left: -50%;
+		width: 200%;
+		height: 200%;
+		background: radial-gradient(circle, var(--db-primary-glow) 0%, transparent 70%);
+		animation: rotate 10s linear infinite;
+		opacity: 0.1;
+	}
+
+	.clone-dir-header h4 {
+		margin: 0;
+		font-size: calc(var(--font-size-1) * 1.1);
+		color: var(--db-text-primary);
+		font-weight: 600;
+		position: relative;
+		z-index: 1;
+	}
+
+	.clone-dir-fields {
+		display: flex;
+		flex-direction: column;
+		gap: calc(var(--space-2) * 1.3);
+		position: relative;
+		z-index: 1;
+	}
+
+	.clone-overwrite-option {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: calc(var(--font-size-1) * 0.95);
+		color: var(--db-text-secondary);
+		cursor: pointer;
+		position: relative;
+		z-index: 1;
+	}
+
+	.clone-overwrite-option input[type="checkbox"] {
+		accent-color: var(--db-primary);
+	}
+
+	.clone-dir-actions {
+		display: flex;
+		gap: calc(var(--space-2) * 1.3);
+		align-items: center;
+		position: relative;
+		z-index: 1;
 	}
 
 	/* Status bar */
