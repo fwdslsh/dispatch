@@ -47,7 +47,7 @@ export default defineConfig({
 					},
 					include: ['tests/**/*.svelte.{test,spec}.{js,ts}'],
 					exclude: ['tests/lib/server/**'],
-					setupFiles: ['./vitest-setup-client.js']
+					setupFiles: ['./tests/helpers/vitest-setup-client.js']
 				}
 			},
 			{
@@ -57,7 +57,7 @@ export default defineConfig({
 					environment: 'node',
 					include: ['tests/**/*.{test,spec}.{js,ts}'],
 					exclude: ['tests/**/*.svelte.{test,spec}.{js,ts}'],
-					setupFiles: ['./vitest-setup-server.js']
+					setupFiles: ['./tests/helpers/vitest-setup-server.js']
 				}
 			}
 		]
