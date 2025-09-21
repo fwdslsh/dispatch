@@ -51,8 +51,8 @@
 		isLoading = true;
 		error = null;
 
-		// Get terminal key from localStorage (should match how other authenticated components work)
-		const terminalKey = localStorage.getItem('terminalKey') || '';
+		// Get terminal key from localStorage using the correct key name
+		const terminalKey = localStorage.getItem('dispatch-auth-key') || '';
 
 		const event = tunnelStatus.enabled ? SOCKET_EVENTS.TUNNEL_DISABLE : SOCKET_EVENTS.TUNNEL_ENABLE;
 
