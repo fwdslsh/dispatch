@@ -16,6 +16,7 @@
 	import IconArrowUp from '../Icons/IconArrowUp.svelte';
 	import IconArrowDown from '../Icons/IconArrowDown.svelte';
 	import IconClaude from '../Icons/IconClaude.svelte';
+	import IconEdit from '../Icons/IconEdit.svelte';
 	import Button from '../Button.svelte';
 
 	// Props
@@ -102,6 +103,22 @@
 					keys: ['C'],
 					description: 'Create Claude session',
 					example: 'When focused on empty tile'
+				}
+			]
+		},
+		{
+			category: 'Edit Mode',
+			icon: IconEdit,
+			shortcuts: [
+				{
+					keys: ['Edit'],
+					description: 'Toggle edit mode',
+					example: 'Click edit button in header to show/hide tile management controls'
+				},
+				{
+					keys: ['UI'],
+					description: 'Use UI buttons',
+					example: 'Click Split Right, Split Down, or Close buttons when edit mode is active'
 				}
 			]
 		},
@@ -223,6 +240,10 @@
 						<li>
 							<strong>Empty tiles:</strong> Use empty tiles to quickly create new sessions with T (Terminal)
 							or C (Claude)
+						</li>
+						<li>
+							<strong>Edit mode:</strong> Click the edit button in the header to toggle UI controls for
+							splitting and closing tiles with mouse clicks
 						</li>
 						<li>
 							<strong>Layout persistence:</strong> Your tile layout is automatically saved and restored
