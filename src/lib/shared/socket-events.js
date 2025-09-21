@@ -32,5 +32,10 @@ export const SOCKET_EVENTS = {
 	ADMIN_EVENT_LOGGED: 'admin.event.logged',
 	SYSTEM_STATUS: 'system.status',
 	GET_PUBLIC_URL: 'get-public-url',
-	PUBLIC_URL_RESPONSE: 'public-url-response'
+	PUBLIC_URL_RESPONSE: 'public-url-response',
+
+	// Tunnel control events
+	TUNNEL_ENABLE: 'tunnel.enable',
+	TUNNEL_DISABLE: 'tunnel.disable',
+	TUNNEL_STATUS: 'tunnel.status'
 };

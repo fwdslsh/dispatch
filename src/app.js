@@ -5,7 +5,6 @@ import { handler } from '../build/handler.js';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
 
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
@@ -57,54 +56,6 @@ async function initializeDirectories() {
 	}
 }
 
-let ltProc = null;
-function extractLtUrl(line) {
-	const match = line.match(/your url is:\s*(https?:\/\/[^\s]+)/i);
-	return match ? match[1] : null;
-}
-
-function startLocalTunnel() {
-	if (!ENABLE_TUNNEL) return;
-	const args = ['--port', PORT.toString()];
-	if (LT_SUBDOMAIN) args.push('--subdomain', LT_SUBDOMAIN);
-	console.log(`[LT] Starting LocalTunnel on port ${PORT}...`);
-	ltProc = spawn('npx', ['localtunnel', ...args], { stdio: 'pipe' });
-	const TUNNEL_FILE = path.join(configDir, 'tunnel-url.txt');
-
-	ltProc.stdout.on('data', (buf) => {
-		const line = buf.toString().trim();
-		console.log(`[LT] ${line}`);
-		const url = extractLtUrl(line);
-		if (url) {
-			try {
-				fs.writeFileSync(TUNNEL_FILE, url + os.EOL);
-				console.log(`[LT] Public URL: ${url}`);
-			} catch (err) {
-				console.error(`[LT] Failed to write tunnel URL: ${err.message}`);
-			}
-		}
-	});
-
-	ltProc.stderr.on('data', (buf) => {
-		process.stderr.write(`[LT-err] ${buf.toString()}`);
-	});
-
-	ltProc.on('exit', (code, sig) => {
-		console.log(`[LT] exited code=${code} sig=${sig}`);
-		try {
-			fs.unlinkSync(TUNNEL_FILE);
-		} catch {}
-	});
-}
-
-function stopLocalTunnel() {
-	if (ltProc && !ltProc.killed) {
-		try {
-			ltProc.kill();
-		} catch {}
-	}
-}
-
 // Initialize directories before starting server
 initializeDirectories()
 	.then(async () => {
@@ -115,13 +66,15 @@ initializeDirectories()
 		}
 
 		// Initialize server services
-		const { initializeServices } = await import('./lib/server/services/index.js');
+		const { initializeServices } = await import('./lib/server/shared/index.js');
 		const services = await initializeServices({
 			dbPath: process.env.DB_PATH || path.join(actualHome, '.dispatch', 'data', 'workspace.db'),
 			workspacesRoot:
 				process.env.WORKSPACES_ROOT || path.join(actualHome, '.dispatch-home', 'workspaces'),
 			configDir: configDir,
-			debug: process.env.DEBUG === 'true'
+			debug: process.env.DEBUG === 'true',
+			port: PORT,
+			tunnelSubdomain: LT_SUBDOMAIN
 		});
 
 		console.log('[APP] Server services initialized');
@@ -130,7 +83,7 @@ initializeDirectories()
 		const server = http.createServer(handler);
 
 		// Initialize Socket.IO with services
-		const { setupSocketIO } = await import('./lib/server/socket-setup.js');
+		const { setupSocketIO } = await import('./lib/server/shared/socket-setup.js');
 		const io = setupSocketIO(server, services);
 
 		// Set Socket.IO instance on RunSessionManager for real-time events (BEFORE any operations)
@@ -140,13 +93,17 @@ initializeDirectories()
 			console.log(`dispatch running at http://localhost:${PORT}`);
 			console.log(`Config Dir: ${configDir}`);
 			console.log('Workspaces can be created anywhere accessible to the user');
-			startLocalTunnel();
+
+			// Start tunnel if enabled by environment variable
+			if (ENABLE_TUNNEL) {
+				services.tunnelManager.start();
+			}
 		});
 
 		// graceful shutdown
 		for (const sig of ['SIGINT', 'SIGTERM']) {
 			process.on(sig, () => {
-				stopLocalTunnel();
+				services.tunnelManager.stop();
 				process.exit(0);
 			});
 		}

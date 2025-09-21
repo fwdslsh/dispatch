@@ -5,6 +5,7 @@
 import { logger } from './utils/logger.js';
 import { DatabaseManager } from './db/DatabaseManager.js';
 import { RunSessionManager } from './runtime/RunSessionManager.js';
+import { TunnelManager } from './TunnelManager.js';
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
@@ -47,7 +48,9 @@ export async function initializeServices(config = {}) {
 		workspacesRoot:
 			config.workspacesRoot || process.env.WORKSPACES_ROOT || '~/.dispatch-home/workspaces',
 		configDir: config.configDir || process.env.DISPATCH_CONFIG_DIR || '~/.config/dispatch',
-		debug: config.debug || process.env.DEBUG === 'true'
+		debug: config.debug || process.env.DEBUG === 'true',
+		port: config.port || process.env.PORT || 3030,
+		tunnelSubdomain: config.tunnelSubdomain || process.env.LT_SUBDOMAIN || ''
 	};
 
 	try {
@@ -77,13 +80,21 @@ export async function initializeServices(config = {}) {
 		// 5. Claude Auth Manager (for OAuth flow)
 		const claudeAuthManager = new ClaudeAuthManager();
 
+		// 6. Tunnel Manager for runtime tunnel control
+		const tunnelManager = new TunnelManager({
+			port: resolvedConfig.port,
+			subdomain: resolvedConfig.tunnelSubdomain,
+			configDir: resolvedConfig.configDir
+		});
+
 		const services = {
 			database,
 			runSessionManager,
 			ptyAdapter,
 			claudeAdapter,
 			fileEditorAdapter,
-			claudeAuthManager
+			claudeAuthManager,
+			tunnelManager
 		};
 
 		logger.info('SERVICES', 'Unified session architecture services initialized successfully');

@@ -4,6 +4,7 @@
 	import ClaudeAuth from '../../../claude/ClaudeAuth.svelte';
 	import ClaudeDefaults from './ClaudeDefaults.svelte';
 	import StorageSettings from './StorageSettings.svelte';
+	import TunnelControl from './TunnelControl.svelte';
 	import IconSettings from '../Icons/IconSettings.svelte';
 	import IconCloud from '../Icons/IconCloud.svelte';
 	import IconRobot from '../Icons/IconRobot.svelte';
@@ -23,6 +24,7 @@
 	// Available settings tabs
 	const tabs = [
 		{ id: 'global', label: 'Global', icon: IconSettings, component: GlobalSettings },
+		{ id: 'tunnel', label: 'Tunnel', icon: IconCloud, component: TunnelControl },
 		{ id: 'claude-auth', label: 'Claude Auth', icon: IconCloud, component: ClaudeAuth },
 		{ id: 'claude-defaults', label: 'Claude Defaults', icon: IconRobot, component: ClaudeDefaults },
 		{ id: 'storage', label: 'Storage', icon: IconTrash, component: StorageSettings }
