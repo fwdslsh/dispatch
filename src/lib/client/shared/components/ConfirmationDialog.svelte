@@ -82,7 +82,7 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background: rgba(0, 0, 0, 0.7);
+		background: color-mix(in oklab, var(--bg) 70%, black 30%);
 		backdrop-filter: blur(8px);
 		display: flex;
 		align-items: center;
@@ -94,20 +94,20 @@
 	.dialog-container {
 		max-width: 400px;
 		width: 90%;
-		background: rgba(26, 26, 26, 0.9);
+		background: color-mix(in oklab, var(--surface) 90%, black 10%);
 		border-radius: 12px;
 		backdrop-filter: blur(20px);
-		border: 1px solid rgba(0, 255, 136, 0.3);
+		border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
 		box-shadow:
-			0 10px 40px rgba(0, 0, 0, 0.5),
-			0 0 30px rgba(0, 255, 136, 0.1),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1);
+			0 10px 40px color-mix(in oklab, var(--bg) 50%, black 50%),
+			0 0 30px color-mix(in oklab, var(--primary) 10%, transparent),
+			inset 0 1px 0 color-mix(in oklab, var(--text) 10%, transparent);
 		animation: slideIn 0.3s ease-out;
 
 		--aug-border-all: 1px;
-		--aug-border-bg: rgba(0, 255, 136, 0.4);
+		--aug-border-bg: color-mix(in oklab, var(--primary) 40%, transparent);
 		--aug-inlay-all: 4px;
-		--aug-inlay-bg: rgba(26, 26, 26, 0.8);
+		--aug-inlay-bg: color-mix(in oklab, var(--surface) 80%, black 20%);
 	}
 
 	.dialog-content {
@@ -160,7 +160,7 @@
 		/* background: rgba(128, 128, 128, 0.2);
     border-color: rgba(128, 128, 128, 0.5) !important; */
 
-		color: rgba(0, 255, 136, 0.8);
+		color: color-mix(in oklab, var(--primary) 80%, white 20%);
 		background: none;
 	}
 
@@ -169,7 +169,7 @@
 	}
 
 	.button-confirm:hover {
-		background: rgba(0, 255, 136, 0.8);
+		background: color-mix(in oklab, var(--primary) 80%, white 20%);
 	}
 
 	.button-danger {

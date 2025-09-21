@@ -104,10 +104,10 @@
 @keyframes pulse-dot {
 	0%,
 	100% {
-		box-shadow: 0 0 8px rgba(46, 230, 107, 0.6);
+		box-shadow: 0 0 8px color-mix(in oklab, var(--primary) 60%, transparent);
 	}
 	50% {
-		box-shadow: 0 0 15px rgba(46, 230, 107, 0.9);
+		box-shadow: 0 0 15px color-mix(in oklab, var(--primary) 90%, transparent);
 	}
 }
 
@@ -172,35 +172,8 @@
 	}
 }
 
-/* Scan/sweep animations - consolidated */
-@keyframes terminalScan {
-	0% {
-		transform: translateX(-100%);
-	}
-	100% {
-		transform: translateX(100%);
-	}
-}
-
-@keyframes statusSweep {
-	0% {
-		transform: translateX(-100%);
-	}
-	100% {
-		transform: translateX(100%);
-	}
-}
-
-@keyframes scanline {
-	0% {
-		transform: translateX(-100%);
-	}
-	100% {
-		transform: translateX(100%);
-	}
-}
-
-@keyframes inputShimmer {
+/* Scan/sweep animations - unified single animation */
+@keyframes scan {
 	0% {
 		transform: translateX(-100%);
 	}

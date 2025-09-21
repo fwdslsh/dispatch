@@ -798,8 +798,8 @@ textarea:required:focus {
 
 	/* Add outer glow */
 	box-shadow:
-		0 0 20px rgba(46, 230, 107, 0.4),
-		0 0 40px rgba(46, 230, 107, 0.2);
+		0 0 20px var(--primary-glow-40),
+		0 0 40px var(--primary-glow-20);
 }
 
 .button.aug:active,
@@ -997,16 +997,6 @@ body::before {
 	animation: pulse 2s ease-in-out infinite;
 }
 
-@keyframes pulse {
-	0%,
-	100% {
-		opacity: 1;
-	}
-
-	50% {
-		opacity: 0.5;
-	}
-}
 
 /* 12) UI Component Utility Classes */
 
@@ -1075,15 +1065,6 @@ body::before {
 
 /* spinning state handled internally if needed */
 
-@keyframes spin {
-	from {
-		transform: rotate(0deg);
-	}
-
-	to {
-		transform: rotate(360deg);
-	}
-}
 
 /* Workspace/Directory Selector */
 .workspace-selector {
@@ -1237,7 +1218,7 @@ body::before {
 	left: -100%;
 	width: 100%;
 	height: 100%;
-	background: linear-gradient(90deg, transparent, rgba(46, 230, 107, 0.1), transparent);
+	background: linear-gradient(90deg, transparent, var(--primary-glow-10), transparent);
 	transition: left 0.5s ease;
 }
 
@@ -1350,7 +1331,7 @@ body::before {
 	left: -100%;
 	width: 100%;
 	height: 100%;
-	background: linear-gradient(90deg, transparent, rgba(46, 230, 107, 0.1), transparent);
+	background: linear-gradient(90deg, transparent, var(--primary-glow-10), transparent);
 	transition: left 0.5s ease;
 }
 
