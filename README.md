@@ -56,10 +56,9 @@ npm run dev  # Opens http://localhost:5173
 
 ### **Container Isolation**
 
-- Each session runs in its own Docker container
+- Dispatch runes in its own Docker container
 - No access to host filesystem unless explicitly mounted
 - Non-root user execution for additional security
-- Automatic cleanup when sessions end
 
 ### **Secure AI Integration**
 
@@ -73,7 +72,6 @@ npm run dev  # Opens http://localhost:5173
 - Optional public URL sharing (disabled by default)
 - Password-protected access to all sessions
 - HTTPS support for production deployments
-- Configurable firewall rules and network policies
 
 ## 🔄 Session Management & Persistence
 
@@ -123,34 +121,6 @@ Every session interaction is recorded and can be replayed:
 - **Security Focused**: Isolation by design, not as an afterthought
 - **Simple Setup**: Works out of the box, no complex configuration
 
-## 🤖 AI-Powered Development Workflow
-
-### **Claude AI Integration**
-
-```bash
-# Create a Claude AI session
-# 1. Choose "Claude Code" when starting a new session
-# 2. Click the OAuth login link
-# 3. Authenticate with your Anthropic account
-# 4. Start coding with AI assistance
-```
-
-### **What You Can Do**
-
-- **Code Generation**: Ask Claude to write functions, classes, or entire modules
-- **Code Review**: Get suggestions for improvements and best practices
-- **Bug Fixing**: Describe issues and get debugging help with solutions
-- **Documentation**: Generate comments, README files, and API docs
-- **Learning**: Ask questions about unfamiliar code or concepts
-- **Refactoring**: Get help restructuring and optimizing existing code
-
-### **Safe AI Execution**
-
-- All AI-generated code runs in isolated containers
-- Review commands before execution with approval prompts
-- Full audit trail of AI interactions and code changes
-- Easy rollback if something goes wrong
-
 ## 🛠️ Use Cases
 
 ### **AI-Assisted Development**
@@ -182,16 +152,6 @@ Share live coding sessions with colleagues:
 # Share a public URL for real-time collaboration
 # Multiple developers can work in the same session
 # Perfect for pair programming and code reviews
-```
-
-### **Education & Training**
-
-Provide students with consistent, isolated environments:
-
-```bash
-# Pre-configured development environments
-# No "it works on my machine" problems
-# Easy reset and cleanup between sessions
 ```
 
 ### **Prototype & Experiment**
@@ -262,24 +222,6 @@ docker run -d -p 3030:3030 \
 - **Containers**: Docker for security and isolation
 - **AI Integration**: Official Claude Code SDK
 
-### **Event-Sourced Sessions**
-
-All session interactions are recorded as events:
-
-- Persistent session history across restarts
-- Replay capability for debugging
-- Cross-device session resumption
-- Full audit trail for security
-
-### **Adapter Architecture**
-
-Extensible design for different session types:
-
-- **PtyAdapter**: Terminal sessions with node-pty
-- **ClaudeAdapter**: AI coding assistance
-- **FileEditorAdapter**: Built-in code editor
-- **Custom Adapters**: Easy to add new session types
-
 ## 🔧 Development & Contributing
 
 ### **Local Development**
@@ -323,7 +265,6 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 - 📖 [Documentation](https://github.com/fwdslsh/dispatch/tree/main/docs)
 - 🐛 [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
-- 💬 [Discussions](https://github.com/fwdslsh/dispatch/discussions)
 
 ### **Common Issues**
 
@@ -337,7 +278,6 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 - Ensure you have a valid Anthropic account
 - Check internet connectivity for OAuth flow
-- Verify Claude API access in your account
 
 **Data not persisting?**
 
