@@ -204,10 +204,25 @@
 			cloneTargetPath = '';
 			cloneOverwrite = false;
 			error = '';
+		} else {
+			// When opening, provide fallback if currentPath is not available
+			if (!currentPath) {
+				cloneSourcePath = '';
+				cloneTargetPath = '';
+			} else {
+				// Initialize with current path
+				initCloneFromCurrent();
+			}
 		}
 	}
 
 	function initCloneFromCurrent() {
+		if (!currentPath) {
+			// If no current path, use a default or show error
+			error = 'Please select a valid directory first';
+			return;
+		}
+
 		cloneSourcePath = currentPath;
 		const baseName = currentPath.split('/').pop() || 'directory';
 		cloneTargetPath = currentPath.endsWith('/')
@@ -858,7 +873,12 @@
 			inset 0 2px 4px rgba(46, 230, 107, 0.15),
 			inset 0 -2px 4px rgba(0, 0, 0, 0.3);
 		animation: expandIn 0.4s var(--db-transition-bounce);
+		/* Fix overflow issues */
+		max-width: 100%;
+		box-sizing: border-box;
 		overflow: hidden;
+		/* Ensure it doesn't exceed the modal width */
+		width: 100%;
 	}
 
 	.clone-dir-form::before {
@@ -888,6 +908,17 @@
 		gap: calc(var(--space-2) * 1.3);
 		position: relative;
 		z-index: 1;
+		/* Ensure proper spacing and prevent overflow */
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	/* Make input fields responsive */
+	.clone-dir-fields :global(.clone-source-input),
+	.clone-dir-fields :global(.clone-target-input) {
+		width: 100%;
+		min-width: 0; /* Allow inputs to shrink properly */
+		box-sizing: border-box;
 	}
 
 	.clone-overwrite-option {
@@ -911,6 +942,29 @@
 		align-items: center;
 		position: relative;
 		z-index: 1;
+		/* Ensure buttons wrap on smaller screens */
+		flex-wrap: wrap;
+		justify-content: flex-start;
+	}
+
+	/* Make action buttons responsive */
+	.clone-dir-actions :global(.clone-btn),
+	.clone-dir-actions :global(.cancel-btn) {
+		flex: 0 1 auto;
+		min-width: fit-content;
+	}
+
+	/* Media query for smaller screens */
+	@media (max-width: 600px) {
+		.clone-dir-actions {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.clone-dir-actions :global(.clone-btn),
+		.clone-dir-actions :global(.cancel-btn) {
+			width: 100%;
+		}
 	}
 
 	/* Status bar */
