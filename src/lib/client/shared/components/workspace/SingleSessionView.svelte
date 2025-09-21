@@ -6,7 +6,7 @@
 -->
 <script>
 	import SessionContainer from './SessionContainer.svelte';
-	import SessionHeader from './SessionHeader.svelte';
+	import SessionHeaderRenderer from './SessionHeaderRenderer.svelte';
 	import SessionViewport from './SessionViewport.svelte';
 
 	let {
@@ -35,7 +35,7 @@
 	{#if hasSession}
 		<SessionContainer {session} index={sessionIndex} isFocused={true} onClose={onSessionClose}>
 			{#snippet header({ session, onClose, index })}
-				<SessionHeader {session} {onClose} {index} />
+				<SessionHeaderRenderer {session} {onClose} {index} />
 			{/snippet}
 
 			{#snippet content({ session, isLoading, index })}
