@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createTestContainer } from '../src/lib/client/shared/services/ServiceContainer.svelte.js';
+import { createTestContainer } from '../../src/lib/client/shared/services/ServiceContainer.svelte.js';
 
 describe('ServiceContainer', () => {
 	it('resolves sessionViewModel with required dependencies', async () => {

@@ -1,9 +1,9 @@
-import { defineConfig } from 'vitest';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-	resolve: {
+	resolve:{
 		alias: {
-			$lib: './src/lib'
+			'$lib': './src/lib'
 		}
 	},
 	test: {
