@@ -14,35 +14,37 @@ export class SettingsService {
 			...config
 		};
 
-		// Internal state
-		this.serverSettings = $state({});
-		this.clientOverrides = $state({});
-		this.isLoaded = $state(false);
-		this.isLoading = $state(false);
-		this.lastError = $state(null);
-		this.lastSync = $state(null);
-
-		// Computed effective settings (server defaults + client overrides)
-		this.effectiveSettings = $derived(() => {
-			const merged = { ...this.serverSettings };
-			
-			// Apply client overrides
-			for (const [category, overrides] of Object.entries(this.clientOverrides)) {
-				if (merged[category]) {
-					merged[category] = { ...merged[category], ...overrides };
-				} else {
-					merged[category] = { ...overrides };
-				}
-			}
-			
-			return merged;
-		});
+		// Internal state - use regular properties instead of runes for compatibility
+		this.serverSettings = {};
+		this.clientOverrides = {};
+		this.isLoaded = false;
+		this.isLoading = false;
+		this.lastError = null;
+		this.lastSync = null;
 
 		// Initialize if in browser
 		if (typeof window !== 'undefined') {
 			this.loadClientOverrides();
 			this.loadServerSettings();
 		}
+	}
+
+	/**
+	 * Get effective settings (server defaults + client overrides)
+	 */
+	getEffectiveSettings() {
+		const merged = { ...this.serverSettings };
+		
+		// Apply client overrides
+		for (const [category, overrides] of Object.entries(this.clientOverrides)) {
+			if (merged[category]) {
+				merged[category] = { ...merged[category], ...overrides };
+			} else {
+				merged[category] = { ...overrides };
+			}
+		}
+		
+		return merged;
 	}
 
 	/**
@@ -130,7 +132,7 @@ export class SettingsService {
 			return fallback;
 		}
 
-		const effectiveSettings = this.effectiveSettings;
+		const effectiveSettings = this.getEffectiveSettings();
 		return effectiveSettings[category]?.[setting] ?? fallback;
 	}
 

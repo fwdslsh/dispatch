@@ -2,24 +2,26 @@
 	/**
 	 * Claude Session Settings Component
 	 * Provides Claude-specific configuration options for session creation
+	 * Now integrates with settings service for defaults
 	 */
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';
 	import IconRobot from '$lib/client/shared/components/Icons/IconRobot.svelte';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
 
 	// Props
 	let { settings = $bindable({}), disabled = false } = $props();
 
-	// Default Claude settings based on SDK documentation
-	let model = $state(settings.model || '');
+	// Default Claude settings based on settings service with fallbacks
+	let model = $state(settings.model || settingsService.get('claude.model', ''));
 	let customSystemPrompt = $state(settings.customSystemPrompt || '');
 	let appendSystemPrompt = $state(settings.appendSystemPrompt || '');
-	let maxTurns = $state(settings.maxTurns || undefined);
+	let maxTurns = $state(settings.maxTurns || settingsService.get('claude.maxTurns', undefined));
 	let maxThinkingTokens = $state(settings.maxThinkingTokens || undefined);
 	let fallbackModel = $state(settings.fallbackModel || '');
-	let includePartialMessages = $state(settings.includePartialMessages || false);
-	let continueConversation = $state(settings.continue || false);
-	let permissionMode = $state(settings.permissionMode || 'default');
-	let executable = $state(settings.executable || 'auto');
+	let includePartialMessages = $state(settings.includePartialMessages || settingsService.get('claude.includePartialMessages', false));
+	let continueConversation = $state(settings.continue || settingsService.get('claude.continueConversation', false));
+	let permissionMode = $state(settings.permissionMode || settingsService.get('claude.permissionMode', 'default'));
+	let executable = $state(settings.executable || settingsService.get('claude.executable', 'auto'));
 	let executableArgs = $state(settings.executableArgs || '');
 	let allowedTools = $state(settings.allowedTools || '');
 	let disallowedTools = $state(settings.disallowedTools || '');
@@ -104,7 +106,12 @@
 	<div class="claude-settings">
 		<!-- Model Configuration -->
 		<div class="setting-group">
-			<label for="claude-model" class="setting-label">Model (Optional)</label>
+			<label for="claude-model" class="setting-label">
+				Model (Optional)
+				{#if !model && settingsService.get('claude.model')}
+					<span class="default-hint" title="Using default: {settingsService.get('claude.model')}">🔧</span>
+				{/if}
+			</label>
 			<select id="claude-model" class="setting-input" bind:value={model} {disabled}>
 				{#each availableModels as modelOption}
 					<option value={modelOption.value}>{modelOption.label}</option>
@@ -384,5 +391,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-3);
+	}
+
+	.default-hint {
+		font-size: 0.8rem;
+		opacity: 0.7;
+		cursor: help;
+		margin-left: var(--space-1);
 	}
 </style>
