@@ -303,6 +303,15 @@
 	--primary-glow-40: color-mix(in oklab, var(--primary) 40%, transparent);
 	--primary-glow-50: color-mix(in oklab, var(--primary) 50%, transparent);
 
+	/* Surface mixing variants for common patterns */
+	--surface-primary-92: color-mix(in oklab, var(--surface) 92%, var(--primary) 8%);
+	--surface-primary-96: color-mix(in oklab, var(--surface) 96%, var(--primary) 4%);
+	--surface-primary-95: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
+	--surface-primary-98: color-mix(in oklab, var(--surface) 98%, var(--primary) 2%);
+	--primary-surface-15: color-mix(in oklab, var(--primary) 15%, var(--surface));
+	--primary-surface-8: color-mix(in oklab, var(--primary) 8%, var(--surface));
+	--primary-surface-25: color-mix(in oklab, var(--primary) 25%, var(--surface));
+
 	/* Accent Colors for Variety */
 	--accent: #2ee66b;
 	--accent-amber: #ffd166;

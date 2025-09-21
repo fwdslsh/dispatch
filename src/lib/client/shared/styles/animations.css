@@ -460,6 +460,43 @@
 	}
 }
 
+/* Utility animation classes with performance optimization */
+.animate-fade-in {
+	animation: fadeIn 0.3s ease-out;
+	will-change: opacity;
+}
+
+.animate-slide-in {
+	animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+	will-change: transform, opacity;
+}
+
+.animate-pulse {
+	animation: pulse 2s ease-in-out infinite;
+	will-change: opacity;
+}
+
+.animate-spin {
+	animation: spin 1s linear infinite;
+	will-change: transform;
+}
+
+.animate-glow {
+	animation: pulse-dot 2s ease-in-out infinite;
+	will-change: box-shadow;
+}
+
+.animate-scan {
+	animation: scan 2s linear infinite;
+	will-change: transform;
+}
+
+/* Remove will-change after animation completes for performance */
+.animate-fade-in:not(.animating),
+.animate-slide-in:not(.animating) {
+	will-change: auto;
+}
+
 /* Accessibility-friendly alternatives */
 @media (prefers-reduced-motion: reduce) {
 	/* Disable complex animations, keep essential feedback */

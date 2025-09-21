@@ -90,35 +90,35 @@
 		border-color: var(--primary-dim);
 		background: var(--bg-light);
 		transform: translateY(-1px);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 2px 8px color-mix(in oklab, var(--bg) 90%, black 10%);
 	}
 
 	.session-card:focus {
 		border-color: var(--primary);
-		box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.2);
+		box-shadow: 0 0 0 2px var(--primary-glow-20);
 	}
 
 	.session-card.selected {
 		border-color: var(--primary);
-		background: rgba(var(--primary-rgb), 0.05);
-		box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.2);
+		background: color-mix(in oklab, var(--primary) 5%, transparent);
+		box-shadow: 0 0 0 1px var(--primary-glow-20);
 	}
 
 	.session-card.active-session {
 		border-color: var(--success);
-		background: rgba(var(--success-rgb), 0.05);
-		box-shadow: 0 0 0 1px rgba(var(--success-rgb), 0.1);
+		background: color-mix(in oklab, var(--success) 5%, transparent);
+		box-shadow: 0 0 0 1px color-mix(in oklab, var(--success) 10%, transparent);
 	}
 
 	.session-card.active-session:hover {
-		background: rgba(var(--success-rgb), 0.1);
-		box-shadow: 0 2px 12px rgba(var(--success-rgb), 0.2);
+		background: color-mix(in oklab, var(--success) 10%, transparent);
+		box-shadow: 0 2px 12px color-mix(in oklab, var(--success) 20%, transparent);
 	}
 
 	.session-card.active-session.selected {
 		border-color: var(--success);
-		background: rgba(var(--success-rgb), 0.15);
-		box-shadow: 0 0 0 2px rgba(var(--success-rgb), 0.3);
+		background: color-mix(in oklab, var(--success) 15%, transparent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--success) 30%, transparent);
 	}
 
 	.session-card.inactive-session {
@@ -132,7 +132,7 @@
 
 	.session-card.inactive-session.selected {
 		border-color: var(--primary);
-		background: rgba(var(--primary-rgb), 0.05);
+		background: color-mix(in oklab, var(--primary) 5%, transparent);
 		opacity: 1;
 	}
 
