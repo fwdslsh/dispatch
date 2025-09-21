@@ -2,6 +2,8 @@
 
 **Secure, sandboxed execution environment for Claude AI and CLI agents - run anywhere, resume everywhere.**
 
+> Instant YOLO mode from any device!
+
 Dispatch provides developers with a secure, isolated environment for running Claude AI code assistance and other CLI agents safely. Whether you're prototyping with AI-generated code, running automated scripts, or collaborating with team members, Dispatch ensures your system stays protected while giving you full access to powerful development tools.
 
 ## 🛡️ Why Developers Choose Dispatch
@@ -98,21 +100,6 @@ Every session interaction is recorded and can be replayed:
 - **File Editor Sessions**: Built-in code editor
 - **Custom Adapters**: Extensible for other tools and agents
 
-## 📊 Feature Comparison
-
-| Feature                   | Dispatch           | CrewAI          | OpenDevin   | Superagent         |
-| ------------------------- | ------------------ | --------------- | ----------- | ------------------ |
-| **Pricing**               | Free & Open Source | Freemium        | Open Source | Paid Plans         |
-| **Local Execution**       | ✅ Default         | ❌ Cloud Only   | ✅ Optional | ❌ Cloud Only      |
-| **Container Isolation**   | ✅ Docker          | ❌ Process Only | ✅ Docker   | ❌ Cloud Sandboxes |
-| **Session Resume**        | ✅ Cross-device    | ❌ No           | ⚠️ Limited  | ✅ Cloud Only      |
-| **Claude AI Integration** | ✅ Native          | ❌ No           | ⚠️ Plugin   | ✅ API Only        |
-| **Unattended Execution**  | ✅ Background      | ✅ Workflows    | ⚠️ Limited  | ✅ Cloud           |
-| **No Cloud Dependency**   | ✅ Local-first     | ❌ Required     | ✅ Optional | ❌ Required        |
-| **Web-based Access**      | ✅ Browser         | ✅ Dashboard    | ⚠️ Limited  | ✅ Dashboard       |
-| **Team Collaboration**    | ✅ Shared Sessions | ✅ Workspaces   | ❌ No       | ✅ Paid            |
-| **Custom Extensions**     | ✅ Adapter API     | ✅ Plugins      | ✅ Tools    | ⚠️ Limited         |
-
 ### Why Choose Dispatch?
 
 - **Privacy First**: Your code and data stay on your infrastructure
@@ -175,38 +162,20 @@ Try new technologies safely:
 | `WORKSPACES_ROOT` | `/workspace` | Default directory for projects     |
 | `ENABLE_TUNNEL`   | `false`      | Enable public URL sharing          |
 | `LT_SUBDOMAIN`    | `""`         | Custom subdomain for public URLs   |
-
-### **Production Deployment**
-
-```bash
-# Docker Compose for production
-version: '3.8'
-services:
-  dispatch:
-    image: fwdslsh/dispatch:latest
-    ports:
-      - "3030:3030"
-    environment:
-      - TERMINAL_KEY=your-very-secure-password
-      - ENABLE_TUNNEL=false
-    volumes:
-      - ./data:/var/lib/dispatch
-      - ./config:/home/appuser/.config/dispatch
-    restart: unless-stopped
-```
+| `HOST_UID`        | -             | Container user ID mapping (optional)          |
+| `HOST_GID`        | -             | Container group ID mapping (optional)  |
 
 ### **Persistent Storage**
 
 ```bash
 # Create data directories
-mkdir -p ~/dispatch/{data,config}
-sudo chown -R 10001:10001 ~/dispatch/
+mkdir -p ~/dispatch/{home,workspace}
 
 # Run with persistent storage
 docker run -d -p 3030:3030 \
-  -e TERMINAL_KEY=secure-password \
-  -v ~/dispatch/data:/var/lib/dispatch \
-  -v ~/dispatch/config:/home/appuser/.config/dispatch \
+  --env-file .env \
+  -v ~/dispatch/workspace:/var/lib/dispatch \
+  -v ~/dispatch/home:/home/dispatch \
   --name dispatch \
   fwdslsh/dispatch:latest
 ```
