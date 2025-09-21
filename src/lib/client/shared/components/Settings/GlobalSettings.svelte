@@ -3,19 +3,21 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
 
 	/**
 	 * Global Settings Component
 	 * Manages global application preferences and workspace defaults
+	 * Now uses unified settings service with server/client sync
 	 */
 
-	// Settings state
-	let theme = $state('retro'); // Default theme
-	let autoSaveEnabled = $state(true);
-	let sessionTimeoutMinutes = $state('30');
-	let defaultLayout = $state('2up');
-	let enableAnimations = $state(true);
-	let enableSoundEffects = $state(false);
+	// Settings state - use service values with fallback defaults
+	let theme = $state(settingsService.get('global.theme', 'retro'));
+	let autoSaveEnabled = $state(settingsService.get('global.autoSaveEnabled', true));
+	let sessionTimeoutMinutes = $state(settingsService.get('global.sessionTimeoutMinutes', 30).toString());
+	let defaultLayout = $state(settingsService.get('global.defaultLayout', '2up'));
+	let enableAnimations = $state(settingsService.get('global.enableAnimations', true));
+	let enableSoundEffects = $state(settingsService.get('global.enableSoundEffects', false));
 
 	// Feedback state
 	let saveStatus = $state('');
@@ -35,30 +37,27 @@
 	];
 
 	// Load settings from localStorage
-	onMount(() => {
-		try {
-			const storedSettings = localStorage.getItem(STORAGE_CONFIG.SETTINGS_KEY);
-			if (storedSettings) {
-				const settings = JSON.parse(storedSettings);
-				theme = settings.theme || 'retro';
-				autoSaveEnabled = settings.autoSaveEnabled ?? true;
-				sessionTimeoutMinutes = String(settings.sessionTimeoutMinutes || 30);
-				defaultLayout = settings.defaultLayout || '2up';
-				enableAnimations = settings.enableAnimations ?? true;
-				enableSoundEffects = settings.enableSoundEffects ?? false;
-			}
-
-			// Also check existing theme storage
-			const storedTheme = localStorage.getItem(STORAGE_CONFIG.THEME_KEY);
-			if (storedTheme && !storedSettings) {
-				theme = storedTheme;
-			}
-		} catch (error) {
-			console.warn('Failed to load global settings:', error);
+	onMount(async () => {
+		// Wait for settings service to load
+		if (!settingsService.isLoaded) {
+			await settingsService.loadServerSettings();
 		}
+		
+		// Update local state with effective settings
+		updateLocalState();
 	});
 
-	// Save settings to localStorage
+	// Update local component state from settings service
+	function updateLocalState() {
+		theme = settingsService.get('global.theme', 'retro');
+		autoSaveEnabled = settingsService.get('global.autoSaveEnabled', true);
+		sessionTimeoutMinutes = settingsService.get('global.sessionTimeoutMinutes', 30).toString();
+		defaultLayout = settingsService.get('global.defaultLayout', '2up');
+		enableAnimations = settingsService.get('global.enableAnimations', true);
+		enableSoundEffects = settingsService.get('global.enableSoundEffects', false);
+	}
+
+	// Save settings using the new service
 	async function saveSettings() {
 		if (saving) return;
 
@@ -66,17 +65,15 @@
 		saveStatus = '';
 
 		try {
-			const settings = {
-				theme,
-				autoSaveEnabled,
-				sessionTimeoutMinutes: parseInt(sessionTimeoutMinutes) || 30,
-				defaultLayout,
-				enableAnimations,
-				enableSoundEffects,
-				lastUpdated: Date.now()
-			};
+			// Save as client overrides (localStorage)
+			settingsService.setClientOverride('global.theme', theme);
+			settingsService.setClientOverride('global.autoSaveEnabled', autoSaveEnabled);
+			settingsService.setClientOverride('global.sessionTimeoutMinutes', parseInt(sessionTimeoutMinutes) || 30);
+			settingsService.setClientOverride('global.defaultLayout', defaultLayout);
+			settingsService.setClientOverride('global.enableAnimations', enableAnimations);
+			settingsService.setClientOverride('global.enableSoundEffects', enableSoundEffects);
 
-			localStorage.setItem(STORAGE_CONFIG.SETTINGS_KEY, JSON.stringify(settings));
+			// Legacy theme storage for immediate theme application
 			localStorage.setItem(STORAGE_CONFIG.THEME_KEY, theme);
 
 			// Apply theme immediately if needed
@@ -98,30 +95,50 @@
 		}
 	}
 
-	// Reset to defaults
+	// Reset to server defaults
 	async function resetToDefaults() {
-		theme = 'retro';
-		autoSaveEnabled = true;
-		sessionTimeoutMinutes = '30';
-		defaultLayout = '2up';
-		enableAnimations = true;
-		enableSoundEffects = false;
-		await saveSettings();
+		settingsService.resetClientOverridesForCategory('global');
+		updateLocalState();
+		
+		// Apply theme immediately
+		if (theme !== 'system') {
+			document.documentElement.setAttribute('data-theme', theme);
+		} else {
+			document.documentElement.removeAttribute('data-theme');
+		}
+		
+		saveStatus = 'Settings reset to defaults';
+		setTimeout(() => {
+			saveStatus = '';
+		}, 3000);
 	}
 
-	// Auto-save when settings change
-	$effect(() => {
-		// Debounced auto-save
-		const timeoutId = setTimeout(saveSettings, 1000);
-		return () => clearTimeout(timeoutId);
-	});
+	// Auto-save when settings change (disabled for now to prevent conflicts)
+	// $effect(() => {
+	// 	// Debounced auto-save
+	// 	const timeoutId = setTimeout(saveSettings, 1000);
+	// 	return () => clearTimeout(timeoutId);
+	// });
+
+	// Check if a setting has a client override
+	function hasClientOverride(key) {
+		const [category, setting] = key.split('.');
+		return settingsService.clientOverrides[category]?.[setting] !== undefined;
+	}
+
+	// Get server default value for display
+	function getServerDefault(key) {
+		const [category, setting] = key.split('.');
+		return settingsService.serverSettings[category]?.[setting];
+	}
 </script>
 
 <div class="global-settings">
 	<header class="settings-header">
 		<h3 class="settings-title">Global Preferences</h3>
 		<p class="settings-description">
-			Configure global application settings and workspace defaults.
+			Configure global application settings and workspace defaults. Settings with a 
+			<span class="override-indicator">●</span> are customized from server defaults.
 		</p>
 	</header>
 
@@ -131,7 +148,12 @@
 			<h4 class="section-title">Appearance</h4>
 
 			<div class="input-group">
-				<label for="theme-select" class="input-label">Theme</label>
+				<label for="theme-select" class="input-label">
+					Theme
+					{#if hasClientOverride('global.theme')}
+						<span class="override-indicator" title="Customized from server default: {getServerDefault('global.theme')}">●</span>
+					{/if}
+				</label>
 				<select id="theme-select" bind:value={theme} class="select-input">
 					{#each themes as themeOption}
 						<option value={themeOption.value}>{themeOption.label}</option>
@@ -143,14 +165,24 @@
 			<div class="input-group">
 				<label class="checkbox-label">
 					<input type="checkbox" bind:checked={enableAnimations} class="checkbox-input" />
-					<span class="checkbox-text">Enable animations and transitions</span>
+					<span class="checkbox-text">
+						Enable animations and transitions
+						{#if hasClientOverride('global.enableAnimations')}
+							<span class="override-indicator" title="Customized from server default: {getServerDefault('global.enableAnimations')}">●</span>
+						{/if}
+					</span>
 				</label>
 			</div>
 
 			<div class="input-group">
 				<label class="checkbox-label">
 					<input type="checkbox" bind:checked={enableSoundEffects} class="checkbox-input" />
-					<span class="checkbox-text">Enable sound effects</span>
+					<span class="checkbox-text">
+						Enable sound effects
+						{#if hasClientOverride('global.enableSoundEffects')}
+							<span class="override-indicator" title="Customized from server default: {getServerDefault('global.enableSoundEffects')}">●</span>
+						{/if}
+					</span>
 				</label>
 			</div>
 		</section>
@@ -160,7 +192,12 @@
 			<h4 class="section-title">Workspace</h4>
 
 			<div class="input-group">
-				<label for="layout-select" class="input-label">Default Layout</label>
+				<label for="layout-select" class="input-label">
+					Default Layout
+					{#if hasClientOverride('global.defaultLayout')}
+						<span class="override-indicator" title="Customized from server default: {getServerDefault('global.defaultLayout')}">●</span>
+					{/if}
+				</label>
 				<select id="layout-select" bind:value={defaultLayout} class="select-input">
 					{#each layouts as layoutOption}
 						<option value={layoutOption.value}>{layoutOption.label}</option>
@@ -172,7 +209,12 @@
 			<div class="input-group">
 				<label class="checkbox-label">
 					<input type="checkbox" bind:checked={autoSaveEnabled} class="checkbox-input" />
-					<span class="checkbox-text">Auto-save session state</span>
+					<span class="checkbox-text">
+						Auto-save session state
+						{#if hasClientOverride('global.autoSaveEnabled')}
+							<span class="override-indicator" title="Customized from server default: {getServerDefault('global.autoSaveEnabled')}">●</span>
+						{/if}
+					</span>
 				</label>
 				<p class="input-help">Automatically save your workspace state</p>
 			</div>
@@ -181,6 +223,14 @@
 		<!-- Session Settings -->
 		<section class="settings-section">
 			<h4 class="section-title">Sessions</h4>
+
+			<div class="input-group">
+				<label for="timeout-input" class="input-label">
+					Session Timeout (minutes)
+					{#if hasClientOverride('global.sessionTimeoutMinutes')}
+						<span class="override-indicator" title="Customized from server default: {getServerDefault('global.sessionTimeoutMinutes')}">●</span>
+					{/if}
+				</label>
 
 			<div class="input-group">
 				<label for="timeout-input" class="input-label">Session Timeout (minutes)</label>
@@ -348,6 +398,15 @@
 		font-size: 0.8rem;
 		color: var(--text-muted);
 		font-style: italic;
+	}
+
+	.override-indicator {
+		color: var(--primary);
+		font-weight: bold;
+		margin-left: var(--space-1);
+		cursor: help;
+		text-shadow: 0 0 4px var(--primary-glow);
+		font-size: 0.8rem;
 	}
 
 	.settings-footer {
