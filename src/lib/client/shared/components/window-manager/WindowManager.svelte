@@ -304,26 +304,28 @@
 		oneditmodetoggle?.({ detail: { editMode } });
 	}
 
-	// Tile action handlers for UI buttons
-	function handleSplitRight(tileId) {
+	// Helper to temporarily set focus to a tile, perform an action, then restore previous focus
+	function withTileFocus(tileId, action) {
 		const prevFocused = focused;
 		focused = tileId;
-		splitBesideCurrent('row');
-		focused = prevFocused;
+		try {
+			action();
+		} finally {
+			focused = prevFocused;
+		}
+	}
+
+	// Tile action handlers for UI buttons
+	function handleSplitRight(tileId) {
+		withTileFocus(tileId, () => splitBesideCurrent('row'));
 	}
 
 	function handleSplitDown(tileId) {
-		const prevFocused = focused;
-		focused = tileId;
-		splitBesideCurrent('column');
-		focused = prevFocused;
+		withTileFocus(tileId, () => splitBesideCurrent('column'));
 	}
 
 	function handleCloseTile(tileId) {
-		const prevFocused = focused;
-		focused = tileId;
-		closeFocused();
-		focused = prevFocused;
+		withTileFocus(tileId, () => closeFocused());
 	}
 
 	// Sync edit mode with prop
