@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { SESSION_TYPE } from '../../../shared/session-types.js';
 
 const log = createLogger('session-state');
 
@@ -27,10 +28,10 @@ export class SessionState {
 		this.activeSessions = $derived.by(() => this.sessions.filter((s) => s.isActive));
 
 		this.claudeSessions = $derived.by(() =>
-			this.sessions.filter((s) => s.sessionType === 'claude')
+			this.sessions.filter((s) => s.sessionType === SESSION_TYPE.CLAUDE)
 		);
 
-		this.terminalSessions = $derived.by(() => this.sessions.filter((s) => s.sessionType === 'pty'));
+		this.terminalSessions = $derived.by(() => this.sessions.filter((s) => s.sessionType === SESSION_TYPE.PTY));
 
 		this.sessionCount = $derived(this.sessions.length);
 		this.hasActiveSessions = $derived(this.activeSessions.length > 0);

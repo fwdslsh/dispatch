@@ -1,8 +1,8 @@
 import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
+import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
 export const terminalSessionModule = {
-	type: 'pty',
-	aliases: ['terminal'],
+	type: SESSION_TYPE.PTY,
 	component: TerminalPane,
 	prepareProps(session = {}) {
 		console.log('[terminal-module] Preparing props for session:', session);

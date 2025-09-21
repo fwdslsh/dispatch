@@ -4,21 +4,10 @@ import { fileEditorSessionModule } from './file-editor.js';
 
 const moduleMap = new Map();
 
-function registerOne(module) {
-	if (!module || typeof module !== 'object' || !module.type) return;
-	moduleMap.set(module.type, module);
-	if (Array.isArray(module.aliases)) {
-		for (const alias of module.aliases) {
-			if (typeof alias === 'string' && alias.length > 0) {
-				moduleMap.set(alias, module);
-			}
-		}
-	}
-}
-
 export function registerClientSessionModules(...modules) {
 	for (const module of modules) {
-		registerOne(module);
+		if (!module || typeof module !== 'object' || !module.type) continue;
+		moduleMap.set(module.type, module);
 	}
 }
 
@@ -27,7 +16,7 @@ export function getClientSessionModule(type) {
 }
 
 export function listClientSessionModules() {
-	return Array.from(new Set(moduleMap.values()));
+	return Array.from(moduleMap.values());
 }
 
 registerClientSessionModules(terminalSessionModule, claudeSessionModule, fileEditorSessionModule);

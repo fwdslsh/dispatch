@@ -5,7 +5,7 @@
  * Encapsulates all HTTP requests for session management.
  */
 
-import { normalizeSessionKind } from '../../../shared/session-kind.js';
+import { SESSION_TYPE } from '../../../shared/session-types.js';
 
 /**
  * @typedef {Object} Session
@@ -22,7 +22,7 @@ import { normalizeSessionKind } from '../../../shared/session-kind.js';
 
 /**
  * @typedef {Object} CreateSessionOptions
- * @property {'pty'|'claude'|'file-editor'} type - Session type
+ * @property {string} type - Session type (pty, claude, or file-editor)
  * @property {string} workspacePath - Workspace for the session
  * @property {Object} [options] - Type-specific options
  * @property {boolean} [resume] - Whether to resume existing session
@@ -134,8 +134,7 @@ export class SessionApiClient {
 			const sessions = raw.map((s) => {
 				if (!s) return null;
 				const id = s.id || s.runId || s.run_id || s.sessionId || s.session_id;
-				const type =
-					normalizeSessionKind(s.type || s.kind || s.sessionType || s.kind_name || 'pty') || 'pty';
+				const type = s.type || s.kind || s.sessionType || s.kind_name || SESSION_TYPE.PTY;
 				const workspacePath = s.workspacePath || s.cwd || (s.meta && s.meta.cwd) || '';
 				const isActive = s.isActive === true || s.isLive === true || s.status === 'running' || s.status === 'active';
 				const tileIdValue = s.tile_id || s.tileId || (s.inLayout ? s.tileId : undefined);
@@ -183,13 +182,13 @@ export class SessionApiClient {
 	 */
 	async create({ type, workspacePath, options = {}, resume = false, sessionId = null }) {
 		try {
-			const normalizedType = normalizeSessionKind(type);
-			if (!normalizedType) {
+			// Validate session type
+			if (!type || ![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR].includes(type)) {
 				throw new Error(`Invalid session type: ${type}`);
 			}
 
 			const body = {
-				kind: normalizedType,  // API expects 'kind' not 'type'
+				kind: type,  // API expects 'kind' not 'type'
 				cwd: workspacePath,  // API expects 'cwd' not 'workspacePath'
 				options
 			};
@@ -219,22 +218,30 @@ export class SessionApiClient {
 				console.warn('[SessionApiClient] Session create response missing id field', raw);
 			}
 
+			// Get title based on session type
+			const getSessionTitle = (sessionType) => {
+				switch (sessionType) {
+					case SESSION_TYPE.CLAUDE:
+						return 'Claude session';
+					case SESSION_TYPE.PTY:
+						return 'Terminal session';
+					case SESSION_TYPE.FILE_EDITOR:
+						return 'File Editor';
+					default:
+						return `${sessionType} session`;
+				}
+			};
+
 			return {
 				id,
-				// Preserve normalized kind so downstream callers have canonical values
-				type: normalizedType,
-				sessionType: normalizedType,
+				// Use validated type consistently
+				type,
+				sessionType: type,
 				workspacePath,
 				isActive: true,
 				inLayout: false,
 				resumed: raw?.resumed ?? (resume && !!sessionId) ?? false,
-				title:
-					raw?.title ||
-					(normalizedType === 'claude'
-						? 'Claude session'
-						: normalizedType === 'pty'
-						? 'Terminal session'
-						: `${normalizedType} session`),
+				title: raw?.title || getSessionTitle(type),
 				createdAt: raw?.createdAt || new Date().toISOString(),
 				lastActivity: raw?.lastActivity || new Date().toISOString(),
 				activityState: raw?.activityState || 'launching',
@@ -516,7 +523,7 @@ export class SessionApiClient {
 			return false;
 		}
 
-		if (!['pty', 'claude', 'file-editor'].includes(options.type)) {
+		if (![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR].includes(options.type)) {
 			return false;
 		}
 

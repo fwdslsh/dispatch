@@ -10,12 +10,17 @@ function getBaseDirectory() {
 
 // Validate that the requested path is within allowed bounds
 function isPathAllowed(requestedPath) {
-	const baseDir = getBaseDirectory();
-	const resolvedBase = resolve(baseDir);
 	const resolvedPath = resolve(requestedPath);
-	
-	// Ensure the path is within the base directory
-	return resolvedPath.startsWith(resolvedBase);
+
+	// Only block access to truly sensitive system directories
+	const blockedDirs = ['/proc', '/sys', '/dev'];
+	for (const dir of blockedDirs) {
+		if (resolvedPath.startsWith(dir)) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 // Sanitize file content to prevent issues

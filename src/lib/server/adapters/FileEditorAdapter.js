@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger.js';
 import { EventEmitter } from 'node:events';
+import { SESSION_TYPE } from '../../shared/session-types.js';
 
 /**
  * File Editor adapter for file editing sessions
@@ -21,7 +22,31 @@ export class FileEditorAdapter {
 		});
 
 		await proc.initialize();
-		return proc;
+
+		// Return adapter interface matching the expected structure
+		return {
+			kind: SESSION_TYPE.FILE_EDITOR,
+			input: {
+				write(data) {
+					// File editor doesn't process streaming input like terminals
+					// But we need this interface for compatibility with RunSessionManager
+					proc.handleInput(data);
+				}
+			},
+			close() {
+				proc.close();
+			},
+			getCwd() {
+				return proc.getCwd();
+			},
+			isAlive() {
+				return proc.isAlive();
+			},
+			// Expose the process for any direct access needed
+			getProcess() {
+				return proc;
+			}
+		};
 	}
 }
 
@@ -94,6 +119,32 @@ class FileEditorProcess extends EventEmitter {
 			payload: {
 				message: error.message || 'Unknown error',
 				stack: error.stack,
+				timestamp: Date.now()
+			}
+		});
+	}
+
+	/**
+	 * Handle input data (for compatibility with unified session architecture)
+	 * File editor doesn't process streaming input, but this provides the interface
+	 * @param {string|Uint8Array} data - Input data
+	 */
+	handleInput(data) {
+		if (!this.isActive) return;
+
+		// Convert to string if needed
+		const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
+
+		// File editor could potentially handle commands via input
+		// For now, just log that we received input
+		logger.debug('FILE_EDITOR_ADAPTER', `Received input: ${text.substring(0, 100)}`);
+
+		// Emit an event to show input was received
+		this.onEvent({
+			channel: 'file-editor:input',
+			type: 'received',
+			payload: {
+				data: text,
 				timestamp: Date.now()
 			}
 		});

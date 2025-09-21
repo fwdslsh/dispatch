@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger.js';
+import { SESSION_TYPE } from '../../shared/session-types.js';
 
 /**
  * PTY adapter for terminal sessions using node-pty
@@ -109,7 +110,7 @@ export class PtyAdapter {
 
 		// Return adapter interface
 		return {
-			kind: 'pty',
+			kind: SESSION_TYPE.PTY,
 			input: {
 				write(data) {
 					const text = typeof data === 'string' ? data : new TextDecoder().decode(data);

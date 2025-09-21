@@ -1,5 +1,6 @@
 import { createDbErrorHandler, safeExecute } from './utils/error-handling.js';
 import { sanitizeData as sanitizeDataUtil } from './utils/data-utils.js';
+import { SESSION_TYPE } from '../shared/session-types.js';
 
 class HistoryManager {
 	constructor(databaseManager) {
@@ -100,7 +101,7 @@ class HistoryManager {
 			}
 		} else if (eventType.startsWith('claude.auth')) {
 			// Claude authentication events are still valid
-			historyEntry.metadata.sessionType = 'claude';
+			historyEntry.metadata.sessionType = SESSION_TYPE.CLAUDE;
 		}
 	}
 

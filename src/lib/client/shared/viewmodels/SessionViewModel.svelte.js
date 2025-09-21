@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { normalizeSessionKind } from '../../../shared/session-kind.js';
+import { SESSION_TYPE } from '../../../shared/session-types.js';
 import { getClientId } from '../utils/uuid.js';
 
 const log = createLogger('session:viewmodel');
@@ -21,7 +21,7 @@ const log = createLogger('session:viewmodel');
  * @typedef {Object} Session
  * @property {string} id
  * @property {string} workspacePath
- * @property {'pty'|'claude'|'file-editor'} sessionType
+ * @property {string} sessionType
  * @property {boolean} isActive
  * @property {boolean} inLayout
  * @property {string} title
@@ -431,13 +431,12 @@ export class SessionViewModel {
 			log.info('Resuming session', sessionId);
 
 			const existingSession = this.appStateManager.sessions.getSession(sessionId);
-			const normalizedType =
-				normalizeSessionKind(existingSession?.sessionType || existingSession?.type) || 'pty';
+			const sessionType = existingSession?.sessionType || existingSession?.type || SESSION_TYPE.PTY;
 			const resolvedWorkspace = existingSession?.workspacePath || workspacePath || '';
 
 			// Resume is handled via create with resume flag
 			const result = await this.sessionApi.create({
-				type: normalizedType,
+				type: sessionType,
 				workspacePath: resolvedWorkspace,
 				options: {},
 				resume: true,

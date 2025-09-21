@@ -54,7 +54,7 @@ export class DatabaseManager {
 			CREATE TABLE IF NOT EXISTS sessions (
 				run_id TEXT PRIMARY KEY,
 				owner_user_id TEXT,
-				kind TEXT NOT NULL,              -- 'pty' | 'claude'
+				kind TEXT NOT NULL,              -- Session type: pty, claude, or file-editor
 				status TEXT NOT NULL,            -- 'starting'|'running'|'stopped'|'error'
 				created_at INTEGER NOT NULL,
 				updated_at INTEGER NOT NULL,
