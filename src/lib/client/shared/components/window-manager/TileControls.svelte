@@ -6,8 +6,6 @@
 <script>
 	import IconButton from '../IconButton.svelte';
 	import IconX from '../Icons/IconX.svelte';
-	import IconArrowRight from '../Icons/IconArrowRight.svelte';
-	import IconArrowDown from '../Icons/IconArrowDown.svelte';
 
 	let {
 		/** @type {boolean} */ visible = false,
