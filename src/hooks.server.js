@@ -1,7 +1,6 @@
 import { sequence } from '@sveltejs/kit/hooks';
 import { logger } from './lib/server/shared/utils/logger.js';
 import { initializeServices } from './lib/server/shared/index.js';
-import { setupSocketIO } from './lib/server/shared/socket-setup.js';
 
 // Use process-level singleton to survive module reloads
 const SERVICES_KEY = Symbol.for('dispatch.services');
@@ -9,7 +8,6 @@ const SERVICES_KEY = Symbol.for('dispatch.services');
 async function getServices() {
 	// Check if services already exist at process level
 	if (globalThis[SERVICES_KEY]) {
-		logger.info('HOOKS_SERVER', 'Using existing process-level services');
 		return globalThis[SERVICES_KEY];
 	}
 

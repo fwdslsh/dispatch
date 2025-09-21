@@ -1,6 +1,9 @@
 import FileEditorPane from '$lib/client/file-editor/FileEditorPane.svelte';
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
+/**
+ * @type {import('$lib/client/shared/types.js').ISessionModule} ISessionModule
+ */
 export const fileEditorSessionModule = {
 	type: SESSION_TYPE.FILE_EDITOR,
 	component: FileEditorPane,
@@ -14,5 +17,9 @@ export const fileEditorSessionModule = {
 		};
 		console.log('[file-editor-module] Prepared props:', props);
 		return props;
+	},
+	prepareHeaderProps: function (session, options) {
+		return {
+			};
 	}
 };

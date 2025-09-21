@@ -14,6 +14,7 @@
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { getClientSessionModule } from '$lib/client/shared/session-modules/index.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
 
 	// Props
 	let { open = $bindable(false), initialType = SESSION_TYPE.CLAUDE, oncreated, onclose } = $props();
@@ -58,9 +59,10 @@
 
 	// Set default workspace path (will be set when modal opens)
 	async function setDefaultWorkspace() {
-		// DirectoryBrowser will now default to WORKSPACES_ROOT when workspacePath is empty
+		// Use the global defaultWorkspaceDirectory setting if available
 		if (!workspacePath) {
-			workspacePath = '';
+			const defaultWorkspaceDirectory = settingsService.get('global.defaultWorkspaceDirectory', '');
+			workspacePath = defaultWorkspaceDirectory;
 		}
 	}
 
@@ -201,7 +203,7 @@
 				<div class="directory-browser-container">
 					<DirectoryBrowser
 						bind:selected={workspacePath}
-						startPath={workspacePath || ''}
+						startPath={workspacePath || settingsService.get('global.defaultWorkspaceDirectory', '')}
 						onSelect={handleDirectorySelect}
 					/>
 				</div>

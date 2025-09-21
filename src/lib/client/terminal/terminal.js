@@ -2,6 +2,9 @@ import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
 import TerminalHeader from '$lib/client/shared/components/session-headers/TerminalHeader.svelte';
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
+/**
+ * @type {import('$lib/client/shared/types.js').ISessionModule} ISessionModule
+ */
 export const terminalSessionModule = {
 	type: SESSION_TYPE.PTY,
 	component: TerminalPane,

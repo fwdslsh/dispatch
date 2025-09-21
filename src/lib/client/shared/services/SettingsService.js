@@ -293,15 +293,25 @@ export class SettingsService {
 	getFallbackDefaults() {
 		return {
 			global: {
-				theme: 'retro' // Used in data-theme attribute setting
+				theme: 'retro', // Used in data-theme attribute setting
+				defaultWorkspaceDirectory: '' // Default workspace directory for new sessions
 			},
 			claude: {
 				model: 'claude-3-5-sonnet-20241022',
+				customSystemPrompt: '',
+				appendSystemPrompt: '',
+				maxTurns: null,
+				maxThinkingTokens: null,
+				fallbackModel: '',
+				includePartialMessages: false,
+				continueConversation: false,
 				permissionMode: 'default',
 				executable: 'auto',
-				maxTurns: null,
-				includePartialMessages: false,
-				continueConversation: false
+				executableArgs: '',
+				allowedTools: '',
+				disallowedTools: '',
+				additionalDirectories: '',
+				strictMcpConfig: false
 			}
 		};
 	}

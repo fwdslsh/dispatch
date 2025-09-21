@@ -220,6 +220,7 @@
 			<!-- File browser view using DirectoryBrowser component -->
 			<div class="file-browser">
 				<DirectoryBrowser
+					startPath={currentDirectory}
 					placeholder="Browse files and directories..."
 					showFileActions={true}
 					isAlwaysOpen={true}

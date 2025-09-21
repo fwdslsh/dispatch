@@ -1,71 +1,52 @@
 <script>
 	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
-	import Input from '$lib/client/shared/components/Input.svelte';
+	import ClaudeSettings from '$lib/client/claude/ClaudeSettings.svelte';
 	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
-	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 
 	/**
 	 * Claude Default Settings Component
-	 * Manages default settings for Claude sessions
+	 * Manages default settings for Claude sessions using shared component
 	 * Uses unified settings service with server/client sync
 	 */
 
-	// Settings state - use service values with fallback defaults
-	let model = $state(settingsService.get('claude.model', 'claude-3-5-sonnet-20241022'));
-	let permissionMode = $state(settingsService.get('claude.permissionMode', 'default'));
-	let maxTurns = $state(settingsService.get('claude.maxTurns', null));
-	let includePartialMessages = $state(settingsService.get('claude.includePartialMessages', false));
-	let continueConversation = $state(settingsService.get('claude.continueConversation', false));
-	let executable = $state(settingsService.get('claude.executable', 'auto'));
+	// Settings state bound to the shared component
+	let settings = $state({});
 
 	// Feedback state
 	let saveStatus = $state('');
 	let saving = $state(false);
 
-	// Available Claude models
-	const availableModels = [
-		{ value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (Latest)' },
-		{ value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
-		{ value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
-		{ value: 'claude-3-sonnet-20240229', label: 'Claude 3 Sonnet' },
-		{ value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
-	];
-
-	// Permission modes
-	const permissionModes = [
-		{ value: 'default', label: 'Default' },
-		{ value: 'ask', label: 'Ask for permissions' },
-		{ value: 'allow', label: 'Allow all' }
-	];
-
-	// JavaScript executables
-	const executables = [
-		{ value: 'auto', label: 'Auto-detect' },
-		{ value: 'node', label: 'Node.js' },
-		{ value: 'bun', label: 'Bun' },
-		{ value: 'deno', label: 'Deno' }
-	];
-
-	// Load saved settings on mount
+	// Load current settings from the service
 	onMount(async () => {
 		// Wait for settings service to load
 		if (!settingsService.isLoaded) {
 			await settingsService.loadServerSettings();
 		}
-		
-		// Update local state with effective settings
-		updateLocalState();
+
+		// Load current Claude settings
+		updateSettingsFromService();
 	});
 
-	// Update local component state from settings service
-	function updateLocalState() {
-		model = settingsService.get('claude.model', 'claude-3-5-sonnet-20241022');
-		permissionMode = settingsService.get('claude.permissionMode', 'default');
-		maxTurns = settingsService.get('claude.maxTurns', null);
-		includePartialMessages = settingsService.get('claude.includePartialMessages', false);
-		continueConversation = settingsService.get('claude.continueConversation', false);
-		executable = settingsService.get('claude.executable', 'auto');
+	// Load settings from the service into our local state
+	function updateSettingsFromService() {
+		settings = {
+			model: settingsService.get('claude.model', 'claude-3-5-sonnet-20241022'),
+			customSystemPrompt: settingsService.get('claude.customSystemPrompt', ''),
+			appendSystemPrompt: settingsService.get('claude.appendSystemPrompt', ''),
+			maxTurns: settingsService.get('claude.maxTurns', null),
+			maxThinkingTokens: settingsService.get('claude.maxThinkingTokens', null),
+			fallbackModel: settingsService.get('claude.fallbackModel', ''),
+			includePartialMessages: settingsService.get('claude.includePartialMessages', false),
+			continueConversation: settingsService.get('claude.continueConversation', false),
+			permissionMode: settingsService.get('claude.permissionMode', 'default'),
+			executable: settingsService.get('claude.executable', 'auto'),
+			executableArgs: settingsService.get('claude.executableArgs', ''),
+			allowedTools: settingsService.get('claude.allowedTools', ''),
+			disallowedTools: settingsService.get('claude.disallowedTools', ''),
+			additionalDirectories: settingsService.get('claude.additionalDirectories', ''),
+			strictMcpConfig: settingsService.get('claude.strictMcpConfig', false)
+		};
 	}
 
 	// Save settings using the new service
@@ -76,13 +57,10 @@
 		saveStatus = '';
 
 		try {
-			// Save as client overrides (localStorage)
-			settingsService.setClientOverride('claude.model', model);
-			settingsService.setClientOverride('claude.permissionMode', permissionMode);
-			settingsService.setClientOverride('claude.maxTurns', maxTurns || null);
-			settingsService.setClientOverride('claude.includePartialMessages', includePartialMessages);
-			settingsService.setClientOverride('claude.continueConversation', continueConversation);
-			settingsService.setClientOverride('claude.executable', executable);
+			// Save all Claude settings as client overrides (localStorage)
+			Object.entries(settings).forEach(([key, value]) => {
+				settingsService.setClientOverride(`claude.${key}`, value);
+			});
 
 			saveStatus = 'Claude settings saved successfully';
 			setTimeout(() => {
@@ -99,158 +77,58 @@
 	// Reset to server defaults
 	async function resetToDefaults() {
 		settingsService.resetClientOverridesForCategory('claude');
-		updateLocalState();
-		
+		updateSettingsFromService();
+
 		saveStatus = 'Claude settings reset to defaults';
 		setTimeout(() => {
 			saveStatus = '';
 		}, 3000);
 	}
-
-	// Check if a setting has a client override
-	function hasClientOverride(key) {
-		const [category, setting] = key.split('.');
-		return settingsService.clientOverrides[category]?.[setting] !== undefined;
-	}
-
-	// Get server default value for display
-	function getServerDefault(key) {
-		const [category, setting] = key.split('.');
-		return settingsService.serverSettings[category]?.[setting];
-	}
 </script>
 
-<div class="claude-settings">
+<div class="claude-defaults">
 	<header class="settings-header">
 		<h3 class="settings-title">Claude Defaults</h3>
 		<p class="settings-description">
-			Configure default settings for new Claude sessions. Settings with a 
-			<span class="override-indicator">●</span> are customized from server defaults.
+			Configure default settings for new Claude sessions. These settings will be used as defaults when creating new Claude sessions, but can be overridden per session.
 		</p>
 	</header>
 
 	<div class="settings-content">
-		<!-- Model Settings -->
-		<section class="settings-section">
-			<h4 class="section-title">Model Configuration</h4>
-
-			<div class="input-group">
-				<label for="model-select" class="input-label">
-					Default Model
-					{#if hasClientOverride('claude.model')}
-						<span class="override-indicator" title="Customized from server default: {getServerDefault('claude.model')}">●</span>
-					{/if}
-				</label>
-				<select id="model-select" bind:value={model} class="select-input">
-					{#each availableModels as modelOption}
-						<option value={modelOption.value}>{modelOption.label}</option>
-					{/each}
-				</select>
-				<p class="input-help">Default Claude model for new sessions</p>
-			</div>
-
-			<div class="input-group">
-				<label for="permission-select" class="input-label">
-					Permission Mode
-					{#if hasClientOverride('claude.permissionMode')}
-						<span class="override-indicator" title="Customized from server default: {getServerDefault('claude.permissionMode')}">●</span>
-					{/if}
-				</label>
-				<select id="permission-select" bind:value={permissionMode} class="select-input">
-					{#each permissionModes as permissionOption}
-						<option value={permissionOption.value}>{permissionOption.label}</option>
-					{/each}
-				</select>
-				<p class="input-help">How Claude handles permission requests</p>
-			</div>
-
-			<div class="input-group">
-				<label for="executable-select" class="input-label">
-					JavaScript Executable
-					{#if hasClientOverride('claude.executable')}
-						<span class="override-indicator" title="Customized from server default: {getServerDefault('claude.executable')}">●</span>
-					{/if}
-				</label>
-				<select id="executable-select" bind:value={executable} class="select-input">
-					{#each executables as execOption}
-						<option value={execOption.value}>{execOption.label}</option>
-					{/each}
-				</select>
-				<p class="input-help">Default JavaScript runtime for code execution</p>
-			</div>
-		</section>
-
-		<!-- Session Settings -->
-		<section class="settings-section">
-			<h4 class="section-title">Session Behavior</h4>
-
-			<div class="input-group">
-				<label for="max-turns-input" class="input-label">
-					Max Turns (optional)
-					{#if hasClientOverride('claude.maxTurns')}
-						<span class="override-indicator" title="Customized from server default: {getServerDefault('claude.maxTurns')}">●</span>
-					{/if}
-				</label>
-				<Input
-					id="max-turns-input"
-					bind:value={maxTurns}
-					type="number"
-					placeholder="Unlimited"
-					min="1"
-					max="1000"
-				/>
-				<p class="input-help">Maximum conversation turns per session (leave empty for unlimited)</p>
-			</div>
-
-			<div class="input-group">
-				<label class="checkbox-label">
-					<input type="checkbox" bind:checked={includePartialMessages} class="checkbox-input" />
-					<span class="checkbox-text">
-						Include partial messages
-						{#if hasClientOverride('claude.includePartialMessages')}
-							<span class="override-indicator" title="Customized from server default: {getServerDefault('claude.includePartialMessages')}">●</span>
-						{/if}
-					</span>
-				</label>
-				<p class="input-help">Include incomplete messages in responses</p>
-			</div>
-
-			<div class="input-group">
-				<label class="checkbox-label">
-					<input type="checkbox" bind:checked={continueConversation} class="checkbox-input" />
-					<span class="checkbox-text">
-						Continue conversations by default
-						{#if hasClientOverride('claude.continueConversation')}
-							<span class="override-indicator" title="Customized from server default: {getServerDefault('claude.continueConversation')}">●</span>
-						{/if}
-					</span>
-				</label>
-				<p class="input-help">Automatically continue conversations across sessions</p>
-			</div>
-		</section>
+		<ClaudeSettings
+			bind:settings={settings}
+			mode="global"
+		/>
 	</div>
 
 	<!-- Settings Footer -->
-	<div class="settings-footer">
+	<footer class="settings-footer">
+		<div
+			class="save-status"
+			class:success={saveStatus.includes('success')}
+			class:error={saveStatus.includes('Failed')}
+		>
+			{saveStatus}
+		</div>
 		<div class="settings-actions">
-			<Button onclick={resetToDefaults} variant="ghost" size="small">
-				Reset to Defaults
+			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
+				Reset Defaults
 			</Button>
-			<Button onclick={saveSettings} variant="primary" disabled={saving} loading={saving}>
-				Save Settings
+			<Button
+				onclick={saveSettings}
+				variant="primary"
+				size="small"
+				disabled={saving}
+				loading={saving}
+			>
+				{saving ? 'Saving...' : 'Save Settings'}
 			</Button>
 		</div>
-
-		{#if saveStatus}
-			<div class="save-status" class:success={saveStatus.includes('success')}>
-				{saveStatus}
-			</div>
-		{/if}
-	</div>
+	</footer>
 </div>
 
 <style>
-	.claude-settings {
+	.claude-defaults {
 		display: flex;
 		flex-direction: column;
 		height: 100%;

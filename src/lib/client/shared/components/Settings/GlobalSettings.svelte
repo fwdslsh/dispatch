@@ -13,6 +13,7 @@
 
 	// Settings state - use service values with fallback defaults
 	let theme = $state(settingsService.get('global.theme', 'retro'));
+	let defaultWorkspaceDirectory = $state(settingsService.get('global.defaultWorkspaceDirectory', ''));
 	let autoSaveEnabled = $state(settingsService.get('global.autoSaveEnabled', true));
 	let sessionTimeoutMinutes = $state(settingsService.get('global.sessionTimeoutMinutes', 30).toString());
 	let defaultLayout = $state(settingsService.get('global.defaultLayout', '2up'));
@@ -50,6 +51,7 @@
 	// Update local component state from settings service
 	function updateLocalState() {
 		theme = settingsService.get('global.theme', 'retro');
+		defaultWorkspaceDirectory = settingsService.get('global.defaultWorkspaceDirectory', '');
 	}
 
 	// Save settings using the new service
@@ -62,6 +64,7 @@
 		try {
 			// Save as client override (localStorage)
 			settingsService.setClientOverride('global.theme', theme);
+			settingsService.setClientOverride('global.defaultWorkspaceDirectory', defaultWorkspaceDirectory);
 
 			// Legacy theme storage for immediate theme application
 			localStorage.setItem(STORAGE_CONFIG.THEME_KEY, theme);
@@ -150,6 +153,27 @@
 					{/each}
 				</select>
 				<p class="input-help">Choose your preferred visual theme (applied to HTML data-theme attribute)</p>
+			</div>
+		</section>
+
+		<!-- Workspace Settings -->
+		<section class="settings-section">
+			<h4 class="section-title">Workspace</h4>
+
+			<div class="input-group">
+				<label for="default-workspace-dir" class="input-label">
+					Default Workspace Directory
+					{#if hasClientOverride('global.defaultWorkspaceDirectory')}
+						<span class="override-indicator" title="Customized from server default: {getServerDefault('global.defaultWorkspaceDirectory') || 'Server WORKSPACES_ROOT'}">●</span>
+					{/if}
+				</label>
+				<Input
+					id="default-workspace-dir"
+					bind:value={defaultWorkspaceDirectory}
+					placeholder="Leave empty to use server WORKSPACES_ROOT"
+					class="workspace-dir-input"
+				/>
+				<p class="input-help">Default directory used when creating new sessions. Leave empty to use the server's WORKSPACES_ROOT environment variable.</p>
 			</div>
 		</section>
 	</div>
