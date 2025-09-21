@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import Split from './Split.svelte';
 	import Tile from './Tile.svelte';
-	import { on } from 'svelte/events';
 	import { generateUUID } from '../../utils/uuid.js';
 
 	/**
@@ -348,13 +347,13 @@
 	onkeydown={onKey}
 >
 	<!-- Edit mode toggle button -->
-	{#if editMode || showEditMode !== undefined}
+	<!-- {#if editMode || showEditMode !== undefined}
 		<div class="wm-edit-controls">
 			<button class="wm-edit-toggle" onclick={toggleEditMode} type="button">
 				{editMode ? '✓ Edit Mode' : '✏️ Edit Mode'}
 			</button>
 		</div>
-	{/if}
+	{/if} -->
 
 	{#if root.type === 'leaf'}
 		<Tile id={/** @type {Leaf} */ (root).id} {focused} onfocus={handleFocus}>
