@@ -47,6 +47,213 @@ docker run -d -p 3030:3030 \
 # Open http://localhost:3030 in your browser
 ```
 
+## 🤖 Using Dispatch Locally as AI Agent Sandbox
+
+Dispatch is perfect for creating isolated AI agent environments with shared workspace access. This setup provides a secure sandbox where AI agents can work with files while protecting your host system.
+
+### Prerequisites
+
+- **Docker** installed and running
+- **Node.js 22+** (for CLI installation)
+- At least **2GB free disk space** for container and workspace
+
+### Quick Sandbox Setup
+
+The fastest way to set up an AI agent sandbox:
+
+```bash
+# Install the Dispatch CLI
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+npm install -g .
+
+# Initialize sandbox environment
+dispatch init
+
+# Start sandbox with shared workspace
+dispatch start --open
+```
+
+### Directory Structure & Mounting Strategy
+
+Dispatch creates an isolated environment while allowing controlled file sharing:
+
+```
+~/dispatch/                          # Protected sandbox root
+├── home/                           # Isolated home directory
+│   ├── .bashrc                     # Copied from your ~/.bashrc
+│   ├── .gitconfig                  # Copied from your ~/.gitconfig
+│   ├── .ssh/ -> ~/.ssh             # Read-only SSH keys
+│   └── .claude/                    # Claude CLI configuration
+├── projects/                       # Shared workspace directory
+│   ├── project-a/                  # Individual project isolation
+│   │   ├── workspace/              # Persistent project files
+│   │   ├── sessions/               # Temporary session data
+│   │   └── .dispatch/              # Project metadata
+│   └── project-b/
+└── config/                         # Dispatch configuration
+```
+
+### Manual Setup for Advanced Configuration
+
+For more control over your sandbox environment:
+
+```bash
+# Create sandbox directory structure
+mkdir -p ~/dispatch/{home,projects,config}
+
+# Copy essential configurations (optional)
+cp ~/.bashrc ~/.gitconfig ~/dispatch/home/ 2>/dev/null || true
+cp -r ~/.claude ~/dispatch/home/ 2>/dev/null || true
+
+# Start with explicit mounts
+docker run -d -p 3030:3030 \
+  -e TERMINAL_KEY=sandbox-key-$(date +%s) \
+  -e PROJECT_SANDBOX_ENABLED=true \
+  -v ~/dispatch/home:/home/appuser \
+  -v ~/dispatch/projects:/workspace \
+  -v ~/dispatch/config:/config \
+  -v ~/.ssh:/home/appuser/.ssh:ro \
+  --name dispatch-sandbox \
+  fwdslsh/dispatch:latest
+```
+
+### Workspace Sharing Patterns
+
+#### Pattern 1: Shared Development Workspace
+
+```bash
+# Mount a specific project directory for AI collaboration
+dispatch start \
+  --projects ~/my-ai-projects \
+  --home ~/dispatch/home \
+  --ssh ~/.ssh
+
+# AI agents can access files in ~/my-ai-projects
+# Host system remains protected in ~/dispatch/home
+```
+
+#### Pattern 2: Temporary Sandbox
+
+```bash
+# Create temporary workspace for experimentation
+mkdir -p /tmp/ai-sandbox
+dispatch start \
+  --projects /tmp/ai-sandbox \
+  --home ~/dispatch/home
+
+# Perfect for testing AI-generated code safely
+```
+
+#### Pattern 3: Protected Production Setup
+
+```bash
+# Production setup with read-only host access
+dispatch start \
+  --projects ~/dispatch/projects \
+  --home ~/dispatch/home \
+  --config ~/.config:ro \
+  --ssh ~/.ssh:ro
+
+# AI agents work in isolation, critical configs are protected
+```
+
+### Sample AI Agent Workflows
+
+#### Code Review & Analysis
+
+```bash
+# Start sandbox for code analysis
+dispatch start --projects ~/code-review --open
+
+# In the web terminal:
+# 1. Clone repository: git clone <repo-url>
+# 2. Create Claude session for code review
+# 3. AI analyzes code safely in isolated environment
+# 4. Results saved to ~/code-review on host
+```
+
+#### Data Processing Pipeline
+
+```bash
+# Set up data processing sandbox
+mkdir -p ~/ai-data/{input,output,temp}
+dispatch start --projects ~/ai-data --open
+
+# Mount data directories:
+# - input/: Raw data files (read-only)
+# - output/: Processed results
+# - temp/: Temporary processing files
+```
+
+#### Collaborative Development
+
+```bash
+# Enable public access for team collaboration
+dispatch start \
+  --projects ~/team-project \
+  --tunnel --subdomain team-ai-workspace \
+  --open
+
+# Share the tunnel URL with team members
+# Multiple people can collaborate with AI in the same environment
+```
+
+### Environment Variables for AI Sandbox
+
+| Variable                  | Value           | Purpose                  |
+| ------------------------- | --------------- | ------------------------ |
+| `PROJECT_SANDBOX_ENABLED` | `true`          | Enable project isolation |
+| `HOST_HOME_DIR`           | `/home/appuser` | Isolated home directory  |
+| `DISPATCH_PROJECTS_DIR`   | `/workspace`    | Shared workspace path    |
+| `CLAUDE_PROJECTS_DIR`     | `/workspace`    | Claude AI workspace      |
+
+### Security & Isolation Features
+
+- **Container Isolation**: Each session runs in its own secure Docker container
+- **Filesystem Sandboxing**: AI agents can only access mounted directories
+- **User Mapping**: Files created maintain proper ownership on host system
+- **Read-only Mounts**: Sensitive configs (SSH keys) mounted read-only
+- **Network Isolation**: Container network separated from host
+- **Resource Limits**: Container resources can be limited via Docker
+
+### Monitoring & Management
+
+Access the admin console to monitor AI agent activity:
+
+```bash
+# Open admin console
+open http://localhost:3030/console?key=your-terminal-key
+
+# View active sessions, resource usage, and logs
+# Perfect for monitoring AI agent behavior
+```
+
+### Troubleshooting Sandbox Issues
+
+**AI Agent Can't Access Files:**
+
+```bash
+# Check mount permissions
+ls -la ~/dispatch/projects
+docker exec dispatch-sandbox ls -la /workspace
+```
+
+**Container Won't Start:**
+
+```bash
+# Check Docker status and logs
+docker ps -a
+docker logs dispatch-sandbox
+```
+
+**Permission Errors:**
+
+```bash
+# Fix ownership issues
+sudo chown -R $(id -u):$(id -g) ~/dispatch/
+```
+
 ## 📦 More Installation Options
 
 ### For Developers
