@@ -98,10 +98,10 @@
 		border-radius: 50%;
 		background: linear-gradient(
 			135deg,
-			color-mix(in oklab, var(--surface) 92%, var(--primary) 8%),
-			color-mix(in oklab, var(--surface) 96%, var(--primary) 4%)
+			var(--surface-primary-92),
+			var(--surface-primary-96)
 		);
-		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+		border: 1px solid var(--primary-glow-20);
 		box-shadow:
 			0 2px 8px -4px var(--primary-glow),
 			inset 0 1px 2px rgba(255, 255, 255, 0.05);
@@ -123,11 +123,11 @@
 
 	.event-icon:hover {
 		transform: translateY(-2px) scale(1.1);
-		border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+		border-color: var(--primary-glow-40);
 		background: linear-gradient(
 			135deg,
-			color-mix(in oklab, var(--primary) 15%, var(--surface)),
-			color-mix(in oklab, var(--primary) 8%, var(--surface))
+			var(--primary-surface-15),
+			var(--primary-surface-8)
 		);
 		box-shadow:
 			0 4px 12px -4px var(--primary-glow),
@@ -139,13 +139,13 @@
 	.event-icon.selected {
 		background: linear-gradient(
 			135deg,
-			color-mix(in oklab, var(--primary) 25%, var(--surface)),
-			color-mix(in oklab, var(--primary) 15%, var(--surface))
+			var(--primary-surface-25),
+			var(--primary-surface-15)
 		);
 		color: var(--primary);
-		border-color: color-mix(in oklab, var(--primary) 50%, transparent);
+		border-color: var(--primary-glow-50);
 		box-shadow:
-			0 0 0 2px color-mix(in oklab, var(--primary) 20%, transparent),
+			0 0 0 2px var(--primary-glow-20),
 			0 4px 16px -6px var(--primary-glow),
 			inset 0 2px 4px rgba(255, 255, 255, 0.1);
 		transform: translateY(-2px) scale(1.1);
@@ -156,10 +156,10 @@
 		padding: var(--space-3) var(--space-4);
 		background: linear-gradient(
 			135deg,
-			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%),
-			color-mix(in oklab, var(--surface) 98%, var(--primary) 2%)
+			var(--surface-primary-95),
+			var(--surface-primary-98)
 		);
-		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
+		border: 1px solid var(--primary-glow-25);
 		border-radius: 12px;
 		box-shadow:
 			inset 0 1px 3px rgba(0, 0, 0, 0.05),
