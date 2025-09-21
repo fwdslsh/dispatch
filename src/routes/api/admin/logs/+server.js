@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/auth.js';
+import { validateKey } from '$lib/server/shared/auth.js';
 
 export async function GET({ url, locals }) {
 	const databaseManager = locals.services?.database;

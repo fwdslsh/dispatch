@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/auth.js';
-import { getSocketEvents } from '$lib/server/socket-setup.js';
+import { validateKey } from '$lib/server/shared/auth.js';
+import { getSocketEvents } from '$lib/server/shared/socket-setup.js';
 
 export async function GET({ url }) {
 	let key = null;

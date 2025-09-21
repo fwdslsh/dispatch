@@ -36,9 +36,7 @@
 		"playwright:install": "npx playwright install",
 		"docker:dev": "node bin/cli.js start -k test --projects ~/code/ --home ~/ --build",
 		"docker:start": "node bin/cli.js start -k test --projects ~/code/ --home ~/",
-		"docker:stop": "node bin/cli.js stop",
-		"test:database": "node scripts/test-database.js",
-		"test:managers": "node scripts/test-managers.js"
+		"docker:stop": "node bin/cli.js stop"
 	},
 	"bin": {
 		"dispatch": "./bin/cli.js"

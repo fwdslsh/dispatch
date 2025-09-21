@@ -112,9 +112,12 @@ docker run -d -p 3030:3030 \
 Dispatch organizes your work into projects for better organization:
 
 - **Create a project**: Give your work a name (like "my-website" or "data-analysis")
-- **Multiple terminals**: Open several terminal sessions within the same project
+- **Multiple sessions**: Open different types of sessions within the same project:
+  - **Terminal Sessions**: Full Linux shell access via xterm.js
+  - **Claude Sessions**: AI-powered coding assistance
+  - **File Editor Sessions**: Built-in code editor for quick edits
 - **Persistent sessions**: Your work is automatically saved - just refresh to reconnect
-- **Shared workspace**: All terminals in a project share the same files and directories
+- **Shared workspace**: All sessions in a project share the same files and directories
 
 ### Tips for New Users
 
@@ -132,7 +135,6 @@ Get intelligent coding assistance right in your terminal with Claude AI integrat
 # Enable Claude AI when starting
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=your-password \
-  -e PTY_MODE=claude \
   fwdslsh/dispatch:latest
 ```
 
@@ -151,7 +153,7 @@ docker run -p 3030:3030 \
 - **Debug issues**: Claude can help identify and fix problems
 - **Learn new concepts**: Ask questions about programming concepts
 
-**Note**: You'll need a Claude account and the feature requires the Claude CLI to be available in the container. See our [Claude Authentication Guide](docs/claude-authentication.md) for detailed setup instructions.
+**Note**: You'll need a Claude account from Anthropic to use Claude sessions. Authentication is handled via OAuth flow - simply click the login link that appears when creating a Claude session.
 
 ## 🛠️ Admin Console
 
@@ -173,19 +175,21 @@ Just add `/console` to your Dispatch URL and use the same password:
 http://localhost:3030/console?key=your-terminal-key
 ```
 
-Perfect for administrators, troubleshooting, and understanding how your Dispatch instance is performing. See our [Admin Console Guide](docs/admin-console.md) for detailed features and screenshots.
+Perfect for administrators, troubleshooting, and understanding how your Dispatch instance is performing.
 
 ## ⚙️ Configuration
 
 Customize Dispatch behavior with these settings:
 
-| Setting         | Default Value | What It Does                                  |
-| --------------- | ------------- | --------------------------------------------- |
-| `TERMINAL_KEY`  | `change-me`   | **🔑 Required** - Password to access Dispatch |
-| `PORT`          | `3030`        | Which port the web interface uses             |
-| `PTY_MODE`      | `shell`       | Default session type: `shell` or `claude`     |
-| `ENABLE_TUNNEL` | `false`       | Create public URLs for sharing                |
-| `LT_SUBDOMAIN`  | `""`          | Custom name for your public URL               |
+| Setting           | Default Value | What It Does                                  |
+| ----------------- | ------------- | --------------------------------------------- |
+| `TERMINAL_KEY`    | `change-me`   | **🔑 Required** - Password to access Dispatch |
+| `PORT`            | `3030`        | Which port the web interface uses             |
+| `WORKSPACES_ROOT` | `/workspace`  | Default directory for workspaces              |
+| `ENABLE_TUNNEL`   | `false`       | Create public URLs for sharing                |
+| `LT_SUBDOMAIN`    | `""`          | Custom name for your public URL               |
+| `HOST_UID`        | -             | Container user ID mapping (optional)          |
+| `HOST_GID`        | -             | Container group ID mapping (optional)         |
 
 ### Keeping Your Data
 
@@ -363,14 +367,12 @@ Dispatch is built with modern, reliable technologies:
 - **Event replay** - Full session history for debugging and learning
 - **Extensible design** - Easy to add new session types and features
 
-For technical details, see our [Architecture Documentation](docs/ARCHITECTURE.md).
+For technical details, see [CLAUDE.md](CLAUDE.md).
 
 ## 📚 Documentation
 
-- [CLI Documentation](docs/CLI.md) - Complete command-line tool reference
-- [Claude Authentication Guide](docs/claude-authentication.md) - Setting up AI assistance
-- [Admin Console Guide](docs/admin-console.md) - Monitoring and management interface
-- [Architecture Documentation](docs/ARCHITECTURE.md) - Technical implementation details
+- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute to the project
+- [Docker README](docker/README.md) - Docker setup and configuration details
 
 ## 🔗 Related Projects
 

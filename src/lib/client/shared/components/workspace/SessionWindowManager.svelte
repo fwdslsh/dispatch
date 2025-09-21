@@ -9,7 +9,7 @@
 <script>
 	import WindowManager from '../window-manager/WindowManager.svelte';
 	import SessionContainer from './SessionContainer.svelte';
-	import SessionHeader from './SessionHeader.svelte';
+	import SessionHeaderRenderer from './SessionHeaderRenderer.svelte';
 	import SessionViewport from './SessionViewport.svelte';
 
 	let {
@@ -119,7 +119,7 @@
 			{#if session}
 				<SessionContainer {session} index={sessionIndex} onClose={handleSessionClose}>
 					{#snippet header({ session, onClose, index })}
-						<SessionHeader {session} {onClose} {index} />
+						<SessionHeaderRenderer {session} {onClose} {index} />
 					{/snippet}
 
 					{#snippet content({ session, isLoading, index })}
