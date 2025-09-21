@@ -1,122 +1,367 @@
 # Dispatch
 
-**The AI Agent Sandbox: Develop, collaborate, and code with powerful AI assistance in a secure environment from any device.**
+**Secure, sandboxed execution environment for Claude AI and CLI agents - run anywhere, resume everywhere.**
 
-Dispatch transforms any machine into a safe, isolated workspace for AI agents and developers. Instantly spin up workspace accessible via the terminal or in your browser, complete with real-time collaboration, persistent sessions, and mobile friendly Claude integration. Whether you're developing locally on the host machine, or working remotely, Dispatch gives you a secure sandbox where you and your AI tools can work with files—without risking the agents accessing the host system.
+Dispatch provides developers with a secure, isolated environment for running Claude AI code assistance and other CLI agents safely. Whether you're prototyping with AI-generated code, running automated scripts, or collaborating with team members, Dispatch ensures your system stays protected while giving you full access to powerful development tools.
 
-> Instant YOLO mode from your phone!
+## 🛡️ Why Developers Choose Dispatch
 
-## Features
+### **Secure AI Agent Execution**
 
-- 🛠️ Supports any CLI coding agent tool: Use the built-in terminal for any CLI-based agent or tool
-- 📱 Mobile-friendly Terminal: Includes a keyboard shortcut toolbar for efficient use on mobile devices
-- 🤖 Custom Claude Code integration for mobile friendly usage
-- 🌐 Access anywhere: Full terminal in any web browser—no local setup required
-- 🔒 Secure & isolated: Sessions run in secure Docker containers with filesystem sandboxing
-- 💾 Persistent sessions: Sessions survive browser refreshes and reconnections
-- 🔄 Real-time sync: Multiple people can share the same workspace
-- ♻️ Automatic recovery: Seamless reconnection after network hiccups
-- 🧩 Extensible design: Easily add new session types and features
-- 🚀 Share instantly: Optional public URLs for remote access and collaboration
-- ⚡ Fast setup: One-command install and launch
-- 🖥️ Admin console: Monitor and manage sessions in real time
+Run Claude AI and other agents in completely isolated Docker containers. No risk to your host system, no exposure of sensitive files - just safe, sandboxed execution that you can trust.
 
-## Prerequisites
+### **Resume Sessions Anywhere**
 
-- **Docker** installed and running
-- **Node.js 22+** (for CLI installation)
-- At least **2GB free disk space** for container and workspace
+Start work on your laptop, continue on your desktop, finish on your tablet. Dispatch's event-sourced architecture lets you resume sessions across any device without requiring cloud hosting or file synchronization.
 
-## Quick Sandbox Setup
+### **Unattended Operation**
 
-The fastest way to set up an AI agent sandbox:
+Let AI agents work while you're away. Dispatch sessions run independently in the background, so you can start long-running tasks and check results later without keeping your main system tied up.
 
-```bash
-# Install the Dispatch CLI
-npm install -g @fwdslsh/dispatch
+### **Local-First, Cloud-Optional**
 
-# Initialize sandbox environment
-dispatch init
+Everything runs locally by default. Add cloud hosting only if you want it - no vendor lock-in, no mandatory subscriptions, no data leaving your control unless you choose otherwise.
 
-# Start sandbox with shared workspace
-dispatch start
-```
+### **100% Free and Open Source**
 
-Once dispatch starts, you can navigate to <http://localhost:3030> to access the web based workspace, or simply connection an interactive docker session to the `dispatch` container.
+No usage limits, no premium tiers, no hidden costs. Use it however you want, modify it, contribute back to the community.
 
-> See the [Advanced Configuration](./docs/advanced-configuration.md) document for information and examples
+## 🚀 Quick Start
 
-## 🏗️ How It Works
-
-Dispatch is built with modern, reliable technologies:
-
-- **Frontend**: Web interface built with SvelteKit and JavaScript
-- **Backend**: Node.js server with real-time communication via Socket.IO
-- **Terminal**: Full Linux terminal powered by xterm.js and node-pty
-- **Storage**: SQLite database for sessions and project data
-- **Container**: Docker for security and isolation
-- **AI Integration**: Claude Code SDK for AI-powered coding assistance
-
-### ⚙️ Configuration
-
-Customize Dispatch behavior by settings these variables in the dispatch docker container environment:
-
-| Setting           | Default Value | What It Does                                  |
-| ----------------- | ------------- | --------------------------------------------- |
-| `TERMINAL_KEY`    | `change-me`   | **🔑 Required** - Password to access Dispatch |
-| `PORT`            | `3030`        | Which port the web interface uses             |
-| `WORKSPACES_ROOT` | `/workspace`  | Default directory for workspaces              |
-| `ENABLE_TUNNEL`   | `false`       | Create public URLs for sharing                |
-| `LT_SUBDOMAIN`    | `""`          | Custom name for your public URL               |
-| `HOST_UID`        | -             | Container user ID mapping (optional)          |
-| `HOST_GID`        | -             | Container group ID mapping (optional)  |
-
-### Directory Structure & Mounting Strategy
-
-Dispatch creates an isolated environment while allowing controlled file sharing:
-
-```
-~/dispatch/                          # Protected sandbox root
-├── home/                           # Isolated home directory
-│   ├── .bashrc                     # Copied from your ~/.bashrc
-│   ├── .gitconfig                  # Copied from your ~/.gitconfig
-│   ├── .ssh/ -> ~/.ssh             # Read-only SSH keys
-│   └── .claude/                    # Claude CLI configuration
-├── workspace/                       # Shared workspace directory
-    ├── project-a/                  # Individual project isolation
-    └── project-b/
-```
-
-### Monitoring & Management
-
-Access the admin console to monitor AI agent activity:
+Get a secure development environment running in under 30 seconds:
 
 ```bash
-# Open admin console
-open http://localhost:3030/console?key=your-terminal-key
+# One command setup
+docker run -d -p 3030:3030 \
+  -e TERMINAL_KEY=your-secure-password \
+  --name dispatch \
+  fwdslsh/dispatch:latest
 
-# View active sessions, resource usage, and logs
-# Perfect for monitoring AI agent behavior
+# Open http://localhost:3030 in your browser
+# Enter your password and start coding!
 ```
 
-## 📚 Documentation
+### For Developers
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) - How to contribute to the project
-- [Docker README](docker/README.md) - Docker setup and configuration details
+Set up a local development environment:
 
-## 🔗 Related Projects
+```bash
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+npm install  # Requires Node.js 22+
+npm run dev  # Opens http://localhost:5173
+```
 
-Dispatch is part of the fwdslsh toolkit:
+## 🔒 Security & Isolation Features
 
-- [**fwdslsh/unify**](https://github.com/fwdslsh/unify) - Static site generator
-- [**fwdslsh/giv**](https://github.com/fwdslsh/giv) - AI-powered Git assistant
-- [**fwdslsh/inform**](https://github.com/fwdslsh/inform) - Web content crawler
-- [**fwdslsh/catalog**](https://github.com/fwdslsh/catalog) - Documentation indexer
+### **Container Isolation**
+
+- Each session runs in its own Docker container
+- No access to host filesystem unless explicitly mounted
+- Non-root user execution for additional security
+- Automatic cleanup when sessions end
+
+### **Secure AI Integration**
+
+- Claude AI sessions authenticate via OAuth (your credentials never stored)
+- Agent code execution isolated from your main system
+- Full audit trail of all commands and outputs
+- Ability to review and approve commands before execution
+
+### **Network Security**
+
+- Optional public URL sharing (disabled by default)
+- Password-protected access to all sessions
+- HTTPS support for production deployments
+- Configurable firewall rules and network policies
+
+## 🔄 Session Management & Persistence
+
+### **Event-Sourced Architecture**
+
+Every session interaction is recorded and can be replayed:
+
+- Resume sessions after browser crashes or network interruptions
+- Full command history preserved across restarts
+- Share session logs with team members for debugging
+- Time-travel debugging through session history
+
+### **Cross-Device Sync**
+
+- Session state stored locally in SQLite
+- Resume on any device with the same Dispatch instance
+- No cloud dependency required for basic functionality
+- Optional cloud backup for team scenarios
+
+### **Multiple Session Types**
+
+- **Terminal Sessions**: Full Linux shell access
+- **Claude AI Sessions**: AI-powered coding assistance
+- **File Editor Sessions**: Built-in code editor
+- **Custom Adapters**: Extensible for other tools and agents
+
+## 📊 Feature Comparison
+
+| Feature                   | Dispatch           | CrewAI          | OpenDevin   | Superagent         |
+| ------------------------- | ------------------ | --------------- | ----------- | ------------------ |
+| **Pricing**               | Free & Open Source | Freemium        | Open Source | Paid Plans         |
+| **Local Execution**       | ✅ Default         | ❌ Cloud Only   | ✅ Optional | ❌ Cloud Only      |
+| **Container Isolation**   | ✅ Docker          | ❌ Process Only | ✅ Docker   | ❌ Cloud Sandboxes |
+| **Session Resume**        | ✅ Cross-device    | ❌ No           | ⚠️ Limited  | ✅ Cloud Only      |
+| **Claude AI Integration** | ✅ Native          | ❌ No           | ⚠️ Plugin   | ✅ API Only        |
+| **Unattended Execution**  | ✅ Background      | ✅ Workflows    | ⚠️ Limited  | ✅ Cloud           |
+| **No Cloud Dependency**   | ✅ Local-first     | ❌ Required     | ✅ Optional | ❌ Required        |
+| **Web-based Access**      | ✅ Browser         | ✅ Dashboard    | ⚠️ Limited  | ✅ Dashboard       |
+| **Team Collaboration**    | ✅ Shared Sessions | ✅ Workspaces   | ❌ No       | ✅ Paid            |
+| **Custom Extensions**     | ✅ Adapter API     | ✅ Plugins      | ✅ Tools    | ⚠️ Limited         |
+
+### Why Choose Dispatch?
+
+- **Privacy First**: Your code and data stay on your infrastructure
+- **Cost Effective**: No recurring fees or usage limits
+- **Developer Control**: Full access to source code and customization
+- **Security Focused**: Isolation by design, not as an afterthought
+- **Simple Setup**: Works out of the box, no complex configuration
+
+## 🤖 AI-Powered Development Workflow
+
+### **Claude AI Integration**
+
+```bash
+# Create a Claude AI session
+# 1. Choose "Claude Code" when starting a new session
+# 2. Click the OAuth login link
+# 3. Authenticate with your Anthropic account
+# 4. Start coding with AI assistance
+```
+
+### **What You Can Do**
+
+- **Code Generation**: Ask Claude to write functions, classes, or entire modules
+- **Code Review**: Get suggestions for improvements and best practices
+- **Bug Fixing**: Describe issues and get debugging help with solutions
+- **Documentation**: Generate comments, README files, and API docs
+- **Learning**: Ask questions about unfamiliar code or concepts
+- **Refactoring**: Get help restructuring and optimizing existing code
+
+### **Safe AI Execution**
+
+- All AI-generated code runs in isolated containers
+- Review commands before execution with approval prompts
+- Full audit trail of AI interactions and code changes
+- Easy rollback if something goes wrong
+
+## 🛠️ Use Cases
+
+### **AI-Assisted Development**
+
+Perfect for developers experimenting with AI-generated code who want the safety of sandboxed execution:
+
+```bash
+# Ask Claude to create a new microservice
+# Test it safely in isolation
+# Deploy only after verification
+```
+
+### **Remote Development**
+
+Access your development environment from anywhere:
+
+```bash
+# Start work at office
+# Continue from home
+# Finish on mobile device
+# All sessions resume seamlessly
+```
+
+### **Team Collaboration**
+
+Share live coding sessions with colleagues:
+
+```bash
+# Share a public URL for real-time collaboration
+# Multiple developers can work in the same session
+# Perfect for pair programming and code reviews
+```
+
+### **Education & Training**
+
+Provide students with consistent, isolated environments:
+
+```bash
+# Pre-configured development environments
+# No "it works on my machine" problems
+# Easy reset and cleanup between sessions
+```
+
+### **Prototype & Experiment**
+
+Try new technologies safely:
+
+```bash
+# Test potentially risky commands
+# Experiment with new frameworks
+# Clean slate for each experiment
+```
+
+## ⚙️ Configuration & Deployment
+
+### **Environment Variables**
+
+| Variable          | Default      | Description                        |
+| ----------------- | ------------ | ---------------------------------- |
+| `TERMINAL_KEY`    | `change-me`  | **Required** - Password for access |
+| `PORT`            | `3030`       | Web interface port                 |
+| `WORKSPACES_ROOT` | `/workspace` | Default directory for projects     |
+| `ENABLE_TUNNEL`   | `false`      | Enable public URL sharing          |
+| `LT_SUBDOMAIN`    | `""`         | Custom subdomain for public URLs   |
+
+### **Production Deployment**
+
+```bash
+# Docker Compose for production
+version: '3.8'
+services:
+  dispatch:
+    image: fwdslsh/dispatch:latest
+    ports:
+      - "3030:3030"
+    environment:
+      - TERMINAL_KEY=your-very-secure-password
+      - ENABLE_TUNNEL=false
+    volumes:
+      - ./data:/var/lib/dispatch
+      - ./config:/home/appuser/.config/dispatch
+    restart: unless-stopped
+```
+
+### **Persistent Storage**
+
+```bash
+# Create data directories
+mkdir -p ~/dispatch/{data,config}
+sudo chown -R 10001:10001 ~/dispatch/
+
+# Run with persistent storage
+docker run -d -p 3030:3030 \
+  -e TERMINAL_KEY=secure-password \
+  -v ~/dispatch/data:/var/lib/dispatch \
+  -v ~/dispatch/config:/home/appuser/.config/dispatch \
+  --name dispatch \
+  fwdslsh/dispatch:latest
+```
+
+## 🏗️ Architecture & Technical Details
+
+### **Built With Modern Technologies**
+
+- **Frontend**: SvelteKit 5 with real-time updates
+- **Backend**: Node.js 22 with Socket.IO for WebSocket communication
+- **Terminal**: xterm.js with node-pty for full Linux shell access
+- **Database**: SQLite for event sourcing and session persistence
+- **Containers**: Docker for security and isolation
+- **AI Integration**: Official Claude Code SDK
+
+### **Event-Sourced Sessions**
+
+All session interactions are recorded as events:
+
+- Persistent session history across restarts
+- Replay capability for debugging
+- Cross-device session resumption
+- Full audit trail for security
+
+### **Adapter Architecture**
+
+Extensible design for different session types:
+
+- **PtyAdapter**: Terminal sessions with node-pty
+- **ClaudeAdapter**: AI coding assistance
+- **FileEditorAdapter**: Built-in code editor
+- **Custom Adapters**: Easy to add new session types
+
+## 🔧 Development & Contributing
+
+### **Local Development**
+
+```bash
+# Setup development environment
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+npm install
+
+# Development modes
+npm run dev                # Standard dev server
+npm run dev:local         # Use local filesystem
+npm run dev:no-key        # No authentication
+npm run dev:tunnel        # Enable public URLs
+
+# Testing
+npm test                  # Unit tests
+npm run test:e2e          # End-to-end tests
+npm run lint              # Code quality checks
+```
+
+### **Contributing**
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+
+- Development setup details
+- Code style guidelines
+- Testing procedures
+- Pull request process
+
+### **Documentation**
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Developer guide
+- [CLAUDE.md](CLAUDE.md) - Technical implementation details
+- [Docker README](docker/README.md) - Container configuration
+
+## 🆘 Support & Community
+
+### **Getting Help**
+
+- 📖 [Documentation](https://github.com/fwdslsh/dispatch/tree/main/docs)
+- 🐛 [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
+- 💬 [Discussions](https://github.com/fwdslsh/dispatch/discussions)
+
+### **Common Issues**
+
+**Session won't start?**
+
+- Check Docker is running: `docker --version`
+- Verify port 3030 is available: `lsof -i :3030`
+- Review container logs: `docker logs dispatch`
+
+**Can't connect to Claude?**
+
+- Ensure you have a valid Anthropic account
+- Check internet connectivity for OAuth flow
+- Verify Claude API access in your account
+
+**Data not persisting?**
+
+- Check volume mount permissions
+- Ensure data directories exist and are writable
+- Verify container user ownership (uid 10001)
 
 ## 📄 License
 
-Creative Commons Attribution 4.0 International License - see [LICENSE](LICENSE) file for details.
+**Creative Commons Attribution 4.0 International License**
+
+You are free to:
+
+- **Share** — copy and redistribute the material in any medium or format
+- **Adapt** — remix, transform, and build upon the material for any purpose
+
+See [LICENSE](LICENSE) for full details.
 
 ---
 
-**Ready to start?** Run `dispatch init && dispatch start --open` and you'll be coding in your browser in seconds! 🚀
+**Ready to start secure AI development?**
+
+```bash
+docker run -d -p 3030:3030 -e TERMINAL_KEY=your-password fwdslsh/dispatch:latest
+```
+
+Open `http://localhost:3030` and start coding safely! 🚀
