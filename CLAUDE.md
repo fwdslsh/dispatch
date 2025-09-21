@@ -6,37 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Dispatch** is a containerized web application providing interactive terminal sessions via browser. Built with SvelteKit, Socket.IO, and node-pty, it enables Claude Code sessions and shell access in isolated environments with web-based terminal access.
 
-## Architecture - Unified Session Refactor (In Progress)
+## Architecture - Unified Session Management
 
-The codebase is undergoing a major architectural refactor from complex multi-manager pattern to a unified session architecture:
+The codebase uses a modern unified session architecture with event sourcing:
 
-### Current Refactor Status
-
-- Implementing event-sourced session management with single `runId` identifier
-- Moving from `SessionRegistry` + type-specific managers to unified `RunSessionManager`
-- Replacing scattered Socket.IO events with 4 core events: `client:hello`, `run:attach`, `run:input`, `run:close`
-- Adapter pattern for session types: `PtyAdapter` (terminals), `ClaudeAdapter` (Claude Code)
-
-### Key Refactor Components
+### Core Architecture Components
 
 **RunSessionManager** (`src/lib/server/runtime/RunSessionManager.js`):
-
-- Single class managing all session types via adapter pattern
-- Event-sourced history with monotonic sequence numbers
+- Single source of truth for all session types via adapter pattern
+- Event-sourced history with monotonic sequence numbers for replay capability
 - Real-time event emission to Socket.IO clients
+- Supports session persistence and multi-client synchronization
 
-**Adapters** (`src/lib/server/adapters/`):
-
+**Adapter Pattern** (`src/lib/server/adapters/`):
 - `PtyAdapter.js` - Terminal sessions via node-pty
 - `ClaudeAdapter.js` - Claude Code sessions via @anthropic-ai/claude-code
+- `FileEditorAdapter.js` - File editing sessions
+- Clean abstraction for adding new session types
 
-**Database Schema** (simplified):
-
-- `sessions` - Run sessions with runId, kind, status, metadata
-- `session_events` - Event log with sequence numbers for replay
-- `workspace_layout` - Client-specific UI layouts
-
-See `UNIFIED_SESSION_REFACTOR_TASKS.md` for detailed implementation progress.
+**Socket.IO Events** (unified protocol):
+- `client:hello` - Client identification with clientId
+- `run:attach` - Attach to run session with event replay from sequence
+- `run:input` - Send input to any session type
+- `run:close` - Terminate session
+- `run:event` - Server-sent events with (channel, type, payload)
 
 ## Development Commands
 
@@ -84,96 +77,56 @@ The frontend uses clean MVVM pattern with Svelte 5 runes and dependency injectio
 ### Directory Structure
 
 ```
-src/lib/client/
-├── claude/           # Claude-specific components
-├── terminal/         # Terminal-specific components
-└── shared/
-    ├── components/   # Views (UI components)
-    ├── viewmodels/   # Business logic with $state runes
-    ├── services/     # API clients and data layer
-    └── state/        # Global reactive stores
+src/lib/client/shared/
+├── services/         # Business logic & external integrations
+│   ├── ServiceContainer.svelte.js    # Dependency injection container
+│   ├── SessionApiClient.js           # Session API operations
+│   └── WorkspaceApiClient.js         # Workspace operations
+├── state/            # ViewModels with $state runes
+│   ├── SessionViewModel.svelte.js    # Session lifecycle management
+│   └── AppState.svelte.js            # Global app state
+└── components/       # UI components (Views)
 ```
 
-### Key ViewModels
+### Key Architectural Patterns
 
-**SessionViewModel** - Session lifecycle and display management:
-
-- Manages creation, resume, termination of sessions
-- Display slot management for tiling window manager
-- Mobile/desktop responsive behavior
-
-**ServiceContainer** - Dependency injection:
-
-- Lazy-loaded service instantiation
-- Context-based dependency injection
+**ServiceContainer** - Central dependency injection:
+- Lazy-loaded service instantiation via `container.get('serviceName')`
 - Test container support with `createTestContainer()`
+- Shared instances across component tree
 
-### Component Patterns
-
+**ViewModel Pattern with Svelte 5 Runes**:
 ```javascript
-// ViewModels use Svelte 5 runes
-class MyViewModel {
-  constructor(apiClient) {
-    this.data = $state([]);
-    this.loading = $state(false);
-    this.filtered = $derived.by(() => /* derivation */);
-  }
-
-  async loadData() {
-    this.loading = true;
-    this.data = await this.apiClient.fetch();
-    this.loading = false;
-  }
+// ViewModels use $state for reactivity
+class ViewModel {
+  data = $state([]);
+  loading = $state(false);
+  filtered = $derived.by(() => /* derivation */);
 }
-
-// Components access via ServiceContainer
-const container = useServiceContainer();
-const viewModel = await container.get('myViewModel');
 ```
 
-## Socket.IO Architecture
-
-### Current Events (being replaced)
-
-- Authentication: `auth(key, callback)`
-- Terminal: `terminal.start`, `terminal.write`, `terminal.resize`
-- Claude: `claude.send`, `claude.auth.start`, `claude.commands.refresh`
-- Session: `session.status`, `session.catchup`
-
-### New Unified Events (in progress)
-
-- `client:hello` - Client identification with clientId
-- `run:attach` - Attach to run session with event replay
-- `run:input` - Send input to any session type
-- `run:close` - Terminate session
-- `run:event` - Server-sent events with (channel, type, payload)
+**Global Service Sharing**: `__API_SERVICES` provides shared instances across Socket.IO and API routes, ensuring consistent state management
 
 ## Testing Strategy
 
-### Test Types
-
-- **Unit Tests**: Vitest with separate client/server configurations
-- **E2E Tests**: Playwright for full integration testing
-- **Manager Tests**: Direct testing of core service classes
-- **Database Tests**: SQLite operations and migrations
-
-### Test Execution
+Vitest for unit tests with separate client/server configurations, Playwright for E2E:
 
 ```bash
 # Run specific test suites
-vitest run tests/viewmodels/  # ViewModel tests
-vitest run tests/server/      # Server logic tests
+npm test                      # All unit tests
+vitest run tests/client/      # Client-side tests
+vitest run tests/server/      # Server-side tests
 npm run test:e2e -- terminal  # Specific E2E test
+npm run test:e2e:headed       # E2E with browser UI
 ```
 
-## Database Schema
+## Database Schema (SQLite)
 
-Using SQLite with these key tables:
-
+Event-sourced architecture with key tables:
+- `sessions` - Run sessions with runId, kind, status, metadata
+- `session_events` - Event log with sequence numbers for replay
+- `workspace_layout` - Client-specific UI layouts
 - `workspaces` - Workspace metadata and paths
-- `workspace_sessions` - Session-workspace associations with pinned state
-- `session_history` - Audit trail of session events
-- Migration to unified schema in progress (see refactor tasks)
 
 ## Environment Variables
 
@@ -188,20 +141,6 @@ Optional:
 - `ENABLE_TUNNEL` - Enable LocalTunnel for public URLs
 - `HOST_UID`/`HOST_GID` - Container user mapping
 
-## Docker Integration
-
-### Security
-
-- Non-root execution as `appuser` (uid 10001)
-- Runtime user mapping via HOST_UID/HOST_GID
-- Path sanitization for workspace access
-
-### Volume Mounts
-
-- `~/dispatch/projects:/workspace` - Project storage
-- `~/dispatch/home:/home/dispatch` - Persistent home directory
-- Database and config in container's home directory
-
 ## Key Dependencies
 
 - **Runtime**: Node.js >=22 (see .nvmrc)
@@ -210,52 +149,34 @@ Optional:
 - **Terminal**: @battlefieldduck/xterm-svelte + node-pty
 - **Claude**: @anthropic-ai/claude-code 1.0.98
 - **Database**: SQLite3 5.1.7
-- **UI**: Augmented UI for futuristic styling
 
-## Common Development Tasks
+## Key Implementation Patterns
+
+### Session Management
+- **Event Sourcing**: All session activity logged as events with sequence numbers for replay
+- **Session Persistence**: Sessions tracked in database, can resume after server restart
+- **Multi-Client Support**: Multiple tabs can attach to same session with synchronized events
+- **Client State Recovery**: UI can rebuild from (runId, seq) cursor after disconnect
 
 ### Adding New Session Type
+1. Create adapter in `src/lib/server/adapters/` extending base adapter
+2. Register adapter in `RunSessionManager.registerAdapter()`
+3. Add UI component in `src/lib/client/[type]/`
+4. Session events automatically handled via unified protocol
 
-1. Create adapter in `src/lib/server/adapters/`
-2. Register adapter in `RunSessionManager`
-3. Add UI component in `src/lib/client/`
-4. Update Socket.IO event handling if needed
-
-### Debugging Socket.IO Events
-
-- Admin console at `/console?key=your-terminal-key`
+### Debugging
+- Admin console at `/console?key=your-terminal-key` for live session monitoring
 - Enable debug logging: `DEBUG=* npm run dev`
+- Session events persisted in database for replay debugging
 - Check browser DevTools Network tab for WebSocket frames
 
-### Testing Session Resume
+## Docker & CLI
 
-1. Create session and note the runId
-2. Disconnect (close tab or stop server)
-3. Reconnect and verify events replay from last sequence
+Docker runs with non-root user (uid 10001) and runtime user mapping via HOST_UID/HOST_GID.
 
-## Important Implementation Notes
-
-- **Global Service Sharing**: `__API_SERVICES` provides shared instances across Socket.IO and API routes
-- **Workspace Flexibility**: Workspaces can be any accessible directory, not restricted to WORKSPACES_ROOT
-- **Session Persistence**: Sessions tracked in database, can resume after server restart
-- **Event Sourcing**: All session activity logged as events for replay and debugging
-- **Client State Recovery**: UI can rebuild from (runId, seq) cursor after disconnect
-- **Multi-Client Support**: Multiple tabs can attach to same session with synchronized events
-
-## Current Known Issues
-
-- Refactor in progress - some features may be temporarily broken
-- Complex session routing being replaced with unified pattern
-- Multiple session identifier confusion (appSessionId vs typeSpecificId)
-- Test coverage gaps in new unified architecture
-
-## CLI Tool
-
-Dispatch includes a CLI at `bin/cli.js`:
-
+CLI at `bin/cli.js`:
 ```bash
 dispatch init         # Initialize environment
 dispatch start        # Start containers
 dispatch stop         # Stop containers
-dispatch config       # Generate config
 ```

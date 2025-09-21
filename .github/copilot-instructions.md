@@ -1,65 +1,68 @@
-# Copilot instructions — Dispatch
+<!-- .github/copilot-instructions.md - guidance for AI coding agents working on Dispatch -->
+# Copilot instructions for this repository
 
-Quick orientation
+These instructions are focused, actionable notes to help an AI coding agent be immediately productive in the
+Dispatch codebase. Keep responses concise and make edits that follow the project's conventions.
 
-- Purpose: web-based PTY sessions (SvelteKit frontend, Socket.IO backend) with optional Claude Code mode.
-- Key entry points: `src/app.js` (production runtime), Vite dev (frontend), `src/lib/server/*` (PTY & sockets).
+## Quick summary (big picture)
+- Frontend: SvelteKit + Svelte 5 (src/). UI components in `src/lib/client` and shared viewmodels in `src/lib/client/shared`.
+- Backend: Node.js server with a unified RunSessionManager (`src/lib/server/runtime/RunSessionManager.js`) and adapters in `src/lib/server/adapters/` (Pty, Claude, FileEditor).
+- Realtime: Socket.IO is used for client-server communication; use the unified `run:*` event API (e.g. `run:attach`, `run:input`, `run:event`).
+- Persistence: Event-sourced session history in SQLite (`session_events`); sessions are resumeable via sequence numbers.
 
-Essential commands
+## What to change and what to avoid
+- Prefer small, focused changes per PR. Follow Conventional Commits and keep the summary <72 chars.
+- Do not change Svelte runes or switch Svelte major versions. Use Svelte 5 runes syntax throughout.
+- Avoid committing secrets or hard-coded credentials. Use `TERMINAL_KEY` and environment variables.
 
-- Dev: `npm install` then `npm run dev` (note: dev script sets `TERMINAL_KEY=test` and runs `vite dev --host`).
-- Build: `npm run build` (Vite). Preview: `npm run preview`.
-- Start (production): `npm start` or use Docker (see `Dockerfile`). `start.sh` also execs `node src/app.js`.
-- Typecheck: `npm run check` and `npm run check:watch`.
+## Key files and where to look for common tasks
+- Start here for architecture & style: `AGENTS.md`, `CLAUDE.md`, `README.md`.
+- Unified session code: `src/lib/server/runtime/RunSessionManager.js` (create/attach/sendInput/resume logic).
+- PTY adapter: `src/lib/server/adapters/PtyAdapter.js` (how PTYs are spawned and written to).
+- Client session API: `src/lib/client/shared/services/RunSessionClient.js` (client-side API for `run:*` events).
+- Terminal UI: `src/lib/client/terminal/TerminalPane.svelte` (attaching, term.onData, initial resize, mobile input components).
+- DI container & services: `src/lib/client/shared/services/ServiceContainer.*` and `__API_SERVICES` usage across server and client.
 
-```markdown
-# Copilot instructions — Dispatch (condensed)
+## Development workflows (commands you can rely on)
+- Dev server: `npm run dev` (uses `TERMINAL_KEY` and `.dispatch-home` for dev state).
+- Build: `npm run build`; Preview: `npm run preview`; Start: `npm run start`.
+- Tests: `npm test` (Vitest), E2E: `npm run test:e2e` (Playwright). Use `npm run playwright:install` once to install browsers.
+- Lint & format: `npm run lint` (check), `npm run format` (apply Prettier tabs + single quotes).
 
-Short goal: Make contributors productive quickly. Focus on the SvelteKit frontend, Socket.IO layer, and PTY/session managers in `src/lib/server`.
+## Project-specific conventions & patterns
+- Prettier style: tabs, single quotes, width 100, no trailing commas. Respect existing formatting.
+- Svelte components: PascalCase and route files use `+page.svelte` / `+server.js` conventions.
+- ViewModels use Svelte 5 runes: reactive state uses `$state` and derived values via `$derived`.
+- Event-sourcing: all session activity is recorded as events with a monotonic sequence number. When editing session logic, always consider both live emission (`io.to('run:ID')`) and database persistence (`appendSessionEvent`).
+- Adapters follow a simple contract: implement `create({onEvent, ...})`, expose `input.write()` for input, and optional operations like `resize` or `close`.
 
-Quick commands (dev + CI)
+## Integration points & external dependencies to be aware of
+- Socket.IO: server-side setup in `src/lib/server/socket-setup.js` and Send/receive via `run:*` events.
+- Claude: `@anthropic-ai/claude-code` integration in `src/lib/server/adapters/ClaudeAdapter.js` (requires credentials; avoid leaking tokens).
+- node-pty: used by the PTY adapter. PTY writes flow through `RunSessionManager.sendInput()` -> `live.proc.input.write()`.
+- SQLite DB: migrations and schema are under `src/lib/server/db` (session events and session metadata are critical for resume).
 
-- Install: `npm install` (Node >= 22)
-- Dev (hot-reload): `npm run dev` (dev script sets `TERMINAL_KEY=test` and serves on :3030)
-- Build/preview: `npm run build` then `npm run preview`
-- Start (prod): `npm start` or `node src/app.js`
-- Typecheck: `npm run check` (Svelte-check via `jsconfig.json`)
-- Tests: `npm test` (Vitest), E2E: `npm run test:e2e` (Playwright)
+## Examples of common edits and where to place tests
+- Add/modify adapter: create file in `src/lib/server/adapters/`, update registration where `RunSessionManager.registerAdapter()` is called (search for `.registerAdapter(` in server startup). Add unit tests under `tests/server/*`.
+- Change terminal input behavior: edit `src/lib/client/terminal/TerminalPane.svelte` (client-side send) and `RunSessionManager.sendInput()` (server-side write). Ensure tests in `tests/client/terminal/` and `tests/server/` updated accordingly.
+- Add a route or API: follow SvelteKit routing in `src/routes/`. Use `+server.js` for server endpoints.
 
-Where to start (important files)
+## Debugging tips specific to this repo
+- Admin console: `/console?key=TERMINAL_KEY` provides live session monitoring and is useful for reproduction.
+- Enable verbose logs: `DEBUG=* npm run dev` to see debug logs from server modules.
+- For socket troubleshooting, watch the browser DevTools Network WS frames and server logs (server emits `run:event` rows).
+- Session replay/resume issues usually originate from sequence numbers or missing event persistence; inspect `session_events` table and timestamps.
 
-- `src/app.js` — production entry, LocalTunnel wiring, Socket.IO bootstrap
-- `src/lib/server/socket-handler.js` — authentication and socket event routing
-- `src/lib/server/terminal.js` (TerminalManager) — PTY spawn, env, mode switching (`shell` vs `claude`)
-- `src/lib/server/session-store.js` — persistent session JSON store and shape
-- `src/lib/server/core/*` — `SessionManager`, `SessionRouter`, `WorkspaceManager`, `DatabaseManager` (SQLite)
-- `src/lib/client/*` — MVVM ViewModels and Svelte 5 runes (views under `shared/components`, viewmodels under `shared/viewmodels`)
+## Safety & testing notes for AI agents
+- Never add credentials or tokens to the repo or code. If a change requires credentials for local testing, document how to set env vars but do not commit values.
+- Add unit tests for any server-side behavior change (Vitest). For user-facing changes, add/adjust Playwright E2E tests under `e2e/`.
+- Keep changes small and include a test plan in PR description (commands to run locally: `npm run lint && npm test && npm run test:e2e`).
 
-Key conventions & patterns (project-specific)
+## Pull request checklist for AI-generated changes
+- Use Conventional Commit style in the commit message (e.g., `fix(terminal): stop sending automatic newline on attach`).
+- Run `npm run format`, `npm run lint`, and `npm test` locally before submitting.
+- Update documentation (AGENTS.md or README) only if behavior or configuration changes.
 
-- MVVM with Svelte 5 runes: Views are pure presentation; business logic lives in ViewModels (`src/lib/client/shared/viewmodels`). Look for `$state`, `$derived` usage.
-- Unified Session API: `SessionManager.createSession({type, workspacePath, options})` supports `pty` and `claude` types. Routing is done via `SessionRouter`.
-- Socket.IO contract: auth first (`auth(key)`), then session ops (`terminal.start`, `terminal.write`, `terminal.resize`, `claude.send`, etc.). See `CLAUDE.md` for full event names.
-- Env-driven behavior: `TERMINAL_KEY`, `PTY_MODE` (`shell|claude`), `ENABLE_TUNNEL`, `WORKSPACES_ROOT`.
-- Non-root container: production image runs as `appuser` (uid 10001). Files and volume mounts must respect ownership.
+---
 
-Editing rules for common tasks
-
-- Add socket events: modify `socket-handler.js` and mirror client calls in `src/lib/client/*` (Terminal or Claude panes).
-- Change PTY spawn/behavior: edit `terminal.js` and ensure session persistence in `session-store.js` remains compatible.
-- Add workspace/session persistence fields: update `session-store.js` and `src/lib/server/db/*` migrations.
-
-Quick debugging tips
-
-- Reproduce locally with `npm run dev` and use browser at `http://localhost:3030` with key `test`.
-- Check LocalTunnel URL at `/tmp/tunnel-url.txt` when `ENABLE_TUNNEL=true`.
-- If PTY/Claude fails, confirm the CLI is present in container and inspect `src/lib/server/terminal.js` for spawn args.
-
-Files to reference when making cross-cutting changes
-
-- `src/app.js`, `src/lib/server/socket-handler.js`, `src/lib/server/terminal.js`, `src/lib/server/session-store.js`, `src/lib/server/core/SessionManager.js`, `src/lib/server/core/SessionRouter.js`, `src/lib/server/core/WorkspaceManager.js`
-
-If anything is missing or you'd like more examples (event payloads, session JSON schema, or a short workflow for adding a socket event + test), tell me which area to expand.
-```
-
-Files referenced: `src/app.js`, `start.sh`, `Dockerfile`, `package.json`, `src/lib/server/socket-handler.js`, `src/lib/server/terminal.js`, `src/lib/server/session-store.js`, `src/lib/components/Terminal.svelte`, `src/lib/components/Chat.svelte`, sessions stored in `PTY_ROOT/sessions.json` at runtime.
+If any section seems incomplete or you want the agent to expand a specific area (for example, adapter registration points or the DB schema layout), say which area and I'll expand this file with precise file references and examples.
