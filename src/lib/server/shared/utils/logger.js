@@ -3,8 +3,8 @@
  * Controlled by DISPATCH_LOG_LEVEL environment variable
  */
 
-import { DatabaseManager } from '../db/DatabaseManager.js';
-let _dbManager;
+// Database logging disabled to prevent multiple connections
+// All logging goes to console only
 const LOG_LEVELS = {
 	DEBUG: 0,
 	INFO: 1,
@@ -58,33 +58,17 @@ function formatLogMessage(level, component, message, ...args) {
 }
 
 /**
- * Log to database
+ * Log to database - Disabled to prevent database locking issues
  * @param {string} level - Log level
  * @param {string} component - Component name
  * @param {string} message - Log message
  * @param {...any} args - Additional arguments
  */
-
 function logToDatabase(level, component, message, args) {
-	// Prevent DB logging during Vite build/SSR/static analysis
-	// Vite sets VITE_SSR or VITE_BUILD env vars during build/SSR
-	if (
-		process.env.VITE_SSR === 'true' ||
-		process.env.VITE_BUILD === 'true' ||
-		process.env.BUILD === 'true'
-	) {
-		// No-op during build/SSR/test
-		return;
-	}
-	if (!_dbManager) _dbManager = new DatabaseManager();
-
-	_dbManager
-		.init()
-		.then(() => _dbManager.addLog(level, component, message, args && args.length ? args : null))
-		.catch((err) => {
-			// Fallback: log DB error to console, but do not throw
-			console.error('[LOGGER] Failed to write log to database:', err);
-		});
+	// Database logging disabled to prevent SQLITE_BUSY errors
+	// The logger was creating its own DatabaseManager instance,
+	// causing multiple connections competing for the same database file.
+	// All logs now go to console only.
 }
 
 /**
@@ -97,7 +81,7 @@ function logToDatabase(level, component, message, args) {
 export function debug(component, message, ...args) {
 	if (currentLogLevel <= LOG_LEVELS.DEBUG) {
 		console.log(...formatLogMessage('DEBUG', component, message, ...args));
-		void logToDatabase('DEBUG', component, message, args);
+		// Database logging disabled
 	}
 }
 
@@ -111,7 +95,7 @@ export function debug(component, message, ...args) {
 export function info(component, message, ...args) {
 	if (currentLogLevel <= LOG_LEVELS.INFO) {
 		console.log(...formatLogMessage('INFO', component, message, ...args));
-		void logToDatabase('INFO', component, message, args);
+		// Database logging disabled
 	}
 }
 
@@ -125,7 +109,7 @@ export function info(component, message, ...args) {
 export function warn(component, message, ...args) {
 	if (currentLogLevel <= LOG_LEVELS.WARN) {
 		console.warn(...formatLogMessage('WARN', component, message, ...args));
-		void logToDatabase('WARN', component, message, args);
+		// Database logging disabled
 	}
 }
 
@@ -139,7 +123,7 @@ export function warn(component, message, ...args) {
 export function error(component, message, ...args) {
 	if (currentLogLevel <= LOG_LEVELS.ERROR) {
 		console.error(...formatLogMessage('ERROR', component, message, ...args));
-		void logToDatabase('ERROR', component, message, args);
+		// Database logging disabled
 	}
 }
 

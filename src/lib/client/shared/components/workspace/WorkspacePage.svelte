@@ -230,8 +230,7 @@
 			try {
 				// Use a default workspace path - either the stored default or workspace root
 				const defaultWorkspace =
-					getUserDefaultWorkspace() ||
-					'/home/runner/work/dispatch/dispatch/.testing-home/workspaces';
+					getUserDefaultWorkspace();
 
 				await sessionViewModel.createSession({
 					type: type,
@@ -264,7 +263,7 @@
 			const raw = localStorage.getItem('dispatch-settings');
 			if (!raw) return null;
 			const settings = JSON.parse(raw);
-			return settings?.defaultWorkingDirectory || null;
+			return settings?.defaultWorkingDirectory || '~/';
 		} catch (e) {
 			return null;
 		}

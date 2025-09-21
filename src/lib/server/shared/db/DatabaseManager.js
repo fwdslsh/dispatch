@@ -15,6 +15,7 @@ export class DatabaseManager {
 			dbPath || join(process.env.HOME || homedir(), '.dispatch', 'data', 'workspace.db');
 		this.db = null;
 		this.isInitialized = false;
+		this.writeQueue = Promise.resolve();
 	}
 
 	/**
@@ -27,12 +28,15 @@ export class DatabaseManager {
 			// Ensure directory exists
 			await fs.mkdir(dirname(this.dbPath), { recursive: true });
 
-			// Create database connection
-			this.db = new sqlite3.Database(this.dbPath);
+			// Create database connection with serialized mode
+			// This ensures all database operations are serialized (one at a time)
+			this.db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE);
 
 			// Enable WAL mode for better concurrent access
 			await this.run('PRAGMA journal_mode=WAL');
 			await this.run('PRAGMA foreign_keys=ON');
+			// Increase busy timeout to 5 seconds
+			await this.run('PRAGMA busy_timeout=5000');
 
 			// Create tables
 			await this.createTables();
@@ -125,39 +129,70 @@ export class DatabaseManager {
 	}
 
 	/**
-	 * Promise wrapper for SQLite run method
+	 * Promise wrapper for SQLite run method with retry logic
 	 */
-	run(sql, params = []) {
-		return new Promise((resolve, reject) => {
-			this.db.run(sql, params, function (err) {
-				if (err) reject(err);
-				else resolve({ lastID: this.lastID, changes: this.changes });
-			});
-		});
+	async run(sql, params = [], retries = 3) {
+		for (let attempt = 0; attempt < retries; attempt++) {
+			try {
+				return await new Promise((resolve, reject) => {
+					this.db.run(sql, params, function (err) {
+						if (err) reject(err);
+						else resolve({ lastID: this.lastID, changes: this.changes });
+					});
+				});
+			} catch (err) {
+				if (err.code === 'SQLITE_BUSY' && attempt < retries - 1) {
+					// Wait with exponential backoff
+					await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+					continue;
+				}
+				throw err;
+			}
+		}
 	}
 
 	/**
-	 * Promise wrapper for SQLite get method
+	 * Promise wrapper for SQLite get method with retry logic
 	 */
-	get(sql, params = []) {
-		return new Promise((resolve, reject) => {
-			this.db.get(sql, params, (err, row) => {
-				if (err) reject(err);
-				else resolve(row);
-			});
-		});
+	async get(sql, params = [], retries = 3) {
+		for (let attempt = 0; attempt < retries; attempt++) {
+			try {
+				return await new Promise((resolve, reject) => {
+					this.db.get(sql, params, (err, row) => {
+						if (err) reject(err);
+						else resolve(row);
+					});
+				});
+			} catch (err) {
+				if (err.code === 'SQLITE_BUSY' && attempt < retries - 1) {
+					await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+					continue;
+				}
+				throw err;
+			}
+		}
 	}
 
 	/**
-	 * Promise wrapper for SQLite all method
+	 * Promise wrapper for SQLite all method with retry logic
 	 */
-	all(sql, params = []) {
-		return new Promise((resolve, reject) => {
-			this.db.all(sql, params, (err, rows) => {
-				if (err) reject(err);
-				else resolve(rows);
-			});
-		});
+	async all(sql, params = [], retries = 3) {
+		for (let attempt = 0; attempt < retries; attempt++) {
+			try {
+				return await new Promise((resolve, reject) => {
+					this.db.all(sql, params, (err, rows) => {
+						if (err) reject(err);
+						else resolve(rows);
+					});
+				});
+			} catch (err) {
+				if (err.code === 'SQLITE_BUSY' && attempt < retries - 1) {
+					await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+					continue;
+				}
+				throw err;
+			}
+		}
 	}
 
 	/**
@@ -175,15 +210,23 @@ export class DatabaseManager {
 	// ===== UNIFIED SESSION MANAGEMENT METHODS =====
 
 	/**
-	 * Create a new run session
+	 * Create a new run session (serialized write operation)
 	 */
 	async createRunSession(runId, kind, meta, ownerUserId = null) {
-		const now = Date.now();
-		await this.run(
-			`INSERT INTO sessions(run_id, owner_user_id, kind, status, created_at, updated_at, meta_json)
-			 VALUES(?, ?, ?, 'starting', ?, ?, ?)`,
-			[runId, ownerUserId, kind, now, now, JSON.stringify(meta)]
-		);
+		// Queue this write operation to prevent concurrent writes
+		this.writeQueue = this.writeQueue.then(async () => {
+			const now = Date.now();
+			await this.run(
+				`INSERT INTO sessions(run_id, owner_user_id, kind, status, created_at, updated_at, meta_json)
+				 VALUES(?, ?, ?, 'starting', ?, ?, ?)`,
+				[runId, ownerUserId, kind, now, now, JSON.stringify(meta)]
+			);
+		}).catch(err => {
+			// Re-throw to maintain error propagation
+			throw err;
+		});
+
+		return this.writeQueue;
 	}
 
 	/**
@@ -259,19 +302,26 @@ export class DatabaseManager {
 	}
 
 	/**
-	 * Append event to session event log
+	 * Append event to session event log (serialized write operation)
 	 */
 	async appendSessionEvent(runId, seq, channel, type, payload) {
-		const ts = Date.now();
-		const buf =
-			payload instanceof Uint8Array ? payload : new TextEncoder().encode(JSON.stringify(payload));
+		// Queue this write operation to prevent concurrent writes
+		this.writeQueue = this.writeQueue.then(async () => {
+			const ts = Date.now();
+			const buf =
+				payload instanceof Uint8Array ? payload : new TextEncoder().encode(JSON.stringify(payload));
 
-		await this.run(
-			`INSERT INTO session_events(run_id, seq, channel, type, payload, ts) VALUES(?,?,?,?,?,?)`,
-			[runId, seq, channel, type, buf, ts]
-		);
+			await this.run(
+				`INSERT INTO session_events(run_id, seq, channel, type, payload, ts) VALUES(?,?,?,?,?,?)`,
+				[runId, seq, channel, type, buf, ts]
+			);
 
-		return { runId, seq, channel, type, payload, ts };
+			return { runId, seq, channel, type, payload, ts };
+		}).catch(err => {
+			throw err;
+		});
+
+		return this.writeQueue;
 	}
 
 	/**
