@@ -330,7 +330,7 @@
 	--bg-panel: var(--surface);
 	--surface-hover: var(--elev);
 	--surface-border: var(--line);
-	--primary-dim: color-mix(in oklab, var(--accent) 60%, transparent);
+	--primary-dim: color-mix(in oklab, var(--primary) 60%, transparent);
 	--secondary: var(--err);
 	--scan-line: color-mix(in oklab, var(--accent) 5%, transparent);
 	--glow-primary: 0 0 20px var(--primary-glow);
