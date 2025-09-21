@@ -105,6 +105,42 @@
 		}
 	}
 
+	// Handle session move between tiles
+	function handleSessionMove(sessionId, currentTileId) {
+		console.log('[SessionWindowManager] Moving session:', sessionId, 'from tile:', currentTileId);
+
+		// Get all available tile IDs
+		const availableTiles = Array.from(tileIds).filter((id) => id !== currentTileId);
+
+		if (availableTiles.length === 0) {
+			alert('No other tiles available. Create a split first.');
+			return;
+		}
+
+		// Simple prompt for now - could be enhanced with a modal
+		const targetTileOptions = availableTiles
+			.map(
+				(id, index) => `${index + 1}. ${id === 'root' ? 'Root Tile' : `Tile ${id.slice(0, 8)}...`}`
+			)
+			.join('\n');
+		const choice = prompt(
+			`Move session to which tile?\n\n${targetTileOptions}\n\nEnter the number (1-${availableTiles.length}):`
+		);
+
+		if (choice && !isNaN(choice)) {
+			const choiceIndex = parseInt(choice) - 1;
+			if (choiceIndex >= 0 && choiceIndex < availableTiles.length) {
+				const targetTileId = availableTiles[choiceIndex];
+				console.log('[SessionWindowManager] Moving session to tile:', targetTileId);
+
+				// Call the assign function to move the session
+				if (typeof onSessionAssignToTile === 'function') {
+					onSessionAssignToTile(sessionId, targetTileId);
+				}
+			}
+		}
+	}
+
 	// Handle edit mode toggle
 	function handleEditModeToggle(event) {
 		editMode = event.detail.editMode;
@@ -132,90 +168,101 @@
 		{#snippet tile({ focused, tileId, editMode, onSplitRight, onSplitDown, onClose })}
 			{@const session = getTileSession(tileId)}
 			{@const sessionIndex = session ? sessions.indexOf(session) : -1}
-			{#if session}
-				<SessionContainer {session} index={sessionIndex} onClose={handleSessionClose}>
-					{#snippet header({ session, onClose, index })}
-						<SessionHeaderRenderer {session} {onClose} {index} />
-					{/snippet}
+			<div class="tile-wrapper" class:edit-mode={editMode} class:has-session={!!session}>
+				<!-- Tile Controls for Edit Mode - shown for ALL tiles when edit mode is active -->
+				{#if editMode}
+					<div class="tile-controls">
+						<div class="tile-controls-group">
+							<button class="control-btn split-right" onclick={onSplitRight} title="Split Right">
+								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+									<rect
+										x="1"
+										y="2"
+										width="6"
+										height="12"
+										rx="1"
+										stroke="currentColor"
+										fill="none"
+										stroke-width="1.5"
+									/>
+									<rect
+										x="9"
+										y="2"
+										width="6"
+										height="12"
+										rx="1"
+										stroke="currentColor"
+										fill="none"
+										stroke-width="1.5"
+									/>
+								</svg>
+							</button>
 
-					{#snippet content({ session, isLoading, index })}
-						<SessionViewport {session} {isLoading} {index} />
-					{/snippet}
-				</SessionContainer>
-			{:else}
-				<div
-					class="empty-tile"
-					class:edit-mode={editMode}
-					data-focused={String(focused === tileId)}
-				>
-					<!-- Tile Controls for Edit Mode -->
-					{#if editMode}
-						<div class="tile-controls">
-							<div class="tile-controls-group">
-								<button class="control-btn split-right" onclick={onSplitRight} title="Split Right">
-									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-										<rect
-											x="1"
-											y="2"
-											width="6"
-											height="12"
-											rx="1"
-											stroke="currentColor"
-											fill="none"
-											stroke-width="1.5"
-										/>
-										<rect
-											x="9"
-											y="2"
-											width="6"
-											height="12"
-											rx="1"
-											stroke="currentColor"
-											fill="none"
-											stroke-width="1.5"
-										/>
-									</svg>
-								</button>
+							<button class="control-btn split-down" onclick={onSplitDown} title="Split Down">
+								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+									<rect
+										x="2"
+										y="1"
+										width="12"
+										height="6"
+										rx="1"
+										stroke="currentColor"
+										fill="none"
+										stroke-width="1.5"
+									/>
+									<rect
+										x="2"
+										y="9"
+										width="12"
+										height="6"
+										rx="1"
+										stroke="currentColor"
+										fill="none"
+										stroke-width="1.5"
+									/>
+								</svg>
+							</button>
 
-								<button class="control-btn split-down" onclick={onSplitDown} title="Split Down">
-									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-										<rect
-											x="2"
-											y="1"
-											width="12"
-											height="6"
-											rx="1"
-											stroke="currentColor"
-											fill="none"
-											stroke-width="1.5"
-										/>
-										<rect
-											x="2"
-											y="9"
-											width="12"
-											height="6"
-											rx="1"
-											stroke="currentColor"
-											fill="none"
-											stroke-width="1.5"
-										/>
-									</svg>
-								</button>
+							<button class="control-btn close" onclick={onClose} title="Close Tile">
+								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+									<path
+										d="M12 4L4 12M4 4l8 8"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+									/>
+								</svg>
+							</button>
 
-								<button class="control-btn close" onclick={onClose} title="Close Tile">
-									<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-										<path
-											d="M12 4L4 12M4 4l8 8"
-											stroke="currentColor"
-											stroke-width="2"
-											stroke-linecap="round"
-										/>
-									</svg>
-								</button>
-							</div>
+							{#if session && editMode}
+								<!-- Session assignment controls -->
+								<div class="session-controls">
+									<button
+										class="control-btn move-session"
+										onclick={() => handleSessionMove(session.id, tileId)}
+										title="Move Session to Another Tile"
+									>
+										<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+											<path d="M8 2L12 6H9V10H7V6H4L8 2ZM2 12H14V14H2V12Z" fill="currentColor" />
+										</svg>
+									</button>
+								</div>
+							{/if}
 						</div>
-					{/if}
+					</div>
+				{/if}
 
+				{#if session}
+					<SessionContainer {session} index={sessionIndex} onClose={handleSessionClose}>
+						{#snippet header({ session, onClose, index })}
+							<SessionHeaderRenderer {session} {onClose} {index} />
+						{/snippet}
+
+						{#snippet content({ session, isLoading, index })}
+							<SessionViewport {session} {isLoading} {index} />
+						{/snippet}
+					</SessionContainer>
+				{:else}
 					<div class="empty-tile-content">
 						<p>No session assigned {editMode ? '• Edit Mode Active' : ''}</p>
 						<div class="empty-actions">
@@ -236,8 +283,8 @@
 							</button>
 						</div>
 					</div>
-				</div>
-			{/if}
+				{/if}
+			</div>
 		{/snippet}
 	</WindowManager>
 </div>
@@ -372,6 +419,14 @@
 	}
 
 	/* Tile Controls for Edit Mode */
+	.tile-wrapper {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
 	.tile-controls {
 		position: absolute;
 		top: 0.5rem;
@@ -389,6 +444,15 @@
 		display: flex;
 		gap: var(--space-1);
 		align-items: center;
+		flex-wrap: wrap;
+	}
+
+	.session-controls {
+		display: flex;
+		gap: var(--space-1);
+		border-left: 1px solid var(--surface-border);
+		padding-left: var(--space-1);
+		margin-left: var(--space-1);
 	}
 
 	.control-btn {
@@ -423,7 +487,25 @@
 		color: var(--danger-contrast);
 	}
 
-	.empty-tile.edit-mode {
+	.control-btn.move-session:hover {
+		background: var(--warning, #f59e0b);
+		color: var(--warning-contrast, #fff);
+	}
+
+	.tile-wrapper.edit-mode {
 		position: relative;
+	}
+
+	.empty-tile-content {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		background: var(--surface);
+		border: 2px dashed var(--surface-border);
+		border-radius: var(--radius);
+		padding: var(--space-4);
 	}
 </style>
