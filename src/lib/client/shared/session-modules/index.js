@@ -1,6 +1,6 @@
-import { terminalSessionModule } from './terminal.js';
-import { claudeSessionModule } from './claude.js';
-import { fileEditorSessionModule } from './file-editor.js';
+import { terminalSessionModule } from '../../terminal/terminal.js';
+import { claudeSessionModule } from '../../claude/claude.js';
+import { fileEditorSessionModule } from '../../file-editor/file-editor.js';
 
 const moduleMap = new Map();
 

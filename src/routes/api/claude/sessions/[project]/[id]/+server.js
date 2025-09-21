@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { join } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
-import { readTailLines, parseJsonlLines } from '$lib/server/utils/jsonl.js';
+import { readTailLines, parseJsonlLines } from '$lib/server/shared/utils/jsonl.js';
 import { createReadStream } from 'node:fs';
 
 const MAX_BYTES = 5 * 1024 * 1024; // soft cap to keep responses reasonable

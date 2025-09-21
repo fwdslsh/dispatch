@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/utils/logger.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 
 let pty;

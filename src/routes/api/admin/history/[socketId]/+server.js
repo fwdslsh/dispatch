@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/auth.js';
-import { createHistoryManager } from '$lib/server/history-manager.js';
+import { validateKey } from '$lib/server/shared/auth.js';
+import { createHistoryManager } from '$lib/server/shared/history-manager.js';
 
 export async function GET({ params, url, locals }) {
 	let key = null;

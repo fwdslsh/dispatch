@@ -17,7 +17,7 @@ function socketIOPlugin() {
 
 			console.log('[DEV] Using shared services from hooks.server.js');
 
-			const { setupSocketIO } = await import('./src/lib/server/socket-setup.js');
+			const { setupSocketIO } = await import('./src/lib/server/shared/socket-setup.js');
 			const io = setupSocketIO(server.httpServer, services);
 
 			console.log('[DEV] Socket.IO ready with shared services');

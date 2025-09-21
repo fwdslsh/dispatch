@@ -14,7 +14,7 @@
 	import IconUserCode from '../shared/components/Icons/IconUserCode.svelte';
 	import IconProgressDown from '../shared/components/Icons/IconProgressDown.svelte';
 	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
-	import { getIconForEvent } from '$lib/client/shared/icons/claudeEventIcons.js';
+	import { getIconForEvent } from '$lib/client/claude/claudeEventIcons.js';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 	import IconClaude from '../shared/components/Icons/IconClaude.svelte';
 	// Using global styles for inputs

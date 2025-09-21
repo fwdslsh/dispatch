@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { DatabaseManager } from '../../src/lib/server/db/DatabaseManager.js';
+import { DatabaseManager } from '../../src/lib/server/shared/db/DatabaseManager.js';
 
 describe('DatabaseManager startup helpers', () => {
 	let tempDir;

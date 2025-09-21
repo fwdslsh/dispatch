@@ -15,7 +15,7 @@ vi.mock('socket.io', () => {
 	return { Server: MockServer };
 });
 
-const { setupSocketIO } = await import('../../src/lib/server/socket-setup.js');
+const { setupSocketIO } = await import('../../src/lib/server/shared/socket-setup.js');
 
 describe('setupSocketIO', () => {
 	it('registers io instance with RunSessionManager', () => {

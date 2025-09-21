@@ -3,7 +3,7 @@
  * GET /api/sockets - Returns list of active socket connections
  */
 
-import { getActiveSocketIO } from '$lib/server/socket-setup.js';
+import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
 
 export async function GET({ url, locals }) {
 	try {

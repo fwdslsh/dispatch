@@ -2,12 +2,12 @@
  * Shared service initialization for both SvelteKit hooks and standalone server
  */
 
-import { logger } from '../utils/logger.js';
-import { DatabaseManager } from '../db/DatabaseManager.js';
-import { RunSessionManager } from '../runtime/RunSessionManager.js';
-import { PtyAdapter } from '../adapters/PtyAdapter.js';
-import { ClaudeAdapter } from '../adapters/ClaudeAdapter.js';
-import { FileEditorAdapter } from '../adapters/FileEditorAdapter.js';
+import { logger } from './utils/logger.js';
+import { DatabaseManager } from './db/DatabaseManager.js';
+import { RunSessionManager } from './runtime/RunSessionManager.js';
+import { PtyAdapter } from '../terminal/PtyAdapter.js';
+import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
+import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
 import path from 'node:path';
 import os from 'node:os';

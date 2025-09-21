@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/utils/logger.js';
 import { EventEmitter } from 'node:events';
 import { SESSION_TYPE } from '../../shared/session-types.js';
 

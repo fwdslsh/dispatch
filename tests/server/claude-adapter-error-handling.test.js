@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ClaudeAdapter } from '../../src/lib/server/adapters/ClaudeAdapter.js';
+import { ClaudeAdapter } from '../../src/lib/server/claude/ClaudeAdapter.js';
 
 describe('ClaudeAdapter error handling', () => {
 	it('should prevent interrupt errors by removing interrupt method', async () => {

@@ -20,7 +20,7 @@ vi.mock('@anthropic-ai/claude-code', () => {
 	};
 });
 
-const { ClaudeAdapter } = await import('../../src/lib/server/adapters/ClaudeAdapter.js');
+const { ClaudeAdapter } = await import('../../src/lib/server/claude/ClaudeAdapter.js');
 
 describe('Claude Bypass Permissions Configuration', () => {
 	it('should default to bypassPermissions permission mode when no options provided', async () => {

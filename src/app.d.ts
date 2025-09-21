@@ -1,7 +1,7 @@
 // See https://kit.svelte.dev/docs/types#app
 // for information about these interfaces
-import type { DatabaseManager } from '$lib/server/db/DatabaseManager';
-import type { RunSessionManager } from '$lib/server/runtime/RunSessionManager';
+import type { DatabaseManager } from '$lib/server/shared/db/DatabaseManager';
+import type { RunSessionManager } from '$lib/server/shared/runtime/RunSessionManager';
 import type { ClaudeAuthManager } from '$lib/server/claude/ClaudeAuthManager';
 
 declare global {

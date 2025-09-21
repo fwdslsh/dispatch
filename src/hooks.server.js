@@ -1,7 +1,7 @@
 import { sequence } from '@sveltejs/kit/hooks';
-import { logger } from './lib/server/utils/logger.js';
-import { initializeServices } from './lib/server/services/index.js';
-import { setupSocketIO } from './lib/server/socket-setup.js';
+import { logger } from './lib/server/shared/utils/logger.js';
+import { initializeServices } from './lib/server/shared/index.js';
+import { setupSocketIO } from './lib/server/shared/socket-setup.js';
 
 // Use process-level singleton to survive module reloads
 const SERVICES_KEY = Symbol.for('dispatch.services');

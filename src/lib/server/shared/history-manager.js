@@ -1,6 +1,6 @@
 import { createDbErrorHandler, safeExecute } from './utils/error-handling.js';
 import { sanitizeData as sanitizeDataUtil } from './utils/data-utils.js';
-import { SESSION_TYPE } from '../shared/session-types.js';
+import { SESSION_TYPE } from '../../shared/session-types.js';
 
 class HistoryManager {
 	constructor(databaseManager) {

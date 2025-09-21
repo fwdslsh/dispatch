@@ -1,6 +1,6 @@
 import ClaudePane from '$lib/client/claude/ClaudePane.svelte';
-import ClaudeSettings from '$lib/client/shared/components/session-settings/ClaudeSettings.svelte';
-import ClaudeHeader from '$lib/client/shared/components/session-headers/ClaudeHeader.svelte';
+import ClaudeSettings from '$lib/client/claude/ClaudeSettings.svelte';
+import ClaudeHeader from '$lib/client/claude/ClaudeHeader.svelte';
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
 export const claudeSessionModule = {
