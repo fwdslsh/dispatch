@@ -16,6 +16,8 @@
 	});
 	let isLoading = $state(false);
 	let error = $state(null);
+	let subdomainInput = $state('');
+	let isUpdatingConfig = $state(false);
 
 	function connectSocket() {
 		if (socket) return;
@@ -30,6 +32,8 @@
 		// Listen for tunnel status broadcasts
 		socket.on(SOCKET_EVENTS.TUNNEL_STATUS, (status) => {
 			tunnelStatus = status;
+			// Update the subdomain input field with current value
+			subdomainInput = status.subdomain || '';
 		});
 	}
 
@@ -39,6 +43,8 @@
 		socket.emit(SOCKET_EVENTS.TUNNEL_STATUS, (response) => {
 			if (response.success) {
 				tunnelStatus = response.status;
+				// Update the subdomain input field with current value
+				subdomainInput = tunnelStatus.subdomain || '';
 			} else {
 				error = response.error || 'Failed to get tunnel status';
 			}
@@ -88,6 +94,35 @@
 					console.error('Failed to copy URL:', err);
 				});
 		}
+	}
+
+	async function updateSubdomain() {
+		if (!socket) return;
+
+		isUpdatingConfig = true;
+		error = null;
+
+		// Get terminal key from localStorage using the correct key name
+		const terminalKey = localStorage.getItem('dispatch-auth-key') || '';
+
+		// Authenticate first
+		socket.emit('auth', terminalKey, (authResponse) => {
+			if (!authResponse?.success) {
+				isUpdatingConfig = false;
+				error = 'Authentication failed. Please check your terminal key.';
+				return;
+			}
+
+			// Now update config
+			socket.emit(SOCKET_EVENTS.TUNNEL_UPDATE_CONFIG, { subdomain: subdomainInput }, (response) => {
+				isUpdatingConfig = false;
+				if (response.success) {
+					tunnelStatus = response.status;
+				} else {
+					error = response.error || 'Failed to update subdomain';
+				}
+			});
+		});
 	}
 
 	function openTunnelUrl() {
@@ -159,6 +194,34 @@
 			{/if}
 		</div>
 
+		<div class="tunnel-config">
+			<div class="config-section">
+				<div class="config-label">Subdomain (optional):</div>
+				<div class="config-input-wrapper">
+					<Input
+						bind:value={subdomainInput}
+						placeholder="Enter custom subdomain or leave empty for random"
+						style="font-family: monospace; font-size: 0.9rem;"
+					/>
+					<Button 
+						onclick={updateSubdomain} 
+						variant="secondary" 
+						size="sm"
+						disabled={isUpdatingConfig || subdomainInput === (tunnelStatus.subdomain || '')}
+					>
+						{#if isUpdatingConfig}
+							<LoadingSpinner size="sm" />
+						{:else}
+							Update
+						{/if}
+					</Button>
+				</div>
+				<div class="config-help">
+					Custom subdomain for your tunnel URL (e.g., "myapp" for myapp.loca.lt)
+				</div>
+			</div>
+		</div>
+
 		{#if tunnelStatus.url}
 			<div class="tunnel-url">
 				<div class="url-label">Public URL:</div>
@@ -212,6 +275,45 @@
 		border-radius: var(--radius-sm);
 		padding: var(--space-md);
 		margin-bottom: var(--space-md);
+	}
+
+	.tunnel-config {
+		background: rgba(255, 255, 255, 0.02);
+		border: 1px solid var(--border-color);
+		border-radius: var(--radius-sm);
+		padding: var(--space-md);
+		margin-bottom: var(--space-md);
+	}
+
+	.config-section {
+		margin-bottom: var(--space-sm);
+	}
+
+	.config-section:last-child {
+		margin-bottom: 0;
+	}
+
+	.config-label {
+		font-weight: 500;
+		color: var(--text-muted);
+		margin-bottom: var(--space-xs);
+	}
+
+	.config-input-wrapper {
+		display: flex;
+		gap: var(--space-sm);
+		align-items: stretch;
+		margin-bottom: var(--space-xs);
+	}
+
+	.config-input-wrapper :global(input) {
+		flex: 1;
+	}
+
+	.config-help {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+		font-style: italic;
 	}
 
 	.status-row {

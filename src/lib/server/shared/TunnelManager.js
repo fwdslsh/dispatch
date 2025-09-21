@@ -100,6 +100,24 @@ export class TunnelManager {
 	}
 
 	/**
+	 * Update tunnel configuration
+	 * @param {object} config - Configuration updates
+	 * @returns {boolean} Success status
+	 */
+	updateConfig(config) {
+		try {
+			if (config.subdomain !== undefined) {
+				this.subdomain = config.subdomain;
+				logger.info('TUNNEL', `Subdomain updated to: ${this.subdomain || '(default)'}`);
+			}
+			return true;
+		} catch (error) {
+			logger.error('TUNNEL', `Failed to update config: ${error.message}`);
+			return false;
+		}
+	}
+
+	/**
 	 * Get current public URL
 	 * @returns {string|null} Current URL or null if not available
 	 */

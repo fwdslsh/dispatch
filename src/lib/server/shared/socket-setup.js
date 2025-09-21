@@ -295,6 +295,26 @@ export function setupSocketIO(httpServer, services) {
 			}
 		});
 
+		socket.on('tunnel.updateConfig', (data, callback) => {
+			if (!socket.data.authenticated) {
+				logger.warn('SOCKET', `Unauthenticated tunnel.updateConfig from ${socket.id}`);
+				if (callback) callback({ success: false, error: 'Unauthorized' });
+				return;
+			}
+
+			logger.info('SOCKET', `Tunnel config update requested by socket ${socket.id}`, data);
+			const tunnelManager = services.tunnelManager;
+			const success = tunnelManager.updateConfig(data);
+			const status = tunnelManager.getStatus();
+
+			logger.info('SOCKET', `Tunnel config update result: ${success}`, status);
+			if (callback) {
+				callback({ success, status });
+			}
+			// Broadcast status to all connected clients
+			io.emit('tunnel.status', status);
+		});
+
 		socket.on('disconnect', () => {
 			logger.info('SOCKET', `Client disconnected: ${socket.id}`);
 			logSocketEvent(socket.id, 'disconnect');

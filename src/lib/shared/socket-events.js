@@ -37,5 +37,6 @@ export const SOCKET_EVENTS = {
 	// Tunnel control events
 	TUNNEL_ENABLE: 'tunnel.enable',
 	TUNNEL_DISABLE: 'tunnel.disable',
-	TUNNEL_STATUS: 'tunnel.status'
+	TUNNEL_STATUS: 'tunnel.status',
+	TUNNEL_UPDATE_CONFIG: 'tunnel.updateConfig'
 };
