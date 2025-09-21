@@ -55,7 +55,7 @@
 		>
 			<IconInfoCircle size={12} />
 		</IconButton>
-		
+
 		<IconButton
 			onclick={handleClose}
 			title="Close session"

@@ -42,7 +42,7 @@ describe('Session Header Module Interface', () => {
 			return {
 				session,
 				onClose,
-				index,
+				index
 				// ... additional session-type-specific props
 			};
 		};
@@ -91,9 +91,9 @@ describe('Session Header Module Interface', () => {
 			};
 		};
 
-		const claudeSession = { 
-			id: 'test', 
-			type: 'claude', 
+		const claudeSession = {
+			id: 'test',
+			type: 'claude',
 			claudeSessionId: 'claude-123'
 		};
 		const options = { onClose: () => {}, index: 2 };

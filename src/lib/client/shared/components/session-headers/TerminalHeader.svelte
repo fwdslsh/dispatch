@@ -9,7 +9,7 @@
 	import IconX from '../Icons/IconX.svelte';
 	import IconTerminal from '../Icons/IconTerminal.svelte';
 
-	// Props  
+	// Props
 	let { session, onClose = () => {}, index = 0, shell = 'bash' } = $props();
 
 	// Session display info
