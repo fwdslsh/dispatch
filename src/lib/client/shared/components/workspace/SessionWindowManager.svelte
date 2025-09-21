@@ -76,7 +76,6 @@
 		if (layout) {
 			const newTileIds = new Set();
 			collectTileIds(layout, newTileIds);
-			console.log('[SessionWindowManager] Layout changed, tile IDs:', Array.from(newTileIds));
 			tileIds = newTileIds;
 		}
 	}
@@ -118,11 +117,7 @@
 			{@const session = getTileSession(tileId)}
 			{@const sessionIndex = session ? sessions.indexOf(session) : -1}
 			{#if session}
-				<SessionContainer
-					{session}
-					index={sessionIndex}
-					onClose={handleSessionClose}
-				>
+				<SessionContainer {session} index={sessionIndex} onClose={handleSessionClose}>
 					{#snippet header({ session, onClose, index })}
 						<SessionHeader {session} {onClose} {index} />
 					{/snippet}
@@ -136,10 +131,7 @@
 					<div class="empty-tile-content">
 						<p>No session assigned</p>
 						<div class="empty-actions">
-							<button
-								class="create-session-btn"
-								onclick={() => handleCreateSessionInTile('pty')}
-							>
+							<button class="create-session-btn" onclick={() => handleCreateSessionInTile('pty')}>
 								+ Terminal
 							</button>
 							<button

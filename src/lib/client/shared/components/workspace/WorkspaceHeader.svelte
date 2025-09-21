@@ -11,6 +11,8 @@
 	import IconButton from '../IconButton.svelte';
 	import IconAppWindow from '../Icons/IconAppWindow.svelte';
 	import IconLogout from '../Icons/IconLogout.svelte';
+	import IconInfoCircle from '../Icons/IconInfoCircle.svelte';
+	import HelpModal from '../HelpModal.svelte';
 
 	// Props
 	let {
@@ -19,6 +21,14 @@
 		onViewModeChange = () => {},
 		onInstallPWA = () => {}
 	} = $props();
+
+	// Help modal state
+	let showHelpModal = $state(false);
+
+	// Handle help button click
+	function handleHelpClick() {
+		showHelpModal = true;
+	}
 </script>
 
 <header class="workspace-header">
@@ -30,12 +40,18 @@
 		<IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
 			<IconAppWindow size={18} />
 		</IconButton>
+		<IconButton onclick={handleHelpClick} aria-label="Keyboard shortcuts" title="Keyboard Shortcuts">
+			<IconInfoCircle size={18} />
+		</IconButton>
 		<LayoutControls {viewMode} onSelectView={onViewModeChange} />
 		<IconButton onclick={onLogout} aria-label="Logout">
 			<IconLogout size={18} />
 		</IconButton>
 	</div>
 </header>
+
+<!-- Help Modal -->
+<HelpModal bind:open={showHelpModal} />
 
 <style>
 	.workspace-header {

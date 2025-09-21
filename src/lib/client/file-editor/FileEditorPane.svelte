@@ -1,5 +1,4 @@
 <script>
-	import IconEdit from '../shared/components/Icons/IconEdit.svelte';
 	import DirectoryBrowser from '../shared/components/DirectoryBrowser.svelte';
 	import FileEditor from '../shared/components/FileEditor.svelte';
 	import { onMount } from 'svelte';
@@ -20,6 +19,41 @@
 	// Reactive derivations
 	let isDirty = $derived(fileContent !== originalContent);
 	let canSave = $derived(isDirty && selectedFile && !loading);
+
+	// Storage key for this session's file editor state
+	const FILE_EDITOR_STATE_KEY = `dispatch-file-editor-${sessionId}`;
+
+	// Save current state to localStorage
+	function saveEditorState() {
+		if (typeof localStorage === 'undefined') return;
+
+		const state = {
+			currentDirectory,
+			fileDirectory,
+			selectedFile,
+			isEditing
+		};
+
+		try {
+			localStorage.setItem(FILE_EDITOR_STATE_KEY, JSON.stringify(state));
+		} catch (e) {
+			console.warn('Failed to save file editor state:', e);
+		}
+	}
+
+	// Load state from localStorage
+	function loadEditorState() {
+		if (typeof localStorage === 'undefined') return null;
+
+		try {
+			const raw = localStorage.getItem(FILE_EDITOR_STATE_KEY);
+			return raw ? JSON.parse(raw) : null;
+		} catch (e) {
+			console.warn('Failed to load file editor state:', e);
+			return null;
+		}
+	}
+
 
 	// Load file content
 	async function loadFile(file) {
@@ -42,6 +76,7 @@
 			fileContent = result.content;
 			originalContent = result.content;
 			isEditing = true;
+			saveEditorState();
 		} catch (err) {
 			error = err.message;
 		} finally {
@@ -124,6 +159,13 @@
 	// Handle directory selection from DirectoryBrowser
 	function handleDirectorySelect(path) {
 		currentDirectory = path;
+		saveEditorState();
+	}
+
+	// Handle directory navigation from DirectoryBrowser
+	function handleDirectoryNavigate(path) {
+		currentDirectory = path;
+		saveEditorState();
 	}
 
 	// Handle file cancel
@@ -150,24 +192,23 @@
 		if (fileDirectory) {
 			currentDirectory = fileDirectory;
 		}
+		saveEditorState();
 	}
 
 
 	// Initialize
 	onMount(() => {
-		// DirectoryBrowser will handle initialization
+		const savedState = loadEditorState();
+		if (savedState?.currentDirectory) {
+			currentDirectory = savedState.currentDirectory;
+		}
+		if (savedState?.fileDirectory) {
+			fileDirectory = savedState.fileDirectory;
+		}
 	});
 </script>
 
 <div class="file-editor-pane">
-	<!-- Header -->
-	<div class="file-editor-header">
-		<div class="header-title">
-			<IconEdit size={20} />
-			<span>File Editor</span>
-		</div>
-	</div>
-
 	<!-- Error display -->
 	{#if error}
 		<div class="error-banner">
@@ -181,12 +222,11 @@
 			<!-- File browser view using DirectoryBrowser component -->
 			<div class="file-browser">
 				<DirectoryBrowser
-					bind:selected={currentDirectory}
-					startPath={currentDirectory || workspacePath}
 					placeholder="Browse files and directories..."
 					showFileActions={true}
-					forceOpen={true}
+					isAlwaysOpen={true}
 					onSelect={handleDirectorySelect}
+					onNavigate={handleDirectoryNavigate}
 					onFileOpen={handleFileOpen}
 					onFileUpload={handleFileUpload}
 				/>
@@ -217,23 +257,6 @@
 		color: var(--color-text);
 		font-family: var(--font-mono);
 	}
-
-	.file-editor-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 1rem;
-		border-bottom: 1px solid var(--color-border);
-		background: var(--color-surface-elevated);
-	}
-
-	.header-title {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-weight: 600;
-	}
-
 
 	.error-banner {
 		background: var(--color-error);
