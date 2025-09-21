@@ -20,28 +20,29 @@ import { hasMethod } from './method-utils.js';
 export function createErrorHandler(component, options = {}) {
 	const { fallback = null, throwOnError = false, callback = null } = options;
 
-	return (operation, context = '') => async (...args) => {
-		try {
-			return await operation(...args);
-		} catch (error) {
-			const message = context ? `${context}: ${error.message || error}` : error.message || error;
-			logger.error(component, message);
+	return (operation, context = '') =>
+		async (...args) => {
+			try {
+				return await operation(...args);
+			} catch (error) {
+				const message = context ? `${context}: ${error.message || error}` : error.message || error;
+				logger.error(component, message);
 
-			if (callback) {
-				try {
-					callback({ success: false, error: error.message || 'Operation failed' });
-				} catch (callbackError) {
-					logger.warn(component, 'Callback execution failed:', callbackError);
+				if (callback) {
+					try {
+						callback({ success: false, error: error.message || 'Operation failed' });
+					} catch (callbackError) {
+						logger.warn(component, 'Callback execution failed:', callbackError);
+					}
 				}
-			}
 
-			if (throwOnError) {
-				throw error;
-			}
+				if (throwOnError) {
+					throw error;
+				}
 
-			return fallback;
-		}
-	};
+				return fallback;
+			}
+		};
 }
 
 /**
@@ -60,22 +61,23 @@ export function createDbErrorHandler(component, fallback = null) {
  * @returns {function} Socket error handler
  */
 export function createSocketErrorHandler(component) {
-	return (operation, context = '') => async (data, callback) => {
-		try {
-			return await operation(data, callback);
-		} catch (error) {
-			const message = context ? `${context}: ${error.message || error}` : error.message || error;
-			logger.error(component, message);
+	return (operation, context = '') =>
+		async (data, callback) => {
+			try {
+				return await operation(data, callback);
+			} catch (error) {
+				const message = context ? `${context}: ${error.message || error}` : error.message || error;
+				logger.error(component, message);
 
-			if (callback) {
-				try {
-					callback({ success: false, error: error.message || 'Operation failed' });
-				} catch (callbackError) {
-					logger.warn(component, 'Callback execution failed:', callbackError);
+				if (callback) {
+					try {
+						callback({ success: false, error: error.message || 'Operation failed' });
+					} catch (callbackError) {
+						logger.warn(component, 'Callback execution failed:', callbackError);
+					}
 				}
 			}
-		}
-	};
+		};
 }
 
 /**
@@ -102,20 +104,21 @@ export async function safeExecute(operation, component, context) {
 export function createServiceHandler(component, options = {}) {
 	const { throwOnError = true } = options;
 
-	return (operation, context = '') => async (...args) => {
-		try {
-			return await operation(...args);
-		} catch (error) {
-			const message = context ? `${context}: ${error.message || error}` : error.message || error;
-			logger.error(component, message);
+	return (operation, context = '') =>
+		async (...args) => {
+			try {
+				return await operation(...args);
+			} catch (error) {
+				const message = context ? `${context}: ${error.message || error}` : error.message || error;
+				logger.error(component, message);
 
-			if (throwOnError) {
-				throw error;
+				if (throwOnError) {
+					throw error;
+				}
+
+				return null;
 			}
-
-			return null;
-		}
-	};
+		};
 }
 
 /**

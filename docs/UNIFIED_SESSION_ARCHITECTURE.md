@@ -9,7 +9,7 @@ The Dispatch application now uses a unified session architecture based on event-
 ### Session Types
 
 1. **Browser Session**: HTTP authentication session (handled by SvelteKit)
-2. **Client Session**: Socket.IO connection with stable `clientId` (stored in localStorage)  
+2. **Client Session**: Socket.IO connection with stable `clientId` (stored in localStorage)
 3. **Run Session**: Long-lived server process with `runId` and event-sourced history
 
 ### Run Session Kinds
@@ -24,9 +24,9 @@ The Dispatch application now uses a unified session architecture based on event-
 ```javascript
 // Client connects and authenticates
 socket.emit('auth', authKey, (response) => {
-  if (response.success) {
-    // Authentication successful
-  }
+	if (response.success) {
+		// Authentication successful
+	}
 });
 ```
 
@@ -43,13 +43,13 @@ socket.emit('client:hello', { clientId: getClientId() });
 
 ```javascript
 socket.emit('run:attach', { runId, afterSeq: 0 }, (backlog) => {
-  // Receive event backlog for session resume
-  backlog.forEach(event => handleEvent(event));
+	// Receive event backlog for session resume
+	backlog.forEach((event) => handleEvent(event));
 });
 
 // Listen for real-time events
 socket.on('run:event', (event) => {
-  // Handle event: { runId, seq, channel, type, payload, ts }
+	// Handle event: { runId, seq, channel, type, payload, ts }
 });
 ```
 
@@ -78,7 +78,7 @@ Events are categorized by channel to enable proper handling:
 ### PTY Sessions
 
 - **`pty:stdout`**: Terminal output data
-- **`pty:stderr`**: Terminal error output  
+- **`pty:stderr`**: Terminal error output
 - **`pty:resize`**: Terminal dimension changes
 - **`pty:exit`**: Terminal process exit
 
@@ -110,16 +110,16 @@ await runSessionClient.authenticate(authKey);
 
 // Create session
 const { runId } = await runSessionClient.createRunSession('pty', '/workspace', {
-  shell: '/bin/bash',
-  cols: 80,
-  rows: 24
+	shell: '/bin/bash',
+	cols: 80,
+	rows: 24
 });
 
 // Attach and handle events
 await runSessionClient.attachToRunSession(runId, (event) => {
-  if (event.channel === 'pty:stdout') {
-    terminal.write(event.payload);
-  }
+	if (event.channel === 'pty:stdout') {
+		terminal.write(event.payload);
+	}
 });
 
 // Send input
@@ -167,7 +167,7 @@ CREATE TABLE session_events (
 ```sql
 CREATE TABLE workspace_layout (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id TEXT NOT NULL,  
+  run_id TEXT NOT NULL,
   client_id TEXT NOT NULL,         -- Device-specific layout
   tile_id TEXT NOT NULL,
   created_at INTEGER,
@@ -202,7 +202,7 @@ The following patterns are no longer used:
 All Svelte components now use `RunSessionClient` exclusively:
 
 - `TerminalPane.svelte` - Uses unified run session events
-- `ClaudePane.svelte` - Uses unified run session events  
+- `ClaudePane.svelte` - Uses unified run session events
 - No direct socket.io imports in components
 
 ## Testing
@@ -212,22 +212,22 @@ Tests should use the unified event patterns:
 ```javascript
 // Create run session
 const { runId } = await runSessionManager.createRunSession({
-  kind: 'pty',
-  meta: { cwd: '/test', shell: '/bin/sh' }
+	kind: 'pty',
+	meta: { cwd: '/test', shell: '/bin/sh' }
 });
 
 // Test event emission
 const events = [];
 await runSessionManager.attachToRunSession(runId, (event) => {
-  events.push(event);
+	events.push(event);
 });
 
 // Send input and verify output
 await runSessionManager.sendInput(runId, 'echo test\\n');
 expect(events).toContain(
-  expect.objectContaining({
-    channel: 'pty:stdout',
-    payload: expect.stringContaining('test')
-  })
+	expect.objectContaining({
+		channel: 'pty:stdout',
+		payload: expect.stringContaining('test')
+	})
 );
 ```

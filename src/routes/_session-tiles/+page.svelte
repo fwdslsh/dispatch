@@ -19,7 +19,6 @@
 	/** @type {Map<string, string>} Tile ID to Session ID mapping */
 	let tileSessionMap = $state(new Map());
 
-
 	/** @type {boolean} */
 	let showInstructions = $state(true);
 

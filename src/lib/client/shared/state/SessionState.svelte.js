@@ -31,7 +31,9 @@ export class SessionState {
 			this.sessions.filter((s) => s.sessionType === SESSION_TYPE.CLAUDE)
 		);
 
-		this.terminalSessions = $derived.by(() => this.sessions.filter((s) => s.sessionType === SESSION_TYPE.PTY));
+		this.terminalSessions = $derived.by(() =>
+			this.sessions.filter((s) => s.sessionType === SESSION_TYPE.PTY)
+		);
 
 		this.sessionCount = $derived(this.sessions.length);
 		this.hasActiveSessions = $derived(this.activeSessions.length > 0);

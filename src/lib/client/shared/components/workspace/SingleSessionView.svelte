@@ -33,12 +33,7 @@
 
 <div class="single-session-view">
 	{#if hasSession}
-		<SessionContainer
-			{session}
-			index={sessionIndex}
-			isFocused={true}
-			onClose={onSessionClose}
-		>
+		<SessionContainer {session} index={sessionIndex} isFocused={true} onClose={onSessionClose}>
 			{#snippet header({ session, onClose, index })}
 				<SessionHeader {session} {onClose} {index} />
 			{/snippet}
@@ -55,9 +50,7 @@
 				<button class="create-session" onclick={() => create('terminal')}>
 					+ Terminal Session
 				</button>
-				<button class="create-session" onclick={() => create('claude')}>
-					+ Claude Session
-				</button>
+				<button class="create-session" onclick={() => create('claude')}> + Claude Session </button>
 				<button class="create-session" onclick={() => create('file-editor')}>
 					+ File Editor Session
 				</button>
@@ -120,7 +113,9 @@
 		padding: 0.45rem 0.75rem;
 		font-family: var(--font-mono);
 		cursor: pointer;
-		transition: background 0.15s ease, transform 0.15s ease;
+		transition:
+			background 0.15s ease,
+			transform 0.15s ease;
 	}
 
 	.create-session:hover {

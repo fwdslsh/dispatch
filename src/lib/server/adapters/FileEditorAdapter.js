@@ -64,7 +64,7 @@ class FileEditorProcess extends EventEmitter {
 
 	async initialize() {
 		this.isActive = true;
-		
+
 		// Emit initialization event
 		this.onEvent({
 			channel: 'file-editor:system',

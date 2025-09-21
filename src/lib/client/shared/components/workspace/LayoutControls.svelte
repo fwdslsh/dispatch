@@ -6,10 +6,7 @@
 	import IconLayoutGrid from '../Icons/IconLayoutGrid.svelte';
 	import IconDeviceDesktop from '../Icons/IconDeviceDesktop.svelte';
 
-	let {
-		viewMode = 'window-manager',
-		onSelectView = () => {}
-	} = $props();
+	let { viewMode = 'window-manager', onSelectView = () => {} } = $props();
 
 	function handleSelect(mode) {
 		if (viewMode === mode) return;

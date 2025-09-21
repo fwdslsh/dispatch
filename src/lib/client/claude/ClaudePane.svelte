@@ -19,11 +19,7 @@
 	import IconClaude from '../shared/components/Icons/IconClaude.svelte';
 	// Using global styles for inputs
 
-	let {
-		sessionId,
-		claudeSessionId = null,
-		shouldResume = false
-	} = $props();
+	let { sessionId, claudeSessionId = null, shouldResume = false } = $props();
 
 	// Debug logging
 	$effect(() => {
@@ -82,8 +78,6 @@
 			scrollToBottom();
 		}
 	});
-
-
 
 	async function send(e) {
 		e.preventDefault();
@@ -226,16 +220,16 @@
 
 							if (textContent) {
 								// Create a new assistant message with accumulated activities
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: textContent,
-						timestamp: new Date(),
-						id: nextMessageId(),
-						activityIcons: [...liveEventIcons] // Attach accumulated activities
-					}
-				];
+								messages = [
+									...messages,
+									{
+										role: 'assistant',
+										text: textContent,
+										timestamp: new Date(),
+										id: nextMessageId(),
+										activityIcons: [...liveEventIcons] // Attach accumulated activities
+									}
+								];
 								liveEventIcons = []; // Clear for next accumulation
 								isWaitingForReply = true; // Keep waiting for more potential messages
 								assistantTextAdded = true;
@@ -256,29 +250,29 @@
 							const isError = !!evt.is_error;
 							if (isError) {
 								// Add error message
-							messages = [
-								...messages,
-								{
-									role: 'assistant',
-									text: evt.result || 'An error occurred',
-									timestamp: new Date(),
-									id: nextMessageId(),
-									isError: true,
-									errorIcon: IconAlertTriangle
-								}
-							];
+								messages = [
+									...messages,
+									{
+										role: 'assistant',
+										text: evt.result || 'An error occurred',
+										timestamp: new Date(),
+										id: nextMessageId(),
+										isError: true,
+										errorIcon: IconAlertTriangle
+									}
+								];
 							} else if (evt.result && !assistantTextAdded) {
 								// Add successful result
-							messages = [
-								...messages,
-								{
-									role: 'assistant',
-									text: evt.result,
-									timestamp: new Date(),
-									id: nextMessageId(),
-									activityIcons: [...liveEventIcons]
-								}
-							];
+								messages = [
+									...messages,
+									{
+										role: 'assistant',
+										text: evt.result,
+										timestamp: new Date(),
+										id: nextMessageId(),
+										activityIcons: [...liveEventIcons]
+									}
+								];
 							}
 							liveEventIcons = []; // Clear for next conversation turn
 						} else {
@@ -330,29 +324,29 @@
 			} else if (event.channel === 'claude:auth_complete') {
 				authAwaitingCode = false;
 				authInProgress = false;
-		messages = [
-			...messages,
-			{
-				role: 'assistant',
-				text: 'Authentication complete. You can retry your request.',
-				timestamp: new Date(),
-				id: nextMessageId()
-			}
-		];
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: 'Authentication complete. You can retry your request.',
+						timestamp: new Date(),
+						id: nextMessageId()
+					}
+				];
 			} else if (event.channel === 'claude:auth_error') {
 				authAwaitingCode = false;
 				authInProgress = false;
-		messages = [
-			...messages,
-			{
-				role: 'assistant',
-				text: `Authentication failed. ${event.payload?.error || ''}`,
-				timestamp: new Date(),
-				id: nextMessageId(),
-				isError: true,
-				errorIcon: IconAlertTriangle
-			}
-		];
+				messages = [
+					...messages,
+					{
+						role: 'assistant',
+						text: `Authentication failed. ${event.payload?.error || ''}`,
+						timestamp: new Date(),
+						id: nextMessageId(),
+						isError: true,
+						errorIcon: IconAlertTriangle
+					}
+				];
 			}
 		} catch (e) {
 			console.error('[CLAUDE] Error handling run event:', e);
@@ -652,7 +646,6 @@
 					}
 				}, 2000);
 			}
-
 		} catch (error) {
 			console.error('[CLAUDE] Failed to attach to run session:', error);
 			connectionError = `Failed to connect: ${error.message}`;
@@ -995,7 +988,6 @@
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
 	}
-
 
 	.catching-up {
 		color: var(--accent-amber);

@@ -173,7 +173,7 @@ class HistoryManager {
 			() => this.databaseManager.listSessionHistories(),
 			'Failed to list socket histories'
 		);
-		return await handler() || [];
+		return (await handler()) || [];
 	}
 
 	/**

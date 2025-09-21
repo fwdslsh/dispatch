@@ -74,7 +74,8 @@ export class PtyAdapter {
 		};
 
 		// Extract shell and args from options or use defaults
-		const shell = options.shell || process.env.SHELL || (process.platform === 'win32' ? 'cmd.exe' : 'bash');
+		const shell =
+			options.shell || process.env.SHELL || (process.platform === 'win32' ? 'cmd.exe' : 'bash');
 		const args = options.args || [];
 
 		logger.info('PTY_ADAPTER', `Spawning ${shell} with args:`, args, 'options:', {
@@ -88,7 +89,7 @@ export class PtyAdapter {
 		const term = pty.spawn(shell, args, ptyOptions);
 
 		// Set up event handlers
-		term.onData(data => {
+		term.onData((data) => {
 			onEvent({
 				channel: 'pty:stdout',
 				type: 'chunk',
@@ -97,7 +98,10 @@ export class PtyAdapter {
 		});
 
 		term.onExit((exitInfo) => {
-			logger.info('PTY_ADAPTER', `Process exited with code ${exitInfo.exitCode}, signal ${exitInfo.signal}`);
+			logger.info(
+				'PTY_ADAPTER',
+				`Process exited with code ${exitInfo.exitCode}, signal ${exitInfo.signal}`
+			);
 			onEvent({
 				channel: 'system:status',
 				type: 'closed',
@@ -144,10 +148,18 @@ export class PtyAdapter {
 				term.kill();
 			},
 			// Expose pty properties
-			get pid() { return term.pid; },
-			get process() { return term.process; },
-			get cols() { return term.cols; },
-			get rows() { return term.rows; }
+			get pid() {
+				return term.pid;
+			},
+			get process() {
+				return term.process;
+			},
+			get cols() {
+				return term.cols;
+			},
+			get rows() {
+				return term.rows;
+			}
 		};
 	}
 }

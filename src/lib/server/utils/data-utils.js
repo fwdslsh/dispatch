@@ -64,6 +64,9 @@ export function sanitizeData(data, sensitiveFields = ['key', 'password', 'token'
  * @param {Array<string>} sensitiveEvents - Event types that contain sensitive data
  * @returns {boolean} True if safe to log
  */
-export function isSafeForLogging(eventType, sensitiveEvents = ['key', 'auth', 'login', 'password']) {
-	return !sensitiveEvents.some(sensitive => eventType.toLowerCase().includes(sensitive));
+export function isSafeForLogging(
+	eventType,
+	sensitiveEvents = ['key', 'auth', 'login', 'password']
+) {
+	return !sensitiveEvents.some((sensitive) => eventType.toLowerCase().includes(sensitive));
 }

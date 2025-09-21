@@ -38,7 +38,7 @@
 	>
 		<IconPlayerTrackPrev size={18} />
 	</IconButton>
-<!-- 
+	<!-- 
 	{#if totalSessions > 0}
 		<span class="session-counter">
 			{currentDisplay} / {totalSessions}
@@ -56,7 +56,6 @@
 		align-items: center;
 		gap: 1rem;
 	}
-
 
 	:global(.nav-btn:disabled) {
 		opacity: 0.5;
@@ -82,6 +81,5 @@
 		.mobile-navigation {
 			gap: 0.75rem;
 		}
-
 	}
 </style>

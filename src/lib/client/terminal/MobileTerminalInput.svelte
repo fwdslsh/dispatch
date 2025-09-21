@@ -48,7 +48,7 @@
 
 	// Handle special keys in textarea
 	function handleKeyDown(e) {
-		switch(e.key) {
+		switch (e.key) {
 			case 'Enter':
 				if (!e.shiftKey) {
 					e.preventDefault();
@@ -118,9 +118,27 @@
 			<div class="main-row">
 				<!-- Left side: Less common keys -->
 				<div class="left-keys">
-					<Button variant="ghost" text="|" onclick={() => sendSpecialKey('|')} {disabled} ariaLabel="Pipe" />
-					<Button variant="ghost" text="$" onclick={() => sendSpecialKey('$')} {disabled} ariaLabel="Dollar" />
-					<Button variant="ghost" text="~" onclick={() => sendSpecialKey('~')} {disabled} ariaLabel="Tilde" />
+					<Button
+						variant="ghost"
+						text="|"
+						onclick={() => sendSpecialKey('|')}
+						{disabled}
+						ariaLabel="Pipe"
+					/>
+					<Button
+						variant="ghost"
+						text="$"
+						onclick={() => sendSpecialKey('$')}
+						{disabled}
+						ariaLabel="Dollar"
+					/>
+					<Button
+						variant="ghost"
+						text="~"
+						onclick={() => sendSpecialKey('~')}
+						{disabled}
+						ariaLabel="Tilde"
+					/>
 				</div>
 
 				<!-- Right side: Most common actions for right thumb -->
@@ -153,20 +171,92 @@
 			{#if expandedSection}
 				<div class="expanded-row">
 					<!-- Navigation -->
-					<Button variant="secondary" text="↑" onclick={() => sendSpecialKey('\x1B[A')} {disabled} ariaLabel="Up" />
-					<Button variant="secondary" text="↓" onclick={() => sendSpecialKey('\x1B[B')} {disabled} ariaLabel="Down" />
-					<Button variant="secondary" text="←" onclick={() => sendSpecialKey('\x1B[D')} {disabled} ariaLabel="Left" />
-					<Button variant="secondary" text="→" onclick={() => sendSpecialKey('\x1B[C')} {disabled} ariaLabel="Right" />
+					<Button
+						variant="secondary"
+						text="↑"
+						onclick={() => sendSpecialKey('\x1B[A')}
+						{disabled}
+						ariaLabel="Up"
+					/>
+					<Button
+						variant="secondary"
+						text="↓"
+						onclick={() => sendSpecialKey('\x1B[B')}
+						{disabled}
+						ariaLabel="Down"
+					/>
+					<Button
+						variant="secondary"
+						text="←"
+						onclick={() => sendSpecialKey('\x1B[D')}
+						{disabled}
+						ariaLabel="Left"
+					/>
+					<Button
+						variant="secondary"
+						text="→"
+						onclick={() => sendSpecialKey('\x1B[C')}
+						{disabled}
+						ariaLabel="Right"
+					/>
 					<!-- Control Keys -->
-					<Button variant="ghost" text="^Z" onclick={() => sendSpecialKey('\x1a')} {disabled} ariaLabel="Suspend" />
-					<Button variant="ghost" text="^D" onclick={() => sendSpecialKey('\x04')} {disabled} ariaLabel="EOF" />
-					<Button variant="ghost" text="^L" onclick={() => sendSpecialKey('\x0c')} {disabled} ariaLabel="Clear" />
-					<Button variant="ghost" text="ESC" onclick={() => sendSpecialKey('\x1b')} {disabled} ariaLabel="Escape" />
+					<Button
+						variant="ghost"
+						text="^Z"
+						onclick={() => sendSpecialKey('\x1a')}
+						{disabled}
+						ariaLabel="Suspend"
+					/>
+					<Button
+						variant="ghost"
+						text="^D"
+						onclick={() => sendSpecialKey('\x04')}
+						{disabled}
+						ariaLabel="EOF"
+					/>
+					<Button
+						variant="ghost"
+						text="^L"
+						onclick={() => sendSpecialKey('\x0c')}
+						{disabled}
+						ariaLabel="Clear"
+					/>
+					<Button
+						variant="ghost"
+						text="ESC"
+						onclick={() => sendSpecialKey('\x1b')}
+						{disabled}
+						ariaLabel="Escape"
+					/>
 					<!-- Additional Symbols -->
-					<Button variant="ghost" text=">" onclick={() => sendSpecialKey('>')} {disabled} ariaLabel="Redirect" />
-					<Button variant="ghost" text="<" onclick={() => sendSpecialKey('<')} {disabled} ariaLabel="Input" />
-					<Button variant="ghost" text="&" onclick={() => sendSpecialKey('&')} {disabled} ariaLabel="Background" />
-					<Button variant="ghost" text=";" onclick={() => sendSpecialKey(';')} {disabled} ariaLabel="Semicolon" />
+					<Button
+						variant="ghost"
+						text=">"
+						onclick={() => sendSpecialKey('>')}
+						{disabled}
+						ariaLabel="Redirect"
+					/>
+					<Button
+						variant="ghost"
+						text="<"
+						onclick={() => sendSpecialKey('<')}
+						{disabled}
+						ariaLabel="Input"
+					/>
+					<Button
+						variant="ghost"
+						text="&"
+						onclick={() => sendSpecialKey('&')}
+						{disabled}
+						ariaLabel="Background"
+					/>
+					<Button
+						variant="ghost"
+						text=";"
+						onclick={() => sendSpecialKey(';')}
+						{disabled}
+						ariaLabel="Semicolon"
+					/>
 				</div>
 			{/if}
 		</div>
@@ -203,7 +293,7 @@
 			<Button
 				variant="outline"
 				text={showToolbar ? 'Hide' : 'Keys'}
-				onclick={() => showToolbar = !showToolbar}
+				onclick={() => (showToolbar = !showToolbar)}
 				{disabled}
 				ariaLabel={showToolbar ? 'Hide toolbar' : 'Show toolbar'}
 			/>
@@ -211,16 +301,14 @@
 				<Button
 					variant="ghost"
 					text={expandedSection ? '−' : '+'}
-					onclick={() => expandedSection = expandedSection ? null : 'more'}
+					onclick={() => (expandedSection = expandedSection ? null : 'more')}
 					{disabled}
 					ariaLabel={expandedSection ? 'Less keys' : 'More keys'}
 				/>
 			{/if}
 		</div>
 		{#if commandHistory.length > 0}
-			<div class="input-hint">
-				Ctrl+↑↓ for history • Tab for completion • Enter to send
-			</div>
+			<div class="input-hint">Ctrl+↑↓ for history • Tab for completion • Enter to send</div>
 		{/if}
 	</form>
 </div>
@@ -319,8 +407,6 @@
 		flex: 1;
 	}
 
-
-
 	/* MOBILE OPTIMIZATION */
 	@media (max-width: 480px) {
 		.compact-keyboard {
@@ -413,7 +499,9 @@
 		scrollbar-width: thin;
 		scrollbar-color: color-mix(in oklab, var(--primary) 30%, transparent) transparent;
 		outline: none;
-		transition: min-height 0.15s ease, padding 0.15s ease;
+		transition:
+			min-height 0.15s ease,
+			padding 0.15s ease;
 	}
 
 	/* Compact when toolbar is open */
@@ -449,7 +537,6 @@
 		cursor: not-allowed;
 		transform: none;
 	}
-
 
 	.input-hint {
 		font-family: var(--font-mono);

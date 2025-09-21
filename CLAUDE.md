@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The codebase is undergoing a major architectural refactor from complex multi-manager pattern to a unified session architecture:
 
 ### Current Refactor Status
+
 - Implementing event-sourced session management with single `runId` identifier
 - Moving from `SessionRegistry` + type-specific managers to unified `RunSessionManager`
 - Replacing scattered Socket.IO events with 4 core events: `client:hello`, `run:attach`, `run:input`, `run:close`
@@ -19,15 +20,18 @@ The codebase is undergoing a major architectural refactor from complex multi-man
 ### Key Refactor Components
 
 **RunSessionManager** (`src/lib/server/runtime/RunSessionManager.js`):
+
 - Single class managing all session types via adapter pattern
 - Event-sourced history with monotonic sequence numbers
 - Real-time event emission to Socket.IO clients
 
 **Adapters** (`src/lib/server/adapters/`):
+
 - `PtyAdapter.js` - Terminal sessions via node-pty
 - `ClaudeAdapter.js` - Claude Code sessions via @anthropic-ai/claude-code
 
 **Database Schema** (simplified):
+
 - `sessions` - Run sessions with runId, kind, status, metadata
 - `session_events` - Event log with sequence numbers for replay
 - `workspace_layout` - Client-specific UI layouts
@@ -78,6 +82,7 @@ npm run docker:stop     # Stop containers
 The frontend uses clean MVVM pattern with Svelte 5 runes and dependency injection:
 
 ### Directory Structure
+
 ```
 src/lib/client/
 ├── claude/           # Claude-specific components
@@ -92,16 +97,19 @@ src/lib/client/
 ### Key ViewModels
 
 **SessionViewModel** - Session lifecycle and display management:
+
 - Manages creation, resume, termination of sessions
 - Display slot management for tiling window manager
 - Mobile/desktop responsive behavior
 
 **ServiceContainer** - Dependency injection:
+
 - Lazy-loaded service instantiation
 - Context-based dependency injection
 - Test container support with `createTestContainer()`
 
 ### Component Patterns
+
 ```javascript
 // ViewModels use Svelte 5 runes
 class MyViewModel {
@@ -110,7 +118,7 @@ class MyViewModel {
     this.loading = $state(false);
     this.filtered = $derived.by(() => /* derivation */);
   }
-  
+
   async loadData() {
     this.loading = true;
     this.data = await this.apiClient.fetch();
@@ -126,12 +134,14 @@ const viewModel = await container.get('myViewModel');
 ## Socket.IO Architecture
 
 ### Current Events (being replaced)
+
 - Authentication: `auth(key, callback)`
 - Terminal: `terminal.start`, `terminal.write`, `terminal.resize`
 - Claude: `claude.send`, `claude.auth.start`, `claude.commands.refresh`
 - Session: `session.status`, `session.catchup`
 
 ### New Unified Events (in progress)
+
 - `client:hello` - Client identification with clientId
 - `run:attach` - Attach to run session with event replay
 - `run:input` - Send input to any session type
@@ -141,12 +151,14 @@ const viewModel = await container.get('myViewModel');
 ## Testing Strategy
 
 ### Test Types
+
 - **Unit Tests**: Vitest with separate client/server configurations
 - **E2E Tests**: Playwright for full integration testing
 - **Manager Tests**: Direct testing of core service classes
 - **Database Tests**: SQLite operations and migrations
 
 ### Test Execution
+
 ```bash
 # Run specific test suites
 vitest run tests/viewmodels/  # ViewModel tests
@@ -157,6 +169,7 @@ npm run test:e2e -- terminal  # Specific E2E test
 ## Database Schema
 
 Using SQLite with these key tables:
+
 - `workspaces` - Workspace metadata and paths
 - `workspace_sessions` - Session-workspace associations with pinned state
 - `session_history` - Audit trail of session events
@@ -165,9 +178,11 @@ Using SQLite with these key tables:
 ## Environment Variables
 
 Required:
+
 - `TERMINAL_KEY` - Authentication key (default: `change-me`)
 
 Optional:
+
 - `PORT` - Server port (default: 3030)
 - `WORKSPACES_ROOT` - Default workspace directory
 - `ENABLE_TUNNEL` - Enable LocalTunnel for public URLs
@@ -176,11 +191,13 @@ Optional:
 ## Docker Integration
 
 ### Security
+
 - Non-root execution as `appuser` (uid 10001)
 - Runtime user mapping via HOST_UID/HOST_GID
 - Path sanitization for workspace access
 
 ### Volume Mounts
+
 - `~/dispatch/projects:/workspace` - Project storage
 - `~/dispatch/home:/home/dispatch` - Persistent home directory
 - Database and config in container's home directory
@@ -198,17 +215,20 @@ Optional:
 ## Common Development Tasks
 
 ### Adding New Session Type
+
 1. Create adapter in `src/lib/server/adapters/`
 2. Register adapter in `RunSessionManager`
 3. Add UI component in `src/lib/client/`
 4. Update Socket.IO event handling if needed
 
 ### Debugging Socket.IO Events
+
 - Admin console at `/console?key=your-terminal-key`
 - Enable debug logging: `DEBUG=* npm run dev`
 - Check browser DevTools Network tab for WebSocket frames
 
 ### Testing Session Resume
+
 1. Create session and note the runId
 2. Disconnect (close tab or stop server)
 3. Reconnect and verify events replay from last sequence
@@ -232,6 +252,7 @@ Optional:
 ## CLI Tool
 
 Dispatch includes a CLI at `bin/cli.js`:
+
 ```bash
 dispatch init         # Initialize environment
 dispatch start        # Start containers

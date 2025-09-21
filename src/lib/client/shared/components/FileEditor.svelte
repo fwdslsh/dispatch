@@ -28,7 +28,21 @@
 		if (!filename) return IconFile;
 
 		const ext = filename.split('.').pop()?.toLowerCase();
-		const codeExtensions = ['js', 'ts', 'py', 'java', 'cpp', 'c', 'h', 'css', 'html', 'json', 'xml', 'yml', 'yaml'];
+		const codeExtensions = [
+			'js',
+			'ts',
+			'py',
+			'java',
+			'cpp',
+			'c',
+			'h',
+			'css',
+			'html',
+			'json',
+			'xml',
+			'yml',
+			'yaml'
+		];
 		const textExtensions = ['txt', 'md', 'log', 'cfg', 'ini', 'conf'];
 
 		if (codeExtensions.includes(ext)) {
@@ -126,11 +140,7 @@
 				{/if}
 			</div>
 			<div class="header-actions">
-				<IconButton
-					onclick={handleClose}
-					title="Close file (Escape)"
-					variant="ghost"
-				>
+				<IconButton onclick={handleClose} title="Close file (Escape)" variant="ghost">
 					<IconX size={16} />
 				</IconButton>
 			</div>
@@ -169,7 +179,7 @@
 					variant="primary"
 					onclick={handleSave}
 					disabled={!canSave}
-					loading={loading}
+					{loading}
 					title="Save file"
 				>
 					<IconCheck size={16} />

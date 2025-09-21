@@ -75,7 +75,9 @@ if (typeof global.$derived === 'undefined') {
 				const unsub = d._subscribe(() => cb());
 				if (unsub) unsubscribers.push(unsub);
 			}
-			return () => { for (const u of unsubscribers) u(); };
+			return () => {
+				for (const u of unsubscribers) u();
+			};
 		};
 
 		return getter;
@@ -86,7 +88,11 @@ if (typeof global.$derived === 'undefined') {
 		let cleanup;
 		const run = () => {
 			if (cleanup) {
-				try { cleanup(); } catch (e) { /* ignore cleanup errors in tests */ }
+				try {
+					cleanup();
+				} catch (e) {
+					/* ignore cleanup errors in tests */
+				}
 				cleanup = undefined;
 			}
 			// dependency collection

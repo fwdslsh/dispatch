@@ -7,7 +7,7 @@ This directory contains documentation for Dispatch users and developers.
 These documents are helpful for anyone using Dispatch:
 
 - **[CLI.md](CLI.md)** - Complete command-line tool reference
-- **[claude-authentication.md](claude-authentication.md)** - Setting up Claude AI assistance  
+- **[claude-authentication.md](claude-authentication.md)** - Setting up Claude AI assistance
 - **[admin-console.md](admin-console.md)** - Using the monitoring and management interface
 
 ## Developer Documentation

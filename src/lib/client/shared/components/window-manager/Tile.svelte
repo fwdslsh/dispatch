@@ -1,20 +1,18 @@
 <script>
-	import { onMount } from "svelte";
-
+	import { onMount } from 'svelte';
 
 	let {
 		/** @type {string} */ id,
 		/** @type {string} */ focused = '',
 		/** @type {import('svelte').Snippet} */ children,
-	    /** @type {(id: string) => void} */ onfocus = () => {},
-	    /** @type {(id: string) => void} */ onmounted = () => {},
-	    /** @type {(id: string) => void} */ ondestroyed = () => {}
+		/** @type {(id: string) => void} */ onfocus = () => {},
+		/** @type {(id: string) => void} */ onmounted = () => {},
+		/** @type {(id: string) => void} */ ondestroyed = () => {}
 	} = $props();
 
-
 	onMount(() => {
-	    onmounted(id);
-	    return () => ondestroyed(id);
+		onmounted(id);
+		return () => ondestroyed(id);
 	});
 
 	// Handle focus events by calling parent's onfocus handler

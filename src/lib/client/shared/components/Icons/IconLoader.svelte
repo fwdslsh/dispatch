@@ -14,7 +14,7 @@
 	stroke-linejoin="round"
 	{...rest}
 >
-	<path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+	<path stroke="none" d="M0 0h24v24H0z" fill="none" />
 	<path d="M12 6l0 -3" />
 	<path d="M16.25 7.75l2.15 -2.15" />
 	<path d="M18 12l3 0" />

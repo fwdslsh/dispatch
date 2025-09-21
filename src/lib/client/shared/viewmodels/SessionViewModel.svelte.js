@@ -355,7 +355,7 @@ export class SessionViewModel {
 	 * @param {string} sessionData.workspacePath - Workspace path
 	 */
 	handleSessionCreated(sessionData) {
-			const { id, type, workspacePath } = sessionData;
+		const { id, type, workspacePath } = sessionData;
 
 		// Validate required fields
 		if (!id || !type) {
@@ -452,7 +452,10 @@ export class SessionViewModel {
 			if (existingInState) {
 				// Update existing session
 				log.info('Updating existing session in state', sessionId);
-				this.appStateManager.sessions.updateSession(sessionId, { ...resumedSession, isActive: true });
+				this.appStateManager.sessions.updateSession(sessionId, {
+					...resumedSession,
+					isActive: true
+				});
 			} else {
 				// Create new session (this automatically adds it to the UI)
 				log.info('Creating new session in state', sessionId);

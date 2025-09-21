@@ -141,7 +141,10 @@ export function setupSocketIO(httpServer, services) {
 				// Get event backlog since afterSeq
 				const backlog = await runSessionManager.getEventsSince(runId, afterSeq || 0);
 
-				logger.info('SOCKET', `Client attached to run:${runId}, sent ${backlog.length} events since seq ${afterSeq || 0}`);
+				logger.info(
+					'SOCKET',
+					`Client attached to run:${runId}, sent ${backlog.length} events since seq ${afterSeq || 0}`
+				);
 
 				if (ack) {
 					ack({ success: true, events: backlog });
@@ -205,7 +208,7 @@ export function setupSocketIO(httpServer, services) {
 			} catch (error) {
 				logger.error('SOCKET', `Failed to close run:${runId}:`, error);
 			}
-		});		
+		});
 
 		// ===== ADMIN AND UTILITY HANDLERS =====
 

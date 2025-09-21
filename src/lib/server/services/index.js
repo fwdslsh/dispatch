@@ -13,7 +13,6 @@ import path from 'node:path';
 import os from 'node:os';
 import { SESSION_TYPE } from '../../shared/session-types.js';
 
-
 // Global service instances - shared across all processes
 let globalServicesInstance = null;
 
@@ -45,7 +44,8 @@ function resolveConfigPaths(config) {
 export async function initializeServices(config = {}) {
 	const serviceConfig = {
 		dbPath: config.dbPath || process.env.DB_PATH || '~/.dispatch/data/workspace.db',
-		workspacesRoot: config.workspacesRoot || process.env.WORKSPACES_ROOT || '~/.dispatch-home/workspaces',
+		workspacesRoot:
+			config.workspacesRoot || process.env.WORKSPACES_ROOT || '~/.dispatch-home/workspaces',
 		configDir: config.configDir || process.env.DISPATCH_CONFIG_DIR || '~/.config/dispatch',
 		debug: config.debug || process.env.DEBUG === 'true'
 	};

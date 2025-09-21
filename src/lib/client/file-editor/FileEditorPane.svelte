@@ -54,7 +54,6 @@
 		}
 	}
 
-
 	// Load file content
 	async function loadFile(file) {
 		if (isDirty && !confirm('You have unsaved changes. Are you sure you want to switch files?')) {
@@ -195,7 +194,6 @@
 		saveEditorState();
 	}
 
-
 	// Initialize
 	onMount(() => {
 		const savedState = loadEditorState();
@@ -237,8 +235,8 @@
 				<FileEditor
 					file={selectedFile}
 					bind:content={fileContent}
-					originalContent={originalContent}
-					loading={loading}
+					{originalContent}
+					{loading}
 					onSave={saveFile}
 					onCancel={handleFileCancel}
 					onClose={closeFile}
@@ -280,8 +278,7 @@
 		height: 100%;
 	}
 
-	.file-editor-container{
+	.file-editor-container {
 		height: 100%;
 	}
-
 </style>

@@ -223,7 +223,9 @@
 		if (sessionViewModel) {
 			try {
 				// Use a default workspace path - either the stored default or workspace root
-				const defaultWorkspace = getUserDefaultWorkspace() || '/home/runner/work/dispatch/dispatch/.testing-home/workspaces';
+				const defaultWorkspace =
+					getUserDefaultWorkspace() ||
+					'/home/runner/work/dispatch/dispatch/.testing-home/workspaces';
 
 				await sessionViewModel.createSession({
 					type: type,
@@ -467,7 +469,7 @@
 			oncreated={handleSessionCreate}
 			onclose={closeActiveModal}
 		/>
-{:else if activeModal.type === 'settings'}
+	{:else if activeModal.type === 'settings'}
 		<SettingsModal open={true} onclose={closeActiveModal} />
 	{:else if activeModal.type === 'pwaInstructions'}
 		<Modal open={true} title={activeModal.data?.title} size="small" onclose={closeActiveModal}>

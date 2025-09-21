@@ -13,7 +13,7 @@ function isPathAllowed(requestedPath) {
 	const baseDir = getBaseDirectory();
 	const resolvedBase = resolve(baseDir);
 	const resolvedPath = resolve(requestedPath);
-	
+
 	// Ensure the path is within the base directory
 	return resolvedPath.startsWith(resolvedBase);
 }
@@ -22,7 +22,7 @@ function isPathAllowed(requestedPath) {
 async function generateUniqueFilename(targetPath) {
 	let counter = 1;
 	let finalPath = targetPath;
-	
+
 	while (true) {
 		try {
 			await stat(finalPath);
@@ -46,7 +46,7 @@ async function generateUniqueFilename(targetPath) {
 			throw error;
 		}
 	}
-	
+
 	return finalPath;
 }
 
@@ -55,7 +55,8 @@ export async function POST({ request }) {
 		const formData = await request.formData();
 		const files = formData.getAll('files');
 		const targetDirectoryEntry = formData.get('directory');
-		const targetDirectory = typeof targetDirectoryEntry === 'string' ? targetDirectoryEntry : getBaseDirectory();
+		const targetDirectory =
+			typeof targetDirectoryEntry === 'string' ? targetDirectoryEntry : getBaseDirectory();
 
 		if (!files || files.length === 0) {
 			return json({ error: 'No files provided' }, { status: 400 });
@@ -134,7 +135,6 @@ export async function POST({ request }) {
 					modified: fileStat.mtime.toISOString(),
 					wasRenamed: finalPath !== targetPath
 				});
-
 			} catch (error) {
 				console.error(`[API] Failed to upload file ${file.name}:`, error);
 				uploadResults.push({
@@ -145,7 +145,7 @@ export async function POST({ request }) {
 			}
 		}
 
-		const successCount = uploadResults.filter(r => r.success).length;
+		const successCount = uploadResults.filter((r) => r.success).length;
 		const totalCount = uploadResults.length;
 
 		return json({
@@ -154,14 +154,13 @@ export async function POST({ request }) {
 			files: uploadResults,
 			targetDirectory: resolvedDir
 		});
-
 	} catch (error) {
 		console.error('[API] Failed to handle file upload:', error);
-		
+
 		if (error.code === 'EACCES') {
 			return json({ error: 'Permission denied' }, { status: 403 });
 		}
-		
+
 		if (error.code === 'ENOSPC') {
 			return json({ error: 'No space left on device' }, { status: 507 });
 		}

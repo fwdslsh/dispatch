@@ -56,7 +56,9 @@ if (typeof window === 'undefined') {
 // Implement $state box, $derived with dep-tracking and .by proxy, and $effect that re-runs
 if (typeof window.$state === 'undefined') {
 	// Keep $state compatible with existing tests/components that expect a plain value
-	window.$state = function (initial) { return initial; };
+	window.$state = function (initial) {
+		return initial;
+	};
 }
 if (typeof window.$derived === 'undefined') {
 	const __evalStack = [];
@@ -77,23 +79,33 @@ if (typeof window.$derived === 'undefined') {
 		};
 		const getter = () => compute();
 		getter.get = () => getter();
-		getter.by = () => new Proxy({}, {
-			get(_t, prop) {
-				const value = getter();
-				if (prop === Symbol.iterator) return value[Symbol.iterator]?.bind(value);
-				const v = value?.[prop];
-				if (typeof v === 'function') return v.bind(value);
-				return v;
-			},
-			has(_t, prop) { const value = getter(); return prop in (value || {}); },
-			ownKeys() { const value = getter(); return Reflect.ownKeys(value || {}); },
-			getOwnPropertyDescriptor(_t, prop) {
-				const value = getter();
-				const desc = Object.getOwnPropertyDescriptor(value || {}, prop);
-				if (desc) return desc;
-				return { configurable: true, enumerable: true, writable: true, value: value?.[prop] };
-			}
-		});
+		getter.by = () =>
+			new Proxy(
+				{},
+				{
+					get(_t, prop) {
+						const value = getter();
+						if (prop === Symbol.iterator) return value[Symbol.iterator]?.bind(value);
+						const v = value?.[prop];
+						if (typeof v === 'function') return v.bind(value);
+						return v;
+					},
+					has(_t, prop) {
+						const value = getter();
+						return prop in (value || {});
+					},
+					ownKeys() {
+						const value = getter();
+						return Reflect.ownKeys(value || {});
+					},
+					getOwnPropertyDescriptor(_t, prop) {
+						const value = getter();
+						const desc = Object.getOwnPropertyDescriptor(value || {}, prop);
+						if (desc) return desc;
+						return { configurable: true, enumerable: true, writable: true, value: value?.[prop] };
+					}
+				}
+			);
 		getter._deps = () => deps;
 		getter._subscribeDeps = (cb) => {
 			const unsub = [];
@@ -110,7 +122,9 @@ if (typeof window.$derived === 'undefined') {
 		let cleanup;
 		const run = () => {
 			if (cleanup) {
-				try { cleanup(); } catch (e) { }
+				try {
+					cleanup();
+				} catch (e) {}
 				cleanup = undefined;
 			}
 			const ctx = { deps: new Set() };

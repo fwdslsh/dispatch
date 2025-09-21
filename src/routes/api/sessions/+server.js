@@ -42,26 +42,31 @@ export async function GET({ url, locals }) {
 		console.log('[API DEBUG] Found', rows.length, 'sessions in database');
 
 		// Transform to UI-compatible format with isActive field and tile information
-		const sessions = rows.map(row => {
+		const sessions = rows.map((row) => {
 			const meta = JSON.parse(row.meta_json || '{}');
 			return {
 				id: row.run_id,
 				type: row.kind,
 				title: getSessionTitle(row.kind),
 				workspacePath: meta.cwd || meta.workspacePath || '',
-				isActive: row.status === 'running',  // KEY FIX: Add isActive field
+				isActive: row.status === 'running', // KEY FIX: Add isActive field
 				createdAt: row.created_at,
 				lastActivity: row.updated_at,
-				inLayout: !!row.tile_id,  // Fix: Set based on whether tile_id exists
-				tileId: row.tile_id,      // Fix: Include tileId from database
+				inLayout: !!row.tile_id, // Fix: Set based on whether tile_id exists
+				tileId: row.tile_id, // Fix: Include tileId from database
 				pinned: false
 			};
 		});
 
 		// Filter based on includeAll parameter
-		const filteredSessions = includeAll ? sessions : sessions.filter(s => s.isActive);
+		const filteredSessions = includeAll ? sessions : sessions.filter((s) => s.isActive);
 
-		console.log('[API DEBUG] Returning', filteredSessions.length, 'sessions, active:', filteredSessions.filter(s => s.isActive).length);
+		console.log(
+			'[API DEBUG] Returning',
+			filteredSessions.length,
+			'sessions, active:',
+			filteredSessions.filter((s) => s.isActive).length
+		);
 
 		return new Response(JSON.stringify({ sessions: filteredSessions }), {
 			headers: { 'content-type': 'application/json' }
@@ -83,26 +88,32 @@ export async function POST({ request, locals }) {
 				// Actually resume the session (restart the process)
 				const resumeResult = await locals.services.runSessionManager.resumeRunSession(sessionId);
 
-				return new Response(JSON.stringify({
-					runId: resumeResult.runId,
-					id: resumeResult.runId,
-					success: true,
-					resumed: resumeResult.resumed,
-					kind: resumeResult.kind,
-					type: resumeResult.kind,
-					reason: resumeResult.reason
-				}), {
-					headers: { 'content-type': 'application/json' }
-				});
+				return new Response(
+					JSON.stringify({
+						runId: resumeResult.runId,
+						id: resumeResult.runId,
+						success: true,
+						resumed: resumeResult.resumed,
+						kind: resumeResult.kind,
+						type: resumeResult.kind,
+						reason: resumeResult.reason
+					}),
+					{
+						headers: { 'content-type': 'application/json' }
+					}
+				);
 			} catch (error) {
 				return new Response(JSON.stringify({ error: error.message }), { status: 404 });
 			}
 		}
 
 		if (!isValidSessionType(sessionKind)) {
-			return new Response(JSON.stringify({
-				error: `Invalid or missing kind. Must be one of: ${Object.values(SESSION_TYPE).join(', ')}`
-			}), { status: 400 });
+			return new Response(
+				JSON.stringify({
+					error: `Invalid or missing kind. Must be one of: ${Object.values(SESSION_TYPE).join(', ')}`
+				}),
+				{ status: 400 }
+			);
 		}
 
 		// Create run session using unified manager
@@ -114,15 +125,17 @@ export async function POST({ request, locals }) {
 			}
 		});
 
-		return new Response(JSON.stringify({
-			runId,
-			success: true,
-			kind: sessionKind,
-			type: sessionKind
-		}), {
-			headers: { 'content-type': 'application/json' }
-		});
-
+		return new Response(
+			JSON.stringify({
+				runId,
+				success: true,
+				kind: sessionKind,
+				type: sessionKind
+			}),
+			{
+				headers: { 'content-type': 'application/json' }
+			}
+		);
 	} catch (error) {
 		console.error('[API] Run session creation failed:', error);
 
@@ -169,9 +182,12 @@ export async function PUT({ request, locals }) {
 
 	if (action === 'setLayout') {
 		if (!runId || !clientId || !tileId) {
-			return new Response(JSON.stringify({
-				error: 'Missing required parameters: runId, clientId, tileId'
-			}), { status: 400 });
+			return new Response(
+				JSON.stringify({
+					error: 'Missing required parameters: runId, clientId, tileId'
+				}),
+				{ status: 400 }
+			);
 		}
 
 		try {
@@ -186,9 +202,12 @@ export async function PUT({ request, locals }) {
 
 	if (action === 'removeLayout') {
 		if (!runId || !clientId) {
-			return new Response(JSON.stringify({
-				error: 'Missing required parameters: runId, clientId'
-			}), { status: 400 });
+			return new Response(
+				JSON.stringify({
+					error: 'Missing required parameters: runId, clientId'
+				}),
+				{ status: 400 }
+			);
 		}
 
 		try {
@@ -202,9 +221,12 @@ export async function PUT({ request, locals }) {
 
 	if (action === 'getLayout') {
 		if (!clientId) {
-			return new Response(JSON.stringify({
-				error: 'Missing required parameter: clientId'
-			}), { status: 400 });
+			return new Response(
+				JSON.stringify({
+					error: 'Missing required parameter: clientId'
+				}),
+				{ status: 400 }
+			);
 		}
 
 		try {

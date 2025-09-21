@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { SESSION_TYPE, VALID_SESSION_TYPES, isValidSessionType } from '../../src/lib/shared/session-types.js';
+import {
+	SESSION_TYPE,
+	VALID_SESSION_TYPES,
+	isValidSessionType
+} from '../../src/lib/shared/session-types.js';
 
 describe('session-types', () => {
 	describe('SESSION_TYPE constants', () => {

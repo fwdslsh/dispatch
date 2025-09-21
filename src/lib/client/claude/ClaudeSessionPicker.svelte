@@ -194,8 +194,6 @@
 		color: var(--text-muted);
 	}
 
-
-
 	.row {
 		display: grid;
 		grid-template-columns: 1fr auto;

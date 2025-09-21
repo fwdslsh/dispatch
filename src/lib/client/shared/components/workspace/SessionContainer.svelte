@@ -6,14 +6,7 @@
 -->
 <script>
 	// Props
-	let {
-		session,
-		index = 0,
-		onClose = () => {},
-		isFocused = false,
-		header,
-		content
-	} = $props();
+	let { session, index = 0, onClose = () => {}, isFocused = false, header, content } = $props();
 
 	// Derived state for styling
 	const containerClass = $derived(

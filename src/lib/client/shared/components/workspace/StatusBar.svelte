@@ -87,7 +87,7 @@
 					>
 						<IconPlayerTrackPrev size={18} />
 					</IconButton>
-<!-- 
+					<!-- 
 					{#if totalSessions > 0}
 						<span class="session-counter">
 							{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}

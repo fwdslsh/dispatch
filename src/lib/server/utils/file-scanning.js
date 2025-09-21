@@ -141,8 +141,8 @@ export async function findSessionFile(baseProjectsDir, sessionId, options = {}) 
 	try {
 		const projectDirs = await readdir(baseProjectsDir, { withFileTypes: true });
 		const dirPaths = projectDirs
-			.filter(entry => entry.isDirectory())
-			.map(entry => join(baseProjectsDir, entry.name));
+			.filter((entry) => entry.isDirectory())
+			.map((entry) => join(baseProjectsDir, entry.name));
 
 		const result = await findFileInDirectories(dirPaths, filename, { component });
 

@@ -2,7 +2,6 @@ import { io } from 'socket.io-client';
 import { createLogger } from '../utils/logger';
 import { getClientId } from '../utils/uuid';
 
-
 /**
  * Unified client for run session management
  * Replaces multiple session management classes with single interface
@@ -32,7 +31,8 @@ export class RunSessionClient {
 		}
 
 		// Use configured URL or current origin for socket connection
-		const socketUrl = this.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+		const socketUrl =
+			this.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
 		this.socket = io(socketUrl, { path: '/socket.io' });
 
 		this.socket.on('connect', () => {
@@ -131,11 +131,16 @@ export class RunSessionClient {
 						onError
 					});
 
-					console.log('[RunSessionClient] Stored attachment for runId:', runId, 'Total attachments:', this.attachedSessions.size);
+					console.log(
+						'[RunSessionClient] Stored attachment for runId:',
+						runId,
+						'Total attachments:',
+						this.attachedSessions.size
+					);
 
 					// Process backlog events
 					if (response.events && Array.isArray(response.events)) {
-						response.events.forEach(event => {
+						response.events.forEach((event) => {
 							onEvent(event);
 							// Update last sequence
 							const attachment = this.attachedSessions.get(runId);
@@ -164,7 +169,12 @@ export class RunSessionClient {
 			throw new Error('Not authenticated');
 		}
 
-		console.log('[RunSessionClient] Sending input:', { runId, data, connected: this.connected, authenticated: this.authenticated });
+		console.log('[RunSessionClient] Sending input:', {
+			runId,
+			data,
+			connected: this.connected,
+			authenticated: this.authenticated
+		});
 		this.socket.emit('run:input', { runId, data });
 	}
 
@@ -206,7 +216,12 @@ export class RunSessionClient {
 			// Forward event to handler
 			attachment.onEvent(event);
 		} else {
-			console.warn('[RunSessionClient] No attachment found for runId:', event.runId, 'Available attachments:', Array.from(this.attachedSessions.keys()));
+			console.warn(
+				'[RunSessionClient] No attachment found for runId:',
+				event.runId,
+				'Available attachments:',
+				Array.from(this.attachedSessions.keys())
+			);
 		}
 	}
 
@@ -222,7 +237,9 @@ export class RunSessionClient {
 	 */
 	async listRunSessions(kind = null) {
 		const baseUrl = this.config.apiBaseUrl || '';
-		const url = kind ? `${baseUrl}/api/sessions?kind=${encodeURIComponent(kind)}` : `${baseUrl}/api/sessions`;
+		const url = kind
+			? `${baseUrl}/api/sessions?kind=${encodeURIComponent(kind)}`
+			: `${baseUrl}/api/sessions`;
 		const response = await fetch(url);
 		const result = await response.json();
 

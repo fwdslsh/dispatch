@@ -43,12 +43,14 @@
 			const container = useServiceContainer();
 			const maybePromise = container.get('sessionApi');
 			if (maybePromise && typeof maybePromise.then === 'function') {
-				maybePromise.then(api => {
-					sessionApi = api;
-				}).catch((error) => {
-					console.error('Failed to get sessionApi from service container:', error);
-					// Don't fall back to static import - let the service container handle it
-				});
+				maybePromise
+					.then((api) => {
+						sessionApi = api;
+					})
+					.catch((error) => {
+						console.error('Failed to get sessionApi from service container:', error);
+						// Don't fall back to static import - let the service container handle it
+					});
 			} else {
 				sessionApi = maybePromise;
 			}
@@ -218,7 +220,7 @@
 				const resumedId = resumedSession.id || session.id;
 
 				// Small delay to ensure server has finished updating session status
-				await new Promise(resolve => setTimeout(resolve, 500));
+				await new Promise((resolve) => setTimeout(resolve, 500));
 				await loadAllSessions();
 				selectedSession = resumedId;
 				onSessionSelected?.({
@@ -261,7 +263,7 @@
 	onMount(async () => {
 		// Wait for sessionApi to be initialized
 		while (!sessionApi) {
-			await new Promise(resolve => setTimeout(resolve, 50));
+			await new Promise((resolve) => setTimeout(resolve, 50));
 		}
 		await loadAllSessions();
 		// DirectoryBrowser will now default to WORKSPACES_ROOT when no startPath is provided
@@ -271,7 +273,7 @@
 	export async function refresh() {
 		// Wait for sessionApi to be initialized
 		while (!sessionApi) {
-			await new Promise(resolve => setTimeout(resolve, 50));
+			await new Promise((resolve) => setTimeout(resolve, 50));
 		}
 		return loadAllSessions();
 	}

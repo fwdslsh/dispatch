@@ -66,7 +66,6 @@ export class RunSessionManager {
 
 			logger.info('RUNSESSION', `Created ${kind} run session: ${runId}`);
 			return { runId };
-
 		} catch (error) {
 			logger.error('RUNSESSION', `Failed to create run session ${runId}:`, error);
 			// Update status to error if session was created
@@ -163,7 +162,10 @@ export class RunSessionManager {
 		const proc = live.proc;
 		if (typeof proc[operation] !== 'function') {
 			// Log the unsupported operation but don't throw - some operations are adapter-specific
-			logger.warn('RUNSESSION', `Operation ${operation} not supported by ${live.kind} adapter for run ${runId}`);
+			logger.warn(
+				'RUNSESSION',
+				`Operation ${operation} not supported by ${live.kind} adapter for run ${runId}`
+			);
 			return null;
 		}
 
@@ -189,7 +191,11 @@ export class RunSessionManager {
 						live.proc.close();
 					}
 				} catch (error) {
-					logger.warn('RUNSESSION', `Error closing process for ${runId}:`, error.message || 'Unknown error');
+					logger.warn(
+						'RUNSESSION',
+						`Error closing process for ${runId}:`,
+						error.message || 'Unknown error'
+					);
 				}
 
 				// Remove from live runs
@@ -201,11 +207,19 @@ export class RunSessionManager {
 				await this.db.updateRunSessionStatus(runId, 'stopped');
 				logger.info('RUNSESSION', `Closed run session: ${runId}`);
 			} catch (error) {
-				logger.error('RUNSESSION', `Failed to update status for closed session ${runId}:`, error.message || 'Unknown error');
+				logger.error(
+					'RUNSESSION',
+					`Failed to update status for closed session ${runId}:`,
+					error.message || 'Unknown error'
+				);
 			}
 		} catch (error) {
 			// Ultimate safety net to prevent any unhandled errors from propagating
-			logger.error('RUNSESSION', `Unexpected error closing run session ${runId}:`, error.message || 'Unknown error');
+			logger.error(
+				'RUNSESSION',
+				`Unexpected error closing run session ${runId}:`,
+				error.message || 'Unknown error'
+			);
 			// Don't re-throw to prevent crashes
 		}
 	}
@@ -217,7 +231,7 @@ export class RunSessionManager {
 		try {
 			const sessions = await this.db.listRunSessions(kind);
 			// Add live status info
-			return sessions.map(session => ({
+			return sessions.map((session) => ({
 				...session,
 				isLive: this.liveRuns.has(session.run_id)
 			}));
@@ -241,7 +255,7 @@ export class RunSessionManager {
 			return {
 				...session,
 				isLive: !!live,
-				nextSeq: live?.nextSeq || await this.db.getNextSequenceNumber(runId)
+				nextSeq: live?.nextSeq || (await this.db.getNextSequenceNumber(runId))
 			};
 		} catch (error) {
 			logger.error('RUNSESSION', `Failed to get status for ${runId}:`, error);
@@ -282,9 +296,16 @@ export class RunSessionManager {
 					...meta,
 					onEvent: (ev) => this.recordAndEmit(runId, ev)
 				});
-				logger.info('RUNSESSION', `Successfully created ${session.kind} adapter for resume of ${runId}`);
+				logger.info(
+					'RUNSESSION',
+					`Successfully created ${session.kind} adapter for resume of ${runId}`
+				);
 			} catch (adapterError) {
-				logger.error('RUNSESSION', `Adapter creation failed for ${session.kind} session ${runId}:`, adapterError);
+				logger.error(
+					'RUNSESSION',
+					`Adapter creation failed for ${session.kind} session ${runId}:`,
+					adapterError
+				);
 				throw adapterError;
 			}
 
@@ -304,8 +325,11 @@ export class RunSessionManager {
 
 			// Emit recent events to provide context
 			if (last10Events.length > 0) {
-				logger.info('RUNSESSION', `Replaying ${last10Events.length} recent events for resumed session ${runId}`);
-				last10Events.forEach(event => {
+				logger.info(
+					'RUNSESSION',
+					`Replaying ${last10Events.length} recent events for resumed session ${runId}`
+				);
+				last10Events.forEach((event) => {
 					this.io.to(`run:${runId}`).emit('run:event', event);
 				});
 			}
@@ -317,7 +341,6 @@ export class RunSessionManager {
 				kind: session.kind,
 				recentEventsCount: last10Events.length
 			};
-
 		} catch (error) {
 			logger.error('RUNSESSION', `Failed to resume ${runId}:`, error);
 			throw error;

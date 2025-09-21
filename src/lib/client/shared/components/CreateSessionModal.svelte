@@ -39,12 +39,14 @@
 			const container = useServiceContainer();
 			const maybePromise = container.get('sessionApi');
 			if (maybePromise && typeof maybePromise.then === 'function') {
-				maybePromise.then(api => {
-					sessionApi = api;
-				}).catch((error) => {
-					console.error('Failed to get sessionApi from service container:', error);
-					// Don't fall back to static import - let the service container handle it
-				});
+				maybePromise
+					.then((api) => {
+						sessionApi = api;
+					})
+					.catch((error) => {
+						console.error('Failed to get sessionApi from service container:', error);
+						// Don't fall back to static import - let the service container handle it
+					});
 			} else {
 				sessionApi = maybePromise;
 			}
@@ -202,7 +204,6 @@
 						startPath={workspacePath || ''}
 						onSelect={handleDirectorySelect}
 					/>
-			
 				</div>
 			</FormSection>
 
@@ -211,10 +212,7 @@
 				{@const currentModule = getClientSessionModule(sessionType)}
 				{#if currentModule?.settingsComponent}
 					{@const SettingsComponent = currentModule.settingsComponent}
-					<SettingsComponent 
-						bind:settings={sessionSettings}
-						disabled={loading}
-					/>
+					<SettingsComponent bind:settings={sessionSettings} disabled={loading} />
 				{/if}
 			{/if}
 

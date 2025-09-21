@@ -131,38 +131,45 @@ export class SessionApiClient {
 			const raw = data.sessions || [];
 			console.log('[SessionApiClient] Raw API data:', data);
 			console.log('[SessionApiClient] Raw sessions array:', raw);
-			const sessions = raw.map((s) => {
-				if (!s) return null;
-				const id = s.id || s.runId || s.run_id || s.sessionId || s.session_id;
-				const type = s.type || s.kind || s.sessionType || s.kind_name || SESSION_TYPE.PTY;
-				const workspacePath = s.workspacePath || s.cwd || (s.meta && s.meta.cwd) || '';
-				const isActive = s.isActive === true || s.isLive === true || s.status === 'running' || s.status === 'active';
-				const tileIdValue = s.tile_id || s.tileId || (s.inLayout ? s.tileId : undefined);
-				const inLayout = s.inLayout === true || !!tileIdValue || s.in_layout === true;
-				const title = s.title || s.name || `${type} Session`;
-				const createdAt = s.createdAt || s.created_at || s.created || null;
-				const lastActivity = s.lastActivity || s.last_activity || s.updatedAt || s.updated_at || null;
+			const sessions = raw
+				.map((s) => {
+					if (!s) return null;
+					const id = s.id || s.runId || s.run_id || s.sessionId || s.session_id;
+					const type = s.type || s.kind || s.sessionType || s.kind_name || SESSION_TYPE.PTY;
+					const workspacePath = s.workspacePath || s.cwd || (s.meta && s.meta.cwd) || '';
+					const isActive =
+						s.isActive === true ||
+						s.isLive === true ||
+						s.status === 'running' ||
+						s.status === 'active';
+					const tileIdValue = s.tile_id || s.tileId || (s.inLayout ? s.tileId : undefined);
+					const inLayout = s.inLayout === true || !!tileIdValue || s.in_layout === true;
+					const title = s.title || s.name || `${type} Session`;
+					const createdAt = s.createdAt || s.created_at || s.created || null;
+					const lastActivity =
+						s.lastActivity || s.last_activity || s.updatedAt || s.updated_at || null;
 
-				const normalized = {
-					id,
-					type,
-					workspacePath,
-					isActive,
-					inLayout,
-					tileId: tileIdValue,  // Convert to camelCase for UI consistency
-					title,
-					createdAt,
-					lastActivity,
-					_raw: s
-				};
+					const normalized = {
+						id,
+						type,
+						workspacePath,
+						isActive,
+						inLayout,
+						tileId: tileIdValue, // Convert to camelCase for UI consistency
+						title,
+						createdAt,
+						lastActivity,
+						_raw: s
+					};
 
-				if (!id) {
-					console.log('[SessionApiClient] Session missing ID, filtering out:', s);
-					return null;
-				}
+					if (!id) {
+						console.log('[SessionApiClient] Session missing ID, filtering out:', s);
+						return null;
+					}
 
-				return normalized;
-			}).filter(Boolean);
+					return normalized;
+				})
+				.filter(Boolean);
 
 			console.log('[SessionApiClient] Normalized sessions count:', sessions.length);
 			console.log('[SessionApiClient] First normalized session:', sessions[0]);
@@ -183,13 +190,16 @@ export class SessionApiClient {
 	async create({ type, workspacePath, options = {}, resume = false, sessionId = null }) {
 		try {
 			// Validate session type
-			if (!type || ![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR].includes(type)) {
+			if (
+				!type ||
+				![SESSION_TYPE.PTY, SESSION_TYPE.CLAUDE, SESSION_TYPE.FILE_EDITOR].includes(type)
+			) {
 				throw new Error(`Invalid session type: ${type}`);
 			}
 
 			const body = {
-				kind: type,  // API expects 'kind' not 'type'
-				cwd: workspacePath,  // API expects 'cwd' not 'workspacePath'
+				kind: type, // API expects 'kind' not 'type'
+				cwd: workspacePath, // API expects 'cwd' not 'workspacePath'
 				options
 			};
 
@@ -270,7 +280,7 @@ export class SessionApiClient {
 		try {
 			const body = {
 				action,
-				runId: sessionId  // Server expects runId parameter
+				runId: sessionId // Server expects runId parameter
 			};
 
 			if (action === 'rename' && newTitle) {
@@ -280,7 +290,7 @@ export class SessionApiClient {
 			if (action === 'setLayout') {
 				body.tileId = tileId;
 				body.position = position || 0;
-				body.clientId = clientId;  // Include required clientId parameter
+				body.clientId = clientId; // Include required clientId parameter
 			}
 
 			const response = await fetch(`${this.baseUrl}/api/sessions`, {
@@ -306,7 +316,7 @@ export class SessionApiClient {
 	async delete(sessionId) {
 		try {
 			const params = new URLSearchParams({
-				runId: sessionId  // Server expects runId parameter
+				runId: sessionId // Server expects runId parameter
 			});
 
 			const response = await fetch(`${this.baseUrl}/api/sessions?${params}`, {
@@ -402,7 +412,7 @@ export class SessionApiClient {
 				method: 'POST',
 				headers: this.getHeaders(),
 				body: JSON.stringify({
-					runId: sessionId,  // Server expects runId parameter
+					runId: sessionId, // Server expects runId parameter
 					tileId,
 					position,
 					clientId
@@ -424,7 +434,7 @@ export class SessionApiClient {
 	 */
 	async removeSessionLayout(sessionId) {
 		try {
-			const params = new URLSearchParams({ runId: sessionId });  // Server expects runId parameter
+			const params = new URLSearchParams({ runId: sessionId }); // Server expects runId parameter
 			const response = await fetch(`${this.baseUrl}/api/sessions/layout?${params}`, {
 				method: 'DELETE',
 				headers: this.getHeaders()

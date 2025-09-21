@@ -225,8 +225,6 @@
 		console.log('[DirectoryBrowser] Initializing with startPath:', startPath, currentPath);
 		browse(currentPath);
 	});
-
-
 </script>
 
 {#if !isOpen}

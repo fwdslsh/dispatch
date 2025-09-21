@@ -15,7 +15,6 @@ Dispatch gives you instant access to a full Linux terminal through any web brows
 - **👥 Team Ready**: Perfect for education, pair programming, and remote teams
 - **🛠️ Full Control**: Complete admin console for monitoring and management
 
-
 ## 🚀 Quick Start
 
 The fastest way to get started is with our CLI tool:
@@ -125,7 +124,6 @@ Dispatch organizes your work into projects for better organization:
 - **Share your screen**: Enable public URLs to share your terminal with others
 - **Get help**: Type common commands like `ls`, `cd`, `mkdir` to navigate
 
-
 ## 🤖 AI-Powered Coding with Claude
 
 Get intelligent coding assistance right in your terminal with Claude AI integration:
@@ -147,7 +145,7 @@ docker run -p 3030:3030 \
 
 ### What You Can Do
 
-- **Get code suggestions**: Ask Claude to help write functions or fix bugs  
+- **Get code suggestions**: Ask Claude to help write functions or fix bugs
 - **Explain code**: Have Claude explain complex code in plain English
 - **Refactor code**: Get help improving and cleaning up your code
 - **Debug issues**: Claude can help identify and fix problems
@@ -163,7 +161,7 @@ Monitor and manage your Dispatch instance with the built-in admin console:
 
 - **Monitor active sessions**: See who's connected and what they're doing
 - **View system status**: Check resource usage and performance
-- **Manage sessions**: Start, stop, or restart terminal sessions  
+- **Manage sessions**: Start, stop, or restart terminal sessions
 - **Browse logs**: Review system logs and debug issues
 - **Test APIs**: Interactive testing of system endpoints
 
@@ -181,13 +179,13 @@ Perfect for administrators, troubleshooting, and understanding how your Dispatch
 
 Customize Dispatch behavior with these settings:
 
-| Setting                 | Default Value                    | What It Does                                     |
-| ----------------------- | -------------------------------- | ------------------------------------------------ |
-| `TERMINAL_KEY`          | `change-me`                      | **🔑 Required** - Password to access Dispatch   |
-| `PORT`                  | `3030`                           | Which port the web interface uses                |
-| `PTY_MODE`              | `shell`                          | Default session type: `shell` or `claude`       |
-| `ENABLE_TUNNEL`         | `false`                          | Create public URLs for sharing                   |
-| `LT_SUBDOMAIN`          | `""`                             | Custom name for your public URL                  |
+| Setting         | Default Value | What It Does                                  |
+| --------------- | ------------- | --------------------------------------------- |
+| `TERMINAL_KEY`  | `change-me`   | **🔑 Required** - Password to access Dispatch |
+| `PORT`          | `3030`        | Which port the web interface uses             |
+| `PTY_MODE`      | `shell`       | Default session type: `shell` or `claude`     |
+| `ENABLE_TUNNEL` | `false`       | Create public URLs for sharing                |
+| `LT_SUBDOMAIN`  | `""`          | Custom name for your public URL               |
 
 ### Keeping Your Data
 
@@ -211,11 +209,13 @@ docker run -d -p 3030:3030 \
 ### Example Setups
 
 **Basic setup (no data persistence):**
+
 ```bash
 docker run -p 3030:3030 -e TERMINAL_KEY=my-password fwdslsh/dispatch:latest
 ```
 
 **With public URL sharing:**
+
 ```bash
 docker run -p 3030:3030 \
   -e TERMINAL_KEY=my-password \
@@ -246,31 +246,36 @@ docker run -p 3030:3030 \
 ### Best Practices
 
 1. **Generate strong passwords** - Use random characters for your `TERMINAL_KEY`
-2. **Use HTTPS in production** - Put a reverse proxy in front for secure connections  
+2. **Use HTTPS in production** - Put a reverse proxy in front for secure connections
 3. **Keep updated** - Regularly update to the latest Docker image
 4. **Monitor access** - Review the admin console for any suspicious activity
 5. **Limit file access** - Only mount the directories you actually need
 6. **Use private networks** - Run on isolated networks when possible
 
-
 ## 🎯 Perfect For
 
 ### Remote Work & Development
+
 Access your development environment from anywhere - work from home, coffee shops, or while traveling. No need to sync files or set up local environments on every device.
 
-### Education & Training  
+### Education & Training
+
 Provide students with identical, ready-to-use coding environments. No installation headaches, no "it works on my machine" problems. Perfect for coding bootcamps and computer science courses.
 
 ### Team Collaboration
+
 Share live terminals with colleagues for pair programming, troubleshooting, or demonstrations. Get everyone on the same page instantly.
 
 ### AI-Assisted Coding
+
 Integrate Claude AI directly into your coding workflow. Get intelligent suggestions, code explanations, and debugging help right in your terminal.
 
 ### Quick Prototyping
+
 Spin up isolated environments for testing ideas, trying new technologies, or running potentially risky commands safely.
 
 ### Contractor & Client Work
+
 Provide temporary, secure access to development environments without setting up full user accounts or VPNs.
 
 ## 🆘 Need Help?
@@ -278,29 +283,34 @@ Provide temporary, secure access to development environments without setting up 
 ### Common Issues
 
 **Can't log in?**
+
 - Check that you're using the correct password (your `TERMINAL_KEY`)
 - Make sure you're going to the right URL: `http://localhost:3030`
 - Try clearing your browser cookies and refresh the page
 - Check the container logs: `docker logs dispatch`
 
 **Container won't start?**
+
 - Make sure port 3030 isn't already being used: `lsof -i :3030`
 - Check that Docker is running: `docker --version`
 - Ensure you have enough disk space: `df -h`
 - Look at the error logs: `docker logs dispatch`
 
 **Public URL not working?**
+
 - Confirm you set `ENABLE_TUNNEL=true`
 - Check that your firewall allows outbound connections
 - Try without a custom subdomain first (remove `LT_SUBDOMAIN`)
 - Look at container logs for tunnel errors: `docker logs dispatch`
 
 **Can't save files?**
+
 - Check directory permissions if using volume mounts
 - Make sure the mounted directories exist on your host
 - Verify ownership: `sudo chown -R 10001:10001 ~/dispatch-projects`
 
 **Session keeps disconnecting?**
+
 - Check your internet connection stability
 - Try using a wired connection instead of WiFi
 - Look for browser console errors (F12 → Console tab)
@@ -316,6 +326,7 @@ Provide temporary, secure access to development environments without setting up 
 Want to help make Dispatch better? We welcome contributions!
 
 **Quick Development Setup:**
+
 ```bash
 git clone https://github.com/fwdslsh/dispatch.git
 cd dispatch
@@ -324,21 +335,21 @@ npm run dev  # Opens http://localhost:5173
 ```
 
 See our [Contributing Guide](CONTRIBUTING.md) for:
+
 - Development setup details
-- Code style guidelines  
+- Code style guidelines
 - How to run tests
 - Pull request process
 - Bug reporting guidelines
 
 We appreciate bug reports, feature requests, documentation improvements, and code contributions!
 
-
 ## 🏗️ How It Works
 
 Dispatch is built with modern, reliable technologies:
 
 - **Frontend**: Web interface built with SvelteKit and JavaScript
-- **Backend**: Node.js server with real-time communication via Socket.IO  
+- **Backend**: Node.js server with real-time communication via Socket.IO
 - **Terminal**: Full Linux terminal powered by xterm.js and node-pty
 - **Storage**: SQLite database for sessions and project data
 - **Container**: Docker for security and isolation
@@ -366,7 +377,7 @@ For technical details, see our [Architecture Documentation](docs/ARCHITECTURE.md
 Dispatch is part of the fwdslsh toolkit:
 
 - [**fwdslsh/unify**](https://github.com/fwdslsh/unify) - Static site generator
-- [**fwdslsh/giv**](https://github.com/fwdslsh/giv) - AI-powered Git assistant  
+- [**fwdslsh/giv**](https://github.com/fwdslsh/giv) - AI-powered Git assistant
 - [**fwdslsh/inform**](https://github.com/fwdslsh/inform) - Web content crawler
 - [**fwdslsh/catalog**](https://github.com/fwdslsh/catalog) - Documentation indexer
 

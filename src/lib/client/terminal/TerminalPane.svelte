@@ -25,7 +25,6 @@
 		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
 	}
 
-
 	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 	// Handle window resize and ensure terminal fits its container
 	const resize = () => {
@@ -96,7 +95,6 @@
 		// Detect touch device for xterm.js optimizations (for non-mobile touch devices)
 		const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-
 		// Initialize terminal
 		term = new Terminal({
 			convertEol: true,
@@ -153,9 +151,9 @@
 					}
 				}, 2000);
 			}
-
 		} catch (error) {
-			console.error('[TERMINAL] Failed to attach to run session:', error);			connectionError = `Failed to connect: ${error.message}`;
+			console.error('[TERMINAL] Failed to attach to run session:', error);
+			connectionError = `Failed to connect: ${error.message}`;
 			isCatchingUp = false;
 		}
 
@@ -207,7 +205,7 @@
 				</div>
 			</div>
 		{/if}
-		
+
 		<!-- Terminal container -->
 		<div class="terminal-container">
 			<div bind:this={el} class="xterm-container"></div>
@@ -277,8 +275,6 @@
 		min-height: 0;
 	}
 
-
-
 	.xterm-container {
 		flex: 1;
 		height: 100%;
@@ -289,7 +285,6 @@
 	.terminal-container :global(.xterm) {
 		padding: var(--space-3);
 		font-family: var(--font-mono) !important;
-		
 	}
 
 	.terminal-container :global(.xterm-viewport) {
@@ -322,6 +317,4 @@
 			font-size: 1.2rem;
 		}
 	}
-
-	
 </style>

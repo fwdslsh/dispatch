@@ -91,7 +91,11 @@ test.describe('Terminal Session Resumption', () => {
 						if (evt === 'run:event' && typeof cb === 'function') {
 							const wrapped = function (eventData) {
 								try {
-									if (eventData && typeof eventData.channel === 'string' && eventData.channel.startsWith('pty')) {
+									if (
+										eventData &&
+										typeof eventData.channel === 'string' &&
+										eventData.channel.startsWith('pty')
+									) {
 										const payload = eventData.payload;
 										if (typeof payload === 'string') {
 											window.__terminalData.push(payload);

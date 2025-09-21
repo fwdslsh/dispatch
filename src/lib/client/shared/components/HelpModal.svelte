@@ -2,9 +2,7 @@
 	import Modal from './Modal.svelte';
 
 	// Props
-	let {
-		open = $bindable(false)
-	} = $props();
+	let { open = $bindable(false) } = $props();
 
 	// Window manager shortcuts
 	const shortcuts = [
@@ -33,16 +31,10 @@
 	];
 </script>
 
-<Modal
-	bind:open
-	title="Keyboard Shortcuts"
-	size="medium"
->
+<Modal bind:open title="Keyboard Shortcuts" size="medium">
 	{#snippet children()}
 		<div class="help-content">
-			<p class="help-intro">
-				Use these keyboard shortcuts to efficiently manage your workspace:
-			</p>
+			<p class="help-intro">Use these keyboard shortcuts to efficiently manage your workspace:</p>
 
 			{#each shortcuts as category}
 				<div class="shortcut-category">
@@ -64,8 +56,8 @@
 
 			<div class="help-footer">
 				<p class="help-note">
-					💡 <strong>Tip:</strong> These shortcuts work when the window manager has focus.
-					Click on the workspace area to ensure shortcuts are active.
+					💡 <strong>Tip:</strong> These shortcuts work when the window manager has focus. Click on the
+					workspace area to ensure shortcuts are active.
 				</p>
 			</div>
 		</div>

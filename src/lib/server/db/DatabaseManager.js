@@ -112,11 +112,15 @@ export class DatabaseManager {
 		`);
 
 		// Create indexes for performance
-		await this.run('CREATE UNIQUE INDEX IF NOT EXISTS ix_events_run_seq ON session_events(run_id, seq)');
+		await this.run(
+			'CREATE UNIQUE INDEX IF NOT EXISTS ix_events_run_seq ON session_events(run_id, seq)'
+		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_events_run_ts ON session_events(run_id, ts)');
 		await this.run('CREATE INDEX IF NOT EXISTS ix_sessions_kind ON sessions(kind)');
 		await this.run('CREATE INDEX IF NOT EXISTS ix_sessions_status ON sessions(status)');
-		await this.run('CREATE INDEX IF NOT EXISTS ix_workspace_layout_client ON workspace_layout(client_id)');
+		await this.run(
+			'CREATE INDEX IF NOT EXISTS ix_workspace_layout_client ON workspace_layout(client_id)'
+		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_logs_timestamp ON logs(timestamp)');
 	}
 
@@ -198,10 +202,11 @@ export class DatabaseManager {
 	 * Update run session status
 	 */
 	async updateRunSessionStatus(runId, status) {
-		await this.run(
-			`UPDATE sessions SET status=?, updated_at=? WHERE run_id=?`,
-			[status, Date.now(), runId]
-		);
+		await this.run(`UPDATE sessions SET status=?, updated_at=? WHERE run_id=?`, [
+			status,
+			Date.now(),
+			runId
+		]);
 	}
 
 	/**
@@ -229,7 +234,7 @@ export class DatabaseManager {
 		const params = kind ? [kind] : [];
 
 		const rows = await this.all(sql, params);
-		return rows.map(row => {
+		return rows.map((row) => {
 			if (row.meta_json) {
 				try {
 					row.meta = JSON.parse(row.meta_json);
@@ -258,9 +263,8 @@ export class DatabaseManager {
 	 */
 	async appendSessionEvent(runId, seq, channel, type, payload) {
 		const ts = Date.now();
-		const buf = payload instanceof Uint8Array ?
-			payload :
-			new TextEncoder().encode(JSON.stringify(payload));
+		const buf =
+			payload instanceof Uint8Array ? payload : new TextEncoder().encode(JSON.stringify(payload));
 
 		await this.run(
 			`INSERT INTO session_events(run_id, seq, channel, type, payload, ts) VALUES(?,?,?,?,?,?)`,
@@ -280,7 +284,7 @@ export class DatabaseManager {
 			[runId, afterSeq]
 		);
 
-		return rows.map(row => {
+		return rows.map((row) => {
 			// Decode payload based on type
 			if (row.payload) {
 				try {
@@ -310,11 +314,10 @@ export class DatabaseManager {
 
 	async createWorkspace(path) {
 		const now = Date.now();
-		await this.run('INSERT OR IGNORE INTO workspaces (path, created_at, updated_at) VALUES (?, ?, ?)', [
-			path,
-			now,
-			now
-		]);
+		await this.run(
+			'INSERT OR IGNORE INTO workspaces (path, created_at, updated_at) VALUES (?, ?, ?)',
+			[path, now, now]
+		);
 	}
 
 	async updateWorkspaceActivity(path) {
@@ -358,26 +361,19 @@ export class DatabaseManager {
 	 * Remove workspace layout entry
 	 */
 	async removeWorkspaceLayout(runId, clientId) {
-		await this.run(
-			'DELETE FROM workspace_layout WHERE run_id = ? AND client_id = ?',
-			[runId, clientId]
-		);
+		await this.run('DELETE FROM workspace_layout WHERE run_id = ? AND client_id = ?', [
+			runId,
+			clientId
+		]);
 	}
-
-
-
-
 
 	// ===== LOGGING METHODS =====
 
 	async addLog(level, component, message, data = null) {
-		await this.run('INSERT INTO logs (level, component, message, data, timestamp) VALUES (?, ?, ?, ?, ?)', [
-			level,
-			component,
-			message,
-			data ? JSON.stringify(data) : null,
-			Date.now()
-		]);
+		await this.run(
+			'INSERT INTO logs (level, component, message, data, timestamp) VALUES (?, ?, ?, ?, ?)',
+			[level, component, message, data ? JSON.stringify(data) : null, Date.now()]
+		);
 	}
 
 	async getLogs(component = null, level = null, limit = 100) {
@@ -402,7 +398,7 @@ export class DatabaseManager {
 			params
 		);
 
-		return rows.map(row => {
+		return rows.map((row) => {
 			if (row.data) {
 				try {
 					row.data = JSON.parse(row.data);

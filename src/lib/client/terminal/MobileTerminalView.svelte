@@ -68,8 +68,11 @@
 				const after = string.substring(offset, Math.min(string.length, offset + 100));
 
 				// Keep underlines that seem intentional (around links, short text)
-				if (after.includes('http') || after.includes('www.') ||
-					(after.match(/>[^<]{1,30}</g) && !before.includes('│'))) {
+				if (
+					after.includes('http') ||
+					after.includes('www.') ||
+					(after.match(/>[^<]{1,30}</g) && !before.includes('│'))
+				) {
 					return match;
 				}
 
@@ -113,7 +116,8 @@
 
 		// Add remaining lines
 		newLines.forEach((line, index) => {
-			if (line || index < newLines.length - 1) { // Include empty lines except the last one
+			if (line || index < newLines.length - 1) {
+				// Include empty lines except the last one
 				const lineId = `line_${lineIdCounter++}`;
 				terminalLines.push({
 					id: lineId,
@@ -319,7 +323,6 @@
 					}
 				}, 2000);
 			}
-
 		} catch (error) {
 			console.error('[MOBILE-TERMINAL] Failed to attach to run session:', error);
 			connectionError = `Failed to connect: ${error.message}`;
@@ -388,7 +391,6 @@
 		position: relative;
 	}
 
-
 	.terminal-loading {
 		position: absolute;
 		top: 0;
@@ -419,13 +421,21 @@
 	}
 
 	@keyframes spin {
-		from { transform: rotate(0deg); }
-		to { transform: rotate(360deg); }
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	@keyframes fadeIn {
-		from { opacity: 0; }
-		to { opacity: 1; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.terminal-scroll {
@@ -525,46 +535,112 @@
 	}
 
 	/* ANSI color theme for ansi_up library classes */
-	:global(.ansi-black-fg) { color: #2e3440; }
-	:global(.ansi-red-fg) { color: #bf616a; }
-	:global(.ansi-green-fg) { color: #a3be8c; }
-	:global(.ansi-yellow-fg) { color: #ebcb8b; }
-	:global(.ansi-blue-fg) { color: #81a1c1; }
-	:global(.ansi-magenta-fg) { color: #b48ead; }
-	:global(.ansi-cyan-fg) { color: #88c0d0; }
-	:global(.ansi-white-fg) { color: #e5e9f0; }
+	:global(.ansi-black-fg) {
+		color: #2e3440;
+	}
+	:global(.ansi-red-fg) {
+		color: #bf616a;
+	}
+	:global(.ansi-green-fg) {
+		color: #a3be8c;
+	}
+	:global(.ansi-yellow-fg) {
+		color: #ebcb8b;
+	}
+	:global(.ansi-blue-fg) {
+		color: #81a1c1;
+	}
+	:global(.ansi-magenta-fg) {
+		color: #b48ead;
+	}
+	:global(.ansi-cyan-fg) {
+		color: #88c0d0;
+	}
+	:global(.ansi-white-fg) {
+		color: #e5e9f0;
+	}
 
 	/* Bright colors */
-	:global(.ansi-bright-black-fg) { color: #4c566a; }
-	:global(.ansi-bright-red-fg) { color: #bf616a; }
-	:global(.ansi-bright-green-fg) { color: #a3be8c; }
-	:global(.ansi-bright-yellow-fg) { color: #ebcb8b; }
-	:global(.ansi-bright-blue-fg) { color: #81a1c1; }
-	:global(.ansi-bright-magenta-fg) { color: #b48ead; }
-	:global(.ansi-bright-cyan-fg) { color: #8fbcbb; }
-	:global(.ansi-bright-white-fg) { color: #eceff4; }
+	:global(.ansi-bright-black-fg) {
+		color: #4c566a;
+	}
+	:global(.ansi-bright-red-fg) {
+		color: #bf616a;
+	}
+	:global(.ansi-bright-green-fg) {
+		color: #a3be8c;
+	}
+	:global(.ansi-bright-yellow-fg) {
+		color: #ebcb8b;
+	}
+	:global(.ansi-bright-blue-fg) {
+		color: #81a1c1;
+	}
+	:global(.ansi-bright-magenta-fg) {
+		color: #b48ead;
+	}
+	:global(.ansi-bright-cyan-fg) {
+		color: #8fbcbb;
+	}
+	:global(.ansi-bright-white-fg) {
+		color: #eceff4;
+	}
 
 	/* Background colors */
-	:global(.ansi-black-bg) { background-color: #2e3440; }
-	:global(.ansi-red-bg) { background-color: #bf616a; }
-	:global(.ansi-green-bg) { background-color: #a3be8c; }
-	:global(.ansi-yellow-bg) { background-color: #ebcb8b; }
-	:global(.ansi-blue-bg) { background-color: #81a1c1; }
-	:global(.ansi-magenta-bg) { background-color: #b48ead; }
-	:global(.ansi-cyan-bg) { background-color: #88c0d0; }
-	:global(.ansi-white-bg) { background-color: #e5e9f0; }
+	:global(.ansi-black-bg) {
+		background-color: #2e3440;
+	}
+	:global(.ansi-red-bg) {
+		background-color: #bf616a;
+	}
+	:global(.ansi-green-bg) {
+		background-color: #a3be8c;
+	}
+	:global(.ansi-yellow-bg) {
+		background-color: #ebcb8b;
+	}
+	:global(.ansi-blue-bg) {
+		background-color: #81a1c1;
+	}
+	:global(.ansi-magenta-bg) {
+		background-color: #b48ead;
+	}
+	:global(.ansi-cyan-bg) {
+		background-color: #88c0d0;
+	}
+	:global(.ansi-white-bg) {
+		background-color: #e5e9f0;
+	}
 
 	/* Text formatting */
-	:global(.ansi-bold) { font-weight: bold; }
-	:global(.ansi-dim) { opacity: 0.7; }
-	:global(.ansi-italic) { font-style: italic; }
-	:global(.ansi-underline) { text-decoration: underline; }
-	:global(.ansi-strikethrough) { text-decoration: line-through; }
-	:global(.ansi-blink) { animation: blink 1s linear infinite; }
+	:global(.ansi-bold) {
+		font-weight: bold;
+	}
+	:global(.ansi-dim) {
+		opacity: 0.7;
+	}
+	:global(.ansi-italic) {
+		font-style: italic;
+	}
+	:global(.ansi-underline) {
+		text-decoration: underline;
+	}
+	:global(.ansi-strikethrough) {
+		text-decoration: line-through;
+	}
+	:global(.ansi-blink) {
+		animation: blink 1s linear infinite;
+	}
 
 	@keyframes blink {
-		0%, 50% { opacity: 1; }
-		51%, 100% { opacity: 0; }
+		0%,
+		50% {
+			opacity: 1;
+		}
+		51%,
+		100% {
+			opacity: 0;
+		}
 	}
 
 	/* Terminal links and interactive elements */

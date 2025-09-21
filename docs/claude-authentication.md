@@ -44,15 +44,18 @@ Once authenticated, you can:
 ## Troubleshooting
 
 ### "Authentication failed" error
+
 - Make sure you copied the entire authorization code
 - Check that the code hasn't expired (they're only valid for a few minutes)
 - Try the authentication process again
 
 ### "Claude not available" message
+
 - Your Dispatch instance needs to have the Claude CLI installed
 - Contact your system administrator if you're using a shared instance
 
 ### Session won't start
+
 - Make sure you have an active internet connection
 - Try refreshing the page and starting a new session
 - Check that your Anthropic account is active
@@ -67,15 +70,17 @@ Once authenticated, you can:
 
 ## Technical Details (For Developers)
 
-*This section contains technical implementation details that most users can skip.*
+_This section contains technical implementation details that most users can skip._
 
 The authentication uses a WebSocket-driven flow where:
+
 - Server runs `claude setup-token` in a PTY process
 - Client receives OAuth URL over WebSockets and opens it in new tab
 - User completes OAuth flow and receives authorization code
 - Client sends code back over WebSockets to complete authentication
 
 Socket events used:
+
 - `claude.auth.start` - Begin authentication flow
 - `claude.auth.url` - Receive OAuth URL
 - `claude.auth.code` - Submit authorization code

@@ -32,7 +32,7 @@ function sanitizeContent(content) {
 export async function GET({ url }) {
 	try {
 		const requestedPath = url.searchParams.get('path');
-		
+
 		if (!requestedPath) {
 			return json({ error: 'Path parameter is required' }, { status: 400 });
 		}
@@ -70,14 +70,13 @@ export async function GET({ url }) {
 			modified: pathStat.mtime.toISOString(),
 			readonly: false // Could be determined by file permissions
 		});
-
 	} catch (error) {
 		console.error('[API] Failed to read file:', error);
-		
+
 		if (error.code === 'EACCES') {
 			return json({ error: 'Permission denied' }, { status: 403 });
 		}
-		
+
 		if (error.code === 'ENOENT') {
 			return json({ error: 'File not found' }, { status: 404 });
 		}
@@ -134,14 +133,13 @@ export async function PUT({ request, url }) {
 			size: pathStat.size,
 			modified: pathStat.mtime.toISOString()
 		});
-
 	} catch (error) {
 		console.error('[API] Failed to write file:', error);
-		
+
 		if (error.code === 'EACCES') {
 			return json({ error: 'Permission denied' }, { status: 403 });
 		}
-		
+
 		if (error.code === 'ENOSPC') {
 			return json({ error: 'No space left on device' }, { status: 507 });
 		}

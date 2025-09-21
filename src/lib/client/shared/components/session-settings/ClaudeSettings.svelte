@@ -7,10 +7,7 @@
 	import IconRobot from '$lib/client/shared/components/Icons/IconRobot.svelte';
 
 	// Props
-	let { 
-		settings = $bindable({}),
-		disabled = false 
-	} = $props();
+	let { settings = $bindable({}), disabled = false } = $props();
 
 	// Default Claude settings based on SDK documentation
 	let model = $state(settings.model || '');
@@ -67,10 +64,30 @@
 			continue: continueConversation || undefined,
 			permissionMode: permissionMode !== 'default' ? permissionMode : undefined,
 			executable: executable !== 'auto' ? executable : undefined,
-			executableArgs: executableArgs.trim() ? executableArgs.split(',').map(arg => arg.trim()).filter(Boolean) : undefined,
-			allowedTools: allowedTools.trim() ? allowedTools.split(',').map(tool => tool.trim()).filter(Boolean) : undefined,
-			disallowedTools: disallowedTools.trim() ? disallowedTools.split(',').map(tool => tool.trim()).filter(Boolean) : undefined,
-			additionalDirectories: additionalDirectories.trim() ? additionalDirectories.split(',').map(dir => dir.trim()).filter(Boolean) : undefined,
+			executableArgs: executableArgs.trim()
+				? executableArgs
+						.split(',')
+						.map((arg) => arg.trim())
+						.filter(Boolean)
+				: undefined,
+			allowedTools: allowedTools.trim()
+				? allowedTools
+						.split(',')
+						.map((tool) => tool.trim())
+						.filter(Boolean)
+				: undefined,
+			disallowedTools: disallowedTools.trim()
+				? disallowedTools
+						.split(',')
+						.map((tool) => tool.trim())
+						.filter(Boolean)
+				: undefined,
+			additionalDirectories: additionalDirectories.trim()
+				? additionalDirectories
+						.split(',')
+						.map((dir) => dir.trim())
+						.filter(Boolean)
+				: undefined,
 			strictMcpConfig: strictMcpConfig || undefined
 		};
 
@@ -88,12 +105,7 @@
 		<!-- Model Configuration -->
 		<div class="setting-group">
 			<label for="claude-model" class="setting-label">Model (Optional)</label>
-			<select
-				id="claude-model"
-				class="setting-input"
-				bind:value={model}
-				{disabled}
-			>
+			<select id="claude-model" class="setting-input" bind:value={model} {disabled}>
 				{#each availableModels as modelOption}
 					<option value={modelOption.value}>{modelOption.label}</option>
 				{/each}
@@ -102,8 +114,8 @@
 
 		<div class="setting-group">
 			<label for="claude-fallback-model" class="setting-label">Fallback Model (Optional)</label>
-			<select 
-				id="claude-fallback-model" 
+			<select
+				id="claude-fallback-model"
 				class="setting-input"
 				bind:value={fallbackModel}
 				{disabled}
@@ -117,8 +129,10 @@
 
 		<!-- System Prompts -->
 		<div class="setting-group">
-			<label for="claude-custom-system-prompt" class="setting-label">Custom System Prompt (Optional)</label>
-			<textarea 
+			<label for="claude-custom-system-prompt" class="setting-label"
+				>Custom System Prompt (Optional)</label
+			>
+			<textarea
 				id="claude-custom-system-prompt"
 				class="setting-textarea"
 				rows="3"
@@ -129,8 +143,10 @@
 		</div>
 
 		<div class="setting-group">
-			<label for="claude-append-system-prompt" class="setting-label">Append System Prompt (Optional)</label>
-			<textarea 
+			<label for="claude-append-system-prompt" class="setting-label"
+				>Append System Prompt (Optional)</label
+			>
+			<textarea
 				id="claude-append-system-prompt"
 				class="setting-textarea"
 				rows="2"
@@ -143,8 +159,8 @@
 		<!-- Session Control -->
 		<div class="setting-group">
 			<label class="setting-label">
-				<input 
-					type="checkbox" 
+				<input
+					type="checkbox"
 					class="setting-checkbox"
 					bind:checked={continueConversation}
 					{disabled}
@@ -155,10 +171,10 @@
 
 		<div class="setting-group">
 			<label for="claude-max-turns" class="setting-label">Max Turns (Optional)</label>
-			<input 
+			<input
 				id="claude-max-turns"
-				type="number" 
-				min="1" 
+				type="number"
+				min="1"
 				class="setting-input"
 				placeholder="No limit"
 				bind:value={maxTurns}
@@ -167,10 +183,12 @@
 		</div>
 
 		<div class="setting-group">
-			<label for="claude-max-thinking-tokens" class="setting-label">Max Thinking Tokens (Optional)</label>
-			<input 
+			<label for="claude-max-thinking-tokens" class="setting-label"
+				>Max Thinking Tokens (Optional)</label
+			>
+			<input
 				id="claude-max-thinking-tokens"
-				type="number" 
+				type="number"
 				min="1"
 				class="setting-input"
 				placeholder="No limit"
@@ -182,11 +200,11 @@
 		<!-- Advanced Settings -->
 		<details class="advanced-settings">
 			<summary class="advanced-toggle">Advanced Settings</summary>
-			
+
 			<div class="setting-group">
 				<label for="claude-permission-mode" class="setting-label">Permission Mode</label>
-				<select 
-					id="claude-permission-mode" 
+				<select
+					id="claude-permission-mode"
 					class="setting-input"
 					bind:value={permissionMode}
 					{disabled}
@@ -199,12 +217,7 @@
 
 			<div class="setting-group">
 				<label for="claude-executable" class="setting-label">JavaScript Runtime</label>
-				<select 
-					id="claude-executable" 
-					class="setting-input"
-					bind:value={executable}
-					{disabled}
-				>
+				<select id="claude-executable" class="setting-input" bind:value={executable} {disabled}>
 					{#each executables as exec}
 						<option value={exec.value}>{exec.label}</option>
 					{/each}
@@ -212,10 +225,12 @@
 			</div>
 
 			<div class="setting-group">
-				<label for="claude-executable-args" class="setting-label">Executable Arguments (comma-separated)</label>
-				<input 
+				<label for="claude-executable-args" class="setting-label"
+					>Executable Arguments (comma-separated)</label
+				>
+				<input
 					id="claude-executable-args"
-					type="text" 
+					type="text"
 					class="setting-input"
 					placeholder="--flag1, --flag2=value"
 					bind:value={executableArgs}
@@ -224,10 +239,12 @@
 			</div>
 
 			<div class="setting-group">
-				<label for="claude-allowed-tools" class="setting-label">Allowed Tools (comma-separated)</label>
-				<input 
+				<label for="claude-allowed-tools" class="setting-label"
+					>Allowed Tools (comma-separated)</label
+				>
+				<input
 					id="claude-allowed-tools"
-					type="text" 
+					type="text"
 					class="setting-input"
 					placeholder="tool1, tool2, tool3"
 					bind:value={allowedTools}
@@ -236,10 +253,12 @@
 			</div>
 
 			<div class="setting-group">
-				<label for="claude-disallowed-tools" class="setting-label">Disallowed Tools (comma-separated)</label>
-				<input 
+				<label for="claude-disallowed-tools" class="setting-label"
+					>Disallowed Tools (comma-separated)</label
+				>
+				<input
 					id="claude-disallowed-tools"
-					type="text" 
+					type="text"
 					class="setting-input"
 					placeholder="tool1, tool2, tool3"
 					bind:value={disallowedTools}
@@ -248,10 +267,12 @@
 			</div>
 
 			<div class="setting-group">
-				<label for="claude-additional-directories" class="setting-label">Additional Directories (comma-separated)</label>
-				<input 
+				<label for="claude-additional-directories" class="setting-label"
+					>Additional Directories (comma-separated)</label
+				>
+				<input
 					id="claude-additional-directories"
-					type="text" 
+					type="text"
 					class="setting-input"
 					placeholder="/path1, /path2, /path3"
 					bind:value={additionalDirectories}
@@ -261,8 +282,8 @@
 
 			<div class="setting-group">
 				<label class="setting-label">
-					<input 
-						type="checkbox" 
+					<input
+						type="checkbox"
 						class="setting-checkbox"
 						bind:checked={includePartialMessages}
 						{disabled}
@@ -273,8 +294,8 @@
 
 			<div class="setting-group">
 				<label class="setting-label">
-					<input 
-						type="checkbox" 
+					<input
+						type="checkbox"
 						class="setting-checkbox"
 						bind:checked={strictMcpConfig}
 						{disabled}

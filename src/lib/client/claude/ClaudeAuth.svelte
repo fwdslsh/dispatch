@@ -28,7 +28,7 @@
 	let oauthUrl = $state('');
 	let authCode = $state('');
 	let showCodeInput = $state(false);
-// removed unused sessionId (was retained for API parity; not used in WS flow)
+	// removed unused sessionId (was retained for API parity; not used in WS flow)
 	let socket = $state();
 
 	// Manual API key state
@@ -41,11 +41,12 @@
 	// Service container for configuration
 	let container = null;
 	let socketUrl = '';
-	
+
 	// Try to get service container for configuration
 	try {
 		container = useServiceContainer();
-		socketUrl = container.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+		socketUrl =
+			container.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
 	} catch (e) {
 		// Fallback if container is not available (not in context)
 		socketUrl = typeof window !== 'undefined' ? window.location.origin : '';

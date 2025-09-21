@@ -189,5 +189,3 @@
 		<div class="activity-error">Unable to parse read event</div>
 	{/if}
 </div>
-
-

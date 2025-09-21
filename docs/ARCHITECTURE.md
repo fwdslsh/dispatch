@@ -84,14 +84,14 @@ graph TB
 
 ### Component Responsibilities
 
-| Component            | Responsibility                           | Technology          |
-| -------------------- | ---------------------------------------- | ------------------- |
-| Frontend             | User interface, terminal emulation       | SvelteKit, xterm.js |
-| Socket.IO Layer      | Real-time bidirectional communication    | Socket.IO 4.x       |
-| RunSessionManager    | Unified session/event management         | Event-sourced       |
-| WorkspaceManager     | Workspace lifecycle and persistence      | SQLite + filesystem |
-| PtyAdapter           | PTY session management                   | node-pty            |
-| ClaudeAdapter        | AI session integration                   | Claude Code SDK     |
+| Component         | Responsibility                        | Technology          |
+| ----------------- | ------------------------------------- | ------------------- |
+| Frontend          | User interface, terminal emulation    | SvelteKit, xterm.js |
+| Socket.IO Layer   | Real-time bidirectional communication | Socket.IO 4.x       |
+| RunSessionManager | Unified session/event management      | Event-sourced       |
+| WorkspaceManager  | Workspace lifecycle and persistence   | SQLite + filesystem |
+| PtyAdapter        | PTY session management                | node-pty            |
+| ClaudeAdapter     | AI session integration                | Claude Code SDK     |
 
 ## Frontend Architecture
 
@@ -338,17 +338,17 @@ sequenceDiagram
     Client->>SocketIO: auth
     SocketIO->>Auth: validateKey
     Auth->>SocketIO: authorized
-    
+
     Client->>SocketIO: run:attach
     SocketIO->>RunSessionManager: attachToRunSession(runId)
     RunSessionManager->>Client: event backlog
-    
+
     Client->>SocketIO: run:input
     SocketIO->>RunSessionManager: sendInput(runId, data)
     RunSessionManager->>PtyAdapter: input.write(data)
     PtyAdapter->>Client: run:event(pty:stdout)
 
-    Client->>SocketIO: run:input  
+    Client->>SocketIO: run:input
     SocketIO->>RunSessionManager: sendInput(runId, input)
     RunSessionManager->>ClaudeAdapter: input.write(input)
     ClaudeAdapter->>Client: run:event(claude:message)
@@ -358,21 +358,21 @@ sequenceDiagram
 
 #### Client → Server Events
 
-| Event         | Payload                           | Description                 |
-| ------------- | --------------------------------- | --------------------------- |
-| `auth`        | `authKey`                         | Authenticate connection     |
-| `run:attach`  | `{runId, afterSeq}`               | Attach to run session       |
-| `run:input`   | `{runId, data}`                   | Send input to session       |
-| `run:resize`  | `{runId, cols, rows}`             | Resize terminal dimensions  |
-| `run:close`   | `{runId}`                         | Close run session          |
+| Event        | Payload               | Description                |
+| ------------ | --------------------- | -------------------------- |
+| `auth`       | `authKey`             | Authenticate connection    |
+| `run:attach` | `{runId, afterSeq}`   | Attach to run session      |
+| `run:input`  | `{runId, data}`       | Send input to session      |
+| `run:resize` | `{runId, cols, rows}` | Resize terminal dimensions |
+| `run:close`  | `{runId}`             | Close run session          |
 
 #### Server → Client Events
 
-| Event       | Payload                         | Description                   |
-| ----------- | ------------------------------- | ----------------------------- |
-| `run:event` | `{runId, seq, channel, payload}` | Session event stream          |
-| `auth.success` | `{success: true}`            | Authentication success        |
-| `auth.error`   | `{error: message}`           | Authentication failure        |
+| Event          | Payload                          | Description            |
+| -------------- | -------------------------------- | ---------------------- |
+| `run:event`    | `{runId, seq, channel, payload}` | Session event stream   |
+| `auth.success` | `{success: true}`                | Authentication success |
+| `auth.error`   | `{error: message}`               | Authentication failure |
 
 ### Connection Management
 

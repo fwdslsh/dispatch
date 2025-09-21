@@ -27,7 +27,7 @@ describe('Claude Bypass Permissions Configuration', () => {
 		const adapter = new ClaudeAdapter();
 		const instance = await adapter.create({
 			cwd: '/tmp',
-			onEvent: () => { }
+			onEvent: () => {}
 		});
 
 		await instance.input.write('test prompt');
@@ -40,7 +40,7 @@ describe('Claude Bypass Permissions Configuration', () => {
 		const instance = await adapter.create({
 			cwd: '/tmp',
 			options: { permissionMode: 'default' },
-			onEvent: () => { }
+			onEvent: () => {}
 		});
 
 		await instance.input.write('test prompt');

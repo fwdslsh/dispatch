@@ -354,9 +354,9 @@ describe('Session Status Handler Logic', () => {
 		});
 
 		it('should handle sessionManager.getSession throwing error', () => {
-				mockServices.runSessionManager.getSession.mockImplementation(() => {
-					throw new Error('Database connection failed');
-				});
+			mockServices.runSessionManager.getSession.mockImplementation(() => {
+				throw new Error('Database connection failed');
+			});
 			const mockCallback = vi.fn();
 
 			sessionStatusHandler({ key: 'valid', sessionId: 'test-123' }, mockCallback);
@@ -371,7 +371,7 @@ describe('Session Status Handler Logic', () => {
 			const mockSession = { id: 'test-123', type: 'claude', workspacePath: '/test' };
 			mockServices.runSessionManager.getSession.mockReturnValue(mockSession);
 			mockServices.runSessionManager.getActivityState.mockImplementation(() => {
-			 throw new Error('Activity state unavailable');
+				throw new Error('Activity state unavailable');
 			});
 			const mockCallback = vi.fn();
 
@@ -385,11 +385,11 @@ describe('Session Status Handler Logic', () => {
 
 		it('should handle getCachedCommands throwing error', () => {
 			const mockSession = { id: 'claude-123', type: 'claude', workspacePath: '/test' };
-				mockServices.runSessionManager.getSession.mockReturnValue(mockSession);
-				mockServices.runSessionManager.getActivityState.mockReturnValue('idle');
-				mockServices.runSessionManager.getCachedCommands.mockImplementation(() => {
-					throw new Error('Command cache error');
-				});
+			mockServices.runSessionManager.getSession.mockReturnValue(mockSession);
+			mockServices.runSessionManager.getActivityState.mockReturnValue('idle');
+			mockServices.runSessionManager.getCachedCommands.mockImplementation(() => {
+				throw new Error('Command cache error');
+			});
 			const mockCallback = vi.fn();
 
 			sessionStatusHandler({ key: 'valid', sessionId: 'claude-123' }, mockCallback);
@@ -471,7 +471,7 @@ describe('Session Status Handler Logic', () => {
 
 		it('should handle missing callback in error case gracefully', () => {
 			mockServices.runSessionManager.getSession.mockImplementation(() => {
-			 throw new Error('Test error');
+				throw new Error('Test error');
 			});
 
 			// Should not throw when callback is undefined

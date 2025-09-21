@@ -25,7 +25,6 @@ function socketIOPlugin() {
 	};
 }
 
-
 export default defineConfig({
 	resolve: {
 		alias: {
