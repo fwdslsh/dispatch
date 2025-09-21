@@ -13,6 +13,7 @@
 	import Input from './Input.svelte';
 	import IconUpload from './Icons/IconUpload.svelte';
 	import { onMount } from 'svelte';
+	import GitOperations from './GitOperations.svelte';
 
 	// Svelte 5 Directory Browser Component
 	let {
@@ -584,6 +585,13 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Git Operations -->
+		<GitOperations
+			{currentPath}
+			onRefresh={() => browse(currentPath)}
+			onError={(err) => (error = err)}
+		/>
 	</div>
 {/if}
 
