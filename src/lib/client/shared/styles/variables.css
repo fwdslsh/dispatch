@@ -340,7 +340,7 @@
 /* CSS Variables for theming - use main variables for consistency */
 .directory-browser {
 	--db-primary: var(--primary);
-	--db-primary-bright: var(--primary-bright);
+	--db-primary-bright: var(--primary);
 	--db-primary-dim: var(--primary-muted);
 	--db-primary-glow: var(--primary-glow);
 	--db-accent: var(--primary-dim);
