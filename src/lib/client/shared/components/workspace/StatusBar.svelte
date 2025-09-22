@@ -43,7 +43,7 @@
 <footer class="status-bar-container">
 	<div class="status-bar">
 		<!-- Left group: System actions -->
-		<div class="left-group">
+		<div class="status-bar-group status-bar-left">
 			<!-- <IconButton onclick={onLogout} aria-label="Logout" title="Logout">
 				<IconLogout2 size={18} />
 			</IconButton>
@@ -62,12 +62,12 @@
 		</div>
 
 		<!-- Center group: Main create session button -->
-		<div class="center-group">
+		<div class="status-bar-group status-bar-center">
 			<CreateSessionButton {onCreateSession} />
 		</div>
 
 		<!-- Right group: Navigation and session menu -->
-		<div class="right-group">
+		<div class="status-bar-group status-bar-right">
 			{#if isMobile}
 				<MobileNavigation
 					{onNavigateSession}
@@ -87,7 +87,7 @@
 					>
 						<IconPlayerTrackPrev size={18} />
 					</IconButton>
-					<!-- 
+					<!--
 					{#if totalSessions > 0}
 						<span class="session-counter">
 							{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}
@@ -117,78 +117,5 @@
 </footer>
 
 <style>
-	.status-bar-container {
-		grid-area: footer;
-	}
-
-	.status-bar {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.4rem 0.6rem;
-		box-sizing: border-box;
-		width: 100%;
-		max-width: 100svw;
-		background: var(--bg-panel);
-		border-top: 1px solid var(--primary-dim);
-	}
-
-	.left-group,
-	.center-group,
-	.right-group {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		min-width: 0;
-	}
-
-	.left-group {
-		flex: 1 1 0;
-		justify-content: flex-start;
-	}
-
-	.center-group {
-		flex: 0 0 auto;
-		justify-content: center;
-	}
-
-	.right-group {
-		flex: 1 1 0;
-		justify-content: flex-end;
-	}
-
-	.desktop-navigation {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-right: 0.5rem;
-	}
-
-	.desktop-navigation .session-counter {
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		color: var(--text-secondary);
-		min-width: 40px;
-		text-align: center;
-	}
-
-	/* Mobile-specific touch improvements */
-	@media (hover: none) and (pointer: coarse) {
-		:global(.bottom-btn:active) {
-			opacity: 0.8;
-			transform: scale(0.95);
-		}
-	}
-
-	/* Very small screens adjustments */
-	@media (max-width: 480px) {
-		.status-bar {
-			padding: 0.3rem 0.5rem;
-		}
-
-		.left-group,
-		.right-group {
-			gap: 0.25rem;
-		}
-	}
+	/* StatusBar component uses utility classes - no additional styles needed */
 </style>
