@@ -1,0 +1,394 @@
+#!/bin/bash
+set -e
+
+# Dispatch Docker Management Script
+# Replaces the Node.js CLI with native Bash for simplified usage
+
+VERSION="0.1.2"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOCKER_IMAGE="fwdslsh/dispatch:latest"
+CONTAINER_NAME="dispatch"
+DEFAULT_PORT="3030"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Logging functions
+log_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+}
+
+log_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+log_warn() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+log_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+# Generate random key for TERMINAL_KEY
+generate_random_key() {
+    # Generate a 24-character random string
+    LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | head -c 24
+}
+
+# Expand path with tilde
+expand_path() {
+    local path="$1"
+    if [[ "$path" =~ ^~(/.*)?$ ]]; then
+        path="${HOME}${BASH_REMATCH[1]}"
+    fi
+    echo "$path"
+}
+
+# Ensure directory exists
+ensure_directory() {
+    local dir="$1"
+    if [[ ! -d "$dir" ]]; then
+        mkdir -p "$dir"
+        log_success "Created directory: $dir"
+    fi
+}
+
+# Check if Docker is available
+check_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        log_error "Docker is not installed or not in PATH"
+        exit 1
+    fi
+    
+    if ! docker info >/dev/null 2>&1; then
+        log_error "Docker is not running or not accessible"
+        exit 1
+    fi
+}
+
+# Get container status
+get_container_status() {
+    docker ps -a --filter "name=${CONTAINER_NAME}" --format "{{.Status}}" 2>/dev/null || echo ""
+}
+
+# Check if container is running
+is_container_running() {
+    local status=$(get_container_status)
+    [[ "$status" =~ ^Up ]]
+}
+
+# Init command - create directories and .env file
+cmd_init() {
+    log_info "Initializing Dispatch environment..."
+    
+    # Default paths
+    local dispatch_home="$HOME/.dispatch"
+    local workspace_dir="$HOME/workspace"
+    local env_file="$dispatch_home/.env"
+    
+    # Create directories
+    ensure_directory "$dispatch_home"
+    ensure_directory "$workspace_dir"
+    
+    # Create .env file with defaults if it doesn't exist
+    if [[ ! -f "$env_file" ]]; then
+        log_info "Creating default .env file..."
+        
+        local terminal_key=$(generate_random_key)
+        
+        cat > "$env_file" << EOF
+# Dispatch Configuration
+# Generated on $(date)
+
+# Required: Authentication key for web interface
+TERMINAL_KEY=$terminal_key
+
+# Optional: Server configuration
+PORT=$DEFAULT_PORT
+PTY_MODE=shell
+
+# Optional: Features
+ENABLE_TUNNEL=false
+#LT_SUBDOMAIN=my-dispatch
+
+# Optional: Directory paths (uncomment to override defaults)
+#DISPATCH_CONFIG_DIR=/config
+#DISPATCH_PROJECTS_DIR=/projects
+#DISPATCH_WORKSPACE_DIR=/workspace
+
+# Optional: Development/debugging
+#DEBUG=*
+EOF
+        
+        log_success "Created .env file at: $env_file"
+        log_info "Generated TERMINAL_KEY: $terminal_key"
+        log_warn "Keep this key secure - you'll need it to access the web interface"
+    else
+        log_info ".env file already exists at: $env_file"
+    fi
+    
+    log_success "Initialization complete!"
+    log_info "Next steps:"
+    log_info "  1. Run 'dispatch start' to launch the container"
+    log_info "  2. Open http://localhost:$DEFAULT_PORT in your browser"
+    log_info "  3. Use the TERMINAL_KEY from $env_file to authenticate"
+}
+
+# Start command - start the Docker container
+cmd_start() {
+    local port="$DEFAULT_PORT"
+    local env_file="$HOME/.dispatch/.env"
+    local dispatch_home="$HOME/.dispatch"
+    local workspace_dir="$HOME/workspace"
+    
+    # Parse command line options
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -p|--port)
+                port="$2"
+                shift 2
+                ;;
+            --env-file)
+                env_file="$2"
+                shift 2
+                ;;
+            --dispatch-home)
+                dispatch_home="$2"
+                shift 2
+                ;;
+            --workspace)
+                workspace_dir="$2"
+                shift 2
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                exit 1
+                ;;
+        esac
+    done
+    
+    # Expand paths
+    env_file=$(expand_path "$env_file")
+    dispatch_home=$(expand_path "$dispatch_home")
+    workspace_dir=$(expand_path "$workspace_dir")
+    
+    check_docker
+    
+    # Check if container is already running
+    if is_container_running; then
+        log_warn "Container '$CONTAINER_NAME' is already running"
+        log_info "Use 'dispatch stop' to stop it first"
+        exit 1
+    fi
+    
+    # Remove existing stopped container if it exists
+    if docker ps -a --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        log_info "Removing existing stopped container..."
+        docker rm "$CONTAINER_NAME" >/dev/null 2>&1
+    fi
+    
+    # Ensure directories exist
+    ensure_directory "$dispatch_home"
+    ensure_directory "$workspace_dir"
+    
+    # Check if .env file exists
+    if [[ ! -f "$env_file" ]]; then
+        log_warn ".env file not found at: $env_file"
+        log_info "Run 'dispatch init' first to create the configuration"
+        exit 1
+    fi
+    
+    log_info "Starting Dispatch container..."
+    log_info "Environment file: $env_file"
+    log_info "Dispatch home: $dispatch_home"
+    log_info "Workspace: $workspace_dir"
+    log_info "Port: $port"
+    
+    # Get current user UID/GID for proper file permissions
+    local uid=$(id -u)
+    local gid=$(id -g)
+    
+    # Start the container
+    docker run -d \
+        --name "$CONTAINER_NAME" \
+        -p "$port:3030" \
+        --restart=unless-stopped \
+        --env-file "$env_file" \
+        -e "HOST_UID=$uid" \
+        -e "HOST_GID=$gid" \
+        -v "$dispatch_home:/home/dispatch" \
+        -v "$workspace_dir:/workspace" \
+        "$DOCKER_IMAGE"
+    
+    # Wait a moment for container to start
+    sleep 3
+    
+    if is_container_running; then
+        log_success "Container started successfully!"
+        log_info "Web interface: http://localhost:$port"
+        
+        # Extract and show TERMINAL_KEY from env file
+        if [[ -f "$env_file" ]]; then
+            local terminal_key=$(grep "^TERMINAL_KEY=" "$env_file" | cut -d'=' -f2 | tr -d '"'"'"'')
+            if [[ -n "$terminal_key" ]]; then
+                log_info "Terminal key: $terminal_key"
+            fi
+        fi
+    else
+        log_error "Failed to start container"
+        exit 1
+    fi
+}
+
+# Stop command - stop the Docker container
+cmd_stop() {
+    check_docker
+    
+    if ! is_container_running; then
+        log_warn "Container '$CONTAINER_NAME' is not running"
+        return 0
+    fi
+    
+    log_info "Stopping Dispatch container..."
+    
+    if docker stop "$CONTAINER_NAME" >/dev/null 2>&1; then
+        log_success "Container stopped successfully"
+        
+        # Remove the container
+        if docker rm "$CONTAINER_NAME" >/dev/null 2>&1; then
+            log_success "Container removed"
+        fi
+    else
+        log_error "Failed to stop container"
+        exit 1
+    fi
+}
+
+# Update command - update to latest Docker image
+cmd_update() {
+    check_docker
+    
+    local was_running=false
+    if is_container_running; then
+        was_running=true
+        log_info "Stopping running container for update..."
+        cmd_stop
+    fi
+    
+    log_info "Pulling latest Docker image: $DOCKER_IMAGE"
+    
+    if docker pull "$DOCKER_IMAGE"; then
+        log_success "Successfully updated to latest image"
+        
+        if [[ "$was_running" == "true" ]]; then
+            log_info "Restarting container with new image..."
+            cmd_start
+        fi
+    else
+        log_error "Failed to pull latest image"
+        exit 1
+    fi
+}
+
+# Status command - show container status
+cmd_status() {
+    check_docker
+    
+    local status=$(get_container_status)
+    
+    if [[ -z "$status" ]]; then
+        log_info "Container '$CONTAINER_NAME' does not exist"
+    elif is_container_running; then
+        log_success "Container '$CONTAINER_NAME' is running"
+        
+        # Show container details
+        docker ps --filter "name=${CONTAINER_NAME}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+        
+        # Show web interface URL
+        local port=$(docker port "$CONTAINER_NAME" 3030/tcp 2>/dev/null | cut -d':' -f2)
+        if [[ -n "$port" ]]; then
+            log_info "Web interface: http://localhost:$port"
+        fi
+    else
+        log_warn "Container '$CONTAINER_NAME' exists but is not running ($status)"
+    fi
+}
+
+# Show help
+show_help() {
+    cat << EOF
+Dispatch Docker Management Script v$VERSION
+
+USAGE:
+    dispatch <COMMAND> [OPTIONS]
+
+COMMANDS:
+    init                 Create configuration directories and default .env file
+    start                Start the Dispatch container
+    stop                 Stop the Dispatch container
+    update               Update to the latest Docker image
+    status               Show container status
+    help                 Show this help message
+
+START OPTIONS:
+    -p, --port <PORT>           Port for web interface (default: $DEFAULT_PORT)
+    --env-file <PATH>           Path to .env file (default: ~/.dispatch/.env)
+    --dispatch-home <PATH>      Dispatch home directory (default: ~/.dispatch)
+    --workspace <PATH>          Workspace directory (default: ~/workspace)
+
+EXAMPLES:
+    dispatch init               Initialize environment
+    dispatch start              Start with default settings
+    dispatch start -p 8080      Start on port 8080
+    dispatch stop               Stop the container
+    dispatch update             Update to latest version
+
+For more information, visit: https://github.com/fwdslsh/dispatch
+EOF
+}
+
+# Main command dispatcher
+main() {
+    if [[ $# -eq 0 ]]; then
+        show_help
+        exit 1
+    fi
+    
+    local command="$1"
+    shift
+    
+    case "$command" in
+        init)
+            cmd_init "$@"
+            ;;
+        start)
+            cmd_start "$@"
+            ;;
+        stop)
+            cmd_stop "$@"
+            ;;
+        update)
+            cmd_update "$@"
+            ;;
+        status)
+            cmd_status "$@"
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        *)
+            log_error "Unknown command: $command"
+            echo
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+# Run main function with all arguments
+main "$@"

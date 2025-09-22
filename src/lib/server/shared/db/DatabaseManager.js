@@ -551,10 +551,10 @@ export class DatabaseManager {
 	async updateSettingInCategory(category, key, value) {
 		// Get current settings for category
 		const currentSettings = await this.getSettingsByCategory(category);
-		
+
 		// Update the specific key
 		currentSettings[key] = value;
-		
+
 		// Save back to database
 		await this.setSettingsForCategory(category, currentSettings);
 	}

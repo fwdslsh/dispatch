@@ -126,7 +126,8 @@ export async function POST({ request, locals }) {
 		}
 
 		// Determine the working directory with user preference override
-		const workingDirectory = cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
+		const workingDirectory =
+			cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
 
 		// Create run session using unified manager
 		const { runId } = await locals.services.runSessionManager.createRunSession({

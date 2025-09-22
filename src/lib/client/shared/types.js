@@ -15,4 +15,3 @@
 // Note: this file only provides JSDoc typedefs. Export a placeholder so the
 // module can be imported for JSDoc `import(...)` type references.
 export default {};
-

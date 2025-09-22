@@ -1,5 +1,21 @@
 #!/usr/bin/env node
 
+// ⚠️ DEPRECATION NOTICE ⚠️
+// This Node.js CLI is deprecated and will be removed in a future version.
+// Please use the new Bash CLI at bin/dispatch instead.
+//
+// Migration guide:
+// 1. Run: ./install.sh (from repository root)
+// 2. Use: dispatch init && dispatch start
+//
+// The new CLI provides better performance, simpler installation,
+// and standardized configuration with .env files.
+
+console.warn('⚠️  WARNING: This Node.js CLI is deprecated!');
+console.warn('📄 Use the new Bash CLI instead: bin/dispatch');
+console.warn('📖 Run ./install.sh to install the new CLI');
+console.warn('');
+
 import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';

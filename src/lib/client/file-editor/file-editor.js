@@ -19,7 +19,6 @@ export const fileEditorSessionModule = {
 		return props;
 	},
 	prepareHeaderProps: function (session, options) {
-		return {
-			};
+		return {};
 	}
 };
