@@ -495,18 +495,19 @@ program
 				console.log('⏳ Waiting for tunnel to establish...');
 				await new Promise((resolve) => setTimeout(resolve, 5000));
 
-				// Try to read tunnel URL from file (if container writes it)
+				// Try to get tunnel URL from settings API
 				try {
-					const tunnelUrlFile = '/tmp/tunnel-url.txt';
-					if (fs.existsSync(tunnelUrlFile)) {
-						tunnelUrl = fs.readFileSync(tunnelUrlFile, 'utf8').trim();
-						if (tunnelUrl) {
+					const response = await fetch(`http://localhost:${config.port}/api/settings?category=tunnel`);
+					if (response.ok) {
+						const tunnelSettings = await response.json();
+						if (tunnelSettings.url) {
+							tunnelUrl = tunnelSettings.url;
 							accessUrl = tunnelUrl;
 							console.log(`🌐 Public URL: ${tunnelUrl}`);
 						}
 					}
 				} catch (error) {
-					console.warn('⚠️  Could not read tunnel URL, using local URL');
+					console.warn('⚠️  Could not fetch tunnel URL from API, using local URL');
 				}
 			}
 

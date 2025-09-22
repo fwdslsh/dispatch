@@ -11,7 +11,7 @@
 		enabled: false,
 		running: false,
 		url: null,
-		port: null,
+		port: typeof window !== 'undefined' ? window.location.port || (window.location.protocol === 'https:' ? '443' : '80') : null,
 		subdomain: ''
 	});
 	let isLoading = $state(false);
@@ -70,8 +70,11 @@
 				return;
 			}
 
-			// Now toggle tunnel
-			socket.emit(event, {}, (response) => {
+			// Get the current port from window location
+			const currentPort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+
+			// Now toggle tunnel with port
+			socket.emit(event, { port: currentPort }, (response) => {
 				isLoading = false;
 				if (response.success) {
 					tunnelStatus = response.status;

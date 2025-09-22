@@ -39,7 +39,7 @@ export async function GET({ url, locals }) {
 			result = { categories: allSettings };
 		} else {
 			// Get all settings without metadata (public)
-			const categories = ['global', 'claude'];
+			const categories = ['global', 'claude', 'tunnel'];
 			result = {};
 			for (const cat of categories) {
 				const settings = await databaseManager.getSettingsByCategory(cat);

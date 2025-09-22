@@ -84,8 +84,9 @@ export async function initializeServices(config = {}) {
 		const tunnelManager = new TunnelManager({
 			port: resolvedConfig.port,
 			subdomain: resolvedConfig.tunnelSubdomain,
-			configDir: resolvedConfig.configDir
+			database: database
 		});
+		await tunnelManager.init();
 
 		const services = {
 			database,

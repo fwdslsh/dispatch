@@ -64,6 +64,11 @@ export function setupSocketIO(httpServer, services) {
 	});
 	activeIO = io;
 
+	// Set Socket.IO instance on TunnelManager for broadcasting
+	if (services.tunnelManager) {
+		services.tunnelManager.setSocketIO(io);
+	}
+
 	const { runSessionManager } = services;
 
 	if (!runSessionManager) {
@@ -237,8 +242,13 @@ export function setupSocketIO(httpServer, services) {
 				return;
 			}
 
-			logger.info('SOCKET', `Tunnel enable requested by socket ${socket.id}`);
+			logger.info('SOCKET', `Tunnel enable requested by socket ${socket.id} with data:`, data);
 			const tunnelManager = services.tunnelManager;
+
+			// Update port if provided
+			if (data?.port) {
+				tunnelManager.port = parseInt(data.port, 10);
+			}
 
 			tunnelManager
 				.start()
@@ -259,7 +269,7 @@ export function setupSocketIO(httpServer, services) {
 				});
 		});
 
-		socket.on('tunnel.disable', (data, callback) => {
+		socket.on('tunnel.disable', async (data, callback) => {
 			if (!socket.data.authenticated) {
 				logger.warn('SOCKET', `Unauthenticated tunnel.disable from ${socket.id}`);
 				if (callback) callback({ success: false, error: 'Unauthorized' });
@@ -268,7 +278,7 @@ export function setupSocketIO(httpServer, services) {
 
 			logger.info('SOCKET', `Tunnel disable requested by socket ${socket.id}`);
 			const tunnelManager = services.tunnelManager;
-			const success = tunnelManager.stop();
+			const success = await tunnelManager.stop();
 			const status = tunnelManager.getStatus();
 
 			logger.info('SOCKET', `Tunnel disable result: ${success}`, status);
@@ -295,7 +305,7 @@ export function setupSocketIO(httpServer, services) {
 			}
 		});
 
-		socket.on('tunnel.updateConfig', (data, callback) => {
+		socket.on('tunnel.updateConfig', async (data, callback) => {
 			if (!socket.data.authenticated) {
 				logger.warn('SOCKET', `Unauthenticated tunnel.updateConfig from ${socket.id}`);
 				if (callback) callback({ success: false, error: 'Unauthorized' });
@@ -304,7 +314,7 @@ export function setupSocketIO(httpServer, services) {
 
 			logger.info('SOCKET', `Tunnel config update requested by socket ${socket.id}`, data);
 			const tunnelManager = services.tunnelManager;
-			const success = tunnelManager.updateConfig(data);
+			const success = await tunnelManager.updateConfig(data);
 			const status = tunnelManager.getStatus();
 
 			logger.info('SOCKET', `Tunnel config update result: ${success}`, status);
