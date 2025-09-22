@@ -22,6 +22,7 @@ docker run -d -p 3030:3030 \
 
 ## Why Dispatch?
 
+
 **🛡️ Security by Design**
 
 - Isolated Docker containers protect your host system
@@ -71,21 +72,6 @@ docker run -d -p 3030:3030 \
 - Complete command history
 - Cross-device synchronization
 - Shareable session logs for team debugging
-
-## 📊 Feature Comparison
-
-| Feature                   | Dispatch           | CrewAI          | OpenDevin   | Superagent         |
-| ------------------------- | ------------------ | --------------- | ----------- | ------------------ |
-| **Pricing**               | Free & Open Source | Freemium        | Open Source | Paid Plans         |
-| **Local Execution**       | ✅ Default         | ❌ Cloud Only   | ✅ Optional | ❌ Cloud Only      |
-| **Container Isolation**   | ✅ Docker          | ❌ Process Only | ✅ Docker   | ❌ Cloud Sandboxes |
-| **Session Resume**        | ✅ Cross-device    | ❌ No           | ⚠️ Limited  | ✅ Cloud Only      |
-| **Claude AI Integration** | ✅ Native          | ❌ No           | ⚠️ Plugin   | ✅ API Only        |
-| **Unattended Execution**  | ✅ Background      | ✅ Workflows    | ⚠️ Limited  | ✅ Cloud           |
-| **No Cloud Dependency**   | ✅ Local-first     | ❌ Required     | ✅ Optional | ❌ Required        |
-| **Web-based Access**      | ✅ Browser         | ✅ Dashboard    | ⚠️ Limited  | ✅ Dashboard       |
-| **Team Collaboration**    | ✅ Shared Sessions | ✅ Workspaces   | ❌ No       | ✅ Paid            |
-| **Custom Extensions**     | ✅ Adapter API     | ✅ Plugins      | ✅ Tools    | ⚠️ Limited         |
 
 ### Why Choose Dispatch?
 
