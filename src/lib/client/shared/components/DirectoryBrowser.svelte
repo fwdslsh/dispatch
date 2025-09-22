@@ -860,7 +860,7 @@
 	.clone-dir-form {
 		display: flex;
 		flex-direction: column;
-		gap: calc(var(--space-3) * 1.2);
+		gap: calc(var(--space-2) * 1.3);
 		padding: calc(var(--space-3) * 1.2);
 		background:
 			linear-gradient(135deg, var(--db-primary-dim) 0%, var(--db-surface-elevated) 100%),
@@ -873,12 +873,10 @@
 			inset 0 2px 4px rgba(46, 230, 107, 0.15),
 			inset 0 -2px 4px rgba(0, 0, 0, 0.3);
 		animation: expandIn 0.4s var(--db-transition-bounce);
-		/* Fix overflow issues */
 		max-width: 100%;
+		width: 100%;
 		box-sizing: border-box;
 		overflow: hidden;
-		/* Ensure it doesn't exceed the modal width */
-		width: 100%;
 	}
 
 	.clone-dir-form::before {
@@ -905,20 +903,21 @@
 	.clone-dir-fields {
 		display: flex;
 		flex-direction: column;
-		gap: calc(var(--space-2) * 1.3);
+		gap: calc(var(--space-2) * 1.2);
 		position: relative;
 		z-index: 1;
-		/* Ensure proper spacing and prevent overflow */
 		width: 100%;
 		box-sizing: border-box;
 	}
 
-	/* Make input fields responsive */
+	/* Make input fields responsive and match the component styling */
 	.clone-dir-fields :global(.clone-source-input),
 	.clone-dir-fields :global(.clone-target-input) {
 		width: 100%;
-		min-width: 0; /* Allow inputs to shrink properly */
+		min-width: 0;
+		max-width: 100%;
 		box-sizing: border-box;
+		flex: 1;
 	}
 
 	.clone-overwrite-option {
