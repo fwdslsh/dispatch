@@ -1,0 +1,326 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { spawn } from 'node:child_process';
+import { GET } from '../../src/routes/api/git/status/+server.js';
+import { POST as commitPost } from '../../src/routes/api/git/commit/+server.js';
+import { POST as stagePost } from '../../src/routes/api/git/stage/+server.js';
+import { POST as checkoutPost } from '../../src/routes/api/git/checkout/+server.js';
+
+// Mock child_process spawn
+vi.mock('node:child_process', () => ({
+	spawn: vi.fn()
+}));
+
+// Mock path
+vi.mock('node:path', () => ({
+	resolve: vi.fn((path) => path)
+}));
+
+describe('Git API Endpoints', () => {
+	let mockSpawn;
+
+	beforeEach(async () => {
+		mockSpawn = spawn;
+		vi.resetAllMocks();
+	});
+
+	afterEach(() => {
+		vi.clearAllMocks();
+	});
+
+	describe('GET /api/git/status', () => {
+		it('should return git status for valid repository', async () => {
+			// Mock git rev-parse success
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: { on: vi.fn() },
+				stderr: { on: vi.fn() },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(0);
+				})
+			}));
+
+			// Mock git rev-parse for branch
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: { on: vi.fn((event, callback) => callback('main\n')) },
+				stderr: { on: vi.fn() },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(0);
+				})
+			}));
+
+			// Mock git status
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: {
+					on: vi.fn((event, callback) =>
+						callback('## main...origin/main [ahead 1]\n M file1.js\n?? file2.js\nA  file3.js\n')
+					)
+				},
+				stderr: { on: vi.fn() },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(0);
+				})
+			}));
+
+			const url = new URL('http://localhost/api/git/status?path=/test/repo');
+			const response = await GET({ url });
+			const data = await response.json();
+
+			expect(response.status).toBe(200);
+			expect(data.branch).toBe('main');
+			expect(data.isGitRepo).toBe(true);
+			expect(data.status).toEqual({
+				modified: ['file1.js'],
+				staged: ['file3.js'],
+				untracked: ['file2.js'],
+				ahead: 1,
+				behind: 0
+			});
+		});
+
+		it('should return 404 for non-git repository', async () => {
+			// Mock git rev-parse failure
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: { on: vi.fn() },
+				stderr: { on: vi.fn((event, callback) => callback('Not a git repository')) },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(128);
+				})
+			}));
+
+			const url = new URL('http://localhost/api/git/status?path=/test/repo');
+			const response = await GET({ url });
+			const data = await response.json();
+
+			expect(response.status).toBe(404);
+			expect(data.error).toBe('Not a git repository');
+		});
+
+		it('should return 400 for missing path parameter', async () => {
+			const url = new URL('http://localhost/api/git/status');
+			const response = await GET({ url });
+			const data = await response.json();
+
+			expect(response.status).toBe(400);
+			expect(data.error).toBe('Path parameter is required');
+		});
+	});
+
+	describe('POST /api/git/commit', () => {
+		it('should create commit successfully', async () => {
+			// Mock successful git commit
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: { on: vi.fn((event, callback) => callback('Commit created successfully')) },
+				stderr: { on: vi.fn() },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(0);
+				})
+			}));
+
+			const request = {
+				json: async () => ({
+					path: '/test/repo',
+					message: 'Test commit message'
+				})
+			};
+
+			const response = await commitPost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(200);
+			expect(data.success).toBe(true);
+			expect(data.message).toBe('Commit created successfully');
+		});
+
+		it('should return 400 for missing message', async () => {
+			const request = {
+				json: async () => ({
+					path: '/test/repo',
+					message: ''
+				})
+			};
+
+			const response = await commitPost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(400);
+			expect(data.error).toBe('Path and message are required');
+		});
+
+		it('should handle git commit errors', async () => {
+			// Mock failed git commit
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: { on: vi.fn() },
+				stderr: { on: vi.fn((event, callback) => callback('Nothing to commit')) },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(1);
+				})
+			}));
+
+			const request = {
+				json: async () => ({
+					path: '/test/repo',
+					message: 'Test commit message'
+				})
+			};
+
+			const response = await commitPost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(500);
+			expect(data.error).toBe('Nothing to commit');
+		});
+	});
+
+	describe('POST /api/git/stage', () => {
+		it('should stage files successfully', async () => {
+			// Mock successful git add
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: { on: vi.fn() },
+				stderr: { on: vi.fn() },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(0);
+				})
+			}));
+
+			const request = {
+				json: async () => ({
+					path: '/test/repo',
+					files: ['file1.js'],
+					action: 'stage'
+				})
+			};
+
+			const response = await stagePost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(200);
+			expect(data.success).toBe(true);
+			expect(data.action).toBe('stage');
+			expect(data.files).toEqual(['file1.js']);
+		});
+
+		it('should unstage files successfully', async () => {
+			// Mock successful git reset
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: { on: vi.fn() },
+				stderr: { on: vi.fn() },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(0);
+				})
+			}));
+
+			const request = {
+				json: async () => ({
+					path: '/test/repo',
+					files: ['file1.js'],
+					action: 'unstage'
+				})
+			};
+
+			const response = await stagePost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(200);
+			expect(data.success).toBe(true);
+			expect(data.action).toBe('unstage');
+			expect(data.files).toEqual(['file1.js']);
+		});
+
+		it('should return 400 for invalid action', async () => {
+			const request = {
+				json: async () => ({
+					path: '/test/repo',
+					files: ['file1.js'],
+					action: 'invalid'
+				})
+			};
+
+			const response = await stagePost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(400);
+			expect(data.error).toBe('Action must be "stage" or "unstage"');
+		});
+
+		it('should return 400 for missing required parameters', async () => {
+			const request = {
+				json: async () => ({
+					path: '/test/repo'
+					// missing files and action
+				})
+			};
+
+			const response = await stagePost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(400);
+			expect(data.error).toBe('Path, files array, and action are required');
+		});
+	});
+
+	describe('POST /api/git/checkout', () => {
+		it('should checkout branch successfully', async () => {
+			// Mock successful git checkout
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: { on: vi.fn((event, callback) => callback("Switched to branch 'develop'")) },
+				stderr: { on: vi.fn() },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(0);
+				})
+			}));
+
+			const request = {
+				json: async () => ({
+					path: '/test/repo',
+					branch: 'develop'
+				})
+			};
+
+			const response = await checkoutPost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(200);
+			expect(data.success).toBe(true);
+			expect(data.branch).toBe('develop');
+			expect(data.message).toBe("Switched to branch 'develop'");
+		});
+
+		it('should return 400 for missing branch', async () => {
+			const request = {
+				json: async () => ({
+					path: '/test/repo'
+					// missing branch
+				})
+			};
+
+			const response = await checkoutPost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(400);
+			expect(data.error).toBe('Path and branch are required');
+		});
+
+		it('should handle git checkout errors', async () => {
+			// Mock failed git checkout
+			mockSpawn.mockImplementationOnce(() => ({
+				stdout: { on: vi.fn() },
+				stderr: { on: vi.fn((event, callback) => callback("Branch 'nonexistent' not found")) },
+				on: vi.fn((event, callback) => {
+					if (event === 'close') callback(1);
+				})
+			}));
+
+			const request = {
+				json: async () => ({
+					path: '/test/repo',
+					branch: 'nonexistent'
+				})
+			};
+
+			const response = await checkoutPost({ request });
+			const data = await response.json();
+
+			expect(response.status).toBe(500);
+			expect(data.error).toBe("Branch 'nonexistent' not found");
+		});
+	});
+});

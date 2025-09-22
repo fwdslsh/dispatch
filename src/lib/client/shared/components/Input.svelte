@@ -132,9 +132,10 @@
 		</label>
 	{/if}
 
-	<div class="input__field-wrapper">
+	<div class="input__field-wrapper" data-augmented-ui-reset>
 		{#if type === 'textarea'}
 			<textarea
+				data-augmented-ui={augmented}
 				id={inputId}
 				class={inputClasses}
 				{placeholder}
@@ -160,6 +161,7 @@
 			></textarea>
 		{:else}
 			<input
+				data-augmented-ui={augmented}
 				id={inputId}
 				class={inputClasses}
 				{type}
@@ -214,6 +216,7 @@
 		flex-direction: column;
 		gap: var(--space-2);
 		width: 100%;
+		padding: var(--space-3);
 	}
 
 	.input__label {
@@ -249,18 +252,12 @@
 	input,
 	textarea {
 		background: color-mix(in oklab, var(--surface) 60%, var(--bg));
-		border: 2px solid var(--primary-dim);
-		border-radius: 0;
 		color: var(--text);
 		font-family: var(--font-mono);
-
-		/* Terminal styling */
-		box-shadow:
-			inset 0 0 20px color-mix(in oklab, var(--bg) 50%, black),
-			0 0 10px var(--glow);
-
+		border: none;
 		transition: all 0.3s ease;
 		position: relative;
+		border-radius: 0;
 	}
 
 	input:focus,
