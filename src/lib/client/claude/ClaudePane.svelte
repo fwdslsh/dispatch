@@ -957,7 +957,6 @@
 			justify-content: center;
 		}
 	}
-</style>
 
 	/* AWARD-WINNING CHAT INTERFACE 2025
 	   Features: Advanced glass-morphism, spatial design, micro-interactions,
