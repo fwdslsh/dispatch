@@ -35,7 +35,7 @@
 		...restProps
 	} = $props();
 
-	// Compute classes
+	// Compute classes using global utilities
 	const errorClasses = $derived.by(() => {
 		const classes = ['error-display', `error-display--${severity}`, `error-display--${size}`];
 		if (dismissible) classes.push('error-display--dismissible');
@@ -108,185 +108,48 @@
 	{/if}
 </div>
 
+
 <style>
-	.error-display {
-		display: flex;
-		align-items: flex-start;
-		gap: var(--space-sm);
-		padding: var(--space-sm) var(--space-md);
-		border-radius: 6px;
-		border-left: 4px solid;
-		font-family: var(--font-sans);
-		position: relative;
-	}
+/* Component-specific overrides only */
+.error-display {
+transition: all 0.3s ease;
+}
 
-	/* Severity variants */
-	.error-display--error {
-		background: rgba(255, 107, 107, 0.1);
-		border-left-color: var(--secondary);
-		color: var(--text-primary);
-	}
+/* Terminal-style glow effects for errors */
+.error-display--error {
+box-shadow: 0 0 20px color-mix(in oklab, var(--err) 20%, transparent);
+}
 
-	.error-display--warning {
-		background: rgba(255, 167, 38, 0.1);
-		border-left-color: #ffa726;
-		color: var(--text-primary);
-	}
+.error-display--warning {
+box-shadow: 0 0 20px color-mix(in oklab, var(--warn) 20%, transparent);
+}
 
-	.error-display--info {
-		background: rgba(0, 255, 136, 0.1);
-		border-left-color: var(--primary);
-		color: var(--text-primary);
-	}
+.error-display--success {
+box-shadow: 0 0 20px color-mix(in oklab, var(--ok) 20%, transparent);
+}
 
-	.error-display--success {
-		background: rgba(76, 175, 80, 0.1);
-		border-left-color: #4caf50;
-		color: var(--text-primary);
-	}
+.error-display--info {
+box-shadow: 0 0 20px color-mix(in oklab, var(--accent-cyan) 20%, transparent);
+}
 
-	/* Size variants */
-	.error-display--small {
-		padding: var(--space-xs) var(--space-sm);
-		font-size: 0.875rem;
-	}
+/* Hover effects for better interactivity */
+.error-display:hover {
+transform: translateY(-1px);
+}
 
-	.error-display--medium {
-		padding: var(--space-sm) var(--space-md);
-		font-size: 1rem;
-	}
+.error-display--error:hover {
+box-shadow: 0 4px 20px color-mix(in oklab, var(--err) 30%, transparent);
+}
 
-	.error-display--large {
-		padding: var(--space-md) var(--space-lg);
-		font-size: 1.125rem;
-	}
+.error-display--warning:hover {
+box-shadow: 0 4px 20px color-mix(in oklab, var(--warn) 30%, transparent);
+}
 
-	/* Icon */
-	.error-display__icon {
-		flex-shrink: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin-top: 2px;
-	}
+.error-display--info:hover {
+box-shadow: 0 4px 20px color-mix(in oklab, var(--accent-cyan) 30%, transparent);
+}
 
-	.error-display--error .error-display__icon {
-		color: var(--secondary);
-	}
-
-	.error-display--warning .error-display__icon {
-		color: #ffa726;
-	}
-
-	.error-display--info .error-display__icon {
-		color: var(--primary);
-	}
-
-	.error-display--success .error-display__icon {
-		color: #4caf50;
-	}
-
-	.error-display--small .error-display__icon {
-		margin-top: 1px;
-	}
-
-	.error-display--large .error-display__icon {
-		margin-top: 3px;
-	}
-
-	/* Content */
-	.error-display__content {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.error-display__title {
-		font-size: 1em;
-		font-weight: 600;
-		margin: 0 0 var(--space-xs) 0;
-		line-height: 1.3;
-	}
-
-	.error-display--small .error-display__title {
-		font-size: 0.875rem;
-	}
-
-	.error-display--large .error-display__title {
-		font-size: 1.25rem;
-	}
-
-	.error-display__message {
-		line-height: 1.4;
-		margin: 0;
-	}
-
-	.error-display__slot {
-		margin-top: var(--space-xs);
-	}
-
-	/* Dismiss button */
-	.error-display--dismissible {
-		padding-right: var(--space-xl);
-	}
-
-	.error-display__dismiss {
-		position: absolute;
-		top: var(--space-sm);
-		right: var(--space-sm);
-		background: none;
-		border: none;
-		color: currentColor;
-		cursor: pointer;
-		padding: var(--space-xs);
-		border-radius: 4px;
-		opacity: 0.7;
-		transition: all 0.2s ease;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.error-display__dismiss:hover {
-		opacity: 1;
-		background: rgba(255, 255, 255, 0.1);
-	}
-
-	.error-display__dismiss:focus-visible {
-		outline: 2px solid currentColor;
-		outline-offset: 2px;
-		opacity: 1;
-	}
-
-	.error-display--small .error-display__dismiss {
-		top: var(--space-xs);
-		right: var(--space-xs);
-	}
-
-	.error-display--large .error-display__dismiss {
-		top: var(--space-md);
-		right: var(--space-md);
-	}
-
-	/* Responsive */
-	@media (max-width: 768px) {
-		.error-display {
-			gap: var(--space-xs);
-		}
-
-		.error-display--dismissible {
-			padding-right: var(--space-lg);
-		}
-	}
-
-	/* High contrast mode support */
-	@media (prefers-contrast: high) {
-		.error-display {
-			border-width: 2px;
-			background: var(--bg);
-		}
-
-		.error-display__dismiss {
-			border: 1px solid currentColor;
-		}
-	}
+.error-display--success:hover {
+box-shadow: 0 4px 20px color-mix(in oklab, var(--ok) 30%, transparent);
+}
 </style>
