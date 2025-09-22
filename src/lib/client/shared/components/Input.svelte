@@ -97,9 +97,9 @@
 	const isAtLimit = $derived(maxLength && characterCount >= maxLength);
 
 	const counterClasses = $derived.by(() => {
-		const classes = ['input__counter'];
-		if (isAtLimit) classes.push('input__counter--error');
-		else if (isApproachingLimit) classes.push('input__counter--warning');
+		const classes = [];
+		if (isAtLimit) classes.push('form-counter--error');
+		else if (isApproachingLimit) classes.push('form-counter--warning');
 		return classes.join(' ');
 	});
 
@@ -122,22 +122,22 @@
 	}
 </script>
 
-<div class="input-wrapper" data-augmented-ui={augmented}>
+<div class="form-wrapper" data-augmented-ui={augmented}>
 	{#if label}
-		<label for={inputId} class="input__label" id={labelId}>
+		<label for={inputId} class="form-label" id={labelId}>
 			{label}
 			{#if required}
-				<span class="input__required" aria-label="required">*</span>
+				<span class="form-required" aria-label="required">*</span>
 			{/if}
 		</label>
 	{/if}
 
-	<div class="input__field-wrapper" data-augmented-ui-reset>
+	<div class="form-field-wrapper" data-augmented-ui-reset>
 		{#if type === 'textarea'}
 			<textarea
 				data-augmented-ui={augmented}
 				id={inputId}
-				class={inputClasses}
+				class="form-textarea {inputClasses}"
 				{placeholder}
 				{disabled}
 				{readonly}
@@ -163,7 +163,7 @@
 			<input
 				data-augmented-ui={augmented}
 				id={inputId}
-				class={inputClasses}
+				class="form-input {inputClasses}"
 				{type}
 				{placeholder}
 				{disabled}
@@ -187,103 +187,48 @@
 		{/if}
 
 		{#if maxLength}
-			<div class={counterClasses} id={counterId} aria-live="polite">
+			<div class="form-counter {counterClasses}" id={counterId} aria-live="polite">
 				{characterCount}/{maxLength}
 			</div>
 		{/if}
 	</div>
 
 	{#if help && !error && !warning}
-		<div class="input__help" id={helpId}>
+		<div class="form-help" id={helpId}>
 			{help}
 		</div>
 	{/if}
 
 	{#if error}
-		<div class="input__error" id={errorId} role="alert">
+		<div class="form-error" id={errorId} role="alert">
 			{error}
 		</div>
 	{:else if warning}
-		<div class="input__warning" id={warningId} role="alert">
+		<div class="form-warning" id={warningId} role="alert">
 			{warning}
 		</div>
 	{/if}
 </div>
 
 <style>
-	.input-wrapper {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		width: 100%;
-		padding: var(--space-3);
+	/* Component-specific overrides only */
+	.form-counter {
+		position: absolute;
+		bottom: var(--space-1);
+		right: var(--space-3);
+		background: var(--surface);
+		padding: 2px 4px;
+		border-radius: 2px;
+		pointer-events: none;
 	}
 
-	.input__label {
-		font-size: 0.875rem;
-		font-weight: 600;
-		font-family: var(--font-mono);
-		color: var(--muted);
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	/* Terminal label prefix */
-	.input__label::before {
-		content: '> ';
-		color: var(--accent-amber);
-		font-weight: 700;
-	}
-
-	.input__required {
-		color: var(--err);
-		font-weight: bold;
-	}
-
-	.input__field-wrapper {
-		position: relative;
-		width: 100%;
-	}
-
-	/* Enhanced terminal input styling using design system variables */
-	input,
-	textarea {
-		background: color-mix(in oklab, var(--surface) 60%, var(--bg));
-		color: var(--text);
-		font-family: var(--font-mono);
-		border: none;
-		transition: all 0.3s ease;
-		position: relative;
-		border-radius: 0;
-	}
-
-	input:focus,
-	textarea:focus {
-		border-color: var(--accent);
-		background: color-mix(in oklab, var(--surface) 80%, var(--bg));
-		color: var(--accent);
-		box-shadow:
-			inset 0 0 20px color-mix(in oklab, var(--bg) 50%, black),
-			0 0 20px var(--glow),
-			0 0 0 3px var(--glow);
-		text-shadow: 0 0 8px var(--glow);
-		outline: none;
-	}
-
-	/* Textarea specific */
-	textarea {
-		resize: vertical;
-		min-height: 80px;
-		height: auto;
-		line-height: 1.5;
+	.form-textarea ~ .form-counter {
+		bottom: var(--space-3);
 	}
 
 	/* Terminal cursor effect simulation */
-	input:focus::after,
-	textarea:focus::after {
+	.form-input:focus::after,
+	.form-textarea:focus::after {
 		content: '';
 		position: absolute;
 		right: 8px;
@@ -296,40 +241,8 @@
 		pointer-events: none;
 	}
 
-	/* Character counter */
-	.input__counter {
-		position: absolute;
-		bottom: var(--space-1);
-		right: var(--space-3);
-		font-size: 0.75rem;
-		color: var(--muted);
-		background: var(--surface);
-		padding: 2px 4px;
-		border-radius: 2px;
-		pointer-events: none;
-	}
-
-	textarea ~ .input__counter {
-		bottom: var(--space-3);
-	}
-
-	.input__counter--warning {
-		color: var(--warn);
-	}
-
-	.input__counter--error {
-		color: var(--err);
-	}
-
-	/* Enhanced terminal help and validation messages */
-	.input__help {
-		font-size: 0.75rem;
-		font-family: var(--font-mono);
-		color: var(--muted);
-		line-height: 1.4;
-	}
-
-	.input__help::before {
+	/* Enhanced help and validation message styling */
+	.form-help::before {
 		content: 'i';
 		color: var(--accent-cyan);
 		margin-right: 0.25rem;
@@ -347,21 +260,14 @@
 		line-height: 1;
 	}
 
-	.input__error {
-		font-size: 0.75rem;
-		font-family: var(--font-mono);
-		color: var(--err);
-		line-height: 1.4;
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
+	.form-error {
 		background: color-mix(in oklab, var(--err) 10%, transparent);
 		padding: var(--space-2);
 		border: 1px solid color-mix(in oklab, var(--err) 30%, transparent);
 		text-shadow: 0 0 5px color-mix(in oklab, var(--err) 30%, transparent);
 	}
 
-	.input__error::before {
+	.form-error::before {
 		content: '!';
 		color: var(--err);
 		font-weight: bold;
@@ -378,21 +284,14 @@
 		margin-right: 0.25rem;
 	}
 
-	.input__warning {
-		font-size: 0.75rem;
-		font-family: var(--font-mono);
-		color: var(--warn);
-		line-height: 1.4;
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
+	.form-warning {
 		background: color-mix(in oklab, var(--warn) 10%, transparent);
 		padding: var(--space-2);
 		border: 1px solid color-mix(in oklab, var(--warn) 30%, transparent);
 		text-shadow: 0 0 5px color-mix(in oklab, var(--warn) 30%, transparent);
 	}
 
-	.input__warning::before {
+	.form-warning::before {
 		content: '!';
 		color: var(--warn);
 		font-weight: bold;
@@ -407,5 +306,10 @@
 		text-align: center;
 		line-height: 1;
 		margin-right: 0.25rem;
+	}
+
+	@keyframes cursorBlink {
+		0%, 50% { opacity: 1; }
+		51%, 100% { opacity: 0; }
 	}
 </style>

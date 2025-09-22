@@ -417,3 +417,218 @@
 		transition: none;
 	}
 }
+
+/* ==================================================================
+   FORM UTILITIES
+   Common form patterns and input styling
+   ================================================================== */
+
+.form-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	width: 100%;
+	padding: var(--space-3);
+}
+
+.form-label {
+	font-size: 0.875rem;
+	font-weight: 600;
+	font-family: var(--font-mono);
+	color: var(--muted);
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.form-label::before {
+	content: '> ';
+	color: var(--accent-amber);
+	font-weight: 700;
+}
+
+.form-required {
+	color: var(--err);
+	font-weight: bold;
+}
+
+.form-field-wrapper {
+	position: relative;
+	width: 100%;
+}
+
+.form-input,
+.form-textarea {
+	background: color-mix(in oklab, var(--surface) 60%, var(--bg));
+	color: var(--text);
+	font-family: var(--font-mono);
+	border: none;
+	transition: all 0.3s ease;
+	position: relative;
+	border-radius: 0;
+	width: 100%;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+	border-color: var(--accent);
+	background: color-mix(in oklab, var(--surface) 80%, var(--bg));
+	color: var(--accent);
+	box-shadow:
+		inset 0 0 20px color-mix(in oklab, var(--bg) 50%, black),
+		0 0 20px var(--glow),
+		0 0 0 3px var(--glow);
+	text-shadow: 0 0 8px var(--glow);
+	outline: none;
+}
+
+.form-textarea {
+	resize: vertical;
+	min-height: 80px;
+	height: auto;
+}
+
+.form-help {
+	font-size: var(--font-size-0);
+	color: var(--muted);
+	opacity: 0.8;
+}
+
+.form-error {
+	color: var(--err);
+	font-size: var(--font-size-0);
+	font-weight: 500;
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
+.form-warning {
+	color: var(--warn);
+	font-size: var(--font-size-0);
+	font-weight: 500;
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
+.form-counter {
+	font-size: var(--font-size-0);
+	color: var(--muted);
+	text-align: right;
+	font-family: var(--font-mono);
+}
+
+.form-counter--warning {
+	color: var(--warn);
+}
+
+.form-counter--error {
+	color: var(--err);
+}
+
+/* ==================================================================
+   MODAL UTILITIES
+   Modal and dialog patterns
+   ================================================================== */
+
+.modal-backdrop {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: color-mix(in oklab, var(--bg) 80%, black);
+	backdrop-filter: blur(8px);
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-4);
+	opacity: 0;
+	visibility: hidden;
+	transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.modal-backdrop.open {
+	opacity: 1;
+	visibility: visible;
+}
+
+.modal-container {
+	background: var(--surface);
+	border: 1px solid var(--surface-border);
+	border-radius: 8px;
+	box-shadow: 
+		0 20px 40px -12px color-mix(in oklab, var(--bg) 90%, black),
+		0 0 60px -20px var(--primary-glow),
+		inset 0 1px 2px rgba(255, 255, 255, 0.05);
+	max-width: 90vw;
+	max-height: 90vh;
+	width: 100%;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	transform: scale(0.9) translateY(20px);
+	transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.modal-container.open {
+	transform: scale(1) translateY(0);
+}
+
+.modal-container--small {
+	width: 400px;
+}
+
+.modal-container--medium {
+	width: 600px;
+}
+
+.modal-container--large {
+	width: 800px;
+}
+
+.modal-container--fullscreen {
+	width: 95vw;
+	height: 95vh;
+	max-width: none;
+	max-height: none;
+}
+
+.modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-4);
+	border-bottom: 1px solid var(--surface-border);
+	background: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
+}
+
+.modal-title {
+	font-family: var(--font-mono);
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: var(--text);
+	margin: 0;
+	letter-spacing: 0.025em;
+}
+
+.modal-content {
+	flex: 1;
+	padding: var(--space-4);
+	overflow-y: auto;
+	color: var(--text);
+	line-height: 1.6;
+}
+
+.modal-footer {
+	padding: var(--space-4);
+	border-top: 1px solid var(--surface-border);
+	background: color-mix(in oklab, var(--surface) 98%, var(--bg));
+	display: flex;
+	gap: var(--space-3);
+	justify-content: flex-end;
+}
