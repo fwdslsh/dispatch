@@ -62,7 +62,6 @@
 		return classes.join(' ');
 	});
 
-
 	// Handle backdrop click
 	function handleBackdropClick(event) {
 		if (event.target === event.currentTarget && closeOnBackdrop) {

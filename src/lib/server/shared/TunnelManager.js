@@ -198,7 +198,11 @@ export class TunnelManager {
 				lastUpdated: Date.now()
 			};
 
-			await this.database.setSettingsForCategory('tunnel', tunnelSettings, 'LocalTunnel configuration and status');
+			await this.database.setSettingsForCategory(
+				'tunnel',
+				tunnelSettings,
+				'LocalTunnel configuration and status'
+			);
 		} catch (error) {
 			logger.error('TUNNEL', `Failed to save tunnel settings: ${error.message}`);
 		}

@@ -2,211 +2,375 @@
 
 This document provides a comprehensive inventory of all configuration, settings, and environment variables used throughout the Dispatch system.
 
+**Last Updated:** December 2024  
+**Scope:** Complete codebase analysis covering all configuration references
+
 ## Configuration Sources Overview
 
-The Dispatch system uses configuration from multiple sources:
+The Dispatch system uses configuration from multiple sources with a clear hierarchy:
 
 1. **Environment Variables** - Runtime configuration passed to processes
 2. **Configuration Files** - JSON/JS files for persistent settings
-3. **localStorage/sessionStorage** - Client-side browser settings
-4. **Docker Configuration** - Container-specific settings
-5. **CLI Configuration** - User's local CLI settings
+3. **Database Settings** - Server-side stored preferences (SQLite)
+4. **localStorage/sessionStorage** - Client-side browser settings
+5. **Docker Configuration** - Container-specific settings
+6. **CLI Configuration** - User's local CLI settings (~/.dispatch/config.json)
+7. **Constants** - Hardcoded application defaults (src/lib/shared/constants.js)
+
+## Configuration Categories
+
+All settings have been categorized into the following types:
+
+- **Container Environment Config** - Docker/deployment environment variables
+- **Global Workspace Settings** - System-wide application settings
+- **Session-Specific Settings** - Individual session/terminal configuration
+- **User Settings** - Personal preferences and overrides
+- **Client-Specific Settings** - Browser/UI configuration and state
 
 ## Environment Variables
 
-### Core Application Variables
+### Container Environment Config
 
-| Variable               | Default                                  | Location           | Description                               | Runtime Configurable  |
-| ---------------------- | ---------------------------------------- | ------------------ | ----------------------------------------- | --------------------- |
-| **TERMINAL_KEY**       | `testkey12345` (dev), `change-me` (prod) | **Container/Host** | Authentication key for terminal access    | No - requires restart |
-| **PORT**               | `3030`                                   | **Container/Host** | Server listening port                     | No - requires restart |
-| **ENABLE_TUNNEL**      | `false`                                  | **Container/Host** | Enable LocalTunnel for public URL access  | No - requires restart |
-| **LT_SUBDOMAIN**       | `''`                                     | **Container/Host** | Custom LocalTunnel subdomain              | No - requires restart |
-| **DEBUG**              | `false`                                  | **Container/Host** | Enable debug logging                      | No - requires restart |
-| **DISPATCH_LOG_LEVEL** | `info`                                   | **Container/Host** | Logging level (error/warn/info/debug)     | No - requires restart |
-| **NODE_ENV**           | `production`                             | **Container/Host** | Node environment (development/production) | No - requires restart |
+These variables control core container and deployment behavior:
 
-### Directory Configuration
+| Variable                    | Default                                  | Location           | Category              | Description                               | Runtime Configurable  |
+| --------------------------- | ---------------------------------------- | ------------------ | --------------------- | ----------------------------------------- | --------------------- |
+| **TERMINAL_KEY**            | `testkey12345` (dev), `change-me` (prod) | **Container/Host** | Container Environment | Authentication key for terminal access    | No - requires restart |
+| **PORT**                    | `3030`                                   | **Container/Host** | Container Environment | Server listening port                     | No - requires restart |
+| **ENABLE_TUNNEL**           | `false`                                  | **Container/Host** | Container Environment | Enable LocalTunnel for public URL access  | No - requires restart |
+| **LT_SUBDOMAIN**            | `''`                                     | **Container/Host** | Container Environment | Custom LocalTunnel subdomain              | No - requires restart |
+| **NODE_ENV**                | `production`                             | **Container/Host** | Container Environment | Node environment (development/production) | No - requires restart |
+| **CONTAINER_ENV**           | `true`                                   | **Container**      | Container Environment | Flag indicating running in container      | No                    |
+| **HOST_UID**                | `1000`                                   | **Container**      | Container Environment | Host user ID for file ownership mapping   | No - requires restart |
+| **HOST_GID**                | `1000`                                   | **Container**      | Container Environment | Host group ID for file ownership mapping  | No - requires restart |
+| **DEFAULT_UID**             | `1000`                                   | **Container**      | Container Environment | Default container user ID                 | No - build-time       |
+| **DEFAULT_GID**             | `1000`                                   | **Container**      | Container Environment | Default container group ID                | No - build-time       |
+| **HOST_HOME_DIR**           | `/home/dispatch`                         | **Container**      | Container Environment | Container home directory                  | No                    |
+| **PROJECT_SANDBOX_ENABLED** | `true`                                   | **Container**      | Container Environment | Enable project sandboxing                 | No - requires restart |
 
-| Variable                   | Default                         | Location           | Description                        | Runtime Configurable  |
-| -------------------------- | ------------------------------- | ------------------ | ---------------------------------- | --------------------- |
-| **WORKSPACES_ROOT**        | `~/.dispatch-home/workspaces`   | **Container/Host** | Default workspace directory        | No - requires restart |
-| **DB_PATH**                | `~/.dispatch/data/workspace.db` | **Container/Host** | SQLite database path               | No - requires restart |
-| **DISPATCH_CONFIG_DIR**    | `~/.config/dispatch`            | **Container/Host** | Configuration directory path       | No - requires restart |
-| **DISPATCH_PROJECTS_DIR**  | `/projects`                     | **Container**      | Projects directory (Docker volume) | No - requires restart |
-| **DISPATCH_WORKSPACE_DIR** | `/workspace`                    | **Container**      | Workspace directory for temp files | No - requires restart |
-| **HOME**                   | User's home                     | **Container/Host** | Home directory override            | No - requires restart |
-| **CLAUDE_PROJECTS_DIR**    | `''`                            | **Container/Host** | Claude Code projects directory     | No - requires restart |
+### Global Workspace Settings
 
-### Container-Specific Variables
+These variables control workspace and directory configuration:
 
-| Variable          | Default                  | Location      | Description                              | Runtime Configurable  |
-| ----------------- | ------------------------ | ------------- | ---------------------------------------- | --------------------- |
-| **CONTAINER_ENV** | `true`                   | **Container** | Flag indicating running in container     | No                    |
-| **HOST_UID**      | `1000`                   | **Container** | Host user ID for file ownership mapping  | No - requires restart |
-| **HOST_GID**      | `1000`                   | **Container** | Host group ID for file ownership mapping | No - requires restart |
-| **DEFAULT_UID**   | `1000`                   | **Container** | Default container user ID                | No - build-time       |
-| **DEFAULT_GID**   | `1000`                   | **Container** | Default container group ID               | No - build-time       |
-| **HOST_HOME_DIR** | `/home/dispatch`         | **Container** | Container home directory                 | No                    |
+| Variable                   | Default                         | Location           | Category         | Description                        | Runtime Configurable  |
+| -------------------------- | ------------------------------- | ------------------ | ---------------- | ---------------------------------- | --------------------- |
+| **WORKSPACES_ROOT**        | `~/.dispatch-home/workspaces`   | **Container/Host** | Global Workspace | Default workspace directory        | No - requires restart |
+| **DB_PATH**                | `~/.dispatch/data/workspace.db` | **Container/Host** | Global Workspace | SQLite database path               | No - requires restart |
+| **DISPATCH_CONFIG_DIR**    | `~/.config/dispatch`            | **Container/Host** | Global Workspace | Configuration directory path       | No - requires restart |
+| **DISPATCH_PROJECTS_DIR**  | `/projects`                     | **Container**      | Global Workspace | Projects directory (Docker volume) | No - requires restart |
+| **DISPATCH_WORKSPACE_DIR** | `/workspace`                    | **Container**      | Global Workspace | Workspace directory for temp files | No - requires restart |
+| **HOME**                   | User's home                     | **Container/Host** | Global Workspace | Home directory override            | No - requires restart |
+| **CLAUDE_PROJECTS_DIR**    | `''`                            | **Container/Host** | Global Workspace | Claude Code projects directory     | No - requires restart |
 
-### Project Sandboxing Variables
+### Session-Specific Settings
 
-| Variable                    | Default | Location      | Description               | Runtime Configurable  |
-| --------------------------- | ------- | ------------- | ------------------------- | --------------------- |
-| **PROJECT_SANDBOX_ENABLED** | `true`  | **Container** | Enable project sandboxing | No - requires restart |
+These variables affect individual sessions and terminals:
+
+| Variable                    | Default          | Location           | Category         | Description                                 | Runtime Configurable |
+| --------------------------- | ---------------- | ------------------ | ---------------- | ------------------------------------------- | -------------------- |
+| **SHELL**                   | `/bin/bash`      | **Container/Host** | Session-Specific | Default shell for terminals                 | No                   |
+| **TERM**                    | `xterm-256color` | **Container/Host** | Session-Specific | Terminal type                               | No                   |
+| **PATH**                    | System default   | **Container/Host** | Session-Specific | Executable search path                      | No                   |
+| **USER**                    | `dispatch`       | **Container/Host** | Session-Specific | Current username                            | No                   |
+| **LANG**                    | System default   | **Container/Host** | Session-Specific | Language/locale setting                     | No                   |
+| **USE_SIMPLIFIED_SESSIONS** | `true`           | **Host**           | Session-Specific | Use simplified session management (testing) | No                   |
 
 ### Development-Only Variables
 
-| Variable                    | Default | Location | Description                                 | Runtime Configurable |
-| --------------------------- | ------- | -------- | ------------------------------------------- | -------------------- |
-| **VITE_SSR**                | `''`    | **Host** | Vite SSR mode flag                          | No                   |
-| **VITE_BUILD**              | `''`    | **Host** | Vite build mode flag                        | No                   |
-| **BUILD**                   | `''`    | **Host** | Build mode flag                             | No                   |
-| **USE_SIMPLIFIED_SESSIONS** | `true`  | **Host** | Use simplified session management (testing) | No                   |
+These are used only during development and testing:
 
-### Shell Environment Variables
+| Variable                   | Default | Location | Category    | Description                        | Runtime Configurable  |
+| -------------------------- | ------- | -------- | ----------- | ---------------------------------- | --------------------- |
+| **DEBUG**                  | `false` | **Host** | Development | Enable debug logging               | No - requires restart |
+| **VITE_SSR**               | `''`    | **Host** | Development | Vite SSR mode flag                 | No                    |
+| **VITE_BUILD**             | `''`    | **Host** | Development | Vite build mode flag               | No                    |
+| **BUILD**                  | `''`    | **Host** | Development | Build mode flag                    | No                    |
+| **CI**                     | `false` | **Host** | Development | Continuous integration flag        | No                    |
+| **E2E_TEST_MODE**          | `false` | **Host** | Development | End-to-end testing mode flag       | No                    |
+| **DISABLE_SERVICE_WORKER** | `false` | **Host** | Development | Disable service worker for testing | No                    |
 
-| Variable  | Default          | Location           | Description                 | Runtime Configurable |
-| --------- | ---------------- | ------------------ | --------------------------- | -------------------- |
-| **SHELL** | `/bin/bash`      | **Container/Host** | Default shell for terminals | No                   |
-| **TERM**  | `xterm-256color` | **Container/Host** | Terminal type               | No                   |
-| **PATH**  | System default   | **Container/Host** | Executable search path      | No                   |
-| **USER**  | `dispatch`       | **Container/Host** | Current username            | No                   |
-| **LANG**  | System default   | **Container/Host** | Language/locale setting     | No                   |
+### System Logging Variables
+
+| Variable               | Default | Location           | Category | Description                           | Runtime Configurable  |
+| ---------------------- | ------- | ------------------ | -------- | ------------------------------------- | --------------------- |
+| **DISPATCH_LOG_LEVEL** | `info`  | **Container/Host** | System   | Logging level (error/warn/info/debug) | No - requires restart |
+
+## Database Settings (Server-Side Stored)
+
+The Dispatch system stores server-side settings in SQLite database with the following categories:
+
+### Global Settings Category (`global`)
+
+| Setting   | Default | Location     | Category      | Description        | Usage Location                 | Runtime Configurable   |
+| --------- | ------- | ------------ | ------------- | ------------------ | ------------------------------ | ---------------------- |
+| **theme** | `retro` | **Database** | User Settings | UI theme selection | Data-theme attribute in layout | Yes - via settings API |
+
+### Claude Settings Category (`claude`)
+
+| Setting                    | Default                      | Location     | Category         | Description                         | Usage Location                 | Runtime Configurable   |
+| -------------------------- | ---------------------------- | ------------ | ---------------- | ----------------------------------- | ------------------------------ | ---------------------- |
+| **model**                  | `claude-3-5-sonnet-20241022` | **Database** | Session-Specific | Default Claude model                | ClaudeAdapter session creation | Yes - via settings API |
+| **permissionMode**         | `default`                    | **Database** | Session-Specific | Claude permission mode              | ClaudeAdapter session creation | Yes - via settings API |
+| **executable**             | `auto`                       | **Database** | Session-Specific | Claude executable path preference   | ClaudeAdapter session creation | Yes - via settings API |
+| **maxTurns**               | `null`                       | **Database** | Session-Specific | Maximum conversation turns          | ClaudeAdapter session creation | Yes - via settings API |
+| **includePartialMessages** | `false`                      | **Database** | Session-Specific | Include partial messages in context | ClaudeAdapter session creation | Yes - via settings API |
+| **continueConversation**   | `false`                      | **Database** | Session-Specific | Continue previous conversation      | ClaudeAdapter session creation | Yes - via settings API |
 
 ## Configuration Files
 
 ### Host Configuration Files
 
-| File                        | Location | Description                  | Format | Runtime Editable       |
-| --------------------------- | -------- | ---------------------------- | ------ | ---------------------- |
-| **~/.dispatch/config.json** | **Host** | CLI tool configuration       | JSON   | Yes - via CLI          |
-| **docker-compose.yml**      | **Host** | Docker service configuration | YAML   | Yes - requires restart |
-| **.env**                    | **Host** | Local environment overrides  | ENV    | Yes - requires restart |
-| **package.json**            | **Host** | NPM scripts and dependencies | JSON   | No                     |
+| File                        | Location | Category              | Description                  | Format | Content Type   | Runtime Editable       |
+| --------------------------- | -------- | --------------------- | ---------------------------- | ------ | -------------- | ---------------------- |
+| **~/.dispatch/config.json** | **Host** | User Settings         | CLI tool configuration       | JSON   | CLI Config     | Yes - via CLI          |
+| **~/.dispatch/.env**        | **Host** | Container Environment | Environment configuration    | ENV    | Env Vars       | Yes - requires restart |
+| **docker-compose.yml**      | **Host** | Container Environment | Docker service configuration | YAML   | Docker Config  | Yes - requires restart |
+| **.env**                    | **Host** | Container Environment | Local environment overrides  | ENV    | Env Vars       | Yes - requires restart |
+| **package.json**            | **Host** | Development           | NPM scripts and dependencies | JSON   | Package Config | No                     |
 
 ### Container Configuration Files
 
-| File               | Location      | Description                     | Format  | Runtime Editable |
-| ------------------ | ------------- | ------------------------------- | ------- | ---------------- |
-| **/config/**       | **Container** | Mounted configuration directory | Various | Yes              |
-| **/entrypoint.sh** | **Container** | Container startup script        | Bash    | No               |
+| File               | Location      | Category              | Description                     | Format  | Content Type | Runtime Editable |
+| ------------------ | ------------- | --------------------- | ------------------------------- | ------- | ------------ | ---------------- |
+| **/config/**       | **Container** | Global Workspace      | Mounted configuration directory | Various | Mixed Config | Yes              |
+| **/entrypoint.sh** | **Container** | Container Environment | Container startup script        | Bash    | Shell Script | No               |
+
+### Build Configuration Files
+
+| File                                      | Location | Category    | Description                | Format | Content Type  | Runtime Editable |
+| ----------------------------------------- | -------- | ----------- | -------------------------- | ------ | ------------- | ---------------- |
+| **eslint.config.js**                      | **Host** | Development | ESLint configuration       | JS     | Linter Config | No               |
+| **playwright.config.js**                  | **Host** | Development | Playwright test config     | JS     | Test Config   | No               |
+| **svelte.config.js**                      | **Host** | Development | Svelte build configuration | JS     | Build Config  | No               |
+| **vite.config.js**                        | **Host** | Development | Vite build configuration   | JS     | Build Config  | No               |
+| **tests/scripts/playwright-ui.config.js** | **Host** | Development | Playwright UI test config  | JS     | Test Config   | No               |
 
 ## Client-Side Configuration (Browser)
 
 ### localStorage Keys
 
-| Key                      | Default    | Location   | Description                   | User Editable       |
-| ------------------------ | ---------- | ---------- | ----------------------------- | ------------------- |
-| **dispatch-auth-key**    | `''`       | **Client** | Terminal authentication key   | Yes - via UI        |
-| **dispatch-session-id**  | `''`       | **Client** | Current session identifier    | No - system managed |
-| **dispatch-theme**       | `'system'` | **Client** | UI theme (light/dark/system)  | Yes - via settings  |
-| **dispatch-settings**    | `'{}'`     | **Client** | User preferences JSON         | Yes - via settings  |
-| **terminal-wrap-mode**   | `'off'`    | **Client** | Terminal line wrapping        | Yes - via UI        |
-| **pwa-ios-prompt-shown** | `'false'`  | **Client** | PWA install prompt flag       | No - system managed |
-| **clientId**             | UUID       | **Client** | Unique client identifier      | No - system managed |
-| **file-editor-state**    | `'{}'`     | **Client** | File editor state/preferences | Yes - via UI        |
+| Key                            | Default   | Location   | Category        | Description                   | Usage Location                    | User Editable       |
+| ------------------------------ | --------- | ---------- | --------------- | ----------------------------- | --------------------------------- | ------------------- |
+| **dispatch-auth-key**          | `''`      | **Client** | User Settings   | Terminal authentication key   | Socket auth, API requests         | Yes - via UI        |
+| **dispatch-auth-token**        | `''`      | **Client** | User Settings   | Alternative auth token key    | Socket auth (legacy)              | Yes - via UI        |
+| **dispatch-session-id**        | `''`      | **Client** | Client-Specific | Current session identifier    | Session management                | No - system managed |
+| **dispatch-theme**             | `''`      | **Client** | User Settings   | UI theme (light/dark/system)  | Theme switching in GlobalSettings | Yes - via settings  |
+| **dispatch-settings**          | `'{}'`    | **Client** | User Settings   | User preferences JSON         | SettingsService client overrides  | Yes - via settings  |
+| **dispatch-sidebar-collapsed** | `false`   | **Client** | User Settings   | Sidebar collapse state        | Sidebar state persistence         | Yes - via UI        |
+| **terminal-wrap-mode**         | `'off'`   | **Client** | User Settings   | Terminal line wrapping        | Terminal display settings         | Yes - via UI        |
+| **pwa-ios-prompt-shown**       | `'false'` | **Client** | Client-Specific | PWA install prompt flag       | PWA install prompt logic          | No - system managed |
+| **clientId**                   | UUID      | **Client** | Client-Specific | Unique client identifier      | Session tracking, UUID generation | No - system managed |
+| **file-editor-state**          | `'{}'`    | **Client** | User Settings   | File editor state/preferences | File editor persistence           | Yes - via UI        |
+| **terminalKey**                | `''`      | **Client** | User Settings   | Terminal key (legacy)         | Legacy auth support               | Yes - via UI        |
 
 ### sessionStorage Keys
 
-| Key               | Default | Location   | Description            | User Editable       |
-| ----------------- | ------- | ---------- | ---------------------- | ------------------- |
-| **dispatch-temp** | `''`    | **Client** | Temporary session data | No - system managed |
-| **dispatch-nav**  | `''`    | **Client** | Navigation state       | No - system managed |
+| Key               | Default | Location   | Category        | Description            | Usage Location         | User Editable       |
+| ----------------- | ------- | ---------- | --------------- | ---------------------- | ---------------------- | ------------------- |
+| **dispatch-temp** | `''`    | **Client** | Client-Specific | Temporary session data | Temporary data storage | No - system managed |
+| **dispatch-nav**  | `''`    | **Client** | Client-Specific | Navigation state       | Navigation state mgmt  | No - system managed |
 
 ## Constants and Hardcoded Configuration
 
-### UI Configuration (src/lib/shared/constants.js)
+### UI Configuration (src/lib/shared/constants.js - UI_CONFIG)
 
-| Constant                   | Value  | Location   | Description                        | Runtime Configurable |
-| -------------------------- | ------ | ---------- | ---------------------------------- | -------------------- |
-| **DESKTOP_BREAKPOINT**     | `1024` | **Client** | Desktop responsive breakpoint (px) | No                   |
-| **TABLET_BREAKPOINT**      | `768`  | **Client** | Tablet responsive breakpoint (px)  | No                   |
-| **MOBILE_BREAKPOINT**      | `480`  | **Client** | Mobile responsive breakpoint (px)  | No                   |
-| **MOBILE_KEYBOARD_HEIGHT** | `300`  | **Client** | Mobile keyboard height (px)        | No                   |
-| **TOUCH_TARGET_MIN**       | `44`   | **Client** | Minimum touch target size (px)     | No                   |
-| **ANIMATION_DURATION**     | `200`  | **Client** | Default animation duration (ms)    | No                   |
-| **DEBOUNCE_DELAY**         | `300`  | **Client** | Input debounce delay (ms)          | No                   |
-| **TOAST_DURATION**         | `5000` | **Client** | Toast notification duration (ms)   | No                   |
-| **SIDEBAR_WIDTH**          | `280`  | **Client** | Sidebar width (px)                 | No                   |
-| **HEADER_HEIGHT**          | `60`   | **Client** | Header height (px)                 | No                   |
-| **FOOTER_HEIGHT**          | `40`   | **Client** | Footer height (px)                 | No                   |
+| Constant                   | Value  | Location   | Category        | Description                        | Usage Location                    | Runtime Configurable |
+| -------------------------- | ------ | ---------- | --------------- | ---------------------------------- | --------------------------------- | -------------------- |
+| **DESKTOP_BREAKPOINT**     | `1024` | **Client** | Client-Specific | Desktop responsive breakpoint (px) | CSS media queries, UI logic       | No                   |
+| **TABLET_BREAKPOINT**      | `768`  | **Client** | Client-Specific | Tablet responsive breakpoint (px)  | CSS media queries, UI logic       | No                   |
+| **MOBILE_BREAKPOINT**      | `480`  | **Client** | Client-Specific | Mobile responsive breakpoint (px)  | CSS media queries, UI logic       | No                   |
+| **MOBILE_KEYBOARD_HEIGHT** | `300`  | **Client** | Client-Specific | Mobile keyboard height (px)        | Mobile view calculations          | No                   |
+| **TOUCH_TARGET_MIN**       | `44`   | **Client** | Client-Specific | Minimum touch target size (px)     | CSS touch-friendly sizing         | No                   |
+| **ANIMATION_DURATION**     | `200`  | **Client** | Client-Specific | Default animation duration (ms)    | CSS animations, transitions       | No                   |
+| **DEBOUNCE_DELAY**         | `300`  | **Client** | Client-Specific | Input debounce delay (ms)          | Input handling, search debouncing | No                   |
+| **TOAST_DURATION**         | `5000` | **Client** | Client-Specific | Toast notification duration (ms)   | Notification display timing       | No                   |
+| **SIDEBAR_WIDTH**          | `280`  | **Client** | Client-Specific | Sidebar width (px)                 | Layout calculations               | No                   |
+| **HEADER_HEIGHT**          | `60`   | **Client** | Client-Specific | Header height (px)                 | Layout calculations               | No                   |
+| **FOOTER_HEIGHT**          | `40`   | **Client** | Client-Specific | Footer height (px)                 | Layout calculations               | No                   |
 
-### Storage Limits
+### Storage Configuration (src/lib/shared/constants.js - STORAGE_CONFIG)
 
-| Constant              | Value  | Location   | Description                   | Runtime Configurable |
-| --------------------- | ------ | ---------- | ----------------------------- | -------------------- |
-| **MAX_STORAGE_SIZE**  | `10MB` | **Client** | Maximum localStorage size     | No                   |
-| **WARN_STORAGE_SIZE** | `8MB`  | **Client** | Warning threshold for storage | No                   |
-| **MAX_FILE_SIZE**     | `50MB` | **Client** | Maximum uploadable file size  | No                   |
+| Constant                 | Value                   | Location   | Category        | Description                      | Usage Location               | Runtime Configurable |
+| ------------------------ | ----------------------- | ---------- | --------------- | -------------------------------- | ---------------------------- | -------------------- |
+| **AUTH_TOKEN_KEY**       | `'dispatch-auth-key'`   | **Client** | Client-Specific | localStorage key for auth token  | Socket auth, auth management | No                   |
+| **SESSION_ID_KEY**       | `'dispatch-session-id'` | **Client** | Client-Specific | localStorage key for session ID  | Session management           | No                   |
+| **THEME_KEY**            | `'dispatch-theme'`      | **Client** | Client-Specific | localStorage key for theme       | Theme switching              | No                   |
+| **SETTINGS_KEY**         | `'dispatch-settings'`   | **Client** | Client-Specific | localStorage key for settings    | Client settings storage      | No                   |
+| **TEMP_DATA_KEY**        | `'dispatch-temp'`       | **Client** | Client-Specific | sessionStorage key for temp data | Temporary data storage       | No                   |
+| **NAVIGATION_STATE_KEY** | `'dispatch-nav'`        | **Client** | Client-Specific | sessionStorage key for nav state | Navigation state persistence | No                   |
+| **MAX_STORAGE_SIZE**     | `10485760` (10MB)       | **Client** | Client-Specific | Maximum localStorage size        | Storage management           | No                   |
+| **WARN_STORAGE_SIZE**    | `8388608` (8MB)         | **Client** | Client-Specific | Warning threshold for storage    | Storage management alerts    | No                   |
 
-### Validation Rules
+### Validation Configuration (src/lib/shared/constants.js - VALIDATION_CONFIG)
 
-| Constant                | Value                 | Location   | Description             | Runtime Configurable |
-| ----------------------- | --------------------- | ---------- | ----------------------- | -------------------- |
-| **MIN_PASSWORD_LENGTH** | `8`                   | **Client** | Minimum password length | No                   |
-| **MAX_PASSWORD_LENGTH** | `128`                 | **Client** | Maximum password length | No                   |
-| **MAX_USERNAME_LENGTH** | `50`                  | **Client** | Maximum username length | No                   |
-| **ALLOWED_MODES**       | `['claude', 'shell']` | **Client** | Valid terminal modes    | No                   |
+| Constant                 | Value                                                      | Location   | Category        | Description                  | Usage Location         | Runtime Configurable |
+| ------------------------ | ---------------------------------------------------------- | ---------- | --------------- | ---------------------------- | ---------------------- | -------------------- |
+| **MIN_PASSWORD_LENGTH**  | `8`                                                        | **Client** | Client-Specific | Minimum password length      | Form validation        | No                   |
+| **MAX_PASSWORD_LENGTH**  | `128`                                                      | **Client** | Client-Specific | Maximum password length      | Form validation        | No                   |
+| **MAX_USERNAME_LENGTH**  | `50`                                                       | **Client** | Client-Specific | Maximum username length      | Form validation        | No                   |
+| **SESSION_ID_PATTERN**   | `/^[a-zA-Z0-9-_]{8,64}$/`                                  | **Client** | Client-Specific | Valid session ID pattern     | Session validation     | No                   |
+| **SESSION_NAME_PATTERN** | `/^[a-zA-Z0-9\s\-_.]{1,100}$/`                             | **Client** | Client-Specific | Valid session name pattern   | Session validation     | No                   |
+| **ALLOWED_MODES**        | `['claude', 'shell']`                                      | **Client** | Client-Specific | Valid terminal modes         | Mode validation        | No                   |
+| **MAX_FILE_SIZE**        | `52428800` (50MB)                                          | **Client** | Client-Specific | Maximum uploadable file size | File upload validation | No                   |
+| **ALLOWED_FILE_TYPES**   | `['text/*', 'application/json', 'application/javascript']` | **Client** | Client-Specific | Allowed file MIME types      | File upload validation | No                   |
 
-### Project Configuration
+### Project Configuration (src/lib/shared/constants.js - PROJECT_CONFIG)
 
-| Constant                 | Value                                                                        | Location      | Description                         | Runtime Configurable |
-| ------------------------ | ---------------------------------------------------------------------------- | ------------- | ----------------------------------- | -------------------- |
-| **CONFIG_DIRS_TO_COPY**  | `['.claude', '.config/gh', '.config/git']`                                   | **Container** | Directories to copy for sandboxing  | No                   |
-| **CONFIG_FILES_TO_COPY** | `['.gitconfig', '.bashrc', '.profile', '.bash_profile', '.vimrc', '.zshrc']` | **Container** | Files to copy for sandboxing        | No                   |
-| **CONFIG_FILE_MODE**     | `0o644`                                                                      | **Container** | Permissions for copied config files | No                   |
-| **CONFIG_DIR_MODE**      | `0o755`                                                                      | **Container** | Permissions for copied directories  | No                   |
+| Constant                    | Value                                                                        | Location      | Category              | Description                         | Usage Location           | Runtime Configurable |
+| --------------------------- | ---------------------------------------------------------------------------- | ------------- | --------------------- | ----------------------------------- | ------------------------ | -------------------- |
+| **DEFAULT_SANDBOX_ENABLED** | `true`                                                                       | **Container** | Session-Specific      | Default project sandboxing state    | Project session creation | No                   |
+| **CONFIG_DIRS_TO_COPY**     | `['.claude', '.config/gh', '.config/git']`                                   | **Container** | Session-Specific      | Directories to copy for sandboxing  | Project setup scripts    | No                   |
+| **CONFIG_FILES_TO_COPY**    | `['.gitconfig', '.bashrc', '.profile', '.bash_profile', '.vimrc', '.zshrc']` | **Container** | Session-Specific      | Files to copy for sandboxing        | Project setup scripts    | No                   |
+| **HOST_HOME_DIR**           | `'/home/appuser'`                                                            | **Container** | Container Environment | Host home directory path            | File copying operations  | No                   |
+| **CONFIG_FILE_MODE**        | `0o644`                                                                      | **Container** | Session-Specific      | Permissions for copied config files | File system operations   | No                   |
+| **CONFIG_DIR_MODE**         | `0o755`                                                                      | **Container** | Session-Specific      | Permissions for copied directories  | Directory creation       | No                   |
+
+### Tunnel Configuration (src/lib/shared/constants.js - TUNNEL_CONFIG)
+
+| Constant                  | Value   | Location   | Category              | Description                   | Usage Location    | Runtime Configurable |
+| ------------------------- | ------- | ---------- | --------------------- | ----------------------------- | ----------------- | -------------------- |
+| **TUNNEL_TIMEOUT**        | `10000` | **Client** | Container Environment | LocalTunnel timeout (ms)      | Tunnel management | No                   |
+| **TUNNEL_RETRY_ATTEMPTS** | `3`     | **Client** | Container Environment | Maximum tunnel retry attempts | Tunnel management | No                   |
+
+### API and File Size Limits
+
+| Constant               | Value               | Location   | Category         | Description                    | Usage Location             | Runtime Configurable |
+| ---------------------- | ------------------- | ---------- | ---------------- | ------------------------------ | -------------------------- | -------------------- |
+| **MAX_FILE_SIZE**      | `52428800` (50MB)   | **Server** | Session-Specific | Per-file upload limit          | File upload API            | No                   |
+| **MAX_TOTAL_SIZE**     | `209715200` (200MB) | **Server** | Session-Specific | Total upload batch limit       | File upload API            | No                   |
+| **MAX_FILE_SIZE_READ** | `10485760` (10MB)   | **Server** | Session-Specific | File read size limit           | File reading API           | No                   |
+| **MAX_BYTES**          | `1048576` (1MB)     | **Server** | Session-Specific | Default log/content byte limit | Claude session content API | No                   |
+
+### Default Window Manager Keymap
+
+| Constant           | Value                          | Location   | Category      | Description                | Usage Location           | Runtime Configurable |
+| ------------------ | ------------------------------ | ---------- | ------------- | -------------------------- | ------------------------ | -------------------- |
+| **DEFAULT_KEYMAP** | `{ /* keyboard shortcuts */ }` | **Client** | User Settings | Default keyboard shortcuts | Window manager component | No                   |
 
 ## Docker Volume Mounts
 
-| Mount Point   | Host Path              | Container Path           | Description              | Configurable             |
-| ------------- | ---------------------- | ------------------------ | ------------------------ | ------------------------ |
-| **Config**    | `./dispatch-config`    | `/config`                | Configuration files      | Yes - docker-compose.yml |
-| **Projects**  | `./dispatch-projects`  | `/projects`              | Project files            | Yes - docker-compose.yml |
-| **Workspace** | `./dispatch-workspace` | `/workspace`             | Temporary workspace      | Yes - docker-compose.yml |
-| **SSH**       | `~/.ssh`               | `/home/dispatch/.ssh`    | SSH keys (optional)      | Yes - CLI flags          |
-| **Claude**    | `~/.claude`            | `/home/dispatch/.claude` | Claude config (optional) | Yes - CLI flags          |
-
-## CLI Configuration (~/.dispatch/config.json)
-
-| Setting                       | Default                   | Location | Description                       | Runtime Configurable |
-| ----------------------------- | ------------------------- | -------- | --------------------------------- | -------------------- |
-| **image**                     | `fwdslsh/dispatch:latest` | **Host** | Docker image to use               | Yes - via CLI        |
-| **port**                      | `3030`                    | **Host** | Host port mapping                 | Yes - via CLI        |
-| **terminalKey**               | Generated                 | **Host** | Terminal authentication key       | Yes - via CLI        |
-| **enableTunnel**              | `false`                   | **Host** | Enable LocalTunnel                | Yes - via CLI        |
-| **ltSubdomain**               | `null`                    | **Host** | LocalTunnel subdomain             | Yes - via CLI        |
-| **ptyMode**                   | `shell`                   | **Host** | Default terminal mode             | Yes - via CLI        |
-| **volumes.projects**          | `~/dispatch/projects`     | **Host** | Projects directory mount          | Yes - via CLI        |
-| **volumes.home**              | `~/dispatch/home`         | **Host** | Home directory mount              | Yes - via CLI        |
-| **volumes.ssh**               | `null`                    | **Host** | SSH directory mount (optional)    | Yes - via CLI        |
-| **volumes.claude**            | `null`                    | **Host** | Claude directory mount (optional) | Yes - via CLI        |
-| **build**                     | `false`                   | **Host** | Build image locally               | Yes - via CLI        |
-| **openBrowser**               | `false`                   | **Host** | Auto-open browser on start        | Yes - via CLI        |
-| **notifications.enabled**     | `false`                   | **Host** | Enable webhook notifications      | Yes - via CLI        |
-| **notifications.webhook.url** | `null`                    | **Host** | Webhook URL                       | Yes - via CLI        |
+| Mount Point   | Host Path              | Container Path           | Category         | Description              | Configurable Via      |
+| ------------- | ---------------------- | ------------------------ | ---------------- | ------------------------ | --------------------- |
+| **Config**    | `./dispatch-config`    | `/config`                | Global Workspace | Configuration files      | docker-compose.yml    |
+| **Projects**  | `./dispatch-projects`  | `/projects`              | Global Workspace | Project files            | docker-compose.yml    |
+| **Workspace** | `./dispatch-workspace` | `/workspace`             | Global Workspace | Temporary workspace      | docker-compose.yml    |
+| **SSH**       | `~/.ssh`               | `/home/dispatch/.ssh`    | Global Workspace | SSH keys (optional)      | CLI flags, docker run |
+| **Claude**    | `~/.claude`            | `/home/dispatch/.claude` | Global Workspace | Claude config (optional) | CLI flags, docker run |
 
 ## NPM Script Environment Overrides
 
-| Script            | Environment Variables                                                                                         | Purpose                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| **dev**           | `TERMINAL_KEY='testkey12345'`, `HOME=$(pwd)/.testing-home`, `WORKSPACES_ROOT=$(pwd)/.testing-home/workspaces` | Development with test environment        |
-| **dev:local**     | `TERMINAL_KEY='testkey12345'`, `WORKSPACES_ROOT=$HOME/code`                                                   | Development with local code directory    |
-| **dev:no-key**    | `TERMINAL_KEY=''`                                                                                             | Development without authentication       |
-| **dev:tunnel**    | `TERMINAL_KEY='testkey12345'`, `ENABLE_TUNNEL=true`                                                           | Development with LocalTunnel             |
-| **start**         | `PORT=5170`, `TERMINAL_KEY='testkey12345'`, `ENABLE_TUNNEL=true`                                              | Production with tunnel                   |
-| **test:original** | `USE_SIMPLIFIED_SESSIONS=false`                                                                               | Testing with original session management |
+These environment variables are set by specific NPM scripts in package.json:
+
+| Script            | Environment Variables                                                                                         | Category    | Purpose                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------- |
+| **dev**           | `TERMINAL_KEY='testkey12345'`, `HOME=$(pwd)/.testing-home`, `WORKSPACES_ROOT=$(pwd)/.testing-home/workspaces` | Development | Development with test environment        |
+| **dev:local**     | `TERMINAL_KEY='testkey12345'`, `WORKSPACES_ROOT=$HOME/code`                                                   | Development | Development with local code directory    |
+| **dev:no-key**    | `TERMINAL_KEY=''`                                                                                             | Development | Development without authentication       |
+| **dev:tunnel**    | `TERMINAL_KEY='testkey12345'`, `ENABLE_TUNNEL=true`                                                           | Development | Development with LocalTunnel             |
+| **start**         | `PORT=5170`, `TERMINAL_KEY='testkey12345'`, `ENABLE_TUNNEL=true`                                              | Development | Production-like start with tunnel        |
+| **test:original** | `USE_SIMPLIFIED_SESSIONS=false`                                                                               | Development | Testing with original session management |
+| **test:e2e**      | `TERMINAL_KEY='testkey12345'`, `NODE_ENV=test`                                                                | Development | End-to-end testing environment           |
+| **test:ui**       | `TERMINAL_KEY='testkey12345'`                                                                                 | Development | UI testing environment                   |
+
+## Configuration API Endpoints
+
+The system provides REST API endpoints for managing configuration:
+
+| Endpoint        | Method | Category      | Description                   | Authentication Required | Usage Location                |
+| --------------- | ------ | ------------- | ----------------------------- | ----------------------- | ----------------------------- |
+| `/api/settings` | GET    | User Settings | Retrieve settings by category | Optional (metadata)     | SettingsService, admin UI     |
+| `/api/settings` | POST   | User Settings | Update settings for category  | Yes                     | Settings UI, admin operations |
+| `/api/settings` | DELETE | User Settings | Delete settings category      | Yes                     | Admin operations              |
+
+## CLI Configuration (~/.dispatch/config.json)
+
+The CLI tool loads configuration from `~/.dispatch/config.json` with the following structure:
+
+| Setting                           | Default                                | Location | Category              | Description                       | Usage Location         | Runtime Configurable |
+| --------------------------------- | -------------------------------------- | -------- | --------------------- | --------------------------------- | ---------------------- | -------------------- |
+| **image**                         | `fwdslsh/dispatch:latest`              | **Host** | Container Environment | Docker image to use               | CLI Docker run command | Yes - via CLI        |
+| **port**                          | `3030`                                 | **Host** | Container Environment | Host port mapping                 | CLI Docker run command | Yes - via CLI        |
+| **terminalKey**                   | Generated                              | **Host** | Container Environment | Terminal authentication key       | CLI Docker run command | Yes - via CLI        |
+| **enableTunnel**                  | `false`                                | **Host** | Container Environment | Enable LocalTunnel                | CLI Docker run command | Yes - via CLI        |
+| **ltSubdomain**                   | `null`                                 | **Host** | Container Environment | LocalTunnel subdomain             | CLI Docker run command | Yes - via CLI        |
+| **ptyMode**                       | `shell`                                | **Host** | User Settings         | Default terminal mode             | CLI Docker run command | Yes - via CLI        |
+| **volumes.projects**              | `~/dispatch/projects`                  | **Host** | Global Workspace      | Projects directory mount          | CLI Docker run command | Yes - via CLI        |
+| **volumes.home**                  | `~/dispatch/home`                      | **Host** | Global Workspace      | Home directory mount              | CLI Docker run command | Yes - via CLI        |
+| **volumes.ssh**                   | `null`                                 | **Host** | Global Workspace      | SSH directory mount (optional)    | CLI Docker run command | Yes - via CLI        |
+| **volumes.claude**                | `null`                                 | **Host** | Global Workspace      | Claude directory mount (optional) | CLI Docker run command | Yes - via CLI        |
+| **volumes.config**                | `null`                                 | **Host** | Global Workspace      | Additional config directory mount | CLI Docker run command | Yes - via CLI        |
+| **build**                         | `false`                                | **Host** | Development           | Build image locally               | CLI build logic        | Yes - via CLI        |
+| **openBrowser**                   | `false`                                | **Host** | User Settings         | Auto-open browser on start        | CLI post-start actions | Yes - via CLI        |
+| **notifications.enabled**         | `false`                                | **Host** | User Settings         | Enable webhook notifications      | CLI notification logic | Yes - via CLI        |
+| **notifications.webhook.url**     | `null`                                 | **Host** | User Settings         | Webhook URL                       | CLI notification logic | Yes - via CLI        |
+| **notifications.webhook.headers** | `{'Content-Type': 'application/json'}` | **Host** | User Settings         | Webhook headers                   | CLI notification logic | Yes - via CLI        |
+
+## Environment Configuration Files
+
+### ~/.dispatch/.env (CLI Environment File)
+
+The CLI creates this file during `dispatch init` with the following variables:
+
+| Variable                   | Default              | Category              | Description                   | Required |
+| -------------------------- | -------------------- | --------------------- | ----------------------------- | -------- |
+| **TERMINAL_KEY**           | Generated secure key | Container Environment | Authentication key for web UI | Yes      |
+| **PORT**                   | `3030`               | Container Environment | Server port                   | No       |
+| **ENABLE_TUNNEL**          | `false`              | Container Environment | Enable public URL tunnel      | No       |
+| **LT_SUBDOMAIN**           | `''`                 | Container Environment | Custom tunnel subdomain       | No       |
+| **DISPATCH_CONFIG_DIR**    | `/config`            | Global Workspace      | Configuration directory path  | No       |
+| **DISPATCH_PROJECTS_DIR**  | `/projects`          | Global Workspace      | Projects directory path       | No       |
+| **DISPATCH_WORKSPACE_DIR** | `/workspace`         | Global Workspace      | Workspace directory path      | No       |
 
 ## Configuration Inheritance Chain
 
-1. **Build-time defaults** (Dockerfile ENV)
-2. **docker-compose.yml environment**
-3. **Host .env file**
-4. **CLI flags** (--key, --port, etc.)
-5. **Runtime environment** (process.env)
-6. **Application defaults** (code constants)
-7. **User preferences** (localStorage)
+The configuration inheritance follows this priority order (highest to lowest):
+
+1. **CLI flags** (--key, --port, etc.) - Highest priority
+2. **Environment variables** (process.env)
+3. **~/.dispatch/.env file** (CLI environment file)
+4. **docker-compose.yml environment** (Docker deployment)
+5. **~/.dispatch/config.json** (CLI configuration file)
+6. **Database settings** (server-side stored preferences)
+7. **localStorage overrides** (client-side preferences)
+8. **Application defaults** (hardcoded constants)
+9. **Build-time defaults** (Dockerfile ENV) - Lowest priority
+
+## Deprecated/Inconsistent Configuration References
+
+### Inconsistent Authentication Key Names
+
+There are inconsistent localStorage key names for authentication across the codebase:
+
+| Key Name                | File Count | Usage Context                     | Recommendation                       |
+| ----------------------- | ---------- | --------------------------------- | ------------------------------------ |
+| **dispatch-auth-key**   | Primary    | Main application, most components | **Keep as standard**                 |
+| **dispatch-auth-token** | 8 files    | E2E tests only                    | **Standardize to dispatch-auth-key** |
+| **terminalKey**         | 1 file     | One E2E test file                 | **Standardize to dispatch-auth-key** |
+
+### Files with Inconsistent Auth Key References
+
+**Cleanup Required:**
+
+- [ ] `e2e/project-page-claude-sessions.spec.js` - Line 4: Change `dispatch-auth-token` to `dispatch-auth-key`
+- [ ] `e2e/claude-session-resumption.spec.js` - Line 9: Change `dispatch-auth-token` to `dispatch-auth-key`
+- [ ] `e2e/socket-reconnection.spec.js` - Line 10: Change `dispatch-auth-token` to `dispatch-auth-key`
+- [ ] `e2e/comprehensive-ui.spec.js` - Line 17: Change `dispatch-auth-token` to `dispatch-auth-key`
+- [ ] `e2e/terminal-session-resumption.spec.js` - Line 19: Change `dispatch-auth-token` to `dispatch-auth-key`
+- [ ] `e2e/working-directory-validation.spec.js` - Line 20: Change `dispatch-auth-token` to `dispatch-auth-key`
+- [ ] `e2e/terminal-session-simple.spec.js` - Line 26: Change `dispatch-auth-token` to `dispatch-auth-key`
+- [ ] `e2e/workspace-terminal-interactions.spec.js` - Line 29: Change `dispatch-auth-token` to `dispatch-auth-key`
+- [ ] `e2e/inspect-session-menu.spec.js` - Line 32: Change `terminalKey` to `dispatch-auth-key`
+
+### Unused Configuration References
+
+**No references found to deprecated configuration that needs removal** - the codebase appears to be clean of truly unused configuration.
+
+### Documentation Inconsistencies
+
+**Minor issues found:**
+
+- [ ] Some documentation references need to be updated to reflect current localStorage key names
+- [ ] E2E test setup could be standardized to use consistent auth key names
 
 ## Recommendations for Configuration Management
 
@@ -377,12 +541,49 @@ Runtime State (with hot-reload support)
 
 ## Summary
 
-The Dispatch system currently uses a complex mix of configuration sources with limited runtime flexibility. The main issues are:
+The Dispatch system configuration analysis reveals:
 
-1. **Scattered configuration** across multiple sources
-2. **Lack of validation** and type safety
-3. **Limited runtime configurability** (most changes require restart)
-4. **No central management** or discovery mechanism
-5. **Unclear separation** between different configuration contexts
+### Current State Assessment
 
-Implementing the recommended improvements would significantly enhance the system's configurability, maintainability, and user experience while reducing configuration-related errors and support burden.
+**Strengths:**
+
+- Well-organized constants in `src/lib/shared/constants.js`
+- Centralized database settings management with API
+- Clear separation between container and host configuration
+- Comprehensive CLI configuration system
+
+**Areas for Improvement:**
+
+- Inconsistent localStorage key naming in test files
+- Limited runtime configurability (most changes require restart)
+- No configuration validation or schema
+- Scattered configuration sources without central management
+
+### Configuration Distribution
+
+| Category              | Count | Location                    | Runtime Configurable |
+| --------------------- | ----- | --------------------------- | -------------------- |
+| Environment Variables | 28    | Various files, Dockerfile   | Mostly No            |
+| Database Settings     | 8     | SQLite database             | Yes                  |
+| Client Storage Keys   | 11    | localStorage/sessionStorage | Yes                  |
+| Constants             | 25+   | src/lib/shared/constants.js | No                   |
+| CLI Settings          | 14    | ~/.dispatch/config.json     | Yes                  |
+
+### Key Issues Identified
+
+1. **Authentication Key Inconsistency**: 9 E2E test files use inconsistent localStorage key names
+2. **Limited Runtime Flexibility**: Most environment variables require container restart
+3. **No Configuration Validation**: Missing schema validation and type safety
+4. **Documentation Gaps**: Some configuration options lack complete documentation
+
+### Cleanup Checklist
+
+- [ ] **High Priority**: Standardize auth key names in 9 E2E test files
+- [ ] **Medium Priority**: Add configuration schema validation
+- [ ] **Medium Priority**: Implement more runtime-configurable settings
+- [ ] **Low Priority**: Create centralized configuration service
+- [ ] **Low Priority**: Add configuration UI/dashboard
+
+The system is generally well-configured with room for standardization and improved runtime flexibility.
+
+Fixes #102.

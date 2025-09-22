@@ -1,9 +1,7 @@
 /* Common CSS Animations - Extracted from .svelte files */
 
-
 /* Animations */
 @keyframes pulse {
-
 	0%,
 	100% {
 		opacity: 0.7;
@@ -52,7 +50,6 @@
 }
 
 @keyframes fadeInOut {
-
 	0%,
 	100% {
 		opacity: 0.05;
@@ -114,7 +111,6 @@
 
 /* Pulse animations */
 @keyframes statusPulse {
-
 	0%,
 	100% {
 		opacity: 1;
@@ -126,7 +122,6 @@
 }
 
 @keyframes pulse-dot {
-
 	0%,
 	100% {
 		box-shadow: 0 0 8px color-mix(in oklab, var(--primary) 60%, transparent);
@@ -138,7 +133,6 @@
 }
 
 @keyframes loadingPulse {
-
 	0%,
 	100% {
 		opacity: 0.7;
@@ -150,7 +144,6 @@
 }
 
 @keyframes avatarPulse {
-
 	0%,
 	100% {
 		transform: scale(1);
@@ -170,7 +163,6 @@
 }
 
 @keyframes pulseRing {
-
 	0%,
 	60%,
 	100% {
@@ -185,7 +177,6 @@
 }
 
 @keyframes typingPulse {
-
 	0%,
 	100% {
 		opacity: 0.6;
@@ -231,7 +222,6 @@
 
 /* Bounce/movement animations */
 @keyframes typingBounce {
-
 	0%,
 	60%,
 	100% {
@@ -264,7 +254,6 @@
 
 /* Shake/error animations */
 @keyframes errorShake {
-
 	0%,
 	100% {
 		transform: translateX(0);
@@ -288,7 +277,6 @@
 
 /* Cursor blink animation */
 @keyframes cursorBlink {
-
 	0%,
 	50% {
 		opacity: 1;
@@ -321,7 +309,6 @@
 }
 
 @keyframes tile-focus-pulse {
-
 	0%,
 	100% {
 		box-shadow:
@@ -392,7 +379,6 @@
 }
 
 @keyframes empty-tile-focus {
-
 	0%,
 	100% {
 		border-color: var(--accent);
@@ -406,7 +392,6 @@
 }
 
 @keyframes empty-tile-icon-bounce {
-
 	0%,
 	100% {
 		transform: scale(1) translateY(0);
@@ -486,7 +471,6 @@
 }
 
 @keyframes hint-glow {
-
 	0%,
 	100% {
 		box-shadow:
@@ -565,7 +549,6 @@
 
 /* Accessibility-friendly alternatives */
 @media (prefers-reduced-motion: reduce) {
-
 	/* Disable complex animations, keep essential feedback */
 	@keyframes tile-focus-appear {
 		from {
@@ -599,7 +582,6 @@
 
 	/* Remove all pulsing and scaling animations */
 	@keyframes tile-focus-pulse {
-
 		from,
 		to {
 			transform: none;
@@ -608,7 +590,6 @@
 	}
 
 	@keyframes divider-drag-pulse {
-
 		from,
 		to {
 			transform: none;
@@ -617,7 +598,6 @@
 	}
 
 	@keyframes empty-tile-focus {
-
 		from,
 		to {
 			transform: none;
@@ -626,7 +606,6 @@
 	}
 
 	@keyframes empty-tile-icon-bounce {
-
 		from,
 		to {
 			transform: none;
@@ -635,7 +614,6 @@
 	}
 
 	@keyframes hint-glow {
-
 		from,
 		to {
 			transform: none;
