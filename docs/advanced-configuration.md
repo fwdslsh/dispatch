@@ -1,4 +1,3 @@
-
 # Manual Setup for Advanced Configuration
 
 For more control over your sandbox environment:

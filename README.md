@@ -23,23 +23,27 @@ docker run -d -p 3030:3030 \
 ## Why Dispatch?
 
 **🛡️ Security by Design**
+
 - Isolated Docker containers protect your host system
 - AI agents execute in sandboxed environments
 - No access to sensitive files unless explicitly mounted
 - Full audit trail of all commands and outputs
 
 **🔄 Resume Anywhere**
+
 - Event-sourced architecture preserves complete session state
 - Continue work across any device with the same Dispatch instance
 - Recover from crashes and network interruptions
 - Time-travel debugging through command history
 
 **⚡ Unattended Operation**
+
 - Let long-running tasks complete in the background
 - Check results later without tying up your system
 - Perfect for AI-assisted development workflows
 
 **💰 Local-First, No Lock-In**
+
 - Everything runs locally by default
 - Add cloud hosting only if needed
 - No usage limits, premium tiers, or hidden costs
@@ -48,26 +52,53 @@ docker run -d -p 3030:3030 \
 ## Core Features
 
 ### Multiple Session Types
+
 - **Terminal Sessions**: Full Linux shell access
 - **Claude AI Sessions**: AI-powered coding with OAuth authentication
 - **File Editor**: Built-in code editor
 - **Custom Adapters**: Extensible for other tools
 
 ### Security & Isolation
+
 - Non-root container execution
 - Optional public URL sharing (disabled by default)
 - Password-protected access
 - HTTPS support for production
 
 ### Session Persistence
+
 - SQLite-based event sourcing
 - Complete command history
 - Cross-device synchronization
 - Shareable session logs for team debugging
 
+## 📊 Feature Comparison
+
+| Feature                   | Dispatch           | CrewAI          | OpenDevin   | Superagent         |
+| ------------------------- | ------------------ | --------------- | ----------- | ------------------ |
+| **Pricing**               | Free & Open Source | Freemium        | Open Source | Paid Plans         |
+| **Local Execution**       | ✅ Default         | ❌ Cloud Only   | ✅ Optional | ❌ Cloud Only      |
+| **Container Isolation**   | ✅ Docker          | ❌ Process Only | ✅ Docker   | ❌ Cloud Sandboxes |
+| **Session Resume**        | ✅ Cross-device    | ❌ No           | ⚠️ Limited  | ✅ Cloud Only      |
+| **Claude AI Integration** | ✅ Native          | ❌ No           | ⚠️ Plugin   | ✅ API Only        |
+| **Unattended Execution**  | ✅ Background      | ✅ Workflows    | ⚠️ Limited  | ✅ Cloud           |
+| **No Cloud Dependency**   | ✅ Local-first     | ❌ Required     | ✅ Optional | ❌ Required        |
+| **Web-based Access**      | ✅ Browser         | ✅ Dashboard    | ⚠️ Limited  | ✅ Dashboard       |
+| **Team Collaboration**    | ✅ Shared Sessions | ✅ Workspaces   | ❌ No       | ✅ Paid            |
+| **Custom Extensions**     | ✅ Adapter API     | ✅ Plugins      | ✅ Tools    | ⚠️ Limited         |
+
+### Why Choose Dispatch?
+
+- **Privacy First**: Your code and data stay on your infrastructure
+- **Cost Effective**: No recurring fees or usage limits
+- **Developer Control**: Full access to source code and customization
+- **Security Focused**: Isolation by design, not as an afterthought
+- **Simple Setup**: Works out of the box, no complex configuration
+
 ## Use Cases
 
 **AI-Assisted Development**
+
 ```bash
 # Ask Claude to scaffold a new microservice
 # Test it safely in isolation
@@ -75,18 +106,21 @@ docker run -d -p 3030:3030 \
 ```
 
 **Remote Development**
+
 ```bash
 # Start at office → continue at home → finish on mobile
 # All sessions resume seamlessly
 ```
 
 **Team Collaboration**
+
 ```bash
 # Share live sessions via public URL
 # Perfect for pair programming and code reviews
 ```
 
 **Safe Experimentation**
+
 ```bash
 # Test risky commands
 # Try new frameworks
@@ -97,14 +131,14 @@ docker run -d -p 3030:3030 \
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `TERMINAL_KEY` | `change-me` | **Required** - Access password |
-| `PORT` | `3030` | Web interface port |
-| `WORKSPACES_ROOT` | `/workspace` | Project directory |
-| `ENABLE_TUNNEL` | `false` | Public URL sharing |
-| `LT_SUBDOMAIN` | `""` | Custom subdomain |
-| `HOST_UID` / `HOST_GID` | - | User/group ID mapping |
+| Variable                | Default      | Description                    |
+| ----------------------- | ------------ | ------------------------------ |
+| `TERMINAL_KEY`          | `change-me`  | **Required** - Access password |
+| `PORT`                  | `3030`       | Web interface port             |
+| `WORKSPACES_ROOT`       | `/workspace` | Project directory              |
+| `ENABLE_TUNNEL`         | `false`      | Public URL sharing             |
+| `LT_SUBDOMAIN`          | `""`         | Custom subdomain               |
+| `HOST_UID` / `HOST_GID` | -            | User/group ID mapping          |
 
 ### Persistent Storage
 
@@ -138,6 +172,7 @@ npm run lint            # Code quality
 ```
 
 ### Tech Stack
+
 - **Frontend**: SvelteKit 5 with real-time updates
 - **Backend**: Node.js 22 + Socket.IO
 - **Terminal**: xterm.js + node-pty
@@ -148,6 +183,7 @@ npm run lint            # Code quality
 ## Troubleshooting
 
 **Session won't start?**
+
 ```bash
 docker --version          # Check Docker is running
 lsof -i :3030            # Verify port availability
@@ -155,10 +191,12 @@ docker logs dispatch     # Review container logs
 ```
 
 **Can't connect to Claude?**
+
 - Ensure valid Anthropic account
 - Check internet connectivity for OAuth
 
 **Data not persisting?**
+
 - Verify volume mount permissions
 - Check data directories exist and are writable
 - Confirm container user ownership (uid 10001)
@@ -166,6 +204,7 @@ docker logs dispatch     # Review container logs
 ## Contributing
 
 We welcome contributions! Check out:
+
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guide
 - [CLAUDE.md](CLAUDE.md) - Technical implementation
 - [Docker README](docker/README.md) - Container configuration

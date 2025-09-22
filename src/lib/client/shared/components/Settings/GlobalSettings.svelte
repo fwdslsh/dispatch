@@ -13,9 +13,13 @@
 
 	// Settings state - use service values with fallback defaults
 	let theme = $state(settingsService.get('global.theme', 'retro'));
-	let defaultWorkspaceDirectory = $state(settingsService.get('global.defaultWorkspaceDirectory', ''));
+	let defaultWorkspaceDirectory = $state(
+		settingsService.get('global.defaultWorkspaceDirectory', '')
+	);
 	let autoSaveEnabled = $state(settingsService.get('global.autoSaveEnabled', true));
-	let sessionTimeoutMinutes = $state(settingsService.get('global.sessionTimeoutMinutes', 30).toString());
+	let sessionTimeoutMinutes = $state(
+		settingsService.get('global.sessionTimeoutMinutes', 30).toString()
+	);
 	let defaultLayout = $state(settingsService.get('global.defaultLayout', '2up'));
 	let enableAnimations = $state(settingsService.get('global.enableAnimations', true));
 	let enableSoundEffects = $state(settingsService.get('global.enableSoundEffects', false));
@@ -43,7 +47,7 @@
 		if (!settingsService.isLoaded) {
 			await settingsService.loadServerSettings();
 		}
-		
+
 		// Update local state with effective settings
 		updateLocalState();
 	});
@@ -64,7 +68,10 @@
 		try {
 			// Save as client override (localStorage)
 			settingsService.setClientOverride('global.theme', theme);
-			settingsService.setClientOverride('global.defaultWorkspaceDirectory', defaultWorkspaceDirectory);
+			settingsService.setClientOverride(
+				'global.defaultWorkspaceDirectory',
+				defaultWorkspaceDirectory
+			);
 
 			// Legacy theme storage for immediate theme application
 			localStorage.setItem(STORAGE_CONFIG.THEME_KEY, theme);
@@ -92,14 +99,14 @@
 	async function resetToDefaults() {
 		settingsService.resetClientOverridesForCategory('global');
 		updateLocalState();
-		
+
 		// Apply theme immediately
 		if (theme !== 'system') {
 			document.documentElement.setAttribute('data-theme', theme);
 		} else {
 			document.documentElement.removeAttribute('data-theme');
 		}
-		
+
 		saveStatus = 'Settings reset to defaults';
 		setTimeout(() => {
 			saveStatus = '';
@@ -130,8 +137,9 @@
 	<header class="settings-header">
 		<h3 class="settings-title">Global Preferences</h3>
 		<p class="settings-description">
-			Configure global application settings. Only settings that are actually used in the application are shown.
-			Settings with a <span class="override-indicator">●</span> are customized from server defaults.
+			Configure global application settings. Only settings that are actually used in the application
+			are shown. Settings with a <span class="override-indicator">●</span> are customized from server
+			defaults.
 		</p>
 	</header>
 
@@ -144,7 +152,10 @@
 				<label for="theme-select" class="input-label">
 					Theme
 					{#if hasClientOverride('global.theme')}
-						<span class="override-indicator" title="Customized from server default: {getServerDefault('global.theme')}">●</span>
+						<span
+							class="override-indicator"
+							title="Customized from server default: {getServerDefault('global.theme')}">●</span
+						>
 					{/if}
 				</label>
 				<select id="theme-select" bind:value={theme} class="select-input">
@@ -152,7 +163,9 @@
 						<option value={themeOption.value}>{themeOption.label}</option>
 					{/each}
 				</select>
-				<p class="input-help">Choose your preferred visual theme (applied to HTML data-theme attribute)</p>
+				<p class="input-help">
+					Choose your preferred visual theme (applied to HTML data-theme attribute)
+				</p>
 			</div>
 		</section>
 
@@ -164,7 +177,12 @@
 				<label for="default-workspace-dir" class="input-label">
 					Default Workspace Directory
 					{#if hasClientOverride('global.defaultWorkspaceDirectory')}
-						<span class="override-indicator" title="Customized from server default: {getServerDefault('global.defaultWorkspaceDirectory') || 'Server WORKSPACES_ROOT'}">●</span>
+						<span
+							class="override-indicator"
+							title="Customized from server default: {getServerDefault(
+								'global.defaultWorkspaceDirectory'
+							) || 'Server WORKSPACES_ROOT'}">●</span
+						>
 					{/if}
 				</label>
 				<Input
@@ -173,7 +191,10 @@
 					placeholder="Leave empty to use server WORKSPACES_ROOT"
 					class="workspace-dir-input"
 				/>
-				<p class="input-help">Default directory used when creating new sessions. Leave empty to use the server's WORKSPACES_ROOT environment variable.</p>
+				<p class="input-help">
+					Default directory used when creating new sessions. Leave empty to use the server's
+					WORKSPACES_ROOT environment variable.
+				</p>
 			</div>
 		</section>
 	</div>

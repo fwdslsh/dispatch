@@ -90,15 +90,13 @@
 	<header class="settings-header">
 		<h3 class="settings-title">Claude Defaults</h3>
 		<p class="settings-description">
-			Configure default settings for new Claude sessions. These settings will be used as defaults when creating new Claude sessions, but can be overridden per session.
+			Configure default settings for new Claude sessions. These settings will be used as defaults
+			when creating new Claude sessions, but can be overridden per session.
 		</p>
 	</header>
 
 	<div class="settings-content">
-		<ClaudeSettings
-			bind:settings={settings}
-			mode="global"
-		/>
+		<ClaudeSettings bind:settings mode="global" />
 	</div>
 
 	<!-- Settings Footer -->
