@@ -30,7 +30,7 @@
 	--text: light-dark(#cfe7d8, #d9ffe6);
 	--muted: light-dark(#8aa699, #92b3a4);
 
-	--accent: light-dark(#2ee66b, #2ee66b);
+	--accent: light-dark(var(--primary), var(--primary));
 	--accent-2: light-dark(#ffd166, #ffd166);
 
 	--ok: light-dark(#26d07c, #26d07c);
@@ -75,7 +75,7 @@
 	--primary-surface-25: color-mix(in oklab, var(--primary) 25%, var(--surface));
 
 	/* Accent Colors for Variety */
-	--accent: #2ee66b;
+	--accent: var(--primary);
 	--accent-amber: #ffd166;
 	--accent-cyan: #00c2ff;
 	--accent-magenta: #ff6b9d;
