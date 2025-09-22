@@ -39,7 +39,7 @@
 		"docker:stop": "node bin/cli.js stop"
 	},
 	"bin": {
-		"dispatch": "./bin/cli.js"
+		"dispatch": "./bin/dispatch"
 	},
 	"dependencies": {
 		"@anthropic-ai/claude-code": "^1.0.98",

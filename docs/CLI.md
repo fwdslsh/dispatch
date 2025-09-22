@@ -1,18 +1,38 @@
 # Dispatch CLI
 
-A command-line interface for launching and managing Dispatch web terminal containers.
+A native Bash command-line interface for launching and managing Dispatch web terminal containers.
 
 ## Installation
 
-### Global Installation (Recommended)
+### Using the Installer (Recommended)
+
+The easiest way to install the Dispatch CLI is using the provided installer:
 
 ```bash
-npm install -g .
+# Clone the repository
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+
+# Run the installer
+./install.sh
 ```
 
-After installation, you can use the `dispatch` command from anywhere.
+The installer will automatically:
+- Find a suitable installation directory (`~/bin`, `~/.local/bin`, or `/usr/local/bin`)
+- Copy the script and make it executable
+- Add the directory to your PATH if needed
 
-### Local Installation
+### Manual Installation
+
+```bash
+# Copy the script to a directory in your PATH
+cp bin/dispatch ~/bin/dispatch
+chmod +x ~/bin/dispatch
+```
+
+### Legacy Node.js CLI (Deprecated)
+
+The previous Node.js-based CLI is still available but deprecated:
 
 ```bash
 npm install
@@ -21,84 +41,71 @@ node bin/cli.js --help
 
 ## Quick Start
 
-1. **Initialize environment (recommended for first-time setup):**
+1. **Initialize environment (creates directories and .env file):**
 
    ```bash
    dispatch init
    ```
 
-2. **Or generate configuration file manually:**
+2. **Start Dispatch:**
 
    ```bash
-   dispatch config
+   dispatch start
    ```
 
-3. **Start Dispatch:**
-
-   ```bash
-   dispatch start --open
-   ```
-
-4. **Check status:**
+3. **Check status:**
 
    ```bash
    dispatch status
    ```
 
-5. **Stop container:**
+4. **Stop container:**
    ```bash
    dispatch stop
    ```
 
+5. **Update to latest version:**
+   ```bash
+   dispatch update
+   ```
+
 ## Commands
+
+### `dispatch init`
+
+Initialize the Dispatch environment by creating directories and configuration files:
+
+```bash
+# Initialize with defaults
+dispatch init
+```
+
+**What it does:**
+- Creates `~/.dispatch` directory for configuration
+- Creates `~/workspace` directory for projects  
+- Generates `~/.dispatch/.env` file with default settings including a secure `TERMINAL_KEY`
 
 ### `dispatch start [options]`
 
-Start the Dispatch container with various options:
+Start the Dispatch container:
 
 ```bash
-# Basic start
+# Basic start (uses ~/.dispatch/.env for configuration)
 dispatch start
 
-# Start with custom port and open browser
-dispatch start --port 8080 --open
-
-# Start with tunnel enabled
-dispatch start --tunnel --subdomain my-dev
-
-# Start with Claude mode
-dispatch start --mode claude
+# Start with custom port
+dispatch start --port 8080
 
 # Start with custom directories
-dispatch start --projects ~/my-projects --ssh ~/.ssh
-
-# Start with email notification
-dispatch start --notify-email user@example.com --smtp-host smtp.gmail.com --smtp-user user@gmail.com --smtp-pass app-password
-
-# Start with webhook notification (great for Slack, Discord, etc.)
-dispatch start --notify-webhook https://hooks.slack.com/services/your-webhook-url
-
-# Start with both notifications
-dispatch start --notify-email user@example.com --notify-webhook https://hooks.slack.com/webhook --tunnel
-
-# Build image and start
-dispatch start --build
+dispatch start --dispatch-home ~/my-dispatch --workspace ~/my-workspace
 ```
 
 #### Options:
 
 - `-p, --port <port>` - Port for web interface (default: 3030)
-- `-k, --key <key>` - Terminal authentication key
-- `--tunnel` - Enable public URL tunnel
-- `--subdomain <subdomain>` - Custom tunnel subdomain
-- `--mode <mode>` - PTY mode (shell|claude, default: shell)
-- `--build` - Build Docker image before running
-- `--open` - Open browser after container starts
-- `--projects <path>` - Projects directory to mount
-- `--home <path>` - Home directory to mount
-- `--ssh <path>` - SSH directory to mount (read-only)
-- `--claude <path>` - Claude config directory to mount
-- `--config <path>` - Additional config directory to mount
+- `--env-file <path>` - Path to .env file (default: ~/.dispatch/.env)
+- `--dispatch-home <path>` - Dispatch home directory (default: ~/.dispatch)
+- `--workspace <path>` - Workspace directory (default: ~/workspace)
 - `--notify-email <email>` - Send email notification with access link
 - `--notify-webhook <url>` - Send webhook notification with access link
 - `--smtp-host <host>` - SMTP server host for email notifications
@@ -108,68 +115,74 @@ dispatch start --build
 
 ### `dispatch stop`
 
-Stop the running Dispatch container.
+Stop the running Dispatch container:
+
+```bash
+dispatch stop
+```
+
+**What it does:**
+- Stops the running container
+- Removes the stopped container
+- Preserves all data in mounted directories
+
+### `dispatch update`
+
+Update to the latest Docker image:
+
+```bash
+dispatch update
+```
+
+**What it does:**
+- Stops the current container if running
+- Pulls the latest `fwdslsh/dispatch:latest` image
+- Restarts the container if it was previously running
 
 ### `dispatch status`
 
-Check if the Dispatch container is currently running.
-
-### `dispatch config`
-
-Generate an example configuration file at `~/.dispatch/config.json`.
-
-### `dispatch init [options]`
-
-Initialize Dispatch environment setup. This command automates the setup process for a new Dispatch environment by creating directories, copying configurations, and preparing the environment for first use.
+Show the current status of the Dispatch container:
 
 ```bash
-# Interactive setup (default)
-dispatch init
-
-# Non-interactive setup with defaults
-dispatch init --non-interactive
-
-# Custom setup
-dispatch init --dispatch-home ~/my-dispatch --projects-dir ~/my-projects --skip-docker
+dispatch status
 ```
 
-#### Options:
+**Output includes:**
+- Container running status
+- Port mappings
+- Web interface URL
 
-- `--skip-docker` - Skip Docker image pull
-- `--skip-cli` - Skip making CLI globally available
-- `--dispatch-home <path>` - Dispatch home directory (default: ~/dispatch)
-- `--projects-dir <path>` - Projects directory (default: ~/dispatch/projects)
-- `--non-interactive` - Run in non-interactive mode (no prompts, uses defaults)
+## Configuration
 
-#### Interactive vs Non-Interactive Mode
+The new CLI uses a standardized `.env` file approach for configuration.
 
-**Interactive Mode (default):**
+### Environment File (`~/.dispatch/.env`)
 
-- Prompts for confirmation before creating directories
-- Asks for custom paths if you don't want defaults
-- Confirms before copying configurations
-- Asks before making CLI globally available
-- Prompts before pulling Docker image
+Created automatically by `dispatch init`, this file contains all configuration options:
 
-**Non-Interactive Mode (`--non-interactive`):**
+```bash
+# Required: Authentication key for web interface
+TERMINAL_KEY=your-generated-key
 
-- Uses all default values
-- Creates directories without prompting
-- Automatically copies configurations if they exist
-- Makes CLI globally available without asking
-- Pulls Docker image without confirmation
-- Perfect for automation and scripts
+# Optional: Server configuration  
+PORT=3030
+PTY_MODE=shell
 
-#### What it does:
+# Optional: Features
+ENABLE_TUNNEL=false
+#LT_SUBDOMAIN=my-dispatch
 
-1. **Creates directory structure**: Sets up `~/dispatch` with subdirectories for projects, home, and configuration
-2. **Copies configuration**: Copies `~/.claude` and `~/.config/dispatch` directories to dispatch home if they exist
-3. **Updates CLI configuration**: Configures volume mounts to use the new directory structure
-4. **Makes CLI available**: Optionally creates a global symlink for the dispatch command
-5. **Pulls Docker image**: Optionally pulls the latest Dispatch Docker image
-6. **Saves preferences**: Stores initialization settings for future reference in `~/.config/dispatch/init-config.json`
+# Optional: Directory paths (uncomment to override defaults)
+#DISPATCH_CONFIG_DIR=/config
+#DISPATCH_PROJECTS_DIR=/projects
+#DISPATCH_WORKSPACE_DIR=/workspace
+```
 
-After running `init`, you can immediately use `dispatch start` with the properly configured environment.
+### Directory Structure
+
+- `~/.dispatch/` - Main configuration directory
+- `~/.dispatch/.env` - Environment configuration
+- `~/workspace/` - Default workspace for projects and files
 
 ## Configuration
 
