@@ -38,9 +38,9 @@ test.describe('Directory Browser Styling', () => {
 
 		// Verify parent directory button exists and is styled properly
 		const parentDirButton = page.locator('.parent-dir .item-button');
-		if (await parentDirButton.count() > 0) {
+		if ((await parentDirButton.count()) > 0) {
 			await expect(parentDirButton.first()).toBeVisible();
-			
+
 			// Check that parent directory button has proper styling
 			const parentDirStyles = await parentDirButton.first().evaluate((el) => {
 				const computed = window.getComputedStyle(el);
@@ -62,13 +62,13 @@ test.describe('Directory Browser Styling', () => {
 		// Check for directory items (folders)
 		const directoryItems = page.locator('.list-item button[aria-label*="directory"]');
 		const directoryCount = await directoryItems.count();
-		
+
 		if (directoryCount > 0) {
 			// Test the first few directory items
 			for (let i = 0; i < Math.min(directoryCount, 3); i++) {
 				const item = directoryItems.nth(i);
 				await expect(item).toBeVisible();
-				
+
 				// Check styling
 				const styles = await item.evaluate((el) => {
 					const computed = window.getComputedStyle(el);
@@ -90,18 +90,18 @@ test.describe('Directory Browser Styling', () => {
 		// Check for file items
 		const fileItems = page.locator('.list-item button[aria-label*="file"]');
 		const fileCount = await fileItems.count();
-		
+
 		if (fileCount > 0) {
 			// Test the first few file items
 			for (let i = 0; i < Math.min(fileCount, 3); i++) {
 				const item = fileItems.nth(i);
 				await expect(item).toBeVisible();
-				
+
 				// Check that file items have proper structure
 				const icon = item.locator('.icon');
 				const name = item.locator('.name');
 				const type = item.locator('.type');
-				
+
 				await expect(icon).toBeVisible();
 				await expect(name).toBeVisible();
 				await expect(type).toBeVisible();
@@ -156,7 +156,9 @@ test.describe('Directory Browser Styling', () => {
 		const createDirButton = page.getByRole('button', { name: 'Create new directory' });
 		const cloneDirButton = page.getByRole('button', { name: 'Clone current directory' });
 		const uploadButton = page.getByRole('button', { name: 'Upload files' });
-		const showHiddenButton = page.getByRole('button', { name: /Show hidden files|Hide hidden files/ });
+		const showHiddenButton = page.getByRole('button', {
+			name: /Show hidden files|Hide hidden files/
+		});
 
 		await expect(createDirButton).toBeVisible();
 		await expect(cloneDirButton).toBeVisible();
