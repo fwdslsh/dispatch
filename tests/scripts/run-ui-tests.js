@@ -101,7 +101,6 @@ const playwrightProcess = spawn('npm', ['exec', '--', ...playwrightArgs.slice(1)
 		...process.env,
 		// Ensure test environment
 		TERMINAL_KEY: 'testkey12345',
-		PTY_MODE: 'shell',
 		NODE_ENV: 'test'
 	}
 });

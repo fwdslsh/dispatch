@@ -47,19 +47,17 @@ else
     echo "✅ Using default user mapping (no changes needed)"
 fi
 
-# Ensure critical directories exist and have proper ownership
-echo "📁 Setting up directories..."
-
 # Get the actual UID/GID of our user (may be different if usermod failed)
 ACTUAL_UID=$(id -u "$USER_NAME")
 ACTUAL_GID=$(id -g "$USER_NAME")
 echo "   Actual container user: ${USER_NAME} (${ACTUAL_UID}:${ACTUAL_GID})"
 
+# Ensure critical directories exist and have proper ownership
+echo "📁 Setting up directories..."
+
 # Standard directories that should be writable by the app user
 DIRS_TO_SETUP=(
     "/home/$USER_NAME"
-    "/config"
-    "/projects" 
     "/workspace"
     "/tmp/dispatch-sessions"
 )
@@ -69,28 +67,8 @@ for dir in "${DIRS_TO_SETUP[@]}"; do
         mkdir -p "$dir"
         echo "   ✓ Created: $dir"
     fi
-    
-    # Only change ownership if the directory is not a volume mount from host
-    # (Volume mounts should preserve host permissions)
-    if [ ! -e "$dir/.dispatch-volume-mount" ]; then
-        chown "$ACTUAL_UID:$ACTUAL_GID" "$dir" 2>/dev/null || {
-            echo "   ⚠️  Could not change ownership of $dir (might be volume mount)"
-        }
-    fi
+      
 done
-
-# Set up PTY_ROOT directory
-PTY_ROOT=${PTY_ROOT:-/tmp/dispatch-sessions}
-if [ ! -d "$PTY_ROOT" ]; then
-    mkdir -p "$PTY_ROOT"
-    chown "$ACTUAL_UID:$ACTUAL_GID" "$PTY_ROOT"
-    echo "   ✓ Created PTY root: $PTY_ROOT"
-fi
-
-# Ensure Node.js app directory permissions
-chown -R "$ACTUAL_UID:$ACTUAL_GID" /app 2>/dev/null || {
-    echo "   ⚠️  Could not change app directory ownership (this might be normal)"
-}
 
 echo "📁 Directory setup complete"
 
@@ -98,9 +76,7 @@ echo "📁 Directory setup complete"
 echo "🚀 Starting application as user: $USER_NAME"
 echo "   Environment:"
 echo "     PORT: ${PORT:-3030}"
-echo "     PTY_MODE: ${PTY_MODE:-shell}"
 echo "     ENABLE_TUNNEL: ${ENABLE_TUNNEL:-false}"
-echo "     PTY_ROOT: ${PTY_ROOT}"
 
 # Execute the application as the mapped user
 exec gosu "$USER_NAME" "$@"

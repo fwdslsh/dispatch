@@ -110,7 +110,7 @@ TERMINAL_KEY=$terminal_key
 
 # Optional: Server configuration
 PORT=$DEFAULT_PORT
-PTY_MODE=shell
+
 
 # Optional: Features
 ENABLE_TUNNEL=false
@@ -157,7 +157,7 @@ cmd_start() {
                 env_file="$2"
                 shift 2
                 ;;
-            --dispatch-home)
+            --home)
                 dispatch_home="$2"
                 shift 2
                 ;;
@@ -351,7 +351,7 @@ COMMANDS:
 START OPTIONS:
     -p, --port <PORT>           Port for web interface (default: $DEFAULT_PORT)
     --env-file <PATH>           Path to .env file (default: ~/.dispatch/.env)
-    --dispatch-home <PATH>      Dispatch home directory (default: ~/.dispatch)
+    --home <PATH>      Dispatch home directory (default: ~/.dispatch)
     --workspace <PATH>          Workspace directory (default: ~/workspace)
 
 EXAMPLES:

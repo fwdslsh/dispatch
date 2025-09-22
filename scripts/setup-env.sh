@@ -13,7 +13,6 @@ USER_GID=$(id -g)
 
 # Dispatch configuration
 TERMINAL_KEY=change-me-in-production
-PTY_MODE=shell
 ENABLE_TUNNEL=false
 EOF
 

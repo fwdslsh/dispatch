@@ -337,7 +337,6 @@ async function runContainer(config) {
 	// Environment variables
 	const terminalKey = config.terminalKey || generateRandomKey();
 	args.push('-e', `TERMINAL_KEY=${terminalKey}`);
-	args.push('-e', `PTY_MODE=${config.ptyMode}`);
 	args.push('-e', `DISPATCH_CONFIG_DIR=/home/dispatch/.config/dispatch`);
 	args.push('-e', `DISPATCH_PROJECTS_DIR=/workspace`);
 
