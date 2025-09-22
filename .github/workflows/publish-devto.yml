@@ -25,7 +25,7 @@ jobs:
           devto_key: ${{ secrets.DEVTO_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Set the organization or contributor name to 'dispatch'
-          organization: 'dispatch'
+          organization: 'fwdslsh'
           # Optional: dry run mode for testing
           # (remove this line for actual publishing)
           # dry_run: true
