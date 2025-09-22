@@ -323,31 +323,28 @@
 {#if !isOpen}
 	<button
 		type="button"
-		class="flex items-center gap-2 w-full px-4 py-2 bg-surface-glass border border-surface-border rounded-lg text-left hover:bg-surface-highlight transition-all duration-200 cursor-pointer"
+		class="directory-summary-enhanced w-full text-left"
 		onclick={() => (isOpen = true)}
 		aria-expanded={isOpen}
 	>
-		<span class="text-muted"><IconFolder size={18} /></span>
-		<span class="flex-1 text-text">{displaySelection}</span>
+		<span class="directory-icon-enhanced"><IconFolder size={18} /></span>
+		<span class="flex-1 text-primary font-medium">{displaySelection}</span>
 	</button>
 {:else}
-	<div class="bg-surface rounded-lg border border-surface-border shadow-sm">
+	<div class="directory-browser-enhanced">
 		<!-- Breadcrumb navigation -->
 		<div
-			class="flex items-center justify-between px-3 py-2 border-b border-surface-border {selected >
-			''
-				? 'bg-primary-glow-5'
-				: 'bg-surface-glass'}"
+			class="directory-breadcrumb-enhanced {selected > '' ? 'bg-primary-glow-10' : ''}"
 			aria-label="Breadcrumbs"
 		>
-			<div class="flex items-center gap-1 overflow-x-auto text-sm">
+			<div class="flex items-center gap-1 overflow-x-auto flex-1">
 				{#each breadcrumbs as crumb, i}
 					{#if i > 0}
-						<span class="text-muted opacity-50">/</span>
+						<span class="breadcrumb-separator">/</span>
 					{/if}
 					<button
 						type="button"
-						class="px-2 py-1 text-muted hover:text-text rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						class="breadcrumb-item-enhanced"
 						onclick={() => navigateTo(crumb.path)}
 						disabled={loading}
 					>
@@ -355,7 +352,7 @@
 					</button>
 				{/each}
 			</div>
-			<div class="flex items-center gap-1 ml-auto pl-2 shrink-0">
+			<div class="flex items-center gap-1 ml-auto shrink-0">
 				{#if !isAlwaysOpen}
 					<IconButton
 						type="button"
@@ -386,9 +383,9 @@
 		</div>
 	{/if} -->
 		<!-- Search bar -->
-		<div class="flex items-center gap-2 p-3 border-b border-surface-border">
+		<div class="flex items-center gap-3 p-4 border-b border-surface-border bg-surface-glass">
 			<Input type="text" bind:value={query} {placeholder} disabled={loading} class="flex-1" />
-			<div class="flex items-center gap-1">
+			<div class="flex items-center gap-2">
 				{#if !isAlwaysOpen}
 					<IconButton
 						type="button"
@@ -457,26 +454,33 @@
 
 		<!-- New directory input -->
 		{#if showNewDirInput}
-			<div class="p-3 bg-surface-highlight border-b border-surface-border flex items-center gap-2">
-				<Input
-					type="text"
-					bind:value={newDirName}
-					placeholder="Enter new directory name..."
-					disabled={creatingDir}
-					class="flex-1"
-					onkeydown={(e) => e.key === 'Enter' && createNewDirectory()}
-				/>
-				<Button
-					type="button"
-					class="create-btn"
-					onclick={createNewDirectory}
-					disabled={creatingDir || !newDirName.trim()}
-				>
-					{creatingDir ? 'Creating...' : 'Create'}
-				</Button>
-				<Button type="button" class="cancel-btn" onclick={toggleNewDirInput} disabled={creatingDir}>
-					Cancel
-				</Button>
+			<div class="p-4 bg-surface-highlight border-b border-surface-border">
+				<div class="flex items-center gap-3">
+					<Input
+						type="text"
+						bind:value={newDirName}
+						placeholder="Enter new directory name..."
+						disabled={creatingDir}
+						class="flex-1"
+						onkeydown={(e) => e.key === 'Enter' && createNewDirectory()}
+					/>
+					<Button
+						type="button"
+						class="wm-action-button"
+						onclick={createNewDirectory}
+						disabled={creatingDir || !newDirName.trim()}
+					>
+						{creatingDir ? 'Creating...' : 'Create'}
+					</Button>
+					<Button
+						type="button"
+						class="btn-icon-only ghost"
+						onclick={toggleNewDirInput}
+						disabled={creatingDir}
+					>
+						Cancel
+					</Button>
+				</div>
 			</div>
 		{/if}
 
@@ -548,42 +552,35 @@
 		{/if}
 
 		<!-- Directory listing -->
-		<div class="max-h-96 overflow-y-auto">
+		<div class="max-h-96 overflow-y-auto p-2">
 			{#if currentPath !== '/'}
-				<div
-					class="flex items-center border-b border-surface-border last:border-b-0 hover:bg-surface-highlight transition-colors"
-				>
+				<div class="directory-item-enhanced">
+					<span class="directory-icon-enhanced"><IconFolder size={20} /></span>
 					<button
 						type="button"
 						onclick={goUp}
 						disabled={loading}
-						class="flex items-center gap-3 px-3 py-2 flex-1 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						class="flex-1 text-left font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer"
 					>
-						<span class="text-muted"><IconFolder size={20} /></span>
-						<span class="flex-1 font-medium">..</span>
-						<span class="text-xs text-muted">parent directory</span>
+						..
 					</button>
+					<span class="text-xs text-muted opacity-75">parent directory</span>
 				</div>
 			{/if}
 
 			{#each filtered as entry}
-				<div
-					class="flex items-center border-b border-surface-border last:border-b-0 hover:bg-surface-highlight transition-colors {selected ===
-					entry.path
-						? 'bg-primary-glow-5'
-						: ''}"
-				>
+				<div class="directory-item-enhanced {selected === entry.path ? 'selected' : ''}">
 					{#if entry.isDirectory}
+						<span class="directory-icon-enhanced"><IconFolder size={20} /></span>
 						<button
 							type="button"
 							onclick={() => navigateTo(entry.path)}
 							disabled={loading}
-							class="flex items-center gap-3 px-3 py-2 flex-1 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							class="flex-1 text-left font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer"
 						>
-							<span class="text-muted"><IconFolder size={20} /></span>
-							<span class="flex-1 font-medium">{entry.name}</span>
-							<span class="text-xs text-muted">directory</span>
+							{entry.name}
 						</button>
+						<span class="text-xs text-muted opacity-75">directory</span>
 						{#if !isAlwaysOpen}
 							<div class="px-2">
 								<IconButton
@@ -598,29 +595,27 @@
 							</div>
 						{/if}
 					{:else if showFileActions && onFileOpen}
+						<span class="directory-icon-enhanced"><IconFile size={20} /></span>
 						<button
 							type="button"
-							class="flex items-center gap-3 px-3 py-2 flex-1 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:text-primary"
+							class="flex-1 text-left font-medium bg-transparent border-none cursor-pointer hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
 							onclick={() => openFile(entry)}
 							disabled={loading}
 							title="Open file"
 						>
-							<span class="text-muted"><IconFile size={20} /></span>
-							<span class="flex-1 font-medium">{entry.name}</span>
-							<span class="text-xs text-muted">file</span>
+							{entry.name}
 						</button>
+						<span class="text-xs text-muted opacity-75">file</span>
 					{:else}
-						<div class="flex items-center gap-3 px-3 py-2 flex-1 text-muted">
-							<span class="text-muted"><IconFile size={20} /></span>
-							<span class="flex-1">{entry.name}</span>
-							<span class="text-xs">file</span>
-						</div>
+						<span class="directory-icon-enhanced"><IconFile size={20} /></span>
+						<span class="flex-1 font-medium text-muted">{entry.name}</span>
+						<span class="text-xs text-muted opacity-75">file</span>
 					{/if}
 				</div>
 			{/each}
 
 			{#if !loading && filtered.length === 0 && !error}
-				<div class="empty-message">
+				<div class="p-6 text-center text-muted font-medium">
 					{query ? 'No matching items' : 'This directory is empty'}
 				</div>
 			{/if}

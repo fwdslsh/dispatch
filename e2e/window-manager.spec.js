@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // Test configuration
 const TEST_KEY = 'testkey12345';
-const BASE_URL = 'http://localhost:5175';
+const BASE_URL = 'http://localhost:5174';
 
 test.describe('WindowManager Session Management', () => {
 	// Helper to authenticate

@@ -292,6 +292,214 @@
 	grid-template-columns: repeat(3, 1fr);
 }
 
+/* Additional flex utilities */
+.items-center {
+	align-items: center;
+}
+
+.items-start {
+	align-items: flex-start;
+}
+
+.items-end {
+	align-items: flex-end;
+}
+
+.justify-start {
+	justify-content: flex-start;
+}
+
+.justify-center {
+	justify-content: center;
+}
+
+.justify-end {
+	justify-content: flex-end;
+}
+
+.justify-between {
+	justify-content: space-between;
+}
+
+.justify-around {
+	justify-content: space-around;
+}
+
+.flex-1 {
+	flex: 1 1 0%;
+}
+
+.flex-auto {
+	flex: 1 1 auto;
+}
+
+.flex-none {
+	flex: none;
+}
+
+.shrink-0 {
+	flex-shrink: 0;
+}
+
+.grow {
+	flex-grow: 1;
+}
+
+/* Width and height utilities */
+.w-full {
+	width: 100%;
+}
+
+.w-auto {
+	width: auto;
+}
+
+.w-4 {
+	width: 1rem;
+}
+
+.h-4 {
+	height: 1rem;
+}
+
+.h-full {
+	height: 100%;
+}
+
+.min-w-0 {
+	min-width: 0;
+}
+
+/* Overflow utilities */
+.overflow-hidden {
+	overflow: hidden;
+}
+
+.overflow-x-auto {
+	overflow-x: auto;
+}
+
+.overflow-y-auto {
+	overflow-y: auto;
+}
+
+/* Position utilities */
+.relative {
+	position: relative;
+}
+
+.absolute {
+	position: absolute;
+}
+
+.fixed {
+	position: fixed;
+}
+
+/* Display utilities */
+.block {
+	display: block;
+}
+
+.inline-block {
+	display: inline-block;
+}
+
+.inline {
+	display: inline;
+}
+
+.hidden {
+	display: none;
+}
+
+/* Text alignment */
+.text-left {
+	text-align: left;
+}
+
+.text-center {
+	text-align: center;
+}
+
+.text-right {
+	text-align: right;
+}
+
+/* Font weight */
+.font-medium {
+	font-weight: 500;
+}
+
+.font-semibold {
+	font-weight: 600;
+}
+
+.font-bold {
+	font-weight: 700;
+}
+
+/* Text size */
+.text-xs {
+	font-size: 0.75rem;
+}
+
+.text-sm {
+	font-size: 0.875rem;
+}
+
+.text-base {
+	font-size: 1rem;
+}
+
+.text-lg {
+	font-size: 1.125rem;
+}
+
+/* Cursor */
+.cursor-pointer {
+	cursor: pointer;
+}
+
+.cursor-not-allowed {
+	cursor: not-allowed;
+}
+
+/* Opacity */
+.opacity-0 {
+	opacity: 0;
+}
+
+.opacity-50 {
+	opacity: 0.5;
+}
+
+.opacity-75 {
+	opacity: 0.75;
+}
+
+.opacity-100 {
+	opacity: 1;
+}
+
+/* Transform */
+.transform {
+	transform: translateZ(0);
+}
+
+/* Z-index */
+.z-10 {
+	z-index: 10;
+}
+
+.z-20 {
+	z-index: 20;
+}
+
+.z-50 {
+	z-index: 50;
+}
+
 /* Component layout patterns */
 .header-layout {
 	display: flex;
@@ -351,6 +559,10 @@
 	color: var(--text);
 }
 
+.text-text {
+	color: var(--text);
+}
+
 .text-muted {
 	color: var(--muted);
 }
@@ -373,6 +585,261 @@
 
 .text-right {
 	text-align: right;
+}
+
+/* ==================================================================
+   BACKGROUND UTILITIES
+   Surface and background variants using design tokens
+   ================================================================== */
+
+.bg-surface {
+	background: var(--surface);
+}
+
+.bg-surface-glass {
+	background: color-mix(in oklab, var(--surface) 80%, transparent);
+	backdrop-filter: blur(8px);
+}
+
+.bg-surface-highlight {
+	background: var(--elev);
+}
+
+.bg-surface-hover {
+	background: var(--surface-hover);
+}
+
+.bg-primary-glow-5 {
+	background: var(--primary-glow-10);
+}
+
+.bg-primary-glow-10 {
+	background: var(--primary-glow-20);
+}
+
+/* ==================================================================
+   BORDER UTILITIES
+   Border patterns using design tokens
+   ================================================================== */
+
+.border {
+	border-width: 1px;
+	border-style: solid;
+}
+
+.border-surface-border {
+	border-color: var(--surface-border);
+}
+
+.border-b {
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+.border-b-surface-border {
+	border-bottom-color: var(--surface-border);
+}
+
+.rounded {
+	border-radius: 0.25rem;
+}
+
+.rounded-sm {
+	border-radius: 0.125rem;
+}
+
+.rounded-md {
+	border-radius: 0.375rem;
+}
+
+.rounded-lg {
+	border-radius: 0.5rem;
+}
+
+.rounded-xl {
+	border-radius: 0.75rem;
+}
+
+/* ==================================================================
+   SPACING UTILITIES - ENHANCED
+   Additional spacing patterns for component layouts
+   ================================================================== */
+
+/* Padding directional utilities */
+.px-2 {
+	padding-left: var(--space-2);
+	padding-right: var(--space-2);
+}
+
+.px-3 {
+	padding-left: var(--space-3);
+	padding-right: var(--space-3);
+}
+
+.px-4 {
+	padding-left: var(--space-4);
+	padding-right: var(--space-4);
+}
+
+.py-1 {
+	padding-top: var(--space-1);
+	padding-bottom: var(--space-1);
+}
+
+.py-2 {
+	padding-top: var(--space-2);
+	padding-bottom: var(--space-2);
+}
+
+.py-3 {
+	padding-top: var(--space-3);
+	padding-bottom: var(--space-3);
+}
+
+.pt-2 {
+	padding-top: var(--space-2);
+}
+
+.pb-2 {
+	padding-bottom: var(--space-2);
+}
+
+.pl-2 {
+	padding-left: var(--space-2);
+}
+
+.pr-2 {
+	padding-right: var(--space-2);
+}
+
+/* Margin directional utilities */
+.mx-auto {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.mt-2 {
+	margin-top: var(--space-2);
+}
+
+.mt-3 {
+	margin-top: var(--space-3);
+}
+
+.mb-2 {
+	margin-bottom: var(--space-2);
+}
+
+.mb-3 {
+	margin-bottom: var(--space-3);
+}
+
+.ml-auto {
+	margin-left: auto;
+}
+
+/* Space between utilities (for flex/grid children) */
+.space-y-2 > * + * {
+	margin-top: var(--space-2);
+}
+
+.space-y-3 > * + * {
+	margin-top: var(--space-3);
+}
+
+.space-x-2 > * + * {
+	margin-left: var(--space-2);
+}
+
+.space-x-3 > * + * {
+	margin-left: var(--space-3);
+}
+
+/* ==================================================================
+   BOX SHADOW UTILITIES
+   Consistent shadow patterns
+   ================================================================== */
+
+.shadow-sm {
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow {
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.shadow-md {
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-lg {
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ==================================================================
+   TRANSITION UTILITIES
+   Consistent animation patterns
+   ================================================================== */
+
+.transition-all {
+	transition: all 0.2s ease;
+}
+
+.transition-colors {
+	transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.transition-transform {
+	transition: transform 0.2s ease;
+}
+
+.duration-150 {
+	transition-duration: 0.15s;
+}
+
+.duration-200 {
+	transition-duration: 0.2s;
+}
+
+.duration-300 {
+	transition-duration: 0.3s;
+}
+
+.ease-out {
+	transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+
+.ease-in-out {
+	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==================================================================
+   MODERN UI ENHANCEMENTS
+   Glass morphism and advanced effects
+   ================================================================== */
+
+.backdrop-blur {
+	backdrop-filter: blur(8px);
+}
+
+.backdrop-blur-sm {
+	backdrop-filter: blur(4px);
+}
+
+.backdrop-blur-lg {
+	backdrop-filter: blur(16px);
+}
+
+.glass {
+	background: color-mix(in oklab, var(--surface) 70%, transparent);
+	backdrop-filter: blur(12px) saturate(120%);
+	border: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+.glass-dark {
+	background: color-mix(in oklab, var(--bg) 80%, transparent);
+	backdrop-filter: blur(12px) saturate(120%);
+	border: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
 }
 
 /* ==================================================================
@@ -2697,4 +3164,265 @@
 	100% {
 		opacity: 0;
 	}
+}
+
+/* ==================================================================
+   WINDOW MANAGER ENHANCEMENT UTILITIES
+   Additional utilities for window manager components
+   NOTE: Core window manager styles are in window-manager.css
+   ================================================================== */
+
+.wm-container {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	position: relative;
+}
+
+.wm-tile-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-2) var(--space-3);
+	background: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
+	border-bottom: 1px solid var(--surface-border);
+	min-height: 40px;
+}
+
+.wm-tile-content {
+	flex: 1;
+	overflow: hidden;
+	position: relative;
+	min-height: 0;
+}
+
+.wm-empty-tile {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-4);
+	padding: var(--space-6);
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
+		color-mix(in oklab, var(--surface) 95%, var(--primary) 5%)
+	);
+	border: 2px dashed color-mix(in oklab, var(--primary) 30%, transparent);
+	border-radius: 8px;
+	color: var(--muted);
+	text-align: center;
+	transition: all 0.3s ease;
+	cursor: pointer;
+}
+
+.wm-empty-tile:hover {
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface) 85%, var(--primary) 15%),
+		color-mix(in oklab, var(--surface) 90%, var(--primary) 10%)
+	);
+	border-color: color-mix(in oklab, var(--primary) 50%, transparent);
+	color: var(--text);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 16px color-mix(in oklab, var(--primary) 20%, transparent);
+}
+
+.wm-session-actions {
+	display: flex;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.wm-action-button {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-4);
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 20%, var(--surface)),
+		color-mix(in oklab, var(--primary) 10%, var(--surface))
+	);
+	border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
+	border-radius: var(--radius-md);
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	text-decoration: none;
+}
+
+.wm-action-button:hover {
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 30%, var(--surface)),
+		color-mix(in oklab, var(--primary) 20%, var(--surface))
+	);
+	border-color: var(--primary);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px var(--primary-glow-30);
+}
+
+/* Layout grid helpers for non-window-manager components */
+.layout-grid {
+	display: grid;
+	gap: var(--space-2);
+	padding: var(--space-2);
+	height: 100%;
+}
+
+.split-horizontal {
+	grid-template-columns: 1fr 1fr;
+}
+
+.split-vertical {
+	grid-template-rows: 1fr 1fr;
+}
+
+.split-complex {
+	grid-template-columns: 1fr 1fr;
+	grid-template-rows: 1fr 1fr;
+}
+
+/* ==================================================================
+   ENHANCED DIRECTORY BROWSER UTILITIES
+   Modern file browser with glass morphism and micro-interactions
+   ================================================================== */
+
+.directory-browser-enhanced {
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface) 95%, var(--primary) 5%),
+		color-mix(in oklab, var(--surface) 98%, var(--primary) 2%)
+	);
+	border: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
+	border-radius: 12px;
+	overflow: hidden;
+	backdrop-filter: blur(12px) saturate(120%);
+	box-shadow:
+		0 8px 32px -12px rgba(0, 0, 0, 0.1),
+		inset 0 1px 2px color-mix(in oklab, var(--primary) 8%, transparent);
+}
+
+.directory-summary-enhanced {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-4);
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
+		color-mix(in oklab, var(--surface) 95%, var(--primary) 5%)
+	);
+	border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+	border-radius: 12px;
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+	position: relative;
+	overflow: hidden;
+}
+
+.directory-summary-enhanced::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, var(--primary-glow-10), transparent);
+	transition: left 0.5s ease;
+}
+
+.directory-summary-enhanced:hover {
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 25%, var(--surface)),
+		color-mix(in oklab, var(--primary) 15%, var(--surface))
+	);
+	border-color: var(--primary);
+	transform: translateY(-2px);
+	box-shadow:
+		0 12px 40px -12px var(--primary-glow),
+		inset 0 1px 2px color-mix(in oklab, var(--primary) 15%, transparent);
+}
+
+.directory-summary-enhanced:hover::before {
+	left: 100%;
+}
+
+.directory-item-enhanced {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	padding: var(--space-3);
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	border: 1px solid transparent;
+	position: relative;
+}
+
+.directory-item-enhanced:hover {
+	background: color-mix(in oklab, var(--primary) 8%, transparent);
+	border-color: color-mix(in oklab, var(--primary) 20%, transparent);
+	transform: translateX(4px);
+}
+
+.directory-item-enhanced.selected {
+	background: color-mix(in oklab, var(--primary) 15%, transparent);
+	border-color: var(--primary);
+	color: var(--primary);
+}
+
+.directory-icon-enhanced {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	color: var(--accent-amber);
+	transition: all 0.2s ease;
+}
+
+.directory-item-enhanced:hover .directory-icon-enhanced {
+	color: var(--primary);
+	transform: scale(1.1);
+}
+
+.directory-breadcrumb-enhanced {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4);
+	background: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
+	border-bottom: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
+	font-family: var(--font-mono);
+	font-size: var(--font-size-0);
+	overflow-x: auto;
+}
+
+.breadcrumb-item-enhanced {
+	padding: var(--space-1) var(--space-2);
+	border-radius: 4px;
+	color: var(--primary);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.breadcrumb-item-enhanced:hover {
+	background: var(--primary-glow-20);
+	color: var(--primary-bright);
+	transform: translateY(-1px);
+}
+
+.breadcrumb-separator {
+	color: var(--muted);
+	opacity: 0.5;
+	margin: 0 var(--space-1);
 }
