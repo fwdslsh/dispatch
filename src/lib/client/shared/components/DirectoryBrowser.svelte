@@ -323,25 +323,31 @@
 {#if !isOpen}
 	<button
 		type="button"
-		class="directory-summary"
+		class="flex items-center gap-2 w-full px-4 py-2 bg-surface-glass border border-surface-border rounded-lg text-left hover:bg-surface-highlight transition-all duration-200 cursor-pointer"
 		onclick={() => (isOpen = true)}
 		aria-expanded={isOpen}
 	>
-		<span class="summary-icon"><IconFolder size={18} /></span>
-		<span class="summary-text">{displaySelection}</span>
+		<span class="text-muted"><IconFolder size={18} /></span>
+		<span class="flex-1 text-text">{displaySelection}</span>
 	</button>
 {:else}
-	<div class="directory-browser">
+	<div class="bg-surface rounded-lg border border-surface-border shadow-sm">
 		<!-- Breadcrumb navigation -->
-		<div class="breadcrumb-bar" class:selected={selected > ''} aria-label="Breadcrumbs">
-			<div class="breadcrumbs">
+		<div
+			class="flex items-center justify-between px-3 py-2 border-b border-surface-border {selected >
+			''
+				? 'bg-primary-glow-5'
+				: 'bg-surface-glass'}"
+			aria-label="Breadcrumbs"
+		>
+			<div class="flex items-center gap-1 overflow-x-auto text-sm">
 				{#each breadcrumbs as crumb, i}
 					{#if i > 0}
-						<span class="separator">/</span>
+						<span class="text-muted opacity-50">/</span>
 					{/if}
 					<button
 						type="button"
-						class="breadcrumb-item"
+						class="px-2 py-1 text-muted hover:text-text rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 						onclick={() => navigateTo(crumb.path)}
 						disabled={loading}
 					>
@@ -349,7 +355,7 @@
 					</button>
 				{/each}
 			</div>
-			<div class="breadcrumb-actions">
+			<div class="flex items-center gap-1 ml-auto pl-2 shrink-0">
 				{#if !isAlwaysOpen}
 					<IconButton
 						type="button"
@@ -380,9 +386,9 @@
 		</div>
 	{/if} -->
 		<!-- Search bar -->
-		<div class="search-bar">
-			<Input type="text" bind:value={query} {placeholder} disabled={loading} class="search-input" />
-			<div class="btn-group">
+		<div class="flex items-center gap-2 p-3 border-b border-surface-border">
+			<Input type="text" bind:value={query} {placeholder} disabled={loading} class="flex-1" />
+			<div class="flex items-center gap-1">
 				{#if !isAlwaysOpen}
 					<IconButton
 						type="button"
@@ -451,13 +457,13 @@
 
 		<!-- New directory input -->
 		{#if showNewDirInput}
-			<div class="new-dir-form">
+			<div class="p-3 bg-surface-highlight border-b border-surface-border flex items-center gap-2">
 				<Input
 					type="text"
 					bind:value={newDirName}
 					placeholder="Enter new directory name..."
 					disabled={creatingDir}
-					class="new-dir-input"
+					class="flex-1"
 					onkeydown={(e) => e.key === 'Enter' && createNewDirectory()}
 				/>
 				<Button
@@ -476,17 +482,17 @@
 
 		<!-- Clone directory input -->
 		{#if showCloneDirInput}
-			<div class="clone-dir-form">
-				<div class="clone-dir-header">
-					<h4>Clone Directory</h4>
+			<div class="p-3 bg-surface-highlight border-b border-surface-border">
+				<div>
+					<h4 class="text-sm font-medium mb-2 text-text">Clone Directory</h4>
 				</div>
-				<div class="clone-dir-fields">
+				<div class="space-y-2">
 					<Input
 						type="text"
 						bind:value={cloneSourcePath}
 						placeholder="Source directory path..."
 						disabled={cloningDir}
-						class="clone-source-input"
+						class="flex-1"
 						label="Source Directory"
 					/>
 					<Input
@@ -494,16 +500,21 @@
 						bind:value={cloneTargetPath}
 						placeholder="Target directory path..."
 						disabled={cloningDir}
-						class="clone-target-input"
+						class="flex-1"
 						label="Target Directory"
 						onkeydown={(e) => e.key === 'Enter' && cloneDirectory()}
 					/>
-					<label class="clone-overwrite-option">
-						<input type="checkbox" bind:checked={cloneOverwrite} disabled={cloningDir} />
+					<label class="flex items-center gap-2 text-sm text-muted cursor-pointer">
+						<input
+							type="checkbox"
+							bind:checked={cloneOverwrite}
+							disabled={cloningDir}
+							class="w-4 h-4"
+						/>
 						Overwrite if target exists
 					</label>
 				</div>
-				<div class="clone-dir-actions">
+				<div class="flex items-center gap-2 mt-3">
 					<Button
 						type="button"
 						class="clone-btn"
@@ -526,7 +537,7 @@
 
 		<!-- Status bar -->
 		{#if loading || error}
-			<div class="status-bar">
+			<div class="px-3 py-2 text-sm">
 				{#if loading}
 					<span class="loading-state">Loading...</span>
 				{/if}
@@ -537,32 +548,44 @@
 		{/if}
 
 		<!-- Directory listing -->
-		<div class="entries-list">
+		<div class="max-h-96 overflow-y-auto">
 			{#if currentPath !== '/'}
-				<div class="entry-item">
-					<button type="button" onclick={goUp} disabled={loading} class="entry-button">
-						<span class="entry-icon"><IconFolder size={20} /></span>
-						<span class="entry-name">..</span>
-						<span class="entry-type">parent directory</span>
+				<div
+					class="flex items-center border-b border-surface-border last:border-b-0 hover:bg-surface-highlight transition-colors"
+				>
+					<button
+						type="button"
+						onclick={goUp}
+						disabled={loading}
+						class="flex items-center gap-3 px-3 py-2 flex-1 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						<span class="text-muted"><IconFolder size={20} /></span>
+						<span class="flex-1 font-medium">..</span>
+						<span class="text-xs text-muted">parent directory</span>
 					</button>
 				</div>
 			{/if}
 
 			{#each filtered as entry}
-				<div class="entry-item" class:selected={selected === entry.path}>
+				<div
+					class="flex items-center border-b border-surface-border last:border-b-0 hover:bg-surface-highlight transition-colors {selected ===
+					entry.path
+						? 'bg-primary-glow-5'
+						: ''}"
+				>
 					{#if entry.isDirectory}
 						<button
 							type="button"
 							onclick={() => navigateTo(entry.path)}
 							disabled={loading}
-							class="entry-button"
+							class="flex items-center gap-3 px-3 py-2 flex-1 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 						>
-							<span class="entry-icon"><IconFolder size={20} /></span>
-							<span class="entry-name">{entry.name}</span>
-							<span class="entry-type">directory</span>
+							<span class="text-muted"><IconFolder size={20} /></span>
+							<span class="flex-1 font-medium">{entry.name}</span>
+							<span class="text-xs text-muted">directory</span>
 						</button>
 						{#if !isAlwaysOpen}
-							<div class="entry-actions">
+							<div class="px-2">
 								<IconButton
 									type="button"
 									onclick={() => selectDirectory(entry.path)}
@@ -577,20 +600,20 @@
 					{:else if showFileActions && onFileOpen}
 						<button
 							type="button"
-							class="entry-button interactive"
+							class="flex items-center gap-3 px-3 py-2 flex-1 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:text-primary"
 							onclick={() => openFile(entry)}
 							disabled={loading}
 							title="Open file"
 						>
-							<span class="icon"><IconFile size={20} /></span>
-							<span class="name">{entry.name}</span>
-							<span class="type">file</span>
+							<span class="text-muted"><IconFile size={20} /></span>
+							<span class="flex-1 font-medium">{entry.name}</span>
+							<span class="text-xs text-muted">file</span>
 						</button>
 					{:else}
-						<div class="item-button file">
-							<span class="icon"><IconFile size={20} /></span>
-							<span class="name">{entry.name}</span>
-							<span class="type">file</span>
+						<div class="flex items-center gap-3 px-3 py-2 flex-1 text-muted">
+							<span class="text-muted"><IconFile size={20} /></span>
+							<span class="flex-1">{entry.name}</span>
+							<span class="text-xs">file</span>
 						</div>
 					{/if}
 				</div>
@@ -612,59 +635,60 @@
 	</div>
 {/if}
 
-
 <style>
-/* Component-specific overrides only */
-.directory-summary {
-height: 44px;
-box-shadow:
-0 2px 4px rgba(0, 0, 0, 0.1),
-inset 0 1px 2px var(--primary-glow-10);
-}
+	/* Component-specific overrides only */
+	.directory-summary {
+		height: 44px;
+		box-shadow:
+			0 2px 4px rgba(0, 0, 0, 0.1),
+			inset 0 1px 2px var(--primary-glow-10);
+	}
 
-.directory-summary:hover {
-transform: translateY(-1px);
-box-shadow:
-0 4px 12px rgba(0, 0, 0, 0.25),
-inset 0 1px 3px var(--primary-glow-20);
-}
+	.directory-summary:hover {
+		transform: translateY(-1px);
+		box-shadow:
+			0 4px 12px rgba(0, 0, 0, 0.25),
+			inset 0 1px 3px var(--primary-glow-20);
+	}
 
-.directory-summary:focus-visible {
-outline: 2px solid var(--primary);
-outline-offset: 2px;
-}
+	.directory-summary:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
+	}
 
-/* Custom Git operations styling */
-.git-section {
-border-top: 1px solid var(--surface-border);
-padding: var(--space-3);
-background: color-mix(in oklab, var(--surface) 98%, var(--bg));
-}
+	/* Custom Git operations styling */
+	.git-section {
+		border-top: 1px solid var(--surface-border);
+		padding: var(--space-3);
+		background: color-mix(in oklab, var(--surface) 98%, var(--bg));
+	}
 
-/* File upload styling */
-.file-upload-area {
-position: relative;
-}
+	/* File upload styling */
+	.file-upload-area {
+		position: relative;
+	}
 
-.file-upload-area.dragover {
-background: var(--primary-glow-10);
-border-color: var(--primary);
-}
+	.file-upload-area.dragover {
+		background: var(--primary-glow-10);
+		border-color: var(--primary);
+	}
 
-/* Loading and error states */
-.loading-state {
-padding: var(--space-4);
-text-align: center;
-color: var(--muted);
-font-style: italic;
-}
+	/* Loading and error states */
+	.loading-state {
+		padding: var(--space-4);
+		text-align: center;
+		color: var(--muted);
+		font-style: italic;
+	}
 
-.error-state {
-padding: var(--space-3);
-background: color-mix(in oklab, var(--err) 10%, transparent);
-border: 1px solid color-mix(in oklab, var(--err) 30%, transparent);
-border-radius: 4px;
-margin: var(--space-2);
-color: var(--err);
-}
+	.error-state {
+		padding: var(--space-3);
+		background: color-mix(in oklab, var(--err) 10%, transparent);
+		border: 1px solid color-mix(in oklab, var(--err) 30%, transparent);
+		border-radius: 4px;
+		margin: var(--space-2);
+		color: var(--err);
+	}
+
+	/* All @apply directives have been moved to template classes */
 </style>

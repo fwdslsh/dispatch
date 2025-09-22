@@ -74,30 +74,29 @@
 	aria-label="Formatted message content"
 ></div>
 
-
 <style>
-/* Component-specific overrides only */
-.markdown-content {
-word-wrap: break-word;
-overflow-wrap: break-word;
-}
+	/* Component-specific overrides only */
+	.markdown-content {
+		word-wrap: break-word;
+		overflow-wrap: break-word;
+	}
 
-/* Custom language highlighting */
-.markdown-content :global(.language-bash),
-.markdown-content :global(.language-shell) {
-border-left-color: var(--accent-amber);
-}
+	/* Custom language highlighting */
+	.markdown-content :global(.language-bash),
+	.markdown-content :global(.language-shell) {
+		border-left-color: var(--accent-amber);
+	}
 
-.markdown-content :global(.language-javascript),
-.markdown-content :global(.language-js) {
-border-left-color: var(--accent-warning);
-}
+	.markdown-content :global(.language-javascript),
+	.markdown-content :global(.language-js) {
+		border-left-color: var(--accent-warning);
+	}
 
-.markdown-content :global(.language-python) {
-border-left-color: var(--accent-cyan);
-}
+	.markdown-content :global(.language-python) {
+		border-left-color: var(--accent-cyan);
+	}
 
-.markdown-content :global(.language-css) {
-border-left-color: var(--accent-magenta);
-}
+	.markdown-content :global(.language-css) {
+		border-left-color: var(--accent-magenta);
+	}
 </style>

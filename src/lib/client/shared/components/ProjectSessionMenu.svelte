@@ -349,11 +349,7 @@
 						/>
 					</div>
 					<div class="panel-header">
-						<Button
-							variant="ghost"
-							augmented="none"
-							onclick={() => (showDirectoryPicker = false)}
-						>
+						<Button variant="ghost" augmented="none" onclick={() => (showDirectoryPicker = false)}>
 							Cancel
 						</Button>
 					</div>
@@ -584,49 +580,49 @@
 		gap: var(--space-1);
 	}
 
-.tab-buttons {
-display: flex;
-gap: var(--space-1);
-}
+	.tab-buttons {
+		display: flex;
+		gap: var(--space-1);
+	}
 
-/* Directory button specific styling */
-.directory-button {
-text-align: left;
-}
+	/* Directory button specific styling */
+	.directory-button {
+		text-align: left;
+	}
 
-/* Active button states */
-.session-type-buttons :global(.button.active),
-.tab-buttons :global(.button.active) {
-background: var(--primary);
-border-color: var(--primary);
-color: var(--bg);
-}
+	/* Active button states */
+	.session-type-buttons :global(.button.active),
+	.tab-buttons :global(.button.active) {
+		background: var(--primary);
+		border-color: var(--primary);
+		color: var(--bg);
+	}
 
-.session-type-buttons :global(.button.active:hover),
-.tab-buttons :global(.button.active:hover) {
-background: var(--primary-bright);
-border-color: var(--primary-bright);
-color: var(--bg);
-}
+	.session-type-buttons :global(.button.active:hover),
+	.tab-buttons :global(.button.active:hover) {
+		background: var(--primary-bright);
+		border-color: var(--primary-bright);
+		color: var(--bg);
+	}
 
-/* Mobile responsive */
-@media (max-width: 768px) {
-.menu-root {
-padding-inline: var(--space-1);
-}
+	/* Mobile responsive */
+	@media (max-width: 768px) {
+		.menu-root {
+			padding-inline: var(--space-1);
+		}
 
-.bottom-navigation {
-flex-wrap: wrap;
-gap: var(--space-1);
-}
+		.bottom-navigation {
+			flex-wrap: wrap;
+			gap: var(--space-1);
+		}
 
-.session-type-buttons,
-.tab-buttons {
-gap: 2px;
-}
+		.session-type-buttons,
+		.tab-buttons {
+			gap: 2px;
+		}
 
-.button-text {
-display: none;
-}
-}
+		.button-text {
+			display: none;
+		}
+	}
 </style>

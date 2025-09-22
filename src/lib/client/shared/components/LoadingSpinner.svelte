@@ -35,7 +35,12 @@
 	});
 </script>
 
-<div class="flex flex-col flex-center gap-2 {inline ? '' : 'spinner-wrapper--centered'} {text ? 'spinner-wrapper--with-text' : ''}" {...restProps}>
+<div
+	class="flex flex-col flex-center gap-2 {inline ? '' : 'spinner-wrapper--centered'} {text
+		? 'spinner-wrapper--with-text'
+		: ''}"
+	{...restProps}
+>
 	<div class={spinnerClasses} role="status" aria-label={ariaLabel} aria-live="polite">
 		<div class="spinner__circle"></div>
 		{#if text}

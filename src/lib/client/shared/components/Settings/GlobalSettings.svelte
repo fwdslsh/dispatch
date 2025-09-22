@@ -133,7 +133,7 @@
 	}
 </script>
 
-<div class="global-settings">
+<div class="global-settings flex-col gap-4">
 	<header class="settings-header">
 		<h3 class="settings-title">Global Preferences</h3>
 		<p class="settings-description">
@@ -143,7 +143,7 @@
 		</p>
 	</header>
 
-	<div class="settings-content">
+	<div class="flex-col flex-1 gap-6" style="overflow-y: auto;">
 		<!-- Theme Settings - The only global setting actually used -->
 		<section class="settings-section">
 			<h4 class="section-title">Appearance</h4>
@@ -200,7 +200,10 @@
 	</div>
 
 	<!-- Actions -->
-	<footer class="settings-footer">
+	<footer
+		class="settings-footer flex-between gap-4 p-4"
+		style="border-top: 1px solid var(--primary-dim); margin-top: auto;"
+	>
 		<div
 			class="save-status"
 			class:success={saveStatus.includes('success')}
@@ -208,7 +211,7 @@
 		>
 			{saveStatus}
 		</div>
-		<div class="settings-actions">
+		<div class="flex gap-3">
 			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
 				Reset Defaults
 			</Button>
@@ -227,10 +230,7 @@
 
 <style>
 	.global-settings {
-		display: flex;
-		flex-direction: column;
 		height: 100%;
-		gap: var(--space-4);
 	}
 
 	.settings-header {
@@ -251,14 +251,6 @@
 		color: var(--text-muted);
 		margin: 0;
 		font-size: 0.9rem;
-	}
-
-	.settings-content {
-		flex: 1;
-		overflow-y: auto;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-6);
 	}
 
 	.settings-section {
@@ -316,35 +308,6 @@
 		box-shadow: 0 0 0 2px rgba(46, 230, 107, 0.2);
 	}
 
-	.checkbox-label {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		cursor: pointer;
-		font-family: var(--font-mono);
-		color: var(--text-primary);
-	}
-
-	.checkbox-input {
-		width: 16px;
-		height: 16px;
-		border: 1px solid var(--primary-dim);
-		background: var(--bg-dark);
-		border-radius: 2px;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.checkbox-input:checked {
-		background: var(--primary);
-		border-color: var(--primary);
-	}
-
-	.checkbox-text {
-		font-size: 0.9rem;
-		user-select: none;
-	}
-
 	.input-help {
 		margin: var(--space-2) 0 0 0;
 		font-size: 0.8rem;
@@ -359,15 +322,6 @@
 		cursor: help;
 		text-shadow: 0 0 4px var(--primary-glow);
 		font-size: 0.8rem;
-	}
-
-	.settings-footer {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding-top: var(--space-4);
-		border-top: 1px solid var(--primary-dim);
-		margin-top: auto;
 	}
 
 	.save-status {
@@ -387,21 +341,11 @@
 		color: var(--accent-red);
 	}
 
-	.settings-actions {
-		display: flex;
-		gap: var(--space-3);
-	}
-
 	/* Responsive design */
 	@media (max-width: 768px) {
 		.settings-footer {
-			flex-direction: column;
-			gap: var(--space-3);
-			align-items: stretch;
-		}
-
-		.settings-actions {
-			justify-content: center;
+			flex-direction: column !important;
+			align-items: stretch !important;
 		}
 
 		.save-status {

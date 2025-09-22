@@ -43,15 +43,17 @@
 	}
 </script>
 
-<header class="workspace-header">
+<header
+	class="workspace-header flex items-center gap-4 px-3 bg-panel border-b border-primary-dim flex-shrink-0"
+>
 	<BrandLogo />
 
-	<div class="header-spacer"></div>
+	<div class="flex-1"></div>
 
 	<!-- Tunnel indicator -->
 	<TunnelIndicator />
 
-	<div class="header-actions">
+	<div class="flex gap-3">
 		<!-- <IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
 			<IconAppWindow size={18} />
 		</IconButton> -->
@@ -78,8 +80,8 @@
 				</IconButton>
 			{/if}
 		{:else if sessionCount > 0}
-			<div class="session-info">
-				<span class="session-counter">
+			<div class="flex items-center justify-center">
+				<span>
 					{Math.min(currentSessionIndex + 1, sessionCount)} / {sessionCount}
 				</span>
 			</div>
@@ -95,28 +97,8 @@
 <HelpModal bind:open={showHelpModal} />
 
 <style>
+	/* Component-specific sizing only */
 	.workspace-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-4);
-		padding-inline: var(--space-3);
-		background: var(--bg-panel);
-		border-bottom: 1px solid var(--primary-dim);
 		min-height: 50px;
-		flex-shrink: 0;
-	}
-
-	.header-spacer {
-		flex: 1;
-	}
-
-	.header-actions {
-		display: flex;
-		gap: var(--space-3);
-	}
-	.session-info {
-		display: flex;
-		align-items: center;
-		justify-content: center;
 	}
 </style>

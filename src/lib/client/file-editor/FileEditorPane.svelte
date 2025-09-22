@@ -206,7 +206,7 @@
 	});
 </script>
 
-<div class="file-editor-pane">
+<div class="file-editor-pane flex-col">
 	<!-- Error display -->
 	{#if error}
 		<div class="error-banner">
@@ -215,10 +215,10 @@
 	{/if}
 
 	<!-- Main content -->
-	<div class="file-editor-content">
+	<div class="flex-col" style="flex: 1; overflow: hidden;">
 		{#if !isEditing}
 			<!-- File browser view using DirectoryBrowser component -->
-			<div class="file-browser">
+			<div class="flex-col p-4" style="flex: 1; height: 100%;">
 				<DirectoryBrowser
 					startPath={currentDirectory}
 					placeholder="Browse files and directories..."
@@ -248,9 +248,8 @@
 </div>
 
 <style>
+	/* FileEditorPane specific styles - minimal */
 	.file-editor-pane {
-		display: flex;
-		flex-direction: column;
 		height: 100%;
 		background: var(--color-surface);
 		color: var(--color-text);
@@ -262,21 +261,6 @@
 		color: var(--color-error-text);
 		padding: 0.75rem 1rem;
 		font-size: 0.875rem;
-	}
-
-	.file-editor-content {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-	}
-
-	.file-browser {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		padding: 1rem;
-		height: 100%;
 	}
 
 	.file-editor-container {

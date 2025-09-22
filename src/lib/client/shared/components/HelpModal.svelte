@@ -33,19 +33,19 @@
 
 <Modal bind:open title="Keyboard Shortcuts" size="medium">
 	{#snippet children()}
-		<div class="help-content">
+		<div class="help-content p-5" style="max-height: 70vh; overflow-y: auto; line-height: 1.6;">
 			<p class="help-intro">Use these keyboard shortcuts to efficiently manage your workspace:</p>
 
 			{#each shortcuts as category}
 				<div class="shortcut-category">
 					<h3 class="category-title">{category.category}</h3>
-					<div class="shortcuts-list">
+					<div class="flex-col gap-3">
 						{#each category.items as shortcut}
-							<div class="shortcut-item">
+							<div class="shortcut-item interactive flex gap-4 p-3">
 								<div class="shortcut-keys">
 									{shortcut.keys}
 								</div>
-								<div class="shortcut-description">
+								<div class="flex-1">
 									{shortcut.description}
 								</div>
 							</div>
@@ -66,12 +66,8 @@
 
 <style>
 	.help-content {
-		padding: var(--space-5);
 		color: var(--text);
 		font-family: var(--font-sans);
-		line-height: 1.6;
-		max-height: 70vh;
-		overflow-y: auto;
 	}
 
 	.help-intro {
@@ -100,21 +96,11 @@
 		padding-bottom: var(--space-2);
 	}
 
-	.shortcuts-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
 	.shortcut-item {
-		display: flex;
-		align-items: center;
-		gap: var(--space-4);
-		padding: var(--space-3);
 		background: var(--surface);
 		border: 1px solid var(--primary-dim);
 		border-radius: 6px;
-		transition: all 0.2s ease;
+		align-items: center;
 	}
 
 	.shortcut-item:hover {
@@ -141,12 +127,6 @@
 			inset 0 1px 2px rgba(46, 230, 107, 0.1);
 	}
 
-	.shortcut-description {
-		flex: 1;
-		color: var(--text);
-		font-size: 0.95rem;
-	}
-
 	.help-footer {
 		margin-top: var(--space-5);
 		padding-top: var(--space-4);
@@ -170,38 +150,26 @@
 	/* Responsive design */
 	@media (max-width: 768px) {
 		.help-content {
-			padding: var(--space-4);
+			padding: var(--space-4) !important;
 		}
 
 		.shortcut-item {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: var(--space-2);
+			flex-direction: column !important;
+			align-items: flex-start !important;
+			gap: var(--space-2) !important;
 		}
 
 		.shortcut-keys {
 			min-width: auto;
 			width: 100%;
-			text-align: center;
 		}
 
 		.category-title {
 			font-size: 1rem;
 		}
-
-		.shortcut-description {
-			font-size: 0.9rem;
-		}
 	}
 
-	/* Accessibility */
-	@media (prefers-reduced-motion: reduce) {
-		.shortcut-item {
-			transition: none;
-		}
-	}
-
-	/* Scrollbar styling for help content */
+	/* Scrollbar styling */
 	.help-content::-webkit-scrollbar {
 		width: 8px;
 	}

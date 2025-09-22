@@ -37,10 +37,34 @@
 
 	// Compute classes using global utilities
 	const errorClasses = $derived.by(() => {
-		const classes = ['error-display', `error-display--${severity}`, `error-display--${size}`];
-		if (dismissible) classes.push('error-display--dismissible');
-		if (customClass) classes.push(...customClass.split(' '));
-		return classes.join(' ');
+		const baseClasses = [
+			'relative',
+			'flex',
+			'gap-3',
+			'rounded-lg',
+			'border',
+			'transition-all',
+			'duration-300'
+		];
+
+		// Size classes
+		if (size === 'small') baseClasses.push('p-2', 'text-sm');
+		else if (size === 'large') baseClasses.push('p-6', 'text-lg');
+		else baseClasses.push('p-4', 'text-base');
+
+		// Severity classes
+		if (severity === 'error') {
+			baseClasses.push('error-display--error');
+		} else if (severity === 'warning') {
+			baseClasses.push('error-display--warning');
+		} else if (severity === 'success') {
+			baseClasses.push('error-display--success');
+		} else if (severity === 'info') {
+			baseClasses.push('error-display--info');
+		}
+
+		if (customClass) baseClasses.push(...customClass.split(' '));
+		return baseClasses.join(' ');
 	});
 
 	// Icon mappings
@@ -59,7 +83,7 @@
 
 <div class={errorClasses} role="alert" aria-live="polite" {...restProps}>
 	{#if showIcon}
-		<div class="error-display__icon" aria-hidden="true">
+		<div class="shrink-0 mt-0.5" aria-hidden="true">
 			{#if severity === 'error'}
 				<IconX size={20} />
 			{:else if severity === 'warning'}
@@ -72,26 +96,28 @@
 		</div>
 	{/if}
 
-	<div class="error-display__content">
+	<div class="flex-1 space-y-2">
 		{#if title}
-			<h4 class="error-display__title">{title}</h4>
+			<h4 class="font-semibold text-base">{title}</h4>
 		{/if}
 
 		{#if error}
-			<div class="error-display__message">
+			<div class="text-sm opacity-90">
 				{error}
 			</div>
 		{/if}
 
 		<!-- Allow for custom content -->
-		<div class="error-display__slot">
-			{@render children?.()}
-		</div>
+		{#if children}
+			<div>
+				{@render children()}
+			</div>
+		{/if}
 	</div>
 
 	{#if dismissible}
 		<button
-			class="error-display__dismiss"
+			class="shrink-0 p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
 			onclick={handleDismiss}
 			aria-label="Dismiss message"
 			type="button"
@@ -108,48 +134,57 @@
 	{/if}
 </div>
 
-
 <style>
-/* Component-specific overrides only */
-.error-display {
-transition: all 0.3s ease;
-}
+	/* Component-specific severity styles */
+	.error-display--error {
+		background: color-mix(in oklab, var(--err) 5%, transparent);
+		border-color: color-mix(in oklab, var(--err) 30%, transparent);
+		color: var(--err);
+		box-shadow: 0 0 20px color-mix(in oklab, var(--err) 20%, transparent);
+	}
 
-/* Terminal-style glow effects for errors */
-.error-display--error {
-box-shadow: 0 0 20px color-mix(in oklab, var(--err) 20%, transparent);
-}
+	.error-display--warning {
+		background: color-mix(in oklab, var(--warn) 5%, transparent);
+		border-color: color-mix(in oklab, var(--warn) 30%, transparent);
+		color: var(--warn);
+		box-shadow: 0 0 20px color-mix(in oklab, var(--warn) 20%, transparent);
+	}
 
-.error-display--warning {
-box-shadow: 0 0 20px color-mix(in oklab, var(--warn) 20%, transparent);
-}
+	.error-display--success {
+		background: color-mix(in oklab, var(--ok) 5%, transparent);
+		border-color: color-mix(in oklab, var(--ok) 30%, transparent);
+		color: var(--ok);
+		box-shadow: 0 0 20px color-mix(in oklab, var(--ok) 20%, transparent);
+	}
 
-.error-display--success {
-box-shadow: 0 0 20px color-mix(in oklab, var(--ok) 20%, transparent);
-}
+	.error-display--info {
+		background: color-mix(in oklab, var(--accent-cyan) 5%, transparent);
+		border-color: color-mix(in oklab, var(--accent-cyan) 30%, transparent);
+		color: var(--accent-cyan);
+		box-shadow: 0 0 20px color-mix(in oklab, var(--accent-cyan) 20%, transparent);
+	}
 
-.error-display--info {
-box-shadow: 0 0 20px color-mix(in oklab, var(--accent-cyan) 20%, transparent);
-}
+	/* Hover effects for better interactivity */
+	.error-display--error:hover,
+	.error-display--warning:hover,
+	.error-display--success:hover,
+	.error-display--info:hover {
+		transform: translateY(-1px);
+	}
 
-/* Hover effects for better interactivity */
-.error-display:hover {
-transform: translateY(-1px);
-}
+	.error-display--error:hover {
+		box-shadow: 0 4px 20px color-mix(in oklab, var(--err) 30%, transparent);
+	}
 
-.error-display--error:hover {
-box-shadow: 0 4px 20px color-mix(in oklab, var(--err) 30%, transparent);
-}
+	.error-display--warning:hover {
+		box-shadow: 0 4px 20px color-mix(in oklab, var(--warn) 30%, transparent);
+	}
 
-.error-display--warning:hover {
-box-shadow: 0 4px 20px color-mix(in oklab, var(--warn) 30%, transparent);
-}
+	.error-display--info:hover {
+		box-shadow: 0 4px 20px color-mix(in oklab, var(--accent-cyan) 30%, transparent);
+	}
 
-.error-display--info:hover {
-box-shadow: 0 4px 20px color-mix(in oklab, var(--accent-cyan) 30%, transparent);
-}
-
-.error-display--success:hover {
-box-shadow: 0 4px 20px color-mix(in oklab, var(--ok) 30%, transparent);
-}
+	.error-display--success:hover {
+		box-shadow: 0 4px 20px color-mix(in oklab, var(--ok) 30%, transparent);
+	}
 </style>

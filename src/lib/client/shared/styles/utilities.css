@@ -6,31 +6,73 @@
    ================================================================== */
 
 /* Padding utilities */
-.p-0 { padding: var(--space-0); }
-.p-1 { padding: var(--space-1); }
-.p-2 { padding: var(--space-2); }
-.p-3 { padding: var(--space-3); }
-.p-4 { padding: var(--space-4); }
-.p-5 { padding: var(--space-5); }
-.p-6 { padding: var(--space-6); }
+.p-0 {
+	padding: var(--space-0);
+}
+.p-1 {
+	padding: var(--space-1);
+}
+.p-2 {
+	padding: var(--space-2);
+}
+.p-3 {
+	padding: var(--space-3);
+}
+.p-4 {
+	padding: var(--space-4);
+}
+.p-5 {
+	padding: var(--space-5);
+}
+.p-6 {
+	padding: var(--space-6);
+}
 
 /* Margin utilities */
-.m-0 { margin: var(--space-0); }
-.m-1 { margin: var(--space-1); }
-.m-2 { margin: var(--space-2); }
-.m-3 { margin: var(--space-3); }
-.m-4 { margin: var(--space-4); }
-.m-5 { margin: var(--space-5); }
-.m-6 { margin: var(--space-6); }
+.m-0 {
+	margin: var(--space-0);
+}
+.m-1 {
+	margin: var(--space-1);
+}
+.m-2 {
+	margin: var(--space-2);
+}
+.m-3 {
+	margin: var(--space-3);
+}
+.m-4 {
+	margin: var(--space-4);
+}
+.m-5 {
+	margin: var(--space-5);
+}
+.m-6 {
+	margin: var(--space-6);
+}
 
 /* Gap utilities for flex/grid */
-.gap-0 { gap: var(--space-0); }
-.gap-1 { gap: var(--space-1); }
-.gap-2 { gap: var(--space-2); }
-.gap-3 { gap: var(--space-3); }
-.gap-4 { gap: var(--space-4); }
-.gap-5 { gap: var(--space-5); }
-.gap-6 { gap: var(--space-6); }
+.gap-0 {
+	gap: var(--space-0);
+}
+.gap-1 {
+	gap: var(--space-1);
+}
+.gap-2 {
+	gap: var(--space-2);
+}
+.gap-3 {
+	gap: var(--space-3);
+}
+.gap-4 {
+	gap: var(--space-4);
+}
+.gap-5 {
+	gap: var(--space-5);
+}
+.gap-6 {
+	gap: var(--space-6);
+}
 
 /* ==================================================================
    INTERACTIVE STATES
@@ -367,7 +409,7 @@
 	.mobile-hidden {
 		display: none;
 	}
-	
+
 	.mobile-full-width {
 		width: 100%;
 	}
@@ -377,7 +419,7 @@
 	.desktop-only {
 		display: block;
 	}
-	
+
 	.mobile-only {
 		display: none;
 	}
@@ -561,7 +603,7 @@
 	background: var(--surface);
 	border: 1px solid var(--surface-border);
 	border-radius: 8px;
-	box-shadow: 
+	box-shadow:
 		0 20px 40px -12px color-mix(in oklab, var(--bg) 90%, black),
 		0 0 60px -20px var(--primary-glow),
 		inset 0 1px 2px rgba(255, 255, 255, 0.05);
@@ -1048,7 +1090,8 @@
 	background: color-mix(in oklab, var(--surface) 98%, var(--bg));
 }
 
-.loading-state, .error-state {
+.loading-state,
+.error-state {
 	padding: var(--space-3);
 	text-align: center;
 	font-style: italic;
@@ -1204,11 +1247,11 @@
 	font-size: var(--font-size-0);
 }
 
-.markdown-content pre[class*="language-"] {
+.markdown-content pre[class*='language-'] {
 	border-left: 4px solid var(--primary);
 }
 
-.markdown-content pre[class*="language-"]::before {
+.markdown-content pre[class*='language-']::before {
 	content: attr(class);
 	position: absolute;
 	top: var(--space-1);
@@ -1301,24 +1344,24 @@
 	.markdown-content {
 		font-size: var(--font-size-0);
 	}
-	
+
 	.markdown-content h1 {
 		font-size: 1.5rem;
 	}
-	
+
 	.markdown-content h2 {
 		font-size: 1.25rem;
 	}
-	
+
 	.markdown-content h3 {
 		font-size: 1.1rem;
 	}
-	
+
 	.markdown-content pre {
 		padding: var(--space-2);
 		margin: var(--space-2) 0;
 	}
-	
+
 	.markdown-content blockquote {
 		margin: var(--space-2) 0;
 		padding: var(--space-2);
@@ -1485,7 +1528,7 @@
 	z-index: 1000;
 	max-width: 400px;
 	border-radius: 6px;
-	box-shadow: 
+	box-shadow:
 		0 4px 12px rgba(0, 0, 0, 0.3),
 		0 0 0 1px var(--surface-border);
 	animation: slideInRight 0.3s ease-out;
@@ -2018,7 +2061,11 @@
 }
 
 .stop-button {
-	background: linear-gradient(135deg, var(--accent-warning), color-mix(in oklab, var(--accent-warning) 80%, white 10%));
+	background: linear-gradient(
+		135deg,
+		var(--accent-warning),
+		color-mix(in oklab, var(--accent-warning) 80%, white 10%)
+	);
 	border: 1px solid color-mix(in oklab, var(--accent-warning) 60%, transparent);
 	color: var(--bg);
 	border-radius: var(--radius);
@@ -2192,13 +2239,14 @@
 
 /* ===== ANIMATIONS ===== */
 @keyframes avatarPulse {
-	0%, 100% { 
+	0%,
+	100% {
 		box-shadow:
 			0 8px 32px -12px var(--primary-glow),
 			inset 0 2px 4px color-mix(in oklab, var(--primary) 15%, transparent),
 			0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent);
 	}
-	50% { 
+	50% {
 		box-shadow:
 			0 12px 40px -8px var(--primary-glow),
 			inset 0 2px 4px color-mix(in oklab, var(--primary) 20%, transparent),
@@ -2218,6 +2266,12 @@
 }
 
 @keyframes blink {
-	0%, 50% { opacity: 1; }
-	51%, 100% { opacity: 0; }
+	0%,
+	50% {
+		opacity: 1;
+	}
+	51%,
+	100% {
+		opacity: 0;
+	}
 }

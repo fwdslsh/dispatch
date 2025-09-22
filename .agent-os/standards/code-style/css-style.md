@@ -5,6 +5,7 @@ We use modern CSS features and a comprehensive design token system for all styli
 ## Design System Overview
 
 The Dispatch CSS architecture is built around:
+
 - **Design Tokens**: CSS custom properties for colors, spacing, and effects
 - **Component Patterns**: Reusable classes for common UI elements
 - **Animation System**: Unified keyframes for consistent motion
@@ -13,6 +14,7 @@ The Dispatch CSS architecture is built around:
 ## Core Principles
 
 ### 1. Use Design Tokens
+
 Always use CSS custom properties instead of hardcoded values:
 
 ```css
@@ -36,6 +38,7 @@ Always use CSS custom properties instead of hardcoded values:
 ```
 
 ### 2. Component Composition Over Duplication
+
 Build components using base classes and modifiers:
 
 ```css
@@ -67,6 +70,7 @@ Build components using base classes and modifiers:
 ```
 
 ### 3. Use Unified Animation System
+
 Reference existing keyframes instead of creating duplicates:
 
 ```css
@@ -81,37 +85,43 @@ Reference existing keyframes instead of creating duplicates:
 
 /* ❌ Bad - Creates duplicate animation */
 @keyframes myCustomScan {
-	0% { transform: translateX(-100%); }
-	100% { transform: translateX(100%); }
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
+	}
 }
 ```
 
 ## Design Token Reference
 
 ### Colors
+
 ```css
 /* Primary palette */
---primary: #2ee66b;           /* Main brand color */
---primary-bright: #4eff82;    /* Lighter variant */
---primary-dim: #1ea851;       /* Darker variant */
+--primary: #2ee66b; /* Main brand color */
+--primary-bright: #4eff82; /* Lighter variant */
+--primary-dim: #1ea851; /* Darker variant */
 
 /* Semantic colors */
---success: var(--ok);         /* #26d07c */
---warning: var(--warn);       /* #ffb703 */
---error: var(--err);          /* #ef476f */
+--success: var(--ok); /* #26d07c */
+--warning: var(--warn); /* #ffb703 */
+--error: var(--err); /* #ef476f */
 --info: #00c2ff;
 
 /* Surface colors */
---bg: #0c1210;                /* Background */
---surface: #121a17;           /* Cards, panels */
---elev: #18231f;              /* Elevated elements */
+--bg: #0c1210; /* Background */
+--surface: #121a17; /* Cards, panels */
+--elev: #18231f; /* Elevated elements */
 
 /* Text colors */
---text: #d9ffe6;              /* Primary text */
---muted: #92b3a4;             /* Secondary text */
+--text: #d9ffe6; /* Primary text */
+--muted: #92b3a4; /* Secondary text */
 ```
 
 ### Transparency & Effects
+
 ```css
 /* Glow effects (primary color with transparency) */
 --primary-glow-10: color-mix(in oklab, var(--primary) 10%, transparent);
@@ -128,31 +138,48 @@ Reference existing keyframes instead of creating duplicates:
 ```
 
 ### Spacing Scale
+
 ```css
---space-0: 2px;    /* Hairline spacing */
---space-1: 4px;    /* Tight spacing */
---space-2: 8px;    /* Small spacing */
---space-3: 12px;   /* Medium spacing */
---space-4: 16px;   /* Default spacing */
---space-5: 24px;   /* Large spacing */
---space-6: 32px;   /* Extra large spacing */
+--space-0: 2px; /* Hairline spacing */
+--space-1: 4px; /* Tight spacing */
+--space-2: 8px; /* Small spacing */
+--space-3: 12px; /* Medium spacing */
+--space-4: 16px; /* Default spacing */
+--space-5: 24px; /* Large spacing */
+--space-6: 32px; /* Extra large spacing */
 ```
 
 ## Animation Guidelines
 
 ### Available Keyframes
+
 ```css
 /* Core animations - use these instead of creating new ones */
-@keyframes fadeIn { /* Fade in */ }
-@keyframes fadeInUp { /* Fade in with upward motion */ }
-@keyframes slideIn { /* Scale and slide */ }
-@keyframes pulse { /* Opacity pulse */ }
-@keyframes spin { /* 360° rotation */ }
-@keyframes scan { /* Horizontal sweep - unified for all scan effects */ }
-@keyframes shimmer { /* Background position shimmer */ }
+@keyframes fadeIn {
+	/* Fade in */
+}
+@keyframes fadeInUp {
+	/* Fade in with upward motion */
+}
+@keyframes slideIn {
+	/* Scale and slide */
+}
+@keyframes pulse {
+	/* Opacity pulse */
+}
+@keyframes spin {
+	/* 360° rotation */
+}
+@keyframes scan {
+	/* Horizontal sweep - unified for all scan effects */
+}
+@keyframes shimmer {
+	/* Background position shimmer */
+}
 ```
 
 ### Animation Best Practices
+
 ```css
 /* Respect user preferences */
 @media (prefers-reduced-motion: reduce) {
@@ -175,6 +202,7 @@ Reference existing keyframes instead of creating duplicates:
 ## Component Patterns
 
 ### Cards
+
 ```css
 .card {
 	background: var(--surface);
@@ -197,6 +225,7 @@ Reference existing keyframes instead of creating duplicates:
 ```
 
 ### Interactive Elements
+
 ```css
 .interactive {
 	transition: all 0.2s ease;
@@ -213,6 +242,7 @@ Reference existing keyframes instead of creating duplicates:
 ```
 
 ### Focus States
+
 ```css
 .focusable:focus {
 	outline: 2px solid var(--primary);
@@ -224,6 +254,7 @@ Reference existing keyframes instead of creating duplicates:
 ## File Organization
 
 ### Global Styles Structure
+
 ```
 src/lib/client/shared/styles/
 ├── index.css          # Main import file
@@ -235,6 +266,7 @@ src/lib/client/shared/styles/
 ```
 
 ### Component Styles Guidelines
+
 - Keep component-specific styles minimal
 - Use global patterns and tokens
 - Only add truly unique styles to components
@@ -265,6 +297,7 @@ When updating existing components:
 5. **Test for visual regressions** after changes
 
 ### Example Migration
+
 ```css
 /* Before */
 .my-component {
@@ -296,7 +329,7 @@ When updating existing components:
 ## Performance Considerations
 
 - **Use CSS variables** for runtime theme switching
-- **Minimize specificity** - prefer classes over complex selectors  
+- **Minimize specificity** - prefer classes over complex selectors
 - **Consolidate animations** - reuse existing keyframes
 - **Use color-mix()** for dynamic color variations
 - **Leverage CSS-in-JS sparingly** - prefer CSS custom properties

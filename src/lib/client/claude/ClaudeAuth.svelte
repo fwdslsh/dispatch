@@ -312,7 +312,9 @@
 							<div class="step-number">1</div>
 							<div class="step-content">
 								<h5 class="step-title">Recommended: OAuth Authentication</h5>
-								<p class="step-description">Secure authentication through Anthropic's official OAuth flow.</p>
+								<p class="step-description">
+									Secure authentication through Anthropic's official OAuth flow.
+								</p>
 								<Button onclick={startOAuthFlow} variant="primary" disabled={loading} {loading}>
 									<IconExternalLink size={16} />
 									Login with Claude
@@ -343,7 +345,9 @@
 				<!-- OAuth Code Input -->
 				<div class="flow-setup">
 					<h4 class="step-title">Complete Authentication</h4>
-					<p class="step-description">After authorizing in the popup window, paste the authorization code below:</p>
+					<p class="step-description">
+						After authorizing in the popup window, paste the authorization code below:
+					</p>
 
 					<div class="form-wrapper">
 						<Input
@@ -386,7 +390,10 @@
 					<h4 class="step-title">API Key Authentication</h4>
 					<p class="step-description">
 						Enter your Claude API key. You can find this in your
-						<a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer"
+						<a
+							href="https://console.anthropic.com/"
+							target="_blank"
+							rel="noopener noreferrer"
 							class="text-primary">Anthropic Console</a
 						>.
 					</p>
@@ -435,4 +442,3 @@
 		{/if}
 	</div>
 </div>
-

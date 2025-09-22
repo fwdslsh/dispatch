@@ -10,7 +10,11 @@
 </script>
 
 {#if icons && icons.length > 0}
-	<div class="flex flex-wrap gap-2 m-3 {staticMode ? 'static' : ''}" style="min-height: 40px; max-width: 100%; overflow: visible;" aria-label={title}>
+	<div
+		class="flex flex-wrap gap-2 m-3 {staticMode ? 'static' : ''}"
+		style="min-height: 40px; max-width: 100%; overflow: visible;"
+		aria-label={title}
+	>
 		{#each icons as ev, index (ev.id)}
 			<button
 				type="button"
@@ -34,7 +38,10 @@
 
 {#if selected}
 	<div class="event-summary">
-		<div class="flex-between p-2 gap-2" style="margin-bottom: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);">
+		<div
+			class="flex-between p-2 gap-2"
+			style="margin-bottom: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);"
+		>
 			<div class="flex-center gap-2">
 				<span class="event-summary-icon">
 					{#if selected.Icon}

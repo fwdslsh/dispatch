@@ -170,7 +170,7 @@
 		/* Terminal lighting effects */
 		border: 2px solid var(--primary-dim);
 		border-radius: 0;
-		box-shadow: 
+		box-shadow:
 			0 0 40px var(--primary-glow),
 			0 0 100px color-mix(in oklab, var(--primary) 30%, transparent),
 			inset 0 0 50px color-mix(in oklab, var(--bg) 90%, transparent);

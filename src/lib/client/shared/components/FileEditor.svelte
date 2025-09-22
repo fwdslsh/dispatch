@@ -124,10 +124,13 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if file}
-	<div class="file-editor">
+	<div class="file-editor flex-col">
 		<!-- File header -->
-		<div class="file-header">
-			<div class="file-title">
+		<div
+			class="flex-between p-3"
+			style="border-bottom: 1px solid var(--color-border); background: var(--color-surface-elevated); min-height: 48px; flex-shrink: 0;"
+		>
+			<div class="flex gap-2" style="align-items: center; font-weight: 600; flex: 1; min-width: 0;">
 				{#if file.name.includes('.')}
 					{@const IconComponent = getFileIcon(file.name)}
 					<IconComponent size={16} />
@@ -139,7 +142,7 @@
 					<span class="dirty-indicator">*</span>
 				{/if}
 			</div>
-			<div class="header-actions">
+			<div class="flex gap-2" style="flex-shrink: 0;">
 				<IconButton onclick={handleClose} title="Close file (Escape)" variant="ghost">
 					<IconX size={16} />
 				</IconButton>
@@ -147,7 +150,7 @@
 		</div>
 
 		<!-- Editor -->
-		<div class="editor-container">
+		<div class="flex" style="flex: 1; overflow: hidden; position: relative; height: 100%;">
 			<textarea
 				bind:value={content}
 				placeholder="File content..."
@@ -159,14 +162,17 @@
 		</div>
 
 		<!-- Editor footer -->
-		<div class="editor-footer">
-			<div class="file-info">
+		<div
+			class="flex-between p-3 gap-4 editor-footer-mobile"
+			style="border-top: 1px solid var(--color-border); background: var(--color-surface-elevated); min-height: 48px; flex-shrink: 0;"
+		>
+			<div class="flex-col gap-1 file-info" style="flex: 1; min-width: 0;">
 				<span class="file-path">{file.path}</span>
 				{#if isDirty}
 					<span class="changes-indicator">• Unsaved changes</span>
 				{/if}
 			</div>
-			<div class="editor-actions">
+			<div class="flex gap-3" style="align-items: center; flex-shrink: 0;">
 				<Button
 					variant="secondary"
 					onclick={handleCancel}
@@ -189,7 +195,10 @@
 		</div>
 	</div>
 {:else}
-	<div class="no-file">
+	<div
+		class="flex-center"
+		style="height: 100%; color: var(--color-text-secondary); font-style: italic;"
+	>
 		<p>No file selected</p>
 	</div>
 {/if}
@@ -215,33 +224,12 @@
 />
 
 <style>
+	/* FileEditor specific - minimal custom styles only */
 	.file-editor {
-		display: flex;
-		flex-direction: column;
 		height: 100%;
 		background: var(--color-surface);
 		color: var(--color-text);
 		font-family: var(--font-mono);
-	}
-
-	.file-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.5rem 1rem;
-		border-bottom: 1px solid var(--color-border);
-		background: var(--color-surface-elevated);
-		min-height: 48px;
-		flex-shrink: 0;
-	}
-
-	.file-title {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-weight: 600;
-		flex: 1;
-		min-width: 0;
 	}
 
 	.filename {
@@ -257,20 +245,7 @@
 		flex-shrink: 0;
 	}
 
-	.header-actions {
-		display: flex;
-		gap: 0.5rem;
-		flex-shrink: 0;
-	}
-
-	.editor-container {
-		flex: 1;
-		display: flex;
-		overflow: hidden;
-		position: relative;
-		height: 100%;
-	}
-
+	/* Editor textarea specific styles */
 	.editor-textarea {
 		flex: 1;
 		padding: 1rem;
@@ -319,26 +294,6 @@
 		box-shadow: inset 0 0 0 1px var(--color-primary);
 	}
 
-	.editor-footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.5rem 1rem;
-		border-top: 1px solid var(--color-border);
-		background: var(--color-surface-elevated);
-		min-height: 48px;
-		gap: 1rem;
-		flex-shrink: 0;
-	}
-
-	.file-info {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-		flex: 1;
-		min-width: 0;
-	}
-
 	.file-path {
 		font-size: 0.75rem;
 		color: var(--color-text-secondary);
@@ -352,46 +307,20 @@
 		font-weight: 500;
 	}
 
-	.editor-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		flex-shrink: 0;
-	}
-
-	.no-file {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		height: 100%;
-		color: var(--color-text-secondary);
-		font-style: italic;
-	}
-
 	/* Responsive adjustments */
 	@media (max-width: 768px) {
-		.file-header {
-			padding: 0.75rem;
-		}
-
 		.editor-textarea {
 			padding: 0.75rem;
 			font-size: 0.8rem;
 		}
 
-		.editor-footer {
-			padding: 0.75rem;
-			flex-direction: column;
-			align-items: stretch;
-			gap: 0.75rem;
-		}
-
-		.editor-actions {
-			justify-content: stretch;
-		}
-
 		.file-info {
 			text-align: center;
+		}
+
+		.editor-footer-mobile {
+			flex-direction: column;
+			align-items: stretch !important;
 		}
 	}
 </style>
