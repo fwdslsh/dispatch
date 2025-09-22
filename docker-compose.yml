@@ -13,7 +13,6 @@ services:
       - '3030:3030'
     environment:
       - TERMINAL_KEY=change-me-in-production
-      - PTY_MODE=shell
       - ENABLE_TUNNEL=false
       # Directory paths inside container
       - DISPATCH_CONFIG_DIR=/config

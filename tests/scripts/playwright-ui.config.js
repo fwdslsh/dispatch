@@ -108,7 +108,6 @@ export default defineConfig({
 		env: {
 			// Ensure consistent test environment
 			TERMINAL_KEY: 'testkey12345',
-			PTY_MODE: 'shell', // Force shell mode, not Claude
 			NODE_ENV: 'test'
 		}
 	},

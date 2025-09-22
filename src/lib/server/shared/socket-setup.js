@@ -64,6 +64,11 @@ export function setupSocketIO(httpServer, services) {
 	});
 	activeIO = io;
 
+	// Set Socket.IO instance on TunnelManager for broadcasting
+	if (services.tunnelManager) {
+		services.tunnelManager.setSocketIO(io);
+	}
+
 	const { runSessionManager } = services;
 
 	if (!runSessionManager) {
@@ -216,9 +221,10 @@ export function setupSocketIO(httpServer, services) {
 		socket.on('get-public-url', (callback) => {
 			logger.debug('SOCKET', 'get-public-url handler called');
 			try {
-				// Implementation would read tunnel URL file if available
+				const tunnelManager = services.tunnelManager;
+				const url = tunnelManager.getPublicUrl();
 				if (callback) {
-					callback({ ok: false });
+					callback({ ok: !!url, url: url });
 				}
 			} catch (error) {
 				logger.error('SOCKET', 'Error handling get-public-url:', error);
@@ -226,6 +232,97 @@ export function setupSocketIO(httpServer, services) {
 					callback({ ok: false, error: error.message });
 				}
 			}
+		});
+
+		// Tunnel control handlers
+		socket.on('tunnel.enable', (data, callback) => {
+			if (!socket.data.authenticated) {
+				logger.warn('SOCKET', `Unauthenticated tunnel.enable from ${socket.id}`);
+				if (callback) callback({ success: false, error: 'Unauthorized' });
+				return;
+			}
+
+			logger.info('SOCKET', `Tunnel enable requested by socket ${socket.id} with data:`, data);
+			const tunnelManager = services.tunnelManager;
+
+			// Update port if provided
+			if (data?.port) {
+				tunnelManager.port = parseInt(data.port, 10);
+			}
+
+			tunnelManager
+				.start()
+				.then((success) => {
+					const status = tunnelManager.getStatus();
+					logger.info('SOCKET', `Tunnel enable result: ${success}`, status);
+					if (callback) {
+						callback({ success, status });
+					}
+					// Broadcast status to all connected clients
+					io.emit('tunnel.status', status);
+				})
+				.catch((error) => {
+					logger.error('SOCKET', 'Error enabling tunnel:', error);
+					if (callback) {
+						callback({ success: false, error: error.message });
+					}
+				});
+		});
+
+		socket.on('tunnel.disable', async (data, callback) => {
+			if (!socket.data.authenticated) {
+				logger.warn('SOCKET', `Unauthenticated tunnel.disable from ${socket.id}`);
+				if (callback) callback({ success: false, error: 'Unauthorized' });
+				return;
+			}
+
+			logger.info('SOCKET', `Tunnel disable requested by socket ${socket.id}`);
+			const tunnelManager = services.tunnelManager;
+			const success = await tunnelManager.stop();
+			const status = tunnelManager.getStatus();
+
+			logger.info('SOCKET', `Tunnel disable result: ${success}`, status);
+			if (callback) {
+				callback({ success, status });
+			}
+			// Broadcast status to all connected clients
+			io.emit('tunnel.status', status);
+		});
+
+		socket.on('tunnel.status', (callback) => {
+			logger.debug('SOCKET', 'tunnel.status handler called');
+			try {
+				const tunnelManager = services.tunnelManager;
+				const status = tunnelManager.getStatus();
+				if (callback) {
+					callback({ success: true, status });
+				}
+			} catch (error) {
+				logger.error('SOCKET', 'Error getting tunnel status:', error);
+				if (callback) {
+					callback({ success: false, error: error.message });
+				}
+			}
+		});
+
+		socket.on('tunnel.updateConfig', async (data, callback) => {
+			if (!socket.data.authenticated) {
+				logger.warn('SOCKET', `Unauthenticated tunnel.updateConfig from ${socket.id}`);
+				if (callback) callback({ success: false, error: 'Unauthorized' });
+				return;
+			}
+
+			logger.info('SOCKET', `Tunnel config update requested by socket ${socket.id}`, data);
+			const tunnelManager = services.tunnelManager;
+			const success = await tunnelManager.updateConfig(data);
+			const status = tunnelManager.getStatus();
+
+			logger.info('SOCKET', `Tunnel config update result: ${success}`, status);
+			if (callback) {
+				callback({ success, status });
+			}
+			// Broadcast status to all connected clients
+			io.emit('tunnel.status', status);
 		});
 
 		socket.on('disconnect', () => {

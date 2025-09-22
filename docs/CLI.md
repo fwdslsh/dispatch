@@ -172,7 +172,6 @@ TERMINAL_KEY=your-generated-key
 
 # Optional: Server configuration
 PORT=3030
-PTY_MODE=shell
 
 # Optional: Features
 ENABLE_TUNNEL=false

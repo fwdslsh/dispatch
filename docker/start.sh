@@ -4,7 +4,6 @@ set -e
 echo "Starting Dispatch application..."
 echo "Environment:"
 echo "  PORT: $PORT"
-echo "  PTY_MODE: $PTY_MODE"
 echo "  ENABLE_TUNNEL: $ENABLE_TUNNEL"
 echo "  LT_SUBDOMAIN: $LT_SUBDOMAIN"
 echo "  DISPATCH_CONFIG_DIR: $DISPATCH_CONFIG_DIR"

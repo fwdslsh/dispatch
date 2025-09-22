@@ -60,11 +60,9 @@ When `ENABLE_TUNNEL=true` the container will create a public URL. Always use a s
 
 - `TERMINAL_KEY` (required) — Password for web UI authentication
 - `PORT` (default: `3030`) — Server port inside the container
-- `PTY_MODE` (default: `shell`) — Default session mode (`shell` or `claude`)
 - `ENABLE_TUNNEL` (default: `false`) — Enable public URL sharing via LocalTunnel
 - `LT_SUBDOMAIN` (optional) — Custom LocalTunnel subdomain
-- `DISPATCH_CONFIG_DIR` (default: `/config`) — Configuration directory path
-- `DISPATCH_PROJECTS_DIR` (default: `/projects`) — Projects directory path
+
 
 ## Troubleshooting
 

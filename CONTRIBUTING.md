@@ -123,7 +123,7 @@ src/
 
 - **`src/lib/server/socket-handler.js`**: Socket.IO connection handling and authentication
 - **`src/lib/server/terminal.js`**: PTY lifecycle management, environment setup, mode switching
-- **`src/lib/server/session-store.js`**: Session persistence and JSON storage (stores file at `PTY_ROOT/sessions.json`)
+- **`src/lib/server/session-store.js`**: Session persistence and JSON storage
 
 ### Frontend Components
 
@@ -200,13 +200,6 @@ docker build -f docker/Dockerfile -t dispatch:dev .
 docker run -p 3030:3030 -e TERMINAL_KEY=test dispatch:dev
 ```
 
-### Container Structure
-
-- **Base**: Node.js 22
-- **User**: `appuser` (uid 10001) for security
-- **Sessions**: Stored in `PTY_ROOT` (default `/tmp/dispatch-sessions`)
-- **Ports**: Exposes port 3030
-
 ## 🧪 Testing
 
 ### Manual Testing
@@ -225,7 +218,7 @@ docker run -p 3030:3030 -e TERMINAL_KEY=test dispatch:dev
 npm install -g @anthropic-ai/claude-cli
 
 # Start with Claude mode
-PTY_MODE=claude npm run dev
+npm run dev
 ```
 
 ### Docker Testing
@@ -287,10 +280,8 @@ docker run -p 3030:3030 -e TERMINAL_KEY=test-key dispatch:test
 TERMINAL_KEY=test
 
 # Optional for testing
-PTY_MODE=shell          # or 'claude'
 ENABLE_TUNNEL=false     # or 'true'
 PORT=3030
-PTY_ROOT=/tmp/dispatch-sessions
 ```
 
 ### Production
@@ -300,11 +291,9 @@ PTY_ROOT=/tmp/dispatch-sessions
 TERMINAL_KEY=your-strong-password
 
 # Optional
-PTY_MODE=shell
 ENABLE_TUNNEL=false
 LT_SUBDOMAIN=your-subdomain
 PORT=3030
-PTY_ROOT=/tmp/dispatch-sessions
 ```
 
 ## 🐛 Debugging Tips

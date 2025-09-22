@@ -48,8 +48,6 @@ The Dispatch system uses configuration from multiple sources:
 | **DEFAULT_UID**   | `1000`                   | **Container** | Default container user ID                | No - build-time       |
 | **DEFAULT_GID**   | `1000`                   | **Container** | Default container group ID               | No - build-time       |
 | **HOST_HOME_DIR** | `/home/dispatch`         | **Container** | Container home directory                 | No                    |
-| **PTY_MODE**      | `shell`                  | **Container** | Terminal mode (shell/claude)             | No - requires restart |
-| **PTY_ROOT**      | `/tmp/dispatch-sessions` | **Container** | PTY session files directory              | No - requires restart |
 
 ### Project Sandboxing Variables
 

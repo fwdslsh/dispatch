@@ -66,6 +66,5 @@ docker run -p 3030:3030 \
 
 - `TERMINAL_KEY` (required) — password used to authenticate to the web UI
 - `PORT` (default `3030`) — port inside the container
-- `PTY_MODE` (`shell`|`claude`) — default session mode
 - `ENABLE_TUNNEL` (`true`|`false`) — enable public URL sharing
 - `LT_SUBDOMAIN` — optional LocalTunnel subdomain

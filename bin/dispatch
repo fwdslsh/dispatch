@@ -110,7 +110,7 @@ TERMINAL_KEY=$terminal_key
 
 # Optional: Server configuration
 PORT=$DEFAULT_PORT
-PTY_MODE=shell
+
 
 # Optional: Features
 ENABLE_TUNNEL=false
@@ -157,7 +157,7 @@ cmd_start() {
                 env_file="$2"
                 shift 2
                 ;;
-            --dispatch-home)
+            --home)
                 dispatch_home="$2"
                 shift 2
                 ;;
@@ -231,13 +231,26 @@ cmd_start() {
     if is_container_running; then
         log_success "Container started successfully!"
         log_info "Web interface: http://localhost:$port"
-        
+
         # Extract and show TERMINAL_KEY from env file
         if [[ -f "$env_file" ]]; then
             local terminal_key=$(grep "^TERMINAL_KEY=" "$env_file" | cut -d'=' -f2 | tr -d '"'"'"'')
             if [[ -n "$terminal_key" ]]; then
                 log_info "Terminal key: $terminal_key"
             fi
+        fi
+
+        # Check for tunnel URL after a brief delay to allow tunnel to start
+        sleep 2
+        log_info "Checking for tunnel URL..."
+
+        # Use curl to fetch tunnel settings from API
+        local tunnel_url=$(curl -s "http://localhost:$port/api/settings?category=tunnel" 2>/dev/null | \
+            grep -o '"url":"[^"]*"' | \
+            cut -d'"' -f4)
+
+        if [[ -n "$tunnel_url" && "$tunnel_url" != "null" ]]; then
+            log_success "Public tunnel URL: $tunnel_url"
         fi
     else
         log_error "Failed to start container"
@@ -338,7 +351,7 @@ COMMANDS:
 START OPTIONS:
     -p, --port <PORT>           Port for web interface (default: $DEFAULT_PORT)
     --env-file <PATH>           Path to .env file (default: ~/.dispatch/.env)
-    --dispatch-home <PATH>      Dispatch home directory (default: ~/.dispatch)
+    --home <PATH>      Dispatch home directory (default: ~/.dispatch)
     --workspace <PATH>          Workspace directory (default: ~/workspace)
 
 EXAMPLES:

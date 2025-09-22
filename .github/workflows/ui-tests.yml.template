@@ -31,7 +31,6 @@ jobs:
     - name: Run UI tests
       env:
         TERMINAL_KEY: 'testkey12345'
-        PTY_MODE: 'shell'
         NODE_ENV: 'test'
       run: npm run test:ui
     
@@ -74,7 +73,6 @@ jobs:
     - name: Run mobile-specific tests
       env:
         TERMINAL_KEY: 'testkey12345'
-        PTY_MODE: 'shell'
         NODE_ENV: 'test'
       run: npx playwright test --config=playwright-ui.config.js --project="Mobile*"
     

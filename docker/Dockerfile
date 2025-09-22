@@ -96,7 +96,6 @@ RUN chmod +x /entrypoint.sh
 ENV NODE_ENV=production \
     PORT=3030 \
     TERMINAL_KEY=change-me \
-    PTY_MODE=shell \
     ENABLE_TUNNEL=false \
     LT_SUBDOMAIN= \
     # Directory management configuration

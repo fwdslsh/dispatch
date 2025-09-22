@@ -72,7 +72,6 @@ The test suite runs across multiple browsers and devices:
 ### Environment Variables
 
 - `TERMINAL_KEY=testkey12345` - Authentication key for tests
-- `PTY_MODE=shell` - Forces shell mode (not Claude)
 - `NODE_ENV=test` - Test environment flag
 
 ### Excluded Functionality
@@ -183,7 +182,6 @@ npm run playwright:install
 
 # Set required environment variables
 export TERMINAL_KEY=testkey12345
-export PTY_MODE=shell
 export NODE_ENV=test
 
 # Run tests

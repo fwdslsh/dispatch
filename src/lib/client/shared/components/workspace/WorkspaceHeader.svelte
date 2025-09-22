@@ -13,6 +13,7 @@
 	import IconLogout from '../Icons/IconLogout.svelte';
 	import IconInfoCircle from '../Icons/IconInfoCircle.svelte';
 	import HelpModal from '../HelpModal.svelte';
+	import TunnelIndicator from '../TunnelIndicator.svelte';
 
 	// Props
 	let {
@@ -46,6 +47,9 @@
 	<BrandLogo />
 
 	<div class="header-spacer"></div>
+
+	<!-- Tunnel indicator -->
+	<TunnelIndicator />
 
 	<div class="header-actions">
 		<!-- <IconButton onclick={onInstallPWA} aria-label="Install app" title="Install App">
