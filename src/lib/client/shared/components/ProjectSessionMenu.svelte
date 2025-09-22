@@ -285,26 +285,28 @@
 		<!-- Tab Content -->
 		{#if currentTab === 'active'}
 			<!-- Active Sessions with Search and Filters -->
-			<div class="sessions-panel">
+			<div class="panel">
 				<div class="panel-header">
 					<div class="header-content">
-						<IconActivity size={20} />
-						<h2>Active Sessions</h2>
+						<h2 class="panel-title">
+							<IconActivity size={20} />
+							Active Sessions
+						</h2>
+						{#if filteredSessions.filter((s) => s.isActive).length > 0}
+							<span class="count-badge">{filteredSessions.filter((s) => s.isActive).length}</span>
+						{/if}
 					</div>
-					{#if filteredSessions.filter((s) => s.isActive).length > 0}
-						<span class="count-badge">{filteredSessions.filter((s) => s.isActive).length}</span>
-					{/if}
 				</div>
 
-				<div class="sessions-list">
+				<div class="panel-list">
 					{#if loading}
-						<div class="status">Loading sessions...</div>
+						<div class="status-message">Loading sessions...</div>
 					{:else if error}
-						<div class="status error">{error}</div>
+						<div class="status-message error">{error}</div>
 					{:else}
 						{@const activeSessions = filteredSessions.filter((s) => s.isActive)}
 						{#if activeSessions.length === 0}
-							<div class="status">
+							<div class="status-message">
 								{searchTerm
 									? `No active sessions match "${searchTerm}"`
 									: sessionType === 'all'
@@ -329,83 +331,95 @@
 			</div>
 		{:else if currentTab === 'create'}
 			<!-- Create Session Section -->
-			<div class="create-section">
+			<div class="panel">
 				{#if showDirectoryPicker}
-					<div class="directory-picker-panel">
-						<div class="picker-header">
-							<label class="picker-label">
+					<div class="panel-header">
+						<div class="header-content">
+							<h2 class="panel-title">
 								<IconFolder size={18} />
 								Select Directory
-							</label>
+							</h2>
 						</div>
+					</div>
+					<div class="panel-list">
 						<DirectoryBrowser
 							bind:selected={selectedDirectory}
 							startPath={selectedDirectory || ''}
 							onSelect={handleDirectorySelect}
 						/>
-						<div class="picker-actions">
-							<Button
-								variant="ghost"
-								augmented="none"
-								onclick={() => (showDirectoryPicker = false)}
-							>
-								Cancel
-							</Button>
-						</div>
 					</div>
-				{:else}
-					<div class="form-group">
-						<label class="form-label">
-							<IconFolder size={16} />
-							Workspace Directory
-						</label>
+					<div class="panel-header">
 						<Button
 							variant="ghost"
 							augmented="none"
-							onclick={() => (showDirectoryPicker = true)}
-							disabled={loading}
-							class="directory-button"
+							onclick={() => (showDirectoryPicker = false)}
 						>
-							<span class="directory-path">{formatPath(selectedDirectory)}</span>
-							<IconChevronDown size={16} />
+							Cancel
 						</Button>
 					</div>
-					<Button
-						variant="primary"
-						augmented="tl-clip br-clip both"
-						onclick={createSession}
-						disabled={loading || !selectedDirectory}
-						{loading}
-					>
-						{#snippet icon()}
-							{#if loading}<IconBolt size={18} />{:else}<IconPlus size={18} />{/if}
-						{/snippet}
-						New {sessionType === 'claude' ? 'Claude' : 'Terminal'} Session
-					</Button>
+				{:else}
+					<div class="panel-header">
+						<div class="header-content">
+							<h2 class="panel-title">
+								<IconPlus size={18} />
+								Create Session
+							</h2>
+						</div>
+					</div>
+					<div class="panel-list">
+						<div class="form-group">
+							<label class="form-label">
+								<IconFolder size={16} />
+								Workspace Directory
+							</label>
+							<button
+								class="directory-button"
+								onclick={() => (showDirectoryPicker = true)}
+								disabled={loading}
+							>
+								<span class="directory-path">{formatPath(selectedDirectory)}</span>
+								<IconChevronDown size={16} />
+							</button>
+						</div>
+						<Button
+							variant="primary"
+							augmented="tl-clip br-clip both"
+							onclick={createSession}
+							disabled={loading || !selectedDirectory}
+							{loading}
+						>
+							{#snippet icon()}
+								{#if loading}<IconBolt size={18} />{:else}<IconPlus size={18} />{/if}
+							{/snippet}
+							New {sessionType === 'claude' ? 'Claude' : 'Terminal'} Session
+						</Button>
+					</div>
 				{/if}
 			</div>
 		{:else if currentTab === 'browse'}
 			<!-- Browse Historical Sessions -->
-			<div class="sessions-panel">
+			<div class="panel">
 				<div class="panel-header">
 					<div class="header-content">
-						<IconHistory size={20} />
-						<h2>Browse Sessions</h2>
+						<h2 class="panel-title">
+							<IconHistory size={20} />
+							Browse Sessions
+						</h2>
+						{#if filteredSessions.filter((s) => !s.isActive).length > 0}
+							<span class="count-badge">{filteredSessions.filter((s) => !s.isActive).length}</span>
+						{/if}
 					</div>
-					{#if filteredSessions.filter((s) => !s.isActive).length > 0}
-						<span class="count-badge">{filteredSessions.filter((s) => !s.isActive).length}</span>
-					{/if}
 				</div>
 
-				<div class="sessions-list">
+				<div class="panel-list">
 					{#if loading}
-						<div class="status">Loading sessions...</div>
+						<div class="status-message">Loading sessions...</div>
 					{:else if error}
-						<div class="status error">{error}</div>
+						<div class="status-message error">{error}</div>
 					{:else}
 						{@const historicalSessions = filteredSessions.filter((s) => !s.isActive)}
 						{#if historicalSessions.length === 0}
-							<div class="status">
+							<div class="status-message">
 								{searchTerm
 									? `No historical sessions match "${searchTerm}"`
 									: sessionType === 'all'
@@ -570,255 +584,49 @@
 		gap: var(--space-1);
 	}
 
-	/* Tab Content Container */
-	.tab-content {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-		min-height: 0;
-		overflow: hidden;
-	}
+.tab-buttons {
+display: flex;
+gap: var(--space-1);
+}
 
-	.session-type-buttons :global(.btn),
-	.tab-buttons :global(.btn) {
-		padding: var(--space-2) var(--space-3);
-		font-size: 0.8rem;
-		min-width: 2.5rem;
-		height: 2.5rem;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: var(--space-1);
-	}
+/* Directory button specific styling */
+.directory-button {
+text-align: left;
+}
 
-	.session-type-buttons :global(.btn.active),
-	.tab-buttons :global(.btn.active) {
-		background: var(--surface);
-		border-color: var(--primary-dim);
-		color: var(--primary);
-	}
+/* Active button states */
+.session-type-buttons :global(.button.active),
+.tab-buttons :global(.button.active) {
+background: var(--primary);
+border-color: var(--primary);
+color: var(--bg);
+}
 
-	/* Hide button text on small screens */
-	@media (max-width: 768px) {
-		.button-text {
-			display: none;
-		}
+.session-type-buttons :global(.button.active:hover),
+.tab-buttons :global(.button.active:hover) {
+background: var(--primary-bright);
+border-color: var(--primary-bright);
+color: var(--bg);
+}
 
-		.session-type-buttons :global(.btn),
-		.tab-buttons :global(.btn) {
-			min-width: 2.5rem;
-			padding: var(--space-2);
-		}
-	}
+/* Mobile responsive */
+@media (max-width: 768px) {
+.menu-root {
+padding-inline: var(--space-1);
+}
 
-	/* Create Session Section */
-	.create-section {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
+.bottom-navigation {
+flex-wrap: wrap;
+gap: var(--space-1);
+}
 
-	.form-group {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-	}
+.session-type-buttons,
+.tab-buttons {
+gap: 2px;
+}
 
-	.form-label {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-weight: 600;
-		color: var(--text);
-		font-size: 0.875rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		font-family: var(--font-mono);
-	}
-
-	.directory-path {
-		flex: 1;
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		color: var(--text-muted);
-	}
-
-	/* Directory Picker Panel */
-	.directory-picker-panel {
-		background: var(--surface);
-		border: 2px solid var(--primary-dim);
-		border-radius: 6px;
-		padding: var(--space-4);
-		overflow-y: auto;
-	}
-
-	.picker-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: var(--space-2);
-	}
-
-	.picker-label {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-weight: 600;
-		color: var(--text);
-		font-size: 0.875rem;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		font-family: var(--font-mono);
-	}
-
-	.picker-actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: var(--space-2);
-		margin-top: var(--space-4);
-		padding-top: var(--space-4);
-		border-top: 1px solid var(--surface-border);
-	}
-
-	/* Sessions Panel */
-	.sessions-panel {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		overflow: hidden;
-	}
-
-	.panel-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: var(--space-4);
-		border-bottom: 1px solid var(--surface-border);
-		background: var(--bg-dark);
-		flex-shrink: 0;
-	}
-
-	.header-content {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.header-content h2 {
-		margin: 0;
-		font-size: 1rem;
-		font-weight: 600;
-		color: var(--text);
-	}
-
-	.count-badge {
-		background: var(--primary);
-		color: white;
-		font-size: 0.7rem;
-		font-weight: 600;
-		padding: 2px 8px;
-		border-radius: 12px;
-		min-width: 20px;
-		text-align: center;
-	}
-
-	.sessions-list {
-		flex: 1;
-		overflow-y: auto;
-		overflow-x: hidden;
-		padding: var(--space-3);
-		display: flex;
-		flex-direction: column;
-		min-height: 200px;
-		max-height: calc(100vh - 300px);
-		scrollbar-width: thin;
-		scrollbar-color: var(--surface-border) transparent;
-	}
-
-	.sessions-list::-webkit-scrollbar {
-		width: 6px;
-	}
-
-	.sessions-list::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	.sessions-list::-webkit-scrollbar-thumb {
-		background: var(--surface-border);
-		border-radius: 3px;
-	}
-
-	.sessions-list::-webkit-scrollbar-thumb:hover {
-		background: var(--text-muted);
-	}
-
-	.status {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: var(--space-6);
-		color: var(--text-muted);
-		font-size: 0.9rem;
-		text-align: center;
-		min-height: 120px;
-		border: 2px dashed var(--surface-border);
-		border-radius: 8px;
-		margin: var(--space-4);
-	}
-
-	.status.error {
-		color: var(--error);
-	}
-
-	/* Search Container */
-	.search-container {
-		background: var(--bg);
-		flex-shrink: 0;
-
-		border-bottom: none;
-		padding: var(--space-3) 0;
-	}
-
-	.search-input-wrapper {
-		position: relative;
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		background: var(--bg);
-		border: 1px solid var(--surface-border);
-		border-radius: 6px;
-		padding: var(--space-2) var(--space-3);
-	}
-
-	.search-input {
-		flex: 1;
-		background: transparent;
-		border: none;
-		outline: none;
-		color: var(--text);
-		font-size: 0.875rem;
-		font-family: var(--font-mono);
-	}
-
-	.search-input::placeholder {
-		color: var(--text-muted);
-	}
-
-	.clear-search {
-		background: none;
-		border: none;
-		color: var(--text-muted);
-		cursor: pointer;
-		padding: 2px;
-		border-radius: 3px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.clear-search:hover {
-		background: var(--surface);
-		color: var(--text);
-	}
+.button-text {
+display: none;
+}
+}
 </style>
