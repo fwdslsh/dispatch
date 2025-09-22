@@ -1,0 +1,311 @@
+/* CSS Utility Classes for Dispatch Application */
+
+/* ==================================================================
+   SPACING UTILITIES
+   Use these for consistent spacing instead of inline styles
+   ================================================================== */
+
+/* Padding utilities */
+.p-0 { padding: var(--space-0); }
+.p-1 { padding: var(--space-1); }
+.p-2 { padding: var(--space-2); }
+.p-3 { padding: var(--space-3); }
+.p-4 { padding: var(--space-4); }
+.p-5 { padding: var(--space-5); }
+.p-6 { padding: var(--space-6); }
+
+/* Margin utilities */
+.m-0 { margin: var(--space-0); }
+.m-1 { margin: var(--space-1); }
+.m-2 { margin: var(--space-2); }
+.m-3 { margin: var(--space-3); }
+.m-4 { margin: var(--space-4); }
+.m-5 { margin: var(--space-5); }
+.m-6 { margin: var(--space-6); }
+
+/* Gap utilities for flex/grid */
+.gap-0 { gap: var(--space-0); }
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.gap-6 { gap: var(--space-6); }
+
+/* ==================================================================
+   INTERACTIVE STATES
+   Apply consistent interaction patterns
+   ================================================================== */
+
+.interactive {
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.interactive:hover {
+	transform: translateY(-1px);
+}
+
+.interactive:active {
+	transform: translateY(0);
+}
+
+.interactive:focus {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+	box-shadow: 0 0 0 4px var(--primary-glow-20);
+}
+
+/* ==================================================================
+   VISUAL EFFECTS
+   Consistent glow, shadow, and highlight effects
+   ================================================================== */
+
+/* Glow effects */
+.glow-sm {
+	box-shadow: 0 0 8px var(--primary-glow-20);
+}
+
+.glow-md {
+	box-shadow: 0 0 16px var(--primary-glow-30);
+}
+
+.glow-lg {
+	box-shadow: 0 0 24px var(--primary-glow-40);
+}
+
+/* Focus glow */
+.glow-focus {
+	box-shadow: 0 0 0 4px var(--primary-glow-20);
+}
+
+/* Success glow */
+.glow-success {
+	box-shadow: 0 0 16px color-mix(in oklab, var(--success) 30%, transparent);
+}
+
+/* Error glow */
+.glow-error {
+	box-shadow: 0 0 16px color-mix(in oklab, var(--error) 30%, transparent);
+}
+
+/* ==================================================================
+   STATE CLASSES  
+   Common visual states for components
+   ================================================================== */
+
+.is-active {
+	border-color: var(--success);
+	background: color-mix(in oklab, var(--success) 5%, transparent);
+}
+
+.is-selected {
+	border-color: var(--primary);
+	background: color-mix(in oklab, var(--primary) 5%, transparent);
+	box-shadow: 0 0 0 1px var(--primary-glow-20);
+}
+
+.is-disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+.is-loading {
+	opacity: 0.7;
+	cursor: wait;
+}
+
+.is-hidden {
+	display: none;
+}
+
+.is-invisible {
+	visibility: hidden;
+}
+
+/* ==================================================================
+   CARD UTILITIES
+   Base patterns for card-like components
+   ================================================================== */
+
+.card-base {
+	background: var(--surface);
+	border: 1px solid var(--surface-border);
+	border-radius: 8px;
+	padding: var(--space-4);
+	transition: all 0.2s ease;
+}
+
+.card-base:hover {
+	border-color: var(--primary-dim);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px color-mix(in oklab, var(--bg) 90%, black 10%);
+}
+
+.card-elevated {
+	background: var(--elev);
+	box-shadow: 0 2px 8px color-mix(in oklab, var(--bg) 80%, black 20%);
+}
+
+/* ==================================================================
+   LAYOUT UTILITIES
+   Common layout patterns
+   ================================================================== */
+
+.flex {
+	display: flex;
+}
+
+.flex-col {
+	display: flex;
+	flex-direction: column;
+}
+
+.flex-center {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.flex-between {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.flex-wrap {
+	flex-wrap: wrap;
+}
+
+.grid {
+	display: grid;
+}
+
+.grid-cols-2 {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-cols-3 {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+}
+
+/* ==================================================================
+   TEXT UTILITIES
+   Typography helpers
+   ================================================================== */
+
+.text-primary {
+	color: var(--text);
+}
+
+.text-muted {
+	color: var(--muted);
+}
+
+.text-success {
+	color: var(--success);
+}
+
+.text-warning {
+	color: var(--warning);
+}
+
+.text-error {
+	color: var(--error);
+}
+
+.text-center {
+	text-align: center;
+}
+
+.text-right {
+	text-align: right;
+}
+
+/* ==================================================================
+   ANIMATION UTILITIES
+   Apply consistent motion to elements
+   ================================================================== */
+
+.animate-fade-in {
+	animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+	animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.animate-pulse {
+	animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-spin {
+	animation: spin 1s linear infinite;
+}
+
+.animate-scan {
+	animation: scan 2s linear infinite;
+}
+
+/* ==================================================================
+   RESPONSIVE UTILITIES
+   Mobile-first responsive helpers
+   ================================================================== */
+
+@media (max-width: 768px) {
+	.mobile-hidden {
+		display: none;
+	}
+	
+	.mobile-full-width {
+		width: 100%;
+	}
+}
+
+@media (min-width: 769px) {
+	.desktop-only {
+		display: block;
+	}
+	
+	.mobile-only {
+		display: none;
+	}
+}
+
+/* ==================================================================
+   ACCESSIBILITY UTILITIES
+   Improve accessibility with visual indicators
+   ================================================================== */
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.focus-visible:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+	.animate-fade-in,
+	.animate-slide-in,
+	.animate-pulse,
+	.animate-spin,
+	.animate-scan,
+	.interactive {
+		animation: none;
+		transition: none;
+	}
+}
