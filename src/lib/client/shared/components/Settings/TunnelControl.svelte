@@ -11,7 +11,10 @@
 		enabled: false,
 		running: false,
 		url: null,
-		port: typeof window !== 'undefined' ? window.location.port || (window.location.protocol === 'https:' ? '443' : '80') : null,
+		port:
+			typeof window !== 'undefined'
+				? window.location.port || (window.location.protocol === 'https:' ? '443' : '80')
+				: null,
 		subdomain: ''
 	});
 	let isLoading = $state(false);
@@ -71,7 +74,8 @@
 			}
 
 			// Get the current port from window location
-			const currentPort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+			const currentPort =
+				window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
 
 			// Now toggle tunnel with port
 			socket.emit(event, { port: currentPort }, (response) => {
@@ -206,9 +210,9 @@
 						placeholder="Enter custom subdomain or leave empty for random"
 						style="font-family: monospace; font-size: 0.9rem;"
 					/>
-					<Button 
-						onclick={updateSubdomain} 
-						variant="secondary" 
+					<Button
+						onclick={updateSubdomain}
+						variant="secondary"
 						size="sm"
 						disabled={isUpdatingConfig || subdomainInput === (tunnelStatus.subdomain || '')}
 					>

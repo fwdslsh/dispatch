@@ -22,7 +22,8 @@ dispatch start
 
 # Open http://localhost:3030 and start coding!
 ```
-*Note: Requires bash and Docker*
+
+_Note: Requires bash and Docker_
 
 ## Why Dispatch?
 
@@ -60,13 +61,13 @@ dispatch start
 
 When using the dispatch CLI the init command will create a `~/dispatch/home/.env` file with these variables.
 
-| Variable                | Default      | Description                    |
-| ----------------------- | ------------ | ------------------------------ |
-| `TERMINAL_KEY`          | `change-me`  | **Required** - Access password |
-| `PORT`                  | `3030`       | Web interface port             |
-| `WORKSPACES_ROOT`       | `/workspace` | Project directory              |
-| `ENABLE_TUNNEL`         | `false`      | Public URL sharing             |
-| `LT_SUBDOMAIN`          | `""`         | Custom subdomain               |
+| Variable          | Default      | Description                    |
+| ----------------- | ------------ | ------------------------------ |
+| `TERMINAL_KEY`    | `change-me`  | **Required** - Access password |
+| `PORT`            | `3030`       | Web interface port             |
+| `WORKSPACES_ROOT` | `/workspace` | Project directory              |
+| `ENABLE_TUNNEL`   | `false`      | Public URL sharing             |
+| `LT_SUBDOMAIN`    | `""`         | Custom subdomain               |
 
 ## Using Docker Directly
 

@@ -40,14 +40,14 @@ The Dispatch system uses configuration from multiple sources:
 
 ### Container-Specific Variables
 
-| Variable          | Default                  | Location      | Description                              | Runtime Configurable  |
-| ----------------- | ------------------------ | ------------- | ---------------------------------------- | --------------------- |
-| **CONTAINER_ENV** | `true`                   | **Container** | Flag indicating running in container     | No                    |
-| **HOST_UID**      | `1000`                   | **Container** | Host user ID for file ownership mapping  | No - requires restart |
-| **HOST_GID**      | `1000`                   | **Container** | Host group ID for file ownership mapping | No - requires restart |
-| **DEFAULT_UID**   | `1000`                   | **Container** | Default container user ID                | No - build-time       |
-| **DEFAULT_GID**   | `1000`                   | **Container** | Default container group ID               | No - build-time       |
-| **HOST_HOME_DIR** | `/home/dispatch`         | **Container** | Container home directory                 | No                    |
+| Variable          | Default          | Location      | Description                              | Runtime Configurable  |
+| ----------------- | ---------------- | ------------- | ---------------------------------------- | --------------------- |
+| **CONTAINER_ENV** | `true`           | **Container** | Flag indicating running in container     | No                    |
+| **HOST_UID**      | `1000`           | **Container** | Host user ID for file ownership mapping  | No - requires restart |
+| **HOST_GID**      | `1000`           | **Container** | Host group ID for file ownership mapping | No - requires restart |
+| **DEFAULT_UID**   | `1000`           | **Container** | Default container user ID                | No - build-time       |
+| **DEFAULT_GID**   | `1000`           | **Container** | Default container group ID               | No - build-time       |
+| **HOST_HOME_DIR** | `/home/dispatch` | **Container** | Container home directory                 | No                    |
 
 ### Project Sandboxing Variables
 
