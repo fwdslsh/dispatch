@@ -1,0 +1,3 @@
+# This file ensures the docs/articles directory is tracked in Git
+# even when it's empty. Articles added to this directory will be
+# automatically published to Dev.to via GitHub Actions.
