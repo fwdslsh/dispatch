@@ -83,7 +83,10 @@ export async function POST({ request, locals }) {
 
 		const { category, settings, description } = body;
 		if (!category || !settings || typeof settings !== 'object') {
-			return json({ error: 'Missing required fields: category, settings (object)' }, { status: 400 });
+			return json(
+				{ error: 'Missing required fields: category, settings (object)' },
+				{ status: 400 }
+			);
 		}
 
 		await databaseManager.setSettingsForCategory(category, settings, description);

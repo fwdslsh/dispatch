@@ -1,5 +1,3 @@
-
-
 ## 📦 More Installation Options
 
 ### For Developers

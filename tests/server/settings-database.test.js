@@ -60,7 +60,7 @@ describe('Settings Database Integration - JSON per Category', () => {
 			const complexSettings = {
 				enabled: true,
 				options: ['a', 'b', 'c'],
-				config: { 
+				config: {
 					nested: true,
 					numbers: [1, 2, 3],
 					nullValue: null
@@ -110,7 +110,7 @@ describe('Settings Database Integration - JSON per Category', () => {
 
 		it('should get all settings with metadata', async () => {
 			const allSettings = await db.getAllSettings();
-			
+
 			expect(Array.isArray(allSettings)).toBe(true);
 			expect(allSettings.length).toBeGreaterThan(0);
 
@@ -131,17 +131,17 @@ describe('Settings Database Integration - JSON per Category', () => {
 		it('should preserve timestamps on updates', async () => {
 			// Get initial timestamps
 			const allBefore = await db.getAllSettings();
-			const globalBefore = allBefore.find(s => s.category === 'global');
+			const globalBefore = allBefore.find((s) => s.category === 'global');
 			const createdAtBefore = globalBefore.created_at;
 
 			// Wait a bit and update
-			await new Promise(resolve => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 10));
 			await db.updateSettingInCategory('global', 'theme', 'updated');
 
 			// Check timestamps
 			const allAfter = await db.getAllSettings();
-			const globalAfter = allAfter.find(s => s.category === 'global');
-			
+			const globalAfter = allAfter.find((s) => s.category === 'global');
+
 			expect(globalAfter.created_at).toBe(createdAtBefore); // Should be preserved
 			expect(globalAfter.updated_at).toBeGreaterThan(globalAfter.created_at); // Should be updated
 		});

@@ -24,7 +24,6 @@ Dispatch transforms any machine into a safe, isolated workspace for AI agents an
 ## Prerequisites
 
 - **Docker** installed and running
-- **Node.js 22+** (for CLI installation)
 - At least **2GB free disk space** for container and workspace
 
 ## Quick Sandbox Setup
@@ -32,8 +31,10 @@ Dispatch transforms any machine into a safe, isolated workspace for AI agents an
 The fastest way to set up an AI agent sandbox:
 
 ```bash
-# Install the Dispatch CLI
-npm install -g @fwdslsh/dispatch
+# Clone and install the Dispatch CLI
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+./install.sh
 
 # Initialize sandbox environment
 dispatch init
@@ -69,7 +70,7 @@ Customize Dispatch behavior by settings these variables in the dispatch docker c
 | `ENABLE_TUNNEL`   | `false`       | Create public URLs for sharing                |
 | `LT_SUBDOMAIN`    | `""`          | Custom name for your public URL               |
 | `HOST_UID`        | -             | Container user ID mapping (optional)          |
-| `HOST_GID`        | -             | Container group ID mapping (optional)  |
+| `HOST_GID`        | -             | Container group ID mapping (optional)         |
 
 ### Directory Structure & Mounting Strategy
 

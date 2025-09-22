@@ -13,7 +13,7 @@ const SETTINGS_CONTEXT_KEY = 'settings-service';
  */
 export function createSettingsService(config = {}) {
 	const service = new SettingsService(config);
-	
+
 	// Create reactive wrapper with runes
 	const reactiveService = {
 		// Reactive state
@@ -27,7 +27,7 @@ export function createSettingsService(config = {}) {
 		// Derived effective settings
 		effectiveSettings: $derived(() => {
 			const merged = { ...reactiveService.serverSettings };
-			
+
 			// Apply client overrides
 			for (const [category, overrides] of Object.entries(reactiveService.clientOverrides)) {
 				if (merged[category]) {
@@ -36,7 +36,7 @@ export function createSettingsService(config = {}) {
 					merged[category] = { ...overrides };
 				}
 			}
-			
+
 			return merged;
 		}),
 
@@ -119,7 +119,9 @@ export function createSettingsService(config = {}) {
 export function useSettingsService() {
 	const service = getContext(SETTINGS_CONTEXT_KEY);
 	if (!service) {
-		throw new Error('Settings service not found in context. Make sure to call createSettingsService() first.');
+		throw new Error(
+			'Settings service not found in context. Make sure to call createSettingsService() first.'
+		);
 	}
 	return service;
 }

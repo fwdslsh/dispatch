@@ -34,7 +34,7 @@ export class SettingsService {
 	 */
 	getEffectiveSettings() {
 		const merged = { ...this.serverSettings };
-		
+
 		// Apply client overrides
 		for (const [category, overrides] of Object.entries(this.clientOverrides)) {
 			if (merged[category]) {
@@ -43,7 +43,7 @@ export class SettingsService {
 				merged[category] = { ...overrides };
 			}
 		}
-		
+
 		return merged;
 	}
 
@@ -52,7 +52,7 @@ export class SettingsService {
 	 */
 	async loadServerSettings() {
 		if (this.isLoading) return;
-		
+
 		this.isLoading = true;
 		this.lastError = null;
 
@@ -63,7 +63,7 @@ export class SettingsService {
 				this.serverSettings = data;
 				this.lastSync = new Date().toISOString();
 				this.isLoaded = true;
-				
+
 				if (this.config.debug) {
 					console.log('[SettingsService] Server settings loaded:', data);
 				}
@@ -73,7 +73,7 @@ export class SettingsService {
 		} catch (error) {
 			this.lastError = `Failed to load server settings: ${error.message}`;
 			console.warn('[SettingsService]', this.lastError);
-			
+
 			// Use fallback defaults if server is unavailable
 			this.serverSettings = this.getFallbackDefaults();
 			this.isLoaded = true;
@@ -95,7 +95,7 @@ export class SettingsService {
 			} else {
 				this.clientOverrides = {};
 			}
-			
+
 			if (this.config.debug) {
 				console.log('[SettingsService] Client overrides loaded:', this.clientOverrides);
 			}
@@ -171,14 +171,14 @@ export class SettingsService {
 
 		if (this.clientOverrides[category]) {
 			delete this.clientOverrides[category][setting];
-			
+
 			// Clean up empty categories
 			if (Object.keys(this.clientOverrides[category]).length === 0) {
 				delete this.clientOverrides[category];
 			}
-			
+
 			this.saveClientOverrides();
-			
+
 			if (this.config.debug) {
 				console.log('[SettingsService] Client override removed:', key);
 			}
@@ -199,7 +199,7 @@ export class SettingsService {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${authKey}`
+					Authorization: `Bearer ${authKey}`
 				},
 				body: JSON.stringify({
 					key,
@@ -216,7 +216,7 @@ export class SettingsService {
 
 			// Reload server settings to get updated values
 			await this.loadServerSettings();
-			
+
 			if (this.config.debug) {
 				console.log('[SettingsService] Server setting updated:', key);
 			}
@@ -237,7 +237,7 @@ export class SettingsService {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${authKey}`
+					Authorization: `Bearer ${authKey}`
 				},
 				body: JSON.stringify({ settings })
 			});
@@ -249,7 +249,7 @@ export class SettingsService {
 
 			// Reload server settings to get updated values
 			await this.loadServerSettings();
-			
+
 			if (this.config.debug) {
 				console.log('[SettingsService] Server settings bulk updated');
 			}
@@ -265,7 +265,7 @@ export class SettingsService {
 	resetClientOverrides() {
 		this.clientOverrides = {};
 		this.saveClientOverrides();
-		
+
 		if (this.config.debug) {
 			console.log('[SettingsService] All client overrides reset');
 		}
@@ -279,7 +279,7 @@ export class SettingsService {
 		if (this.clientOverrides[category]) {
 			delete this.clientOverrides[category];
 			this.saveClientOverrides();
-			
+
 			if (this.config.debug) {
 				console.log('[SettingsService] Client overrides reset for category:', category);
 			}
@@ -323,10 +323,10 @@ export class SettingsService {
 		// If already in new format, return as-is
 		if (typeof oldSettings === 'object' && oldSettings !== null) {
 			// Check if it's already categorized
-			const hasCategories = Object.keys(oldSettings).some(key => 
-				typeof oldSettings[key] === 'object' && oldSettings[key] !== null
+			const hasCategories = Object.keys(oldSettings).some(
+				(key) => typeof oldSettings[key] === 'object' && oldSettings[key] !== null
 			);
-			
+
 			if (hasCategories) {
 				return oldSettings;
 			}
@@ -334,12 +334,12 @@ export class SettingsService {
 
 		// Migrate from flat structure to categorized
 		const migrated = { global: {} };
-		
+
 		if (typeof oldSettings === 'object' && oldSettings !== null) {
 			for (const [key, value] of Object.entries(oldSettings)) {
 				// Skip metadata fields
 				if (key === 'lastUpdated') continue;
-				
+
 				// Categorize based on key name
 				if (key.startsWith('claude') || key.includes('Claude')) {
 					if (!migrated.claude) migrated.claude = {};

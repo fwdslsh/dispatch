@@ -242,7 +242,10 @@
 					options: defaultOptions
 				});
 
-				log.info(`Created ${type} session directly with workspace: ${defaultWorkspace} and default options:`, defaultOptions);
+				log.info(
+					`Created ${type} session directly with workspace: ${defaultWorkspace} and default options:`,
+					defaultOptions
+				);
 			} catch (error) {
 				log.error(`Failed to create ${type} session:`, error);
 				// Fall back to opening the modal if direct creation fails

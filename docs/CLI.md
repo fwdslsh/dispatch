@@ -18,6 +18,7 @@ cd dispatch
 ```
 
 The installer will automatically:
+
 - Find a suitable installation directory (`~/bin`, `~/.local/bin`, or `/usr/local/bin`)
 - Copy the script and make it executable
 - Add the directory to your PATH if needed
@@ -60,6 +61,7 @@ node bin/cli.js --help
    ```
 
 4. **Stop container:**
+
    ```bash
    dispatch stop
    ```
@@ -81,8 +83,9 @@ dispatch init
 ```
 
 **What it does:**
+
 - Creates `~/.dispatch` directory for configuration
-- Creates `~/workspace` directory for projects  
+- Creates `~/workspace` directory for projects
 - Generates `~/.dispatch/.env` file with default settings including a secure `TERMINAL_KEY`
 
 ### `dispatch start [options]`
@@ -122,6 +125,7 @@ dispatch stop
 ```
 
 **What it does:**
+
 - Stops the running container
 - Removes the stopped container
 - Preserves all data in mounted directories
@@ -135,6 +139,7 @@ dispatch update
 ```
 
 **What it does:**
+
 - Stops the current container if running
 - Pulls the latest `fwdslsh/dispatch:latest` image
 - Restarts the container if it was previously running
@@ -148,6 +153,7 @@ dispatch status
 ```
 
 **Output includes:**
+
 - Container running status
 - Port mappings
 - Web interface URL
@@ -164,7 +170,7 @@ Created automatically by `dispatch init`, this file contains all configuration o
 # Required: Authentication key for web interface
 TERMINAL_KEY=your-generated-key
 
-# Optional: Server configuration  
+# Optional: Server configuration
 PORT=3030
 PTY_MODE=shell
 

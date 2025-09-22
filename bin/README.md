@@ -22,7 +22,7 @@ The Dispatch CLI has been converted from Node.js to a native Bash script for imp
 
 ```bash
 dispatch init     # Create directories and default .env file
-dispatch start    # Start the Docker container  
+dispatch start    # Start the Docker container
 dispatch stop     # Stop the Docker container
 dispatch update   # Update to latest Docker image
 dispatch status   # Show container status
