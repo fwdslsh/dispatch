@@ -1,0 +1,31 @@
+---
+name: Publish to Dev.to
+
+'on':
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/articles/**/*.md'
+
+jobs:
+  publish:
+    name: Publish Articles to Dev.to
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish to Dev.to
+        uses: sinedied/publish-devto@v2
+        with:
+          # Publish all markdown files in docs/articles directory
+          files: 'docs/articles/**/*.md'
+          # Set contributor name as required
+          devto_key: ${{ secrets.DEVTO_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Set the organization or contributor name to 'dispatch'
+          organization: 'dispatch'
+          # Optional: dry run mode for testing
+          # (remove this line for actual publishing)
+          # dry_run: true
