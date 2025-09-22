@@ -1,15 +1,19 @@
 # CSS Refactor Component Status Tracker
 
 ## Project Overview
+
 Systematic refactoring of Dispatch application components to use global utility classes instead of component-specific styling. This document tracks the status of each component in the codebase.
+It is VERY IMPORTANT that you use the [CSS Coding Standards](../.agent-os/standards/code-style/css-style.md) during the refactors.
 
 ## Progress Summary
-- **Total Components with CSS**: 67 components identified
+
+- **Total Components with CSS**: 34 components identified
 - **Components Completed**: 14 major components ✅
-- **Components Remaining**: 53 components 🔄
+- **Components Remaining**: 20 components 🔄
 - **Total CSS Lines Reduced**: 4,090+ lines → 380 lines (91% average reduction)
 
 ## Global Utility System Status
+
 - **Utility Classes Created**: 1,200+ utility classes
 - **Categories Covered**: Layout, Forms, Cards, Modals, Menus, Alerts, Chat, Terminal, Authentication
 - **Design Tokens**: Comprehensive color, spacing, and effect variables
@@ -17,9 +21,10 @@ Systematic refactoring of Dispatch application components to use global utility 
 
 ---
 
-## ✅ COMPLETED COMPONENTS (14/67)
+## ✅ COMPLETED COMPONENTS (14/34)
 
 ### Major Components (High Impact)
+
 1. **ClaudePane.svelte** ✅
    - **Status**: COMPLETED + FIXED
    - **Reduction**: 858 lines → ~75 lines (91% reduction)
@@ -81,6 +86,7 @@ Systematic refactoring of Dispatch application components to use global utility 
     - **Notes**: Cursor animations preserved
 
 ### Standard Components
+
 11. **Modal.svelte** ✅
     - **Status**: COMPLETED
     - **Reduction**: Significant reduction through utilities
@@ -107,9 +113,10 @@ Systematic refactoring of Dispatch application components to use global utility 
 
 ---
 
-## 🔄 HIGH-PRIORITY PENDING COMPONENTS (15/53)
+## 🔄 HIGH-PRIORITY PENDING COMPONENTS (15/20)
 
 ### Large Components (200+ CSS lines)
+
 1. **SessionWindowManager.svelte** 🔄
    - **CSS Lines**: 333 lines
    - **Priority**: HIGH
@@ -153,6 +160,7 @@ Systematic refactoring of Dispatch application components to use global utility 
    - **Notes**: Session type selection, creation flows
 
 ### Medium Components (100-200 CSS lines)
+
 8. **ClaudeHeader.svelte** 🔄
    - **CSS Lines**: 187 lines
    - **Priority**: HIGH
@@ -201,11 +209,8 @@ Systematic refactoring of Dispatch application components to use global utility 
     - **Category**: Card variant patterns
     - **Notes**: Session type cards, selection
 
----
-
-## 🔄 MEDIUM-PRIORITY PENDING COMPONENTS (16/53)
-
 ### Utility Components (50-100 CSS lines)
+
 16. **Button.svelte** 🔄
     - **CSS Lines**: 76 lines
     - **Priority**: MEDIUM
@@ -236,216 +241,12 @@ Systematic refactoring of Dispatch application components to use global utility 
     - **Category**: Status display patterns
     - **Notes**: Status indicators, notifications
 
-### Small Components (20-50 CSS lines)
-21. **Toggle.svelte** 🔄
-    - **CSS Lines**: 45 lines
-    - **Priority**: MEDIUM
-    - **Category**: Form control patterns
-    - **Notes**: Boolean input controls
-
-22. **Checkbox.svelte** 🔄
-    - **CSS Lines**: 42 lines
-    - **Priority**: MEDIUM
-    - **Category**: Form control patterns
-    - **Notes**: Checkbox styling and states
-
-23. **RadioGroup.svelte** 🔄
-    - **CSS Lines**: 38 lines
-    - **Priority**: MEDIUM
-    - **Category**: Form control patterns
-    - **Notes**: Radio button groups
-
-24. **ProgressBar.svelte** 🔄
-    - **CSS Lines**: 34 lines
-    - **Priority**: MEDIUM
-    - **Category**: Progress indicators
-    - **Notes**: Loading states, progress display
-
-25. **Badge.svelte** 🔄
-    - **CSS Lines**: 32 lines
-    - **Priority**: MEDIUM
-    - **Category**: Status indicators
-    - **Notes**: Count badges, status markers
-
-26. **Tooltip.svelte** 🔄
-    - **CSS Lines**: 29 lines
-    - **Priority**: MEDIUM
-    - **Category**: Information display
-    - **Notes**: Hover information, help text
-
-27. **Avatar.svelte** 🔄
-    - **CSS Lines**: 28 lines
-    - **Priority**: MEDIUM
-    - **Category**: User representation
-    - **Notes**: Profile images, user indicators
-
-28. **Divider.svelte** 🔄
-    - **CSS Lines**: 25 lines
-    - **Priority**: MEDIUM
-    - **Category**: Layout utilities
-    - **Notes**: Visual separators
-
-29. **Tag.svelte** 🔄
-    - **CSS Lines**: 24 lines
-    - **Priority**: MEDIUM
-    - **Category**: Label patterns
-    - **Notes**: Category labels, keywords
-
-30. **Link.svelte** 🔄
-    - **CSS Lines**: 22 lines
-    - **Priority**: MEDIUM
-    - **Category**: Navigation patterns
-    - **Notes**: Text links, navigation elements
-
-31. **Icon.svelte** 🔄
-    - **CSS Lines**: 21 lines
-    - **Priority**: MEDIUM
-    - **Category**: Icon system
-    - **Notes**: SVG icons, icon sizing
-
----
-
-## 🔄 LOW-PRIORITY PENDING COMPONENTS (22/53)
-
-### Minimal Components (Under 20 CSS lines)
-32. **Text.svelte** 🔄
-    - **CSS Lines**: 18 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Text styling, semantic elements
-
-33. **Code.svelte** 🔄
-    - **CSS Lines**: 17 lines
-    - **Priority**: LOW
-    - **Category**: Code display patterns
-    - **Notes**: Inline code, syntax highlighting
-
-34. **List.svelte** 🔄
-    - **CSS Lines**: 16 lines
-    - **Priority**: LOW
-    - **Category**: List patterns
-    - **Notes**: Ordered/unordered lists
-
-35. **ListItem.svelte** 🔄
-    - **CSS Lines**: 15 lines
-    - **Priority**: LOW
-    - **Category**: List patterns
-    - **Notes**: Individual list items
-
-36. **Heading.svelte** 🔄
-    - **CSS Lines**: 14 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Header hierarchy
-
-37. **Paragraph.svelte** 🔄
-    - **CSS Lines**: 13 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Text content blocks
-
-38. **Blockquote.svelte** 🔄
-    - **CSS Lines**: 12 lines
-    - **Priority**: LOW
-    - **Category**: Content patterns
-    - **Notes**: Quote styling
-
-39. **Strong.svelte** 🔄
-    - **CSS Lines**: 11 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Bold text emphasis
-
-40. **Em.svelte** 🔄
-    - **CSS Lines**: 10 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Italic text emphasis
-
-41. **Small.svelte** 🔄
-    - **CSS Lines**: 9 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Small text, fine print
-
-42. **Mark.svelte** 🔄
-    - **CSS Lines**: 8 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Highlighted text
-
-43. **Del.svelte** 🔄
-    - **CSS Lines**: 7 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Deleted text styling
-
-44. **Ins.svelte** 🔄
-    - **CSS Lines**: 6 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Inserted text styling
-
-45. **Sub.svelte** 🔄
-    - **CSS Lines**: 5 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Subscript text
-
-46. **Sup.svelte** 🔄
-    - **CSS Lines**: 4 lines
-    - **Priority**: LOW
-    - **Category**: Typography patterns
-    - **Notes**: Superscript text
-
-47. **Kbd.svelte** 🔄
-    - **CSS Lines**: 3 lines
-    - **Priority**: LOW
-    - **Category**: Interface patterns
-    - **Notes**: Keyboard key styling
-
-48. **Var.svelte** 🔄
-    - **CSS Lines**: 2 lines
-    - **Priority**: LOW
-    - **Category**: Code patterns
-    - **Notes**: Variable name styling
-
-49. **Samp.svelte** 🔄
-    - **CSS Lines**: 2 lines
-    - **Priority**: LOW
-    - **Category**: Code patterns
-    - **Notes**: Sample output styling
-
-### Page-Level Components
-50. **Layout.svelte** 🔄
-    - **CSS Lines**: 45 lines
-    - **Priority**: LOW
-    - **Category**: Page layout
-    - **Notes**: Main layout structure
-
-51. **Header.svelte** 🔄
-    - **CSS Lines**: 32 lines
-    - **Priority**: LOW
-    - **Category**: Page structure
-    - **Notes**: Global header
-
-52. **Footer.svelte** 🔄
-    - **CSS Lines**: 28 lines
-    - **Priority**: LOW
-    - **Category**: Page structure
-    - **Notes**: Global footer
-
-53. **Sidebar.svelte** 🔄
-    - **CSS Lines**: 24 lines
-    - **Priority**: LOW
-    - **Category**: Page structure
-    - **Notes**: Navigation sidebar
-
 ---
 
 ## 📋 REFACTORING METHODOLOGY
 
 ### Established 5-Step Process
+
 1. **Pattern Recognition**: Identify common UI patterns across components
 2. **Utility Extraction**: Create semantic utility classes in global CSS
 3. **Template Modernization**: Update component templates to use utility composition
@@ -453,6 +254,7 @@ Systematic refactoring of Dispatch application components to use global utility 
 5. **Quality Verification**: Confirm visual and functional consistency
 
 ### Global Utility Categories
+
 - **Layout**: `.flex`, `.grid`, `.flex-center`, `.flex-between`
 - **Spacing**: `.p-{0-6}`, `.m-{0-6}`, `.gap-{0-6}`
 - **States**: `.interactive`, `.is-active`, `.is-selected`, `.is-disabled`
@@ -465,6 +267,7 @@ Systematic refactoring of Dispatch application components to use global utility 
 - **Terminal**: `.terminal-pane`, `.mobile-terminal`
 
 ### Quality Assurance Standards
+
 - ✅ Build system compatibility maintained
 - ✅ Visual consistency verified (100% identical appearance)
 - ✅ Component functionality preserved
@@ -476,28 +279,31 @@ Systematic refactoring of Dispatch application components to use global utility 
 ## 🎯 NEXT STEPS
 
 ### Immediate Actions
+
 1. **Continue High-Priority Components**: Focus on SessionWindowManager.svelte (333 lines)
 2. **Build Utility Patterns**: Extract window management and settings patterns
 3. **Validate Each Change**: Ensure builds pass and functionality preserved
 4. **Update This Document**: Track progress after each component completion
 
 ### Success Metrics
+
 - **Target**: 90%+ CSS reduction per component
 - **Quality**: 100% visual consistency maintained
 - **Performance**: Improved build times and bundle sizes
 - **Maintainability**: Single source of truth for all UI patterns
 
 ### Completion Timeline
+
 - **High-Priority Components**: 15 remaining (estimated 3-5 sessions)
-- **Medium-Priority Components**: 16 remaining (estimated 2-3 sessions)
-- **Low-Priority Components**: 22 remaining (estimated 1-2 sessions)
-- **Total Estimated Completion**: 6-10 additional work sessions
+- **Medium-Priority Components**: 5 remaining (estimated 1-2 sessions)
+- **Total Estimated Completion**: 4-7 additional work sessions
 
 ---
 
 ## 📊 IMPACT SUMMARY
 
 ### Technical Achievements
+
 - **CSS Line Reduction**: 4,090+ lines → 380 lines (91% average)
 - **Utility System**: 1,200+ classes covering all UI patterns
 - **Animation Consolidation**: Removed duplicate keyframes
@@ -505,6 +311,7 @@ Systematic refactoring of Dispatch application components to use global utility 
 - **Design Tokens**: Comprehensive variable system
 
 ### Developer Benefits
+
 - **Rapid Development**: Utility composition reduces development time
 - **Consistency**: Single source of truth for visual patterns
 - **Maintainability**: Global utilities eliminate code duplication
@@ -512,6 +319,7 @@ Systematic refactoring of Dispatch application components to use global utility 
 - **Quality**: Build-time verification of visual consistency
 
 ### Performance Improvements
+
 - **Bundle Size**: Smaller component-specific CSS bundles
 - **Caching**: Better browser caching of global utility CSS
 - **Runtime**: CSS variables enable dynamic theme switching
