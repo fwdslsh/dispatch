@@ -496,7 +496,9 @@ program
 
 				// Try to get tunnel URL from settings API
 				try {
-					const response = await fetch(`http://localhost:${config.port}/api/settings?category=tunnel`);
+					const response = await fetch(
+						`http://localhost:${config.port}/api/settings?category=tunnel`
+					);
 					if (response.ok) {
 						const tunnelSettings = await response.json();
 						if (tunnelSettings.url) {

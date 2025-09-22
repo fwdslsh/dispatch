@@ -62,7 +62,6 @@
 		return classes.join(' ');
 	});
 
-
 	// Handle backdrop click
 	function handleBackdropClick(event) {
 		if (event.target === event.currentTarget && closeOnBackdrop) {
@@ -303,7 +302,7 @@
 			var(--accent),
 			transparent
 		);
-		animation: terminalScan 2s linear infinite;
+		animation: scan 2s linear infinite;
 		overflow: hidden;
 	}
 

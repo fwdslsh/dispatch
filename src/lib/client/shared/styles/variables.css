@@ -1,4 +1,3 @@
-
 /* 0) Base theme tokens */
 :root {
 	color-scheme: light dark;
@@ -61,8 +60,10 @@
 	--primary-glow-15: color-mix(in oklab, var(--primary) 15%, transparent);
 	--primary-glow-20: color-mix(in oklab, var(--primary) 20%, transparent);
 	--primary-glow-25: color-mix(in oklab, var(--primary) 25%, transparent);
+	--primary-glow-30: color-mix(in oklab, var(--primary) 30%, transparent);
 	--primary-glow-40: color-mix(in oklab, var(--primary) 40%, transparent);
 	--primary-glow-50: color-mix(in oklab, var(--primary) 50%, transparent);
+	--primary-glow-60: color-mix(in oklab, var(--primary) 60%, transparent);
 
 	/* Surface mixing variants for common patterns */
 	--surface-primary-92: color-mix(in oklab, var(--surface) 92%, var(--primary) 8%);

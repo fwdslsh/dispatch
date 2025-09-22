@@ -829,7 +829,7 @@
 		display: flex;
 		gap: calc(var(--space-2) * 1.2);
 		padding: calc(var(--space-3) * 1.2);
-		
+
 		align-items: center;
 		position: relative;
 		max-width: 100%;
@@ -856,7 +856,6 @@
 		}
 	}
 
-
 	/* Clone directory form */
 	.clone-dir-form {
 		display: flex;
@@ -867,7 +866,6 @@
 		width: 100%;
 		box-sizing: border-box;
 	}
-
 
 	.clone-dir-header h4 {
 		margin: 0;
@@ -970,7 +968,7 @@
 		width: 100%;
 		height: 100%;
 		background: linear-gradient(90deg, transparent, var(--db-primary-dim), transparent);
-		animation: statusSweep 2s linear infinite;
+		animation: scan 2s linear infinite;
 		opacity: 0.3;
 	}
 
@@ -981,8 +979,6 @@
 		letter-spacing: 0.02em;
 		animation: loadingPulse 1.5s ease-in-out infinite;
 	}
-
-
 
 	/* Directory list */
 	.directory-list {
@@ -1178,6 +1174,4 @@
 		opacity: 0.7;
 		animation: pulse 2s ease-in-out infinite;
 	}
-
-
 </style>
