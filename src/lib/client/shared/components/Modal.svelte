@@ -58,14 +58,10 @@
 	// Compute modal classes - use global card/panel styles
 	const modalClasses = $derived.by(() => {
 		const classes = ['card', 'modal', `modal--${size}`];
-		// Only apply augmented-ui on desktop to prevent clipping on mobile
-		if (augmented && augmented !== 'none' && !isMobile) classes.push('aug');
 		if (customClass) classes.push(...customClass.split(' '));
 		return classes.join(' ');
 	});
 
-	// Compute augmented attribute - disable on mobile
-	const augmentedAttr = $derived(isMobile ? 'none' : augmented);
 
 	// Handle backdrop click
 	function handleBackdropClick(event) {
@@ -135,7 +131,7 @@
 		id={modalId}
 		class={modalClasses}
 		class:open
-		data-augmented-ui={augmentedAttr}
+		data-augmented-ui={augmented}
 		tabindex="-1"
 		{...restProps}
 	>
@@ -151,23 +147,6 @@
 					<IconButton variant="danger" onclick={close} aria-label="Close modal">
 						<IconX size={18} />
 					</IconButton>
-					<!-- <button class="modal__close" onclick={close} aria-label="Close modal" type="button">
-						<svg
-							width="24"
-							height="24"
-							viewBox="0 0 24 24"
-							fill="none"
-							xmlns="http://www.w3.org/2000/svg"
-						>
-							<path
-								d="M18 6L6 18M6 6L18 18"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							/>
-						</svg>
-					</button> -->
 				{/if}
 			</header>
 		{/if}
@@ -380,7 +359,6 @@
 		font-family: var(--font-sans);
 		position: relative;
 		min-height: 0;
-		max-height: calc(80vh - 120px);
 	}
 
 	/* Subtle scan lines in content area */
@@ -446,11 +424,6 @@
 				0 0 20px rgba(46, 230, 107, 0.1);
 		}
 
-		/* Remove augmented-ui completely on mobile */
-		.modal[data-augmented-ui] {
-			border-radius: 8px !important;
-		}
-
 		.modal--small,
 		.modal--medium,
 		.modal--large {
@@ -461,7 +434,7 @@
 
 		.modal--fullscreen {
 			width: 100vw;
-			height: 100vh;
+			height: calc(100svh - var(--space-6));
 			max-width: 100vw;
 			max-height: 100vh;
 			border-radius: 0 !important;

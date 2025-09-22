@@ -827,34 +827,35 @@
 	/* New directory form */
 	.new-dir-form {
 		display: flex;
-		gap: calc(var(--space-2) * 1.3);
+		gap: calc(var(--space-2) * 1.2);
 		padding: calc(var(--space-3) * 1.2);
-		background:
-			linear-gradient(135deg, var(--db-primary-dim) 0%, var(--db-surface-elevated) 100%),
-			radial-gradient(circle at 0% 50%, var(--db-accent) 0%, transparent 30%);
-		border: 1px solid var(--db-primary);
-		border-radius: 10px;
+		
 		align-items: center;
 		position: relative;
-		box-shadow:
-			0 6px 16px var(--db-primary-dim),
-			inset 0 2px 4px rgba(46, 230, 107, 0.15),
-			inset 0 -2px 4px rgba(0, 0, 0, 0.3);
-		animation: expandIn 0.4s var(--db-transition-bounce);
-		overflow: hidden;
+		max-width: 100%;
+		width: 100%;
+		box-sizing: border-box;
+		flex-wrap: wrap;
 	}
 
-	.new-dir-form::before {
-		content: '';
-		position: absolute;
-		top: -50%;
-		left: -50%;
-		width: 200%;
-		height: 200%;
-		background: radial-gradient(circle, var(--db-primary-glow) 0%, transparent 70%);
-		animation: rotate 10s linear infinite;
-		opacity: 0.1;
+	/* Responsive new directory form for smaller screens */
+	@media (max-width: 600px) {
+		.new-dir-form {
+			flex-direction: column;
+			align-items: stretch;
+			gap: calc(var(--space-2) * 1.1);
+		}
+
+		.new-dir-form :global(.new-dir-input) {
+			width: 100%;
+		}
+
+		.new-dir-form :global(.create-btn),
+		.new-dir-form :global(.cancel-btn) {
+			width: 100%;
+		}
 	}
+
 
 	/* Clone directory form */
 	.clone-dir-form {
@@ -862,34 +863,11 @@
 		flex-direction: column;
 		gap: calc(var(--space-2) * 1.3);
 		padding: calc(var(--space-3) * 1.2);
-		background:
-			linear-gradient(135deg, var(--db-primary-dim) 0%, var(--db-surface-elevated) 100%),
-			radial-gradient(circle at 0% 50%, var(--db-accent) 0%, transparent 30%);
-		border: 1px solid var(--db-primary);
-		border-radius: 10px;
-		position: relative;
-		box-shadow:
-			0 6px 16px var(--db-primary-dim),
-			inset 0 2px 4px rgba(46, 230, 107, 0.15),
-			inset 0 -2px 4px rgba(0, 0, 0, 0.3);
-		animation: expandIn 0.4s var(--db-transition-bounce);
 		max-width: 100%;
 		width: 100%;
 		box-sizing: border-box;
-		overflow: hidden;
 	}
 
-	.clone-dir-form::before {
-		content: '';
-		position: absolute;
-		top: -50%;
-		left: -50%;
-		width: 200%;
-		height: 200%;
-		background: radial-gradient(circle, var(--db-primary-glow) 0%, transparent 70%);
-		animation: rotate 10s linear infinite;
-		opacity: 0.1;
-	}
 
 	.clone-dir-header h4 {
 		margin: 0;
@@ -937,32 +915,36 @@
 
 	.clone-dir-actions {
 		display: flex;
-		gap: calc(var(--space-2) * 1.3);
+		gap: calc(var(--space-2) * 1.2);
 		align-items: center;
 		position: relative;
 		z-index: 1;
-		/* Ensure buttons wrap on smaller screens */
 		flex-wrap: wrap;
 		justify-content: flex-start;
+		width: 100%;
+		box-sizing: border-box;
 	}
 
-	/* Make action buttons responsive */
+	/* Make action buttons responsive and match new directory form styling */
 	.clone-dir-actions :global(.clone-btn),
 	.clone-dir-actions :global(.cancel-btn) {
 		flex: 0 1 auto;
 		min-width: fit-content;
+		white-space: nowrap;
 	}
 
-	/* Media query for smaller screens */
+	/* Responsive layout for smaller screens */
 	@media (max-width: 600px) {
 		.clone-dir-actions {
 			flex-direction: column;
 			align-items: stretch;
+			gap: calc(var(--space-2) * 1.1);
 		}
 
 		.clone-dir-actions :global(.clone-btn),
 		.clone-dir-actions :global(.cancel-btn) {
 			width: 100%;
+			flex: none;
 		}
 	}
 
@@ -1000,12 +982,7 @@
 		animation: loadingPulse 1.5s ease-in-out infinite;
 	}
 
-	.error {
-		color: #ff6b6b;
-		font-weight: 500;
-		letter-spacing: 0.01em;
-		animation: errorShake 0.5s ease-in-out;
-	}
+
 
 	/* Directory list */
 	.directory-list {
@@ -1016,12 +993,6 @@
 		min-height: 220px;
 		height: 100%;
 
-		/* background: linear-gradient(180deg, 
-				var(--db-surface) 0%, 
-				var(--db-surface-elevated) 100%),
-			radial-gradient(ellipse at top right, 
-				var(--db-primary-dim) 0%, 
-				transparent 40%); */
 		border: 1px solid var(--db-border-subtle);
 		border-radius: 12px;
 		padding: calc(var(--space-3) * 1.1);
@@ -1208,93 +1179,5 @@
 		animation: pulse 2s ease-in-out infinite;
 	}
 
-	/* Animations */
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 0.7;
-		}
-		50% {
-			opacity: 0.4;
-		}
-	}
 
-	@keyframes fadeInUp {
-		from {
-			opacity: 0;
-			transform: translateY(10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	@keyframes expandIn {
-		from {
-			opacity: 0;
-			transform: scaleY(0.8);
-		}
-		to {
-			opacity: 1;
-			transform: scaleY(1);
-		}
-	}
-
-	@keyframes rotate {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	@keyframes statusSweep {
-		0% {
-			transform: translateX(-100%);
-		}
-		100% {
-			transform: translateX(100%);
-		}
-	}
-
-	@keyframes loadingPulse {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0.5;
-		}
-	}
-
-	@keyframes errorShake {
-		0%,
-		100% {
-			transform: translateX(0);
-		}
-		10%,
-		30%,
-		50%,
-		70%,
-		90% {
-			transform: translateX(-3px);
-		}
-		20%,
-		40%,
-		60%,
-		80% {
-			transform: translateX(3px);
-		}
-	}
-
-	@keyframes shimmer {
-		0% {
-			transform: translateX(-100%);
-		}
-		100% {
-			transform: translateX(100%);
-		}
-	}
 </style>
