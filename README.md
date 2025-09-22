@@ -12,6 +12,8 @@ Dispatch is a containerized development environment that lets you safely run Cla
 
 **Get started in 30 seconds:**
 
+**Option 1: Direct Docker run**
+
 ```bash
 docker run -d -p 3030:3030 \
   -e TERMINAL_KEY=your-secure-password \
@@ -20,98 +22,48 @@ docker run -d -p 3030:3030 \
 # Open http://localhost:3030 and start coding!
 ```
 
+**Option 2: Install the CLI (recommended)**
+
+```bash
+# Install the dispatch CLI
+curl -fsSL https://raw.githubusercontent.com/fwdslsh/dispatch/main/install.sh | bash
+
+# Initialize configuration and start
+dispatch init
+dispatch start
+
+# Open http://localhost:3030 and start coding!
+```
+
 ## Why Dispatch?
 
+**🛡️ Secure & Isolated**
 
-**🛡️ Security by Design**
-
-- Isolated Docker containers protect your host system
-- AI agents execute in sandboxed environments
-- No access to sensitive files unless explicitly mounted
-- Full audit trail of all commands and outputs
+- Sandboxed Docker containers protect your host system
+- AI agents execute safely without access to sensitive files
+- Non-root execution with complete audit trails
+- Password-protected access with optional HTTPS
 
 **🔄 Resume Anywhere**
 
 - Event-sourced architecture preserves complete session state
-- Continue work across any device with the same Dispatch instance
-- Recover from crashes and network interruptions
+- Continue work across devices with seamless session recovery
+- Survive crashes and network interruptions
 - Time-travel debugging through command history
 
-**⚡ Unattended Operation**
+**⚡ Built for AI & Automation**
 
-- Let long-running tasks complete in the background
-- Check results later without tying up your system
+- Multiple session types: Terminal, Claude AI, File Editor, Custom Adapters
+- Let long-running tasks complete unattended in the background
 - Perfect for AI-assisted development workflows
+- SQLite-based persistence with cross-device synchronization
 
-**💰 Local-First, No Lock-In**
+**💰 Local-First Freedom**
 
-- Everything runs locally by default
+- Runs locally by default - your data stays under your control
+- No usage limits, premium tiers, or vendor lock-in
 - Add cloud hosting only if needed
-- No usage limits, premium tiers, or hidden costs
-- Your data stays under your control
-
-## Core Features
-
-### Multiple Session Types
-
-- **Terminal Sessions**: Full Linux shell access
-- **Claude AI Sessions**: AI-powered coding with OAuth authentication
-- **File Editor**: Built-in code editor
-- **Custom Adapters**: Extensible for other tools
-
-### Security & Isolation
-
-- Non-root container execution
-- Optional public URL sharing (disabled by default)
-- Password-protected access
-- HTTPS support for production
-
-### Session Persistence
-
-- SQLite-based event sourcing
-- Complete command history
-- Cross-device synchronization
-- Shareable session logs for team debugging
-
-### Why Choose Dispatch?
-
-- **Privacy First**: Your code and data stay on your infrastructure
-- **Cost Effective**: No recurring fees or usage limits
-- **Developer Control**: Full access to source code and customization
-- **Security Focused**: Isolation by design, not as an afterthought
-- **Simple Setup**: Works out of the box, no complex configuration
-
-## Use Cases
-
-**AI-Assisted Development**
-
-```bash
-# Ask Claude to scaffold a new microservice
-# Test it safely in isolation
-# Deploy only after verification
-```
-
-**Remote Development**
-
-```bash
-# Start at office → continue at home → finish on mobile
-# All sessions resume seamlessly
-```
-
-**Team Collaboration**
-
-```bash
-# Share live sessions via public URL
-# Perfect for pair programming and code reviews
-```
-
-**Safe Experimentation**
-
-```bash
-# Test risky commands
-# Try new frameworks
-# Clean slate for each prototype
-```
+- Open source with full customization access
 
 ## Configuration
 
@@ -136,25 +88,6 @@ docker run -d -p 3030:3030 \
   -v ~/dispatch/workspace:/var/lib/dispatch \
   -v ~/dispatch/home:/home/dispatch \
   --name dispatch fwdslsh/dispatch:latest
-```
-
-## Development Setup
-
-```bash
-git clone https://github.com/fwdslsh/dispatch.git
-cd dispatch
-npm install  # Requires Node.js 22+
-
-# Development modes
-npm run dev              # Standard dev server
-npm run dev:local       # Use local filesystem
-npm run dev:no-key      # No authentication
-npm run dev:tunnel      # Enable public URLs
-
-# Testing & quality
-npm test                # Unit tests
-npm run test:e2e        # End-to-end tests
-npm run lint            # Code quality
 ```
 
 ### Tech Stack
@@ -187,6 +120,11 @@ docker logs dispatch     # Review container logs
 - Check data directories exist and are writable
 - Confirm container user ownership (uid 10001)
 
+## Documentation & Support
+
+- 📖 [Full Documentation](https://github.com/fwdslsh/dispatch/tree/main/docs)
+- 🐛 [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
+
 ## Contributing
 
 We welcome contributions! Check out:
@@ -195,10 +133,24 @@ We welcome contributions! Check out:
 - [CLAUDE.md](CLAUDE.md) - Technical implementation
 - [Docker README](docker/README.md) - Container configuration
 
-## Documentation & Support
+## Development Setup
 
-- 📖 [Full Documentation](https://github.com/fwdslsh/dispatch/tree/main/docs)
-- 🐛 [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
+```bash
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+npm install  # Requires Node.js 22+
+
+# Development modes
+npm run dev              # Standard dev server
+npm run dev:local       # Use local filesystem
+npm run dev:no-key      # No authentication
+npm run dev:tunnel      # Enable public URLs
+
+# Testing & quality
+npm test                # Unit tests
+npm run test:e2e        # End-to-end tests
+npm run lint            # Code quality
+```
 
 ## License
 
