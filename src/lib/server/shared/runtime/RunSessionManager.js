@@ -78,6 +78,15 @@ export class RunSessionManager {
 			// Clean up live run entry if it was added
 			this.liveRuns.delete(runId);
 
+			// Clean up any events that may have been written during failed initialization
+			// This prevents sequence number conflicts on retry
+			try {
+				await this.db.deleteSessionEvents(runId);
+				logger.info('RUNSESSION', `Cleaned up events for failed session ${runId}`);
+			} catch (cleanupError) {
+				logger.warn('RUNSESSION', `Failed to clean up events for ${runId}:`, cleanupError.message);
+			}
+
 			// Update status to error if session was created
 			try {
 				await this.db.updateRunSessionStatus(runId, 'error');
@@ -328,6 +337,16 @@ export class RunSessionManager {
 				);
 				// Clean up live run entry if adapter creation failed
 				this.liveRuns.delete(runId);
+
+				// Clean up any events that may have been written during failed initialization
+				// This prevents sequence number conflicts on retry
+				try {
+					await this.db.deleteSessionEvents(runId);
+					logger.info('RUNSESSION', `Cleaned up events for failed resume of ${runId}`);
+				} catch (cleanupError) {
+					logger.warn('RUNSESSION', `Failed to clean up events for ${runId}:`, cleanupError.message);
+				}
+
 				throw adapterError;
 			}
 

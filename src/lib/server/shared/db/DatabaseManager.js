@@ -381,6 +381,14 @@ export class DatabaseManager {
 		return (result?.maxSeq ?? 0) + 1;
 	}
 
+	/**
+	 * Delete all session events for a run session
+	 * Used for cleanup when session creation fails after some events have been written
+	 */
+	async deleteSessionEvents(runId) {
+		return this.run(`DELETE FROM session_events WHERE run_id = ?`, [runId]);
+	}
+
 	// ===== WORKSPACE MANAGEMENT METHODS =====
 
 	async createWorkspace(path) {
