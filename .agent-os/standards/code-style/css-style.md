@@ -1,337 +1,442 @@
 # CSS Style Guide
 
-We use modern CSS features and a comprehensive design token system for all styling in the Dispatch application.
+This document outlines the CSS conventions, patterns, and best practices used in the Dispatch project. Our CSS architecture emphasizes modern CSS features, design tokens, and maintainable component styling.
 
-## Design System Overview
+## Overview
 
-The Dispatch CSS architecture is built around:
+Dispatch uses a custom CSS architecture with:
 
-- **Design Tokens**: CSS custom properties for colors, spacing, and effects
-- **Component Patterns**: Reusable classes for common UI elements
-- **Animation System**: Unified keyframes for consistent motion
-- **Responsive Design**: Mobile-first approach with CSS Grid and Flexbox
+- **Design Token System**: CSS custom properties for colors, spacing, typography
+- **Modern CSS Features**: Nested CSS, `color-mix()`, `light-dark()` functions
+- **Component Scoping**: Svelte component styles with strategic global patterns
+- **Theme Support**: Built-in light/dark mode with terminal-inspired aesthetics
+- **Performance Focus**: Optimized CSS with minimal duplication
 
-## Core Principles
+## CSS Architecture
 
-### 1. Use Design Tokens
-
-Always use CSS custom properties instead of hardcoded values:
-
-```css
-/* ✅ Good - Uses design tokens */
-.card {
-	background: var(--surface);
-	border: 1px solid var(--surface-border);
-	border-radius: var(--radius-md);
-	padding: var(--space-4);
-	color: var(--text);
-}
-
-/* ❌ Bad - Hardcoded values */
-.card {
-	background: #121a17;
-	border: 1px solid rgba(46, 230, 107, 0.2);
-	border-radius: 8px;
-	padding: 16px;
-	color: #cfe7d8;
-}
-```
-
-### 2. Component Composition Over Duplication
-
-Build components using base classes and modifiers:
-
-```css
-/* Base pattern */
-.card {
-	background: var(--surface);
-	border: 1px solid var(--surface-border);
-	border-radius: var(--radius-md);
-	padding: var(--space-4);
-	transition: var(--transition-default);
-}
-
-/* State modifiers */
-.card.is-active {
-	border-color: var(--success);
-	background: var(--success-bg);
-}
-
-.card.is-selected {
-	border-color: var(--primary);
-	box-shadow: var(--shadow-primary);
-}
-
-/* Type modifiers */
-.card--session {
-	/* Session-specific overrides only */
-	--card-icon-size: 48px;
-}
-```
-
-### 3. Use Unified Animation System
-
-Reference existing keyframes instead of creating duplicates:
-
-```css
-/* ✅ Good - Uses unified animation */
-.loading-indicator {
-	animation: scan 2s linear infinite;
-}
-
-.status-bar {
-	animation: pulse 2s ease-in-out infinite;
-}
-
-/* ❌ Bad - Creates duplicate animation */
-@keyframes myCustomScan {
-	0% {
-		transform: translateX(-100%);
-	}
-	100% {
-		transform: translateX(100%);
-	}
-}
-```
-
-## Design Token Reference
-
-### Colors
-
-```css
-/* Primary palette */
---primary: #2ee66b; /* Main brand color */
---primary-bright: #4eff82; /* Lighter variant */
---primary-dim: #1ea851; /* Darker variant */
-
-/* Semantic colors */
---success: var(--ok); /* #26d07c */
---warning: var(--warn); /* #ffb703 */
---error: var(--err); /* #ef476f */
---info: #00c2ff;
-
-/* Surface colors */
---bg: #0c1210; /* Background */
---surface: #121a17; /* Cards, panels */
---elev: #18231f; /* Elevated elements */
-
-/* Text colors */
---text: #d9ffe6; /* Primary text */
---muted: #92b3a4; /* Secondary text */
-```
-
-### Transparency & Effects
-
-```css
-/* Glow effects (primary color with transparency) */
---primary-glow-10: color-mix(in oklab, var(--primary) 10%, transparent);
---primary-glow-20: color-mix(in oklab, var(--primary) 20%, transparent);
---primary-glow-30: color-mix(in oklab, var(--primary) 30%, transparent);
---primary-glow-40: color-mix(in oklab, var(--primary) 40%, transparent);
---primary-glow-50: color-mix(in oklab, var(--primary) 50%, transparent);
---primary-glow-60: color-mix(in oklab, var(--primary) 60%, transparent);
-
-/* Common effects */
---glow: color-mix(in oklab, var(--accent) 40%, transparent);
---focus: color-mix(in oklab, var(--accent) 80%, white 10%);
---line: color-mix(in oklab, var(--text) 20%, transparent);
-```
-
-### Spacing Scale
-
-```css
---space-0: 2px; /* Hairline spacing */
---space-1: 4px; /* Tight spacing */
---space-2: 8px; /* Small spacing */
---space-3: 12px; /* Medium spacing */
---space-4: 16px; /* Default spacing */
---space-5: 24px; /* Large spacing */
---space-6: 32px; /* Extra large spacing */
-```
-
-## Animation Guidelines
-
-### Available Keyframes
-
-```css
-/* Core animations - use these instead of creating new ones */
-@keyframes fadeIn {
-	/* Fade in */
-}
-@keyframes fadeInUp {
-	/* Fade in with upward motion */
-}
-@keyframes slideIn {
-	/* Scale and slide */
-}
-@keyframes pulse {
-	/* Opacity pulse */
-}
-@keyframes spin {
-	/* 360° rotation */
-}
-@keyframes scan {
-	/* Horizontal sweep - unified for all scan effects */
-}
-@keyframes shimmer {
-	/* Background position shimmer */
-}
-```
-
-### Animation Best Practices
-
-```css
-/* Respect user preferences */
-@media (prefers-reduced-motion: reduce) {
-	.animated-element {
-		animation: none;
-		transition: none;
-	}
-}
-
-/* Use consistent timing functions */
-.smooth-interaction {
-	transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.quick-feedback {
-	transition: all 0.15s ease-out;
-}
-```
-
-## Component Patterns
-
-### Cards
-
-```css
-.card {
-	background: var(--surface);
-	border: 1px solid var(--surface-border);
-	border-radius: var(--radius-md);
-	padding: var(--space-4);
-	transition: all 0.2s ease;
-}
-
-.card:hover {
-	border-color: var(--primary-dim);
-	transform: translateY(-1px);
-	box-shadow: 0 2px 8px var(--shadow-sm);
-}
-
-.card.is-active {
-	border-color: var(--success);
-	background: color-mix(in oklab, var(--success) 5%, transparent);
-}
-```
-
-### Interactive Elements
-
-```css
-.interactive {
-	transition: all 0.2s ease;
-	cursor: pointer;
-}
-
-.interactive:hover {
-	transform: translateY(-1px);
-}
-
-.interactive:active {
-	transform: translateY(0);
-}
-```
-
-### Focus States
-
-```css
-.focusable:focus {
-	outline: 2px solid var(--primary);
-	outline-offset: 2px;
-	box-shadow: 0 0 0 4px var(--primary-glow-20);
-}
-```
-
-## File Organization
-
-### Global Styles Structure
+### File Structure
 
 ```
 src/lib/client/shared/styles/
-├── index.css          # Main import file
-├── variables.css      # Design tokens
-├── fonts.css         # Font definitions
-├── animations.css    # Keyframes and animation utilities
-├── retro.css        # Theme-specific styles
-└── window-manager.css # Window management system
+├── index.css          # Main entry point
+├── variables.css      # Design tokens and CSS custom properties
+├── fonts.css         # Font face definitions
+├── retro.css         # Global UI styles and terminal theme
+├── animations.css    # Shared animations and keyframes
+└── window-manager.css # Window management specific styles
 ```
 
-### Component Styles Guidelines
+### Import Order
 
-- Keep component-specific styles minimal
-- Use global patterns and tokens
-- Only add truly unique styles to components
-- Prefer composition over duplication
+Always import CSS files in this order:
+
+```css
+@import url(./fonts.css);
+@import url(./variables.css);
+@import url(./retro.css);
+@import url(./animations.css);
+```
+
+## Design Token System
+
+### Color Variables
+
+Use CSS custom properties for all colors. Never use hardcoded color values.
+
+```css
+/* ✅ Correct */
+.button {
+ background: var(--primary);
+ color: var(--text);
+ border: 1px solid var(--primary-dim);
+}
+
+/* ❌ Wrong */
+.button {
+ background: #2ee66b;
+ color: #d9ffe6;
+ border: 1px solid #1ea851;
+}
+```
+
+#### Core Color Palette
+
+```css
+/* Base colors */
+--bg: #0c1210 /* Main background */ --surface: #121a17 /* Panel/card backgrounds */ --elev: #18231f
+ /* Elevated surface */ --text: #d9ffe6 /* Primary text */ --muted: #92b3a4 /* Secondary text */
+ /* Accent colors */ --accent: #2ee66b /* Primary accent */ --primary: #2ee66b
+ /* Primary actions */ --primary-dim: #1ea851 /* Dimmed primary */ /* Status colors */
+ --ok: #26d07c /* Success states */ --warn: #ffb703 /* Warning states */ --err: #ef476f
+ /* Error states */ --info: #00c2ff /* Info states */;
+```
+
+### Spacing System
+
+Use consistent spacing variables for all layout and positioning:
+
+```css
+/* Spacing scale */
+--space-0: 2px --space-1: 4px --space-2: 8px --space-3: 12px --space-4: 16px --space-5: 24px
+ --space-6: 32px;
+```
+
+**Usage Examples:**
+
+```css
+.card {
+ padding: var(--space-4);
+ margin-bottom: var(--space-3);
+ gap: var(--space-2);
+}
+```
+
+### Typography Scale
+
+```css
+/* Font families */
+--font-sans: 'Exo 2', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+--font-mono: 'Share Tech Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+--font-accent: 'Protest Revolution', 'Courier New', monospace;
+
+/* Font sizes */
+--font-size-0: 12px /* Small text, badges */ --font-size-1: 14px /* Body text, labels */
+ --font-size-2: 16px /* Default text */ --font-size-3: 18px /* Subheadings */ --font-size-4: 22px
+ /* Headings */ --font-size-5: 28px /* Large headings */;
+```
+
+## Modern CSS Features
+
+### Nested CSS
+
+Use nested CSS for better organization and readability:
+
+```css
+.session-card {
+ background: var(--surface);
+ border: 1px solid var(--primary-dim);
+ padding: var(--space-4);
+
+ & .title {
+  font-family: var(--font-mono);
+  color: var(--text);
+  margin: 0 0 var(--space-2) 0;
+ }
+
+ & .status {
+  font-size: var(--font-size-1);
+  color: var(--muted);
+
+  &.active {
+   color: var(--ok);
+  }
+
+  &.error {
+   color: var(--err);
+  }
+ }
+
+ &:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+ }
+}
+```
+
+### Color Functions
+
+Use modern CSS color functions for dynamic color manipulation:
+
+```css
+/* color-mix() for transparency and blending */
+.overlay {
+ background: color-mix(in oklab, var(--bg) 80%, transparent);
+}
+
+.glow-effect {
+ box-shadow: 0 0 20px color-mix(in oklab, var(--primary) 40%, transparent);
+}
+
+/* light-dark() for theme-aware colors */
+.theme-aware {
+ background: light-dark(#ffffff, #0c1210);
+ color: light-dark(#000000, #d9ffe6);
+}
+```
+
+### Logical Properties
+
+Prefer logical properties for better internationalization:
+
+```css
+/* ✅ Correct - logical properties */
+.content {
+ margin-block: var(--space-4);
+ margin-inline: var(--space-2);
+ padding-block-start: var(--space-3);
+ border-inline-start: 2px solid var(--primary);
+}
+
+/* ❌ Avoid - physical properties */
+.content {
+ margin-top: var(--space-4);
+ margin-bottom: var(--space-4);
+ margin-left: var(--space-2);
+ margin-right: var(--space-2);
+}
+```
+
+## Component Styling Patterns
+
+### Inline Styles
+
+DO NOT USE INLINE STYLES
+
+### Svelte Component Styles
+
+#### Scoped Styles
+
+Keep component-specific styles scoped within the component:
 
 ```svelte
-<!-- ✅ Good - Uses global patterns -->
-<div class="card interactive is-active">
-	<h3 class="card__title">Session Name</h3>
+<script>
+ let isActive = $state(false);
+</script>
+
+<div class="session-item" class:active={isActive}>
+ <h3 class="title">Session Name</h3>
+ <p class="description">Session description</p>
 </div>
 
 <style>
-	/* Only component-specific styles */
-	.card__title {
-		--title-color: var(--primary-bright);
-	}
+ .session-item {
+  background: var(--surface);
+  border: 1px solid var(--primary-dim);
+  border-radius: 0;
+  padding: var(--space-4);
+  transition: all 0.2s ease;
+
+  &:hover {
+   border-color: var(--primary);
+   transform: translateY(-1px);
+  }
+
+  &.active {
+   border-color: var(--ok);
+   background: color-mix(in oklab, var(--ok) 10%, var(--surface));
+  }
+ }
+
+ .title {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-3);
+  color: var(--text);
+  margin: 0 0 var(--space-2) 0;
+ }
+
+ .description {
+  font-size: var(--font-size-1);
+  color: var(--muted);
+  margin: 0;
+ }
 </style>
 ```
 
-## Migration Guidelines
+#### Global Styles
 
-When updating existing components:
+Use `:global()` sparingly for styling child components or library elements:
 
-1. **Replace hardcoded values** with design tokens
-2. **Consolidate duplicate animations** - use existing keyframes
-3. **Extract common patterns** to global classes
-4. **Use semantic color variables** instead of direct color references
-5. **Test for visual regressions** after changes
+```svelte
+<style>
+ /* Scoped to this component's children */
+ .terminal-container :global(.xterm-screen) {
+  background: var(--bg);
+ }
 
-### Example Migration
+ /* Global keyframe animations */
+ :global {
+  @keyframes componentSpecificAnimation {
+   from {
+    opacity: 0;
+   }
+   to {
+    opacity: 1;
+   }
+  }
+ }
+</style>
+```
+
+#### CSS Custom Properties in Components
+
+Pass CSS custom properties to child components for theming:
+
+```svelte
+<CustomButton
+ --button-bg="var(--primary)"
+ --button-color="var(--bg)"
+ --button-border="var(--primary-dim)"
+>
+ Click me
+</CustomButton>
+```
+
+
+## Animation Guidelines
+
+### Performance
+
+Use transform and opacity for animations to ensure smooth performance:
 
 ```css
-/* Before */
-.my-component {
-	background: #121a17;
-	border: 1px solid rgba(46, 230, 107, 0.2);
-	transition: all 0.2s ease;
+/* ✅ Correct - hardware accelerated */
+.slide-in {
+ transform: translateX(100%);
+ opacity: 0;
+ transition:
+  transform 0.3s ease,
+  opacity 0.3s ease;
+
+ &.visible {
+  transform: translateX(0);
+  opacity: 1;
+ }
 }
 
-.my-component:hover {
-	background: #18231f;
-	border-color: #2ee66b;
-	transform: translateY(-1px);
-}
+/* ❌ Avoid - causes layout thrashing */
+.slide-in-bad {
+ left: 100%;
+ transition: left 0.3s ease;
 
-/* After */
-.my-component {
-	background: var(--surface);
-	border: 1px solid var(--primary-glow-20);
-	transition: var(--transition-default);
-}
-
-/* Use global interactive pattern instead */
-.my-component.interactive:hover {
-	background: var(--elev);
-	border-color: var(--primary);
+ &.visible {
+  left: 0;
+ }
 }
 ```
 
-## Performance Considerations
+### Shared Animations
 
-- **Use CSS variables** for runtime theme switching
-- **Minimize specificity** - prefer classes over complex selectors
-- **Consolidate animations** - reuse existing keyframes
-- **Use color-mix()** for dynamic color variations
-- **Leverage CSS-in-JS sparingly** - prefer CSS custom properties
+Use shared keyframes from `animations.css`:
 
-This style guide ensures consistency, maintainability, and performance across the Dispatch application's CSS architecture.
+```css
+.fade-in {
+ animation: fadeIn 0.3s ease-out;
+}
+
+.pulse-effect {
+ animation: pulse 2s infinite;
+}
+
+.loading-spinner {
+ animation: spin 1s linear infinite;
+}
+```
+
+## Theme Creation and Management
+
+### Adding New Themes
+
+1. **Define theme variables in `variables.css`:**
+
+```css
+[data-theme='cyberpunk'] {
+ --bg: #0a0a0a;
+ --surface: #1a1a2e;
+ --elev: #16213e;
+ --text: #00fff9;
+ --muted: #6c7b7f;
+ --accent: #ff00ff;
+ --primary: #00fff9;
+ --primary-dim: #008b8b;
+ --ok: #00ff00;
+ --warn: #ffff00;
+ --err: #ff0040;
+ --info: #00bfff;
+}
+```
+
+### Theme-Aware Components
+
+Write components that automatically adapt to theme changes:
+
+```css
+.component {
+ /* Uses CSS custom properties that change with theme */
+ background: var(--surface);
+ color: var(--text);
+ border-color: var(--primary-dim);
+
+ /* Responsive to system theme changes */
+ @media (prefers-color-scheme: dark) {
+  /* Additional dark theme adjustments if needed */
+ }
+}
+```
+
+## Best Practices
+
+### Performance
+
+1. **Minimize CSS bundle size:**
+   - Avoid duplicate styles across components
+   - Use shared animations and patterns
+   - Leverage CSS custom properties for variations
+
+2. **Optimize selectors:**
+   - Prefer class selectors over complex descendant selectors
+   - Use CSS nesting for organization, not performance
+
+3. **Use efficient animations:**
+   - Animate `transform` and `opacity` only
+   - Use `will-change` sparingly and remove after animation
+
+### Maintainability
+
+1. **Follow naming conventions:**
+   - Use descriptive class names: `.session-card`, `.button-primary`
+   - Prefix component-specific classes: `.terminal-output`, `.modal-header`
+
+2. **Keep styles close to components:**
+   - Component-specific styles in Svelte `<style>` blocks
+   - Shared patterns in global stylesheets
+
+3. **Document complex CSS:**
+
+   ```css
+   /* Complex grid layout for responsive terminal layout */
+   .terminal-grid {
+    display: grid;
+    grid-template-columns:
+     [sidebar-start] 300px
+     [content-start] 1fr
+     [content-end];
+    /* ... */
+   }
+   ```
+
+### Accessibility
+
+1. **Respect user preferences:**
+
+   ```css
+   @media (prefers-reduced-motion: reduce) {
+    * {
+     animation-duration: 0.01ms !important;
+     animation-iteration-count: 1 !important;
+     transition-duration: 0.01ms !important;
+    }
+   }
+   ```
+
+2. **Ensure sufficient contrast:**
+   - Use design token colors that meet WCAG guidelines
+   - Test themes with accessibility tools
+
+3. **Focus management:**
+
+   ```css
+   .interactive-element:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+   }
+   ```
