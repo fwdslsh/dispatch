@@ -13,6 +13,7 @@
 	let loading = $state(false);
 	let error = $state(null);
 	let homeDirectory = $state('');
+	let initializing = $state(true); // Track if we're still loading the home directory
 
 	// Reactive derivations
 	let isDirty = $derived(fileContent !== originalContent);
@@ -209,33 +210,28 @@
 		saveManagerState();
 	}
 
-	// Initialize home directory by getting the base directory from the browse API
+	// Initialize home directory by getting it from the server environment API
 	async function initializeHomeDirectory() {
 		try {
-			// Get the base directory first to understand the structure
-			const response = await fetch('/api/browse');
+			initializing = true;
+			// Get the server's home directory from the environment API
+			const response = await fetch('/api/environment');
 			const data = await response.json();
 			
-			if (response.ok) {
-				// In development, WORKSPACES_ROOT is .testing-home/workspaces  
-				// So the HOME directory is one level up from that
-				const workspacesPath = data.path;
-				if (workspacesPath.includes('workspaces')) {
-					homeDirectory = workspacesPath.replace('/workspaces', '');
-				} else {
-					// Fallback to the path itself
-					homeDirectory = workspacesPath;
-				}
-				
+			if (response.ok && data.homeDirectory) {
+				homeDirectory = data.homeDirectory;
 				if (!currentDirectory) {
 					currentDirectory = homeDirectory;
 				}
 			} else {
-				error = 'Failed to load home directory';
+				error = 'Failed to load home directory from server';
+				console.error('[HomeDirectoryManager] Server response:', data);
 			}
 		} catch (e) {
-			error = 'Failed to connect to directory service';
+			error = 'Failed to connect to environment service';
 			console.error('[HomeDirectoryManager] Init error:', e);
+		} finally {
+			initializing = false;
 		}
 	}
 
@@ -271,7 +267,11 @@
 	{/if}
 
 	<!-- Main content -->
-	{#if !isEditing}
+	{#if initializing}
+		<div class="loading-state">
+			<p>Loading home directory...</p>
+		</div>
+	{:else if !isEditing}
 		<!-- File browser view using DirectoryBrowser component -->
 		<div class="directory-browser-container">
 			<DirectoryBrowser
@@ -327,6 +327,13 @@
 	.manager-description {
 		margin: var(--space-2) 0 0 0;
 		font-size: 0.875rem;
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+	}
+
+	.loading-state {
+		padding: var(--space-4);
+		text-align: center;
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 	}
