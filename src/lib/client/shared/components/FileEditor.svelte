@@ -126,11 +126,8 @@
 {#if file}
 	<div class="file-editor flex-col">
 		<!-- File header -->
-		<div
-			class="flex-between p-3"
-			style="border-bottom: 1px solid var(--color-border); background: var(--color-surface-elevated); min-height: 48px; flex-shrink: 0;"
-		>
-			<div class="flex gap-2" style="align-items: center; font-weight: 600; flex: 1; min-width: 0;">
+		<div class="flex-between p-3">
+			<div class="flex gap-2">
 				{#if file.name.includes('.')}
 					{@const IconComponent = getFileIcon(file.name)}
 					<IconComponent size={16} />
@@ -142,7 +139,7 @@
 					<span class="dirty-indicator">*</span>
 				{/if}
 			</div>
-			<div class="flex gap-2" style="flex-shrink: 0;">
+			<div class="flex gap-2">
 				<IconButton onclick={handleClose} title="Close file (Escape)" variant="ghost">
 					<IconX size={16} />
 				</IconButton>
@@ -150,21 +147,18 @@
 		</div>
 
 		<!-- Editor -->
-		<div class="flex" style="flex: 1; overflow: hidden; position: relative; height: 100%;">
-			<textarea
-				bind:value={content}
-				placeholder="File content..."
-				disabled={loading}
-				class="editor-textarea"
-				spellcheck="false"
-				autocomplete="off"
-			></textarea>
-		</div>
+		<textarea
+			bind:value={content}
+			placeholder="File content..."
+			disabled={loading}
+			class="editor-textarea"
+			spellcheck="false"
+			autocomplete="off"
+		></textarea>
 
 		<!-- Editor footer -->
 		<div
-			class="flex-between p-3 gap-4 editor-footer-mobile"
-			style="border-top: 1px solid var(--color-border); background: var(--color-surface-elevated); min-height: 48px; flex-shrink: 0;"
+			class="flex-between p-3 gap-4 editor-footer-mobile"			
 		>
 			<div class="flex-col gap-1 file-info" style="flex: 1; min-width: 0;">
 				<span class="file-path">{file.path}</span>
@@ -197,7 +191,6 @@
 {:else}
 	<div
 		class="flex-center"
-		style="height: 100%; color: var(--color-text-secondary); font-style: italic;"
 	>
 		<p>No file selected</p>
 	</div>
@@ -227,8 +220,7 @@
 	/* FileEditor specific - minimal custom styles only */
 	.file-editor {
 		height: 100%;
-		background: var(--color-surface);
-		color: var(--color-text);
+		
 		font-family: var(--font-mono);
 	}
 
@@ -247,13 +239,13 @@
 
 	/* Editor textarea specific styles */
 	.editor-textarea {
-		flex: 1;
+		border-radius: 0;
 		padding: 1rem;
+		height: 100%;
 		border: none;
 		background: var(--color-surface);
 		color: var(--color-text);
 		font-family: var(--font-mono);
-		font-size: 0.875rem;
 		line-height: 1.5;
 		resize: none;
 		outline: none;

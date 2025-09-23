@@ -8,7 +8,6 @@
 	import IconX from './Icons/IconX.svelte';
 	import IconFile from './Icons/IconFile.svelte';
 	import IconCheck from './Icons/IconCheck.svelte';
-	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import IconButton from './IconButton.svelte';
 	import Input from './Input.svelte';
 	import IconUpload from './Icons/IconUpload.svelte';
@@ -382,8 +381,17 @@
 			</IconButton>
 		</div>
 	{/if} -->
+
+		<div class="container">
+			<!-- Git Operations -->
+			<GitOperations
+				{currentPath}
+				onRefresh={() => browse(currentPath)}
+				onError={(err) => (error = err)}
+			/>
+		</div>
 		<!-- Search bar -->
-		<div class="flex items-center gap-3 p-4 border-b border-surface-border bg-surface-glass">
+		<div class="flex-between gap-3 p-4 border-b border-surface-border bg-surface-glass">
 			<Input type="text" bind:value={query} {placeholder} disabled={loading} class="flex-1" />
 			<div class="flex items-center gap-2">
 				{#if !isAlwaysOpen}
@@ -576,7 +584,7 @@
 							type="button"
 							onclick={() => navigateTo(entry.path)}
 							disabled={loading}
-							class="flex-1 text-left font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer"
+							class="flex-1 text-left font-medium cursor-pointer"
 						>
 							{entry.name}
 						</button>
@@ -620,70 +628,196 @@
 				</div>
 			{/if}
 		</div>
-
-		<!-- Git Operations -->
-		<GitOperations
-			{currentPath}
-			onRefresh={() => browse(currentPath)}
-			onError={(err) => (error = err)}
-		/>
 	</div>
 {/if}
 
 <style>
-	/* Component-specific overrides only */
-	.directory-summary {
-		height: 44px;
+	/* ==================================================================
+   ENHANCED DIRECTORY BROWSER UTILITIES
+   Modern file browser with glass morphism and micro-interactions
+   ================================================================== */
+
+	.directory-summary-enhanced {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-4);
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
+			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%)
+		);
+		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+		border-radius: 12px;
+		cursor: pointer;
+		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+		position: relative;
+		overflow: hidden;
+	}
+
+	.directory-summary-enhanced::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, var(--primary-glow-10), transparent);
+		transition: left 0.5s ease;
+	}
+
+	.directory-summary-enhanced:hover {
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--primary) 25%, var(--surface)),
+			color-mix(in oklab, var(--primary) 15%, var(--surface))
+		);
+		border-color: var(--primary);
+		transform: translateY(-2px);
 		box-shadow:
-			0 2px 4px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px var(--primary-glow-10);
+			0 12px 40px -12px var(--primary-glow),
+			inset 0 1px 2px color-mix(in oklab, var(--primary) 15%, transparent);
 	}
 
-	.directory-summary:hover {
-		transform: translateY(-1px);
-		box-shadow:
-			0 4px 12px rgba(0, 0, 0, 0.25),
-			inset 0 1px 3px var(--primary-glow-20);
+	.directory-summary-enhanced:hover::before {
+		left: 100%;
 	}
 
-	.directory-summary:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
-	}
-
-	/* Custom Git operations styling */
-	.git-section {
-		border-top: 1px solid var(--surface-border);
+	.directory-item-enhanced {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
 		padding: var(--space-3);
-		background: color-mix(in oklab, var(--surface) 98%, var(--bg));
-	}
-
-	/* File upload styling */
-	.file-upload-area {
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		border: 1px solid transparent;
 		position: relative;
 	}
 
-	.file-upload-area.dragover {
-		background: var(--primary-glow-10);
+	.directory-item-enhanced:hover {
+		background: color-mix(in oklab, var(--primary) 8%, transparent);
+		border-color: color-mix(in oklab, var(--primary) 20%, transparent);
+		transform: translateX(4px);
+	}
+
+	.directory-item-enhanced.selected {
+		background: color-mix(in oklab, var(--primary) 15%, transparent);
 		border-color: var(--primary);
+		color: var(--primary);
 	}
 
-	/* Loading and error states */
-	.loading-state {
-		padding: var(--space-4);
-		text-align: center;
-		color: var(--muted);
-		font-style: italic;
+	.directory-icon-enhanced {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		color: var(--accent-amber);
+		transition: all 0.2s ease;
 	}
 
-	.error-state {
-		padding: var(--space-3);
-		background: color-mix(in oklab, var(--err) 10%, transparent);
-		border: 1px solid color-mix(in oklab, var(--err) 30%, transparent);
+	.directory-item-enhanced:hover .directory-icon-enhanced {
+		color: var(--primary);
+		transform: scale(1.1);
+	}
+
+	/* Fix button and link styles within directory items */
+	.directory-item-enhanced button {
+		color: var(--text);
+		text-decoration: none;
+		transition: color 0.2s ease;
+		font-family: inherit;
+		font-size: inherit;
+		background-color: transparent;
+		border: none;
+	}
+
+	.directory-item-enhanced button:hover:enabled {
+		color: var(--primary);
+		text-decoration: none;
+	}
+
+	.directory-item-enhanced button:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
 		border-radius: 4px;
-		margin: var(--space-2);
-		color: var(--err);
 	}
 
-	/* All @apply directives have been moved to template classes */
+	.directory-item-enhanced button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.directory-breadcrumb-enhanced {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-4);
+		background: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
+		border-bottom: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
+		overflow-x: auto;
+	}
+
+	.breadcrumb-item-enhanced {
+		padding: var(--space-1) var(--space-2);
+		border: none;
+		background: transparent;
+		color: var(--text);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+
+	.breadcrumb-item-enhanced:hover {
+		color: var(--primary);
+	}
+
+	.breadcrumb-separator {
+		color: var(--muted);
+		opacity: 0.5;
+		margin: 0 var(--space-1);
+	}
+
+	/* Mobile-friendly directory browser styles */
+	@media (max-width: 768px) {
+		.directory-browser-enhanced {
+			font-size: 16px; /* Prevent zoom on iOS */
+		}
+
+		.directory-item-enhanced {
+			padding: var(--space-4);
+			min-height: 48px; /* Better touch target */
+		}
+
+		.directory-item-enhanced button {
+			min-height: 44px;
+			display: flex;
+			align-items: center;
+		}
+
+		.directory-breadcrumb-enhanced {
+			padding: var(--space-4);
+			gap: var(--space-3);
+		}
+
+		.breadcrumb-item-enhanced {
+			padding: var(--space-2) var(--space-3);
+			min-height: 40px;
+		}
+
+		/* Larger icons on mobile */
+		.directory-icon-enhanced {
+			width: 28px;
+			height: 28px;
+		}
+
+		/* Better spacing for touch */
+		.directory-browser-enhanced .max-h-96 {
+			max-height: 60vh; /* Use viewport height on mobile */
+		}
+	}
 </style>

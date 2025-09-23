@@ -206,7 +206,7 @@
 	});
 </script>
 
-<div class="file-editor-pane flex-col">
+<div class="file-editor-pane">
 	<!-- Error display -->
 	{#if error}
 		<div class="error-banner">
@@ -215,45 +215,40 @@
 	{/if}
 
 	<!-- Main content -->
-	<div class="flex-col" style="flex: 1; overflow: hidden;">
-		{#if !isEditing}
-			<!-- File browser view using DirectoryBrowser component -->
-			<div class="flex-col p-4" style="flex: 1; height: 100%;">
-				<DirectoryBrowser
-					startPath={currentDirectory}
-					placeholder="Browse files and directories..."
-					showFileActions={true}
-					isAlwaysOpen={true}
-					onSelect={handleDirectorySelect}
-					onNavigate={handleDirectoryNavigate}
-					onFileOpen={handleFileOpen}
-					onFileUpload={handleFileUpload}
-				/>
-			</div>
-		{:else}
-			<!-- File editor view -->
-			<div class="file-editor-container">
-				<FileEditor
-					file={selectedFile}
-					bind:content={fileContent}
-					{originalContent}
-					{loading}
-					onSave={saveFile}
-					onCancel={handleFileCancel}
-					onClose={closeFile}
-				/>
-			</div>
-		{/if}
-	</div>
+	{#if !isEditing}
+		<!-- File browser view using DirectoryBrowser component -->
+		<div class="directory-browser-container">
+			<DirectoryBrowser
+				startPath={currentDirectory}
+				placeholder="Browse files and directories..."
+				showFileActions={true}
+				isAlwaysOpen={true}
+				onSelect={handleDirectorySelect}
+				onNavigate={handleDirectoryNavigate}
+				onFileOpen={handleFileOpen}
+				onFileUpload={handleFileUpload}
+			/>
+		</div>
+	{:else}
+		<!-- File editor view -->
+		<div class="file-editor-container">
+			<FileEditor
+				file={selectedFile}
+				bind:content={fileContent}
+				{originalContent}
+				{loading}
+				onSave={saveFile}
+				onCancel={handleFileCancel}
+				onClose={closeFile}
+			/>
+		</div>
+	{/if}
 </div>
 
 <style>
 	/* FileEditorPane specific styles - minimal */
 	.file-editor-pane {
-		height: 100%;
-		background: var(--color-surface);
-		color: var(--color-text);
-		font-family: var(--font-mono);
+		display: contents;
 	}
 
 	.error-banner {
@@ -265,5 +260,9 @@
 
 	.file-editor-container {
 		height: 100%;
+	}
+	.directory-browser-container {
+		height: 100%;
+		overflow-y: auto;
 	}
 </style>
