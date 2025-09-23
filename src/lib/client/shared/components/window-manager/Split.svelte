@@ -26,8 +26,11 @@
 	// Drag divider to set node.ratio
 	/** @param {MouseEvent|TouchEvent} ev */
 	function startDrag(ev) {
-		//ev.preventDefault();
+		ev.preventDefault();
 		if (!splitEl) return;
+
+		// Prevent text selection during drag
+		document.body.style.userSelect = 'none';
 
 		const isRow = node.dir === 'row';
 		const rect = splitEl.getBoundingClientRect();
@@ -43,6 +46,8 @@
 			onratioupdate(node, newRatio);
 		};
 		const up = () => {
+			// Restore text selection
+			document.body.style.userSelect = '';
 			window.removeEventListener('mousemove', move);
 			window.removeEventListener('mouseup', up);
 			window.removeEventListener('touchmove', move);
