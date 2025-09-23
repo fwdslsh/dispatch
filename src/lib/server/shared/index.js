@@ -10,6 +10,8 @@ import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
+import { AuthManager } from '../auth/AuthManager.js';
+import { setAuthManager } from './auth.js';
 import path from 'node:path';
 import os from 'node:os';
 import { SESSION_TYPE } from '../../shared/session-types.js';
@@ -63,7 +65,11 @@ export async function initializeServices(config = {}) {
 		await database.markAllSessionsStopped();
 		logger.info('SERVICES', 'Cleared stale running sessions on startup');
 
-		// REMOVED: WorkspaceManager - obsolete in unified architecture
+		// 2. Authentication Manager
+		const authManager = new AuthManager(database);
+		await authManager.init();
+		setAuthManager(authManager); // Make it globally accessible
+		logger.info('SERVICES', 'Authentication manager initialized');
 
 		// 3. Create RunSessionManager (no Socket.IO initially, will be set later)
 		const runSessionManager = new RunSessionManager(database, null);
@@ -90,6 +96,7 @@ export async function initializeServices(config = {}) {
 
 		const services = {
 			database,
+			authManager,
 			runSessionManager,
 			ptyAdapter,
 			claudeAdapter,
