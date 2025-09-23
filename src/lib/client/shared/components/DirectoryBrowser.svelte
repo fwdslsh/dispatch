@@ -27,7 +27,9 @@
 		onFileOpen = null, // (file) => void
 		onFileUpload = null, // (files, currentDirectory) => void
 		// Control initial state
-		isAlwaysOpen = false // Force the browser to stay open (don't show collapsed state)
+		isAlwaysOpen = false, // Force the browser to stay open (don't show collapsed state)
+		// Root folder constraint
+		rootFolder = '/' // Root folder that user cannot navigate outside of
 	} = $props();
 
 	// Start with the provided startPath, or null to use server default
@@ -60,12 +62,29 @@
 
 	// Parse path into breadcrumbs
 	function updateBreadcrumbs(path) {
+		const normalizedRoot = rootFolder.endsWith('/') ? rootFolder.slice(0, -1) : rootFolder;
 		const parts = path.split('/').filter(Boolean);
-		breadcrumbs = [{ name: '/', path: '/' }];
-		let accumulated = '';
+		
+		// Start breadcrumbs from the root folder
+		if (normalizedRoot === '/') {
+			breadcrumbs = [{ name: '/', path: '/' }];
+		} else {
+			// If we have a custom root folder, start from there
+			const rootParts = normalizedRoot.split('/').filter(Boolean);
+			breadcrumbs = [{ name: rootParts[rootParts.length - 1] || '/', path: normalizedRoot }];
+		}
+		
+		// Add breadcrumbs for parts beyond the root folder
+		let accumulated = normalizedRoot === '/' ? '' : normalizedRoot;
 		for (const part of parts) {
-			accumulated += '/' + part;
-			breadcrumbs.push({ name: part, path: accumulated });
+			// Skip parts that are already included in the root folder
+			const testPath = accumulated + '/' + part;
+			if (testPath.length > normalizedRoot.length) {
+				accumulated = testPath;
+				breadcrumbs.push({ name: part, path: accumulated });
+			} else if (accumulated === '' || testPath === normalizedRoot) {
+				accumulated = testPath;
+			}
 		}
 	}
 
@@ -115,9 +134,16 @@
 	});
 
 	function navigateTo(path) {
-		query = '';
-		browse(path);
-		onNavigate?.(path);
+		// Check if the target path is within the rootFolder boundary
+		const normalizedRoot = rootFolder.endsWith('/') ? rootFolder.slice(0, -1) : rootFolder;
+		const normalizedPath = path === '/' ? '/' : path;
+		
+		// Only navigate if the path is within the root folder
+		if (normalizedPath.length >= normalizedRoot.length && normalizedPath.startsWith(normalizedRoot)) {
+			query = '';
+			browse(path);
+			onNavigate?.(path);
+		}
 	}
 
 	function selectDirectory(path) {
@@ -134,7 +160,14 @@
 
 	function goUp() {
 		const parent = currentPath.split('/').slice(0, -1).join('/') || '/';
-		navigateTo(parent);
+		// Check if the parent directory is within the rootFolder boundary
+		const normalizedRoot = rootFolder.endsWith('/') ? rootFolder.slice(0, -1) : rootFolder;
+		const normalizedParent = parent === '/' ? '/' : parent;
+		
+		// Only navigate up if the parent is not outside the root folder
+		if (normalizedParent.length >= normalizedRoot.length && normalizedParent.startsWith(normalizedRoot)) {
+			navigateTo(parent);
+		}
 	}
 
 	function toggleHidden() {

@@ -69,7 +69,7 @@
 		error = null;
 
 		try {
-			const response = await fetch(`/api/files/home?path=${encodeURIComponent(file.path)}`);
+			const response = await fetch(`/api/files?path=${encodeURIComponent(file.path)}`);
 			const data = await response.json();
 
 			if (!response.ok) {
@@ -99,7 +99,7 @@
 
 		try {
 			const response = await fetch(
-				`/api/files/home?path=${encodeURIComponent(selectedFile.path)}`,
+				`/api/files?path=${encodeURIComponent(selectedFile.path)}`,
 				{
 					method: 'PUT',
 					headers: {
@@ -141,7 +141,7 @@
 			});
 			formData.append('directory', currentPath);
 
-			const response = await fetch('/api/files/home/upload', {
+			const response = await fetch('/api/files/upload', {
 				method: 'POST',
 				body: formData
 			});
@@ -209,22 +209,32 @@
 		saveManagerState();
 	}
 
-	// Initialize home directory
+	// Initialize home directory by getting the base directory from the browse API
 	async function initializeHomeDirectory() {
 		try {
-			const response = await fetch('/api/browse/home');
+			// Get the base directory first to understand the structure
+			const response = await fetch('/api/browse');
 			const data = await response.json();
-
-			if (response.ok && data.homeDirectory) {
-				homeDirectory = data.homeDirectory;
+			
+			if (response.ok) {
+				// In development, WORKSPACES_ROOT is .testing-home/workspaces  
+				// So the HOME directory is one level up from that
+				const workspacesPath = data.path;
+				if (workspacesPath.includes('workspaces')) {
+					homeDirectory = workspacesPath.replace('/workspaces', '');
+				} else {
+					// Fallback to the path itself
+					homeDirectory = workspacesPath;
+				}
+				
 				if (!currentDirectory) {
-					currentDirectory = data.homeDirectory;
+					currentDirectory = homeDirectory;
 				}
 			} else {
 				error = 'Failed to load home directory';
 			}
 		} catch (e) {
-			error = 'Failed to connect to home directory service';
+			error = 'Failed to connect to directory service';
 			console.error('[HomeDirectoryManager] Init error:', e);
 		}
 	}
@@ -234,10 +244,10 @@
 		await initializeHomeDirectory();
 
 		const savedState = loadManagerState();
-		if (savedState?.currentDirectory) {
+		if (savedState?.currentDirectory && savedState.currentDirectory.startsWith(homeDirectory)) {
 			currentDirectory = savedState.currentDirectory;
 		}
-		if (savedState?.fileDirectory) {
+		if (savedState?.fileDirectory && savedState.fileDirectory.startsWith(homeDirectory)) {
 			fileDirectory = savedState.fileDirectory;
 		}
 	});
@@ -265,11 +275,12 @@
 		<!-- File browser view using DirectoryBrowser component -->
 		<div class="directory-browser-container">
 			<DirectoryBrowser
-				api="/api/browse/home"
+				api="/api/browse"
 				startPath={currentDirectory}
 				placeholder="Browse home directory..."
 				showFileActions={true}
 				isAlwaysOpen={true}
+				rootFolder={homeDirectory}
 				onSelect={handleDirectorySelect}
 				onNavigate={handleDirectoryNavigate}
 				onFileOpen={handleFileOpen}
