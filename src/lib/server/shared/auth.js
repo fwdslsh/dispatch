@@ -1,7 +1,5 @@
 import { logger } from './utils/logger.js';
 
-const TERMINAL_KEY = process.env.TERMINAL_KEY;
-
 // Global reference to AuthManager instance (set during initialization)
 let authManager = null;
 
@@ -11,20 +9,6 @@ export function setAuthManager(manager) {
 
 export function getAuthManager() {
 	return authManager;
-}
-
-export function validateKey(key) {
-	// If TERMINAL_KEY is explicitly set to empty string, allow any key
-	if (TERMINAL_KEY === '') {
-		return true;
-	}
-	return key === TERMINAL_KEY;
-}
-
-export function requireAuth(key) {
-	if (!validateKey(key)) {
-		throw new Error('Invalid authentication key');
-	}
 }
 
 /**
@@ -54,21 +38,12 @@ export function extractToken(request) {
  */
 export async function verifyAuth(request) {
 	if (!authManager) {
-		// Fallback to legacy key validation if AuthManager not initialized
-		const key = request.headers['x-auth-key'] || extractToken(request);
-		if (validateKey(key)) {
-			return { legacy: true, key };
-		}
+		logger.warn('AUTH', 'AuthManager not initialized');
 		return null;
 	}
 
 	const token = extractToken(request);
 	if (!token) {
-		// Try legacy key as fallback
-		const key = request.headers['x-auth-key'] || request.url?.searchParams?.get('key');
-		if (key && authManager.validateLegacyKey(key)) {
-			return { legacy: true, key };
-		}
 		return null;
 	}
 

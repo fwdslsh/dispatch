@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { getAuthManager } from '$lib/server/shared/auth.js';
+import { SSHManager } from '$lib/server/auth/SSHManager.js';
 
 export async function GET() {
 	const authManager = getAuthManager();
@@ -61,9 +62,20 @@ export async function POST({ request }) {
 
 		// Add SSH keys if provided
 		if (sshKeys && Array.isArray(sshKeys)) {
+			const sshManager = new SSHManager(authManager);
+			await sshManager.init();
+			
 			for (const sshKey of sshKeys) {
 				if (sshKey.publicKey && isValidSSHPublicKey(sshKey.publicKey)) {
-					await authManager.addSSHKey(userId, sshKey.publicKey, sshKey.name || 'Setup Key');
+					const { keyId } = await authManager.addSSHKey(userId, sshKey.publicKey, sshKey.name || 'Setup Key');
+					
+					// Also add to system SSH if available
+					try {
+						await sshManager.addSSHKeyToSystem(username, sshKey.publicKey, keyId);
+					} catch (error) {
+						console.warn('Failed to add SSH key to system:', error.message);
+						// Continue anyway - key is still in database
+					}
 				}
 			}
 		}

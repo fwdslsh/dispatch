@@ -72,10 +72,33 @@ done
 
 echo "📁 Directory setup complete"
 
+# Setup SSH daemon if enabled
+if [ "${SSH_ENABLED:-true}" = "true" ]; then
+    echo "🔐 Setting up SSH daemon..."
+    
+    # Ensure SSH host keys exist
+    if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
+        ssh-keygen -A
+    fi
+    
+    # Create SSH keys directory if it doesn't exist
+    mkdir -p /etc/ssh/keys
+    chmod 700 /etc/ssh/keys
+    
+    # Start SSH daemon in background
+    /usr/sbin/sshd -D -p ${SSH_PORT:-2222} &
+    echo "   ✓ SSH daemon started on port ${SSH_PORT:-2222}"
+    echo "   ✓ SSH keys will be managed through the web interface"
+else
+    echo "🔐 SSH daemon disabled"
+fi
+
 # Switch to the application user and start the app
 echo "🚀 Starting application as user: $USER_NAME"
 echo "   Environment:"
 echo "     PORT: ${PORT:-3030}"
+echo "     SSH_PORT: ${SSH_PORT:-2222}"
+echo "     SSH_ENABLED: ${SSH_ENABLED:-true}"
 echo "     ENABLE_TUNNEL: ${ENABLE_TUNNEL:-false}"
 
 # Execute the application as the mapped user

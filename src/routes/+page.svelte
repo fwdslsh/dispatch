@@ -6,11 +6,10 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
 	
-	let key = $state('');
 	let error = $state('');
 	let loading = $state(false);
-	let authMethod = $state('key'); // 'key', 'ssh', 'oauth'
-	let sshKey = $state('');
+	let authMethod = $state('ssh'); // 'ssh', 'oauth'
+	let selectedSSHKeyFile = $state(null);
 	let setupRequired = $state(false);
 
 	// PWA state
@@ -44,14 +43,19 @@
 		}
 
 		// Check if already authenticated via HTTP (more robust than socket for login)
-		const storedKey = localStorage.getItem('dispatch-auth-key');
-		if (storedKey) {
+		const authToken = getCookie('dispatch-auth-token');
+		if (authToken) {
 			try {
-				const r = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
+				const r = await fetch('/api/auth/check', {
+					headers: {
+						'Authorization': `Bearer ${authToken}`
+					}
+				});
 				if (r.ok) {
 					goto('/workspace');
 				} else {
-					localStorage.removeItem('dispatch-auth-key');
+					// Token expired or invalid, clear it
+					document.cookie = 'dispatch-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 				}
 			} catch {
 				// Ignore; user can try manual login
@@ -59,6 +63,29 @@
 			return;
 		}
 	});
+
+	function getCookie(name) {
+		const value = `; ${document.cookie}`;
+		const parts = value.split(`; ${name}=`);
+		if (parts.length === 2) return parts.pop().split(';').shift();
+		return null;
+	}
+
+	async function handleSSHKeyFileSelect(event) {
+		const file = event.target.files[0];
+		if (!file) return;
+
+		selectedSSHKeyFile = file;
+	}
+
+	async function readSSHKeyFile(file) {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = e => resolve(e.target.result);
+			reader.onerror = reject;
+			reader.readAsText(file);
+		});
+	}
 
 	async function handleLogin(e) {
 		e.preventDefault();
@@ -74,13 +101,15 @@
 		
 		try {
 			let authPayload;
-			let endpoint = '/api/auth/check';
+			let endpoint = '/api/auth/ssh';
 			
-			if (authMethod === 'ssh') {
-				endpoint = '/api/auth/ssh';
-				authPayload = { publicKey: sshKey };
+			if (authMethod === 'ssh' && selectedSSHKeyFile) {
+				const sshKeyContent = await readSSHKeyFile(selectedSSHKeyFile);
+				authPayload = { publicKey: sshKeyContent };
 			} else {
-				authPayload = { key };
+				error = 'Please select an SSH key file';
+				loading = false;
+				return;
 			}
 
 			const r = await fetch(endpoint, {
@@ -92,16 +121,13 @@
 			loading = false;
 			
 			if (r.ok) {
-				if (authMethod === 'key') {
-					localStorage.setItem('dispatch-auth-key', key);
-				}
-				// For SSH auth, cookie is already set by the server
+				// Cookie is already set by the server
 				goto('/workspace');
 			} else {
 				const j = await r.json().catch(() => ({}));
 				error = j?.error || 'Authentication failed';
 			}
-		} catch {
+		} catch (err) {
 			loading = false;
 			error = 'Unable to reach server';
 		}
@@ -114,10 +140,6 @@
 
 	function goToSetup() {
 		goto('/setup');
-	}
-
-	function isValidSSHKey(key) {
-		return /^(ssh-rsa|ssh-ed25519|ecdsa-sha2-|ssh-dss)\s+[A-Za-z0-9+\/=]+/.test(key.trim());
 	}
 </script>
 
@@ -149,13 +171,6 @@
 					<div class="auth-tabs">
 						<button 
 							class="auth-tab" 
-							class:active={authMethod === 'key'}
-							onclick={() => authMethod = 'key'}
-						>
-							Legacy Key
-						</button>
-						<button 
-							class="auth-tab" 
 							class:active={authMethod === 'ssh'}
 							onclick={() => authMethod = 'ssh'}
 						>
@@ -170,31 +185,6 @@
 						</button>
 					</div>
 
-					<!-- Legacy Key Auth -->
-					{#if authMethod === 'key'}
-						<form onsubmit={handleLogin}>
-							{#if isPWA}
-								<Input
-									bind:value={urlInput}
-									type="url"
-									placeholder="server URL"
-									required
-									disabled={loading}
-								/>
-							{/if}
-							<Input
-								bind:value={key}
-								type="password"
-								placeholder="terminal key"
-								required
-								disabled={loading}
-							/>
-							<Button class="button primary aug" type="submit" disabled={loading}>
-								{loading ? 'connecting...' : 'connect'}
-							</Button>
-						</form>
-					{/if}
-
 					<!-- SSH Key Auth -->
 					{#if authMethod === 'ssh'}
 						<form onsubmit={handleLogin}>
@@ -207,19 +197,28 @@
 									disabled={loading}
 								/>
 							{/if}
-							<div class="ssh-input">
-								<textarea
-									bind:value={sshKey}
-									placeholder="Paste your SSH public key here (ssh-rsa, ssh-ed25519, etc.)"
-									rows="4"
+							<div class="ssh-file-input">
+								<label for="ssh-key-file" class="file-input-label">
+									Select SSH Public Key File
+								</label>
+								<input
+									id="ssh-key-file"
+									type="file"
+									accept=".pub,.txt"
+									onchange={handleSSHKeyFileSelect}
 									disabled={loading}
-									required
-								></textarea>
+									class="file-input"
+								/>
+								{#if selectedSSHKeyFile}
+									<div class="selected-file">
+										Selected: {selectedSSHKeyFile.name}
+									</div>
+								{/if}
 							</div>
 							<Button 
 								class="button primary aug" 
 								type="submit" 
-								disabled={loading || !isValidSSHKey(sshKey)}
+								disabled={loading || !selectedSSHKeyFile}
 							>
 								{loading ? 'authenticating...' : 'authenticate with ssh key'}
 							</Button>
@@ -751,6 +750,49 @@
 		outline: none;
 		border-color: var(--primary);
 		box-shadow: 0 0 0 2px color-mix(in oklch, var(--primary) 20%, transparent 80%);
+	}
+
+	.ssh-file-input {
+		margin-bottom: 1rem;
+	}
+
+	.file-input-label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+		color: var(--text);
+	}
+
+	.file-input {
+		width: 100%;
+		padding: 0.75rem;
+		border: 2px dashed var(--surface-border);
+		border-radius: 0.375rem;
+		background: var(--surface);
+		color: var(--text);
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.file-input:hover:not(:disabled) {
+		border-color: var(--primary);
+		background: var(--surface-hover);
+	}
+
+	.file-input:focus {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px color-mix(in oklch, var(--primary) 20%, transparent 80%);
+	}
+
+	.selected-file {
+		margin-top: 0.5rem;
+		padding: 0.5rem;
+		background: var(--surface-elevated);
+		border: 1px solid var(--surface-border);
+		border-radius: 0.25rem;
+		color: var(--text);
+		font-size: 0.875rem;
 	}
 
 	.oauth-options {

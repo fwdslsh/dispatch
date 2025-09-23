@@ -186,18 +186,6 @@ export class AuthManager {
 	}
 
 	/**
-	 * Validate legacy key authentication (backward compatibility)
-	 */
-	validateLegacyKey(key) {
-		const TERMINAL_KEY = process.env.TERMINAL_KEY;
-		// If TERMINAL_KEY is explicitly set to empty string, allow any key
-		if (TERMINAL_KEY === '') {
-			return true;
-		}
-		return key === TERMINAL_KEY;
-	}
-
-	/**
 	 * Clean up expired sessions and OAuth states
 	 */
 	async cleanupExpired() {

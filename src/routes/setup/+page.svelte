@@ -18,6 +18,7 @@
 		sshKeys: []
 	});
 	let newSSHKey = $state({ name: '', publicKey: '' });
+	let generatedKeyPair = $state(null);
 
 	onMount(async () => {
 		// Check if setup is needed
@@ -59,6 +60,65 @@
 
 	function removeSSHKey(index) {
 		setupData.sshKeys.splice(index, 1);
+	}
+
+	async function generateSSHKeyPair() {
+		try {
+			const response = await fetch('/api/auth/generate-ssh-key', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					name: newSSHKey.name || 'Default Key',
+					type: 'ed25519' // Modern, secure key type
+				})
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				generatedKeyPair = data;
+				
+				// Add the public key to our setup data
+				setupData.sshKeys.push({
+					name: newSSHKey.name || 'Generated Key',
+					publicKey: data.publicKey
+				});
+				
+				newSSHKey = { name: '', publicKey: '' };
+			} else {
+				const errorData = await response.json();
+				error = errorData.error || 'Failed to generate SSH key pair';
+			}
+		} catch (err) {
+			error = 'Failed to generate SSH key pair';
+		}
+	}
+
+	function downloadPrivateKey() {
+		if (!generatedKeyPair) return;
+		
+		const blob = new Blob([generatedKeyPair.privateKey], { type: 'text/plain' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `id_ed25519`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	}
+
+	function downloadPublicKey() {
+		if (!generatedKeyPair) return;
+		
+		const blob = new Blob([generatedKeyPair.publicKey], { type: 'text/plain' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `id_ed25519.pub`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
 	}
 
 	async function completeSetup() {
@@ -249,11 +309,72 @@
 				<!-- Step 3: SSH Keys -->
 				{#if currentStep === 3}
 					<div class="setup-step">
-						<h3>SSH Keys (Optional)</h3>
-						<p>Add SSH public keys for key-based authentication.</p>
+						<h3>SSH Key Configuration</h3>
+						<p>Configure SSH authentication for your dispatch instance.</p>
 
 						<div class="ssh-section">
+							<!-- Generate SSH Key Pair -->
+							<div class="ssh-key-generation">
+								<h4>Generate New SSH Key Pair</h4>
+								<p>Generate a new SSH key pair for secure authentication. You'll be able to download both keys.</p>
+								
+								<div class="form-group">
+									<label>Key Name</label>
+									<Input 
+										bind:value={newSSHKey.name} 
+										placeholder="Default Key"
+									/>
+								</div>
+
+								<div class="key-generation-actions">
+									<Button 
+										onclick={generateSSHKeyPair} 
+										disabled={loading}
+										variant="primary"
+									>
+										Generate SSH Key Pair
+									</Button>
+								</div>
+
+								{#if generatedKeyPair}
+									<div class="generated-keys">
+										<h5>Keys Generated Successfully!</h5>
+										<p>Download both keys and keep the private key secure.</p>
+										
+										<div class="key-download-actions">
+											<Button 
+												onclick={downloadPrivateKey}
+												size="small"
+												variant="ghost"
+											>
+												Download Private Key
+											</Button>
+											<Button 
+												onclick={downloadPublicKey}
+												size="small"
+												variant="ghost"
+											>
+												Download Public Key
+											</Button>
+										</div>
+
+										<div class="public-key-preview">
+											<label>Public Key (added to server):</label>
+											<code>{generatedKeyPair.publicKey.substring(0, 80)}...</code>
+										</div>
+									</div>
+								{/if}
+							</div>
+
+							<div class="divider-or">
+								<span>or</span>
+							</div>
+
+							<!-- Manual SSH Key Entry -->
 							<div class="add-ssh-key">
+								<h4>Add Existing SSH Key</h4>
+								<p>Paste an existing SSH public key to authorize it for login.</p>
+								
 								<div class="form-group">
 									<label>Key Name</label>
 									<Input 
@@ -282,7 +403,7 @@
 
 							{#if setupData.sshKeys.length > 0}
 								<div class="ssh-keys-list">
-									<h4>Added SSH Keys</h4>
+									<h4>Authorized SSH Keys</h4>
 									{#each setupData.sshKeys as key, index}
 										<div class="ssh-key-item">
 											<div class="key-info">
@@ -487,6 +608,107 @@
 		margin-top: 1.5rem;
 		padding-top: 1.5rem;
 		border-top: 1px solid var(--surface-border);
+	}
+
+	.ssh-key-generation {
+		margin-bottom: 2rem;
+		padding: 1.5rem;
+		border: 1px solid var(--surface-border);
+		border-radius: 0.5rem;
+		background: var(--surface-elevated);
+	}
+
+	.ssh-key-generation h4 {
+		margin-bottom: 0.5rem;
+		color: var(--text);
+	}
+
+	.ssh-key-generation p {
+		margin-bottom: 1rem;
+		color: var(--text-muted);
+	}
+
+	.key-generation-actions {
+		margin: 1rem 0;
+	}
+
+	.generated-keys {
+		margin-top: 1.5rem;
+		padding: 1rem;
+		background: var(--surface);
+		border: 1px solid var(--surface-border);
+		border-radius: 0.375rem;
+	}
+
+	.generated-keys h5 {
+		color: var(--primary);
+		margin-bottom: 0.5rem;
+	}
+
+	.key-download-actions {
+		display: flex;
+		gap: 1rem;
+		margin: 1rem 0;
+	}
+
+	.public-key-preview {
+		margin-top: 1rem;
+	}
+
+	.public-key-preview label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+		color: var(--text);
+	}
+
+	.public-key-preview code {
+		display: block;
+		background: var(--surface-background);
+		padding: 0.5rem;
+		border-radius: 0.25rem;
+		font-size: 0.75rem;
+		color: var(--text-muted);
+		word-break: break-all;
+	}
+
+	.divider-or {
+		text-align: center;
+		margin: 2rem 0;
+		position: relative;
+	}
+
+	.divider-or::before {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 0;
+		right: 0;
+		height: 1px;
+		background: var(--surface-border);
+	}
+
+	.divider-or span {
+		background: var(--surface-elevated);
+		padding: 0 1rem;
+		color: var(--text-muted);
+		font-size: 0.875rem;
+	}
+
+	.add-ssh-key {
+		padding: 1.5rem;
+		border: 1px solid var(--surface-border);
+		border-radius: 0.5rem;
+	}
+
+	.add-ssh-key h4 {
+		margin-bottom: 0.5rem;
+		color: var(--text);
+	}
+
+	.add-ssh-key p {
+		margin-bottom: 1rem;
+		color: var(--text-muted);
 	}
 
 	.ssh-key-item {

@@ -26,7 +26,7 @@ RUN npm run build
 # Runtime stage
 FROM node:22-bookworm-slim
 
-# Install required packages including gosu for user switching
+# Install required packages including gosu for user switching and SSH daemon
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        tree jq yq build-essential \
@@ -34,6 +34,7 @@ RUN apt-get update \
        pkg-config \
        git gh \
        gosu \
+       openssh-server \
        # Dependencies for Playwright browsers
        libnss3 \
        libnspr4 \
@@ -56,6 +57,16 @@ RUN apt-get update \
        libcairo2 \
        libasound2 \
     && rm -rf /var/lib/apt/lists/*
+
+# Setup SSH daemon
+RUN mkdir -p /var/run/sshd /etc/ssh/keys \
+    && chmod 700 /etc/ssh/keys \
+    && ssh-keygen -A \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
+    && sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#AuthorizedKeysFile/AuthorizedKeysFile/' /etc/ssh/sshd_config \
+    && echo 'AuthorizedKeysFile /etc/ssh/keys/%u_authorized_keys' >> /etc/ssh/sshd_config \
+    && echo 'Port 2222' >> /etc/ssh/sshd_config
 
 # Set environment variables
 ARG USER_UID=1000
@@ -80,7 +91,7 @@ RUN mkdir -p /config /projects /workspace /tmp/dispatch-sessions \
 # Install global packages
 RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex
 
-EXPOSE 3030
+EXPOSE 3030 2222
 
 WORKDIR /app
 COPY --from=build /app /app
@@ -95,7 +106,8 @@ RUN chmod +x /entrypoint.sh
 
 ENV NODE_ENV=production \
     PORT=3030 \
-    TERMINAL_KEY=change-me \
+    SSH_PORT=2222 \
+    SSH_ENABLED=true \
     ENABLE_TUNNEL=false \
     LT_SUBDOMAIN= \
     # Directory management configuration

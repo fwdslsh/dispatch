@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { validateKey, verifyAuth, getAuthManager } from './auth.js';
+import { getAuthManager } from './auth.js';
 import { logger } from './utils/logger.js';
 
 // Admin event tracking
@@ -45,52 +45,37 @@ export function getSocketEvents(limit = 100) {
 }
 
 // Helper function for auth validation in event handlers
-async function requireValidAuth(socket, keyOrToken, callback) {
+async function requireValidAuth(socket, token, callback) {
 	const authManager = getAuthManager();
 	
-	// Try new authentication system first
-	if (authManager && keyOrToken) {
-		try {
-			// Try as JWT token
-			const auth = await authManager.verifyToken(keyOrToken);
-			if (auth) {
-				socket.data.authenticated = true;
-				socket.data.userId = auth.userId;
-				socket.data.authMethod = auth.method;
-				return true;
-			}
-		} catch (error) {
-			// Not a valid JWT, try other methods
-		}
-
-		// Try as SSH public key
-		if (isValidSSHPublicKey(keyOrToken)) {
-			const sshKeyData = await authManager.verifySSHKey(keyOrToken);
-			if (sshKeyData) {
-				socket.data.authenticated = true;
-				socket.data.userId = sshKeyData.user_id;
-				socket.data.authMethod = 'ssh_key';
-				return true;
-			}
-		}
-	}
-
-	// Fallback to legacy key validation
-	if (!validateKey(keyOrToken)) {
-		logger.warn('SOCKET', `Invalid auth from socket ${socket.id}`);
-		if (callback) callback({ success: false, error: 'Invalid authentication' });
+	if (!authManager) {
+		logger.warn('SOCKET', 'AuthManager not initialized');
+		if (callback) callback({ success: false, error: 'Authentication system not available' });
 		return false;
 	}
-	
-	socket.data.authenticated = true;
-	socket.data.authMethod = 'legacy';
-	return true;
-}
 
-function isValidSSHPublicKey(key) {
-	if (!key || typeof key !== 'string') return false;
-	const sshKeyPattern = /^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521|ssh-dss)\s+[A-Za-z0-9+\/=]+(\s+.*)?$/;
-	return sshKeyPattern.test(key.trim());
+	if (!token) {
+		logger.warn('SOCKET', `No auth token from socket ${socket.id}`);
+		if (callback) callback({ success: false, error: 'No authentication token provided' });
+		return false;
+	}
+
+	try {
+		// Try as JWT token
+		const auth = await authManager.verifyToken(token);
+		if (auth) {
+			socket.data.authenticated = true;
+			socket.data.userId = auth.userId;
+			socket.data.authMethod = auth.method;
+			return true;
+		}
+	} catch (error) {
+		// Token verification failed
+	}
+
+	logger.warn('SOCKET', `Invalid auth token from socket ${socket.id}`);
+	if (callback) callback({ success: false, error: 'Invalid authentication token' });
+	return false;
 }
 
 /**
@@ -144,11 +129,11 @@ export function setupSocketIO(httpServer, services) {
 
 		// ===== UNIFIED RUN SESSION HANDLERS =====
 
-		// Authentication event - validates a key/token without starting a session
-		socket.on('auth', async (keyOrToken, callback) => {
+		// Authentication event - validates a token without starting a session
+		socket.on('auth', async (token, callback) => {
 			try {
 				logger.info('SOCKET', `Auth event received from ${socket.id}`);
-				if (await requireValidAuth(socket, keyOrToken, callback)) {
+				if (await requireValidAuth(socket, token, callback)) {
 					// Auth is valid, send success response
 					if (callback) callback({ 
 						success: true, 
