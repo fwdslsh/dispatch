@@ -332,6 +332,138 @@ cmd_status() {
     fi
 }
 
+# Attach command - attach interactive shell to running container
+cmd_attach() {
+    check_docker
+    
+    if ! is_container_running; then
+        log_error "Container '$CONTAINER_NAME' is not running"
+        log_info "Use 'dispatch start' to start the container first"
+        exit 1
+    fi
+    
+    log_info "Attaching to running Dispatch container..."
+    log_info "Press Ctrl+D or type 'exit' to detach"
+    
+    # Try bash first, fallback to sh if bash is not available
+    if docker exec -it "$CONTAINER_NAME" which bash >/dev/null 2>&1; then
+        docker exec -it "$CONTAINER_NAME" bash
+    else
+        docker exec -it "$CONTAINER_NAME" sh
+    fi
+}
+
+# Find common SSH keys in ~/.ssh directory
+find_ssh_keys() {
+    local ssh_dir="$HOME/.ssh"
+    local common_keys=("id_rsa" "id_ed25519" "id_ecdsa" "id_dsa")
+    
+    if [[ ! -d "$ssh_dir" ]]; then
+        return 1
+    fi
+    
+    for key in "${common_keys[@]}"; do
+        if [[ -f "$ssh_dir/$key" ]]; then
+            echo "$ssh_dir/$key"
+            return 0
+        fi
+    done
+    
+    return 1
+}
+
+# Connect command - SSH to remote dispatch instance
+cmd_connect() {
+    local host=""
+    local port="2222"
+    local key=""
+    local user="dispatch"
+    
+    # Check if SSH is available
+    if ! command -v ssh >/dev/null 2>&1; then
+        log_error "SSH client is not installed or not in PATH"
+        exit 1
+    fi
+    
+    # Parse command line options
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --port|-p)
+                port="$2"
+                shift 2
+                ;;
+            --key|-k)
+                key="$2"
+                shift 2
+                ;;
+            --user|-u)
+                user="$2"
+                shift 2
+                ;;
+            -*)
+                log_error "Unknown option: $1"
+                exit 1
+                ;;
+            *)
+                if [[ -z "$host" ]]; then
+                    host="$1"
+                else
+                    log_error "Multiple hosts specified: $host and $1"
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+    
+    # Validate required host parameter
+    if [[ -z "$host" ]]; then
+        log_error "Remote host is required"
+        echo
+        echo "Usage: dispatch connect <HOST> [OPTIONS]"
+        echo "  --port, -p <PORT>    SSH port (default: 2222)"
+        echo "  --key, -k <PATH>     SSH private key file"
+        echo "  --user, -u <USER>    SSH username (default: dispatch)"
+        exit 1
+    fi
+    
+    # Find SSH key if not specified
+    if [[ -z "$key" ]]; then
+        if key=$(find_ssh_keys); then
+            log_info "Using SSH key: $key"
+        else
+            log_warn "No common SSH keys found in ~/.ssh/"
+            log_info "You may need to specify a key with --key option"
+        fi
+    else
+        # Expand path for provided key
+        key=$(expand_path "$key")
+        if [[ ! -f "$key" ]]; then
+            log_error "SSH key file not found: $key"
+            exit 1
+        fi
+        log_info "Using SSH key: $key"
+    fi
+    
+    # Build SSH command
+    local ssh_args=()
+    ssh_args+=("-p" "$port")
+    
+    if [[ -n "$key" ]]; then
+        ssh_args+=("-i" "$key")
+    fi
+    
+    # Add common SSH options for better experience
+    ssh_args+=("-o" "StrictHostKeyChecking=no")
+    ssh_args+=("-o" "UserKnownHostsFile=/dev/null")
+    ssh_args+=("-o" "LogLevel=ERROR")
+    
+    log_info "Connecting to $user@$host:$port..."
+    
+    # Execute SSH connection
+    exec ssh "${ssh_args[@]}" "$user@$host"
+}
+
 # Show help
 show_help() {
     cat << EOF
@@ -346,6 +478,8 @@ COMMANDS:
     stop                 Stop the Dispatch container
     update               Update to the latest Docker image
     status               Show container status
+    attach               Attach interactive shell to running container
+    connect              Connect to remote dispatch instance via SSH
     help                 Show this help message
 
 START OPTIONS:
@@ -354,12 +488,20 @@ START OPTIONS:
     --home <PATH>      Dispatch home directory (default: ~/.dispatch)
     --workspace <PATH>          Workspace directory (default: ~/workspace)
 
+CONNECT OPTIONS:
+    -p, --port <PORT>           SSH port (default: 2222)
+    -k, --key <PATH>            SSH private key file (auto-detected if not specified)
+    -u, --user <USER>           SSH username (default: dispatch)
+
 EXAMPLES:
     dispatch init               Initialize environment
     dispatch start              Start with default settings
     dispatch start -p 8080      Start on port 8080
+    dispatch attach             Attach to running container
     dispatch stop               Stop the container
     dispatch update             Update to latest version
+    dispatch connect myserver   Connect to remote instance
+    dispatch connect myserver --port 2223 --key ~/.ssh/custom_key
 
 For more information, visit: https://github.com/fwdslsh/dispatch
 EOF
@@ -390,6 +532,12 @@ main() {
             ;;
         status)
             cmd_status "$@"
+            ;;
+        attach)
+            cmd_attach "$@"
+            ;;
+        connect)
+            cmd_connect "$@"
             ;;
         help|--help|-h)
             show_help
