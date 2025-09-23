@@ -391,7 +391,9 @@
 		flex-direction: column;
 		position: relative;
 	}
-
+	.terminal-scroll {
+		height: 100%;
+	}
 	.terminal-loading {
 		position: absolute;
 		top: 0;
