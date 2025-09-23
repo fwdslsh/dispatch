@@ -10,10 +10,11 @@ import { homedir } from 'node:os';
  * @param {Object} options - Environment options
  * @param {string} [options.cwd] - Working directory
  * @param {Object} [options.extraEnv] - Additional environment variables
+ * @param {Object} [options.workspaceEnv] - Workspace-level environment variables
  * @param {boolean} [options.preserveHome] - Whether to preserve HOME variable
  * @returns {Object} Environment object
  */
-export function buildExecEnv({ cwd, extraEnv = {}, preserveHome = true } = {}) {
+export function buildExecEnv({ cwd, extraEnv = {}, workspaceEnv = {}, preserveHome = true } = {}) {
 	const baseEnv = { ...process.env };
 
 	// Ensure HOME is set if preserveHome is true
@@ -28,9 +29,13 @@ export function buildExecEnv({ cwd, extraEnv = {}, preserveHome = true } = {}) {
 		baseEnv.PATH = currentPath ? `${cwdBin}:${currentPath}` : cwdBin;
 	}
 
-	// Merge additional environment variables
+	// Merge environment variables with proper precedence:
+	// 1. Base system environment (process.env)
+	// 2. Workspace environment variables
+	// 3. Session-specific additional environment variables (highest priority)
 	return {
 		...baseEnv,
+		...workspaceEnv,
 		...extraEnv
 	};
 }
@@ -46,6 +51,7 @@ export function buildExecEnv({ cwd, extraEnv = {}, preserveHome = true } = {}) {
  * @param {Array} [options.allowedTools] - Allowed tools array
  * @param {string} [options.permissionMode] - Permission mode
  * @param {Object} [options.extraEnv] - Additional environment variables
+ * @param {Object} [options.workspaceEnv] - Workspace-level environment variables
  * @returns {Object} Claude options object
  */
 export function buildClaudeOptions(options) {
@@ -80,7 +86,8 @@ export function buildClaudeOptions(options) {
 			'WebSearch'
 		],
 		permissionMode = 'bypassPermissions',
-		extraEnv = {}
+		extraEnv = {},
+		workspaceEnv = {}
 	} = options;
 
 	// Default path to Claude executable if not provided
@@ -95,7 +102,7 @@ export function buildClaudeOptions(options) {
 		allowedTools,
 		permissionMode,
 		pathToClaudeCodeExecutable: claudePath,
-		env: buildExecEnv({ cwd, extraEnv, preserveHome: true })
+		env: buildExecEnv({ cwd, extraEnv, workspaceEnv, preserveHome: true })
 	};
 }
 
@@ -106,6 +113,7 @@ export function buildClaudeOptions(options) {
  * @param {string} [options.shell] - Shell executable path
  * @param {Array} [options.args] - Shell arguments
  * @param {Object} [options.extraEnv] - Additional environment variables
+ * @param {Object} [options.workspaceEnv] - Workspace-level environment variables
  * @returns {Object} Terminal options object
  */
 export function buildTerminalOptions(options) {
@@ -113,13 +121,19 @@ export function buildTerminalOptions(options) {
 		throw new Error('cwd is required for terminal options');
 	}
 
-	const { cwd, shell = process.env.SHELL || '/bin/bash', args = [], extraEnv = {} } = options;
+	const {
+		cwd,
+		shell = process.env.SHELL || '/bin/bash',
+		args = [],
+		extraEnv = {},
+		workspaceEnv = {}
+	} = options;
 
 	return {
 		cwd,
 		shell,
 		args,
-		env: buildExecEnv({ cwd, extraEnv, preserveHome: true })
+		env: buildExecEnv({ cwd, extraEnv, workspaceEnv, preserveHome: true })
 	};
 }
 
@@ -139,5 +153,20 @@ export function normalizeWorkspacePath(workspacePath, defaultPath = process.cwd(
 	} catch (error) {
 		console.warn(`Invalid workspace path "${workspacePath}", using default: ${defaultPath}`);
 		return resolve(defaultPath);
+	}
+}
+
+/**
+ * Get workspace environment variables from database
+ * @param {Object} databaseManager - Database manager instance
+ * @returns {Promise<Object>} Workspace environment variables object
+ */
+export async function getWorkspaceEnvVariables(databaseManager) {
+	try {
+		const workspaceSettings = await databaseManager.getSettingsByCategory('workspace');
+		return workspaceSettings?.envVariables || {};
+	} catch (error) {
+		console.warn('Failed to load workspace environment variables:', error);
+		return {};
 	}
 }

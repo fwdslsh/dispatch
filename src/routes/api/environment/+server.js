@@ -13,10 +13,10 @@ export async function GET() {
 	try {
 		// Get the actual home directory from the OS
 		const homeDirectory = process.env.HOME || homedir();
-		
+
 		// In development, we might have a custom home directory
 		const effectiveHome = homeDirectory;
-		
+
 		return json({
 			homeDirectory: effectiveHome,
 			// Could add other environment info here if needed in the future

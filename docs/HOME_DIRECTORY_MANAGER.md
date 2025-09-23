@@ -7,6 +7,7 @@ The Home Directory Manager is a new feature added to the Dispatch Settings Modal
 ## Features
 
 ### Core Functionality
+
 - **Secure Directory Browsing**: Navigate through the home directory and subdirectories with breadcrumb navigation
 - **File Editing**: In-browser file editing with syntax highlighting and real-time save functionality
 - **File Upload**: Drag-and-drop file upload support
@@ -14,6 +15,7 @@ The Home Directory Manager is a new feature added to the Dispatch Settings Modal
 - **Git Integration**: View git status and branch information when in a git repository
 
 ### Security Features
+
 - **Path Validation**: All API endpoints validate paths to ensure operations stay within the home directory
 - **Access Control**: Server-side security checks prevent access to system files and other users' directories
 - **403 Forbidden**: Unauthorized access attempts return proper HTTP 403 Forbidden responses
@@ -24,18 +26,21 @@ The Home Directory Manager is a new feature added to the Dispatch Settings Modal
 ### API Endpoints
 
 #### `/api/browse/home` - Directory Browsing
+
 - **Method**: GET
 - **Purpose**: Secure browsing of home directory contents
 - **Security**: Validates all paths are within `$HOME` directory
 - **Response**: Directory contents with file/folder metadata
 
 #### `/api/files/home` - File Operations
+
 - **Methods**: GET (read), PUT (write), DELETE (delete)
 - **Purpose**: File content management within home directory
 - **Security**: Path validation ensures home directory containment
 - **Features**: Supports file reading, writing, and deletion
 
 #### `/api/files/home/upload` - File Upload
+
 - **Method**: POST
 - **Purpose**: Upload files to home directory
 - **Security**: Validates target directory is within home
@@ -44,6 +49,7 @@ The Home Directory Manager is a new feature added to the Dispatch Settings Modal
 ### UI Components
 
 #### `HomeDirectoryManager.svelte`
+
 - **Location**: `src/lib/client/shared/components/Settings/HomeDirectoryManager.svelte`
 - **Purpose**: Main component providing file management interface
 - **Features**:
@@ -54,6 +60,7 @@ The Home Directory Manager is a new feature added to the Dispatch Settings Modal
   - State persistence across sessions
 
 #### Settings Modal Integration
+
 - **Location**: `src/lib/client/shared/components/Settings/SettingsModal.svelte`
 - **Integration**: Added as new "Home Directory" tab with user icon
 - **Consistent**: Follows existing Settings Modal design patterns
@@ -61,17 +68,19 @@ The Home Directory Manager is a new feature added to the Dispatch Settings Modal
 ### Security Implementation
 
 #### Path Validation Function
+
 ```javascript
 function isPathWithinHome(requestedPath) {
-    const homeDir = resolve(getHomeDirectory());
-    const resolvedPath = resolve(requestedPath);
-    
-    // Ensure the path is within the home directory
-    return resolvedPath.startsWith(homeDir);
+	const homeDir = resolve(getHomeDirectory());
+	const resolvedPath = resolve(requestedPath);
+
+	// Ensure the path is within the home directory
+	return resolvedPath.startsWith(homeDir);
 }
 ```
 
 #### Error Handling
+
 - **403 Forbidden**: Returned for unauthorized path access
 - **404 Not Found**: Returned for non-existent files/directories
 - **413 Payload Too Large**: Returned for files exceeding size limits
@@ -80,14 +89,16 @@ function isPathWithinHome(requestedPath) {
 ## Testing
 
 ### Automated Tests
+
 - **Location**: `tests/server/home-directory-security.test.js`
 - **Coverage**: Path validation logic and security restrictions
-- **Scenarios**: 
+- **Scenarios**:
   - Valid paths within home directory
   - Invalid paths outside home directory
   - Path traversal attack attempts
 
 ### Manual Testing Performed
+
 - ✅ Directory navigation and breadcrumb functionality
 - ✅ File editing with save/cancel operations
 - ✅ File upload with multiple files
@@ -98,18 +109,21 @@ function isPathWithinHome(requestedPath) {
 ## Usage
 
 ### Accessing the Feature
+
 1. Open the Dispatch application
 2. Click the Settings icon in the footer
 3. Select the "Home Directory" tab (user icon)
 4. Begin browsing and managing files
 
 ### File Operations
+
 - **Browse**: Click on directories to navigate, use breadcrumbs to go back
 - **Edit**: Click on files to open the editor, make changes, and save
 - **Upload**: Use the upload button or drag-and-drop files
 - **Create**: Use the new directory button to create folders
 
 ### Security Considerations
+
 - All operations are restricted to the user's home directory
 - Path traversal attempts are blocked by server-side validation
 - File size limits prevent abuse of upload functionality
@@ -118,6 +132,7 @@ function isPathWithinHome(requestedPath) {
 ## Files Changed
 
 ### New Files Created
+
 - `src/routes/api/browse/home/+server.js` - Home directory browsing API
 - `src/routes/api/files/home/+server.js` - Home directory file operations API
 - `src/routes/api/files/home/upload/+server.js` - Home directory upload API
@@ -125,6 +140,7 @@ function isPathWithinHome(requestedPath) {
 - `tests/server/home-directory-security.test.js` - Security tests
 
 ### Modified Files
+
 - `src/lib/client/shared/components/Settings/SettingsModal.svelte` - Added new tab integration
 
 ## Conclusion
