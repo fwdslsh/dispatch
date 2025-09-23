@@ -287,6 +287,11 @@ The drag-to-resize feature works really well!
 		background: #1a1a1a;
 		color: #fff;
 	}
+/* Fill the screen for the demo */
+.demo-host {
+	inline-size: 100%;
+	block-size: 100vh;
+}
 
 	.demo-header {
 		padding: 1rem;

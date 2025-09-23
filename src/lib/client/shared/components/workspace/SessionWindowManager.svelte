@@ -8,6 +8,7 @@
 -->
 <script>
 	import WindowManager from '../window-manager/WindowManager.svelte';
+	import EmptySessionPane from './EmptySessionPane.svelte';
 	import SessionContainer from './SessionContainer.svelte';
 	import SessionHeaderRenderer from './SessionHeaderRenderer.svelte';
 	import SessionViewport from './SessionViewport.svelte';
@@ -242,6 +243,7 @@
 								class="control-btn split-right surface-active border border-surface-border text-primary p-1 radius cursor-pointer transition-all flex items-center justify-center"
 								onclick={onSplitRight}
 								title="Split Right"
+								aria-label="Split Right"
 							>
 								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
 									<rect
@@ -270,6 +272,7 @@
 							<button
 								class="control-btn split-down surface-active border border-surface-border text-primary p-1 radius cursor-pointer transition-all flex items-center justify-center"
 								onclick={onSplitDown}
+								aria-label="Split Down"
 								title="Split Down"
 							>
 								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -299,6 +302,7 @@
 							<button
 								class="control-btn close surface-active border border-surface-border text-primary p-1 radius cursor-pointer transition-all flex items-center justify-center"
 								onclick={onClose}
+								aria-label="Close Tile"
 								title="Close Tile"
 							>
 								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -318,6 +322,7 @@
 										class="control-btn move-session surface-active border border-surface-border text-primary p-1 radius cursor-pointer transition-all flex items-center justify-center"
 										onclick={() => handleSessionMove(session.id, tileId)}
 										title="Move Session to Another Tile"
+										aria-label="Move Session to Another Tile"
 									>
 										<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
 											<path d="M8 2L12 6H9V10H7V6H4L8 2ZM2 12H14V14H2V12Z" fill="currentColor" />
@@ -403,29 +408,7 @@
 					<div
 						class="empty-tile-content w-full h-full flex flex-col items-center justify-center surface radius p-4"
 					>
-						<p class="text-sm text-muted text-center">
-							No session assigned {editMode ? '• Edit Mode Active' : ''}
-						</p>
-						<div class="flex gap-2 flex-center flex-wrap">
-							<button
-								class="primary primary-contrast border-0 radius px-3 py-2 font-mono text-sm cursor-pointer transition-colors hover:primary-hover"
-								onclick={() => handleCreateSessionInTile('pty')}
-							>
-								+ Terminal
-							</button>
-							<button
-								class="primary primary-contrast border-0 radius px-3 py-2 font-mono text-sm cursor-pointer transition-colors hover:primary-hover"
-								onclick={() => handleCreateSessionInTile('claude')}
-							>
-								+ Claude
-							</button>
-							<button
-								class="primary primary-contrast border-0 radius px-3 py-2 font-mono text-sm cursor-pointer transition-colors hover:primary-hover"
-								onclick={() => handleCreateSessionInTile('file-editor')}
-							>
-								+ File Editor
-							</button>
-						</div>
+						<EmptySessionPane onCreateSession={handleCreateSessionInTile}></EmptySessionPane>
 					</div>
 				{/if}
 			</div>

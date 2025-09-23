@@ -5,6 +5,8 @@
 	Displays an empty state when no sessions are available.
 -->
 <script>
+  import EmptySessionPane from './EmptySessionPane.svelte';
+
 	import SessionContainer from './SessionContainer.svelte';
 	import SessionHeaderRenderer from './SessionHeaderRenderer.svelte';
 	import SessionViewport from './SessionViewport.svelte';
@@ -43,19 +45,7 @@
 			{/snippet}
 		</SessionContainer>
 	{:else}
-		<div class="empty-state">
-			<h2>No sessions yet</h2>
-			<p>Select a session to view or start a new one.</p>
-			<div class="empty-actions">
-				<button class="create-session" onclick={() => create('terminal')}>
-					+ Terminal Session
-				</button>
-				<button class="create-session" onclick={() => create('claude')}> + Claude Session </button>
-				<button class="create-session" onclick={() => create('file-editor')}>
-					+ File Editor Session
-				</button>
-			</div>
-		</div>
+		<EmptySessionPane {onCreateSession}></EmptySessionPane>
 	{/if}
 </div>
 

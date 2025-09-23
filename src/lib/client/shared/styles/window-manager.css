@@ -1,8 +1,3 @@
-/* Fill the screen for the demo */
-.demo-host {
-	inline-size: 100%;
-	block-size: 100vh;
-}
 
 /* ================================================================
    WINDOW MANAGER CORE ARCHITECTURE
@@ -23,11 +18,6 @@
 	overflow: hidden;
 	outline: none;
 	position: relative;
-
-	/* Subtle background texture for depth */
-	background: var(--bg);
-	background-image: radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0);
-	background-size: 20px 20px;
 }
 
 /* Split containers */
@@ -58,10 +48,7 @@
 .wm-pane-a,
 .wm-pane-b {
 	overflow: hidden;
-	border-radius: 8px;
-	background: var(--surface);
-	border: 1px solid var(--line);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
 	transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 

@@ -37,6 +37,7 @@ export class RunSessionManager {
 	async createRunSession({ kind, meta, ownerUserId = null }) {
 		const runId = randomUUID();
 		const created = Date.now();
+		const eventBuffer = []; // Buffer events during initialization
 
 		try {
 			// Persist session to database
@@ -49,28 +50,51 @@ export class RunSessionManager {
 			}
 
 			// Track live run with next sequence number BEFORE creating adapter
-			// This prevents race conditions where adapter initialization events
-			// compete with the in-memory sequence counter setup
+			// Buffer events during initialization to prevent database conflicts
 			const nextSeq = await this.db.getNextSequenceNumber(runId);
 			this.liveRuns.set(runId, {
 				proc: null, // Will be set after adapter creation
 				nextSeq,
-				kind
+				kind,
+				initializing: true, // Flag to indicate we're still initializing
+				eventQueue: Promise.resolve() // Event queue to serialize async operations
 			});
 
-			// Create process adapter with event callback
+			// Create process adapter with event buffering callback
 			const proc = await adapter.create({
 				...meta,
-				onEvent: (ev) => this.recordAndEmit(runId, ev)
+				onEvent: (ev) => {
+					// Buffer events during initialization
+					const liveRun = this.liveRuns.get(runId);
+					if (liveRun?.initializing) {
+						eventBuffer.push(ev);
+					} else if (liveRun) {
+						// Queue events to be processed serially
+						liveRun.eventQueue = liveRun.eventQueue.then(() =>
+							this.recordAndEmit(runId, ev).catch(err =>
+								logger.error('RUNSESSION', `Event queue error for ${runId}:`, err)
+							)
+						);
+					}
+				}
 			});
 
 			// Update the live run record with the actual process
-			this.liveRuns.get(runId).proc = proc;
+			const liveRun = this.liveRuns.get(runId);
+			liveRun.proc = proc;
 
 			// Update status to running
 			await this.db.updateRunSessionStatus(runId, 'running');
 
-			logger.info('RUNSESSION', `Created ${kind} run session: ${runId}`);
+			// Flush all buffered events BEFORE removing the initializing flag
+			for (const ev of eventBuffer) {
+				await this.recordAndEmit(runId, ev);
+			}
+
+			// NOW remove initialization flag after all buffered events are flushed
+			delete liveRun.initializing;
+
+			logger.info('RUNSESSION', `Created ${kind} run session: ${runId} with ${eventBuffer.length} buffered events`);
 			return { runId };
 		} catch (error) {
 			logger.error('RUNSESSION', `Failed to create run session ${runId}:`, error);
@@ -112,6 +136,7 @@ export class RunSessionManager {
 
 	/**
 	 * Append event to session event log with monotonic sequence number
+	 * IMPORTANT: This must be called serially, not concurrently, to maintain sequence order
 	 */
 	async appendEvent(runId, channel, type, payload) {
 		const rec = this.liveRuns.get(runId);
@@ -122,10 +147,17 @@ export class RunSessionManager {
 			return row;
 		}
 
-		// Use live session's sequence counter
+		// Use live session's sequence counter - atomic increment
 		const seq = rec.nextSeq++;
-		const row = await this.db.appendSessionEvent(runId, seq, channel, type, payload);
-		return row;
+		try {
+			const row = await this.db.appendSessionEvent(runId, seq, channel, type, payload);
+			return row;
+		} catch (error) {
+			// If we get a constraint error, it means another event got the same seq
+			// This shouldn't happen if events are properly serialized
+			logger.error('RUNSESSION', `Sequence conflict for ${runId} seq ${seq}:`, error.message);
+			throw error;
+		}
 	}
 
 	/**
@@ -286,6 +318,8 @@ export class RunSessionManager {
 	 * Resume a run session (restart the process with the same runId)
 	 */
 	async resumeRunSession(runId) {
+		const eventBuffer = []; // Buffer events during initialization
+
 		try {
 			const session = await this.db.getRunSession(runId);
 			if (!session) {
@@ -309,21 +343,35 @@ export class RunSessionManager {
 			logger.info('RUNSESSION', `Resume metadata for ${runId}:`, { kind: session.kind, meta });
 
 			// Track live run with next sequence number BEFORE creating adapter
-			// This prevents race conditions where adapter initialization events
-			// compete with the in-memory sequence counter setup
+			// Buffer events during initialization to prevent database conflicts
 			const nextSeq = await this.db.getNextSequenceNumber(runId);
 			this.liveRuns.set(runId, {
 				proc: null, // Will be set after adapter creation
 				nextSeq,
-				kind: session.kind
+				kind: session.kind,
+				initializing: true, // Flag to indicate we're still initializing
+				eventQueue: Promise.resolve() // Event queue to serialize async operations
 			});
 
-			// Create process adapter with event callback (same as createRunSession)
+			// Create process adapter with event buffering callback
 			let proc;
 			try {
 				proc = await adapter.create({
 					...meta,
-					onEvent: (ev) => this.recordAndEmit(runId, ev)
+					onEvent: (ev) => {
+						// Buffer events during initialization
+						const liveRun = this.liveRuns.get(runId);
+						if (liveRun?.initializing) {
+							eventBuffer.push(ev);
+						} else if (liveRun) {
+							// Queue events to be processed serially
+							liveRun.eventQueue = liveRun.eventQueue.then(() =>
+								this.recordAndEmit(runId, ev).catch(err =>
+									logger.error('RUNSESSION', `Event queue error for ${runId}:`, err)
+								)
+							);
+						}
+					}
 				});
 				logger.info(
 					'RUNSESSION',
@@ -337,24 +385,23 @@ export class RunSessionManager {
 				);
 				// Clean up live run entry if adapter creation failed
 				this.liveRuns.delete(runId);
-
-				// Clean up any events that may have been written during failed initialization
-				// This prevents sequence number conflicts on retry
-				try {
-					await this.db.deleteSessionEvents(runId);
-					logger.info('RUNSESSION', `Cleaned up events for failed resume of ${runId}`);
-				} catch (cleanupError) {
-					logger.warn('RUNSESSION', `Failed to clean up events for ${runId}:`, cleanupError.message);
-				}
-
 				throw adapterError;
 			}
 
 			// Update the live run record with the actual process
-			this.liveRuns.get(runId).proc = proc;
+			const liveRun = this.liveRuns.get(runId);
+			liveRun.proc = proc;
 
 			// Update status to running
 			await this.db.updateRunSessionStatus(runId, 'running');
+
+			// Flush all buffered events BEFORE removing the initializing flag
+			for (const ev of eventBuffer) {
+				await this.recordAndEmit(runId, ev);
+			}
+
+			// NOW remove initialization flag after all buffered events are flushed
+			delete liveRun.initializing;
 
 			// Get recent history (last 10 events) to replay for context
 			const recentEvents = await this.getEventsSince(runId, 0);

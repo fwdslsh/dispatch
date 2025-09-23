@@ -420,7 +420,7 @@
 		// Handle session creation in SessionViewModel
 		sessionViewModel.handleSessionCreated({
 			id,
-			type: type === 'terminal' ? 'pty' : type,
+			type: type,
 			workspacePath,
 			typeSpecificId
 		});
