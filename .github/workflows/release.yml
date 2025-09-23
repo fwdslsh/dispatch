@@ -27,7 +27,8 @@ jobs:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: ${{ github.event.inputs.tag || github.ref_name }}
           generate_release_notes: true
-          append_body: false
+          append_body: true
+          body_path: ${{ github.workspace }}/.github/workflows/release-notes.md
   # Publish to npm
   npm:
     name: Publish to npm

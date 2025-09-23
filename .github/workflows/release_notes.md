@@ -1,70 +1,56 @@
-# Dispatch Docker Usage
 
-This document explains how to run the Dispatch Docker image (`fwdslsh/dispatch:latest`). It includes examples for running the container, mounting local directories for persistent storage, handling permissions, and more.
+# Dispatch Release Notes & Quick Start
 
-## Run
+## 🚀 Quick Install & Start
 
-```bash
-# Run Dispatch and expose port 3030
-docker run -p 3030:3030 -e TERMINAL_KEY=your-secret-password fwdslsh/dispatch:latest
-```
-
-Open your browser at `http://localhost:3030` and enter the password you set in `TERMINAL_KEY`.
-
-## Run with public URL sharing
+**Install the Dispatch CLI:**
 
 ```bash
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
-  -e ENABLE_TUNNEL=true \
-  fwdslsh/dispatch:latest
+curl -fsSL https://raw.githubusercontent.com/fwdslsh/dispatch/main/install.sh | bash
 ```
 
-When `ENABLE_TUNNEL=true` the container will attempt to create a public URL. A key is still required for access — `TERMINAL_KEY` provides minimal protection for public mode and must be strong.
-
-## Persistent storage (volume mounts)
-
-To keep user data, dotfiles, and project files across container restarts, mount host directories into the container.
+**Initialize and Start:**
 
 ```bash
-# Create directories (no sudo needed!)
-mkdir -p ~/dispatch-home ~/dispatch-projects
-
-# Option 1: Use your current user ID (recommended)
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/appuser \
-  -v ~/dispatch-projects:/workspace \
-  fwdslsh/dispatch:latest
+dispatch init
+dispatch start
+# Open http://localhost:3030 in your browser
 ```
 
-Recommended mount points:
+_Requires bash and Docker_
 
-- `/home/appuser` — user home directory inside the container (shell history, dotfiles)
-- `/workspace` — where you can keep project folders and code
+---
 
-**Security isolation**: The container can only access the specific directories you mount. No sudo required when using `--user $(id -u):$(id -g)` or building with your user ID.
+## Configuration
 
-## Combined: persistence + public URL
+Dispatch uses environment variables for configuration. After `dispatch init`, see `~/dispatch/home/.env`:
+
+| Variable          | Default      | Description                    |
+| ----------------- | ------------ | ------------------------------ |
+| `TERMINAL_KEY`    | `change-me`  | **Required** - Access password |
+| `PORT`            | `3030`       | Web interface port             |
+| `WORKSPACES_ROOT` | `/workspace` | Project directory              |
+| `ENABLE_TUNNEL`   | `false`      | Public URL sharing             |
+| `LT_SUBDOMAIN`    | `""`         | Custom subdomain               |
+
+---
+
+## Using Docker Directly
 
 ```bash
-# Create directories (no sudo needed!)
-mkdir -p ~/dispatch-home ~/dispatch-projects
-
-# Run with persistence and tunneling
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
-  -e ENABLE_TUNNEL=true \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/appuser \
-  -v ~/dispatch-projects:/workspace \
-  fwdslsh/dispatch:latest
+mkdir -p ~/dispatch/{home,workspace}
+docker run -d -p 3030:3030 \
+  --env-file ~/dispatch/home/.env \
+  -v ~/dispatch/workspace:/workspace \
+  -v ~/dispatch/home:/home/dispatch \
+  --name dispatch fwdslsh/dispatch:latest
 ```
 
-## Environment variables
+---
 
-- `TERMINAL_KEY` (required) — password used to authenticate to the web UI
-- `PORT` (default `3030`) — port inside the container
-- `ENABLE_TUNNEL` (`true`|`false`) — enable public URL sharing
-- `LT_SUBDOMAIN` — optional LocalTunnel subdomain
+## Documentation & Support
+
+- [Full Documentation](https://github.com/fwdslsh/dispatch/tree/main/docs)
+- [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
+
+---
