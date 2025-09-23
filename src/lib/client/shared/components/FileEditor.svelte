@@ -157,9 +157,7 @@
 		></textarea>
 
 		<!-- Editor footer -->
-		<div
-			class="flex-between p-3 gap-4 editor-footer-mobile"			
-		>
+		<div class="flex-between p-3 gap-4 editor-footer-mobile">
 			<div class="flex-col gap-1 file-info" style="flex: 1; min-width: 0;">
 				<span class="file-path">{file.path}</span>
 				{#if isDirty}
@@ -189,9 +187,7 @@
 		</div>
 	</div>
 {:else}
-	<div
-		class="flex-center"
-	>
+	<div class="flex-center">
 		<p>No file selected</p>
 	</div>
 {/if}
@@ -220,7 +216,7 @@
 	/* FileEditor specific - minimal custom styles only */
 	.file-editor {
 		height: 100%;
-		
+
 		font-family: var(--font-mono);
 	}
 

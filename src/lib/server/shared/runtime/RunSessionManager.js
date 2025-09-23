@@ -71,7 +71,7 @@ export class RunSessionManager {
 					} else if (liveRun) {
 						// Queue events to be processed serially
 						liveRun.eventQueue = liveRun.eventQueue.then(() =>
-							this.recordAndEmit(runId, ev).catch(err =>
+							this.recordAndEmit(runId, ev).catch((err) =>
 								logger.error('RUNSESSION', `Event queue error for ${runId}:`, err)
 							)
 						);
@@ -94,7 +94,10 @@ export class RunSessionManager {
 			// NOW remove initialization flag after all buffered events are flushed
 			delete liveRun.initializing;
 
-			logger.info('RUNSESSION', `Created ${kind} run session: ${runId} with ${eventBuffer.length} buffered events`);
+			logger.info(
+				'RUNSESSION',
+				`Created ${kind} run session: ${runId} with ${eventBuffer.length} buffered events`
+			);
 			return { runId };
 		} catch (error) {
 			logger.error('RUNSESSION', `Failed to create run session ${runId}:`, error);
@@ -366,7 +369,7 @@ export class RunSessionManager {
 						} else if (liveRun) {
 							// Queue events to be processed serially
 							liveRun.eventQueue = liveRun.eventQueue.then(() =>
-								this.recordAndEmit(runId, ev).catch(err =>
+								this.recordAndEmit(runId, ev).catch((err) =>
 									logger.error('RUNSESSION', `Event queue error for ${runId}:`, err)
 								)
 							);
