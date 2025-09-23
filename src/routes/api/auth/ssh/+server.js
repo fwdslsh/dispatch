@@ -47,7 +47,9 @@ export async function POST({ request, cookies, locals }) {
 				username: sshKeyData.username,
 				email: sshKeyData.email
 			},
-			sessionId: session.sessionId
+			sessionId: session.sessionId,
+			// Return token for WebSocket authentication (httpOnly cookie can't be read by JS)
+			token: session.token
 		});
 	} catch (error) {
 		console.error('SSH key authentication error:', error);

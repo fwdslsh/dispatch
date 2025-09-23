@@ -16,16 +16,16 @@ export function getAuthManager() {
  */
 export function extractToken(request) {
 	// Try cookies first
-	const cookies = request.headers.cookie;
-	if (cookies) {
-		const match = cookies.match(/dispatch-auth-token=([^;]+)/);
+	const cookieHeader = request.headers.get ? request.headers.get('cookie') : request.headers.cookie;
+	if (cookieHeader) {
+		const match = cookieHeader.match(/dispatch-auth-token=([^;]+)/);
 		if (match) {
 			return match[1];
 		}
 	}
 
 	// Try Authorization header
-	const authHeader = request.headers.authorization;
+	const authHeader = request.headers.get ? request.headers.get('authorization') : request.headers.authorization;
 	if (authHeader && authHeader.startsWith('Bearer ')) {
 		return authHeader.slice(7);
 	}

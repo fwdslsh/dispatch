@@ -4,11 +4,13 @@
 	import { FitAddon } from '@xterm/addon-fit';
 	import '@xterm/xterm/css/xterm.css';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
+	import { getStoredAuthToken } from '$lib/client/shared/socket-auth.js';
 	import MobileTerminalView from './MobileTerminalView.svelte';
 
 	const fitAddon = new FitAddon();
 	let { sessionId, shouldResume = false } = $props();
-	let term, el;
+	let term;
+	let el = $state();
 	// Also observe container size changes (e.g., parent layout changes)
 	let ro;
 
@@ -25,7 +27,8 @@
 		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
 	}
 
-	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+	// Get JWT token from cookie for authentication
+	let key = getStoredAuthToken();
 	// Handle window resize and ensure terminal fits its container
 	const resize = () => {
 		// Fit terminal to container first so cols/rows update

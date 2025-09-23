@@ -25,7 +25,7 @@
 		try {
 			const response = await fetch('/api/auth/setup');
 			const data = await response.json();
-			
+
 			if (!data.isFirstUser) {
 				// Setup already completed, redirect to login
 				goto('/');
@@ -76,13 +76,13 @@
 			if (response.ok) {
 				const data = await response.json();
 				generatedKeyPair = data;
-				
+
 				// Add the public key to our setup data
 				setupData.sshKeys.push({
 					name: newSSHKey.name || 'Generated Key',
 					publicKey: data.publicKey
 				});
-				
+
 				newSSHKey = { name: '', publicKey: '' };
 			} else {
 				const errorData = await response.json();
@@ -95,7 +95,7 @@
 
 	function downloadPrivateKey() {
 		if (!generatedKeyPair) return;
-		
+
 		const blob = new Blob([generatedKeyPair.privateKey], { type: 'text/plain' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
@@ -109,7 +109,7 @@
 
 	function downloadPublicKey() {
 		if (!generatedKeyPair) return;
-		
+
 		const blob = new Blob([generatedKeyPair.publicKey], { type: 'text/plain' });
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
@@ -175,7 +175,9 @@
 		return /^(ssh-rsa|ssh-ed25519|ecdsa-sha2-|ssh-dss)\s+[A-Za-z0-9+\/=]+/.test(key.trim());
 	}
 
-	const canProceedStep1 = $derived(setupData.username.trim() && setupData.email.trim() && isValidEmail(setupData.email));
+	const canProceedStep1 = $derived(
+		setupData.username.trim() && setupData.email.trim() && isValidEmail(setupData.email)
+	);
 	const canComplete = $derived(canProceedStep1);
 </script>
 
@@ -211,23 +213,19 @@
 					<div class="setup-step">
 						<h3>Create Admin User</h3>
 						<p>Set up the first administrative user for this dispatch instance.</p>
-						
+
 						<div class="form-group">
 							<label>Username</label>
-							<Input 
-								bind:value={setupData.username} 
-								placeholder="admin" 
-								required 
-							/>
+							<Input bind:value={setupData.username} placeholder="admin" required />
 						</div>
 
 						<div class="form-group">
 							<label>Email</label>
-							<Input 
-								bind:value={setupData.email} 
-								type="email" 
-								placeholder="admin@example.com" 
-								required 
+							<Input
+								bind:value={setupData.email}
+								type="email"
+								placeholder="admin@example.com"
+								required
 							/>
 						</div>
 
@@ -249,20 +247,20 @@
 									<input type="checkbox" bind:checked={setupData.oauth.github.enabled} />
 									Enable GitHub OAuth
 								</label>
-								
+
 								{#if setupData.oauth.github.enabled}
 									<div class="oauth-config">
 										<div class="form-group">
 											<label>GitHub Client ID</label>
-											<Input 
-												bind:value={setupData.oauth.github.clientId} 
+											<Input
+												bind:value={setupData.oauth.github.clientId}
 												placeholder="Your GitHub OAuth App Client ID"
 											/>
 										</div>
 										<div class="form-group">
 											<label>GitHub Client Secret</label>
-											<Input 
-												bind:value={setupData.oauth.github.clientSecret} 
+											<Input
+												bind:value={setupData.oauth.github.clientSecret}
 												type="password"
 												placeholder="Your GitHub OAuth App Client Secret"
 											/>
@@ -276,20 +274,20 @@
 									<input type="checkbox" bind:checked={setupData.oauth.google.enabled} />
 									Enable Google OAuth
 								</label>
-								
+
 								{#if setupData.oauth.google.enabled}
 									<div class="oauth-config">
 										<div class="form-group">
 											<label>Google Client ID</label>
-											<Input 
-												bind:value={setupData.oauth.google.clientId} 
+											<Input
+												bind:value={setupData.oauth.google.clientId}
 												placeholder="Your Google OAuth Client ID"
 											/>
 										</div>
 										<div class="form-group">
 											<label>Google Client Secret</label>
-											<Input 
-												bind:value={setupData.oauth.google.clientSecret} 
+											<Input
+												bind:value={setupData.oauth.google.clientSecret}
 												type="password"
 												placeholder="Your Google OAuth Client Secret"
 											/>
@@ -316,22 +314,18 @@
 							<!-- Generate SSH Key Pair -->
 							<div class="ssh-key-generation">
 								<h4>Generate New SSH Key Pair</h4>
-								<p>Generate a new SSH key pair for secure authentication. You'll be able to download both keys.</p>
-								
+								<p>
+									Generate a new SSH key pair for secure authentication. You'll be able to download
+									both keys.
+								</p>
+
 								<div class="form-group">
 									<label>Key Name</label>
-									<Input 
-										bind:value={newSSHKey.name} 
-										placeholder="Default Key"
-									/>
+									<Input bind:value={newSSHKey.name} placeholder="Default Key" />
 								</div>
 
 								<div class="key-generation-actions">
-									<Button 
-										onclick={generateSSHKeyPair} 
-										disabled={loading}
-										variant="primary"
-									>
+									<Button onclick={generateSSHKeyPair} disabled={loading} variant="primary">
 										Generate SSH Key Pair
 									</Button>
 								</div>
@@ -340,20 +334,12 @@
 									<div class="generated-keys">
 										<h5>Keys Generated Successfully!</h5>
 										<p>Download both keys and keep the private key secure.</p>
-										
+
 										<div class="key-download-actions">
-											<Button 
-												onclick={downloadPrivateKey}
-												size="small"
-												variant="ghost"
-											>
+											<Button onclick={downloadPrivateKey} size="small" variant="ghost">
 												Download Private Key
 											</Button>
-											<Button 
-												onclick={downloadPublicKey}
-												size="small"
-												variant="ghost"
-											>
+											<Button onclick={downloadPublicKey} size="small" variant="ghost">
 												Download Public Key
 											</Button>
 										</div>
@@ -374,26 +360,23 @@
 							<div class="add-ssh-key">
 								<h4>Add Existing SSH Key</h4>
 								<p>Paste an existing SSH public key to authorize it for login.</p>
-								
+
 								<div class="form-group">
 									<label>Key Name</label>
-									<Input 
-										bind:value={newSSHKey.name} 
-										placeholder="My SSH Key"
-									/>
+									<Input bind:value={newSSHKey.name} placeholder="My SSH Key" />
 								</div>
 
 								<div class="form-group">
 									<label>Public Key</label>
-									<textarea 
+									<textarea
 										bind:value={newSSHKey.publicKey}
 										placeholder="ssh-rsa AAAAB3NzaC1yc2E... or ssh-ed25519 AAAAC3N..."
 										rows="3"
 									></textarea>
 								</div>
 
-								<Button 
-									onclick={addSSHKey} 
+								<Button
+									onclick={addSSHKey}
 									disabled={!newSSHKey.publicKey.trim() || !isValidSSHKey(newSSHKey.publicKey)}
 									size="small"
 								>
@@ -410,11 +393,7 @@
 												<strong>{key.name}</strong>
 												<code>{key.publicKey.substring(0, 50)}...</code>
 											</div>
-											<Button 
-												onclick={() => removeSSHKey(index)}
-												variant="ghost"
-												size="small"
-											>
+											<Button onclick={() => removeSSHKey(index)} variant="ghost" size="small">
 												Remove
 											</Button>
 										</div>
@@ -445,8 +424,14 @@
 
 							<div class="review-item">
 								<h4>OAuth Providers</h4>
-								<p><strong>GitHub:</strong> {setupData.oauth.github.enabled ? 'Enabled' : 'Disabled'}</p>
-								<p><strong>Google:</strong> {setupData.oauth.google.enabled ? 'Enabled' : 'Disabled'}</p>
+								<p>
+									<strong>GitHub:</strong>
+									{setupData.oauth.github.enabled ? 'Enabled' : 'Disabled'}
+								</p>
+								<p>
+									<strong>Google:</strong>
+									{setupData.oauth.google.enabled ? 'Enabled' : 'Disabled'}
+								</p>
 							</div>
 
 							<div class="review-item">
@@ -457,11 +442,7 @@
 
 						<div class="step-actions">
 							<Button onclick={prevStep} variant="ghost">Back</Button>
-							<Button 
-								onclick={completeSetup} 
-								disabled={!canComplete || loading}
-								{loading}
-							>
+							<Button onclick={completeSetup} disabled={!canComplete || loading} {loading}>
 								Complete Setup
 							</Button>
 						</div>
@@ -485,6 +466,8 @@
 	.container {
 		width: 100%;
 		max-width: 600px;
+		overflow: auto;
+		max-height: calc(100svh - 50px);
 	}
 
 	.setup-content {

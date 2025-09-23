@@ -16,6 +16,7 @@
 	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
 	import { getIconForEvent } from '$lib/client/claude/claudeEventIcons.js';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
+	import { getStoredAuthToken } from '$lib/client/shared/socket-auth.js';
 	import IconClaude from '../shared/components/Icons/IconClaude.svelte';
 	// Using global styles for inputs
 
@@ -621,8 +622,11 @@
 		console.log('ClaudePane mounting with:', { sessionId, claudeSessionId, shouldResume });
 
 		try {
-			// Authenticate if not already done
-			const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+			// Authenticate if not already done using JWT from cookie
+			const key = getStoredAuthToken();
+			if (!key) {
+				throw new Error('No authentication token found');
+			}
 			if (!runSessionClient.getStatus().authenticated) {
 				await runSessionClient.authenticate(key);
 			}

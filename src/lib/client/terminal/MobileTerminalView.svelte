@@ -7,6 +7,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
+	import { getStoredAuthToken } from '$lib/client/shared/socket-auth.js';
 	import MobileTerminalInput from './MobileTerminalInput.svelte';
 	import { AnsiUp } from 'ansi_up';
 
@@ -24,7 +25,8 @@
 	const MAX_LINES = 1000; // Keep only last 1000 lines for performance
 	let lineIdCounter = 0; // Unique counter for line IDs
 
-	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+	// Get JWT token from cookie for authentication
+	let key = getStoredAuthToken();
 
 	// Initialize AnsiUp for proper ANSI escape sequence handling
 	const ansiUp = new AnsiUp();

@@ -6,11 +6,11 @@
 	let { data, children } = $props();
 
 	onMount(() => {
-		// Set body class based on whether TERMINAL_KEY is configured OR user has stored auth token
+		// Check if user has authentication (cookie-based or localStorage)
 		const hasStoredAuth = !!getStoredAuthToken();
-		const hasAuth = data?.hasTerminalKey || hasStoredAuth;
 
-		if (!hasAuth) {
+		// Always use new authentication system, ignore TERMINAL_KEY
+		if (!hasStoredAuth) {
 			document.body.classList.add('no-key');
 		} else {
 			document.body.classList.remove('no-key');

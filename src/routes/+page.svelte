@@ -119,9 +119,15 @@
 			});
 			
 			loading = false;
-			
+
 			if (r.ok) {
-				// Cookie is already set by the server
+				// Parse response to get token for WebSocket authentication
+				const response = await r.json();
+				if (response.token) {
+					// Store token in sessionStorage for WebSocket authentication
+					// (httpOnly cookie handles HTTP requests)
+					sessionStorage.setItem('dispatch-auth-token', response.token);
+				}
 				goto('/workspace');
 			} else {
 				const j = await r.json().catch(() => ({}));

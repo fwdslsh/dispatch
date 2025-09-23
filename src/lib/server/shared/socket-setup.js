@@ -1,5 +1,4 @@
 import { Server } from 'socket.io';
-import { getAuthManager } from './auth.js';
 import { logger } from './utils/logger.js';
 
 // Admin event tracking
@@ -45,9 +44,7 @@ export function getSocketEvents(limit = 100) {
 }
 
 // Helper function for auth validation in event handlers
-async function requireValidAuth(socket, token, callback) {
-	const authManager = getAuthManager();
-	
+async function requireValidAuth(socket, token, authManager, callback) {
 	if (!authManager) {
 		logger.warn('SOCKET', 'AuthManager not initialized');
 		if (callback) callback({ success: false, error: 'Authentication system not available' });
@@ -92,7 +89,7 @@ export function setupSocketIO(httpServer, services) {
 		services.tunnelManager.setSocketIO(io);
 	}
 
-	const { runSessionManager } = services;
+	const { runSessionManager, authManager } = services;
 
 	if (!runSessionManager) {
 		logger.error('SOCKET_SETUP', 'RunSessionManager not provided in services');
@@ -133,12 +130,12 @@ export function setupSocketIO(httpServer, services) {
 		socket.on('auth', async (token, callback) => {
 			try {
 				logger.info('SOCKET', `Auth event received from ${socket.id}`);
-				if (await requireValidAuth(socket, token, callback)) {
+				if (await requireValidAuth(socket, token, authManager, callback)) {
 					// Auth is valid, send success response
-					if (callback) callback({ 
-						success: true, 
+					if (callback) callback({
+						success: true,
 						method: socket.data.authMethod,
-						userId: socket.data.userId 
+						userId: socket.data.userId
 					});
 				}
 				// Error response already sent by requireValidAuth if auth was invalid

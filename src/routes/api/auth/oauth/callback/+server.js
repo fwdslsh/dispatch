@@ -55,7 +55,7 @@ export async function GET({ url, cookies, locals }) {
 		
 		// Create session
 		const session = await authManager.createSession(user.id, `${provider}_oauth`);
-		
+
 		// Set secure cookie
 		cookies.set('dispatch-auth-token', session.token, {
 			path: '/',
@@ -65,8 +65,9 @@ export async function GET({ url, cookies, locals }) {
 			maxAge: 60 * 60 * 24 * 7 // 7 days
 		});
 
-		// Redirect to workspace
-		throw redirect(302, '/workspace');
+		// Store token in sessionStorage for WebSocket auth via URL fragment
+		const workspaceUrl = `/workspace#token=${encodeURIComponent(session.token)}`;
+		throw redirect(302, workspaceUrl);
 	} catch (error) {
 		if (error.status === 302) {
 			throw error; // Re-throw redirects
