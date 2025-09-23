@@ -23,9 +23,8 @@
 			await settingsService.loadServerSettings();
 		}
 
-		// Load workspace environment variables
-		const workspaceSettings = settingsService.getServerSettings('workspace') || {};
-		const envVarsObject = workspaceSettings.envVariables || {};
+		// Load workspace environment variables using the get method
+		const envVarsObject = settingsService.get('workspace.envVariables', {});
 
 		// Convert object to array format for editing
 		envVariables = Object.entries(envVarsObject).map(([key, value]) => ({ key, value }));
@@ -135,8 +134,7 @@
 						<Input
 							bind:value={envVar.key}
 							placeholder="Variable name (e.g., NODE_ENV, API_KEY)"
-							class="env-input"
-							class:invalid={envVar.key && !validateEnvVarKey(envVar.key)}
+							class="env-input {envVar.key && !validateEnvVarKey(envVar.key) ? 'invalid' : ''}"
 						/>
 						{#if envVar.key && !validateEnvVarKey(envVar.key)}
 							<span class="validation-error">Invalid variable name</span>
