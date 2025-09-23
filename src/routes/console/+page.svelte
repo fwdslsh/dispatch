@@ -1,6 +1,8 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { io } from 'socket.io-client';
+	import UserManagement from '$lib/client/shared/components/admin/UserManagement.svelte';
+	import AuthenticationSettings from '$lib/client/shared/components/admin/AuthenticationSettings.svelte';
 
 	let socket = null;
 	let activeSockets = [];
@@ -19,11 +21,12 @@
 			}
 		};
 	});
-	// Helper to get Authorization header from localStorage
+	// Helper to get Authorization header from sessionStorage (updated for JWT auth)
 	function getAuthHeaders() {
-		const key =
-			typeof localStorage !== 'undefined' ? localStorage.getItem('dispatch-auth-key') : null;
-		return key ? { Authorization: `Bearer ${key}` } : {};
+		const token = typeof sessionStorage !== 'undefined'
+			? sessionStorage.getItem('dispatch-auth-token')
+			: null;
+		return token ? { Authorization: `Bearer ${token}` } : {};
 	}
 	function initializeAdminConsole() {
 		// Initialize Socket.IO connection for admin features
@@ -227,6 +230,18 @@
 				>
 					<span class="tab-label">Server Logs</span>
 					<span class="badge">{serverLogs.length}</span>
+				</button>
+				<button
+					class="nav-tab {selectedTab === 'users' ? 'active' : ''}"
+					onclick={() => (selectedTab = 'users')}
+				>
+					<span class="tab-label">Users</span>
+				</button>
+				<button
+					class="nav-tab {selectedTab === 'auth' ? 'active' : ''}"
+					onclick={() => (selectedTab = 'auth')}
+				>
+					<span class="tab-label">Authentication</span>
 				</button>
 			</div>
 		</div>
@@ -505,6 +520,14 @@
 							</div>
 						{/if}
 					{/if}
+				</section>
+			{:else if selectedTab === 'users'}
+				<section class="tab-section">
+					<UserManagement />
+				</section>
+			{:else if selectedTab === 'auth'}
+				<section class="tab-section">
+					<AuthenticationSettings />
 				</section>
 			{/if}
 		</div>

@@ -99,9 +99,9 @@ export class AuthManager {
 	}
 
 	/**
-	 * Create a new user (typically the first admin user)
+	 * Create a new user (setup/legacy method)
 	 */
-	async createUser(username, email, isAdmin = false, authMethods = []) {
+	async createUserLegacy(username, email, isAdmin = false, authMethods = []) {
 		const userId = crypto.randomUUID();
 		const now = Date.now();
 
@@ -297,7 +297,7 @@ export class AuthManager {
 
 		if (!user) {
 			// Create new user
-			const userId = await this.createUser(
+			const userId = await this.createUserLegacy(
 				profile.username || profile.login || profile.email,
 				profile.email,
 				this.isFirstUser, // First user becomes admin
@@ -323,5 +323,213 @@ export class AuthManager {
 		}
 
 		return user;
+	}
+
+	/**
+	 * Admin User Management Methods
+	 */
+
+	/**
+	 * Get all users (admin only)
+	 */
+	async getAllUsers() {
+		const users = await this.db.all(`
+			SELECT
+				id, username, email, is_admin, auth_methods,
+				created_at, updated_at,
+				(SELECT MAX(created_at) FROM auth_sessions WHERE user_id = users.id) as last_login_at
+			FROM users
+			ORDER BY created_at ASC
+		`);
+
+		return users.map(user => ({
+			...user,
+			isAdmin: !!user.is_admin,
+			authMethods: JSON.parse(user.auth_methods || '[]'),
+			createdAt: user.created_at,
+			updatedAt: user.updated_at,
+			lastLoginAt: user.last_login_at
+		}));
+	}
+
+	/**
+	 * Create user (admin API version)
+	 */
+	async createUser(userData) {
+		const { username, email, isAdmin = false } = userData;
+		const userId = crypto.randomUUID();
+		const now = Date.now();
+
+		await this.db.run(
+			`INSERT INTO users (id, username, email, is_admin, auth_methods, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			[userId, username, email, isAdmin, JSON.stringify([]), now, now]
+		);
+
+		const user = await this.db.get('SELECT * FROM users WHERE id = ?', [userId]);
+		return {
+			...user,
+			isAdmin: !!user.is_admin,
+			authMethods: JSON.parse(user.auth_methods || '[]'),
+			createdAt: user.created_at,
+			updatedAt: user.updated_at
+		};
+	}
+
+	/**
+	 * Update user (admin only)
+	 */
+	async updateUser(userId, updates) {
+		const { username, email, isAdmin } = updates;
+		const now = Date.now();
+
+		await this.db.run(
+			`UPDATE users
+			 SET username = ?, email = ?, is_admin = ?, updated_at = ?
+			 WHERE id = ?`,
+			[username, email, isAdmin, now, userId]
+		);
+
+		const user = await this.db.get('SELECT * FROM users WHERE id = ?', [userId]);
+		return {
+			...user,
+			isAdmin: !!user.is_admin,
+			authMethods: JSON.parse(user.auth_methods || '[]'),
+			createdAt: user.created_at,
+			updatedAt: user.updated_at
+		};
+	}
+
+	/**
+	 * Delete user (admin only)
+	 */
+	async deleteUser(userId) {
+		// Delete user's SSH keys
+		await this.db.run('DELETE FROM ssh_keys WHERE user_id = ?', [userId]);
+
+		// Delete user's sessions
+		await this.db.run('DELETE FROM auth_sessions WHERE user_id = ?', [userId]);
+
+		// Delete user
+		await this.db.run('DELETE FROM users WHERE id = ?', [userId]);
+	}
+
+	/**
+	 * SSH Key Management for Admin
+	 */
+
+	/**
+	 * Get SSH keys for a user (admin only)
+	 */
+	async getUserSSHKeys(userId) {
+		const keys = await this.db.all(
+			'SELECT id, name, public_key, fingerprint, created_at FROM ssh_keys WHERE user_id = ? ORDER BY created_at DESC',
+			[userId]
+		);
+
+		return keys.map(key => ({
+			...key,
+			publicKey: key.public_key,
+			createdAt: key.created_at
+		}));
+	}
+
+	/**
+	 * Add SSH key for user (admin only)
+	 */
+	async addUserSSHKey(userId, keyData) {
+		const { name, publicKey } = keyData;
+		const keyId = crypto.randomUUID();
+		const fingerprint = this.generateSSHKeyFingerprint(publicKey);
+		const now = Date.now();
+
+		await this.db.run(
+			`INSERT INTO ssh_keys (id, user_id, public_key, fingerprint, name, created_at)
+			 VALUES (?, ?, ?, ?, ?, ?)`,
+			[keyId, userId, publicKey, fingerprint, name, now]
+		);
+
+		const key = await this.db.get('SELECT * FROM ssh_keys WHERE id = ?', [keyId]);
+		return {
+			...key,
+			publicKey: key.public_key,
+			createdAt: key.created_at
+		};
+	}
+
+	/**
+	 * Delete SSH key (admin only)
+	 */
+	async deleteUserSSHKey(userId, keyId) {
+		await this.db.run('DELETE FROM ssh_keys WHERE id = ? AND user_id = ?', [keyId, userId]);
+	}
+
+	/**
+	 * OAuth Configuration Management
+	 */
+
+	/**
+	 * Get all OAuth configuration (admin only)
+	 */
+	async getAllOAuthConfig() {
+		const configs = await this.db.all('SELECT * FROM oauth_config');
+
+		const result = {
+			github: { enabled: false, clientId: '', clientSecret: '' },
+			google: { enabled: false, clientId: '', clientSecret: '' }
+		};
+
+		for (const config of configs) {
+			if (config.provider === 'github' || config.provider === 'google') {
+				result[config.provider] = {
+					enabled: !!config.enabled,
+					clientId: config.client_id || '',
+					clientSecret: config.client_secret || ''
+				};
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Get user by ID
+	 */
+	async getUserById(userId) {
+		return await this.db.get('SELECT * FROM users WHERE id = ?', [userId]);
+	}
+
+	/**
+	 * Verify JWT token
+	 */
+	verifyJWT(token) {
+		return jwt.verify(token, this.jwtSecret);
+	}
+
+	/**
+	 * Update OAuth configuration (admin only)
+	 */
+	async updateOAuthConfig(oauthConfig) {
+		const now = Date.now();
+
+		for (const [provider, config] of Object.entries(oauthConfig)) {
+			if (provider === 'github' || provider === 'google') {
+				if (config.enabled && config.clientId && config.clientSecret) {
+					// Insert or update OAuth config
+					await this.db.run(`
+						INSERT OR REPLACE INTO oauth_config
+						(provider, client_id, client_secret, enabled, created_at, updated_at)
+						VALUES (?, ?, ?, ?, ?, ?)
+					`, [provider, config.clientId, config.clientSecret, true, now, now]);
+				} else {
+					// Disable or remove config
+					await this.db.run(`
+						INSERT OR REPLACE INTO oauth_config
+						(provider, client_id, client_secret, enabled, created_at, updated_at)
+						VALUES (?, ?, ?, ?, ?, ?)
+					`, [provider, '', '', false, now, now]);
+				}
+			}
+		}
 	}
 }

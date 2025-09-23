@@ -47,7 +47,7 @@ export async function POST({ request, locals }) {
 		}
 
 		// Create the first admin user
-		const userId = await authManager.createUser(username, email, true, ['setup']);
+		const userId = await authManager.createUserLegacy(username, email, true, ['setup']);
 
 		// Configure OAuth providers if provided
 		if (oauth) {
