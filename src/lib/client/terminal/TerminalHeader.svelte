@@ -5,9 +5,9 @@
 	Adds terminal-specific controls and status indicators
 -->
 <script>
-	import IconButton from '../IconButton.svelte';
-	import IconX from '../Icons/IconX.svelte';
-	import IconTerminal from '../Icons/IconTerminal.svelte';
+	import IconButton from '../shared/components/IconButton.svelte';
+	import IconX from '../shared/components/Icons/IconX.svelte';
+	import IconTerminal from '../shared/components/Icons/IconTerminal.svelte';
 
 	// Props
 	let { session, onClose = () => {}, index = 0, shell = 'bash' } = $props();

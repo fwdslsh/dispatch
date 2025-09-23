@@ -31,7 +31,7 @@
 	// Load settings from the service into our local state
 	function updateSettingsFromService() {
 		settings = {
-			model: settingsService.get('claude.model', 'claude-3-5-sonnet-20241022'),
+			model: settingsService.get('claude.model', ''),
 			customSystemPrompt: settingsService.get('claude.customSystemPrompt', ''),
 			appendSystemPrompt: settingsService.get('claude.appendSystemPrompt', ''),
 			maxTurns: settingsService.get('claude.maxTurns', null),
@@ -159,106 +159,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-6);
-	}
-
-	.settings-section {
-		border: 1px solid var(--primary-dim);
-		border-radius: 4px;
-		padding: var(--space-4);
-		background: rgba(46, 230, 107, 0.02);
-	}
-
-	.section-title {
-		font-family: var(--font-mono);
-		font-size: 1.1rem;
-		color: var(--text-primary);
-		margin: 0 0 var(--space-4) 0;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		border-bottom: 1px solid var(--primary-dim);
-		padding-bottom: var(--space-2);
-	}
-
-	.input-group {
-		margin-bottom: var(--space-4);
-	}
-
-	.input-group:last-child {
-		margin-bottom: 0;
-	}
-
-	.input-label {
-		display: block;
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		color: var(--text-primary);
-		margin-bottom: var(--space-2);
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.select-input {
-		width: 100%;
-		padding: var(--space-2) var(--space-3);
-		background: var(--bg-dark);
-		border: 1px solid var(--primary-dim);
-		border-radius: 2px;
-		color: var(--text-primary);
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.select-input:focus {
-		outline: none;
-		border-color: var(--primary);
-		box-shadow: 0 0 0 2px rgba(46, 230, 107, 0.2);
-	}
-
-	.checkbox-label {
-		display: flex;
-		align-items: flex-start;
-		gap: var(--space-2);
-		cursor: pointer;
-		user-select: none;
-	}
-
-	.checkbox-input {
-		width: 18px;
-		height: 18px;
-		border: 2px solid var(--primary-dim);
-		background: var(--bg-dark);
-		border-radius: 2px;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.checkbox-input:checked {
-		background: var(--primary);
-		border-color: var(--primary);
-	}
-
-	.checkbox-text {
-		font-size: 0.9rem;
-		user-select: none;
-	}
-
-	.input-help {
-		margin: var(--space-2) 0 0 0;
-		font-size: 0.8rem;
-		color: var(--text-muted);
-		font-style: italic;
-	}
-
-	.override-indicator {
-		color: var(--primary);
-		font-weight: bold;
-		margin-left: var(--space-1);
-		cursor: help;
-		text-shadow: 0 0 4px var(--primary-glow);
-		font-size: 0.8rem;
 	}
 
 	.settings-footer {

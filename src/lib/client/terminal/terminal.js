@@ -1,5 +1,5 @@
 import TerminalPane from '$lib/client/terminal/TerminalPane.svelte';
-import TerminalHeader from '$lib/client/shared/components/session-headers/TerminalHeader.svelte';
+import TerminalHeader from '$lib/client/terminal/TerminalHeader.svelte';
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
 /**
