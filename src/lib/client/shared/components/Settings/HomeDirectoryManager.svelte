@@ -99,16 +99,13 @@
 		error = null;
 
 		try {
-			const response = await fetch(
-				`/api/files?path=${encodeURIComponent(selectedFile.path)}`,
-				{
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({ content: fileContent })
-				}
-			);
+			const response = await fetch(`/api/files?path=${encodeURIComponent(selectedFile.path)}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: fileContent })
+			});
 
 			const data = await response.json();
 
@@ -217,7 +214,7 @@
 			// Get the server's home directory from the environment API
 			const response = await fetch('/api/environment');
 			const data = await response.json();
-			
+
 			if (response.ok && data.homeDirectory) {
 				homeDirectory = data.homeDirectory;
 				if (!currentDirectory) {
