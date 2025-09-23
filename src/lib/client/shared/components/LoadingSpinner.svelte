@@ -33,17 +33,14 @@
 		if (customClass) classes.push(...customClass.split(' '));
 		return classes.join(' ');
 	});
-
-	// Compute wrapper classes
-	const wrapperClasses = $derived(() => {
-		const classes = ['spinner-wrapper'];
-		if (!inline) classes.push('spinner-wrapper--centered');
-		if (text) classes.push('spinner-wrapper--with-text');
-		return classes.join(' ');
-	});
 </script>
 
-<div class={wrapperClasses} {...restProps}>
+<div
+	class="flex flex-col flex-center gap-2 {inline ? '' : 'spinner-wrapper--centered'} {text
+		? 'spinner-wrapper--with-text'
+		: ''}"
+	{...restProps}
+>
 	<div class={spinnerClasses} role="status" aria-label={ariaLabel} aria-live="polite">
 		<div class="spinner__circle"></div>
 		{#if text}

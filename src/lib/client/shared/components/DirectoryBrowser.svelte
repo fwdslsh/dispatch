@@ -8,7 +8,6 @@
 	import IconX from './Icons/IconX.svelte';
 	import IconFile from './Icons/IconFile.svelte';
 	import IconCheck from './Icons/IconCheck.svelte';
-	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import IconButton from './IconButton.svelte';
 	import Input from './Input.svelte';
 	import IconUpload from './Icons/IconUpload.svelte';
@@ -323,25 +322,28 @@
 {#if !isOpen}
 	<button
 		type="button"
-		class="directory-summary"
+		class="directory-summary-enhanced w-full text-left"
 		onclick={() => (isOpen = true)}
 		aria-expanded={isOpen}
 	>
-		<span class="summary-icon"><IconFolder size={18} /></span>
-		<span class="summary-text">{displaySelection}</span>
+		<span class="directory-icon-enhanced"><IconFolder size={18} /></span>
+		<span class="flex-1 text-primary font-medium">{displaySelection}</span>
 	</button>
 {:else}
-	<div class="directory-browser">
+	<div class="directory-browser-enhanced">
 		<!-- Breadcrumb navigation -->
-		<div class="breadcrumb-bar" class:selected={selected > ''} aria-label="Breadcrumbs">
-			<div class="breadcrumbs">
+		<div
+			class="directory-breadcrumb-enhanced {selected > '' ? 'bg-primary-glow-10' : ''}"
+			aria-label="Breadcrumbs"
+		>
+			<div class="flex items-center gap-1 overflow-x-auto flex-1">
 				{#each breadcrumbs as crumb, i}
 					{#if i > 0}
-						<span class="separator">/</span>
+						<span class="breadcrumb-separator">/</span>
 					{/if}
 					<button
 						type="button"
-						class="breadcrumb-item"
+						class="breadcrumb-item-enhanced"
 						onclick={() => navigateTo(crumb.path)}
 						disabled={loading}
 					>
@@ -349,7 +351,7 @@
 					</button>
 				{/each}
 			</div>
-			<div class="breadcrumb-actions">
+			<div class="flex items-center gap-1 ml-auto shrink-0">
 				{#if !isAlwaysOpen}
 					<IconButton
 						type="button"
@@ -379,10 +381,19 @@
 			</IconButton>
 		</div>
 	{/if} -->
+
+		<div class="container">
+			<!-- Git Operations -->
+			<GitOperations
+				{currentPath}
+				onRefresh={() => browse(currentPath)}
+				onError={(err) => (error = err)}
+			/>
+		</div>
 		<!-- Search bar -->
-		<div class="search-bar">
-			<Input type="text" bind:value={query} {placeholder} disabled={loading} class="search-input" />
-			<div class="btn-group">
+		<div class="flex-between gap-3 p-4 border-b border-surface-border bg-surface-glass">
+			<Input type="text" bind:value={query} {placeholder} disabled={loading} class="flex-1" />
+			<div class="flex items-center gap-2">
 				{#if !isAlwaysOpen}
 					<IconButton
 						type="button"
@@ -451,42 +462,49 @@
 
 		<!-- New directory input -->
 		{#if showNewDirInput}
-			<div class="new-dir-form">
-				<Input
-					type="text"
-					bind:value={newDirName}
-					placeholder="Enter new directory name..."
-					disabled={creatingDir}
-					class="new-dir-input"
-					onkeydown={(e) => e.key === 'Enter' && createNewDirectory()}
-				/>
-				<Button
-					type="button"
-					class="create-btn"
-					onclick={createNewDirectory}
-					disabled={creatingDir || !newDirName.trim()}
-				>
-					{creatingDir ? 'Creating...' : 'Create'}
-				</Button>
-				<Button type="button" class="cancel-btn" onclick={toggleNewDirInput} disabled={creatingDir}>
-					Cancel
-				</Button>
+			<div class="p-4 bg-surface-highlight border-b border-surface-border">
+				<div class="flex items-center gap-3">
+					<Input
+						type="text"
+						bind:value={newDirName}
+						placeholder="Enter new directory name..."
+						disabled={creatingDir}
+						class="flex-1"
+						onkeydown={(e) => e.key === 'Enter' && createNewDirectory()}
+					/>
+					<Button
+						type="button"
+						class="wm-action-button"
+						onclick={createNewDirectory}
+						disabled={creatingDir || !newDirName.trim()}
+					>
+						{creatingDir ? 'Creating...' : 'Create'}
+					</Button>
+					<Button
+						type="button"
+						class="btn-icon-only ghost"
+						onclick={toggleNewDirInput}
+						disabled={creatingDir}
+					>
+						Cancel
+					</Button>
+				</div>
 			</div>
 		{/if}
 
 		<!-- Clone directory input -->
 		{#if showCloneDirInput}
-			<div class="clone-dir-form">
-				<div class="clone-dir-header">
-					<h4>Clone Directory</h4>
+			<div class="p-3 bg-surface-highlight border-b border-surface-border">
+				<div>
+					<h4 class="text-sm font-medium mb-2 text-text">Clone Directory</h4>
 				</div>
-				<div class="clone-dir-fields">
+				<div class="space-y-2">
 					<Input
 						type="text"
 						bind:value={cloneSourcePath}
 						placeholder="Source directory path..."
 						disabled={cloningDir}
-						class="clone-source-input"
+						class="flex-1"
 						label="Source Directory"
 					/>
 					<Input
@@ -494,16 +512,21 @@
 						bind:value={cloneTargetPath}
 						placeholder="Target directory path..."
 						disabled={cloningDir}
-						class="clone-target-input"
+						class="flex-1"
 						label="Target Directory"
 						onkeydown={(e) => e.key === 'Enter' && cloneDirectory()}
 					/>
-					<label class="clone-overwrite-option">
-						<input type="checkbox" bind:checked={cloneOverwrite} disabled={cloningDir} />
+					<label class="flex items-center gap-2 text-sm text-muted cursor-pointer">
+						<input
+							type="checkbox"
+							bind:checked={cloneOverwrite}
+							disabled={cloningDir}
+							class="w-4 h-4"
+						/>
 						Overwrite if target exists
 					</label>
 				</div>
-				<div class="clone-dir-actions">
+				<div class="flex items-center gap-2 mt-3">
 					<Button
 						type="button"
 						class="clone-btn"
@@ -526,658 +549,275 @@
 
 		<!-- Status bar -->
 		{#if loading || error}
-			<div class="status-bar">
+			<div class="px-3 py-2 text-sm">
 				{#if loading}
-					<span class="loading">Loading...</span>
+					<span class="loading-state">Loading...</span>
 				{/if}
 				{#if error}
-					<span class="error">{error}</span>
+					<span class="error-state">{error}</span>
 				{/if}
 			</div>
 		{/if}
 
 		<!-- Directory listing -->
-		<div class="directory-list">
+		<div class="max-h-96 overflow-y-auto p-2">
 			{#if currentPath !== '/'}
-				<div class="list-item parent-dir">
-					<button type="button" onclick={goUp} disabled={loading} class="item-button">
-						<span class="icon"><IconFolder size={20} /></span>
-						<span class="name">..</span>
-						<span class="type">parent directory</span>
+				<div class="directory-item-enhanced">
+					<span class="directory-icon-enhanced"><IconFolder size={20} /></span>
+					<button
+						type="button"
+						onclick={goUp}
+						disabled={loading}
+						class="flex-1 text-left font-medium disabled:opacity-50 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer"
+					>
+						..
 					</button>
+					<span class="text-xs text-muted opacity-75">parent directory</span>
 				</div>
 			{/if}
 
 			{#each filtered as entry}
-				<div class="list-item">
+				<div class="directory-item-enhanced {selected === entry.path ? 'selected' : ''}">
 					{#if entry.isDirectory}
+						<span class="directory-icon-enhanced"><IconFolder size={20} /></span>
 						<button
 							type="button"
 							onclick={() => navigateTo(entry.path)}
 							disabled={loading}
-							class="item-button"
+							class="flex-1 text-left font-medium cursor-pointer"
 						>
-							<span class="icon"><IconFolder size={20} /></span>
-							<span class="name">{entry.name}</span>
-							<span class="type">directory</span>
+							{entry.name}
 						</button>
+						<span class="text-xs text-muted opacity-75">directory</span>
 						{#if !isAlwaysOpen}
-							<IconButton
-								type="button"
-								onclick={() => selectDirectory(entry.path)}
-								disabled={loading}
-								class="quick-select"
-								title="Select this directory"
-							>
-								<IconCheck size={16} />
-							</IconButton>
+							<div class="px-2">
+								<IconButton
+									type="button"
+									onclick={() => selectDirectory(entry.path)}
+									disabled={loading}
+									title="Select this directory"
+									variant="ghost"
+								>
+									<IconCheck size={16} />
+								</IconButton>
+							</div>
 						{/if}
 					{:else if showFileActions && onFileOpen}
+						<span class="directory-icon-enhanced"><IconFile size={20} /></span>
 						<button
 							type="button"
-							class="item-button file interactive"
+							class="flex-1 text-left font-medium bg-transparent border-none cursor-pointer hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
 							onclick={() => openFile(entry)}
 							disabled={loading}
 							title="Open file"
 						>
-							<span class="icon"><IconFile size={20} /></span>
-							<span class="name">{entry.name}</span>
-							<span class="type">file</span>
+							{entry.name}
 						</button>
+						<span class="text-xs text-muted opacity-75">file</span>
 					{:else}
-						<div class="item-button file">
-							<span class="icon"><IconFile size={20} /></span>
-							<span class="name">{entry.name}</span>
-							<span class="type">file</span>
-						</div>
+						<span class="directory-icon-enhanced"><IconFile size={20} /></span>
+						<span class="flex-1 font-medium text-muted">{entry.name}</span>
+						<span class="text-xs text-muted opacity-75">file</span>
 					{/if}
 				</div>
 			{/each}
 
 			{#if !loading && filtered.length === 0 && !error}
-				<div class="empty-message">
+				<div class="p-6 text-center text-muted font-medium">
 					{query ? 'No matching items' : 'This directory is empty'}
 				</div>
 			{/if}
 		</div>
-
-		<!-- Git Operations -->
-		<GitOperations
-			{currentPath}
-			onRefresh={() => browse(currentPath)}
-			onError={(err) => (error = err)}
-		/>
 	</div>
 {/if}
 
 <style>
-	.directory-summary {
+	/* ==================================================================
+   ENHANCED DIRECTORY BROWSER UTILITIES
+   Modern file browser with glass morphism and micro-interactions
+   ================================================================== */
+
+	.directory-summary-enhanced {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
-		height: 44px;
-		width: 100%;
-		padding: 0 calc(var(--space-3) * 1.1);
-		border-radius: 10px;
-		border: 1px solid var(--db-border-subtle);
-		background:
-			linear-gradient(135deg, rgba(15, 25, 20, 0.35) 0%, rgba(10, 20, 15, 0.2) 100%),
-			linear-gradient(180deg, rgba(46, 230, 107, 0.05) 0%, transparent 100%);
-		color: var(--db-text-secondary);
-		font-family: var(--font-mono);
-		font-size: calc(var(--font-size-1) * 0.95);
-		cursor: pointer;
-		transition: all var(--db-transition-fast);
-		box-shadow:
-			var(--db-shadow-sm),
-			inset 0 1px 2px rgba(46, 230, 107, 0.08);
-	}
-
-	.directory-summary:hover {
-		transform: translateY(-1px);
-		box-shadow:
-			0 4px 12px rgba(0, 0, 0, 0.25),
-			inset 0 1px 3px rgba(46, 230, 107, 0.12);
-		border-color: rgba(46, 230, 107, 0.35);
-	}
-
-	.directory-summary:focus-visible {
-		outline: 2px solid var(--db-primary);
-		outline-offset: 2px;
-	}
-
-	.summary-icon {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--db-primary);
-	}
-
-	.summary-text {
-		flex: 1;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		text-align: left;
-	}
-
-	.directory-browser {
-		display: flex;
-		flex-direction: column;
-		gap: calc(var(--space-3) * 1.2);
-		background:
-			linear-gradient(135deg, var(--db-bg-gradient-start) 0%, var(--db-bg-gradient-end) 100%),
-			radial-gradient(circle at 20% 80%, var(--db-primary-dim) 0%, transparent 50%);
-		border: 1px solid var(--db-border-subtle);
+		gap: var(--space-3);
+		padding: var(--space-4);
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
+			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%)
+		);
+		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
 		border-radius: 12px;
-		padding: calc(var(--space-3) * 1);
-		font-family: var(--font-mono);
-		width: 100%;
-		height: 100%;
-		position: relative;
-		overflow: hidden;
-		box-shadow:
-			var(--db-shadow-lg),
-			inset 0 2px 4px rgba(46, 230, 107, 0.05),
-			inset 0 -1px 2px rgba(0, 0, 0, 0.5);
-		transition: all var(--db-transition-smooth);
-	}
-
-	.breadcrumb-actions {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.directory-browser::before {
-		content: '';
-		position: absolute;
-		top: -2px;
-		left: -2px;
-		right: -2px;
-		bottom: -2px;
-		background: linear-gradient(45deg, var(--db-primary-dim), transparent, var(--db-primary-dim));
-		border-radius: 16px;
-		opacity: 0;
-		transition: opacity var(--db-transition-smooth);
-		z-index: -1;
-	}
-
-	.directory-browser:hover::before {
-		opacity: 0.3;
-		animation: shimmer 3s linear infinite;
-	}
-
-	/* Breadcrumb bar */
-	.breadcrumb-bar {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: calc(var(--space-2) * 1.25) calc(var(--space-3) * 1.1);
-		background:
-			linear-gradient(90deg, var(--db-surface-elevated) 0%, var(--db-surface) 100%),
-			linear-gradient(180deg, rgba(46, 230, 107, 0.03) 0%, transparent 100%);
-		border: 1px solid var(--db-border-subtle);
-		border-radius: 10px;
-		min-height: 44px;
-		overflow-x: auto;
-		overflow-y: hidden;
-		scrollbar-width: thin;
-		scrollbar-color: var(--db-primary-dim) transparent;
-		backdrop-filter: blur(10px) saturate(1.2);
-		box-shadow:
-			var(--db-shadow-sm),
-			inset 0 2px 4px rgba(46, 230, 107, 0.02),
-			inset 0 -1px 2px rgba(0, 0, 0, 0.3);
-		position: relative;
-	}
-
-	.breadcrumb-bar::after {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 1px;
-		background: linear-gradient(90deg, transparent, var(--db-primary-dim), transparent);
-		opacity: 0.5;
-	}
-
-	.breadcrumb-bar.selected::after {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 1px;
-		background: linear-gradient(90deg, transparent, var(--db-primary-glow), transparent);
-		opacity: 0.5;
-	}
-	.breadcrumbs {
-		display: flex;
-		align-items: center;
-		flex: 1;
-		min-width: 0;
-	}
-
-	.breadcrumb-item {
-		background: transparent;
-		border: none;
-		color: var(--db-text-muted);
-		font-family: var(--font-mono);
-		font-size: calc(var(--font-size-1) * 0.95);
-		font-weight: 500;
-		padding: calc(var(--space-1) * 1.2) calc(var(--space-2) * 1.1);
 		cursor: pointer;
-		white-space: nowrap;
-		transition: all var(--db-transition-fast);
-		border-radius: 6px;
-		position: relative;
-		letter-spacing: 0.02em;
-	}
-
-	.breadcrumb-item::after {
-		content: '';
-		position: absolute;
-		bottom: 2px;
-		left: 50%;
-		width: 0;
-		height: 2px;
-		background: var(--db-primary);
-		transition: all var(--db-transition-fast);
-		transform: translateX(-50%);
-		border-radius: 1px;
-	}
-
-	.breadcrumb-item:hover:not(:disabled) {
-		color: var(--db-primary-bright);
-		background: linear-gradient(135deg, var(--db-primary-dim) 0%, transparent 100%);
-		transform: translateY(-1px);
-	}
-
-	.breadcrumb-item:hover:not(:disabled)::after {
-		width: 80%;
-		box-shadow: 0 0 8px var(--db-primary-glow);
-	}
-
-	.breadcrumb-item:active:not(:disabled) {
-		transform: translateY(0);
-	}
-
-	.breadcrumb-item:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
-	.separator {
-		color: var(--db-text-muted);
-		opacity: 0.3;
-		font-size: calc(var(--font-size-1) * 0.9);
-		margin: 0 calc(var(--space-1) * 0.5);
-	}
-
-	/* Search bar */
-	.search-bar {
-		display: flex;
-		flex-direction: row;
-		gap: calc(var(--space-2) * 1.3);
-		align-items: center;
-	}
-
-	/* New directory form */
-	.new-dir-form {
-		display: flex;
-		gap: calc(var(--space-2) * 1.2);
-		padding: calc(var(--space-3) * 1.2);
-		
-		align-items: center;
-		position: relative;
-		max-width: 100%;
-		width: 100%;
-		box-sizing: border-box;
-		flex-wrap: wrap;
-	}
-
-	/* Responsive new directory form for smaller screens */
-	@media (max-width: 600px) {
-		.new-dir-form {
-			flex-direction: column;
-			align-items: stretch;
-			gap: calc(var(--space-2) * 1.1);
-		}
-
-		.new-dir-form :global(.new-dir-input) {
-			width: 100%;
-		}
-
-		.new-dir-form :global(.create-btn),
-		.new-dir-form :global(.cancel-btn) {
-			width: 100%;
-		}
-	}
-
-
-	/* Clone directory form */
-	.clone-dir-form {
-		display: flex;
-		flex-direction: column;
-		gap: calc(var(--space-2) * 1.3);
-		padding: calc(var(--space-3) * 1.2);
-		max-width: 100%;
-		width: 100%;
-		box-sizing: border-box;
-	}
-
-
-	.clone-dir-header h4 {
-		margin: 0;
-		font-size: calc(var(--font-size-1) * 1.1);
-		color: var(--db-text-primary);
-		font-weight: 600;
-		position: relative;
-		z-index: 1;
-	}
-
-	.clone-dir-fields {
-		display: flex;
-		flex-direction: column;
-		gap: calc(var(--space-2) * 1.2);
-		position: relative;
-		z-index: 1;
-		width: 100%;
-		box-sizing: border-box;
-	}
-
-	/* Make input fields responsive and match the component styling */
-	.clone-dir-fields :global(.clone-source-input),
-	.clone-dir-fields :global(.clone-target-input) {
-		width: 100%;
-		min-width: 0;
-		max-width: 100%;
-		box-sizing: border-box;
-		flex: 1;
-	}
-
-	.clone-overwrite-option {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-size: calc(var(--font-size-1) * 0.95);
-		color: var(--db-text-secondary);
-		cursor: pointer;
-		position: relative;
-		z-index: 1;
-	}
-
-	.clone-overwrite-option input[type='checkbox'] {
-		accent-color: var(--db-primary);
-	}
-
-	.clone-dir-actions {
-		display: flex;
-		gap: calc(var(--space-2) * 1.2);
-		align-items: center;
-		position: relative;
-		z-index: 1;
-		flex-wrap: wrap;
-		justify-content: flex-start;
-		width: 100%;
-		box-sizing: border-box;
-	}
-
-	/* Make action buttons responsive and match new directory form styling */
-	.clone-dir-actions :global(.clone-btn),
-	.clone-dir-actions :global(.cancel-btn) {
-		flex: 0 1 auto;
-		min-width: fit-content;
-		white-space: nowrap;
-	}
-
-	/* Responsive layout for smaller screens */
-	@media (max-width: 600px) {
-		.clone-dir-actions {
-			flex-direction: column;
-			align-items: stretch;
-			gap: calc(var(--space-2) * 1.1);
-		}
-
-		.clone-dir-actions :global(.clone-btn),
-		.clone-dir-actions :global(.cancel-btn) {
-			width: 100%;
-			flex: none;
-		}
-	}
-
-	/* Status bar */
-	.status-bar {
-		padding: calc(var(--space-2) * 1.3) calc(var(--space-3) * 1.1);
-		background: linear-gradient(135deg, var(--db-surface) 0%, var(--db-surface-elevated) 100%);
-		border: 1px solid var(--db-border-subtle);
-		border-radius: 8px;
-		font-size: calc(var(--font-size-1) * 0.95);
-		box-shadow:
-			var(--db-shadow-sm),
-			inset 0 1px 2px rgba(0, 0, 0, 0.2);
+		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 		position: relative;
 		overflow: hidden;
 	}
 
-	.status-bar::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		background: linear-gradient(90deg, transparent, var(--db-primary-dim), transparent);
-		animation: statusSweep 2s linear infinite;
-		opacity: 0.3;
-	}
-
-	.loading {
-		color: var(--db-primary-bright);
-		font-style: italic;
-		font-weight: 500;
-		letter-spacing: 0.02em;
-		animation: loadingPulse 1.5s ease-in-out infinite;
-	}
-
-
-
-	/* Directory list */
-	.directory-list {
-		overflow-y: auto;
-		overflow-x: hidden;
-		scrollbar-width: thin;
-		scrollbar-color: var(--db-primary-dim) transparent;
-		min-height: 220px;
-		height: 100%;
-
-		border: 1px solid var(--db-border-subtle);
-		border-radius: 12px;
-		padding: calc(var(--space-3) * 1.1);
-		backdrop-filter: blur(6px) saturate(1.1);
-		box-shadow:
-			inset 0 4px 12px rgba(0, 0, 0, 0.3),
-			inset 0 -2px 4px rgba(0, 0, 0, 0.2),
-			inset 0 1px 2px var(--db-primary-dim);
-		position: relative;
-	}
-	.directory-list::-webkit-scrollbar {
-		width: 8px;
-	}
-
-	.directory-list::-webkit-scrollbar-track {
-		background: rgba(0, 0, 0, 0.2);
-		border-radius: 4px;
-		margin: 8px 0;
-	}
-
-	.directory-list::-webkit-scrollbar-thumb {
-		background: linear-gradient(180deg, var(--db-primary-dim) 0%, var(--db-accent) 100%);
-		border-radius: 4px;
-		border: 1px solid var(--db-border-subtle);
-	}
-
-	.directory-list::-webkit-scrollbar-thumb:hover {
-		background: linear-gradient(180deg, var(--db-primary) 0%, var(--db-accent) 100%);
-	}
-
-	.list-item {
-		display: flex;
-		align-items: center;
-		gap: calc(var(--space-2) * 1.1);
-		margin-bottom: calc(var(--space-1) * 1.5);
-		animation: fadeInUp 0.3s ease-out backwards;
-	}
-
-	.list-item:nth-child(1) {
-		animation-delay: 0.05s;
-	}
-	.list-item:nth-child(2) {
-		animation-delay: 0.1s;
-	}
-	.list-item:nth-child(3) {
-		animation-delay: 0.15s;
-	}
-	.list-item:nth-child(4) {
-		animation-delay: 0.2s;
-	}
-	.list-item:nth-child(5) {
-		animation-delay: 0.25s;
-	}
-
-	.item-button {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		gap: calc(var(--space-2) * 1.2);
-		padding: calc(var(--space-2) * 1.3) calc(var(--space-3) * 1.1);
-		background: linear-gradient(135deg, rgba(15, 25, 20, 0.6) 0%, rgba(10, 20, 15, 0.4) 100%);
-		border: 1px solid transparent;
-		color: var(--db-text-secondary);
-		font-family: var(--font-mono);
-		font-size: calc(var(--font-size-1) * 0.95);
-		font-weight: 400;
-		letter-spacing: 0.01em;
-		text-align: left;
-		border-radius: 8px;
-		cursor: pointer;
-		transition: all var(--db-transition-fast);
-		position: relative;
-		overflow: hidden;
-		box-shadow:
-			0 1px 3px rgba(0, 0, 0, 0.2),
-			inset 0 1px 2px rgba(0, 0, 0, 0.1);
-	}
-
-	.item-button::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 3px;
-		height: 100%;
-		background: var(--db-primary);
-		transform: translateX(-3px);
-		transition: transform var(--db-transition-fast);
-	}
-
-	.item-button::after {
+	.directory-summary-enhanced::before {
 		content: '';
 		position: absolute;
 		top: 0;
 		left: -100%;
 		width: 100%;
 		height: 100%;
-		background: linear-gradient(90deg, transparent, var(--db-primary-dim), transparent);
-		transition: left 0.4s ease;
+		background: linear-gradient(90deg, transparent, var(--primary-glow-10), transparent);
+		transition: left 0.5s ease;
 	}
 
-	.item-button:hover:not(:disabled):not(.file)::before {
-		transform: translateX(0);
-	}
-
-	.item-button:active:not(:disabled):not(.file) {
-		transform: translateX(2px);
-	}
-
-	.item-button.file {
-		opacity: 0.5;
-		cursor: default;
-		background: linear-gradient(135deg, rgba(10, 15, 12, 0.4) 0%, rgba(5, 10, 8, 0.3) 100%);
-	}
-
-	.item-button.file.interactive {
-		opacity: 0.8;
-		cursor: pointer;
-		background: linear-gradient(135deg, rgba(15, 25, 20, 0.6) 0%, rgba(10, 20, 15, 0.4) 100%);
-	}
-
-	.item-button.file.interactive:hover {
-		opacity: 1;
-		border-color: rgba(46, 230, 107, 0.3);
+	.directory-summary-enhanced:hover {
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--primary) 25%, var(--surface)),
+			color-mix(in oklab, var(--primary) 15%, var(--surface))
+		);
+		border-color: var(--primary);
+		transform: translateY(-2px);
 		box-shadow:
-			0 3px 10px rgba(46, 230, 107, 0.2),
-			inset 0 2px 4px rgba(46, 230, 107, 0.1);
+			0 12px 40px -12px var(--primary-glow),
+			inset 0 1px 2px color-mix(in oklab, var(--primary) 15%, transparent);
 	}
 
-	.item-button:disabled {
-		opacity: 0.3;
+	.directory-summary-enhanced:hover::before {
+		left: 100%;
+	}
+
+	.directory-item-enhanced {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-3);
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		border: 1px solid transparent;
+		position: relative;
+	}
+
+	.directory-item-enhanced:hover {
+		background: color-mix(in oklab, var(--primary) 8%, transparent);
+		border-color: color-mix(in oklab, var(--primary) 20%, transparent);
+		transform: translateX(4px);
+	}
+
+	.directory-item-enhanced.selected {
+		background: color-mix(in oklab, var(--primary) 15%, transparent);
+		border-color: var(--primary);
+		color: var(--primary);
+	}
+
+	.directory-icon-enhanced {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		color: var(--accent-amber);
+		transition: all 0.2s ease;
+	}
+
+	.directory-item-enhanced:hover .directory-icon-enhanced {
+		color: var(--primary);
+		transform: scale(1.1);
+	}
+
+	/* Fix button and link styles within directory items */
+	.directory-item-enhanced button {
+		color: var(--text);
+		text-decoration: none;
+		transition: color 0.2s ease;
+		font-family: inherit;
+		font-size: inherit;
+		background-color: transparent;
+		border: none;
+	}
+
+	.directory-item-enhanced button:hover:enabled {
+		color: var(--primary);
+		text-decoration: none;
+	}
+
+	.directory-item-enhanced button:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
+		border-radius: 4px;
+	}
+
+	.directory-item-enhanced button:disabled {
+		opacity: 0.5;
 		cursor: not-allowed;
 	}
 
-	.parent-dir .item-button {
-		color: var(--accent-amber);
-		background: linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(15, 25, 20, 0.4) 100%);
+	.directory-breadcrumb-enhanced {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-4);
+		background: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
+		border-bottom: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
+		overflow-x: auto;
 	}
 
-	.parent-dir .item-button:hover {
-		border-color: rgba(255, 193, 7, 0.3);
-		box-shadow:
-			0 3px 10px rgba(255, 193, 7, 0.2),
-			inset 0 2px 4px rgba(255, 193, 7, 0.1);
-	}
-
-	.icon {
-		font-size: 1.3em;
-		flex-shrink: 0;
-		filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
-		transition: transform var(--db-transition-fast);
-	}
-
-	.item-button:hover .icon {
-		transform: scale(1.1) rotate(5deg);
-	}
-
-	.name {
-		flex: 1;
-		font-weight: 500;
+	.breadcrumb-item-enhanced {
+		padding: var(--space-1) var(--space-2);
+		border: none;
+		background: transparent;
+		color: var(--text);
+		cursor: pointer;
+		transition: all 0.2s ease;
 		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		letter-spacing: 0.02em;
+		flex-shrink: 0;
 	}
 
-	.type {
-		font-size: calc(var(--font-size-0) * 0.9);
-		color: var(--db-text-muted);
-		font-style: italic;
-		opacity: 0.7;
-		text-transform: lowercase;
-		letter-spacing: 0.03em;
+	.breadcrumb-item-enhanced:hover {
+		color: var(--primary);
 	}
 
-	.empty-message {
-		text-align: center;
-		padding: calc(var(--space-6) * 1.5);
-		color: var(--db-text-muted);
-		font-style: italic;
-		font-size: calc(var(--font-size-1) * 0.95);
-		letter-spacing: 0.02em;
-		opacity: 0.7;
-		animation: pulse 2s ease-in-out infinite;
+	.breadcrumb-separator {
+		color: var(--muted);
+		opacity: 0.5;
+		margin: 0 var(--space-1);
 	}
 
+	/* Mobile-friendly directory browser styles */
+	@media (max-width: 768px) {
+		.directory-browser-enhanced {
+			font-size: 16px; /* Prevent zoom on iOS */
+		}
 
+		.directory-item-enhanced {
+			padding: var(--space-4);
+			min-height: 48px; /* Better touch target */
+		}
+
+		.directory-item-enhanced button {
+			min-height: 44px;
+			display: flex;
+			align-items: center;
+		}
+
+		.directory-breadcrumb-enhanced {
+			padding: var(--space-4);
+			gap: var(--space-3);
+		}
+
+		.breadcrumb-item-enhanced {
+			padding: var(--space-2) var(--space-3);
+			min-height: 40px;
+		}
+
+		/* Larger icons on mobile */
+		.directory-icon-enhanced {
+			width: 28px;
+			height: 28px;
+		}
+
+		/* Better spacing for touch */
+		.directory-browser-enhanced .max-h-96 {
+			max-height: 60vh; /* Use viewport height on mobile */
+		}
+	}
 </style>

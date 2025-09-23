@@ -866,7 +866,97 @@
 </div>
 
 <style>
-	@import '../shared/styles/animations.css';
+	/* Component-specific overrides only */
+	.action-button {
+		margin-left: auto;
+		flex-shrink: 0;
+	}
+
+	.input-container {
+		position: relative;
+		flex: 1;
+	}
+
+	.message-input {
+		width: 100%;
+		min-height: 60px;
+		max-height: 200px;
+		padding: var(--space-3);
+		padding-right: var(--space-7);
+		background: color-mix(in oklab, var(--surface) 85%, var(--bg));
+		border: 2px solid color-mix(in oklab, var(--primary) 20%, transparent);
+		border-radius: var(--radius-lg);
+		font-family: var(--font-mono);
+		font-size: 0.95rem;
+		line-height: 1.4;
+		color: var(--text);
+		resize: none;
+		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+		backdrop-filter: blur(8px);
+		box-shadow:
+			0 4px 16px -8px rgba(0, 0, 0, 0.1),
+			inset 0 1px 2px color-mix(in oklab, var(--primary) 5%, transparent);
+	}
+
+	.message-input:focus {
+		outline: none;
+		border-color: var(--primary);
+		background: color-mix(in oklab, var(--surface) 90%, var(--bg));
+		box-shadow:
+			0 8px 32px -12px var(--primary-glow),
+			inset 0 2px 4px color-mix(in oklab, var(--primary) 10%, transparent),
+			0 0 0 4px var(--primary-glow-20);
+		text-shadow: 0 0 2px var(--primary-glow-10);
+	}
+
+	.message-input::placeholder {
+		color: var(--muted);
+		opacity: 0.8;
+	}
+
+	.chat-form {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+
+	.controls-left {
+		display: flex;
+		gap: var(--space-2);
+		align-items: center;
+	}
+
+	.controls-right {
+		display: flex;
+		gap: var(--space-2);
+		align-items: center;
+	}
+
+	/* RESPONSIVE DESIGN */
+	@container (max-width: 600px) {
+		.chat-content {
+			padding: var(--space-2);
+		}
+
+		.chat-input-area {
+			padding: var(--space-3);
+		}
+
+		.message-text {
+			max-width: 95%;
+		}
+
+		.chat-actions {
+			flex-direction: column;
+			gap: var(--space-3);
+		}
+
+		.controls-left,
+		.controls-right {
+			width: 100%;
+			justify-content: center;
+		}
+	}
 
 	/* AWARD-WINNING CHAT INTERFACE 2025
 	   Features: Advanced glass-morphism, spatial design, micro-interactions,

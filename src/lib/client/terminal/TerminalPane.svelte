@@ -214,11 +214,48 @@
 </div>
 
 <style>
+	/* Component-specific terminal overrides */
 	.terminal-wrapper {
-		position: relative;
-		height: 100%;
 		display: flex;
 		flex-direction: column;
+		width: 100%;
+		height: 100%;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.terminal-container {
+		display: flex;
+		flex: 1;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		overflow: hidden;
+		position: relative;
+	}
+
+	.xterm-container {
+		flex: 1;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	/* Ensure xterm.js fills the container */
+	.terminal-container :global(.xterm) {
+		width: 100% !important;
+		height: 100% !important;
+	}
+
+	.terminal-container :global(.xterm .xterm-viewport) {
+		width: 100% !important;
+		height: 100% !important;
+	}
+
+	.terminal-container :global(.xterm .xterm-screen) {
+		width: 100% !important;
+		height: 100% !important;
 	}
 
 	.terminal-loading {
@@ -243,78 +280,5 @@
 		color: var(--accent);
 		font-size: 0.875rem;
 		font-family: var(--font-mono);
-	}
-
-	.loading-icon {
-		display: inline-block;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
-	}
-
-	.terminal-container {
-		flex: 1;
-		overflow: hidden;
-		position: relative;
-		min-height: 0;
-	}
-
-	.xterm-container {
-		flex: 1;
-		height: 100%;
-		position: relative;
-		z-index: 0;
-	}
-
-	.terminal-container :global(.xterm) {
-		padding: var(--space-3);
-		font-family: var(--font-mono) !important;
-	}
-
-	.terminal-container :global(.xterm-viewport) {
-		background: var(--bg) !important;
-	}
-
-	.terminal-container :global(.xterm-screen) {
-		background: var(--bg) !important;
-	}
-
-	.terminal-container :global(.xterm-cursor) {
-		background: var(--accent) !important;
-	}
-
-	.terminal-container :global(.xterm-selection) {
-		background: color-mix(in oklab, var(--accent) 30%, transparent) !important;
-	}
-
-	/* Mobile-specific adjustments */
-	@media (max-width: 768px) {
-		.terminal-container :global(.xterm) {
-			padding: var(--space-2);
-		}
-	}
-
-	/* Very small screens */
-	@media (max-width: 480px) {
-		.terminal-container :global(.xterm) {
-			padding: var(--space-1);
-			font-size: 1.2rem;
-		}
 	}
 </style>

@@ -44,12 +44,13 @@
 	{#snippet footer()}
 		<!-- No footer needed for settings modal -->
 	{/snippet}
-	<div class="settings-container">
+	<div class="settings-container flex">
 		<!-- Settings Navigation -->
-		<nav class="settings-nav" aria-label="Settings sections">
+		<nav class="settings-nav flex-col" aria-label="Settings sections">
 			{#each tabs as tab}
 				<button
-					class="settings-tab"
+					class="settings-tab flex gap-3 p-3 px-4"
+					style="align-items: center;"
 					class:active={activeTab === tab.id}
 					onclick={() => (activeTab = tab.id)}
 					role="tab"
@@ -69,7 +70,7 @@
 		<main class="settings-content">
 			{#if activeTabData}
 				<div
-					class="settings-panel"
+					class="settings-panel p-6"
 					role="tabpanel"
 					aria-labelledby="settings-tab-{activeTab}"
 					id="settings-panel-{activeTab}"
@@ -84,8 +85,8 @@
 </Modal>
 
 <style>
+	/* Settings-specific minimal styles */
 	.settings-container {
-		display: flex;
 		height: 600px;
 		min-height: 500px;
 		background: var(--bg);
@@ -98,17 +99,11 @@
 		width: 200px;
 		background: var(--bg-dark);
 		border-right: 2px solid var(--primary-dim);
-		display: flex;
-		flex-direction: column;
 		padding: var(--space-4) 0;
 		flex-shrink: 0;
 	}
 
 	.settings-tab {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4);
 		background: transparent;
 		border: none;
 		color: var(--text-muted);
@@ -153,7 +148,6 @@
 	}
 
 	.settings-panel {
-		padding: var(--space-6);
 		height: 100%;
 		min-height: 500px;
 		position: relative;
@@ -213,7 +207,6 @@
 		}
 
 		.settings-panel {
-			padding: var(--space-4);
 			min-height: 300px;
 		}
 	}

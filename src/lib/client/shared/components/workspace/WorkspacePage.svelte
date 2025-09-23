@@ -470,14 +470,22 @@
 
 	<!-- Bottom sheet for sessions -->
 	{#if sessionMenuOpen}
-		<div class="session-sheet" class:open={sessionMenuOpen} role="dialog" aria-label="Sessions">
-			<div class="sheet-header">
-				<div class="sheet-title">Sessions</div>
+		<div
+			class="session-sheet flex-col"
+			class:open={sessionMenuOpen}
+			role="dialog"
+			aria-label="Sessions"
+		>
+			<div class="flex-between p-3" style="border-bottom: 1px solid var(--primary-muted);">
+				<div class="modal-title" style="color: var(--primary); font-weight: 700;">Sessions</div>
 				<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close">
 					✕
 				</button>
 			</div>
-			<div class="sheet-body">
+			<div
+				class="sheet-body"
+				style="overflow: hidden; min-height: calc(100% - var(--space-6)); padding: 0;"
+			>
 				<ProjectSessionMenu
 					onNewSession={(e) => {
 						const { type } = e.detail || {};
@@ -555,12 +563,14 @@
 	{:else if activeModal.type === 'pwaInstructions'}
 		<Modal open={true} title={activeModal.data?.title} size="small" onclose={closeActiveModal}>
 			{#snippet children()}
-				<div class="pwa-instructions">
+				<div class="flex-col gap-4" style="line-height: 1.6;">
 					{#if activeModal.data?.description}
-						<p>{activeModal.data.description}</p>
+						<p class="m-0 text-muted" style="color: var(--text-secondary);">
+							{activeModal.data.description}
+						</p>
 					{/if}
 					{#if activeModal.data?.steps?.length}
-						<ol class="pwa-instructions__steps">
+						<ol class="pwa-instructions__steps flex-col gap-2">
 							{#each activeModal.data.steps as step}
 								<li>{step}</li>
 							{/each}
@@ -569,7 +579,7 @@
 				</div>
 			{/snippet}
 			{#snippet footer()}
-				<div class="modal-actions">
+				<div class="flex gap-3" style="justify-content: flex-end;">
 					<Button variant="primary" onclick={closeActiveModal}>Got it</Button>
 				</div>
 			{/snippet}
@@ -581,6 +591,7 @@
 <PWAUpdateNotification />
 
 <style>
+	/* Workspace-specific layout grid */
 	.dispatch-workspace {
 		position: relative;
 		height: 100vh;
@@ -602,6 +613,7 @@
 		touch-action: pan-x pan-y;
 	}
 
+	/* Background image overlay */
 	.dispatch-workspace::before {
 		content: '';
 		position: absolute;
@@ -614,6 +626,7 @@
 		pointer-events: none;
 	}
 
+	/* Main content area */
 	.main-content {
 		grid-area: main;
 		overflow: hidden;
@@ -623,7 +636,7 @@
 		touch-action: pan-x pan-y;
 	}
 
-	/* Session bottom sheet */
+	/* Session bottom sheet - mobile specific */
 	.session-sheet {
 		position: fixed;
 		left: 0;
@@ -635,8 +648,6 @@
 		overflow: hidden;
 		z-index: 50;
 		box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
-		display: flex;
-		flex-direction: column;
 		opacity: 0;
 		transform: translateY(100%);
 		transition:
@@ -644,55 +655,12 @@
 			opacity 0.15s ease-out;
 	}
 
-	.pwa-instructions {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-		line-height: 1.6;
-	}
-
-	.pwa-instructions p {
-		margin: 0;
-		color: var(--text-secondary);
-	}
-
-	.pwa-instructions__steps {
-		margin: 0;
-		padding-left: 1.25rem;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-
-	.pwa-instructions__steps li {
-		color: var(--text-primary);
-	}
-
-	.modal-actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: var(--space-3);
-	}
-
 	.session-sheet.open {
 		transform: translateY(-56px);
 		opacity: 0.975;
 	}
 
-	.sheet-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0 var(--space-3);
-		border-bottom: 1px solid var(--primary-muted);
-	}
-
-	.sheet-title {
-		font-family: var(--font-mono);
-		font-weight: 700;
-		color: var(--primary);
-	}
-
+	/* Sheet close button */
 	.sheet-close {
 		background: var(--surface-hover);
 		border: 1px solid var(--surface-border);
@@ -705,13 +673,17 @@
 		cursor: pointer;
 	}
 
-	.sheet-body {
-		overflow: hidden;
-		min-height: calc(100% - var(--space-6));
-		padding: 0;
+	/* PWA instructions content */
+	.pwa-instructions__steps {
+		margin: 0;
+		padding-left: 1.25rem;
 	}
 
-	/* Very small screens */
+	.pwa-instructions__steps li {
+		color: var(--text-primary);
+	}
+
+	/* Mobile responsive adjustments */
 	@media (max-width: 480px) {
 		.dispatch-workspace {
 			padding-bottom: max(0.4rem, env(safe-area-inset-bottom));

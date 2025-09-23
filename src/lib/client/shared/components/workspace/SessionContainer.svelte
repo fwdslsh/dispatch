@@ -24,15 +24,13 @@
 	});
 </script>
 
-<div class={containerClass}>
+<div class="{containerClass} flex-col">
 	{@render header({ session, onClose, index })}
 	{@render content({ session, isLoading, index })}
 </div>
 
 <style>
 	.session-container {
-		display: flex;
-		flex-direction: column;
 		background: var(--bg-panel);
 		border: 1px solid var(--primary-dim);
 		overflow: hidden;
@@ -72,9 +70,6 @@
 	/* Mobile session container adjustments */
 	@media (max-width: 768px) {
 		.session-container {
-			height: 100%;
-			display: flex;
-			flex-direction: column;
 			transition: opacity 0.15s ease-out;
 			will-change: opacity;
 			contain: layout style;

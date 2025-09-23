@@ -64,9 +64,11 @@ canvas {
 }
 
 ::-webkit-scrollbar-thumb {
-	background: linear-gradient(180deg,
-			var(--accent),
-			color-mix(in oklab, var(--accent), transparent 35%));
+	background: linear-gradient(
+		180deg,
+		var(--accent),
+		color-mix(in oklab, var(--accent), transparent 35%)
+	);
 	border-radius: 8px;
 }
 
@@ -157,7 +159,7 @@ a:hover {
 	padding: 0 var(--space-4);
 }
 
-.stack>*+* {
+.stack > * + * {
 	margin-top: var(--space-4);
 }
 
@@ -187,7 +189,8 @@ a:hover {
 }
 
 /* Augmented preset: very subtle professional styling */
-.aug, [data-augmented-ui] {
+.aug,
+[data-augmented-ui] {
 	/* region sizing (mixin layer) - smaller cuts */
 	--aug-tl: 8px;
 	--aug-br: 8px;
@@ -208,7 +211,8 @@ a:hover {
 	transition: all 0.15s ease;
 }
 
-.aug:hover, [data-augmented-ui]:hover {
+.aug:hover,
+[data-augmented-ui]:hover {
 	--aug-border-opacity: 0.4;
 	--aug-inlay-opacity: 0.6;
 }
@@ -284,7 +288,6 @@ textarea:focus {
 		0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent),
 		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent);
 	outline: none;
-	transform: translateY(-1px);
 }
 
 /* Active states */
@@ -357,10 +360,12 @@ textarea:required:focus {
 	--aug-border-all: 2px;
 	--aug-border-bg: linear-gradient(90deg, var(--accent), transparent, var(--accent));
 	--aug-inlay-all: 1px;
-	--aug-inlay-bg: linear-gradient(90deg,
-			transparent,
-			color-mix(in oklab, var(--accent) 20%, transparent),
-			transparent);
+	--aug-inlay-bg: linear-gradient(
+		90deg,
+		transparent,
+		color-mix(in oklab, var(--accent) 20%, transparent),
+		transparent
+	);
 }
 
 /* 7) Buttons - Comprehensive state management */
@@ -690,9 +695,7 @@ textarea:required:focus {
 }
 
 /* High DPI / Retina display adjustments */
-@media (-webkit-min-device-pixel-ratio: 2),
-(min-resolution: 2dppx) {
-
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
 	/* Ensure crisp borders on high DPI displays */
 	.button,
 	input,
@@ -713,7 +716,6 @@ textarea:required:focus {
 
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
-
 	*,
 	*::before,
 	*::after {
@@ -812,8 +814,8 @@ textarea:required:focus {
 
 	/* Inner glow for pressed state + slight scale */
 	box-shadow:
-		inset 0 0 8px rgba(46, 230, 107, 0.3),
-		0 0 10px rgba(46, 230, 107, 0.2);
+		inset 0 0 8px var(--primary-glow-30),
+		0 0 10px var(--primary-glow-20);
 	transform: scale(0.98);
 }
 
@@ -827,8 +829,8 @@ textarea:required:focus {
 
 	/* Ghost variant glow */
 	box-shadow:
-		0 0 18px rgba(46, 230, 107, 0.3),
-		0 0 35px rgba(46, 230, 107, 0.15);
+		0 0 18px var(--primary-glow-30),
+		0 0 35px var(--primary-glow-15);
 }
 
 .button.aug.ghost:active,
@@ -842,8 +844,8 @@ textarea:required:focus {
 
 	/* Ghost inner glow for pressed state */
 	box-shadow:
-		inset 0 0 6px rgba(46, 230, 107, 0.25),
-		0 0 8px rgba(46, 230, 107, 0.1);
+		inset 0 0 6px var(--primary-glow-25),
+		0 0 8px var(--primary-glow-10);
 }
 
 .button.aug.ghost:active,
@@ -851,7 +853,7 @@ textarea:required:focus {
 	--aug-border-opacity: 0.5;
 	--aug-inlay-opacity: 0.7;
 	/* Ghost inner glow for pressed state */
-	box-shadow: inset 0 0 6px rgba(46, 230, 107, 0.25) !important;
+	box-shadow: inset 0 0 6px var(--primary-glow-25) !important;
 }
 
 /* 8) Tables */
@@ -919,10 +921,12 @@ tbody tr:hover {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: repeating-linear-gradient(0deg,
-			color-mix(in oklab, var(--text) 2%, transparent) 0px,
-			transparent 1px,
-			transparent 3px);
+	background: repeating-linear-gradient(
+		0deg,
+		color-mix(in oklab, var(--text) 2%, transparent) 0px,
+		transparent 1px,
+		transparent 3px
+	);
 	mix-blend-mode: overlay;
 	opacity: 0.06;
 	pointer-events: none;
@@ -962,11 +966,13 @@ body::before {
 	left: 0;
 	width: 100%;
 	height: 100%;
-	background: repeating-linear-gradient(0deg,
-			transparent 0px,
-			transparent 2px,
-			color-mix(in oklab, var(--accent) 2%, transparent) 3px,
-			transparent 4px);
+	background: repeating-linear-gradient(
+		0deg,
+		transparent 0px,
+		transparent 2px,
+		color-mix(in oklab, var(--accent) 2%, transparent) 3px,
+		transparent 4px
+	);
 	pointer-events: none;
 	z-index: 1000;
 	opacity: 0.3;
@@ -1063,9 +1069,11 @@ body::before {
 .workspace-selector {
 	width: 100%;
 	padding: 1rem 1.25rem;
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
-			color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
+		color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%)
+	);
 	border: 2px solid var(--surface-border);
 	border-radius: 0;
 	color: var(--text);
@@ -1082,12 +1090,14 @@ body::before {
 }
 
 .workspace-selector:hover:not(:disabled) {
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--primary) 15%, var(--surface)),
-			color-mix(in oklab, var(--primary) 8%, var(--surface)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 15%, var(--surface)),
+		color-mix(in oklab, var(--primary) 8%, var(--surface))
+	);
 	border-color: var(--primary);
 	box-shadow:
-		0 0 20px rgba(46, 230, 107, 0.2),
+		0 0 20px var(--primary-glow-20),
 		inset 0 1px 0 rgba(255, 255, 255, 0.1);
 	transform: translateY(-1px);
 }
@@ -1095,11 +1105,11 @@ body::before {
 .workspace-selector__icon {
 	font-size: 1.2em;
 	color: var(--primary);
-	filter: drop-shadow(0 0 6px rgba(46, 230, 107, 0.3));
+	filter: drop-shadow(0 0 6px var(--primary-glow-30));
 }
 
 .workspace-selector:hover:not(:disabled) .workspace-selector__icon {
-	filter: drop-shadow(0 0 10px rgba(46, 230, 107, 0.5));
+	filter: drop-shadow(0 0 10px var(--primary-glow-50));
 	transform: scale(1.1);
 }
 
@@ -1161,12 +1171,12 @@ body::before {
 	font-family: var(--font-mono);
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
-	text-shadow: 0 0 8px rgba(46, 230, 107, 0.3);
+	text-shadow: 0 0 8px var(--primary-glow-30);
 }
 
 .form-section__label-icon {
 	font-size: 1.1em;
-	filter: drop-shadow(0 0 6px rgba(46, 230, 107, 0.4));
+	filter: drop-shadow(0 0 6px var(--primary-glow-40));
 }
 
 /* Icon Text combinations */
@@ -1184,9 +1194,11 @@ body::before {
 /* Type Selection Cards */
 .type-card {
 	padding: 1.5rem 1rem;
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
-			color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
+		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%)
+	);
 	border: 2px solid var(--surface-border);
 	border-radius: 0;
 	color: var(--text-muted);
@@ -1223,7 +1235,7 @@ body::before {
 
 .type-card__icon {
 	font-size: 2rem;
-	filter: drop-shadow(0 0 8px rgba(46, 230, 107, 0.3));
+	filter: drop-shadow(0 0 8px var(--primary-glow-30));
 }
 
 .type-card__info {
@@ -1248,18 +1260,20 @@ body::before {
 }
 
 .type-card:hover:not(:disabled) {
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
-			color-mix(in oklab, var(--primary) 10%, var(--surface-hover)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
+		color-mix(in oklab, var(--primary) 10%, var(--surface-hover))
+	);
 	border-color: var(--primary);
 	box-shadow:
-		0 0 20px rgba(46, 230, 107, 0.3),
+		0 0 20px var(--primary-glow-30),
 		inset 0 1px 0 rgba(255, 255, 255, 0.1);
 	transform: translateY(-2px);
 }
 
 .type-card:hover:not(:disabled) .type-card__icon {
-	filter: drop-shadow(0 0 12px rgba(46, 230, 107, 0.6));
+	filter: drop-shadow(0 0 12px var(--primary-glow-60));
 	transform: scale(1.1);
 }
 
@@ -1268,8 +1282,8 @@ body::before {
 	border-color: var(--primary);
 	color: var(--bg);
 	box-shadow:
-		0 0 30px rgba(46, 230, 107, 0.4),
-		0 0 60px rgba(46, 230, 107, 0.2),
+		0 0 30px var(--primary-glow-40),
+		0 0 60px var(--primary-glow-20),
 		inset 0 1px 0 rgba(255, 255, 255, 0.2);
 	transform: translateY(-3px) scale(1.02);
 }
@@ -1295,9 +1309,11 @@ body::before {
 	width: 100%;
 	padding: 1rem;
 	margin-bottom: 0.75rem;
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
-			color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
+		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%)
+	);
 	border: 2px solid var(--surface-border);
 	border-radius: 0;
 	text-align: left;
@@ -1323,24 +1339,28 @@ body::before {
 }
 
 .session-card:hover {
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
-			color-mix(in oklab, var(--primary) 10%, var(--surface-hover)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
+		color-mix(in oklab, var(--primary) 10%, var(--surface-hover))
+	);
 	border-color: var(--primary);
 	box-shadow:
-		0 0 20px rgba(46, 230, 107, 0.2),
+		0 0 20px var(--primary-glow-20),
 		inset 0 1px 0 rgba(255, 255, 255, 0.1);
 	transform: translateY(-1px);
 }
 
 .session-card.selected {
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--primary) 25%, var(--surface)),
-			color-mix(in oklab, var(--primary) 15%, var(--surface)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 25%, var(--surface)),
+		color-mix(in oklab, var(--primary) 15%, var(--surface))
+	);
 	border-color: var(--primary);
 	box-shadow:
 		0 0 0 2px var(--primary) inset,
-		0 0 30px rgba(46, 230, 107, 0.3),
+		0 0 30px var(--primary-glow-30),
 		inset 0 1px 0 rgba(255, 255, 255, 0.2);
 	transform: translateY(-2px) scale(1.02);
 }
@@ -1348,9 +1368,11 @@ body::before {
 /* Error message styling */
 .error-message {
 	padding: 1rem;
-	background: linear-gradient(135deg,
-			color-mix(in oklab, var(--secondary) 15%, var(--surface)),
-			color-mix(in oklab, var(--secondary) 8%, var(--surface)));
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--secondary) 15%, var(--surface)),
+		color-mix(in oklab, var(--secondary) 8%, var(--surface))
+	);
 	border: 2px solid var(--secondary);
 	border-radius: 0;
 	color: var(--secondary);
@@ -1792,11 +1814,13 @@ body::before {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: repeating-linear-gradient(0deg,
-			transparent 0px,
-			transparent 2px,
-			var(--scan-line) 3px,
-			transparent 4px);
+	background: repeating-linear-gradient(
+		0deg,
+		transparent 0px,
+		transparent 2px,
+		var(--scan-line) 3px,
+		transparent 4px
+	);
 	pointer-events: none;
 	opacity: 0.3;
 }

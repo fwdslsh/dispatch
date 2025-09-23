@@ -151,7 +151,7 @@
 	class="create-session-modal"
 >
 	{#snippet children()}
-		<div class="modal-content">
+		<div class="modal-content p-5 flex flex-col gap-4">
 			<!-- Session Type Selection -->
 			<FormSection label="Session Type">
 				{#snippet icon()}<IconPlus size={18} />{/snippet}
@@ -200,7 +200,7 @@
 			<FormSection label="Working Directory">
 				{#snippet icon()}<IconFolder size={18} />{/snippet}
 
-				<div class="directory-browser-container">
+				<div class="directory-browser-container surface border-2 border-primary-dim p-4">
 					<DirectoryBrowser
 						bind:selected={workspacePath}
 						startPath={workspacePath || settingsService.get('global.defaultWorkspaceDirectory', '')}
@@ -220,7 +220,9 @@
 
 			<!-- Error Display -->
 			{#if error}
-				<div class="error-message">{error}</div>
+				<div class="error-message border border-err text-err p-3 font-mono text-sm text-center">
+					{error}
+				</div>
 			{/if}
 		</div>
 	{/snippet}
@@ -255,40 +257,22 @@
 </Modal>
 
 <style>
-	/* Modal content styling - much cleaner and follows design system */
+	/* Component-specific overrides only */
 	:global(.create-session-modal) {
-		/* Override the default medium size for this specific modal */
 		width: 520px;
 		max-width: 90vw;
 	}
 
-	.modal-content {
-		padding: var(--space-5);
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
-
 	.directory-browser-container {
-		background: var(--surface);
-		border: 2px solid var(--primary-dim);
 		border-radius: 0;
-		padding: var(--space-4);
 		max-height: 400px;
 		overflow-y: auto;
-		/* Use consistent design system borders */
 		box-shadow: inset 0 0 10px var(--glow);
 	}
 
 	.error-message {
 		background: color-mix(in oklab, var(--err) 10%, var(--surface));
-		border: 1px solid var(--err);
 		border-radius: 0;
-		color: var(--err);
-		padding: var(--space-3);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		text-align: center;
 	}
 
 	/* Mobile responsive adjustments */
@@ -299,8 +283,8 @@
 		}
 
 		.modal-content {
-			padding: var(--space-4);
-			gap: var(--space-3);
+			padding: var(--space-4) !important;
+			gap: var(--space-3) !important;
 		}
 	}
 </style>

@@ -35,12 +35,36 @@
 		...restProps
 	} = $props();
 
-	// Compute classes
+	// Compute classes using global utilities
 	const errorClasses = $derived.by(() => {
-		const classes = ['error-display', `error-display--${severity}`, `error-display--${size}`];
-		if (dismissible) classes.push('error-display--dismissible');
-		if (customClass) classes.push(...customClass.split(' '));
-		return classes.join(' ');
+		const baseClasses = [
+			'relative',
+			'flex',
+			'gap-3',
+			'rounded-lg',
+			'border',
+			'transition-all',
+			'duration-300'
+		];
+
+		// Size classes
+		if (size === 'small') baseClasses.push('p-2', 'text-sm');
+		else if (size === 'large') baseClasses.push('p-6', 'text-lg');
+		else baseClasses.push('p-4', 'text-base');
+
+		// Severity classes
+		if (severity === 'error') {
+			baseClasses.push('error-display--error');
+		} else if (severity === 'warning') {
+			baseClasses.push('error-display--warning');
+		} else if (severity === 'success') {
+			baseClasses.push('error-display--success');
+		} else if (severity === 'info') {
+			baseClasses.push('error-display--info');
+		}
+
+		if (customClass) baseClasses.push(...customClass.split(' '));
+		return baseClasses.join(' ');
 	});
 
 	// Icon mappings
@@ -59,7 +83,7 @@
 
 <div class={errorClasses} role="alert" aria-live="polite" {...restProps}>
 	{#if showIcon}
-		<div class="error-display__icon" aria-hidden="true">
+		<div class="shrink-0 mt-0.5" aria-hidden="true">
 			{#if severity === 'error'}
 				<IconX size={20} />
 			{:else if severity === 'warning'}
@@ -72,26 +96,28 @@
 		</div>
 	{/if}
 
-	<div class="error-display__content">
+	<div class="flex-1 space-y-2">
 		{#if title}
-			<h4 class="error-display__title">{title}</h4>
+			<h4 class="font-semibold text-base">{title}</h4>
 		{/if}
 
 		{#if error}
-			<div class="error-display__message">
+			<div class="text-sm opacity-90">
 				{error}
 			</div>
 		{/if}
 
 		<!-- Allow for custom content -->
-		<div class="error-display__slot">
-			{@render children?.()}
-		</div>
+		{#if children}
+			<div>
+				{@render children()}
+			</div>
+		{/if}
 	</div>
 
 	{#if dismissible}
 		<button
-			class="error-display__dismiss"
+			class="shrink-0 p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
 			onclick={handleDismiss}
 			aria-label="Dismiss message"
 			type="button"
@@ -109,184 +135,56 @@
 </div>
 
 <style>
-	.error-display {
-		display: flex;
-		align-items: flex-start;
-		gap: var(--space-sm);
-		padding: var(--space-sm) var(--space-md);
-		border-radius: 6px;
-		border-left: 4px solid;
-		font-family: var(--font-sans);
-		position: relative;
-	}
-
-	/* Severity variants */
+	/* Component-specific severity styles */
 	.error-display--error {
-		background: rgba(255, 107, 107, 0.1);
-		border-left-color: var(--secondary);
-		color: var(--text-primary);
+		background: color-mix(in oklab, var(--err) 5%, transparent);
+		border-color: color-mix(in oklab, var(--err) 30%, transparent);
+		color: var(--err);
+		box-shadow: 0 0 20px color-mix(in oklab, var(--err) 20%, transparent);
 	}
 
 	.error-display--warning {
-		background: rgba(255, 167, 38, 0.1);
-		border-left-color: #ffa726;
-		color: var(--text-primary);
-	}
-
-	.error-display--info {
-		background: rgba(0, 255, 136, 0.1);
-		border-left-color: var(--primary);
-		color: var(--text-primary);
+		background: color-mix(in oklab, var(--warn) 5%, transparent);
+		border-color: color-mix(in oklab, var(--warn) 30%, transparent);
+		color: var(--warn);
+		box-shadow: 0 0 20px color-mix(in oklab, var(--warn) 20%, transparent);
 	}
 
 	.error-display--success {
-		background: rgba(76, 175, 80, 0.1);
-		border-left-color: #4caf50;
-		color: var(--text-primary);
+		background: color-mix(in oklab, var(--ok) 5%, transparent);
+		border-color: color-mix(in oklab, var(--ok) 30%, transparent);
+		color: var(--ok);
+		box-shadow: 0 0 20px color-mix(in oklab, var(--ok) 20%, transparent);
 	}
 
-	/* Size variants */
-	.error-display--small {
-		padding: var(--space-xs) var(--space-sm);
-		font-size: 0.875rem;
+	.error-display--info {
+		background: color-mix(in oklab, var(--accent-cyan) 5%, transparent);
+		border-color: color-mix(in oklab, var(--accent-cyan) 30%, transparent);
+		color: var(--accent-cyan);
+		box-shadow: 0 0 20px color-mix(in oklab, var(--accent-cyan) 20%, transparent);
 	}
 
-	.error-display--medium {
-		padding: var(--space-sm) var(--space-md);
-		font-size: 1rem;
+	/* Hover effects for better interactivity */
+	.error-display--error:hover,
+	.error-display--warning:hover,
+	.error-display--success:hover,
+	.error-display--info:hover {
+		transform: translateY(-1px);
 	}
 
-	.error-display--large {
-		padding: var(--space-md) var(--space-lg);
-		font-size: 1.125rem;
+	.error-display--error:hover {
+		box-shadow: 0 4px 20px color-mix(in oklab, var(--err) 30%, transparent);
 	}
 
-	/* Icon */
-	.error-display__icon {
-		flex-shrink: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin-top: 2px;
+	.error-display--warning:hover {
+		box-shadow: 0 4px 20px color-mix(in oklab, var(--warn) 30%, transparent);
 	}
 
-	.error-display--error .error-display__icon {
-		color: var(--secondary);
+	.error-display--info:hover {
+		box-shadow: 0 4px 20px color-mix(in oklab, var(--accent-cyan) 30%, transparent);
 	}
 
-	.error-display--warning .error-display__icon {
-		color: #ffa726;
-	}
-
-	.error-display--info .error-display__icon {
-		color: var(--primary);
-	}
-
-	.error-display--success .error-display__icon {
-		color: #4caf50;
-	}
-
-	.error-display--small .error-display__icon {
-		margin-top: 1px;
-	}
-
-	.error-display--large .error-display__icon {
-		margin-top: 3px;
-	}
-
-	/* Content */
-	.error-display__content {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.error-display__title {
-		font-size: 1em;
-		font-weight: 600;
-		margin: 0 0 var(--space-xs) 0;
-		line-height: 1.3;
-	}
-
-	.error-display--small .error-display__title {
-		font-size: 0.875rem;
-	}
-
-	.error-display--large .error-display__title {
-		font-size: 1.25rem;
-	}
-
-	.error-display__message {
-		line-height: 1.4;
-		margin: 0;
-	}
-
-	.error-display__slot {
-		margin-top: var(--space-xs);
-	}
-
-	/* Dismiss button */
-	.error-display--dismissible {
-		padding-right: var(--space-xl);
-	}
-
-	.error-display__dismiss {
-		position: absolute;
-		top: var(--space-sm);
-		right: var(--space-sm);
-		background: none;
-		border: none;
-		color: currentColor;
-		cursor: pointer;
-		padding: var(--space-xs);
-		border-radius: 4px;
-		opacity: 0.7;
-		transition: all 0.2s ease;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.error-display__dismiss:hover {
-		opacity: 1;
-		background: rgba(255, 255, 255, 0.1);
-	}
-
-	.error-display__dismiss:focus-visible {
-		outline: 2px solid currentColor;
-		outline-offset: 2px;
-		opacity: 1;
-	}
-
-	.error-display--small .error-display__dismiss {
-		top: var(--space-xs);
-		right: var(--space-xs);
-	}
-
-	.error-display--large .error-display__dismiss {
-		top: var(--space-md);
-		right: var(--space-md);
-	}
-
-	/* Responsive */
-	@media (max-width: 768px) {
-		.error-display {
-			gap: var(--space-xs);
-		}
-
-		.error-display--dismissible {
-			padding-right: var(--space-lg);
-		}
-	}
-
-	/* High contrast mode support */
-	@media (prefers-contrast: high) {
-		.error-display {
-			border-width: 2px;
-			background: var(--bg);
-		}
-
-		.error-display__dismiss {
-			border: 1px solid currentColor;
-		}
+	.error-display--success:hover {
+		box-shadow: 0 4px 20px color-mix(in oklab, var(--ok) 30%, transparent);
 	}
 </style>

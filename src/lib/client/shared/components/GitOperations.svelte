@@ -296,8 +296,8 @@
 {#if isGitRepo}
 	<div class="git-operations">
 		<!-- Git toolbar -->
-		<div class="git-toolbar">
-			<div class="git-info">
+		<div class="flex-between gap-2" style="margin-bottom: 8px;">
+			<div class="git-info flex gap-2" style="font-size: 0.875rem;">
 				<IconGitBranch size={16} />
 				<span class="branch-name">{currentBranch}</span>
 				{#if gitStatus?.ahead > 0}
@@ -308,7 +308,7 @@
 				{/if}
 			</div>
 
-			<div class="git-actions">
+			<div class="flex gap-1">
 				<!-- Status toggle -->
 				<IconButton
 					onclick={() => (showStatus = !showStatus)}
@@ -359,16 +359,16 @@
 
 		<!-- Git status panel -->
 		{#if showStatus && gitStatus}
-			<div class="git-status-panel">
-				<h4>Git Status</h4>
+			<div class="git-panel p-3">
+				<h4 class="panel-title">Git Status</h4>
 
 				{#if gitStatus.modified?.length}
 					<div class="file-group">
-						<h5>Modified Files</h5>
+						<h5 class="file-group-title">Modified Files</h5>
 						{#each gitStatus.modified as file}
-							<div class="file-item">
+							<div class="file-item flex-between">
 								<span class="file-name">{file}</span>
-								<div class="file-actions">
+								<div class="flex gap-1">
 									<IconButton
 										onclick={() => showFileDiff(file)}
 										title="View diff"
@@ -393,11 +393,11 @@
 
 				{#if gitStatus.staged?.length}
 					<div class="file-group">
-						<h5>Staged Files</h5>
+						<h5 class="file-group-title">Staged Files</h5>
 						{#each gitStatus.staged as file}
-							<div class="file-item">
+							<div class="file-item flex-between">
 								<span class="file-name">{file}</span>
-								<div class="file-actions">
+								<div class="flex gap-1">
 									<IconButton
 										onclick={() => showFileDiff(file)}
 										title="View diff"
@@ -422,11 +422,11 @@
 
 				{#if gitStatus.untracked?.length}
 					<div class="file-group">
-						<h5>Untracked Files</h5>
+						<h5 class="file-group-title">Untracked Files</h5>
 						{#each gitStatus.untracked as file}
-							<div class="file-item">
+							<div class="file-item flex-between">
 								<span class="file-name">{file}</span>
-								<div class="file-actions">
+								<div class="flex gap-1">
 									<IconButton
 										onclick={() => toggleStageFile(file, false)}
 										title="Stage file"
@@ -445,19 +445,24 @@
 
 		<!-- Branches panel -->
 		{#if showBranches}
-			<div class="git-branches-panel">
-				<h4>Branches</h4>
+			<div class="git-panel p-3">
+				<h4 class="panel-title">Branches</h4>
 
-				<div class="branch-actions">
-					<Input bind:value={newBranchName} placeholder="New branch name..." type="text" />
+				<div class="flex gap-2" style="margin-bottom: 12px;">
+					<Input
+						bind:value={newBranchName}
+						placeholder="New branch name..."
+						type="text"
+						style="flex: 1;"
+					/>
 					<Button onclick={createBranch} disabled={!newBranchName.trim() || loading} size="sm">
 						Create
 					</Button>
 				</div>
 
-				<div class="branch-list">
+				<div class="flex-col gap-1">
 					{#each branches as branch}
-						<div class="branch-item {branch === currentBranch ? 'current' : ''}">
+						<div class="branch-item {branch === currentBranch ? 'current' : ''} flex-between">
 							<span class="branch-name">{branch}</span>
 							{#if branch !== currentBranch}
 								<IconButton
@@ -477,15 +482,16 @@
 
 		<!-- Commit form -->
 		{#if showCommitForm}
-			<div class="git-commit-panel">
-				<h4>Commit Changes</h4>
+			<div class="git-panel p-3">
+				<h4 class="panel-title">Commit Changes</h4>
 				<Input
 					bind:value={commitMessage}
 					placeholder="Enter commit message..."
 					type="text"
 					onkeydown={(e) => e.key === 'Enter' && commitChanges()}
+					style="margin-bottom: 12px;"
 				/>
-				<div class="commit-actions">
+				<div class="flex gap-2">
 					<Button onclick={commitChanges} disabled={!commitMessage.trim() || loading}>
 						Commit
 					</Button>
@@ -538,20 +544,9 @@
 		padding-top: 8px;
 	}
 
-	.git-toolbar {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 8px;
-		margin-bottom: 8px;
-	}
-
 	.git-info {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 0.875rem;
 		color: var(--text-secondary);
+		align-items: center;
 	}
 
 	.branch-name {
@@ -575,24 +570,14 @@
 		font-size: 0.75rem;
 	}
 
-	.git-actions {
-		display: flex;
-		gap: 4px;
-	}
-
-	.git-status-panel,
-	.git-branches-panel,
-	.git-commit-panel {
+	.git-panel {
 		background: var(--surface-2);
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
-		padding: 12px;
 		margin-bottom: 8px;
 	}
 
-	.git-status-panel h4,
-	.git-branches-panel h4,
-	.git-commit-panel h4 {
+	.panel-title {
 		margin: 0 0 12px 0;
 		font-size: 0.875rem;
 		font-weight: 600;
@@ -607,7 +592,7 @@
 		margin-bottom: 0;
 	}
 
-	.file-group h5 {
+	.file-group-title {
 		margin: 0 0 6px 0;
 		font-size: 0.75rem;
 		font-weight: 500;
@@ -617,11 +602,9 @@
 	}
 
 	.file-item {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
 		padding: 4px 0;
 		font-size: 0.875rem;
+		align-items: center;
 	}
 
 	.file-name {
@@ -629,35 +612,12 @@
 		font-family: var(--font-mono);
 	}
 
-	.file-actions {
-		display: flex;
-		gap: 2px;
-	}
-
-	.branch-actions {
-		display: flex;
-		gap: 8px;
-		margin-bottom: 12px;
-	}
-
-	.branch-actions input {
-		flex: 1;
-	}
-
-	.branch-list {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
 	.branch-item {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
 		padding: 6px 8px;
 		border-radius: 4px;
 		font-size: 0.875rem;
 		transition: background-color 0.2s;
+		align-items: center;
 	}
 
 	.branch-item:hover {
@@ -668,15 +628,6 @@
 		background: var(--primary-bg);
 		color: var(--primary-text);
 		font-weight: 500;
-	}
-
-	.commit-actions {
-		display: flex;
-		gap: 8px;
-	}
-
-	.commit-actions input {
-		margin-bottom: 12px;
 	}
 
 	.git-diff-modal {

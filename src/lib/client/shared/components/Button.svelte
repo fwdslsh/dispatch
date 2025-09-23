@@ -51,13 +51,13 @@
 
 	// Compute button classes - use global retro.css classes
 	const buttonClasses = $derived.by(() => {
-		const classes = ['button'];
+		const classes = ['button', 'btn-layout'];
 
 		if (variant === 'primary') classes.push('primary');
 		else if (variant === 'danger') classes.push('danger');
 		else if (variant === 'secondary') classes.push('warn');
 
-		if (augmented && augmented !== 'none') classes.push('aug');
+		if (augmented && augmented !== 'none') classes.push('aug', 'btn-aug');
 		if (customClass) classes.push(...customClass.split(' '));
 
 		return classes.join(' ');
@@ -129,51 +129,5 @@
 </button>
 
 <style>
-	/* Button component styles - minimal overrides, leverage global .button class */
-
-	/* Component-specific layout only */
-	.button {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		white-space: nowrap;
-		position: relative;
-	}
-
-	/* Text states */
-	.btn__text--hidden {
-		opacity: 0;
-		width: 0;
-		overflow: hidden;
-		transition: all 0.2s ease;
-	}
-
-	/* Spinner */
-	.btn__spinner {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.spinner {
-		width: 16px;
-		height: 16px;
-		border: 2px solid currentColor;
-		border-top: 2px solid transparent;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	/* Ensure augmented-ui compatibility */
-	.button.aug {
-		border-radius: 0;
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		.btn__text--hidden,
-		.spinner {
-			transition: none;
-			animation: none;
-		}
-	}
+	/* Button component uses utility classes - no additional styles needed */
 </style>

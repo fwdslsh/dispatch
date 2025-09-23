@@ -94,39 +94,5 @@
 {/if}
 
 <style>
-	.tile-controls {
-		position: absolute;
-		top: var(--space-2);
-		right: var(--space-2);
-		z-index: 10;
-		background: var(--surface-raised);
-		border: 1px solid var(--surface-border);
-		border-radius: var(--radius);
-		padding: var(--space-1);
-		box-shadow: var(--shadow-sm);
-		backdrop-filter: blur(4px);
-	}
-
-	.tile-controls-group {
-		display: flex;
-		gap: var(--space-1);
-		align-items: center;
-	}
-
-	/* Ensure controls are visible above tile content */
-	.tile-controls :global(.btn-icon-only) {
-		min-width: 32px;
-		height: 32px;
-		padding: var(--space-1);
-	}
-
-	/* Make controls slightly transparent when not hovered */
-	.tile-controls {
-		opacity: 0.9;
-		transition: opacity 0.2s ease;
-	}
-
-	.tile-controls:hover {
-		opacity: 1;
-	}
+	/* TileControls component uses utility classes - no additional styles needed */
 </style>

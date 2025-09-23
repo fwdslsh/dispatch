@@ -102,29 +102,39 @@
 </script>
 
 {#if showInstallPrompt && !isInstalled}
-	<div class="pwa-install-prompt" data-augmented-ui="tl-clip br-clip exe">
-		<div class="prompt-content">
+	<div class="pwa-install-prompt animate-slide-in" data-augmented-ui="tl-clip br-clip exe">
+		<div class="flex gap-4 flex-wrap">
 			<div class="prompt-icon">📱</div>
-			<div class="prompt-text">
-				<h3>Install Dispatch</h3>
-				<p>Install this app for quick access and offline support</p>
+			<div class="flex-1" style="min-width: 200px;">
+				<h3 class="text-primary m-0" style="font-family: 'Exo 2', sans-serif; font-size: 1.1rem;">
+					Install Dispatch
+				</h3>
+				<p class="text-muted m-0" style="font-size: 0.9rem; margin-top: 0.25rem;">
+					Install this app for quick access and offline support
+				</p>
 			</div>
-			<div class="prompt-actions">
-				<button class="install-btn" onclick={handleInstall} data-augmented-ui="tl-clip br-clip exe">
+			<div class="flex gap-2 mobile-full-width" style="margin-top: 0.5rem;">
+				<button
+					class="install-btn interactive"
+					onclick={handleInstall}
+					data-augmented-ui="tl-clip br-clip exe"
+				>
 					Install
 				</button>
-				<button class="dismiss-btn" onclick={dismissPrompt}> Not Now </button>
+				<button class="dismiss-btn interactive" onclick={dismissPrompt}> Not Now </button>
 			</div>
 		</div>
 	</div>
 {/if}
 
 {#if showManualPrompt && isIOS && !isInstalled}
-	<div class="pwa-install-prompt ios-prompt" data-augmented-ui="tl-clip br-clip exe">
-		<div class="prompt-content">
+	<div class="pwa-install-prompt animate-slide-in" data-augmented-ui="tl-clip br-clip exe">
+		<div class="flex gap-4 flex-wrap">
 			<div class="prompt-icon">📱</div>
-			<div class="prompt-text">
-				<h3>Install Dispatch</h3>
+			<div class="flex-1" style="min-width: 200px;">
+				<h3 class="text-primary m-0" style="font-family: 'Exo 2', sans-serif; font-size: 1.1rem;">
+					Install Dispatch
+				</h3>
 				<p class="ios-instructions">To install this app on iOS:</p>
 				<ol class="ios-steps">
 					<li>Tap the share button <span class="ios-icon">⎙</span></li>
@@ -132,8 +142,10 @@
 					<li>Tap "Add" to install</li>
 				</ol>
 			</div>
-			<div class="prompt-actions">
-				<button class="dismiss-btn full-width" onclick={dismissManualPrompt}> Got it </button>
+			<div class="flex gap-2 mobile-full-width" style="margin-top: 0.5rem;">
+				<button class="dismiss-btn full-width interactive" onclick={dismissManualPrompt}>
+					Got it
+				</button>
 			</div>
 		</div>
 	</div>
@@ -153,55 +165,11 @@
 		z-index: 10000;
 		max-width: 400px;
 		width: calc(100% - 40px);
-		animation: slideUp 0.3s ease-out;
-	}
-
-	@keyframes slideUp {
-		from {
-			transform: translateX(-50%) translateY(100%);
-			opacity: 0;
-		}
-		to {
-			transform: translateX(-50%) translateY(0);
-			opacity: 1;
-		}
-	}
-
-	.prompt-content {
-		display: flex;
-		gap: 1rem;
-		align-items: center;
-		flex-wrap: wrap;
 	}
 
 	.prompt-icon {
 		font-size: 2rem;
 		flex-shrink: 0;
-	}
-
-	.prompt-text {
-		flex: 1;
-		min-width: 200px;
-	}
-
-	.prompt-text h3 {
-		margin: 0;
-		font-size: 1.1rem;
-		color: var(--color-primary);
-		font-family: 'Exo 2', sans-serif;
-	}
-
-	.prompt-text p {
-		margin: 0.25rem 0 0;
-		font-size: 0.9rem;
-		color: #aaa;
-	}
-
-	.prompt-actions {
-		display: flex;
-		gap: 0.5rem;
-		width: 100%;
-		margin-top: 0.5rem;
 	}
 
 	.install-btn,
@@ -234,16 +202,8 @@
 		color: #aaa;
 	}
 
-	@media (max-width: 480px) {
-		.pwa-install-prompt {
-			bottom: 0;
-			left: 0;
-			right: 0;
-			transform: none;
-			width: 100%;
-			max-width: none;
-			border-radius: 0;
-		}
+	.full-width {
+		width: 100%;
 	}
 
 	/* iOS-specific styles */
@@ -273,7 +233,15 @@
 		margin: 0 0.2rem;
 	}
 
-	.dismiss-btn.full-width {
-		width: 100%;
+	@media (max-width: 480px) {
+		.pwa-install-prompt {
+			bottom: 0;
+			left: 0;
+			right: 0;
+			transform: none;
+			width: 100%;
+			max-width: none;
+			border-radius: 0;
+		}
 	}
 </style>

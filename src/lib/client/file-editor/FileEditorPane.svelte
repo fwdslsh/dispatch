@@ -215,46 +215,40 @@
 	{/if}
 
 	<!-- Main content -->
-	<div class="file-editor-content">
-		{#if !isEditing}
-			<!-- File browser view using DirectoryBrowser component -->
-			<div class="file-browser">
-				<DirectoryBrowser
-					startPath={currentDirectory}
-					placeholder="Browse files and directories..."
-					showFileActions={true}
-					isAlwaysOpen={true}
-					onSelect={handleDirectorySelect}
-					onNavigate={handleDirectoryNavigate}
-					onFileOpen={handleFileOpen}
-					onFileUpload={handleFileUpload}
-				/>
-			</div>
-		{:else}
-			<!-- File editor view -->
-			<div class="file-editor-container">
-				<FileEditor
-					file={selectedFile}
-					bind:content={fileContent}
-					{originalContent}
-					{loading}
-					onSave={saveFile}
-					onCancel={handleFileCancel}
-					onClose={closeFile}
-				/>
-			</div>
-		{/if}
-	</div>
+	{#if !isEditing}
+		<!-- File browser view using DirectoryBrowser component -->
+		<div class="directory-browser-container">
+			<DirectoryBrowser
+				startPath={currentDirectory}
+				placeholder="Browse files and directories..."
+				showFileActions={true}
+				isAlwaysOpen={true}
+				onSelect={handleDirectorySelect}
+				onNavigate={handleDirectoryNavigate}
+				onFileOpen={handleFileOpen}
+				onFileUpload={handleFileUpload}
+			/>
+		</div>
+	{:else}
+		<!-- File editor view -->
+		<div class="file-editor-container">
+			<FileEditor
+				file={selectedFile}
+				bind:content={fileContent}
+				{originalContent}
+				{loading}
+				onSave={saveFile}
+				onCancel={handleFileCancel}
+				onClose={closeFile}
+			/>
+		</div>
+	{/if}
 </div>
 
 <style>
+	/* FileEditorPane specific styles - minimal */
 	.file-editor-pane {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-		background: var(--color-surface);
-		color: var(--color-text);
-		font-family: var(--font-mono);
+		display: contents;
 	}
 
 	.error-banner {
@@ -264,22 +258,11 @@
 		font-size: 0.875rem;
 	}
 
-	.file-editor-content {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-	}
-
-	.file-browser {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		padding: 1rem;
-		height: 100%;
-	}
-
 	.file-editor-container {
 		height: 100%;
+	}
+	.directory-browser-container {
+		height: 100%;
+		overflow-y: auto;
 	}
 </style>

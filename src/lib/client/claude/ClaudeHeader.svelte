@@ -27,13 +27,13 @@
 	}
 </script>
 
-<div class="claude-header">
-	<div class="session-status">
+<div class="claude-header flex-between gap-3">
+	<div class="flex gap-2">
 		<span class={statusDotClass}></span>
 		<span class="claude-badge">Claude</span>
 	</div>
 
-	<div class="session-info">
+	<div class="flex gap-2 flex-1" style="min-width: 0;">
 		<span class="session-id">#{sessionId}</span>
 		{#if claudeSessionId}
 			<span class="claude-session-id" title="Claude Session ID">
@@ -45,7 +45,7 @@
 		{/if}
 	</div>
 
-	<div class="claude-actions">
+	<div class="flex gap-2">
 		<IconButton
 			onclick={handleClaudeInfo}
 			title="Claude session info"
@@ -70,21 +70,11 @@
 
 <style>
 	.claude-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
 		padding-inline: var(--space-3);
 		background: var(--bg-panel);
 		border-bottom: 1px solid var(--primary-dim);
 		min-height: 44px;
 		flex-shrink: 0;
-		gap: var(--space-3);
-	}
-
-	.session-status {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
 	}
 
 	.status-dot {
@@ -104,14 +94,6 @@
 		border-radius: 4px;
 		border: 1px solid var(--primary-dim);
 		font-weight: 500;
-	}
-
-	.session-info {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		flex: 1;
-		min-width: 0;
 	}
 
 	.session-id {
@@ -143,12 +125,6 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		max-width: 120px;
-	}
-
-	.claude-actions {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
 	}
 
 	/* Mobile adjustments */

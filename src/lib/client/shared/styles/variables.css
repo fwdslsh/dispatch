@@ -1,4 +1,3 @@
-
 /* 0) Base theme tokens */
 :root {
 	color-scheme: light dark;
@@ -31,7 +30,7 @@
 	--text: light-dark(#cfe7d8, #d9ffe6);
 	--muted: light-dark(#8aa699, #92b3a4);
 
-	--accent: light-dark(#2ee66b, #2ee66b);
+	--accent: light-dark(var(--primary), var(--primary));
 	--accent-2: light-dark(#ffd166, #ffd166);
 
 	--ok: light-dark(#26d07c, #26d07c);
@@ -61,8 +60,10 @@
 	--primary-glow-15: color-mix(in oklab, var(--primary) 15%, transparent);
 	--primary-glow-20: color-mix(in oklab, var(--primary) 20%, transparent);
 	--primary-glow-25: color-mix(in oklab, var(--primary) 25%, transparent);
+	--primary-glow-30: color-mix(in oklab, var(--primary) 30%, transparent);
 	--primary-glow-40: color-mix(in oklab, var(--primary) 40%, transparent);
 	--primary-glow-50: color-mix(in oklab, var(--primary) 50%, transparent);
+	--primary-glow-60: color-mix(in oklab, var(--primary) 60%, transparent);
 
 	/* Surface mixing variants for common patterns */
 	--surface-primary-92: color-mix(in oklab, var(--surface) 92%, var(--primary) 8%);
@@ -74,7 +75,7 @@
 	--primary-surface-25: color-mix(in oklab, var(--primary) 25%, var(--surface));
 
 	/* Accent Colors for Variety */
-	--accent: #2ee66b;
+	--accent: var(--primary);
 	--accent-amber: #ffd166;
 	--accent-cyan: #00c2ff;
 	--accent-magenta: #ff6b9d;

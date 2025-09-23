@@ -310,12 +310,12 @@
 		<section class="settings-section">
 			<h4 class="section-title">Storage Usage</h4>
 
-			<div class="usage-overview">
+			<div class="flex flex-col gap-4">
 				<div class="usage-bar">
 					<div class="usage-fill {usageStatus}" style="width: {storageUsage.percentage}%"></div>
 				</div>
 
-				<div class="usage-stats">
+				<div class="flex gap-6 flex-wrap">
 					<div class="stat">
 						<span class="stat-label">Used:</span>
 						<span class="stat-value">{formatBytes(storageUsage.used)}</span>
@@ -342,7 +342,7 @@
 			</div>
 
 			{#if storageUsage.percentage > 80}
-				<div class="usage-warning">
+				<div class="usage-warning flex gap-3">
 					<IconAlertTriangle size={20} />
 					<span>Storage is nearly full. Consider clearing some data.</span>
 				</div>
@@ -354,10 +354,10 @@
 			<section class="settings-section">
 				<h4 class="section-title">Storage Breakdown</h4>
 
-				<div class="storage-categories">
+				<div class="flex-col">
 					{#each Object.entries(groupedItems) as [category, items]}
-						<div class="category-row">
-							<div class="category-info">
+						<div class="category-row flex flex-between">
+							<div class="flex flex-col gap-1">
 								<span class="category-name">{category}</span>
 								<span class="category-count">{items.length} items</span>
 							</div>
@@ -374,11 +374,11 @@
 		<section class="settings-section">
 			<h4 class="section-title">Data Management</h4>
 
-			<div class="data-actions">
+			<div class="flex-col gap-4">
 				<div class="action-group">
 					<h5>Export & Import</h5>
 					<p>Backup or restore your application data</p>
-					<div class="action-buttons">
+					<div class="flex gap-3 flex-wrap">
 						<Button onclick={exportData} variant="ghost" size="small" disabled={loading}>
 							<IconDownload size={16} />
 							Export Data
@@ -396,8 +396,8 @@
 		<section class="settings-section">
 			<h4 class="section-title">Clear Storage</h4>
 
-			<div class="clear-options">
-				<div class="clear-option">
+			<div class="flex-col">
+				<div class="clear-option flex flex-between">
 					<div class="option-info">
 						<h5>Clear Cache</h5>
 						<p>Remove temporary files and cached data</p>
@@ -413,7 +413,7 @@
 					</Button>
 				</div>
 
-				<div class="clear-option">
+				<div class="clear-option flex flex-between">
 					<div class="option-info">
 						<h5>Clear Sessions</h5>
 						<p>Remove all saved session data and history</p>
@@ -429,7 +429,7 @@
 					</Button>
 				</div>
 
-				<div class="clear-option">
+				<div class="clear-option flex flex-between">
 					<div class="option-info">
 						<h5>Reset Settings</h5>
 						<p>Reset all application settings to defaults</p>
@@ -445,7 +445,7 @@
 					</Button>
 				</div>
 
-				<div class="clear-option dangerous">
+				<div class="clear-option dangerous flex flex-between">
 					<div class="option-info">
 						<h5>Clear All Data</h5>
 						<p>Remove ALL local storage data - use with caution!</p>
@@ -490,6 +490,7 @@
 />
 
 <style>
+	/* Component-specific overrides only - using global utilities */
 	.storage-settings {
 		display: flex;
 		flex-direction: column;
@@ -520,16 +521,14 @@
 	.settings-content {
 		flex: 1;
 		overflow-y: auto;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-6);
 	}
 
 	.settings-section {
 		border: 1px solid var(--primary-dim);
 		border-radius: 4px;
 		padding: var(--space-4);
-		background: rgba(46, 230, 107, 0.02);
+		background: color-mix(in oklab, var(--primary) 2%, transparent);
+		margin-bottom: var(--space-6);
 	}
 
 	.section-title {
@@ -543,12 +542,7 @@
 		padding-bottom: var(--space-2);
 	}
 
-	/* Storage Usage */
-	.usage-overview {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
+	/* Storage Usage specific styles */
 
 	.usage-bar {
 		height: 8px;
@@ -576,12 +570,6 @@
 		background: var(--accent-red);
 	}
 
-	.usage-stats {
-		display: flex;
-		gap: var(--space-6);
-		flex-wrap: wrap;
-	}
-
 	.stat {
 		display: flex;
 		flex-direction: column;
@@ -604,7 +592,7 @@
 	}
 
 	.stat-value.warning {
-		color: var(--accent-amber);
+		color: var(--warning);
 	}
 
 	.stat-value.critical {
@@ -616,34 +604,20 @@
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-3);
-		background: rgba(255, 187, 0, 0.1);
-		border: 1px solid var(--accent-amber);
+		background: color-mix(in oklab, var(--warning) 10%, transparent);
+		border: 1px solid var(--warning);
 		border-radius: 4px;
-		color: var(--accent-amber);
+		color: var(--warning);
 		font-size: 0.9rem;
 	}
 
 	/* Storage Categories */
-	.storage-categories {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-
 	.category-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
 		padding: var(--space-2) var(--space-3);
-		background: var(--bg-dark);
+		background: var(--bg);
 		border: 1px solid var(--primary-dim);
 		border-radius: 2px;
-	}
-
-	.category-info {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
+		margin-bottom: var(--space-2);
 	}
 
 	.category-name {
@@ -667,12 +641,6 @@
 	}
 
 	/* Data Management */
-	.data-actions {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
-
 	.action-group h5 {
 		font-family: var(--font-mono);
 		font-size: 1rem;
@@ -688,32 +656,18 @@
 		font-size: 0.9rem;
 	}
 
-	.action-buttons {
-		display: flex;
-		gap: var(--space-3);
-		flex-wrap: wrap;
-	}
-
 	/* Clear Options */
-	.clear-options {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
-
 	.clear-option {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
 		padding: var(--space-3);
 		border: 1px solid var(--primary-dim);
 		border-radius: 4px;
-		background: rgba(46, 230, 107, 0.02);
+		background: color-mix(in oklab, var(--primary) 2%, transparent);
+		margin-bottom: var(--space-4);
 	}
 
 	.clear-option.dangerous {
-		border-color: var(--accent-red);
-		background: rgba(255, 59, 74, 0.05);
+		border-color: var(--error);
+		background: color-mix(in oklab, var(--error) 5%, transparent);
 	}
 
 	.option-info {
@@ -737,12 +691,12 @@
 	}
 
 	:global(.danger-button) {
-		color: var(--accent-red) !important;
-		border-color: var(--accent-red) !important;
+		color: var(--error) !important;
+		border-color: var(--error) !important;
 	}
 
 	:global(.danger-button:hover) {
-		background: rgba(255, 59, 74, 0.1) !important;
+		background: color-mix(in oklab, var(--error) 10%, transparent) !important;
 	}
 
 	.status-message {
@@ -750,16 +704,16 @@
 		border-radius: 4px;
 		font-family: var(--font-mono);
 		font-size: 0.9rem;
-		background: rgba(255, 59, 74, 0.1);
-		border: 1px solid var(--accent-red);
-		color: var(--accent-red);
+		background: color-mix(in oklab, var(--error) 10%, transparent);
+		border: 1px solid var(--error);
+		color: var(--error);
 		margin-top: var(--space-4);
 	}
 
 	.status-message.success {
-		background: rgba(46, 230, 107, 0.1);
-		border-color: var(--primary);
-		color: var(--primary);
+		background: color-mix(in oklab, var(--success) 10%, transparent);
+		border-color: var(--success);
+		color: var(--success);
 	}
 
 	/* Responsive design */

@@ -63,7 +63,6 @@ When `ENABLE_TUNNEL=true` the container will create a public URL. Always use a s
 - `ENABLE_TUNNEL` (default: `false`) — Enable public URL sharing via LocalTunnel
 - `LT_SUBDOMAIN` (optional) — Custom LocalTunnel subdomain
 
-
 ## Troubleshooting
 
 ### Port Conflicts

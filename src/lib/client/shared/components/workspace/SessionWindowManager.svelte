@@ -211,7 +211,7 @@
 	});
 </script>
 
-<div class="window-manager-wrapper">
+<div class="relative w-full h-full">
 	<WindowManager
 		bind:this={windowManagerRef}
 		initial={layoutTree}
@@ -227,12 +227,22 @@
 		{#snippet tile({ focused, tileId, editMode, onSplitRight, onSplitDown, onClose })}
 			{@const session = getTileSession(tileId)}
 			{@const sessionIndex = session ? sessions.indexOf(session) : -1}
-			<div class="tile-wrapper" class:edit-mode={editMode} class:has-session={!!session}>
+			<div
+				class="relative w-full h-full flex flex-col"
+				class:edit-mode={editMode}
+				class:has-session={!!session}
+			>
 				<!-- Tile Controls for Edit Mode - shown for ALL tiles when edit mode is active -->
 				{#if editMode}
-					<div class="tile-controls">
-						<div class="tile-controls-group">
-							<button class="control-btn split-right" onclick={onSplitRight} title="Split Right">
+					<div
+						class="tile-controls surface-raised border border-surface-border radius p-1 shadow-sm"
+					>
+						<div class="flex gap-1 flex-wrap">
+							<button
+								class="control-btn split-right surface-active border border-surface-border text-primary p-1 radius cursor-pointer transition-all flex items-center justify-center"
+								onclick={onSplitRight}
+								title="Split Right"
+							>
 								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
 									<rect
 										x="1"
@@ -257,7 +267,11 @@
 								</svg>
 							</button>
 
-							<button class="control-btn split-down" onclick={onSplitDown} title="Split Down">
+							<button
+								class="control-btn split-down surface-active border border-surface-border text-primary p-1 radius cursor-pointer transition-all flex items-center justify-center"
+								onclick={onSplitDown}
+								title="Split Down"
+							>
 								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
 									<rect
 										x="2"
@@ -282,7 +296,11 @@
 								</svg>
 							</button>
 
-							<button class="control-btn close" onclick={onClose} title="Close Tile">
+							<button
+								class="control-btn close surface-active border border-surface-border text-primary p-1 radius cursor-pointer transition-all flex items-center justify-center"
+								onclick={onClose}
+								title="Close Tile"
+							>
 								<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
 									<path
 										d="M12 4L4 12M4 4l8 8"
@@ -295,9 +313,9 @@
 
 							{#if session && editMode}
 								<!-- Session assignment controls -->
-								<div class="session-controls move-dropdown-container">
+								<div class="flex gap-1 border-l border-surface-border pl-1 ml-1 relative">
 									<button
-										class="control-btn move-session"
+										class="control-btn move-session surface-active border border-surface-border text-primary p-1 radius cursor-pointer transition-all flex items-center justify-center"
 										onclick={() => handleSessionMove(session.id, tileId)}
 										title="Move Session to Another Tile"
 									>
@@ -311,29 +329,39 @@
 										{@const occupiedTiles = sessions
 											.filter((s) => s.tileId && s.id !== session.id)
 											.map((s) => s.tileId)}
-										<div class="move-dropdown">
+										<div
+											class="move-dropdown surface-raised border border-surface-border radius p-1 shadow-md"
+										>
 											{#if availableTiles.length === 0}
-												<div class="dropdown-item disabled">No other tiles available</div>
+												<div
+													class="dropdown-item block w-full p-2 bg-transparent border-0 radius text-primary font-mono text-sm text-left cursor-pointer transition-all opacity-50 cursor-not-allowed italic"
+												>
+													No other tiles available
+												</div>
 											{:else}
 												{#each availableTiles as targetTileId}
 													{@const targetSession = getTileSession(targetTileId)}
 													<button
-														class="dropdown-item {targetSession ? 'will-swap' : ''}"
+														class="dropdown-item block w-full p-2 bg-transparent border-0 radius text-primary font-mono text-sm text-left cursor-pointer transition-all hover:surface-hover {targetSession
+															? 'will-swap'
+															: ''}"
 														onclick={() => handleMoveToTile(session.id, targetTileId)}
 														title={targetSession
 															? `Swap with ${targetSession.name || 'Session'}`
 															: 'Move to empty tile'}
 													>
-														<div class="dropdown-item-content">
-															<span class="tile-name">
+														<div class="flex flex-between">
+															<span class="font-medium flex-1">
 																{targetTileId === 'root'
 																	? 'Root Tile'
 																	: `Tile ${targetTileId.slice(0, 6)}`}
 															</span>
 															{#if targetSession}
-																<span class="tile-status occupied">
+																<span
+																	class="text-xs opacity-70 ml-2 flex items-center gap-1 text-warning"
+																>
 																	<svg
-																		class="swap-icon"
+																		class="swap-icon inline-block align-middle"
 																		width="12"
 																		height="12"
 																		viewBox="0 0 16 16"
@@ -344,7 +372,10 @@
 																	{targetSession.name || `Session ${targetSession.id.slice(0, 6)}`}
 																</span>
 															{:else}
-																<span class="tile-status empty">• Empty</span>
+																<span
+																	class="text-xs opacity-70 ml-2 flex items-center gap-1 text-success"
+																	>• Empty</span
+																>
 															{/if}
 														</div>
 													</button>
@@ -369,20 +400,27 @@
 						{/snippet}
 					</SessionContainer>
 				{:else}
-					<div class="empty-tile-content">
-						<p>No session assigned {editMode ? '• Edit Mode Active' : ''}</p>
-						<div class="empty-actions">
-							<button class="create-session-btn" onclick={() => handleCreateSessionInTile('pty')}>
+					<div
+						class="empty-tile-content w-full h-full flex flex-col items-center justify-center surface radius p-4"
+					>
+						<p class="text-sm text-muted text-center">
+							No session assigned {editMode ? '• Edit Mode Active' : ''}
+						</p>
+						<div class="flex gap-2 flex-center flex-wrap">
+							<button
+								class="primary primary-contrast border-0 radius px-3 py-2 font-mono text-sm cursor-pointer transition-colors hover:primary-hover"
+								onclick={() => handleCreateSessionInTile('pty')}
+							>
 								+ Terminal
 							</button>
 							<button
-								class="create-session-btn"
+								class="primary primary-contrast border-0 radius px-3 py-2 font-mono text-sm cursor-pointer transition-colors hover:primary-hover"
 								onclick={() => handleCreateSessionInTile('claude')}
 							>
 								+ Claude
 							</button>
 							<button
-								class="create-session-btn"
+								class="primary primary-contrast border-0 radius px-3 py-2 font-mono text-sm cursor-pointer transition-colors hover:primary-hover"
 								onclick={() => handleCreateSessionInTile('file-editor')}
 							>
 								+ File Editor
@@ -396,190 +434,21 @@
 </div>
 
 <style>
-	.window-manager-wrapper {
-		position: relative;
-		width: 100%;
-		height: 100%;
-		box-sizing: border-box;
-	}
-
-	.empty-tile {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-direction: column;
-		gap: 0.75rem;
-		border: 2px dashed var(--surface-border);
-		border-radius: 6px;
-		background: var(--surface-hover);
-		padding: 1.25rem;
-		width: 100%;
-		height: 100%;
-		box-sizing: border-box;
-	}
-
-	.empty-tile[data-focused='true'] {
-		border-color: var(--primary);
-		background: var(--primary-alpha);
-	}
-
-	.empty-tile-content {
-		text-align: center;
-		color: var(--text-muted);
-	}
-
-	.empty-tile-content p {
-		margin: 0;
-		font-size: 0.9rem;
-		opacity: 0.75;
-	}
-
-	.empty-actions {
-		display: flex;
-		gap: 0.5rem;
-		justify-content: center;
-		flex-wrap: wrap;
-	}
-
-	.create-session-btn {
-		background: var(--primary);
-		color: var(--primary-contrast);
-		border: none;
-		border-radius: var(--radius);
-		padding: var(--space-2) var(--space-3);
-		font-family: var(--font-mono);
-		font-size: var(--text-sm);
-		cursor: pointer;
-		transition: background-color 0.2s ease;
-	}
-
-	.create-session-btn:hover {
-		background: var(--primary-hover);
-	}
-
-	/* Ensure WindowManager fills container */
-	:global(.wm-root) {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		outline: none;
-	}
-
-	/* Split container styling - critical for horizontal/vertical splits */
-	:global(.wm-split) {
-		display: flex;
-		width: 100%;
-		height: 100%;
-	}
-
-	:global(.wm-split[data-dir='row']) {
-		flex-direction: row;
-	}
-
-	:global(.wm-split[data-dir='column']) {
-		flex-direction: column;
-	}
-
-	/* Pane styling */
-	:global(.wm-pane) {
-		display: flex;
-		min-width: 0;
-		min-height: 0;
-		overflow: hidden;
-	}
-
-	/* Divider styling for drag resize */
-	:global(.wm-divider) {
-		background: var(--surface-border);
-		position: relative;
-		transition: background-color 0.2s;
-		flex-shrink: 0;
-	}
-
-	:global(.wm-divider:hover) {
-		background: #777;
-	}
-
-	:global(.wm-divider[data-dir='row']) {
-		width: 4px;
-		cursor: col-resize;
-	}
-
-	:global(.wm-divider[data-dir='column']) {
-		height: 4px;
-		cursor: row-resize;
-	}
-
-	/* Basic tile button styling for WindowManager */
-	:global(.wm-tile) {
-		background: none;
-		border: none;
-		padding: 0;
-		margin: 0;
-		width: 100%;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		cursor: pointer;
-		outline: none;
-	}
-
-	/* Tile Controls for Edit Mode */
-	.tile-wrapper {
-		position: relative;
-		width: 100%;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-	}
-
+	/* Component-specific positioning and animations only */
 	.tile-controls {
 		position: absolute;
 		top: 0.5rem;
 		right: 0.5rem;
 		z-index: 10;
-		background: var(--surface-raised);
-		border: 1px solid var(--surface-border);
-		border-radius: var(--radius);
-		padding: var(--space-1);
 		backdrop-filter: blur(4px);
-		box-shadow: var(--shadow-sm);
-	}
-
-	.tile-controls-group {
-		display: flex;
-		gap: var(--space-1);
-		align-items: center;
-		flex-wrap: wrap;
-	}
-
-	.session-controls {
-		display: flex;
-		gap: var(--space-1);
-		border-left: 1px solid var(--surface-border);
-		padding-left: var(--space-1);
-		margin-left: var(--space-1);
-		position: relative;
 	}
 
 	.control-btn {
-		background: var(--surface-active);
-		border: 1px solid var(--surface-border);
-		color: var(--text-primary);
-		padding: var(--space-1);
-		border-radius: var(--radius);
-		cursor: pointer;
-		transition: all 0.2s ease;
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		width: 32px;
 		height: 32px;
 	}
 
 	.control-btn:hover {
-		background: var(--surface-hover);
-		border-color: var(--primary);
 		transform: translateY(-1px);
 	}
 
@@ -599,26 +468,40 @@
 		color: var(--warning-contrast, #fff);
 	}
 
-	/* Dropdown Menu Styles */
-	.move-dropdown-container {
-		position: relative;
-	}
-
 	.move-dropdown {
 		position: absolute;
 		top: calc(100% + var(--space-1));
 		right: 0;
-		background: var(--surface-raised);
-		border: 1px solid var(--surface-border);
-		border-radius: var(--radius);
-		padding: var(--space-1);
 		min-width: 220px;
 		max-width: 300px;
-		box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
 		z-index: 100;
 		animation: slideDown 0.2s ease;
 	}
 
+	.dropdown-item + .dropdown-item {
+		margin-top: 2px;
+	}
+
+	.dropdown-item.will-swap:hover {
+		background: var(--warning-alpha, rgba(245, 158, 11, 0.1));
+		border-left: 2px solid var(--warning, #f59e0b);
+		padding-left: calc(var(--space-2) - 2px);
+	}
+
+	.swap-icon {
+		animation: pulse 1s ease-in-out infinite;
+	}
+
+	.empty-tile-content {
+		border: 2px dashed var(--surface-border);
+	}
+
+	.empty-tile-content p {
+		margin: 0;
+		opacity: 0.75;
+	}
+
+	/* Component-specific animation */
 	@keyframes slideDown {
 		from {
 			opacity: 0;
@@ -628,103 +511,5 @@
 			opacity: 1;
 			transform: translateY(0);
 		}
-	}
-
-	.dropdown-item {
-		display: block;
-		width: 100%;
-		padding: var(--space-2) var(--space-2);
-		background: transparent;
-		border: none;
-		border-radius: var(--radius);
-		color: var(--text-primary);
-		font-family: var(--font-mono);
-		font-size: var(--text-sm);
-		text-align: left;
-		cursor: pointer;
-		transition: all 0.15s ease;
-		position: relative;
-	}
-
-	.dropdown-item-content {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		width: 100%;
-	}
-
-	.dropdown-item:hover:not(.disabled) {
-		background: var(--surface-hover);
-	}
-
-	.dropdown-item.will-swap:hover {
-		background: var(--warning-alpha, rgba(245, 158, 11, 0.1));
-		border-left: 2px solid var(--warning, #f59e0b);
-		padding-left: calc(var(--space-2) - 2px);
-	}
-
-	.dropdown-item.disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-		font-style: italic;
-	}
-
-	.dropdown-item + .dropdown-item {
-		margin-top: 2px;
-	}
-
-	.tile-name {
-		font-weight: 500;
-		flex: 1;
-	}
-
-	.tile-status {
-		font-size: var(--text-xs);
-		opacity: 0.7;
-		margin-left: var(--space-2);
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	.tile-status.occupied {
-		color: var(--warning, #f59e0b);
-	}
-
-	.tile-status.empty {
-		color: var(--success, #10b981);
-	}
-
-	.swap-icon {
-		display: inline-block;
-		vertical-align: middle;
-		animation: pulse 1s ease-in-out infinite;
-	}
-
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 0.7;
-		}
-		50% {
-			opacity: 1;
-		}
-	}
-
-	.tile-wrapper.edit-mode {
-		position: relative;
-	}
-
-	.empty-tile-content {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		background: var(--surface);
-		border: 2px dashed var(--surface-border);
-		border-radius: var(--radius);
-		padding: var(--space-4);
 	}
 </style>
