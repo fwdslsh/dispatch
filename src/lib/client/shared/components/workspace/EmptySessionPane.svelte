@@ -23,9 +23,9 @@
 		gap: var(--space-3);
 		place-items: center;
 		padding: var(--space-4);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
 		justify-content: center;
 	}
 

@@ -5,7 +5,7 @@
 	Displays an empty state when no sessions are available.
 -->
 <script>
-  import EmptySessionPane from './EmptySessionPane.svelte';
+	import EmptySessionPane from './EmptySessionPane.svelte';
 
 	import SessionContainer from './SessionContainer.svelte';
 	import SessionHeaderRenderer from './SessionHeaderRenderer.svelte';
