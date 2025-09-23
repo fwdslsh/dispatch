@@ -64,7 +64,7 @@
 	function updateBreadcrumbs(path) {
 		const normalizedRoot = rootFolder.endsWith('/') ? rootFolder.slice(0, -1) : rootFolder;
 		const parts = path.split('/').filter(Boolean);
-		
+
 		// Start breadcrumbs from the root folder
 		if (normalizedRoot === '/') {
 			breadcrumbs = [{ name: '/', path: '/' }];
@@ -73,7 +73,7 @@
 			const rootParts = normalizedRoot.split('/').filter(Boolean);
 			breadcrumbs = [{ name: rootParts[rootParts.length - 1] || '/', path: normalizedRoot }];
 		}
-		
+
 		// Add breadcrumbs for parts beyond the root folder
 		let accumulated = normalizedRoot === '/' ? '' : normalizedRoot;
 		for (const part of parts) {
@@ -137,9 +137,12 @@
 		// Check if the target path is within the rootFolder boundary
 		const normalizedRoot = rootFolder.endsWith('/') ? rootFolder.slice(0, -1) : rootFolder;
 		const normalizedPath = path === '/' ? '/' : path;
-		
+
 		// Only navigate if the path is within the root folder
-		if (normalizedPath.length >= normalizedRoot.length && normalizedPath.startsWith(normalizedRoot)) {
+		if (
+			normalizedPath.length >= normalizedRoot.length &&
+			normalizedPath.startsWith(normalizedRoot)
+		) {
 			query = '';
 			browse(path);
 			onNavigate?.(path);
@@ -163,9 +166,12 @@
 		// Check if the parent directory is within the rootFolder boundary
 		const normalizedRoot = rootFolder.endsWith('/') ? rootFolder.slice(0, -1) : rootFolder;
 		const normalizedParent = parent === '/' ? '/' : parent;
-		
+
 		// Only navigate up if the parent is not outside the root folder
-		if (normalizedParent.length >= normalizedRoot.length && normalizedParent.startsWith(normalizedRoot)) {
+		if (
+			normalizedParent.length >= normalizedRoot.length &&
+			normalizedParent.startsWith(normalizedRoot)
+		) {
 			navigateTo(parent);
 		}
 	}

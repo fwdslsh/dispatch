@@ -59,6 +59,11 @@ class ServiceContainer {
 			return new SocketService(this.config);
 		});
 
+		this.registerFactory('environment', async () => {
+			const { EnvironmentService } = await import('./EnvironmentService.js');
+			return new EnvironmentService(this.config);
+		});
+
 		// ViewModels
 		this.registerFactory('sessionViewModel', async () => {
 			const { SessionViewModel } = await import('../state/SessionViewModel.svelte.js');
