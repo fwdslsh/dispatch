@@ -216,7 +216,46 @@
 <style>
 	/* Component-specific terminal overrides */
 	.terminal-wrapper {
-		display: contents;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		height: 100%;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.terminal-container {
+		display: flex;
+		flex: 1;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		overflow: hidden;
+		position: relative;
+	}
+
+	.xterm-container {
+		flex: 1;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	/* Ensure xterm.js fills the container */
+	.terminal-container :global(.xterm) {
+		width: 100% !important;
+		height: 100% !important;
+	}
+
+	.terminal-container :global(.xterm .xterm-viewport) {
+		width: 100% !important;
+		height: 100% !important;
+	}
+
+	.terminal-container :global(.xterm .xterm-screen) {
+		width: 100% !important;
+		height: 100% !important;
 	}
 
 	.terminal-loading {
