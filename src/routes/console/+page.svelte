@@ -66,12 +66,7 @@
 
 	async function loadServerLogs() {
 		try {
-			// Add ?key=test in dev mode for API auth
-			let logsUrl = '/api/admin/logs';
-			if (import.meta.env && import.meta.env.DEV) {
-				logsUrl += '?key=test';
-			}
-			const response = await fetch(logsUrl, { headers: getAuthHeaders() });
+			const response = await fetch('/api/admin/logs', { headers: getAuthHeaders() });
 			if (response.ok) {
 				const data = await response.json();
 				serverLogs = data.logs || [];

@@ -214,9 +214,14 @@ export class AuthManager {
 	/**
 	 * Generate SSH key fingerprint
 	 */
-	generateSSHFingerprint(publicKey) {
+	generateSSHKeyFingerprint(publicKey) {
 		// Simple hash-based fingerprint for SSH keys
 		return crypto.createHash('sha256').update(publicKey).digest('hex').slice(0, 16);
+	}
+
+	// Alias for backwards compatibility
+	generateSSHFingerprint(publicKey) {
+		return this.generateSSHKeyFingerprint(publicKey);
 	}
 
 	/**
@@ -230,6 +235,41 @@ export class AuthManager {
 		);
 
 		return sshKey || null;
+	}
+
+	/**
+	 * Handle first user SSH key authentication - creates user and sets as admin
+	 */
+	async handleFirstUserSSHAuth(publicKey, email = null, username = null) {
+		// Check if this is indeed the first user
+		const isFirstUser = await this.checkFirstUser();
+		if (!isFirstUser) {
+			return null; // Not first user, use normal auth flow
+		}
+
+		// Create first admin user
+		const defaultUsername = username || 'admin';
+		const defaultEmail = email || 'admin@dispatch.local';
+
+		const userId = await this.createUserLegacy(defaultUsername, defaultEmail, true, ['ssh_key']);
+
+		// Add SSH key for the user
+		await this.addSSHKey(userId, publicKey, 'First Admin Key');
+
+		// Update first user status
+		this.isFirstUser = false;
+
+		// Return user data in same format as verifySSHKey
+		const user = await this.db.get('SELECT * FROM users WHERE id = ?', [userId]);
+		const sshKey = await this.db.get('SELECT * FROM ssh_keys WHERE user_id = ?', [userId]);
+
+		return {
+			...sshKey,
+			user_id: user.id,
+			username: user.username,
+			email: user.email,
+			is_admin: user.is_admin
+		};
 	}
 
 	/**

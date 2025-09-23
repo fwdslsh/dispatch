@@ -9,7 +9,7 @@
 		// Check if user has authentication (cookie-based or localStorage)
 		const hasStoredAuth = !!getStoredAuthToken();
 
-		// Always use new authentication system, ignore TERMINAL_KEY
+		// Use JWT-based authentication system
 		if (!hasStoredAuth) {
 			document.body.classList.add('no-key');
 		} else {

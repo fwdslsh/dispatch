@@ -11,12 +11,13 @@ describe('SSH Authentication API', () => {
 	let mockRequest;
 	let mockCookies;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		vi.clearAllMocks();
-		
+
 		mockAuthManager = {
 			verifySSHKey: vi.fn(),
-			createSession: vi.fn()
+			createSession: vi.fn(),
+			handleFirstUserSSHAuth: vi.fn()
 		};
 
 		const { getAuthManager } = await import('../../src/lib/server/shared/auth.js');
@@ -32,8 +33,8 @@ describe('SSH Authentication API', () => {
 	});
 
 	it('should authenticate with valid SSH key', async () => {
-		const validSSHKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDjZWbwvy... test@example.com';
-		
+		const validSSHKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDjZWbwvyTestKeyDataHere test@example.com';
+
 		mockRequest.json.mockResolvedValue({ publicKey: validSSHKey });
 		mockAuthManager.verifySSHKey.mockResolvedValue({
 			id: 'key123',
@@ -47,7 +48,7 @@ describe('SSH Authentication API', () => {
 			token: 'jwt.token.here'
 		});
 
-		const response = await POST({ request: mockRequest, cookies: mockCookies });
+		const response = await POST({ request: mockRequest, cookies: mockCookies, locals: { services: { authManager: mockAuthManager } } });
 		const data = await response.json();
 
 		expect(response.status).toBe(200);
@@ -67,7 +68,7 @@ describe('SSH Authentication API', () => {
 	it('should reject invalid SSH key format', async () => {
 		mockRequest.json.mockResolvedValue({ publicKey: 'invalid-key-format' });
 
-		const response = await POST({ request: mockRequest, cookies: mockCookies });
+		const response = await POST({ request: mockRequest, cookies: mockCookies, locals: { services: { authManager: mockAuthManager } } });
 		const data = await response.json();
 
 		expect(response.status).toBe(400);
@@ -75,13 +76,14 @@ describe('SSH Authentication API', () => {
 		expect(data.error).toBe('Invalid SSH public key format');
 	});
 
-	it('should reject unauthorized SSH key', async () => {
-		const validSSHKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDjZWbwvy... test@example.com';
-		
+	it('should reject unauthorized SSH key when not first user', async () => {
+		const validSSHKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDjZWbwvyTestKeyDataHere test@example.com';
+
 		mockRequest.json.mockResolvedValue({ publicKey: validSSHKey });
 		mockAuthManager.verifySSHKey.mockResolvedValue(null); // Key not found
+		mockAuthManager.handleFirstUserSSHAuth.mockResolvedValue(null); // Not first user
 
-		const response = await POST({ request: mockRequest, cookies: mockCookies });
+		const response = await POST({ request: mockRequest, cookies: mockCookies, locals: { services: { authManager: mockAuthManager } } });
 		const data = await response.json();
 
 		expect(response.status).toBe(401);
@@ -89,10 +91,36 @@ describe('SSH Authentication API', () => {
 		expect(data.error).toBe('SSH key not authorized');
 	});
 
+	it('should handle first user SSH authentication', async () => {
+		const validSSHKey = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDjZWbwvyTestKeyDataHere test@example.com';
+
+		mockRequest.json.mockResolvedValue({ publicKey: validSSHKey });
+		mockAuthManager.verifySSHKey.mockResolvedValue(null); // Key not found in existing users
+		mockAuthManager.handleFirstUserSSHAuth.mockResolvedValue({
+			id: 'key123',
+			user_id: 'admin123',
+			username: 'admin',
+			email: 'admin@dispatch.local',
+			fingerprint: 'abcd1234'
+		});
+		mockAuthManager.createSession.mockResolvedValue({
+			sessionId: 'session123',
+			token: 'jwt.token.here'
+		});
+
+		const response = await POST({ request: mockRequest, cookies: mockCookies, locals: { services: { authManager: mockAuthManager } } });
+		const data = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(data.success).toBe(true);
+		expect(data.user.id).toBe('admin123');
+		expect(data.user.username).toBe('admin');
+	});
+
 	it('should handle missing public key', async () => {
 		mockRequest.json.mockResolvedValue({});
 
-		const response = await POST({ request: mockRequest, cookies: mockCookies });
+		const response = await POST({ request: mockRequest, cookies: mockCookies, locals: { services: { authManager: mockAuthManager } } });
 		const data = await response.json();
 
 		expect(response.status).toBe(400);

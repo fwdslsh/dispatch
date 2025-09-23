@@ -20,7 +20,13 @@ export async function POST({ request, cookies, locals }) {
 		}
 
 		// Verify SSH key authentication
-		const sshKeyData = await authManager.verifySSHKey(trimmedKey);
+		let sshKeyData = await authManager.verifySSHKey(trimmedKey);
+
+		// If no existing SSH key found, check if this could be the first user
+		if (!sshKeyData) {
+			sshKeyData = await authManager.handleFirstUserSSHAuth(trimmedKey);
+		}
+
 		if (!sshKeyData) {
 			return json({ success: false, error: 'SSH key not authorized' }, { status: 401 });
 		}
