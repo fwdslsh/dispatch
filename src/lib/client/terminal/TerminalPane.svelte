@@ -216,10 +216,7 @@
 <style>
 	/* Component-specific terminal overrides */
 	.terminal-wrapper {
-		position: relative;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
+		display: contents;
 	}
 
 	.terminal-loading {
