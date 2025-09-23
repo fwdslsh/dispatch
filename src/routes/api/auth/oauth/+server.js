@@ -1,14 +1,13 @@
 import { json, redirect } from '@sveltejs/kit';
-import { getAuthManager } from '$lib/server/shared/auth.js';
 
-export async function GET({ url }) {
+export async function GET({ url, locals }) {
 	const provider = url.searchParams.get('provider');
 
 	if (!provider || !['github', 'google'].includes(provider)) {
 		return json({ success: false, error: 'Invalid OAuth provider' }, { status: 400 });
 	}
 
-	const authManager = getAuthManager();
+	const authManager = locals.services?.authManager;
 	if (!authManager) {
 		return json({ success: false, error: 'Authentication system not initialized' }, { status: 500 });
 	}

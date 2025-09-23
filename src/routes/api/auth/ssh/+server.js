@@ -1,8 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { getAuthManager } from '$lib/server/shared/auth.js';
 
-export async function POST({ request, cookies }) {
-	const authManager = getAuthManager();
+export async function POST({ request, cookies, locals }) {
+	const authManager = locals.services?.authManager;
 	if (!authManager) {
 		return json({ success: false, error: 'Authentication system not initialized' }, { status: 500 });
 	}

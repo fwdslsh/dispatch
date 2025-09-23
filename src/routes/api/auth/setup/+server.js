@@ -1,9 +1,8 @@
 import { json } from '@sveltejs/kit';
-import { getAuthManager } from '$lib/server/shared/auth.js';
 import { SSHManager } from '$lib/server/auth/SSHManager.js';
 
-export async function GET() {
-	const authManager = getAuthManager();
+export async function GET({ locals }) {
+	const authManager = locals.services?.authManager;
 	if (!authManager) {
 		return json({ success: false, error: 'Authentication system not initialized' }, { status: 500 });
 	}
@@ -29,8 +28,8 @@ export async function GET() {
 	}
 }
 
-export async function POST({ request }) {
-	const authManager = getAuthManager();
+export async function POST({ request, locals }) {
+	const authManager = locals.services?.authManager;
 	if (!authManager) {
 		return json({ success: false, error: 'Authentication system not initialized' }, { status: 500 });
 	}

@@ -1,17 +1,22 @@
 import { json } from '@sveltejs/kit';
-import { getAuthManager, verifyAuth } from '$lib/server/shared/auth.js';
+import { extractToken } from '$lib/server/shared/auth.js';
 import { SSHManager } from '$lib/server/auth/SSHManager.js';
 
-export async function GET({ request }) {
+export async function GET({ request, locals }) {
+	const authManager = locals.services?.authManager;
+	if (!authManager) {
+		return json({ error: 'Authentication system not available' }, { status: 500 });
+	}
+
 	// Verify authentication
-	const auth = await verifyAuth(request);
-	if (!auth) {
+	const token = extractToken(request);
+	if (!token) {
 		return json({ error: 'Authentication required' }, { status: 401 });
 	}
 
-	const authManager = getAuthManager();
-	if (!authManager) {
-		return json({ error: 'Authentication system not available' }, { status: 500 });
+	const auth = await authManager.verifyToken(token);
+	if (!auth) {
+		return json({ error: 'Authentication required' }, { status: 401 });
 	}
 
 	try {
@@ -28,16 +33,21 @@ export async function GET({ request }) {
 	}
 }
 
-export async function POST({ request }) {
+export async function POST({ request, locals }) {
+	const authManager = locals.services?.authManager;
+	if (!authManager) {
+		return json({ error: 'Authentication system not available' }, { status: 500 });
+	}
+
 	// Verify authentication and admin privileges
-	const auth = await verifyAuth(request);
-	if (!auth) {
+	const token = extractToken(request);
+	if (!token) {
 		return json({ error: 'Authentication required' }, { status: 401 });
 	}
 
-	const authManager = getAuthManager();
-	if (!authManager) {
-		return json({ error: 'Authentication system not available' }, { status: 500 });
+	const auth = await authManager.verifyToken(token);
+	if (!auth) {
+		return json({ error: 'Authentication required' }, { status: 401 });
 	}
 
 	// Check if user is admin

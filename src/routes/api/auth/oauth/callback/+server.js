@@ -1,13 +1,12 @@
 import { json, redirect } from '@sveltejs/kit';
-import { getAuthManager } from '$lib/server/shared/auth.js';
 
-export async function GET({ url, cookies }) {
+export async function GET({ url, cookies, locals }) {
 	const provider = url.searchParams.get('provider');
 	const code = url.searchParams.get('code');
 	const state = url.searchParams.get('state');
 	const error = url.searchParams.get('error');
 
-	const authManager = getAuthManager();
+	const authManager = locals.services?.authManager;
 	if (!authManager) {
 		return json({ success: false, error: 'Authentication system not initialized' }, { status: 500 });
 	}

@@ -493,7 +493,7 @@
 		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
 		border-radius: 8px;
 		padding: var(--space-6);
-		animation: cardMaterialize 1s ease-out 0.6s forwards;
+		animation: cardMaterialize 0.2s ease-out 0.6s forwards;
 		opacity: 0;
 		transform: translateY(30px) scale(0.9);
 		box-shadow:
@@ -671,7 +671,7 @@
 	}
 
 	/* Enhanced loading states */
-	.card:has(:global(button[disabled])) {
+	/* .card:has(:global(button[disabled])) {
 		border-color: color-mix(in oklab, var(--accent-cyan) 30%, transparent);
 		animation: loadingPulse 2s ease-in-out infinite;
 	}
@@ -689,7 +689,7 @@
 				0 0 0 1px color-mix(in oklab, var(--accent-cyan) 20%, transparent),
 				0 0 20px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
 		}
-	}
+	} */
 
 	.setup-prompt {
 		text-align: center;
