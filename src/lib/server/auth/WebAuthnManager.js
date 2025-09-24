@@ -81,8 +81,8 @@ export class WebAuthnManager {
 			excludeCredentials,
 			authenticatorSelection: {
 				residentKey: 'preferred',
-				userVerification: 'preferred',
-				authenticatorAttachment: 'platform'
+				userVerification: 'preferred'
+				// Remove authenticatorAttachment to allow both platform and cross-platform authenticators
 			},
 			supportedAlgorithmIDs: [-7, -257] // ES256, RS256
 		});
@@ -119,7 +119,8 @@ export class WebAuthnManager {
 			response,
 			expectedChallenge: challengeRecord.challenge,
 			expectedOrigin: this.origin,
-			expectedRPID: this.rpID
+			expectedRPID: this.rpID,
+			requireUserVerification: false // Match the 'preferred' setting from registration options
 		});
 
 		if (!verification.verified || !verification.registrationInfo) {
@@ -231,7 +232,8 @@ export class WebAuthnManager {
 				credentialPublicKey: credential.credential_public_key,
 				counter: credential.counter,
 				transports: JSON.parse(credential.transports || '[]')
-			}
+			},
+			requireUserVerification: false // Match the 'preferred' setting from authentication options
 		});
 
 		if (!verification.verified) {

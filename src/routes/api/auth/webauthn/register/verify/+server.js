@@ -10,20 +10,12 @@ export async function POST({ request, locals, cookies }) {
 		const { challengeId, response, credentialName, userData } = await request.json();
 
 		const authManager = locals.services.authManager;
-		const verification = await authManager.webauthn.verifyRegistrationResponse(
-			challengeId,
-			response,
-			credentialName
-		);
 
-		if (!verification.verified) {
-			return json({ error: 'Registration verification failed' }, { status: 400 });
-		}
-
-		// Check if this is first user setup
+		// Check if this is first user setup and create user BEFORE verifying registration
+		let userId = null;
 		if (authManager.isFirstUser && userData) {
 			// Create the first user account
-			const userId = crypto.randomUUID();
+			userId = crypto.randomUUID();
 			const now = Date.now();
 
 			await authManager.db.run(
@@ -40,12 +32,29 @@ export async function POST({ request, locals, cookies }) {
 				]
 			);
 
-			// Update the credential with the actual user ID
+			// Update the challenge with the real user ID before verification
 			await authManager.db.run(
-				'UPDATE webauthn_credentials SET user_id = ? WHERE id = ?',
-				[userId, verification.credentialId]
+				'UPDATE webauthn_challenges SET user_id = ? WHERE id = ?',
+				[userId, challengeId]
 			);
+		}
 
+		const verification = await authManager.webauthn.verifyRegistrationResponse(
+			challengeId,
+			response,
+			credentialName
+		);
+
+		if (!verification.verified) {
+			// Rollback user creation if verification fails
+			if (userId) {
+				await authManager.db.run('DELETE FROM users WHERE id = ?', [userId]);
+			}
+			return json({ error: 'Registration verification failed' }, { status: 400 });
+		}
+
+		// Check if this is first user setup
+		if (authManager.isFirstUser && userData && userId) {
 			// Create session
 			const sessionId = crypto.randomUUID();
 			const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
