@@ -87,25 +87,27 @@ The VS Code CLI is pre-installed in the Docker container. Simply use Settings â†
 
 ## Using Docker with SSL (Recommended)
 
-**Automatic HTTPS with Let's Encrypt:**
+**Single-container with automatic SSL:**
 
 ```bash
-# Clone and set up with free SSL certificates
-git clone https://github.com/fwdslsh/dispatch.git
-cd dispatch
-./docker/ssl-setup.sh
-```
+# Production with Let's Encrypt (free, trusted SSL)
+docker run -d -p 80:80 -p 443:443 \
+  -e DOMAIN=dispatch.yourdomain.com \
+  -e LETSENCRYPT_EMAIL=admin@yourdomain.com \
+  -e TERMINAL_KEY=super-secure-password \
+  fwdslsh/dispatch:latest
 
-**Manual Docker (HTTP only):**
+# Development with self-signed SSL
+docker run -d -p 80:80 -p 443:443 \
+  -e SSL_MODE=self-signed \
+  -e TERMINAL_KEY=test-password \
+  fwdslsh/dispatch:latest
 
-```bash
-mkdir -p ~/dispatch/{home,workspace}
-
-docker run -d -p 3030:3030 \
-  --env-file ~/dispatch/home/.env \
-  -v ~/dispatch/workspace:/var/lib/dispatch \
-  -v ~/dispatch/home:/home/dispatch \
-  --name dispatch fwdslsh/dispatch:latest
+# HTTP only (no SSL)
+docker run -d -p 80:80 \
+  -e SSL_MODE=none \
+  -e TERMINAL_KEY=test-password \
+  fwdslsh/dispatch:latest
 ```
 
 ## Tech Stack
