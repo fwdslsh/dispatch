@@ -107,7 +107,6 @@ ENV NODE_ENV=production \
     TERMINAL_KEY=change-me \
     ENABLE_TUNNEL=false \
     LT_SUBDOMAIN= \
-    SSL_ENABLED=true \
     # Directory management configuration
     DISPATCH_CONFIG_DIR=/config \
     DISPATCH_PROJECTS_DIR=/projects \
