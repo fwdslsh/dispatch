@@ -278,7 +278,7 @@ docker run -p 3030:3030 -e TERMINAL_KEY=test-key dispatch:test
 ```bash
 # Automatically set by npm run dev
 TERMINAL_KEY=test
-SSL_ENABLED=true    # Enable HTTPS with self-signed certificates
+# SSL_ENABLED=true (default: auto-enabled for dev with self-signed certs)
 
 # Optional for testing
 ENABLE_TUNNEL=false     # or 'true'
@@ -295,27 +295,46 @@ TERMINAL_KEY=your-strong-password
 ENABLE_TUNNEL=false
 LT_SUBDOMAIN=your-subdomain
 PORT=3030
-SSL_ENABLED=true    # Enable HTTPS (default: false in production)
+# SSL_ENABLED=false (default: disabled for reverse proxy SSL termination)
 ```
 
 ### SSL Configuration
 
-Dispatch automatically generates self-signed SSL certificates for local development using node-forge.
+Dispatch provides intelligent SSL configuration that adapts to different environments:
 
-**Development Server (HTTPS enabled by default):**
+**🔧 Development Server (HTTPS enabled by default):**
 
+- Vite dev server uses self-signed certificates for local HTTPS development
 - Access via `https://localhost:5173`
-- Certificates are auto-generated in `.dispatch-ssl/` directory
-- Browser will show security warning on first visit (normal for self-signed certs)
-- To disable SSL: set `SSL_ENABLED=false` or use `npm run dev:http`
+- Browser security warnings are normal and expected for self-signed certs
+- Certificates auto-generated in `.dispatch-ssl/` directory
 
-**Production Server:**
+**🐳 Docker/Production (HTTP by default for reverse proxy):**
 
-- SSL disabled by default in production
-- To enable: set `SSL_ENABLED=true`
-- Uses the same auto-generated certificates as development
+- SSL disabled by default - designed for reverse proxy SSL termination
+- No trust warnings - perfect for hosting behind Cloudflare, nginx, Caddy
+- Production-ready approach following containerization best practices
 
-**Trusting Certificates:**
+**⚙️ Manual SSL Control:**
+
+- Set `SSL_ENABLED=true` to force self-signed SSL in any environment
+- Set `SSL_ENABLED=false` to explicitly disable SSL
+- To disable SSL in development: use `npm run dev:http`
+
+**🌐 Reverse Proxy Examples:**
+
+```bash
+# Behind Cloudflare (automatic SSL)
+docker run -p 3030:3030 -e TERMINAL_KEY=secret fwdslsh/dispatch:latest
+
+# Behind nginx with Let's Encrypt
+docker run -p 3030:3030 -e TERMINAL_KEY=secret fwdslsh/dispatch:latest
+
+# Behind Caddy (automatic HTTPS)
+docker run -p 3030:3030 -e TERMINAL_KEY=secret fwdslsh/dispatch:latest
+```
+
+**Trusting Self-Signed Certificates (Development Only):**
 
 1. Visit the HTTPS URL in your browser
 2. Click "Advanced" when you see the security warning

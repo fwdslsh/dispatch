@@ -173,18 +173,38 @@ export async function getSSLOptions() {
 }
 
 /**
+ * Check if we're running in a container environment
+ */
+export function isContainerEnvironment() {
+	return (
+		process.env.CONTAINER_ENV === 'true' ||
+		process.env.DOCKER_CONTAINER === 'true' ||
+		fs.existsSync('/.dockerenv')
+	);
+}
+
+/**
  * Check if SSL should be enabled based on environment variables
  */
 export function shouldEnableSSL() {
-	// Default to true in development, false in production (unless explicitly set)
-	const defaultValue = process.env.NODE_ENV !== 'production';
 	const sslEnabled = process.env.SSL_ENABLED;
+	const isContainer = isContainerEnvironment();
+	const isProduction = process.env.NODE_ENV === 'production';
 
-	if (sslEnabled === undefined) {
-		return defaultValue;
+	// If explicitly set, use that value
+	if (sslEnabled !== undefined) {
+		return sslEnabled === 'true' || sslEnabled === '1';
 	}
 
-	return sslEnabled === 'true' || sslEnabled === '1';
+	// Default behavior:
+	// - Development (Vite): Enable SSL with self-signed certs (trust warnings OK)
+	// - Docker/Container: Disable SSL (expect external SSL termination)
+	// - Production (non-container): Disable SSL (expect external SSL termination)
+	if (isContainer || isProduction) {
+		return false; // Disable SSL in containers/production - use reverse proxy SSL
+	}
+
+	return true; // Enable SSL in development with self-signed certificates
 }
 
 /**
