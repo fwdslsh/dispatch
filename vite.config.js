@@ -2,7 +2,10 @@ import devtoolsJson from 'vite-plugin-devtools-json';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
-import { getViteSSLConfig, printSSLInstructions } from './src/lib/server/shared/utils/ssl-certificates.js';
+import {
+	getViteSSLConfig,
+	printSSLInstructions
+} from './src/lib/server/shared/utils/ssl-certificates.js';
 
 function socketIOPlugin() {
 	return {
