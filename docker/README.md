@@ -1,79 +1,83 @@
 # Dispatch Docker Usage
 
-This document explains how to run the [Dispatch Docker image](https://hub.docker.com/r/fwdslsh/dispatch). It includes examples for running the container, mounting local directories for persistent storage, handling permissions, SSL configuration, and more.
+This document explains how to run the [Dispatch Docker image](https://hub.docker.com/r/fwdslsh/dispatch) with automatic SSL certificate management using Let's Encrypt.
 
-## SSL/HTTPS Support
+## 🔒 SSL/HTTPS Support (Recommended)
 
-Dispatch provides flexible SSL configuration optimized for different deployment scenarios:
+Dispatch now includes **automatic Let's Encrypt SSL certificate management** with nginx reverse proxy for production-ready HTTPS out of the box.
 
-### 🐳 **Docker/Production (Recommended)**
+### ✨ **Automatic SSL Setup (Recommended)**
 
-- **SSL disabled by default** - designed for reverse proxy SSL termination
-- **No trust warnings** - perfect for remote hosting with free SSL (Cloudflare, nginx, Caddy)
-- **Production ready** - follows best practices for containerized deployments
-
-### 🔧 **Development (Vite Dev Server)**
-
-- **Self-signed SSL enabled by default** - for local HTTPS development
-- **Trust warnings expected** - one-time browser acceptance required
-- **Local development optimized** - automatic certificate generation
-
-### ⚙️ **Manual SSL Override**
-
-- Set `SSL_ENABLED=true` to force self-signed certificates in any environment
-- Set `SSL_ENABLED=false` to explicitly disable SSL
-
-## Run
+The easiest way to deploy Dispatch with free, globally trusted SSL certificates:
 
 ```bash
-# Default: HTTP mode (ready for reverse proxy SSL)
-docker run -p 3030:3030 -e TERMINAL_KEY=your-secret-password fwdslsh/dispatch:latest
+# 1. Clone or download Dispatch
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+
+# 2. Run the SSL setup script
+./docker/ssl-setup.sh
 ```
 
-Access via `http://localhost:3030` - perfect for putting behind:
+The setup script will:
 
-- **Cloudflare** (automatic SSL)
-- **nginx** with Let's Encrypt
-- **Caddy** (automatic HTTPS)
-- **Traefik** with SSL termination
+- ✅ Create a `.env` file from template (if it doesn't exist)
+- ✅ Validate your configuration (domain, email, terminal key)
+- ✅ Set up nginx reverse proxy configuration
+- ✅ Obtain Let's Encrypt SSL certificates automatically
+- ✅ Start all services with HTTPS enabled
+- ✅ Configure automatic certificate renewal (every 60 days)
 
-### With Self-Signed SSL (Not Recommended for Remote)
+### 📝 **Manual Configuration**
 
-```bash
-# Force self-signed SSL (will show trust warnings)
-docker run -p 3030:3030 -e TERMINAL_KEY=your-secret-password -e SSL_ENABLED=true fwdslsh/dispatch:latest
-```
+If you prefer manual setup:
 
-Access via `https://localhost:3030` (browser warnings expected)
+1. **Copy environment template:**
 
-## Persistent storage (volume mounts)
+   ```bash
+   cp .env.example .env
+   ```
 
-To keep user data, dotfiles, and project files across container restarts, mount host directories into the container.
+2. **Edit `.env` file with your settings:**
 
-```bash
-# Create directories (no sudo needed!)
-mkdir -p ~/dispatch-home ~/dispatch-projects
+   ```bash
+   # Your domain name
+   DOMAIN=dispatch.yourdomain.com
 
-# Option 1: Use your current user ID (recommended)
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/dispatch \
-  -v ~/dispatch-projects:/workspace \
-  fwdslsh/dispatch:latest
-```
+   # Strong password for web access
+   TERMINAL_KEY=your-super-secure-password
 
-Recommended mount points:
+   # Email for Let's Encrypt notifications
+   LETSENCRYPT_EMAIL=admin@yourdomain.com
+   ```
 
-- `/home/dispatch` — user home directory inside the container (shell history, dotfiles)
-- `/workspace` — where you can keep project folders and code
+3. **Initialize SSL certificates:**
 
-**Security isolation**: The container can only access the specific directories you mount. No sudo required when using `--user $(id -u):$(id -g)` or building with your user ID.
+   ```bash
+   ./docker/init-letsencrypt.sh
+   ```
 
-## Environment variables
+4. **Start services:**
+   ```bash
+   docker-compose up -d
+   ```
 
-- `TERMINAL_KEY` (required) — password used to authenticate to the web UI
-- `PORT` (default `3030`) — port inside the container
-- `ENABLE_TUNNEL` (`true`|`false`) — enable public URL sharing
-- `LT_SUBDOMAIN` — optional LocalTunnel subdomain
-- `SSL_ENABLED` (`true`|`false`) — force SSL mode (default: auto-detected based on environment)
+### 🌐 **Access Your Application**
+
+After setup, your Dispatch application will be available at:
+
+- **HTTPS:** `https://yourdomain.com` (primary, secure access)
+- HTTP traffic is automatically redirected to HTTPS
+
+## 🔧 **Configuration Options**
+
+### Environment Variables
+
+| Variable              | Default     | Description                                        |
+| --------------------- | ----------- | -------------------------------------------------- |
+| `DOMAIN`              | `localhost` | **Required** - Your domain name                    |
+| `TERMINAL_KEY`        | `change-me` | **Required** - Web interface password              |
+| `LETSENCRYPT_EMAIL`   | -           | **Required** - Email for certificate notifications |
+| `LETSENCRYPT_STAGING` | `0`         | Set to `1` for testing (staging certificates)      |
+
+This SSL-enabled setup provides enterprise-grade security with minimal configuration, making it perfect for production deployments while maintaining the ease of use that Dispatch is known for.
