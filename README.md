@@ -85,7 +85,18 @@ The VS Code CLI is pre-installed in the Docker container. Simply use Settings â†
 - Integration with VS Code Desktop using the Remote - Tunnels extension
 - Device authentication flow shown directly in the UI
 
-## Using Docker Directly
+## Using Docker with SSL (Recommended)
+
+**Automatic HTTPS with Let's Encrypt:**
+
+```bash
+# Clone and set up with free SSL certificates
+git clone https://github.com/fwdslsh/dispatch.git
+cd dispatch
+./docker/ssl-setup.sh
+```
+
+**Manual Docker (HTTP only):**
 
 ```bash
 mkdir -p ~/dispatch/{home,workspace}
