@@ -46,7 +46,7 @@ export async function generateCertificates() {
 		// Create a certificate
 		logger.info('SSL_CERTS', 'Creating self-signed certificate...');
 		const cert = pki.createCertificate();
-		
+
 		cert.publicKey = keys.publicKey;
 		cert.serialNumber = '01';
 		cert.validity.notBefore = new Date();

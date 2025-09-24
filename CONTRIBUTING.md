@@ -300,20 +300,23 @@ SSL_ENABLED=true    # Enable HTTPS (default: false in production)
 
 ### SSL Configuration
 
-Dispatch automatically generates self-signed SSL certificates for local development using node-forge. 
+Dispatch automatically generates self-signed SSL certificates for local development using node-forge.
 
 **Development Server (HTTPS enabled by default):**
+
 - Access via `https://localhost:5173`
 - Certificates are auto-generated in `.dispatch-ssl/` directory
 - Browser will show security warning on first visit (normal for self-signed certs)
 - To disable SSL: set `SSL_ENABLED=false` or use `npm run dev:http`
 
 **Production Server:**
+
 - SSL disabled by default in production
 - To enable: set `SSL_ENABLED=true`
 - Uses the same auto-generated certificates as development
 
 **Trusting Certificates:**
+
 1. Visit the HTTPS URL in your browser
 2. Click "Advanced" when you see the security warning
 3. Click "Proceed to localhost (unsafe)"
