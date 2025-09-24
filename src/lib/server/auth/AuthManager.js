@@ -1,20 +1,23 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { logger } from '../shared/utils/logger.js';
+import { WebAuthnManager } from './WebAuthnManager.js';
 
 /**
  * Authentication Manager for Dispatch
- * Handles SSH key, GitHub OAuth, Google OAuth, and legacy key-based authentication
+ * Handles WebAuthn, SSH keys, GitHub OAuth, and Google OAuth authentication
  */
 export class AuthManager {
 	constructor(databaseManager) {
 		this.db = databaseManager;
 		this.jwtSecret = process.env.JWT_SECRET || this.generateSecret();
 		this.isFirstUser = true; // Will be set based on DB check
+		this.webauthn = new WebAuthnManager(databaseManager);
 	}
 
 	async init() {
 		await this.createAuthTables();
+		await this.webauthn.init();
 		await this.checkFirstUser();
 	}
 
@@ -42,7 +45,7 @@ export class AuthManager {
 			CREATE TABLE IF NOT EXISTS auth_sessions (
 				id TEXT PRIMARY KEY,
 				user_id TEXT NOT NULL,
-				method TEXT NOT NULL, -- 'ssh_key', 'github_oauth', 'google_oauth', 'legacy_key'
+				method TEXT NOT NULL, -- 'webauthn', 'github_oauth', 'google_oauth'
 				expires_at INTEGER NOT NULL,
 				created_at INTEGER NOT NULL,
 				metadata TEXT, -- JSON for method-specific data
