@@ -26,7 +26,7 @@ RUN npm run build
 # Runtime stage
 FROM node:22-bookworm-slim
 
-# Install required packages including gosu for user switching and VS Code CLI
+# Install required packages including gosu for user switching and mkcert for SSL and VS Code CLI
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        tree jq yq build-essential \
@@ -34,7 +34,8 @@ RUN apt-get update \
        pkg-config \
        git gh \
        gosu \
-       curl \
+       curl wget \
+       ca-certificates \
        # Dependencies for Playwright browsers
        libnss3 \
        libnspr4 \
@@ -106,6 +107,7 @@ ENV NODE_ENV=production \
     TERMINAL_KEY=change-me \
     ENABLE_TUNNEL=false \
     LT_SUBDOMAIN= \
+    SSL_ENABLED=true \
     # Directory management configuration
     DISPATCH_CONFIG_DIR=/config \
     DISPATCH_PROJECTS_DIR=/projects \

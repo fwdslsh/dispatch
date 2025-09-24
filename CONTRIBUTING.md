@@ -278,6 +278,7 @@ docker run -p 3030:3030 -e TERMINAL_KEY=test-key dispatch:test
 ```bash
 # Automatically set by npm run dev
 TERMINAL_KEY=test
+SSL_ENABLED=true    # Enable HTTPS with self-signed certificates
 
 # Optional for testing
 ENABLE_TUNNEL=false     # or 'true'
@@ -294,7 +295,29 @@ TERMINAL_KEY=your-strong-password
 ENABLE_TUNNEL=false
 LT_SUBDOMAIN=your-subdomain
 PORT=3030
+SSL_ENABLED=true    # Enable HTTPS (default: false in production)
 ```
+
+### SSL Configuration
+
+Dispatch automatically generates self-signed SSL certificates for local development using node-forge. 
+
+**Development Server (HTTPS enabled by default):**
+- Access via `https://localhost:5173`
+- Certificates are auto-generated in `.dispatch-ssl/` directory
+- Browser will show security warning on first visit (normal for self-signed certs)
+- To disable SSL: set `SSL_ENABLED=false` or use `npm run dev:http`
+
+**Production Server:**
+- SSL disabled by default in production
+- To enable: set `SSL_ENABLED=true`
+- Uses the same auto-generated certificates as development
+
+**Trusting Certificates:**
+1. Visit the HTTPS URL in your browser
+2. Click "Advanced" when you see the security warning
+3. Click "Proceed to localhost (unsafe)"
+4. Certificate will be remembered for the session
 
 ## 🐛 Debugging Tips
 

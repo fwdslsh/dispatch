@@ -1,10 +1,12 @@
 // src/app.js - Production server entry point
 import http from 'node:http';
+import https from 'node:https';
 import { handler } from '../build/handler.js';
 // Socket.IO is now handled by io-server.js
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { shouldEnableSSL, getSSLOptions } from './lib/server/shared/utils/ssl-certificates.js';
 
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
@@ -79,8 +81,25 @@ initializeDirectories()
 
 		console.log('[APP] Server services initialized');
 
-		// Create HTTP server with SvelteKit handler
-		const server = http.createServer(handler);
+		// Create HTTP or HTTPS server with SvelteKit handler
+		let server;
+		let protocol = 'http';
+		let sslInfo = '';
+
+		if (shouldEnableSSL()) {
+			try {
+				const sslOptions = await getSSLOptions();
+				server = https.createServer(sslOptions, handler);
+				protocol = 'https';
+				sslInfo = ' (SSL enabled)';
+				console.log('[APP] SSL certificates loaded successfully');
+			} catch (error) {
+				console.warn('[APP] Failed to load SSL certificates, falling back to HTTP:', error.message);
+				server = http.createServer(handler);
+			}
+		} else {
+			server = http.createServer(handler);
+		}
 
 		// Initialize Socket.IO with services
 		const { setupSocketIO } = await import('./lib/server/shared/socket-setup.js');
@@ -90,7 +109,7 @@ initializeDirectories()
 		services.runSessionManager.setSocketIO(io);
 
 		server.listen(PORT, '0.0.0.0', () => {
-			console.log(`dispatch running at http://localhost:${PORT}`);
+			console.log(`dispatch running at ${protocol}://localhost:${PORT}${sslInfo}`);
 			console.log(`Config Dir: ${configDir}`);
 			console.log('Workspaces can be created anywhere accessible to the user');
 
