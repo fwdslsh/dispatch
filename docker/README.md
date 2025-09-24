@@ -2,82 +2,63 @@
 
 This document explains how to run the [Dispatch Docker image](https://hub.docker.com/r/fwdslsh/dispatch) with automatic SSL certificate management using Let's Encrypt.
 
-## 🔒 SSL/HTTPS Support (Recommended)
+## 🔒 SSL/HTTPS Support (Built-in)
 
-Dispatch now includes **automatic Let's Encrypt SSL certificate management** with nginx reverse proxy for production-ready HTTPS out of the box.
+Dispatch includes **built-in SSL support with multiple modes** - no external dependencies or docker-compose required!
 
-### ✨ **Automatic SSL Setup (Recommended)**
-
-The easiest way to deploy Dispatch with free, globally trusted SSL certificates:
+### ✨ **Quick Start**
 
 ```bash
-# 1. Clone or download Dispatch
-git clone https://github.com/fwdslsh/dispatch.git
-cd dispatch
+# Let's Encrypt SSL (production-ready)
+docker run -d -p 80:80 -p 443:443 \
+  -e DOMAIN=dispatch.yourdomain.com \
+  -e LETSENCRYPT_EMAIL=admin@yourdomain.com \
+  -e TERMINAL_KEY=your-super-secure-password \
+  fwdslsh/dispatch:latest
 
-# 2. Run the SSL setup script
-./docker/ssl-setup.sh
+# Self-signed SSL (development/testing)
+docker run -d -p 80:80 -p 443:443 \
+  -e SSL_MODE=self-signed \
+  -e DOMAIN=localhost \
+  -e TERMINAL_KEY=your-password \
+  fwdslsh/dispatch:latest
+
+# HTTP only (no SSL)
+docker run -d -p 80:80 \
+  -e SSL_MODE=none \
+  -e TERMINAL_KEY=your-password \
+  fwdslsh/dispatch:latest
 ```
 
-The setup script will:
+## 🔧 **SSL Modes**
 
-- ✅ Create a `.env` file from template (if it doesn't exist)
-- ✅ Validate your configuration (domain, email, terminal key)
-- ✅ Set up nginx reverse proxy configuration
-- ✅ Obtain Let's Encrypt SSL certificates automatically
-- ✅ Start all services with HTTPS enabled
-- ✅ Configure automatic certificate renewal (every 60 days)
+Dispatch supports three SSL modes via the `SSL_MODE` environment variable:
 
-### 📝 **Manual Configuration**
+### 🌐 **`letsencrypt` (Default - Production)**
+- **Free, globally trusted certificates** from Let's Encrypt
+- **Automatic certificate renewal** every 60 days
+- **Zero trust warnings** - perfect for production
+- **Requirements**: Valid domain pointing to your server, ports 80 and 443 accessible
 
-If you prefer manual setup:
+### 🔐 **`self-signed` (Development/Testing)**
+- **Self-signed certificates** generated automatically
+- **Browser trust warnings** - click "Advanced" → "Proceed"
+- **No external dependencies** - works offline
+- **Perfect for development and testing**
 
-1. **Copy environment template:**
+### 🚫 **`none` (HTTP Only)**
+- **No SSL/HTTPS** - HTTP only on port 80
+- **Smallest container footprint**
+- **Use behind external SSL terminator** (Cloudflare, load balancer)
 
-   ```bash
-   cp .env.example .env
-   ```
+## 🎯 **Key Benefits**
 
-2. **Edit `.env` file with your settings:**
+- ✅ **Single container** - no docker-compose required
+- ✅ **Built-in SSL** - nginx + certbot included
+- ✅ **Multiple SSL modes** - letsencrypt, self-signed, or none
+- ✅ **Zero configuration** - works with just environment variables
+- ✅ **Automatic renewal** - certificates renewed automatically
+- ✅ **Production ready** - enterprise-grade nginx configuration
+- ✅ **Easy switching** - change SSL modes without rebuilding
 
-   ```bash
-   # Your domain name
-   DOMAIN=dispatch.yourdomain.com
-
-   # Strong password for web access
-   TERMINAL_KEY=your-super-secure-password
-
-   # Email for Let's Encrypt notifications
-   LETSENCRYPT_EMAIL=admin@yourdomain.com
-   ```
-
-3. **Initialize SSL certificates:**
-
-   ```bash
-   ./docker/init-letsencrypt.sh
-   ```
-
-4. **Start services:**
-   ```bash
-   docker-compose up -d
-   ```
-
-### 🌐 **Access Your Application**
-
-After setup, your Dispatch application will be available at:
-
-- **HTTPS:** `https://yourdomain.com` (primary, secure access)
-- HTTP traffic is automatically redirected to HTTPS
-
-## 🔧 **Configuration Options**
-
-### Environment Variables
-
-| Variable              | Default     | Description                                        |
-| --------------------- | ----------- | -------------------------------------------------- |
-| `DOMAIN`              | `localhost` | **Required** - Your domain name                    |
-| `TERMINAL_KEY`        | `change-me` | **Required** - Web interface password              |
-| `LETSENCRYPT_EMAIL`   | -           | **Required** - Email for certificate notifications |
-| `LETSENCRYPT_STAGING` | `0`         | Set to `1` for testing (staging certificates)      |
-
-This SSL-enabled setup provides enterprise-grade security with minimal configuration, making it perfect for production deployments while maintaining the ease of use that Dispatch is known for.
+This approach provides the same enterprise-grade SSL security with much simpler deployment and management!

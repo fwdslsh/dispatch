@@ -285,17 +285,24 @@ ENABLE_TUNNEL=false     # or 'true'
 PORT=3030
 ```
 
-### Production
+### Production/Docker
 
 ```bash
 # Required
 TERMINAL_KEY=your-strong-password
+DOMAIN=yourdomain.com
+
+# SSL Configuration (SSL_MODE replaces SSL_ENABLED)
+SSL_MODE=letsencrypt                    # Free, trusted SSL (default)
+LETSENCRYPT_EMAIL=admin@yourdomain.com  # Required for letsencrypt mode
+
+# Alternative SSL modes:
+# SSL_MODE=self-signed    # Self-signed SSL (development/testing)
+# SSL_MODE=none          # HTTP only (behind external SSL terminator)
 
 # Optional
 ENABLE_TUNNEL=false
 LT_SUBDOMAIN=your-subdomain
-PORT=3030
-# SSL_ENABLED=false (default: disabled for reverse proxy SSL termination)
 ```
 
 ### SSL Configuration

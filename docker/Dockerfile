@@ -26,7 +26,7 @@ RUN npm run build
 # Runtime stage
 FROM node:22-bookworm-slim
 
-# Install required packages including gosu for user switching and mkcert for SSL and VS Code CLI
+# Install required packages including nginx and certbot for SSL and VS Code CLI
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        tree jq yq build-essential \
@@ -36,6 +36,12 @@ RUN apt-get update \
        gosu \
        curl wget \
        ca-certificates \
+       # nginx and SSL tools
+       nginx \
+       certbot \
+       python3-certbot-nginx \
+       # Process management
+       supervisor \
        # Dependencies for Playwright browsers
        libnss3 \
        libnspr4 \
@@ -70,7 +76,6 @@ RUN curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-lin
 ARG USER_UID=1000
 ARG USER_GID=1000
 
-
 RUN mkdir -p /home/dispatch
 RUN mkdir /app
 # Create non-root user for security
@@ -89,8 +94,7 @@ RUN mkdir -p /config /projects /workspace /tmp/dispatch-sessions \
 # Install global packages
 RUN npm install -g @anthropic-ai/claude-code @qwen-code/qwen-code@latest @openai/codex
 
-EXPOSE 3030
-
+# Copy built application
 WORKDIR /app
 COPY --from=build /app /app
 
@@ -98,15 +102,29 @@ COPY --from=build /app /app
 # This needs to be done after copying the app since it uses the installed playwright
 RUN npx playwright install --with-deps chromium firefox webkit
 
-# Copy entrypoint script
+# Copy configuration files
+COPY docker/nginx-template.conf /etc/nginx/nginx-template.conf
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Create directories for SSL certificates and nginx
+RUN mkdir -p /etc/letsencrypt /var/www/certbot /var/log/supervisor \
+    && chown -R dispatch:dispatch /etc/letsencrypt /var/www/certbot
+
+# Expose both HTTP and HTTPS ports
+EXPOSE 80 443 3030
 
 ENV NODE_ENV=production \
     PORT=3030 \
     TERMINAL_KEY=change-me \
     ENABLE_TUNNEL=false \
     LT_SUBDOMAIN= \
+    # SSL Configuration
+    SSL_MODE=letsencrypt \
+    DOMAIN=localhost \
+    LETSENCRYPT_EMAIL= \
+    LETSENCRYPT_STAGING=false \
     # Directory management configuration
     DISPATCH_CONFIG_DIR=/config \
     DISPATCH_PROJECTS_DIR=/projects \
@@ -119,6 +137,7 @@ ENV NODE_ENV=production \
     DEFAULT_UID=$USER_UID \
     DEFAULT_GID=$USER_GID
 
-# Use the entrypoint script for user mapping and start the application
+# Use the entrypoint script for SSL setup, user mapping and service management
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["node", "src/app.js"]
+# Default command starts supervisor which manages nginx and the app
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

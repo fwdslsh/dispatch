@@ -188,17 +188,29 @@ export function isContainerEnvironment() {
  */
 export function shouldEnableSSL() {
 	const sslEnabled = process.env.SSL_ENABLED;
+	const sslMode = process.env.SSL_MODE;
 	const isContainer = isContainerEnvironment();
 	const isProduction = process.env.NODE_ENV === 'production';
 
-	// If explicitly set, use that value
+	// If SSL_MODE is set, use that (new approach)
+	if (sslMode !== undefined) {
+		// In container mode, SSL is handled by nginx reverse proxy
+		// The Node.js app should run HTTP only
+		if (isContainer) {
+			return false; // nginx handles SSL, app runs HTTP
+		}
+		// For development, enable SSL only if SSL_MODE is not 'none'
+		return sslMode !== 'none';
+	}
+
+	// Legacy SSL_ENABLED support
 	if (sslEnabled !== undefined) {
 		return sslEnabled === 'true' || sslEnabled === '1';
 	}
 
 	// Default behavior:
 	// - Development (Vite): Enable SSL with self-signed certs (trust warnings OK)
-	// - Docker/Container: Disable SSL (expect external SSL termination)
+	// - Docker/Container: Disable SSL (nginx reverse proxy handles SSL)
 	// - Production (non-container): Disable SSL (expect external SSL termination)
 	if (isContainer || isProduction) {
 		return false; // Disable SSL in containers/production - use reverse proxy SSL
