@@ -18,17 +18,17 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [ ] 1.8 Add database indexes for performance optimization on auth-related queries
   - [ ] 1.9 Verify all tests pass and migration works correctly with rollback capabilities
 
-- [ ] 2. Core Authentication System and Session Management
-  - [ ] 2.1 Write comprehensive tests for AuthManager and authentication adapter pattern
-  - [ ] 2.2 Create pluggable AuthManager class with runtime adapter switching support
-  - [ ] 2.3 Implement LocalAuthAdapter for access code authentication with bcrypt hashing
-  - [ ] 2.4 Create JWT session management with token generation, validation, and refresh
-  - [ ] 2.5 Implement authentication middleware for Express routes and SvelteKit load functions
-  - [ ] 2.6 Create session cleanup service with automatic expiry and device management
-  - [ ] 2.7 Add rate limiting and brute force protection using rate-limiter-flexible
-  - [ ] 2.8 Implement device fingerprinting and trusted device management
-  - [ ] 2.9 Create authentication event logging for audit trail
-  - [ ] 2.10 Verify all tests pass and core auth system functions with proper session lifecycle
+- [x] 2. Core Authentication System and Session Management
+  - [x] 2.1 Write comprehensive tests for AuthManager and authentication adapter pattern
+  - [x] 2.2 Create pluggable AuthManager class with runtime adapter switching support
+  - [x] 2.3 Implement LocalAuthAdapter for access code authentication with bcrypt hashing
+  - [x] 2.4 Create JWT session management with token generation, validation, and refresh
+  - [x] 2.5 Implement authentication middleware for Express routes and SvelteKit load functions
+  - [x] 2.6 Create session cleanup service with automatic expiry and device management
+  - [x] 2.7 Add rate limiting and brute force protection using rate-limiter-flexible
+  - [x] 2.8 Implement device fingerprinting and trusted device management
+  - [x] 2.9 Create authentication event logging for audit trail
+  - [x] 2.10 Verify all tests pass and core auth system functions with proper session lifecycle
 
 - [ ] 3. WebAuthn/Passkey Implementation
   - [ ] 3.1 Write tests for WebAuthn registration and authentication flows with different browsers
