@@ -42,11 +42,11 @@ export class AuthEventDAO {
 		const { limit = 100, eventType = null, days = 30 } = options;
 		const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
 
-		let whereClause = 'user_id = ? AND created_at > ?';
+		let whereClause = 'e.user_id = ? AND e.created_at > ?';
 		const params = [userId, cutoffTime];
 
 		if (eventType) {
-			whereClause += ' AND event_type = ?';
+			whereClause += ' AND e.event_type = ?';
 			params.push(eventType);
 		}
 

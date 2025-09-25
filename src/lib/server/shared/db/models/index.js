@@ -1,11 +1,14 @@
+// Import all data access objects
+import { UserDAO } from './User.js';
+import { AuthSessionDAO } from './AuthSession.js';
+import { UserDeviceDAO } from './UserDevice.js';
+import { WebAuthnCredentialDAO } from './WebAuthnCredential.js';
+import { OAuthAccountDAO } from './OAuthAccount.js';
+import { AuthEventDAO } from './AuthEvent.js';
+import { CertificateDAO } from './Certificate.js';
+
 // Export all data access objects
-export { UserDAO } from './User.js';
-export { AuthSessionDAO } from './AuthSession.js';
-export { UserDeviceDAO } from './UserDevice.js';
-export { WebAuthnCredentialDAO } from './WebAuthnCredential.js';
-export { OAuthAccountDAO } from './OAuthAccount.js';
-export { AuthEventDAO } from './AuthEvent.js';
-export { CertificateDAO } from './Certificate.js';
+export { UserDAO, AuthSessionDAO, UserDeviceDAO, WebAuthnCredentialDAO, OAuthAccountDAO, AuthEventDAO, CertificateDAO };
 
 /**
  * Initialize all DAOs with a database manager instance

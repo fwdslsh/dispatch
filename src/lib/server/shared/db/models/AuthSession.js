@@ -110,7 +110,7 @@ export class AuthSessionDAO {
 	 * Update session by token
 	 */
 	async updateByToken(token, updateData) {
-		const allowedFields = ['expires_at', 'is_active', 'last_activity_at'];
+		const allowedFields = ['session_token', 'expires_at', 'is_active', 'last_activity_at'];
 		const updates = [];
 		const params = [];
 
