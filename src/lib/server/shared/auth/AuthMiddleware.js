@@ -50,7 +50,6 @@ export class AuthMiddleware {
 					}
 				}
 
-
 				// No valid authentication found
 				if (required) {
 					return this.sendUnauthenticated(res);
@@ -88,7 +87,6 @@ export class AuthMiddleware {
 						event.locals.isAuthenticated = true;
 					}
 				}
-
 
 				// Set default auth state
 				if (!event.locals.isAuthenticated) {
@@ -263,7 +261,6 @@ export class AuthMiddleware {
 		return null;
 	}
 
-
 	/**
 	 * Generate CSRF token
 	 */
@@ -352,7 +349,7 @@ export class AuthMiddleware {
 			return {
 				isAuthenticated: false,
 				user: null,
-				isAdmin: false,
+				isAdmin: false
 			};
 		}
 

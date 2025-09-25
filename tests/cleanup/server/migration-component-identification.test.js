@@ -27,7 +27,8 @@ describe('Migration Component Identification', () => {
 				migrationImports.push({
 					file,
 					type: 'AuthMigrationManager',
-					lines: content.split('\n')
+					lines: content
+						.split('\n')
 						.map((line, index) => ({ line: line.trim(), number: index + 1 }))
 						.filter(({ line }) => line.includes('AuthMigrationManager'))
 				});
@@ -41,13 +42,14 @@ describe('Migration Component Identification', () => {
 				/".*migration.*"/i
 			];
 
-			migrationPatterns.forEach(pattern => {
+			migrationPatterns.forEach((pattern) => {
 				if (pattern.test(content)) {
 					migrationImports.push({
 						file,
 						type: 'migration-import',
 						pattern: pattern.toString(),
-						lines: content.split('\n')
+						lines: content
+							.split('\n')
 							.map((line, index) => ({ line: line.trim(), number: index + 1 }))
 							.filter(({ line }) => pattern.test(line))
 					});
@@ -63,17 +65,17 @@ describe('Migration Component Identification', () => {
 	});
 
 	it('should verify AuthMigrationManager is completely removed from codebase', () => {
-		const authMigrationManagerPath = join(PROJECT_ROOT, 'src/lib/server/shared/AuthMigrationManager.js');
+		const authMigrationManagerPath = join(
+			PROJECT_ROOT,
+			'src/lib/server/shared/AuthMigrationManager.js'
+		);
 
 		// This should initially pass (file exists) then fail after removal
 		expect(existsSync(authMigrationManagerPath)).toBe(false);
 	});
 
 	it('should validate all migration API endpoints return 404 after removal', () => {
-		const migrationEndpoints = [
-			'src/routes/api/admin/migration',
-			'src/routes/api/auth/migrate'
-		];
+		const migrationEndpoints = ['src/routes/api/admin/migration', 'src/routes/api/auth/migrate'];
 
 		const existingEndpoints = [];
 
@@ -108,9 +110,10 @@ describe('Migration Component Identification', () => {
 
 			const content = readFileSync(filePath, 'utf-8');
 
-			migrationEnvPatterns.forEach(pattern => {
+			migrationEnvPatterns.forEach((pattern) => {
 				if (pattern.test(content)) {
-					const lines = content.split('\n')
+					const lines = content
+						.split('\n')
 						.map((line, index) => ({ line: line.trim(), number: index + 1 }))
 						.filter(({ line }) => pattern.test(line));
 
@@ -125,7 +128,10 @@ describe('Migration Component Identification', () => {
 			});
 		}
 
-		console.log('Migration environment variable references found:', JSON.stringify(migrationEnvRefs, null, 2));
+		console.log(
+			'Migration environment variable references found:',
+			JSON.stringify(migrationEnvRefs, null, 2)
+		);
 
 		// This should initially fail then pass after cleanup
 		expect(migrationEnvRefs).toEqual([]);

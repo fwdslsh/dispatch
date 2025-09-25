@@ -254,12 +254,18 @@ export class DatabaseManager {
 		await this.run('CREATE INDEX IF NOT EXISTS ix_auth_events_user ON auth_events(user_id)');
 		await this.run('CREATE INDEX IF NOT EXISTS ix_auth_events_type ON auth_events(event_type)');
 		await this.run('CREATE INDEX IF NOT EXISTS ix_user_devices_user ON user_devices(user_id)');
-		await this.run('CREATE INDEX IF NOT EXISTS ix_user_devices_fingerprint ON user_devices(device_fingerprint)');
+		await this.run(
+			'CREATE INDEX IF NOT EXISTS ix_user_devices_fingerprint ON user_devices(device_fingerprint)'
+		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_auth_sessions_user ON auth_sessions(user_id)');
-		await this.run('CREATE INDEX IF NOT EXISTS ix_auth_sessions_token ON auth_sessions(token_hash)');
+		await this.run(
+			'CREATE INDEX IF NOT EXISTS ix_auth_sessions_token ON auth_sessions(token_hash)'
+		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_webauthn_user ON webauthn_credentials(user_id)');
 		await this.run('CREATE INDEX IF NOT EXISTS ix_oauth_user ON oauth_accounts(user_id)');
-		await this.run('CREATE INDEX IF NOT EXISTS ix_oauth_provider ON oauth_accounts(provider, provider_user_id)');
+		await this.run(
+			'CREATE INDEX IF NOT EXISTS ix_oauth_provider ON oauth_accounts(provider, provider_user_id)'
+		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_certificates_domain ON certificates(domain)');
 	}
 
