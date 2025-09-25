@@ -608,6 +608,66 @@ export class DatabaseManager {
 					envVariables: {}
 				},
 				description: 'Workspace-level environment variables for all sessions'
+			},
+			// Authentication settings - auth mode configuration
+			{
+				category: 'auth',
+				settings: {
+					enabled_methods: ['local'],
+					default_method: 'local',
+					session_timeout_hours: 24,
+					max_devices_per_user: 10,
+					webauthn_enabled: false,
+					oauth_providers: {
+						google: { enabled: false },
+						github: { enabled: false }
+					}
+				},
+				description: 'Authentication configuration and enabled methods'
+			},
+			// Security settings - security policy configuration
+			{
+				category: 'security',
+				settings: {
+					require_https: false,
+					hsts_enabled: false,
+					require_device_trust: false,
+					cors_origins: ['*'],
+					csrf_protection: true,
+					rate_limiting: {
+						enabled: true,
+						max_requests: 100,
+						window_minutes: 15
+					},
+					cookie_settings: {
+						secure: false,
+						same_site: 'Lax',
+						http_only: true
+					}
+				},
+				description: 'Security policy configuration and HTTPS settings'
+			},
+			// Certificate settings - certificate management configuration
+			{
+				category: 'certificates',
+				settings: {
+					active_profile: 'none',
+					mkcert: {
+						enabled: false,
+						domains: ['localhost', '127.0.0.1']
+					},
+					letsencrypt: {
+						enabled: false,
+						email: null,
+						domains: [],
+						auto_renew: true
+					},
+					tunnel_tls: {
+						enabled: false,
+						auto_configure: true
+					}
+				},
+				description: 'Certificate management and HTTPS profile configuration'
 			}
 		];
 
