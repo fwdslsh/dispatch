@@ -31,7 +31,6 @@
 	let detectedInit = $state(null);
 	let initCommands = $state([]);
 	let saveInitScript = $state(false);
-	let initScriptName = $state('init.sh');
 
 	// Load worktrees
 	async function loadWorktrees() {
@@ -155,16 +154,15 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					path: currentPath,
-					commands: initCommands,
-					saveAs: initScriptName
+					commands: initCommands
 				})
 			});
 
 			if (!res.ok) {
-				throw new Error('Failed to save initialization script');
+				throw new Error('Failed to save .dispatchrc');
 			}
 		} catch (e) {
-			console.warn('Failed to save init script:', e.message);
+			console.warn('Failed to save .dispatchrc:', e.message);
 		}
 	}
 
@@ -308,7 +306,7 @@
 					</div>
 				{/if}
 
-				{#if detectedInit && (detectedInit.detected.length > 0 || detectedInit.hasInitScript)}
+				{#if detectedInit && (detectedInit.detected.length > 0 || detectedInit.hasDispatchrc)}
 					<div class="form-row">
 						<label>
 							<input type="checkbox" bind:checked={runInitialization} />
@@ -340,7 +338,7 @@
 								</div>
 							{/if}
 
-							{#if detectedInit.hasInitScript}
+							{#if detectedInit.hasDispatchrc}
 								<div class="existing-script">
 									<p>Found existing script: {detectedInit.existingScript.path}</p>
 								</div>
@@ -370,15 +368,8 @@
 							<div class="form-row">
 								<label>
 									<input type="checkbox" bind:checked={saveInitScript} />
-									Save as initialization script
+									Save as .dispatchrc initialization script
 								</label>
-								{#if saveInitScript}
-									<Input
-										bind:value={initScriptName}
-										placeholder="init.sh"
-										style="width: 100px; margin-left: 8px;"
-									/>
-								{/if}
 							</div>
 						</div>
 					{/if}

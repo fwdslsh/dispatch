@@ -26,10 +26,10 @@ When creating a new worktree, Dispatch automatically detects your project type a
 
 ### Initialization Script Management
 
-- Automatically detects existing `init.sh` or `scripts/init.sh` files
+- Automatically detects existing `.dispatchrc` files in the repository root
 - Allows you to review and edit initialization commands before execution
-- Option to save initialization commands as a script for future worktrees
-- Supports both root-level `init.sh` and `scripts/init.sh` locations
+- Option to save initialization commands as `.dispatchrc` for future worktrees
+- Uses `.dispatchrc` for consistent worktree initialization
 
 ## Using Git Worktrees in Dispatch
 
@@ -50,7 +50,7 @@ When creating a new worktree, Dispatch automatically detects your project type a
    - Dispatch will auto-detect your project type and suggest commands
    - Review and edit the suggested initialization commands
    - Choose whether to run initialization during worktree creation
-   - Optionally save commands as an initialization script
+   - Optionally save commands as `.dispatchrc` for future worktrees
 
 ### Managing Existing Worktrees
 
@@ -131,12 +131,12 @@ Response:
 		}
 	],
 	"suggestedCommands": ["npm install"],
-	"hasInitScript": false,
+	"hasDispatchrc": false,
 	"existingScript": null
 }
 ```
 
-### Save Initialization Script
+### Save .dispatchrc Script
 
 ```
 POST /api/git/worktree/init-detect
@@ -144,8 +144,7 @@ Content-Type: application/json
 
 {
   "path": "/path/to/repo",
-  "commands": ["npm install", "npm run build"],
-  "saveAs": "init.sh"  // or "scripts/init.sh"
+  "commands": ["npm install", "npm run build"]
 }
 ```
 
@@ -182,7 +181,7 @@ To add support for additional project types, extend the `INIT_PATTERNS` array in
 1. **Use Descriptive Paths**: Name worktree directories clearly (e.g., `project-feature-auth`, `project-bugfix-123`)
 2. **Clean Up**: Remove worktrees when done to avoid clutter
 3. **Review Commands**: Always review auto-detected initialization commands before running
-4. **Save Scripts**: For projects with complex setup, save initialization scripts for consistency
+4. **Save .dispatchrc**: For projects with complex setup, save initialization commands as .dispatchrc for consistency
 5. **Branch Strategy**: Use meaningful branch names that match your worktree directories
 
 ## Troubleshooting
