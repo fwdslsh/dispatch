@@ -30,17 +30,17 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.9 Create authentication event logging for audit trail
   - [x] 2.10 Verify all tests pass and core auth system functions with proper session lifecycle
 
-- [ ] 3. WebAuthn/Passkey Implementation
-  - [ ] 3.1 Write tests for WebAuthn registration and authentication flows with different browsers
-  - [ ] 3.2 Implement WebAuthn server-side components using @webauthn/server library
-  - [ ] 3.3 Create WebAuthn registration API endpoints (/begin, /complete) with challenge management
-  - [ ] 3.4 Create WebAuthn authentication API endpoints with assertion verification
-  - [ ] 3.5 Build WebAuthn frontend components with browser API integration and error handling
-  - [ ] 3.6 Implement rpID validation and hostname compatibility checks for tunnel/domain changes
-  - [ ] 3.7 Add WebAuthn credential management interface with device naming and revocation
-  - [ ] 3.8 Create WebAuthn availability detection based on HTTPS and hostname stability
-  - [ ] 3.9 Implement WebAuthn counter management and replay attack prevention
-  - [ ] 3.10 Verify all tests pass and WebAuthn works across different browsers and contexts
+- [x] 3. WebAuthn/Passkey Implementation
+  - [x] 3.1 Write tests for WebAuthn registration and authentication flows with different browsers
+  - [x] 3.2 Implement WebAuthn server-side components using @webauthn/server library
+  - [x] 3.3 Create WebAuthn registration API endpoints (/begin, /complete) with challenge management
+  - [x] 3.4 Create WebAuthn authentication API endpoints with assertion verification
+  - [x] 3.5 Build WebAuthn frontend components with browser API integration and error handling
+  - [x] 3.6 Implement rpID validation and hostname compatibility checks for tunnel/domain changes
+  - [x] 3.7 Add WebAuthn credential management interface with device naming and revocation
+  - [x] 3.8 Create WebAuthn availability detection based on HTTPS and hostname stability
+  - [x] 3.9 Implement WebAuthn counter management and replay attack prevention
+  - [x] 3.10 Verify all tests pass and WebAuthn works across different browsers and contexts
 
 - [ ] 4. OAuth Integration and Provider Support
   - [ ] 4.1 Write tests for OAuth flows, provider integration, and callback handling

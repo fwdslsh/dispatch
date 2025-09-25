@@ -29,9 +29,16 @@ export class AuthManager {
 	 */
 	async registerDefaultAdapters() {
 		try {
+			// Register local authentication adapter
 			const { LocalAuthAdapter } = await import('./adapters/LocalAuthAdapter.js');
 			const localAdapter = new LocalAuthAdapter(this.db, this.daos);
 			this.registerAdapter('local', localAdapter);
+
+			// Register WebAuthn adapter
+			const { WebAuthnAdapter } = await import('./adapters/WebAuthnAdapter.js');
+			const webauthnAdapter = new WebAuthnAdapter(this.db, this);
+			this.registerAdapter('webauthn', webauthnAdapter);
+
 		} catch (error) {
 			logger.error('AUTH', `Failed to register default adapters: ${error.message}`);
 		}

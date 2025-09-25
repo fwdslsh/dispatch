@@ -85,6 +85,29 @@ export class WebAuthnCredentialDAO {
 	}
 
 	/**
+	 * Update last used timestamp
+	 */
+	async updateLastUsed(credentialId) {
+		await this.db.run(`
+			UPDATE webauthn_credentials
+			SET last_used_at = ?
+			WHERE id = ?
+		`, [Date.now(), credentialId]);
+	}
+
+	/**
+	 * Get all credentials (for admin/compatibility checking)
+	 */
+	async getAll() {
+		const rows = await this.db.all(`
+			SELECT * FROM webauthn_credentials
+			ORDER BY created_at DESC
+		`);
+
+		return rows.map(row => this.mapRowToCredential(row));
+	}
+
+	/**
 	 * Update device name
 	 */
 	async updateDeviceName(credentialId, deviceName) {
