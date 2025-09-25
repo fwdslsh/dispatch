@@ -76,18 +76,13 @@ When using the dispatch CLI the init command will create a `~/dispatch/home/.env
 | `ENABLE_TUNNEL`   | `false`      | Public URL sharing             |
 | `LT_SUBDOMAIN`    | `""`         | Custom subdomain               |
 
-### VS Code Remote Tunnel Setup
+### VS Code Remote Tunnel
 
-To use the VS Code Remote Tunnel feature, install the VS Code CLI inside the container:
+The VS Code CLI is pre-installed in the Docker container. Simply use Settings → VS Code Tunnel in the web interface to start/stop the tunnel. The tunnel will be automatically named `dispatch-{hostname}` and provides:
 
-```bash
-# Inside the container or via dispatch attach
-curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' --output vscode_cli.tar.gz
-tar -xf vscode_cli.tar.gz
-sudo mv code /usr/local/bin/
-```
-
-Then use Settings → VS Code Tunnel in the web interface to start/stop the tunnel.
+- Direct access via VS Code Web at `https://vscode.dev/tunnel/{tunnel-name}/{folder}`
+- Integration with VS Code Desktop using the Remote - Tunnels extension
+- Device authentication flow shown directly in the UI
 
 ## Using Docker Directly
 

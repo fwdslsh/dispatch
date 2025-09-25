@@ -26,7 +26,7 @@ RUN npm run build
 # Runtime stage
 FROM node:22-bookworm-slim
 
-# Install required packages including gosu for user switching
+# Install required packages including gosu for user switching and VS Code CLI
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        tree jq yq build-essential \
@@ -34,6 +34,7 @@ RUN apt-get update \
        pkg-config \
        git gh \
        gosu \
+       curl \
        # Dependencies for Playwright browsers
        libnss3 \
        libnspr4 \
@@ -56,6 +57,13 @@ RUN apt-get update \
        libcairo2 \
        libasound2 \
     && rm -rf /var/lib/apt/lists/*
+
+# Install VS Code CLI for Remote Tunnel functionality
+RUN curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64' --output vscode_cli.tar.gz \
+    && tar -xf vscode_cli.tar.gz \
+    && mv code /usr/local/bin/ \
+    && rm vscode_cli.tar.gz \
+    && chmod +x /usr/local/bin/code
 
 # Set environment variables
 ARG USER_UID=1000
