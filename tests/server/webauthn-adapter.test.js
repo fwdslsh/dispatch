@@ -31,7 +31,7 @@ describe('WebAuthn Adapter', () => {
 		db = new DatabaseManager(tempDbPath);
 		await db.init();
 
-		// Run auth migrations
+		// Database initialization - tables will be created as needed
 
 		// Create WebAuthn adapter
 		webauthnAdapter = new WebAuthnAdapter(db, null);

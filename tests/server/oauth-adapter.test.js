@@ -18,7 +18,7 @@ describe('OAuth Adapter', () => {
 		db = new DatabaseManager(tempDbPath);
 		await db.init();
 
-		// Run auth migrations
+		// Database initialization - tables will be created as needed
 
 		// Create OAuth adapter
 		oauthAdapter = new OAuthAdapter(db, null);

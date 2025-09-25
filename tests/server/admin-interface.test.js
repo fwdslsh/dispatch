@@ -18,15 +18,17 @@ describe('Admin Interface Manager', () => {
 		db = new DatabaseManager(tempDbPath);
 		await db.init();
 
-		// Run auth migrations
 		// Database initialization - tables will be created as needed
 
 		// Create admin interface manager
 		adminManager = new AdminInterfaceManager(db);
 
-		// Get the admin user created by migration
-		const migrationAdmin = await db.get('SELECT id FROM users WHERE username = ?', ['admin']);
-		testAdminUserId = migrationAdmin.id;
+		// Create test admin user
+		const adminResult = await db.run(`
+			INSERT INTO users (username, display_name, email, password_hash, is_admin)
+			VALUES ('admin', 'Admin User', 'admin@example.com', 'admin_password_hash', 1)
+		`);
+		testAdminUserId = adminResult.lastID;
 
 		// Create test regular user
 		const userResult = await db.run(`

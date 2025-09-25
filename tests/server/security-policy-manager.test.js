@@ -16,7 +16,7 @@ describe('Security Policy Manager', () => {
 		db = new DatabaseManager(tempDbPath);
 		await db.init();
 
-		// Run auth migrations
+		// Database initialization - tables will be created as needed
 
 		// Create security policy manager
 		securityManager = new SecurityPolicyManager(db);

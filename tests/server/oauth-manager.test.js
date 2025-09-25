@@ -17,7 +17,7 @@ describe('OAuth Manager', () => {
 		db = new DatabaseManager(tempDbPath);
 		await db.init();
 
-		// Run auth migrations to set up tables
+		// Database initialization - tables will be created as needed
 
 		// Create OAuth manager
 		oauthManager = new OAuthManager(db, 'http://localhost:3000');

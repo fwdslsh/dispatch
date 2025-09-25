@@ -80,7 +80,7 @@ cTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqc
 		db = new DatabaseManager(tempDbPath);
 		await db.init();
 
-		// Run auth migrations
+		// Database initialization - tables will be created as needed
 
 		// Create certificate manager with test app secret
 		certManager = new CertificateManager(db, 'test-secret-key-for-encryption');

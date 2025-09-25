@@ -47,6 +47,7 @@ Dispatch codebase. Keep responses concise and make edits that follow the project
 - Prefer small, focused changes per PR. Follow Conventional Commits and keep the summary <72 chars.
 - Do not change Svelte runes or switch Svelte major versions. Use Svelte 5 runes syntax throughout.
 - Avoid committing secrets or hard-coded credentials. Use `TERMINAL_KEY` and environment variables.
+- Run `npm run format` before committing to git
 
 ## Key files and where to look for common tasks
 

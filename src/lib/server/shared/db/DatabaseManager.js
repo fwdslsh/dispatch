@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { logger } from '../utils/logger.js';
+import { AdminUserSeeder } from './AdminUserSeeder.js';
 
 /**
  * Centralized SQLite database manager for all Dispatch server-side storage
@@ -43,6 +44,9 @@ export class DatabaseManager {
 
 			// Initialize default settings
 			await this.initializeDefaultSettings();
+
+			// Create initial admin user if none exists
+			await this.createInitialAdminUser();
 
 			this.isInitialized = true;
 			logger.info('DATABASE', `Initialized SQLite database at: ${this.dbPath}`);
@@ -201,6 +205,7 @@ export class DatabaseManager {
 				counter INTEGER DEFAULT 0,
 				device_name TEXT,
 				aaguid TEXT,
+				last_used_at INTEGER,
 				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
 				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
 				FOREIGN KEY (user_id) REFERENCES users(id)
@@ -212,16 +217,16 @@ export class DatabaseManager {
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				user_id INTEGER NOT NULL,
 				provider TEXT NOT NULL,
-				provider_user_id TEXT NOT NULL,
+				provider_account_id TEXT NOT NULL,
 				provider_email TEXT,
 				provider_name TEXT,
 				access_token TEXT,
 				refresh_token TEXT,
-				expires_at INTEGER,
+				token_expires_at INTEGER,
 				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
 				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
 				FOREIGN KEY (user_id) REFERENCES users(id),
-				UNIQUE(provider, provider_user_id)
+				UNIQUE(provider, provider_account_id)
 			)
 		`);
 
@@ -268,7 +273,7 @@ export class DatabaseManager {
 		await this.run('CREATE INDEX IF NOT EXISTS ix_webauthn_user ON webauthn_credentials(user_id)');
 		await this.run('CREATE INDEX IF NOT EXISTS ix_oauth_user ON oauth_accounts(user_id)');
 		await this.run(
-			'CREATE INDEX IF NOT EXISTS ix_oauth_provider ON oauth_accounts(provider, provider_user_id)'
+			'CREATE INDEX IF NOT EXISTS ix_oauth_provider ON oauth_accounts(provider, provider_account_id)'
 		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_certificates_domain ON certificates(domain)');
 	}
@@ -811,6 +816,19 @@ export class DatabaseManager {
 					categoryData.description
 				);
 			}
+		}
+	}
+
+	/**
+	 * Create initial admin user if none exists
+	 */
+	async createInitialAdminUser() {
+		try {
+			const seeder = new AdminUserSeeder(this);
+			await seeder.createInitialAdmin();
+		} catch (error) {
+			// Log but don't fail initialization for admin user creation issues
+			logger.warn('DATABASE', 'Failed to create initial admin user:', error.message);
 		}
 	}
 }

@@ -30,7 +30,7 @@ describe('WebAuthn Manager', () => {
 		db = new DatabaseManager(tempDbPath);
 		await db.init();
 
-		// Run auth migrations to set up tables
+		// Database initialization - tables will be created as needed
 
 		// Create WebAuthn manager
 		webauthnManager = new WebAuthnManager(db);

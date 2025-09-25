@@ -130,38 +130,38 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 #### 4.1 Write Tests for Test Infrastructure Cleanup
 
-- [ ] Create inventory of all migration-related test files and test cases (isolated in `tests/cleanup/testing/`)
-- [ ] Write tests to verify migration test removal doesn't break test suites (isolated in `tests/cleanup/testing/`)
-- [ ] Create tests to ensure authentication test coverage is maintained (isolated in `tests/cleanup/testing/`)
-- [ ] Write tests to validate test fixtures work without migration data (isolated in `tests/cleanup/testing/`)
+- [X] Create inventory of all migration-related test files and test cases (isolated in `tests/cleanup/testing/`)
+- [X] Write tests to verify migration test removal doesn't break test suites (isolated in `tests/cleanup/testing/`)
+- [X] Create tests to ensure authentication test coverage is maintained (isolated in `tests/cleanup/testing/`)
+- [X] Write tests to validate test fixtures work without migration data (isolated in `tests/cleanup/testing/`)
 
 #### 4.2 Remove Migration-Related Tests
 
-- [ ] Remove `tests/server/auth-migration.test.js` and related migration test files
-- [ ] Remove migration-related test cases from existing authentication test files
-- [ ] Clean up migration test fixtures and mock data
-- [ ] Remove migration-related test helpers and utilities
+- [X] Remove `tests/server/auth-migration.test.js` and related migration test files
+- [X] Remove migration-related test cases from existing authentication test files
+- [X] Clean up migration test fixtures and mock data
+- [X] Remove migration-related test helpers and utilities
 
 #### 4.3 Strengthen Core Authentication Testing
 
-- [ ] Update authentication unit tests to focus on core functionality
-- [ ] Enhance OAuth and WebAuthn testing with better coverage
-- [ ] Update E2E tests to cover authentication flows without migration paths
-- [ ] Ensure tests work with event-sourced session management architecture
+- [X] Update authentication unit tests to focus on core functionality
+- [X] Enhance OAuth and WebAuthn testing with better coverage
+- [X] Update E2E tests to cover authentication flows without migration paths
+- [X] Ensure tests work with event-sourced session management architecture
 
 #### 4.4 Update Test Environment Configuration
 
-- [ ] Remove migration-related test environment variables
-- [ ] Clean up test container configuration to remove migration setup
-- [ ] Update test fixtures to remove migration-specific data
-- [ ] Maintain test container patterns and ServiceContainer test support
+- [X] Remove migration-related test environment variables
+- [X] Clean up test container configuration to remove migration setup
+- [X] Update test fixtures to remove migration-specific data
+- [X] Maintain test container patterns and ServiceContainer test support
 
 #### 4.5 Verify Complete Test Suite Passes
 
-- [ ] Run complete Vitest unit test suite to ensure all tests pass
-- [ ] Run complete Playwright E2E test suite for authentication flows
-- [ ] Verify test coverage metrics are maintained for core authentication
-- [ ] Test authentication functionality across multiple browsers and scenarios
+- [X] Run complete Vitest unit test suite to ensure all tests pass
+- [X] Run complete Playwright E2E test suite for authentication flows
+- [X] Verify test coverage metrics are maintained for core authentication
+- [X] Test authentication functionality across multiple browsers and scenarios
 
 ### Task 5: Documentation and Monitoring Updates
 

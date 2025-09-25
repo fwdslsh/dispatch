@@ -95,7 +95,7 @@ describe('AuthManager Core System', () => {
 
 	describe('Local Authentication', () => {
 		it('should authenticate with valid credentials', async () => {
-			// Use the admin user created by migrations
+			// Use test admin user
 
 			// Test authentication
 			const result = await authManager.authenticate('local', {
@@ -135,7 +135,7 @@ describe('AuthManager Core System', () => {
 	});
 
 	describe('Session Management Integration', () => {
-		// Use the admin user created by migrations
+		// Use test admin user
 
 		it('should create session after successful authentication', async () => {
 			const authResult = await authManager.authenticate('local', {
@@ -190,7 +190,7 @@ describe('AuthManager Core System', () => {
 	});
 
 	describe('Device Management', () => {
-		// Use the admin user created by migrations
+		// Use test admin user
 
 		it('should create device on first authentication', async () => {
 			const result = await authManager.authenticate('local', {
@@ -279,7 +279,7 @@ describe('AuthManager Core System', () => {
 		});
 
 		it('should log authentication events', async () => {
-			// Use the admin user created by migrations
+			// Use test admin user
 
 			// Successful auth
 			const result = await authManager.authenticate('local', {
