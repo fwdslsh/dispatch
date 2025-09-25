@@ -49,6 +49,7 @@ _Note: Requires bash and Docker_
 **⚡ Built for AI & Automation**
 
 - Multiple session types: Terminal, Claude AI, File Editor, Custom Adapters
+- Workspace-level environment variables for consistent development environments
 - Let long-running tasks complete unattended in the background
 - Perfect for AI-assisted development workflows
 - SQLite-based persistence with cross-device synchronization

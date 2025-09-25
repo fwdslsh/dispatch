@@ -35,7 +35,11 @@ export class ClaudeAdapter {
 			model: options.model || undefined,
 			permissionMode: options.permissionMode || 'bypassPermissions',
 			maxTurns: options.maxTurns,
-			env: options.env || {},
+			// Merge environment variables with workspace environment variables
+			// Precedence: system env → workspace env → session-specific env
+			env: options.env
+				? { ...process.env, ...options.workspaceEnv, ...options.env }
+				: { ...process.env, ...options.workspaceEnv },
 			additionalDirectories: options.additionalDirectories || [],
 			allowedTools: options.allowedTools,
 			disallowedTools: options.disallowedTools,

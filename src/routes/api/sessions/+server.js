@@ -118,23 +118,31 @@ export async function POST({ request, locals }) {
 
 		// Get default workspace directory from settings
 		let defaultWorkspaceDir = null;
+		let workspaceEnvVariables = {};
 		try {
 			const globalSettings = await locals.services.database.getSettingsByCategory('global');
 			defaultWorkspaceDir = globalSettings?.defaultWorkspaceDirectory || null;
+
+			// Load workspace environment variables
+			const workspaceSettings = await locals.services.database.getSettingsByCategory('workspace');
+			workspaceEnvVariables = workspaceSettings?.envVariables || {};
 		} catch (error) {
-			console.warn('[Sessions API] Failed to load default workspace directory setting:', error);
+			console.warn('[Sessions API] Failed to load workspace settings:', error);
 		}
 
 		// Determine the working directory with user preference override
 		const workingDirectory =
 			cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
 
-		// Create run session using unified manager
+		// Create run session using unified manager with workspace environment variables
 		const { runId } = await locals.services.runSessionManager.createRunSession({
 			kind: sessionKind,
 			meta: {
 				cwd: workingDirectory,
-				options
+				options: {
+					...options,
+					workspaceEnv: workspaceEnvVariables
+				}
 			}
 		});
 

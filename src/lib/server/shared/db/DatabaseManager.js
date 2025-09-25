@@ -600,6 +600,14 @@ export class DatabaseManager {
 					continueConversation: false
 				},
 				description: 'Default Claude session settings'
+			},
+			// Workspace environment variables - applied to all sessions
+			{
+				category: 'workspace',
+				settings: {
+					envVariables: {}
+				},
+				description: 'Workspace-level environment variables for all sessions'
 			}
 		];
 
