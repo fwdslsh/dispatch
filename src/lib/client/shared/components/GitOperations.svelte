@@ -7,6 +7,7 @@
 	import IconGitPull from './Icons/IconGitPull.svelte';
 	import IconGitMerge from './Icons/IconGitMerge.svelte';
 	import IconGitFork from './Icons/IconGitFork.svelte';
+	import IconGitWorktree from './Icons/IconGitWorktree.svelte';
 	import IconArrowDown from './Icons/IconArrowDown.svelte';
 	import IconArrowUp from './Icons/IconArrowUp.svelte';
 	import IconEye from './Icons/IconEye.svelte';
@@ -14,6 +15,7 @@
 	import IconX from './Icons/IconX.svelte';
 	import IconPlus from './Icons/IconPlus.svelte';
 	import IconMinus from './Icons/IconMinus.svelte';
+	import WorktreeManager from './WorktreeManager.svelte';
 
 	// Svelte 5 Git Operations Component
 	let {
@@ -35,6 +37,7 @@
 	let showBranches = $state(false);
 	let showCommitForm = $state(false);
 	let showLog = $state(false);
+	let showWorktrees = $state(false);
 	let showDiff = $state(null); // file path to show diff for
 
 	// Form state
@@ -348,6 +351,16 @@
 					<IconGitBranch size={16} />
 				</IconButton>
 
+				<!-- Worktrees -->
+				<IconButton
+					onclick={() => (showWorktrees = !showWorktrees)}
+					title="Manage worktrees"
+					variant="ghost"
+					class="git-worktrees-btn {showWorktrees ? 'active' : ''}"
+				>
+					<IconGitWorktree size={16} />
+				</IconButton>
+
 				<!-- Commit -->
 				<IconButton
 					onclick={() => (showCommitForm = !showCommitForm)}
@@ -517,6 +530,18 @@
 					<Button onclick={() => (showCommitForm = false)} variant="ghost">Cancel</Button>
 				</div>
 			</div>
+		{/if}
+
+		<!-- Worktree management panel -->
+		{#if showWorktrees}
+			<WorktreeManager
+				{currentPath}
+				{branches}
+				onError={(err) => {
+					error = err;
+					onError?.(err);
+				}}
+			/>
 		{/if}
 
 		<!-- File diff modal -->
@@ -704,6 +729,7 @@
 
 	:global(.git-status-btn.active),
 	:global(.git-branches-btn.active),
+	:global(.git-worktrees-btn.active),
 	:global(.git-commit-btn.active) {
 		background: var(--primary-bg);
 		color: var(--primary-text);
