@@ -57,6 +57,7 @@ Node >= 22 is required.
 - Svelte components: `PascalCase.svelte`. Routes follow SvelteKit patterns (`+page.svelte`, `+server.js`).
 - Modules in `src/lib/server` and `src/lib/shared` should use clear, descriptive names (no single-letter vars).
 - Use ONLY Svelte 5 runes syntax. Do not use deprecated APIs like createEventDispatcher.
+- Run `npm run format` before committing to git
 
 When connected to the svelte-llm MCP server, you have access to comprehensive Svelte 5 and SvelteKit documentation. Here's how to use the available tools effectively:
 

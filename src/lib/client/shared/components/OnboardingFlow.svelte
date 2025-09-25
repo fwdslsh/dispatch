@@ -18,12 +18,6 @@
 	// Onboarding state
 	let loading = $state(false);
 	let error = $state(null);
-	let migrationData = $state({
-		hasExistingKey: false,
-		keyValid: false,
-		keyChecked: false,
-		migrationComplete: false
-	});
 
 	let setupData = $state({
 		adminUser: {
@@ -42,11 +36,6 @@
 
 	const steps = [
 		{ id: 'welcome', title: 'Welcome', description: 'Get started with Dispatch authentication' },
-		{
-			id: 'migration',
-			title: 'Migration',
-			description: 'Migrate from TERMINAL_KEY authentication'
-		},
 		{ id: 'admin-setup', title: 'Admin Setup', description: 'Create your administrator account' },
 		{
 			id: 'auth-methods',
@@ -61,70 +50,8 @@
 	const isFirstStep = $derived(() => stepIndex() === 0);
 	const isLastStep = $derived(() => stepIndex() === steps.length - 1);
 
-	// Check for existing TERMINAL_KEY on mount
-	$effect(() => {
-		if (currentStep === 'migration' && !migrationData.keyChecked) {
-			checkExistingKey();
-		}
-	});
 
-	async function checkExistingKey() {
-		try {
-			loading = true;
-			const response = await fetch('/api/admin/migration/check');
-			if (response.ok) {
-				const data = await response.json();
-				migrationData.hasExistingKey = data.hasExistingKey;
-				migrationData.keyChecked = true;
 
-				// If no existing key, skip migration step
-				if (!data.hasExistingKey) {
-					nextStep();
-				}
-			}
-		} catch (err) {
-			error = 'Failed to check for existing authentication configuration';
-		} finally {
-			loading = false;
-		}
-	}
-
-	async function validateTerminalKey() {
-		if (!terminalKey.trim()) {
-			error = 'Please enter your TERMINAL_KEY';
-			return;
-		}
-
-		try {
-			loading = true;
-			error = null;
-
-			const response = await fetch('/api/admin/migration/validate', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ terminalKey })
-			});
-
-			if (response.ok) {
-				migrationData.keyValid = true;
-				// Pre-populate admin email if available
-				const data = await response.json();
-				if (data.adminEmail) {
-					setupData.adminUser.email = data.adminEmail;
-					setupData.adminUser.displayName = data.adminDisplayName || 'Administrator';
-				}
-			} else {
-				const data = await response.json();
-				error = data.error || 'Invalid TERMINAL_KEY';
-				migrationData.keyValid = false;
-			}
-		} catch (err) {
-			error = 'Failed to validate TERMINAL_KEY';
-			migrationData.keyValid = false;
-		} finally {
-			loading = false;
-		}
-	}
 
 	async function createAdminUser() {
 		// Validate admin user data
@@ -148,8 +75,7 @@
 			error = null;
 
 			const payload = {
-				adminUser: setupData.adminUser,
-				terminalKey: migrationData.keyValid ? terminalKey : null
+				adminUser: setupData.adminUser
 			};
 
 			const response = await fetch('/api/admin/setup/create-admin', {
@@ -207,17 +133,13 @@
 			const response = await fetch('/api/admin/setup/complete', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					migrationComplete: migrationData.keyValid,
-					terminalKey: migrationData.keyValid ? terminalKey : null
-				})
+				body: JSON.stringify({})
 			});
 
 			if (response.ok) {
 				dispatch('complete', {
 					adminUser: setupData.adminUser,
-					authMethods: setupData.authMethods,
-					migrationComplete: migrationData.keyValid
+					authMethods: setupData.authMethods
 				});
 				visible = false;
 			} else {
@@ -325,58 +247,6 @@
 								</div>
 							</div>
 						</div>
-					</div>
-				{:else if currentStep === 'migration'}
-					<div class="step-content migration-step">
-						<div class="step-header">
-							<h2>🔄 Migration from TERMINAL_KEY</h2>
-							<p>
-								We'll help you migrate from your existing TERMINAL_KEY authentication to the new
-								user-based system.
-							</p>
-						</div>
-
-						{#if migrationData.hasExistingKey}
-							<div class="migration-form">
-								<p class="migration-note">
-									<strong>Note:</strong> Your existing TERMINAL_KEY will be disabled once migration is
-									complete. Make sure to save your new admin credentials securely.
-								</p>
-
-								<FormInput
-									label="Current TERMINAL_KEY"
-									type="password"
-									bind:value={terminalKey}
-									placeholder="Enter your current TERMINAL_KEY"
-									required
-									disabled={loading}
-								/>
-
-								{#if migrationData.keyValid}
-									<div class="validation-success">
-										<span class="success-icon">✅</span>
-										<span>TERMINAL_KEY validated successfully</span>
-									</div>
-								{/if}
-
-								{#if !migrationData.keyValid && terminalKey}
-									<Button onclick={validateTerminalKey} disabled={loading || !terminalKey.trim()}>
-										{#if loading}
-											<Spinner size="small" inline /> Validating...
-										{:else}
-											Validate TERMINAL_KEY
-										{/if}
-									</Button>
-								{/if}
-							</div>
-						{:else if migrationData.keyChecked}
-							<div class="no-migration-needed">
-								<div class="info-icon">ℹ️</div>
-								<p>
-									No existing TERMINAL_KEY found. We'll create a fresh authentication setup for you.
-								</p>
-							</div>
-						{/if}
 					</div>
 				{:else if currentStep === 'admin-setup'}
 					<div class="step-content admin-setup-step">
@@ -565,15 +435,6 @@
 								</div>
 							</div>
 
-							{#if migrationData.keyValid}
-								<div class="summary-item">
-									<span class="summary-icon">🔄</span>
-									<div class="summary-info">
-										<h3>Migration Complete</h3>
-										<p>Successfully migrated from TERMINAL_KEY</p>
-									</div>
-								</div>
-							{/if}
 						</div>
 
 						<div class="next-steps">
@@ -600,12 +461,6 @@
 				<div class="action-buttons-right">
 					{#if currentStep === 'welcome'}
 						<Button onclick={nextStep}>Get Started</Button>
-					{:else if currentStep === 'migration'}
-						{#if migrationData.keyValid || !migrationData.hasExistingKey}
-							<Button onclick={nextStep}>Continue</Button>
-						{:else if !migrationData.keyValid && migrationData.hasExistingKey}
-							<Button variant="secondary" onclick={skipStep}>Skip Migration</Button>
-						{/if}
 					{:else if currentStep === 'admin-setup'}
 						<Button
 							onclick={createAdminUser}
@@ -827,47 +682,12 @@
 		line-height: 1.5;
 	}
 
-	.migration-form,
 	.admin-form {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
 	}
 
-	.migration-note {
-		background: #fffbeb;
-		border: 1px solid #fed7aa;
-		border-radius: 0.375rem;
-		padding: 1rem;
-		color: #92400e;
-		font-size: 0.875rem;
-		margin-bottom: 1.5rem;
-	}
-
-	.validation-success {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		color: #059669;
-		font-size: 0.875rem;
-		font-weight: 500;
-	}
-
-	.no-migration-needed {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		padding: 2rem;
-		background: #f0f9ff;
-		border: 1px solid #bae6fd;
-		border-radius: 0.5rem;
-		color: #0369a1;
-	}
-
-	.info-icon {
-		font-size: 1.5rem;
-		flex-shrink: 0;
-	}
 
 	.password-requirements {
 		margin-top: 1rem;
