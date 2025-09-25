@@ -73,7 +73,7 @@ export class AdminUserSeeder {
 				userId: adminUser.id,
 				eventType: 'admin_created',
 				details: {
-					method: 'terminal_key_migration',
+					method: 'initial_setup',
 					username: adminUser.username
 				}
 			});
@@ -226,14 +226,11 @@ export class AdminUserSeeder {
 			}
 
 			const admin = admins[0];
-			const isLegacyAuth = admin.passwordHash === terminalKey;
 
 			return {
 				hasAdmin: true,
 				needsSetup: false,
 				adminUsername: admin.username,
-				isLegacyAuth,
-				needsPasswordUpdate: isLegacyAuth,
 				totalAdmins: admins.length
 			};
 		} catch (error) {

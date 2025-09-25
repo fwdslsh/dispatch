@@ -129,6 +129,113 @@ export class DatabaseManager {
 			)
 		`);
 
+		// Authentication system tables
+		await this.run(`
+			CREATE TABLE IF NOT EXISTS users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				username TEXT NOT NULL UNIQUE,
+				display_name TEXT,
+				email TEXT UNIQUE,
+				password_hash TEXT,
+				is_admin BOOLEAN DEFAULT 0,
+				is_active BOOLEAN DEFAULT 1,
+				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+			)
+		`);
+
+		await this.run(`
+			CREATE TABLE IF NOT EXISTS auth_events (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER,
+				device_id INTEGER,
+				event_type TEXT NOT NULL,
+				ip_address TEXT,
+				user_agent TEXT,
+				details TEXT,
+				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				FOREIGN KEY (user_id) REFERENCES users(id)
+			)
+		`);
+
+		await this.run(`
+			CREATE TABLE IF NOT EXISTS user_devices (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				device_name TEXT NOT NULL,
+				device_fingerprint TEXT NOT NULL UNIQUE,
+				last_ip_address TEXT,
+				user_agent TEXT,
+				is_trusted BOOLEAN DEFAULT 0,
+				last_seen_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				FOREIGN KEY (user_id) REFERENCES users(id)
+			)
+		`);
+
+		await this.run(`
+			CREATE TABLE IF NOT EXISTS auth_sessions (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				device_id INTEGER,
+				token_hash TEXT NOT NULL UNIQUE,
+				expires_at INTEGER NOT NULL,
+				is_active BOOLEAN DEFAULT 1,
+				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				FOREIGN KEY (user_id) REFERENCES users(id),
+				FOREIGN KEY (device_id) REFERENCES user_devices(id)
+			)
+		`);
+
+		await this.run(`
+			CREATE TABLE IF NOT EXISTS webauthn_credentials (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				credential_id TEXT NOT NULL UNIQUE,
+				public_key TEXT NOT NULL,
+				counter INTEGER DEFAULT 0,
+				device_name TEXT,
+				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				FOREIGN KEY (user_id) REFERENCES users(id)
+			)
+		`);
+
+		await this.run(`
+			CREATE TABLE IF NOT EXISTS oauth_accounts (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				provider TEXT NOT NULL,
+				provider_user_id TEXT NOT NULL,
+				provider_email TEXT,
+				provider_name TEXT,
+				access_token TEXT,
+				refresh_token TEXT,
+				expires_at INTEGER,
+				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				FOREIGN KEY (user_id) REFERENCES users(id),
+				UNIQUE(provider, provider_user_id)
+			)
+		`);
+
+		await this.run(`
+			CREATE TABLE IF NOT EXISTS certificates (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				domain TEXT NOT NULL UNIQUE,
+				cert_path TEXT NOT NULL,
+				key_path TEXT NOT NULL,
+				ca_cert_path TEXT,
+				cert_type TEXT NOT NULL,
+				expires_at INTEGER,
+				auto_renew BOOLEAN DEFAULT 1,
+				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+			)
+		`);
+
 		// Create indexes for performance
 		await this.run(
 			'CREATE UNIQUE INDEX IF NOT EXISTS ix_events_run_seq ON session_events(run_id, seq)'
@@ -140,7 +247,20 @@ export class DatabaseManager {
 			'CREATE INDEX IF NOT EXISTS ix_workspace_layout_client ON workspace_layout(client_id)'
 		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_logs_timestamp ON logs(timestamp)');
-		// No index needed since category is the primary key
+
+		// Auth table indexes
+		await this.run('CREATE INDEX IF NOT EXISTS ix_users_username ON users(username)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_users_email ON users(email)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_auth_events_user ON auth_events(user_id)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_auth_events_type ON auth_events(event_type)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_user_devices_user ON user_devices(user_id)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_user_devices_fingerprint ON user_devices(device_fingerprint)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_auth_sessions_user ON auth_sessions(user_id)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_auth_sessions_token ON auth_sessions(token_hash)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_webauthn_user ON webauthn_credentials(user_id)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_oauth_user ON oauth_accounts(user_id)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_oauth_provider ON oauth_accounts(provider, provider_user_id)');
+		await this.run('CREATE INDEX IF NOT EXISTS ix_certificates_domain ON certificates(domain)');
 	}
 
 	/**

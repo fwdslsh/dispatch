@@ -21,7 +21,7 @@ export async function POST({ request }) {
 			);
 		}
 
-		// Validate TERMINAL_KEY if provided (for migration)
+		// Validate TERMINAL_KEY if provided
 		if (terminalKey) {
 			const currentKey = process.env.TERMINAL_KEY;
 			if (terminalKey !== currentKey) {
@@ -66,7 +66,7 @@ export async function POST({ request }) {
 				userAgent: 'onboarding',
 				metadata: {
 					email: user.email,
-					migrationSource: terminalKey ? 'terminal_key' : 'fresh_install',
+					source: terminalKey ? 'terminal_key' : 'setup_wizard',
 					createdBy: 'onboarding_flow'
 				}
 			});

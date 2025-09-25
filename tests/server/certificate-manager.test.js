@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseManager } from '../../src/lib/server/shared/db/DatabaseManager.js';
-import { AuthMigrationManager } from '../../src/lib/server/shared/db/AuthMigrationManager.js';
 import { CertificateManager } from '../../src/lib/server/shared/security/CertificateManager.js';
 import path from 'path';
 import { tmpdir } from 'os';
@@ -8,7 +7,6 @@ import { rmSync, writeFileSync, readFileSync } from 'fs';
 
 describe('Certificate Manager', () => {
 	let db;
-	let migrationManager;
 	let certManager;
 	let tempDbPath;
 
@@ -83,8 +81,6 @@ cTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqc
 		await db.init();
 
 		// Run auth migrations
-		migrationManager = new AuthMigrationManager(db);
-		await migrationManager.runAllMigrations();
 
 		// Create certificate manager with test app secret
 		certManager = new CertificateManager(db, 'test-secret-key-for-encryption');

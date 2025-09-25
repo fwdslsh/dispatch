@@ -13,7 +13,7 @@ export class AuthMiddleware {
 	 * Create middleware function for authentication
 	 */
 	authenticate(options = {}) {
-		const { required = true, adminOnly = false, skipPaths = [], fallbackToLegacy = true } = options;
+		const { required = true, adminOnly = false, skipPaths = [] } = options;
 
 		return async (req, res, next) => {
 			try {
@@ -50,21 +50,6 @@ export class AuthMiddleware {
 					}
 				}
 
-				// Fallback to legacy terminal key authentication if enabled
-				if (fallbackToLegacy) {
-					const legacyAuth = this.checkLegacyAuth(req);
-					if (legacyAuth.valid) {
-						req.user = legacyAuth.user;
-						req.isAuthenticated = true;
-						req.isLegacyAuth = true;
-
-						if (adminOnly && !legacyAuth.user.isAdmin) {
-							return this.sendUnauthorized(res, 'Admin access required');
-						}
-
-						return next();
-					}
-				}
 
 				// No valid authentication found
 				if (required) {
@@ -104,15 +89,6 @@ export class AuthMiddleware {
 					}
 				}
 
-				// Fallback to legacy auth if enabled
-				if (!event.locals.isAuthenticated && options.fallbackToLegacy) {
-					const legacyAuth = this.checkLegacyAuthFromRequest(request);
-					if (legacyAuth.valid) {
-						event.locals.user = legacyAuth.user;
-						event.locals.isAuthenticated = true;
-						event.locals.isLegacyAuth = true;
-					}
-				}
 
 				// Set default auth state
 				if (!event.locals.isAuthenticated) {
@@ -287,52 +263,6 @@ export class AuthMiddleware {
 		return null;
 	}
 
-	/**
-	 * Check legacy terminal key authentication
-	 */
-	checkLegacyAuth(req) {
-		const terminalKey = process.env.TERMINAL_KEY || 'change-me';
-		const providedKey = req.headers['x-terminal-key'] || req.query.key || req.body?.key;
-
-		if (providedKey && providedKey === terminalKey) {
-			return {
-				valid: true,
-				user: {
-					id: 'legacy',
-					username: 'admin',
-					displayName: 'Administrator (Legacy)',
-					isAdmin: true,
-					isActive: true
-				}
-			};
-		}
-
-		return { valid: false };
-	}
-
-	/**
-	 * Check legacy auth from SvelteKit Request
-	 */
-	checkLegacyAuthFromRequest(request) {
-		const terminalKey = process.env.TERMINAL_KEY || 'change-me';
-		const providedKey =
-			request.headers.get('x-terminal-key') || request.url.searchParams.get('key');
-
-		if (providedKey && providedKey === terminalKey) {
-			return {
-				valid: true,
-				user: {
-					id: 'legacy',
-					username: 'admin',
-					displayName: 'Administrator (Legacy)',
-					isAdmin: true,
-					isActive: true
-				}
-			};
-		}
-
-		return { valid: false };
-	}
 
 	/**
 	 * Generate CSRF token
@@ -423,7 +353,6 @@ export class AuthMiddleware {
 				isAuthenticated: false,
 				user: null,
 				isAdmin: false,
-				isLegacyAuth: false
 			};
 		}
 
@@ -437,7 +366,6 @@ export class AuthMiddleware {
 				isAdmin: req.user.isAdmin
 			},
 			isAdmin: req.user.isAdmin,
-			isLegacyAuth: !!req.isLegacyAuth,
 			device: req.device
 				? {
 						id: req.device.id,

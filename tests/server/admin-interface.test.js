@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseManager } from '../../src/lib/server/shared/db/DatabaseManager.js';
-import { AuthMigrationManager } from '../../src/lib/server/shared/db/AuthMigrationManager.js';
 import { AdminInterfaceManager } from '../../src/lib/server/shared/admin/AdminInterfaceManager.js';
 import path from 'path';
 import { tmpdir } from 'os';
@@ -8,7 +7,6 @@ import { rmSync } from 'fs';
 
 describe('Admin Interface Manager', () => {
 	let db;
-	let migrationManager;
 	let adminManager;
 	let tempDbPath;
 	let testAdminUserId;
@@ -21,8 +19,7 @@ describe('Admin Interface Manager', () => {
 		await db.init();
 
 		// Run auth migrations
-		migrationManager = new AuthMigrationManager(db);
-		await migrationManager.runAllMigrations();
+		// Database initialization - tables will be created as needed
 
 		// Create admin interface manager
 		adminManager = new AdminInterfaceManager(db);

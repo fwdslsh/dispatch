@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseManager } from '../../src/lib/server/shared/db/DatabaseManager.js';
-import { AuthMigrationManager } from '../../src/lib/server/shared/db/AuthMigrationManager.js';
 import { WebAuthnAdapter } from '../../src/lib/server/shared/auth/adapters/WebAuthnAdapter.js';
 import path from 'path';
 import { tmpdir } from 'os';
@@ -21,7 +20,6 @@ if (typeof globalThis.crypto === 'undefined') {
 
 describe('WebAuthn Adapter', () => {
 	let db;
-	let migrationManager;
 	let webauthnAdapter;
 	let tempDbPath;
 	let testUserId;
@@ -34,8 +32,6 @@ describe('WebAuthn Adapter', () => {
 		await db.init();
 
 		// Run auth migrations
-		migrationManager = new AuthMigrationManager(db);
-		await migrationManager.runAllMigrations();
 
 		// Create WebAuthn adapter
 		webauthnAdapter = new WebAuthnAdapter(db, null);

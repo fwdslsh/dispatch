@@ -1,0 +1,1664 @@
+
+> @fwdslsh/dispatch@0.2.1 test
+> npm run test:unit -- --run
+
+
+> @fwdslsh/dispatch@0.2.1 test:unit
+> vitest --run
+
+12:16:18 PM [vite-plugin-svelte] The following packages have a svelte field in their package.json but no exports condition for svelte.
+
+svelte-virtual-list@3.0.1
+
+Please see https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/faq.md#missing-exports-condition for details.
+
+ RUN  v3.2.4 /home/founder3/code/github/fwdslsh/dispatch
+
+The following Vite config options will be overridden by SvelteKit:
+  - base
+[DEV] Setting up Socket.IO with shared services...
+[2025-09-25T17:16:19.528Z] [INFO] [HOOKS_SERVER] Initializing services...
+[2025-09-25T17:16:19.528Z] [INFO] [SERVICES] Initializing unified session architecture services...
+[2025-09-25T17:16:19.758Z] [INFO] [DATABASE] Initialized SQLite database at: /home/founder3/.dispatch/data/workspace.db
+[2025-09-25T17:16:19.769Z] [INFO] [SERVICES] Cleared stale running sessions on startup
+[2025-09-25T17:16:19.770Z] [INFO] [RUNSESSION] RunSessionManager initialized with resume capability
+[2025-09-25T17:16:19.770Z] [INFO] [RUNSESSION] Registered adapter for kind: pty
+[2025-09-25T17:16:19.770Z] [INFO] [RUNSESSION] Registered adapter for kind: claude
+[2025-09-25T17:16:19.770Z] [INFO] [RUNSESSION] Registered adapter for kind: file-editor
+[2025-09-25T17:16:19.771Z] [INFO] [AUTH] Registered authentication adapter: local
+[2025-09-25T17:16:19.771Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+[2025-09-25T17:16:19.771Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:19.785Z] [INFO] [TUNNEL] Tunnel manager initialized from database settings
+[2025-09-25T17:16:19.785Z] [INFO] [TUNNEL] Security policy hook registered
+[2025-09-25T17:16:19.785Z] [INFO] [TUNNEL] OAuth hook registered
+[2025-09-25T17:16:19.785Z] [INFO] [TUNNEL] WebAuthn hook registered
+[2025-09-25T17:16:19.785Z] [INFO] [SERVICES] Tunnel integration hooks registered
+[2025-09-25T17:16:19.785Z] [INFO] [SERVICES] Unified session architecture services initialized successfully
+[2025-09-25T17:16:19.785Z] [INFO] [SERVICES] RunSessionManager stats: {
+  liveRuns: 0,
+  registeredAdapters: 3,
+  supportedKinds: [ 'pty', 'claude', 'file-editor' ]
+}
+[2025-09-25T17:16:19.785Z] [INFO] [HOOKS_SERVER] Services initialized successfully
+[DEV] Using shared services from hooks.server.js
+[2025-09-25T17:16:19.787Z] [INFO] [TUNNEL] Socket.IO instance set for broadcasting
+[2025-09-25T17:16:19.787Z] [INFO] [RUNSESSION] Socket.IO instance set for real-time events
+[2025-09-25T17:16:19.787Z] [INFO] [SOCKET] Unified Socket.IO server initialized with run session handlers
+[DEV] Socket.IO ready with shared services
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > CORS Policy Management > should manage CORS allowed origins
+[2025-09-25T17:16:20.763Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580759.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Configuration > should initialize with correct base URL
+[2025-09-25T17:16:20.772Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580763.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > CORS Policy Management > should detect tunnel URLs and update origins automatically
+[2025-09-25T17:16:20.771Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580767.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Configuration > should update base URL for tunnel scenarios
+[2025-09-25T17:16:20.779Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580775.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Configuration > should get OAuth configuration
+[2025-09-25T17:16:20.783Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580780.db
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should fetch environment information successfully
+[2025-09-25T17:16:20.781Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should fetch environment information successfully
+[2025-09-25T17:16:20.781Z] [environment-service] [DEBUG] Environment information fetched successfully: {
+  homeDirectory: [32m'/home/user'[39m,
+  platform: [32m'linux'[39m,
+  nodeVersion: [32m'v20.0.0'[39m,
+  appVersion: [32m'1.2.3'[39m
+}
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should cache environment data and not refetch within cache timeout
+[2025-09-25T17:16:20.787Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should cache environment data and not refetch within cache timeout
+[2025-09-25T17:16:20.787Z] [environment-service] [DEBUG] Environment information fetched successfully: {
+  homeDirectory: [32m'/home/user'[39m,
+  platform: [32m'linux'[39m,
+  nodeVersion: [32m'v20.0.0'[39m,
+  appVersion: [32m'1.2.3'[39m
+}
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should refetch after cache timeout expires
+[2025-09-25T17:16:20.789Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should refetch after cache timeout expires
+[2025-09-25T17:16:20.789Z] [environment-service] [DEBUG] Environment information fetched successfully: {
+  homeDirectory: [32m'/home/user'[39m,
+  platform: [32m'linux'[39m,
+  nodeVersion: [32m'v20.0.0'[39m,
+  appVersion: [32m'1.2.3'[39m
+}
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should refetch after cache timeout expires
+[2025-09-25T17:16:51.789Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should refetch after cache timeout expires
+[2025-09-25T17:16:51.789Z] [environment-service] [DEBUG] Environment information fetched successfully: {
+  homeDirectory: [32m'/home/user'[39m,
+  platform: [32m'linux'[39m,
+  nodeVersion: [32m'v20.0.0'[39m,
+  appVersion: [32m'1.2.4'[39m
+}
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Configuration > should update OAuth configuration
+[2025-09-25T17:16:20.792Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580784.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Provider Management > should get enabled providers
+[2025-09-25T17:16:20.796Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580793.db
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should return fallback data when fetch fails and no cache exists
+[2025-09-25T17:16:20.790Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > CORS Policy Management > should validate origin URLs
+[2025-09-25T17:16:20.787Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580782.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > CORS Policy Management > should get dynamic CORS configuration
+[2025-09-25T17:16:20.793Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580790.db
+
+stderr | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should return fallback data when fetch fails and no cache exists
+[2025-09-25T17:16:20.790Z] [environment-service] [WARN] Failed to fetch environment information: Error: Network error
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39mtests/client/environment-service.test.js:112:36
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at runSuite [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should return stale cache when fetch fails but cache exists
+[2025-09-25T17:16:20.798Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should return stale cache when fetch fails but cache exists
+[2025-09-25T17:16:20.798Z] [environment-service] [DEBUG] Environment information fetched successfully: {
+  homeDirectory: [32m'/home/user'[39m,
+  platform: [32m'linux'[39m,
+  nodeVersion: [32m'v20.0.0'[39m,
+  appVersion: [32m'1.2.3'[39m
+}
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should return stale cache when fetch fails but cache exists
+[2025-09-25T17:16:51.798Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stderr | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should return stale cache when fetch fails but cache exists
+[2025-09-25T17:16:51.798Z] [environment-service] [WARN] Failed to fetch environment information: Error: Network error
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39mtests/client/environment-service.test.js:145:36
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:20
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should return stale cache when fetch fails but cache exists
+[2025-09-25T17:16:51.798Z] [environment-service] [DEBUG] Returning stale cached environment data
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should handle non-ok response status
+[2025-09-25T17:16:20.800Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stderr | tests/client/environment-service.test.js > EnvironmentService > getEnvironment > should handle non-ok response status
+[2025-09-25T17:16:20.800Z] [environment-service] [WARN] Failed to fetch environment information: Error: Failed to fetch environment: 500 Internal Server Error
+    at EnvironmentService.getEnvironment [90m(/home/founder3/code/github/fwdslsh/dispatch/[39msrc/lib/client/shared/services/EnvironmentService.js:40:11[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39mtests/client/environment-service.test.js:158:19
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:20
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getAppVersion > should return app version from environment data
+[2025-09-25T17:16:20.802Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getAppVersion > should return app version from environment data
+[2025-09-25T17:16:20.802Z] [environment-service] [DEBUG] Environment information fetched successfully: {
+  homeDirectory: [32m'/home/user'[39m,
+  platform: [32m'linux'[39m,
+  nodeVersion: [32m'v20.0.0'[39m,
+  appVersion: [32m'1.2.3'[39m
+}
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getAppVersion > should return "unknown" when environment fetch fails
+[2025-09-25T17:16:20.803Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stderr | tests/client/environment-service.test.js > EnvironmentService > getAppVersion > should return "unknown" when environment fetch fails
+[2025-09-25T17:16:20.803Z] [environment-service] [WARN] Failed to fetch environment information: Error: Network error
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39mtests/client/environment-service.test.js:188:36
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at runSuite [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+    at runSuite [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getAppVersion > should return "unknown" when appVersion is missing from response
+[2025-09-25T17:16:20.804Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > getAppVersion > should return "unknown" when appVersion is missing from response
+[2025-09-25T17:16:20.804Z] [environment-service] [DEBUG] Environment information fetched successfully: {
+  homeDirectory: [32m'/home/user'[39m,
+  platform: [32m'linux'[39m,
+  nodeVersion: [32m'v20.0.0'[39m
+}
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Cookie Security Policy > should generate secure cookie options for HTTPS
+[2025-09-25T17:16:20.798Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580794.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Cookie Security Policy > should generate relaxed cookie options for HTTP localhost
+[2025-09-25T17:16:20.803Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580800.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Provider Management > should get provider configuration
+[2025-09-25T17:16:20.800Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580797.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Provider Management > should generate correct callback URLs
+[2025-09-25T17:16:20.803Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580801.db
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > clearCache > should clear cached data
+[2025-09-25T17:16:20.806Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > clearCache > should clear cached data
+[2025-09-25T17:16:20.806Z] [environment-service] [DEBUG] Environment information fetched successfully: {
+  homeDirectory: [32m'/home/user'[39m,
+  platform: [32m'linux'[39m,
+  nodeVersion: [32m'v20.0.0'[39m,
+  appVersion: [32m'1.2.3'[39m
+}
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > clearCache > should clear cached data
+[2025-09-25T17:16:20.806Z] [environment-service] [DEBUG] Fetching environment information from server...
+
+stdout | tests/client/environment-service.test.js > EnvironmentService > clearCache > should clear cached data
+[2025-09-25T17:16:20.806Z] [environment-service] [DEBUG] Environment information fetched successfully: {
+  homeDirectory: [32m'/home/user'[39m,
+  platform: [32m'linux'[39m,
+  nodeVersion: [32m'v20.0.0'[39m,
+  appVersion: [32m'1.2.3'[39m
+}
+
+ ✓ |server| tests/client/environment-service.test.js (10 tests) 28ms
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Cookie Security Policy > should adapt cookie policy based on hosting context
+[2025-09-25T17:16:20.807Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580803.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > HSTS Policy Management > should enable HSTS for custom domain certificates
+[2025-09-25T17:16:20.815Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580807.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > HSTS Policy Management > should disable HSTS for mkcert/self-signed certificates
+[2025-09-25T17:16:20.818Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580816.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > HSTS Policy Management > should disable HSTS for tunnel contexts
+[2025-09-25T17:16:20.823Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580819.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > CSRF Protection > should generate CSRF tokens
+[2025-09-25T17:16:20.826Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580824.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > CSRF Protection > should validate CSRF tokens
+[2025-09-25T17:16:20.831Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580828.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > CSRF Protection > should clean up expired CSRF tokens
+[2025-09-25T17:16:20.838Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580831.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Security Header Configuration > should generate helmet configuration for production
+[2025-09-25T17:16:20.842Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580839.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Security Header Configuration > should generate relaxed helmet configuration for development
+[2025-09-25T17:16:20.847Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580843.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Security Header Configuration > should adapt security headers based on hosting context
+[2025-09-25T17:16:20.854Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580847.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Provider Management > should update callback URLs when base URL changes
+[2025-09-25T17:16:20.807Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580804.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Account Linking > should find user by OAuth account
+[2025-09-25T17:16:20.811Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580808.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Account Linking > should link OAuth account to existing user
+[2025-09-25T17:16:20.817Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580812.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Account Linking > should create new user from OAuth profile
+[2025-09-25T17:16:20.820Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580818.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Account Linking > should handle OAuth profile with missing email
+[2025-09-25T17:16:20.824Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580821.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Token Management > should refresh OAuth token
+[2025-09-25T17:16:20.826Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580824.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Token Management > should get accounts with expired tokens
+[2025-09-25T17:16:20.828Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580827.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Token Management > should unlink OAuth account
+[2025-09-25T17:16:20.831Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580829.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Token Management > should prevent unlinking account from wrong user
+[2025-09-25T17:16:20.835Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580831.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Error Handling > should handle invalid provider
+[2025-09-25T17:16:20.838Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580836.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Error Handling > should handle missing OAuth configuration
+[2025-09-25T17:16:20.847Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580839.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Error Handling > should validate OAuth profile data
+[2025-09-25T17:16:20.851Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580848.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > State Management > should generate OAuth state parameter
+[2025-09-25T17:16:20.856Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580852.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Rate Limiting Configuration > should get rate limiting configuration for auth endpoints
+[2025-09-25T17:16:20.858Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580855.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Rate Limiting Configuration > should provide stricter limits for failed login attempts
+[2025-09-25T17:16:20.863Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580860.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Rate Limiting Configuration > should adapt rate limits based on hosting context
+[2025-09-25T17:16:20.866Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580863.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Security Context Detection > should detect localhost context
+[2025-09-25T17:16:20.869Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580867.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Security Context Detection > should detect tunnel context
+[2025-09-25T17:16:20.872Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580870.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Security Context Detection > should detect LAN context
+[2025-09-25T17:16:20.876Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580873.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Security Context Detection > should detect custom domain context
+[2025-09-25T17:16:20.878Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580877.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Policy Updates > should update security policies when hosting context changes
+[2025-09-25T17:16:20.881Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580879.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Policy Updates > should validate policy configurations
+[2025-09-25T17:16:20.884Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580881.db
+
+stdout | tests/server/security-policy-manager.test.js > Security Policy Manager > Audit Logging > should log security policy changes
+[2025-09-25T17:16:20.887Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-security-1758820580884.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > State Management > should validate OAuth state parameter
+[2025-09-25T17:16:20.860Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580857.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > State Management > should cleanup expired state
+[2025-09-25T17:16:20.864Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580861.db
+
+stdout | tests/server/oauth-manager.test.js > OAuth Manager > Integration with AuthManager > should return OAuth authentication result
+[2025-09-25T17:16:20.867Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-1758820580865.db
+
+ ❯ |server| tests/server/security-policy-manager.test.js (26 tests | 8 failed) 130ms
+   × Security Policy Manager > CORS Policy Management > should manage CORS allowed origins 8ms
+     → SQLITE_ERROR: no such table: auth_events
+   × Security Policy Manager > CORS Policy Management > should detect tunnel URLs and update origins automatically 15ms
+     → promise rejected "Error: SQLITE_ERROR: no such table: auth_… { …(2) }" instead of resolving
+   ✓ Security Policy Manager > CORS Policy Management > should validate origin URLs 8ms
+   × Security Policy Manager > CORS Policy Management > should get dynamic CORS configuration 4ms
+     → SQLITE_ERROR: no such table: auth_events
+   ✓ Security Policy Manager > Cookie Security Policy > should generate secure cookie options for HTTPS 5ms
+   ✓ Security Policy Manager > Cookie Security Policy > should generate relaxed cookie options for HTTP localhost 4ms
+   ✓ Security Policy Manager > Cookie Security Policy > should adapt cookie policy based on hosting context 4ms
+   × Security Policy Manager > HSTS Policy Management > should enable HSTS for custom domain certificates 8ms
+     → SQLITE_ERROR: no such table: auth_events
+   × Security Policy Manager > HSTS Policy Management > should disable HSTS for mkcert/self-signed certificates 3ms
+     → SQLITE_ERROR: no such table: auth_events
+   × Security Policy Manager > HSTS Policy Management > should disable HSTS for tunnel contexts 5ms
+     → SQLITE_ERROR: no such table: auth_events
+   ✓ Security Policy Manager > CSRF Protection > should generate CSRF tokens 5ms
+   ✓ Security Policy Manager > CSRF Protection > should validate CSRF tokens 3ms
+   ✓ Security Policy Manager > CSRF Protection > should clean up expired CSRF tokens 7ms
+   ✓ Security Policy Manager > Security Header Configuration > should generate helmet configuration for production 4ms
+   ✓ Security Policy Manager > Security Header Configuration > should generate relaxed helmet configuration for development 4ms
+   ✓ Security Policy Manager > Security Header Configuration > should adapt security headers based on hosting context 7ms
+   ✓ Security Policy Manager > Rate Limiting Configuration > should get rate limiting configuration for auth endpoints 5ms
+   ✓ Security Policy Manager > Rate Limiting Configuration > should provide stricter limits for failed login attempts 4ms
+   ✓ Security Policy Manager > Rate Limiting Configuration > should adapt rate limits based on hosting context 4ms
+   ✓ Security Policy Manager > Security Context Detection > should detect localhost context 3ms
+   ✓ Security Policy Manager > Security Context Detection > should detect tunnel context 3ms
+   ✓ Security Policy Manager > Security Context Detection > should detect LAN context 4ms
+   ✓ Security Policy Manager > Security Context Detection > should detect custom domain context 2ms
+   × Security Policy Manager > Policy Updates > should update security policies when hosting context changes 2ms
+     → SQLITE_ERROR: no such table: auth_events
+   ✓ Security Policy Manager > Policy Updates > should validate policy configurations 3ms
+   × Security Policy Manager > Audit Logging > should log security policy changes 3ms
+     → SQLITE_ERROR: no such table: auth_events
+ ❯ |server| tests/server/oauth-manager.test.js (23 tests | 23 failed) 106ms
+   × OAuth Manager > Configuration > should initialize with correct base URL 12ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Configuration > should update base URL for tunnel scenarios 5ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Configuration > should get OAuth configuration 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Configuration > should update OAuth configuration 8ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Provider Management > should get enabled providers 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Provider Management > should get provider configuration 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Provider Management > should generate correct callback URLs 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Provider Management > should update callback URLs when base URL changes 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Account Linking > should find user by OAuth account 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Account Linking > should link OAuth account to existing user 5ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Account Linking > should create new user from OAuth profile 3ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Account Linking > should handle OAuth profile with missing email 3ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Token Management > should refresh OAuth token 2ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Token Management > should get accounts with expired tokens 2ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Token Management > should unlink OAuth account 2ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Token Management > should prevent unlinking account from wrong user 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Error Handling > should handle invalid provider 3ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Error Handling > should handle missing OAuth configuration 9ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Error Handling > should validate OAuth profile data 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > State Management > should generate OAuth state parameter 5ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > State Management > should validate OAuth state parameter 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > State Management > should cleanup expired state 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Manager > Integration with AuthManager > should return OAuth authentication result 3ms
+     → SQLITE_ERROR: no such table: users
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Adapter Interface > should implement adapter interface correctly
+[2025-09-25T17:16:20.898Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580894.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Configuration and Availability > should get WebAuthn config for localhost
+[2025-09-25T17:16:20.898Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580895.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Storage > should store and retrieve certificates with encryption
+[2025-09-25T17:16:20.903Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580898.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Configuration and Availability > should get WebAuthn config for HTTPS domain
+[2025-09-25T17:16:20.903Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580900.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Adapter Interface > should get adapter info
+[2025-09-25T17:16:20.903Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580901.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > User Management > should list users with pagination
+[2025-09-25T17:16:20.905Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580899.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Configuration and Availability > should reject HTTP non-localhost domains
+[2025-09-25T17:16:20.909Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580905.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Adapter Interface > should get supported methods
+[2025-09-25T17:16:20.911Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580904.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Configuration and Availability > should validate rpID correctly
+[2025-09-25T17:16:20.916Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580910.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Configuration and Availability > should check WebAuthn availability
+[2025-09-25T17:16:20.921Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580917.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Registration Flow > should begin WebAuthn registration
+[2025-09-25T17:16:20.925Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580922.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Registration Flow > should fail registration for non-existent user
+[2025-09-25T17:16:20.929Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580926.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Availability Checking > should detect availability for localhost
+[2025-09-25T17:16:20.917Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580912.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Availability Checking > should detect unavailability for HTTP non-localhost
+[2025-09-25T17:16:20.921Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580918.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Availability Checking > should detect availability for HTTPS
+[2025-09-25T17:16:20.925Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580922.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Registration Flow > should begin registration process
+[2025-09-25T17:16:20.929Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580926.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > User Management > should filter users by search term
+[2025-09-25T17:16:20.913Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580910.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > User Management > should create new user
+[2025-09-25T17:16:20.917Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580914.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > User Management > should validate user creation data
+[2025-09-25T17:16:20.921Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580918.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > User Management > should prevent duplicate usernames
+[2025-09-25T17:16:20.925Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580922.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > User Management > should delete user and associated data
+[2025-09-25T17:16:20.930Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580926.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Storage > should encrypt certificate data at rest
+[2025-09-25T17:16:20.918Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580915.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Storage > should list certificates with metadata
+[2025-09-25T17:16:20.923Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580920.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Storage > should delete certificates
+[2025-09-25T17:16:20.928Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580925.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Parsing and Validation > should parse certificate information
+[2025-09-25T17:16:20.934Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580930.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Registration Flow > should fail registration without user ID
+[2025-09-25T17:16:20.935Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580930.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Registration Flow > should complete registration process
+[2025-09-25T17:16:20.939Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580936.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Registration Flow > should fail registration when WebAuthn unavailable
+[2025-09-25T17:16:20.935Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580930.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Registration Flow > should complete WebAuthn registration
+[2025-09-25T17:16:20.941Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580936.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > User Management > should prevent deleting the last admin user
+[2025-09-25T17:16:20.936Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580931.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > User Management > should get user details with related data
+[2025-09-25T17:16:20.940Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580937.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Parsing and Validation > should validate certificate and key pair
+[2025-09-25T17:16:20.939Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580936.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Parsing and Validation > should detect certificate type
+[2025-09-25T17:16:20.943Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580940.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Parsing and Validation > should check certificate expiry
+[2025-09-25T17:16:20.949Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580945.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Authentication Flow > should begin authentication process
+[2025-09-25T17:16:20.945Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580940.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Authentication Flow > should complete authentication process
+[2025-09-25T17:16:20.948Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580946.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Credential Management > should get user credentials
+[2025-09-25T17:16:20.953Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580949.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Credential Management > should revoke credentials
+[2025-09-25T17:16:20.957Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580954.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Session Management > should generate unique session IDs
+[2025-09-25T17:16:20.961Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580957.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Device Management > should list user devices with details
+[2025-09-25T17:16:20.946Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580942.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Device Management > should revoke device and all its sessions
+[2025-09-25T17:16:20.956Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580947.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Registration Flow > should fail registration with invalid challenge
+[2025-09-25T17:16:20.948Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580943.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Authentication Flow > should begin WebAuthn authentication
+[2025-09-25T17:16:20.953Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580949.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Authentication Flow > should begin authentication without specific user
+[2025-09-25T17:16:20.958Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580954.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > mkcert Integration > should handle mkcert certificate upload
+[2025-09-25T17:16:20.953Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580950.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > mkcert Integration > should validate mkcert certificate format
+[2025-09-25T17:16:20.962Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580959.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Device Management > should rename device
+[2025-09-25T17:16:20.963Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580957.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Device Management > should toggle device trust status
+[2025-09-25T17:16:20.968Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580964.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Session Management > should cleanup expired sessions
+[2025-09-25T17:16:20.964Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580961.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Session Management > should fail completion with invalid session ID
+[2025-09-25T17:16:20.968Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580965.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Authentication Flow > should complete WebAuthn authentication
+[2025-09-25T17:16:20.965Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580959.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Credential Management > should get user credentials
+[2025-09-25T17:16:20.971Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580967.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Configuration > should get WebAuthn config
+[2025-09-25T17:16:20.972Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580969.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > mkcert Integration > should generate mkcert installation instructions
+[2025-09-25T17:16:20.974Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580964.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Session Management > should list active sessions
+[2025-09-25T17:16:20.974Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580969.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Configuration > should check hostname compatibility
+[2025-09-25T17:16:20.978Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580973.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Error Handling > should handle unsupported methods
+[2025-09-25T17:16:20.982Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580979.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Error Handling > should reject traditional authenticate method
+[2025-09-25T17:16:20.985Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580983.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should register and use authentication adapters
+[2025-09-25T17:16:20.979Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820580966.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should register and use authentication adapters
+[2025-09-25T17:16:20.982Z] [INFO] [AUTH] Registered authentication adapter: mock
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should register and use authentication adapters
+[2025-09-25T17:16:20.982Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should register and use authentication adapters
+[2025-09-25T17:16:20.983Z] [INFO] [AUTH] Updated authentication configuration
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should register and use authentication adapters
+[2025-09-25T17:16:20.985Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Let's Encrypt ACME Integration > should initiate Let's Encrypt certificate request
+[2025-09-25T17:16:20.985Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580975.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Let's Encrypt ACME Integration > should handle ACME HTTP-01 challenge
+[2025-09-25T17:16:20.990Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580987.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Credential Management > should revoke credential
+[2025-09-25T17:16:20.985Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580972.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Session Management > should revoke specific session
+[2025-09-25T17:16:20.986Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580975.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Session Management > should revoke all sessions for user
+[2025-09-25T17:16:20.990Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580987.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Authentication Configuration > should get current authentication methods configuration
+[2025-09-25T17:16:20.995Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580991.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Authentication Configuration > should update authentication method availability
+[2025-09-25T17:16:21.000Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820580996.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Authentication Configuration > should validate authentication configuration
+[2025-09-25T17:16:21.005Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581001.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Security Posture Dashboard > should get security posture summary
+[2025-09-25T17:16:21.009Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581006.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Security Posture Dashboard > should calculate security score correctly
+[2025-09-25T17:16:21.012Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581009.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Security Posture Dashboard > should provide contextual security recommendations
+[2025-09-25T17:16:21.016Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581013.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should handle adapter registration errors
+[2025-09-25T17:16:21.007Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820580996.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should handle adapter registration errors
+[2025-09-25T17:16:21.009Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Let's Encrypt ACME Integration > should complete ACME certificate issuance
+[2025-09-25T17:16:20.995Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580991.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Let's Encrypt ACME Integration > should handle ACME errors gracefully
+[2025-09-25T17:16:21.005Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820580997.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Monitoring > should get certificates expiring soon
+[2025-09-25T17:16:21.011Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820581008.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Monitoring > should schedule certificate renewal
+[2025-09-25T17:16:21.015Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820581012.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Credential Management > should fail to revoke credential for wrong user
+[2025-09-25T17:16:20.997Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580986.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Hostname Compatibility > should detect compatible hostnames
+[2025-09-25T17:16:21.001Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820580998.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Hostname Compatibility > should detect incompatible hostnames
+[2025-09-25T17:16:21.010Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820581002.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Hostname Compatibility > should handle tunnel URL compatibility
+[2025-09-25T17:16:21.019Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820581011.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Challenge Cleanup > should clean up expired challenges
+[2025-09-25T17:16:21.023Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820581020.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Error Handling > should handle WebAuthn unavailability
+[2025-09-25T17:16:20.998Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580986.db
+
+stdout | tests/server/webauthn-adapter.test.js > WebAuthn Adapter > Validation > should validate credentials
+[2025-09-25T17:16:21.003Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-adapter-1758820580999.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Audit Log Management > should get audit logs with filtering
+[2025-09-25T17:16:21.019Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581017.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Audit Log Management > should search audit logs by IP address
+[2025-09-25T17:16:21.023Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581020.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Audit Log Management > should export audit logs
+[2025-09-25T17:16:21.028Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581024.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > System Statistics > should get system usage statistics
+[2025-09-25T17:16:21.033Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581029.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should return error for unknown adapter
+[2025-09-25T17:16:21.022Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+[2025-09-25T17:16:21.022Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should return error for unknown adapter
+[2025-09-25T17:16:21.029Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581011.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should return error for unknown adapter
+[2025-09-25T17:16:21.030Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > AuthManager Adapter Pattern > should return error for unknown adapter
+[2025-09-25T17:16:21.030Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should authenticate with valid credentials
+[2025-09-25T17:16:21.037Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581032.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should authenticate with valid credentials
+[2025-09-25T17:16:21.037Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should authenticate with valid credentials
+[2025-09-25T17:16:21.038Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Monitoring > should send expiry alerts
+[2025-09-25T17:16:21.019Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820581016.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Monitoring > should get certificate health status
+[2025-09-25T17:16:21.024Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820581022.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Renewal > should automatically renew Let's Encrypt certificates
+[2025-09-25T17:16:21.031Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820581026.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Renewal > should handle renewal failures
+[2025-09-25T17:16:21.036Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820581032.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Error Handling > should handle verification failures gracefully
+[2025-09-25T17:16:21.027Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820581024.db
+
+stdout | tests/server/webauthn-manager.test.js > WebAuthn Manager > Error Handling > should handle non-existent credentials in authentication
+[2025-09-25T17:16:21.031Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-webauthn-1758820581028.db
+
+ ❯ |server| tests/server/webauthn-adapter.test.js (22 tests | 22 failed) 111ms
+   × WebAuthn Adapter > Adapter Interface > should implement adapter interface correctly 7ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Adapter Interface > should get adapter info 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Adapter Interface > should get supported methods 7ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Availability Checking > should detect availability for localhost 6ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Availability Checking > should detect unavailability for HTTP non-localhost 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Availability Checking > should detect availability for HTTPS 3ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Registration Flow > should begin registration process 5ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Registration Flow > should fail registration without user ID 6ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Registration Flow > should complete registration process 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Authentication Flow > should begin authentication process 5ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Authentication Flow > should complete authentication process 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Credential Management > should get user credentials 5ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Credential Management > should revoke credentials 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Session Management > should generate unique session IDs 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Session Management > should cleanup expired sessions 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Session Management > should fail completion with invalid session ID 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Configuration > should get WebAuthn config 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Configuration > should check hostname compatibility 6ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Error Handling > should handle unsupported methods 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Error Handling > should reject traditional authenticate method 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Error Handling > should handle WebAuthn unavailability 13ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Adapter > Validation > should validate credentials 5ms
+     → SQLITE_ERROR: no such table: users
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > System Statistics > should get activity timeline
+[2025-09-25T17:16:21.036Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581034.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Admin User Management > should promote user to admin
+[2025-09-25T17:16:21.040Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581037.db
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should authenticate with valid credentials
+[2025-09-25T17:16:21.038Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Renewal > should not renew non-renewable certificates
+[2025-09-25T17:16:21.040Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820581037.db
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Backup and Recovery > should export certificate for backup
+[2025-09-25T17:16:21.045Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820581042.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Admin User Management > should demote admin to regular user
+[2025-09-25T17:16:21.044Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581041.db
+
+ ❯ |server| tests/server/webauthn-manager.test.js (22 tests | 22 failed) 139ms
+   × WebAuthn Manager > Configuration and Availability > should get WebAuthn config for localhost 6ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Configuration and Availability > should get WebAuthn config for HTTPS domain 5ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Configuration and Availability > should reject HTTP non-localhost domains 5ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Configuration and Availability > should validate rpID correctly 7ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Configuration and Availability > should check WebAuthn availability 5ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Registration Flow > should begin WebAuthn registration 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Registration Flow > should fail registration for non-existent user 5ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Registration Flow > should fail registration when WebAuthn unavailable 6ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Registration Flow > should complete WebAuthn registration 7ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Registration Flow > should fail registration with invalid challenge 6ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Authentication Flow > should begin WebAuthn authentication 5ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Authentication Flow > should begin authentication without specific user 6ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Authentication Flow > should complete WebAuthn authentication 7ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Credential Management > should get user credentials 5ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Credential Management > should revoke credential 14ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Credential Management > should fail to revoke credential for wrong user 11ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Hostname Compatibility > should detect compatible hostnames 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Hostname Compatibility > should detect incompatible hostnames 9ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Hostname Compatibility > should handle tunnel URL compatibility 9ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Challenge Cleanup > should clean up expired challenges 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Error Handling > should handle verification failures gracefully 4ms
+     → SQLITE_ERROR: no such table: users
+   × WebAuthn Manager > Error Handling > should handle non-existent credentials in authentication 5ms
+     → SQLITE_ERROR: no such table: users
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Admin User Management > should prevent demoting the last admin
+[2025-09-25T17:16:21.048Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581045.db
+
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Backup and Maintenance > should trigger database cleanup
+[2025-09-25T17:16:21.052Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581049.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should reject invalid credentials
+[2025-09-25T17:16:21.049Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581043.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should reject invalid credentials
+[2025-09-25T17:16:21.050Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should reject invalid credentials
+[2025-09-25T17:16:21.050Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should reject invalid credentials
+[2025-09-25T17:16:21.050Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/certificate-manager.test.js > Certificate Manager > Certificate Backup and Recovery > should import certificate from backup
+[2025-09-25T17:16:21.050Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-certs-1758820581046.db
+
+ ❯ |server| tests/server/certificate-manager.test.js (24 tests | 16 failed) 154ms
+   × Certificate Manager > Certificate Storage > should store and retrieve certificates with encryption 16ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Storage > should encrypt certificate data at rest 5ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Storage > should list certificates with metadata 5ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Storage > should delete certificates 5ms
+     → Cannot read properties of undefined (reading 'create')
+   ✓ Certificate Manager > Certificate Parsing and Validation > should parse certificate information 6ms
+   ✓ Certificate Manager > Certificate Parsing and Validation > should validate certificate and key pair 4ms
+   ✓ Certificate Manager > Certificate Parsing and Validation > should detect certificate type 5ms
+   ✓ Certificate Manager > Certificate Parsing and Validation > should check certificate expiry 4ms
+   × Certificate Manager > mkcert Integration > should handle mkcert certificate upload 9ms
+     → expected false to be true // Object.is equality
+   ✓ Certificate Manager > mkcert Integration > should validate mkcert certificate format 4ms
+   ✓ Certificate Manager > mkcert Integration > should generate mkcert installation instructions 11ms
+   × Certificate Manager > Let's Encrypt ACME Integration > should initiate Let's Encrypt certificate request 12ms
+     → this.acmeClient.getAuthorizations is not a function
+   ✓ Certificate Manager > Let's Encrypt ACME Integration > should handle ACME HTTP-01 challenge 4ms
+   × Certificate Manager > Let's Encrypt ACME Integration > should complete ACME certificate issuance 6ms
+     → (intermediate value) is not iterable
+   ✓ Certificate Manager > Let's Encrypt ACME Integration > should handle ACME errors gracefully 11ms
+   × Certificate Manager > Certificate Monitoring > should get certificates expiring soon 4ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Monitoring > should schedule certificate renewal 5ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Monitoring > should send expiry alerts 5ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Monitoring > should get certificate health status 4ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Renewal > should automatically renew Let's Encrypt certificates 6ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Renewal > should handle renewal failures 5ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Renewal > should not renew non-renewable certificates 4ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Backup and Recovery > should export certificate for backup 4ms
+     → Cannot read properties of undefined (reading 'create')
+   × Certificate Manager > Certificate Backup and Recovery > should import certificate from backup 5ms
+     → expected false to be true // Object.is equality
+stdout | tests/server/admin-interface.test.js > Admin Interface Manager > Backup and Maintenance > should get database health status
+[2025-09-25T17:16:21.055Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-admin-1758820581052.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should handle missing required fields
+[2025-09-25T17:16:21.065Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581054.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should handle missing required fields
+[2025-09-25T17:16:21.065Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should handle missing required fields
+[2025-09-25T17:16:21.066Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Local Authentication > should handle missing required fields
+[2025-09-25T17:16:21.066Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should create session after successful authentication
+[2025-09-25T17:16:21.072Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581068.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should create session after successful authentication
+[2025-09-25T17:16:21.072Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should create session after successful authentication
+[2025-09-25T17:16:21.072Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should create session after successful authentication
+[2025-09-25T17:16:21.073Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+ ❯ |server| tests/server/admin-interface.test.js (31 tests | 31 failed) 158ms
+   × Admin Interface Manager > User Management > should list users with pagination 11ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > User Management > should filter users by search term 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > User Management > should create new user 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > User Management > should validate user creation data 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > User Management > should prevent duplicate usernames 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > User Management > should delete user and associated data 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > User Management > should prevent deleting the last admin user 6ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > User Management > should get user details with related data 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Device Management > should list user devices with details 6ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Device Management > should revoke device and all its sessions 10ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Device Management > should rename device 7ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Device Management > should toggle device trust status 5ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Session Management > should list active sessions 6ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Session Management > should revoke specific session 12ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Session Management > should revoke all sessions for user 3ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Authentication Configuration > should get current authentication methods configuration 5ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Authentication Configuration > should update authentication method availability 5ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Authentication Configuration > should validate authentication configuration 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Security Posture Dashboard > should get security posture summary 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Security Posture Dashboard > should calculate security score correctly 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Security Posture Dashboard > should provide contextual security recommendations 3ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Audit Log Management > should get audit logs with filtering 3ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Audit Log Management > should search audit logs by IP address 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Audit Log Management > should export audit logs 5ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > System Statistics > should get system usage statistics 5ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > System Statistics > should get activity timeline 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Admin User Management > should promote user to admin 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Admin User Management > should demote admin to regular user 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Admin User Management > should prevent demoting the last admin 4ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Backup and Maintenance > should trigger database cleanup 3ms
+     → SQLITE_ERROR: no such table: users
+   × Admin Interface Manager > Backup and Maintenance > should get database health status 3ms
+     → SQLITE_ERROR: no such table: users
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should validate active session tokens
+[2025-09-25T17:16:21.077Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581074.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should validate active session tokens
+[2025-09-25T17:16:21.078Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should validate active session tokens
+[2025-09-25T17:16:21.078Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should validate active session tokens
+[2025-09-25T17:16:21.093Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should reject invalid session tokens
+[2025-09-25T17:16:21.098Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581095.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should reject invalid session tokens
+[2025-09-25T17:16:21.099Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should reject invalid session tokens
+[2025-09-25T17:16:21.099Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should logout and invalidate session
+[2025-09-25T17:16:21.103Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581100.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should logout and invalidate session
+[2025-09-25T17:16:21.104Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should logout and invalidate session
+[2025-09-25T17:16:21.104Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Session Management Integration > should logout and invalidate session
+[2025-09-25T17:16:21.104Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should create device on first authentication
+[2025-09-25T17:16:21.114Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581106.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should create device on first authentication
+[2025-09-25T17:16:21.115Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should create device on first authentication
+[2025-09-25T17:16:21.115Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should create device on first authentication
+[2025-09-25T17:16:21.116Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should reuse existing device on subsequent authentications
+[2025-09-25T17:16:21.123Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.123Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.123Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.123Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.123Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.123Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.123Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.123Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.124Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.124Z] [INFO] [AUTH] Registered authentication adapter: oauth
+[2025-09-25T17:16:21.124Z] [INFO] [AUTH] Registered authentication adapter: oauth
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should reuse existing device on subsequent authentications
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+[2025-09-25T17:16:21.124Z] [ERROR] [OAUTH] Failed to get OAuth config: SQLITE_MISUSE: Database is closed
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should reuse existing device on subsequent authentications
+[2025-09-25T17:16:21.135Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581117.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should reuse existing device on subsequent authentications
+[2025-09-25T17:16:21.135Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should reuse existing device on subsequent authentications
+[2025-09-25T17:16:21.136Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should reuse existing device on subsequent authentications
+[2025-09-25T17:16:21.136Z] [INFO] [AUTH] Registered authentication adapter: oauth
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should reuse existing device on subsequent authentications
+[2025-09-25T17:16:21.136Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should reuse existing device on subsequent authentications
+[2025-09-25T17:16:21.137Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should revoke all device sessions
+[2025-09-25T17:16:21.145Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581139.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should revoke all device sessions
+[2025-09-25T17:16:21.150Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should revoke all device sessions
+[2025-09-25T17:16:21.150Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should revoke all device sessions
+[2025-09-25T17:16:21.150Z] [INFO] [AUTH] Registered authentication adapter: oauth
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should revoke all device sessions
+[2025-09-25T17:16:21.151Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Device Management > should revoke all device sessions
+[2025-09-25T17:16:21.151Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.161Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581153.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.161Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.162Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.162Z] [INFO] [AUTH] Registered authentication adapter: oauth
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.163Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.164Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.165Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.165Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.166Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Adapter Interface > should implement adapter interface correctly
+[2025-09-25T17:16:21.157Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581135.db
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.166Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.166Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.167Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.167Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.167Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.169Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.170Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should track failed login attempts
+[2025-09-25T17:16:21.170Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Adapter Interface > should get adapter info
+[2025-09-25T17:16:21.175Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581172.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Adapter Interface > should get supported methods
+[2025-09-25T17:16:21.186Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581179.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should log authentication events
+[2025-09-25T17:16:21.183Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581174.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should log authentication events
+[2025-09-25T17:16:21.184Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should log authentication events
+[2025-09-25T17:16:21.184Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should log authentication events
+[2025-09-25T17:16:21.184Z] [INFO] [AUTH] Registered authentication adapter: oauth
+
+stderr | tests/server/auth-manager.test.js > AuthManager Core System > Rate Limiting and Security > should log authentication events
+[2025-09-25T17:16:21.187Z] [ERROR] [AUTH] Authentication error: SQLITE_ERROR: no such table: auth_events
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should respect authentication settings
+[2025-09-25T17:16:21.197Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581189.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should respect authentication settings
+[2025-09-25T17:16:21.198Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should respect authentication settings
+[2025-09-25T17:16:21.198Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should respect authentication settings
+[2025-09-25T17:16:21.198Z] [INFO] [AUTH] Registered authentication adapter: oauth
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should get authentication configuration
+[2025-09-25T17:16:21.208Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581202.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should get authentication configuration
+[2025-09-25T17:16:21.208Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should get authentication configuration
+[2025-09-25T17:16:21.208Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should get authentication configuration
+[2025-09-25T17:16:21.208Z] [INFO] [AUTH] Registered authentication adapter: oauth
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Availability Checking > should detect availability when providers are configured
+[2025-09-25T17:16:21.199Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581190.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Availability Checking > should detect unavailability when no providers are enabled
+[2025-09-25T17:16:21.209Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581201.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Authentication Initiation > should begin Google OAuth authentication
+[2025-09-25T17:16:21.219Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581212.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Authentication Initiation > should begin GitHub OAuth authentication
+[2025-09-25T17:16:21.227Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581220.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Authentication Initiation > should fail authentication for unsupported provider
+[2025-09-25T17:16:21.231Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581228.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Authentication Initiation > should fail when provider is disabled
+[2025-09-25T17:16:21.237Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581232.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should update authentication configuration
+[2025-09-25T17:16:21.220Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-auth-manager-1758820581211.db
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should update authentication configuration
+[2025-09-25T17:16:21.221Z] [INFO] [AUTH] Registered authentication adapter: local
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should update authentication configuration
+[2025-09-25T17:16:21.221Z] [INFO] [AUTH] Registered authentication adapter: webauthn
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should update authentication configuration
+[2025-09-25T17:16:21.222Z] [INFO] [AUTH] Registered authentication adapter: oauth
+
+stdout | tests/server/auth-manager.test.js > AuthManager Core System > Configuration and Settings > should update authentication configuration
+[2025-09-25T17:16:21.224Z] [INFO] [AUTH] Updated authentication configuration
+
+ ❯ |server| tests/server/auth-manager.test.js (18 tests | 12 failed) 262ms
+   × AuthManager Core System > AuthManager Adapter Pattern > should register and use authentication adapters 31ms
+     → expected "spy" to be called with arguments: [ { username: 'admin', …(1) } ][90m
+
+Number of calls: [1m0[22m
+[39m
+   ✓ AuthManager Core System > AuthManager Adapter Pattern > should handle adapter registration errors 15ms
+   ✓ AuthManager Core System > AuthManager Adapter Pattern > should return error for unknown adapter 21ms
+   × AuthManager Core System > Local Authentication > should authenticate with valid credentials 11ms
+     → expected false to be true // Object.is equality
+   × AuthManager Core System > Local Authentication > should reject invalid credentials 10ms
+     → expected 'Internal authentication error' to contain 'Invalid credentials'
+   × AuthManager Core System > Local Authentication > should handle missing required fields 15ms
+     → expected 'Internal authentication error' to contain 'Username and password are required'
+   × AuthManager Core System > Session Management Integration > should create session after successful authentication 6ms
+     → expected false to be true // Object.is equality
+   × AuthManager Core System > Session Management Integration > should validate active session tokens 21ms
+     → expected false to be true // Object.is equality
+   ✓ AuthManager Core System > Session Management Integration > should reject invalid session tokens 5ms
+   × AuthManager Core System > Session Management Integration > should logout and invalidate session 6ms
+     → expected false to be true // Object.is equality
+   × AuthManager Core System > Device Management > should create device on first authentication 11ms
+     → expected false to be true // Object.is equality
+   × AuthManager Core System > Device Management > should reuse existing device on subsequent authentications 22ms
+     → expected false to be true // Object.is equality
+   × AuthManager Core System > Device Management > should revoke all device sessions 14ms
+     → expected false to be true // Object.is equality
+   × AuthManager Core System > Rate Limiting and Security > should track failed login attempts 20ms
+     → expected 'Internal authentication error' to contain 'rate limited'
+   × AuthManager Core System > Rate Limiting and Security > should log authentication events 16ms
+     → expected false to be true // Object.is equality
+   ✓ AuthManager Core System > Configuration and Settings > should respect authentication settings 12ms
+   ✓ AuthManager Core System > Configuration and Settings > should get authentication configuration 9ms
+   ✓ AuthManager Core System > Configuration and Settings > should update authentication configuration 15ms
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Authentication Completion > should complete OAuth authentication for existing user
+[2025-09-25T17:16:21.242Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581239.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Authentication Completion > should complete OAuth authentication for new user
+[2025-09-25T17:16:21.247Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581243.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Authentication Completion > should fail completion with invalid session ID
+[2025-09-25T17:16:21.251Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581248.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Authentication Completion > should handle OAuth profile without email
+[2025-09-25T17:16:21.255Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581252.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Session Management > should generate unique session IDs
+[2025-09-25T17:16:21.260Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581256.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Session Management > should cleanup expired sessions
+[2025-09-25T17:16:21.264Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581261.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Error Handling > should handle missing OAuth configuration
+[2025-09-25T17:16:21.267Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581265.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Error Handling > should reject traditional authenticate method
+[2025-09-25T17:16:21.274Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581268.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Validation > should validate OAuth credentials
+[2025-09-25T17:16:21.279Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581275.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Validation > should validate OAuth state parameters
+[2025-09-25T17:16:21.291Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581280.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Provider Configuration > should get provider redirect URLs
+[2025-09-25T17:16:21.295Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581292.db
+
+stdout | tests/server/oauth-adapter.test.js > OAuth Adapter > Provider Configuration > should update redirect URLs for tunnel scenarios
+[2025-09-25T17:16:21.301Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-oauth-adapter-1758820581296.db
+
+ ❯ |server| tests/server/oauth-adapter.test.js (21 tests | 21 failed) 169ms
+   × OAuth Adapter > Adapter Interface > should implement adapter interface correctly 37ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Adapter Interface > should get adapter info 7ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Adapter Interface > should get supported methods 11ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Availability Checking > should detect availability when providers are configured 11ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Availability Checking > should detect unavailability when no providers are enabled 11ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Authentication Initiation > should begin Google OAuth authentication 8ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Authentication Initiation > should begin GitHub OAuth authentication 7ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Authentication Initiation > should fail authentication for unsupported provider 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Authentication Initiation > should fail when provider is disabled 6ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Authentication Completion > should complete OAuth authentication for existing user 5ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Authentication Completion > should complete OAuth authentication for new user 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Authentication Completion > should fail completion with invalid session ID 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Authentication Completion > should handle OAuth profile without email 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Session Management > should generate unique session IDs 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Session Management > should cleanup expired sessions 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Error Handling > should handle missing OAuth configuration 3ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Error Handling > should reject traditional authenticate method 7ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Validation > should validate OAuth credentials 5ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Validation > should validate OAuth state parameters 12ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Provider Configuration > should get provider redirect URLs 4ms
+     → SQLITE_ERROR: no such table: users
+   × OAuth Adapter > Provider Configuration > should update redirect URLs for tunnel scenarios 6ms
+     → SQLITE_ERROR: no such table: users
+stdout | tests/cleanup/server/migration-component-identification.test.js > Migration Component Identification > should identify all migration-related imports and dependencies
+Migration-related imports found: []
+
+stdout | tests/cleanup/server/migration-component-identification.test.js > Migration Component Identification > should ensure no migration-related environment variables are referenced
+Migration environment variable references found: []
+
+ ✓ |server| tests/cleanup/server/migration-component-identification.test.js (4 tests) 34ms
+ ✓ |server| tests/shared/session-types.test.js (4 tests) 6ms
+ ✓ |server| tests/client/session-header-modules.test.js (5 tests) 5ms
+ ✓ |server| tests/client/window-manager-edit-mode.test.js (3 tests) 4ms
+ ✓ |server| tests/shared/uuid.test.js (4 tests) 6ms
+stdout | tests/server/claude-adapter-error-handling.test.js > ClaudeAdapter error handling > should prevent interrupt errors by removing interrupt method
+[2025-09-25T17:16:21.762Z] [INFO] [CLAUDE_ADAPTER] Creating Claude session with options: {
+  cwd: [32m'/tmp'[39m,
+  model: [90mundefined[39m,
+  permissionMode: [32m'bypassPermissions'[39m,
+  maxTurns: [90mundefined[39m,
+  includePartialMessages: [33mfalse[39m
+}
+
+stdout | tests/server/claude-adapter.test.js > ClaudeAdapter > emits claude:message events with normalized payload structure
+[2025-09-25T17:16:21.762Z] [INFO] [CLAUDE_ADAPTER] Creating Claude session with options: {
+  cwd: [32m'/tmp'[39m,
+  model: [90mundefined[39m,
+  permissionMode: [32m'bypassPermissions'[39m,
+  maxTurns: [90mundefined[39m,
+  includePartialMessages: [33mfalse[39m
+}
+
+stdout | tests/server/claude-bypass-permissions.test.js > Claude Bypass Permissions Configuration > should default to bypassPermissions permission mode when no options provided
+[2025-09-25T17:16:21.767Z] [INFO] [CLAUDE_ADAPTER] Creating Claude session with options: {
+  cwd: [32m'/tmp'[39m,
+  model: [90mundefined[39m,
+  permissionMode: [32m'bypassPermissions'[39m,
+  maxTurns: [90mundefined[39m,
+  includePartialMessages: [33mfalse[39m
+}
+
+ ✓ |server| tests/server/claude-adapter.test.js (1 test) 12ms
+stderr | tests/server/claude-adapter-error-handling.test.js > ClaudeAdapter error handling > should prevent interrupt errors by removing interrupt method
+[2025-09-25T17:16:21.764Z] [ERROR] [CLAUDE_ADAPTER] Claude query error: TypeError: activeQuery is not async iterable
+    at Object.write [90m(/home/founder3/code/github/fwdslsh/dispatch/[39msrc/lib/server/claude/ClaudeAdapter.js:111:40[90m)[39m
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39mtests/server/claude-adapter-error-handling.test.js:30:23
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:20
+
+stdout | tests/server/claude-adapter-error-handling.test.js > ClaudeAdapter error handling > should prevent interrupt errors by removing interrupt method
+[2025-09-25T17:16:21.775Z] [INFO] [CLAUDE_ADAPTER] Claude adapter closing - allowing query to complete naturally
+
+stdout | tests/server/claude-bypass-permissions.test.js > Claude Bypass Permissions Configuration > should respect explicit permissionMode when provided
+[2025-09-25T17:16:21.775Z] [INFO] [CLAUDE_ADAPTER] Creating Claude session with options: {
+  cwd: [32m'/tmp'[39m,
+  model: [90mundefined[39m,
+  permissionMode: [32m'default'[39m,
+  maxTurns: [90mundefined[39m,
+  includePartialMessages: [33mfalse[39m
+}
+
+stdout | tests/server/claude-adapter-error-handling.test.js > ClaudeAdapter error handling > should handle closing gracefully with active queries
+[2025-09-25T17:16:21.789Z] [INFO] [CLAUDE_ADAPTER] Creating Claude session with options: {
+  cwd: [32m'/tmp'[39m,
+  model: [90mundefined[39m,
+  permissionMode: [32m'bypassPermissions'[39m,
+  maxTurns: [90mundefined[39m,
+  includePartialMessages: [33mfalse[39m
+}
+
+stdout | tests/server/claude-adapter-error-handling.test.js > ClaudeAdapter error handling > should handle closing gracefully with active queries
+[2025-09-25T17:16:21.790Z] [INFO] [CLAUDE_ADAPTER] Claude adapter closing - allowing query to complete naturally
+
+ ❯ |server| tests/server/claude-bypass-permissions.test.js (5 tests | 2 failed) 26ms
+   ✓ Claude Bypass Permissions Configuration > should default to bypassPermissions permission mode when no options provided 7ms
+   ✓ Claude Bypass Permissions Configuration > should respect explicit permissionMode when provided 6ms
+   × Claude Bypass Permissions Configuration > should include all available tools in buildClaudeOptions by default 11ms
+     → expected undefined to deeply equal [ Array(18) ]
+   × Claude Bypass Permissions Configuration > should maintain compatibility with custom tool lists 1ms
+     → expected undefined to be 'bypassPermissions' // Object.is equality
+   ✓ Claude Bypass Permissions Configuration > should support custom permission modes 0ms
+ ✓ |server| tests/server/claude-adapter-error-handling.test.js (2 tests) 44ms
+stdout | tests/server/database-manager-startup.test.js > DatabaseManager startup helpers > marks stale running sessions as stopped
+[2025-09-25T17:16:21.809Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/dispatch-db-yAqVy1/workspace.db
+
+ ✓ |server| tests/server/database-manager-startup.test.js (1 test) 24ms
+ ✓ |server| tests/server/clone-api.test.js (5 tests) 42ms
+stderr | tests/server/environment-api.test.js > Environment API > GET /api/environment > should handle package.json read errors gracefully
+[API] Failed to read app version from package.json: File not found
+
+stderr | tests/server/environment-api.test.js > Environment API > GET /api/environment > should handle invalid JSON in package.json
+[API] Failed to read app version from package.json: Unexpected token 'i', "invalid json content" is not valid JSON
+
+stderr | tests/server/environment-api.test.js > Environment API > GET /api/environment > should handle errors when process properties are undefined
+[API] Failed to get environment information: TypeError: Cannot read properties of undefined (reading 'HOME')
+    at Module.GET [90m(/home/founder3/code/github/fwdslsh/dispatch/[39msrc/routes/api/environment/+server.js:18:37[90m)[39m
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39mtests/server/environment-api.test.js:133:27
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at runSuite [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+ ✓ |server| tests/server/environment-api.test.js (5 tests) 51ms
+stdout | tests/server/settings-database.test.js > Settings Database Integration - JSON per Category > Settings Management - JSON Objects per Category > should initialize default settings
+[2025-09-25T17:16:22.274Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-settings-1758820582270.db
+
+stdout | tests/server/settings-database.test.js > Settings Database Integration - JSON per Category > Settings Management - JSON Objects per Category > should get and set category settings
+[2025-09-25T17:16:22.287Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-settings-1758820582284.db
+
+stdout | tests/server/settings-database.test.js > Settings Database Integration - JSON per Category > Settings Management - JSON Objects per Category > should handle complex JSON values correctly
+[2025-09-25T17:16:22.291Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-settings-1758820582288.db
+
+stdout | tests/server/settings-database.test.js > Settings Database Integration - JSON per Category > Settings Management - JSON Objects per Category > should update existing category settings
+[2025-09-25T17:16:22.295Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-settings-1758820582292.db
+
+stdout | tests/server/settings-database.test.js > Settings Database Integration - JSON per Category > Settings Management - JSON Objects per Category > should update individual setting in category
+[2025-09-25T17:16:22.299Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-settings-1758820582296.db
+
+stdout | tests/server/settings-database.test.js > Settings Database Integration - JSON per Category > Settings Management - JSON Objects per Category > should delete settings categories
+[2025-09-25T17:16:22.303Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-settings-1758820582300.db
+
+stdout | tests/server/settings-database.test.js > Settings Database Integration - JSON per Category > Settings Management - JSON Objects per Category > should get all settings with metadata
+[2025-09-25T17:16:22.305Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-settings-1758820582304.db
+
+stdout | tests/server/settings-database.test.js > Settings Database Integration - JSON per Category > Settings Management - JSON Objects per Category > should handle non-existent categories gracefully
+[2025-09-25T17:16:22.312Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-settings-1758820582307.db
+
+stdout | tests/server/settings-database.test.js > Settings Database Integration - JSON per Category > Settings Management - JSON Objects per Category > should preserve timestamps on updates
+[2025-09-25T17:16:22.317Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-settings-1758820582313.db
+
+ ✓ |server| tests/server/settings-database.test.js (9 tests) 61ms
+ ✓ |server| tests/server/socket-session-status-unit.test.js (18 tests) 17ms
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > JWT Token Generation and Validation > should generate valid JWT tokens
+[2025-09-25T17:16:22.342Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582338.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > JWT Token Generation and Validation > should validate JWT tokens and return decoded payload
+[2025-09-25T17:16:22.347Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582345.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > JWT Token Generation and Validation > should reject invalid JWT tokens
+[2025-09-25T17:16:22.351Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582348.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > JWT Token Generation and Validation > should reject expired JWT tokens
+[2025-09-25T17:16:22.353Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582351.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > JWT Token Generation and Validation > should reject revoked session tokens
+[2025-09-25T17:16:22.356Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582354.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Database Operations > should create session in database
+[2025-09-25T17:16:22.360Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582357.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Database Operations > should retrieve session by token
+[2025-09-25T17:16:22.364Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582360.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Database Operations > should retrieve session with user and device info
+[2025-09-25T17:16:22.370Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582365.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Database Operations > should update session activity
+[2025-09-25T17:16:22.374Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582372.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Lifecycle Management > should list user sessions
+[2025-09-25T17:16:22.379Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582376.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Lifecycle Management > should revoke single session
+[2025-09-25T17:16:22.384Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582380.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Lifecycle Management > should revoke all user sessions except current
+[2025-09-25T17:16:22.389Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582385.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Lifecycle Management > should revoke all device sessions
+[2025-09-25T17:16:22.392Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582389.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Configuration and Policies > should respect session timeout configuration
+[2025-09-25T17:16:22.395Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582393.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Configuration and Policies > should enforce max devices per user policy
+[2025-09-25T17:16:22.400Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582396.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Session Configuration and Policies > should get session statistics
+[2025-09-25T17:16:22.403Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582401.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Token Security and Rotation > should use different secrets for different sessions
+[2025-09-25T17:16:22.406Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582404.db
+
+stdout | tests/server/session-manager.test.js > SessionManager JWT and Database Integration > Token Security and Rotation > should handle token refresh gracefully
+[2025-09-25T17:16:22.411Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-session-manager-1758820582407.db
+
+ ❯ |server| tests/server/session-manager.test.js (18 tests | 18 failed) 75ms
+   × SessionManager JWT and Database Integration > JWT Token Generation and Validation > should generate valid JWT tokens 7ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > JWT Token Generation and Validation > should validate JWT tokens and return decoded payload 3ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > JWT Token Generation and Validation > should reject invalid JWT tokens 3ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > JWT Token Generation and Validation > should reject expired JWT tokens 3ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > JWT Token Generation and Validation > should reject revoked session tokens 3ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Database Operations > should create session in database 3ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Database Operations > should retrieve session by token 4ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Database Operations > should retrieve session with user and device info 6ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Database Operations > should update session activity 4ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Lifecycle Management > should list user sessions 4ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Lifecycle Management > should revoke single session 5ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Lifecycle Management > should revoke all user sessions except current 4ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Lifecycle Management > should revoke all device sessions 4ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Configuration and Policies > should respect session timeout configuration 3ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Configuration and Policies > should enforce max devices per user policy 5ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Session Configuration and Policies > should get session statistics 3ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Token Security and Rotation > should use different secrets for different sessions 3ms
+     → SQLITE_ERROR: no such table: users
+   × SessionManager JWT and Database Integration > Token Security and Rotation > should handle token refresh gracefully 5ms
+     → SQLITE_ERROR: no such table: users
+ ✓ |server| tests/server/workspace-env-integration.test.js (6 tests) 7ms
+stdout | tests/server/workspace-env-variables.test.js > Workspace Environment Variables > should initialize with empty workspace environment variables
+[2025-09-25T17:16:22.439Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-workspace-1758820582424-8vnjli5l2.db
+
+stdout | tests/server/workspace-env-variables.test.js > Workspace Environment Variables > should save and retrieve workspace environment variables
+[2025-09-25T17:16:22.447Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-workspace-1758820582443-jhs512vg7.db
+
+stdout | tests/server/workspace-env-variables.test.js > Workspace Environment Variables > should get workspace environment variables via utility function
+[2025-09-25T17:16:22.452Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-workspace-1758820582448-cogptb1vy.db
+
+stdout | tests/server/workspace-env-variables.test.js > Workspace Environment Variables > should return empty object when no workspace environment variables exist
+[2025-09-25T17:16:22.457Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-workspace-1758820582454-w806njzh8.db
+
+stdout | tests/server/workspace-env-variables.test.js > Workspace Environment Variables > should handle database errors gracefully
+[2025-09-25T17:16:22.462Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-workspace-1758820582457-7fuctn1ft.db
+
+12:16:22 PM [vite-plugin-svelte] src/lib/client/shared/components/WebAuthnManager.svelte:11:12 Component has unused export property 'username'. If it is for external reference only, please consider using `export const username`
+https://svelte.dev/e/export_let_unused
+stderr | tests/server/workspace-env-variables.test.js > Workspace Environment Variables > should handle database errors gracefully
+Failed to load workspace environment variables: Error: Database error
+    at Object.getSettingsByCategory [90m(/home/founder3/code/github/fwdslsh/dispatch/[39mtests/server/workspace-env-variables.test.js:74:11[90m)[39m
+    at getWorkspaceEnvVariables [90m(/home/founder3/code/github/fwdslsh/dispatch/[39msrc/lib/server/shared/utils/env.js:166:51[90m)[39m
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39mtests/server/workspace-env-variables.test.js:78:49
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:155:11
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:752:26
+    at [90mfile:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1897:20
+    at new Promise (<anonymous>)
+    at runWithTimeout [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1863:10[90m)[39m
+    at runTest [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1574:12[90m)[39m
+    at runSuite [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-hooks.js:1729:8[90m)[39m
+
+stdout | tests/server/workspace-env-variables.test.js > Workspace Environment Variables > should validate environment variable names properly
+[2025-09-25T17:16:22.477Z] [INFO] [DATABASE] Initialized SQLite database at: /tmp/test-workspace-1758820582471-n9vuumxa1.db
+
+ ✓ |server| tests/server/workspace-env-variables.test.js (6 tests) 56ms
+stderr | tests/server/git-api.test.js > Git API Endpoints > POST /api/git/commit > should handle git commit errors
+Git commit error: Error: Nothing to commit
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39msrc/routes/api/git/commit/+server.js:24:12
+    at Object.<anonymous> [90m(/home/founder3/code/github/fwdslsh/dispatch/[39mtests/server/git-api.test.js:154:29[90m)[39m
+    at Object.mockCall [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/spy/dist/index.js:96:15[90m)[39m
+    at Object.spy [as on] [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4mtinyspy[24m/dist/index.js:47:80[90m)[39m
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39msrc/routes/api/git/commit/+server.js:20:7
+    at new Promise (<anonymous>)
+    at execGit [90m(/home/founder3/code/github/fwdslsh/dispatch/[39msrc/routes/api/git/commit/+server.js:7:9[90m)[39m
+    at Module.POST [90m(/home/founder3/code/github/fwdslsh/dispatch/[39msrc/routes/api/git/commit/+server.js:45:24[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39mtests/server/git-api.test.js:165:21
+
+stderr | tests/server/git-api.test.js > Git API Endpoints > POST /api/git/checkout > should handle git checkout errors
+Git checkout error: Error: Branch 'nonexistent' not found
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39msrc/routes/api/git/checkout/+server.js:24:12
+    at Object.<anonymous> [90m(/home/founder3/code/github/fwdslsh/dispatch/[39mtests/server/git-api.test.js:308:29[90m)[39m
+    at Object.mockCall [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4m@vitest[24m/spy/dist/index.js:96:15[90m)[39m
+    at Object.spy [as on] [90m(file:///home/founder3/code/github/fwdslsh/dispatch/[39mnode_modules/[4mtinyspy[24m/dist/index.js:47:80[90m)[39m
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39msrc/routes/api/git/checkout/+server.js:20:7
+    at new Promise (<anonymous>)
+    at execGit [90m(/home/founder3/code/github/fwdslsh/dispatch/[39msrc/routes/api/git/checkout/+server.js:7:9[90m)[39m
+    at Module.POST [90m(/home/founder3/code/github/fwdslsh/dispatch/[39msrc/routes/api/git/checkout/+server.js:45:24[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90m/home/founder3/code/github/fwdslsh/dispatch/[39mtests/server/git-api.test.js:319:21
+
+ ✓ |server| tests/server/git-api.test.js (13 tests) 27ms
+stdout | tests/server/socket-setup.test.js > setupSocketIO > registers io instance with RunSessionManager
+[2025-09-25T17:16:22.623Z] [INFO] [SOCKET] Unified Socket.IO server initialized with run session handlers
+
+ ✓ |server| tests/server/socket-setup.test.js (1 test) 5ms
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+ ❯ ManualMockedModule.resolve node_modules/@vitest/mocker/dist/chunk-registry.js:160:24
+ ❯ process.processTicksAndRejections node:internal/process/task_queues:105:5
+ ❯ node_modules/@vitest/browser/dist/webdriver-KA1WiV0q.js:128:35
+ ❯ RouteHandler._handleInternal node_modules/playwright-core/lib/client/network.js:690:23
+ ❯ RouteHandler._handleImpl node_modules/playwright-core/lib/client/network.js:659:14
+ ❯ RouteHandler.handle node_modules/playwright-core/lib/client/network.js:653:12
+ ❯ Page._onRoute node_modules/playwright-core/lib/client/page.js:145:23
+
+Caused by: Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+ ❯ ManualMockedModule.resolve ../../../../../../__vitest_browser__/tester-BYDMHqQ9.js:2011:27
+ ❯ VitestBrowserClientMocker.resolveFactoryModule ../../../../../../__vitest_browser__/tester-BYDMHqQ9.js:3170:20
+ ❯ Proxy.resolveManualMock ../../../../../../node_modules/@vitest/browser/dist/client.js?v=7ea2d80a:340:20
+ ❯ onMessage ../../../../../../node_modules/@vitest/browser/dist/client.js?v=7ea2d80a:103:20
+
+
+
+

@@ -13,38 +13,38 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 #### 1.1 Write Tests for Migration Component Identification
 
-- [ ] Create test to identify all migration-related imports and dependencies (isolated in `tests/cleanup/server/`)
-- [ ] Write test to verify AuthMigrationManager is completely removed from codebase (isolated in `tests/cleanup/server/`)
-- [ ] Create test to validate all migration API endpoints return 404 after removal (isolated in `tests/cleanup/server/`)
-- [ ] Write test to ensure no migration-related environment variables are referenced (isolated in `tests/cleanup/server/`)
+- [x] Create test to identify all migration-related imports and dependencies (isolated in `tests/cleanup/server/`)
+- [x] Write test to verify AuthMigrationManager is completely removed from codebase (isolated in `tests/cleanup/server/`)
+- [x] Create test to validate all migration API endpoints return 404 after removal (isolated in `tests/cleanup/server/`)
+- [x] Write test to ensure no migration-related environment variables are referenced (isolated in `tests/cleanup/server/`)
 
 #### 1.2 Remove AuthMigrationManager and Core Migration Logic
 
-- [ ] Remove `src/lib/server/shared/AuthMigrationManager.js` completely
-- [ ] Remove all imports of AuthMigrationManager across the codebase
-- [ ] Remove migration helper utilities and validation functions
-- [ ] Update any error handling that referenced migration states
+- [x] Remove `src/lib/server/shared/AuthMigrationManager.js` completely
+- [x] Remove all imports of AuthMigrationManager across the codebase
+- [x] Remove migration helper utilities and validation functions
+- [x] Update any error handling that referenced migration states
 
 #### 1.3 Clean Up Migration API Endpoints
 
-- [ ] Remove `src/routes/api/admin/migration/+server.js` endpoint family
-- [ ] Remove `src/routes/api/auth/migrate/+server.js` endpoint family
-- [ ] Clean migration-related handlers from `src/routes/api/admin/setup/+server.js`
-- [ ] Remove migration status endpoints and related logic
+- [x] Remove `src/routes/api/admin/migration/+server.js` endpoint family
+- [x] Remove `src/routes/api/auth/migrate/+server.js` endpoint family
+- [x] Clean migration-related handlers from `src/routes/api/admin/setup/+server.js`
+- [x] Remove migration status endpoints and related logic
 
 #### 1.4 Update AuthMiddleware and Legacy Support
 
-- [ ] Remove migration fallback logic from `src/lib/server/shared/AuthMiddleware.js`
-- [ ] Remove terminal key authentication fallback paths
-- [ ] Clean up deprecated authentication middleware components
-- [ ] Remove legacy session validation mechanisms
+- [x] Remove migration fallback logic from `src/lib/server/shared/AuthMiddleware.js`
+- [x] Remove terminal key authentication fallback paths
+- [x] Clean up deprecated authentication middleware components
+- [x] Remove legacy session validation mechanisms
 
 #### 1.5 Verify Server-side Tests Pass
 
-- [ ] Run server-side unit tests to ensure no migration references remain
-- [ ] Verify authentication middleware tests pass with simplified logic
-- [ ] Test API endpoint removal doesn't break existing functionality
-- [ ] Validate admin authentication functions remain intact
+- [x] Run server-side unit tests to ensure no migration references remain
+- [x] Verify authentication middleware tests pass with simplified logic
+- [x] Test API endpoint removal doesn't break existing functionality
+- [x] Validate admin authentication functions remain intact
 
 ### Task 2: Client-side Migration Component Cleanup
 

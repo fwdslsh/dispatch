@@ -7,7 +7,7 @@ import { json } from '@sveltejs/kit';
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
 	try {
-		const { migrationComplete, terminalKey } = await request.json();
+		const body = await request.json();
 
 		const settingsManager = globalThis.__API_SERVICES?.settingsManager;
 		if (!settingsManager) {
@@ -18,11 +18,8 @@ export async function POST({ request }) {
 		await settingsManager.set('system.onboarding.completed', true);
 		await settingsManager.set('system.onboarding.completed_at', new Date().toISOString());
 
-		// If migration was completed, disable TERMINAL_KEY authentication
-		if (migrationComplete && terminalKey) {
-			await settingsManager.set('system.legacy.terminal_key_disabled', true);
-			await settingsManager.set('system.legacy.terminal_key_migrated_at', new Date().toISOString());
-		}
+		// Initialize legacy system settings
+		await settingsManager.set('system.legacy.terminal_key_disabled', false);
 
 		// Set initial security policy
 		await settingsManager.set('security.policies.initialized', true);
@@ -41,8 +38,6 @@ export async function POST({ request }) {
 				ipAddress: 'system',
 				userAgent: 'onboarding',
 				metadata: {
-					migrationComplete: Boolean(migrationComplete),
-					terminalKeyMigrated: Boolean(migrationComplete && terminalKey),
 					completedAt: new Date().toISOString()
 				}
 			});

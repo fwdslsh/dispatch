@@ -19,12 +19,7 @@ describe('AuthManager Core System', () => {
 		db = new DatabaseManager(tempDbPath);
 		await db.init();
 
-		// Run migrations to set up auth tables
-		const { AuthMigrationManager } = await import(
-			'../../src/lib/server/shared/db/AuthMigrationManager.js'
-		);
-		const migrationManager = new AuthMigrationManager(db);
-		await migrationManager.runAllMigrations();
+		// Database initialization - tables will be created as needed
 
 		// Create session manager
 		sessionManager = new SessionManager(db);

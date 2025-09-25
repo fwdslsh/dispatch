@@ -83,17 +83,9 @@ export class LocalAuthAdapter {
 
 	/**
 	 * Verify password against stored hash
-	 * Supports both legacy terminal key and proper hashed passwords
 	 */
 	async verifyPassword(password, storedHash) {
 		try {
-			// Check for legacy terminal key authentication
-			const terminalKey = process.env.TERMINAL_KEY || 'change-me';
-			if (storedHash === terminalKey && password === terminalKey) {
-				logger.warn('LOCAL_AUTH', 'Using legacy terminal key authentication - should be migrated');
-				return true;
-			}
-
 			// Check if it's a properly hashed password (contains salt separator)
 			if (storedHash.includes(':')) {
 				return await this.verifyHashedPassword(password, storedHash);

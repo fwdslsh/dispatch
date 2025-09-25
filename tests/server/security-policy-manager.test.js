@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseManager } from '../../src/lib/server/shared/db/DatabaseManager.js';
-import { AuthMigrationManager } from '../../src/lib/server/shared/db/AuthMigrationManager.js';
 import { SecurityPolicyManager } from '../../src/lib/server/shared/security/SecurityPolicyManager.js';
 import path from 'path';
 import { tmpdir } from 'os';
@@ -8,7 +7,6 @@ import { rmSync } from 'fs';
 
 describe('Security Policy Manager', () => {
 	let db;
-	let migrationManager;
 	let securityManager;
 	let tempDbPath;
 
@@ -19,8 +17,6 @@ describe('Security Policy Manager', () => {
 		await db.init();
 
 		// Run auth migrations
-		migrationManager = new AuthMigrationManager(db);
-		await migrationManager.runAllMigrations();
 
 		// Create security policy manager
 		securityManager = new SecurityPolicyManager(db);

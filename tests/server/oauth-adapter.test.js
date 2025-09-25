@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseManager } from '../../src/lib/server/shared/db/DatabaseManager.js';
-import { AuthMigrationManager } from '../../src/lib/server/shared/db/AuthMigrationManager.js';
 import { OAuthAdapter } from '../../src/lib/server/shared/auth/adapters/OAuthAdapter.js';
 import path from 'path';
 import { tmpdir } from 'os';
@@ -8,7 +7,6 @@ import { rmSync } from 'fs';
 
 describe('OAuth Adapter', () => {
 	let db;
-	let migrationManager;
 	let oauthAdapter;
 	let tempDbPath;
 	let testUserId;
@@ -21,8 +19,6 @@ describe('OAuth Adapter', () => {
 		await db.init();
 
 		// Run auth migrations
-		migrationManager = new AuthMigrationManager(db);
-		await migrationManager.runAllMigrations();
 
 		// Create OAuth adapter
 		oauthAdapter = new OAuthAdapter(db, null);
