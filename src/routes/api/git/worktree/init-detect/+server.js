@@ -64,17 +64,17 @@ const INIT_PATTERNS = [
 // Detect initialization commands based on project files
 function detectInitCommands(projectPath) {
 	const detected = [];
-	
+
 	for (const pattern of INIT_PATTERNS) {
-		const hasFiles = pattern.files.some(file => existsSync(join(projectPath, file)));
+		const hasFiles = pattern.files.some((file) => existsSync(join(projectPath, file)));
 		if (hasFiles) {
 			detected.push({
 				...pattern,
-				matched: pattern.files.filter(file => existsSync(join(projectPath, file)))
+				matched: pattern.files.filter((file) => existsSync(join(projectPath, file)))
 			});
 		}
 	}
-	
+
 	return detected;
 }
 
@@ -86,7 +86,7 @@ function findExistingInitScript(projectPath) {
 		join(projectPath, 'setup.sh'),
 		join(projectPath, 'scripts', 'setup.sh')
 	];
-	
+
 	for (const scriptPath of possiblePaths) {
 		if (existsSync(scriptPath)) {
 			try {
@@ -94,16 +94,17 @@ function findExistingInitScript(projectPath) {
 				return {
 					path: scriptPath,
 					content: content.trim(),
-					commands: content.split('\n')
-						.map(line => line.trim())
-						.filter(line => line && !line.startsWith('#'))
+					commands: content
+						.split('\n')
+						.map((line) => line.trim())
+						.filter((line) => line && !line.startsWith('#'))
 				};
 			} catch (error) {
 				console.warn(`Failed to read init script ${scriptPath}:`, error.message);
 			}
 		}
 	}
-	
+
 	return null;
 }
 
@@ -115,7 +116,7 @@ export async function GET({ url }) {
 		}
 
 		const resolvedPath = resolve(path);
-		
+
 		// Check if directory exists
 		if (!existsSync(resolvedPath)) {
 			return json({ error: 'Directory does not exist' }, { status: 404 });
@@ -123,13 +124,13 @@ export async function GET({ url }) {
 
 		// Detect initialization patterns
 		const detectedPatterns = detectInitCommands(resolvedPath);
-		
+
 		// Check for existing initialization scripts
 		const existingScript = findExistingInitScript(resolvedPath);
-		
+
 		// Combine all detected commands
 		const allCommands = [];
-		
+
 		if (existingScript) {
 			allCommands.push(...existingScript.commands);
 		} else {
@@ -160,7 +161,7 @@ export async function POST({ request }) {
 		}
 
 		const resolvedPath = resolve(path);
-		
+
 		// Check if directory exists
 		if (!existsSync(resolvedPath)) {
 			return json({ error: 'Directory does not exist' }, { status: 404 });
@@ -202,6 +203,9 @@ export async function POST({ request }) {
 		});
 	} catch (error) {
 		console.error('Save init script error:', error);
-		return json({ error: error.message || 'Failed to save initialization script' }, { status: 500 });
+		return json(
+			{ error: error.message || 'Failed to save initialization script' },
+			{ status: 500 }
+		);
 	}
 }

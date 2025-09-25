@@ -9,17 +9,44 @@
 	{...$$props}
 >
 	<!-- Main repository -->
-	<rect x="1" y="2" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1" fill="none" />
+	<rect
+		x="1"
+		y="2"
+		width="6"
+		height="5"
+		rx="1"
+		stroke="currentColor"
+		stroke-width="1"
+		fill="none"
+	/>
 	<circle cx="2.5" cy="3.5" r="0.5" fill="currentColor" />
-	
+
 	<!-- Worktree 1 -->
-	<rect x="9" y="1" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1" fill="none" />
+	<rect
+		x="9"
+		y="1"
+		width="6"
+		height="5"
+		rx="1"
+		stroke="currentColor"
+		stroke-width="1"
+		fill="none"
+	/>
 	<circle cx="10.5" cy="2.5" r="0.5" fill="currentColor" />
-	
+
 	<!-- Worktree 2 -->
-	<rect x="9" y="8" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1" fill="none" />
+	<rect
+		x="9"
+		y="8"
+		width="6"
+		height="5"
+		rx="1"
+		stroke="currentColor"
+		stroke-width="1"
+		fill="none"
+	/>
 	<circle cx="10.5" cy="9.5" r="0.5" fill="currentColor" />
-	
+
 	<!-- Connection lines -->
 	<path d="M7 4.5 L9 3.5" stroke="currentColor" stroke-width="1" />
 	<path d="M7 4.5 L9 10.5" stroke="currentColor" stroke-width="1" />

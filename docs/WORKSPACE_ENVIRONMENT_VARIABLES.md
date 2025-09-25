@@ -19,7 +19,7 @@ Workspace environment variables allow you to define environment variables that w
 The system applies environment variables in the following priority order:
 
 1. **Session-specific environment variables** (highest priority)
-2. **Workspace environment variables** (medium priority)  
+2. **Workspace environment variables** (medium priority)
 3. **System environment variables** (lowest priority)
 
 This means that workspace environment variables can provide defaults, but individual sessions can override them when needed.
@@ -46,6 +46,7 @@ Common workspace environment variables include:
 ### Validation
 
 Environment variable names must:
+
 - Start with a letter or underscore
 - Contain only letters, numbers, and underscores
 - Follow standard environment variable naming conventions
@@ -57,13 +58,15 @@ Invalid names (starting with numbers, containing spaces or special characters) w
 ### REST Endpoints
 
 #### Get Workspace Environment Variables
+
 ```
 GET /api/settings/workspace
 ```
 
 Returns the current workspace environment variables.
 
-#### Set Workspace Environment Variables  
+#### Set Workspace Environment Variables
+
 ```
 POST /api/settings/workspace
 Content-Type: application/json
@@ -77,6 +80,7 @@ Content-Type: application/json
 ```
 
 #### Clear Workspace Environment Variables
+
 ```
 DELETE /api/settings/workspace
 ```
@@ -91,9 +95,9 @@ const workspaceEnv = await getWorkspaceEnvVariables(database);
 
 // Use in session creation
 const sessionOptions = {
-  cwd: '/workspace',
-  workspaceEnv: workspaceEnv,
-  extraEnv: { SESSION_ID: 'abc123' }
+	cwd: '/workspace',
+	workspaceEnv: workspaceEnv,
+	extraEnv: { SESSION_ID: 'abc123' }
 };
 ```
 
@@ -104,9 +108,9 @@ const sessionOptions = {
 Workspace environment variables are stored in the `settings` table under the `workspace` category:
 
 ```sql
-INSERT INTO settings (category, settings_json, description) 
+INSERT INTO settings (category, settings_json, description)
 VALUES (
-  'workspace', 
+  'workspace',
   '{"envVariables": {"NODE_ENV": "development"}}',
   'Workspace-level environment variables for all sessions'
 );
@@ -126,7 +130,7 @@ When creating any session type, the system:
 All session adapters support workspace environment variables:
 
 - **PTY Adapter**: Applied to terminal shell environment
-- **Claude Adapter**: Applied to Claude Code execution environment  
+- **Claude Adapter**: Applied to Claude Code execution environment
 - **File Editor Adapter**: Available for file operations (though not directly used)
 
 ## Backward Compatibility
@@ -152,7 +156,8 @@ This feature is fully backward compatible. Existing sessions and configurations 
 ### Validation Errors
 
 Environment variable names must be valid identifiers:
-- ✅ `NODE_ENV`, `API_KEY`, `_PRIVATE`  
+
+- ✅ `NODE_ENV`, `API_KEY`, `_PRIVATE`
 - ❌ `123_VAR` (starts with number), `MY-VAR` (contains hyphen), `MY VAR` (contains space)
 
 ### Testing Variables

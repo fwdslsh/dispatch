@@ -63,7 +63,14 @@ function execShell(command, cwd) {
 
 export async function POST({ request }) {
 	try {
-		const { path, worktreePath, branch, newBranch, runInit = false, initCommands = [] } = await request.json();
+		const {
+			path,
+			worktreePath,
+			branch,
+			newBranch,
+			runInit = false,
+			initCommands = []
+		} = await request.json();
 
 		if (!path || !worktreePath) {
 			return json({ error: 'Path and worktreePath are required' }, { status: 400 });
@@ -90,13 +97,13 @@ export async function POST({ request }) {
 
 		// Build git worktree add command
 		const args = ['worktree', 'add'];
-		
+
 		if (newBranch) {
 			args.push('-b', newBranch);
 		}
-		
+
 		args.push(resolvedWorktreePath);
-		
+
 		if (branch && !newBranch) {
 			args.push(branch);
 		}
@@ -117,8 +124,8 @@ export async function POST({ request }) {
 			}
 		}
 
-		return json({ 
-			success: true, 
+		return json({
+			success: true,
 			worktreePath: resolvedWorktreePath,
 			branch: newBranch || branch,
 			message: result,

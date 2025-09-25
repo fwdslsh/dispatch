@@ -58,8 +58,8 @@ export async function POST({ request }) {
 
 		const result = await execGit(args, resolvedPath);
 
-		return json({ 
-			success: true, 
+		return json({
+			success: true,
 			worktreePath: resolvedWorktreePath,
 			message: result
 		});

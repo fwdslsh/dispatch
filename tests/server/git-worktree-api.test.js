@@ -4,7 +4,10 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { GET as listWorktrees } from '../../src/routes/api/git/worktree/list/+server.js';
 import { POST as addWorktree } from '../../src/routes/api/git/worktree/add/+server.js';
 import { POST as removeWorktree } from '../../src/routes/api/git/worktree/remove/+server.js';
-import { GET as detectInit, POST as saveInit } from '../../src/routes/api/git/worktree/init-detect/+server.js';
+import {
+	GET as detectInit,
+	POST as saveInit
+} from '../../src/routes/api/git/worktree/init-detect/+server.js';
 
 // Mock child_process spawn
 vi.mock('node:child_process', () => ({
@@ -58,7 +61,7 @@ describe('Git Worktree API Endpoints', () => {
 			].join('\n');
 
 			mockSpawn.mockImplementationOnce(() => ({
-				stdout: { 
+				stdout: {
 					on: vi.fn((event, callback) => {
 						if (event === 'data') callback(worktreeOutput);
 					})
@@ -116,7 +119,7 @@ describe('Git Worktree API Endpoints', () => {
 
 			// Mock git worktree add
 			mockSpawn.mockImplementationOnce(() => ({
-				stdout: { 
+				stdout: {
 					on: vi.fn((event, callback) => {
 						if (event === 'data') callback('Preparing worktree');
 					})
@@ -128,11 +131,12 @@ describe('Git Worktree API Endpoints', () => {
 			}));
 
 			const request = {
-				json: () => Promise.resolve({
-					path: '/test/repo',
-					worktreePath: '/test/repo-feature',
-					newBranch: 'feature-branch'
-				})
+				json: () =>
+					Promise.resolve({
+						path: '/test/repo',
+						worktreePath: '/test/repo-feature',
+						newBranch: 'feature-branch'
+					})
 			};
 
 			const response = await addWorktree({ request });
@@ -159,11 +163,12 @@ describe('Git Worktree API Endpoints', () => {
 			}));
 
 			const request = {
-				json: () => Promise.resolve({
-					path: '/test/repo',
-					worktreePath: '/test/existing',
-					newBranch: 'feature-branch'
-				})
+				json: () =>
+					Promise.resolve({
+						path: '/test/repo',
+						worktreePath: '/test/existing',
+						newBranch: 'feature-branch'
+					})
 			};
 
 			const response = await addWorktree({ request });
@@ -187,7 +192,7 @@ describe('Git Worktree API Endpoints', () => {
 
 			// Mock git worktree remove
 			mockSpawn.mockImplementationOnce(() => ({
-				stdout: { 
+				stdout: {
 					on: vi.fn((event, callback) => {
 						if (event === 'data') callback('');
 					})
@@ -199,10 +204,11 @@ describe('Git Worktree API Endpoints', () => {
 			}));
 
 			const request = {
-				json: () => Promise.resolve({
-					path: '/test/repo',
-					worktreePath: '/test/repo-feature'
-				})
+				json: () =>
+					Promise.resolve({
+						path: '/test/repo',
+						worktreePath: '/test/repo-feature'
+					})
 			};
 
 			const response = await removeWorktree({ request });
@@ -253,11 +259,12 @@ describe('Git Worktree API Endpoints', () => {
 			existsSync.mockReturnValue(true);
 
 			const request = {
-				json: () => Promise.resolve({
-					path: '/test/project',
-					commands: ['npm install', 'npm run build'],
-					saveAs: 'init.sh'
-				})
+				json: () =>
+					Promise.resolve({
+						path: '/test/project',
+						commands: ['npm install', 'npm run build'],
+						saveAs: 'init.sh'
+					})
 			};
 
 			const response = await saveInit({ request });
