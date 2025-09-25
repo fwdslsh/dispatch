@@ -499,7 +499,7 @@ mkcert localhost 127.0.0.1 ::1
 
 	async scheduleRenewal(certificateId, renewalDate) {
 		// Use settings storage for renewal schedules since we don't have a renewals table
-		const renewals = await this.db.getSettingsForCategory('certificate_renewals') || {};
+		const renewals = await this.db.getSettingsByCategory('certificate_renewals') || {};
 		renewals[certificateId] = {
 			scheduledAt: renewalDate.getTime(),
 			createdAt: Date.now()
@@ -520,7 +520,7 @@ mkcert localhost 127.0.0.1 ::1
 	}
 
 	async getPendingRenewals() {
-		const renewals = await this.db.getSettingsForCategory('certificate_renewals') || {};
+		const renewals = await this.db.getSettingsByCategory('certificate_renewals') || {};
 		const now = Date.now();
 
 		const pending = [];

@@ -484,6 +484,52 @@ export class OAuthManager {
 	}
 
 	/**
+	 * Test OAuth provider configuration
+	 */
+	async testProvider(provider) {
+		try {
+			const validProviders = ['google', 'github'];
+			if (!validProviders.includes(provider)) {
+				return {
+					success: false,
+					error: `Unsupported OAuth provider: ${provider}`
+				};
+			}
+
+			// Get provider configuration
+			const config = await this.getOAuthConfig();
+			const providerConfig = config[provider];
+
+			if (!providerConfig || !providerConfig.enabled) {
+				return {
+					success: false,
+					error: `${provider} OAuth is not enabled`
+				};
+			}
+
+			if (!providerConfig.clientId || !providerConfig.clientSecret) {
+				return {
+					success: false,
+					error: `${provider} OAuth configuration is missing client ID or secret`
+				};
+			}
+
+			// For now, just validate that the configuration exists
+			// In a full implementation, you might want to make a test request to the provider
+			return {
+				success: true,
+				message: `${provider} OAuth configuration is valid`
+			};
+		} catch (error) {
+			logger.error('OAUTH', `Failed to test provider ${provider}: ${error.message}`);
+			return {
+				success: false,
+				error: `Failed to test ${provider} configuration: ${error.message}`
+			};
+		}
+	}
+
+	/**
 	 * Cleanup old OAuth data
 	 */
 	async cleanup() {

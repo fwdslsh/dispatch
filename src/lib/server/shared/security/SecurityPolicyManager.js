@@ -40,7 +40,7 @@ export class SecurityPolicyManager {
 	}
 
 	async getCORSOrigins() {
-		const settings = await this.db.getSettingsForCategory('security');
+		const settings = await this.db.getSettingsByCategory('security');
 		return settings.cors_allowed_origins || ['http://localhost:3030'];
 	}
 
@@ -133,7 +133,7 @@ export class SecurityPolicyManager {
 	}
 
 	async getHSTSConfiguration() {
-		const settings = await this.db.getSettingsForCategory('security');
+		const settings = await this.db.getSettingsByCategory('security');
 		const certContext = settings.certificate_context || {};
 
 		const enabled = this.shouldEnableHSTS(certContext);

@@ -52,6 +52,7 @@
 		"acme-client": "^5.4.0",
 		"ansi_up": "^6.0.6",
 		"augmented-ui": "^2.0.0",
+		"bcrypt": "^6.0.0",
 		"commander": "^12.1.0",
 		"express": "^5.1.0",
 		"hammerjs": "^2.0.8",
