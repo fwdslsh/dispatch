@@ -1,22 +1,18 @@
 import { spawn } from 'node:child_process';
-import { promises as fs } from 'node:fs';
-import { resolve } from 'node:path';
 import { homedir, hostname } from 'node:os';
 import { logger } from './utils/logger.js';
 
 /**
  * Manages VS Code Remote Tunnel with runtime control
- * Uses filesystem state file for persistent tunnel configuration
+ * Uses database settings for persistent tunnel configuration
  */
 export class VSCodeTunnelManager {
-	constructor({ folder, database }) {
-		this.folder = folder || process.env.HOME || homedir();
+	constructor({ database }) {
 		this.database = database;
 		this.process = null;
 		this.state = null;
 		this.io = null; // Socket.IO instance for broadcasting
 		this.lastError = null; // Store last error for status reporting
-		this.stateFilePath = resolve(this.folder, '.dispatch', 'vscode-tunnel-state.json');
 	}
 
 	/**
@@ -29,7 +25,7 @@ export class VSCodeTunnelManager {
 	}
 
 	/**
-	 * Initialize tunnel manager and restore state from filesystem
+	 * Initialize tunnel manager and restore state from database
 	 * @returns {Promise<void>}
 	 */
 	async init() {
@@ -46,7 +42,7 @@ export class VSCodeTunnelManager {
 					await this._clearState();
 				}
 			}
-			logger.info('VSCODE_TUNNEL', 'VS Code Tunnel manager initialized');
+			logger.info('VSCODE_TUNNEL', 'VS Code Tunnel manager initialized from database');
 		} catch (error) {
 			logger.error('VSCODE_TUNNEL', `Failed to initialize tunnel manager: ${error.message}`);
 		}
@@ -74,7 +70,7 @@ export class VSCodeTunnelManager {
 
 		const host = process.env.HOSTNAME || hostname();
 		const tunnelName = options.name || `dispatch-${host}`;
-		const cwd = options.folder || this.folder;
+		const workspaceRoot = process.env.WORKSPACES_ROOT || process.env.HOME || homedir();
 		const extra = options.extra || [];
 
 		const args = [
@@ -86,11 +82,11 @@ export class VSCodeTunnelManager {
 			...extra
 		];
 
-		logger.info('VSCODE_TUNNEL', `Starting VS Code tunnel: ${tunnelName} in ${cwd}`);
+		logger.info('VSCODE_TUNNEL', `Starting VS Code tunnel: ${tunnelName} in ${workspaceRoot}`);
 
 		try {
 			this.process = spawn('code', args, {
-				cwd,
+				cwd: workspaceRoot,
 				stdio: 'pipe',
 				env: { ...process.env }
 			});
@@ -101,12 +97,12 @@ export class VSCodeTunnelManager {
 			throw error;
 		}
 
-		const openUrl = `https://vscode.dev/tunnel/${encodeURIComponent(tunnelName)}${encodeURIComponent(cwd)}`;
+		const openUrl = `https://vscode.dev/tunnel/${encodeURIComponent(tunnelName)}${encodeURIComponent(workspaceRoot)}`;
 		
 		const state = {
 			pid: this.process.pid,
 			name: tunnelName,
-			folder: cwd,
+			folder: workspaceRoot,
 			args,
 			startedAt: new Date().toISOString(),
 			openUrl
@@ -230,30 +226,47 @@ export class VSCodeTunnelManager {
 	}
 
 	/**
-	 * Load tunnel state from filesystem
+	 * Load tunnel state from database
 	 * @private
 	 */
 	async _loadState() {
 		try {
-			const stateData = await fs.readFile(this.stateFilePath, 'utf-8');
-			this.state = JSON.parse(stateData);
+			if (!this.database) {
+				logger.warn('VSCODE_TUNNEL', 'No database available for loading state');
+				return;
+			}
+
+			const settings = await this.database.getSettingsByCategory('vscode-tunnel');
+			this.state = settings.state || null;
 		} catch (error) {
-			// State file doesn't exist or is invalid
+			logger.error('VSCODE_TUNNEL', `Failed to load tunnel state: ${error.message}`);
 			this.state = null;
 		}
 	}
 
 	/**
-	 * Save tunnel state to filesystem
+	 * Save tunnel state to database
 	 * @private
 	 */
 	async _saveState(state) {
 		try {
-			// Ensure directory exists
-			await fs.mkdir(resolve(this.stateFilePath, '..'), { recursive: true });
-			await fs.writeFile(this.stateFilePath, JSON.stringify(state, null, 2));
+			if (!this.database) {
+				logger.warn('VSCODE_TUNNEL', 'No database available for saving state');
+				return;
+			}
+
+			const tunnelSettings = {
+				state: state,
+				lastUpdated: Date.now()
+			};
+
+			await this.database.setSettingsForCategory(
+				'vscode-tunnel',
+				tunnelSettings,
+				'VS Code Remote Tunnel configuration and state'
+			);
 		} catch (error) {
-			logger.error('VSCODE_TUNNEL', `Failed to save state: ${error.message}`);
+			logger.error('VSCODE_TUNNEL', `Failed to save tunnel state: ${error.message}`);
 		}
 	}
 
@@ -267,9 +280,18 @@ export class VSCodeTunnelManager {
 		this.lastError = null;
 		
 		try {
-			await fs.unlink(this.stateFilePath);
+			if (!this.database) {
+				logger.warn('VSCODE_TUNNEL', 'No database available for clearing state');
+				return;
+			}
+
+			await this.database.setSettingsForCategory(
+				'vscode-tunnel',
+				{ state: null, lastUpdated: Date.now() },
+				'VS Code Remote Tunnel configuration and state'
+			);
 		} catch (error) {
-			// File doesn't exist, ignore
+			logger.error('VSCODE_TUNNEL', `Failed to clear tunnel state: ${error.message}`);
 		}
 	}
 }

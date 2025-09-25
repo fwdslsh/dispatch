@@ -14,7 +14,6 @@
 	let isLoading = $state(false);
 	let error = $state(null);
 	let nameInput = $state('');
-	let folderInput = $state('');
 	let deviceLoginUrl = $state('');
 
 	function connectSocket() {
@@ -78,7 +77,6 @@
 
 			// Add optional parameters if provided
 			if (nameInput.trim()) data.name = nameInput.trim();
-			if (folderInput.trim()) data.folder = folderInput.trim();
 
 			socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
 				isLoading = false;
@@ -189,15 +187,8 @@
 						label="Tunnel Name"
 					/>
 				</div>
-				<div class="config-row">
-					<Input
-						bind:value={folderInput}
-						placeholder="Custom folder path (optional)"
-						label="Folder Path"
-					/>
-				</div>
 				<div class="config-note">
-					Leave empty to use defaults: name will be "dispatch-[hostname]" and folder will be your workspace root.
+					Leave empty to use default: name will be "dispatch-[hostname]" and folder will be your workspace root.
 				</div>
 			</div>
 		{/if}

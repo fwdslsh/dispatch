@@ -91,7 +91,6 @@ export async function initializeServices(config = {}) {
 
 		// 7. VS Code Tunnel Manager
 		const vscodeManager = new VSCodeTunnelManager({
-			folder: resolvedConfig.workspacesRoot,
 			database: database
 		});
 		await vscodeManager.init();
