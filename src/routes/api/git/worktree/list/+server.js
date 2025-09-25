@@ -34,28 +34,28 @@ function execGit(args, cwd) {
 // Parse git worktree list output
 function parseWorktreeList(output) {
 	if (!output.trim()) return [];
-	
+
 	const lines = output.split('\n').filter((line) => line.trim());
 	const worktrees = [];
-	
+
 	for (let i = 0; i < lines.length; i += 3) {
 		const pathLine = lines[i];
 		const headLine = lines[i + 1];
 		const branchLine = lines[i + 2];
-		
+
 		if (!pathLine) continue;
-		
+
 		const path = pathLine.trim();
 		const head = headLine ? headLine.replace('HEAD ', '').trim() : '';
 		const branch = branchLine ? branchLine.replace(/^\[(.+)\]$/, '$1').trim() : '';
-		
+
 		worktrees.push({
 			path,
 			head,
 			branch: branch === 'detached HEAD' ? null : branch
 		});
 	}
-	
+
 	return worktrees;
 }
 

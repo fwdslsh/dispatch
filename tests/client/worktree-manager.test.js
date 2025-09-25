@@ -70,11 +70,12 @@ describe('WorktreeManager Component', () => {
 		// Mock init detection
 		fetch.mockResolvedValueOnce({
 			ok: true,
-			json: () => Promise.resolve({
-				detected: [{ description: 'Node.js project detected', commands: ['npm install'] }],
-				suggestedCommands: ['npm install'],
-				hasInitScript: false
-			})
+			json: () =>
+				Promise.resolve({
+					detected: [{ description: 'Node.js project detected', commands: ['npm install'] }],
+					suggestedCommands: ['npm install'],
+					hasInitScript: false
+				})
 		});
 
 		const { getByTitle, getByText, queryByText } = render(WorktreeManager, {
@@ -106,15 +107,18 @@ describe('WorktreeManager Component', () => {
 		// Mock init detection with Node.js project
 		fetch.mockResolvedValueOnce({
 			ok: true,
-			json: () => Promise.resolve({
-				detected: [{ 
-					description: 'Node.js project detected',
-					commands: ['npm install'],
-					matched: ['package.json']
-				}],
-				suggestedCommands: ['npm install'],
-				hasInitScript: false
-			})
+			json: () =>
+				Promise.resolve({
+					detected: [
+						{
+							description: 'Node.js project detected',
+							commands: ['npm install'],
+							matched: ['package.json']
+						}
+					],
+					suggestedCommands: ['npm install'],
+					hasInitScript: false
+				})
 		});
 
 		const { getByTitle, getByText } = render(WorktreeManager, {
@@ -126,9 +130,7 @@ describe('WorktreeManager Component', () => {
 		await fireEvent.click(addButton);
 
 		await waitFor(() => {
-			expect(fetch).toHaveBeenCalledWith(
-				'/api/git/worktree/init-detect?path=%2Ftest%2Frepo'
-			);
+			expect(fetch).toHaveBeenCalledWith('/api/git/worktree/init-detect?path=%2Ftest%2Frepo');
 			expect(getByText('Run initialization commands')).toBeInTheDocument();
 		});
 	});
@@ -143,22 +145,24 @@ describe('WorktreeManager Component', () => {
 		// Mock init detection
 		fetch.mockResolvedValueOnce({
 			ok: true,
-			json: () => Promise.resolve({
-				detected: [],
-				suggestedCommands: ['npm install'],
-				hasInitScript: false
-			})
+			json: () =>
+				Promise.resolve({
+					detected: [],
+					suggestedCommands: ['npm install'],
+					hasInitScript: false
+				})
 		});
 
 		// Mock successful worktree creation
 		fetch.mockResolvedValueOnce({
 			ok: true,
-			json: () => Promise.resolve({
-				success: true,
-				worktreePath: '/test/repo-feature',
-				branch: 'feature-branch',
-				initResults: []
-			})
+			json: () =>
+				Promise.resolve({
+					success: true,
+					worktreePath: '/test/repo-feature',
+					branch: 'feature-branch',
+					initResults: []
+				})
 		});
 
 		// Mock worktree list reload

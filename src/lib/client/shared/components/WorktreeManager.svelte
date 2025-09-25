@@ -9,11 +9,7 @@
 	import IconGitBranch from './Icons/IconGitBranch.svelte';
 
 	// Svelte 5 Worktree Manager Component
-	let {
-		currentPath,
-		branches = [],
-		onError = null
-	} = $props();
+	let { currentPath, branches = [], onError = null } = $props();
 
 	// Worktree state
 	let worktrees = $state([]);
@@ -46,7 +42,7 @@
 
 		try {
 			const res = await fetch(`/api/git/worktree/list?path=${encodeURIComponent(currentPath)}`);
-			
+
 			if (!res.ok) {
 				const data = await res.json();
 				throw new Error(data.error || 'Failed to load worktrees');
@@ -67,8 +63,10 @@
 		if (!currentPath) return;
 
 		try {
-			const res = await fetch(`/api/git/worktree/init-detect?path=${encodeURIComponent(currentPath)}`);
-			
+			const res = await fetch(
+				`/api/git/worktree/init-detect?path=${encodeURIComponent(currentPath)}`
+			);
+
 			if (!res.ok) {
 				const data = await res.json();
 				throw new Error(data.error || 'Failed to detect initialization');
@@ -141,7 +139,6 @@
 
 			// Reload worktrees
 			await loadWorktrees();
-
 		} catch (e) {
 			error = e.message;
 			onError?.(error);
@@ -281,22 +278,15 @@
 		<div class="add-form">
 			<div class="form-section">
 				<h4>Add New Worktree</h4>
-				
+
 				<div class="form-row">
 					<label>Worktree Path:</label>
-					<Input
-						bind:value={newWorktreePath}
-						placeholder="/path/to/new/worktree"
-						fullWidth
-					/>
+					<Input bind:value={newWorktreePath} placeholder="/path/to/new/worktree" fullWidth />
 				</div>
 
 				<div class="form-row">
 					<label>
-						<input
-							type="checkbox"
-							bind:checked={createNewBranch}
-						/>
+						<input type="checkbox" bind:checked={createNewBranch} />
 						Create new branch
 					</label>
 				</div>
@@ -304,11 +294,7 @@
 				{#if createNewBranch}
 					<div class="form-row">
 						<label>New Branch Name:</label>
-						<Input
-							bind:value={newBranchName}
-							placeholder="feature-branch"
-							fullWidth
-						/>
+						<Input bind:value={newBranchName} placeholder="feature-branch" fullWidth />
 					</div>
 				{:else if branches.length > 0}
 					<div class="form-row">
@@ -325,17 +311,14 @@
 				{#if detectedInit && (detectedInit.detected.length > 0 || detectedInit.hasInitScript)}
 					<div class="form-row">
 						<label>
-							<input
-								type="checkbox"
-								bind:checked={runInitialization}
-							/>
+							<input type="checkbox" bind:checked={runInitialization} />
 							Run initialization commands
 						</label>
 						{#if runInitialization}
 							<Button
 								variant="secondary"
 								size="sm"
-								onclick={() => showInitCommands = !showInitCommands}
+								onclick={() => (showInitCommands = !showInitCommands)}
 							>
 								{showInitCommands ? 'Hide' : 'Show'} Commands ({initCommands.length})
 							</Button>
@@ -345,7 +328,7 @@
 					{#if runInitialization && showInitCommands}
 						<div class="init-commands">
 							<h5>Initialization Commands</h5>
-							
+
 							{#if detectedInit.detected.length > 0}
 								<div class="detected-info">
 									<p>Detected:</p>
@@ -381,21 +364,12 @@
 										/>
 									</div>
 								{/each}
-								<Button
-									variant="secondary"
-									size="sm"
-									onclick={addInitCommand}
-								>
-									Add Command
-								</Button>
+								<Button variant="secondary" size="sm" onclick={addInitCommand}>Add Command</Button>
 							</div>
 
 							<div class="form-row">
 								<label>
-									<input
-										type="checkbox"
-										bind:checked={saveInitScript}
-									/>
+									<input type="checkbox" bind:checked={saveInitScript} />
 									Save as initialization script
 								</label>
 								{#if saveInitScript}
@@ -421,11 +395,7 @@
 				>
 					Cancel
 				</Button>
-				<Button
-					variant="primary"
-					onclick={addWorktree}
-					disabled={loading}
-				>
+				<Button variant="primary" onclick={addWorktree} disabled={loading}>
 					{loading ? 'Adding...' : 'Add Worktree'}
 				</Button>
 			</div>
