@@ -54,18 +54,18 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 4.9 Add OAuth error handling and user feedback for authorization failures
   - [x] 4.10 Verify all tests pass and OAuth providers work correctly with dynamic URLs
 
-- [ ] 5. Security Policy and Certificate Management
-  - [ ] 5.1 Write tests for security policy management and certificate handling workflows
-  - [ ] 5.2 Implement dynamic CORS configuration based on current origins with tunnel detection
-  - [ ] 5.3 Create cookie security policy management (Secure, SameSite, HttpOnly) with context awareness
-  - [ ] 5.4 Implement HSTS header management with conditional application based on certificate type
-  - [ ] 5.5 Add CSRF protection for state-changing operations with token generation
-  - [ ] 5.6 Create certificate storage system with encryption at rest using app secret
-  - [ ] 5.7 Implement mkcert certificate management with upload and trust chain handling
-  - [ ] 5.8 Add Let's Encrypt ACME client with automatic certificate provisioning using node-acme-client
-  - [ ] 5.9 Create certificate status monitoring with expiry alerts and renewal scheduling
-  - [ ] 5.10 Implement security header management using helmet with dynamic configuration
-  - [ ] 5.11 Verify all tests pass and security policies adapt correctly to hosting context
+- [x] 5. Security Policy and Certificate Management
+  - [x] 5.1 Write tests for security policy management and certificate handling workflows
+  - [x] 5.2 Implement dynamic CORS configuration based on current origins with tunnel detection
+  - [x] 5.3 Create cookie security policy management (Secure, SameSite, HttpOnly) with context awareness
+  - [x] 5.4 Implement HSTS header management with conditional application based on certificate type
+  - [x] 5.5 Add CSRF protection for state-changing operations with token generation
+  - [x] 5.6 Create certificate storage system with encryption at rest using app secret
+  - [x] 5.7 Implement mkcert certificate management with upload and trust chain handling
+  - [x] 5.8 Add Let's Encrypt ACME client with automatic certificate provisioning using acme-client
+  - [x] 5.9 Create certificate status monitoring with expiry alerts and renewal scheduling
+  - [x] 5.10 Implement security header management using helmet with dynamic configuration
+  - [x] 5.11 Verify all tests pass and security policies adapt correctly to hosting context
 
 - [ ] 6. Enhanced Admin Interface and User Management
   - [ ] 6.1 Write tests for admin interface components and user management workflows
