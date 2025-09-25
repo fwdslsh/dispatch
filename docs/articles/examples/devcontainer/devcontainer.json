@@ -1,0 +1,75 @@
+{
+	"name": "Dispatch Development Environment",
+	"image": "fwdslsh/dispatch:latest",
+
+	// Container configuration
+	"containerEnv": {
+		"TERMINAL_KEY": "devcontainer-key-12345",
+		"PORT": "3030",
+		"ENABLE_TUNNEL": "false",
+		"DISPATCH_CONFIG_DIR": "/home/dispatch/.config/dispatch",
+		"DISPATCH_PROJECTS_DIR": "/workspace"
+	},
+
+	// Port forwarding
+	"forwardPorts": [3030],
+	"portsAttributes": {
+		"3030": {
+			"label": "Dispatch Web Interface",
+			"onAutoForward": "notify"
+		}
+	},
+
+	// Volume mounts for persistence
+	"mounts": [
+		"source=dispatch-home,target=/home/dispatch,type=volume",
+		"source=dispatch-workspace,target=/workspace,type=volume"
+	],
+
+	// Run as non-root user
+	"remoteUser": "dispatch",
+	"containerUser": "dispatch",
+
+	// VSCode settings
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.shell.linux": "/bin/bash",
+				"terminal.integrated.cwd": "/workspace",
+				"files.watcherExclude": {
+					"**/node_modules/**": true,
+					"**/.git/**": true,
+					"**/.svelte-kit/**": true,
+					"**/build/**": true
+				}
+			},
+			"extensions": [
+				"ms-vscode.vscode-typescript-next",
+				"bradlc.vscode-tailwindcss",
+				"svelte.svelte-vscode",
+				"ms-vscode.vscode-json",
+				"esbenp.prettier-vscode",
+				"ms-vscode.vscode-eslint"
+			]
+		}
+	},
+
+	// Container lifecycle
+	"postCreateCommand": "echo 'Dispatch devcontainer ready! Open http://localhost:3030 to access the web interface with key: devcontainer-key-12345'",
+
+	// Features (optional additional tools)
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "22"
+		}
+	},
+
+	// Resource limits (optional)
+	"runArgs": ["--memory=2g", "--cpus=2"],
+
+	// Shutdown action
+	"shutdownAction": "stopContainer"
+}

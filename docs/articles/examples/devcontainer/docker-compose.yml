@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  dispatch:
+    image: fwdslsh/dispatch:latest
+    ports:
+      - '3030:3030'
+    environment:
+      - TERMINAL_KEY=devcontainer-key-12345
+      - PORT=3030
+      - ENABLE_TUNNEL=false
+      - DISPATCH_CONFIG_DIR=/home/dispatch/.config/dispatch
+      - DISPATCH_PROJECTS_DIR=/workspace
+    volumes:
+      - dispatch-home:/home/dispatch
+      - dispatch-workspace:/workspace
+      # Optional: mount host directories
+      # - ./projects:/workspace
+      # - ~/.ssh:/home/dispatch/.ssh:ro
+    user: '1000:1000' # Adjust to match your host user ID
+    restart: unless-stopped
+
+volumes:
+  dispatch-home:
+  dispatch-workspace:
