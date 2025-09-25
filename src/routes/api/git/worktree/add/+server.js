@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { spawn } from 'node:child_process';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
 import { existsSync } from 'node:fs';
 
 // Execute git command in specified directory
@@ -52,6 +52,35 @@ function execShell(command, cwd) {
 				resolve(stdout.trim());
 			} else {
 				reject(new Error(stderr.trim() || `Command failed with code ${code}`));
+			}
+		});
+
+		shell.on('error', (error) => {
+			reject(error);
+		});
+	});
+}
+
+// Execute .dispatchrc script with original repo path as first parameter
+function execDispatchrc(scriptPath, originalRepoPath, cwd) {
+	return new Promise((resolve, reject) => {
+		const shell = spawn('bash', [scriptPath, originalRepoPath], { cwd, encoding: 'utf8' });
+		let stdout = '';
+		let stderr = '';
+
+		shell.stdout.on('data', (data) => {
+			stdout += data;
+		});
+
+		shell.stderr.on('data', (data) => {
+			stderr += data;
+		});
+
+		shell.on('close', (code) => {
+			if (code === 0) {
+				resolve(stdout.trim());
+			} else {
+				reject(new Error(stderr.trim() || `Script failed with code ${code}`));
 			}
 		});
 
@@ -114,12 +143,34 @@ export async function POST({ request }) {
 		// Run initialization commands if requested
 		let initResults = [];
 		if (runInit && initCommands.length > 0) {
-			for (const command of initCommands) {
+			// Check if there's a .dispatchrc file in the original repository
+			const dispatchrcPath = join(resolvedPath, '.dispatchrc');
+			
+			if (existsSync(dispatchrcPath)) {
+				// Execute .dispatchrc script with original repo path as first parameter
 				try {
-					const initResult = await execShell(command, resolvedWorktreePath);
-					initResults.push({ command, success: true, output: initResult });
+					const initResult = await execDispatchrc(dispatchrcPath, resolvedPath, resolvedWorktreePath);
+					initResults.push({ 
+						command: `.dispatchrc ${resolvedPath}`, 
+						success: true, 
+						output: initResult 
+					});
 				} catch (error) {
-					initResults.push({ command, success: false, error: error.message });
+					initResults.push({ 
+						command: `.dispatchrc ${resolvedPath}`, 
+						success: false, 
+						error: error.message 
+					});
+				}
+			} else {
+				// Fall back to executing individual commands
+				for (const command of initCommands) {
+					try {
+						const initResult = await execShell(command, resolvedWorktreePath);
+						initResults.push({ command, success: true, output: initResult });
+					} catch (error) {
+						initResults.push({ command, success: false, error: error.message });
+					}
 				}
 			}
 		}

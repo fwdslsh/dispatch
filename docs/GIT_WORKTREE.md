@@ -27,9 +27,11 @@ When creating a new worktree, Dispatch automatically detects your project type a
 ### Initialization Script Management
 
 - Automatically detects existing `.dispatchrc` files in the repository root
+- When a `.dispatchrc` script exists, executes it directly with the original repository path as the first parameter
+- This enables commands like `cp $1/.env .` to copy files from the main repository to the new worktree
+- If no `.dispatchrc` exists, falls back to executing individual detected commands
 - Allows you to review and edit initialization commands before execution
 - Option to save initialization commands as `.dispatchrc` for future worktrees
-- Uses `.dispatchrc` for consistent worktree initialization
 
 ## Using Git Worktrees in Dispatch
 
@@ -51,6 +53,30 @@ When creating a new worktree, Dispatch automatically detects your project type a
    - Review and edit the suggested initialization commands
    - Choose whether to run initialization during worktree creation
    - Optionally save commands as `.dispatchrc` for future worktrees
+
+### .dispatchrc Script Execution
+
+When you have a `.dispatchrc` file in your repository root, Dispatch will execute it directly instead of running individual commands. The script receives the original repository path as its first parameter (`$1`), enabling operations like:
+
+```bash
+#!/bin/bash
+# .dispatchrc - worktree initialization script
+set -e
+
+# Copy environment file from main repo
+cp $1/.env .
+
+# Copy configuration files
+cp $1/config/local.json config/
+
+# Install dependencies
+npm install
+
+# Run any project-specific setup
+npm run setup
+```
+
+This approach allows for more sophisticated initialization logic while maintaining access to files from the original repository.
 
 ### Managing Existing Worktrees
 
