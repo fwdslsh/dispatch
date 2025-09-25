@@ -25,6 +25,7 @@ As a developer, I want the codebase to be simplified by removing legacy authenti
 - Authentication code is easier to follow without migration conditionals
 - Test suite covers only active authentication paths
 - Documentation reflects current authentication architecture only
+- Deprecated tests are removed
 
 ### Story 3: Secure Production Environment
 As a security-conscious operator, I want all legacy authentication fallback mechanisms removed, so that there are no deprecated security vectors in the production system.
@@ -85,6 +86,7 @@ As a security-conscious operator, I want all legacy authentication fallback mech
 - No changes to session tables structure
 - No changes to OAuth integration tables
 - Only cleanup of migration-specific tables
+- Exception: If tables can be simplified without breaking existing functionality you may do so
 
 ### Security Features
 - Multi-factor authentication features unchanged
@@ -97,7 +99,7 @@ As a security-conscious operator, I want all legacy authentication fallback mech
 ### 1. Functional Requirements
 - Authentication system works identically to current implementation
 - All existing authentication methods (OAuth, WebAuthn) function normally
-- User sessions continue to work without interruption
+- New user sessions continue to work without interruption
 - Admin authentication functions remain intact
 
 ### 2. Code Quality Requirements
