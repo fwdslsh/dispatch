@@ -50,9 +50,6 @@
 	const isFirstStep = $derived(() => stepIndex() === 0);
 	const isLastStep = $derived(() => stepIndex() === steps.length - 1);
 
-
-
-
 	async function createAdminUser() {
 		// Validate admin user data
 		if (!setupData.adminUser.email || !setupData.adminUser.password) {
@@ -434,7 +431,6 @@
 									</p>
 								</div>
 							</div>
-
 						</div>
 
 						<div class="next-steps">
@@ -687,7 +683,6 @@
 		flex-direction: column;
 		gap: 1rem;
 	}
-
 
 	.password-requirements {
 		margin-top: 1rem;

@@ -49,8 +49,8 @@ describe('Database Migration Component Identification', () => {
 			/legacy_auth/i
 		];
 
-		tables.forEach(table => {
-			migrationTablePatterns.forEach(pattern => {
+		tables.forEach((table) => {
+			migrationTablePatterns.forEach((pattern) => {
 				if (pattern.test(table.name)) {
 					migrationTables.push({
 						tableName: table.name,
@@ -95,8 +95,8 @@ describe('Database Migration Component Identification', () => {
 				/migration_id/i
 			];
 
-			columns.forEach(column => {
-				migrationColumnPatterns.forEach(pattern => {
+			columns.forEach((column) => {
+				migrationColumnPatterns.forEach((pattern) => {
 					if (pattern.test(column.name)) {
 						migrationColumns.push({
 							tableName: table.name,
@@ -139,8 +139,8 @@ describe('Database Migration Component Identification', () => {
 				/legacy_auth/i
 			];
 
-			foreignKeys.forEach(fk => {
-				migrationFKPatterns.forEach(pattern => {
+			foreignKeys.forEach((fk) => {
+				migrationFKPatterns.forEach((pattern) => {
 					if (pattern.test(fk.table) || pattern.test(fk.from) || pattern.test(fk.to)) {
 						migrationForeignKeys.push({
 							fromTable: table.name,
@@ -155,7 +155,10 @@ describe('Database Migration Component Identification', () => {
 		}
 
 		// Log findings for documentation
-		console.log('Migration-related foreign keys found:', JSON.stringify(migrationForeignKeys, null, 2));
+		console.log(
+			'Migration-related foreign keys found:',
+			JSON.stringify(migrationForeignKeys, null, 2)
+		);
 
 		// This test should pass if no migration foreign keys exist
 		expect(migrationForeignKeys).toEqual([]);
@@ -187,10 +190,10 @@ describe('Database Migration Component Identification', () => {
 					/migrate_/i
 				];
 
-				settings.forEach(setting => {
+				settings.forEach((setting) => {
 					// Check all columns for migration-related content
 					Object.entries(setting).forEach(([key, value]) => {
-						migrationSettingPatterns.forEach(pattern => {
+						migrationSettingPatterns.forEach((pattern) => {
 							if (pattern.test(key) || (value && pattern.test(String(value)))) {
 								migrationSettings.push({
 									table: table.name,
@@ -241,7 +244,7 @@ describe('Database Migration Component Identification', () => {
 				// Get table schema
 				const schemaQuery = `PRAGMA table_info(${tableName});`;
 				const schema = await dbManager.all(schemaQuery);
-				tableSchemas[tableName] = schema.map(col => ({
+				tableSchemas[tableName] = schema.map((col) => ({
 					name: col.name,
 					type: col.type,
 					notNull: col.notnull === 1,
@@ -276,7 +279,7 @@ describe('Database Migration Component Identification', () => {
 
 		const migrationConfigRefs = [];
 
-		configFiles.forEach(fileName => {
+		configFiles.forEach((fileName) => {
 			const filePath = join(PROJECT_ROOT, fileName);
 			if (existsSync(filePath)) {
 				const content = readFileSync(filePath, 'utf-8');
@@ -291,9 +294,10 @@ describe('Database Migration Component Identification', () => {
 					/migration.*setup/i
 				];
 
-				migrationConfigPatterns.forEach(pattern => {
+				migrationConfigPatterns.forEach((pattern) => {
 					if (pattern.test(content)) {
-						const lines = content.split('\n')
+						const lines = content
+							.split('\n')
 							.map((line, index) => ({ line: line.trim(), number: index + 1 }))
 							.filter(({ line }) => pattern.test(line));
 
@@ -310,7 +314,10 @@ describe('Database Migration Component Identification', () => {
 		});
 
 		// Log findings for documentation
-		console.log('Migration configuration references found:', JSON.stringify(migrationConfigRefs, null, 2));
+		console.log(
+			'Migration configuration references found:',
+			JSON.stringify(migrationConfigRefs, null, 2)
+		);
 
 		// This test should pass if no migration configuration exists
 		expect(migrationConfigRefs).toEqual([]);

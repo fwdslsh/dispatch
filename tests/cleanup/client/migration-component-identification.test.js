@@ -34,9 +34,10 @@ describe('Client Migration Component Identification', () => {
 				/terminal.*key.*migration/i
 			];
 
-			migrationPatterns.forEach(pattern => {
+			migrationPatterns.forEach((pattern) => {
 				if (pattern.test(content)) {
-					const lines = content.split('\n')
+					const lines = content
+						.split('\n')
 						.map((line, index) => ({ line: line.trim(), number: index + 1 }))
 						.filter(({ line }) => pattern.test(line));
 
@@ -53,14 +54,20 @@ describe('Client Migration Component Identification', () => {
 		}
 
 		// Log findings for documentation
-		console.log('Migration-related components found:', JSON.stringify(migrationComponents, null, 2));
+		console.log(
+			'Migration-related components found:',
+			JSON.stringify(migrationComponents, null, 2)
+		);
 
 		// Initially this will fail, showing us what to clean up
 		expect(migrationComponents).toEqual([]);
 	});
 
 	it('should verify migration state properties are removed from SecurityState', () => {
-		const securityStatePath = join(PROJECT_ROOT, 'src/lib/client/shared/state/SecurityState.svelte.js');
+		const securityStatePath = join(
+			PROJECT_ROOT,
+			'src/lib/client/shared/state/SecurityState.svelte.js'
+		);
 
 		if (existsSync(securityStatePath)) {
 			const content = readFileSync(securityStatePath, 'utf-8');
@@ -77,9 +84,10 @@ describe('Client Migration Component Identification', () => {
 
 			const migrationStateRefs = [];
 
-			migrationStatePatterns.forEach(pattern => {
+			migrationStatePatterns.forEach((pattern) => {
 				if (pattern.test(content)) {
-					const lines = content.split('\n')
+					const lines = content
+						.split('\n')
 						.map((line, index) => ({ line: line.trim(), number: index + 1 }))
 						.filter(({ line }) => pattern.test(line));
 
@@ -92,7 +100,10 @@ describe('Client Migration Component Identification', () => {
 				}
 			});
 
-			console.log('Migration state properties found in SecurityState:', JSON.stringify(migrationStateRefs, null, 2));
+			console.log(
+				'Migration state properties found in SecurityState:',
+				JSON.stringify(migrationStateRefs, null, 2)
+			);
 			expect(migrationStateRefs).toEqual([]);
 		}
 	});
@@ -106,7 +117,7 @@ describe('Client Migration Component Identification', () => {
 
 		const migrationSocketRefs = [];
 
-		socketFiles.forEach(filePath => {
+		socketFiles.forEach((filePath) => {
 			const fullPath = join(PROJECT_ROOT, filePath);
 			if (!existsSync(fullPath)) return;
 
@@ -123,9 +134,10 @@ describe('Client Migration Component Identification', () => {
 				/"migration.*"/i
 			];
 
-			migrationSocketPatterns.forEach(pattern => {
+			migrationSocketPatterns.forEach((pattern) => {
 				if (pattern.test(content)) {
-					const lines = content.split('\n')
+					const lines = content
+						.split('\n')
 						.map((line, index) => ({ line: line.trim(), number: index + 1 }))
 						.filter(({ line }) => pattern.test(line));
 
@@ -140,14 +152,18 @@ describe('Client Migration Component Identification', () => {
 			});
 		});
 
-		console.log('Migration Socket.IO event handlers found:', JSON.stringify(migrationSocketRefs, null, 2));
+		console.log(
+			'Migration Socket.IO event handlers found:',
+			JSON.stringify(migrationSocketRefs, null, 2)
+		);
 		expect(migrationSocketRefs).toEqual([]);
 	});
 
 	it('should ensure authentication UI flows work without migration components', () => {
 		// Search for authentication flow components
-		const authFlowFiles = findClientFiles(join(PROJECT_ROOT, 'src/lib/client/shared/components'))
-			.filter(file => /auth/i.test(file) || /login/i.test(file) || /security/i.test(file));
+		const authFlowFiles = findClientFiles(
+			join(PROJECT_ROOT, 'src/lib/client/shared/components')
+		).filter((file) => /auth/i.test(file) || /login/i.test(file) || /security/i.test(file));
 
 		const migrationFlowRefs = [];
 
@@ -169,9 +185,10 @@ describe('Client Migration Component Identification', () => {
 				/migrationFlow/i
 			];
 
-			migrationFlowPatterns.forEach(pattern => {
+			migrationFlowPatterns.forEach((pattern) => {
 				if (pattern.test(content)) {
-					const lines = content.split('\n')
+					const lines = content
+						.split('\n')
 						.map((line, index) => ({ line: line.trim(), number: index + 1 }))
 						.filter(({ line }) => pattern.test(line));
 
@@ -186,7 +203,10 @@ describe('Client Migration Component Identification', () => {
 			});
 		}
 
-		console.log('Migration authentication flow references found:', JSON.stringify(migrationFlowRefs, null, 2));
+		console.log(
+			'Migration authentication flow references found:',
+			JSON.stringify(migrationFlowRefs, null, 2)
+		);
 		expect(migrationFlowRefs).toEqual([]);
 	});
 });

@@ -73,6 +73,7 @@ npm run docker:dev      # Dev mode with build
 npm run docker:start    # Start without rebuild
 npm run docker:stop     # Stop containers
 ```
+
 - Run `npm run format` before committing to git
 
 ## Frontend MVVM Architecture (Svelte 5)
