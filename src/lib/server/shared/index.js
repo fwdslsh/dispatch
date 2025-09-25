@@ -6,6 +6,7 @@ import { logger } from './utils/logger.js';
 import { DatabaseManager } from './db/DatabaseManager.js';
 import { RunSessionManager } from './runtime/RunSessionManager.js';
 import { TunnelManager } from './TunnelManager.js';
+import { VSCodeTunnelManager } from './VSCodeTunnelManager.js';
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
@@ -88,6 +89,13 @@ export async function initializeServices(config = {}) {
 		});
 		await tunnelManager.init();
 
+		// 7. VS Code Tunnel Manager
+		const vscodeManager = new VSCodeTunnelManager({
+			folder: resolvedConfig.workspacesRoot,
+			database: database
+		});
+		await vscodeManager.init();
+
 		const services = {
 			database,
 			runSessionManager,
@@ -95,7 +103,8 @@ export async function initializeServices(config = {}) {
 			claudeAdapter,
 			fileEditorAdapter,
 			claudeAuthManager,
-			tunnelManager
+			tunnelManager,
+			vscodeManager
 		};
 
 		logger.info('SERVICES', 'Unified session architecture services initialized successfully');
