@@ -228,20 +228,199 @@ export function prepareRequestOptions(serverOptions) {
  */
 export function getWebAuthnErrorMessage(error) {
 	if (error.name === 'NotAllowedError') {
-		return 'Operation cancelled by user or not allowed';
+		return 'Operation cancelled by user or not allowed. Please try again and follow the browser prompts.';
 	} else if (error.name === 'InvalidStateError') {
-		return 'Authenticator is in an invalid state. Try again.';
+		return 'Authenticator is in an invalid state. This may happen if a passkey is already registered. Try again or use a different authentication method.';
 	} else if (error.name === 'NotSupportedError') {
-		return 'WebAuthn not supported on this device';
+		return 'WebAuthn not supported on this device. Please try using a different browser or device.';
 	} else if (error.name === 'SecurityError') {
-		return 'Security error. Ensure you are on a secure connection (HTTPS)';
+		return 'Security error. Ensure you are on a secure connection (HTTPS) and the website is trusted.';
 	} else if (error.name === 'AbortError') {
-		return 'Operation aborted. Please try again.';
+		return 'Operation aborted or timed out. Please try again.';
 	} else if (error.name === 'ConstraintError') {
-		return 'Constraint error. The authenticator cannot fulfill the request.';
+		return 'The authenticator cannot fulfill this request. Try using a different authenticator or contact support.';
 	} else if (error.name === 'UnknownError') {
-		return 'Unknown error occurred. Please try again.';
+		return 'An unexpected error occurred. Please try again or contact support if the problem persists.';
+	} else if (error.name === 'NetworkError') {
+		return 'Network error occurred. Please check your connection and try again.';
+	} else if (error.name === 'TimeoutError') {
+		return 'The operation timed out. Please try again.';
 	}
 
-	return error.message || 'WebAuthn operation failed';
+	// Handle common error messages
+	const message = error.message || '';
+	if (message.includes('timeout')) {
+		return 'The operation timed out. Please try again.';
+	} else if (message.includes('user cancelled') || message.includes('user canceled')) {
+		return 'Authentication was cancelled. Please try again and complete the prompts.';
+	} else if (message.includes('no credentials')) {
+		return 'No registered passkeys found for this account. Please register a passkey first.';
+	}
+
+	return error.message || 'WebAuthn operation failed. Please try again.';
+}
+
+/**
+ * Check if the current environment supports WebAuthn conditional UI
+ */
+export async function supportsConditionalUI() {
+	try {
+		if (!isWebAuthnSupported()) return false;
+
+		if (window.PublicKeyCredential?.isConditionalMediationAvailable) {
+			return await window.PublicKeyCredential.isConditionalMediationAvailable();
+		}
+
+		return false;
+	} catch (error) {
+		console.warn('Failed to check conditional UI support:', error);
+		return false;
+	}
+}
+
+/**
+ * Get browser-specific WebAuthn capabilities
+ */
+export function getBrowserCapabilities() {
+	const userAgent = navigator.userAgent;
+	const capabilities = {
+		browser: 'unknown',
+		version: 'unknown',
+		supportsResidentKeys: false,
+		supportsUserVerification: false,
+		supportedTransports: [],
+		recommendations: []
+	};
+
+	// Detect browser
+	if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
+		capabilities.browser = 'Chrome';
+		const match = userAgent.match(/Chrome\/(\d+)/);
+		capabilities.version = match ? parseInt(match[1]) : 0;
+
+		if (capabilities.version >= 85) {
+			capabilities.supportsResidentKeys = true;
+			capabilities.supportsUserVerification = true;
+			capabilities.supportedTransports = ['internal', 'usb', 'nfc', 'ble'];
+		}
+
+		if (capabilities.version < 85) {
+			capabilities.recommendations.push('Update Chrome to version 85+ for full WebAuthn support');
+		}
+	} else if (userAgent.includes('Firefox')) {
+		capabilities.browser = 'Firefox';
+		const match = userAgent.match(/Firefox\/(\d+)/);
+		capabilities.version = match ? parseInt(match[1]) : 0;
+
+		if (capabilities.version >= 90) {
+			capabilities.supportsResidentKeys = true;
+			capabilities.supportsUserVerification = true;
+			capabilities.supportedTransports = ['internal', 'usb', 'nfc'];
+		}
+
+		if (capabilities.version < 90) {
+			capabilities.recommendations.push('Update Firefox to version 90+ for full WebAuthn support');
+		}
+	} else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+		capabilities.browser = 'Safari';
+		const match = userAgent.match(/Version\/(\d+)/);
+		capabilities.version = match ? parseInt(match[1]) : 0;
+
+		if (capabilities.version >= 14) {
+			capabilities.supportsResidentKeys = true;
+			capabilities.supportsUserVerification = true;
+			capabilities.supportedTransports = ['internal'];
+		}
+
+		if (capabilities.version < 14) {
+			capabilities.recommendations.push('Update Safari to version 14+ for WebAuthn support');
+		}
+	} else if (userAgent.includes('Edg')) {
+		capabilities.browser = 'Edge';
+		const match = userAgent.match(/Edg\/(\d+)/);
+		capabilities.version = match ? parseInt(match[1]) : 0;
+
+		if (capabilities.version >= 85) {
+			capabilities.supportsResidentKeys = true;
+			capabilities.supportsUserVerification = true;
+			capabilities.supportedTransports = ['internal', 'usb', 'nfc', 'ble'];
+		}
+	}
+
+	return capabilities;
+}
+
+/**
+ * Validate WebAuthn environment and provide detailed feedback
+ */
+export async function validateWebAuthnEnvironment() {
+	const validation = {
+		isValid: false,
+		issues: [],
+		warnings: [],
+		recommendations: []
+	};
+
+	// Check basic support
+	if (!isWebAuthnSupported()) {
+		validation.issues.push({
+			type: 'browser_support',
+			message: 'WebAuthn API is not supported in this browser',
+			severity: 'critical'
+		});
+		return validation;
+	}
+
+	// Check HTTPS
+	const isSecure = window.location.protocol === 'https:' ||
+		window.location.hostname === 'localhost' ||
+		window.location.hostname === '127.0.0.1';
+
+	if (!isSecure) {
+		validation.issues.push({
+			type: 'security',
+			message: 'WebAuthn requires a secure context (HTTPS)',
+			severity: 'critical'
+		});
+	}
+
+	// Check platform authenticator
+	try {
+		const platformAvailable = await isPlatformAuthenticatorAvailable();
+		if (!platformAvailable) {
+			validation.warnings.push({
+				type: 'platform_authenticator',
+				message: 'Platform authenticator not detected. External security keys will still work.',
+				severity: 'low'
+			});
+		}
+	} catch (error) {
+		validation.warnings.push({
+			type: 'platform_check',
+			message: 'Could not verify platform authenticator availability',
+			severity: 'low'
+		});
+	}
+
+	// Browser-specific checks
+	const capabilities = getBrowserCapabilities();
+	if (capabilities.recommendations.length > 0) {
+		validation.recommendations.push(...capabilities.recommendations.map(rec => ({
+			type: 'browser_update',
+			message: rec,
+			severity: 'medium'
+		})));
+	}
+
+	// Check for common issues
+	if (window.location.hostname.includes('localtunnel.me') || window.location.hostname.includes('ngrok.io')) {
+		validation.warnings.push({
+			type: 'tunnel_url',
+			message: 'Tunnel URLs may cause issues with WebAuthn. Consider using a stable domain.',
+			severity: 'medium'
+		});
+	}
+
+	validation.isValid = validation.issues.length === 0;
+	return validation;
 }

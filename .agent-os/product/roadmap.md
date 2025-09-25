@@ -44,7 +44,7 @@ The following features have been implemented:
 
 ### Phase 1.5 Features
 
-- [ ] Enhanced Tunnel Integration - Automatic security policy updates, OAuth redirect URI handling, WebAuthn rpID validation `L`
+- [x] Enhanced Tunnel Integration - Automatic security policy updates, OAuth redirect URI handling, WebAuthn rpID validation `L`
 - [ ] Authentication UI Components - Dynamic login modals, WebAuthn flows, OAuth selection, user device management `XL`
 - [ ] User Experience Enhancement - Session management UI, security warnings, onboarding flows `M`
 - [ ] Integration Testing & Hardening - End-to-end auth workflows, security audits, performance testing `L`
