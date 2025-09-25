@@ -15,6 +15,7 @@ export class VSCodeTunnelManager {
 		this.process = null;
 		this.state = null;
 		this.io = null; // Socket.IO instance for broadcasting
+		this.lastError = null; // Store last error for status reporting
 		this.stateFilePath = resolve(this.folder, '.dispatch', 'vscode-tunnel-state.json');
 	}
 
@@ -87,11 +88,18 @@ export class VSCodeTunnelManager {
 
 		logger.info('VSCODE_TUNNEL', `Starting VS Code tunnel: ${tunnelName} in ${cwd}`);
 
-		this.process = spawn('code', args, {
-			cwd,
-			stdio: 'pipe',
-			env: { ...process.env }
-		});
+		try {
+			this.process = spawn('code', args, {
+				cwd,
+				stdio: 'pipe',
+				env: { ...process.env }
+			});
+		} catch (error) {
+			if (error.code === 'ENOENT') {
+				throw new Error('VS Code CLI is not installed. Please install VS Code CLI first.');
+			}
+			throw error;
+		}
 
 		const openUrl = `https://vscode.dev/tunnel/${encodeURIComponent(tunnelName)}${encodeURIComponent(cwd)}`;
 		
@@ -138,16 +146,31 @@ export class VSCodeTunnelManager {
 		this.process.on('error', async (error) => {
 			logger.error('VSCODE_TUNNEL', `Process error: ${error.message}`);
 			await this._clearState();
+			
+			// Store the error for later retrieval
+			this.lastError = error.code === 'ENOENT' 
+				? 'VS Code CLI is not installed. Please install VS Code CLI first.'
+				: error.message;
+			
+			// Broadcast status update
+			if (this.io) {
+				this.io.emit('vscode.tunnel.status', this.getStatus());
+			}
 		});
 
-		// Save state
-		await this._saveState(state);
-		this.state = state;
+		// Save state only after process is successfully started
+		// Wait a bit to ensure the process doesn't immediately fail
+		setTimeout(async () => {
+			if (this.process && !this.process.killed) {
+				await this._saveState(state);
+				this.state = state;
 
-		// Broadcast status update
-		if (this.io) {
-			this.io.emit('vscode.tunnel.status', this.getStatus());
-		}
+				// Broadcast status update
+				if (this.io) {
+					this.io.emit('vscode.tunnel.status', this.getStatus());
+				}
+			}
+		}, 100);
 
 		return state;
 	}
@@ -201,7 +224,8 @@ export class VSCodeTunnelManager {
 		
 		return {
 			running: isRunning,
-			state: this.state
+			state: this.state,
+			error: this.lastError
 		};
 	}
 
@@ -240,6 +264,7 @@ export class VSCodeTunnelManager {
 	async _clearState() {
 		this.state = null;
 		this.process = null;
+		this.lastError = null;
 		
 		try {
 			await fs.unlink(this.stateFilePath);

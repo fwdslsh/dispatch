@@ -30,6 +30,9 @@
 		// Listen for tunnel status broadcasts
 		socket.on(SOCKET_EVENTS.VSCODE_TUNNEL_STATUS, (status) => {
 			tunnelStatus = status;
+			if (status.error) {
+				error = status.error;
+			}
 		});
 
 		// Listen for device login URL
@@ -44,6 +47,9 @@
 		socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STATUS, (response) => {
 			if (response.success) {
 				tunnelStatus = response.status;
+				if (response.status.error) {
+					error = response.status.error;
+				}
 			} else {
 				error = response.error || 'Failed to get tunnel status';
 			}
@@ -60,21 +66,28 @@
 		// Get terminal key from localStorage
 		const terminalKey = localStorage.getItem('dispatch-auth-key') || '';
 
-		const data = {
-			key: terminalKey
-		};
-
-		// Add optional parameters if provided
-		if (nameInput.trim()) data.name = nameInput.trim();
-		if (folderInput.trim()) data.folder = folderInput.trim();
-
-		socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
-			isLoading = false;
-			if (response.success) {
-				tunnelStatus = { running: true, state: response.state };
-			} else {
-				error = response.error || 'Failed to start tunnel';
+		// Authenticate first
+		socket.emit('auth', terminalKey, (authResponse) => {
+			if (!authResponse?.success) {
+				isLoading = false;
+				error = 'Authentication failed. Please check your terminal key.';
+				return;
 			}
+
+			const data = {};
+
+			// Add optional parameters if provided
+			if (nameInput.trim()) data.name = nameInput.trim();
+			if (folderInput.trim()) data.folder = folderInput.trim();
+
+			socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
+				isLoading = false;
+				if (response.success) {
+					tunnelStatus = { running: true, state: response.state };
+				} else {
+					error = response.error || 'Failed to start tunnel';
+				}
+			});
 		});
 	}
 
@@ -88,13 +101,22 @@
 		// Get terminal key from localStorage
 		const terminalKey = localStorage.getItem('dispatch-auth-key') || '';
 
-		socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, { key: terminalKey }, (response) => {
-			isLoading = false;
-			if (response.success) {
-				tunnelStatus = { running: false, state: null };
-			} else {
-				error = response.error || 'Failed to stop tunnel';
+		// Authenticate first
+		socket.emit('auth', terminalKey, (authResponse) => {
+			if (!authResponse?.success) {
+				isLoading = false;
+				error = 'Authentication failed. Please check your terminal key.';
+				return;
 			}
+
+			socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, {}, (response) => {
+				isLoading = false;
+				if (response.success) {
+					tunnelStatus = { running: false, state: null };
+				} else {
+					error = response.error || 'Failed to stop tunnel';
+				}
+			});
 		});
 	}
 
@@ -175,7 +197,7 @@
 					/>
 				</div>
 				<div class="config-note">
-					Leave empty to use defaults: name will be "dispatch-{hostname}" and folder will be your workspace root.
+					Leave empty to use defaults: name will be "dispatch-[hostname]" and folder will be your workspace root.
 				</div>
 			</div>
 		{/if}
