@@ -179,8 +179,11 @@ export class DatabaseManager {
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				user_id INTEGER NOT NULL,
 				device_id INTEGER,
-				token_hash TEXT NOT NULL UNIQUE,
+				session_token TEXT NOT NULL UNIQUE,
 				expires_at INTEGER NOT NULL,
+				ip_address TEXT,
+				user_agent TEXT,
+				last_activity_at INTEGER,
 				is_active BOOLEAN DEFAULT 1,
 				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
 				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
@@ -197,6 +200,7 @@ export class DatabaseManager {
 				public_key TEXT NOT NULL,
 				counter INTEGER DEFAULT 0,
 				device_name TEXT,
+				aaguid TEXT,
 				created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
 				updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
 				FOREIGN KEY (user_id) REFERENCES users(id)
@@ -259,7 +263,7 @@ export class DatabaseManager {
 		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_auth_sessions_user ON auth_sessions(user_id)');
 		await this.run(
-			'CREATE INDEX IF NOT EXISTS ix_auth_sessions_token ON auth_sessions(token_hash)'
+			'CREATE INDEX IF NOT EXISTS ix_auth_sessions_token ON auth_sessions(session_token)'
 		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_webauthn_user ON webauthn_credentials(user_id)');
 		await this.run('CREATE INDEX IF NOT EXISTS ix_oauth_user ON oauth_accounts(user_id)');
@@ -641,8 +645,8 @@ export class DatabaseManager {
 	 */
 	async getAllSettings() {
 		const rows = await this.all(`
-			SELECT category, settings_json, description, created_at, updated_at 
-			FROM settings 
+			SELECT category, settings_json, description, created_at, updated_at
+			FROM settings
 			ORDER BY category
 		`);
 		return rows.map((row) => {
@@ -667,10 +671,10 @@ export class DatabaseManager {
 		const settingsJson = JSON.stringify(settings);
 
 		await this.run(
-			`INSERT OR REPLACE INTO settings 
-			 (category, settings_json, description, created_at, updated_at) 
-			 VALUES (?, ?, ?, 
-			         COALESCE((SELECT created_at FROM settings WHERE category = ?), ?), 
+			`INSERT OR REPLACE INTO settings
+			 (category, settings_json, description, created_at, updated_at)
+			 VALUES (?, ?, ?,
+			         COALESCE((SELECT created_at FROM settings WHERE category = ?), ?),
 			         ?)`,
 			[category, settingsJson, description, category, now, now]
 		);
