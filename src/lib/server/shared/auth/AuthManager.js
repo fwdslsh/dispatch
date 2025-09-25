@@ -39,6 +39,11 @@ export class AuthManager {
 			const webauthnAdapter = new WebAuthnAdapter(this.db, this);
 			this.registerAdapter('webauthn', webauthnAdapter);
 
+			// Register OAuth adapter
+			const { OAuthAdapter } = await import('./adapters/OAuthAdapter.js');
+			const oauthAdapter = new OAuthAdapter(this.db, this);
+			this.registerAdapter('oauth', oauthAdapter);
+
 		} catch (error) {
 			logger.error('AUTH', `Failed to register default adapters: ${error.message}`);
 		}

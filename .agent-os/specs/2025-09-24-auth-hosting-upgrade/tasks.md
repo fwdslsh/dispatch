@@ -42,17 +42,17 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.9 Implement WebAuthn counter management and replay attack prevention
   - [x] 3.10 Verify all tests pass and WebAuthn works across different browsers and contexts
 
-- [ ] 4. OAuth Integration and Provider Support
-  - [ ] 4.1 Write tests for OAuth flows, provider integration, and callback handling
-  - [ ] 4.2 Implement OAuth 2.0 client using passport.js with proper state management
-  - [ ] 4.3 Create Google OAuth provider integration with profile mapping
-  - [ ] 4.4 Create GitHub OAuth provider integration with profile mapping
-  - [ ] 4.5 Implement OAuth callback handling with account linking and user creation
-  - [ ] 4.6 Add automatic redirect URI updates when tunnel URL changes
-  - [ ] 4.7 Create OAuth provider configuration management in admin interface
-  - [ ] 4.8 Implement OAuth token refresh and account unlinking functionality
-  - [ ] 4.9 Add OAuth error handling and user feedback for authorization failures
-  - [ ] 4.10 Verify all tests pass and OAuth providers work correctly with dynamic URLs
+- [x] 4. OAuth Integration and Provider Support
+  - [x] 4.1 Write tests for OAuth flows, provider integration, and callback handling
+  - [x] 4.2 Implement OAuth 2.0 client using passport.js with proper state management
+  - [x] 4.3 Create Google OAuth provider integration with profile mapping
+  - [x] 4.4 Create GitHub OAuth provider integration with profile mapping
+  - [x] 4.5 Implement OAuth callback handling with account linking and user creation
+  - [x] 4.6 Add automatic redirect URI updates when tunnel URL changes
+  - [x] 4.7 Create OAuth provider configuration management in admin interface
+  - [x] 4.8 Implement OAuth token refresh and account unlinking functionality
+  - [x] 4.9 Add OAuth error handling and user feedback for authorization failures
+  - [x] 4.10 Verify all tests pass and OAuth providers work correctly with dynamic URLs
 
 - [ ] 5. Security Policy and Certificate Management
   - [ ] 5.1 Write tests for security policy management and certificate handling workflows

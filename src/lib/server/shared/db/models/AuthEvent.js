@@ -284,6 +284,17 @@ export class AuthEventDAO {
 		});
 	}
 
+	async logEvent(userId, deviceId, ipAddress, userAgent, eventType, details = null) {
+		return this.create({
+			userId,
+			deviceId,
+			eventType,
+			ipAddress,
+			userAgent,
+			details
+		});
+	}
+
 	async logDeviceRegistered(userId, deviceId, ipAddress, userAgent, deviceName) {
 		return this.create({
 			userId,
