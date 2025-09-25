@@ -2,7 +2,11 @@
  * Integration test for workspace environment variables in session creation
  */
 import { describe, it, expect } from 'vitest';
-import { buildExecEnv, buildClaudeOptions, buildTerminalOptions } from '../../src/lib/server/shared/utils/env.js';
+import {
+	buildExecEnv,
+	buildClaudeOptions,
+	buildTerminalOptions
+} from '../../src/lib/server/shared/utils/env.js';
 
 describe('Workspace Environment Variables Integration', () => {
 	const testWorkspaceEnv = {
@@ -25,11 +29,11 @@ describe('Workspace Environment Variables Integration', () => {
 
 		// Session-specific env should override workspace env
 		expect(env.NODE_ENV).toBe('production');
-		
+
 		// Workspace env should be included
 		expect(env.API_KEY).toBe('test-key-123');
 		expect(env.DEBUG).toBe('app:*');
-		
+
 		// Session-specific env should be included
 		expect(env.SESSION_ID).toBe('session-123');
 
@@ -88,7 +92,7 @@ describe('Workspace Environment Variables Integration', () => {
 
 	it('should preserve system environment variables', () => {
 		const originalPath = process.env.PATH;
-		
+
 		const env = buildExecEnv({
 			cwd: '/test/dir',
 			workspaceEnv: testWorkspaceEnv,
