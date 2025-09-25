@@ -7,16 +7,16 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ## Tasks
 
-- [ ] 1. Database Schema Migration and Core Auth Infrastructure
-  - [ ] 1.1 Write tests for database migration scripts and rollback functionality
-  - [ ] 1.2 Create database migration files for new auth tables (users, user_devices, auth_sessions, webauthn_credentials, oauth_accounts, auth_events, certificates)
-  - [ ] 1.3 Implement database migration runner with proper rollback support and migration tracking
-  - [ ] 1.4 Create database models and DAOs for new auth tables with proper relationships
-  - [ ] 1.5 Extend existing settings system with auth, security, oauth, and certificates categories
-  - [ ] 1.6 Create initial admin user seeder based on existing TERMINAL_KEY with migration path
-  - [ ] 1.7 Implement database cleanup jobs for expired sessions, old events, and inactive devices
-  - [ ] 1.8 Add database indexes for performance optimization on auth-related queries
-  - [ ] 1.9 Verify all tests pass and migration works correctly with rollback capabilities
+- [x] 1. Database Schema Migration and Core Auth Infrastructure
+  - [x] 1.1 Write tests for database migration scripts and rollback functionality
+  - [x] 1.2 Create database migration files for new auth tables (users, user_devices, auth_sessions, webauthn_credentials, oauth_accounts, auth_events, certificates)
+  - [x] 1.3 Implement database migration runner with proper rollback support and migration tracking
+  - [x] 1.4 Create database models and DAOs for new auth tables with proper relationships
+  - [x] 1.5 Extend existing settings system with auth, security, oauth, and certificates categories
+  - [x] 1.6 Create initial admin user seeder based on existing TERMINAL_KEY with migration path
+  - [x] 1.7 Implement database cleanup jobs for expired sessions, old events, and inactive devices
+  - [x] 1.8 Add database indexes for performance optimization on auth-related queries
+  - [x] 1.9 Verify all tests pass and migration works correctly with rollback capabilities
 
 - [x] 2. Core Authentication System and Session Management
   - [x] 2.1 Write comprehensive tests for AuthManager and authentication adapter pattern

@@ -41,12 +41,17 @@ export class SessionManager {
 			const now = Date.now();
 			const sessionExpiresAt = expiresAt || new Date(now + (timeoutHours * 60 * 60 * 1000));
 
+			// Ensure expiresAt is a timestamp
+			const expiresAtTimestamp = sessionExpiresAt instanceof Date ?
+				sessionExpiresAt.getTime() :
+				Number(sessionExpiresAt);
+
 			// Create session in database first
 			const session = await this.daos.authSessions.create({
 				userId,
 				deviceId,
 				sessionToken: 'temp', // Temporary token, will be replaced
-				expiresAt: sessionExpiresAt.getTime(),
+				expiresAt: expiresAtTimestamp,
 				ipAddress,
 				userAgent,
 				isActive: true
@@ -58,7 +63,7 @@ export class SessionManager {
 				userId: userId,
 				deviceId: deviceId,
 				iat: Math.floor(now / 1000),
-				exp: Math.floor(sessionExpiresAt.getTime() / 1000)
+				exp: Math.floor(expiresAtTimestamp / 1000)
 			};
 
 			const jwtToken = this.generateJWT(jwtPayload);

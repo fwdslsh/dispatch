@@ -61,11 +61,11 @@ export class AuthSessionDAO {
 	 * Get all sessions for a user
 	 */
 	async getByUserId(userId, includeExpired = false) {
-		let whereClause = 'user_id = ?';
+		let whereClause = 's.user_id = ?';
 		const params = [userId];
 
 		if (!includeExpired) {
-			whereClause += ' AND expires_at > ? AND is_active = 1';
+			whereClause += ' AND s.expires_at > ? AND s.is_active = 1';
 			params.push(Date.now());
 		}
 
