@@ -504,8 +504,9 @@ After setting up your Dispatch devcontainer:
 
 ## Additional Resources
 
+- [Connect to Local Containers](dispatch-devcontainer-attach.md)
+- [Connect to Remote Containers](dispatch-devcontainer-remote.md)
 - [Example Devcontainer Configurations](examples/devcontainer/)
-- [Connect to Running Containers](dispatch-devcontainer-attach.md)
 - [Dispatch Docker Documentation](../../docker/README.md)
 - [VSCode Dev Containers Documentation](https://code.visualstudio.com/docs/devcontainers/containers)
 - [Dev Container Features](https://containers.dev/features)

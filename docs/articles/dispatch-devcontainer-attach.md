@@ -1,32 +1,31 @@
 ---
-title: "Connect VSCode to Running Dispatch Containers"
-description: "Learn how to connect VSCode to running Dispatch containers, both locally and remotely, for secure AI-powered development."
-tags: ["vscode", "devcontainer", "docker", "dispatch", "remote-development"]
+title: "Connect VSCode to Local Dispatch Containers"
+description: "Learn how to connect VSCode to Dispatch containers running locally on your machine for secure AI-powered development."
+tags: ["vscode", "devcontainer", "docker", "dispatch", "local-development"]
 series: "Dispatch DevContainer Guide"
 published: false
 draft: true
 ---
 
-# Connect VSCode to Running Dispatch Containers
+# Connect VSCode to Local Dispatch Containers
 
-This guide shows you how to connect VSCode to already running Dispatch containers, whether they're running locally on your machine or remotely on a server. This approach gives you maximum flexibility and control over your Dispatch environment.
+This guide shows you how to connect VSCode to Dispatch containers running locally on your machine. This approach gives you maximum flexibility and control over your local development environment.
 
 ## Overview
 
-Connecting VSCode to a running Dispatch container is ideal when:
-- Dispatch is running on a remote server or cloud instance
+Connecting VSCode to a local Dispatch container is ideal when:
 - You want to manage the container lifecycle separately from VSCode
-- You're sharing a Dispatch instance with team members
 - You need to connect and disconnect from development sessions frequently
+- You're developing and testing Dispatch configurations locally
+- You want full control over the container environment and resources
 
 ## Prerequisites
 
-Before connecting to Dispatch containers, ensure you have:
+Before connecting to local Dispatch containers, ensure you have:
 
 - **Visual Studio Code** installed on your local machine
-- **Docker Desktop** running (for local containers) or **Docker CLI** configured for remote access
+- **Docker Desktop** running (Windows/Mac) or Docker Engine (Linux)
 - **Dev Containers extension** for VSCode (`ms-vscode-remote.remote-containers`)
-- **SSH access** (for remote containers)
 - **Basic familiarity** with Docker and containers
 
 ### Installing the Dev Containers Extension
@@ -74,97 +73,7 @@ Once connected, configure your workspace:
 3. Configure your development environment
 4. Access the Dispatch web interface at `http://localhost:3030`
 
-## Remote Container Connection
 
-### Step 1: Set Up Remote Docker Access
-
-For remote containers, you'll need SSH access to the remote machine. Configure your SSH connection:
-
-```bash
-# Add to ~/.ssh/config
-Host dispatch-server
-    HostName your-server-ip
-    User your-username
-    Port 22
-    IdentityFile ~/.ssh/your-key
-```
-
-### Step 2: Configure Docker Context for Remote Access
-
-Set up a Docker context to connect to the remote Docker daemon:
-
-```bash
-# Create a new Docker context for the remote server
-docker context create dispatch-remote \
-  --docker "host=ssh://dispatch-server"
-
-# Use the remote context
-docker context use dispatch-remote
-
-# Verify connection
-docker ps
-```
-
-### Step 3: Start Remote Dispatch Container
-
-Start Dispatch on the remote server:
-
-```bash
-# SSH into remote server
-ssh dispatch-server
-
-# Create directories for persistent storage
-mkdir -p ~/dispatch-home ~/dispatch-projects
-
-# Start Dispatch container
-docker run -d \
-  --name dispatch-remote \
-  -p 3030:3030 \
-  -e TERMINAL_KEY=your-secure-password \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/dispatch \
-  -v ~/dispatch-projects:/workspace \
-  fwdslsh/dispatch:latest
-```
-
-### Step 4: Connect VSCode to Remote Container
-
-#### Option A: Using Docker Context
-
-1. On your local machine, use the remote Docker context:
-   ```bash
-   docker context use dispatch-remote
-   ```
-
-2. Open VSCode
-3. Press `Ctrl+Shift+P` and type "Dev Containers: Attach to Running Container"
-4. Select the `dispatch-remote` container
-5. VSCode will connect through the SSH tunnel
-
-#### Option B: Using SSH Tunnel
-
-1. Create an SSH tunnel to forward the Docker socket:
-   ```bash
-   ssh -L /tmp/docker.sock:/var/run/docker.sock dispatch-server
-   ```
-
-2. In another terminal, set the Docker host:
-   ```bash
-   export DOCKER_HOST=unix:///tmp/docker.sock
-   ```
-
-3. Open VSCode and attach to the container as usual
-
-### Step 5: Access Remote Dispatch Web Interface
-
-To access the Dispatch web interface running on the remote server:
-
-```bash
-# Create SSH tunnel for web interface
-ssh -L 3030:localhost:3030 dispatch-server
-```
-
-Then open `http://localhost:3030` in your local browser.
 
 ## Environment Variables
 
@@ -181,141 +90,139 @@ Configure these environment variables for your Dispatch container:
 
 ### Common Issues and Solutions
 
-#### Cannot Connect to Remote Container
+#### Cannot Connect to Local Container
 
-**Problem**: VSCode cannot find or connect to remote containers.
-
-**Solutions**:
-1. Verify Docker context is correct:
-   ```bash
-   docker context ls
-   docker context use dispatch-remote
-   ```
-2. Test SSH connection:
-   ```bash
-   ssh dispatch-server "docker ps"
-   ```
-3. Check firewall settings on remote server
-4. Ensure Docker daemon is running on remote server
-
-#### Permission Issues with Remote Containers
-
-**Problem**: Cannot write files or access directories in remote container.
+**Problem**: VSCode cannot find or connect to local containers.
 
 **Solutions**:
-1. Ensure user IDs match between local and remote:
+1. Verify Docker is running:
    ```bash
-   # On remote server, check user ID
-   id
-   
-   # Use matching UID/GID when starting container
+   docker ps
+   ```
+2. Check container is running:
+   ```bash
+   docker ps | grep dispatch-dev
+   ```
+3. Restart Docker Desktop if on Windows/Mac
+4. Check VSCode Dev Containers extension is installed and enabled
+
+#### Permission Issues with Local Containers
+
+**Problem**: Cannot write files or access directories in local container.
+
+**Solutions**:
+1. Ensure proper user mapping when starting container:
+   ```bash
    docker run --user $(id -u):$(id -g) ...
    ```
 2. Fix ownership of mounted volumes:
    ```bash
    sudo chown -R $(id -u):$(id -g) ~/dispatch-home ~/dispatch-projects
    ```
+3. Check directory permissions:
+   ```bash
+   ls -la ~/dispatch-home ~/dispatch-projects
+   ```
 
-#### SSH Connection Drops
+#### Container Won't Start
 
-**Problem**: SSH connection to remote server drops frequently.
+**Problem**: Dispatch container fails to start.
 
 **Solutions**:
-1. Configure SSH keep-alive in `~/.ssh/config`:
+1. Check Docker logs:
+   ```bash
+   docker logs dispatch-dev
    ```
-   Host dispatch-server
-       ServerAliveInterval 60
-       ServerAliveCountMax 3
+2. Verify port 3030 is not already in use:
+   ```bash
+   lsof -i :3030
    ```
-2. Use SSH multiplexing for stable connections:
-   ```
-   Host dispatch-server
-       ControlMaster auto
-       ControlPath ~/.ssh/control-%r@%h:%p
-       ControlPersist 600
+3. Check available disk space and memory
+4. Remove existing container and try again:
+   ```bash
+   docker rm dispatch-dev
    ```
 
 #### Web Interface Not Accessible
 
-**Problem**: Cannot access Dispatch web interface on remote server.
+**Problem**: Cannot access Dispatch web interface at `http://localhost:3030`.
 
 **Solutions**:
-1. Create SSH tunnel:
+1. Verify container port binding:
    ```bash
-   ssh -L 3030:localhost:3030 dispatch-server
+   docker port dispatch-dev
    ```
-2. Check container port binding:
+2. Check container is running:
    ```bash
-   docker port dispatch-remote
+   docker ps | grep dispatch-dev
    ```
-3. Verify firewall allows port 3030
-4. Check if container is running:
+3. Test with curl:
    ```bash
-   docker ps | grep dispatch
+   curl http://localhost:3030
    ```
+4. Check firewall settings on your local machine
 
 ## Example Workflows
 
-### Remote Development with Team
+### Local Development with AI Assistance
 
-1. **Server Setup**: Set up Dispatch on a shared development server
-2. **Team Access**: Each team member connects their local VSCode to the remote container
-3. **Shared Environment**: Everyone works in the same consistent environment
-4. **AI Assistance**: Use Dispatch's AI agents safely in the isolated container
-5. **Collaboration**: Share terminal sessions and development workflows
+1. **Start Container**: Launch Dispatch container with your project mounted
+2. **Connect VSCode**: Attach VSCode to the running container
+3. **Access Web Interface**: Open `http://localhost:3030` for AI assistance
+4. **Develop**: Edit code in VSCode while using AI agents in Dispatch
+5. **Test**: Run tests and debug in the isolated container environment
 
-### Hybrid Local/Remote Development
+### Container Lifecycle Management
 
-1. **Local Development**: Use local Dispatch for quick testing and prototyping
-2. **Remote Testing**: Connect to remote Dispatch for integration testing
-3. **Context Switching**: Easily switch between local and remote environments
-4. **Resource Management**: Use remote servers for resource-intensive tasks
+1. **Development Sessions**: Start container when beginning work, stop when done
+2. **Persistent Storage**: Keep project files and configuration between sessions
+3. **Resource Control**: Manage container resources based on project needs
+4. **Quick Switching**: Easily switch between different project containers
 
 ## Security Considerations
-
-### SSH Security
-
-- Use SSH key authentication instead of passwords
-- Configure SSH keys with passphrases
-- Use SSH agent for key management
-- Limit SSH access with proper firewall rules
 
 ### Container Isolation
 
 - Dispatch containers are isolated from host system
-- Use volume mounts to control what's accessible
+- Use volume mounts to control what's accessible to AI agents
 - AI agents can only access mounted directories
-- No direct access to host networking or filesystem
+- No direct access to host networking or filesystem outside container
 
-### Network Security
+### Authentication
 
-- Use SSH tunnels for secure remote access
-- Consider VPN for additional security
-- Disable tunnel mode in production: `ENABLE_TUNNEL=false`
-- Use strong authentication keys for Dispatch web interface
+- Always set a strong `TERMINAL_KEY` for web interface access
+- Don't commit secrets to version control
+- Use environment files for sensitive data
+- Rotate authentication keys regularly
+
+### Local Network Security
+
+- Dispatch web interface is only accessible from localhost by default
+- Container ports are bound to localhost interface
+- Use firewall rules if additional protection is needed
 
 ## Best Practices
 
-### Connection Management
+### Container Management
 
-1. **Use Docker contexts** for clean remote connection management
-2. **Set up SSH multiplexing** to avoid repeated authentication
-3. **Use named containers** for easy identification and connection
-4. **Document connection procedures** for team members
+1. **Use named containers** for easy identification and connection
+2. **Set resource limits** to prevent excessive resource usage
+3. **Use volume mounts** for persistent data storage
+4. **Clean up unused containers** regularly to free up disk space
 
-### Performance Optimization
+### Development Workflow
 
-1. **Use local Docker contexts** when possible for faster connections
-2. **Configure SSH compression** for slow network connections
-3. **Close unused connections** to free up resources
-4. **Monitor network usage** when working with large files
+1. **Start containers when needed** to conserve system resources
+2. **Use consistent naming** for containers across projects
+3. **Document setup procedures** for team members
+4. **Monitor container performance** and adjust resources as needed
 
-### Team Collaboration
+### Local Environment
 
-1. **Standardize container names** across team environments
-2. **Share Docker context configurations** through team documentation
-3. **Use consistent volume mount paths** for project compatibility
-4. **Document remote server access procedures**
+1. **Keep Docker Desktop updated** for latest features and security fixes
+2. **Monitor disk usage** as containers and volumes can consume significant space
+3. **Use .dockerignore** files to exclude unnecessary files from builds
+4. **Backup important development data** stored in container volumes
 
 ## Next Steps
 
@@ -329,10 +236,11 @@ After connecting to your Dispatch container:
 
 ## Additional Resources
 
-- [Example Devcontainer Configurations](examples/devcontainer/)
+- [Connect to Remote Containers](dispatch-devcontainer-remote.md)
 - [Using .devcontainer Configuration](dispatch-devcontainer-config.md)
+- [Example Devcontainer Configurations](examples/devcontainer/)
 - [Dispatch Docker Documentation](../../docker/README.md)
-- [VSCode Remote Development Documentation](https://code.visualstudio.com/docs/remote/remote-overview)
-- [Docker Context Documentation](https://docs.docker.com/engine/context/working-with-contexts/)
+- [VSCode Dev Containers Documentation](https://code.visualstudio.com/docs/devcontainers/containers)
+- [Docker Desktop Documentation](https://docs.docker.com/desktop/)
 
-Happy remote coding with your secure, AI-powered development environment! 🚀
+Happy local development with your secure, AI-powered environment! 🚀
