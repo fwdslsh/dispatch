@@ -80,28 +80,21 @@ function detectInitCommands(projectPath) {
 
 // Check for existing initialization scripts
 function findExistingInitScript(projectPath) {
-	const possiblePaths = [
-		join(projectPath, 'init.sh'),
-		join(projectPath, 'scripts', 'init.sh'),
-		join(projectPath, 'setup.sh'),
-		join(projectPath, 'scripts', 'setup.sh')
-	];
+	const dispatchrcPath = join(projectPath, '.dispatchrc');
 
-	for (const scriptPath of possiblePaths) {
-		if (existsSync(scriptPath)) {
-			try {
-				const content = readFileSync(scriptPath, 'utf8');
-				return {
-					path: scriptPath,
-					content: content.trim(),
-					commands: content
-						.split('\n')
-						.map((line) => line.trim())
-						.filter((line) => line && !line.startsWith('#'))
-				};
-			} catch (error) {
-				console.warn(`Failed to read init script ${scriptPath}:`, error.message);
-			}
+	if (existsSync(dispatchrcPath)) {
+		try {
+			const content = readFileSync(dispatchrcPath, 'utf8');
+			return {
+				path: dispatchrcPath,
+				content: content.trim(),
+				commands: content
+					.split('\n')
+					.map((line) => line.trim())
+					.filter((line) => line && !line.startsWith('#'))
+			};
+		} catch (error) {
+			console.warn(`Failed to read .dispatchrc ${dispatchrcPath}:`, error.message);
 		}
 	}
 
@@ -144,7 +137,7 @@ export async function GET({ url }) {
 			detected: detectedPatterns,
 			existingScript,
 			suggestedCommands: [...new Set(allCommands)], // Remove duplicates
-			hasInitScript: !!existingScript
+			hasDispatchrc: !!existingScript
 		});
 	} catch (error) {
 		console.error('Init detection error:', error);
@@ -154,7 +147,7 @@ export async function GET({ url }) {
 
 export async function POST({ request }) {
 	try {
-		const { path, commands, saveAs = 'init.sh' } = await request.json();
+		const { path, commands } = await request.json();
 
 		if (!path || !commands || !Array.isArray(commands)) {
 			return json({ error: 'Path and commands array are required' }, { status: 400 });
@@ -167,25 +160,13 @@ export async function POST({ request }) {
 			return json({ error: 'Directory does not exist' }, { status: 404 });
 		}
 
-		// Determine save path
-		let savePath;
-		if (saveAs === 'scripts/init.sh') {
-			const scriptsDir = join(resolvedPath, 'scripts');
-			if (!existsSync(scriptsDir)) {
-				// We'd need to create the scripts directory, but let's keep changes minimal
-				// for now and default to root init.sh
-				savePath = join(resolvedPath, 'init.sh');
-			} else {
-				savePath = join(scriptsDir, 'init.sh');
-			}
-		} else {
-			savePath = join(resolvedPath, saveAs);
-		}
+		// Save as .dispatchrc in the root
+		const savePath = join(resolvedPath, '.dispatchrc');
 
 		// Create script content
 		const scriptContent = [
 			'#!/bin/bash',
-			'# Auto-generated initialization script',
+			'# Auto-generated initialization script for git worktrees',
 			'set -e',
 			'',
 			...commands,
@@ -202,7 +183,7 @@ export async function POST({ request }) {
 			message: `Initialization script saved to ${savePath}`
 		});
 	} catch (error) {
-		console.error('Save init script error:', error);
+		console.error('Save .dispatchrc error:', error);
 		return json(
 			{ error: error.message || 'Failed to save initialization script' },
 			{ status: 500 }

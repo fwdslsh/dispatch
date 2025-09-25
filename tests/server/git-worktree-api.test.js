@@ -236,9 +236,9 @@ describe('Git Worktree API Endpoints', () => {
 			expect(data.suggestedCommands).toContain('npm install');
 		});
 
-		it('should detect existing init script', async () => {
+		it('should detect existing .dispatchrc script', async () => {
 			existsSync.mockImplementation((path) => {
-				return path === '/test/project' || path.includes('init.sh');
+				return path === '/test/project' || path.includes('.dispatchrc');
 			});
 
 			readFileSync.mockReturnValue('#!/bin/bash\nnpm install\nnpm run build');
@@ -248,22 +248,21 @@ describe('Git Worktree API Endpoints', () => {
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
-			expect(data.hasInitScript).toBe(true);
+			expect(data.hasDispatchrc).toBe(true);
 			expect(data.existingScript.commands).toContain('npm install');
 			expect(data.existingScript.commands).toContain('npm run build');
 		});
 	});
 
 	describe('POST /api/git/worktree/init-detect', () => {
-		it('should save initialization script', async () => {
+		it('should save .dispatchrc script', async () => {
 			existsSync.mockReturnValue(true);
 
 			const request = {
 				json: () =>
 					Promise.resolve({
 						path: '/test/project',
-						commands: ['npm install', 'npm run build'],
-						saveAs: 'init.sh'
+						commands: ['npm install', 'npm run build']
 					})
 			};
 
@@ -272,9 +271,9 @@ describe('Git Worktree API Endpoints', () => {
 
 			expect(response.status).toBe(200);
 			expect(data.success).toBe(true);
-			expect(data.scriptPath).toBe('/test/project/init.sh');
+			expect(data.scriptPath).toBe('/test/project/.dispatchrc');
 			expect(writeFileSync).toHaveBeenCalledWith(
-				'/test/project/init.sh',
+				'/test/project/.dispatchrc',
 				expect.stringContaining('npm install'),
 				'utf8'
 			);
