@@ -20,10 +20,15 @@ curl -fsSL https://raw.githubusercontent.com/fwdslsh/dispatch/main/install.sh | 
 dispatch init
 dispatch start
 
+# Attach directly to the container for development
+dispatch attach
+
 # Open http://localhost:3030 and start coding!
 ```
 
 _Note: Requires bash and Docker_
+
+📖 **[Quick Start Guide](QUICKSTART.md)** - Complete setup and usage walkthrough
 
 ## Why Dispatch?
 

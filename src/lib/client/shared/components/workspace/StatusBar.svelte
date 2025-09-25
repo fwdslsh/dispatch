@@ -14,6 +14,8 @@
 	import IconCodeMinus from '../Icons/IconCodeMinus.svelte';
 	import IconPlayerTrackNext from '../Icons/IconPlayerTrackNext.svelte';
 	import IconPlayerTrackPrev from '../Icons/IconPlayerTrackPrev.svelte';
+	import { useService } from '../../services/ServiceContainer.svelte.js';
+	import { onMount } from 'svelte';
 
 	// Props
 	let {
@@ -38,6 +40,20 @@
 	const desktopNextDisabled = $derived(
 		desktopNavDisabled || currentSessionIndex >= Math.max(totalSessions - 1, 0)
 	);
+
+	// Version information
+	let appVersion = $state('');
+
+	// Fetch version on mount
+	onMount(async () => {
+		try {
+			const environmentService = await useService('environment');
+			appVersion = await environmentService.getAppVersion();
+		} catch (error) {
+			console.warn('Failed to fetch app version:', error);
+			appVersion = '';
+		}
+	});
 </script>
 
 <footer class="status-bar-container">
@@ -54,6 +70,11 @@
 			<IconButton onclick={onOpenSettings} aria-label="Open settings" title="Settings">
 				<IconAdjustmentsAlt size={18} />
 			</IconButton>
+			{#if appVersion && appVersion !== 'unknown'}
+				<span class="version-indicator" title="Application version: {appVersion}">
+					v{appVersion}
+				</span>
+			{/if}
 			<!-- {#if totalSessions > 0}
 				<span class="session-counter">
 					{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}
@@ -118,4 +139,25 @@
 
 <style>
 	/* StatusBar component uses utility classes - no additional styles needed */
+	.version-indicator {
+		font-size: 0.75rem;
+		color: var(--text-tertiary, #6b7280);
+		opacity: 0.7;
+		font-weight: 400;
+		margin-left: 8px;
+		user-select: none;
+		cursor: default;
+		transition: opacity 0.2s ease;
+	}
+
+	.version-indicator:hover {
+		opacity: 1;
+	}
+
+	/* Hide version on very small screens to save space */
+	@media (max-width: 400px) {
+		.version-indicator {
+			display: none;
+		}
+	}
 </style>
