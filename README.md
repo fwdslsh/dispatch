@@ -49,6 +49,7 @@ _Note: Requires bash and Docker_
 **⚡ Built for AI & Automation**
 
 - Multiple session types: Terminal, Claude AI, File Editor, Custom Adapters
+- **VS Code Remote Tunnel integration** for seamless IDE access (requires VS Code CLI)
 - Workspace-level environment variables for consistent development environments
 - Let long-running tasks complete unattended in the background
 - Perfect for AI-assisted development workflows
@@ -74,6 +75,19 @@ When using the dispatch CLI the init command will create a `~/dispatch/home/.env
 | `WORKSPACES_ROOT` | `/workspace` | Project directory              |
 | `ENABLE_TUNNEL`   | `false`      | Public URL sharing             |
 | `LT_SUBDOMAIN`    | `""`         | Custom subdomain               |
+
+### VS Code Remote Tunnel Setup
+
+To use the VS Code Remote Tunnel feature, install the VS Code CLI inside the container:
+
+```bash
+# Inside the container or via dispatch attach
+curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' --output vscode_cli.tar.gz
+tar -xf vscode_cli.tar.gz
+sudo mv code /usr/local/bin/
+```
+
+Then use Settings → VS Code Tunnel in the web interface to start/stop the tunnel.
 
 ## Using Docker Directly
 
