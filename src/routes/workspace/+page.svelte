@@ -12,3 +12,14 @@
 
 <!-- Use the new MVVM-based WorkspacePage component -->
 <WorkspacePage />
+
+<style>
+	/* Ensure the workspace page takes full height */
+	:global(html, body) {
+		/* Prevent horizontal scrolling due to overflowing children on mobile */
+		overflow-x: hidden;
+		/* Prevent pull-to-refresh on mobile */
+		overscroll-behavior-y: none;
+		overscroll-behavior: none;
+	}
+</style>
