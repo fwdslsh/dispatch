@@ -104,6 +104,24 @@ Dispatch codebase. Keep responses concise and make edits that follow the project
 - Run `npm run format`, `npm run lint`, and `npm test` locally before submitting.
 - Update documentation (AGENTS.md or README) only if behavior or configuration changes.
 
----
 
-If any section seems incomplete or you want the agent to expand a specific area (for example, adapter registration points or the DB schema layout), say which area and I'll expand this file with precise file references and examples.
+## Writing articles and documentation
+
+- Place articles in `docs/articles/` directory for organized documentation
+- When writing articles for potential dev.to publishing, include front matter with:
+  - `published: false` - prevents accidental publishing
+  - `draft: true` - marks as draft content
+  - `title:` - article title
+  - `description:` - brief article summary
+  - `tags:` - relevant tags for categorization
+  - Example front matter:
+    ```yaml
+    ---
+    title: "Your Article Title Here"
+    description: "Brief description of the article content"
+    published: false
+    draft: true
+    tags: dispatch, sveltekit, nodejs
+    series: dispatch
+    ---
+    ```

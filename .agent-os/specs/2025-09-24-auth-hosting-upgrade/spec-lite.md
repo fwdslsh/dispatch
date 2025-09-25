@@ -1,0 +1,3 @@
+# Spec Summary (Lite)
+
+Upgrade Dispatch from single-key authentication to flexible multi-mode auth (local access codes, WebAuthn, OAuth, proxy) with automatic security policy management that adapts to hosting environment (LAN-only, tunnel, or custom domain). Add certificate management for mkcert and Let's Encrypt, enhanced admin interface for user/device management, and automatic tunnel URL propagation to authentication callbacks and security settings.
