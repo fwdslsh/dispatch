@@ -456,6 +456,122 @@ export class AuthManager {
 	}
 
 	/**
+	 * Validate WebAuthn compatibility for a given URL
+	 * @param {string} url - The URL to validate
+	 * @returns {object} Validation result with compatibility status
+	 */
+	async validateWebAuthnCompatibility(url) {
+		try {
+			const urlObj = new URL(url);
+			const hostname = urlObj.hostname;
+
+			// WebAuthn requires HTTPS (except localhost)
+			if (urlObj.protocol !== 'https:' && hostname !== 'localhost') {
+				return {
+					compatible: false,
+					reason: 'WebAuthn requires HTTPS connection',
+					recommendation: 'Use HTTPS or configure certificates'
+				};
+			}
+
+			// Check for tunnel domains which are unstable
+			const tunnelDomains = ['loca.lt', 'tunnel.site', 'localtunnel.me'];
+			const isTunnel = tunnelDomains.some(domain => hostname.includes(domain));
+
+			if (isTunnel) {
+				return {
+					compatible: false,
+					reason: 'Tunnel URLs change on restart - WebAuthn credentials would be lost',
+					recommendation: 'Use a custom domain with stable hostname for WebAuthn'
+				};
+			}
+
+			// Check if we have existing WebAuthn credentials that would be invalidated
+			const existingCredentials = await this.checkExistingWebAuthnCredentials();
+			if (existingCredentials.count > 0) {
+				const currentRpId = await this.getCurrentRpId();
+				if (currentRpId && currentRpId !== hostname) {
+					return {
+						compatible: false,
+						reason: `Hostname change detected. ${existingCredentials.count} existing WebAuthn credentials would be invalidated`,
+						recommendation: 'Users will need to re-register their security keys',
+						affectedUsers: existingCredentials.users
+					};
+				}
+			}
+
+			// All checks passed
+			return {
+				compatible: true,
+				reason: 'WebAuthn is available',
+				rpId: hostname
+			};
+
+		} catch (error) {
+			logger.error('AUTH', `WebAuthn validation error: ${error.message}`);
+			return {
+				compatible: false,
+				reason: 'Failed to validate WebAuthn compatibility',
+				error: error.message
+			};
+		}
+	}
+
+	/**
+	 * Check for existing WebAuthn credentials
+	 * @returns {object} Count and affected users
+	 */
+	async checkExistingWebAuthnCredentials() {
+		try {
+			const credentials = await this.db.all(
+				'SELECT DISTINCT user_id FROM webauthn_credentials WHERE active = 1'
+			);
+
+			return {
+				count: credentials.length,
+				users: credentials.map(c => c.user_id)
+			};
+		} catch (error) {
+			logger.error('AUTH', `Failed to check WebAuthn credentials: ${error.message}`);
+			return { count: 0, users: [] };
+		}
+	}
+
+	/**
+	 * Get current rpID from settings
+	 * @returns {string|null} Current rpID or null
+	 */
+	async getCurrentRpId() {
+		try {
+			const settings = await this.db.getSettingsByCategory('auth');
+			return settings.webauthn_rpid || null;
+		} catch (error) {
+			logger.error('AUTH', `Failed to get current rpID: ${error.message}`);
+			return null;
+		}
+	}
+
+	/**
+	 * Update WebAuthn rpID when URL changes
+	 * @param {string} newRpId - New rpID (hostname)
+	 */
+	async updateWebAuthnRpId(newRpId) {
+		try {
+			const settings = await this.db.getSettingsByCategory('auth');
+			await this.db.setSettingsForCategory('auth', {
+				...settings,
+				webauthn_rpid: newRpId,
+				webauthn_rpid_updated_at: new Date().toISOString()
+			}, 'WebAuthn rpID update');
+
+			logger.info('AUTH', `Updated WebAuthn rpID to: ${newRpId}`);
+		} catch (error) {
+			logger.error('AUTH', `Failed to update WebAuthn rpID: ${error.message}`);
+			throw error;
+		}
+	}
+
+	/**
 	 * Cleanup expired sessions and old data
 	 */
 	async cleanup() {

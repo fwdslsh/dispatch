@@ -48,11 +48,31 @@ export class SecurityPolicyManager {
 		const currentOrigins = await this.getCORSOrigins();
 		const tunnelOrigin = tunnelInfo.url;
 
-		// Add tunnel origin if not already present
-		if (!currentOrigins.includes(tunnelOrigin)) {
-			const newOrigins = [...currentOrigins, tunnelOrigin];
+		// Remove old tunnel origins (loca.lt, tunnel.site, etc.)
+		const filteredOrigins = currentOrigins.filter(origin => {
+			try {
+				const url = new URL(origin);
+				// Keep non-tunnel origins
+				return !url.hostname.includes('loca.lt') &&
+				       !url.hostname.includes('tunnel.site') &&
+				       !url.hostname.includes('localtunnel.me');
+			} catch {
+				return true; // Keep if not a valid URL
+			}
+		});
+
+		// Add new tunnel origin
+		if (!filteredOrigins.includes(tunnelOrigin)) {
+			const newOrigins = [...filteredOrigins, tunnelOrigin];
 			await this.updateCORSOrigins(newOrigins);
 		}
+
+		// Update security context for tunnel
+		await this.updateSecurityContext({
+			mode: 'tunnel',
+			isSecure: tunnelOrigin.startsWith('https'),
+			hasTunnel: true
+		});
 	}
 
 	validateOrigin(origin) {
@@ -396,6 +416,67 @@ export class SecurityPolicyManager {
 		if (config.hsts?.maxAge && config.hsts.maxAge < 0) {
 			throw new Error('HSTS maxAge must be non-negative');
 		}
+	}
+
+	/**
+	 * Update security context based on hosting environment
+	 * @param {object} context - Hosting context information
+	 */
+	async updateSecurityContext(context) {
+		const { mode, isSecure, hasTunnel } = context;
+
+		// Cache the context
+		this.contextCache.set('current', {
+			context,
+			timestamp: Date.now()
+		});
+
+		// Update database settings
+		await this.db.setSettingsForCategory('security', {
+			hosting_context: {
+				mode,
+				isSecure,
+				hasTunnel,
+				updatedAt: new Date().toISOString()
+			}
+		}, 'Security context update');
+
+		// Log the change
+		await this.logPolicyChange('hosting_context', context);
+	}
+
+	/**
+	 * Handle tunnel disconnection - restore original policies
+	 */
+	async onTunnelDisconnected() {
+		// Get current origins and remove tunnel URLs
+		const currentOrigins = await this.getCORSOrigins();
+		const filteredOrigins = currentOrigins.filter(origin => {
+			try {
+				const url = new URL(origin);
+				// Remove tunnel origins
+				return !url.hostname.includes('loca.lt') &&
+				       !url.hostname.includes('tunnel.site') &&
+				       !url.hostname.includes('localtunnel.me');
+			} catch {
+				return true;
+			}
+		});
+
+		// Update CORS origins
+		await this.updateCORSOrigins(filteredOrigins);
+
+		// Reset security context to LAN mode
+		await this.updateSecurityContext({
+			mode: 'lan',
+			isSecure: false,
+			hasTunnel: false
+		});
+
+		// Log disconnection
+		await this.logPolicyChange('tunnel_disconnected', {
+			restoredOrigins: filteredOrigins
+		});
 	}
 
 	/**

@@ -27,13 +27,11 @@ describe('Admin Interface Manager', () => {
 		// Create admin interface manager
 		adminManager = new AdminInterfaceManager(db);
 
-		// Create test users
-		const adminResult = await db.run(`
-			INSERT INTO users (username, display_name, email, password_hash, is_admin)
-			VALUES ('admin', 'Admin User', 'admin@example.com', 'hashed_password', 1)
-		`);
-		testAdminUserId = adminResult.lastID;
+		// Get the admin user created by migration
+		const migrationAdmin = await db.get('SELECT id FROM users WHERE username = ?', ['admin']);
+		testAdminUserId = migrationAdmin.id;
 
+		// Create test regular user
 		const userResult = await db.run(`
 			INSERT INTO users (username, display_name, email, password_hash, is_admin)
 			VALUES ('testuser', 'Test User', 'test@example.com', 'hashed_password', 0)
@@ -100,7 +98,7 @@ describe('Admin Interface Manager', () => {
 				username: 'newuser',
 				displayName: 'New User',
 				email: 'newuser@example.com',
-				password: 'newpassword123',
+				accessCode: 'newpassword123',
 				isAdmin: false
 			};
 
@@ -109,7 +107,7 @@ describe('Admin Interface Manager', () => {
 			expect(result.success).toBe(true);
 			expect(result.user.username).toBe('newuser');
 			expect(result.user.email).toBe('newuser@example.com');
-			expect(result.user.isAdmin).toBe(false);
+			expect(result.user.is_admin).toBe(0);
 
 			// Verify user was created in database
 			const dbUser = await db.get('SELECT * FROM users WHERE username = ?', ['newuser']);
@@ -121,16 +119,18 @@ describe('Admin Interface Manager', () => {
 			const invalidUserData = {
 				username: '', // Invalid empty username
 				email: 'invalid-email', // Invalid email format
-				password: '123' // Too short password
+				accessCode: '123' // Too short password
 			};
 
-			const result = await adminManager.createUser(invalidUserData);
-
-			expect(result.success).toBe(false);
-			expect(result.errors).toBeDefined();
-			expect(result.errors).toHaveProperty('username');
-			expect(result.errors).toHaveProperty('email');
-			expect(result.errors).toHaveProperty('password');
+			try {
+				await adminManager.createUser(invalidUserData);
+				expect.fail('Should have thrown validation error');
+			} catch (error) {
+				expect(error.message).toContain('Validation failed');
+				expect(error.message).toContain('Username must be at least 2 characters');
+				expect(error.message).toContain('Valid email is required');
+				expect(error.message).toContain('Access code must be at least 6 characters');
+			}
 		});
 
 		it('should prevent duplicate usernames', async () => {
@@ -138,13 +138,15 @@ describe('Admin Interface Manager', () => {
 				username: 'admin', // Already exists
 				displayName: 'Another Admin',
 				email: 'another@example.com',
-				password: 'password123'
+				accessCode: 'password123'
 			};
 
-			const result = await adminManager.createUser(userData);
-
-			expect(result.success).toBe(false);
-			expect(result.error).toContain('username already exists');
+			try {
+				await adminManager.createUser(userData);
+				expect.fail('Should have thrown duplicate username error');
+			} catch (error) {
+				expect(error.message).toContain('username already exists');
+			}
 		});
 
 		it('should delete user and associated data', async () => {

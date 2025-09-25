@@ -22,8 +22,106 @@ export class OAuthManager {
 	 * Update base URL for dynamic tunnel scenarios
 	 */
 	updateBaseUrl(newBaseUrl) {
+		const previousUrl = this.baseUrl;
 		this.baseUrl = newBaseUrl;
-		logger.info('OAUTH', `Updated base URL to: ${newBaseUrl}`);
+		logger.info('OAUTH', `Updated base URL from ${previousUrl} to: ${newBaseUrl}`);
+	}
+
+	/**
+	 * Update provider redirect URIs when tunnel URL changes
+	 * This notifies administrators but doesn't make direct API calls to providers
+	 * (as that would require additional provider-specific APIs)
+	 */
+	async updateProviderRedirectUris() {
+		try {
+			const enabledProviders = await this.getEnabledProviders();
+			const updates = [];
+
+			for (const provider of enabledProviders) {
+				const callbackUrl = this.getCallbackUrl(provider);
+
+				// Store the new redirect URI in database for reference
+				const update = {
+					provider,
+					redirectUri: callbackUrl,
+					baseUrl: this.baseUrl,
+					updatedAt: new Date().toISOString()
+				};
+
+				updates.push(update);
+				logger.info('OAUTH', `Updated ${provider} redirect URI to: ${callbackUrl}`);
+			}
+
+			// Save the updated URIs to database
+			if (updates.length > 0) {
+				const settings = await this.db.getSettingsByCategory('auth');
+				await this.db.setSettingsForCategory('auth', {
+					...settings,
+					oauth_redirect_uris: updates,
+					oauth_redirect_uris_updated_at: new Date().toISOString()
+				}, 'OAuth redirect URIs updated for tunnel');
+
+				// Log event
+				await this.daos.authEvents.logEvent(
+					null, // system event
+					null, // no device
+					null, // no IP
+					'OAuthManager',
+					'redirect_uris_updated',
+					{
+						baseUrl: this.baseUrl,
+						providers: updates.map(u => u.provider),
+						redirectUris: updates
+					}
+				);
+			}
+
+			return updates;
+		} catch (error) {
+			logger.error('OAUTH', `Failed to update redirect URIs: ${error.message}`);
+			throw error;
+		}
+	}
+
+	/**
+	 * Get provider-specific instructions for updating redirect URIs
+	 * Returns instructions for manual updating in provider consoles
+	 */
+	async getRedirectUriInstructions() {
+		const enabledProviders = await this.getEnabledProviders();
+		const instructions = {};
+
+		for (const provider of enabledProviders) {
+			const callbackUrl = this.getCallbackUrl(provider);
+
+			if (provider === 'google') {
+				instructions.google = {
+					url: 'https://console.cloud.google.com/apis/credentials',
+					steps: [
+						'Go to Google Cloud Console',
+						'Select your OAuth 2.0 Client ID',
+						'Add the following to Authorized redirect URIs:',
+						callbackUrl,
+						'Click Save'
+					],
+					currentRedirectUri: callbackUrl
+				};
+			} else if (provider === 'github') {
+				instructions.github = {
+					url: 'https://github.com/settings/developers',
+					steps: [
+						'Go to GitHub Settings > Developer settings > OAuth Apps',
+						'Select your OAuth App',
+						'Update Authorization callback URL to:',
+						callbackUrl,
+						'Click Update application'
+					],
+					currentRedirectUri: callbackUrl
+				};
+			}
+		}
+
+		return instructions;
 	}
 
 	/**

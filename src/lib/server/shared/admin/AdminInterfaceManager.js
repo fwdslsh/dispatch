@@ -18,7 +18,7 @@ export class AdminInterfaceManager {
 		const offset = (page - 1) * limit;
 		let query = `
 			SELECT u.id, u.username, u.display_name, u.email, u.is_admin as isAdmin,
-				   u.created_at as createdAt, u.last_login as lastLogin,
+				   u.created_at as createdAt, u.updated_at as lastLogin,
 				   COUNT(DISTINCT d.id) as deviceCount,
 				   COUNT(DISTINCT s.id) as activeSessionCount
 			FROM users u
@@ -137,7 +137,7 @@ export class AdminInterfaceManager {
 		try {
 			const user = await this.db.get(`
 				SELECT id, username, display_name, email, is_admin as isAdmin,
-					   created_at as createdAt, last_login as lastLogin
+					   created_at as createdAt, updated_at as lastLogin
 				FROM users WHERE id = ?
 			`, [userId]);
 
@@ -224,12 +224,129 @@ export class AdminInterfaceManager {
 		}
 	}
 
-	async toggleDeviceTrust(deviceId) {
+	async toggleDeviceTrust(deviceId, isTrusted) {
 		try {
-			await this.db.run('UPDATE user_devices SET is_trusted = NOT is_trusted WHERE id = ?', [deviceId]);
+			await this.db.run('UPDATE user_devices SET is_trusted = ? WHERE id = ?', [isTrusted ? 1 : 0, deviceId]);
 			return { success: true };
 		} catch (error) {
 			return { success: false, error: 'Failed to toggle device trust: ' + error.message };
+		}
+	}
+
+	async getAllDevices({ page = 1, limit = 20 } = {}) {
+		const offset = (page - 1) * limit;
+
+		try {
+			const devices = await this.db.all(`
+				SELECT d.id, d.device_name as deviceName, d.device_fingerprint as deviceFingerprint,
+					   d.is_trusted as isTrusted, d.created_at as createdAt,
+					   u.username, u.id as userId,
+					   COUNT(s.id) as activeSessions,
+					   MAX(s.last_activity_at) as lastActivity
+				FROM user_devices d
+				JOIN users u ON d.user_id = u.id
+				LEFT JOIN auth_sessions s ON d.id = s.device_id AND s.is_active = 1
+				GROUP BY d.id
+				ORDER BY d.created_at DESC
+				LIMIT ? OFFSET ?
+			`, [limit, offset]);
+
+			// Get total count
+			const { total } = await this.db.get('SELECT COUNT(*) as total FROM user_devices');
+			const totalPages = Math.ceil(total / limit);
+
+			return {
+				success: true,
+				devices,
+				total,
+				page,
+				totalPages,
+				limit
+			};
+		} catch (error) {
+			return { success: false, error: 'Failed to get devices: ' + error.message };
+		}
+	}
+
+	async getUserDevices(userId, { page = 1, limit = 20 } = {}) {
+		const offset = (page - 1) * limit;
+
+		try {
+			const devices = await this.db.all(`
+				SELECT d.id, d.device_name as deviceName, d.device_fingerprint as deviceFingerprint,
+					   d.is_trusted as isTrusted, d.created_at as createdAt,
+					   COUNT(s.id) as activeSessions,
+					   MAX(s.last_activity_at) as lastActivity
+				FROM user_devices d
+				LEFT JOIN auth_sessions s ON d.id = s.device_id AND s.is_active = 1
+				WHERE d.user_id = ?
+				GROUP BY d.id
+				ORDER BY d.created_at DESC
+				LIMIT ? OFFSET ?
+			`, [userId, limit, offset]);
+
+			// Get total count for this user
+			const { total } = await this.db.get('SELECT COUNT(*) as total FROM user_devices WHERE user_id = ?', [userId]);
+			const totalPages = Math.ceil(total / limit);
+
+			return {
+				success: true,
+				devices,
+				total,
+				page,
+				totalPages,
+				limit
+			};
+		} catch (error) {
+			return { success: false, error: 'Failed to get user devices: ' + error.message };
+		}
+	}
+
+	async getDeviceDetails(deviceId) {
+		try {
+			const device = await this.db.get(`
+				SELECT d.id, d.device_name as deviceName, d.device_fingerprint as deviceFingerprint,
+					   d.is_trusted as isTrusted, d.created_at as createdAt,
+					   u.username, u.id as userId, u.display_name as userDisplayName
+				FROM user_devices d
+				JOIN users u ON d.user_id = u.id
+				WHERE d.id = ?
+			`, [deviceId]);
+
+			if (!device) {
+				return { success: false, error: 'Device not found' };
+			}
+
+			// Get active sessions for this device
+			const sessions = await this.db.all(`
+				SELECT s.id, s.session_token as sessionToken, s.expires_at as expiresAt,
+					   s.created_at as createdAt, s.last_activity_at as lastActivity,
+					   s.ip_address as ipAddress, s.user_agent as userAgent
+				FROM auth_sessions s
+				WHERE s.device_id = ? AND s.is_active = 1
+				ORDER BY s.last_activity_at DESC
+			`, [deviceId]);
+
+			// Get recent auth events for this device
+			const recentEvents = await this.db.all(`
+				SELECT ae.event_type as eventType, ae.ip_address as ipAddress,
+					   ae.user_agent as userAgent, ae.details, ae.created_at as createdAt
+				FROM auth_events ae
+				WHERE ae.device_id = ?
+				ORDER BY ae.created_at DESC
+				LIMIT 10
+			`, [deviceId]);
+
+			return {
+				success: true,
+				device: {
+					...device,
+					sessions,
+					recentEvents
+				}
+			};
+		} catch (error) {
+			return { success: false, error: 'Failed to get device details: ' + error.message };
 		}
 	}
 
@@ -549,7 +666,7 @@ export class AdminInterfaceManager {
 		const userStats = await this.db.get(`
 			SELECT COUNT(*) as total,
 				   SUM(CASE WHEN is_admin = 1 THEN 1 ELSE 0 END) as admins,
-				   SUM(CASE WHEN last_login > ? THEN 1 ELSE 0 END) as activeInLast30Days
+				   SUM(CASE WHEN updated_at > ? THEN 1 ELSE 0 END) as activeInLast30Days
 			FROM users
 		`, [Date.now() - (30 * 24 * 60 * 60 * 1000)]);
 
@@ -724,5 +841,207 @@ export class AdminInterfaceManager {
 		}
 
 		return health;
+	}
+
+	// User Management methods for API compatibility
+	async getUsers({ page = 1, limit = 20, search = '', sortBy = 'created_at', sortOrder = 'desc' } = {}) {
+		const offset = (page - 1) * limit;
+		const order = sortOrder.toUpperCase();
+
+		let query = `
+			SELECT u.id, u.username, u.display_name, u.email, u.is_admin,
+				   u.created_at, u.updated_at as last_active,
+				   COUNT(DISTINCT d.id) as device_count,
+				   COUNT(DISTINCT s.id) as active_session_count
+			FROM users u
+			LEFT JOIN user_devices d ON u.id = d.user_id
+			LEFT JOIN auth_sessions s ON u.id = s.user_id AND s.is_active = 1
+		`;
+		const params = [];
+
+		if (search) {
+			query += ` WHERE (u.username LIKE ? OR u.display_name LIKE ? OR u.email LIKE ?)`;
+			const searchPattern = `%${search}%`;
+			params.push(searchPattern, searchPattern, searchPattern);
+		}
+
+		// Validate sortBy to prevent SQL injection
+		const validSortColumns = ['username', 'email', 'display_name', 'created_at', 'updated_at'];
+		const actualSortColumn = sortBy === 'last_active' ? 'updated_at' : sortBy;
+		const sortColumn = validSortColumns.includes(actualSortColumn) ? actualSortColumn : 'created_at';
+
+		query += ` GROUP BY u.id ORDER BY u.${sortColumn} ${order} LIMIT ? OFFSET ?`;
+		params.push(limit, offset);
+
+		const users = await this.db.all(query, params);
+
+		// Get total count for pagination
+		let countQuery = 'SELECT COUNT(*) as total FROM users u';
+		const countParams = [];
+		if (search) {
+			countQuery += ' WHERE (u.username LIKE ? OR u.display_name LIKE ? OR u.email LIKE ?)';
+			const searchPattern = `%${search}%`;
+			countParams.push(searchPattern, searchPattern, searchPattern);
+		}
+
+		const { total } = await this.db.get(countQuery, countParams);
+		const totalPages = Math.ceil(total / limit);
+
+		return {
+			success: true,
+			users,
+			total,
+			page,
+			totalPages,
+			limit
+		};
+	}
+
+	async createUser({ username, email, displayName, accessCode, isAdmin = false }) {
+		const errors = {};
+
+		// Validation
+		if (!username || username.trim().length < 2) {
+			errors.username = 'Username must be at least 2 characters';
+		}
+
+		if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+			errors.email = 'Valid email is required';
+		}
+
+		if (!displayName || displayName.trim().length < 1) {
+			errors.displayName = 'Display name is required';
+		}
+
+		if (!accessCode || accessCode.length < 6) {
+			errors.accessCode = 'Access code must be at least 6 characters';
+		}
+
+		if (Object.keys(errors).length > 0) {
+			throw new Error('Validation failed: ' + Object.values(errors).join(', '));
+		}
+
+		// Check for duplicate username
+		const existingUser = await this.db.get('SELECT id FROM users WHERE username = ?', [username]);
+		if (existingUser) {
+			throw new Error('A user with this username already exists');
+		}
+
+		// Check for duplicate email
+		const existingEmail = await this.db.get('SELECT id FROM users WHERE email = ?', [email]);
+		if (existingEmail) {
+			throw new Error('A user with this email already exists');
+		}
+
+		// Hash access code
+		const passwordHash = await bcrypt.hash(accessCode, 10);
+
+		try {
+			const result = await this.db.run(`
+				INSERT INTO users (username, display_name, email, password_hash, is_admin)
+				VALUES (?, ?, ?, ?, ?)
+			`, [username, displayName, email, passwordHash, isAdmin ? 1 : 0]);
+
+			const user = await this.db.get(`
+				SELECT id, username, display_name, email, is_admin, created_at, updated_at as last_active
+				FROM users WHERE id = ?
+			`, [result.lastID]);
+
+			// Log the user creation
+			await this.daos.authEvents.logEvent(user.id, null, 'user_created', '127.0.0.1', 'Admin Interface', {
+				createdBy: 'admin',
+				isAdmin: isAdmin ? 1 : 0
+			});
+
+			return {
+				success: true,
+				user
+			};
+		} catch (error) {
+			throw new Error('Failed to create user: ' + error.message);
+		}
+	}
+
+	async updateUser(userId, updates) {
+		const allowedUpdates = ['username', 'email', 'displayName', 'isAdmin'];
+		const updateFields = {};
+		const params = [];
+
+		// Build update query dynamically
+		for (const [key, value] of Object.entries(updates)) {
+			if (allowedUpdates.includes(key)) {
+				if (key === 'displayName') {
+					updateFields.display_name = value;
+				} else if (key === 'isAdmin') {
+					updateFields.is_admin = value ? 1 : 0;
+				} else {
+					updateFields[key] = value;
+				}
+			}
+		}
+
+		if (Object.keys(updateFields).length === 0) {
+			throw new Error('No valid fields to update');
+		}
+
+		// Validation
+		if (updateFields.username && updateFields.username.trim().length < 2) {
+			throw new Error('Username must be at least 2 characters');
+		}
+
+		if (updateFields.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updateFields.email)) {
+			throw new Error('Valid email is required');
+		}
+
+		// Check for duplicates
+		if (updateFields.username) {
+			const existing = await this.db.get('SELECT id FROM users WHERE username = ? AND id != ?', [updateFields.username, userId]);
+			if (existing) {
+				throw new Error('A user with this username already exists');
+			}
+		}
+
+		if (updateFields.email) {
+			const existing = await this.db.get('SELECT id FROM users WHERE email = ? AND id != ?', [updateFields.email, userId]);
+			if (existing) {
+				throw new Error('A user with this email already exists');
+			}
+		}
+
+		// Prevent removing admin privileges from the last admin
+		if (updateFields.is_admin === 0) {
+			const adminCount = await this.db.get('SELECT COUNT(*) as count FROM users WHERE is_admin = 1');
+			const userToUpdate = await this.db.get('SELECT is_admin FROM users WHERE id = ?', [userId]);
+
+			if (userToUpdate.is_admin && adminCount.count <= 1) {
+				throw new Error('Cannot remove admin privileges from the last admin user');
+			}
+		}
+
+		try {
+			const setClause = Object.keys(updateFields).map(field => `${field} = ?`).join(', ');
+			const values = Object.values(updateFields);
+			values.push(userId);
+
+			await this.db.run(`UPDATE users SET ${setClause} WHERE id = ?`, values);
+
+			const user = await this.db.get(`
+				SELECT id, username, display_name, email, is_admin, created_at, updated_at as last_active
+				FROM users WHERE id = ?
+			`, [userId]);
+
+			// Log the user update
+			await this.daos.authEvents.logEvent(userId, null, 'user_updated', '127.0.0.1', 'Admin Interface', {
+				updatedFields: Object.keys(updateFields),
+				updatedBy: 'admin'
+			});
+
+			return {
+				success: true,
+				user
+			};
+		} catch (error) {
+			throw new Error('Failed to update user: ' + error.message);
+		}
 	}
 }

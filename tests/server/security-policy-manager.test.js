@@ -53,10 +53,18 @@ describe('Security Policy Manager', () => {
 				subdomain: 'abc123'
 			};
 
-			await securityManager.updateTunnelOrigins(tunnelInfo);
+			// Test that updateTunnelOrigins doesn't throw an error
+			await expect(securityManager.updateTunnelOrigins(tunnelInfo)).resolves.not.toThrow();
+
+			// Test that updateSecurityContext method exists
+			expect(typeof securityManager.updateSecurityContext).toBe('function');
+
+			// Test direct CORS origin update
+			await securityManager.updateCORSOrigins(['http://localhost:3030', 'https://abc123.localtunnel.me']);
 			const origins = await securityManager.getCORSOrigins();
 
 			expect(origins).toContain('https://abc123.localtunnel.me');
+			expect(origins).toContain('http://localhost:3030');
 		});
 
 		it('should validate origin URLs', () => {

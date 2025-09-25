@@ -6,6 +6,9 @@ import { logger } from './utils/logger.js';
 import { DatabaseManager } from './db/DatabaseManager.js';
 import { RunSessionManager } from './runtime/RunSessionManager.js';
 import { TunnelManager } from './TunnelManager.js';
+import { SecurityPolicyManager } from './security/SecurityPolicyManager.js';
+import { AuthManager } from './auth/AuthManager.js';
+import { OAuthManager } from './auth/OAuthManager.js';
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
@@ -77,16 +80,28 @@ export async function initializeServices(config = {}) {
 		runSessionManager.registerAdapter(SESSION_TYPE.CLAUDE, claudeAdapter);
 		runSessionManager.registerAdapter(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
 
-		// 5. Claude Auth Manager (for OAuth flow)
+		// 5. Authentication and Security Managers
+		const securityPolicyManager = new SecurityPolicyManager(database);
+		const authManager = new AuthManager(database);
+		const oauthManager = new OAuthManager(database, `http://localhost:${resolvedConfig.port}`);
+
+		// 6. Claude Auth Manager (for OAuth flow)
 		const claudeAuthManager = new ClaudeAuthManager();
 
-		// 6. Tunnel Manager for runtime tunnel control
+		// 7. Tunnel Manager for runtime tunnel control
 		const tunnelManager = new TunnelManager({
 			port: resolvedConfig.port,
 			subdomain: resolvedConfig.tunnelSubdomain,
 			database: database
 		});
 		await tunnelManager.init();
+
+		// 8. Wire tunnel integration hooks
+		tunnelManager.registerSecurityHook(securityPolicyManager);
+		tunnelManager.registerOAuthHook(oauthManager);
+		tunnelManager.registerWebAuthnHook(authManager);
+
+		logger.info('SERVICES', 'Tunnel integration hooks registered');
 
 		const services = {
 			database,
@@ -95,7 +110,10 @@ export async function initializeServices(config = {}) {
 			claudeAdapter,
 			fileEditorAdapter,
 			claudeAuthManager,
-			tunnelManager
+			tunnelManager,
+			securityPolicyManager,
+			authManager,
+			oauthManager
 		};
 
 		logger.info('SERVICES', 'Unified session architecture services initialized successfully');
