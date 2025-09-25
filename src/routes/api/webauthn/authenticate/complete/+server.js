@@ -21,17 +21,16 @@ export async function POST({ request }) {
 		}
 
 		// Complete authentication process
-		const result = await webauthnAdapter.completeAuthentication(
-			sessionId,
-			request,
-			{ credential }
-		);
+		const result = await webauthnAdapter.completeAuthentication(sessionId, request, { credential });
 
 		if (!result.success) {
-			return json({
-				error: 'Authentication failed',
-				details: result.message
-			}, { status: 401 });
+			return json(
+				{
+					error: 'Authentication failed',
+					details: result.message
+				},
+				{ status: 401 }
+			);
 		}
 
 		return json({
@@ -39,12 +38,14 @@ export async function POST({ request }) {
 			user: result.user,
 			authMethod: 'webauthn'
 		});
-
 	} catch (error) {
 		console.error('WebAuthn authentication complete error:', error);
-		return json({
-			error: 'Failed to complete WebAuthn authentication',
-			details: error.message
-		}, { status: 500 });
+		return json(
+			{
+				error: 'Failed to complete WebAuthn authentication',
+				details: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

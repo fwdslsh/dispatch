@@ -8,7 +8,15 @@ import { AuthEventDAO } from './AuthEvent.js';
 import { CertificateDAO } from './Certificate.js';
 
 // Export all data access objects
-export { UserDAO, AuthSessionDAO, UserDeviceDAO, WebAuthnCredentialDAO, OAuthAccountDAO, AuthEventDAO, CertificateDAO };
+export {
+	UserDAO,
+	AuthSessionDAO,
+	UserDeviceDAO,
+	WebAuthnCredentialDAO,
+	OAuthAccountDAO,
+	AuthEventDAO,
+	CertificateDAO
+};
 
 /**
  * Initialize all DAOs with a database manager instance

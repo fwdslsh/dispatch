@@ -55,11 +55,15 @@ export class OAuthManager {
 			// Save the updated URIs to database
 			if (updates.length > 0) {
 				const settings = await this.db.getSettingsByCategory('auth');
-				await this.db.setSettingsForCategory('auth', {
-					...settings,
-					oauth_redirect_uris: updates,
-					oauth_redirect_uris_updated_at: new Date().toISOString()
-				}, 'OAuth redirect URIs updated for tunnel');
+				await this.db.setSettingsForCategory(
+					'auth',
+					{
+						...settings,
+						oauth_redirect_uris: updates,
+						oauth_redirect_uris_updated_at: new Date().toISOString()
+					},
+					'OAuth redirect URIs updated for tunnel'
+				);
 
 				// Log event
 				await this.daos.authEvents.logEvent(
@@ -70,7 +74,7 @@ export class OAuthManager {
 					'redirect_uris_updated',
 					{
 						baseUrl: this.baseUrl,
-						providers: updates.map(u => u.provider),
+						providers: updates.map((u) => u.provider),
 						redirectUris: updates
 					}
 				);
@@ -130,10 +134,12 @@ export class OAuthManager {
 	async getOAuthConfig() {
 		try {
 			const settings = await this.db.getSettingsByCategory('auth');
-			return settings.oauth_providers || {
-				google: { enabled: false },
-				github: { enabled: false }
-			};
+			return (
+				settings.oauth_providers || {
+					google: { enabled: false },
+					github: { enabled: false }
+				}
+			);
 		} catch (error) {
 			logger.error('OAUTH', `Failed to get OAuth config: ${error.message}`);
 			return {
@@ -152,7 +158,7 @@ export class OAuthManager {
 			const validProviders = ['google', 'github'];
 			const sanitizedConfig = {};
 
-			Object.keys(config).forEach(provider => {
+			Object.keys(config).forEach((provider) => {
 				if (validProviders.includes(provider)) {
 					sanitizedConfig[provider] = {
 						enabled: Boolean(config[provider].enabled),
@@ -183,7 +189,7 @@ export class OAuthManager {
 		const config = await this.getOAuthConfig();
 		const enabledProviders = [];
 
-		Object.keys(config).forEach(provider => {
+		Object.keys(config).forEach((provider) => {
 			if (config[provider].enabled && config[provider].clientId && config[provider].clientSecret) {
 				enabledProviders.push(provider);
 			}
@@ -308,7 +314,12 @@ export class OAuthManager {
 				const existingUser = await this.daos.users.getByEmail(email);
 				if (existingUser) {
 					// Link OAuth account to existing user
-					const linkResult = await this.linkAccount(existingUser.id, oauthProfile, accessToken, refreshToken);
+					const linkResult = await this.linkAccount(
+						existingUser.id,
+						oauthProfile,
+						accessToken,
+						refreshToken
+					);
 					if (linkResult.success) {
 						return {
 							success: true,
@@ -375,7 +386,11 @@ export class OAuthManager {
 				}
 			} else {
 				// Create new user from OAuth profile
-				const createResult = await this.createUserFromOAuth(oauthProfile, accessToken, refreshToken);
+				const createResult = await this.createUserFromOAuth(
+					oauthProfile,
+					accessToken,
+					refreshToken
+				);
 				if (createResult.success) {
 					user = createResult.user;
 					account = createResult.account;
@@ -507,7 +522,11 @@ export class OAuthManager {
 	 * Extract email from OAuth profile
 	 */
 	extractEmail(oauthProfile) {
-		if (oauthProfile.emails && Array.isArray(oauthProfile.emails) && oauthProfile.emails.length > 0) {
+		if (
+			oauthProfile.emails &&
+			Array.isArray(oauthProfile.emails) &&
+			oauthProfile.emails.length > 0
+		) {
 			return oauthProfile.emails[0].value || oauthProfile.emails[0];
 		}
 		return oauthProfile.email || null;

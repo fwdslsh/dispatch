@@ -22,10 +22,7 @@
 	let deviceName = '';
 
 	onMount(async () => {
-		await Promise.all([
-			loadCredentials(),
-			checkAvailability()
-		]);
+		await Promise.all([loadCredentials(), checkAvailability()]);
 		loading = false;
 	});
 
@@ -118,9 +115,7 @@
 	{:else if error}
 		<div class="error">
 			<p>Error: {error}</p>
-			<Button variant="secondary" on:click={loadCredentials}>
-				Retry
-			</Button>
+			<Button variant="secondary" on:click={loadCredentials}>Retry</Button>
 		</div>
 	{:else}
 		<!-- Availability Status -->
@@ -154,7 +149,7 @@
 					<Button
 						variant="primary"
 						size="sm"
-						on:click={() => showRegisterForm = !showRegisterForm}
+						on:click={() => (showRegisterForm = !showRegisterForm)}
 					>
 						{showRegisterForm ? 'Cancel' : 'Add Passkey'}
 					</Button>
@@ -209,11 +204,7 @@
 									</div>
 								</div>
 							</div>
-							<Button
-								variant="danger"
-								size="sm"
-								on:click={() => confirmDelete(credential)}
-							>
+							<Button variant="danger" size="sm" on:click={() => confirmDelete(credential)}>
 								Remove
 							</Button>
 						</div>

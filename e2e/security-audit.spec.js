@@ -12,7 +12,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 
 			// Mock authentication endpoint to track attempts
 			let attemptCount = 0;
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				attemptCount++;
 				await route.fulfill({
 					status: 401,
@@ -51,7 +51,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 
 		test('prevents session hijacking', async ({ page }) => {
 			// Mock successful authentication
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -82,7 +82,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 			}, sessionToken);
 
 			// Mock session validation to reject reused token from different fingerprint
-			await page2.route('/api/auth/validate', async route => {
+			await page2.route('/api/auth/validate', async (route) => {
 				await route.fulfill({
 					status: 401,
 					contentType: 'application/json',
@@ -125,15 +125,13 @@ test.describe('Security Audit and Penetration Testing', () => {
 
 			// Mock endpoint to track SQL injection attempts
 			let injectionAttempted = false;
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				const body = await route.request().postData();
 				const data = JSON.parse(body);
 
 				// Check for SQL injection patterns
 				const sqlPatterns = ['DROP TABLE', 'UNION SELECT', '1=1', '; --', '/*', '*/'];
-				const hasSqlInjection = sqlPatterns.some(pattern =>
-					data.accessCode?.includes(pattern)
-				);
+				const hasSqlInjection = sqlPatterns.some((pattern) => data.accessCode?.includes(pattern));
 
 				if (hasSqlInjection) {
 					injectionAttempted = true;
@@ -184,15 +182,13 @@ test.describe('Security Audit and Penetration Testing', () => {
 
 		test('validates file uploads for certificate management', async ({ page }) => {
 			// This test would require admin access - mock for security testing
-			await page.route('/api/admin/certificates/upload', async route => {
+			await page.route('/api/admin/certificates/upload', async (route) => {
 				const request = route.request();
 				const contentType = request.headers()['content-type'];
 
 				// Check for malicious file types
 				const maliciousPatterns = ['.exe', '.php', '.jsp', '.bat', '.cmd'];
-				const isMalicious = maliciousPatterns.some(pattern =>
-					request.url().includes(pattern)
-				);
+				const isMalicious = maliciousPatterns.some((pattern) => request.url().includes(pattern));
 
 				if (isMalicious || !contentType?.includes('multipart/form-data')) {
 					await route.fulfill({
@@ -267,7 +263,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 			});
 
 			// Mock API to simulate regular user trying to access admin functions
-			await page.route('/api/admin/**', async route => {
+			await page.route('/api/admin/**', async (route) => {
 				await route.fulfill({
 					status: 403,
 					contentType: 'application/json',
@@ -299,7 +295,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 	test.describe('Session Security', () => {
 		test('enforces secure session timeouts', async ({ page }) => {
 			// Mock session that expires quickly for testing
-			await page.route('/api/auth/validate', async route => {
+			await page.route('/api/auth/validate', async (route) => {
 				await route.fulfill({
 					status: 401,
 					contentType: 'application/json',
@@ -319,7 +315,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 
 		test('properly destroys sessions on logout', async ({ page }) => {
 			// Mock successful authentication
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -333,7 +329,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 
 			// Mock logout endpoint
 			let sessionDestroyed = false;
-			await page.route('/api/auth/logout', async route => {
+			await page.route('/api/auth/logout', async (route) => {
 				sessionDestroyed = true;
 				await route.fulfill({
 					status: 200,
@@ -374,7 +370,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 
 		test('sets secure cookie attributes', async ({ page }) => {
 			// Mock login to set cookies
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -396,7 +392,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 			// Verify secure cookie attributes would be set
 			// (This is more of a server-side test, but validates the concept)
 			const cookies = await page.context().cookies();
-			const sessionCookie = cookies.find(c => c.name === 'sessionToken');
+			const sessionCookie = cookies.find((c) => c.name === 'sessionToken');
 
 			if (sessionCookie) {
 				expect(sessionCookie.httpOnly).toBe(true);
@@ -450,7 +446,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 	test.describe('Data Protection', () => {
 		test('prevents sensitive data exposure', async ({ page }) => {
 			// Test that sensitive data is not leaked in responses
-			await page.route('/api/admin/users', async route => {
+			await page.route('/api/admin/users', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -491,7 +487,7 @@ test.describe('Security Audit and Penetration Testing', () => {
 		test('implements proper audit logging', async ({ page }) => {
 			// Mock audit logging endpoint
 			let auditLogged = false;
-			await page.route('/api/admin/audit/logs', async route => {
+			await page.route('/api/admin/audit/logs', async (route) => {
 				auditLogged = true;
 				await route.fulfill({
 					status: 200,

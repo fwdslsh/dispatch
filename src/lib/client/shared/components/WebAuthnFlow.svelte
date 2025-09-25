@@ -96,10 +96,12 @@
 	function updateFlowContent() {
 		if (mode === 'register') {
 			flowTitle = 'Register Passkey';
-			flowDescription = 'Set up a passkey for secure, password-free authentication using your device\'s biometric sensors or security key.';
+			flowDescription =
+				"Set up a passkey for secure, password-free authentication using your device's biometric sensors or security key.";
 		} else {
 			flowTitle = 'Sign In with Passkey';
-			flowDescription = 'Use your previously registered passkey to sign in securely using your device\'s biometric sensors or security key.';
+			flowDescription =
+				"Use your previously registered passkey to sign in securely using your device's biometric sensors or security key.";
 		}
 	}
 
@@ -130,7 +132,6 @@
 				currentStep = 'error';
 				error = 'WebAuthn is not available in your current environment';
 			}
-
 		} catch (err) {
 			currentStep = 'error';
 			error = `Compatibility check failed: ${err.message}`;
@@ -192,7 +193,11 @@
 			});
 		}
 
-		if (!availability.platformAvailable && browserInfo.name === 'Chrome' && parseInt(browserInfo.version) < 85) {
+		if (
+			!availability.platformAvailable &&
+			browserInfo.name === 'Chrome' &&
+			parseInt(browserInfo.version) < 85
+		) {
 			recommendations.push({
 				type: 'version',
 				message: 'Chrome 85+ recommended for optimal WebAuthn support',
@@ -200,7 +205,11 @@
 			});
 		}
 
-		if (!availability.platformAvailable && browserInfo.name === 'Firefox' && parseInt(browserInfo.version) < 90) {
+		if (
+			!availability.platformAvailable &&
+			browserInfo.name === 'Firefox' &&
+			parseInt(browserInfo.version) < 90
+		) {
 			recommendations.push({
 				type: 'version',
 				message: 'Firefox 90+ recommended for platform authenticators',
@@ -239,7 +248,6 @@
 			setTimeout(() => {
 				open = false;
 			}, 2000);
-
 		} catch (err) {
 			console.error('WebAuthn flow error:', err);
 			currentStep = 'error';
@@ -423,11 +431,18 @@
 							<div class="compatibility-item" class:supported={browserCompatibility.supported}>
 								<span class="status-icon">{browserCompatibility.supported ? '✅' : '❌'}</span>
 								<span class="item-label">WebAuthn API Support</span>
-								<span class="item-details">{browserCompatibility.name} {browserCompatibility.version}</span>
+								<span class="item-details"
+									>{browserCompatibility.name} {browserCompatibility.version}</span
+								>
 							</div>
 
-							<div class="compatibility-item" class:supported={browserCompatibility.platformAuthenticator}>
-								<span class="status-icon">{browserCompatibility.platformAuthenticator ? '✅' : '⚠️'}</span>
+							<div
+								class="compatibility-item"
+								class:supported={browserCompatibility.platformAuthenticator}
+							>
+								<span class="status-icon"
+									>{browserCompatibility.platformAuthenticator ? '✅' : '⚠️'}</span
+								>
 								<span class="item-label">Platform Authenticator</span>
 								<span class="item-details">
 									{browserCompatibility.platformAuthenticator ? 'Available' : 'Not detected'}
@@ -456,7 +471,6 @@
 						</div>
 					{/if}
 				</div>
-
 			{:else if currentStep === 'ready'}
 				<div class="ready-state">
 					<div class="step-header">
@@ -470,11 +484,15 @@
 							<div class="instruction-list">
 								<div class="instruction-item">
 									<span class="instruction-number">1</span>
-									<span class="instruction-text">Click "Continue" to start the registration process</span>
+									<span class="instruction-text"
+										>Click "Continue" to start the registration process</span
+									>
 								</div>
 								<div class="instruction-item">
 									<span class="instruction-number">2</span>
-									<span class="instruction-text">Follow your browser's prompts to create a passkey</span>
+									<span class="instruction-text"
+										>Follow your browser's prompts to create a passkey</span
+									>
 								</div>
 								<div class="instruction-item">
 									<span class="instruction-number">3</span>
@@ -489,7 +507,8 @@
 								</div>
 								<div class="instruction-item">
 									<span class="instruction-number">2</span>
-									<span class="instruction-text">Use your registered biometric or security key</span>
+									<span class="instruction-text">Use your registered biometric or security key</span
+									>
 								</div>
 							</div>
 						{/if}
@@ -498,12 +517,15 @@
 							{#if browserCompatibility.name === 'Chrome'}
 								<div class="tip">
 									<span class="tip-icon">💡</span>
-									<span class="tip-text">Chrome tip: Look for the key icon in your address bar</span>
+									<span class="tip-text">Chrome tip: Look for the key icon in your address bar</span
+									>
 								</div>
 							{:else if browserCompatibility.name === 'Firefox'}
 								<div class="tip">
 									<span class="tip-icon">💡</span>
-									<span class="tip-text">Firefox tip: Check for security prompts at the top of the page</span>
+									<span class="tip-text"
+										>Firefox tip: Check for security prompts at the top of the page</span
+									>
 								</div>
 							{:else if browserCompatibility.name === 'Safari'}
 								<div class="tip">
@@ -523,15 +545,16 @@
 						</Button>
 					</div>
 				</div>
-
 			{:else if currentStep === 'authenticating'}
 				<div class="authenticating-state">
 					<div class="step-header">
 						<div class="step-icon animated-pulse">🔐</div>
 						<h3>{mode === 'register' ? 'Creating Passkey' : 'Authenticating'}</h3>
-						<p>{mode === 'register' ?
-							'Follow the prompts to create your passkey...' :
-							'Use your passkey to authenticate...'}</p>
+						<p>
+							{mode === 'register'
+								? 'Follow the prompts to create your passkey...'
+								: 'Use your passkey to authenticate...'}
+						</p>
 					</div>
 
 					<div class="auth-progress">
@@ -543,7 +566,9 @@
 							</div>
 							<div class="progress-step">
 								<span class="step-dot"></span>
-								<span class="step-label">{mode === 'register' ? 'Create passkey' : 'Verify identity'}</span>
+								<span class="step-label"
+									>{mode === 'register' ? 'Create passkey' : 'Verify identity'}</span
+								>
 							</div>
 							<div class="progress-step">
 								<span class="step-dot"></span>
@@ -561,15 +586,16 @@
 						</ul>
 					</div>
 				</div>
-
 			{:else if currentStep === 'success'}
 				<div class="success-state">
 					<div class="step-header">
 						<div class="step-icon success-icon">✅</div>
 						<h3>{mode === 'register' ? 'Passkey Created!' : 'Authentication Successful!'}</h3>
-						<p>{mode === 'register' ?
-							'Your passkey has been successfully registered.' :
-							'You have been authenticated successfully.'}</p>
+						<p>
+							{mode === 'register'
+								? 'Your passkey has been successfully registered.'
+								: 'You have been authenticated successfully.'}
+						</p>
 					</div>
 
 					<div class="success-details">
@@ -580,7 +606,6 @@
 						{/if}
 					</div>
 				</div>
-
 			{:else if currentStep === 'error'}
 				<div class="error-state">
 					<div class="step-header">
@@ -602,9 +627,7 @@
 					{/if}
 
 					<div class="error-actions">
-						<Button variant="secondary" onclick={retryFlow}>
-							Try Again
-						</Button>
+						<Button variant="secondary" onclick={retryFlow}>Try Again</Button>
 						{#if showCompatibilityCheck && currentStep === 'error'}
 							<Button variant="ghost" onclick={skipCompatibilityCheck}>
 								Skip Check & Continue
@@ -934,8 +957,13 @@
 
 	/* Animations */
 	@keyframes pulse {
-		0%, 100% { opacity: 1; }
-		50% { opacity: 0.5; }
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.5;
+		}
 	}
 
 	/* Mobile Responsiveness */

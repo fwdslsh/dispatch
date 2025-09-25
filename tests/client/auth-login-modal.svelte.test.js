@@ -49,14 +49,22 @@ describe('Authentication Login Modal', () => {
 
 		it('shows loading state initially', async () => {
 			// Mock slow API response
-			const mockFetch = vi.fn().mockImplementation(() =>
-				new Promise(resolve => setTimeout(() => resolve({
-					json: () => Promise.resolve({
-						success: true,
-						methods: { local: { available: true } },
-						hasAvailableMethods: true
-					})
-				}), 100))
+			const mockFetch = vi.fn().mockImplementation(
+				() =>
+					new Promise((resolve) =>
+						setTimeout(
+							() =>
+								resolve({
+									json: () =>
+										Promise.resolve({
+											success: true,
+											methods: { local: { available: true } },
+											hasAvailableMethods: true
+										})
+								}),
+							100
+						)
+					)
 			);
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -74,15 +82,16 @@ describe('Authentication Login Modal', () => {
 	describe('Authentication Method Adaptation', () => {
 		it('displays local authentication when available', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						local: { available: true, name: 'Access Code' },
-						webauthn: { available: false },
-						oauth: { available: false, providers: {} }
-					},
-					hasAvailableMethods: true
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							local: { available: true, name: 'Access Code' },
+							webauthn: { available: false },
+							oauth: { available: false, providers: {} }
+						},
+						hasAvailableMethods: true
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -103,15 +112,16 @@ describe('Authentication Login Modal', () => {
 
 		it('displays WebAuthn authentication when available', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						local: { available: false },
-						webauthn: { available: true, name: 'Passkey' },
-						oauth: { available: false, providers: {} }
-					},
-					hasAvailableMethods: true
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							local: { available: false },
+							webauthn: { available: true, name: 'Passkey' },
+							oauth: { available: false, providers: {} }
+						},
+						hasAvailableMethods: true
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -131,21 +141,22 @@ describe('Authentication Login Modal', () => {
 
 		it('displays OAuth providers when available', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						local: { available: false },
-						webauthn: { available: false },
-						oauth: {
-							available: true,
-							providers: {
-								google: { enabled: true, name: 'Google' },
-								github: { enabled: true, name: 'GitHub' }
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							local: { available: false },
+							webauthn: { available: false },
+							oauth: {
+								available: true,
+								providers: {
+									google: { enabled: true, name: 'Google' },
+									github: { enabled: true, name: 'GitHub' }
+								}
 							}
-						}
-					},
-					hasAvailableMethods: true
-				})
+						},
+						hasAvailableMethods: true
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -162,20 +173,21 @@ describe('Authentication Login Modal', () => {
 
 		it('displays multiple authentication methods when available', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						local: { available: true, name: 'Access Code' },
-						webauthn: { available: true, name: 'Passkey' },
-						oauth: {
-							available: true,
-							providers: {
-								google: { enabled: true, name: 'Google' }
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							local: { available: true, name: 'Access Code' },
+							webauthn: { available: true, name: 'Passkey' },
+							oauth: {
+								available: true,
+								providers: {
+									google: { enabled: true, name: 'Google' }
+								}
 							}
-						}
-					},
-					hasAvailableMethods: true
-				})
+						},
+						hasAvailableMethods: true
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -197,15 +209,16 @@ describe('Authentication Login Modal', () => {
 
 		it('shows no methods available message when no auth methods', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						local: { available: false },
-						webauthn: { available: false },
-						oauth: { available: false, providers: {} }
-					},
-					hasAvailableMethods: false
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							local: { available: false },
+							webauthn: { available: false },
+							oauth: { available: false, providers: {} }
+						},
+						hasAvailableMethods: false
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -215,7 +228,9 @@ describe('Authentication Login Modal', () => {
 
 			await waitFor(() => {
 				expect(container.textContent).toContain('Access Restricted');
-				expect(container.textContent).toContain('No authentication methods are currently available');
+				expect(container.textContent).toContain(
+					'No authentication methods are currently available'
+				);
 			});
 		});
 	});
@@ -223,9 +238,9 @@ describe('Authentication Login Modal', () => {
 	describe('Local Authentication Form', () => {
 		beforeEach(async () => {
 			// Mock auth config response
-			const mockFetch = vi.fn()
-				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
+			const mockFetch = vi.fn().mockResolvedValueOnce({
+				json: () =>
+					Promise.resolve({
 						success: true,
 						methods: {
 							local: { available: true, name: 'Access Code' },
@@ -234,7 +249,7 @@ describe('Authentication Login Modal', () => {
 						},
 						hasAvailableMethods: true
 					})
-				});
+			});
 			vi.stubGlobal('fetch', mockFetch);
 		});
 
@@ -278,22 +293,25 @@ describe('Authentication Login Modal', () => {
 			let authEvent = null;
 
 			// Mock successful auth config and login responses
-			const mockFetch = vi.fn()
+			const mockFetch = vi
+				.fn()
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						methods: {
-							local: { available: true, name: 'Access Code' }
-						},
-						hasAvailableMethods: true
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							methods: {
+								local: { available: true, name: 'Access Code' }
+							},
+							hasAvailableMethods: true
+						})
 				})
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						user: { id: 'user-1', email: 'test@example.com' },
-						token: 'auth-token-123'
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							user: { id: 'user-1', email: 'test@example.com' },
+							token: 'auth-token-123'
+						})
 				});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -341,21 +359,24 @@ describe('Authentication Login Modal', () => {
 
 		it('handles authentication errors', async () => {
 			// Mock failed authentication
-			const mockFetch = vi.fn()
+			const mockFetch = vi
+				.fn()
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						methods: {
-							local: { available: true, name: 'Access Code' }
-						},
-						hasAvailableMethods: true
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							methods: {
+								local: { available: true, name: 'Access Code' }
+							},
+							hasAvailableMethods: true
+						})
 				})
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: false,
-						error: 'Invalid access code'
-					})
+					json: () =>
+						Promise.resolve({
+							success: false,
+							error: 'Invalid access code'
+						})
 				});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -385,16 +406,17 @@ describe('Authentication Login Modal', () => {
 	describe('Security Context Warnings', () => {
 		it('shows tunnel warning for tunnel URLs', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						local: { available: true }
-					},
-					security: {
-						isTunnel: true
-					},
-					hasAvailableMethods: true
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							local: { available: true }
+						},
+						security: {
+							isTunnel: true
+						},
+						hasAvailableMethods: true
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -410,16 +432,17 @@ describe('Authentication Login Modal', () => {
 
 		it('shows security notice for non-HTTPS', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						local: { available: true }
-					},
-					security: {
-						isSecure: false
-					},
-					hasAvailableMethods: true
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							local: { available: true }
+						},
+						security: {
+							isSecure: false
+						},
+						hasAvailableMethods: true
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -445,7 +468,9 @@ describe('Authentication Login Modal', () => {
 
 			await waitFor(() => {
 				expect(container.textContent).toContain('Authentication Error');
-				expect(container.textContent).toContain('Network error loading authentication configuration');
+				expect(container.textContent).toContain(
+					'Network error loading authentication configuration'
+				);
 			});
 
 			// Should have retry button
@@ -455,10 +480,11 @@ describe('Authentication Login Modal', () => {
 
 		it('handles auth config API errors', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: false,
-					error: 'Configuration not available'
-				})
+				json: () =>
+					Promise.resolve({
+						success: false,
+						error: 'Configuration not available'
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -476,13 +502,14 @@ describe('Authentication Login Modal', () => {
 	describe('Accessibility', () => {
 		it('has proper ARIA attributes', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						local: { available: true }
-					},
-					hasAvailableMethods: true
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							local: { available: true }
+						},
+						hasAvailableMethods: true
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 

@@ -27,13 +27,15 @@ export async function GET({ url, request }) {
 			success: true,
 			credentials
 		});
-
 	} catch (error) {
 		console.error('WebAuthn credentials fetch error:', error);
-		return json({
-			error: 'Failed to get WebAuthn credentials',
-			details: error.message
-		}, { status: 500 });
+		return json(
+			{
+				error: 'Failed to get WebAuthn credentials',
+				details: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -53,12 +55,14 @@ export async function DELETE({ request }) {
 			success: true,
 			message: 'WebAuthn credential revoked successfully'
 		});
-
 	} catch (error) {
 		console.error('WebAuthn credential revoke error:', error);
-		return json({
-			error: 'Failed to revoke WebAuthn credential',
-			details: error.message
-		}, { status: 500 });
+		return json(
+			{
+				error: 'Failed to revoke WebAuthn credential',
+				details: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

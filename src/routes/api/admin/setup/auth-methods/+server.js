@@ -10,7 +10,10 @@ export async function POST({ request }) {
 		const { methods } = await request.json();
 
 		if (!methods || typeof methods !== 'object') {
-			return json({ success: false, error: 'Authentication methods configuration is required' }, { status: 400 });
+			return json(
+				{ success: false, error: 'Authentication methods configuration is required' },
+				{ status: 400 }
+			);
 		}
 
 		const settingsManager = globalThis.__API_SERVICES?.settingsManager;
@@ -38,7 +41,10 @@ export async function POST({ request }) {
 
 			await settingsManager.set('auth.webauthn.rp_id', hostname);
 			await settingsManager.set('auth.webauthn.rp_name', 'Dispatch');
-			await settingsManager.set('auth.webauthn.origin', `${protocol}://${hostname}${port !== '80' && port !== '443' ? `:${port}` : ''}`);
+			await settingsManager.set(
+				'auth.webauthn.origin',
+				`${protocol}://${hostname}${port !== '80' && port !== '443' ? `:${port}` : ''}`
+			);
 		}
 
 		// Configure OAuth settings if enabled (with default disabled providers)
@@ -60,7 +66,7 @@ export async function POST({ request }) {
 				ipAddress: 'system',
 				userAgent: 'onboarding',
 				metadata: {
-					configuredMethods: Object.keys(methods).filter(key => methods[key]),
+					configuredMethods: Object.keys(methods).filter((key) => methods[key]),
 					configuredBy: 'onboarding_flow'
 				}
 			});
@@ -69,14 +75,16 @@ export async function POST({ request }) {
 		return json({
 			success: true,
 			message: 'Authentication methods configured successfully',
-			configuredMethods: Object.keys(methods).filter(key => methods[key])
+			configuredMethods: Object.keys(methods).filter((key) => methods[key])
 		});
-
 	} catch (error) {
 		console.error('Error configuring authentication methods:', error);
-		return json({
-			success: false,
-			error: 'Failed to configure authentication methods'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to configure authentication methods'
+			},
+			{ status: 500 }
+		);
 	}
 }

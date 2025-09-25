@@ -24,19 +24,25 @@ export class UserDeviceDAO {
 
 		if (existing) {
 			// Update existing device
-			await this.db.run(`
+			await this.db.run(
+				`
 				UPDATE user_devices
 				SET last_seen_at = ?, last_ip_address = ?, user_agent = ?
 				WHERE device_fingerprint = ?
-			`, [Date.now(), ipAddress, userAgent, deviceFingerprint]);
+			`,
+				[Date.now(), ipAddress, userAgent, deviceFingerprint]
+			);
 
 			return this.getById(existing.id);
 		} else {
 			// Create new device
-			const result = await this.db.run(`
+			const result = await this.db.run(
+				`
 				INSERT INTO user_devices (user_id, device_name, device_fingerprint, last_ip_address, user_agent, is_trusted)
 				VALUES (?, ?, ?, ?, ?, ?)
-			`, [userId, deviceName, deviceFingerprint, ipAddress, userAgent, isTrusted ? 1 : 0]);
+			`,
+				[userId, deviceName, deviceFingerprint, ipAddress, userAgent, isTrusted ? 1 : 0]
+			);
 
 			return this.getById(result.lastID);
 		}
@@ -54,7 +60,9 @@ export class UserDeviceDAO {
 	 * Get device by fingerprint
 	 */
 	async getByFingerprint(fingerprint) {
-		const row = await this.db.get('SELECT * FROM user_devices WHERE device_fingerprint = ?', [fingerprint]);
+		const row = await this.db.get('SELECT * FROM user_devices WHERE device_fingerprint = ?', [
+			fingerprint
+		]);
 		return row ? this.mapRowToDevice(row) : null;
 	}
 
@@ -76,13 +84,13 @@ export class UserDeviceDAO {
 		if (!includeInactive) {
 			// Only show devices that have been seen recently (within last 30 days)
 			sql += ' AND d.last_seen_at > ?';
-			params.push(Date.now() - (30 * 24 * 60 * 60 * 1000));
+			params.push(Date.now() - 30 * 24 * 60 * 60 * 1000);
 		}
 
 		sql += ' ORDER BY d.last_seen_at DESC';
 
 		const rows = await this.db.all(sql, params);
-		return rows.map(row => this.mapRowToDevice(row, true));
+		return rows.map((row) => this.mapRowToDevice(row, true));
 	}
 
 	/**
@@ -113,7 +121,8 @@ export class UserDeviceDAO {
 		// Add pagination params
 		params.push(limit, offset);
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT d.*, u.username, u.display_name,
 			       (SELECT COUNT(*) FROM auth_sessions s
 			        WHERE s.device_id = d.id AND s.is_active = 1 AND s.expires_at > ?) as active_sessions
@@ -122,31 +131,39 @@ export class UserDeviceDAO {
 			${whereClause}
 			ORDER BY d.last_seen_at DESC
 			LIMIT ? OFFSET ?
-		`, params);
+		`,
+			params
+		);
 
-		return rows.map(row => this.mapRowToDevice(row, true));
+		return rows.map((row) => this.mapRowToDevice(row, true));
 	}
 
 	/**
 	 * Update device trust status
 	 */
 	async updateTrustStatus(deviceId, isTrusted) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE user_devices
 			SET is_trusted = ?
 			WHERE id = ?
-		`, [isTrusted ? 1 : 0, deviceId]);
+		`,
+			[isTrusted ? 1 : 0, deviceId]
+		);
 	}
 
 	/**
 	 * Update device name
 	 */
 	async updateDeviceName(deviceId, deviceName) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE user_devices
 			SET device_name = ?
 			WHERE id = ?
-		`, [deviceName, deviceId]);
+		`,
+			[deviceName, deviceId]
+		);
 	}
 
 	/**
@@ -154,11 +171,14 @@ export class UserDeviceDAO {
 	 */
 	async delete(deviceId) {
 		// First revoke all sessions for this device
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE auth_sessions
 			SET is_active = 0
 			WHERE device_id = ?
-		`, [deviceId]);
+		`,
+			[deviceId]
+		);
 
 		// Then delete the device
 		await this.db.run('DELETE FROM user_devices WHERE id = ?', [deviceId]);
@@ -174,17 +194,23 @@ export class UserDeviceDAO {
 			SELECT COUNT(*) as count FROM user_devices WHERE is_trusted = 1
 		`);
 
-		const recentDevices = await this.db.get(`
+		const recentDevices = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM user_devices
 			WHERE last_seen_at > ?
-		`, [Date.now() - (7 * 24 * 60 * 60 * 1000)]); // Last 7 days
+		`,
+			[Date.now() - 7 * 24 * 60 * 60 * 1000]
+		); // Last 7 days
 
-		const activeDevices = await this.db.get(`
+		const activeDevices = await this.db.get(
+			`
 			SELECT COUNT(DISTINCT d.id) as count
 			FROM user_devices d
 			JOIN auth_sessions s ON d.id = s.device_id
 			WHERE s.is_active = 1 AND s.expires_at > ?
-		`, [Date.now()]);
+		`,
+			[Date.now()]
+		);
 
 		return {
 			total: totalDevices.count,
@@ -198,28 +224,37 @@ export class UserDeviceDAO {
 	 * Clean up old inactive devices
 	 */
 	async cleanupInactive(daysOld = 90) {
-		const cutoffTime = Date.now() - (daysOld * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - daysOld * 24 * 60 * 60 * 1000;
 
 		// Get devices to be deleted
-		const devicesToDelete = await this.db.all(`
+		const devicesToDelete = await this.db.all(
+			`
 			SELECT id FROM user_devices
 			WHERE last_seen_at < ? AND is_trusted = 0
-		`, [cutoffTime]);
+		`,
+			[cutoffTime]
+		);
 
 		// Revoke sessions for these devices
 		for (const device of devicesToDelete) {
-			await this.db.run(`
+			await this.db.run(
+				`
 				UPDATE auth_sessions
 				SET is_active = 0
 				WHERE device_id = ?
-			`, [device.id]);
+			`,
+				[device.id]
+			);
 		}
 
 		// Delete the devices
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			DELETE FROM user_devices
 			WHERE last_seen_at < ? AND is_trusted = 0
-		`, [cutoffTime]);
+		`,
+			[cutoffTime]
+		);
 
 		return result.changes;
 	}
@@ -231,7 +266,8 @@ export class UserDeviceDAO {
 		const { page = 1, limit = 10 } = options;
 		const offset = (page - 1) * limit;
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT d.*,
 			       (SELECT COUNT(*) FROM auth_sessions s
 			        WHERE s.device_id = d.id AND s.is_active = 1 AND s.expires_at > ?) as active_sessions
@@ -239,14 +275,19 @@ export class UserDeviceDAO {
 			WHERE d.user_id = ?
 			ORDER BY d.last_seen_at DESC
 			LIMIT ? OFFSET ?
-		`, [Date.now(), userId, limit, offset]);
+		`,
+			[Date.now(), userId, limit, offset]
+		);
 
-		const devices = rows.map(row => this.mapRowToDevice(row));
+		const devices = rows.map((row) => this.mapRowToDevice(row));
 
 		// Get total count for pagination
-		const countResult = await this.db.get(`
+		const countResult = await this.db.get(
+			`
 			SELECT COUNT(*) as total FROM user_devices WHERE user_id = ?
-		`, [userId]);
+		`,
+			[userId]
+		);
 
 		return {
 			devices,

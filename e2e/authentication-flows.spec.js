@@ -14,12 +14,14 @@ test.describe('Authentication User Interaction Flows', () => {
 
 			// Should show authentication modal
 			await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
-			await expect(page.locator('[data-testid="auth-modal"] h2')).toContainText('Authentication Required');
+			await expect(page.locator('[data-testid="auth-modal"] h2')).toContainText(
+				'Authentication Required'
+			);
 		});
 
 		test('login modal adapts to available authentication methods', async ({ page }) => {
 			// Mock authentication configuration with multiple methods
-			await page.route('/api/auth/config', async route => {
+			await page.route('/api/auth/config', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -48,7 +50,7 @@ test.describe('Authentication User Interaction Flows', () => {
 
 		test('hides unavailable authentication methods', async ({ page }) => {
 			// Mock configuration with limited methods
-			await page.route('/api/auth/config', async route => {
+			await page.route('/api/auth/config', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -79,7 +81,7 @@ test.describe('Authentication User Interaction Flows', () => {
 	test.describe('Local Authentication Flow', () => {
 		test('successful local authentication', async ({ page }) => {
 			// Mock successful authentication
-			await page.route('/api/auth/local', async route => {
+			await page.route('/api/auth/local', async (route) => {
 				const request = route.request();
 				const postData = JSON.parse(request.postData());
 
@@ -118,7 +120,7 @@ test.describe('Authentication User Interaction Flows', () => {
 
 		test('handles invalid access code', async ({ page }) => {
 			// Mock failed authentication
-			await page.route('/api/auth/local', async route => {
+			await page.route('/api/auth/local', async (route) => {
 				await route.fulfill({
 					status: 400,
 					contentType: 'application/json',
@@ -145,8 +147,8 @@ test.describe('Authentication User Interaction Flows', () => {
 
 		test('shows loading state during authentication', async ({ page }) => {
 			// Mock slow authentication response
-			await page.route('/api/auth/local', async route => {
-				await new Promise(resolve => setTimeout(resolve, 1000));
+			await page.route('/api/auth/local', async (route) => {
+				await new Promise((resolve) => setTimeout(resolve, 1000));
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -198,7 +200,7 @@ test.describe('Authentication User Interaction Flows', () => {
 			await page.goto('/auth/callback?provider=google&code=auth-code&state=valid-state');
 
 			// Mock successful OAuth completion
-			await page.route('/api/auth/google/callback*', async route => {
+			await page.route('/api/auth/google/callback*', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -224,7 +226,9 @@ test.describe('Authentication User Interaction Flows', () => {
 
 			// Should show error message
 			await expect(page.locator('[data-testid="auth-error"]')).toBeVisible();
-			await expect(page.locator('[data-testid="auth-error"]')).toContainText('OAuth authentication was cancelled');
+			await expect(page.locator('[data-testid="auth-error"]')).toContainText(
+				'OAuth authentication was cancelled'
+			);
 		});
 	});
 
@@ -242,7 +246,7 @@ test.describe('Authentication User Interaction Flows', () => {
 				};
 			});
 
-			await page.route('/api/auth/config', async route => {
+			await page.route('/api/auth/config', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -269,7 +273,7 @@ test.describe('Authentication User Interaction Flows', () => {
 				delete window.PublicKeyCredential;
 			});
 
-			await page.route('/api/auth/config', async route => {
+			await page.route('/api/auth/config', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -295,22 +299,23 @@ test.describe('Authentication User Interaction Flows', () => {
 					isUserVerifyingPlatformAuthenticatorAvailable: () => Promise.resolve(true)
 				};
 				window.navigator.credentials = {
-					get: () => Promise.resolve({
-						id: 'credential-id',
-						rawId: new ArrayBuffer(8),
-						type: 'public-key',
-						response: {
-							clientDataJSON: new ArrayBuffer(8),
-							authenticatorData: new ArrayBuffer(8),
-							signature: new ArrayBuffer(8),
-							userHandle: new ArrayBuffer(8)
-						}
-					})
+					get: () =>
+						Promise.resolve({
+							id: 'credential-id',
+							rawId: new ArrayBuffer(8),
+							type: 'public-key',
+							response: {
+								clientDataJSON: new ArrayBuffer(8),
+								authenticatorData: new ArrayBuffer(8),
+								signature: new ArrayBuffer(8),
+								userHandle: new ArrayBuffer(8)
+							}
+						})
 				};
 			});
 
 			// Mock WebAuthn API endpoints
-			await page.route('/api/webauthn/authenticate/begin', async route => {
+			await page.route('/api/webauthn/authenticate/begin', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -325,7 +330,7 @@ test.describe('Authentication User Interaction Flows', () => {
 				});
 			});
 
-			await page.route('/api/webauthn/authenticate/complete', async route => {
+			await page.route('/api/webauthn/authenticate/complete', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -360,7 +365,7 @@ test.describe('Authentication User Interaction Flows', () => {
 				};
 			});
 
-			await page.route('/api/webauthn/authenticate/begin', async route => {
+			await page.route('/api/webauthn/authenticate/begin', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -382,14 +387,16 @@ test.describe('Authentication User Interaction Flows', () => {
 
 			// Should show error message
 			await expect(page.locator('[data-testid="auth-error"]')).toBeVisible();
-			await expect(page.locator('[data-testid="auth-error"]')).toContainText('User cancelled authentication');
+			await expect(page.locator('[data-testid="auth-error"]')).toContainText(
+				'User cancelled authentication'
+			);
 		});
 	});
 
 	test.describe('Authentication State Persistence', () => {
 		test('maintains authentication across page reloads', async ({ page }) => {
 			// Mock successful authentication
-			await page.route('/api/auth/local', async route => {
+			await page.route('/api/auth/local', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -402,7 +409,7 @@ test.describe('Authentication User Interaction Flows', () => {
 			});
 
 			// Mock authentication verification
-			await page.route('/api/auth/verify', async route => {
+			await page.route('/api/auth/verify', async (route) => {
 				const authHeader = route.request().headers()['authorization'];
 				if (authHeader === 'Bearer auth-token-123') {
 					await route.fulfill({
@@ -439,7 +446,7 @@ test.describe('Authentication User Interaction Flows', () => {
 
 		test('redirects to login when authentication expires', async ({ page }) => {
 			// Mock expired token
-			await page.route('/api/auth/verify', async route => {
+			await page.route('/api/auth/verify', async (route) => {
 				await route.fulfill({
 					status: 401,
 					contentType: 'application/json',
@@ -492,9 +499,9 @@ test.describe('Authentication User Interaction Flows', () => {
 		});
 
 		test('shows appropriate loading indicators', async ({ page }) => {
-			await page.route('/api/auth/local', async route => {
+			await page.route('/api/auth/local', async (route) => {
 				// Add delay to see loading state
-				await new Promise(resolve => setTimeout(resolve, 500));
+				await new Promise((resolve) => setTimeout(resolve, 500));
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -524,7 +531,7 @@ test.describe('Authentication User Interaction Flows', () => {
 		});
 
 		test('displays appropriate error messages', async ({ page }) => {
-			await page.route('/api/auth/local', async route => {
+			await page.route('/api/auth/local', async (route) => {
 				await route.fulfill({
 					status: 400,
 					contentType: 'application/json',
@@ -543,7 +550,9 @@ test.describe('Authentication User Interaction Flows', () => {
 
 			// Should show detailed error message
 			await expect(page.locator('[data-testid="auth-error"]')).toBeVisible();
-			await expect(page.locator('[data-testid="auth-error"]')).toContainText('The provided access code is incorrect or has expired');
+			await expect(page.locator('[data-testid="auth-error"]')).toContainText(
+				'The provided access code is incorrect or has expired'
+			);
 
 			// Error should have proper ARIA attributes
 			await expect(page.locator('[data-testid="auth-error"]')).toHaveAttribute('role', 'alert');
@@ -576,7 +585,7 @@ test.describe('Authentication User Interaction Flows', () => {
 		test('supports touch interactions on mobile', async ({ page }) => {
 			await page.setViewportSize({ width: 375, height: 667 });
 
-			await page.route('/api/auth/local', async route => {
+			await page.route('/api/auth/local', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',

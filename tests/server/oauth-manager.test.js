@@ -138,11 +138,14 @@ describe('OAuth Manager', () => {
 	describe('Account Linking', () => {
 		beforeEach(async () => {
 			// Create OAuth account for testing
-			await db.run(`
+			await db.run(
+				`
 				INSERT INTO oauth_accounts (user_id, provider, provider_account_id,
 					provider_email, provider_name, access_token)
 				VALUES (?, 'google', '12345', 'test@example.com', 'Test User', 'access-token')
-			`, [testUserId]);
+			`,
+				[testUserId]
+			);
 		});
 
 		it('should find user by OAuth account', async () => {
@@ -161,7 +164,11 @@ describe('OAuth Manager', () => {
 				username: 'testuser-gh'
 			};
 
-			const result = await oauthManager.linkAccount(testUserId, oauthProfile, 'github-access-token');
+			const result = await oauthManager.linkAccount(
+				testUserId,
+				oauthProfile,
+				'github-access-token'
+			);
 
 			expect(result.success).toBe(true);
 			expect(result.account).toHaveProperty('provider', 'github');
@@ -204,11 +211,14 @@ describe('OAuth Manager', () => {
 
 		beforeEach(async () => {
 			// Create OAuth account for testing
-			const result = await db.run(`
+			const result = await db.run(
+				`
 				INSERT INTO oauth_accounts (user_id, provider, provider_account_id,
 					provider_email, access_token, refresh_token, token_expires_at)
 				VALUES (?, 'google', '12345', 'test@example.com', 'old-token', 'refresh-token', ?)
-			`, [testUserId, Date.now() + 3600000]); // Expires in 1 hour
+			`,
+				[testUserId, Date.now() + 3600000]
+			); // Expires in 1 hour
 			accountId = result.lastID;
 		});
 
@@ -231,11 +241,14 @@ describe('OAuth Manager', () => {
 
 		it('should get accounts with expired tokens', async () => {
 			// Create account with expired token
-			await db.run(`
+			await db.run(
+				`
 				INSERT INTO oauth_accounts (user_id, provider, provider_account_id,
 					provider_email, access_token, token_expires_at)
 				VALUES (?, 'github', '67890', 'expired@example.com', 'expired-token', ?)
-			`, [testUserId, Date.now() - 3600000]); // Expired 1 hour ago
+			`,
+				[testUserId, Date.now() - 3600000]
+			); // Expired 1 hour ago
 
 			const expiredAccounts = await oauthManager.getExpiredTokens();
 
@@ -269,9 +282,9 @@ describe('OAuth Manager', () => {
 
 	describe('Error Handling', () => {
 		it('should handle invalid provider', async () => {
-			await expect(
-				oauthManager.getProviderConfig('invalid-provider')
-			).rejects.toThrow('Unsupported OAuth provider: invalid-provider');
+			await expect(oauthManager.getProviderConfig('invalid-provider')).rejects.toThrow(
+				'Unsupported OAuth provider: invalid-provider'
+			);
 		});
 
 		it('should handle missing OAuth configuration', async () => {
@@ -328,7 +341,7 @@ describe('OAuth Manager', () => {
 
 			// Mock time passage by manipulating state directly
 			const stateData = oauthManager.pendingStates.get(state);
-			stateData.timestamp = Date.now() - (6 * 60 * 1000); // 6 minutes ago
+			stateData.timestamp = Date.now() - 6 * 60 * 1000; // 6 minutes ago
 
 			// Cleanup should remove expired state
 			oauthManager.cleanupExpiredStates();

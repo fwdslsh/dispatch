@@ -19,30 +19,33 @@ export async function POST({ request }) {
 		// Check if WebAuthn is available
 		const isAvailable = await webauthnAdapter.isAvailable(request);
 		if (!isAvailable) {
-			return json({
-				error: 'WebAuthn not available',
-				details: 'HTTPS required (except localhost) and stable hostname needed for WebAuthn'
-			}, { status: 400 });
+			return json(
+				{
+					error: 'WebAuthn not available',
+					details: 'HTTPS required (except localhost) and stable hostname needed for WebAuthn'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Begin authentication process
-		const authData = await webauthnAdapter.beginAuthentication(
-			request,
-			'webauthn-authenticate',
-			{ username }
-		);
+		const authData = await webauthnAdapter.beginAuthentication(request, 'webauthn-authenticate', {
+			username
+		});
 
 		return json({
 			success: true,
 			sessionId: authData.sessionId,
 			challenge: authData.challenge
 		});
-
 	} catch (error) {
 		console.error('WebAuthn authentication begin error:', error);
-		return json({
-			error: 'Failed to begin WebAuthn authentication',
-			details: error.message
-		}, { status: 500 });
+		return json(
+			{
+				error: 'Failed to begin WebAuthn authentication',
+				details: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

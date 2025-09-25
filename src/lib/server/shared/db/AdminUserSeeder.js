@@ -63,7 +63,10 @@ export class AdminUserSeeder {
 				isActive: true
 			});
 
-			logger.info('SEEDER', `Created initial admin user: ${adminUser.username} (ID: ${adminUser.id})`);
+			logger.info(
+				'SEEDER',
+				`Created initial admin user: ${adminUser.username} (ID: ${adminUser.id})`
+			);
 
 			// Log the admin creation event
 			await this.daos.authEvents.create({
@@ -76,7 +79,6 @@ export class AdminUserSeeder {
 			});
 
 			return adminUser;
-
 		} catch (error) {
 			logger.error('SEEDER', `Failed to create initial admin user: ${error.message}`);
 			throw error;
@@ -87,12 +89,7 @@ export class AdminUserSeeder {
 	 * Create admin user from command line or setup process
 	 */
 	async createAdminInteractive(adminData) {
-		const {
-			username,
-			password,
-			email = null,
-			displayName = null
-		} = adminData;
+		const { username, password, email = null, displayName = null } = adminData;
 
 		// Validate input
 		if (!username || username.length < 3) {
@@ -135,7 +132,6 @@ export class AdminUserSeeder {
 			});
 
 			return adminUser;
-
 		} catch (error) {
 			logger.error('SEEDER', `Failed to create admin user: ${error.message}`);
 			throw error;
@@ -179,7 +175,6 @@ export class AdminUserSeeder {
 			});
 
 			return adminUser;
-
 		} catch (error) {
 			logger.error('SEEDER', `Failed to update admin password: ${error.message}`);
 			throw error;
@@ -207,7 +202,6 @@ export class AdminUserSeeder {
 			// Check hashed password
 			const isValid = await this.verifyPassword(password, user.passwordHash);
 			return isValid ? user : null;
-
 		} catch (error) {
 			logger.error('SEEDER', `Failed to verify admin credentials: ${error.message}`);
 			return null;
@@ -242,7 +236,6 @@ export class AdminUserSeeder {
 				needsPasswordUpdate: isLegacyAuth,
 				totalAdmins: admins.length
 			};
-
 		} catch (error) {
 			logger.error('SEEDER', `Failed to get setup status: ${error.message}`);
 			return {
@@ -289,7 +282,6 @@ export class AdminUserSeeder {
 			});
 
 			return user;
-
 		} catch (error) {
 			logger.error('SEEDER', `Failed to migrate from terminal key: ${error.message}`);
 			throw error;

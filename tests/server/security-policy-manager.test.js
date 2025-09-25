@@ -60,7 +60,10 @@ describe('Security Policy Manager', () => {
 			expect(typeof securityManager.updateSecurityContext).toBe('function');
 
 			// Test direct CORS origin update
-			await securityManager.updateCORSOrigins(['http://localhost:3030', 'https://abc123.localtunnel.me']);
+			await securityManager.updateCORSOrigins([
+				'http://localhost:3030',
+				'https://abc123.localtunnel.me'
+			]);
 			const origins = await securityManager.getCORSOrigins();
 
 			expect(origins).toContain('https://abc123.localtunnel.me');
@@ -191,7 +194,7 @@ describe('Security Policy Manager', () => {
 			securityManager.storeCSRFToken(sessionId, token);
 
 			// Mock token as expired
-			securityManager.csrfTokens.get(sessionId).timestamp = Date.now() - (2 * 60 * 60 * 1000); // 2 hours ago
+			securityManager.csrfTokens.get(sessionId).timestamp = Date.now() - 2 * 60 * 60 * 1000; // 2 hours ago
 
 			securityManager.cleanupExpiredCSRFTokens();
 

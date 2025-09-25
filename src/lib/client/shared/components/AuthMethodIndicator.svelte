@@ -1,20 +1,17 @@
 <script>
 	import { SecurityState } from '../state/SecurityState.svelte.js';
 
-	let {
-		method = '',
-		showStatus = true,
-		showReason = true,
-		compact = false
-	} = $props();
+	let { method = '', showStatus = true, showReason = true, compact = false } = $props();
 
 	const securityState = new SecurityState();
 
 	const methodConfig = $derived(() => {
-		return securityState.methodAvailability[method] || {
-			available: false,
-			reason: 'Unknown method'
-		};
+		return (
+			securityState.methodAvailability[method] || {
+				available: false,
+				reason: 'Unknown method'
+			}
+		);
 	});
 
 	const methodDisplayName = $derived(() => {

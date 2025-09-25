@@ -36,13 +36,15 @@ export async function GET({ url, request }) {
 				context
 			}
 		});
-
 	} catch (error) {
 		console.error('Error getting security policies:', error);
-		return json({
-			success: false,
-			error: error.message
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -75,22 +77,27 @@ export async function PUT({ request, url }) {
 				break;
 
 			default:
-				return json({
-					success: false,
-					error: `Unknown policy type: ${policy}`
-				}, { status: 400 });
+				return json(
+					{
+						success: false,
+						error: `Unknown policy type: ${policy}`
+					},
+					{ status: 400 }
+				);
 		}
 
 		return json({
 			success: true,
 			message: `${policy} policy updated successfully`
 		});
-
 	} catch (error) {
 		console.error('Error updating security policy:', error);
-		return json({
-			success: false,
-			error: error.message
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

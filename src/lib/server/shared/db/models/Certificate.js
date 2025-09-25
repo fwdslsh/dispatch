@@ -22,12 +22,24 @@ export class CertificateDAO {
 			autoRenew = false
 		} = certificateData;
 
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			INSERT INTO certificates (cert_type, domain, certificate_pem, private_key_pem,
 			                        ca_certificate_pem, issued_at, expires_at, is_active, auto_renew)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`, [certType, domain, certificatePem, privateKeyPem, caCertificatePem,
-		    issuedAt, expiresAt, isActive ? 1 : 0, autoRenew ? 1 : 0]);
+		`,
+			[
+				certType,
+				domain,
+				certificatePem,
+				privateKeyPem,
+				caCertificatePem,
+				issuedAt,
+				expiresAt,
+				isActive ? 1 : 0,
+				autoRenew ? 1 : 0
+			]
+		);
 
 		return this.getById(result.lastID);
 	}
@@ -44,12 +56,15 @@ export class CertificateDAO {
 	 * Get certificate by domain
 	 */
 	async getByDomain(domain) {
-		const row = await this.db.get(`
+		const row = await this.db.get(
+			`
 			SELECT * FROM certificates
 			WHERE domain = ? AND is_active = 1
 			ORDER BY created_at DESC
 			LIMIT 1
-		`, [domain]);
+		`,
+			[domain]
+		);
 
 		return row ? this.mapRowToCertificate(row) : null;
 	}
@@ -58,12 +73,15 @@ export class CertificateDAO {
 	 * Get active certificate by type and domain
 	 */
 	async getActive(certType, domain) {
-		const row = await this.db.get(`
+		const row = await this.db.get(
+			`
 			SELECT * FROM certificates
 			WHERE cert_type = ? AND domain = ? AND is_active = 1
 			ORDER BY created_at DESC
 			LIMIT 1
-		`, [certType, domain]);
+		`,
+			[certType, domain]
+		);
 
 		return row ? this.mapRowToCertificate(row) : null;
 	}
@@ -100,7 +118,7 @@ export class CertificateDAO {
 		}
 
 		if (expiringSoon) {
-			const soonTime = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
+			const soonTime = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
 			conditions.push('expires_at IS NOT NULL AND expires_at < ?');
 			params.push(soonTime);
 		}
@@ -109,20 +127,26 @@ export class CertificateDAO {
 
 		params.push(limit, offset);
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT * FROM certificates
 			${whereClause}
 			ORDER BY created_at DESC
 			LIMIT ? OFFSET ?
-		`, params);
+		`,
+			params
+		);
 
-		const certificates = rows.map(row => this.mapRowToCertificate(row));
+		const certificates = rows.map((row) => this.mapRowToCertificate(row));
 
 		// Get total count for pagination
 		const countParams = params.slice(0, -2); // Remove limit and offset
-		const countResult = await this.db.get(`
+		const countResult = await this.db.get(
+			`
 			SELECT COUNT(*) as total FROM certificates ${whereClause}
-		`, countParams);
+		`,
+			countParams
+		);
 
 		return {
 			certificates,
@@ -140,14 +164,19 @@ export class CertificateDAO {
 	 */
 	async update(certificateId, updateData) {
 		const allowedFields = [
-			'certificate_pem', 'private_key_pem', 'ca_certificate_pem',
-			'issued_at', 'expires_at', 'is_active', 'auto_renew'
+			'certificate_pem',
+			'private_key_pem',
+			'ca_certificate_pem',
+			'issued_at',
+			'expires_at',
+			'is_active',
+			'auto_renew'
 		];
 
 		const updates = [];
 		const params = [];
 
-		Object.keys(updateData).forEach(key => {
+		Object.keys(updateData).forEach((key) => {
 			if (allowedFields.includes(key)) {
 				updates.push(`${key} = ?`);
 				params.push(updateData[key]);
@@ -160,11 +189,14 @@ export class CertificateDAO {
 
 		params.push(Date.now(), certificateId);
 
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE certificates
 			SET ${updates.join(', ')}, updated_at = ?
 			WHERE id = ?
-		`, params);
+		`,
+			params
+		);
 
 		return this.getById(certificateId);
 	}
@@ -179,18 +211,24 @@ export class CertificateDAO {
 		}
 
 		// Deactivate other certificates of same type and domain
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE certificates
 			SET is_active = 0, updated_at = ?
 			WHERE cert_type = ? AND domain = ? AND id != ?
-		`, [Date.now(), cert.certType, cert.domain, certificateId]);
+		`,
+			[Date.now(), cert.certType, cert.domain, certificateId]
+		);
 
 		// Activate this certificate
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE certificates
 			SET is_active = 1, updated_at = ?
 			WHERE id = ?
-		`, [Date.now(), certificateId]);
+		`,
+			[Date.now(), certificateId]
+		);
 
 		return this.getById(certificateId);
 	}
@@ -199,11 +237,14 @@ export class CertificateDAO {
 	 * Deactivate certificate
 	 */
 	async deactivate(certificateId) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE certificates
 			SET is_active = 0, updated_at = ?
 			WHERE id = ?
-		`, [Date.now(), certificateId]);
+		`,
+			[Date.now(), certificateId]
+		);
 	}
 
 	/**
@@ -217,17 +258,20 @@ export class CertificateDAO {
 	 * Get certificates expiring soon
 	 */
 	async getExpiringSoon(days = 30) {
-		const futureTime = Date.now() + (days * 24 * 60 * 60 * 1000);
+		const futureTime = Date.now() + days * 24 * 60 * 60 * 1000;
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT * FROM certificates
 			WHERE expires_at IS NOT NULL
 			AND expires_at < ?
 			AND is_active = 1
 			ORDER BY expires_at ASC
-		`, [futureTime]);
+		`,
+			[futureTime]
+		);
 
-		return rows.map(row => this.mapRowToCertificate(row));
+		return rows.map((row) => this.mapRowToCertificate(row));
 	}
 
 	/**
@@ -236,32 +280,38 @@ export class CertificateDAO {
 	async getExpired() {
 		const now = Date.now();
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT * FROM certificates
 			WHERE expires_at IS NOT NULL
 			AND expires_at < ?
 			ORDER BY expires_at DESC
-		`, [now]);
+		`,
+			[now]
+		);
 
-		return rows.map(row => this.mapRowToCertificate(row));
+		return rows.map((row) => this.mapRowToCertificate(row));
 	}
 
 	/**
 	 * Get certificates eligible for auto-renewal
 	 */
 	async getAutoRenewEligible(days = 30) {
-		const futureTime = Date.now() + (days * 24 * 60 * 60 * 1000);
+		const futureTime = Date.now() + days * 24 * 60 * 60 * 1000;
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT * FROM certificates
 			WHERE auto_renew = 1
 			AND is_active = 1
 			AND expires_at IS NOT NULL
 			AND expires_at < ?
 			ORDER BY expires_at ASC
-		`, [futureTime]);
+		`,
+			[futureTime]
+		);
 
-		return rows.map(row => this.mapRowToCertificate(row));
+		return rows.map((row) => this.mapRowToCertificate(row));
 	}
 
 	/**
@@ -274,15 +324,21 @@ export class CertificateDAO {
 			SELECT COUNT(*) as count FROM certificates WHERE is_active = 1
 		`);
 
-		const expiredCerts = await this.db.get(`
+		const expiredCerts = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM certificates
 			WHERE expires_at IS NOT NULL AND expires_at < ?
-		`, [Date.now()]);
+		`,
+			[Date.now()]
+		);
 
-		const expiringSoon = await this.db.get(`
+		const expiringSoon = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM certificates
 			WHERE expires_at IS NOT NULL AND expires_at < ? AND expires_at > ?
-		`, [Date.now() + (30 * 24 * 60 * 60 * 1000), Date.now()]);
+		`,
+			[Date.now() + 30 * 24 * 60 * 60 * 1000, Date.now()]
+		);
 
 		const autoRenewEnabled = await this.db.get(`
 			SELECT COUNT(*) as count FROM certificates WHERE auto_renew = 1
@@ -310,12 +366,15 @@ export class CertificateDAO {
 	 * Clean up old inactive certificates
 	 */
 	async cleanupOldCertificates(daysOld = 90) {
-		const cutoffTime = Date.now() - (daysOld * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - daysOld * 24 * 60 * 60 * 1000;
 
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			DELETE FROM certificates
 			WHERE is_active = 0 AND updated_at < ?
-		`, [cutoffTime]);
+		`,
+			[cutoffTime]
+		);
 
 		return result.changes;
 	}

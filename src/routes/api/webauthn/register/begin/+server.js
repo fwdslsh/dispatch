@@ -23,10 +23,13 @@ export async function POST({ request }) {
 		// Check if WebAuthn is available
 		const isAvailable = await webauthnAdapter.isAvailable(request);
 		if (!isAvailable) {
-			return json({
-				error: 'WebAuthn not available',
-				details: 'HTTPS required (except localhost) and stable hostname needed for WebAuthn'
-			}, { status: 400 });
+			return json(
+				{
+					error: 'WebAuthn not available',
+					details: 'HTTPS required (except localhost) and stable hostname needed for WebAuthn'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Begin registration process
@@ -41,12 +44,14 @@ export async function POST({ request }) {
 			sessionId: registrationData.sessionId,
 			challenge: registrationData.challenge
 		});
-
 	} catch (error) {
 		console.error('WebAuthn registration begin error:', error);
-		return json({
-			error: 'Failed to begin WebAuthn registration',
-			details: error.message
-		}, { status: 500 });
+		return json(
+			{
+				error: 'Failed to begin WebAuthn registration',
+				details: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

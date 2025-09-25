@@ -59,10 +59,12 @@ export class DeviceManager {
 				deviceName
 			);
 
-			logger.info('DEVICE_MANAGER', `Registered device for user ${userId}: ${deviceName} (ID: ${device.id})`);
+			logger.info(
+				'DEVICE_MANAGER',
+				`Registered device for user ${userId}: ${deviceName} (ID: ${device.id})`
+			);
 
 			return device;
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Device registration error: ${error.message}`);
 			throw error;
@@ -84,11 +86,10 @@ export class DeviceManager {
 			// Add session information for each device
 			for (const device of result.devices) {
 				const sessions = await this.daos.authSessions.getByUserId(userId, false);
-				device.activeSessions = sessions.filter(s => s.deviceId === device.id).length;
+				device.activeSessions = sessions.filter((s) => s.deviceId === device.id).length;
 			}
 
 			return result;
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Failed to get user devices: ${error.message}`);
 			return { devices: [], pagination: { page: 1, limit: 50, total: 0, pages: 0 } };
@@ -131,7 +132,6 @@ export class DeviceManager {
 			}
 
 			return { success: true };
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Failed to set device trust: ${error.message}`);
 			return { success: false, error: 'Failed to update device trust status' };
@@ -161,7 +161,6 @@ export class DeviceManager {
 			logger.info('DEVICE_MANAGER', `Updated device ${deviceId} name to: ${newName}`);
 
 			return { success: true };
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Failed to update device name: ${error.message}`);
 			return { success: false, error: 'Failed to update device name' };
@@ -196,7 +195,6 @@ export class DeviceManager {
 			logger.info('DEVICE_MANAGER', `Revoked device: ${device.deviceName} (ID: ${deviceId})`);
 
 			return { success: true };
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Failed to revoke device: ${error.message}`);
 			return { success: false, error: 'Failed to revoke device' };
@@ -217,7 +215,7 @@ export class DeviceManager {
 			if (userDevices.length >= maxDevices) {
 				// If we're checking a specific device, see if it's already registered
 				if (deviceId) {
-					const existingDevice = userDevices.find(d => d.id === deviceId);
+					const existingDevice = userDevices.find((d) => d.id === deviceId);
 					if (existingDevice) {
 						return { compliant: true, reason: 'device_already_registered' };
 					}
@@ -232,7 +230,6 @@ export class DeviceManager {
 			}
 
 			return { compliant: true };
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Device policy validation error: ${error.message}`);
 			return { compliant: false, reason: 'policy_validation_error' };
@@ -247,11 +244,13 @@ export class DeviceManager {
 			const deletedCount = await this.daos.userDevices.cleanupInactive(daysOld);
 
 			if (deletedCount > 0) {
-				logger.info('DEVICE_MANAGER', `Cleaned up ${deletedCount} inactive devices older than ${daysOld} days`);
+				logger.info(
+					'DEVICE_MANAGER',
+					`Cleaned up ${deletedCount} inactive devices older than ${daysOld} days`
+				);
 			}
 
 			return deletedCount;
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Failed to cleanup inactive devices: ${error.message}`);
 			return 0;
@@ -287,8 +286,11 @@ export class DeviceManager {
 			// Add additional context for each device
 			for (const device of devices) {
 				// Get recent activity
-				const recentEvents = await this.daos.authEvents.getByDeviceId(device.id, { limit: 5, days: 30 });
-				device.recentActivity = recentEvents.map(event => ({
+				const recentEvents = await this.daos.authEvents.getByDeviceId(device.id, {
+					limit: 5,
+					days: 30
+				});
+				device.recentActivity = recentEvents.map((event) => ({
 					type: event.eventType,
 					timestamp: event.createdAt,
 					ipAddress: event.ipAddress
@@ -296,7 +298,6 @@ export class DeviceManager {
 			}
 
 			return devices;
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Failed to list all devices: ${error.message}`);
 			return [];
@@ -310,18 +311,13 @@ export class DeviceManager {
 		const { userAgent = '', ipAddress = '', userId = '', timestamp = Date.now() } = data;
 
 		// Create a hash from available device information
-		const fingerprintData = [
-			userAgent,
-			ipAddress,
-			userId,
-			timestamp.toString()
-		].join('|');
+		const fingerprintData = [userAgent, ipAddress, userId, timestamp.toString()].join('|');
 
 		// Simple hash function (in production, use crypto.createHash)
 		let hash = 0;
 		for (let i = 0; i < fingerprintData.length; i++) {
 			const char = fingerprintData.charCodeAt(i);
-			hash = ((hash << 5) - hash) + char;
+			hash = (hash << 5) - hash + char;
 			hash = hash & hash; // Convert to 32-bit integer
 		}
 
@@ -344,7 +340,7 @@ export class DeviceManager {
 				this.daos.authEvents.getByDeviceId(deviceId, { limit: 50, days: 30 })
 			]);
 
-			const deviceSessions = sessions.filter(s => s.deviceId === deviceId);
+			const deviceSessions = sessions.filter((s) => s.deviceId === deviceId);
 
 			// Security analysis
 			const analysis = {
@@ -368,7 +364,9 @@ export class DeviceManager {
 			}
 
 			// Recent activity bonus
-			const daysSinceLastSeen = Math.floor((Date.now() - device.lastSeenAt.getTime()) / (24 * 60 * 60 * 1000));
+			const daysSinceLastSeen = Math.floor(
+				(Date.now() - device.lastSeenAt.getTime()) / (24 * 60 * 60 * 1000)
+			);
 			if (daysSinceLastSeen <= 7) {
 				score += 15;
 			} else if (daysSinceLastSeen <= 30) {
@@ -379,21 +377,21 @@ export class DeviceManager {
 			}
 
 			// Multiple active sessions penalty
-			const activeSessions = deviceSessions.filter(s => s.isActive && s.expiresAt > new Date());
+			const activeSessions = deviceSessions.filter((s) => s.isActive && s.expiresAt > new Date());
 			if (activeSessions.length > 3) {
 				score -= 10;
 				analysis.warnings.push(`Device has ${activeSessions.length} active sessions`);
 			}
 
 			// Failed login attempts penalty
-			const failedLogins = events.filter(e => e.eventType === 'failed_login');
+			const failedLogins = events.filter((e) => e.eventType === 'failed_login');
 			if (failedLogins.length > 5) {
 				score -= 15;
 				analysis.warnings.push(`${failedLogins.length} failed login attempts from this device`);
 			}
 
 			// IP address consistency bonus
-			const uniqueIPs = new Set(events.filter(e => e.ipAddress).map(e => e.ipAddress));
+			const uniqueIPs = new Set(events.filter((e) => e.ipAddress).map((e) => e.ipAddress));
 			if (uniqueIPs.size === 1) {
 				score += 10;
 			} else if (uniqueIPs.size > 5) {
@@ -417,7 +415,6 @@ export class DeviceManager {
 			}
 
 			return analysis;
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Device security analysis error: ${error.message}`);
 			return { error: 'Failed to analyze device security' };
@@ -453,8 +450,11 @@ export class DeviceManager {
 				});
 			}
 
-			const successCount = results.filter(r => r.success).length;
-			logger.info('DEVICE_MANAGER', `Bulk ${operation}: ${successCount}/${deviceIds.length} devices processed successfully`);
+			const successCount = results.filter((r) => r.success).length;
+			logger.info(
+				'DEVICE_MANAGER',
+				`Bulk ${operation}: ${successCount}/${deviceIds.length} devices processed successfully`
+			);
 
 			return {
 				success: successCount > 0,
@@ -463,7 +463,6 @@ export class DeviceManager {
 				successful: successCount,
 				failed: deviceIds.length - successCount
 			};
-
 		} catch (error) {
 			logger.error('DEVICE_MANAGER', `Bulk operation error: ${error.message}`);
 			return {

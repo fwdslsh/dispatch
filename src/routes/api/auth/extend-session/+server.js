@@ -43,7 +43,7 @@ export async function POST({ request, getClientAddress }) {
 
 		// Extend session by default duration (e.g., 24 hours)
 		const extensionHours = 24;
-		const newExpiryDate = new Date(now.getTime() + (extensionHours * 60 * 60 * 1000));
+		const newExpiryDate = new Date(now.getTime() + extensionHours * 60 * 60 * 1000);
 
 		const extendedSession = await authManager.extendSession(currentSession.id, newExpiryDate);
 
@@ -85,13 +85,15 @@ export async function POST({ request, getClientAddress }) {
 			},
 			extendsUntil: newExpiryDate.toISOString()
 		});
-
 	} catch (error) {
 		console.error('Error extending session:', error);
-		return json({
-			success: false,
-			error: 'Failed to extend session'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to extend session'
+			},
+			{ status: 500 }
+		);
 	}
 }
 

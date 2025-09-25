@@ -9,7 +9,7 @@ test.describe('Graceful Degradation Testing', () => {
 	test.describe('Network Failure Graceful Degradation', () => {
 		test('handles authentication service unavailable', async ({ page }) => {
 			// Mock authentication service failure
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 503,
 					contentType: 'application/json',
@@ -21,7 +21,7 @@ test.describe('Graceful Degradation Testing', () => {
 				});
 			});
 
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				await route.fulfill({
 					status: 503,
 					contentType: 'application/json',
@@ -55,7 +55,7 @@ test.describe('Graceful Degradation Testing', () => {
 			let requestCount = 0;
 
 			// Simulate intermittent network issues
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				requestCount++;
 
 				if (requestCount <= 2) {
@@ -98,9 +98,9 @@ test.describe('Graceful Degradation Testing', () => {
 
 		test('handles slow network responses', async ({ page }) => {
 			// Simulate slow authentication responses
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				// Simulate slow network (2 seconds delay)
-				await new Promise(resolve => setTimeout(resolve, 2000));
+				await new Promise((resolve) => setTimeout(resolve, 2000));
 
 				await route.fulfill({
 					status: 200,
@@ -122,7 +122,9 @@ test.describe('Graceful Degradation Testing', () => {
 			await page.click('[data-testid="login-submit"]');
 
 			// Check for loading indicator
-			const loadingIndicator = page.locator('[data-testid="loading-spinner"], [data-testid="login-loading"]');
+			const loadingIndicator = page.locator(
+				'[data-testid="loading-spinner"], [data-testid="login-loading"]'
+			);
 			await expect(loadingIndicator).toBeVisible();
 
 			// Wait for completion
@@ -146,7 +148,7 @@ test.describe('Graceful Degradation Testing', () => {
 			});
 
 			// Mock fallback authentication methods
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -180,7 +182,7 @@ test.describe('Graceful Degradation Testing', () => {
 
 		test('handles OAuth service failure with fallback', async ({ page }) => {
 			// Mock OAuth service failures
-			await page.route('/api/auth/oauth/google', async route => {
+			await page.route('/api/auth/oauth/google', async (route) => {
 				await route.fulfill({
 					status: 503,
 					contentType: 'application/json',
@@ -191,7 +193,7 @@ test.describe('Graceful Degradation Testing', () => {
 				});
 			});
 
-			await page.route('/api/auth/oauth/github', async route => {
+			await page.route('/api/auth/oauth/github', async (route) => {
 				await route.fulfill({
 					status: 503,
 					contentType: 'application/json',
@@ -203,7 +205,7 @@ test.describe('Graceful Degradation Testing', () => {
 			});
 
 			// Mock successful fallback authentication
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -243,7 +245,7 @@ test.describe('Graceful Degradation Testing', () => {
 
 		test('handles database connectivity issues', async ({ page }) => {
 			// Mock database connectivity issues
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				await route.fulfill({
 					status: 500,
 					contentType: 'application/json',
@@ -256,7 +258,7 @@ test.describe('Graceful Degradation Testing', () => {
 			});
 
 			// Mock authentication endpoint with limited functionality
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 503,
 					contentType: 'application/json',
@@ -296,7 +298,7 @@ test.describe('Graceful Degradation Testing', () => {
 	test.describe('Partial Feature Degradation', () => {
 		test('handles admin interface degradation', async ({ page }) => {
 			// Mock successful basic authentication
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -310,7 +312,7 @@ test.describe('Graceful Degradation Testing', () => {
 			});
 
 			// Mock admin service degradation
-			await page.route('/api/admin/**', async route => {
+			await page.route('/api/admin/**', async (route) => {
 				const url = route.request().url();
 
 				// Some admin endpoints fail
@@ -374,7 +376,7 @@ test.describe('Graceful Degradation Testing', () => {
 
 		test('handles certificate management degradation', async ({ page }) => {
 			// Mock certificate service degradation
-			await page.route('/api/admin/certificates/**', async route => {
+			await page.route('/api/admin/certificates/**', async (route) => {
 				const url = route.request().url();
 
 				if (url.includes('upload') || url.includes('delete')) {
@@ -451,7 +453,7 @@ test.describe('Graceful Degradation Testing', () => {
 	test.describe('Session Recovery and Persistence', () => {
 		test('handles session recovery after service restart', async ({ page }) => {
 			// Set up initial authenticated session
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -473,7 +475,7 @@ test.describe('Graceful Degradation Testing', () => {
 
 			// Simulate service restart (session validation fails temporarily)
 			let serviceRestartComplete = false;
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				if (!serviceRestartComplete) {
 					// First few requests fail during "restart"
 					await route.fulfill({
@@ -535,7 +537,7 @@ test.describe('Graceful Degradation Testing', () => {
 
 		test('handles expired session graceful reauth', async ({ page }) => {
 			// Mock expired session scenario
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				await route.fulfill({
 					status: 401,
 					contentType: 'application/json',
@@ -549,7 +551,7 @@ test.describe('Graceful Degradation Testing', () => {
 			});
 
 			// Mock successful reauthentication
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -589,7 +591,7 @@ test.describe('Graceful Degradation Testing', () => {
 			let attemptCount = 0;
 
 			// Mock API that fails first few times then succeeds
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				attemptCount++;
 
 				if (attemptCount <= 3) {
@@ -629,7 +631,7 @@ test.describe('Graceful Degradation Testing', () => {
 
 		test('handles resource exhaustion gracefully', async ({ page }) => {
 			// Mock resource exhaustion scenarios
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 503,
 					contentType: 'application/json',
@@ -674,7 +676,7 @@ test.describe('Graceful Degradation Testing', () => {
 				certificates: 'available'
 			};
 
-			await page.route('/api/**', async route => {
+			await page.route('/api/**', async (route) => {
 				const url = route.request().url();
 
 				if (url.includes('/auth/')) {

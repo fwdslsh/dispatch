@@ -2,11 +2,7 @@
 	import { onMount } from 'svelte';
 
 	// Props
-	let {
-		apiClient,
-		isVisible = false,
-		selectedUserId = null
-	} = $props();
+	let { apiClient, isVisible = false, selectedUserId = null } = $props();
 
 	// State
 	let devices = $state([]);
@@ -102,7 +98,11 @@
 	}
 
 	async function revokeDevice(deviceId, deviceName) {
-		if (!confirm(`Are you sure you want to revoke device "${deviceName}"? This will end all active sessions for this device.`)) {
+		if (
+			!confirm(
+				`Are you sure you want to revoke device "${deviceName}"? This will end all active sessions for this device.`
+			)
+		) {
 			return;
 		}
 
@@ -213,7 +213,7 @@
 	}
 
 	function getDeviceSessionCount(deviceId) {
-		return activeSessions.filter(session => session.deviceId === deviceId).length;
+		return activeSessions.filter((session) => session.deviceId === deviceId).length;
 	}
 </script>
 
@@ -228,9 +228,7 @@
 				{/if}
 			</h3>
 			<div class="header-actions">
-				<button class="btn btn-secondary" onclick={loadDevices}>
-					Refresh
-				</button>
+				<button class="btn btn-secondary" onclick={loadDevices}> Refresh </button>
 			</div>
 		</div>
 
@@ -284,7 +282,7 @@
 										<button
 											class="btn btn-sm {device.isTrusted ? 'btn-warning' : 'btn-secondary'}"
 											onclick={() => toggleDeviceTrust(device.id, device.isTrusted)}
-											title="{device.isTrusted ? 'Remove trust' : 'Mark as trusted'}"
+											title={device.isTrusted ? 'Remove trust' : 'Mark as trusted'}
 										>
 											{device.isTrusted ? 'Untrust' : 'Trust'}
 										</button>
@@ -415,10 +413,20 @@
 				<div class="modal">
 					<div class="modal-header">
 						<h4>Rename Device</h4>
-						<button class="btn-close" onclick={() => { showRenameModal = false; }}>&times;</button>
+						<button
+							class="btn-close"
+							onclick={() => {
+								showRenameModal = false;
+							}}>&times;</button
+						>
 					</div>
 
-					<form onsubmit={(e) => { e.preventDefault(); renameDevice(); }}>
+					<form
+						onsubmit={(e) => {
+							e.preventDefault();
+							renameDevice();
+						}}
+					>
 						<div class="form-group">
 							<label for="deviceName">Device Name</label>
 							<input
@@ -431,12 +439,16 @@
 						</div>
 
 						<div class="modal-actions">
-							<button type="button" class="btn" onclick={() => { showRenameModal = false; }}>
+							<button
+								type="button"
+								class="btn"
+								onclick={() => {
+									showRenameModal = false;
+								}}
+							>
 								Cancel
 							</button>
-							<button type="submit" class="btn btn-primary">
-								Rename
-							</button>
+							<button type="submit" class="btn btn-primary"> Rename </button>
 						</div>
 					</form>
 				</div>
@@ -532,7 +544,7 @@
 		background: white;
 		border-radius: 8px;
 		padding: 16px;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 		border: 1px solid #ddd;
 	}
 
@@ -675,7 +687,7 @@
 		background: white;
 		border-radius: 6px;
 		overflow: hidden;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 	}
 
 	.sessions-table {

@@ -161,7 +161,8 @@ class SecurityState {
 				id: 'http-warning',
 				type: 'warning',
 				title: 'Insecure Connection',
-				message: 'You are using HTTP instead of HTTPS. Authentication data may be intercepted. Consider enabling HTTPS or using a tunnel service.',
+				message:
+					'You are using HTTP instead of HTTPS. Authentication data may be intercepted. Consider enabling HTTPS or using a tunnel service.',
 				dismissible: true,
 				actions: [
 					{
@@ -179,7 +180,8 @@ class SecurityState {
 				id: 'webauthn-tunnel-warning',
 				type: 'info',
 				title: 'WebAuthn on Tunnel Domain',
-				message: 'Your WebAuthn credentials are tied to the current tunnel domain. If the tunnel changes, you may need to re-register your devices.',
+				message:
+					'Your WebAuthn credentials are tied to the current tunnel domain. If the tunnel changes, you may need to re-register your devices.',
 				dismissible: true,
 				actions: [
 					{
@@ -192,16 +194,17 @@ class SecurityState {
 		}
 
 		// Limited auth methods warning
-		const availableMethods = Object.entries(this.methodAvailability)
-			.filter(([_, config]) => config.available)
-			.length;
+		const availableMethods = Object.entries(this.methodAvailability).filter(
+			([_, config]) => config.available
+		).length;
 
 		if (availableMethods === 1) {
 			newWarnings.push({
 				id: 'limited-auth-warning',
 				type: 'warning',
 				title: 'Limited Authentication Options',
-				message: 'Only one authentication method is available. Consider configuring additional methods for better security and convenience.',
+				message:
+					'Only one authentication method is available. Consider configuring additional methods for better security and convenience.',
 				dismissible: true,
 				actions: [
 					{
@@ -219,7 +222,8 @@ class SecurityState {
 				id: 'no-oauth-providers',
 				type: 'info',
 				title: 'OAuth Not Configured',
-				message: 'OAuth providers (Google, GitHub) are not configured. You can set them up for convenient authentication.',
+				message:
+					'OAuth providers (Google, GitHub) are not configured. You can set them up for convenient authentication.',
 				dismissible: true,
 				actions: [
 					{
@@ -236,7 +240,7 @@ class SecurityState {
 
 	// Add a new warning
 	addWarning(warning) {
-		const existingIndex = this.warnings.findIndex(w => w.id === warning.id);
+		const existingIndex = this.warnings.findIndex((w) => w.id === warning.id);
 		if (existingIndex >= 0) {
 			this.warnings[existingIndex] = warning;
 		} else {
@@ -246,12 +250,12 @@ class SecurityState {
 
 	// Remove a warning
 	dismissWarning(warningId) {
-		this.warnings = this.warnings.filter(w => w.id !== warningId);
+		this.warnings = this.warnings.filter((w) => w.id !== warningId);
 	}
 
 	// Get warnings for a specific context
 	getWarningsForContext(context = 'general') {
-		return this.warnings.filter(warning => {
+		return this.warnings.filter((warning) => {
 			if (context === 'login') {
 				return ['http-warning', 'limited-auth-warning'].includes(warning.id);
 			}

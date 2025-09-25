@@ -97,11 +97,7 @@ describe('WebAuthn Manager', () => {
 
 	describe('Registration Flow', () => {
 		it('should begin WebAuthn registration', async () => {
-			const result = await webauthnManager.beginRegistration(
-				testUserId,
-				'localhost',
-				false
-			);
+			const result = await webauthnManager.beginRegistration(testUserId, 'localhost', false);
 
 			expect(result).toHaveProperty('challengeId');
 			expect(result).toHaveProperty('publicKeyCredentialCreationOptions');
@@ -111,9 +107,9 @@ describe('WebAuthn Manager', () => {
 		});
 
 		it('should fail registration for non-existent user', async () => {
-			await expect(
-				webauthnManager.beginRegistration(99999, 'localhost', false)
-			).rejects.toThrow('User not found');
+			await expect(webauthnManager.beginRegistration(99999, 'localhost', false)).rejects.toThrow(
+				'User not found'
+			);
 		});
 
 		it('should fail registration when WebAuthn unavailable', async () => {
@@ -124,21 +120,19 @@ describe('WebAuthn Manager', () => {
 
 		it('should complete WebAuthn registration', async () => {
 			// Begin registration
-			const beginResult = await webauthnManager.beginRegistration(
-				testUserId,
-				'localhost',
-				false
-			);
+			const beginResult = await webauthnManager.beginRegistration(testUserId, 'localhost', false);
 
 			// Mock credential response
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: beginResult.publicKeyCredentialCreationOptions.challenge,
-						type: 'webauthn.create',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: beginResult.publicKeyCredentialCreationOptions.challenge,
+							type: 'webauthn.create',
+							origin: 'http://localhost'
+						})
+					),
 					attestationObject: 'mock-attestation-object'
 				},
 				type: 'public-key'
@@ -163,11 +157,13 @@ describe('WebAuthn Manager', () => {
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: 'invalid-challenge',
-						type: 'webauthn.create',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: 'invalid-challenge',
+							type: 'webauthn.create',
+							origin: 'http://localhost'
+						})
+					),
 					attestationObject: 'mock-attestation-object'
 				},
 				type: 'public-key'
@@ -182,20 +178,18 @@ describe('WebAuthn Manager', () => {
 	describe('Authentication Flow', () => {
 		beforeEach(async () => {
 			// Register a credential for testing
-			const beginResult = await webauthnManager.beginRegistration(
-				testUserId,
-				'localhost',
-				false
-			);
+			const beginResult = await webauthnManager.beginRegistration(testUserId, 'localhost', false);
 
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: beginResult.publicKeyCredentialCreationOptions.challenge,
-						type: 'webauthn.create',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: beginResult.publicKeyCredentialCreationOptions.challenge,
+							type: 'webauthn.create',
+							origin: 'http://localhost'
+						})
+					),
 					attestationObject: 'mock-attestation-object'
 				},
 				type: 'public-key'
@@ -209,11 +203,7 @@ describe('WebAuthn Manager', () => {
 		});
 
 		it('should begin WebAuthn authentication', async () => {
-			const result = await webauthnManager.beginAuthentication(
-				'localhost',
-				false,
-				'testuser'
-			);
+			const result = await webauthnManager.beginAuthentication('localhost', false, 'testuser');
 
 			expect(result).toHaveProperty('challengeId');
 			expect(result).toHaveProperty('publicKeyCredentialRequestOptions');
@@ -230,21 +220,19 @@ describe('WebAuthn Manager', () => {
 
 		it('should complete WebAuthn authentication', async () => {
 			// Begin authentication
-			const beginResult = await webauthnManager.beginAuthentication(
-				'localhost',
-				false,
-				'testuser'
-			);
+			const beginResult = await webauthnManager.beginAuthentication('localhost', false, 'testuser');
 
 			// Mock credential response
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: beginResult.publicKeyCredentialRequestOptions.challenge,
-						type: 'webauthn.get',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: beginResult.publicKeyCredentialRequestOptions.challenge,
+							type: 'webauthn.get',
+							origin: 'http://localhost'
+						})
+					),
 					authenticatorData: 'mock-authenticator-data',
 					signature: 'mock-signature'
 				}
@@ -264,20 +252,18 @@ describe('WebAuthn Manager', () => {
 	describe('Credential Management', () => {
 		beforeEach(async () => {
 			// Register a test credential
-			const beginResult = await webauthnManager.beginRegistration(
-				testUserId,
-				'localhost',
-				false
-			);
+			const beginResult = await webauthnManager.beginRegistration(testUserId, 'localhost', false);
 
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: beginResult.publicKeyCredentialCreationOptions.challenge,
-						type: 'webauthn.create',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: beginResult.publicKeyCredentialCreationOptions.challenge,
+							type: 'webauthn.create',
+							origin: 'http://localhost'
+						})
+					),
 					attestationObject: 'mock-attestation-object'
 				},
 				type: 'public-key'
@@ -321,9 +307,9 @@ describe('WebAuthn Manager', () => {
 			`);
 			const otherUserId = userResult.lastID;
 
-			await expect(
-				webauthnManager.revokeCredential(credentialId, otherUserId)
-			).rejects.toThrow('Credential does not belong to user');
+			await expect(webauthnManager.revokeCredential(credentialId, otherUserId)).rejects.toThrow(
+				'Credential does not belong to user'
+			);
 		});
 	});
 
@@ -363,18 +349,14 @@ describe('WebAuthn Manager', () => {
 	describe('Challenge Cleanup', () => {
 		it('should clean up expired challenges', async () => {
 			// Begin registration to create a challenge
-			const beginResult = await webauthnManager.beginRegistration(
-				testUserId,
-				'localhost',
-				false
-			);
+			const beginResult = await webauthnManager.beginRegistration(testUserId, 'localhost', false);
 
 			// Verify challenge exists
 			expect(webauthnManager.challenges.has(beginResult.challengeId)).toBe(true);
 
 			// Mock time passage by directly manipulating the challenge timestamp
 			const challenge = webauthnManager.challenges.get(beginResult.challengeId);
-			challenge.timestamp = Date.now() - (6 * 60 * 1000); // 6 minutes ago
+			challenge.timestamp = Date.now() - 6 * 60 * 1000; // 6 minutes ago
 
 			// Manually trigger cleanup by directly cleaning expired challenges
 			const now = Date.now();
@@ -384,7 +366,7 @@ describe('WebAuthn Manager', () => {
 					expiredChallenges.push(challengeId);
 				}
 			}
-			expiredChallenges.forEach(challengeId => {
+			expiredChallenges.forEach((challengeId) => {
 				webauthnManager.challenges.delete(challengeId);
 			});
 
@@ -395,21 +377,19 @@ describe('WebAuthn Manager', () => {
 
 	describe('Error Handling', () => {
 		it('should handle verification failures gracefully', async () => {
-			const beginResult = await webauthnManager.beginRegistration(
-				testUserId,
-				'localhost',
-				false
-			);
+			const beginResult = await webauthnManager.beginRegistration(testUserId, 'localhost', false);
 
 			// Invalid credential with wrong challenge
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: 'wrong-challenge',
-						type: 'webauthn.create',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: 'wrong-challenge',
+							type: 'webauthn.create',
+							origin: 'http://localhost'
+						})
+					),
 					attestationObject: 'mock-attestation-object'
 				},
 				type: 'public-key'
@@ -421,20 +401,18 @@ describe('WebAuthn Manager', () => {
 		});
 
 		it('should handle non-existent credentials in authentication', async () => {
-			const beginResult = await webauthnManager.beginAuthentication(
-				'localhost',
-				false,
-				'testuser'
-			);
+			const beginResult = await webauthnManager.beginAuthentication('localhost', false, 'testuser');
 
 			const mockCredential = {
 				id: 'non-existent-credential',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: beginResult.publicKeyCredentialRequestOptions.challenge,
-						type: 'webauthn.get',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: beginResult.publicKeyCredentialRequestOptions.challenge,
+							type: 'webauthn.get',
+							origin: 'http://localhost'
+						})
+					),
 					authenticatorData: 'mock-authenticator-data',
 					signature: 'mock-signature'
 				}

@@ -44,8 +44,8 @@ export class WebAuthnManager {
 				},
 				isAvailable: this.isWebAuthnAvailable(hostname, isHttps, securitySettings),
 				supportedAlgorithms: [
-					{ alg: -7, type: 'public-key' },  // ES256
-					{ alg: -257, type: 'public-key' }  // RS256
+					{ alg: -7, type: 'public-key' }, // ES256
+					{ alg: -257, type: 'public-key' } // RS256
 				]
 			};
 		} catch (error) {
@@ -115,7 +115,7 @@ export class WebAuthnManager {
 
 			// Get existing credentials to exclude
 			const existingCredentials = await this.daos.webauthnCredentials.getByUserId(userId);
-			const excludeCredentials = existingCredentials.map(cred => ({
+			const excludeCredentials = existingCredentials.map((cred) => ({
 				id: Buffer.from(cred.credentialId, 'base64'),
 				type: 'public-key'
 			}));
@@ -146,13 +146,15 @@ export class WebAuthnManager {
 				excludeCredentials
 			};
 
-			logger.info('WEBAUTHN', `Started registration for user ${user.username} with challenge ${challengeId}`);
+			logger.info(
+				'WEBAUTHN',
+				`Started registration for user ${user.username} with challenge ${challengeId}`
+			);
 
 			return {
 				challengeId,
 				publicKeyCredentialCreationOptions
 			};
-
 		} catch (error) {
 			logger.error('WEBAUTHN', `Registration begin failed: ${error.message}`);
 			throw error;
@@ -194,7 +196,10 @@ export class WebAuthnManager {
 				aaguid: verificationResult.aaguid
 			});
 
-			logger.info('WEBAUTHN', `Registration completed for user ID ${userId}, credential ${credentialRecord.id}`);
+			logger.info(
+				'WEBAUTHN',
+				`Registration completed for user ID ${userId}, credential ${credentialRecord.id}`
+			);
 
 			// Log authentication event
 			await this.daos.authEvents.create({
@@ -211,7 +216,6 @@ export class WebAuthnManager {
 				credentialId: credentialRecord.id,
 				deviceName
 			};
-
 		} catch (error) {
 			logger.error('WEBAUTHN', `Registration completion failed: ${error.message}`);
 			throw error;
@@ -239,7 +243,7 @@ export class WebAuthnManager {
 				const user = await this.daos.users.getByUsername(username);
 				if (user) {
 					const userCredentials = await this.daos.webauthnCredentials.getByUserId(user.id);
-					allowCredentials = userCredentials.map(cred => ({
+					allowCredentials = userCredentials.map((cred) => ({
 						id: cred.credentialId,
 						type: 'public-key'
 					}));
@@ -262,13 +266,15 @@ export class WebAuthnManager {
 				userVerification: config.userVerification
 			};
 
-			logger.info('WEBAUTHN', `Started authentication with challenge ${challengeId}${username ? ` for user ${username}` : ''}`);
+			logger.info(
+				'WEBAUTHN',
+				`Started authentication with challenge ${challengeId}${username ? ` for user ${username}` : ''}`
+			);
 
 			return {
 				challengeId,
 				publicKeyCredentialRequestOptions
 			};
-
 		} catch (error) {
 			logger.error('WEBAUTHN', `Authentication begin failed: ${error.message}`);
 			throw error;
@@ -301,20 +307,30 @@ export class WebAuthnManager {
 			}
 
 			// Verify the assertion
-			const verificationResult = await this.verifyAssertion(credential, challenge, credentialRecord);
+			const verificationResult = await this.verifyAssertion(
+				credential,
+				challenge,
+				credentialRecord
+			);
 			if (!verificationResult.verified) {
 				throw new Error('Authentication verification failed');
 			}
 
 			// Update counter to prevent replay attacks
-			await this.daos.webauthnCredentials.updateCounter(credentialRecord.id, verificationResult.counter);
+			await this.daos.webauthnCredentials.updateCounter(
+				credentialRecord.id,
+				verificationResult.counter
+			);
 
 			// Update last used timestamp
 			await this.daos.webauthnCredentials.updateLastUsed(credentialRecord.id);
 
 			const user = await this.daos.users.getById(credentialRecord.userId);
 
-			logger.info('WEBAUTHN', `Authentication completed for user ${user.username}, credential ${credentialRecord.id}`);
+			logger.info(
+				'WEBAUTHN',
+				`Authentication completed for user ${user.username}, credential ${credentialRecord.id}`
+			);
 
 			// Log authentication event
 			await this.daos.authEvents.create({
@@ -331,7 +347,6 @@ export class WebAuthnManager {
 				user,
 				credentialId: credentialRecord.id
 			};
-
 		} catch (error) {
 			logger.error('WEBAUTHN', `Authentication completion failed: ${error.message}`);
 			throw error;
@@ -352,9 +367,7 @@ export class WebAuthnManager {
 			}
 
 			// Decode the attestation object and client data
-			const clientDataJSON = JSON.parse(
-				Buffer.from(response.clientDataJSON, 'base64').toString()
-			);
+			const clientDataJSON = JSON.parse(Buffer.from(response.clientDataJSON, 'base64').toString());
 
 			// Verify challenge
 			if (clientDataJSON.challenge !== expectedChallenge) {
@@ -385,7 +398,6 @@ export class WebAuthnManager {
 				counter,
 				aaguid
 			};
-
 		} catch (error) {
 			logger.error('WEBAUTHN', `Registration verification error: ${error.message}`);
 			return { verified: false, error: error.message };
@@ -405,9 +417,7 @@ export class WebAuthnManager {
 			}
 
 			// Decode client data
-			const clientDataJSON = JSON.parse(
-				Buffer.from(response.clientDataJSON, 'base64').toString()
-			);
+			const clientDataJSON = JSON.parse(Buffer.from(response.clientDataJSON, 'base64').toString());
 
 			// Verify challenge
 			if (clientDataJSON.challenge !== expectedChallenge) {
@@ -432,7 +442,6 @@ export class WebAuthnManager {
 				verified: true,
 				counter: newCounter
 			};
-
 		} catch (error) {
 			logger.error('WEBAUTHN', `Assertion verification error: ${error.message}`);
 			return { verified: false, error: error.message };
@@ -445,7 +454,7 @@ export class WebAuthnManager {
 	async getUserCredentials(userId) {
 		try {
 			const credentials = await this.daos.webauthnCredentials.getByUserId(userId);
-			return credentials.map(cred => ({
+			return credentials.map((cred) => ({
 				id: cred.id,
 				deviceName: cred.deviceName,
 				createdAt: cred.createdAt,
@@ -487,7 +496,6 @@ export class WebAuthnManager {
 			});
 
 			return { success: true };
-
 		} catch (error) {
 			logger.error('WEBAUTHN', `Failed to revoke credential: ${error.message}`);
 			throw error;
@@ -509,7 +517,7 @@ export class WebAuthnManager {
 				}
 			}
 
-			expiredChallenges.forEach(challengeId => {
+			expiredChallenges.forEach((challengeId) => {
 				this.challenges.delete(challengeId);
 			});
 
@@ -532,9 +540,9 @@ export class WebAuthnManager {
 			}
 
 			// If rpID changes, existing credentials won't work
-			const affectedCredentials = userId ?
-				await this.daos.webauthnCredentials.getByUserId(userId) :
-				await this.daos.webauthnCredentials.getAll();
+			const affectedCredentials = userId
+				? await this.daos.webauthnCredentials.getByUserId(userId)
+				: await this.daos.webauthnCredentials.getAll();
 
 			return {
 				compatible: false,
@@ -543,7 +551,6 @@ export class WebAuthnManager {
 				affectedCredentialsCount: affectedCredentials.length,
 				requiresReregistration: true
 			};
-
 		} catch (error) {
 			logger.error('WEBAUTHN', `Hostname compatibility check failed: ${error.message}`);
 			return { compatible: false, error: error.message };

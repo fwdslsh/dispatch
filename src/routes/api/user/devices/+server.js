@@ -16,7 +16,10 @@ export async function GET({ request, getClientAddress }) {
 
 		const deviceManager = globalThis.__API_SERVICES?.deviceManager;
 		if (!deviceManager) {
-			return json({ success: false, error: 'Device management service unavailable' }, { status: 503 });
+			return json(
+				{ success: false, error: 'Device management service unavailable' },
+				{ status: 503 }
+			);
 		}
 
 		// Get user's devices
@@ -37,7 +40,7 @@ export async function GET({ request, getClientAddress }) {
 
 		return json({
 			success: true,
-			devices: devices.map(device => ({
+			devices: devices.map((device) => ({
 				id: device.id,
 				deviceName: device.deviceName,
 				deviceFingerprint: device.deviceFingerprint,
@@ -47,18 +50,22 @@ export async function GET({ request, getClientAddress }) {
 				lastActivity: device.lastActivity,
 				userAgent: device.userAgent
 			})),
-			currentDevice: currentDevice ? {
-				id: currentDevice.id,
-				deviceName: currentDevice.deviceName
-			} : null
+			currentDevice: currentDevice
+				? {
+						id: currentDevice.id,
+						deviceName: currentDevice.deviceName
+					}
+				: null
 		});
-
 	} catch (error) {
 		console.error('Error fetching user devices:', error);
-		return json({
-			success: false,
-			error: 'Failed to load devices'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to load devices'
+			},
+			{ status: 500 }
+		);
 	}
 }
 

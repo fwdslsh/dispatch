@@ -159,7 +159,7 @@
 	 * Check if any providers are available
 	 */
 	let hasAvailableProviders = $derived.by(() => {
-		return providers.some(p => p.configured && p.available);
+		return providers.some((p) => p.configured && p.available);
 	});
 
 	/**
@@ -227,15 +227,15 @@
 					<p>{error}</p>
 				</div>
 			</div>
-			<Button variant="secondary" size="sm" onclick={loadProviders}>
-				Retry
-			</Button>
+			<Button variant="secondary" size="sm" onclick={loadProviders}>Retry</Button>
 		</div>
 	{:else if providers.length === 0}
 		<div class="no-providers-state">
 			<div class="icon">🔒</div>
 			<h4>No OAuth Providers Available</h4>
-			<p>OAuth authentication is not currently configured. Contact your administrator for assistance.</p>
+			<p>
+				OAuth authentication is not currently configured. Contact your administrator for assistance.
+			</p>
 		</div>
 	{:else}
 		<div class="providers-container">
@@ -255,12 +255,15 @@
 			<div class="providers-list" class:compact>
 				{#each providers as provider (provider.id)}
 					{@const status = getProviderStatus(provider)}
-					<div class="provider-item" class:disabled={!provider.configured || !provider.available || disabled}>
+					<div
+						class="provider-item"
+						class:disabled={!provider.configured || !provider.available || disabled}
+					>
 						{#if status.status === 'available'}
 							<OAuthLoginButton
 								provider={provider.id}
 								{returnTo}
-								disabled={disabled}
+								{disabled}
 								data-testid="oauth-provider-{provider.id}"
 								on:error={handleOAuthError}
 							/>
@@ -272,7 +275,11 @@
 									</div>
 									<div class="provider-details">
 										<div class="provider-name">{provider.name}</div>
-										<div class="provider-status" class:error={status.severity === 'error'} class:warning={status.severity === 'warning'}>
+										<div
+											class="provider-status"
+											class:error={status.severity === 'error'}
+											class:warning={status.severity === 'warning'}
+										>
 											{status.message}
 										</div>
 									</div>
@@ -300,7 +307,8 @@
 				<div class="no-available-notice">
 					<span class="notice-icon">⚠️</span>
 					<span class="notice-text">
-						No OAuth providers are currently available. Please check your configuration or try again later.
+						No OAuth providers are currently available. Please check your configuration or try again
+						later.
 					</span>
 				</div>
 			{/if}

@@ -9,17 +9,31 @@ test.describe('Security Standards and Compliance Validation', () => {
 	test.describe('OWASP Top 10 Compliance', () => {
 		test('validates protection against injection attacks (A01)', async ({ page }) => {
 			// Mock authentication endpoint with injection protection
-			await page.route('/api/auth/login', async route => {
-				const body = JSON.parse(await route.request().postData() || '{}');
+			await page.route('/api/auth/login', async (route) => {
+				const body = JSON.parse((await route.request().postData()) || '{}');
 				const accessCode = body.accessCode || '';
 
 				// Check for SQL injection patterns
 				const sqlPatterns = [
-					"'", '"', ';', '--', '/*', '*/', 'UNION', 'SELECT', 'DROP', 'INSERT',
-					'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'EXEC', 'xp_'
+					"'",
+					'"',
+					';',
+					'--',
+					'/*',
+					'*/',
+					'UNION',
+					'SELECT',
+					'DROP',
+					'INSERT',
+					'UPDATE',
+					'DELETE',
+					'CREATE',
+					'ALTER',
+					'EXEC',
+					'xp_'
 				];
 
-				const hasInjectionPattern = sqlPatterns.some(pattern =>
+				const hasInjectionPattern = sqlPatterns.some((pattern) =>
 					accessCode.toUpperCase().includes(pattern.toUpperCase())
 				);
 
@@ -96,12 +110,13 @@ test.describe('Security Standards and Compliance Validation', () => {
 			// Note: In test environment, headers may not be fully configured
 
 			// Test session token security
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
 					headers: {
-						'Set-Cookie': 'sessionToken=secure-token-12345; HttpOnly; Secure; SameSite=Strict; Path=/'
+						'Set-Cookie':
+							'sessionToken=secure-token-12345; HttpOnly; Secure; SameSite=Strict; Path=/'
 					},
 					body: JSON.stringify({
 						success: true,
@@ -119,7 +134,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 			// Verify secure cookie attributes
 			const cookies = await page.context().cookies();
-			const sessionCookie = cookies.find(c => c.name === 'sessionToken');
+			const sessionCookie = cookies.find((c) => c.name === 'sessionToken');
 
 			if (sessionCookie) {
 				expect(sessionCookie.httpOnly).toBe(true);
@@ -130,7 +145,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 		test('validates access control (A01)', async ({ page }) => {
 			// Mock role-based access control
-			await page.route('/api/admin/**', async route => {
+			await page.route('/api/admin/**', async (route) => {
 				const authHeader = route.request().headers().authorization;
 
 				if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -192,7 +207,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 			const invalidTokenResult = await page.evaluate(async () => {
 				try {
 					const response = await fetch('/api/admin/users', {
-						headers: { 'Authorization': 'Bearer invalid-token' }
+						headers: { Authorization: 'Bearer invalid-token' }
 					});
 					const data = await response.json();
 					return { success: response.ok, status: response.status, data };
@@ -208,7 +223,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 			const validTokenResult = await page.evaluate(async () => {
 				try {
 					const response = await fetch('/api/admin/users', {
-						headers: { 'Authorization': 'Bearer admin-token' }
+						headers: { Authorization: 'Bearer admin-token' }
 					});
 					const data = await response.json();
 					return { success: response.ok, status: response.status, data };
@@ -225,7 +240,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 		test('validates security misconfiguration protection (A05)', async ({ page }) => {
 			// Test for information disclosure in error messages
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 500,
 					contentType: 'application/json',
@@ -258,7 +273,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 		test('validates logging and monitoring (A09)', async ({ page }) => {
 			// Mock monitoring endpoint to verify security event logging
-			await page.route('/api/admin/monitoring*', async route => {
+			await page.route('/api/admin/monitoring*', async (route) => {
 				const url = new URL(route.request().url());
 				const endpoint = url.searchParams.get('endpoint');
 
@@ -289,8 +304,8 @@ test.describe('Security Standards and Compliance Validation', () => {
 			});
 
 			// Mock authentication with logging
-			await page.route('/api/auth/login', async route => {
-				const body = JSON.parse(await route.request().postData() || '{}');
+			await page.route('/api/auth/login', async (route) => {
+				const body = JSON.parse((await route.request().postData()) || '{}');
 
 				await route.fulfill({
 					status: 401,
@@ -325,7 +340,9 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 			if (alertsResult.success) {
 				expect(alertsResult.data.alerts).toBeDefined();
-				expect(alertsResult.data.compliance?.owasp).toBe('A09_SECURITY_LOGGING_MONITORING_IMPLEMENTED');
+				expect(alertsResult.data.compliance?.owasp).toBe(
+					'A09_SECURITY_LOGGING_MONITORING_IMPLEMENTED'
+				);
 			}
 
 			console.log('Security logging and monitoring validated');
@@ -335,7 +352,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 	test.describe('Data Protection Compliance (GDPR-like)', () => {
 		test('validates data minimization principles', async ({ page }) => {
 			// Mock user data endpoint with minimal data collection
-			await page.route('/api/admin/users', async route => {
+			await page.route('/api/admin/users', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -385,7 +402,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 		test('validates right to be forgotten (data deletion)', async ({ page }) => {
 			// Mock data deletion endpoint
-			await page.route('/api/admin/users/*/delete', async route => {
+			await page.route('/api/admin/users/*/delete', async (route) => {
 				const url = route.request().url();
 				const userId = url.match(/users\/(\d+)\/delete/)?.[1];
 
@@ -434,7 +451,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 		test('validates data export capabilities', async ({ page }) => {
 			// Mock data export endpoint
-			await page.route('/api/admin/users/*/export', async route => {
+			await page.route('/api/admin/users/*/export', async (route) => {
 				const url = route.request().url();
 				const userId = url.match(/users\/(\d+)\/export/)?.[1];
 
@@ -503,7 +520,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 	test.describe('Authentication Standards Compliance', () => {
 		test('validates multi-factor authentication capabilities', async ({ page }) => {
 			// Mock MFA-capable authentication
-			await page.route('/api/auth/mfa/status', async route => {
+			await page.route('/api/auth/mfa/status', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -557,7 +574,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 		test('validates password policy compliance', async ({ page }) => {
 			// Mock password policy validation
-			await page.route('/api/auth/password/policy', async route => {
+			await page.route('/api/auth/password/policy', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -603,7 +620,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 	test.describe('Audit and Compliance Reporting', () => {
 		test('validates comprehensive audit trail', async ({ page }) => {
 			// Mock audit trail endpoint
-			await page.route('/api/admin/audit/trail', async route => {
+			await page.route('/api/admin/audit/trail', async (route) => {
 				const url = new URL(route.request().url());
 				const timeframe = url.searchParams.get('timeframe') || '24h';
 
@@ -680,9 +697,9 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 		test('validates compliance reporting capabilities', async ({ page }) => {
 			// Mock compliance report generation
-			await page.route('/api/admin/compliance/report', async route => {
+			await page.route('/api/admin/compliance/report', async (route) => {
 				const request = route.request();
-				const body = JSON.parse(await request.postData() || '{}');
+				const body = JSON.parse((await request.postData()) || '{}');
 				const reportType = body.type || 'security_posture';
 
 				await route.fulfill({
@@ -765,7 +782,9 @@ test.describe('Security Standards and Compliance Validation', () => {
 			expect(reportResult.data.report.findings.length).toBeGreaterThan(0);
 
 			// Verify authentication compliance
-			const authFinding = reportResult.data.report.findings.find(f => f.category === 'authentication');
+			const authFinding = reportResult.data.report.findings.find(
+				(f) => f.category === 'authentication'
+			);
 			expect(authFinding.status).toBe('compliant');
 			expect(authFinding.score).toBeGreaterThanOrEqual(95);
 
@@ -776,7 +795,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 	test.describe('Regulatory Compliance Validation', () => {
 		test('validates SOC 2 Type II compliance readiness', async ({ page }) => {
 			// Mock SOC 2 compliance check
-			await page.route('/api/admin/compliance/soc2', async route => {
+			await page.route('/api/admin/compliance/soc2', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -863,7 +882,7 @@ test.describe('Security Standards and Compliance Validation', () => {
 
 		test('validates ISO 27001 information security management', async ({ page }) => {
 			// Mock ISO 27001 compliance assessment
-			await page.route('/api/admin/compliance/iso27001', async route => {
+			await page.route('/api/admin/compliance/iso27001', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -875,7 +894,10 @@ test.describe('Security Standards and Compliance Validation', () => {
 							'A.5_Information_Security_Policies': {
 								implemented: true,
 								score: 100,
-								evidence: ['Information security policy documented', 'Regular policy reviews conducted']
+								evidence: [
+									'Information security policy documented',
+									'Regular policy reviews conducted'
+								]
 							},
 							'A.6_Organization_of_Information_Security': {
 								implemented: true,
@@ -890,7 +912,11 @@ test.describe('Security Standards and Compliance Validation', () => {
 							'A.9_Access_Control': {
 								implemented: true,
 								score: 98,
-								evidence: ['Access control policy enforced', 'Multi-factor authentication implemented', 'Regular access reviews conducted']
+								evidence: [
+									'Access control policy enforced',
+									'Multi-factor authentication implemented',
+									'Regular access reviews conducted'
+								]
 							},
 							'A.10_Cryptography': {
 								implemented: true,
@@ -900,17 +926,26 @@ test.describe('Security Standards and Compliance Validation', () => {
 							'A.12_Operations_Security': {
 								implemented: true,
 								score: 92,
-								evidence: ['Security monitoring active', 'Vulnerability management program operational']
+								evidence: [
+									'Security monitoring active',
+									'Vulnerability management program operational'
+								]
 							},
 							'A.13_Communications_Security': {
 								implemented: true,
 								score: 96,
-								evidence: ['Network security controls implemented', 'Secure communication protocols enforced']
+								evidence: [
+									'Network security controls implemented',
+									'Secure communication protocols enforced'
+								]
 							},
 							'A.16_Information_Security_Incident_Management': {
 								implemented: true,
 								score: 88,
-								evidence: ['Incident response plan documented', 'Security event logging implemented']
+								evidence: [
+									'Incident response plan documented',
+									'Security event logging implemented'
+								]
 							}
 						},
 						overallScore: 94,

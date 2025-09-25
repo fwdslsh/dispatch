@@ -16,10 +16,13 @@ export async function GET({ params }) {
 		const certificate = await certManager.getCertificate(certificateId);
 
 		if (!certificate) {
-			return json({
-				success: false,
-				error: 'Certificate not found'
-			}, { status: 404 });
+			return json(
+				{
+					success: false,
+					error: 'Certificate not found'
+				},
+				{ status: 404 }
+			);
 		}
 
 		// Don't return private key in GET requests for security
@@ -29,13 +32,15 @@ export async function GET({ params }) {
 			success: true,
 			certificate: safeCertificate
 		});
-
 	} catch (error) {
 		console.error('Error getting certificate:', error);
-		return json({
-			success: false,
-			error: error.message
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -55,10 +60,13 @@ export async function POST({ params, request }) {
 			case 'export':
 				const exportData = await certManager.exportCertificate(certificateId);
 				if (!exportData) {
-					return json({
-						success: false,
-						error: 'Certificate not found'
-					}, { status: 404 });
+					return json(
+						{
+							success: false,
+							error: 'Certificate not found'
+						},
+						{ status: 404 }
+					);
 				}
 				return json({ success: true, export: exportData });
 
@@ -71,17 +79,22 @@ export async function POST({ params, request }) {
 				return json({ success: true, message: 'Certificate deactivated' });
 
 			default:
-				return json({
-					success: false,
-					error: `Unknown action: ${action}`
-				}, { status: 400 });
+				return json(
+					{
+						success: false,
+						error: `Unknown action: ${action}`
+					},
+					{ status: 400 }
+				);
 		}
-
 	} catch (error) {
 		console.error('Error processing certificate action:', error);
-		return json({
-			success: false,
-			error: error.message
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

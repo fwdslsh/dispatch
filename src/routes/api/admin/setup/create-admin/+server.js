@@ -15,7 +15,10 @@ export async function POST({ request }) {
 		}
 
 		if (adminUser.password.length < 12) {
-			return json({ success: false, error: 'Password must be at least 12 characters long' }, { status: 400 });
+			return json(
+				{ success: false, error: 'Password must be at least 12 characters long' },
+				{ status: 400 }
+			);
 		}
 
 		// Validate TERMINAL_KEY if provided (for migration)
@@ -79,12 +82,14 @@ export async function POST({ request }) {
 				role: user.role
 			}
 		});
-
 	} catch (error) {
 		console.error('Error creating admin user:', error);
-		return json({
-			success: false,
-			error: 'Failed to create administrator account'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to create administrator account'
+			},
+			{ status: 500 }
+		);
 	}
 }

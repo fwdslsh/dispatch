@@ -41,7 +41,7 @@
 	async function updateCORSOrigins() {
 		updating = true;
 		try {
-			const origins = corsOrigins.split('\n').filter(origin => origin.trim());
+			const origins = corsOrigins.split('\n').filter((origin) => origin.trim());
 
 			const response = await fetch('/api/security/policies', {
 				method: 'PUT',
@@ -110,10 +110,14 @@
 
 	function getSecurityLevelColor(level) {
 		switch (level) {
-			case 'high': return '#4ade80';
-			case 'medium': return '#fbbf24';
-			case 'low': return '#f87171';
-			default: return '#6b7280';
+			case 'high':
+				return '#4ade80';
+			case 'medium':
+				return '#fbbf24';
+			case 'low':
+				return '#f87171';
+			default:
+				return '#6b7280';
 		}
 	}
 
@@ -144,9 +148,7 @@
 	{:else if error}
 		<div class="error">
 			<p>Error: {error}</p>
-			<Button variant="secondary" on:click={loadPolicies}>
-				Retry
-			</Button>
+			<Button variant="secondary" on:click={loadPolicies}>Retry</Button>
 		</div>
 	{:else if policies}
 		<div class="policies-container">
@@ -186,11 +188,7 @@
 					placeholder="https://example.com&#10;http://localhost:3000"
 					rows="4"
 				></textarea>
-				<Button
-					variant="primary"
-					on:click={updateCORSOrigins}
-					disabled={updating}
-				>
+				<Button variant="primary" on:click={updateCORSOrigins} disabled={updating}>
 					{updating ? 'Updating...' : 'Update CORS Origins'}
 				</Button>
 			</div>
@@ -207,7 +205,9 @@
 					</div>
 					<div class="header-item">
 						<span class="header-name">Content Security Policy:</span>
-						<span class="header-status {policies.helmet.contentSecurityPolicy ? 'enabled' : 'disabled'}">
+						<span
+							class="header-status {policies.helmet.contentSecurityPolicy ? 'enabled' : 'disabled'}"
+						>
 							{policies.helmet.contentSecurityPolicy ? 'Enabled' : 'Disabled'}
 						</span>
 					</div>
@@ -272,36 +272,21 @@
 			{#if showAdvanced}
 				<div class="policy-section advanced">
 					<h4>Advanced Configuration</h4>
-					<p class="description warning">
-						⚠️ Advanced settings - modify with caution
-					</p>
+					<p class="description warning">⚠️ Advanced settings - modify with caution</p>
 					<label for="cert-context">Certificate Context (JSON):</label>
-					<textarea
-						id="cert-context"
-						bind:value={certificateContext}
-						rows="8"
-						class="code-input"
+					<textarea id="cert-context" bind:value={certificateContext} rows="8" class="code-input"
 					></textarea>
-					<Button
-						variant="secondary"
-						on:click={updateCertificateContext}
-						disabled={updating}
-					>
+					<Button variant="secondary" on:click={updateCertificateContext} disabled={updating}>
 						{updating ? 'Updating...' : 'Update Certificate Context'}
 					</Button>
 				</div>
 			{/if}
 
 			<div class="actions">
-				<Button
-					variant="secondary"
-					on:click={() => showAdvanced = !showAdvanced}
-				>
+				<Button variant="secondary" on:click={() => (showAdvanced = !showAdvanced)}>
 					{showAdvanced ? 'Hide' : 'Show'} Advanced Settings
 				</Button>
-				<Button variant="primary" on:click={loadPolicies}>
-					Refresh Policies
-				</Button>
+				<Button variant="primary" on:click={loadPolicies}>Refresh Policies</Button>
 			</div>
 		</div>
 	{/if}
@@ -375,13 +360,17 @@
 		font-weight: 500;
 	}
 
-	.context-info, .cookie-settings, .rate-limit-info {
+	.context-info,
+	.cookie-settings,
+	.rate-limit-info {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 		gap: 0.5rem;
 	}
 
-	.context-item, .cookie-item, .rate-item {
+	.context-item,
+	.cookie-item,
+	.rate-item {
 		display: flex;
 		justify-content: space-between;
 		padding: 0.5rem;
@@ -467,7 +456,10 @@
 			gap: 1rem;
 		}
 
-		.context-info, .cookie-settings, .rate-limit-info, .headers-grid {
+		.context-info,
+		.cookie-settings,
+		.rate-limit-info,
+		.headers-grid {
 			grid-template-columns: 1fr;
 		}
 

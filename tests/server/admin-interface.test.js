@@ -39,22 +39,31 @@ describe('Admin Interface Manager', () => {
 		testRegularUserId = userResult.lastID;
 
 		// Create test devices
-		await db.run(`
+		await db.run(
+			`
 			INSERT INTO user_devices (user_id, device_name, device_fingerprint, is_trusted)
 			VALUES (?, 'Test Device', 'test-fingerprint-123', 1)
-		`, [testRegularUserId]);
+		`,
+			[testRegularUserId]
+		);
 
 		// Create test sessions
-		await db.run(`
+		await db.run(
+			`
 			INSERT INTO auth_sessions (user_id, device_id, session_token, expires_at, is_active)
 			VALUES (?, 1, 'test-session-token', ?, 1)
-		`, [testRegularUserId, Date.now() + 3600000]);
+		`,
+			[testRegularUserId, Date.now() + 3600000]
+		);
 
 		// Create test auth events
-		await db.run(`
+		await db.run(
+			`
 			INSERT INTO auth_events (user_id, device_id, event_type, ip_address, user_agent, details)
 			VALUES (?, 1, 'login', '192.168.1.100', 'Test Browser', '{"method": "local"}')
-		`, [testRegularUserId]);
+		`,
+			[testRegularUserId]
+		);
 	});
 
 	afterEach(async () => {
@@ -159,11 +168,15 @@ describe('Admin Interface Manager', () => {
 			expect(user).toBeUndefined();
 
 			// Verify associated sessions were deleted
-			const sessions = await db.all('SELECT * FROM auth_sessions WHERE user_id = ?', [testRegularUserId]);
+			const sessions = await db.all('SELECT * FROM auth_sessions WHERE user_id = ?', [
+				testRegularUserId
+			]);
 			expect(sessions).toHaveLength(0);
 
 			// Verify associated devices were deleted
-			const devices = await db.all('SELECT * FROM user_devices WHERE user_id = ?', [testRegularUserId]);
+			const devices = await db.all('SELECT * FROM user_devices WHERE user_id = ?', [
+				testRegularUserId
+			]);
 			expect(devices).toHaveLength(0);
 		});
 

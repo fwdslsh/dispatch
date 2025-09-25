@@ -40,15 +40,26 @@
 	}
 </script>
 
-<div class="mobile-auth-layout {compact ? 'compact' : ''} {isMobile ? 'mobile' : ''} {isLandscape ? 'landscape' : ''}">
+<div
+	class="mobile-auth-layout {compact ? 'compact' : ''} {isMobile ? 'mobile' : ''} {isLandscape
+		? 'landscape'
+		: ''}"
+>
 	<div class="auth-container">
 		{#if isMobile}
 			<!-- Mobile Header -->
 			<div class="mobile-header">
 				{#if showBackButton}
 					<button class="back-button" onclick={handleBackButton} aria-label="Go back">
-						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="m15 18-6-6 6-6"/>
+						<svg
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path d="m15 18-6-6 6-6" />
 						</svg>
 					</button>
 				{/if}
@@ -128,7 +139,9 @@
 	.mobile-auth-layout.landscape .auth-container {
 		background: white;
 		border-radius: 1rem;
-		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+		box-shadow:
+			0 20px 25px -5px rgba(0, 0, 0, 0.1),
+			0 10px 10px -5px rgba(0, 0, 0, 0.04);
 		max-width: 900px;
 		max-height: 600px;
 		width: 100%;

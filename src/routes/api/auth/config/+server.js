@@ -27,13 +27,12 @@ export async function GET({ request, url }) {
 
 		// Get WebAuthn configuration
 		const webauthnConfig = await webauthnManager.getWebAuthnConfig();
-		const isSecure = url.protocol === 'https:' ||
-			url.hostname === 'localhost' ||
-			url.hostname === '127.0.0.1';
+		const isSecure =
+			url.protocol === 'https:' || url.hostname === 'localhost' || url.hostname === '127.0.0.1';
 
 		// Get local authentication settings
 		const settings = await db.settings.getByCategory('auth');
-		const localAuthEnabled = settings.find(s => s.key === 'local_enabled')?.value === 'true';
+		const localAuthEnabled = settings.find((s) => s.key === 'local_enabled')?.value === 'true';
 
 		// Check authentication method availability
 		const authMethods = {
@@ -74,9 +73,8 @@ export async function GET({ request, url }) {
 		}
 
 		// Calculate overall availability
-		const hasAvailableMethods = authMethods.local.available ||
-			authMethods.webauthn.available ||
-			authMethods.oauth.available;
+		const hasAvailableMethods =
+			authMethods.local.available || authMethods.webauthn.available || authMethods.oauth.available;
 
 		// Get security context information
 		const securityContext = {
@@ -108,13 +106,15 @@ export async function GET({ request, url }) {
 				isSecure
 			}
 		});
-
 	} catch (error) {
 		logger.error('AUTH_CONFIG', `Failed to get auth config: ${error.message}`);
-		return json({
-			success: false,
-			error: 'Failed to get authentication configuration',
-			details: error.message
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to get authentication configuration',
+				details: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

@@ -59,7 +59,8 @@ export async function GET({ request }) {
 
 			if (timeDiff <= 0) {
 				sessionStatus = 'expired';
-			} else if (timeDiff <= 15 * 60 * 1000) { // 15 minutes
+			} else if (timeDiff <= 15 * 60 * 1000) {
+				// 15 minutes
 				sessionStatus = 'expiring_soon';
 			} else {
 				sessionStatus = 'active';
@@ -84,13 +85,15 @@ export async function GET({ request }) {
 			timeUntilExpiry,
 			serverTime: new Date().toISOString()
 		});
-
 	} catch (error) {
 		console.error('Error getting authentication status:', error);
-		return json({
-			success: false,
-			error: 'Failed to get authentication status'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to get authentication status'
+			},
+			{ status: 500 }
+		);
 	}
 }
 

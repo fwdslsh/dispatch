@@ -32,11 +32,23 @@ export class CleanupManager {
 		this.isRunning = true;
 
 		// Schedule cleanup jobs
-		this.scheduleJob('expiredSessions', () => this.cleanupExpiredSessions(), expiredSessionsInterval);
+		this.scheduleJob(
+			'expiredSessions',
+			() => this.cleanupExpiredSessions(),
+			expiredSessionsInterval
+		);
 		this.scheduleJob('oldEvents', () => this.cleanupOldEvents(), oldEventsInterval);
 		this.scheduleJob('oldDevices', () => this.cleanupOldDevices(), oldDevicesInterval);
-		this.scheduleJob('oldCertificates', () => this.cleanupOldCertificates(), oldCertificatesInterval);
-		this.scheduleJob('unusedCredentials', () => this.cleanupUnusedCredentials(), unusedCredentialsInterval);
+		this.scheduleJob(
+			'oldCertificates',
+			() => this.cleanupOldCertificates(),
+			oldCertificatesInterval
+		);
+		this.scheduleJob(
+			'unusedCredentials',
+			() => this.cleanupUnusedCredentials(),
+			unusedCredentialsInterval
+		);
 
 		// Run initial cleanup after a short delay
 		setTimeout(() => this.runAllCleanups(), 10000); // 10 seconds
@@ -135,7 +147,10 @@ export class CleanupManager {
 			const deletedCount = await this.daos.authEvents.cleanupOldEvents(daysOld);
 
 			if (deletedCount > 0) {
-				logger.info('CLEANUP', `Cleaned up ${deletedCount} authentication events older than ${daysOld} days`);
+				logger.info(
+					'CLEANUP',
+					`Cleaned up ${deletedCount} authentication events older than ${daysOld} days`
+				);
 			}
 
 			return deletedCount;
@@ -153,7 +168,10 @@ export class CleanupManager {
 			const deletedCount = await this.daos.userDevices.cleanupInactive(daysOld);
 
 			if (deletedCount > 0) {
-				logger.info('CLEANUP', `Cleaned up ${deletedCount} inactive devices older than ${daysOld} days`);
+				logger.info(
+					'CLEANUP',
+					`Cleaned up ${deletedCount} inactive devices older than ${daysOld} days`
+				);
 			}
 
 			return deletedCount;
@@ -171,7 +189,10 @@ export class CleanupManager {
 			const deletedCount = await this.daos.certificates.cleanupOldCertificates(daysOld);
 
 			if (deletedCount > 0) {
-				logger.info('CLEANUP', `Cleaned up ${deletedCount} old certificates older than ${daysOld} days`);
+				logger.info(
+					'CLEANUP',
+					`Cleaned up ${deletedCount} old certificates older than ${daysOld} days`
+				);
 			}
 
 			return deletedCount;
@@ -189,7 +210,10 @@ export class CleanupManager {
 			const deletedCount = await this.daos.webauthnCredentials.cleanupUnusedCredentials(daysOld);
 
 			if (deletedCount > 0) {
-				logger.info('CLEANUP', `Cleaned up ${deletedCount} unused WebAuthn credentials older than ${daysOld} days`);
+				logger.info(
+					'CLEANUP',
+					`Cleaned up ${deletedCount} unused WebAuthn credentials older than ${daysOld} days`
+				);
 			}
 
 			return deletedCount;
@@ -207,7 +231,10 @@ export class CleanupManager {
 			const deletedCount = await this.daos.oauthAccounts.cleanupExpiredTokens(daysOld);
 
 			if (deletedCount > 0) {
-				logger.info('CLEANUP', `Cleaned up ${deletedCount} expired OAuth tokens older than ${daysOld} days`);
+				logger.info(
+					'CLEANUP',
+					`Cleaned up ${deletedCount} expired OAuth tokens older than ${daysOld} days`
+				);
 			}
 
 			return deletedCount;
@@ -246,8 +273,8 @@ export class CleanupManager {
 
 			// Calculate cleanup recommendations
 			const now = Date.now();
-			const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
-			const ninetyDaysAgo = now - (90 * 24 * 60 * 60 * 1000);
+			const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+			const ninetyDaysAgo = now - 90 * 24 * 60 * 60 * 1000;
 
 			const recommendations = [];
 
@@ -270,7 +297,6 @@ export class CleanupManager {
 				isRunning: this.isRunning,
 				activeJobs: Array.from(this.intervals.keys())
 			};
-
 		} catch (error) {
 			logger.error('CLEANUP', `Failed to get cleanup stats: ${error.message}`);
 			return {
@@ -335,7 +361,6 @@ export class CleanupManager {
 
 			logger.info('CLEANUP', 'Manual cleanup completed', results);
 			return results;
-
 		} catch (error) {
 			logger.error('CLEANUP', `Manual cleanup failed: ${error.message}`);
 			throw error;

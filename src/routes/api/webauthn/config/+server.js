@@ -28,13 +28,15 @@ export async function GET({ request }) {
 			adapter: adapterInfo,
 			browserSupported: true // Will be checked on client-side
 		});
-
 	} catch (error) {
 		console.error('WebAuthn config error:', error);
-		return json({
-			error: 'Failed to get WebAuthn configuration',
-			details: error.message,
-			isAvailable: false
-		}, { status: 500 });
+		return json(
+			{
+				error: 'Failed to get WebAuthn configuration',
+				details: error.message,
+				isAvailable: false
+			},
+			{ status: 500 }
+		);
 	}
 }

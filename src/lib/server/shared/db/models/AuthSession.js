@@ -20,10 +20,13 @@ export class AuthSessionDAO {
 			isActive = true
 		} = sessionData;
 
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			INSERT INTO auth_sessions (user_id, device_id, session_token, expires_at, ip_address, user_agent, is_active)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
-		`, [userId, deviceId, sessionToken, expiresAt, ipAddress, userAgent, isActive ? 1 : 0]);
+		`,
+			[userId, deviceId, sessionToken, expiresAt, ipAddress, userAgent, isActive ? 1 : 0]
+		);
 
 		return this.getById(result.lastID);
 	}
@@ -49,10 +52,13 @@ export class AuthSessionDAO {
 	 */
 	async getActiveByToken(token) {
 		const now = Date.now();
-		const row = await this.db.get(`
+		const row = await this.db.get(
+			`
 			SELECT * FROM auth_sessions
 			WHERE session_token = ? AND expires_at > ? AND is_active = 1
-		`, [token, now]);
+		`,
+			[token, now]
+		);
 
 		return row ? this.mapRowToSession(row) : null;
 	}
@@ -69,15 +75,18 @@ export class AuthSessionDAO {
 			params.push(Date.now());
 		}
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT s.*, d.device_name, d.device_fingerprint
 			FROM auth_sessions s
 			LEFT JOIN user_devices d ON s.device_id = d.id
 			WHERE ${whereClause}
 			ORDER BY s.last_activity_at DESC
-		`, params);
+		`,
+			params
+		);
 
-		return rows.map(row => this.mapRowToSession(row, true));
+		return rows.map((row) => this.mapRowToSession(row, true));
 	}
 
 	/**
@@ -99,11 +108,14 @@ export class AuthSessionDAO {
 
 		params.push(sessionId);
 
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE auth_sessions
 			SET ${updates.join(', ')}
 			WHERE id = ?
-		`, params);
+		`,
+			params
+		);
 	}
 
 	/**
@@ -114,7 +126,7 @@ export class AuthSessionDAO {
 		const updates = [];
 		const params = [];
 
-		Object.keys(updateData).forEach(key => {
+		Object.keys(updateData).forEach((key) => {
 			if (allowedFields.includes(key)) {
 				updates.push(`${key} = ?`);
 				params.push(updateData[key]);
@@ -127,33 +139,42 @@ export class AuthSessionDAO {
 
 		params.push(token);
 
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE auth_sessions
 			SET ${updates.join(', ')}
 			WHERE session_token = ?
-		`, params);
+		`,
+			params
+		);
 	}
 
 	/**
 	 * Revoke session (mark as inactive)
 	 */
 	async revoke(sessionId) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE auth_sessions
 			SET is_active = 0
 			WHERE id = ?
-		`, [sessionId]);
+		`,
+			[sessionId]
+		);
 	}
 
 	/**
 	 * Revoke session by token
 	 */
 	async revokeByToken(token) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE auth_sessions
 			SET is_active = 0
 			WHERE session_token = ?
-		`, [token]);
+		`,
+			[token]
+		);
 	}
 
 	/**
@@ -168,32 +189,41 @@ export class AuthSessionDAO {
 			params.push(exceptSessionId);
 		}
 
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE auth_sessions
 			SET is_active = 0
 			WHERE ${whereClause}
-		`, params);
+		`,
+			params
+		);
 	}
 
 	/**
 	 * Revoke all sessions for a device
 	 */
 	async revokeAllForDevice(deviceId) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE auth_sessions
 			SET is_active = 0
 			WHERE device_id = ?
-		`, [deviceId]);
+		`,
+			[deviceId]
+		);
 	}
 
 	/**
 	 * Clean up expired sessions
 	 */
 	async cleanupExpired() {
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			DELETE FROM auth_sessions
 			WHERE expires_at < ?
-		`, [Date.now()]);
+		`,
+			[Date.now()]
+		);
 
 		return result.changes;
 	}
@@ -204,23 +234,32 @@ export class AuthSessionDAO {
 	async getStats() {
 		const now = Date.now();
 
-		const activeCount = await this.db.get(`
+		const activeCount = await this.db.get(
+			`
 			SELECT COUNT(*) as count
 			FROM auth_sessions
 			WHERE expires_at > ? AND is_active = 1
-		`, [now]);
+		`,
+			[now]
+		);
 
-		const expiredCount = await this.db.get(`
+		const expiredCount = await this.db.get(
+			`
 			SELECT COUNT(*) as count
 			FROM auth_sessions
 			WHERE expires_at <= ? OR is_active = 0
-		`, [now]);
+		`,
+			[now]
+		);
 
-		const recentActivity = await this.db.get(`
+		const recentActivity = await this.db.get(
+			`
 			SELECT COUNT(*) as count
 			FROM auth_sessions
 			WHERE last_activity_at > ? AND is_active = 1
-		`, [now - 86400000]); // Last 24 hours
+		`,
+			[now - 86400000]
+		); // Last 24 hours
 
 		return {
 			active: activeCount.count,
@@ -247,7 +286,8 @@ export class AuthSessionDAO {
 
 		params.push(limit, offset);
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT s.*, u.username, u.display_name, d.device_name, d.device_fingerprint
 			FROM auth_sessions s
 			LEFT JOIN users u ON s.user_id = u.id
@@ -255,9 +295,11 @@ export class AuthSessionDAO {
 			${whereClause}
 			ORDER BY s.last_activity_at DESC
 			LIMIT ? OFFSET ?
-		`, params);
+		`,
+			params
+		);
 
-		return rows.map(row => this.mapRowToSession(row, true));
+		return rows.map((row) => this.mapRowToSession(row, true));
 	}
 
 	/**

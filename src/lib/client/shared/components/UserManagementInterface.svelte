@@ -208,10 +208,7 @@
 <div class="user-management">
 	<div class="header">
 		<h2>User Management</h2>
-		<button
-			class="btn btn-primary"
-			onclick={() => showCreateModal = true}
-		>
+		<button class="btn btn-primary" onclick={() => (showCreateModal = true)}>
 			Create New User
 		</button>
 	</div>
@@ -219,7 +216,7 @@
 	{#if error}
 		<div class="error-banner">
 			{error}
-			<button onclick={() => error = null} class="close-btn">&times;</button>
+			<button onclick={() => (error = null)} class="close-btn">&times;</button>
 		</div>
 	{/if}
 
@@ -357,11 +354,11 @@
 
 <!-- Create User Modal -->
 {#if showCreateModal}
-	<div class="modal-backdrop" onclick={() => showCreateModal = false}>
+	<div class="modal-backdrop" onclick={() => (showCreateModal = false)}>
 		<div class="modal" onclick={(e) => e.stopPropagation()}>
 			<div class="modal-header">
 				<h3>Create New User</h3>
-				<button class="close-btn" onclick={() => showCreateModal = false}>&times;</button>
+				<button class="close-btn" onclick={() => (showCreateModal = false)}>&times;</button>
 			</div>
 
 			<form onsubmit|preventDefault={createUser}>
@@ -424,21 +421,16 @@
 
 				<div class="form-group">
 					<label class="checkbox-label">
-						<input
-							type="checkbox"
-							bind:checked={newUser.isAdmin}
-						/>
+						<input type="checkbox" bind:checked={newUser.isAdmin} />
 						Administrator privileges
 					</label>
 				</div>
 
 				<div class="modal-actions">
-					<button type="button" class="btn btn-secondary" onclick={() => showCreateModal = false}>
+					<button type="button" class="btn btn-secondary" onclick={() => (showCreateModal = false)}>
 						Cancel
 					</button>
-					<button type="submit" class="btn btn-primary">
-						Create User
-					</button>
+					<button type="submit" class="btn btn-primary"> Create User </button>
 				</div>
 			</form>
 		</div>
@@ -447,20 +439,22 @@
 
 <!-- Delete Confirmation Modal -->
 {#if showDeleteConfirm && selectedUser}
-	<div class="modal-backdrop" onclick={() => showDeleteConfirm = false}>
+	<div class="modal-backdrop" onclick={() => (showDeleteConfirm = false)}>
 		<div class="modal confirm-modal" onclick={(e) => e.stopPropagation()}>
 			<div class="modal-header">
 				<h3>Confirm Delete</h3>
-				<button class="close-btn" onclick={() => showDeleteConfirm = false}>&times;</button>
+				<button class="close-btn" onclick={() => (showDeleteConfirm = false)}>&times;</button>
 			</div>
 
 			<div class="modal-body">
 				<p>Are you sure you want to delete user <strong>{selectedUser.username}</strong>?</p>
-				<p class="warning">This action cannot be undone. All associated sessions and data will be removed.</p>
+				<p class="warning">
+					This action cannot be undone. All associated sessions and data will be removed.
+				</p>
 			</div>
 
 			<div class="modal-actions">
-				<button class="btn btn-secondary" onclick={() => showDeleteConfirm = false}>
+				<button class="btn btn-secondary" onclick={() => (showDeleteConfirm = false)}>
 					Cancel
 				</button>
 				<button class="btn btn-danger" onclick={() => deleteUser(selectedUser)}>
@@ -597,19 +591,19 @@
 		right: 0;
 		bottom: 0;
 		background-color: #ccc;
-		transition: .4s;
+		transition: 0.4s;
 		border-radius: 20px;
 	}
 
 	.toggle-slider:before {
 		position: absolute;
-		content: "";
+		content: '';
 		height: 16px;
 		width: 16px;
 		left: 2px;
 		bottom: 2px;
 		background-color: white;
-		transition: .4s;
+		transition: 0.4s;
 		border-radius: 50%;
 	}
 

@@ -19,27 +19,32 @@ export async function POST({ request, cookies, url }) {
 
 		// Validate input
 		if (!accessCode) {
-			return json({
-				success: false,
-				error: 'Access code is required'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'Access code is required'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Check if local authentication is enabled
 		const settings = await db.settings.getByCategory('auth');
-		const localEnabled = settings.find(s => s.key === 'local_enabled')?.value === 'true';
+		const localEnabled = settings.find((s) => s.key === 'local_enabled')?.value === 'true';
 
 		if (!localEnabled) {
-			return json({
-				success: false,
-				error: 'Local authentication is not enabled'
-			}, { status: 403 });
+			return json(
+				{
+					success: false,
+					error: 'Local authentication is not enabled'
+				},
+				{ status: 403 }
+			);
 		}
 
 		// Get client IP for rate limiting
-		const clientIp = request.headers.get('x-forwarded-for') ||
-			request.headers.get('x-real-ip') ||
-			'unknown';
+		const clientIp =
+			request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
 
 		// Authenticate using local adapter
 		const authResult = await authManager.authenticate('local', {
@@ -50,10 +55,13 @@ export async function POST({ request, cookies, url }) {
 
 		if (!authResult.success) {
 			logger.warn('AUTH', `Local auth failed for IP ${clientIp}: ${authResult.error}`);
-			return json({
-				success: false,
-				error: authResult.error || 'Authentication failed'
-			}, { status: 401 });
+			return json(
+				{
+					success: false,
+					error: authResult.error || 'Authentication failed'
+				},
+				{ status: 401 }
+			);
 		}
 
 		// Set authentication session cookie
@@ -80,12 +88,14 @@ export async function POST({ request, cookies, url }) {
 			token: authResult.token,
 			returnTo
 		});
-
 	} catch (error) {
 		logger.error('AUTH', `Local authentication error: ${error.message}`);
-		return json({
-			success: false,
-			error: 'Authentication service error'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Authentication service error'
+			},
+			{ status: 500 }
+		);
 	}
 }

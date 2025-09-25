@@ -84,14 +84,17 @@ describe('Enhanced Tunnel Integration', () => {
 			mockProcess.stdout.emit('data', Buffer.from(`your url is: ${tunnelUrl}`));
 
 			// Wait for async processing
-			await new Promise(resolve => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
 			// Check that URL was detected
 			expect(tunnelManager.currentUrl).toBe(tunnelUrl);
-			expect(mockIO.emit).toHaveBeenCalledWith('tunnel.status', expect.objectContaining({
-				url: tunnelUrl,
-				running: true
-			}));
+			expect(mockIO.emit).toHaveBeenCalledWith(
+				'tunnel.status',
+				expect.objectContaining({
+					url: tunnelUrl,
+					running: true
+				})
+			);
 		});
 
 		it('should emit url.changed event when tunnel URL changes', async () => {
@@ -108,13 +111,13 @@ describe('Enhanced Tunnel Integration', () => {
 			// First URL
 			const firstUrl = 'https://test1.loca.lt';
 			mockProcess.stdout.emit('data', Buffer.from(`your url is: ${firstUrl}`));
-			await new Promise(resolve => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
 			// Simulate URL change
 			const newUrl = 'https://test2.loca.lt';
 			tunnelManager.previousUrl = firstUrl;
 			mockProcess.stdout.emit('data', Buffer.from(`your url is: ${newUrl}`));
-			await new Promise(resolve => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
 			// Should detect change
 			expect(tunnelManager.currentUrl).toBe(newUrl);
@@ -126,11 +129,11 @@ describe('Enhanced Tunnel Integration', () => {
 			// Simulate tunnel URL
 			const tunnelUrl = 'https://test.loca.lt';
 			mockProcess.stdout.emit('data', Buffer.from(`your url is: ${tunnelUrl}`));
-			await new Promise(resolve => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
 			// Simulate process exit
 			mockProcess.emit('exit', 0, null);
-			await new Promise(resolve => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
 			// Check cleanup
 			expect(tunnelManager.currentUrl).toBeNull();
@@ -214,9 +217,9 @@ describe('Enhanced Tunnel Integration', () => {
 		});
 
 		it('should handle OAuth provider API errors gracefully', async () => {
-			oauthManager.updateProviderRedirectUris = vi.fn().mockRejectedValue(
-				new Error('Provider API error')
-			);
+			oauthManager.updateProviderRedirectUris = vi
+				.fn()
+				.mockRejectedValue(new Error('Provider API error'));
 
 			tunnelManager.oauthHooks = [oauthManager];
 
@@ -279,10 +282,13 @@ describe('Enhanced Tunnel Integration', () => {
 
 			await tunnelManager.onUrlChange(tunnelUrl);
 
-			expect(mockIO.emit).toHaveBeenCalledWith('security.warning', expect.objectContaining({
-				type: 'webauthn',
-				message: 'Hostname change requires re-registration'
-			}));
+			expect(mockIO.emit).toHaveBeenCalledWith(
+				'security.warning',
+				expect.objectContaining({
+					type: 'webauthn',
+					message: 'Hostname change requires re-registration'
+				})
+			);
 		});
 	});
 
@@ -338,7 +344,7 @@ describe('Enhanced Tunnel Integration', () => {
 
 			// Check that it was called with security settings
 			const securityCalls = mockDatabase.setSettingsForCategory.mock.calls.filter(
-				call => call[0] === 'security'
+				(call) => call[0] === 'security'
 			);
 
 			expect(securityCalls.length).toBeGreaterThan(0);
@@ -350,9 +356,7 @@ describe('Enhanced Tunnel Integration', () => {
 		});
 
 		it('should handle rollback errors gracefully', async () => {
-			mockDatabase.setSettingsForCategory.mockRejectedValue(
-				new Error('Database error')
-			);
+			mockDatabase.setSettingsForCategory.mockRejectedValue(new Error('Database error'));
 
 			tunnelManager.rollbackSecurityPolicies = async () => {
 				try {

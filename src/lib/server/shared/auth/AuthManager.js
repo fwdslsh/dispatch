@@ -43,7 +43,6 @@ export class AuthManager {
 			const { OAuthAdapter } = await import('./adapters/OAuthAdapter.js');
 			const oauthAdapter = new OAuthAdapter(this.db, this);
 			this.registerAdapter('oauth', oauthAdapter);
-
 		} catch (error) {
 			logger.error('AUTH', `Failed to register default adapters: ${error.message}`);
 		}
@@ -111,7 +110,7 @@ export class AuthManager {
 			];
 
 			const updates = {};
-			Object.keys(config).forEach(key => {
+			Object.keys(config).forEach((key) => {
 				if (validFields.includes(key)) {
 					updates[key] = config[key];
 				}
@@ -146,9 +145,18 @@ export class AuthManager {
 			}
 
 			// Check rate limiting
-			const rateLimitResult = await this.checkRateLimit(credentials.ipAddress, credentials.username);
+			const rateLimitResult = await this.checkRateLimit(
+				credentials.ipAddress,
+				credentials.username
+			);
 			if (!rateLimitResult.allowed) {
-				await this.logFailedAttempt(null, credentials.ipAddress, credentials.userAgent, 'rate_limited', credentials.username);
+				await this.logFailedAttempt(
+					null,
+					credentials.ipAddress,
+					credentials.userAgent,
+					'rate_limited',
+					credentials.username
+				);
 				return {
 					success: false,
 					error: 'Too many failed attempts. You are temporarily rate limited.'
@@ -201,7 +209,6 @@ export class AuthManager {
 					sessionToken: session.sessionToken,
 					expiresAt: session.expiresAt
 				};
-
 			} else {
 				// Log failed attempt
 				await this.logFailedAttempt(
@@ -220,7 +227,6 @@ export class AuthManager {
 					error: authResult.error || 'Authentication failed'
 				};
 			}
-
 		} catch (error) {
 			logger.error('AUTH', `Authentication error: ${error.message}`);
 			return {
@@ -264,7 +270,6 @@ export class AuthManager {
 					lastActivityAt: session.lastActivityAt
 				}
 			};
-
 		} catch (error) {
 			logger.error('AUTH', `Session validation error: ${error.message}`);
 			return { valid: false, error: 'Session validation failed' };
@@ -296,7 +301,6 @@ export class AuthManager {
 			}
 
 			return { success: true };
-
 		} catch (error) {
 			logger.error('AUTH', `Logout error: ${error.message}`);
 			return { success: false, error: 'Logout failed' };
@@ -337,7 +341,6 @@ export class AuthManager {
 			});
 
 			return device;
-
 		} catch (error) {
 			logger.error('AUTH', `Device management error: ${error.message}`);
 			throw error;
@@ -353,7 +356,7 @@ export class AuthManager {
 		let hash = 0;
 		for (let i = 0; i < data.length; i++) {
 			const char = data.charCodeAt(i);
-			hash = ((hash << 5) - hash) + char;
+			hash = (hash << 5) - hash + char;
 			hash = hash & hash; // Convert to 32-bit integer
 		}
 		return `fp_${Math.abs(hash).toString(36)}`;
@@ -407,13 +410,7 @@ export class AuthManager {
 	 */
 	async logFailedAttempt(userId, ipAddress, userAgent, reason, username = null) {
 		try {
-			await this.daos.authEvents.logFailedLogin(
-				userId,
-				ipAddress,
-				userAgent,
-				reason,
-				username
-			);
+			await this.daos.authEvents.logFailedLogin(userId, ipAddress, userAgent, reason, username);
 		} catch (error) {
 			logger.error('AUTH', `Failed to log failed attempt: ${error.message}`);
 		}
@@ -448,7 +445,6 @@ export class AuthManager {
 				devices: deviceStats,
 				adapters: this.getAvailableAdapters()
 			};
-
 		} catch (error) {
 			logger.error('AUTH', `Failed to get auth stats: ${error.message}`);
 			return null;
@@ -476,7 +472,7 @@ export class AuthManager {
 
 			// Check for tunnel domains which are unstable
 			const tunnelDomains = ['loca.lt', 'tunnel.site', 'localtunnel.me'];
-			const isTunnel = tunnelDomains.some(domain => hostname.includes(domain));
+			const isTunnel = tunnelDomains.some((domain) => hostname.includes(domain));
 
 			if (isTunnel) {
 				return {
@@ -506,7 +502,6 @@ export class AuthManager {
 				reason: 'WebAuthn is available',
 				rpId: hostname
 			};
-
 		} catch (error) {
 			logger.error('AUTH', `WebAuthn validation error: ${error.message}`);
 			return {
@@ -529,7 +524,7 @@ export class AuthManager {
 
 			return {
 				count: credentials.length,
-				users: credentials.map(c => c.user_id)
+				users: credentials.map((c) => c.user_id)
 			};
 		} catch (error) {
 			logger.error('AUTH', `Failed to check WebAuthn credentials: ${error.message}`);
@@ -558,11 +553,15 @@ export class AuthManager {
 	async updateWebAuthnRpId(newRpId) {
 		try {
 			const settings = await this.db.getSettingsByCategory('auth');
-			await this.db.setSettingsForCategory('auth', {
-				...settings,
-				webauthn_rpid: newRpId,
-				webauthn_rpid_updated_at: new Date().toISOString()
-			}, 'WebAuthn rpID update');
+			await this.db.setSettingsForCategory(
+				'auth',
+				{
+					...settings,
+					webauthn_rpid: newRpId,
+					webauthn_rpid_updated_at: new Date().toISOString()
+				},
+				'WebAuthn rpID update'
+			);
 
 			logger.info('AUTH', `Updated WebAuthn rpID to: ${newRpId}`);
 		} catch (error) {

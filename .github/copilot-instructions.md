@@ -104,7 +104,6 @@ Dispatch codebase. Keep responses concise and make edits that follow the project
 - Run `npm run format`, `npm run lint`, and `npm test` locally before submitting.
 - Update documentation (AGENTS.md or README) only if behavior or configuration changes.
 
-
 ## Writing articles and documentation
 
 - Place articles in `docs/articles/` directory for organized documentation
@@ -117,8 +116,8 @@ Dispatch codebase. Keep responses concise and make edits that follow the project
   - Example front matter:
     ```yaml
     ---
-    title: "Your Article Title Here"
-    description: "Brief description of the article content"
+    title: 'Your Article Title Here'
+    description: 'Brief description of the article content'
     published: false
     draft: true
     tags: dispatch, sveltekit, nodejs

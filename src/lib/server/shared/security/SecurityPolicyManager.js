@@ -30,11 +30,15 @@ export class SecurityPolicyManager {
 	 */
 	async updateCORSOrigins(origins) {
 		// Validate all origins
-		origins.forEach(origin => this.validateOrigin(origin));
+		origins.forEach((origin) => this.validateOrigin(origin));
 
-		await this.db.setSettingsForCategory('security', {
-			cors_allowed_origins: origins
-		}, 'CORS origins update');
+		await this.db.setSettingsForCategory(
+			'security',
+			{
+				cors_allowed_origins: origins
+			},
+			'CORS origins update'
+		);
 
 		await this.logPolicyChange('cors', { origins });
 	}
@@ -49,13 +53,15 @@ export class SecurityPolicyManager {
 		const tunnelOrigin = tunnelInfo.url;
 
 		// Remove old tunnel origins (loca.lt, tunnel.site, etc.)
-		const filteredOrigins = currentOrigins.filter(origin => {
+		const filteredOrigins = currentOrigins.filter((origin) => {
 			try {
 				const url = new URL(origin);
 				// Keep non-tunnel origins
-				return !url.hostname.includes('loca.lt') &&
-				       !url.hostname.includes('tunnel.site') &&
-				       !url.hostname.includes('localtunnel.me');
+				return (
+					!url.hostname.includes('loca.lt') &&
+					!url.hostname.includes('tunnel.site') &&
+					!url.hostname.includes('localtunnel.me')
+				);
 			} catch {
 				return true; // Keep if not a valid URL
 			}
@@ -145,9 +151,13 @@ export class SecurityPolicyManager {
 	 * HSTS Policy Management
 	 */
 	async updateCertificateContext(certContext) {
-		await this.db.setSettingsForCategory('security', {
-			certificate_context: certContext
-		}, 'Certificate context update');
+		await this.db.setSettingsForCategory(
+			'security',
+			{
+				certificate_context: certContext
+			},
+			'Certificate context update'
+		);
 
 		await this.logPolicyChange('certificate', certContext);
 	}
@@ -184,7 +194,9 @@ export class SecurityPolicyManager {
 	generateCSRFToken() {
 		const bytes = new Uint8Array(32);
 		crypto.getRandomValues(bytes);
-		return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+		return Array.from(bytes)
+			.map((b) => b.toString(16).padStart(2, '0'))
+			.join('');
 	}
 
 	storeCSRFToken(sessionId, token) {
@@ -230,27 +242,33 @@ export class SecurityPolicyManager {
 		} = context;
 
 		const config = {
-			contentSecurityPolicy: environment === 'production' ? {
-				directives: {
-					defaultSrc: ["'self'"],
-					scriptSrc: ["'self'", "'unsafe-inline'"],
-					styleSrc: ["'self'", "'unsafe-inline'"],
-					fontSrc: ["'self'"],
-					imgSrc: ["'self'", "data:", "https:"],
-					connectSrc: ["'self'", "wss:", "ws:"],
-					mediaSrc: ["'self'"],
-					objectSrc: ["'none'"],
-					childSrc: ["'self'"],
-					workerSrc: ["'self'"],
-					frameSrc: ["'none'"]
-				}
-			} : false,
+			contentSecurityPolicy:
+				environment === 'production'
+					? {
+							directives: {
+								defaultSrc: ["'self'"],
+								scriptSrc: ["'self'", "'unsafe-inline'"],
+								styleSrc: ["'self'", "'unsafe-inline'"],
+								fontSrc: ["'self'"],
+								imgSrc: ["'self'", 'data:', 'https:'],
+								connectSrc: ["'self'", 'wss:', 'ws:'],
+								mediaSrc: ["'self'"],
+								objectSrc: ["'none'"],
+								childSrc: ["'self'"],
+								workerSrc: ["'self'"],
+								frameSrc: ["'none'"]
+							}
+						}
+					: false,
 
-			hsts: this.shouldEnableHSTS({ type: isCustomDomain ? 'letsencrypt' : 'tunnel' }) && isHttps ? {
-				maxAge: 31536000,
-				includeSubDomains: isCustomDomain,
-				preload: false
-			} : false,
+			hsts:
+				this.shouldEnableHSTS({ type: isCustomDomain ? 'letsencrypt' : 'tunnel' }) && isHttps
+					? {
+							maxAge: 31536000,
+							includeSubDomains: isCustomDomain,
+							preload: false
+						}
+					: false,
 
 			noSniff: true,
 			xssFilter: true,
@@ -270,38 +288,34 @@ export class SecurityPolicyManager {
 	 * Rate Limiting Configuration
 	 */
 	getRateLimitConfiguration(endpoint, context = {}) {
-		const {
-			isLAN = false,
-			isTunnel = false,
-			isLocalhost = false
-		} = context;
+		const { isLAN = false, isTunnel = false, isLocalhost = false } = context;
 
 		// Base configuration by endpoint type
 		const configs = {
 			auth: {
 				windowMs: 15 * 60 * 1000, // 15 minutes
-				max: isLAN ? 50 : (isTunnel ? 10 : 20),
+				max: isLAN ? 50 : isTunnel ? 10 : 20,
 				skipSuccessfulRequests: true,
 				standardHeaders: true,
 				legacyHeaders: false
 			},
 			'failed-auth': {
 				windowMs: 15 * 60 * 1000,
-				max: isLAN ? 10 : (isTunnel ? 3 : 5),
+				max: isLAN ? 10 : isTunnel ? 3 : 5,
 				skipSuccessfulRequests: false,
 				standardHeaders: true,
 				legacyHeaders: false
 			},
 			api: {
 				windowMs: 15 * 60 * 1000,
-				max: isLAN ? 200 : (isTunnel ? 50 : 100),
+				max: isLAN ? 200 : isTunnel ? 50 : 100,
 				skipSuccessfulRequests: true,
 				standardHeaders: true,
 				legacyHeaders: false
 			},
 			upload: {
 				windowMs: 60 * 60 * 1000, // 1 hour
-				max: isLAN ? 20 : (isTunnel ? 5 : 10),
+				max: isLAN ? 20 : isTunnel ? 5 : 10,
 				skipSuccessfulRequests: true,
 				standardHeaders: true,
 				legacyHeaders: false
@@ -353,20 +367,19 @@ export class SecurityPolicyManager {
 			const [, a, b, c, d] = match.map(Number);
 
 			// Private IP ranges
-			return (a === 10) ||
-				   (a === 172 && b >= 16 && b <= 31) ||
-				   (a === 192 && b === 168) ||
-				   (a === 127); // localhost
+			return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a === 127; // localhost
 		}
 
 		return false;
 	}
 
 	isCustomDomain(hostname) {
-		return !this.isLANAddress(hostname) &&
-			   hostname !== 'localhost' &&
-			   !hostname.includes('.localtunnel.me') &&
-			   !hostname.includes('.ngrok.io');
+		return (
+			!this.isLANAddress(hostname) &&
+			hostname !== 'localhost' &&
+			!hostname.includes('.localtunnel.me') &&
+			!hostname.includes('.ngrok.io')
+		);
 	}
 
 	/**
@@ -384,7 +397,7 @@ export class SecurityPolicyManager {
 		// Update certificate context if HTTPS status changed
 		if (oldContext.isHttps !== newContext.isHttps) {
 			await this.updateCertificateContext({
-				type: newContext.isTunnel ? 'tunnel' : (newContext.isCustomDomain ? 'letsencrypt' : 'mkcert'),
+				type: newContext.isTunnel ? 'tunnel' : newContext.isCustomDomain ? 'letsencrypt' : 'mkcert',
 				domain: newContext.hostname
 			});
 			changes.push('certificate');
@@ -403,7 +416,7 @@ export class SecurityPolicyManager {
 
 	validatePolicyConfiguration(config) {
 		if (config.cors?.origins) {
-			config.cors.origins.forEach(origin => this.validateOrigin(origin));
+			config.cors.origins.forEach((origin) => this.validateOrigin(origin));
 		}
 
 		if (config.cookies) {
@@ -432,14 +445,18 @@ export class SecurityPolicyManager {
 		});
 
 		// Update database settings
-		await this.db.setSettingsForCategory('security', {
-			hosting_context: {
-				mode,
-				isSecure,
-				hasTunnel,
-				updatedAt: new Date().toISOString()
-			}
-		}, 'Security context update');
+		await this.db.setSettingsForCategory(
+			'security',
+			{
+				hosting_context: {
+					mode,
+					isSecure,
+					hasTunnel,
+					updatedAt: new Date().toISOString()
+				}
+			},
+			'Security context update'
+		);
 
 		// Log the change
 		await this.logPolicyChange('hosting_context', context);
@@ -451,13 +468,15 @@ export class SecurityPolicyManager {
 	async onTunnelDisconnected() {
 		// Get current origins and remove tunnel URLs
 		const currentOrigins = await this.getCORSOrigins();
-		const filteredOrigins = currentOrigins.filter(origin => {
+		const filteredOrigins = currentOrigins.filter((origin) => {
 			try {
 				const url = new URL(origin);
 				// Remove tunnel origins
-				return !url.hostname.includes('loca.lt') &&
-				       !url.hostname.includes('tunnel.site') &&
-				       !url.hostname.includes('localtunnel.me');
+				return (
+					!url.hostname.includes('loca.lt') &&
+					!url.hostname.includes('tunnel.site') &&
+					!url.hostname.includes('localtunnel.me')
+				);
 			} catch {
 				return true;
 			}
@@ -499,17 +518,20 @@ export class SecurityPolicyManager {
 
 	async getPolicyAuditLogs(options = {}) {
 		const { limit = 100, days = 30 } = options;
-		const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
-		const events = await this.db.all(`
+		const events = await this.db.all(
+			`
 			SELECT * FROM auth_events
 			WHERE event_type = 'policy_change'
 			AND created_at > ?
 			ORDER BY created_at DESC
 			LIMIT ?
-		`, [cutoffTime, limit]);
+		`,
+			[cutoffTime, limit]
+		);
 
-		return events.map(event => ({
+		return events.map((event) => ({
 			id: event.id,
 			policy: JSON.parse(event.details || '{}').policy,
 			changes: JSON.parse(event.details || '{}').changes,
@@ -522,10 +544,13 @@ export class SecurityPolicyManager {
 	 */
 	startCleanupInterval() {
 		// Clean up expired tokens every 5 minutes
-		setInterval(() => {
-			this.cleanupExpiredCSRFTokens();
-			this.cleanupContextCache();
-		}, 5 * 60 * 1000);
+		setInterval(
+			() => {
+				this.cleanupExpiredCSRFTokens();
+				this.cleanupContextCache();
+			},
+			5 * 60 * 1000
+		);
 	}
 
 	cleanupContextCache() {

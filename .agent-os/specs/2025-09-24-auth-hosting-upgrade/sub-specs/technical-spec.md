@@ -60,24 +60,28 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 ### Implementation Phases
 
 **Phase 1: Core Authentication Infrastructure**
+
 - Implement AuthManager and authentication adapter pattern
 - Create database schema extensions with migration scripts
 - Build authentication middleware with session management
 - Add basic user registration and login functionality
 
 **Phase 2: Security Policy Management**
+
 - Implement dynamic CORS and cookie security policies
 - Add CSRF protection and rate limiting systems
 - Create certificate storage and management infrastructure
 - Build security configuration UI components
 
 **Phase 3: Advanced Authentication Methods**
+
 - Integrate WebAuthn with hostname validation
 - Implement OAuth flows with dynamic redirect URIs
 - Add certificate provisioning (mkcert and Let's Encrypt)
 - Create comprehensive admin dashboard
 
 **Phase 4: Integration and Hardening**
+
 - Enhance tunnel integration with security synchronization
 - Implement audit logging and monitoring
 - Add security warnings and posture reporting
@@ -86,26 +90,29 @@ This is the technical specification for the spec detailed in @.agent-os/specs/20
 ### Technical Architecture Patterns
 
 **Adapter Pattern for Authentication**
+
 ```javascript
 class AuthManager {
-  constructor(adapter) {
-    this.adapter = adapter;
-  }
+	constructor(adapter) {
+		this.adapter = adapter;
+	}
 
-  async authenticate(request) {
-    return this.adapter.authenticate(request);
-  }
+	async authenticate(request) {
+		return this.adapter.authenticate(request);
+	}
 }
 
 // Adapters: LocalAuthAdapter, WebAuthnAdapter, OAuthAdapter
 ```
 
 **Event-Sourced Security Configuration**
+
 - Leverage existing event sourcing architecture for security policy changes
 - Store auth configuration changes as events for audit trail
 - Enable rollback of security policy changes
 
 **Middleware Chain Pattern**
+
 - Authentication middleware -> Authorization middleware -> CSRF middleware
 - Each middleware enriches request context with security information
 - Fail-fast pattern for security violations

@@ -19,10 +19,13 @@ export class UserDAO {
 			isActive = true
 		} = userData;
 
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			INSERT INTO users (username, display_name, email, password_hash, is_admin, is_active)
 			VALUES (?, ?, ?, ?, ?, ?)
-		`, [username, displayName, email, passwordHash, isAdmin ? 1 : 0, isActive ? 1 : 0]);
+		`,
+			[username, displayName, email, passwordHash, isAdmin ? 1 : 0, isActive ? 1 : 0]
+		);
 
 		return this.getById(result.lastID);
 	}
@@ -73,14 +76,17 @@ export class UserDAO {
 
 		params.push(limit, offset);
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT * FROM users
 			${whereClause}
 			ORDER BY created_at DESC
 			LIMIT ? OFFSET ?
-		`, params);
+		`,
+			params
+		);
 
-		const users = rows.map(row => this.mapRowToUser(row));
+		const users = rows.map((row) => this.mapRowToUser(row));
 
 		// Get total count for pagination
 		let countWhereClause = includeInactive ? '' : 'WHERE is_active = 1';
@@ -96,9 +102,12 @@ export class UserDAO {
 			countParams.push(searchPattern, searchPattern, searchPattern);
 		}
 
-		const countResult = await this.db.get(`
+		const countResult = await this.db.get(
+			`
 			SELECT COUNT(*) as total FROM users ${countWhereClause}
-		`, countParams);
+		`,
+			countParams
+		);
 
 		return {
 			users,
@@ -119,7 +128,7 @@ export class UserDAO {
 		const updates = [];
 		const params = [];
 
-		Object.keys(updateData).forEach(key => {
+		Object.keys(updateData).forEach((key) => {
 			if (allowedFields.includes(key)) {
 				updates.push(`${key} = ?`);
 				params.push(updateData[key]);
@@ -132,11 +141,14 @@ export class UserDAO {
 
 		params.push(Date.now(), userId);
 
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE users
 			SET ${updates.join(', ')}, updated_at = ?
 			WHERE id = ?
-		`, params);
+		`,
+			params
+		);
 
 		return this.getById(userId);
 	}
@@ -164,9 +176,12 @@ export class UserDAO {
 			params.push(email);
 		}
 
-		const result = await this.db.get(`
+		const result = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM users WHERE ${whereClause}
-		`, params);
+		`,
+			params
+		);
 
 		return result.count > 0;
 	}
@@ -180,7 +195,7 @@ export class UserDAO {
 			ORDER BY created_at ASC
 		`);
 
-		return rows.map(row => this.mapRowToUser(row));
+		return rows.map((row) => this.mapRowToUser(row));
 	}
 
 	/**

@@ -2,10 +2,7 @@
 	import { onMount } from 'svelte';
 
 	// Props
-	let {
-		apiClient,
-		isVisible = false
-	} = $props();
+	let { apiClient, isVisible = false } = $props();
 
 	// State
 	let auditLogs = $state([]);
@@ -176,16 +173,25 @@
 	}
 
 	function formatEventType(eventType) {
-		return eventType.split('_').map(word =>
-			word.charAt(0).toUpperCase() + word.slice(1)
-		).join(' ');
+		return eventType
+			.split('_')
+			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+			.join(' ');
 	}
 
 	function getEventTypeColor(eventType) {
-		if (eventType.includes('failed') || eventType.includes('revoked') || eventType.includes('deleted')) {
+		if (
+			eventType.includes('failed') ||
+			eventType.includes('revoked') ||
+			eventType.includes('deleted')
+		) {
 			return '#dc3545'; // Red for negative events
 		}
-		if (eventType.includes('login') || eventType.includes('created') || eventType.includes('linked')) {
+		if (
+			eventType.includes('login') ||
+			eventType.includes('created') ||
+			eventType.includes('linked')
+		) {
 			return '#28a745'; // Green for positive events
 		}
 		if (eventType.includes('promoted') || eventType.includes('registered')) {
@@ -199,9 +205,9 @@
 
 		try {
 			const parsed = typeof details === 'string' ? JSON.parse(details) : details;
-			return Object.entries(parsed).map(([key, value]) =>
-				`${key}: ${value}`
-			).join(', ');
+			return Object.entries(parsed)
+				.map(([key, value]) => `${key}: ${value}`)
+				.join(', ');
 		} catch (e) {
 			return details.toString();
 		}
@@ -213,12 +219,15 @@
 		<div class="viewer-header">
 			<h3>Audit Log Viewer</h3>
 			<div class="header-actions">
-				<button class="btn btn-secondary" onclick={() => { showExportModal = true; }}>
+				<button
+					class="btn btn-secondary"
+					onclick={() => {
+						showExportModal = true;
+					}}
+				>
 					Export Logs
 				</button>
-				<button class="btn btn-secondary" onclick={loadAuditLogs}>
-					Refresh
-				</button>
+				<button class="btn btn-secondary" onclick={loadAuditLogs}> Refresh </button>
 			</div>
 		</div>
 
@@ -241,9 +250,7 @@
 		<div class="filters-section">
 			<div class="filters-header">
 				<h4>Filters</h4>
-				<button class="btn btn-sm" onclick={clearFilters}>
-					Clear All
-				</button>
+				<button class="btn btn-sm" onclick={clearFilters}> Clear All </button>
 			</div>
 
 			<div class="filters-grid">
@@ -258,12 +265,7 @@
 
 				<div class="filter-group">
 					<label for="userId">User ID</label>
-					<input
-						type="text"
-						id="userId"
-						bind:value={filters.userId}
-						placeholder="Enter user ID"
-					/>
+					<input type="text" id="userId" bind:value={filters.userId} placeholder="Enter user ID" />
 				</div>
 
 				<div class="filter-group">
@@ -278,20 +280,12 @@
 
 				<div class="filter-group">
 					<label for="dateFrom">Date From</label>
-					<input
-						type="date"
-						id="dateFrom"
-						bind:value={filters.dateFrom}
-					/>
+					<input type="date" id="dateFrom" bind:value={filters.dateFrom} />
 				</div>
 
 				<div class="filter-group">
 					<label for="dateTo">Date To</label>
-					<input
-						type="date"
-						id="dateTo"
-						bind:value={filters.dateTo}
-					/>
+					<input type="date" id="dateTo" bind:value={filters.dateTo} />
 				</div>
 			</div>
 		</div>
@@ -338,16 +332,15 @@
 								<td class="ip-address">{event.ipAddress || 'N/A'}</td>
 								<td class="user-agent" title={event.userAgent}>
 									{#if event.userAgent}
-										{event.userAgent.length > 30 ? event.userAgent.substring(0, 30) + '...' : event.userAgent}
+										{event.userAgent.length > 30
+											? event.userAgent.substring(0, 30) + '...'
+											: event.userAgent}
 									{:else}
 										N/A
 									{/if}
 								</td>
 								<td>
-									<button
-										class="btn btn-sm"
-										onclick={() => viewEventDetails(event)}
-									>
+									<button class="btn btn-sm" onclick={() => viewEventDetails(event)}>
 										View Details
 									</button>
 								</td>
@@ -360,11 +353,7 @@
 			<!-- Pagination -->
 			{#if pagination.pages > 1}
 				<div class="pagination">
-					<button
-						class="btn btn-sm"
-						disabled={pagination.page === 1}
-						onclick={() => changePage(1)}
-					>
+					<button class="btn btn-sm" disabled={pagination.page === 1} onclick={() => changePage(1)}>
 						First
 					</button>
 					<button
@@ -399,7 +388,7 @@
 
 		{#if !loading && auditLogs.length === 0}
 			<div class="no-results">
-				{#if Object.values(filters).some(f => f)}
+				{#if Object.values(filters).some((f) => f)}
 					No audit logs found matching the current filters.
 				{:else}
 					No audit logs found.
@@ -413,7 +402,12 @@
 				<div class="modal modal-large">
 					<div class="modal-header">
 						<h4>Event Details</h4>
-						<button class="btn-close" onclick={() => { showEventDetails = false; }}>&times;</button>
+						<button
+							class="btn-close"
+							onclick={() => {
+								showEventDetails = false;
+							}}>&times;</button
+						>
 					</div>
 
 					<div class="event-details">
@@ -473,19 +467,24 @@
 								<h5>Raw Details (JSON)</h5>
 								<div class="raw-details">
 									<pre>{JSON.stringify(
-										typeof selectedEvent.details === 'string'
-											? JSON.parse(selectedEvent.details)
-											: selectedEvent.details,
-										null,
-										2
-									)}</pre>
+											typeof selectedEvent.details === 'string'
+												? JSON.parse(selectedEvent.details)
+												: selectedEvent.details,
+											null,
+											2
+										)}</pre>
 								</div>
 							</div>
 						{/if}
 					</div>
 
 					<div class="modal-actions">
-						<button class="btn" onclick={() => { showEventDetails = false; }}>
+						<button
+							class="btn"
+							onclick={() => {
+								showEventDetails = false;
+							}}
+						>
 							Close
 						</button>
 					</div>
@@ -499,7 +498,12 @@
 				<div class="modal">
 					<div class="modal-header">
 						<h4>Export Audit Logs</h4>
-						<button class="btn-close" onclick={() => { showExportModal = false; }}>&times;</button>
+						<button
+							class="btn-close"
+							onclick={() => {
+								showExportModal = false;
+							}}>&times;</button
+						>
 					</div>
 
 					<div class="export-options">
@@ -522,7 +526,12 @@
 					</div>
 
 					<div class="modal-actions">
-						<button class="btn" onclick={() => { showExportModal = false; }}>
+						<button
+							class="btn"
+							onclick={() => {
+								showExportModal = false;
+							}}
+						>
 							Cancel
 						</button>
 					</div>
@@ -597,7 +606,7 @@
 		border-radius: 8px;
 		padding: 20px;
 		margin-bottom: 20px;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 	}
 
 	.filters-header {
@@ -648,7 +657,7 @@
 		background: white;
 		border-radius: 6px;
 		overflow: hidden;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 		margin-bottom: 20px;
 		overflow-x: auto;
 	}

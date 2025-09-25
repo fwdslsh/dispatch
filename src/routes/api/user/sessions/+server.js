@@ -37,7 +37,7 @@ export async function GET({ request }) {
 
 		return json({
 			success: true,
-			sessions: sessions.map(session => ({
+			sessions: sessions.map((session) => ({
 				id: session.id,
 				deviceId: session.deviceId,
 				deviceName: session.deviceName,
@@ -48,23 +48,27 @@ export async function GET({ request }) {
 				userAgent: session.userAgent,
 				authMethod: session.authMethod
 			})),
-			currentSession: currentSession ? {
-				id: currentSession.id,
-				deviceId: currentSession.deviceId,
-				deviceName: currentSession.deviceName,
-				createdAt: currentSession.createdAt,
-				expiresAt: currentSession.expiresAt,
-				lastActivity: currentSession.lastActivity,
-				authMethod: currentSession.authMethod
-			} : null
+			currentSession: currentSession
+				? {
+						id: currentSession.id,
+						deviceId: currentSession.deviceId,
+						deviceName: currentSession.deviceName,
+						createdAt: currentSession.createdAt,
+						expiresAt: currentSession.expiresAt,
+						lastActivity: currentSession.lastActivity,
+						authMethod: currentSession.authMethod
+					}
+				: null
 		});
-
 	} catch (error) {
 		console.error('Error fetching user sessions:', error);
-		return json({
-			success: false,
-			error: 'Failed to load sessions'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to load sessions'
+			},
+			{ status: 500 }
+		);
 	}
 }
 

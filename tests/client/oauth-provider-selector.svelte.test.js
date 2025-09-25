@@ -13,30 +13,31 @@ describe('OAuth Provider Selector Component', () => {
 
 		// Mock successful auth config response by default
 		fetch.mockResolvedValue({
-			json: () => Promise.resolve({
-				success: true,
-				methods: {
-					oauth: {
-						available: true,
-						providers: {
-							google: {
-								enabled: true,
-								configured: true,
-								available: true
-							},
-							github: {
-								enabled: true,
-								configured: true,
-								available: true
+			json: () =>
+				Promise.resolve({
+					success: true,
+					methods: {
+						oauth: {
+							available: true,
+							providers: {
+								google: {
+									enabled: true,
+									configured: true,
+									available: true
+								},
+								github: {
+									enabled: true,
+									configured: true,
+									available: true
+								}
 							}
 						}
+					},
+					security: {
+						isSecure: true,
+						isTunnel: false
 					}
-				},
-				security: {
-					isSecure: true,
-					isTunnel: false
-				}
-			})
+				})
 		});
 	});
 
@@ -49,8 +50,9 @@ describe('OAuth Provider Selector Component', () => {
 			const { container } = render(OAuthProviderSelector);
 
 			expect(container.textContent).toContain('Loading authentication providers...');
-			const spinner = container.querySelector('[data-testid*="loading"]') ||
-							 container.querySelector('.loading-state');
+			const spinner =
+				container.querySelector('[data-testid*="loading"]') ||
+				container.querySelector('.loading-state');
 			expect(spinner).toBeTruthy();
 		});
 	});
@@ -65,10 +67,12 @@ describe('OAuth Provider Selector Component', () => {
 			});
 
 			// Should have OAuth buttons for enabled providers
-			const googleButton = container.querySelector('[data-testid="oauth-provider-google"]') ||
-								 container.querySelector('button[title*="Google"]');
-			const githubButton = container.querySelector('[data-testid="oauth-provider-github"]') ||
-								container.querySelector('button[title*="GitHub"]');
+			const googleButton =
+				container.querySelector('[data-testid="oauth-provider-google"]') ||
+				container.querySelector('button[title*="Google"]');
+			const githubButton =
+				container.querySelector('[data-testid="oauth-provider-github"]') ||
+				container.querySelector('button[title*="GitHub"]');
 
 			expect(googleButton).toBeTruthy();
 			expect(githubButton).toBeTruthy();
@@ -76,25 +80,26 @@ describe('OAuth Provider Selector Component', () => {
 
 		it('handles providers that are not configured', async () => {
 			fetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						oauth: {
-							available: true,
-							providers: {
-								google: {
-									enabled: true,
-									configured: false,
-									available: true
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							oauth: {
+								available: true,
+								providers: {
+									google: {
+										enabled: true,
+										configured: false,
+										available: true
+									}
 								}
 							}
+						},
+						security: {
+							isSecure: true,
+							isTunnel: false
 						}
-					},
-					security: {
-						isSecure: true,
-						isTunnel: false
-					}
-				})
+					})
 			});
 
 			const { container } = render(OAuthProviderSelector);
@@ -106,25 +111,26 @@ describe('OAuth Provider Selector Component', () => {
 
 		it('handles providers that are temporarily unavailable', async () => {
 			fetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						oauth: {
-							available: true,
-							providers: {
-								google: {
-									enabled: true,
-									configured: true,
-									available: false
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							oauth: {
+								available: true,
+								providers: {
+									google: {
+										enabled: true,
+										configured: true,
+										available: false
+									}
 								}
 							}
+						},
+						security: {
+							isSecure: true,
+							isTunnel: false
 						}
-					},
-					security: {
-						isSecure: true,
-						isTunnel: false
-					}
-				})
+					})
 			});
 
 			const { container } = render(OAuthProviderSelector);
@@ -152,10 +158,11 @@ describe('OAuth Provider Selector Component', () => {
 
 		it('shows error state when server returns error', async () => {
 			fetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: false,
-					error: 'Authentication service unavailable'
-				})
+				json: () =>
+					Promise.resolve({
+						success: false,
+						error: 'Authentication service unavailable'
+					})
 			});
 
 			const { container } = render(OAuthProviderSelector);
@@ -178,25 +185,26 @@ describe('OAuth Provider Selector Component', () => {
 
 			// Mock successful retry
 			fetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						oauth: {
-							available: true,
-							providers: {
-								google: {
-									enabled: true,
-									configured: true,
-									available: true
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							oauth: {
+								available: true,
+								providers: {
+									google: {
+										enabled: true,
+										configured: true,
+										available: true
+									}
 								}
 							}
+						},
+						security: {
+							isSecure: true,
+							isTunnel: false
 						}
-					},
-					security: {
-						isSecure: true,
-						isTunnel: false
-					}
-				})
+					})
 			});
 
 			const retryButton = container.querySelector('button');
@@ -212,19 +220,20 @@ describe('OAuth Provider Selector Component', () => {
 	describe('No Providers State', () => {
 		it('shows message when no providers are configured', async () => {
 			fetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						oauth: {
-							available: false,
-							providers: {}
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							oauth: {
+								available: false,
+								providers: {}
+							}
+						},
+						security: {
+							isSecure: true,
+							isTunnel: false
 						}
-					},
-					security: {
-						isSecure: true,
-						isTunnel: false
-					}
-				})
+					})
 			});
 
 			const { container } = render(OAuthProviderSelector);
@@ -239,25 +248,26 @@ describe('OAuth Provider Selector Component', () => {
 	describe('Security Context', () => {
 		it('shows tunnel warning when using tunnel URL', async () => {
 			fetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						oauth: {
-							available: true,
-							providers: {
-								google: {
-									enabled: true,
-									configured: true,
-									available: true
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							oauth: {
+								available: true,
+								providers: {
+									google: {
+										enabled: true,
+										configured: true,
+										available: true
+									}
 								}
 							}
+						},
+						security: {
+							isSecure: true,
+							isTunnel: true
 						}
-					},
-					security: {
-						isSecure: true,
-						isTunnel: true
-					}
-				})
+					})
 			});
 
 			const { container } = render(OAuthProviderSelector);
@@ -270,25 +280,26 @@ describe('OAuth Provider Selector Component', () => {
 
 		it('shows insecure connection warning when using HTTP', async () => {
 			fetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					methods: {
-						oauth: {
-							available: true,
-							providers: {
-								google: {
-									enabled: true,
-									configured: true,
-									available: true
+				json: () =>
+					Promise.resolve({
+						success: true,
+						methods: {
+							oauth: {
+								available: true,
+								providers: {
+									google: {
+										enabled: true,
+										configured: true,
+										available: true
+									}
 								}
 							}
+						},
+						security: {
+							isSecure: false,
+							isTunnel: false
 						}
-					},
-					security: {
-						isSecure: false,
-						isTunnel: false
-					}
-				})
+					})
 			});
 
 			const { container } = render(OAuthProviderSelector);
@@ -344,7 +355,9 @@ describe('OAuth Provider Selector Component', () => {
 
 			await waitFor(() => {
 				// OAuth buttons should be rendered (we can't easily test the returnTo prop directly)
-				const buttons = container.querySelectorAll('button[title*="Google"], button[title*="GitHub"]');
+				const buttons = container.querySelectorAll(
+					'button[title*="Google"], button[title*="GitHub"]'
+				);
 				expect(buttons.length).toBeGreaterThan(0);
 			});
 		});
@@ -378,8 +391,9 @@ describe('OAuth Provider Selector Component', () => {
 				expect(selector).toBeTruthy();
 
 				// Check for accessible loading states
-				const loadingSpinner = container.querySelector('[aria-hidden], [role="status"]') ||
-									  container.querySelector('.loading-state p');
+				const loadingSpinner =
+					container.querySelector('[aria-hidden], [role="status"]') ||
+					container.querySelector('.loading-state p');
 				// Loading state should be present initially
 				expect(loadingSpinner).toBeTruthy();
 			});

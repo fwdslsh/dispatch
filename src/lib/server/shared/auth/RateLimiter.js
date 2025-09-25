@@ -84,7 +84,6 @@ export class RateLimiter {
 				maxAttempts,
 				remainingAttempts: maxAttempts - attempts.length
 			};
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Rate limit check error: ${error.message}`);
 			// Fail open - allow request if rate limiting fails
@@ -123,7 +122,6 @@ export class RateLimiter {
 			this.memoryCache.delete(cacheKey);
 
 			logger.debug('RATE_LIMITER', `Recorded failed attempt for ${type}: ${identifier}`);
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Failed to record attempt: ${error.message}`);
 		}
@@ -141,7 +139,6 @@ export class RateLimiter {
 			this.memoryCache.delete(cacheKey);
 
 			logger.debug('RATE_LIMITER', `Cleared rate limit for successful ${type}: ${identifier}`);
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Failed to record successful attempt: ${error.message}`);
 		}
@@ -189,7 +186,7 @@ export class RateLimiter {
 			}
 
 			// Find the most restrictive limit
-			const blocked = checks.find(check => check.blocked);
+			const blocked = checks.find((check) => check.blocked);
 			if (blocked) {
 				return {
 					allowed: false,
@@ -205,7 +202,6 @@ export class RateLimiter {
 				blocked: false,
 				checks
 			};
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Comprehensive rate limit check error: ${error.message}`);
 			return { allowed: true, blocked: false, error: 'Rate limit check failed' };
@@ -217,10 +213,11 @@ export class RateLimiter {
 	 */
 	async getRateLimitStats(hours = 24) {
 		try {
-			const cutoffTime = Date.now() - (hours * 60 * 60 * 1000);
+			const cutoffTime = Date.now() - hours * 60 * 60 * 1000;
 
 			// Get failed attempts from auth_events
-			const failedAttempts = await this.db.all(`
+			const failedAttempts = await this.db.all(
+				`
 				SELECT
 					ip_address,
 					COUNT(*) as attempts,
@@ -231,16 +228,19 @@ export class RateLimiter {
 				GROUP BY ip_address
 				ORDER BY attempts DESC
 				LIMIT 50
-			`, [cutoffTime]);
+			`,
+				[cutoffTime]
+			);
 
 			// Get blocked IPs (those with many recent failures)
-			const blockedIPs = failedAttempts.filter(attempt => attempt.attempts >= 10);
+			const blockedIPs = failedAttempts.filter((attempt) => attempt.attempts >= 10);
 
 			// Get top attacking IPs
 			const topAttackers = failedAttempts.slice(0, 10);
 
 			// Get recent attack patterns
-			const hourlyStats = await this.db.all(`
+			const hourlyStats = await this.db.all(
+				`
 				SELECT
 					CAST(created_at / 3600000 as INTEGER) * 3600000 as hour,
 					COUNT(*) as failed_attempts
@@ -250,7 +250,9 @@ export class RateLimiter {
 				GROUP BY CAST(created_at / 3600000 as INTEGER)
 				ORDER BY hour DESC
 				LIMIT 24
-			`, [cutoffTime]);
+			`,
+				[cutoffTime]
+			);
 
 			return {
 				period_hours: hours,
@@ -261,7 +263,6 @@ export class RateLimiter {
 				hourly_stats: hourlyStats,
 				cache_entries: this.memoryCache.size
 			};
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Failed to get rate limit stats: ${error.message}`);
 			return {
@@ -278,7 +279,7 @@ export class RateLimiter {
 			const { type = 'manual', durationMinutes = 60, reason = 'Manual block' } = options;
 
 			if (blocked) {
-				const blockUntil = Date.now() + (durationMinutes * 60 * 1000);
+				const blockUntil = Date.now() + durationMinutes * 60 * 1000;
 				const cacheKey = `${type}_${identifier}`;
 
 				this.memoryCache.set(cacheKey, {
@@ -289,7 +290,10 @@ export class RateLimiter {
 					reason
 				});
 
-				logger.info('RATE_LIMITER', `Manually blocked ${identifier} for ${durationMinutes} minutes: ${reason}`);
+				logger.info(
+					'RATE_LIMITER',
+					`Manually blocked ${identifier} for ${durationMinutes} minutes: ${reason}`
+				);
 			} else {
 				// Unblock - remove from cache
 				const keysToRemove = [];
@@ -299,13 +303,12 @@ export class RateLimiter {
 					}
 				}
 
-				keysToRemove.forEach(key => this.memoryCache.delete(key));
+				keysToRemove.forEach((key) => this.memoryCache.delete(key));
 
 				logger.info('RATE_LIMITER', `Manually unblocked ${identifier}`);
 			}
 
 			return { success: true };
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Failed to set block status: ${error.message}`);
 			return { success: false, error: 'Failed to update block status' };
@@ -333,7 +336,6 @@ export class RateLimiter {
 			}
 
 			return { blocked: false };
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Failed to get block status: ${error.message}`);
 			return { blocked: false, error: 'Failed to check block status' };
@@ -355,7 +357,7 @@ export class RateLimiter {
 			}
 
 			// Remove old cache entries
-			if (value.lastCheck && (now - value.lastCheck) > cacheMaxAge) {
+			if (value.lastCheck && now - value.lastCheck > cacheMaxAge) {
 				this.memoryCache.delete(key);
 			}
 		}
@@ -380,10 +382,14 @@ export class RateLimiter {
 				ORDER BY created_at DESC
 			`;
 
-			const attempts = await this.db.all(query, [sinceTimestamp, identifier, identifier, identifier]);
+			const attempts = await this.db.all(query, [
+				sinceTimestamp,
+				identifier,
+				identifier,
+				identifier
+			]);
 
 			return attempts;
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Failed to get recent attempts: ${error.message}`);
 			return [];
@@ -395,10 +401,11 @@ export class RateLimiter {
 	 */
 	async analyzeAttackPatterns(hours = 24) {
 		try {
-			const cutoffTime = Date.now() - (hours * 60 * 60 * 1000);
+			const cutoffTime = Date.now() - hours * 60 * 60 * 1000;
 
 			// Get failed attempts with details
-			const attacks = await this.db.all(`
+			const attacks = await this.db.all(
+				`
 				SELECT
 					ip_address,
 					user_agent,
@@ -410,7 +417,9 @@ export class RateLimiter {
 				WHERE event_type = 'failed_login'
 				AND created_at > ?
 				ORDER BY created_at DESC
-			`, [cutoffTime]);
+			`,
+				[cutoffTime]
+			);
 
 			// Analyze patterns
 			const patterns = {
@@ -420,18 +429,19 @@ export class RateLimiter {
 				brute_force: new Set()
 			};
 
-			attacks.forEach(attack => {
+			attacks.forEach((attack) => {
 				// Distributed attack: same user-agent from multiple IPs
 				if (attack.ua_attempts > 5) {
 					patterns.distributed_attacks.add(attack.user_agent);
 				}
 
 				// Bot attack: suspicious user-agent patterns
-				if (attack.user_agent && (
-					attack.user_agent.includes('bot') ||
-					attack.user_agent.includes('crawler') ||
-					attack.user_agent.length < 10
-				)) {
+				if (
+					attack.user_agent &&
+					(attack.user_agent.includes('bot') ||
+						attack.user_agent.includes('crawler') ||
+						attack.user_agent.length < 10)
+				) {
 					patterns.bot_attacks.add(attack.user_agent);
 				}
 
@@ -448,7 +458,7 @@ export class RateLimiter {
 
 			return {
 				total_attacks: attacks.length,
-				unique_ips: new Set(attacks.map(a => a.ip_address)).size,
+				unique_ips: new Set(attacks.map((a) => a.ip_address)).size,
 				patterns: {
 					distributed_attacks: patterns.distributed_attacks.size,
 					bot_attacks: patterns.bot_attacks.size,
@@ -456,9 +466,11 @@ export class RateLimiter {
 					brute_force: patterns.brute_force.size
 				},
 				top_attacking_ips: [...patterns.credential_stuffing, ...patterns.brute_force].slice(0, 10),
-				suspicious_user_agents: [...patterns.distributed_attacks, ...patterns.bot_attacks].slice(0, 10)
+				suspicious_user_agents: [...patterns.distributed_attacks, ...patterns.bot_attacks].slice(
+					0,
+					10
+				)
 			};
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Attack pattern analysis error: ${error.message}`);
 			return { error: 'Failed to analyze attack patterns' };
@@ -484,7 +496,6 @@ export class RateLimiter {
 			logger.info('RATE_LIMITER', 'Updated rate limiting configuration');
 
 			return { success: true };
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Failed to update rate limit config: ${error.message}`);
 			return { success: false, error: 'Failed to update configuration' };
@@ -496,7 +507,7 @@ export class RateLimiter {
 	 */
 	async emergencyShutdown(durationMinutes = 30, reason = 'Emergency shutdown') {
 		try {
-			const blockUntil = Date.now() + (durationMinutes * 60 * 1000);
+			const blockUntil = Date.now() + durationMinutes * 60 * 1000;
 
 			// Set a global block
 			this.memoryCache.set('emergency_block', {
@@ -506,10 +517,12 @@ export class RateLimiter {
 				emergency: true
 			});
 
-			logger.warn('RATE_LIMITER', `Emergency shutdown activated for ${durationMinutes} minutes: ${reason}`);
+			logger.warn(
+				'RATE_LIMITER',
+				`Emergency shutdown activated for ${durationMinutes} minutes: ${reason}`
+			);
 
 			return { success: true, duration: durationMinutes };
-
 		} catch (error) {
 			logger.error('RATE_LIMITER', `Emergency shutdown error: ${error.message}`);
 			return { success: false, error: 'Failed to activate emergency shutdown' };

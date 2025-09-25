@@ -19,10 +19,13 @@ export class WebAuthnCredentialDAO {
 			aaguid = null
 		} = credentialData;
 
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			INSERT INTO webauthn_credentials (user_id, credential_id, public_key, counter, device_name, aaguid)
 			VALUES (?, ?, ?, ?, ?, ?)
-		`, [userId, credentialId, publicKey, counter, deviceName, aaguid]);
+		`,
+			[userId, credentialId, publicKey, counter, deviceName, aaguid]
+		);
 
 		return this.getById(result.lastID);
 	}
@@ -31,7 +34,9 @@ export class WebAuthnCredentialDAO {
 	 * Get credential by ID
 	 */
 	async getById(credentialId) {
-		const row = await this.db.get('SELECT * FROM webauthn_credentials WHERE id = ?', [credentialId]);
+		const row = await this.db.get('SELECT * FROM webauthn_credentials WHERE id = ?', [
+			credentialId
+		]);
 		return row ? this.mapRowToCredential(row) : null;
 	}
 
@@ -39,7 +44,9 @@ export class WebAuthnCredentialDAO {
 	 * Get credential by credential ID (WebAuthn credential ID)
 	 */
 	async getByCredentialId(credentialId) {
-		const row = await this.db.get('SELECT * FROM webauthn_credentials WHERE credential_id = ?', [credentialId]);
+		const row = await this.db.get('SELECT * FROM webauthn_credentials WHERE credential_id = ?', [
+			credentialId
+		]);
 		return row ? this.mapRowToCredential(row) : null;
 	}
 
@@ -47,26 +54,32 @@ export class WebAuthnCredentialDAO {
 	 * Get all credentials for a user
 	 */
 	async getByUserId(userId) {
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT * FROM webauthn_credentials
 			WHERE user_id = ?
 			ORDER BY created_at DESC
-		`, [userId]);
+		`,
+			[userId]
+		);
 
-		return rows.map(row => this.mapRowToCredential(row));
+		return rows.map((row) => this.mapRowToCredential(row));
 	}
 
 	/**
 	 * Get credentials for WebAuthn authentication (returns only necessary fields)
 	 */
 	async getCredentialsForAuth(userId) {
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT credential_id, public_key, counter
 			FROM webauthn_credentials
 			WHERE user_id = ?
-		`, [userId]);
+		`,
+			[userId]
+		);
 
-		return rows.map(row => ({
+		return rows.map((row) => ({
 			credentialId: row.credential_id,
 			publicKey: row.public_key,
 			counter: row.counter
@@ -77,22 +90,28 @@ export class WebAuthnCredentialDAO {
 	 * Update credential counter after authentication
 	 */
 	async updateCounter(credentialId, newCounter) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE webauthn_credentials
 			SET counter = ?, last_used_at = ?
 			WHERE credential_id = ?
-		`, [newCounter, Date.now(), credentialId]);
+		`,
+			[newCounter, Date.now(), credentialId]
+		);
 	}
 
 	/**
 	 * Update last used timestamp
 	 */
 	async updateLastUsed(credentialId) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE webauthn_credentials
 			SET last_used_at = ?
 			WHERE id = ?
-		`, [Date.now(), credentialId]);
+		`,
+			[Date.now(), credentialId]
+		);
 	}
 
 	/**
@@ -104,18 +123,21 @@ export class WebAuthnCredentialDAO {
 			ORDER BY created_at DESC
 		`);
 
-		return rows.map(row => this.mapRowToCredential(row));
+		return rows.map((row) => this.mapRowToCredential(row));
 	}
 
 	/**
 	 * Update device name
 	 */
 	async updateDeviceName(credentialId, deviceName) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE webauthn_credentials
 			SET device_name = ?
 			WHERE id = ?
-		`, [deviceName, credentialId]);
+		`,
+			[deviceName, credentialId]
+		);
 	}
 
 	/**
@@ -149,28 +171,36 @@ export class WebAuthnCredentialDAO {
 
 		params.push(limit, offset);
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT c.*, u.username, u.display_name
 			FROM webauthn_credentials c
 			LEFT JOIN users u ON c.user_id = u.id
 			${whereClause}
 			ORDER BY c.created_at DESC
 			LIMIT ? OFFSET ?
-		`, params);
+		`,
+			params
+		);
 
-		return rows.map(row => this.mapRowToCredential(row, true));
+		return rows.map((row) => this.mapRowToCredential(row, true));
 	}
 
 	/**
 	 * Get credential statistics
 	 */
 	async getStats() {
-		const totalCredentials = await this.db.get('SELECT COUNT(*) as count FROM webauthn_credentials');
+		const totalCredentials = await this.db.get(
+			'SELECT COUNT(*) as count FROM webauthn_credentials'
+		);
 
-		const recentlyUsed = await this.db.get(`
+		const recentlyUsed = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM webauthn_credentials
 			WHERE last_used_at > ?
-		`, [Date.now() - (30 * 24 * 60 * 60 * 1000)]); // Last 30 days
+		`,
+			[Date.now() - 30 * 24 * 60 * 60 * 1000]
+		); // Last 30 days
 
 		const byAAGUID = await this.db.all(`
 			SELECT aaguid, COUNT(*) as count
@@ -192,9 +222,12 @@ export class WebAuthnCredentialDAO {
 	 * Check if user has any WebAuthn credentials
 	 */
 	async userHasCredentials(userId) {
-		const result = await this.db.get(`
+		const result = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM webauthn_credentials WHERE user_id = ?
-		`, [userId]);
+		`,
+			[userId]
+		);
 
 		return result.count > 0;
 	}
@@ -203,24 +236,30 @@ export class WebAuthnCredentialDAO {
 	 * Get user's credential IDs for WebAuthn allowCredentials
 	 */
 	async getUserCredentialIds(userId) {
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT credential_id FROM webauthn_credentials WHERE user_id = ?
-		`, [userId]);
+		`,
+			[userId]
+		);
 
-		return rows.map(row => row.credential_id);
+		return rows.map((row) => row.credential_id);
 	}
 
 	/**
 	 * Cleanup old unused credentials
 	 */
 	async cleanupUnusedCredentials(daysOld = 365) {
-		const cutoffTime = Date.now() - (daysOld * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - daysOld * 24 * 60 * 60 * 1000;
 
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			DELETE FROM webauthn_credentials
 			WHERE (last_used_at IS NULL AND created_at < ?)
 			   OR (last_used_at < ?)
-		`, [cutoffTime, cutoffTime]);
+		`,
+			[cutoffTime, cutoffTime]
+		);
 
 		return result.changes;
 	}

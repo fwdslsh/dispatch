@@ -13,19 +13,14 @@ export class AuthMiddleware {
 	 * Create middleware function for authentication
 	 */
 	authenticate(options = {}) {
-		const {
-			required = true,
-			adminOnly = false,
-			skipPaths = [],
-			fallbackToLegacy = true
-		} = options;
+		const { required = true, adminOnly = false, skipPaths = [], fallbackToLegacy = true } = options;
 
 		return async (req, res, next) => {
 			try {
 				const path = req.path || req.url;
 
 				// Skip authentication for specified paths
-				if (skipPaths.some(skipPath => path.startsWith(skipPath))) {
+				if (skipPaths.some((skipPath) => path.startsWith(skipPath))) {
 					return next();
 				}
 
@@ -79,7 +74,6 @@ export class AuthMiddleware {
 					req.isAuthenticated = false;
 					return next();
 				}
-
 			} catch (error) {
 				logger.error('AUTH_MIDDLEWARE', `Authentication error: ${error.message}`);
 				return this.sendInternalError(res);
@@ -125,7 +119,6 @@ export class AuthMiddleware {
 					event.locals.isAuthenticated = false;
 					event.locals.user = null;
 				}
-
 			} catch (error) {
 				logger.error('AUTH_MIDDLEWARE', `SvelteKit auth hook error: ${error.message}`);
 				event.locals.isAuthenticated = false;
@@ -208,7 +201,10 @@ export class AuthMiddleware {
 				// Simple in-memory rate limiting
 				// In production, use Redis or database-backed implementation
 				const now = Date.now();
-				const requests = req.app.locals.rateLimitStore?.[key] || { count: 0, resetTime: now + windowMs };
+				const requests = req.app.locals.rateLimitStore?.[key] || {
+					count: 0,
+					resetTime: now + windowMs
+				};
 
 				if (now > requests.resetTime) {
 					requests.count = 0;
@@ -319,7 +315,8 @@ export class AuthMiddleware {
 	 */
 	checkLegacyAuthFromRequest(request) {
 		const terminalKey = process.env.TERMINAL_KEY || 'change-me';
-		const providedKey = request.headers.get('x-terminal-key') || request.url.searchParams.get('key');
+		const providedKey =
+			request.headers.get('x-terminal-key') || request.url.searchParams.get('key');
 
 		if (providedKey && providedKey === terminalKey) {
 			return {
@@ -378,7 +375,7 @@ export class AuthMiddleware {
 	 */
 	parseCookies(cookieHeader) {
 		const cookies = {};
-		cookieHeader.split(';').forEach(cookie => {
+		cookieHeader.split(';').forEach((cookie) => {
 			const [name, value] = cookie.trim().split('=');
 			if (name && value) {
 				cookies[name] = decodeURIComponent(value);
@@ -441,11 +438,13 @@ export class AuthMiddleware {
 			},
 			isAdmin: req.user.isAdmin,
 			isLegacyAuth: !!req.isLegacyAuth,
-			device: req.device ? {
-				id: req.device.id,
-				name: req.device.deviceName,
-				trusted: req.device.isTrusted
-			} : null
+			device: req.device
+				? {
+						id: req.device.id,
+						name: req.device.deviceName,
+						trusted: req.device.isTrusted
+					}
+				: null
 		};
 	}
 }

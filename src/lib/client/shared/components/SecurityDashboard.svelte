@@ -32,7 +32,10 @@
 
 		// HTTPS check (25 points)
 		maxScore += 25;
-		if (securityState.securityContext.isHttps || securityState.securityContext.hostname === 'localhost') {
+		if (
+			securityState.securityContext.isHttps ||
+			securityState.securityContext.hostname === 'localhost'
+		) {
 			score += 25;
 		}
 
@@ -144,7 +147,9 @@
 				<div class="context-info">
 					<div class="context-item">
 						<span class="context-label">Connection:</span>
-						<span class="context-value {securityState.securityContext.isHttps ? 'secure' : 'insecure'}">
+						<span
+							class="context-value {securityState.securityContext.isHttps ? 'secure' : 'insecure'}"
+						>
 							{securityState.securityContext.isHttps ? 'HTTPS' : 'HTTP'}
 						</span>
 					</div>
@@ -179,7 +184,7 @@
 									method={method.method}
 									showStatus={true}
 									showReason={!compact}
-									compact={compact}
+									{compact}
 								/>
 							{/each}
 						</div>

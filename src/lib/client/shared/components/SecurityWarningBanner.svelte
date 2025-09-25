@@ -25,11 +25,7 @@
 </script>
 
 {#if visible}
-	<div
-		class="security-warning {type}"
-		role="alert"
-		data-testid="security-warning"
-	>
+	<div class="security-warning {type}" role="alert" data-testid="security-warning">
 		<div class="warning-content">
 			<div class="warning-icon">
 				{#if type === 'error'}
@@ -65,11 +61,7 @@
 			</div>
 
 			{#if dismissible}
-				<button
-					class="warning-dismiss"
-					onclick={dismissWarning}
-					aria-label="Dismiss warning"
-				>
+				<button class="warning-dismiss" onclick={dismissWarning} aria-label="Dismiss warning">
 					×
 				</button>
 			{/if}

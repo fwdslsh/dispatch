@@ -19,7 +19,9 @@ describe('SessionManager JWT and Database Integration', () => {
 		await db.init();
 
 		// Run migrations to set up auth tables
-		const { AuthMigrationManager } = await import('../../src/lib/server/shared/db/AuthMigrationManager.js');
+		const { AuthMigrationManager } = await import(
+			'../../src/lib/server/shared/db/AuthMigrationManager.js'
+		);
 		const migrationManager = new AuthMigrationManager(db);
 		await migrationManager.runAllMigrations();
 
@@ -107,7 +109,7 @@ describe('SessionManager JWT and Database Integration', () => {
 			});
 
 			// Wait for token to expire
-			await new Promise(resolve => setTimeout(resolve, 150));
+			await new Promise((resolve) => setTimeout(resolve, 150));
 
 			const validation = await sessionManager.validateToken(shortSession.sessionToken);
 
@@ -187,7 +189,7 @@ describe('SessionManager JWT and Database Integration', () => {
 			const originalActivity = session.lastActivityAt;
 
 			// Wait a bit to ensure timestamp difference
-			await new Promise(resolve => setTimeout(resolve, 10));
+			await new Promise((resolve) => setTimeout(resolve, 10));
 
 			await sessionManager.updateActivity(session.id, '192.168.1.200', 'Updated Agent');
 
@@ -214,8 +216,8 @@ describe('SessionManager JWT and Database Integration', () => {
 			const sessions = await sessionManager.getUserSessions(testUser.id);
 
 			expect(sessions.length).toBe(2);
-			expect(sessions.map(s => s.id)).toContain(session1.id);
-			expect(sessions.map(s => s.id)).toContain(session2.id);
+			expect(sessions.map((s) => s.id)).toContain(session1.id);
+			expect(sessions.map((s) => s.id)).toContain(session2.id);
 		});
 
 		it('should revoke single session', async () => {
@@ -300,7 +302,7 @@ describe('SessionManager JWT and Database Integration', () => {
 				deviceId: testDevice.id
 			});
 
-			const expectedExpiry = new Date(session.createdAt.getTime() + (1 * 60 * 60 * 1000));
+			const expectedExpiry = new Date(session.createdAt.getTime() + 1 * 60 * 60 * 1000);
 			const actualExpiry = session.expiresAt;
 
 			// Allow for small time differences (within 1 minute)

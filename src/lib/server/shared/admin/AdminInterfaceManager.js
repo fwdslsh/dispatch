@@ -14,7 +14,13 @@ export class AdminInterfaceManager {
 	}
 
 	// User Management
-	async listUsers({ page = 1, limit = 10, search = '', orderBy = 'created_at', order = 'DESC' } = {}) {
+	async listUsers({
+		page = 1,
+		limit = 10,
+		search = '',
+		orderBy = 'created_at',
+		order = 'DESC'
+	} = {}) {
 		const offset = (page - 1) * limit;
 		let query = `
 			SELECT u.id, u.username, u.display_name, u.email, u.is_admin as isAdmin,
@@ -90,18 +96,31 @@ export class AdminInterfaceManager {
 		const passwordHash = await bcrypt.hash(password, 10);
 
 		try {
-			const result = await this.db.run(`
+			const result = await this.db.run(
+				`
 				INSERT INTO users (username, display_name, email, password_hash, is_admin)
 				VALUES (?, ?, ?, ?, ?)
-			`, [username, displayName || username, email, passwordHash, isAdmin ? 1 : 0]);
+			`,
+				[username, displayName || username, email, passwordHash, isAdmin ? 1 : 0]
+			);
 
-			const user = await this.db.get('SELECT id, username, display_name, email, is_admin as isAdmin, created_at as createdAt FROM users WHERE id = ?', [result.lastID]);
+			const user = await this.db.get(
+				'SELECT id, username, display_name, email, is_admin as isAdmin, created_at as createdAt FROM users WHERE id = ?',
+				[result.lastID]
+			);
 
 			// Log the user creation
-			await this.daos.authEvents.logEvent(user.id, null, 'user_created', '127.0.0.1', 'Admin Interface', {
-				createdBy: 'admin',
-				isAdmin
-			});
+			await this.daos.authEvents.logEvent(
+				user.id,
+				null,
+				'user_created',
+				'127.0.0.1',
+				'Admin Interface',
+				{
+					createdBy: 'admin',
+					isAdmin
+				}
+			);
 
 			return { success: true, user };
 		} catch (error) {
@@ -135,18 +154,22 @@ export class AdminInterfaceManager {
 
 	async getUserDetails(userId) {
 		try {
-			const user = await this.db.get(`
+			const user = await this.db.get(
+				`
 				SELECT id, username, display_name, email, is_admin as isAdmin,
 					   created_at as createdAt, updated_at as lastLogin
 				FROM users WHERE id = ?
-			`, [userId]);
+			`,
+				[userId]
+			);
 
 			if (!user) {
 				return { success: false, error: 'User not found' };
 			}
 
 			// Get user devices with session info
-			const devices = await this.db.all(`
+			const devices = await this.db.all(
+				`
 				SELECT d.id, d.device_name as deviceName, d.device_fingerprint as deviceFingerprint,
 					   d.is_trusted as isTrusted, d.created_at as createdAt,
 					   COUNT(s.id) as activeSessions
@@ -155,27 +178,35 @@ export class AdminInterfaceManager {
 				WHERE d.user_id = ?
 				GROUP BY d.id
 				ORDER BY d.created_at DESC
-			`, [userId]);
+			`,
+				[userId]
+			);
 
 			// Get active sessions
-			const sessions = await this.db.all(`
+			const sessions = await this.db.all(
+				`
 				SELECT s.id, s.session_token as sessionToken, s.expires_at as expiresAt,
 					   s.created_at as createdAt, d.device_name as deviceName
 				FROM auth_sessions s
 				JOIN user_devices d ON s.device_id = d.id
 				WHERE s.user_id = ? AND s.is_active = 1
 				ORDER BY s.created_at DESC
-			`, [userId]);
+			`,
+				[userId]
+			);
 
 			// Get recent events
-			const recentEvents = await this.db.all(`
+			const recentEvents = await this.db.all(
+				`
 				SELECT event_type as eventType, ip_address as ipAddress,
 					   user_agent as userAgent, details, created_at as createdAt
 				FROM auth_events
 				WHERE user_id = ?
 				ORDER BY created_at DESC
 				LIMIT 10
-			`, [userId]);
+			`,
+				[userId]
+			);
 
 			return {
 				success: true,
@@ -193,7 +224,8 @@ export class AdminInterfaceManager {
 
 	// Device Management
 	async listUserDevices(userId) {
-		return await this.db.all(`
+		return await this.db.all(
+			`
 			SELECT d.id, d.device_name as deviceName, d.device_fingerprint as deviceFingerprint,
 				   d.is_trusted as isTrusted, d.created_at as createdAt,
 				   COUNT(s.id) as activeSessions
@@ -202,7 +234,9 @@ export class AdminInterfaceManager {
 			WHERE d.user_id = ?
 			GROUP BY d.id
 			ORDER BY d.created_at DESC
-		`, [userId]);
+		`,
+			[userId]
+		);
 	}
 
 	async revokeDevice(deviceId) {
@@ -217,7 +251,10 @@ export class AdminInterfaceManager {
 
 	async renameDevice(deviceId, newName) {
 		try {
-			await this.db.run('UPDATE user_devices SET device_name = ? WHERE id = ?', [newName, deviceId]);
+			await this.db.run('UPDATE user_devices SET device_name = ? WHERE id = ?', [
+				newName,
+				deviceId
+			]);
 			return { success: true };
 		} catch (error) {
 			return { success: false, error: 'Failed to rename device: ' + error.message };
@@ -226,7 +263,10 @@ export class AdminInterfaceManager {
 
 	async toggleDeviceTrust(deviceId, isTrusted) {
 		try {
-			await this.db.run('UPDATE user_devices SET is_trusted = ? WHERE id = ?', [isTrusted ? 1 : 0, deviceId]);
+			await this.db.run('UPDATE user_devices SET is_trusted = ? WHERE id = ?', [
+				isTrusted ? 1 : 0,
+				deviceId
+			]);
 			return { success: true };
 		} catch (error) {
 			return { success: false, error: 'Failed to toggle device trust: ' + error.message };
@@ -237,7 +277,8 @@ export class AdminInterfaceManager {
 		const offset = (page - 1) * limit;
 
 		try {
-			const devices = await this.db.all(`
+			const devices = await this.db.all(
+				`
 				SELECT d.id, d.device_name as deviceName, d.device_fingerprint as deviceFingerprint,
 					   d.is_trusted as isTrusted, d.created_at as createdAt,
 					   u.username, u.id as userId,
@@ -249,7 +290,9 @@ export class AdminInterfaceManager {
 				GROUP BY d.id
 				ORDER BY d.created_at DESC
 				LIMIT ? OFFSET ?
-			`, [limit, offset]);
+			`,
+				[limit, offset]
+			);
 
 			// Get total count
 			const { total } = await this.db.get('SELECT COUNT(*) as total FROM user_devices');
@@ -272,7 +315,8 @@ export class AdminInterfaceManager {
 		const offset = (page - 1) * limit;
 
 		try {
-			const devices = await this.db.all(`
+			const devices = await this.db.all(
+				`
 				SELECT d.id, d.device_name as deviceName, d.device_fingerprint as deviceFingerprint,
 					   d.is_trusted as isTrusted, d.created_at as createdAt,
 					   COUNT(s.id) as activeSessions,
@@ -283,10 +327,15 @@ export class AdminInterfaceManager {
 				GROUP BY d.id
 				ORDER BY d.created_at DESC
 				LIMIT ? OFFSET ?
-			`, [userId, limit, offset]);
+			`,
+				[userId, limit, offset]
+			);
 
 			// Get total count for this user
-			const { total } = await this.db.get('SELECT COUNT(*) as total FROM user_devices WHERE user_id = ?', [userId]);
+			const { total } = await this.db.get(
+				'SELECT COUNT(*) as total FROM user_devices WHERE user_id = ?',
+				[userId]
+			);
 			const totalPages = Math.ceil(total / limit);
 
 			return {
@@ -304,38 +353,47 @@ export class AdminInterfaceManager {
 
 	async getDeviceDetails(deviceId) {
 		try {
-			const device = await this.db.get(`
+			const device = await this.db.get(
+				`
 				SELECT d.id, d.device_name as deviceName, d.device_fingerprint as deviceFingerprint,
 					   d.is_trusted as isTrusted, d.created_at as createdAt,
 					   u.username, u.id as userId, u.display_name as userDisplayName
 				FROM user_devices d
 				JOIN users u ON d.user_id = u.id
 				WHERE d.id = ?
-			`, [deviceId]);
+			`,
+				[deviceId]
+			);
 
 			if (!device) {
 				return { success: false, error: 'Device not found' };
 			}
 
 			// Get active sessions for this device
-			const sessions = await this.db.all(`
+			const sessions = await this.db.all(
+				`
 				SELECT s.id, s.session_token as sessionToken, s.expires_at as expiresAt,
 					   s.created_at as createdAt, s.last_activity_at as lastActivity,
 					   s.ip_address as ipAddress, s.user_agent as userAgent
 				FROM auth_sessions s
 				WHERE s.device_id = ? AND s.is_active = 1
 				ORDER BY s.last_activity_at DESC
-			`, [deviceId]);
+			`,
+				[deviceId]
+			);
 
 			// Get recent auth events for this device
-			const recentEvents = await this.db.all(`
+			const recentEvents = await this.db.all(
+				`
 				SELECT ae.event_type as eventType, ae.ip_address as ipAddress,
 					   ae.user_agent as userAgent, ae.details, ae.created_at as createdAt
 				FROM auth_events ae
 				WHERE ae.device_id = ?
 				ORDER BY ae.created_at DESC
 				LIMIT 10
-			`, [deviceId]);
+			`,
+				[deviceId]
+			);
 
 			return {
 				success: true,
@@ -366,7 +424,9 @@ export class AdminInterfaceManager {
 
 	async revokeSession(sessionToken) {
 		try {
-			await this.db.run('UPDATE auth_sessions SET is_active = 0 WHERE session_token = ?', [sessionToken]);
+			await this.db.run('UPDATE auth_sessions SET is_active = 0 WHERE session_token = ?', [
+				sessionToken
+			]);
 			return { success: true };
 		} catch (error) {
 			return { success: false, error: 'Failed to revoke session: ' + error.message };
@@ -375,7 +435,9 @@ export class AdminInterfaceManager {
 
 	async revokeAllUserSessions(userId) {
 		try {
-			const result = await this.db.run('UPDATE auth_sessions SET is_active = 0 WHERE user_id = ?', [userId]);
+			const result = await this.db.run('UPDATE auth_sessions SET is_active = 0 WHERE user_id = ?', [
+				userId
+			]);
 			return { success: true, revokedCount: result.changes };
 		} catch (error) {
 			return { success: false, error: 'Failed to revoke sessions: ' + error.message };
@@ -441,7 +503,8 @@ export class AdminInterfaceManager {
 		if (updates.webauthn?.enabled === false) newConfig.webauthn.enabled = false;
 		if (updates.oauth?.enabled === false) newConfig.oauth.enabled = false;
 
-		const hasEnabledMethod = newConfig.local.enabled || newConfig.webauthn.enabled || newConfig.oauth.enabled;
+		const hasEnabledMethod =
+			newConfig.local.enabled || newConfig.webauthn.enabled || newConfig.oauth.enabled;
 		if (!hasEnabledMethod) {
 			return { success: false, error: 'At least one authentication method must be enabled' };
 		}
@@ -449,7 +512,9 @@ export class AdminInterfaceManager {
 		try {
 			// Update settings
 			if (updates.webauthn !== undefined) {
-				await this.daos.settings.setSettingsForCategory('auth', { webauthn_enabled: updates.webauthn.enabled.toString() });
+				await this.daos.settings.setSettingsForCategory('auth', {
+					webauthn_enabled: updates.webauthn.enabled.toString()
+				});
 			}
 
 			if (updates.oauth !== undefined) {
@@ -524,7 +589,7 @@ export class AdminInterfaceManager {
 				type: 'certificate',
 				title: 'Enable HTTPS',
 				description: 'Set up a certificate to enable secure connections',
-				action: 'Upload certificate or configure Let\'s Encrypt'
+				action: "Upload certificate or configure Let's Encrypt"
 			});
 		}
 
@@ -549,7 +614,15 @@ export class AdminInterfaceManager {
 	}
 
 	// Audit Log Management
-	async getAuditLogs({ page = 1, limit = 50, eventType = '', userId = '', ipAddress = '', dateFrom = null, dateTo = null } = {}) {
+	async getAuditLogs({
+		page = 1,
+		limit = 50,
+		eventType = '',
+		userId = '',
+		ipAddress = '',
+		dateFrom = null,
+		dateTo = null
+	} = {}) {
 		const offset = (page - 1) * limit;
 		let query = `
 			SELECT ae.id, ae.event_type as eventType, ae.ip_address as ipAddress,
@@ -663,12 +736,15 @@ export class AdminInterfaceManager {
 		const stats = {};
 
 		// User statistics
-		const userStats = await this.db.get(`
+		const userStats = await this.db.get(
+			`
 			SELECT COUNT(*) as total,
 				   SUM(CASE WHEN is_admin = 1 THEN 1 ELSE 0 END) as admins,
 				   SUM(CASE WHEN updated_at > ? THEN 1 ELSE 0 END) as activeInLast30Days
 			FROM users
-		`, [Date.now() - (30 * 24 * 60 * 60 * 1000)]);
+		`,
+			[Date.now() - 30 * 24 * 60 * 60 * 1000]
+		);
 
 		stats.users = userStats;
 
@@ -691,14 +767,17 @@ export class AdminInterfaceManager {
 		stats.devices = deviceStats;
 
 		// Auth event statistics
-		const eventStats = await this.db.get(`
+		const eventStats = await this.db.get(
+			`
 			SELECT COUNT(*) as total,
 				   SUM(CASE WHEN event_type = 'login' THEN 1 ELSE 0 END) as logins,
 				   SUM(CASE WHEN event_type = 'logout' THEN 1 ELSE 0 END) as logouts,
 				   SUM(CASE WHEN event_type LIKE '%failed%' THEN 1 ELSE 0 END) as failures
 			FROM auth_events
 			WHERE created_at > ?
-		`, [Date.now() - (7 * 24 * 60 * 60 * 1000)]); // Last 7 days
+		`,
+			[Date.now() - 7 * 24 * 60 * 60 * 1000]
+		); // Last 7 days
 
 		stats.authEvents = eventStats;
 
@@ -706,9 +785,10 @@ export class AdminInterfaceManager {
 	}
 
 	async getActivityTimeline({ days = 7 } = {}) {
-		const startDate = Date.now() - (days * 24 * 60 * 60 * 1000);
+		const startDate = Date.now() - days * 24 * 60 * 60 * 1000;
 
-		const events = await this.db.all(`
+		const events = await this.db.all(
+			`
 			SELECT DATE(created_at / 1000, 'unixepoch') as date,
 				   COUNT(*) as events,
 				   event_type
@@ -716,7 +796,9 @@ export class AdminInterfaceManager {
 			WHERE created_at > ?
 			GROUP BY date, event_type
 			ORDER BY date DESC
-		`, [startDate]);
+		`,
+			[startDate]
+		);
 
 		// Group by date
 		const timeline = {};
@@ -736,9 +818,16 @@ export class AdminInterfaceManager {
 			await this.db.run('UPDATE users SET is_admin = 1 WHERE id = ?', [userId]);
 
 			// Log the promotion
-			await this.daos.authEvents.logEvent(userId, null, 'admin_promoted', '127.0.0.1', 'Admin Interface', {
-				promotedBy: 'admin'
-			});
+			await this.daos.authEvents.logEvent(
+				userId,
+				null,
+				'admin_promoted',
+				'127.0.0.1',
+				'Admin Interface',
+				{
+					promotedBy: 'admin'
+				}
+			);
 
 			return { success: true };
 		} catch (error) {
@@ -757,9 +846,16 @@ export class AdminInterfaceManager {
 			await this.db.run('UPDATE users SET is_admin = 0 WHERE id = ?', [userId]);
 
 			// Log the demotion
-			await this.daos.authEvents.logEvent(userId, null, 'admin_demoted', '127.0.0.1', 'Admin Interface', {
-				demotedBy: 'admin'
-			});
+			await this.daos.authEvents.logEvent(
+				userId,
+				null,
+				'admin_demoted',
+				'127.0.0.1',
+				'Admin Interface',
+				{
+					demotedBy: 'admin'
+				}
+			);
 
 			return { success: true };
 		} catch (error) {
@@ -777,26 +873,35 @@ export class AdminInterfaceManager {
 
 		try {
 			// Clean up expired sessions
-			const expiredSessions = await this.db.run(`
+			const expiredSessions = await this.db.run(
+				`
 				UPDATE auth_sessions SET is_active = 0
 				WHERE expires_at < ? AND is_active = 1
-			`, [Date.now()]);
+			`,
+				[Date.now()]
+			);
 			stats.sessionsCleanedUp = expiredSessions.changes;
 
 			// Clean up old auth events (older than 90 days)
-			const oldEvents = await this.db.run(`
+			const oldEvents = await this.db.run(
+				`
 				DELETE FROM auth_events
 				WHERE created_at < ?
-			`, [Date.now() - (90 * 24 * 60 * 60 * 1000)]);
+			`,
+				[Date.now() - 90 * 24 * 60 * 60 * 1000]
+			);
 			stats.eventsCleanedUp = oldEvents.changes;
 
 			// Clean up devices with no active sessions (older than 30 days)
-			const unusedDevices = await this.db.run(`
+			const unusedDevices = await this.db.run(
+				`
 				DELETE FROM user_devices
 				WHERE id NOT IN (
 					SELECT DISTINCT device_id FROM auth_sessions WHERE is_active = 1
 				) AND created_at < ?
-			`, [Date.now() - (30 * 24 * 60 * 60 * 1000)]);
+			`,
+				[Date.now() - 30 * 24 * 60 * 60 * 1000]
+			);
 			stats.devicesCleanedUp = unusedDevices.changes;
 
 			return { success: true, stats };
@@ -814,11 +919,20 @@ export class AdminInterfaceManager {
 
 		try {
 			// Get database file size (SQLite specific)
-			const sizeResult = await this.db.get("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()");
+			const sizeResult = await this.db.get(
+				'SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()'
+			);
 			health.size = sizeResult.size;
 
 			// Get table statistics
-			const tables = ['users', 'user_devices', 'auth_sessions', 'auth_events', 'webauthn_credentials', 'oauth_accounts'];
+			const tables = [
+				'users',
+				'user_devices',
+				'auth_sessions',
+				'auth_events',
+				'webauthn_credentials',
+				'oauth_accounts'
+			];
 
 			for (const table of tables) {
 				try {
@@ -831,10 +945,10 @@ export class AdminInterfaceManager {
 			}
 
 			// Check for potential issues
-			if (health.size > 100 * 1024 * 1024) { // > 100MB
+			if (health.size > 100 * 1024 * 1024) {
+				// > 100MB
 				health.status = 'warning';
 			}
-
 		} catch (error) {
 			health.status = 'error';
 			console.error('Database health check failed:', error);
@@ -844,7 +958,13 @@ export class AdminInterfaceManager {
 	}
 
 	// User Management methods for API compatibility
-	async getUsers({ page = 1, limit = 20, search = '', sortBy = 'created_at', sortOrder = 'desc' } = {}) {
+	async getUsers({
+		page = 1,
+		limit = 20,
+		search = '',
+		sortBy = 'created_at',
+		sortOrder = 'desc'
+	} = {}) {
 		const offset = (page - 1) * limit;
 		const order = sortOrder.toUpperCase();
 
@@ -868,7 +988,9 @@ export class AdminInterfaceManager {
 		// Validate sortBy to prevent SQL injection
 		const validSortColumns = ['username', 'email', 'display_name', 'created_at', 'updated_at'];
 		const actualSortColumn = sortBy === 'last_active' ? 'updated_at' : sortBy;
-		const sortColumn = validSortColumns.includes(actualSortColumn) ? actualSortColumn : 'created_at';
+		const sortColumn = validSortColumns.includes(actualSortColumn)
+			? actualSortColumn
+			: 'created_at';
 
 		query += ` GROUP BY u.id ORDER BY u.${sortColumn} ${order} LIMIT ? OFFSET ?`;
 		params.push(limit, offset);
@@ -937,21 +1059,34 @@ export class AdminInterfaceManager {
 		const passwordHash = await bcrypt.hash(accessCode, 10);
 
 		try {
-			const result = await this.db.run(`
+			const result = await this.db.run(
+				`
 				INSERT INTO users (username, display_name, email, password_hash, is_admin)
 				VALUES (?, ?, ?, ?, ?)
-			`, [username, displayName, email, passwordHash, isAdmin ? 1 : 0]);
+			`,
+				[username, displayName, email, passwordHash, isAdmin ? 1 : 0]
+			);
 
-			const user = await this.db.get(`
+			const user = await this.db.get(
+				`
 				SELECT id, username, display_name, email, is_admin, created_at, updated_at as last_active
 				FROM users WHERE id = ?
-			`, [result.lastID]);
+			`,
+				[result.lastID]
+			);
 
 			// Log the user creation
-			await this.daos.authEvents.logEvent(user.id, null, 'user_created', '127.0.0.1', 'Admin Interface', {
-				createdBy: 'admin',
-				isAdmin: isAdmin ? 1 : 0
-			});
+			await this.daos.authEvents.logEvent(
+				user.id,
+				null,
+				'user_created',
+				'127.0.0.1',
+				'Admin Interface',
+				{
+					createdBy: 'admin',
+					isAdmin: isAdmin ? 1 : 0
+				}
+			);
 
 			return {
 				success: true,
@@ -995,14 +1130,20 @@ export class AdminInterfaceManager {
 
 		// Check for duplicates
 		if (updateFields.username) {
-			const existing = await this.db.get('SELECT id FROM users WHERE username = ? AND id != ?', [updateFields.username, userId]);
+			const existing = await this.db.get('SELECT id FROM users WHERE username = ? AND id != ?', [
+				updateFields.username,
+				userId
+			]);
 			if (existing) {
 				throw new Error('A user with this username already exists');
 			}
 		}
 
 		if (updateFields.email) {
-			const existing = await this.db.get('SELECT id FROM users WHERE email = ? AND id != ?', [updateFields.email, userId]);
+			const existing = await this.db.get('SELECT id FROM users WHERE email = ? AND id != ?', [
+				updateFields.email,
+				userId
+			]);
 			if (existing) {
 				throw new Error('A user with this email already exists');
 			}
@@ -1010,7 +1151,9 @@ export class AdminInterfaceManager {
 
 		// Prevent removing admin privileges from the last admin
 		if (updateFields.is_admin === 0) {
-			const adminCount = await this.db.get('SELECT COUNT(*) as count FROM users WHERE is_admin = 1');
+			const adminCount = await this.db.get(
+				'SELECT COUNT(*) as count FROM users WHERE is_admin = 1'
+			);
 			const userToUpdate = await this.db.get('SELECT is_admin FROM users WHERE id = ?', [userId]);
 
 			if (userToUpdate.is_admin && adminCount.count <= 1) {
@@ -1019,22 +1162,34 @@ export class AdminInterfaceManager {
 		}
 
 		try {
-			const setClause = Object.keys(updateFields).map(field => `${field} = ?`).join(', ');
+			const setClause = Object.keys(updateFields)
+				.map((field) => `${field} = ?`)
+				.join(', ');
 			const values = Object.values(updateFields);
 			values.push(userId);
 
 			await this.db.run(`UPDATE users SET ${setClause} WHERE id = ?`, values);
 
-			const user = await this.db.get(`
+			const user = await this.db.get(
+				`
 				SELECT id, username, display_name, email, is_admin, created_at, updated_at as last_active
 				FROM users WHERE id = ?
-			`, [userId]);
+			`,
+				[userId]
+			);
 
 			// Log the user update
-			await this.daos.authEvents.logEvent(userId, null, 'user_updated', '127.0.0.1', 'Admin Interface', {
-				updatedFields: Object.keys(updateFields),
-				updatedBy: 'admin'
-			});
+			await this.daos.authEvents.logEvent(
+				userId,
+				null,
+				'user_updated',
+				'127.0.0.1',
+				'Admin Interface',
+				{
+					updatedFields: Object.keys(updateFields),
+					updatedBy: 'admin'
+				}
+			);
 
 			return {
 				success: true,

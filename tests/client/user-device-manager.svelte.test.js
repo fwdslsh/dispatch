@@ -43,11 +43,12 @@ describe('User Device Manager Component', () => {
 		// Mock successful devices response by default
 		fetch.mockResolvedValue({
 			ok: true,
-			json: () => Promise.resolve({
-				success: true,
-				devices: mockDevices,
-				currentDevice: mockCurrentDevice
-			})
+			json: () =>
+				Promise.resolve({
+					success: true,
+					devices: mockDevices,
+					currentDevice: mockCurrentDevice
+				})
 		});
 	});
 
@@ -115,10 +116,11 @@ describe('User Device Manager Component', () => {
 		it('shows error from server response', async () => {
 			fetch.mockResolvedValueOnce({
 				ok: false,
-				json: () => Promise.resolve({
-					success: false,
-					error: 'Authentication failed'
-				})
+				json: () =>
+					Promise.resolve({
+						success: false,
+						error: 'Authentication failed'
+					})
 			});
 
 			const { container } = render(UserDeviceManager);
@@ -148,11 +150,12 @@ describe('User Device Manager Component', () => {
 		it('shows empty state when no devices', async () => {
 			fetch.mockResolvedValueOnce({
 				ok: true,
-				json: () => Promise.resolve({
-					success: true,
-					devices: [],
-					currentDevice: null
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						devices: [],
+						currentDevice: null
+					})
 			});
 
 			const { container } = render(UserDeviceManager);
@@ -194,7 +197,9 @@ describe('User Device Manager Component', () => {
 
 			await waitFor(() => {
 				expect(container.querySelector('[data-testid="rename-device-modal"]')).toBeTruthy();
-				expect(container.querySelector('[data-testid="device-name-input"]')?.value).toBe('MacBook Pro');
+				expect(container.querySelector('[data-testid="device-name-input"]')?.value).toBe(
+					'MacBook Pro'
+				);
 			});
 		});
 
@@ -250,23 +255,22 @@ describe('User Device Manager Component', () => {
 			// Mock successful rename response
 			fetch.mockResolvedValueOnce({
 				ok: true,
-				json: () => Promise.resolve({
-					success: true,
-					message: 'Device renamed successfully'
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						message: 'Device renamed successfully'
+					})
 			});
 
 			// Mock devices reload after rename
 			fetch.mockResolvedValueOnce({
 				ok: true,
-				json: () => Promise.resolve({
-					success: true,
-					devices: [
-						{ ...mockDevices[0], deviceName: 'New MacBook Pro' },
-						mockDevices[1]
-					],
-					currentDevice: { id: '1', deviceName: 'New MacBook Pro' }
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						devices: [{ ...mockDevices[0], deviceName: 'New MacBook Pro' }, mockDevices[1]],
+						currentDevice: { id: '1', deviceName: 'New MacBook Pro' }
+					})
 			});
 
 			// Change device name
@@ -340,20 +344,22 @@ describe('User Device Manager Component', () => {
 			// Mock successful revoke response
 			fetch.mockResolvedValueOnce({
 				ok: true,
-				json: () => Promise.resolve({
-					success: true,
-					message: 'Device "iPhone 15" has been revoked successfully'
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						message: 'Device "iPhone 15" has been revoked successfully'
+					})
 			});
 
 			// Mock devices reload after revoke
 			fetch.mockResolvedValueOnce({
 				ok: true,
-				json: () => Promise.resolve({
-					success: true,
-					devices: [mockDevices[0]], // Only first device remains
-					currentDevice: mockCurrentDevice
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						devices: [mockDevices[0]], // Only first device remains
+						currentDevice: mockCurrentDevice
+					})
 			});
 
 			// Find and click confirm button in dialog

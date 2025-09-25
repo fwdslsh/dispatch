@@ -19,10 +19,13 @@ export class AuthEventDAO {
 			details = null
 		} = eventData;
 
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			INSERT INTO auth_events (user_id, device_id, event_type, ip_address, user_agent, details)
 			VALUES (?, ?, ?, ?, ?, ?)
-		`, [userId, deviceId, eventType, ipAddress, userAgent, details ? JSON.stringify(details) : null]);
+		`,
+			[userId, deviceId, eventType, ipAddress, userAgent, details ? JSON.stringify(details) : null]
+		);
 
 		return this.getById(result.lastID);
 	}
@@ -40,7 +43,7 @@ export class AuthEventDAO {
 	 */
 	async getByUserId(userId, options = {}) {
 		const { limit = 100, eventType = null, days = 30 } = options;
-		const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
 		let whereClause = 'e.user_id = ? AND e.created_at > ?';
 		const params = [userId, cutoffTime];
@@ -52,16 +55,19 @@ export class AuthEventDAO {
 
 		params.push(limit);
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT e.*, d.device_name, d.device_fingerprint
 			FROM auth_events e
 			LEFT JOIN user_devices d ON e.device_id = d.id
 			WHERE ${whereClause}
 			ORDER BY e.created_at DESC
 			LIMIT ?
-		`, params);
+		`,
+			params
+		);
 
-		return rows.map(row => this.mapRowToEvent(row, true));
+		return rows.map((row) => this.mapRowToEvent(row, true));
 	}
 
 	/**
@@ -69,9 +75,10 @@ export class AuthEventDAO {
 	 */
 	async getByDeviceId(deviceId, options = {}) {
 		const { limit = 100, days = 30 } = options;
-		const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT e.*, u.username, u.display_name, d.device_name
 			FROM auth_events e
 			LEFT JOIN users u ON e.user_id = u.id
@@ -79,9 +86,11 @@ export class AuthEventDAO {
 			WHERE e.device_id = ? AND e.created_at > ?
 			ORDER BY e.created_at DESC
 			LIMIT ?
-		`, [deviceId, cutoffTime, limit]);
+		`,
+			[deviceId, cutoffTime, limit]
+		);
 
-		return rows.map(row => this.mapRowToEvent(row, true));
+		return rows.map((row) => this.mapRowToEvent(row, true));
 	}
 
 	/**
@@ -99,7 +108,7 @@ export class AuthEventDAO {
 		} = options;
 
 		const offset = (page - 1) * limit;
-		const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
 		const conditions = ['e.created_at > ?'];
 		const params = [cutoffTime];
@@ -128,7 +137,8 @@ export class AuthEventDAO {
 
 		params.push(limit, offset);
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT e.*, u.username, u.display_name, d.device_name, d.device_fingerprint
 			FROM auth_events e
 			LEFT JOIN users u ON e.user_id = u.id
@@ -136,15 +146,20 @@ export class AuthEventDAO {
 			${whereClause}
 			ORDER BY e.created_at DESC
 			LIMIT ? OFFSET ?
-		`, params);
+		`,
+			params
+		);
 
-		const events = rows.map(row => this.mapRowToEvent(row, true));
+		const events = rows.map((row) => this.mapRowToEvent(row, true));
 
 		// Get total count for pagination
 		const countParams = params.slice(0, -2); // Remove limit and offset
-		const countResult = await this.db.get(`
+		const countResult = await this.db.get(
+			`
 			SELECT COUNT(*) as total FROM auth_events e ${whereClause}
-		`, countParams);
+		`,
+			countParams
+		);
 
 		return {
 			events,
@@ -161,36 +176,51 @@ export class AuthEventDAO {
 	 * Get event statistics
 	 */
 	async getStats(days = 30) {
-		const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
-		const totalEvents = await this.db.get(`
+		const totalEvents = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM auth_events WHERE created_at > ?
-		`, [cutoffTime]);
+		`,
+			[cutoffTime]
+		);
 
-		const eventsByType = await this.db.all(`
+		const eventsByType = await this.db.all(
+			`
 			SELECT event_type, COUNT(*) as count
 			FROM auth_events
 			WHERE created_at > ?
 			GROUP BY event_type
 			ORDER BY count DESC
-		`, [cutoffTime]);
+		`,
+			[cutoffTime]
+		);
 
-		const recentFailedLogins = await this.db.get(`
+		const recentFailedLogins = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM auth_events
 			WHERE event_type = 'failed_login' AND created_at > ?
-		`, [Date.now() - (24 * 60 * 60 * 1000)]); // Last 24 hours
+		`,
+			[Date.now() - 24 * 60 * 60 * 1000]
+		); // Last 24 hours
 
-		const uniqueIPs = await this.db.get(`
+		const uniqueIPs = await this.db.get(
+			`
 			SELECT COUNT(DISTINCT ip_address) as count
 			FROM auth_events
 			WHERE created_at > ? AND ip_address IS NOT NULL
-		`, [cutoffTime]);
+		`,
+			[cutoffTime]
+		);
 
-		const suspiciousActivity = await this.db.get(`
+		const suspiciousActivity = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM auth_events
 			WHERE event_type IN ('failed_login', 'blocked_attempt', 'suspicious_activity')
 			AND created_at > ?
-		`, [cutoffTime]);
+		`,
+			[cutoffTime]
+		);
 
 		return {
 			total: totalEvents.count,
@@ -205,14 +235,17 @@ export class AuthEventDAO {
 	 * Get failed login attempts for rate limiting
 	 */
 	async getFailedLoginAttempts(ipAddress, minutes = 15) {
-		const cutoffTime = Date.now() - (minutes * 60 * 1000);
+		const cutoffTime = Date.now() - minutes * 60 * 1000;
 
-		const result = await this.db.get(`
+		const result = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM auth_events
 			WHERE event_type = 'failed_login'
 			AND ip_address = ?
 			AND created_at > ?
-		`, [ipAddress, cutoffTime]);
+		`,
+			[ipAddress, cutoffTime]
+		);
 
 		return result.count;
 	}
@@ -222,9 +255,10 @@ export class AuthEventDAO {
 	 */
 	async getEventsByIP(ipAddress, options = {}) {
 		const { limit = 50, days = 7 } = options;
-		const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT e.*, u.username, u.display_name, d.device_name
 			FROM auth_events e
 			LEFT JOIN users u ON e.user_id = u.id
@@ -232,20 +266,25 @@ export class AuthEventDAO {
 			WHERE e.ip_address = ? AND e.created_at > ?
 			ORDER BY e.created_at DESC
 			LIMIT ?
-		`, [ipAddress, cutoffTime, limit]);
+		`,
+			[ipAddress, cutoffTime, limit]
+		);
 
-		return rows.map(row => this.mapRowToEvent(row, true));
+		return rows.map((row) => this.mapRowToEvent(row, true));
 	}
 
 	/**
 	 * Clean up old events
 	 */
 	async cleanupOldEvents(daysOld = 90) {
-		const cutoffTime = Date.now() - (daysOld * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - daysOld * 24 * 60 * 60 * 1000;
 
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			DELETE FROM auth_events WHERE created_at < ?
-		`, [cutoffTime]);
+		`,
+			[cutoffTime]
+		);
 
 		return result.changes;
 	}

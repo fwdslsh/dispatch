@@ -43,7 +43,6 @@ export async function GET({ request, url }) {
 
 		// Redirect to GitHub OAuth
 		throw redirect(302, authUrl.toString());
-
 	} catch (error) {
 		if (error.status === 302) {
 			// Re-throw redirect responses

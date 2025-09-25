@@ -23,7 +23,7 @@ export async function GET({ request, url }) {
 
 		// Return sanitized config (no secrets)
 		const sanitizedConfig = {};
-		Object.keys(config).forEach(provider => {
+		Object.keys(config).forEach((provider) => {
 			sanitizedConfig[provider] = {
 				enabled: config[provider].enabled,
 				hasClientId: Boolean(config[provider].clientId),
@@ -38,13 +38,15 @@ export async function GET({ request, url }) {
 			enabledProviders,
 			baseUrl
 		});
-
 	} catch (error) {
 		logger.error('OAUTH', `Failed to get OAuth config: ${error.message}`);
-		return json({
-			success: false,
-			error: 'Failed to get OAuth configuration'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to get OAuth configuration'
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -61,19 +63,25 @@ export async function POST({ request, url }) {
 		const { config } = body;
 
 		if (!config) {
-			return json({
-				success: false,
-				error: 'OAuth configuration is required'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'OAuth configuration is required'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Validate configuration
 		const validationResult = validateOAuthConfig(config);
 		if (!validationResult.valid) {
-			return json({
-				success: false,
-				error: validationResult.error
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: validationResult.error
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Update OAuth configuration
@@ -86,13 +94,15 @@ export async function POST({ request, url }) {
 			config: updatedConfig,
 			message: 'OAuth configuration updated successfully'
 		});
-
 	} catch (error) {
 		logger.error('OAUTH', `Failed to update OAuth config: ${error.message}`);
-		return json({
-			success: false,
-			error: 'Failed to update OAuth configuration'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to update OAuth configuration'
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -103,7 +113,7 @@ function validateOAuthConfig(config) {
 	const validProviders = ['google', 'github'];
 	const errors = [];
 
-	Object.keys(config).forEach(provider => {
+	Object.keys(config).forEach((provider) => {
 		if (!validProviders.includes(provider)) {
 			errors.push(`Invalid provider: ${provider}`);
 			return;

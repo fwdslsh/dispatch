@@ -21,26 +21,35 @@ export async function POST({ request, url }) {
 		const { accountId } = body;
 
 		if (!accountId) {
-			return json({
-				success: false,
-				error: 'Account ID is required'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'Account ID is required'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Get OAuth account
 		const account = await oauthManager.daos.oauthAccounts.getById(accountId);
 		if (!account) {
-			return json({
-				success: false,
-				error: 'OAuth account not found'
-			}, { status: 404 });
+			return json(
+				{
+					success: false,
+					error: 'OAuth account not found'
+				},
+				{ status: 404 }
+			);
 		}
 
 		if (!account.refreshToken) {
-			return json({
-				success: false,
-				error: 'No refresh token available for this account'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'No refresh token available for this account'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Refresh tokens based on provider
@@ -61,25 +70,36 @@ export async function POST({ request, url }) {
 					message: 'Tokens refreshed successfully'
 				});
 			} else {
-				return json({
-					success: false,
-					error: 'Failed to update tokens in database'
-				}, { status: 500 });
+				return json(
+					{
+						success: false,
+						error: 'Failed to update tokens in database'
+					},
+					{ status: 500 }
+				);
 			}
 		} else {
-			logger.error('OAUTH', `Token refresh failed for account ${accountId}: ${refreshResult.error}`);
-			return json({
-				success: false,
-				error: refreshResult.error
-			}, { status: 400 });
+			logger.error(
+				'OAUTH',
+				`Token refresh failed for account ${accountId}: ${refreshResult.error}`
+			);
+			return json(
+				{
+					success: false,
+					error: refreshResult.error
+				},
+				{ status: 400 }
+			);
 		}
-
 	} catch (error) {
 		logger.error('OAUTH', `OAuth token refresh error: ${error.message}`);
-		return json({
-			success: false,
-			error: 'Token refresh failed'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Token refresh failed'
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -137,14 +157,17 @@ async function refreshGoogleTokens(account, baseUrl) {
 		const tokens = await response.json();
 
 		if (tokens.error) {
-			return { success: false, error: `Google token refresh failed: ${tokens.error_description || tokens.error}` };
+			return {
+				success: false,
+				error: `Google token refresh failed: ${tokens.error_description || tokens.error}`
+			};
 		}
 
 		return {
 			success: true,
 			accessToken: tokens.access_token,
 			refreshToken: tokens.refresh_token || account.refreshToken, // Google may not return new refresh token
-			expiresAt: tokens.expires_in ? Date.now() + (tokens.expires_in * 1000) : null
+			expiresAt: tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : null
 		};
 	} catch (error) {
 		return { success: false, error: error.message };
@@ -174,7 +197,7 @@ export async function needsRefresh(account) {
 	}
 
 	// Refresh if token expires within the next 5 minutes
-	const fiveMinutesFromNow = Date.now() + (5 * 60 * 1000);
+	const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000;
 	return account.tokenExpiresAt < fiveMinutesFromNow;
 }
 
@@ -190,8 +213,8 @@ export async function autoRefreshExpiredTokens() {
 		const expiredAccounts = await oauthManager.getExpiredTokens();
 
 		const refreshPromises = expiredAccounts
-			.filter(account => account.refreshToken) // Only refresh accounts with refresh tokens
-			.map(async account => {
+			.filter((account) => account.refreshToken) // Only refresh accounts with refresh tokens
+			.map(async (account) => {
 				try {
 					const refreshResult = await refreshProviderTokens(account, 'http://localhost:3000');
 					if (refreshResult.success) {
@@ -202,7 +225,10 @@ export async function autoRefreshExpiredTokens() {
 						});
 						logger.info('OAUTH', `Auto-refreshed tokens for account ${account.id}`);
 					} else {
-						logger.warn('OAUTH', `Failed to auto-refresh tokens for account ${account.id}: ${refreshResult.error}`);
+						logger.warn(
+							'OAUTH',
+							`Failed to auto-refresh tokens for account ${account.id}: ${refreshResult.error}`
+						);
 					}
 				} catch (error) {
 					logger.error('OAUTH', `Auto-refresh error for account ${account.id}: ${error.message}`);

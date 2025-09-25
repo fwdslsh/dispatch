@@ -51,24 +51,35 @@ export class OAuthAdapter {
 
 			// Configure Google Strategy
 			if (config.google && config.google.enabled && config.google.clientId) {
-				passport.use('google', new GoogleStrategy({
-					clientID: config.google.clientId,
-					clientSecret: config.google.clientSecret,
-					callbackURL: this.oauthManager.getCallbackUrl('google'),
-					scope: ['profile', 'email']
-				}, this.handleOAuthProfile.bind(this, 'google')));
+				passport.use(
+					'google',
+					new GoogleStrategy(
+						{
+							clientID: config.google.clientId,
+							clientSecret: config.google.clientSecret,
+							callbackURL: this.oauthManager.getCallbackUrl('google'),
+							scope: ['profile', 'email']
+						},
+						this.handleOAuthProfile.bind(this, 'google')
+					)
+				);
 			}
 
 			// Configure GitHub Strategy
 			if (config.github && config.github.enabled && config.github.clientId) {
-				passport.use('github', new GitHubStrategy({
-					clientID: config.github.clientId,
-					clientSecret: config.github.clientSecret,
-					callbackURL: this.oauthManager.getCallbackUrl('github'),
-					scope: ['user:email']
-				}, this.handleOAuthProfile.bind(this, 'github')));
+				passport.use(
+					'github',
+					new GitHubStrategy(
+						{
+							clientID: config.github.clientId,
+							clientSecret: config.github.clientSecret,
+							callbackURL: this.oauthManager.getCallbackUrl('github'),
+							scope: ['user:email']
+						},
+						this.handleOAuthProfile.bind(this, 'github')
+					)
+				);
 			}
-
 		} catch (error) {
 			logger.error('OAUTH', `Failed to configure Passport strategies: ${error.message}`);
 		}
@@ -163,7 +174,9 @@ export class OAuthAdapter {
 			// Check if provider is enabled
 			const config = await this.oauthManager.getOAuthConfig();
 			if (!config[provider] || !config[provider].enabled) {
-				throw new Error(`${provider.charAt(0).toUpperCase() + provider.slice(1)} OAuth is not enabled`);
+				throw new Error(
+					`${provider.charAt(0).toUpperCase() + provider.slice(1)} OAuth is not enabled`
+				);
 			}
 
 			// Update base URL from request
@@ -203,7 +216,6 @@ export class OAuthAdapter {
 				requiresUserInteraction: true,
 				state
 			};
-
 		} catch (error) {
 			logger.error('OAUTH', `OAuth begin authentication error: ${error.message}`);
 			throw error;
@@ -267,7 +279,6 @@ export class OAuthAdapter {
 				isNewUser: oauthResult.isNewUser || false,
 				returnTo: session.returnTo
 			};
-
 		} catch (error) {
 			logger.error('OAUTH', `OAuth complete authentication error: ${error.message}`);
 			throw error;
@@ -338,7 +349,7 @@ export class OAuthAdapter {
 			}
 		}
 
-		expiredSessions.forEach(sessionId => {
+		expiredSessions.forEach((sessionId) => {
 			this.activeSessions.delete(sessionId);
 		});
 
@@ -396,7 +407,7 @@ export class OAuthAdapter {
 
 			// Return sanitized config for client (no secrets)
 			const clientConfig = {};
-			enabledProviders.forEach(provider => {
+			enabledProviders.forEach((provider) => {
 				clientConfig[provider] = {
 					enabled: true,
 					name: provider.charAt(0).toUpperCase() + provider.slice(1),

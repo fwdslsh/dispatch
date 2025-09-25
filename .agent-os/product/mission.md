@@ -15,12 +15,14 @@ Dispatch is a containerized web-based terminal and AI development environment th
 ### User Personas
 
 **AI-Powered Developer** (25-45 years old)
+
 - **Role:** Software Engineer, Full-Stack Developer, DevOps Engineer
 - **Context:** Working with AI coding assistants, needs reliable environment for AI-assisted development
 - **Pain Points:** Inconsistent AI development environments, lost session state, security concerns with AI code execution
 - **Goals:** Seamless AI development workflow, persistent sessions across devices, secure code execution
 
 **Remote Team Lead** (30-50 years old)
+
 - **Role:** Engineering Manager, Tech Lead, Senior Developer
 - **Context:** Managing distributed teams, coordinating development workflows
 - **Pain Points:** Difficulty sharing development environments, inconsistent tooling across team members, security compliance

@@ -2,10 +2,7 @@
 	import { onMount } from 'svelte';
 
 	// Props
-	let {
-		apiClient,
-		isVisible = false
-	} = $props();
+	let { apiClient, isVisible = false } = $props();
 
 	// State
 	let users = $state([]);
@@ -116,7 +113,11 @@
 	}
 
 	async function deleteUser(userId, username) {
-		if (!confirm(`Are you sure you want to delete user "${username}"? This will permanently delete all associated data including sessions and devices.`)) {
+		if (
+			!confirm(
+				`Are you sure you want to delete user "${username}"? This will permanently delete all associated data including sessions and devices.`
+			)
+		) {
 			return;
 		}
 
@@ -228,7 +229,13 @@
 	<div class="user-manager">
 		<div class="user-manager-header">
 			<h3>User Management</h3>
-			<button class="btn btn-primary" onclick={() => { showCreateForm = true; resetCreateForm(); }}>
+			<button
+				class="btn btn-primary"
+				onclick={() => {
+					showCreateForm = true;
+					resetCreateForm();
+				}}
+			>
 				Create User
 			</button>
 		</div>
@@ -310,12 +317,7 @@
 								</td>
 								<td>
 									<div class="actions">
-										<button
-											class="btn btn-sm"
-											onclick={() => viewUserDetails(user)}
-										>
-											View
-										</button>
+										<button class="btn btn-sm" onclick={() => viewUserDetails(user)}> View </button>
 
 										{#if !user.isAdmin}
 											<button
@@ -350,11 +352,7 @@
 			<!-- Pagination -->
 			{#if pagination.pages > 1}
 				<div class="pagination">
-					<button
-						class="btn btn-sm"
-						disabled={pagination.page === 1}
-						onclick={() => changePage(1)}
-					>
+					<button class="btn btn-sm" disabled={pagination.page === 1} onclick={() => changePage(1)}>
 						First
 					</button>
 					<button
@@ -394,9 +392,7 @@
 		{/if}
 
 		{#if !loading && users.length === 0 && !searchTerm}
-			<div class="no-results">
-				No users found. Create the first user to get started.
-			</div>
+			<div class="no-results">No users found. Create the first user to get started.</div>
 		{/if}
 
 		<!-- Create User Modal -->
@@ -405,10 +401,20 @@
 				<div class="modal">
 					<div class="modal-header">
 						<h4>Create New User</h4>
-						<button class="btn-close" onclick={() => { showCreateForm = false; }}>&times;</button>
+						<button
+							class="btn-close"
+							onclick={() => {
+								showCreateForm = false;
+							}}>&times;</button
+						>
 					</div>
 
-					<form onsubmit={(e) => { e.preventDefault(); createUser(); }}>
+					<form
+						onsubmit={(e) => {
+							e.preventDefault();
+							createUser();
+						}}
+					>
 						<div class="form-group">
 							<label for="username">Username *</label>
 							<input
@@ -464,21 +470,22 @@
 
 						<div class="form-group">
 							<label class="checkbox-label">
-								<input
-									type="checkbox"
-									bind:checked={createForm.isAdmin}
-								/>
+								<input type="checkbox" bind:checked={createForm.isAdmin} />
 								Make this user an administrator
 							</label>
 						</div>
 
 						<div class="modal-actions">
-							<button type="button" class="btn" onclick={() => { showCreateForm = false; }}>
+							<button
+								type="button"
+								class="btn"
+								onclick={() => {
+									showCreateForm = false;
+								}}
+							>
 								Cancel
 							</button>
-							<button type="submit" class="btn btn-primary">
-								Create User
-							</button>
+							<button type="submit" class="btn btn-primary"> Create User </button>
 						</div>
 					</form>
 				</div>
@@ -491,7 +498,12 @@
 				<div class="modal modal-large">
 					<div class="modal-header">
 						<h4>User Details: {selectedUser.username}</h4>
-						<button class="btn-close" onclick={() => { showUserDetails = false; }}>&times;</button>
+						<button
+							class="btn-close"
+							onclick={() => {
+								showUserDetails = false;
+							}}>&times;</button
+						>
 					</div>
 
 					<div class="user-details">
@@ -520,7 +532,9 @@
 								</div>
 								<div class="detail-item">
 									<label>Last Login:</label>
-									<span>{selectedUser.lastLogin ? formatDate(selectedUser.lastLogin) : 'Never'}</span>
+									<span
+										>{selectedUser.lastLogin ? formatDate(selectedUser.lastLogin) : 'Never'}</span
+									>
 								</div>
 							</div>
 						</div>
@@ -538,8 +552,9 @@
 												{/if}
 											</div>
 											<div class="device-meta">
-												Active Sessions: {device.activeSessions} |
-												Added: {formatDate(device.createdAt)}
+												Active Sessions: {device.activeSessions} | Added: {formatDate(
+													device.createdAt
+												)}
 											</div>
 										</div>
 									{/each}
@@ -557,8 +572,9 @@
 												<strong>{session.deviceName}</strong>
 											</div>
 											<div class="session-meta">
-												Created: {formatDate(session.createdAt)} |
-												Expires: {formatDate(session.expiresAt)}
+												Created: {formatDate(session.createdAt)} | Expires: {formatDate(
+													session.expiresAt
+												)}
 											</div>
 										</div>
 									{/each}
@@ -585,7 +601,12 @@
 					</div>
 
 					<div class="modal-actions">
-						<button class="btn" onclick={() => { showUserDetails = false; }}>
+						<button
+							class="btn"
+							onclick={() => {
+								showUserDetails = false;
+							}}
+						>
 							Close
 						</button>
 					</div>
@@ -672,7 +693,7 @@
 		background: white;
 		border-radius: 6px;
 		overflow: hidden;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 		margin-bottom: 20px;
 	}
 

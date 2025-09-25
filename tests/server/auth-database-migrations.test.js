@@ -42,45 +42,63 @@ describe('Authentication Database Migrations', () => {
 			expect(userResult.lastID).toBeGreaterThan(0);
 
 			// Test user_devices table with foreign key
-			const deviceResult = await db.run(`
+			const deviceResult = await db.run(
+				`
 				INSERT INTO user_devices (user_id, device_name, device_fingerprint)
 				VALUES (?, 'Chrome Browser', 'fp123456')
-			`, [userResult.lastID]);
+			`,
+				[userResult.lastID]
+			);
 			expect(deviceResult.lastID).toBeGreaterThan(0);
 
 			// Test auth_sessions table
-			const sessionResult = await db.run(`
+			const sessionResult = await db.run(
+				`
 				INSERT INTO auth_sessions (user_id, device_id, session_token, expires_at)
 				VALUES (?, ?, 'token123', ?)
-			`, [userResult.lastID, deviceResult.lastID, Date.now() + 86400000]);
+			`,
+				[userResult.lastID, deviceResult.lastID, Date.now() + 86400000]
+			);
 			expect(sessionResult.lastID).toBeGreaterThan(0);
 
 			// Test webauthn_credentials table
-			const credentialResult = await db.run(`
+			const credentialResult = await db.run(
+				`
 				INSERT INTO webauthn_credentials (user_id, credential_id, public_key, device_name)
 				VALUES (?, 'cred123', 'pubkey123', 'Security Key')
-			`, [userResult.lastID]);
+			`,
+				[userResult.lastID]
+			);
 			expect(credentialResult.lastID).toBeGreaterThan(0);
 
 			// Test oauth_accounts table
-			const oauthResult = await db.run(`
+			const oauthResult = await db.run(
+				`
 				INSERT INTO oauth_accounts (user_id, provider, provider_account_id, provider_email)
 				VALUES (?, 'google', 'google123', 'test@gmail.com')
-			`, [userResult.lastID]);
+			`,
+				[userResult.lastID]
+			);
 			expect(oauthResult.lastID).toBeGreaterThan(0);
 
 			// Test auth_events table
-			const eventResult = await db.run(`
+			const eventResult = await db.run(
+				`
 				INSERT INTO auth_events (user_id, device_id, event_type, ip_address, details)
 				VALUES (?, ?, 'login', '192.168.1.1', '{"method": "webauthn"}')
-			`, [userResult.lastID, deviceResult.lastID]);
+			`,
+				[userResult.lastID, deviceResult.lastID]
+			);
 			expect(eventResult.lastID).toBeGreaterThan(0);
 
 			// Test certificates table
-			const certResult = await db.run(`
+			const certResult = await db.run(
+				`
 				INSERT INTO certificates (cert_type, domain, certificate_pem, private_key_pem, expires_at)
 				VALUES ('mkcert', 'localhost', 'cert_data', 'key_data', ?)
-			`, [Date.now() + 86400000]);
+			`,
+				[Date.now() + 86400000]
+			);
 			expect(certResult.lastID).toBeGreaterThan(0);
 		});
 
@@ -110,8 +128,8 @@ describe('Authentication Database Migrations', () => {
 				'idx_certificates_active'
 			];
 
-			const indexNames = indexes.map(idx => idx.name);
-			expectedIndexes.forEach(expectedIdx => {
+			const indexNames = indexes.map((idx) => idx.name);
+			expectedIndexes.forEach((expectedIdx) => {
 				expect(indexNames).toContain(expectedIdx);
 			});
 		});
@@ -133,10 +151,13 @@ describe('Authentication Database Migrations', () => {
 			).rejects.toThrow();
 
 			// Valid insertion should work
-			const deviceResult = await db.run(`
+			const deviceResult = await db.run(
+				`
 				INSERT INTO user_devices (user_id, device_name, device_fingerprint)
 				VALUES (?, 'Test Device', 'fp123')
-			`, [userResult.lastID]);
+			`,
+				[userResult.lastID]
+			);
 			expect(deviceResult.lastID).toBeGreaterThan(0);
 		});
 
@@ -214,16 +235,14 @@ describe('Authentication Database Migrations', () => {
 			await migrationManager.runMigration('001_create_auth_tables');
 
 			// Second application should be idempotent
-			await expect(
-				migrationManager.runMigration('001_create_auth_tables')
-			).resolves.not.toThrow();
+			await expect(migrationManager.runMigration('001_create_auth_tables')).resolves.not.toThrow();
 		});
 
 		it('should validate migration dependencies', async () => {
 			// Try to apply index migration without table migration
-			await expect(
-				migrationManager.runMigration('002_create_auth_indexes')
-			).rejects.toThrow('Dependencies not met');
+			await expect(migrationManager.runMigration('002_create_auth_indexes')).rejects.toThrow(
+				'Dependencies not met'
+			);
 		});
 	});
 
@@ -277,15 +296,21 @@ describe('Authentication Database Migrations', () => {
 			`);
 
 			const expiredTime = Date.now() - 86400000; // 1 day ago
-			await db.run(`
+			await db.run(
+				`
 				INSERT INTO auth_sessions (user_id, session_token, expires_at)
 				VALUES (?, 'expired_token', ?)
-			`, [userResult.lastID, expiredTime]);
+			`,
+				[userResult.lastID, expiredTime]
+			);
 
 			// Run cleanup job
-			const deletedCount = await db.run(`
+			const deletedCount = await db.run(
+				`
 				DELETE FROM auth_sessions WHERE expires_at < ?
-			`, [Date.now()]);
+			`,
+				[Date.now()]
+			);
 
 			expect(deletedCount.changes).toBe(1);
 		});

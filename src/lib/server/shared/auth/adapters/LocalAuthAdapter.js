@@ -71,7 +71,6 @@ export class LocalAuthAdapter {
 					isActive: user.isActive
 				}
 			};
-
 		} catch (error) {
 			logger.error('LOCAL_AUTH', `Authentication error: ${error.message}`);
 			return {
@@ -102,7 +101,6 @@ export class LocalAuthAdapter {
 
 			// Direct comparison for simple stored passwords (not recommended)
 			return password === storedHash;
-
 		} catch (error) {
 			logger.error('LOCAL_AUTH', `Password verification error: ${error.message}`);
 			return false;
@@ -125,7 +123,6 @@ export class LocalAuthAdapter {
 
 			const hash = await pbkdf2Async(password, salt, 10000, 64, 'sha512');
 			return storedHash === hash.toString('hex');
-
 		} catch (error) {
 			logger.error('LOCAL_AUTH', `Hashed password verification error: ${error.message}`);
 			return false;
@@ -178,7 +175,6 @@ export class LocalAuthAdapter {
 			const salt = randomBytes(32).toString('hex');
 			const hash = await pbkdf2Async(password, salt, 10000, 64, 'sha512');
 			return salt + ':' + hash.toString('hex');
-
 		} catch (error) {
 			logger.error('LOCAL_AUTH', `Password hashing error: ${error.message}`);
 			throw error;
@@ -245,7 +241,6 @@ export class LocalAuthAdapter {
 					isAdmin: user.isAdmin
 				}
 			};
-
 		} catch (error) {
 			logger.error('LOCAL_AUTH', `User creation error: ${error.message}`);
 			return {
@@ -279,7 +274,10 @@ export class LocalAuthAdapter {
 			}
 
 			// Validate new password
-			const validation = this.validateCredentials({ username: user.username, password: newPassword });
+			const validation = this.validateCredentials({
+				username: user.username,
+				password: newPassword
+			});
 			if (!validation.valid) {
 				return {
 					success: false,
@@ -296,7 +294,6 @@ export class LocalAuthAdapter {
 			logger.info('LOCAL_AUTH', `Updated password for user: ${user.username} (ID: ${userId})`);
 
 			return { success: true };
-
 		} catch (error) {
 			logger.error('LOCAL_AUTH', `Password update error: ${error.message}`);
 			return {
@@ -324,7 +321,6 @@ export class LocalAuthAdapter {
 			logger.info('LOCAL_AUTH', `Set user ${user.username} active status to: ${isActive}`);
 
 			return { success: true };
-
 		} catch (error) {
 			logger.error('LOCAL_AUTH', `Set user active error: ${error.message}`);
 			return {

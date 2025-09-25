@@ -31,12 +31,14 @@ export async function POST({ request }) {
 			success: true,
 			compatibility
 		});
-
 	} catch (error) {
 		console.error('WebAuthn hostname check error:', error);
-		return json({
-			error: 'Failed to check hostname compatibility',
-			details: error.message
-		}, { status: 500 });
+		return json(
+			{
+				error: 'Failed to check hostname compatibility',
+				details: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

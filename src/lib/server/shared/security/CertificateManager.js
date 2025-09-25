@@ -71,7 +71,10 @@ export class CertificateManager {
 
 		// Log certificate storage
 		await this.daos.authEvents.logEvent(
-			null, null, null, 'CertificateManager',
+			null,
+			null,
+			null,
+			'CertificateManager',
 			'certificate_stored',
 			{ name, domain, type, fingerprint: certInfo.fingerprint }
 		);
@@ -118,9 +121,10 @@ export class CertificateManager {
 	async listCertificates() {
 		const result = await this.daos.certificate.list();
 
-		return result.certificates.map(cert => {
-			const daysUntilExpiry = cert.expiresAt ?
-				Math.ceil((cert.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000)) : null;
+		return result.certificates.map((cert) => {
+			const daysUntilExpiry = cert.expiresAt
+				? Math.ceil((cert.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+				: null;
 
 			return {
 				id: cert.id,
@@ -153,7 +157,10 @@ export class CertificateManager {
 
 		// Log deletion
 		await this.daos.authEvents.logEvent(
-			null, null, null, 'CertificateManager',
+			null,
+			null,
+			null,
+			'CertificateManager',
 			'certificate_deleted',
 			{ id: certificateId, name: cert.name, domain: cert.domain }
 		);
@@ -205,11 +212,12 @@ export class CertificateManager {
 				validTo: cert.notAfter,
 				fingerprint: createHash('sha256').update(cert.rawData).digest('hex'),
 				version: cert.version,
-				extensions: cert.extensions?.map(ext => ({
-					oid: ext.oid,
-					critical: ext.critical,
-					value: ext.value
-				})) || []
+				extensions:
+					cert.extensions?.map((ext) => ({
+						oid: ext.oid,
+						critical: ext.critical,
+						value: ext.value
+					})) || []
 			};
 		} catch (error) {
 			// Fallback for non-standard certificates
@@ -234,8 +242,7 @@ export class CertificateManager {
 	validateCertificateKeyPair(certPEM, keyPEM) {
 		// This is a simplified validation
 		// In production, you'd want proper cryptographic validation
-		return certPEM.includes('BEGIN CERTIFICATE') &&
-			   keyPEM.includes('BEGIN PRIVATE KEY');
+		return certPEM.includes('BEGIN CERTIFICATE') && keyPEM.includes('BEGIN PRIVATE KEY');
 	}
 
 	detectCertificateType(certPEM) {
@@ -378,9 +385,10 @@ mkcert localhost 127.0.0.1 ::1
 		const challenges = [];
 
 		for (const authz of authorizations) {
-			const http01Challenge = authz.challenges.find(c => c.type === 'http-01');
+			const http01Challenge = authz.challenges.find((c) => c.type === 'http-01');
 			if (http01Challenge) {
-				const keyAuthorization = await this.acmeClient.getChallengeKeyAuthorization(http01Challenge);
+				const keyAuthorization =
+					await this.acmeClient.getChallengeKeyAuthorization(http01Challenge);
 				challenges.push({
 					...http01Challenge,
 					keyAuthorization
@@ -472,7 +480,6 @@ mkcert localhost 127.0.0.1 ::1
 				success: true,
 				certificate: stored
 			};
-
 		} catch (error) {
 			return {
 				success: false,
@@ -487,7 +494,7 @@ mkcert localhost 127.0.0.1 ::1
 	async getCertificatesExpiringSoon(days = 30) {
 		const expiring = await this.daos.certificate.getExpiringSoon(days);
 
-		return expiring.map(cert => ({
+		return expiring.map((cert) => ({
 			id: cert.id,
 			name: `${cert.certType}-${cert.domain}`,
 			domain: cert.domain,
@@ -499,13 +506,17 @@ mkcert localhost 127.0.0.1 ::1
 
 	async scheduleRenewal(certificateId, renewalDate) {
 		// Use settings storage for renewal schedules since we don't have a renewals table
-		const renewals = await this.db.getSettingsByCategory('certificate_renewals') || {};
+		const renewals = (await this.db.getSettingsByCategory('certificate_renewals')) || {};
 		renewals[certificateId] = {
 			scheduledAt: renewalDate.getTime(),
 			createdAt: Date.now()
 		};
 
-		await this.db.setSettingsForCategory('certificate_renewals', renewals, 'Certificate renewal schedule');
+		await this.db.setSettingsForCategory(
+			'certificate_renewals',
+			renewals,
+			'Certificate renewal schedule'
+		);
 
 		// Schedule in-memory job
 		const timeUntilRenewal = renewalDate.getTime() - Date.now();
@@ -520,7 +531,7 @@ mkcert localhost 127.0.0.1 ::1
 	}
 
 	async getPendingRenewals() {
-		const renewals = await this.db.getSettingsByCategory('certificate_renewals') || {};
+		const renewals = (await this.db.getSettingsByCategory('certificate_renewals')) || {};
 		const now = Date.now();
 
 		const pending = [];
@@ -555,7 +566,10 @@ mkcert localhost 127.0.0.1 ::1
 
 		try {
 			// Renew Let's Encrypt certificate
-			const result = await this.provisionLetsEncryptCertificate(cert.domain, 'admin@' + cert.domain);
+			const result = await this.provisionLetsEncryptCertificate(
+				cert.domain,
+				'admin@' + cert.domain
+			);
 
 			if (result.success) {
 				// Delete old certificate
@@ -563,7 +577,10 @@ mkcert localhost 127.0.0.1 ::1
 
 				// Log renewal
 				await this.daos.authEvents.logEvent(
-					null, null, null, 'CertificateManager',
+					null,
+					null,
+					null,
+					'CertificateManager',
 					'certificate_renewed',
 					{ domain: cert.domain, oldId: certificateId, newId: result.certificate.id }
 				);
@@ -575,10 +592,12 @@ mkcert localhost 127.0.0.1 ::1
 			} else {
 				return result;
 			}
-
 		} catch (error) {
 			await this.daos.authEvents.logEvent(
-				null, null, null, 'CertificateManager',
+				null,
+				null,
+				null,
+				'CertificateManager',
 				'certificate_renewal_failed',
 				{ certificateId, domain: cert.domain, error: error.message }
 			);
@@ -598,9 +617,9 @@ mkcert localhost 127.0.0.1 ::1
 					<h2>Certificate Expiry Alert</h2>
 					<p>The following certificates are expiring within 7 days:</p>
 					<ul>
-						${expiringCerts.map(cert =>
-							`<li>${cert.domain} - expires in ${cert.daysUntilExpiry} days</li>`
-						).join('')}
+						${expiringCerts
+							.map((cert) => `<li>${cert.domain} - expires in ${cert.daysUntilExpiry} days</li>`)
+							.join('')}
 					</ul>
 					<p>Please renew these certificates to avoid service disruption.</p>
 				`
@@ -680,22 +699,26 @@ mkcert localhost 127.0.0.1 ::1
 	 */
 	startRenewalScheduler() {
 		// Check for renewals every hour
-		setInterval(async () => {
-			const pendingRenewals = await this.getPendingRenewals();
-			const now = Date.now();
+		setInterval(
+			async () => {
+				const pendingRenewals = await this.getPendingRenewals();
+				const now = Date.now();
 
-			for (const renewal of pendingRenewals) {
-				if (renewal.scheduledAt.getTime() <= now) {
-					await this.renewCertificate(renewal.certificateId);
+				for (const renewal of pendingRenewals) {
+					if (renewal.scheduledAt.getTime() <= now) {
+						await this.renewCertificate(renewal.certificateId);
+					}
 				}
-			}
 
-			// Send expiry alerts daily
-			const hour = new Date().getHours();
-			if (hour === 9) { // 9 AM
-				await this.sendExpiryAlerts();
-			}
-		}, 60 * 60 * 1000); // 1 hour
+				// Send expiry alerts daily
+				const hour = new Date().getHours();
+				if (hour === 9) {
+					// 9 AM
+					await this.sendExpiryAlerts();
+				}
+			},
+			60 * 60 * 1000
+		); // 1 hour
 	}
 
 	async cleanup() {

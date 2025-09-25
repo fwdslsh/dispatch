@@ -20,7 +20,9 @@ describe('AuthManager Core System', () => {
 		await db.init();
 
 		// Run migrations to set up auth tables
-		const { AuthMigrationManager } = await import('../../src/lib/server/shared/db/AuthMigrationManager.js');
+		const { AuthMigrationManager } = await import(
+			'../../src/lib/server/shared/db/AuthMigrationManager.js'
+		);
 		const migrationManager = new AuthMigrationManager(db);
 		await migrationManager.runAllMigrations();
 
@@ -298,7 +300,7 @@ describe('AuthManager Core System', () => {
 			const daos = createDAOs(db);
 			const events = await daos.authEvents.getByUserId(result.user.id, { limit: 10 });
 
-			const loginEvent = events.find(e => e.eventType === 'login');
+			const loginEvent = events.find((e) => e.eventType === 'login');
 			expect(loginEvent).toBeDefined();
 			expect(loginEvent.ipAddress).toBe('192.168.1.50');
 		});

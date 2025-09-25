@@ -81,7 +81,8 @@ export async function checkWebAuthnAvailability() {
 	const serverConfig = await getWebAuthnConfig();
 
 	// Check HTTPS requirement
-	const isSecure = window.location.protocol === 'https:' ||
+	const isSecure =
+		window.location.protocol === 'https:' ||
 		window.location.hostname === 'localhost' ||
 		window.location.hostname === '127.0.0.1';
 
@@ -114,7 +115,8 @@ function getAvailabilityWarnings(browserSupported, isSecure, config) {
 	if (!isSecure) {
 		warnings.push({
 			type: 'security',
-			message: 'HTTPS required for WebAuthn (except localhost). Enable HTTPS or use localhost for development.',
+			message:
+				'HTTPS required for WebAuthn (except localhost). Enable HTTPS or use localhost for development.',
 			severity: 'error'
 		});
 	}
@@ -151,7 +153,7 @@ export function bufferToBase64(buffer) {
  * Convert base64 string to ArrayBuffer
  */
 export function base64ToBuffer(base64) {
-	return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+	return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 }
 
 /**
@@ -202,10 +204,11 @@ export function prepareCreationOptions(serverOptions) {
 			...serverOptions.user,
 			id: base64ToBuffer(serverOptions.user.id)
 		},
-		excludeCredentials: serverOptions.excludeCredentials?.map(cred => ({
-			...cred,
-			id: base64ToBuffer(cred.id)
-		})) || []
+		excludeCredentials:
+			serverOptions.excludeCredentials?.map((cred) => ({
+				...cred,
+				id: base64ToBuffer(cred.id)
+			})) || []
 	};
 }
 
@@ -216,10 +219,11 @@ export function prepareRequestOptions(serverOptions) {
 	return {
 		...serverOptions,
 		challenge: base64ToBuffer(serverOptions.challenge),
-		allowCredentials: serverOptions.allowCredentials?.map(cred => ({
-			...cred,
-			id: typeof cred.id === 'string' ? base64ToBuffer(cred.id) : new Uint8Array(cred.id)
-		})) || []
+		allowCredentials:
+			serverOptions.allowCredentials?.map((cred) => ({
+				...cred,
+				id: typeof cred.id === 'string' ? base64ToBuffer(cred.id) : new Uint8Array(cred.id)
+			})) || []
 	};
 }
 
@@ -372,7 +376,8 @@ export async function validateWebAuthnEnvironment() {
 	}
 
 	// Check HTTPS
-	const isSecure = window.location.protocol === 'https:' ||
+	const isSecure =
+		window.location.protocol === 'https:' ||
 		window.location.hostname === 'localhost' ||
 		window.location.hostname === '127.0.0.1';
 
@@ -405,15 +410,20 @@ export async function validateWebAuthnEnvironment() {
 	// Browser-specific checks
 	const capabilities = getBrowserCapabilities();
 	if (capabilities.recommendations.length > 0) {
-		validation.recommendations.push(...capabilities.recommendations.map(rec => ({
-			type: 'browser_update',
-			message: rec,
-			severity: 'medium'
-		})));
+		validation.recommendations.push(
+			...capabilities.recommendations.map((rec) => ({
+				type: 'browser_update',
+				message: rec,
+				severity: 'medium'
+			}))
+		);
 	}
 
 	// Check for common issues
-	if (window.location.hostname.includes('localtunnel.me') || window.location.hostname.includes('ngrok.io')) {
+	if (
+		window.location.hostname.includes('localtunnel.me') ||
+		window.location.hostname.includes('ngrok.io')
+	) {
 		validation.warnings.push({
 			type: 'tunnel_url',
 			message: 'Tunnel URLs may cause issues with WebAuthn. Consider using a stable domain.',

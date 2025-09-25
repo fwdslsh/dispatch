@@ -2,10 +2,7 @@
 	import { onMount } from 'svelte';
 
 	// Props
-	let {
-		apiClient,
-		isVisible = false
-	} = $props();
+	let { apiClient, isVisible = false } = $props();
 
 	// State
 	let authConfig = $state({
@@ -99,7 +96,11 @@
 	}
 
 	async function resetConfiguration() {
-		if (!confirm('Are you sure you want to reset all changes? This will discard all unsaved modifications.')) {
+		if (
+			!confirm(
+				'Are you sure you want to reset all changes? This will discard all unsaved modifications.'
+			)
+		) {
 			return;
 		}
 
@@ -163,9 +164,7 @@
 			<div class="header-actions">
 				{#if unsavedChanges}
 					<span class="unsaved-indicator">Unsaved changes</span>
-					<button class="btn btn-secondary" onclick={resetConfiguration}>
-						Reset
-					</button>
+					<button class="btn btn-secondary" onclick={resetConfiguration}> Reset </button>
 				{/if}
 				<button
 					class="btn btn-primary"
@@ -225,8 +224,8 @@
 
 					{#if !canDisableMethod('local')}
 						<div class="method-warning">
-							<strong>Note:</strong> Local authentication cannot be disabled as it's the only enabled method.
-							Enable another authentication method first.
+							<strong>Note:</strong> Local authentication cannot be disabled as it's the only enabled
+							method. Enable another authentication method first.
 						</div>
 					{/if}
 				</div>
@@ -246,10 +245,7 @@
 							<p>Hardware-backed authentication using FIDO2/WebAuthn standard</p>
 						</div>
 						<label class="toggle-switch">
-							<input
-								type="checkbox"
-								bind:checked={authConfig.methods.webauthn.enabled}
-							/>
+							<input type="checkbox" bind:checked={authConfig.methods.webauthn.enabled} />
 							<span class="slider"></span>
 						</label>
 					</div>
@@ -260,7 +256,7 @@
 								<span class="icon">🔐</span>
 								<div>
 									<strong>Security Level:</strong> Very High
-									<br>
+									<br />
 									<small>Hardware-backed cryptographic authentication</small>
 								</div>
 							</div>
@@ -268,15 +264,15 @@
 								<span class="icon">📱</span>
 								<div>
 									<strong>Supported Devices:</strong> Modern browsers, mobile devices, security keys
-									<br>
+									<br />
 									<small>Requires HTTPS and compatible hardware</small>
 								</div>
 							</div>
 						</div>
 					{:else}
 						<div class="method-disabled-info">
-							WebAuthn provides the highest level of security through hardware-backed authentication.
-							Requires HTTPS connection and compatible devices.
+							WebAuthn provides the highest level of security through hardware-backed
+							authentication. Requires HTTPS connection and compatible devices.
 						</div>
 					{/if}
 				</div>
@@ -296,10 +292,7 @@
 							<p>Third-party authentication through trusted providers</p>
 						</div>
 						<label class="toggle-switch">
-							<input
-								type="checkbox"
-								bind:checked={authConfig.methods.oauth.enabled}
-							/>
+							<input type="checkbox" bind:checked={authConfig.methods.oauth.enabled} />
 							<span class="slider"></span>
 						</label>
 					</div>
@@ -322,10 +315,7 @@
 									</div>
 									<div class="provider-actions">
 										{#if authConfig.methods.oauth.providers.google.enabled}
-											<button
-												class="btn btn-sm"
-												onclick={() => testOAuthProvider('google')}
-											>
+											<button class="btn btn-sm" onclick={() => testOAuthProvider('google')}>
 												Test
 											</button>
 										{/if}
@@ -356,10 +346,7 @@
 									</div>
 									<div class="provider-actions">
 										{#if authConfig.methods.oauth.providers.github.enabled}
-											<button
-												class="btn btn-sm"
-												onclick={() => testOAuthProvider('github')}
-											>
+											<button class="btn btn-sm" onclick={() => testOAuthProvider('github')}>
 												Test
 											</button>
 										{/if}
@@ -376,14 +363,15 @@
 
 							{#if !authConfig.methods.oauth.providers.google.enabled && !authConfig.methods.oauth.providers.github.enabled}
 								<div class="no-providers">
-									No OAuth providers are currently enabled. Enable at least one provider to use OAuth authentication.
+									No OAuth providers are currently enabled. Enable at least one provider to use
+									OAuth authentication.
 								</div>
 							{/if}
 						</div>
 					{:else}
 						<div class="method-disabled-info">
-							OAuth authentication allows users to sign in using their existing accounts with trusted providers.
-							Configure provider credentials in the OAuth settings section.
+							OAuth authentication allows users to sign in using their existing accounts with
+							trusted providers. Configure provider credentials in the OAuth settings section.
 						</div>
 					{/if}
 				</div>
@@ -401,13 +389,10 @@
 						<div class="setting-group">
 							<h5>Rate Limiting</h5>
 							<label class="setting-item">
-								<input
-									type="checkbox"
-									bind:checked={authConfig.security.rateLimiting.enabled}
-								/>
+								<input type="checkbox" bind:checked={authConfig.security.rateLimiting.enabled} />
 								<div>
 									<strong>Enable Rate Limiting</strong>
-									<br>
+									<br />
 									<small>Prevent brute force attacks by limiting authentication attempts</small>
 								</div>
 							</label>
@@ -416,13 +401,10 @@
 						<div class="setting-group">
 							<h5>CSRF Protection</h5>
 							<label class="setting-item">
-								<input
-									type="checkbox"
-									bind:checked={authConfig.security.csrfProtection.enabled}
-								/>
+								<input type="checkbox" bind:checked={authConfig.security.csrfProtection.enabled} />
 								<div>
 									<strong>Enable CSRF Protection</strong>
-									<br>
+									<br />
 									<small>Protect against cross-site request forgery attacks</small>
 								</div>
 							</label>
@@ -588,7 +570,7 @@
 		background: white;
 		border-radius: 8px;
 		padding: 20px;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 	}
 
 	.section-header {
@@ -667,7 +649,7 @@
 
 	.slider:before {
 		position: absolute;
-		content: "";
+		content: '';
 		height: 18px;
 		width: 18px;
 		left: 3px;
@@ -811,7 +793,7 @@
 		padding: 8px 0;
 	}
 
-	.setting-item input[type="checkbox"] {
+	.setting-item input[type='checkbox'] {
 		margin-top: 2px;
 	}
 

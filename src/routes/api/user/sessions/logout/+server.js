@@ -33,7 +33,10 @@ export async function POST({ request, getClientAddress }) {
 		}
 
 		if (session.userId !== user.id) {
-			return json({ success: false, error: 'Access denied - session does not belong to user' }, { status: 403 });
+			return json(
+				{ success: false, error: 'Access denied - session does not belong to user' },
+				{ status: 403 }
+			);
 		}
 
 		// Terminate the session
@@ -67,12 +70,14 @@ export async function POST({ request, getClientAddress }) {
 			success: true,
 			message: 'Session terminated successfully'
 		});
-
 	} catch (error) {
 		console.error('Error terminating session:', error);
-		return json({
-			success: false,
-			error: 'Failed to terminate session'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to terminate session'
+			},
+			{ status: 500 }
+		);
 	}
 }

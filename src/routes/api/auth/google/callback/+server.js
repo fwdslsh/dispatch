@@ -25,7 +25,10 @@ export async function GET({ request, url, cookies }) {
 		// Handle OAuth error
 		if (error) {
 			logger.warn('OAUTH', `Google OAuth error: ${error}`);
-			throw redirect(302, `/login?error=oauth_error&provider=google&details=${encodeURIComponent(error)}`);
+			throw redirect(
+				302,
+				`/login?error=oauth_error&provider=google&details=${encodeURIComponent(error)}`
+			);
 		}
 
 		// Validate required parameters
@@ -45,14 +48,20 @@ export async function GET({ request, url, cookies }) {
 		const tokenResult = await exchangeCodeForTokens('google', code, baseUrl);
 		if (!tokenResult.success) {
 			logger.error('OAUTH', `Google token exchange failed: ${tokenResult.error}`);
-			throw redirect(302, `/login?error=oauth_token_exchange&provider=google&details=${encodeURIComponent(tokenResult.error)}`);
+			throw redirect(
+				302,
+				`/login?error=oauth_token_exchange&provider=google&details=${encodeURIComponent(tokenResult.error)}`
+			);
 		}
 
 		// Get user profile from Google
 		const profileResult = await fetchGoogleProfile(tokenResult.accessToken);
 		if (!profileResult.success) {
 			logger.error('OAUTH', `Google profile fetch failed: ${profileResult.error}`);
-			throw redirect(302, `/login?error=oauth_profile_fetch&provider=google&details=${encodeURIComponent(profileResult.error)}`);
+			throw redirect(
+				302,
+				`/login?error=oauth_profile_fetch&provider=google&details=${encodeURIComponent(profileResult.error)}`
+			);
 		}
 
 		// Create OAuth profile object
@@ -74,7 +83,10 @@ export async function GET({ request, url, cookies }) {
 
 		if (!authResult.success) {
 			logger.error('OAUTH', `Google OAuth callback failed: ${authResult.error}`);
-			throw redirect(302, `/login?error=oauth_callback&provider=google&details=${encodeURIComponent(authResult.error)}`);
+			throw redirect(
+				302,
+				`/login?error=oauth_callback&provider=google&details=${encodeURIComponent(authResult.error)}`
+			);
 		}
 
 		// Create authentication session
@@ -101,7 +113,6 @@ export async function GET({ request, url, cookies }) {
 		// Redirect to return URL or dashboard
 		const returnTo = stateData.returnTo || '/';
 		throw redirect(302, returnTo);
-
 	} catch (error) {
 		if (error.status === 302) {
 			// Re-throw redirect responses
@@ -163,7 +174,7 @@ async function exchangeCodeForTokens(provider, code, baseUrl) {
 async function fetchGoogleProfile(accessToken) {
 	try {
 		const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-			headers: { 'Authorization': `Bearer ${accessToken}` }
+			headers: { Authorization: `Bearer ${accessToken}` }
 		});
 
 		if (!response.ok) {

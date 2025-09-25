@@ -9,7 +9,7 @@ test.describe('Monitoring and Alerting Integration', () => {
 	test.describe('Security Event Monitoring', () => {
 		test('monitors failed login attempts and triggers alerts', async ({ page }) => {
 			// Mock admin authentication
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -23,7 +23,7 @@ test.describe('Monitoring and Alerting Integration', () => {
 			});
 
 			// Mock monitoring service endpoints
-			await page.route('/api/admin/monitoring*', async route => {
+			await page.route('/api/admin/monitoring*', async (route) => {
 				const url = new URL(route.request().url());
 				const endpoint = url.searchParams.get('endpoint');
 
@@ -151,11 +151,11 @@ test.describe('Monitoring and Alerting Integration', () => {
 
 		test('handles alert acknowledgment and resolution', async ({ page }) => {
 			// Mock alert management endpoints
-			await page.route('/api/admin/monitoring', async route => {
+			await page.route('/api/admin/monitoring', async (route) => {
 				const request = route.request();
 
 				if (request.method() === 'POST') {
-					const body = JSON.parse(await request.postData() || '{}');
+					const body = JSON.parse((await request.postData()) || '{}');
 
 					if (body.action === 'acknowledgeAlert') {
 						await route.fulfill({
@@ -279,7 +279,7 @@ test.describe('Monitoring and Alerting Integration', () => {
 	test.describe('Certificate Monitoring', () => {
 		test('monitors certificate expiry and generates alerts', async ({ page }) => {
 			// Mock certificate monitoring endpoints
-			await page.route('/api/admin/monitoring*', async route => {
+			await page.route('/api/admin/monitoring*', async (route) => {
 				const url = new URL(route.request().url());
 				const endpoint = url.searchParams.get('endpoint');
 
@@ -397,7 +397,7 @@ test.describe('Monitoring and Alerting Integration', () => {
 	test.describe('System Health Monitoring', () => {
 		test('performs health checks and monitors system resources', async ({ page }) => {
 			// Mock health check endpoints
-			await page.route('/api/admin/monitoring*', async route => {
+			await page.route('/api/admin/monitoring*', async (route) => {
 				const url = new URL(route.request().url());
 				const endpoint = url.searchParams.get('endpoint');
 
@@ -475,11 +475,11 @@ test.describe('Monitoring and Alerting Integration', () => {
 			});
 
 			// Mock health check trigger
-			await page.route('/api/admin/monitoring', async route => {
+			await page.route('/api/admin/monitoring', async (route) => {
 				const request = route.request();
 
 				if (request.method() === 'POST') {
-					const body = JSON.parse(await request.postData() || '{}');
+					const body = JSON.parse((await request.postData()) || '{}');
 
 					if (body.action === 'triggerHealthCheck') {
 						await route.fulfill({
@@ -571,11 +571,11 @@ test.describe('Monitoring and Alerting Integration', () => {
 	test.describe('Alert Threshold Configuration', () => {
 		test('allows configuration of alert thresholds', async ({ page }) => {
 			// Mock threshold update endpoint
-			await page.route('/api/admin/monitoring', async route => {
+			await page.route('/api/admin/monitoring', async (route) => {
 				const request = route.request();
 
 				if (request.method() === 'POST') {
-					const body = JSON.parse(await request.postData() || '{}');
+					const body = JSON.parse((await request.postData()) || '{}');
 
 					if (body.action === 'updateThresholds') {
 						await route.fulfill({
@@ -608,7 +608,7 @@ test.describe('Monitoring and Alerting Integration', () => {
 							action: 'updateThresholds',
 							thresholds: {
 								failedLogins: 15, // Increase threshold
-								memoryUsage: 85,   // Increase threshold
+								memoryUsage: 85, // Increase threshold
 								responseTime: 3000 // Decrease threshold for faster alerts
 							}
 						})
@@ -634,7 +634,7 @@ test.describe('Monitoring and Alerting Integration', () => {
 	test.describe('Monitoring Data Export', () => {
 		test('exports monitoring data in various formats', async ({ page }) => {
 			// Mock export endpoint
-			await page.route('/api/admin/monitoring*', async route => {
+			await page.route('/api/admin/monitoring*', async (route) => {
 				const url = new URL(route.request().url());
 				const endpoint = url.searchParams.get('endpoint');
 				const format = url.searchParams.get('format');
@@ -726,7 +726,9 @@ test.describe('Monitoring and Alerting Integration', () => {
 			// Test structured data export
 			const dataExportResult = await page.evaluate(async () => {
 				try {
-					const response = await fetch('/api/admin/monitoring?endpoint=export&includeAuthEvents=true');
+					const response = await fetch(
+						'/api/admin/monitoring?endpoint=export&includeAuthEvents=true'
+					);
 					const data = await response.json();
 					return { success: response.ok, data };
 				} catch (error) {

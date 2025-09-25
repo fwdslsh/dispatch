@@ -20,17 +20,20 @@ export async function GET({ request, url, cookies }) {
 		// Get user ID from authentication (you might need to implement session validation)
 		const userId = url.searchParams.get('userId');
 		if (!userId) {
-			return json({
-				success: false,
-				error: 'User ID is required'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'User ID is required'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Get user's OAuth accounts
 		const accounts = await oauthManager.daos.oauthAccounts.getByUserId(userId);
 
 		// Sanitize accounts (remove sensitive data)
-		const sanitizedAccounts = accounts.map(account => ({
+		const sanitizedAccounts = accounts.map((account) => ({
 			id: account.id,
 			provider: account.provider,
 			providerEmail: account.providerEmail,
@@ -44,13 +47,15 @@ export async function GET({ request, url, cookies }) {
 			success: true,
 			accounts: sanitizedAccounts
 		});
-
 	} catch (error) {
 		logger.error('OAUTH', `Failed to get OAuth accounts: ${error.message}`);
-		return json({
-			success: false,
-			error: 'Failed to get OAuth accounts'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to get OAuth accounts'
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -67,10 +72,13 @@ export async function DELETE({ request, url }) {
 		const { accountId, userId } = body;
 
 		if (!accountId || !userId) {
-			return json({
-				success: false,
-				error: 'Account ID and User ID are required'
-			}, { status: 400 });
+			return json(
+				{
+					success: false,
+					error: 'Account ID and User ID are required'
+				},
+				{ status: 400 }
+			);
 		}
 
 		// Unlink OAuth account
@@ -81,12 +89,14 @@ export async function DELETE({ request, url }) {
 		}
 
 		return json(result);
-
 	} catch (error) {
 		logger.error('OAUTH', `Failed to unlink OAuth account: ${error.message}`);
-		return json({
-			success: false,
-			error: 'Failed to unlink OAuth account'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to unlink OAuth account'
+			},
+			{ status: 500 }
+		);
 	}
 }

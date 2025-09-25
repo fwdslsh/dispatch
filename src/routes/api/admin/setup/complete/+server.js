@@ -57,12 +57,14 @@ export async function POST({ request }) {
 				securityReviewUrl: '/admin/security'
 			}
 		});
-
 	} catch (error) {
 		console.error('Error completing onboarding:', error);
-		return json({
-			success: false,
-			error: 'Failed to complete onboarding'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to complete onboarding'
+			},
+			{ status: 500 }
+		);
 	}
 }

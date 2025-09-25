@@ -224,9 +224,7 @@
 	{/if}
 
 	{#if !compact}
-		<button class="refresh-button" onclick={handleRefresh} title="Refresh status">
-			🔄
-		</button>
+		<button class="refresh-button" onclick={handleRefresh} title="Refresh status"> 🔄 </button>
 	{/if}
 </div>
 
@@ -379,7 +377,8 @@
 	}
 
 	@keyframes pulse {
-		0%, 100% {
+		0%,
+		100% {
 			opacity: 1;
 		}
 		50% {

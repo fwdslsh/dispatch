@@ -105,7 +105,9 @@ describe('Authentication UI Components - Simplified Tests', () => {
 			// Mock window.location.href setter
 			let redirectUrl = '';
 			Object.defineProperty(window.location, 'href', {
-				set: (url) => { redirectUrl = url; },
+				set: (url) => {
+					redirectUrl = url;
+				},
 				get: () => redirectUrl
 			});
 
@@ -124,7 +126,9 @@ describe('Authentication UI Components - Simplified Tests', () => {
 		it('uses default returnTo when not provided', async () => {
 			let redirectUrl = '';
 			Object.defineProperty(window.location, 'href', {
-				set: (url) => { redirectUrl = url; },
+				set: (url) => {
+					redirectUrl = url;
+				},
 				get: () => redirectUrl
 			});
 
@@ -193,10 +197,17 @@ describe('Authentication UI Components - Simplified Tests', () => {
 
 		it('shows loading state during operation', async () => {
 			// Mock slow API response
-			mockFetch.mockImplementation(() =>
-				new Promise(resolve => setTimeout(() => resolve({
-					json: () => Promise.resolve({ success: false })
-				}), 100))
+			mockFetch.mockImplementation(
+				() =>
+					new Promise((resolve) =>
+						setTimeout(
+							() =>
+								resolve({
+									json: () => Promise.resolve({ success: false })
+								}),
+							100
+						)
+					)
 			);
 
 			const { container } = render(WebAuthnButton, {
@@ -251,23 +262,25 @@ describe('Authentication UI Components - Simplified Tests', () => {
 			// Mock API responses
 			mockFetch
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						sessionId: 'test-session',
-						challenge: {
-							challenge: btoa('test-challenge'),
-							user: {
-								id: btoa('test-user'),
-								name: 'test@example.com'
+					json: () =>
+						Promise.resolve({
+							success: true,
+							sessionId: 'test-session',
+							challenge: {
+								challenge: btoa('test-challenge'),
+								user: {
+									id: btoa('test-user'),
+									name: 'test@example.com'
+								}
 							}
-						}
-					})
+						})
 				})
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						message: 'Registration successful'
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							message: 'Registration successful'
+						})
 				});
 
 			const { container } = render(WebAuthnButton, {
@@ -280,7 +293,7 @@ describe('Authentication UI Components - Simplified Tests', () => {
 			await fireEvent.click(button);
 
 			// Wait for async operations
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			// Should have called credentials.create
 			expect(mockCredentialsCreate).toHaveBeenCalled();
@@ -311,20 +324,22 @@ describe('Authentication UI Components - Simplified Tests', () => {
 			// Mock API responses
 			mockFetch
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						sessionId: 'auth-session',
-						challenge: {
-							challenge: btoa('auth-challenge'),
-							allowCredentials: []
-						}
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							sessionId: 'auth-session',
+							challenge: {
+								challenge: btoa('auth-challenge'),
+								allowCredentials: []
+							}
+						})
 				})
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						user: { id: 'test-user' }
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							user: { id: 'test-user' }
+						})
 				});
 
 			const { container } = render(WebAuthnButton, {
@@ -336,7 +351,7 @@ describe('Authentication UI Components - Simplified Tests', () => {
 			await fireEvent.click(button);
 
 			// Wait for async operations
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			// Should have called credentials.get
 			expect(mockCredentialsGet).toHaveBeenCalled();
@@ -357,7 +372,7 @@ describe('Authentication UI Components - Simplified Tests', () => {
 			await fireEvent.click(button);
 
 			// Wait for error to appear
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			const error = container.querySelector('.error');
 			expect(error).toBeTruthy();
@@ -407,7 +422,9 @@ describe('Authentication UI Components - Simplified Tests', () => {
 			// Should ignore other keys
 			let redirectUrl = '';
 			Object.defineProperty(window.location, 'href', {
-				set: (url) => { redirectUrl = url; },
+				set: (url) => {
+					redirectUrl = url;
+				},
 				get: () => redirectUrl
 			});
 
@@ -423,7 +440,9 @@ describe('Authentication UI Components - Simplified Tests', () => {
 
 			// Mock location.href to throw error
 			Object.defineProperty(window.location, 'href', {
-				set: () => { throw new Error('Test error'); }
+				set: () => {
+					throw new Error('Test error');
+				}
 			});
 
 			const oauthButton = oauthContainer.querySelector('button');
@@ -445,7 +464,7 @@ describe('Authentication UI Components - Simplified Tests', () => {
 			await fireEvent.click(webauthnButton);
 
 			// Wait for error
-			await new Promise(resolve => setTimeout(resolve, 50));
+			await new Promise((resolve) => setTimeout(resolve, 50));
 
 			const webauthnError = webauthnContainer.querySelector('.error');
 			expect(webauthnError).toBeTruthy();

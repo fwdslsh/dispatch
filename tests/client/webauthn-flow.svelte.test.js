@@ -16,7 +16,8 @@ describe('WebAuthn Flow Component', () => {
 	beforeEach(async () => {
 		// Mock browser APIs
 		vi.stubGlobal('navigator', {
-			userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+			userAgent:
+				'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 			platform: 'MacIntel',
 			credentials: {
 				create: vi.fn(),
@@ -31,7 +32,13 @@ describe('WebAuthn Flow Component', () => {
 		vi.stubGlobal('fetch', vi.fn());
 
 		// Get mocked utilities
-		const { checkWebAuthnAvailability, getWebAuthnErrorMessage, formatCredentialForTransmission, prepareCreationOptions, prepareRequestOptions } = await import('../../src/lib/client/shared/utils/webauthn.js');
+		const {
+			checkWebAuthnAvailability,
+			getWebAuthnErrorMessage,
+			formatCredentialForTransmission,
+			prepareCreationOptions,
+			prepareRequestOptions
+		} = await import('../../src/lib/client/shared/utils/webauthn.js');
 
 		checkWebAuthnAvailability.mockResolvedValue({
 			browserSupported: true,
@@ -117,7 +124,8 @@ describe('WebAuthn Flow Component', () => {
 			// Mock old Chrome version
 			vi.stubGlobal('navigator', {
 				...navigator,
-				userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.0.0 Safari/537.36'
+				userAgent:
+					'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.0.0 Safari/537.36'
 			});
 
 			const { container } = render(WebAuthnFlow, {
@@ -135,7 +143,9 @@ describe('WebAuthn Flow Component', () => {
 		});
 
 		it('can skip compatibility check', async () => {
-			const { checkWebAuthnAvailability } = await import('../../src/lib/client/shared/utils/webauthn.js');
+			const { checkWebAuthnAvailability } = await import(
+				'../../src/lib/client/shared/utils/webauthn.js'
+			);
 			checkWebAuthnAvailability.mockResolvedValue({
 				browserSupported: false,
 				overall: false,
@@ -198,20 +208,23 @@ describe('WebAuthn Flow Component', () => {
 		});
 
 		it('handles successful registration', async () => {
-			const mockFetch = vi.fn()
+			const mockFetch = vi
+				.fn()
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						sessionId: 'test-session',
-						challenge: { challenge: 'test-challenge', user: { id: 'user-id' } }
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							sessionId: 'test-session',
+							challenge: { challenge: 'test-challenge', user: { id: 'user-id' } }
+						})
 				})
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						message: 'Registration successful',
-						credentialId: 'test-credential'
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							message: 'Registration successful',
+							credentialId: 'test-credential'
+						})
 				});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -248,9 +261,12 @@ describe('WebAuthn Flow Component', () => {
 			});
 
 			// Wait for success state
-			await waitFor(() => {
-				expect(container.textContent).toContain('Passkey Created!');
-			}, { timeout: 3000 });
+			await waitFor(
+				() => {
+					expect(container.textContent).toContain('Passkey Created!');
+				},
+				{ timeout: 3000 }
+			);
 
 			expect(successEvent).toEqual({
 				type: 'register',
@@ -303,19 +319,22 @@ describe('WebAuthn Flow Component', () => {
 		});
 
 		it('handles successful authentication', async () => {
-			const mockFetch = vi.fn()
+			const mockFetch = vi
+				.fn()
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						sessionId: 'auth-session',
-						challenge: { challenge: 'auth-challenge', allowCredentials: [] }
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							sessionId: 'auth-session',
+							challenge: { challenge: 'auth-challenge', allowCredentials: [] }
+						})
 				})
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						user: { id: 'test-user', email: 'test@example.com' }
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							user: { id: 'test-user', email: 'test@example.com' }
+						})
 				});
 			vi.stubGlobal('fetch', mockFetch);
 
@@ -352,9 +371,12 @@ describe('WebAuthn Flow Component', () => {
 			});
 
 			// Wait for success state
-			await waitFor(() => {
-				expect(container.textContent).toContain('Authentication Successful!');
-			}, { timeout: 3000 });
+			await waitFor(
+				() => {
+					expect(container.textContent).toContain('Authentication Successful!');
+				},
+				{ timeout: 3000 }
+			);
 
 			expect(successEvent).toEqual({
 				type: 'authenticate',
@@ -366,25 +388,27 @@ describe('WebAuthn Flow Component', () => {
 
 	describe('Error Handling', () => {
 		it('handles WebAuthn API errors', async () => {
-			const mockFetch = vi.fn()
-				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
+			const mockFetch = vi.fn().mockResolvedValueOnce({
+				json: () =>
+					Promise.resolve({
 						success: true,
 						sessionId: 'test-session',
 						challenge: { challenge: 'test-challenge', user: { id: 'user-id' } }
 					})
-				});
+			});
 			vi.stubGlobal('fetch', mockFetch);
 
-			const mockCredentialsCreate = vi.fn().mockRejectedValue(
-				new Error('NotAllowedError: User cancelled')
-			);
+			const mockCredentialsCreate = vi
+				.fn()
+				.mockRejectedValue(new Error('NotAllowedError: User cancelled'));
 			vi.stubGlobal('navigator', {
 				...navigator,
 				credentials: { create: mockCredentialsCreate, get: vi.fn() }
 			});
 
-			const { getWebAuthnErrorMessage } = await import('../../src/lib/client/shared/utils/webauthn.js');
+			const { getWebAuthnErrorMessage } = await import(
+				'../../src/lib/client/shared/utils/webauthn.js'
+			);
 			getWebAuthnErrorMessage.mockReturnValue('User cancelled operation');
 
 			const { container } = render(WebAuthnFlow, {
@@ -438,7 +462,9 @@ describe('WebAuthn Flow Component', () => {
 		});
 
 		it('provides retry functionality', async () => {
-			const { checkWebAuthnAvailability } = await import('../../src/lib/client/shared/utils/webauthn.js');
+			const { checkWebAuthnAvailability } = await import(
+				'../../src/lib/client/shared/utils/webauthn.js'
+			);
 			checkWebAuthnAvailability.mockResolvedValue({
 				browserSupported: false,
 				overall: false,
@@ -481,7 +507,11 @@ describe('WebAuthn Flow Component', () => {
 			const platforms = [
 				{ userAgent: 'Chrome/120 on Mac', platform: 'MacIntel', expected: 'Chrome on macOS' },
 				{ userAgent: 'Chrome/120 on Windows', platform: 'Win32', expected: 'Chrome on Windows' },
-				{ userAgent: 'Firefox/100 on Linux', platform: 'Linux x86_64', expected: 'Firefox on Linux' }
+				{
+					userAgent: 'Firefox/100 on Linux',
+					platform: 'Linux x86_64',
+					expected: 'Firefox on Linux'
+				}
 			];
 
 			for (const { userAgent, platform, expected } of platforms) {
@@ -512,11 +542,12 @@ describe('WebAuthn Flow Component', () => {
 	describe('Auto Start', () => {
 		it('automatically starts flow when autoStart is true', async () => {
 			const mockFetch = vi.fn().mockResolvedValue({
-				json: () => Promise.resolve({
-					success: true,
-					sessionId: 'auto-session',
-					challenge: { challenge: 'auto-challenge', user: { id: 'auto-user' } }
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						sessionId: 'auto-session',
+						challenge: { challenge: 'auto-challenge', user: { id: 'auto-user' } }
+					})
 			});
 			vi.stubGlobal('fetch', mockFetch);
 

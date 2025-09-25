@@ -17,7 +17,8 @@
 	let webauthnSupported = false;
 
 	// Check WebAuthn browser support
-	$: webauthnSupported = typeof window !== 'undefined' &&
+	$: webauthnSupported =
+		typeof window !== 'undefined' &&
 		window.PublicKeyCredential &&
 		typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function';
 
@@ -68,15 +69,16 @@
 		// Create credential
 		const publicKeyCredentialCreationOptions = {
 			...beginData.challenge,
-			challenge: Uint8Array.from(atob(beginData.challenge.challenge), c => c.charCodeAt(0)),
+			challenge: Uint8Array.from(atob(beginData.challenge.challenge), (c) => c.charCodeAt(0)),
 			user: {
 				...beginData.challenge.user,
-				id: Uint8Array.from(atob(beginData.challenge.user.id), c => c.charCodeAt(0))
+				id: Uint8Array.from(atob(beginData.challenge.user.id), (c) => c.charCodeAt(0))
 			},
-			excludeCredentials: beginData.challenge.excludeCredentials?.map(cred => ({
-				...cred,
-				id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0))
-			})) || []
+			excludeCredentials:
+				beginData.challenge.excludeCredentials?.map((cred) => ({
+					...cred,
+					id: Uint8Array.from(atob(cred.id), (c) => c.charCodeAt(0))
+				})) || []
 		};
 
 		const credential = await navigator.credentials.create({
@@ -93,8 +95,12 @@
 			rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
 			type: credential.type,
 			response: {
-				clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))),
-				attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject)))
+				clientDataJSON: btoa(
+					String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))
+				),
+				attestationObject: btoa(
+					String.fromCharCode(...new Uint8Array(credential.response.attestationObject))
+				)
 			}
 		};
 
@@ -136,13 +142,15 @@
 		// Get credential
 		const publicKeyCredentialRequestOptions = {
 			...beginData.challenge,
-			challenge: Uint8Array.from(atob(beginData.challenge.challenge), c => c.charCodeAt(0)),
-			allowCredentials: beginData.challenge.allowCredentials?.map(cred => ({
-				...cred,
-				id: typeof cred.id === 'string' ?
-					Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)) :
-					new Uint8Array(cred.id)
-			})) || []
+			challenge: Uint8Array.from(atob(beginData.challenge.challenge), (c) => c.charCodeAt(0)),
+			allowCredentials:
+				beginData.challenge.allowCredentials?.map((cred) => ({
+					...cred,
+					id:
+						typeof cred.id === 'string'
+							? Uint8Array.from(atob(cred.id), (c) => c.charCodeAt(0))
+							: new Uint8Array(cred.id)
+				})) || []
 		};
 
 		const credential = await navigator.credentials.get({
@@ -159,11 +167,16 @@
 			rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))),
 			type: credential.type,
 			response: {
-				clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))),
-				authenticatorData: btoa(String.fromCharCode(...new Uint8Array(credential.response.authenticatorData))),
+				clientDataJSON: btoa(
+					String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))
+				),
+				authenticatorData: btoa(
+					String.fromCharCode(...new Uint8Array(credential.response.authenticatorData))
+				),
 				signature: btoa(String.fromCharCode(...new Uint8Array(credential.response.signature))),
-				userHandle: credential.response.userHandle ?
-					btoa(String.fromCharCode(...new Uint8Array(credential.response.userHandle))) : null
+				userHandle: credential.response.userHandle
+					? btoa(String.fromCharCode(...new Uint8Array(credential.response.userHandle)))
+					: null
 			}
 		};
 
@@ -191,11 +204,7 @@
 </script>
 
 <div class="webauthn-button">
-	<Button
-		{variant}
-		disabled={disabled || loading || !webauthnSupported}
-		on:click={handleWebAuthn}
-	>
+	<Button {variant} disabled={disabled || loading || !webauthnSupported} on:click={handleWebAuthn}>
 		{#if loading}
 			<LoadingSpinner size="sm" />
 		{:else}
@@ -216,9 +225,7 @@
 	{/if}
 
 	{#if !webauthnSupported}
-		<div class="warning">
-			WebAuthn not supported in this browser
-		</div>
+		<div class="warning">WebAuthn not supported in this browser</div>
 	{/if}
 </div>
 

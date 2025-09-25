@@ -33,13 +33,15 @@ export async function GET({ url }) {
 				const certificates = await certManager.listCertificates();
 				return json({ success: true, certificates });
 		}
-
 	} catch (error) {
 		console.error('Error managing certificates:', error);
-		return json({
-			success: false,
-			error: error.message
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -76,18 +78,23 @@ export async function POST({ request }) {
 				return json({ success: true, message: 'Renewal scheduled successfully' });
 
 			default:
-				return json({
-					success: false,
-					error: `Unknown action: ${action}`
-				}, { status: 400 });
+				return json(
+					{
+						success: false,
+						error: `Unknown action: ${action}`
+					},
+					{ status: 400 }
+				);
 		}
-
 	} catch (error) {
 		console.error('Error processing certificate action:', error);
-		return json({
-			success: false,
-			error: error.message
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -109,12 +116,14 @@ export async function DELETE({ request }) {
 		} else {
 			return json({ success: false, error: 'Certificate not found' }, { status: 404 });
 		}
-
 	} catch (error) {
 		console.error('Error deleting certificate:', error);
-		return json({
-			success: false,
-			error: error.message
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

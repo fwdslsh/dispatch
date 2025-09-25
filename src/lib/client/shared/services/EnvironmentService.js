@@ -26,37 +26,37 @@ export class EnvironmentService {
 	 */
 	async getEnvironment() {
 		const now = Date.now();
-		
+
 		// Return cached data if it's fresh
-		if (this.cache && this.lastFetch && (now - this.lastFetch) < this.cacheTimeout) {
+		if (this.cache && this.lastFetch && now - this.lastFetch < this.cacheTimeout) {
 			return this.cache;
 		}
 
 		try {
 			logger.debug('Fetching environment information from server...');
 			const response = await fetch(`${this.config.apiBaseUrl}/api/environment`);
-			
+
 			if (!response.ok) {
 				throw new Error(`Failed to fetch environment: ${response.status} ${response.statusText}`);
 			}
 
 			const data = await response.json();
-			
+
 			// Cache the result
 			this.cache = data;
 			this.lastFetch = now;
-			
+
 			logger.debug('Environment information fetched successfully:', data);
 			return data;
 		} catch (error) {
 			logger.warn('Failed to fetch environment information:', error);
-			
+
 			// Return cached data if available, even if stale
 			if (this.cache) {
 				logger.debug('Returning stale cached environment data');
 				return this.cache;
 			}
-			
+
 			// Return minimal fallback data
 			return {
 				homeDirectory: 'unknown',

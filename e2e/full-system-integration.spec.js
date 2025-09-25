@@ -9,7 +9,7 @@ test.describe('Full System Integration Verification', () => {
 	test.describe('Complete Authentication Flow Integration', () => {
 		test('verifies end-to-end multi-method authentication system', async ({ page }) => {
 			// Mock comprehensive authentication system
-			await page.route('/api/auth/**', async route => {
+			await page.route('/api/auth/**', async (route) => {
 				const url = route.request().url();
 				const method = route.request().method();
 
@@ -31,7 +31,7 @@ test.describe('Full System Integration Verification', () => {
 						})
 					});
 				} else if (url.includes('/login') && method === 'POST') {
-					const body = JSON.parse(await route.request().postData() || '{}');
+					const body = JSON.parse((await route.request().postData()) || '{}');
 
 					await route.fulfill({
 						status: 200,
@@ -75,7 +75,7 @@ test.describe('Full System Integration Verification', () => {
 			});
 
 			// Mock OAuth integration
-			await page.route('/api/auth/oauth/**', async route => {
+			await page.route('/api/auth/oauth/**', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -125,7 +125,7 @@ test.describe('Full System Integration Verification', () => {
 
 		test('verifies admin interface complete integration', async ({ page }) => {
 			// Mock admin authentication
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -153,15 +153,37 @@ test.describe('Full System Integration Verification', () => {
 				},
 				'/api/admin/sessions': {
 					sessions: [
-						{ id: 'session_1', userId: 1, deviceName: 'Chrome Browser', lastActivity: new Date().toISOString() },
-						{ id: 'session_2', userId: 2, deviceName: 'Firefox Browser', lastActivity: new Date().toISOString() }
+						{
+							id: 'session_1',
+							userId: 1,
+							deviceName: 'Chrome Browser',
+							lastActivity: new Date().toISOString()
+						},
+						{
+							id: 'session_2',
+							userId: 2,
+							deviceName: 'Firefox Browser',
+							lastActivity: new Date().toISOString()
+						}
 					],
 					total: 2
 				},
 				'/api/admin/certificates': {
 					certificates: [
-						{ id: 1, domain: 'localhost', type: 'mkcert', expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), status: 'active' },
-						{ id: 2, domain: 'dispatch.example.com', type: 'lets_encrypt', expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), status: 'active' }
+						{
+							id: 1,
+							domain: 'localhost',
+							type: 'mkcert',
+							expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+							status: 'active'
+						},
+						{
+							id: 2,
+							domain: 'dispatch.example.com',
+							type: 'lets_encrypt',
+							expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+							status: 'active'
+						}
 					],
 					total: 2
 				},
@@ -186,7 +208,7 @@ test.describe('Full System Integration Verification', () => {
 			};
 
 			// Mock all admin endpoints
-			await page.route('/api/admin/**', async route => {
+			await page.route('/api/admin/**', async (route) => {
 				const url = route.request().url();
 				const pathname = new URL(url).pathname;
 
@@ -261,7 +283,7 @@ test.describe('Full System Integration Verification', () => {
 	test.describe('Security Integration Verification', () => {
 		test('verifies complete security policy integration', async ({ page }) => {
 			// Mock comprehensive security integration
-			await page.route('/api/security/**', async route => {
+			await page.route('/api/security/**', async (route) => {
 				const url = route.request().url();
 
 				if (url.includes('/headers')) {
@@ -386,7 +408,7 @@ test.describe('Full System Integration Verification', () => {
 
 		test('verifies certificate management integration', async ({ page }) => {
 			// Mock certificate system integration
-			await page.route('/api/certificates/**', async route => {
+			await page.route('/api/certificates/**', async (route) => {
 				const url = route.request().url();
 
 				if (url.includes('/status')) {
@@ -482,7 +504,7 @@ test.describe('Full System Integration Verification', () => {
 	test.describe('Monitoring and Alerting Integration', () => {
 		test('verifies comprehensive monitoring system integration', async ({ page }) => {
 			// Mock complete monitoring integration
-			await page.route('/api/monitoring/**', async route => {
+			await page.route('/api/monitoring/**', async (route) => {
 				const url = route.request().url();
 
 				if (url.includes('/system/status')) {
@@ -621,7 +643,7 @@ test.describe('Full System Integration Verification', () => {
 	test.describe('Database and Persistence Integration', () => {
 		test('verifies complete database integration', async ({ page }) => {
 			// Mock database integration verification
-			await page.route('/api/database/**', async route => {
+			await page.route('/api/database/**', async (route) => {
 				const url = route.request().url();
 
 				if (url.includes('/health')) {
@@ -638,12 +660,36 @@ test.describe('Full System Integration Verification', () => {
 							},
 							tables: {
 								users: { status: 'healthy', records: 10, lastUpdate: new Date().toISOString() },
-								auth_sessions: { status: 'healthy', records: 5, lastUpdate: new Date().toISOString() },
-								user_devices: { status: 'healthy', records: 12, lastUpdate: new Date().toISOString() },
-								webauthn_credentials: { status: 'healthy', records: 8, lastUpdate: new Date().toISOString() },
-								oauth_accounts: { status: 'healthy', records: 6, lastUpdate: new Date().toISOString() },
-								auth_events: { status: 'healthy', records: 1250, lastUpdate: new Date().toISOString() },
-								certificates: { status: 'healthy', records: 2, lastUpdate: new Date().toISOString() }
+								auth_sessions: {
+									status: 'healthy',
+									records: 5,
+									lastUpdate: new Date().toISOString()
+								},
+								user_devices: {
+									status: 'healthy',
+									records: 12,
+									lastUpdate: new Date().toISOString()
+								},
+								webauthn_credentials: {
+									status: 'healthy',
+									records: 8,
+									lastUpdate: new Date().toISOString()
+								},
+								oauth_accounts: {
+									status: 'healthy',
+									records: 6,
+									lastUpdate: new Date().toISOString()
+								},
+								auth_events: {
+									status: 'healthy',
+									records: 1250,
+									lastUpdate: new Date().toISOString()
+								},
+								certificates: {
+									status: 'healthy',
+									records: 2,
+									lastUpdate: new Date().toISOString()
+								}
 							},
 							integration: {
 								databaseFullyIntegrated: true,
@@ -699,7 +745,15 @@ test.describe('Full System Integration Verification', () => {
 			expect(healthResult.data.integration.migrationsCompleted).toBe(true);
 
 			// Verify all auth tables are present and healthy
-			const authTables = ['users', 'auth_sessions', 'user_devices', 'webauthn_credentials', 'oauth_accounts', 'auth_events', 'certificates'];
+			const authTables = [
+				'users',
+				'auth_sessions',
+				'user_devices',
+				'webauthn_credentials',
+				'oauth_accounts',
+				'auth_events',
+				'certificates'
+			];
 			for (const table of authTables) {
 				expect(healthResult.data.tables[table].status).toBe('healthy');
 				expect(healthResult.data.tables[table].records).toBeGreaterThan(0);
@@ -726,7 +780,7 @@ test.describe('Full System Integration Verification', () => {
 	test.describe('UI and Frontend Integration', () => {
 		test('verifies complete frontend integration', async ({ page }) => {
 			// Mock frontend integration components
-			await page.route('/api/ui/**', async route => {
+			await page.route('/api/ui/**', async (route) => {
 				const url = route.request().url();
 
 				if (url.includes('/components/status')) {
@@ -834,7 +888,7 @@ test.describe('Full System Integration Verification', () => {
 	test.describe('Production Readiness Integration', () => {
 		test('verifies complete production readiness', async ({ page }) => {
 			// Mock production readiness check
-			await page.route('/api/production/**', async route => {
+			await page.route('/api/production/**', async (route) => {
 				const url = route.request().url();
 
 				if (url.includes('/readiness')) {

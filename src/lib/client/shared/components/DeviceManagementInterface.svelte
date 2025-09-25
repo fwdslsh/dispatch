@@ -186,7 +186,7 @@
 	{#if error}
 		<div class="error-banner">
 			{error}
-			<button onclick={() => error = null} class="close-btn">&times;</button>
+			<button onclick={() => (error = null)} class="close-btn">&times;</button>
 		</div>
 	{/if}
 
@@ -213,11 +213,11 @@
 			<tbody>
 				{#if loading}
 					<tr>
-						<td colspan={userId ? "6" : "7"} class="loading">Loading devices...</td>
+						<td colspan={userId ? '6' : '7'} class="loading">Loading devices...</td>
 					</tr>
 				{:else if devices.length === 0}
 					<tr>
-						<td colspan={userId ? "6" : "7"} class="empty">No devices found</td>
+						<td colspan={userId ? '6' : '7'} class="empty">No devices found</td>
 					</tr>
 				{:else}
 					{#each devices as device (device.id)}
@@ -254,22 +254,13 @@
 								{device.lastActivity ? formatDate(device.lastActivity) : 'Never'}
 							</td>
 							<td class="actions">
-								<button
-									class="btn btn-sm btn-secondary"
-									onclick={() => viewDeviceDetails(device)}
-								>
+								<button class="btn btn-sm btn-secondary" onclick={() => viewDeviceDetails(device)}>
 									Details
 								</button>
-								<button
-									class="btn btn-sm btn-secondary"
-									onclick={() => handleRename(device)}
-								>
+								<button class="btn btn-sm btn-secondary" onclick={() => handleRename(device)}>
 									Rename
 								</button>
-								<button
-									class="btn btn-sm btn-danger"
-									onclick={() => confirmRevoke(device)}
-								>
+								<button class="btn btn-sm btn-danger" onclick={() => confirmRevoke(device)}>
 									Revoke
 								</button>
 							</td>
@@ -314,11 +305,11 @@
 
 <!-- Device Details Modal -->
 {#if showDeviceDetails && selectedDevice}
-	<div class="modal-backdrop" onclick={() => showDeviceDetails = false}>
+	<div class="modal-backdrop" onclick={() => (showDeviceDetails = false)}>
 		<div class="modal device-details-modal" onclick={(e) => e.stopPropagation()}>
 			<div class="modal-header">
 				<h3>Device Details</h3>
-				<button class="close-btn" onclick={() => showDeviceDetails = false}>&times;</button>
+				<button class="close-btn" onclick={() => (showDeviceDetails = false)}>&times;</button>
 			</div>
 
 			<div class="modal-body">
@@ -404,7 +395,7 @@
 			</div>
 
 			<div class="modal-actions">
-				<button class="btn btn-secondary" onclick={() => showDeviceDetails = false}>
+				<button class="btn btn-secondary" onclick={() => (showDeviceDetails = false)}>
 					Close
 				</button>
 			</div>
@@ -414,20 +405,23 @@
 
 <!-- Revoke Confirmation Modal -->
 {#if showRevokeConfirm && selectedDevice}
-	<div class="modal-backdrop" onclick={() => showRevokeConfirm = false}>
+	<div class="modal-backdrop" onclick={() => (showRevokeConfirm = false)}>
 		<div class="modal confirm-modal" onclick={(e) => e.stopPropagation()}>
 			<div class="modal-header">
 				<h3>Revoke Device</h3>
-				<button class="close-btn" onclick={() => showRevokeConfirm = false}>&times;</button>
+				<button class="close-btn" onclick={() => (showRevokeConfirm = false)}>&times;</button>
 			</div>
 
 			<div class="modal-body">
 				<p>Are you sure you want to revoke device <strong>{selectedDevice.deviceName}</strong>?</p>
-				<p class="warning">This will terminate all active sessions on this device. The user will need to re-authenticate.</p>
+				<p class="warning">
+					This will terminate all active sessions on this device. The user will need to
+					re-authenticate.
+				</p>
 			</div>
 
 			<div class="modal-actions">
-				<button class="btn btn-secondary" onclick={() => showRevokeConfirm = false}>
+				<button class="btn btn-secondary" onclick={() => (showRevokeConfirm = false)}>
 					Cancel
 				</button>
 				<button class="btn btn-danger" onclick={() => revokeDevice(selectedDevice)}>
@@ -554,7 +548,7 @@
 
 	.toggle-slider:before {
 		position: absolute;
-		content: "";
+		content: '';
 		height: 16px;
 		width: 16px;
 		left: 2px;

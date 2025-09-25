@@ -36,7 +36,7 @@ export async function POST({ request, getClientAddress }) {
 		const userSessions = await authManager.getUserSessions(user.id);
 
 		// Filter out current session and expired sessions
-		const sessionsToTerminate = userSessions.filter(session => {
+		const sessionsToTerminate = userSessions.filter((session) => {
 			if (session.id === currentSessionId) return false;
 
 			// Skip already expired sessions
@@ -55,9 +55,7 @@ export async function POST({ request, getClientAddress }) {
 		// Terminate all other sessions
 		let terminatedCount = 0;
 		const terminationResults = await Promise.allSettled(
-			sessionsToTerminate.map(session =>
-				authManager.terminateSession(session.id)
-			)
+			sessionsToTerminate.map((session) => authManager.terminateSession(session.id))
 		);
 
 		// Count successful terminations
@@ -65,7 +63,10 @@ export async function POST({ request, getClientAddress }) {
 			if (result.status === 'fulfilled' && result.value === true) {
 				terminatedCount++;
 			} else {
-				console.warn(`Failed to terminate session ${sessionsToTerminate[index].id}:`, result.reason);
+				console.warn(
+					`Failed to terminate session ${sessionsToTerminate[index].id}:`,
+					result.reason
+				);
 			}
 		});
 
@@ -95,13 +96,15 @@ export async function POST({ request, getClientAddress }) {
 			message: `Terminated ${terminatedCount} session${terminatedCount !== 1 ? 's' : ''}`,
 			terminatedCount
 		});
-
 	} catch (error) {
 		console.error('Error terminating sessions:', error);
-		return json({
-			success: false,
-			error: 'Failed to terminate sessions'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to terminate sessions'
+			},
+			{ status: 500 }
+		);
 	}
 }
 

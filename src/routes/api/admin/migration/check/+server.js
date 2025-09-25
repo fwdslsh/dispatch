@@ -34,14 +34,18 @@ export async function GET({ request }) {
 			success: true,
 			hasExistingKey: hasTerminalKey,
 			setupComplete: false,
-			message: hasTerminalKey ? 'TERMINAL_KEY found, ready for migration' : 'No existing configuration found'
+			message: hasTerminalKey
+				? 'TERMINAL_KEY found, ready for migration'
+				: 'No existing configuration found'
 		});
-
 	} catch (error) {
 		console.error('Error checking migration status:', error);
-		return json({
-			success: false,
-			error: 'Failed to check migration status'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to check migration status'
+			},
+			{ status: 500 }
+		);
 	}
 }

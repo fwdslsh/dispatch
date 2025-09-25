@@ -26,21 +26,45 @@ export class OAuthAccountDAO {
 
 		if (existing) {
 			// Update existing account
-			await this.db.run(`
+			await this.db.run(
+				`
 				UPDATE oauth_accounts
 				SET provider_email = ?, provider_name = ?, access_token = ?,
 				    refresh_token = ?, token_expires_at = ?, updated_at = ?
 				WHERE provider = ? AND provider_account_id = ?
-			`, [providerEmail, providerName, accessToken, refreshToken, tokenExpiresAt, Date.now(), provider, providerAccountId]);
+			`,
+				[
+					providerEmail,
+					providerName,
+					accessToken,
+					refreshToken,
+					tokenExpiresAt,
+					Date.now(),
+					provider,
+					providerAccountId
+				]
+			);
 
 			return this.getById(existing.id);
 		} else {
 			// Create new account
-			const result = await this.db.run(`
+			const result = await this.db.run(
+				`
 				INSERT INTO oauth_accounts (user_id, provider, provider_account_id, provider_email,
 				                          provider_name, access_token, refresh_token, token_expires_at)
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-			`, [userId, provider, providerAccountId, providerEmail, providerName, accessToken, refreshToken, tokenExpiresAt]);
+			`,
+				[
+					userId,
+					provider,
+					providerAccountId,
+					providerEmail,
+					providerName,
+					accessToken,
+					refreshToken,
+					tokenExpiresAt
+				]
+			);
 
 			return this.getById(result.lastID);
 		}
@@ -58,10 +82,13 @@ export class OAuthAccountDAO {
 	 * Get OAuth account by provider and provider account ID
 	 */
 	async getByProvider(provider, providerAccountId) {
-		const row = await this.db.get(`
+		const row = await this.db.get(
+			`
 			SELECT * FROM oauth_accounts
 			WHERE provider = ? AND provider_account_id = ?
-		`, [provider, providerAccountId]);
+		`,
+			[provider, providerAccountId]
+		);
 
 		return row ? this.mapRowToAccount(row) : null;
 	}
@@ -70,10 +97,13 @@ export class OAuthAccountDAO {
 	 * Get OAuth account by provider and provider email
 	 */
 	async getByProviderEmail(provider, providerEmail) {
-		const row = await this.db.get(`
+		const row = await this.db.get(
+			`
 			SELECT * FROM oauth_accounts
 			WHERE provider = ? AND provider_email = ?
-		`, [provider, providerEmail]);
+		`,
+			[provider, providerEmail]
+		);
 
 		return row ? this.mapRowToAccount(row) : null;
 	}
@@ -82,26 +112,32 @@ export class OAuthAccountDAO {
 	 * Get all OAuth accounts for a user
 	 */
 	async getByUserId(userId) {
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT * FROM oauth_accounts
 			WHERE user_id = ?
 			ORDER BY created_at DESC
-		`, [userId]);
+		`,
+			[userId]
+		);
 
-		return rows.map(row => this.mapRowToAccount(row));
+		return rows.map((row) => this.mapRowToAccount(row));
 	}
 
 	/**
 	 * Get OAuth accounts by provider for a user
 	 */
 	async getByUserIdAndProvider(userId, provider) {
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT * FROM oauth_accounts
 			WHERE user_id = ? AND provider = ?
 			ORDER BY created_at DESC
-		`, [userId, provider]);
+		`,
+			[userId, provider]
+		);
 
-		return rows.map(row => this.mapRowToAccount(row));
+		return rows.map((row) => this.mapRowToAccount(row));
 	}
 
 	/**
@@ -110,11 +146,14 @@ export class OAuthAccountDAO {
 	async updateTokens(accountId, tokens) {
 		const { accessToken, refreshToken = null, tokenExpiresAt = null } = tokens;
 
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE oauth_accounts
 			SET access_token = ?, refresh_token = ?, token_expires_at = ?, updated_at = ?
 			WHERE id = ?
-		`, [accessToken, refreshToken, tokenExpiresAt, Date.now(), accountId]);
+		`,
+			[accessToken, refreshToken, tokenExpiresAt, Date.now(), accountId]
+		);
 	}
 
 	/**
@@ -123,11 +162,14 @@ export class OAuthAccountDAO {
 	async updateProviderInfo(accountId, providerData) {
 		const { providerEmail = null, providerName = null } = providerData;
 
-		await this.db.run(`
+		await this.db.run(
+			`
 			UPDATE oauth_accounts
 			SET provider_email = ?, provider_name = ?, updated_at = ?
 			WHERE id = ?
-		`, [providerEmail, providerName, Date.now(), accountId]);
+		`,
+			[providerEmail, providerName, Date.now(), accountId]
+		);
 	}
 
 	/**
@@ -141,10 +183,13 @@ export class OAuthAccountDAO {
 	 * Delete OAuth account by provider
 	 */
 	async deleteByProvider(provider, providerAccountId) {
-		await this.db.run(`
+		await this.db.run(
+			`
 			DELETE FROM oauth_accounts
 			WHERE provider = ? AND provider_account_id = ?
-		`, [provider, providerAccountId]);
+		`,
+			[provider, providerAccountId]
+		);
 	}
 
 	/**
@@ -178,16 +223,19 @@ export class OAuthAccountDAO {
 
 		params.push(limit, offset);
 
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT o.*, u.username, u.display_name
 			FROM oauth_accounts o
 			LEFT JOIN users u ON o.user_id = u.id
 			${whereClause}
 			ORDER BY o.updated_at DESC
 			LIMIT ? OFFSET ?
-		`, params);
+		`,
+			params
+		);
 
-		return rows.map(row => this.mapRowToAccount(row, true));
+		return rows.map((row) => this.mapRowToAccount(row, true));
 	}
 
 	/**
@@ -203,15 +251,21 @@ export class OAuthAccountDAO {
 			ORDER BY count DESC
 		`);
 
-		const recentlyUpdated = await this.db.get(`
+		const recentlyUpdated = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM oauth_accounts
 			WHERE updated_at > ?
-		`, [Date.now() - (30 * 24 * 60 * 60 * 1000)]); // Last 30 days
+		`,
+			[Date.now() - 30 * 24 * 60 * 60 * 1000]
+		); // Last 30 days
 
-		const expiringSoon = await this.db.get(`
+		const expiringSoon = await this.db.get(
+			`
 			SELECT COUNT(*) as count FROM oauth_accounts
 			WHERE token_expires_at IS NOT NULL AND token_expires_at < ?
-		`, [Date.now() + (24 * 60 * 60 * 1000)]); // Expiring within 24 hours
+		`,
+			[Date.now() + 24 * 60 * 60 * 1000]
+		); // Expiring within 24 hours
 
 		return {
 			total: totalAccounts.count,
@@ -257,25 +311,31 @@ export class OAuthAccountDAO {
 	 */
 	async getAccountsWithExpiredTokens() {
 		const now = Date.now();
-		const rows = await this.db.all(`
+		const rows = await this.db.all(
+			`
 			SELECT * FROM oauth_accounts
 			WHERE token_expires_at IS NOT NULL AND token_expires_at < ?
 			ORDER BY token_expires_at ASC
-		`, [now]);
+		`,
+			[now]
+		);
 
-		return rows.map(row => this.mapRowToAccount(row));
+		return rows.map((row) => this.mapRowToAccount(row));
 	}
 
 	/**
 	 * Clean up old OAuth accounts with expired tokens
 	 */
 	async cleanupExpiredTokens(daysOld = 90) {
-		const cutoffTime = Date.now() - (daysOld * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - daysOld * 24 * 60 * 60 * 1000;
 
-		const result = await this.db.run(`
+		const result = await this.db.run(
+			`
 			DELETE FROM oauth_accounts
 			WHERE token_expires_at IS NOT NULL AND token_expires_at < ?
-		`, [cutoffTime]);
+		`,
+			[cutoffTime]
+		);
 
 		return result.changes;
 	}

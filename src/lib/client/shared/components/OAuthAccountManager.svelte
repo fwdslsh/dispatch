@@ -122,9 +122,7 @@
 	{:else if error}
 		<div class="error">
 			<p>Error: {error}</p>
-			<Button variant="secondary" on:click={loadAccounts}>
-				Retry
-			</Button>
+			<Button variant="secondary" on:click={loadAccounts}>Retry</Button>
 		</div>
 	{:else}
 		<div class="accounts-section">
@@ -138,7 +136,10 @@
 					{#each accounts as account}
 						<div class="account-item" class:expired={account.isExpired}>
 							<div class="account-info">
-								<div class="provider-icon" style="color: {getProviderConfig(account.provider).color}">
+								<div
+									class="provider-icon"
+									style="color: {getProviderConfig(account.provider).color}"
+								>
 									{getProviderConfig(account.provider).icon}
 								</div>
 								<div class="details">
@@ -160,27 +161,17 @@
 										{/if}
 									</div>
 									{#if account.isExpired}
-										<div class="status expired">
-											⚠️ Token Expired
-										</div>
+										<div class="status expired">⚠️ Token Expired</div>
 									{/if}
 								</div>
 							</div>
 							<div class="account-actions">
 								{#if account.isExpired}
-									<Button
-										variant="primary"
-										size="sm"
-										on:click={() => refreshTokens(account)}
-									>
+									<Button variant="primary" size="sm" on:click={() => refreshTokens(account)}>
 										Refresh
 									</Button>
 								{/if}
-								<Button
-									variant="danger"
-									size="sm"
-									on:click={() => confirmUnlink(account)}
-								>
+								<Button variant="danger" size="sm" on:click={() => confirmUnlink(account)}>
 									Unlink
 								</Button>
 							</div>
@@ -196,7 +187,8 @@
 {#if showUnlinkConfirm && accountToUnlink}
 	<ConfirmationDialog
 		title="Unlink OAuth Account"
-		message="Are you sure you want to unlink your {getProviderConfig(accountToUnlink.provider).name} account? You will need to authenticate again to use this account."
+		message="Are you sure you want to unlink your {getProviderConfig(accountToUnlink.provider)
+			.name} account? You will need to authenticate again to use this account."
 		confirmText="Unlink"
 		confirmVariant="danger"
 		on:confirm={unlinkAccount}

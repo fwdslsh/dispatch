@@ -109,9 +109,7 @@ describe('OAuth Login Button Component', () => {
 
 			await tick();
 
-			expect(mockLocation.href).toBe(
-				'/api/auth/google?returnTo=%2Fdashboard'
-			);
+			expect(mockLocation.href).toBe('/api/auth/google?returnTo=%2Fdashboard');
 		});
 
 		it('uses default returnTo when not provided', async () => {
@@ -361,26 +359,28 @@ describe('WebAuthn Button Component', () => {
 			// Mock successful registration API responses
 			mockFetch
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						sessionId: 'test-session',
-						challenge: {
-							challenge: btoa('test-challenge'),
-							user: {
-								id: btoa('test-user'),
-								name: 'test@example.com',
-								displayName: 'Test User'
-							},
-							excludeCredentials: []
-						}
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							sessionId: 'test-session',
+							challenge: {
+								challenge: btoa('test-challenge'),
+								user: {
+									id: btoa('test-user'),
+									name: 'test@example.com',
+									displayName: 'Test User'
+								},
+								excludeCredentials: []
+							}
+						})
 				})
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						message: 'Registration successful',
-						credentialId: 'test-credential-id'
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							message: 'Registration successful',
+							credentialId: 'test-credential-id'
+						})
 				});
 
 			// Mock successful credential creation
@@ -468,11 +468,12 @@ describe('WebAuthn Button Component', () => {
 
 		it('handles registration API errors', async () => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: false,
-					error: 'Registration failed',
-					details: 'Invalid user ID'
-				})
+				json: () =>
+					Promise.resolve({
+						success: false,
+						error: 'Registration failed',
+						details: 'Invalid user ID'
+					})
 			});
 
 			const { container } = render(WebAuthnButton, {
@@ -496,26 +497,30 @@ describe('WebAuthn Button Component', () => {
 			// Mock successful authentication API responses
 			mockFetch
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						sessionId: 'auth-session',
-						challenge: {
-							challenge: btoa('auth-challenge'),
-							allowCredentials: [{
-								id: btoa('test-credential'),
-								type: 'public-key'
-							}]
-						}
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							sessionId: 'auth-session',
+							challenge: {
+								challenge: btoa('auth-challenge'),
+								allowCredentials: [
+									{
+										id: btoa('test-credential'),
+										type: 'public-key'
+									}
+								]
+							}
+						})
 				})
 				.mockResolvedValueOnce({
-					json: () => Promise.resolve({
-						success: true,
-						user: {
-							id: 'test-user',
-							email: 'test@example.com'
-						}
-					})
+					json: () =>
+						Promise.resolve({
+							success: true,
+							user: {
+								id: 'test-user',
+								email: 'test@example.com'
+							}
+						})
 				});
 
 			// Mock successful credential get
@@ -604,11 +609,18 @@ describe('WebAuthn Button Component', () => {
 	describe('Loading States', () => {
 		it('shows loading spinner during WebAuthn operation', async () => {
 			// Mock slow API response
-			mockFetch.mockImplementation(() => new Promise(resolve => {
-				setTimeout(() => resolve({
-					json: () => Promise.resolve({ success: false, error: 'timeout' })
-				}), 100);
-			}));
+			mockFetch.mockImplementation(
+				() =>
+					new Promise((resolve) => {
+						setTimeout(
+							() =>
+								resolve({
+									json: () => Promise.resolve({ success: false, error: 'timeout' })
+								}),
+							100
+						);
+					})
+			);
 
 			const { container } = render(WebAuthnButton, {
 				mode: 'authenticate',
@@ -659,14 +671,15 @@ describe('WebAuthn Button Component', () => {
 
 		it('handles credential creation failures', async () => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					sessionId: 'test-session',
-					challenge: {
-						challenge: btoa('test-challenge'),
-						user: { id: btoa('test-user') }
-					}
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						sessionId: 'test-session',
+						challenge: {
+							challenge: btoa('test-challenge'),
+							user: { id: btoa('test-user') }
+						}
+					})
 			});
 
 			mockCredentials.create.mockResolvedValue(null);

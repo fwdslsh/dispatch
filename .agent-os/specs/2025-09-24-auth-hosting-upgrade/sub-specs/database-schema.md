@@ -10,6 +10,7 @@ This is the database schema implementation for the spec detailed in @.agent-os/s
 ### New Tables
 
 #### Users Table
+
 ```sql
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,6 +26,7 @@ CREATE TABLE users (
 ```
 
 #### User Devices Table
+
 ```sql
 CREATE TABLE user_devices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,6 +43,7 @@ CREATE TABLE user_devices (
 ```
 
 #### Authentication Sessions Table
+
 ```sql
 CREATE TABLE auth_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,6 +62,7 @@ CREATE TABLE auth_sessions (
 ```
 
 #### WebAuthn Credentials Table
+
 ```sql
 CREATE TABLE webauthn_credentials (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,6 +79,7 @@ CREATE TABLE webauthn_credentials (
 ```
 
 #### OAuth Accounts Table
+
 ```sql
 CREATE TABLE oauth_accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,6 +99,7 @@ CREATE TABLE oauth_accounts (
 ```
 
 #### Authentication Events Table
+
 ```sql
 CREATE TABLE auth_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,6 +116,7 @@ CREATE TABLE auth_events (
 ```
 
 #### Certificates Table
+
 ```sql
 CREATE TABLE certificates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -130,7 +137,9 @@ CREATE TABLE certificates (
 ### Modified Tables
 
 #### Extended Settings Table
+
 The existing `settings` table supports the new auth and security categories:
+
 ```sql
 -- No schema changes needed, but new setting categories:
 -- 'auth' - authentication mode configuration
@@ -161,6 +170,7 @@ CREATE INDEX idx_certificates_active ON certificates(is_active);
 ## Migrations
 
 #### Migration 001: Create Auth Tables
+
 ```sql
 -- Create all new authentication tables
 -- Insert initial admin user based on existing TERMINAL_KEY
@@ -168,12 +178,14 @@ CREATE INDEX idx_certificates_active ON certificates(is_active);
 ```
 
 #### Migration 002: Create Indexes
+
 ```sql
 -- Create all performance indexes
 -- Add foreign key constraints
 ```
 
 #### Migration 003: Default Settings
+
 ```sql
 -- Insert default auth mode configuration
 -- Insert default security policies
@@ -183,6 +195,7 @@ CREATE INDEX idx_certificates_active ON certificates(is_active);
 ## Data Integrity Rules
 
 ### Constraints
+
 - Users must have unique usernames and emails
 - Auth sessions automatically expire and cleanup via scheduled job
 - WebAuthn credentials are tied to specific users and domains
@@ -190,11 +203,13 @@ CREATE INDEX idx_certificates_active ON certificates(is_active);
 - Certificate private keys are encrypted at rest using app secret
 
 ### Cascade Rules
+
 - Deleting users removes all associated devices, sessions, credentials, and OAuth accounts
 - Deleting devices removes associated sessions
 - Auth events retain user/device IDs as foreign keys with SET NULL on delete for audit trail preservation
 
 ### Data Retention
+
 - Auth events older than 90 days are automatically purged
 - Expired auth sessions are cleaned up daily
 - Inactive devices (not seen for 30 days) are marked for cleanup review

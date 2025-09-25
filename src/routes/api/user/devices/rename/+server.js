@@ -27,12 +27,18 @@ export async function PATCH({ request }) {
 
 		const trimmedName = newName.trim();
 		if (trimmedName.length < 1 || trimmedName.length > 100) {
-			return json({ success: false, error: 'Device name must be between 1 and 100 characters' }, { status: 400 });
+			return json(
+				{ success: false, error: 'Device name must be between 1 and 100 characters' },
+				{ status: 400 }
+			);
 		}
 
 		const deviceManager = globalThis.__API_SERVICES?.deviceManager;
 		if (!deviceManager) {
-			return json({ success: false, error: 'Device management service unavailable' }, { status: 503 });
+			return json(
+				{ success: false, error: 'Device management service unavailable' },
+				{ status: 503 }
+			);
 		}
 
 		// Check if device belongs to user
@@ -42,7 +48,10 @@ export async function PATCH({ request }) {
 		}
 
 		if (device.userId !== user.id) {
-			return json({ success: false, error: 'Access denied - device does not belong to user' }, { status: 403 });
+			return json(
+				{ success: false, error: 'Access denied - device does not belong to user' },
+				{ status: 403 }
+			);
 		}
 
 		// Rename the device
@@ -76,12 +85,14 @@ export async function PATCH({ request }) {
 			success: true,
 			message: 'Device renamed successfully'
 		});
-
 	} catch (error) {
 		console.error('Error renaming device:', error);
-		return json({
-			success: false,
-			error: 'Failed to rename device'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to rename device'
+			},
+			{ status: 500 }
+		);
 	}
 }

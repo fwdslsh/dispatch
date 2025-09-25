@@ -21,7 +21,10 @@ export async function POST({ request, locals }) {
 		if (result.success) {
 			return json({ success: true, message: `${provider} OAuth configuration is valid` });
 		} else {
-			return json({ success: false, error: result.error || `Failed to test ${provider} configuration` });
+			return json({
+				success: false,
+				error: result.error || `Failed to test ${provider} configuration`
+			});
 		}
 	} catch (error) {
 		console.error('Error testing OAuth provider:', error);

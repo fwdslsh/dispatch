@@ -42,14 +42,22 @@
 
 	const steps = [
 		{ id: 'welcome', title: 'Welcome', description: 'Get started with Dispatch authentication' },
-		{ id: 'migration', title: 'Migration', description: 'Migrate from TERMINAL_KEY authentication' },
+		{
+			id: 'migration',
+			title: 'Migration',
+			description: 'Migrate from TERMINAL_KEY authentication'
+		},
 		{ id: 'admin-setup', title: 'Admin Setup', description: 'Create your administrator account' },
-		{ id: 'auth-methods', title: 'Authentication', description: 'Configure authentication methods' },
+		{
+			id: 'auth-methods',
+			title: 'Authentication',
+			description: 'Configure authentication methods'
+		},
 		{ id: 'security-review', title: 'Security', description: 'Review your security configuration' },
 		{ id: 'complete', title: 'Complete', description: 'Onboarding completed successfully' }
 	];
 
-	const stepIndex = $derived(() => steps.findIndex(s => s.id === currentStep));
+	const stepIndex = $derived(() => steps.findIndex((s) => s.id === currentStep));
 	const isFirstStep = $derived(() => stepIndex() === 0);
 	const isLastStep = $derived(() => stepIndex() === steps.length - 1);
 
@@ -254,7 +262,11 @@
 			<div class="progress-bar">
 				<div class="progress-steps">
 					{#each steps as step, index}
-						<div class="progress-step {currentStep === step.id ? 'active' : ''} {setupData.completedSteps.includes(step.id) ? 'completed' : ''}">
+						<div
+							class="progress-step {currentStep === step.id
+								? 'active'
+								: ''} {setupData.completedSteps.includes(step.id) ? 'completed' : ''}"
+						>
 							<div class="step-indicator">
 								{#if setupData.completedSteps.includes(step.id)}
 									✓
@@ -284,7 +296,10 @@
 					<div class="step-content welcome-step">
 						<div class="welcome-header">
 							<h1>🔐 Welcome to Dispatch Authentication</h1>
-							<p>Let's set up modern authentication for your Dispatch instance. This will replace TERMINAL_KEY with secure user-based authentication.</p>
+							<p>
+								Let's set up modern authentication for your Dispatch instance. This will replace
+								TERMINAL_KEY with secure user-based authentication.
+							</p>
 						</div>
 
 						<div class="welcome-features">
@@ -311,19 +326,21 @@
 							</div>
 						</div>
 					</div>
-
 				{:else if currentStep === 'migration'}
 					<div class="step-content migration-step">
 						<div class="step-header">
 							<h2>🔄 Migration from TERMINAL_KEY</h2>
-							<p>We'll help you migrate from your existing TERMINAL_KEY authentication to the new user-based system.</p>
+							<p>
+								We'll help you migrate from your existing TERMINAL_KEY authentication to the new
+								user-based system.
+							</p>
 						</div>
 
 						{#if migrationData.hasExistingKey}
 							<div class="migration-form">
 								<p class="migration-note">
-									<strong>Note:</strong> Your existing TERMINAL_KEY will be disabled once migration is complete.
-									Make sure to save your new admin credentials securely.
+									<strong>Note:</strong> Your existing TERMINAL_KEY will be disabled once migration is
+									complete. Make sure to save your new admin credentials securely.
 								</p>
 
 								<FormInput
@@ -355,11 +372,12 @@
 						{:else if migrationData.keyChecked}
 							<div class="no-migration-needed">
 								<div class="info-icon">ℹ️</div>
-								<p>No existing TERMINAL_KEY found. We'll create a fresh authentication setup for you.</p>
+								<p>
+									No existing TERMINAL_KEY found. We'll create a fresh authentication setup for you.
+								</p>
 							</div>
 						{/if}
 					</div>
-
 				{:else if currentStep === 'admin-setup'}
 					<div class="step-content admin-setup-step">
 						<div class="step-header">
@@ -425,7 +443,6 @@
 							</div>
 						</div>
 					</div>
-
 				{:else if currentStep === 'auth-methods'}
 					<div class="step-content auth-methods-step">
 						<div class="step-header">
@@ -487,10 +504,11 @@
 						</div>
 
 						<div class="auth-methods-note">
-							<p><strong>Note:</strong> You can always change these settings later in the admin panel.</p>
+							<p>
+								<strong>Note:</strong> You can always change these settings later in the admin panel.
+							</p>
 						</div>
 					</div>
-
 				{:else if currentStep === 'security-review'}
 					<div class="step-content security-review-step">
 						<div class="step-header">
@@ -517,7 +535,6 @@
 							</ul>
 						</div>
 					</div>
-
 				{:else if currentStep === 'complete'}
 					<div class="step-content complete-step">
 						<div class="completion-header">
@@ -576,29 +593,27 @@
 			<div class="onboarding-actions">
 				<div class="action-buttons-left">
 					{#if !isFirstStep && currentStep !== 'complete'}
-						<Button variant="secondary" onclick={prevStep} disabled={loading}>
-							Previous
-						</Button>
+						<Button variant="secondary" onclick={prevStep} disabled={loading}>Previous</Button>
 					{/if}
 				</div>
 
 				<div class="action-buttons-right">
 					{#if currentStep === 'welcome'}
-						<Button onclick={nextStep}>
-							Get Started
-						</Button>
+						<Button onclick={nextStep}>Get Started</Button>
 					{:else if currentStep === 'migration'}
 						{#if migrationData.keyValid || !migrationData.hasExistingKey}
-							<Button onclick={nextStep}>
-								Continue
-							</Button>
+							<Button onclick={nextStep}>Continue</Button>
 						{:else if !migrationData.keyValid && migrationData.hasExistingKey}
-							<Button variant="secondary" onclick={skipStep}>
-								Skip Migration
-							</Button>
+							<Button variant="secondary" onclick={skipStep}>Skip Migration</Button>
 						{/if}
 					{:else if currentStep === 'admin-setup'}
-						<Button onclick={createAdminUser} disabled={loading || !setupData.adminUser.email || !setupData.adminUser.password || setupData.adminUser.password !== setupData.adminUser.confirmPassword}>
+						<Button
+							onclick={createAdminUser}
+							disabled={loading ||
+								!setupData.adminUser.email ||
+								!setupData.adminUser.password ||
+								setupData.adminUser.password !== setupData.adminUser.confirmPassword}
+						>
 							{#if loading}
 								<Spinner size="small" inline /> Creating...
 							{:else}
@@ -614,9 +629,7 @@
 							{/if}
 						</Button>
 					{:else if currentStep === 'security-review'}
-						<Button onclick={nextStep}>
-							Continue to Complete
-						</Button>
+						<Button onclick={nextStep}>Continue to Complete</Button>
 					{:else if currentStep === 'complete'}
 						<Button onclick={completeOnboarding} disabled={loading}>
 							{#if loading}
@@ -628,9 +641,7 @@
 					{/if}
 
 					{#if currentStep !== 'complete'}
-						<Button variant="ghost" onclick={closeOnboarding}>
-							Cancel
-						</Button>
+						<Button variant="ghost" onclick={closeOnboarding}>Cancel</Button>
 					{/if}
 				</div>
 			</div>
@@ -944,19 +955,19 @@
 		right: 0;
 		bottom: 0;
 		background-color: #ccc;
-		transition: .4s;
+		transition: 0.4s;
 		border-radius: 24px;
 	}
 
 	.toggle-slider:before {
 		position: absolute;
-		content: "";
+		content: '';
 		height: 18px;
 		width: 18px;
 		left: 3px;
 		bottom: 3px;
 		background-color: white;
-		transition: .4s;
+		transition: 0.4s;
 		border-radius: 50%;
 	}
 

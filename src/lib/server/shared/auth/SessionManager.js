@@ -39,12 +39,11 @@ export class SessionManager {
 			const timeoutHours = authConfig.session_timeout_hours || 24;
 
 			const now = Date.now();
-			const sessionExpiresAt = expiresAt || new Date(now + (timeoutHours * 60 * 60 * 1000));
+			const sessionExpiresAt = expiresAt || new Date(now + timeoutHours * 60 * 60 * 1000);
 
 			// Ensure expiresAt is a timestamp
-			const expiresAtTimestamp = sessionExpiresAt instanceof Date ?
-				sessionExpiresAt.getTime() :
-				Number(sessionExpiresAt);
+			const expiresAtTimestamp =
+				sessionExpiresAt instanceof Date ? sessionExpiresAt.getTime() : Number(sessionExpiresAt);
 
 			// Create session in database first
 			const session = await this.daos.authSessions.create({
@@ -78,7 +77,6 @@ export class SessionManager {
 				sessionToken: jwtToken,
 				expiresAt: sessionExpiresAt
 			};
-
 		} catch (error) {
 			logger.error('SESSION', `Failed to create session: ${error.message}`);
 			throw error;
@@ -150,7 +148,6 @@ export class SessionManager {
 				payload: decodedPayload,
 				session: session
 			};
-
 		} catch (error) {
 			logger.error('SESSION', `Token validation error: ${error.message}`);
 			return { valid: false, error: 'Invalid token' };
@@ -204,21 +201,24 @@ export class SessionManager {
 
 			return {
 				...session,
-				user: user ? {
-					id: user.id,
-					username: user.username,
-					displayName: user.displayName,
-					email: user.email,
-					isAdmin: user.isAdmin
-				} : null,
-				device: device ? {
-					id: device.id,
-					deviceName: device.deviceName,
-					deviceFingerprint: device.deviceFingerprint,
-					isTrusted: device.isTrusted
-				} : null
+				user: user
+					? {
+							id: user.id,
+							username: user.username,
+							displayName: user.displayName,
+							email: user.email,
+							isAdmin: user.isAdmin
+						}
+					: null,
+				device: device
+					? {
+							id: device.id,
+							deviceName: device.deviceName,
+							deviceFingerprint: device.deviceFingerprint,
+							isTrusted: device.isTrusted
+						}
+					: null
 			};
-
 		} catch (error) {
 			logger.error('SESSION', `Failed to get session details: ${error.message}`);
 			return null;
@@ -267,7 +267,6 @@ export class SessionManager {
 				...session,
 				sessionToken: newToken
 			};
-
 		} catch (error) {
 			logger.error('SESSION', `Failed to refresh session: ${error.message}`);
 			throw error;
@@ -361,7 +360,7 @@ export class SessionManager {
 
 			if (userDevices.length >= maxDevices) {
 				// Check if current device is already registered
-				const existingDevice = userDevices.find(d => d.id === deviceId);
+				const existingDevice = userDevices.find((d) => d.id === deviceId);
 				if (!existingDevice) {
 					return {
 						allowed: false,
@@ -371,7 +370,6 @@ export class SessionManager {
 			}
 
 			return { allowed: true };
-
 		} catch (error) {
 			logger.error('SESSION', `Device policy validation error: ${error.message}`);
 			return { allowed: false, reason: 'Policy validation failed' };
@@ -394,7 +392,7 @@ export class SessionManager {
 	 */
 	base64UrlDecode(str) {
 		// Add padding if needed
-		str += '='.repeat((4 - str.length % 4) % 4);
+		str += '='.repeat((4 - (str.length % 4)) % 4);
 		// Convert URL-safe characters back
 		str = str.replace(/-/g, '+').replace(/_/g, '/');
 		return Buffer.from(str, 'base64').toString();

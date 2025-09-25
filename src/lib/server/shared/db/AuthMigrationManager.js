@@ -223,10 +223,13 @@ export class AuthMigrationManager {
 				`);
 
 				if (!existingAdmin) {
-					await this.db.run(`
+					await this.db.run(
+						`
 						INSERT INTO users (username, display_name, is_admin, is_active, password_hash)
 						VALUES ('admin', 'Administrator', 1, 1, ?)
-					`, [terminalKey]); // Store terminal key as password hash temporarily
+					`,
+						[terminalKey]
+					); // Store terminal key as password hash temporarily
 
 					logger.info('MIGRATION', 'Created initial admin user');
 				}
@@ -265,7 +268,11 @@ export class AuthMigrationManager {
 					}
 				};
 
-				await this.db.setSettingsForCategory('security', securitySettings, 'Security policy configuration');
+				await this.db.setSettingsForCategory(
+					'security',
+					securitySettings,
+					'Security policy configuration'
+				);
 
 				// Initialize certificate settings
 				const certificateSettings = {
@@ -286,7 +293,11 @@ export class AuthMigrationManager {
 					}
 				};
 
-				await this.db.setSettingsForCategory('certificates', certificateSettings, 'Certificate management configuration');
+				await this.db.setSettingsForCategory(
+					'certificates',
+					certificateSettings,
+					'Certificate management configuration'
+				);
 
 				logger.info('MIGRATION', 'Initialized auth, security, and certificate settings');
 			},
@@ -370,7 +381,7 @@ export class AuthMigrationManager {
 		await this.ensureMigrationTable();
 
 		const rows = await this.db.all('SELECT migration_id FROM auth_migrations ORDER BY applied_at');
-		return rows.map(row => row.migration_id);
+		return rows.map((row) => row.migration_id);
 	}
 
 	/**
@@ -379,10 +390,13 @@ export class AuthMigrationManager {
 	async recordMigration(migrationId) {
 		await this.ensureMigrationTable();
 
-		await this.db.run(`
+		await this.db.run(
+			`
 			INSERT INTO auth_migrations (migration_id, applied_at)
 			VALUES (?, ?)
-		`, [migrationId, Date.now()]);
+		`,
+			[migrationId, Date.now()]
+		);
 	}
 
 	/**

@@ -18,7 +18,7 @@ export class MonitoringService extends EventEmitter {
 				certificateExpiry: 30 * 24 * 60 * 60 * 1000, // 30 days before expiry
 				diskUsage: 85, // Alert at 85% disk usage
 				memoryUsage: 80, // Alert at 80% memory usage
-				responseTime: 5000, // Alert if response time > 5s
+				responseTime: 5000 // Alert if response time > 5s
 			},
 			monitoringInterval: 60000, // 1 minute
 			retentionPeriod: 30 * 24 * 60 * 60 * 1000, // 30 days
@@ -115,7 +115,7 @@ export class MonitoringService extends EventEmitter {
 	updateCertificateStatus(certificates) {
 		const now = new Date();
 
-		certificates.forEach(cert => {
+		certificates.forEach((cert) => {
 			const expiryDate = new Date(cert.expiresAt);
 			const timeUntilExpiry = expiryDate.getTime() - now.getTime();
 
@@ -159,8 +159,9 @@ export class MonitoringService extends EventEmitter {
 	 * Get current monitoring status
 	 */
 	getMonitoringStatus() {
-		const activeAlerts = Array.from(this.metrics.alerts.values())
-			.filter(alert => alert.status === 'active');
+		const activeAlerts = Array.from(this.metrics.alerts.values()).filter(
+			(alert) => alert.status === 'active'
+		);
 
 		return {
 			isRunning: this.isRunning,
@@ -182,18 +183,19 @@ export class MonitoringService extends EventEmitter {
 
 		// Calculate metrics for last 24 hours
 		const authEvents = this.getAuthEventsInPeriod(last24h, now);
-		const failedLogins = authEvents.filter(e => e.type.includes('failure')).length;
-		const successfulLogins = authEvents.filter(e => e.type.includes('success')).length;
+		const failedLogins = authEvents.filter((e) => e.type.includes('failure')).length;
+		const successfulLogins = authEvents.filter((e) => e.type.includes('success')).length;
 
 		// Certificate status summary
 		const certificates = Array.from(this.metrics.certificateStatus.values());
-		const expiringSoon = certificates.filter(cert =>
-			cert.timeUntilExpiry <= this.config.alertThresholds.certificateExpiry
+		const expiringSoon = certificates.filter(
+			(cert) => cert.timeUntilExpiry <= this.config.alertThresholds.certificateExpiry
 		).length;
 
 		// Active security alerts
-		const securityAlerts = Array.from(this.metrics.alerts.values())
-			.filter(alert => alert.category === 'security' && alert.status === 'active');
+		const securityAlerts = Array.from(this.metrics.alerts.values()).filter(
+			(alert) => alert.category === 'security' && alert.status === 'active'
+		);
 
 		return {
 			overview: {
@@ -246,11 +248,11 @@ export class MonitoringService extends EventEmitter {
 
 			// Overall health calculation
 			const allChecks = Object.values(healthCheck.checks);
-			const healthyChecks = allChecks.filter(check => check.status === 'healthy').length;
+			const healthyChecks = allChecks.filter((check) => check.status === 'healthy').length;
 			const overallHealth = healthyChecks / allChecks.length;
 
-			healthCheck.overallStatus = overallHealth >= 0.8 ? 'healthy' :
-										overallHealth >= 0.6 ? 'warning' : 'critical';
+			healthCheck.overallStatus =
+				overallHealth >= 0.8 ? 'healthy' : overallHealth >= 0.6 ? 'warning' : 'critical';
 
 			this.metrics.systemHealth = {
 				lastCheck: healthCheck.timestamp,
@@ -260,7 +262,6 @@ export class MonitoringService extends EventEmitter {
 			};
 
 			this.emit('health:check', healthCheck);
-
 		} catch (error) {
 			console.error('MonitoringService: Health check failed:', error);
 
@@ -345,20 +346,20 @@ export class MonitoringService extends EventEmitter {
 		let alerts = Array.from(this.metrics.alerts.values());
 
 		if (filter.status) {
-			alerts = alerts.filter(alert => alert.status === filter.status);
+			alerts = alerts.filter((alert) => alert.status === filter.status);
 		}
 
 		if (filter.category) {
-			alerts = alerts.filter(alert => alert.category === filter.category);
+			alerts = alerts.filter((alert) => alert.category === filter.category);
 		}
 
 		if (filter.severity) {
-			alerts = alerts.filter(alert => alert.severity === filter.severity);
+			alerts = alerts.filter((alert) => alert.severity === filter.severity);
 		}
 
 		if (filter.since) {
 			const since = new Date(filter.since);
-			alerts = alerts.filter(alert => alert.timestamp >= since);
+			alerts = alerts.filter((alert) => alert.timestamp >= since);
 		}
 
 		// Sort by timestamp (newest first)
@@ -417,12 +418,14 @@ export class MonitoringService extends EventEmitter {
 
 		const alertKey = `cert_expiry_${certId}`;
 
-		if (cert.timeUntilExpiry <= this.config.alertThresholds.certificateExpiry &&
-			cert.timeUntilExpiry > 0) {
-
+		if (
+			cert.timeUntilExpiry <= this.config.alertThresholds.certificateExpiry &&
+			cert.timeUntilExpiry > 0
+		) {
 			// Check if we already have an active alert for this certificate
-			const existingAlert = Array.from(this.metrics.alerts.values())
-				.find(alert => alert.type === 'certificate_expiring' && alert.data?.certId === certId);
+			const existingAlert = Array.from(this.metrics.alerts.values()).find(
+				(alert) => alert.type === 'certificate_expiring' && alert.data?.certId === certId
+			);
 
 			if (!existingAlert) {
 				const daysUntilExpiry = Math.ceil(cert.timeUntilExpiry / (24 * 60 * 60 * 1000));
@@ -454,7 +457,10 @@ export class MonitoringService extends EventEmitter {
 		}
 
 		// Response time alert
-		if (metrics.avgResponseTime && metrics.avgResponseTime > this.config.alertThresholds.responseTime) {
+		if (
+			metrics.avgResponseTime &&
+			metrics.avgResponseTime > this.config.alertThresholds.responseTime
+		) {
 			this.createAlert({
 				type: 'slow_response_time',
 				category: 'performance',
@@ -501,7 +507,7 @@ export class MonitoringService extends EventEmitter {
 		const events = this.metrics.authEvents.get(eventType) || [];
 		const cutoff = new Date(Date.now() - timeWindow);
 
-		return events.filter(event => event.timestamp >= cutoff);
+		return events.filter((event) => event.timestamp >= cutoff);
 	}
 
 	/**
@@ -512,7 +518,7 @@ export class MonitoringService extends EventEmitter {
 		if (!events) return;
 
 		const cutoff = new Date(Date.now() - maxAge);
-		const filteredEvents = events.filter(event => event.timestamp >= cutoff);
+		const filteredEvents = events.filter((event) => event.timestamp >= cutoff);
 
 		this.metrics.authEvents.set(eventType, filteredEvents);
 	}
@@ -536,8 +542,8 @@ export class MonitoringService extends EventEmitter {
 
 		for (const [type, eventList] of this.metrics.authEvents.entries()) {
 			const filteredEvents = eventList
-				.filter(event => event.timestamp >= start && event.timestamp <= end)
-				.map(event => ({ ...event, type }));
+				.filter((event) => event.timestamp >= start && event.timestamp <= end)
+				.map((event) => ({ ...event, type }));
 
 			events.push(...filteredEvents);
 		}
@@ -560,12 +566,12 @@ export class MonitoringService extends EventEmitter {
 
 		for (const [period, startTime] of Object.entries(periods)) {
 			const events = this.getAuthEventsInPeriod(startTime, now);
-			const failures = events.filter(e => e.type.includes('failure')).length;
+			const failures = events.filter((e) => e.type.includes('failure')).length;
 
 			trends[period] = {
 				totalEvents: events.length,
 				failures,
-				successRate: events.length > 0 ? ((events.length - failures) / events.length) : 1
+				successRate: events.length > 0 ? (events.length - failures) / events.length : 1
 			};
 		}
 
@@ -612,9 +618,11 @@ export class MonitoringService extends EventEmitter {
 
 	async checkCertificateHealth() {
 		const certificates = Array.from(this.metrics.certificateStatus.values());
-		const expired = certificates.filter(cert => cert.timeUntilExpiry <= 0).length;
-		const expiringSoon = certificates.filter(cert =>
-			cert.timeUntilExpiry > 0 && cert.timeUntilExpiry <= this.config.alertThresholds.certificateExpiry
+		const expired = certificates.filter((cert) => cert.timeUntilExpiry <= 0).length;
+		const expiringSoon = certificates.filter(
+			(cert) =>
+				cert.timeUntilExpiry > 0 &&
+				cert.timeUntilExpiry <= this.config.alertThresholds.certificateExpiry
 		).length;
 
 		return {
@@ -651,7 +659,7 @@ export class MonitoringService extends EventEmitter {
 			since: new Date(Date.now() - 24 * 60 * 60 * 1000)
 		});
 
-		const criticalAlerts = recentAlerts.filter(alert => alert.severity === 'high').length;
+		const criticalAlerts = recentAlerts.filter((alert) => alert.severity === 'high').length;
 
 		return {
 			status: criticalAlerts > 0 ? 'warning' : 'healthy',
@@ -717,7 +725,7 @@ export class MonitoringService extends EventEmitter {
 		// Return events with sensitive data removed
 		const exportedEvents = {};
 		for (const [type, events] of this.metrics.authEvents.entries()) {
-			exportedEvents[type] = events.map(event => ({
+			exportedEvents[type] = events.map((event) => ({
 				timestamp: event.timestamp,
 				// Remove IP addresses and user agents for privacy
 				hasUserId: !!event.userId,

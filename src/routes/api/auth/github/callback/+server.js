@@ -25,7 +25,10 @@ export async function GET({ request, url, cookies }) {
 		// Handle OAuth error
 		if (error) {
 			logger.warn('OAUTH', `GitHub OAuth error: ${error}`);
-			throw redirect(302, `/login?error=oauth_error&provider=github&details=${encodeURIComponent(error)}`);
+			throw redirect(
+				302,
+				`/login?error=oauth_error&provider=github&details=${encodeURIComponent(error)}`
+			);
 		}
 
 		// Validate required parameters
@@ -45,14 +48,20 @@ export async function GET({ request, url, cookies }) {
 		const tokenResult = await exchangeCodeForTokens('github', code, baseUrl);
 		if (!tokenResult.success) {
 			logger.error('OAUTH', `GitHub token exchange failed: ${tokenResult.error}`);
-			throw redirect(302, `/login?error=oauth_token_exchange&provider=github&details=${encodeURIComponent(tokenResult.error)}`);
+			throw redirect(
+				302,
+				`/login?error=oauth_token_exchange&provider=github&details=${encodeURIComponent(tokenResult.error)}`
+			);
 		}
 
 		// Get user profile from GitHub
 		const profileResult = await fetchGitHubProfile(tokenResult.accessToken);
 		if (!profileResult.success) {
 			logger.error('OAUTH', `GitHub profile fetch failed: ${profileResult.error}`);
-			throw redirect(302, `/login?error=oauth_profile_fetch&provider=github&details=${encodeURIComponent(profileResult.error)}`);
+			throw redirect(
+				302,
+				`/login?error=oauth_profile_fetch&provider=github&details=${encodeURIComponent(profileResult.error)}`
+			);
 		}
 
 		// Get user emails from GitHub (separate API call)
@@ -66,7 +75,10 @@ export async function GET({ request, url, cookies }) {
 			username: profileResult.profile.login,
 			displayName: profileResult.profile.name || profileResult.profile.login,
 			email: profileResult.profile.email,
-			emails: emails.length > 0 ? emails.map(email => ({ value: email.email, primary: email.primary })) : []
+			emails:
+				emails.length > 0
+					? emails.map((email) => ({ value: email.email, primary: email.primary }))
+					: []
 		};
 
 		// Handle OAuth callback
@@ -78,7 +90,10 @@ export async function GET({ request, url, cookies }) {
 
 		if (!authResult.success) {
 			logger.error('OAUTH', `GitHub OAuth callback failed: ${authResult.error}`);
-			throw redirect(302, `/login?error=oauth_callback&provider=github&details=${encodeURIComponent(authResult.error)}`);
+			throw redirect(
+				302,
+				`/login?error=oauth_callback&provider=github&details=${encodeURIComponent(authResult.error)}`
+			);
 		}
 
 		// Create authentication session
@@ -105,7 +120,6 @@ export async function GET({ request, url, cookies }) {
 		// Redirect to return URL or dashboard
 		const returnTo = stateData.returnTo || '/';
 		throw redirect(302, returnTo);
-
 	} catch (error) {
 		if (error.status === 302) {
 			// Re-throw redirect responses
@@ -139,7 +153,7 @@ async function exchangeCodeForTokens(provider, code, baseUrl) {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/x-www-form-urlencoded',
-				'Accept': 'application/json'
+				Accept: 'application/json'
 			},
 			body: params
 		});
@@ -152,7 +166,10 @@ async function exchangeCodeForTokens(provider, code, baseUrl) {
 		const tokens = await response.json();
 
 		if (tokens.error) {
-			return { success: false, error: `Token exchange failed: ${tokens.error_description || tokens.error}` };
+			return {
+				success: false,
+				error: `Token exchange failed: ${tokens.error_description || tokens.error}`
+			};
 		}
 
 		return {
@@ -174,8 +191,8 @@ async function fetchGitHubProfile(accessToken) {
 	try {
 		const response = await fetch('https://api.github.com/user', {
 			headers: {
-				'Authorization': `token ${accessToken}`,
-				'Accept': 'application/vnd.github.v3+json',
+				Authorization: `token ${accessToken}`,
+				Accept: 'application/vnd.github.v3+json',
 				'User-Agent': 'Dispatch-OAuth-Client'
 			}
 		});
@@ -199,8 +216,8 @@ async function fetchGitHubEmails(accessToken) {
 	try {
 		const response = await fetch('https://api.github.com/user/emails', {
 			headers: {
-				'Authorization': `token ${accessToken}`,
-				'Accept': 'application/vnd.github.v3+json',
+				Authorization: `token ${accessToken}`,
+				Accept: 'application/vnd.github.v3+json',
 				'User-Agent': 'Dispatch-OAuth-Client'
 			}
 		});

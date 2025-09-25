@@ -16,11 +16,7 @@
 	const dispatch = createEventDispatcher();
 
 	// Props
-	let {
-		autoLoad = true,
-		showTitle = true,
-		compact = false
-	} = $props();
+	let { autoLoad = true, showTitle = true, compact = false } = $props();
 
 	// State
 	let devices = $state([]);
@@ -296,7 +292,8 @@
 		</Button>
 
 		<div class="device-count">
-			{devices.length} {devices.length === 1 ? 'device' : 'devices'}
+			{devices.length}
+			{devices.length === 1 ? 'device' : 'devices'}
 		</div>
 	</div>
 
@@ -305,9 +302,7 @@
 		<div class="status-message error" role="alert">
 			<span class="message-icon">⚠️</span>
 			<span class="message-text">{error}</span>
-			<button class="message-close" onclick={clearMessages} aria-label="Dismiss error">
-				×
-			</button>
+			<button class="message-close" onclick={clearMessages} aria-label="Dismiss error"> × </button>
 		</div>
 	{/if}
 
@@ -331,7 +326,10 @@
 		<div class="empty-state">
 			<div class="empty-icon">📱</div>
 			<h4>No Devices Found</h4>
-			<p>You don't have any registered devices yet. Devices are automatically registered when you sign in.</p>
+			<p>
+				You don't have any registered devices yet. Devices are automatically registered when you
+				sign in.
+			</p>
 		</div>
 	{:else}
 		<!-- Devices List -->
@@ -421,8 +419,8 @@
 				<span class="notice-icon">🔒</span>
 				<div class="notice-text">
 					<strong>Device Security:</strong>
-					Revoking a device will immediately end all active sessions and require re-authentication.
-					Only revoke devices you no longer recognize or control.
+					Revoking a device will immediately end all active sessions and require re-authentication. Only
+					revoke devices you no longer recognize or control.
 				</div>
 			</div>
 		{/if}
@@ -435,11 +433,16 @@
 		open={showRenameModal}
 		title="Rename Device"
 		size="small"
-		onclose={() => showRenameModal = false}
+		onclose={() => (showRenameModal = false)}
 		data-testid="rename-device-modal"
 	>
 		{#snippet children()}
-			<form onsubmit={(e) => { e.preventDefault(); renameDevice(); }}>
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					renameDevice();
+				}}
+			>
 				<div class="form-section">
 					<label for="device-name-input" class="form-label">Device Name</label>
 					<input
@@ -463,7 +466,7 @@
 				<div class="form-actions">
 					<Button
 						variant="secondary"
-						onclick={() => showRenameModal = false}
+						onclick={() => (showRenameModal = false)}
 						disabled={renameForm.loading}
 					>
 						Cancel
@@ -493,7 +496,7 @@
 		open={showDeviceDetails}
 		title="Device Details"
 		size="medium"
-		onclose={() => showDeviceDetails = false}
+		onclose={() => (showDeviceDetails = false)}
 		data-testid="device-details-modal"
 	>
 		{#snippet children()}
@@ -545,19 +548,15 @@
 							<code class="fingerprint">{selectedDevice.deviceFingerprint}</code>
 						</div>
 						<p class="fingerprint-help">
-							The device fingerprint is a unique identifier based on your browser and system characteristics.
+							The device fingerprint is a unique identifier based on your browser and system
+							characteristics.
 						</p>
 					</div>
 				</div>
 			</div>
 
 			<div class="modal-actions">
-				<Button
-					variant="secondary"
-					onclick={() => showDeviceDetails = false}
-				>
-					Close
-				</Button>
+				<Button variant="secondary" onclick={() => (showDeviceDetails = false)}>Close</Button>
 			</div>
 		{/snippet}
 	</Modal>

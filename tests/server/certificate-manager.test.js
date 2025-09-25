@@ -234,7 +234,7 @@ cTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqc
 		});
 	});
 
-	describe('Let\'s Encrypt ACME Integration', () => {
+	describe("Let's Encrypt ACME Integration", () => {
 		beforeEach(() => {
 			// Mock ACME client
 			vi.mock('acme-client', () => ({
@@ -247,7 +247,7 @@ cTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqc
 			}));
 		});
 
-		it('should initiate Let\'s Encrypt certificate request', async () => {
+		it("should initiate Let's Encrypt certificate request", async () => {
 			const domain = 'example.com';
 			const email = 'admin@example.com';
 
@@ -389,7 +389,7 @@ cTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqcTqc
 	});
 
 	describe('Certificate Renewal', () => {
-		it('should automatically renew Let\'s Encrypt certificates', async () => {
+		it("should automatically renew Let's Encrypt certificates", async () => {
 			const cert = await certManager.storeCertificate({
 				name: 'auto-renew-test',
 				domain: 'autorenew.com',

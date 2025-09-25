@@ -73,8 +73,7 @@
 						id: key,
 						...provider
 					}))
-					.filter(provider => provider.enabled);
-
+					.filter((provider) => provider.enabled);
 			} else {
 				error = data.error || 'Failed to load authentication configuration';
 			}
@@ -217,15 +216,15 @@
 					<div class="error-icon">⚠️</div>
 					<h3>Authentication Error</h3>
 					<p>{error}</p>
-					<Button variant="secondary" onclick={loadAuthConfig}>
-						Retry
-					</Button>
+					<Button variant="secondary" onclick={loadAuthConfig}>Retry</Button>
 				</div>
 			{:else if methodCount === 0}
 				<div class="no-methods-state">
 					<div class="warning-icon">🔒</div>
 					<h3>Access Restricted</h3>
-					<p>No authentication methods are currently available. Please contact your administrator.</p>
+					<p>
+						No authentication methods are currently available. Please contact your administrator.
+					</p>
 				</div>
 			{:else}
 				<div class="auth-methods">
@@ -234,7 +233,9 @@
 						{#if authConfig?.security?.isTunnel}
 							<div class="tunnel-warning">
 								<span class="warning-icon">⚠️</span>
-								<span class="warning-text">Using tunnel URL - some authentication methods may have limitations</span>
+								<span class="warning-text"
+									>Using tunnel URL - some authentication methods may have limitations</span
+								>
 							</div>
 						{/if}
 					</div>

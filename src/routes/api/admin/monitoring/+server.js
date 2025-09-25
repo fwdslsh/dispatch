@@ -50,7 +50,7 @@ export async function GET({ request, url }) {
 				};
 
 				// Remove null values
-				Object.keys(filter).forEach(key => {
+				Object.keys(filter).forEach((key) => {
 					if (filter[key] === null) delete filter[key];
 				});
 
@@ -86,13 +86,15 @@ export async function GET({ request, url }) {
 			default:
 				return json({ success: false, error: 'Unknown endpoint' }, { status: 400 });
 		}
-
 	} catch (error) {
 		console.error('Monitoring API error:', error);
-		return json({
-			success: false,
-			error: 'Failed to get monitoring data'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to get monitoring data'
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -123,10 +125,13 @@ export async function POST({ request }) {
 						message: 'Alert acknowledged'
 					});
 				} else {
-					return json({
-						success: false,
-						error: 'Alert not found'
-					}, { status: 404 });
+					return json(
+						{
+							success: false,
+							error: 'Alert not found'
+						},
+						{ status: 404 }
+					);
 				}
 
 			case 'resolveAlert':
@@ -139,20 +144,26 @@ export async function POST({ request }) {
 						message: 'Alert resolved'
 					});
 				} else {
-					return json({
-						success: false,
-						error: 'Alert not found'
-					}, { status: 404 });
+					return json(
+						{
+							success: false,
+							error: 'Alert not found'
+						},
+						{ status: 404 }
+					);
 				}
 
 			case 'createManualAlert':
 				const { type, category, severity, message } = data;
 
 				if (!type || !category || !severity || !message) {
-					return json({
-						success: false,
-						error: 'Missing required fields: type, category, severity, message'
-					}, { status: 400 });
+					return json(
+						{
+							success: false,
+							error: 'Missing required fields: type, category, severity, message'
+						},
+						{ status: 400 }
+					);
 				}
 
 				const alert = monitoringService.createAlert({
@@ -173,10 +184,13 @@ export async function POST({ request }) {
 				const { thresholds } = data;
 
 				if (!thresholds || typeof thresholds !== 'object') {
-					return json({
-						success: false,
-						error: 'Invalid thresholds data'
-					}, { status: 400 });
+					return json(
+						{
+							success: false,
+							error: 'Invalid thresholds data'
+						},
+						{ status: 400 }
+					);
 				}
 
 				// Update monitoring thresholds
@@ -200,12 +214,14 @@ export async function POST({ request }) {
 			default:
 				return json({ success: false, error: 'Unknown action' }, { status: 400 });
 		}
-
 	} catch (error) {
 		console.error('Monitoring API POST error:', error);
-		return json({
-			success: false,
-			error: 'Failed to process monitoring action'
-		}, { status: 500 });
+		return json(
+			{
+				success: false,
+				error: 'Failed to process monitoring action'
+			},
+			{ status: 500 }
+		);
 	}
 }

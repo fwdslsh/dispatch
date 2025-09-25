@@ -9,7 +9,7 @@ test.describe('Backup and Recovery Testing', () => {
 	test.describe('Database Backup and Recovery', () => {
 		test('validates database backup creation', async ({ page }) => {
 			// Mock admin authentication
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -24,7 +24,7 @@ test.describe('Backup and Recovery Testing', () => {
 
 			// Mock database backup endpoint
 			let backupCreated = false;
-			await page.route('/api/admin/backup/create', async route => {
+			await page.route('/api/admin/backup/create', async (route) => {
 				const request = route.request();
 				const method = request.method();
 
@@ -34,7 +34,15 @@ test.describe('Backup and Recovery Testing', () => {
 						id: `backup_${Date.now()}`,
 						timestamp: new Date().toISOString(),
 						size: 1024 * 1024 * 2.5, // 2.5MB
-						tables: ['users', 'auth_sessions', 'user_devices', 'webauthn_credentials', 'oauth_accounts', 'auth_events', 'certificates'],
+						tables: [
+							'users',
+							'auth_sessions',
+							'user_devices',
+							'webauthn_credentials',
+							'oauth_accounts',
+							'auth_events',
+							'certificates'
+						],
 						compression: 'gzip',
 						encrypted: true,
 						checksum: 'sha256:abc123def456...'
@@ -87,9 +95,9 @@ test.describe('Backup and Recovery Testing', () => {
 
 		test('validates backup integrity verification', async ({ page }) => {
 			// Mock backup verification endpoint
-			await page.route('/api/admin/backup/verify', async route => {
+			await page.route('/api/admin/backup/verify', async (route) => {
 				const request = route.request();
-				const body = JSON.parse(await request.postData() || '{}');
+				const body = JSON.parse((await request.postData()) || '{}');
 
 				const backupId = body.backupId;
 				const isValidBackup = backupId && backupId.startsWith('backup_');
@@ -170,15 +178,17 @@ test.describe('Backup and Recovery Testing', () => {
 
 			expect(invalidResult.success).toBe(false);
 			expect(invalidResult.data.verification.checksumValid).toBe(false);
-			expect(invalidResult.data.verification.issues).toContain('Backup file not found or corrupted');
+			expect(invalidResult.data.verification.issues).toContain(
+				'Backup file not found or corrupted'
+			);
 		});
 
 		test('simulates database recovery process', async ({ page }) => {
 			// Mock recovery endpoint with staged responses
 			let recoveryStep = 0;
-			await page.route('/api/admin/backup/restore', async route => {
+			await page.route('/api/admin/backup/restore', async (route) => {
 				const request = route.request();
-				const body = JSON.parse(await request.postData() || '{}');
+				const body = JSON.parse((await request.postData()) || '{}');
 
 				recoveryStep++;
 
@@ -285,7 +295,7 @@ test.describe('Backup and Recovery Testing', () => {
 	test.describe('Certificate Backup and Recovery', () => {
 		test('validates certificate backup process', async ({ page }) => {
 			// Mock certificate backup endpoint
-			await page.route('/api/admin/certificates/backup', async route => {
+			await page.route('/api/admin/certificates/backup', async (route) => {
 				const certificates = [
 					{
 						id: 1,
@@ -319,7 +329,7 @@ test.describe('Backup and Recovery Testing', () => {
 							checksum: 'sha256:cert123def456...',
 							createdAt: new Date().toISOString()
 						},
-						certificates: certificates.map(cert => ({
+						certificates: certificates.map((cert) => ({
 							id: cert.id,
 							type: cert.type,
 							domain: cert.domain,
@@ -356,9 +366,9 @@ test.describe('Backup and Recovery Testing', () => {
 
 		test('validates certificate restoration process', async ({ page }) => {
 			// Mock certificate restoration endpoint
-			await page.route('/api/admin/certificates/restore', async route => {
+			await page.route('/api/admin/certificates/restore', async (route) => {
 				const request = route.request();
-				const body = JSON.parse(await request.postData() || '{}');
+				const body = JSON.parse((await request.postData()) || '{}');
 
 				const restoredCertificates = [
 					{
@@ -416,14 +426,14 @@ test.describe('Backup and Recovery Testing', () => {
 			expect(restoreResult.success).toBe(true);
 			expect(restoreResult.data.restored.certificates).toBe(2);
 			expect(restoreResult.data.certificates).toHaveLength(2);
-			expect(restoreResult.data.certificates.every(cert => cert.status === 'active')).toBe(true);
+			expect(restoreResult.data.certificates.every((cert) => cert.status === 'active')).toBe(true);
 		});
 	});
 
 	test.describe('Configuration Backup and Recovery', () => {
 		test('validates authentication configuration backup', async ({ page }) => {
 			// Mock configuration backup endpoint
-			await page.route('/api/admin/config/backup', async route => {
+			await page.route('/api/admin/config/backup', async (route) => {
 				const config = {
 					auth: {
 						methods: {
@@ -515,9 +525,9 @@ test.describe('Backup and Recovery Testing', () => {
 
 		test('validates configuration restoration with validation', async ({ page }) => {
 			// Mock configuration restoration endpoint
-			await page.route('/api/admin/config/restore', async route => {
+			await page.route('/api/admin/config/restore', async (route) => {
 				const request = route.request();
-				const body = JSON.parse(await request.postData() || '{}');
+				const body = JSON.parse((await request.postData()) || '{}');
 
 				// Simulate configuration validation
 				const config = body.config;
@@ -550,11 +560,13 @@ test.describe('Backup and Recovery Testing', () => {
 					body: JSON.stringify({
 						success: validation.valid,
 						validation,
-						restored: validation.valid ? {
-							timestamp: new Date().toISOString(),
-							appliedSettings: Object.keys(config || {}),
-							requiresRestart: false
-						} : undefined,
+						restored: validation.valid
+							? {
+									timestamp: new Date().toISOString(),
+									appliedSettings: Object.keys(config || {}),
+									requiresRestart: false
+								}
+							: undefined,
 						error: validation.valid ? undefined : 'Configuration validation failed'
 					})
 				});
@@ -646,9 +658,9 @@ test.describe('Backup and Recovery Testing', () => {
 	test.describe('Disaster Recovery Scenarios', () => {
 		test('simulates complete system recovery', async ({ page }) => {
 			// Mock complete recovery endpoint
-			await page.route('/api/admin/recovery/complete', async route => {
+			await page.route('/api/admin/recovery/complete', async (route) => {
 				const request = route.request();
-				const body = JSON.parse(await request.postData() || '{}');
+				const body = JSON.parse((await request.postData()) || '{}');
 
 				const recovery = {
 					database: {
@@ -720,7 +732,7 @@ test.describe('Backup and Recovery Testing', () => {
 
 		test('validates recovery with data verification', async ({ page }) => {
 			// Mock recovery verification endpoint
-			await page.route('/api/admin/recovery/verify', async route => {
+			await page.route('/api/admin/recovery/verify', async (route) => {
 				const verification = {
 					database: {
 						tablesRestored: ['users', 'auth_sessions', 'user_devices', 'webauthn_credentials'],

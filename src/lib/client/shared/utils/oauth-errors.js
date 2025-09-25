@@ -71,7 +71,8 @@ export const OAUTH_RECOVERY_SUGGESTIONS = {
 	token_invalid: 'Please sign in again',
 	refresh_failed: 'Please sign in again to refresh your access',
 
-	account_already_linked: 'This account is already linked to another user. Try using a different account',
+	account_already_linked:
+		'This account is already linked to another user. Try using a different account',
 	account_not_found: 'OAuth account not found. Please try linking again',
 	unlink_failed: 'Please try again or contact support',
 
@@ -123,7 +124,11 @@ export function parseOAuthError(urlParams, provider = null) {
  */
 export function getOAuthErrorMessage(errorCode, provider = null, details = null) {
 	// Check provider-specific errors first
-	if (provider && PROVIDER_ERROR_MESSAGES[provider] && PROVIDER_ERROR_MESSAGES[provider][errorCode]) {
+	if (
+		provider &&
+		PROVIDER_ERROR_MESSAGES[provider] &&
+		PROVIDER_ERROR_MESSAGES[provider][errorCode]
+	) {
 		return PROVIDER_ERROR_MESSAGES[provider][errorCode];
 	}
 
@@ -145,7 +150,10 @@ export function getOAuthErrorMessage(errorCode, provider = null, details = null)
  * Get recovery suggestion for OAuth error
  */
 export function getOAuthRecoverySuggestion(errorCode) {
-	return OAUTH_RECOVERY_SUGGESTIONS[errorCode] || 'Please try again or contact support if the issue persists';
+	return (
+		OAUTH_RECOVERY_SUGGESTIONS[errorCode] ||
+		'Please try again or contact support if the issue persists'
+	);
 }
 
 /**
@@ -162,7 +170,9 @@ export function formatOAuthError(errorCode, provider = null, details = null) {
 		suggestion,
 		code: errorCode,
 		provider,
-		canRetry: !['unauthorized_client', 'unsupported_response_type', 'invalid_scope'].includes(errorCode)
+		canRetry: !['unauthorized_client', 'unsupported_response_type', 'invalid_scope'].includes(
+			errorCode
+		)
 	};
 }
 
@@ -186,11 +196,11 @@ export function isRecoverableOAuthError(errorCode) {
  */
 export function getRetryDelay(errorCode) {
 	const delays = {
-		server_error: 30000,          // 30 seconds
+		server_error: 30000, // 30 seconds
 		temporarily_unavailable: 60000, // 1 minute
-		token_expired: 0,             // Immediate
-		network_error: 5000,          // 5 seconds
-		system_error: 10000           // 10 seconds
+		token_expired: 0, // Immediate
+		network_error: 5000, // 5 seconds
+		system_error: 10000 // 10 seconds
 	};
 
 	return delays[errorCode] || 0;

@@ -66,7 +66,10 @@
 
 	async function uploadMkcertCertificate() {
 		try {
-			const domains = uploadForm.domains.split(',').map(d => d.trim()).filter(d => d);
+			const domains = uploadForm.domains
+				.split(',')
+				.map((d) => d.trim())
+				.filter((d) => d);
 
 			const response = await fetch('/api/security/certificates', {
 				method: 'POST',
@@ -111,7 +114,7 @@
 			const data = await response.json();
 
 			if (data.success) {
-				dispatch('success', { message: 'Let\'s Encrypt certificate provisioned successfully' });
+				dispatch('success', { message: "Let's Encrypt certificate provisioned successfully" });
 				showLetsEncrypt = false;
 				resetLetsEncryptForm();
 				await loadCertificates();
@@ -212,10 +215,14 @@
 
 	function getCertificateTypeIcon(type) {
 		switch (type) {
-			case 'letsencrypt': return '🔐';
-			case 'mkcert': return '🛠️';
-			case 'self-signed': return '📝';
-			default: return '📄';
+			case 'letsencrypt':
+				return '🔐';
+			case 'mkcert':
+				return '🛠️';
+			case 'self-signed':
+				return '📝';
+			default:
+				return '📄';
 		}
 	}
 </script>
@@ -249,7 +256,13 @@
 	{:else if error}
 		<div class="error">
 			<p>Error: {error}</p>
-			<Button variant="secondary" on:click={() => { loadCertificates(); loadHealth(); }}>
+			<Button
+				variant="secondary"
+				on:click={() => {
+					loadCertificates();
+					loadHealth();
+				}}
+			>
 				Retry
 			</Button>
 		</div>
@@ -257,13 +270,19 @@
 		<div class="certificates-section">
 			<!-- Action Buttons -->
 			<div class="actions">
-				<Button variant="primary" on:click={() => showUpload = true}>
+				<Button variant="primary" on:click={() => (showUpload = true)}>
 					Upload mkcert Certificate
 				</Button>
-				<Button variant="secondary" on:click={() => showLetsEncrypt = true}>
+				<Button variant="secondary" on:click={() => (showLetsEncrypt = true)}>
 					Provision Let's Encrypt
 				</Button>
-				<Button variant="secondary" on:click={() => { loadCertificates(); loadHealth(); }}>
+				<Button
+					variant="secondary"
+					on:click={() => {
+						loadCertificates();
+						loadHealth();
+					}}
+				>
 					Refresh
 				</Button>
 			</div>
@@ -286,10 +305,7 @@
 									<div class="cert-domain">{cert.domain}</div>
 									<div class="cert-type">{cert.type}</div>
 								</div>
-								<div
-									class="cert-status"
-									style="color: {getCertificateStatusColor(cert)}"
-								>
+								<div class="cert-status" style="color: {getCertificateStatusColor(cert)}">
 									{#if cert.isExpired}
 										Expired
 									{:else if cert.daysUntilExpiry <= 0}
@@ -321,19 +337,11 @@
 
 							<div class="cert-actions">
 								{#if cert.type === 'letsencrypt' && (cert.daysUntilExpiry <= 30 || cert.isExpired)}
-									<Button
-										variant="primary"
-										size="sm"
-										on:click={() => renewCertificate(cert.id)}
-									>
+									<Button variant="primary" size="sm" on:click={() => renewCertificate(cert.id)}>
 										Renew
 									</Button>
 								{/if}
-								<Button
-									variant="danger"
-									size="sm"
-									on:click={() => confirmDelete(cert)}
-								>
+								<Button variant="danger" size="sm" on:click={() => confirmDelete(cert)}>
 									Delete
 								</Button>
 							</div>
@@ -347,11 +355,11 @@
 
 <!-- Upload mkcert Certificate Modal -->
 {#if showUpload}
-	<div class="modal-overlay" on:click={() => showUpload = false}>
+	<div class="modal-overlay" on:click={() => (showUpload = false)}>
 		<div class="modal" on:click|stopPropagation>
 			<div class="modal-header">
 				<h4>Upload mkcert Certificate</h4>
-				<button class="close-btn" on:click={() => showUpload = false}>×</button>
+				<button class="close-btn" on:click={() => (showUpload = false)}>×</button>
 			</div>
 
 			<div class="modal-body">
@@ -397,9 +405,7 @@
 			</div>
 
 			<div class="modal-actions">
-				<Button variant="secondary" on:click={() => showUpload = false}>
-					Cancel
-				</Button>
+				<Button variant="secondary" on:click={() => (showUpload = false)}>Cancel</Button>
 				<Button
 					variant="primary"
 					on:click={uploadMkcertCertificate}
@@ -414,11 +420,11 @@
 
 <!-- Let's Encrypt Provisioning Modal -->
 {#if showLetsEncrypt}
-	<div class="modal-overlay" on:click={() => showLetsEncrypt = false}>
+	<div class="modal-overlay" on:click={() => (showLetsEncrypt = false)}>
 		<div class="modal" on:click|stopPropagation>
 			<div class="modal-header">
 				<h4>Provision Let's Encrypt Certificate</h4>
-				<button class="close-btn" on:click={() => showLetsEncrypt = false}>×</button>
+				<button class="close-btn" on:click={() => (showLetsEncrypt = false)}>×</button>
 			</div>
 
 			<div class="modal-body">
@@ -448,9 +454,7 @@
 			</div>
 
 			<div class="modal-actions">
-				<Button variant="secondary" on:click={() => showLetsEncrypt = false}>
-					Cancel
-				</Button>
+				<Button variant="secondary" on:click={() => (showLetsEncrypt = false)}>Cancel</Button>
 				<Button
 					variant="primary"
 					on:click={provisionLetsEncrypt}

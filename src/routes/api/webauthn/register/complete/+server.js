@@ -21,23 +21,21 @@ export async function POST({ request }) {
 		}
 
 		// Complete registration process
-		const result = await webauthnAdapter.completeAuthentication(
-			sessionId,
-			request,
-			{ credential }
-		);
+		const result = await webauthnAdapter.completeAuthentication(sessionId, request, { credential });
 
 		return json({
 			success: true,
 			message: result.message,
 			credentialId: result.credentialId
 		});
-
 	} catch (error) {
 		console.error('WebAuthn registration complete error:', error);
-		return json({
-			error: 'Failed to complete WebAuthn registration',
-			details: error.message
-		}, { status: 500 });
+		return json(
+			{
+				error: 'Failed to complete WebAuthn registration',
+				details: error.message
+			},
+			{ status: 500 }
+		);
 	}
 }

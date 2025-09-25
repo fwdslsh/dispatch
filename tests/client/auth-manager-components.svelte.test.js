@@ -34,17 +34,18 @@ describe('WebAuthn Manager Component', () => {
 	describe('Component Initialization', () => {
 		it('loads credentials and availability on mount', async () => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					credentials: [
-						{
-							id: 'cred-1',
-							deviceName: 'iPhone Touch ID',
-							createdAt: '2024-01-01T00:00:00Z',
-							lastUsedAt: '2024-01-02T00:00:00Z'
-						}
-					]
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						credentials: [
+							{
+								id: 'cred-1',
+								deviceName: 'iPhone Touch ID',
+								createdAt: '2024-01-01T00:00:00Z',
+								lastUsedAt: '2024-01-02T00:00:00Z'
+							}
+						]
+					})
 			});
 
 			const { container } = render(WebAuthnManager, {
@@ -73,7 +74,9 @@ describe('WebAuthn Manager Component', () => {
 				json: () => Promise.resolve({ success: true, credentials: [] })
 			});
 
-			const { checkWebAuthnAvailability } = require('../../src/lib/client/shared/utils/webauthn.js');
+			const {
+				checkWebAuthnAvailability
+			} = require('../../src/lib/client/shared/utils/webauthn.js');
 			checkWebAuthnAvailability.mockResolvedValue({
 				overall: true,
 				warnings: []
@@ -148,11 +151,12 @@ describe('WebAuthn Manager Component', () => {
 	describe('Credential Loading', () => {
 		it('handles credential loading errors', async () => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: false,
-					error: 'Unauthorized',
-					details: 'Invalid user ID'
-				})
+				json: () =>
+					Promise.resolve({
+						success: false,
+						error: 'Unauthorized',
+						details: 'Invalid user ID'
+					})
 			});
 
 			const { container } = render(WebAuthnManager, {
@@ -187,10 +191,11 @@ describe('WebAuthn Manager Component', () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'));
 			// Second call succeeds
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					credentials: []
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						credentials: []
+					})
 			});
 
 			const { container } = render(WebAuthnManager, {
@@ -265,16 +270,17 @@ describe('WebAuthn Manager Component', () => {
 
 			// Mock successful registration reload
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					credentials: [
-						{
-							id: 'new-cred',
-							deviceName: 'Test Device',
-							createdAt: '2024-01-01T00:00:00Z'
-						}
-					]
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						credentials: [
+							{
+								id: 'new-cred',
+								deviceName: 'Test Device',
+								createdAt: '2024-01-01T00:00:00Z'
+							}
+						]
+					})
 			});
 
 			// Simulate successful registration from WebAuthnButton
@@ -344,21 +350,22 @@ describe('WebAuthn Manager Component', () => {
 	describe('Credential Deletion', () => {
 		beforeEach(() => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					credentials: [
-						{
-							id: 'cred-1',
-							deviceName: 'iPhone Touch ID',
-							createdAt: '2024-01-01T00:00:00Z'
-						},
-						{
-							id: 'cred-2',
-							deviceName: 'YubiKey 5',
-							createdAt: '2024-01-02T00:00:00Z'
-						}
-					]
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						credentials: [
+							{
+								id: 'cred-1',
+								deviceName: 'iPhone Touch ID',
+								createdAt: '2024-01-01T00:00:00Z'
+							},
+							{
+								id: 'cred-2',
+								deviceName: 'YubiKey 5',
+								createdAt: '2024-01-02T00:00:00Z'
+							}
+						]
+					})
 			});
 		});
 
@@ -403,24 +410,26 @@ describe('WebAuthn Manager Component', () => {
 
 			// Mock successful deletion
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					message: 'Credential deleted successfully'
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						message: 'Credential deleted successfully'
+					})
 			});
 
 			// Mock reloading credentials after deletion
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					credentials: [
-						{
-							id: 'cred-2',
-							deviceName: 'YubiKey 5',
-							createdAt: '2024-01-02T00:00:00Z'
-						}
-					]
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						credentials: [
+							{
+								id: 'cred-2',
+								deviceName: 'YubiKey 5',
+								createdAt: '2024-01-02T00:00:00Z'
+							}
+						]
+					})
 			});
 
 			const confirmButton = screen.getByText('Remove');
@@ -464,11 +473,12 @@ describe('WebAuthn Manager Component', () => {
 
 			// Mock deletion failure
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: false,
-					error: 'Unauthorized',
-					details: 'Cannot delete credential'
-				})
+				json: () =>
+					Promise.resolve({
+						success: false,
+						error: 'Unauthorized',
+						details: 'Cannot delete credential'
+					})
 			});
 
 			const confirmButton = screen.getByText('Remove');
@@ -511,31 +521,32 @@ describe('WebAuthn Manager Component', () => {
 	describe('Device Icon Detection', () => {
 		beforeEach(() => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					credentials: [
-						{
-							id: 'cred-1',
-							deviceName: 'iPhone Touch ID',
-							createdAt: '2024-01-01T00:00:00Z'
-						},
-						{
-							id: 'cred-2',
-							deviceName: 'Windows Hello',
-							createdAt: '2024-01-02T00:00:00Z'
-						},
-						{
-							id: 'cred-3',
-							deviceName: 'YubiKey Security Key',
-							createdAt: '2024-01-03T00:00:00Z'
-						},
-						{
-							id: 'cred-4',
-							deviceName: 'Generic Device',
-							createdAt: '2024-01-04T00:00:00Z'
-						}
-					]
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						credentials: [
+							{
+								id: 'cred-1',
+								deviceName: 'iPhone Touch ID',
+								createdAt: '2024-01-01T00:00:00Z'
+							},
+							{
+								id: 'cred-2',
+								deviceName: 'Windows Hello',
+								createdAt: '2024-01-02T00:00:00Z'
+							},
+							{
+								id: 'cred-3',
+								deviceName: 'YubiKey Security Key',
+								createdAt: '2024-01-03T00:00:00Z'
+							},
+							{
+								id: 'cred-4',
+								deviceName: 'Generic Device',
+								createdAt: '2024-01-04T00:00:00Z'
+							}
+						]
+					})
 			});
 		});
 
@@ -566,10 +577,11 @@ describe('WebAuthn Manager Component', () => {
 	describe('Empty State', () => {
 		beforeEach(() => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					credentials: []
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						credentials: []
+					})
 			});
 		});
 
@@ -618,25 +630,26 @@ describe('OAuth Account Manager Component', () => {
 	describe('OAuth Account Loading', () => {
 		it('loads and displays OAuth accounts on mount', async () => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					accounts: [
-						{
-							id: 'oauth-1',
-							provider: 'google',
-							email: 'test@gmail.com',
-							name: 'Test User',
-							linkedAt: '2024-01-01T00:00:00Z'
-						},
-						{
-							id: 'oauth-2',
-							provider: 'github',
-							username: 'testuser',
-							email: 'test@users.noreply.github.com',
-							linkedAt: '2024-01-02T00:00:00Z'
-						}
-					]
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						accounts: [
+							{
+								id: 'oauth-1',
+								provider: 'google',
+								email: 'test@gmail.com',
+								name: 'Test User',
+								linkedAt: '2024-01-01T00:00:00Z'
+							},
+							{
+								id: 'oauth-2',
+								provider: 'github',
+								username: 'testuser',
+								email: 'test@users.noreply.github.com',
+								linkedAt: '2024-01-02T00:00:00Z'
+							}
+						]
+					})
 			});
 
 			const { container } = render(OAuthAccountManager, {
@@ -666,10 +679,11 @@ describe('OAuth Account Manager Component', () => {
 
 		it('shows empty state when no accounts are linked', async () => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					accounts: []
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						accounts: []
+					})
 			});
 
 			const { container } = render(OAuthAccountManager, {
@@ -685,17 +699,18 @@ describe('OAuth Account Manager Component', () => {
 	describe('Account Unlinking', () => {
 		beforeEach(() => {
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					accounts: [
-						{
-							id: 'oauth-1',
-							provider: 'google',
-							email: 'test@gmail.com',
-							linkedAt: '2024-01-01T00:00:00Z'
-						}
-					]
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						accounts: [
+							{
+								id: 'oauth-1',
+								provider: 'google',
+								email: 'test@gmail.com',
+								linkedAt: '2024-01-01T00:00:00Z'
+							}
+						]
+					})
 			});
 		});
 
@@ -738,18 +753,20 @@ describe('OAuth Account Manager Component', () => {
 
 			// Mock successful unlinking
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					message: 'Account unlinked successfully'
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						message: 'Account unlinked successfully'
+					})
 			});
 
 			// Mock reloading accounts after unlinking
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: true,
-					accounts: []
-				})
+				json: () =>
+					Promise.resolve({
+						success: true,
+						accounts: []
+					})
 			});
 
 			const confirmButton = screen.getByText('Unlink');
@@ -792,11 +809,12 @@ describe('OAuth Account Manager Component', () => {
 
 			// Mock unlinking failure
 			mockFetch.mockResolvedValueOnce({
-				json: () => Promise.resolve({
-					success: false,
-					error: 'Cannot unlink account',
-					details: 'At least one authentication method must remain'
-				})
+				json: () =>
+					Promise.resolve({
+						success: false,
+						error: 'Cannot unlink account',
+						details: 'At least one authentication method must remain'
+					})
 			});
 
 			const confirmButton = screen.getByText('Unlink');

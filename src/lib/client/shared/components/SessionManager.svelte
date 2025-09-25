@@ -16,12 +16,7 @@
 	const dispatch = createEventDispatcher();
 
 	// Props
-	let {
-		autoLoad = true,
-		showTitle = true,
-		compact = false,
-		showCurrentSession = true
-	} = $props();
+	let { autoLoad = true, showTitle = true, compact = false, showCurrentSession = true } = $props();
 
 	// State
 	let sessions = $state([]);
@@ -39,9 +34,9 @@
 	// Session statistics
 	let sessionStats = $derived.by(() => {
 		const now = new Date();
-		const active = sessions.filter(s => new Date(s.expiresAt) > now);
-		const expired = sessions.filter(s => new Date(s.expiresAt) <= now);
-		const devices = new Set(sessions.map(s => s.deviceId)).size;
+		const active = sessions.filter((s) => new Date(s.expiresAt) > now);
+		const expired = sessions.filter((s) => new Date(s.expiresAt) <= now);
+		const devices = new Set(sessions.map((s) => s.deviceId)).size;
 
 		return {
 			total: sessions.length,
@@ -348,9 +343,7 @@
 		<div class="status-message error" role="alert">
 			<span class="message-icon">⚠️</span>
 			<span class="message-text">{error}</span>
-			<button class="message-close" onclick={clearMessages} aria-label="Dismiss error">
-				×
-			</button>
+			<button class="message-close" onclick={clearMessages} aria-label="Dismiss error"> × </button>
 		</div>
 	{/if}
 
@@ -410,7 +403,9 @@
 									{#if currentSession.lastActivity}
 										<div class="detail-item">
 											<span class="detail-label">Last activity:</span>
-											<span class="detail-value">{formatRelativeTime(currentSession.lastActivity)}</span>
+											<span class="detail-value"
+												>{formatRelativeTime(currentSession.lastActivity)}</span
+											>
 										</div>
 									{/if}
 								</div>
@@ -449,7 +444,11 @@
 			<div class="sessions-list" class:compact>
 				{#each sessions as session (session.id)}
 					{@const status = getSessionStatus(session)}
-					<div class="session-card" class:current={session.id === currentSession?.id} class:expired={status.class === 'expired'}>
+					<div
+						class="session-card"
+						class:current={session.id === currentSession?.id}
+						class:expired={status.class === 'expired'}
+					>
 						<div class="session-main">
 							<div class="session-info">
 								<div class="session-header">
@@ -525,8 +524,8 @@
 				<span class="notice-icon">🔒</span>
 				<div class="notice-text">
 					<strong>Session Security:</strong>
-					Sessions are automatically terminated when they expire or when you logout.
-					If you see unfamiliar sessions, terminate them immediately and check your device security.
+					Sessions are automatically terminated when they expire or when you logout. If you see unfamiliar
+					sessions, terminate them immediately and check your device security.
 				</div>
 			</div>
 		{/if}
@@ -539,7 +538,7 @@
 		open={showSessionDetails}
 		title="Session Details"
 		size="medium"
-		onclose={() => showSessionDetails = false}
+		onclose={() => (showSessionDetails = false)}
 		data-testid="session-details-modal"
 	>
 		{#snippet children()}
@@ -610,12 +609,7 @@
 			</div>
 
 			<div class="modal-actions">
-				<Button
-					variant="secondary"
-					onclick={() => showSessionDetails = false}
-				>
-					Close
-				</Button>
+				<Button variant="secondary" onclick={() => (showSessionDetails = false)}>Close</Button>
 				{#if selectedSession.id !== currentSession?.id && getSessionStatus(selectedSession).class !== 'expired'}
 					<Button
 						variant="danger"
@@ -656,7 +650,7 @@
 		confirmText="Terminate All Others"
 		confirmVariant="danger"
 		onconfirm={logoutAllSessions}
-		oncancel={() => showLogoutAllConfirm = false}
+		oncancel={() => (showLogoutAllConfirm = false)}
 		data-testid="logout-all-confirm"
 	/>
 {/if}

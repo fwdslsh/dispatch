@@ -128,11 +128,10 @@ describe('WebAuthn Adapter', () => {
 
 	describe('Registration Flow', () => {
 		it('should begin registration process', async () => {
-			const result = await webauthnAdapter.beginAuthentication(
-				mockRequest,
-				'webauthn-register',
-				{ userId: testUserId, deviceName: 'Test Device' }
-			);
+			const result = await webauthnAdapter.beginAuthentication(mockRequest, 'webauthn-register', {
+				userId: testUserId,
+				deviceName: 'Test Device'
+			});
 
 			expect(result.sessionId).toBeDefined();
 			expect(result.method).toBe('webauthn-register');
@@ -142,11 +141,9 @@ describe('WebAuthn Adapter', () => {
 
 		it('should fail registration without user ID', async () => {
 			await expect(
-				webauthnAdapter.beginAuthentication(
-					mockRequest,
-					'webauthn-register',
-					{ deviceName: 'Test Device' }
-				)
+				webauthnAdapter.beginAuthentication(mockRequest, 'webauthn-register', {
+					deviceName: 'Test Device'
+				})
 			).rejects.toThrow('User ID required for WebAuthn registration');
 		});
 
@@ -162,11 +159,13 @@ describe('WebAuthn Adapter', () => {
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: beginResult.challenge.challenge,
-						type: 'webauthn.create',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: beginResult.challenge.challenge,
+							type: 'webauthn.create',
+							origin: 'http://localhost'
+						})
+					),
 					attestationObject: 'mock-attestation-object'
 				},
 				type: 'public-key'
@@ -197,21 +196,21 @@ describe('WebAuthn Adapter', () => {
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: beginResult.challenge.challenge,
-						type: 'webauthn.create',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: beginResult.challenge.challenge,
+							type: 'webauthn.create',
+							origin: 'http://localhost'
+						})
+					),
 					attestationObject: 'mock-attestation-object'
 				},
 				type: 'public-key'
 			};
 
-			await webauthnAdapter.completeAuthentication(
-				beginResult.sessionId,
-				mockRequest,
-				{ credential: mockCredential }
-			);
+			await webauthnAdapter.completeAuthentication(beginResult.sessionId, mockRequest, {
+				credential: mockCredential
+			});
 		});
 
 		it('should begin authentication process', async () => {
@@ -239,11 +238,13 @@ describe('WebAuthn Adapter', () => {
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: beginResult.challenge.challenge,
-						type: 'webauthn.get',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: beginResult.challenge.challenge,
+							type: 'webauthn.get',
+							origin: 'http://localhost'
+						})
+					),
 					authenticatorData: 'mock-authenticator-data',
 					signature: 'mock-signature'
 				}
@@ -275,21 +276,21 @@ describe('WebAuthn Adapter', () => {
 			const mockCredential = {
 				id: 'test-credential-id',
 				response: {
-					clientDataJSON: btoa(JSON.stringify({
-						challenge: beginResult.challenge.challenge,
-						type: 'webauthn.create',
-						origin: 'http://localhost'
-					})),
+					clientDataJSON: btoa(
+						JSON.stringify({
+							challenge: beginResult.challenge.challenge,
+							type: 'webauthn.create',
+							origin: 'http://localhost'
+						})
+					),
 					attestationObject: 'mock-attestation-object'
 				},
 				type: 'public-key'
 			};
 
-			await webauthnAdapter.completeAuthentication(
-				beginResult.sessionId,
-				mockRequest,
-				{ credential: mockCredential }
-			);
+			await webauthnAdapter.completeAuthentication(beginResult.sessionId, mockRequest, {
+				credential: mockCredential
+			});
 		});
 
 		it('should get user credentials', async () => {
@@ -324,7 +325,7 @@ describe('WebAuthn Adapter', () => {
 			webauthnAdapter.activeSessions.set(sessionId, {
 				method: 'webauthn-register',
 				userId: testUserId,
-				timestamp: Date.now() - (6 * 60 * 1000) // 6 minutes ago
+				timestamp: Date.now() - 6 * 60 * 1000 // 6 minutes ago
 			});
 
 			// Verify session exists
@@ -347,11 +348,9 @@ describe('WebAuthn Adapter', () => {
 			};
 
 			await expect(
-				webauthnAdapter.completeAuthentication(
-					'invalid-session-id',
-					mockRequest,
-					{ credential: mockCredential }
-				)
+				webauthnAdapter.completeAuthentication('invalid-session-id', mockRequest, {
+					credential: mockCredential
+				})
 			).rejects.toThrow('Invalid or expired authentication session');
 		});
 	});
@@ -379,18 +378,14 @@ describe('WebAuthn Adapter', () => {
 	describe('Error Handling', () => {
 		it('should handle unsupported methods', async () => {
 			await expect(
-				webauthnAdapter.beginAuthentication(
-					mockRequest,
-					'unsupported-method',
-					{}
-				)
+				webauthnAdapter.beginAuthentication(mockRequest, 'unsupported-method', {})
 			).rejects.toThrow('Unsupported WebAuthn method: unsupported-method');
 		});
 
 		it('should reject traditional authenticate method', async () => {
-			await expect(
-				webauthnAdapter.authenticate({ username: 'test' })
-			).rejects.toThrow('WebAuthn requires begin/complete authentication flow');
+			await expect(webauthnAdapter.authenticate({ username: 'test' })).rejects.toThrow(
+				'WebAuthn requires begin/complete authentication flow'
+			);
 		});
 
 		it('should handle WebAuthn unavailability', async () => {
@@ -400,11 +395,9 @@ describe('WebAuthn Adapter', () => {
 			};
 
 			await expect(
-				webauthnAdapter.beginAuthentication(
-					httpRequest,
-					'webauthn-register',
-					{ userId: testUserId }
-				)
+				webauthnAdapter.beginAuthentication(httpRequest, 'webauthn-register', {
+					userId: testUserId
+				})
 			).rejects.toThrow('WebAuthn not available in current environment');
 		});
 	});

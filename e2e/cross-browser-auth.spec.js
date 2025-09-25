@@ -9,11 +9,15 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 		{ name: 'Safari Desktop', ...devices['Desktop Safari'] },
 		{ name: 'Chrome Mobile', ...devices['Pixel 5'] },
 		{ name: 'Safari Mobile', ...devices['iPhone 12'] },
-		{ name: 'Edge Desktop', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59' }
+		{
+			name: 'Edge Desktop',
+			userAgent:
+				'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59'
+		}
 	];
 
 	test.describe('WebAuthn Cross-Browser Support', () => {
-		browserConfigs.forEach(config => {
+		browserConfigs.forEach((config) => {
 			test(`WebAuthn availability detection - ${config.name}`, async ({ browser }) => {
 				const context = await browser.newContext(config);
 				const page = await context.newPage();
@@ -26,7 +30,8 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 						return {
 							hasCredentials: 'credentials' in navigator,
 							hasPublicKeyCredential: 'PublicKeyCredential' in window,
-							hasCreate: navigator.credentials && typeof navigator.credentials.create === 'function',
+							hasCreate:
+								navigator.credentials && typeof navigator.credentials.create === 'function',
 							hasGet: navigator.credentials && typeof navigator.credentials.get === 'function',
 							isSecureContext: window.isSecureContext,
 							hasUserActivation: 'userActivation' in navigator,
@@ -49,7 +54,6 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 					} else {
 						expect(webAuthnSupport.hasPublicKeyCredential).toBe(true);
 					}
-
 				} finally {
 					await context.close();
 				}
@@ -84,7 +88,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 								delay += 500; // Mobile devices are slower
 							}
 
-							await new Promise(resolve => setTimeout(resolve, delay));
+							await new Promise((resolve) => setTimeout(resolve, delay));
 
 							// Simulate potential browser-specific errors
 							if (isSafari && Math.random() < 0.1) {
@@ -108,7 +112,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 					});
 
 					// Mock registration endpoints
-					await page.route('/api/auth/webauthn/register/begin', async route => {
+					await page.route('/api/auth/webauthn/register/begin', async (route) => {
 						await route.fulfill({
 							status: 200,
 							contentType: 'application/json',
@@ -127,7 +131,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 						});
 					});
 
-					await page.route('/api/auth/webauthn/register/complete', async route => {
+					await page.route('/api/auth/webauthn/register/complete', async (route) => {
 						await route.fulfill({
 							status: 200,
 							contentType: 'application/json',
@@ -160,10 +164,10 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 							// Create credential
 							const credential = await navigator.credentials.create({
 								publicKey: {
-									challenge: Uint8Array.from(beginData.challenge, c => c.charCodeAt(0)),
+									challenge: Uint8Array.from(beginData.challenge, (c) => c.charCodeAt(0)),
 									rp: beginData.rp,
 									user: {
-										id: Uint8Array.from(beginData.user.id, c => c.charCodeAt(0)),
+										id: Uint8Array.from(beginData.user.id, (c) => c.charCodeAt(0)),
 										name: beginData.user.name,
 										displayName: beginData.user.displayName
 									},
@@ -195,7 +199,6 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 								credentialId: completeData.credentialId,
 								browser: navigator.userAgent
 							};
-
 						} catch (error) {
 							return {
 								success: false,
@@ -209,7 +212,9 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 
 					// Verify registration succeeded (allowing for browser-specific failures)
 					if (!registrationResult.success) {
-						console.warn(`WebAuthn registration failed for ${config.name}: ${registrationResult.error}`);
+						console.warn(
+							`WebAuthn registration failed for ${config.name}: ${registrationResult.error}`
+						);
 
 						// Some failures are acceptable for certain browsers
 						const acceptableErrors = [
@@ -218,7 +223,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 							'User activation required'
 						];
 
-						const isAcceptableFailure = acceptableErrors.some(error =>
+						const isAcceptableFailure = acceptableErrors.some((error) =>
 							registrationResult.error.includes(error)
 						);
 
@@ -230,7 +235,6 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 						expect(registrationResult.verified).toBe(true);
 						expect(registrationResult.credentialId).toBeDefined();
 					}
-
 				} finally {
 					await context.close();
 				}
@@ -239,7 +243,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 	});
 
 	test.describe('OAuth Cross-Browser Flows', () => {
-		browserConfigs.forEach(config => {
+		browserConfigs.forEach((config) => {
 			test(`OAuth popup handling - ${config.name}`, async ({ browser }) => {
 				const context = await browser.newContext(config);
 				const page = await context.newPage();
@@ -248,7 +252,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 					await setupFreshTestEnvironment(page, '/');
 
 					// Mock OAuth endpoints
-					await page.route('/api/auth/oauth/google', async route => {
+					await page.route('/api/auth/oauth/google', async (route) => {
 						const isMobile = config.name.includes('Mobile');
 
 						// Mobile devices may handle OAuth differently
@@ -256,20 +260,21 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 							await route.fulfill({
 								status: 302,
 								headers: {
-									'Location': 'googlechrome://navigate?url=https://accounts.google.com/oauth/authorize?mobile=true'
+									Location:
+										'googlechrome://navigate?url=https://accounts.google.com/oauth/authorize?mobile=true'
 								}
 							});
 						} else {
 							await route.fulfill({
 								status: 302,
 								headers: {
-									'Location': 'https://accounts.google.com/oauth/authorize'
+									Location: 'https://accounts.google.com/oauth/authorize'
 								}
 							});
 						}
 					});
 
-					await page.route('/api/auth/oauth/callback', async route => {
+					await page.route('/api/auth/oauth/callback', async (route) => {
 						await route.fulfill({
 							status: 200,
 							contentType: 'application/json',
@@ -299,7 +304,11 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 								};
 							} else {
 								// Desktop OAuth can use popup flow
-								const popupWindow = window.open('/api/auth/oauth/google', 'oauth', 'width=500,height=600');
+								const popupWindow = window.open(
+									'/api/auth/oauth/google',
+									'oauth',
+									'width=500,height=600'
+								);
 
 								// Simulate popup handling
 								if (popupWindow) {
@@ -338,10 +347,11 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 						expect(oauthResult.isMobile).toBe(false);
 						// Popup blocking is acceptable in test environments
 						if (oauthResult.popupBlocked) {
-							console.warn(`Popup blocked for ${config.name} - this is acceptable in test environments`);
+							console.warn(
+								`Popup blocked for ${config.name} - this is acceptable in test environments`
+							);
 						}
 					}
-
 				} finally {
 					await context.close();
 				}
@@ -350,7 +360,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 	});
 
 	test.describe('Local Storage and Cookies Cross-Browser', () => {
-		browserConfigs.forEach(config => {
+		browserConfigs.forEach((config) => {
 			test(`Session persistence - ${config.name}`, async ({ browser }) => {
 				const context = await browser.newContext(config);
 				const page = await context.newPage();
@@ -400,7 +410,6 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 					expect(storageResult.sessionStorageSupported).toBe(true);
 					expect(storageResult.sessionStorageWorks).toBe(true);
 					expect(storageResult.cookiesEnabled).toBe(true);
-
 				} finally {
 					await context.close();
 				}
@@ -414,7 +423,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 					await setupFreshTestEnvironment(page, '/');
 
 					// Mock login endpoint that sets secure cookies
-					await page.route('/api/auth/login', async route => {
+					await page.route('/api/auth/login', async (route) => {
 						const isSecure = page.url().startsWith('https:');
 
 						await route.fulfill({
@@ -438,7 +447,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 
 					// Check cookie attributes
 					const cookies = await context.cookies();
-					const sessionCookie = cookies.find(c => c.name === 'sessionToken');
+					const sessionCookie = cookies.find((c) => c.name === 'sessionToken');
 
 					console.log(`Cookie attributes for ${config.name}:`, sessionCookie);
 
@@ -451,7 +460,6 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 							expect(sessionCookie.secure).toBe(true);
 						}
 					}
-
 				} finally {
 					await context.close();
 				}
@@ -460,7 +468,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 	});
 
 	test.describe('JavaScript API Compatibility', () => {
-		browserConfigs.forEach(config => {
+		browserConfigs.forEach((config) => {
 			test(`Modern JavaScript features - ${config.name}`, async ({ browser }) => {
 				const context = await browser.newContext(config);
 				const page = await context.newPage();
@@ -478,7 +486,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 						features.destructuring = (() => {
 							try {
 								const [a, b] = [1, 2];
-								const {c} = {c: 3};
+								const { c } = { c: 3 };
 								return a === 1 && b === 2 && c === 3;
 							} catch {
 								return false;
@@ -540,9 +548,10 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 					}
 
 					if (!featureSupport.features.abortController) {
-						console.warn(`${config.name} missing AbortController - request cancellation unavailable`);
+						console.warn(
+							`${config.name} missing AbortController - request cancellation unavailable`
+						);
 					}
-
 				} finally {
 					await context.close();
 				}
@@ -560,7 +569,7 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 			{ width: 414, height: 896, name: 'Mobile Large' }
 		];
 
-		viewportSizes.forEach(viewport => {
+		viewportSizes.forEach((viewport) => {
 			test(`Authentication UI layout - ${viewport.name}`, async ({ browser }) => {
 				const context = await browser.newContext({
 					viewport: { width: viewport.width, height: viewport.height }
@@ -626,7 +635,6 @@ test.describe('Cross-Browser Authentication Compatibility', () => {
 						expect(inputLayout.visible).toBe(true);
 						expect(inputLayout.accessible).toBe(true);
 					}
-
 				} finally {
 					await context.close();
 				}

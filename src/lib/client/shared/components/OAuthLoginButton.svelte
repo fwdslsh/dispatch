@@ -28,7 +28,12 @@
 		}
 	};
 
-	$: providerConfig = providers[provider] || { name: 'OAuth', icon: '🌐', color: '#666666', textColor: '#ffffff' };
+	$: providerConfig = providers[provider] || {
+		name: 'OAuth',
+		icon: '🌐',
+		color: '#666666',
+		textColor: '#ffffff'
+	};
 
 	async function handleLogin() {
 		if (loading || disabled) return;
@@ -42,7 +47,6 @@
 
 			// Redirect to OAuth provider
 			window.location.href = oauthUrl;
-
 		} catch (err) {
 			loading = false;
 			error = err.message || 'OAuth authentication failed';

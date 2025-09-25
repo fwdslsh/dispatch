@@ -87,12 +87,16 @@ describe('OAuth Adapter', () => {
 	describe('Availability Checking', () => {
 		beforeEach(async () => {
 			// Enable OAuth providers for testing using DatabaseManager interface
-			await db.setSettingsForCategory('auth', {
-				oauth_providers: {
-					google: { enabled: true, clientId: 'test-google-id', clientSecret: 'test-secret' },
-					github: { enabled: true, clientId: 'test-github-id', clientSecret: 'test-secret' }
-				}
-			}, 'OAuth provider configuration');
+			await db.setSettingsForCategory(
+				'auth',
+				{
+					oauth_providers: {
+						google: { enabled: true, clientId: 'test-google-id', clientSecret: 'test-secret' },
+						github: { enabled: true, clientId: 'test-github-id', clientSecret: 'test-secret' }
+					}
+				},
+				'OAuth provider configuration'
+			);
 		});
 
 		it('should detect availability when providers are configured', async () => {
@@ -102,12 +106,16 @@ describe('OAuth Adapter', () => {
 
 		it('should detect unavailability when no providers are enabled', async () => {
 			// Disable all providers
-			await db.setSettingsForCategory('auth', {
-				oauth_providers: {
-					google: { enabled: false },
-					github: { enabled: false }
-				}
-			}, 'OAuth provider configuration');
+			await db.setSettingsForCategory(
+				'auth',
+				{
+					oauth_providers: {
+						google: { enabled: false },
+						github: { enabled: false }
+					}
+				},
+				'OAuth provider configuration'
+			);
 
 			const isAvailable = await oauthAdapter.isAvailable(mockRequest);
 			expect(isAvailable).toBe(false);
@@ -117,20 +125,22 @@ describe('OAuth Adapter', () => {
 	describe('Authentication Initiation', () => {
 		beforeEach(async () => {
 			// Enable OAuth providers
-			await db.setSettingsForCategory('auth', {
-				oauth_providers: {
-					google: { enabled: true, clientId: 'test-google-id', clientSecret: 'test-secret' },
-					github: { enabled: true, clientId: 'test-github-id', clientSecret: 'test-secret' }
-				}
-			}, 'OAuth provider configuration');
+			await db.setSettingsForCategory(
+				'auth',
+				{
+					oauth_providers: {
+						google: { enabled: true, clientId: 'test-google-id', clientSecret: 'test-secret' },
+						github: { enabled: true, clientId: 'test-github-id', clientSecret: 'test-secret' }
+					}
+				},
+				'OAuth provider configuration'
+			);
 		});
 
 		it('should begin Google OAuth authentication', async () => {
-			const result = await oauthAdapter.beginAuthentication(
-				mockRequest,
-				'oauth-google',
-				{ returnTo: '/dashboard' }
-			);
+			const result = await oauthAdapter.beginAuthentication(mockRequest, 'oauth-google', {
+				returnTo: '/dashboard'
+			});
 
 			expect(result.sessionId).toBeDefined();
 			expect(result.method).toBe('oauth-google');
@@ -140,11 +150,9 @@ describe('OAuth Adapter', () => {
 		});
 
 		it('should begin GitHub OAuth authentication', async () => {
-			const result = await oauthAdapter.beginAuthentication(
-				mockRequest,
-				'oauth-github',
-				{ returnTo: '/dashboard' }
-			);
+			const result = await oauthAdapter.beginAuthentication(mockRequest, 'oauth-github', {
+				returnTo: '/dashboard'
+			});
 
 			expect(result.sessionId).toBeDefined();
 			expect(result.method).toBe('oauth-github');
@@ -155,29 +163,25 @@ describe('OAuth Adapter', () => {
 
 		it('should fail authentication for unsupported provider', async () => {
 			await expect(
-				oauthAdapter.beginAuthentication(
-					mockRequest,
-					'oauth-unsupported',
-					{}
-				)
+				oauthAdapter.beginAuthentication(mockRequest, 'oauth-unsupported', {})
 			).rejects.toThrow('Unsupported OAuth method: oauth-unsupported');
 		});
 
 		it('should fail when provider is disabled', async () => {
 			// Disable Google OAuth
-			await db.setSettingsForCategory('auth', {
-				oauth_providers: {
-					google: { enabled: false },
-					github: { enabled: true, clientId: 'test-github-id', clientSecret: 'test-secret' }
-				}
-			}, 'OAuth provider configuration');
+			await db.setSettingsForCategory(
+				'auth',
+				{
+					oauth_providers: {
+						google: { enabled: false },
+						github: { enabled: true, clientId: 'test-github-id', clientSecret: 'test-secret' }
+					}
+				},
+				'OAuth provider configuration'
+			);
 
 			await expect(
-				oauthAdapter.beginAuthentication(
-					mockRequest,
-					'oauth-google',
-					{}
-				)
+				oauthAdapter.beginAuthentication(mockRequest, 'oauth-google', {})
 			).rejects.toThrow('Google OAuth is not enabled');
 		});
 	});
@@ -187,29 +191,32 @@ describe('OAuth Adapter', () => {
 
 		beforeEach(async () => {
 			// Enable OAuth providers
-			await db.setSettingsForCategory('auth', {
-				oauth_providers: {
-					google: { enabled: true, clientId: 'test-google-id', clientSecret: 'test-secret' },
-					github: { enabled: true, clientId: 'test-github-id', clientSecret: 'test-secret' }
-				}
-			}, 'OAuth provider configuration');
+			await db.setSettingsForCategory(
+				'auth',
+				{
+					oauth_providers: {
+						google: { enabled: true, clientId: 'test-google-id', clientSecret: 'test-secret' },
+						github: { enabled: true, clientId: 'test-github-id', clientSecret: 'test-secret' }
+					}
+				},
+				'OAuth provider configuration'
+			);
 
 			// Begin authentication to get a session
-			const beginResult = await oauthAdapter.beginAuthentication(
-				mockRequest,
-				'oauth-google',
-				{}
-			);
+			const beginResult = await oauthAdapter.beginAuthentication(mockRequest, 'oauth-google', {});
 			sessionId = beginResult.sessionId;
 		});
 
 		it('should complete OAuth authentication for existing user', async () => {
 			// Create OAuth account linking
-			await db.run(`
+			await db.run(
+				`
 				INSERT INTO oauth_accounts (user_id, provider, provider_account_id,
 					provider_email, provider_name, access_token)
 				VALUES (?, 'google', '12345', 'test@example.com', 'Test User', 'access-token')
-			`, [testUserId]);
+			`,
+				[testUserId]
+			);
 
 			const mockOAuthResult = {
 				success: true,
@@ -218,11 +225,9 @@ describe('OAuth Adapter', () => {
 				provider: 'google'
 			};
 
-			const result = await oauthAdapter.completeAuthentication(
-				sessionId,
-				mockRequest,
-				{ oauthResult: mockOAuthResult }
-			);
+			const result = await oauthAdapter.completeAuthentication(sessionId, mockRequest, {
+				oauthResult: mockOAuthResult
+			});
 
 			expect(result.success).toBe(true);
 			expect(result.method).toBe('oauth-google');
@@ -240,11 +245,9 @@ describe('OAuth Adapter', () => {
 				isNewUser: true
 			};
 
-			const result = await oauthAdapter.completeAuthentication(
-				sessionId,
-				mockRequest,
-				{ oauthResult: mockOAuthResult }
-			);
+			const result = await oauthAdapter.completeAuthentication(sessionId, mockRequest, {
+				oauthResult: mockOAuthResult
+			});
 
 			expect(result.success).toBe(true);
 			expect(result.method).toBe('oauth-google');
@@ -261,11 +264,9 @@ describe('OAuth Adapter', () => {
 			};
 
 			await expect(
-				oauthAdapter.completeAuthentication(
-					'invalid-session-id',
-					mockRequest,
-					{ oauthResult: mockOAuthResult }
-				)
+				oauthAdapter.completeAuthentication('invalid-session-id', mockRequest, {
+					oauthResult: mockOAuthResult
+				})
 			).rejects.toThrow('Invalid or expired OAuth session');
 		});
 
@@ -278,11 +279,9 @@ describe('OAuth Adapter', () => {
 				isNewUser: true
 			};
 
-			const result = await oauthAdapter.completeAuthentication(
-				sessionId,
-				mockRequest,
-				{ oauthResult: mockOAuthResult }
-			);
+			const result = await oauthAdapter.completeAuthentication(sessionId, mockRequest, {
+				oauthResult: mockOAuthResult
+			});
 
 			expect(result.success).toBe(true);
 			expect(result.user.email).toBeNull();
@@ -304,7 +303,7 @@ describe('OAuth Adapter', () => {
 			oauthAdapter.activeSessions.set(sessionId, {
 				method: 'oauth-google',
 				state: 'test-state',
-				timestamp: Date.now() - (11 * 60 * 1000) // 11 minutes ago (expired)
+				timestamp: Date.now() - 11 * 60 * 1000 // 11 minutes ago (expired)
 			});
 
 			// Verify session exists
@@ -329,9 +328,9 @@ describe('OAuth Adapter', () => {
 		});
 
 		it('should reject traditional authenticate method', async () => {
-			await expect(
-				oauthAdapter.authenticate({ username: 'test' })
-			).rejects.toThrow('OAuth requires begin/complete authentication flow');
+			await expect(oauthAdapter.authenticate({ username: 'test' })).rejects.toThrow(
+				'OAuth requires begin/complete authentication flow'
+			);
 		});
 	});
 

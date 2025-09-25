@@ -24,10 +24,10 @@ test.describe('Authentication System Performance Testing', () => {
 			try {
 				// Mock successful authentication for all requests
 				for (const page of pages) {
-					await page.route('/api/auth/login', async route => {
+					await page.route('/api/auth/login', async (route) => {
 						// Simulate server processing time (50-200ms)
 						const delay = 50 + Math.random() * 150;
-						await new Promise(resolve => setTimeout(resolve, delay));
+						await new Promise((resolve) => setTimeout(resolve, delay));
 
 						await route.fulfill({
 							status: 200,
@@ -50,7 +50,10 @@ test.describe('Authentication System Performance Testing', () => {
 					await page.click('[data-testid="login-submit"]');
 
 					// Wait for authentication to complete
-					await page.waitForSelector('[data-testid="auth-modal"]', { state: 'hidden', timeout: 5000 });
+					await page.waitForSelector('[data-testid="auth-modal"]', {
+						state: 'hidden',
+						timeout: 5000
+					});
 
 					const endTime = Date.now();
 					return {
@@ -68,8 +71,8 @@ test.describe('Authentication System Performance Testing', () => {
 
 				// Performance assertions
 				const avgDuration = results.reduce((sum, r) => sum + r.duration, 0) / results.length;
-				const maxDuration = Math.max(...results.map(r => r.duration));
-				const successRate = results.filter(r => r.success).length / results.length;
+				const maxDuration = Math.max(...results.map((r) => r.duration));
+				const successRate = results.filter((r) => r.success).length / results.length;
 
 				console.log(`Concurrent login performance:
 					- Total time: ${totalTime}ms
@@ -83,7 +86,6 @@ test.describe('Authentication System Performance Testing', () => {
 				expect(avgDuration).toBeLessThan(3000); // Average under 3 seconds
 				expect(maxDuration).toBeLessThan(5000); // No request over 5 seconds
 				expect(totalTime).toBeLessThan(6000); // All concurrent requests under 6 seconds
-
 			} finally {
 				// Clean up contexts
 				for (const context of contexts) {
@@ -114,10 +116,10 @@ test.describe('Authentication System Performance Testing', () => {
 			try {
 				// Mock session validation endpoint with realistic delays
 				for (const page of pages) {
-					await page.route('/api/auth/status', async route => {
+					await page.route('/api/auth/status', async (route) => {
 						// Simulate database query time (10-100ms)
 						const delay = 10 + Math.random() * 90;
-						await new Promise(resolve => setTimeout(resolve, delay));
+						await new Promise((resolve) => setTimeout(resolve, delay));
 
 						await route.fulfill({
 							status: 200,
@@ -155,9 +157,11 @@ test.describe('Authentication System Performance Testing', () => {
 				const totalTime = Date.now() - startTime;
 
 				// Performance analysis
-				const avgDuration = validationResults.reduce((sum, r) => sum + r.duration, 0) / validationResults.length;
-				const maxDuration = Math.max(...validationResults.map(r => r.duration));
-				const successRate = validationResults.filter(r => r.success).length / validationResults.length;
+				const avgDuration =
+					validationResults.reduce((sum, r) => sum + r.duration, 0) / validationResults.length;
+				const maxDuration = Math.max(...validationResults.map((r) => r.duration));
+				const successRate =
+					validationResults.filter((r) => r.success).length / validationResults.length;
 
 				console.log(`Concurrent session validation performance:
 					- Total time: ${totalTime}ms
@@ -170,7 +174,6 @@ test.describe('Authentication System Performance Testing', () => {
 				expect(successRate).toBe(1.0); // 100% success rate expected
 				expect(avgDuration).toBeLessThan(2000); // Average under 2 seconds
 				expect(maxDuration).toBeLessThan(3000); // No request over 3 seconds
-
 			} finally {
 				// Clean up contexts
 				for (const context of contexts) {
@@ -198,7 +201,7 @@ test.describe('Authentication System Performance Testing', () => {
 					await page.addInitScript(() => {
 						window.navigator.credentials.create = async () => {
 							// Simulate WebAuthn processing time
-							await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
+							await new Promise((resolve) => setTimeout(resolve, 100 + Math.random() * 200));
 							return {
 								id: `credential-${Date.now()}-${Math.random()}`,
 								rawId: new ArrayBuffer(32),
@@ -211,9 +214,9 @@ test.describe('Authentication System Performance Testing', () => {
 					});
 
 					// Mock registration endpoints
-					await page.route('/api/auth/webauthn/register/begin', async route => {
+					await page.route('/api/auth/webauthn/register/begin', async (route) => {
 						const delay = 20 + Math.random() * 80;
-						await new Promise(resolve => setTimeout(resolve, delay));
+						await new Promise((resolve) => setTimeout(resolve, delay));
 
 						await route.fulfill({
 							status: 200,
@@ -228,9 +231,9 @@ test.describe('Authentication System Performance Testing', () => {
 						});
 					});
 
-					await page.route('/api/auth/webauthn/register/complete', async route => {
+					await page.route('/api/auth/webauthn/register/complete', async (route) => {
 						const delay = 50 + Math.random() * 150;
-						await new Promise(resolve => setTimeout(resolve, delay));
+						await new Promise((resolve) => setTimeout(resolve, delay));
 
 						await route.fulfill({
 							status: 200,
@@ -292,7 +295,6 @@ test.describe('Authentication System Performance Testing', () => {
 							duration: endTime - startTime,
 							success: result.success
 						};
-
 					} catch (error) {
 						const endTime = Date.now();
 						return {
@@ -309,9 +311,10 @@ test.describe('Authentication System Performance Testing', () => {
 				const totalTime = Date.now() - startTime;
 
 				// Performance analysis
-				const successfulRegistrations = registrationResults.filter(r => r.success);
-				const avgDuration = registrationResults.reduce((sum, r) => sum + r.duration, 0) / registrationResults.length;
-				const maxDuration = Math.max(...registrationResults.map(r => r.duration));
+				const successfulRegistrations = registrationResults.filter((r) => r.success);
+				const avgDuration =
+					registrationResults.reduce((sum, r) => sum + r.duration, 0) / registrationResults.length;
+				const maxDuration = Math.max(...registrationResults.map((r) => r.duration));
 				const successRate = successfulRegistrations.length / registrationResults.length;
 
 				console.log(`Concurrent WebAuthn registration performance:
@@ -325,7 +328,6 @@ test.describe('Authentication System Performance Testing', () => {
 				expect(successRate).toBeGreaterThanOrEqual(0.8); // 80% success rate
 				expect(avgDuration).toBeLessThan(5000); // Average under 5 seconds
 				expect(maxDuration).toBeLessThan(8000); // No request over 8 seconds
-
 			} finally {
 				// Clean up contexts
 				for (const context of contexts) {
@@ -341,9 +343,9 @@ test.describe('Authentication System Performance Testing', () => {
 			const sessionTimes = [];
 
 			// Mock session endpoints
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				const delay = 30 + Math.random() * 70; // Realistic DB operation time
-				await new Promise(resolve => setTimeout(resolve, delay));
+				await new Promise((resolve) => setTimeout(resolve, delay));
 
 				await route.fulfill({
 					status: 200,
@@ -357,9 +359,9 @@ test.describe('Authentication System Performance Testing', () => {
 				});
 			});
 
-			await page.route('/api/auth/logout', async route => {
+			await page.route('/api/auth/logout', async (route) => {
 				const delay = 20 + Math.random() * 50; // Session cleanup time
-				await new Promise(resolve => setTimeout(resolve, delay));
+				await new Promise((resolve) => setTimeout(resolve, delay));
 
 				await route.fulfill({
 					status: 200,
@@ -405,7 +407,7 @@ test.describe('Authentication System Performance Testing', () => {
 			// Performance assertions
 			expect(avgCycleTime).toBeLessThan(2000); // Average cycle under 2 seconds
 			expect(maxCycleTime).toBeLessThan(3000); // No cycle over 3 seconds
-			expect(sessionTimes.every(time => time > 0)).toBe(true); // All cycles completed
+			expect(sessionTimes.every((time) => time > 0)).toBe(true); // All cycles completed
 		});
 
 		test('measures authentication method switching performance', async ({ page }) => {
@@ -413,9 +415,9 @@ test.describe('Authentication System Performance Testing', () => {
 			const switchTimes = [];
 
 			// Mock multiple auth endpoints
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				const delay = 40 + Math.random() * 60;
-				await new Promise(resolve => setTimeout(resolve, delay));
+				await new Promise((resolve) => setTimeout(resolve, delay));
 
 				await route.fulfill({
 					status: 200,
@@ -428,19 +430,19 @@ test.describe('Authentication System Performance Testing', () => {
 				});
 			});
 
-			await page.route('/api/auth/oauth/google', async route => {
+			await page.route('/api/auth/oauth/google', async (route) => {
 				const delay = 60 + Math.random() * 90;
-				await new Promise(resolve => setTimeout(resolve, delay));
+				await new Promise((resolve) => setTimeout(resolve, delay));
 
 				await route.fulfill({
 					status: 302,
-					headers: { 'Location': 'https://accounts.google.com/oauth/authorize?...' }
+					headers: { Location: 'https://accounts.google.com/oauth/authorize?...' }
 				});
 			});
 
-			await page.route('/api/auth/webauthn/authenticate/begin', async route => {
+			await page.route('/api/auth/webauthn/authenticate/begin', async (route) => {
 				const delay = 30 + Math.random() * 70;
-				await new Promise(resolve => setTimeout(resolve, delay));
+				await new Promise((resolve) => setTimeout(resolve, delay));
 
 				await route.fulfill({
 					status: 200,
@@ -511,7 +513,7 @@ test.describe('Authentication System Performance Testing', () => {
 			const queryTimes = [];
 
 			// Mock database-heavy authentication endpoint
-			await page.route('/api/auth/status', async route => {
+			await page.route('/api/auth/status', async (route) => {
 				const queryStart = Date.now();
 
 				// Simulate multiple database queries
@@ -529,7 +531,7 @@ test.describe('Authentication System Performance Testing', () => {
 					return sum + queryTime;
 				}, 0);
 
-				await new Promise(resolve => setTimeout(resolve, totalQueryTime));
+				await new Promise((resolve) => setTimeout(resolve, totalQueryTime));
 
 				const queryEnd = Date.now();
 				queryTimes.push(queryEnd - queryStart);
@@ -578,7 +580,7 @@ test.describe('Authentication System Performance Testing', () => {
 			expect(avgQueryTime).toBeLessThan(100); // Average query under 100ms
 			expect(maxQueryTime).toBeLessThan(500); // No query over 500ms
 			expect(queriesPerSecond).toBeGreaterThan(10); // At least 10 queries/second
-			expect(results.every(r => r.success)).toBe(true); // All queries successful
+			expect(results.every((r) => r.success)).toBe(true); // All queries successful
 		});
 	});
 
@@ -589,15 +591,17 @@ test.describe('Authentication System Performance Testing', () => {
 
 			// Capture initial memory usage
 			initialMemory = await page.evaluate(() => {
-				return performance.memory ? {
-					usedJSHeapSize: performance.memory.usedJSHeapSize,
-					totalJSHeapSize: performance.memory.totalJSHeapSize,
-					jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
-				} : null;
+				return performance.memory
+					? {
+							usedJSHeapSize: performance.memory.usedJSHeapSize,
+							totalJSHeapSize: performance.memory.totalJSHeapSize,
+							jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
+						}
+					: null;
 			});
 
 			// Mock authentication endpoint
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -614,7 +618,10 @@ test.describe('Authentication System Performance Testing', () => {
 				await page.goto('/workspace');
 				await page.fill('[data-testid="access-code-input"]', `test-code-${i}`);
 				await page.click('[data-testid="login-submit"]');
-				await page.waitForSelector('[data-testid="auth-modal"]', { state: 'hidden', timeout: 1000 });
+				await page.waitForSelector('[data-testid="auth-modal"]', {
+					state: 'hidden',
+					timeout: 1000
+				});
 
 				// Periodic memory monitoring
 				if (i % 10 === 0) {
@@ -630,11 +637,13 @@ test.describe('Authentication System Performance Testing', () => {
 
 			// Capture final memory usage
 			finalMemory = await page.evaluate(() => {
-				return performance.memory ? {
-					usedJSHeapSize: performance.memory.usedJSHeapSize,
-					totalJSHeapSize: performance.memory.totalJSHeapSize,
-					jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
-				} : null;
+				return performance.memory
+					? {
+							usedJSHeapSize: performance.memory.usedJSHeapSize,
+							totalJSHeapSize: performance.memory.totalJSHeapSize,
+							jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
+						}
+					: null;
 			});
 
 			if (initialMemory && finalMemory) {
@@ -666,7 +675,7 @@ test.describe('Authentication System Performance Testing', () => {
 			});
 
 			// Mock authentication endpoints
-			await page.route('/api/auth/login', async route => {
+			await page.route('/api/auth/login', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -678,7 +687,7 @@ test.describe('Authentication System Performance Testing', () => {
 				});
 			});
 
-			await page.route('/api/auth/logout', async route => {
+			await page.route('/api/auth/logout', async (route) => {
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',

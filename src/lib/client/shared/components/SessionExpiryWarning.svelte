@@ -174,12 +174,8 @@
 				</div>
 
 				<div class="secondary-actions">
-					<Button onclick={dismissWarning} variant="secondary" disabled={extending}>
-						Dismiss
-					</Button>
-					<Button onclick={logout} variant="ghost" disabled={extending}>
-						Sign Out
-					</Button>
+					<Button onclick={dismissWarning} variant="secondary" disabled={extending}>Dismiss</Button>
+					<Button onclick={logout} variant="ghost" disabled={extending}>Sign Out</Button>
 				</div>
 			</div>
 		</div>
@@ -214,7 +210,9 @@
 
 	.session-warning-modal.urgency-critical {
 		border-top: 4px solid #dc2626;
-		animation: slideIn 0.3s ease-out, pulse 2s infinite;
+		animation:
+			slideIn 0.3s ease-out,
+			pulse 2s infinite;
 	}
 
 	.session-warning-modal.urgency-high {
@@ -398,7 +396,8 @@
 	}
 
 	@keyframes pulse {
-		0%, 100% {
+		0%,
+		100% {
 			box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
 		}
 		50% {

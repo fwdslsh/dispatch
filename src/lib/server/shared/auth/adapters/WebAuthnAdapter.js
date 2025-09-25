@@ -24,7 +24,8 @@ export class WebAuthnAdapter {
 	async isAvailable(request) {
 		try {
 			const hostname = request.headers.host?.split(':')[0] || 'localhost';
-			const isHttps = request.protocol === 'https' ||
+			const isHttps =
+				request.protocol === 'https' ||
 				request.headers['x-forwarded-proto'] === 'https' ||
 				hostname === 'localhost';
 
@@ -50,7 +51,8 @@ export class WebAuthnAdapter {
 	async beginAuthentication(request, method, credentials = {}) {
 		try {
 			const hostname = request.headers.host?.split(':')[0] || 'localhost';
-			const isHttps = request.protocol === 'https' ||
+			const isHttps =
+				request.protocol === 'https' ||
 				request.headers['x-forwarded-proto'] === 'https' ||
 				hostname === 'localhost';
 
@@ -69,7 +71,6 @@ export class WebAuthnAdapter {
 				default:
 					throw new Error(`Unsupported WebAuthn method: ${method}`);
 			}
-
 		} catch (error) {
 			logger.error('WEBAUTHN_ADAPTER', `Begin authentication failed: ${error.message}`);
 			throw error;
@@ -99,7 +100,6 @@ export class WebAuthnAdapter {
 				default:
 					throw new Error(`Unsupported session method: ${session.method}`);
 			}
-
 		} catch (error) {
 			logger.error('WEBAUTHN_ADAPTER', `Complete authentication failed: ${error.message}`);
 			throw error;
@@ -111,7 +111,9 @@ export class WebAuthnAdapter {
 	 * For WebAuthn, this is handled via the begin/complete flow
 	 */
 	async authenticate(credentials, context = {}) {
-		throw new Error('WebAuthn requires begin/complete authentication flow. Use beginAuthentication() instead.');
+		throw new Error(
+			'WebAuthn requires begin/complete authentication flow. Use beginAuthentication() instead.'
+		);
 	}
 
 	/**
@@ -187,11 +189,7 @@ export class WebAuthnAdapter {
 		const { username } = credentials;
 
 		// Begin WebAuthn authentication
-		const authData = await this.webauthnManager.beginAuthentication(
-			hostname,
-			isHttps,
-			username
-		);
+		const authData = await this.webauthnManager.beginAuthentication(hostname, isHttps, username);
 
 		// Store session data
 		const sessionId = this.generateSessionId();
@@ -202,7 +200,10 @@ export class WebAuthnAdapter {
 			timestamp: Date.now()
 		});
 
-		logger.info('WEBAUTHN_ADAPTER', `Started authentication${username ? ` for user ${username}` : ''}`);
+		logger.info(
+			'WEBAUTHN_ADAPTER',
+			`Started authentication${username ? ` for user ${username}` : ''}`
+		);
 
 		return {
 			sessionId,
@@ -273,7 +274,8 @@ export class WebAuthnAdapter {
 	 */
 	async getConfig(request) {
 		const hostname = request.headers.host?.split(':')[0] || 'localhost';
-		const isHttps = request.protocol === 'https' ||
+		const isHttps =
+			request.protocol === 'https' ||
 			request.headers['x-forwarded-proto'] === 'https' ||
 			hostname === 'localhost';
 
@@ -326,7 +328,7 @@ export class WebAuthnAdapter {
 			}
 		}
 
-		expiredSessions.forEach(sessionId => {
+		expiredSessions.forEach((sessionId) => {
 			this.activeSessions.delete(sessionId);
 		});
 
@@ -340,8 +342,11 @@ export class WebAuthnAdapter {
 	 */
 	startCleanup() {
 		// Cleanup every 5 minutes
-		setInterval(() => {
-			this.cleanupExpiredSessions();
-		}, 5 * 60 * 1000);
+		setInterval(
+			() => {
+				this.cleanupExpiredSessions();
+			},
+			5 * 60 * 1000
+		);
 	}
 }
