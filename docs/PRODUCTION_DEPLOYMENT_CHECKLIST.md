@@ -217,7 +217,7 @@ This comprehensive checklist ensures secure and reliable deployment of Dispatch 
 
 - [ ] **Maintenance mode**: Enable maintenance mode during deployment
 - [ ] **Service dependencies**: Verify all required services are running
-- [ ] **Database migration**: Run and verify database migrations
+- [ ] **Database verification**: Verify database schema and connectivity
 - [ ] **Configuration deployment**: Deploy production configuration
 - [ ] **Environment validation**: Verify all environment variables are set
 

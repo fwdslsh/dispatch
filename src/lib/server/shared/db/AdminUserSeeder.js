@@ -18,7 +18,7 @@ export class AdminUserSeeder {
 
 	/**
 	 * Create initial admin user based on existing TERMINAL_KEY
-	 * This provides a migration path from key-based to user-based auth
+	 * This provides backward compatibility for key-based authentication
 	 */
 	async createInitialAdmin(options = {}) {
 		const {
@@ -191,11 +191,11 @@ export class AdminUserSeeder {
 				return null;
 			}
 
-			// For migration period: check if password is the raw terminal key
+			// Backward compatibility: check if password is the raw terminal key
 			const terminalKey = process.env.TERMINAL_KEY || 'change-me';
 			if (password === terminalKey && user.passwordHash === terminalKey) {
-				// Legacy terminal key login - should be migrated
-				logger.warn('SEEDER', `Admin using legacy terminal key login: ${username}`);
+				// Legacy terminal key login - backward compatibility
+				logger.warn('SEEDER', `Admin using terminal key authentication: ${username}`);
 				return user;
 			}
 
@@ -265,22 +265,11 @@ export class AdminUserSeeder {
 			// Revoke all sessions to force re-login
 			await this.daos.authSessions.revokeAllForUser(user.id);
 
-			logger.info('SEEDER', `Migrated admin '${username}' from terminal key to password auth`);
-
-			// Log the migration event
-			await this.daos.authEvents.create({
-				userId: user.id,
-				eventType: 'auth_migrated',
-				details: {
-					from: 'terminal_key',
-					to: 'password',
-					username: user.username
-				}
-			});
+			logger.info('SEEDER', `Updated admin '${username}' password authentication`);
 
 			return user;
 		} catch (error) {
-			logger.error('SEEDER', `Failed to migrate from terminal key: ${error.message}`);
+			logger.error('SEEDER', `Failed to update admin password: ${error.message}`);
 			throw error;
 		}
 	}
