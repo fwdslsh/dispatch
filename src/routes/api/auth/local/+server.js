@@ -10,11 +10,17 @@ import { logger } from '$lib/server/shared/utils/logger.js';
 
 export async function POST({ request, cookies, url }) {
 	try {
-		const db = new DatabaseManager();
-		await db.init();
+		console.log('AUTH_LOCAL_API: Starting local authentication request');
+		// Use global services instead of creating new instances
+		const authManager = globalThis.__API_SERVICES?.authManager;
+		const db = globalThis.__API_SERVICES?.database;
 
-		const authManager = new AuthManager(db);
+		if (!authManager || !db) {
+			console.log('AUTH_LOCAL_API: Services unavailable');
+			return json({ success: false, error: 'Authentication services unavailable' }, { status: 503 });
+		}
 		const body = await request.json();
+		console.log('AUTH_LOCAL_API: Request body:', JSON.stringify(body));
 		const { accessCode, returnTo = '/' } = body;
 
 		// Validate input
@@ -29,8 +35,8 @@ export async function POST({ request, cookies, url }) {
 		}
 
 		// Check if local authentication is enabled
-		const settings = await db.settings.getByCategory('auth');
-		const localEnabled = settings.find((s) => s.key === 'local_enabled')?.value === 'true';
+		const settings = await db.getSettingsByCategory('auth');
+		const localEnabled = settings?.enabled_methods?.includes('local') || false;
 
 		if (!localEnabled) {
 			return json(
@@ -49,7 +55,7 @@ export async function POST({ request, cookies, url }) {
 		// Authenticate using local adapter
 		const authResult = await authManager.authenticate('local', {
 			accessCode,
-			clientIp,
+			ipAddress: clientIp,
 			userAgent: request.headers.get('user-agent') || 'unknown'
 		});
 

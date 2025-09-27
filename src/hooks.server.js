@@ -16,7 +16,9 @@ async function getServices() {
 		const services = await initializeServices();
 		// Store at process level to survive module reloads
 		globalThis[SERVICES_KEY] = services;
-		logger.info('HOOKS_SERVER', 'Services initialized successfully');
+		// CRITICAL: Expose services for API routes
+		globalThis.__API_SERVICES = services;
+		logger.info('HOOKS_SERVER', 'Services initialized and globally exposed');
 		return services;
 	} catch (error) {
 		logger.error('HOOKS_SERVER', 'Critical error during service initialization:', error);

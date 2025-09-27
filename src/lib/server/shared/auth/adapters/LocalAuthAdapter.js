@@ -12,13 +12,20 @@ export class LocalAuthAdapter {
 	}
 
 	/**
-	 * Authenticate user with username and password
+	 * Authenticate user with username and password or access code
 	 */
 	async authenticate(credentials) {
 		try {
-			const { username, password } = credentials;
+			logger.info('LOCAL_AUTH', `Authenticate called with credentials: ${JSON.stringify(credentials)}`);
+			const { username, password, accessCode } = credentials;
 
-			// Validate required fields
+			// Handle access code authentication (simple terminal key)
+			if (accessCode) {
+				logger.info('LOCAL_AUTH', `Using access code authentication with code: ${accessCode}`);
+				return await this.authenticateWithAccessCode(accessCode);
+			}
+
+			// Handle username/password authentication
 			if (!username || !password) {
 				return {
 					success: false,
@@ -364,5 +371,67 @@ export class LocalAuthAdapter {
 				placeholder: 'Enter your password'
 			}
 		];
+	}
+
+	/**
+	 * Authenticate with access code (terminal key)
+	 */
+	async authenticateWithAccessCode(accessCode) {
+		try {
+			// Get terminal key from environment
+			const terminalKey = process.env.TERMINAL_KEY || 'change-me';
+
+			// Check if access code matches terminal key
+			if (accessCode !== terminalKey) {
+				return {
+					success: false,
+					error: 'Invalid access code',
+					reason: 'invalid_access_code'
+				};
+			}
+
+			// For access code authentication, return the admin user
+			// This is a simplified approach - in a more complex setup,
+			// you might have different access codes for different users
+			const adminUser = await this.daos.users.getByUsername('admin');
+			if (!adminUser) {
+				return {
+					success: false,
+					error: 'Admin user not found',
+					reason: 'user_not_found'
+				};
+			}
+
+			// Check if admin user is active
+			if (!adminUser.isActive) {
+				return {
+					success: false,
+					error: 'Admin account is disabled',
+					reason: 'account_disabled'
+				};
+			}
+
+			logger.info('LOCAL_AUTH', `Access code authentication successful for admin user`);
+
+			return {
+				success: true,
+				user: {
+					id: adminUser.id,
+					username: adminUser.username,
+					displayName: adminUser.displayName,
+					email: adminUser.email,
+					isAdmin: adminUser.isAdmin,
+					isActive: adminUser.isActive
+				},
+				authMethod: 'access_code'
+			};
+		} catch (error) {
+			logger.error('LOCAL_AUTH', `Access code authentication error: ${error.message}`);
+			return {
+				success: false,
+				error: 'Authentication failed',
+				reason: 'auth_error'
+			};
+		}
 	}
 }

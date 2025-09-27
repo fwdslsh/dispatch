@@ -134,12 +134,12 @@ export class OAuthManager {
 	async getOAuthConfig() {
 		try {
 			const settings = await this.db.getSettingsByCategory('auth');
-			return (
-				settings.oauth_providers || {
-					google: { enabled: false },
-					github: { enabled: false }
-				}
-			);
+
+			// Return OAuth providers from settings, with defaults if not present
+			return settings?.oauth_providers || {
+				google: { enabled: false },
+				github: { enabled: false }
+			};
 		} catch (error) {
 			logger.error('OAUTH', `Failed to get OAuth config: ${error.message}`);
 			return {

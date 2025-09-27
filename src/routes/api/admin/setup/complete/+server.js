@@ -5,6 +5,33 @@
 import { json } from '@sveltejs/kit';
 
 /** @type {import('./$types').RequestHandler} */
+export async function GET() {
+	try {
+		// Check if setup is complete
+		const authManager = globalThis.__API_SERVICES?.authManager;
+		if (!authManager) {
+			return json({ success: false, error: 'Auth service unavailable' }, { status: 503 });
+		}
+
+		// Check if any admin users exist by using the database directly
+		const db = globalThis.__API_SERVICES?.database;
+		const users = await db.all('SELECT * FROM users WHERE is_admin = 1');
+		const adminUsers = users;
+
+		return json({
+			success: true,
+			setupComplete: adminUsers.length > 0
+		});
+	} catch (error) {
+		return json({
+			success: false,
+			error: 'Failed to check setup status',
+			setupComplete: false
+		});
+	}
+}
+
+/** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
 	try {
 		const body = await request.json();

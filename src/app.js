@@ -79,6 +79,9 @@ initializeDirectories()
 
 		console.log('[APP] Server services initialized');
 
+		// CRITICAL: Expose services globally for API routes
+		globalThis.__API_SERVICES = services;
+
 		// Create HTTP server with SvelteKit handler
 		const server = http.createServer(handler);
 

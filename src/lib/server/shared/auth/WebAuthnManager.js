@@ -22,8 +22,9 @@ export class WebAuthnManager {
 	 */
 	async getWebAuthnConfig(hostname, isHttps) {
 		try {
-			const securitySettings = await this.db.getSettingsByCategory('security');
-			const authSettings = await this.db.getSettingsByCategory('auth');
+			// Get settings from database - return empty array if none found
+			const securitySettings = await this.db.getSettingsByCategory('security') || [];
+			const authSettings = await this.db.getSettingsByCategory('auth') || [];
 
 			// rpID must match hostname for WebAuthn to work
 			const rpId = this.validateRpId(hostname);

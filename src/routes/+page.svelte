@@ -1,76 +1,46 @@
 <script>
 	import { goto } from '$app/navigation';
-	import PublicUrlDisplay from '$lib/client/shared/components/PublicUrlDisplay.svelte';
-	import ErrorDisplay from '$lib/client/shared/components/ErrorDisplay.svelte';
 	import { onMount } from 'svelte';
-	import Button from '$lib/client/shared/components/Button.svelte';
-	import Input from '$lib/client/shared/components/Input.svelte';
-	let key = $state('');
-	let error = $state('');
-	let loading = $state(false);
+	import PublicUrlDisplay from '$lib/client/shared/components/PublicUrlDisplay.svelte';
+	import AuthLoginModal from '$lib/client/shared/components/AuthLoginModal.svelte';
 
-	// PWA state
-	let isPWA = $state(false);
-	let currentUrl = $state('');
-	let urlInput = $state('');
+	let showAuth = $state(true);
+	let loading = $state(true);
+	let needsSetup = $state(false);
 
 	onMount(async () => {
-		// Detect if running as PWA
-		isPWA =
-			window.matchMedia('(display-mode: standalone)').matches ||
-			/** @type {any} */ (window.navigator).standalone === true ||
-			document.referrer.includes('android-app://');
-
-		// Initialize current URL and input
-		currentUrl = window.location.href;
-		urlInput = currentUrl;
-
-		// Check if already authenticated via HTTP (more robust than socket for login)
-		const storedKey = localStorage.getItem('dispatch-auth-key');
-		if (storedKey) {
-			try {
-				const r = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
-				if (r.ok) {
+		try {
+			// Check if user is already authenticated
+			const authResponse = await fetch('/api/auth/status');
+			if (authResponse.ok) {
+				const authData = await authResponse.json();
+				if (authData.authenticated) {
 					goto('/workspace');
-				} else {
-					localStorage.removeItem('dispatch-auth-key');
+					return;
 				}
-			} catch {
-				// Ignore; user can try manual login
 			}
-			return;
+
+			// Check if setup is needed
+			const setupResponse = await fetch('/api/admin/setup/complete');
+			const setupData = await setupResponse.json();
+			if (!setupData.setupComplete) {
+				goto('/setup');
+				return;
+			}
+
+		} catch (err) {
+			console.error('Auth check failed:', err);
+		} finally {
+			loading = false;
 		}
 	});
 
-	async function handleLogin(e) {
-		e.preventDefault();
+	function handleAuthSuccess() {
+		goto('/workspace');
+	}
 
-		// In PWA mode, check if URL needs to be changed first
-		if (isPWA && urlInput && urlInput !== currentUrl) {
-			window.location.href = urlInput;
-			return;
-		}
-
-		loading = true;
-		error = '';
-		try {
-			const r = await fetch('/api/auth/check', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ key })
-			});
-			loading = false;
-			if (r.ok) {
-				localStorage.setItem('dispatch-auth-key', key);
-				goto('/workspace');
-			} else {
-				const j = await r.json().catch(() => ({}));
-				error = j?.error || 'Invalid key';
-			}
-		} catch {
-			loading = false;
-			error = 'Unable to reach server';
-		}
+	function handleAuthError(event) {
+		console.error('Authentication failed:', event.detail);
 	}
 </script>
 
@@ -78,43 +48,27 @@
 	<title>dispatch</title>
 </svelte:head>
 
-<main class="login-container">
-	<div class="container">
-		<div class="login-content">
-			<h1 class="glow">dispatch</h1>
-			<p>terminal access via web</p>
-
-			<div class="card aug" data-augmented-ui="tl-clip br-clip both">
-				<form onsubmit={handleLogin}>
-					{#if isPWA}
-						<Input
-							bind:value={urlInput}
-							type="url"
-							placeholder="server URL"
-							required
-							disabled={loading}
-						/>
-					{/if}
-					<Input
-						bind:value={key}
-						type="password"
-						placeholder="terminal key"
-						required
-						disabled={loading}
-					/>
-					<Button class="button primary aug" type="submit" disabled={loading}>
-						{loading ? 'connecting...' : 'connect'}
-					</Button>
-				</form>
+{#if loading}
+	<main class="login-container">
+		<div class="loading">Loading dispatch...</div>
+	</main>
+{:else}
+	<main class="login-container">
+		<div class="container">
+			<div class="login-content">
+				<h1 class="glow">dispatch</h1>
+				<p>terminal access via web</p>
+				<PublicUrlDisplay />
 			</div>
-
-			<PublicUrlDisplay />
-			{#if error}
-				<ErrorDisplay {error} />
-			{/if}
 		</div>
-	</div>
-</main>
+	</main>
+
+	<AuthLoginModal
+		bind:open={showAuth}
+		onsuccess={handleAuthSuccess}
+		onerror={handleAuthError}
+	/>
+{/if}
 
 <style>
 	.login-container {
@@ -326,131 +280,13 @@
 		}
 	}
 
-	/* Enhanced form card */
-	.card {
-		position: relative;
-		background: color-mix(in oklab, var(--surface) 90%, transparent);
-		backdrop-filter: blur(12px);
-		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: 8px;
-		padding: var(--space-6);
-		animation: cardMaterialize 1s ease-out 0.6s forwards;
-		opacity: 0;
-		transform: translateY(30px) scale(0.9);
-		box-shadow:
-			0 8px 32px color-mix(in oklab, var(--bg) 80%, transparent),
-			0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent),
-			inset 0 1px 0 color-mix(in oklab, var(--primary) 5%, transparent);
-		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-	}
-
-	.card::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 3%, transparent) 0%,
-			transparent 50%,
-			color-mix(in oklab, var(--accent-cyan) 2%, transparent) 100%
-		);
-		border-radius: inherit;
-		pointer-events: none;
-		opacity: 0;
-		transition: opacity 0.3s ease;
-	}
-
-	.card:hover::before {
-		opacity: 1;
-	}
-
-	.card:hover {
-		transform: translateY(-2px) scale(1.01);
-		border-color: color-mix(in oklab, var(--primary) 30%, transparent);
-		box-shadow:
-			0 12px 48px color-mix(in oklab, var(--bg) 70%, transparent),
-			0 0 0 1px color-mix(in oklab, var(--primary) 20%, transparent),
-			0 0 20px color-mix(in oklab, var(--primary) 15%, transparent),
-			inset 0 1px 0 color-mix(in oklab, var(--primary) 8%, transparent);
-	}
-
-	@keyframes cardMaterialize {
-		0% {
-			opacity: 0;
-			transform: translateY(30px) scale(0.9);
-		}
-		100% {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
-	}
-
-	form {
+	.loading {
 		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
 		align-items: center;
-		min-width: 320px;
-		position: relative;
+		justify-content: center;
+		font-size: var(--font-size-3);
+		color: var(--muted);
 	}
-
-	/* Enhanced form animations */
-	form :global(.input-group) {
-		animation: inputSlideIn 0.6s ease-out forwards;
-		opacity: 0;
-		transform: translateX(-20px);
-	}
-
-	form :global(.input-group:nth-child(1)) {
-		animation-delay: 0.8s;
-	}
-
-	form :global(.input-group:nth-child(2)) {
-		animation-delay: 1s;
-	}
-
-	@keyframes inputSlideIn {
-		to {
-			opacity: 1;
-			transform: translateX(0);
-		}
-	}
-
-	form :global(button) {
-		width: 100%;
-		animation: buttonMaterialize 0.8s ease-out 1.2s forwards;
-		opacity: 0;
-		transform: translateY(20px) scale(0.9);
-		position: relative;
-		overflow: hidden;
-	}
-
-	@keyframes buttonMaterialize {
-		to {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
-	}
-
-	/* Enhanced button hover effects */
-	/* form :global(button:hover) {
-		animation: buttonPulse 0.6s ease-in-out;
-	}
-
-	@keyframes buttonPulse {
-		0%, 100% {
-			transform: scale(1);
-			opacity: 1;
-		}
-		50% {
-			transform: scale(1.02);
-			opacity: 1;
-		}
-	}
- */
 	/* Floating particles effect */
 	.login-content::before {
 		content: '';

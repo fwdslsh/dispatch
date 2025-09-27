@@ -13,26 +13,35 @@ import { logger } from '$lib/server/shared/utils/logger.js';
 
 export async function GET({ request, url }) {
 	try {
-		const db = new DatabaseManager();
-		await db.init();
+		// Use global services instead of creating new instances
+		const authManager = globalThis.__API_SERVICES?.authManager;
+		const oauthManager = globalThis.__API_SERVICES?.oauthManager;
 
-		const baseUrl = `${url.protocol}//${url.host}`;
-		const authManager = new AuthManager(db);
-		const oauthManager = new OAuthManager(db, baseUrl);
+		if (!authManager || !oauthManager) {
+			return json({ success: false, error: 'Authentication services unavailable' }, { status: 503 });
+		}
+
+		// Get WebAuthn manager from database since it's not in global services
+		const db = globalThis.__API_SERVICES?.database;
 		const webauthnManager = new WebAuthnManager(db);
+
+		// Get authentication configuration
+		const authConfig = await authManager.getAuthConfig();
 
 		// Get OAuth configuration
 		const oauthConfig = await oauthManager.getOAuthConfig();
 		const enabledOAuthProviders = await oauthManager.getEnabledProviders();
 
-		// Get WebAuthn configuration
-		const webauthnConfig = await webauthnManager.getWebAuthnConfig();
+		// Get security context
 		const isSecure =
 			url.protocol === 'https:' || url.hostname === 'localhost' || url.hostname === '127.0.0.1';
 
+		// Get WebAuthn configuration
+		const webauthnConfig = await webauthnManager.getWebAuthnConfig(url.hostname, isSecure);
+
 		// Get local authentication settings
-		const settings = await db.settings.getByCategory('auth');
-		const localAuthEnabled = settings.find((s) => s.key === 'local_enabled')?.value === 'true';
+		const settings = await db.getSettingsByCategory('auth');
+		const localAuthEnabled = settings?.enabled_methods?.includes('local') || false;
 
 		// Check authentication method availability
 		const authMethods = {
@@ -81,7 +90,7 @@ export async function GET({ request, url }) {
 			isSecure,
 			hostname: url.hostname,
 			protocol: url.protocol,
-			baseUrl,
+			baseUrl: `${url.protocol}//${url.host}`,
 			isTunnel: url.hostname.includes('localtunnel.me') || url.hostname.includes('ngrok.io')
 		};
 

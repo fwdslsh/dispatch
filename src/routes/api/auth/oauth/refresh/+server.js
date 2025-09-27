@@ -191,7 +191,7 @@ async function refreshGitHubTokens(account, baseUrl) {
 /**
  * Check if account tokens need refreshing
  */
-export async function needsRefresh(account) {
+async function needsRefresh(account) {
 	if (!account.tokenExpiresAt) {
 		return false; // No expiration time set
 	}
@@ -204,7 +204,7 @@ export async function needsRefresh(account) {
 /**
  * Auto-refresh expired tokens (can be called by a background job)
  */
-export async function autoRefreshExpiredTokens() {
+async function autoRefreshExpiredTokens() {
 	try {
 		const db = new DatabaseManager();
 		await db.init();

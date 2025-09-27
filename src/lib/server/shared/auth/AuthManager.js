@@ -135,8 +135,10 @@ export class AuthManager {
 	 */
 	async authenticate(method, credentials) {
 		try {
+			logger.info('AUTH', `Authenticate called with method: ${method}, credentials: ${JSON.stringify(credentials)}`);
 			// Check if authentication method is enabled
 			const config = await this.getAuthConfig();
+			logger.info('AUTH', `Auth config: ${JSON.stringify(config)}`);
 			if (!config.enabled_methods.includes(method)) {
 				return {
 					success: false,
