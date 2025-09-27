@@ -66,7 +66,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install VS Code CLI for Remote Tunnel functionality
-RUN curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64' --output vscode_cli.tar.gz \
+RUN curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' --output vscode_cli.tar.gz \
     && tar -xf vscode_cli.tar.gz \
     && mv code /usr/local/bin/ \
     && rm vscode_cli.tar.gz \
