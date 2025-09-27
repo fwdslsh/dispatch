@@ -27,6 +27,7 @@ RUN npm run build
 FROM node:22-bookworm-slim
 
 # Install required packages including gosu for user switching and SSH daemon
+# Install required packages including gosu for user switching and VS Code CLI
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        tree jq yq build-essential \
@@ -35,6 +36,7 @@ RUN apt-get update \
        git gh \
        gosu \
        openssh-server \
+       curl \
        # Dependencies for Playwright browsers
        libnss3 \
        libnspr4 \
@@ -67,6 +69,13 @@ RUN mkdir -p /var/run/sshd /etc/ssh/keys \
     && sed -i 's/#AuthorizedKeysFile/AuthorizedKeysFile/' /etc/ssh/sshd_config \
     && echo 'AuthorizedKeysFile /etc/ssh/keys/%u_authorized_keys' >> /etc/ssh/sshd_config \
     && echo 'Port 2222' >> /etc/ssh/sshd_config
+
+# Install VS Code CLI for Remote Tunnel functionality
+RUN curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-linux-x64' --output vscode_cli.tar.gz \
+    && tar -xf vscode_cli.tar.gz \
+    && mv code /usr/local/bin/ \
+    && rm vscode_cli.tar.gz \
+    && chmod +x /usr/local/bin/code
 
 # Set environment variables
 ARG USER_UID=1000

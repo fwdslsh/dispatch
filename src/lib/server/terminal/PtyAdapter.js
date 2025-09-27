@@ -50,8 +50,11 @@ export class PtyAdapter {
 			// Working directory
 			cwd: expandedCwd,
 
-			// Environment variables
-			env: options.env ? { ...process.env, ...options.env } : process.env,
+			// Environment variables with workspace environment variables merged
+			// Precedence: system env (process.env) → workspace env → session-specific env
+			env: options.env
+				? { ...process.env, ...options.workspaceEnv, ...options.env }
+				: { ...process.env, ...options.workspaceEnv },
 
 			// Terminal dimensions
 			cols: options.cols || 80,

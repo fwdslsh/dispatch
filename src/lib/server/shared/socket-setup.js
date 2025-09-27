@@ -88,6 +88,9 @@ export function setupSocketIO(httpServer, services) {
 	if (services.tunnelManager) {
 		services.tunnelManager.setSocketIO(io);
 	}
+	if (services.vscodeManager) {
+		services.vscodeManager.setSocketIO(io);
+	}
 
 	const { runSessionManager, authManager } = services;
 
@@ -347,6 +350,92 @@ export function setupSocketIO(httpServer, services) {
 			}
 			// Broadcast status to all connected clients
 			io.emit('tunnel.status', status);
+		});
+
+		// VS Code Tunnel control handlers
+		socket.on('vscode.tunnel.status', (callback) => {
+			logger.debug('SOCKET', 'vscode.tunnel.status handler called');
+			try {
+				const vscodeManager = services.vscodeManager;
+				if (!vscodeManager) {
+					logger.warn('SOCKET', 'VS Code tunnel manager not available');
+					if (callback) callback({ success: false, error: 'VS Code tunnel manager not available' });
+					return;
+				}
+				const status = vscodeManager.getStatus();
+				if (callback) {
+					callback({ success: true, status });
+				}
+			} catch (error) {
+				logger.error('SOCKET', 'Error handling vscode.tunnel.status:', error);
+				if (callback) {
+					callback({ success: false, error: error.message });
+				}
+			}
+		});
+
+		socket.on('vscode.tunnel.start', async (data, callback) => {
+			if (!socket.data.authenticated) {
+				logger.warn('SOCKET', `Unauthenticated vscode.tunnel.start from ${socket.id}`);
+				if (callback) callback({ success: false, error: 'Unauthorized' });
+				return;
+			}
+
+			logger.info('SOCKET', `VS Code tunnel start requested by socket ${socket.id} with data:`, data);
+			const vscodeManager = services.vscodeManager;
+			if (!vscodeManager) {
+				logger.warn('SOCKET', 'VS Code tunnel manager not available');
+				if (callback) callback({ success: false, error: 'VS Code tunnel manager not available' });
+				return;
+			}
+
+			try {
+				const state = await vscodeManager.startTunnel({
+					name: data?.name,
+					folder: data?.folder,
+					extra: data?.extra
+				});
+				logger.info('SOCKET', 'VS Code tunnel start successful:', state);
+				if (callback) {
+					callback({ success: true, state });
+				}
+				// Status will be broadcast by the VSCodeTunnelManager itself
+			} catch (error) {
+				logger.error('SOCKET', 'Error starting VS Code tunnel:', error);
+				if (callback) {
+					callback({ success: false, error: error.message });
+				}
+			}
+		});
+
+		socket.on('vscode.tunnel.stop', async (data, callback) => {
+			if (!socket.data.authenticated) {
+				logger.warn('SOCKET', `Unauthenticated vscode.tunnel.stop from ${socket.id}`);
+				if (callback) callback({ success: false, error: 'Unauthorized' });
+				return;
+			}
+
+			logger.info('SOCKET', `VS Code tunnel stop requested by socket ${socket.id}`);
+			const vscodeManager = services.vscodeManager;
+			if (!vscodeManager) {
+				logger.warn('SOCKET', 'VS Code tunnel manager not available');
+				if (callback) callback({ success: false, error: 'VS Code tunnel manager not available' });
+				return;
+			}
+
+			try {
+				const success = await vscodeManager.stopTunnel();
+				logger.info('SOCKET', `VS Code tunnel stop result: ${success}`);
+				if (callback) {
+					callback({ success });
+				}
+				// Status will be broadcast by the VSCodeTunnelManager itself
+			} catch (error) {
+				logger.error('SOCKET', 'Error stopping VS Code tunnel:', error);
+				if (callback) {
+					callback({ success: false, error: error.message });
+				}
+			}
 		});
 
 		socket.on('disconnect', () => {

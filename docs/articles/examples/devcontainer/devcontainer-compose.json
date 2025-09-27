@@ -1,0 +1,39 @@
+{
+	"name": "Dispatch with Docker Compose",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "dispatch",
+	"workspaceFolder": "/workspace",
+
+	// Port forwarding
+	"forwardPorts": [3030],
+	"portsAttributes": {
+		"3030": {
+			"label": "Dispatch Web Interface",
+			"onAutoForward": "notify"
+		}
+	},
+
+	// Run as non-root user
+	"remoteUser": "dispatch",
+
+	// VSCode settings
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.shell.linux": "/bin/bash",
+				"terminal.integrated.cwd": "/workspace"
+			},
+			"extensions": [
+				"ms-vscode.vscode-typescript-next",
+				"svelte.svelte-vscode",
+				"esbenp.prettier-vscode"
+			]
+		}
+	},
+
+	// Container lifecycle
+	"postCreateCommand": "echo 'Dispatch devcontainer ready! Access at http://localhost:3030'",
+
+	// Shutdown action
+	"shutdownAction": "stopCompose"
+}

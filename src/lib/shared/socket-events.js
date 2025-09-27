@@ -38,5 +38,11 @@ export const SOCKET_EVENTS = {
 	TUNNEL_ENABLE: 'tunnel.enable',
 	TUNNEL_DISABLE: 'tunnel.disable',
 	TUNNEL_STATUS: 'tunnel.status',
-	TUNNEL_UPDATE_CONFIG: 'tunnel.updateConfig'
+	TUNNEL_UPDATE_CONFIG: 'tunnel.updateConfig',
+
+	// VS Code tunnel events
+	VSCODE_TUNNEL_START: 'vscode.tunnel.start',
+	VSCODE_TUNNEL_STOP: 'vscode.tunnel.stop',
+	VSCODE_TUNNEL_STATUS: 'vscode.tunnel.status',
+	VSCODE_TUNNEL_LOGIN_URL: 'vscode.tunnel.login-url'
 };

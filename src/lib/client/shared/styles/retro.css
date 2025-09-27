@@ -26,11 +26,6 @@ body {
 	line-height: 1.45;
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
-	/* Prevent horizontal scrolling due to overflowing children on mobile */
-	overflow-x: hidden;
-	/* Prevent pull-to-refresh on mobile */
-	overscroll-behavior-y: none;
-	overscroll-behavior: none;
 }
 
 /* Media and embeds should never overflow the viewport */

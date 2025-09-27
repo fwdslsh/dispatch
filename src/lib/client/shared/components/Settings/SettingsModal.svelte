@@ -5,7 +5,9 @@
 	import ClaudeDefaults from './ClaudeDefaults.svelte';
 	import StorageSettings from './StorageSettings.svelte';
 	import TunnelControl from './TunnelControl.svelte';
+	import VSCodeTunnelControl from './VSCodeTunnelControl.svelte';
 	import HomeDirectoryManager from './HomeDirectoryManager.svelte';
+	import WorkspaceEnvSettings from './WorkspaceEnvSettings.svelte';
 	import IconSettings from '../Icons/IconSettings.svelte';
 	import IconCloud from '../Icons/IconCloud.svelte';
 	import IconRobot from '../Icons/IconRobot.svelte';
@@ -26,8 +28,15 @@
 	// Available settings tabs
 	const tabs = [
 		{ id: 'global', label: 'Global', icon: IconSettings, component: GlobalSettings },
+		{
+			id: 'workspace-env',
+			label: 'Environment',
+			icon: IconFolder,
+			component: WorkspaceEnvSettings
+		},
 		{ id: 'home', label: 'Home Directory', icon: IconUser, component: HomeDirectoryManager },
 		{ id: 'tunnel', label: 'Tunnel', icon: IconCloud, component: TunnelControl },
+		{ id: 'vscode-tunnel', label: 'VS Code Tunnel', icon: IconCloud, component: VSCodeTunnelControl },
 		{ id: 'claude-auth', label: 'Claude Auth', icon: IconCloud, component: ClaudeAuth },
 		{ id: 'claude-defaults', label: 'Claude Defaults', icon: IconRobot, component: ClaudeDefaults },
 		{ id: 'storage', label: 'Storage', icon: IconTrash, component: StorageSettings }
