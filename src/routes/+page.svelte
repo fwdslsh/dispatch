@@ -5,9 +5,17 @@
 	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
-	let key = $state('');
+	import LoadingSpinner from '$lib/client/shared/components/LoadingSpinner.svelte';
+	import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
+	
 	let error = $state('');
 	let loading = $state(false);
+	let authMethod = $state('webauthn'); // 'webauthn', 'oauth'
+	let setupRequired = $state(false);
+	let setupData = $state({
+		username: '',
+		email: ''
+	});
 
 	// PWA state
 	let isPWA = $state(false);
@@ -25,27 +33,49 @@
 		currentUrl = window.location.href;
 		urlInput = currentUrl;
 
-		// Check if already authenticated via HTTP (more robust than socket for login)
-		const storedKey = localStorage.getItem('dispatch-auth-key');
-		if (storedKey) {
+		// Check if setup is required
+		try {
+			const setupResponse = await fetch('/api/auth/setup');
+			if (setupResponse.ok) {
+				const setupData = await setupResponse.json();
+				if (setupData.isFirstUser) {
+					setupRequired = true;
+					return;
+				}
+			}
+		} catch {
+			// Continue with normal login flow
+		}
+
+		// Check if already authenticated
+		const authToken = getCookie('dispatch-auth-token');
+		if (authToken) {
 			try {
-				const r = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
+				const r = await fetch('/api/auth/check', {
+					headers: {
+						'Authorization': `Bearer ${authToken}`
+					}
+				});
 				if (r.ok) {
 					goto('/workspace');
 				} else {
-					localStorage.removeItem('dispatch-auth-key');
+					// Clear invalid token
+					document.cookie = 'dispatch-auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
 				}
 			} catch {
-				// Ignore; user can try manual login
+				// Ignore; user can try login
 			}
-			return;
 		}
 	});
 
-	async function handleLogin(e) {
-		e.preventDefault();
+	function getCookie(name) {
+		const value = `; ${document.cookie}`;
+		const parts = value.split(`; ${name}=`);
+		if (parts.length === 2) return parts.pop().split(';').shift();
+		return null;
+	}
 
-		// In PWA mode, check if URL needs to be changed first
+	async function handleWebAuthnLogin() {
 		if (isPWA && urlInput && urlInput !== currentUrl) {
 			window.location.href = urlInput;
 			return;
@@ -53,172 +83,342 @@
 
 		loading = true;
 		error = '';
+
 		try {
-			const r = await fetch('/api/auth/check', {
+			// Get authentication options
+			const optionsResponse = await fetch('/api/auth/webauthn/authenticate/options', {
 				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ key })
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({})
 			});
-			loading = false;
-			if (r.ok) {
-				localStorage.setItem('dispatch-auth-key', key);
-				goto('/workspace');
-			} else {
-				const j = await r.json().catch(() => ({}));
-				error = j?.error || 'Invalid key';
+
+			if (!optionsResponse.ok) {
+				throw new Error('Failed to get authentication options');
 			}
-		} catch {
+
+			const options = await optionsResponse.json();
+
+			// Start WebAuthn authentication
+			const authResponse = await startAuthentication(options);
+
+			// Verify authentication
+			const verifyResponse = await fetch('/api/auth/webauthn/authenticate/verify', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					challengeId: options.challengeId,
+					response: authResponse
+				})
+			});
+
+			if (!verifyResponse.ok) {
+				const errorData = await verifyResponse.json();
+				throw new Error(errorData.error || 'Authentication failed');
+			}
+
+			// Success - redirect to workspace
+			goto('/workspace');
+		} catch (err) {
+			error = err.message || 'WebAuthn authentication failed';
+		} finally {
 			loading = false;
-			error = 'Unable to reach server';
+		}
+	}
+
+	async function handleWebAuthnSetup() {
+		if (!setupData.username.trim()) {
+			error = 'Username is required';
+			return;
+		}
+
+		loading = true;
+		error = '';
+
+		try {
+			// Get registration options
+			const optionsResponse = await fetch('/api/auth/webauthn/register/options', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					username: setupData.username,
+					userDisplayName: setupData.username
+				})
+			});
+
+			if (!optionsResponse.ok) {
+				throw new Error('Failed to get registration options');
+			}
+
+			const options = await optionsResponse.json();
+
+			// Start WebAuthn registration
+			const regResponse = await startRegistration(options);
+
+			// Verify registration
+			const verifyResponse = await fetch('/api/auth/webauthn/register/verify', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					challengeId: options.challengeId,
+					response: regResponse,
+					credentialName: 'Primary WebAuthn Credential',
+					userData: setupData
+				})
+			});
+
+			if (!verifyResponse.ok) {
+				const errorData = await verifyResponse.json();
+				throw new Error(errorData.error || 'Registration failed');
+			}
+
+			// Success - redirect to workspace
+			goto('/workspace');
+		} catch (err) {
+			error = err.message || 'WebAuthn setup failed';
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function handleOAuthLogin(provider) {
+		if (isPWA && urlInput && urlInput !== currentUrl) {
+			window.location.href = urlInput;
+			return;
+		}
+
+		loading = true;
+		error = '';
+
+		try {
+			const response = await fetch('/api/auth/oauth', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ provider })
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || `${provider} OAuth not configured`);
+			}
+
+			const data = await response.json();
+			window.location.href = data.authUrl;
+		} catch (err) {
+			error = err.message;
+			loading = false;
 		}
 	}
 </script>
 
 <svelte:head>
 	<title>dispatch</title>
+	<meta name="description" content="Terminal access via web" />
 </svelte:head>
 
-<main class="login-container">
-	<div class="container">
-		<div class="login-content">
-			<h1 class="glow">dispatch</h1>
-			<p>terminal access via web</p>
+<div class="login-page">
+	<div class="background-effects">
+		<div class="grid-overlay"></div>
+		<div class="scan-line"></div>
+	</div>
 
-			<div class="card aug" data-augmented-ui="tl-clip br-clip both">
-				<form onsubmit={handleLogin}>
-					{#if isPWA}
-						<Input
-							bind:value={urlInput}
-							type="url"
-							placeholder="server URL"
-							required
-							disabled={loading}
-						/>
-					{/if}
-					<Input
-						bind:value={key}
-						type="password"
-						placeholder="terminal key"
-						required
+	<main class="login-content">
+		<div class="logo-section">
+			<h1>dispatch</h1>
+			<p>terminal access via web</p>
+		</div>
+
+		<div class="auth-section">
+			{#if isPWA}
+				<PublicUrlDisplay />
+				<div class="url-input-section">
+					<Input 
+						bind:value={urlInput}
+						placeholder="Enter server URL"
 						disabled={loading}
 					/>
-					<Button class="button primary aug" type="submit" disabled={loading}>
-						{loading ? 'connecting...' : 'connect'}
-					</Button>
-				</form>
-			</div>
+				</div>
+			{/if}
 
-			<PublicUrlDisplay />
 			{#if error}
 				<ErrorDisplay {error} />
 			{/if}
+
+			{#if setupRequired}
+				<!-- First User Setup -->
+				<div class="setup-form">
+					<h2>Welcome to Dispatch</h2>
+					<p class="setup-description">
+						Set up your admin account using WebAuthn for secure, phish-resistant authentication.
+					</p>
+
+					<div class="form-group">
+						<label for="username">Username</label>
+						<Input 
+							id="username"
+							bind:value={setupData.username}
+							placeholder="Your username"
+							disabled={loading}
+						/>
+					</div>
+
+					<div class="form-group">
+						<label for="email">Email (optional)</label>
+						<Input 
+							id="email"
+							bind:value={setupData.email}
+							placeholder="your@email.com"
+							type="email"
+							disabled={loading}
+						/>
+					</div>
+
+					<Button 
+						onclick={handleWebAuthnSetup}
+						variant="primary"
+						disabled={!setupData.username.trim() || loading}
+						loading={loading}
+						class="setup-button"
+					>
+						Set Up Admin Account
+					</Button>
+
+					<p class="webauthn-info">
+						WebAuthn uses your device's built-in security (fingerprint, face recognition, or security key) 
+						for secure authentication without passwords.
+					</p>
+				</div>
+			{:else}
+				<!-- Normal Login -->
+				<div class="auth-tabs">
+					<button 
+						class="tab-button" 
+						class:active={authMethod === 'webauthn'}
+						onclick={() => authMethod = 'webauthn'}
+					>
+						WebAuthn
+					</button>
+					<button 
+						class="tab-button" 
+						class:active={authMethod === 'oauth'}
+						onclick={() => authMethod = 'oauth'}
+					>
+						OAuth
+					</button>
+				</div>
+
+				<div class="auth-content">
+					{#if authMethod === 'webauthn'}
+						<div class="webauthn-section">
+							<div class="auth-method-info">
+								<h3>WebAuthn Login</h3>
+								<p>Use your device's built-in security for phish-resistant authentication.</p>
+							</div>
+
+							<Button 
+								onclick={handleWebAuthnLogin}
+								variant="primary"
+								disabled={loading}
+								loading={loading}
+								class="auth-button"
+							>
+								{#if loading}
+									<LoadingSpinner size="small" />
+									Authenticating...
+								{:else}
+									🔐 Sign in with WebAuthn
+								{/if}
+							</Button>
+
+							<p class="webauthn-help">
+								Click the button above and follow your device's prompts to authenticate 
+								using fingerprint, face recognition, or security key.
+							</p>
+						</div>
+					{:else if authMethod === 'oauth'}
+						<div class="oauth-section">
+							<div class="auth-method-info">
+								<h3>OAuth Login</h3>
+								<p>Sign in with your existing GitHub or Google account.</p>
+							</div>
+
+							<div class="oauth-buttons">
+								<Button 
+									onclick={() => handleOAuthLogin('github')}
+									variant="ghost"
+									disabled={loading}
+									class="oauth-button github"
+								>
+									<div class="oauth-content">
+										<img src="/icons/github.svg" alt="GitHub" width="20" height="20" />
+										<span>Continue with GitHub</span>
+									</div>
+								</Button>
+
+								<Button 
+									onclick={() => handleOAuthLogin('google')}
+									variant="ghost"
+									disabled={loading}
+									class="oauth-button google"
+								>
+									<div class="oauth-content">
+										<img src="/icons/google.svg" alt="Google" width="20" height="20" />
+										<span>Continue with Google</span>
+									</div>
+								</Button>
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/if}
 		</div>
-	</div>
-</main>
+
+		<div class="footer-section">
+			<p class="footer-note">
+				After logging in, visit <a href="/developer-ssh">Developer SSH Access</a> to set up terminal access.
+			</p>
+		</div>
+	</main>
+</div>
 
 <style>
-	.login-container {
+	.login-page {
+		min-height: 100vh;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 100vh;
 		position: relative;
+		background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
 		overflow: hidden;
-
-		/* Animated matrix background */
-		background:
-			linear-gradient(
-				135deg,
-				color-mix(in oklab, var(--bg) 95%, var(--primary) 5%) 0%,
-				var(--bg) 50%,
-				color-mix(in oklab, var(--bg) 98%, var(--accent-cyan) 2%) 100%
-			),
-			url('/bg.svg');
-		background-size:
-			100% 100%,
-			64px 64px;
-		background-position:
-			0 0,
-			0 0;
-		background-attachment: fixed, local;
-		animation: matrixFlow 120s linear infinite;
-
-		h1,
-		p {
-			margin: 0;
-		}
 	}
 
-	/* Subtle matrix flow animation */
-	@keyframes matrixFlow {
-		0% {
-			background-position:
-				0 0,
-				0 0;
-		}
-		100% {
-			background-position:
-				0 0,
-				-64px -64px;
-		}
-	}
-
-	/* Enhanced atmospheric overlay */
-	.login-container::before {
-		content: '';
+	.background-effects {
 		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background:
-			radial-gradient(
-				circle at 30% 20%,
-				color-mix(in oklab, var(--primary) 8%, transparent) 0%,
-				transparent 50%
-			),
-			radial-gradient(
-				circle at 70% 80%,
-				color-mix(in oklab, var(--accent-cyan) 6%, transparent) 0%,
-				transparent 50%
-			),
-			radial-gradient(
-				circle at 50% 50%,
-				color-mix(in oklab, var(--accent-amber) 4%, transparent) 0%,
-				transparent 60%
-			);
+		inset: 0;
 		pointer-events: none;
-		animation: atmosphericShift 40s ease-in-out infinite;
 	}
 
-	@keyframes atmosphericShift {
-		0%,
-		100% {
-			opacity: 0.6;
-			transform: scale(1);
-		}
-		33% {
-			opacity: 0.8;
-			transform: scale(1.02);
-		}
-		66% {
-			opacity: 0.4;
-			transform: scale(0.98);
-		}
-	}
-
-	/* Scanning line effect */
-	.login-container::after {
-		content: '';
+	.grid-overlay {
 		position: absolute;
-		top: 0;
-		left: -100%;
+		inset: 0;
+		background-image: 
+			linear-gradient(rgba(0, 255, 0, 0.03) 1px, transparent 1px),
+			linear-gradient(90deg, rgba(0, 255, 0, 0.03) 1px, transparent 1px);
+		background-size: 20px 20px;
+		animation: gridShift 20s ease-in-out infinite;
+	}
+
+	@keyframes gridShift {
+		0%, 100% { transform: translate(0, 0); }
+		50% { transform: translate(10px, 10px); }
+	}
+
+	.scan-line {
+		position: absolute;
 		width: 100%;
 		height: 2px;
 		background: linear-gradient(
 			90deg,
 			transparent 0%,
-			color-mix(in oklab, var(--primary) 5%, transparent) 20%,
 			color-mix(in oklab, var(--primary) 8%, transparent) 40%,
 			color-mix(in oklab, var(--accent-cyan) 6%, transparent) 60%,
 			color-mix(in oklab, var(--accent-cyan) 3%, transparent) 80%,
@@ -249,335 +449,217 @@
 		z-index: 2;
 		animation: contentAppear 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 		opacity: 0;
-		transform: translateY(20px) scale(0.95);
+		max-width: 420px;
+		width: 100%;
+		padding: 2rem 1rem;
 	}
 
 	@keyframes contentAppear {
-		0% {
+		from {
 			opacity: 0;
-			transform: translateY(20px) scale(0.95);
+			transform: translateY(30px);
 		}
-		100% {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
-	}
-
-	.login-content > * + * {
-		margin-top: var(--space-5);
-	}
-
-	/* Enhanced title styling */
-	.login-content h1 {
-		font-family: var(--font-accent);
-		font-size: clamp(2.5rem, 5vw, 4rem);
-		font-weight: 400;
-		background: linear-gradient(
-			135deg,
-			var(--primary) 0%,
-			var(--primary-bright) 50%,
-			var(--accent-cyan) 100%
-		);
-		background-clip: text;
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		text-shadow:
-			0 0 20px var(--primary-glow),
-			0 0 40px var(--primary-glow),
-			0 0 60px color-mix(in oklab, var(--primary) 20%, transparent);
-		animation: titlePulse 3s ease-in-out infinite;
-		letter-spacing: 0.05em;
-		position: relative;
-	}
-
-	@keyframes titlePulse {
-		0%,
-		100% {
-			filter: brightness(1);
-			text-shadow:
-				0 0 20px var(--primary-glow),
-				0 0 40px var(--primary-glow);
-		}
-		50% {
-			filter: brightness(1.1);
-			text-shadow:
-				0 0 25px var(--primary-glow),
-				0 0 50px var(--primary-glow),
-				0 0 75px color-mix(in oklab, var(--primary) 30%, transparent);
-		}
-	}
-
-	/* Enhanced subtitle */
-	.login-content p {
-		font-family: var(--font-mono);
-		font-size: var(--font-size-2);
-		color: var(--muted);
-		letter-spacing: 0.1em;
-		text-transform: lowercase;
-		opacity: 0.8;
-		animation: subtitleFade 1.5s ease-in-out 0.3s forwards;
-		transform: translateY(10px);
-	}
-
-	@keyframes subtitleFade {
 		to {
 			opacity: 1;
 			transform: translateY(0);
 		}
 	}
 
-	/* Enhanced form card */
-	.card {
-		position: relative;
-		background: color-mix(in oklab, var(--surface) 90%, transparent);
-		backdrop-filter: blur(12px);
-		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+	.logo-section {
+		margin-bottom: 3rem;
+	}
+
+	.logo-section h1 {
+		font-size: 3.5rem;
+		font-weight: 900;
+		background: linear-gradient(135deg, var(--primary) 0%, var(--accent-cyan) 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		margin-bottom: 0.5rem;
+		text-shadow: 0 0 30px color-mix(in oklab, var(--primary) 30%, transparent);
+		letter-spacing: -0.02em;
+	}
+
+	.logo-section p {
+		color: var(--text-muted);
+		font-size: 1.1rem;
+		font-weight: 300;
+		letter-spacing: 0.05em;
+	}
+
+	.auth-section {
+		background: var(--surface);
+		border: 1px solid var(--surface-border);
+		border-radius: 16px;
+		padding: 2rem;
+		backdrop-filter: blur(10px);
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+		margin-bottom: 2rem;
+	}
+
+	.setup-form h2 {
+		color: var(--primary);
+		margin-bottom: 1rem;
+		font-size: 1.5rem;
+	}
+
+	.setup-description {
+		color: var(--text-muted);
+		margin-bottom: 2rem;
+		line-height: 1.5;
+	}
+
+	.form-group {
+		margin-bottom: 1.5rem;
+		text-align: left;
+	}
+
+	.form-group label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.setup-button {
+		width: 100%;
+		margin-bottom: 1rem;
+	}
+
+	.webauthn-info {
+		font-size: 0.9rem;
+		color: var(--text-muted);
+		line-height: 1.4;
+	}
+
+	.auth-tabs {
+		display: flex;
+		margin-bottom: 2rem;
+		background: var(--surface-hover);
 		border-radius: 8px;
-		padding: var(--space-6);
-		animation: cardMaterialize 1s ease-out 0.6s forwards;
-		opacity: 0;
-		transform: translateY(30px) scale(0.9);
-		box-shadow:
-			0 8px 32px color-mix(in oklab, var(--bg) 80%, transparent),
-			0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent),
-			inset 0 1px 0 color-mix(in oklab, var(--primary) 5%, transparent);
-		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+		padding: 4px;
 	}
 
-	.card::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 3%, transparent) 0%,
-			transparent 50%,
-			color-mix(in oklab, var(--accent-cyan) 2%, transparent) 100%
-		);
-		border-radius: inherit;
-		pointer-events: none;
-		opacity: 0;
-		transition: opacity 0.3s ease;
+	.tab-button {
+		flex: 1;
+		padding: 0.75rem 1rem;
+		border: none;
+		background: transparent;
+		color: var(--text-muted);
+		cursor: pointer;
+		border-radius: 6px;
+		transition: all 0.2s ease;
+		font-weight: 500;
 	}
 
-	.card:hover::before {
-		opacity: 1;
+	.tab-button.active {
+		background: var(--surface);
+		color: var(--primary);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 	}
 
-	.card:hover {
-		transform: translateY(-2px) scale(1.01);
-		border-color: color-mix(in oklab, var(--primary) 30%, transparent);
-		box-shadow:
-			0 12px 48px color-mix(in oklab, var(--bg) 70%, transparent),
-			0 0 0 1px color-mix(in oklab, var(--primary) 20%, transparent),
-			0 0 20px color-mix(in oklab, var(--primary) 15%, transparent),
-			inset 0 1px 0 color-mix(in oklab, var(--primary) 8%, transparent);
+	.tab-button:hover:not(.active) {
+		color: var(--text);
+		background: color-mix(in oklab, var(--surface) 50%, transparent);
 	}
 
-	@keyframes cardMaterialize {
-		0% {
-			opacity: 0;
-			transform: translateY(30px) scale(0.9);
-		}
-		100% {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
+	.auth-method-info {
+		margin-bottom: 2rem;
 	}
 
-	form {
+	.auth-method-info h3 {
+		color: var(--primary);
+		margin-bottom: 0.5rem;
+		font-size: 1.25rem;
+	}
+
+	.auth-method-info p {
+		color: var(--text-muted);
+		line-height: 1.5;
+	}
+
+	.auth-button {
+		width: 100%;
+		margin-bottom: 1rem;
+		min-height: 48px;
+	}
+
+	.webauthn-help {
+		font-size: 0.9rem;
+		color: var(--text-muted);
+		line-height: 1.4;
+	}
+
+	.oauth-buttons {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-4);
-		align-items: center;
-		min-width: 320px;
-		position: relative;
+		gap: 1rem;
 	}
 
-	/* Enhanced form animations */
-	form :global(.input-group) {
-		animation: inputSlideIn 0.6s ease-out forwards;
-		opacity: 0;
-		transform: translateX(-20px);
-	}
-
-	form :global(.input-group:nth-child(1)) {
-		animation-delay: 0.8s;
-	}
-
-	form :global(.input-group:nth-child(2)) {
-		animation-delay: 1s;
-	}
-
-	@keyframes inputSlideIn {
-		to {
-			opacity: 1;
-			transform: translateX(0);
-		}
-	}
-
-	form :global(button) {
+	.oauth-button {
 		width: 100%;
-		animation: buttonMaterialize 0.8s ease-out 1.2s forwards;
-		opacity: 0;
-		transform: translateY(20px) scale(0.9);
-		position: relative;
-		overflow: hidden;
+		min-height: 48px;
+		border: 1px solid var(--surface-border);
 	}
 
-	@keyframes buttonMaterialize {
-		to {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
+	.oauth-content {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
 	}
 
-	/* Enhanced button hover effects */
-	/* form :global(button:hover) {
-		animation: buttonPulse 0.6s ease-in-out;
+	.oauth-button.github:hover:not(:disabled) {
+		background: #24292e;
+		color: white;
+		border-color: #24292e;
 	}
 
-	@keyframes buttonPulse {
-		0%, 100% {
-			transform: scale(1);
-			opacity: 1;
-		}
-		50% {
-			transform: scale(1.02);
-			opacity: 1;
-		}
-	}
- */
-	/* Floating particles effect */
-	.login-content::before {
-		content: '';
-		position: absolute;
-		top: -50%;
-		left: -50%;
-		width: 200%;
-		height: 200%;
-		background-image:
-			radial-gradient(
-				circle at 20% 30%,
-				color-mix(in oklab, var(--primary) 5%, transparent) 1px,
-				transparent 1px
-			),
-			radial-gradient(
-				circle at 80% 70%,
-				color-mix(in oklab, var(--accent-cyan) 4%, transparent) 1px,
-				transparent 1px
-			),
-			radial-gradient(
-				circle at 40% 80%,
-				color-mix(in oklab, var(--accent-amber) 3%, transparent) 1px,
-				transparent 1px
-			);
-		background-size:
-			100px 100px,
-			150px 150px,
-			120px 120px;
-		animation: particleDrift 60s linear infinite;
-		pointer-events: none;
-		z-index: -1;
+	.oauth-button.google:hover:not(:disabled) {
+		background: #4285f4;
+		color: white;
+		border-color: #4285f4;
 	}
 
-	@keyframes particleDrift {
-		0% {
-			transform: translateX(0) translateY(0) rotate(0deg);
-		}
-		100% {
-			transform: translateX(-100px) translateY(-100px) rotate(360deg);
-		}
+	.url-input-section {
+		margin-bottom: 1.5rem;
 	}
 
-	/* Error and loading state enhancements */
-	:global(.error-display) {
-		animation:
-			errorSlideIn 0.4s ease-out,
-			errorShake 0.5s ease-in-out 0.4s;
+	.footer-section {
+		text-align: center;
 	}
 
-	@keyframes errorSlideIn {
-		from {
-			opacity: 0;
-			transform: translateY(-10px) scale(0.95);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
+	.footer-note {
+		font-size: 0.9rem;
+		color: var(--text-muted);
+		line-height: 1.4;
 	}
 
-	/* Enhanced loading states */
-	.card:has(:global(button[disabled])) {
-		border-color: color-mix(in oklab, var(--accent-cyan) 30%, transparent);
-		animation: loadingPulse 2s ease-in-out infinite;
+	.footer-note a {
+		color: var(--primary);
+		text-decoration: none;
 	}
 
-	@keyframes loadingPulse {
-		0%,
-		100% {
-			box-shadow:
-				0 8px 32px color-mix(in oklab, var(--bg) 80%, transparent),
-				0 0 0 1px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
-		}
-		50% {
-			box-shadow:
-				0 12px 40px color-mix(in oklab, var(--bg) 70%, transparent),
-				0 0 0 1px color-mix(in oklab, var(--accent-cyan) 20%, transparent),
-				0 0 20px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
-		}
+	.footer-note a:hover {
+		text-decoration: underline;
 	}
 
-	/* Responsive enhancements */
 	@media (max-width: 480px) {
-		.login-container {
-			padding: var(--space-4);
+		.login-content {
+			padding: 1rem;
 		}
 
-		.login-content h1 {
-			font-size: clamp(3rem, 8vw, 4.5rem);
+		.logo-section h1 {
+			font-size: 2.5rem;
 		}
 
-		form {
-			min-width: 280px;
+		.auth-section {
+			padding: 1.5rem;
 		}
 
-		.card {
-			padding: var(--space-5);
-		}
-	}
-
-	/* Accessibility enhancements */
-	@media (prefers-reduced-motion: reduce) {
-		.login-container {
-			animation: none;
-		}
-
-		.login-container::before,
-		.login-container::after,
-		.login-content::before {
-			animation: none;
-		}
-
-		.login-content h1 {
-			animation: none;
-		}
-
-		.card {
-			animation: none;
-			opacity: 1;
-			transform: none;
-		}
-
-		form :global(.input-group),
-		form :global(button) {
-			animation: none;
-			opacity: 1;
-			transform: none;
+		.oauth-buttons {
+			gap: 0.75rem;
 		}
 	}
 </style>

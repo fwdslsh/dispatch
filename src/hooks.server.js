@@ -33,5 +33,30 @@ export const handle = sequence(async ({ event, resolve }) => {
 	// Ensure services are initialized and make them available to request
 	event.locals.services = await getServices();
 
+	// Add authentication middleware for admin routes
+	if (event.url.pathname.startsWith('/api/admin')) {
+		const services = event.locals.services;
+		const authManager = services?.authManager;
+
+		if (authManager) {
+			const authHeader = event.request.headers.get('authorization');
+			if (authHeader && authHeader.startsWith('Bearer ')) {
+				const token = authHeader.substring(7);
+				try {
+					const decoded = authManager.verifyJWT(token);
+					const user = await authManager.getUserById(decoded.userId);
+					if (user && user.is_admin) {
+						event.locals.user = {
+							...user,
+							isAdmin: !!user.is_admin
+						};
+					}
+				} catch (error) {
+					// Invalid token, user will remain undefined
+				}
+			}
+		}
+	}
+
 	return resolve(event);
 });

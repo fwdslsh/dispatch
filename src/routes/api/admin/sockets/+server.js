@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/shared/auth.js';
+import { verifyAuth } from '$lib/server/shared/auth.js';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
 
-export async function GET({ url, locals, request }) {
-	const auth = request.headers.get('authorization');
-	const key = auth && auth.startsWith('Bearer ') ? auth.slice(7) : url.searchParams.get('key');
-	if (!validateKey(key)) {
-		return json({ error: 'Invalid authentication key' }, { status: 401 });
+export async function GET({ request }) {
+	// Verify authentication
+	const auth = await verifyAuth(request);
+	if (!auth) {
+		return json({ error: 'Authentication required' }, { status: 401 });
 	}
 
 	try {

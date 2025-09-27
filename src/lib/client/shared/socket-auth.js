@@ -10,26 +10,53 @@ import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 
 /**
- * Get stored authentication token
- * @returns {string|null} Stored auth token or null
+ * Get stored authentication token for WebSocket connections
+ * @returns {string|null} JWT token from sessionStorage or null
  */
 export function getStoredAuthToken() {
-	return localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
+	// Check sessionStorage for WebSocket authentication token
+	// (httpOnly cookies can't be read by JavaScript, so we store a copy here)
+	if (typeof sessionStorage !== 'undefined') {
+		const token = sessionStorage.getItem('dispatch-auth-token');
+		if (token) {
+			return token;
+		}
+	}
+
+	// Fall back to localStorage for backwards compatibility
+	if (typeof localStorage !== 'undefined') {
+		return localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
+	}
+
+	return null;
 }
 
 /**
- * Store authentication token
+ * Store authentication token for WebSocket connections
  * @param {string} token - Auth token to store
  */
 export function storeAuthToken(token) {
-	localStorage.setItem(STORAGE_CONFIG.AUTH_TOKEN_KEY, token);
+	// Store in sessionStorage for WebSocket auth
+	if (typeof sessionStorage !== 'undefined') {
+		sessionStorage.setItem('dispatch-auth-token', token);
+	}
+	// Keep localStorage for backwards compatibility
+	if (typeof localStorage !== 'undefined') {
+		localStorage.setItem(STORAGE_CONFIG.AUTH_TOKEN_KEY, token);
+	}
 }
 
 /**
- * Remove stored authentication token
+ * Remove stored authentication tokens
  */
 export function clearAuthToken() {
-	localStorage.removeItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
+	// Clear both sessionStorage and localStorage
+	if (typeof sessionStorage !== 'undefined') {
+		sessionStorage.removeItem('dispatch-auth-token');
+	}
+	if (typeof localStorage !== 'undefined') {
+		localStorage.removeItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
+	}
 }
 
 /**

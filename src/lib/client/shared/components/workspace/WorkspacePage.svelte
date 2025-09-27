@@ -34,7 +34,7 @@
 	const container = provideServiceContainer({
 		apiBaseUrl: '', // Empty string means use current origin for API calls
 		socketUrl: typeof window !== 'undefined' ? window.location.origin : '', // Use current origin for socket connections
-		authTokenKey: 'dispatch-auth-key',
+		authTokenKey: 'dispatch-auth-token',
 		debug: false
 	});
 
@@ -113,25 +113,34 @@
 
 	// Initialization
 	onMount(async () => {
-		// Authentication check
-		if (browser) {
-			const storedKey = localStorage.getItem('dispatch-auth-key');
-			if (!storedKey) {
-				log.info('No auth key found, redirecting to login');
-				goto('/');
-				return;
+		// Handle token from URL fragment (OAuth redirects)
+		if (browser && window.location.hash) {
+			const urlParams = new URLSearchParams(window.location.hash.slice(1));
+			const token = urlParams.get('token');
+			if (token) {
+				// Store token for WebSocket authentication
+				sessionStorage.setItem('dispatch-auth-token', token);
+				// Clear the token from URL for security
+				window.history.replaceState(null, '', window.location.pathname);
 			}
+		}
 
+		// Authentication check - using cookie-based auth
+		if (browser) {
 			try {
-				const response = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
+				// Check if user is authenticated via cookie
+				const response = await fetch('/api/auth/check', {
+					credentials: 'include'
+				});
 				if (!response.ok) {
-					log.warn('Auth key invalid, redirecting to login');
-					localStorage.removeItem('dispatch-auth-key');
+					log.warn('Not authenticated, redirecting to login');
 					goto('/');
 					return;
 				}
 			} catch (error) {
-				log.error('Failed to verify auth key', error);
+				log.error('Failed to verify authentication', error);
+				goto('/');
+				return;
 			}
 		}
 

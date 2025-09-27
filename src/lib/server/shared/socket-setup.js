@@ -1,5 +1,4 @@
 import { Server } from 'socket.io';
-import { validateKey } from './auth.js';
 import { logger } from './utils/logger.js';
 
 // Admin event tracking
@@ -45,14 +44,35 @@ export function getSocketEvents(limit = 100) {
 }
 
 // Helper function for auth validation in event handlers
-function requireValidKey(socket, key, callback) {
-	if (!validateKey(key)) {
-		logger.warn('SOCKET', `Invalid key from socket ${socket.id}`);
-		if (callback) callback({ success: false, error: 'Invalid key' });
+async function requireValidAuth(socket, token, authManager, callback) {
+	if (!authManager) {
+		logger.warn('SOCKET', 'AuthManager not initialized');
+		if (callback) callback({ success: false, error: 'Authentication system not available' });
 		return false;
 	}
-	socket.data.authenticated = true;
-	return true;
+
+	if (!token) {
+		logger.warn('SOCKET', `No auth token from socket ${socket.id}`);
+		if (callback) callback({ success: false, error: 'No authentication token provided' });
+		return false;
+	}
+
+	try {
+		// Try as JWT token
+		const auth = await authManager.verifyToken(token);
+		if (auth) {
+			socket.data.authenticated = true;
+			socket.data.userId = auth.userId;
+			socket.data.authMethod = auth.method;
+			return true;
+		}
+	} catch (error) {
+		// Token verification failed
+	}
+
+	logger.warn('SOCKET', `Invalid auth token from socket ${socket.id}`);
+	if (callback) callback({ success: false, error: 'Invalid authentication token' });
+	return false;
 }
 
 /**
@@ -72,7 +92,7 @@ export function setupSocketIO(httpServer, services) {
 		services.vscodeManager.setSocketIO(io);
 	}
 
-	const { runSessionManager } = services;
+	const { runSessionManager, authManager } = services;
 
 	if (!runSessionManager) {
 		logger.error('SOCKET_SETUP', 'RunSessionManager not provided in services');
@@ -109,15 +129,19 @@ export function setupSocketIO(httpServer, services) {
 
 		// ===== UNIFIED RUN SESSION HANDLERS =====
 
-		// Authentication event - validates a key without starting a session
-		socket.on('auth', (key, callback) => {
+		// Authentication event - validates a token without starting a session
+		socket.on('auth', async (token, callback) => {
 			try {
 				logger.info('SOCKET', `Auth event received from ${socket.id}`);
-				if (requireValidKey(socket, key, callback)) {
-					// Key is valid, send success response
-					if (callback) callback({ success: true });
+				if (await requireValidAuth(socket, token, authManager, callback)) {
+					// Auth is valid, send success response
+					if (callback) callback({
+						success: true,
+						method: socket.data.authMethod,
+						userId: socket.data.userId
+					});
 				}
-				// Error response already sent by requireValidKey if key was invalid
+				// Error response already sent by requireValidAuth if auth was invalid
 			} catch (error) {
 				logger.error('SOCKET', 'Auth handler error:', error);
 				if (callback) callback({ success: false, error: 'Authentication failed' });

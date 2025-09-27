@@ -9,7 +9,6 @@ import path from 'node:path';
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
 const LT_SUBDOMAIN = process.env.LT_SUBDOMAIN || '';
-const TERMINAL_KEY = process.env.TERMINAL_KEY || 'testkey12345';
 
 // Helper function to expand tilde in paths
 const expandTilde = (filepath) => {
@@ -59,11 +58,8 @@ async function initializeDirectories() {
 // Initialize directories before starting server
 initializeDirectories()
 	.then(async () => {
-		// Security check: require proper key if tunnel is enabled
-		if (ENABLE_TUNNEL && TERMINAL_KEY === 'testkey12345') {
-			console.error('ERROR: Change TERMINAL_KEY from default when ENABLE_TUNNEL=true for security');
-			process.exit(1);
-		}
+		// Note: Authentication is now handled via JWT tokens through the web interface
+		// No terminal key required - use SSH keys or OAuth for authentication
 
 		// Initialize server services
 		const { initializeServices } = await import('./lib/server/shared/index.js');
