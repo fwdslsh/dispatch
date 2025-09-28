@@ -540,6 +540,358 @@ export class SessionApiClient {
 		return true;
 	}
 
+	// ===== ONBOARDING API =====
+
+	/**
+	 * Get current onboarding status
+	 * @returns {Promise<{currentStep: string, completedSteps: string[], isComplete: boolean, progressPercentage: number}>}
+	 */
+	async getOnboardingStatus() {
+		try {
+			// Onboarding API doesn't require authentication
+			const response = await fetch(`${this.baseUrl}/api/onboarding`, {
+				headers: this.getHeaders()
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to get onboarding status:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Update onboarding progress
+	 * @param {string} step - Step to update
+	 * @param {object} data - Step data
+	 * @returns {Promise<{success: boolean, currentStep: string, completedSteps: string[], progressPercentage: number}>}
+	 */
+	async updateProgress(step, data = {}) {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/onboarding`, {
+				method: 'POST',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					action: 'updateProgress',
+					step,
+					data
+				})
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to update onboarding progress:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Complete onboarding process
+	 * @param {string} workspaceId - Selected workspace ID
+	 * @returns {Promise<{success: boolean, currentStep: string, isComplete: boolean, progressPercentage: number}>}
+	 */
+	async completeOnboarding(workspaceId) {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/onboarding`, {
+				method: 'POST',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					action: 'complete',
+					workspaceId
+				})
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to complete onboarding:', error);
+			}
+			throw error;
+		}
+	}
+
+	// ===== RETENTION POLICY API =====
+
+	/**
+	 * Get current retention policy
+	 * @returns {Promise<{sessionRetentionDays: number, logRetentionDays: number, autoCleanupEnabled: boolean, updatedAt: string}>}
+	 */
+	async getRetentionPolicy() {
+		try {
+			const params = new URLSearchParams();
+			const authKey = this.getAuthKey();
+			if (authKey) params.append('authKey', authKey);
+
+			const response = await fetch(`${this.baseUrl}/api/retention?${params}`, {
+				headers: this.getHeaders()
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to get retention policy:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Update retention policy
+	 * @param {object} policy - Policy updates
+	 * @param {number} [policy.sessionRetentionDays] - Session retention period
+	 * @param {number} [policy.logRetentionDays] - Log retention period
+	 * @param {boolean} [policy.autoCleanupEnabled] - Auto cleanup enabled
+	 * @returns {Promise<{sessionRetentionDays: number, logRetentionDays: number, autoCleanupEnabled: boolean, updatedAt: string}>}
+	 */
+	async updateRetentionPolicy(policy) {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/retention`, {
+				method: 'PUT',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					authKey: this.getAuthKey(),
+					...policy
+				})
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to update retention policy:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Preview retention policy changes
+	 * @param {object} policy - Policy to preview
+	 * @param {number} policy.sessionRetentionDays - Session retention period
+	 * @param {number} policy.logRetentionDays - Log retention period
+	 * @returns {Promise<{summary: string, sessionsToDelete: number, logsToDelete: number, sessionRetentionDays: number, logRetentionDays: number}>}
+	 */
+	async previewRetentionChanges(policy) {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/retention`, {
+				method: 'POST',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					action: 'preview',
+					authKey: this.getAuthKey(),
+					...policy
+				})
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to preview retention changes:', error);
+			}
+			throw error;
+		}
+	}
+
+	// ===== USER PREFERENCES API =====
+
+	/**
+	 * Get user preferences
+	 * @param {string} [category] - Specific category to get
+	 * @returns {Promise<object>} - Preferences object
+	 */
+	async getUserPreferences(category = null) {
+		try {
+			const params = new URLSearchParams();
+			const authKey = this.getAuthKey();
+			if (authKey) params.append('authKey', authKey);
+			if (category) params.append('category', category);
+
+			const response = await fetch(`${this.baseUrl}/api/preferences?${params}`, {
+				headers: this.getHeaders()
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to get user preferences:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Update user preferences
+	 * @param {string} category - Preference category
+	 * @param {object} preferences - Preferences to update
+	 * @returns {Promise<{success: boolean, category: string, preferences: object}>}
+	 */
+	async updateUserPreferences(category, preferences) {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/preferences`, {
+				method: 'PUT',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					authKey: this.getAuthKey(),
+					category,
+					preferences
+				})
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to update user preferences:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Reset preferences to defaults
+	 * @param {string} category - Category to reset
+	 * @returns {Promise<{success: boolean, category: string, preferences: object}>}
+	 */
+	async resetPreferences(category) {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/preferences`, {
+				method: 'POST',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					action: 'reset',
+					authKey: this.getAuthKey(),
+					category
+				})
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to reset preferences:', error);
+			}
+			throw error;
+		}
+	}
+
+	// ===== WORKSPACE MANAGEMENT API =====
+
+	/**
+	 * Get all workspaces
+	 * @returns {Promise<Array>} - Array of workspace objects
+	 */
+	async getWorkspaces() {
+		try {
+			const params = new URLSearchParams();
+			const authKey = this.getAuthKey();
+			if (authKey) params.append('authKey', authKey);
+
+			const response = await fetch(`${this.baseUrl}/api/workspaces?${params}`, {
+				headers: this.getHeaders()
+			});
+
+			const data = await this.handleResponse(response);
+			return data.workspaces || data || [];
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to get workspaces:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Create a new workspace
+	 * @param {object} workspace - Workspace data
+	 * @param {string} workspace.name - Workspace name
+	 * @param {string} workspace.path - Workspace path
+	 * @returns {Promise<object>} - Created workspace
+	 */
+	async createWorkspace(workspace) {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/workspaces`, {
+				method: 'POST',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					authKey: this.getAuthKey(),
+					...workspace
+				})
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to create workspace:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Update workspace metadata
+	 * @param {string} workspaceId - Workspace ID (path)
+	 * @param {object} updates - Updates to apply
+	 * @returns {Promise<object>} - Updated workspace
+	 */
+	async updateWorkspace(workspaceId, updates) {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}`, {
+				method: 'PUT',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					authKey: this.getAuthKey(),
+					...updates
+				})
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to update workspace:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Delete a workspace
+	 * @param {string} workspaceId - Workspace ID (path)
+	 * @returns {Promise<{success: boolean}>}
+	 */
+	async deleteWorkspace(workspaceId) {
+		try {
+			const params = new URLSearchParams();
+			const authKey = this.getAuthKey();
+			if (authKey) params.append('authKey', authKey);
+
+			const response = await fetch(`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}?${params}`, {
+				method: 'DELETE',
+				headers: this.getHeaders()
+			});
+
+			return await this.handleResponse(response);
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to delete workspace:', error);
+			}
+			throw error;
+		}
+	}
+
+	// ===== HELPER METHODS =====
+
+	/**
+	 * Get authentication key from localStorage or environment
+	 * @returns {string|null} - Auth key
+	 */
+	getAuthKey() {
+		if (typeof localStorage !== 'undefined') {
+			return localStorage.getItem(this.config.authTokenKey) || localStorage.getItem('terminalKey');
+		}
+		return null;
+	}
+
 	/**
 	 * Dispose of resources (for cleanup)
 	 */

@@ -14,8 +14,11 @@
 	import IconTerminal from './Icons/IconTerminal.svelte';
 	import IconAsterisk from './Icons/IconAsterisk.svelte';
 	import IconClaude from './Icons/IconClaude.svelte';
+	import IconLayoutGrid from './Icons/IconLayoutGrid.svelte';
+	import IconFolderPlus from './Icons/IconFolderPlus.svelte';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import { WorkspaceNavigationViewModel } from '$lib/client/state/WorkspaceNavigationViewModel.svelte.js';
 
 	// Props
 	let {
@@ -30,33 +33,45 @@
 	let allSessions = $state([]);
 	let selectedDirectory = $state('');
 	let showDirectoryPicker = $state(false);
-	let currentTab = $state('active'); // 'active', 'create', 'browse'
+	let currentTab = $state('active'); // 'active', 'create', 'browse', 'workspaces'
 	let loading = $state(false);
 	let error = $state(null);
 	let searchTerm = $state('');
 	let sessionApi = $state(null);
+	let workspaceNavigation = $state(null);
+	let showWorkspaceCreate = $state(false);
+	let newWorkspaceName = $state('');
+	let newWorkspacePath = $state('');
 
-	// Get API client from service container
+	// Get API client and workspace navigation from service container
 	$effect(() => {
-		// Get the service container and initialize the API client
+		// Get the service container and initialize the services
 		try {
 			const container = useServiceContainer();
+
+			// Initialize session API
 			const maybePromise = container.get('sessionApi');
 			if (maybePromise && typeof maybePromise.then === 'function') {
 				maybePromise
 					.then((api) => {
 						sessionApi = api;
+						// Initialize workspace navigation with API client
+						if (api) {
+							workspaceNavigation = new WorkspaceNavigationViewModel(api);
+						}
 					})
 					.catch((error) => {
 						console.error('Failed to get sessionApi from service container:', error);
-						// Don't fall back to static import - let the service container handle it
 					});
 			} else {
 				sessionApi = maybePromise;
+				// Initialize workspace navigation with API client
+				if (maybePromise) {
+					workspaceNavigation = new WorkspaceNavigationViewModel(maybePromise);
+				}
 			}
 		} catch (e) {
 			console.error('Failed to access service container:', e);
-			// Don't fall back to static import - service container should be available
 		}
 	});
 
@@ -259,6 +274,36 @@
 		}
 	}
 
+	// Workspace management functions
+	async function loadWorkspaces() {
+		if (!workspaceNavigation) return;
+		await workspaceNavigation.loadWorkspaces();
+	}
+
+	async function switchWorkspace(workspace) {
+		if (!workspaceNavigation) return;
+		try {
+			await workspaceNavigation.switchToWorkspace(workspace);
+			selectedWorkspace = workspace;
+			selectedDirectory = workspace.path;
+			currentTab = 'active'; // Switch to active sessions after workspace change
+			await loadAllSessions();
+		} catch (err) {
+			error = err.message;
+		}
+	}
+
+	async function createNewWorkspace(name, path) {
+		if (!workspaceNavigation) return;
+		try {
+			const workspace = await workspaceNavigation.createNewWorkspace(name, path);
+			showWorkspaceCreate = false;
+			await switchWorkspace(workspace);
+		} catch (err) {
+			error = err.message;
+		}
+	}
+
 	// Initialize
 	onMount(async () => {
 		// Wait for sessionApi to be initialized
@@ -266,6 +311,12 @@
 			await new Promise((resolve) => setTimeout(resolve, 50));
 		}
 		await loadAllSessions();
+
+		// Load workspaces if navigation is available
+		if (workspaceNavigation) {
+			await loadWorkspaces();
+		}
+
 		// DirectoryBrowser will now default to WORKSPACES_ROOT when no startPath is provided
 	});
 
@@ -279,7 +330,7 @@
 	}
 </script>
 
-<div class="menu-root">
+<div class="menu-root" role="navigation" aria-label="Session and workspace management">
 	<!-- Tab Content Container -->
 	<div class="tab-content">
 		<!-- Tab Content -->
@@ -438,6 +489,108 @@
 					{/if}
 				</div>
 			</div>
+		{:else if currentTab === 'workspaces'}
+			<!-- Workspace Management -->
+			<div class="panel">
+				<div class="panel-header">
+					<div class="header-content">
+						<h2 class="panel-title">
+							<IconLayoutGrid size={20} />
+							Workspaces
+						</h2>
+						{#if workspaceNavigation?.activeWorkspaces?.length > 0}
+							<span class="count-badge">{workspaceNavigation.activeWorkspaces.length}</span>
+						{/if}
+					</div>
+					<Button
+						variant="ghost"
+						augmented="none"
+						onclick={() => (showWorkspaceCreate = true)}
+						disabled={loading}
+					>
+						{#snippet icon()}<IconFolderPlus size={16} />{/snippet}
+						New
+					</Button>
+				</div>
+
+				<div class="panel-list">
+					{#if workspaceNavigation?.isLoading}
+						<div class="status-message">Loading workspaces...</div>
+					{:else if workspaceNavigation?.error}
+						<div class="status-message error">{workspaceNavigation.error}</div>
+					{:else if workspaceNavigation?.filteredWorkspaces?.length === 0}
+						<div class="status-message">
+							{workspaceNavigation.searchTerm ?
+								`No workspaces match "${workspaceNavigation.searchTerm}"` :
+								'No workspaces found. Create your first workspace to get started.'}
+						</div>
+					{:else if workspaceNavigation?.filteredWorkspaces}
+						{#each workspaceNavigation.filteredWorkspaces as workspace (workspace.path)}
+							<div class="workspace-item" class:selected={selectedWorkspace?.path === workspace.path}>
+								<div class="workspace-info">
+									<div class="workspace-name">{workspace.name}</div>
+									<div class="workspace-path">{workspace.path}</div>
+									{#if workspace.lastActive}
+										<div class="workspace-meta">Last active: {formatDate(new Date(workspace.lastActive))}</div>
+									{/if}
+								</div>
+								<div class="workspace-actions">
+									<Button
+										variant="ghost"
+										augmented="none"
+										onclick={() => switchWorkspace(workspace)}
+										disabled={loading}
+									>
+										Switch
+									</Button>
+								</div>
+							</div>
+						{/each}
+					{/if}
+				</div>
+
+				{#if showWorkspaceCreate}
+					<div class="workspace-create-form">
+						<h3>Create New Workspace</h3>
+						<div class="form-group">
+							<label>Workspace Name</label>
+							<input
+								type="text"
+								placeholder="My Project"
+								bind:value={newWorkspaceName}
+								disabled={loading}
+							/>
+						</div>
+						<div class="form-group">
+							<label>Workspace Path</label>
+							<input
+								type="text"
+								placeholder="/workspace/my-project"
+								bind:value={newWorkspacePath}
+								disabled={loading}
+							/>
+						</div>
+						<div class="form-actions">
+							<Button
+								variant="primary"
+								augmented="none"
+								onclick={() => createNewWorkspace(newWorkspaceName, newWorkspacePath)}
+								disabled={loading || !newWorkspaceName || !newWorkspacePath}
+							>
+								Create
+							</Button>
+							<Button
+								variant="ghost"
+								augmented="none"
+								onclick={() => (showWorkspaceCreate = false)}
+								disabled={loading}
+							>
+								Cancel
+							</Button>
+						</div>
+					</div>
+				{/if}
+			</div>
 		{/if}
 	</div>
 
@@ -496,12 +649,27 @@
 		</div>
 
 		<!-- Right: Tab Navigation -->
-		<div class="tab-buttons">
+		<div class="tab-buttons" role="tablist" aria-label="Navigation tabs">
+			<Button
+				variant="ghost"
+				augmented="none"
+				class={currentTab === 'workspaces' ? 'active' : ''}
+				onclick={() => (currentTab = 'workspaces')}
+				role="tab"
+				aria-selected={currentTab === 'workspaces'}
+				aria-controls="workspaces-panel"
+			>
+				{#snippet icon()}<IconLayoutGrid size={16} />{/snippet}
+				<span class="button-text">Workspaces</span>
+			</Button>
 			<Button
 				variant="ghost"
 				augmented="none"
 				class={currentTab === 'browse' ? 'active' : ''}
 				onclick={() => (currentTab = 'browse')}
+				role="tab"
+				aria-selected={currentTab === 'browse'}
+				aria-controls="browse-panel"
 			>
 				{#snippet icon()}<IconHistory size={16} />{/snippet}
 				<span class="button-text">Browse</span>
@@ -511,35 +679,46 @@
 				augmented="none"
 				class={currentTab === 'active' ? 'active' : ''}
 				onclick={() => (currentTab = 'active')}
+				role="tab"
+				aria-selected={currentTab === 'active'}
+				aria-controls="active-panel"
 			>
 				{#snippet icon()}<IconActivity size={16} />{/snippet}
 				<span class="button-text">Active</span>
 			</Button>
-			<!-- <Button
-				variant="ghost"
-				augmented="none"
-				class={currentTab === 'create' ? 'active' : ''}
-				onclick={() => (currentTab = 'create')}
-			>
-				{#snippet icon()}<IconPlus size={16} />{/snippet}
-				<span class="button-text">Create</span>
-			</Button> -->
 		</div>
 	</div>
 
-	<!-- Search Bar for Active and Browse tabs (moved to bottom) -->
-	{#if currentTab === 'active' || currentTab === 'browse'}
+	<!-- Search Bar for Active, Browse, and Workspaces tabs (moved to bottom) -->
+	{#if currentTab === 'active' || currentTab === 'browse' || currentTab === 'workspaces'}
 		<div class="search-container bottom-search">
 			<div class="search-input-wrapper">
 				<IconSearch size={16} />
 				<input
 					type="text"
-					placeholder={currentTab === 'active' ? 'Search active sessions...' : 'Search sessions...'}
-					bind:value={searchTerm}
+					placeholder={currentTab === 'active' ? 'Search active sessions...' :
+								currentTab === 'browse' ? 'Search sessions...' : 'Search workspaces...'}
+					value={currentTab === 'workspaces' ? (workspaceNavigation?.searchTerm || '') : searchTerm}
+					oninput={(e) => {
+						if (currentTab === 'workspaces' && workspaceNavigation) {
+							workspaceNavigation.searchWorkspaces(e.target.value);
+						} else {
+							searchTerm = e.target.value;
+						}
+					}}
 					class="search-input"
+					aria-label={currentTab === 'active' ? 'Search active sessions' :
+								currentTab === 'browse' ? 'Search sessions' : 'Search workspaces'}
+					role="searchbox"
 				/>
-				{#if searchTerm}
-					<button class="clear-search" onclick={() => (searchTerm = '')}>
+				{#if (currentTab === 'workspaces' ? workspaceNavigation?.searchTerm : searchTerm)}
+					<button class="clear-search" onclick={() => {
+						if (currentTab === 'workspaces' && workspaceNavigation) {
+							workspaceNavigation.clearSearch();
+						} else {
+							searchTerm = '';
+						}
+					}} aria-label="Clear search">
 						<IconX size={14} />
 					</button>
 				{/if}
@@ -605,6 +784,103 @@
 		color: var(--bg);
 	}
 
+	/* Workspace-specific styles */
+	.workspace-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: var(--space-3);
+		border-radius: 6px;
+		border: 1px solid var(--surface-border);
+		background: var(--bg-dark);
+		margin-bottom: var(--space-2);
+		transition: all 0.2s ease;
+	}
+
+	.workspace-item:hover {
+		background: var(--bg-darker);
+		border-color: var(--primary);
+	}
+
+	.workspace-item.selected {
+		background: var(--primary-bg);
+		border-color: var(--primary);
+	}
+
+	.workspace-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.workspace-name {
+		font-weight: 500;
+		color: var(--text);
+		margin-bottom: var(--space-1);
+	}
+
+	.workspace-path {
+		font-size: 0.875rem;
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+		word-break: break-all;
+	}
+
+	.workspace-meta {
+		font-size: 0.75rem;
+		color: var(--text-muted);
+		margin-top: var(--space-1);
+	}
+
+	.workspace-actions {
+		flex-shrink: 0;
+		margin-left: var(--space-2);
+	}
+
+	.workspace-create-form {
+		border-top: 1px solid var(--surface-border);
+		padding-top: var(--space-3);
+		margin-top: var(--space-3);
+	}
+
+	.workspace-create-form h3 {
+		margin: 0 0 var(--space-3) 0;
+		font-size: 1rem;
+		color: var(--text);
+	}
+
+	.workspace-create-form .form-group {
+		margin-bottom: var(--space-3);
+	}
+
+	.workspace-create-form label {
+		display: block;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--text);
+		margin-bottom: var(--space-1);
+	}
+
+	.workspace-create-form input {
+		width: 100%;
+		padding: var(--space-2);
+		border: 1px solid var(--surface-border);
+		border-radius: 4px;
+		background: var(--bg);
+		color: var(--text);
+		font-size: 0.875rem;
+	}
+
+	.workspace-create-form input:focus {
+		outline: none;
+		border-color: var(--primary);
+	}
+
+	.workspace-create-form .form-actions {
+		display: flex;
+		gap: var(--space-2);
+		justify-content: flex-end;
+	}
+
 	/* Mobile responsive */
 	@media (max-width: 768px) {
 		.menu-root {
@@ -623,6 +899,21 @@
 
 		.button-text {
 			display: none;
+		}
+
+		.workspace-item {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: var(--space-2);
+		}
+
+		.workspace-actions {
+			margin-left: 0;
+			align-self: flex-end;
+		}
+
+		.workspace-create-form .form-actions {
+			flex-direction: column;
 		}
 	}
 </style>

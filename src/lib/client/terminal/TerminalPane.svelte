@@ -8,7 +8,7 @@
 
 	const fitAddon = new FitAddon();
 	let { sessionId, shouldResume = false } = $props();
-	let term, el;
+	let term, el = $state();
 	// Also observe container size changes (e.g., parent layout changes)
 	let ro;
 

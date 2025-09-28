@@ -53,6 +53,11 @@ class ServiceContainer {
 			return new SessionApiClient(this.config);
 		});
 
+		// Alias for compatibility
+		this.registerFactory('apiClient', async () => {
+			return await this.get('sessionApi');
+		});
+
 		// Core Services
 		this.registerFactory('socket', async () => {
 			const { SocketService } = await import('./SocketService.svelte.js');

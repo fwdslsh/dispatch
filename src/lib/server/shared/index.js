@@ -20,7 +20,8 @@ let globalServicesInstance = null;
 
 // Resolve tilde paths
 function resolveConfigPaths(config) {
-	const homeDir = os.homedir();
+	// Use process.env.HOME if set (for testing), otherwise os.homedir()
+	const homeDir = process.env.HOME || os.homedir();
 	const resolved = { ...config };
 
 	if (resolved.dbPath && resolved.dbPath.startsWith('~/')) {

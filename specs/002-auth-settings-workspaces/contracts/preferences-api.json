@@ -1,0 +1,126 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "User Preferences API",
+    "version": "1.0.0",
+    "description": "API for managing user preferences and settings"
+  },
+  "paths": {
+    "/api/preferences": {
+      "get": {
+        "summary": "Get user preferences",
+        "parameters": [
+          {
+            "name": "authKey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Terminal authentication key"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preferences retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPreferences"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update user preferences",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPreferencesUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preferences updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPreferences"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid preference values"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UserPreferences": {
+        "type": "object",
+        "properties": {
+          "onboardingCompleted": {
+            "type": "boolean"
+          },
+          "themePreference": {
+            "type": "string",
+            "enum": ["auto", "light", "dark"]
+          },
+          "workspaceDisplayMode": {
+            "type": "string",
+            "enum": ["list", "grid", "compact"]
+          },
+          "showAdvancedFeatures": {
+            "type": "boolean"
+          },
+          "sessionAutoConnect": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["onboardingCompleted", "themePreference", "workspaceDisplayMode", "showAdvancedFeatures", "sessionAutoConnect", "updatedAt"]
+      },
+      "UserPreferencesUpdate": {
+        "type": "object",
+        "properties": {
+          "authKey": {
+            "type": "string"
+          },
+          "themePreference": {
+            "type": "string",
+            "enum": ["auto", "light", "dark"]
+          },
+          "workspaceDisplayMode": {
+            "type": "string",
+            "enum": ["list", "grid", "compact"]
+          },
+          "showAdvancedFeatures": {
+            "type": "boolean"
+          },
+          "sessionAutoConnect": {
+            "type": "boolean"
+          }
+        },
+        "required": ["authKey"]
+      }
+    }
+  }
+}

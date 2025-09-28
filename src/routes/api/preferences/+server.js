@@ -1,0 +1,184 @@
+import { json } from '@sveltejs/kit';
+import { validateKey } from '$lib/server/shared/auth.js';
+
+/**
+ * User Preferences API - Manages user-specific settings and preferences
+ * Supporting authentication persistence and UI customization
+ */
+
+export async function GET({ url, locals }) {
+	const authKey = url.searchParams.get('authKey') || url.searchParams.get('key') || '';
+	const category = url.searchParams.get('category');
+
+	if (!validateKey(authKey)) {
+		return json({ error: 'Invalid authentication key' }, { status: 401 });
+	}
+
+	try {
+		if (category) {
+			// Get preferences for specific category
+			const preferences = await locals.services.database.getUserPreferences(category);
+			return json(preferences || {});
+		} else {
+			// Get all preferences grouped by category
+			const allPreferences = await locals.services.database.getAllUserPreferences();
+			return json(allPreferences || {});
+		}
+	} catch (error) {
+		console.error('[Preferences API] Failed to get user preferences:', error);
+		return json({ error: error.message }, { status: 500 });
+	}
+}
+
+export async function PUT({ request, locals }) {
+	try {
+		const body = await request.json();
+		const { authKey, category, preferences } = body;
+
+		if (!validateKey(authKey)) {
+			return json({ error: 'Invalid authentication key' }, { status: 401 });
+		}
+
+		if (!category) {
+			return json({ error: 'Missing category parameter' }, { status: 400 });
+		}
+
+		if (!preferences || typeof preferences !== 'object') {
+			return json({ error: 'Missing or invalid preferences object' }, { status: 400 });
+		}
+
+		// Validate known preference categories and their structure
+		const validCategories = ['ui', 'auth', 'workspace', 'terminal'];
+		if (!validCategories.includes(category)) {
+			return json({ error: 'Invalid preference category' }, { status: 400 });
+		}
+
+		// Category-specific validation
+		if (category === 'auth') {
+			// Validate auth preferences
+			if (preferences.sessionDuration !== undefined) {
+				if (!Number.isInteger(preferences.sessionDuration) || preferences.sessionDuration < 1 || preferences.sessionDuration > 365) {
+					return json({ error: 'Session duration must be between 1 and 365 days' }, { status: 400 });
+				}
+			}
+		}
+
+		if (category === 'ui') {
+			// Validate UI preferences
+			if (preferences.theme !== undefined && !['light', 'dark', 'auto'].includes(preferences.theme)) {
+				return json({ error: 'Theme must be light, dark, or auto' }, { status: 400 });
+			}
+		}
+
+		// Update preferences for category
+		const updatedPreferences = await locals.services.database.updateUserPreferences(category, preferences);
+
+		return json({
+			success: true,
+			category,
+			preferences: updatedPreferences
+		});
+	} catch (error) {
+		console.error('[Preferences API] Failed to update user preferences:', error);
+		return json({ error: error.message }, { status: 500 });
+	}
+}
+
+export async function POST({ request, locals }) {
+	try {
+		const body = await request.json();
+		const { action, authKey } = body;
+
+		if (!validateKey(authKey)) {
+			return json({ error: 'Invalid authentication key' }, { status: 401 });
+		}
+
+		if (action === 'reset') {
+			const { category } = body;
+
+			if (!category) {
+				return json({ error: 'Missing category parameter for reset action' }, { status: 400 });
+			}
+
+			// Reset preferences for category to defaults
+			const defaultPreferences = getDefaultPreferences(category);
+			const resetPreferences = await locals.services.database.updateUserPreferences(category, defaultPreferences);
+
+			return json({
+				success: true,
+				category,
+				preferences: resetPreferences
+			});
+		}
+
+		if (action === 'export') {
+			// Export all preferences for backup/migration
+			const allPreferences = await locals.services.database.getAllUserPreferences();
+
+			return json({
+				success: true,
+				preferences: allPreferences,
+				exportedAt: new Date().toISOString()
+			});
+		}
+
+		if (action === 'import') {
+			const { preferences } = body;
+
+			if (!preferences || typeof preferences !== 'object') {
+				return json({ error: 'Missing or invalid preferences object for import' }, { status: 400 });
+			}
+
+			// Import preferences, validating each category
+			const results = {};
+			for (const [category, categoryPrefs] of Object.entries(preferences)) {
+				try {
+					results[category] = await locals.services.database.updateUserPreferences(category, categoryPrefs);
+				} catch (error) {
+					console.warn(`[Preferences API] Failed to import category ${category}:`, error);
+					results[category] = { error: error.message };
+				}
+			}
+
+			return json({
+				success: true,
+				importResults: results
+			});
+		}
+
+		return json({ error: 'Invalid action' }, { status: 400 });
+	} catch (error) {
+		console.error('[Preferences API] Failed to execute preference action:', error);
+		return json({ error: error.message }, { status: 500 });
+	}
+}
+
+/**
+ * Get default preferences for a category
+ * @param {string} category - Preference category
+ * @returns {object} Default preferences
+ */
+function getDefaultPreferences(category) {
+	const defaults = {
+		ui: {
+			theme: 'auto',
+			showWorkspaceInTitle: true,
+			autoHideInactiveTabsMinutes: 0
+		},
+		auth: {
+			sessionDuration: 30,
+			rememberLastWorkspace: true
+		},
+		workspace: {
+			defaultPath: '',
+			autoCreateMissingDirectories: true
+		},
+		terminal: {
+			fontSize: 14,
+			fontFamily: 'Monaco, monospace',
+			scrollback: 1000
+		}
+	};
+
+	return defaults[category] || {};
+}

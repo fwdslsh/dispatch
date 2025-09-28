@@ -1,17 +1,16 @@
 # Dispatch CLI
 
-This directory contains the Dispatch CLI tools.
+This directory contains the Dispatch CLI tool.
 
-## Files
+## File
 
-- **`dispatch`** - New Bash-based CLI script (recommended)
-- **`cli.js`** - Legacy Node.js CLI script (deprecated)
+- **`dispatch`** - Bash-based CLI script
 
 ## Migration
 
 The Dispatch CLI has been converted from Node.js to a native Bash script for improved usability and reduced dependencies.
 
-### New Bash CLI (`dispatch`)
+### Bash CLI (`dispatch`)
 
 - **Simpler installation**: No Node.js dependencies required
 - **Native shell integration**: Works with standard Unix tools
@@ -46,19 +45,9 @@ cp bin/dispatch ~/bin/dispatch
 chmod +x ~/bin/dispatch
 ```
 
-### Legacy CLI (Deprecated)
-
-The `cli.js` file is kept for backward compatibility but is no longer maintained. Users should migrate to the new `dispatch` script.
-
-To run the legacy CLI:
-
-```bash
-node bin/cli.js <command>
-```
-
 ## Configuration
 
-The new CLI uses a standardized configuration approach:
+The CLI uses a standardized configuration approach:
 
 - **Configuration directory**: `~/.dispatch/`
 - **Environment file**: `~/.dispatch/.env`
