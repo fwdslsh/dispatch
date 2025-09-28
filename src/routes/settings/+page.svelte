@@ -13,11 +13,17 @@
 	import { goto } from '$app/navigation';
 	import PreferencesPanel from '$lib/client/settings/PreferencesPanel.svelte';
 	import RetentionSettings from '$lib/client/settings/RetentionSettings.svelte';
-	import { useServiceContainer, provideServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import {
+		useServiceContainer,
+		provideServiceContainer
+	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import WorkspaceHeader from '$lib/client/shared/components/workspace/WorkspaceHeader.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import IconUser from '$lib/client/shared/components/Icons/IconUser.svelte';
 	import IconArchive from '$lib/client/shared/components/Icons/IconArchive.svelte';
+	import Shell from '$lib/client/shared/components/Shell.svelte';
+	import StatusBar from '$lib/client/shared/components/StatusBar.svelte';
+	import Header from '$lib/client/shared/components/Header.svelte';
 
 	// State management
 	let currentSection = $state('preferences'); // 'preferences', 'retention'
@@ -37,7 +43,7 @@
 				// No service container found, create one
 				serviceContainer = provideServiceContainer({
 					apiBaseUrl: '',
-					authTokenKey: 'terminalKey',
+					authTokenKey: 'dispatch-auth-key',
 					debug: false
 				});
 			}
@@ -105,15 +111,17 @@
 
 <svelte:head>
 	<title>Settings - Dispatch</title>
-	<meta name="description" content="Configure your Dispatch preferences, authentication, and data retention settings." />
+	<meta
+		name="description"
+		content="Configure your Dispatch preferences, authentication, and data retention settings."
+	/>
 </svelte:head>
-
-<div class="dispatch-workspace">
-	<!-- Use main application header -->
-	<WorkspaceHeader onLogout={handleLogout} />
-
+<Shell>
+	{#snippet header()}
+		<Header />
+	{/snippet}
 	<!-- Main Content -->
-	<main class="main-content">
+	<div class="settings-page">
 		{#if isLoading}
 			<div class="loading-container">
 				<div class="spinner"></div>
@@ -125,7 +133,7 @@
 				<p class="error-message">{error}</p>
 			</div>
 		{:else}
-			<div class="settings-page">
+			<div>
 				<!-- Success Message -->
 				{#if savedMessage}
 					<div class="success-message" role="alert">
@@ -175,54 +183,13 @@
 				</div>
 			</div>
 		{/if}
-	</main>
-</div>
+	</div>
+	{#snippet footer()}
+		<StatusBar />
+	{/snippet}
+</Shell>
 
 <style>
-	/* Match WorkspacePage grid layout */
-	.dispatch-workspace {
-		position: relative;
-		height: 100vh;
-		height: 100dvh;
-		display: grid;
-		grid-template-columns: 1fr;
-		grid-template-rows: min-content 1fr;
-		grid-template-areas:
-			'header'
-			'main';
-		background: transparent;
-		color: var(--text-primary);
-		overflow: hidden;
-		max-width: 100svw;
-		width: 100%;
-		transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-		overscroll-behavior: none;
-		touch-action: pan-x pan-y;
-	}
-
-	/* Background image overlay like WorkspacePage */
-	.dispatch-workspace::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		opacity: 0.09;
-		background-image: url('/fwdslsh-green-bg.png');
-		background-repeat: no-repeat;
-		background-position: center center;
-		background-size: contain;
-		pointer-events: none;
-	}
-
-	/* Main content area */
-	.main-content {
-		grid-area: main;
-		overflow: hidden;
-		position: relative;
-		min-width: 0;
-		overscroll-behavior: none;
-		touch-action: pan-x pan-y;
-	}
-
 	.loading-container {
 		display: flex;
 		flex-direction: column;
@@ -243,15 +210,15 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.settings-page {
 		height: 100%;
 		overflow-y: auto;
 		padding: 2rem;
-		max-width: 1200px;
-		margin: 0 auto;
 	}
 
 	.tab-buttons {

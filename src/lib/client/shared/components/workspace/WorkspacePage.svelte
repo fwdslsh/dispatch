@@ -14,7 +14,7 @@
 	import WorkspaceHeader from './WorkspaceHeader.svelte';
 	import SessionWindowManager from './SessionWindowManager.svelte';
 	import SingleSessionView from './SingleSessionView.svelte';
-	import StatusBar from './StatusBar.svelte';
+	import StatusBar from './WorkspaceStatusBar.svelte';
 
 	// Modals
 	import CreateSessionModal from '$lib/client/shared/components/CreateSessionModal.svelte';
@@ -26,6 +26,7 @@
 	// PWA components
 	import PWAInstallPrompt from '$lib/client/shared/components/PWAInstallPrompt.svelte';
 	import PWAUpdateNotification from '$lib/client/shared/components/PWAUpdateNotification.svelte';
+	import Shell from '../Shell.svelte';
 
 	// SessionSocketManager removed - RunSessionClient now handles socket management automatically
 
@@ -455,158 +456,156 @@
 	});
 </script>
 
-<div class="dispatch-workspace">
-	<!-- Service container is provided via context -->
-
-	<!-- Header (desktop only) -->
-	<WorkspaceHeader
-		onLogout={handleLogout}
-		viewMode={workspaceViewMode}
-		{editModeEnabled}
-		onEditModeToggle={toggleEditMode}
-		onInstallPWA={handleInstallPWA}
-		onViewModeChange={setWorkspaceViewMode}
-	/>
-
-	<!-- Bottom sheet for sessions -->
-	{#if sessionMenuOpen}
-		<div
-			class="session-sheet flex-col"
-			class:open={sessionMenuOpen}
-			role="dialog"
-			aria-label="Sessions"
-		>
-			<div class="flex-between p-3" style="border-bottom: 1px solid var(--primary-muted);">
-				<div class="modal-title" style="color: var(--primary); font-weight: 700;">Sessions</div>
-				<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close">
-					✕
-				</button>
-			</div>
-			<div
-				class="sheet-body"
-				style="overflow: hidden; min-height: calc(100% - var(--space-6)); padding: 0;"
-			>
-				<ProjectSessionMenu
-					onNewSession={(e) => {
-						const { type } = e.detail || {};
-						handleCreateSession(type);
-					}}
-					onSessionSelected={async (e) => {
-						const selectedId = e.detail?.id;
-						if (selectedId) {
-							updateActiveSession(selectedId);
-						}
-
-						try {
-							await sessionViewModel.handleSessionSelected(e.detail);
-						} catch (error) {
-							console.error('Error resuming session:', error);
-						}
-						sessionMenuOpen = false;
-					}}
-				/>
-			</div>
-		</div>
-	{/if}
-
-	<!-- Main Content -->
-	<main class="main-content">
-		{#if isWindowManagerView}
-			<SessionWindowManager
-				sessions={sessionsList}
-				showEditMode={editModeEnabled}
-				onSessionFocus={handleSessionFocus}
-				onSessionClose={handleSessionClose}
-				onSessionAssignToTile={handleSessionAssignToTile}
-				onCreateSession={handleCreateSession}
-			/>
-		{:else}
-			<SingleSessionView
-				session={selectedSingleSession}
-				sessionIndex={currentSessionIndex}
-				onSessionFocus={handleSessionFocus}
-				onSessionClose={handleSessionClose}
-				onCreateSession={handleCreateSession}
-			/>
-		{/if}
-	</main>
-
-	<!-- Status Bar -->
-	<StatusBar
-		onLogout={handleLogout}
-		onInstallPWA={handleInstallPWA}
-		onOpenSettings={handleOpenSettings}
-		onCreateSession={handleCreateSessionModal}
-		onToggleSessionMenu={handleToggleSessionMenu}
-		onNavigateSession={handleNavigateSession}
-		{sessionMenuOpen}
-		{isMobile}
-		{hasActiveSessions}
-		sessionCount={totalSessions}
-		{currentSessionIndex}
-		{totalSessions}
-		viewMode={workspaceViewMode}
-	/>
-</div>
-
-<!-- Modals -->
-{#if activeModal}
-	{#if activeModal.type === 'createSession'}
-		<CreateSessionModal
-			open={createSessionModalOpen}
-			initialType={activeModal.data?.type || 'claude'}
-			oncreated={handleSessionCreate}
-			onclose={closeActiveModal}
+<Shell>
+	{#snippet header()}
+		<!-- Header (desktop only) -->
+		<WorkspaceHeader
+			onLogout={handleLogout}
+			viewMode={workspaceViewMode}
+			{editModeEnabled}
+			onEditModeToggle={toggleEditMode}
+			onInstallPWA={handleInstallPWA}
+			onViewModeChange={setWorkspaceViewMode}
 		/>
-	{:else if activeModal.type === 'settings'}
-		<SettingsModal open={true} onclose={closeActiveModal} />
-	{:else if activeModal.type === 'pwaInstructions'}
-		<Modal open={true} title={activeModal.data?.title} size="small" onclose={closeActiveModal}>
-			{#snippet children()}
-				<div class="flex-col gap-4" style="line-height: 1.6;">
-					{#if activeModal.data?.description}
-						<p class="m-0 text-muted" style="color: var(--text-secondary);">
-							{activeModal.data.description}
-						</p>
-					{/if}
-					{#if activeModal.data?.steps?.length}
-						<ol class="pwa-instructions__steps flex-col gap-2">
-							{#each activeModal.data.steps as step}
-								<li>{step}</li>
-							{/each}
-						</ol>
-					{/if}
-				</div>
-			{/snippet}
-			{#snippet footer()}
-				<div class="flex gap-3" style="justify-content: flex-end;">
-					<Button variant="primary" onclick={closeActiveModal}>Got it</Button>
-				</div>
-			{/snippet}
-		</Modal>
-	{/if}
-{/if}
+	{/snippet}
+	<div class="dispatch-workspace">
+		<!-- Service container is provided via context -->
 
-<PWAInstallPrompt />
-<PWAUpdateNotification />
+		<!-- Bottom sheet for sessions -->
+		{#if sessionMenuOpen}
+			<div
+				class="session-sheet flex-col"
+				class:open={sessionMenuOpen}
+				role="dialog"
+				aria-label="Sessions"
+			>
+				<div class="flex-between p-3" style="border-bottom: 1px solid var(--primary-muted);">
+					<div class="modal-title" style="color: var(--primary); font-weight: 700;">Sessions</div>
+					<button class="sheet-close" onclick={() => (sessionMenuOpen = false)} aria-label="Close">
+						✕
+					</button>
+				</div>
+				<div
+					class="sheet-body"
+					style="overflow: hidden; min-height: calc(100% - var(--space-6)); padding: 0;"
+				>
+					<ProjectSessionMenu
+						onNewSession={(e) => {
+							const { type } = e.detail || {};
+							handleCreateSession(type);
+						}}
+						onSessionSelected={async (e) => {
+							const selectedId = e.detail?.id;
+							if (selectedId) {
+								updateActiveSession(selectedId);
+							}
+
+							try {
+								await sessionViewModel.handleSessionSelected(e.detail);
+							} catch (error) {
+								console.error('Error resuming session:', error);
+							}
+							sessionMenuOpen = false;
+						}}
+					/>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Main Content -->
+		<div class="workspace-content">
+			{#if isWindowManagerView}
+				<SessionWindowManager
+					sessions={sessionsList}
+					showEditMode={editModeEnabled}
+					onSessionFocus={handleSessionFocus}
+					onSessionClose={handleSessionClose}
+					onSessionAssignToTile={handleSessionAssignToTile}
+					onCreateSession={handleCreateSession}
+				/>
+			{:else}
+				<SingleSessionView
+					session={selectedSingleSession}
+					sessionIndex={currentSessionIndex}
+					onSessionFocus={handleSessionFocus}
+					onSessionClose={handleSessionClose}
+					onCreateSession={handleCreateSession}
+				/>
+			{/if}
+		</div>
+	</div>
+
+	{#snippet footer()}
+		<!-- Status Bar -->
+		<StatusBar
+			onLogout={handleLogout}
+			onInstallPWA={handleInstallPWA}
+			onOpenSettings={handleOpenSettings}
+			onCreateSession={handleCreateSessionModal}
+			onToggleSessionMenu={handleToggleSessionMenu}
+			onNavigateSession={handleNavigateSession}
+			{sessionMenuOpen}
+			{isMobile}
+			{hasActiveSessions}
+			sessionCount={totalSessions}
+			{currentSessionIndex}
+			{totalSessions}
+			viewMode={workspaceViewMode}
+		/>
+	{/snippet}
+	<!-- Modals -->
+	{#if activeModal}
+		{#if activeModal.type === 'createSession'}
+			<CreateSessionModal
+				open={createSessionModalOpen}
+				initialType={activeModal.data?.type || 'claude'}
+				oncreated={handleSessionCreate}
+				onclose={closeActiveModal}
+			/>
+		{:else if activeModal.type === 'settings'}
+			<SettingsModal open={true} onclose={closeActiveModal} />
+		{:else if activeModal.type === 'pwaInstructions'}
+			<Modal open={true} title={activeModal.data?.title} size="small" onclose={closeActiveModal}>
+				{#snippet children()}
+					<div class="flex-col gap-4" style="line-height: 1.6;">
+						{#if activeModal.data?.description}
+							<p class="m-0 text-muted" style="color: var(--text-secondary);">
+								{activeModal.data.description}
+							</p>
+						{/if}
+						{#if activeModal.data?.steps?.length}
+							<ol class="pwa-instructions__steps flex-col gap-2">
+								{#each activeModal.data.steps as step}
+									<li>{step}</li>
+								{/each}
+							</ol>
+						{/if}
+					</div>
+				{/snippet}
+				{#snippet footer()}
+					<div class="flex gap-3" style="justify-content: flex-end;">
+						<Button variant="primary" onclick={closeActiveModal}>Got it</Button>
+					</div>
+				{/snippet}
+			</Modal>
+		{/if}
+	{/if}
+
+	<PWAInstallPrompt />
+	<PWAUpdateNotification />
+</Shell>
 
 <style>
 	/* Workspace-specific layout grid */
 	.dispatch-workspace {
 		position: relative;
-		height: 100vh;
-		height: 100dvh;
 		display: grid;
-		grid-template-columns: 1fr;
-		grid-template-rows: min-content 1fr min-content;
-		grid-template-areas:
-			'header'
-			'main'
-			'footer';
+	
 		background: transparent;
 		color: var(--text-primary);
 		overflow: hidden;
 		max-width: 100svw;
+		height: 100%;
 		width: 100%;
 		transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 		overscroll-behavior: none;
@@ -626,16 +625,7 @@
 		pointer-events: none;
 	}
 
-	/* Main content area */
-	.main-content {
-		grid-area: main;
-		overflow: hidden;
-		position: relative;
-		min-width: 0;
-		overscroll-behavior: none;
-		touch-action: pan-x pan-y;
-	}
-
+	
 	/* Session bottom sheet - mobile specific */
 	.session-sheet {
 		position: fixed;

@@ -6,23 +6,20 @@
 	 */
 
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { useServiceContainer } from '../shared/services/ServiceContainer.svelte.js';
-	import { OnboardingViewModel } from '../state/OnboardingViewModel.svelte.js';
 
 	// Props
-	const { onComplete = () => {}, onSkip = () => {} } = $props();
+	let { viewModel, onComplete = () => {}, onSkip = () => {} } = $props();
 
 	// Get services from context
 	const serviceContainer = useServiceContainer();
 
-	// State for viewModel initialization
-	let viewModel = $state(null);
-
 	// Initialize ViewModel with async apiClient
-	$effect(async () => {
-		const apiClient = await serviceContainer.get('sessionApi');
-		viewModel = new OnboardingViewModel(apiClient);
-		await viewModel.loadState();
+	onMount(async () => {
+		//const apiClient = await serviceContainer.get('sessionApi');
+		//viewModel ??= new OnboardingViewModel(apiClient);
+		//await viewModel.loadState();
 	});
 
 	// Local state for form inputs
@@ -59,7 +56,6 @@
 		try {
 			// Store the new terminal key in localStorage
 			localStorage.setItem('dispatch-auth-key', terminalKey);
-			localStorage.setItem('terminalKey', terminalKey);
 
 			// Move to next step
 			await handleStepComplete('workspace');

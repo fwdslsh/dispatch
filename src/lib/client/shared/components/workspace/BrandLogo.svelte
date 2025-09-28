@@ -9,7 +9,8 @@
 	<span class="brand-icon">
 		<img src="/favicon.png" alt="Dispatch" height="32" />
 	</span>
-	<span class="brand-text">Dispatch</span>
+	<a href="/workspace" >
+	<span class="brand-text">Dispatch</span></a>
 </div>
 
 <style>
@@ -19,6 +20,15 @@
 		gap: var(--space-3);
 		font-family: var(--font-accent);
 		font-weight: 700;
+		a{
+			appearance: none;
+			text-decoration: none;
+			color: inherit;
+			border-bottom: none;
+		}
+		a:hover{
+			text-decoration: none;
+		}
 	}
 
 	.brand-icon {

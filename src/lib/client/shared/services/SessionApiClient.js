@@ -887,7 +887,7 @@ export class SessionApiClient {
 	 */
 	getAuthKey() {
 		if (typeof localStorage !== 'undefined') {
-			return localStorage.getItem(this.config.authTokenKey) || localStorage.getItem('terminalKey');
+			return localStorage.getItem(this.config.authTokenKey) || localStorage.getItem('dispatch-auth-key');
 		}
 		return null;
 	}

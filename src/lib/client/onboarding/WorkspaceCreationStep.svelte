@@ -40,7 +40,7 @@
 			}
 
 			// Get auth key from storage
-			const authKey = localStorage.getItem('terminalKey');
+			const authKey = localStorage.getItem('dispatch-auth-key');
 			if (!authKey) {
 				throw new Error('Authentication required');
 			}

@@ -170,7 +170,7 @@ test.describe('Onboarding Workflow', () => {
 			// Verify onboarding is marked as complete in storage
 			const onboardingComplete = await page.evaluate(() => {
 				return localStorage.getItem('onboarding-complete') === 'true' ||
-					   localStorage.getItem('terminalKey') === 'testkey12345';
+					   localStorage.getItem('dispatch-auth-key') === 'testkey12345';
 			});
 			expect(onboardingComplete).toBeTruthy();
 		});

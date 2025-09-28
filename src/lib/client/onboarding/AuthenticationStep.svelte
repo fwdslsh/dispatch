@@ -48,7 +48,7 @@
 
 			if (result.success) {
 				// Store terminal key for future use
-				localStorage.setItem('terminalKey', terminalKey);
+				localStorage.setItem('dispatch-auth-key', terminalKey);
 				isAuthenticated = true;
 
 				// Mark step complete and proceed

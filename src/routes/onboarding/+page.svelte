@@ -13,7 +13,8 @@
 	import { page } from '$app/stores';
 	import OnboardingFlow from '$lib/client/onboarding/OnboardingFlow.svelte';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
-	import { OnboardingViewModel } from '$lib/client/state/OnboardingViewModel.svelte.js';
+	import { OnboardingViewModel } from '$lib/client/onboarding/OnboardingViewModel.svelte.js';
+	import Shell from '$lib/client/shared/components/Shell.svelte';
 
 	// State management
 	let onboardingViewModel = $state(null);
@@ -33,8 +34,9 @@
 			const apiClientPromise = container.get('sessionApi');
 
 			// Wait for API client to be available
-			const apiClient = await (typeof apiClientPromise?.then === 'function' ?
-				apiClientPromise : Promise.resolve(apiClientPromise));
+			const apiClient = await (typeof apiClientPromise?.then === 'function'
+				? apiClientPromise
+				: Promise.resolve(apiClientPromise));
 
 			if (!apiClient) {
 				throw new Error('API client not available');
@@ -44,12 +46,12 @@
 			onboardingViewModel = new OnboardingViewModel(apiClient);
 			await onboardingViewModel.loadState();
 
-			// Check if user has already completed onboarding
-			if (onboardingViewModel.isComplete) {
-				// Redirect to main app
-				await goto('/', { replaceState: true });
-				return;
-			}
+			// // Check if user has already completed onboarding
+			// if (onboardingViewModel.isComplete) {
+			// 	// Redirect to main app
+			// 	await goto('/', { replaceState: true });
+			// 	return;
+			// }
 
 			error = null;
 		} catch (err) {
@@ -72,7 +74,7 @@
 			await onboardingViewModel.complete(workspaceId);
 
 			// Redirect to main application
-			await goto('/', { replaceState: true });
+			//	await goto('/', { replaceState: true });
 		} catch (err) {
 			console.error('Failed to complete onboarding:', err);
 			error = err.message || 'Failed to complete onboarding';
@@ -107,47 +109,46 @@
 
 <svelte:head>
 	<title>Welcome to Dispatch - Get Started</title>
-	<meta name="description" content="Set up your Dispatch development environment with our guided onboarding process." />
+	<meta
+		name="description"
+		content="Set up your Dispatch development environment with our guided onboarding process."
+	/>
 </svelte:head>
-
-<div class="onboarding-page">
-	{#if isLoading}
-		<div class="loading-container">
-			<div class="spinner"></div>
-			<p>Loading onboarding system...</p>
-		</div>
-	{:else if error}
-		<div class="error-container">
-			<h1>Onboarding Error</h1>
-			<p class="error-message">{error}</p>
-			<button class="retry-button" onclick={initializeOnboarding}>
-				Try Again
-			</button>
-		</div>
-	{:else if onboardingViewModel}
-		<OnboardingFlow
-			viewModel={onboardingViewModel}
-			on:complete={handleOnboardingComplete}
-			on:stepComplete={handleStepComplete}
-			on:error={handleOnboardingError}
-		/>
-	{/if}
-</div>
+<Shell>
+	<div class="onboarding-page">
+		{#if isLoading}
+			<div class="loading-container">
+				<div class="spinner"></div>
+				<p>Loading onboarding system...</p>
+			</div>
+		{:else if error}
+			<div class="error-container">
+				<h1>Onboarding Error</h1>
+				<p class="error-message">{error}</p>
+				<button class="retry-button" onclick={initializeOnboarding}> Try Again </button>
+			</div>
+		{:else if onboardingViewModel}
+			<OnboardingFlow viewModel={onboardingViewModel} onComplete={handleOnboardingComplete} />
+		{/if}
+	</div>
+</Shell>
 
 <style>
 	.onboarding-page {
-		min-height: 100vh;
+		flex: 1;
 		display: flex;
-		align-items: center;
+		flex-direction: column;
 		justify-content: center;
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		align-items: center;
+		width: 100%;
+		height: 100%;
 		padding: 2rem;
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		box-sizing: border-box;
 	}
-
 	.loading-container {
 		text-align: center;
-		color: white;
+		justify-content: center;
+		align-self: center;
 	}
 
 	.loading-container p {
@@ -167,8 +168,12 @@
 	}
 
 	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 
 	.error-container {

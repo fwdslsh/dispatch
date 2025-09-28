@@ -1,6 +1,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { io } from 'socket.io-client';
+	import Shell from '$lib/client/shared/components/Shell.svelte';
 
 	let socket = null;
 	let activeSockets = [];
@@ -173,343 +174,345 @@
 	<title>Admin Console - Dispatch</title>
 </svelte:head>
 
-<div class="console-container">
-	<!-- Console Header -->
-	<header class="console-header">
-		<div class="container">
-			<div class="header-content">
-				<h1 class="glow">Admin Console</h1>
-				<div class="cluster">
-					<span class="session-indicator active">Real-time monitoring</span>
+<Shell>
+	<div class="console-container">
+		<!-- Console Header -->
+		<header class="console-header">
+			<div class="container">
+				<div class="header-content">
+					<h1 class="glow">Admin Console</h1>
+					<div class="cluster">
+						<span class="session-indicator active">Real-time monitoring</span>
+						<button
+							onclick={() => location.reload()}
+							class="button aug ghost"
+							data-augmented-ui="tl-clip br-clip both"
+						>
+							Refresh
+						</button>
+					</div>
+				</div>
+			</div>
+		</header>
+
+		<!-- Navigation Tabs -->
+		<nav class="console-nav">
+			<div class="container">
+				<div class="nav-tabs">
 					<button
-						onclick={() => location.reload()}
-						class="button aug ghost"
-						data-augmented-ui="tl-clip br-clip both"
+						class="nav-tab {selectedTab === 'sockets' ? 'active' : ''}"
+						onclick={() => (selectedTab = 'sockets')}
 					>
-						Refresh
+						<span class="tab-label">Active Sockets</span>
+						<span class="badge ok">{activeSockets.length}</span>
+					</button>
+					<button
+						class="nav-tab {selectedTab === 'events' ? 'active' : ''}"
+						onclick={() => (selectedTab = 'events')}
+					>
+						<span class="tab-label">Socket Events</span>
+						<span class="badge">{socketEvents.length}</span>
+					</button>
+					<button
+						class="nav-tab {selectedTab === 'history' ? 'active' : ''}"
+						onclick={() => {
+							selectedTab = 'history';
+							selectedHistory = null;
+						}}
+					>
+						<span class="tab-label">Socket History</span>
+						<span class="badge">{socketHistories.length}</span>
+					</button>
+					<button
+						class="nav-tab {selectedTab === 'logs' ? 'active' : ''}"
+						onclick={() => (selectedTab = 'logs')}
+					>
+						<span class="tab-label">Server Logs</span>
+						<span class="badge">{serverLogs.length}</span>
 					</button>
 				</div>
 			</div>
-		</div>
-	</header>
+		</nav>
 
-	<!-- Navigation Tabs -->
-	<nav class="console-nav">
-		<div class="container">
-			<div class="nav-tabs">
-				<button
-					class="nav-tab {selectedTab === 'sockets' ? 'active' : ''}"
-					onclick={() => (selectedTab = 'sockets')}
-				>
-					<span class="tab-label">Active Sockets</span>
-					<span class="badge ok">{activeSockets.length}</span>
-				</button>
-				<button
-					class="nav-tab {selectedTab === 'events' ? 'active' : ''}"
-					onclick={() => (selectedTab = 'events')}
-				>
-					<span class="tab-label">Socket Events</span>
-					<span class="badge">{socketEvents.length}</span>
-				</button>
-				<button
-					class="nav-tab {selectedTab === 'history' ? 'active' : ''}"
-					onclick={() => {
-						selectedTab = 'history';
-						selectedHistory = null;
-					}}
-				>
-					<span class="tab-label">Socket History</span>
-					<span class="badge">{socketHistories.length}</span>
-				</button>
-				<button
-					class="nav-tab {selectedTab === 'logs' ? 'active' : ''}"
-					onclick={() => (selectedTab = 'logs')}
-				>
-					<span class="tab-label">Server Logs</span>
-					<span class="badge">{serverLogs.length}</span>
-				</button>
-			</div>
-		</div>
-	</nav>
-
-	<!-- Main Content Area -->
-	<main class="console-content">
-		<div class="container">
-			{#if selectedTab === 'sockets'}
-				<section class="tab-section">
-					<h2>Active Sockets</h2>
-					{#if activeSockets.length === 0}
-						<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
-							<p>No active sockets</p>
-						</div>
-					{:else}
-						<div class="term-grid">
-							{#each activeSockets as socket}
-								<div class="card aug socket-card" data-augmented-ui="tl-clip br-clip both">
-									<div class="socket-header">
-										<h3 class="session-indicator">Socket {socket.id}</h3>
-										<button
-											onclick={() => disconnectSocket(socket.id)}
-											class="button danger aug"
-											data-augmented-ui="tl-clip br-clip both"
-										>
-											Disconnect
-										</button>
-									</div>
-									<div class="socket-details stack">
-										<div class="detail-row">
-											<span class="label muted">IP Address:</span>
-											<span class="value">{socket.ip || 'Unknown'}</span>
-										</div>
-										<div class="detail-row">
-											<span class="label muted">Connected:</span>
-											<span class="value">{formatTimestamp(socket.connectedAt)}</span>
-										</div>
-										<div class="detail-row">
-											<span class="label muted">Uptime:</span>
-											<span class="value">{formatUptime(socket.connectedAt)}</span>
-										</div>
-										<div class="detail-row">
-											<span class="label muted">Authenticated:</span>
-											<span class="value">
-												{#if socket.authenticated}
-													<span class="badge ok">Yes</span>
-												{:else}
-													<span class="badge err">No</span>
-												{/if}
-											</span>
-										</div>
-									</div>
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</section>
-			{:else if selectedTab === 'events'}
-				<section class="tab-section">
-					<h2>Socket Events Monitor</h2>
-					{#if socketEvents.length === 0}
-						<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
-							<p>No events logged yet</p>
-						</div>
-					{:else}
-						<div class="events-list">
-							{#each socketEvents as event}
-								<div
-									class="panel aug event-card {getEventTypeClass(event.type)}"
-									data-augmented-ui="tl-clip br-clip both"
-								>
-									<div class="event-header">
-										<span class="badge">{event.type}</span>
-										<span class="muted">{formatTimestamp(event.timestamp)}</span>
-									</div>
-									<div class="event-details stack">
-										<div class="detail-row">
-											<span class="label muted">Socket:</span>
-											<span class="value">{event.socketId}</span>
-										</div>
-										{#if event.data}
-											<div class="event-data-section">
-												<span class="label muted">Data:</span>
-												<pre class="event-data">{JSON.stringify(event.data, null, 2)}</pre>
-											</div>
-										{/if}
-									</div>
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</section>
-			{:else if selectedTab === 'logs'}
-				<section class="tab-section">
-					<h2>Server Logs</h2>
-					{#if serverLogs.length === 0}
-						<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
-							<p>No server logs available</p>
-						</div>
-					{:else}
-						<div class="logs-container panel aug" data-augmented-ui="tl-clip br-clip both">
-							<div class="logs-list">
-								{#each serverLogs as log}
-									<div class="log-entry log-{log.level}">
-										<span class="log-timestamp muted">{formatTimestamp(log.timestamp)}</span>
-										<span class="log-level badge {log.level}">[{log.level.toUpperCase()}]</span>
-										<span class="log-message">{log.message}</span>
-									</div>
-								{/each}
-							</div>
-						</div>
-					{/if}
-				</section>
-			{:else if selectedTab === 'history'}
-				<section class="tab-section">
-					{#if selectedHistory}
-						<!-- Individual Socket History View -->
-						<div class="history-detail">
-							<div class="history-header cluster">
-								<button
-									onclick={goBackToHistoryList}
-									class="button aug"
-									data-augmented-ui="tl-clip br-clip both"
-								>
-									← Back
-								</button>
-								<h2>Socket History: {selectedHistory.socketId}</h2>
-							</div>
-
-							<div class="card aug history-metadata" data-augmented-ui="tl-clip br-clip both">
-								<h3>Socket Information</h3>
-								<div class="metadata-grid">
-									<div class="detail-row">
-										<span class="label muted">Socket ID:</span>
-										<span class="value">{selectedHistory.socketId}</span>
-									</div>
-									<div class="detail-row">
-										<span class="label muted">Connected:</span>
-										<span class="value"
-											>{formatTimestamp(selectedHistory.metadata.connectedAt)}</span
-										>
-									</div>
-									<div class="detail-row">
-										<span class="label muted">IP Address:</span>
-										<span class="value">{selectedHistory.metadata.ip}</span>
-									</div>
-									<div class="detail-row">
-										<span class="label muted">User Agent:</span>
-										<span class="value">{selectedHistory.metadata.userAgent}</span>
-									</div>
-									{#if selectedHistory.metadata.sessionType}
-										<div class="detail-row">
-											<span class="label muted">Session Type:</span>
-											<span class="badge">{selectedHistory.metadata.sessionType}</span>
-										</div>
-									{/if}
-									{#if selectedHistory.metadata.sessionName}
-										<div class="detail-row">
-											<span class="label muted">Session Name:</span>
-											<span class="value">{selectedHistory.metadata.sessionName}</span>
-										</div>
-									{/if}
-									{#if selectedHistory.metadata.cwd}
-										<div class="detail-row">
-											<span class="label muted">Working Directory:</span>
-											<span class="value prompt">{selectedHistory.metadata.cwd}</span>
-										</div>
-									{/if}
-								</div>
-							</div>
-
-							<div class="panel aug history-events" data-augmented-ui="tl-clip br-clip both">
-								<h3>Communication Events ({selectedHistory.events.length})</h3>
-								{#if selectedHistory.events.length === 0}
-									<p class="empty-state">No events recorded</p>
-								{:else}
-									<div class="events-timeline">
-										{#each selectedHistory.events as event}
-											<div class="timeline-event {getEventTypeClass(event.type)}">
-												<div class="event-header cluster">
-													<span class="badge">{event.type}</span>
-													<span class="badge direction-{event.direction}">{event.direction}</span>
-													<span class="muted">{formatTimestamp(event.timestamp)}</span>
-												</div>
-												{#if event.data}
-													<div class="event-data-container">
-														<pre class="event-data">{JSON.stringify(event.data, null, 2)}</pre>
-													</div>
-												{/if}
-											</div>
-										{/each}
-									</div>
-								{/if}
-							</div>
-						</div>
-					{:else}
-						<!-- Socket History List View -->
-						<div class="history-list-header cluster">
-							<h2>Socket History</h2>
-							<button
-								onclick={loadSocketHistories}
-								class="button aug"
-								data-augmented-ui="tl-clip br-clip both"
-							>
-								Refresh
-							</button>
-						</div>
-
-						{#if socketHistories.length === 0}
+		<!-- Main Content Area -->
+		<main class="console-content">
+			<div class="container">
+				{#if selectedTab === 'sockets'}
+					<section class="tab-section">
+						<h2>Active Sockets</h2>
+						{#if activeSockets.length === 0}
 							<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
-								<p>No socket histories available</p>
+								<p>No active sockets</p>
 							</div>
 						{:else}
 							<div class="term-grid">
-								{#each socketHistories as history}
-									<div
-										class="card aug history-card {history.isActive ? 'active' : ''}"
-										data-augmented-ui="tl-clip br-clip both"
-									>
-										<div class="history-card-header">
-											<h3 class="session-indicator {history.isActive ? 'active' : ''}">
-												Socket {history.socketId}
-											</h3>
-											<div class="history-status">
-												{#if history.isActive}
-													<span class="badge ok">Active</span>
-												{:else}
-													<span class="badge">Disconnected</span>
-												{/if}
-											</div>
-										</div>
-
-										<div class="history-card-details stack">
-											<div class="detail-row">
-												<span class="label muted">Created:</span>
-												<span class="value">{formatTimestamp(history.createdAt)}</span>
-											</div>
-											<div class="detail-row">
-												<span class="label muted">Last Updated:</span>
-												<span class="value">{formatTimestamp(history.updatedAt)}</span>
-											</div>
-											<div class="detail-row">
-												<span class="label muted">Last Event:</span>
-												<span class="value"
-													>{history.lastEventTime
-														? formatTimestamp(history.lastEventTime)
-														: '—'}</span
-												>
-											</div>
-											<div class="detail-row">
-												<span class="label muted">Events:</span>
-												<span class="value">{history.eventCount}</span>
-											</div>
-											<div class="detail-row">
-												<span class="label muted">IP:</span>
-												<span class="value">{history.metadata?.ip || '—'}</span>
-											</div>
-											<div class="detail-row">
-												<span class="label muted">User Agent:</span>
-												<span class="value">{history.metadata?.userAgent || '—'}</span>
-											</div>
-										</div>
-
-										<div class="history-card-actions">
+								{#each activeSockets as socket}
+									<div class="card aug socket-card" data-augmented-ui="tl-clip br-clip both">
+										<div class="socket-header">
+											<h3 class="session-indicator">Socket {socket.id}</h3>
 											<button
-												onclick={() => selectSocketHistory(history.socketId)}
-												class="button primary aug"
+												onclick={() => disconnectSocket(socket.id)}
+												class="button danger aug"
 												data-augmented-ui="tl-clip br-clip both"
 											>
-												View History
+												Disconnect
 											</button>
+										</div>
+										<div class="socket-details stack">
+											<div class="detail-row">
+												<span class="label muted">IP Address:</span>
+												<span class="value">{socket.ip || 'Unknown'}</span>
+											</div>
+											<div class="detail-row">
+												<span class="label muted">Connected:</span>
+												<span class="value">{formatTimestamp(socket.connectedAt)}</span>
+											</div>
+											<div class="detail-row">
+												<span class="label muted">Uptime:</span>
+												<span class="value">{formatUptime(socket.connectedAt)}</span>
+											</div>
+											<div class="detail-row">
+												<span class="label muted">Authenticated:</span>
+												<span class="value">
+													{#if socket.authenticated}
+														<span class="badge ok">Yes</span>
+													{:else}
+														<span class="badge err">No</span>
+													{/if}
+												</span>
+											</div>
 										</div>
 									</div>
 								{/each}
 							</div>
 						{/if}
-					{/if}
-				</section>
-			{/if}
-		</div>
-	</main>
-</div>
+					</section>
+				{:else if selectedTab === 'events'}
+					<section class="tab-section">
+						<h2>Socket Events Monitor</h2>
+						{#if socketEvents.length === 0}
+							<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
+								<p>No events logged yet</p>
+							</div>
+						{:else}
+							<div class="events-list">
+								{#each socketEvents as event}
+									<div
+										class="panel aug event-card {getEventTypeClass(event.type)}"
+										data-augmented-ui="tl-clip br-clip both"
+									>
+										<div class="event-header">
+											<span class="badge">{event.type}</span>
+											<span class="muted">{formatTimestamp(event.timestamp)}</span>
+										</div>
+										<div class="event-details stack">
+											<div class="detail-row">
+												<span class="label muted">Socket:</span>
+												<span class="value">{event.socketId}</span>
+											</div>
+											{#if event.data}
+												<div class="event-data-section">
+													<span class="label muted">Data:</span>
+													<pre class="event-data">{JSON.stringify(event.data, null, 2)}</pre>
+												</div>
+											{/if}
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</section>
+				{:else if selectedTab === 'logs'}
+					<section class="tab-section">
+						<h2>Server Logs</h2>
+						{#if serverLogs.length === 0}
+							<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
+								<p>No server logs available</p>
+							</div>
+						{:else}
+							<div class="logs-container panel aug" data-augmented-ui="tl-clip br-clip both">
+								<div class="logs-list">
+									{#each serverLogs as log}
+										<div class="log-entry log-{log.level}">
+											<span class="log-timestamp muted">{formatTimestamp(log.timestamp)}</span>
+											<span class="log-level badge {log.level}">[{log.level.toUpperCase()}]</span>
+											<span class="log-message">{log.message}</span>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/if}
+					</section>
+				{:else if selectedTab === 'history'}
+					<section class="tab-section">
+						{#if selectedHistory}
+							<!-- Individual Socket History View -->
+							<div class="history-detail">
+								<div class="history-header cluster">
+									<button
+										onclick={goBackToHistoryList}
+										class="button aug"
+										data-augmented-ui="tl-clip br-clip both"
+									>
+										← Back
+									</button>
+									<h2>Socket History: {selectedHistory.socketId}</h2>
+								</div>
+
+								<div class="card aug history-metadata" data-augmented-ui="tl-clip br-clip both">
+									<h3>Socket Information</h3>
+									<div class="metadata-grid">
+										<div class="detail-row">
+											<span class="label muted">Socket ID:</span>
+											<span class="value">{selectedHistory.socketId}</span>
+										</div>
+										<div class="detail-row">
+											<span class="label muted">Connected:</span>
+											<span class="value"
+												>{formatTimestamp(selectedHistory.metadata.connectedAt)}</span
+											>
+										</div>
+										<div class="detail-row">
+											<span class="label muted">IP Address:</span>
+											<span class="value">{selectedHistory.metadata.ip}</span>
+										</div>
+										<div class="detail-row">
+											<span class="label muted">User Agent:</span>
+											<span class="value">{selectedHistory.metadata.userAgent}</span>
+										</div>
+										{#if selectedHistory.metadata.sessionType}
+											<div class="detail-row">
+												<span class="label muted">Session Type:</span>
+												<span class="badge">{selectedHistory.metadata.sessionType}</span>
+											</div>
+										{/if}
+										{#if selectedHistory.metadata.sessionName}
+											<div class="detail-row">
+												<span class="label muted">Session Name:</span>
+												<span class="value">{selectedHistory.metadata.sessionName}</span>
+											</div>
+										{/if}
+										{#if selectedHistory.metadata.cwd}
+											<div class="detail-row">
+												<span class="label muted">Working Directory:</span>
+												<span class="value prompt">{selectedHistory.metadata.cwd}</span>
+											</div>
+										{/if}
+									</div>
+								</div>
+
+								<div class="panel aug history-events" data-augmented-ui="tl-clip br-clip both">
+									<h3>Communication Events ({selectedHistory.events.length})</h3>
+									{#if selectedHistory.events.length === 0}
+										<p class="empty-state">No events recorded</p>
+									{:else}
+										<div class="events-timeline">
+											{#each selectedHistory.events as event}
+												<div class="timeline-event {getEventTypeClass(event.type)}">
+													<div class="event-header cluster">
+														<span class="badge">{event.type}</span>
+														<span class="badge direction-{event.direction}">{event.direction}</span>
+														<span class="muted">{formatTimestamp(event.timestamp)}</span>
+													</div>
+													{#if event.data}
+														<div class="event-data-container">
+															<pre class="event-data">{JSON.stringify(event.data, null, 2)}</pre>
+														</div>
+													{/if}
+												</div>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							</div>
+						{:else}
+							<!-- Socket History List View -->
+							<div class="history-list-header cluster">
+								<h2>Socket History</h2>
+								<button
+									onclick={loadSocketHistories}
+									class="button aug"
+									data-augmented-ui="tl-clip br-clip both"
+								>
+									Refresh
+								</button>
+							</div>
+
+							{#if socketHistories.length === 0}
+								<div class="empty-state card aug" data-augmented-ui="tl-clip br-clip both">
+									<p>No socket histories available</p>
+								</div>
+							{:else}
+								<div class="term-grid">
+									{#each socketHistories as history}
+										<div
+											class="card aug history-card {history.isActive ? 'active' : ''}"
+											data-augmented-ui="tl-clip br-clip both"
+										>
+											<div class="history-card-header">
+												<h3 class="session-indicator {history.isActive ? 'active' : ''}">
+													Socket {history.socketId}
+												</h3>
+												<div class="history-status">
+													{#if history.isActive}
+														<span class="badge ok">Active</span>
+													{:else}
+														<span class="badge">Disconnected</span>
+													{/if}
+												</div>
+											</div>
+
+											<div class="history-card-details stack">
+												<div class="detail-row">
+													<span class="label muted">Created:</span>
+													<span class="value">{formatTimestamp(history.createdAt)}</span>
+												</div>
+												<div class="detail-row">
+													<span class="label muted">Last Updated:</span>
+													<span class="value">{formatTimestamp(history.updatedAt)}</span>
+												</div>
+												<div class="detail-row">
+													<span class="label muted">Last Event:</span>
+													<span class="value"
+														>{history.lastEventTime
+															? formatTimestamp(history.lastEventTime)
+															: '—'}</span
+													>
+												</div>
+												<div class="detail-row">
+													<span class="label muted">Events:</span>
+													<span class="value">{history.eventCount}</span>
+												</div>
+												<div class="detail-row">
+													<span class="label muted">IP:</span>
+													<span class="value">{history.metadata?.ip || '—'}</span>
+												</div>
+												<div class="detail-row">
+													<span class="label muted">User Agent:</span>
+													<span class="value">{history.metadata?.userAgent || '—'}</span>
+												</div>
+											</div>
+
+											<div class="history-card-actions">
+												<button
+													onclick={() => selectSocketHistory(history.socketId)}
+													class="button primary aug"
+													data-augmented-ui="tl-clip br-clip both"
+												>
+													View History
+												</button>
+											</div>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						{/if}
+					</section>
+				{/if}
+			</div>
+		</main>
+	</div>
+</Shell>
 
 <style>
 	/* Container and Layout */

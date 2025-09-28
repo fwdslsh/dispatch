@@ -442,7 +442,7 @@ const response = await fetch('/api/auth/check', {
 });
 
 // Session data stored in localStorage for persistence
-localStorage.setItem('terminalKey', terminalKey);
+localStorage.setItem('dispatch-auth-key', terminalKey);
 localStorage.setItem('authSessionId', sessionId);
 localStorage.setItem('authExpiresAt', expirationDate);
 ```

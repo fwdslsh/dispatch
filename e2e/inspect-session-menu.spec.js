@@ -5,7 +5,7 @@ test.describe('Inspect Session Menu', () => {
 	test.beforeEach(async ({ page }) => {
 		// Set terminal key in local storage before navigating
 		await page.addInitScript(() => {
-			localStorage.setItem('terminalKey', 'testkey12345');
+			localStorage.setItem('dispatch-auth-key', 'testkey12345');
 		});
 		await page.goto('http://localhost:3030/workspace');
 	});

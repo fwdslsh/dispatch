@@ -5,17 +5,14 @@
 	 * Follows constitutional requirement for progressive disclosure
 	 */
 
-	import { getContext } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 
-	// Props
-	export let onSave = () => {};
+	let { onSave = () => {} } = $props();
 
-	// Get services from context
 	const serviceContainer = getContext('services');
 	const apiClient = serviceContainer?.get('apiClient');
 
-	// Local state
-	let preferences = {
+	const createDefaultPreferences = () => ({
 		ui: {
 			theme: 'auto',
 			showWorkspaceInTitle: true,
@@ -34,24 +31,26 @@
 			fontFamily: 'Monaco, monospace',
 			scrollback: 1000
 		}
-	};
+	});
 
-	let originalPreferences = structuredClone(preferences);
-	let isLoading = false;
-	let isSaving = false;
-	let error = null;
-	let successMessage = null;
+	let preferences = $state(createDefaultPreferences());
+	let originalPreferences = $state.raw(
+		structuredClone($state.snapshot(preferences))
+	);
+	let isLoading = $state(false);
+	let isSaving = $state(false);
+	let error = $state(null);
+	let successMessage = $state(null);
 
-	// Computed properties
-	$: hasChanges = JSON.stringify(preferences) !== JSON.stringify(originalPreferences);
-	$: canSave = hasChanges && !isSaving;
+	let hasChanges = $derived(
+		JSON.stringify($state.snapshot(preferences)) !== JSON.stringify(originalPreferences)
+	);
+	let canSave = $derived(hasChanges && !isSaving);
 
-	// Load preferences on mount
-	$: {
+	onMount(() => {
 		loadPreferences();
-	}
+	});
 
-	// Load current preferences from API
 	async function loadPreferences() {
 		isLoading = true;
 		error = null;
@@ -61,7 +60,7 @@
 				throw new Error('API client not available');
 			}
 
-			const authKey = localStorage.getItem('terminalKey');
+			const authKey = localStorage.getItem('dispatch-auth-key');
 			if (!authKey) {
 				throw new Error('Authentication required');
 			}
@@ -72,16 +71,16 @@
 			}
 
 			const data = await response.json();
+			const current = $state.snapshot(preferences);
 
-			// Merge loaded preferences with defaults
 			preferences = {
-				ui: { ...preferences.ui, ...data.ui },
-				auth: { ...preferences.auth, ...data.auth },
-				workspace: { ...preferences.workspace, ...data.workspace },
-				terminal: { ...preferences.terminal, ...data.terminal }
+				ui: { ...current.ui, ...data.ui },
+				auth: { ...current.auth, ...data.auth },
+				workspace: { ...current.workspace, ...data.workspace },
+				terminal: { ...current.terminal, ...data.terminal }
 			};
 
-			originalPreferences = structuredClone(preferences);
+			originalPreferences = structuredClone($state.snapshot(preferences));
 		} catch (err) {
 			error = err.message || 'Failed to load preferences';
 		} finally {
@@ -89,7 +88,6 @@
 		}
 	}
 
-	// Save preferences
 	async function handleSave() {
 		if (!canSave) return;
 
@@ -98,13 +96,14 @@
 		successMessage = null;
 
 		try {
-			const authKey = localStorage.getItem('terminalKey');
+			const authKey = localStorage.getItem('dispatch-auth-key');
 			if (!authKey) {
 				throw new Error('Authentication required');
 			}
 
-			// Save each category separately
-			for (const [category, categoryPrefs] of Object.entries(preferences)) {
+			const preferencesSnapshot = $state.snapshot(preferences);
+
+			for (const [category, categoryPrefs] of Object.entries(preferencesSnapshot)) {
 				const response = await fetch('/api/preferences', {
 					method: 'PUT',
 					headers: { 'Content-Type': 'application/json' },
@@ -121,15 +120,13 @@
 				}
 			}
 
-			originalPreferences = structuredClone(preferences);
+			originalPreferences = structuredClone(preferencesSnapshot);
 			successMessage = 'Preferences saved successfully';
-			onSave(preferences);
+			onSave(preferencesSnapshot);
 
-			// Clear success message after 3 seconds
 			setTimeout(() => {
 				successMessage = null;
 			}, 3000);
-
 		} catch (err) {
 			error = err.message || 'Failed to save preferences';
 		} finally {
@@ -137,16 +134,14 @@
 		}
 	}
 
-	// Reset to defaults
 	async function handleResetToDefaults() {
 		try {
-			const authKey = localStorage.getItem('terminalKey');
+			const authKey = localStorage.getItem('dispatch-auth-key');
 			if (!authKey) {
 				throw new Error('Authentication required');
 			}
 
-			// Reset each category
-			for (const category of Object.keys(preferences)) {
+			for (const category of Object.keys($state.snapshot(preferences))) {
 				const response = await fetch('/api/preferences', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -162,23 +157,20 @@
 				}
 			}
 
-			// Reload preferences
 			await loadPreferences();
 			successMessage = 'Preferences reset to defaults';
-
 		} catch (err) {
 			error = err.message || 'Failed to reset preferences';
 		}
 	}
 
-	// Discard changes
 	function handleDiscardChanges() {
 		preferences = structuredClone(originalPreferences);
 	}
 </script>
 
 <div class="preferences-panel" role="main" aria-label="User preferences">
-	<div class="panel-header">
+	<div >
 		<h2>User Preferences</h2>
 		<p>Customize your Dispatch experience</p>
 	</div>
@@ -444,4 +436,3 @@
 		to { transform: rotate(360deg); }
 	}
 </style>
-
