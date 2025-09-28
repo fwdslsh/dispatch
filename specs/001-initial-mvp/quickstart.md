@@ -29,7 +29,7 @@ npm run dev
 
 - Open browser to http://localhost:5173
 - Enter terminal key: `testkey12345`
-- You should see the main dashboard
+- You should see the main workspace interface
 
 ## Core Workflow Validation
 
@@ -45,7 +45,7 @@ npm run dev
    - Click "Create"
 
 2. **Expected Results**:
-   - Workspace appears in dashboard
+   - Workspace appears in workspace list
    - Status shows "Active"
    - Path is correctly displayed
    - No error messages

@@ -86,27 +86,6 @@ This task list focuses ONLY on genuine gaps identified through codebase analysis
 **Testing**: Create, list, update, delete workspaces. Verify path validation.
 **Status**: ✅ COMPLETED - Comprehensive test suite with 13 test cases covering all API functionality
 
-### T010 [X] Session persistence E2E tests
-
-**File**: `e2e/session-persistence.spec.js`
-**Description**: Test existing session resumption across server restarts.
-**Testing**: Create session, restart server, resume session, verify history.
-**Status**: ✅ COMPLETED - Full validation of existing session persistence functionality
-
-### T011 [X] Multi-device synchronization tests
-
-**File**: `e2e/multi-device.spec.js`
-**Description**: Test existing multi-client session attachment.
-**Testing**: Multiple browsers, same session, verify event synchronization.
-**Status**: ✅ COMPLETED - Multi-browser context testing with read-only and sync validation
-
-### T012 [X] Performance benchmarks
-
-**File**: `tests/performance/event-replay.bench.js`
-**Description**: Benchmark event replay performance with large histories.
-**Testing**: Create 10K+ events, measure replay time, should be <100ms.
-**Status**: ✅ COMPLETED - Constitutional <100ms requirement validated with comprehensive benchmarks
-
 ## Phase 4: Enhancement Features (Priority: LOW)
 
 ### T013 [X] Database migration system

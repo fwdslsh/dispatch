@@ -35,8 +35,12 @@ export class WorkspaceService {
 			throw new Error(`Workspace already exists at path: ${path}`);
 		}
 
+		const displayName = typeof name === 'string' && name.trim()
+			? name.trim()
+			: this.extractWorkspaceName(path);
+
 		// Create workspace entry
-		await this.db.createWorkspace(path);
+		await this.db.createWorkspace(path, displayName);
 
 		// Get the created workspace with enhanced metadata
 		const workspace = await this.getWorkspaceByPath(path);
@@ -123,11 +127,27 @@ export class WorkspaceService {
 			throw new Error(`Invalid workspace status: ${updates.status}`);
 		}
 
+		let trimmedName;
+		if (Object.prototype.hasOwnProperty.call(updates, 'name')) {
+			trimmedName = typeof updates.name === 'string' ? updates.name.trim() : '';
+			if (!trimmedName) {
+				throw new Error('Workspace name cannot be empty');
+			}
+		}
+
 		// Update workspace metadata in enhanced workspaces table
 		// Note: Current schema only supports path-based metadata
-		// For now, we'll update the updated_at timestamp
+		// For now, we'll update the updated_at timestamp and optional display name
 		const now = Date.now();
-		await this.db.run('UPDATE workspaces SET updated_at = ? WHERE path = ?', [now, path]);
+		if (trimmedName) {
+			await this.db.run('UPDATE workspaces SET updated_at = ?, name = ? WHERE path = ?', [
+				now,
+				trimmedName,
+				path
+			]);
+		} else {
+			await this.db.run('UPDATE workspaces SET updated_at = ? WHERE path = ?', [now, path]);
+		}
 
 		// Return updated workspace
 		const updatedWorkspace = await this.getWorkspaceByPath(path);
@@ -330,11 +350,16 @@ export class WorkspaceService {
 			status = 'new';
 		}
 
+		const displayName =
+			workspace?.name && workspace.name.toString().trim()
+				? workspace.name.toString().trim()
+				: this.extractWorkspaceName(workspace.path);
+
 		return {
 			...workspace,
 			sessionCounts,
 			status,
-			name: this.extractWorkspaceName(workspace.path)
+			name: displayName
 		};
 	}
 
@@ -344,9 +369,14 @@ export class WorkspaceService {
 	 * @returns {Object} API-formatted workspace data
 	 */
 	formatWorkspaceForAPI(workspace) {
+		const displayName =
+			workspace?.name && workspace.name.toString().trim()
+				? workspace.name.toString().trim()
+				: this.extractWorkspaceName(workspace.path);
+
 		return {
 			id: workspace.path, // Use path as ID for simplicity
-			name: workspace.name,
+			name: displayName,
 			path: workspace.path,
 			status: workspace.status,
 			createdAt: new Date(workspace.created_at || Date.now()).toISOString(),

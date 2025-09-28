@@ -25,7 +25,6 @@ export default defineConfig({
 	// Ignore Claude-specific test files
 	testIgnore: [
 		'**/claude-*.spec.js',
-		'**/activity-summaries.spec.js', // Often Claude-dependent
 		'**/project-page-claude-*.spec.js'
 	],
 

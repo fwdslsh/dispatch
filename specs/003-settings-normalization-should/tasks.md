@@ -30,18 +30,18 @@ This tasks.md provides a dependency-ordered, parallelizable task list for unifyi
 
 ### Core Refactor & Implementation
 
-- [ ] **T004**: Move all settings-related components to `src/lib/client/settings/` (consolidate from scattered locations)
+- [x] **T004**: Move all settings-related components to `src/lib/client/settings/` (consolidate from scattered locations)
   - Update all imports and references project-wide
 - [x] **T005**: Refactor `src/routes/settings/+page.svelte` to use a left-side tab menu (modeled after `SettingsModal.svelte`)
   - Import and register all settings sections as tabs
-- [ ] **T006**: Update each settings section to use the new unified structure and directory
+- [x] **T006**: Update each settings section to use the new unified structure and directory
   - Preferences, Retention, Auth, Workspace, etc.
-- [ ] **T007**: Remove or update any references to old settings component locations and Settings Modal
+- [x] **T007**: Remove or update any references to old settings component locations and Settings Modal
 
 ### Accessibility & Usability
 
-- [ ] **T008 [P]**: Add ARIA roles, keyboard navigation, and focus states for all tabs and panels in the settings page
-- [ ] **T009 [P]**: Ensure all settings sections provide clear error handling and user feedback
+- [x] **T008 [P]**: Add ARIA roles, keyboard navigation, and focus states for all tabs and panels in the settings page
+- [x] **T009 [P]**: Ensure all settings sections provide clear error handling and user feedback
 
 ### Polish & Validation
 

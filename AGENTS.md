@@ -81,6 +81,46 @@ After calling the list_sections tool, you MUST analyze the returned documentatio
 
 ## Architecture Overview
 
+## Extending Settings (Adding New Sections)
+
+To add a new settings section to the unified settings page:
+
+1. **Create your section component**
+
+- Place a new Svelte file in `src/lib/client/settings/sections/`, e.g. `MyFeatureSettings.svelte`.
+- Follow the MVVM pattern and use Svelte 5 runes for state.
+- Provide clear error handling and user feedback in the UI.
+
+2. **Register your section**
+
+- Edit `src/lib/client/settings/pageState.js`.
+- Add your section to the `SETTINGS_SECTIONS` array with a unique `id`, `label`, `icon`, and your component import.
+
+3. **(Optional) Add documentation**
+
+- Document your section in `docs/` if it has special usage or configuration.
+
+Your section will automatically appear as a new tab in the settings page (`/settings`).
+
+**Example:**
+
+```js
+import MyFeatureSettings from './sections/MyFeatureSettings.svelte';
+import IconFeature from '$lib/client/shared/components/Icons/IconFeature.svelte';
+
+const SETTINGS_SECTIONS = [
+	// ...existing sections
+	{
+		id: 'my-feature',
+		label: 'My Feature',
+		icon: IconFeature,
+		component: MyFeatureSettings
+	}
+];
+```
+
+See existing sections in `src/lib/client/settings/sections/` for patterns.
+
 ### Backend Architecture
 
 - **RunSessionManager**: Core session management with event sourcing

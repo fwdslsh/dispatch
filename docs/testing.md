@@ -20,10 +20,8 @@ dispatch/
 │   └── helpers/          # Test utilities and stubs
 ├── e2e/                  # Playwright E2E tests
 │   ├── workspace-api.spec.js
-│   ├── session-persistence.spec.js
-│   ├── multi-device.spec.js
-│   └── performance/
-│       └── event-replay.bench.js
+│   ├── session-management-test.spec.js
+│   ├── window-manager.spec.js
 └── run-e2e-tests.js      # E2E test runner
 ```
 
@@ -71,7 +69,7 @@ npm run test:e2e:headed
 npm run test:e2e -- workspace-api
 
 # Specific test file
-npm run test:e2e -- e2e/session-persistence.spec.js
+npm run test:e2e -- e2e/session-management-test.spec.js
 
 # Run tests matching pattern
 npm run test:e2e -- --grep "multi-device"
@@ -83,8 +81,8 @@ npm run test:e2e -- --grep "multi-device"
 # Run performance benchmarks
 npm run test:e2e -- e2e/performance/
 
-# Specific benchmark
-npm run test:e2e -- e2e/performance/event-replay.bench.js
+# Specific test pattern
+npm run test:e2e -- --grep "workspace"
 ```
 
 ## Writing Unit Tests
@@ -274,7 +272,7 @@ test.describe('Feature Name', () => {
 		if (await page.locator('input[type="password"]').isVisible()) {
 			await page.fill('input[type="password"]', TEST_KEY);
 			await page.press('input[type="password"]', 'Enter');
-			await page.waitForURL('**/dashboard');
+			await page.waitForURL('**/workspace');
 		}
 
 		// Create test workspace
@@ -334,7 +332,7 @@ await page.waitForResponse(
 );
 
 // Wait for navigation
-await page.waitForURL('**/dashboard');
+await page.waitForURL('**/workspace');
 
 // Wait for function to return true
 await page.waitForFunction(
@@ -388,7 +386,7 @@ test('should handle API operations', async ({ page }) => {
 	});
 
 	// Verify in UI
-	await page.goto(`${BASE_URL}/dashboard`);
+	await page.goto(`${BASE_URL}/workspace`);
 	await expect(page.locator('text=API Test Workspace')).toBeVisible();
 });
 ```
@@ -406,9 +404,9 @@ Dispatch has specific performance requirements that must be validated:
 ### Writing Performance Tests
 
 ```javascript
-// e2e/performance/event-replay.bench.js
-test('should replay events within constitutional limit', async ({ page }) => {
-	// Create session with large event history
+// e2e/workspace-api.spec.js
+test('should create workspace within performance limits', async ({ page }) => {
+	// Create workspace and validate performance
 	await createSessionWithEvents(page, 10000); // 10K events
 
 	const sessionId = await getSessionId(page);
@@ -579,7 +577,7 @@ jobs:
 npx playwright test --debug
 
 # Run specific test in debug mode
-npx playwright test e2e/session-persistence.spec.js --debug
+npx playwright test e2e/workspace-api.spec.js --debug
 
 # Generate trace files
 npx playwright test --trace on

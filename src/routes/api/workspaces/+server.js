@@ -64,16 +64,20 @@ export async function GET({ url, request, locals }) {
 
 		// Format response according to API contract
 		const response = {
-			workspaces: workspaces.map((w) => ({
-				id: w.path, // Use path as ID for simplicity
-				name: extractWorkspaceName(w.path),
-				path: w.path,
-				status: w.status,
-				createdAt: new Date(w.created_at || Date.now()).toISOString(),
-				lastActive: w.last_active ? new Date(w.last_active).toISOString() : null,
-				updatedAt: new Date(w.updated_at || w.created_at || Date.now()).toISOString(),
-				sessionCounts: w.sessionCounts
-			})),
+			workspaces: workspaces.map((w) => {
+				const displayName =
+					w?.name && w.name.toString().trim() ? w.name.toString().trim() : extractWorkspaceName(w.path);
+				return {
+					id: w.path, // Use path as ID for simplicity
+					name: displayName,
+					path: w.path,
+					status: w.status,
+					createdAt: new Date(w.created_at || Date.now()).toISOString(),
+					lastActive: w.last_active ? new Date(w.last_active).toISOString() : null,
+					updatedAt: new Date(w.updated_at || w.created_at || Date.now()).toISOString(),
+					sessionCounts: w.sessionCounts
+				};
+			}),
 			pagination: {
 				total,
 				limit,
@@ -88,8 +92,11 @@ export async function GET({ url, request, locals }) {
 		);
 		return json(response);
 	} catch (err) {
+		if (err?.status && err?.body) {
+			throw err;
+		}
 		logger.error('WORKSPACE_API', 'Failed to list workspaces:', err);
-		return error(500, { message: 'Failed to retrieve workspaces' });
+		throw error(500, { message: 'Failed to retrieve workspaces' });
 	}
 }
 
@@ -110,17 +117,17 @@ export async function POST({ request, locals }) {
 
 		// Require authentication for write operations
 		if (!validateKey(finalAuthKey)) {
-			return error(401, { message: 'Authentication required for workspace creation' });
+			throw error(401, { message: 'Authentication required for workspace creation' });
 		}
 
 		// Validate required fields
 		if (!path) {
-			return error(400, { message: 'Workspace path is required' });
+			throw error(400, { message: 'Workspace path is required' });
 		}
 
 		// Validate path format and accessibility
 		if (!isValidWorkspacePath(path)) {
-			return error(400, { message: 'Invalid workspace path format' });
+			throw error(400, { message: 'Invalid workspace path format' });
 		}
 
 		const dbManager = locals.services.database;
@@ -129,18 +136,34 @@ export async function POST({ request, locals }) {
 		// Check if workspace already exists
 		const existing = await dbManager.get('SELECT path FROM workspaces WHERE path = ?', [path]);
 		if (existing) {
-			return error(409, { message: 'Workspace already exists at this path' });
+			throw error(409, { message: 'Workspace already exists at this path' });
 		}
 
+		const displayName =
+			typeof name === 'string' && name.trim()
+				? name.trim()
+				: extractWorkspaceName(path);
+
 		// Create workspace entry
-		await dbManager.createWorkspace(path);
+		try {
+			await dbManager.createWorkspace(path, displayName);
+		} catch (err) {
+			if (err?.code === 'SQLITE_CONSTRAINT') {
+				throw error(409, { message: 'Workspace already exists at this path' });
+			}
+			throw err;
+		}
 
 		// Get the created workspace
 		const workspace = await dbManager.get('SELECT * FROM workspaces WHERE path = ?', [path]);
+		const storedName =
+			workspace?.name && workspace.name.toString().trim()
+				? workspace.name.toString().trim()
+				: displayName;
 
 		const response = {
 			id: workspace.path,
-			name: name || extractWorkspaceName(workspace.path),
+			name: storedName,
 			path: workspace.path,
 			status: 'new',
 			createdAt: new Date(workspace.created_at).toISOString(),
@@ -157,8 +180,11 @@ export async function POST({ request, locals }) {
 		logger.info('WORKSPACE_API', `Created workspace: ${path}`);
 		return json(response, { status: 201 });
 	} catch (err) {
+		if (err?.status && err?.body) {
+			throw err;
+		}
 		logger.error('WORKSPACE_API', 'Failed to create workspace:', err);
-		return error(500, { message: 'Failed to create workspace' });
+		throw error(500, { message: 'Failed to create workspace' });
 	}
 }
 

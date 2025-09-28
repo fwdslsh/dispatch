@@ -297,20 +297,7 @@ test.describe('Dark Mode Screenshots', () => {
 	});
 });
 
-test.describe('Light Mode Screenshots', () => {
-	test.use({
-		viewport: { width: 1920, height: 1080 },
-		colorScheme: 'light'
-	});
 
-	test('Light Mode - Main Interface', async ({ page }) => {
-		await authenticate(page);
-		await createWorkspace(page, 'light-workspace');
-		await openSession(page, 'terminal');
-
-		await page.screenshot({ path: 'screenshots/light-mode-interface.png', fullPage: true });
-	});
-});
 
 // Clean up helper
 test.afterAll(async () => {

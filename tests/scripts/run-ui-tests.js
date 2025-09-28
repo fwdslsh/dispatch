@@ -49,7 +49,6 @@ if (availableIntegrationFiles.length > 0) {
 
 console.log('\n🚫 Excluded (Claude-dependent):');
 console.log('   ⊗ e2e/claude-*.spec.js');
-console.log('   ⊗ e2e/activity-summaries.spec.js');
 console.log('   ⊗ e2e/project-page-claude-sessions.spec.js');
 console.log('');
 

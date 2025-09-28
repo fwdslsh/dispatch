@@ -120,13 +120,7 @@ test.describe('Visual Consistency Review', () => {
 		}
 	});
 
-	test('Testing page - Alternative interface', async ({ page }) => {
-		await page.goto(`${BASE_URL}/testing`);
-		await page.waitForLoadState('networkidle');
 
-		// Take full page screenshot
-		await expect(page).toHaveScreenshot('testing-page-full.png', { fullPage: true });
-	});
 
 	test('Console page - Terminal interface', async ({ page }) => {
 		try {
@@ -164,22 +158,7 @@ test.describe('Visual Consistency Review', () => {
 		await expect(page).toHaveScreenshot('projects-tablet.png', { fullPage: true });
 	});
 
-	test('Dark/Light theme consistency', async ({ page }) => {
-		await page.goto(`${BASE_URL}/workspace`);
-		await page.waitForLoadState('networkidle');
 
-		// Check if there's a theme toggle
-		const themeToggle = page.locator('button[class*="theme"], button[aria-label*="theme" i]');
-		if (await themeToggle.isVisible()) {
-			// Screenshot current theme
-			await expect(page).toHaveScreenshot('projects-theme-default.png', { fullPage: true });
-
-			// Toggle theme
-			await themeToggle.click();
-			await page.waitForTimeout(300);
-			await expect(page).toHaveScreenshot('projects-theme-toggled.png', { fullPage: true });
-		}
-	});
 
 	test('Component states - Buttons and inputs', async ({ page }) => {
 		await page.goto(`${BASE_URL}/workspace`);

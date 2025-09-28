@@ -4,6 +4,12 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { logger } from '../utils/logger.js';
 
+const deriveWorkspaceName = (path) => {
+	if (!path) return 'Unnamed Workspace';
+	const segments = path.split('/').filter(Boolean);
+	return segments[segments.length - 1] || 'Root';
+};
+
 /**
  * Centralized SQLite database manager for all Dispatch server-side storage
  * Simplified schema without workspace path dependencies
@@ -100,11 +106,14 @@ export class DatabaseManager {
 		await this.run(`
 			CREATE TABLE IF NOT EXISTS workspaces (
 				path TEXT PRIMARY KEY,
+				name TEXT,
 				last_active INTEGER,
 				created_at INTEGER,
 				updated_at INTEGER
 			)
 		`);
+
+		await this.ensureWorkspaceSchema();
 
 		// Application logs table (keep for debugging)
 		await this.run(`
@@ -428,12 +437,39 @@ export class DatabaseManager {
 
 	// ===== WORKSPACE MANAGEMENT METHODS =====
 
-	async createWorkspace(path) {
+	async ensureWorkspaceSchema() {
+		const columns = await this.all('PRAGMA table_info(workspaces)');
+		const hasNameColumn = columns.some((column) => column.name === 'name');
+		if (!hasNameColumn) {
+			await this.run('ALTER TABLE workspaces ADD COLUMN name TEXT');
+		}
+
+		const workspaces = await this.all('SELECT path, name FROM workspaces');
+		for (const workspace of workspaces) {
+			if (!workspace?.name || !workspace.name.toString().trim()) {
+				const derivedName = deriveWorkspaceName(workspace.path);
+				await this.run('UPDATE workspaces SET name = ? WHERE path = ?', [
+					derivedName,
+					workspace.path
+				]);
+			}
+		}
+	}
+
+	async createWorkspace(path, name = null) {
 		const now = Date.now();
-		await this.run(
-			'INSERT OR IGNORE INTO workspaces (path, created_at, updated_at) VALUES (?, ?, ?)',
-			[path, now, now]
-		);
+		const finalName = typeof name === 'string' && name.trim() ? name.trim() : deriveWorkspaceName(path);
+		try {
+			await this.run(
+				'INSERT INTO workspaces (path, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
+				[path, finalName, now, now]
+			);
+		} catch (error) {
+			if (error?.code === 'SQLITE_CONSTRAINT') {
+				throw error;
+			}
+			throw error;
+		}
 	}
 
 	async updateWorkspaceActivity(path) {
