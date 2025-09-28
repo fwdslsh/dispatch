@@ -251,3 +251,156 @@ Dynamic session component loading via `src/lib/client/shared/session-modules/`:
 - Extensible module registration
 - Type-based component resolution
 - Header and pane component mapping
+
+## Workspace Management
+
+Dispatch supports workspace management for organizing development projects. Workspaces provide isolated environments for sessions and file operations.
+
+### Core Concepts
+
+**Workspace**: A directory-based project container with associated metadata
+- **Path**: Absolute file system path (e.g., `/workspace/my-project`)
+- **Name**: Human-readable display name
+- **Status**: Lifecycle state (`new`, `active`, `archived`)
+- **Sessions**: Associated terminal, Claude, and file editor sessions
+
+### Workspace API
+
+The Workspace API (`/api/workspaces`) provides REST endpoints for workspace lifecycle management:
+
+```bash
+# List all workspaces
+GET /api/workspaces?authKey=YOUR_KEY
+
+# Create new workspace
+POST /api/workspaces
+{
+  "path": "/workspace/new-project",
+  "name": "New Project",
+  "authKey": "YOUR_KEY"
+}
+
+# Get workspace details with session counts
+GET /api/workspaces/{workspaceId}
+
+# Update workspace metadata
+PUT /api/workspaces/{workspaceId}
+{
+  "name": "Updated Name",
+  "status": "active",
+  "authKey": "YOUR_KEY"
+}
+
+# Delete workspace (must have no active sessions)
+DELETE /api/workspaces/{workspaceId}?authKey=YOUR_KEY
+```
+
+### Workspace-Session Integration
+
+Sessions are automatically associated with workspaces:
+
+```javascript
+// Create session in specific workspace
+await fetch('/api/sessions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    type: 'pty',
+    workspacePath: '/workspace/my-project',
+    authKey: 'YOUR_KEY'
+  })
+});
+```
+
+**Session Lifecycle with Workspaces**:
+1. Sessions created with `workspacePath` parameter
+2. Workspace `lastActive` timestamp updated on session activity
+3. Workspace session counts updated in real-time
+4. Workspace deletion blocked if active sessions exist
+
+### Database Schema
+
+Workspaces integrate with existing session infrastructure:
+
+```sql
+-- Existing tables enhanced for workspace support
+CREATE TABLE workspaces (
+  id TEXT PRIMARY KEY,           -- Workspace path
+  name TEXT NOT NULL,            -- Display name
+  status TEXT DEFAULT 'new',     -- new, active, archived
+  createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+  lastActive TEXT
+);
+
+CREATE TABLE sessions (
+  -- ... existing session fields
+  workspacePath TEXT,            -- FK to workspaces.id
+  FOREIGN KEY (workspacePath) REFERENCES workspaces(id)
+);
+```
+
+### Frontend Integration
+
+Workspace state management follows MVVM pattern:
+
+```javascript
+// WorkspaceState.svelte.js - Reactive workspace data
+export class WorkspaceState {
+  workspaces = $state([]);
+  currentWorkspace = $state(null);
+  loading = $state(false);
+
+  // Derived state
+  activeWorkspaces = $derived.by(() =>
+    this.workspaces.filter(w => w.status === 'active')
+  );
+}
+
+// WorkspaceService - API integration
+export class WorkspaceService {
+  async createWorkspace(path, name) {
+    const response = await fetch('/api/workspaces', {
+      method: 'POST',
+      body: JSON.stringify({ path, name, authKey: this.authKey })
+    });
+    return response.json();
+  }
+}
+```
+
+### Best Practices
+
+**Workspace Organization**:
+- Use descriptive workspace names for easy identification
+- Organize by project type: `/workspace/web-apps/`, `/workspace/data-science/`
+- Archive unused workspaces to keep active list manageable
+
+**Session Management**:
+- Always specify `workspacePath` when creating sessions
+- Monitor workspace session counts to avoid resource exhaustion
+- Clean up stopped sessions periodically
+
+**Security Considerations**:
+- Workspace paths validated to prevent directory traversal
+- All operations require authentication via `TERMINAL_KEY`
+- Container isolation ensures workspaces cannot access system directories
+
+### Debugging Workspace Issues
+
+**Common Issues**:
+1. **Workspace creation fails**: Check path permissions and workspace root configuration
+2. **Session not associated**: Verify `workspacePath` parameter in session creation
+3. **Deletion blocked**: Stop all active sessions before workspace deletion
+
+**Debug Commands**:
+```bash
+# Check workspace API status
+curl "http://localhost:3030/api/workspaces?authKey=testkey12345"
+
+# Verify session-workspace association
+curl "http://localhost:3030/api/sessions?include=all&authKey=testkey12345"
+
+# Monitor workspace session counts
+curl "http://localhost:3030/api/workspaces/[workspace-id]"
+```
