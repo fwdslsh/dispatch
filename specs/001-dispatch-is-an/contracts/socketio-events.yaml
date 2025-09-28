@@ -1,0 +1,277 @@
+# Socket.IO Event Contracts
+# Real-time session communication protocol
+
+## Client to Server Events
+
+### run:create
+**Purpose**: Create a new session in a workspace
+**Payload**:
+```typescript
+{
+  workspaceId: string;
+  type: 'terminal' | 'claude' | 'fileEditor';
+  name: string;
+  config?: Record<string, any>;
+}
+```
+**Response Events**: 
+- `run:created` on success
+- `run:error` on failure
+
+### run:attach
+**Purpose**: Attach to an existing session for interaction
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  mode?: 'readwrite' | 'readonly';
+  fromSequence?: number; // Resume from specific event
+}
+```
+**Response Events**:
+- `run:attached` on success with session state
+- `run:history` with replay events if fromSequence specified
+- `run:error` on failure
+
+### run:input  
+**Purpose**: Send input to an active session
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  content: string;
+  encoding?: string; // default: 'utf8'
+}
+```
+**Response Events**:
+- `run:event` with input confirmation
+- `run:error` on failure
+
+### run:resize
+**Purpose**: Notify session of terminal size change
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  cols: number;
+  rows: number;
+}
+```
+**Response Events**:
+- `run:event` with resize confirmation
+- `run:error` on failure
+
+### run:detach
+**Purpose**: Disconnect from session while keeping it active
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  reason?: string; // optional disconnect reason
+}
+```
+**Response Events**:
+- `run:detached` on success
+- `run:error` on failure
+
+### run:terminate
+**Purpose**: Stop and cleanup a session permanently  
+**Payload**:
+```typescript
+{
+  sessionId: string;
+}
+```
+**Response Events**:
+- `run:terminated` on success
+- `run:error` on failure
+
+## Server to Client Events
+
+### run:created
+**Purpose**: Confirm successful session creation
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  workspaceId: string;
+  type: 'terminal' | 'claude' | 'fileEditor';
+  name: string;
+  status: 'starting' | 'active';
+  created: string; // ISO timestamp
+}
+```
+
+### run:attached
+**Purpose**: Confirm successful session attachment
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  mode: 'readwrite' | 'readonly';
+  currentSequence: number;
+  status: 'starting' | 'active' | 'paused' | 'stopped' | 'error';
+  attachmentId: string; // for this client connection
+}
+```
+
+### run:history
+**Purpose**: Deliver historical events during session replay
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  events: Array<{
+    sequence: number;
+    timestamp: string; // ISO timestamp
+    type: 'input' | 'output' | 'resize' | 'attach' | 'detach' | 'error';
+    data: Record<string, any>;
+    source: 'user' | 'adapter' | 'system';
+  }>;
+  hasMore: boolean;
+  nextSequence?: number;
+}
+```
+
+### run:event
+**Purpose**: Real-time session activity (live events)
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  sequence: number;
+  timestamp: string; // ISO timestamp  
+  type: 'input' | 'output' | 'resize' | 'attach' | 'detach' | 'error';
+  data: Record<string, any>;
+  source: 'user' | 'adapter' | 'system';
+}
+```
+
+### run:detached
+**Purpose**: Confirm client detachment from session
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  attachmentId: string;
+  reason?: string;
+}
+```
+
+### run:terminated
+**Purpose**: Confirm session termination
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  reason?: string;
+  finalSequence: number;
+}
+```
+
+### run:error
+**Purpose**: Error notification for any failed operation
+**Payload**:
+```typescript
+{
+  operation?: string; // Which operation failed
+  sessionId?: string; // If session-specific error
+  code: string; // Error code for client handling
+  message: string; // Human-readable error message
+  details?: Record<string, any>; // Additional error context
+}
+```
+
+### run:status-change
+**Purpose**: Notify clients of session status changes
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  oldStatus: 'starting' | 'active' | 'paused' | 'stopped' | 'error';
+  newStatus: 'starting' | 'active' | 'paused' | 'stopped' | 'error';
+  reason?: string;
+  timestamp: string; // ISO timestamp
+}
+```
+
+## Event Data Schemas by Type
+
+### input event data
+```typescript
+{
+  content: string;
+  encoding: string; // 'utf8', 'base64', etc.
+}
+```
+
+### output event data  
+```typescript
+{
+  content: string;
+  encoding: string;
+  stream?: 'stdout' | 'stderr'; // For terminal sessions
+}
+```
+
+### resize event data
+```typescript
+{
+  cols: number;
+  rows: number;
+}
+```
+
+### attach event data
+```typescript
+{
+  clientId: string;
+  mode: 'readwrite' | 'readonly';
+}
+```
+
+### detach event data
+```typescript
+{
+  clientId: string;
+  reason: string;
+}
+```
+
+### error event data
+```typescript
+{
+  code: string;
+  message: string;
+  stack?: string;
+}
+```
+
+## Room Management
+
+### Session Rooms
+- Each session creates a Socket.IO room: `run:${sessionId}`
+- All clients attached to a session join this room
+- Events are broadcast to all clients in the room
+- Room automatically cleaned up when session terminates
+
+### Authentication
+- All Socket.IO connections require authentication
+- Authentication method configurable (shared key, OAuth, etc.)
+- Failed authentication results in immediate disconnect
+
+### Connection Lifecycle
+1. Client connects with authentication
+2. Client emits `run:attach` to join session
+3. Server adds client to session room  
+4. Server sends `run:attached` confirmation
+5. Client receives `run:event` broadcasts
+6. Client can emit `run:input`, `run:resize` etc.
+7. Client emits `run:detach` or disconnects
+8. Server removes client from room
+
+### Error Handling
+- Network disconnections trigger automatic cleanup
+- Clients can reconnect and reattach to existing sessions
+- Missed events replayed via `run:history` during reattach
+- Read-only reattach mode available for uncertain state

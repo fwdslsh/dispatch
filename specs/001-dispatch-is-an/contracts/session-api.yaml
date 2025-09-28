@@ -1,0 +1,381 @@
+openapi: 3.0.3
+info:
+  title: Dispatch Session Management API
+  description: REST API for workspace and session management in Dispatch
+  version: 1.0.0
+  
+servers:
+  - url: http://localhost:3030/api
+    description: Local development server
+
+paths:
+  /workspaces:
+    get:
+      summary: List all workspaces
+      operationId: listWorkspaces
+      responses:
+        '200':
+          description: List of workspaces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Workspace'
+                  
+    post:
+      summary: Create new workspace
+      operationId: createWorkspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, path]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                path:
+                  type: string
+                  minLength: 1
+      responses:
+        '201':
+          description: Workspace created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Workspace name already exists
+          
+  /workspaces/{workspaceId}:
+    get:
+      summary: Get workspace details
+      operationId: getWorkspace
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceId'
+      responses:
+        '200':
+          description: Workspace details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    put:
+      summary: Update workspace
+      operationId: updateWorkspace
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                status:
+                  $ref: '#/components/schemas/WorkspaceStatus'
+      responses:
+        '200':
+          description: Workspace updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    delete:
+      summary: Delete workspace
+      operationId: deleteWorkspace
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceId'
+      responses:
+        '204':
+          description: Workspace deleted
+        '400':
+          description: Cannot delete workspace with active sessions
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /workspaces/{workspaceId}/sessions:
+    get:
+      summary: List sessions in workspace
+      operationId: listSessions
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceId'
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/SessionType'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/SessionStatus'
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Session'
+                  
+    post:
+      summary: Create new session
+      operationId: createSession
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, name]
+              properties:
+                type:
+                  $ref: '#/components/schemas/SessionType'
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                config:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{sessionId}:
+    get:
+      summary: Get session details
+      operationId: getSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          $ref: '#/components/responses/NotFound'
+          
+    delete:
+      summary: Terminate session
+      operationId: terminateSession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '204':
+          description: Session terminated
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sessions/{sessionId}/events:
+    get:
+      summary: Get session event history
+      operationId: getSessionEvents
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: fromSequence
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+      responses:
+        '200':
+          description: Session events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SessionEvent'
+                  hasMore:
+                    type: boolean
+                  nextSequence:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    WorkspaceId:
+      name: workspaceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+        
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Workspace:
+      type: object
+      required: [id, name, path, status, created, lastAccessed]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        path:
+          type: string
+        status:
+          $ref: '#/components/schemas/WorkspaceStatus'
+        created:
+          type: string
+          format: date-time
+        lastAccessed:
+          type: string
+          format: date-time
+        config:
+          type: object
+          additionalProperties: true
+          
+    WorkspaceStatus:
+      type: string
+      enum: [active, archived, error]
+      
+    Session:
+      type: object
+      required: [id, workspaceId, type, name, status, created, lastActive, currentSequence]
+      properties:
+        id:
+          type: string
+          format: uuid
+        workspaceId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/SessionType'
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/SessionStatus'
+        created:
+          type: string
+          format: date-time
+        lastActive:
+          type: string
+          format: date-time
+        config:
+          type: object
+          additionalProperties: true
+        currentSequence:
+          type: integer
+          minimum: 0
+          
+    SessionType:
+      type: string
+      enum: [terminal, claude, fileEditor]
+      
+    SessionStatus:
+      type: string
+      enum: [starting, active, paused, stopped, error]
+      
+    SessionEvent:
+      type: object
+      required: [id, sessionId, sequence, timestamp, type, data, source]
+      properties:
+        id:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 0
+        timestamp:
+          type: string
+          format: date-time
+        type:
+          $ref: '#/components/schemas/EventType'
+        data:
+          type: object
+          additionalProperties: true
+        source:
+          type: string
+          enum: [user, adapter, system]
+          
+    EventType:
+      type: string
+      enum: [input, output, resize, attach, detach, error]
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+                
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-Terminal-Key
+      
+security:
+  - ApiKey: []
