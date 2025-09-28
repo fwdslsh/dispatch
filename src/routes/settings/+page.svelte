@@ -1,46 +1,132 @@
 <script>
-	/**
-	 * Settings page - User preferences and configuration management
-	 * Provides comprehensive settings interface including:
-	 * - User interface preferences
-	 * - Authentication settings
-	 * - Workspace configuration
-	 * - Terminal preferences
-	 * - Data retention policies
-	 */
-
-	import { onMount, setContext } from 'svelte';
-	import { goto } from '$app/navigation';
-	import PreferencesPanel from '$lib/client/settings/PreferencesPanel.svelte';
-	import RetentionSettings from '$lib/client/settings/RetentionSettings.svelte';
+	import { onMount, onDestroy, setContext } from 'svelte';
+	import Shell from '$lib/client/shared/components/Shell.svelte';
+	import StatusBar from '$lib/client/shared/components/StatusBar.svelte';
+	import Header from '$lib/client/shared/components/Header.svelte';
+	import Button from '$lib/client/shared/components/Button.svelte';
 	import {
 		useServiceContainer,
 		provideServiceContainer
 	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
-	import WorkspaceHeader from '$lib/client/shared/components/workspace/WorkspaceHeader.svelte';
-	import Button from '$lib/client/shared/components/Button.svelte';
-	import IconUser from '$lib/client/shared/components/Icons/IconUser.svelte';
-	import IconArchive from '$lib/client/shared/components/Icons/IconArchive.svelte';
-	import Shell from '$lib/client/shared/components/Shell.svelte';
-	import StatusBar from '$lib/client/shared/components/StatusBar.svelte';
-	import Header from '$lib/client/shared/components/Header.svelte';
+	import {
+		createSettingsPageState,
+		setActiveSection,
+		recordSaveMessage,
+		recordError,
+		translateSettingsError
+	} from '$lib/client/settings/pageState.js';
 
-	// State management
-	let currentSection = $state('preferences'); // 'preferences', 'retention'
-	let isLoading = $state(true);
-	let error = $state(null);
-	let savedMessage = $state(null);
-
-	// Service container
 	let serviceContainer = $state(null);
+	let isLoading = $state(true);
+	let initializationError = $state(null);
+	let settingsState = $state(createSettingsPageState());
+	let sectionRenderCounters = $state({});
+
+	const sections = $derived(settingsState.sections);
+	const activeSection = $derived(
+		sections.find((section) => section.id === settingsState.activeSection)
+	);
+	const activeRenderKey = $derived(
+		`${settingsState.activeSection}:${sectionRenderCounters[settingsState.activeSection] ?? 0}`
+	);
+
+	const activeSectionHandlers = $derived(() => {
+		if (!activeSection) return null;
+		return {
+			onSave: (payload) => handleSectionSave(activeSection.id, payload),
+			onError: (payload) => handleSectionError(activeSection.id, payload)
+		};
+	});
+
+	function getSectionById(sectionId) {
+		return sections.find((section) => section.id === sectionId);
+	}
+
+	function focusTabByIndex(index) {
+		const clamped = Math.max(0, Math.min(sections.length - 1, index));
+		const section = sections[clamped];
+		if (!section) return;
+		const element = document.getElementById(`settings-tab-${section.id}`);
+		element?.focus();
+	}
+
+	function handleSectionSelect(sectionId) {
+		setActiveSection(settingsState, sectionId);
+	}
+
+	function handleSectionKeydown(event, index) {
+		if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key))
+			return;
+
+		event.preventDefault();
+
+		if (event.key === 'Home') {
+			focusTabByIndex(0);
+			return;
+		}
+
+		if (event.key === 'End') {
+			focusTabByIndex(sections.length - 1);
+			return;
+		}
+
+		const direction = ['ArrowUp', 'ArrowLeft'].includes(event.key) ? -1 : 1;
+		focusTabByIndex(index + direction);
+	}
+
+	function handleSectionSave(sectionId, payload) {
+		const section = getSectionById(sectionId);
+		const label = section?.label ?? 'Settings';
+		let message = typeof payload === 'string' ? payload : payload?.message;
+		if (!message) {
+			message = `${label} saved successfully`;
+		}
+		recordSaveMessage(settingsState, message);
+	}
+
+	function normalizeError(sectionId, rawError) {
+		if (!rawError) {
+			return { type: 'unknown', sectionId };
+		}
+
+		if (typeof rawError === 'string') {
+			return { type: 'custom', message: rawError, sectionId };
+		}
+
+		return { sectionId, ...rawError };
+	}
+
+	function handleSectionError(sectionId, rawError) {
+		const normalized = normalizeError(sectionId, rawError);
+		const message = translateSettingsError(normalized);
+		recordError(settingsState, message);
+		console.error('[settings] section error', normalized);
+	}
+
+	function retryActiveSection() {
+		const id = settingsState.activeSection;
+		if (!id) return;
+		sectionRenderCounters[id] = (sectionRenderCounters[id] ?? 0) + 1;
+		settingsState.error = null;
+		settingsState.savedMessage = null;
+	}
+
+	function handleComponentErrorEvent(event) {
+		const detail = event.detail ?? {};
+		const sectionId = detail.sectionId ?? settingsState.activeSection;
+		if (!sectionId) return;
+		handleSectionError(sectionId, {
+			type: 'component-load',
+			sectionId,
+			reason: detail.reason
+		});
+	}
 
 	onMount(async () => {
 		try {
-			// Try to get existing service container, or create a new one
 			try {
 				serviceContainer = useServiceContainer();
 			} catch {
-				// No service container found, create one
 				serviceContainer = provideServiceContainer({
 					apiBaseUrl: '',
 					authTokenKey: 'dispatch-auth-key',
@@ -48,165 +134,150 @@
 				});
 			}
 
-			// Provide context for child components
 			setContext('services', serviceContainer);
 
-			isLoading = false;
+			const url = new URL(window.location.href);
+			const requestedSection = url.searchParams.get('section');
+			if (requestedSection) {
+				const target = setActiveSection(settingsState, requestedSection);
+				if (target !== requestedSection) {
+					handleSectionError(requestedSection, {
+						type: 'section-not-found',
+						sectionId: requestedSection
+					});
+				}
+			}
+
+			window.addEventListener('dispatch:settings-component-error', handleComponentErrorEvent);
 		} catch (err) {
 			console.error('Failed to initialize settings:', err);
-			error = 'Failed to load settings system';
+			initializationError = 'Failed to load settings system';
+		} finally {
 			isLoading = false;
 		}
 	});
 
-	/**
-	 * Handle navigation back to main app
-	 */
-	async function handleGoBack() {
-		await goto('/workspace');
-	}
-
-	/**
-	 * Handle logout action
-	 */
-	async function handleLogout() {
-		localStorage.removeItem('dispatch-auth-key');
-		await goto('/');
-	}
-
-	/**
-	 * Handle preferences save
-	 * @param {object} preferences - Saved preferences
-	 */
-	function handlePreferencesSave(preferences) {
-		savedMessage = 'Preferences saved successfully';
-		// Clear message after 3 seconds
-		setTimeout(() => {
-			savedMessage = null;
-		}, 3000);
-	}
-
-	/**
-	 * Handle retention policy save
-	 * @param {object} policy - Saved retention policy
-	 */
-	function handleRetentionSave(policy) {
-		savedMessage = 'Retention policy saved successfully';
-		// Clear message after 3 seconds
-		setTimeout(() => {
-			savedMessage = null;
-		}, 3000);
-	}
-
-	/**
-	 * Handle section change
-	 * @param {string} section - New section to display
-	 */
-	function changeSection(section) {
-		currentSection = section;
-		error = null;
-		savedMessage = null;
-	}
+	onDestroy(() => {
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('dispatch:settings-component-error', handleComponentErrorEvent);
+		}
+	});
 </script>
 
 <svelte:head>
 	<title>Settings - Dispatch</title>
 	<meta
 		name="description"
-		content="Configure your Dispatch preferences, authentication, and data retention settings."
+		content="Configure your Dispatch preferences, workspace environment, retention policies, and integrations."
 	/>
 </svelte:head>
+
 <Shell>
 	{#snippet header()}
 		<Header />
 	{/snippet}
-	<!-- Main Content -->
-	<div class="settings-page">
+
+	<div class="settings-page main-content">
 		{#if isLoading}
-			<div class="loading-container">
-				<div class="spinner"></div>
+			<div class="loading-state">
+				<div class="spinner" aria-hidden="true"></div>
 				<p>Loading settings...</p>
 			</div>
-		{:else if error}
-			<div class="error-container">
+		{:else if initializationError}
+			<div class="error-container" role="alert">
 				<h2>Settings Error</h2>
-				<p class="error-message">{error}</p>
+				<p>{initializationError}</p>
 			</div>
 		{:else}
-			<div>
-				<!-- Success Message -->
-				{#if savedMessage}
-					<div class="success-message" role="alert">
-						{savedMessage}
-					</div>
-				{/if}
-
-				<!-- Navigation Tabs -->
-				<div class="tab-buttons" role="tablist" aria-label="Settings tabs">
-					<Button
-						variant="ghost"
-						augmented="none"
-						class={currentSection === 'preferences' ? 'active' : ''}
-						onclick={() => changeSection('preferences')}
-						role="tab"
-						aria-selected={currentSection === 'preferences'}
-						aria-controls="preferences-panel"
-					>
-						{#snippet icon()}<IconUser size={16} />{/snippet}
-						{#snippet children()}User Preferences{/snippet}
-					</Button>
-					<Button
-						variant="ghost"
-						augmented="none"
-						class={currentSection === 'retention' ? 'active' : ''}
-						onclick={() => changeSection('retention')}
-						role="tab"
-						aria-selected={currentSection === 'retention'}
-						aria-controls="retention-panel"
-					>
-						{#snippet icon()}<IconArchive size={16} />{/snippet}
-						{#snippet children()}Data Retention{/snippet}
-					</Button>
+			{#if settingsState.error}
+				<div class="settings-banner error" role="alert">
+					<span>{settingsState.error}</span>
+					<Button variant="ghost" size="small" onclick={retryActiveSection}>Retry</Button>
 				</div>
+			{:else if settingsState.savedMessage}
+				<div class="settings-banner success" role="status">
+					{settingsState.savedMessage}
+				</div>
+			{/if}
 
-				<!-- Content Sections -->
-				<div class="settings-content">
-					{#if currentSection === 'preferences'}
-						<div id="preferences-panel" role="tabpanel" aria-labelledby="preferences-tab">
-							<PreferencesPanel onSave={handlePreferencesSave} />
+			<div class="settings-container">
+				<nav class="settings-nav" aria-label="Settings sections" role="tablist">
+					{#each sections as section, index}
+						<button
+							id={`settings-tab-${section.id}`}
+							type="button"
+							class="settings-tab flex gap-3"
+							class:active={settingsState.activeSection === section.id}
+							onclick={() => handleSectionSelect(section.id)}
+							onkeydown={(event) => handleSectionKeydown(event, index)}
+							role="tab"
+							aria-selected={settingsState.activeSection === section.id}
+							aria-controls={`settings-panel-${section.id}`}
+							tabindex={settingsState.activeSection === section.id ? 0 : -1}
+							title={section.navAriaLabel}
+						>
+							<svelte:component this={section.icon} size={18} />
+							<span class="tab-label">{section.label}</span>
+						</button>
+					{/each}
+				</nav>
+
+				<main class="settings-content">
+					{#if activeSection}
+						<div
+							class="settings-panel"
+							role="tabpanel"
+							aria-labelledby={`settings-tab-${activeSection.id}`}
+							id={`settings-panel-${activeSection.id}`}
+						>
+							{#key activeRenderKey}
+								<svelte:component
+									this={activeSection.component}
+									onSave={activeSectionHandlers?.onSave}
+									onError={activeSectionHandlers?.onError}
+								/>
+							{/key}
 						</div>
-					{:else if currentSection === 'retention'}
-						<div id="retention-panel" role="tabpanel" aria-labelledby="retention-tab">
-							<RetentionSettings onSave={handleRetentionSave} />
-						</div>
+					{:else}
+						<p class="empty-state">Select a section to view settings.</p>
 					{/if}
-				</div>
+				</main>
 			</div>
 		{/if}
 	</div>
+
 	{#snippet footer()}
 		<StatusBar />
 	{/snippet}
 </Shell>
 
 <style>
-	.loading-container {
+	.settings-page {
+		height: 100%;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		overflow-y: auto;
+		padding: 2rem;
+		gap: var(--space-4);
+	}
+
+	.loading-state {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		padding: 4rem 2rem;
-		height: 100%;
+		gap: var(--space-3);
 	}
 
 	.spinner {
-		width: 24px;
-		height: 24px;
+		width: 32px;
+		height: 32px;
 		border: 2px solid currentColor;
 		border-top: 2px solid transparent;
 		border-radius: 50%;
 		animation: spin 1s linear infinite;
-		margin-bottom: 1rem;
 	}
 
 	@keyframes spin {
@@ -215,15 +286,157 @@
 		}
 	}
 
-	.settings-page {
-		height: 100%;
-		overflow-y: auto;
-		padding: 2rem;
+	.settings-banner {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: var(--space-3) var(--space-4);
+		border-radius: var(--radius-lg);
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
 	}
 
-	.tab-buttons {
+	.settings-banner.error {
+		background: rgba(239, 68, 68, 0.12);
+		border: 1px solid rgba(239, 68, 68, 0.3);
+		color: var(--color-error, #ef4444);
+	}
+
+	.settings-banner.success {
+		background: rgba(46, 230, 107, 0.12);
+		border: 1px solid rgba(46, 230, 107, 0.4);
+		color: var(--primary);
+	}
+
+	.settings-container {
 		display: flex;
-		gap: 1rem;
-		margin-bottom: 2rem;
+		gap: var(--space-4);
+		height: calc(100% - 1rem);
+		min-height: 600px;
+	}
+
+	.settings-nav {
+		width: 240px;
+		background: var(--bg-dark);
+		border: 1px solid rgba(46, 230, 107, 0.2);
+		border-radius: var(--radius-lg);
+		padding: var(--space-3) 0;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		flex-shrink: 0;
+	}
+
+	.settings-tab {
+		border: none;
+		background: transparent;
+		color: var(--text-muted);
+		padding: var(--space-3) var(--space-4);
+		text-align: left;
+		cursor: pointer;
+		transition: background 0.2s ease, color 0.2s ease;
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
+		align-items: center;
+		border-left: 3px solid transparent;
+	}
+
+	.settings-tab:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: -2px;
+	}
+
+	.settings-tab:hover {
+		background: rgba(46, 230, 107, 0.1);
+		color: var(--primary);
+	}
+
+	.settings-tab.active {
+		background: rgba(46, 230, 107, 0.15);
+		color: var(--primary);
+		border-left-color: var(--primary);
+	}
+
+	.tab-label {
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.settings-content {
+		flex: 1;
+		background: var(--bg-dark);
+		border-radius: var(--radius-lg);
+		border: 1px solid rgba(46, 230, 107, 0.2);
+		overflow: hidden;
+		position: relative;
+	}
+
+	.settings-panel {
+		height: 100%;
+		overflow: auto;
+		padding: var(--space-5);
+		position: relative;
+		background: var(--bg);
+	}
+
+	.settings-panel::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		background: repeating-linear-gradient(
+			0deg,
+			transparent 0px,
+			transparent 2px,
+			var(--scan-line) 3px,
+			transparent 4px
+		);
+		opacity: 0.08;
+	}
+
+	.empty-state {
+		padding: var(--space-5);
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+	}
+
+	.error-container {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+		align-items: center;
+		justify-content: center;
+		padding: 4rem 2rem;
+		text-align: center;
+	}
+
+	@media (max-width: 1024px) {
+		.settings-container {
+			flex-direction: column;
+			min-height: auto;
+		}
+
+		.settings-nav {
+			width: 100%;
+			flex-direction: row;
+			overflow-x: auto;
+			border-radius: var(--radius-lg);
+		}
+
+		.settings-tab {
+			flex: 1 0 auto;
+			justify-content: center;
+			border-left: none;
+			border-bottom: 3px solid transparent;
+		}
+
+		.settings-tab.active {
+			border-bottom-color: var(--primary);
+		}
+
+		.settings-content {
+			min-height: 400px;
+		}
 	}
 </style>

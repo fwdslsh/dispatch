@@ -1,10 +1,10 @@
 <script>
 	import { io } from 'socket.io-client';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
-	import Button from '../Button.svelte';
-	import FormSection from '../FormSection.svelte';
-	import Input from '../Input.svelte';
-	import LoadingSpinner from '../LoadingSpinner.svelte';
+	import Button from '$lib/client/shared/components/Button.svelte';
+	import FormSection from '$lib/client/shared/components/FormSection.svelte';
+	import Input from '$lib/client/shared/components/Input.svelte';
+	import LoadingSpinner from '$lib/client/shared/components/LoadingSpinner.svelte';
 
 	let socket = null;
 	let tunnelStatus = $state({

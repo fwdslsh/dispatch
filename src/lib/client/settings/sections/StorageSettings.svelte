@@ -3,11 +3,11 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import ConfirmationDialog from '$lib/client/shared/components/ConfirmationDialog.svelte';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
-	import IconTrash from '../Icons/IconTrash.svelte';
-	import IconDownload from '../Icons/IconDownload.svelte';
-	import IconUpload from '../Icons/IconUpload.svelte';
-	import IconAlertTriangle from '../Icons/IconAlertTriangle.svelte';
-	import IconCheck from '../Icons/IconCheck.svelte';
+	import IconTrash from '$lib/client/shared/components/Icons/IconTrash.svelte';
+	import IconDownload from '$lib/client/shared/components/Icons/IconDownload.svelte';
+	import IconUpload from '$lib/client/shared/components/Icons/IconUpload.svelte';
+	import IconAlertTriangle from '$lib/client/shared/components/Icons/IconAlertTriangle.svelte';
+	import IconCheck from '$lib/client/shared/components/Icons/IconCheck.svelte';
 
 	/**
 	 * Storage Settings Component
@@ -398,25 +398,22 @@
 
 			<div class="flex-col">
 				<div class="clear-option flex flex-between">
-					<div class="option-info">
-						<h5>Clear Cache</h5>
-						<p>Remove temporary files and cached data</p>
+					<div class="flex flex-col gap-1">
+						<span class="clear-title">Clear All Data</span>
+						<p class="clear-description">
+							Removes all stored data including settings, sessions, and cached assets.
+						</p>
 					</div>
-					<Button
-						onclick={() => clearStorage('cache')}
-						variant="ghost"
-						size="small"
-						disabled={loading}
-					>
+					<Button onclick={() => clearStorage('all')} variant="ghost" size="small" disabled={loading}>
 						<IconTrash size={16} />
-						Clear Cache
+						Clear All
 					</Button>
 				</div>
 
 				<div class="clear-option flex flex-between">
-					<div class="option-info">
-						<h5>Clear Sessions</h5>
-						<p>Remove all saved session data and history</p>
+					<div class="flex flex-col gap-1">
+						<span class="clear-title">Clear Sessions</span>
+						<p class="clear-description">Deletes session history and cached session data.</p>
 					</div>
 					<Button
 						onclick={() => clearStorage('sessions')}
@@ -430,9 +427,9 @@
 				</div>
 
 				<div class="clear-option flex flex-between">
-					<div class="option-info">
-						<h5>Reset Settings</h5>
-						<p>Reset all application settings to defaults</p>
+					<div class="flex flex-col gap-1">
+						<span class="clear-title">Clear Settings</span>
+						<p class="clear-description">Resets application settings to their defaults.</p>
 					</div>
 					<Button
 						onclick={() => clearStorage('settings')}
@@ -441,66 +438,64 @@
 						disabled={loading}
 					>
 						<IconTrash size={16} />
-						Reset Settings
+						Clear Settings
 					</Button>
 				</div>
 
-				<div class="clear-option dangerous flex flex-between">
-					<div class="option-info">
-						<h5>Clear All Data</h5>
-						<p>Remove ALL local storage data - use with caution!</p>
+				<div class="clear-option flex flex-between">
+					<div class="flex flex-col gap-1">
+						<span class="clear-title">Clear Cache</span>
+						<p class="clear-description">Clears cached workspace and terminal data.</p>
 					</div>
-					<Button
-						onclick={() => clearStorage('all')}
-						variant="ghost"
-						size="small"
-						disabled={loading}
-						class="danger-button"
-					>
+					<Button onclick={() => clearStorage('cache')} variant="ghost" size="small" disabled={loading}>
 						<IconTrash size={16} />
-						Clear All
+						Clear Cache
 					</Button>
 				</div>
 			</div>
 		</section>
 	</div>
 
-	<!-- Status Messages -->
-	{#if statusMessage}
+	<footer class="settings-footer">
 		<div
 			class="status-message"
-			class:success={statusMessage.includes('success') ||
-				statusMessage.includes('Cleared') ||
-				statusMessage.includes('Imported') ||
-				statusMessage.includes('Exported')}
+			class:success={statusMessage.includes('successfully') || statusMessage.includes('refreshed')}
+			class:error={statusMessage.includes('Failed')}
+			role={statusMessage ? 'status' : undefined}
 		>
 			{statusMessage}
 		</div>
-	{/if}
+	</footer>
+
+	<ConfirmationDialog
+		open={showClearConfirm}
+		title="Confirm Storage Clear"
+		message={getClearMessage(clearType)}
+		onCancel={() => (showClearConfirm = false)}
+		onConfirm={confirmClearStorage}
+		confirmLabel="Clear"
+		confirmTone="danger"
+		{loading}
+	/>
 </div>
 
-<!-- Confirmation Dialog -->
-<ConfirmationDialog
-	bind:show={showClearConfirm}
-	title="Confirm Storage Clear"
-	message={getClearMessage(clearType)}
-	confirmText="Clear Storage"
-	dangerous={clearType === 'all'}
-	onconfirm={confirmClearStorage}
-/>
-
 <style>
-	/* Component-specific overrides only - using global utilities */
+	:global(.storage-settings .settings-content) {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-6);
+	}
+
 	.storage-settings {
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		gap: var(--space-4);
 	}
 
 	.settings-header {
 		border-bottom: 1px solid var(--primary-dim);
 		padding-bottom: var(--space-4);
+		margin-bottom: var(--space-4);
 	}
 
 	.settings-title {
@@ -518,114 +513,95 @@
 		font-size: 0.9rem;
 	}
 
-	.settings-content {
-		flex: 1;
-		overflow-y: auto;
-	}
-
 	.settings-section {
-		border: 1px solid var(--primary-dim);
-		border-radius: 4px;
-		padding: var(--space-4);
-		background: color-mix(in oklab, var(--primary) 2%, transparent);
-		margin-bottom: var(--space-6);
+		background: var(--bg-dark);
+		padding: var(--space-5);
+		border-radius: var(--radius-lg);
+		border: 1px solid rgba(46, 230, 107, 0.2);
+		box-shadow: 0 0 15px rgba(46, 230, 107, 0.1);
 	}
 
 	.section-title {
 		font-family: var(--font-mono);
-		font-size: 1.1rem;
-		color: var(--text-primary);
-		margin: 0 0 var(--space-4) 0;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		border-bottom: 1px solid var(--primary-dim);
-		padding-bottom: var(--space-2);
+		letter-spacing: 0.1em;
+		font-size: 0.95rem;
+		margin-bottom: var(--space-3);
+		color: var(--primary-light);
 	}
 
-	/* Storage Usage specific styles */
-
 	.usage-bar {
-		height: 8px;
-		background: var(--bg-dark);
-		border: 1px solid var(--primary-dim);
-		border-radius: 4px;
+		width: 100%;
+		height: 12px;
+		background: rgba(255, 255, 255, 0.05);
+		border-radius: 9999px;
 		overflow: hidden;
-		position: relative;
 	}
 
 	.usage-fill {
 		height: 100%;
+		border-radius: 9999px;
 		transition: width 0.3s ease;
 	}
 
 	.usage-fill.normal {
-		background: var(--primary);
+		background: linear-gradient(90deg, rgba(46, 230, 107, 0.6) 0%, rgba(46, 230, 107, 1) 100%);
 	}
 
 	.usage-fill.warning {
-		background: var(--accent-amber);
+		background: linear-gradient(90deg, rgba(255, 165, 0, 0.6) 0%, rgba(255, 165, 0, 1) 100%);
 	}
 
 	.usage-fill.critical {
-		background: var(--accent-red);
+		background: linear-gradient(90deg, rgba(239, 68, 68, 0.6) 0%, rgba(239, 68, 68, 1) 100%);
 	}
 
 	.stat {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-1);
+		gap: 0.25rem;
 	}
 
 	.stat-label {
-		font-family: var(--font-mono);
 		font-size: 0.8rem;
 		color: var(--text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
 	}
 
 	.stat-value {
 		font-family: var(--font-mono);
-		font-size: 1rem;
-		font-weight: 600;
+		font-size: 0.95rem;
 		color: var(--text-primary);
 	}
 
 	.stat-value.warning {
-		color: var(--warning);
+		color: var(--color-warning, #f97316);
 	}
 
 	.stat-value.critical {
-		color: var(--accent-red);
+		color: var(--color-error, #ef4444);
 	}
 
 	.usage-warning {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
+		margin-top: var(--space-3);
 		padding: var(--space-3);
-		background: color-mix(in oklab, var(--warning) 10%, transparent);
-		border: 1px solid var(--warning);
-		border-radius: 4px;
-		color: var(--warning);
-		font-size: 0.9rem;
+		border-radius: var(--radius);
+		background: rgba(239, 68, 68, 0.1);
+		border: 1px solid rgba(239, 68, 68, 0.2);
+		color: var(--color-error, #ef4444);
 	}
 
-	/* Storage Categories */
 	.category-row {
-		padding: var(--space-2) var(--space-3);
-		background: var(--bg);
-		border: 1px solid var(--primary-dim);
-		border-radius: 2px;
-		margin-bottom: var(--space-2);
+		padding: var(--space-3) 0;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.category-row:last-child {
+		border-bottom: none;
 	}
 
 	.category-name {
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		color: var(--text-primary);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		font-weight: 600;
+		text-transform: capitalize;
 	}
 
 	.category-count {
@@ -635,104 +611,81 @@
 
 	.category-size {
 		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		font-weight: 600;
-		color: var(--primary);
+		color: var(--text-primary);
 	}
 
-	/* Data Management */
 	.action-group h5 {
+		margin: 0 0 0.5rem 0;
 		font-family: var(--font-mono);
-		font-size: 1rem;
-		color: var(--text-primary);
-		margin: 0 0 var(--space-2) 0;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		letter-spacing: 0.1em;
+		font-size: 0.85rem;
 	}
 
 	.action-group p {
-		margin: 0 0 var(--space-3) 0;
-		color: var(--text-muted);
-		font-size: 0.9rem;
-	}
-
-	/* Clear Options */
-	.clear-option {
-		padding: var(--space-3);
-		border: 1px solid var(--primary-dim);
-		border-radius: 4px;
-		background: color-mix(in oklab, var(--primary) 2%, transparent);
-		margin-bottom: var(--space-4);
-	}
-
-	.clear-option.dangerous {
-		border-color: var(--error);
-		background: color-mix(in oklab, var(--error) 5%, transparent);
-	}
-
-	.option-info {
-		flex: 1;
-		margin-right: var(--space-4);
-	}
-
-	.option-info h5 {
-		font-family: var(--font-mono);
-		font-size: 0.95rem;
-		color: var(--text-primary);
-		margin: 0 0 var(--space-2) 0;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.option-info p {
-		margin: 0;
+		margin: 0 0 1rem 0;
 		color: var(--text-muted);
 		font-size: 0.85rem;
 	}
 
-	:global(.danger-button) {
-		color: var(--error) !important;
-		border-color: var(--error) !important;
+	.clear-option {
+		padding: var(--space-4) 0;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 	}
 
-	:global(.danger-button:hover) {
-		background: color-mix(in oklab, var(--error) 10%, transparent) !important;
+	.clear-option:last-child {
+		border-bottom: none;
+	}
+
+	.clear-title {
+		font-weight: 600;
+	}
+
+	.clear-description {
+		margin: 0;
+		font-size: 0.85rem;
+		color: var(--text-muted);
+	}
+
+	.settings-footer {
+		margin-top: var(--space-4);
+		padding-top: var(--space-4);
+		border-top: 1px solid rgba(46, 230, 107, 0.2);
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 	}
 
 	.status-message {
-		padding: var(--space-3);
-		border-radius: 4px;
 		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		background: color-mix(in oklab, var(--error) 10%, transparent);
-		border: 1px solid var(--error);
-		color: var(--error);
-		margin-top: var(--space-4);
+		font-size: 0.85rem;
+		color: var(--text-muted);
+		min-height: 24px;
 	}
 
 	.status-message.success {
-		background: color-mix(in oklab, var(--success) 10%, transparent);
-		border-color: var(--success);
-		color: var(--success);
+		color: var(--primary);
 	}
 
-	/* Responsive design */
+	.status-message.error {
+		color: var(--color-error, #ef4444);
+	}
+
 	@media (max-width: 768px) {
-		.usage-stats {
-			gap: var(--space-4);
+		.settings-section {
+			padding: var(--space-4);
 		}
 
 		.clear-option {
 			flex-direction: column;
+			align-items: flex-start;
 			gap: var(--space-3);
 		}
 
-		.option-info {
-			margin-right: 0;
-		}
-
-		.action-buttons {
+		.settings-footer {
 			flex-direction: column;
+			gap: var(--space-3);
+			align-items: flex-start;
 		}
 	}
 </style>

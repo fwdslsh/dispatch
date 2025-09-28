@@ -154,7 +154,7 @@
 					{#if hasClientOverride('global.theme')}
 						<span
 							class="override-indicator"
-							title="Customized from server default: {getServerDefault('global.theme')}">●</span
+							title="Customized from server default: {getServerDefault('global.theme')}" >●</span
 						>
 					{/if}
 				</label>
@@ -181,7 +181,7 @@
 							class="override-indicator"
 							title="Customized from server default: {getServerDefault(
 								'global.defaultWorkspaceDirectory'
-							) || 'Server WORKSPACES_ROOT'}">●</span
+							) || 'Server WORKSPACES_ROOT'}" >●</span
 						>
 					{/if}
 				</label>

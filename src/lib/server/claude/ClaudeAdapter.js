@@ -1,5 +1,6 @@
 import { logger } from '../shared/utils/logger.js';
 import { SESSION_TYPE } from '../../shared/session-types.js';
+import { buildClaudeOptions } from './claude-options.js';
 
 /**
  * @typedef {import('@anthropic-ai/claude-code').Options} ClaudeOptions
@@ -30,27 +31,7 @@ export class ClaudeAdapter {
 		}
 
 		// Prepare Claude Code SDK options with defaults
-		const claudeOptions = {
-			cwd: cwd || process.env.WORKSPACES_ROOT || process.env.HOME,
-			model: options.model || undefined,
-			permissionMode: options.permissionMode || 'bypassPermissions',
-			maxTurns: options.maxTurns,
-			// Merge environment variables with workspace environment variables
-			// Precedence: system env → workspace env → session-specific env
-			env: options.env
-				? { ...process.env, ...options.workspaceEnv, ...options.env }
-				: { ...process.env, ...options.workspaceEnv },
-			additionalDirectories: options.additionalDirectories || [],
-			allowedTools: options.allowedTools,
-			disallowedTools: options.disallowedTools,
-			customSystemPrompt: options.customSystemPrompt,
-			appendSystemPrompt: options.appendSystemPrompt,
-			mcpServers: options.mcpServers || {},
-			hooks: options.hooks || {},
-			includePartialMessages: options.includePartialMessages || false,
-			// Allow any other SDK options
-			...options
-		};
+		const claudeOptions = buildClaudeOptions({ ...options, cwd });
 
 		logger.info('CLAUDE_ADAPTER', `Creating Claude session with options:`, {
 			cwd: claudeOptions.cwd,

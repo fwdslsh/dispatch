@@ -1,3 +1,19 @@
+// @ts-nocheck
+if (typeof globalThis.global === 'undefined') {
+	globalThis.global = globalThis;
+}
+
+if (typeof globalThis.window !== 'undefined' && !Object.getOwnPropertyDescriptor(globalThis, 'fetch')) {
+	Object.defineProperty(globalThis, 'fetch', {
+		configurable: true,
+		get() {
+			return globalThis.window.fetch;
+		},
+		set(value) {
+			globalThis.window.fetch = value;
+		}
+	});
+}
 /// <reference types="@vitest/browser/matchers" />
 /// <reference types="@vitest/browser/providers/playwright" />
 
@@ -9,7 +25,7 @@ import { vi } from 'vitest';
 
 // Mock document for components that access DOM
 if (typeof document === 'undefined') {
-	global.document = {
+	globalThis.document = {
 		addEventListener: vi.fn(),
 		removeEventListener: vi.fn(),
 		createElement: vi.fn(() => ({
@@ -26,7 +42,7 @@ if (typeof document === 'undefined') {
 
 // Mock window object for browser APIs
 if (typeof window === 'undefined') {
-	global.window = {
+	globalThis.window = {
 		matchMedia: vi.fn(() => ({
 			matches: false,
 			media: '',
@@ -50,6 +66,18 @@ if (typeof window === 'undefined') {
 			clear: vi.fn()
 		}
 	};
+
+	if (typeof globalThis.window.fetch === 'undefined') {
+		globalThis.window.fetch = vi.fn();
+	}
+}
+
+if (typeof globalThis.sessionStorage === 'undefined' && globalThis.window?.sessionStorage) {
+	globalThis.sessionStorage = globalThis.window.sessionStorage;
+}
+
+if (typeof globalThis.document === 'undefined' && typeof window !== 'undefined') {
+	globalThis.document = window.document;
 }
 
 // Provide minimal Svelte 5 rune shims for client-side tests

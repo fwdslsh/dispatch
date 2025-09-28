@@ -49,6 +49,7 @@ export class SessionState {
 			sessionType: session.type || session.sessionType,
 			isActive: session.isActive !== undefined ? session.isActive : true,
 			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tileId,
+			tileId: session.tileId ?? null,
 			title: session.title || `${session.type} session`,
 			createdAt: session.createdAt || new Date().toISOString(),
 			lastActivity: session.lastActivity || new Date().toISOString(),
@@ -66,7 +67,8 @@ export class SessionState {
 			createdAt: new Date().toISOString(),
 			lastActivity: new Date().toISOString(),
 			isActive: true,
-			inLayout: false
+			inLayout: false,
+			tileId: sessionData.tileId ?? null
 		};
 		this.sessions.push(newSession);
 		log.info('Session added', newSession.id);

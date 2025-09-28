@@ -1,6 +1,6 @@
 <script>
-	import DirectoryBrowser from '../DirectoryBrowser.svelte';
-	import FileEditor from '../FileEditor.svelte';
+	import DirectoryBrowser from '$lib/client/shared/components/DirectoryBrowser.svelte';
+	import FileEditor from '$lib/client/shared/components/FileEditor.svelte';
 	import { onMount } from 'svelte';
 
 	// State

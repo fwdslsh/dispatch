@@ -1,49 +1,142 @@
 <script>
+	import { onMount, onDestroy } from 'svelte';
 	import Modal from '$lib/client/shared/components/Modal.svelte';
-	import GlobalSettings from './GlobalSettings.svelte';
-	import ClaudeAuth from '../../../claude/ClaudeAuth.svelte';
-	import ClaudeDefaults from './ClaudeDefaults.svelte';
-	import StorageSettings from './StorageSettings.svelte';
-	import TunnelControl from './TunnelControl.svelte';
-	import VSCodeTunnelControl from './VSCodeTunnelControl.svelte';
-	import HomeDirectoryManager from './HomeDirectoryManager.svelte';
-	import WorkspaceEnvSettings from './WorkspaceEnvSettings.svelte';
-	import IconSettings from '../Icons/IconSettings.svelte';
-	import IconCloud from '../Icons/IconCloud.svelte';
-	import IconRobot from '../Icons/IconRobot.svelte';
-	import IconFolder from '../Icons/IconFolder.svelte';
-	import IconTrash from '../Icons/IconTrash.svelte';
-	import IconUser from '../Icons/IconUser.svelte';
-
-	/**
-	 * Settings Modal Component
-	 * Main settings interface with tabbed sections for different configuration areas
-	 */
+	import Button from '$lib/client/shared/components/Button.svelte';
+	import {
+		createSettingsPageState,
+		setActiveSection,
+		recordSaveMessage,
+		recordError,
+		translateSettingsError
+	} from '$lib/client/settings/pageState.js';
 
 	let { open = $bindable(false), onclose = () => {} } = $props();
 
-	// Active tab state
-	let activeTab = $state('global');
+	let settingsState = $state(createSettingsPageState());
+	let sectionRenderCounters = $state({});
 
-	// Available settings tabs
-	const tabs = [
-		{ id: 'global', label: 'Global', icon: IconSettings, component: GlobalSettings },
-		{
-			id: 'workspace-env',
-			label: 'Environment',
-			icon: IconFolder,
-			component: WorkspaceEnvSettings
-		},
-		{ id: 'home', label: 'Home Directory', icon: IconUser, component: HomeDirectoryManager },
-		{ id: 'tunnel', label: 'Tunnel', icon: IconCloud, component: TunnelControl },
-		{ id: 'vscode-tunnel', label: 'VS Code Tunnel', icon: IconCloud, component: VSCodeTunnelControl },
-		{ id: 'claude-auth', label: 'Claude Auth', icon: IconCloud, component: ClaudeAuth },
-		{ id: 'claude-defaults', label: 'Claude Defaults', icon: IconRobot, component: ClaudeDefaults },
-		{ id: 'storage', label: 'Storage', icon: IconTrash, component: StorageSettings }
-	];
+	const sections = $derived(settingsState.sections);
+	const activeSection = $derived(
+		sections.find((section) => section.id === settingsState.activeSection)
+	);
+	const activeRenderKey = $derived(
+		`${settingsState.activeSection}:${sectionRenderCounters[settingsState.activeSection] ?? 0}`
+	);
 
-	// Get active tab component
-	const activeTabData = $derived(tabs.find((tab) => tab.id === activeTab));
+	const activeSectionHandlers = $derived(() => {
+		if (!activeSection) return null;
+		return {
+			onSave: (payload) => handleSectionSave(activeSection.id, payload),
+			onError: (payload) => handleSectionError(activeSection.id, payload)
+		};
+	});
+
+	function resetState() {
+		const nextState = createSettingsPageState();
+		settingsState.sections = nextState.sections;
+		settingsState.activeSection = nextState.activeSection;
+		settingsState.error = null;
+		settingsState.savedMessage = null;
+		sectionRenderCounters = {};
+	}
+
+	function getSectionById(sectionId) {
+		return sections.find((section) => section.id === sectionId);
+	}
+
+	function focusTabByIndex(index) {
+		const clamped = Math.max(0, Math.min(sections.length - 1, index));
+		const section = sections[clamped];
+		if (!section) return;
+		const element = document.getElementById(`modal-settings-tab-${section.id}`);
+		element?.focus();
+	}
+
+	function handleSectionSelect(sectionId) {
+		setActiveSection(settingsState, sectionId);
+	}
+
+	function handleSectionKeydown(event, index) {
+		if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key))
+			return;
+
+		event.preventDefault();
+
+		if (event.key === 'Home') {
+			focusTabByIndex(0);
+			return;
+		}
+
+		if (event.key === 'End') {
+			focusTabByIndex(sections.length - 1);
+			return;
+		}
+
+		const direction = ['ArrowUp', 'ArrowLeft'].includes(event.key) ? -1 : 1;
+		focusTabByIndex(index + direction);
+	}
+
+	function handleSectionSave(sectionId, payload) {
+		const section = getSectionById(sectionId);
+		const label = section?.label ?? 'Settings';
+		let message = typeof payload === 'string' ? payload : payload?.message;
+		if (!message) {
+			message = `${label} saved successfully`;
+		}
+		recordSaveMessage(settingsState, message);
+	}
+
+	function normalizeError(sectionId, rawError) {
+		if (!rawError) {
+			return { type: 'unknown', sectionId };
+		}
+
+		if (typeof rawError === 'string') {
+			return { type: 'custom', message: rawError, sectionId };
+		}
+
+		return { sectionId, ...rawError };
+	}
+
+	function handleSectionError(sectionId, rawError) {
+		const normalized = normalizeError(sectionId, rawError);
+		const message = translateSettingsError(normalized);
+		recordError(settingsState, message);
+		console.error('[settings-modal] section error', normalized);
+	}
+
+	function retryActiveSection() {
+		const id = settingsState.activeSection;
+		if (!id) return;
+		sectionRenderCounters[id] = (sectionRenderCounters[id] ?? 0) + 1;
+		settingsState.error = null;
+		settingsState.savedMessage = null;
+	}
+
+	function handleComponentErrorEvent(event) {
+		if (!open) return;
+		const detail = event.detail ?? {};
+		const sectionId = detail.sectionId ?? settingsState.activeSection;
+		if (!sectionId) return;
+		handleSectionError(sectionId, {
+			type: 'component-load',
+			sectionId,
+			reason: detail.reason
+		});
+	}
+
+	onMount(() => {
+		window.addEventListener('dispatch:settings-component-error', handleComponentErrorEvent);
+	});
+
+	onDestroy(() => {
+		window.removeEventListener('dispatch:settings-component-error', handleComponentErrorEvent);
+	});
+
+	$effect(() => {
+		if (!open) return;
+		resetState();
+	});
 </script>
 
 <Modal
@@ -56,39 +149,55 @@
 	{#snippet footer()}
 		<!-- No footer needed for settings modal -->
 	{/snippet}
+
+	{#if settingsState.error}
+		<div class="settings-banner error" role="alert">
+			<span>{settingsState.error}</span>
+			<Button variant="ghost" size="small" onclick={retryActiveSection}>Retry</Button>
+		</div>
+	{:else if settingsState.savedMessage}
+		<div class="settings-banner success" role="status">
+			{settingsState.savedMessage}
+		</div>
+	{/if}
+
 	<div class="settings-container flex">
-		<!-- Settings Navigation -->
-		<nav class="settings-nav flex-col" aria-label="Settings sections">
-			{#each tabs as tab}
+		<nav class="settings-nav flex-col" aria-label="Settings sections" role="tablist">
+			{#each sections as section, index}
 				<button
+					id={`modal-settings-tab-${section.id}`}
+					type="button"
 					class="settings-tab flex gap-3 p-3 px-4"
 					style="align-items: center;"
-					class:active={activeTab === tab.id}
-					onclick={() => (activeTab = tab.id)}
+					class:active={settingsState.activeSection === section.id}
+					onclick={() => handleSectionSelect(section.id)}
+					onkeydown={(event) => handleSectionKeydown(event, index)}
 					role="tab"
-					aria-selected={activeTab === tab.id}
-					aria-controls="settings-panel-{tab.id}"
-					id="settings-tab-{tab.id}"
+					aria-selected={settingsState.activeSection === section.id}
+					aria-controls={`modal-settings-panel-${section.id}`}
+					tabindex={settingsState.activeSection === section.id ? 0 : -1}
+					title={section.navAriaLabel}
 				>
-					{#key tab.icon}
-						<tab.icon size={18} />
-					{/key}
-					<span class="tab-label">{tab.label}</span>
+					<svelte:component this={section.icon} size={18} />
+					<span class="tab-label">{section.label}</span>
 				</button>
 			{/each}
 		</nav>
 
-		<!-- Settings Content -->
 		<main class="settings-content">
-			{#if activeTabData}
+			{#if activeSection}
 				<div
 					class="settings-panel p-6"
 					role="tabpanel"
-					aria-labelledby="settings-tab-{activeTab}"
-					id="settings-panel-{activeTab}"
+					aria-labelledby={`modal-settings-tab-${activeSection.id}`}
+					id={`modal-settings-panel-${activeSection.id}`}
 				>
-					{#key activeTabData.component}
-						<activeTabData.component />
+					{#key activeRenderKey}
+						<svelte:component
+							this={activeSection.component}
+							onSave={activeSectionHandlers?.onSave}
+							onError={activeSectionHandlers?.onError}
+						/>
 					{/key}
 				</div>
 			{/if}
@@ -97,7 +206,29 @@
 </Modal>
 
 <style>
-	/* Settings-specific minimal styles */
+	.settings-banner {
+		margin-bottom: var(--space-3);
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: var(--space-3) var(--space-4);
+		border-radius: var(--radius-lg);
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
+	}
+
+	.settings-banner.error {
+		background: rgba(239, 68, 68, 0.12);
+		border: 1px solid rgba(239, 68, 68, 0.3);
+		color: var(--color-error, #ef4444);
+	}
+
+	.settings-banner.success {
+		background: rgba(46, 230, 107, 0.12);
+		border: 1px solid rgba(46, 230, 107, 0.4);
+		color: var(--primary);
+	}
+
 	.settings-container {
 		height: 600px;
 		min-height: 500px;
@@ -106,7 +237,6 @@
 		overflow: hidden;
 	}
 
-	/* Settings Navigation */
 	.settings-nav {
 		width: 200px;
 		background: var(--bg-dark);
@@ -151,7 +281,6 @@
 		letter-spacing: 0.05em;
 	}
 
-	/* Settings Content */
 	.settings-content {
 		flex: 1;
 		overflow: auto;
@@ -165,7 +294,6 @@
 		position: relative;
 	}
 
-	/* Terminal scan lines effect */
 	.settings-content::before {
 		content: '';
 		position: absolute;
@@ -181,7 +309,6 @@
 		opacity: 0.15;
 	}
 
-	/* Responsive design */
 	@media (max-width: 768px) {
 		.settings-container {
 			flex-direction: column;

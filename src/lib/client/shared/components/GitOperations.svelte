@@ -51,23 +51,32 @@
 		error = '';
 
 		try {
-			const res = await fetch(`/api/git/status?path=${encodeURIComponent(currentPath)}`);
-			const data = await res.json();
+				const res = await fetch(`/api/git/status?path=${encodeURIComponent(currentPath)}`);
+				let data = null;
+				try {
+					data = await res.json();
+				} catch (jsonError) {
+					console.warn('Failed to parse git status response', jsonError);
+				}
 
-			if (res.ok) {
-				isGitRepo = true;
-				gitStatus = data.status;
-				currentBranch = data.branch;
-				await loadBranches();
-			} else {
-				isGitRepo = false;
-				gitStatus = null;
-				currentBranch = '';
-				branches = [];
-			}
+				if (res.ok) {
+					isGitRepo = true;
+					gitStatus = data?.status || null;
+					currentBranch = data?.branch || '';
+					await loadBranches();
+				} else {
+					const message = data?.error || 'Failed to load git status';
+					isGitRepo = false;
+					gitStatus = null;
+					currentBranch = '';
+					branches = [];
+					error = message;
+					onError?.(message);
+				}
 		} catch (e) {
 			isGitRepo = false;
-			error = e.message || 'Failed to check git status';
+				error = e.message || 'Failed to check git status';
+				onError?.(error);
 		} finally {
 			loading = false;
 		}
@@ -81,10 +90,20 @@
 			const res = await fetch(`/api/git/branches?path=${encodeURIComponent(currentPath)}`);
 			if (res.ok) {
 				const data = await res.json();
-				branches = data.branches || [];
+				const list = Array.isArray(data?.branches) ? data.branches : [];
+				console.log('loadBranches assigned', list);
+				branches = [...list];
 			}
 		} catch (e) {
 			console.error('Failed to load branches:', e);
+		}
+	}
+
+	async function toggleBranchesPanel() {
+		const nextState = !showBranches;
+		showBranches = nextState;
+		if (nextState) {
+			await loadBranches();
 		}
 	}
 
@@ -321,7 +340,7 @@
 
 				<!-- Branches -->
 				<IconButton
-					onclick={() => (showBranches = !showBranches)}
+					onclick={toggleBranchesPanel}
 					title="Switch branch"
 					variant="ghost"
 					class="git-branches-btn {showBranches ? 'active' : ''}"
@@ -537,7 +556,6 @@
 		{/if}
 	</div>
 {/if}
-
 <style>
 	.git-operations {
 		border-top: 1px solid var(--border-color);

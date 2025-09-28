@@ -24,6 +24,7 @@ const log = createLogger('session:viewmodel');
  * @property {string} sessionType
  * @property {boolean} isActive
  * @property {boolean} inLayout
+ * @property {string|null} [tileId]
  * @property {string} title
  * @property {string} createdAt
  * @property {string} lastActivity
@@ -583,6 +584,7 @@ export class SessionViewModel {
 			sessionType: session.type || session.sessionType,
 			isActive: session.isActive !== undefined ? session.isActive : true,
 			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tileId,
+			tileId: session.tileId ?? session.layout?.tileId ?? null,
 			title: session.title || `${session.type || session.sessionType} session`,
 			createdAt: session.createdAt || new Date().toISOString(),
 			lastActivity: session.lastActivity || new Date().toISOString(),

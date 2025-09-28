@@ -35,7 +35,7 @@ Start with the simplest working implementation. Features must degrade gracefully
 
 - **MVVM Frontend Architecture**: Svelte 5 with clean separation of ViewModels ($state runes) and Views (components)
 - **Unified Session Protocol**: All session types use consistent Socket.IO event structure
-- **Database Schema Evolution**: SQLite migrations must be backward compatible
+- **Database Schema Evolution**: SQLite migrations
 - **Docker Best Practices**: Multi-stage builds, non-root execution, minimal image size
 - **Node.js 22+**: Required for modern JavaScript features and performance
 

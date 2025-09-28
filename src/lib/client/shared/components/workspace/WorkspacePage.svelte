@@ -221,9 +221,10 @@
 		}
 	}
 
-	function handleOpenSettings() {
+	async function handleOpenSettings() {
 		// Open settings modal locally
-		activeModal = { type: 'settings', data: null };
+		//activeModal = { type: 'settings', data: null };
+		await goto('/settings');
 	}
 
 	async function handleCreateSession(type = 'claude') {

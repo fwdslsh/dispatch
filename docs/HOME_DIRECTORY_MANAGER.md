@@ -50,7 +50,7 @@ The Home Directory Manager is a new feature added to the Dispatch Settings Modal
 
 #### `HomeDirectoryManager.svelte`
 
-- **Location**: `src/lib/client/shared/components/Settings/HomeDirectoryManager.svelte`
+- **Location**: `src/lib/client/settings/sections/HomeDirectoryManager.svelte`
 - **Purpose**: Main component providing file management interface
 - **Features**:
   - Directory browser integration
@@ -136,12 +136,13 @@ function isPathWithinHome(requestedPath) {
 - `src/routes/api/browse/home/+server.js` - Home directory browsing API
 - `src/routes/api/files/home/+server.js` - Home directory file operations API
 - `src/routes/api/files/home/upload/+server.js` - Home directory upload API
-- `src/lib/client/shared/components/Settings/HomeDirectoryManager.svelte` - Main UI component
+- `src/lib/client/settings/sections/HomeDirectoryManager.svelte` - Main UI component
 - `tests/server/home-directory-security.test.js` - Security tests
 
 ### Modified Files
 
 - `src/lib/client/shared/components/Settings/SettingsModal.svelte` - Added new tab integration
+- `src/lib/client/settings/pageState.js` - Shared settings section registry and helpers
 
 ## Conclusion
 

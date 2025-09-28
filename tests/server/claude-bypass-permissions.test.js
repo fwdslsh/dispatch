@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import {
+	buildClaudeOptions,
+	CLAUDE_DEFAULT_ALLOWED_TOOLS
+} from '../../src/lib/server/claude/claude-options.js';
 
 // Mock the Claude Code SDK
 let capturedOptions = null;
@@ -49,49 +53,22 @@ describe('Claude Bypass Permissions Configuration', () => {
 	});
 
 	it('should include all available tools in buildClaudeOptions by default', () => {
-		const options = { cwd: '/tmp' };
+		const options = buildClaudeOptions({ cwd: '/tmp' });
 
-		const expectedTools = [
-			'Agent',
-			'Bash',
-			'BashOutput',
-			'ExitPlanMode',
-			'FileEdit',
-			'FileMultiEdit',
-			'FileRead',
-			'FileWrite',
-			'Glob',
-			'Grep',
-			'KillShell',
-			'ListMcpResources',
-			'Mcp',
-			'NotebookEdit',
-			'ReadMcpResource',
-			'TodoWrite',
-			'WebFetch',
-			'WebSearch'
-		];
-
-		expect(options.allowedTools).toEqual(expectedTools);
+		expect(options.allowedTools).toEqual(CLAUDE_DEFAULT_ALLOWED_TOOLS);
 		expect(options.permissionMode).toBe('bypassPermissions');
 	});
 
 	it('should maintain compatibility with custom tool lists', () => {
 		const customTools = ['FileRead', 'FileWrite', 'Bash'];
-		const options = {
-			cwd: '/tmp',
-			allowedTools: customTools
-		};
+		const options = buildClaudeOptions({ cwd: '/tmp', allowedTools: customTools });
 
 		expect(options.allowedTools).toEqual(customTools);
 		expect(options.permissionMode).toBe('bypassPermissions');
 	});
 
 	it('should support custom permission modes', () => {
-		const options = {
-			cwd: '/tmp',
-			permissionMode: 'acceptEdits'
-		};
+		const options = buildClaudeOptions({ cwd: '/tmp', permissionMode: 'acceptEdits' });
 
 		expect(options.permissionMode).toBe('acceptEdits');
 	});

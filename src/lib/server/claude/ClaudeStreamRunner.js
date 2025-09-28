@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/utils/logger.js';
 
 const NO_CONVERSATION_PATTERN = /no conversation found/i;
 

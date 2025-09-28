@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/utils/logger.js';
 
 /**
  * Maintains a TTL-based cache of Claude command metadata keyed by workspace + executable path.
