@@ -458,7 +458,8 @@ export class DatabaseManager {
 
 	async createWorkspace(path, name = null) {
 		const now = Date.now();
-		const finalName = typeof name === 'string' && name.trim() ? name.trim() : deriveWorkspaceName(path);
+		const finalName =
+			typeof name === 'string' && name.trim() ? name.trim() : deriveWorkspaceName(path);
 		try {
 			await this.run(
 				'INSERT INTO workspaces (path, name, created_at, updated_at) VALUES (?, ?, ?, ?)',

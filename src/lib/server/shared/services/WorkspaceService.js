@@ -35,9 +35,8 @@ export class WorkspaceService {
 			throw new Error(`Workspace already exists at path: ${path}`);
 		}
 
-		const displayName = typeof name === 'string' && name.trim()
-			? name.trim()
-			: this.extractWorkspaceName(path);
+		const displayName =
+			typeof name === 'string' && name.trim() ? name.trim() : this.extractWorkspaceName(path);
 
 		// Create workspace entry
 		await this.db.createWorkspace(path, displayName);

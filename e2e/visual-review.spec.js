@@ -120,8 +120,6 @@ test.describe('Visual Consistency Review', () => {
 		}
 	});
 
-
-
 	test('Console page - Terminal interface', async ({ page }) => {
 		try {
 			await page.goto(`${BASE_URL}/console`);
@@ -157,8 +155,6 @@ test.describe('Visual Consistency Review', () => {
 
 		await expect(page).toHaveScreenshot('projects-tablet.png', { fullPage: true });
 	});
-
-
 
 	test('Component states - Buttons and inputs', async ({ page }) => {
 		await page.goto(`${BASE_URL}/workspace`);

@@ -17,20 +17,23 @@ export async function load({ env }) {
 	const home = path.resolve(process.cwd(), '.testing-home', '.dispatch');
 	const dbPath = path.join(home, 'data', 'workspace.db');
 
- 	const workspaces = [];
+	const workspaces = [];
 
 	if (fs.existsSync(dbPath)) {
 		try {
 			const db = new sqlite3.Database(dbPath);
 			const rows = await new Promise((resolve, reject) => {
-				db.all("SELECT path, created_at, updated_at, last_active FROM workspaces", (err, rows) => {
+				db.all('SELECT path, created_at, updated_at, last_active FROM workspaces', (err, rows) => {
 					if (err) return reject(err);
 					resolve(rows || []);
 				});
 			});
 
 			for (const r of rows) {
-				workspaces.push({ path: r.path || r[0] || '/workspace', name: path.basename(r.path || '' ) || r.path || 'workspace' });
+				workspaces.push({
+					path: r.path || r[0] || '/workspace',
+					name: path.basename(r.path || '') || r.path || 'workspace'
+				});
 			}
 
 			db.close();

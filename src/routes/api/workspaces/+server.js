@@ -66,7 +66,9 @@ export async function GET({ url, request, locals }) {
 		const response = {
 			workspaces: workspaces.map((w) => {
 				const displayName =
-					w?.name && w.name.toString().trim() ? w.name.toString().trim() : extractWorkspaceName(w.path);
+					w?.name && w.name.toString().trim()
+						? w.name.toString().trim()
+						: extractWorkspaceName(w.path);
 				return {
 					id: w.path, // Use path as ID for simplicity
 					name: displayName,
@@ -140,9 +142,7 @@ export async function POST({ request, locals }) {
 		}
 
 		const displayName =
-			typeof name === 'string' && name.trim()
-				? name.trim()
-				: extractWorkspaceName(path);
+			typeof name === 'string' && name.trim() ? name.trim() : extractWorkspaceName(path);
 
 		// Create workspace entry
 		try {

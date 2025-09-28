@@ -208,7 +208,10 @@ export async function PUT({ params, request, locals }) {
 			sessionCounts
 		};
 
-		logger.info('WORKSPACE_API', `Updated workspace: ${workspaceId}`, { status, name: displayName });
+		logger.info('WORKSPACE_API', `Updated workspace: ${workspaceId}`, {
+			status,
+			name: displayName
+		});
 		return json(response);
 	} catch (err) {
 		if (err?.status && err?.body) {

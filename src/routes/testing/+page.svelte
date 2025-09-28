@@ -4,6 +4,15 @@
 	const workspaces = data?.workspaces ?? [];
 </script>
 
+<div class="testing-list">
+	{#each workspaces as ws}
+		<div class="project-item" data-path={ws.path} role="button">
+			<strong>{ws.name}</strong>
+			<div class="session-item">No sessions (placeholder)</div>
+		</div>
+	{/each}
+</div>
+
 <style>
 	.testing-list {
 		display: flex;
@@ -25,14 +34,4 @@
 		font-size: 0.9rem;
 		color: #444;
 	}
-
 </style>
-
-<div class="testing-list">
-	{#each workspaces as ws}
-		<div class="project-item" data-path={ws.path} role="button">
-			<strong>{ws.name}</strong>
-			<div class="session-item">No sessions (placeholder)</div>
-		</div>
-	{/each}
-</div>

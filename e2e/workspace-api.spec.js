@@ -3,11 +3,19 @@ import { test, expect } from '@playwright/test';
 const TEST_KEY = process.env.TERMINAL_KEY || 'testkey12345';
 const BASE_URL = 'http://localhost:5173';
 
-test.describe('Workspace API', () => {
-	const testWorkspacePath = '/tmp/test-workspace-e2e';
-	const testWorkspaceName = 'E2E Test Workspace';
+function uniqueWorkspacePath(testInfo) {
+	// Use test title and worker index to ensure uniqueness
+	const safeTitle = testInfo.title.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 40);
+	return `/tmp/test-workspace-e2e-${safeTitle}-${testInfo.workerIndex}`;
+}
 
-	test.beforeEach(async ({ page }) => {
+function uniqueWorkspaceName(testInfo) {
+	return `E2E Test Workspace ${testInfo.title} (${testInfo.workerIndex})`;
+}
+
+test.describe('Workspace API', () => {
+	test.beforeEach(async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
 		// Clean up any existing test workspace
 		try {
 			await page.request.delete(
@@ -18,7 +26,8 @@ test.describe('Workspace API', () => {
 		}
 	});
 
-	test.afterEach(async ({ page }) => {
+	test.afterEach(async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
 		// Clean up test workspace
 		try {
 			await page.request.delete(
@@ -29,7 +38,7 @@ test.describe('Workspace API', () => {
 		}
 	});
 
-	test('should list workspaces (empty initially)', async ({ page }) => {
+	test('should list workspaces (empty initially)', async ({ page }, testInfo) => {
 		const response = await page.request.get(`${BASE_URL}/api/workspaces?authKey=${TEST_KEY}`);
 		expect(response.status()).toBe(200);
 
@@ -45,7 +54,9 @@ test.describe('Workspace API', () => {
 		});
 	});
 
-	test('should create a new workspace', async ({ page }) => {
+	test('should create a new workspace', async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
+		const testWorkspaceName = uniqueWorkspaceName(testInfo);
 		const response = await page.request.post(`${BASE_URL}/api/workspaces`, {
 			data: {
 				path: testWorkspacePath,
@@ -82,7 +93,9 @@ test.describe('Workspace API', () => {
 		expect(createdWorkspace.name).toBe(testWorkspaceName);
 	});
 
-	test('should prevent duplicate workspace creation', async ({ page }) => {
+	test('should prevent duplicate workspace creation', async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
+		const testWorkspaceName = uniqueWorkspaceName(testInfo);
 		// Create workspace first
 		await page.request.post(`${BASE_URL}/api/workspaces`, {
 			data: {
@@ -107,7 +120,9 @@ test.describe('Workspace API', () => {
 		expect(data.message).toContain('already exists');
 	});
 
-	test('should require authentication for workspace creation', async ({ page }) => {
+	test('should require authentication for workspace creation', async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
+		const testWorkspaceName = uniqueWorkspaceName(testInfo);
 		const response = await page.request.post(`${BASE_URL}/api/workspaces`, {
 			data: {
 				path: testWorkspacePath,
@@ -122,7 +137,7 @@ test.describe('Workspace API', () => {
 		expect(data.message).toContain('Authentication required');
 	});
 
-	test('should validate workspace path format', async ({ page }) => {
+	test('should validate workspace path format', async ({ page }, testInfo) => {
 		const invalidPaths = [
 			'', // empty
 			'relative/path', // not absolute
@@ -147,7 +162,9 @@ test.describe('Workspace API', () => {
 		}
 	});
 
-	test('should get workspace details', async ({ page }) => {
+	test('should get workspace details', async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
+		const testWorkspaceName = uniqueWorkspaceName(testInfo);
 		// Create workspace first
 		await page.request.post(`${BASE_URL}/api/workspaces`, {
 			data: {
@@ -187,7 +204,7 @@ test.describe('Workspace API', () => {
 		});
 	});
 
-	test('should return 404 for non-existent workspace', async ({ page }) => {
+	test('should return 404 for non-existent workspace', async ({ page }, testInfo) => {
 		const response = await page.request.get(
 			`${BASE_URL}/api/workspaces/${encodeURIComponent('/non/existent/path')}`
 		);
@@ -197,7 +214,9 @@ test.describe('Workspace API', () => {
 		expect(data.message).toContain('not found');
 	});
 
-	test('should update workspace metadata', async ({ page }) => {
+	test('should update workspace metadata', async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
+		const testWorkspaceName = uniqueWorkspaceName(testInfo);
 		// Create workspace first
 		await page.request.post(`${BASE_URL}/api/workspaces`, {
 			data: {
@@ -226,7 +245,9 @@ test.describe('Workspace API', () => {
 		expect(data.status).toBe('active');
 	});
 
-	test('should require authentication for workspace updates', async ({ page }) => {
+	test('should require authentication for workspace updates', async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
+		const testWorkspaceName = uniqueWorkspaceName(testInfo);
 		// Create workspace first
 		await page.request.post(`${BASE_URL}/api/workspaces`, {
 			data: {
@@ -250,7 +271,9 @@ test.describe('Workspace API', () => {
 		expect(response.status()).toBe(401);
 	});
 
-	test('should delete workspace', async ({ page }) => {
+	test('should delete workspace', async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
+		const testWorkspaceName = uniqueWorkspaceName(testInfo);
 		// Create workspace first
 		await page.request.post(`${BASE_URL}/api/workspaces`, {
 			data: {
@@ -276,7 +299,9 @@ test.describe('Workspace API', () => {
 		expect(getResponse.status()).toBe(404);
 	});
 
-	test('should require authentication for workspace deletion', async ({ page }) => {
+	test('should require authentication for workspace deletion', async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
+		const testWorkspaceName = uniqueWorkspaceName(testInfo);
 		// Create workspace first
 		await page.request.post(`${BASE_URL}/api/workspaces`, {
 			data: {
@@ -293,17 +318,17 @@ test.describe('Workspace API', () => {
 		expect(response.status()).toBe(401);
 	});
 
-	test('should handle pagination correctly', async ({ page }) => {
+	test('should handle pagination correctly', async ({ page }, testInfo) => {
 		// Create multiple workspaces
 		const workspaces = [];
 		for (let i = 0; i < 3; i++) {
-			const path = `/tmp/test-workspace-${i}`;
+			const path = `/tmp/test-workspace-${testInfo.workerIndex}-${i}`;
 			workspaces.push(path);
 
 			await page.request.post(`${BASE_URL}/api/workspaces`, {
 				data: {
 					path,
-					name: `Test Workspace ${i}`,
+					name: `Test Workspace ${testInfo.workerIndex} ${i}`,
 					authKey: TEST_KEY
 				}
 			});
@@ -331,7 +356,9 @@ test.describe('Workspace API', () => {
 		}
 	});
 
-	test('should filter workspaces by status', async ({ page }) => {
+	test('should filter workspaces by status', async ({ page }, testInfo) => {
+		const testWorkspacePath = uniqueWorkspacePath(testInfo);
+		const testWorkspaceName = uniqueWorkspaceName(testInfo);
 		// Create workspace
 		await page.request.post(`${BASE_URL}/api/workspaces`, {
 			data: {

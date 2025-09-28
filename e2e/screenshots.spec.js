@@ -297,8 +297,6 @@ test.describe('Dark Mode Screenshots', () => {
 	});
 });
 
-
-
 // Clean up helper
 test.afterAll(async () => {
 	console.log('Screenshots captured successfully in screenshots/ directory');

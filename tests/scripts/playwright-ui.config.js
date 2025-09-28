@@ -23,10 +23,7 @@ export default defineConfig({
 	],
 
 	// Ignore Claude-specific test files
-	testIgnore: [
-		'**/claude-*.spec.js',
-		'**/project-page-claude-*.spec.js'
-	],
+	testIgnore: ['**/claude-*.spec.js', '**/project-page-claude-*.spec.js'],
 
 	/* Run tests in files in parallel */
 	fullyParallel: true,
