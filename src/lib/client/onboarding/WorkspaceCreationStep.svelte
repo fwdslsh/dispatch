@@ -70,7 +70,6 @@
 				workspaceName: workspaceName.trim(),
 				workspacePath: workspacePath.trim()
 			});
-
 		} catch (err) {
 			error = err.message || 'Failed to create workspace';
 		} finally {
@@ -150,16 +149,13 @@
 
 			{#if error}
 				<div class="error-message" role="alert">
-					<strong>Error:</strong> {error}
+					<strong>Error:</strong>
+					{error}
 				</div>
 			{/if}
 
 			<div class="form-actions">
-				<button
-					class="btn btn-primary"
-					onclick={handleCreateWorkspace}
-					disabled={!canCreate}
-				>
+				<button class="btn btn-primary" onclick={handleCreateWorkspace} disabled={!canCreate}>
 					{#if isCreating}
 						Creating Workspace...
 					{:else}
@@ -167,11 +163,7 @@
 					{/if}
 				</button>
 
-				<button
-					class="btn btn-secondary"
-					onclick={handleSkipWorkspace}
-					disabled={isCreating}
-				>
+				<button class="btn btn-secondary" onclick={handleSkipWorkspace} disabled={isCreating}>
 					Skip for Now
 				</button>
 			</div>
@@ -421,8 +413,12 @@
 	}
 
 	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 
 	/* Responsive design */

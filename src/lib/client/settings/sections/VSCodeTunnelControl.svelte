@@ -164,16 +164,20 @@
 
 			{#if tunnelStatus.running && tunnelStatus.state}
 				<div class="status-item">
-					<strong>Name:</strong> {tunnelStatus.state.name}
+					<strong>Name:</strong>
+					{tunnelStatus.state.name}
 				</div>
 				<div class="status-item">
-					<strong>Folder:</strong> {tunnelStatus.state.folder}
+					<strong>Folder:</strong>
+					{tunnelStatus.state.folder}
 				</div>
 				<div class="status-item">
-					<strong>PID:</strong> {tunnelStatus.state.pid}
+					<strong>PID:</strong>
+					{tunnelStatus.state.pid}
 				</div>
 				<div class="status-item">
-					<strong>Started:</strong> {new Date(tunnelStatus.state.startedAt).toLocaleString()}
+					<strong>Started:</strong>
+					{new Date(tunnelStatus.state.startedAt).toLocaleString()}
 				</div>
 			{/if}
 		</div>
@@ -188,7 +192,8 @@
 					/>
 				</div>
 				<div class="config-note">
-					Leave empty to use default: name will be "dispatch-[hostname]" and folder will be your workspace root.
+					Leave empty to use default: name will be "dispatch-[hostname]" and folder will be your
+					workspace root.
 				</div>
 			</div>
 		{/if}
@@ -211,9 +216,7 @@
 					<Input value={deviceLoginUrl} readonly />
 					<Button onclick={copyLoginUrl} variant="secondary" size="sm">Copy</Button>
 				</div>
-				<div class="login-note">
-					Complete the device login in VS Code to activate the tunnel.
-				</div>
+				<div class="login-note">Complete the device login in VS Code to activate the tunnel.</div>
 			</div>
 		{/if}
 
@@ -234,8 +237,14 @@
 
 		{#if !tunnelStatus.running}
 			<div class="tunnel-info">
-				<p><strong>First-time setup:</strong> When you start the tunnel for the first time, you'll need to authenticate with Microsoft/GitHub. A device login URL will appear above.</p>
-				<p><strong>VS Code Desktop:</strong> Install the "Remote - Tunnels" extension and connect using the tunnel name.</p>
+				<p>
+					<strong>First-time setup:</strong> When you start the tunnel for the first time, you'll need
+					to authenticate with Microsoft/GitHub. A device login URL will appear above.
+				</p>
+				<p>
+					<strong>VS Code Desktop:</strong> Install the "Remote - Tunnels" extension and connect using
+					the tunnel name.
+				</p>
 			</div>
 		{/if}
 	</FormSection>

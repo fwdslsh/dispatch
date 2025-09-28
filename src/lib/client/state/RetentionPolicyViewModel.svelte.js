@@ -49,8 +49,7 @@ export class RetentionPolicyViewModel {
 	 */
 	validatePolicy() {
 		return (
-			this.sessionDays >= 1 && this.sessionDays <= 365 &&
-			this.logDays >= 1 && this.logDays <= 90
+			this.sessionDays >= 1 && this.sessionDays <= 365 && this.logDays >= 1 && this.logDays <= 90
 		);
 	}
 

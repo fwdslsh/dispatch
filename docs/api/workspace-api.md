@@ -18,37 +18,39 @@ All workspace endpoints require authentication using one of these methods:
 Lists all available workspaces with metadata and session counts.
 
 **Query Parameters:**
+
 - `authKey` (string, required): Authentication key
 - `limit` (integer, optional): Number of workspaces per page (default: 50)
 - `offset` (integer, optional): Number of workspaces to skip (default: 0)
 - `status` (string, optional): Filter by workspace status (`new`, `active`, `archived`)
 
 **Response:**
+
 ```json
 {
-  "workspaces": [
-    {
-      "id": "/workspace/my-project",
-      "name": "My Project",
-      "path": "/workspace/my-project",
-      "status": "active",
-      "createdAt": "2024-01-15T10:30:00.000Z",
-      "updatedAt": "2024-01-15T14:20:00.000Z",
-      "lastActive": "2024-01-15T14:20:00.000Z",
-      "sessionCounts": {
-        "total": 3,
-        "running": 1,
-        "stopped": 2,
-        "error": 0
-      }
-    }
-  ],
-  "pagination": {
-    "total": 1,
-    "limit": 50,
-    "offset": 0,
-    "hasMore": false
-  }
+	"workspaces": [
+		{
+			"id": "/workspace/my-project",
+			"name": "My Project",
+			"path": "/workspace/my-project",
+			"status": "active",
+			"createdAt": "2024-01-15T10:30:00.000Z",
+			"updatedAt": "2024-01-15T14:20:00.000Z",
+			"lastActive": "2024-01-15T14:20:00.000Z",
+			"sessionCounts": {
+				"total": 3,
+				"running": 1,
+				"stopped": 2,
+				"error": 0
+			}
+		}
+	],
+	"pagination": {
+		"total": 1,
+		"limit": 50,
+		"offset": 0,
+		"hasMore": false
+	}
 }
 ```
 
@@ -59,35 +61,38 @@ Lists all available workspaces with metadata and session counts.
 Creates a new workspace.
 
 **Request Body:**
+
 ```json
 {
-  "path": "/workspace/new-project",
-  "name": "New Project",
-  "authKey": "YOUR_TERMINAL_KEY"
+	"path": "/workspace/new-project",
+	"name": "New Project",
+	"authKey": "YOUR_TERMINAL_KEY"
 }
 ```
 
 **Validation Rules:**
+
 - `path`: Must be absolute, within allowed workspace root, no path traversal
 - `name`: Required, 1-100 characters
 - Path must not already exist as a workspace
 
 **Response (201 Created):**
+
 ```json
 {
-  "id": "/workspace/new-project",
-  "name": "New Project",
-  "path": "/workspace/new-project",
-  "status": "new",
-  "createdAt": "2024-01-15T15:00:00.000Z",
-  "updatedAt": "2024-01-15T15:00:00.000Z",
-  "lastActive": null,
-  "sessionCounts": {
-    "total": 0,
-    "running": 0,
-    "stopped": 0,
-    "error": 0
-  }
+	"id": "/workspace/new-project",
+	"name": "New Project",
+	"path": "/workspace/new-project",
+	"status": "new",
+	"createdAt": "2024-01-15T15:00:00.000Z",
+	"updatedAt": "2024-01-15T15:00:00.000Z",
+	"lastActive": null,
+	"sessionCounts": {
+		"total": 0,
+		"running": 0,
+		"stopped": 0,
+		"error": 0
+	}
 }
 ```
 
@@ -98,44 +103,46 @@ Creates a new workspace.
 Retrieves detailed information about a specific workspace, including active sessions.
 
 **Parameters:**
+
 - `workspaceId` (string): URL-encoded workspace path
 
 **Response:**
+
 ```json
 {
-  "id": "/workspace/my-project",
-  "name": "My Project",
-  "path": "/workspace/my-project",
-  "status": "active",
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T14:20:00.000Z",
-  "lastActive": "2024-01-15T14:20:00.000Z",
-  "sessionCounts": {
-    "running": 1,
-    "stopped": 2,
-    "starting": 0,
-    "error": 0
-  },
-  "sessionStats": {
-    "total": 3,
-    "byStatus": {
-      "running": 1,
-      "stopped": 2
-    },
-    "byType": {
-      "pty": 2,
-      "claude": 1
-    }
-  },
-  "activeSessions": [
-    {
-      "id": "sess_abc123",
-      "type": "pty",
-      "status": "running",
-      "createdAt": "2024-01-15T14:00:00.000Z",
-      "lastActivity": "2024-01-15T14:20:00.000Z"
-    }
-  ]
+	"id": "/workspace/my-project",
+	"name": "My Project",
+	"path": "/workspace/my-project",
+	"status": "active",
+	"createdAt": "2024-01-15T10:30:00.000Z",
+	"updatedAt": "2024-01-15T14:20:00.000Z",
+	"lastActive": "2024-01-15T14:20:00.000Z",
+	"sessionCounts": {
+		"running": 1,
+		"stopped": 2,
+		"starting": 0,
+		"error": 0
+	},
+	"sessionStats": {
+		"total": 3,
+		"byStatus": {
+			"running": 1,
+			"stopped": 2
+		},
+		"byType": {
+			"pty": 2,
+			"claude": 1
+		}
+	},
+	"activeSessions": [
+		{
+			"id": "sess_abc123",
+			"type": "pty",
+			"status": "running",
+			"createdAt": "2024-01-15T14:00:00.000Z",
+			"lastActivity": "2024-01-15T14:20:00.000Z"
+		}
+	]
 }
 ```
 
@@ -146,28 +153,32 @@ Retrieves detailed information about a specific workspace, including active sess
 Updates workspace metadata.
 
 **Parameters:**
+
 - `workspaceId` (string): URL-encoded workspace path
 
 **Request Body:**
+
 ```json
 {
-  "name": "Updated Project Name",
-  "status": "archived",
-  "authKey": "YOUR_TERMINAL_KEY"
+	"name": "Updated Project Name",
+	"status": "archived",
+	"authKey": "YOUR_TERMINAL_KEY"
 }
 ```
 
 **Updatable Fields:**
+
 - `name`: Workspace display name
 - `status`: Workspace status (`new`, `active`, `archived`)
 
 **Response:**
+
 ```json
 {
-  "id": "/workspace/my-project",
-  "name": "Updated Project Name",
-  "status": "archived",
-  "updatedAt": "2024-01-15T15:30:00.000Z"
+	"id": "/workspace/my-project",
+	"name": "Updated Project Name",
+	"status": "archived",
+	"updatedAt": "2024-01-15T15:30:00.000Z"
 }
 ```
 
@@ -178,18 +189,21 @@ Updates workspace metadata.
 Deletes a workspace and all associated sessions.
 
 **Parameters:**
+
 - `workspaceId` (string): URL-encoded workspace path
 - `authKey` (query): Authentication key
 
 **Validation:**
+
 - Workspace cannot have active (running) sessions
 - All stopped sessions in the workspace will be cleaned up
 
 **Response:**
+
 ```json
 {
-  "message": "Workspace deleted successfully",
-  "deletedSessions": 2
+	"message": "Workspace deleted successfully",
+	"deletedSessions": 2
 }
 ```
 
@@ -198,37 +212,42 @@ Deletes a workspace and all associated sessions.
 All endpoints return consistent error formats:
 
 **400 Bad Request:**
+
 ```json
 {
-  "message": "Invalid workspace path: must be absolute path"
+	"message": "Invalid workspace path: must be absolute path"
 }
 ```
 
 **401 Unauthorized:**
+
 ```json
 {
-  "message": "Authentication required. Provide valid authKey."
+	"message": "Authentication required. Provide valid authKey."
 }
 ```
 
 **404 Not Found:**
+
 ```json
 {
-  "message": "Workspace not found: /workspace/missing"
+	"message": "Workspace not found: /workspace/missing"
 }
 ```
 
 **409 Conflict:**
+
 ```json
 {
-  "message": "Workspace already exists: /workspace/existing"
+	"message": "Workspace already exists: /workspace/existing"
 }
 ```
 
 **422 Unprocessable Entity:**
+
 ```json
 {
-  "message": "Cannot delete workspace with 2 active sessions"
+	"message": "Cannot delete workspace with 2 active sessions"
 }
 ```
 

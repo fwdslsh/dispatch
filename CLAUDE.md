@@ -259,6 +259,7 @@ Dispatch supports workspace management for organizing development projects. Work
 ### Core Concepts
 
 **Workspace**: A directory-based project container with associated metadata
+
 - **Path**: Absolute file system path (e.g., `/workspace/my-project`)
 - **Name**: Human-readable display name
 - **Status**: Lifecycle state (`new`, `active`, `archived`)
@@ -302,17 +303,18 @@ Sessions are automatically associated with workspaces:
 ```javascript
 // Create session in specific workspace
 await fetch('/api/sessions', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    type: 'pty',
-    workspacePath: '/workspace/my-project',
-    authKey: 'YOUR_KEY'
-  })
+	method: 'POST',
+	headers: { 'Content-Type': 'application/json' },
+	body: JSON.stringify({
+		type: 'pty',
+		workspacePath: '/workspace/my-project',
+		authKey: 'YOUR_KEY'
+	})
 });
 ```
 
 **Session Lifecycle with Workspaces**:
+
 1. Sessions created with `workspacePath` parameter
 2. Workspace `lastActive` timestamp updated on session activity
 3. Workspace session counts updated in real-time
@@ -347,41 +349,42 @@ Workspace state management follows MVVM pattern:
 ```javascript
 // WorkspaceState.svelte.js - Reactive workspace data
 export class WorkspaceState {
-  workspaces = $state([]);
-  currentWorkspace = $state(null);
-  loading = $state(false);
+	workspaces = $state([]);
+	currentWorkspace = $state(null);
+	loading = $state(false);
 
-  // Derived state
-  activeWorkspaces = $derived.by(() =>
-    this.workspaces.filter(w => w.status === 'active')
-  );
+	// Derived state
+	activeWorkspaces = $derived.by(() => this.workspaces.filter((w) => w.status === 'active'));
 }
 
 // WorkspaceService - API integration
 export class WorkspaceService {
-  async createWorkspace(path, name) {
-    const response = await fetch('/api/workspaces', {
-      method: 'POST',
-      body: JSON.stringify({ path, name, authKey: this.authKey })
-    });
-    return response.json();
-  }
+	async createWorkspace(path, name) {
+		const response = await fetch('/api/workspaces', {
+			method: 'POST',
+			body: JSON.stringify({ path, name, authKey: this.authKey })
+		});
+		return response.json();
+	}
 }
 ```
 
 ### Best Practices
 
 **Workspace Organization**:
+
 - Use descriptive workspace names for easy identification
 - Organize by project type: `/workspace/web-apps/`, `/workspace/data-science/`
 - Archive unused workspaces to keep active list manageable
 
 **Session Management**:
+
 - Always specify `workspacePath` when creating sessions
 - Monitor workspace session counts to avoid resource exhaustion
 - Clean up stopped sessions periodically
 
 **Security Considerations**:
+
 - Workspace paths validated to prevent directory traversal
 - All operations require authentication via `TERMINAL_KEY`
 - Container isolation ensures workspaces cannot access system directories
@@ -389,11 +392,13 @@ export class WorkspaceService {
 ### Debugging Workspace Issues
 
 **Common Issues**:
+
 1. **Workspace creation fails**: Check path permissions and workspace root configuration
 2. **Session not associated**: Verify `workspacePath` parameter in session creation
 3. **Deletion blocked**: Stop all active sessions before workspace deletion
 
 **Debug Commands**:
+
 ```bash
 # Check workspace API status
 curl "http://localhost:3030/api/workspaces?authKey=testkey12345"
@@ -414,11 +419,13 @@ Dispatch provides a progressive onboarding system for first-time users, designed
 The onboarding system follows constitutional requirements for progressive enhancement:
 
 **Progressive Steps**:
+
 1. **Authentication**: Terminal key verification with 30-day rolling sessions
 2. **Workspace Setup**: Optional first workspace creation
 3. **Basic Settings**: Essential preferences with advanced options accessible later
 
 **Key Features**:
+
 - **Minimal Required Steps**: Users can complete setup in 2-3 actions
 - **Skip Options**: Advanced configuration can be deferred
 - **Persistent State**: Onboarding progress saved across sessions
@@ -427,18 +434,20 @@ The onboarding system follows constitutional requirements for progressive enhanc
 ### Authentication System
 
 **30-Day Rolling Sessions**:
+
 - Sessions automatically extend with each browser session
 - Authentication persists across browser restarts
 - Graceful handling of expired sessions with re-authentication prompts
 - Terminal key validation with clear error feedback
 
 **Implementation**:
+
 ```javascript
 // Check authentication status
 const response = await fetch('/api/auth/check', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ key: terminalKey })
+	method: 'POST',
+	headers: { 'Content-Type': 'application/json' },
+	body: JSON.stringify({ key: terminalKey })
 });
 
 // Session data stored in localStorage for persistence
@@ -450,12 +459,14 @@ localStorage.setItem('authExpiresAt', expirationDate);
 ### Onboarding API
 
 **Check Onboarding Status**:
+
 ```bash
 GET /api/onboarding/status?authKey=YOUR_KEY
 # Returns: { currentStep: 'auth'|'workspace'|'settings'|'complete', isComplete: boolean }
 ```
 
 **Update Progress**:
+
 ```bash
 POST /api/onboarding/progress
 {
@@ -466,6 +477,7 @@ POST /api/onboarding/progress
 ```
 
 **Complete Onboarding**:
+
 ```bash
 POST /api/onboarding/complete
 {
@@ -477,18 +489,21 @@ POST /api/onboarding/complete
 ### Onboarding Components
 
 **OnboardingFlow.svelte**: Main workflow orchestrator
+
 - Progress indicator with ARIA compliance
 - Step-by-step guidance with skip options
 - Form validation and error handling
 - Mobile-responsive design
 
 **AuthenticationStep.svelte**: Terminal key authentication
+
 - Password input with validation
 - Real-time error feedback
 - Session persistence management
 - Keyboard navigation support
 
 **WorkspaceCreationStep.svelte**: First workspace setup
+
 - Workspace name and path configuration
 - Directory validation
 - Integration with workspace API
@@ -497,18 +512,19 @@ POST /api/onboarding/complete
 ### MVVM Architecture
 
 **OnboardingViewModel**: Reactive state management using Svelte 5 runes
+
 ```javascript
 class OnboardingViewModel {
-  currentStep = $state('auth');
-  isComplete = $state(false);
-  isLoading = $state(false);
-  error = $state(null);
+	currentStep = $state('auth');
+	isComplete = $state(false);
+	isLoading = $state(false);
+	error = $state(null);
 
-  // Derived state
-  progressPercentage = $derived.by(() => {
-    const steps = ['auth', 'workspace', 'settings', 'complete'];
-    return (steps.indexOf(this.currentStep) / (steps.length - 1)) * 100;
-  });
+	// Derived state
+	progressPercentage = $derived.by(() => {
+		const steps = ['auth', 'workspace', 'settings', 'complete'];
+		return (steps.indexOf(this.currentStep) / (steps.length - 1)) * 100;
+	});
 }
 ```
 
@@ -519,6 +535,7 @@ The enhanced ProjectSessionMenu provides comprehensive workspace navigation and 
 ### Workspace Navigation Features
 
 **Enhanced ProjectSessionMenu**:
+
 - **Workspace Switcher**: One-click workspace switching with visual indicators
 - **Metadata Display**: Creation dates, session counts, last activity
 - **Search & Filter**: Quick workspace location
@@ -526,6 +543,7 @@ The enhanced ProjectSessionMenu provides comprehensive workspace navigation and 
 - **Status Indicators**: Active, archived, session counts
 
 **Accessibility Features**:
+
 - Full keyboard navigation with Tab/Enter/Space support
 - ARIA labels and roles for screen readers
 - Focus management and visual indicators
@@ -536,12 +554,14 @@ The enhanced ProjectSessionMenu provides comprehensive workspace navigation and 
 The workspace management leverages existing workspace APIs with enhanced session tracking:
 
 **List Workspaces with Session Data**:
+
 ```bash
 GET /api/workspaces?authKey=YOUR_KEY
 # Returns workspaces with sessionCount, lastActive, and status
 ```
 
 **Workspace-Session Association**:
+
 ```bash
 # Create session in specific workspace
 POST /api/sessions
@@ -555,29 +575,32 @@ POST /api/sessions
 ### Navigation ViewModel
 
 **WorkspaceNavigationViewModel**: Manages workspace switching and metadata
+
 ```javascript
 class WorkspaceNavigationViewModel {
-  workspaces = $state([]);
-  activeWorkspace = $state(null);
-  searchTerm = $state('');
+	workspaces = $state([]);
+	activeWorkspace = $state(null);
+	searchTerm = $state('');
 
-  // Derived filtered workspaces
-  filteredWorkspaces = $derived.by(() =>
-    this.workspaces.filter(w =>
-      w.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-      w.path.toLowerCase().includes(this.searchTerm.toLowerCase())
-    )
-  );
+	// Derived filtered workspaces
+	filteredWorkspaces = $derived.by(() =>
+		this.workspaces.filter(
+			(w) =>
+				w.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+				w.path.toLowerCase().includes(this.searchTerm.toLowerCase())
+		)
+	);
 
-  async switchToWorkspace(workspace) {
-    // Updates active workspace and triggers session refresh
-  }
+	async switchToWorkspace(workspace) {
+		// Updates active workspace and triggers session refresh
+	}
 }
 ```
 
 ### Usage Examples
 
 **Accessing Workspace Navigation**:
+
 1. Locate ProjectSessionMenu in the application header
 2. Click "Workspaces" tab to view available workspaces
 3. Search using the search input to filter workspaces
@@ -585,6 +608,7 @@ class WorkspaceNavigationViewModel {
 5. Click "New" to create additional workspaces
 
 **Keyboard Navigation**:
+
 - Tab through workspace items
 - Enter/Space to activate workspace switch
 - Search box accessible via Tab navigation
@@ -597,12 +621,14 @@ Dispatch provides comprehensive data retention policy management for sessions an
 ### Retention Policy Configuration
 
 **RetentionSettings Component**:
+
 - **Session Retention**: Configure session data retention period (1-365 days)
 - **Log Retention**: Configure log file retention period (1-90 days)
 - **Auto Cleanup**: Enable/disable automatic cleanup based on policies
 - **Preview Changes**: Simple summary of cleanup impact before applying
 
 **Key Features**:
+
 - **Form Validation**: Min/max range validation with immediate feedback
 - **Preview Summary**: Clear impact summary ("Will delete X sessions older than Y days")
 - **Persistence**: Settings saved across browser sessions
@@ -611,12 +637,14 @@ Dispatch provides comprehensive data retention policy management for sessions an
 ### Retention API
 
 **Get Current Policy**:
+
 ```bash
 GET /api/retention/policy?authKey=YOUR_KEY
 # Returns: { sessionRetentionDays: 30, logRetentionDays: 7, autoCleanupEnabled: true }
 ```
 
 **Update Policy**:
+
 ```bash
 PUT /api/retention/policy
 {
@@ -628,6 +656,7 @@ PUT /api/retention/policy
 ```
 
 **Preview Cleanup Impact**:
+
 ```bash
 POST /api/retention/preview
 {
@@ -639,6 +668,7 @@ POST /api/retention/preview
 ```
 
 **Execute Cleanup**:
+
 ```bash
 POST /api/retention/cleanup
 {
@@ -650,33 +680,36 @@ POST /api/retention/cleanup
 ### Retention ViewModel
 
 **RetentionPolicyViewModel**: Manages retention settings with validation
+
 ```javascript
 class RetentionPolicyViewModel {
-  sessionDays = $state(30);
-  logDays = $state(7);
-  autoCleanup = $state(true);
-  previewSummary = $state(null);
-  isLoading = $state(false);
+	sessionDays = $state(30);
+	logDays = $state(7);
+	autoCleanup = $state(true);
+	previewSummary = $state(null);
+	isLoading = $state(false);
 
-  // Validation derived state
-  isValid = $derived.by(() =>
-    this.sessionDays >= 1 && this.sessionDays <= 365 &&
-    this.logDays >= 1 && this.logDays <= 90
-  );
+	// Validation derived state
+	isValid = $derived.by(
+		() =>
+			this.sessionDays >= 1 && this.sessionDays <= 365 && this.logDays >= 1 && this.logDays <= 90
+	);
 
-  canSave = $derived.by(() => this.isValid && this.hasChanges);
+	canSave = $derived.by(() => this.isValid && this.hasChanges);
 }
 ```
 
 ### Performance Optimization
 
 **Response Time Benchmarks** (Target: < 100ms):
+
 - GET retention policy: ~15ms ✅
 - PUT policy update: ~30ms ✅
 - POST preview generation: ~60ms ✅
 - POST cleanup execution: ~150ms ⚠️ (acceptable for complexity)
 
 **Optimization Strategies**:
+
 - Database indexing for fast lookups
 - Prepared statements for query optimization
 - In-memory caching with 5-minute TTL
@@ -690,31 +723,37 @@ Comprehensive user preferences system allowing customization of UI behavior, wor
 ### Preferences Categories
 
 **UI Preferences**:
+
 - Theme selection (light, dark, auto)
 - Workspace name in title bar toggle
 - Auto-hide inactive tabs configuration
 
 **Authentication Preferences**:
+
 - Session duration settings (1-365 days)
 - Remember last workspace option
 
 **Workspace Preferences**:
+
 - Default workspace path
 - Auto-create missing directories toggle
 
 **Terminal Preferences**:
+
 - Font size and family selection
 - Scrollback buffer configuration
 
 ### Preferences API
 
 **Get Preferences**:
+
 ```bash
 GET /api/preferences?authKey=YOUR_KEY&category=ui
 # Returns category-specific preferences or all if no category specified
 ```
 
 **Update Preferences**:
+
 ```bash
 PUT /api/preferences
 {
@@ -729,6 +768,7 @@ PUT /api/preferences
 ```
 
 **Reset Preferences**:
+
 ```bash
 POST /api/preferences
 {
@@ -741,6 +781,7 @@ POST /api/preferences
 ### PreferencesPanel Component
 
 **Features**:
+
 - **Organized Sections**: Preferences grouped by category with clear visual separation
 - **Real-time Validation**: Form validation with immediate feedback
 - **Change Detection**: Save button only enabled when changes exist
@@ -748,6 +789,7 @@ POST /api/preferences
 - **Responsive Design**: Mobile-optimized with collapsible sections
 
 **Usage Example**:
+
 ```javascript
 // Access preferences through settings page
 // Navigate to /settings and locate preferences sections
@@ -761,24 +803,28 @@ All new components meet WCAG 2.1 Level AA accessibility standards with comprehen
 ### Accessibility Features
 
 **Keyboard Navigation**:
+
 - Full Tab navigation through all interactive elements
 - Enter/Space activation for buttons and form controls
 - Arrow keys for complex widgets where applicable
 - Escape key for modal/dialog dismissal
 
 **ARIA Implementation**:
+
 - `role` attributes for complex UI patterns (tablist, tab, searchbox)
 - `aria-label` and `aria-describedby` for context
 - `aria-selected` and `aria-expanded` for state communication
 - `role="alert"` for error announcements and status updates
 
 **Screen Reader Support**:
+
 - Form validation errors announced via `role="alert"`
 - Loading states communicated through text changes
 - Progress indicators properly labeled with `aria-valuenow`
 - Search functionality accessible with proper labeling
 
 **Focus Management**:
+
 - Visible focus indicators with 3px box-shadow
 - Focus persistence through state changes
 - Focus restoration after modal interactions
@@ -787,12 +833,14 @@ All new components meet WCAG 2.1 Level AA accessibility standards with comprehen
 ### Testing & Validation
 
 **Manual Testing Results**:
+
 - ✅ Keyboard-only navigation successful
 - ✅ Screen reader compatibility verified (NVDA, JAWS, VoiceOver)
 - ✅ Form completion without mouse interaction
 - ✅ Error handling accessible and actionable
 
 **Automated Testing**:
+
 - ✅ No WCAG violations detected
 - ✅ All interactive elements have accessible names
 - ✅ Color contrast ratios meet AA standards
@@ -803,6 +851,7 @@ All new components meet WCAG 2.1 Level AA accessibility standards with comprehen
 ### Onboarding Issues
 
 **Onboarding Not Triggering**:
+
 ```bash
 # Check onboarding state in database
 sqlite3 dispatch.db "SELECT * FROM onboarding_state WHERE user_id = 'current_user';"
@@ -812,6 +861,7 @@ sqlite3 dispatch.db "DELETE FROM onboarding_state WHERE user_id = 'current_user'
 ```
 
 **Authentication Failures**:
+
 - Verify TERMINAL_KEY environment variable set correctly
 - Check browser localStorage for stale authentication data
 - Clear browser storage and retry authentication
@@ -819,6 +869,7 @@ sqlite3 dispatch.db "DELETE FROM onboarding_state WHERE user_id = 'current_user'
 ### Workspace Navigation Issues
 
 **Workspaces Not Loading**:
+
 ```bash
 # Check workspace API
 curl "http://localhost:3030/api/workspaces?authKey=YOUR_KEY"
@@ -828,6 +879,7 @@ sqlite3 dispatch.db "SELECT * FROM workspaces;"
 ```
 
 **Session-Workspace Association Problems**:
+
 ```bash
 # Check session workspace linkage
 curl "http://localhost:3030/api/sessions?include=all&authKey=YOUR_KEY"
@@ -839,11 +891,13 @@ sqlite3 dispatch.db "SELECT id, workspacePath FROM sessions WHERE workspacePath 
 ### Retention Policy Issues
 
 **Preview Generation Fails**:
+
 - Check database permissions for session cleanup queries
 - Verify retention policy values within valid ranges (1-365 days for sessions, 1-90 days for logs)
 - Monitor console for SQL query errors
 
 **Cleanup Operation Errors**:
+
 ```bash
 # Check database locks
 sqlite3 dispatch.db ".timeout 5000"
@@ -855,6 +909,7 @@ curl "http://localhost:3030/api/sessions?authKey=YOUR_KEY"
 ### Performance Issues
 
 **Slow API Responses**:
+
 ```bash
 # Enable debug logging
 DEBUG=* npm run dev
@@ -864,6 +919,7 @@ curl -w "Total time: %{time_total}s\n" "http://localhost:3030/api/onboarding/sta
 ```
 
 **Database Performance**:
+
 ```sql
 -- Check database statistics
 PRAGMA table_info(onboarding_state);
@@ -886,8 +942,8 @@ import { OnboardingFlow } from '$lib/client/components/OnboardingFlow.svelte';
 const needsOnboarding = !localStorage.getItem('onboardingComplete');
 
 if (needsOnboarding) {
-  // Redirect to onboarding flow
-  goto('/onboarding');
+	// Redirect to onboarding flow
+	goto('/onboarding');
 }
 ```
 

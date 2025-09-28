@@ -97,7 +97,9 @@ test.describe('Onboarding Workflow', () => {
 		await page.waitForSelector('.onboarding-page', { timeout: 10000 });
 
 		// Wait for OnboardingFlow component to load
-		await page.waitForSelector('[data-testid="onboarding-flow"], .onboarding-flow', { timeout: 10000 });
+		await page.waitForSelector('[data-testid="onboarding-flow"], .onboarding-flow', {
+			timeout: 10000
+		});
 
 		// Step 1: Authentication Step
 		await test.step('Authentication Step', async () => {
@@ -124,7 +126,9 @@ test.describe('Onboarding Workflow', () => {
 			await expect(page.locator('h2')).toContainText('Create Your First Workspace');
 
 			// Fill workspace name
-			const workspaceNameInput = page.locator('input[placeholder*="My First Project"], #workspace-name');
+			const workspaceNameInput = page.locator(
+				'input[placeholder*="My First Project"], #workspace-name'
+			);
 			await expect(workspaceNameInput).toBeVisible();
 			await workspaceNameInput.fill('My Test Workspace');
 
@@ -169,8 +173,10 @@ test.describe('Onboarding Workflow', () => {
 
 			// Verify onboarding is marked as complete in storage
 			const onboardingComplete = await page.evaluate(() => {
-				return localStorage.getItem('onboarding-complete') === 'true' ||
-					   localStorage.getItem('dispatch-auth-key') === 'testkey12345';
+				return (
+					localStorage.getItem('onboarding-complete') === 'true' ||
+					localStorage.getItem('dispatch-auth-key') === 'testkey12345'
+				);
 			});
 			expect(onboardingComplete).toBeTruthy();
 		});
@@ -241,7 +247,9 @@ test.describe('Onboarding Workflow', () => {
 		await page.waitForTimeout(1000);
 
 		// Fill workspace details
-		const workspaceNameInput = page.locator('input[placeholder*="My First Project"], #workspace-name');
+		const workspaceNameInput = page.locator(
+			'input[placeholder*="My First Project"], #workspace-name'
+		);
 		if (await workspaceNameInput.isVisible()) {
 			await workspaceNameInput.fill('Test Workspace');
 		}
@@ -252,7 +260,9 @@ test.describe('Onboarding Workflow', () => {
 			await createButton.click();
 
 			// Should see error message
-			await expect(page.locator('.error-message, [role="alert"]')).toContainText('Workspace path already exists');
+			await expect(page.locator('.error-message, [role="alert"]')).toContainText(
+				'Workspace path already exists'
+			);
 		}
 	});
 
@@ -268,7 +278,9 @@ test.describe('Onboarding Workflow', () => {
 		await page.waitForTimeout(1000);
 
 		// Fill and create workspace
-		const workspaceNameInput = page.locator('input[placeholder*="My First Project"], #workspace-name');
+		const workspaceNameInput = page.locator(
+			'input[placeholder*="My First Project"], #workspace-name'
+		);
 		if (await workspaceNameInput.isVisible()) {
 			await workspaceNameInput.fill('Minimal Workspace');
 
@@ -302,7 +314,9 @@ test.describe('Onboarding Workflow', () => {
 		await page.waitForTimeout(1000);
 
 		// Check if workspace form is accessible via keyboard
-		const workspaceNameInput = page.locator('input[placeholder*="My First Project"], #workspace-name');
+		const workspaceNameInput = page.locator(
+			'input[placeholder*="My First Project"], #workspace-name'
+		);
 		if (await workspaceNameInput.isVisible()) {
 			await page.keyboard.press('Tab');
 			await expect(workspaceNameInput).toBeFocused();

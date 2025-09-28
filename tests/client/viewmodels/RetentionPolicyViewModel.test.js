@@ -4,8 +4,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const createMockState = (initialValue) => {
 	let value = initialValue;
 	return {
-		get value() { return value; },
-		set value(newValue) { value = newValue; }
+		get value() {
+			return value;
+		},
+		set value(newValue) {
+			value = newValue;
+		}
 	};
 };
 
@@ -54,8 +58,10 @@ describe('RetentionPolicyViewModel', () => {
 			// Methods
 			validatePolicy() {
 				return (
-					this.sessionDays.value >= 1 && this.sessionDays.value <= 365 &&
-					this.logDays.value >= 1 && this.logDays.value <= 90
+					this.sessionDays.value >= 1 &&
+					this.sessionDays.value <= 365 &&
+					this.logDays.value >= 1 &&
+					this.logDays.value <= 90
 				);
 			},
 
@@ -356,7 +362,7 @@ describe('RetentionPolicyViewModel', () => {
 
 	it('should handle loading states correctly', async () => {
 		let resolvePromise;
-		const pendingPromise = new Promise(resolve => {
+		const pendingPromise = new Promise((resolve) => {
 			resolvePromise = resolve;
 		});
 
@@ -379,7 +385,7 @@ describe('RetentionPolicyViewModel', () => {
 
 	it('should handle preview loading states', async () => {
 		let resolvePromise;
-		const pendingPromise = new Promise(resolve => {
+		const pendingPromise = new Promise((resolve) => {
 			resolvePromise = resolve;
 		});
 

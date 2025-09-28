@@ -1,10 +1,10 @@
-
 # Implementation Plan: UI Components for Authentication, Workspace Management, and Maintenance
 
 **Branch**: `002-we-need-to` | **Date**: 2025-09-27 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/002-we-need-to/spec.md`
 
 ## Execution Flow (/plan command scope)
+
 ```
 1. Load feature spec from Input path
    → If not found: ERROR "No feature spec at {path}"
@@ -27,13 +27,16 @@
 ```
 
 **IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
+
 - Phase 2: /tasks command creates tasks.md
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
+
 Create UI components and workflows for authentication, workspace management, and maintenance features. This includes a progressive onboarding workflow (authentication + first workspace creation), enhanced ProjectSessionMenu for workspace navigation, and settings interfaces for retention policies covering sessions and logs.
 
 ## Technical Context
+
 **Language/Version**: JavaScript/Node.js 22+ with SvelteKit 2.x and Svelte 5
 **Primary Dependencies**: SvelteKit, Svelte 5 runes, Socket.IO, SQLite3, Express, @anthropic-ai/claude-code
 **Storage**: SQLite database with event-sourced session architecture
@@ -45,46 +48,55 @@ Create UI components and workflows for authentication, workspace management, and
 **Scale/Scope**: Single-user per instance, multiple workspaces, session persistence and multi-client support
 
 ## Constitution Check
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 **I. Security-First Architecture**: ✅ PASS
+
 - Authentication via existing terminal key mechanism (rolling 30-day sessions)
 - No new security boundaries introduced - leveraging existing auth infrastructure
 - UI components respect existing isolation patterns
 
 **II. Event-Sourced State Management**: ✅ PASS
+
 - Onboarding state and preferences will use existing database schema
 - Workspace navigation integrates with existing session management
 - No changes to core event sourcing architecture
 
 **III. Adapter Pattern for Extensibility**: ✅ PASS
+
 - Enhancing existing ProjectSessionMenu component (no new adapters needed)
 - Settings interface follows existing component patterns
 - Workspace management leverages existing API endpoints
 
 **IV. Test-Driven Development**: ✅ PASS
+
 - Will follow TDD cycle for all new components
 - Component tests using @testing-library/svelte
 - E2E tests for onboarding workflow using Playwright
 - Integration tests for workspace management
 
 **V. Progressive Enhancement**: ✅ PASS
+
 - Progressive onboarding (minimal first, advanced later)
 - Settings interface optional/accessible after basic setup
 - Core functionality works without advanced features
 
 **MVVM Frontend Architecture**: ✅ PASS
+
 - Using Svelte 5 runes for reactive state management
 - Following existing ViewModel patterns in codebase
 - ServiceContainer dependency injection
 
 **Unified Session Protocol**: ✅ PASS
+
 - No changes to Socket.IO event structure
 - Workspace switching uses existing session management
 
 **Constitutional Compliance**: ✅ PASS - No violations detected
 
 **Post-Design Constitutional Re-check**:
+
 - Security boundaries maintained ✅
 - Event-sourced architecture preserved ✅
 - Adapter pattern respected ✅
@@ -96,6 +108,7 @@ Create UI components and workflows for authentication, workspace management, and
 ## Project Structure
 
 ### Documentation (this feature)
+
 ```
 specs/[###-feature]/
 ├── plan.md              # This file (/plan command output)
@@ -107,6 +120,7 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+
 ```
 src/
 ├── lib/
@@ -137,12 +151,14 @@ tests/
 **Structure Decision**: Web application with unified SvelteKit frontend/backend. New components will extend existing architecture patterns in `src/lib/client/shared/components/` and add new feature-specific directories for onboarding and settings workflows.
 
 ## Phase 0: Outline & Research
+
 1. **Extract unknowns from Technical Context** above:
    - For each NEEDS CLARIFICATION → research task
    - For each dependency → best practices task
    - For each integration → patterns task
 
 2. **Generate and dispatch research agents**:
+
    ```
    For each unknown in Technical Context:
      Task: "Research {unknown} for {feature context}"
@@ -158,7 +174,8 @@ tests/
 **Output**: research.md with all NEEDS CLARIFICATION resolved
 
 ## Phase 1: Design & Contracts
-*Prerequisites: research.md complete*
+
+_Prerequisites: research.md complete_
 
 1. **Extract entities from feature spec** → `data-model.md`:
    - Entity name, fields, relationships
@@ -188,12 +205,14 @@ tests/
    - Keep under 150 lines for token efficiency
    - Output to repository root
 
-**Output**: data-model.md, /contracts/*, failing tests, quickstart.md, agent-specific file
+**Output**: data-model.md, /contracts/\*, failing tests, quickstart.md, agent-specific file
 
 ## Phase 2: Task Planning Approach
-*This section describes what the /tasks command will do - DO NOT execute during /plan*
+
+_This section describes what the /tasks command will do - DO NOT execute during /plan_
 
 **Task Generation Strategy**:
+
 - Load `.specify/templates/tasks-template.md` as base
 - Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
 - Database schema tasks: SQLite migrations for new tables [P]
@@ -203,6 +222,7 @@ tests/
 - Implementation tasks: Following TDD to make tests pass
 
 **Component Implementation Order**:
+
 1. Database extensions (onboarding_state, retention_policies, user_preferences tables)
 2. API endpoints (onboarding, retention, preferences APIs)
 3. ViewModels with Svelte 5 runes (OnboardingViewModel, RetentionPolicyViewModel)
@@ -211,12 +231,14 @@ tests/
 6. E2E workflow tests (complete user journeys)
 
 **Ordering Strategy**:
+
 - TDD order: Tests before implementation for each component
 - Dependency order: Database → API → ViewModels → Components → Integration
 - Mark [P] for parallel execution within same layer
 - Mark dependencies explicitly for sequential tasks
 
 **Estimated Breakdown**:
+
 - Database/API tasks: 8-10 tasks
 - Component/ViewModel tasks: 12-15 tasks
 - Integration/E2E tasks: 5-7 tasks
@@ -224,6 +246,7 @@ tests/
 - **Actual generated**: 38 tasks (includes additional polish and accessibility tasks)
 
 **Key Integration Points**:
+
 - Enhanced ProjectSessionMenu extends existing component
 - Authentication integrates with existing terminal key system
 - Workspace management leverages existing workspace API
@@ -232,25 +255,28 @@ tests/
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
 ## Phase 3+: Future Implementation
-*These phases are beyond the scope of the /plan command*
+
+_These phases are beyond the scope of the /plan command_
 
 **Phase 3**: Task execution (/tasks command creates tasks.md)  
 **Phase 4**: Implementation (execute tasks.md following constitutional principles)  
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
 ## Complexity Tracking
-*Fill ONLY if Constitution Check has violations that must be justified*
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+_Fill ONLY if Constitution Check has violations that must be justified_
 
+| Violation                  | Why Needed         | Simpler Alternative Rejected Because |
+| -------------------------- | ------------------ | ------------------------------------ |
+| [e.g., 4th project]        | [current need]     | [why 3 projects insufficient]        |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient]  |
 
 ## Progress Tracking
-*This checklist is updated during execution flow*
+
+_This checklist is updated during execution flow_
 
 **Phase Status**:
+
 - [x] Phase 0: Research complete (/plan command)
 - [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning complete (/plan command - describe approach only)
@@ -259,10 +285,12 @@ tests/
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS
 - [x] Post-Design Constitution Check: PASS
 - [x] All NEEDS CLARIFICATION resolved
 - [x] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+
+_Based on Constitution v2.1.1 - See `/memory/constitution.md`_

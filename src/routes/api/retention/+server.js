@@ -40,7 +40,11 @@ export async function PUT({ request, locals }) {
 
 		// Validate retention periods
 		if (sessionRetentionDays !== undefined) {
-			if (!Number.isInteger(sessionRetentionDays) || sessionRetentionDays < 1 || sessionRetentionDays > 365) {
+			if (
+				!Number.isInteger(sessionRetentionDays) ||
+				sessionRetentionDays < 1 ||
+				sessionRetentionDays > 365
+			) {
 				return json({ error: 'Session retention days must be between 1 and 365' }, { status: 400 });
 			}
 		}
@@ -76,7 +80,11 @@ export async function POST({ request, locals }) {
 
 		if (action === 'preview') {
 			// Validate parameters for preview
-			if (!Number.isInteger(sessionRetentionDays) || sessionRetentionDays < 1 || sessionRetentionDays > 365) {
+			if (
+				!Number.isInteger(sessionRetentionDays) ||
+				sessionRetentionDays < 1 ||
+				sessionRetentionDays > 365
+			) {
 				return json({ error: 'Session retention days must be between 1 and 365' }, { status: 400 });
 			}
 
@@ -94,7 +102,9 @@ export async function POST({ request, locals }) {
 				FROM sessions
 				WHERE created_at < ?
 			`;
-			const sessionResult = await locals.services.database.get(sessionQuery, [cutoffDate.toISOString()]);
+			const sessionResult = await locals.services.database.get(sessionQuery, [
+				cutoffDate.toISOString()
+			]);
 			const sessionsToDelete = sessionResult?.count || 0;
 
 			// Count session events (logs) older than retention period

@@ -55,9 +55,15 @@ export class MaintenanceService {
 		this.isRunning = true;
 
 		// Schedule automated maintenance tasks
-		this.scheduleMaintenanceTask('eventCleanup', eventCleanupInterval, () => this.cleanupOldEvents());
-		this.scheduleMaintenanceTask('sessionCleanup', sessionCleanupInterval, () => this.cleanupOrphanedSessions());
-		this.scheduleMaintenanceTask('workspaceCleanup', workspaceCleanupInterval, () => this.cleanupInactiveWorkspaces());
+		this.scheduleMaintenanceTask('eventCleanup', eventCleanupInterval, () =>
+			this.cleanupOldEvents()
+		);
+		this.scheduleMaintenanceTask('sessionCleanup', sessionCleanupInterval, () =>
+			this.cleanupOrphanedSessions()
+		);
+		this.scheduleMaintenanceTask('workspaceCleanup', workspaceCleanupInterval, () =>
+			this.cleanupInactiveWorkspaces()
+		);
 		this.scheduleMaintenanceTask('logCleanup', logCleanupInterval, () => this.cleanupOldLogs());
 
 		logger.info('MAINTENANCE', 'MaintenanceService started with automated scheduling');
@@ -191,9 +197,11 @@ export class MaintenanceService {
 				maxEventsPerSession
 			};
 
-			logger.info('MAINTENANCE', `Event cleanup completed: ${totalDeleted} events deleted from ${sessions.length} sessions in ${duration}ms`);
+			logger.info(
+				'MAINTENANCE',
+				`Event cleanup completed: ${totalDeleted} events deleted from ${sessions.length} sessions in ${duration}ms`
+			);
 			return stats;
-
 		} catch (error) {
 			logger.error('MAINTENANCE', 'Event cleanup failed:', error);
 			throw error;
@@ -253,9 +261,11 @@ export class MaintenanceService {
 				action: markAsStoppedOnly ? 'marked_stopped' : 'deleted'
 			};
 
-			logger.info('MAINTENANCE', `Session cleanup completed: ${processedCount}/${orphanedSessions.length} orphaned sessions processed in ${duration}ms`);
+			logger.info(
+				'MAINTENANCE',
+				`Session cleanup completed: ${processedCount}/${orphanedSessions.length} orphaned sessions processed in ${duration}ms`
+			);
 			return stats;
-
 		} catch (error) {
 			logger.error('MAINTENANCE', 'Session cleanup failed:', error);
 			throw error;
@@ -270,10 +280,7 @@ export class MaintenanceService {
 	 * @returns {Promise<Object>} Cleanup statistics
 	 */
 	async cleanupInactiveWorkspaces(options = {}) {
-		const {
-			inactiveDays = 90,
-			archiveOnly = true
-		} = options;
+		const { inactiveDays = 90, archiveOnly = true } = options;
 
 		if (!this.workspaceService) {
 			logger.warn('MAINTENANCE', 'WorkspaceService not available for workspace cleanup');
@@ -290,7 +297,7 @@ export class MaintenanceService {
 				stats = await this.workspaceService.archiveInactiveWorkspaces(inactiveDays);
 			} else {
 				// Find and delete truly inactive workspaces
-				const cutoffTime = Date.now() - (inactiveDays * 24 * 60 * 60 * 1000);
+				const cutoffTime = Date.now() - inactiveDays * 24 * 60 * 60 * 1000;
 
 				const inactiveWorkspaces = await this.db.all(
 					`SELECT path FROM workspaces
@@ -309,7 +316,11 @@ export class MaintenanceService {
 							deletedCount++;
 						}
 					} catch (error) {
-						logger.warn('MAINTENANCE', `Failed to delete inactive workspace ${workspace.path}:`, error);
+						logger.warn(
+							'MAINTENANCE',
+							`Failed to delete inactive workspace ${workspace.path}:`,
+							error
+						);
 					}
 				}
 
@@ -320,7 +331,6 @@ export class MaintenanceService {
 
 			logger.info('MAINTENANCE', `Workspace cleanup completed in ${duration}ms:`, stats);
 			return { ...stats, duration };
-
 		} catch (error) {
 			logger.error('MAINTENANCE', 'Workspace cleanup failed:', error);
 			throw error;
@@ -350,10 +360,7 @@ export class MaintenanceService {
 
 			// Clean up by age
 			if (maxAge > 0) {
-				const ageResult = await this.db.run(
-					'DELETE FROM logs WHERE timestamp < ?',
-					[cutoffTime]
-				);
+				const ageResult = await this.db.run('DELETE FROM logs WHERE timestamp < ?', [cutoffTime]);
 				totalDeleted += ageResult.changes || 0;
 			}
 
@@ -378,9 +385,11 @@ export class MaintenanceService {
 				maxLogEntries
 			};
 
-			logger.info('MAINTENANCE', `Log cleanup completed: ${totalDeleted} log entries deleted in ${duration}ms`);
+			logger.info(
+				'MAINTENANCE',
+				`Log cleanup completed: ${totalDeleted} log entries deleted in ${duration}ms`
+			);
 			return stats;
-
 		} catch (error) {
 			logger.error('MAINTENANCE', 'Log cleanup failed:', error);
 			throw error;
@@ -416,9 +425,11 @@ export class MaintenanceService {
 				spaceReclaimed
 			};
 
-			logger.info('MAINTENANCE', `Database vacuum completed in ${duration}ms: ${spaceReclaimed} bytes reclaimed`);
+			logger.info(
+				'MAINTENANCE',
+				`Database vacuum completed in ${duration}ms: ${spaceReclaimed} bytes reclaimed`
+			);
 			return stats;
-
 		} catch (error) {
 			logger.error('MAINTENANCE', 'Database vacuum failed:', error);
 			throw error;
@@ -473,7 +484,6 @@ export class MaintenanceService {
 
 			logger.info('MAINTENANCE', `Comprehensive maintenance completed in ${totalDuration}ms`);
 			return results;
-
 		} catch (error) {
 			const totalDuration = Date.now() - startTime;
 			results.totalDuration = totalDuration;

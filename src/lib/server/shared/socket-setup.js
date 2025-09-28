@@ -357,7 +357,11 @@ export function setupSocketIO(httpServer, services) {
 				return;
 			}
 
-			logger.info('SOCKET', `VS Code tunnel start requested by socket ${socket.id} with data:`, data);
+			logger.info(
+				'SOCKET',
+				`VS Code tunnel start requested by socket ${socket.id} with data:`,
+				data
+			);
 			const vscodeManager = services.vscodeManager;
 			if (!vscodeManager) {
 				logger.warn('SOCKET', 'VS Code tunnel manager not available');

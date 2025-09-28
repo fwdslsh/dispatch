@@ -66,7 +66,10 @@ export class WorkspaceTemplateService {
 		await this.createDefaultTemplates();
 
 		this.isInitialized = true;
-		logger.info('TEMPLATE', `WorkspaceTemplateService initialized with ${this.templates.size} templates`);
+		logger.info(
+			'TEMPLATE',
+			`WorkspaceTemplateService initialized with ${this.templates.size} templates`
+		);
 	}
 
 	/**
@@ -96,7 +99,9 @@ export class WorkspaceTemplateService {
 	 * Create default workspace templates
 	 */
 	async createDefaultTemplates() {
-		const existingTemplates = await this.db.get('SELECT COUNT(*) as count FROM workspace_templates');
+		const existingTemplates = await this.db.get(
+			'SELECT COUNT(*) as count FROM workspace_templates'
+		);
 		if (existingTemplates.count > 0) {
 			return; // Templates already exist
 		}
@@ -115,7 +120,8 @@ export class WorkspaceTemplateService {
 				fileStructure: {
 					'README.md': {
 						type: 'file',
-						content: '# {{workspaceName}}\n\nA new workspace created with Dispatch.\n\n## Getting Started\n\nThis is your project workspace. Add your files and start coding!\n'
+						content:
+							'# {{workspaceName}}\n\nA new workspace created with Dispatch.\n\n## Getting Started\n\nThis is your project workspace. Add your files and start coding!\n'
 					}
 				}
 			},
@@ -129,27 +135,29 @@ export class WorkspaceTemplateService {
 					environmentVariables: {
 						NODE_ENV: 'development'
 					},
-					startupCommands: [
-						'npm install'
-					]
+					startupCommands: ['npm install']
 				},
 				fileStructure: {
 					'package.json': {
 						type: 'file',
-						content: JSON.stringify({
-							name: '{{workspaceSlug}}',
-							version: '1.0.0',
-							description: '{{description}}',
-							main: 'index.js',
-							scripts: {
-								start: 'node index.js',
-								dev: 'node --watch index.js',
-								test: 'echo "Error: no test specified" && exit 1'
+						content: JSON.stringify(
+							{
+								name: '{{workspaceSlug}}',
+								version: '1.0.0',
+								description: '{{description}}',
+								main: 'index.js',
+								scripts: {
+									start: 'node index.js',
+									dev: 'node --watch index.js',
+									test: 'echo "Error: no test specified" && exit 1'
+								},
+								keywords: [],
+								author: '',
+								license: 'ISC'
 							},
-							keywords: [],
-							author: '',
-							license: 'ISC'
-						}, null, 2)
+							null,
+							2
+						)
 					},
 					'index.js': {
 						type: 'file',
@@ -157,7 +165,8 @@ export class WorkspaceTemplateService {
 					},
 					'README.md': {
 						type: 'file',
-						content: '# {{workspaceName}}\n\n{{description}}\n\n## Installation\n\n```bash\nnpm install\n```\n\n## Usage\n\n```bash\nnpm start\n```\n\n## Development\n\n```bash\nnpm run dev\n```\n'
+						content:
+							'# {{workspaceName}}\n\n{{description}}\n\n## Installation\n\n```bash\nnpm install\n```\n\n## Usage\n\n```bash\nnpm start\n```\n\n## Development\n\n```bash\nnpm run dev\n```\n'
 					},
 					'.gitignore': {
 						type: 'file',
@@ -184,15 +193,18 @@ export class WorkspaceTemplateService {
 				fileStructure: {
 					'main.py': {
 						type: 'file',
-						content: '#!/usr/bin/env python3\n"""{{workspaceName}} - {{description}}"""\n\ndef main():\n    print("Hello from {{workspaceName}}!")\n    # Your Python application starts here\n\nif __name__ == "__main__":\n    main()\n'
+						content:
+							'#!/usr/bin/env python3\n"""{{workspaceName}} - {{description}}"""\n\ndef main():\n    print("Hello from {{workspaceName}}!")\n    # Your Python application starts here\n\nif __name__ == "__main__":\n    main()\n'
 					},
 					'requirements.txt': {
 						type: 'file',
-						content: '# Add your Python dependencies here\n# Example:\n# requests>=2.25.0\n# flask>=2.0.0\n'
+						content:
+							'# Add your Python dependencies here\n# Example:\n# requests>=2.25.0\n# flask>=2.0.0\n'
 					},
 					'README.md': {
 						type: 'file',
-						content: '# {{workspaceName}}\n\n{{description}}\n\n## Setup\n\n```bash\npython3 -m venv venv\nsource venv/bin/activate\npip install -r requirements.txt\n```\n\n## Usage\n\n```bash\npython main.py\n```\n'
+						content:
+							'# {{workspaceName}}\n\n{{description}}\n\n## Setup\n\n```bash\npython3 -m venv venv\nsource venv/bin/activate\npip install -r requirements.txt\n```\n\n## Usage\n\n```bash\npython main.py\n```\n'
 					},
 					'.gitignore': {
 						type: 'file',
@@ -225,7 +237,8 @@ export class WorkspaceTemplateService {
 					},
 					'README.md': {
 						type: 'file',
-						content: '# {{workspaceName}}\n\n{{description}}\n\n## Getting Started\n\n1. Open `index.html` in your browser\n2. Edit the HTML, CSS, and JavaScript files\n3. Refresh to see your changes\n\n## Files\n\n- `index.html` - Main HTML file\n- `styles.css` - CSS styles\n- `script.js` - JavaScript code\n'
+						content:
+							'# {{workspaceName}}\n\n{{description}}\n\n## Getting Started\n\n1. Open `index.html` in your browser\n2. Edit the HTML, CSS, and JavaScript files\n3. Refresh to see your changes\n\n## Files\n\n- `index.html` - Main HTML file\n- `styles.css` - CSS styles\n- `script.js` - JavaScript code\n'
 					}
 				}
 			},
@@ -239,37 +252,42 @@ export class WorkspaceTemplateService {
 					environmentVariables: {
 						NODE_ENV: 'development'
 					},
-					startupCommands: [
-						'npm install',
-						'npm start'
-					]
+					startupCommands: ['npm install', 'npm start']
 				},
 				fileStructure: {
 					'package.json': {
 						type: 'file',
-						content: JSON.stringify({
-							name: '{{workspaceSlug}}',
-							version: '0.1.0',
-							description: '{{description}}',
-							dependencies: {
-								react: '^18.2.0',
-								'react-dom': '^18.2.0',
-								'react-scripts': '5.0.1'
+						content: JSON.stringify(
+							{
+								name: '{{workspaceSlug}}',
+								version: '0.1.0',
+								description: '{{description}}',
+								dependencies: {
+									react: '^18.2.0',
+									'react-dom': '^18.2.0',
+									'react-scripts': '5.0.1'
+								},
+								scripts: {
+									start: 'react-scripts start',
+									build: 'react-scripts build',
+									test: 'react-scripts test',
+									eject: 'react-scripts eject'
+								},
+								eslintConfig: {
+									extends: ['react-app']
+								},
+								browserslist: {
+									production: ['>0.2%', 'not dead', 'not op_mini all'],
+									development: [
+										'last 1 chrome version',
+										'last 1 firefox version',
+										'last 1 safari version'
+									]
+								}
 							},
-							scripts: {
-								start: 'react-scripts start',
-								build: 'react-scripts build',
-								test: 'react-scripts test',
-								eject: 'react-scripts eject'
-							},
-							eslintConfig: {
-								extends: ['react-app']
-							},
-							browserslist: {
-								production: ['>0.2%', 'not dead', 'not op_mini all'],
-								development: ['last 1 chrome version', 'last 1 firefox version', 'last 1 safari version']
-							}
-						}, null, 2)
+							null,
+							2
+						)
 					},
 					'public/index.html': {
 						type: 'file',
@@ -293,7 +311,8 @@ export class WorkspaceTemplateService {
 					},
 					'README.md': {
 						type: 'file',
-						content: '# {{workspaceName}}\n\n{{description}}\n\nThis project was created with Create React App template.\n\n## Available Scripts\n\n### `npm start`\n\nRuns the app in development mode.\nOpen [http://localhost:3000](http://localhost:3000) to view it in your browser.\n\n### `npm test`\n\nLaunches the test runner in interactive watch mode.\n\n### `npm run build`\n\nBuilds the app for production to the `build` folder.\n'
+						content:
+							'# {{workspaceName}}\n\n{{description}}\n\nThis project was created with Create React App template.\n\n## Available Scripts\n\n### `npm start`\n\nRuns the app in development mode.\nOpen [http://localhost:3000](http://localhost:3000) to view it in your browser.\n\n### `npm test`\n\nLaunches the test runner in interactive watch mode.\n\n### `npm run build`\n\nBuilds the app for production to the `build` folder.\n'
 					}
 				}
 			}
@@ -329,7 +348,16 @@ export class WorkspaceTemplateService {
 			`INSERT INTO workspace_templates
 			 (id, name, description, category, template_config, file_structure, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			[id, name, description, category, JSON.stringify(config), JSON.stringify(fileStructure), now, now]
+			[
+				id,
+				name,
+				description,
+				category,
+				JSON.stringify(config),
+				JSON.stringify(fileStructure),
+				now,
+				now
+			]
 		);
 
 		// Add to memory
@@ -488,7 +516,10 @@ export class WorkspaceTemplateService {
 			await this.trackTemplateUsage(templateId, workspacePath);
 
 			// Increment usage count
-			await this.db.run('UPDATE workspace_templates SET usage_count = usage_count + 1 WHERE id = ?', [templateId]);
+			await this.db.run(
+				'UPDATE workspace_templates SET usage_count = usage_count + 1 WHERE id = ?',
+				[templateId]
+			);
 
 			logger.info('TEMPLATE', `Created workspace from template ${templateId}: ${workspacePath}`);
 
@@ -500,7 +531,6 @@ export class WorkspaceTemplateService {
 				createdFiles: await this.countFiles(workspacePath),
 				config: template.config
 			};
-
 		} catch (error) {
 			logger.error('TEMPLATE', `Failed to create workspace from template ${templateId}:`, error);
 			throw error;
@@ -634,11 +664,11 @@ export class WorkspaceTemplateService {
 
 		// Filter by category if specified
 		if (category) {
-			templates = templates.filter(t => t.category === category);
+			templates = templates.filter((t) => t.category === category);
 		}
 
 		// Format for API
-		const result = templates.map(t => ({
+		const result = templates.map((t) => ({
 			id: t.id,
 			name: t.name,
 			description: t.description,
@@ -653,7 +683,7 @@ export class WorkspaceTemplateService {
 			for (const template of result) {
 				const recentUsage = await this.db.get(
 					'SELECT COUNT(*) as count FROM template_usage WHERE template_id = ? AND created_at > ?',
-					[template.id, Date.now() - (30 * 24 * 60 * 60 * 1000)] // Last 30 days
+					[template.id, Date.now() - 30 * 24 * 60 * 60 * 1000] // Last 30 days
 				);
 				template.recentUsage = recentUsage.count;
 			}
@@ -703,7 +733,7 @@ export class WorkspaceTemplateService {
 			 ORDER BY category`
 		);
 
-		return categories.map(c => ({
+		return categories.map((c) => ({
 			name: c.category,
 			count: c.count,
 			displayName: this.formatCategoryName(c.category)
@@ -718,7 +748,7 @@ export class WorkspaceTemplateService {
 	formatCategoryName(category) {
 		return category
 			.split('-')
-			.map(word => word.charAt(0).toUpperCase() + word.slice(1))
+			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
 			.join(' ');
 	}
 
@@ -730,23 +760,28 @@ export class WorkspaceTemplateService {
 	async getUsageStats(templateId = null) {
 		await this.init();
 
-		const totalTemplates = await this.db.get('SELECT COUNT(*) as count FROM workspace_templates WHERE is_active = 1');
+		const totalTemplates = await this.db.get(
+			'SELECT COUNT(*) as count FROM workspace_templates WHERE is_active = 1'
+		);
 
 		let totalUsage, recentUsage, popularTemplates;
 
 		if (templateId) {
 			// Stats for specific template
-			totalUsage = await this.db.get('SELECT COUNT(*) as count FROM template_usage WHERE template_id = ?', [templateId]);
+			totalUsage = await this.db.get(
+				'SELECT COUNT(*) as count FROM template_usage WHERE template_id = ?',
+				[templateId]
+			);
 			recentUsage = await this.db.get(
 				'SELECT COUNT(*) as count FROM template_usage WHERE template_id = ? AND created_at > ?',
-				[templateId, Date.now() - (30 * 24 * 60 * 60 * 1000)]
+				[templateId, Date.now() - 30 * 24 * 60 * 60 * 1000]
 			);
 		} else {
 			// Global stats
 			totalUsage = await this.db.get('SELECT COUNT(*) as count FROM template_usage');
 			recentUsage = await this.db.get(
 				'SELECT COUNT(*) as count FROM template_usage WHERE created_at > ?',
-				[Date.now() - (30 * 24 * 60 * 60 * 1000)]
+				[Date.now() - 30 * 24 * 60 * 60 * 1000]
 			);
 
 			popularTemplates = await this.db.all(

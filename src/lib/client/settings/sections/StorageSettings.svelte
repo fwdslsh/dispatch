@@ -404,7 +404,12 @@
 							Removes all stored data including settings, sessions, and cached assets.
 						</p>
 					</div>
-					<Button onclick={() => clearStorage('all')} variant="ghost" size="small" disabled={loading}>
+					<Button
+						onclick={() => clearStorage('all')}
+						variant="ghost"
+						size="small"
+						disabled={loading}
+					>
 						<IconTrash size={16} />
 						Clear All
 					</Button>
@@ -447,7 +452,12 @@
 						<span class="clear-title">Clear Cache</span>
 						<p class="clear-description">Clears cached workspace and terminal data.</p>
 					</div>
-					<Button onclick={() => clearStorage('cache')} variant="ghost" size="small" disabled={loading}>
+					<Button
+						onclick={() => clearStorage('cache')}
+						variant="ghost"
+						size="small"
+						disabled={loading}
+					>
 						<IconTrash size={16} />
 						Clear Cache
 					</Button>

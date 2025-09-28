@@ -1,256 +1,256 @@
 {
-  "openapi": "3.0.0",
-  "info": {
-    "title": "Retention Policy API",
-    "version": "1.0.0",
-    "description": "API for managing data retention policies and cleanup"
-  },
-  "paths": {
-    "/api/retention/policy": {
-      "get": {
-        "summary": "Get current retention policy",
-        "parameters": [
-          {
-            "name": "authKey",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Terminal authentication key"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Retention policy retrieved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RetentionPolicy"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      },
-      "put": {
-        "summary": "Update retention policy",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RetentionPolicyUpdate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Policy updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RetentionPolicy"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid policy values"
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    },
-    "/api/retention/preview": {
-      "post": {
-        "summary": "Preview retention policy effects",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RetentionPreviewRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Preview generated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RetentionPreview"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid preview parameters"
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    },
-    "/api/retention/cleanup": {
-      "post": {
-        "summary": "Execute data cleanup based on retention policy",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "authKey": {
-                    "type": "string"
-                  },
-                  "confirm": {
-                    "type": "boolean"
-                  }
-                },
-                "required": ["authKey", "confirm"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Cleanup executed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CleanupResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Cleanup not confirmed or invalid request"
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "RetentionPolicy": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "sessionRetentionDays": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 365
-          },
-          "logRetentionDays": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 90
-          },
-          "autoCleanupEnabled": {
-            "type": "boolean"
-          },
-          "lastCleanupRun": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "previewSummary": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["id", "sessionRetentionDays", "logRetentionDays", "autoCleanupEnabled"]
-      },
-      "RetentionPolicyUpdate": {
-        "type": "object",
-        "properties": {
-          "authKey": {
-            "type": "string"
-          },
-          "sessionRetentionDays": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 365
-          },
-          "logRetentionDays": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 90
-          },
-          "autoCleanupEnabled": {
-            "type": "boolean"
-          }
-        },
-        "required": ["authKey"]
-      },
-      "RetentionPreviewRequest": {
-        "type": "object",
-        "properties": {
-          "authKey": {
-            "type": "string"
-          },
-          "sessionRetentionDays": {
-            "type": "integer"
-          },
-          "logRetentionDays": {
-            "type": "integer"
-          }
-        },
-        "required": ["authKey", "sessionRetentionDays", "logRetentionDays"]
-      },
-      "RetentionPreview": {
-        "type": "object",
-        "properties": {
-          "summary": {
-            "type": "string"
-          },
-          "sessionsToDelete": {
-            "type": "integer"
-          },
-          "logsToDelete": {
-            "type": "integer"
-          },
-          "estimatedSpaceSaved": {
-            "type": "string"
-          }
-        },
-        "required": ["summary", "sessionsToDelete", "logsToDelete"]
-      },
-      "CleanupResult": {
-        "type": "object",
-        "properties": {
-          "sessionsDeleted": {
-            "type": "integer"
-          },
-          "logsDeleted": {
-            "type": "integer"
-          },
-          "spaceSaved": {
-            "type": "string"
-          },
-          "executedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": ["sessionsDeleted", "logsDeleted", "executedAt"]
-      }
-    }
-  }
+	"openapi": "3.0.0",
+	"info": {
+		"title": "Retention Policy API",
+		"version": "1.0.0",
+		"description": "API for managing data retention policies and cleanup"
+	},
+	"paths": {
+		"/api/retention/policy": {
+			"get": {
+				"summary": "Get current retention policy",
+				"parameters": [
+					{
+						"name": "authKey",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "Terminal authentication key"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Retention policy retrieved",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RetentionPolicy"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required"
+					}
+				}
+			},
+			"put": {
+				"summary": "Update retention policy",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RetentionPolicyUpdate"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Policy updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RetentionPolicy"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid policy values"
+					},
+					"401": {
+						"description": "Authentication required"
+					}
+				}
+			}
+		},
+		"/api/retention/preview": {
+			"post": {
+				"summary": "Preview retention policy effects",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RetentionPreviewRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Preview generated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RetentionPreview"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid preview parameters"
+					},
+					"401": {
+						"description": "Authentication required"
+					}
+				}
+			}
+		},
+		"/api/retention/cleanup": {
+			"post": {
+				"summary": "Execute data cleanup based on retention policy",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"authKey": {
+										"type": "string"
+									},
+									"confirm": {
+										"type": "boolean"
+									}
+								},
+								"required": ["authKey", "confirm"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Cleanup executed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CleanupResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Cleanup not confirmed or invalid request"
+					},
+					"401": {
+						"description": "Authentication required"
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"RetentionPolicy": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"sessionRetentionDays": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 365
+					},
+					"logRetentionDays": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 90
+					},
+					"autoCleanupEnabled": {
+						"type": "boolean"
+					},
+					"lastCleanupRun": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
+					"previewSummary": {
+						"type": "string",
+						"nullable": true
+					}
+				},
+				"required": ["id", "sessionRetentionDays", "logRetentionDays", "autoCleanupEnabled"]
+			},
+			"RetentionPolicyUpdate": {
+				"type": "object",
+				"properties": {
+					"authKey": {
+						"type": "string"
+					},
+					"sessionRetentionDays": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 365
+					},
+					"logRetentionDays": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 90
+					},
+					"autoCleanupEnabled": {
+						"type": "boolean"
+					}
+				},
+				"required": ["authKey"]
+			},
+			"RetentionPreviewRequest": {
+				"type": "object",
+				"properties": {
+					"authKey": {
+						"type": "string"
+					},
+					"sessionRetentionDays": {
+						"type": "integer"
+					},
+					"logRetentionDays": {
+						"type": "integer"
+					}
+				},
+				"required": ["authKey", "sessionRetentionDays", "logRetentionDays"]
+			},
+			"RetentionPreview": {
+				"type": "object",
+				"properties": {
+					"summary": {
+						"type": "string"
+					},
+					"sessionsToDelete": {
+						"type": "integer"
+					},
+					"logsToDelete": {
+						"type": "integer"
+					},
+					"estimatedSpaceSaved": {
+						"type": "string"
+					}
+				},
+				"required": ["summary", "sessionsToDelete", "logsToDelete"]
+			},
+			"CleanupResult": {
+				"type": "object",
+				"properties": {
+					"sessionsDeleted": {
+						"type": "integer"
+					},
+					"logsDeleted": {
+						"type": "integer"
+					},
+					"spaceSaved": {
+						"type": "string"
+					},
+					"executedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": ["sessionsDeleted", "logsDeleted", "executedAt"]
+			}
+		}
+	}
 }

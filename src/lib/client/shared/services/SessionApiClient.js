@@ -836,14 +836,17 @@ export class SessionApiClient {
 	 */
 	async updateWorkspace(workspaceId, updates) {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}`, {
-				method: 'PUT',
-				headers: this.getHeaders(),
-				body: JSON.stringify({
-					authKey: this.getAuthKey(),
-					...updates
-				})
-			});
+			const response = await fetch(
+				`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}`,
+				{
+					method: 'PUT',
+					headers: this.getHeaders(),
+					body: JSON.stringify({
+						authKey: this.getAuthKey(),
+						...updates
+					})
+				}
+			);
 
 			return await this.handleResponse(response);
 		} catch (error) {
@@ -865,10 +868,13 @@ export class SessionApiClient {
 			const authKey = this.getAuthKey();
 			if (authKey) params.append('authKey', authKey);
 
-			const response = await fetch(`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}?${params}`, {
-				method: 'DELETE',
-				headers: this.getHeaders()
-			});
+			const response = await fetch(
+				`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}?${params}`,
+				{
+					method: 'DELETE',
+					headers: this.getHeaders()
+				}
+			);
 
 			return await this.handleResponse(response);
 		} catch (error) {
@@ -887,7 +893,9 @@ export class SessionApiClient {
 	 */
 	getAuthKey() {
 		if (typeof localStorage !== 'undefined') {
-			return localStorage.getItem(this.config.authTokenKey) || localStorage.getItem('dispatch-auth-key');
+			return (
+				localStorage.getItem(this.config.authTokenKey) || localStorage.getItem('dispatch-auth-key')
+			);
 		}
 		return null;
 	}

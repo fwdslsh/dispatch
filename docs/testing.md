@@ -99,16 +99,16 @@ import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
-  plugins: [sveltekit()],
-  test: {
-    environment: 'jsdom', // For client-side tests
-    setupFiles: ['tests/setup.js'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
-      exclude: ['e2e/**', 'tests/**']
-    }
-  }
+	plugins: [sveltekit()],
+	test: {
+		environment: 'jsdom', // For client-side tests
+		setupFiles: ['tests/setup.js'],
+		coverage: {
+			provider: 'v8',
+			reporter: ['text', 'html'],
+			exclude: ['e2e/**', 'tests/**']
+		}
+	}
 });
 ```
 
@@ -122,49 +122,47 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WorkspaceService } from '$lib/server/shared/services/WorkspaceService.js';
 
 describe('WorkspaceService', () => {
-  let workspaceService;
-  let mockDatabase;
+	let workspaceService;
+	let mockDatabase;
 
-  beforeEach(() => {
-    mockDatabase = {
-      get: vi.fn(),
-      run: vi.fn(),
-      all: vi.fn()
-    };
-    workspaceService = new WorkspaceService(mockDatabase);
-  });
+	beforeEach(() => {
+		mockDatabase = {
+			get: vi.fn(),
+			run: vi.fn(),
+			all: vi.fn()
+		};
+		workspaceService = new WorkspaceService(mockDatabase);
+	});
 
-  it('should create workspace with valid path', async () => {
-    const workspaceData = {
-      path: '/workspace/test-project',
-      name: 'Test Project'
-    };
+	it('should create workspace with valid path', async () => {
+		const workspaceData = {
+			path: '/workspace/test-project',
+			name: 'Test Project'
+		};
 
-    mockDatabase.run.mockResolvedValue({ lastID: 1 });
+		mockDatabase.run.mockResolvedValue({ lastID: 1 });
 
-    const result = await workspaceService.createWorkspace(workspaceData);
+		const result = await workspaceService.createWorkspace(workspaceData);
 
-    expect(result.path).toBe(workspaceData.path);
-    expect(result.name).toBe(workspaceData.name);
-    expect(mockDatabase.run).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO workspaces'),
-      expect.any(Array)
-    );
-  });
+		expect(result.path).toBe(workspaceData.path);
+		expect(result.name).toBe(workspaceData.name);
+		expect(mockDatabase.run).toHaveBeenCalledWith(
+			expect.stringContaining('INSERT INTO workspaces'),
+			expect.any(Array)
+		);
+	});
 
-  it('should reject invalid workspace paths', async () => {
-    const invalidPaths = [
-      '../../../etc/passwd',     // Path traversal
-      'relative/path',           // Not absolute
-      '/system/critical/path'    // Outside workspace root
-    ];
+	it('should reject invalid workspace paths', async () => {
+		const invalidPaths = [
+			'../../../etc/passwd', // Path traversal
+			'relative/path', // Not absolute
+			'/system/critical/path' // Outside workspace root
+		];
 
-    for (const path of invalidPaths) {
-      await expect(
-        workspaceService.createWorkspace({ path, name: 'Test' })
-      ).rejects.toThrow();
-    }
-  });
+		for (const path of invalidPaths) {
+			await expect(workspaceService.createWorkspace({ path, name: 'Test' })).rejects.toThrow();
+		}
+	});
 });
 ```
 
@@ -178,49 +176,49 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SessionViewModel } from '$lib/client/shared/state/SessionViewModel.svelte.js';
 
 describe('SessionViewModel', () => {
-  let viewModel;
-  let mockSessionService;
+	let viewModel;
+	let mockSessionService;
 
-  beforeEach(() => {
-    mockSessionService = {
-      create: vi.fn(),
-      list: vi.fn(),
-      delete: vi.fn()
-    };
+	beforeEach(() => {
+		mockSessionService = {
+			create: vi.fn(),
+			list: vi.fn(),
+			delete: vi.fn()
+		};
 
-    viewModel = new SessionViewModel(mockSessionService);
-  });
+		viewModel = new SessionViewModel(mockSessionService);
+	});
 
-  it('should create session and update state', async () => {
-    const sessionData = { id: 'sess_123', type: 'pty', status: 'running' };
-    mockSessionService.create.mockResolvedValue(sessionData);
+	it('should create session and update state', async () => {
+		const sessionData = { id: 'sess_123', type: 'pty', status: 'running' };
+		mockSessionService.create.mockResolvedValue(sessionData);
 
-    await viewModel.createSession('pty', { workspacePath: '/workspace/test' });
+		await viewModel.createSession('pty', { workspacePath: '/workspace/test' });
 
-    expect(viewModel.sessions).toContain(sessionData);
-    expect(viewModel.currentSession).toBe(sessionData);
-    expect(viewModel.loading).toBe(false);
-  });
+		expect(viewModel.sessions).toContain(sessionData);
+		expect(viewModel.currentSession).toBe(sessionData);
+		expect(viewModel.loading).toBe(false);
+	});
 
-  it('should handle errors gracefully', async () => {
-    mockSessionService.create.mockRejectedValue(new Error('Network error'));
+	it('should handle errors gracefully', async () => {
+		mockSessionService.create.mockRejectedValue(new Error('Network error'));
 
-    await viewModel.createSession('pty', {});
+		await viewModel.createSession('pty', {});
 
-    expect(viewModel.error).toBe('Network error');
-    expect(viewModel.loading).toBe(false);
-  });
+		expect(viewModel.error).toBe('Network error');
+		expect(viewModel.loading).toBe(false);
+	});
 
-  it('should filter active sessions correctly', () => {
-    viewModel.sessions = [
-      { id: '1', status: 'running' },
-      { id: '2', status: 'stopped' },
-      { id: '3', status: 'running' }
-    ];
+	it('should filter active sessions correctly', () => {
+		viewModel.sessions = [
+			{ id: '1', status: 'running' },
+			{ id: '2', status: 'stopped' },
+			{ id: '3', status: 'running' }
+		];
 
-    expect(viewModel.activeSessions).toHaveLength(2);
-    expect(viewModel.activeSessions.every(s => s.status === 'running')).toBe(true);
-  });
+		expect(viewModel.activeSessions).toHaveLength(2);
+		expect(viewModel.activeSessions.every((s) => s.status === 'running')).toBe(true);
+	});
 });
 ```
 
@@ -231,24 +229,24 @@ describe('SessionViewModel', () => {
 import { vi } from 'vitest';
 
 export function createMockSocket() {
-  const eventHandlers = new Map();
+	const eventHandlers = new Map();
 
-  return {
-    emit: vi.fn(),
-    on: vi.fn((event, handler) => {
-      eventHandlers.set(event, handler);
-    }),
-    off: vi.fn(),
-    connect: vi.fn(),
-    disconnect: vi.fn(),
+	return {
+		emit: vi.fn(),
+		on: vi.fn((event, handler) => {
+			eventHandlers.set(event, handler);
+		}),
+		off: vi.fn(),
+		connect: vi.fn(),
+		disconnect: vi.fn(),
 
-    // Test helpers
-    _emit: (event, data) => {
-      const handler = eventHandlers.get(event);
-      if (handler) handler(data);
-    },
-    _getHandlers: () => eventHandlers
-  };
+		// Test helpers
+		_emit: (event, data) => {
+			const handler = eventHandlers.get(event);
+			if (handler) handler(data);
+		},
+		_getHandlers: () => eventHandlers
+	};
 }
 ```
 
@@ -266,45 +264,47 @@ const TEST_KEY = process.env.TERMINAL_KEY || 'testkey12345';
 const BASE_URL = 'http://localhost:5173';
 
 test.describe('Feature Name', () => {
-  const testWorkspacePath = '/tmp/test-workspace-unique';
+	const testWorkspacePath = '/tmp/test-workspace-unique';
 
-  test.beforeEach(async ({ page }) => {
-    // Set up test environment
-    await page.goto(BASE_URL);
+	test.beforeEach(async ({ page }) => {
+		// Set up test environment
+		await page.goto(BASE_URL);
 
-    // Handle authentication
-    if (await page.locator('input[type="password"]').isVisible()) {
-      await page.fill('input[type="password"]', TEST_KEY);
-      await page.press('input[type="password"]', 'Enter');
-      await page.waitForURL('**/dashboard');
-    }
+		// Handle authentication
+		if (await page.locator('input[type="password"]').isVisible()) {
+			await page.fill('input[type="password"]', TEST_KEY);
+			await page.press('input[type="password"]', 'Enter');
+			await page.waitForURL('**/dashboard');
+		}
 
-    // Create test workspace
-    await page.request.post(`${BASE_URL}/api/workspaces`, {
-      data: {
-        path: testWorkspacePath,
-        name: 'Test Workspace',
-        authKey: TEST_KEY
-      }
-    }).catch(() => {
-      // Workspace might already exist
-    });
-  });
+		// Create test workspace
+		await page.request
+			.post(`${BASE_URL}/api/workspaces`, {
+				data: {
+					path: testWorkspacePath,
+					name: 'Test Workspace',
+					authKey: TEST_KEY
+				}
+			})
+			.catch(() => {
+				// Workspace might already exist
+			});
+	});
 
-  test.afterEach(async ({ page }) => {
-    // Clean up test data
-    try {
-      await page.request.delete(
-        `${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`
-      );
-    } catch {
-      // Ignore cleanup errors
-    }
-  });
+	test.afterEach(async ({ page }) => {
+		// Clean up test data
+		try {
+			await page.request.delete(
+				`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`
+			);
+		} catch {
+			// Ignore cleanup errors
+		}
+	});
 
-  test('should do something', async ({ page }) => {
-    // Test implementation
-  });
+	test('should do something', async ({ page }) => {
+		// Test implementation
+	});
 });
 ```
 
@@ -329,16 +329,16 @@ await page.click('button:has-text("Create")'); // Breaks if text changes
 await page.waitForSelector('[data-testid="terminal-container"]', { timeout: 10000 });
 
 // Wait for network requests
-await page.waitForResponse(response =>
-  response.url().includes('/api/sessions') && response.status() === 200
+await page.waitForResponse(
+	(response) => response.url().includes('/api/sessions') && response.status() === 200
 );
 
 // Wait for navigation
 await page.waitForURL('**/dashboard');
 
 // Wait for function to return true
-await page.waitForFunction(() =>
-  document.querySelector('[data-testid="session-list"]').children.length > 0
+await page.waitForFunction(
+	() => document.querySelector('[data-testid="session-list"]').children.length > 0
 );
 ```
 
@@ -346,22 +346,22 @@ await page.waitForFunction(() =>
 
 ```javascript
 test('should sync across multiple browsers', async ({ browser }) => {
-  const context1 = await browser.newContext();
-  const context2 = await browser.newContext();
+	const context1 = await browser.newContext();
+	const context2 = await browser.newContext();
 
-  const page1 = await context1.newPage();
-  const page2 = await context2.newPage();
+	const page1 = await context1.newPage();
+	const page2 = await context2.newPage();
 
-  try {
-    // Test multi-device scenarios
-    await page1.goto(BASE_URL);
-    await page2.goto(BASE_URL);
+	try {
+		// Test multi-device scenarios
+		await page1.goto(BASE_URL);
+		await page2.goto(BASE_URL);
 
-    // ... test implementation
-  } finally {
-    await context1.close();
-    await context2.close();
-  }
+		// ... test implementation
+	} finally {
+		await context1.close();
+		await context2.close();
+	}
 });
 ```
 
@@ -369,27 +369,27 @@ test('should sync across multiple browsers', async ({ browser }) => {
 
 ```javascript
 test('should handle API operations', async ({ page }) => {
-  // Test API endpoint directly
-  const response = await page.request.post(`${BASE_URL}/api/workspaces`, {
-    data: {
-      path: '/workspace/api-test',
-      name: 'API Test Workspace',
-      authKey: TEST_KEY
-    }
-  });
+	// Test API endpoint directly
+	const response = await page.request.post(`${BASE_URL}/api/workspaces`, {
+		data: {
+			path: '/workspace/api-test',
+			name: 'API Test Workspace',
+			authKey: TEST_KEY
+		}
+	});
 
-  expect(response.status()).toBe(201);
+	expect(response.status()).toBe(201);
 
-  const data = await response.json();
-  expect(data).toMatchObject({
-    id: '/workspace/api-test',
-    name: 'API Test Workspace',
-    status: 'new'
-  });
+	const data = await response.json();
+	expect(data).toMatchObject({
+		id: '/workspace/api-test',
+		name: 'API Test Workspace',
+		status: 'new'
+	});
 
-  // Verify in UI
-  await page.goto(`${BASE_URL}/dashboard`);
-  await expect(page.locator('text=API Test Workspace')).toBeVisible();
+	// Verify in UI
+	await page.goto(`${BASE_URL}/dashboard`);
+	await expect(page.locator('text=API Test Workspace')).toBeVisible();
 });
 ```
 
@@ -408,28 +408,26 @@ Dispatch has specific performance requirements that must be validated:
 ```javascript
 // e2e/performance/event-replay.bench.js
 test('should replay events within constitutional limit', async ({ page }) => {
-  // Create session with large event history
-  await createSessionWithEvents(page, 10000); // 10K events
+	// Create session with large event history
+	await createSessionWithEvents(page, 10000); // 10K events
 
-  const sessionId = await getSessionId(page);
+	const sessionId = await getSessionId(page);
 
-  // Measure replay performance
-  console.log('Measuring event replay performance...');
-  const startTime = Date.now();
+	// Measure replay performance
+	console.log('Measuring event replay performance...');
+	const startTime = Date.now();
 
-  const historyResponse = await page.request.get(
-    `${BASE_URL}/api/sessions/${sessionId}/history`
-  );
-  expect(historyResponse.status()).toBe(200);
+	const historyResponse = await page.request.get(`${BASE_URL}/api/sessions/${sessionId}/history`);
+	expect(historyResponse.status()).toBe(200);
 
-  const historyData = await historyResponse.json();
-  const endTime = Date.now();
+	const historyData = await historyResponse.json();
+	const endTime = Date.now();
 
-  const replayTime = endTime - startTime;
-  console.log(`Event replay time for ${historyData.events.length} events: ${replayTime}ms`);
+	const replayTime = endTime - startTime;
+	console.log(`Event replay time for ${historyData.events.length} events: ${replayTime}ms`);
 
-  // Constitutional requirement: <100ms
-  expect(replayTime).toBeLessThan(100);
+	// Constitutional requirement: <100ms
+	expect(replayTime).toBeLessThan(100);
 });
 ```
 
@@ -438,40 +436,40 @@ test('should replay events within constitutional limit', async ({ page }) => {
 ```javascript
 // tests/performance/helpers.js
 export function measureExecutionTime(fn) {
-  return async (...args) => {
-    const start = performance.now();
-    const result = await fn(...args);
-    const end = performance.now();
+	return async (...args) => {
+		const start = performance.now();
+		const result = await fn(...args);
+		const end = performance.now();
 
-    return {
-      result,
-      duration: end - start
-    };
-  };
+		return {
+			result,
+			duration: end - start
+		};
+	};
 }
 
 export function createPerformanceReporter() {
-  const metrics = [];
+	const metrics = [];
 
-  return {
-    record(name, duration, metadata = {}) {
-      metrics.push({
-        name,
-        duration,
-        metadata,
-        timestamp: Date.now()
-      });
-    },
+	return {
+		record(name, duration, metadata = {}) {
+			metrics.push({
+				name,
+				duration,
+				metadata,
+				timestamp: Date.now()
+			});
+		},
 
-    getReport() {
-      return {
-        totalTests: metrics.length,
-        averageDuration: metrics.reduce((sum, m) => sum + m.duration, 0) / metrics.length,
-        slowestTest: metrics.reduce((max, m) => m.duration > max.duration ? m : max),
-        metrics
-      };
-    }
-  };
+		getReport() {
+			return {
+				totalTests: metrics.length,
+				averageDuration: metrics.reduce((sum, m) => sum + m.duration, 0) / metrics.length,
+				slowestTest: metrics.reduce((max, m) => (m.duration > max.duration ? m : max)),
+				metrics
+			};
+		}
+	};
 }
 ```
 
@@ -484,39 +482,36 @@ export function createPerformanceReporter() {
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './e2e',
-  fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+	testDir: './e2e',
+	fullyParallel: true,
+	forbidOnly: !!process.env.CI,
+	retries: process.env.CI ? 2 : 0,
+	workers: process.env.CI ? 1 : undefined,
 
-  reporter: [
-    ['html'],
-    ['json', { outputFile: 'test-results/results.json' }]
-  ],
+	reporter: [['html'], ['json', { outputFile: 'test-results/results.json' }]],
 
-  use: {
-    baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure'
-  },
+	use: {
+		baseURL: 'http://localhost:5173',
+		trace: 'on-first-retry',
+		screenshot: 'only-on-failure'
+	},
 
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] }
-    }
-  ],
+	projects: [
+		{
+			name: 'chromium',
+			use: { ...devices['Desktop Chrome'] }
+		},
+		{
+			name: 'firefox',
+			use: { ...devices['Desktop Firefox'] }
+		}
+	],
 
-  webServer: {
-    command: 'npm run dev',
-    port: 5173,
-    reuseExistingServer: !process.env.CI
-  }
+	webServer: {
+		command: 'npm run dev',
+		port: 5173,
+		reuseExistingServer: !process.env.CI
+	}
 });
 ```
 
@@ -609,16 +604,19 @@ vitest --inspect-brk --no-coverage
 ### Common Testing Issues
 
 **1. Flaky E2E Tests**
+
 - Add proper waits instead of fixed timeouts
 - Use deterministic selectors
 - Clean up test data properly
 
 **2. Mock Issues**
+
 - Ensure mocks are reset between tests
 - Use factory functions for complex mocks
 - Verify mock expectations
 
 **3. Performance Test Variability**
+
 - Run benchmarks multiple times
 - Account for CI environment differences
 - Use relative performance comparisons
@@ -648,15 +646,15 @@ When adding a new feature, ensure you add:
 ```javascript
 // Unit tests: describe what, test should
 describe('WorkspaceService', () => {
-  it('should create workspace with valid data', () => {});
-  it('should reject invalid paths', () => {});
-  it('should handle database errors gracefully', () => {});
+	it('should create workspace with valid data', () => {});
+	it('should reject invalid paths', () => {});
+	it('should handle database errors gracefully', () => {});
 });
 
 // E2E tests: describe user scenario
 test.describe('Workspace Management', () => {
-  test('user can create and delete workspace', async ({ page }) => {});
-  test('workspace persists across page reload', async ({ page }) => {});
+	test('user can create and delete workspace', async ({ page }) => {});
+	test('workspace persists across page reload', async ({ page }) => {});
 });
 ```
 

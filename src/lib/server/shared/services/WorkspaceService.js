@@ -78,12 +78,12 @@ export class WorkspaceService {
 
 		// Enhance each workspace with metadata
 		workspaces = await Promise.all(
-			workspaces.map(workspace => this.enhanceWorkspaceWithMetadata(workspace))
+			workspaces.map((workspace) => this.enhanceWorkspaceWithMetadata(workspace))
 		);
 
 		// Filter by status if specified
 		if (status && ['active', 'inactive', 'archived', 'new'].includes(status)) {
-			workspaces = workspaces.filter(w => w.status === status);
+			workspaces = workspaces.filter((w) => w.status === status);
 		}
 
 		// Apply pagination
@@ -91,7 +91,7 @@ export class WorkspaceService {
 		const paginatedWorkspaces = workspaces.slice(offset, offset + limit);
 
 		return {
-			workspaces: paginatedWorkspaces.map(w => this.formatWorkspaceForAPI(w)),
+			workspaces: paginatedWorkspaces.map((w) => this.formatWorkspaceForAPI(w)),
 			pagination: {
 				total,
 				limit,
@@ -154,7 +154,7 @@ export class WorkspaceService {
 		if (!force && workspace.sessionCounts.running > 0) {
 			throw new Error(
 				`Cannot delete workspace with ${workspace.sessionCounts.running} active sessions. ` +
-				'Stop all sessions first or use force=true.'
+					'Stop all sessions first or use force=true.'
 			);
 		}
 
@@ -313,10 +313,10 @@ export class WorkspaceService {
 
 		const sessionCounts = {
 			total: sessions.reduce((sum, s) => sum + s.count, 0),
-			running: sessions.find(s => s.status === 'running')?.count || 0,
-			stopped: sessions.find(s => s.status === 'stopped')?.count || 0,
-			error: sessions.find(s => s.status === 'error')?.count || 0,
-			starting: sessions.find(s => s.status === 'starting')?.count || 0
+			running: sessions.find((s) => s.status === 'running')?.count || 0,
+			stopped: sessions.find((s) => s.status === 'stopped')?.count || 0,
+			error: sessions.find((s) => s.status === 'error')?.count || 0,
+			starting: sessions.find((s) => s.status === 'starting')?.count || 0
 		};
 
 		// Compute workspace status based on activity and session state
@@ -388,7 +388,7 @@ export class WorkspaceService {
 	async archiveInactiveWorkspaces(daysSinceActivity = 30) {
 		await this.db.init();
 
-		const cutoffTime = Date.now() - (daysSinceActivity * 24 * 60 * 60 * 1000);
+		const cutoffTime = Date.now() - daysSinceActivity * 24 * 60 * 60 * 1000;
 
 		const inactiveWorkspaces = await this.db.all(
 			`SELECT path FROM workspaces

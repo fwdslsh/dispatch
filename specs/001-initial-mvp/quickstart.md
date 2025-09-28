@@ -9,13 +9,14 @@
 ## Quick Setup
 
 ### 1. Environment Setup
+
 ```bash
 # Clone and setup
 git clone https://github.com/fwdslsh/dispatch
 cd dispatch
 npm install
 
-# Set up test environment 
+# Set up test environment
 export TERMINAL_KEY="testkey12345"
 export WORKSPACES_ROOT="$(pwd)/.testing-home/workspaces"
 mkdir -p .testing-home/workspaces/test-project
@@ -25,6 +26,7 @@ npm run dev
 ```
 
 ### 2. Access Application
+
 - Open browser to http://localhost:5173
 - Enter terminal key: `testkey12345`
 - You should see the main dashboard
@@ -32,6 +34,7 @@ npm run dev
 ## Core Workflow Validation
 
 ### Test 1: Workspace Management
+
 **Goal**: Verify workspace creation and listing
 
 1. **Create Workspace**:
@@ -43,11 +46,12 @@ npm run dev
 
 2. **Expected Results**:
    - Workspace appears in dashboard
-   - Status shows "Active" 
+   - Status shows "Active"
    - Path is correctly displayed
    - No error messages
 
 ### Test 2: Terminal Session
+
 **Goal**: Verify basic terminal functionality and persistence
 
 1. **Start Terminal Session**:
@@ -57,6 +61,7 @@ npm run dev
    - Click "Start"
 
 2. **Test Terminal Features**:
+
    ```bash
    # Run these commands in sequence
    pwd
@@ -82,7 +87,8 @@ npm run dev
    - File operations succeed
    - Session state fully restored after reconnection
 
-### Test 3: Claude AI Session  
+### Test 3: Claude AI Session
+
 **Goal**: Verify AI assistant integration
 
 1. **Start Claude Session**:
@@ -92,10 +98,11 @@ npm run dev
    - Click "Start"
 
 2. **Test AI Interaction**:
+
    ```
    User: Create a simple Python hello world script
    [Verify Claude responds with code]
-   
+
    User: Explain how to run it
    [Verify Claude provides execution instructions]
    ```
@@ -112,10 +119,11 @@ npm run dev
    - Session resumes seamlessly
 
 ### Test 4: File Editor Session
+
 **Goal**: Verify file editing capabilities
 
 1. **Start File Editor Session**:
-   - In "My Test Project" workspace  
+   - In "My Test Project" workspace
    - Click "New Session" → "File Editor"
    - Name: "Code Editor"
    - Click "Start"
@@ -123,13 +131,15 @@ npm run dev
 2. **Test File Operations**:
    - Create new file: `hello.py`
    - Add content:
+
      ```python
      def main():
          print("Hello from Dispatch!")
-     
+
      if __name__ == "__main__":
          main()
      ```
+
    - Save file
    - Open existing file from terminal test: `test-dir/test-file.txt`
    - Edit and save
@@ -148,6 +158,7 @@ npm run dev
    - No conflicts between session types
 
 ### Test 5: Multi-Device Simulation
+
 **Goal**: Verify session resumability across "devices"
 
 1. **Setup Multi-Tab Simulation**:
@@ -165,7 +176,7 @@ npm run dev
    - In Tab A: verify output appears immediately
 
 3. **Test Concurrent Editing**:
-   - In Tab B, attach to "Code Editor" session  
+   - In Tab B, attach to "Code Editor" session
    - In Tab A: edit hello.py file
    - In Tab B: verify changes appear in real-time
    - Try editing in both tabs simultaneously
@@ -177,6 +188,7 @@ npm run dev
    - Graceful handling of concurrent access
 
 ### Test 6: Error Recovery
+
 **Goal**: Verify robustness and error handling
 
 1. **Test Network Interruption**:
@@ -207,13 +219,15 @@ npm run dev
 ## Performance Validation
 
 ### Response Time Checks
+
 - Terminal input response: < 100ms typically
 - Session creation: < 2 seconds
-- Session attach: < 1 second  
+- Session attach: < 1 second
 - File save operations: < 500ms
 - Session history replay: < 100ms per 100 events
 
 ### Resource Usage
+
 - Browser memory growth should be minimal
 - Docker container memory < 500MB per workspace
 - Database file size grows predictably with activity
@@ -230,12 +244,14 @@ npm run dev
 ## Troubleshooting
 
 ### Common Issues
+
 - **Port 5173 already in use**: Change port in vite.config.js or kill existing process
 - **Docker not running**: Start Docker daemon before testing
 - **Permission errors**: Ensure workspace path is readable/writable
 - **WebSocket connection fails**: Check firewall settings and terminal key
 
 ### Debug Mode
+
 ```bash
 # Enable verbose logging
 DEBUG=* npm run dev
@@ -244,7 +260,8 @@ DEBUG=* npm run dev
 # Check browser console for client-side errors
 ```
 
-### Reset Test Environment  
+### Reset Test Environment
+
 ```bash
 # Clean slate for retesting
 rm -rf .testing-home/

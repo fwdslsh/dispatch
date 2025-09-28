@@ -130,7 +130,9 @@ test.describe('Retention Policy Configuration', () => {
 			}
 
 			// Should see retention settings interface
-			await expect(page.locator('text=/retention|cleanup/i').first()).toBeVisible({ timeout: 5000 });
+			await expect(page.locator('text=/retention|cleanup/i').first()).toBeVisible({
+				timeout: 5000
+			});
 		});
 	});
 
@@ -185,7 +187,9 @@ test.describe('Retention Policy Configuration', () => {
 				if (!isDisabled) {
 					await saveButton.click();
 					// Should see error message
-					await expect(page.locator('.error-message, [role="alert"]').first()).toBeVisible({ timeout: 3000 });
+					await expect(page.locator('.error-message, [role="alert"]').first()).toBeVisible({
+						timeout: 3000
+					});
 				}
 			}
 
@@ -234,7 +238,9 @@ test.describe('Retention Policy Configuration', () => {
 
 		await test.step('Verify preview content', async () => {
 			// Preview should show simple, clear summary
-			const previewText = page.locator('.preview-summary, .retention-preview, [data-testid="retention-preview"]');
+			const previewText = page.locator(
+				'.preview-summary, .retention-preview, [data-testid="retention-preview"]'
+			);
 			if (await previewText.first().isVisible()) {
 				const text = await previewText.first().textContent();
 				expect(text).toMatch(/sessions.*days/i);
@@ -265,7 +271,9 @@ test.describe('Retention Policy Configuration', () => {
 			await saveButton.click();
 
 			// Should see success message
-			await expect(page.locator('.success-message, text=/saved successfully/i').first()).toBeVisible({ timeout: 5000 });
+			await expect(
+				page.locator('.success-message, text=/saved successfully/i').first()
+			).toBeVisible({ timeout: 5000 });
 		});
 
 		await test.step('Verify persistence', async () => {
@@ -300,7 +308,9 @@ test.describe('Retention Policy Configuration', () => {
 
 		await test.step('Toggle auto-cleanup setting', async () => {
 			// Find auto-cleanup checkbox or toggle
-			const autoCleanupToggle = page.locator('input[type="checkbox"]', { hasText: /auto|automatic/i });
+			const autoCleanupToggle = page.locator('input[type="checkbox"]', {
+				hasText: /auto|automatic/i
+			});
 			if (await autoCleanupToggle.isVisible()) {
 				const isChecked = await autoCleanupToggle.isChecked();
 
@@ -353,7 +363,9 @@ test.describe('Retention Policy Configuration', () => {
 				await saveButton.click();
 
 				// Should show error message
-				await expect(page.locator('.error-message, [role="alert"]').first()).toBeVisible({ timeout: 5000 });
+				await expect(page.locator('.error-message, [role="alert"]').first()).toBeVisible({
+					timeout: 5000
+				});
 				await expect(page.locator('text=/Invalid retention period/i')).toBeVisible();
 			}
 		});

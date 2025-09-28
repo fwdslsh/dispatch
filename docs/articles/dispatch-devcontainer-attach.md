@@ -1,8 +1,8 @@
 ---
-title: "Connect VSCode to Local Dispatch Containers"
-description: "Learn how to connect VSCode to Dispatch containers running locally on your machine for secure AI-powered development."
-tags: ["vscode", "devcontainer", "docker", "dispatch", "local-development"]
-series: "Dispatch DevContainer Guide"
+title: 'Connect VSCode to Local Dispatch Containers'
+description: 'Learn how to connect VSCode to Dispatch containers running locally on your machine for secure AI-powered development.'
+tags: ['vscode', 'devcontainer', 'docker', 'dispatch', 'local-development']
+series: 'Dispatch DevContainer Guide'
 published: false
 draft: true
 ---
@@ -14,6 +14,7 @@ This guide shows you how to connect VSCode to Dispatch containers running locall
 ## Overview
 
 Connecting VSCode to a local Dispatch container is ideal when:
+
 - You want to manage the container lifecycle separately from VSCode
 - You need to connect and disconnect from development sessions frequently
 - You're developing and testing Dispatch configurations locally
@@ -73,8 +74,6 @@ Once connected, configure your workspace:
 3. Configure your development environment
 4. Access the Dispatch web interface at `http://localhost:3030`
 
-
-
 ## Environment Variables
 
 Configure these environment variables for your Dispatch container:
@@ -95,6 +94,7 @@ Configure these environment variables for your Dispatch container:
 **Problem**: VSCode cannot find or connect to local containers.
 
 **Solutions**:
+
 1. Verify Docker is running:
    ```bash
    docker ps
@@ -111,6 +111,7 @@ Configure these environment variables for your Dispatch container:
 **Problem**: Cannot write files or access directories in local container.
 
 **Solutions**:
+
 1. Ensure proper user mapping when starting container:
    ```bash
    docker run --user $(id -u):$(id -g) ...
@@ -129,6 +130,7 @@ Configure these environment variables for your Dispatch container:
 **Problem**: Dispatch container fails to start.
 
 **Solutions**:
+
 1. Check Docker logs:
    ```bash
    docker logs dispatch-dev
@@ -148,6 +150,7 @@ Configure these environment variables for your Dispatch container:
 **Problem**: Cannot access Dispatch web interface at `http://localhost:3030`.
 
 **Solutions**:
+
 1. Verify container port binding:
    ```bash
    docker port dispatch-dev

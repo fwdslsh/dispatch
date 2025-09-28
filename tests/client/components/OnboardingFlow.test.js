@@ -36,7 +36,7 @@ describe('OnboardingFlow Component', () => {
 		const component = {
 			currentStep: 'auth',
 			title: 'Welcome to Dispatch',
-			subtitle: 'Let\'s get you set up'
+			subtitle: "Let's get you set up"
 		};
 
 		expect(component.currentStep).toBe('auth');
@@ -112,7 +112,7 @@ describe('OnboardingFlow Component', () => {
 
 		const makeApiCall = async () => {
 			isLoading = true;
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 			isLoading = false;
 			return { success: true };
 		};

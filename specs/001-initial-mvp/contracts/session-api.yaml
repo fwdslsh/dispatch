@@ -3,7 +3,7 @@ info:
   title: Dispatch Session Management API
   description: REST API for workspace and session management in Dispatch
   version: 1.0.0
-  
+
 servers:
   - url: http://localhost:3030/api
     description: Local development server
@@ -22,7 +22,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Workspace'
-                  
+
     post:
       summary: Create new workspace
       operationId: createWorkspace
@@ -52,7 +52,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '409':
           description: Workspace name already exists
-          
+
   /workspaces/{workspaceId}:
     get:
       summary: Get workspace details
@@ -68,7 +68,7 @@ paths:
                 $ref: '#/components/schemas/Workspace'
         '404':
           $ref: '#/components/responses/NotFound'
-          
+
     put:
       summary: Update workspace
       operationId: updateWorkspace
@@ -98,7 +98,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
-          
+
     delete:
       summary: Delete workspace
       operationId: deleteWorkspace
@@ -135,7 +135,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Session'
-                  
+
     post:
       summary: Create new session
       operationId: createSession
@@ -185,7 +185,7 @@ paths:
                 $ref: '#/components/schemas/Session'
         '404':
           $ref: '#/components/responses/NotFound'
-          
+
     delete:
       summary: Terminate session
       operationId: terminateSession
@@ -243,7 +243,7 @@ components:
       schema:
         type: string
         format: uuid
-        
+
     SessionId:
       name: sessionId
       in: path
@@ -275,11 +275,11 @@ components:
         config:
           type: object
           additionalProperties: true
-          
+
     WorkspaceStatus:
       type: string
       enum: [active, archived, error]
-      
+
     Session:
       type: object
       required: [id, workspaceId, type, name, status, created, lastActive, currentSequence]
@@ -308,15 +308,15 @@ components:
         currentSequence:
           type: integer
           minimum: 0
-          
+
     SessionType:
       type: string
       enum: [terminal, claude, fileEditor]
-      
+
     SessionStatus:
       type: string
       enum: [starting, active, paused, stopped, error]
-      
+
     SessionEvent:
       type: object
       required: [id, sessionId, sequence, timestamp, type, data, source]
@@ -341,7 +341,7 @@ components:
         source:
           type: string
           enum: [user, adapter, system]
-          
+
     EventType:
       type: string
       enum: [input, output, resize, attach, detach, error]
@@ -358,7 +358,7 @@ components:
                 type: string
               message:
                 type: string
-                
+
     NotFound:
       description: Resource not found
       content:
@@ -376,6 +376,6 @@ components:
       type: apiKey
       in: header
       name: X-Terminal-Key
-      
+
 security:
   - ApiKey: []

@@ -35,7 +35,6 @@
 					v{appVersion}
 				</span>
 			{/if}
-			
 		</div>
 
 		<!-- Center group: Main create session button -->

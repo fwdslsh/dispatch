@@ -114,8 +114,8 @@ export class GitHubAuthProvider extends AuthProvider {
 			const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
 				method: 'POST',
 				headers: {
-					'Accept': 'application/json',
-					'Content-Type': 'application/json',
+					Accept: 'application/json',
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
 					client_id: this.clientId,
@@ -135,7 +135,7 @@ export class GitHubAuthProvider extends AuthProvider {
 			// Get user info
 			const userResponse = await fetch('https://api.github.com/user', {
 				headers: {
-					'Authorization': `token ${tokenData.access_token}`,
+					Authorization: `token ${tokenData.access_token}`,
 					'User-Agent': 'Dispatch-App'
 				}
 			});
@@ -145,13 +145,13 @@ export class GitHubAuthProvider extends AuthProvider {
 			// Get user email
 			const emailResponse = await fetch('https://api.github.com/user/emails', {
 				headers: {
-					'Authorization': `token ${tokenData.access_token}`,
+					Authorization: `token ${tokenData.access_token}`,
 					'User-Agent': 'Dispatch-App'
 				}
 			});
 
 			const emailData = await emailResponse.json();
-			const primaryEmail = emailData.find(e => e.primary)?.email || userData.email;
+			const primaryEmail = emailData.find((e) => e.primary)?.email || userData.email;
 
 			return {
 				id: `github:${userData.id}`,
@@ -162,9 +162,8 @@ export class GitHubAuthProvider extends AuthProvider {
 				provider: 'github',
 				accessToken: tokenData.access_token,
 				refreshToken: tokenData.refresh_token,
-				expiresAt: tokenData.expires_in ? Date.now() + (tokenData.expires_in * 1000) : null
+				expiresAt: tokenData.expires_in ? Date.now() + tokenData.expires_in * 1000 : null
 			};
-
 		} catch (error) {
 			logger.error('AUTH', 'GitHub OAuth callback failed:', error);
 			return null;
@@ -177,7 +176,7 @@ export class GitHubAuthProvider extends AuthProvider {
 			try {
 				const response = await fetch('https://api.github.com/user', {
 					headers: {
-						'Authorization': `token ${credentials.token}`,
+						Authorization: `token ${credentials.token}`,
 						'User-Agent': 'Dispatch-App'
 					}
 				});
@@ -252,7 +251,10 @@ export class DevicePairingProvider extends AuthProvider {
 			});
 		}
 
-		logger.info('AUTH', `Device pairing provider initialized with ${devices.length} trusted devices`);
+		logger.info(
+			'AUTH',
+			`Device pairing provider initialized with ${devices.length} trusted devices`
+		);
 	}
 
 	/**
@@ -264,7 +266,7 @@ export class DevicePairingProvider extends AuthProvider {
 	async generatePairingCode(deviceId, deviceName) {
 		// Generate 6-digit pairing code
 		const code = Math.floor(100000 + Math.random() * 900000).toString();
-		const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
+		const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
 		// Store in database
 		await this.db.run(
@@ -341,7 +343,10 @@ export class DevicePairingProvider extends AuthProvider {
 		if (trustedDevice) {
 			// Update last used
 			trustedDevice.lastUsed = Date.now();
-			await this.db.run('UPDATE device_pairs SET last_used = ? WHERE device_id = ?', [Date.now(), deviceId]);
+			await this.db.run('UPDATE device_pairs SET last_used = ? WHERE device_id = ?', [
+				Date.now(),
+				deviceId
+			]);
 
 			return {
 				id: trustedDevice.userId,
@@ -393,7 +398,7 @@ export class DevicePairingProvider extends AuthProvider {
 			[userId]
 		);
 
-		return devices.map(device => ({
+		return devices.map((device) => ({
 			deviceId: device.device_id,
 			name: device.device_name,
 			pairedAt: new Date(device.paired_at).toISOString(),
@@ -450,7 +455,10 @@ export class MultiAuthManager {
 		`);
 
 		// Load existing sessions
-		const sessions = await this.db.all('SELECT * FROM auth_sessions WHERE expires_at > ? OR expires_at IS NULL', [Date.now()]);
+		const sessions = await this.db.all(
+			'SELECT * FROM auth_sessions WHERE expires_at > ? OR expires_at IS NULL',
+			[Date.now()]
+		);
 		for (const session of sessions) {
 			this.sessions.set(session.session_id, {
 				userId: session.user_id,
@@ -471,7 +479,10 @@ export class MultiAuthManager {
 	async registerProvider(provider) {
 		await provider.init();
 		this.providers.set(provider.name, provider);
-		logger.info('AUTH', `Registered auth provider: ${provider.name} (enabled: ${provider.isEnabled})`);
+		logger.info(
+			'AUTH',
+			`Registered auth provider: ${provider.name} (enabled: ${provider.isEnabled})`
+		);
 	}
 
 	/**
@@ -510,7 +521,6 @@ export class MultiAuthManager {
 				session,
 				provider: providerName
 			};
-
 		} catch (error) {
 			logger.error('AUTH', `Authentication error with provider ${providerName}:`, error);
 			return null;
@@ -573,7 +583,10 @@ export class MultiAuthManager {
 
 		// Update last used
 		session.lastUsed = Date.now();
-		await this.db.run('UPDATE auth_sessions SET last_used = ? WHERE session_id = ?', [Date.now(), sessionId]);
+		await this.db.run('UPDATE auth_sessions SET last_used = ? WHERE session_id = ?', [
+			Date.now(),
+			sessionId
+		]);
 
 		return session;
 	}
@@ -612,7 +625,9 @@ export class MultiAuthManager {
 	 */
 	async getUser(userId) {
 		await this.init();
-		return await this.db.get('SELECT * FROM auth_users WHERE user_id = ? AND is_active = 1', [userId]);
+		return await this.db.get('SELECT * FROM auth_users WHERE user_id = ? AND is_active = 1', [
+			userId
+		]);
 	}
 
 	/**
@@ -626,7 +641,7 @@ export class MultiAuthManager {
 			[userId, Date.now()]
 		);
 
-		return sessions.map(s => ({
+		return sessions.map((s) => ({
 			sessionId: s.session_id,
 			provider: s.provider,
 			createdAt: new Date(s.created_at).toISOString(),
@@ -644,8 +659,13 @@ export class MultiAuthManager {
 	async getStats() {
 		await this.init();
 
-		const userCount = await this.db.get('SELECT COUNT(*) as count FROM auth_users WHERE is_active = 1');
-		const sessionCount = await this.db.get('SELECT COUNT(*) as count FROM auth_sessions WHERE expires_at > ? OR expires_at IS NULL', [Date.now()]);
+		const userCount = await this.db.get(
+			'SELECT COUNT(*) as count FROM auth_users WHERE is_active = 1'
+		);
+		const sessionCount = await this.db.get(
+			'SELECT COUNT(*) as count FROM auth_sessions WHERE expires_at > ? OR expires_at IS NULL',
+			[Date.now()]
+		);
 
 		const providerStats = await this.db.all(
 			'SELECT provider, COUNT(*) as count FROM auth_sessions WHERE expires_at > ? OR expires_at IS NULL GROUP BY provider',
@@ -656,7 +676,9 @@ export class MultiAuthManager {
 			totalUsers: userCount.count,
 			activeSessions: sessionCount.count,
 			registeredProviders: Array.from(this.providers.keys()),
-			enabledProviders: Array.from(this.providers.values()).filter(p => p.isEnabled).map(p => p.name),
+			enabledProviders: Array.from(this.providers.values())
+				.filter((p) => p.isEnabled)
+				.map((p) => p.name),
 			sessionsByProvider: providerStats.reduce((acc, stat) => {
 				acc[stat.provider] = stat.count;
 				return acc;
@@ -669,7 +691,10 @@ export class MultiAuthManager {
 	 * @returns {Promise<number>} Number of sessions cleaned up
 	 */
 	async cleanupExpiredSessions() {
-		const result = await this.db.run('DELETE FROM auth_sessions WHERE expires_at IS NOT NULL AND expires_at <= ?', [Date.now()]);
+		const result = await this.db.run(
+			'DELETE FROM auth_sessions WHERE expires_at IS NOT NULL AND expires_at <= ?',
+			[Date.now()]
+		);
 
 		// Remove from memory
 		for (const [sessionId, session] of this.sessions.entries()) {

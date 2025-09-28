@@ -10,7 +10,9 @@ test.describe('Workspace API', () => {
 	test.beforeEach(async ({ page }) => {
 		// Clean up any existing test workspace
 		try {
-			await page.request.delete(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`);
+			await page.request.delete(
+				`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`
+			);
 		} catch {
 			// Ignore if workspace doesn't exist
 		}
@@ -19,7 +21,9 @@ test.describe('Workspace API', () => {
 	test.afterEach(async ({ page }) => {
 		// Clean up test workspace
 		try {
-			await page.request.delete(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`);
+			await page.request.delete(
+				`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`
+			);
 		} catch {
 			// Ignore if workspace doesn't exist
 		}
@@ -73,7 +77,7 @@ test.describe('Workspace API', () => {
 		const listResponse = await page.request.get(`${BASE_URL}/api/workspaces?authKey=${TEST_KEY}`);
 		const listData = await listResponse.json();
 
-		const createdWorkspace = listData.workspaces.find(w => w.path === testWorkspacePath);
+		const createdWorkspace = listData.workspaces.find((w) => w.path === testWorkspacePath);
 		expect(createdWorkspace).toBeDefined();
 		expect(createdWorkspace.name).toBe(testWorkspaceName);
 	});
@@ -154,7 +158,9 @@ test.describe('Workspace API', () => {
 		});
 
 		// Get workspace details
-		const response = await page.request.get(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}`);
+		const response = await page.request.get(
+			`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}`
+		);
 		expect(response.status()).toBe(200);
 
 		const data = await response.json();
@@ -182,7 +188,9 @@ test.describe('Workspace API', () => {
 	});
 
 	test('should return 404 for non-existent workspace', async ({ page }) => {
-		const response = await page.request.get(`${BASE_URL}/api/workspaces/${encodeURIComponent('/non/existent/path')}`);
+		const response = await page.request.get(
+			`${BASE_URL}/api/workspaces/${encodeURIComponent('/non/existent/path')}`
+		);
 		expect(response.status()).toBe(404);
 
 		const data = await response.json();
@@ -200,13 +208,16 @@ test.describe('Workspace API', () => {
 		});
 
 		// Update workspace
-		const response = await page.request.put(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}`, {
-			data: {
-				name: 'Updated Name',
-				status: 'active',
-				authKey: TEST_KEY
+		const response = await page.request.put(
+			`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}`,
+			{
+				data: {
+					name: 'Updated Name',
+					status: 'active',
+					authKey: TEST_KEY
+				}
 			}
-		});
+		);
 
 		expect(response.status()).toBe(200);
 
@@ -226,12 +237,15 @@ test.describe('Workspace API', () => {
 		});
 
 		// Try to update without auth
-		const response = await page.request.put(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}`, {
-			data: {
-				name: 'Updated Name',
-				authKey: 'invalid-key'
+		const response = await page.request.put(
+			`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}`,
+			{
+				data: {
+					name: 'Updated Name',
+					authKey: 'invalid-key'
+				}
 			}
-		});
+		);
 
 		expect(response.status()).toBe(401);
 	});
@@ -247,14 +261,18 @@ test.describe('Workspace API', () => {
 		});
 
 		// Delete workspace
-		const response = await page.request.delete(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`);
+		const response = await page.request.delete(
+			`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`
+		);
 		expect(response.status()).toBe(200);
 
 		const data = await response.json();
 		expect(data.message).toContain('deleted successfully');
 
 		// Verify workspace is gone
-		const getResponse = await page.request.get(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}`);
+		const getResponse = await page.request.get(
+			`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}`
+		);
 		expect(getResponse.status()).toBe(404);
 	});
 
@@ -269,7 +287,9 @@ test.describe('Workspace API', () => {
 		});
 
 		// Try to delete without auth
-		const response = await page.request.delete(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=invalid-key`);
+		const response = await page.request.delete(
+			`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=invalid-key`
+		);
 		expect(response.status()).toBe(401);
 	});
 
@@ -290,7 +310,9 @@ test.describe('Workspace API', () => {
 		}
 
 		// Test pagination with limit
-		const response = await page.request.get(`${BASE_URL}/api/workspaces?limit=2&authKey=${TEST_KEY}`);
+		const response = await page.request.get(
+			`${BASE_URL}/api/workspaces?limit=2&authKey=${TEST_KEY}`
+		);
 		expect(response.status()).toBe(200);
 
 		const data = await response.json();
@@ -300,7 +322,9 @@ test.describe('Workspace API', () => {
 		// Clean up
 		for (const path of workspaces) {
 			try {
-				await page.request.delete(`${BASE_URL}/api/workspaces/${encodeURIComponent(path)}?authKey=${TEST_KEY}`);
+				await page.request.delete(
+					`${BASE_URL}/api/workspaces/${encodeURIComponent(path)}?authKey=${TEST_KEY}`
+				);
 			} catch {
 				// Ignore cleanup errors
 			}
@@ -318,7 +342,9 @@ test.describe('Workspace API', () => {
 		});
 
 		// Test status filtering
-		const response = await page.request.get(`${BASE_URL}/api/workspaces?status=new&authKey=${TEST_KEY}`);
+		const response = await page.request.get(
+			`${BASE_URL}/api/workspaces?status=new&authKey=${TEST_KEY}`
+		);
 		expect(response.status()).toBe(200);
 
 		const data = await response.json();

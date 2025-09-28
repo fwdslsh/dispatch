@@ -13,15 +13,17 @@ test.describe('Event Replay Performance Benchmarks', () => {
 
 	test.beforeEach(async ({ page }) => {
 		// Ensure test workspace exists
-		await page.request.post(`${BASE_URL}/api/workspaces`, {
-			data: {
-				path: testWorkspacePath,
-				name: 'Performance Test Workspace',
-				authKey: TEST_KEY
-			}
-		}).catch(() => {
-			// Workspace might already exist
-		});
+		await page.request
+			.post(`${BASE_URL}/api/workspaces`, {
+				data: {
+					path: testWorkspacePath,
+					name: 'Performance Test Workspace',
+					authKey: TEST_KEY
+				}
+			})
+			.catch(() => {
+				// Workspace might already exist
+			});
 	});
 
 	test.afterEach(async ({ page }) => {
@@ -44,7 +46,9 @@ test.describe('Event Replay Performance Benchmarks', () => {
 
 		// Clean up workspace
 		try {
-			await page.request.delete(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`);
+			await page.request.delete(
+				`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`
+			);
 		} catch {
 			// Ignore cleanup errors
 		}
@@ -181,38 +185,42 @@ test.describe('Event Replay Performance Benchmarks', () => {
 			const context = await browser.newContext();
 			const sessionPage = await context.newPage();
 
-			sessionPromises.push((async () => {
-				try {
-					await sessionPage.goto(BASE_URL);
+			sessionPromises.push(
+				(async () => {
+					try {
+						await sessionPage.goto(BASE_URL);
 
-					// Handle authentication
-					if (await sessionPage.locator('input[type="password"]').isVisible()) {
-						await sessionPage.fill('input[type="password"]', TEST_KEY);
-						await sessionPage.press('input[type="password"]', 'Enter');
-						await sessionPage.waitForURL('**/dashboard');
+						// Handle authentication
+						if (await sessionPage.locator('input[type="password"]').isVisible()) {
+							await sessionPage.fill('input[type="password"]', TEST_KEY);
+							await sessionPage.press('input[type="password"]', 'Enter');
+							await sessionPage.waitForURL('**/dashboard');
+						}
+
+						// Create session
+						await sessionPage.goto(`${BASE_URL}/dashboard`);
+						await sessionPage.click('button:has-text("New Session")');
+						await sessionPage.click('button:has-text("Terminal")');
+						await sessionPage.waitForSelector('[data-testid="terminal-container"]', {
+							timeout: 15000
+						});
+
+						// Send a command to generate events
+						const terminal = sessionPage.locator('[data-testid="terminal-container"]');
+						await terminal.click();
+						await sessionPage.keyboard.type(`echo "Concurrent session ${i}"`);
+						await sessionPage.keyboard.press('Enter');
+						await sessionPage.waitForTimeout(500);
+
+						return { success: true, sessionIndex: i };
+					} catch (error) {
+						console.error(`Session ${i} failed:`, error);
+						return { success: false, sessionIndex: i, error };
+					} finally {
+						await context.close();
 					}
-
-					// Create session
-					await sessionPage.goto(`${BASE_URL}/dashboard`);
-					await sessionPage.click('button:has-text("New Session")');
-					await sessionPage.click('button:has-text("Terminal")');
-					await sessionPage.waitForSelector('[data-testid="terminal-container"]', { timeout: 15000 });
-
-					// Send a command to generate events
-					const terminal = sessionPage.locator('[data-testid="terminal-container"]');
-					await terminal.click();
-					await sessionPage.keyboard.type(`echo "Concurrent session ${i}"`);
-					await sessionPage.keyboard.press('Enter');
-					await sessionPage.waitForTimeout(500);
-
-					return { success: true, sessionIndex: i };
-				} catch (error) {
-					console.error(`Session ${i} failed:`, error);
-					return { success: false, sessionIndex: i, error };
-				} finally {
-					await context.close();
-				}
-			})());
+				})()
+			);
 		}
 
 		// Wait for all sessions to complete
@@ -220,10 +228,12 @@ test.describe('Event Replay Performance Benchmarks', () => {
 		const endTime = Date.now();
 
 		const totalTime = endTime - startTime;
-		console.log(`Created ${numSessions} sessions in ${totalTime}ms (avg: ${totalTime / numSessions}ms per session)`);
+		console.log(
+			`Created ${numSessions} sessions in ${totalTime}ms (avg: ${totalTime / numSessions}ms per session)`
+		);
 
 		// Verify all sessions were created successfully
-		const successfulSessions = results.filter(r => r.success);
+		const successfulSessions = results.filter((r) => r.success);
 		expect(successfulSessions.length).toBe(numSessions);
 
 		// Performance expectation: should create sessions reasonably fast
@@ -282,7 +292,9 @@ test.describe('Event Replay Performance Benchmarks', () => {
 		const replayTime = endTime - startTime;
 		const totalDataSize = JSON.stringify(historyData).length;
 
-		console.log(`Event replay time for ${historyData.events.length} events (${Math.round(totalDataSize / 1024)}KB): ${replayTime}ms`);
+		console.log(
+			`Event replay time for ${historyData.events.length} events (${Math.round(totalDataSize / 1024)}KB): ${replayTime}ms`
+		);
 
 		// Performance should still be good even with large payloads
 		expect(replayTime).toBeLessThan(200); // Slightly higher threshold for large data
@@ -352,13 +364,14 @@ test.describe('Event Replay Performance Benchmarks', () => {
 			console.log(`Session attachment and history replay time: ${attachmentTime}ms`);
 
 			// Verify the history was replayed correctly
-			const terminalContent = await newPage.locator('[data-testid="terminal-container"]').textContent();
+			const terminalContent = await newPage
+				.locator('[data-testid="terminal-container"]')
+				.textContent();
 			expect(terminalContent).toContain('History event 0');
 			expect(terminalContent).toContain('History event 99');
 
 			// Performance expectation: attachment should be fast
 			expect(attachmentTime).toBeLessThan(5000); // 5 seconds for full attachment and replay
-
 		} finally {
 			await newContext.close();
 		}

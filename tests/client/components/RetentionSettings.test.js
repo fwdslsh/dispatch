@@ -100,11 +100,15 @@ describe('RetentionSettings Component', () => {
 		};
 
 		const summary = createSummary(15, 14, 250, 3);
-		expect(summary).toBe('Will delete 15 sessions older than 14 days and 250 log entries older than 3 days');
+		expect(summary).toBe(
+			'Will delete 15 sessions older than 14 days and 250 log entries older than 3 days'
+		);
 
 		// Test zero case
 		const zeroSummary = createSummary(0, 365, 0, 90);
-		expect(zeroSummary).toBe('Will delete 0 sessions older than 365 days and 0 log entries older than 90 days');
+		expect(zeroSummary).toBe(
+			'Will delete 0 sessions older than 365 days and 0 log entries older than 90 days'
+		);
 	});
 
 	it('should save settings when form is submitted', async () => {
@@ -129,7 +133,7 @@ describe('RetentionSettings Component', () => {
 
 		const generatePreview = async () => {
 			isLoadingPreview = true;
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 			isLoadingPreview = false;
 			return { summary: 'Preview complete' };
 		};
@@ -160,8 +164,7 @@ describe('RetentionSettings Component', () => {
 
 	it('should disable save button when form is invalid', () => {
 		const isFormValid = (sessionDays, logDays) => {
-			return sessionDays >= 1 && sessionDays <= 365 &&
-				   logDays >= 1 && logDays <= 90;
+			return sessionDays >= 1 && sessionDays <= 365 && logDays >= 1 && logDays <= 90;
 		};
 
 		expect(isFormValid(30, 7)).toBe(true);

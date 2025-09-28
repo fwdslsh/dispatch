@@ -108,7 +108,9 @@ test.describe('Workspace Navigation', () => {
 				await workspaceTab.click();
 			} else {
 				// Alternative: look for workspace dropdown or section
-				const workspaceSection = page.locator('[data-testid="workspace-navigation"], .workspace-section, .workspace-nav');
+				const workspaceSection = page.locator(
+					'[data-testid="workspace-navigation"], .workspace-section, .workspace-nav'
+				);
 				await expect(workspaceSection.first()).toBeVisible({ timeout: 10000 });
 			}
 		});
@@ -116,7 +118,9 @@ test.describe('Workspace Navigation', () => {
 		// Verify workspace list is displayed
 		await test.step('Verify workspace list', async () => {
 			// Should show workspace items
-			await expect(page.locator('.workspace-item, [data-testid="workspace-item"]').first()).toBeVisible({ timeout: 5000 });
+			await expect(
+				page.locator('.workspace-item, [data-testid="workspace-item"]').first()
+			).toBeVisible({ timeout: 5000 });
 
 			// Should show workspace names
 			await expect(page.locator('text=Project Alpha')).toBeVisible();
@@ -145,7 +149,9 @@ test.describe('Workspace Navigation', () => {
 				await page.waitForTimeout(1000);
 
 				// Verify workspace switch occurred (could check URL, title, or active indicators)
-				const activeWorkspace = page.locator('.workspace-item.selected, .workspace-item[aria-selected="true"]');
+				const activeWorkspace = page.locator(
+					'.workspace-item.selected, .workspace-item[aria-selected="true"]'
+				);
 				if (await activeWorkspace.isVisible()) {
 					await expect(activeWorkspace).toContainText('Project Beta');
 				}
@@ -170,13 +176,19 @@ test.describe('Workspace Navigation', () => {
 				await newButton.click();
 
 				// Should see workspace creation form
-				await expect(page.locator('input[placeholder*="workspace"], input[placeholder*="name"]').first()).toBeVisible({ timeout: 5000 });
+				await expect(
+					page.locator('input[placeholder*="workspace"], input[placeholder*="name"]').first()
+				).toBeVisible({ timeout: 5000 });
 
 				// Fill out the form
-				const nameInput = page.locator('input[placeholder*="workspace"], input[placeholder*="name"]').first();
+				const nameInput = page
+					.locator('input[placeholder*="workspace"], input[placeholder*="name"]')
+					.first();
 				await nameInput.fill('New Test Workspace');
 
-				const pathInput = page.locator('input[placeholder*="path"], input[value*="/workspace"]').first();
+				const pathInput = page
+					.locator('input[placeholder*="path"], input[value*="/workspace"]')
+					.first();
 				if (await pathInput.isVisible()) {
 					await pathInput.fill('/workspace/new-test-workspace');
 				}
@@ -206,7 +218,9 @@ test.describe('Workspace Navigation', () => {
 
 		await test.step('Test workspace search', async () => {
 			// Look for search input
-			const searchInput = page.locator('input[placeholder*="Search"], input[placeholder*="workspaces"]');
+			const searchInput = page.locator(
+				'input[placeholder*="Search"], input[placeholder*="workspaces"]'
+			);
 			if (await searchInput.isVisible()) {
 				// Search for specific workspace
 				await searchInput.fill('Alpha');
@@ -250,7 +264,9 @@ test.describe('Workspace Navigation', () => {
 			await expect(page.locator('text=/workspace/project-a')).toBeVisible({ timeout: 5000 });
 
 			// Check for last activity information
-			const metadataElements = page.locator('.workspace-meta, .workspace-info, [data-testid="workspace-metadata"]');
+			const metadataElements = page.locator(
+				'.workspace-meta, .workspace-info, [data-testid="workspace-metadata"]'
+			);
 			if (await metadataElements.first().isVisible()) {
 				// Should show relative time information
 				await expect(page.locator('text=/ago|Today|Yesterday/i').first()).toBeVisible();
@@ -291,7 +307,9 @@ test.describe('Workspace Navigation', () => {
 				await switchButton.click();
 
 				// Should show error message
-				await expect(page.locator('.error-message, [role="alert"]').first()).toBeVisible({ timeout: 5000 });
+				await expect(page.locator('.error-message, [role="alert"]').first()).toBeVisible({
+					timeout: 5000
+				});
 			}
 		});
 	});
@@ -379,7 +397,9 @@ test.describe('Workspace Navigation', () => {
 					await workspaceTab.click();
 
 					// Workspace selection should be preserved
-					const selectedWorkspace = page.locator('.workspace-item.selected, .workspace-item[aria-selected="true"]');
+					const selectedWorkspace = page.locator(
+						'.workspace-item.selected, .workspace-item[aria-selected="true"]'
+					);
 					if (await selectedWorkspace.isVisible()) {
 						await expect(selectedWorkspace).toContainText('Project Beta');
 					}

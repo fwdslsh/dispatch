@@ -57,21 +57,34 @@ export async function PUT({ request, locals }) {
 		if (category === 'auth') {
 			// Validate auth preferences
 			if (preferences.sessionDuration !== undefined) {
-				if (!Number.isInteger(preferences.sessionDuration) || preferences.sessionDuration < 1 || preferences.sessionDuration > 365) {
-					return json({ error: 'Session duration must be between 1 and 365 days' }, { status: 400 });
+				if (
+					!Number.isInteger(preferences.sessionDuration) ||
+					preferences.sessionDuration < 1 ||
+					preferences.sessionDuration > 365
+				) {
+					return json(
+						{ error: 'Session duration must be between 1 and 365 days' },
+						{ status: 400 }
+					);
 				}
 			}
 		}
 
 		if (category === 'ui') {
 			// Validate UI preferences
-			if (preferences.theme !== undefined && !['light', 'dark', 'auto'].includes(preferences.theme)) {
+			if (
+				preferences.theme !== undefined &&
+				!['light', 'dark', 'auto'].includes(preferences.theme)
+			) {
 				return json({ error: 'Theme must be light, dark, or auto' }, { status: 400 });
 			}
 		}
 
 		// Update preferences for category
-		const updatedPreferences = await locals.services.database.updateUserPreferences(category, preferences);
+		const updatedPreferences = await locals.services.database.updateUserPreferences(
+			category,
+			preferences
+		);
 
 		return json({
 			success: true,
@@ -102,7 +115,10 @@ export async function POST({ request, locals }) {
 
 			// Reset preferences for category to defaults
 			const defaultPreferences = getDefaultPreferences(category);
-			const resetPreferences = await locals.services.database.updateUserPreferences(category, defaultPreferences);
+			const resetPreferences = await locals.services.database.updateUserPreferences(
+				category,
+				defaultPreferences
+			);
 
 			return json({
 				success: true,
@@ -133,7 +149,10 @@ export async function POST({ request, locals }) {
 			const results = {};
 			for (const [category, categoryPrefs] of Object.entries(preferences)) {
 				try {
-					results[category] = await locals.services.database.updateUserPreferences(category, categoryPrefs);
+					results[category] = await locals.services.database.updateUserPreferences(
+						category,
+						categoryPrefs
+					);
 				} catch (error) {
 					console.warn(`[Preferences API] Failed to import category ${category}:`, error);
 					results[category] = { error: error.message };

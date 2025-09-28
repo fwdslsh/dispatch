@@ -19,7 +19,7 @@ const args = process.argv.slice(2);
 let playwrightArgs = ['npx', 'playwright', 'test'];
 
 // Add browser selection (default to chromium for speed)
-if (!args.some(arg => arg.includes('--project'))) {
+if (!args.some((arg) => arg.includes('--project'))) {
 	playwrightArgs.push('--project=chromium');
 }
 

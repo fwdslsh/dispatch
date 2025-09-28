@@ -194,7 +194,7 @@ describe('User Preferences API', () => {
 		it('should accept valid theme preferences', () => {
 			const validThemes = ['auto', 'light', 'dark'];
 
-			validThemes.forEach(theme => {
+			validThemes.forEach((theme) => {
 				const response = {
 					status: 200,
 					body: { themePreference: theme }
@@ -206,7 +206,7 @@ describe('User Preferences API', () => {
 		it('should accept valid display modes', () => {
 			const validModes = ['list', 'grid', 'compact'];
 
-			validModes.forEach(mode => {
+			validModes.forEach((mode) => {
 				const response = {
 					status: 200,
 					body: { workspaceDisplayMode: mode }

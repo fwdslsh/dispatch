@@ -4,14 +4,20 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const createMockState = (initialValue) => {
 	let value = initialValue;
 	return {
-		get value() { return value; },
-		set value(newValue) { value = newValue; }
+		get value() {
+			return value;
+		},
+		set value(newValue) {
+			value = newValue;
+		}
 	};
 };
 
 const createMockDerived = (fn) => {
 	return {
-		get value() { return fn(); }
+		get value() {
+			return fn();
+		}
 	};
 };
 
@@ -47,11 +53,16 @@ describe('OnboardingViewModel', () => {
 			validateCurrentStep() {
 				const step = this.currentStep.value;
 				switch (step) {
-					case 'auth': return true; // Always can proceed from auth
-					case 'workspace': return this.completedSteps.value.includes('auth');
-					case 'settings': return this.completedSteps.value.includes('workspace');
-					case 'complete': return this.completedSteps.value.length >= 2;
-					default: return false;
+					case 'auth':
+						return true; // Always can proceed from auth
+					case 'workspace':
+						return this.completedSteps.value.includes('auth');
+					case 'settings':
+						return this.completedSteps.value.includes('workspace');
+					case 'complete':
+						return this.completedSteps.value.length >= 2;
+					default:
+						return false;
 				}
 			},
 
@@ -175,7 +186,9 @@ describe('OnboardingViewModel', () => {
 
 		await viewModel.updateStep('workspace', { workspaceId: 'test-workspace' });
 
-		expect(mockApiClient.updateProgress).toHaveBeenCalledWith('workspace', { workspaceId: 'test-workspace' });
+		expect(mockApiClient.updateProgress).toHaveBeenCalledWith('workspace', {
+			workspaceId: 'test-workspace'
+		});
 		expect(viewModel.currentStep.value).toBe('workspace');
 		expect(viewModel.completedSteps.value).toContain('workspace');
 		expect(viewModel.error.value).toBeNull();
@@ -204,7 +217,7 @@ describe('OnboardingViewModel', () => {
 
 	it('should handle loading states correctly', async () => {
 		let resolvePromise;
-		const pendingPromise = new Promise(resolve => {
+		const pendingPromise = new Promise((resolve) => {
 			resolvePromise = resolve;
 		});
 

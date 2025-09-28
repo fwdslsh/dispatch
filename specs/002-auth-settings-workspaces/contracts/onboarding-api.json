@@ -1,169 +1,169 @@
 {
-  "openapi": "3.0.0",
-  "info": {
-    "title": "Onboarding API",
-    "version": "1.0.0",
-    "description": "API for managing user onboarding state and workflow"
-  },
-  "paths": {
-    "/api/onboarding/status": {
-      "get": {
-        "summary": "Get current onboarding status",
-        "parameters": [
-          {
-            "name": "authKey",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Terminal authentication key"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Onboarding status retrieved",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OnboardingStatus"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    },
-    "/api/onboarding/progress": {
-      "post": {
-        "summary": "Update onboarding progress",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OnboardingProgressUpdate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Progress updated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OnboardingStatus"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid step or transition"
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    },
-    "/api/onboarding/complete": {
-      "post": {
-        "summary": "Mark onboarding as complete",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "authKey": {
-                    "type": "string"
-                  },
-                  "firstWorkspaceId": {
-                    "type": "string"
-                  }
-                },
-                "required": ["authKey"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Onboarding completed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OnboardingStatus"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Cannot complete onboarding in current state"
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "OnboardingStatus": {
-        "type": "object",
-        "properties": {
-          "currentStep": {
-            "type": "string",
-            "enum": ["auth", "workspace", "settings", "complete"]
-          },
-          "completedSteps": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "isComplete": {
-            "type": "boolean"
-          },
-          "firstWorkspaceId": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "completedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        "required": ["currentStep", "completedSteps", "isComplete", "createdAt"]
-      },
-      "OnboardingProgressUpdate": {
-        "type": "object",
-        "properties": {
-          "authKey": {
-            "type": "string"
-          },
-          "step": {
-            "type": "string",
-            "enum": ["auth", "workspace", "settings", "complete"]
-          },
-          "workspaceId": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": ["authKey", "step"]
-      }
-    }
-  }
+	"openapi": "3.0.0",
+	"info": {
+		"title": "Onboarding API",
+		"version": "1.0.0",
+		"description": "API for managing user onboarding state and workflow"
+	},
+	"paths": {
+		"/api/onboarding/status": {
+			"get": {
+				"summary": "Get current onboarding status",
+				"parameters": [
+					{
+						"name": "authKey",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "Terminal authentication key"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Onboarding status retrieved",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OnboardingStatus"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication required"
+					}
+				}
+			}
+		},
+		"/api/onboarding/progress": {
+			"post": {
+				"summary": "Update onboarding progress",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OnboardingProgressUpdate"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Progress updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OnboardingStatus"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid step or transition"
+					},
+					"401": {
+						"description": "Authentication required"
+					}
+				}
+			}
+		},
+		"/api/onboarding/complete": {
+			"post": {
+				"summary": "Mark onboarding as complete",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"authKey": {
+										"type": "string"
+									},
+									"firstWorkspaceId": {
+										"type": "string"
+									}
+								},
+								"required": ["authKey"]
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Onboarding completed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/OnboardingStatus"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Cannot complete onboarding in current state"
+					},
+					"401": {
+						"description": "Authentication required"
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"OnboardingStatus": {
+				"type": "object",
+				"properties": {
+					"currentStep": {
+						"type": "string",
+						"enum": ["auth", "workspace", "settings", "complete"]
+					},
+					"completedSteps": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					},
+					"isComplete": {
+						"type": "boolean"
+					},
+					"firstWorkspaceId": {
+						"type": "string",
+						"nullable": true
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"completedAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					}
+				},
+				"required": ["currentStep", "completedSteps", "isComplete", "createdAt"]
+			},
+			"OnboardingProgressUpdate": {
+				"type": "object",
+				"properties": {
+					"authKey": {
+						"type": "string"
+					},
+					"step": {
+						"type": "string",
+						"enum": ["auth", "workspace", "settings", "complete"]
+					},
+					"workspaceId": {
+						"type": "string",
+						"nullable": true
+					}
+				},
+				"required": ["authKey", "step"]
+			}
+		}
+	}
 }

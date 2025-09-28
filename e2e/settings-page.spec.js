@@ -184,7 +184,10 @@ test.describe('Settings Page Navigation', () => {
 		await page.goto('/settings?section=deprecated');
 		await waitForWorkspace(page);
 
-		await expect(page.getByRole('tab', { name: 'Global' })).toHaveAttribute('aria-selected', 'true');
+		await expect(page.getByRole('tab', { name: 'Global' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		await expect(page.getByRole('alert')).toContainText('deprecated section is not available');
 	});
 });

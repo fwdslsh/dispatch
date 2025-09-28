@@ -94,9 +94,11 @@ export class EventSourcingService {
 					this.io.to(room).emit('run:event', eventData);
 				}
 
-				logger.debug('EVENT_SOURCING', `Appended event to stream ${streamId}, seq: ${seq}, channel: ${channel}`);
+				logger.debug(
+					'EVENT_SOURCING',
+					`Appended event to stream ${streamId}, seq: ${seq}, channel: ${channel}`
+				);
 				return eventData;
-
 			} catch (error) {
 				logger.error('EVENT_SOURCING', `Failed to append event to stream ${streamId}:`, error);
 				throw error;
@@ -134,7 +136,7 @@ export class EventSourcingService {
 
 		const rows = await this.db.all(sql, params);
 
-		return rows.map(row => {
+		return rows.map((row) => {
 			// Decode payload based on type
 			if (row.payload) {
 				try {
@@ -264,8 +266,10 @@ export class EventSourcingService {
 
 			const duration = Date.now() - startTime;
 
-			logger.info('EVENT_SOURCING',
-				`Replayed ${eventsProcessed} events for stream ${streamId} in ${duration}ms`);
+			logger.info(
+				'EVENT_SOURCING',
+				`Replayed ${eventsProcessed} events for stream ${streamId} in ${duration}ms`
+			);
 
 			return {
 				streamId,
@@ -274,11 +278,13 @@ export class EventSourcingService {
 				fromSequence,
 				toSequence: toSequence || events[events.length - 1]?.seq || fromSequence
 			};
-
 		} catch (error) {
 			const duration = Date.now() - startTime;
-			logger.error('EVENT_SOURCING',
-				`Failed to replay events for stream ${streamId} after ${duration}ms:`, error);
+			logger.error(
+				'EVENT_SOURCING',
+				`Failed to replay events for stream ${streamId} after ${duration}ms:`,
+				error
+			);
 			throw error;
 		}
 	}
@@ -312,8 +318,10 @@ export class EventSourcingService {
 			{ emitRealtime: false } // Don't emit snapshots as real-time events
 		);
 
-		logger.info('EVENT_SOURCING',
-			`Created snapshot for stream ${streamId} at sequence ${sequenceNumber}`);
+		logger.info(
+			'EVENT_SOURCING',
+			`Created snapshot for stream ${streamId} at sequence ${sequenceNumber}`
+		);
 
 		return snapshotEvent;
 	}
@@ -350,8 +358,7 @@ export class EventSourcingService {
 			await this.initializeStream(streamId);
 		}
 
-		logger.info('EVENT_SOURCING',
-			`Deleted ${deletedCount} events from stream ${streamId}`);
+		logger.info('EVENT_SOURCING', `Deleted ${deletedCount} events from stream ${streamId}`);
 
 		return deletedCount;
 	}
@@ -405,9 +412,10 @@ export class EventSourcingService {
 			timeRange: {
 				firstEvent: timeRange?.firstEvent ? new Date(timeRange.firstEvent).toISOString() : null,
 				lastEvent: timeRange?.lastEvent ? new Date(timeRange.lastEvent).toISOString() : null,
-				duration: timeRange?.firstEvent && timeRange?.lastEvent
-					? timeRange.lastEvent - timeRange.firstEvent
-					: 0
+				duration:
+					timeRange?.firstEvent && timeRange?.lastEvent
+						? timeRange.lastEvent - timeRange.firstEvent
+						: 0
 			}
 		};
 	}

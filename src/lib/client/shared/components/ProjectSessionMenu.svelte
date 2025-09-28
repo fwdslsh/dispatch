@@ -520,18 +520,23 @@
 						<div class="status-message error">{workspaceNavigation.error}</div>
 					{:else if workspaceNavigation?.filteredWorkspaces?.length === 0}
 						<div class="status-message">
-							{workspaceNavigation.searchTerm ?
-								`No workspaces match "${workspaceNavigation.searchTerm}"` :
-								'No workspaces found. Create your first workspace to get started.'}
+							{workspaceNavigation.searchTerm
+								? `No workspaces match "${workspaceNavigation.searchTerm}"`
+								: 'No workspaces found. Create your first workspace to get started.'}
 						</div>
 					{:else if workspaceNavigation?.filteredWorkspaces}
 						{#each workspaceNavigation.filteredWorkspaces as workspace (workspace.path)}
-							<div class="workspace-item" class:selected={selectedWorkspace?.path === workspace.path}>
+							<div
+								class="workspace-item"
+								class:selected={selectedWorkspace?.path === workspace.path}
+							>
 								<div class="workspace-info">
 									<div class="workspace-name">{workspace.name}</div>
 									<div class="workspace-path">{workspace.path}</div>
 									{#if workspace.lastActive}
-										<div class="workspace-meta">Last active: {formatDate(new Date(workspace.lastActive))}</div>
+										<div class="workspace-meta">
+											Last active: {formatDate(new Date(workspace.lastActive))}
+										</div>
 									{/if}
 								</div>
 								<div class="workspace-actions">
@@ -696,9 +701,12 @@
 				<IconSearch size={16} />
 				<input
 					type="text"
-					placeholder={currentTab === 'active' ? 'Search active sessions...' :
-								currentTab === 'browse' ? 'Search sessions...' : 'Search workspaces...'}
-					value={currentTab === 'workspaces' ? (workspaceNavigation?.searchTerm || '') : searchTerm}
+					placeholder={currentTab === 'active'
+						? 'Search active sessions...'
+						: currentTab === 'browse'
+							? 'Search sessions...'
+							: 'Search workspaces...'}
+					value={currentTab === 'workspaces' ? workspaceNavigation?.searchTerm || '' : searchTerm}
 					oninput={(e) => {
 						if (currentTab === 'workspaces' && workspaceNavigation) {
 							workspaceNavigation.searchWorkspaces(e.target.value);
@@ -707,18 +715,25 @@
 						}
 					}}
 					class="search-input"
-					aria-label={currentTab === 'active' ? 'Search active sessions' :
-								currentTab === 'browse' ? 'Search sessions' : 'Search workspaces'}
+					aria-label={currentTab === 'active'
+						? 'Search active sessions'
+						: currentTab === 'browse'
+							? 'Search sessions'
+							: 'Search workspaces'}
 					role="searchbox"
 				/>
-				{#if (currentTab === 'workspaces' ? workspaceNavigation?.searchTerm : searchTerm)}
-					<button class="clear-search" onclick={() => {
-						if (currentTab === 'workspaces' && workspaceNavigation) {
-							workspaceNavigation.clearSearch();
-						} else {
-							searchTerm = '';
-						}
-					}} aria-label="Clear search">
+				{#if currentTab === 'workspaces' ? workspaceNavigation?.searchTerm : searchTerm}
+					<button
+						class="clear-search"
+						onclick={() => {
+							if (currentTab === 'workspaces' && workspaceNavigation) {
+								workspaceNavigation.clearSearch();
+							} else {
+								searchTerm = '';
+							}
+						}}
+						aria-label="Clear search"
+					>
 						<IconX size={14} />
 					</button>
 				{/if}

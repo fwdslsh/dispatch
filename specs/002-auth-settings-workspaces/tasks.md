@@ -4,6 +4,7 @@
 **Prerequisites**: plan.md (required), research.md, data-model.md, contracts/
 
 ## Execution Flow (main)
+
 ```
 1. Load plan.md from feature directory
    → Tech stack: JavaScript/Node.js 22+, SvelteKit 2.x, Svelte 5
@@ -27,10 +28,12 @@
 ```
 
 ## Format: `[ID] [P?] Description`
+
 - **[P]**: Can run in parallel (different files, no dependencies)
 - Include exact file paths in descriptions
 
 ## Path Conventions
+
 - **Frontend**: `src/lib/client/` for components and ViewModels
 - **Backend**: `src/lib/server/` for API routes and services
 - **Routes**: `src/routes/` for SvelteKit pages
@@ -48,16 +51,19 @@
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 
 ### Contract Tests
+
 - [x] T007 [P] Create test for onboarding API endpoints in `tests/server/api/onboarding.test.js`
 - [x] T008 [P] Create test for retention policy API endpoints in `tests/server/api/retention.test.js`
 - [x] T009 [P] Create test for user preferences API endpoints in `tests/server/api/preferences.test.js`
 
 ### Component Tests
+
 - [x] T010 [P] Create test for OnboardingFlow component in `tests/client/components/OnboardingFlow.test.js`
 - [x] T011 [P] Create test for RetentionSettings component in `tests/client/components/RetentionSettings.test.js`
 - [x] T012 [P] Create test for enhanced ProjectSessionMenu in `tests/client/components/ProjectSessionMenu.test.js`
 
 ### ViewModel Tests
+
 - [x] T013 [P] Create test for OnboardingViewModel in `tests/client/viewmodels/OnboardingViewModel.test.js`
 - [x] T014 [P] Create test for RetentionPolicyViewModel in `tests/client/viewmodels/RetentionPolicyViewModel.test.js`
 - [x] T015 [P] Create test for WorkspaceNavigationViewModel in `tests/client/viewmodels/WorkspaceNavigationViewModel.test.js`
@@ -65,16 +71,19 @@
 ## Phase 3.3: Core Implementation
 
 ### API Endpoints
+
 - [x] T016 Implement onboarding API routes in `src/routes/api/onboarding/+server.js` (GET status, POST progress, POST complete)
 - [x] T017 Implement retention policy API routes in `src/routes/api/retention/+server.js` (GET policy, PUT policy, POST preview, POST cleanup)
 - [x] T018 Implement user preferences API routes in `src/routes/api/preferences/+server.js` (GET, PUT)
 
 ### ViewModels (Svelte 5 State Management)
+
 - [x] T019 [P] Implement OnboardingViewModel with $state runes in `src/lib/client/shared/state/OnboardingViewModel.svelte.js`
 - [x] T020 [P] Implement RetentionPolicyViewModel with $state runes in `src/lib/client/shared/state/RetentionPolicyViewModel.svelte.js`
 - [x] T021 [P] Implement WorkspaceNavigationViewModel with $state runes in `src/lib/client/shared/state/WorkspaceNavigationViewModel.svelte.js`
 
 ### UI Components
+
 - [x] T022 Create OnboardingFlow component in `src/lib/client/components/OnboardingFlow.svelte`
 - [x] T023 Create AuthenticationStep component in `src/lib/client/onboarding/AuthenticationStep.svelte`
 - [x] T024 Create WorkspaceCreationStep component in `src/lib/client/onboarding/WorkspaceCreationStep.svelte`
@@ -102,6 +111,7 @@
 ## Parallel Execution Examples
 
 ### After completing Phase 3.1 (Setup), you can parallelize Phase 3.2 tests:
+
 ```bash
 # Run all contract tests in parallel
 Task agent "Create onboarding API test" &
@@ -123,6 +133,7 @@ wait
 ```
 
 ### After tests are written (Phase 3.2), parallelize ViewModels in Phase 3.3:
+
 ```bash
 # Implement all ViewModels in parallel
 Task agent "Implement OnboardingViewModel" &
@@ -132,6 +143,7 @@ wait
 ```
 
 ### E2E tests can all run in parallel in Phase 3.5:
+
 ```bash
 # Run all E2E tests in parallel
 Task agent "Create onboarding E2E test" &
@@ -160,6 +172,7 @@ E2E & Polish (T032-T038) → Can parallelize E2E tests
 ```
 
 ## Validation Checklist
+
 - ✅ All 3 API contracts have test tasks (T007-T009)
 - ✅ All 4 entities have implementation tasks (via ViewModels and APIs)
 - ✅ All endpoints from contracts are implemented (T016-T018)
@@ -169,6 +182,7 @@ E2E & Polish (T032-T038) → Can parallelize E2E tests
 - ✅ Performance and accessibility requirements addressed (T036-T037)
 
 ## Task Count Summary
+
 - Setup & Database: 6 tasks
 - Tests (TDD): 9 tasks
 - Core Implementation: 11 tasks
@@ -177,6 +191,7 @@ E2E & Polish (T032-T038) → Can parallelize E2E tests
 - **Total**: 38 tasks
 
 ## Success Metrics
+
 - All tests pass (unit, integration, E2E)
 - Sub-100ms API response times
 - Onboarding completable in 2-3 steps

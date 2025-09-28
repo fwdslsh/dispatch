@@ -23,25 +23,26 @@ export class WorkspaceNavigationViewModel {
 	// Derived state - computed properties
 	get filteredWorkspaces() {
 		if (!this.searchTerm) return this.workspaces;
-		return this.workspaces.filter(workspace =>
-			workspace.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-			workspace.path.toLowerCase().includes(this.searchTerm.toLowerCase())
+		return this.workspaces.filter(
+			(workspace) =>
+				workspace.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+				workspace.path.toLowerCase().includes(this.searchTerm.toLowerCase())
 		);
 	}
 
 	get recentWorkspaces() {
 		return this.workspaces
-			.filter(w => w.lastActive)
+			.filter((w) => w.lastActive)
 			.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive))
 			.slice(0, 5);
 	}
 
 	get activeWorkspaces() {
-		return this.workspaces.filter(w => w.status === 'active');
+		return this.workspaces.filter((w) => w.status === 'active');
 	}
 
 	get archivedWorkspaces() {
-		return this.workspaces.filter(w => w.status === 'archived');
+		return this.workspaces.filter((w) => w.status === 'archived');
 	}
 
 	// Methods for workspace management
@@ -86,7 +87,7 @@ export class WorkspaceNavigationViewModel {
 	addToHistory(workspace) {
 		const history = this.navigationHistory;
 		// Remove if exists, then add to front
-		const filtered = history.filter(w => w.path !== workspace.path);
+		const filtered = history.filter((w) => w.path !== workspace.path);
 		const newHistory = [workspace, ...filtered].slice(0, 10); // Keep last 10
 		this.navigationHistory = newHistory;
 	}
@@ -122,7 +123,7 @@ export class WorkspaceNavigationViewModel {
 		this.isLoading = true;
 		try {
 			const updatedWorkspace = await this.#apiClient.updateWorkspace(workspaceId, updates);
-			const index = this.workspaces.findIndex(w => w.path === workspaceId);
+			const index = this.workspaces.findIndex((w) => w.path === workspaceId);
 			if (index >= 0) {
 				const newWorkspaces = [...this.workspaces];
 				newWorkspaces[index] = updatedWorkspace;
@@ -143,7 +144,7 @@ export class WorkspaceNavigationViewModel {
 	 * @param {string} workspaceId - Workspace ID (path)
 	 */
 	async deleteWorkspace(workspaceId) {
-		const workspace = this.workspaces.find(w => w.path === workspaceId);
+		const workspace = this.workspaces.find((w) => w.path === workspaceId);
 		if (workspace && workspace.activeSessions && workspace.activeSessions.length > 0) {
 			throw new Error('Cannot delete workspace with active sessions');
 		}
@@ -151,10 +152,10 @@ export class WorkspaceNavigationViewModel {
 		this.isLoading = true;
 		try {
 			await this.#apiClient.deleteWorkspace(workspaceId);
-			this.workspaces = this.workspaces.filter(w => w.path !== workspaceId);
+			this.workspaces = this.workspaces.filter((w) => w.path !== workspaceId);
 
 			// Remove from history
-			this.navigationHistory = this.navigationHistory.filter(w => w.path !== workspaceId);
+			this.navigationHistory = this.navigationHistory.filter((w) => w.path !== workspaceId);
 
 			// Clear active workspace if it was deleted
 			if (this.activeWorkspace && this.activeWorkspace.path === workspaceId) {

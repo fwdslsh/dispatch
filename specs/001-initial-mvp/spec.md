@@ -12,6 +12,7 @@ Key features of Dispatch include support for multiple session types—such as Te
 **Current State**: Dispatch is a mature, production-ready application with most core features already implemented:
 
 ### ✅ **Fully Implemented Features**
+
 - **Event-Sourced Session Management**: Complete RunSessionManager with sequence numbers and state recovery
 - **Multi-Session Support**: Three session types (Terminal, Claude AI, File Editor) with adapter pattern
 - **Real-Time Communication**: Socket.IO with multi-client synchronization and event replay
@@ -24,6 +25,7 @@ Key features of Dispatch include support for multiple session types—such as Te
 - **Container Security**: Docker isolation with non-root execution
 
 ### 🔄 **Gaps Identified for Enhancement**
+
 - **Workspace Management API**: Missing dedicated workspace CRUD endpoints (`/api/workspaces/`)
 - **Service Organization**: Some logic could be extracted into dedicated services
 - **Multi-Auth Methods**: Only key-based auth implemented (sufficient for single-user)
@@ -75,7 +77,7 @@ When creating this spec from a user prompt:
 3. **Think like a tester**: Every vague requirement should fail the "testable and unambiguous" checklist item
 4. **Common underspecified areas**:
    - User types and permissions
-   - Data retention/deletion policies  
+   - Data retention/deletion policies
    - Performance targets and scale
    - Error handling behaviors
    - Integration requirements
@@ -138,7 +140,7 @@ As a single user, I want a secure, local-first development environment where I c
 - **FR-018**: During brief network drops, the client MUST auto‑reconnect and present buffered output. If uncertainty or a sensitive operation is detected, the session MUST reattach in read‑only mode until the user confirms resume.
 - **FR-019**: Under normal load, the product targets best‑effort session UI responsiveness with no strict P95 target, while avoiding regressions; future releases may introduce measurable SLOs.
 
-*Implementation Status Update:*
+_Implementation Status Update:_
 
 - **FR-010**: ✅ **IMPLEMENTED** - VS Code Remote Tunnel integration is fully functional with device authentication flow and automatic tunnel naming `dispatch-{hostname}`. Access via VS Code Web at `https://vscode.dev/tunnel/{tunnel-name}/{folder}` or VS Code Desktop with Remote - Tunnels extension.
 
@@ -167,7 +169,7 @@ GATE: Automated checks run during main() execution
 ### Requirement Completeness
 
 - [ ] No [NEEDS CLARIFICATION] markers remain
-- [ ] Requirements are testable and unambiguous  
+- [ ] Requirements are testable and unambiguous
 - [ ] Success criteria are measurable
 - [ ] Scope is clearly bounded
 - [ ] Dependencies and assumptions identified

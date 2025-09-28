@@ -93,7 +93,7 @@
 					id="terminal-key"
 					type="password"
 					class="form-input"
-					class:error={error}
+					class:error
 					bind:value={terminalKey}
 					onkeypress={handleKeyPress}
 					placeholder="Enter your terminal key"
@@ -117,11 +117,7 @@
 					{/if}
 				</button>
 
-				<button
-					class="btn btn-secondary"
-					onclick={handleSkipAuth}
-					disabled={isValidating}
-				>
+				<button class="btn btn-secondary" onclick={handleSkipAuth} disabled={isValidating}>
 					Skip for Now
 				</button>
 			</div>
@@ -319,8 +315,12 @@
 	}
 
 	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 
 	/* Responsive design */

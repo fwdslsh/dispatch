@@ -203,18 +203,17 @@ export class DatabaseService {
 	 */
 	async generateRetentionPreview(userId, sessionDays, logDays) {
 		// Count sessions that would be deleted
-		const sessionCutoff = Date.now() - (sessionDays * 24 * 60 * 60 * 1000);
+		const sessionCutoff = Date.now() - sessionDays * 24 * 60 * 60 * 1000;
 		const sessionResult = await this.db.get(
 			'SELECT COUNT(*) as count FROM sessions WHERE created_at < ?',
 			[sessionCutoff]
 		);
 
 		// Count logs that would be deleted
-		const logCutoff = Date.now() - (logDays * 24 * 60 * 60 * 1000);
-		const logResult = await this.db.get(
-			'SELECT COUNT(*) as count FROM logs WHERE timestamp < ?',
-			[logCutoff]
-		);
+		const logCutoff = Date.now() - logDays * 24 * 60 * 60 * 1000;
+		const logResult = await this.db.get('SELECT COUNT(*) as count FROM logs WHERE timestamp < ?', [
+			logCutoff
+		]);
 
 		const sessionsToDelete = sessionResult?.count || 0;
 		const logsToDelete = logResult?.count || 0;
@@ -238,26 +237,25 @@ export class DatabaseService {
 		const policy = await this.getRetentionPolicy(userId);
 
 		// Delete old sessions
-		const sessionCutoff = Date.now() - (policy.session_retention_days * 24 * 60 * 60 * 1000);
-		const sessionResult = await this.db.run(
-			'DELETE FROM sessions WHERE created_at < ?',
-			[sessionCutoff]
-		);
+		const sessionCutoff = Date.now() - policy.session_retention_days * 24 * 60 * 60 * 1000;
+		const sessionResult = await this.db.run('DELETE FROM sessions WHERE created_at < ?', [
+			sessionCutoff
+		]);
 
 		// Delete old logs
-		const logCutoff = Date.now() - (policy.log_retention_days * 24 * 60 * 60 * 1000);
-		const logResult = await this.db.run(
-			'DELETE FROM logs WHERE timestamp < ?',
-			[logCutoff]
-		);
+		const logCutoff = Date.now() - policy.log_retention_days * 24 * 60 * 60 * 1000;
+		const logResult = await this.db.run('DELETE FROM logs WHERE timestamp < ?', [logCutoff]);
 
 		// Update last cleanup run
-		await this.db.run(
-			'UPDATE retention_policies SET last_cleanup_run = ? WHERE user_id = ?',
-			[new Date().toISOString(), userId]
-		);
+		await this.db.run('UPDATE retention_policies SET last_cleanup_run = ? WHERE user_id = ?', [
+			new Date().toISOString(),
+			userId
+		]);
 
-		logger.info('DATABASE', `Cleanup completed: ${sessionResult.changes} sessions, ${logResult.changes} logs deleted`);
+		logger.info(
+			'DATABASE',
+			`Cleanup completed: ${sessionResult.changes} sessions, ${logResult.changes} logs deleted`
+		);
 
 		return {
 			sessionsDeleted: sessionResult.changes,
@@ -295,16 +293,16 @@ export class DatabaseService {
 		const history = await this.getNavigationHistory(clientId);
 
 		// Add to history (remove if exists, then add to front)
-		const filtered = history.filter(h => h.workspacePath !== workspacePath);
+		const filtered = history.filter((h) => h.workspacePath !== workspacePath);
 		filtered.unshift({ workspacePath, runId, timestamp: Date.now() });
 
 		// Keep only last 10 entries
 		const trimmed = filtered.slice(0, 10);
 
-		await this.db.run(
-			'UPDATE workspace_layout SET navigation_history = ? WHERE client_id = ?',
-			[JSON.stringify(trimmed), clientId]
-		);
+		await this.db.run('UPDATE workspace_layout SET navigation_history = ? WHERE client_id = ?', [
+			JSON.stringify(trimmed),
+			clientId
+		]);
 
 		logger.debug('DATABASE', `Updated navigation history for client ${clientId}`);
 	}

@@ -17,18 +17,23 @@ Templates requiring updates: (to be verified)
 ## Core Principles
 
 ### I. Security-First Architecture
+
 Every feature must maintain strict isolation boundaries. Containerized execution is mandatory for all untrusted code. No session may access host system files without explicit user authorization. Security boundaries are non-negotiable and cannot be bypassed for convenience.
 
 ### II. Event-Sourced State Management
+
 All session activity must be recorded as immutable events with monotonic sequence numbers. Sessions must be fully recoverable from event history. State changes must be reproducible from any point in the timeline. This enables session portability, debugging, and multi-client synchronization.
 
 ### III. Adapter Pattern for Extensibility
+
 New session types must be implemented as adapters conforming to the established interface. Adapters must be self-contained with clear boundaries. Core session management logic must remain type-agnostic. This ensures maintainability and enables feature additions without architectural changes.
 
 ### IV. Test-Driven Development
+
 Tests must be written before implementation. Red-Green-Refactor cycle is mandatory for all new features. Unit tests required for business logic, integration tests required for session management and Socket.IO communication. Test coverage must not decrease with any change.
 
 ### V. Progressive Enhancement
+
 Start with the simplest working implementation. Features must degrade gracefully when dependencies unavailable. Advanced capabilities (SSL, tunnels, VS Code) must be optional. Core functionality must work in minimal Docker environment.
 
 ## Implementation Standards
@@ -51,12 +56,14 @@ Start with the simplest working implementation. Features must degrade gracefully
 ## Governance
 
 The constitution supersedes all development practices. Amendments require:
+
 1. Documentation of the proposed change and rationale
 2. Impact assessment on existing features
 3. Migration plan if breaking changes required
 4. Team approval with version bump
 
 Version bumping follows semantic versioning:
+
 - MAJOR: Removing principles or incompatible governance changes
 - MINOR: Adding principles or expanding guidance materially
 - PATCH: Clarifications, wording improvements, typo fixes

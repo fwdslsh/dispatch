@@ -334,7 +334,9 @@
 		padding: var(--space-3) var(--space-4);
 		text-align: left;
 		cursor: pointer;
-		transition: background 0.2s ease, color 0.2s ease;
+		transition:
+			background 0.2s ease,
+			color 0.2s ease;
 		font-family: var(--font-mono);
 		font-size: 0.9rem;
 		align-items: center;

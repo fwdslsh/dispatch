@@ -18,7 +18,6 @@
 
 	// Modals
 	import CreateSessionModal from '$lib/client/shared/components/CreateSessionModal.svelte';
-	import SettingsModal from '$lib/client/shared/components/Settings/SettingsModal.svelte';
 	import ProjectSessionMenu from '$lib/client/shared/components/ProjectSessionMenu.svelte';
 	import Modal from '$lib/client/shared/components/Modal.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
@@ -69,7 +68,7 @@
 		}
 	};
 
-	// activeModal: { type: 'createSession' | 'settings' | 'pwaInstructions', data: any } | null
+	// activeModal: { type: 'createSession' | 'pwaInstructions', data: any } | null
 	let activeModal = $state(null);
 
 	let sessionMenuOpen = $state(false);
@@ -222,8 +221,6 @@
 	}
 
 	async function handleOpenSettings() {
-		// Open settings modal locally
-		//activeModal = { type: 'settings', data: null };
 		await goto('/settings');
 	}
 
@@ -563,8 +560,6 @@
 				oncreated={handleSessionCreate}
 				onclose={closeActiveModal}
 			/>
-		{:else if activeModal.type === 'settings'}
-			<SettingsModal open={true} onclose={closeActiveModal} />
 		{:else if activeModal.type === 'pwaInstructions'}
 			<Modal open={true} title={activeModal.data?.title} size="small" onclose={closeActiveModal}>
 				{#snippet children()}
@@ -601,7 +596,7 @@
 	.dispatch-workspace {
 		position: relative;
 		display: grid;
-	
+
 		background: transparent;
 		color: var(--text-primary);
 		overflow: hidden;
@@ -626,7 +621,6 @@
 		pointer-events: none;
 	}
 
-	
 	/* Session bottom sheet - mobile specific */
 	.session-sheet {
 		position: fixed;

@@ -6,9 +6,11 @@ import { validateKey } from '$lib/server/shared/auth.js';
 export async function GET({ url, request, locals }) {
 	try {
 		// Optional authentication - allow unauthenticated read for basic info
-		const authKey = url.searchParams.get('authKey') ||
-			(request.headers.get('authorization')?.startsWith('Bearer ') ?
-				request.headers.get('authorization').slice(7) : null);
+		const authKey =
+			url.searchParams.get('authKey') ||
+			(request.headers.get('authorization')?.startsWith('Bearer ')
+				? request.headers.get('authorization').slice(7)
+				: null);
 
 		const isAuthenticated = authKey ? validateKey(authKey) : false;
 
@@ -35,9 +37,9 @@ export async function GET({ url, request, locals }) {
 
 			workspace.sessionCounts = {
 				total: sessions.reduce((sum, s) => sum + s.count, 0),
-				running: sessions.find(s => s.status === 'running')?.count || 0,
-				stopped: sessions.find(s => s.status === 'stopped')?.count || 0,
-				error: sessions.find(s => s.status === 'error')?.count || 0
+				running: sessions.find((s) => s.status === 'running')?.count || 0,
+				stopped: sessions.find((s) => s.status === 'stopped')?.count || 0,
+				error: sessions.find((s) => s.status === 'error')?.count || 0
 			};
 
 			// Add derived status based on activity and session state
@@ -53,7 +55,7 @@ export async function GET({ url, request, locals }) {
 
 		// Filter by status if specified
 		if (status && ['active', 'inactive', 'archived', 'new'].includes(status)) {
-			workspaces = workspaces.filter(w => w.status === status);
+			workspaces = workspaces.filter((w) => w.status === status);
 		}
 
 		// Apply pagination
@@ -62,7 +64,7 @@ export async function GET({ url, request, locals }) {
 
 		// Format response according to API contract
 		const response = {
-			workspaces: workspaces.map(w => ({
+			workspaces: workspaces.map((w) => ({
 				id: w.path, // Use path as ID for simplicity
 				name: extractWorkspaceName(w.path),
 				path: w.path,
@@ -80,9 +82,11 @@ export async function GET({ url, request, locals }) {
 			}
 		};
 
-		logger.info('WORKSPACE_API', `Listed ${workspaces.length} workspaces (filtered: ${status || 'none'})`);
+		logger.info(
+			'WORKSPACE_API',
+			`Listed ${workspaces.length} workspaces (filtered: ${status || 'none'})`
+		);
 		return json(response);
-
 	} catch (err) {
 		logger.error('WORKSPACE_API', 'Failed to list workspaces:', err);
 		return error(500, { message: 'Failed to retrieve workspaces' });
@@ -152,7 +156,6 @@ export async function POST({ request, locals }) {
 
 		logger.info('WORKSPACE_API', `Created workspace: ${path}`);
 		return json(response, { status: 201 });
-
 	} catch (err) {
 		logger.error('WORKSPACE_API', 'Failed to create workspace:', err);
 		return error(500, { message: 'Failed to create workspace' });

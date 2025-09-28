@@ -123,14 +123,22 @@
 	{:else if viewModel.isComplete}
 		<div class="flex flex-col items-center justify-center py-16">
 			<h2 class="text-2xl font-bold text-success mb-2">🎉 Welcome to Dispatch!</h2>
-			<p class="text-base-content/70">Your setup is complete. You can now start creating sessions and managing workspaces.</p>
+			<p class="text-base-content/70">
+				Your setup is complete. You can now start creating sessions and managing workspaces.
+			</p>
 		</div>
 	{:else}
 		<div class="bg-base-100 rounded-xl shadow-lg p-8 flex flex-col gap-8">
 			<!-- Progress indicator -->
 			<div class="w-full">
-				<progress class="progress progress-primary w-full h-2" value={viewModel.progressPercentage} max="100"></progress>
-				<div class="text-center text-xs text-base-content/60 mt-1">{viewModel.progressPercentage}% Complete</div>
+				<progress
+					class="progress progress-primary w-full h-2"
+					value={viewModel.progressPercentage}
+					max="100"
+				></progress>
+				<div class="text-center text-xs text-base-content/60 mt-1">
+					{viewModel.progressPercentage}% Complete
+				</div>
 			</div>
 
 			<!-- Step content -->
@@ -139,7 +147,10 @@
 					<div class="flex flex-col gap-6">
 						<div>
 							<h2 class="text-xl font-semibold mb-1">🔐 Authentication Setup</h2>
-							<p class="text-base-content/70 mb-4">Create a secure terminal key to protect access to your Dispatch instance. This key will be used to authenticate all requests.</p>
+							<p class="text-base-content/70 mb-4">
+								Create a secure terminal key to protect access to your Dispatch instance. This key
+								will be used to authenticate all requests.
+							</p>
 							<div class="flex flex-col gap-3">
 								<input
 									type="password"
@@ -184,11 +195,7 @@
 									Continue to Workspace Setup
 								{/if}
 							</button>
-							<button
-								class="btn btn-ghost"
-								onclick={handleSkip}
-								disabled={isSettingUpAuth}
-							>
+							<button class="btn btn-ghost" onclick={handleSkip} disabled={isSettingUpAuth}>
 								Skip Setup
 							</button>
 						</div>
@@ -197,7 +204,9 @@
 					<div class="flex flex-col gap-6">
 						<div>
 							<h2 class="text-xl font-semibold mb-1">📁 Workspace Setup</h2>
-							<p class="text-base-content/70 mb-4">Create your first workspace to organize your development projects.</p>
+							<p class="text-base-content/70 mb-4">
+								Create your first workspace to organize your development projects.
+							</p>
 							<div class="flex flex-col gap-3">
 								<input
 									type="text"
@@ -221,10 +230,7 @@
 							>
 								Create Workspace
 							</button>
-							<button
-								class="btn btn-ghost"
-								onclick={() => handleStepComplete('settings')}
-							>
+							<button class="btn btn-ghost" onclick={() => handleStepComplete('settings')}>
 								Skip for Now
 							</button>
 						</div>
@@ -233,14 +239,24 @@
 					<div class="flex flex-col gap-6">
 						<div>
 							<h2 class="text-xl font-semibold mb-1">⚙️ Basic Settings</h2>
-							<p class="text-base-content/70 mb-4">Configure essential settings for your Dispatch experience.</p>
+							<p class="text-base-content/70 mb-4">
+								Configure essential settings for your Dispatch experience.
+							</p>
 							<div class="flex flex-col gap-2">
 								<label class="label cursor-pointer justify-start gap-2">
-									<input type="checkbox" class="checkbox checkbox-primary" bind:checked={autoCleanup} />
+									<input
+										type="checkbox"
+										class="checkbox checkbox-primary"
+										bind:checked={autoCleanup}
+									/>
 									<span class="label-text">Enable automatic cleanup of old sessions</span>
 								</label>
 								<label class="label cursor-pointer justify-start gap-2">
-									<input type="checkbox" class="checkbox checkbox-primary" bind:checked={rememberWorkspace} />
+									<input
+										type="checkbox"
+										class="checkbox checkbox-primary"
+										bind:checked={rememberWorkspace}
+									/>
 									<span class="label-text">Remember last used workspace</span>
 								</label>
 							</div>
@@ -253,10 +269,7 @@
 							>
 								Complete Setup
 							</button>
-							<button
-								class="btn btn-ghost"
-								onclick={() => handleComplete('default-workspace')}
-							>
+							<button class="btn btn-ghost" onclick={() => handleComplete('default-workspace')}>
 								Use Defaults
 							</button>
 						</div>
@@ -275,11 +288,10 @@
 			<!-- Error display -->
 			{#if viewModel.error}
 				<div class="alert alert-error mt-4" role="alert">
-					<strong>Setup Error:</strong> {viewModel.error}
+					<strong>Setup Error:</strong>
+					{viewModel.error}
 				</div>
 			{/if}
 		</div>
 	{/if}
 </div>
-
-

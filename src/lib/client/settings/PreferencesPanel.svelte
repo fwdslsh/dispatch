@@ -34,9 +34,7 @@
 	});
 
 	let preferences = $state(createDefaultPreferences());
-	let originalPreferences = $state.raw(
-		structuredClone($state.snapshot(preferences))
-	);
+	let originalPreferences = $state.raw(structuredClone($state.snapshot(preferences)));
 	let isLoading = $state(false);
 	let isSaving = $state(false);
 	let error = $state(null);
@@ -170,7 +168,7 @@
 </script>
 
 <div class="preferences-panel" role="main" aria-label="User preferences">
-	<div >
+	<div>
 		<h2>User Preferences</h2>
 		<p>Customize your Dispatch experience</p>
 	</div>
@@ -197,10 +195,7 @@
 
 				<div class="form-group">
 					<label class="checkbox-container">
-						<input
-							type="checkbox"
-							bind:checked={preferences.ui.showWorkspaceInTitle}
-						/>
+						<input type="checkbox" bind:checked={preferences.ui.showWorkspaceInTitle} />
 						<span class="checkmark"></span>
 						<span class="checkbox-label">Show workspace name in title bar</span>
 					</label>
@@ -241,10 +236,7 @@
 
 				<div class="form-group">
 					<label class="checkbox-container">
-						<input
-							type="checkbox"
-							bind:checked={preferences.auth.rememberLastWorkspace}
-						/>
+						<input type="checkbox" bind:checked={preferences.auth.rememberLastWorkspace} />
 						<span class="checkmark"></span>
 						<span class="checkbox-label">Remember last used workspace</span>
 					</label>
@@ -325,29 +317,17 @@
 
 			<!-- Form Actions -->
 			<div class="form-actions">
-				<button
-					class="btn btn-outline"
-					onclick={handleResetToDefaults}
-					disabled={isSaving}
-				>
+				<button class="btn btn-outline" onclick={handleResetToDefaults} disabled={isSaving}>
 					Reset to Defaults
 				</button>
 
 				{#if hasChanges}
-					<button
-						class="btn btn-outline"
-						onclick={handleDiscardChanges}
-						disabled={isSaving}
-					>
+					<button class="btn btn-outline" onclick={handleDiscardChanges} disabled={isSaving}>
 						Discard Changes
 					</button>
 				{/if}
 
-				<button
-					class="btn btn-primary"
-					onclick={handleSave}
-					disabled={!canSave}
-				>
+				<button class="btn btn-primary" onclick={handleSave} disabled={!canSave}>
 					{#if isSaving}
 						Saving...
 					{:else}
@@ -360,13 +340,15 @@
 		<!-- Messages -->
 		{#if error}
 			<div class="error-message" role="alert">
-				<strong>Error:</strong> {error}
+				<strong>Error:</strong>
+				{error}
 			</div>
 		{/if}
 
 		{#if successMessage}
 			<div class="success-message" role="alert">
-				<strong>Success:</strong> {successMessage}
+				<strong>Success:</strong>
+				{successMessage}
 			</div>
 		{/if}
 	{/if}
@@ -398,7 +380,7 @@
 		margin: 0.5rem 0;
 	}
 
-	.checkbox-container input[type="checkbox"] {
+	.checkbox-container input[type='checkbox'] {
 		margin-right: 0.75rem;
 	}
 
@@ -433,6 +415,8 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 </style>

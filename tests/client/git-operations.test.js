@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor, within } from '@testing-library/svelte';
 import GitOperations from '$lib/client/shared/components/GitOperations.svelte';
@@ -270,7 +269,8 @@ describe('GitOperations Component', () => {
 				currentPath: '/git/repo/path'
 			}
 		});
-		const { findAllByTitle, findAllByText, findByText, findByPlaceholderText } = /** @type {any} */ (queries);
+		const { findAllByTitle, findAllByText, findByText, findByPlaceholderText } =
+			/** @type {any} */ (queries);
 		const commitLabels = await findAllByText('main');
 		if (!commitLabels.length) {
 			throw new Error('Branch info not loaded');

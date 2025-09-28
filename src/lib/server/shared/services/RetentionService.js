@@ -307,8 +307,10 @@ export class RetentionService {
 			}
 
 			// Update last enforced timestamp
-			await this.db.run('UPDATE retention_policies SET last_enforced = ? WHERE id = ?', [Date.now(), policyId]);
-
+			await this.db.run('UPDATE retention_policies SET last_enforced = ? WHERE id = ?', [
+				Date.now(),
+				policyId
+			]);
 		} catch (error) {
 			result.error = error.message;
 			logger.error('RETENTION', `Policy enforcement failed for ${policyId}:`, error);
@@ -321,10 +323,21 @@ export class RetentionService {
 			`INSERT INTO retention_enforcement_log
 			 (policy_id, enforced_at, items_processed, items_retained, items_deleted, execution_time, error_message)
 			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			[policyId, Date.now(), result.processed, result.retained, result.deleted, executionTime, result.error]
+			[
+				policyId,
+				Date.now(),
+				result.processed,
+				result.retained,
+				result.deleted,
+				executionTime,
+				result.error
+			]
 		);
 
-		logger.info('RETENTION', `Enforced policy ${policyId}: ${result.deleted}/${result.processed} items deleted in ${executionTime}ms`);
+		logger.info(
+			'RETENTION',
+			`Enforced policy ${policyId}: ${result.deleted}/${result.processed} items deleted in ${executionTime}ms`
+		);
 
 		return {
 			...result,
@@ -415,7 +428,11 @@ export class RetentionService {
 		);
 
 		if (dryRun) {
-			return { processed: sessionsToCleanup.length, retained: 0, deleted: sessionsToCleanup.length };
+			return {
+				processed: sessionsToCleanup.length,
+				retained: 0,
+				deleted: sessionsToCleanup.length
+			};
 		}
 
 		let deleted = 0;
@@ -497,17 +514,23 @@ export class RetentionService {
 
 		if (dryRun) {
 			// Count inactive workspaces
-			const cutoffTime = Date.now() - (config.inactiveDays * 24 * 60 * 60 * 1000);
+			const cutoffTime = Date.now() - config.inactiveDays * 24 * 60 * 60 * 1000;
 			const inactiveWorkspaces = await this.db.all(
 				'SELECT path FROM workspaces WHERE last_active < ? OR last_active IS NULL',
 				[cutoffTime]
 			);
 
-			return { processed: inactiveWorkspaces.length, retained: 0, deleted: inactiveWorkspaces.length };
+			return {
+				processed: inactiveWorkspaces.length,
+				retained: 0,
+				deleted: inactiveWorkspaces.length
+			};
 		}
 
 		if (config.action === 'archive') {
-			const result = await this.maintenanceService.workspaceService.archiveInactiveWorkspaces(config.inactiveDays);
+			const result = await this.maintenanceService.workspaceService.archiveInactiveWorkspaces(
+				config.inactiveDays
+			);
 			return {
 				processed: result.totalChecked,
 				retained: result.totalChecked - result.archivedCount,
@@ -515,7 +538,10 @@ export class RetentionService {
 			};
 		} else if (config.action === 'delete') {
 			// Implementation for workspace deletion would go here
-			logger.warn('RETENTION', 'Workspace deletion not implemented in workspace policy enforcement');
+			logger.warn(
+				'RETENTION',
+				'Workspace deletion not implemented in workspace policy enforcement'
+			);
 			return { processed: 0, retained: 0, deleted: 0 };
 		}
 
@@ -530,7 +556,7 @@ export class RetentionService {
 	async enforceAllPolicies(options = {}) {
 		await this.init();
 
-		const enabledPolicies = Array.from(this.policies.values()).filter(p => p.is_enabled);
+		const enabledPolicies = Array.from(this.policies.values()).filter((p) => p.is_enabled);
 		const results = [];
 
 		for (const policy of enabledPolicies) {
@@ -593,17 +619,21 @@ export class RetentionService {
 		await this.init();
 
 		const totalPolicies = await this.db.get('SELECT COUNT(*) as count FROM retention_policies');
-		const enabledPolicies = await this.db.get('SELECT COUNT(*) as count FROM retention_policies WHERE is_enabled = 1');
+		const enabledPolicies = await this.db.get(
+			'SELECT COUNT(*) as count FROM retention_policies WHERE is_enabled = 1'
+		);
 
 		const recentEnforcements = await this.db.all(
 			`SELECT policy_id, COUNT(*) as enforcement_count, MAX(enforced_at) as last_enforced
 			 FROM retention_enforcement_log
 			 WHERE enforced_at > ?
 			 GROUP BY policy_id`,
-			[Date.now() - (24 * 60 * 60 * 1000)] // Last 24 hours
+			[Date.now() - 24 * 60 * 60 * 1000] // Last 24 hours
 		);
 
-		const totalEnforcements = await this.db.get('SELECT COUNT(*) as count FROM retention_enforcement_log');
+		const totalEnforcements = await this.db.get(
+			'SELECT COUNT(*) as count FROM retention_enforcement_log'
+		);
 
 		return {
 			totalPolicies: totalPolicies.count,
@@ -611,7 +641,7 @@ export class RetentionService {
 			automaticEnforcement: !!this.enforcementInterval,
 			totalEnforcements: totalEnforcements.count,
 			recentEnforcements: recentEnforcements.length,
-			policies: Array.from(this.policies.values()).map(p => ({
+			policies: Array.from(this.policies.values()).map((p) => ({
 				id: p.id,
 				name: p.name,
 				targetType: p.target_type,
@@ -638,7 +668,7 @@ export class RetentionService {
 			[policyId, limit]
 		);
 
-		return history.map(record => ({
+		return history.map((record) => ({
 			id: record.id,
 			enforcedAt: new Date(record.enforced_at).toISOString(),
 			itemsProcessed: record.items_processed,
@@ -656,7 +686,7 @@ export class RetentionService {
 	async listPolicies() {
 		await this.init();
 
-		return Array.from(this.policies.values()).map(p => ({
+		return Array.from(this.policies.values()).map((p) => ({
 			id: p.id,
 			name: p.name,
 			description: p.description,

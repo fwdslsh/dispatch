@@ -6,6 +6,7 @@
 **Input**: User description: "we need to create UI components and updates to take advantage of the new authentication mechanisms, workspace management, and maintenance. this should include a user onboarding workflow for the first time setup, a way for the user to create and navigate between workspaces, and a way for the user to set retention policies"
 
 ## Execution Flow (main)
+
 ```
 1. Parse user description from Input
    → If empty: ERROR "No feature description provided"
@@ -28,6 +29,7 @@
 ---
 
 ## ⚡ Quick Guidelines
+
 - ✅ Focus on WHAT users need and WHY
 - ❌ Avoid HOW to implement (no tech stack, APIs, code structure)
 - 👥 Written for business stakeholders, not developers
@@ -37,6 +39,7 @@
 ## Clarifications
 
 ### Session 2025-09-27
+
 - Q: Which data types should retention policies support? → A: Sessions + logs (includes application logs and session events)
 - Q: What level of detail should users see when previewing retention policy changes? → A: Simple summary (e.g., "Will delete 15 sessions older than 30 days")
 - Q: What level of onboarding should the initial workflow provide? → A: Progressive (minimal first, optional advanced steps later)
@@ -45,12 +48,14 @@
 
 ---
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### Primary User Story
+
 A developer using Dispatch for the first time needs to complete initial setup, create their first workspace, and configure how long their sessions and data should be retained. Once set up, they need to easily navigate between multiple workspaces and manage their settings over time.
 
 ### Acceptance Scenarios
+
 1. **Given** a user accesses Dispatch for the first time, **When** they navigate to the application, **Then** they are guided through an onboarding workflow that helps them authenticate and create their first workspace
 2. **Given** an authenticated user with existing workspaces, **When** they want to create a new workspace, **Then** they can access a workspace creation interface with clear input fields and validation
 3. **Given** a user with multiple workspaces, **When** they want to switch between them, **Then** they can see a list of their workspaces and navigate to any workspace with a single action
@@ -58,14 +63,16 @@ A developer using Dispatch for the first time needs to complete initial setup, c
 5. **Given** a user completing onboarding, **When** they finish the setup process, **Then** they are directed to their first workspace and can immediately start working
 
 ### Edge Cases
+
 - What happens when a user tries to create a workspace with invalid or existing names?
 - How does the system handle authentication failures during onboarding?
 - What occurs when retention policy changes affect existing data?
 - How are users notified when data is about to be deleted due to retention policies? (24-hour advance notice via UI banner)
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
+
 - **FR-001**: System MUST provide a progressive onboarding workflow with minimal required steps (authentication + first workspace) and optional advanced setup accessible later
 - **FR-002**: System MUST allow users to authenticate using the existing terminal key mechanism during onboarding with a rolling 30-day session that resets with each browser session
 - **FR-003**: System MUST provide a workspace creation interface accessible from the main navigation
@@ -81,7 +88,8 @@ A developer using Dispatch for the first time needs to complete initial setup, c
 - **FR-013**: System MUST prevent deletion of workspaces with active sessions (running or connected status)
 - **FR-014**: System MUST show retention policy effects as a simple summary before applying changes (e.g., "Will delete 15 sessions older than 30 days")
 
-### Key Entities *(include if feature involves data)*
+### Key Entities _(include if feature involves data)_
+
 - **Onboarding State**: Tracks user progress through initial setup, completed steps, and current onboarding phase
 - **Workspace Navigation State**: Manages active workspace selection, workspace list, and navigation history
 - **Retention Policy**: Defines data retention rules with configurable time periods and affected data types
@@ -90,15 +98,18 @@ A developer using Dispatch for the first time needs to complete initial setup, c
 ---
 
 ## Review & Acceptance Checklist
-*GATE: Automated checks run during main() execution*
+
+_GATE: Automated checks run during main() execution_
 
 ### Content Quality
+
 - [ ] No implementation details (languages, frameworks, APIs)
 - [ ] Focused on user value and business needs
 - [ ] Written for non-technical stakeholders
 - [ ] All mandatory sections completed
 
 ### Requirement Completeness
+
 - [ ] No [NEEDS CLARIFICATION] markers remain
 - [ ] Requirements are testable and unambiguous
 - [ ] Success criteria are measurable
@@ -108,7 +119,8 @@ A developer using Dispatch for the first time needs to complete initial setup, c
 ---
 
 ## Execution Status
-*Updated by main() during processing*
+
+_Updated by main() during processing_
 
 - [x] User description parsed
 - [x] Key concepts extracted

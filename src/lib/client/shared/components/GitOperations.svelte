@@ -51,32 +51,32 @@
 		error = '';
 
 		try {
-				const res = await fetch(`/api/git/status?path=${encodeURIComponent(currentPath)}`);
-				let data = null;
-				try {
-					data = await res.json();
-				} catch (jsonError) {
-					console.warn('Failed to parse git status response', jsonError);
-				}
+			const res = await fetch(`/api/git/status?path=${encodeURIComponent(currentPath)}`);
+			let data = null;
+			try {
+				data = await res.json();
+			} catch (jsonError) {
+				console.warn('Failed to parse git status response', jsonError);
+			}
 
-				if (res.ok) {
-					isGitRepo = true;
-					gitStatus = data?.status || null;
-					currentBranch = data?.branch || '';
-					await loadBranches();
-				} else {
-					const message = data?.error || 'Failed to load git status';
-					isGitRepo = false;
-					gitStatus = null;
-					currentBranch = '';
-					branches = [];
-					error = message;
-					onError?.(message);
-				}
+			if (res.ok) {
+				isGitRepo = true;
+				gitStatus = data?.status || null;
+				currentBranch = data?.branch || '';
+				await loadBranches();
+			} else {
+				const message = data?.error || 'Failed to load git status';
+				isGitRepo = false;
+				gitStatus = null;
+				currentBranch = '';
+				branches = [];
+				error = message;
+				onError?.(message);
+			}
 		} catch (e) {
 			isGitRepo = false;
-				error = e.message || 'Failed to check git status';
-				onError?.(error);
+			error = e.message || 'Failed to check git status';
+			onError?.(error);
 		} finally {
 			loading = false;
 		}
@@ -556,6 +556,7 @@
 		{/if}
 	</div>
 {/if}
+
 <style>
 	.git-operations {
 		border-top: 1px solid var(--border-color);

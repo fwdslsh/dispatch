@@ -28,15 +28,15 @@ export async function GET({ params, request, locals }) {
 		const sessionStats = {
 			total: sessions.length,
 			byStatus: {
-				running: sessions.filter(s => s.status === 'running').length,
-				stopped: sessions.filter(s => s.status === 'stopped').length,
-				starting: sessions.filter(s => s.status === 'starting').length,
-				error: sessions.filter(s => s.status === 'error').length
+				running: sessions.filter((s) => s.status === 'running').length,
+				stopped: sessions.filter((s) => s.status === 'stopped').length,
+				starting: sessions.filter((s) => s.status === 'starting').length,
+				error: sessions.filter((s) => s.status === 'error').length
 			},
 			byType: {
-				terminal: sessions.filter(s => s.kind === 'pty').length,
-				claude: sessions.filter(s => s.kind === 'claude').length,
-				fileEditor: sessions.filter(s => s.kind === 'file-editor').length
+				terminal: sessions.filter((s) => s.kind === 'pty').length,
+				claude: sessions.filter((s) => s.kind === 'claude').length,
+				fileEditor: sessions.filter((s) => s.kind === 'file-editor').length
 			}
 		};
 
@@ -53,8 +53,8 @@ export async function GET({ params, request, locals }) {
 
 		// Format active sessions for response
 		const activeSessions = sessions
-			.filter(s => s.status === 'running' || s.status === 'starting')
-			.map(s => ({
+			.filter((s) => s.status === 'running' || s.status === 'starting')
+			.map((s) => ({
 				id: s.run_id,
 				type: s.kind,
 				status: s.status,
@@ -77,7 +77,6 @@ export async function GET({ params, request, locals }) {
 
 		logger.info('WORKSPACE_API', `Retrieved workspace details: ${workspaceId}`);
 		return json(response);
-
 	} catch (err) {
 		logger.error('WORKSPACE_API', 'Failed to get workspace details:', err);
 		return error(500, { message: 'Failed to retrieve workspace details' });
@@ -138,10 +137,7 @@ export async function PUT({ params, request, locals }) {
 
 		// Update workspace metadata
 		const now = Date.now();
-		await dbManager.run(
-			'UPDATE workspaces SET updated_at = ? WHERE path = ?',
-			[now, workspaceId]
-		);
+		await dbManager.run('UPDATE workspaces SET updated_at = ? WHERE path = ?', [now, workspaceId]);
 
 		// If reactivating, update last_active
 		if (status === 'active') {
@@ -149,7 +145,9 @@ export async function PUT({ params, request, locals }) {
 		}
 
 		// Get updated workspace
-		const updatedWorkspace = await dbManager.get('SELECT * FROM workspaces WHERE path = ?', [workspaceId]);
+		const updatedWorkspace = await dbManager.get('SELECT * FROM workspaces WHERE path = ?', [
+			workspaceId
+		]);
 
 		// Recalculate session counts
 		const sessions = await dbManager.all(
@@ -160,10 +158,10 @@ export async function PUT({ params, request, locals }) {
 
 		const sessionCounts = {
 			total: sessions.length,
-			running: sessions.filter(s => s.status === 'running').length,
-			stopped: sessions.filter(s => s.status === 'stopped').length,
-			starting: sessions.filter(s => s.status === 'starting').length,
-			error: sessions.filter(s => s.status === 'error').length
+			running: sessions.filter((s) => s.status === 'running').length,
+			stopped: sessions.filter((s) => s.status === 'stopped').length,
+			starting: sessions.filter((s) => s.status === 'starting').length,
+			error: sessions.filter((s) => s.status === 'error').length
 		};
 
 		const response = {
@@ -172,14 +170,15 @@ export async function PUT({ params, request, locals }) {
 			path: updatedWorkspace.path,
 			status: status || (sessionCounts.running > 0 ? 'active' : 'inactive'),
 			createdAt: new Date(updatedWorkspace.created_at).toISOString(),
-			lastActive: updatedWorkspace.last_active ? new Date(updatedWorkspace.last_active).toISOString() : null,
+			lastActive: updatedWorkspace.last_active
+				? new Date(updatedWorkspace.last_active).toISOString()
+				: null,
 			updatedAt: new Date(updatedWorkspace.updated_at).toISOString(),
 			sessionCounts
 		};
 
 		logger.info('WORKSPACE_API', `Updated workspace: ${workspaceId}`, { status, name });
 		return json(response);
-
 	} catch (err) {
 		logger.error('WORKSPACE_API', 'Failed to update workspace:', err);
 		return error(500, { message: 'Failed to update workspace' });
@@ -192,9 +191,11 @@ export async function DELETE({ params, request, locals }) {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 
 		// Get auth key from query params or headers
-		const authKey = new URL(request.url).searchParams.get('authKey') ||
-			(request.headers.get('authorization')?.startsWith('Bearer ') ?
-				request.headers.get('authorization').slice(7) : null);
+		const authKey =
+			new URL(request.url).searchParams.get('authKey') ||
+			(request.headers.get('authorization')?.startsWith('Bearer ')
+				? request.headers.get('authorization').slice(7)
+				: null);
 
 		// Require authentication for delete operations
 		if (!validateKey(authKey)) {
@@ -222,7 +223,7 @@ export async function DELETE({ params, request, locals }) {
 			return error(400, {
 				message: 'Cannot delete workspace with active sessions',
 				activeSessionCount: activeSessions.length,
-				activeSessions: activeSessions.map(s => ({ id: s.run_id, status: s.status }))
+				activeSessions: activeSessions.map((s) => ({ id: s.run_id, status: s.status }))
 			});
 		}
 
@@ -242,7 +243,6 @@ export async function DELETE({ params, request, locals }) {
 
 		logger.info('WORKSPACE_API', `Deleted workspace: ${workspaceId}`);
 		return json({ message: 'Workspace deleted successfully' });
-
 	} catch (err) {
 		logger.error('WORKSPACE_API', 'Failed to delete workspace:', err);
 		return error(500, { message: 'Failed to delete workspace' });

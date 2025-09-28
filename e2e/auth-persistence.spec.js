@@ -14,8 +14,8 @@ import { setupFreshTestEnvironment, waitForWorkspace } from './test-helpers.js';
 test.describe('Authentication Persistence', () => {
 	const validTerminalKey = 'testkey12345';
 	const currentTime = Date.now();
-	const thirtyDaysFromNow = currentTime + (30 * 24 * 60 * 60 * 1000);
-	const expiredTime = currentTime - (31 * 24 * 60 * 60 * 1000);
+	const thirtyDaysFromNow = currentTime + 30 * 24 * 60 * 60 * 1000;
+	const expiredTime = currentTime - 31 * 24 * 60 * 60 * 1000;
 
 	test.beforeEach(async ({ page }) => {
 		// Clear all storage initially
@@ -74,7 +74,10 @@ test.describe('Authentication Persistence', () => {
 			await page.addInitScript((terminalKey) => {
 				localStorage.setItem('dispatch-auth-key', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
-				localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+				localStorage.setItem(
+					'authExpiresAt',
+					new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+				);
 			}, validTerminalKey);
 
 			await page.goto('/');
@@ -92,7 +95,10 @@ test.describe('Authentication Persistence', () => {
 			await newPage.addInitScript((terminalKey) => {
 				localStorage.setItem('dispatch-auth-key', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
-				localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+				localStorage.setItem(
+					'authExpiresAt',
+					new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+				);
 			}, validTerminalKey);
 
 			// Mock session validation endpoint
@@ -161,7 +167,7 @@ test.describe('Authentication Persistence', () => {
 					body: JSON.stringify({
 						success: true,
 						sessionId: 'session-123',
-						expiresAt: new Date(Date.now() + 30*24*60*60*1000).toISOString(),
+						expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
 						extended: sessionExtendedCount > 1
 					})
 				});
@@ -171,7 +177,10 @@ test.describe('Authentication Persistence', () => {
 			await page.addInitScript((terminalKey) => {
 				localStorage.setItem('dispatch-auth-key', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
-				localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+				localStorage.setItem(
+					'authExpiresAt',
+					new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+				);
 			}, validTerminalKey);
 
 			await page.goto('/');
@@ -225,7 +234,10 @@ test.describe('Authentication Persistence', () => {
 			await page.addInitScript((terminalKey) => {
 				localStorage.setItem('dispatch-auth-key', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
-				localStorage.setItem('authExpiresAt', new Date(Date.now() - 31*24*60*60*1000).toISOString());
+				localStorage.setItem(
+					'authExpiresAt',
+					new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString()
+				);
 			}, validTerminalKey);
 
 			await page.goto('/');
@@ -320,7 +332,9 @@ test.describe('Authentication Persistence', () => {
 			await page.locator('button', { hasText: /Continue|Login/i }).click();
 
 			// Should show network error or retry option
-			await expect(page.locator('text=/network.*error|connection.*failed|try.*again/i').first()).toBeVisible({ timeout: 10000 });
+			await expect(
+				page.locator('text=/network.*error|connection.*failed|try.*again/i').first()
+			).toBeVisible({ timeout: 10000 });
 		});
 
 		await test.step('Retry after network recovery', async () => {
@@ -360,12 +374,22 @@ test.describe('Authentication Persistence', () => {
 			const page2 = await context2.newPage();
 
 			// Set up authentication for both contexts
-			for (const [index, page] of [[1, page1], [2, page2]]) {
-				await page.addInitScript((terminalKey, sessionId) => {
-					localStorage.setItem('dispatch-auth-key', terminalKey);
-					localStorage.setItem('authSessionId', sessionId);
-					localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
-				}, validTerminalKey, `session-${index}`);
+			for (const [index, page] of [
+				[1, page1],
+				[2, page2]
+			]) {
+				await page.addInitScript(
+					(terminalKey, sessionId) => {
+						localStorage.setItem('dispatch-auth-key', terminalKey);
+						localStorage.setItem('authSessionId', sessionId);
+						localStorage.setItem(
+							'authExpiresAt',
+							new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+						);
+					},
+					validTerminalKey,
+					`session-${index}`
+				);
 
 				// Mock authentication
 				await page.route('/api/auth/check', (route) => {
@@ -440,7 +464,10 @@ test.describe('Authentication Persistence', () => {
 			await page.addInitScript((terminalKey) => {
 				localStorage.setItem('dispatch-auth-key', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
-				localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+				localStorage.setItem(
+					'authExpiresAt',
+					new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+				);
 			}, validTerminalKey);
 
 			await page.goto('/');
@@ -475,7 +502,10 @@ test.describe('Authentication Persistence', () => {
 			await page.addInitScript((terminalKey) => {
 				localStorage.setItem('dispatch-auth-key', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
-				localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+				localStorage.setItem(
+					'authExpiresAt',
+					new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+				);
 			}, validTerminalKey);
 
 			// Mock authentication

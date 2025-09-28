@@ -4,8 +4,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const createMockState = (initialValue) => {
 	let value = initialValue;
 	return {
-		get value() { return value; },
-		set value(newValue) { value = newValue; }
+		get value() {
+			return value;
+		},
+		set value(newValue) {
+			value = newValue;
+		}
 	};
 };
 
@@ -35,25 +39,26 @@ describe('WorkspaceNavigationViewModel', () => {
 			// Derived state
 			get filteredWorkspaces() {
 				if (!this.searchTerm.value) return this.workspaces.value;
-				return this.workspaces.value.filter(workspace =>
-					workspace.name.toLowerCase().includes(this.searchTerm.value.toLowerCase()) ||
-					workspace.path.toLowerCase().includes(this.searchTerm.value.toLowerCase())
+				return this.workspaces.value.filter(
+					(workspace) =>
+						workspace.name.toLowerCase().includes(this.searchTerm.value.toLowerCase()) ||
+						workspace.path.toLowerCase().includes(this.searchTerm.value.toLowerCase())
 				);
 			},
 
 			get recentWorkspaces() {
 				return this.workspaces.value
-					.filter(w => w.lastActive)
+					.filter((w) => w.lastActive)
 					.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive))
 					.slice(0, 5);
 			},
 
 			get activeWorkspaces() {
-				return this.workspaces.value.filter(w => w.status === 'active');
+				return this.workspaces.value.filter((w) => w.status === 'active');
 			},
 
 			get archivedWorkspaces() {
-				return this.workspaces.value.filter(w => w.status === 'archived');
+				return this.workspaces.value.filter((w) => w.status === 'archived');
 			},
 
 			// Methods
@@ -85,7 +90,7 @@ describe('WorkspaceNavigationViewModel', () => {
 			addToHistory(workspace) {
 				const history = this.navigationHistory.value;
 				// Remove if exists, then add to front
-				const filtered = history.filter(w => w.path !== workspace.path);
+				const filtered = history.filter((w) => w.path !== workspace.path);
 				const newHistory = [workspace, ...filtered].slice(0, 10); // Keep last 10
 				this.navigationHistory.value = newHistory;
 			},
@@ -109,7 +114,7 @@ describe('WorkspaceNavigationViewModel', () => {
 				this.isLoading.value = true;
 				try {
 					const updatedWorkspace = await mockApiClient.updateWorkspace(workspaceId, updates);
-					const index = this.workspaces.value.findIndex(w => w.path === workspaceId);
+					const index = this.workspaces.value.findIndex((w) => w.path === workspaceId);
 					if (index >= 0) {
 						const newWorkspaces = [...this.workspaces.value];
 						newWorkspaces[index] = updatedWorkspace;
@@ -126,7 +131,7 @@ describe('WorkspaceNavigationViewModel', () => {
 			},
 
 			async deleteWorkspace(workspaceId) {
-				const workspace = this.workspaces.value.find(w => w.path === workspaceId);
+				const workspace = this.workspaces.value.find((w) => w.path === workspaceId);
 				if (workspace && workspace.activeSessions && workspace.activeSessions.length > 0) {
 					throw new Error('Cannot delete workspace with active sessions');
 				}
@@ -134,10 +139,12 @@ describe('WorkspaceNavigationViewModel', () => {
 				this.isLoading.value = true;
 				try {
 					await mockApiClient.deleteWorkspace(workspaceId);
-					this.workspaces.value = this.workspaces.value.filter(w => w.path !== workspaceId);
+					this.workspaces.value = this.workspaces.value.filter((w) => w.path !== workspaceId);
 
 					// Remove from history
-					this.navigationHistory.value = this.navigationHistory.value.filter(w => w.path !== workspaceId);
+					this.navigationHistory.value = this.navigationHistory.value.filter(
+						(w) => w.path !== workspaceId
+					);
 
 					// Clear active workspace if it was deleted
 					if (this.activeWorkspace.value && this.activeWorkspace.value.path === workspaceId) {
@@ -233,9 +240,21 @@ describe('WorkspaceNavigationViewModel', () => {
 	it('should sort recent workspaces by last activity', () => {
 		const now = Date.now();
 		const workspaces = [
-			{ path: '/workspace/project1', name: 'Project 1', lastActive: new Date(now - 3600000).toISOString() }, // 1 hour ago
-			{ path: '/workspace/project2', name: 'Project 2', lastActive: new Date(now - 86400000).toISOString() }, // 1 day ago
-			{ path: '/workspace/project3', name: 'Project 3', lastActive: new Date(now - 1800000).toISOString() }, // 30 min ago
+			{
+				path: '/workspace/project1',
+				name: 'Project 1',
+				lastActive: new Date(now - 3600000).toISOString()
+			}, // 1 hour ago
+			{
+				path: '/workspace/project2',
+				name: 'Project 2',
+				lastActive: new Date(now - 86400000).toISOString()
+			}, // 1 day ago
+			{
+				path: '/workspace/project3',
+				name: 'Project 3',
+				lastActive: new Date(now - 1800000).toISOString()
+			}, // 30 min ago
 			{ path: '/workspace/project4', name: 'Project 4', lastActive: null } // Never accessed
 		];
 
@@ -304,14 +323,22 @@ describe('WorkspaceNavigationViewModel', () => {
 
 	it('should update workspace', async () => {
 		const originalWorkspace = { path: '/workspace/project1', name: 'Project 1', status: 'active' };
-		const updatedWorkspace = { path: '/workspace/project1', name: 'Updated Project', status: 'active' };
+		const updatedWorkspace = {
+			path: '/workspace/project1',
+			name: 'Updated Project',
+			status: 'active'
+		};
 
 		viewModel.workspaces.value = [originalWorkspace];
 		mockApiClient.updateWorkspace.mockResolvedValue(updatedWorkspace);
 
-		const result = await viewModel.updateWorkspace('/workspace/project1', { name: 'Updated Project' });
+		const result = await viewModel.updateWorkspace('/workspace/project1', {
+			name: 'Updated Project'
+		});
 
-		expect(mockApiClient.updateWorkspace).toHaveBeenCalledWith('/workspace/project1', { name: 'Updated Project' });
+		expect(mockApiClient.updateWorkspace).toHaveBeenCalledWith('/workspace/project1', {
+			name: 'Updated Project'
+		});
 		expect(viewModel.workspaces.value[0]).toEqual(updatedWorkspace);
 		expect(result).toEqual(updatedWorkspace);
 	});
@@ -325,8 +352,9 @@ describe('WorkspaceNavigationViewModel', () => {
 
 		viewModel.workspaces.value = [workspace];
 
-		await expect(viewModel.deleteWorkspace('/workspace/project1'))
-			.rejects.toThrow('Cannot delete workspace with active sessions');
+		await expect(viewModel.deleteWorkspace('/workspace/project1')).rejects.toThrow(
+			'Cannot delete workspace with active sessions'
+		);
 
 		expect(viewModel.workspaces.value).toContain(workspace);
 	});
@@ -370,7 +398,7 @@ describe('WorkspaceNavigationViewModel', () => {
 
 	it('should handle loading states correctly', async () => {
 		let resolvePromise;
-		const pendingPromise = new Promise(resolve => {
+		const pendingPromise = new Promise((resolve) => {
 			resolvePromise = resolve;
 		});
 

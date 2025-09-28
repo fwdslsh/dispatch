@@ -422,7 +422,6 @@
 					</div>
 				</div>
 			{/if}
-
 		{:else if authStatus === 'error'}
 			<ErrorDisplay message={authError} />
 		{/if}

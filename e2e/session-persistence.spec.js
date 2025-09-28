@@ -18,15 +18,17 @@ test.describe('Session Persistence', () => {
 		}
 
 		// Ensure test workspace exists
-		await page.request.post(`${BASE_URL}/api/workspaces`, {
-			data: {
-				path: testWorkspacePath,
-				name: 'Session Test Workspace',
-				authKey: TEST_KEY
-			}
-		}).catch(() => {
-			// Workspace might already exist
-		});
+		await page.request
+			.post(`${BASE_URL}/api/workspaces`, {
+				data: {
+					path: testWorkspacePath,
+					name: 'Session Test Workspace',
+					authKey: TEST_KEY
+				}
+			})
+			.catch(() => {
+				// Workspace might already exist
+			});
 	});
 
 	test.afterEach(async ({ page }) => {
@@ -49,7 +51,9 @@ test.describe('Session Persistence', () => {
 
 		// Clean up workspace
 		try {
-			await page.request.delete(`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`);
+			await page.request.delete(
+				`${BASE_URL}/api/workspaces/${encodeURIComponent(testWorkspacePath)}?authKey=${TEST_KEY}`
+			);
 		} catch {
 			// Ignore cleanup errors
 		}
@@ -92,7 +96,7 @@ test.describe('Session Persistence', () => {
 		expect(sessionsResponse.status()).toBe(200);
 
 		const sessionsData = await sessionsResponse.json();
-		const session = sessionsData.sessions.find(s => s.id === sessionId);
+		const session = sessionsData.sessions.find((s) => s.id === sessionId);
 		expect(session).toBeDefined();
 		expect(session.type).toBe('pty');
 		expect(session.isActive).toBe(true);
@@ -107,7 +111,7 @@ test.describe('Session Persistence', () => {
 		expect(historyData.events.length).toBeGreaterThan(0);
 
 		// Verify events contain our commands
-		const eventContent = historyData.events.map(e => e.data || '').join('');
+		const eventContent = historyData.events.map((e) => e.data || '').join('');
 		expect(eventContent).toContain('echo "Hello World"');
 		expect(eventContent).toContain('pwd');
 	});
@@ -221,7 +225,9 @@ test.describe('Session Persistence', () => {
 		await page2.waitForSelector('[data-testid="terminal-container"]', { timeout: 10000 });
 
 		// Verify session content is synchronized
-		const terminal2Content = await page2.locator('[data-testid="terminal-container"]').textContent();
+		const terminal2Content = await page2
+			.locator('[data-testid="terminal-container"]')
+			.textContent();
 		expect(terminal2Content).toContain('From tab 1');
 
 		// Send command from second tab
@@ -233,7 +239,9 @@ test.describe('Session Persistence', () => {
 
 		// Verify command appears in both tabs
 		await page1.waitForTimeout(1000); // Allow sync time
-		const terminal1Updated = await page1.locator('[data-testid="terminal-container"]').textContent();
+		const terminal1Updated = await page1
+			.locator('[data-testid="terminal-container"]')
+			.textContent();
 		expect(terminal1Updated).toContain('From tab 2');
 
 		// Clean up
@@ -326,7 +334,9 @@ test.describe('Session Persistence', () => {
 		expect(Array.isArray(historyData.events)).toBe(true);
 
 		// Verify sequence numbers are monotonic
-		const sequenceNumbers = historyData.events.map(e => e.sequence).filter(s => s !== undefined);
+		const sequenceNumbers = historyData.events
+			.map((e) => e.sequence)
+			.filter((s) => s !== undefined);
 		expect(sequenceNumbers.length).toBeGreaterThan(0);
 
 		for (let i = 1; i < sequenceNumbers.length; i++) {
@@ -334,7 +344,7 @@ test.describe('Session Persistence', () => {
 		}
 
 		// Verify all commands are captured in order
-		const eventContent = historyData.events.map(e => e.data || '').join('');
+		const eventContent = historyData.events.map((e) => e.data || '').join('');
 		for (const command of commands) {
 			expect(eventContent).toContain(command);
 		}

@@ -3,7 +3,10 @@ if (typeof globalThis.global === 'undefined') {
 	globalThis.global = globalThis;
 }
 
-if (typeof globalThis.window !== 'undefined' && !Object.getOwnPropertyDescriptor(globalThis, 'fetch')) {
+if (
+	typeof globalThis.window !== 'undefined' &&
+	!Object.getOwnPropertyDescriptor(globalThis, 'fetch')
+) {
 	Object.defineProperty(globalThis, 'fetch', {
 		configurable: true,
 		get() {

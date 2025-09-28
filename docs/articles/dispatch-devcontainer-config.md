@@ -1,8 +1,8 @@
 ---
-title: "Using Dispatch with .devcontainer Configuration"
-description: "Learn how to set up Dispatch using VSCode .devcontainer configuration files for automated container management and consistent development environments."
-tags: ["vscode", "devcontainer", "docker", "dispatch", "configuration"]
-series: "Dispatch DevContainer Guide"
+title: 'Using Dispatch with .devcontainer Configuration'
+description: 'Learn how to set up Dispatch using VSCode .devcontainer configuration files for automated container management and consistent development environments.'
+tags: ['vscode', 'devcontainer', 'docker', 'dispatch', 'configuration']
+series: 'Dispatch DevContainer Guide'
 published: false
 draft: true
 ---
@@ -14,6 +14,7 @@ This guide shows you how to use VSCode's `.devcontainer` configuration to automa
 ## Overview
 
 Using `.devcontainer` configuration is ideal when:
+
 - You want automated container lifecycle management
 - You need consistent development environments across team members
 - You're working on projects that require specific Dispatch configurations
@@ -53,14 +54,14 @@ Create `.devcontainer/devcontainer.json` (you can also use our [example configur
 {
 	"name": "Dispatch Development Environment",
 	"image": "fwdslsh/dispatch:latest",
-	
+
 	// Container configuration
 	"containerEnv": {
 		"TERMINAL_KEY": "devcontainer-key-12345",
 		"PORT": "3030",
 		"ENABLE_TUNNEL": "false"
 	},
-	
+
 	// Port forwarding
 	"forwardPorts": [3030],
 	"portsAttributes": {
@@ -69,17 +70,17 @@ Create `.devcontainer/devcontainer.json` (you can also use our [example configur
 			"onAutoForward": "notify"
 		}
 	},
-	
+
 	// Volume mounts for persistence
 	"mounts": [
 		"source=dispatch-home,target=/home/dispatch,type=volume",
 		"source=dispatch-workspace,target=/workspace,type=volume"
 	],
-	
+
 	// Run as non-root user
 	"remoteUser": "dispatch",
 	"containerUser": "dispatch",
-	
+
 	// VSCode settings
 	"customizations": {
 		"vscode": {
@@ -103,10 +104,10 @@ Create `.devcontainer/devcontainer.json` (you can also use our [example configur
 			]
 		}
 	},
-	
+
 	// Container lifecycle
 	"postCreateCommand": "echo 'Dispatch devcontainer ready! Open http://localhost:3030 to access the web interface.'",
-	
+
 	// Features (optional additional tools)
 	"features": {
 		"ghcr.io/devcontainers/features/git:1": {
@@ -116,10 +117,10 @@ Create `.devcontainer/devcontainer.json` (you can also use our [example configur
 			"version": "22"
 		}
 	},
-	
+
 	// Resource limits (optional)
 	"runArgs": ["--memory=2g", "--cpus=2"],
-	
+
 	// Shutdown action
 	"shutdownAction": "stopContainer"
 }
@@ -146,7 +147,7 @@ services:
   dispatch:
     image: fwdslsh/dispatch:latest
     ports:
-      - "3030:3030"
+      - '3030:3030'
     environment:
       - TERMINAL_KEY=devcontainer-key-12345
       - PORT=3030
@@ -157,7 +158,7 @@ services:
       - dispatch-home:/home/dispatch
       - dispatch-workspace:/workspace
       - ../:/workspace/project
-    user: "1000:1000"
+    user: '1000:1000'
     restart: unless-stopped
 
 volumes:
@@ -241,7 +242,7 @@ Then reference it in your `devcontainer.json`:
 	"name": "Custom Dispatch Environment",
 	"build": {
 		"dockerfile": "Dockerfile"
-	},
+	}
 	// ... rest of configuration
 }
 ```
@@ -268,12 +269,14 @@ Configure environment variables in your `devcontainer.json`:
 For sensitive data, use environment files that are not committed to version control:
 
 Create `.env` (add to `.gitignore`):
+
 ```bash
 TERMINAL_KEY=your-secure-key
 CLAUDE_API_KEY=your-claude-key
 ```
 
 Reference in `devcontainer.json`:
+
 ```json
 {
 	"containerEnv": {
@@ -286,6 +289,7 @@ Reference in `devcontainer.json`:
 ### Volume Mount Strategies
 
 #### Named Volumes (Recommended)
+
 ```json
 {
 	"mounts": [
@@ -296,6 +300,7 @@ Reference in `devcontainer.json`:
 ```
 
 #### Bind Mounts
+
 ```json
 {
 	"mounts": [
@@ -333,6 +338,7 @@ Once your devcontainer is configured:
 **Problem**: Devcontainer fails to build or start.
 
 **Solutions**:
+
 1. Check `devcontainer.json` syntax:
    ```bash
    # Use online JSON validator or VSCode JSON validation
@@ -349,6 +355,7 @@ Once your devcontainer is configured:
 **Problem**: Files not persisting or not visible in container.
 
 **Solutions**:
+
 1. Check volume mount syntax in `devcontainer.json`
 2. Use named volumes for better persistence:
    ```json
@@ -364,6 +371,7 @@ Once your devcontainer is configured:
 **Problem**: VSCode extensions don't install or work properly.
 
 **Solutions**:
+
 1. Check extension IDs in `devcontainer.json`:
    ```json
    "extensions": ["ms-vscode.vscode-typescript-next"]
@@ -377,6 +385,7 @@ Once your devcontainer is configured:
 **Problem**: Container runs slowly or uses too much memory.
 
 **Solutions**:
+
 1. Add resource limits:
    ```json
    "runArgs": ["--memory=4g", "--cpus=2"]
@@ -435,11 +444,7 @@ Once your devcontainer is configured:
 	},
 	"customizations": {
 		"vscode": {
-			"extensions": [
-				"ms-python.python",
-				"ms-python.pylint",
-				"ms-python.black-formatter"
-			]
+			"extensions": ["ms-python.python", "ms-python.pylint", "ms-python.black-formatter"]
 		}
 	},
 	"postCreateCommand": "pip install -r requirements.txt"

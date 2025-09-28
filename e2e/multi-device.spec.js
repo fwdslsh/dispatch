@@ -4,7 +4,9 @@ const TEST_KEY = process.env.TERMINAL_KEY || 'testkey12345';
 const BASE_URL = 'http://localhost:5173';
 
 test.describe('Multi-Device Synchronization', () => {
-	test('should synchronize terminal output across multiple browser contexts', async ({ browser }) => {
+	test('should synchronize terminal output across multiple browser contexts', async ({
+		browser
+	}) => {
 		// Create two separate browser contexts to simulate different devices
 		const context1 = await browser.newContext();
 		const context2 = await browser.newContext();
@@ -57,7 +59,9 @@ test.describe('Multi-Device Synchronization', () => {
 			await page2.waitForSelector('[data-testid="terminal-container"]', { timeout: 10000 });
 
 			// Verify device 2 can see the output from device 1
-			const terminal2Content = await page2.locator('[data-testid="terminal-container"]').textContent();
+			const terminal2Content = await page2
+				.locator('[data-testid="terminal-container"]')
+				.textContent();
 			expect(terminal2Content).toContain('Message from device 1');
 
 			// Send command from device 2
@@ -69,7 +73,9 @@ test.describe('Multi-Device Synchronization', () => {
 
 			// Verify device 1 can see the output from device 2
 			await page1.waitForTimeout(1000); // Allow sync time
-			const terminal1Updated = await page1.locator('[data-testid="terminal-container"]').textContent();
+			const terminal1Updated = await page1
+				.locator('[data-testid="terminal-container"]')
+				.textContent();
 			expect(terminal1Updated).toContain('Message from device 2');
 
 			// Verify both devices see both messages
@@ -80,7 +86,6 @@ test.describe('Multi-Device Synchronization', () => {
 			expect(finalContent1).toContain('Message from device 2');
 			expect(finalContent2).toContain('Message from device 1');
 			expect(finalContent2).toContain('Message from device 2');
-
 		} finally {
 			await context1.close();
 			await context2.close();
@@ -132,7 +137,9 @@ test.describe('Multi-Device Synchronization', () => {
 			await page2.waitForSelector('[data-testid="terminal-container"]', { timeout: 10000 });
 
 			// Verify device 2 can see the output
-			const terminal2Content = await page2.locator('[data-testid="terminal-container"]').textContent();
+			const terminal2Content = await page2
+				.locator('[data-testid="terminal-container"]')
+				.textContent();
 			expect(terminal2Content).toContain('Primary device active');
 
 			// Send more commands from device 1
@@ -143,9 +150,10 @@ test.describe('Multi-Device Synchronization', () => {
 
 			// Verify device 2 sees the new output
 			await page2.waitForTimeout(1000);
-			const terminal2Updated = await page2.locator('[data-testid="terminal-container"]').textContent();
+			const terminal2Updated = await page2
+				.locator('[data-testid="terminal-container"]')
+				.textContent();
 			expect(terminal2Updated).toContain('Still writing from device 1');
-
 		} finally {
 			await context1.close();
 			await context2.close();
@@ -194,24 +202,27 @@ test.describe('Multi-Device Synchronization', () => {
 			// Verify both devices show session as active
 			const sessionsResponse1 = await page1.request.get(`${BASE_URL}/api/sessions?include=all`);
 			const sessionsData1 = await sessionsResponse1.json();
-			const session1 = sessionsData1.sessions.find(s => s.id === sessionId);
+			const session1 = sessionsData1.sessions.find((s) => s.id === sessionId);
 			expect(session1.isActive).toBe(true);
 
 			const sessionsResponse2 = await page2.request.get(`${BASE_URL}/api/sessions?include=all`);
 			const sessionsData2 = await sessionsResponse2.json();
-			const session2 = sessionsData2.sessions.find(s => s.id === sessionId);
+			const session2 = sessionsData2.sessions.find((s) => s.id === sessionId);
 			expect(session2.isActive).toBe(true);
 
 			// Close session from device 1
-			await page1.click(`[data-session-id="${sessionId}"] button[title*="Close"]`, { timeout: 5000 }).catch(() => {
-				// Try alternative close button selector
-				return page1.click(`[data-session-id="${sessionId}"] .close-button`);
-			}).catch(() => {
-				// Try closing via API if UI method fails
-				return page1.request.delete(`${BASE_URL}/api/sessions`, {
-					data: { id: sessionId }
+			await page1
+				.click(`[data-session-id="${sessionId}"] button[title*="Close"]`, { timeout: 5000 })
+				.catch(() => {
+					// Try alternative close button selector
+					return page1.click(`[data-session-id="${sessionId}"] .close-button`);
+				})
+				.catch(() => {
+					// Try closing via API if UI method fails
+					return page1.request.delete(`${BASE_URL}/api/sessions`, {
+						data: { id: sessionId }
+					});
 				});
-			});
 
 			// Wait for state change to propagate
 			await page1.waitForTimeout(2000);
@@ -220,11 +231,10 @@ test.describe('Multi-Device Synchronization', () => {
 			await page2.waitForTimeout(2000);
 			const finalSessionsResponse = await page2.request.get(`${BASE_URL}/api/sessions?include=all`);
 			const finalSessionsData = await finalSessionsResponse.json();
-			const finalSession = finalSessionsData.sessions.find(s => s.id === sessionId);
+			const finalSession = finalSessionsData.sessions.find((s) => s.id === sessionId);
 
 			// Session should either be marked as inactive or not exist
 			expect(finalSession === undefined || finalSession.isActive === false).toBe(true);
-
 		} finally {
 			await context1.close();
 			await context2.close();
@@ -274,7 +284,9 @@ test.describe('Multi-Device Synchronization', () => {
 			await page2.waitForSelector('[data-testid="terminal-container"]', { timeout: 10000 });
 
 			// Verify device 2 sees the initial command
-			const terminal2Initial = await page2.locator('[data-testid="terminal-container"]').textContent();
+			const terminal2Initial = await page2
+				.locator('[data-testid="terminal-container"]')
+				.textContent();
 			expect(terminal2Initial).toContain('Before disconnection');
 
 			// Simulate network disconnection on device 2
@@ -306,11 +318,12 @@ test.describe('Multi-Device Synchronization', () => {
 				await page2.waitForSelector('[data-testid="terminal-container"]', { timeout: 10000 });
 
 				// Verify device 2 catches up with what happened while offline
-				const terminal2Reconnected = await page2.locator('[data-testid="terminal-container"]').textContent();
+				const terminal2Reconnected = await page2
+					.locator('[data-testid="terminal-container"]')
+					.textContent();
 				expect(terminal2Reconnected).toContain('Before disconnection');
 				expect(terminal2Reconnected).toContain('While device 2 offline');
 			}
-
 		} finally {
 			await context1.close();
 			await context2.close();
@@ -380,11 +393,13 @@ test.describe('Multi-Device Synchronization', () => {
 			await page2.waitForTimeout(2000);
 
 			// Get session history from API
-			const historyResponse = await page1.request.get(`${BASE_URL}/api/sessions/${sessionId}/history`);
+			const historyResponse = await page1.request.get(
+				`${BASE_URL}/api/sessions/${sessionId}/history`
+			);
 			const historyData = await historyResponse.json();
 
 			// Verify events are properly ordered by sequence number
-			const events = historyData.events.filter(e => e.sequence !== undefined);
+			const events = historyData.events.filter((e) => e.sequence !== undefined);
 			for (let i = 1; i < events.length; i++) {
 				expect(events[i].sequence).toBeGreaterThan(events[i - 1].sequence);
 			}
@@ -401,7 +416,6 @@ test.describe('Multi-Device Synchronization', () => {
 			expect(terminal2Final).toContain('Device 1 - Command 1');
 			expect(terminal2Final).toContain('Device 2 - Command 1');
 			expect(terminal2Final).toContain('Device 1 - Command 2');
-
 		} finally {
 			await context1.close();
 			await context2.close();

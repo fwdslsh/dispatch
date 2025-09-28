@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Home Directory Manager is a new feature added to the Dispatch Settings Modal that provides secure file management capabilities within the user's home directory. This feature enables users to browse, edit, upload, and manage files directly from the web interface while maintaining strict security boundaries.
+The Home Directory Manager is part of the unified Dispatch settings page experience and provides secure file management capabilities within the user's home directory. This feature enables users to browse, edit, upload, and manage files directly from the web interface while maintaining strict security boundaries.
 
 ## Features
 
@@ -59,11 +59,11 @@ The Home Directory Manager is a new feature added to the Dispatch Settings Modal
   - Error handling and user feedback
   - State persistence across sessions
 
-#### Settings Modal Integration
+#### Settings Page Integration
 
-- **Location**: `src/lib/client/shared/components/Settings/SettingsModal.svelte`
-- **Integration**: Added as new "Home Directory" tab with user icon
-- **Consistent**: Follows existing Settings Modal design patterns
+- **Location**: `src/routes/settings/+page.svelte`
+- **Integration**: Registered as the "Home Directory" tab within the left navigation
+- **Consistent**: Follows the unified settings page design patterns
 
 ### Security Implementation
 
@@ -141,7 +141,7 @@ function isPathWithinHome(requestedPath) {
 
 ### Modified Files
 
-- `src/lib/client/shared/components/Settings/SettingsModal.svelte` - Added new tab integration
+- `src/routes/settings/+page.svelte` - Added new tab integration
 - `src/lib/client/settings/pageState.js` - Shared settings section registry and helpers
 
 ## Conclusion

@@ -10,16 +10,9 @@
 	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { OnboardingViewModel } from '$lib/client/onboarding/OnboardingViewModel.svelte.js';
 	let { children, header = null, footer = null } = $props();
-	
-	
 
-	onMount(async () => {
-		
-	});
-
-
+	onMount(async () => {});
 </script>
-
 
 <div class="dispatch-app">
 	{@render header?.()}
@@ -30,7 +23,6 @@
 
 	{@render footer?.()}
 </div>
-
 
 <style>
 	/* Global layout structure */
@@ -82,4 +74,3 @@
 		}
 	}
 </style>
-

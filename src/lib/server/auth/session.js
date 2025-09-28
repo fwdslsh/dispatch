@@ -108,23 +108,26 @@ export class AuthSessionManager {
 		};
 
 		try {
-			await this.dbManager.run(`
+			await this.dbManager.run(
+				`
 				INSERT INTO auth_sessions (
 					id, terminal_key_hash, user_id, created_at, last_activity,
 					expires_at, browser_fingerprint, ip_address, user_agent, is_active
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-			`, [
-				sessionData.id,
-				sessionData.terminal_key_hash,
-				sessionData.user_id,
-				sessionData.created_at,
-				sessionData.last_activity,
-				sessionData.expires_at,
-				sessionData.browser_fingerprint,
-				sessionData.ip_address,
-				sessionData.user_agent,
-				sessionData.is_active
-			]);
+			`,
+				[
+					sessionData.id,
+					sessionData.terminal_key_hash,
+					sessionData.user_id,
+					sessionData.created_at,
+					sessionData.last_activity,
+					sessionData.expires_at,
+					sessionData.browser_fingerprint,
+					sessionData.ip_address,
+					sessionData.user_agent,
+					sessionData.is_active
+				]
+			);
 
 			logger.info(`Created auth session: ${sessionId}`);
 
@@ -153,10 +156,13 @@ export class AuthSessionManager {
 
 		try {
 			// Get current session
-			const session = await this.dbManager.get(`
+			const session = await this.dbManager.get(
+				`
 				SELECT * FROM auth_sessions
 				WHERE id = ? AND terminal_key_hash = ? AND is_active = 1
-			`, [sessionId, terminalKeyHash]);
+			`,
+				[sessionId, terminalKeyHash]
+			);
 
 			if (!session) {
 				logger.debug(`Session validation failed: ${sessionId}`);
@@ -171,19 +177,16 @@ export class AuthSessionManager {
 			}
 
 			// Extend the session (rolling 30-day window)
-			await this.dbManager.run(`
+			await this.dbManager.run(
+				`
 				UPDATE auth_sessions
 				SET last_activity = ?, expires_at = ?,
 					ip_address = COALESCE(?, ip_address),
 					user_agent = COALESCE(?, user_agent)
 				WHERE id = ?
-			`, [
-				now,
-				newExpiresAt,
-				updateInfo.ipAddress,
-				updateInfo.userAgent,
-				sessionId
-			]);
+			`,
+				[now, newExpiresAt, updateInfo.ipAddress, updateInfo.userAgent, sessionId]
+			);
 
 			logger.debug(`Extended auth session: ${sessionId}`);
 
@@ -207,10 +210,13 @@ export class AuthSessionManager {
 	 */
 	async getSession(sessionId) {
 		try {
-			const session = await this.dbManager.get(`
+			const session = await this.dbManager.get(
+				`
 				SELECT * FROM auth_sessions
 				WHERE id = ? AND is_active = 1
-			`, [sessionId]);
+			`,
+				[sessionId]
+			);
 
 			if (!session) {
 				return null;
@@ -245,11 +251,14 @@ export class AuthSessionManager {
 	 */
 	async deactivateSession(sessionId) {
 		try {
-			await this.dbManager.run(`
+			await this.dbManager.run(
+				`
 				UPDATE auth_sessions
 				SET is_active = 0
 				WHERE id = ?
-			`, [sessionId]);
+			`,
+				[sessionId]
+			);
 
 			logger.info(`Deactivated auth session: ${sessionId}`);
 		} catch (error) {
@@ -266,14 +275,17 @@ export class AuthSessionManager {
 		const terminalKeyHash = this.hashTerminalKey(terminalKey);
 
 		try {
-			const sessions = await this.dbManager.all(`
+			const sessions = await this.dbManager.all(
+				`
 				SELECT * FROM auth_sessions
 				WHERE terminal_key_hash = ? AND is_active = 1
 				AND expires_at > datetime('now')
 				ORDER BY last_activity DESC
-			`, [terminalKeyHash]);
+			`,
+				[terminalKeyHash]
+			);
 
-			return sessions.map(session => ({
+			return sessions.map((session) => ({
 				sessionId: session.id,
 				userId: session.user_id,
 				createdAt: session.created_at,
@@ -327,7 +339,7 @@ export class AuthSessionManager {
 		}
 
 		this.cleanupTimer = setInterval(() => {
-			this.cleanupExpiredSessions().catch(error => {
+			this.cleanupExpiredSessions().catch((error) => {
 				logger.error('Session cleanup failed:', error);
 			});
 		}, CLEANUP_INTERVAL_MS);

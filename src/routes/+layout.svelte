@@ -1,5 +1,4 @@
 <script>
-
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -16,8 +15,6 @@
 
 	// Provide service container for dependency injection
 	provideServiceContainer();
-
-
 
 	onMount(async () => {
 		// Set body class based on whether TERMINAL_KEY is configured OR user has stored auth token
@@ -91,9 +88,6 @@
 			console.error('Failed to check onboarding status:', error);
 		}
 	}
-
-	
 </script>
-
 
 {@render children()}

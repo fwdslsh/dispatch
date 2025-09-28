@@ -98,7 +98,7 @@ export class VSCodeTunnelManager {
 		}
 
 		const openUrl = `https://vscode.dev/tunnel/${encodeURIComponent(tunnelName)}${encodeURIComponent(workspaceRoot)}`;
-		
+
 		const state = {
 			pid: this.process.pid,
 			name: tunnelName,
@@ -112,7 +112,7 @@ export class VSCodeTunnelManager {
 		this.process.stdout.on('data', (data) => {
 			const output = data.toString().trim();
 			logger.info('VSCODE_TUNNEL', `stdout: ${output}`);
-			
+
 			// Broadcast device login URL if found
 			if (output.includes('vscode.dev/tunnel') && this.io) {
 				this.io.emit('vscode.tunnel.login-url', { url: output });
@@ -122,7 +122,7 @@ export class VSCodeTunnelManager {
 		this.process.stderr.on('data', (data) => {
 			const output = data.toString().trim();
 			logger.error('VSCODE_TUNNEL', `stderr: ${output}`);
-			
+
 			// Also check stderr for login URLs
 			if (output.includes('vscode.dev/tunnel') && this.io) {
 				this.io.emit('vscode.tunnel.login-url', { url: output });
@@ -132,7 +132,7 @@ export class VSCodeTunnelManager {
 		this.process.on('exit', async (code, signal) => {
 			logger.info('VSCODE_TUNNEL', `Process exited with code=${code} signal=${signal}`);
 			await this._clearState();
-			
+
 			// Broadcast status update
 			if (this.io) {
 				this.io.emit('vscode.tunnel.status', this.getStatus());
@@ -142,12 +142,13 @@ export class VSCodeTunnelManager {
 		this.process.on('error', async (error) => {
 			logger.error('VSCODE_TUNNEL', `Process error: ${error.message}`);
 			await this._clearState();
-			
+
 			// Store the error for later retrieval
-			this.lastError = error.code === 'ENOENT' 
-				? 'VS Code CLI is not installed. Please install VS Code CLI first.'
-				: error.message;
-			
+			this.lastError =
+				error.code === 'ENOENT'
+					? 'VS Code CLI is not installed. Please install VS Code CLI first.'
+					: error.message;
+
 			// Broadcast status update
 			if (this.io) {
 				this.io.emit('vscode.tunnel.status', this.getStatus());
@@ -216,8 +217,8 @@ export class VSCodeTunnelManager {
 	 * @returns {object} Status information
 	 */
 	getStatus() {
-		const isRunning = this.state?.pid && (this.process && !this.process.killed);
-		
+		const isRunning = this.state?.pid && this.process && !this.process.killed;
+
 		return {
 			running: isRunning,
 			state: this.state,
@@ -278,7 +279,7 @@ export class VSCodeTunnelManager {
 		this.state = null;
 		this.process = null;
 		this.lastError = null;
-		
+
 		try {
 			if (!this.database) {
 				logger.warn('VSCODE_TUNNEL', 'No database available for clearing state');

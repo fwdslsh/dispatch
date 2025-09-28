@@ -4,7 +4,13 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 // Mock the enhanced component (will be implemented later)
 const ProjectSessionMenu = {
 	name: 'ProjectSessionMenu',
-	props: ['selectedWorkspace', 'selectedSession', 'onSessionSelected', 'onNewSession', 'onWorkspaceChanged'],
+	props: [
+		'selectedWorkspace',
+		'selectedSession',
+		'onSessionSelected',
+		'onNewSession',
+		'onWorkspaceChanged'
+	],
 	// Mock render for testing
 	render: () => {}
 };
@@ -34,8 +40,18 @@ describe('Enhanced ProjectSessionMenu Component', () => {
 
 	it('should display workspace switcher dropdown', async () => {
 		const mockWorkspaces = [
-			{ path: '/workspace/project1', name: 'Project 1', status: 'active', lastActivity: Date.now() },
-			{ path: '/workspace/project2', name: 'Project 2', status: 'archived', lastActivity: Date.now() - 86400000 }
+			{
+				path: '/workspace/project1',
+				name: 'Project 1',
+				status: 'active',
+				lastActivity: Date.now()
+			},
+			{
+				path: '/workspace/project2',
+				name: 'Project 2',
+				status: 'archived',
+				lastActivity: Date.now() - 86400000
+			}
 		];
 
 		mockWorkspaceApi.getWorkspaces.mockResolvedValue(mockWorkspaces);
@@ -54,17 +70,23 @@ describe('Enhanced ProjectSessionMenu Component', () => {
 	it('should show workspace status indicators', () => {
 		const getStatusIcon = (status) => {
 			switch (status) {
-				case 'active': return '🟢';
-				case 'archived': return '📦';
-				default: return '⚪';
+				case 'active':
+					return '🟢';
+				case 'archived':
+					return '📦';
+				default:
+					return '⚪';
 			}
 		};
 
 		const getStatusClass = (status) => {
 			switch (status) {
-				case 'active': return 'status-active';
-				case 'archived': return 'status-archived';
-				default: return 'status-default';
+				case 'active':
+					return 'status-active';
+				case 'archived':
+					return 'status-archived';
+				default:
+					return 'status-default';
 			}
 		};
 
@@ -124,7 +146,7 @@ describe('Enhanced ProjectSessionMenu Component', () => {
 		mockSessionApi.getSessions.mockResolvedValue(mockSessions);
 
 		const filterSessionsByWorkspace = (sessions, workspacePath) => {
-			return sessions.filter(session => session.workspacePath === workspacePath);
+			return sessions.filter((session) => session.workspacePath === workspacePath);
 		};
 
 		const filtered = filterSessionsByWorkspace(mockSessions, '/workspace/project1');
@@ -166,10 +188,10 @@ describe('Enhanced ProjectSessionMenu Component', () => {
 
 	it('should support keyboard navigation', () => {
 		const keyboardNavigation = {
-			'ArrowDown': 'next-workspace',
-			'ArrowUp': 'prev-workspace',
-			'Enter': 'select-workspace',
-			'Escape': 'close-dropdown'
+			ArrowDown: 'next-workspace',
+			ArrowUp: 'prev-workspace',
+			Enter: 'select-workspace',
+			Escape: 'close-dropdown'
 		};
 
 		const handleKeyDown = (key) => {
@@ -186,7 +208,7 @@ describe('Enhanced ProjectSessionMenu Component', () => {
 
 		const addToHistory = (workspace) => {
 			// Remove if exists, then add to front
-			navigationHistory = navigationHistory.filter(w => w.path !== workspace.path);
+			navigationHistory = navigationHistory.filter((w) => w.path !== workspace.path);
 			navigationHistory.unshift(workspace);
 
 			// Keep only last 5
@@ -247,7 +269,7 @@ describe('Enhanced ProjectSessionMenu Component', () => {
 		const getEditMenu = (workspace) => {
 			const hasActiveSessions = workspace.activeSessions && workspace.activeSessions.length > 0;
 
-			return editOptions.map(option => ({
+			return editOptions.map((option) => ({
 				...option,
 				disabled: option.action === 'delete' && hasActiveSessions
 			}));
@@ -256,8 +278,8 @@ describe('Enhanced ProjectSessionMenu Component', () => {
 		const workspace = { activeSessions: ['session1'] };
 		const menu = getEditMenu(workspace);
 
-		expect(menu.find(opt => opt.action === 'delete').disabled).toBe(true);
-		expect(menu.find(opt => opt.action === 'rename').disabled).toBeFalsy();
+		expect(menu.find((opt) => opt.action === 'delete').disabled).toBe(true);
+		expect(menu.find((opt) => opt.action === 'rename').disabled).toBeFalsy();
 	});
 
 	it('should maintain dropdown state correctly', () => {

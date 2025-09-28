@@ -95,7 +95,10 @@ export class MigrationManager {
 	registerMigration(migration) {
 		this.migrations.push(migration);
 		this.migrations.sort((a, b) => a.version - b.version);
-		logger.debug('MIGRATION', `Registered migration ${migration.version}: ${migration.description}`);
+		logger.debug(
+			'MIGRATION',
+			`Registered migration ${migration.version}: ${migration.description}`
+		);
 	}
 
 	/**
@@ -113,9 +116,9 @@ export class MigrationManager {
 	 */
 	async getPendingMigrations() {
 		const applied = await this.getAppliedMigrations();
-		const appliedVersions = new Set(applied.map(m => m.version));
+		const appliedVersions = new Set(applied.map((m) => m.version));
 
-		return this.migrations.filter(m => !appliedVersions.has(m.version));
+		return this.migrations.filter((m) => !appliedVersions.has(m.version));
 	}
 
 	/**
@@ -124,7 +127,7 @@ export class MigrationManager {
 	 */
 	async getCurrentVersion() {
 		const applied = await this.getAppliedMigrations();
-		return applied.length > 0 ? Math.max(...applied.map(m => m.version)) : 0;
+		return applied.length > 0 ? Math.max(...applied.map((m) => m.version)) : 0;
 	}
 
 	/**
@@ -133,7 +136,9 @@ export class MigrationManager {
 	 * @returns {Promise<boolean>} True if migration is applied
 	 */
 	async isMigrationApplied(version) {
-		const migration = await this.db.get('SELECT version FROM _migrations WHERE version = ?', [version]);
+		const migration = await this.db.get('SELECT version FROM _migrations WHERE version = ?', [
+			version
+		]);
 		return !!migration;
 	}
 
@@ -163,8 +168,10 @@ export class MigrationManager {
 			);
 
 			const duration = Date.now() - startTime;
-			logger.info('MIGRATION', `Migration ${migration.version} applied successfully in ${duration}ms`);
-
+			logger.info(
+				'MIGRATION',
+				`Migration ${migration.version} applied successfully in ${duration}ms`
+			);
 		} catch (error) {
 			logger.error('MIGRATION', `Failed to apply migration ${migration.version}:`, error);
 			throw error;
@@ -185,7 +192,7 @@ export class MigrationManager {
 		}
 
 		// Find the migration
-		const migration = this.migrations.find(m => m.version === version);
+		const migration = this.migrations.find((m) => m.version === version);
 		if (!migration) {
 			throw new Error(`Migration ${version} not found in registered migrations`);
 		}
@@ -201,7 +208,6 @@ export class MigrationManager {
 
 			const duration = Date.now() - startTime;
 			logger.info('MIGRATION', `Migration ${version} rolled back successfully in ${duration}ms`);
-
 		} catch (error) {
 			logger.error('MIGRATION', `Failed to rollback migration ${version}:`, error);
 			throw error;
@@ -225,7 +231,7 @@ export class MigrationManager {
 
 		// Filter by target version if specified
 		if (targetVersion !== undefined) {
-			migrationsToApply = pending.filter(m => m.version <= targetVersion);
+			migrationsToApply = pending.filter((m) => m.version <= targetVersion);
 		}
 
 		if (migrationsToApply.length === 0) {
@@ -235,7 +241,7 @@ export class MigrationManager {
 
 		if (dryRun) {
 			logger.info('MIGRATION', `Would apply ${migrationsToApply.length} migrations:`);
-			migrationsToApply.forEach(m => {
+			migrationsToApply.forEach((m) => {
 				logger.info('MIGRATION', `  ${m.version}: ${m.description}`);
 			});
 			return { applied: [], skipped: migrationsToApply.length, dryRun: true };
@@ -254,9 +260,12 @@ export class MigrationManager {
 			logger.info('MIGRATION', `Applied ${applied.length} migrations in ${duration}ms`);
 
 			return { applied, skipped: 0, duration };
-
 		} catch (error) {
-			logger.error('MIGRATION', `Migration failed after applying ${applied.length} migrations:`, error);
+			logger.error(
+				'MIGRATION',
+				`Migration failed after applying ${applied.length} migrations:`,
+				error
+			);
 			throw error;
 		}
 	}
@@ -272,7 +281,7 @@ export class MigrationManager {
 
 		const applied = await this.getAppliedMigrations();
 		const migrationsToRollback = applied
-			.filter(m => m.version > targetVersion)
+			.filter((m) => m.version > targetVersion)
 			.sort((a, b) => b.version - a.version); // Rollback in reverse order
 
 		if (migrationsToRollback.length === 0) {
@@ -282,7 +291,7 @@ export class MigrationManager {
 
 		if (dryRun) {
 			logger.info('MIGRATION', `Would rollback ${migrationsToRollback.length} migrations:`);
-			migrationsToRollback.forEach(m => {
+			migrationsToRollback.forEach((m) => {
 				logger.info('MIGRATION', `  ${m.version}: ${m.description}`);
 			});
 			return { rolledBack: [], skipped: migrationsToRollback.length, dryRun: true };
@@ -301,9 +310,12 @@ export class MigrationManager {
 			logger.info('MIGRATION', `Rolled back ${rolledBack.length} migrations in ${duration}ms`);
 
 			return { rolledBack, skipped: 0, duration };
-
 		} catch (error) {
-			logger.error('MIGRATION', `Rollback failed after processing ${rolledBack.length} migrations:`, error);
+			logger.error(
+				'MIGRATION',
+				`Rollback failed after processing ${rolledBack.length} migrations:`,
+				error
+			);
 			throw error;
 		}
 	}
@@ -324,12 +336,12 @@ export class MigrationManager {
 			appliedMigrations: applied.length,
 			pendingMigrations: pending.length,
 			totalMigrations: this.migrations.length,
-			applied: applied.map(m => ({
+			applied: applied.map((m) => ({
 				version: m.version,
 				description: m.description,
 				appliedAt: new Date(m.applied_at).toISOString()
 			})),
-			pending: pending.map(m => ({
+			pending: pending.map((m) => ({
 				version: m.version,
 				description: m.description
 			}))
@@ -347,7 +359,7 @@ export class MigrationManager {
 		const warnings = [];
 
 		// Check for duplicate versions
-		const versions = this.migrations.map(m => m.version);
+		const versions = this.migrations.map((m) => m.version);
 		const duplicates = versions.filter((v, i) => versions.indexOf(v) !== i);
 		if (duplicates.length > 0) {
 			issues.push(`Duplicate migration versions found: ${duplicates.join(', ')}`);
@@ -357,7 +369,9 @@ export class MigrationManager {
 		const sortedVersions = [...new Set(versions)].sort((a, b) => a - b);
 		for (let i = 1; i < sortedVersions.length; i++) {
 			if (sortedVersions[i] - sortedVersions[i - 1] > 1) {
-				warnings.push(`Gap in migration versions: ${sortedVersions[i - 1]} -> ${sortedVersions[i]}`);
+				warnings.push(
+					`Gap in migration versions: ${sortedVersions[i - 1]} -> ${sortedVersions[i]}`
+				);
 			}
 		}
 
@@ -366,7 +380,9 @@ export class MigrationManager {
 		const registeredVersions = new Set(versions);
 		for (const appliedMigration of applied) {
 			if (!registeredVersions.has(appliedMigration.version)) {
-				issues.push(`Applied migration ${appliedMigration.version} not found in registered migrations`);
+				issues.push(
+					`Applied migration ${appliedMigration.version} not found in registered migrations`
+				);
 			}
 		}
 
@@ -416,12 +432,13 @@ export function createMigrationManager(database) {
 	const manager = new MigrationManager(database);
 
 	// Register initial schema migration (version 1)
-	manager.registerMigration(new Migration(
-		1,
-		'Initial schema - sessions, events, workspaces, logs, settings',
-		[
-			// Sessions table
-			`CREATE TABLE IF NOT EXISTS sessions (
+	manager.registerMigration(
+		new Migration(
+			1,
+			'Initial schema - sessions, events, workspaces, logs, settings',
+			[
+				// Sessions table
+				`CREATE TABLE IF NOT EXISTS sessions (
 				run_id TEXT PRIMARY KEY,
 				owner_user_id TEXT,
 				kind TEXT NOT NULL,
@@ -431,8 +448,8 @@ export function createMigrationManager(database) {
 				meta_json TEXT NOT NULL
 			)`,
 
-			// Session events table
-			`CREATE TABLE IF NOT EXISTS session_events (
+				// Session events table
+				`CREATE TABLE IF NOT EXISTS session_events (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				run_id TEXT NOT NULL,
 				seq INTEGER NOT NULL,
@@ -443,8 +460,8 @@ export function createMigrationManager(database) {
 				FOREIGN KEY (run_id) REFERENCES sessions(run_id)
 			)`,
 
-			// Workspace layout table
-			`CREATE TABLE IF NOT EXISTS workspace_layout (
+				// Workspace layout table
+				`CREATE TABLE IF NOT EXISTS workspace_layout (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				run_id TEXT NOT NULL,
 				client_id TEXT NOT NULL,
@@ -454,16 +471,16 @@ export function createMigrationManager(database) {
 				UNIQUE(run_id, client_id)
 			)`,
 
-			// Workspaces table
-			`CREATE TABLE IF NOT EXISTS workspaces (
+				// Workspaces table
+				`CREATE TABLE IF NOT EXISTS workspaces (
 				path TEXT PRIMARY KEY,
 				last_active INTEGER,
 				created_at INTEGER,
 				updated_at INTEGER
 			)`,
 
-			// Logs table
-			`CREATE TABLE IF NOT EXISTS logs (
+				// Logs table
+				`CREATE TABLE IF NOT EXISTS logs (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				level TEXT,
 				component TEXT,
@@ -472,8 +489,8 @@ export function createMigrationManager(database) {
 				timestamp INTEGER
 			)`,
 
-			// Settings table
-			`CREATE TABLE IF NOT EXISTS settings (
+				// Settings table
+				`CREATE TABLE IF NOT EXISTS settings (
 				category TEXT PRIMARY KEY,
 				settings_json TEXT NOT NULL,
 				description TEXT,
@@ -481,30 +498,31 @@ export function createMigrationManager(database) {
 				updated_at INTEGER NOT NULL
 			)`,
 
-			// Indexes
-			'CREATE UNIQUE INDEX IF NOT EXISTS ix_events_run_seq ON session_events(run_id, seq)',
-			'CREATE INDEX IF NOT EXISTS ix_events_run_ts ON session_events(run_id, ts)',
-			'CREATE INDEX IF NOT EXISTS ix_sessions_kind ON sessions(kind)',
-			'CREATE INDEX IF NOT EXISTS ix_sessions_status ON sessions(status)',
-			'CREATE INDEX IF NOT EXISTS ix_workspace_layout_client ON workspace_layout(client_id)',
-			'CREATE INDEX IF NOT EXISTS ix_logs_timestamp ON logs(timestamp)'
-		],
-		[
-			// Rollback: Drop all tables and indexes
-			'DROP INDEX IF EXISTS ix_logs_timestamp',
-			'DROP INDEX IF EXISTS ix_workspace_layout_client',
-			'DROP INDEX IF EXISTS ix_sessions_status',
-			'DROP INDEX IF EXISTS ix_sessions_kind',
-			'DROP INDEX IF EXISTS ix_events_run_ts',
-			'DROP INDEX IF EXISTS ix_events_run_seq',
-			'DROP TABLE IF EXISTS settings',
-			'DROP TABLE IF EXISTS logs',
-			'DROP TABLE IF EXISTS workspaces',
-			'DROP TABLE IF EXISTS workspace_layout',
-			'DROP TABLE IF EXISTS session_events',
-			'DROP TABLE IF EXISTS sessions'
-		]
-	));
+				// Indexes
+				'CREATE UNIQUE INDEX IF NOT EXISTS ix_events_run_seq ON session_events(run_id, seq)',
+				'CREATE INDEX IF NOT EXISTS ix_events_run_ts ON session_events(run_id, ts)',
+				'CREATE INDEX IF NOT EXISTS ix_sessions_kind ON sessions(kind)',
+				'CREATE INDEX IF NOT EXISTS ix_sessions_status ON sessions(status)',
+				'CREATE INDEX IF NOT EXISTS ix_workspace_layout_client ON workspace_layout(client_id)',
+				'CREATE INDEX IF NOT EXISTS ix_logs_timestamp ON logs(timestamp)'
+			],
+			[
+				// Rollback: Drop all tables and indexes
+				'DROP INDEX IF EXISTS ix_logs_timestamp',
+				'DROP INDEX IF EXISTS ix_workspace_layout_client',
+				'DROP INDEX IF EXISTS ix_sessions_status',
+				'DROP INDEX IF EXISTS ix_sessions_kind',
+				'DROP INDEX IF EXISTS ix_events_run_ts',
+				'DROP INDEX IF EXISTS ix_events_run_seq',
+				'DROP TABLE IF EXISTS settings',
+				'DROP TABLE IF EXISTS logs',
+				'DROP TABLE IF EXISTS workspaces',
+				'DROP TABLE IF EXISTS workspace_layout',
+				'DROP TABLE IF EXISTS session_events',
+				'DROP TABLE IF EXISTS sessions'
+			]
+		)
+	);
 
 	// Future migrations can be added here as new Migration instances
 	// Example:

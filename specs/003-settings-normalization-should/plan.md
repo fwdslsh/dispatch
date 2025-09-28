@@ -1,11 +1,10 @@
-
-
 # Implementation Plan: Settings Normalization and Unification
 
 **Branch**: `003-settings-normalization-should` | **Date**: September 28, 2025 | **Spec**: /specs/003-settings-normalization-should/spec.md
 **Input**: Feature specification from `/specs/003-settings-normalization-should/spec.md`
 
 ## Execution Flow (/plan command scope)
+
 ```
 1. Load feature spec from Input path
    → If not found: ERROR "No feature spec at {path}"
@@ -28,15 +27,16 @@
 ```
 
 **IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
+
 - Phase 2: /tasks command creates tasks.md
 - Phase 3-4: Implementation execution (manual or via tools)
 
-
 ## Summary
+
 This feature unifies all settings-related UI and logic into a single, maintainable directory and implements a modern settings page with a left-side tab menu. The approach is to refactor the settings page to use the tabbed navigation pattern from the modal, consolidate all settings components, and ensure accessibility, usability, and test coverage. The technical approach follows Svelte 5 MVVM conventions and project constitution requirements.
 
-
 ## Technical Context
+
 **Language/Version**: JavaScript (Node.js 22+), Svelte 5
 **Primary Dependencies**: SvelteKit, Socket.IO, Prettier, ESLint, Playwright, Vitest
 **Storage**: N/A (settings persisted in local storage or backend as per existing flows)
@@ -47,11 +47,12 @@ This feature unifies all settings-related UI and logic into a single, maintainab
 **Constraints**: Must follow Svelte 5 runes, MVVM, and accessibility best practices
 **Scale/Scope**: All user-facing settings, extensible for future sections
 
-
 ## Constitution Check
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 All core principles are satisfied:
+
 - Security-First: No new code execution or privilege escalation; UI only.
 - Event-Sourced: No change to event model; settings UI only.
 - Adapter Pattern: No new adapters; UI refactor only.
@@ -65,6 +66,7 @@ Implementation standards, quality assurance, and governance are all met. No viol
 specs/[###-feature]/
 
 ### Documentation (this feature)
+
 ```
 specs/003-settings-normalization-should/
 ├── plan.md              # This file (/plan command output)
@@ -80,6 +82,7 @@ tests/
 ios/ or android/
 
 ### Source Code (repository root)
+
 ```
 src/
 └── lib/
@@ -100,30 +103,30 @@ tests/
 
 **Structure Decision**: Use a unified `src/lib/client/settings/` directory for all settings components. Refactor `src/routes/settings/+page.svelte` to use the new tabbed UI. All other feature directories remain unchanged.
 
-
 ## Phase 0: Outline & Research
+
 All unknowns resolved. See `research.md` for best practices, decisions, rationale, and alternatives considered. No open clarifications remain.
 
-
 ## Phase 1: Design & Contracts
+
 Entities, relationships, and validation rules are defined in `data-model.md`. No new API contracts are required (UI-only feature). Test scenarios are covered in the quickstart and will be implemented in unit and E2E tests. Agent context file updated for Copilot.
 
-
 ## Phase 2: Task Planning Approach
+
 The /tasks command will generate tasks from the data model, quickstart, and user stories. Tasks will include: moving and refactoring settings components, updating the settings page, implementing the tabbed UI, ensuring accessibility, and adding/adjusting tests. TDD and dependency order will be followed. See quickstart.md for step-by-step implementation guidance.
 
-
 ## Phase 3+: Future Implementation
+
 Phases 3-5 will be executed after task generation. Implementation will follow constitutional principles, and validation will include running all tests and verifying the new settings UI.
 
-
 ## Complexity Tracking
+
 No complexity deviations or constitution violations expected for this feature.
 
-
-
 ## Progress Tracking
+
 **Phase Status**:
+
 - [x] Phase 0: Research complete (/plan command)
 - [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning complete (/plan command - describe approach only)
@@ -132,10 +135,12 @@ No complexity deviations or constitution violations expected for this feature.
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS
 - [x] Post-Design Constitution Check: PASS
 - [x] All NEEDS CLARIFICATION resolved
 - [x] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+
+_Based on Constitution v2.1.1 - See `/memory/constitution.md`_

@@ -9,11 +9,7 @@
 	import TunnelIndicator from './TunnelIndicator.svelte';
 
 	// Props
-	let {		
-		actions = null
-	} = $props();
-
-	
+	let { actions = null } = $props();
 </script>
 
 <header

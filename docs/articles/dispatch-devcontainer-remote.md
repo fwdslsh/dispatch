@@ -1,8 +1,8 @@
 ---
-title: "Connect VSCode to Remote Dispatch Containers"
-description: "Learn how to connect VSCode to Dispatch containers running on remote servers with SSH tunneling, Docker contexts, and secure remote access."
-tags: ["vscode", "devcontainer", "docker", "dispatch", "remote-development", "ssh"]
-series: "Dispatch DevContainer Guide"
+title: 'Connect VSCode to Remote Dispatch Containers'
+description: 'Learn how to connect VSCode to Dispatch containers running on remote servers with SSH tunneling, Docker contexts, and secure remote access.'
+tags: ['vscode', 'devcontainer', 'docker', 'dispatch', 'remote-development', 'ssh']
+series: 'Dispatch DevContainer Guide'
 published: false
 draft: true
 ---
@@ -14,6 +14,7 @@ This guide shows you how to connect VSCode to Dispatch containers running on rem
 ## Overview
 
 Connecting VSCode to remote Dispatch containers is ideal when:
+
 - Dispatch is running on a remote server or cloud instance
 - You need more computational resources than your local machine provides
 - You're sharing a Dispatch instance with team members
@@ -58,6 +59,7 @@ Host dispatch-server
 ```
 
 Test your SSH connection:
+
 ```bash
 ssh dispatch-server
 ```
@@ -114,11 +116,13 @@ docker ps | grep dispatch-remote
 This method uses Docker contexts for clean remote connection management:
 
 1. **Switch to remote context** on your local machine:
+
    ```bash
    docker context use dispatch-remote
    ```
 
 2. **Verify remote connection**:
+
    ```bash
    docker ps
    ```
@@ -139,11 +143,13 @@ This method uses Docker contexts for clean remote connection management:
 This method creates an SSH tunnel to forward the Docker socket:
 
 1. **Create SSH tunnel** to forward Docker socket:
+
    ```bash
    ssh -nNT -L /var/run/docker.sock:/var/run/docker.sock dispatch-server
    ```
 
 2. **In another terminal**, set the Docker host:
+
    ```bash
    export DOCKER_HOST=unix:///var/run/docker.sock
    ```
@@ -235,6 +241,7 @@ NODE_OPTIONS=--max-old-space-size=4096
 **Solutions**:
 
 1. **Verify Docker context**:
+
    ```bash
    docker context ls
    docker context use dispatch-remote
@@ -242,11 +249,13 @@ NODE_OPTIONS=--max-old-space-size=4096
    ```
 
 2. **Test SSH connection**:
+
    ```bash
    ssh dispatch-server "docker ps"
    ```
 
 3. **Check Docker daemon** on remote server:
+
    ```bash
    ssh dispatch-server "sudo systemctl status docker"
    ```
@@ -264,18 +273,20 @@ NODE_OPTIONS=--max-old-space-size=4096
 **Solutions**:
 
 1. **Match user IDs** between local and remote:
+
    ```bash
    # Check local user ID
    id
-   
+
    # Check remote user ID
    ssh dispatch-server "id"
-   
+
    # Start container with correct UID/GID
    docker run --user $(id -u):$(id -g) ...
    ```
 
 2. **Fix ownership** of mounted volumes:
+
    ```bash
    ssh dispatch-server "sudo chown -R \$(id -u):\$(id -g) ~/dispatch-home ~/dispatch-projects"
    ```
@@ -292,6 +303,7 @@ NODE_OPTIONS=--max-old-space-size=4096
 **Solutions**:
 
 1. **Configure SSH keep-alive** in `~/.ssh/config`:
+
    ```
    Host dispatch-server
        ServerAliveInterval 60
@@ -300,6 +312,7 @@ NODE_OPTIONS=--max-old-space-size=4096
    ```
 
 2. **Use SSH multiplexing** for stable connections:
+
    ```
    Host dispatch-server
        ControlMaster auto
@@ -320,16 +333,19 @@ NODE_OPTIONS=--max-old-space-size=4096
 **Solutions**:
 
 1. **Create SSH tunnel**:
+
    ```bash
    ssh -L 3030:localhost:3030 dispatch-server
    ```
 
 2. **Check container port binding**:
+
    ```bash
    ssh dispatch-server "docker port dispatch-remote"
    ```
 
 3. **Verify container is running**:
+
    ```bash
    ssh dispatch-server "docker ps | grep dispatch"
    ```
@@ -348,11 +364,13 @@ NODE_OPTIONS=--max-old-space-size=4096
 **Solutions**:
 
 1. **Check network latency**:
+
    ```bash
    ping your-server-ip
    ```
 
 2. **Use SSH compression**:
+
    ```
    Host dispatch-server
        Compression yes
@@ -360,6 +378,7 @@ NODE_OPTIONS=--max-old-space-size=4096
    ```
 
 3. **Optimize Docker for remote access**:
+
    ```bash
    # Start container with performance optimizations
    docker run -d \
