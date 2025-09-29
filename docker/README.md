@@ -1,43 +1,64 @@
 # Dispatch Docker Usage
 
-This document explains how to run the [Dispatch Docker image](https://hub.docker.com/r/fwdslsh/dispatch). It includes examples for running the container, mounting local directories for persistent storage, handling permissions, and more.
+This document explains how to run the [Dispatch Docker image](https://hub.docker.com/r/fwdslsh/dispatch) with automatic SSL certificate management using Let's Encrypt.
 
-## Run
+## 🔒 SSL/HTTPS Support (Built-in)
 
-```bash
-# Run Dispatch and expose port 3030
-docker run -p 3030:3030 -e TERMINAL_KEY=your-secret-password fwdslsh/dispatch:latest
-```
+Dispatch includes **built-in SSL support with multiple modes** - no external dependencies or docker-compose required!
 
-Open your browser at `http://localhost:3030` and enter the password you set in `TERMINAL_KEY`.
-
-## Persistent storage (volume mounts)
-
-To keep user data, dotfiles, and project files across container restarts, mount host directories into the container.
+### ✨ **Quick Start**
 
 ```bash
-# Create directories (no sudo needed!)
-mkdir -p ~/dispatch-home ~/dispatch-projects
+# Let's Encrypt SSL (production-ready)
+docker run -d -p 80:80 -p 443:443 \
+  -e DOMAIN=dispatch.yourdomain.com \
+  -e LETSENCRYPT_EMAIL=admin@yourdomain.com \
+  -e TERMINAL_KEY=your-super-secure-password \
+  fwdslsh/dispatch:latest
 
-# Option 1: Use your current user ID (recommended)
-docker run -p 3030:3030 \
-  -e TERMINAL_KEY=your-secret-password \
-  --user $(id -u):$(id -g) \
-  -v ~/dispatch-home:/home/dispatch \
-  -v ~/dispatch-projects:/workspace \
+# Self-signed SSL (development/testing)
+docker run -d -p 80:80 -p 443:443 \
+  -e SSL_MODE=self-signed \
+  -e DOMAIN=localhost \
+  -e TERMINAL_KEY=your-password \
+  fwdslsh/dispatch:latest
+
+# HTTP only (no SSL)
+docker run -d -p 80:80 \
+  -e SSL_MODE=none \
+  -e TERMINAL_KEY=your-password \
   fwdslsh/dispatch:latest
 ```
 
-Recommended mount points:
+## 🔧 **SSL Modes**
 
-- `/home/dispatch` — user home directory inside the container (shell history, dotfiles)
-- `/workspace` — where you can keep project folders and code
+Dispatch supports three SSL modes via the `SSL_MODE` environment variable:
 
-**Security isolation**: The container can only access the specific directories you mount. No sudo required when using `--user $(id -u):$(id -g)` or building with your user ID.
+### 🌐 **`letsencrypt` (Default - Production)**
+- **Free, globally trusted certificates** from Let's Encrypt
+- **Automatic certificate renewal** every 60 days
+- **Zero trust warnings** - perfect for production
+- **Requirements**: Valid domain pointing to your server, ports 80 and 443 accessible
 
-## Environment variables
+### 🔐 **`self-signed` (Development/Testing)**
+- **Self-signed certificates** generated automatically
+- **Browser trust warnings** - click "Advanced" → "Proceed"
+- **No external dependencies** - works offline
+- **Perfect for development and testing**
 
-- `TERMINAL_KEY` (required) — password used to authenticate to the web UI
-- `PORT` (default `3030`) — port inside the container
-- `ENABLE_TUNNEL` (`true`|`false`) — enable public URL sharing
-- `LT_SUBDOMAIN` — optional LocalTunnel subdomain
+### 🚫 **`none` (HTTP Only)**
+- **No SSL/HTTPS** - HTTP only on port 80
+- **Smallest container footprint**
+- **Use behind external SSL terminator** (Cloudflare, load balancer)
+
+## 🎯 **Key Benefits**
+
+- ✅ **Single container** - no docker-compose required
+- ✅ **Built-in SSL** - nginx + certbot included
+- ✅ **Multiple SSL modes** - letsencrypt, self-signed, or none
+- ✅ **Zero configuration** - works with just environment variables
+- ✅ **Automatic renewal** - certificates renewed automatically
+- ✅ **Production ready** - enterprise-grade nginx configuration
+- ✅ **Easy switching** - change SSL modes without rebuilding
+
+This approach provides the same enterprise-grade SSL security with much simpler deployment and management!
