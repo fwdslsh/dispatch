@@ -1,136 +1,103 @@
 /**
- * Settings API
- * Manages server-side settings stored as JSON objects per category
+ * Settings API Endpoints
+ * GET /api/settings - Retrieve all settings or filtered by category
+ * Using normalized settings system with SettingsManager
  */
 
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/shared/auth.js';
+import { SettingsManager } from '../../../lib/server/settings/SettingsManager.js';
+import { validateKey } from '../../../lib/server/shared/auth.js';
+
+const settingsManager = new SettingsManager();
 
 /**
- * GET - Retrieve settings
- * Query parameters:
- * - category: Get specific category (optional)
- * - metadata: Include metadata (default: false)
+ * GET /api/settings
+ * Retrieve all configuration settings grouped by category
  */
-export async function GET({ url, locals }) {
-	const databaseManager = locals.services?.database;
-	if (!databaseManager) {
-		return json({ error: 'Database service not available' }, { status: 500 });
-	}
-
-	const authKey = url.searchParams.get('authKey');
-	const category = url.searchParams.get('category');
-	const includeMetadata = url.searchParams.get('metadata') === 'true';
-
-	// Validate authentication for sensitive operations
-	if (includeMetadata && !validateKey(authKey)) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
+export async function GET({ url }) {
 	try {
-		let result;
-
-		if (category) {
-			// Get settings for specific category
-			result = await databaseManager.getSettingsByCategory(category);
-		} else if (includeMetadata) {
-			// Get all settings with metadata (admin only)
-			const allSettings = await databaseManager.getAllSettings();
-			result = { categories: allSettings };
-		} else {
-			// Get all settings without metadata (public)
-			const categories = ['global', 'claude', 'tunnel'];
-			result = {};
-			for (const cat of categories) {
-				const settings = await databaseManager.getSettingsByCategory(cat);
-				result[cat] = settings;
-			}
-		}
-
-		return json(result);
-	} catch (error) {
-		console.error('Failed to get settings:', error);
-		return json({ error: 'Failed to retrieve settings' }, { status: 500 });
-	}
-}
-
-/**
- * POST - Update settings
- * Body: { category, settings, description? }
- */
-export async function POST({ request, locals }) {
-	const databaseManager = locals.services?.database;
-	if (!databaseManager) {
-		return json({ error: 'Database service not available' }, { status: 500 });
-	}
-
-	try {
-		const body = await request.json();
-
-		// Get auth key from body or headers
-		let authKey = body.authKey;
-		if (!authKey) {
-			const auth = request.headers.get('authorization');
-			if (auth && auth.startsWith('Bearer ')) {
-				authKey = auth.slice(7);
-			}
-		}
-
-		// Validate authentication for write operations
+		// Authenticate request
+		const authKey = url.searchParams.get('authKey');
 		if (!validateKey(authKey)) {
-			return json({ error: 'Unauthorized' }, { status: 401 });
+			return json({ error: 'Authentication failed' }, { status: 401 });
 		}
 
-		const { category, settings, description } = body;
-		if (!category || !settings || typeof settings !== 'object') {
-			return json(
-				{ error: 'Missing required fields: category, settings (object)' },
-				{ status: 400 }
-			);
+		// Initialize settings manager
+		await settingsManager.initialize();
+
+		// Get category filter if provided
+		const categoryFilter = url.searchParams.get('category');
+
+		let result;
+		if (categoryFilter) {
+			// Return specific category
+			const category = await settingsManager.getCategory(categoryFilter);
+			if (!category) {
+				return json({
+					categories: [],
+					settings: []
+				});
+			}
+
+			const settings = await settingsManager.getSettings(categoryFilter);
+			result = {
+				categories: [category.toObject()],
+				settings: settings.map((setting) => ({
+					...setting.toObject(true),
+					// Mask sensitive values for API response
+					current_value:
+						setting.is_sensitive && setting.current_value
+							? setting.getDisplayValue()
+							: setting.current_value,
+					resolved_value: setting.is_sensitive
+						? setting.getDisplayValue()
+						: setting.getResolvedValue()
+				}))
+			};
+		} else {
+			// Return all settings grouped by category
+			result = await settingsManager.getSettingsByCategory();
+
+			// Mask sensitive values in the response
+			result.settings = result.settings.map((setting) => {
+				const configSetting = settingsManager.settingRepo.findByKey(setting.key);
+				return {
+					...setting,
+					current_value:
+						configSetting?.is_sensitive && setting.current_value
+							? configSetting.getDisplayValue()
+							: setting.current_value,
+					resolved_value: configSetting?.is_sensitive
+						? configSetting.getDisplayValue()
+						: configSetting?.getResolvedValue()
+				};
+			});
 		}
 
-		await databaseManager.setSettingsForCategory(category, settings, description);
-
-		return json({ success: true });
+		return json(result, {
+			headers: {
+				'Cache-Control': 'no-cache, no-store, must-revalidate',
+				Pragma: 'no-cache',
+				Expires: '0'
+			}
+		});
 	} catch (error) {
-		console.error('Failed to update settings:', error);
-		return json({ error: 'Failed to update settings' }, { status: 500 });
+		console.error('Settings API error:', error);
+		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 }
 
 /**
- * DELETE - Delete settings category
- * Query parameters:
- * - category: Settings category to delete
+ * OPTIONS /api/settings
+ * Handle CORS preflight requests
  */
-export async function DELETE({ url, request, locals }) {
-	const databaseManager = locals.services?.database;
-	if (!databaseManager) {
-		return json({ error: 'Database service not available' }, { status: 500 });
-	}
-
-	const category = url.searchParams.get('category');
-	if (!category) {
-		return json({ error: 'Missing category parameter' }, { status: 400 });
-	}
-
-	// Get auth key from headers
-	let authKey = null;
-	const auth = request.headers.get('authorization');
-	if (auth && auth.startsWith('Bearer ')) {
-		authKey = auth.slice(7);
-	}
-
-	// Validate authentication
-	if (!validateKey(authKey)) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
-	try {
-		await databaseManager.deleteSettingsCategory(category);
-		return json({ success: true });
-	} catch (error) {
-		console.error('Failed to delete settings category:', error);
-		return json({ error: 'Failed to delete settings category' }, { status: 500 });
-	}
+export async function OPTIONS() {
+	return new Response(null, {
+		status: 200,
+		headers: {
+			'Access-Control-Allow-Origin': '*',
+			'Access-Control-Allow-Methods': 'GET, OPTIONS',
+			'Access-Control-Allow-Headers': 'Content-Type'
+		}
+	});
 }

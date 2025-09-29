@@ -1,4 +1,5 @@
-import GlobalSettings from './GlobalSettings.svelte';
+import GlobalSettingsWrapper from './GlobalSettingsWrapper.svelte';
+import AuthenticationSettingsWrapper from './AuthenticationSettingsWrapper.svelte';
 import PreferencesPanel from './PreferencesPanel.svelte';
 import RetentionSettings from './RetentionSettings.svelte';
 import WorkspaceEnvSettings from './sections/WorkspaceEnvSettings.svelte';
@@ -16,6 +17,7 @@ import IconCloud from '$lib/client/shared/components/Icons/IconCloud.svelte';
 import IconRobot from '$lib/client/shared/components/Icons/IconRobot.svelte';
 import IconTrash from '$lib/client/shared/components/Icons/IconTrash.svelte';
 import IconArchive from '$lib/client/shared/components/Icons/IconArchive.svelte';
+import IconKey from '$lib/client/shared/components/Icons/IconKey.svelte';
 
 const SETTINGS_SECTIONS = [
 	{
@@ -23,7 +25,14 @@ const SETTINGS_SECTIONS = [
 		label: 'Global',
 		navAriaLabel: 'Global application settings',
 		icon: IconSettings,
-		component: GlobalSettings
+		component: GlobalSettingsWrapper
+	},
+	{
+		id: 'authentication',
+		label: 'Authentication',
+		navAriaLabel: 'Authentication and security settings',
+		icon: IconKey,
+		component: AuthenticationSettingsWrapper
 	},
 	{
 		id: 'workspace-env',

@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { logger } from '$lib/server/shared/utils/logger.js';
 
 const execAsync = promisify(exec);
 
@@ -15,45 +16,51 @@ const execAsync = promisify(exec);
  */
 
 export async function GET() {
+	// Check ~/.claude/.credentials.json for valid Claude OAuth token
 	try {
-		// Check if Claude CLI is available and authenticated
-		const { stdout, stderr } = await execAsync('claude auth status', {
-			timeout: 5000,
-			env: { ...process.env, PATH: process.env.PATH }
-		});
-
-		if (stdout.includes('authenticated') || stdout.includes('logged in')) {
+		const credentialsPath = join(homedir(), '.claude', '.credentials.json');
+		// If the file doesn't exist, user is not authenticated
+		try {
+			await fs.access(credentialsPath);
+		} catch {
+			return json({
+				authenticated: false,
+				status: 'not_authenticated',
+				hint: 'Claude credentials file not found'
+			});
+		}
+		const raw = await fs.readFile(credentialsPath, 'utf8');
+		const creds = JSON.parse(raw);
+		const oauth = creds.claudeAiOauth;
+		if (
+			oauth &&
+			typeof oauth.accessToken === 'string' &&
+			oauth.accessToken.length > 0 &&
+			typeof oauth.expiresAt === 'number' &&
+			oauth.expiresAt > Date.now()
+		) {
 			return json({
 				authenticated: true,
 				status: 'authenticated'
 			});
 		} else {
+			logger.warn('[CLAUDE]', 'Claude OAuth token missing or expired', { expiresAt: oauth?.expiresAt, now: Date.now() });
+
 			return json({
 				authenticated: false,
 				status: 'not_authenticated',
-				hint: 'Use the OAuth flow or enter your API key to authenticate'
+				hint: 'No valid Claude OAuth token found',
 			});
 		}
 	} catch (error) {
-		console.error('Claude auth status check failed:', error);
+		logger.error('Claude auth GET error:', error);
 
-		// If Claude CLI is not available, return not authenticated
-		if (error.message?.includes('command not found') || error.message?.includes('not found')) {
-			return json({
-				authenticated: false,
-				status: 'not_authenticated',
-				hint: 'Claude CLI not available - use API key authentication'
-			});
-		}
-
-		return json(
-			{
-				authenticated: false,
-				status: 'error',
-				error: 'Failed to check authentication status'
-			},
-			{ status: 500 }
-		);
+		return json({
+			authenticated: false,
+			status: 'not_authenticated',
+			hint: 'Claude credentials not found or invalid',
+			error
+		});
 	}
 }
 

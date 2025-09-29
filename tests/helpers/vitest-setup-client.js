@@ -34,12 +34,19 @@ if (typeof document === 'undefined') {
 		createElement: vi.fn(() => ({
 			style: {},
 			addEventListener: vi.fn(),
-			removeEventListener: vi.fn()
+			removeEventListener: vi.fn(),
+			setAttribute: vi.fn(),
+			getAttribute: vi.fn(),
+			removeAttribute: vi.fn()
 		})),
 		body: {
 			appendChild: vi.fn(),
-			removeChild: vi.fn()
-		}
+			removeChild: vi.fn(),
+			style: {}
+		},
+		querySelector: vi.fn(),
+		querySelectorAll: vi.fn(() => []),
+		getElementById: vi.fn()
 	};
 }
 
@@ -67,6 +74,14 @@ if (typeof window === 'undefined') {
 			setItem: vi.fn(),
 			removeItem: vi.fn(),
 			clear: vi.fn()
+		},
+		fetch: vi.fn(),
+		location: {
+			href: 'http://localhost:3000',
+			origin: 'http://localhost:3000',
+			pathname: '/',
+			search: '',
+			hash: ''
 		}
 	};
 
@@ -79,8 +94,14 @@ if (typeof globalThis.sessionStorage === 'undefined' && globalThis.window?.sessi
 	globalThis.sessionStorage = globalThis.window.sessionStorage;
 }
 
-if (typeof globalThis.document === 'undefined' && typeof window !== 'undefined') {
-	globalThis.document = window.document;
+if (typeof globalThis.localStorage === 'undefined' && globalThis.window?.localStorage) {
+	globalThis.localStorage = globalThis.window.localStorage;
+}
+
+if (typeof globalThis.document === 'undefined' && globalThis.window?.document) {
+	globalThis.document = globalThis.window.document;
+} else if (typeof globalThis.document === 'undefined') {
+	globalThis.document = globalThis.document; // Use the mocked version
 }
 
 // Provide minimal Svelte 5 rune shims for client-side tests

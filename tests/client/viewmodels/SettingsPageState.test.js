@@ -25,6 +25,7 @@ describe('Settings Page State Helpers', () => {
 
 		const expectedOrder = [
 			'global',
+			'authentication',
 			'workspace-env',
 			'home',
 			'tunnel',

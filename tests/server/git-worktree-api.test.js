@@ -50,14 +50,15 @@ describe('Git Worktree API Endpoints', () => {
 				})
 			}));
 
-			// Mock git worktree list
+			// Mock git worktree list --porcelain output format
 			const worktreeOutput = [
-				'/home/user/project',
+				'worktree /home/user/project',
 				'HEAD abcd1234',
-				'[main]',
-				'/home/user/project-feature',
+				'branch refs/heads/main',
+				'',
+				'worktree /home/user/project-feature',
 				'HEAD efgh5678',
-				'[feature-branch]'
+				'branch refs/heads/feature-branch'
 			].join('\n');
 
 			mockSpawn.mockImplementationOnce(() => ({

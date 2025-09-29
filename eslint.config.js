@@ -31,7 +31,9 @@ export default [
 		files: [
 			'src/lib/client/shared/components/workspace/**/*',
 			'src/lib/client/shared/viewmodels/**/*',
-			'src/lib/server/claude/**/*'
+			'src/lib/server/claude/**/*',
+			'src/lib/server/settings/**/*',
+			'src/lib/client/settings/**/*'
 		],
 		rules: {
 			'no-console': 'error'

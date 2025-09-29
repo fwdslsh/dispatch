@@ -1,0 +1,384 @@
+{
+	"openapi": "3.0.3",
+	"info": {
+		"title": "Settings and Configuration API",
+		"description": "API for managing application settings and configuration",
+		"version": "1.0.0"
+	},
+	"paths": {
+		"/api/settings": {
+			"get": {
+				"summary": "Get all settings",
+				"description": "Retrieve all configuration settings grouped by category",
+				"parameters": [
+					{
+						"name": "authKey",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "Authentication key"
+					},
+					{
+						"name": "category",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"description": "Filter by category ID"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Settings retrieved successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SettingsResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication failed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/settings/{category}": {
+			"put": {
+				"summary": "Update category settings",
+				"description": "Update all settings in a specific category",
+				"parameters": [
+					{
+						"name": "category",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "Category ID"
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateCategoryRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Settings updated successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UpdateResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Validation error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ValidationErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication failed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/auth/config": {
+			"get": {
+				"summary": "Get authentication configuration",
+				"description": "Retrieve current authentication settings",
+				"parameters": [
+					{
+						"name": "authKey",
+						"in": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "Authentication key"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Authentication config retrieved",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthConfigResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication failed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"summary": "Update authentication configuration",
+				"description": "Update authentication settings with session invalidation",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateAuthConfigRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Authentication config updated",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UpdateResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Validation error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Authentication failed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"SettingsCategory": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"order": {
+						"type": "number"
+					}
+				},
+				"required": ["id", "name", "description", "order"]
+			},
+			"ConfigurationSetting": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"category_id": {
+						"type": "string"
+					},
+					"key": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"type": {
+						"type": "string",
+						"enum": ["string", "number", "boolean", "url", "email", "path", "json"]
+					},
+					"current_value": {
+						"type": "string",
+						"nullable": true
+					},
+					"default_value": {
+						"type": "string",
+						"nullable": true
+					},
+					"is_sensitive": {
+						"type": "boolean"
+					},
+					"is_required": {
+						"type": "boolean"
+					},
+					"validation_rules": {
+						"type": "object"
+					}
+				},
+				"required": [
+					"id",
+					"category_id",
+					"key",
+					"name",
+					"description",
+					"type",
+					"is_sensitive",
+					"is_required"
+				]
+			},
+			"SettingsResponse": {
+				"type": "object",
+				"properties": {
+					"categories": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/SettingsCategory"
+						}
+					},
+					"settings": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ConfigurationSetting"
+						}
+					}
+				},
+				"required": ["categories", "settings"]
+			},
+			"UpdateCategoryRequest": {
+				"type": "object",
+				"properties": {
+					"authKey": {
+						"type": "string"
+					},
+					"settings": {
+						"type": "object",
+						"additionalProperties": {
+							"type": "string"
+						}
+					}
+				},
+				"required": ["authKey", "settings"]
+			},
+			"UpdateResponse": {
+				"type": "object",
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"updated_count": {
+						"type": "number"
+					},
+					"session_invalidated": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": ["success", "updated_count"]
+			},
+			"AuthConfigResponse": {
+				"type": "object",
+				"properties": {
+					"terminal_key_set": {
+						"type": "boolean"
+					},
+					"oauth_configured": {
+						"type": "boolean"
+					},
+					"oauth_client_id": {
+						"type": "string",
+						"nullable": true
+					},
+					"oauth_redirect_uri": {
+						"type": "string",
+						"nullable": true
+					}
+				},
+				"required": ["terminal_key_set", "oauth_configured"]
+			},
+			"UpdateAuthConfigRequest": {
+				"type": "object",
+				"properties": {
+					"authKey": {
+						"type": "string"
+					},
+					"terminal_key": {
+						"type": "string",
+						"nullable": true
+					},
+					"oauth_client_id": {
+						"type": "string",
+						"nullable": true
+					},
+					"oauth_client_secret": {
+						"type": "string",
+						"nullable": true
+					},
+					"oauth_redirect_uri": {
+						"type": "string",
+						"nullable": true
+					}
+				},
+				"required": ["authKey"]
+			},
+			"ErrorResponse": {
+				"type": "object",
+				"properties": {
+					"error": {
+						"type": "string"
+					},
+					"code": {
+						"type": "string",
+						"nullable": true
+					}
+				},
+				"required": ["error"]
+			}
+		}
+	}
+}

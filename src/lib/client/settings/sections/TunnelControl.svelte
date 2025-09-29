@@ -262,13 +262,8 @@
 </div>
 
 <style>
-	.tunnel-control {
-		max-width: 600px;
-	}
 
 	.error-message {
-		background: rgba(255, 99, 71, 0.1);
-		border: 1px solid rgba(255, 99, 71, 0.3);
 		color: #ff6347;
 		padding: var(--space-sm);
 		border-radius: var(--radius-sm);
@@ -277,7 +272,6 @@
 	}
 
 	.tunnel-status {
-		background: rgba(255, 255, 255, 0.02);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-sm);
 		padding: var(--space-md);
@@ -285,7 +279,6 @@
 	}
 
 	.tunnel-config {
-		background: rgba(255, 255, 255, 0.02);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-sm);
 		padding: var(--space-md);

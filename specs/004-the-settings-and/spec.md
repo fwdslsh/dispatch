@@ -3,7 +3,7 @@
 **Feature Branch**: `004-the-settings-and`
 **Created**: 2025-09-29
 **Status**: Draft
-**Input**: User description: "the settings and configuration of the application and the docker container need to be normalized and cleaned up without breaking any existing functionality. many of the configuration options are not utilized and are legacy/deprecated. it also appears that some of the settings available in the UI are not utilized by the application and/or are duplicated in multiple sections of the settings page. the application settings should be cleaned up to remove duplicates and unused items."
+**Input**: User description: "the settings and configuration of the application and the docker container need to be normalized and cleaned up without breaking any existing functionality. many of the configuration options (docker configuration like mount points, SSL settings) are not utilized and are legacy/deprecated. it also appears that some of the settings (application settings user can override) available in the UI are not utilized by the application and/or are duplicated in multiple sections of the settings page. the application settings should be cleaned up to remove duplicates and unused items."
 
 **Note**: Authentication settings (terminal key and OAuth configuration) are currently only configurable via environment variables and are not exposed in the UI. This feature includes implementing UI controls for these authentication settings as part of the configuration normalization effort.
 
@@ -79,13 +79,13 @@ When creating this spec from a user prompt:
 
 ### Primary User Story
 
-As an administrator, I need a clean and organized settings interface where all configuration options are clearly presented without duplication, all options actually affect the application's behavior, and legacy/deprecated settings are removed, so that I can efficiently manage the application without confusion or encountering non-functional settings. Additionally, I need access to authentication settings that are currently only configurable via environment variables, including terminal key and OAuth configuration.
+As an administrator, I need a clean and organized settings interface where all application settings are clearly presented without duplication, all settings actually affect the application's behavior, and legacy/deprecated configuration options are removed, so that I can efficiently manage the application without confusion or encountering non-functional settings. Additionally, I need access to authentication settings that are currently only configurable via environment variables, including terminal key and OAuth configuration.
 
 ### Acceptance Scenarios
 
-1. **Given** the administrator is on the settings page, **When** they view the configuration options, **Then** no single setting should appear in multiple locations on the same page
-2. **Given** the administrator modifies any configuration setting, **When** they save the changes, **Then** the application behavior should reflect the change appropriately
-3. **Given** the administrator views available configuration options, **When** they review the entire settings interface, **Then** no deprecated or non-functional settings should be present
+1. **Given** the administrator is on the settings page, **When** they view the application settings, **Then** no single setting should appear in multiple locations on the same page
+2. **Given** the administrator modifies any application setting, **When** they save the changes, **Then** the application behavior should reflect the change appropriately
+3. **Given** the administrator views available application settings, **When** they review the entire settings interface, **Then** no deprecated or non-functional configuration options should be present
 4. **Given** existing configurations are in place, **When** the cleanup is performed, **Then** all existing functionality must continue to work without requiring manual intervention (except possibly deleting existing database manually)
 5. **Given** a developer has existing saved preferences, **When** the settings are normalized, **Then** the developer must be instructed to manually backup and delete the existing database to allow recreation
 6. **Given** the application starts up, **When** configuration is loaded, **Then** all settings must be validated before the application becomes operational
@@ -106,31 +106,29 @@ As an administrator, I need a clean and organized settings interface where all c
 
 ### Functional Requirements
 
-- **FR-001**: System MUST identify and document all configuration settings currently available in both the UI and container environment
-- **FR-002**: System MUST remove all duplicate configuration options, keeping only one authoritative section for each setting
+- **FR-001**: System MUST identify and document all application settings currently available in both the UI and container environment
+- **FR-002**: System MUST remove all duplicate application settings, keeping only one authoritative section for each setting
 - **FR-003**: System MUST validate that all remaining settings in the UI actually affect application behavior when modified
 - **FR-004**: System MUST remove all deprecated or non-functional configuration options from the user interface
 - **FR-005**: System MUST preserve all existing functionality without breaking changes during the normalization process
 - **FR-006**: System MUST provide clear documentation instructing developers to manually backup existing database files if desired and delete the existing database to allow the application to recreate it
 - **FR-007**: System MUST provide internal developer documentation mapping old settings to new locations for maintenance and debugging purposes
-- **FR-008**: System MUST ensure UI settings take precedence over environment variables when both are present for the same configuration
-- **FR-009**: System MUST perform immediate cutover to new configuration structure without maintaining backward compatibility for legacy formats
-- **FR-010**: System MUST provide both startup and runtime validation for all configuration settings to ensure values are valid before being applied
+- **FR-008**: System MUST ensure UI settings take precedence over environment variables when both are present for the same setting
+- **FR-009**: System MUST perform immediate cutover to new settings structure without maintaining backward compatibility for legacy configuration formats
+- **FR-010**: System MUST provide both startup and runtime validation for all application settings to ensure values are valid before being applied
 - **FR-011**: System MUST automatically recreate the database with normalized structure when the existing database has been manually deleted
 - **FR-012**: Developer documentation MUST include step-by-step instructions for manually backing up and removing the existing database before normalization
-- **FR-013**: System MUST implement UI controls for authentication settings that are currently only configurable via environment variables, including terminal key and oauth configuration
-- **FR-014**: System MUST implement UI controls for OAuth settings that are currently only configurable via environment variables
-- **FR-015**: System MUST validate authentication setting changes to ensure security requirements are met before applying them
-- **FR-016**: System MUST require active connections to re-authenticate when authentication settings are changed, and immediately expire all other sessions
-- **FR-017**: System MUST reject invalid OAuth configuration changes and retain the previous valid configuration
+- **FR-013**: System MUST implement UI controls for authentication settings that are currently only configurable via environment variables, including terminal key and OAuth configuration (client ID, client secret, redirect URI)
+- **FR-014**: System MUST validate authentication setting changes to ensure security requirements are met before applying them
+- **FR-015**: System MUST require active connections to re-authenticate when authentication settings are changed, and immediately expire all other sessions
+- **FR-016**: System MUST reject invalid OAuth configuration changes and retain the previous valid configuration
 
 ### Key Entities _(include if feature involves data)_
 
-- **Configuration Setting**: A single configurable parameter that affects application behavior, with attributes like name, value, type, category, and whether it's active or deprecated
-- **Settings Category**: A logical grouping of related configuration settings (e.g., Authentication, Workspace, UI Preferences, Terminal)
+- **Application Setting**: A single configurable parameter that affects application behavior, with attributes like name, value, type, category, and whether it's active or deprecated
+- **Settings Category**: A logical grouping of related application settings (e.g., Authentication, Workspace, UI Preferences, Network)
 - **Authentication Settings**: Security-related configuration including terminal key and OAuth parameters that must be accessible through the UI
-- **Configuration Source**: The origin of a configuration value (UI setting, environment variable, default value), with UI settings having highest priority, followed by environment variables, then defaults
-- **Migration Mapping**: The relationship between old/deprecated settings and their new normalized equivalents for data migration purposes
+- **Settings Source**: The origin of a setting value (UI setting, environment variable, default value), with UI settings having highest priority, followed by environment variables, then defaults
 
 ---
 
@@ -168,4 +166,3 @@ _Updated by main() during processing_
 - [x] Review checklist passed
 
 ---
-

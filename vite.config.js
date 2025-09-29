@@ -60,8 +60,15 @@ export default defineConfig(async () => {
 							provider: 'playwright',
 							instances: [{ browser: 'chromium' }]
 						},
-						include: ['tests/**/*.svelte.{test,spec}.{js,ts}'],
-						exclude: ['tests/lib/server/**'],
+						include: [
+							'tests/client/**/*.{test,spec}.{js,ts}',
+							'tests/**/*.svelte.{test,spec}.{js,ts}'
+						],
+						exclude: [
+							'tests/server/**',
+							'tests/unit/server/**',
+							'tests/e2e/**'
+						],
 						setupFiles: ['./tests/helpers/vitest-setup-client.js']
 					}
 				},
@@ -70,8 +77,19 @@ export default defineConfig(async () => {
 					test: {
 						name: 'server',
 						environment: 'node',
-						include: ['tests/**/*.{test,spec}.{js,ts}'],
-						exclude: ['tests/**/*.svelte.{test,spec}.{js,ts}'],
+						include: [
+							'tests/server/**/*.{test,spec}.{js,ts}',
+							'tests/unit/server/**/*.{test,spec}.{js,ts}',
+							'tests/shared/**/*.{test,spec}.{js,ts}',
+							'tests/performance/**/*.{test,spec}.{js,ts}',
+							'tests/integration/**/*.{test,spec}.{js,ts}',
+							'tests/docker/**/*.{test,spec}.{js,ts}'
+						],
+						exclude: [
+							'tests/client/**',
+							'tests/**/*.svelte.{test,spec}.{js,ts}',
+							'tests/e2e/**'
+						],
 						setupFiles: ['./tests/helpers/vitest-setup-server.js']
 					}
 				}

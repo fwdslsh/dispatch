@@ -44,5 +44,10 @@ export const SOCKET_EVENTS = {
 	VSCODE_TUNNEL_START: 'vscode.tunnel.start',
 	VSCODE_TUNNEL_STOP: 'vscode.tunnel.stop',
 	VSCODE_TUNNEL_STATUS: 'vscode.tunnel.status',
-	VSCODE_TUNNEL_LOGIN_URL: 'vscode.tunnel.login-url'
+	VSCODE_TUNNEL_LOGIN_URL: 'vscode.tunnel.login-url',
+
+	// Settings events for real-time updates
+	SETTINGS_UPDATED: 'settings.updated',
+	SETTINGS_CATEGORY_UPDATED: 'settings.category.updated',
+	SETTINGS_AUTH_INVALIDATED: 'settings.auth.invalidated'
 };
