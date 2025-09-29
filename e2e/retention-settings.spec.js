@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { setupFreshTestEnvironment, waitForWorkspace } from './test-helpers.js';
+import { setupFreshTestEnvironment, waitForWorkspaceReady } from './core-helpers.js';
 
 test.describe('Retention Policy Configuration', () => {
 	const mockRetentionPolicy = {
@@ -112,7 +112,7 @@ test.describe('Retention Policy Configuration', () => {
 
 	test('should access retention settings through settings page', async ({ page }) => {
 		await page.goto('/');
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		await test.step('Navigate to settings page', async () => {
 			// Navigate directly to settings page

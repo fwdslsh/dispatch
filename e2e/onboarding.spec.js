@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { setupFreshTestEnvironment, waitForWorkspace } from './test-helpers.js';
+import { setupFreshTestEnvironment, waitForWorkspaceReady } from './core-helpers.js';
 
 test.describe('Onboarding Workflow', () => {
 	test.beforeEach(async ({ page }) => {
@@ -169,7 +169,7 @@ test.describe('Onboarding Workflow', () => {
 			await page.waitForURL('/', { timeout: 10000 });
 
 			// Should see main workspace interface
-			await waitForWorkspace(page);
+			await waitForWorkspaceReady(page);
 
 			// Verify onboarding is marked as complete in storage
 			const onboardingComplete = await page.evaluate(() => {
@@ -292,7 +292,7 @@ test.describe('Onboarding Workflow', () => {
 		await page.waitForURL('/', { timeout: 10000 });
 
 		// Verify we're in the main application
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 	});
 
 	test('should support keyboard navigation', async ({ page }) => {

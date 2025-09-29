@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { setupFreshTestEnvironment, waitForWorkspace } from './test-helpers.js';
+import { setupFreshTestEnvironment, waitForWorkspaceReady } from './core-helpers.js';
 
 const expectedTabs = [
 	'Global',
@@ -111,7 +111,7 @@ test.describe('Settings Page Navigation', () => {
 
 	test('renders left navigation with all expected sections', async ({ page }) => {
 		await page.goto('/settings');
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		const tabList = page.locator('[role="tablist"]');
 		await expect(tabList).toBeVisible();
@@ -155,7 +155,7 @@ test.describe('Settings Page Navigation', () => {
 		});
 
 		await page.goto('/settings');
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		await page.getByRole('tab', { name: 'User Preferences' }).click();
 
@@ -165,7 +165,7 @@ test.describe('Settings Page Navigation', () => {
 
 	test('displays recovery banner when component load fails', async ({ page }) => {
 		await page.goto('/settings');
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		await page.evaluate(() => {
 			window.dispatchEvent(
@@ -182,7 +182,7 @@ test.describe('Settings Page Navigation', () => {
 
 	test('redirects deprecated sections to a safe fallback', async ({ page }) => {
 		await page.goto('/settings?section=deprecated');
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		await expect(page.getByRole('tab', { name: 'Global' })).toHaveAttribute(
 			'aria-selected',

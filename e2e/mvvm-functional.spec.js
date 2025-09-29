@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 import {
 	setupFreshTestEnvironment,
-	waitForWorkspace,
+	waitForWorkspaceReady,
 	setupApiMocks,
 	mobileTap
-} from './test-helpers.js';
+} from './core-helpers.js';
 
 test.describe('MVVM Architecture Functional Tests', () => {
 	test.beforeEach(async ({ page }) => {
@@ -36,7 +36,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 		});
 
 		await page.reload();
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		// Should show empty workspace component
 		const emptyState = page.locator('.empty-workspace, .no-sessions, [data-testid="empty-state"]');
@@ -58,7 +58,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 		});
 
 		await page.reload();
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		// Should show session containers
 		const sessionContainer = page.locator(
@@ -81,7 +81,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 		});
 
 		await page.reload();
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		// Look for mobile navigation elements
 		const mobileNav = page.locator(
@@ -101,7 +101,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 	test('should handle responsive layout changes', async ({ page }) => {
 		// Test desktop view
 		await page.setViewportSize({ width: 1200, height: 800 });
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		// Workspace should be visible
 		await expect(page.locator('.dispatch-workspace')).toBeVisible();
@@ -127,7 +127,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 	});
 
 	test('should handle keyboard shortcuts', async ({ page }) => {
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		// Test command palette with Ctrl+K / Cmd+K
 		const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -158,7 +158,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 		});
 
 		await page.reload();
-		await waitForWorkspace(page);
+		await waitForWorkspaceReady(page);
 
 		// Should still show workspace even with API errors
 		await expect(page.locator('.dispatch-workspace')).toBeVisible();

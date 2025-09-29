@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { setupFreshTestEnvironment, waitForWorkspace } from './test-helpers.js';
+import { setupFreshTestEnvironment, waitForWorkspaceReady } from './core-helpers.js';
 
 test.describe('Authentication Persistence', () => {
 	const validTerminalKey = 'testkey12345';
@@ -81,7 +81,7 @@ test.describe('Authentication Persistence', () => {
 			}, validTerminalKey);
 
 			await page.goto('/');
-			await waitForWorkspace(page);
+			await waitForWorkspaceReady(page);
 
 			// Should be authenticated and in main app
 			await expect(page).toHaveURL('/');
@@ -147,7 +147,7 @@ test.describe('Authentication Persistence', () => {
 			await newPage.goto('/');
 
 			// Should be automatically authenticated
-			await waitForWorkspace(newPage);
+			await waitForWorkspaceReady(newPage);
 			await expect(newPage).toHaveURL('/');
 
 			await newPage.close();
@@ -184,7 +184,7 @@ test.describe('Authentication Persistence', () => {
 			}, validTerminalKey);
 
 			await page.goto('/');
-			await waitForWorkspace(page);
+			await waitForWorkspaceReady(page);
 		});
 
 		await test.step('Simulate user activity', async () => {
@@ -198,7 +198,7 @@ test.describe('Authentication Persistence', () => {
 
 			// Navigate back
 			await page.goto('/');
-			await waitForWorkspace(page);
+			await waitForWorkspaceReady(page);
 
 			// Session should remain valid
 			const authStatus = await page.evaluate(() => {
@@ -271,7 +271,7 @@ test.describe('Authentication Persistence', () => {
 				await page.locator('button', { hasText: /Continue|Login|Authenticate/i }).click();
 
 				// Should be authenticated again
-				await waitForWorkspace(page);
+				await waitForWorkspaceReady(page);
 			}
 		});
 	});
@@ -361,7 +361,7 @@ test.describe('Authentication Persistence', () => {
 			}
 
 			// Should successfully authenticate
-			await waitForWorkspace(page);
+			await waitForWorkspaceReady(page);
 		});
 	});
 
@@ -434,7 +434,7 @@ test.describe('Authentication Persistence', () => {
 				});
 
 				await page.goto('/');
-				await waitForWorkspace(page);
+				await waitForWorkspaceReady(page);
 			}
 
 			// Both sessions should be independent and valid
@@ -471,7 +471,7 @@ test.describe('Authentication Persistence', () => {
 			}, validTerminalKey);
 
 			await page.goto('/');
-			await waitForWorkspace(page);
+			await waitForWorkspaceReady(page);
 		});
 
 		await test.step('Reload page and verify session persistence', async () => {
@@ -479,7 +479,7 @@ test.describe('Authentication Persistence', () => {
 			await page.reload();
 
 			// Should remain authenticated
-			await waitForWorkspace(page);
+			await waitForWorkspaceReady(page);
 			await expect(page).toHaveURL('/');
 
 			// Verify authentication data is still present
@@ -522,7 +522,7 @@ test.describe('Authentication Persistence', () => {
 			});
 
 			await page.goto('/');
-			await waitForWorkspace(page);
+			await waitForWorkspaceReady(page);
 		});
 
 		await test.step('Logout and verify cleanup', async () => {

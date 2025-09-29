@@ -1,8 +1,6 @@
 // visual-review.spec.js - Comprehensive visual review test
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:5174';
-
 test.describe('Visual Consistency Review', () => {
 	test.beforeEach(async ({ page }) => {
 		// Set viewport for consistent screenshots
@@ -10,7 +8,7 @@ test.describe('Visual Consistency Review', () => {
 	});
 
 	test('Home page - Initial load and components', async ({ page }) => {
-		await page.goto(BASE_URL);
+		await page.goto('/');
 		await page.waitForLoadState('networkidle');
 
 		// Take full page screenshot
@@ -24,7 +22,7 @@ test.describe('Visual Consistency Review', () => {
 	});
 
 	test('Projects page - Main application interface', async ({ page }) => {
-		await page.goto(`${BASE_URL}/workspace`);
+		await page.goto('/workspace');
 		await page.waitForLoadState('networkidle');
 
 		// Wait for main content to load
@@ -53,7 +51,7 @@ test.describe('Visual Consistency Review', () => {
 	});
 
 	test('Projects page - Session menu interactions', async ({ page }) => {
-		await page.goto(`${BASE_URL}/workspace`);
+		await page.goto('/workspace');
 		await page.waitForLoadState('networkidle');
 
 		// Try to open session menu
@@ -83,7 +81,7 @@ test.describe('Visual Consistency Review', () => {
 	});
 
 	test('Projects page - Create session modal', async ({ page }) => {
-		await page.goto(`${BASE_URL}/workspace`);
+		await page.goto('/workspace');
 		await page.waitForLoadState('networkidle');
 
 		// Try to open create session modal
@@ -122,7 +120,7 @@ test.describe('Visual Consistency Review', () => {
 
 	test('Console page - Terminal interface', async ({ page }) => {
 		try {
-			await page.goto(`${BASE_URL}/console`);
+			await page.goto(`/console`);
 			await page.waitForLoadState('networkidle');
 
 			// Take full page screenshot
@@ -134,7 +132,7 @@ test.describe('Visual Consistency Review', () => {
 
 	test('Mobile viewport - Projects page', async ({ page }) => {
 		await page.setViewportSize({ width: 375, height: 667 }); // iPhone SE
-		await page.goto(`${BASE_URL}/workspace`);
+		await page.goto(`/workspace`);
 		await page.waitForLoadState('networkidle');
 
 		await expect(page).toHaveScreenshot('projects-mobile.png', { fullPage: true });
@@ -150,14 +148,14 @@ test.describe('Visual Consistency Review', () => {
 
 	test('Tablet viewport - Projects page', async ({ page }) => {
 		await page.setViewportSize({ width: 768, height: 1024 }); // iPad
-		await page.goto(`${BASE_URL}/workspace`);
+		await page.goto(`/workspace`);
 		await page.waitForLoadState('networkidle');
 
 		await expect(page).toHaveScreenshot('projects-tablet.png', { fullPage: true });
 	});
 
 	test('Component states - Buttons and inputs', async ({ page }) => {
-		await page.goto(`${BASE_URL}/workspace`);
+		await page.goto(`/workspace`);
 		await page.waitForLoadState('networkidle');
 
 		// Find various button types and test their states
