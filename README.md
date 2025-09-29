@@ -28,7 +28,7 @@ dispatch attach
 
 _Note: Requires bash and Docker_
 
-📖 **[Quick Start Guide](QUICKSTART.md)** - Complete setup and usage walkthrough
+📖 **[Quick Start Guide](docs/quickstart.md)** - Complete setup and usage walkthrough
 
 ## Why Dispatch?
 
@@ -122,7 +122,7 @@ docker run -d -p 80:80 \
 ## Documentation & Support
 
 - 📖 [Full Documentation](https://github.com/fwdslsh/dispatch/tree/main/docs)
-- 🌿 [Git Worktree Guide](docs/GIT_WORKTREE.md) - Multiple working directories with auto-initialization
+- 🌿 [Git Worktree Guide](docs/features/git-worktrees.md) - Multiple working directories with auto-initialization
 - 🐛 [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
 
 ## Contributing
