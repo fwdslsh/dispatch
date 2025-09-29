@@ -233,13 +233,15 @@
 			<span class="font-medium">Worktrees ({worktrees.length})</span>
 		</div>
 		<IconButton
-			icon={IconPlus}
+			type="button"
 			title="Add Worktree"
 			size="sm"
 			variant="primary"
 			onclick={showAddWorktreeForm}
 			disabled={loading}
-		/>
+		>
+			<IconPlus size={16} />
+		</IconButton>
 	</div>
 
 	{#if error}
@@ -258,13 +260,14 @@
 						</div>
 					</div>
 					<IconButton
-						icon={IconX}
 						title="Remove Worktree"
 						size="sm"
 						variant="danger"
 						onclick={() => removeWorktree(worktree.path)}
 						disabled={loading}
-					/>
+					>
+						<IconX size={16} />
+					</IconButton>
 				</div>
 			{/each}
 		</div>
@@ -354,12 +357,13 @@
 											onchange={(e) => updateInitCommand(index, e.target.value)}
 										/>
 										<IconButton
-											icon={IconX}
 											title="Remove Command"
 											size="sm"
 											variant="danger"
 											onclick={() => removeInitCommand(index)}
-										/>
+										>
+											<IconX size={16} />
+										</IconButton>
 									</div>
 								{/each}
 								<Button variant="secondary" size="sm" onclick={addInitCommand}>Add Command</Button>

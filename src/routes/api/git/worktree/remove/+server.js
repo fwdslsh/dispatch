@@ -1,6 +1,21 @@
 import { json } from '@sveltejs/kit';
 import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
+import { homedir } from 'node:os';
+
+// Expand tilde (~) in paths  
+function expandTilde(filepath) {
+	if (filepath.startsWith('~/') || filepath === '~') {
+		return filepath.replace(/^~/, homedir());
+	}
+	return filepath;
+}
+
+// Resolve path with proper tilde expansion
+function resolvePath(filepath) {
+	const expanded = expandTilde(filepath);
+	return resolve(expanded);
+}
 
 // Execute git command in specified directory
 function execGit(args, cwd) {
@@ -39,8 +54,8 @@ export async function POST({ request }) {
 			return json({ error: 'Path and worktreePath are required' }, { status: 400 });
 		}
 
-		const resolvedPath = resolve(path);
-		const resolvedWorktreePath = resolve(worktreePath);
+		const resolvedPath = resolvePath(path);
+		const resolvedWorktreePath = resolvePath(worktreePath);
 
 		// Check if it's a git repository
 		try {

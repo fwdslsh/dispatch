@@ -1,6 +1,21 @@
 import { json } from '@sveltejs/kit';
 import { resolve, join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+
+// Expand tilde (~) in paths  
+function expandTilde(filepath) {
+	if (filepath.startsWith('~/') || filepath === '~') {
+		return filepath.replace(/^~/, homedir());
+	}
+	return filepath;
+}
+
+// Resolve path with proper tilde expansion
+function resolvePath(filepath) {
+	const expanded = expandTilde(filepath);
+	return resolve(expanded);
+}
 
 // Common initialization patterns based on project files
 const INIT_PATTERNS = [
@@ -108,7 +123,7 @@ export async function GET({ url }) {
 			return json({ error: 'Path parameter is required' }, { status: 400 });
 		}
 
-		const resolvedPath = resolve(path);
+		const resolvedPath = resolvePath(path);
 
 		// Check if directory exists
 		if (!existsSync(resolvedPath)) {
@@ -153,7 +168,7 @@ export async function POST({ request }) {
 			return json({ error: 'Path and commands array are required' }, { status: 400 });
 		}
 
-		const resolvedPath = resolve(path);
+		const resolvedPath = resolvePath(path);
 
 		// Check if directory exists
 		if (!existsSync(resolvedPath)) {

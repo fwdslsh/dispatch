@@ -1,6 +1,21 @@
 import { json } from '@sveltejs/kit';
 import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
+import { homedir } from 'node:os';
+
+// Expand tilde (~) in paths  
+function expandTilde(filepath) {
+	if (filepath.startsWith('~/') || filepath === '~') {
+		return filepath.replace(/^~/, homedir());
+	}
+	return filepath;
+}
+
+// Resolve path with proper tilde expansion
+function resolvePath(filepath) {
+	const expanded = expandTilde(filepath);
+	return resolve(expanded);
+}
 
 // Execute git command in specified directory
 function execGit(args, cwd) {
@@ -45,9 +60,11 @@ function parseWorktreeList(output) {
 
 		if (!pathLine) continue;
 
-		const path = pathLine.trim();
-		const head = headLine ? headLine.replace('HEAD ', '').trim() : '';
-		const branch = branchLine ? branchLine.replace(/^\[(.+)\]$/, '$1').trim() : '';
+		// Parse each line - git worktree --porcelain uses "worktree <path>" format
+		const path = pathLine.startsWith('worktree ') ? pathLine.substring(9).trim() : pathLine.trim();
+		const head = headLine && headLine.startsWith('HEAD ') ? headLine.substring(5).trim() : '';
+		const branch = branchLine && branchLine.startsWith('branch ') ? 
+			branchLine.substring(7).trim().replace(/^refs\/heads\//, '') : '';
 
 		worktrees.push({
 			path,
@@ -66,7 +83,7 @@ export async function GET({ url }) {
 			return json({ error: 'Path parameter is required' }, { status: 400 });
 		}
 
-		const resolvedPath = resolve(path);
+		const resolvedPath = resolvePath(path);
 
 		// Check if it's a git repository
 		try {

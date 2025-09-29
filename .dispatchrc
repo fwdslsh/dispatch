@@ -1,0 +1,6 @@
+#!/bin/bash
+# Auto-generated initialization script for git worktrees
+set -e
+
+cp $1/.env .
+npm install
