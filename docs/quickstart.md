@@ -142,4 +142,3 @@ chmod 600 ~/.ssh/id_rsa    # Fix permissions if needed
 - Set up Claude AI integration for code assistance
 - Configure custom adapters for your workflow
 - Share your setup with teammates using the same commands
-
