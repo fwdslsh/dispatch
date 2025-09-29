@@ -50,6 +50,7 @@ _Note: Requires bash and Docker_
 
 - Multiple session types: Terminal, Claude AI, File Editor, Custom Adapters
 - **VS Code Remote Tunnel integration** for seamless IDE access (requires VS Code CLI)
+- Git worktree support with automated project initialization detection
 - Workspace-level environment variables for consistent development environments
 - Let long-running tasks complete unattended in the background
 - Perfect for AI-assisted development workflows
@@ -108,6 +109,7 @@ docker run -d -p 3030:3030 \
 ## Documentation & Support
 
 - 📖 [Full Documentation](https://github.com/fwdslsh/dispatch/tree/main/docs)
+- 🌿 [Git Worktree Guide](docs/GIT_WORKTREE.md) - Multiple working directories with auto-initialization
 - 🐛 [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
 
 ## Contributing
