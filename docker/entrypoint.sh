@@ -193,8 +193,21 @@ EOF
     # Start nginx for ACME challenge
     nginx &
     local nginx_pid=$!
-    sleep 2
-    
+
+    # Wait for nginx to be ready (max 10 seconds)
+    for i in {1..10}; do
+        if curl --fail --silent http://localhost/.well-known/acme-challenge/ >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+    # Check if nginx is ready
+    if ! curl --fail --silent http://localhost/.well-known/acme-challenge/ >/dev/null 2>&1; then
+        echo "❌ Nginx did not start or is not responding on port 80"
+        kill $nginx_pid 2>/dev/null || true
+        wait $nginx_pid 2>/dev/null || true
+        exit 1
+    fi
     # Request certificate
     certbot certonly \
         --webroot \
