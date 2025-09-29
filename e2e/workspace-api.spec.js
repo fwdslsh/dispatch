@@ -334,9 +334,7 @@ test.describe('Workspace API', () => {
 		}
 
 		// Test pagination with limit
-		const response = await page.request.get(
-			`/api/workspaces?limit=2&authKey=${TEST_KEY}`
-		);
+		const response = await page.request.get(`/api/workspaces?limit=2&authKey=${TEST_KEY}`);
 		expect(response.status()).toBe(200);
 
 		const data = await response.json();
@@ -368,9 +366,7 @@ test.describe('Workspace API', () => {
 		});
 
 		// Test status filtering
-		const response = await page.request.get(
-			`/api/workspaces?status=new&authKey=${TEST_KEY}`
-		);
+		const response = await page.request.get(`/api/workspaces?status=new&authKey=${TEST_KEY}`);
 		expect(response.status()).toBe(200);
 
 		const data = await response.json();

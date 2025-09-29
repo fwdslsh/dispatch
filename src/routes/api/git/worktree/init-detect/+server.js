@@ -3,7 +3,7 @@ import { resolve, join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 
-// Expand tilde (~) in paths  
+// Expand tilde (~) in paths
 function expandTilde(filepath) {
 	if (filepath.startsWith('~/') || filepath === '~') {
 		return filepath.replace(/^~/, homedir());

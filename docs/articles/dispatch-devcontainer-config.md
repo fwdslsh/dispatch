@@ -153,7 +153,7 @@ services:
       - PORT=3030
       - ENABLE_TUNNEL=false
       - DISPATCH_CONFIG_DIR=/home/dispatch/.config/dispatch
-      - DISPATCH_PROJECTS_DIR=/workspace
+      - WORKSPACES_ROOT=/home/dispatch/workspace
     volumes:
       - dispatch-home:/home/dispatch
       - dispatch-workspace:/workspace

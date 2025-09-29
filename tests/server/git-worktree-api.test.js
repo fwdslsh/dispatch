@@ -196,7 +196,7 @@ describe('Git Worktree API Endpoints', () => {
 
 			// Mock git worktree add
 			mockSpawn.mockImplementationOnce(() => ({
-				stdout: { 
+				stdout: {
 					on: vi.fn((event, callback) => {
 						if (event === 'data') callback('Preparing worktree');
 					})
@@ -209,7 +209,7 @@ describe('Git Worktree API Endpoints', () => {
 
 			// Mock .dispatchrc execution with bash
 			mockSpawn.mockImplementationOnce(() => ({
-				stdout: { 
+				stdout: {
 					on: vi.fn((event, callback) => {
 						if (event === 'data') callback('Script executed successfully');
 					})
@@ -221,13 +221,14 @@ describe('Git Worktree API Endpoints', () => {
 			}));
 
 			const request = {
-				json: () => Promise.resolve({
-					path: '/test/repo',
-					worktreePath: '/test/repo-feature',
-					newBranch: 'feature-branch',
-					runInit: true,
-					initCommands: ['npm install'] // This should be ignored if .dispatchrc exists
-				})
+				json: () =>
+					Promise.resolve({
+						path: '/test/repo',
+						worktreePath: '/test/repo-feature',
+						newBranch: 'feature-branch',
+						runInit: true,
+						initCommands: ['npm install'] // This should be ignored if .dispatchrc exists
+					})
 			};
 
 			const response = await addWorktree({ request });
@@ -238,13 +239,12 @@ describe('Git Worktree API Endpoints', () => {
 			expect(data.initResults).toHaveLength(1);
 			expect(data.initResults[0].command).toBe('.dispatchrc /test/repo');
 			expect(data.initResults[0].success).toBe(true);
-			
+
 			// Verify that bash was called with the correct arguments
-			expect(mockSpawn).toHaveBeenCalledWith(
-				'bash', 
-				['/test/repo/.dispatchrc', '/test/repo'], 
-				{ cwd: '/test/repo-feature', encoding: 'utf8' }
-			);
+			expect(mockSpawn).toHaveBeenCalledWith('bash', ['/test/repo/.dispatchrc', '/test/repo'], {
+				cwd: '/test/repo-feature',
+				encoding: 'utf8'
+			});
 		});
 
 		it('should fallback to individual commands when .dispatchrc does not exist', async () => {
@@ -265,7 +265,7 @@ describe('Git Worktree API Endpoints', () => {
 
 			// Mock git worktree add
 			mockSpawn.mockImplementationOnce(() => ({
-				stdout: { 
+				stdout: {
 					on: vi.fn((event, callback) => {
 						if (event === 'data') callback('Preparing worktree');
 					})
@@ -278,7 +278,7 @@ describe('Git Worktree API Endpoints', () => {
 
 			// Mock individual command execution
 			mockSpawn.mockImplementationOnce(() => ({
-				stdout: { 
+				stdout: {
 					on: vi.fn((event, callback) => {
 						if (event === 'data') callback('npm install completed');
 					})
@@ -290,13 +290,14 @@ describe('Git Worktree API Endpoints', () => {
 			}));
 
 			const request = {
-				json: () => Promise.resolve({
-					path: '/test/repo',
-					worktreePath: '/test/repo-feature',
-					newBranch: 'feature-branch',
-					runInit: true,
-					initCommands: ['npm install']
-				})
+				json: () =>
+					Promise.resolve({
+						path: '/test/repo',
+						worktreePath: '/test/repo-feature',
+						newBranch: 'feature-branch',
+						runInit: true,
+						initCommands: ['npm install']
+					})
 			};
 
 			const response = await addWorktree({ request });
@@ -307,13 +308,12 @@ describe('Git Worktree API Endpoints', () => {
 			expect(data.initResults).toHaveLength(1);
 			expect(data.initResults[0].command).toBe('npm install');
 			expect(data.initResults[0].success).toBe(true);
-			
+
 			// Verify that sh was called for individual command execution
-			expect(mockSpawn).toHaveBeenCalledWith(
-				'sh', 
-				['-c', 'npm install'], 
-				{ cwd: '/test/repo-feature', encoding: 'utf8' }
-			);
+			expect(mockSpawn).toHaveBeenCalledWith('sh', ['-c', 'npm install'], {
+				cwd: '/test/repo-feature',
+				encoding: 'utf8'
+			});
 		});
 	});
 

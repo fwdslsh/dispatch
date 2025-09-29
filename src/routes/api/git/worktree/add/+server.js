@@ -4,7 +4,7 @@ import { resolve, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 
-// Expand tilde (~) in paths  
+// Expand tilde (~) in paths
 function expandTilde(filepath) {
 	if (filepath.startsWith('~/') || filepath === '~') {
 		return filepath.replace(/^~/, homedir());
@@ -160,21 +160,25 @@ export async function POST({ request }) {
 		if (runInit && initCommands.length > 0) {
 			// Check if there's a .dispatchrc file in the original repository
 			const dispatchrcPath = join(resolvedPath, '.dispatchrc');
-			
+
 			if (existsSync(dispatchrcPath)) {
 				// Execute .dispatchrc script with original repo path as first parameter
 				try {
-					const initResult = await execDispatchrc(dispatchrcPath, resolvedPath, resolvedWorktreePath);
-					initResults.push({ 
-						command: `.dispatchrc ${resolvedPath}`, 
-						success: true, 
-						output: initResult 
+					const initResult = await execDispatchrc(
+						dispatchrcPath,
+						resolvedPath,
+						resolvedWorktreePath
+					);
+					initResults.push({
+						command: `.dispatchrc ${resolvedPath}`,
+						success: true,
+						output: initResult
 					});
 				} catch (error) {
-					initResults.push({ 
-						command: `.dispatchrc ${resolvedPath}`, 
-						success: false, 
-						error: error.message 
+					initResults.push({
+						command: `.dispatchrc ${resolvedPath}`,
+						success: false,
+						error: error.message
 					});
 				}
 			} else {

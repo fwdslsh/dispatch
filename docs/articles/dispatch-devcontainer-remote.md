@@ -226,7 +226,7 @@ LT_SUBDOMAIN=your-subdomain
 
 # Directory configuration
 DISPATCH_CONFIG_DIR=/home/dispatch/.config/dispatch
-DISPATCH_PROJECTS_DIR=/workspace
+WORKSPACES_ROOT=$HOME/workspaces
 
 # Performance tuning for remote access
 NODE_OPTIONS=--max-old-space-size=4096

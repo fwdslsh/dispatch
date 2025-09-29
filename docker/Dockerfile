@@ -87,8 +87,8 @@ RUN usermod -l dispatch -d /home/dispatch node \
 
 # Create mount point directories with proper ownership
 # These will be overridden by volume mounts but need to exist
-RUN mkdir -p /config /projects /workspace /tmp/dispatch-sessions \
-    && chown -R dispatch:dispatch /config /projects /workspace /tmp/dispatch-sessions \
+RUN mkdir -p /workspaces /tmp/dispatch \
+    && chown -R dispatch:dispatch /workspaces /tmp/dispatch \
     && chown -R dispatch:dispatch /app
 
 # Install global packages
@@ -127,12 +127,6 @@ ENV NODE_ENV=production \
     LETSENCRYPT_STAGING=false \
     # Directory management configuration
     DISPATCH_CONFIG_DIR=/config \
-    DISPATCH_PROJECTS_DIR=/projects \
-    # Container environment flag
-    CONTAINER_ENV=true \
-    # Project sandboxing configuration
-    PROJECT_SANDBOX_ENABLED=true \
-    HOST_HOME_DIR=/home/dispatch \
     # User mapping configuration
     DEFAULT_UID=$USER_UID \
     DEFAULT_GID=$USER_GID

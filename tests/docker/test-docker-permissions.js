@@ -8,7 +8,6 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 
 const TEST_DIR = '/tmp/dispatch-permission-test';
 const HOST_UID = process.getuid ? process.getuid() : 1000;

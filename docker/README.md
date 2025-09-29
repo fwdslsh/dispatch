@@ -35,18 +35,21 @@ docker run -d -p 80:80 \
 Dispatch supports three SSL modes via the `SSL_MODE` environment variable:
 
 ### 🌐 **`letsencrypt` (Default - Production)**
+
 - **Free, globally trusted certificates** from Let's Encrypt
 - **Automatic certificate renewal** every 60 days
 - **Zero trust warnings** - perfect for production
 - **Requirements**: Valid domain pointing to your server, ports 80 and 443 accessible
 
 ### 🔐 **`self-signed` (Development/Testing)**
+
 - **Self-signed certificates** generated automatically
 - **Browser trust warnings** - click "Advanced" → "Proceed"
 - **No external dependencies** - works offline
 - **Perfect for development and testing**
 
 ### 🚫 **`none` (HTTP Only)**
+
 - **No SSL/HTTPS** - HTTP only on port 80
 - **Smallest container footprint**
 - **Use behind external SSL terminator** (Cloudflare, load balancer)

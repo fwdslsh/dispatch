@@ -117,9 +117,7 @@ ENABLE_TUNNEL=false
 #LT_SUBDOMAIN=my-dispatch
 
 # Optional: Directory paths (uncomment to override defaults)
-#DISPATCH_CONFIG_DIR=/config
-#DISPATCH_PROJECTS_DIR=/projects
-#DISPATCH_WORKSPACE_DIR=/workspace
+#WORKSPACES_ROOT=~/workspaces
 
 # Optional: Development/debugging
 #DEBUG=*

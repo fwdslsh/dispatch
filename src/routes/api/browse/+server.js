@@ -5,8 +5,8 @@ import { homedir } from 'node:os';
 
 // Get the base directory for browsing (can be configured via environment)
 function getBaseDirectory() {
-	// Use WORKSPACES_ROOT if set, otherwise fall back to DISPATCH_PROJECTS_DIR or home directory
-	return process.env.WORKSPACES_ROOT || process.env.DISPATCH_PROJECTS_DIR || homedir();
+	// Use WORKSPACES_ROOT if set, otherwise fall back to home directory
+	return process.env.WORKSPACES_ROOT || join(homedir(), 'workspaces');
 }
 
 // Validate that the requested path is within allowed bounds

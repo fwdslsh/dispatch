@@ -20,56 +20,47 @@ ${DISPATCH_CONFIG_DIR}/
 ├── config.json          # System configuration
 ```
 
-### Projects Directory (`DISPATCH_PROJECTS_DIR`)
+### Workspaces Directory (`WORKSPACES_ROOT`)
 
-**Default**: `~/dispatch-projects` or `/var/lib/dispatch/projects` (in containerized environments)
+**Default**: `/workspace` (in Docker) or `~/.dispatch-home/workspaces` (locally)
 
-Contains all project directories. This location can be overridden using Docker volume mounts or the `DISPATCH_PROJECTS_DIR` environment variable. By default, this directory is kept separate from the configuration directory to allow for:
+This directory contains all user workspaces (projects). The location can be overridden using Docker volume mounts or the `WORKSPACES_ROOT` environment variable. By default, this directory is kept separate from the configuration directory to allow for:
 
 - Independent backup strategies
 - Different volume mount points in containers
 - Separation of configuration from data
 - Compliance with XDG Base Directory specification
 
-### Project Directory Structure
+### Workspace Directory Structure
 
-Each project directory serves as an isolated environment with the following organization:
+Each workspace is a directory under `WORKSPACES_ROOT` and serves as an isolated environment for user projects. All metadata (name, status, session info, etc.) is stored in the central SQLite database, not in per-workspace JSON files.
 
 ```
-project-name/
-├── .dispatch/           # System metadata (hidden)
-│   ├── project.json    # Project configuration
-│   ├── sessions.json   # Session registry
-│   └── metadata.json   # Project metadata (owner, tags, created, modified)
-├── sessions/           # Temporary session workspaces
-│   └── YYYY-MM-DD-HHMMSS-SSS/  # Individual session directories
-└── workspace/          # Persistent project files
-    ├── repositories/   # Git repositories
-    ├── documents/      # Project documentation
-    └── assets/         # Other project resources
+/workspace/
+├── example-project/      # User workspace directory (project)
+│   ├── ...user files...
+│   └── ...
+├── another-project/
+│   └── ...
+└── ...
 ```
 
 **Key Characteristics**:
 
-- Acts as `HOME` directory for all sessions within the project
-- Project name is normalized (lowercase, alphanumeric with hyphens)
-- Provides complete isolation between projects
-- Contains both persistent (`workspace/`) and temporary (`sessions/`) areas
+- Each workspace is a top-level directory under `WORKSPACES_ROOT`
+- All workspace/project/session metadata is managed in the SQLite database (`workspaces`, `sessions`, `session_events` tables)
+- No `.dispatch/`, `project.json`, `sessions.json`, or `metadata.json` files are created per workspace
+- Workspace names are derived from directory names and validated for safety
 
-### Session Directory Structure
+### Session Management
 
-Sessions provide isolated working directories for parallel work, similar to Git worktrees.
-
-**Naming Format**: `YYYY-MM-DD-HHMMSS-SSS` (with milliseconds to prevent collisions)
-
-**Example**: `2025-09-01-143052-247`
+Sessions are tracked and managed in the SQLite database. Each session is associated with a workspace path and has its own metadata (status, type, timestamps, etc.). There are no per-session directories or files by default; all session state is event-sourced in the database.
 
 **Purpose**:
 
-- Default working directory for terminal sessions
-- Temporary storage for session-specific work
-- Parallel development without affecting other sessions
-- Clean workspace for each new session
+- Track and manage parallel terminal, Claude, and file-editor sessions per workspace
+- Store session metadata, status, and event history centrally
+- Enable session discovery, filtering, and replay via database queries
 
 ## Directory Management Features
 
@@ -123,44 +114,37 @@ All directory operations include comprehensive validation:
 - **Character Restrictions**: Only alphanumeric characters, hyphens, and underscores allowed in project names
 - **Path Length Limits**: Maximum path lengths enforced (255 chars for names, 4096 for full paths)
 
-### Project Metadata
+### Workspace Metadata
 
-Each project maintains metadata in `.dispatch/metadata.json`:
+All workspace/project metadata is stored in the `workspaces` table in the SQLite database. Example fields:
 
-```json
+```
 {
-	"id": "uuid-v4",
-	"name": "project-name",
-	"displayName": "Project Name",
-	"description": "Project description",
-	"owner": "user@example.com",
-	"created": "2025-09-01T10:00:00.000Z",
-	"modified": "2025-09-01T14:30:00.000Z",
-	"tags": ["development", "client-a"],
-	"settings": {
-		"defaultShell": "/bin/bash",
-		"environment": {}
-	}
+  "path": "/workspace/example-project",
+  "name": "Example Project",
+  "created_at": 1693555200000,
+  "updated_at": 1693558800000,
+  "last_active": 1693562400000,
+  "status": "active"
 }
 ```
 
 ### Session Metadata
 
-Sessions are tracked in `.dispatch/sessions.json` with the following information:
+Sessions are tracked in the `sessions` and `session_events` tables in the SQLite database. Example session fields:
 
-```json
+```
 {
-	"id": "session-uuid",
-	"directory": "2025-09-01-143052-247",
-	"created": "2025-09-01T14:30:52.247Z",
-	"lastAccessed": "2025-09-01T15:45:00.000Z",
-	"status": "active",
-	"pid": 12345,
-	"mode": "claude",
-	"metadata": {
-		"purpose": "Feature development",
-		"branch": "feature/new-ui"
-	}
+  "run_id": "session-uuid",
+  "kind": "pty" | "claude" | "file-editor",
+  "status": "running" | "stopped" | "error",
+  "created_at": 1693555200000,
+  "updated_at": 1693558800000,
+  "meta_json": {
+    "workspacePath": "/workspace/example-project",
+    "shell": "/bin/bash",
+    ...
+  }
 }
 ```
 
@@ -185,57 +169,36 @@ Sessions support:
 
 ## Environment Variables
 
-| Variable                | Description                  | Default                                               |
-| ----------------------- | ---------------------------- | ----------------------------------------------------- |
-| `DISPATCH_CONFIG_DIR`   | Root configuration directory | `~/.config/dispatch` or `/etc/dispatch`               |
-| `DISPATCH_PROJECTS_DIR` | Projects storage directory   | `~/dispatch-projects` or `/var/lib/dispatch/projects` |
+| Variable              | Description                  | Default                                                |
+| --------------------- | ---------------------------- | ------------------------------------------------------ |
+| `DISPATCH_CONFIG_DIR` | Root configuration directory | `~/.config/dispatch` or `/etc/dispatch`                |
+| `WORKSPACES_ROOT`     | Workspaces/projects root dir | `/workspace` (Docker) or `~/.dispatch-home/workspaces` |
 
 ## Implementation Examples
 
-### Creating a New Project
+### Creating a New Workspace
 
 ```javascript
-// Normalize project name
-const normalizedName = projectName
-	.toLowerCase()
-	.replace(/[^a-z0-9-]/g, '-')
-	.replace(/-+/g, '-')
-	.substring(0, 63);
-
-// Validate against reserved names
-if (RESERVED_NAMES.includes(normalizedName)) {
-	throw new Error(`Project name "${normalizedName}" is reserved`);
+// Validate workspace path (must be absolute, under WORKSPACES_ROOT, no traversal)
+const workspaceRoot = process.env.WORKSPACES_ROOT || '/workspace';
+const workspacePath = path.join(workspaceRoot, 'example-project');
+if (!workspacePath.startsWith(workspaceRoot)) {
+	throw new Error('Workspace path must be within WORKSPACES_ROOT');
 }
-
-// Create project structure
-const projectPath = path.join(PROJECTS_DIR, normalizedName);
-await fs.mkdir(path.join(projectPath, '.dispatch'), { recursive: true });
-await fs.mkdir(path.join(projectPath, 'sessions'), { recursive: true });
-await fs.mkdir(path.join(projectPath, 'workspace'), { recursive: true });
+// Create workspace directory
+await fs.mkdir(workspacePath, { recursive: true });
+// Register workspace in database
+await database.createWorkspace(workspacePath, 'Example Project');
 ```
 
 ### Creating a New Session
 
 ```javascript
-// Generate timestamp with milliseconds
-const now = new Date();
-const timestamp = now
-	.toISOString()
-	.replace(/[T:]/g, '-')
-	.replace(/\..+/, '')
-	.concat(`-${now.getMilliseconds().toString().padStart(3, '0')}`);
-
-// Create session directory
-const sessionPath = path.join(projectPath, 'sessions', timestamp);
-await fs.mkdir(sessionPath, { recursive: true });
-
-// Register session
-const sessionData = {
-	id: uuidv4(),
-	directory: timestamp,
-	created: now.toISOString(),
-	status: 'active'
-};
+// Create a new session for a workspace (database-driven)
+const runId = uuidv4();
+const workspacePath = '/workspace/example-project';
+const meta = { workspacePath, shell: '/bin/bash' };
+await database.createRunSession(runId, 'pty', meta);
 ```
 
 ## Best Practices
@@ -257,11 +220,11 @@ const sessionData = {
 - Verify write permissions on project directory
 - Ensure project name is valid and normalized
 
-**Project Not Found**
+**Workspace Not Found**
 
-- Verify `DISPATCH_PROJECTS_DIR` is correctly set
-- Check if project directory exists and has proper structure
-- Validate project name normalization
+- Verify `WORKSPACES_ROOT` is correctly set
+- Check if workspace directory exists and is registered in the database
+- Validate workspace path and name
 
 **Path Traversal Attempts**
 

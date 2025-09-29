@@ -23,15 +23,15 @@ test.describe('Session Management - Comprehensive', () => {
 		// Check if WindowManager or workspace content is visible
 		const workspaceElements = [
 			'.wm-root',
-			'.dispatch-workspace', 
+			'.dispatch-workspace',
 			'.main-content',
 			'.workspace',
 			'main'
 		];
-		
+
 		let foundElement = false;
 		for (const selector of workspaceElements) {
-			if (await page.locator(selector).count() > 0) {
+			if ((await page.locator(selector).count()) > 0) {
 				console.log(`✓ Found workspace element: ${selector}`);
 				foundElement = true;
 				break;
@@ -50,7 +50,7 @@ test.describe('Session Management - Comprehensive', () => {
 
 	test('can handle session creation interface', async ({ page }) => {
 		await page.setViewportSize({ width: 1400, height: 900 });
-		
+
 		console.log('\n=== SESSION CREATION TEST ===');
 
 		// Look for session creation elements
@@ -73,7 +73,7 @@ test.describe('Session Management - Comprehensive', () => {
 
 		// Even if no creation elements found, test should pass as interface loaded
 		console.log(`✓ Session creation interface check completed`);
-		
+
 		await takeTestScreenshot(page, 'session-creation', 'interface-check');
 		console.log('✅ Session creation test completed');
 	});
@@ -82,11 +82,15 @@ test.describe('Session Management - Comprehensive', () => {
 		console.log('\n=== MULTI-SESSION TEST ===');
 
 		// Check for session-related containers
-		const sessionContainers = await page.locator('.session-container, .session-tile, [data-session-id]').count();
+		const sessionContainers = await page
+			.locator('.session-container, .session-tile, [data-session-id]')
+			.count();
 		console.log(`✓ Session containers found: ${sessionContainers}`);
 
 		// Check for session management elements
-		const managementElements = await page.locator('.session-menu, .sessions-sidebar, .session-list').count();
+		const managementElements = await page
+			.locator('.session-menu, .sessions-sidebar, .session-list')
+			.count();
 		console.log(`✓ Session management elements: ${managementElements}`);
 
 		await takeTestScreenshot(page, 'multi-session', 'management-interface');
@@ -114,7 +118,7 @@ test.describe('Session Management - Comprehensive', () => {
 		}
 
 		console.log(`✓ Debug elements check completed (${debugElementsFound} types found)`);
-		
+
 		await takeTestScreenshot(page, 'session-debug', 'inspection-interface');
 		console.log('✅ Session inspection test completed');
 	});
@@ -125,7 +129,7 @@ test.describe('Session Management - Comprehensive', () => {
 		// Test for session state indicators
 		const stateElements = [
 			'.session-active',
-			'.session-loading', 
+			'.session-loading',
 			'.session-error',
 			'[data-session-state]'
 		];
@@ -140,7 +144,7 @@ test.describe('Session Management - Comprehensive', () => {
 		}
 
 		console.log(`✓ Session state management check completed`);
-		
+
 		await takeTestScreenshot(page, 'session-state', 'management-check');
 		console.log('✅ Session state test completed');
 	});
@@ -166,7 +170,7 @@ test.describe('Session UI - Error Handling', () => {
 
 		// Page should still load even with API errors
 		await expect(page.locator('main')).toBeVisible();
-		
+
 		await takeTestScreenshot(page, 'session-errors', 'api-error-handling');
 	});
 });

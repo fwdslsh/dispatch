@@ -29,7 +29,7 @@ npx playwright test --debug
 ### Core Test Files
 
 - `comprehensive-ui.spec.js` - Main UI functionality tests
-- `consolidated-session-tests.spec.js` - Session management tests  
+- `consolidated-session-tests.spec.js` - Session management tests
 - `workspace-api.spec.js` - API endpoint tests
 - `auth-persistence.spec.js` - Authentication flow tests
 - `working-directory.spec.js` - Directory management tests
@@ -43,6 +43,7 @@ npx playwright test --debug
 ## Configuration
 
 Single `playwright.config.js` with:
+
 - **Base URL**: `http://localhost:5173` (consistent across all tests)
 - **Browsers**: Chrome, Firefox, Safari, Mobile Chrome, Mobile Safari
 - **Retries**: 2 on CI, 0 locally
@@ -53,30 +54,34 @@ Single `playwright.config.js` with:
 ## Best Practices
 
 ### Test Organization
+
 - Use consistent `beforeEach` patterns with `navigateToWorkspace()`
 - Take screenshots with `takeTestScreenshot()` for debugging
 - Handle failures gracefully with try/catch blocks
 - Use `safeInteract()` for reliable element interactions
 
 ### Authentication
+
 ```javascript
 import { navigateToWorkspace } from './core-helpers.js';
 
 test.beforeEach(async ({ page }) => {
-    await navigateToWorkspace(page); // Handles auth automatically
+	await navigateToWorkspace(page); // Handles auth automatically
 });
 ```
 
 ### API Mocking
+
 ```javascript
 import { setupApiMocks } from './core-helpers.js';
 
 await setupApiMocks(page, {
-    sessions: [{ id: 'test', name: 'Test Session' }]
+	sessions: [{ id: 'test', name: 'Test Session' }]
 });
 ```
 
 ### Element Interaction
+
 ```javascript
 import { safeInteract } from './core-helpers.js';
 
@@ -87,6 +92,7 @@ await safeInteract(page, 'input', 'fill', 'test value');
 ## Debugging
 
 ### Failed Tests
+
 ```bash
 # View HTML report
 npx playwright show-report
@@ -99,6 +105,7 @@ npx playwright test comprehensive-ui.spec.js --debug
 ```
 
 ### Screenshots and Videos
+
 - Screenshots: `test-results/`
 - Videos: `test-results/` (on failure only)
 - HTML Report: `playwright-report/`
@@ -106,17 +113,20 @@ npx playwright test comprehensive-ui.spec.js --debug
 ## Maintenance
 
 ### Adding New Tests
+
 1. Add to existing spec files when possible
 2. Use `core-helpers.js` utilities
 3. Follow naming convention: `feature-name.spec.js`
 4. Update this README if adding new categories
 
 ### Updating Selectors
+
 - Use `data-testid` attributes when possible
 - Prefer semantic selectors (`button`, `input`)
 - Avoid brittle CSS selectors
 
 ### CI Reliability
+
 - Tests run in single worker on CI
 - No external API dependencies
 - Service worker disabled globally

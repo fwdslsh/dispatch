@@ -71,7 +71,7 @@ setup_directories() {
     DIRS_TO_SETUP=(
         "/home/$USER_NAME"
         "/workspace"
-        "/tmp/dispatch-sessions"
+        "/tmp/dispatch"
         "/etc/letsencrypt"
         "/var/www/certbot"
         "/var/log/supervisor"

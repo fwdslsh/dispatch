@@ -13,7 +13,6 @@ cp -r ~/.claude ~/dispatch/home/ 2>/dev/null || true
 # Start with explicit mounts
 docker run -d -p 3030:3030 \
   -e TERMINAL_KEY=sandbox-key-$(date +%s) \
-  -e PROJECT_SANDBOX_ENABLED=true \
   -v ~/dispatch/home:/home/appuser \
   -v ~/dispatch/projects:/workspace \
   -v ~/dispatch/config:/config \

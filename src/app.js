@@ -42,7 +42,6 @@ const configDir = expandTilde(
 			? path.join(actualHome, 'dispatch')
 			: path.join(actualHome, '.config', 'dispatch'))
 );
-// Note: DISPATCH_PROJECTS_DIR is legacy - workspaces can be any accessible directory
 
 async function initializeDirectories() {
 	try {

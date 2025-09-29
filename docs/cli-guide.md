@@ -31,15 +31,6 @@ cp bin/dispatch ~/bin/dispatch
 chmod +x ~/bin/dispatch
 ```
 
-### Legacy Node.js CLI (Deprecated)
-
-The previous Node.js-based CLI is still available but deprecated:
-
-```bash
-npm install
-node bin/cli.js --help
-```
-
 ## Quick Start
 
 1. **Initialize environment (creates directories and .env file):**
@@ -67,6 +58,7 @@ node bin/cli.js --help
    ```
 
 5. **Update to latest version:**
+
    ```bash
    dispatch update
    ```
@@ -103,7 +95,7 @@ dispatch start --port 8080
 dispatch start --dispatch-home ~/my-dispatch --workspace ~/my-workspace
 ```
 
-#### Options:
+#### Options
 
 - `-p, --port <port>` - Port for web interface (default: 3030)
 - `--env-file <path>` - Path to .env file (default: ~/.dispatch/.env)
@@ -179,8 +171,7 @@ ENABLE_TUNNEL=false
 
 # Optional: Directory paths (uncomment to override defaults)
 #DISPATCH_CONFIG_DIR=/config
-#DISPATCH_PROJECTS_DIR=/projects
-#DISPATCH_WORKSPACE_DIR=/workspace
+#WORKSPACES_ROOT=$HOME/workspaces
 ```
 
 ### Directory Structure
@@ -362,7 +353,7 @@ dispatch start
 **Gmail Setup:**
 
 1. Enable 2FA on your Gmail account
-2. Generate an app password: https://myaccount.google.com/apppasswords
+2. Generate an app password: <https://myaccount.google.com/apppasswords>
 3. Use your Gmail address as `smtp-user` and the app password as `smtp-pass`
 
 #### Webhook Notifications
@@ -415,6 +406,7 @@ The webhook receives a JSON payload:
    ```
 
 3. View Docker logs:
+
    ```bash
    docker logs dispatch
    ```

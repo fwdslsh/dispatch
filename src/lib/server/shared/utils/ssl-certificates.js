@@ -3,17 +3,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logger } from './logger.js';
+import { homedir } from 'node:os';
+import forge from 'node-forge';
+const { pki } = forge;
 
-const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * SSL Certificate Management for Dispatch
  * Uses node-forge to generate self-signed certificates for development
  */
 
-const CERT_DIR = path.join(process.cwd(), '.dispatch-ssl');
+const CERT_DIR = path.join(homedir(), '.dispatch', 'ssl');
 const CERT_FILE = path.join(CERT_DIR, 'localhost.pem');
 const KEY_FILE = path.join(CERT_DIR, 'localhost-key.pem');
 
@@ -36,8 +37,7 @@ export async function generateCertificates() {
 
 		logger.info('SSL_CERTS', 'Generating SSL certificates with node-forge...');
 
-		const forge = require('node-forge');
-		const { pki } = forge;
+
 
 		// Generate a key pair
 		logger.info('SSL_CERTS', 'Generating RSA key pair...');
@@ -179,11 +179,7 @@ export async function getSSLOptions() {
 const hasDockerEnvFile = fs.existsSync('/.dockerenv');
 
 export function isContainerEnvironment() {
-	return (
-		process.env.CONTAINER_ENV === 'true' ||
-		process.env.DOCKER_CONTAINER === 'true' ||
-		hasDockerEnvFile
-	);
+	return process.env.DOCKER_CONTAINER === 'true' || hasDockerEnvFile;
 }
 
 /**

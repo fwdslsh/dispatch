@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 
-// Expand tilde (~) in paths  
+// Expand tilde (~) in paths
 function expandTilde(filepath) {
 	if (filepath.startsWith('~/') || filepath === '~') {
 		return filepath.replace(/^~/, homedir());

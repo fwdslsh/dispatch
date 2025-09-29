@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 
-// Expand tilde (~) in paths  
+// Expand tilde (~) in paths
 function expandTilde(filepath) {
 	if (filepath.startsWith('~/') || filepath === '~') {
 		return filepath.replace(/^~/, homedir());
@@ -63,8 +63,13 @@ function parseWorktreeList(output) {
 		// Parse each line - git worktree --porcelain uses "worktree <path>" format
 		const path = pathLine.startsWith('worktree ') ? pathLine.substring(9).trim() : pathLine.trim();
 		const head = headLine && headLine.startsWith('HEAD ') ? headLine.substring(5).trim() : '';
-		const branch = branchLine && branchLine.startsWith('branch ') ? 
-			branchLine.substring(7).trim().replace(/^refs\/heads\//, '') : '';
+		const branch =
+			branchLine && branchLine.startsWith('branch ')
+				? branchLine
+						.substring(7)
+						.trim()
+						.replace(/^refs\/heads\//, '')
+				: '';
 
 		worktrees.push({
 			path,

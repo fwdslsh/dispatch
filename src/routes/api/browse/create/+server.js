@@ -1,13 +1,13 @@
 import { json } from '@sveltejs/kit';
 import { mkdir, access } from 'node:fs/promises';
-import { resolve, normalize, dirname } from 'node:path';
+import { resolve, normalize, dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 import { constants } from 'node:fs';
 
 // Get the base directory for browsing (can be configured via environment)
 function getBaseDirectory() {
-	// Use DISPATCH_PROJECTS_DIR if set, otherwise use home directory
-	return process.env.DISPATCH_PROJECTS_DIR || homedir();
+	// Use WORKSPACES_ROOT if set, otherwise use home directory
+	return process.env.WORKSPACES_ROOT || join(homedir(), 'workspaces');
 }
 
 // Validate that the requested path is within allowed bounds
@@ -22,7 +22,7 @@ function isPathAllowed(requestedPath) {
 		}
 	}
 
-	// Allow creation within home directory or DISPATCH_PROJECTS_DIR
+	// Allow creation within home directory or WORKSPACES_ROOT
 	const base = getBaseDirectory();
 	const homeDir = homedir();
 

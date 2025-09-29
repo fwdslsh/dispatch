@@ -99,9 +99,6 @@ export const PROJECT_CONFIG = {
 	// Configuration files to copy from host home to project home
 	CONFIG_FILES_TO_COPY: ['.gitconfig', '.bashrc', '.profile', '.bash_profile', '.vimrc', '.zshrc'],
 
-	// Host home directory (where configs are sourced from)
-	HOST_HOME_DIR: '/home/appuser',
-
 	// Permissions for copied config files
 	CONFIG_FILE_MODE: 0o644,
 	CONFIG_DIR_MODE: 0o755

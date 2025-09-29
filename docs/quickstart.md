@@ -143,4 +143,3 @@ chmod 600 ~/.ssh/id_rsa    # Fix permissions if needed
 - Configure custom adapters for your workflow
 - Share your setup with teammates using the same commands
 
-Happy coding! 🚀

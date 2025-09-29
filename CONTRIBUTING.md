@@ -314,7 +314,7 @@ Dispatch provides intelligent SSL configuration that adapts to different environ
 - Vite dev server uses self-signed certificates for local HTTPS development
 - Access via `https://localhost:5173`
 - Browser security warnings are normal and expected for self-signed certs
-- Certificates auto-generated in `.dispatch-ssl/` directory
+- Certificates auto-generated in `~/.dispatch/ssl/` directory
 
 **🐳 Docker/Production (HTTP by default for reverse proxy):**
 

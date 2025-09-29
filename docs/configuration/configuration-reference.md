@@ -2,7 +2,6 @@
 
 This document provides a comprehensive inventory of all configuration, settings, and environment variables used throughout the Dispatch system.
 
-**Last Updated:** December 2024  
 **Scope:** Complete codebase analysis covering all configuration references
 
 ## Configuration Sources Overview
@@ -33,20 +32,17 @@ All settings have been categorized into the following types:
 
 These variables control core container and deployment behavior:
 
-| Variable                    | Default                                  | Location           | Category              | Description                               | Runtime Configurable  |
-| --------------------------- | ---------------------------------------- | ------------------ | --------------------- | ----------------------------------------- | --------------------- |
-| **TERMINAL_KEY**            | `testkey12345` (dev), `change-me` (prod) | **Container/Host** | Container Environment | Authentication key for terminal access    | No - requires restart |
-| **PORT**                    | `3030`                                   | **Container/Host** | Container Environment | Server listening port                     | No - requires restart |
-| **ENABLE_TUNNEL**           | `false`                                  | **Container/Host** | Container Environment | Enable LocalTunnel for public URL access  | No - requires restart |
-| **LT_SUBDOMAIN**            | `''`                                     | **Container/Host** | Container Environment | Custom LocalTunnel subdomain              | No - requires restart |
-| **NODE_ENV**                | `production`                             | **Container/Host** | Container Environment | Node environment (development/production) | No - requires restart |
-| **CONTAINER_ENV**           | `true`                                   | **Container**      | Container Environment | Flag indicating running in container      | No                    |
-| **HOST_UID**                | `1000`                                   | **Container**      | Container Environment | Host user ID for file ownership mapping   | No - requires restart |
-| **HOST_GID**                | `1000`                                   | **Container**      | Container Environment | Host group ID for file ownership mapping  | No - requires restart |
-| **DEFAULT_UID**             | `1000`                                   | **Container**      | Container Environment | Default container user ID                 | No - build-time       |
-| **DEFAULT_GID**             | `1000`                                   | **Container**      | Container Environment | Default container group ID                | No - build-time       |
-| **HOST_HOME_DIR**           | `/home/dispatch`                         | **Container**      | Container Environment | Container home directory                  | No                    |
-| **PROJECT_SANDBOX_ENABLED** | `true`                                   | **Container**      | Container Environment | Enable project sandboxing                 | No - requires restart |
+| Variable          | Default                                  | Location           | Category              | Description                               | Runtime Configurable  |
+| ----------------- | ---------------------------------------- | ------------------ | --------------------- | ----------------------------------------- | --------------------- |
+| **TERMINAL_KEY**  | `testkey12345` (dev), `change-me` (prod) | **Container/Host** | Container Environment | Authentication key for terminal access    | No - requires restart |
+| **PORT**          | `3030`                                   | **Container/Host** | Container Environment | Server listening port                     | No - requires restart |
+| **ENABLE_TUNNEL** | `false`                                  | **Container/Host** | Container Environment | Enable LocalTunnel for public URL access  | No - requires restart |
+| **LT_SUBDOMAIN**  | `''`                                     | **Container/Host** | Container Environment | Custom LocalTunnel subdomain              | No - requires restart |
+| **NODE_ENV**      | `production`                             | **Container/Host** | Container Environment | Node environment (development/production) | No - requires restart |
+| **HOST_UID**      | `1000`                                   | **Container**      | Container Environment | Host user ID for file ownership mapping   | No - requires restart |
+| **HOST_GID**      | `1000`                                   | **Container**      | Container Environment | Host group ID for file ownership mapping  | No - requires restart |
+| **DEFAULT_UID**   | `1000`                                   | **Container**      | Container Environment | Default container user ID                 | No - build-time       |
+| **DEFAULT_GID**   | `1000`                                   | **Container**      | Container Environment | Default container group ID                | No - build-time       |
 
 ### Global Workspace Settings
 
@@ -54,10 +50,9 @@ These variables control workspace and directory configuration:
 
 | Variable                   | Default                         | Location           | Category         | Description                        | Runtime Configurable  |
 | -------------------------- | ------------------------------- | ------------------ | ---------------- | ---------------------------------- | --------------------- |
-| **WORKSPACES_ROOT**        | `~/.dispatch-home/workspaces`   | **Container/Host** | Global Workspace | Default workspace directory        | No - requires restart |
+| **WORKSPACES_ROOT**        | `~/workspaces`                  | **Container/Host** | Global Workspace | Default workspace directory        | No - requires restart |
 | **DB_PATH**                | `~/.dispatch/data/workspace.db` | **Container/Host** | Global Workspace | SQLite database path               | No - requires restart |
 | **DISPATCH_CONFIG_DIR**    | `~/.config/dispatch`            | **Container/Host** | Global Workspace | Configuration directory path       | No - requires restart |
-| **DISPATCH_PROJECTS_DIR**  | `/projects`                     | **Container**      | Global Workspace | Projects directory (Docker volume) | No - requires restart |
 | **DISPATCH_WORKSPACE_DIR** | `/workspace`                    | **Container**      | Global Workspace | Workspace directory for temp files | No - requires restart |
 | **HOME**                   | User's home                     | **Container/Host** | Global Workspace | Home directory override            | No - requires restart |
 | **CLAUDE_PROJECTS_DIR**    | `''`                            | **Container/Host** | Global Workspace | Claude Code projects directory     | No - requires restart |
@@ -216,14 +211,13 @@ The Dispatch system stores server-side settings in SQLite database with the foll
 
 ### Project Configuration (src/lib/shared/constants.js - PROJECT_CONFIG)
 
-| Constant                    | Value                                                                        | Location      | Category              | Description                         | Usage Location           | Runtime Configurable |
-| --------------------------- | ---------------------------------------------------------------------------- | ------------- | --------------------- | ----------------------------------- | ------------------------ | -------------------- |
-| **DEFAULT_SANDBOX_ENABLED** | `true`                                                                       | **Container** | Session-Specific      | Default project sandboxing state    | Project session creation | No                   |
-| **CONFIG_DIRS_TO_COPY**     | `['.claude', '.config/gh', '.config/git']`                                   | **Container** | Session-Specific      | Directories to copy for sandboxing  | Project setup scripts    | No                   |
-| **CONFIG_FILES_TO_COPY**    | `['.gitconfig', '.bashrc', '.profile', '.bash_profile', '.vimrc', '.zshrc']` | **Container** | Session-Specific      | Files to copy for sandboxing        | Project setup scripts    | No                   |
-| **HOST_HOME_DIR**           | `'/home/appuser'`                                                            | **Container** | Container Environment | Host home directory path            | File copying operations  | No                   |
-| **CONFIG_FILE_MODE**        | `0o644`                                                                      | **Container** | Session-Specific      | Permissions for copied config files | File system operations   | No                   |
-| **CONFIG_DIR_MODE**         | `0o755`                                                                      | **Container** | Session-Specific      | Permissions for copied directories  | Directory creation       | No                   |
+| Constant                    | Value                                                                        | Location      | Category         | Description                         | Usage Location           | Runtime Configurable |
+| --------------------------- | ---------------------------------------------------------------------------- | ------------- | ---------------- | ----------------------------------- | ------------------------ | -------------------- |
+| **DEFAULT_SANDBOX_ENABLED** | `true`                                                                       | **Container** | Session-Specific | Default project sandboxing state    | Project session creation | No                   |
+| **CONFIG_DIRS_TO_COPY**     | `['.claude', '.config/gh', '.config/git']`                                   | **Container** | Session-Specific | Directories to copy for sandboxing  | Project setup scripts    | No                   |
+| **CONFIG_FILES_TO_COPY**    | `['.gitconfig', '.bashrc', '.profile', '.bash_profile', '.vimrc', '.zshrc']` | **Container** | Session-Specific | Files to copy for sandboxing        | Project setup scripts    | No                   |
+| **CONFIG_FILE_MODE**        | `0o644`                                                                      | **Container** | Session-Specific | Permissions for copied config files | File system operations   | No                   |
+| **CONFIG_DIR_MODE**         | `0o755`                                                                      | **Container** | Session-Specific | Permissions for copied directories  | Directory creation       | No                   |
 
 ### Tunnel Configuration (src/lib/shared/constants.js - TUNNEL_CONFIG)
 
@@ -318,7 +312,6 @@ The CLI creates this file during `dispatch init` with the following variables:
 | **ENABLE_TUNNEL**          | `false`              | Container Environment | Enable public URL tunnel      | No       |
 | **LT_SUBDOMAIN**           | `''`                 | Container Environment | Custom tunnel subdomain       | No       |
 | **DISPATCH_CONFIG_DIR**    | `/config`            | Global Workspace      | Configuration directory path  | No       |
-| **DISPATCH_PROJECTS_DIR**  | `/projects`          | Global Workspace      | Projects directory path       | No       |
 | **DISPATCH_WORKSPACE_DIR** | `/workspace`         | Global Workspace      | Workspace directory path      | No       |
 
 ## Configuration Inheritance Chain

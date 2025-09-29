@@ -1,4 +1,4 @@
-# Home Directory Manager Implementation
+# Home Directory Manager
 
 ## Overview
 

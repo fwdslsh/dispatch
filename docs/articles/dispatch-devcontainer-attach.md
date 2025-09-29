@@ -83,7 +83,7 @@ Configure these environment variables for your Dispatch container:
 - `ENABLE_TUNNEL`: Enable public URL sharing (true/false)
 - `LT_SUBDOMAIN`: Optional LocalTunnel subdomain
 - `DISPATCH_CONFIG_DIR`: Configuration directory (default: /home/dispatch/.config/dispatch)
-- `DISPATCH_PROJECTS_DIR`: Projects directory (default: /workspace)
+- `WORKSPACES_ROOT`: Projects directory (default: /workspace)
 
 ## Troubleshooting
 
