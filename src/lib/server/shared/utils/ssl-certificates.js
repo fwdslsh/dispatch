@@ -175,11 +175,14 @@ export async function getSSLOptions() {
 /**
  * Check if we're running in a container environment
  */
+// Cache the result of fs.existsSync('/.dockerenv') at module load time
+const hasDockerEnvFile = fs.existsSync('/.dockerenv');
+
 export function isContainerEnvironment() {
 	return (
 		process.env.CONTAINER_ENV === 'true' ||
 		process.env.DOCKER_CONTAINER === 'true' ||
-		fs.existsSync('/.dockerenv')
+		hasDockerEnvFile
 	);
 }
 
