@@ -57,6 +57,9 @@ export class SettingsViewModel {
 
 		// Derived state
 		this.settingsByCategory = $derived.by(() => {
+			if (!this.categories || !Array.isArray(this.categories)) {
+				return [];
+			}
 			return this.categories.map((category) => ({
 				...category,
 				settings: this.settings.filter((setting) => setting.category_id === category.id)

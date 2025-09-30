@@ -24,7 +24,7 @@ describe('AuthenticationSettings Component', () => {
 				is_sensitive: true,
 				is_required: true,
 				current_value: 'testkey12345',
-				default_value: 'change-me',
+				default_value: 'change-me-to-a-strong-password',
 				env_var_name: 'TERMINAL_KEY',
 				category_id: 'authentication'
 			},

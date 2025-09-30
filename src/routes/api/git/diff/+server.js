@@ -31,7 +31,13 @@ function execGit(args, cwd) {
 	});
 }
 
-export async function GET({ url }) {
+export async function GET({ url, request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	try {
 		const path = url.searchParams.get('path');
 		const file = url.searchParams.get('file');

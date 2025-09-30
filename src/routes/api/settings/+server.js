@@ -5,24 +5,28 @@
  */
 
 import { json } from '@sveltejs/kit';
-import { validateKey } from '../../../lib/server/shared/auth.js';
 
 /**
  * GET /api/settings
  * Retrieve all configuration settings from the unified settings table
  *
+ * Authentication: Authorization header (preferred) or authKey query param (backwards compatible)
  * Query parameters:
- *   - authKey: Authentication key (required)
  *   - category: Optional category filter
  *
  * Returns all settings grouped by category from the 'settings' table
  */
-export async function GET({ url, locals }) {
+export async function GET({ request, url, locals }) {
 	try {
-		// Authenticate request
-		const authKey = url.searchParams.get('authKey');
-		if (!validateKey(authKey)) {
-			return json({ error: 'Authentication failed' }, { status: 401 });
+		// Authenticate request using singleton auth service
+		const auth = locals.services.auth;
+		const authKey = auth.getAuthKeyFromRequest(request);
+		if(!authKey) {
+			return json({ error: 'Authentication required' }, { status: 401 });
+		}
+		if (!auth.validateKey(authKey)) {
+			const serverKey = auth.getCachedKey();
+			return json({ error: 'Authentication failed', serverKey }, { status: 401 });
 		}
 
 		// Get category filter if provided
@@ -82,7 +86,7 @@ export async function OPTIONS() {
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'GET, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type'
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 		}
 	});
 }

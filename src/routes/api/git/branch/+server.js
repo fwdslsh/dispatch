@@ -32,7 +32,13 @@ function execGit(args, cwd) {
 }
 
 // Create new branch
-export async function POST({ request }) {
+export async function POST({ request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	try {
 		const { path, name, checkout = false } = await request.json();
 

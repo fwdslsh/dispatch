@@ -525,7 +525,7 @@ function validateWorkspacePath(path) {
 // Key-based authentication
 export function validateKey(providedKey) {
 	const validKey = process.env.TERMINAL_KEY;
-	if (!validKey || validKey === 'change-me') {
+	if (!validKey || validKey === 'change-me-to-a-strong-password') {
 		throw new Error('TERMINAL_KEY must be configured in production');
 	}
 	return providedKey === validKey;

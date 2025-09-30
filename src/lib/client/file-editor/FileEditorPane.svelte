@@ -2,6 +2,7 @@
 	import DirectoryBrowser from '../shared/components/DirectoryBrowser.svelte';
 	import FileEditor from '../shared/components/FileEditor.svelte';
 	import { onMount } from 'svelte';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	// Props
 	let { sessionId, workspacePath = '' } = $props();
@@ -64,7 +65,9 @@
 		error = null;
 
 		try {
-			const response = await fetch(`/api/files?path=${encodeURIComponent(file.path)}`);
+			const response = await fetch(`/api/files?path=${encodeURIComponent(file.path)}`, {
+				headers: getAuthHeaders()
+			});
 			const result = await response.json();
 
 			if (!response.ok) {
@@ -93,9 +96,7 @@
 		try {
 			const response = await fetch(`/api/files?path=${encodeURIComponent(selectedFile.path)}`, {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: getAuthHeaders(),
 				body: JSON.stringify({ content: fileContent })
 			});
 
@@ -130,8 +131,13 @@
 			}
 			formData.append('directory', directory);
 
+			// For FormData, don't set Content-Type - browser will set it with boundary
+			const authHeaders = getAuthHeaders();
+			delete authHeaders['Content-Type'];
+
 			const response = await fetch('/api/files/upload', {
 				method: 'POST',
+				headers: authHeaders,
 				body: formData
 			});
 

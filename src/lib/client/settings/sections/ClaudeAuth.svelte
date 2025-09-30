@@ -12,6 +12,7 @@
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	/**
 	 * Claude Authentication Component
@@ -108,7 +109,9 @@
 	async function checkAuthStatus() {
 		authStatus = 'checking';
 		try {
-			const response = await fetch('/api/claude/auth');
+			const response = await fetch('/api/claude/auth', {
+				headers: getAuthHeaders()
+			});
 			const data = await response.json();
 
 			if (response.ok) {
@@ -200,7 +203,7 @@
 		try {
 			const response = await fetch('/api/claude/auth', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					apiKey: apiKey.trim()
 				})
@@ -234,7 +237,8 @@
 
 		try {
 			const response = await fetch('/api/claude/auth', {
-				method: 'DELETE'
+				method: 'DELETE',
+				headers: getAuthHeaders()
 			});
 
 			if (response.ok) {

@@ -6,7 +6,6 @@
  */
 
 import { json } from '@sveltejs/kit';
-import { validateKey, updateCachedTerminalKey } from '../../../../lib/server/shared/auth.js';
 
 /**
  * GET /api/auth/config
@@ -21,12 +20,12 @@ export async function GET({ locals }) {
 		const authSettings = await database.getSettingsByCategory('authentication');
 
 		// Build auth config response
-		const terminalKey = authSettings.terminal_key || process.env.TERMINAL_KEY || 'change-me';
+		const terminalKey = authSettings.terminal_key || process.env.TERMINAL_KEY || 'change-me-to-a-strong-password';
 		const oauthClientId = authSettings.oauth_client_id;
 		const oauthRedirectUri = authSettings.oauth_redirect_uri;
 
 		const authConfig = {
-			terminal_key_set: Boolean(terminalKey && terminalKey !== 'change-me'),
+			terminal_key_set: Boolean(terminalKey && terminalKey !== 'change-me-to-a-strong-password'),
 			oauth_configured: Boolean(oauthClientId && oauthRedirectUri),
 			oauth_client_id: oauthClientId,
 			oauth_redirect_uri: oauthRedirectUri
@@ -48,14 +47,17 @@ export async function GET({ locals }) {
 /**
  * PUT /api/auth/config
  * Update authentication configuration with session invalidation
+ *
+ * Authentication: Authorization header (preferred) or authKey in body (backwards compatible)
  */
-export async function PUT({ request, locals }) {
+export async function PUT({ request, url, locals }) {
 	try {
 		const body = await request.json();
+		const auth = locals.services.auth;
 
-		// Validate authentication
-		const authKey = body.authKey;
-		if (!validateKey(authKey)) {
+		// Validate authentication using singleton auth service
+		const authKey = auth.getAuthKeyFromRequest(request) || body.authKey;
+		if (!auth.validateKey(authKey)) {
 			return json({ error: 'Authentication failed' }, { status: 401 });
 		}
 
@@ -108,7 +110,7 @@ export async function PUT({ request, locals }) {
 
 		// Update terminal key cache if it was changed
 		if (authSettings.terminal_key !== undefined) {
-			updateCachedTerminalKey(authSettings.terminal_key);
+			auth.updateCachedKey(authSettings.terminal_key);
 		}
 
 		const response = {
@@ -140,7 +142,7 @@ export async function OPTIONS() {
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type'
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 		}
 	});
 }

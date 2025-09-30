@@ -5,26 +5,25 @@
  */
 
 import { json } from '@sveltejs/kit';
-import { validateKey, updateCachedTerminalKey } from '../../../../lib/server/shared/auth.js';
 
 /**
  * PUT /api/settings/{category}
  * Update all settings in a specific category
  *
+ * Authentication: Authorization header (preferred) or authKey in body (backwards compatible)
  * Request body:
  *   {
- *     "authKey": "your-auth-key",
  *     "settings": { key: value pairs for this category }
  *   }
  */
-export async function PUT({ params, request, locals }) {
+export async function PUT({ params, request, url, locals }) {
 	try {
 		const { category } = params;
 		const body = await request.json();
 
-		// Validate authentication
-		const authKey = body.authKey;
-		if (!validateKey(authKey)) {
+		// Validate authentication using standardized pattern
+		const authKey = locals.services.auth.getAuthKeyFromRequest(request) || body.authKey;
+		if (!locals.services.auth.validateKey(authKey)) {
 			return json({ error: 'Authentication failed' }, { status: 401 });
 		}
 
@@ -53,7 +52,7 @@ export async function PUT({ params, request, locals }) {
 
 		// Update terminal key cache if authentication settings changed
 		if (category === 'authentication' && body.settings.terminal_key !== undefined) {
-			updateCachedTerminalKey(body.settings.terminal_key);
+			locals.services.auth.updateCachedKey(body.settings.terminal_key);
 		}
 
 		return json(
@@ -85,7 +84,7 @@ export async function OPTIONS() {
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'PUT, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type'
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 		}
 	});
 }

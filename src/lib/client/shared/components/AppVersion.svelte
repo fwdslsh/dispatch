@@ -17,11 +17,9 @@
 	});
 </script>
 
-{#if appVersion && appVersion !== 'unknown'}
-	<span class="version-indicator" title="Application version: {appVersion}">
-		v{appVersion}
-	</span>
-{/if}
+<span class="version-indicator" title="Application version: {appVersion}">
+	v{appVersion}
+</span>
 
 <style>
 	/* StatusBar component uses utility classes - no additional styles needed */

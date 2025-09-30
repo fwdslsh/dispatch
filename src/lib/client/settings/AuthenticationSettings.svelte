@@ -201,10 +201,6 @@
 		border-top: 1px solid var(--line);
 	}
 
-	.btn-loading .loading-spinner {
-		/* Use shared spinner from settings.css */
-	}
-
 	/* Message states */
 	.success-message {
 		padding: var(--space-4);
@@ -253,22 +249,11 @@
 			flex-direction: column;
 			align-items: stretch;
 		}
-
-		.btn {
-			justify-content: center;
-		}
-	}
-
-	/* Focus styles for accessibility */
-	.btn:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
 	}
 
 	/* High contrast mode support */
 	@media (prefers-contrast: high) {
-		.authentication-settings,
-		.btn {
+		.authentication-settings {
 			border-width: 2px;
 		}
 	}

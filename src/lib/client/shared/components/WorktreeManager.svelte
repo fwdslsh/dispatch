@@ -7,6 +7,7 @@
 	import IconX from './Icons/IconX.svelte';
 	import IconCheck from './Icons/IconCheck.svelte';
 	import IconGitBranch from './Icons/IconGitBranch.svelte';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	// Svelte 5 Worktree Manager Component
 	let { currentPath, branches = [], onError = null } = $props();
@@ -40,7 +41,9 @@
 		error = '';
 
 		try {
-			const res = await fetch(`/api/git/worktree/list?path=${encodeURIComponent(currentPath)}`);
+			const res = await fetch(`/api/git/worktree/list?path=${encodeURIComponent(currentPath)}`, {
+				headers: getAuthHeaders()
+			});
 
 			if (!res.ok) {
 				const data = await res.json();
@@ -63,7 +66,10 @@
 
 		try {
 			const res = await fetch(
-				`/api/git/worktree/init-detect?path=${encodeURIComponent(currentPath)}`
+				`/api/git/worktree/init-detect?path=${encodeURIComponent(currentPath)}`,
+				{
+					headers: getAuthHeaders()
+				}
 			);
 
 			if (!res.ok) {
@@ -112,7 +118,7 @@
 
 			const res = await fetch('/api/git/worktree/add', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify(payload)
 			});
 
@@ -151,7 +157,7 @@
 		try {
 			const res = await fetch('/api/git/worktree/init-detect', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					path: currentPath,
 					commands: initCommands
@@ -176,7 +182,7 @@
 		try {
 			const res = await fetch('/api/git/worktree/remove', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					path: currentPath,
 					worktreePath

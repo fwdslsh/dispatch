@@ -1,12 +1,11 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/shared/auth.js';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
 
 export async function POST({ params, request, locals }) {
 	const { socketId } = params;
 	const auth = request.headers.get('authorization');
 	const key = auth && auth.startsWith('Bearer ') ? auth.slice(7) : null;
-	if (!validateKey(key)) {
+	if (!locals.services.auth.validateKey(key)) {
 		return json({ error: 'Invalid authentication key' }, { status: 401 });
 	}
 

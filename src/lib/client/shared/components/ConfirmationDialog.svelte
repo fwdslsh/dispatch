@@ -137,54 +137,6 @@
 		padding: 0 var(--space-lg) var(--space-lg);
 	}
 
-	.dialog-actions button {
-		min-width: 80px;
-		font-size: 0.9rem;
-		padding: var(--space-sm) var(--space-md);
-		border-radius: 6px;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		border: none;
-		background: none;
-		font-family: var(--font-accent);
-		&:hover {
-			transition: all 0.4s ease;
-		}
-	}
-
-	.button-secondary {
-		/* background: rgba(128, 128, 128, 0.1); */
-		color: var(--text-secondary);
-		/* border: 1px solid rgba(128, 128, 128, 0.3) !important; */
-	}
-
-	.button-secondary:hover {
-		/* background: rgba(128, 128, 128, 0.2);
-    border-color: rgba(128, 128, 128, 0.5) !important; */
-
-		color: color-mix(in oklab, var(--primary) 80%, white 20%);
-		background: none;
-	}
-
-	.button-confirm {
-		color: var(--bg);
-	}
-
-	.button-confirm:hover {
-		background: color-mix(in oklab, var(--primary) 80%, white 20%);
-	}
-
-	.button-danger {
-		background: none;
-		color: var(--secondary-muted);
-	}
-
-	.button-danger:hover {
-		color: var(--secondary);
-		background: none;
-	}
-
 	@media (max-width: 768px) {
 		.dialog-container {
 			max-width: 320px;
@@ -202,11 +154,6 @@
 		.dialog-actions {
 			padding: 0 var(--space-md) var(--space-md);
 			gap: var(--space-sm);
-		}
-
-		.dialog-actions button {
-			min-width: 70px;
-			font-size: 0.85rem;
 		}
 	}
 </style>

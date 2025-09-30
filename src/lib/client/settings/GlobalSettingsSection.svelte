@@ -115,17 +115,4 @@
 		color: var(--color-error);
 		margin: 0;
 	}
-
-	button {
-		padding: 0.5rem 1rem;
-		background: var(--color-primary);
-		color: var(--color-primary-fg);
-		border: none;
-		border-radius: var(--radius);
-		cursor: pointer;
-	}
-
-	button:hover {
-		background: var(--color-primary-hover);
-	}
 </style>

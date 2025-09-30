@@ -68,19 +68,18 @@ Standardize on **Authorization header** for all authenticated requests:
 
 ```javascript
 // Shared auth helper in /src/lib/server/shared/auth.js
-export function getAuthKeyFromRequest(request, url) {
+export function getAuthKeyFromRequest(request) {
 	// Try Authorization header first (preferred)
 	const authHeader = request.headers.get('Authorization');
 	if (authHeader) {
 		return authHeader.replace('Bearer ', '');
 	}
-
-	// Fallback to query param for backwards compatibility
-	return url.searchParams.get('authKey');
+	
+	return null;
 }
 
 // Usage in endpoints
-const authKey = getAuthKeyFromRequest(request, url);
+const authKey = getAuthKeyFromRequest(request);
 if (!validateKey(authKey)) {
 	return json({ error: 'Authentication required' }, { status: 401 });
 }

@@ -13,6 +13,7 @@
 	import IconUpload from './Icons/IconUpload.svelte';
 	import { onMount } from 'svelte';
 	import GitOperations from './GitOperations.svelte';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	// Svelte 5 Directory Browser Component
 	let {
@@ -98,7 +99,9 @@
 				params.set('path', path);
 			}
 
-			const res = await fetch(`${api}?${params}`);
+			const res = await fetch(`${api}?${params}`, {
+				headers: getAuthHeaders()
+			});
 			if (!res.ok) {
 				const text = await res.text();
 				throw new Error(text || `HTTP ${res.status}`);
@@ -198,7 +201,7 @@
 				: currentPath + '/' + dirName;
 			const res = await fetch('/api/browse/create', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({ path: dirPath })
 			});
 
@@ -281,7 +284,7 @@
 		try {
 			const res = await fetch('/api/browse/clone', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					sourcePath: cloneSourcePath.trim(),
 					targetPath: cloneTargetPath.trim(),

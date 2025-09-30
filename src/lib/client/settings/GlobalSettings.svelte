@@ -619,10 +619,6 @@
 		border-top: 1px solid var(--line);
 	}
 
-	.btn-loading .loading-spinner {
-		/* Use shared spinner from settings.css */
-	}
-
 	.success-message {
 		padding: var(--space-4);
 		background: color-mix(in oklab, var(--ok) 15%, var(--surface));
@@ -643,14 +639,9 @@
 			flex-direction: column;
 			align-items: stretch;
 		}
-
-		.btn {
-			justify-content: center;
-		}
 	}
 
 	/* Focus styles for accessibility */
-	.btn:focus-visible,
 	.setting-checkbox:focus-visible {
 		outline: 2px solid var(--primary);
 		outline-offset: 2px;
@@ -660,8 +651,7 @@
 	@media (prefers-contrast: high) {
 		.global-settings,
 		.setting-input,
-		.setting-select,
-		.btn {
+		.setting-select {
 			border-width: 2px;
 		}
 	}

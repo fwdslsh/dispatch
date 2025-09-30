@@ -119,18 +119,4 @@
 		margin: 0;
 		color: var(--text-primary);
 	}
-
-	.error-container button {
-		padding: 0.75rem 1.5rem;
-		border: 1px solid var(--border-color);
-		border-radius: 6px;
-		background: var(--bg-secondary);
-		color: var(--text-primary);
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.error-container button:hover {
-		background: var(--hover-bg);
-	}
 </style>

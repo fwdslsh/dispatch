@@ -3,9 +3,16 @@
  * GET /api/sockets - Returns list of active socket connections
  */
 
+import { json } from '@sveltejs/kit';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
 
-export async function GET({ url, locals }) {
+export async function GET({ url, request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	try {
 		const io = getActiveSocketIO();
 

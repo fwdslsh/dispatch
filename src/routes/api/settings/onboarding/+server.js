@@ -6,15 +6,16 @@
  */
 
 import { json } from '@sveltejs/kit';
-import { validateKey, updateCachedTerminalKey } from '../../../../lib/server/shared/auth.js';
 
 /**
  * GET /api/settings/onboarding
  * Retrieve current onboarding state
+ *
+ * Note: GET does not require authentication to allow initial onboarding checks
  */
-export async function GET({ request, locals }) {
+export async function GET({ locals }) {
 	try {
-
+		// GET does not require authentication for initial onboarding
 
 		// Get onboarding settings from database
 		const onboardingSettings = await locals.services.database.getSettingsByCategory('onboarding');
@@ -98,19 +99,20 @@ export async function POST({ request, locals }) {
 /**
  * PUT /api/settings/onboarding
  * Update onboarding state and handle special actions like storing terminal key
+ *
+ * Authentication: Required if onboarding already completed
  */
-export async function PUT({ request, locals }) {
+export async function PUT({ request, url, locals }) {
 	try {
 		// Get onboarding settings from database
 		const onboardingSettings = await locals.services.database.getSettingsByCategory('onboarding');
 
 		// If onboarding already completed, require authentication
 		if (onboardingSettings && Object.keys(onboardingSettings).length > 0) {
-			// Get auth key from Authorization header
-			const authHeader = request.headers.get('Authorization');
-			const authKey = authHeader?.replace('Bearer ', '');
+			// Get auth key using standardized pattern
+			const authKey = locals.services.auth.getAuthKeyFromRequest(request);
 
-			if (!validateKey(authKey)) {
+			if (!locals.services.auth.validateKey(authKey)) {
 				return json({ error: 'Invalid authentication key' }, { status: 401 });
 			}
 		}
@@ -143,7 +145,7 @@ export async function PUT({ request, locals }) {
 			);
 
 			// Update the cached terminal key for immediate use
-			updateCachedTerminalKey(terminalKey);
+			locals.services.auth.updateCachedKey(terminalKey);
 
 			console.log('[Onboarding] Terminal key stored in authentication settings');
 		}

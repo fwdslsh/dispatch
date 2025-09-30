@@ -1,3 +1,7 @@
+<script>
+	import AppVersion from "./AppVersion.svelte";
+
+</script>
 <!--
 	BrandLogo.svelte
 
@@ -10,6 +14,8 @@
 		<img src="/favicon.png" alt="Dispatch" height="32" />
 	</span>
 	<a href="/workspace"> <span class="brand-text">Dispatch</span></a>
+
+		<AppVersion />
 </div>
 
 <style>

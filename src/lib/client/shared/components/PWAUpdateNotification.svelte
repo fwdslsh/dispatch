@@ -144,37 +144,6 @@
 		margin-top: 0.5rem;
 	}
 
-	.update-btn,
-	.dismiss-btn {
-		padding: 0.4rem 0.8rem;
-		border: none;
-		background: transparent;
-		color: white;
-		cursor: pointer;
-		font-family: 'Share Tech Mono', monospace;
-		font-size: 0.85rem;
-		transition: all 0.2s ease;
-	}
-
-	.update-btn {
-		background: #00a8ff;
-		--aug-border-all: 1px;
-		--aug-border-bg: #00a8ff;
-		flex: 1;
-	}
-
-	.update-btn:hover {
-		filter: brightness(1.2);
-	}
-
-	.dismiss-btn {
-		color: #777;
-	}
-
-	.dismiss-btn:hover {
-		color: #aaa;
-	}
-
 	@media (max-width: 480px) {
 		.pwa-update-notification {
 			top: 10px;

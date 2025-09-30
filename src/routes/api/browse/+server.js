@@ -24,7 +24,13 @@ function isPathAllowed(requestedPath) {
 	return true;
 }
 
-export async function GET({ url }) {
+export async function GET({ url, request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	try {
 		// If no path is provided, start in the workspaces root directory
 		const requestedPath = url.searchParams.get('path') || getBaseDirectory();

@@ -29,7 +29,13 @@ function sanitizeContent(content) {
 	return content.replace(/\0/g, '');
 }
 
-export async function GET({ url }) {
+export async function GET({ url, request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	try {
 		const requestedPath = url.searchParams.get('path');
 
@@ -89,8 +95,14 @@ export async function GET({ url }) {
 	}
 }
 
-export async function PUT({ request, url }) {
-	try {
+export async function PUT({ request, url, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
+	try{
 		const requestedPath = url.searchParams.get('path');
 		const { content } = await request.json();
 

@@ -7,7 +7,7 @@ import { DatabaseManager } from './db/DatabaseManager.js';
 import { RunSessionManager } from './runtime/RunSessionManager.js';
 import { TunnelManager } from './TunnelManager.js';
 import { VSCodeTunnelManager } from './VSCodeTunnelManager.js';
-import { initializeTerminalKey } from './auth.js';
+import { AuthService } from './auth.js';
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
@@ -57,7 +57,7 @@ export async function initializeServices(config = {}) {
 	};
 
 	try {
-		logger.info('SERVICES', 'Initializing unified session architecture services...');
+		logger.info('SERVICES', 'Initializing services...');
 		const resolvedConfig = resolveConfigPaths(serviceConfig);
 
 		// 1. Database (no dependencies)
@@ -66,9 +66,10 @@ export async function initializeServices(config = {}) {
 		await database.markAllSessionsStopped();
 		logger.info('SERVICES', 'Cleared stale running sessions on startup');
 
-		// 2. Initialize terminal key cache from settings (using unified settings table)
-		await initializeTerminalKey(database);
-		logger.info('SERVICES', 'Terminal key cache initialized');
+		// 2. Initialize AuthService singleton (using unified settings table)
+		const authService = new AuthService();
+		await authService.initialize(database);
+		logger.info('SERVICES', 'AuthService initialized');
 
 		// REMOVED: WorkspaceManager - obsolete in unified architecture
 
@@ -103,6 +104,7 @@ export async function initializeServices(config = {}) {
 
 		const services = {
 			database,
+			auth: authService,
 			runSessionManager,
 			ptyAdapter,
 			claudeAdapter,
@@ -112,11 +114,11 @@ export async function initializeServices(config = {}) {
 			vscodeManager
 		};
 
-		logger.info('SERVICES', 'Unified session architecture services initialized successfully');
+		logger.info('SERVICES', 'Services initialized successfully');
 		logger.info('SERVICES', `RunSessionManager stats:`, runSessionManager.getStats());
 		return services;
 	} catch (error) {
-		logger.error('SERVICES', 'Failed to initialize unified session services:', error);
+		logger.error('SERVICES', 'Failed to initialize services:', error);
 		throw error;
 	}
 }

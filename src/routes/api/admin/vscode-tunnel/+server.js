@@ -1,5 +1,4 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/shared/auth.js';
 
 /**
  * VS Code Remote Tunnel API
@@ -21,7 +20,7 @@ export async function GET({ url, locals }) {
 	}
 
 	// Validate the key
-	if (!validateKey(key)) {
+	if (!locals.services.auth.validateKey(key)) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
@@ -51,7 +50,7 @@ export async function POST({ request, url, locals }) {
 	}
 
 	// Validate the key
-	if (!validateKey(key)) {
+	if (!locals.services.auth.validateKey(key)) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 

@@ -1,136 +1,172 @@
-/**
- * Cached terminal key value
- * Loaded on startup and updated when settings change
- */
-let cachedTerminalKey = null;
+import { logger } from "./utils/logger";
 
 /**
- * Initialize the terminal key cache with proper settings hierarchy
- * Should be called during application startup
- *
- * @param {Object} database - DatabaseManager instance for settings lookup
- * @returns {Promise<string>} The resolved terminal key
+ * AuthService - Singleton authentication service
+ * Manages terminal key caching and validation
  */
-export async function initializeTerminalKey(database = null) {
-	let terminalKey;
-
-	// Try to get from database first (using new unified settings table)
-	if (database) {
-		try {
-			const authSettings = await database.getSettingsByCategory('authentication');
-			if (authSettings && authSettings.terminal_key) {
-				terminalKey = authSettings.terminal_key;
-				cachedTerminalKey = terminalKey;
-				console.log('[AUTH] Terminal key loaded from database settings');
-				return terminalKey;
-			}
-		} catch (error) {
-			// Fall through to environment variable if database lookup fails
-			console.warn('[AUTH] Failed to get terminal_key from settings database:', error.message);
-		}
+export class AuthService {
+	/**
+	 * Create AuthService instance
+	 * @private - Use AuthService.create() instead
+	 */
+	constructor() {
+		this.cachedTerminalKey = null;
+		this.instanceId = Date.now().toString(36) + Math.random().toString(36).slice(2);
 	}
 
-	// Fall back to environment variable
-	if (process.env.TERMINAL_KEY) {
-		terminalKey = process.env.TERMINAL_KEY;
-		cachedTerminalKey = terminalKey;
-		console.log('[AUTH] Terminal key loaded from environment variable');
+	/**
+	 * Initialize the terminal key cache with proper settings hierarchy
+	 * Should be called during application startup
+	 *
+	 * @param {Object} database - DatabaseManager instance for settings lookup
+	 * @returns {Promise<string>} The resolved terminal key
+	 */
+	async initialize(database) {
+		let terminalKey;
+
+		// Try to get from database first (using new unified settings table)
+		if (database) {
+			try {
+				const authSettings = await database.getSettingsByCategory('authentication');
+				if (authSettings && authSettings.terminal_key) {
+					terminalKey = authSettings.terminal_key;
+					this.cachedTerminalKey = terminalKey;
+					logger.info('AUTH', 'Terminal key loaded from database settings', { instanceId: this.instanceId });
+					return terminalKey;
+				}
+			} catch (error) {
+				// Fall through to environment variable if database lookup fails
+				logger.warn('AUTH', 'Failed to get terminal_key from settings database:', error.message, { instanceId: this.instanceId });
+			}
+		}
+
+		// Fall back to environment variable
+		if (process.env.TERMINAL_KEY) {
+			terminalKey = process.env.TERMINAL_KEY;
+			this.cachedTerminalKey = terminalKey;
+			logger.info('AUTH', 'Terminal key loaded from environment variable', { instanceId: this.instanceId });
+			return terminalKey;
+		}
+
+		// Final fallback to default
+		terminalKey = 'change-me-to-a-strong-password';
+		this.cachedTerminalKey = terminalKey;
+		logger.warn('AUTH', 'Terminal key using default value', { instanceId: this.instanceId });
 		return terminalKey;
 	}
 
-	// Final fallback to default
-	terminalKey = 'change-me';
-	cachedTerminalKey = terminalKey;
-	console.log('[AUTH] Terminal key using default value');
-	return terminalKey;
-}
-
-/**
- * Update the cached terminal key
- * Should be called when settings are changed via the settings API
- *
- * @param {string} newKey - New terminal key value
- */
-export function updateCachedTerminalKey(newKey) {
-	cachedTerminalKey = newKey;
-	console.log('[AUTH] Terminal key cache updated');
-}
-
-/**
- * Get the current cached terminal key
- * Falls back to environment variable if not initialized
- *
- * @returns {string} The cached terminal key
- */
-export function getCachedTerminalKey() {
-	if (cachedTerminalKey !== null) {
-		return cachedTerminalKey;
+	/**
+	 * Update the cached terminal key
+	 * Should be called when settings are changed via the settings API
+	 *
+	 * @param {string} newKey - New terminal key value
+	 */
+	updateCachedKey(newKey) {
+		this.cachedTerminalKey = newKey;
+		logger.info('AUTH', 'Terminal key cache updated', { instanceId: this.instanceId });
 	}
 
-	// If not initialized, fall back to environment variable
-	return process.env.TERMINAL_KEY || 'change-me';
-}
+	/**
+	 * Get the current cached terminal key
+	 * Falls back to environment variable if not initialized
+	 *
+	 * @returns {string} The cached terminal key
+	 */
+	getCachedKey() {
+		if (this.cachedTerminalKey !== null) {
+			return this.cachedTerminalKey;
+		}
 
-/**
- * Get the terminal key following the proper settings hierarchy:
- * 1. Database configuration (settings table, authentication category)
- * 2. Environment variable (TERMINAL_KEY)
- * 3. Default value ('change-me')
- *
- * @param {Object} database - Optional DatabaseManager instance for database lookup
- * @returns {Promise<string>} The resolved terminal key
- * @deprecated Use getCachedTerminalKey() instead for synchronous access
- */
-export async function getTerminalKey(database = null) {
-	// If database is provided, try to get from database first
-	if (database) {
-		try {
-			const authSettings = await database.getSettingsByCategory('authentication');
-			if (authSettings && authSettings.terminal_key) {
-				return authSettings.terminal_key;
-			}
-		} catch (error) {
-			// Fall through to environment variable if database lookup fails
-			console.warn('Failed to get terminal_key from settings:', error.message);
+		// If not initialized, fall back to environment variable
+		logger.warn('AUTH', 'Terminal key cache not initialized, falling back to environment variable', { instanceId: this.instanceId });
+		return process.env.TERMINAL_KEY || 'change-me-to-a-strong-password';
+	}
+
+	/**
+	 * Validate a key against the configured terminal key
+	 * Uses cached value from settings hierarchy (database > env > default)
+	 *
+	 * @param {string} key - Key to validate
+	 * @returns {boolean} True if valid
+	 */
+	validateKey(key) {
+		const terminalKey = this.getCachedKey();
+		return terminalKey && key === terminalKey;
+	}
+
+	/**
+	 * Require authentication, throwing error if invalid
+	 * Uses cached terminal key from settings hierarchy
+	 *
+	 * @param {string} key - Key to validate
+	 * @throws {Error} If authentication key is invalid
+	 */
+	requireAuth(key) {
+		if (!this.validateKey(key)) {
+			throw new Error('Invalid authentication key');
 		}
 	}
 
-	// Fall back to environment variable
-	if (process.env.TERMINAL_KEY) {
-		return process.env.TERMINAL_KEY;
-	}
+	/**
+	 * Get authentication key from request using standardized pattern
+	 * Tries Authorization header first (preferred)
+	 *
+	 * @param {Request} request - SvelteKit request object
+	 * @returns {string|null} Authentication key or null if not found
+	 */
+	getAuthKeyFromRequest(request) {
+		// Try Authorization header first (preferred, industry standard)
+		const authHeader = request.headers.get('Authorization');
+		if (authHeader) {
+			// Support both "Bearer <token>" and plain token
+			return authHeader.replace(/^Bearer\s+/i, '');
+		}
 
-	// Final fallback to default
-	return 'change-me';
+		return null;
+	}
 }
 
-/**
- * Validate a key against the configured terminal key
- * Uses cached value from settings hierarchy (database > env > default)
- *
- * @param {string} key - Key to validate
- * @returns {boolean} True if valid
- */
+// Backwards compatibility exports - deprecated, will be removed in future version
+let deprecatedInstance = null;
+
+export async function initializeTerminalKey(database = null) {
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
+	}
+	return await deprecatedInstance.initialize(database);
+}
+
+export function updateCachedTerminalKey(newKey) {
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
+	}
+	return deprecatedInstance.updateCachedKey(newKey);
+}
+
+export function getCachedTerminalKey() {
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
+	}
+	return deprecatedInstance.getCachedKey();
+}
+
 export function validateKey(key) {
-	const terminalKey = getCachedTerminalKey();
-
-	// If terminal key is explicitly set to empty string, allow any key
-	if (terminalKey === '') {
-		return true;
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
 	}
-
-	return key === terminalKey;
+	return deprecatedInstance.validateKey(key);
 }
 
-/**
- * Require authentication, throwing error if invalid
- * Uses cached terminal key from settings hierarchy
- *
- * @param {string} key - Key to validate
- * @throws {Error} If authentication key is invalid
- */
 export function requireAuth(key) {
-	if (!validateKey(key)) {
-		throw new Error('Invalid authentication key');
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
 	}
+	return deprecatedInstance.requireAuth(key);
+}
+
+export function getAuthKeyFromRequest(request) {
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
+	}
+	return deprecatedInstance.getAuthKeyFromRequest(request);
 }

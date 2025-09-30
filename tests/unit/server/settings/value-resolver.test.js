@@ -512,7 +512,7 @@ describe('ValueResolver', () => {
 				description: 'Test',
 				type: 'string',
 				current_value: null,
-				default_value: 'change-me',
+				default_value: 'change-me-to-a-strong-password',
 				is_sensitive: true
 			});
 

@@ -137,25 +137,4 @@
 
 <style>
 	/* StatusBar component uses utility classes - no additional styles needed */
-	.version-indicator {
-		font-size: 0.75rem;
-		color: var(--text-tertiary, #6b7280);
-		opacity: 0.7;
-		font-weight: 400;
-		margin-left: 8px;
-		user-select: none;
-		cursor: default;
-		transition: opacity 0.2s ease;
-	}
-
-	.version-indicator:hover {
-		opacity: 1;
-	}
-
-	/* Hide version on very small screens to save space */
-	@media (max-width: 400px) {
-		.version-indicator {
-			display: none;
-		}
-	}
 </style>

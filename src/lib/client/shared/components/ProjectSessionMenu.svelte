@@ -19,6 +19,7 @@
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { WorkspaceNavigationViewModel } from '$lib/client/state/WorkspaceNavigationViewModel.svelte.js';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	// Props
 	let {
@@ -220,7 +221,7 @@
 			// Call the session resume endpoint with proper parameters
 			const response = await fetch('/api/sessions', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					type: sessionType,
 					workspacePath: session.workspacePath,
@@ -558,8 +559,9 @@
 					<div class="workspace-create-form">
 						<h3>Create New Workspace</h3>
 						<div class="form-group">
-							<label>Workspace Name</label>
+							<label for="workspace-name">Workspace Name</label>
 							<input
+								id="workspace-name"
 								type="text"
 								placeholder="My Project"
 								bind:value={newWorkspaceName}
@@ -567,8 +569,9 @@
 							/>
 						</div>
 						<div class="form-group">
-							<label>Workspace Path</label>
+							<label for="workspace-path">Workspace Path</label>
 							<input
+								id="workspace-path"
 								type="text"
 								placeholder="/workspace/my-project"
 								bind:value={newWorkspacePath}

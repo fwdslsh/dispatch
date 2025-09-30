@@ -23,7 +23,16 @@ function getSessionTitle(kind) {
 	}
 }
 
-export async function GET({ url, locals }) {
+export async function GET({ url, request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return new Response(JSON.stringify({ error: 'Authentication required' }), {
+			status: 401,
+			headers: { 'content-type': 'application/json' }
+		});
+	}
+
 	const includeAll = url.searchParams.get('include') === 'all';
 
 	try {
@@ -78,6 +87,15 @@ export async function GET({ url, locals }) {
 }
 
 export async function POST({ request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return new Response(JSON.stringify({ error: 'Authentication required' }), {
+			status: 401,
+			headers: { 'content-type': 'application/json' }
+		});
+	}
+
 	const { kind, type, cwd, resume = false, sessionId, options = {} } = await request.json();
 
 	const sessionKind = kind ?? type;

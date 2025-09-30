@@ -9,6 +9,7 @@
 	// WorkspaceViewModel removed - obsolete in unified architecture
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	// Components
 	import WorkspaceHeader from './WorkspaceHeader.svelte';
@@ -123,7 +124,9 @@
 			}
 
 			try {
-				const response = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`);
+				const response = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`, {
+					headers: getAuthHeaders()
+				});
 				if (!response.ok) {
 					log.warn('Auth key invalid, redirecting to login');
 					localStorage.removeItem('dispatch-auth-key');

@@ -337,40 +337,6 @@
 		margin-top: var(--space-2);
 	}
 
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: var(--space-2) var(--space-3);
-		border: 1px solid var(--line);
-		border-radius: 6px;
-		font-size: var(--font-size-1);
-		font-family: var(--font-mono);
-		cursor: pointer;
-		transition: all 0.2s ease;
-		text-decoration: none;
-		white-space: nowrap;
-		background: var(--bg);
-		color: var(--text);
-		min-height: 44px; /* WCAG touch target */
-	}
-
-	.btn:hover {
-		background: var(--surface);
-		border-color: var(--primary-glow-40);
-	}
-
-	.btn:focus-visible {
-		outline: none;
-		border-color: var(--primary);
-		box-shadow: 0 0 0 3px var(--primary-glow-25);
-	}
-
-	.btn-scope {
-		font-size: var(--font-size-0);
-		padding: var(--space-1) var(--space-2);
-	}
-
 	.setting-helper {
 		display: flex;
 		flex-direction: column;
@@ -433,10 +399,6 @@
 
 		.scope-buttons {
 			justify-content: flex-start;
-		}
-
-		.btn-scope {
-			flex: 0 0 auto;
 		}
 	}
 

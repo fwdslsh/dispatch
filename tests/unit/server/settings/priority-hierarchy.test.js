@@ -75,7 +75,7 @@ describe('Settings Priority Hierarchy - Integration Tests', () => {
 		await settingsManager.clearSetting('terminal_key');
 
 		let resolved = await valueResolver.resolveSettingValue('terminal_key');
-		expect(resolved).toBe('change-me'); // Default value
+		expect(resolved).toBe('change-me-to-a-strong-password'); // Default value
 
 		// Test 2: Environment variable set
 		process.env.TERMINAL_KEY = testKey;
@@ -105,7 +105,7 @@ describe('Settings Priority Hierarchy - Integration Tests', () => {
 			terminal_key: {
 				env: 'env-key-123',
 				ui: 'ui-key-456',
-				default: 'change-me'
+				default: 'change-me-to-a-strong-password'
 			},
 			ssl_enabled: {
 				env: 'false',

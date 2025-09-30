@@ -67,30 +67,6 @@
 {/if}
 
 <style>
-	.live-event-icons {
-		margin-top: var(--space-3);
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2);
-		/* padding: var(--space-3) var(--space-3); */
-		/* border-radius: 12px; */
-		/* box-shadow:
-			inset 0 1px 2px rgba(255, 255, 255, 0.05),
-			0 4px 16px -10px var(--primary-glow); */
-		font-size: 1rem;
-		min-height: 40px;
-		max-width: 100%;
-		overflow: visible;
-		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-	}
-
-	/* Static variant: no background or shadow */
-	.live-event-icons.static {
-		box-shadow: none;
-		background: transparent;
-		padding: var(--space-2) 0;
-	}
-
 	/* Ensure Tabler icons inherit color properly */
 	.event-icon :global(svg) {
 		color: currentColor;
@@ -138,17 +114,6 @@
 		color: var(--text);
 	}
 
-	.event-icon.selected {
-		background: linear-gradient(135deg, var(--primary-surface-25), var(--primary-surface-15));
-		color: var(--primary);
-		border-color: var(--primary-glow-50);
-		box-shadow:
-			0 0 0 2px var(--primary-glow-20),
-			0 4px 16px -6px var(--primary-glow),
-			inset 0 2px 4px rgba(255, 255, 255, 0.1);
-		transform: translateY(-2px) scale(1.1);
-	}
-
 	.event-summary {
 		margin-top: var(--space-3);
 		padding: var(--space-3) var(--space-4);
@@ -161,14 +126,6 @@
 		font-family: var(--font-mono);
 		font-size: var(--font-size-1);
 		overflow: hidden;
-	}
-	.event-summary-header {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-bottom: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid color-mix(in oklab, var(--primary) 15%, transparent);
 	}
 	.event-summary-icon {
 		display: inline-flex;
@@ -232,10 +189,6 @@
 	}
 
 	@media (max-width: 640px) {
-		.live-event-icons {
-			padding: var(--space-2);
-			gap: var(--space-1);
-		}
 		.event-icon {
 			width: 28px;
 			height: 28px;

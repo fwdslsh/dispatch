@@ -48,7 +48,7 @@ describe('SettingsValidator', () => {
 		});
 
 		it('should reject terminal key with default value', () => {
-			const result = validator.validateSetting(terminalKeySetting, 'change-me');
+			const result = validator.validateSetting(terminalKeySetting, 'change-me-to-a-strong-password');
 			expect(result.valid).toBe(false);
 			expect(result.errors.some((e) => e.includes('default'))).toBe(true);
 		});

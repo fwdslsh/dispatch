@@ -45,9 +45,5 @@
 		.empty-actions {
 			width: 100%;
 		}
-
-		.create-session {
-			width: 100%;
-		}
 	}
 </style>

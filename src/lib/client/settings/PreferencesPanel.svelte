@@ -77,8 +77,8 @@
 				<h3>🎨 User Interface</h3>
 
 				<div class="form-group">
-					<label class="form-label">Theme</label>
-					<select bind:value={viewModel.preferences.ui.theme} class="form-select">
+					<label for="theme-select" class="form-label">Theme</label>
+					<select id="theme-select" bind:value={viewModel.preferences.ui.theme} class="form-select">
 						<option value="auto">Auto (system)</option>
 						<option value="light">Light</option>
 						<option value="dark">Dark</option>
@@ -94,11 +94,12 @@
 				</div>
 
 				<div class="form-group">
-					<label class="form-label">
+					<label for="auto-hide-tabs" class="form-label">
 						Auto-hide inactive tabs (minutes)
 						<span class="form-help">0 = never hide</span>
 					</label>
 					<input
+						id="auto-hide-tabs"
 						type="number"
 						class="form-input"
 						bind:value={viewModel.preferences.ui.autoHideInactiveTabsMinutes}
@@ -113,11 +114,12 @@
 				<h3>🔐 Authentication</h3>
 
 				<div class="form-group">
-					<label class="form-label">
+					<label for="session-duration" class="form-label">
 						Session duration (days)
 						<span class="form-help">Rolling window that resets with each browser session</span>
 					</label>
 					<input
+						id="session-duration"
 						type="number"
 						class="form-input"
 						bind:value={viewModel.preferences.auth.sessionDuration}
@@ -140,11 +142,12 @@
 				<h3>📁 Workspace</h3>
 
 				<div class="form-group">
-					<label class="form-label">
+					<label for="default-workspace-path" class="form-label">
 						Default workspace path
 						<span class="form-help">Default location for new workspaces</span>
 					</label>
 					<input
+						id="default-workspace-path"
 						type="text"
 						class="form-input"
 						bind:value={viewModel.preferences.workspace.defaultPath}
@@ -169,8 +172,9 @@
 				<h3>💻 Terminal</h3>
 
 				<div class="form-group">
-					<label class="form-label">Font size (px)</label>
+					<label for="terminal-font-size" class="form-label">Font size (px)</label>
 					<input
+						id="terminal-font-size"
 						type="number"
 						class="form-input"
 						bind:value={viewModel.preferences.terminal.fontSize}
@@ -180,8 +184,8 @@
 				</div>
 
 				<div class="form-group">
-					<label class="form-label">Font family</label>
-					<select bind:value={viewModel.preferences.terminal.fontFamily} class="form-select">
+					<label for="terminal-font-family" class="form-label">Font family</label>
+					<select id="terminal-font-family" bind:value={viewModel.preferences.terminal.fontFamily} class="form-select">
 						<option value="Monaco, monospace">Monaco</option>
 						<option value="'Fira Code', monospace">Fira Code</option>
 						<option value="'JetBrains Mono', monospace">JetBrains Mono</option>
@@ -192,11 +196,12 @@
 				</div>
 
 				<div class="form-group">
-					<label class="form-label">
+					<label for="terminal-scrollback" class="form-label">
 						Scrollback buffer (lines)
 						<span class="form-help">Number of lines to keep in terminal history</span>
 					</label>
 					<input
+						id="terminal-scrollback"
 						type="number"
 						class="form-input"
 						bind:value={viewModel.preferences.terminal.scrollback}

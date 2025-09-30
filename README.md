@@ -72,7 +72,7 @@ When using the dispatch CLI the init command will create a `~/dispatch/home/.env
 
 | Variable          | Default      | Description                    |
 | ----------------- | ------------ | ------------------------------ |
-| `TERMINAL_KEY`    | `change-me`  | **Required** - Access password |
+| `TERMINAL_KEY`    | `change-me-to-a-strong-password`  | **Required** - Access password |
 | `PORT`            | `3030`       | Web interface port             |
 | `WORKSPACES_ROOT` | `/workspace` | Project directory              |
 | `ENABLE_TUNNEL`   | `false`      | Public URL sharing             |

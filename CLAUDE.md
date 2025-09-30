@@ -156,7 +156,7 @@ PRAGMA table_info('settings');
 
 ### Required
 
-- `TERMINAL_KEY` - Authentication key (default: `change-me` - must be changed for production)
+- `TERMINAL_KEY` - Authentication key (default: `change-me-to-a-strong-password` - must be changed for production)
 
 ### Optional
 

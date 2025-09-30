@@ -27,6 +27,7 @@ export class SettingsService {
 		const defaultOptions = {
 			headers: {
 				'Content-Type': 'application/json',
+				...(this.authKey && { 'Authorization': `Bearer ${this.authKey}` }),
 				...options.headers
 			}
 		};
@@ -48,12 +49,13 @@ export class SettingsService {
 	 * @returns {Promise<Object>} Settings data with categories and settings arrays
 	 */
 	async getAllSettings(categoryId = null) {
-		const params = new URLSearchParams({ authKey: this.authKey });
+		let url = '/api/settings';
 		if (categoryId) {
-			params.append('category', categoryId);
+			const params = new URLSearchParams({ category: categoryId });
+			url += `?${params}`;
 		}
 
-		return await this.makeRequest(`/api/settings?${params}`);
+		return await this.makeRequest(url);
 	}
 
 	/**
@@ -65,10 +67,7 @@ export class SettingsService {
 	async updateCategorySettings(categoryId, settings) {
 		return await this.makeRequest(`/api/settings/${categoryId}`, {
 			method: 'PUT',
-			body: JSON.stringify({
-				authKey: this.authKey,
-				settings
-			})
+			body: JSON.stringify({ settings })
 		});
 	}
 
@@ -77,8 +76,7 @@ export class SettingsService {
 	 * @returns {Promise<Object>} Authentication configuration
 	 */
 	async getAuthConfig() {
-		const params = new URLSearchParams({ authKey: this.authKey });
-		return await this.makeRequest(`/api/auth/config?${params}`);
+		return await this.makeRequest('/api/auth/config');
 	}
 
 	/**
@@ -89,10 +87,7 @@ export class SettingsService {
 	async updateAuthConfig(authSettings) {
 		return await this.makeRequest('/api/auth/config', {
 			method: 'PUT',
-			body: JSON.stringify({
-				authKey: this.authKey,
-				...authSettings
-			})
+			body: JSON.stringify(authSettings)
 		});
 	}
 

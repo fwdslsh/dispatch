@@ -1,5 +1,4 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/shared/auth.js';
 
 /**
  * Maintenance API - Data cleanup operations based on user preferences
@@ -12,7 +11,7 @@ export async function POST({ request, locals }) {
 		const authHeader = request.headers.get('Authorization');
 		const authKey = authHeader?.replace('Bearer ', '');
 
-		if (!validateKey(authKey)) {
+		if (!locals.services.auth.validateKey(authKey)) {
 			return json({ error: 'Invalid authentication key' }, { status: 401 });
 		}
 

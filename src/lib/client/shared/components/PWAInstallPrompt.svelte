@@ -183,40 +183,6 @@
 		flex-shrink: 0;
 	}
 
-	.install-btn,
-	.dismiss-btn {
-		padding: 0.5rem 1rem;
-		border: none;
-		background: transparent;
-		color: white;
-		cursor: pointer;
-		font-family: 'Share Tech Mono', monospace;
-		transition: all 0.2s ease;
-	}
-
-	.install-btn {
-		background: var(--color-primary);
-		--aug-border-all: 1px;
-		--aug-border-bg: var(--color-primary);
-		flex: 1;
-	}
-
-	.install-btn:hover {
-		filter: brightness(1.2);
-	}
-
-	.dismiss-btn {
-		color: #777;
-	}
-
-	.dismiss-btn:hover {
-		color: #aaa;
-	}
-
-	.full-width {
-		width: 100%;
-	}
-
 	/* iOS-specific styles */
 	.ios-instructions {
 		margin: 0.5rem 0;

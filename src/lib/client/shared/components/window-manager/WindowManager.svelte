@@ -388,31 +388,6 @@
 </div>
 
 <style>
-	.wm-edit-controls {
-		position: absolute;
-		top: 0;
-		left: 0;
-		z-index: 20;
-		padding: var(--space-2, 0.5rem);
-	}
-
-	.wm-edit-toggle {
-		background: var(--surface-raised, #333);
-		border: 1px solid var(--surface-border, #555);
-		color: var(--text-primary, #fff);
-		padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-		border-radius: var(--radius, 0.25rem);
-		font-size: var(--text-sm, 0.875rem);
-		cursor: pointer;
-		transition: all 0.2s ease;
-		backdrop-filter: blur(4px);
-	}
-
-	.wm-edit-toggle:hover {
-		background: var(--surface-active, #555);
-		border-color: var(--primary, #0066cc);
-	}
-
 	.wm-root {
 		position: relative;
 	}

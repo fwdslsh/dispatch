@@ -1,18 +1,16 @@
 import { json, error } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
-import { validateKey } from '$lib/server/shared/auth.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request, locals }) {
 	try {
 		// Optional authentication - allow unauthenticated read for basic info
-		const authKey =
-			url.searchParams.get('authKey') ||
-			(request.headers.get('authorization')?.startsWith('Bearer ')
-				? request.headers.get('authorization').slice(7)
-				: null);
-
-		const isAuthenticated = authKey ? validateKey(authKey) : false;
+		const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+		const isAuthenticated = authKey ? locals.services.auth.validateKey(authKey) : false;
+		if(!isAuthenticated) {
+			logger.info('WORKSPACE_API', 'Unauthenticated request to list workspaces');
+			return json({ error: 'Authentication required to list workspaces' }, { status: 401 });
+		}
 
 		const dbManager = locals.services.database;
 		await dbManager.init();
@@ -103,22 +101,16 @@ export async function GET({ url, request, locals }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function POST({ request, locals }) {
+export async function POST({ request, url, locals }) {
 	try {
 		const data = await request.json();
-		const { name, path, authKey } = data;
+		const { name, path } = data;
 
-		// Get auth key from body or headers
-		let finalAuthKey = authKey;
-		if (!finalAuthKey) {
-			const auth = request.headers.get('authorization');
-			if (auth && auth.startsWith('Bearer ')) {
-				finalAuthKey = auth.slice(7);
-			}
-		}
+		// Get auth key
+		const finalAuthKey = locals.services.auth.getAuthKeyFromRequest(request);
 
 		// Require authentication for write operations
-		if (!validateKey(finalAuthKey)) {
+		if (!locals.services.auth.validateKey(finalAuthKey)) {
 			throw error(401, { message: 'Authentication required for workspace creation' });
 		}
 

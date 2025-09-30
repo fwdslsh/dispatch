@@ -3,6 +3,7 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
 	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	/**
 	 * Workspace Environment Variables Settings Component
@@ -68,9 +69,7 @@
 			// Save to server
 			const response = await fetch('/api/settings/workspace', {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					envVariables: envVarsObject
 				})
@@ -227,15 +226,6 @@
 		font-weight: 600;
 		min-width: 20px;
 		text-align: center;
-	}
-
-	.env-input {
-		font-family: var(--font-mono);
-		font-size: var(--text-sm);
-	}
-
-	.env-input.invalid {
-		border-color: var(--error);
 	}
 
 	.validation-error {
