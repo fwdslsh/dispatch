@@ -121,7 +121,7 @@ docker run -d -p 80:80 \
 
 ## Documentation & Support
 
-- 📖 [Full Documentation](https://github.com/fwdslsh/dispatch/tree/main/docs)
+- 📖 [Full Documentation](docs)
 - 🌿 [Git Worktree Guide](docs/features/git-worktrees.md) - Multiple working directories with auto-initialization
 - 🐛 [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
 
