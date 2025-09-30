@@ -25,7 +25,7 @@ test.describe('Authentication Persistence', () => {
 		});
 
 		// Mock onboarding complete state
-		await page.route('/api/onboarding/status**', (route) => {
+		await page.route('/api/settings/onboarding**', (route) => {
 			route.fulfill({
 				status: 200,
 				contentType: 'application/json',
@@ -115,7 +115,7 @@ test.describe('Authentication Persistence', () => {
 			});
 
 			// Mock other required endpoints
-			await newPage.route('/api/onboarding/status**', (route) => {
+			await newPage.route('/api/settings/onboarding**', (route) => {
 				route.fulfill({
 					status: 200,
 					contentType: 'application/json',
@@ -405,7 +405,7 @@ test.describe('Authentication Persistence', () => {
 				});
 
 				// Mock other endpoints
-				await page.route('/api/onboarding/status**', (route) => {
+				await page.route('/api/settings/onboarding**', (route) => {
 					route.fulfill({
 						status: 200,
 						contentType: 'application/json',

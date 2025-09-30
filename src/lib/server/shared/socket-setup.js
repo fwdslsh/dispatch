@@ -1,7 +1,6 @@
 import { Server } from 'socket.io';
 import { validateKey } from './auth.js';
 import { logger } from './utils/logger.js';
-import { settingsEventBroadcaster } from '../settings/SettingsEventBroadcaster.js';
 
 // Admin event tracking
 let socketEvents = [];
@@ -72,9 +71,6 @@ export function setupSocketIO(httpServer, services) {
 	if (services.vscodeManager) {
 		services.vscodeManager.setSocketIO(io);
 	}
-
-	// Set Socket.IO instance on SettingsEventBroadcaster for real-time settings updates
-	settingsEventBroadcaster.setSocketIO(io);
 
 	const { runSessionManager } = services;
 

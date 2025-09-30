@@ -2,29 +2,35 @@
  * Authentication Configuration API Endpoints
  * GET /api/auth/config - Get authentication configuration status
  * PUT /api/auth/config - Update authentication configuration
+ * Uses unified settings table via DatabaseManager
  */
 
 import { json } from '@sveltejs/kit';
-import { SettingsManager } from '../../../../lib/server/settings/SettingsManager.js';
-import { SettingsValidator } from '../../../../lib/server/settings/SettingsValidator.js';
-import { validateKey } from '../../../../lib/server/shared/auth.js';
-import { settingsEventBroadcaster } from '../../../../lib/server/settings/SettingsEventBroadcaster.js';
-
-const settingsManager = new SettingsManager();
-const settingsValidator = new SettingsValidator();
+import { validateKey, updateCachedTerminalKey } from '../../../../lib/server/shared/auth.js';
 
 /**
  * GET /api/auth/config
  * Retrieve current authentication configuration status
  * NOTE: This endpoint is public (no auth required) so login page can see available auth methods
  */
-export async function GET() {
+export async function GET({ locals }) {
 	try {
-		// Initialize settings manager
-		await settingsManager.initialize();
+		const database = locals.services.database;
 
-		// Get authentication configuration
-		const authConfig = await settingsManager.getAuthConfig();
+		// Get authentication settings from unified settings table
+		const authSettings = await database.getSettingsByCategory('authentication');
+
+		// Build auth config response
+		const terminalKey = authSettings.terminal_key || process.env.TERMINAL_KEY || 'change-me';
+		const oauthClientId = authSettings.oauth_client_id;
+		const oauthRedirectUri = authSettings.oauth_redirect_uri;
+
+		const authConfig = {
+			terminal_key_set: Boolean(terminalKey && terminalKey !== 'change-me'),
+			oauth_configured: Boolean(oauthClientId && oauthRedirectUri),
+			oauth_client_id: oauthClientId,
+			oauth_redirect_uri: oauthRedirectUri
+		};
 
 		return json(authConfig, {
 			headers: {
@@ -43,7 +49,7 @@ export async function GET() {
  * PUT /api/auth/config
  * Update authentication configuration with session invalidation
  */
-export async function PUT({ request }) {
+export async function PUT({ request, locals }) {
 	try {
 		const body = await request.json();
 
@@ -53,8 +59,7 @@ export async function PUT({ request }) {
 			return json({ error: 'Authentication failed' }, { status: 401 });
 		}
 
-		// Initialize settings manager
-		await settingsManager.initialize();
+		const database = locals.services.database;
 
 		// Extract authentication settings from body
 		const authSettings = {};
@@ -75,62 +80,44 @@ export async function PUT({ request }) {
 			return json({ error: 'No authentication settings provided' }, { status: 400 });
 		}
 
-		// Get authentication settings for validation
-		const authCategorySettings = await settingsManager.getSettings('authentication');
-		const settingsByKey = new Map(authCategorySettings.map((s) => [s.key, s]));
-
-		// Validate all auth settings
-		const validationResults = [];
-		for (const [key, value] of Object.entries(authSettings)) {
-			const setting = settingsByKey.get(key);
-			if (!setting) {
-				return json({ error: `Unknown authentication setting: ${key}` }, { status: 400 });
-			}
-
-			const validation = settingsValidator.validateSetting(setting, value);
-			validationResults.push({ key, ...validation });
-
-			if (!validation.valid) {
+		// Basic validation for terminal_key
+		if (authSettings.terminal_key !== undefined) {
+			if (typeof authSettings.terminal_key !== 'string' || authSettings.terminal_key.length < 8) {
 				return json(
-					{
-						error: 'Validation failed',
-						details: validation.errors,
-						setting: key
-					},
+					{ error: 'Terminal key must be at least 8 characters long' },
 					{ status: 400 }
 				);
 			}
 		}
 
-		// Apply updates to authentication category
-		const result = await settingsManager.updateCategorySettings('authentication', authSettings);
+		// Get current authentication settings
+		const currentAuthSettings = await database.getSettingsByCategory('authentication');
 
-		// Add validation warnings to response
-		const warnings = validationResults
-			.filter((v) => v.warnings && v.warnings.length > 0)
-			.map((v) => ({ setting: v.key, warnings: v.warnings }));
-
-		const response = {
-			...result,
-			warnings: warnings.length > 0 ? warnings : undefined
+		// Merge with updates
+		const updatedAuthSettings = {
+			...currentAuthSettings,
+			...authSettings
 		};
 
-		// Authentication settings always invalidate sessions
-		response.session_invalidated = true;
-		response.message =
-			'Authentication configuration updated. All active sessions have been invalidated.';
-
-		// Broadcast authentication invalidation and settings update events
-		settingsEventBroadcaster.broadcastAuthInvalidation(
-			'authentication_config_changed',
-			authSettings
+		// Save to database
+		await database.setSettingsForCategory(
+			'authentication',
+			updatedAuthSettings,
+			'Authentication configuration'
 		);
 
-		settingsEventBroadcaster.broadcastSettingsUpdate('authentication', authSettings, {
-			updatedCount: result.updated_count,
-			sessionInvalidated: true,
-			source: 'auth_config_endpoint'
-		});
+		// Update terminal key cache if it was changed
+		if (authSettings.terminal_key !== undefined) {
+			updateCachedTerminalKey(authSettings.terminal_key);
+		}
+
+		const response = {
+			success: true,
+			updated_count: Object.keys(authSettings).length,
+			session_invalidated: true,
+			message:
+				'Authentication configuration updated. All active sessions have been invalidated.'
+		};
 
 		return json(response, {
 			headers: {
@@ -139,17 +126,6 @@ export async function PUT({ request }) {
 		});
 	} catch (error) {
 		console.error('Auth config PUT error:', error);
-
-		// Return validation error details if available
-		if (error.message.includes('Validation failed')) {
-			return json({ error: error.message }, { status: 400 });
-		}
-
-		// Handle specific authentication errors
-		if (error.message.includes('Terminal key')) {
-			return json({ error: error.message }, { status: 400 });
-		}
-
 		return json({ error: 'Internal server error' }, { status: 500 });
 	}
 }

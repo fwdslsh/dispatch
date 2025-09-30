@@ -5,7 +5,7 @@
 -->
 
 <script>
-	import BrandLogo from './workspace/BrandLogo.svelte';
+	import BrandLogo from './BrandLogo.svelte';
 	import TunnelIndicator from './TunnelIndicator.svelte';
 
 	// Props

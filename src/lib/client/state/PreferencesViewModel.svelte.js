@@ -92,7 +92,12 @@ export class PreferencesViewModel {
 				throw new Error('Authentication required');
 			}
 
-			const response = await fetch(`/api/preferences?authKey=${this.authKey}`);
+			const response = await fetch(`/api/preferences`, {
+				headers: {
+					'Authorization': `Bearer ${this.authKey}`,
+					'Content-Type': 'application/json'
+				}
+			});
 			if (!response.ok) {
 				throw new Error('Failed to load preferences');
 			}
@@ -140,9 +145,11 @@ export class PreferencesViewModel {
 			for (const [category, categoryPrefs] of Object.entries(preferencesSnapshot)) {
 				const response = await fetch('/api/preferences', {
 					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
+					headers: {
+						'Authorization': `Bearer ${this.authKey}`,
+						'Content-Type': 'application/json'
+					},
 					body: JSON.stringify({
-						authKey: this.authKey,
 						category,
 						preferences: categoryPrefs
 					})
@@ -188,10 +195,12 @@ export class PreferencesViewModel {
 			for (const category of Object.keys($state.snapshot(this.preferences))) {
 				const response = await fetch('/api/preferences', {
 					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
+					headers: {
+						'Authorization': `Bearer ${this.authKey}`,
+						'Content-Type': 'application/json'
+					},
 					body: JSON.stringify({
 						action: 'reset',
-						authKey: this.authKey,
 						category
 					})
 				});

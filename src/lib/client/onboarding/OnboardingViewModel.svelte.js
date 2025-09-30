@@ -69,20 +69,18 @@ export class OnboardingViewModel {
 	}
 
 	/**
-	 * Update progress to specific step
-	 * @param {string} step - Target step
+	 * Update progress - marks step as completed
+	 * @param {string} step - Step that was just completed
 	 * @param {object} data - Optional step data
 	 */
 	async updateStep(step, data = {}) {
 		this.isLoading = true;
 		try {
-			await this.#apiClient.updateProgress(step, data);
-			this.currentStep = step;
+			const result = await this.#apiClient.updateProgress(step, data);
 
-			// Add to completed steps if not already there
-			if (!this.completedSteps.includes(step)) {
-				this.completedSteps = [...this.completedSteps, step];
-			}
+			// Update local state from API response
+			this.currentStep = result.currentStep;
+			this.completedSteps = result.completedSteps;
 
 			this.error = null;
 		} catch (err) {

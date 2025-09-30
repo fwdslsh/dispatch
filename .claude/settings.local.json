@@ -21,6 +21,7 @@
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "svelte-llm"
+    "svelte-llm",
+    "chrome-devtools"
   ]
 }

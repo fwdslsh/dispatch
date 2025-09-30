@@ -3,6 +3,12 @@
 		"svelte-llm": {
 			"type": "http",
 			"url": "https://svelte-llm.stanislav.garden/mcp/mcp"
+		},
+		"chrome-devtools": {
+			"command": "npx",
+			"args": [
+				"chrome-devtools-mcp@latest"
+			]
 		}
 	}
 }

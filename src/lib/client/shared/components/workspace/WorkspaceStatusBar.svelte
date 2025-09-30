@@ -6,6 +6,8 @@
 -->
 
 <script>
+	import AppVersion from '../AppVersion.svelte';
+
 	import MobileNavigation from './MobileNavigation.svelte';
 	import CreateSessionButton from './CreateSessionButton.svelte';
 	import IconButton from '../IconButton.svelte';
@@ -70,11 +72,7 @@
 			<IconButton onclick={onOpenSettings} aria-label="Open settings" title="Settings">
 				<IconAdjustmentsAlt size={18} />
 			</IconButton>
-			{#if appVersion && appVersion !== 'unknown'}
-				<span class="version-indicator" title="Application version: {appVersion}">
-					v{appVersion}
-				</span>
-			{/if}
+			<AppVersion></AppVersion>
 			<!-- {#if totalSessions > 0}
 				<span class="session-counter">
 					{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}

@@ -3,10 +3,15 @@
 	 * RetentionSettings - Data retention policy configuration component
 	 * Provides simple preview and validation as per specification
 	 * Follows constitutional requirement for clear data management
+	 *
+	 * CONSOLIDATED ARCHITECTURE:
+	 * - Uses RetentionPolicyViewModel which reads from user_preferences (maintenance category)
+	 * - Cleanup operations via /api/maintenance endpoint
 	 */
 
 	import { getContext, onMount } from 'svelte';
 	import { RetentionPolicyViewModel } from '../state/RetentionPolicyViewModel.svelte.js';
+	import { PreferencesViewModel } from '../state/PreferencesViewModel.svelte.js';
 	import Button from '../shared/components/Button.svelte';
 
 	// Props
@@ -28,7 +33,15 @@
 				throw new Error('API client not available');
 			}
 
-			viewModel = new RetentionPolicyViewModel(apiClient);
+			// Get auth key from localStorage
+			const authKey = localStorage.getItem('dispatch-auth-key') || '';
+			if (!authKey) {
+				throw new Error('Authentication key not found');
+			}
+
+			// Create PreferencesViewModel and RetentionPolicyViewModel
+			const preferencesViewModel = new PreferencesViewModel(apiClient, authKey);
+			viewModel = new RetentionPolicyViewModel(preferencesViewModel, authKey);
 			await viewModel.loadPolicy();
 		} catch (error) {
 			console.error('Failed to initialize RetentionSettings:', error);

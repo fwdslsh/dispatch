@@ -58,8 +58,37 @@
 			// Store the new terminal key in localStorage
 			localStorage.setItem('dispatch-auth-key', terminalKey);
 
-			// Move to next step
-			await handleStepComplete('workspace');
+			// Save terminal key via onboarding endpoint which will:
+			// 1. Store terminal key in authentication settings
+			// 2. Mark auth step as complete
+			// 3. Update onboarding state
+			const response = await fetch('/api/settings/onboarding', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					currentStep: 'auth',
+					completedSteps: ['auth'],
+					isComplete: false,
+					firstWorkspaceId: null,
+					stepData: {
+						terminalKey: terminalKey
+					}
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to save terminal key');
+			}
+
+			// Update local viewModel state from API response
+			const result = await response.json();
+			if (viewModel) {
+				viewModel.currentStep = result.currentStep || 'workspace';
+				viewModel.completedSteps = result.completedSteps || ['auth'];
+			}
 		} catch (error) {
 			authError = 'Failed to set up authentication. Please try again.';
 			console.error('Authentication setup error:', error);
@@ -226,12 +255,12 @@
 						<div class="flex gap-3 justify-end mt-4">
 							<Button
 								variant="primary"
-								onclick={() => handleStepComplete('settings', { workspaceName, workspacePath })}
+								onclick={() => handleStepComplete('workspace', { workspaceName, workspacePath })}
 								disabled={viewModel.isLoading || !workspaceName || !workspacePath}
 								loading={viewModel.isLoading}
 								text="Create Workspace"
 							/>
-							<Button variant="ghost" onclick={() => handleStepComplete('settings')} text="Skip for Now" />
+							<Button variant="ghost" onclick={() => handleStepComplete('workspace')} text="Skip for Now" />
 						</div>
 					</div>
 				{:else if viewModel.currentStep === 'settings'}
@@ -270,6 +299,13 @@
 							/>
 							<Button variant="ghost" onclick={() => handleComplete('default-workspace')} text="Use Defaults" />
 						</div>
+					</div>
+				{:else if viewModel.currentStep === 'complete'}
+					<!-- Transition state - completing onboarding -->
+					<div class="flex flex-col items-center justify-center py-16">
+						<div class="loading loading-spinner loading-lg text-primary mb-4"></div>
+						<h2 class="text-xl font-semibold mb-2">Completing setup...</h2>
+						<p class="text-base-content/70">Please wait while we finalize your configuration.</p>
 					</div>
 				{/if}
 			</div>

@@ -28,26 +28,26 @@ test.describe('Onboarding Workflow', () => {
 			});
 		});
 
-		// Mock onboarding status endpoint - return uncompleted state
-		await page.route('/api/onboarding/status**', (route) => {
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify({
-					currentStep: 'auth',
-					isComplete: false,
-					completedSteps: []
-				})
-			});
-		});
-
-		// Mock onboarding progress update
-		await page.route('/api/onboarding/progress**', (route) => {
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify({ success: true })
-			});
+		// Mock onboarding status endpoint - return uncompleted state (now via settings API)
+		await page.route('/api/settings/onboarding**', (route) => {
+			if (route.request().method() === 'GET') {
+				route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify({
+						currentStep: 'auth',
+						isComplete: false,
+						completedSteps: []
+					})
+				});
+			} else if (route.request().method() === 'PUT') {
+				// Mock onboarding progress update
+				route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify({ success: true })
+				});
+			}
 		});
 
 		// Mock workspace creation
@@ -73,17 +73,7 @@ test.describe('Onboarding Workflow', () => {
 			}
 		});
 
-		// Mock onboarding completion
-		await page.route('/api/onboarding/complete**', (route) => {
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify({
-					success: true,
-					isComplete: true
-				})
-			});
-		});
+		// Onboarding completion is handled by the PUT endpoint above
 	});
 
 	test('should complete minimal onboarding workflow', async ({ page }) => {
