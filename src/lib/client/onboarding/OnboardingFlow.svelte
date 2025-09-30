@@ -8,6 +8,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { useServiceContainer } from '../shared/services/ServiceContainer.svelte.js';
+	import Button from '../shared/components/Button.svelte';
 
 	// Props
 	let { viewModel, onComplete = () => {}, onSkip = () => {} } = $props();
@@ -183,21 +184,21 @@
 							</div>
 						</div>
 						<div class="flex gap-3 justify-end mt-4">
-							<button
-								class="btn btn-primary"
+							<Button
+								variant="primary"
 								onclick={handleAuthentication}
 								disabled={isSettingUpAuth || !terminalKey.trim() || !confirmTerminalKey.trim()}
+								loading={isSettingUpAuth}
 							>
 								{#if isSettingUpAuth}
-									<span class="loading loading-spinner loading-xs mr-2"></span>
 									Setting up...
 								{:else}
 									Continue to Workspace Setup
 								{/if}
-							</button>
-							<button class="btn btn-ghost" onclick={handleSkip} disabled={isSettingUpAuth}>
+							</Button>
+							<Button variant="ghost" onclick={handleSkip} disabled={isSettingUpAuth}>
 								Skip Setup
-							</button>
+							</Button>
 						</div>
 					</div>
 				{:else if viewModel.currentStep === 'workspace'}
@@ -223,16 +224,14 @@
 							</div>
 						</div>
 						<div class="flex gap-3 justify-end mt-4">
-							<button
-								class="btn btn-primary"
+							<Button
+								variant="primary"
 								onclick={() => handleStepComplete('settings', { workspaceName, workspacePath })}
 								disabled={viewModel.isLoading || !workspaceName || !workspacePath}
-							>
-								Create Workspace
-							</button>
-							<button class="btn btn-ghost" onclick={() => handleStepComplete('settings')}>
-								Skip for Now
-							</button>
+								loading={viewModel.isLoading}
+								text="Create Workspace"
+							/>
+							<Button variant="ghost" onclick={() => handleStepComplete('settings')} text="Skip for Now" />
 						</div>
 					</div>
 				{:else if viewModel.currentStep === 'settings'}
@@ -262,16 +261,14 @@
 							</div>
 						</div>
 						<div class="flex gap-3 justify-end mt-4">
-							<button
-								class="btn btn-primary"
+							<Button
+								variant="primary"
 								onclick={() => handleComplete('default-workspace')}
 								disabled={viewModel.isLoading}
-							>
-								Complete Setup
-							</button>
-							<button class="btn btn-ghost" onclick={() => handleComplete('default-workspace')}>
-								Use Defaults
-							</button>
+								loading={viewModel.isLoading}
+								text="Complete Setup"
+							/>
+							<Button variant="ghost" onclick={() => handleComplete('default-workspace')} text="Use Defaults" />
 						</div>
 					</div>
 				{/if}

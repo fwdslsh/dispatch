@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/svelte';
-import GlobalSettingsWrapper from '../../../src/lib/client/settings/GlobalSettingsWrapper.svelte';
+import GlobalSettingsSection from '../../../src/lib/client/settings/GlobalSettingsSection.svelte';
 
 // Mock the service container
 const mockServiceContainer = {
@@ -68,7 +68,7 @@ describe('GlobalSettings Integration Fix', () => {
 	});
 
 	it('should not throw "Cannot read properties of undefined (reading settingsByCategory)" error', async () => {
-		// Mock props that the wrapper expects
+		// Mock props that the section component expects
 		const props = {
 			onSave: vi.fn(),
 			onError: vi.fn()
@@ -76,7 +76,7 @@ describe('GlobalSettings Integration Fix', () => {
 
 		// This should not throw the undefined settingsByCategory error
 		expect(() => {
-			render(GlobalSettingsWrapper, { props });
+			render(GlobalSettingsSection, { props });
 		}).not.toThrow();
 	});
 
@@ -86,7 +86,7 @@ describe('GlobalSettings Integration Fix', () => {
 			onError: vi.fn()
 		};
 
-		render(GlobalSettingsWrapper, { props });
+		render(GlobalSettingsSection, { props });
 
 		// Allow component to mount
 		await new Promise(resolve => setTimeout(resolve, 0));

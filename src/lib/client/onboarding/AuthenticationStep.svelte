@@ -6,6 +6,7 @@
 	 */
 
 	import { getContext } from 'svelte';
+	import Button from '../shared/components/Button.svelte';
 
 	// Props
 	export let onComplete = () => {};
@@ -105,21 +106,20 @@
 			</div>
 
 			<div class="form-actions">
-				<button
-					class="btn btn-primary"
+				<Button
+					variant="primary"
 					onclick={handleAuthenticate}
 					disabled={isValidating || !terminalKey.trim()}
+					loading={isValidating}
 				>
 					{#if isValidating}
 						Validating...
 					{:else}
 						Continue
 					{/if}
-				</button>
+				</Button>
 
-				<button class="btn btn-secondary" onclick={handleSkipAuth} disabled={isValidating}>
-					Skip for Now
-				</button>
+				<Button variant="secondary" onclick={handleSkipAuth} disabled={isValidating} text="Skip for Now" />
 			</div>
 		</div>
 	{:else}

@@ -1,6 +1,7 @@
 <script>
 	import DirectoryBrowser from '$lib/client/shared/components/DirectoryBrowser.svelte';
 	import FileEditor from '$lib/client/shared/components/FileEditor.svelte';
+	import Button from '$lib/client/shared/components/Button.svelte';
 	import { onMount } from 'svelte';
 
 	// State
@@ -259,7 +260,16 @@
 	{#if error}
 		<div class="error-banner">
 			<span class="error-text">{error}</span>
-			<button class="error-dismiss" onclick={() => (error = null)}>×</button>
+			<Button
+				variant="ghost"
+				size="small"
+				augmented="none"
+				onclick={() => (error = null)}
+				ariaLabel="Dismiss error"
+				class="error-dismiss"
+			>
+				{#snippet children()}×{/snippet}
+			</Button>
 		</div>
 	{/if}
 

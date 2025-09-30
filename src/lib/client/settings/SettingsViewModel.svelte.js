@@ -83,49 +83,28 @@ export class SettingsViewModel {
 			return this.hasUnsavedChanges && !this.hasValidationErrors && !this.saving;
 		});
 
-		// Authentication-specific derived state
+		// Derived computed property for authentication settings
 		this.authenticationSettings = $derived.by(() => {
-			return this.settings.filter((setting) => setting.category_id === 'authentication');
+			return this.settings.filter((s) => s.category_id === 'authentication');
 		});
+	}
 
-		this.terminalKeySetting = $derived.by(() => {
-			return this.settingsByKey.get('terminal_key');
-		});
+	/**
+	 * Get a setting by key
+	 * @param {string} key - Setting key
+	 * @returns {ConfigurationSetting|undefined} Setting object
+	 */
+	getSetting(key) {
+		return this.settings.find((s) => s.key === key);
+	}
 
-		this.oauthSettings = $derived.by(() => {
-			return this.settings.filter(
-				(setting) => setting.category_id === 'authentication' && setting.key.startsWith('oauth_')
-			);
-		});
-
-		this.oauthClientIdSetting = $derived.by(() => {
-			return this.settingsByKey.get('oauth_client_id');
-		});
-
-		this.oauthClientSecretSetting = $derived.by(() => {
-			return this.settingsByKey.get('oauth_client_secret');
-		});
-
-		this.oauthRedirectUriSetting = $derived.by(() => {
-			return this.settingsByKey.get('oauth_redirect_uri');
-		});
-
-		this.oauthScopeSetting = $derived.by(() => {
-			return this.settingsByKey.get('oauth_scope');
-		});
-
-		// Global settings derived state
-		this.workspaceSettings = $derived.by(() => {
-			return this.settings.filter((setting) => setting.category_id === 'workspace');
-		});
-
-		this.uiSettings = $derived.by(() => {
-			return this.settings.filter((setting) => setting.category_id === 'ui');
-		});
-
-		this.systemSettings = $derived.by(() => {
-			return this.settings.filter((setting) => setting.category_id === 'system');
-		});
+	/**
+	 * Get all settings for a category
+	 * @param {string} categoryId - Category ID
+	 * @returns {ConfigurationSetting[]} Array of settings
+	 */
+	getSettingsByCategory(categoryId) {
+		return this.settings.filter((s) => s.category_id === categoryId);
 	}
 
 	/**

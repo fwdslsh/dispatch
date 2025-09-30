@@ -16,15 +16,10 @@ const settingsValidator = new SettingsValidator();
 /**
  * GET /api/auth/config
  * Retrieve current authentication configuration status
+ * NOTE: This endpoint is public (no auth required) so login page can see available auth methods
  */
-export async function GET({ url }) {
+export async function GET() {
 	try {
-		// Authenticate request
-		const authKey = url.searchParams.get('authKey');
-		if (!validateKey(authKey)) {
-			return json({ error: 'Authentication failed' }, { status: 401 });
-		}
-
 		// Initialize settings manager
 		await settingsManager.initialize();
 

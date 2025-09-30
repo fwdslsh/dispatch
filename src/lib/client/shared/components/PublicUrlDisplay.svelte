@@ -1,6 +1,7 @@
 <script>
 	import { io } from 'socket.io-client';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
+	import Button from './Button.svelte';
 
 	let publicUrl = $state(null);
 	let socket = null; // Not reactive - doesn't need to be
@@ -69,20 +70,29 @@
 	<div class="public-url-container">
 		<!-- <div class="public-url-label">Public URL:</div> -->
 		<div class="public-url-wrapper">
-			<button class="public-url-link" onclick={openInNewTab} title="Click to open in new tab">
-				{publicUrl}
-			</button>
-			<button
-				class="copy-button"
-				onclick={copyToClipboard}
-				title="Copy to clipboard"
-				aria-label="Copy URL to clipboard"
+			<Button
+				variant="ghost"
+				augmented="none"
+				onclick={openInNewTab}
+				ariaLabel="Click to open in new tab"
+				class="public-url-link"
 			>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-					<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-				</svg>
-			</button>
+				{#snippet children()}{publicUrl}{/snippet}
+			</Button>
+			<Button
+				variant="ghost"
+				augmented="none"
+				onclick={copyToClipboard}
+				ariaLabel="Copy URL to clipboard"
+				class="copy-button"
+			>
+				{#snippet children()}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+						<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+					</svg>
+				{/snippet}
+			</Button>
 		</div>
 	</div>
 {/if}

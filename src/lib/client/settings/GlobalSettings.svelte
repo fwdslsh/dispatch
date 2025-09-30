@@ -5,6 +5,7 @@
 
 <script>
 	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
+	import Button from '$lib/client/shared/components/Button.svelte';
 
 	/**
 	 * @type {SettingsViewModel}
@@ -37,17 +38,17 @@
 		return hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving;
 	});
 
-	// Get settings for each category
+	// Get settings for each category using getter method
 	let workspaceSettings = $derived.by(() => {
-		return settingsViewModel.workspaceSettings;
+		return settingsViewModel.getSettingsByCategory('workspace');
 	});
 
 	let uiSettings = $derived.by(() => {
-		return settingsViewModel.uiSettings;
+		return settingsViewModel.getSettingsByCategory('ui');
 	});
 
 	let systemSettings = $derived.by(() => {
-		return settingsViewModel.systemSettings;
+		return settingsViewModel.getSettingsByCategory('system');
 	});
 
 	// Handle input changes for different setting types
@@ -385,32 +386,25 @@
 
 		<!-- Action Buttons -->
 		<div class="settings-actions">
-			<button
+			<Button
 				type="button"
-				class="btn btn-primary"
-				class:btn-loading={settingsViewModel.saving}
+				variant="primary"
 				disabled={!canSave}
+				loading={settingsViewModel.saving}
 				onclick={handleSave}
+				text={settingsViewModel.saving ? 'Saving...' : 'Save General Settings'}
 				data-testid="save-global-settings-button"
-			>
-				{#if settingsViewModel.saving}
-					<span class="loading-spinner"></span>
-					Saving...
-				{:else}
-					Save General Settings
-				{/if}
-			</button>
+			/>
 
 			{#if hasChanges}
-				<button
+				<Button
 					type="button"
-					class="btn btn-secondary"
+					variant="secondary"
 					disabled={settingsViewModel.saving}
 					onclick={handleDiscard}
+					text="Discard Changes"
 					data-testid="discard-global-changes-button"
-				>
-					Discard Changes
-				</button>
+				/>
 			{/if}
 		</div>
 
@@ -431,37 +425,43 @@
 </div>
 
 <style>
+	@import '$lib/client/shared/styles/settings.css';
+
 	.global-settings {
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-color);
-		border-radius: 8px;
-		padding: 1.5rem;
-		margin-bottom: 1.5rem;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		padding: var(--space-5);
+		margin-bottom: var(--space-5);
+		container-type: inline-size;
 	}
 
 	.settings-header h3 {
-		margin: 0 0 0.5rem 0;
-		color: var(--text-primary);
-		font-size: 1.25rem;
+		margin: 0 0 var(--space-2) 0;
+		color: var(--primary);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-4);
 		font-weight: 600;
+		text-shadow: 0 0 8px var(--primary-glow);
 	}
 
 	.settings-description {
-		margin: 0 0 1.5rem 0;
-		color: var(--text-secondary);
-		font-size: 0.875rem;
-		line-height: 1.4;
+		margin: 0 0 var(--space-5) 0;
+		color: var(--muted);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		line-height: 1.5;
 	}
 
 	.settings-content {
 		display: flex;
 		flex-direction: column;
-		gap: 2rem;
+		gap: var(--space-6);
 	}
 
 	.settings-section {
-		border-top: 1px solid var(--border-color);
-		padding-top: 1.5rem;
+		border-top: 1px solid var(--line);
+		padding-top: var(--space-5);
 	}
 
 	.settings-section:first-child {
@@ -470,105 +470,114 @@
 	}
 
 	.section-title {
-		margin: 0 0 1rem 0;
-		color: var(--text-primary);
-		font-size: 1rem;
+		margin: 0 0 var(--space-4) 0;
+		color: var(--primary);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-3);
 		font-weight: 600;
 	}
 
 	.settings-group {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: var(--space-5);
 	}
 
 	.setting-item {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 
 	.setting-label {
 		font-weight: 500;
-		color: var(--text-primary);
-		font-size: 0.875rem;
+		color: var(--text);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
 		display: flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: var(--space-1);
 	}
 
 	.required-indicator {
-		color: var(--error-color, #dc3545);
+		color: var(--err);
 		font-weight: bold;
 	}
 
 	.setting-description {
-		font-size: 0.8125rem;
-		color: var(--text-secondary);
-		line-height: 1.4;
+		font-size: var(--font-size-0);
+		color: var(--muted);
+		font-family: var(--font-mono);
+		line-height: 1.5;
 		margin: 0;
 	}
 
 	.setting-input,
 	.setting-select {
-		padding: 0.75rem;
-		border: 1px solid var(--border-color);
-		border-radius: 6px;
-		font-size: 0.875rem;
-		background: var(--input-bg, white);
-		color: var(--text-primary);
-		transition: border-color 0.2s ease, box-shadow 0.2s ease;
-		min-height: 44px; /* Touch target */
+		padding: var(--space-3);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-sm);
+		font-size: var(--font-size-1);
+		font-family: var(--font-mono);
+		background: var(--bg);
+		color: var(--text);
+		transition: all 0.2s ease;
+		min-height: 44px;
 	}
 
 	.setting-input:focus,
 	.setting-select:focus {
 		outline: none;
-		border-color: var(--focus-color, #007bff);
-		box-shadow: 0 0 0 3px var(--focus-shadow, rgba(0, 123, 255, 0.25));
+		border-color: var(--primary);
+		box-shadow: var(--focus-ring);
 	}
 
 	.setting-input.input-error,
 	.setting-select.input-error {
-		border-color: var(--error-color, #dc3545);
+		border-color: var(--err);
 	}
 
 	.setting-input.input-error:focus,
 	.setting-select.input-error:focus {
-		border-color: var(--error-color, #dc3545);
-		box-shadow: 0 0 0 3px var(--error-shadow, rgba(220, 53, 69, 0.25));
+		border-color: var(--err);
+		box-shadow: var(--focus-ring-error);
 	}
 
 	.checkbox-wrapper {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		cursor: pointer;
-		font-size: 0.875rem;
+		padding: var(--space-2);
+		min-height: 44px;
 	}
 
 	.setting-checkbox {
-		width: 1rem;
-		height: 1rem;
+		width: 20px;
+		height: 20px;
 		cursor: pointer;
+		accent-color: var(--primary);
 	}
 
 	.checkbox-label {
-		color: var(--text-primary);
+		color: var(--text);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
 		cursor: pointer;
 	}
 
 	.error-message {
-		padding: 0.75rem;
-		background: var(--error-bg, #f8d7da);
-		border: 1px solid var(--error-border, #f5c6cb);
-		border-radius: 4px;
-		color: var(--error-text, #721c24);
-		font-size: 0.8125rem;
+		padding: var(--space-3);
+		background: var(--err-dim);
+		border: 1px solid var(--err);
+		border-radius: var(--radius-xs);
+		color: var(--err);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
 	}
 
 	.error-item {
-		margin-bottom: 0.25rem;
+		margin-bottom: var(--space-1);
 	}
 
 	.error-item:last-child {
@@ -578,13 +587,14 @@
 	.env-fallback {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.5rem;
-		padding: 0.75rem;
-		background: var(--info-bg, #d1ecf1);
-		border: 1px solid var(--info-border, #bee5eb);
-		border-radius: 4px;
-		color: var(--info-text, #0c5460);
-		font-size: 0.8125rem;
+		gap: var(--space-2);
+		padding: var(--space-3);
+		background: color-mix(in oklab, var(--info) 15%, var(--surface));
+		border: 1px solid var(--info);
+		border-radius: var(--radius-xs);
+		color: var(--info);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
 	}
 
 	.env-icon {
@@ -592,97 +602,41 @@
 	}
 
 	.env-content code {
-		background: rgba(0, 0, 0, 0.1);
-		padding: 0.125rem 0.25rem;
-		border-radius: 3px;
-		font-family: monospace;
-		font-size: 0.75rem;
+		background: color-mix(in oklab, var(--bg) 80%, transparent);
+		padding: var(--space-0) var(--space-1);
+		border-radius: var(--radius-xs);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
 	}
 
 	.settings-actions {
 		display: flex;
-		gap: 1rem;
+		gap: var(--space-3);
 		align-items: center;
 		flex-wrap: wrap;
-		margin-top: 1rem;
-		padding-top: 1.5rem;
-		border-top: 1px solid var(--border-color);
+		margin-top: var(--space-4);
+		padding-top: var(--space-5);
+		border-top: 1px solid var(--line);
 	}
 
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.75rem 1.5rem;
-		border: 1px solid transparent;
-		border-radius: 6px;
-		font-size: 0.875rem;
-		font-weight: 500;
-		text-decoration: none;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		min-height: 44px; /* Touch target */
-	}
-
-	.btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.btn-primary {
-		background: var(--primary-color, #007bff);
-		color: white;
-		border-color: var(--primary-color, #007bff);
-	}
-
-	.btn-primary:hover:not(:disabled) {
-		background: var(--primary-color-hover, #0056b3);
-		border-color: var(--primary-color-hover, #0056b3);
-	}
-
-	.btn-secondary {
-		background: transparent;
-		color: var(--text-secondary);
-		border-color: var(--border-color);
-	}
-
-	.btn-secondary:hover:not(:disabled) {
-		background: var(--hover-bg);
-		color: var(--text-primary);
-	}
-
-	.btn-loading {
-		cursor: wait;
-	}
-
-	.loading-spinner {
-		width: 1rem;
-		height: 1rem;
-		border: 2px solid transparent;
-		border-top: 2px solid currentColor;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
+	.btn-loading .loading-spinner {
+		/* Use shared spinner from settings.css */
 	}
 
 	.success-message {
-		padding: 1rem;
-		background: var(--success-bg, #d4edda);
-		border: 1px solid var(--success-border, #c3e6cb);
-		border-radius: 6px;
-		color: var(--success-text, #155724);
-		font-size: 0.875rem;
+		padding: var(--space-4);
+		background: color-mix(in oklab, var(--ok) 15%, var(--surface));
+		border: 1px solid var(--ok);
+		border-radius: var(--radius-sm);
+		color: var(--ok);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
 	}
 
 	/* Responsive Design */
-	@media (max-width: 768px) {
+	@container (max-width: 600px) {
 		.global-settings {
-			padding: 1rem;
+			padding: var(--space-4);
 		}
 
 		.settings-actions {
@@ -696,27 +650,17 @@
 	}
 
 	/* Focus styles for accessibility */
-	.btn:focus-visible {
-		outline: 2px solid var(--focus-color, #007bff);
-		outline-offset: 2px;
-	}
-
+	.btn:focus-visible,
 	.setting-checkbox:focus-visible {
-		outline: 2px solid var(--focus-color, #007bff);
+		outline: 2px solid var(--primary);
 		outline-offset: 2px;
 	}
 
 	/* High contrast mode support */
 	@media (prefers-contrast: high) {
-		.global-settings {
-			border-width: 2px;
-		}
-
+		.global-settings,
 		.setting-input,
-		.setting-select {
-			border-width: 2px;
-		}
-
+		.setting-select,
 		.btn {
 			border-width: 2px;
 		}

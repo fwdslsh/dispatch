@@ -490,6 +490,8 @@
 </div>
 
 <style>
+	@import '$lib/client/shared/styles/settings.css';
+
 	:global(.storage-settings .settings-content) {
 		display: flex;
 		flex-direction: column;
@@ -503,106 +505,116 @@
 	}
 
 	.settings-header {
-		border-bottom: 1px solid var(--primary-dim);
+		border-bottom: 1px solid var(--primary-glow-30);
 		padding-bottom: var(--space-4);
 		margin-bottom: var(--space-4);
 	}
 
 	.settings-title {
 		font-family: var(--font-mono);
-		font-size: 1.4rem;
+		font-size: var(--font-size-4);
 		color: var(--primary);
 		margin: 0 0 var(--space-2) 0;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
+		text-shadow: 0 0 8px var(--primary-glow);
 	}
 
 	.settings-description {
-		color: var(--text-muted);
+		color: var(--muted);
 		margin: 0;
-		font-size: 0.9rem;
+		font-size: var(--font-size-1);
+		font-family: var(--font-mono);
 	}
 
 	.settings-section {
-		background: var(--bg-dark);
+		background: var(--bg);
 		padding: var(--space-5);
 		border-radius: var(--radius-lg);
-		border: 1px solid rgba(46, 230, 107, 0.2);
-		box-shadow: 0 0 15px rgba(46, 230, 107, 0.1);
+		border: 1px solid var(--primary-glow-20);
+		box-shadow: 0 0 15px var(--primary-glow-10);
 	}
 
 	.section-title {
 		font-family: var(--font-mono);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
-		font-size: 0.95rem;
+		font-size: var(--font-size-1);
 		margin-bottom: var(--space-3);
-		color: var(--primary-light);
+		color: var(--primary);
 	}
 
+	/* Storage usage bar */
 	.usage-bar {
 		width: 100%;
 		height: 12px;
-		background: rgba(255, 255, 255, 0.05);
-		border-radius: 9999px;
+		background: color-mix(in oklab, var(--text) 5%, transparent);
+		border-radius: var(--radius-full);
 		overflow: hidden;
 	}
 
 	.usage-fill {
 		height: 100%;
-		border-radius: 9999px;
+		border-radius: var(--radius-full);
 		transition: width 0.3s ease;
 	}
 
 	.usage-fill.normal {
-		background: linear-gradient(90deg, rgba(46, 230, 107, 0.6) 0%, rgba(46, 230, 107, 1) 100%);
+		background: linear-gradient(90deg, var(--primary-glow-60) 0%, var(--primary) 100%);
 	}
 
 	.usage-fill.warning {
-		background: linear-gradient(90deg, rgba(255, 165, 0, 0.6) 0%, rgba(255, 165, 0, 1) 100%);
+		background: linear-gradient(90deg, color-mix(in oklab, var(--warn) 60%, transparent) 0%, var(--warn) 100%);
 	}
 
 	.usage-fill.critical {
-		background: linear-gradient(90deg, rgba(239, 68, 68, 0.6) 0%, rgba(239, 68, 68, 1) 100%);
+		background: linear-gradient(90deg, color-mix(in oklab, var(--err) 60%, transparent) 0%, var(--err) 100%);
 	}
 
+	/* Stats display */
 	.stat {
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: var(--space-1);
 	}
 
 	.stat-label {
-		font-size: 0.8rem;
-		color: var(--text-muted);
+		font-size: var(--font-size-0);
+		color: var(--muted);
+		font-family: var(--font-mono);
 	}
 
 	.stat-value {
 		font-family: var(--font-mono);
-		font-size: 0.95rem;
-		color: var(--text-primary);
+		font-size: var(--font-size-1);
+		color: var(--text);
+		font-weight: 600;
 	}
 
 	.stat-value.warning {
-		color: var(--color-warning, #f97316);
+		color: var(--warn);
 	}
 
 	.stat-value.critical {
-		color: var(--color-error, #ef4444);
+		color: var(--err);
 	}
 
+	/* Usage warning alert */
 	.usage-warning {
 		margin-top: var(--space-3);
 		padding: var(--space-3);
-		border-radius: var(--radius);
-		background: rgba(239, 68, 68, 0.1);
-		border: 1px solid rgba(239, 68, 68, 0.2);
-		color: var(--color-error, #ef4444);
+		border-radius: var(--radius-xs);
+		background: var(--err-dim);
+		border: 1px solid var(--err);
+		color: var(--err);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
 	}
 
+	/* Category breakdown */
 	.category-row {
 		padding: var(--space-3) 0;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		border-bottom: 1px solid var(--line);
 	}
 
 	.category-row:last-child {
@@ -612,35 +624,43 @@
 	.category-name {
 		font-weight: 600;
 		text-transform: capitalize;
+		font-family: var(--font-mono);
+		color: var(--text);
 	}
 
 	.category-count {
-		font-size: 0.8rem;
-		color: var(--text-muted);
+		font-size: var(--font-size-0);
+		color: var(--muted);
+		font-family: var(--font-mono);
 	}
 
 	.category-size {
 		font-family: var(--font-mono);
-		color: var(--text-primary);
+		color: var(--primary);
+		font-weight: 600;
 	}
 
+	/* Action groups */
 	.action-group h5 {
-		margin: 0 0 0.5rem 0;
+		margin: 0 0 var(--space-2) 0;
 		font-family: var(--font-mono);
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
-		font-size: 0.85rem;
+		font-size: var(--font-size-1);
+		color: var(--primary);
 	}
 
 	.action-group p {
-		margin: 0 0 1rem 0;
-		color: var(--text-muted);
-		font-size: 0.85rem;
+		margin: 0 0 var(--space-4) 0;
+		color: var(--muted);
+		font-size: var(--font-size-1);
+		font-family: var(--font-mono);
 	}
 
+	/* Clear options */
 	.clear-option {
 		padding: var(--space-4) 0;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		border-bottom: 1px solid var(--line);
 	}
 
 	.clear-option:last-child {
@@ -649,18 +669,22 @@
 
 	.clear-title {
 		font-weight: 600;
+		font-family: var(--font-mono);
+		color: var(--text);
 	}
 
 	.clear-description {
 		margin: 0;
-		font-size: 0.85rem;
-		color: var(--text-muted);
+		font-size: var(--font-size-1);
+		color: var(--muted);
+		font-family: var(--font-mono);
 	}
 
+	/* Footer */
 	.settings-footer {
 		margin-top: var(--space-4);
 		padding-top: var(--space-4);
-		border-top: 1px solid rgba(46, 230, 107, 0.2);
+		border-top: 1px solid var(--primary-glow-20);
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
@@ -668,19 +692,53 @@
 
 	.status-message {
 		font-family: var(--font-mono);
-		font-size: 0.85rem;
-		color: var(--text-muted);
+		font-size: var(--font-size-1);
+		color: var(--muted);
 		min-height: 24px;
 	}
 
 	.status-message.success {
-		color: var(--primary);
+		color: var(--ok);
 	}
 
 	.status-message.error {
-		color: var(--color-error, #ef4444);
+		color: var(--err);
 	}
 
+	/* Utility classes for flex layout */
+	.flex {
+		display: flex;
+	}
+
+	.flex-col {
+		flex-direction: column;
+	}
+
+	.flex-between {
+		justify-content: space-between;
+	}
+
+	.flex-wrap {
+		flex-wrap: wrap;
+	}
+
+	.gap-1 {
+		gap: var(--space-1);
+	}
+
+	.gap-3 {
+		gap: var(--space-3);
+	}
+
+	.gap-4 {
+		gap: var(--space-4);
+	}
+
+	.gap-6 {
+		gap: var(--space-6);
+	}
+
+	/* Responsive */
 	@media (max-width: 768px) {
 		.settings-section {
 			padding: var(--space-4);

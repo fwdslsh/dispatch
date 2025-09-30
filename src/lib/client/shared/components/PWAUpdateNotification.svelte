@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import Button from './Button.svelte';
 
 	let showUpdateNotification = $state(false);
 	let registration = null;
@@ -61,10 +62,20 @@
 				<p>A new version of Dispatch is ready</p>
 			</div>
 			<div class="notification-actions">
-				<button class="update-btn" onclick={handleUpdate} data-augmented-ui="tl-clip br-clip exe">
-					Update Now
-				</button>
-				<button class="dismiss-btn" onclick={dismissUpdate}> Later </button>
+				<Button
+					variant="primary"
+					onclick={handleUpdate}
+					text="Update Now"
+					class="update-btn"
+					augmented="tl-clip br-clip exe"
+				/>
+				<Button
+					variant="ghost"
+					onclick={dismissUpdate}
+					text="Later"
+					class="dismiss-btn"
+					augmented="none"
+				/>
 			</div>
 		</div>
 	</div>

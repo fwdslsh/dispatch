@@ -1,5 +1,5 @@
-import GlobalSettingsWrapper from './GlobalSettingsWrapper.svelte';
-import AuthenticationSettingsWrapper from './AuthenticationSettingsWrapper.svelte';
+import GlobalSettingsSection from './GlobalSettingsSection.svelte';
+import AuthenticationSettingsSection from './AuthenticationSettingsSection.svelte';
 import PreferencesPanel from './PreferencesPanel.svelte';
 import RetentionSettings from './RetentionSettings.svelte';
 import WorkspaceEnvSettings from './sections/WorkspaceEnvSettings.svelte';
@@ -25,14 +25,14 @@ const SETTINGS_SECTIONS = [
 		label: 'Global',
 		navAriaLabel: 'Global application settings',
 		icon: IconSettings,
-		component: GlobalSettingsWrapper
+		component: GlobalSettingsSection
 	},
 	{
 		id: 'authentication',
 		label: 'Authentication',
 		navAriaLabel: 'Authentication and security settings',
 		icon: IconKey,
-		component: AuthenticationSettingsWrapper
+		component: AuthenticationSettingsSection
 	},
 	{
 		id: 'workspace-env',

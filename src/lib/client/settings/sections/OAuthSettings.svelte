@@ -5,27 +5,30 @@
 
 <script>
 	import { SettingsViewModel } from '../SettingsViewModel.svelte.js';
+	import { OAuthProviders, generateExampleRedirectUri } from '../OAuthProviderModel.js';
+	import SettingField from '$lib/client/shared/components/SettingField.svelte';
+	import Button from '$lib/client/shared/components/Button.svelte';
 
 	/**
 	 * @type {SettingsViewModel}
 	 */
 	let { settingsViewModel } = $props();
 
-	// Get OAuth settings
+	// Get OAuth settings using getter methods
 	let oauthClientIdSetting = $derived.by(() => {
-		return settingsViewModel.oauthClientIdSetting;
+		return settingsViewModel.getSetting('oauth_client_id');
 	});
 
 	let oauthClientSecretSetting = $derived.by(() => {
-		return settingsViewModel.oauthClientSecretSetting;
+		return settingsViewModel.getSetting('oauth_client_secret');
 	});
 
 	let oauthRedirectUriSetting = $derived.by(() => {
-		return settingsViewModel.oauthRedirectUriSetting;
+		return settingsViewModel.getSetting('oauth_redirect_uri');
 	});
 
 	let oauthScopeSetting = $derived.by(() => {
-		return settingsViewModel.oauthScopeSetting;
+		return settingsViewModel.getSetting('oauth_scope');
 	});
 
 	// Current values with pending changes
@@ -92,14 +95,7 @@
 		settingsViewModel.updateSetting(settingKey, value);
 	}
 
-	// Generate example redirect URI based on current domain
-	function generateExampleRedirectUri() {
-		const protocol = window.location.protocol;
-		const host = window.location.host;
-		return `${protocol}//${host}/auth/callback`;
-	}
-
-	// Set default redirect URI
+	// Set default redirect URI using Model utility
 	function useDefaultRedirectUri() {
 		const defaultUri = generateExampleRedirectUri();
 		settingsViewModel.updateSetting('oauth_redirect_uri', defaultUri);
@@ -108,49 +104,9 @@
 	// OAuth provider selection
 	let selectedProvider = $state('custom');
 
-	// Provider-specific configurations
-	const oauthProviders = {
-		google: {
-			name: 'Google',
-			authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-			tokenUrl: 'https://oauth2.googleapis.com/token',
-			defaultScopes: 'openid profile email',
-			scopeOptions: [
-				{ value: 'openid profile email', label: 'Basic profile and email' },
-				{ value: 'openid profile email https://www.googleapis.com/auth/drive.readonly', label: 'Profile + Drive read' },
-				{ value: 'openid profile email https://www.googleapis.com/auth/calendar.readonly', label: 'Profile + Calendar read' }
-			],
-			setupInstructions: 'Go to Google Cloud Console → APIs & Services → Credentials → Create OAuth 2.0 Client ID',
-			docsUrl: 'https://developers.google.com/identity/protocols/oauth2'
-		},
-		github: {
-			name: 'GitHub',
-			authUrl: 'https://github.com/login/oauth/authorize',
-			tokenUrl: 'https://github.com/login/oauth/access_token',
-			defaultScopes: 'read:user user:email',
-			scopeOptions: [
-				{ value: 'read:user user:email', label: 'Read user profile and email' },
-				{ value: 'repo read:user user:email', label: 'Repository access + profile' },
-				{ value: 'repo read:user user:email workflow', label: 'Full repository and workflow access' }
-			],
-			setupInstructions: 'Go to GitHub Settings → Developer settings → OAuth Apps → New OAuth App',
-			docsUrl: 'https://docs.github.com/en/apps/oauth-apps/building-oauth-apps'
-		},
-		custom: {
-			name: 'Custom Provider',
-			defaultScopes: 'read write',
-			scopeOptions: [
-				{ value: 'read', label: 'Read access' },
-				{ value: 'write', label: 'Write access' },
-				{ value: 'admin', label: 'Admin access' },
-				{ value: 'openid profile email', label: 'OpenID Connect' }
-			]
-		}
-	};
-
-	// Get current provider configuration
+	// Get current provider configuration from Model
 	let providerConfig = $derived.by(() => {
-		return oauthProviders[selectedProvider];
+		return OAuthProviders[selectedProvider];
 	});
 
 	// Set common scope
@@ -219,153 +175,54 @@
 
 		<!-- OAuth Client ID -->
 		{#if oauthClientIdSetting}
-			<div class="setting-item">
-				<label for="oauth-client-id" class="setting-label">
-					OAuth Client ID
-					{#if oauthClientIdSetting.is_required}
-						<span class="required-indicator" aria-label="Required">*</span>
-					{/if}
-				</label>
-
-				<div class="setting-description" data-testid="oauth-client-id-help">
-					The client ID provided by your OAuth provider. This is used to identify your application
-					during the OAuth flow.
-				</div>
-
-				<input
-					id="oauth-client-id"
-					type="text"
-					class="setting-input"
-					class:input-error={clientIdErrors.length > 0}
-					placeholder="Enter OAuth client ID"
-					value={clientIdValue}
-					oninput={(e) => handleInput('oauth_client_id', e)}
-					autocomplete="off"
-					spellcheck="false"
-					data-testid="oauth-client-id-input"
-					aria-describedby={clientIdErrors.length > 0 ? 'oauth-client-id-error' : 'oauth-client-id-help'}
-				/>
-
-				<!-- Validation Errors -->
-				{#if clientIdErrors.length > 0}
-					<div class="error-message" id="oauth-client-id-error" data-testid="oauth-client-id-error">
-						{#each clientIdErrors as error}
-							<div class="error-item">{error}</div>
-						{/each}
-					</div>
-				{/if}
-
-				<!-- Environment Variable Fallback Info -->
-				{#if oauthClientIdSetting.env_var_name && !settingsViewModel.hasChanges('oauth_client_id')}
-					<div class="env-fallback" data-testid="oauth-client-id-env-fallback">
-						<div class="env-icon">🔧</div>
-						<div class="env-content">
-							<strong>Environment Variable:</strong>
-							Currently using value from <code>{oauthClientIdSetting.env_var_name}</code> environment variable.
-							Set a value here to override the environment setting.
-						</div>
-					</div>
-				{/if}
-			</div>
+			<SettingField
+				setting={oauthClientIdSetting}
+				value={clientIdValue}
+				errors={clientIdErrors}
+				hasChanges={settingsViewModel.hasChanges('oauth_client_id')}
+				onInput={(e) => handleInput('oauth_client_id', e)}
+				placeholder="Enter OAuth client ID"
+				testId="oauth-client-id-input"
+			/>
 		{/if}
 
 		<!-- OAuth Client Secret -->
 		{#if oauthClientSecretSetting}
-			<div class="setting-item">
-				<label for="oauth-client-secret" class="setting-label">
-					OAuth Client Secret
-					{#if oauthClientSecretSetting.is_required}
-						<span class="required-indicator" aria-label="Required">*</span>
-					{/if}
-				</label>
-
-				<div class="setting-description" data-testid="oauth-client-secret-help">
-					The client secret provided by your OAuth provider. This value is sensitive and will be
-					stored securely. Never share this secret publicly.
-				</div>
-
-				<input
-					id="oauth-client-secret"
-					type="password"
-					class="setting-input"
-					class:input-error={clientSecretErrors.length > 0}
-					placeholder="Enter OAuth client secret"
-					value={clientSecretValue}
-					oninput={(e) => handleInput('oauth_client_secret', e)}
-					autocomplete="new-password"
-					spellcheck="false"
-					data-testid="oauth-client-secret-input"
-					aria-describedby={clientSecretErrors.length > 0
-						? 'oauth-client-secret-error'
-						: 'oauth-client-secret-help'}
-				/>
-
-				<!-- Validation Errors -->
-				{#if clientSecretErrors.length > 0}
-					<div
-						class="error-message"
-						id="oauth-client-secret-error"
-						data-testid="oauth-client-secret-error"
-					>
-						{#each clientSecretErrors as error}
-							<div class="error-item">{error}</div>
-						{/each}
-					</div>
-				{/if}
-
-				<!-- Environment Variable Fallback Info -->
-				{#if oauthClientSecretSetting.env_var_name && !settingsViewModel.hasChanges('oauth_client_secret')}
-					<div class="env-fallback" data-testid="oauth-client-secret-env-fallback">
-						<div class="env-icon">🔧</div>
-						<div class="env-content">
-							<strong>Environment Variable:</strong>
-							Currently using value from <code>{oauthClientSecretSetting.env_var_name}</code> environment
-							variable. Set a value here to override the environment setting.
-						</div>
-					</div>
-				{/if}
-			</div>
+			<SettingField
+				setting={oauthClientSecretSetting}
+				value={clientSecretValue}
+				errors={clientSecretErrors}
+				hasChanges={settingsViewModel.hasChanges('oauth_client_secret')}
+				onInput={(e) => handleInput('oauth_client_secret', e)}
+				type="password"
+				placeholder="Enter OAuth client secret"
+				autocomplete="new-password"
+				testId="oauth-client-secret-input"
+			/>
 		{/if}
 
 		<!-- OAuth Redirect URI -->
 		{#if oauthRedirectUriSetting}
-			<div class="setting-item">
-				<label for="oauth-redirect-uri" class="setting-label">
-					OAuth Redirect URI
-					{#if oauthRedirectUriSetting.is_required}
-						<span class="required-indicator" aria-label="Required">*</span>
-					{/if}
-				</label>
+			<div class="redirect-uri-field">
+				<SettingField
+					setting={oauthRedirectUriSetting}
+					value={redirectUriValue}
+					errors={redirectUriErrors}
+					hasChanges={settingsViewModel.hasChanges('oauth_redirect_uri')}
+					onInput={(e) => handleInput('oauth_redirect_uri', e)}
+					type="url"
+					placeholder="https://your-domain.com/auth/callback"
+					testId="oauth-redirect-uri-input"
+				/>
 
-				<div class="setting-description" data-testid="oauth-redirect-uri-help">
-					The URI where users will be redirected after OAuth authentication. This must match the
-					redirect URI configured in your OAuth provider.
-				</div>
-
-				<div class="input-group">
-					<input
-						id="oauth-redirect-uri"
-						type="url"
-						class="setting-input"
-						class:input-error={redirectUriErrors.length > 0}
-						placeholder="https://your-domain.com/auth/callback"
-						value={redirectUriValue}
-						oninput={(e) => handleInput('oauth_redirect_uri', e)}
-						autocomplete="off"
-						spellcheck="false"
-						data-testid="oauth-redirect-uri-input"
-						aria-describedby={redirectUriErrors.length > 0 ? 'oauth-redirect-uri-error' : 'oauth-redirect-uri-help'}
-					/>
-
-					<button
+				<div class="field-actions">
+					<Button
 						type="button"
-						class="button"
+						variant="secondary"
 						onclick={useDefaultRedirectUri}
-						title="Use default redirect URI for this domain"
-						aria-label="Use default redirect URI for this domain"
-					>
-						Use Default
-					</button>
+						ariaLabel="Use default redirect URI for this domain"
+						text="Use Default"
+					/>
 				</div>
 
 				<div class="setting-helper">
@@ -373,56 +230,20 @@
 						Example: <code>{generateExampleRedirectUri()}</code>
 					</span>
 				</div>
-
-				<!-- Validation Errors -->
-				{#if redirectUriErrors.length > 0}
-					<div class="error-message" id="oauth-redirect-uri-error" data-testid="oauth-redirect-uri-error">
-						{#each redirectUriErrors as error}
-							<div class="error-item">{error}</div>
-						{/each}
-					</div>
-				{/if}
-
-				<!-- Environment Variable Fallback Info -->
-				{#if oauthRedirectUriSetting.env_var_name && !settingsViewModel.hasChanges('oauth_redirect_uri')}
-					<div class="env-fallback" data-testid="oauth-redirect-uri-env-fallback">
-						<div class="env-icon">🔧</div>
-						<div class="env-content">
-							<strong>Environment Variable:</strong>
-							Currently using value from <code>{oauthRedirectUriSetting.env_var_name}</code> environment variable.
-						</div>
-					</div>
-				{/if}
 			</div>
 		{/if}
 
 		<!-- OAuth Scope -->
 		{#if oauthScopeSetting}
-			<div class="setting-item">
-				<label for="oauth-scope" class="setting-label">
-					OAuth Scope
-					{#if oauthScopeSetting.is_required}
-						<span class="required-indicator" aria-label="Required">*</span>
-					{/if}
-				</label>
-
-				<div class="setting-description" data-testid="oauth-scope-help">
-					The permissions your application requests from the OAuth provider. Multiple scopes should
-					be separated by spaces.
-				</div>
-
-				<input
-					id="oauth-scope"
-					type="text"
-					class="setting-input"
-					class:input-error={scopeErrors.length > 0}
-					placeholder="read write"
+			<div class="scope-field">
+				<SettingField
+					setting={oauthScopeSetting}
 					value={scopeValue}
-					oninput={(e) => handleInput('oauth_scope', e)}
-					autocomplete="off"
-					spellcheck="false"
-					data-testid="oauth-scope-input"
-					aria-describedby={scopeErrors.length > 0 ? 'oauth-scope-error' : 'oauth-scope-help'}
+					errors={scopeErrors}
+					hasChanges={settingsViewModel.hasChanges('oauth_scope')}
+					onInput={(e) => handleInput('oauth_scope', e)}
+					placeholder="read write"
+					testId="oauth-scope-input"
 				/>
 
 				<!-- Provider-specific Scopes Helper -->
@@ -430,38 +251,19 @@
 					<span class="helper-label">{providerConfig.name} scopes:</span>
 					<div class="scope-buttons">
 						{#each providerConfig.scopeOptions as scope}
-							<button
+							<Button
 								type="button"
-								class="btn btn-scope"
+								variant="ghost"
+								size="small"
 								onclick={() => setCommonScope(scope.value)}
-								title="Set scope to: {scope.value}"
+								ariaLabel="Set scope to: {scope.value}"
+								text={scope.label}
+								augmented="none"
 								data-testid="scope-button-{scope.label}"
-							>
-								{scope.label}
-							</button>
+							/>
 						{/each}
 					</div>
 				</div>
-
-				<!-- Validation Errors -->
-				{#if scopeErrors.length > 0}
-					<div class="error-message" id="oauth-scope-error" data-testid="oauth-scope-error">
-						{#each scopeErrors as error}
-							<div class="error-item">{error}</div>
-						{/each}
-					</div>
-				{/if}
-
-				<!-- Environment Variable Fallback Info -->
-				{#if oauthScopeSetting.env_var_name && !settingsViewModel.hasChanges('oauth_scope')}
-					<div class="env-fallback" data-testid="oauth-scope-env-fallback">
-						<div class="env-icon">🔧</div>
-						<div class="env-content">
-							<strong>Environment Variable:</strong>
-							Currently using value from <code>{oauthScopeSetting.env_var_name}</code> environment variable.
-						</div>
-					</div>
-				{/if}
 			</div>
 		{/if}
 
@@ -478,79 +280,40 @@
 </div>
 
 <style>
+	@import '$lib/client/shared/styles/settings.css';
+
 	.oauth-settings {
-		padding: 1.5rem;
+		padding: var(--space-4);
 	}
 
 	.setting-group {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: var(--space-4);
 	}
 
-	.setting-item {
+	.redirect-uri-field,
+	.scope-field {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 
-	.setting-label {
-		font-weight: 600;
-		font-size: 0.875rem;
+	.field-actions {
 		display: flex;
-		align-items: center;
-		gap: 0.25rem;
+		justify-content: flex-end;
 	}
-
-	.required-indicator {
-		color: var(--error-color, #dc3545);
-		font-weight: bold;
-	}
-
-	.setting-description {
-		font-size: 0.8125rem;
-		line-height: 1.4;
-	}
-
-	.input-group {
-		position: relative;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.setting-input {
-		flex: 1;
-		padding: 0.75rem;
-		border-radius: 6px;
-		font-size: 0.875rem;
-		transition: border-color 0.2s ease, box-shadow 0.2s ease;
-		min-height: 44px; /* Touch target */
-	}
-
-	.setting-input:focus {
-		outline: none;
-	}
-
-	.setting-input.input-error {
-		border-color: var(--error-color, #dc3545);
-	}
-
-	.setting-input.input-error:focus {
-		border-color: var(--error-color, #dc3545);
-		box-shadow: 0 0 0 3px var(--error-shadow, rgba(220, 53, 69, 0.25));
-	}
-
-
 
 	.provider-info {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.75rem;
-		padding: 1rem;
-
-		font-size: 0.8125rem;
-		margin-top: 0.5rem;
+		gap: var(--space-2);
+		padding: var(--space-3);
+		background: color-mix(in oklab, var(--accent) 8%, transparent);
+		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
+		border-radius: 8px;
+		font-size: var(--font-size-1);
+		margin-top: var(--space-2);
 	}
 
 	.info-icon {
@@ -564,121 +327,93 @@
 
 	.info-content strong {
 		font-weight: 600;
-		color: var(--info-text, #0c5460);
 	}
 
 	.docs-link {
 		text-decoration: underline;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
-		margin-top: 0.5rem;
+		gap: var(--space-1);
+		margin-top: var(--space-2);
 	}
-
-
 
 	.btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0.5rem 0.75rem;
-		border: 1px solid transparent;
-		border-radius: 4px;
-		font-size: 0.8125rem;
+		padding: var(--space-2) var(--space-3);
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		font-size: var(--font-size-1);
+		font-family: var(--font-mono);
 		cursor: pointer;
 		transition: all 0.2s ease;
 		text-decoration: none;
 		white-space: nowrap;
+		background: var(--bg);
+		color: var(--text);
+		min-height: 44px; /* WCAG touch target */
 	}
 
-	.btn-link {
-		background: transparent;
-		border: none;
-		padding: 0.5rem;
-		text-decoration: underline;
+	.btn:hover {
+		background: var(--surface);
+		border-color: var(--primary-glow-40);
+	}
+
+	.btn:focus-visible {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: 0 0 0 3px var(--primary-glow-25);
 	}
 
 	.btn-scope {
-		background: var(--bg-secondary);
-		color: var(--text-secondary);
-		border-color: var(--border-color);
-		font-size: 0.75rem;
-		padding: 0.25rem 0.5rem;
-	}
-
-	.btn-scope:hover {
-		background: var(--hover-bg);
-		color: var(--text-primary);
+		font-size: var(--font-size-0);
+		padding: var(--space-1) var(--space-2);
 	}
 
 	.setting-helper {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
-		font-size: 0.8125rem;
-		color: var(--text-secondary);
+		gap: var(--space-2);
+		font-size: var(--font-size-1);
+		color: var(--muted);
 	}
 
 	.helper-text {
 		font-style: italic;
+		font-family: var(--font-mono);
 	}
 
 	.helper-text code {
-		padding: 0.125rem 0.25rem;
-		border-radius: 3px;
-		font-family: monospace;
-		font-size: 0.75rem;
+		background: color-mix(in oklab, var(--accent) 15%, transparent);
+		padding: 0 var(--space-1);
+		border-radius: 4px;
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
 	}
 
 	.helper-label {
 		font-weight: 500;
-		margin-bottom: 0.25rem;
+		margin-bottom: var(--space-1);
+		font-family: var(--font-mono);
 	}
 
 	.scope-buttons {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-
-	.error-message {
-		padding: 0.75rem;
-		font-size: 0.8125rem;
-	}
-
-	.error-item {
-		margin-bottom: 0.25rem;
-	}
-
-	.error-item:last-child {
-		margin-bottom: 0;
-	}
-
-	.env-fallback {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.5rem;
-		padding: 0.75rem;
-	}
-
-	.env-icon {
-		flex-shrink: 0;
-	}
-
-	.env-content code {
-		padding: 0.125rem 0.25rem;
-		border-radius: 3px;
-		font-family: monospace;
-		font-size: 0.75rem;
+		gap: var(--space-2);
 	}
 
 	.oauth-notice {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.75rem;
-		padding: 1rem;
-		border-radius: 4px;
-		font-size: 0.8125rem;
+		gap: var(--space-2);
+		padding: var(--space-3);
+		background: color-mix(in oklab, var(--accent) 8%, transparent);
+		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
+		border-radius: 8px;
+		font-size: var(--font-size-1);
+		font-family: var(--font-mono);
 	}
 
 	.notice-icon {
@@ -690,17 +425,10 @@
 		font-weight: 600;
 	}
 
-
-
 	/* Responsive design */
 	@media (max-width: 768px) {
 		.oauth-settings {
-			padding: 1rem;
-		}
-
-		.input-group {
-			flex-direction: column;
-			align-items: stretch;
+			padding: var(--space-3);
 		}
 
 		.scope-buttons {
@@ -714,12 +442,7 @@
 
 	/* High contrast mode support */
 	@media (prefers-contrast: high) {
-		.setting-input {
-			border-width: 2px;
-		}
-
-		.error-message,
-		.env-fallback,
+		.provider-info,
 		.oauth-notice {
 			border-width: 2px;
 		}

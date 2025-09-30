@@ -208,7 +208,7 @@
 					<Input
 						bind:value={subdomainInput}
 						placeholder="Enter custom subdomain or leave empty for random"
-						style="font-family: monospace; font-size: 0.9rem;"
+						class="input-monospace"
 					/>
 					<Button
 						onclick={updateSubdomain}
@@ -233,11 +233,7 @@
 			<div class="tunnel-url">
 				<div class="url-label">Public URL:</div>
 				<div class="url-wrapper">
-					<Input
-						value={tunnelStatus.url}
-						readonly={true}
-						style="font-family: monospace; font-size: 0.9rem;"
-					/>
+					<Input value={tunnelStatus.url} readonly={true} class="input-monospace" />
 					<Button onclick={copyUrlToClipboard} variant="secondary" size="sm">Copy</Button>
 					<Button onclick={openTunnelUrl} variant="secondary" size="sm">Open</Button>
 				</div>
@@ -249,7 +245,7 @@
 				onclick={toggleTunnel}
 				variant={tunnelStatus.enabled ? 'danger' : 'primary'}
 				disabled={isLoading}
-				style="min-width: 120px;"
+				class="tunnel-action-button"
 			>
 				{#if isLoading}
 					<LoadingSpinner size="sm" />

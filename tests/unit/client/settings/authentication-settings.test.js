@@ -13,76 +13,57 @@ describe('AuthenticationSettings Component', () => {
 	let mockSettingsViewModel;
 
 	beforeEach(() => {
+		// Mock settings data
+		const mockSettings = {
+			terminal_key: {
+				key: 'terminal_key',
+				name: 'Terminal Key',
+				display_name: 'Terminal Key',
+				description: 'Authentication key for terminal access',
+				type: 'STRING',
+				is_sensitive: true,
+				is_required: true,
+				current_value: 'testkey12345',
+				default_value: 'change-me',
+				env_var_name: 'TERMINAL_KEY',
+				category_id: 'authentication'
+			},
+			oauth_client_id: {
+				key: 'oauth_client_id',
+				name: 'OAuth Client ID',
+				display_name: 'OAuth Client ID',
+				description: 'OAuth application client ID',
+				type: 'STRING',
+				is_sensitive: false,
+				is_required: false,
+				current_value: 'test-client-id',
+				default_value: null,
+				env_var_name: 'OAUTH_CLIENT_ID',
+				category_id: 'authentication'
+			}
+		};
+
 		// Create mock SettingsViewModel
 		mockSettingsViewModel = {
 			settingsByCategory: [
 				{
 					id: 'authentication',
 					name: 'Authentication',
-					settings: [
-						{
-							key: 'terminal_key',
-							name: 'Terminal Key',
-							display_name: 'Terminal Key',
-							description: 'Authentication key for terminal access',
-							type: 'STRING',
-							is_sensitive: true,
-							is_required: true,
-							current_value: 'testkey12345',
-							default_value: 'change-me',
-							env_var_name: 'TERMINAL_KEY'
-						},
-						{
-							key: 'oauth_client_id',
-							name: 'OAuth Client ID',
-							display_name: 'OAuth Client ID',
-							description: 'OAuth application client ID',
-							type: 'STRING',
-							is_sensitive: false,
-							is_required: false,
-							current_value: 'test-client-id',
-							default_value: null,
-							env_var_name: 'OAUTH_CLIENT_ID'
-						}
-					]
+					settings: [mockSettings.terminal_key, mockSettings.oauth_client_id]
 				}
 			],
-			authenticationSettings: [
-				{
-					key: 'terminal_key',
-					name: 'Terminal Key',
-					display_name: 'Terminal Key',
-					type: 'STRING',
-					is_sensitive: true,
-					is_required: true,
-					current_value: 'testkey12345'
-				}
-			],
-			terminalKeySetting: {
-				key: 'terminal_key',
-				name: 'Terminal Key',
-				display_name: 'Terminal Key',
-				type: 'STRING',
-				is_sensitive: true,
-				is_required: true,
-				current_value: 'testkey12345'
-			},
-			oauthClientIdSetting: {
-				key: 'oauth_client_id',
-				name: 'OAuth Client ID',
-				display_name: 'OAuth Client ID',
-				type: 'STRING',
-				is_sensitive: false,
-				is_required: false,
-				current_value: 'test-client-id'
-			},
-			oauthRedirectUriSetting: null,
-			oauthScopeSetting: null,
 			categoryHasChanges: vi.fn(() => false),
 			hasValidationErrors: false,
 			saving: false,
 			successMessage: null,
 			error: null,
+			getSetting: vi.fn((key) => mockSettings[key] || null),
+			getSettingsByCategory: vi.fn((categoryId) => {
+				if (categoryId === 'authentication') {
+					return [mockSettings.terminal_key, mockSettings.oauth_client_id];
+				}
+				return [];
+			}),
 			getCurrentValue: vi.fn((key) => {
 				if (key === 'terminal_key') return 'testkey12345';
 				if (key === 'oauth_client_id') return 'test-client-id';
@@ -295,33 +276,45 @@ describe('AuthenticationSettings Component', () => {
 
 	describe('OAuth Settings Section', () => {
 		beforeEach(() => {
-			mockSettingsViewModel.oauthClientIdSetting = {
-				key: 'oauth_client_id',
-				name: 'OAuth Client ID',
-				display_name: 'OAuth Client ID',
-				type: 'STRING',
-				is_sensitive: false,
-				is_required: false,
-				current_value: 'test-client-id'
+			// Update mock to return OAuth settings
+			const oauthSettings = {
+				oauth_client_id: {
+					key: 'oauth_client_id',
+					name: 'OAuth Client ID',
+					display_name: 'OAuth Client ID',
+					type: 'STRING',
+					is_sensitive: false,
+					is_required: false,
+					current_value: 'test-client-id',
+					category_id: 'authentication'
+				},
+				oauth_redirect_uri: {
+					key: 'oauth_redirect_uri',
+					name: 'OAuth Redirect URI',
+					display_name: 'OAuth Redirect URI',
+					type: 'URL',
+					is_sensitive: false,
+					is_required: false,
+					current_value: 'https://example.com/callback',
+					category_id: 'authentication'
+				},
+				oauth_scope: {
+					key: 'oauth_scope',
+					name: 'OAuth Scope',
+					display_name: 'OAuth Scope',
+					type: 'STRING',
+					is_sensitive: false,
+					is_required: false,
+					current_value: 'read write',
+					category_id: 'authentication'
+				}
 			};
-			mockSettingsViewModel.oauthRedirectUriSetting = {
-				key: 'oauth_redirect_uri',
-				name: 'OAuth Redirect URI',
-				display_name: 'OAuth Redirect URI',
-				type: 'URL',
-				is_sensitive: false,
-				is_required: false,
-				current_value: 'https://example.com/callback'
-			};
-			mockSettingsViewModel.oauthScopeSetting = {
-				key: 'oauth_scope',
-				name: 'OAuth Scope',
-				display_name: 'OAuth Scope',
-				type: 'STRING',
-				is_sensitive: false,
-				is_required: false,
-				current_value: 'read write'
-			};
+
+			mockSettingsViewModel.getSetting = vi.fn((key) => oauthSettings[key] || null);
+			mockSettingsViewModel.getCurrentValue = vi.fn((key) => {
+				if (oauthSettings[key]) return oauthSettings[key].current_value;
+				return null;
+			});
 		});
 
 		it('should render OAuth settings section when available', () => {
@@ -429,8 +422,8 @@ describe('AuthenticationSettings Component', () => {
 		});
 
 		it('should handle empty authentication settings', () => {
-			mockSettingsViewModel.authenticationSettings = [];
-			mockSettingsViewModel.terminalKeySetting = null;
+			mockSettingsViewModel.getSettingsByCategory = vi.fn(() => []);
+			mockSettingsViewModel.getSetting = vi.fn(() => null);
 
 			render(AuthenticationSettings, { props: { settingsViewModel: mockSettingsViewModel } });
 
@@ -439,9 +432,21 @@ describe('AuthenticationSettings Component', () => {
 		});
 
 		it('should handle missing OAuth settings gracefully', () => {
-			mockSettingsViewModel.oauthClientIdSetting = null;
-			mockSettingsViewModel.oauthRedirectUriSetting = null;
-			mockSettingsViewModel.oauthScopeSetting = null;
+			mockSettingsViewModel.getSetting = vi.fn((key) => {
+				if (key === 'terminal_key') {
+					return {
+						key: 'terminal_key',
+						name: 'Terminal Key',
+						display_name: 'Terminal Key',
+						type: 'STRING',
+						is_sensitive: true,
+						is_required: true,
+						current_value: 'testkey12345',
+						category_id: 'authentication'
+					};
+				}
+				return null;
+			});
 
 			render(AuthenticationSettings, { props: { settingsViewModel: mockSettingsViewModel } });
 

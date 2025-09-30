@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import Button from './Button.svelte';
 
 	let showInstallPrompt = $state(false);
 	let deferredPrompt = null;
@@ -114,14 +115,20 @@
 				</p>
 			</div>
 			<div class="flex gap-2 mobile-full-width" style="margin-top: 0.5rem;">
-				<button
-					class="install-btn interactive"
+				<Button
+					variant="primary"
 					onclick={handleInstall}
-					data-augmented-ui="tl-clip br-clip exe"
-				>
-					Install
-				</button>
-				<button class="dismiss-btn interactive" onclick={dismissPrompt}> Not Now </button>
+					text="Install"
+					class="install-btn"
+					augmented="tl-clip br-clip exe"
+				/>
+				<Button
+					variant="ghost"
+					onclick={dismissPrompt}
+					text="Not Now"
+					class="dismiss-btn"
+					augmented="none"
+				/>
 			</div>
 		</div>
 	</div>
@@ -143,9 +150,13 @@
 				</ol>
 			</div>
 			<div class="flex gap-2 mobile-full-width" style="margin-top: 0.5rem;">
-				<button class="dismiss-btn full-width interactive" onclick={dismissManualPrompt}>
-					Got it
-				</button>
+				<Button
+					variant="primary"
+					onclick={dismissManualPrompt}
+					text="Got it"
+					class="dismiss-btn full-width"
+					augmented="none"
+				/>
 			</div>
 		</div>
 	</div>

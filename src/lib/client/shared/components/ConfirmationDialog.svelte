@@ -1,4 +1,6 @@
 <script>
+	import Button from './Button.svelte';
+
 	let {
 		show = $bindable(false),
 		title = 'Confirm Action',
@@ -53,23 +55,24 @@
 			</div>
 
 			<div class="dialog-actions">
-				<button
+				<Button
 					type="button"
-					class="button-secondary text-button"
+					variant="ghost"
+					augmented="none"
 					onclick={handleCancel}
-					aria-label="Cancel"
-				>
-					{cancelText}
-				</button>
-				<button
+					ariaLabel="Cancel"
+					text={cancelText}
+					class="button-secondary"
+				/>
+				<Button
 					type="button"
-					class="button-confirm text-button"
-					class:button-danger={dangerous}
+					variant={dangerous ? 'danger' : 'primary'}
+					augmented="none"
 					onclick={handleConfirm}
-					aria-label="Confirm action"
-				>
-					{confirmText}
-				</button>
+					ariaLabel="Confirm action"
+					text={confirmText}
+					class="button-confirm"
+				/>
 			</div>
 		</div>
 	</div>

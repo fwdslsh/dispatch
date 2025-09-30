@@ -599,7 +599,7 @@
 		{/if}
 
 		<!-- Directory listing -->
-		<div class="max-h-96 overflow-y-auto p-2">
+		<div class="directory-listing-container overflow-y-auto p-2">
 			{#if currentPath !== '/'}
 				<div class="directory-item-enhanced">
 					<span class="directory-icon-enhanced"><IconFolder size={20} /></span>
@@ -675,7 +675,10 @@
    ENHANCED DIRECTORY BROWSER UTILITIES
    Modern file browser with glass morphism and micro-interactions
    ================================================================== */
-
+	.directory-browser-enhanced {
+		display: contents;
+		height: calc(100% - 50px);
+	}
 	.directory-summary-enhanced {
 		display: flex;
 		align-items: center;
@@ -821,6 +824,11 @@
 		margin: 0 var(--space-1);
 	}
 
+	.directory-listing-container {
+		height: 100%;
+		overflow-y: auto;
+	}
+
 	/* Mobile-friendly directory browser styles */
 	@media (max-width: 768px) {
 		.directory-browser-enhanced {
@@ -852,11 +860,6 @@
 		.directory-icon-enhanced {
 			width: 28px;
 			height: 28px;
-		}
-
-		/* Better spacing for touch */
-		.directory-browser-enhanced .max-h-96 {
-			max-height: 60vh; /* Use viewport height on mobile */
 		}
 	}
 </style>

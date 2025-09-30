@@ -153,3 +153,9 @@ playwright-report/
 .dispatch/
 .testing-home/
 
+CSS_CONSOLIDATION_SUMMARY.md
+dispatch.db
+dispatch.db-shm
+dispatch.db-wal
+SETTINGS_REFACTOR_SUMMARY.md
+SETTINGS_REFACTOR_TODOS.md

@@ -6,6 +6,7 @@
 	 */
 
 	import { getContext } from 'svelte';
+	import Button from '../shared/components/Button.svelte';
 
 	// Props
 	export let onComplete = () => {};
@@ -155,17 +156,15 @@
 			{/if}
 
 			<div class="form-actions">
-				<button class="btn btn-primary" onclick={handleCreateWorkspace} disabled={!canCreate}>
+				<Button variant="primary" onclick={handleCreateWorkspace} disabled={!canCreate} loading={isCreating}>
 					{#if isCreating}
 						Creating Workspace...
 					{:else}
 						Create Workspace
 					{/if}
-				</button>
+				</Button>
 
-				<button class="btn btn-secondary" onclick={handleSkipWorkspace} disabled={isCreating}>
-					Skip for Now
-				</button>
+				<Button variant="secondary" onclick={handleSkipWorkspace} disabled={isCreating} text="Skip for Now" />
 			</div>
 
 			<div class="info-box">

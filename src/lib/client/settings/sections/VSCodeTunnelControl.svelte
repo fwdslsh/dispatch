@@ -225,7 +225,7 @@
 				onclick={tunnelStatus.running ? stopTunnel : startTunnel}
 				variant={tunnelStatus.running ? 'danger' : 'primary'}
 				disabled={isLoading}
-				style="min-width: 120px;"
+				class="tunnel-action-button"
 			>
 				{#if isLoading}
 					<LoadingSpinner size="sm" />

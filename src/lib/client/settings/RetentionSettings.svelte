@@ -5,33 +5,33 @@
 	 * Follows constitutional requirement for clear data management
 	 */
 
-	import { getContext } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { RetentionPolicyViewModel } from '../state/RetentionPolicyViewModel.svelte.js';
+	import Button from '../shared/components/Button.svelte';
 
 	// Props
 	let { onSave = (policy) => {} } = $props();
 
 	// Get services from context
 	const serviceContainer = getContext('services');
-	let apiClient = $state(null);
 	let viewModel = $state(null);
 
-	// Load apiClient asynchronously and initialize ViewModel
-	$effect(async () => {
-		if (serviceContainer && !apiClient) {
-			try {
-				apiClient = await serviceContainer.get('apiClient');
-				viewModel = new RetentionPolicyViewModel(apiClient);
-			} catch (error) {
-				console.error('Failed to get apiClient service:', error);
+	// Initialize ViewModel on mount with proper async handling
+	onMount(async () => {
+		try {
+			if (!serviceContainer) {
+				throw new Error('Service container not available');
 			}
-		}
-	});
 
-	// Load current policy when viewModel is ready
-	$effect(() => {
-		if (viewModel) {
-			viewModel.loadPolicy();
+			const apiClient = await serviceContainer.get('apiClient');
+			if (!apiClient) {
+				throw new Error('API client not available');
+			}
+
+			viewModel = new RetentionPolicyViewModel(apiClient);
+			await viewModel.loadPolicy();
+		} catch (error) {
+			console.error('Failed to initialize RetentionSettings:', error);
 		}
 	});
 
@@ -154,18 +154,19 @@
 
 			<!-- Preview Section -->
 			<div class="preview-section">
-				<button
+				<Button
 					type="button"
-					class="btn btn-secondary"
+					variant="secondary"
 					onclick={handlePreview}
 					disabled={!viewModel.isValid || viewModel.isGeneratingPreview}
+					loading={viewModel.isGeneratingPreview}
 				>
 					{#if viewModel.isGeneratingPreview}
 						Generating Preview...
 					{:else}
 						Preview Changes
 					{/if}
-				</button>
+				</Button>
 
 				{#if viewModel.previewSummary}
 					<div class="preview-result">
@@ -177,23 +178,19 @@
 
 			<!-- Form Actions -->
 			<div class="form-actions">
-				<button type="button" class="btn btn-outline" onclick={handleResetToDefaults}>
-					Reset to Defaults
-				</button>
+				<Button type="button" variant="secondary" onclick={handleResetToDefaults} text="Reset to Defaults" />
 
 				{#if viewModel.hasChanges}
-					<button type="button" class="btn btn-outline" onclick={handleResetToOriginal}>
-						Discard Changes
-					</button>
+					<Button type="button" variant="secondary" onclick={handleResetToOriginal} text="Discard Changes" />
 				{/if}
 
-				<button type="submit" class="btn btn-primary" disabled={!viewModel.canSave}>
+				<Button type="submit" variant="primary" disabled={!viewModel.canSave} loading={viewModel.isSaving}>
 					{#if viewModel.isSaving}
 						Saving...
 					{:else}
 						Save Policy
 					{/if}
-				</button>
+				</Button>
 			</div>
 		</form>
 
@@ -215,87 +212,83 @@
 </div>
 
 <style>
-	/* Essential layout styles only */
-	.form-group {
-		margin-bottom: 1.5rem;
-	}
+	@import '$lib/client/shared/styles/settings.css';
 
-	.form-label {
-		display: block;
-		margin-bottom: 0.5rem;
-	}
-
-	.input-group {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
+	/* Component-specific overrides only */
+	.retention-settings {
+		container-type: inline-size;
 	}
 
 	.form-input {
 		flex: 1;
-		padding: 0.75rem;
 	}
 
-	.checkbox-container {
-		display: flex;
-		align-items: flex-start;
-		cursor: pointer;
-		padding: 0.75rem;
-		margin: 0.5rem 0;
-	}
-
-	.checkbox-container input[type='checkbox'] {
-		margin-right: 0.75rem;
-		margin-top: 0.125rem;
-	}
-
-	.checkbox-label {
-		flex: 1;
+	.input-suffix {
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		color: var(--muted);
+		padding: 0 var(--space-2);
 	}
 
 	.preview-section {
-		margin: 2rem 0;
-		padding: 1.5rem;
+		margin: var(--space-6) 0;
+		padding: var(--space-5);
+		background: var(--surface-primary-98);
+		border: 1px solid var(--primary-glow-15);
+		border-radius: var(--radius-sm);
 	}
 
 	.preview-result {
-		margin-top: 1rem;
-		padding: 1rem;
+		margin-top: var(--space-4);
+		padding: var(--space-4);
+		background: var(--elev);
+		border-radius: var(--radius-xs);
+		border-left: 3px solid var(--primary);
 	}
 
-	.form-actions {
-		display: flex;
-		gap: 1rem;
-		justify-content: flex-end;
-		padding-top: 1.5rem;
-		margin-top: 1.5rem;
+	.preview-result h4 {
+		font-family: var(--font-mono);
+		font-size: var(--font-size-2);
+		color: var(--primary);
+		margin: 0 0 var(--space-2) 0;
 	}
 
-	.btn {
-		padding: 0.75rem 1.5rem;
-		cursor: pointer;
+	.preview-result p {
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		color: var(--text);
+		margin: 0;
+	}
+
+	.error-text {
+		color: var(--err);
+		font-size: var(--font-size-0);
+		font-family: var(--font-mono);
+		margin-top: var(--space-1);
+	}
+
+	.form-help {
+		display: block;
+		font-size: var(--font-size-0);
+		color: var(--muted);
+		margin-top: var(--space-1);
 	}
 
 	.loading-indicator {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.75rem;
-		padding: 3rem;
+		gap: var(--space-3);
+		padding: var(--space-6) var(--space-5);
+		color: var(--muted);
 	}
 
-	.spinner {
-		width: 20px;
-		height: 20px;
-		border: 2px solid currentColor;
-		border-top: 2px solid transparent;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
+	.loading-indicator .spinner {
+		/* Use shared spinner from settings.css */
 	}
 
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
+	.warning-message,
+	.error-message {
+		margin-top: var(--space-4);
 	}
 </style>

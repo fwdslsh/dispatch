@@ -7,6 +7,7 @@
 	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
 	import TerminalKeySettings from './sections/TerminalKeySettings.svelte';
 	import OAuthSettings from './sections/OAuthSettings.svelte';
+	import Button from '../shared/components/Button.svelte';
 
 	/**
 	 * @type {SettingsViewModel}
@@ -75,32 +76,30 @@
 
 			<!-- Action Buttons -->
 			<div class="settings-actions">
-				<button
+				<Button
 					type="button"
-					class="btn btn-primary"
-					class:btn-loading={settingsViewModel.saving}
+					variant="primary"
 					disabled={!canSave}
 					onclick={handleSave}
-					data-testid="save-settings-button"
+					loading={settingsViewModel.saving}
+					id="save-settings-button"
 				>
 					{#if settingsViewModel.saving}
-						<span class="loading-spinner"></span>
 						Saving...
 					{:else}
 						Save Authentication Settings
 					{/if}
-				</button>
+				</Button>
 
 				{#if hasChanges}
-					<button
+					<Button
 						type="button"
-						class="btn btn-secondary"
+						variant="secondary"
 						disabled={settingsViewModel.saving}
 						onclick={handleDiscard}
-						data-testid="discard-changes-button"
-					>
-						Discard Changes
-					</button>
+						id="discard-changes-button"
+						text="Discard Changes"
+					/>
 				{/if}
 			</div>
 
@@ -127,158 +126,127 @@
 </div>
 
 <style>
+	@import '$lib/client/shared/styles/settings.css';
+
 	.authentication-settings {
-		background: var(--bg-secondary);
-		border: 1px solid var(--border-color);
-		border-radius: 8px;
-		padding: 1.5rem;
-		margin-bottom: 1.5rem;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		padding: var(--space-5);
+		margin-bottom: var(--space-5);
+		container-type: inline-size;
 	}
 
 	.settings-header h3 {
-		margin: 0 0 0.5rem 0;
-		color: var(--text-primary);
-		font-size: 1.25rem;
+		margin: 0 0 var(--space-2) 0;
+		color: var(--primary);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-4);
 		font-weight: 600;
+		text-shadow: 0 0 8px var(--primary-glow);
 	}
 
 	.settings-description {
-		margin: 0 0 1.5rem 0;
-		color: var(--text-secondary);
-		font-size: 0.875rem;
-		line-height: 1.4;
+		margin: 0 0 var(--space-5) 0;
+		color: var(--muted);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		line-height: 1.5;
 	}
 
 	.settings-content {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: var(--space-5);
 	}
 
+	/* Warning alert styling */
 	.session-warning {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.75rem;
-		padding: 1rem;
-		background: var(--warning-bg, #fff3cd);
-		border: 1px solid var(--warning-border, #ffeaa7);
-		border-radius: 6px;
-		color: var(--warning-text, #856404);
+		gap: var(--space-3);
+		padding: var(--space-4);
+		background: color-mix(in oklab, var(--warn) 15%, var(--surface));
+		border: 1px solid var(--warn);
+		border-radius: var(--radius-sm);
+		color: var(--warn);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
 	}
 
 	.warning-icon {
-		font-size: 1.25rem;
+		font-size: var(--font-size-4);
 		flex-shrink: 0;
+		line-height: 1;
+	}
+
+	.warning-content {
+		flex: 1;
 	}
 
 	.warning-content strong {
 		font-weight: 600;
+		display: block;
+		margin-bottom: var(--space-1);
 	}
 
+	/* Action buttons */
 	.settings-actions {
 		display: flex;
-		gap: 1rem;
+		gap: var(--space-3);
 		align-items: center;
 		flex-wrap: wrap;
+		padding-top: var(--space-5);
+		margin-top: var(--space-4);
+		border-top: 1px solid var(--line);
 	}
 
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.75rem 1.5rem;
-		border: 1px solid transparent;
-		border-radius: 6px;
-		font-size: 0.875rem;
-		font-weight: 500;
-		text-decoration: none;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		min-height: 44px; /* Touch target */
+	.btn-loading .loading-spinner {
+		/* Use shared spinner from settings.css */
 	}
 
-	.btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.btn-primary {
-		background: var(--primary-color, #007bff);
-		color: white;
-		border-color: var(--primary-color, #007bff);
-	}
-
-	.btn-primary:hover:not(:disabled) {
-		background: var(--primary-color-hover, #0056b3);
-		border-color: var(--primary-color-hover, #0056b3);
-	}
-
-	.btn-secondary {
-		background: transparent;
-		color: var(--text-secondary);
-		border-color: var(--border-color);
-	}
-
-	.btn-secondary:hover:not(:disabled) {
-		background: var(--hover-bg);
-		color: var(--text-primary);
-	}
-
-	.btn-loading {
-		cursor: wait;
-	}
-
-	.loading-spinner {
-		width: 1rem;
-		height: 1rem;
-		border: 2px solid transparent;
-		border-top: 2px solid currentColor;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
+	/* Message states */
 	.success-message {
-		padding: 1rem;
-		background: var(--success-bg, #d4edda);
-		border: 1px solid var(--success-border, #c3e6cb);
-		border-radius: 6px;
-		color: var(--success-text, #155724);
-		font-size: 0.875rem;
+		padding: var(--space-4);
+		background: color-mix(in oklab, var(--ok) 15%, var(--surface));
+		border: 1px solid var(--ok);
+		border-radius: var(--radius-sm);
+		color: var(--ok);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
 	}
 
 	.error-message {
-		padding: 1rem;
-		background: var(--error-bg, #f8d7da);
-		border: 1px solid var(--error-border, #f5c6cb);
-		border-radius: 6px;
-		color: var(--error-text, #721c24);
-		font-size: 0.875rem;
+		padding: var(--space-4);
+		background: var(--err-dim);
+		border: 1px solid var(--err);
+		border-radius: var(--radius-sm);
+		color: var(--err);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
 	}
 
+	/* Loading state */
 	.loading-state {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 1rem;
-		padding: 2rem;
-		color: var(--text-secondary);
+		gap: var(--space-4);
+		padding: var(--space-6);
+		color: var(--muted);
+		font-family: var(--font-mono);
 	}
 
 	.loading-state .loading-spinner {
-		width: 2rem;
-		height: 2rem;
+		width: 32px;
+		height: 32px;
+		border-width: 3px;
 	}
 
 	/* Responsive Design */
-	@media (max-width: 768px) {
+	@container (max-width: 600px) {
 		.authentication-settings {
-			padding: 1rem;
+			padding: var(--space-4);
 		}
 
 		.settings-actions {
@@ -293,16 +261,13 @@
 
 	/* Focus styles for accessibility */
 	.btn:focus-visible {
-		outline: 2px solid var(--focus-color, #007bff);
+		outline: 2px solid var(--primary);
 		outline-offset: 2px;
 	}
 
 	/* High contrast mode support */
 	@media (prefers-contrast: high) {
-		.authentication-settings {
-			border-width: 2px;
-		}
-
+		.authentication-settings,
 		.btn {
 			border-width: 2px;
 		}

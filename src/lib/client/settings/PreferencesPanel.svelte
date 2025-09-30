@@ -6,164 +6,56 @@
 	 */
 
 	import { getContext, onMount } from 'svelte';
+	import { PreferencesViewModel } from '../state/PreferencesViewModel.svelte.js';
+	import Button from '../shared/components/Button.svelte';
 
 	let { onSave = () => {} } = $props();
 
+	// Get services from context
 	const serviceContainer = getContext('services');
-	const apiClient = serviceContainer?.get('apiClient');
+	let viewModel = $state(null);
 
-	const createDefaultPreferences = () => ({
-		ui: {
-			theme: 'auto',
-			showWorkspaceInTitle: true,
-			autoHideInactiveTabsMinutes: 0
-		},
-		auth: {
-			sessionDuration: 30,
-			rememberLastWorkspace: true
-		},
-		workspace: {
-			defaultPath: '',
-			autoCreateMissingDirectories: true
-		},
-		terminal: {
-			fontSize: 14,
-			fontFamily: 'Monaco, monospace',
-			scrollback: 1000
-		}
-	});
-
-	let preferences = $state(createDefaultPreferences());
-	let originalPreferences = $state.raw(structuredClone($state.snapshot(preferences)));
-	let isLoading = $state(false);
-	let isSaving = $state(false);
-	let error = $state(null);
-	let successMessage = $state(null);
-
-	let hasChanges = $derived(
-		JSON.stringify($state.snapshot(preferences)) !== JSON.stringify(originalPreferences)
-	);
-	let canSave = $derived(hasChanges && !isSaving);
-
-	onMount(() => {
-		loadPreferences();
-	});
-
-	async function loadPreferences() {
-		isLoading = true;
-		error = null;
-
+	// Initialize ViewModel on mount
+	onMount(async () => {
 		try {
-			if (!apiClient) {
-				throw new Error('API client not available');
-			}
-
+			const apiClient = await serviceContainer?.get('apiClient');
 			const authKey = localStorage.getItem('dispatch-auth-key');
+
 			if (!authKey) {
 				throw new Error('Authentication required');
 			}
 
-			const response = await fetch(`/api/preferences?authKey=${authKey}`);
-			if (!response.ok) {
-				throw new Error('Failed to load preferences');
-			}
-
-			const data = await response.json();
-			const current = $state.snapshot(preferences);
-
-			preferences = {
-				ui: { ...current.ui, ...data.ui },
-				auth: { ...current.auth, ...data.auth },
-				workspace: { ...current.workspace, ...data.workspace },
-				terminal: { ...current.terminal, ...data.terminal }
-			};
-
-			originalPreferences = structuredClone($state.snapshot(preferences));
+			viewModel = new PreferencesViewModel(apiClient, authKey);
+			await viewModel.loadPreferences();
 		} catch (err) {
-			error = err.message || 'Failed to load preferences';
-		} finally {
-			isLoading = false;
+			console.error('Failed to initialize PreferencesViewModel:', err);
 		}
-	}
+	});
 
+	// Handle form submission
 	async function handleSave() {
-		if (!canSave) return;
-
-		isSaving = true;
-		error = null;
-		successMessage = null;
-
+		if (!viewModel) return;
 		try {
-			const authKey = localStorage.getItem('dispatch-auth-key');
-			if (!authKey) {
-				throw new Error('Authentication required');
-			}
-
-			const preferencesSnapshot = $state.snapshot(preferences);
-
-			for (const [category, categoryPrefs] of Object.entries(preferencesSnapshot)) {
-				const response = await fetch('/api/preferences', {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						authKey,
-						category,
-						preferences: categoryPrefs
-					})
-				});
-
-				if (!response.ok) {
-					const errorData = await response.json();
-					throw new Error(errorData.error || `Failed to save ${category} preferences`);
-				}
-			}
-
-			originalPreferences = structuredClone(preferencesSnapshot);
-			successMessage = 'Preferences saved successfully';
-			onSave(preferencesSnapshot);
-
-			setTimeout(() => {
-				successMessage = null;
-			}, 3000);
+			await viewModel.savePreferences(onSave);
 		} catch (err) {
-			error = err.message || 'Failed to save preferences';
-		} finally {
-			isSaving = false;
+			console.error('Failed to save preferences:', err);
 		}
 	}
 
+	// Handle reset to defaults
 	async function handleResetToDefaults() {
+		if (!viewModel) return;
 		try {
-			const authKey = localStorage.getItem('dispatch-auth-key');
-			if (!authKey) {
-				throw new Error('Authentication required');
-			}
-
-			for (const category of Object.keys($state.snapshot(preferences))) {
-				const response = await fetch('/api/preferences', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						action: 'reset',
-						authKey,
-						category
-					})
-				});
-
-				if (!response.ok) {
-					throw new Error(`Failed to reset ${category} preferences`);
-				}
-			}
-
-			await loadPreferences();
-			successMessage = 'Preferences reset to defaults';
+			await viewModel.resetToDefaults();
 		} catch (err) {
-			error = err.message || 'Failed to reset preferences';
+			console.error('Failed to reset preferences:', err);
 		}
 	}
 
+	// Handle discard changes
 	function handleDiscardChanges() {
-		preferences = structuredClone(originalPreferences);
+		if (!viewModel) return;
+		viewModel.discardChanges();
 	}
 </script>
 
@@ -173,7 +65,7 @@
 		<p>Customize your Dispatch experience</p>
 	</div>
 
-	{#if isLoading}
+	{#if !viewModel || viewModel.isLoading}
 		<div class="loading-indicator">
 			<div class="spinner"></div>
 			<span>Loading preferences...</span>
@@ -186,7 +78,7 @@
 
 				<div class="form-group">
 					<label class="form-label">Theme</label>
-					<select bind:value={preferences.ui.theme} class="form-select">
+					<select bind:value={viewModel.preferences.ui.theme} class="form-select">
 						<option value="auto">Auto (system)</option>
 						<option value="light">Light</option>
 						<option value="dark">Dark</option>
@@ -195,7 +87,7 @@
 
 				<div class="form-group">
 					<label class="checkbox-container">
-						<input type="checkbox" bind:checked={preferences.ui.showWorkspaceInTitle} />
+						<input type="checkbox" bind:checked={viewModel.preferences.ui.showWorkspaceInTitle} />
 						<span class="checkmark"></span>
 						<span class="checkbox-label">Show workspace name in title bar</span>
 					</label>
@@ -209,7 +101,7 @@
 					<input
 						type="number"
 						class="form-input"
-						bind:value={preferences.ui.autoHideInactiveTabsMinutes}
+						bind:value={viewModel.preferences.ui.autoHideInactiveTabsMinutes}
 						min="0"
 						max="1440"
 					/>
@@ -228,7 +120,7 @@
 					<input
 						type="number"
 						class="form-input"
-						bind:value={preferences.auth.sessionDuration}
+						bind:value={viewModel.preferences.auth.sessionDuration}
 						min="1"
 						max="365"
 					/>
@@ -236,7 +128,7 @@
 
 				<div class="form-group">
 					<label class="checkbox-container">
-						<input type="checkbox" bind:checked={preferences.auth.rememberLastWorkspace} />
+						<input type="checkbox" bind:checked={viewModel.preferences.auth.rememberLastWorkspace} />
 						<span class="checkmark"></span>
 						<span class="checkbox-label">Remember last used workspace</span>
 					</label>
@@ -255,7 +147,7 @@
 					<input
 						type="text"
 						class="form-input"
-						bind:value={preferences.workspace.defaultPath}
+						bind:value={viewModel.preferences.workspace.defaultPath}
 						placeholder="/workspace"
 					/>
 				</div>
@@ -264,7 +156,7 @@
 					<label class="checkbox-container">
 						<input
 							type="checkbox"
-							bind:checked={preferences.workspace.autoCreateMissingDirectories}
+							bind:checked={viewModel.preferences.workspace.autoCreateMissingDirectories}
 						/>
 						<span class="checkmark"></span>
 						<span class="checkbox-label">Auto-create missing directories</span>
@@ -281,7 +173,7 @@
 					<input
 						type="number"
 						class="form-input"
-						bind:value={preferences.terminal.fontSize}
+						bind:value={viewModel.preferences.terminal.fontSize}
 						min="8"
 						max="32"
 					/>
@@ -289,7 +181,7 @@
 
 				<div class="form-group">
 					<label class="form-label">Font family</label>
-					<select bind:value={preferences.terminal.fontFamily} class="form-select">
+					<select bind:value={viewModel.preferences.terminal.fontFamily} class="form-select">
 						<option value="Monaco, monospace">Monaco</option>
 						<option value="'Fira Code', monospace">Fira Code</option>
 						<option value="'JetBrains Mono', monospace">JetBrains Mono</option>
@@ -307,7 +199,7 @@
 					<input
 						type="number"
 						class="form-input"
-						bind:value={preferences.terminal.scrollback}
+						bind:value={viewModel.preferences.terminal.scrollback}
 						min="100"
 						max="10000"
 						step="100"
@@ -317,106 +209,142 @@
 
 			<!-- Form Actions -->
 			<div class="form-actions">
-				<button class="btn btn-outline" onclick={handleResetToDefaults} disabled={isSaving}>
-					Reset to Defaults
-				</button>
+				<Button variant="secondary" onclick={handleResetToDefaults} disabled={viewModel.isSaving} text="Reset to Defaults" />
 
-				{#if hasChanges}
-					<button class="btn btn-outline" onclick={handleDiscardChanges} disabled={isSaving}>
-						Discard Changes
-					</button>
+				{#if viewModel.hasChanges}
+					<Button variant="secondary" onclick={handleDiscardChanges} disabled={viewModel.isSaving} text="Discard Changes" />
 				{/if}
 
-				<button class="btn btn-primary" onclick={handleSave} disabled={!canSave}>
-					{#if isSaving}
+				<Button variant="primary" onclick={handleSave} disabled={!viewModel.canSave} loading={viewModel.isSaving}>
+					{#if viewModel.isSaving}
 						Saving...
 					{:else}
 						Save Preferences
 					{/if}
-				</button>
+				</Button>
 			</div>
 		</div>
 
 		<!-- Messages -->
-		{#if error}
+		{#if viewModel.error}
 			<div class="error-message" role="alert">
 				<strong>Error:</strong>
-				{error}
+				{viewModel.error}
 			</div>
 		{/if}
 
-		{#if successMessage}
+		{#if viewModel.successMessage}
 			<div class="success-message" role="alert">
 				<strong>Success:</strong>
-				{successMessage}
+				{viewModel.successMessage}
 			</div>
 		{/if}
 	{/if}
 </div>
 
 <style>
-	/* Essential layout styles only */
-	.form-group {
-		margin-bottom: 1.5rem;
+	@import '$lib/client/shared/styles/settings.css';
+
+	/* Preferences panel container */
+	.preferences-panel {
+		container-type: inline-size;
 	}
 
-	.form-label {
-		display: block;
-		margin-bottom: 0.5rem;
+	.preferences-panel > div:first-child {
+		margin-bottom: var(--space-5);
 	}
 
+	.preferences-panel h2 {
+		font-family: var(--font-accent);
+		font-size: var(--font-size-4);
+		color: var(--primary);
+		margin: 0 0 var(--space-2) 0;
+		text-shadow: 0 0 10px var(--primary-glow);
+		letter-spacing: 0.5px;
+	}
+
+	.preferences-panel p {
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		color: var(--muted);
+		margin: 0;
+	}
+
+	/* Preference sections with retro styling */
+	.preference-section {
+		margin-bottom: var(--space-6);
+		padding: var(--space-5);
+		background: var(--surface-primary-98);
+		border: 1px solid var(--primary-glow-15);
+		border-radius: var(--radius-sm);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+	}
+
+	.preference-section:last-child {
+		margin-bottom: 0;
+	}
+
+	.preference-section h3 {
+		font-family: var(--font-mono);
+		font-size: var(--font-size-3);
+		font-weight: 600;
+		color: var(--primary);
+		margin: 0 0 var(--space-4) 0;
+		padding-bottom: var(--space-2);
+		border-bottom: 1px solid var(--primary-glow-25);
+		letter-spacing: 0.3px;
+	}
+
+	/* Override form input max-width for preferences */
 	.form-input,
 	.form-select {
 		width: 100%;
-		max-width: 300px;
-		padding: 0.75rem;
+		max-width: 400px;
 	}
 
-	.checkbox-container {
-		display: flex;
-		align-items: center;
-		cursor: pointer;
-		padding: 0.75rem;
-		margin: 0.5rem 0;
+	.form-help {
+		display: block;
+		font-size: var(--font-size-0);
+		color: var(--muted);
+		margin-top: var(--space-1);
+		font-style: italic;
 	}
 
-	.checkbox-container input[type='checkbox'] {
-		margin-right: 0.75rem;
-	}
-
+	/* Action buttons with border top */
 	.form-actions {
-		display: flex;
-		gap: 1rem;
-		justify-content: flex-end;
-		padding-top: 2rem;
-		margin-top: 2rem;
+		border-top: 1px solid var(--line);
+		padding-top: var(--space-5);
+		margin-top: var(--space-6);
 	}
 
-	.btn {
-		padding: 0.75rem 1.5rem;
-		cursor: pointer;
-	}
-
+	/* Loading and message states */
 	.loading-indicator {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.75rem;
-		padding: 3rem;
+		gap: var(--space-3);
+		padding: var(--space-6) var(--space-5);
+		color: var(--muted);
 	}
 
-	.spinner {
-		width: 20px;
-		height: 20px;
-		border: 2px solid currentColor;
-		border-top: 2px solid transparent;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
+	.loading-indicator .spinner {
+		/* Use shared spinner from settings.css */
 	}
 
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
+	.success-message,
+	.error-message {
+		margin-top: var(--space-4);
+	}
+
+	/* Responsive adjustments */
+	@container (max-width: 500px) {
+		.preference-section {
+			padding: var(--space-4);
+		}
+
+		.form-input,
+		.form-select {
+			max-width: 100%;
 		}
 	}
 </style>

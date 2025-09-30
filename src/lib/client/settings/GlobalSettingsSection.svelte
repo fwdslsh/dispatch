@@ -1,16 +1,18 @@
 <!--
-	GlobalSettingsWrapper Component
-	Wrapper that bridges the GlobalSettings component with the existing settings page structure
+	GlobalSettingsSection Component
+	Initializes SettingsViewModel and renders GlobalSettings component
+	This component bridges the settings page with the GlobalSettings view
 -->
 
 <script>
 	import { onMount, getContext } from 'svelte';
 	import GlobalSettings from './GlobalSettings.svelte';
 	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
+	import Button from '$lib/client/shared/components/Button.svelte';
 
 	/**
-	 * Legacy props from settings page
-	 * @type {function}
+	 * Callbacks from parent settings page
+	 * @type {{ onSave?: Function, onError?: Function }}
 	 */
 	let { onSave, onError } = $props();
 
@@ -21,15 +23,12 @@
 
 	onMount(async () => {
 		try {
-			// Initialize the settings view model with settingsService from container
 			const settingsService = await serviceContainer?.get('settingsService');
 			if (!settingsService) {
 				throw new Error('Settings service not available');
 			}
 
 			settingsViewModel = new SettingsViewModel(settingsService);
-
-			// Load initial settings data
 			await settingsViewModel.loadSettings();
 
 			loading = false;
@@ -38,7 +37,6 @@
 			error = err.message || 'Failed to load global settings';
 			loading = false;
 
-			// Notify parent of error
 			if (onError) {
 				onError({ type: 'component-load', message: error });
 			}
@@ -68,7 +66,12 @@
 {:else if error}
 	<div class="error-container">
 		<p class="error-message">⚠️ {error}</p>
-		<button type="button" onclick={() => window.location.reload()}>Retry</button>
+		<Button
+			type="button"
+			variant="primary"
+			onclick={() => window.location.reload()}
+			text="Retry"
+		/>
 	</div>
 {:else if settingsViewModel}
 	<GlobalSettings {settingsViewModel} />
