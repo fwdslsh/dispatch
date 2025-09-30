@@ -1,7 +1,9 @@
 <script>
 	import DirectoryBrowser from '$lib/client/shared/components/DirectoryBrowser.svelte';
 	import FileEditor from '$lib/client/shared/components/FileEditor.svelte';
+	import Button from '$lib/client/shared/components/Button.svelte';
 	import { onMount } from 'svelte';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	// State
 	let currentDirectory = $state(''); // Will be set to home directory
@@ -70,7 +72,9 @@
 		error = null;
 
 		try {
-			const response = await fetch(`/api/files?path=${encodeURIComponent(file.path)}`);
+			const response = await fetch(`/api/files?path=${encodeURIComponent(file.path)}`, {
+				headers: getAuthHeaders()
+			});
 			const data = await response.json();
 
 			if (!response.ok) {
@@ -101,9 +105,7 @@
 		try {
 			const response = await fetch(`/api/files?path=${encodeURIComponent(selectedFile.path)}`, {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: getAuthHeaders(),
 				body: JSON.stringify({ content: fileContent })
 			});
 
@@ -139,8 +141,12 @@
 			});
 			formData.append('directory', currentPath);
 
+			const authHeaders = getAuthHeaders();
+			delete authHeaders['Content-Type'];
+
 			const response = await fetch('/api/files/upload', {
 				method: 'POST',
+				headers: authHeaders,
 				body: formData
 			});
 
@@ -212,7 +218,9 @@
 		try {
 			initializing = true;
 			// Get the server's home directory from the environment API
-			const response = await fetch('/api/environment');
+			const response = await fetch('/api/environment', {
+				headers: getAuthHeaders()
+			});
 			const data = await response.json();
 
 			if (response.ok && data.homeDirectory) {
@@ -259,7 +267,16 @@
 	{#if error}
 		<div class="error-banner">
 			<span class="error-text">{error}</span>
-			<button class="error-dismiss" onclick={() => (error = null)}>×</button>
+			<Button
+				variant="ghost"
+				size="small"
+				augmented="none"
+				onclick={() => (error = null)}
+				ariaLabel="Dismiss error"
+				class="error-dismiss"
+			>
+				{#snippet children()}×{/snippet}
+			</Button>
 		</div>
 	{/if}
 
@@ -349,27 +366,6 @@
 
 	.error-text {
 		flex: 1;
-	}
-
-	.error-dismiss {
-		background: transparent;
-		border: none;
-		color: inherit;
-		cursor: pointer;
-		font-size: 1.125rem;
-		font-weight: bold;
-		padding: 0;
-		width: 24px;
-		height: 24px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 50%;
-		transition: background-color 0.2s ease;
-	}
-
-	.error-dismiss:hover {
-		background: rgba(255, 255, 255, 0.2);
 	}
 
 	.directory-browser-container {

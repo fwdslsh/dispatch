@@ -543,44 +543,81 @@ export class SessionApiClient {
 	// ===== ONBOARDING API =====
 
 	/**
-	 * Get current onboarding status
-	 * @returns {Promise<{currentStep: string, completedSteps: string[], isComplete: boolean, progressPercentage: number}>}
+	 * Get current onboarding status from settings system
+	 * @returns {Promise<{currentStep: string, completedSteps: string[], isComplete: boolean, firstWorkspaceId: string|null}>}
 	 */
 	async getOnboardingStatus() {
 		try {
-			// Onboarding API doesn't require authentication
-			const response = await fetch(`${this.baseUrl}/api/onboarding`, {
+			const response = await fetch(`${this.baseUrl}/api/settings/onboarding`, {
 				headers: this.getHeaders()
 			});
 
-			return await this.handleResponse(response);
+			const data = await this.handleResponse(response);
+
+			// Return onboarding state or defaults if not found
+			return {
+				currentStep: data?.currentStep || 'auth',
+				completedSteps: data?.completedSteps || [],
+				isComplete: data?.isComplete || false,
+				firstWorkspaceId: data?.firstWorkspaceId || null
+			};
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to get onboarding status:', error);
 			}
-			throw error;
+			// Return defaults on error
+			return {
+				currentStep: 'auth',
+				completedSteps: [],
+				isComplete: false,
+				firstWorkspaceId: null
+			};
 		}
 	}
 
 	/**
-	 * Update onboarding progress
-	 * @param {string} step - Step to update
+	 * Update onboarding progress via settings system
+	 * @param {string} step - Step that was just completed
 	 * @param {object} data - Step data
 	 * @returns {Promise<{success: boolean, currentStep: string, completedSteps: string[], progressPercentage: number}>}
 	 */
 	async updateProgress(step, data = {}) {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/onboarding`, {
-				method: 'POST',
+			// Get current state first
+			const currentState = await this.getOnboardingStatus();
+			const completedSteps = [...(currentState.completedSteps || [])];
+
+			// Add the completed step if not already there
+			if (!completedSteps.includes(step)) {
+				completedSteps.push(step);
+			}
+
+			// Determine next step
+			const stepOrder = ['auth', 'workspace', 'settings', 'complete'];
+			const currentIndex = stepOrder.indexOf(step);
+			const nextStep = currentIndex < stepOrder.length - 1 ? stepOrder[currentIndex + 1] : 'complete';
+
+			// Update settings via settings API
+			const response = await fetch(`${this.baseUrl}/api/settings/onboarding`, {
+				method: 'PUT',
 				headers: this.getHeaders(),
 				body: JSON.stringify({
-					action: 'updateProgress',
-					step,
-					data
+					currentStep: nextStep,
+					completedSteps: completedSteps,
+					isComplete: currentState.isComplete,
+					firstWorkspaceId: currentState.firstWorkspaceId,
+					stepData: data
 				})
 			});
 
-			return await this.handleResponse(response);
+			await this.handleResponse(response);
+
+			return {
+				success: true,
+				currentStep: nextStep,
+				completedSteps: completedSteps,
+				progressPercentage: Math.round((completedSteps.length / 4) * 100)
+			};
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to update onboarding progress:', error);
@@ -590,22 +627,31 @@ export class SessionApiClient {
 	}
 
 	/**
-	 * Complete onboarding process
+	 * Complete onboarding process via settings system
 	 * @param {string} workspaceId - Selected workspace ID
 	 * @returns {Promise<{success: boolean, currentStep: string, isComplete: boolean, progressPercentage: number}>}
 	 */
 	async completeOnboarding(workspaceId) {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/onboarding`, {
-				method: 'POST',
+			const response = await fetch(`${this.baseUrl}/api/settings/onboarding`, {
+				method: 'PUT',
 				headers: this.getHeaders(),
 				body: JSON.stringify({
-					action: 'complete',
-					workspaceId
+					currentStep: 'complete',
+					completedSteps: ['auth', 'workspace', 'settings', 'complete'],
+					isComplete: true,
+					firstWorkspaceId: workspaceId
 				})
 			});
 
-			return await this.handleResponse(response);
+			await this.handleResponse(response);
+
+			return {
+				success: true,
+				currentStep: 'complete',
+				isComplete: true,
+				progressPercentage: 100
+			};
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to complete onboarding:', error);
@@ -614,23 +660,30 @@ export class SessionApiClient {
 		}
 	}
 
-	// ===== RETENTION POLICY API =====
+	// ===== RETENTION POLICY API (via Preferences) =====
 
 	/**
-	 * Get current retention policy
+	 * Get current retention policy from maintenance preferences
 	 * @returns {Promise<{sessionRetentionDays: number, logRetentionDays: number, autoCleanupEnabled: boolean, updatedAt: string}>}
 	 */
 	async getRetentionPolicy() {
 		try {
 			const params = new URLSearchParams();
-			const authKey = this.getAuthKey();
-			if (authKey) params.append('authKey', authKey);
+			params.append('category', 'maintenance');
 
-			const response = await fetch(`${this.baseUrl}/api/retention?${params}`, {
+			const response = await fetch(`${this.baseUrl}/api/preferences?${params}`, {
 				headers: this.getHeaders()
 			});
 
-			return await this.handleResponse(response);
+			const data = await this.handleResponse(response);
+
+			// Return retention policy data or defaults
+			return {
+				sessionRetentionDays: data.sessionRetentionDays || 30,
+				logRetentionDays: data.logRetentionDays || 7,
+				autoCleanupEnabled: data.autoCleanupEnabled ?? true,
+				updatedAt: data.updatedAt || new Date().toISOString()
+			};
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to get retention policy:', error);
@@ -640,7 +693,7 @@ export class SessionApiClient {
 	}
 
 	/**
-	 * Update retention policy
+	 * Update retention policy via maintenance preferences
 	 * @param {object} policy - Policy updates
 	 * @param {number} [policy.sessionRetentionDays] - Session retention period
 	 * @param {number} [policy.logRetentionDays] - Log retention period
@@ -649,16 +702,17 @@ export class SessionApiClient {
 	 */
 	async updateRetentionPolicy(policy) {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/retention`, {
+			const response = await fetch(`${this.baseUrl}/api/preferences`, {
 				method: 'PUT',
 				headers: this.getHeaders(),
 				body: JSON.stringify({
-					authKey: this.getAuthKey(),
-					...policy
+					category: 'maintenance',
+					preferences: policy
 				})
 			});
 
-			return await this.handleResponse(response);
+			const data = await this.handleResponse(response);
+			return data.preferences || data;
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to update retention policy:', error);
@@ -668,7 +722,7 @@ export class SessionApiClient {
 	}
 
 	/**
-	 * Preview retention policy changes
+	 * Preview retention policy changes via maintenance API
 	 * @param {object} policy - Policy to preview
 	 * @param {number} policy.sessionRetentionDays - Session retention period
 	 * @param {number} policy.logRetentionDays - Log retention period
@@ -676,20 +730,43 @@ export class SessionApiClient {
 	 */
 	async previewRetentionChanges(policy) {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/retention`, {
+			const response = await fetch(`${this.baseUrl}/api/maintenance`, {
 				method: 'POST',
 				headers: this.getHeaders(),
 				body: JSON.stringify({
-					action: 'preview',
-					authKey: this.getAuthKey(),
-					...policy
+					action: 'preview'
 				})
 			});
 
-			return await this.handleResponse(response);
+			const data = await this.handleResponse(response);
+			return data.preview || data;
 		} catch (error) {
 			if (this.config.debug) {
 				console.error('[SessionApiClient] Failed to preview retention changes:', error);
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Execute cleanup operation via maintenance API
+	 * @returns {Promise<{sessionsDeleted: number, logsDeleted: number, summary: string}>}
+	 */
+	async executeCleanup() {
+		try {
+			const response = await fetch(`${this.baseUrl}/api/maintenance`, {
+				method: 'POST',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					action: 'cleanup'
+				})
+			});
+
+			const data = await this.handleResponse(response);
+			return data.cleanup || data;
+		} catch (error) {
+			if (this.config.debug) {
+				console.error('[SessionApiClient] Failed to execute cleanup:', error);
 			}
 			throw error;
 		}
@@ -705,11 +782,9 @@ export class SessionApiClient {
 	async getUserPreferences(category = null) {
 		try {
 			const params = new URLSearchParams();
-			const authKey = this.getAuthKey();
-			if (authKey) params.append('authKey', authKey);
 			if (category) params.append('category', category);
 
-			const response = await fetch(`${this.baseUrl}/api/preferences?${params}`, {
+			const response = await fetch(`${this.baseUrl}/api/preferences${params.toString() ? '?' + params : ''}`, {
 				headers: this.getHeaders()
 			});
 
@@ -734,7 +809,6 @@ export class SessionApiClient {
 				method: 'PUT',
 				headers: this.getHeaders(),
 				body: JSON.stringify({
-					authKey: this.getAuthKey(),
 					category,
 					preferences
 				})
@@ -761,7 +835,6 @@ export class SessionApiClient {
 				headers: this.getHeaders(),
 				body: JSON.stringify({
 					action: 'reset',
-					authKey: this.getAuthKey(),
 					category
 				})
 			});
@@ -783,11 +856,7 @@ export class SessionApiClient {
 	 */
 	async getWorkspaces() {
 		try {
-			const params = new URLSearchParams();
-			const authKey = this.getAuthKey();
-			if (authKey) params.append('authKey', authKey);
-
-			const response = await fetch(`${this.baseUrl}/api/workspaces?${params}`, {
+			const response = await fetch(`${this.baseUrl}/api/workspaces`, {
 				headers: this.getHeaders()
 			});
 
@@ -813,10 +882,7 @@ export class SessionApiClient {
 			const response = await fetch(`${this.baseUrl}/api/workspaces`, {
 				method: 'POST',
 				headers: this.getHeaders(),
-				body: JSON.stringify({
-					authKey: this.getAuthKey(),
-					...workspace
-				})
+				body: JSON.stringify(workspace)
 			});
 
 			return await this.handleResponse(response);
@@ -841,10 +907,7 @@ export class SessionApiClient {
 				{
 					method: 'PUT',
 					headers: this.getHeaders(),
-					body: JSON.stringify({
-						authKey: this.getAuthKey(),
-						...updates
-					})
+					body: JSON.stringify(updates)
 				}
 			);
 
@@ -864,12 +927,8 @@ export class SessionApiClient {
 	 */
 	async deleteWorkspace(workspaceId) {
 		try {
-			const params = new URLSearchParams();
-			const authKey = this.getAuthKey();
-			if (authKey) params.append('authKey', authKey);
-
 			const response = await fetch(
-				`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}?${params}`,
+				`${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}`,
 				{
 					method: 'DELETE',
 					headers: this.getHeaders()

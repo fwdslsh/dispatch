@@ -258,8 +258,6 @@
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
-		padding: 2rem;
-		gap: var(--space-4);
 	}
 
 	.loading-state {
@@ -310,9 +308,7 @@
 
 	.settings-container {
 		display: flex;
-		gap: var(--space-4);
-		height: calc(100% - 1rem);
-		min-height: 600px;
+		min-height: 100%;
 	}
 
 	.settings-nav {

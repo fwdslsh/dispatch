@@ -57,7 +57,17 @@ export class SettingsService {
 		this.lastError = null;
 
 		try {
-			const response = await fetch(`${this.config.serverUrl}/api/settings`);
+			// Get auth key from localStorage
+			const authKey = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
+			if (!authKey) {
+				throw new Error('No authentication key found');
+			}
+
+			const response = await fetch(`${this.config.serverUrl}/api/settings`, {
+				headers: {
+					Authorization: `Bearer ${authKey}`
+				}
+			});
 			if (response.ok) {
 				const data = await response.json();
 				this.serverSettings = data;

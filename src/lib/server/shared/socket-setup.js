@@ -1,5 +1,4 @@
 import { Server } from 'socket.io';
-import { validateKey } from './auth.js';
 import { logger } from './utils/logger.js';
 
 // Admin event tracking
@@ -45,8 +44,8 @@ export function getSocketEvents(limit = 100) {
 }
 
 // Helper function for auth validation in event handlers
-function requireValidKey(socket, key, callback) {
-	if (!validateKey(key)) {
+function requireValidKey(socket, key, callback, authService) {
+	if (!authService.validateKey(key)) {
 		logger.warn('SOCKET', `Invalid key from socket ${socket.id}`);
 		if (callback) callback({ success: false, error: 'Invalid key' });
 		return false;
@@ -72,11 +71,16 @@ export function setupSocketIO(httpServer, services) {
 		services.vscodeManager.setSocketIO(io);
 	}
 
-	const { runSessionManager } = services;
+	const { runSessionManager, auth: authService } = services;
 
 	if (!runSessionManager) {
 		logger.error('SOCKET_SETUP', 'RunSessionManager not provided in services');
 		throw new Error('RunSessionManager is required for socket setup');
+	}
+
+	if (!authService) {
+		logger.error('SOCKET_SETUP', 'AuthService not provided in services');
+		throw new Error('AuthService is required for socket setup');
 	}
 
 	// Ensure the RunSessionManager can emit real-time events through this Socket.IO instance
@@ -113,7 +117,7 @@ export function setupSocketIO(httpServer, services) {
 		socket.on('auth', (key, callback) => {
 			try {
 				logger.info('SOCKET', `Auth event received from ${socket.id}`);
-				if (requireValidKey(socket, key, callback)) {
+				if (requireValidKey(socket, key, callback, authService)) {
 					// Key is valid, send success response
 					if (callback) callback({ success: true });
 				}

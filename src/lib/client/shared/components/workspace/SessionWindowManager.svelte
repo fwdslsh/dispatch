@@ -479,11 +479,6 @@
 		border: 2px dashed var(--surface-border);
 	}
 
-	.empty-tile-content p {
-		margin: 0;
-		opacity: 0.75;
-	}
-
 	/* Component-specific animation */
 	@keyframes slideDown {
 		from {

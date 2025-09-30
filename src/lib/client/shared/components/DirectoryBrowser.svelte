@@ -13,6 +13,7 @@
 	import IconUpload from './Icons/IconUpload.svelte';
 	import { onMount } from 'svelte';
 	import GitOperations from './GitOperations.svelte';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	// Svelte 5 Directory Browser Component
 	let {
@@ -98,7 +99,9 @@
 				params.set('path', path);
 			}
 
-			const res = await fetch(`${api}?${params}`);
+			const res = await fetch(`${api}?${params}`, {
+				headers: getAuthHeaders()
+			});
 			if (!res.ok) {
 				const text = await res.text();
 				throw new Error(text || `HTTP ${res.status}`);
@@ -198,7 +201,7 @@
 				: currentPath + '/' + dirName;
 			const res = await fetch('/api/browse/create', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({ path: dirPath })
 			});
 
@@ -281,7 +284,7 @@
 		try {
 			const res = await fetch('/api/browse/clone', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					sourcePath: cloneSourcePath.trim(),
 					targetPath: cloneTargetPath.trim(),
@@ -599,7 +602,7 @@
 		{/if}
 
 		<!-- Directory listing -->
-		<div class="max-h-96 overflow-y-auto p-2">
+		<div class="directory-listing-container overflow-y-auto p-2">
 			{#if currentPath !== '/'}
 				<div class="directory-item-enhanced">
 					<span class="directory-icon-enhanced"><IconFolder size={20} /></span>
@@ -675,7 +678,10 @@
    ENHANCED DIRECTORY BROWSER UTILITIES
    Modern file browser with glass morphism and micro-interactions
    ================================================================== */
-
+	.directory-browser-enhanced {
+		display: contents;
+		height: calc(100% - 50px);
+	}
 	.directory-summary-enhanced {
 		display: flex;
 		align-items: center;
@@ -821,6 +827,11 @@
 		margin: 0 var(--space-1);
 	}
 
+	.directory-listing-container {
+		height: 100%;
+		overflow-y: auto;
+	}
+
 	/* Mobile-friendly directory browser styles */
 	@media (max-width: 768px) {
 		.directory-browser-enhanced {
@@ -852,11 +863,6 @@
 		.directory-icon-enhanced {
 			width: 28px;
 			height: 28px;
-		}
-
-		/* Better spacing for touch */
-		.directory-browser-enhanced .max-h-96 {
-			max-height: 60vh; /* Use viewport height on mobile */
 		}
 	}
 </style>

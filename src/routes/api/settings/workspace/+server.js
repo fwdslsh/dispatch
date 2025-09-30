@@ -2,7 +2,15 @@
  * API endpoint for workspace environment variables management
  */
 
-export async function GET({ locals }) {
+import { json } from '@sveltejs/kit';
+
+export async function GET({ request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	try {
 		const workspaceSettings = await locals.services.database.getSettingsByCategory('workspace');
 
@@ -23,6 +31,12 @@ export async function GET({ locals }) {
 }
 
 export async function POST({ request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	try {
 		const { envVariables } = await request.json();
 
@@ -82,7 +96,13 @@ export async function POST({ request, locals }) {
 	}
 }
 
-export async function DELETE({ locals }) {
+export async function DELETE({ request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	try {
 		// Get current workspace settings
 		const currentSettings = await locals.services.database.getSettingsByCategory('workspace');

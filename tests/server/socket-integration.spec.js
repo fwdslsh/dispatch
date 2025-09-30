@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { describe, it, expect } from 'vitest';
 
 // Note: These tests use socket.io directly to avoid Playwright browser installation issues
 // in the CI environment. They test the core socket functionality that the UI depends on.
@@ -8,8 +8,8 @@ import { io } from 'socket.io-client';
 const TEST_KEY = 'testkey12345';
 const SERVER_URL = 'http://localhost:5173';
 
-test.describe('Socket-based Application Tests', () => {
-	test('authentication should work correctly', async () => {
+describe('Socket-based Application Tests', () => {
+	it('authentication should work correctly', async () => {
 		const socket = io(`${SERVER_URL}/auth`);
 
 		const authResult = await new Promise((resolve, reject) => {
@@ -35,7 +35,7 @@ test.describe('Socket-based Application Tests', () => {
 		expect(authResult.authenticated).toBe(true);
 	});
 
-	test('sessions listing should work', async () => {
+	it('sessions listing should work', async () => {
 		const socket = io(`${SERVER_URL}/sessions`);
 
 		const sessionsResult = await new Promise((resolve, reject) => {
@@ -61,7 +61,7 @@ test.describe('Socket-based Application Tests', () => {
 		expect(Array.isArray(sessionsResult.sessions)).toBe(true);
 	});
 
-	test('Claude authentication check should work', async () => {
+	it('Claude authentication check should work', async () => {
 		const socket = io(`${SERVER_URL}/claude`);
 
 		const claudeAuthResult = await new Promise((resolve, reject) => {
@@ -87,7 +87,7 @@ test.describe('Socket-based Application Tests', () => {
 		expect(typeof claudeAuthResult.authenticated).toBe('boolean');
 	});
 
-	test('Claude authentication flow should start correctly', async () => {
+	it('Claude authentication flow should start correctly', async () => {
 		const socket = io(`${SERVER_URL}/claude`);
 
 		const authFlowResult = await new Promise((resolve, reject) => {

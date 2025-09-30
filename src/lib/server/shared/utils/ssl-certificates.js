@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,8 +35,6 @@ export async function generateCertificates() {
 		}
 
 		logger.info('SSL_CERTS', 'Generating SSL certificates with node-forge...');
-
-
 
 		// Generate a key pair
 		logger.info('SSL_CERTS', 'Generating RSA key pair...');

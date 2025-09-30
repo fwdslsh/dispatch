@@ -50,7 +50,13 @@ async function generateUniqueFilename(targetPath) {
 	return finalPath;
 }
 
-export async function POST({ request }) {
+export async function POST({ request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	try {
 		const formData = await request.formData();
 		const files = formData.getAll('files');

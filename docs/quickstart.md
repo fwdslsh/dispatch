@@ -1,6 +1,6 @@
 # Dispatch Quick Start Guide
 
-Get up and running with Dispatch in minutes! This guide walks you through installation, initialization, starting your first container, and attaching for development.
+Get up and running with Dispatch in minutes! Dispatch is a single-user, developer-first platform—intended to be your primary development environment. This guide walks you through installation, initialization, starting your first container, and attaching for development.
 
 ## Prerequisites
 
@@ -142,4 +142,3 @@ chmod 600 ~/.ssh/id_rsa    # Fix permissions if needed
 - Set up Claude AI integration for code assistance
 - Configure custom adapters for your workflow
 - Share your setup with teammates using the same commands
-

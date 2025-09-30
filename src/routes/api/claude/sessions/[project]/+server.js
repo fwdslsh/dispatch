@@ -3,7 +3,13 @@ import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 import { error, json } from '@sveltejs/kit';
 
-export async function GET({ params }) {
+export async function GET({ params, request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	const { project } = params;
 	const base = projectsRoot();
 	const dir = join(base, project);

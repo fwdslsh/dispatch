@@ -117,7 +117,7 @@ EXPOSE 80 443 3030
 
 ENV NODE_ENV=production \
     PORT=3030 \
-    TERMINAL_KEY=change-me \
+    TERMINAL_KEY=change-me-to-a-strong-password \
     ENABLE_TUNNEL=false \
     LT_SUBDOMAIN= \
     # SSL Configuration

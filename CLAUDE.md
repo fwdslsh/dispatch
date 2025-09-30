@@ -138,16 +138,25 @@ npm run test:e2e:headed       # E2E with browser UI
 
 Event-sourced architecture with key tables:
 
+- SQLite db located at .testing-home/dispatch/data/workspace.db
 - `sessions` - Run sessions with runId, kind, status, metadata
 - `session_events` - Event log with sequence numbers for replay
 - `workspace_layout` - Client-specific UI layouts
 - `workspaces` - Workspace metadata and paths
 
+>Note: Use sqlite cli and queries like these to get the current database schema
+
+```sql
+select * from sqlite_master;
+PRAGMA table_info('user_preferences');
+PRAGMA table_info('settings');
+```
+
 ## Environment Variables
 
 ### Required
 
-- `TERMINAL_KEY` - Authentication key (default: `change-me` - must be changed for production)
+- `TERMINAL_KEY` - Authentication key (default: `change-me-to-a-strong-password` - must be changed for production)
 
 ### Optional
 
@@ -458,31 +467,39 @@ localStorage.setItem('authExpiresAt', expirationDate);
 
 ### Onboarding API
 
+**CONSOLIDATED ARCHITECTURE**: Onboarding state is now managed via `/api/settings/onboarding` as part of the unified settings system.
+
 **Check Onboarding Status**:
 
 ```bash
-GET /api/onboarding/status?authKey=YOUR_KEY
-# Returns: { currentStep: 'auth'|'workspace'|'settings'|'complete', isComplete: boolean }
+GET /api/settings/onboarding?authKey=YOUR_KEY
+# Returns: { currentStep: 'auth'|'workspace'|'settings'|'complete', isComplete: boolean, completedSteps: [] }
 ```
 
-**Update Progress**:
+**Update Progress or Complete Onboarding**:
 
 ```bash
-POST /api/onboarding/progress
+PUT /api/settings/onboarding
 {
   "authKey": "YOUR_KEY",
-  "step": "workspace",
-  "data": { "workspaceName": "My Project", "workspacePath": "/workspace/my-project" }
+  "currentStep": "workspace",
+  "completedSteps": ["auth", "workspace"],
+  "isComplete": false,
+  "firstWorkspaceId": null,
+  "stepData": { "workspaceName": "My Project", "workspacePath": "/workspace/my-project" }
 }
 ```
 
-**Complete Onboarding**:
+**Complete Onboarding** (same endpoint, different payload):
 
 ```bash
-POST /api/onboarding/complete
+PUT /api/settings/onboarding
 {
   "authKey": "YOUR_KEY",
-  "workspaceId": "workspace-path"
+  "currentStep": "complete",
+  "completedSteps": ["auth", "workspace", "settings", "complete"],
+  "isComplete": true,
+  "firstWorkspaceId": "/workspace/my-project"
 }
 ```
 
@@ -636,45 +653,50 @@ Dispatch provides comprehensive data retention policy management for sessions an
 
 ### Retention API
 
-**Get Current Policy**:
+**CONSOLIDATED ARCHITECTURE**: Retention policies are now managed via `/api/preferences` (maintenance category) and cleanup operations via `/api/maintenance`.
+
+**Get Current Policy** (via Preferences API):
 
 ```bash
-GET /api/retention/policy?authKey=YOUR_KEY
-# Returns: { sessionRetentionDays: 30, logRetentionDays: 7, autoCleanupEnabled: true }
+GET /api/preferences?authKey=YOUR_KEY&category=maintenance
+# Returns: { sessionRetentionDays: 30, logRetentionDays: 7, autoCleanupEnabled: true, updatedAt: "..." }
 ```
 
-**Update Policy**:
+**Update Policy** (via Preferences API):
 
 ```bash
-PUT /api/retention/policy
+PUT /api/preferences
 {
   "authKey": "YOUR_KEY",
-  "sessionRetentionDays": 14,
-  "logRetentionDays": 3,
-  "autoCleanupEnabled": true
+  "category": "maintenance",
+  "preferences": {
+    "sessionRetentionDays": 14,
+    "logRetentionDays": 3,
+    "autoCleanupEnabled": true
+  }
 }
 ```
 
-**Preview Cleanup Impact**:
+**Preview Cleanup Impact** (via Maintenance API):
 
 ```bash
-POST /api/retention/preview
+POST /api/maintenance
 {
   "authKey": "YOUR_KEY",
-  "sessionRetentionDays": 14,
-  "logRetentionDays": 3
+  "action": "preview"
 }
-# Returns: { sessionsToDelete: 5, logsToDelete: 12, summary: "Will delete 5 sessions..." }
+# Returns: { preview: { sessionsToDelete: 5, logsToDelete: 12, summary: "Will delete 5 sessions..." } }
 ```
 
-**Execute Cleanup**:
+**Execute Cleanup** (via Maintenance API):
 
 ```bash
-POST /api/retention/cleanup
+POST /api/maintenance
 {
-  "authKey": "YOUR_KEY"
+  "authKey": "YOUR_KEY",
+  "action": "cleanup"
 }
-# Returns: { success: true, sessionsDeleted: 5, logsDeleted: 12 }
+# Returns: { cleanup: { success: true, sessionsDeleted: 5, logsDeleted: 12 } }
 ```
 
 ### Retention ViewModel
@@ -853,11 +875,14 @@ All new components meet WCAG 2.1 Level AA accessibility standards with comprehen
 **Onboarding Not Triggering**:
 
 ```bash
-# Check onboarding state in database
-sqlite3 dispatch.db "SELECT * FROM onboarding_state WHERE user_id = 'current_user';"
+# Check onboarding state via API (now in settings system)
+curl "http://localhost:3030/api/settings/onboarding?authKey=YOUR_KEY"
+
+# Check settings database
+sqlite3 dispatch.db "SELECT * FROM settings WHERE category = 'onboarding';"
 
 # Reset onboarding state if needed
-sqlite3 dispatch.db "DELETE FROM onboarding_state WHERE user_id = 'current_user';"
+sqlite3 dispatch.db "DELETE FROM settings WHERE category = 'onboarding';"
 ```
 
 **Authentication Failures**:
@@ -892,8 +917,9 @@ sqlite3 dispatch.db "SELECT id, workspacePath FROM sessions WHERE workspacePath 
 
 **Preview Generation Fails**:
 
-- Check database permissions for session cleanup queries
+- Check maintenance preferences exist: `curl "http://localhost:3030/api/preferences?authKey=YOUR_KEY&category=maintenance"`
 - Verify retention policy values within valid ranges (1-365 days for sessions, 1-90 days for logs)
+- Check maintenance API is accessible: `curl -X POST "http://localhost:3030/api/maintenance" -H "Content-Type: application/json" -d '{"authKey":"YOUR_KEY","action":"preview"}'`
 - Monitor console for SQL query errors
 
 **Cleanup Operation Errors**:
@@ -914,20 +940,23 @@ curl "http://localhost:3030/api/sessions?authKey=YOUR_KEY"
 # Enable debug logging
 DEBUG=* npm run dev
 
-# Monitor API response times
-curl -w "Total time: %{time_total}s\n" "http://localhost:3030/api/onboarding/status?authKey=YOUR_KEY"
+# Monitor API response times (using new consolidated endpoints)
+curl -w "Total time: %{time_total}s\n" "http://localhost:3030/api/settings/onboarding?authKey=YOUR_KEY"
+curl -w "Total time: %{time_total}s\n" "http://localhost:3030/api/preferences?authKey=YOUR_KEY&category=maintenance"
 ```
 
 **Database Performance**:
 
 ```sql
--- Check database statistics
-PRAGMA table_info(onboarding_state);
-PRAGMA table_info(retention_policies);
+-- Check database statistics (consolidated tables)
+PRAGMA table_info(settings);
 PRAGMA table_info(user_preferences);
 
 -- Verify indexes exist
 .schema
+
+-- Note: onboarding_state and retention_policies tables have been removed
+-- All data now in settings and user_preferences tables
 ```
 
 ## Integration Examples
@@ -942,8 +971,8 @@ import { OnboardingFlow } from '$lib/client/components/OnboardingFlow.svelte';
 const needsOnboarding = !localStorage.getItem('onboardingComplete');
 
 if (needsOnboarding) {
-	// Redirect to onboarding flow
-	goto('/onboarding');
+  // Redirect to onboarding flow
+  goto('/onboarding');
 }
 ```
 

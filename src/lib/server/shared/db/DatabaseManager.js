@@ -138,31 +138,6 @@ export class DatabaseManager {
 			)
 		`);
 
-		// Onboarding state table for progressive onboarding workflow
-		await this.run(`
-			CREATE TABLE IF NOT EXISTS onboarding_state (
-				user_id TEXT PRIMARY KEY,
-				current_step TEXT NOT NULL DEFAULT 'auth',
-				completed_steps TEXT NOT NULL DEFAULT '[]',
-				is_complete BOOLEAN NOT NULL DEFAULT FALSE,
-				first_workspace_id TEXT,
-				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				completed_at TEXT
-			)
-		`);
-
-		// Retention policies table for data cleanup management
-		await this.run(`
-			CREATE TABLE IF NOT EXISTS retention_policies (
-				id INTEGER PRIMARY KEY DEFAULT 1,
-				session_retention_days INTEGER NOT NULL DEFAULT 30,
-				log_retention_days INTEGER NOT NULL DEFAULT 7,
-				auto_cleanup_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-			)
-		`);
-
 		// User preferences table for UI and behavior customization
 		await this.run(`
 			CREATE TABLE IF NOT EXISTS user_preferences (
@@ -696,91 +671,6 @@ export class DatabaseManager {
 				);
 			}
 		}
-	}
-
-	// ========== ONBOARDING STATE MANAGEMENT ==========
-
-	/**
-	 * Get onboarding state for default user
-	 * @returns {object|null} Onboarding state
-	 */
-	async getOnboardingState() {
-		const userId = 'default'; // Single-user system
-		const row = await this.get('SELECT * FROM onboarding_state WHERE user_id = ?', [userId]);
-		if (row && row.completed_steps) {
-			row.completed_steps = JSON.parse(row.completed_steps);
-		}
-		return row;
-	}
-
-	/**
-	 * Update onboarding state for default user
-	 * @param {object} state - State to update
-	 */
-	async updateOnboardingState(state) {
-		const userId = 'default'; // Single-user system
-		const completedSteps = JSON.stringify(state.completedSteps || []);
-		const sql = `
-			INSERT INTO onboarding_state (
-				user_id, current_step, completed_steps, is_complete,
-				first_workspace_id, created_at, completed_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?)
-			ON CONFLICT(user_id) DO UPDATE SET
-				current_step = excluded.current_step,
-				completed_steps = excluded.completed_steps,
-				is_complete = excluded.is_complete,
-				first_workspace_id = excluded.first_workspace_id,
-				completed_at = excluded.completed_at
-		`;
-
-		await this.run(sql, [
-			userId,
-			state.currentStep || 'auth',
-			completedSteps,
-			state.isComplete || false,
-			state.workspaceId || null,
-			new Date().toISOString(),
-			state.isComplete ? new Date().toISOString() : null
-		]);
-	}
-
-	// ========== RETENTION POLICY MANAGEMENT ==========
-
-	/**
-	 * Get current retention policy
-	 * @returns {object|null} Retention policy
-	 */
-	async getRetentionPolicy() {
-		const row = await this.get('SELECT * FROM retention_policies WHERE id = 1');
-		return row;
-	}
-
-	/**
-	 * Update retention policy
-	 * @param {object} policy - Policy to update
-	 */
-	async updateRetentionPolicy(policy) {
-		const sql = `
-			INSERT INTO retention_policies (
-				id, session_retention_days, log_retention_days,
-				auto_cleanup_enabled, updated_at
-			) VALUES (1, ?, ?, ?, ?)
-			ON CONFLICT(id) DO UPDATE SET
-				session_retention_days = excluded.session_retention_days,
-				log_retention_days = excluded.log_retention_days,
-				auto_cleanup_enabled = excluded.auto_cleanup_enabled,
-				updated_at = excluded.updated_at
-		`;
-
-		const result = await this.run(sql, [
-			policy.sessionRetentionDays,
-			policy.logRetentionDays,
-			policy.autoCleanupEnabled !== undefined ? policy.autoCleanupEnabled : true,
-			new Date().toISOString()
-		]);
-
-		// Return updated policy
-		return await this.getRetentionPolicy();
 	}
 
 	// ========== USER PREFERENCES MANAGEMENT ==========

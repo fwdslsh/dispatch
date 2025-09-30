@@ -1,355 +1,658 @@
+<!--
+	GlobalSettings Component
+	Displays and manages global/general settings including workspace, UI, and system configuration
+-->
+
 <script>
-	import { onMount } from 'svelte';
+	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
 	import Button from '$lib/client/shared/components/Button.svelte';
-	import Input from '$lib/client/shared/components/Input.svelte';
-	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
-	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
 
 	/**
-	 * Global Settings Component
-	 * Manages global application preferences and workspace defaults
-	 * Now uses unified settings service with server/client sync
+	 * @type {SettingsViewModel}
 	 */
+	let { settingsViewModel } = $props();
 
-	// Settings state - use service values with fallback defaults
-	let theme = $state(settingsService.get('global.theme', 'retro'));
-	let defaultWorkspaceDirectory = $state(
-		settingsService.get('global.defaultWorkspaceDirectory', '')
-	);
-	let autoSaveEnabled = $state(settingsService.get('global.autoSaveEnabled', true));
-	let sessionTimeoutMinutes = $state(
-		settingsService.get('global.sessionTimeoutMinutes', 30).toString()
-	);
-	let defaultLayout = $state(settingsService.get('global.defaultLayout', '2up'));
-	let enableAnimations = $state(settingsService.get('global.enableAnimations', true));
-	let enableSoundEffects = $state(settingsService.get('global.enableSoundEffects', false));
-
-	// Feedback state
-	let saveStatus = $state('');
-	let saving = $state(false);
-
-	// Available options
-	const themes = [
-		{ value: 'retro', label: 'Retro Terminal' },
-		{ value: 'dark', label: 'Dark Mode' },
-		{ value: 'system', label: 'System Default' }
-	];
-
-	const layouts = [
-		{ value: '1up', label: 'Single Panel' },
-		{ value: '2up', label: 'Dual Panel' },
-		{ value: '4up', label: 'Quad Panel' }
-	];
-
-	// Load settings from localStorage
-	onMount(async () => {
-		// Wait for settings service to load
-		if (!settingsService.isLoaded) {
-			await settingsService.loadServerSettings();
-		}
-
-		// Update local state with effective settings
-		updateLocalState();
+	// Reactive state for workspace and ui categories
+	let workspaceCategory = $derived.by(() => {
+		return settingsViewModel.settingsByCategory.find(cat => cat.id === 'workspace');
 	});
 
-	// Update local component state from settings service
-	function updateLocalState() {
-		theme = settingsService.get('global.theme', 'retro');
-		defaultWorkspaceDirectory = settingsService.get('global.defaultWorkspaceDirectory', '');
+	let uiCategory = $derived.by(() => {
+		return settingsViewModel.settingsByCategory.find(cat => cat.id === 'ui');
+	});
+
+	let systemCategory = $derived.by(() => {
+		return settingsViewModel.settingsByCategory.find(cat => cat.id === 'system');
+	});
+
+	// Check for changes across all global categories
+	let hasChanges = $derived.by(() => {
+		return (
+			settingsViewModel.categoryHasChanges('workspace') ||
+			settingsViewModel.categoryHasChanges('ui') ||
+			settingsViewModel.categoryHasChanges('system')
+		);
+	});
+
+	let canSave = $derived.by(() => {
+		return hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving;
+	});
+
+	// Get settings for each category using getter method
+	let workspaceSettings = $derived.by(() => {
+		return settingsViewModel.getSettingsByCategory('workspace');
+	});
+
+	let uiSettings = $derived.by(() => {
+		return settingsViewModel.getSettingsByCategory('ui');
+	});
+
+	let systemSettings = $derived.by(() => {
+		return settingsViewModel.getSettingsByCategory('system');
+	});
+
+	// Handle input changes for different setting types
+	function handleInput(settingKey, event) {
+		const value = event.target.value;
+		settingsViewModel.updateSetting(settingKey, value);
 	}
 
-	// Save settings using the new service
-	async function saveSettings() {
-		if (saving) return;
+	function handleCheckbox(settingKey, event) {
+		const value = event.target.checked;
+		settingsViewModel.updateSetting(settingKey, value);
+	}
 
-		saving = true;
-		saveStatus = '';
+	function handleSelect(settingKey, event) {
+		const value = event.target.value;
+		settingsViewModel.updateSetting(settingKey, value);
+	}
 
+	// Handle saving all global settings
+	async function handleSave() {
 		try {
-			// Save as client override (localStorage)
-			settingsService.setClientOverride('global.theme', theme);
-			settingsService.setClientOverride(
-				'global.defaultWorkspaceDirectory',
-				defaultWorkspaceDirectory
-			);
+			const categoriesToSave = [];
+			if (settingsViewModel.categoryHasChanges('workspace')) categoriesToSave.push('workspace');
+			if (settingsViewModel.categoryHasChanges('ui')) categoriesToSave.push('ui');
+			if (settingsViewModel.categoryHasChanges('system')) categoriesToSave.push('system');
 
-			// Legacy theme storage for immediate theme application
-			localStorage.setItem(STORAGE_CONFIG.THEME_KEY, theme);
-
-			// Apply theme immediately if needed
-			if (theme !== 'system') {
-				document.documentElement.setAttribute('data-theme', theme);
-			} else {
-				document.documentElement.removeAttribute('data-theme');
+			for (const category of categoriesToSave) {
+				await settingsViewModel.saveCategory(category);
 			}
-
-			saveStatus = 'Settings saved successfully';
-			setTimeout(() => {
-				saveStatus = '';
-			}, 3000);
 		} catch (error) {
-			console.error('Failed to save settings:', error);
-			saveStatus = 'Failed to save settings';
-		} finally {
-			saving = false;
+			console.error('Failed to save global settings:', error);
 		}
 	}
 
-	// Reset to server defaults
-	async function resetToDefaults() {
-		settingsService.resetClientOverridesForCategory('global');
-		updateLocalState();
-
-		// Apply theme immediately
-		if (theme !== 'system') {
-			document.documentElement.setAttribute('data-theme', theme);
-		} else {
-			document.documentElement.removeAttribute('data-theme');
-		}
-
-		saveStatus = 'Settings reset to defaults';
-		setTimeout(() => {
-			saveStatus = '';
-		}, 3000);
+	// Handle discarding changes
+	function handleDiscard() {
+		// Find all settings in global categories and discard their changes
+		[...workspaceSettings, ...uiSettings, ...systemSettings].forEach(setting => {
+			settingsViewModel.discardSetting(setting.key);
+		});
 	}
 
-	// Auto-save when settings change (disabled for now to prevent conflicts)
-	// $effect(() => {
-	// 	// Debounced auto-save
-	// 	const timeoutId = setTimeout(saveSettings, 1000);
-	// 	return () => clearTimeout(timeoutId);
-	// });
-
-	// Check if a setting has a client override
-	function hasClientOverride(key) {
-		const [category, setting] = key.split('.');
-		return settingsService.clientOverrides[category]?.[setting] !== undefined;
+	// Helper function to get current value with pending changes
+	function getCurrentValue(settingKey) {
+		return settingsViewModel.getCurrentValue(settingKey);
 	}
 
-	// Get server default value for display
-	function getServerDefault(key) {
-		const [category, setting] = key.split('.');
-		return settingsService.serverSettings[category]?.[setting];
+	// Helper function to get validation errors
+	function getValidationErrors(settingKey) {
+		return settingsViewModel.getValidationErrors(settingKey);
+	}
+
+	// Helper function to check if setting has changes
+	function hasSettingChanges(settingKey) {
+		return settingsViewModel.hasChanges(settingKey);
 	}
 </script>
 
-<div class="global-settings flex-col gap-4">
-	<header class="settings-header">
-		<h3 class="settings-title">Global Preferences</h3>
+<div class="global-settings" data-testid="global-settings">
+	<div class="settings-header">
+		<h3>General Settings</h3>
 		<p class="settings-description">
-			Configure global application settings. Only settings that are actually used in the application
-			are shown. Settings with a <span class="override-indicator">●</span> are customized from server
-			defaults.
+			Configure workspace paths, UI preferences, and system settings for your development
+			environment.
 		</p>
-	</header>
-
-	<div class="flex-col flex-1 gap-6" style="overflow-y: auto;">
-		<!-- Theme Settings - The only global setting actually used -->
-		<section class="settings-section">
-			<h4 class="section-title">Appearance</h4>
-
-			<div class="input-group">
-				<label for="theme-select" class="input-label">
-					Theme
-					{#if hasClientOverride('global.theme')}
-						<span
-							class="override-indicator"
-							title="Customized from server default: {getServerDefault('global.theme')}">●</span
-						>
-					{/if}
-				</label>
-				<select id="theme-select" bind:value={theme} class="select-input">
-					{#each themes as themeOption}
-						<option value={themeOption.value}>{themeOption.label}</option>
-					{/each}
-				</select>
-				<p class="input-help">
-					Choose your preferred visual theme (applied to HTML data-theme attribute)
-				</p>
-			</div>
-		</section>
-
-		<!-- Workspace Settings -->
-		<section class="settings-section">
-			<h4 class="section-title">Workspace</h4>
-
-			<div class="input-group">
-				<label for="default-workspace-dir" class="input-label">
-					Default Workspace Directory
-					{#if hasClientOverride('global.defaultWorkspaceDirectory')}
-						<span
-							class="override-indicator"
-							title="Customized from server default: {getServerDefault(
-								'global.defaultWorkspaceDirectory'
-							) || 'Server WORKSPACES_ROOT'}">●</span
-						>
-					{/if}
-				</label>
-				<Input
-					id="default-workspace-dir"
-					bind:value={defaultWorkspaceDirectory}
-					placeholder="Leave empty to use server WORKSPACES_ROOT"
-					class="workspace-dir-input"
-				/>
-				<p class="input-help">
-					Default directory used when creating new sessions. Leave empty to use the server's
-					WORKSPACES_ROOT environment variable.
-				</p>
-			</div>
-		</section>
 	</div>
 
-	<!-- Actions -->
-	<footer
-		class="settings-footer flex-between gap-4 p-4"
-		style="border-top: 1px solid var(--primary-dim); margin-top: auto;"
-	>
-		<div
-			class="save-status"
-			class:success={saveStatus.includes('success')}
-			class:error={saveStatus.includes('Failed')}
-		>
-			{saveStatus}
-		</div>
-		<div class="flex gap-3">
-			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
-				Reset Defaults
-			</Button>
+	<div class="settings-content">
+		<!-- Workspace Settings Section -->
+		{#if workspaceCategory && workspaceSettings.length > 0}
+			<div class="settings-section">
+				<h4 class="section-title">Workspace Configuration</h4>
+				<div class="settings-group">
+					{#each workspaceSettings as setting}
+						{@const currentValue = getCurrentValue(setting.key)}
+						{@const validationErrors = getValidationErrors(setting.key)}
+						{@const hasErrors = validationErrors.length > 0}
+						{@const hasChanges = hasSettingChanges(setting.key)}
+
+						<div class="setting-item">
+							<label for={setting.key} class="setting-label">
+								{setting.display_name}
+								{#if setting.is_required}
+									<span class="required-indicator" aria-label="Required">*</span>
+								{/if}
+							</label>
+
+							{#if setting.description}
+								<div class="setting-description">{setting.description}</div>
+							{/if}
+
+							{#if setting.type === 'STRING' || setting.type === 'PATH'}
+								<input
+									id={setting.key}
+									type="text"
+									class="setting-input"
+									class:input-error={hasErrors}
+									placeholder={setting.placeholder || ''}
+									value={currentValue || ''}
+									oninput={(e) => handleInput(setting.key, e)}
+									data-testid="{setting.key}-input"
+									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
+								/>
+							{:else if setting.type === 'NUMBER'}
+								<input
+									id={setting.key}
+									type="number"
+									class="setting-input"
+									class:input-error={hasErrors}
+									placeholder={setting.placeholder || ''}
+									value={currentValue || ''}
+									min={setting.validation?.min}
+									max={setting.validation?.max}
+									oninput={(e) => handleInput(setting.key, e)}
+									data-testid="{setting.key}-input"
+									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
+								/>
+							{:else if setting.type === 'BOOLEAN'}
+								<label class="checkbox-wrapper">
+									<input
+										id={setting.key}
+										type="checkbox"
+										class="setting-checkbox"
+										checked={currentValue === 'true' || currentValue === true}
+										onchange={(e) => handleCheckbox(setting.key, e)}
+										data-testid="{setting.key}-checkbox"
+									/>
+									<span class="checkbox-label">{setting.description || 'Enable'}</span>
+								</label>
+							{/if}
+
+							<!-- Validation Errors -->
+							{#if hasErrors}
+								<div class="error-message" id="{setting.key}-error" data-testid="{setting.key}-error">
+									{#each validationErrors as error}
+										<div class="error-item">{error}</div>
+									{/each}
+								</div>
+							{/if}
+
+							<!-- Environment Variable Fallback Info -->
+							{#if setting.env_var_name && !hasChanges}
+								<div class="env-fallback" data-testid="{setting.key}-env-fallback">
+									<div class="env-icon">🔧</div>
+									<div class="env-content">
+										<strong>Environment Variable:</strong>
+										Currently using value from <code>{setting.env_var_name}</code> environment
+										variable. Set a value here to override the environment setting.
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- UI Settings Section -->
+		{#if uiCategory && uiSettings.length > 0}
+			<div class="settings-section">
+				<h4 class="section-title">UI Preferences</h4>
+				<div class="settings-group">
+					{#each uiSettings as setting}
+						{@const currentValue = getCurrentValue(setting.key)}
+						{@const validationErrors = getValidationErrors(setting.key)}
+						{@const hasErrors = validationErrors.length > 0}
+						{@const hasChanges = hasSettingChanges(setting.key)}
+
+						<div class="setting-item">
+							<label for={setting.key} class="setting-label">
+								{setting.display_name}
+								{#if setting.is_required}
+									<span class="required-indicator" aria-label="Required">*</span>
+								{/if}
+							</label>
+
+							{#if setting.description}
+								<div class="setting-description">{setting.description}</div>
+							{/if}
+
+							{#if setting.options && setting.options.length > 0}
+								<select
+									id={setting.key}
+									class="setting-select"
+									class:input-error={hasErrors}
+									value={currentValue || setting.default_value}
+									onchange={(e) => handleSelect(setting.key, e)}
+									data-testid="{setting.key}-select"
+									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
+								>
+									{#each setting.options as option}
+										<option value={option.value}>{option.label}</option>
+									{/each}
+								</select>
+							{:else if setting.type === 'BOOLEAN'}
+								<label class="checkbox-wrapper">
+									<input
+										id={setting.key}
+										type="checkbox"
+										class="setting-checkbox"
+										checked={currentValue === 'true' || currentValue === true}
+										onchange={(e) => handleCheckbox(setting.key, e)}
+										data-testid="{setting.key}-checkbox"
+									/>
+									<span class="checkbox-label">{setting.description || 'Enable'}</span>
+								</label>
+							{:else}
+								<input
+									id={setting.key}
+									type="text"
+									class="setting-input"
+									class:input-error={hasErrors}
+									placeholder={setting.placeholder || ''}
+									value={currentValue || ''}
+									oninput={(e) => handleInput(setting.key, e)}
+									data-testid="{setting.key}-input"
+									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
+								/>
+							{/if}
+
+							<!-- Validation Errors -->
+							{#if hasErrors}
+								<div class="error-message" id="{setting.key}-error" data-testid="{setting.key}-error">
+									{#each validationErrors as error}
+										<div class="error-item">{error}</div>
+									{/each}
+								</div>
+							{/if}
+
+							<!-- Environment Variable Fallback Info -->
+							{#if setting.env_var_name && !hasChanges}
+								<div class="env-fallback" data-testid="{setting.key}-env-fallback">
+									<div class="env-icon">🔧</div>
+									<div class="env-content">
+										<strong>Environment Variable:</strong>
+										Currently using value from <code>{setting.env_var_name}</code> environment
+										variable.
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- System Settings Section -->
+		{#if systemCategory && systemSettings.length > 0}
+			<div class="settings-section">
+				<h4 class="section-title">System Configuration</h4>
+				<div class="settings-group">
+					{#each systemSettings as setting}
+						{@const currentValue = getCurrentValue(setting.key)}
+						{@const validationErrors = getValidationErrors(setting.key)}
+						{@const hasErrors = validationErrors.length > 0}
+						{@const hasChanges = hasSettingChanges(setting.key)}
+
+						<div class="setting-item">
+							<label for={setting.key} class="setting-label">
+								{setting.display_name}
+								{#if setting.is_required}
+									<span class="required-indicator" aria-label="Required">*</span>
+								{/if}
+							</label>
+
+							{#if setting.description}
+								<div class="setting-description">{setting.description}</div>
+							{/if}
+
+							{#if setting.type === 'BOOLEAN'}
+								<label class="checkbox-wrapper">
+									<input
+										id={setting.key}
+										type="checkbox"
+										class="setting-checkbox"
+										checked={currentValue === 'true' || currentValue === true}
+										onchange={(e) => handleCheckbox(setting.key, e)}
+										data-testid="{setting.key}-checkbox"
+									/>
+									<span class="checkbox-label">{setting.description || 'Enable'}</span>
+								</label>
+							{:else if setting.type === 'NUMBER'}
+								<input
+									id={setting.key}
+									type="number"
+									class="setting-input"
+									class:input-error={hasErrors}
+									placeholder={setting.placeholder || ''}
+									value={currentValue || ''}
+									min={setting.validation?.min}
+									max={setting.validation?.max}
+									oninput={(e) => handleInput(setting.key, e)}
+									data-testid="{setting.key}-input"
+									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
+								/>
+							{:else}
+								<input
+									id={setting.key}
+									type="text"
+									class="setting-input"
+									class:input-error={hasErrors}
+									placeholder={setting.placeholder || ''}
+									value={currentValue || ''}
+									oninput={(e) => handleInput(setting.key, e)}
+									data-testid="{setting.key}-input"
+									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
+								/>
+							{/if}
+
+							<!-- Validation Errors -->
+							{#if hasErrors}
+								<div class="error-message" id="{setting.key}-error" data-testid="{setting.key}-error">
+									{#each validationErrors as error}
+										<div class="error-item">{error}</div>
+									{/each}
+								</div>
+							{/if}
+
+							<!-- Environment Variable Fallback Info -->
+							{#if setting.env_var_name && !hasChanges}
+								<div class="env-fallback" data-testid="{setting.key}-env-fallback">
+									<div class="env-icon">🔧</div>
+									<div class="env-content">
+										<strong>Environment Variable:</strong>
+										Currently using value from <code>{setting.env_var_name}</code> environment
+										variable.
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Action Buttons -->
+		<div class="settings-actions">
 			<Button
-				onclick={saveSettings}
+				type="button"
 				variant="primary"
-				size="small"
-				disabled={saving}
-				loading={saving}
-			>
-				{saving ? 'Saving...' : 'Save Settings'}
-			</Button>
+				disabled={!canSave}
+				loading={settingsViewModel.saving}
+				onclick={handleSave}
+				text={settingsViewModel.saving ? 'Saving...' : 'Save General Settings'}
+				data-testid="save-global-settings-button"
+			/>
+
+			{#if hasChanges}
+				<Button
+					type="button"
+					variant="secondary"
+					disabled={settingsViewModel.saving}
+					onclick={handleDiscard}
+					text="Discard Changes"
+					data-testid="discard-global-changes-button"
+				/>
+			{/if}
 		</div>
-	</footer>
+
+		<!-- Success Message -->
+		{#if settingsViewModel.successMessage}
+			<div class="success-message" data-testid="save-success-message">
+				{settingsViewModel.successMessage}
+			</div>
+		{/if}
+
+		<!-- Error Message -->
+		{#if settingsViewModel.error}
+			<div class="error-message" data-testid="save-error-message">
+				{settingsViewModel.error}
+			</div>
+		{/if}
+	</div>
 </div>
 
 <style>
+	@import '$lib/client/shared/styles/settings.css';
+
 	.global-settings {
-		height: 100%;
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		padding: var(--space-5);
+		margin-bottom: var(--space-5);
+		container-type: inline-size;
 	}
 
-	.settings-header {
-		border-bottom: 1px solid var(--primary-dim);
-		padding-bottom: var(--space-4);
-	}
-
-	.settings-title {
-		font-family: var(--font-mono);
-		font-size: 1.4rem;
-		color: var(--primary);
+	.settings-header h3 {
 		margin: 0 0 var(--space-2) 0;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
+		color: var(--primary);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-4);
+		font-weight: 600;
+		text-shadow: 0 0 8px var(--primary-glow);
 	}
 
 	.settings-description {
-		color: var(--text-muted);
-		margin: 0;
-		font-size: 0.9rem;
+		margin: 0 0 var(--space-5) 0;
+		color: var(--muted);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		line-height: 1.5;
+	}
+
+	.settings-content {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-6);
 	}
 
 	.settings-section {
-		border: 1px solid var(--primary-dim);
-		border-radius: 4px;
-		padding: var(--space-4);
-		background: rgba(46, 230, 107, 0.02);
+		border-top: 1px solid var(--line);
+		padding-top: var(--space-5);
+	}
+
+	.settings-section:first-child {
+		border-top: none;
+		padding-top: 0;
 	}
 
 	.section-title {
-		font-family: var(--font-mono);
-		font-size: 1.1rem;
-		color: var(--text-primary);
 		margin: 0 0 var(--space-4) 0;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		border-bottom: 1px solid var(--primary-dim);
-		padding-bottom: var(--space-2);
+		color: var(--primary);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-3);
+		font-weight: 600;
 	}
 
-	.input-group {
-		margin-bottom: var(--space-4);
+	.settings-group {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-5);
 	}
 
-	.input-group:last-child {
+	.setting-item {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+
+	.setting-label {
+		font-weight: 500;
+		color: var(--text);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.required-indicator {
+		color: var(--err);
+		font-weight: bold;
+	}
+
+	.setting-description {
+		font-size: var(--font-size-0);
+		color: var(--muted);
+		font-family: var(--font-mono);
+		line-height: 1.5;
+		margin: 0;
+	}
+
+	.setting-input,
+	.setting-select {
+		padding: var(--space-3);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-sm);
+		font-size: var(--font-size-1);
+		font-family: var(--font-mono);
+		background: var(--bg);
+		color: var(--text);
+		transition: all 0.2s ease;
+		min-height: 44px;
+	}
+
+	.setting-input:focus,
+	.setting-select:focus {
+		outline: none;
+		border-color: var(--primary);
+		box-shadow: var(--focus-ring);
+	}
+
+	.setting-input.input-error,
+	.setting-select.input-error {
+		border-color: var(--err);
+	}
+
+	.setting-input.input-error:focus,
+	.setting-select.input-error:focus {
+		border-color: var(--err);
+		box-shadow: var(--focus-ring-error);
+	}
+
+	.checkbox-wrapper {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		cursor: pointer;
+		padding: var(--space-2);
+		min-height: 44px;
+	}
+
+	.setting-checkbox {
+		width: 20px;
+		height: 20px;
+		cursor: pointer;
+		accent-color: var(--primary);
+	}
+
+	.checkbox-label {
+		color: var(--text);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
+		cursor: pointer;
+	}
+
+	.error-message {
+		padding: var(--space-3);
+		background: var(--err-dim);
+		border: 1px solid var(--err);
+		border-radius: var(--radius-xs);
+		color: var(--err);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
+	}
+
+	.error-item {
+		margin-bottom: var(--space-1);
+	}
+
+	.error-item:last-child {
 		margin-bottom: 0;
 	}
 
-	.input-label {
-		display: block;
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		color: var(--text-primary);
-		margin-bottom: var(--space-2);
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.select-input {
-		width: 100%;
-		padding: var(--space-3);
-		background: var(--bg-dark);
-		border: 1px solid var(--primary-dim);
-		color: var(--text-primary);
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		border-radius: 2px;
-		transition: all 0.2s ease;
-	}
-
-	.select-input:focus {
-		outline: none;
-		border-color: var(--primary);
-		box-shadow: 0 0 0 2px rgba(46, 230, 107, 0.2);
-	}
-
-	.input-help {
-		margin: var(--space-2) 0 0 0;
-		font-size: 0.8rem;
-		color: var(--text-muted);
-		font-style: italic;
-	}
-
-	.override-indicator {
-		color: var(--primary);
-		font-weight: bold;
-		margin-left: var(--space-1);
-		cursor: help;
-		text-shadow: 0 0 4px var(--primary-glow);
-		font-size: 0.8rem;
-	}
-
-	.save-status {
-		font-family: var(--font-mono);
-		font-size: 0.85rem;
-		padding: var(--space-2) 0;
-		min-height: 24px;
+	.env-fallback {
 		display: flex;
+		align-items: flex-start;
+		gap: var(--space-2);
+		padding: var(--space-3);
+		background: color-mix(in oklab, var(--info) 15%, var(--surface));
+		border: 1px solid var(--info);
+		border-radius: var(--radius-xs);
+		color: var(--info);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
+	}
+
+	.env-icon {
+		flex-shrink: 0;
+	}
+
+	.env-content code {
+		background: color-mix(in oklab, var(--bg) 80%, transparent);
+		padding: var(--space-0) var(--space-1);
+		border-radius: var(--radius-xs);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-0);
+	}
+
+	.settings-actions {
+		display: flex;
+		gap: var(--space-3);
 		align-items: center;
+		flex-wrap: wrap;
+		margin-top: var(--space-4);
+		padding-top: var(--space-5);
+		border-top: 1px solid var(--line);
 	}
 
-	.save-status.success {
-		color: var(--primary);
+	.success-message {
+		padding: var(--space-4);
+		background: color-mix(in oklab, var(--ok) 15%, var(--surface));
+		border: 1px solid var(--ok);
+		border-radius: var(--radius-sm);
+		color: var(--ok);
+		font-family: var(--font-mono);
+		font-size: var(--font-size-1);
 	}
 
-	.save-status.error {
-		color: var(--accent-red);
-	}
-
-	/* Responsive design */
-	@media (max-width: 768px) {
-		.settings-footer {
-			flex-direction: column !important;
-			align-items: stretch !important;
+	/* Responsive Design */
+	@container (max-width: 600px) {
+		.global-settings {
+			padding: var(--space-4);
 		}
 
-		.save-status {
-			text-align: center;
+		.settings-actions {
+			flex-direction: column;
+			align-items: stretch;
+		}
+	}
+
+	/* Focus styles for accessibility */
+	.setting-checkbox:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
+	}
+
+	/* High contrast mode support */
+	@media (prefers-contrast: high) {
+		.global-settings,
+		.setting-input,
+		.setting-select {
+			border-width: 2px;
 		}
 	}
 </style>

@@ -33,8 +33,8 @@ test.describe('Retention Policy Configuration', () => {
 		// Setup fresh environment
 		await setupFreshTestEnvironment(page, '/');
 
-		// Mock onboarding complete state
-		await page.route('/api/onboarding/status**', (route) => {
+		// Mock onboarding complete state (now via settings API)
+		await page.route('/api/settings/onboarding**', (route) => {
 			route.fulfill({
 				status: 200,
 				contentType: 'application/json',
@@ -46,50 +46,69 @@ test.describe('Retention Policy Configuration', () => {
 			});
 		});
 
-		// Mock retention policy API endpoints
-		await page.route('/api/retention/policy**', (route) => {
+		// Mock retention policy API endpoints (now via preferences API - maintenance category)
+		await page.route('/api/preferences**', (route) => {
 			if (route.request().method() === 'GET') {
+				// Return maintenance preferences
 				route.fulfill({
 					status: 200,
 					contentType: 'application/json',
-					body: JSON.stringify(mockRetentionPolicy)
+					body: JSON.stringify({
+						sessionRetentionDays: mockRetentionPolicy.sessionRetentionDays,
+						logRetentionDays: mockRetentionPolicy.logRetentionDays,
+						autoCleanupEnabled: mockRetentionPolicy.autoCleanupEnabled,
+						updatedAt: new Date().toISOString()
+					})
 				});
 			} else if (route.request().method() === 'PUT') {
-				const updatedPolicy = { ...mockRetentionPolicy, ...route.request().postDataJSON() };
+				const requestData = route.request().postDataJSON();
+				const updatedPolicy = {
+					...mockRetentionPolicy,
+					...requestData.preferences
+				};
 				route.fulfill({
 					status: 200,
 					contentType: 'application/json',
-					body: JSON.stringify(updatedPolicy)
+					body: JSON.stringify({
+						preferences: {
+							sessionRetentionDays: updatedPolicy.sessionRetentionDays,
+							logRetentionDays: updatedPolicy.logRetentionDays,
+							autoCleanupEnabled: updatedPolicy.autoCleanupEnabled,
+							updatedAt: new Date().toISOString()
+						}
+					})
 				});
 			}
 		});
 
-		// Mock retention preview endpoint
-		await page.route('/api/retention/preview**', (route) => {
+		// Mock retention preview and cleanup endpoints (now via maintenance API)
+		await page.route('/api/maintenance**', (route) => {
 			const requestData = route.request().postDataJSON();
-			const customPreview = {
-				...mockPreviewData,
-				summary: `Will delete ${mockPreviewData.sessionsToDelete} sessions older than ${requestData.sessionRetentionDays} days and ${mockPreviewData.logsToDelete} log files older than ${requestData.logRetentionDays} days`
-			};
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify(customPreview)
-			});
-		});
 
-		// Mock retention cleanup endpoint
-		await page.route('/api/retention/cleanup**', (route) => {
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify({
-					success: true,
-					sessionsDeleted: mockPreviewData.sessionsToDelete,
-					logsDeleted: mockPreviewData.logsToDelete,
-					spaceSaved: mockPreviewData.totalSpaceSaved
-				})
-			});
+			if (requestData.action === 'preview') {
+				const customPreview = {
+					...mockPreviewData,
+					summary: `Will delete ${mockPreviewData.sessionsToDelete} sessions older than 14 days and ${mockPreviewData.logsToDelete} log files older than 7 days`
+				};
+				route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify({ preview: customPreview })
+				});
+			} else if (requestData.action === 'cleanup') {
+				route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify({
+						cleanup: {
+							success: true,
+							sessionsDeleted: mockPreviewData.sessionsToDelete,
+							logsDeleted: mockPreviewData.logsToDelete,
+							spaceSaved: mockPreviewData.totalSpaceSaved
+						}
+					})
+				});
+			}
 		});
 
 		// Mock empty sessions and workspaces
@@ -325,8 +344,8 @@ test.describe('Retention Policy Configuration', () => {
 	});
 
 	test('should handle retention policy errors gracefully', async ({ page }) => {
-		// Mock API error for policy save
-		await page.route('/api/retention/policy**', (route) => {
+		// Mock API error for policy save (now via preferences API)
+		await page.route('/api/preferences**', (route) => {
 			if (route.request().method() === 'PUT') {
 				route.fulfill({
 					status: 400,
@@ -337,7 +356,11 @@ test.describe('Retention Policy Configuration', () => {
 				route.fulfill({
 					status: 200,
 					contentType: 'application/json',
-					body: JSON.stringify(mockRetentionPolicy)
+					body: JSON.stringify({
+						sessionRetentionDays: mockRetentionPolicy.sessionRetentionDays,
+						logRetentionDays: mockRetentionPolicy.logRetentionDays,
+						autoCleanupEnabled: mockRetentionPolicy.autoCleanupEnabled
+					})
 				});
 			}
 		});

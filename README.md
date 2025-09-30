@@ -8,7 +8,7 @@ Run AI agents and automated scripts in complete isolation. Start on your laptop,
 
 ## What is Dispatch?
 
-Dispatch is a containerized development environment that lets you safely run Claude AI code assistance and other CLI agents without risking your host system. Every session is isolated, resumable, and completely under your control.
+Dispatch is a containerized development environment that lets you safely run Claude AI code assistance and other CLI agents without risking your host system. Every session is isolated for your sensitive files, resumable, and completely under your control.
 
 **Get started and install the CLI**
 
@@ -32,9 +32,10 @@ _Note: Requires bash and Docker_
 
 ## Why Dispatch?
 
-**🛡️ Secure & Isolated**
+**🛡️ Isolated & Remotely Accessible**
 
 - Sandboxed Docker containers protect your host system
+- Secure remote access for a single developer—no cloud or complex home networking required
 - AI agents execute safely without access to sensitive files
 - Non-root execution with complete audit trails
 - Password-protected access with optional HTTPS
@@ -71,7 +72,7 @@ When using the dispatch CLI the init command will create a `~/dispatch/home/.env
 
 | Variable          | Default      | Description                    |
 | ----------------- | ------------ | ------------------------------ |
-| `TERMINAL_KEY`    | `change-me`  | **Required** - Access password |
+| `TERMINAL_KEY`    | `change-me-to-a-strong-password`  | **Required** - Access password |
 | `PORT`            | `3030`       | Web interface port             |
 | `WORKSPACES_ROOT` | `/workspace` | Project directory              |
 | `ENABLE_TUNNEL`   | `false`      | Public URL sharing             |

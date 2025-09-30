@@ -156,6 +156,24 @@ See existing sections in `src/lib/client/settings/sections/` for patterns.
 - Docker support with user mapping (`HOST_UID`/`HOST_GID`)
 - LocalTunnel integration for public URLs
 
+## Database Schema (SQLite)
+
+Event-sourced architecture with key tables:
+
+- SQLite db located at .testing-home/dispatch/data/workspace.db
+- `sessions` - Run sessions with runId, kind, status, metadata
+- `session_events` - Event log with sequence numbers for replay
+- `workspace_layout` - Client-specific UI layouts
+- `workspaces` - Workspace metadata and paths
+
+>Note: Use sqlite cli and queries like these to get the current database schema
+
+```sql
+select * from sqlite_master;
+PRAGMA table_info('user_preferences');
+PRAGMA table_info('settings');
+```
+
 ## Key Session Types
 
 ### Terminal Sessions (`pty`)

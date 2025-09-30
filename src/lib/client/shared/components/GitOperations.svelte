@@ -16,6 +16,7 @@
 	import IconPlus from './Icons/IconPlus.svelte';
 	import IconMinus from './Icons/IconMinus.svelte';
 	import WorktreeManager from './WorktreeManager.svelte';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	// Svelte 5 Git Operations Component
 	let {
@@ -54,7 +55,9 @@
 		error = '';
 
 		try {
-			const res = await fetch(`/api/git/status?path=${encodeURIComponent(currentPath)}`);
+			const res = await fetch(`/api/git/status?path=${encodeURIComponent(currentPath)}`, {
+				headers: getAuthHeaders()
+			});
 			let data = null;
 			try {
 				data = await res.json();
@@ -90,7 +93,9 @@
 		if (!isGitRepo) return;
 
 		try {
-			const res = await fetch(`/api/git/branches?path=${encodeURIComponent(currentPath)}`);
+			const res = await fetch(`/api/git/branches?path=${encodeURIComponent(currentPath)}`, {
+				headers: getAuthHeaders()
+			});
 			if (res.ok) {
 				const data = await res.json();
 				const list = Array.isArray(data?.branches) ? data.branches : [];
@@ -119,7 +124,7 @@
 			const action = isStaged ? 'unstage' : 'stage';
 			const res = await fetch('/api/git/stage', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					path: currentPath,
 					files: [filePath],
@@ -154,7 +159,7 @@
 		try {
 			const res = await fetch('/api/git/commit', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					path: currentPath,
 					message: commitMessage.trim()
@@ -185,7 +190,7 @@
 		try {
 			const res = await fetch('/api/git/checkout', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					path: currentPath,
 					branch: branchName
@@ -221,7 +226,7 @@
 		try {
 			const res = await fetch('/api/git/branch', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					path: currentPath,
 					name: newBranchName.trim(),
@@ -253,7 +258,7 @@
 		try {
 			const res = await fetch('/api/git/push', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					path: currentPath
 				})
@@ -281,7 +286,7 @@
 		try {
 			const res = await fetch('/api/git/pull', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					path: currentPath
 				})
@@ -551,6 +556,7 @@
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="diff-title"
+				tabindex="-1"
 				onclick={() => (showDiff = null)}
 				onkeydown={(e) => e.key === 'Escape' && (showDiff = null)}
 			>

@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import Button from './Button.svelte';
 
 	let showUpdateNotification = $state(false);
 	let registration = null;
@@ -61,10 +62,20 @@
 				<p>A new version of Dispatch is ready</p>
 			</div>
 			<div class="notification-actions">
-				<button class="update-btn" onclick={handleUpdate} data-augmented-ui="tl-clip br-clip exe">
-					Update Now
-				</button>
-				<button class="dismiss-btn" onclick={dismissUpdate}> Later </button>
+				<Button
+					variant="primary"
+					onclick={handleUpdate}
+					text="Update Now"
+					class="update-btn"
+					augmented="tl-clip br-clip exe"
+				/>
+				<Button
+					variant="ghost"
+					onclick={dismissUpdate}
+					text="Later"
+					class="dismiss-btn"
+					augmented="none"
+				/>
 			</div>
 		</div>
 	</div>
@@ -131,37 +142,6 @@
 		gap: 0.5rem;
 		width: 100%;
 		margin-top: 0.5rem;
-	}
-
-	.update-btn,
-	.dismiss-btn {
-		padding: 0.4rem 0.8rem;
-		border: none;
-		background: transparent;
-		color: white;
-		cursor: pointer;
-		font-family: 'Share Tech Mono', monospace;
-		font-size: 0.85rem;
-		transition: all 0.2s ease;
-	}
-
-	.update-btn {
-		background: #00a8ff;
-		--aug-border-all: 1px;
-		--aug-border-bg: #00a8ff;
-		flex: 1;
-	}
-
-	.update-btn:hover {
-		filter: brightness(1.2);
-	}
-
-	.dismiss-btn {
-		color: #777;
-	}
-
-	.dismiss-btn:hover {
-		color: #aaa;
 	}
 
 	@media (max-width: 480px) {

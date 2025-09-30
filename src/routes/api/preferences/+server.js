@@ -1,16 +1,17 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/shared/auth.js';
 
 /**
  * User Preferences API - Manages user-specific settings and preferences
  * Supporting authentication persistence and UI customization
  */
 
-export async function GET({ url, locals }) {
-	const authKey = url.searchParams.get('authKey') || url.searchParams.get('key') || '';
+export async function GET({ request, url, locals }) {
+	// Get auth key from Authorization header
+	const authHeader = request.headers.get('Authorization');
+	const authKey = authHeader?.replace('Bearer ', '');
 	const category = url.searchParams.get('category');
 
-	if (!validateKey(authKey)) {
+	if (!locals.services.auth.validateKey(authKey)) {
 		return json({ error: 'Invalid authentication key' }, { status: 401 });
 	}
 
@@ -32,12 +33,16 @@ export async function GET({ url, locals }) {
 
 export async function PUT({ request, locals }) {
 	try {
-		const body = await request.json();
-		const { authKey, category, preferences } = body;
+		// Get auth key from Authorization header
+		const authHeader = request.headers.get('Authorization');
+		const authKey = authHeader?.replace('Bearer ', '');
 
-		if (!validateKey(authKey)) {
+		if (!locals.services.auth.validateKey(authKey)) {
 			return json({ error: 'Invalid authentication key' }, { status: 401 });
 		}
+
+		const body = await request.json();
+		const { category, preferences } = body;
 
 		if (!category) {
 			return json({ error: 'Missing category parameter' }, { status: 400 });
@@ -48,7 +53,7 @@ export async function PUT({ request, locals }) {
 		}
 
 		// Validate known preference categories and their structure
-		const validCategories = ['ui', 'auth', 'workspace', 'terminal'];
+		const validCategories = ['ui', 'auth', 'workspace', 'terminal', 'maintenance'];
 		if (!validCategories.includes(category)) {
 			return json({ error: 'Invalid preference category' }, { status: 400 });
 		}
@@ -80,6 +85,31 @@ export async function PUT({ request, locals }) {
 			}
 		}
 
+		if (category === 'maintenance') {
+			// Validate maintenance preferences (retention policy)
+			if (preferences.sessionRetentionDays !== undefined) {
+				if (
+					!Number.isInteger(preferences.sessionRetentionDays) ||
+					preferences.sessionRetentionDays < 1 ||
+					preferences.sessionRetentionDays > 365
+				) {
+					return json(
+						{ error: 'Session retention days must be between 1 and 365' },
+						{ status: 400 }
+					);
+				}
+			}
+			if (preferences.logRetentionDays !== undefined) {
+				if (
+					!Number.isInteger(preferences.logRetentionDays) ||
+					preferences.logRetentionDays < 1 ||
+					preferences.logRetentionDays > 90
+				) {
+					return json({ error: 'Log retention days must be between 1 and 90' }, { status: 400 });
+				}
+			}
+		}
+
 		// Update preferences for category
 		const updatedPreferences = await locals.services.database.updateUserPreferences(
 			category,
@@ -99,12 +129,16 @@ export async function PUT({ request, locals }) {
 
 export async function POST({ request, locals }) {
 	try {
-		const body = await request.json();
-		const { action, authKey } = body;
+		// Get auth key from Authorization header
+		const authHeader = request.headers.get('Authorization');
+		const authKey = authHeader?.replace('Bearer ', '');
 
-		if (!validateKey(authKey)) {
+		if (!locals.services.auth.validateKey(authKey)) {
 			return json({ error: 'Invalid authentication key' }, { status: 401 });
 		}
+
+		const body = await request.json();
+		const { action } = body;
 
 		if (action === 'reset') {
 			const { category } = body;
@@ -196,6 +230,11 @@ function getDefaultPreferences(category) {
 			fontSize: 14,
 			fontFamily: 'Monaco, monospace',
 			scrollback: 1000
+		},
+		maintenance: {
+			sessionRetentionDays: 30,
+			logRetentionDays: 7,
+			autoCleanupEnabled: true
 		}
 	};
 

@@ -1,6 +1,7 @@
 <script>
 	import { io } from 'socket.io-client';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
+	import Button from './Button.svelte';
 
 	let publicUrl = $state(null);
 	let socket = null; // Not reactive - doesn't need to be
@@ -69,20 +70,29 @@
 	<div class="public-url-container">
 		<!-- <div class="public-url-label">Public URL:</div> -->
 		<div class="public-url-wrapper">
-			<button class="public-url-link" onclick={openInNewTab} title="Click to open in new tab">
-				{publicUrl}
-			</button>
-			<button
-				class="copy-button"
-				onclick={copyToClipboard}
-				title="Copy to clipboard"
-				aria-label="Copy URL to clipboard"
+			<Button
+				variant="ghost"
+				augmented="none"
+				onclick={openInNewTab}
+				ariaLabel="Click to open in new tab"
+				class="public-url-link"
 			>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-					<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-				</svg>
-			</button>
+				{#snippet children()}{publicUrl}{/snippet}
+			</Button>
+			<Button
+				variant="ghost"
+				augmented="none"
+				onclick={copyToClipboard}
+				ariaLabel="Copy URL to clipboard"
+				class="copy-button"
+			>
+				{#snippet children()}
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+						<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+					</svg>
+				{/snippet}
+			</Button>
 		</div>
 	</div>
 {/if}
@@ -106,64 +116,6 @@
 		/* gap: var(--space-sm); */
 	}
 
-	.public-url-link {
-		flex: 1;
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid var(--secondary);
-		border-radius: 0;
-		padding: var(--space-xs) var(--space-md);
-		color: var(--text-muted);
-		font-family: monospace;
-		font-size: 0.8rem;
-		text-align: left;
-		cursor: pointer;
-		transition: all 0.3s ease;
-		word-break: break-all;
-	}
-
-	.public-url-link:hover {
-		background: rgba(255, 255, 255, 0.05);
-		border-color: var(--secondary);
-		color: var(--secondary);
-		transform: none;
-		text-shadow:
-			0 0 10px var(--secondary),
-			0 0 20px var(--secondary-muted);
-	}
-
-	.copy-button {
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid var(--secondary);
-		border-radius: 0;
-		border-left: none;
-		border-collapse: collapse;
-		padding: var(--space-xs);
-		color: var(--text-muted);
-		cursor: pointer;
-		transition: all 0.3s ease;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 32px;
-		height: 32px;
-	}
-
-	.copy-button:hover {
-		transform: none;
-		color: var(--secondary-muted);
-		svg {
-			text-shadow:
-				0 0 10px var(--secondary),
-				0 0 20px var(--secondary-muted);
-			filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
-		}
-	}
-
-	.copy-button svg {
-		width: 14px;
-		height: 14px;
-	}
-
 	@media (max-width: 768px) {
 		.public-url-container {
 			padding: var(--space-sm);
@@ -177,21 +129,6 @@
 			flex-direction: row; /* Keep horizontal layout */
 			align-items: center;
 			gap: 0; /* No gap, buttons connect */
-		}
-
-		.public-url-link {
-			text-align: left;
-			font-size: 0.75rem;
-			padding: var(--space-xs);
-			white-space: nowrap; /* Prevent wrapping */
-			overflow: hidden; /* Hide overflow */
-			text-overflow: ellipsis; /* Add ... for long URLs */
-			word-break: normal; /* Don't break words */
-		}
-
-		.copy-button {
-			flex-shrink: 0; /* Prevent button from shrinking */
-			margin-top: 0;
 		}
 	}
 </style>

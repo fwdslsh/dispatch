@@ -1,6 +1,5 @@
 import { json, error } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
-import { validateKey } from '$lib/server/shared/auth.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ params, request, locals }) {
@@ -92,23 +91,17 @@ export async function GET({ params, request, locals }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function PUT({ params, request, locals }) {
+export async function PUT({ params, request, url, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 		const data = await request.json();
-		const { name, status, authKey } = data;
+		const { name, status } = data;
 
-		// Get auth key from body or headers
-		let finalAuthKey = authKey;
-		if (!finalAuthKey) {
-			const auth = request.headers.get('authorization');
-			if (auth && auth.startsWith('Bearer ')) {
-				finalAuthKey = auth.slice(7);
-			}
-		}
+		// Get auth key
+		const finalAuthKey = locals.services.auth.getAuthKeyFromRequest(request);
 
 		// Require authentication for write operations
-		if (!validateKey(finalAuthKey)) {
+		if (!locals.services.auth.validateKey(finalAuthKey)) {
 			throw error(401, { message: 'Authentication required for workspace updates' });
 		}
 
@@ -223,19 +216,15 @@ export async function PUT({ params, request, locals }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function DELETE({ params, request, locals }) {
+export async function DELETE({ params, request, url, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 
-		// Get auth key from query params or headers
-		const authKey =
-			new URL(request.url).searchParams.get('authKey') ||
-			(request.headers.get('authorization')?.startsWith('Bearer ')
-				? request.headers.get('authorization').slice(7)
-				: null);
+		// Get auth key using standardized pattern
+		const authKey = locals.services.auth.getAuthKeyFromRequest(request);
 
 		// Require authentication for delete operations
-		if (!validateKey(authKey)) {
+		if (!locals.services.auth.validateKey(authKey)) {
 			throw error(401, { message: 'Authentication required for workspace deletion' });
 		}
 

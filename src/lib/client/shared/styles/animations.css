@@ -188,6 +188,30 @@
 	}
 }
 
+/* Loading spinner utilities - reusable across all components */
+.loading-spinner {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	border: 2px solid color-mix(in oklab, currentColor 20%, transparent);
+	border-top-color: currentColor;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+	will-change: transform;
+}
+
+.loading-spinner--sm {
+	width: 0.875em;
+	height: 0.875em;
+	border-width: 1.5px;
+}
+
+.loading-spinner--lg {
+	width: 1.5em;
+	height: 1.5em;
+	border-width: 3px;
+}
+
 /* Scan/sweep animations - unified single animation */
 @keyframes scan {
 	0% {

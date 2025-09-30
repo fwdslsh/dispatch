@@ -3,7 +3,13 @@ import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 
-export async function GET({ params }) {
+export async function GET({ params, request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	const { project } = params;
 	const root = projectsRoot();
 	const projectPath = join(root, project);

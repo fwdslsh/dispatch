@@ -7,6 +7,7 @@ import { DatabaseManager } from './db/DatabaseManager.js';
 import { RunSessionManager } from './runtime/RunSessionManager.js';
 import { TunnelManager } from './TunnelManager.js';
 import { VSCodeTunnelManager } from './VSCodeTunnelManager.js';
+import { AuthService } from './auth.js';
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
@@ -56,7 +57,7 @@ export async function initializeServices(config = {}) {
 	};
 
 	try {
-		logger.info('SERVICES', 'Initializing unified session architecture services...');
+		logger.info('SERVICES', 'Initializing services...');
 		const resolvedConfig = resolveConfigPaths(serviceConfig);
 
 		// 1. Database (no dependencies)
@@ -65,12 +66,17 @@ export async function initializeServices(config = {}) {
 		await database.markAllSessionsStopped();
 		logger.info('SERVICES', 'Cleared stale running sessions on startup');
 
+		// 2. Initialize AuthService singleton (using unified settings table)
+		const authService = new AuthService();
+		await authService.initialize(database);
+		logger.info('SERVICES', 'AuthService initialized');
+
 		// REMOVED: WorkspaceManager - obsolete in unified architecture
 
-		// 3. Create RunSessionManager (no Socket.IO initially, will be set later)
+		// 4. Create RunSessionManager (no Socket.IO initially, will be set later)
 		const runSessionManager = new RunSessionManager(database, null);
 
-		// 4. Create and register adapters
+		// 5. Create and register adapters
 		const ptyAdapter = new PtyAdapter();
 		const claudeAdapter = new ClaudeAdapter();
 		const fileEditorAdapter = new FileEditorAdapter();
@@ -79,10 +85,10 @@ export async function initializeServices(config = {}) {
 		runSessionManager.registerAdapter(SESSION_TYPE.CLAUDE, claudeAdapter);
 		runSessionManager.registerAdapter(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
 
-		// 5. Claude Auth Manager (for OAuth flow)
+		// 6. Claude Auth Manager (for OAuth flow)
 		const claudeAuthManager = new ClaudeAuthManager();
 
-		// 6. Tunnel Manager for runtime tunnel control
+		// 7. Tunnel Manager for runtime tunnel control
 		const tunnelManager = new TunnelManager({
 			port: resolvedConfig.port,
 			subdomain: resolvedConfig.tunnelSubdomain,
@@ -90,7 +96,7 @@ export async function initializeServices(config = {}) {
 		});
 		await tunnelManager.init();
 
-		// 7. VS Code Tunnel Manager
+		// 8. VS Code Tunnel Manager
 		const vscodeManager = new VSCodeTunnelManager({
 			database: database
 		});
@@ -98,6 +104,7 @@ export async function initializeServices(config = {}) {
 
 		const services = {
 			database,
+			auth: authService,
 			runSessionManager,
 			ptyAdapter,
 			claudeAdapter,
@@ -107,11 +114,11 @@ export async function initializeServices(config = {}) {
 			vscodeManager
 		};
 
-		logger.info('SERVICES', 'Unified session architecture services initialized successfully');
+		logger.info('SERVICES', 'Services initialized successfully');
 		logger.info('SERVICES', `RunSessionManager stats:`, runSessionManager.getStats());
 		return services;
 	} catch (error) {
-		logger.error('SERVICES', 'Failed to initialize unified session services:', error);
+		logger.error('SERVICES', 'Failed to initialize services:', error);
 		throw error;
 	}
 }

@@ -27,10 +27,7 @@
 			document.body.classList.remove('no-key');
 		}
 
-		// Check onboarding status if user is authenticated
-		if (hasAuth) {
-			await checkOnboardingStatus();
-		}
+		await checkOnboardingStatus();
 	});
 
 	/**

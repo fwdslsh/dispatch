@@ -3,7 +3,13 @@ import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 
-export async function GET() {
+export async function GET({ request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	const base = projectsRoot();
 	const items = await readdir(base, { withFileTypes: true }).catch(() => []);
 	const projects = [];

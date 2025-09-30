@@ -8,6 +8,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { useServiceContainer } from '../shared/services/ServiceContainer.svelte.js';
+	import Button from '../shared/components/Button.svelte';
 
 	// Props
 	let { viewModel, onComplete = () => {}, onSkip = () => {} } = $props();
@@ -57,8 +58,37 @@
 			// Store the new terminal key in localStorage
 			localStorage.setItem('dispatch-auth-key', terminalKey);
 
-			// Move to next step
-			await handleStepComplete('workspace');
+			// Save terminal key via onboarding endpoint which will:
+			// 1. Store terminal key in authentication settings
+			// 2. Mark auth step as complete
+			// 3. Update onboarding state
+			const response = await fetch('/api/settings/onboarding', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					currentStep: 'auth',
+					completedSteps: ['auth'],
+					isComplete: false,
+					firstWorkspaceId: null,
+					stepData: {
+						terminalKey: terminalKey
+					}
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to save terminal key');
+			}
+
+			// Update local viewModel state from API response
+			const result = await response.json();
+			if (viewModel) {
+				viewModel.currentStep = result.currentStep || 'workspace';
+				viewModel.completedSteps = result.completedSteps || ['auth'];
+			}
 		} catch (error) {
 			authError = 'Failed to set up authentication. Please try again.';
 			console.error('Authentication setup error:', error);
@@ -183,21 +213,21 @@
 							</div>
 						</div>
 						<div class="flex gap-3 justify-end mt-4">
-							<button
-								class="btn btn-primary"
+							<Button
+								variant="primary"
 								onclick={handleAuthentication}
 								disabled={isSettingUpAuth || !terminalKey.trim() || !confirmTerminalKey.trim()}
+								loading={isSettingUpAuth}
 							>
 								{#if isSettingUpAuth}
-									<span class="loading loading-spinner loading-xs mr-2"></span>
 									Setting up...
 								{:else}
 									Continue to Workspace Setup
 								{/if}
-							</button>
-							<button class="btn btn-ghost" onclick={handleSkip} disabled={isSettingUpAuth}>
+							</Button>
+							<Button variant="ghost" onclick={handleSkip} disabled={isSettingUpAuth}>
 								Skip Setup
-							</button>
+							</Button>
 						</div>
 					</div>
 				{:else if viewModel.currentStep === 'workspace'}
@@ -223,16 +253,14 @@
 							</div>
 						</div>
 						<div class="flex gap-3 justify-end mt-4">
-							<button
-								class="btn btn-primary"
-								onclick={() => handleStepComplete('settings', { workspaceName, workspacePath })}
+							<Button
+								variant="primary"
+								onclick={() => handleStepComplete('workspace', { workspaceName, workspacePath })}
 								disabled={viewModel.isLoading || !workspaceName || !workspacePath}
-							>
-								Create Workspace
-							</button>
-							<button class="btn btn-ghost" onclick={() => handleStepComplete('settings')}>
-								Skip for Now
-							</button>
+								loading={viewModel.isLoading}
+								text="Create Workspace"
+							/>
+							<Button variant="ghost" onclick={() => handleStepComplete('workspace')} text="Skip for Now" />
 						</div>
 					</div>
 				{:else if viewModel.currentStep === 'settings'}
@@ -262,17 +290,22 @@
 							</div>
 						</div>
 						<div class="flex gap-3 justify-end mt-4">
-							<button
-								class="btn btn-primary"
+							<Button
+								variant="primary"
 								onclick={() => handleComplete('default-workspace')}
 								disabled={viewModel.isLoading}
-							>
-								Complete Setup
-							</button>
-							<button class="btn btn-ghost" onclick={() => handleComplete('default-workspace')}>
-								Use Defaults
-							</button>
+								loading={viewModel.isLoading}
+								text="Complete Setup"
+							/>
+							<Button variant="ghost" onclick={() => handleComplete('default-workspace')} text="Use Defaults" />
 						</div>
+					</div>
+				{:else if viewModel.currentStep === 'complete'}
+					<!-- Transition state - completing onboarding -->
+					<div class="flex flex-col items-center justify-center py-16">
+						<div class="loading loading-spinner loading-lg text-primary mb-4"></div>
+						<h2 class="text-xl font-semibold mb-2">Completing setup...</h2>
+						<p class="text-base-content/70">Please wait while we finalize your configuration.</p>
 					</div>
 				{/if}
 			</div>

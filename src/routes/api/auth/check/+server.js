@@ -1,18 +1,17 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/shared/auth.js';
 
-export async function GET({ url }) {
+export async function GET({ url, locals }) {
 	const key = url.searchParams.get('key') || '';
-	if (!validateKey(key)) {
+	if (!locals.services.auth.validateKey(key)) {
 		return json({ success: false, error: 'Invalid key' }, { status: 401 });
 	}
 	return json({ success: true });
 }
 
-export async function POST({ request }) {
+export async function POST({ request, locals }) {
 	try {
 		const { key } = await request.json();
-		if (!validateKey(key)) {
+		if (!locals.services.auth.validateKey(key)) {
 			return json({ success: false, error: 'Invalid key' }, { status: 401 });
 		}
 		return json({ success: true });

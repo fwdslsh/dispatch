@@ -1,8 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/shared/auth.js';
 import { getSocketEvents } from '$lib/server/shared/socket-setup.js';
 
-export async function GET({ url }) {
+export async function GET({ url, locals }) {
 	let key = null;
 	if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
 		const auth = arguments[0].request.headers.get('authorization');
@@ -16,7 +15,7 @@ export async function GET({ url }) {
 	const limit = parseInt(url.searchParams.get('limit') || '100');
 	const socketId = url.searchParams.get('socketId'); // Optional filter by socket
 
-	if (!validateKey(key)) {
+	if (!locals.services.auth.validateKey(key)) {
 		return json({ error: 'Invalid authentication key' }, { status: 401 });
 	}
 

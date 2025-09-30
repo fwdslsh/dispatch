@@ -1,15 +1,172 @@
-const TERMINAL_KEY = process.env.TERMINAL_KEY;
+import { logger } from "./utils/logger";
+
+/**
+ * AuthService - Singleton authentication service
+ * Manages terminal key caching and validation
+ */
+export class AuthService {
+	/**
+	 * Create AuthService instance
+	 * @private - Use AuthService.create() instead
+	 */
+	constructor() {
+		this.cachedTerminalKey = null;
+		this.instanceId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+	}
+
+	/**
+	 * Initialize the terminal key cache with proper settings hierarchy
+	 * Should be called during application startup
+	 *
+	 * @param {Object} database - DatabaseManager instance for settings lookup
+	 * @returns {Promise<string>} The resolved terminal key
+	 */
+	async initialize(database) {
+		let terminalKey;
+
+		// Try to get from database first (using new unified settings table)
+		if (database) {
+			try {
+				const authSettings = await database.getSettingsByCategory('authentication');
+				if (authSettings && authSettings.terminal_key) {
+					terminalKey = authSettings.terminal_key;
+					this.cachedTerminalKey = terminalKey;
+					logger.info('AUTH', 'Terminal key loaded from database settings', { instanceId: this.instanceId });
+					return terminalKey;
+				}
+			} catch (error) {
+				// Fall through to environment variable if database lookup fails
+				logger.warn('AUTH', 'Failed to get terminal_key from settings database:', error.message, { instanceId: this.instanceId });
+			}
+		}
+
+		// Fall back to environment variable
+		if (process.env.TERMINAL_KEY) {
+			terminalKey = process.env.TERMINAL_KEY;
+			this.cachedTerminalKey = terminalKey;
+			logger.info('AUTH', 'Terminal key loaded from environment variable', { instanceId: this.instanceId });
+			return terminalKey;
+		}
+
+		// Final fallback to default
+		terminalKey = 'change-me-to-a-strong-password';
+		this.cachedTerminalKey = terminalKey;
+		logger.warn('AUTH', 'Terminal key using default value', { instanceId: this.instanceId });
+		return terminalKey;
+	}
+
+	/**
+	 * Update the cached terminal key
+	 * Should be called when settings are changed via the settings API
+	 *
+	 * @param {string} newKey - New terminal key value
+	 */
+	updateCachedKey(newKey) {
+		this.cachedTerminalKey = newKey;
+		logger.info('AUTH', 'Terminal key cache updated', { instanceId: this.instanceId });
+	}
+
+	/**
+	 * Get the current cached terminal key
+	 * Falls back to environment variable if not initialized
+	 *
+	 * @returns {string} The cached terminal key
+	 */
+	getCachedKey() {
+		if (this.cachedTerminalKey !== null) {
+			return this.cachedTerminalKey;
+		}
+
+		// If not initialized, fall back to environment variable
+		logger.warn('AUTH', 'Terminal key cache not initialized, falling back to environment variable', { instanceId: this.instanceId });
+		return process.env.TERMINAL_KEY || 'change-me-to-a-strong-password';
+	}
+
+	/**
+	 * Validate a key against the configured terminal key
+	 * Uses cached value from settings hierarchy (database > env > default)
+	 *
+	 * @param {string} key - Key to validate
+	 * @returns {boolean} True if valid
+	 */
+	validateKey(key) {
+		const terminalKey = this.getCachedKey();
+		return terminalKey && key === terminalKey;
+	}
+
+	/**
+	 * Require authentication, throwing error if invalid
+	 * Uses cached terminal key from settings hierarchy
+	 *
+	 * @param {string} key - Key to validate
+	 * @throws {Error} If authentication key is invalid
+	 */
+	requireAuth(key) {
+		if (!this.validateKey(key)) {
+			throw new Error('Invalid authentication key');
+		}
+	}
+
+	/**
+	 * Get authentication key from request using standardized pattern
+	 * Tries Authorization header first (preferred)
+	 *
+	 * @param {Request} request - SvelteKit request object
+	 * @returns {string|null} Authentication key or null if not found
+	 */
+	getAuthKeyFromRequest(request) {
+		// Try Authorization header first (preferred, industry standard)
+		const authHeader = request.headers.get('Authorization');
+		if (authHeader) {
+			// Support both "Bearer <token>" and plain token
+			return authHeader.replace(/^Bearer\s+/i, '');
+		}
+
+		return null;
+	}
+}
+
+// Backwards compatibility exports - deprecated, will be removed in future version
+let deprecatedInstance = null;
+
+export async function initializeTerminalKey(database = null) {
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
+	}
+	return await deprecatedInstance.initialize(database);
+}
+
+export function updateCachedTerminalKey(newKey) {
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
+	}
+	return deprecatedInstance.updateCachedKey(newKey);
+}
+
+export function getCachedTerminalKey() {
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
+	}
+	return deprecatedInstance.getCachedKey();
+}
 
 export function validateKey(key) {
-	// If TERMINAL_KEY is explicitly set to empty string, allow any key
-	if (TERMINAL_KEY === '') {
-		return true;
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
 	}
-	return key === TERMINAL_KEY;
+	return deprecatedInstance.validateKey(key);
 }
 
 export function requireAuth(key) {
-	if (!validateKey(key)) {
-		throw new Error('Invalid authentication key');
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
 	}
+	return deprecatedInstance.requireAuth(key);
+}
+
+export function getAuthKeyFromRequest(request) {
+	if (!deprecatedInstance) {
+		deprecatedInstance = new AuthService();
+	}
+	return deprecatedInstance.getAuthKeyFromRequest(request);
 }

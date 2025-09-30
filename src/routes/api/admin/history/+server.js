@@ -1,5 +1,4 @@
 import { json } from '@sveltejs/kit';
-import { validateKey } from '$lib/server/shared/auth.js';
 import { createHistoryManager } from '$lib/server/shared/history-manager.js';
 
 export async function GET({ url, locals }) {
@@ -13,7 +12,7 @@ export async function GET({ url, locals }) {
 	if (!key) {
 		key = url.searchParams.get('key');
 	}
-	if (!validateKey(key)) {
+	if (!locals.services.auth.validateKey(key)) {
 		return json({ error: 'Invalid authentication key' }, { status: 401 });
 	}
 

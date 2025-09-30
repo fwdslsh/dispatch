@@ -6,14 +6,14 @@
 -->
 
 <script>
-	import BrandLogo from './BrandLogo.svelte';
+	import BrandLogo from '$lib/client/shared/components/BrandLogo.svelte';
+	import IconButton from '$lib/client/shared/components/IconButton.svelte';
+	import IconLogout from '$lib/client/shared/components/Icons/IconLogout.svelte';
+	import IconInfoCircle from '$lib/client/shared/components/Icons/IconInfoCircle.svelte';
+	import HelpModal from '$lib/client/shared/components/HelpModal.svelte';
+	import TunnelIndicator from '$lib/client/shared/components/TunnelIndicator.svelte';
+	import AppVersion from '$lib/client/shared/components/AppVersion.svelte';
 	import LayoutControls from './LayoutControls.svelte';
-	import IconButton from '../IconButton.svelte';
-	import IconAppWindow from '../Icons/IconAppWindow.svelte';
-	import IconLogout from '../Icons/IconLogout.svelte';
-	import IconInfoCircle from '../Icons/IconInfoCircle.svelte';
-	import HelpModal from '../HelpModal.svelte';
-	import TunnelIndicator from '../TunnelIndicator.svelte';
 
 	// Props
 	let {
@@ -46,7 +46,9 @@
 <header
 	class="workspace-header flex items-center gap-4 px-3 bg-panel border-b border-primary-dim flex-shrink-0"
 >
-	<BrandLogo />
+	<div>
+		<BrandLogo />
+	</div>
 
 	<div class="flex-1"></div>
 

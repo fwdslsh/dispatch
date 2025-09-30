@@ -69,6 +69,15 @@ class ServiceContainer {
 			return new EnvironmentService(this.config);
 		});
 
+		this.registerFactory('settingsService', async () => {
+			const { SettingsService } = await import('./SettingsService.svelte.js');
+			// Get auth key from localStorage with development fallback
+			const authKey = typeof window !== 'undefined' ? 
+				localStorage.getItem(this.config.authTokenKey || 'dispatch-auth-key') || 'testkey12345' : 'testkey12345';
+			
+			return new SettingsService(authKey, this.config.apiBaseUrl || '');
+		});
+
 		// ViewModels
 		this.registerFactory('sessionViewModel', async () => {
 			const { SessionViewModel } = await import('../state/SessionViewModel.svelte.js');

@@ -34,7 +34,7 @@ These variables control core container and deployment behavior:
 
 | Variable          | Default                                  | Location           | Category              | Description                               | Runtime Configurable  |
 | ----------------- | ---------------------------------------- | ------------------ | --------------------- | ----------------------------------------- | --------------------- |
-| **TERMINAL_KEY**  | `testkey12345` (dev), `change-me` (prod) | **Container/Host** | Container Environment | Authentication key for terminal access    | No - requires restart |
+| **TERMINAL_KEY**  | `testkey12345` (dev), `change-me-to-a-strong-password` (prod) | **Container/Host** | Container Environment | Authentication key for terminal access    | No - requires restart |
 | **PORT**          | `3030`                                   | **Container/Host** | Container Environment | Server listening port                     | No - requires restart |
 | **ENABLE_TUNNEL** | `false`                                  | **Container/Host** | Container Environment | Enable LocalTunnel for public URL access  | No - requires restart |
 | **LT_SUBDOMAIN**  | `''`                                     | **Container/Host** | Container Environment | Custom LocalTunnel subdomain              | No - requires restart |

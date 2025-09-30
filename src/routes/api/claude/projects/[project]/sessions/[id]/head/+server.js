@@ -6,7 +6,13 @@ import { projectsRoot } from '$lib/server/claude/cc-root.js';
 
 const MAX_BYTES = 512 * 1024; // cap to keep responses snappy
 
-export async function GET({ params, url }) {
+export async function GET({ params, url, request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	const { project, id } = params;
 	const n = Math.max(1, Math.min(200, Number(url.searchParams.get('n') ?? 40)));
 	const tail = url.searchParams.get('tail') === '1';

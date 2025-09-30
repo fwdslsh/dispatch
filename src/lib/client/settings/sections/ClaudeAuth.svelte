@@ -12,6 +12,7 @@
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	/**
 	 * Claude Authentication Component
@@ -51,7 +52,35 @@
 		// Fallback if container is not available (not in context)
 		socketUrl = typeof window !== 'undefined' ? window.location.origin : '';
 	}
+	const handleAuthUrl = (payload) => {
+		try {
+			const url = String(payload?.url || '');
+			oauthUrl = url;
+			showCodeInput = true;
+			statusMessage = payload?.instructions || 'Open the link, then paste the code here.';
+			// Open OAuth URL in a new tab for convenience
+			if (url) {
+				try {
+					window.open(url, '_blank', 'width=600,height=700');
+				} catch {}
+			}
+		} catch (e) {
+			authError = 'Failed to start authentication.';
+		}
+	};
 
+	const handleAuthComplete = () => {
+		showCodeInput = false;
+		authCode = '';
+		oauthUrl = '';
+		statusMessage = 'Authentication completed successfully!';
+		checkAuthStatus();
+	};
+
+	const handleAuthError = (payload) => {
+		authError = payload?.error || 'Authentication failed.';
+		showCodeInput = true; // allow retry by keeping input visible
+	};
 	onMount(async () => {
 		await checkAuthStatus();
 
@@ -59,59 +88,30 @@
 		// Use configured URL or current origin for socket connection to support remote access
 		socket = io(socketUrl, { autoConnect: true, reconnection: true });
 
-		const handleAuthUrl = (payload) => {
-			try {
-				const url = String(payload?.url || '');
-				oauthUrl = url;
-				showCodeInput = true;
-				statusMessage = payload?.instructions || 'Open the link, then paste the code here.';
-				// Open OAuth URL in a new tab for convenience
-				if (url) {
-					try {
-						window.open(url, '_blank', 'width=600,height=700');
-					} catch {}
-				}
-			} catch (e) {
-				authError = 'Failed to start authentication.';
-			}
-		};
-
-		const handleAuthComplete = () => {
-			showCodeInput = false;
-			authCode = '';
-			oauthUrl = '';
-			statusMessage = 'Authentication completed successfully!';
-			checkAuthStatus();
-		};
-
-		const handleAuthError = (payload) => {
-			authError = payload?.error || 'Authentication failed.';
-			showCodeInput = true; // allow retry by keeping input visible
-		};
-
 		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
 		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
 		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
-
-		onDestroy(() => {
-			if (socket) {
-				try {
-					socket.off(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
-					socket.off(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
-					socket.off(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
-				} catch {}
-				try {
-					socket.disconnect();
-				} catch {}
-			}
-		});
 	});
 
+	onDestroy(() => {
+		if (socket) {
+			try {
+				socket.off(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
+				socket.off(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
+				socket.off(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
+			} catch {}
+			try {
+				socket.disconnect();
+			} catch {}
+		}
+	});
 	// Check current authentication status
 	async function checkAuthStatus() {
 		authStatus = 'checking';
 		try {
-			const response = await fetch('/api/claude/auth');
+			const response = await fetch('/api/claude/auth', {
+				headers: getAuthHeaders()
+			});
 			const data = await response.json();
 
 			if (response.ok) {
@@ -203,7 +203,7 @@
 		try {
 			const response = await fetch('/api/claude/auth', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: getAuthHeaders(),
 				body: JSON.stringify({
 					apiKey: apiKey.trim()
 				})
@@ -237,7 +237,8 @@
 
 		try {
 			const response = await fetch('/api/claude/auth', {
-				method: 'DELETE'
+				method: 'DELETE',
+				headers: getAuthHeaders()
 			});
 
 			if (response.ok) {

@@ -73,11 +73,6 @@
 
 <style>
 	/* Component-specific sizing and layout only */
-	.action-button {
-		margin-left: auto;
-		flex-shrink: 0;
-	}
-
 	.meta-text {
 		min-height: 2.5rem;
 	}

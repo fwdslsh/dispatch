@@ -42,6 +42,23 @@ Dispatch codebase. Keep responses concise and make edits that follow the project
 - Realtime: Socket.IO is used for client-server communication; use the unified `run:*` event API (e.g. `run:attach`, `run:input`, `run:event`).
 - Persistence: Event-sourced session history in SQLite (`session_events`); sessions are resumeable via sequence numbers.
 
+## Database Schema (SQLite)
+
+Event-sourced architecture with key tables:
+
+- SQLite db located at .testing-home/dispatch/data/workspace.db
+- `sessions` - Run sessions with runId, kind, status, metadata
+- `session_events` - Event log with sequence numbers for replay
+- `workspace_layout` - Client-specific UI layouts
+- `workspaces` - Workspace metadata and paths
+
+>Note: Use sqlite cli and queries like these to get the current database schema
+
+```sql
+select * from sqlite_master;
+PRAGMA table_info('user_preferences');
+PRAGMA table_info('settings');
+```
 ## What to change and what to avoid
 
 - Prefer small, focused changes per PR. Follow Conventional Commits and keep the summary <72 chars.

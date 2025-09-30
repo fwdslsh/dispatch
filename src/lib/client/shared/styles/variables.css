@@ -23,6 +23,24 @@
 	--space-5: 24px;
 	--space-6: 32px;
 
+	/* Border Radius */
+	--radius-xs: 4px;
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: 12px;
+	--radius-xl: 16px;
+	--radius-full: 9999px;
+
+	/* Focus States */
+	--focus-ring: 0 0 0 3px var(--primary-glow-40);
+	--focus-ring-error: 0 0 0 3px var(--err-dim);
+
+	/* Font Weights */
+	--font-weight-normal: 400;
+	--font-weight-medium: 500;
+	--font-weight-semibold: 600;
+	--font-weight-bold: 700;
+
 	/* Phosphor terminal palette - refined for professional feel */
 	--bg: light-dark(#0c1210, #0c1210);
 	--surface: light-dark(#121a17, #121a17);

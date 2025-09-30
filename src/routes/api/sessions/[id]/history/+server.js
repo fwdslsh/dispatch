@@ -1,6 +1,12 @@
 import { json, error } from '@sveltejs/kit';
 
-export async function GET({ params, locals }) {
+export async function GET({ params, request, locals }) {
+	// Require authentication
+	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
+	if (!locals.services.auth.validateKey(authKey)) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
+
 	const { id } = params;
 
 	try {
