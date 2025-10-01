@@ -19,7 +19,8 @@
 	onMount(async () => {
 		try {
 			const apiClient = await serviceContainer?.get('apiClient');
-			const authKey = localStorage.getItem('dispatch-auth-key');
+			// Phase 6: Use new unified token key with fallback
+			const authKey = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key');
 
 			if (!authKey) {
 				throw new Error('Authentication required');

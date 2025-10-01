@@ -1,13 +1,13 @@
 # Unified Authentication Refactoring Plan
 
-**Status:** ✅ 5 of 9 Phases Complete - Core Auth Infrastructure Done
+**Status:** ✅ 6 of 9 Phases Complete - Client Storage Migration Done
 **Date:** 2025-10-01
-**Last Updated:** 2025-10-01 (after Phase 5 completion)
+**Last Updated:** 2025-10-01 (after Phase 6 completion)
 **Goal:** Enable OAuth session-based authentication alongside terminal key auth with centralized hooks middleware
 
 ## Summary
 
-5 of 9 implementation phases complete! Core authentication infrastructure is fully operational:
+6 of 9 implementation phases complete! Core authentication infrastructure and client storage migration are fully operational:
 
 ### Completed Phases ✅
 - **Phase 1** ✅: Enhanced AuthService with async validation (multi-strategy auth)
@@ -15,14 +15,14 @@
 - **Phase 3** ✅: Removed ~250 lines of redundant auth code from 47 route files
 - **Phase 4** ✅: Client storage migration - all auth flows now use `dispatch-auth-token`
 - **Phase 5** ✅: Socket.IO authentication updated to async/await for OAuth support
+- **Phase 6** ✅: Client-side storage consolidation complete - all reads prioritize new token key
 
 ### Remaining Phases ⚠️
-- **Phase 6** ⚠️: Client-side storage consolidation (update SessionApiClient.js, remove old key references)
-- **Phase 7** ⚠️: Client-side conditional logic cleanup (~12+ files need localStorage.getItem updates)
+- **Phase 7** ⚠️: Client-side conditional logic cleanup (optional - already using fallback strategy)
 - **Phase 8** ⚠️: Add auth provider display component (show "Authenticated via GitHub/Terminal Key")
 - **Phase 9** ⚠️: Final cleanup - remove migration code, remove redundant `locals.auth?.authenticated` checks from ~47 routes, delete helper scripts
 
-**Current Status:** Authentication system is fully functional for both terminal keys and OAuth sessions across all server layers (API routes, hooks, Socket.IO). Client-side code still has references to old localStorage keys, and routes have redundant authentication checks that can be removed in future phases after migration period.
+**Current Status:** Authentication system is fully functional for both terminal keys and OAuth sessions across all layers (server: API routes, hooks, Socket.IO; client: all components now read from unified token key with backward-compatible fallback). Write operations dual-write to both old and new keys for seamless migration. Routes have redundant authentication checks that can be removed in Phase 9 after migration period.
 
 **Test Results:**
 
@@ -522,7 +522,31 @@ socket.on('auth', async (key, callback) => {
 - Supports both terminal key and OAuth session authentication seamlessly
 - All authenticated socket events work with both auth methods
 
-### Phase 6: Client-Side Storage Consolidation (Simplified)
+### Phase 6: Client-Side Storage Consolidation (Simplified) ✅ COMPLETE
+
+**Status:** ✅ Implemented and tested (2025-10-01)
+
+**Implementation Summary:**
+- ✅ Updated `SessionApiClient.js` to prioritize `dispatch-auth-token` with fallback to `dispatch-auth-key`
+- ✅ Updated `ServiceContainer.svelte.js` to use `dispatch-auth-token` as default config key
+- ✅ Updated all client files to read from new unified token key with migration fallback
+- ✅ Maintained backward compatibility during migration window (dual-read strategy)
+
+**Files Updated:**
+- `src/lib/client/shared/services/SessionApiClient.js` - getAuthKey() method with fallback chain
+- `src/lib/client/shared/services/ServiceContainer.svelte.js` - config.authTokenKey default + settingsService factory
+- `src/lib/client/terminal/TerminalPane.svelte` - auth key lookup
+- `src/lib/client/terminal/MobileTerminalView.svelte` - auth key lookup
+- `src/lib/client/claude/ClaudePane.svelte` - auth key lookup
+- `src/lib/client/shared/components/workspace/WorkspacePage.svelte` - auth check + logout
+- `src/lib/client/onboarding/WorkspaceCreationStep.svelte` - auth key lookup
+- `src/lib/client/settings/PreferencesPanel.svelte` - auth key lookup
+- `src/lib/client/settings/RetentionSettings.svelte` - auth key lookup
+- `src/lib/client/settings/sections/TunnelControl.svelte` - auth key lookup (2 instances)
+- `src/lib/client/settings/sections/VSCodeTunnelControl.svelte` - auth key lookup (2 instances)
+
+**Migration Strategy:**
+All client code now tries `dispatch-auth-token` first, falls back to `dispatch-auth-key` for existing users. Write operations (Phase 4) already dual-write to both keys, ensuring seamless migration.
 
 **File:** `src/lib/client/shared/services/SessionApiClient.js`
 

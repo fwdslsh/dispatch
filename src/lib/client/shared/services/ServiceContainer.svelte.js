@@ -24,10 +24,11 @@ class ServiceContainer {
 		this.factories = new Map();
 
 		// Service configuration
+		// Phase 6: Use new unified auth token key
 		this.config = $state({
 			apiBaseUrl: '',
 			socketUrl: '',
-			authTokenKey: 'dispatch-auth-key',
+			authTokenKey: 'dispatch-auth-token',
 			debug: false
 		});
 
@@ -72,9 +73,13 @@ class ServiceContainer {
 		this.registerFactory('settingsService', async () => {
 			const { SettingsService } = await import('./SettingsService.svelte.js');
 			// Get auth key from localStorage with development fallback
-			const authKey = typeof window !== 'undefined' ? 
-				localStorage.getItem(this.config.authTokenKey || 'dispatch-auth-key') || 'testkey12345' : 'testkey12345';
-			
+			// Phase 6: Try new token key first, fallback to old key
+			const authKey = typeof window !== 'undefined' ?
+				(localStorage.getItem('dispatch-auth-token') ||
+				 localStorage.getItem('dispatch-auth-key') ||
+				 localStorage.getItem(this.config.authTokenKey) ||
+				 'testkey12345') : 'testkey12345';
+
 			return new SettingsService(authKey, this.config.apiBaseUrl || '');
 		});
 

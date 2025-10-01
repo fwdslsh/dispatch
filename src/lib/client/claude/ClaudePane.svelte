@@ -623,7 +623,8 @@
 
 		try {
 			// Authenticate if not already done
-			const key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+			// Phase 6: Use new unified token key with fallback
+			const key = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 			if (!runSessionClient.getStatus().authenticated) {
 				await runSessionClient.authenticate(key);
 			}

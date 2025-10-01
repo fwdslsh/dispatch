@@ -948,13 +948,21 @@ export class SessionApiClient {
 
 	/**
 	 * Get authentication key from localStorage or environment
+	 * Phase 6: Prioritize dispatch-auth-token, fallback to dispatch-auth-key for migration
 	 * @returns {string|null} - Auth key
 	 */
 	getAuthKey() {
 		if (typeof localStorage !== 'undefined') {
-			return (
-				localStorage.getItem(this.config.authTokenKey) || localStorage.getItem('dispatch-auth-key')
-			);
+			// Try new unified token key first
+			const token = localStorage.getItem('dispatch-auth-token');
+			if (token) return token;
+
+			// Fallback to old key during migration window
+			const oldKey = localStorage.getItem('dispatch-auth-key');
+			if (oldKey) return oldKey;
+
+			// Try configured key as last resort
+			return localStorage.getItem(this.config.authTokenKey);
 		}
 		return null;
 	}

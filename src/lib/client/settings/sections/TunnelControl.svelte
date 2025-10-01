@@ -61,7 +61,8 @@
 		error = null;
 
 		// Get terminal key from localStorage using the correct key name
-		const terminalKey = localStorage.getItem('dispatch-auth-key') || '';
+		// Phase 6: Use new unified token key with fallback
+		const terminalKey = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key') || '';
 
 		const event = tunnelStatus.enabled ? SOCKET_EVENTS.TUNNEL_DISABLE : SOCKET_EVENTS.TUNNEL_ENABLE;
 
@@ -110,7 +111,8 @@
 		error = null;
 
 		// Get terminal key from localStorage using the correct key name
-		const terminalKey = localStorage.getItem('dispatch-auth-key') || '';
+		// Phase 6: Use new unified token key with fallback
+		const terminalKey = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key') || '';
 
 		// Authenticate first
 		socket.emit('auth', terminalKey, (authResponse) => {

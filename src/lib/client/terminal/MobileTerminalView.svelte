@@ -24,7 +24,8 @@
 	const MAX_LINES = 1000; // Keep only last 1000 lines for performance
 	let lineIdCounter = 0; // Unique counter for line IDs
 
-	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+	// Phase 6: Use new unified token key with fallback
+	let key = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 
 	// Initialize AnsiUp for proper ANSI escape sequence handling
 	const ansiUp = new AnsiUp();

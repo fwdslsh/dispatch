@@ -26,7 +26,8 @@
 		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
 	}
 
-	let key = localStorage.getItem('dispatch-auth-key') || 'testkey12345';
+	// Phase 6: Use new unified token key with fallback
+	let key = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key') || 'testkey12345';
 	// Handle window resize and ensure terminal fits its container
 	const resize = () => {
 		// Fit terminal to container first so cols/rows update
