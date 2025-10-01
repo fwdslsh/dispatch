@@ -104,11 +104,8 @@ export async function POST({ request, url, locals }) {
 		const data = await request.json();
 		const { name, path } = data;
 
-		// Get auth key
-		const finalAuthKey = locals.services.auth.getAuthKeyFromRequest(request);
-
-		// Require authentication for write operations
-		if (!locals.services.auth.validateKey(finalAuthKey)) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			throw error(401, { message: 'Authentication required for workspace creation' });
 		}
 

@@ -2,17 +2,8 @@ import { json } from '@sveltejs/kit';
 import { createHistoryManager } from '$lib/server/shared/history-manager.js';
 
 export async function GET({ url, locals }) {
-	let key = null;
-	if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
-		const auth = arguments[0].request.headers.get('authorization');
-		if (auth && auth.startsWith('Bearer ')) {
-			key = auth.slice(7);
-		}
-	}
-	if (!key) {
-		key = url.searchParams.get('key');
-	}
-	if (!locals.services.auth.validateKey(key)) {
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
 		return json({ error: 'Invalid authentication key' }, { status: 401 });
 	}
 

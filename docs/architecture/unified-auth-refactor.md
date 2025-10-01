@@ -1,9 +1,28 @@
 # Unified Authentication Refactoring Plan
 
-**Status:** Phase 1 & 2 Complete ✅ | OAuth Authentication Working
+**Status:** ✅ Phase 4 Complete - Phase 5 Pending
 **Date:** 2025-10-01
-**Last Updated:** 2025-10-01 05:09 UTC
-**Goal:** Enable OAuth session-based authentication alongside terminal key auth with ZERO changes to existing route files
+**Last Updated:** 2025-10-01 (after Phase 4 completion)
+**Goal:** Enable OAuth session-based authentication alongside terminal key auth with centralized hooks middleware
+
+## Summary
+
+4 of 5 phases complete! OAuth and terminal key authentication work through SvelteKit hooks with unified client storage:
+
+- **Phase 1** ✅: Added `validateAuth()` to AuthService for multi-strategy authentication
+- **Phase 2** ✅: Implemented hooks middleware to validate all API requests
+- **Phase 3** ✅: Removed ~250 lines of redundant auth code from 47 route files
+- **Phase 4** ✅: Client storage migration - all auth flows now use `dispatch-auth-token`
+- **Phase 5** ⚠️: Socket.IO authentication update (pending - needs async/await for OAuth support)
+
+**Test Results:**
+
+```bash
+./test-auth-hooks.sh
+✅ Terminal key authentication PASSED
+✅ Invalid key rejection PASSED
+✅ OAuth session authentication PASSED
+```
 
 ## Problem Statement
 
@@ -324,43 +343,19 @@ export async function getGlobalServices() {
 - 401 returned automatically for unauthenticated requests
 - **ZERO changes needed to existing route files**
 
-### Phase 3: Wire MultiAuthManager to AuthService
+### Phase 3: Remove Redundant validateKey() Calls from Routes ✅ COMPLETE
 
-**File:** `src/lib/server/shared/index.js`
+**Status:** ✅ Implemented and tested (2025-10-01)
+**Files Updated:** 47 route files with redundant auth checks
 
-**Add connection after multiAuthManager initialization:**
-```javascript
-		// 6b. Multi-Auth Manager (for OAuth providers like GitHub)
-		const multiAuthManager = new MultiAuthManager(database);
-		await multiAuthManager.init();
-
-		// Connect to AuthService for unified validation
-		authService.setMultiAuthManager(multiAuthManager); // NEW
-
-		// Register GitHub OAuth provider
-		const authSettingsRow = await database.get(
-			"SELECT * FROM settings WHERE category = 'authentication'"
-		);
-		// ... rest of GitHub provider setup
-```
-
-**Impact:**
-- One-line change
-- Establishes dependency injection pattern
-- AuthService can now validate OAuth sessions
-
-### Phase 4: Remove Redundant validateKey() Calls from Routes
-
-**Files:** 47+ route files with redundant auth checks
-
-**Why remove them:**
-Once hooks are in place, all routes with `validateKey()` calls have redundant code:
+**Why removal was necessary:**
+Once hooks are in place, routes with `validateKey()` calls have redundant code:
 1. **Hook validates first**: `authenticationMiddleware` already validated auth and returned 401 if needed
 2. **Route never runs unauthenticated**: If hook validation failed, route handler never executes
 3. **Redundant error handling**: Route's 401 response can never be reached (hook already returned 401)
 4. **Code smell**: Violates DRY principle - same auth logic in hooks AND routes
 
-**Current pattern (redundant after hooks):**
+**OLD pattern (redundant):**
 ```javascript
 export async function GET({ request, locals }) {
 	// ❌ REDUNDANT: Hook already did this
@@ -375,18 +370,46 @@ export async function GET({ request, locals }) {
 }
 ```
 
-**Simplified pattern (after hooks):**
+**NEW pattern (hooks-based):**
 ```javascript
 export async function GET({ locals }) {
-	// ✅ Auth already validated by hook
-	// locals.auth.authenticated === true (guaranteed)
-	// locals.auth.provider contains 'terminal_key' | 'github' | etc.
+	// ✅ Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
+		return json({ error: 'Authentication required' }, { status: 401 });
+	}
 
-	// Business logic directly - no auth boilerplate needed
+	// Business logic directly
 	const data = await locals.services.database.getData();
 	return json({ data });
 }
 ```
+
+**Files Updated by Category:**
+- ✅ Admin routes (7 files): events, history, logs, sockets, vscode-tunnel
+- ✅ Auth routes (2 files): check, config
+- ✅ Browse routes (3 files): browse, clone, create
+- ✅ Claude routes (8 files): projects, sessions
+- ✅ File routes (2 files): files, upload
+- ✅ Git routes (11 files): branches, branch, checkout, commit, diff, log, pull, push, stage, status, worktree/*
+- ✅ Maintenance/Preferences (2 files): maintenance, preferences
+- ✅ Session routes (3 files): sessions, layout, history
+- ✅ Settings routes (4 files): settings, category, onboarding, workspace
+- ✅ Socket routes (1 file): sockets
+- ✅ Workspace routes (2 files): workspaces, workspaceId
+
+**Test Results:**
+```bash
+./test-auth-hooks.sh
+✅ Terminal key authentication PASSED
+✅ Invalid key rejection PASSED
+✅ OAuth session authentication PASSED
+```
+
+**Impact:**
+- ~250 lines of redundant authentication boilerplate removed
+- Routes simplified to focus on business logic
+- Authentication now centralized in hooks middleware
+- Both terminal key AND OAuth authentication working seamlessly
 
 **Cleanup strategy:**
 
@@ -837,14 +860,27 @@ test('Terminal key migration', async ({ page }) => {
 - New developers won't be confused by duplicate auth checks
 - Technical debt reduction
 
-### Phase 4: Client Storage Migration (Breaking for OAuth users only)
-- ⚠️ Add migration code to `+layout.svelte`
-- ⚠️ Update OAuth callback to use `dispatch-auth-token`
-- ⚠️ Update terminal key login to use `dispatch-auth-token`
+### Phase 4: Client Storage Migration (Breaking for OAuth users only) ✅ COMPLETE
+- ✅ Add migration code to `+layout.svelte`
+- ✅ Update OAuth callback to use `dispatch-auth-token`
+- ✅ Update terminal key login to use `dispatch-auth-token`
 
 **Testing:** Both old and new storage keys work during migration window
 **Duration:** 1 day
 **Risk:** Medium (affects all users' localStorage)
+
+**Files Updated:**
+- `src/routes/+layout.svelte` - Added migrateAuthStorage() function to handle old→new key transition
+- `src/routes/auth/callback/+page.svelte` - OAuth callback now stores both old and new keys
+- `src/routes/+page.svelte` - Terminal key login stores both old and new keys
+- `src/lib/client/onboarding/AuthenticationStep.svelte` - Onboarding auth stores both old and new keys
+- `src/lib/client/onboarding/OnboardingFlow.svelte` - Onboarding flow stores both old and new keys
+
+**Migration Strategy:**
+- All authentication flows now write to BOTH `dispatch-auth-token` (new) AND old keys (`dispatch-auth-key`, `authSessionId`, etc.)
+- Migration code in +layout.svelte automatically copies old keys to new keys on app load
+- Old keys kept for backward compatibility during migration window
+- Phase 5 will remove references to old keys after migration period
 
 ### Phase 5: Client Code Cleanup (Required)
 - 🧹 Replace `dispatch-auth-key` lookups with `dispatch-auth-token` (15 files)

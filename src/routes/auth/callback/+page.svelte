@@ -42,14 +42,20 @@
 				return;
 			}
 
-			// Store authentication data
+			// Phase 4: Store authentication data using new unified key
 			if (result.session) {
-				localStorage.setItem('authSessionId', result.session.sessionId);
-				localStorage.setItem('authUserId', result.session.userId);
-				localStorage.setItem('authProvider', result.session.provider);
+				// New unified token key
+				localStorage.setItem('dispatch-auth-token', result.session.sessionId);
+				localStorage.setItem('dispatch-auth-provider', result.session.provider);
 				if (result.session.expiresAt) {
 					localStorage.setItem('authExpiresAt', result.session.expiresAt);
 				}
+
+				// Keep old keys for backward compatibility during migration window
+				// These will be removed in Phase 5 cleanup
+				localStorage.setItem('authSessionId', result.session.sessionId);
+				localStorage.setItem('authUserId', result.session.userId);
+				localStorage.setItem('authProvider', result.session.provider);
 			}
 
 			// Redirect to home page

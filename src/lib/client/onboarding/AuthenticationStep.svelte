@@ -48,7 +48,9 @@
 			const result = await response.json();
 
 			if (result.success) {
-				// Store terminal key for future use
+				// Phase 4: Store terminal key using new unified key
+				localStorage.setItem('dispatch-auth-token', terminalKey);
+				// Keep old key for backward compatibility during migration window
 				localStorage.setItem('dispatch-auth-key', terminalKey);
 				isAuthenticated = true;
 

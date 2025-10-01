@@ -97,11 +97,8 @@ export async function PUT({ params, request, url, locals }) {
 		const data = await request.json();
 		const { name, status } = data;
 
-		// Get auth key
-		const finalAuthKey = locals.services.auth.getAuthKeyFromRequest(request);
-
-		// Require authentication for write operations
-		if (!locals.services.auth.validateKey(finalAuthKey)) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			throw error(401, { message: 'Authentication required for workspace updates' });
 		}
 
@@ -220,11 +217,8 @@ export async function DELETE({ params, request, url, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 
-		// Get auth key using standardized pattern
-		const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-
-		// Require authentication for delete operations
-		if (!locals.services.auth.validateKey(authKey)) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			throw error(401, { message: 'Authentication required for workspace deletion' });
 		}
 

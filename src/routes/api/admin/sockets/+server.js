@@ -2,9 +2,8 @@ import { json } from '@sveltejs/kit';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
 
 export async function GET({ url, locals, request }) {
-	const auth = request.headers.get('authorization');
-	const key = auth && auth.startsWith('Bearer ') ? auth.slice(7) : url.searchParams.get('key');
-	if (!locals.services.auth.validateKey(key)) {
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
 		return json({ error: 'Invalid authentication key' }, { status: 401 });
 	}
 

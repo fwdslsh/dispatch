@@ -9,10 +9,9 @@ import { createReadStream } from 'node:fs';
 const MAX_BYTES = 5 * 1024 * 1024; // soft cap to keep responses reasonable
 
 export async function GET({ params, url, request, locals }) {
-	// Require authentication
-	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-	if (!locals.services.auth.validateKey(authKey)) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
+		return json({ error: \'Authentication required\' }, { status: 401 });
 	}
 
 	const { id } = params;

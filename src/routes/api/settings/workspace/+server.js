@@ -5,10 +5,9 @@
 import { json } from '@sveltejs/kit';
 
 export async function GET({ request, locals }) {
-	// Require authentication
-	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-	if (!locals.services.auth.validateKey(authKey)) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
+		return json({ error: \'Authentication required\' }, { status: 401 });
 	}
 
 	try {
@@ -31,10 +30,9 @@ export async function GET({ request, locals }) {
 }
 
 export async function POST({ request, locals }) {
-	// Require authentication
-	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-	if (!locals.services.auth.validateKey(authKey)) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
+		return json({ error: \'Authentication required\' }, { status: 401 });
 	}
 
 	try {
@@ -97,10 +95,9 @@ export async function POST({ request, locals }) {
 }
 
 export async function DELETE({ request, locals }) {
-	// Require authentication
-	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-	if (!locals.services.auth.validateKey(authKey)) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
+		return json({ error: \'Authentication required\' }, { status: 401 });
 	}
 
 	try {

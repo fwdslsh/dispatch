@@ -1,22 +1,12 @@
 import { json } from '@sveltejs/kit';
 
 export async function GET({ url, locals }) {
-	const databaseManager = locals.services?.database;
-	// Get the terminal key from Authorization header or query parameters
-	let key = null;
-	if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
-		const auth = arguments[0].request.headers.get('authorization');
-		if (auth && auth.startsWith('Bearer ')) {
-			key = auth.slice(7);
-		}
-	}
-	if (!key) {
-		key = url.searchParams.get('key');
-	}
-	// Validate the key
-	if (!locals.services.auth.validateKey(key)) {
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
+
+	const databaseManager = locals.services?.database;
 
 	// Parse query params for limit, level, component
 	const limit = Math.max(1, Math.min(1000, parseInt(url.searchParams.get('limit') || '100')));

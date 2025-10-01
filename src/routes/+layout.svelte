@@ -17,6 +17,9 @@
 	provideServiceContainer();
 
 	onMount(async () => {
+		// Phase 4: Migrate old localStorage keys to new unified key
+		migrateAuthStorage();
+
 		// Set body class based on whether TERMINAL_KEY is configured OR user has stored auth token
 		const hasStoredAuth = !!getStoredAuthToken();
 		const hasAuth = data?.hasTerminalKey || hasStoredAuth;
@@ -29,6 +32,53 @@
 
 		await checkOnboardingStatus();
 	});
+
+	/**
+	 * Phase 4: Migrate old localStorage keys to new unified structure
+	 * This ensures both old OAuth users and terminal key users transition smoothly
+	 */
+	function migrateAuthStorage() {
+		if (typeof localStorage === 'undefined') return;
+
+		const newKey = 'dispatch-auth-token';
+		const oldTerminalKey = 'dispatch-auth-key';
+		const oldSessionKey = 'authSessionId';
+
+		// Skip if already migrated (new key exists)
+		if (localStorage.getItem(newKey)) {
+			return;
+		}
+
+		// Strategy 1: Migrate OAuth session (authSessionId → dispatch-auth-token)
+		const oauthSession = localStorage.getItem(oldSessionKey);
+		if (oauthSession) {
+			localStorage.setItem(newKey, oauthSession);
+			console.log('[Storage Migration] Migrated OAuth session to dispatch-auth-token');
+
+			// Migrate provider info if available
+			const oldProvider = localStorage.getItem('authProvider');
+			if (oldProvider) {
+				localStorage.setItem('dispatch-auth-provider', oldProvider);
+			}
+
+			// Keep old keys for backward compatibility during migration window
+			// They will be removed in Phase 5 cleanup
+			return;
+		}
+
+		// Strategy 2: Migrate terminal key (dispatch-auth-key → dispatch-auth-token)
+		const terminalKey = localStorage.getItem(oldTerminalKey);
+		if (terminalKey) {
+			localStorage.setItem(newKey, terminalKey);
+			console.log('[Storage Migration] Migrated terminal key to dispatch-auth-token');
+
+			// Keep old key for backward compatibility during migration window
+			// It will be removed in Phase 5 cleanup
+			return;
+		}
+
+		// No migration needed - user has no stored auth
+	}
 
 	/**
 	 * Check if user needs onboarding and redirect accordingly

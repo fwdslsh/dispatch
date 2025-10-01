@@ -18,14 +18,13 @@ import { json } from '@sveltejs/kit';
  */
 export async function PUT({ params, request, url, locals }) {
 	try {
-		const { category } = params;
-		const body = await request.json();
-
-		// Validate authentication using standardized pattern
-		const authKey = locals.services.auth.getAuthKeyFromRequest(request) || body.authKey;
-		if (!locals.services.auth.validateKey(authKey)) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			return json({ error: 'Authentication failed' }, { status: 401 });
 		}
+
+		const { category } = params;
+		const body = await request.json();
 
 		// Validate request body
 		if (!body.settings || typeof body.settings !== 'object') {

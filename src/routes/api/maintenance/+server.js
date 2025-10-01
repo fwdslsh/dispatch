@@ -7,11 +7,8 @@ import { json } from '@sveltejs/kit';
 
 export async function POST({ request, locals }) {
 	try {
-		// Get auth key from Authorization header
-		const authHeader = request.headers.get('Authorization');
-		const authKey = authHeader?.replace('Bearer ', '');
-
-		if (!locals.services.auth.validateKey(authKey)) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			return json({ error: 'Invalid authentication key' }, { status: 401 });
 		}
 

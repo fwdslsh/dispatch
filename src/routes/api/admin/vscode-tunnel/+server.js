@@ -7,20 +7,8 @@ import { json } from '@sveltejs/kit';
  */
 
 export async function GET({ url, locals }) {
-	// Get the terminal key from Authorization header or query parameters
-	let key = null;
-	if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
-		const auth = arguments[0].request.headers.get('authorization');
-		if (auth && auth.startsWith('Bearer ')) {
-			key = auth.slice(7);
-		}
-	}
-	if (!key) {
-		key = url.searchParams.get('key');
-	}
-
-	// Validate the key
-	if (!locals.services.auth.validateKey(key)) {
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
@@ -39,18 +27,8 @@ export async function GET({ url, locals }) {
 }
 
 export async function POST({ request, url, locals }) {
-	// Get the terminal key from Authorization header or query parameters
-	let key = null;
-	const auth = request.headers.get('authorization');
-	if (auth && auth.startsWith('Bearer ')) {
-		key = auth.slice(7);
-	}
-	if (!key) {
-		key = url.searchParams.get('key');
-	}
-
-	// Validate the key
-	if (!locals.services.auth.validateKey(key)) {
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 

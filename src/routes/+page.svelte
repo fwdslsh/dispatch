@@ -72,6 +72,9 @@
 			});
 			loading = false;
 			if (r.ok) {
+				// Phase 4: Store using new unified key
+				localStorage.setItem('dispatch-auth-token', key);
+				// Keep old key for backward compatibility during migration window
 				localStorage.setItem('dispatch-auth-key', key);
 				goto('/workspace');
 			} else {

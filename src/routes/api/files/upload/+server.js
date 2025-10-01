@@ -51,10 +51,9 @@ async function generateUniqueFilename(targetPath) {
 }
 
 export async function POST({ request, locals }) {
-	// Require authentication
-	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-	if (!locals.services.auth.validateKey(authKey)) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
+		return json({ error: \'Authentication required\' }, { status: 401 });
 	}
 
 	try {

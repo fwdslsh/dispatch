@@ -55,7 +55,9 @@
 		authError = null;
 
 		try {
-			// Store the new terminal key in localStorage
+			// Phase 4: Store the new terminal key using unified key
+			localStorage.setItem('dispatch-auth-token', terminalKey);
+			// Keep old key for backward compatibility during migration window
 			localStorage.setItem('dispatch-auth-key', terminalKey);
 
 			// Save terminal key via onboarding endpoint which will:

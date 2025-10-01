@@ -52,14 +52,13 @@ export async function GET({ locals }) {
  */
 export async function PUT({ request, url, locals }) {
 	try {
-		const body = await request.json();
-		const auth = locals.services.auth;
-
-		// Validate authentication using singleton auth service
-		const authKey = auth.getAuthKeyFromRequest(request) || body.authKey;
-		if (!auth.validateKey(authKey)) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			return json({ error: 'Authentication failed' }, { status: 401 });
 		}
+
+		const body = await request.json();
+		const auth = locals.services.auth;
 
 		const database = locals.services.database;
 

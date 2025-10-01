@@ -30,10 +30,9 @@ function sanitizeContent(content) {
 }
 
 export async function GET({ url, request, locals }) {
-	// Require authentication
-	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-	if (!locals.services.auth.validateKey(authKey)) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
+		return json({ error: \'Authentication required\' }, { status: 401 });
 	}
 
 	try {
@@ -96,10 +95,9 @@ export async function GET({ url, request, locals }) {
 }
 
 export async function PUT({ request, url, locals }) {
-	// Require authentication
-	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-	if (!locals.services.auth.validateKey(authKey)) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
+		return json({ error: \'Authentication required\' }, { status: 401 });
 	}
 
 	try{

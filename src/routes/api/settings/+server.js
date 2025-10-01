@@ -18,15 +18,9 @@ import { json } from '@sveltejs/kit';
  */
 export async function GET({ request, url, locals }) {
 	try {
-		// Authenticate request using singleton auth service
-		const auth = locals.services.auth;
-		const authKey = auth.getAuthKeyFromRequest(request);
-		if(!authKey) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			return json({ error: 'Authentication required' }, { status: 401 });
-		}
-		if (!auth.validateKey(authKey)) {
-			const serverKey = auth.getCachedKey();
-			return json({ error: 'Authentication failed', serverKey }, { status: 401 });
 		}
 
 		// Get category filter if provided

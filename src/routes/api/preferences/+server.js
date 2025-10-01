@@ -6,14 +6,12 @@ import { json } from '@sveltejs/kit';
  */
 
 export async function GET({ request, url, locals }) {
-	// Get auth key from Authorization header
-	const authHeader = request.headers.get('Authorization');
-	const authKey = authHeader?.replace('Bearer ', '');
-	const category = url.searchParams.get('category');
-
-	if (!locals.services.auth.validateKey(authKey)) {
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
 		return json({ error: 'Invalid authentication key' }, { status: 401 });
 	}
+
+	const category = url.searchParams.get('category');
 
 	try {
 		if (category) {
@@ -33,11 +31,8 @@ export async function GET({ request, url, locals }) {
 
 export async function PUT({ request, locals }) {
 	try {
-		// Get auth key from Authorization header
-		const authHeader = request.headers.get('Authorization');
-		const authKey = authHeader?.replace('Bearer ', '');
-
-		if (!locals.services.auth.validateKey(authKey)) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			return json({ error: 'Invalid authentication key' }, { status: 401 });
 		}
 
@@ -129,11 +124,8 @@ export async function PUT({ request, locals }) {
 
 export async function POST({ request, locals }) {
 	try {
-		// Get auth key from Authorization header
-		const authHeader = request.headers.get('Authorization');
-		const authKey = authHeader?.replace('Bearer ', '');
-
-		if (!locals.services.auth.validateKey(authKey)) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			return json({ error: 'Invalid authentication key' }, { status: 401 });
 		}
 

@@ -4,10 +4,9 @@ import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 
 export async function GET({ params, request, locals }) {
-	// Require authentication
-	const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-	if (!locals.services.auth.validateKey(authKey)) {
-		return json({ error: 'Authentication required' }, { status: 401 });
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
+		return json({ error: \'Authentication required\' }, { status: 401 });
 	}
 
 	const { project } = params;

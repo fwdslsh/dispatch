@@ -2,21 +2,12 @@ import { json } from '@sveltejs/kit';
 import { createHistoryManager } from '$lib/server/shared/history-manager.js';
 
 export async function GET({ params, url, locals }) {
-	let key = null;
-	if (typeof Request !== 'undefined' && typeof arguments[0]?.request !== 'undefined') {
-		const auth = arguments[0].request.headers.get('authorization');
-		if (auth && auth.startsWith('Bearer ')) {
-			key = auth.slice(7);
-		}
-	}
-	if (!key) {
-		key = url.searchParams.get('key');
-	}
-	const { socketId } = params;
-
-	if (!locals.services.auth.validateKey(key)) {
+	// Auth already validated by hooks middleware
+	if (!locals.auth?.authenticated) {
 		return json({ error: 'Invalid authentication key' }, { status: 401 });
 	}
+
+	const { socketId } = params;
 
 	if (!socketId) {
 		return json({ error: 'Socket ID is required' }, { status: 400 });
