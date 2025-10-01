@@ -22,17 +22,21 @@ The Dispatch codebase demonstrates solid adoption of Svelte 5 runes and modern S
 
 ### Critical Issues Requiring Attention
 
-1. **Mixed lifecycle patterns** - 7 components use both `onMount` and `$effect`
-2. **Unnecessary export let usage** - 4 instances of old Svelte 4 pattern
-3. **Over-engineered service patterns** - Duplicate SettingsService implementations
-4. **Single-user over-engineering** - Complexity that could be simplified
-5. **Runes usage on class properties** - 39 instances in ViewModels (architectural concern)
+1. **Duplicate SettingsService implementations** - Two versions causing confusion
+2. **Legacy Svelte 4 patterns** - 4 instances of `export let` instead of `$props()`
+3. **Runes usage on class properties** - 39 instances in ViewModels (architectural concern)
+
+### Enhancement Opportunities
+
+1. **Authentication modernization** - Add JWT support and flexible auth strategies
+2. **Session type extensibility** - Document the excellent adapter pattern for contributors
+3. **ServiceContainer optimization** - Consider simplification for single-user use case
 
 ### Estimated Effort for Improvements
-- **Critical Fixes:** 4-6 hours
-- **Simplification & Cleanup:** 12-16 hours
+- **Critical Fixes:** 8-12 hours (including JWT auth implementation)
+- **Documentation & Extensibility:** 8-12 hours
 - **Architecture Refinement:** 8-12 hours
-- **Total:** 24-34 hours
+- **Total:** 24-36 hours
 
 ---
 
@@ -134,9 +138,9 @@ If keeping class-based ViewModels for consistency with MVVM patterns:
 - Ensure team understands this is a deliberate architectural choice
 - Consider whether the MVVM structure provides sufficient value for a single-user app
 
-### 1.3 Mixed Lifecycle Patterns ⚠️
+### 1.3 Lifecycle Patterns - Best Practices ✅
 
-**Issue:** 7 components use both `onMount`/`onDestroy` AND `$effect`
+**Current State:** 7 components appropriately use both `onMount`/`onDestroy` AND `$effect`
 
 **Affected Files:**
 - `src/lib/client/claude/ClaudePane.svelte`
@@ -149,16 +153,20 @@ If keeping class-based ViewModels for consistency with MVVM patterns:
 
 **Example:** `ClaudePane.svelte`
 ```javascript
-// ❌ Mixed: Both onMount and $effect
+// ✅ Good: onMount for initialization, $effect for reactive updates
 onMount(async () => {
+    // One-time component initialization
     await setupClaudeSession();
     term.onData(handleTerminalInput);
 });
 
-$effect(() => {
-    console.log('[ClaudePane] Props received:', { sessionId });
+onDestroy(() => {
+    // Cleanup on component destruction
+    term?.dispose();
+    cleanupSession();
 });
 
+// Use $effect sparingly for reactive side effects
 $effect(() => {
     if (messages.length > 0) {
         scrollToBottom();
@@ -166,38 +174,47 @@ $effect(() => {
 });
 ```
 
-**Impact:** 🟡 **MEDIUM** - Confusion about when to use each pattern, harder to reason about component lifecycle
+**Impact:** ✅ **CORRECT PATTERN** - Clear separation of concerns
 
-**Recommendation:**
+**Recommended Pattern:**
 
-Choose one pattern consistently. In Svelte 5, prefer `$effect` with cleanup:
+**Use `onMount` and `onDestroy` for:**
+- Component initialization (setting up services, DOM manipulation, third-party libraries)
+- One-time setup that doesn't depend on reactive state
+- Resource cleanup on component destruction
+- Establishing event listeners or subscriptions
+
+**Use `$effect` sparingly for:**
+- Side effects that depend on reactive state and need to re-run when that state changes
+- Derived side effects (e.g., scroll to bottom when messages change)
+- Synchronizing with external state that's not part of component lifecycle
 
 ```javascript
-// ✅ Better: Use $effect with cleanup
-$effect(() => {
-    if (!sessionId) return;
+// ✅ Recommended Pattern
+onMount(() => {
+    // Initialize terminal, set up listeners
+    term = new Terminal();
+    term.open(containerElement);
     
-    // Setup
-    const cleanup = setupClaudeSession();
-    const dataHandler = term.onData(handleTerminalInput);
+    const dataHandler = term.onData(handleInput);
     
-    // Cleanup function
     return () => {
-        cleanup?.();
-        dataHandler?.dispose();
+        // Cleanup (alternative to onDestroy)
+        dataHandler.dispose();
+        term.dispose();
     };
 });
 
+// Use $effect only when you need reactive dependencies
 $effect(() => {
-    if (messages.length > 0) {
-        scrollToBottom();
+    // This re-runs when sessionId changes
+    if (sessionId) {
+        attachToSession(sessionId);
     }
 });
 ```
 
-**When to use `onMount` vs `$effect`:**
-- Use `onMount`: When you need to run code exactly once on mount, regardless of reactive dependencies
-- Use `$effect`: When your side effect depends on reactive state and should re-run when dependencies change
+**Key Principle:** `onMount`/`onDestroy` for initialization and cleanup, `$effect` used sparingly for reactive side effects only.
 
 ### 1.4 Legacy Svelte 4 Patterns ❌
 
@@ -364,76 +381,189 @@ export class SettingsService {
 
 **Recommended: Option 1** - Use the simpler `.svelte.js` version with runes for reactive auth state
 
-### 3.2 Single-User Over-Engineering ⚠️
+### 3.2 Authentication Architecture - Modernization Opportunity 🔄
 
-**Issue:** Architecture optimized for multi-user scenarios but application is single-user
+**Current State:** Basic authentication with environment-based API key
 
 **Observations:**
 
-1. **Authentication Complexity**
-   - Full authentication service with session management
-   - Token refresh mechanisms
-   - Multiple auth patterns across API routes
-   
-   **Simplification:** For single-user app, could use simple API key in environment variable
+1. **Current Authentication Pattern**
+   - Environment variable `TERMINAL_KEY` for API authentication
+   - Simple key-based validation in API routes
+   - Token stored in localStorage on client
+   - Mix of authentication patterns (query params, headers, body)
 
-2. **Complex State Management Architecture**
-   - Separate `AppState`, `SessionState`, `UIState`, `WorkspaceState` classes
-   - Total: ~500 lines of state management code
-   - Composition pattern with derived state across managers
+**Recommendation: Flexible Authentication with JWT Support**
 
-   **Example:**
-   ```javascript
-   // Current: Complex composition
-   export class AppState {
-       constructor() {
-           this.sessions = new SessionState();
-           this.workspaces = new WorkspaceState();
-           this.ui = new UIState();
-           
-           this.visibleSessions = $derived.by(() => {
-               // Complex logic coordinating multiple state managers
-           });
-       }
-   }
-   ```
+The application should allow users to choose their authentication mechanism and provide a path to JWT-based authentication for better security and scalability.
 
-   **Simplification for Single-User:**
-   ```javascript
-   // Simpler: Flat module-level state
-   let sessions = $state([]);
-   let workspaces = $state([]);
-   let currentWorkspace = $state(null);
-   let layoutMode = $state('desktop');
-   
-   let visibleSessions = $derived(
-       layoutMode === 'mobile' 
-           ? sessions.slice(0, 1) 
-           : sessions
-   );
-   
-   export { sessions, workspaces, visibleSessions, ... };
-   ```
+**Proposed Enhancement:**
 
-**Impact:** 🟡 **MEDIUM** - Adds complexity without clear benefit for single-user app
+```javascript
+// Authentication strategy pattern
+// src/lib/server/auth/strategies/
 
-**Recommendation:**
+// 1. Simple API Key (current, for local development)
+export class ApiKeyStrategy {
+    validate(key) {
+        return key === process.env.TERMINAL_KEY;
+    }
+}
 
-Given this is a single-user application, consider simplifying:
+// 2. JWT Strategy (for production/multi-user)
+export class JwtStrategy {
+    constructor(secret) {
+        this.secret = secret;
+    }
+    
+    async validate(token) {
+        try {
+            const payload = await verify(token, this.secret);
+            return { valid: true, user: payload };
+        } catch {
+            return { valid: false };
+        }
+    }
+    
+    async sign(payload) {
+        return await sign(payload, this.secret, { expiresIn: '7d' });
+    }
+}
 
-1. **Remove Multi-User Abstractions**
-   - Simplify authentication to environment-based key
-   - Flatten state management (reduce indirection)
-   - Remove user-scoping from database queries
+// 3. OAuth Strategy (future enhancement)
+export class OAuthStrategy {
+    // GitHub, Google, etc.
+}
 
-2. **Keep Architecture for Future**
-   - If multi-user is planned, keep current architecture
-   - Document the architectural decision
-   - Add comments explaining the design choices
+// Configuration-based strategy selection
+const authStrategy = process.env.AUTH_STRATEGY === 'jwt' 
+    ? new JwtStrategy(process.env.JWT_SECRET)
+    : new ApiKeyStrategy();
+```
 
-**Decision Point:** Is multi-user support planned? If no, significant simplification possible.
+**Implementation Benefits:**
+1. **User Choice** - Select authentication method via environment variables
+2. **JWT Ready** - Support for token-based auth with expiration
+3. **Extensible** - Easy to add OAuth, SAML, or other auth methods
+4. **Consistent API** - Standardize on Authorization header across all endpoints
+5. **Better Security** - JWT tokens with expiration, refresh tokens
 
-### 3.3 ServiceContainer Pattern ⚠️
+**Migration Path:**
+```javascript
+// Phase 1: Standardize header-based auth (all endpoints)
+// Phase 2: Add JWT strategy alongside API key
+// Phase 3: Add refresh token support
+// Phase 4: Add OAuth providers as needed
+```
+
+**Socket.IO Integration:**
+```javascript
+// Support both auth methods for real-time connections
+io.use(async (socket, next) => {
+    const token = socket.handshake.auth.token;
+    const result = await authStrategy.validate(token);
+    
+    if (result.valid) {
+        socket.user = result.user; // For JWT, contains user info
+        next();
+    } else {
+        next(new Error('Authentication failed'));
+    }
+});
+```
+
+**Impact:** 🟢 **HIGH VALUE** - Provides flexibility, better security, and clear upgrade path
+
+### 3.3 Session Type Extensibility - Well Architected ✅
+
+**Current State:** EXCELLENT - The adapter pattern is well-implemented
+
+**Existing Session Types:**
+- `PtyAdapter` - Terminal sessions (`src/lib/server/terminal/PtyAdapter.js`)
+- `ClaudeAdapter` - AI assistant sessions (`src/lib/server/claude/ClaudeAdapter.js`)
+- `FileEditorAdapter` - File editing sessions (`src/lib/server/file-editor/FileEditorAdapter.js`)
+
+**Architecture Strengths:**
+
+1. **Clean Adapter Pattern** - Each session type implements a consistent interface
+2. **Registration System** - RunSessionManager registers adapters dynamically
+3. **Unified Protocol** - All adapters use the same `run:*` event system
+4. **Event Sourcing** - Session events are persisted and replayable
+
+**Adding a New Session Type (Example: WebPreview)**
+
+```javascript
+// Step 1: Create adapter
+// src/lib/server/webpreview/WebPreviewAdapter.js
+export class WebPreviewAdapter {
+    static type = 'webpreview';
+    
+    constructor() {
+        this.sessions = new Map();
+    }
+    
+    async create({ onEvent, sessionId, workspacePath, options }) {
+        const server = await startPreviewServer(workspacePath, options.port);
+        
+        // Emit events through unified protocol
+        server.on('request', (req) => {
+            onEvent({
+                channel: 'webpreview:request',
+                payload: { url: req.url, method: req.method }
+            });
+        });
+        
+        this.sessions.set(sessionId, { server });
+        
+        return {
+            input: {
+                write: (data) => {
+                    // Handle commands (reload, change port, etc.)
+                }
+            },
+            close: async () => {
+                await server.close();
+                this.sessions.delete(sessionId);
+            }
+        };
+    }
+}
+
+// Step 2: Register adapter
+// src/lib/server/shared/runtime/RunSessionManager.js
+import { WebPreviewAdapter } from '$lib/server/webpreview/WebPreviewAdapter.js';
+
+runSessionManager.registerAdapter('webpreview', new WebPreviewAdapter());
+
+// Step 3: Add client UI component
+// src/lib/client/webpreview/WebPreviewPane.svelte
+// (Follow existing pattern from TerminalPane, ClaudePane)
+
+// Step 4: Register in session modules
+// src/lib/client/shared/session-modules/index.js
+export const sessionModules = {
+    pty: () => import('../../../terminal/TerminalPane.svelte'),
+    claude: () => import('../../../claude/ClaudePane.svelte'),
+    'file-editor': () => import('../../../file-editor/FileEditorPane.svelte'),
+    webpreview: () => import('../../../webpreview/WebPreviewPane.svelte'), // New!
+};
+```
+
+**Extensibility Checklist for New Session Types:**
+- [ ] Create adapter implementing `create({ onEvent, sessionId, workspacePath, options })`
+- [ ] Return object with `input.write()` and `close()` methods
+- [ ] Emit events through `onEvent()` using `run:*` protocol
+- [ ] Register adapter with RunSessionManager
+- [ ] Create client UI component (Svelte component)
+- [ ] Add to session modules map
+- [ ] Add session type icon/branding
+- [ ] Update create session modal to show new type
+
+**Impact:** ✅ **EXCELLENT** - Architecture is already well-designed for extensibility
+
+**Recommendation:** Document this pattern in developer guide so contributors can easily add new session types.
+
+### 3.4 ServiceContainer Pattern ⚠️
 
 **Issue:** Dependency injection container may be over-engineered for single-user app
 
@@ -669,14 +799,15 @@ Or use a dedicated deep-equal library for complex objects.
    - Migrate 5 components to use `.svelte.js` version
    - Remove unused file
 
-2. **Standardize lifecycle patterns** (4 hours)
-   - Document when to use `onMount` vs `$effect`
-   - Refactor 7 components mixing both patterns
-   - Create guidelines for team
-
-3. **Update legacy Svelte 4 patterns** (1 hour)
+2. **Update legacy Svelte 4 patterns** (1 hour)
    - Convert 4 `export let` to `$props()`
    - Ensure consistency across codebase
+
+3. **Implement flexible authentication strategy** (8-12 hours)
+   - Add JWT authentication support
+   - Allow user choice of auth method (API key vs JWT)
+   - Standardize on Authorization header across all API endpoints
+   - Update Socket.IO authentication to support both methods
 
 ### Should Fix (Medium Priority)
 
@@ -685,10 +816,11 @@ Or use a dedicated deep-equal library for complex objects.
    - Consider factory functions as more idiomatic Svelte 5 approach
    - Or document architectural decision and trade-offs
 
-5. **Simplify for single-user** (12-16 hours)
-   - Evaluate if multi-user support is planned
-   - If not, simplify authentication and state management
-   - Remove unnecessary abstractions
+5. **Document session type extensibility** (4-6 hours)
+   - Create developer guide for adding new session types
+   - Document adapter pattern and registration process
+   - Provide complete example (WebPreview or similar)
+   - Make it easy for contributors to extend
 
 6. **Break down large components** (6-8 hours)
    - Split 969-line SessionApiClient
@@ -732,17 +864,28 @@ Or use a dedicated deep-equal library for complex objects.
    - SSR considerations handled well
    - Clean separation of concerns
 
-3. **MVVM Architecture**
+3. **Lifecycle Pattern Usage**
+   - Appropriate use of `onMount`/`onDestroy` for initialization and cleanup
+   - Sparing use of `$effect` for reactive side effects only
+   - Clear separation between one-time setup and reactive updates
+
+4. **Session Type Extensibility**
+   - Excellent adapter pattern implementation
+   - Unified `run:*` event protocol
+   - Easy to add new session types
+   - Clean registration system via RunSessionManager
+
+5. **MVVM Architecture**
    - Clear separation of concerns
    - ViewModels handle business logic
    - Components focus on presentation
 
-4. **Code Organization**
+6. **Code Organization**
    - Logical directory structure
    - Consistent naming conventions
    - Good use of shared utilities
 
-5. **Documentation**
+7. **Documentation**
    - JSDoc comments throughout
    - Architectural documentation in place
    - Clear code organization
@@ -754,19 +897,26 @@ Or use a dedicated deep-equal library for complex objects.
 ### Phase 1: Critical Fixes (1-2 days)
 - [ ] Remove duplicate SettingsService implementations
 - [ ] Update 4 components using `export let` to `$props()`
-- [ ] Standardize lifecycle patterns (choose onMount vs $effect strategy)
+- [ ] Implement flexible authentication with JWT support
+- [ ] Standardize on Authorization header across all API endpoints
 
-### Phase 2: Architecture Refinement (3-5 days)
+### Phase 2: Documentation & Extensibility (2-3 days)
+- [ ] Document lifecycle pattern guidelines (onMount/onDestroy for init/cleanup, $effect sparingly)
+- [ ] Create developer guide for adding new session types
+- [ ] Document adapter pattern and registration process
+- [ ] Provide complete example for new session type
+
+### Phase 3: Architecture Refinement (3-5 days)
 - [ ] Evaluate and document ViewModel pattern decision
-- [ ] Assess single-user simplification opportunities
 - [ ] Break down large components (SessionApiClient, WindowManager)
-
-### Phase 3: Quality Improvements (2-3 days)
 - [ ] Standardize error handling patterns
+
+### Phase 4: Quality Improvements (2-3 days)
 - [ ] Add error boundaries where appropriate
 - [ ] Implement consistent validation patterns
+- [ ] Add Socket.IO authentication support for JWT
 
-### Phase 4: Optimization (Optional, 5-7 days)
+### Phase 5: Optimization (Optional, 5-7 days)
 - [ ] Migrate to SvelteKit load functions for better SSR
 - [ ] Simplify or remove ServiceContainer if appropriate
 - [ ] Consider TypeScript migration plan
@@ -775,14 +925,22 @@ Or use a dedicated deep-equal library for complex objects.
 
 ## 9. Conclusion
 
-The Dispatch codebase demonstrates strong fundamentals with excellent Svelte 5 runes adoption and proper SvelteKit patterns. The main opportunities for improvement lie in:
+The Dispatch codebase demonstrates strong fundamentals with excellent Svelte 5 runes adoption and proper SvelteKit patterns. The lifecycle pattern usage (onMount/onDestroy for initialization, $effect used sparingly) is appropriate, and the session type extensibility via adapters is well-architected.
 
-1. **Simplification** - Reducing complexity appropriate for a single-user application
-2. **Consistency** - Standardizing patterns across the codebase  
-3. **Architecture** - Evaluating if current patterns serve the use case
+The main opportunities for improvement lie in:
 
-The recommended changes would reduce complexity, improve maintainability, and align the architecture more closely with the application's single-user nature while preserving the quality and robustness of the codebase.
+1. **Authentication Modernization** - Add JWT support with user-selectable auth strategies
+2. **Documentation** - Document the excellent adapter pattern so contributors can easily add session types
+3. **Code Consolidation** - Remove duplicate implementations and standardize patterns
+4. **Architecture** - Evaluate if current patterns serve the use case (class-based ViewModels with runes)
+
+The recommended changes would improve flexibility, enhance extensibility, and align the architecture more closely with modern authentication standards while preserving the quality and robustness of the codebase.
 
 **Overall Grade: B+**
 
-With the recommended improvements, this could easily become an A-grade Svelte 5 / SvelteKit application serving as a reference implementation.
+With the recommended improvements, particularly:
+- JWT authentication support with flexible strategy pattern
+- Developer documentation for adding session types
+- Lifecycle pattern documentation (already following best practices)
+
+This could easily become an **A-grade Svelte 5 / SvelteKit application** serving as a reference implementation.
