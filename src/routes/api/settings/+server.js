@@ -54,7 +54,7 @@ export async function GET({ request, url, locals }) {
 
 			// Get all distinct categories from settings table
 			const categories = await database.all(
-				'SELECT category FROM settings ORDER BY category'
+				'SELECT DISTINCT category FROM settings ORDER BY category'
 			);
 
 			for (const row of categories) {

@@ -17,6 +17,7 @@
 	import { getIconForEvent } from '$lib/client/claude/claudeEventIcons.js';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 	import IconClaude from '../shared/components/Icons/IconClaude.svelte';
+	import { createLogger, logger } from '../shared/utils/logger';
 	// Using global styles for inputs
 
 	let { sessionId, claudeSessionId = null, shouldResume = false } = $props();

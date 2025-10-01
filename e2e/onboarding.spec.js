@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { setupFreshTestEnvironment, waitForWorkspaceReady } from './core-helpers.js';
+import { setupFreshTestEnvironment, waitForWorkspaceReady, TEST_KEY } from './core-helpers.js';
 
 test.describe('Onboarding Workflow', () => {
 	test.beforeEach(async ({ page }) => {
@@ -99,7 +99,7 @@ test.describe('Onboarding Workflow', () => {
 			// Enter terminal key
 			const terminalKeyInput = page.locator('input[type="password"]');
 			await expect(terminalKeyInput).toBeVisible();
-			await terminalKeyInput.fill('testkey12345');
+			await terminalKeyInput.fill(TEST_KEY);
 
 			// Click continue button
 			const continueButton = page.locator('button', { hasText: 'Continue' });
@@ -162,12 +162,12 @@ test.describe('Onboarding Workflow', () => {
 			await waitForWorkspaceReady(page);
 
 			// Verify onboarding is marked as complete in storage
-			const onboardingComplete = await page.evaluate(() => {
+			const onboardingComplete = await page.evaluate((testKey) => {
 				return (
 					localStorage.getItem('onboarding-complete') === 'true' ||
-					localStorage.getItem('dispatch-auth-key') === 'testkey12345'
+					localStorage.getItem('dispatch-auth-key') === testKey
 				);
-			});
+			}, TEST_KEY);
 			expect(onboardingComplete).toBeTruthy();
 		});
 	});
@@ -230,7 +230,7 @@ test.describe('Onboarding Workflow', () => {
 
 		// Complete authentication step
 		await page.waitForSelector('input[type="password"]', { timeout: 10000 });
-		await page.locator('input[type="password"]').fill('testkey12345');
+		await page.locator('input[type="password"]').fill(TEST_KEY);
 		await page.locator('button', { hasText: 'Continue' }).click();
 
 		// Wait for workspace step
@@ -261,7 +261,7 @@ test.describe('Onboarding Workflow', () => {
 
 		// Complete minimal onboarding (auth + workspace)
 		await page.waitForSelector('input[type="password"]', { timeout: 10000 });
-		await page.locator('input[type="password"]').fill('testkey12345');
+		await page.locator('input[type="password"]').fill(TEST_KEY);
 		await page.locator('button', { hasText: 'Continue' }).click();
 
 		// Wait for workspace step
@@ -297,7 +297,7 @@ test.describe('Onboarding Workflow', () => {
 		await expect(terminalKeyInput).toBeFocused();
 
 		// Fill field and press Enter
-		await terminalKeyInput.fill('testkey12345');
+		await terminalKeyInput.fill(TEST_KEY);
 		await terminalKeyInput.press('Enter');
 
 		// Should proceed to next step

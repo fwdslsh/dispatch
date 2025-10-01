@@ -13,25 +13,25 @@
 	 */
 	let { settingsViewModel } = $props();
 
-	// Get terminal key setting using getter method
-	let terminalKeySetting = $derived.by(() => {
-		return settingsViewModel.getSetting('terminal_key');
-	});
+	// Get authentication category (reactive via $state proxy)
+	let authCategory = $derived(settingsViewModel.categories.authentication || {});
 
 	// Current value with pending changes
-	let currentValue = $derived.by(() => {
-		if (!terminalKeySetting) return '';
-		return settingsViewModel.getCurrentValue('terminal_key');
-	});
+	let currentValue = $derived(authCategory.terminal_key || '');
 
 	// Validation errors
-	let validationErrors = $derived.by(() => {
-		return settingsViewModel.getValidationErrors('terminal_key');
-	});
+	let validationErrors = $derived(settingsViewModel.getFieldErrors('authentication', 'terminal_key'));
 
-	let hasChanges = $derived.by(() => {
-		return settingsViewModel.hasChanges('terminal_key');
-	});
+	let hasChanges = $derived(settingsViewModel.categoryHasChanges('authentication'));
+
+	// Setting metadata for SettingField component
+	const terminalKeySetting = {
+		key: 'terminal_key',
+		display_name: 'Terminal Key',
+		description: 'Authentication key for terminal and Claude Code sessions',
+		type: 'password',
+		is_required: true
+	};
 
 	// Input state
 	let showPassword = $state(false);
@@ -40,7 +40,10 @@
 	// Handle input changes
 	function handleInput(event) {
 		const value = event.target.value;
-		settingsViewModel.updateSetting('terminal_key', value);
+		// Update the category directly (reactive via $state)
+		authCategory.terminal_key = value;
+		// Validate the field
+		settingsViewModel.validateField('authentication', 'terminal_key', value);
 	}
 
 	// Toggle password visibility
@@ -57,8 +60,10 @@
 			result += charset.charAt(Math.floor(Math.random() * charset.length));
 		}
 
-		// Update the setting
-		settingsViewModel.updateSetting('terminal_key', result);
+		// Update the category directly (reactive via $state)
+		authCategory.terminal_key = result;
+		// Validate the field
+		settingsViewModel.validateField('authentication', 'terminal_key', result);
 
 		// Focus the input to show the generated value
 		if (inputElement) {
@@ -69,8 +74,7 @@
 
 <div class="terminal-key-settings">
 	<div class="setting-group">
-		{#if terminalKeySetting}
-			<div class="password-field-wrapper">
+		<div class="password-field-wrapper">
 				<SettingField
 					setting={terminalKeySetting}
 					value={currentValue}
@@ -116,16 +120,15 @@
 				/>
 			</div>
 
-			<!-- Security Notice -->
-			<div class="security-notice">
-				<div class="notice-icon">🔒</div>
-				<div class="notice-content">
-					<strong>Security:</strong>
-					Keep your terminal key secure and don't share it.
-					Changing this key will invalidate all active sessions.
-				</div>
+		<!-- Security Notice -->
+		<div class="security-notice">
+			<div class="notice-icon">🔒</div>
+			<div class="notice-content">
+				<strong>Security:</strong>
+				Keep your terminal key secure and don't share it.
+				Changing this key will invalidate all active sessions.
 			</div>
-		{/if}
+		</div>
 	</div>
 </div>
 

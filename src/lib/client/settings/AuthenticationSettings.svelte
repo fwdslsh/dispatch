@@ -14,18 +14,12 @@
 	 */
 	let { settingsViewModel } = $props();
 
-	// Reactive state for authentication category
-	let authenticationCategory = $derived.by(() => {
-		return settingsViewModel.settingsByCategory.find(cat => cat.id === 'authentication');
-	});
+	// Direct access to authentication category (reactive via $state proxy)
+	let authenticationSettings = $derived(settingsViewModel.categories.authentication || {});
 
-	let hasChanges = $derived.by(() => {
-		return settingsViewModel.categoryHasChanges('authentication');
-	});
+	let hasChanges = $derived(settingsViewModel.categoryHasChanges('authentication'));
 
-	let canSave = $derived.by(() => {
-		return hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving;
-	});
+	let canSave = $derived(hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving);
 
 	// Handle saving authentication settings
 	async function handleSave() {
@@ -38,11 +32,7 @@
 
 	// Handle discarding changes
 	function handleDiscard() {
-		// Find all authentication settings and discard their changes
-		const authSettings = settingsViewModel.authenticationSettings;
-		authSettings.forEach(setting => {
-			settingsViewModel.discardSetting(setting.key);
-		});
+		settingsViewModel.discardCategory('authentication');
 	}
 </script>
 
@@ -54,75 +44,68 @@
 		</p>
 	</div>
 
-	{#if authenticationCategory}
-		<div class="settings-content">
-			<!-- Terminal Key Settings Section -->
-			<TerminalKeySettings {settingsViewModel} />
+	<div class="settings-content">
+		<!-- Terminal Key Settings Section -->
+		<TerminalKeySettings {settingsViewModel} />
 
-			<!-- OAuth Settings Section -->
-			<OAuthSettings {settingsViewModel} />
+		<!-- OAuth Settings Section -->
+		<OAuthSettings {settingsViewModel} />
 
-			<!-- Session Invalidation Warning -->
-			{#if hasChanges}
-				<div class="session-warning" data-testid="session-warning">
-					<div class="warning-icon">⚠️</div>
-					<div class="warning-content">
-						<strong>Security Notice:</strong>
-						Changing authentication settings will invalidate all active sessions for security.
-						You will need to re-authenticate with the new credentials.
-					</div>
+		<!-- Session Invalidation Warning -->
+		{#if hasChanges}
+			<div class="session-warning" data-testid="session-warning">
+				<div class="warning-icon">⚠️</div>
+				<div class="warning-content">
+					<strong>Security Notice:</strong>
+					Changing authentication settings will invalidate all active sessions for security.
+					You will need to re-authenticate with the new credentials.
 				</div>
-			{/if}
+			</div>
+		{/if}
 
-			<!-- Action Buttons -->
-			<div class="settings-actions">
+		<!-- Action Buttons -->
+		<div class="settings-actions">
+			<Button
+				type="button"
+				variant="primary"
+				disabled={!canSave}
+				onclick={handleSave}
+				loading={settingsViewModel.saving}
+				id="save-settings-button"
+			>
+				{#if settingsViewModel.saving}
+					Saving...
+				{:else}
+					Save Authentication Settings
+				{/if}
+			</Button>
+
+			{#if hasChanges}
 				<Button
 					type="button"
-					variant="primary"
-					disabled={!canSave}
-					onclick={handleSave}
-					loading={settingsViewModel.saving}
-					id="save-settings-button"
-				>
-					{#if settingsViewModel.saving}
-						Saving...
-					{:else}
-						Save Authentication Settings
-					{/if}
-				</Button>
+					variant="secondary"
+					disabled={settingsViewModel.saving}
+					onclick={handleDiscard}
+					id="discard-changes-button"
+					text="Discard Changes"
+				/>
+			{/if}
+		</div>
 
-				{#if hasChanges}
-					<Button
-						type="button"
-						variant="secondary"
-						disabled={settingsViewModel.saving}
-						onclick={handleDiscard}
-						id="discard-changes-button"
-						text="Discard Changes"
-					/>
-				{/if}
+		<!-- Success Message -->
+		{#if settingsViewModel.successMessage}
+			<div class="success-message" data-testid="save-success-message">
+				{settingsViewModel.successMessage}
 			</div>
+		{/if}
 
-			<!-- Success Message -->
-			{#if settingsViewModel.successMessage}
-				<div class="success-message" data-testid="save-success-message">
-					{settingsViewModel.successMessage}
-				</div>
-			{/if}
-
-			<!-- Error Message -->
-			{#if settingsViewModel.error}
-				<div class="error-message" data-testid="save-error-message">
-					{settingsViewModel.error}
-				</div>
-			{/if}
-		</div>
-	{:else}
-		<div class="loading-state">
-			<div class="loading-spinner"></div>
-			<p>Loading authentication settings...</p>
-		</div>
-	{/if}
+		<!-- Error Message -->
+		{#if settingsViewModel.error}
+			<div class="error-message" data-testid="save-error-message">
+				{settingsViewModel.error}
+			</div>
+		{/if}
+	</div>
 </div>
 
 <style>

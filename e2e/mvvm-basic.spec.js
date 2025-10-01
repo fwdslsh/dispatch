@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { TEST_KEY } from './core-helpers.js';
 
 test.describe('Basic MVVM Architecture Test', () => {
 	test('should load the workspace page successfully', async ({ page }) => {
@@ -29,9 +30,9 @@ test.describe('Basic MVVM Architecture Test', () => {
 		});
 
 		// Set auth token before navigation
-		await page.addInitScript(() => {
-			localStorage.setItem('dispatch-auth-key', 'testkey12345');
-		});
+		await page.addInitScript((testKey) => {
+			localStorage.setItem('dispatch-auth-key', testKey);
+		}, TEST_KEY);
 
 		// Navigate to workspace
 		await page.goto('/workspace');

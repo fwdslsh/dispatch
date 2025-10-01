@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
-	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	/**

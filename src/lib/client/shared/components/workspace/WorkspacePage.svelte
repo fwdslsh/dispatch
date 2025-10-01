@@ -5,7 +5,7 @@
 	import { innerWidth } from 'svelte/reactivity/window';
 	// Services and ViewModels
 	import { provideServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
-	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 	// WorkspaceViewModel removed - obsolete in unified architecture
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';

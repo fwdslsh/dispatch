@@ -4,10 +4,8 @@ import { logger } from '$lib/server/shared/utils/logger.js';
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request, locals }) {
 	try {
-		// Optional authentication - allow unauthenticated read for basic info
-		const authKey = locals.services.auth.getAuthKeyFromRequest(request);
-		const isAuthenticated = authKey ? locals.services.auth.validateKey(authKey) : false;
-		if(!isAuthenticated) {
+		// Auth already validated by hooks middleware
+		if (!locals.auth?.authenticated) {
 			logger.info('WORKSPACE_API', 'Unauthenticated request to list workspaces');
 			return json({ error: 'Authentication required to list workspaces' }, { status: 401 });
 		}

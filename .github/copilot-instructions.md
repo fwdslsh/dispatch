@@ -14,7 +14,8 @@ an AI agent needs to be productive in Dispatch.
 - Tests: unit tests under `tests/` (Vitest), E2E under `e2e/` (Playwright). Run: `npm test` and `npm run test:e2e`.
 
 - Dev commands you can rely on:
-  - `npm run dev` (dev server, uses `TERMINAL_KEY` and `.dispatch-home`)
+  - `npm run dev` (dev server with SSL, uses `TERMINAL_KEY` and `.dispatch-home`, port 5173)
+  - `npm run dev:test` (automated UI testing server - no SSL, port 7173, known key `test-automation-key-12345`)
   - `npm run build` / `npm run preview` / `npm run start`
   - `npm run lint` / `npm run format` / `npm run check`
 
@@ -76,10 +77,23 @@ PRAGMA table_info('settings');
 
 ## Development workflows (commands you can rely on)
 
-- Dev server: `npm run dev` (uses `TERMINAL_KEY` and `.dispatch-home` for dev state).
+- Dev server: `npm run dev` (uses `TERMINAL_KEY` and `.dispatch-home` for dev state, SSL enabled on port 5173).
+- **UI Testing server**: `npm run dev:test` (port 7173, no SSL, uses `/tmp/dispatch-test-*` directories, known key `test-automation-key-12345`).
 - Build: `npm run build`; Preview: `npm run preview`; Start: `npm run start`.
 - Tests: `npm test` (Vitest), E2E: `npm run test:e2e` (Playwright). Use `npm run playwright:install` once to install browsers.
 - Lint & format: `npm run lint` (check), `npm run format` (apply Prettier tabs + single quotes).
+
+### UI Testing with Automated Tools
+
+When using Selenium, Cypress, or other UI automation frameworks:
+1. Start test server: `npm run dev:test` (avoids SSL certificate warnings)
+2. Connect to: `http://localhost:7173`
+3. Authenticate with key: `test-automation-key-12345` or pre-inject into localStorage:
+   ```javascript
+   localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
+   localStorage.setItem('authSessionId', 'test-' + Date.now());
+   localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+   ```
 
 ## Project-specific conventions & patterns
 

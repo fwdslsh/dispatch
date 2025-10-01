@@ -32,8 +32,10 @@ console.log('Command:', playwrightArgs.join(' '));
 // Set environment variables for testing
 const env = {
 	...process.env,
-	TERMINAL_KEY: process.env.TERMINAL_KEY || 'testkey12345',
-	NODE_ENV: 'test'
+	TERMINAL_KEY: process.env.TERMINAL_KEY || 'test-automation-key-12345',
+	NODE_ENV: 'test',
+	// Default to test server (no SSL) unless USE_SSL is set
+	USE_SSL: process.env.USE_SSL || 'false'
 };
 
 // Spawn the Playwright process

@@ -125,10 +125,23 @@ export class GitHubAuthProvider extends AuthProvider {
 				})
 			});
 
+			if (!tokenResponse.ok) {
+				logger.error('AUTH', `GitHub OAuth token exchange failed with status ${tokenResponse.status}`);
+				return null;
+			}
+
 			const tokenData = await tokenResponse.json();
 
-			if (tokenData.error) {
-				logger.error('AUTH', 'GitHub OAuth token exchange failed:', tokenData.error);
+			if (tokenData.error || tokenData.error_description) {
+				logger.error('AUTH', 'GitHub OAuth token exchange failed:', {
+					error: tokenData.error,
+					description: tokenData.error_description
+				});
+				return null;
+			}
+
+			if (!tokenData.access_token) {
+				logger.error('AUTH', 'GitHub OAuth token exchange succeeded but no access_token received');
 				return null;
 			}
 
@@ -136,22 +149,59 @@ export class GitHubAuthProvider extends AuthProvider {
 			const userResponse = await fetch('https://api.github.com/user', {
 				headers: {
 					Authorization: `token ${tokenData.access_token}`,
-					'User-Agent': 'Dispatch-App'
+					'User-Agent': 'Dispatch-App',
+					Accept: 'application/json'
 				}
 			});
+
+			if (!userResponse.ok) {
+				logger.error('AUTH', `GitHub user info request failed with status ${userResponse.status}`);
+				return null;
+			}
 
 			const userData = await userResponse.json();
 
-			// Get user email
-			const emailResponse = await fetch('https://api.github.com/user/emails', {
-				headers: {
-					Authorization: `token ${tokenData.access_token}`,
-					'User-Agent': 'Dispatch-App'
-				}
-			});
+			if (!userData.id || !userData.login) {
+				logger.error('AUTH', 'GitHub user data incomplete:', userData);
+				return null;
+			}
 
-			const emailData = await emailResponse.json();
-			const primaryEmail = emailData.find((e) => e.primary)?.email || userData.email;
+			// Get user email - this may fail if scope is insufficient
+			let primaryEmail = userData.email; // Fallback to public email
+
+			try {
+				const emailResponse = await fetch('https://api.github.com/user/emails', {
+					headers: {
+						Authorization: `token ${tokenData.access_token}`,
+						'User-Agent': 'Dispatch-App',
+						Accept: 'application/json'
+					}
+				});
+
+				if (emailResponse.ok) {
+					const emailData = await emailResponse.json();
+
+					// Validate that emailData is an array
+					if (Array.isArray(emailData) && emailData.length > 0) {
+						const primaryEmailObj = emailData.find((e) => e.primary);
+						if (primaryEmailObj && primaryEmailObj.email) {
+							primaryEmail = primaryEmailObj.email;
+						} else if (emailData[0]?.email) {
+							// Fall back to first email if no primary
+							primaryEmail = emailData[0].email;
+						}
+					} else {
+						logger.warn('AUTH', 'GitHub emails endpoint returned non-array data:', emailData);
+					}
+				} else {
+					logger.warn(
+						'AUTH',
+						`GitHub emails endpoint failed with status ${emailResponse.status} - using public email`
+					);
+				}
+			} catch (emailError) {
+				logger.warn('AUTH', 'Failed to fetch GitHub user emails, using public email:', emailError.message);
+			}
 
 			return {
 				id: `github:${userData.id}`,

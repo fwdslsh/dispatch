@@ -14,110 +14,96 @@
 	 */
 	let { settingsViewModel } = $props();
 
-	// Get OAuth settings using getter methods
-	let oauthClientIdSetting = $derived.by(() => {
-		return settingsViewModel.getSetting('oauth_client_id');
-	});
+	// Get authentication category (reactive via $state proxy)
+	let authCategory = $derived(settingsViewModel.categories.authentication || {});
 
-	let oauthClientSecretSetting = $derived.by(() => {
-		return settingsViewModel.getSetting('oauth_client_secret');
-	});
+	// Setting metadata for SettingField components
+	const oauthClientIdSetting = {
+		key: 'oauth_client_id',
+		display_name: 'OAuth Client ID',
+		description: 'Client ID from your OAuth provider',
+		type: 'text',
+		is_required: false
+	};
 
-	let oauthRedirectUriSetting = $derived.by(() => {
-		return settingsViewModel.getSetting('oauth_redirect_uri');
-	});
+	const oauthClientSecretSetting = {
+		key: 'oauth_client_secret',
+		display_name: 'OAuth Client Secret',
+		description: 'Client secret from your OAuth provider',
+		type: 'password',
+		is_required: false
+	};
 
-	let oauthScopeSetting = $derived.by(() => {
-		return settingsViewModel.getSetting('oauth_scope');
-	});
+	const oauthRedirectUriSetting = {
+		key: 'oauth_redirect_uri',
+		display_name: 'OAuth Redirect URI',
+		description: 'Redirect URI registered with your OAuth provider',
+		type: 'url',
+		is_required: false
+	};
+
+	const oauthScopeSetting = {
+		key: 'oauth_scope',
+		display_name: 'OAuth Scope',
+		description: 'Space-separated list of OAuth scopes',
+		type: 'text',
+		is_required: false
+	};
 
 	// Current values with pending changes
-	let clientIdValue = $derived.by(() => {
-		if (!oauthClientIdSetting) return '';
-		return settingsViewModel.getCurrentValue('oauth_client_id');
-	});
-
-	let clientSecretValue = $derived.by(() => {
-		if (!oauthClientSecretSetting) return '';
-		return settingsViewModel.getCurrentValue('oauth_client_secret');
-	});
-
-	let redirectUriValue = $derived.by(() => {
-		if (!oauthRedirectUriSetting) return '';
-		return settingsViewModel.getCurrentValue('oauth_redirect_uri');
-	});
-
-	let scopeValue = $derived.by(() => {
-		if (!oauthScopeSetting) return '';
-		return settingsViewModel.getCurrentValue('oauth_scope');
-	});
+	let clientIdValue = $derived(authCategory.oauth_client_id || '');
+	let clientSecretValue = $derived(authCategory.oauth_client_secret || '');
+	let redirectUriValue = $derived(authCategory.oauth_redirect_uri || '');
+	let scopeValue = $derived(authCategory.oauth_scope || '');
 
 	// Validation errors
-	let clientIdErrors = $derived.by(() => {
-		return settingsViewModel.getValidationErrors('oauth_client_id');
-	});
-
-	let clientSecretErrors = $derived.by(() => {
-		return settingsViewModel.getValidationErrors('oauth_client_secret');
-	});
-
-	let redirectUriErrors = $derived.by(() => {
-		return settingsViewModel.getValidationErrors('oauth_redirect_uri');
-	});
-
-	let scopeErrors = $derived.by(() => {
-		return settingsViewModel.getValidationErrors('oauth_scope');
-	});
+	let clientIdErrors = $derived(settingsViewModel.getFieldErrors('authentication', 'oauth_client_id'));
+	let clientSecretErrors = $derived(settingsViewModel.getFieldErrors('authentication', 'oauth_client_secret'));
+	let redirectUriErrors = $derived(settingsViewModel.getFieldErrors('authentication', 'oauth_redirect_uri'));
+	let scopeErrors = $derived(settingsViewModel.getFieldErrors('authentication', 'oauth_scope'));
 
 	// Check if any OAuth settings have errors
-	let hasErrors = $derived.by(() => {
-		return (
-			clientIdErrors.length > 0 ||
-			clientSecretErrors.length > 0 ||
-			redirectUriErrors.length > 0 ||
-			scopeErrors.length > 0
-		);
-	});
+	let hasErrors = $derived(
+		clientIdErrors.length > 0 ||
+		clientSecretErrors.length > 0 ||
+		redirectUriErrors.length > 0 ||
+		scopeErrors.length > 0
+	);
 
-	// Check if any OAuth settings have changes
-	let hasChanges = $derived.by(() => {
-		return (
-			settingsViewModel.hasChanges('oauth_client_id') ||
-			settingsViewModel.hasChanges('oauth_client_secret') ||
-			settingsViewModel.hasChanges('oauth_redirect_uri') ||
-			settingsViewModel.hasChanges('oauth_scope')
-		);
-	});
+	// Check if category has changes
+	let hasChanges = $derived(settingsViewModel.categoryHasChanges('authentication'));
 
 	// Handle input changes
 	function handleInput(settingKey, event) {
 		const value = event.target.value;
-		settingsViewModel.updateSetting(settingKey, value);
+		authCategory[settingKey] = value;
+		settingsViewModel.validateField('authentication', settingKey, value);
 	}
 
 	// Set default redirect URI using Model utility
 	function useDefaultRedirectUri() {
 		const defaultUri = generateExampleRedirectUri();
-		settingsViewModel.updateSetting('oauth_redirect_uri', defaultUri);
+		authCategory.oauth_redirect_uri = defaultUri;
+		settingsViewModel.validateField('authentication', 'oauth_redirect_uri', defaultUri);
 	}
 
 	// OAuth provider selection
 	let selectedProvider = $state('custom');
 
 	// Get current provider configuration from Model
-	let providerConfig = $derived.by(() => {
-		return OAuthProviders[selectedProvider];
-	});
+	let providerConfig = $derived(OAuthProviders[selectedProvider]);
 
 	// Set common scope
 	function setCommonScope(scope) {
-		settingsViewModel.updateSetting('oauth_scope', scope);
+		authCategory.oauth_scope = scope;
+		settingsViewModel.validateField('authentication', 'oauth_scope', scope);
 	}
 
 	// Use provider default scope
 	function useProviderDefaultScope() {
 		if (providerConfig.defaultScopes) {
-			settingsViewModel.updateSetting('oauth_scope', providerConfig.defaultScopes);
+			authCategory.oauth_scope = providerConfig.defaultScopes;
+			settingsViewModel.validateField('authentication', 'oauth_scope', providerConfig.defaultScopes);
 		}
 	}
 
@@ -174,98 +160,90 @@
 		</div>
 
 		<!-- OAuth Client ID -->
-		{#if oauthClientIdSetting}
-			<SettingField
-				setting={oauthClientIdSetting}
-				value={clientIdValue}
-				errors={clientIdErrors}
-				hasChanges={settingsViewModel.hasChanges('oauth_client_id')}
-				onInput={(e) => handleInput('oauth_client_id', e)}
-				placeholder="Enter OAuth client ID"
-				testId="oauth-client-id-input"
-			/>
-		{/if}
+		<SettingField
+			setting={oauthClientIdSetting}
+			value={clientIdValue}
+			errors={clientIdErrors}
+			hasChanges={hasChanges}
+			onInput={(e) => handleInput('oauth_client_id', e)}
+			placeholder="Enter OAuth client ID"
+			testId="oauth-client-id-input"
+		/>
 
 		<!-- OAuth Client Secret -->
-		{#if oauthClientSecretSetting}
-			<SettingField
-				setting={oauthClientSecretSetting}
-				value={clientSecretValue}
-				errors={clientSecretErrors}
-				hasChanges={settingsViewModel.hasChanges('oauth_client_secret')}
-				onInput={(e) => handleInput('oauth_client_secret', e)}
-				type="password"
-				placeholder="Enter OAuth client secret"
-				autocomplete="new-password"
-				testId="oauth-client-secret-input"
-			/>
-		{/if}
+		<SettingField
+			setting={oauthClientSecretSetting}
+			value={clientSecretValue}
+			errors={clientSecretErrors}
+			hasChanges={hasChanges}
+			onInput={(e) => handleInput('oauth_client_secret', e)}
+			type="password"
+			placeholder="Enter OAuth client secret"
+			autocomplete="new-password"
+			testId="oauth-client-secret-input"
+		/>
 
 		<!-- OAuth Redirect URI -->
-		{#if oauthRedirectUriSetting}
-			<div class="redirect-uri-field">
-				<SettingField
-					setting={oauthRedirectUriSetting}
-					value={redirectUriValue}
-					errors={redirectUriErrors}
-					hasChanges={settingsViewModel.hasChanges('oauth_redirect_uri')}
-					onInput={(e) => handleInput('oauth_redirect_uri', e)}
-					type="url"
-					placeholder="https://your-domain.com/auth/callback"
-					testId="oauth-redirect-uri-input"
+		<div class="redirect-uri-field">
+			<SettingField
+				setting={oauthRedirectUriSetting}
+				value={redirectUriValue}
+				errors={redirectUriErrors}
+				hasChanges={hasChanges}
+				onInput={(e) => handleInput('oauth_redirect_uri', e)}
+				type="url"
+				placeholder="https://your-domain.com/auth/callback"
+				testId="oauth-redirect-uri-input"
+			/>
+
+			<div class="field-actions">
+				<Button
+					type="button"
+					variant="secondary"
+					onclick={useDefaultRedirectUri}
+					ariaLabel="Use default redirect URI for this domain"
+					text="Use Default"
 				/>
-
-				<div class="field-actions">
-					<Button
-						type="button"
-						variant="secondary"
-						onclick={useDefaultRedirectUri}
-						ariaLabel="Use default redirect URI for this domain"
-						text="Use Default"
-					/>
-				</div>
-
-				<div class="setting-helper">
-					<span class="helper-text">
-						Example: <code>{generateExampleRedirectUri()}</code>
-					</span>
-				</div>
 			</div>
-		{/if}
+
+			<div class="setting-helper">
+				<span class="helper-text">
+					Example: <code>{generateExampleRedirectUri()}</code>
+				</span>
+			</div>
+		</div>
 
 		<!-- OAuth Scope -->
-		{#if oauthScopeSetting}
-			<div class="scope-field">
-				<SettingField
-					setting={oauthScopeSetting}
-					value={scopeValue}
-					errors={scopeErrors}
-					hasChanges={settingsViewModel.hasChanges('oauth_scope')}
-					onInput={(e) => handleInput('oauth_scope', e)}
-					placeholder="read write"
-					testId="oauth-scope-input"
-				/>
+		<div class="scope-field">
+			<SettingField
+				setting={oauthScopeSetting}
+				value={scopeValue}
+				errors={scopeErrors}
+				hasChanges={hasChanges}
+				onInput={(e) => handleInput('oauth_scope', e)}
+				placeholder="read write"
+				testId="oauth-scope-input"
+			/>
 
-				<!-- Provider-specific Scopes Helper -->
-				<div class="setting-helper">
-					<span class="helper-label">{providerConfig.name} scopes:</span>
-					<div class="scope-buttons">
-						{#each providerConfig.scopeOptions as scope}
-							<Button
-								type="button"
-								variant="ghost"
-								size="small"
-								onclick={() => setCommonScope(scope.value)}
-								ariaLabel="Set scope to: {scope.value}"
-								text={scope.label}
-								augmented="none"
-								data-testid="scope-button-{scope.label}"
-							/>
-						{/each}
-					</div>
+			<!-- Provider-specific Scopes Helper -->
+			<div class="setting-helper">
+				<span class="helper-label">{providerConfig.name} scopes:</span>
+				<div class="scope-buttons">
+					{#each providerConfig.scopeOptions as scope}
+						<Button
+							type="button"
+							variant="ghost"
+							size="small"
+							onclick={() => setCommonScope(scope.value)}
+							ariaLabel="Set scope to: {scope.value}"
+							text={scope.label}
+							augmented="none"
+							data-testid="scope-button-{scope.label}"
+						/>
+					{/each}
 				</div>
 			</div>
-		{/if}
+		</div>
 
 		<!-- OAuth Configuration Notice -->
 		<div class="oauth-notice">

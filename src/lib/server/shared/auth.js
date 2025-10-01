@@ -11,6 +11,7 @@ export class AuthService {
 	 */
 	constructor() {
 		this.cachedTerminalKey = null;
+		this.multiAuthManager = null;
 		this.instanceId = Date.now().toString(36) + Math.random().toString(36).slice(2);
 	}
 
@@ -123,6 +124,58 @@ export class AuthService {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Set MultiAuthManager instance for OAuth session validation
+	 * Should be called during application startup
+	 *
+	 * @param {MultiAuthManager} multiAuthManager - MultiAuthManager instance
+	 */
+	setMultiAuthManager(multiAuthManager) {
+		this.multiAuthManager = multiAuthManager;
+		logger.info('AUTH', 'MultiAuthManager wired to AuthService', { instanceId: this.instanceId });
+	}
+
+	/**
+	 * Validate authentication using multi-strategy approach
+	 * Supports both terminal key (sync) and OAuth session (async)
+	 *
+	 * Strategy order:
+	 * 1. Terminal key validation (sync, fast path)
+	 * 2. OAuth session validation (async, DB lookup)
+	 *
+	 * @param {string} token - Authentication token (terminal key or session ID)
+	 * @returns {Promise<{valid: boolean, provider?: string, userId?: string}>}
+	 */
+	async validateAuth(token) {
+		if (!token) {
+			return { valid: false };
+		}
+
+		// Strategy 1: Terminal key validation (sync, fast path)
+		if (this.validateKey(token)) {
+			return { valid: true, provider: 'terminal_key' };
+		}
+
+		// Strategy 2: OAuth session validation (async, DB lookup)
+		if (this.multiAuthManager) {
+			try {
+				const session = await this.multiAuthManager.validateSession(token);
+				if (session) {
+					// validateSession() already checks expiration
+					return {
+						valid: true,
+						provider: session.provider,
+						userId: session.userId
+					};
+				}
+			} catch (error) {
+				logger.warn('AUTH', 'OAuth session validation failed:', error.message);
+			}
+		}
+
+		return { valid: false };
 	}
 }
 

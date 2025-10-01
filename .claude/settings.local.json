@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(find:*)",
       "Bash(git checkout:*)",
@@ -16,8 +15,10 @@
       "Bash(npm run test:*)",
       "Bash(npm run check:*)",
       "Bash(curl:*)",
-      "Bash(sqlite3:*)"
-    ]
+      "Bash(sqlite3:*)",
+      "Bash(timeout 30 npm run build:*)"
+    ],
+    "defaultMode": "bypassPermissions"
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [

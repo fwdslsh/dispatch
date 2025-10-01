@@ -44,7 +44,7 @@ export async function GET() {
 				status: 'authenticated'
 			});
 		} else {
-			logger.warn('[CLAUDE]', 'Claude OAuth token missing or expired', { expiresAt: oauth?.expiresAt, now: Date.now() });
+			logger.warn('CLAUDE', 'Claude OAuth token missing or expired', { expiresAt: oauth?.expiresAt, now: Date.now() });
 
 			return json({
 				authenticated: false,

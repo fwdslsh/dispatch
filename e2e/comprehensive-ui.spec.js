@@ -5,7 +5,7 @@
 
 import { test, expect } from '@playwright/test';
 import {
-	navigateToWorkspace,
+	navigateToWorkspaceWithOnboardingComplete,
 	setupApiMocks,
 	safeInteract,
 	takeTestScreenshot,
@@ -15,8 +15,8 @@ import {
 
 test.describe('Dispatch Core UI Functionality', () => {
 	test.beforeEach(async ({ page }) => {
-		// Setup fresh environment for each test
-		await navigateToWorkspace(page);
+		// Setup fresh environment with onboarding complete
+		await navigateToWorkspaceWithOnboardingComplete(page);
 	});
 
 	test('should load workspace and display main interface', async ({ page }) => {
@@ -169,7 +169,7 @@ test.describe('Dispatch Mobile UI', () => {
 	});
 
 	test.beforeEach(async ({ page }) => {
-		await navigateToWorkspace(page);
+		await navigateToWorkspaceWithOnboardingComplete(page);
 	});
 
 	test('should be usable on mobile devices', async ({ page }) => {
@@ -194,7 +194,7 @@ test.describe('Dispatch Mobile UI', () => {
 
 test.describe('Dispatch Visual Regression', () => {
 	test.beforeEach(async ({ page }) => {
-		await navigateToWorkspace(page);
+		await navigateToWorkspaceWithOnboardingComplete(page);
 	});
 
 	test('should maintain consistent visual appearance', async ({ page }) => {

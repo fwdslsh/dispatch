@@ -31,10 +31,11 @@
 
 ## Build, Test, Run
 
-- `npm run dev` — start SvelteKit dev server with test key (port 5173)
+- `npm run dev` — start SvelteKit dev server with test key (port 5173, SSL enabled)
 - `npm run dev:local` — dev server using `$HOME/code` as workspace root
 - `npm run dev:no-key` — dev server without authentication
 - `npm run dev:tunnel` — dev server with LocalTunnel enabled
+- `npm run dev:test` — **automated testing server** (port 7173, no SSL, known key `test-automation-key-12345`)
 - `npm run start` — production build + start with LocalTunnel (port 5170)
 - `npm run build` — build for production.
 - `npm run preview` — preview built app.
@@ -47,6 +48,32 @@
 - `npm run docker:start` — start Docker without rebuild
 - `npm run docker:stop` — stop Docker containers
 - Optional: `docker-compose up` to run the containerized stack.
+
+### UI Testing Server
+
+For automated UI testing (Selenium, Cypress, Playwright, etc.), use the dedicated test server:
+
+```bash
+npm run dev:test
+```
+
+**Configuration**:
+- URL: `http://localhost:7173` (no SSL certificate warnings)
+- Terminal Key: `test-automation-key-12345` (known/predictable for automation)
+- Port: 7173 (dedicated test port, avoids conflicts)
+- Storage: Temporary directories in `/tmp` (fresh state, auto-cleanup on reboot)
+
+**Authentication Options**:
+1. Pre-inject localStorage (recommended):
+   ```javascript
+   await page.evaluate(() => {
+     localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
+     localStorage.setItem('authSessionId', 'test-session-' + Date.now());
+     localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+   });
+   await page.goto('http://localhost:7173');
+   ```
+2. Enter via UI: Navigate and fill password input with `test-automation-key-12345`
 
 Node >= 22 is required.
 

@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import ClaudeSettings from '$lib/client/claude/ClaudeSettings.svelte';
-	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 
 	/**
 	 * Claude Default Settings Component

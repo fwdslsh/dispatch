@@ -1,22 +1,11 @@
 import { test, expect } from '@playwright/test';
-
-// Test configuration
-const TEST_KEY = 'testkey12345';
-const BASE_URL = 'http://localhost:5174';
+import { navigateToWorkspaceWithOnboardingComplete, TEST_KEY, BASE_URL } from './core-helpers.js';
 
 test.describe('WindowManager Session Management', () => {
 	// Helper to authenticate
 	async function authenticate(page) {
-		// Set auth token in localStorage before navigation
-		await page.addInitScript(() => {
-			localStorage.setItem('dispatch-auth-key', 'testkey12345');
-		});
-
-		// Navigate to workspace
-		await page.goto(`${BASE_URL}/workspace`);
-
-		// Wait for page to load
-		await page.waitForLoadState('networkidle');
+		// Use the new pre-authentication helper
+		await navigateToWorkspaceWithOnboardingComplete(page);
 		console.log('✓ Authenticated and navigated to workspace');
 	}
 

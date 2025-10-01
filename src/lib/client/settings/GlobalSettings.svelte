@@ -12,71 +12,37 @@
 	 */
 	let { settingsViewModel } = $props();
 
-	// Reactive state for workspace and ui categories
-	let workspaceCategory = $derived.by(() => {
-		return settingsViewModel.settingsByCategory.find(cat => cat.id === 'workspace');
-	});
+	// Direct access to category objects (reactive via $state proxy)
+	let globalSettings = $derived(settingsViewModel.categories.global || {});
+	let workspaceSettings = $derived(settingsViewModel.categories.workspace || {});
 
-	let uiCategory = $derived.by(() => {
-		return settingsViewModel.settingsByCategory.find(cat => cat.id === 'ui');
-	});
+	// Check for changes
+	let hasChanges = $derived(
+		settingsViewModel.categoryHasChanges('global') ||
+		settingsViewModel.categoryHasChanges('workspace')
+	);
 
-	let systemCategory = $derived.by(() => {
-		return settingsViewModel.settingsByCategory.find(cat => cat.id === 'system');
-	});
+	let canSave = $derived(hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving);
 
-	// Check for changes across all global categories
-	let hasChanges = $derived.by(() => {
-		return (
-			settingsViewModel.categoryHasChanges('workspace') ||
-			settingsViewModel.categoryHasChanges('ui') ||
-			settingsViewModel.categoryHasChanges('system')
-		);
-	});
-
-	let canSave = $derived.by(() => {
-		return hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving;
-	});
-
-	// Get settings for each category using getter method
-	let workspaceSettings = $derived.by(() => {
-		return settingsViewModel.getSettingsByCategory('workspace');
-	});
-
-	let uiSettings = $derived.by(() => {
-		return settingsViewModel.getSettingsByCategory('ui');
-	});
-
-	let systemSettings = $derived.by(() => {
-		return settingsViewModel.getSettingsByCategory('system');
-	});
-
-	// Handle input changes for different setting types
-	function handleInput(settingKey, event) {
+	// Handle input with validation
+	function handleInput(category, field, event) {
 		const value = event.target.value;
-		settingsViewModel.updateSetting(settingKey, value);
+		settingsViewModel.validateField(category, field, value);
 	}
 
-	function handleCheckbox(settingKey, event) {
+	function handleCheckbox(category, field, event) {
 		const value = event.target.checked;
-		settingsViewModel.updateSetting(settingKey, value);
+		settingsViewModel.validateField(category, field, value);
 	}
 
-	function handleSelect(settingKey, event) {
-		const value = event.target.value;
-		settingsViewModel.updateSetting(settingKey, value);
-	}
-
-	// Handle saving all global settings
+	// Handle saving settings
 	async function handleSave() {
 		try {
-			const categoriesToSave = [];
-			if (settingsViewModel.categoryHasChanges('workspace')) categoriesToSave.push('workspace');
-			if (settingsViewModel.categoryHasChanges('ui')) categoriesToSave.push('ui');
-			if (settingsViewModel.categoryHasChanges('system')) categoriesToSave.push('system');
-
-			for (const category of categoriesToSave) {
-				await settingsViewModel.saveCategory(category);
+			if (settingsViewModel.categoryHasChanges('global')) {
+				await settingsViewModel.saveCategory('global');
+			}
+			if (settingsViewModel.categoryHasChanges('workspace')) {
+				await settingsViewModel.saveCategory('workspace');
 			}
 		} catch (error) {
 			console.error('Failed to save global settings:', error);
@@ -85,25 +51,12 @@
 
 	// Handle discarding changes
 	function handleDiscard() {
-		// Find all settings in global categories and discard their changes
-		[...workspaceSettings, ...uiSettings, ...systemSettings].forEach(setting => {
-			settingsViewModel.discardSetting(setting.key);
-		});
-	}
-
-	// Helper function to get current value with pending changes
-	function getCurrentValue(settingKey) {
-		return settingsViewModel.getCurrentValue(settingKey);
-	}
-
-	// Helper function to get validation errors
-	function getValidationErrors(settingKey) {
-		return settingsViewModel.getValidationErrors(settingKey);
-	}
-
-	// Helper function to check if setting has changes
-	function hasSettingChanges(settingKey) {
-		return settingsViewModel.hasChanges(settingKey);
+		if (settingsViewModel.categoryHasChanges('global')) {
+			settingsViewModel.discardCategory('global');
+		}
+		if (settingsViewModel.categoryHasChanges('workspace')) {
+			settingsViewModel.discardCategory('workspace');
+		}
 	}
 </script>
 
@@ -117,269 +70,77 @@
 	</div>
 
 	<div class="settings-content">
+		<!-- Global Settings Section -->
+		<div class="settings-section">
+			<h4 class="section-title">Global Settings</h4>
+			<div class="settings-group">
+				<div class="setting-item">
+					<label for="theme" class="setting-label">Theme</label>
+					<div class="setting-description">Application color theme</div>
+					<select
+						id="theme"
+						class="setting-select"
+						bind:value={globalSettings.theme}
+						oninput={(e) => handleInput('global', 'theme', e)}
+					>
+						<option value="dark">Dark</option>
+						<option value="light">Light</option>
+						<option value="retro">Retro</option>
+					</select>
+					{#if settingsViewModel.getFieldErrors('global', 'theme').length > 0}
+						<div class="error-message">
+							{settingsViewModel.getFieldErrors('global', 'theme').join(', ')}
+						</div>
+					{/if}
+				</div>
+
+				<div class="setting-item">
+					<label for="defaultWorkspaceDirectory" class="setting-label">
+						Default Workspace Directory
+					</label>
+					<div class="setting-description">Default path for new workspaces</div>
+					<input
+						id="defaultWorkspaceDirectory"
+						type="text"
+						class="setting-input"
+						bind:value={globalSettings.defaultWorkspaceDirectory}
+						oninput={(e) => handleInput('global', 'defaultWorkspaceDirectory', e)}
+						placeholder="/workspace"
+					/>
+					{#if settingsViewModel.getFieldErrors('global', 'defaultWorkspaceDirectory').length > 0}
+						<div class="error-message">
+							{settingsViewModel.getFieldErrors('global', 'defaultWorkspaceDirectory').join(', ')}
+						</div>
+					{/if}
+				</div>
+			</div>
+		</div>
+
 		<!-- Workspace Settings Section -->
-		{#if workspaceCategory && workspaceSettings.length > 0}
+		{#if Object.keys(workspaceSettings).length > 0}
 			<div class="settings-section">
 				<h4 class="section-title">Workspace Configuration</h4>
 				<div class="settings-group">
-					{#each workspaceSettings as setting}
-						{@const currentValue = getCurrentValue(setting.key)}
-						{@const validationErrors = getValidationErrors(setting.key)}
-						{@const hasErrors = validationErrors.length > 0}
-						{@const hasChanges = hasSettingChanges(setting.key)}
-
+					{#if workspaceSettings.envVariables !== undefined}
 						<div class="setting-item">
-							<label for={setting.key} class="setting-label">
-								{setting.display_name}
-								{#if setting.is_required}
-									<span class="required-indicator" aria-label="Required">*</span>
-								{/if}
-							</label>
-
-							{#if setting.description}
-								<div class="setting-description">{setting.description}</div>
-							{/if}
-
-							{#if setting.type === 'STRING' || setting.type === 'PATH'}
-								<input
-									id={setting.key}
-									type="text"
-									class="setting-input"
-									class:input-error={hasErrors}
-									placeholder={setting.placeholder || ''}
-									value={currentValue || ''}
-									oninput={(e) => handleInput(setting.key, e)}
-									data-testid="{setting.key}-input"
-									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
-								/>
-							{:else if setting.type === 'NUMBER'}
-								<input
-									id={setting.key}
-									type="number"
-									class="setting-input"
-									class:input-error={hasErrors}
-									placeholder={setting.placeholder || ''}
-									value={currentValue || ''}
-									min={setting.validation?.min}
-									max={setting.validation?.max}
-									oninput={(e) => handleInput(setting.key, e)}
-									data-testid="{setting.key}-input"
-									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
-								/>
-							{:else if setting.type === 'BOOLEAN'}
-								<label class="checkbox-wrapper">
-									<input
-										id={setting.key}
-										type="checkbox"
-										class="setting-checkbox"
-										checked={currentValue === 'true' || currentValue === true}
-										onchange={(e) => handleCheckbox(setting.key, e)}
-										data-testid="{setting.key}-checkbox"
-									/>
-									<span class="checkbox-label">{setting.description || 'Enable'}</span>
-								</label>
-							{/if}
-
-							<!-- Validation Errors -->
-							{#if hasErrors}
-								<div class="error-message" id="{setting.key}-error" data-testid="{setting.key}-error">
-									{#each validationErrors as error}
-										<div class="error-item">{error}</div>
-									{/each}
-								</div>
-							{/if}
-
-							<!-- Environment Variable Fallback Info -->
-							{#if setting.env_var_name && !hasChanges}
-								<div class="env-fallback" data-testid="{setting.key}-env-fallback">
-									<div class="env-icon">🔧</div>
-									<div class="env-content">
-										<strong>Environment Variable:</strong>
-										Currently using value from <code>{setting.env_var_name}</code> environment
-										variable. Set a value here to override the environment setting.
-									</div>
+							<label class="setting-label">Environment Variables</label>
+							<div class="setting-description">
+								Environment variables for workspace sessions (JSON format)
+							</div>
+							<textarea
+								class="setting-textarea"
+								value={JSON.stringify(workspaceSettings.envVariables, null, 2)}
+								oninput={(e) => handleInput('workspace', 'envVariables', e)}
+								placeholder="&#123;&#125;"
+								rows="4"
+							></textarea>
+							{#if settingsViewModel.getFieldErrors('workspace', 'envVariables').length > 0}
+								<div class="error-message">
+									{settingsViewModel.getFieldErrors('workspace', 'envVariables').join(', ')}
 								</div>
 							{/if}
 						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
-
-		<!-- UI Settings Section -->
-		{#if uiCategory && uiSettings.length > 0}
-			<div class="settings-section">
-				<h4 class="section-title">UI Preferences</h4>
-				<div class="settings-group">
-					{#each uiSettings as setting}
-						{@const currentValue = getCurrentValue(setting.key)}
-						{@const validationErrors = getValidationErrors(setting.key)}
-						{@const hasErrors = validationErrors.length > 0}
-						{@const hasChanges = hasSettingChanges(setting.key)}
-
-						<div class="setting-item">
-							<label for={setting.key} class="setting-label">
-								{setting.display_name}
-								{#if setting.is_required}
-									<span class="required-indicator" aria-label="Required">*</span>
-								{/if}
-							</label>
-
-							{#if setting.description}
-								<div class="setting-description">{setting.description}</div>
-							{/if}
-
-							{#if setting.options && setting.options.length > 0}
-								<select
-									id={setting.key}
-									class="setting-select"
-									class:input-error={hasErrors}
-									value={currentValue || setting.default_value}
-									onchange={(e) => handleSelect(setting.key, e)}
-									data-testid="{setting.key}-select"
-									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
-								>
-									{#each setting.options as option}
-										<option value={option.value}>{option.label}</option>
-									{/each}
-								</select>
-							{:else if setting.type === 'BOOLEAN'}
-								<label class="checkbox-wrapper">
-									<input
-										id={setting.key}
-										type="checkbox"
-										class="setting-checkbox"
-										checked={currentValue === 'true' || currentValue === true}
-										onchange={(e) => handleCheckbox(setting.key, e)}
-										data-testid="{setting.key}-checkbox"
-									/>
-									<span class="checkbox-label">{setting.description || 'Enable'}</span>
-								</label>
-							{:else}
-								<input
-									id={setting.key}
-									type="text"
-									class="setting-input"
-									class:input-error={hasErrors}
-									placeholder={setting.placeholder || ''}
-									value={currentValue || ''}
-									oninput={(e) => handleInput(setting.key, e)}
-									data-testid="{setting.key}-input"
-									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
-								/>
-							{/if}
-
-							<!-- Validation Errors -->
-							{#if hasErrors}
-								<div class="error-message" id="{setting.key}-error" data-testid="{setting.key}-error">
-									{#each validationErrors as error}
-										<div class="error-item">{error}</div>
-									{/each}
-								</div>
-							{/if}
-
-							<!-- Environment Variable Fallback Info -->
-							{#if setting.env_var_name && !hasChanges}
-								<div class="env-fallback" data-testid="{setting.key}-env-fallback">
-									<div class="env-icon">🔧</div>
-									<div class="env-content">
-										<strong>Environment Variable:</strong>
-										Currently using value from <code>{setting.env_var_name}</code> environment
-										variable.
-									</div>
-								</div>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
-
-		<!-- System Settings Section -->
-		{#if systemCategory && systemSettings.length > 0}
-			<div class="settings-section">
-				<h4 class="section-title">System Configuration</h4>
-				<div class="settings-group">
-					{#each systemSettings as setting}
-						{@const currentValue = getCurrentValue(setting.key)}
-						{@const validationErrors = getValidationErrors(setting.key)}
-						{@const hasErrors = validationErrors.length > 0}
-						{@const hasChanges = hasSettingChanges(setting.key)}
-
-						<div class="setting-item">
-							<label for={setting.key} class="setting-label">
-								{setting.display_name}
-								{#if setting.is_required}
-									<span class="required-indicator" aria-label="Required">*</span>
-								{/if}
-							</label>
-
-							{#if setting.description}
-								<div class="setting-description">{setting.description}</div>
-							{/if}
-
-							{#if setting.type === 'BOOLEAN'}
-								<label class="checkbox-wrapper">
-									<input
-										id={setting.key}
-										type="checkbox"
-										class="setting-checkbox"
-										checked={currentValue === 'true' || currentValue === true}
-										onchange={(e) => handleCheckbox(setting.key, e)}
-										data-testid="{setting.key}-checkbox"
-									/>
-									<span class="checkbox-label">{setting.description || 'Enable'}</span>
-								</label>
-							{:else if setting.type === 'NUMBER'}
-								<input
-									id={setting.key}
-									type="number"
-									class="setting-input"
-									class:input-error={hasErrors}
-									placeholder={setting.placeholder || ''}
-									value={currentValue || ''}
-									min={setting.validation?.min}
-									max={setting.validation?.max}
-									oninput={(e) => handleInput(setting.key, e)}
-									data-testid="{setting.key}-input"
-									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
-								/>
-							{:else}
-								<input
-									id={setting.key}
-									type="text"
-									class="setting-input"
-									class:input-error={hasErrors}
-									placeholder={setting.placeholder || ''}
-									value={currentValue || ''}
-									oninput={(e) => handleInput(setting.key, e)}
-									data-testid="{setting.key}-input"
-									aria-describedby={hasErrors ? `${setting.key}-error` : undefined}
-								/>
-							{/if}
-
-							<!-- Validation Errors -->
-							{#if hasErrors}
-								<div class="error-message" id="{setting.key}-error" data-testid="{setting.key}-error">
-									{#each validationErrors as error}
-										<div class="error-item">{error}</div>
-									{/each}
-								</div>
-							{/if}
-
-							<!-- Environment Variable Fallback Info -->
-							{#if setting.env_var_name && !hasChanges}
-								<div class="env-fallback" data-testid="{setting.key}-env-fallback">
-									<div class="env-icon">🔧</div>
-									<div class="env-content">
-										<strong>Environment Variable:</strong>
-										Currently using value from <code>{setting.env_var_name}</code> environment
-										variable.
-									</div>
-								</div>
-							{/if}
-						</div>
-					{/each}
+					{/if}
 				</div>
 			</div>
 		{/if}

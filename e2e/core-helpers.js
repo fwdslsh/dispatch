@@ -3,17 +3,37 @@
  * Consolidated and standardized test utilities
  */
 
-const TEST_KEY = process.env.TERMINAL_KEY || 'testkey12345';
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+const TEST_KEY = process.env.TERMINAL_KEY || 'test-automation-key-12345';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:7173';
+
+/**
+ * Pre-authenticate user by setting localStorage with terminal key
+ * This bypasses the login form completely
+ * @param {import('@playwright/test').Page} page
+ */
+export async function preAuthenticateUser(page) {
+	await page.addInitScript((testKey) => {
+		// Set authentication key
+		localStorage.setItem('dispatch-auth-key', testKey);
+
+		// Set session info (simulating successful login)
+		localStorage.setItem('authSessionId', `test-session-${Date.now()}`);
+		localStorage.setItem('authExpiresAt', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
+
+		// Mark onboarding as complete
+		localStorage.setItem('onboarding-complete', 'true');
+	}, TEST_KEY);
+
+	console.log(`✓ Pre-authenticated with key: ${TEST_KEY}`);
+}
 
 /**
  * Standard authentication setup for all tests
  * @param {import('@playwright/test').Page} page
+ * @deprecated Use preAuthenticateUser() instead for better reliability
  */
 export async function authenticateUser(page) {
-	await page.addInitScript(() => {
-		localStorage.setItem('dispatch-auth-key', 'testkey12345');
-	});
+	await preAuthenticateUser(page);
 
 	// Mock auth check endpoint
 	await page.route('/api/auth/check**', (route) => {
@@ -30,13 +50,16 @@ export async function authenticateUser(page) {
  * @param {import('@playwright/test').Page} page
  */
 export async function setupFreshTestEnvironment(page) {
-	// Clear all storage
-	await page.addInitScript(() => {
+	// Clear all storage and set up authentication
+	await page.addInitScript((testKey) => {
 		localStorage.clear();
 		sessionStorage.clear();
 
-		// Set test auth key
-		localStorage.setItem('dispatch-auth-key', 'testkey12345');
+		// Set test auth key with full session info
+		localStorage.setItem('dispatch-auth-key', testKey);
+		localStorage.setItem('authSessionId', `test-session-${Date.now()}`);
+		localStorage.setItem('authExpiresAt', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
+		localStorage.setItem('onboarding-complete', 'true');
 
 		// Clear IndexedDB
 		if (window.indexedDB) {
@@ -69,7 +92,7 @@ export async function setupFreshTestEnvironment(page) {
 				});
 			});
 		}
-	});
+	}, TEST_KEY);
 
 	// Clear cookies
 	await page.context().clearCookies();
@@ -291,6 +314,168 @@ export async function waitForActiveSession(page, sessionId) {
 		sessionId,
 		{ timeout: 10000 }
 	);
+}
+
+/**
+ * Complete onboarding via API to bypass onboarding flow in tests
+ * This seeds the database with completed onboarding state
+ * @param {import('@playwright/test').Page} page
+ */
+export async function completeOnboardingViaApi(page) {
+	// Use POST to initialize onboarding as complete
+	await page.request.post(`${BASE_URL}/api/settings/onboarding`, {
+		data: {
+			currentStep: 'complete',
+			completedSteps: ['auth', 'workspace', 'settings', 'complete'],
+			isComplete: true,
+			firstWorkspaceId: '/workspace/test-workspace'
+		}
+	});
+
+	console.log('✓ Onboarding marked as complete via API');
+}
+
+/**
+ * Setup complete test environment with onboarding bypassed
+ * Use this for tests that don't need to test the onboarding flow itself
+ * @param {import('@playwright/test').Page} page
+ */
+export async function setupCompleteTestEnvironment(page) {
+	// First complete onboarding via API
+	await completeOnboardingViaApi(page);
+
+	// Then setup fresh environment (auth, clear storage, etc.)
+	await setupFreshTestEnvironment(page);
+
+	// Mock onboarding as complete for client-side checks
+	await page.addInitScript(() => {
+		localStorage.setItem('onboarding-complete', 'true');
+	});
+
+	console.log('✓ Test environment ready with onboarding complete');
+}
+
+/**
+ * Mock all required API endpoints for workspace testing
+ * @param {import('@playwright/test').Page} page
+ * @param {Object} options - Override default mock data
+ */
+export async function setupWorkspaceTestMocks(page, options = {}) {
+	const defaults = {
+		sessions: [],
+		workspaces: [],
+		onboardingComplete: true
+	};
+
+	const config = { ...defaults, ...options };
+
+	// Mock onboarding as complete
+	await page.route('/api/settings/onboarding**', (route) => {
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				currentStep: 'complete',
+				isComplete: config.onboardingComplete,
+				completedSteps: config.onboardingComplete
+					? ['auth', 'workspace', 'settings', 'complete']
+					: []
+			})
+		});
+	});
+
+	// Mock sessions
+	await page.route('/api/sessions**', (route) => {
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ sessions: config.sessions })
+		});
+	});
+
+	// Mock workspaces
+	await page.route('/api/workspaces**', (route) => {
+		if (route.request().method() === 'GET') {
+			route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({ workspaces: config.workspaces, pagination: { total: config.workspaces.length, limit: 50, offset: 0, hasMore: false } })
+			});
+		} else {
+			route.continue();
+		}
+	});
+
+	// Mock auth check
+	await page.route('/api/auth/check**', (route) => {
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({ authenticated: true })
+		});
+	});
+
+	console.log('✓ Workspace test mocks configured');
+}
+
+/**
+ * Navigate to workspace with onboarding already complete
+ * This is the recommended approach for most workspace tests
+ * @param {import('@playwright/test').Page} page
+ */
+export async function navigateToWorkspaceWithOnboardingComplete(page) {
+	// Pre-authenticate first (sets localStorage)
+	await preAuthenticateUser(page);
+
+	// Setup mocks
+	await setupWorkspaceTestMocks(page);
+
+	// Navigate to workspace
+	await page.goto('/workspace');
+	await waitForWorkspaceReady(page);
+
+	console.log('✓ Navigated to workspace with onboarding complete');
+}
+
+/**
+ * Navigate directly to a route with authentication pre-configured
+ * Use this when you need to test specific pages like /settings or /console
+ * @param {import('@playwright/test').Page} page
+ * @param {string} route - The route to navigate to (e.g., '/settings', '/console')
+ */
+export async function navigateToRouteAuthenticated(page, route) {
+	// Pre-authenticate first
+	await preAuthenticateUser(page);
+
+	// Setup basic mocks
+	await setupWorkspaceTestMocks(page);
+
+	// Navigate to the specified route
+	await page.goto(route);
+	await page.waitForLoadState('domcontentloaded');
+
+	console.log(`✓ Navigated to ${route} with authentication`);
+}
+
+/**
+ * Quick authentication helper for tests that just need auth without full workspace setup
+ * @param {import('@playwright/test').Page} page
+ */
+export async function quickAuth(page) {
+	await preAuthenticateUser(page);
+	await page.route('/api/auth/check**', (route) => {
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				authenticated: true,
+				success: true,
+				sessionId: 'test-session',
+				expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+			})
+		});
+	});
+	console.log('✓ Quick auth configured');
 }
 
 export { TEST_KEY, BASE_URL };

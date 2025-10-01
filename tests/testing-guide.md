@@ -58,8 +58,10 @@ vitest run tests/server/database.test.js
 
 ### End-to-End Tests (Playwright)
 
+**Default Configuration**: E2E tests run against `npm run dev:test` server (port 7173, no SSL) for faster, more reliable testing.
+
 ```bash
-# All E2E tests
+# All E2E tests (uses test server by default)
 npm run test:e2e
 
 # Run with browser UI (for debugging)
@@ -73,7 +75,21 @@ npm run test:e2e -- e2e/session-management-test.spec.js
 
 # Run tests matching pattern
 npm run test:e2e -- --grep "multi-device"
+
+# Run SSL-specific tests (uses SSL server)
+USE_SSL=true npm run test:e2e -- e2e/ssl-tests.spec.js
 ```
+
+**Server Selection**:
+- **Default** (`npm run test:e2e`): Uses `http://localhost:7173` (test server, no SSL)
+- **SSL tests** (`USE_SSL=true npm run test:e2e`): Uses `https://localhost:5173` (SSL server)
+
+**Benefits of Test Server**:
+- ✅ No SSL certificate warnings
+- ✅ Faster test execution
+- ✅ Known authentication key (`test-automation-key-12345`)
+- ✅ Isolated tmp storage
+- ✅ More reliable in CI/CD environments
 
 ### Performance Benchmarks
 
@@ -250,6 +266,51 @@ export function createMockSocket() {
 
 ## Writing E2E Tests
 
+## SSL and Authentication Testing
+
+Most E2E tests run against the test server (`http://localhost:7173`) for speed and reliability. However, some tests require SSL or specific authentication flows.
+
+### SSL-Specific Tests
+
+Tests that must validate SSL/TLS behavior should use the SSL server:
+
+```bash
+# Run SSL-specific tests
+USE_SSL=true npm run test:e2e -- e2e/ssl-tests.spec.js
+```
+
+**When to use SSL tests**:
+- Certificate validation testing
+- HTTPS-specific security features
+- Browser behavior with self-signed certificates
+- Secure WebSocket connections
+
+**Example SSL test**:
+```javascript
+// e2e/ssl-tests.spec.js
+import { test, expect } from '@playwright/test';
+
+test.describe('SSL Certificate Tests', () => {
+  test('should handle self-signed certificate', async ({ page }) => {
+    // This test uses https://localhost:5173 (SSL server)
+    await page.goto('/');
+    expect(page.url()).toContain('https://');
+  });
+});
+```
+
+### Authentication Testing
+
+Default test server uses `test-automation-key-12345`. For testing different authentication scenarios:
+
+```bash
+# Test with custom key
+TERMINAL_KEY=custom-key-123 npm run test:e2e -- e2e/auth-tests.spec.js
+
+# Test with SSL and custom authentication
+USE_SSL=true TERMINAL_KEY=custom-key npm run test:e2e -- e2e/auth-ssl-tests.spec.js
+```
+
 ### Test Structure
 
 E2E tests use Playwright with the test workspace isolation pattern:
@@ -258,8 +319,10 @@ E2E tests use Playwright with the test workspace isolation pattern:
 // e2e/example.spec.js
 import { test, expect } from '@playwright/test';
 
-const TEST_KEY = process.env.TERMINAL_KEY || 'testkey12345';
-const BASE_URL = 'http://localhost:5173';
+// Terminal key matches the test server default
+const TEST_KEY = process.env.TERMINAL_KEY || 'test-automation-key-12345';
+// Base URL is configured in playwright.config.js based on USE_SSL env var
+const BASE_URL = process.env.USE_SSL === 'true' ? 'https://localhost:5173' : 'http://localhost:7173';
 
 test.describe('Feature Name', () => {
 	const testWorkspacePath = '/tmp/test-workspace-unique';
@@ -475,6 +538,8 @@ export function createPerformanceReporter() {
 
 ### Playwright Configuration
 
+The Playwright configuration automatically selects the appropriate server based on the `USE_SSL` environment variable:
+
 ```javascript
 // playwright.config.js
 import { defineConfig, devices } from '@playwright/test';
@@ -489,9 +554,12 @@ export default defineConfig({
 	reporter: [['html'], ['json', { outputFile: 'test-results/results.json' }]],
 
 	use: {
-		baseURL: 'http://localhost:5173',
+		// Use test server (no SSL) by default
+		baseURL: process.env.USE_SSL === 'true' ? 'https://localhost:5173' : 'http://localhost:7173',
 		trace: 'on-first-retry',
-		screenshot: 'only-on-failure'
+		screenshot: 'only-on-failure',
+		// Only ignore HTTPS errors when using SSL server
+		ignoreHTTPSErrors: process.env.USE_SSL === 'true'
 	},
 
 	projects: [
@@ -506,11 +574,64 @@ export default defineConfig({
 	],
 
 	webServer: {
-		command: 'npm run dev',
-		port: 5173,
-		reuseExistingServer: !process.env.CI
+		// Auto-select server based on USE_SSL
+		command: process.env.USE_SSL === 'true' ? 'npm run dev' : 'npm run dev:test',
+		url: process.env.USE_SSL === 'true' ? 'https://localhost:5173' : 'http://localhost:7173',
+		reuseExistingServer: !process.env.CI,
+		timeout: 120 * 1000,
+		ignoreHTTPSErrors: process.env.USE_SSL === 'true'
 	}
 });
+```
+
+**Key Features**:
+- Default: Test server (`http://localhost:7173`) for speed and reliability
+- SSL mode: Development server (`https://localhost:5173`) when `USE_SSL=true`
+- Automatic HTTPS error handling based on mode
+- Optimized timeout and retry settings
+
+### Automated Testing Server
+
+For automated tests (e.g., Selenium, Cypress, custom automation), use the dedicated test server:
+
+```bash
+# Start test server on port 7173 (no SSL, known terminal key)
+npm run dev:test
+
+# Server configuration:
+# - URL: http://localhost:7173
+# - Terminal Key: test-automation-key-12345
+# - SSL: Disabled (no certificate warnings)
+# - Port: 7173 (dedicated test port)
+# - Storage: Temporary directories in /tmp (auto-cleaned on reboot)
+```
+
+**Isolation Features**:
+- Uses temporary directories (`/tmp/dispatch-test-*`) for home and workspace storage
+- Fresh state on each server start
+- No interference with development `.testing-home` directory
+- Automatic cleanup on system reboot
+
+**Authentication for Automated Tests**:
+
+Option 1: Inject auth key into localStorage before navigation:
+```javascript
+// In your test automation tool
+await page.evaluate(() => {
+  localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
+  localStorage.setItem('authSessionId', 'test-session-' + Date.now());
+  localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+});
+await page.goto('http://localhost:7173');
+```
+
+Option 2: Enter terminal key via UI:
+```javascript
+// Navigate and authenticate
+await page.goto('http://localhost:7173');
+await page.fill('input[type="password"]', 'test-automation-key-12345');
+await page.click('button[type="submit"]');
+await page.waitForNavigation();
 ```
 
 ### Environment Variables for Testing

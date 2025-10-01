@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { navigateToWorkspaceWithOnboardingComplete, TEST_KEY } from './core-helpers.js';
 
-const TERMINAL_KEY = 'testkey12345';
+const TERMINAL_KEY = TEST_KEY;
 
 // Helper function to setup authenticated session
 async function authenticate(page) {
-	await page.goto('/workspace');
-	await page.fill('[name="key"]', TERMINAL_KEY);
-	await page.click('button[type="submit"]');
-	await page.waitForURL('**/workspace');
+	// Use the new pre-authentication helper instead of form interaction
+	await navigateToWorkspaceWithOnboardingComplete(page);
 }
 
 // Helper function to create a workspace

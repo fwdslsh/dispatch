@@ -9,10 +9,10 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { setupFreshTestEnvironment, waitForWorkspaceReady } from './core-helpers.js';
+import { setupWorkspaceTestMocks, waitForWorkspaceReady, TEST_KEY } from './core-helpers.js';
 
 test.describe('Authentication Persistence', () => {
-	const validTerminalKey = 'testkey12345';
+	const validTerminalKey = TEST_KEY;
 	const currentTime = Date.now();
 	const thirtyDaysFromNow = currentTime + 30 * 24 * 60 * 60 * 1000;
 	const expiredTime = currentTime - 31 * 24 * 60 * 60 * 1000;
@@ -24,35 +24,8 @@ test.describe('Authentication Persistence', () => {
 			sessionStorage.clear();
 		});
 
-		// Mock onboarding complete state
-		await page.route('/api/settings/onboarding**', (route) => {
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify({
-					currentStep: 'complete',
-					isComplete: true,
-					completedSteps: ['auth', 'workspace', 'complete']
-				})
-			});
-		});
-
-		// Mock empty sessions and workspaces
-		await page.route('/api/sessions**', (route) => {
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify({ sessions: [] })
-			});
-		});
-
-		await page.route('/api/workspaces**', (route) => {
-			route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify([])
-			});
-		});
+		// Setup workspace test mocks (includes onboarding complete)
+		await setupWorkspaceTestMocks(page);
 	});
 
 	test('should persist authentication across browser restart', async ({ page }) => {
@@ -114,34 +87,8 @@ test.describe('Authentication Persistence', () => {
 				});
 			});
 
-			// Mock other required endpoints
-			await newPage.route('/api/settings/onboarding**', (route) => {
-				route.fulfill({
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify({
-						currentStep: 'complete',
-						isComplete: true,
-						completedSteps: ['auth', 'workspace', 'complete']
-					})
-				});
-			});
-
-			await newPage.route('/api/sessions**', (route) => {
-				route.fulfill({
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify({ sessions: [] })
-				});
-			});
-
-			await newPage.route('/api/workspaces**', (route) => {
-				route.fulfill({
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify([])
-				});
-			});
+			// Setup workspace test mocks for new page
+			await setupWorkspaceTestMocks(newPage);
 
 			// Navigate to app - should not require re-authentication
 			await newPage.goto('/');
@@ -404,34 +351,8 @@ test.describe('Authentication Persistence', () => {
 					});
 				});
 
-				// Mock other endpoints
-				await page.route('/api/settings/onboarding**', (route) => {
-					route.fulfill({
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify({
-							currentStep: 'complete',
-							isComplete: true,
-							completedSteps: ['auth', 'workspace', 'complete']
-						})
-					});
-				});
-
-				await page.route('/api/sessions**', (route) => {
-					route.fulfill({
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify({ sessions: [] })
-					});
-				});
-
-				await page.route('/api/workspaces**', (route) => {
-					route.fulfill({
-						status: 200,
-						contentType: 'application/json',
-						body: JSON.stringify([])
-					});
-				});
+				// Setup workspace test mocks
+				await setupWorkspaceTestMocks(page);
 
 				await page.goto('/');
 				await waitForWorkspaceReady(page);

@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test';
 import {
-	setupFreshTestEnvironment,
+	navigateToWorkspaceWithOnboardingComplete,
 	waitForWorkspaceReady,
-	setupApiMocks,
+	setupWorkspaceTestMocks,
 	mobileTap
 } from './core-helpers.js';
 
 test.describe('MVVM Architecture Functional Tests', () => {
 	test.beforeEach(async ({ page }) => {
-		// Setup clean environment with MVVM architecture
-		await setupFreshTestEnvironment(page, '/workspace');
+		// Setup clean environment with onboarding complete
+		await navigateToWorkspaceWithOnboardingComplete(page);
 	});
 
 	test('should load MVVM workspace architecture successfully', async ({ page }) => {
@@ -30,7 +30,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 
 	test('should handle empty workspace state correctly', async ({ page }) => {
 		// Mock empty API responses
-		await setupApiMocks(page, {
+		await setupWorkspaceTestMocks(page, {
 			sessions: [],
 			workspaces: []
 		});
@@ -45,7 +45,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 
 	test('should display sessions when available', async ({ page }) => {
 		// Mock sessions data
-		await setupApiMocks(page, {
+		await setupWorkspaceTestMocks(page, {
 			sessions: [
 				{
 					id: 'test-session-1',
@@ -73,7 +73,7 @@ test.describe('MVVM Architecture Functional Tests', () => {
 		}
 
 		// Mock some sessions
-		await setupApiMocks(page, {
+		await setupWorkspaceTestMocks(page, {
 			sessions: [
 				{ id: 'session1', type: 'pty', title: 'Terminal 1', pinned: true },
 				{ id: 'session2', type: 'claude', title: 'Claude 1', pinned: true }
@@ -115,15 +115,12 @@ test.describe('MVVM Architecture Functional Tests', () => {
 	});
 
 	test('should persist authentication state', async ({ page }) => {
-		// Navigate to workspace (should redirect to login if not authenticated)
-		await setupFreshTestEnvironment(page, '/workspace');
+		// Workspace should be accessible with authentication already set
+		await waitForWorkspaceReady(page);
 
-		// Check for authentication form or workspace
-		const hasAuth = await page.locator('input[type="password"], .auth-form, .login-form').count();
-		const hasWorkspace = await page.locator('.dispatch-workspace').count();
-
-		// Should have either auth form or workspace (depending on auth state)
-		expect(hasAuth + hasWorkspace).toBeGreaterThan(0);
+		// Should have workspace visible (auth already handled)
+		const hasWorkspace = await page.locator('.dispatch-workspace, main').count();
+		expect(hasWorkspace).toBeGreaterThan(0);
 	});
 
 	test('should handle keyboard shortcuts', async ({ page }) => {

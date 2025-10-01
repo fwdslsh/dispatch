@@ -14,7 +14,7 @@
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { getClientSessionModule } from '$lib/client/shared/session-modules/index.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
-	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 
 	// Props
 	let { open = $bindable(false), initialType = SESSION_TYPE.CLAUDE, oncreated, onclose } = $props();

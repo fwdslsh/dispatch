@@ -44,10 +44,11 @@ nvm use
 npm install
 
 # Development modes
-npm run dev               # Dev server with TERMINAL_KEY=testkey12345
+npm run dev               # Dev server with TERMINAL_KEY=testkey12345 (SSL enabled, port 5173)
 npm run dev:local        # Use $HOME/code as workspace root
 npm run dev:no-key       # No authentication required
 npm run dev:tunnel       # With LocalTunnel enabled
+npm run dev:test         # Automated testing server (port 7173, no SSL, known key)
 
 # Testing
 npm run test             # All unit tests
@@ -72,6 +73,31 @@ npm run format          # Auto-format with Prettier
 npm run docker:dev      # Dev mode with build
 npm run docker:start    # Start without rebuild
 npm run docker:stop     # Stop containers
+```
+
+### Automated UI Testing
+
+When testing the UI with automated tools (Selenium, Cypress, Playwright, etc.), use the dedicated test server to avoid SSL certificate issues:
+
+```bash
+npm run dev:test
+```
+
+This starts the server on `http://localhost:7173` with:
+- **No SSL**: Avoids certificate warnings in automated browsers
+- **Known Terminal Key**: `test-automation-key-12345` for predictable authentication
+- **Dedicated Port**: 7173 to avoid conflicts with regular dev server
+- **Isolated Storage**: Uses temporary directories in `/tmp` (fresh state, no interference with dev)
+
+**Quick Authentication Setup**:
+```javascript
+// Pre-inject auth into localStorage (recommended for automation)
+await page.evaluate(() => {
+  localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
+  localStorage.setItem('authSessionId', 'test-session-' + Date.now());
+  localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+});
+await page.goto('http://localhost:7173');
 ```
 
 ## Frontend MVVM Architecture (Svelte 5)

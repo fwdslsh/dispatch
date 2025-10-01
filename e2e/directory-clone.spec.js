@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { TEST_KEY } from './core-helpers.js';
 
 test.describe('Directory Clone Feature', () => {
 	test('should allow cloning directories via the directory browser', async ({ page }) => {
@@ -6,7 +7,7 @@ test.describe('Directory Clone Feature', () => {
 		await page.goto('/');
 
 		// Enter terminal key
-		await page.fill('input[placeholder*="terminal key"]', 'testkey12345');
+		await page.fill('input[placeholder*="terminal key"]', TEST_KEY);
 		await page.click('button:has-text("connect")');
 
 		// Wait for workspace to load

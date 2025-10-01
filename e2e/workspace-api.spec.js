@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const TEST_KEY = process.env.TERMINAL_KEY || 'testkey12345';
+const TEST_KEY = process.env.TERMINAL_KEY || 'test-automation-key-12345';
 
 function uniqueWorkspacePath(testInfo) {
 	// Use test title and worker index to ensure uniqueness

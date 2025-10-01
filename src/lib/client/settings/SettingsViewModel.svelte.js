@@ -1,33 +1,7 @@
 /**
- * SettingsViewModel - Svelte 5 State Management
- * Manages settings state with reactive $state runes and MVVM pattern
- */
-
-/**
- * Settings category structure
- * @typedef {Object} SettingsCategory
- * @property {string} id - Category ID
- * @property {string} name - Display name
- * @property {string} description - Category description
- * @property {number} display_order - Display order
- */
-
-/**
- * Configuration setting structure
- * @typedef {Object} ConfigurationSetting
- * @property {string} key - Setting key
- * @property {string} category_id - Category ID
- * @property {string} name - Display name
- * @property {string} description - Description
- * @property {string} type - Setting type
- * @property {string|null} current_value - Current value
- * @property {string|null} default_value - Default value
- * @property {string|null} env_var_name - Environment variable name
- * @property {boolean} is_sensitive - Whether to mask in UI
- * @property {boolean} is_required - Whether required
- * @property {string|null} validation_pattern - Validation regex
- * @property {string|null} resolved_value - Resolved value
- * @property {string|null} display_value - Display-safe value
+ * SettingsViewModel - Simplified Svelte 5 State Management
+ * Works directly with nested JSON structure from API without flattening
+ * Follows MVVM pattern with minimal complexity
  */
 
 export class SettingsViewModel {
@@ -38,80 +12,48 @@ export class SettingsViewModel {
 	constructor(settingsService) {
 		this.settingsService = settingsService;
 
-		// Reactive state using Svelte 5 $state runes
-		this.categories = $state([]);
-		this.settings = $state([]);
+		// Store nested structure directly with $state for reactivity
+		this.categories = $state({
+			global: {},
+			claude: {},
+			workspace: {},
+			authentication: {},
+			onboarding: {},
+			'vscode-tunnel': {}
+		});
+
+		// Track original values for change detection (deep clone)
+		this.originalCategories = {};
+
+		// UI state
 		this.loading = $state(false);
 		this.saving = $state(false);
 		this.error = $state(null);
 		this.successMessage = $state(null);
-		// Use plain objects instead of Maps for reactivity
-		this.validationErrors = $state({});
-		this.pendingChanges = $state({});
-		this.authConfig = $state({
-			terminal_key_set: false,
-			oauth_configured: false,
-			oauth_client_id: null,
-			oauth_redirect_uri: null
-		});
+		this.validationErrors = $state({}); // category.field -> error array
 
-		// Derived state
-		this.settingsByCategory = $derived.by(() => {
-			if (!this.categories || !Array.isArray(this.categories)) {
-				return [];
+		// Derived state - automatic change detection per category
+		this.categoryChanges = $derived.by(() => {
+			const changes = {};
+			for (const [categoryId, currentData] of Object.entries(this.categories)) {
+				if (this._hasDeepChanges(categoryId)) {
+					changes[categoryId] = currentData;
+				}
 			}
-			return this.categories.map((category) => ({
-				...category,
-				settings: this.settings.filter((setting) => setting.category_id === category.id)
-			}));
+			return changes;
 		});
 
-		this.settingsByKey = $derived.by(() => {
-			const map = new Map();
-			this.settings.forEach((setting) => {
-				map.set(setting.key, setting);
-			});
-			return map;
-		});
+		this.hasUnsavedChanges = $derived(Object.keys(this.categoryChanges).length > 0);
 
-		this.hasUnsavedChanges = $derived.by(() => {
-			return Object.keys(this.pendingChanges).length > 0;
-		});
+		this.hasValidationErrors = $derived(Object.keys(this.validationErrors).length > 0);
 
-		this.hasValidationErrors = $derived.by(() => {
-			return Object.keys(this.validationErrors).length > 0;
-		});
-
-		this.canSave = $derived.by(() => {
-			return this.hasUnsavedChanges && !this.hasValidationErrors && !this.saving;
-		});
-
-		// Derived computed property for authentication settings
-		this.authenticationSettings = $derived.by(() => {
-			return this.settings.filter((s) => s.category_id === 'authentication');
-		});
+		this.canSave = $derived(
+			this.hasUnsavedChanges && !this.hasValidationErrors && !this.saving
+		);
 	}
 
 	/**
-	 * Get a setting by key
-	 * @param {string} key - Setting key
-	 * @returns {ConfigurationSetting|undefined} Setting object
-	 */
-	getSetting(key) {
-		return this.settings.find((s) => s.key === key);
-	}
-
-	/**
-	 * Get all settings for a category
-	 * @param {string} categoryId - Category ID
-	 * @returns {ConfigurationSetting[]} Array of settings
-	 */
-	getSettingsByCategory(categoryId) {
-		return this.settings.filter((s) => s.category_id === categoryId);
-	}
-
-	/**
-	 * Load all settings from the API
+	 * Load settings from API
 	 * @param {string|null} categoryFilter - Optional category to filter by
 	 */
 	async loadSettings(categoryFilter = null) {
@@ -119,14 +61,22 @@ export class SettingsViewModel {
 		this.error = null;
 
 		try {
-			const result = await this.settingsService.getAllSettings(categoryFilter);
+			const data = await this.settingsService.getAllSettings(categoryFilter);
 
-			this.categories = result.categories;
-			this.settings = result.settings;
+			// Update nested structure directly - mutate existing $state
+			this.categories.global = data.global || {};
+			this.categories.claude = data.claude || {};
+			this.categories.workspace = data.workspace || {};
+			this.categories.authentication = data.authentication || {};
+			this.categories.onboarding = data.onboarding || {};
+			this.categories['vscode-tunnel'] = data['vscode-tunnel'] || {};
 
-			// Clear pending changes when loading fresh data
-			this.pendingChanges = {};
+			// Deep clone for comparison
+			this.originalCategories = this._deepClone(this.categories);
+
+			// Clear state
 			this.validationErrors = {};
+			this.successMessage = null;
 		} catch (error) {
 			console.error('Failed to load settings:', error);
 			this.error = 'Failed to load settings. Please try again.';
@@ -136,98 +86,58 @@ export class SettingsViewModel {
 	}
 
 	/**
-	 * Load authentication configuration
+	 * Get reactive category object for component binding
+	 * @param {string} categoryId - Category ID
+	 * @returns {Object} Reactive category object
 	 */
-	async loadAuthConfig() {
-		try {
-			const config = await this.settingsService.getAuthConfig();
-			this.authConfig = config;
-		} catch (error) {
-			console.error('Failed to load auth config:', error);
-			this.error = 'Failed to load authentication configuration.';
-		}
+	getCategory(categoryId) {
+		return this.categories[categoryId] || {};
 	}
 
 	/**
-	 * Update a setting value
-	 * @param {string} key - Setting key
-	 * @param {string} value - New value
+	 * Validate a specific field in a category
+	 * @param {string} categoryId - Category ID
+	 * @param {string} fieldPath - Field path (dot notation for nested, e.g., 'envVariables.NODE_ENV')
+	 * @param {any} value - Value to validate
 	 */
-	updateSetting(key, value) {
-		const setting = this.settingsByKey.get(key);
-		if (!setting) {
-			console.error(`Setting '${key}' not found`);
-			return;
-		}
-
-		// Store pending change - create new object for reactivity
-		this.pendingChanges = { ...this.pendingChanges, [key]: value };
-
-		// Validate the new value
-		this.validateSetting(key, value);
-
-		// Clear success message when making changes
-		this.successMessage = null;
-	}
-
-	/**
-	 * Validate a setting value
-	 * @param {string} key - Setting key
-	 * @param {string} value - Value to validate
-	 */
-	validateSetting(key, value) {
-		const setting = this.settingsByKey.get(key);
-		if (!setting) return;
-
+	validateField(categoryId, fieldPath, value) {
 		const errors = [];
+		const key = `${categoryId}.${fieldPath}`;
 
 		// Required validation
-		if (setting.is_required && (!value || value.trim().length === 0)) {
-			errors.push(`${setting.name} is required`);
+		if (this._isFieldRequired(categoryId, fieldPath) && !value) {
+			errors.push(`${this._getFieldLabel(fieldPath)} is required`);
 		}
 
 		// Type-specific validation
-		if (value && value.trim().length > 0) {
-			switch (setting.type) {
-				case 'number':
+		if (value) {
+			const fieldType = this._inferFieldType(fieldPath, value);
+
+			switch (fieldType) {
+				case 'NUMBER':
 					if (isNaN(Number(value))) {
-						errors.push(`${setting.name} must be a valid number`);
+						errors.push(`Must be a valid number`);
 					}
 					break;
-				case 'boolean':
-					if (!['true', 'false', '1', '0', 'yes', 'no'].includes(value.toLowerCase())) {
-						errors.push(`${setting.name} must be a boolean value`);
-					}
-					break;
-				case 'url':
+				case 'URL':
 					try {
 						new URL(value);
 					} catch {
-						errors.push(`${setting.name} must be a valid URL`);
+						errors.push(`Must be a valid URL`);
 					}
 					break;
-				case 'path':
-					if (!value.startsWith('/')) {
-						errors.push(`${setting.name} must be an absolute path`);
+				case 'PATH':
+					if (typeof value === 'string' && !value.startsWith('/')) {
+						errors.push(`Must be an absolute path`);
 					}
 					break;
 			}
+		}
 
-			// Pattern validation
-			if (setting.validation_pattern) {
-				try {
-					const regex = new RegExp(setting.validation_pattern);
-					if (!regex.test(value)) {
-						errors.push(`${setting.name} does not match the required format`);
-					}
-				} catch {
-					errors.push(`Invalid validation pattern for ${setting.name}`);
-				}
-			}
-
-			// Special validations
-			if (key === 'terminal_key' && value.length < 8) {
-				errors.push('Terminal key must be at least 8 characters long');
+		// Special validations
+		if (categoryId === 'authentication' && fieldPath === 'terminal_key') {
+			if (value && value.length < 8) {
+				errors.push('Terminal key must be at least 8 characters');
 			}
 		}
 
@@ -241,60 +151,23 @@ export class SettingsViewModel {
 	}
 
 	/**
-	 * Get current value for a setting (including pending changes)
-	 * @param {string} key - Setting key
-	 * @returns {string} Current value
-	 */
-	getCurrentValue(key) {
-		// Check for pending changes first
-		if (key in this.pendingChanges) {
-			return this.pendingChanges[key];
-		}
-
-		// Get from current setting
-		const setting = this.settingsByKey.get(key);
-		return setting?.display_value || setting?.resolved_value || '';
-	}
-
-	/**
-	 * Get validation errors for a setting
-	 * @param {string} key - Setting key
-	 * @returns {Array<string>} Validation errors
-	 */
-	getValidationErrors(key) {
-		return this.validationErrors[key] || [];
-	}
-
-	/**
-	 * Save settings for a category
+	 * Save a specific category
 	 * @param {string} categoryId - Category ID
 	 */
 	async saveCategory(categoryId) {
-		const categoryChanges = {};
-
-		// Collect changes for this category
-		for (const [key, value] of Object.entries(this.pendingChanges)) {
-			const setting = this.settingsByKey.get(key);
-			if (setting?.category_id === categoryId) {
-				categoryChanges[key] = value;
-			}
-		}
-
-		if (Object.keys(categoryChanges).length === 0) {
-			return;
-		}
-
 		// Check for validation errors in this category
-		const categoryErrors = [];
-		for (const key of Object.keys(categoryChanges)) {
-			const errors = this.getValidationErrors(key);
-			if (errors.length > 0) {
-				categoryErrors.push(...errors);
-			}
-		}
+		const categoryErrors = Object.keys(this.validationErrors).filter((key) =>
+			key.startsWith(`${categoryId}.`)
+		);
 
 		if (categoryErrors.length > 0) {
 			this.error = 'Please fix validation errors before saving.';
+			return;
+		}
+
+		// No changes to save
+		if (!this.categoryChanges[categoryId]) {
+			this.successMessage = 'No changes to save.';
 			return;
 		}
 
@@ -302,30 +175,24 @@ export class SettingsViewModel {
 		this.error = null;
 
 		try {
-			const result = await this.settingsService.updateCategorySettings(categoryId, categoryChanges);
+			// Send nested structure directly - no reconstruction needed!
+			const result = await this.settingsService.updateCategorySettings(
+				categoryId,
+				this.categories[categoryId]
+			);
 
-			// Handle session invalidation warning
+			// Handle session invalidation
 			if (result.session_invalidated) {
-				this.successMessage =
-					'Settings saved successfully. All sessions have been invalidated for security.';
+				this.successMessage = 'Settings saved. All sessions invalidated for security.';
 			} else {
 				this.successMessage = 'Settings saved successfully.';
 			}
 
-			// Remove saved changes from pending - create new object
-			const newPending = { ...this.pendingChanges };
-			for (const key of Object.keys(categoryChanges)) {
-				delete newPending[key];
-			}
-			this.pendingChanges = newPending;
+			// Update original to reflect saved state
+			this.originalCategories[categoryId] = this._deepClone(this.categories[categoryId]);
 
-			// Reload settings to get updated values
+			// Reload settings to get any server-side updates
 			await this.loadSettings();
-
-			// If authentication category was updated, reload auth config
-			if (categoryId === 'authentication') {
-				await this.loadAuthConfig();
-			}
 		} catch (error) {
 			console.error('Failed to save settings:', error);
 			this.error = error.message || 'Failed to save settings. Please try again.';
@@ -335,55 +202,43 @@ export class SettingsViewModel {
 	}
 
 	/**
-	 * Save all pending changes
+	 * Discard changes for a category
+	 * @param {string} categoryId - Category ID
 	 */
-	async saveAll() {
-		if (!this.hasUnsavedChanges) {
-			return;
-		}
+	discardCategory(categoryId) {
+		// Restore from original
+		this.categories[categoryId] = this._deepClone(this.originalCategories[categoryId]);
 
-		// Group changes by category
-		const changesByCategory = {};
-		for (const [key, value] of Object.entries(this.pendingChanges)) {
-			const setting = this.settingsByKey.get(key);
-			if (setting) {
-				if (!changesByCategory[setting.category_id]) {
-					changesByCategory[setting.category_id] = {};
-				}
-				changesByCategory[setting.category_id][key] = value;
-			}
-		}
+		// Clear validation errors for this category
+		const errorsToRemove = Object.keys(this.validationErrors).filter((key) =>
+			key.startsWith(`${categoryId}.`)
+		);
 
-		// Save each category
-		for (const categoryId of Object.keys(changesByCategory)) {
-			await this.saveCategory(categoryId);
+		const newErrors = { ...this.validationErrors };
+		errorsToRemove.forEach((key) => delete newErrors[key]);
+		this.validationErrors = newErrors;
 
-			// Stop if there was an error
-			if (this.error) {
-				break;
-			}
-		}
-	}
-
-	/**
-	 * Discard all pending changes
-	 */
-	discardChanges() {
-		this.pendingChanges = {};
-		this.validationErrors = {};
-		this.error = null;
 		this.successMessage = null;
+		this.error = null;
 	}
 
 	/**
-	 * Discard changes for a specific setting
-	 * @param {string} key - Setting key
+	 * Check if category has unsaved changes
+	 * @param {string} categoryId - Category ID
+	 * @returns {boolean}
 	 */
-	discardSetting(key) {
-		const { [key]: _, ...restPending } = this.pendingChanges;
-		const { [key]: __, ...restErrors } = this.validationErrors;
-		this.pendingChanges = restPending;
-		this.validationErrors = restErrors;
+	categoryHasChanges(categoryId) {
+		return Boolean(this.categoryChanges[categoryId]);
+	}
+
+	/**
+	 * Get validation errors for a field
+	 * @param {string} categoryId - Category ID
+	 * @param {string} fieldPath - Field path
+	 * @returns {Array<string>} Validation errors
+	 */
+	getFieldErrors(categoryId, fieldPath) {
+		return this.validationErrors[`${categoryId}.${fieldPath}`] || [];
 	}
 
 	/**
@@ -394,27 +249,44 @@ export class SettingsViewModel {
 		this.successMessage = null;
 	}
 
-	/**
-	 * Check if a setting has unsaved changes
-	 * @param {string} key - Setting key
-	 * @returns {boolean} Whether setting has changes
-	 */
-	hasChanges(key) {
-		return key in this.pendingChanges;
+	// Private helper methods
+
+	_hasDeepChanges(categoryId) {
+		return (
+			JSON.stringify(this.categories[categoryId]) !==
+			JSON.stringify(this.originalCategories[categoryId])
+		);
 	}
 
-	/**
-	 * Check if a category has unsaved changes
-	 * @param {string} categoryId - Category ID
-	 * @returns {boolean} Whether category has changes
-	 */
-	categoryHasChanges(categoryId) {
-		for (const key of Object.keys(this.pendingChanges)) {
-			const setting = this.settingsByKey.get(key);
-			if (setting?.category_id === categoryId) {
-				return true;
-			}
-		}
-		return false;
+	_deepClone(obj) {
+		return JSON.parse(JSON.stringify(obj));
+	}
+
+	_isFieldRequired(categoryId, fieldPath) {
+		const requiredFields = {
+			authentication: ['terminal_key']
+		};
+		return requiredFields[categoryId]?.includes(fieldPath) || false;
+	}
+
+	_getFieldLabel(fieldPath) {
+		// Convert camelCase or snake_case to Title Case
+		// Extract last part of path for nested fields
+		const lastPart = fieldPath.split('.').pop();
+		return lastPart
+			.replace(/([A-Z])/g, ' $1')
+			.replace(/_/g, ' ')
+			.split(' ')
+			.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+			.join(' ')
+			.trim();
+	}
+
+	_inferFieldType(fieldPath, value) {
+		if (typeof value === 'boolean') return 'BOOLEAN';
+		if (typeof value === 'number') return 'NUMBER';
+		if (fieldPath.includes('path') || fieldPath.includes('directory')) return 'PATH';
+		if (fieldPath.includes('url')) return 'URL';
+		return 'STRING';
 	}
 }

@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { setupFreshTestEnvironment, waitForWorkspaceReady } from './core-helpers.js';
+import { navigateToRouteAuthenticated, waitForWorkspaceReady } from './core-helpers.js';
 
 const expectedTabs = [
 	'Global',
@@ -44,8 +44,7 @@ const mockSettingsResponse = {
 
 test.describe('Settings Page Navigation', () => {
 	test.beforeEach(async ({ page }) => {
-		await setupFreshTestEnvironment(page, '/');
-
+		// Setup mocks before navigation
 		await page.route('/api/settings/onboarding**', (route) => {
 			route.fulfill({
 				status: 200,
@@ -110,8 +109,7 @@ test.describe('Settings Page Navigation', () => {
 	});
 
 	test('renders left navigation with all expected sections', async ({ page }) => {
-		await page.goto('/settings');
-		await waitForWorkspaceReady(page);
+		await navigateToRouteAuthenticated(page, '/settings');
 
 		const tabList = page.locator('[role="tablist"]');
 		await expect(tabList).toBeVisible();
@@ -154,7 +152,7 @@ test.describe('Settings Page Navigation', () => {
 			});
 		});
 
-		await page.goto('/settings');
+		await navigateToRouteAuthenticated(page, '/settings');
 		await waitForWorkspaceReady(page);
 
 		await page.getByRole('tab', { name: 'User Preferences' }).click();

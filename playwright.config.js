@@ -29,7 +29,8 @@ export default defineConfig({
 	/* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
 	use: {
 		/* Base URL to use in actions like `await page.goto('/')`. */
-		baseURL: 'https://localhost:5173',
+		// Use test server (no SSL) by default. Override with USE_SSL=true for SSL-specific tests
+		baseURL: process.env.USE_SSL === 'true' ? 'https://localhost:5173' : 'http://localhost:7173',
 
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: 'on-first-retry',
@@ -39,7 +40,8 @@ export default defineConfig({
 		video: 'retain-on-failure',
 
 		/* Test setup options */
-		ignoreHTTPSErrors: true,
+		// Only ignore HTTPS errors when using SSL server
+		ignoreHTTPSErrors: process.env.USE_SSL === 'true',
 
 		/* Timeout settings */
 		actionTimeout: 10000,
@@ -85,10 +87,11 @@ export default defineConfig({
 
 	/* Run your local dev server before starting the tests */
 	webServer: {
-		command: 'npm run dev',
-		url: 'https://localhost:5173',
+		// Use test server (no SSL) by default. Override with USE_SSL=true for SSL-specific tests
+		command: process.env.USE_SSL === 'true' ? 'npm run dev' : 'npm run dev:test',
+		url: process.env.USE_SSL === 'true' ? 'https://localhost:5173' : 'http://localhost:7173',
 		reuseExistingServer: !process.env.CI,
 		timeout: 120 * 1000,
-		ignoreHTTPSErrors: true
+		ignoreHTTPSErrors: process.env.USE_SSL === 'true'
 	}
 });

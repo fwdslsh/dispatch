@@ -123,6 +123,7 @@
 								bind:value={key}
 								type="password"
 								placeholder="terminal key"
+								data-testid="terminal-key-input"
 								required
 								disabled={loading}
 							/>

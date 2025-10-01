@@ -9,7 +9,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { setupFreshTestEnvironment, waitForWorkspaceReady } from './core-helpers.js';
+import { navigateToRouteAuthenticated, waitForWorkspaceReady } from './core-helpers.js';
 
 test.describe('Retention Policy Configuration', () => {
 	const mockRetentionPolicy = {
@@ -30,9 +30,7 @@ test.describe('Retention Policy Configuration', () => {
 	};
 
 	test.beforeEach(async ({ page }) => {
-		// Setup fresh environment
-		await setupFreshTestEnvironment(page, '/');
-
+		// Setup API mocks
 		// Mock onboarding complete state (now via settings API)
 		await page.route('/api/settings/onboarding**', (route) => {
 			route.fulfill({
@@ -135,7 +133,7 @@ test.describe('Retention Policy Configuration', () => {
 
 		await test.step('Navigate to settings page', async () => {
 			// Navigate directly to settings page
-			await page.goto('/settings');
+			await navigateToRouteAuthenticated(page, '/settings');
 
 			// Wait for settings page to load
 			await expect(page.locator('h1', { hasText: 'Settings' })).toBeVisible({ timeout: 10000 });
@@ -156,7 +154,7 @@ test.describe('Retention Policy Configuration', () => {
 	});
 
 	test('should configure session and log retention periods', async ({ page }) => {
-		await page.goto('/settings');
+		await navigateToRouteAuthenticated(page, '/settings');
 		await expect(page.locator('h1', { hasText: 'Settings' })).toBeVisible({ timeout: 10000 });
 
 		// Navigate to retention section
@@ -219,7 +217,7 @@ test.describe('Retention Policy Configuration', () => {
 	});
 
 	test('should show preview of retention policy changes', async ({ page }) => {
-		await page.goto('/settings');
+		await navigateToRouteAuthenticated(page, '/settings');
 		await expect(page.locator('h1', { hasText: 'Settings' })).toBeVisible({ timeout: 10000 });
 
 		// Navigate to retention section
@@ -269,7 +267,7 @@ test.describe('Retention Policy Configuration', () => {
 	});
 
 	test('should save retention policy changes', async ({ page }) => {
-		await page.goto('/settings');
+		await navigateToRouteAuthenticated(page, '/settings');
 		await expect(page.locator('h1', { hasText: 'Settings' })).toBeVisible({ timeout: 10000 });
 
 		// Navigate to retention section
@@ -316,7 +314,7 @@ test.describe('Retention Policy Configuration', () => {
 	});
 
 	test('should handle auto-cleanup toggle', async ({ page }) => {
-		await page.goto('/settings');
+		await navigateToRouteAuthenticated(page, '/settings');
 		await expect(page.locator('h1', { hasText: 'Settings' })).toBeVisible({ timeout: 10000 });
 
 		// Navigate to retention section
@@ -365,7 +363,7 @@ test.describe('Retention Policy Configuration', () => {
 			}
 		});
 
-		await page.goto('/settings');
+		await navigateToRouteAuthenticated(page, '/settings');
 		await expect(page.locator('h1', { hasText: 'Settings' })).toBeVisible({ timeout: 10000 });
 
 		// Navigate to retention section
@@ -395,7 +393,7 @@ test.describe('Retention Policy Configuration', () => {
 	});
 
 	test('should support keyboard navigation', async ({ page }) => {
-		await page.goto('/settings');
+		await navigateToRouteAuthenticated(page, '/settings');
 		await expect(page.locator('h1', { hasText: 'Settings' })).toBeVisible({ timeout: 10000 });
 
 		// Navigate to retention section
@@ -432,7 +430,7 @@ test.describe('Retention Policy Configuration', () => {
 		// Set mobile viewport
 		await page.setViewportSize({ width: 375, height: 667 });
 
-		await page.goto('/settings');
+		await navigateToRouteAuthenticated(page, '/settings');
 		await expect(page.locator('h1', { hasText: 'Settings' })).toBeVisible({ timeout: 10000 });
 
 		// Navigate to retention section
@@ -460,7 +458,7 @@ test.describe('Retention Policy Configuration', () => {
 	});
 
 	test('should show last cleanup run information', async ({ page }) => {
-		await page.goto('/settings');
+		await navigateToRouteAuthenticated(page, '/settings');
 		await expect(page.locator('h1', { hasText: 'Settings' })).toBeVisible({ timeout: 10000 });
 
 		// Navigate to retention section

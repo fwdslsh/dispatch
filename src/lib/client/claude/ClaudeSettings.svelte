@@ -6,7 +6,7 @@
 	 */
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';
 	import IconRobot from '$lib/client/shared/components/Icons/IconRobot.svelte';
-	import { settingsService } from '$lib/client/shared/services/SettingsService.js';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 
 	// Props
 	let {

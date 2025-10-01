@@ -12,6 +12,7 @@ import { PtyAdapter } from '../terminal/PtyAdapter.js';
 import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
+import { MultiAuthManager, GitHubAuthProvider } from './auth/oauth.js';
 import path from 'node:path';
 import os from 'node:os';
 import { SESSION_TYPE } from '../../shared/session-types.js';
@@ -88,6 +89,41 @@ export async function initializeServices(config = {}) {
 		// 6. Claude Auth Manager (for OAuth flow)
 		const claudeAuthManager = new ClaudeAuthManager();
 
+		// 6b. Multi-Auth Manager (for OAuth providers like GitHub)
+		const multiAuthManager = new MultiAuthManager(database);
+		await multiAuthManager.init();
+
+		// Wire MultiAuthManager to AuthService for multi-strategy auth
+		authService.setMultiAuthManager(multiAuthManager);
+
+		// Register GitHub OAuth provider
+		// Get OAuth settings from database
+		const authSettingsRow = await database.get(
+			"SELECT * FROM settings WHERE category = 'authentication'"
+		);
+
+		if (authSettingsRow && authSettingsRow.settings_json) {
+			try {
+				const authSettings = JSON.parse(authSettingsRow.settings_json);
+
+				if (authSettings.oauth_client_id && authSettings.oauth_client_secret) {
+					const githubProvider = new GitHubAuthProvider({
+						clientId: authSettings.oauth_client_id,
+						clientSecret: authSettings.oauth_client_secret,
+						redirectUri: authSettings.oauth_redirect_uri || `http://localhost:${resolvedConfig.port}/auth/callback`,
+						scopes: (authSettings.oauth_scope || 'user:email').split(' ')
+					});
+					await multiAuthManager.registerProvider(githubProvider);
+				} else {
+					logger.info('SERVICES', 'GitHub OAuth not configured - skipping provider registration');
+				}
+			} catch (error) {
+				logger.error('SERVICES', 'Failed to parse authentication settings:', error);
+			}
+		} else {
+			logger.info('SERVICES', 'No authentication settings found - skipping OAuth provider registration');
+		}
+
 		// 7. Tunnel Manager for runtime tunnel control
 		const tunnelManager = new TunnelManager({
 			port: resolvedConfig.port,
@@ -110,9 +146,16 @@ export async function initializeServices(config = {}) {
 			claudeAdapter,
 			fileEditorAdapter,
 			claudeAuthManager,
+			multiAuthManager,
 			tunnelManager,
-			vscodeManager
+			vscodeManager,
+			// Convenience methods
+			getAuthManager: () => multiAuthManager,
+			getDatabase: () => database
 		};
+
+		// Store as global for API routes
+		globalServicesInstance = services;
 
 		logger.info('SERVICES', 'Services initialized successfully');
 		logger.info('SERVICES', `RunSessionManager stats:`, runSessionManager.getStats());
@@ -122,3 +165,21 @@ export async function initializeServices(config = {}) {
 		throw error;
 	}
 }
+
+/**
+ * Export global services instance for API routes
+ */
+export const __API_SERVICES = {
+	get services() {
+		return globalServicesInstance;
+	},
+	getAuthManager() {
+		return globalServicesInstance?.multiAuthManager;
+	},
+	getDatabase() {
+		return globalServicesInstance?.database;
+	},
+	getRunSessionManager() {
+		return globalServicesInstance?.runSessionManager;
+	}
+};

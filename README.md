@@ -141,9 +141,10 @@ cd dispatch
 npm install  # Requires Node.js 22+
 
 # Development modes
-npm run dev              # Standard dev server
-
-npm run dev:tunnel      # Enable public URLs
+npm run dev              # Standard dev server with SSL
+npm run dev:http         # Dev server without SSL
+npm run dev:test         # Automated test server (port 7173, no SSL, tmp storage)
+npm run dev:tunnel       # Enable public URLs
 
 # Testing & quality
 npm test                # Unit tests
