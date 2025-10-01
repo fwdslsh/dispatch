@@ -71,7 +71,7 @@ Refer to AGENTS.md for testing layout and naming patterns.
 
 ### Overview
 
-```
+```text
 ┌─────────────────┐    ├───────────────────┤    ┌──────────────┐
 │   Browser       │◄──►│   SvelteKit       │◄──►│  PTY Session │
 │   (xterm.js)    │    │   + Socket.IO     │    │  (isolated)  │
@@ -94,7 +94,7 @@ Refer to AGENTS.md for testing layout and naming patterns.
 
 ### Project Structure
 
-```
+```text
 src/
 ├── app.js                 # Production runtime entry point
 ├── lib/
@@ -137,9 +137,9 @@ src/
 
 ```javascript
 socket.emit('auth', 'your-key', (response) => {
-	if (response.ok) {
-		// Authenticated successfully
-	}
+   if (response.ok) {
+      // Authenticated successfully
+   }
 });
 ```
 
@@ -148,17 +148,17 @@ socket.emit('auth', 'your-key', (response) => {
 ```javascript
 // List sessions
 socket.emit('list', (response) => {
-	// response: { ok: true, sessions: [...], active }
+   // response: { ok: true, sessions: [...], active }
 });
 
 // Create session
 socket.emit('create', { mode: 'shell', cols: 80, rows: 24, meta: {} }, (response) => {
-	// response: { ok: true, sessionId: 'uuid' }
+   // response: { ok: true, sessionId: 'uuid' }
 });
 
 // Attach to session
 socket.emit('attach', { sessionId: 'uuid', cols: 80, rows: 24 }, (response) => {
-	// response: { ok: true }
+   // response: { ok: true }
 });
 
 // Send input
@@ -179,12 +179,12 @@ socket.emit('detach');
 ```javascript
 // Terminal output
 socket.on('output', (data) => {
-	terminal.write(data);
+   terminal.write(data);
 });
 
 // Sessions updated
 socket.on('sessions-updated', () => {
-	// Refresh session list
+   // Refresh session list
 });
 ```
 
@@ -400,7 +400,14 @@ docker logs container-name
 docker exec -it container-name sh
 ```
 
-## 📝 Code Style
+## Architecture Notes
+
+For short guides on core patterns and extension points:
+
+- MVVM with Svelte 5 runes: `docs/architecture/mvvm.md`
+- Session adapters & registration: `docs/architecture/session-adapters.md`
+
+## Code Style
 
 ### General Guidelines
 
@@ -465,7 +472,7 @@ Use `.github/pull_request_template.md` and ensure:
 
 Follow Conventional Commits. Keep the subject imperative and ~72 characters:
 
-```
+```text
 feat: add session export functionality
 fix: resolve Socket.IO connection timeout
 docs: update API documentation

@@ -43,9 +43,10 @@ export function getSocketEvents(limit = 100) {
 	return socketEvents.slice(0, Math.min(limit, socketEvents.length));
 }
 
-// Helper function for auth validation in event handlers
-function requireValidKey(socket, key, callback, authService) {
-	if (!authService.validateKey(key)) {
+// Phase 5: Helper function for auth validation in event handlers (now async for OAuth support)
+async function requireValidKey(socket, key, callback, authService) {
+	const isValid = await authService.validateKey(key);
+	if (!isValid) {
 		logger.warn('SOCKET', `Invalid key from socket ${socket.id}`);
 		if (callback) callback({ success: false, error: 'Invalid key' });
 		return false;
@@ -113,11 +114,12 @@ export function setupSocketIO(httpServer, services) {
 
 		// ===== UNIFIED RUN SESSION HANDLERS =====
 
-		// Authentication event - validates a key without starting a session
-		socket.on('auth', (key, callback) => {
+		// Phase 5: Authentication event - validates a key without starting a session (now async)
+		socket.on('auth', async (key, callback) => {
 			try {
 				logger.info('SOCKET', `Auth event received from ${socket.id}`);
-				if (requireValidKey(socket, key, callback, authService)) {
+				const isValid = await requireValidKey(socket, key, callback, authService);
+				if (isValid) {
 					// Key is valid, send success response
 					if (callback) callback({ success: true });
 				}
