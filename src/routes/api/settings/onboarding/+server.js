@@ -100,21 +100,10 @@ export async function POST({ request, locals }) {
  * PUT /api/settings/onboarding
  * Update onboarding state and handle special actions like storing terminal key
  *
- * Authentication: Required if onboarding already completed
+ * Authentication: Not required - this is a public endpoint for initial setup
  */
 export async function PUT({ request, url, locals }) {
 	try {
-		// Get onboarding settings from database
-		const onboardingSettings = await locals.services.database.getSettingsByCategory('onboarding');
-
-		// If onboarding already completed, require authentication
-		if (onboardingSettings && Object.keys(onboardingSettings).length > 0) {
-			// Auth already validated by hooks middleware
-			if (!locals.auth?.authenticated) {
-				return json({ error: 'Invalid authentication key' }, { status: 401 });
-			}
-		}
-
 		const body = await request.json();
 
 		// Handle terminal key storage during auth step

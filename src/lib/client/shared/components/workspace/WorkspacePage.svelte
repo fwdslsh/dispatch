@@ -124,8 +124,13 @@
 			}
 
 			try {
-				const response = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`, {
-					headers: getAuthHeaders()
+				const response = await fetch(`/api/auth/check`, {
+					method: 'POST',
+					headers: {
+						...getAuthHeaders(),
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ key: storedKey })
 				});
 				if (!response.ok) {
 					log.warn('Auth key invalid, redirecting to login');

@@ -1,26 +1,27 @@
 <script>
-	import { onMount, onDestroy, tick } from 'svelte';
-	import { fly } from 'svelte/transition';
-	import Button from '$lib/client/shared/components/Button.svelte';
-	import Markdown from '$lib/client/shared/components/Markdown.svelte';
-	import ActivitySummary from './activity-summaries/ActivitySummary.svelte';
-
-	import IconFolder from '../shared/components/Icons/IconFolder.svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { ClaudePaneViewModel } from './viewmodels/ClaudePaneViewModel.svelte.js';
+	import MessageList from './components/MessageList.svelte';
+	import InputArea from './components/InputArea.svelte';
 	import IconMessage from '../shared/components/Icons/IconMessage.svelte';
-	import IconAlertTriangle from '../shared/components/Icons/IconAlertTriangle.svelte';
-	import IconSparkles from '../shared/components/Icons/IconSparkles.svelte';
 	import IconLoader from '../shared/components/Icons/IconLoader.svelte';
-	import IconUser from '../shared/components/Icons/IconUser.svelte';
-	import IconUserCode from '../shared/components/Icons/IconUserCode.svelte';
+	import IconSparkles from '../shared/components/Icons/IconSparkles.svelte';
 	import IconProgressDown from '../shared/components/Icons/IconProgressDown.svelte';
-	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
-	import { getIconForEvent } from '$lib/client/claude/claudeEventIcons.js';
-	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 	import IconClaude from '../shared/components/Icons/IconClaude.svelte';
-	import { createLogger, logger } from '../shared/utils/logger';
-	// Using global styles for inputs
+	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 
+	/**
+	 * ClaudePane Component
+	 *
+	 * Main orchestrator for Claude Code sessions using MVVM pattern.
+	 * Delegates business logic to ClaudePaneViewModel and renders subcomponents.
+	 */
+
+	// Props
 	let { sessionId, claudeSessionId = null, shouldResume = false } = $props();
+
+	// Create ViewModel instance
+	const viewModel = new ClaudePaneViewModel(sessionId, claudeSessionId, shouldResume);
 
 	// Debug logging
 	$effect(() => {
@@ -31,569 +32,49 @@
 		});
 	});
 
-	let messages = $state([]);
-	let input = $state('');
-	let loading = $state(false);
-	let isWaitingForReply = $state(false);
-	let isCatchingUp = $state(false);
-	let messagesContainer = $state();
-	let liveEventIcons = $state([]);
-
-	let authStartRequested = $state(false);
-	let authAwaitingCode = $state(false);
-	let authInProgress = $state(false);
-	let pendingAuthUrl = $state('');
-	let isAttached = $state(false);
-	let connectionError = $state(null);
-	let lastError = $state(null);
-	let messageSequence = 0;
-
-	function nextMessageId() {
-		messageSequence = (messageSequence + 1) % Number.MAX_SAFE_INTEGER;
-		return `${Date.now()}-${messageSequence}`;
-	}
-
-	// Detect if user is on a mobile device
-	let isMobile = $state(false);
-
-	async function scrollToBottom() {
-		await tick();
-		if (messagesContainer) {
-			messagesContainer.scrollTop = messagesContainer.scrollHeight;
-		}
-	}
-
-	const status = $derived.by(() => {
-		if (connectionError) return 'connection-error';
-		if (authInProgress) return 'auth-in-progress';
-		if (authAwaitingCode) return 'awaiting-auth-code';
-		if (loading) return 'loading';
-		if (isCatchingUp) return 'catching-up';
-		if (isWaitingForReply) return 'thinking';
-		return 'idle';
-	});
-
-	// Auto-scroll when messages change
+	// Update ViewModel props when they change
 	$effect(() => {
-		if (messages.length > 0) {
-			scrollToBottom();
-		}
+		viewModel.sessionId = sessionId;
+		viewModel.claudeSessionId = claudeSessionId;
+		viewModel.shouldResume = shouldResume;
 	});
 
-	async function send(e) {
-		e.preventDefault();
-		// For Socket.IO communications, always use the unified sessionId
-		// claudeSessionId is for display/resume purposes only
-		console.log('ClaudePane send called with:', {
-			sessionId,
-			claudeSessionId,
-			input: input.trim(),
-			runSessionConnected: runSessionClient.getStatus().connected
-		});
-		if (!input.trim()) return;
-		if (!isAttached) {
-			console.error('Not attached to run session');
-			return;
-		}
-		if (!sessionId) {
-			console.error('SessionId not available');
-			return;
-		}
-
-		const userMessage = input.trim();
-		authStartRequested = false; // reset per user turn
-
-		// If we're awaiting an OAuth authorization code, handle this through runSessionClient
-		if (authAwaitingCode && userMessage) {
-			try {
-				// do not push a normal user message — treat this as out-of-band code
-				authInProgress = true;
-				const code = userMessage;
-				input = '';
-				// Send auth code through run session client
-				// Note: This might need to be handled differently depending on how the unified Claude adapter handles auth
-				runSessionClient.sendInput(sessionId, `/auth ${code}`);
-				// Show a lightweight status message
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: 'Submitting authorization code…',
-						timestamp: new Date(),
-						id: Date.now()
-					}
-				];
-				await scrollToBottom();
-			} catch (err) {
-				console.error('Failed to send auth code:', err);
-			}
-			return;
-		}
-
-		// Add user message immediately
-		messages = [
-			...messages,
-			{
-				role: 'user',
-				text: userMessage,
-				timestamp: new Date(),
-				id: nextMessageId()
-			}
-		];
-
-		// Clear input and show waiting state
-		input = '';
-		isWaitingForReply = true;
-		liveEventIcons = [];
-		// no selection state in parent; handled by LiveIconStrip
-
-		// Force immediate scroll to user message
-		await scrollToBottom();
-
-		console.log('Sending input to run session:', { sessionId, input: userMessage });
-		try {
-			runSessionClient.sendInput(sessionId, userMessage);
-		} catch (error) {
-			console.error('Failed to send input to Claude session:', error);
-			lastError = `Failed to send message: ${error.message}`;
-			// Add error message to chat
-			messages = [
-				...messages,
-				{
-					role: 'system',
-					text: `Error: Failed to send message - ${error.message}`,
-					timestamp: new Date(),
-					id: nextMessageId(),
-					isError: true,
-					errorIcon: IconAlertTriangle
-				}
-			];
-			loading = false;
-			isWaitingForReply = false;
-		}
-	}
-
-	// Event handler for Claude data from run session
-	function handleRunEvent(event) {
-		try {
-			// If we receive a message while catching up, clear the flag
-			if (isCatchingUp) {
-				isCatchingUp = false;
-				console.log('[CLAUDE] Received message from active session - caught up');
-			}
-
-			console.log('[CLAUDE] Event received:', event);
-
-			// Handle different Claude event channels
-			if (event.channel === 'claude:message') {
-				// Handle Claude message events
-				const events = event.payload?.events || [event.payload];
-
-				// Process Claude message delta events inline
-				try {
-					// If we receive a message while catching up, clear the flag
-					if (isCatchingUp) {
-						isCatchingUp = false;
-						console.log('Received message from active session - caught up');
-					}
-
-					// Set waiting for reply when we receive messages
-					if (!isWaitingForReply && events && events.length > 0) {
-						isWaitingForReply = true;
-					}
-
-					// Process each event in the events array
-					let assistantTextAdded = false;
-					for (const evt of events) {
-						// Skip empty or malformed events
-						if (!evt || typeof evt !== 'object') continue;
-
-						// Handle assistant messages with text content
-						if (evt?.type === 'assistant' && evt?.message?.content) {
-							const textContent = Array.isArray(evt.message.content)
-								? evt.message.content
-										.filter((c) => c && c.type === 'text')
-										.map((c) => c.text)
-										.join('')
-								: evt.message.content.type === 'text'
-									? evt.message.content.text
-									: '';
-
-							if (textContent) {
-								// Create a new assistant message with accumulated activities
-								messages = [
-									...messages,
-									{
-										role: 'assistant',
-										text: textContent,
-										timestamp: new Date(),
-										id: nextMessageId(),
-										activityIcons: [...liveEventIcons] // Attach accumulated activities
-									}
-								];
-								liveEventIcons = []; // Clear for next accumulation
-								isWaitingForReply = true; // Keep waiting for more potential messages
-								assistantTextAdded = true;
-							} else {
-								// Non-text assistant content (tool use, etc.)
-								if (
-									evt.message.content.some &&
-									evt.message.content.some((c) => c && c.type === 'tool_use')
-								) {
-									pushLiveIcon(evt);
-								}
-							}
-						} else if (evt?.type === 'result') {
-							// Handle result events - clear waiting state
-							isWaitingForReply = false;
-							isCatchingUp = false;
-
-							const isError = !!evt.is_error;
-							if (isError) {
-								// Add error message
-								messages = [
-									...messages,
-									{
-										role: 'assistant',
-										text: evt.result || 'An error occurred',
-										timestamp: new Date(),
-										id: nextMessageId(),
-										isError: true,
-										errorIcon: IconAlertTriangle
-									}
-								];
-							} else if (evt.result && !assistantTextAdded) {
-								// Add successful result
-								messages = [
-									...messages,
-									{
-										role: 'assistant',
-										text: evt.result,
-										timestamp: new Date(),
-										id: nextMessageId(),
-										activityIcons: [...liveEventIcons]
-									}
-								];
-							}
-							liveEventIcons = []; // Clear for next conversation turn
-						} else {
-							// Other event types - be selective about what creates icons
-							const eventType = (evt?.type || '').toLowerCase();
-							const eventName = (evt?.name || evt?.tool || '').toLowerCase();
-
-							// Skip certain event types that shouldn't create icons
-							if (eventType === 'status' || eventType === 'progress' || eventType === 'ping') {
-								continue;
-							}
-
-							// Only push icon for tool-related events or specific types
-							if (
-								eventType === 'tool' ||
-								eventType === 'tool_use' ||
-								eventType === 'tool_result' ||
-								eventName.includes('read') ||
-								eventName.includes('write') ||
-								eventName.includes('bash') ||
-								eventName.includes('grep') ||
-								eventName.includes('edit') ||
-								eventName.includes('glob')
-							) {
-								pushLiveIcon(evt);
-							}
-						}
-					}
-					// Scroll to show the latest state
-					scrollToBottom();
-				} catch (e) {
-					console.error('[CLAUDE] Error processing claude:message event:', e);
-				}
-			} else if (event.channel === 'claude:auth_url') {
-				// Handle OAuth URL events
-				const url = event.payload?.url || '';
-				pendingAuthUrl = url;
-				authAwaitingCode = true;
-				authInProgress = false;
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: `Login required.\n\nOpen this link to authenticate:\n\n${url}\n\n${event.payload?.instructions || 'Then paste the authorization code here.'}`,
-						timestamp: new Date(),
-						id: nextMessageId()
-					}
-				];
-			} else if (event.channel === 'claude:auth_complete') {
-				authAwaitingCode = false;
-				authInProgress = false;
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: 'Authentication complete. You can retry your request.',
-						timestamp: new Date(),
-						id: nextMessageId()
-					}
-				];
-			} else if (event.channel === 'claude:auth_error') {
-				authAwaitingCode = false;
-				authInProgress = false;
-				messages = [
-					...messages,
-					{
-						role: 'assistant',
-						text: `Authentication failed. ${event.payload?.error || ''}`,
-						timestamp: new Date(),
-						id: nextMessageId(),
-						isError: true,
-						errorIcon: IconAlertTriangle
-					}
-				];
-			}
-		} catch (e) {
-			console.error('[CLAUDE] Error handling run event:', e);
-		}
-	}
-
-	// Icon mapping is handled by getIconForEvent
-
-	function pushLiveIcon(e) {
-		// Enhanced event detection for live events
-		let iconData = null;
-
-		// Check for tool use in assistant messages
-		if (e?.type === 'assistant' && e?.message?.content && Array.isArray(e.message.content)) {
-			const toolUse = e.message.content.find((c) => c && c.type === 'tool_use');
-			if (toolUse) {
-				// Extract tool information and create appropriate icon
-				const toolName = (toolUse.name || '').toString().toLowerCase();
-				const toolInput = toolUse.input || {};
-
-				// Create event object with tool details
-				const toolEvent = {
-					type: 'tool',
-					tool: toolUse.name,
-					name: toolUse.name,
-					input: toolInput,
-					id: toolUse.id
-				};
-
-				iconData = getIconForEvent(toolEvent);
-				// Store the tool event for activity summary
-				iconData.event = toolEvent;
-			}
-		}
-
-		// If no icon data extracted yet, use default extraction
-		if (!iconData) {
-			iconData = getIconForEvent(e);
-			iconData.event = e;
-		}
-
-		const { Icon, label, event } = iconData;
-
-		// More aggressive duplicate prevention
-		// Check if we already have this exact icon type in the last few icons
-		const recentIcons = liveEventIcons.slice(-3);
-		const isDuplicate = recentIcons.some((icon) => icon.label === label);
-
-		// Also limit total icons to prevent overflow
-		if (!isDuplicate && liveEventIcons.length < 20) {
-			const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-			// Store the full event data for display
-			liveEventIcons = [
-				...liveEventIcons,
-				{
-					id,
-					Icon,
-					label,
-					event: event || e,
-					timestamp: new Date()
-				}
-			];
-			console.log('Added live icon:', { label, totalIcons: liveEventIcons.length });
-		} else if (liveEventIcons.length >= 20) {
-			console.log('Icon limit reached, not adding more icons');
-		}
-	}
-
-	// Selection handled inside LiveIconStrip instances
-
-	// ActivitySummary component handles event formatting with rich details
-
+	// Load previous messages function
 	async function loadPreviousMessages() {
-		// Use claudeSessionId if available, otherwise use sessionId
-		const sessionIdToLoad = claudeSessionId || sessionId;
+		const sessionIdToLoad = viewModel.claudeSessionId || sessionId;
 		if (!sessionIdToLoad) return;
 
-		loading = true;
+		console.log('[ClaudePane] Loading previous messages for session:', sessionIdToLoad);
+		viewModel.loading = true;
+
 		try {
-			// Use the simplified session lookup endpoint that finds the session by ID alone
-			console.log('Loading Claude history for session:', sessionIdToLoad);
-			const response = await fetch(
-				`/api/claude/session/${encodeURIComponent(sessionIdToLoad)}?full=1`
-			);
+			// Load Claude session history from API
+			const response = await fetch(`/api/claude/session/${encodeURIComponent(sessionIdToLoad)}?full=1`);
 
 			if (response.ok) {
 				const data = await response.json();
-				console.log('Session history loaded:', {
+				console.log('[ClaudePane] Session history loaded:', {
 					sessionId: sessionIdToLoad,
 					project: data.project,
-					entryCount: (data.entries || []).length,
-					summary: data.summary
+					entryCount: (data.entries || []).length
 				});
 
-				// Note: Sessions now manage their own working directories
-				// No need to extract workspace path from session data
+				// Convert entries to message format
+				const events = (data.entries || []).map((entry, index) => ({
+					type: 'claude:message',
+					payload: entry,
+					timestamp: entry.timestamp || Date.now() + index,
+					seq: index
+				}));
 
-				const previousMessages = [];
-
-				// Helpers to build icon objects from entries
-				function iconFromEntry(entry) {
-					if (!entry) return null;
-					try {
-						if (entry.type === 'summary') {
-							return { ...getIconForEvent({ type: 'summary' }), event: entry };
-						}
-						// assistant tool_use events
-						if (
-							entry.type === 'assistant' &&
-							entry.message?.content &&
-							Array.isArray(entry.message.content)
-						) {
-							const toolItems = entry.message.content.filter((c) => c && c.type === 'tool_use');
-							if (toolItems.length > 0) {
-								const toolUse = toolItems[0];
-								const name = (toolUse.name || '').toString();
-								const mapped = getIconForEvent({ type: 'tool', tool: name });
-								// Provide a simplified event with tool metadata so ActivitySummary can render specifics
-								const event = {
-									type: 'tool',
-									tool: toolUse.name,
-									name: toolUse.name,
-									input: toolUse.input,
-									id: toolUse.id
-								};
-								return { ...mapped, event };
-							}
-						}
-						// user tool_result events
-						if (entry.type === 'user' && entry.message?.content) {
-							const content = entry.message.content;
-							const toolResultObj = Array.isArray(content)
-								? content.find((c) => c && c.type === 'tool_result')
-								: content && typeof content === 'object' && content.type === 'tool_result'
-									? content
-									: null;
-							if (toolResultObj) {
-								const mapped = getIconForEvent({ type: 'tool_result', name: 'tool_result' });
-								// Use the specific tool_result object as event data, and ensure name/tool present
-								const event = {
-									...toolResultObj,
-									name: toolResultObj.name || 'tool_result',
-									tool: toolResultObj.name || 'tool_result'
-								};
-								return { ...mapped, event };
-							}
-						}
-					} catch {}
-					return null;
-				}
-
-				// Group entries into user turns with assistant results + icon trails
-				let pendingIcons = [];
-				for (let i = 0; i < (data.entries || []).length; i++) {
-					const entry = data.entries[i];
-					const ts = entry.timestamp
-						? new Date(entry.timestamp)
-						: new Date(Date.now() - (data.entries.length - i) * 60000);
-
-					// User typed text
-					if (
-						entry.type === 'user' &&
-						entry.message?.content &&
-						Array.isArray(entry.message.content)
-					) {
-						const textContent = entry.message.content
-							.filter((c) => c && c.type === 'text')
-							.map((c) => c.text)
-							.join('');
-						if (textContent) {
-							previousMessages.push({
-								role: 'user',
-								text: textContent,
-								timestamp: ts,
-								id: `prev_${i}_user`
-							});
-							pendingIcons = [];
-							continue;
-						}
-					}
-
-					// Accumulate non-text events as icons
-					const ic = iconFromEntry(entry);
-					if (ic) {
-						const id = `${i}-${Math.random().toString(36).slice(2, 6)}`;
-						pendingIcons = [
-							...pendingIcons,
-							{
-								id,
-								Icon: ic.Icon,
-								label: ic.label,
-								event: ic.event || entry,
-								timestamp: ts
-							}
-						]; // Removed slice to keep all icons
-						continue;
-					}
-
-					// Assistant final text result
-					if (
-						entry.type === 'assistant' &&
-						entry.message?.content &&
-						Array.isArray(entry.message.content)
-					) {
-						const textContent = entry.message.content
-							.filter((c) => c && c.type === 'text')
-							.map((c) => c.text)
-							.join('');
-						if (textContent) {
-							previousMessages.push({
-								role: 'assistant',
-								text: textContent,
-								timestamp: ts,
-								id: `prev_${i}_assistant`,
-								activityIcons: pendingIcons // Changed from iconTrail to activityIcons
-							});
-							pendingIcons = [];
-						}
-					}
-				}
-
-				messages = previousMessages;
-				if (previousMessages.length > 0) {
-					console.log('Loaded previous messages:', previousMessages.length);
-					// Scroll to bottom after history is loaded
-					await scrollToBottom();
-				} else {
-					console.log('No previous messages found - this appears to be a new session');
-				}
-			} else {
-				const errorText = await response.text();
-				console.warn('Failed to load Claude session history:', {
-					status: response.status,
-					sessionId: sessionIdToLoad,
-					error: errorText
-				});
-				// Don't fail silently - this could be a new session which is OK
-				if (response.status !== 404) {
-					console.error('Unexpected error loading session history');
+				if (events.length > 0) {
+					await viewModel.loadPreviousMessages(events);
 				}
 			}
 		} catch (error) {
-			console.error('Failed to load previous messages:', error);
-			// Don't let this prevent the session from working
+			console.error('[ClaudePane] Failed to load previous messages:', error);
 		} finally {
-			loading = false;
+			viewModel.loading = false;
 		}
 	}
 
@@ -605,11 +86,11 @@
 	// Effect for handling resize events
 	$effect(() => {
 		function handleResize() {
-			isMobile = checkMobile();
+			viewModel.setMobile(checkMobile());
 		}
 
 		if (typeof window !== 'undefined') {
-			isMobile = checkMobile();
+			viewModel.setMobile(checkMobile());
 			window.addEventListener('resize', handleResize);
 
 			return () => {
@@ -618,8 +99,9 @@
 		}
 	});
 
+	// Mount lifecycle
 	onMount(async () => {
-		console.log('ClaudePane mounting with:', { sessionId, claudeSessionId, shouldResume });
+		console.log('[ClaudePane] Mounting with:', { sessionId, claudeSessionId, shouldResume });
 
 		try {
 			// Authenticate if not already done
@@ -629,48 +111,51 @@
 			}
 
 			// Attach to the run session and get backlog
-			console.log('[CLAUDE] Attaching to run session:', sessionId);
-			isCatchingUp = shouldResume;
+			console.log('[ClaudePane] Attaching to run session:', sessionId);
+			viewModel.isCatchingUp = shouldResume;
 
-			const result = await runSessionClient.attachToRunSession(sessionId, handleRunEvent, 0);
-			isAttached = true;
-			connectionError = null;
-			console.log('[CLAUDE] Attached to run session:', result);
+			const result = await runSessionClient.attachToRunSession(
+				sessionId,
+				(event) => viewModel.handleRunEvent(event),
+				0
+			);
+
+			viewModel.attach();
+			console.log('[ClaudePane] Attached to run session:', result);
 
 			// Clear catching up state after a delay if no messages arrived
 			if (shouldResume) {
 				setTimeout(() => {
-					if (isCatchingUp) {
-						isCatchingUp = false;
-						isWaitingForReply = false;
-						console.log('[CLAUDE] Timeout reached, clearing catching up state');
+					if (viewModel.isCatchingUp) {
+						viewModel.isCatchingUp = false;
+						viewModel.isWaitingForReply = false;
+						console.log('[ClaudePane] Timeout reached, clearing catching up state');
 					}
 				}, 2000);
 			}
 		} catch (error) {
-			console.error('[CLAUDE] Failed to attach to run session:', error);
-			connectionError = `Failed to connect: ${error.message}`;
-			isCatchingUp = false;
+			console.error('[ClaudePane] Failed to attach to run session:', error);
+			viewModel.setConnectionError(`Failed to connect: ${error.message}`);
+			viewModel.isCatchingUp = false;
 		}
-
-		// Event handling is now done through RunSessionClient via handleRunEvent
 
 		// Load previous messages if this is a resumed session
 		if (claudeSessionId || shouldResume) {
 			await loadPreviousMessages();
 		}
 	});
+
+	// Cleanup on destroy
 	onDestroy(() => {
 		// Detach from run session
-		if (isAttached && sessionId) {
+		if (viewModel.isAttached && sessionId) {
 			try {
 				runSessionClient.detachFromRunSession(sessionId);
-				console.log('[CLAUDE] Detached from run session:', sessionId);
+				console.log('[ClaudePane] Detached from run session:', sessionId);
 			} catch (error) {
-				console.error('[CLAUDE] Failed to detach from run session:', error);
+				console.error('[ClaudePane] Failed to detach from run session:', error);
 			}
 		}
-		// Resize listener cleanup is handled by the $effect
 	});
 </script>
 
@@ -678,16 +163,20 @@
 	<!-- Chat Header with AI Status -->
 	<div class="chat-header">
 		<div
-			class="ai-status {status}"
-			title={isWaitingForReply ? 'thinking...' : loading ? 'loading...' : 'idle'}
+			class="ai-status {viewModel.status}"
+			title={viewModel.isWaitingForReply
+				? 'thinking...'
+				: viewModel.loading
+					? 'loading...'
+					: 'idle'}
 		>
 			<div class="ai-avatar">
-				{#if isCatchingUp}
+				{#if viewModel.isCatchingUp}
 					<IconLoader size={16} class="ai-icon spinning" />
 					<span class="catching-up">Reconnecting to active session...</span>
-				{:else if loading}
+				{:else if viewModel.loading}
 					<IconProgressDown size={16} class="ai-icon" />
-				{:else if isWaitingForReply}
+				{:else if viewModel.isWaitingForReply}
 					<IconSparkles size={16} class="ai-icon glowing" />
 				{:else}
 					<IconClaude size={16} />
@@ -695,962 +184,177 @@
 			</div>
 			<div class="ai-info">
 				<div class="ai-name">Claude</div>
-				<!--<div class="ai-state">
-					 {#if isCatchingUp}
-						<span class="catching-up">Reconnecting to active session...</span>
-					{:else if loading}
-						Processing...
-					{:else if isWaitingForReply}
-						Thinking...
-					{:else}
-						Ready
-					{/if}
-				</div> -->
 			</div>
 		</div>
 		<div class="chat-stats">
 			<div class="stat-item">
 				<span class="stat-icon"><IconMessage size={16} /></span>
-				<span class="stat-value">{messages.length}</span>
+				<span class="stat-value">{viewModel.messages.length}</span>
 			</div>
 		</div>
 	</div>
 
-	<!-- Enhanced Messages Container -->
-	<div
-		class="messages"
-		role="log"
-		aria-live="polite"
-		aria-label="Chat messages"
-		bind:this={messagesContainer}
-	>
-		{#if loading && messages.length === 0}
-			<div class="loading-message" transition:fly={{ y: 20, duration: 300 }}>
-				<div class="loading-indicator">
-					<div class="pulse-ring"></div>
-					<div class="pulse-ring"></div>
-					<div class="pulse-ring"></div>
-				</div>
-				<div class="loading-text">Loading previous conversation...</div>
-			</div>
-		{/if}
+	<!-- Messages List Component -->
+	<MessageList {viewModel} />
 
-		{#each messages as m, index (m.id || `msg-${index}`)}
-			<div
-				class="message message--{m.role} {m.isError ? 'message--error' : ''}"
-				transition:fly={{ y: 20, duration: 400 }}
-				role="article"
-				aria-label="{m.role} message"
-			>
-				<div class="message-wrapper">
-					<div class="message-avatar">
-						{#if m.role === 'user'}
-							<div class="user-avatar">
-								<IconUserCode size={16} />
-							</div>
-						{:else}
-							<div class="ai-avatar-small">
-								<IconClaude size={16} />
-							</div>
-						{/if}
-					</div>
-					<div class="message-content">
-						<div class="message-header">
-							<span class="message-role">{m.role === 'user' ? 'You' : 'Claude'}</span>
-							<span class="message-time">
-								{m.timestamp
-									? new Date(m.timestamp).toLocaleTimeString('en-US', {
-											hour: '2-digit',
-											minute: '2-digit'
-										})
-									: '--:--'}
-							</span>
-						</div>
-						<div class="message-text">
-							{#if m.isError && m.errorIcon}
-								{@const ErrorIcon = m.errorIcon}
-								<div class="error-icon-wrapper">
-									<ErrorIcon size={20} />
-								</div>
-							{/if}
-							<Markdown content={m.text} />
-						</div>
-						{#if m.activityIcons && m.activityIcons.length > 0}
-							<div class="activity-icons-container">
-								<LiveIconStrip icons={m.activityIcons} title="Agent activity" staticMode={true} />
-							</div>
-						{/if}
-					</div>
-				</div>
-			</div>
-		{/each}
-
-		{#if isWaitingForReply}
-			<div
-				class="message message--assistant typing-indicator"
-				transition:fly={{ y: 20, duration: 300 }}
-			>
-				<div class="message-wrapper">
-					<div class="message-avatar">
-						<div class="ai-avatar-small">
-							<IconClaude size={16} />
-						</div>
-					</div>
-					<div class="message-content">
-						<div class="message-header">
-							<span class="message-role">Claude</span>
-							<span class="message-time typing-status">--:--</span>
-						</div>
-						<div class="typing-animation">
-							<span class="typing-dot"></span>
-							<span class="typing-dot"></span>
-							<span class="typing-dot"></span>
-						</div>
-						{#if liveEventIcons.length > 0}
-							<LiveIconStrip icons={liveEventIcons} title="Live agent activity" />
-						{/if}
-					</div>
-				</div>
-			</div>
-		{/if}
-
-		{#if messages.length === 0 && !loading}
-			<div class="welcome-message" transition:fly={{ y: 30, duration: 500 }}>
-				<div class="welcome-icon">
-					<img src="/favicon.png" alt="" />
-				</div>
-				<h3>Welcome to Claude</h3>
-				<p>
-					Start a conversation with your AI assistant. Ask questions, get help with coding, or
-					discuss ideas!
-				</p>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Enhanced Input Form -->
-	<form onsubmit={send} class="input-form">
-		<div class="input-container">
-			<div class="message-input-wrapper" data-augmented-ui="tl-clip br-clip both">
-				<textarea
-					bind:value={input}
-					placeholder={isMobile
-						? 'Tap Send button to send'
-						: 'Press Enter to send, Shift+Enter for new line'}
-					class="message-input"
-					disabled={loading}
-					aria-label="Type your message"
-					autocomplete="off"
-					onkeydown={(e) => {
-						// On desktop: Enter sends, Shift+Enter adds newline
-						// On mobile: Enter always adds newline (send via button)
-						if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
-							e.preventDefault();
-							send(e);
-						}
-					}}
-					rows="2"
-				></textarea>
-			</div>
-			<div class="input-actions">
-				<Button
-					type="submit"
-					text={isWaitingForReply ? 'Send' : loading ? 'Sending...' : 'Send'}
-					variant="primary"
-					augmented="tr-clip bl-clip both"
-					disabled={!input.trim() || loading}
-					ariaLabel="Send message"
-				/>
-			</div>
-		</div>
-	</form>
+	<!-- Input Area Component -->
+	<InputArea {viewModel} />
 </div>
 
 <style>
-	/* Component-specific overrides only */
-	.action-button {
-		margin-left: auto;
-		flex-shrink: 0;
-	}
-
-	.input-container {
-		position: relative;
-		flex: 1;
-	}
-
-	.message-input {
-		width: 100%;
-		min-height: 60px;
-		max-height: 200px;
-		padding: var(--space-3);
-		padding-right: var(--space-7);
-		background: color-mix(in oklab, var(--surface) 85%, var(--bg));
-		border: 2px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: var(--radius-lg);
-		font-family: var(--font-mono);
-		font-size: 0.95rem;
-		line-height: 1.4;
-		color: var(--text);
-		resize: none;
-		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-		backdrop-filter: blur(8px);
-		box-shadow:
-			0 4px 16px -8px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px color-mix(in oklab, var(--primary) 5%, transparent);
-	}
-
-	.message-input:focus {
-		outline: none;
-		border-color: var(--primary);
-		background: color-mix(in oklab, var(--surface) 90%, var(--bg));
-		box-shadow:
-			0 8px 32px -12px var(--primary-glow),
-			inset 0 2px 4px color-mix(in oklab, var(--primary) 10%, transparent),
-			0 0 0 4px var(--primary-glow-20);
-		text-shadow: 0 0 2px var(--primary-glow-10);
-	}
-
-	.message-input::placeholder {
-		color: var(--muted);
-		opacity: 0.8;
-	}
-
-	.chat-form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	.controls-left {
-		display: flex;
-		gap: var(--space-2);
-		align-items: center;
-	}
-
-	.controls-right {
-		display: flex;
-		gap: var(--space-2);
-		align-items: center;
-	}
-
-	/* RESPONSIVE DESIGN */
-	@container (max-width: 600px) {
-		.chat-content {
-			padding: var(--space-2);
-		}
-
-		.chat-input-area {
-			padding: var(--space-3);
-		}
-
-		.message-text {
-			max-width: 95%;
-		}
-
-		.chat-actions {
-			flex-direction: column;
-			gap: var(--space-3);
-		}
-
-		.controls-left,
-		.controls-right {
-			width: 100%;
-			justify-content: center;
-		}
-	}
-
-	/* AWARD-WINNING CHAT INTERFACE 2025
-	   Features: Advanced glass-morphism, spatial design, micro-interactions,
-	   professional typography, and cutting-edge UX patterns */
-
 	.claude-pane {
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		min-height: 0; /* Important for proper flex sizing */
-		background: radial-gradient(
-			ellipse at top left,
-			color-mix(in oklab, var(--bg) 95%, var(--primary) 5%),
-			var(--bg)
-		);
-		color: var(--text);
-		overflow: hidden;
 		position: relative;
-		container-type: inline-size;
-		/* Ensure stable layout during transitions */
-		contain: layout style;
+		background: linear-gradient(
+			180deg,
+			color-mix(in oklab, var(--bg) 95%, var(--surface)),
+			color-mix(in oklab, var(--bg) 98%, var(--surface))
+		);
+		overflow: hidden;
 	}
 
-	/* INTELLIGENT CHAT HEADER */
+	/* Chat Header */
 	.chat-header {
 		display: flex;
-		align-items: center;
 		justify-content: space-between;
-		padding-inline: var(--space-4);
-		padding-block: var(--space-1);
+		align-items: center;
+		padding: var(--space-4);
+		border-bottom: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
 		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--surface) 92%, var(--primary) 8%),
-			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%)
+			180deg,
+			color-mix(in oklab, var(--surface) 60%, var(--bg)),
+			color-mix(in oklab, var(--surface) 40%, var(--bg))
 		);
-		border-bottom: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		backdrop-filter: blur(16px) saturate(120%);
-		position: relative;
+		backdrop-filter: blur(12px);
+		position: sticky;
+		top: 0;
 		z-index: 10;
-		box-shadow:
-			0 2px 20px -8px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px color-mix(in oklab, var(--primary) 10%, transparent);
 	}
 
 	.ai-status {
 		display: flex;
 		align-items: center;
-		gap: var(--space-4);
-
-		&.thinking {
-			color: var(--accent-cyan);
-		}
+		gap: var(--space-3);
 	}
 
 	.ai-avatar {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 32px;
-		height: 32px;
-		background: radial-gradient(
-			ellipse at center,
-			color-mix(in oklab, var(--primary) 15%, transparent),
-			color-mix(in oklab, var(--primary) 5%, transparent)
+		background: linear-gradient(
+			135deg,
+			color-mix(in oklab, var(--primary) 25%, transparent),
+			color-mix(in oklab, var(--primary) 15%, transparent)
 		);
-		border: 2px solid color-mix(in oklab, var(--primary) 30%, transparent);
-		border-radius: 50%;
-		color: var(--primary);
-		backdrop-filter: blur(8px);
-		box-shadow:
-			0 8px 32px -12px var(--primary-glow),
-			inset 0 2px 4px color-mix(in oklab, var(--primary) 15%, transparent),
-			0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent);
-		transition: all 0.3s ease;
-		animation: avatarPulse 4s ease-in-out infinite;
+		border: 3px solid color-mix(in oklab, var(--primary) 40%, transparent);
+		box-shadow: 0 8px 24px -8px var(--primary-glow);
+		position: relative;
+		overflow: hidden;
+		transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 	}
 
-	.thinking > .ai-avatar {
-		background: radial-gradient(
-			ellipse at center,
-			color-mix(in oklab, var(--accent-cyan) 15%, transparent),
-			color-mix(in oklab, var(--accent-cyan) 5%, transparent)
-		);
-		border: 2px solid color-mix(in oklab, var(--accent-cyan) 30%, transparent);
-		border-radius: 50%;
-		color: var(--accent-cyan);
-		backdrop-filter: blur(8px);
-		box-shadow:
-			0 8px 32px -12px var(--accent-cyan-glow),
-			inset 0 2px 4px color-mix(in oklab, var(--accent-cyan) 15%, transparent),
-			0 0 0 1px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
+	.ai-status.thinking .ai-avatar {
+		animation: pulse 2s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			transform: scale(1);
+			box-shadow: 0 8px 24px -8px var(--primary-glow);
+		}
+		50% {
+			transform: scale(1.05);
+			box-shadow: 0 12px 32px -8px var(--primary-glow);
+		}
+	}
+
+	:global(.ai-icon.spinning) {
+		animation: spin 1.5s linear infinite;
+	}
+
+	:global(.ai-icon.glowing) {
+		animation: glow 2s ease-in-out infinite;
+	}
+
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@keyframes glow {
+		0%,
+		100% {
+			opacity: 1;
+			filter: drop-shadow(0 0 4px var(--primary));
+		}
+		50% {
+			opacity: 0.7;
+			filter: drop-shadow(0 0 8px var(--primary));
+		}
+	}
+
+	.catching-up {
+		font-size: 0.85rem;
+		color: var(--muted);
+		animation: pulse 1.5s ease-in-out infinite;
 	}
 
 	.ai-info {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
 		gap: var(--space-1);
-		flex: 1;
-		min-width: 0; /* Allow text truncation */
 	}
 
 	.ai-name {
-		font-family: var(--font-mono);
-		font-weight: 700;
-		font-size: var(--font-size-3);
-		background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
-		background-clip: text;
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		letter-spacing: 0.05em;
-	}
-
-	.ai-state {
-		font-family: var(--font-sans);
-		font-size: var(--font-size-1);
-		color: var(--muted);
-		font-weight: 500;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.catching-up {
-		color: var(--accent-amber);
-		animation: pulse 1.5s ease-in-out infinite;
+		font-weight: 600;
+		font-size: 1rem;
+		color: var(--text);
 	}
 
 	.chat-stats {
 		display: flex;
+		gap: var(--space-4);
 		align-items: center;
-		gap: var(--space-3);
 	}
 
 	.stat-item {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding: var(--space-1) var(--space-2);
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 10%, transparent),
-			color-mix(in oklab, var(--primary) 5%, transparent)
-		);
+		padding: var(--space-2) var(--space-3);
+		background: color-mix(in oklab, var(--primary) 10%, transparent);
+		border-radius: var(--radius-md);
 		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: 20px;
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		font-weight: 600;
-		backdrop-filter: blur(4px);
+	}
+
+	.stat-icon {
+		display: flex;
+		color: var(--primary);
 	}
 
 	.stat-value {
-		color: var(--primary);
-		font-weight: 700;
-	}
-
-	/* ADVANCED MESSAGES CONTAINER */
-	.messages {
-		flex: 1;
-		min-height: 0; /* Critical for flex children to shrink properly */
-		overflow-y: auto;
-		overflow-x: hidden;
-		padding: var(--space-6) var(--space-6) var(--space-4);
-		scroll-behavior: smooth;
-		scrollbar-width: thin;
-		scrollbar-color: color-mix(in oklab, var(--primary) 30%, transparent) transparent;
-		position: relative;
-		background: linear-gradient(
-			180deg,
-			transparent 0%,
-			color-mix(in oklab, var(--surface) 98%, var(--primary) 2%) 10%,
-			color-mix(in oklab, var(--surface) 98%, var(--primary) 2%) 90%,
-			transparent 100%
-		);
-		/* Fix touch scrolling on mobile devices */
-		-webkit-overflow-scrolling: touch;
-		overscroll-behavior: contain;
-		/* Prevent layout shift during navigation */
-		will-change: contents;
-		contain: size layout;
-	}
-
-	.messages::-webkit-scrollbar {
-		width: 8px;
-	}
-
-	.messages::-webkit-scrollbar-thumb {
-		background: linear-gradient(
-			180deg,
-			color-mix(in oklab, var(--primary) 40%, transparent),
-			color-mix(in oklab, var(--primary) 20%, transparent)
-		);
-		border-radius: 12px;
-		border: 2px solid transparent;
-		background-clip: padding-box;
-	}
-
-	.messages::-webkit-scrollbar-track {
-		background: color-mix(in oklab, var(--surface) 95%, transparent);
-		border-radius: 12px;
-	}
-
-	/* LOADING STATE */
-	.loading-message {
-		display: flex;
-		align-items: center;
-		gap: var(--space-4);
-		padding: var(--space-6);
-		margin: var(--space-4) 0;
-		background: radial-gradient(
-			ellipse at left,
-			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
-			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%)
-		);
-		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		border-radius: 24px;
-		backdrop-filter: blur(8px);
-		box-shadow:
-			0 8px 32px -12px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px color-mix(in oklab, var(--primary) 10%, transparent);
-	}
-
-	.loading-indicator {
-		display: flex;
-		gap: var(--space-1);
-		align-items: center;
-	}
-
-	.pulse-ring {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: var(--primary);
-		animation: pulseRing 1.5s ease-in-out infinite;
-	}
-
-	.pulse-ring:nth-child(2) {
-		animation-delay: 0.2s;
-	}
-
-	.pulse-ring:nth-child(3) {
-		animation-delay: 0.4s;
-	}
-
-	.loading-text {
-		font-family: var(--font-sans);
-		font-size: var(--font-size-2);
-		color: var(--muted);
-		font-style: italic;
-	}
-
-	/* MESSAGE BUBBLES - REVOLUTIONARY DESIGN */
-	.message {
-		margin-bottom: var(--space-5);
-		opacity: 0;
-		animation: messageSlideIn 0.5s ease-out forwards;
-	}
-
-	.message-wrapper {
-		display: flex;
-		gap: var(--space-4);
-		align-items: flex-start;
-		max-width: 90%;
-	}
-
-	.message--user .message-wrapper {
-		flex-direction: row-reverse;
-		margin-left: auto;
-		margin-right: 0;
-	}
-
-	.message--assistant .message-wrapper {
-		margin-right: auto;
-		margin-left: 0;
-	}
-
-	/* AVATAR DESIGNS */
-	.message-avatar {
-		flex-shrink: 0;
-		margin-top: var(--space-2);
-	}
-
-	.user-avatar,
-	.ai-avatar-small {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 36px;
-		height: 36px;
-		border-radius: 50%;
-		border: 2px solid transparent;
-		backdrop-filter: blur(8px);
-		transition: all 0.3s ease;
-	}
-
-	.user-avatar {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--accent-amber) 20%, transparent),
-			color-mix(in oklab, var(--accent-amber) 10%, transparent)
-		);
-		border-color: color-mix(in oklab, var(--accent-amber) 40%, transparent);
-		color: var(--accent-amber);
-		box-shadow:
-			0 4px 16px -8px rgba(255, 209, 102, 0.3),
-			inset 0 1px 2px rgba(255, 255, 255, 0.1);
-	}
-
-	.ai-avatar-small {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 20%, transparent),
-			color-mix(in oklab, var(--primary) 10%, transparent)
-		);
-		border-color: color-mix(in oklab, var(--primary) 40%, transparent);
-		color: var(--primary);
-		box-shadow:
-			0 4px 16px -8px var(--primary-glow),
-			inset 0 1px 2px rgba(255, 255, 255, 0.1);
-	}
-
-	/* MESSAGE CONTENT */
-	.message-content {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.message-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: var(--space-3);
-		gap: var(--space-3);
-	}
-
-	.message-role {
-		font-family: var(--font-mono);
-		font-weight: 700;
-		font-size: var(--font-size-1);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.message--user .message-role {
-		color: var(--accent-amber);
-	}
-
-	.message--assistant .message-role {
-		background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
-		background-clip: text;
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-	}
-
-	.message-time {
-		font-family: var(--font-mono);
-		font-size: var(--font-size-0);
-		color: var(--muted);
-		opacity: 0.7;
-	}
-
-	.message-text {
-		padding: var(--space-5);
-		border-radius: 24px;
-		line-height: 1.6;
-		word-wrap: break-word;
-		font-family: var(--font-sans);
-		font-size: var(--font-size-2);
-		backdrop-filter: blur(8px);
-		position: relative;
-		box-shadow:
-			0 8px 32px -12px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px rgba(255, 255, 255, 0.05);
-		transition: all 0.3s ease;
-	}
-
-	/* Activity icons container - transparent background */
-	.activity-icons-container {
-		margin-top: var(--space-2);
-		background: transparent;
-	}
-
-	/* Overlay container for event details (works for live and history) */
-
-	.message--user .message-text {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--accent-amber) 15%, var(--surface)),
-			color-mix(in oklab, var(--accent-amber) 8%, var(--surface))
-		);
-		border: 1px solid color-mix(in oklab, var(--accent-amber) 25%, transparent);
-		color: var(--text);
-		border-bottom-right-radius: 8px;
-	}
-
-	.message--assistant .message-text {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 12%, var(--surface)),
-			color-mix(in oklab, var(--primary) 6%, var(--surface))
-		);
-		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		color: var(--text);
-		border-bottom-left-radius: 8px;
-	}
-
-	.message-text:hover {
-		box-shadow:
-			0 12px 40px -16px rgba(0, 0, 0, 0.15),
-			inset 0 2px 4px rgba(255, 255, 255, 0.08);
-	}
-
-	/* WELCOME MESSAGE */
-	.welcome-message {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		padding: var(--space-8);
-		margin-block: var(--space-8);
-		margin-inline: auto;
-		min-height: 200px;
-		max-width: 480px;
-		background: radial-gradient(
-			ellipse at center,
-			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
-			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%)
-		);
-		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: 32px;
-		backdrop-filter: blur(12px);
-		box-shadow:
-			0 16px 64px -24px rgba(0, 0, 0, 0.2),
-			inset 0 2px 4px color-mix(in oklab, var(--primary) 10%, transparent);
-	}
-
-	.welcome-icon {
-		font-size: 4rem;
-		margin-bottom: var(--space-2);
-		animation: fadeInOut 10s ease-in-out infinite;
-		opacity: 0.05;
-		position: absolute;
-		inset: 0;
-		display: none;
-	}
-
-	.welcome-message h3 {
-		font-family: var(--font-mono);
-		font-size: var(--font-size-4);
-		font-weight: 800;
-		background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
-		background-clip: text;
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		margin: 0 0 var(--space-4);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.welcome-message p {
-		font-family: var(--font-sans);
-		font-size: var(--font-size-2);
-		color: var(--muted);
-		line-height: 1.6;
-		margin: 0;
-	}
-
-	/* REVOLUTIONARY INPUT INTERFACE */
-	.input-form {
-		padding: var(--space-3);
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--surface) 88%, var(--primary) 12%),
-			color-mix(in oklab, var(--surface) 92%, var(--primary) 8%)
-		);
-		border-top: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		backdrop-filter: blur(16px) saturate(120%);
-		position: relative;
-		z-index: 10;
-		box-shadow:
-			0 -8px 32px -16px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px color-mix(in oklab, var(--primary) 10%, transparent);
-		flex-shrink: 0; /* Prevent input form from shrinking */
-		margin-top: auto; /* Push to bottom */
-	}
-
-	.input-container {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-5); /* Increased gap for more vertical spacing */
-		position: relative;
-	}
-
-	.input-actions {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		flex-shrink: 0;
-	}
-
-	/* Message input wrapper with augmented-ui styling */
-	.message-input-wrapper {
-		width: 100%;
-		position: relative;
-		--aug-border: 2px;
-		--aug-border-bg: linear-gradient(135deg, var(--primary), var(--accent-cyan));
-		--aug-border-fallback-color: var(--primary);
-		--aug-tl: 12px;
-		--aug-br: 12px;
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--surface) 93%, var(--primary) 7%),
-			color-mix(in oklab, var(--surface) 96%, var(--primary) 4%)
-		);
-		backdrop-filter: blur(12px) saturate(120%);
-		box-shadow:
-			inset 0 2px 12px rgba(0, 0, 0, 0.08),
-			0 4px 32px -8px rgba(0, 0, 0, 0.15),
-			0 0 0 1px color-mix(in oklab, var(--primary) 15%, transparent);
-		transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-	}
-
-	.message-input-wrapper:focus-within {
-		--aug-border: 3px;
-		--aug-border-bg: linear-gradient(135deg, var(--accent-cyan), var(--primary));
-		background: radial-gradient(
-			ellipse at center,
-			color-mix(in oklab, var(--surface) 88%, var(--primary) 12%),
-			color-mix(in oklab, var(--surface) 94%, var(--primary) 6%)
-		);
-		box-shadow:
-			inset 0 2px 16px rgba(0, 0, 0, 0.05),
-			0 0 0 4px color-mix(in oklab, var(--primary) 25%, transparent),
-			0 0 60px var(--primary-glow),
-			0 20px 80px -20px var(--primary-glow);
-	}
-
-	:global(.message-input button) {
-		width: 100%;
-	}
-
-	.message-input {
-		width: 100%;
-		height: 100%;
-		padding: var(--space-5) var(--space-5); /* Increased vertical padding */
-		font-family: var(--font-sans);
-		font-size: var(--font-size-2);
-		font-weight: 500;
-		background: transparent;
-		border: none;
-		color: var(--text);
-		position: relative;
-		overflow: hidden;
-		min-height: 100px; /* Increased minimum height */
-		max-height: 200px;
-		resize: vertical;
-		line-height: 1.6;
-		overflow-y: auto;
-		scrollbar-width: thin;
-		scrollbar-color: color-mix(in oklab, var(--primary) 30%, transparent) transparent;
-		outline: none;
-	}
-
-	.message-input::-webkit-scrollbar {
-		width: 6px;
-	}
-
-	.message-input::-webkit-scrollbar-thumb {
-		background: color-mix(in oklab, var(--primary) 40%, transparent);
-		border-radius: 3px;
-	}
-
-	.message-input:focus {
-		outline: none !important;
-		border: none !important;
-		box-shadow: none !important;
-	}
-
-	.message-input::placeholder {
-		color: color-mix(in oklab, var(--muted) 80%, var(--primary) 20%);
-		font-style: italic;
-		opacity: 0.7;
-	}
-
-	.message-input:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-		transform: none;
-	}
-
-	/* Buttons in the actions area */
-	.input-actions :global(.button) {
-		min-width: 120px;
-		justify-content: center;
 		font-weight: 600;
-		letter-spacing: 0.05em;
+		font-size: 0.9rem;
+		color: var(--text);
+		min-width: 20px;
+		text-align: right;
 	}
 
-	/* Commands button - compact size */
-	.input-actions :global(button:first-child) {
-		min-width: unset;
-		flex-shrink: 0; /* Keep commands button at its natural size */
-	}
-
-	/* Send button - take up remaining space */
-	.input-actions :global(.button[type='submit']) {
-		flex: 1; /* Take up remaining space */
-		min-width: 120px; /* Keep minimum width for usability */
-	}
-
-	.help-text {
-		font-family: var(--font-mono);
-		font-size: var(--font-size-0);
-		color: var(--muted);
-		opacity: 0.7;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	/* RESPONSIVE DESIGN */
-	@container (max-width: 480px) {
-		.chat-header {
-			padding: var(--space-3) var(--space-4);
-		}
-
-		.ai-avatar {
-			width: 40px;
-			height: 40px;
-		}
-
-		.messages {
-			padding: var(--space-4) var(--space-4) var(--space-3);
-		}
-
-		.message-wrapper {
-			max-width: 95%;
-		}
-
-		.message-text {
-			padding: var(--space-4);
-			font-size: var(--font-size-1);
-			border-radius: 20px;
-		}
-
-		.input-form {
-			padding: var(--space-4);
-		}
-
-		.input-container {
-			gap: var(--space-4); /* Maintain good vertical spacing on mobile */
-		}
-
-		.message-input-wrapper {
-			--aug-tl: 8px;
-			--aug-br: 8px;
-		}
-
-		.message-input {
-			min-height: 80px; /* Increased height on mobile too */
-			padding: var(--space-4) var(--space-4);
-			font-size: var(--font-size-1);
-		}
-
-		.input-actions :global(.button) {
-			min-width: 80px;
-			font-size: var(--font-size-1);
-		}
-	}
-
-	/* MOBILE & TOUCH DEVICE OPTIMIZATIONS */
+	/* Mobile Optimizations */
 	@media (max-width: 768px) {
 		.claude-pane {
-			/* Ensure full height on mobile */
 			height: 100%;
-			display: flex;
-			flex-direction: column;
 			min-height: 0;
-		}
-
-		.messages {
-			/* Improve touch scrolling on mobile */
-			-webkit-overflow-scrolling: touch;
-			overscroll-behavior-y: contain;
-			/* Prevent elastic scrolling issues on iOS */
-			position: relative;
-			touch-action: pan-y;
-			/* Ensure proper height calculation */
-			flex: 1 1 auto;
-			min-height: 0;
-			height: 100%;
-			contain: none; /* Remove contain on mobile for better scrolling */
 		}
 
 		.chat-header {
@@ -1661,157 +365,26 @@
 			width: 40px;
 			height: 40px;
 		}
-
-		.message-wrapper {
-			max-width: 95%;
-		}
 	}
 
-	/* Touch-specific optimizations */
-	@media (hover: none) and (pointer: coarse) {
-		.messages {
-			/* Force hardware acceleration for smooth scrolling */
-			transform: translateZ(0);
-			will-change: scroll-position;
-		}
-
-		/* Increase tap targets for touch while keeping visual size small */
-	}
-
-	/* ACCESSIBILITY ENHANCEMENTS */
+	/* Accessibility */
 	@media (prefers-reduced-motion: reduce) {
-		.message,
 		.ai-avatar,
-		.welcome-icon,
-		.pulse-ring {
-			animation: none;
-		}
-
-		.message-text:hover {
-			transform: none;
-		}
-
-		.message-input:focus {
-			transform: none;
+		.catching-up,
+		:global(.ai-icon.spinning),
+		:global(.ai-icon.glowing) {
+			animation: none !important;
 		}
 	}
 
-	@media (prefers-color-scheme: light) {
-		.message-text {
-			box-shadow:
-				0 4px 20px -12px rgba(0, 0, 0, 0.15),
-				inset 0 1px 2px rgba(255, 255, 255, 0.5);
-		}
-	}
-
-	/* HIGH CONTRAST MODE */
+	/* High Contrast Mode */
 	@media (prefers-contrast: high) {
-		.message-text {
+		.ai-avatar {
+			border-width: 3px;
+		}
+
+		.stat-item {
 			border-width: 2px;
 		}
-
-		.message-input {
-			border-width: 3px;
-		}
-
-		.ai-avatar,
-		.user-avatar,
-		.ai-avatar-small {
-			border-width: 3px;
-		}
-	}
-
-	/* TYPING INDICATOR ANIMATION */
-	.typing-indicator {
-		opacity: 1;
-		animation: none; /* Override default message animation */
-	}
-
-	.typing-status {
-		color: var(--muted);
-		font-weight: 600;
-		animation: typingPulse 1.5s ease-in-out infinite;
-	}
-
-	.typing-animation {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-4) var(--space-5);
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 12%, var(--surface)),
-			color-mix(in oklab, var(--primary) 6%, var(--surface))
-		);
-		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		border-radius: 24px;
-		border-bottom-left-radius: 8px;
-		min-height: 48px;
-		box-shadow:
-			0 8px 32px -12px rgba(0, 0, 0, 0.1),
-			inset 0 1px 2px rgba(255, 255, 255, 0.05);
-	}
-
-	.typing-dot {
-		display: inline-block;
-		width: 10px;
-		height: 10px;
-		border-radius: 50%;
-		background: var(--primary);
-		opacity: 0.4;
-		animation: typingBounce 1.4s ease-in-out infinite;
-		box-shadow: 0 2px 8px -2px var(--primary-glow);
-	}
-
-	.typing-dot:nth-child(1) {
-		animation-delay: 0s;
-	}
-
-	.typing-dot:nth-child(2) {
-		animation-delay: 0.2s;
-	}
-
-	.typing-dot:nth-child(3) {
-		animation-delay: 0.4s;
-	}
-
-	/* Smooth scroll to show typing indicator */
-	.typing-indicator {
-		scroll-margin-bottom: var(--space-6);
-	}
-
-	/* Message text container - Markdown component handles content styles */
-
-	.error-icon-wrapper {
-		display: inline-flex;
-		align-items: center;
-		margin-right: var(--space-2);
-		color: var(--error, #ff6b6b);
-		vertical-align: middle;
-	}
-
-	/* ERROR MESSAGE STYLING */
-	.message--error .message-text {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--error, #ff6b6b) 15%, var(--surface)),
-			color-mix(in oklab, var(--error, #ff6b6b) 8%, var(--surface))
-		);
-		border-color: color-mix(in oklab, var(--error, #ff6b6b) 35%, transparent);
-		color: var(--error, #ff6b6b);
-	}
-
-	.message--error .ai-avatar-small {
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--error, #ff6b6b) 20%, transparent),
-			color-mix(in oklab, var(--error, #ff6b6b) 10%, transparent)
-		);
-		border-color: color-mix(in oklab, var(--error, #ff6b6b) 40%, transparent);
-		color: var(--error, #ff6b6b);
-	}
-
-	.message--error .message-role {
-		color: var(--error, #ff6b6b);
 	}
 </style>

@@ -35,7 +35,10 @@ export async function getGlobalServices() {
  */
 const PUBLIC_ROUTES = [
 	'/auth/callback',
-	'/api/auth/callback'
+	'/api/auth/callback',
+	'/api/auth/config',
+	'/api/settings/onboarding',
+	'/api/environment'
 ];
 
 /**
@@ -54,6 +57,7 @@ async function authenticationMiddleware({ event, resolve }) {
 
 	// Skip auth for public routes
 	if (isPublicRoute(pathname)) {
+		logger.debug('AUTH', `Skipping auth for public route: ${pathname}`);
 		return resolve(event);
 	}
 

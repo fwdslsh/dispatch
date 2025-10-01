@@ -147,6 +147,14 @@ class ViewModel {
 
 **Global Service Sharing**: `__API_SERVICES` provides shared instances across Socket.IO and API routes, ensuring consistent state management
 
+### Architecture Documentation
+
+For detailed architectural patterns and implementation guides, see:
+
+- **[MVVM Patterns Guide](src/docs/architecture/mvvm-patterns.md)** - Deep dive into the runes-in-classes pattern, when to use classes vs modules, and common pitfalls
+- **[Adapter Registration Guide](src/docs/architecture/adapter-guide.md)** - Step-by-step guide for adding new session types via the adapter pattern
+- **[Error Handling Guide](src/docs/contributing/error-handling.md)** - Standardized async error handling patterns and best practices
+
 ## Testing Strategy
 
 Vitest for unit tests with separate client/server configurations, Playwright for E2E:

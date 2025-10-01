@@ -61,6 +61,7 @@
 			// 1. Store terminal key in authentication settings
 			// 2. Mark auth step as complete
 			// 3. Update onboarding state
+			// Note: This endpoint is public (doesn't require auth) for initial onboarding
 			const response = await fetch('/api/settings/onboarding', {
 				method: 'PUT',
 				headers: {
@@ -111,7 +112,9 @@
 		if (!viewModel) return;
 		try {
 			await viewModel.complete(workspaceId);
-			onComplete();
+
+			// Call parent's onComplete callback with workspace details
+			onComplete({ detail: { workspaceId } });
 
 			// Mark onboarding as complete in localStorage
 			localStorage.setItem('dispatch-onboarding-complete', 'true');

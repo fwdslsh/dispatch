@@ -8,9 +8,8 @@
 	import { getContext } from 'svelte';
 	import Button from '../shared/components/Button.svelte';
 
-	// Props
-	export let onComplete = () => {};
-	export let onSkip = () => {};
+	// Props (Svelte 5 $props() syntax)
+	let { onComplete = () => {}, onSkip = () => {} } = $props();
 
 	// Get services from context
 	const serviceContainer = getContext('services');
