@@ -30,11 +30,6 @@ function sanitizeContent(content) {
 }
 
 export async function GET({ url, request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try {
 		const requestedPath = url.searchParams.get('path');
 
@@ -95,11 +90,6 @@ export async function GET({ url, request, locals }) {
 }
 
 export async function PUT({ request, url, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try{
 		const requestedPath = url.searchParams.get('path');
 		const { content } = await request.json();

@@ -110,10 +110,8 @@ export async function PUT({ request, url, locals }) {
 		// If onboarding already completed, require authentication
 		if (onboardingSettings && Object.keys(onboardingSettings).length > 0) {
 			// Auth already validated by hooks middleware
-
-		if (!locals.auth?.authenticated) {
-			return json({ error: 'Invalid authentication key' }, { status: 401 });
-		}
+			if (!locals.auth?.authenticated) {
+				return json({ error: 'Invalid authentication key' }, { status: 401 });
 			}
 		}
 

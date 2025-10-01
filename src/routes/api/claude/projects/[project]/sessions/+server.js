@@ -4,11 +4,6 @@ import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 
 export async function GET({ params, request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	const { project } = params;
 	const root = projectsRoot();
 	const projectPath = join(root, project);

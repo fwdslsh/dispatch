@@ -8,11 +8,6 @@ import { createReadStream } from 'node:fs';
 const MAX_BYTES = 5 * 1024 * 1024; // soft cap to keep responses reasonable
 
 export async function GET({ params, url, request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	const { project, id } = params;
 	const full = join(projectsRoot(), project, `${id}.jsonl`);
 

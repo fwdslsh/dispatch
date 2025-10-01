@@ -6,11 +6,6 @@ import { json } from '@sveltejs/kit';
  */
 
 export async function GET({ request, url, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: 'Invalid authentication key' }, { status: 401 });
-	}
-
 	const category = url.searchParams.get('category');
 
 	try {

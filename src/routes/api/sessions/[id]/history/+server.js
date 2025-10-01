@@ -1,11 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 
 export async function GET({ params, request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	const { id } = params;
 
 	try {

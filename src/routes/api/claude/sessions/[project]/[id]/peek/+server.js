@@ -6,11 +6,6 @@ import { readTailLines } from '$lib/server/shared/utils/jsonl.js';
 import { createReadStream } from 'node:fs';
 
 export async function GET({ params, url, request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	const { project, id } = params;
 	const n = Math.max(1, Math.min(300, Number(url.searchParams.get('n') ?? 40)));
 	const tail = url.searchParams.get('tail') === '1';

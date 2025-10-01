@@ -7,11 +7,6 @@ import { json } from '@sveltejs/kit';
  */
 
 export async function GET({ url, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
 	try {
 		const vscodeManager = locals.services?.vscodeManager;
 		if (!vscodeManager) {
@@ -27,11 +22,6 @@ export async function GET({ url, locals }) {
 }
 
 export async function POST({ request, url, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
 	try {
 		const body = await request.json();
 		const { action, name, folder, extra } = body;

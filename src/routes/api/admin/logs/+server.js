@@ -1,11 +1,6 @@
 import { json } from '@sveltejs/kit';
 
 export async function GET({ url, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: 'Unauthorized' }, { status: 401 });
-	}
-
 	const databaseManager = locals.services?.database;
 
 	// Parse query params for limit, level, component

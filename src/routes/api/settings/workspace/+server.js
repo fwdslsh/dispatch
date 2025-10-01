@@ -5,11 +5,6 @@
 import { json } from '@sveltejs/kit';
 
 export async function GET({ request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try {
 		const workspaceSettings = await locals.services.database.getSettingsByCategory('workspace');
 
@@ -30,11 +25,6 @@ export async function GET({ request, locals }) {
 }
 
 export async function POST({ request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try {
 		const { envVariables } = await request.json();
 
@@ -95,11 +85,6 @@ export async function POST({ request, locals }) {
 }
 
 export async function DELETE({ request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try {
 		// Get current workspace settings
 		const currentSettings = await locals.services.database.getSettingsByCategory('workspace');

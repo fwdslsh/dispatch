@@ -63,8 +63,7 @@
 		deviceLoginUrl = '';
 
 		// Get terminal key from localStorage
-		// Phase 6: Use new unified token key with fallback
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key') || '';
+		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
 
 		// Authenticate first
 		socket.emit('auth', terminalKey, (authResponse) => {
@@ -98,8 +97,7 @@
 		deviceLoginUrl = '';
 
 		// Get terminal key from localStorage
-		// Phase 6: Use new unified token key with fallback
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key') || '';
+		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
 
 		// Authenticate first
 		socket.emit('auth', terminalKey, (authResponse) => {

@@ -25,11 +25,6 @@ function isPathAllowed(requestedPath) {
 }
 
 export async function GET({ url, request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: 'Authentication required' }, { status: 401 });
-	}
-
 	try {
 		// If no path is provided, start in the workspaces root directory
 		const requestedPath = url.searchParams.get('path') || getBaseDirectory();

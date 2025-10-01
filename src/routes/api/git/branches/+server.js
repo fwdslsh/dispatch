@@ -32,11 +32,6 @@ function execGit(args, cwd) {
 }
 
 export async function GET({ url, request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try {
 		const path = url.searchParams.get('path');
 		if (!path) {

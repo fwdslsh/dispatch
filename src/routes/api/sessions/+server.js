@@ -25,11 +25,6 @@ function getSessionTitle(kind) {
 
 export async function GET({ url, request, locals }) {
 	// Require authentication
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	const includeAll = url.searchParams.get('include') === 'all';
 
 	try {
@@ -85,11 +80,6 @@ export async function GET({ url, request, locals }) {
 
 export async function POST({ request, locals }) {
 	// Require authentication
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	const { kind, type, cwd, resume = false, sessionId, options = {} } = await request.json();
 
 	const sessionKind = kind ?? type;

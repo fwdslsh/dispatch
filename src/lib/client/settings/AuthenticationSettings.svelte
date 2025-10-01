@@ -7,6 +7,7 @@
 	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
 	import TerminalKeySettings from './sections/TerminalKeySettings.svelte';
 	import OAuthSettings from './sections/OAuthSettings.svelte';
+	import AuthStatus from '../shared/components/AuthStatus.svelte';
 	import Button from '../shared/components/Button.svelte';
 
 	/**
@@ -45,6 +46,9 @@
 	</div>
 
 	<div class="settings-content">
+		<!-- Current Authentication Status -->
+		<AuthStatus />
+
 		<!-- Terminal Key Settings Section -->
 		<TerminalKeySettings {settingsViewModel} />
 

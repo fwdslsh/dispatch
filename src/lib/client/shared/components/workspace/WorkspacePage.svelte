@@ -115,9 +115,8 @@
 	// Initialization
 	onMount(async () => {
 		// Authentication check
-		// Phase 6: Use new unified token key with fallback
 		if (browser) {
-			const storedKey = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key');
+			const storedKey = localStorage.getItem('dispatch-auth-token');
 			if (!storedKey) {
 				log.info('No auth key found, redirecting to login');
 				goto('/');
@@ -131,7 +130,6 @@
 				if (!response.ok) {
 					log.warn('Auth key invalid, redirecting to login');
 					localStorage.removeItem('dispatch-auth-token');
-					localStorage.removeItem('dispatch-auth-key');
 					goto('/');
 					return;
 				}
@@ -198,10 +196,8 @@
 	}
 
 	function handleLogout() {
-		// Phase 6: Clear both old and new auth keys
 		if (typeof localStorage !== 'undefined') {
 			localStorage.removeItem('dispatch-auth-token');
-			localStorage.removeItem('dispatch-auth-key');
 		}
 		goto('/');
 	}

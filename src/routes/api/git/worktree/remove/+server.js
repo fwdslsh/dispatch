@@ -47,11 +47,6 @@ function execGit(args, cwd) {
 }
 
 export async function POST({ request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try {
 		const { path, worktreePath, force = false } = await request.json();
 

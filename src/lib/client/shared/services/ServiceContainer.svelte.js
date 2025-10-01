@@ -73,10 +73,8 @@ class ServiceContainer {
 		this.registerFactory('settingsService', async () => {
 			const { SettingsService } = await import('./SettingsService.svelte.js');
 			// Get auth key from localStorage with development fallback
-			// Phase 6: Try new token key first, fallback to old key
 			const authKey = typeof window !== 'undefined' ?
 				(localStorage.getItem('dispatch-auth-token') ||
-				 localStorage.getItem('dispatch-auth-key') ||
 				 localStorage.getItem(this.config.authTokenKey) ||
 				 'testkey12345') : 'testkey12345';
 

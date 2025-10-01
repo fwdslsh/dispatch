@@ -4,11 +4,6 @@ import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 
 export async function GET({ request, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	const base = projectsRoot();
 	const items = await readdir(base, { withFileTypes: true }).catch(() => []);
 	const projects = [];

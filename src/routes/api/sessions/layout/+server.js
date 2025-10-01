@@ -5,11 +5,6 @@
 
 export async function GET({ url, request, locals }) {
 	// Require authentication
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try {
 		const clientId = url.searchParams.get('clientId') || 'default';
 		const layout = await locals.services.database.getWorkspaceLayout(clientId);
@@ -24,11 +19,6 @@ export async function GET({ url, request, locals }) {
 
 export async function POST({ request, locals }) {
 	// Require authentication
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try {
 		const { runId, sessionId, tileId, clientId = 'default' } = await request.json();
 
@@ -54,11 +44,6 @@ export async function POST({ request, locals }) {
 
 export async function DELETE({ url, request, locals }) {
 	// Require authentication
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: \'Authentication required\' }, { status: 401 });
-	}
-
 	try {
 		const runId = url.searchParams.get('runId');
 		const sessionId = url.searchParams.get('sessionId');
