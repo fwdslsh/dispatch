@@ -623,7 +623,7 @@
 
 		try {
 			// Authenticate if not already done
-			const key = localStorage.getItem('dispatch-auth-token') || 'testkey12345';
+			const key = localStorage.getItem('dispatch-auth-token');
 			if (!runSessionClient.getStatus().authenticated) {
 				await runSessionClient.authenticate(key);
 			}

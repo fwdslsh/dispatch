@@ -144,11 +144,11 @@ export async function isAuthenticated(config = {}) {
 
 /**
  * Attempt auto-authentication with development key
- * @param {string} devKey - Development key to test (default: 'testkey12345')
+ * @param {string} devKey - Development key to test
  * @param {Object} config - Configuration object with socketUrl
  * @returns {Promise<boolean>} Promise resolving to authentication result
  */
-export async function tryAutoAuth(devKey = 'testkey12345', config = {}) {
+export async function tryAutoAuth(devKey, config = {}) {
 	const success = await testAuthKey(devKey, config);
 	if (success) {
 		storeAuthToken(devKey);

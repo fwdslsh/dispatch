@@ -11,7 +11,7 @@ import { shouldEnableSSL, getSSLOptions } from './lib/server/shared/utils/ssl-ce
 const PORT = process.env.PORT || 3030;
 const ENABLE_TUNNEL = process.env.ENABLE_TUNNEL === 'true';
 const LT_SUBDOMAIN = process.env.LT_SUBDOMAIN || '';
-const TERMINAL_KEY = process.env.TERMINAL_KEY || 'testkey12345';
+const TERMINAL_KEY = process.env.TERMINAL_KEY;
 
 // Helper function to expand tilde in paths
 const expandTilde = (filepath) => {

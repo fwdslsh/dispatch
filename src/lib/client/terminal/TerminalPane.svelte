@@ -26,7 +26,7 @@
 		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
 	}
 
-	let key = localStorage.getItem('dispatch-auth-token') || 'testkey12345';
+	let key = localStorage.getItem('dispatch-auth-token');
 	// Handle window resize and ensure terminal fits its container
 	const resize = () => {
 		// Fit terminal to container first so cols/rows update

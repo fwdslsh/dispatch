@@ -142,7 +142,7 @@
 				// Use configured URL or current origin for socket connection to support remote access
 				socket = io(socketUrl, { autoConnect: true, reconnection: true });
 			}
-			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY) || 'testkey12345';
+			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
 
 			// Ensure socket is connected before emitting
 			if (!socket.connected) {
@@ -181,7 +181,7 @@
 		authError = '';
 		statusMessage = '';
 		try {
-			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY) || 'testkey12345';
+			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
 			socket?.emit(SOCKET_EVENTS.CLAUDE_AUTH_CODE, { key, code: authCode.trim() });
 			statusMessage = 'Submitting authorization code...';
 		} catch (error) {

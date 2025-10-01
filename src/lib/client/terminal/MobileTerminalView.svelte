@@ -24,7 +24,7 @@
 	const MAX_LINES = 1000; // Keep only last 1000 lines for performance
 	let lineIdCounter = 0; // Unique counter for line IDs
 
-	let key = localStorage.getItem('dispatch-auth-token') || 'testkey12345';
+	let key = localStorage.getItem('dispatch-auth-token');
 
 	// Initialize AnsiUp for proper ANSI escape sequence handling
 	const ansiUp = new AnsiUp();

@@ -75,8 +75,7 @@ class ServiceContainer {
 			// Get auth key from localStorage with development fallback
 			const authKey = typeof window !== 'undefined' ?
 				(localStorage.getItem('dispatch-auth-token') ||
-				 localStorage.getItem(this.config.authTokenKey) ||
-				 'testkey12345') : 'testkey12345';
+				 localStorage.getItem(this.config.authTokenKey)) : '';
 
 			return new SettingsService(authKey, this.config.apiBaseUrl || '');
 		});
