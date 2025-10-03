@@ -93,7 +93,7 @@ This starts the server on `http://localhost:7173` with:
 ```javascript
 // Pre-inject auth into localStorage (recommended for automation)
 await page.evaluate(() => {
-  localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
+  localStorage.setItem('dispatch-auth-token', 'test-automation-key-12345');
   localStorage.setItem('authSessionId', 'test-session-' + Date.now());
   localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
 });
@@ -494,7 +494,7 @@ const response = await fetch('/api/auth/check', {
 });
 
 // Session data stored in localStorage for persistence
-localStorage.setItem('dispatch-auth-key', terminalKey);
+localStorage.setItem('dispatch-auth-token', terminalKey);
 localStorage.setItem('authSessionId', sessionId);
 localStorage.setItem('authExpiresAt', expirationDate);
 ```
@@ -1038,4 +1038,481 @@ retentionVM.logDays = 3;
 await retentionVM.savePolicy();
 ```
 
-This documentation covers the complete implementation of authentication, workspace management, and maintenance features added to Dispatch, providing both user-facing workflows and developer integration examples.
+## Theme Support System
+
+Dispatch provides a comprehensive theme management system allowing users to customize the visual appearance through xterm-compatible theme files. The system supports preset themes, custom uploads, and workspace-specific overrides.
+
+### Core Concepts
+
+**Theme Architecture**:
+
+- **File-Based Storage**: Themes stored as JSON files in `~/.dispatch/themes/` (user) and `static/themes/` (presets)
+- **Parser Abstraction**: Abstract `ThemeParser` class with format-specific implementations (e.g., `XtermThemeParser`)
+- **CSS Variables**: Themes transformed to CSS custom properties for application-wide styling
+- **Resolution Hierarchy**: Workspace override → Global default → Hardcoded fallback
+
+**Key Components**:
+
+- `src/lib/server/themes/ThemeManager.js` - Theme CRUD operations, caching, validation
+- `src/lib/server/themes/ThemeParser.js` - Abstract parser interface
+- `src/lib/server/themes/XtermThemeParser.js` - xterm.js ITheme format parser
+- `src/lib/client/shared/state/ThemeState.svelte.js` - Reactive theme state management
+- `src/lib/client/settings/ThemeSettings.svelte` - Theme management UI
+
+### Theme File Format (xterm.js ITheme)
+
+```json
+{
+  "name": "Theme Name",
+  "description": "Theme description",
+  "background": "#0a0e0f",
+  "foreground": "#39ff14",
+  "cursor": "#39ff14",
+  "cursorAccent": "#0a0e0f",
+  "selectionBackground": "#39ff1440",
+  "black": "#1a1a1a",
+  "red": "#ff6b6b",
+  "green": "#39ff14",
+  "yellow": "#f1fa8c",
+  "blue": "#6272a4",
+  "magenta": "#bd93f9",
+  "cyan": "#8be9fd",
+  "white": "#f8f8f2",
+  "brightBlack": "#6272a4",
+  "brightRed": "#ff6655",
+  "brightGreen": "#50fa7b",
+  "brightYellow": "#ffff66",
+  "brightBlue": "#8899ff",
+  "brightMagenta": "#ff79c6",
+  "brightCyan": "#66ddff",
+  "brightWhite": "#ffffff"
+}
+```
+
+**Required Fields**: `background`, `foreground`, 16 ANSI colors (`black` through `brightWhite`)
+**Optional Fields**: `name`, `description`, `cursor`, `cursorAccent`, `selectionBackground`
+**Color Formats**: hex (#rrggbb), rgb(), rgba(), hsl(), hsla()
+
+### Theme API
+
+**Theme Management Endpoints**:
+
+```bash
+# List all themes
+GET /api/themes?authKey=YOUR_KEY
+# Returns: { themes: [ThemeMetadata] }
+
+# Upload custom theme
+POST /api/themes?authKey=YOUR_KEY
+# Body: multipart/form-data with 'file' field
+# Returns: { theme: ThemeMetadata, validation: ValidationResult }
+
+# Get specific theme
+GET /api/themes/{themeId}?authKey=YOUR_KEY
+
+# Delete custom theme
+DELETE /api/themes/{themeId}?authKey=YOUR_KEY
+
+# Check if theme can be deleted
+GET /api/themes/{themeId}/can-delete?authKey=YOUR_KEY
+
+# Get active theme (respects hierarchy)
+GET /api/themes/active?workspaceId=xxx&authKey=YOUR_KEY
+# Returns: { themeName, cssVariables, source }
+```
+
+**Preference Management** (via existing `/api/preferences` endpoint):
+
+```bash
+# Set global default theme
+PUT /api/preferences
+{
+  "authKey": "YOUR_KEY",
+  "category": "themes",
+  "preferences": {
+    "globalDefault": "phosphor-green.json"
+  }
+}
+```
+
+**Workspace Override** (via existing `/api/workspaces/{id}` endpoint):
+
+```bash
+# Set workspace-specific theme
+PUT /api/workspaces/{workspaceId}
+{
+  "authKey": "YOUR_KEY",
+  "theme_override": "dracula.json"  # or null to clear
+}
+```
+
+### Theme Resolution Hierarchy
+
+Themes resolve in priority order:
+
+1. **Workspace Override**: `workspaces.theme_override` (workspace-specific theme)
+2. **Global Default**: `user_preferences.themes.globalDefault` (user's default theme)
+3. **System Fallback**: Hardcoded Phosphor Green theme in codebase
+
+**Implementation** (ThemeManager.js):
+
+```javascript
+async function resolveThemeForWorkspace(workspaceId, db) {
+  // 1. Check workspace override
+  const workspace = await db.getWorkspace(workspaceId);
+  if (workspace?.theme_override) {
+    return await themeManager.getTheme(workspace.theme_override);
+  }
+
+  // 2. Check global default
+  const prefs = await db.getUserPreferences('themes');
+  if (prefs?.globalDefault) {
+    return await themeManager.getTheme(prefs.globalDefault);
+  }
+
+  // 3. Use hardcoded fallback
+  return HARDCODED_PHOSPHOR_GREEN_THEME;
+}
+```
+
+### Database Schema
+
+**User Preferences** (existing `user_preferences` table):
+
+```sql
+-- Theme preferences stored as JSON in existing table
+-- No schema changes needed
+{
+  "category": "themes",
+  "preferences": {
+    "globalDefault": "phosphor-green.json"
+  }
+}
+```
+
+**Workspace Overrides** (add column to existing `workspaces` table):
+
+```sql
+-- Added via DatabaseManager.ensureWorkspaceSchema()
+-- Automatically added on database initialization if missing
+ALTER TABLE workspaces ADD COLUMN theme_override TEXT DEFAULT NULL;
+```
+
+**Example Usage**:
+
+```sql
+-- Set workspace-specific theme
+UPDATE workspaces SET theme_override = 'dracula.json' WHERE id = '/workspace/my-project';
+
+-- Clear workspace override (revert to global default)
+UPDATE workspaces SET theme_override = NULL WHERE id = '/workspace/my-project';
+```
+
+### Frontend Integration
+
+**ThemeState ViewModel** (Svelte 5 runes):
+
+```javascript
+import { ThemeState } from '$lib/client/shared/state/ThemeState.svelte.js';
+
+class ThemeState {
+  themes = $state([]);              // All available themes
+  globalDefault = $state(null);     // Current global default
+  workspaceOverrides = $state({});  // Map: workspaceId -> themeName
+  loading = $state(false);
+
+  // Derived: filter themes by source
+  presetThemes = $derived.by(() =>
+    this.themes.filter(t => t.source === 'preset')
+  );
+  customThemes = $derived.by(() =>
+    this.themes.filter(t => t.source === 'custom')
+  );
+
+  // Derived: active theme for current workspace
+  activeTheme = $derived.by(() => {
+    const workspaceId = this.currentWorkspaceId;
+    return this.workspaceOverrides[workspaceId] || this.globalDefault;
+  });
+}
+```
+
+**Theme Activation** (triggers automatic page refresh):
+
+```javascript
+async function activateTheme(apiClient, themeId) {
+  // Update global default preference
+  await apiClient.put('/api/preferences', {
+    category: 'themes',
+    preferences: { globalDefault: themeId }
+  });
+
+  // Trigger page reload (FR-011)
+  // Existing session persistence mechanisms restore terminal/editor state
+  window.location.reload();
+}
+```
+
+**CSS Variable Application** (on page load):
+
+```javascript
+// In +layout.svelte or app startup
+async function applyActiveTheme() {
+  const workspaceId = getCurrentWorkspaceId();
+  const response = await fetch(`/api/themes/active?workspaceId=${workspaceId}`);
+  const { cssVariables } = await response.json();
+
+  // Apply CSS variables to :root
+  for (const [property, value] of Object.entries(cssVariables)) {
+    document.documentElement.style.setProperty(property, value);
+  }
+}
+```
+
+### Theme Validation
+
+**Validation Levels**:
+
+1. **Parse Validation**: Valid JSON, file size < 5MB
+2. **Structure Validation**: Required fields present, correct types
+3. **Color Validation**: Valid color format (hex, rgb, hsl)
+4. **Usage Validation**: Theme not in use before deletion
+
+**Validation Result**:
+
+```typescript
+interface ValidationResult {
+  valid: boolean;        // Overall pass/fail
+  errors: string[];      // Blocking errors (prevent upload)
+  warnings: string[];    // Non-blocking warnings (shown to user)
+}
+```
+
+**Example Validation Errors**:
+
+```json
+{
+  "valid": false,
+  "errors": [
+    "Missing required field: brightBlue",
+    "Invalid color format for red: not-a-color"
+  ],
+  "warnings": [
+    "Missing optional field: cursor (will use foreground color)"
+  ]
+}
+```
+
+### Preset Themes
+
+Dispatch includes 3 preset themes:
+
+1. **Phosphor Green** (`phosphor-green.json`) - Default theme with phosphorescent green accent
+2. **Dark** (`dark.json`) - Professional dark theme with balanced contrast
+3. **Light** (`light.json`) - Professional light theme with soft colors
+
+**Preset Theme Lifecycle**:
+
+- Bundled in `static/themes/` (version-controlled)
+- Copied to `~/.dispatch/themes/` during onboarding (one-time operation)
+- Cannot be deleted (deletion blocked for preset themes)
+- Hardcoded Phosphor Green fallback in codebase ensures app never breaks
+
+### Parser Extensibility
+
+Adding support for new theme formats:
+
+1. **Create Parser Subclass**:
+
+```javascript
+import ThemeParser from './ThemeParser.js';
+
+class VSCodeThemeParser extends ThemeParser {
+  parse(fileContent) {
+    const vsCodeTheme = JSON.parse(fileContent);
+    // Convert VS Code format to internal theme format
+    return this.convertToInternalFormat(vsCodeTheme);
+  }
+
+  validate(theme) {
+    // VS Code-specific validation
+  }
+
+  toCssVariables(theme) {
+    // Transform to CSS variables
+  }
+}
+```
+
+2. **Register in ThemeManager**:
+
+```javascript
+class ThemeManager {
+  constructor() {
+    this.parsers = new Map();
+    this.parsers.set('xterm', new XtermThemeParser());
+    this.parsers.set('vscode', new VSCodeThemeParser()); // New parser
+  }
+}
+```
+
+### Performance Optimization
+
+**Caching Strategy**:
+
+- **In-Memory Cache**: Theme metadata cached for 5 minutes
+- **Lazy Loading**: Themes loaded on demand, cache invalidated on CRUD
+- **Fast File I/O**: Small JSON files (< 10KB typical), async operations
+
+**Performance Targets**:
+
+- Theme activation: < 500ms (including page reload)
+- Upload validation: < 200ms
+- File I/O: < 50ms
+- Theme list fetch: < 100ms
+
+### Common Use Cases
+
+**Use Case 1: Set Global Default Theme**
+
+```javascript
+import { ThemeState } from '$lib/client/shared/state/ThemeState.svelte.js';
+
+const themeState = new ThemeState();
+await themeState.activateTheme(apiClient, 'dark');
+// Page reloads, all UI components render with dark theme
+```
+
+**Use Case 2: Set Workspace-Specific Theme**
+
+```javascript
+await apiClient.put(`/api/workspaces/${workspaceId}`, {
+  theme_override: 'dracula.json'
+});
+window.location.reload();
+// Workspace now uses Dracula theme, other workspaces use global default
+```
+
+**Use Case 3: Upload Custom Theme**
+
+```javascript
+const formData = new FormData();
+formData.append('file', themeFile);
+
+const response = await fetch('/api/themes?authKey=YOUR_KEY', {
+  method: 'POST',
+  body: formData
+});
+
+const { theme, validation } = await response.json();
+// Display validation warnings if any, theme now available for activation
+```
+
+**Use Case 4: Delete Custom Theme**
+
+```javascript
+// Check if theme can be deleted
+const canDelete = await apiClient.get(`/api/themes/${themeId}/can-delete`);
+
+if (!canDelete.canDelete) {
+  alert(`Cannot delete: ${canDelete.reason}`);
+  // Show workspaces using this theme: canDelete.workspaces
+} else {
+  await apiClient.delete(`/api/themes/${themeId}`);
+  // Theme removed from filesystem and cache
+}
+```
+
+### Troubleshooting Theme Issues
+
+**Themes Not Loading**:
+
+```bash
+# Check themes directory exists
+ls ~/.dispatch/themes/
+
+# Verify preset themes present
+ls ~/.dispatch/themes/phosphor-green.json
+
+# Check file permissions
+stat ~/.dispatch/themes/
+```
+
+**Theme Activation Fails**:
+
+```bash
+# Check preferences database
+sqlite3 ~/.dispatch/data/workspace.db "SELECT * FROM user_preferences WHERE category = 'themes';"
+
+# Verify workspace override
+sqlite3 ~/.dispatch/data/workspace.db "SELECT id, theme_override FROM workspaces;"
+```
+
+**CSS Variables Not Applied**:
+
+```javascript
+// In browser console, check CSS variables
+const root = document.documentElement;
+console.log(getComputedStyle(root).getPropertyValue('--theme-background'));
+console.log(getComputedStyle(root).getPropertyValue('--theme-foreground'));
+
+// List all theme-related CSS variables
+Array.from(document.styleSheets)
+  .flatMap(sheet => Array.from(sheet.cssRules))
+  .filter(rule => rule.selectorText === ':root')
+  .forEach(rule => console.log(rule.style.cssText));
+```
+
+**Theme Upload Validation Fails**:
+
+```bash
+# Test theme file locally with ThemeValidator
+node -e "
+const fs = require('fs');
+const { XtermThemeParser } = require('./src/lib/server/themes/XtermThemeParser.js');
+const parser = new XtermThemeParser();
+const content = fs.readFileSync('path/to/theme.json', 'utf-8');
+const result = parser.validate(JSON.parse(content));
+console.log(JSON.stringify(result, null, 2));
+"
+```
+
+### Integration with Onboarding
+
+During onboarding flow, users select their preferred default theme:
+
+1. **Onboarding Step**: Theme selection (after authentication, before workspace setup)
+2. **Display**: Grid of preset themes with live previews
+3. **Selection**: User clicks preferred theme
+4. **Persistence**: Global default saved to `user_preferences.themes.globalDefault`
+5. **Application**: Theme applied immediately after onboarding completion
+
+**Onboarding Theme Picker** (component):
+
+```svelte
+<script>
+  import { ThemeState } from '$lib/client/shared/state/ThemeState.svelte.js';
+
+  let themeState = new ThemeState();
+  let selectedTheme = $state('phosphor-green');
+
+  async function applySelectedTheme() {
+    await apiClient.put('/api/preferences', {
+      category: 'themes',
+      preferences: { globalDefault: selectedTheme }
+    });
+  }
+</script>
+
+<div class="theme-grid">
+  {#each themeState.presetThemes as theme}
+    <ThemePreviewCard
+      {theme}
+      selected={selectedTheme === theme.id}
+      onclick={() => selectedTheme = theme.id}
+    />
+  {/each}
+</div>
+```
+
+This documentation covers the complete implementation of authentication, workspace management, maintenance, and theme support features added to Dispatch, providing both user-facing workflows and developer integration examples.

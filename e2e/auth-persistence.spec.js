@@ -45,7 +45,7 @@ test.describe('Authentication Persistence', () => {
 
 			// Set up initial authentication
 			await page.addInitScript((terminalKey) => {
-				localStorage.setItem('dispatch-auth-key', terminalKey);
+				localStorage.setItem('dispatch-auth-token', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
 				localStorage.setItem(
 					'authExpiresAt',
@@ -150,7 +150,7 @@ test.describe('Authentication Persistence', () => {
 			// Session should remain valid
 			const authStatus = await page.evaluate(() => {
 				return {
-					hasKey: !!localStorage.getItem('dispatch-auth-key'),
+					hasKey: !!localStorage.getItem('dispatch-auth-token'),
 					hasSession: !!localStorage.getItem('authSessionId'),
 					expiresAt: localStorage.getItem('authExpiresAt')
 				};

@@ -37,7 +37,7 @@
 		}
 
 		// Check if already authenticated via HTTP (more robust than socket for login)
-		const storedKey = localStorage.getItem('dispatch-auth-key');
+		const storedKey = localStorage.getItem('dispatch-auth-token');
 		if (storedKey) {
 			try {
 				const r = await fetch(`/api/auth/check`, {
@@ -48,7 +48,7 @@
 				if (r.ok) {
 					goto('/workspace');
 				} else {
-					localStorage.removeItem('dispatch-auth-key');
+					localStorage.removeItem('dispatch-auth-token');
 				}
 			} catch {
 				// Ignore; user can try manual login

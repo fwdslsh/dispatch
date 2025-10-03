@@ -1,6 +1,18 @@
 <script>
 	/**
-	 * OnboardingFlow - Progressive onboarding component
+	 * OnboardingFlow - Progressive o			// Store authentication in localStorage after successful submission
+		if (viewModel.formData.terminalKey) {
+			localStorage.setItem('dispatch-auth-token', viewModel.formData.terminalKey);
+		}
+		localStorage.setItem('onboarding-complete', 'true');
+
+		// Call parent's onComplete callback
+		onComplete({ detail: result });
+
+		// Redirect to main workspace
+		await goto('/');
+	} catch (error) {auth data for immediate use
+			localStorage.setItem('dispatch-auth-token', viewModel.formData.terminalKey);oarding component
 	 * Implements step-by-step workflow for first-time users
 	 * Follows constitutional requirement for minimal first experience
 	 *
@@ -47,7 +59,9 @@
 			const result = await viewModel.submit();
 
 			// Store authentication in localStorage after successful submission
-			localStorage.setItem('dispatch-auth-key', viewModel.formData.terminalKey);
+			if (viewModel.formData.terminalKey) {
+				localStorage.setItem('dispatch-auth-token', viewModel.formData.terminalKey);
+			}
 			localStorage.setItem('onboarding-complete', 'true');
 
 			// Call parent's onComplete callback

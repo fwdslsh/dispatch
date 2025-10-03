@@ -31,7 +31,7 @@ test.describe('Basic MVVM Architecture Test', () => {
 
 		// Set auth token before navigation
 		await page.addInitScript((testKey) => {
-			localStorage.setItem('dispatch-auth-key', testKey);
+			localStorage.setItem('dispatch-auth-token', testKey);
 		}, TEST_KEY);
 
 		// Navigate to workspace
