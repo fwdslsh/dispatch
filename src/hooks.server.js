@@ -37,6 +37,7 @@ const PUBLIC_ROUTES = [
 	'/auth/callback',
 	'/api/auth/callback',
 	'/api/auth/config',
+	'/api/status',
 	'/api/settings/onboarding',
 	'/api/environment'
 ];

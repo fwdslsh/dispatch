@@ -19,6 +19,20 @@
 </div>
 
 <style>
+
+	/* Background image overlay */
+	.empty-state::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		opacity: 0.09;
+		background-image: url('/fwdslsh-green-bg.png');
+		background-repeat: no-repeat;
+		background-position: center center;
+		background-size: contain;
+		pointer-events: none;
+		z-index: -1;
+	}
 	.empty-state {
 		gap: var(--space-3);
 		place-items: center;

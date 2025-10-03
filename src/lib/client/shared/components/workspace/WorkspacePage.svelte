@@ -616,18 +616,6 @@
 		touch-action: pan-x pan-y;
 	}
 
-	/* Background image overlay */
-	.dispatch-workspace::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		opacity: 0.09;
-		background-image: url('/fwdslsh-green-bg.png');
-		background-repeat: no-repeat;
-		background-position: center center;
-		background-size: contain;
-		pointer-events: none;
-	}
 
 	/* Session bottom sheet - mobile specific */
 	.session-sheet {

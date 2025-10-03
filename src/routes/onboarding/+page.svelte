@@ -26,7 +26,7 @@
 	});
 
 	/**
-	 * Initialize onboarding system and load current state
+	 * Initialize onboarding system
 	 */
 	async function initializeOnboarding() {
 		try {
@@ -42,16 +42,16 @@
 				throw new Error('API client not available');
 			}
 
-			// Initialize onboarding ViewModel
-			onboardingViewModel = new OnboardingViewModel(apiClient);
-			await onboardingViewModel.loadState();
+			// Check if onboarding is already complete
+			const status = await apiClient.getSystemStatus();
+			if (status.onboarding.isComplete) {
+				// Redirect to main app if already completed
+				await goto('/', { replaceState: true });
+				return;
+			}
 
-			// // Check if user has already completed onboarding
-			// if (onboardingViewModel.isComplete) {
-			// 	// Redirect to main app
-			// 	await goto('/', { replaceState: true });
-			// 	return;
-			// }
+			// Initialize onboarding ViewModel (no API call - just local state)
+			onboardingViewModel = new OnboardingViewModel(apiClient);
 
 			error = null;
 		} catch (err) {
@@ -64,36 +64,16 @@
 
 	/**
 	 * Handle onboarding completion
-	 * @param {CustomEvent} event - Completion event with workspace details
+	 * @param {CustomEvent} event - Completion event with result details
 	 */
 	async function handleOnboardingComplete(event) {
-		const { workspaceId } = event.detail;
-
 		try {
-			// Complete onboarding in backend
-			await onboardingViewModel.complete(workspaceId);
-
-			// Redirect to main application
-			//	await goto('/', { replaceState: true });
+			// OnboardingFlow already submitted the data and redirected
+			// This is just a fallback handler
+			console.log('Onboarding complete:', event.detail);
 		} catch (err) {
-			console.error('Failed to complete onboarding:', err);
+			console.error('Failed to handle onboarding completion:', err);
 			error = err.message || 'Failed to complete onboarding';
-		}
-	}
-
-	/**
-	 * Handle step completion events
-	 * @param {CustomEvent} event - Step completion event
-	 */
-	async function handleStepComplete(event) {
-		const { step, data } = event.detail;
-
-		try {
-			await onboardingViewModel.updateStep(step, data);
-			error = null;
-		} catch (err) {
-			console.error('Failed to update onboarding step:', err);
-			error = err.message || 'Failed to save progress';
 		}
 	}
 

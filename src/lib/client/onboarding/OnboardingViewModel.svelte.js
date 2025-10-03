@@ -1,16 +1,27 @@
 /**
- * OnboardingViewModel - Manages onboarding flow state and progression
+ * OnboardingViewModel - Manages onboarding flow state (client-side only)
  * Uses Svelte 5 runes for reactive state management
  * Follows MVVM pattern with clear separation of concerns
+ *
+ * NOTE: This ViewModel only manages local UI state. It does NOT make
+ * intermediate API calls during the onboarding flow. All data is collected
+ * locally and submitted in a single atomic operation at the end.
  */
 
 export class OnboardingViewModel {
-	// State runes for reactive data
+	// State runes for reactive data (all client-side)
 	currentStep = $state('auth');
-	isComplete = $state(false);
-	completedSteps = $state([]);
 	isLoading = $state(false);
 	error = $state(null);
+
+	// Form data collected during onboarding
+	formData = $state({
+		terminalKey: '',
+		confirmTerminalKey: '',
+		workspaceName: '',
+		workspacePath: '',
+		preferences: {}
+	});
 
 	// Injected dependencies
 	#apiClient;
@@ -20,92 +31,167 @@ export class OnboardingViewModel {
 	}
 
 	// Derived state - computed properties
-	get canProceed() {
-		return this.validateCurrentStep();
+	get progressPercentage() {
+		const steps = ['auth', 'workspace', 'settings', 'complete'];
+		const currentIndex = steps.indexOf(this.currentStep);
+		return Math.round((currentIndex / (steps.length - 1)) * 100);
 	}
 
-	get progressPercentage() {
-		return Math.round((this.completedSteps.length / 4) * 100);
+	get canProceedFromAuth() {
+		return (
+			this.formData.terminalKey.length >= 8 &&
+			this.formData.terminalKey === this.formData.confirmTerminalKey
+		);
+	}
+
+	get canProceedFromWorkspace() {
+		// Workspace creation is optional - user can skip
+		return true;
 	}
 
 	// Methods for onboarding management
 
 	/**
-	 * Validate if user can proceed from current step
-	 * @returns {boolean} Whether user can proceed
+	 * Navigate to the next step
+	 */
+	nextStep() {
+		const steps = ['auth', 'workspace', 'settings', 'complete'];
+		const currentIndex = steps.indexOf(this.currentStep);
+
+		if (currentIndex < steps.length - 1) {
+			this.currentStep = steps[currentIndex + 1];
+		}
+	}
+
+	/**
+	 * Navigate to the previous step
+	 */
+	previousStep() {
+		const steps = ['auth', 'workspace', 'settings', 'complete'];
+		const currentIndex = steps.indexOf(this.currentStep);
+
+		if (currentIndex > 0) {
+			this.currentStep = steps[currentIndex - 1];
+		}
+	}
+
+	/**
+	 * Update form data
+	 * @param {string} field - Field name
+	 * @param {any} value - Field value
+	 */
+	updateFormData(field, value) {
+		this.formData[field] = value;
+
+		// Auto-generate workspace path from workspace name
+		if (field === 'workspaceName' && value) {
+			const sanitized = value
+				.toLowerCase()
+				.replace(/[^a-z0-9-]/g, '-')
+				.replace(/-+/g, '-')
+				.replace(/^-|-$/g, '');
+			this.formData.workspacePath = `/workspace/${sanitized}`;
+		}
+	}
+
+	/**
+	 * Validate current step
+	 * @returns {Object} Validation result with {valid: boolean, errors: string[]}
 	 */
 	validateCurrentStep() {
-		const step = this.currentStep;
-		switch (step) {
+		const errors = [];
+
+		switch (this.currentStep) {
 			case 'auth':
-				return true; // Always can proceed from auth
+				if (!this.formData.terminalKey) {
+					errors.push('Terminal key is required');
+				} else if (this.formData.terminalKey.length < 8) {
+					errors.push('Terminal key must be at least 8 characters long');
+				}
+
+				if (this.formData.terminalKey !== this.formData.confirmTerminalKey) {
+					errors.push('Terminal keys do not match');
+				}
+				break;
+
 			case 'workspace':
-				return this.completedSteps.includes('auth');
+				// Workspace is optional, but if name is provided, path must be too
+				if (this.formData.workspaceName && !this.formData.workspacePath) {
+					errors.push('Workspace path is required when workspace name is provided');
+				}
+				break;
+
 			case 'settings':
-				return this.completedSteps.includes('workspace');
-			case 'complete':
-				return this.completedSteps.length >= 2;
-			default:
-				return false;
+				// Settings are all optional
+				break;
 		}
+
+		return {
+			valid: errors.length === 0,
+			errors
+		};
 	}
 
 	/**
-	 * Load current onboarding state from server
+	 * Submit the complete onboarding form
+	 * This is the ONLY API call made during the onboarding flow
+	 * @returns {Promise<{success: boolean, onboarding: object, workspace: object|null}>}
 	 */
-	async loadState() {
+	async submit() {
 		this.isLoading = true;
+		this.error = null;
+
 		try {
-			const state = await this.#apiClient.getOnboardingStatus();
-			this.currentStep = state.currentStep;
-			this.completedSteps = state.completedSteps;
-			this.isComplete = state.isComplete;
-			this.error = null;
-		} catch (err) {
-			this.error = err.message;
-		} finally {
-			this.isLoading = false;
-		}
-	}
+			// Validate all steps before submission
+			const validation = this.validateCurrentStep();
+			if (!validation.valid) {
+				throw new Error(validation.errors.join(', '));
+			}
 
-	/**
-	 * Update progress - marks step as completed
-	 * @param {string} step - Step that was just completed
-	 * @param {object} data - Optional step data
-	 */
-	async updateStep(step, data = {}) {
-		this.isLoading = true;
-		try {
-			const result = await this.#apiClient.updateProgress(step, data);
+			// Prepare submission data
+			const submissionData = {
+				terminalKey: this.formData.terminalKey
+			};
 
-			// Update local state from API response
-			this.currentStep = result.currentStep;
-			this.completedSteps = result.completedSteps;
+			// Include workspace if provided
+			if (this.formData.workspaceName && this.formData.workspacePath) {
+				submissionData.workspaceName = this.formData.workspaceName;
+				submissionData.workspacePath = this.formData.workspacePath;
+			}
 
-			this.error = null;
-		} catch (err) {
-			this.error = err.message;
-		} finally {
-			this.isLoading = false;
-		}
-	}
+			// Include preferences if any were set
+			if (Object.keys(this.formData.preferences).length > 0) {
+				submissionData.preferences = this.formData.preferences;
+			}
 
-	/**
-	 * Complete the onboarding process
-	 * @param {string} workspaceId - Selected workspace ID
-	 */
-	async complete(workspaceId) {
-		this.isLoading = true;
-		try {
-			await this.#apiClient.completeOnboarding(workspaceId);
+			// Submit to API (single atomic operation)
+			const result = await this.#apiClient.submitOnboarding(submissionData);
+
+			// Mark as complete
 			this.currentStep = 'complete';
-			this.completedSteps = ['auth', 'workspace', 'settings', 'complete'];
-			this.isComplete = true;
-			this.error = null;
+
+			return result;
 		} catch (err) {
-			this.error = err.message;
+			this.error = err.message || 'Failed to complete onboarding';
+			throw err;
 		} finally {
 			this.isLoading = false;
 		}
+	}
+
+	/**
+	 * Reset the form (for testing or retry)
+	 */
+	reset() {
+		this.currentStep = 'auth';
+		this.isLoading = false;
+		this.error = null;
+		this.formData = {
+			terminalKey: '',
+			confirmTerminalKey: '',
+			workspaceName: '',
+			workspacePath: '',
+			preferences: {}
+		};
 	}
 }

@@ -4,8 +4,8 @@
  * Tests the complete first-time user onboarding experience including:
  * - Authentication step
  * - Workspace creation step
- * - Progressive onboarding completion
- * - Redirection to main application
+ * - Settings step
+ * - Single atomic POST submission at the end
  */
 
 import { test, expect } from '@playwright/test';
@@ -19,64 +19,65 @@ test.describe('Onboarding Workflow', () => {
 			sessionStorage.clear();
 		});
 
-		// Mock authentication endpoint
-		await page.route('/api/auth/check', (route) => {
+		// Mock status endpoint - return uncompleted state
+		await page.route('/api/status', (route) => {
 			route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify({ success: true })
+				body: JSON.stringify({
+					onboarding: {
+						isComplete: false,
+						completedAt: null,
+						firstWorkspaceId: null
+					},
+					authentication: { configured: false },
+					server: { version: '1.0.0', uptime: 0 }
+				})
 			});
 		});
 
-		// Mock onboarding status endpoint - return uncompleted state (now via settings API)
-		await page.route('/api/settings/onboarding**', (route) => {
-			if (route.request().method() === 'GET') {
-				route.fulfill({
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify({
-						currentStep: 'auth',
-						isComplete: false,
-						completedSteps: []
-					})
-				});
-			} else if (route.request().method() === 'PUT') {
-				// Mock onboarding progress update
-				route.fulfill({
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify({ success: true })
-				});
-			}
-		});
-
-		// Mock workspace creation
-		await page.route('/api/workspaces', (route) => {
+		// Mock onboarding submission endpoint (POST only)
+		await page.route('/api/settings/onboarding', (route) => {
 			if (route.request().method() === 'POST') {
 				route.fulfill({
-					status: 200,
+					status: 201,
 					contentType: 'application/json',
 					body: JSON.stringify({
-						id: '/workspace/my-first-project',
-						name: 'My First Project',
-						path: '/workspace/my-first-project',
-						status: 'active',
-						createdAt: new Date().toISOString()
+						success: true,
+						onboarding: {
+							isComplete: true,
+							completedAt: new Date().toISOString(),
+							firstWorkspaceId: '/workspace/my-test-workspace'
+						},
+						workspace: {
+							id: '/workspace/my-test-workspace',
+							name: 'My Test Workspace',
+							path: '/workspace/my-test-workspace'
+						}
 					})
 				});
 			} else {
+				// Should not support GET or PUT anymore
 				route.fulfill({
-					status: 200,
+					status: 405,
 					contentType: 'application/json',
-					body: JSON.stringify([])
+					body: JSON.stringify({ error: 'Method not allowed' })
 				});
 			}
 		});
-
-		// Onboarding completion is handled by the PUT endpoint above
 	});
 
-	test('should complete minimal onboarding workflow', async ({ page }) => {
+	test('should complete minimal onboarding workflow with single POST', async ({ page }) => {
+		// Track API calls to verify single submission
+		const apiCalls = [];
+		await page.route('/api/settings/onboarding', (route) => {
+			apiCalls.push({
+				method: route.request().method(),
+				body: route.request().postData()
+			});
+			route.continue();
+		});
+
 		// Navigate to application root
 		await page.goto('/');
 
@@ -94,195 +95,205 @@ test.describe('Onboarding Workflow', () => {
 		// Step 1: Authentication Step
 		await test.step('Authentication Step', async () => {
 			// Should see authentication step
-			await expect(page.locator('h2')).toContainText('Welcome to Dispatch');
+			await expect(page.locator('h2')).toContainText('Authentication Setup');
 
 			// Enter terminal key
-			const terminalKeyInput = page.locator('input[type="password"]');
+			const terminalKeyInput = page.locator('input[type="password"]').first();
 			await expect(terminalKeyInput).toBeVisible();
 			await terminalKeyInput.fill(TEST_KEY);
 
-			// Click continue button
-			const continueButton = page.locator('button', { hasText: 'Continue' });
+			// Enter confirmation
+			const confirmKeyInput = page.locator('input[type="password"]').nth(1);
+			await confirmKeyInput.fill(TEST_KEY);
+
+			// Click continue button (should NOT submit to API yet)
+			const continueButton = page.locator('button', { hasText: 'Continue to Workspace Setup' });
 			await expect(continueButton).toBeEnabled();
 			await continueButton.click();
 
-			// Wait for authentication success
-			await page.waitForTimeout(1000);
+			// Verify NO API call was made yet
+			expect(apiCalls.length).toBe(0);
+
+			// Wait for navigation to workspace step
+			await page.waitForTimeout(500);
 		});
 
 		// Step 2: Workspace Creation Step
 		await test.step('Workspace Creation Step', async () => {
 			// Should see workspace creation step
-			await expect(page.locator('h2')).toContainText('Create Your First Workspace');
+			await expect(page.locator('h2')).toContainText('Workspace Setup');
 
 			// Fill workspace name
-			const workspaceNameInput = page.locator(
-				'input[placeholder*="My First Project"], #workspace-name'
-			);
+			const workspaceNameInput = page.locator('input[placeholder*="Workspace name"]');
 			await expect(workspaceNameInput).toBeVisible();
 			await workspaceNameInput.fill('My Test Workspace');
 
 			// Workspace path should auto-generate
-			const workspacePathInput = page.locator('input[placeholder*="/workspace"], #workspace-path');
+			const workspacePathInput = page.locator('input[placeholder*="Workspace path"]');
 			await expect(workspacePathInput).toBeVisible();
 			await expect(workspacePathInput).toHaveValue('/workspace/my-test-workspace');
 
-			// Click create workspace button
-			const createButton = page.locator('button', { hasText: 'Create Workspace' });
-			await expect(createButton).toBeEnabled();
-			await createButton.click();
+			// Click continue button (should NOT submit to API yet)
+			const continueButton = page.locator('button', { hasText: 'Continue' });
+			await expect(continueButton).toBeEnabled();
+			await continueButton.click();
 
-			// Wait for workspace creation
-			await page.waitForTimeout(2000);
+			// Verify STILL no API call was made
+			expect(apiCalls.length).toBe(0);
+
+			// Wait for navigation to settings step
+			await page.waitForTimeout(500);
 		});
 
-		// Step 3: Onboarding Completion
+		// Step 3: Settings Step and Final Submission
+		await test.step('Settings Step and Submission', async () => {
+			// Should see settings step
+			await expect(page.locator('h2')).toContainText('Basic Settings');
+
+			// Click complete setup button - THIS should trigger the single POST
+			const completeButton = page.locator('button', { hasText: 'Complete Setup' });
+			await expect(completeButton).toBeEnabled();
+			await completeButton.click();
+
+			// Wait for API call
+			await page.waitForTimeout(1000);
+
+			// Verify EXACTLY ONE POST call was made
+			expect(apiCalls.length).toBe(1);
+			expect(apiCalls[0].method).toBe('POST');
+
+			// Verify the POST body contains all collected data
+			const postBody = JSON.parse(apiCalls[0].body);
+			expect(postBody.terminalKey).toBe(TEST_KEY);
+			expect(postBody.workspaceName).toBe('My Test Workspace');
+			expect(postBody.workspacePath).toBe('/workspace/my-test-workspace');
+		});
+
+		// Step 4: Completion
 		await test.step('Onboarding Completion', async () => {
-			// Should see success state or be redirected to main app
-			await Promise.race([
-				// Option 1: Success state shown
-				page.waitForSelector('.success-state', { timeout: 5000 }).catch(() => null),
-				// Option 2: Redirect to main app
-				page.waitForURL('/', { timeout: 5000 }).catch(() => null)
-			]);
+			// Should see completion state
+			await expect(page.locator('h2')).toContainText('Welcome to Dispatch');
 
-			// If success state is shown, it should indicate completion
-			const successState = page.locator('.success-state');
-			if (await successState.isVisible()) {
-				await expect(successState).toContainText('Workspace Created Successfully');
-			}
-		});
-
-		// Final verification: Should eventually be redirected to main app
-		await test.step('Redirect to Main App', async () => {
-			// Wait for redirect to main application
+			// Should eventually be redirected to main app
 			await page.waitForURL('/', { timeout: 10000 });
 
-			// Should see main workspace interface
-			await waitForWorkspaceReady(page);
+			// Verify localStorage was updated
+			const authKey = await page.evaluate(() => localStorage.getItem('dispatch-auth-key'));
+			expect(authKey).toBe(TEST_KEY);
 
-			// Verify onboarding is marked as complete in storage
-			const onboardingComplete = await page.evaluate((testKey) => {
-				return (
-					localStorage.getItem('onboarding-complete') === 'true' ||
-					localStorage.getItem('dispatch-auth-key') === testKey
-				);
-			}, TEST_KEY);
-			expect(onboardingComplete).toBeTruthy();
+			const onboardingComplete = await page.evaluate(() =>
+				localStorage.getItem('onboarding-complete')
+			);
+			expect(onboardingComplete).toBe('true');
 		});
 	});
 
-	test('should handle authentication errors gracefully', async ({ page }) => {
-		// Mock authentication failure
-		await page.route('/api/auth/check', (route) => {
+	test('should skip workspace creation and only submit auth', async ({ page }) => {
+		const apiCalls = [];
+		await page.route('/api/settings/onboarding', (route) => {
+			apiCalls.push({
+				method: route.request().method(),
+				body: route.request().postData()
+			});
 			route.fulfill({
-				status: 401,
+				status: 201,
 				contentType: 'application/json',
 				body: JSON.stringify({
-					success: false,
-					error: 'Invalid terminal key'
+					success: true,
+					onboarding: {
+						isComplete: true,
+						completedAt: new Date().toISOString(),
+						firstWorkspaceId: null
+					},
+					workspace: null
 				})
 			});
 		});
 
 		await page.goto('/onboarding');
 
-		// Wait for onboarding form
-		await page.waitForSelector('.onboarding-page', { timeout: 10000 });
+		// Complete auth step
+		await page.waitForSelector('input[type="password"]', { timeout: 10000 });
+		await page.locator('input[type="password"]').first().fill(TEST_KEY);
+		await page.locator('input[type="password"]').nth(1).fill(TEST_KEY);
+		await page.locator('button', { hasText: 'Continue to Workspace Setup' }).click();
 
-		// Enter invalid terminal key
-		const terminalKeyInput = page.locator('input[type="password"]');
-		await terminalKeyInput.fill('invalid-key');
+		// Skip workspace step
+		await page.waitForTimeout(500);
+		await page.locator('button', { hasText: 'Skip Workspace' }).click();
 
-		// Click continue
-		const continueButton = page.locator('button', { hasText: 'Continue' });
-		await continueButton.click();
+		// Complete settings step
+		await page.waitForTimeout(500);
+		await page.locator('button', { hasText: 'Complete Setup' }).click();
 
-		// Should see error message
-		await expect(page.locator('.error-text, [role="alert"]')).toContainText('Invalid terminal key');
+		// Wait for API call
+		await page.waitForTimeout(1000);
 
-		// Form should remain accessible for retry
-		await expect(terminalKeyInput).toBeVisible();
-		await expect(continueButton).toBeVisible();
+		// Verify POST was made with only terminalKey (no workspace data)
+		expect(apiCalls.length).toBe(1);
+		const postBody = JSON.parse(apiCalls[0].body);
+		expect(postBody.terminalKey).toBe(TEST_KEY);
+		expect(postBody.workspaceName).toBeUndefined();
+		expect(postBody.workspacePath).toBeUndefined();
 	});
 
-	test('should handle workspace creation errors', async ({ page }) => {
-		// Mock successful auth but failed workspace creation
-		await page.route('/api/workspaces', (route) => {
+	test('should handle submission errors gracefully', async ({ page }) => {
+		// Mock error response
+		await page.route('/api/settings/onboarding', (route) => {
 			if (route.request().method() === 'POST') {
 				route.fulfill({
-					status: 400,
+					status: 409,
 					contentType: 'application/json',
 					body: JSON.stringify({
-						error: 'Workspace path already exists'
+						error: 'Onboarding has already been completed'
 					})
-				});
-			} else {
-				route.fulfill({
-					status: 200,
-					contentType: 'application/json',
-					body: JSON.stringify([])
 				});
 			}
 		});
 
 		await page.goto('/onboarding');
 
-		// Complete authentication step
+		// Complete all steps
 		await page.waitForSelector('input[type="password"]', { timeout: 10000 });
-		await page.locator('input[type="password"]').fill(TEST_KEY);
-		await page.locator('button', { hasText: 'Continue' }).click();
+		await page.locator('input[type="password"]').first().fill(TEST_KEY);
+		await page.locator('input[type="password"]').nth(1).fill(TEST_KEY);
+		await page.locator('button', { hasText: 'Continue to Workspace Setup' }).click();
 
-		// Wait for workspace step
-		await page.waitForTimeout(1000);
+		await page.waitForTimeout(500);
+		await page.locator('button', { hasText: 'Skip Workspace' }).click();
 
-		// Fill workspace details
-		const workspaceNameInput = page.locator(
-			'input[placeholder*="My First Project"], #workspace-name'
+		await page.waitForTimeout(500);
+		await page.locator('button', { hasText: 'Complete Setup' }).click();
+
+		// Should see error message
+		await expect(page.locator('.alert-error, [role="alert"]')).toContainText(
+			'Onboarding has already been completed'
 		);
-		if (await workspaceNameInput.isVisible()) {
-			await workspaceNameInput.fill('Test Workspace');
-		}
 
-		// Try to create workspace
-		const createButton = page.locator('button', { hasText: 'Create Workspace' });
-		if (await createButton.isVisible()) {
-			await createButton.click();
-
-			// Should see error message
-			await expect(page.locator('.error-message, [role="alert"]')).toContainText(
-				'Workspace path already exists'
-			);
-		}
+		// Should remain on onboarding page
+		await expect(page).toHaveURL(/\/onboarding/);
 	});
 
-	test('should skip optional settings step (progressive onboarding)', async ({ page }) => {
+	test('should validate terminal key before proceeding', async ({ page }) => {
 		await page.goto('/onboarding');
 
-		// Complete minimal onboarding (auth + workspace)
 		await page.waitForSelector('input[type="password"]', { timeout: 10000 });
-		await page.locator('input[type="password"]').fill(TEST_KEY);
-		await page.locator('button', { hasText: 'Continue' }).click();
 
-		// Wait for workspace step
-		await page.waitForTimeout(1000);
+		// Try to proceed with short password
+		const terminalKeyInput = page.locator('input[type="password"]').first();
+		await terminalKeyInput.fill('short');
 
-		// Fill and create workspace
-		const workspaceNameInput = page.locator(
-			'input[placeholder*="My First Project"], #workspace-name'
-		);
-		if (await workspaceNameInput.isVisible()) {
-			await workspaceNameInput.fill('Minimal Workspace');
+		const continueButton = page.locator('button', { hasText: 'Continue to Workspace Setup' });
+		await expect(continueButton).toBeDisabled();
 
-			const createButton = page.locator('button', { hasText: 'Create Workspace' });
-			await createButton.click();
-		}
+		// Try with mismatched confirmation
+		await terminalKeyInput.fill('longenoughkey');
+		await page.locator('input[type="password"]').nth(1).fill('differentkey');
+		await expect(continueButton).toBeDisabled();
 
-		// Should complete onboarding without requiring settings step
-		await page.waitForURL('/', { timeout: 10000 });
-
-		// Verify we're in the main application
-		await waitForWorkspaceReady(page);
+		// Try with matching keys
+		await page.locator('input[type="password"]').nth(1).fill('longenoughkey');
+		await expect(continueButton).toBeEnabled();
 	});
 
 	test('should support keyboard navigation', async ({ page }) => {
@@ -291,26 +302,21 @@ test.describe('Onboarding Workflow', () => {
 		// Wait for form
 		await page.waitForSelector('input[type="password"]', { timeout: 10000 });
 
-		// Navigate using Tab key
-		const terminalKeyInput = page.locator('input[type="password"]');
+		// Navigate using Tab and Enter
+		const terminalKeyInput = page.locator('input[type="password"]').first();
 		await terminalKeyInput.focus();
-		await expect(terminalKeyInput).toBeFocused();
-
-		// Fill field and press Enter
 		await terminalKeyInput.fill(TEST_KEY);
-		await terminalKeyInput.press('Enter');
 
-		// Should proceed to next step
-		await page.waitForTimeout(1000);
+		await page.keyboard.press('Tab');
+		const confirmKeyInput = page.locator('input[type="password"]').nth(1);
+		await confirmKeyInput.fill(TEST_KEY);
 
-		// Check if workspace form is accessible via keyboard
-		const workspaceNameInput = page.locator(
-			'input[placeholder*="My First Project"], #workspace-name'
-		);
-		if (await workspaceNameInput.isVisible()) {
-			await page.keyboard.press('Tab');
-			await expect(workspaceNameInput).toBeFocused();
-		}
+		// Press Enter to proceed
+		await confirmKeyInput.press('Enter');
+
+		// Should navigate to workspace step
+		await page.waitForTimeout(500);
+		await expect(page.locator('h2')).toContainText('Workspace Setup');
 	});
 
 	test('should be responsive on mobile viewports', async ({ page }) => {
@@ -322,19 +328,15 @@ test.describe('Onboarding Workflow', () => {
 		// Wait for responsive layout
 		await page.waitForSelector('.onboarding-page', { timeout: 10000 });
 
-		// Verify mobile-friendly layout
-		const onboardingPage = page.locator('.onboarding-page');
-		await expect(onboardingPage).toBeVisible();
-
 		// Check that form elements are properly sized for mobile
-		const terminalKeyInput = page.locator('input[type="password"]');
+		const terminalKeyInput = page.locator('input[type="password"]').first();
 		if (await terminalKeyInput.isVisible()) {
 			const inputBox = await terminalKeyInput.boundingBox();
 			expect(inputBox.width).toBeGreaterThan(200); // Should be reasonably wide
 		}
 
 		// Buttons should be touch-friendly
-		const continueButton = page.locator('button', { hasText: 'Continue' });
+		const continueButton = page.locator('button', { hasText: 'Continue to Workspace Setup' });
 		if (await continueButton.isVisible()) {
 			const buttonBox = await continueButton.boundingBox();
 			expect(buttonBox.height).toBeGreaterThan(40); // Touch-friendly height

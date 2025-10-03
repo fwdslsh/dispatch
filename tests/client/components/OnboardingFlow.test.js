@@ -1,14 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, fireEvent, waitFor } from '@testing-library/svelte';
-import { tick } from 'svelte';
 
-// Mock the component (will be implemented later)
-const OnboardingFlow = {
-	name: 'OnboardingFlow',
-	props: ['onComplete', 'authKey'],
-	// Mock render for testing
-	render: () => {}
-};
+/**
+ * OnboardingFlow Component Tests
+ *
+ * Note: This is a simplified test file since OnboardingFlow is a Svelte 5 component
+ * with runes. Full integration testing is done via E2E tests.
+ */
 
 describe('OnboardingFlow Component', () => {
 	let mockApiClient;
@@ -17,33 +14,23 @@ describe('OnboardingFlow Component', () => {
 	beforeEach(() => {
 		mockOnComplete = vi.fn();
 		mockApiClient = {
-			getOnboardingStatus: vi.fn(),
-			updateProgress: vi.fn(),
-			completeOnboarding: vi.fn()
+			submitOnboarding: vi.fn(),
+			getSystemStatus: vi.fn()
 		};
 	});
 
-	it('should render authentication step initially', async () => {
-		const mockStatus = {
+	it('should initialize with auth step', () => {
+		// Component starts at auth step
+		const initialState = {
 			currentStep: 'auth',
-			completedSteps: [],
-			isComplete: false
+			title: 'Authentication Setup'
 		};
 
-		mockApiClient.getOnboardingStatus.mockResolvedValue(mockStatus);
-
-		// Simulate component render
-		const component = {
-			currentStep: 'auth',
-			title: 'Welcome to Dispatch',
-			subtitle: "Let's get you set up"
-		};
-
-		expect(component.currentStep).toBe('auth');
-		expect(component.title).toContain('Welcome');
+		expect(initialState.currentStep).toBe('auth');
+		expect(initialState.title).toContain('Authentication');
 	});
 
-	it('should progress through onboarding steps', async () => {
+	it('should progress through onboarding steps', () => {
 		const steps = ['auth', 'workspace', 'settings', 'complete'];
 		let currentStepIndex = 0;
 
@@ -51,158 +38,96 @@ describe('OnboardingFlow Component', () => {
 		const nextStep = () => {
 			if (currentStepIndex < steps.length - 1) {
 				currentStepIndex++;
-				return steps[currentStepIndex];
 			}
-			return steps[currentStepIndex];
 		};
 
 		expect(steps[currentStepIndex]).toBe('auth');
-
-		// Progress to workspace
-		const step1 = nextStep();
-		expect(step1).toBe('workspace');
-
-		// Progress to settings
-		const step2 = nextStep();
-		expect(step2).toBe('settings');
-
-		// Complete
-		const step3 = nextStep();
-		expect(step3).toBe('complete');
+		nextStep();
+		expect(steps[currentStepIndex]).toBe('workspace');
+		nextStep();
+		expect(steps[currentStepIndex]).toBe('settings');
+		nextStep();
+		expect(steps[currentStepIndex]).toBe('complete');
 	});
 
-	it('should allow skipping optional settings step', async () => {
-		const mockStatus = {
-			currentStep: 'workspace',
-			completedSteps: ['auth', 'workspace'],
-			isComplete: false
+	it('should collect form data locally before submission', () => {
+		const formData = {
+			terminalKey: '',
+			confirmTerminalKey: '',
+			workspaceName: '',
+			workspacePath: ''
 		};
 
-		mockApiClient.getOnboardingStatus.mockResolvedValue(mockStatus);
+		// Simulate user input
+		formData.terminalKey = 'testkey123';
+		formData.confirmTerminalKey = 'testkey123';
+		formData.workspaceName = 'My Project';
+		formData.workspacePath = '/workspace/my-project';
 
-		// Simulate skipping settings
-		const skipToComplete = async () => {
-			await mockApiClient.completeOnboarding('workspace-id');
-			return 'complete';
-		};
-
-		const result = await skipToComplete();
-		expect(result).toBe('complete');
-		expect(mockApiClient.completeOnboarding).toHaveBeenCalledWith('workspace-id');
+		expect(formData.terminalKey).toBe('testkey123');
+		expect(formData.workspaceName).toBe('My Project');
+		expect(mockApiClient.submitOnboarding).not.toHaveBeenCalled();
 	});
 
-	it('should validate authentication before proceeding', async () => {
-		const validateAuth = (authKey) => {
-			if (!authKey || authKey.length < 8) {
-				return { valid: false, error: 'Invalid authentication key' };
-			}
-			return { valid: true };
+	it('should submit all data in single API call', async () => {
+		const formData = {
+			terminalKey: 'testkey123',
+			workspaceName: 'Test',
+			workspacePath: '/workspace/test',
+			preferences: { autoCleanup: true }
 		};
 
-		const invalidResult = validateAuth('short');
-		expect(invalidResult.valid).toBe(false);
-		expect(invalidResult.error).toContain('Invalid');
+		mockApiClient.submitOnboarding.mockResolvedValue({
+			success: true,
+			onboarding: { isComplete: true },
+			workspace: { id: '/workspace/test' }
+		});
 
-		const validResult = validateAuth('testkey12345');
-		expect(validResult.valid).toBe(true);
+		// Simulate submission
+		await mockApiClient.submitOnboarding(formData);
+
+		expect(mockApiClient.submitOnboarding).toHaveBeenCalledTimes(1);
+		expect(mockApiClient.submitOnboarding).toHaveBeenCalledWith(formData);
 	});
 
-	it('should show loading state during API calls', async () => {
-		let isLoading = false;
+	it('should handle submission errors', async () => {
+		const error = new Error('Onboarding already completed');
+		mockApiClient.submitOnboarding.mockRejectedValue(error);
 
-		const makeApiCall = async () => {
-			isLoading = true;
-			await new Promise((resolve) => setTimeout(resolve, 100));
-			isLoading = false;
-			return { success: true };
+		const formData = {
+			terminalKey: 'testkey123'
 		};
-
-		// Start loading
-		const promise = makeApiCall();
-		expect(isLoading).toBe(true);
-
-		// Wait for completion
-		await promise;
-		expect(isLoading).toBe(false);
-	});
-
-	it('should handle errors gracefully', async () => {
-		const error = new Error('API Error');
-		mockApiClient.updateProgress.mockRejectedValue(error);
-
-		let errorMessage = null;
 
 		try {
-			await mockApiClient.updateProgress('invalid-step');
-		} catch (e) {
-			errorMessage = e.message;
+			await mockApiClient.submitOnboarding(formData);
+		} catch (err) {
+			expect(err.message).toBe('Onboarding already completed');
 		}
-
-		expect(errorMessage).toBe('API Error');
 	});
 
-	it('should call onComplete when onboarding finishes', async () => {
-		const completeOnboarding = async () => {
-			await mockApiClient.completeOnboarding('workspace-id');
-			mockOnComplete({ workspaceId: 'workspace-id' });
+	it('should validate terminal key before proceeding', () => {
+		const validateTerminalKey = (key, confirmKey) => {
+			if (!key || key.length < 8) return false;
+			if (key !== confirmKey) return false;
+			return true;
 		};
 
-		await completeOnboarding();
-		expect(mockOnComplete).toHaveBeenCalledWith({ workspaceId: 'workspace-id' });
+		expect(validateTerminalKey('short', 'short')).toBe(false);
+		expect(validateTerminalKey('longenough', 'different')).toBe(false);
+		expect(validateTerminalKey('validkey123', 'validkey123')).toBe(true);
 	});
 
-	it('should display progress indicator', () => {
-		const calculateProgress = (completedSteps, totalSteps = 4) => {
-			return Math.round((completedSteps.length / totalSteps) * 100);
+	it('should auto-generate workspace path from name', () => {
+		const generatePath = (name) => {
+			const sanitized = name
+				.toLowerCase()
+				.replace(/[^a-z0-9-]/g, '-')
+				.replace(/-+/g, '-')
+				.replace(/^-|-$/g, '');
+			return `/workspace/${sanitized}`;
 		};
 
-		expect(calculateProgress([])).toBe(0);
-		expect(calculateProgress(['auth'])).toBe(25);
-		expect(calculateProgress(['auth', 'workspace'])).toBe(50);
-		expect(calculateProgress(['auth', 'workspace', 'settings'])).toBe(75);
-		expect(calculateProgress(['auth', 'workspace', 'settings', 'complete'])).toBe(100);
-	});
-
-	it('should persist state between component remounts', async () => {
-		let savedState = null;
-
-		const saveState = (state) => {
-			savedState = state;
-			sessionStorage.setItem('onboarding-state', JSON.stringify(state));
-		};
-
-		const loadState = () => {
-			const stored = sessionStorage.getItem('onboarding-state');
-			return stored ? JSON.parse(stored) : null;
-		};
-
-		const testState = {
-			currentStep: 'workspace',
-			completedSteps: ['auth'],
-			firstWorkspaceId: null
-		};
-
-		saveState(testState);
-		const loaded = loadState();
-
-		expect(loaded).toEqual(testState);
-		expect(loaded.currentStep).toBe('workspace');
-	});
-
-	it('should disable navigation to incomplete steps', () => {
-		const canNavigateToStep = (targetStep, completedSteps) => {
-			const stepOrder = ['auth', 'workspace', 'settings', 'complete'];
-			const targetIndex = stepOrder.indexOf(targetStep);
-			const completedIndex = completedSteps.length;
-
-			return targetIndex <= completedIndex;
-		};
-
-		const completed = ['auth'];
-
-		expect(canNavigateToStep('auth', completed)).toBe(true);
-		expect(canNavigateToStep('workspace', completed)).toBe(true);
-		expect(canNavigateToStep('settings', completed)).toBe(false);
-		expect(canNavigateToStep('complete', completed)).toBe(false);
+		expect(generatePath('My Test Project')).toBe('/workspace/my-test-project');
+		expect(generatePath('Another_Project-123')).toBe('/workspace/another-project-123');
 	});
 });

@@ -3,144 +3,68 @@
 	 * OnboardingFlow - Progressive onboarding component
 	 * Implements step-by-step workflow for first-time users
 	 * Follows constitutional requirement for minimal first experience
+	 *
+	 * NOTE: This component collects all onboarding data locally and submits
+	 * it in a single atomic POST request at the end of the flow.
 	 */
 
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { useServiceContainer } from '../shared/services/ServiceContainer.svelte.js';
+	import { OnboardingViewModel } from './OnboardingViewModel.svelte.js';
 	import Button from '../shared/components/Button.svelte';
 
 	// Props
-	let { viewModel, onComplete = () => {}, onSkip = () => {} } = $props();
+	let { onComplete = () => {}, onSkip = () => {} } = $props();
 
 	// Get services from context
 	const serviceContainer = useServiceContainer();
 
+	// ViewModel instance
+	let viewModel = $state(null);
+
 	// Initialize ViewModel with async apiClient
 	onMount(async () => {
-		//const apiClient = await serviceContainer.get('sessionApi');
-		//viewModel ??= new OnboardingViewModel(apiClient);
-		//await viewModel.loadState();
+		const apiClient = await serviceContainer.get('sessionApi');
+		viewModel = new OnboardingViewModel(apiClient);
 	});
 
-	// Local state for form inputs
-	let terminalKey = $state('');
-	let confirmTerminalKey = $state('');
-	let workspaceName = $state('My Project');
-	let workspacePath = $state('/workspace/my-project');
-	let autoCleanup = $state(true);
-	let rememberWorkspace = $state(true);
-	let isSettingUpAuth = $state(false);
-	let authError = $state(null);
-
-	// Handle authentication setup
-	async function handleAuthentication() {
-		// Validation
-		if (!terminalKey.trim()) {
-			authError = 'Please enter a terminal key';
-			return;
-		}
-
-		if (terminalKey.length < 8) {
-			authError = 'Terminal key must be at least 8 characters long';
-			return;
-		}
-
-		if (terminalKey !== confirmTerminalKey) {
-			authError = 'Terminal keys do not match';
-			return;
-		}
-
-		isSettingUpAuth = true;
-		authError = null;
-
-		try {
-			localStorage.setItem('dispatch-auth-token', terminalKey);
-
-			// Save terminal key via onboarding endpoint which will:
-			// 1. Store terminal key in authentication settings
-			// 2. Mark auth step as complete
-			// 3. Update onboarding state
-			// Note: This endpoint is public (doesn't require auth) for initial onboarding
-			const response = await fetch('/api/settings/onboarding', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					currentStep: 'auth',
-					completedSteps: ['auth'],
-					isComplete: false,
-					firstWorkspaceId: null,
-					stepData: {
-						terminalKey: terminalKey
-					}
-				})
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to save terminal key');
-			}
-
-			// Update local viewModel state from API response
-			const result = await response.json();
-			if (viewModel) {
-				viewModel.currentStep = result.currentStep || 'workspace';
-				viewModel.completedSteps = result.completedSteps || ['auth'];
-			}
-		} catch (error) {
-			authError = 'Failed to set up authentication. Please try again.';
-			console.error('Authentication setup error:', error);
-		} finally {
-			isSettingUpAuth = false;
+	// Handle navigation between steps
+	function handleNextStep() {
+		const validation = viewModel.validateCurrentStep();
+		if (validation.valid) {
+			viewModel.nextStep();
 		}
 	}
 
-	// Handle step completion
-	async function handleStepComplete(step, data = {}) {
-		if (!viewModel) return;
-		try {
-			await viewModel.updateStep(step, data);
-		} catch (error) {
-			console.error('Failed to complete step:', error);
-		}
+	function handlePreviousStep() {
+		viewModel.previousStep();
 	}
 
-	// Handle onboarding completion
-	async function handleComplete(workspaceId) {
-		if (!viewModel) return;
+	// Handle final submission
+	async function handleSubmit() {
 		try {
-			await viewModel.complete(workspaceId);
+			const result = await viewModel.submit();
 
-			// Call parent's onComplete callback with workspace details
-			onComplete({ detail: { workspaceId } });
+			// Store authentication in localStorage after successful submission
+			localStorage.setItem('dispatch-auth-key', viewModel.formData.terminalKey);
+			localStorage.setItem('onboarding-complete', 'true');
 
-			// Mark onboarding as complete in localStorage
-			localStorage.setItem('dispatch-onboarding-complete', 'true');
+			// Call parent's onComplete callback
+			onComplete({ detail: result });
 
-			// Redirect to workspace after completion
-			await goto('/workspace');
+			// Redirect to main workspace
+			await goto('/');
 		} catch (error) {
-			console.error('Failed to complete onboarding:', error);
+			console.error('Onboarding submission failed:', error);
+			// Error is already set in viewModel.error
 		}
 	}
 
 	// Skip onboarding (minimal approach)
 	async function handleSkip() {
 		onSkip();
-
-		// Mark onboarding as complete even when skipping
-		if (viewModel) {
-			try {
-				await viewModel.complete('default-workspace');
-			} catch (error) {
-				console.error('Failed to mark onboarding as complete:', error);
-			}
-		}
-
-		// Redirect to workspace after skipping
-		await goto('/workspace');
+		await goto('/');
 	}
 </script>
 
@@ -152,11 +76,11 @@
 			</div>
 			<span class="text-base-content/70">Loading...</span>
 		</div>
-	{:else if viewModel.isComplete}
+	{:else if viewModel.currentStep === 'complete'}
 		<div class="flex flex-col items-center justify-center py-16">
 			<h2 class="text-2xl font-bold text-success mb-2">🎉 Welcome to Dispatch!</h2>
 			<p class="text-base-content/70">
-				Your setup is complete. You can now start creating sessions and managing workspaces.
+				Your setup is complete. Redirecting to your workspace...
 			</p>
 		</div>
 	{:else}
@@ -188,22 +112,19 @@
 									type="password"
 									placeholder="Create terminal key (min 8 characters)"
 									class="input input-bordered w-full"
-									bind:value={terminalKey}
-									disabled={isSettingUpAuth}
+									bind:value={viewModel.formData.terminalKey}
+									oninput={(e) => viewModel.updateFormData('terminalKey', e.target.value)}
+									disabled={viewModel.isLoading}
 								/>
 								<input
 									type="password"
 									placeholder="Confirm terminal key"
 									class="input input-bordered w-full"
-									bind:value={confirmTerminalKey}
-									disabled={isSettingUpAuth}
-									onkeydown={(e) => e.key === 'Enter' && handleAuthentication()}
+									bind:value={viewModel.formData.confirmTerminalKey}
+									oninput={(e) => viewModel.updateFormData('confirmTerminalKey', e.target.value)}
+									disabled={viewModel.isLoading}
+									onkeydown={(e) => e.key === 'Enter' && viewModel.canProceedFromAuth && handleNextStep()}
 								/>
-								{#if authError}
-									<div class="alert alert-error text-sm mt-2" role="alert">
-										{authError}
-									</div>
-								{/if}
 								<div class="bg-base-200 rounded p-3 text-xs mt-2">
 									<div class="font-semibold mb-1">Tips for a strong terminal key:</div>
 									<ul class="list-disc pl-5 space-y-1">
@@ -217,17 +138,12 @@
 						<div class="flex gap-3 justify-end mt-4">
 							<Button
 								variant="primary"
-								onclick={handleAuthentication}
-								disabled={isSettingUpAuth || !terminalKey.trim() || !confirmTerminalKey.trim()}
-								loading={isSettingUpAuth}
+								onclick={handleNextStep}
+								disabled={viewModel.isLoading || !viewModel.canProceedFromAuth}
 							>
-								{#if isSettingUpAuth}
-									Setting up...
-								{:else}
-									Continue to Workspace Setup
-								{/if}
+								Continue to Workspace Setup
 							</Button>
-							<Button variant="ghost" onclick={handleSkip} disabled={isSettingUpAuth}>
+							<Button variant="ghost" onclick={handleSkip} disabled={viewModel.isLoading}>
 								Skip Setup
 							</Button>
 						</div>
@@ -237,32 +153,39 @@
 						<div>
 							<h2 class="text-xl font-semibold mb-1">📁 Workspace Setup</h2>
 							<p class="text-base-content/70 mb-4">
-								Create your first workspace to organize your development projects.
+								Create your first workspace to organize your development projects. This step is
+								optional - you can create workspaces later.
 							</p>
 							<div class="flex flex-col gap-3">
 								<input
 									type="text"
-									placeholder="Workspace name"
+									placeholder="Workspace name (e.g., My Project)"
 									class="input input-bordered w-full"
-									bind:value={workspaceName}
+									bind:value={viewModel.formData.workspaceName}
+									oninput={(e) => viewModel.updateFormData('workspaceName', e.target.value)}
+									disabled={viewModel.isLoading}
 								/>
 								<input
 									type="text"
-									placeholder="Workspace path"
+									placeholder="Workspace path (auto-generated)"
 									class="input input-bordered w-full"
-									bind:value={workspacePath}
+									bind:value={viewModel.formData.workspacePath}
+									disabled={viewModel.isLoading}
+									readonly
 								/>
 							</div>
 						</div>
 						<div class="flex gap-3 justify-end mt-4">
+							<Button variant="ghost" onclick={handlePreviousStep} disabled={viewModel.isLoading}>
+								Back
+							</Button>
 							<Button
 								variant="primary"
-								onclick={() => handleStepComplete('workspace', { workspaceName, workspacePath })}
-								disabled={viewModel.isLoading || !workspaceName || !workspacePath}
-								loading={viewModel.isLoading}
-								text="Create Workspace"
-							/>
-							<Button variant="ghost" onclick={() => handleStepComplete('workspace')} text="Skip for Now" />
+								onclick={handleNextStep}
+								disabled={viewModel.isLoading}
+							>
+								{viewModel.formData.workspaceName ? 'Continue' : 'Skip Workspace'}
+							</Button>
 						</div>
 					</div>
 				{:else if viewModel.currentStep === 'settings'}
@@ -270,14 +193,18 @@
 						<div>
 							<h2 class="text-xl font-semibold mb-1">⚙️ Basic Settings</h2>
 							<p class="text-base-content/70 mb-4">
-								Configure essential settings for your Dispatch experience.
+								Configure essential settings for your Dispatch experience. These can be changed
+								later in the settings page.
 							</p>
 							<div class="flex flex-col gap-2">
 								<label class="label cursor-pointer justify-start gap-2">
 									<input
 										type="checkbox"
 										class="checkbox checkbox-primary"
-										bind:checked={autoCleanup}
+										checked={viewModel.formData.preferences.autoCleanup !== false}
+										onchange={(e) => {
+											viewModel.formData.preferences.autoCleanup = e.target.checked;
+										}}
 									/>
 									<span class="label-text">Enable automatic cleanup of old sessions</span>
 								</label>
@@ -285,40 +212,35 @@
 									<input
 										type="checkbox"
 										class="checkbox checkbox-primary"
-										bind:checked={rememberWorkspace}
+										checked={viewModel.formData.preferences.rememberWorkspace !== false}
+										onchange={(e) => {
+											viewModel.formData.preferences.rememberWorkspace = e.target.checked;
+										}}
 									/>
 									<span class="label-text">Remember last used workspace</span>
 								</label>
 							</div>
 						</div>
 						<div class="flex gap-3 justify-end mt-4">
+							<Button variant="ghost" onclick={handlePreviousStep} disabled={viewModel.isLoading}>
+								Back
+							</Button>
 							<Button
 								variant="primary"
-								onclick={() => handleComplete('default-workspace')}
+								onclick={handleSubmit}
 								disabled={viewModel.isLoading}
 								loading={viewModel.isLoading}
-								text="Complete Setup"
-							/>
-							<Button variant="ghost" onclick={() => handleComplete('default-workspace')} text="Use Defaults" />
+							>
+								{#if viewModel.isLoading}
+									Completing Setup...
+								{:else}
+									Complete Setup
+								{/if}
+							</Button>
 						</div>
-					</div>
-				{:else if viewModel.currentStep === 'complete'}
-					<!-- Transition state - completing onboarding -->
-					<div class="flex flex-col items-center justify-center py-16">
-						<div class="loading loading-spinner loading-lg text-primary mb-4"></div>
-						<h2 class="text-xl font-semibold mb-2">Completing setup...</h2>
-						<p class="text-base-content/70">Please wait while we finalize your configuration.</p>
 					</div>
 				{/if}
 			</div>
-
-			<!-- Loading indicator -->
-			{#if viewModel.isLoading}
-				<div class="flex items-center gap-2 mt-4">
-					<span class="loading loading-spinner loading-xs text-primary"></span>
-					<span class="text-base-content/70">Setting up...</span>
-				</div>
-			{/if}
 
 			<!-- Error display -->
 			{#if viewModel.error}
