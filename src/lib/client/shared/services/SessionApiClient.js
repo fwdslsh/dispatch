@@ -543,118 +543,75 @@ export class SessionApiClient {
 	// ===== ONBOARDING API =====
 
 	/**
-	 * Get current onboarding status from settings system
-	 * @returns {Promise<{currentStep: string, completedSteps: string[], isComplete: boolean, firstWorkspaceId: string|null}>}
+	 * Get system status including onboarding completion
+	 * @returns {Promise<{onboarding: {isComplete: boolean, completedAt: string|null, firstWorkspaceId: string|null}, authentication: {configured: boolean}, server: {version: string, uptime: number}}>}
 	 */
-	async getOnboardingStatus() {
+	async getSystemStatus() {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/settings/onboarding`, {
-				headers: this.getHeaders()
+			const response = await fetch(`${this.baseUrl}/api/status`, {
+				headers: {
+					'Content-Type': 'application/json'
+				}
 			});
 
 			const data = await this.handleResponse(response);
 
-			// Return onboarding state or defaults if not found
 			return {
-				currentStep: data?.currentStep || 'auth',
-				completedSteps: data?.completedSteps || [],
-				isComplete: data?.isComplete || false,
-				firstWorkspaceId: data?.firstWorkspaceId || null
+				onboarding: data.onboarding || {
+					isComplete: false,
+					completedAt: null,
+					firstWorkspaceId: null
+				},
+				authentication: data.authentication || { configured: false },
+				server: data.server || { version: '1.0.0', uptime: 0 }
 			};
 		} catch (error) {
 			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to get onboarding status:', error);
+				console.error('[SessionApiClient] Failed to get system status:', error);
 			}
 			// Return defaults on error
 			return {
-				currentStep: 'auth',
-				completedSteps: [],
-				isComplete: false,
-				firstWorkspaceId: null
+				onboarding: {
+					isComplete: false,
+					completedAt: null,
+					firstWorkspaceId: null
+				},
+				authentication: { configured: false },
+				server: { version: '1.0.0', uptime: 0 }
 			};
 		}
 	}
 
 	/**
-	 * Update onboarding progress via settings system
-	 * @param {string} step - Step that was just completed
-	 * @param {object} data - Step data
-	 * @returns {Promise<{success: boolean, currentStep: string, completedSteps: string[], progressPercentage: number}>}
+	 * Complete onboarding setup in a single atomic operation
+	 * @param {Object} options - Onboarding options
+	 * @param {string} options.terminalKey - Terminal key (required, min 8 characters)
+	 * @param {string} [options.workspaceName] - Optional workspace name
+	 * @param {string} [options.workspacePath] - Optional workspace path
+	 * @param {Object} [options.preferences] - Optional user preferences
+	 * @returns {Promise<{success: boolean, onboarding: {isComplete: boolean, completedAt: string, firstWorkspaceId: string|null}, workspace: {id: string, name: string, path: string}|null}>}
 	 */
-	async updateProgress(step, data = {}) {
+	async submitOnboarding({ terminalKey, workspaceName, workspacePath, preferences }) {
 		try {
-			// Get current state first
-			const currentState = await this.getOnboardingStatus();
-			const completedSteps = [...(currentState.completedSteps || [])];
-
-			// Add the completed step if not already there
-			if (!completedSteps.includes(step)) {
-				completedSteps.push(step);
-			}
-
-			// Determine next step
-			const stepOrder = ['auth', 'workspace', 'settings', 'complete'];
-			const currentIndex = stepOrder.indexOf(step);
-			const nextStep = currentIndex < stepOrder.length - 1 ? stepOrder[currentIndex + 1] : 'complete';
-
-			// Update settings via settings API
 			const response = await fetch(`${this.baseUrl}/api/settings/onboarding`, {
-				method: 'PUT',
-				headers: this.getHeaders(),
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
 				body: JSON.stringify({
-					currentStep: nextStep,
-					completedSteps: completedSteps,
-					isComplete: currentState.isComplete,
-					firstWorkspaceId: currentState.firstWorkspaceId,
-					stepData: data
+					terminalKey,
+					workspaceName,
+					workspacePath,
+					preferences
 				})
 			});
 
-			await this.handleResponse(response);
+			const data = await this.handleResponse(response);
 
-			return {
-				success: true,
-				currentStep: nextStep,
-				completedSteps: completedSteps,
-				progressPercentage: Math.round((completedSteps.length / 4) * 100)
-			};
+			return data;
 		} catch (error) {
 			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to update onboarding progress:', error);
-			}
-			throw error;
-		}
-	}
-
-	/**
-	 * Complete onboarding process via settings system
-	 * @param {string} workspaceId - Selected workspace ID
-	 * @returns {Promise<{success: boolean, currentStep: string, isComplete: boolean, progressPercentage: number}>}
-	 */
-	async completeOnboarding(workspaceId) {
-		try {
-			const response = await fetch(`${this.baseUrl}/api/settings/onboarding`, {
-				method: 'PUT',
-				headers: this.getHeaders(),
-				body: JSON.stringify({
-					currentStep: 'complete',
-					completedSteps: ['auth', 'workspace', 'settings', 'complete'],
-					isComplete: true,
-					firstWorkspaceId: workspaceId
-				})
-			});
-
-			await this.handleResponse(response);
-
-			return {
-				success: true,
-				currentStep: 'complete',
-				isComplete: true,
-				progressPercentage: 100
-			};
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to complete onboarding:', error);
+				console.error('[SessionApiClient] Failed to submit onboarding:', error);
 			}
 			throw error;
 		}

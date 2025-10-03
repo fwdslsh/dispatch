@@ -1,287 +1,252 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-// Mock Svelte runes for testing
-const createMockState = (initialValue) => {
-	let value = initialValue;
-	return {
-		get value() {
-			return value;
-		},
-		set value(newValue) {
-			value = newValue;
-		}
-	};
-};
-
-const createMockDerived = (fn) => {
-	return {
-		get value() {
-			return fn();
-		}
-	};
-};
+import { OnboardingViewModel } from '../../../src/lib/client/onboarding/OnboardingViewModel.svelte.js';
 
 describe('OnboardingViewModel', () => {
 	let mockApiClient;
 	let viewModel;
 
 	beforeEach(() => {
+		// Mock API client with new methods
 		mockApiClient = {
-			getOnboardingStatus: vi.fn(),
-			updateProgress: vi.fn(),
-			completeOnboarding: vi.fn()
+			submitOnboarding: vi.fn(),
+			getSystemStatus: vi.fn()
 		};
 
-		// Mock ViewModel structure using Svelte 5 runes pattern
-		viewModel = {
-			// State runes
-			currentStep: createMockState('auth'),
-			isComplete: createMockState(false),
-			completedSteps: createMockState([]),
-			isLoading: createMockState(false),
-			error: createMockState(null),
-
-			// Derived state
-			get canProceed() {
-				return this.validateCurrentStep();
-			},
-			get progressPercentage() {
-				return Math.round((this.completedSteps.value.length / 4) * 100);
-			},
-
-			// Methods
-			validateCurrentStep() {
-				const step = this.currentStep.value;
-				switch (step) {
-					case 'auth':
-						return true; // Always can proceed from auth
-					case 'workspace':
-						return this.completedSteps.value.includes('auth');
-					case 'settings':
-						return this.completedSteps.value.includes('workspace');
-					case 'complete':
-						return this.completedSteps.value.length >= 2;
-					default:
-						return false;
-				}
-			},
-
-			async loadState() {
-				this.isLoading.value = true;
-				try {
-					const state = await mockApiClient.getOnboardingStatus();
-					this.currentStep.value = state.currentStep;
-					this.completedSteps.value = state.completedSteps;
-					this.isComplete.value = state.isComplete;
-					this.error.value = null;
-				} catch (err) {
-					this.error.value = err.message;
-				} finally {
-					this.isLoading.value = false;
-				}
-			},
-
-			async updateStep(step, data = {}) {
-				this.isLoading.value = true;
-				try {
-					await mockApiClient.updateProgress(step, data);
-					this.currentStep.value = step;
-
-					// Add to completed steps if not already there
-					if (!this.completedSteps.value.includes(step)) {
-						this.completedSteps.value = [...this.completedSteps.value, step];
-					}
-
-					this.error.value = null;
-				} catch (err) {
-					this.error.value = err.message;
-				} finally {
-					this.isLoading.value = false;
-				}
-			},
-
-			async complete(workspaceId) {
-				this.isLoading.value = true;
-				try {
-					await mockApiClient.completeOnboarding(workspaceId);
-					this.currentStep.value = 'complete';
-					this.completedSteps.value = ['auth', 'workspace', 'settings', 'complete'];
-					this.isComplete.value = true;
-					this.error.value = null;
-				} catch (err) {
-					this.error.value = err.message;
-				} finally {
-					this.isLoading.value = false;
-				}
-			}
-		};
+		// Create ViewModel instance
+		viewModel = new OnboardingViewModel(mockApiClient);
 	});
 
-	it('should initialize with auth step', () => {
-		expect(viewModel.currentStep.value).toBe('auth');
-		expect(viewModel.isComplete.value).toBe(false);
-		expect(viewModel.completedSteps.value).toEqual([]);
-		expect(viewModel.progressPercentage).toBe(0);
-	});
-
-	it('should load state from API', async () => {
-		const mockState = {
-			currentStep: 'workspace',
-			completedSteps: ['auth'],
-			isComplete: false
-		};
-
-		mockApiClient.getOnboardingStatus.mockResolvedValue(mockState);
-
-		await viewModel.loadState();
-
-		expect(viewModel.currentStep.value).toBe('workspace');
-		expect(viewModel.completedSteps.value).toEqual(['auth']);
-		expect(viewModel.isComplete.value).toBe(false);
-		expect(viewModel.error.value).toBeNull();
+	it('should initialize with auth step and empty form data', () => {
+		expect(viewModel.currentStep).toBe('auth');
+		expect(viewModel.isLoading).toBe(false);
+		expect(viewModel.error).toBeNull();
+		expect(viewModel.formData.terminalKey).toBe('');
+		expect(viewModel.formData.confirmTerminalKey).toBe('');
+		expect(viewModel.formData.workspaceName).toBe('');
+		expect(viewModel.formData.workspacePath).toBe('');
 	});
 
 	it('should calculate progress percentage correctly', () => {
-		// 0 steps = 0%
-		viewModel.completedSteps.value = [];
+		// Auth step = 0%
+		viewModel.currentStep = 'auth';
 		expect(viewModel.progressPercentage).toBe(0);
 
-		// 1 step = 25%
-		viewModel.completedSteps.value = ['auth'];
-		expect(viewModel.progressPercentage).toBe(25);
+		// Workspace step = 33%
+		viewModel.currentStep = 'workspace';
+		expect(viewModel.progressPercentage).toBe(33);
 
-		// 2 steps = 50%
-		viewModel.completedSteps.value = ['auth', 'workspace'];
-		expect(viewModel.progressPercentage).toBe(50);
+		// Settings step = 67%
+		viewModel.currentStep = 'settings';
+		expect(viewModel.progressPercentage).toBe(67);
 
-		// 4 steps = 100%
-		viewModel.completedSteps.value = ['auth', 'workspace', 'settings', 'complete'];
+		// Complete step = 100%
+		viewModel.currentStep = 'complete';
 		expect(viewModel.progressPercentage).toBe(100);
 	});
 
-	it('should validate step progression correctly', () => {
-		// Auth step - always valid
-		viewModel.currentStep.value = 'auth';
-		expect(viewModel.canProceed).toBe(true);
+	it('should navigate to next step', () => {
+		viewModel.currentStep = 'auth';
+		viewModel.nextStep();
+		expect(viewModel.currentStep).toBe('workspace');
 
-		// Workspace step - valid if auth completed
-		viewModel.currentStep.value = 'workspace';
-		viewModel.completedSteps.value = [];
-		expect(viewModel.canProceed).toBe(false);
+		viewModel.nextStep();
+		expect(viewModel.currentStep).toBe('settings');
 
-		viewModel.completedSteps.value = ['auth'];
-		expect(viewModel.canProceed).toBe(true);
+		viewModel.nextStep();
+		expect(viewModel.currentStep).toBe('complete');
 
-		// Settings step - valid if workspace completed
-		viewModel.currentStep.value = 'settings';
-		viewModel.completedSteps.value = ['auth'];
-		expect(viewModel.canProceed).toBe(false);
-
-		viewModel.completedSteps.value = ['auth', 'workspace'];
-		expect(viewModel.canProceed).toBe(true);
+		// Should not go beyond complete
+		viewModel.nextStep();
+		expect(viewModel.currentStep).toBe('complete');
 	});
 
-	it('should update step progress', async () => {
-		mockApiClient.updateProgress.mockResolvedValue();
+	it('should navigate to previous step', () => {
+		viewModel.currentStep = 'complete';
+		viewModel.previousStep();
+		expect(viewModel.currentStep).toBe('settings');
 
-		await viewModel.updateStep('workspace', { workspaceId: 'test-workspace' });
+		viewModel.previousStep();
+		expect(viewModel.currentStep).toBe('workspace');
 
-		expect(mockApiClient.updateProgress).toHaveBeenCalledWith('workspace', {
-			workspaceId: 'test-workspace'
+		viewModel.previousStep();
+		expect(viewModel.currentStep).toBe('auth');
+
+		// Should not go before auth
+		viewModel.previousStep();
+		expect(viewModel.currentStep).toBe('auth');
+	});
+
+	it('should update form data and auto-generate workspace path', () => {
+		viewModel.updateFormData('workspaceName', 'My Test Project');
+		expect(viewModel.formData.workspaceName).toBe('My Test Project');
+		expect(viewModel.formData.workspacePath).toBe('/workspace/my-test-project');
+
+		viewModel.updateFormData('workspaceName', 'Another-Project_123');
+		expect(viewModel.formData.workspacePath).toBe('/workspace/another-project-123');
+	});
+
+	it('should validate terminal key requirements', () => {
+		const result = viewModel.validateCurrentStep();
+		expect(result.valid).toBe(false);
+		expect(result.errors).toContain('Terminal key is required');
+
+		viewModel.formData.terminalKey = 'short';
+		const result2 = viewModel.validateCurrentStep();
+		expect(result2.valid).toBe(false);
+		expect(result2.errors).toContain('Terminal key must be at least 8 characters long');
+
+		viewModel.formData.terminalKey = 'longenoughkey';
+		viewModel.formData.confirmTerminalKey = 'different';
+		const result3 = viewModel.validateCurrentStep();
+		expect(result3.valid).toBe(false);
+		expect(result3.errors).toContain('Terminal keys do not match');
+
+		viewModel.formData.confirmTerminalKey = 'longenoughkey';
+		const result4 = viewModel.validateCurrentStep();
+		expect(result4.valid).toBe(true);
+	});
+
+	it('should validate workspace step (optional)', () => {
+		viewModel.currentStep = 'workspace';
+
+		// Workspace is optional - should be valid with no data
+		const result1 = viewModel.validateCurrentStep();
+		expect(result1.valid).toBe(true);
+
+		// If name is provided, path is required (but auto-generated)
+		viewModel.formData.workspaceName = 'Test';
+		viewModel.formData.workspacePath = ''; // Manually clear
+		const result2 = viewModel.validateCurrentStep();
+		expect(result2.valid).toBe(false);
+		expect(result2.errors).toContain(
+			'Workspace path is required when workspace name is provided'
+		);
+	});
+
+	it('should check canProceedFromAuth correctly', () => {
+		expect(viewModel.canProceedFromAuth).toBe(false);
+
+		viewModel.formData.terminalKey = 'validkey123';
+		expect(viewModel.canProceedFromAuth).toBe(false); // No confirmation
+
+		viewModel.formData.confirmTerminalKey = 'validkey123';
+		expect(viewModel.canProceedFromAuth).toBe(true);
+	});
+
+	it('should submit onboarding with all form data', async () => {
+		const mockResponse = {
+			success: true,
+			onboarding: {
+				isComplete: true,
+				completedAt: new Date().toISOString(),
+				firstWorkspaceId: '/workspace/test'
+			},
+			workspace: {
+				id: '/workspace/test',
+				name: 'Test',
+				path: '/workspace/test'
+			}
+		};
+
+		mockApiClient.submitOnboarding.mockResolvedValue(mockResponse);
+
+		viewModel.formData.terminalKey = 'testkey123';
+		viewModel.formData.confirmTerminalKey = 'testkey123';
+		viewModel.formData.workspaceName = 'Test';
+		viewModel.formData.workspacePath = '/workspace/test';
+		viewModel.formData.preferences = { autoCleanup: true };
+
+		const result = await viewModel.submit();
+
+		expect(mockApiClient.submitOnboarding).toHaveBeenCalledWith({
+			terminalKey: 'testkey123',
+			workspaceName: 'Test',
+			workspacePath: '/workspace/test',
+			preferences: { autoCleanup: true }
 		});
-		expect(viewModel.currentStep.value).toBe('workspace');
-		expect(viewModel.completedSteps.value).toContain('workspace');
-		expect(viewModel.error.value).toBeNull();
+
+		expect(result).toEqual(mockResponse);
+		expect(viewModel.currentStep).toBe('complete');
+		expect(viewModel.error).toBeNull();
 	});
 
-	it('should handle step update errors', async () => {
-		const error = new Error('Invalid step transition');
-		mockApiClient.updateProgress.mockRejectedValue(error);
+	it('should submit onboarding without workspace if not provided', async () => {
+		const mockResponse = {
+			success: true,
+			onboarding: {
+				isComplete: true,
+				completedAt: new Date().toISOString(),
+				firstWorkspaceId: null
+			},
+			workspace: null
+		};
 
-		await viewModel.updateStep('invalid-step');
+		mockApiClient.submitOnboarding.mockResolvedValue(mockResponse);
 
-		expect(viewModel.error.value).toBe('Invalid step transition');
-		expect(viewModel.isLoading.value).toBe(false);
+		viewModel.formData.terminalKey = 'testkey123';
+		viewModel.formData.confirmTerminalKey = 'testkey123';
+
+		await viewModel.submit();
+
+		expect(mockApiClient.submitOnboarding).toHaveBeenCalledWith({
+			terminalKey: 'testkey123'
+		});
 	});
 
-	it('should complete onboarding', async () => {
-		mockApiClient.completeOnboarding.mockResolvedValue();
+	it('should handle submission errors', async () => {
+		const error = new Error('Onboarding already completed');
+		mockApiClient.submitOnboarding.mockRejectedValue(error);
 
-		await viewModel.complete('test-workspace');
+		viewModel.formData.terminalKey = 'testkey123';
+		viewModel.formData.confirmTerminalKey = 'testkey123';
 
-		expect(mockApiClient.completeOnboarding).toHaveBeenCalledWith('test-workspace');
-		expect(viewModel.currentStep.value).toBe('complete');
-		expect(viewModel.isComplete.value).toBe(true);
-		expect(viewModel.completedSteps.value).toEqual(['auth', 'workspace', 'settings', 'complete']);
+		await expect(viewModel.submit()).rejects.toThrow('Onboarding already completed');
+		expect(viewModel.error).toBe('Onboarding already completed');
+		expect(viewModel.isLoading).toBe(false);
 	});
 
-	it('should handle loading states correctly', async () => {
+	it('should set loading state during submission', async () => {
 		let resolvePromise;
 		const pendingPromise = new Promise((resolve) => {
 			resolvePromise = resolve;
 		});
 
-		mockApiClient.getOnboardingStatus.mockReturnValue(pendingPromise);
+		mockApiClient.submitOnboarding.mockReturnValue(pendingPromise);
 
-		// Start loading
-		const loadPromise = viewModel.loadState();
-		expect(viewModel.isLoading.value).toBe(true);
+		viewModel.formData.terminalKey = 'testkey123';
+		viewModel.formData.confirmTerminalKey = 'testkey123';
 
-		// Complete loading
-		resolvePromise({ currentStep: 'auth', completedSteps: [], isComplete: false });
-		await loadPromise;
+		const submitPromise = viewModel.submit();
+		expect(viewModel.isLoading).toBe(true);
 
-		expect(viewModel.isLoading.value).toBe(false);
+		resolvePromise({
+			success: true,
+			onboarding: { isComplete: true },
+			workspace: null
+		});
+		await submitPromise;
+
+		expect(viewModel.isLoading).toBe(false);
 	});
 
-	it('should allow skipping optional settings step', async () => {
-		// Set up state at workspace step
-		viewModel.currentStep.value = 'workspace';
-		viewModel.completedSteps.value = ['auth', 'workspace'];
+	it('should reset form data', () => {
+		viewModel.currentStep = 'settings';
+		viewModel.formData.terminalKey = 'test';
+		viewModel.formData.workspaceName = 'Test';
+		viewModel.error = 'Some error';
 
-		// Skip to complete
-		mockApiClient.completeOnboarding.mockResolvedValue();
-		await viewModel.complete('test-workspace');
+		viewModel.reset();
 
-		expect(viewModel.currentStep.value).toBe('complete');
-		expect(viewModel.isComplete.value).toBe(true);
-		// Settings should still be in completed steps when completing
-		expect(viewModel.completedSteps.value).toContain('settings');
+		expect(viewModel.currentStep).toBe('auth');
+		expect(viewModel.formData.terminalKey).toBe('');
+		expect(viewModel.formData.workspaceName).toBe('');
+		expect(viewModel.error).toBeNull();
 	});
 
-	it('should prevent duplicate step completion', async () => {
-		viewModel.completedSteps.value = ['auth'];
-		mockApiClient.updateProgress.mockResolvedValue();
+	it('should validate before submission', async () => {
+		viewModel.formData.terminalKey = 'short'; // Invalid
 
-		// Try to complete auth again
-		await viewModel.updateStep('auth');
-
-		// Should not add duplicate
-		expect(viewModel.completedSteps.value).toEqual(['auth']);
-	});
-
-	it('should reset error on successful operations', async () => {
-		viewModel.error.value = 'Previous error';
-		mockApiClient.updateProgress.mockResolvedValue();
-
-		await viewModel.updateStep('workspace');
-
-		expect(viewModel.error.value).toBeNull();
-	});
-
-	it('should maintain step order integrity', () => {
-		const stepOrder = ['auth', 'workspace', 'settings', 'complete'];
-
-		const getStepIndex = (step) => stepOrder.indexOf(step);
-		const canNavigateToStep = (targetStep, currentStep) => {
-			return getStepIndex(targetStep) <= getStepIndex(currentStep) + 1;
-		};
-
-		// From auth, can go to workspace
-		expect(canNavigateToStep('workspace', 'auth')).toBe(true);
-		// From auth, cannot skip to settings
-		expect(canNavigateToStep('settings', 'auth')).toBe(false);
-		// From workspace, can go to settings
-		expect(canNavigateToStep('settings', 'workspace')).toBe(true);
+		await expect(viewModel.submit()).rejects.toThrow();
+		expect(mockApiClient.submitOnboarding).not.toHaveBeenCalled();
 	});
 });

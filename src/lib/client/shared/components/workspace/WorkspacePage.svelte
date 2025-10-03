@@ -124,8 +124,13 @@
 			}
 
 			try {
-				const response = await fetch(`/api/auth/check?key=${encodeURIComponent(storedKey)}`, {
-					headers: getAuthHeaders()
+				const response = await fetch(`/api/auth/check`, {
+					method: 'POST',
+					headers: {
+						...getAuthHeaders(),
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ key: storedKey })
 				});
 				if (!response.ok) {
 					log.warn('Auth key invalid, redirecting to login');
@@ -611,18 +616,6 @@
 		touch-action: pan-x pan-y;
 	}
 
-	/* Background image overlay */
-	.dispatch-workspace::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		opacity: 0.09;
-		background-image: url('/fwdslsh-green-bg.png');
-		background-repeat: no-repeat;
-		background-position: center center;
-		background-size: contain;
-		pointer-events: none;
-	}
 
 	/* Session bottom sheet - mobile specific */
 	.session-sheet {

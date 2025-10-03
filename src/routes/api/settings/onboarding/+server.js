@@ -1,205 +1,223 @@
 /**
- * Onboarding Settings API Endpoint
- * Manages onboarding state as a settings category in the settings table
- * GET /api/settings/onboarding - Get onboarding state
- * PUT /api/settings/onboarding - Update onboarding state
+ * Onboarding Completion API Endpoint
+ * Handles complete onboarding setup in a single atomic operation
+ *
+ * POST /api/settings/onboarding - Complete onboarding setup (no authentication required)
  */
 
 import { json } from '@sveltejs/kit';
+import { logger } from '$lib/server/shared/utils/logger.js';
 
 /**
- * GET /api/settings/onboarding
- * Retrieve current onboarding state
- *
- * Note: GET does not require authentication to allow initial onboarding checks
+ * Validate workspace path format and constraints
  */
-export async function GET({ locals }) {
-	try {
-		// GET does not require authentication for initial onboarding
+function isValidWorkspacePath(path) {
+	if (!path || typeof path !== 'string') return false;
 
-		// Get onboarding settings from database
-		const onboardingSettings = await locals.services.database.getSettingsByCategory('onboarding');
+	// Basic path validation
+	if (path.includes('..') || path.includes('~')) return false;
+	if (path.length > 500) return false;
 
-		// Return defaults if not found
-		if (!onboardingSettings || Object.keys(onboardingSettings).length === 0) {
-			return json({
-				currentStep: 'auth',
-				completedSteps: [],
-				isComplete: false,
-				firstWorkspaceId: null
-			});
-		}
+	// Must be absolute path
+	if (!path.startsWith('/')) return false;
 
-		return json(onboardingSettings, {
-			headers: {
-				'Cache-Control': 'no-cache, no-store, must-revalidate',
-				Pragma: 'no-cache',
-				Expires: '0'
-			}
-		});
-	} catch (error) {
-		console.error('[Onboarding Settings API] Failed to get onboarding state:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
-	}
+	return true;
 }
 
 /**
- * PUT /api/settings/onboarding
- * Update onboarding state
+ * Extract workspace name from path (last directory segment)
+ */
+function extractWorkspaceName(path) {
+	if (!path) return 'Unnamed Workspace';
+	const segments = path.split('/').filter(Boolean);
+	return segments[segments.length - 1] || 'Root';
+}
+
+/**
+ * POST /api/settings/onboarding
+ * Complete onboarding setup with terminal key, workspace creation, and preferences
+ *
+ * This is an atomic operation - all steps must succeed or the entire operation fails.
+ * No authentication required as this is the initial setup endpoint.
+ *
+ * Request body:
+ * {
+ *   terminalKey: string (required, min 8 characters)
+ *   workspaceName?: string (optional)
+ *   workspacePath?: string (optional, required if workspaceName provided)
+ *   preferences?: object (optional settings)
+ * }
  */
 export async function POST({ request, locals }) {
-	try {
-		// Get onboarding settings from database
-		const onboardingSettings = await locals.services.database.getSettingsByCategory('onboarding');
+	const dbManager = locals.services.database;
 
-		// See if onboarding already completed
-		if (onboardingSettings && Object.keys(onboardingSettings).length > 0) {
-			return json({ error: 'Onboarding already completed' }, { status: 401 });
+	try {
+		await dbManager.init();
+
+		// Check if onboarding already completed
+		const existingOnboarding = await dbManager.getSettingsByCategory('onboarding');
+		if (existingOnboarding?.isComplete) {
+			logger.warn('ONBOARDING_API', 'Attempt to complete onboarding when already complete');
+			return json({ error: 'Onboarding has already been completed' }, { status: 409 });
 		}
 
 		const body = await request.json();
+		const { terminalKey, workspaceName, workspacePath, preferences } = body;
 
-		// Build onboarding state from request
-		const onboardingState = {
-			currentStep: body.currentStep || 'auth',
-			completedSteps: body.completedSteps || [],
-			isComplete: body.isComplete || false,
-			firstWorkspaceId: body.firstWorkspaceId || null
-		};
-
-		// Include step data if provided
-		if (body.stepData) {
-			onboardingState.stepData = body.stepData;
+		// Validate terminal key
+		if (!terminalKey || typeof terminalKey !== 'string') {
+			return json({ error: 'Terminal key is required' }, { status: 400 });
 		}
 
-		// Save to database
-		await locals.services.database.setSettingsForCategory(
-			'onboarding',
-			onboardingState,
-			'User onboarding state and progress'
-		);
-
-		return json(
-			{
-				success: true,
-				...onboardingState
-			},
-			{
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate'
-				}
-			}
-		);
-	} catch (error) {
-		console.error('[Onboarding Settings API] Failed to update onboarding state:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
-	}
-}
-
-/**
- * PUT /api/settings/onboarding
- * Update onboarding state and handle special actions like storing terminal key
- *
- * Authentication: Required if onboarding already completed
- */
-export async function PUT({ request, url, locals }) {
-	try {
-		// Get onboarding settings from database
-		const onboardingSettings = await locals.services.database.getSettingsByCategory('onboarding');
-
-		// If onboarding already completed, require authentication
-		if (onboardingSettings && Object.keys(onboardingSettings).length > 0) {
-			// Auth already validated by hooks middleware
-			if (!locals.auth?.authenticated) {
-				return json({ error: 'Invalid authentication key' }, { status: 401 });
-			}
+		if (terminalKey.length < 8) {
+			return json({ error: 'Terminal key must be at least 8 characters long' }, { status: 400 });
 		}
 
-		const body = await request.json();
+		// Validate workspace parameters if provided
+		if ((workspaceName && !workspacePath) || (!workspaceName && workspacePath)) {
+			return json(
+				{ error: 'Both workspaceName and workspacePath must be provided together' },
+				{ status: 400 }
+			);
+		}
 
-		// Handle terminal key storage during auth step
-		if (body.stepData?.terminalKey) {
-			const terminalKey = body.stepData.terminalKey;
+		if (workspacePath && !isValidWorkspacePath(workspacePath)) {
+			return json({ error: 'Invalid workspace path format' }, { status: 400 });
+		}
 
-			// Validate terminal key
-			if (typeof terminalKey !== 'string' || terminalKey.length < 8) {
-				return json(
-					{ error: 'Terminal key must be at least 8 characters long' },
-					{ status: 400 }
-				);
-			}
+		// Begin atomic operation
+		let workspaceId = null;
 
-			// Store terminal key in authentication settings
-			const currentAuthSettings = await locals.services.database.getSettingsByCategory('authentication');
-			const updatedAuthSettings = {
-				...currentAuthSettings,
-				terminal_key: terminalKey
-			};
-
-			await locals.services.database.setSettingsForCategory(
+		try {
+			// Step 1: Store terminal key in authentication settings
+			await dbManager.setSettingsForCategory(
 				'authentication',
-				updatedAuthSettings,
-				'Authentication settings'
+				{ terminal_key: terminalKey },
+				'Authentication settings configured during onboarding'
 			);
 
 			// Update the cached terminal key for immediate use
-			locals.services.auth.updateCachedKey(terminalKey);
-
-			console.log('[Onboarding] Terminal key stored in authentication settings');
-		}
-
-		// Build onboarding state from request
-		const onboardingState = {
-			currentStep: body.currentStep || 'auth',
-			completedSteps: body.completedSteps || [],
-			isComplete: body.isComplete || false,
-			firstWorkspaceId: body.firstWorkspaceId || null
-		};
-
-		// Include step data if provided (but don't store sensitive data)
-		if (body.stepData) {
-			// Remove sensitive data before storing
-			const { terminalKey, ...safeStepData } = body.stepData;
-			if (Object.keys(safeStepData).length > 0) {
-				onboardingState.stepData = safeStepData;
+			if (locals.services.auth && typeof locals.services.auth.updateCachedKey === 'function') {
+				locals.services.auth.updateCachedKey(terminalKey);
 			}
-		}
 
-		// Determine next step based on current step
-		const stepOrder = ['auth', 'workspace', 'settings', 'complete'];
-		const currentIndex = stepOrder.indexOf(body.currentStep);
-		if (currentIndex >= 0 && currentIndex < stepOrder.length - 1) {
-			onboardingState.currentStep = stepOrder[currentIndex + 1];
-		}
+			logger.info('ONBOARDING_API', 'Terminal key configured successfully');
 
-		// Mark as complete if we've reached the complete step
-		if (onboardingState.currentStep === 'complete') {
-			onboardingState.isComplete = true;
-			// Ensure all steps are in completedSteps
-			onboardingState.completedSteps = ['auth', 'workspace', 'settings', 'complete'];
-		}
+			// Step 2: Create workspace if provided
+			if (workspaceName && workspacePath) {
+				// Check if workspace already exists
+				const existingWorkspace = await dbManager.get(
+					'SELECT path FROM workspaces WHERE path = ?',
+					[workspacePath]
+				);
 
-		// Save onboarding state to database
-		await locals.services.database.setSettingsForCategory(
-			'onboarding',
-			onboardingState,
-			'User onboarding state and progress'
-		);
-
-		return json(
-			{
-				success: true,
-				...onboardingState
-			},
-			{
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate'
+				if (existingWorkspace) {
+					return json(
+						{ error: 'Workspace already exists at this path' },
+						{ status: 409 }
+					);
 				}
+
+				const displayName =
+					typeof workspaceName === 'string' && workspaceName.trim()
+						? workspaceName.trim()
+						: extractWorkspaceName(workspacePath);
+
+				await dbManager.createWorkspace(workspacePath, displayName);
+				workspaceId = workspacePath;
+
+				logger.info('ONBOARDING_API', `Created workspace: ${workspacePath}`);
 			}
-		);
+
+			// Step 3: Save user preferences if provided
+			if (preferences && typeof preferences === 'object') {
+				// Save preferences by category
+				for (const [category, prefs] of Object.entries(preferences)) {
+					if (prefs && typeof prefs === 'object') {
+						await dbManager.setPreferencesForCategory(
+							category,
+							prefs,
+							`User preferences for ${category} set during onboarding`
+						);
+					}
+				}
+
+				logger.info('ONBOARDING_API', 'User preferences saved');
+			}
+
+			// Step 4: Mark onboarding as complete
+			const completionTimestamp = new Date().toISOString();
+			await dbManager.setSettingsForCategory(
+				'onboarding',
+				{
+					isComplete: true,
+					completedAt: completionTimestamp,
+					firstWorkspaceId: workspaceId
+				},
+				'Onboarding completed successfully'
+			);
+
+			logger.info('ONBOARDING_API', 'Onboarding completed successfully');
+
+			// Return success response
+			return json(
+				{
+					success: true,
+					onboarding: {
+						isComplete: true,
+						completedAt: completionTimestamp,
+						firstWorkspaceId: workspaceId
+					},
+					workspace: workspaceId
+						? {
+								id: workspaceId,
+								name: workspaceName,
+								path: workspacePath
+							}
+						: null
+				},
+				{
+					status: 201,
+					headers: {
+						'Cache-Control': 'no-cache, no-store, must-revalidate'
+					}
+				}
+			);
+		} catch (operationError) {
+			// Rollback: Attempt to clean up partial state
+			logger.error(
+				'ONBOARDING_API',
+				'Onboarding operation failed, attempting rollback:',
+				operationError
+			);
+
+			try {
+				// Remove any settings that may have been created
+				await dbManager.run('DELETE FROM settings WHERE category IN (?, ?)', [
+					'authentication',
+					'onboarding'
+				]);
+
+				// Remove workspace if it was created
+				if (workspaceId) {
+					await dbManager.run('DELETE FROM workspaces WHERE path = ?', [workspaceId]);
+				}
+
+				logger.info('ONBOARDING_API', 'Rollback completed successfully');
+			} catch (rollbackError) {
+				logger.error('ONBOARDING_API', 'Rollback failed:', rollbackError);
+			}
+
+			// Return appropriate error
+			if (operationError?.code === 'SQLITE_CONSTRAINT') {
+				return json({ error: 'Database constraint violation' }, { status: 409 });
+			}
+
+			throw operationError;
+		}
 	} catch (error) {
-		console.error('[Onboarding Settings API] Failed to update onboarding state:', error);
-		return json({ error: 'Internal server error' }, { status: 500 });
+		logger.error('ONBOARDING_API', 'Failed to complete onboarding:', error);
+		return json({ error: 'Failed to complete onboarding setup' }, { status: 500 });
 	}
 }
 
@@ -212,8 +230,8 @@ export async function OPTIONS() {
 		status: 200,
 		headers: {
 			'Access-Control-Allow-Origin': '*',
-			'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+			'Access-Control-Allow-Methods': 'POST, OPTIONS',
+			'Access-Control-Allow-Headers': 'Content-Type'
 		}
 	});
 }

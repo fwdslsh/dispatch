@@ -369,6 +369,30 @@ export async function setupWorkspaceTestMocks(page, options = {}) {
 
 	const config = { ...defaults, ...options };
 
+	// Mock environment endpoint (called early in page load)
+	await page.route('/api/environment**', (route) => {
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				enableTunnel: false,
+				hasClaudeProjects: false
+			})
+		});
+	});
+
+	// Mock auth config endpoint (called early in page load)
+	await page.route('/api/auth/config**', (route) => {
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				requiresAuth: true,
+				sessionDuration: 30 * 24 * 60 * 60 * 1000 // 30 days
+			})
+		});
+	});
+
 	// Mock onboarding as complete
 	await page.route('/api/settings/onboarding**', (route) => {
 		route.fulfill({
@@ -463,6 +487,31 @@ export async function navigateToRouteAuthenticated(page, route) {
  */
 export async function quickAuth(page) {
 	await preAuthenticateUser(page);
+
+	// Mock environment endpoint to prevent auth warnings
+	await page.route('/api/environment**', (route) => {
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				enableTunnel: false,
+				hasClaudeProjects: false
+			})
+		});
+	});
+
+	// Mock auth config endpoint
+	await page.route('/api/auth/config**', (route) => {
+		route.fulfill({
+			status: 200,
+			contentType: 'application/json',
+			body: JSON.stringify({
+				requiresAuth: true,
+				sessionDuration: 30 * 24 * 60 * 60 * 1000
+			})
+		});
+	});
+
 	await page.route('/api/auth/check**', (route) => {
 		route.fulfill({
 			status: 200,

@@ -1,5 +1,6 @@
 <script>
-	export let data;
+	// Props (Svelte 5 $props() syntax)
+	let { data } = $props();
 
 	const workspaces = data?.workspaces ?? [];
 </script>

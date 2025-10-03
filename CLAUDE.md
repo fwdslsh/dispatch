@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with code in this repository. Parallel execution should be used whenever possible while working in this repository.
 
 ## Project Overview
 
@@ -77,7 +77,7 @@ npm run docker:stop     # Stop containers
 
 ### Automated UI Testing
 
-When testing the UI with automated tools (Selenium, Cypress, Playwright, etc.), use the dedicated test server to avoid SSL certificate issues:
+When testing the UI with automated tools (DevTools MCP, Playwright, etc.), use the dedicated test server to avoid SSL certificate issues:
 
 ```bash
 npm run dev:test
@@ -146,6 +146,14 @@ class ViewModel {
 ```
 
 **Global Service Sharing**: `__API_SERVICES` provides shared instances across Socket.IO and API routes, ensuring consistent state management
+
+### Architecture Documentation
+
+For detailed architectural patterns and implementation guides, see:
+
+- **[MVVM Patterns Guide](src/docs/architecture/mvvm-patterns.md)** - Deep dive into the runes-in-classes pattern, when to use classes vs modules, and common pitfalls
+- **[Adapter Registration Guide](src/docs/architecture/adapter-guide.md)** - Step-by-step guide for adding new session types via the adapter pattern
+- **[Error Handling Guide](src/docs/contributing/error-handling.md)** - Standardized async error handling patterns and best practices
 
 ## Testing Strategy
 
@@ -248,7 +256,7 @@ PRAGMA table_info('settings');
 
 ### Debugging
 
-- Admin console at `/console?key=your-terminal-key` for live session monitoring
+- Admin console at `/console` for live session monitoring
 - Enable debug logging: `DEBUG=* npm run dev`
 - Session events persisted in database for replay debugging
 - Check browser DevTools Network tab for WebSocket frames
@@ -306,7 +314,7 @@ The Workspace API (`/api/workspaces`) provides REST endpoints for workspace life
 
 ```bash
 # List all workspaces
-GET /api/workspaces?authKey=YOUR_KEY
+GET /api/workspaces
 
 # Create new workspace
 POST /api/workspaces
@@ -328,7 +336,7 @@ PUT /api/workspaces/{workspaceId}
 }
 
 # Delete workspace (must have no active sessions)
-DELETE /api/workspaces/{workspaceId}?authKey=YOUR_KEY
+DELETE /api/workspaces/{workspaceId}
 ```
 
 ### Workspace-Session Integration
@@ -498,7 +506,7 @@ localStorage.setItem('authExpiresAt', expirationDate);
 **Check Onboarding Status**:
 
 ```bash
-GET /api/settings/onboarding?authKey=YOUR_KEY
+GET /api/settings/onboarding
 # Returns: { currentStep: 'auth'|'workspace'|'settings'|'complete', isComplete: boolean, completedSteps: [] }
 ```
 
@@ -599,7 +607,7 @@ The workspace management leverages existing workspace APIs with enhanced session
 **List Workspaces with Session Data**:
 
 ```bash
-GET /api/workspaces?authKey=YOUR_KEY
+GET /api/workspaces
 # Returns workspaces with sessionCount, lastActive, and status
 ```
 
@@ -684,7 +692,7 @@ Dispatch provides comprehensive data retention policy management for sessions an
 **Get Current Policy** (via Preferences API):
 
 ```bash
-GET /api/preferences?authKey=YOUR_KEY&category=maintenance
+GET /api/preferences&category=maintenance
 # Returns: { sessionRetentionDays: 30, logRetentionDays: 7, autoCleanupEnabled: true, updatedAt: "..." }
 ```
 
@@ -796,7 +804,7 @@ Comprehensive user preferences system allowing customization of UI behavior, wor
 **Get Preferences**:
 
 ```bash
-GET /api/preferences?authKey=YOUR_KEY&category=ui
+GET /api/preferences&category=ui
 # Returns category-specific preferences or all if no category specified
 ```
 
@@ -902,7 +910,7 @@ All new components meet WCAG 2.1 Level AA accessibility standards with comprehen
 
 ```bash
 # Check onboarding state via API (now in settings system)
-curl "http://localhost:3030/api/settings/onboarding?authKey=YOUR_KEY"
+curl "http://localhost:3030/api/settings/onboarding"
 
 # Check settings database
 sqlite3 dispatch.db "SELECT * FROM settings WHERE category = 'onboarding';"
@@ -923,7 +931,7 @@ sqlite3 dispatch.db "DELETE FROM settings WHERE category = 'onboarding';"
 
 ```bash
 # Check workspace API
-curl "http://localhost:3030/api/workspaces?authKey=YOUR_KEY"
+curl "http://localhost:3030/api/workspaces"
 
 # Verify workspace database integrity
 sqlite3 dispatch.db "SELECT * FROM workspaces;"
@@ -943,7 +951,7 @@ sqlite3 dispatch.db "SELECT id, workspacePath FROM sessions WHERE workspacePath 
 
 **Preview Generation Fails**:
 
-- Check maintenance preferences exist: `curl "http://localhost:3030/api/preferences?authKey=YOUR_KEY&category=maintenance"`
+- Check maintenance preferences exist: `curl "http://localhost:3030/api/preferences&category=maintenance"`
 - Verify retention policy values within valid ranges (1-365 days for sessions, 1-90 days for logs)
 - Check maintenance API is accessible: `curl -X POST "http://localhost:3030/api/maintenance" -H "Content-Type: application/json" -d '{"authKey":"YOUR_KEY","action":"preview"}'`
 - Monitor console for SQL query errors
@@ -955,7 +963,7 @@ sqlite3 dispatch.db "SELECT id, workspacePath FROM sessions WHERE workspacePath 
 sqlite3 dispatch.db ".timeout 5000"
 
 # Verify no active sessions block cleanup
-curl "http://localhost:3030/api/sessions?authKey=YOUR_KEY"
+curl "http://localhost:3030/api/sessions"
 ```
 
 ### Performance Issues
@@ -967,8 +975,8 @@ curl "http://localhost:3030/api/sessions?authKey=YOUR_KEY"
 DEBUG=* npm run dev
 
 # Monitor API response times (using new consolidated endpoints)
-curl -w "Total time: %{time_total}s\n" "http://localhost:3030/api/settings/onboarding?authKey=YOUR_KEY"
-curl -w "Total time: %{time_total}s\n" "http://localhost:3030/api/preferences?authKey=YOUR_KEY&category=maintenance"
+curl -w "Total time: %{time_total}s\n" "http://localhost:3030/api/settings/onboarding"
+curl -w "Total time: %{time_total}s\n" "http://localhost:3030/api/preferences&category=maintenance"
 ```
 
 **Database Performance**:

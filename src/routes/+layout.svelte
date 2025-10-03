@@ -48,26 +48,24 @@
 				return;
 			}
 
-			// Initialize onboarding ViewModel
-			onboardingViewModel = new OnboardingViewModel(apiClient);
-			await onboardingViewModel.loadState();
+			// Check system status (includes onboarding completion)
+			const status = await apiClient.getSystemStatus();
 
-			console.log('[Layout] Onboarding state loaded:', {
-				currentStep: onboardingViewModel.currentStep,
-				completedSteps: onboardingViewModel.completedSteps,
-				isComplete: onboardingViewModel.isComplete
+			console.log('[Layout] System status loaded:', {
+				onboardingComplete: status.onboarding.isComplete,
+				authConfigured: status.authentication.configured
 			});
 
 			// Check if we need to redirect to onboarding
 			const currentPath = page.url.pathname;
 			const isOnOnboardingPage = currentPath.startsWith('/onboarding');
-			const shouldOnboard = !onboardingViewModel.isComplete;
+			const shouldOnboard = !status.onboarding.isComplete;
 
 			console.log('[Layout] Redirect logic:', {
 				currentPath,
 				isOnOnboardingPage,
 				shouldOnboard,
-				isComplete: onboardingViewModel.isComplete
+				isComplete: status.onboarding.isComplete
 			});
 
 			if (shouldOnboard && !isOnOnboardingPage) {
