@@ -168,6 +168,39 @@ npm run test:e2e -- terminal  # Specific E2E test
 npm run test:e2e:headed       # E2E with browser UI
 ```
 
+### Testing Quick Start
+
+📖 **[Testing Quick Start Guide](docs/testing-quickstart.md)** - Comprehensive guide for setting up test instances
+
+**Key features for automated testing:**
+
+- **Automated Setup Script**: `./scripts/setup-test-instance.sh` creates isolated test instances with auto-onboarding
+- **Database Seeding**: Three methods (API-based, direct SQL, Playwright helpers) for automated onboarding
+- **Temporary Instances**: Fresh, isolated environments in `/tmp` for reproducible tests
+- **Known Credentials**: Use `test-automation-key-12345` for predictable authentication in tests
+
+**Quick example:**
+
+```bash
+# Create fresh instance with auto-onboarding and workspace
+./scripts/setup-test-instance.sh --auto-onboard --workspace "/workspace/test-project"
+
+# Or use the dedicated test server (no setup needed)
+npm run dev:test  # Port 7173, auto-onboarding complete
+```
+
+**For E2E tests**, use the Playwright helpers to bypass onboarding:
+
+```javascript
+import { navigateToWorkspaceWithOnboardingComplete } from './e2e/core-helpers.js';
+
+test('my test', async ({ page }) => {
+  // Automatically mocks onboarding complete and navigates to workspace
+  await navigateToWorkspaceWithOnboardingComplete(page);
+  // Your test code here
+});
+```
+
 ## Database Schema (SQLite)
 
 Event-sourced architecture with key tables:

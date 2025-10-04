@@ -6,6 +6,7 @@ Welcome to the comprehensive documentation for Dispatch! This index provides an 
 
 **New to Dispatch? Start here:**
 - [**Quick Start Guide**](quickstart.md) - Complete setup and usage walkthrough
+- [**Testing Quick Start**](testing-quickstart.md) - Set up temporary test instances and automated onboarding
 - [**CLI Guide**](cli-guide.md) - Command-line interface for launching and managing containers
 
 ## 🔐 Authentication & AI

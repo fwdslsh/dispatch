@@ -12,10 +12,12 @@ an AI agent needs to be productive in Dispatch.
 
 - Common edits: change adapters in `src/lib/server/adapters/`; change client terminal behavior in `src/lib/client/terminal/TerminalPane.svelte`.
 - Tests: unit tests under `tests/` (Vitest), E2E under `e2e/` (Playwright). Run: `npm test` and `npm run test:e2e`.
+- Testing setup: See `docs/testing-quickstart.md` for automated test instance creation and database seeding. Use `./scripts/setup-test-instance.sh --auto-onboard` for fresh isolated instances.
 
 - Dev commands you can rely on:
   - `npm run dev` (dev server with SSL, uses `TERMINAL_KEY` and `.dispatch-home`, port 5173)
   - `npm run dev:test` (automated UI testing server - no SSL, port 7173, known key `test-automation-key-12345`)
+  - `./scripts/setup-test-instance.sh --auto-onboard` (create fresh test instance with auto-onboarding)
   - `npm run build` / `npm run preview` / `npm run start`
   - `npm run lint` / `npm run format` / `npm run check`
 
@@ -128,6 +130,7 @@ When using Selenium, Cypress, or other UI automation frameworks:
 - Never add credentials or tokens to the repo or code. If a change requires credentials for local testing, document how to set env vars but do not commit values.
 - Add unit tests for any server-side behavior change (Vitest). For user-facing changes, add/adjust Playwright E2E tests under `e2e/`.
 - Keep changes small and include a test plan in PR description (commands to run locally: `npm run lint && npm test && npm run test:e2e`).
+- **For testing**: Use the automated setup script or test server to create isolated test instances. See `docs/testing-quickstart.md` for database seeding methods and E2E test helpers. Always use `test-automation-key-12345` as the auth key in automated tests.
 
 ## Pull request checklist for AI-generated changes
 
