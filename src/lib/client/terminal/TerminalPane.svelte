@@ -13,6 +13,42 @@
 	// Also observe container size changes (e.g., parent layout changes)
 	let ro;
 
+	/**
+	 * Read theme CSS variables from :root and convert to xterm.js theme object
+	 * @returns {object} Xterm.js theme configuration
+	 */
+	function getXtermTheme() {
+		const rootStyles = getComputedStyle(document.documentElement);
+
+		// Helper to get CSS variable value
+		const getCssVar = (varName) => rootStyles.getPropertyValue(varName).trim();
+
+		return {
+			background: getCssVar('--theme-background') || '#0c1210',
+			foreground: getCssVar('--theme-foreground') || '#d9ffe6',
+			cursor: getCssVar('--theme-cursor') || '#2ee66b',
+			cursorAccent: getCssVar('--theme-cursor-accent') || '#0c1210',
+			selectionBackground: getCssVar('--theme-selection-bg') || '#2ee66b40',
+			selectionForeground: undefined, // Let xterm use default contrast
+			black: getCssVar('--theme-ansi-black') || '#121a17',
+			red: getCssVar('--theme-ansi-red') || '#ef476f',
+			green: getCssVar('--theme-ansi-green') || '#2ee66b',
+			yellow: getCssVar('--theme-ansi-yellow') || '#ffd166',
+			blue: getCssVar('--theme-ansi-blue') || '#00c2ff',
+			magenta: getCssVar('--theme-ansi-magenta') || '#ff6b9d',
+			cyan: getCssVar('--theme-ansi-cyan') || '#56b6c2',
+			white: getCssVar('--theme-ansi-white') || '#cfe7d8',
+			brightBlack: getCssVar('--theme-ansi-bright-black') || '#8aa699',
+			brightRed: getCssVar('--theme-ansi-bright-red') || '#ef476f',
+			brightGreen: getCssVar('--theme-ansi-bright-green') || '#4eff82',
+			brightYellow: getCssVar('--theme-ansi-bright-yellow') || '#ffd166',
+			brightBlue: getCssVar('--theme-ansi-bright-blue') || '#00c2ff',
+			brightMagenta: getCssVar('--theme-ansi-bright-magenta') || '#ff6b9d',
+			brightCyan: getCssVar('--theme-ansi-bright-cyan') || '#56b6c2',
+			brightWhite: getCssVar('--theme-ansi-bright-white') || '#d9ffe6'
+		};
+	}
+
 	// State for history loading
 	let isCatchingUp = $state(false);
 	let isAttached = $state(false);
@@ -96,7 +132,7 @@
 		// Detect touch device for xterm.js optimizations (for non-mobile touch devices)
 		const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-		// Initialize terminal
+		// Initialize terminal with theme from CSS variables
 		term = new Terminal({
 			convertEol: true,
 			cursorBlink: true,
@@ -109,7 +145,9 @@
 			smoothScrollDuration: isTouch ? 0 : 125, // Disable smooth scroll on touch for better performance
 			fastScrollModifier: 'shift',
 			fastScrollSensitivity: 5,
-			scrollSensitivity: isTouch ? 3 : 1 // Increase scroll sensitivity on touch devices
+			scrollSensitivity: isTouch ? 3 : 1, // Increase scroll sensitivity on touch devices
+			// Apply theme from CSS variables
+			theme: getXtermTheme()
 		});
 		term.loadAddon(fitAddon);
 		term.open(el);

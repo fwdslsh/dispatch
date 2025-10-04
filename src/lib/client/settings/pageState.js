@@ -2,6 +2,7 @@ import GlobalSettingsSection from './GlobalSettingsSection.svelte';
 import AuthenticationSettingsSection from './AuthenticationSettingsSection.svelte';
 import PreferencesPanel from './PreferencesPanel.svelte';
 import RetentionSettings from './RetentionSettings.svelte';
+import ThemeSettings from './ThemeSettings.svelte';
 import WorkspaceEnvSettings from './sections/WorkspaceEnvSettings.svelte';
 import HomeDirectoryManager from './sections/HomeDirectoryManager.svelte';
 import TunnelControl from './sections/TunnelControl.svelte';
@@ -18,6 +19,7 @@ import IconRobot from '$lib/client/shared/components/Icons/IconRobot.svelte';
 import IconTrash from '$lib/client/shared/components/Icons/IconTrash.svelte';
 import IconArchive from '$lib/client/shared/components/Icons/IconArchive.svelte';
 import IconKey from '$lib/client/shared/components/Icons/IconKey.svelte';
+import IconAdjustmentsAlt from '$lib/client/shared/components/Icons/IconAdjustmentsAlt.svelte';
 
 const SETTINGS_SECTIONS = [
 	{
@@ -82,6 +84,13 @@ const SETTINGS_SECTIONS = [
 		navAriaLabel: 'Storage management settings',
 		icon: IconTrash,
 		component: StorageSettings
+	},
+	{
+		id: 'themes',
+		label: 'Themes',
+		navAriaLabel: 'Theme and appearance settings',
+		icon: IconAdjustmentsAlt,
+		component: ThemeSettings
 	},
 	{
 		id: 'preferences',

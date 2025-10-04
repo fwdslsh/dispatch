@@ -50,6 +50,12 @@ async function initializeDirectories() {
 		fs.mkdirSync(configDir, { recursive: true });
 		fs.accessSync(configDir, fs.constants.W_OK);
 
+		// Create themes directory for custom theme storage
+		const themesDir = expandTilde('~/.dispatch/themes');
+		console.log(`[DIRECTORY] Themes Directory: ${themesDir}`);
+		fs.mkdirSync(themesDir, { recursive: true });
+		fs.accessSync(themesDir, fs.constants.W_OK);
+
 		console.log('Directories initialized successfully');
 	} catch (err) {
 		console.error(`ERROR: Directory initialization failed: ${err.message}`);

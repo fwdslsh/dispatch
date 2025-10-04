@@ -13,21 +13,21 @@
 
 ## Phase 3.1: Setup & Preset Themes
 
-- [ ] **T001** Create preset theme files in `static/themes/`
+- [x] **T001** Create preset theme files in `static/themes/`
   - Create `static/themes/phosphor-green.json` with complete xterm ITheme definition
   - Create `static/themes/dark.json` with professional dark theme colors
   - Create `static/themes/light.json` with professional light theme colors
   - Validate all JSON files parse correctly
   - Ensure all required fields (background, foreground, 16 ANSI colors) present
 
-- [ ] **T002** Add theme_override column to workspaces table
+- [x] **T002** Add theme_override column to workspaces table
   - File: `src/lib/server/shared/db/DatabaseManager.js`
   - Update `ensureWorkspaceSchema()` method to check for and add `theme_override` column
   - Add `ALTER TABLE workspaces ADD COLUMN theme_override TEXT DEFAULT NULL` if column doesn't exist
   - Follow existing pattern used for `name` column
   - Test column is created on database initialization
 
-- [ ] **T003** [P] Configure theme directory structure
+- [x] **T003** [P] Configure theme directory structure
   - Create `.testing-home/themes/` directory in dev environment
   - Add logic to create `~/.dispatch/themes/` on first run
   - Verify directory permissions are correct
@@ -169,7 +169,7 @@
 
 ### Backend - Parsers & Validators
 
-- [ ] **T019** [P] Implement ThemeParser abstract class
+- [x] **T019** [P] Implement ThemeParser abstract class
   - File: `src/lib/server/themes/ThemeParser.js`
   - Define abstract parse(fileContent) method
   - Define abstract validate(theme) method
@@ -177,7 +177,7 @@
   - Export as ES module
   - **Acceptance**: T010 tests pass
 
-- [ ] **T020** Implement XtermThemeParser
+- [x] **T020** Implement XtermThemeParser
   - File: `src/lib/server/themes/XtermThemeParser.js`
   - Extend ThemeParser abstract class
   - Implement parse() with JSON.parse and validation
@@ -189,7 +189,7 @@
 
 ### Backend - Theme Manager
 
-- [ ] **T021** Implement ThemeManager class
+- [x] **T021** Implement ThemeManager class
   - File: `src/lib/server/themes/ThemeManager.js`
   - Constructor: initialize paths (dataDir, themesDir, staticThemesDir)
   - Hardcoded FALLBACK_THEME constant with complete phosphor-green definition
@@ -206,7 +206,7 @@
 
 ### Backend - API Routes
 
-- [ ] **T022** Implement GET /api/themes endpoint
+- [x] **T022** Implement GET /api/themes endpoint
   - File: `src/routes/api/themes/+server.js` (GET handler)
   - Validate authKey
   - Initialize ThemeManager
@@ -215,7 +215,7 @@
   - **Depends on**: T021
   - **Acceptance**: T004 tests pass
 
-- [ ] **T023** Implement POST /api/themes endpoint (upload)
+- [x] **T023** Implement POST /api/themes endpoint (upload)
   - File: `src/routes/api/themes/+server.js` (POST handler)
   - Validate authKey
   - Parse multipart/form-data to get file
@@ -226,7 +226,7 @@
   - **Depends on**: T021
   - **Acceptance**: T005 tests pass
 
-- [ ] **T024** Implement GET /api/themes/{themeId} endpoint
+- [x] **T024** Implement GET /api/themes/{themeId} endpoint
   - File: `src/routes/api/themes/[themeId]/+server.js` (GET handler)
   - Validate authKey
   - Call themeManager.getTheme(themeId)
@@ -234,7 +234,7 @@
   - **Depends on**: T021
   - **Acceptance**: T006 tests pass
 
-- [ ] **T025** Implement DELETE /api/themes/{themeId} endpoint
+- [x] **T025** Implement DELETE /api/themes/{themeId} endpoint
   - File: `src/routes/api/themes/[themeId]/+server.js` (DELETE handler)
   - Validate authKey
   - Check if theme can be deleted (not preset, not in use)
@@ -243,7 +243,7 @@
   - **Depends on**: T021
   - **Acceptance**: T007 tests pass
 
-- [ ] **T026** Implement GET /api/themes/{themeId}/can-delete endpoint
+- [x] **T026** Implement GET /api/themes/{themeId}/can-delete endpoint
   - File: `src/routes/api/themes/[themeId]/can-delete/+server.js` (GET handler)
   - Validate authKey
   - Check if theme is global default (query user_preferences)
@@ -253,7 +253,7 @@
   - **Depends on**: T021
   - **Acceptance**: T008 tests pass
 
-- [ ] **T027** Implement GET /api/themes/active endpoint
+- [x] **T027** Implement GET /api/themes/active endpoint
   - File: `src/routes/api/themes/active/+server.js` (GET handler)
   - Validate authKey
   - Get optional workspaceId from query params
@@ -269,7 +269,7 @@
 
 ### Frontend - State & Services
 
-- [ ] **T028** [P] Implement ThemeState ViewModel
+- [x] **T028** [P] Implement ThemeState ViewModel
   - File: `src/lib/client/shared/state/ThemeState.svelte.js`
   - Use Svelte 5 $state runes for reactive properties
   - Properties: themes, globalDefault, workspaceOverrides, loading, error
@@ -277,7 +277,7 @@
   - Methods: loadThemes(apiClient), activateTheme(apiClient, themeId)
   - **Acceptance**: T017 tests pass
 
-- [ ] **T029** [P] Implement ThemeService API client
+- [x] **T029** [P] Implement ThemeService API client
   - File: `src/lib/client/shared/services/ThemeService.js`
   - Methods:
     - listThemes(authKey)
@@ -291,7 +291,7 @@
 
 ### Frontend - UI Components
 
-- [ ] **T030** Implement ThemePreviewCard component
+- [x] **T030** Implement ThemePreviewCard component
   - File: `src/lib/client/settings/ThemePreviewCard.svelte`
   - Props: theme (ThemeMetadata), selected (boolean), onclick (function)
   - Display theme name and description

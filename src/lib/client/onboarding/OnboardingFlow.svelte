@@ -25,6 +25,7 @@
 	import { useServiceContainer } from '../shared/services/ServiceContainer.svelte.js';
 	import { OnboardingViewModel } from './OnboardingViewModel.svelte.js';
 	import Button from '../shared/components/Button.svelte';
+	import ThemeSelectionStep from './ThemeSelectionStep.svelte';
 
 	// Props
 	let { onComplete = () => {}, onSkip = () => {} } = $props();
@@ -202,6 +203,11 @@
 							</Button>
 						</div>
 					</div>
+				{:else if viewModel.currentStep === 'theme'}
+					<ThemeSelectionStep
+						onNext={handleNextStep}
+						onSkip={handleNextStep}
+					/>
 				{:else if viewModel.currentStep === 'settings'}
 					<div class="flex flex-col gap-6">
 						<div>

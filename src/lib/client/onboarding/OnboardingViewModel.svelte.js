@@ -32,7 +32,7 @@ export class OnboardingViewModel {
 
 	// Derived state - computed properties
 	get progressPercentage() {
-		const steps = ['auth', 'workspace', 'settings', 'complete'];
+		const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
 		const currentIndex = steps.indexOf(this.currentStep);
 		return Math.round((currentIndex / (steps.length - 1)) * 100);
 	}
@@ -55,7 +55,7 @@ export class OnboardingViewModel {
 	 * Navigate to the next step
 	 */
 	nextStep() {
-		const steps = ['auth', 'workspace', 'settings', 'complete'];
+		const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
 		const currentIndex = steps.indexOf(this.currentStep);
 
 		if (currentIndex < steps.length - 1) {
@@ -67,7 +67,7 @@ export class OnboardingViewModel {
 	 * Navigate to the previous step
 	 */
 	previousStep() {
-		const steps = ['auth', 'workspace', 'settings', 'complete'];
+		const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
 		const currentIndex = steps.indexOf(this.currentStep);
 
 		if (currentIndex > 0) {
@@ -119,6 +119,10 @@ export class OnboardingViewModel {
 				if (this.formData.workspaceName && !this.formData.workspacePath) {
 					errors.push('Workspace path is required when workspace name is provided');
 				}
+				break;
+
+			case 'theme':
+				// Theme selection is optional - user can skip
 				break;
 
 			case 'settings':
