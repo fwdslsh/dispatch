@@ -69,7 +69,7 @@
 	.status-dot {
 		width: 8px;
 		height: 8px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		background: var(--accent-green);
 		box-shadow: 0 0 8px color-mix(in oklab, var(--accent-green) 60%, transparent);
 		animation: statusPulse 2s ease-in-out infinite;
@@ -99,7 +99,7 @@
 		color: var(--text-muted);
 		background: var(--surface-hover);
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid var(--surface-border);
 	}
 

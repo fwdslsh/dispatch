@@ -117,7 +117,12 @@
 					{/if}
 				</Button>
 
-				<Button variant="secondary" onclick={handleSkipAuth} disabled={isValidating} text="Skip for Now" />
+				<Button
+					variant="secondary"
+					onclick={handleSkipAuth}
+					disabled={isValidating}
+					text="Skip for Now"
+				/>
 			</div>
 		</div>
 	{:else}
@@ -163,7 +168,7 @@
 
 	.auth-form {
 		background: white;
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		padding: 2rem;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 		border: 1px solid #e5e7eb;
@@ -192,7 +197,7 @@
 		width: 100%;
 		padding: 0.75rem;
 		border: 2px solid #d1d5db;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		font-size: 1rem;
 		transition: border-color 0.2s;
 		box-sizing: border-box;
@@ -229,7 +234,7 @@
 	.btn {
 		padding: 0.75rem 1.5rem;
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		font-size: 1rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -262,7 +267,7 @@
 
 	.success-state {
 		background: white;
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		padding: 3rem 2rem;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 		border: 1px solid #e5e7eb;
@@ -308,7 +313,7 @@
 		height: 32px;
 		border: 3px solid rgba(255, 255, 255, 0.3);
 		border-top: 3px solid white;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 	}
 

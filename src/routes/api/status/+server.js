@@ -24,7 +24,7 @@ export async function GET({ locals }) {
 
 		// Get authentication settings to check if terminal key exists
 		const authSettings = await dbManager.getSettingsByCategory('authentication');
-		const hasTerminalKey = !!(authSettings?.terminal_key);
+		const hasTerminalKey = !!authSettings?.terminal_key;
 
 		// Build response
 		const response = {

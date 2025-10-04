@@ -17,21 +17,24 @@ This document defines the structure of refactored modules and components. Since 
 #### AuthenticationStep.svelte
 
 **Current Props**:
+
 ```svelte
 <script>
-  export let onComplete = () => {};
-  export let error = '';
+	export let onComplete = () => {};
+	export let error = '';
 </script>
 ```
 
 **Target Props**:
+
 ```svelte
 <script>
-  let { onComplete = () => {}, error = '' } = $props();
+	let { onComplete = () => {}, error = '' } = $props();
 </script>
 ```
 
 **Validation Rules**:
+
 - `onComplete` must be callable function
 - `error` must be string type
 - Default values preserved exactly
@@ -39,21 +42,24 @@ This document defines the structure of refactored modules and components. Since 
 #### WorkspaceCreationStep.svelte
 
 **Current Props**:
+
 ```svelte
 <script>
-  export let onComplete = () => {};
-  export let initialPath = '';
+	export let onComplete = () => {};
+	export let initialPath = '';
 </script>
 ```
 
 **Target Props**:
+
 ```svelte
 <script>
-  let { onComplete = () => {}, initialPath = '' } = $props();
+	let { onComplete = () => {}, initialPath = '' } = $props();
 </script>
 ```
 
 **Validation Rules**:
+
 - `onComplete` must be callable function
 - `initialPath` must be string type
 - Default values preserved exactly
@@ -61,20 +67,23 @@ This document defines the structure of refactored modules and components. Since 
 #### testing/+page.svelte
 
 **Current Props**:
+
 ```svelte
 <script>
-  export let data;
+	export let data;
 </script>
 ```
 
 **Target Props**:
+
 ```svelte
 <script>
-  let { data } = $props();
+	let { data } = $props();
 </script>
 ```
 
 **Validation Rules**:
+
 - `data` is required prop (no default)
 - SvelteKit page data structure maintained
 
@@ -101,12 +110,14 @@ session-api/
 **Responsibility**: Retrieve session data from API
 
 **Functions**:
+
 - `getAllSessions(filters?: SessionFilters): Promise<Session[]>`
 - `getSession(id: string): Promise<Session>`
 - `getSessionEvents(id: string, fromSeq?: number): Promise<Event[]>`
 - `getWorkspaceSessions(workspaceId: string): Promise<Session[]>`
 
 **Dependencies**:
+
 - Shared types (Session, SessionFilters, Event)
 - Validation module (for filter validation)
 - HTTP client (fetch wrapper)
@@ -118,6 +129,7 @@ session-api/
 **Responsibility**: Modify session data via API
 
 **Functions**:
+
 - `createSession(data: CreateSessionData): Promise<Session>`
 - `updateSession(id: string, updates: Partial<Session>): Promise<Session>`
 - `deleteSession(id: string): Promise<void>`
@@ -125,6 +137,7 @@ session-api/
 - `closeSession(id: string): Promise<void>`
 
 **Dependencies**:
+
 - Shared types (Session, CreateSessionData)
 - Validation module (for input validation)
 - HTTP client (fetch wrapper)
@@ -136,17 +149,19 @@ session-api/
 **Responsibility**: Validate and sanitize all API inputs
 
 **Functions**:
+
 - `validateSessionData(data: unknown): ValidationResult<CreateSessionData>`
 - `validateSessionId(id: unknown): ValidationResult<string>`
 - `validateSessionFilters(filters: unknown): ValidationResult<SessionFilters>`
 - `sanitizeInput(input: string): string`
 
 **Types**:
+
 ```typescript
 interface ValidationResult<T> {
-  success: boolean
-  data?: T
-  error?: string
+	success: boolean;
+	data?: T;
+	error?: string;
 }
 ```
 
@@ -158,14 +173,16 @@ interface ValidationResult<T> {
 **Purpose**: Backward compatibility during transition
 
 **Pattern**:
+
 ```javascript
 // Re-export all functions from modules
-export * from './session-api/queries.js'
-export * from './session-api/mutations.js'
-export * from './session-api/validation.js'
+export * from './session-api/queries.js';
+export * from './session-api/mutations.js';
+export * from './session-api/validation.js';
 ```
 
 **Migration Strategy**:
+
 - Keep facade during refactor for existing imports
 - Update imports gradually to specific modules
 - Remove facade after all consumers updated
@@ -195,14 +212,16 @@ ClaudePane.svelte (parent container ~200 lines)
 **Responsibility**: Layout orchestration and ViewModel initialization
 
 **Props**:
+
 ```typescript
 interface ClaudePaneProps {
-  sessionId: string
-  workspacePath: string
+	sessionId: string;
+	workspacePath: string;
 }
 ```
 
 **Structure**:
+
 - Instantiate ClaudePaneViewModel
 - Pass ViewModel to child components via props
 - Handle layout (grid/flex)
@@ -213,18 +232,21 @@ interface ClaudePaneProps {
 **Responsibility**: Display available tools and handle selection
 
 **Props**:
+
 ```typescript
 interface ToolPanelProps {
-  viewModel: ClaudePaneViewModel  // Shared state
+	viewModel: ClaudePaneViewModel; // Shared state
 }
 ```
 
 **State Access** (via ViewModel):
+
 - `viewModel.tools` ($state array)
 - `viewModel.selectedTool` ($state string | null)
 - `viewModel.selectTool(toolId)` (method)
 
 **Rendering**:
+
 - List of tools with icons
 - Active tool highlighting
 - Tool description tooltip
@@ -234,18 +256,21 @@ interface ToolPanelProps {
 **Responsibility**: Display execution traces and debug information
 
 **Props**:
+
 ```typescript
 interface TracePanelProps {
-  viewModel: ClaudePaneViewModel
+	viewModel: ClaudePaneViewModel;
 }
 ```
 
 **State Access** (via ViewModel):
+
 - `viewModel.traces` ($state array)
 - `viewModel.tracePanelExpanded` ($state boolean)
 - `viewModel.toggleTracePanel()` (method)
 
 **Rendering**:
+
 - Collapsible trace list
 - Syntax highlighting for trace data
 - Expand/collapse controls
@@ -255,17 +280,20 @@ interface TracePanelProps {
 **Responsibility**: Render conversation messages
 
 **Props**:
+
 ```typescript
 interface MessageListProps {
-  viewModel: ClaudePaneViewModel
+	viewModel: ClaudePaneViewModel;
 }
 ```
 
 **State Access** (via ViewModel):
+
 - `viewModel.messages` ($state array)
 - `viewModel.handleMessageAction(messageId, action)` (method)
 
 **Rendering**:
+
 - Scrollable message list
 - Message formatting (user vs. assistant)
 - Action buttons (copy, retry, etc.)
@@ -275,19 +303,22 @@ interface MessageListProps {
 **Responsibility**: Handle user text input and submission
 
 **Props**:
+
 ```typescript
 interface InputAreaProps {
-  viewModel: ClaudePaneViewModel
+	viewModel: ClaudePaneViewModel;
 }
 ```
 
 **State Access** (via ViewModel):
+
 - `viewModel.inputText` ($state string)
 - `viewModel.isProcessing` ($state boolean)
 - `viewModel.submitInput()` (method)
 - `viewModel.cancelProcessing()` (method)
 
 **Rendering**:
+
 - Textarea with auto-resize
 - Submit/cancel buttons
 - Disabled state during processing
@@ -297,36 +328,47 @@ interface InputAreaProps {
 **Responsibility**: Centralize ClaudePane state and logic
 
 **State** (using $state runes):
+
 ```javascript
 class ClaudePaneViewModel {
-  sessionId = $state('')
-  workspacePath = $state('')
+	sessionId = $state('');
+	workspacePath = $state('');
 
-  // Tool state
-  tools = $state([])
-  selectedTool = $state(null)
+	// Tool state
+	tools = $state([]);
+	selectedTool = $state(null);
 
-  // Trace state
-  traces = $state([])
-  tracePanelExpanded = $state(false)
+	// Trace state
+	traces = $state([]);
+	tracePanelExpanded = $state(false);
 
-  // Message state
-  messages = $state([])
+	// Message state
+	messages = $state([]);
 
-  // Input state
-  inputText = $state('')
-  isProcessing = $state(false)
+	// Input state
+	inputText = $state('');
+	isProcessing = $state(false);
 
-  // Derived state
-  hasActiveSession = $derived.by(() => !!this.sessionId)
-  canSubmit = $derived.by(() => !this.isProcessing && this.inputText.trim().length > 0)
+	// Derived state
+	hasActiveSession = $derived.by(() => !!this.sessionId);
+	canSubmit = $derived.by(() => !this.isProcessing && this.inputText.trim().length > 0);
 
-  // Methods
-  selectTool(toolId) { /* ... */ }
-  toggleTracePanel() { /* ... */ }
-  handleMessageAction(messageId, action) { /* ... */ }
-  submitInput() { /* ... */ }
-  cancelProcessing() { /* ... */ }
+	// Methods
+	selectTool(toolId) {
+		/* ... */
+	}
+	toggleTracePanel() {
+		/* ... */
+	}
+	handleMessageAction(messageId, action) {
+		/* ... */
+	}
+	submitInput() {
+		/* ... */
+	}
+	cancelProcessing() {
+		/* ... */
+	}
 }
 ```
 
@@ -342,6 +384,7 @@ class ClaudePaneViewModel {
 #### mvvm-patterns.md
 
 **Content Structure**:
+
 1. **What is runes-in-classes pattern**: Definition and example
 2. **Why we use it**: Trade-offs (MVVM ergonomics vs. functional purity)
 3. **When to use**: Class-based ViewModels vs. module-based services
@@ -353,6 +396,7 @@ class ClaudePaneViewModel {
 #### adapter-guide.md
 
 **Content Structure**:
+
 1. **Adapter pattern overview**: Purpose and benefits
 2. **File locations**: Exact paths for adapters and registration
 3. **Minimal working example**: Complete PtyAdapter-style example
@@ -364,6 +408,7 @@ class ClaudePaneViewModel {
 #### error-handling.md
 
 **Content Structure**:
+
 1. **Standard async return shape**: `{ success, data?, error? }`
 2. **Loading state management**: Using $state for loading flags
 3. **Error display patterns**: Toast vs. inline vs. boundary
@@ -412,11 +457,13 @@ ClaudePane.svelte
 ### Module-Specific Constraints
 
 **SessionApiClient**:
+
 - All existing function signatures preserved
 - Return types unchanged
 - Error handling behavior identical
 
 **ClaudePane**:
+
 - Props interface preserved (sessionId, workspacePath)
 - Event emissions unchanged
 - Visual rendering identical
@@ -455,12 +502,14 @@ ClaudePane.svelte
 ## Migration Path
 
 ### Phase 1: Props Syntax (Low Risk)
+
 1. Update AuthenticationStep.svelte
 2. Update WorkspaceCreationStep.svelte
 3. Update testing/+page.svelte
 4. Run tests
 
 ### Phase 2: SessionApiClient Split (Medium Risk)
+
 1. Create session-api/ directory
 2. Extract queries.js
 3. Extract mutations.js
@@ -469,6 +518,7 @@ ClaudePane.svelte
 6. Run tests
 
 ### Phase 3: ClaudePane Extraction (Higher Risk)
+
 1. Create ClaudePaneViewModel.svelte.js
 2. Extract ToolPanel.svelte
 3. Extract TracePanel.svelte
@@ -478,6 +528,7 @@ ClaudePane.svelte
 7. Run tests after each extraction
 
 ### Phase 4: Documentation (No Risk)
+
 1. Write mvvm-patterns.md
 2. Write adapter-guide.md
 3. Write error-handling.md
@@ -488,6 +539,7 @@ ClaudePane.svelte
 ## Summary
 
 **Total Entities**:
+
 - 3 components with props updates
 - 3 service modules (queries, mutations, validation)
 - 5 UI components (ClaudePane + 4 subcomponents)

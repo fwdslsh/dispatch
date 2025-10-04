@@ -57,17 +57,23 @@
 	let scopeValue = $derived(authCategory.oauth_scope || '');
 
 	// Validation errors
-	let clientIdErrors = $derived(settingsViewModel.getFieldErrors('authentication', 'oauth_client_id'));
-	let clientSecretErrors = $derived(settingsViewModel.getFieldErrors('authentication', 'oauth_client_secret'));
-	let redirectUriErrors = $derived(settingsViewModel.getFieldErrors('authentication', 'oauth_redirect_uri'));
+	let clientIdErrors = $derived(
+		settingsViewModel.getFieldErrors('authentication', 'oauth_client_id')
+	);
+	let clientSecretErrors = $derived(
+		settingsViewModel.getFieldErrors('authentication', 'oauth_client_secret')
+	);
+	let redirectUriErrors = $derived(
+		settingsViewModel.getFieldErrors('authentication', 'oauth_redirect_uri')
+	);
 	let scopeErrors = $derived(settingsViewModel.getFieldErrors('authentication', 'oauth_scope'));
 
 	// Check if any OAuth settings have errors
 	let hasErrors = $derived(
 		clientIdErrors.length > 0 ||
-		clientSecretErrors.length > 0 ||
-		redirectUriErrors.length > 0 ||
-		scopeErrors.length > 0
+			clientSecretErrors.length > 0 ||
+			redirectUriErrors.length > 0 ||
+			scopeErrors.length > 0
 	);
 
 	// Check if category has changes
@@ -103,7 +109,11 @@
 	function useProviderDefaultScope() {
 		if (providerConfig.defaultScopes) {
 			authCategory.oauth_scope = providerConfig.defaultScopes;
-			settingsViewModel.validateField('authentication', 'oauth_scope', providerConfig.defaultScopes);
+			settingsViewModel.validateField(
+				'authentication',
+				'oauth_scope',
+				providerConfig.defaultScopes
+			);
 		}
 	}
 
@@ -121,12 +131,11 @@
 	<div class="setting-group">
 		<!-- OAuth Provider Selection -->
 		<div class="setting-item provider-selection">
-			<label for="oauth-provider" class="setting-label">
-				OAuth Provider
-			</label>
+			<label for="oauth-provider" class="setting-label"> OAuth Provider </label>
 
 			<div class="setting-description">
-				Select your OAuth provider for pre-configured settings and helpful guidance. Choose "Custom Provider" for other OAuth providers.
+				Select your OAuth provider for pre-configured settings and helpful guidance. Choose "Custom
+				Provider" for other OAuth providers.
 			</div>
 
 			<select
@@ -150,7 +159,12 @@
 						{providerConfig.setupInstructions}
 						{#if providerConfig.docsUrl}
 							<br />
-							<a href={providerConfig.docsUrl} target="_blank" rel="noopener noreferrer" class="docs-link">
+							<a
+								href={providerConfig.docsUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="docs-link"
+							>
 								View documentation ↗
 							</a>
 						{/if}
@@ -164,7 +178,7 @@
 			setting={oauthClientIdSetting}
 			value={clientIdValue}
 			errors={clientIdErrors}
-			hasChanges={hasChanges}
+			{hasChanges}
 			onInput={(e) => handleInput('oauth_client_id', e)}
 			placeholder="Enter OAuth client ID"
 			testId="oauth-client-id-input"
@@ -175,7 +189,7 @@
 			setting={oauthClientSecretSetting}
 			value={clientSecretValue}
 			errors={clientSecretErrors}
-			hasChanges={hasChanges}
+			{hasChanges}
 			onInput={(e) => handleInput('oauth_client_secret', e)}
 			type="password"
 			placeholder="Enter OAuth client secret"
@@ -189,7 +203,7 @@
 				setting={oauthRedirectUriSetting}
 				value={redirectUriValue}
 				errors={redirectUriErrors}
-				hasChanges={hasChanges}
+				{hasChanges}
 				onInput={(e) => handleInput('oauth_redirect_uri', e)}
 				type="url"
 				placeholder="https://your-domain.com/auth/callback"
@@ -219,7 +233,7 @@
 				setting={oauthScopeSetting}
 				value={scopeValue}
 				errors={scopeErrors}
-				hasChanges={hasChanges}
+				{hasChanges}
 				onInput={(e) => handleInput('oauth_scope', e)}
 				placeholder="read write"
 				testId="oauth-scope-input"
@@ -250,8 +264,8 @@
 			<div class="notice-icon">ℹ️</div>
 			<div class="notice-content">
 				<strong>OAuth Configuration:</strong>
-				These settings configure OAuth authentication for your application. Make sure the client ID
-				and redirect URI match your OAuth provider configuration exactly.
+				These settings configure OAuth authentication for your application. Make sure the client ID and
+				redirect URI match your OAuth provider configuration exactly.
 			</div>
 		</div>
 	</div>
@@ -289,7 +303,7 @@
 		padding: var(--space-3);
 		background: color-mix(in oklab, var(--accent) 8%, transparent);
 		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		font-size: var(--font-size-1);
 		margin-top: var(--space-2);
 	}
@@ -331,7 +345,7 @@
 	.helper-text code {
 		background: color-mix(in oklab, var(--accent) 15%, transparent);
 		padding: 0 var(--space-1);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		font-family: var(--font-mono);
 		font-size: var(--font-size-0);
 	}
@@ -355,7 +369,7 @@
 		padding: var(--space-3);
 		background: color-mix(in oklab, var(--accent) 8%, transparent);
 		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		font-size: var(--font-size-1);
 		font-family: var(--font-mono);
 	}

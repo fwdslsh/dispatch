@@ -322,7 +322,7 @@ The drag-to-resize feature works really well!
 		border: 1px solid #555;
 		color: #fff;
 		padding: 0.5rem 1rem;
-		border-radius: 0.5rem;
+		border-radius: var(--radius-md);
 		cursor: pointer;
 		font-size: 0.9rem;
 		transition: all 0.2s;
@@ -374,7 +374,7 @@ The drag-to-resize feature works really well!
 	.shortcuts kbd {
 		background: #333;
 		padding: 0.25rem 0.5rem;
-		border-radius: 0.25rem;
+		border-radius: var(--radius-xs);
 		font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 		font-size: 0.8rem;
 		border: 1px solid #555;
@@ -484,7 +484,7 @@ The drag-to-resize feature works really well!
 		border: 1px solid #555;
 		color: #fff;
 		padding: 0.25rem 0.5rem;
-		border-radius: 0.25rem;
+		border-radius: var(--radius-xs);
 		font-size: 0.9rem;
 	}
 
@@ -505,7 +505,7 @@ The drag-to-resize feature works really well!
 		border: none;
 		color: white;
 		padding: 0.25rem 0.5rem;
-		border-radius: 0.25rem;
+		border-radius: var(--radius-xs);
 		font-size: 0.8rem;
 		cursor: pointer;
 		transition: all 0.2s;
@@ -545,7 +545,7 @@ The drag-to-resize feature works really well!
 		z-index: 10;
 		background: rgba(0, 0, 0, 0.8);
 		border: 1px solid #555;
-		border-radius: 0.25rem;
+		border-radius: var(--radius-xs);
 		padding: 0.25rem;
 		backdrop-filter: blur(4px);
 	}
@@ -561,7 +561,7 @@ The drag-to-resize feature works really well!
 		border: 1px solid #555;
 		color: #fff;
 		padding: 0.375rem;
-		border-radius: 0.25rem;
+		border-radius: var(--radius-xs);
 		cursor: pointer;
 		transition: all 0.2s;
 		display: flex;

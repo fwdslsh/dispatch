@@ -19,10 +19,12 @@
 	// Check for changes
 	let hasChanges = $derived(
 		settingsViewModel.categoryHasChanges('global') ||
-		settingsViewModel.categoryHasChanges('workspace')
+			settingsViewModel.categoryHasChanges('workspace')
 	);
 
-	let canSave = $derived(hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving);
+	let canSave = $derived(
+		hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving
+	);
 
 	// Handle input with validation
 	function handleInput(category, field, event) {

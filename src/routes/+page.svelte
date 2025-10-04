@@ -394,7 +394,7 @@
 		background: color-mix(in oklab, var(--surface) 90%, transparent);
 		backdrop-filter: blur(12px);
 		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		padding: var(--space-6);
 		animation: cardMaterialize 1s ease-out 0.6s forwards;
 		opacity: 0;

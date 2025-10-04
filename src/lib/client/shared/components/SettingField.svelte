@@ -103,8 +103,8 @@
 			<div class="env-icon">🔧</div>
 			<div class="env-content">
 				<strong>Environment Variable:</strong>
-				Currently using value from <code>{setting.env_var_name}</code> environment variable.
-				Set a value here to override the environment setting.
+				Currently using value from <code>{setting.env_var_name}</code> environment variable. Set a value
+				here to override the environment setting.
 			</div>
 		</div>
 	{/if}
@@ -149,7 +149,7 @@
 		color: var(--text);
 		background: var(--bg);
 		border: 1px solid var(--line);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		transition: all 0.2s ease;
 		box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 	}
@@ -181,7 +181,7 @@
 		padding: var(--space-3);
 		background: color-mix(in oklab, var(--err) 15%, transparent);
 		border: 1px solid color-mix(in oklab, var(--err) 30%, transparent);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		color: var(--err);
 		font-size: var(--font-size-1);
 		font-family: var(--font-mono);
@@ -198,7 +198,7 @@
 		padding: var(--space-3);
 		background: color-mix(in oklab, var(--accent) 8%, transparent);
 		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		font-size: var(--font-size-1);
 		line-height: 1.5;
 		font-family: var(--font-mono);
@@ -211,7 +211,7 @@
 	.env-content code {
 		background: color-mix(in oklab, var(--accent) 15%, transparent);
 		padding: 0 var(--space-1);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		font-family: var(--font-mono);
 		font-size: var(--font-size-1);
 	}

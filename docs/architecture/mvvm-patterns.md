@@ -10,6 +10,7 @@ Dispatch uses the **Model-View-ViewModel (MVVM)** architectural pattern with Sve
 ## What is Runes-in-Classes Pattern?
 
 The "runes-in-classes" pattern combines:
+
 - **Svelte 5 runes** (`$state`, `$derived`, `$effect`) for reactivity
 - **JavaScript classes** for organizing business logic
 - **Component composition** for UI presentation
@@ -48,7 +49,7 @@ export class ExampleViewModel {
 	}
 
 	removeItem(id) {
-		this.items = this.items.filter(item => item.id !== id);
+		this.items = this.items.filter((item) => item.id !== id);
 	}
 }
 ```
@@ -97,6 +98,7 @@ export class ExampleViewModel {
 ### Trade-offs Considered
 
 **Advantages**:
+
 1. **Encapsulation**: Business logic separated from UI rendering
 2. **Testability**: ViewModels can be unit tested independently
 3. **Reusability**: Same ViewModel can power multiple views
@@ -104,6 +106,7 @@ export class ExampleViewModel {
 5. **Debugging**: Easier to trace state changes in class methods
 
 **Trade-offs**:
+
 - More verbose than inline reactive statements
 - Requires understanding of both Svelte runes AND class patterns
 - Can lead to over-engineering for simple components
@@ -175,13 +178,9 @@ export class WorkspaceViewModel {
 	error = $state(null);
 
 	// Derived values (automatically recompute)
-	activeWorkspaces = $derived.by(() =>
-		this.workspaces.filter(w => w.status === 'active')
-	);
+	activeWorkspaces = $derived.by(() => this.workspaces.filter((w) => w.status === 'active'));
 
-	hasSelection = $derived.by(() =>
-		this.selectedWorkspace !== null
-	);
+	hasSelection = $derived.by(() => this.selectedWorkspace !== null);
 }
 ```
 
@@ -270,6 +269,7 @@ export class WorkspaceViewModel {
 ### 1. **Not Using $state for Reactive Properties**
 
 ❌ **Wrong**:
+
 ```javascript
 export class ViewModel {
 	items = []; // Not reactive!
@@ -277,6 +277,7 @@ export class ViewModel {
 ```
 
 ✅ **Correct**:
+
 ```javascript
 export class ViewModel {
 	items = $state([]); // Reactive
@@ -286,6 +287,7 @@ export class ViewModel {
 ### 2. **Mutating Arrays/Objects Directly**
 
 ❌ **Wrong**:
+
 ```javascript
 addItem(item) {
 	this.items.push(item); // Doesn't trigger reactivity
@@ -293,6 +295,7 @@ addItem(item) {
 ```
 
 ✅ **Correct**:
+
 ```javascript
 addItem(item) {
 	this.items = [...this.items, item]; // Creates new array, triggers reactivity
@@ -302,6 +305,7 @@ addItem(item) {
 ### 3. **Overusing $effect for Data Loading**
 
 ❌ **Wrong** (runs on every state change):
+
 ```javascript
 $effect(() => {
 	viewModel.loadData(); // Infinite loop if loadData updates state!
@@ -309,6 +313,7 @@ $effect(() => {
 ```
 
 ✅ **Correct** (explicit control):
+
 ```javascript
 // In component
 onMount(() => {
@@ -326,6 +331,7 @@ $effect(() => {
 ### 4. **Circular Dependencies Between ViewModels**
 
 ❌ **Wrong**:
+
 ```javascript
 // ViewModel A depends on ViewModel B
 // ViewModel B depends on ViewModel A
@@ -337,6 +343,7 @@ $effect(() => {
 ### 5. **Not Cleaning Up Resources**
 
 ❌ **Wrong**:
+
 ```javascript
 export class ViewModel {
 	constructor() {
@@ -346,6 +353,7 @@ export class ViewModel {
 ```
 
 ✅ **Correct**:
+
 ```javascript
 export class ViewModel {
 	intervalId = null;
@@ -440,6 +448,7 @@ Location: `src/lib/client/shared/state/OnboardingViewModel.svelte.js`
 ## Questions?
 
 If you're unsure whether to use a ViewModel for your component, ask:
+
 1. Is the component > 50 lines of logic?
 2. Will the logic be reused or tested independently?
 3. Does it manage complex async state?

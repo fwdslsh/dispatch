@@ -453,7 +453,7 @@ export class ThemeManager {
 				return {
 					canDelete: false,
 					reason: `Theme is used by ${workspaces.length} workspace(s)`,
-					workspaces: workspaces.map(w => ({ id: w.id, name: w.name }))
+					workspaces: workspaces.map((w) => ({ id: w.id, name: w.name }))
 				};
 			}
 		} catch (error) {
@@ -492,11 +492,7 @@ export class ThemeManager {
 			await fs.mkdir(this.customThemesDir, { recursive: true });
 
 			// Write hardcoded fallback theme
-			await fs.writeFile(
-				fallbackPath,
-				JSON.stringify(FALLBACK_THEME, null, 2),
-				'utf-8'
-			);
+			await fs.writeFile(fallbackPath, JSON.stringify(FALLBACK_THEME, null, 2), 'utf-8');
 
 			console.log('Recreated fallback theme: phosphor-green.json');
 		} catch (error) {

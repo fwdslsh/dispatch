@@ -55,8 +55,8 @@ export class ThemeState {
 		this.customThemes = $derived.by(() => this.themes.filter((t) => t.source === 'custom'));
 
 		// Derived state - find active theme
-		this.activeTheme = $derived.by(() =>
-			this.themes.find((t) => t.id === this.activeThemeId) || null
+		this.activeTheme = $derived.by(
+			() => this.themes.find((t) => t.id === this.activeThemeId) || null
 		);
 
 		// Derived state - check if there are any themes

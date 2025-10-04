@@ -70,13 +70,13 @@ _Note: Requires bash and Docker_
 
 When using the dispatch CLI the init command will create a `~/dispatch/home/.env` file with these variables.
 
-| Variable          | Default      | Description                    |
-| ----------------- | ------------ | ------------------------------ |
-| `TERMINAL_KEY`    | `change-me-to-a-strong-password`  | **Required** - Access password |
-| `PORT`            | `3030`       | Web interface port             |
-| `WORKSPACES_ROOT` | `/workspace` | Project directory              |
-| `ENABLE_TUNNEL`   | `false`      | Public URL sharing             |
-| `LT_SUBDOMAIN`    | `""`         | Custom subdomain               |
+| Variable          | Default                          | Description                    |
+| ----------------- | -------------------------------- | ------------------------------ |
+| `TERMINAL_KEY`    | `change-me-to-a-strong-password` | **Required** - Access password |
+| `PORT`            | `3030`                           | Web interface port             |
+| `WORKSPACES_ROOT` | `/workspace`                     | Project directory              |
+| `ENABLE_TUNNEL`   | `false`                          | Public URL sharing             |
+| `LT_SUBDOMAIN`    | `""`                             | Custom subdomain               |
 
 ### VS Code Remote Tunnel
 

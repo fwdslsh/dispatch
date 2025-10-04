@@ -693,7 +693,7 @@
 			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%)
 		);
 		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		cursor: pointer;
 		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 		position: relative;
@@ -733,7 +733,7 @@
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-3);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		cursor: pointer;
 		transition: all 0.2s ease;
 		border: 1px solid transparent;
@@ -786,7 +786,7 @@
 	.directory-item-enhanced button:focus-visible {
 		outline: 2px solid var(--primary);
 		outline-offset: 2px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 	}
 
 	.directory-item-enhanced button:disabled {

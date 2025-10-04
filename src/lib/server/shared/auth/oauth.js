@@ -126,7 +126,10 @@ export class GitHubAuthProvider extends AuthProvider {
 			});
 
 			if (!tokenResponse.ok) {
-				logger.error('AUTH', `GitHub OAuth token exchange failed with status ${tokenResponse.status}`);
+				logger.error(
+					'AUTH',
+					`GitHub OAuth token exchange failed with status ${tokenResponse.status}`
+				);
 				return null;
 			}
 
@@ -200,7 +203,11 @@ export class GitHubAuthProvider extends AuthProvider {
 					);
 				}
 			} catch (emailError) {
-				logger.warn('AUTH', 'Failed to fetch GitHub user emails, using public email:', emailError.message);
+				logger.warn(
+					'AUTH',
+					'Failed to fetch GitHub user emails, using public email:',
+					emailError.message
+				);
 			}
 
 			return {

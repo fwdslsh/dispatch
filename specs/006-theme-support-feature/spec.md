@@ -152,36 +152,35 @@ As the sole user of my Dispatch instance, I want to customize the visual appeara
 
 - **ThemeMetadata**: In-memory cached representation of theme files loaded at startup. Includes parsed CSS variables, file path, last modified timestamp, and active status. Internal implementation detail for performance optimization.
 
-
 ## xterm Theme Format
 
 Example xterm theme file structure (based on xterm.js ITheme interface):
 
 ```json
 {
-  "name": "Dark",
-  "description": "Professional dark theme with balanced contrast",
-  "background": "#0d1117",
-  "foreground": "#e6edf3",
-  "cursor": "#58a6ff",
-  "cursorAccent": "#0d1117",
-  "selectionBackground": "#58a6ff40",
-  "black": "#484f58",
-  "red": "#ff7b72",
-  "green": "#3fb950",
-  "yellow": "#d29922",
-  "blue": "#58a6ff",
-  "magenta": "#bc8cff",
-  "cyan": "#39c5cf",
-  "white": "#b1bac4",
-  "brightBlack": "#6e7681",
-  "brightRed": "#ffa198",
-  "brightGreen": "#56d364",
-  "brightYellow": "#e3b341",
-  "brightBlue": "#79c0ff",
-  "brightMagenta": "#d2a8ff",
-  "brightCyan": "#56d4dd",
-  "brightWhite": "#f0f6fc"
+	"name": "Dark",
+	"description": "Professional dark theme with balanced contrast",
+	"background": "#0d1117",
+	"foreground": "#e6edf3",
+	"cursor": "#58a6ff",
+	"cursorAccent": "#0d1117",
+	"selectionBackground": "#58a6ff40",
+	"black": "#484f58",
+	"red": "#ff7b72",
+	"green": "#3fb950",
+	"yellow": "#d29922",
+	"blue": "#58a6ff",
+	"magenta": "#bc8cff",
+	"cyan": "#39c5cf",
+	"white": "#b1bac4",
+	"brightBlack": "#6e7681",
+	"brightRed": "#ffa198",
+	"brightGreen": "#56d364",
+	"brightYellow": "#e3b341",
+	"brightBlue": "#79c0ff",
+	"brightMagenta": "#d2a8ff",
+	"brightCyan": "#56d4dd",
+	"brightWhite": "#f0f6fc"
 }
 ```
 

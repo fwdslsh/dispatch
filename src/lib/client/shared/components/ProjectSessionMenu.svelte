@@ -761,7 +761,7 @@
 		gap: var(--space-2);
 		background: var(--bg-dark);
 		border: 1px solid var(--surface-border);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		padding: var(--space-1);
 		flex-shrink: 0;
 		margin-top: var(--space-4);
@@ -808,7 +808,7 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: var(--space-3);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		border: 1px solid var(--surface-border);
 		background: var(--bg-dark);
 		margin-bottom: var(--space-2);
@@ -882,7 +882,7 @@
 		width: 100%;
 		padding: var(--space-2);
 		border: 1px solid var(--surface-border);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		background: var(--bg);
 		color: var(--text);
 		font-size: 0.875rem;

@@ -274,7 +274,7 @@
 		height: 32px;
 		border: 2px solid currentColor;
 		border-top: 2px solid transparent;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 	}
 
@@ -289,7 +289,6 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: var(--space-3) var(--space-4);
-		border-radius: var(--radius-lg);
 		font-family: var(--font-mono);
 		font-size: 0.9rem;
 	}
@@ -315,7 +314,6 @@
 		width: 240px;
 		background: var(--bg-dark);
 		border: 1px solid rgba(46, 230, 107, 0.2);
-		border-radius: var(--radius-lg);
 		padding: var(--space-3) 0;
 		display: flex;
 		flex-direction: column;
@@ -364,7 +362,6 @@
 	.settings-content {
 		flex: 1;
 		background: var(--bg-dark);
-		border-radius: var(--radius-lg);
 		border: 1px solid rgba(46, 230, 107, 0.2);
 		overflow: hidden;
 		position: relative;
@@ -419,7 +416,6 @@
 			width: 100%;
 			flex-direction: row;
 			overflow-x: auto;
-			border-radius: var(--radius-lg);
 		}
 
 		.settings-tab {

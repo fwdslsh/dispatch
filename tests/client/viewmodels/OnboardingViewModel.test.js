@@ -118,9 +118,7 @@ describe('OnboardingViewModel', () => {
 		viewModel.formData.workspacePath = ''; // Manually clear
 		const result2 = viewModel.validateCurrentStep();
 		expect(result2.valid).toBe(false);
-		expect(result2.errors).toContain(
-			'Workspace path is required when workspace name is provided'
-		);
+		expect(result2.errors).toContain('Workspace path is required when workspace name is provided');
 	});
 
 	it('should check canProceedFromAuth correctly', () => {

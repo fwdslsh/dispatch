@@ -84,16 +84,16 @@ This feature simplifies and normalizes the application's settings system for sin
 - [x] T039 [P] Create manual database backup instructions in `docs/database-backup.md` - Also created backup-database.sh and verify-backup.sh scripts
 - [x] T040 The visual design expert should review the visual design of the UI components to ensure the styling aligns with the rest of the app - Frontend design expert completed comprehensive review identifying color palette mismatches, missing retro terminal aesthetic, and providing detailed CSS recommendations for visual consistency
 - [x] T041 Remove any styling from the settings UI components and use global styles/components to ensure styling is consistent
-    - **STATUS**: Partially completed - linter has removed redundant custom styles from OAuthSettings.svelte
-    - **REMAINING WORK**: Full 3-phase visual overhaul per design review (est. 3-4 hours)
-    - **PRIORITY**: Medium - does not affect functionality, components work correctly
-    - **CURRENT STATE**: Settings components functional with cleaned-up styling, test suite passing
-    - **PLAN**: Complete visual refinement following design review recommendations:
-      - Phase 1: Replace remaining hardcoded colors with CSS variables (2-3 hours)
-      - Phase 2: Add hover glow effects and retro terminal gradients (2-3 hours)
-      - Phase 3: Polish typography, spacing, and add scan lines (1-2 hours)
-    - **COMPONENTS AFFECTED**: AuthenticationSettings.svelte, TerminalKeySettings.svelte, OAuthSettings.svelte, GlobalSettings.svelte
-    - **RECOMMENDATION**: Visual enhancement can be completed as separate sprint without blocking deployment
+  - **STATUS**: Partially completed - linter has removed redundant custom styles from OAuthSettings.svelte
+  - **REMAINING WORK**: Full 3-phase visual overhaul per design review (est. 3-4 hours)
+  - **PRIORITY**: Medium - does not affect functionality, components work correctly
+  - **CURRENT STATE**: Settings components functional with cleaned-up styling, test suite passing
+  - **PLAN**: Complete visual refinement following design review recommendations:
+    - Phase 1: Replace remaining hardcoded colors with CSS variables (2-3 hours)
+    - Phase 2: Add hover glow effects and retro terminal gradients (2-3 hours)
+    - Phase 3: Polish typography, spacing, and add scan lines (1-2 hours)
+  - **COMPONENTS AFFECTED**: AuthenticationSettings.svelte, TerminalKeySettings.svelte, OAuthSettings.svelte, GlobalSettings.svelte
+  - **RECOMMENDATION**: Visual enhancement can be completed as separate sprint without blocking deployment
 
 ## Dependencies
 

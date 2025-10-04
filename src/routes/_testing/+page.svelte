@@ -25,7 +25,7 @@
 	.project-item {
 		padding: 12px;
 		border: 1px solid var(--border-color, #ddd);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		background: var(--surface, #fff);
 	}
 

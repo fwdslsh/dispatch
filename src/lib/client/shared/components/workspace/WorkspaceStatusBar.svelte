@@ -72,7 +72,7 @@
 			<IconButton onclick={onOpenSettings} aria-label="Open settings" title="Settings">
 				<IconAdjustmentsAlt size={18} />
 			</IconButton>
-			<AppVersion></AppVersion>
+
 			<!-- {#if totalSessions > 0}
 				<span class="session-counter">
 					{Math.min(currentSessionIndex + 1, totalSessions)} / {totalSessions}

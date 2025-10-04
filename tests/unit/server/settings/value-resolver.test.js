@@ -230,10 +230,7 @@ describe('ValueResolver', () => {
 		});
 
 		it('should handle non-existent settings gracefully', async () => {
-			const result = await resolver.resolveMultipleValues([
-				'nonexistent1',
-				'nonexistent2'
-			]);
+			const result = await resolver.resolveMultipleValues(['nonexistent1', 'nonexistent2']);
 
 			expect(result.nonexistent1).toBeNull();
 			expect(result.nonexistent2).toBeNull();

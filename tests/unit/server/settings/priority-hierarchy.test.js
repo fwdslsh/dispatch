@@ -158,7 +158,7 @@ describe('Settings Priority Hierarchy - Integration Tests', () => {
 	it('should handle empty string values correctly in priority', async () => {
 		// Test behavior with empty strings - should not validate empty required fields
 		process.env.WORKSPACES_ROOT = '';
-		
+
 		// Don't try to set empty string for required field, just test env behavior
 		const resolved = await valueResolver.resolveSettingValue('workspaces_root');
 

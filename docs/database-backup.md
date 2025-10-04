@@ -13,6 +13,7 @@ This guide provides instructions for backing up and restoring the Dispatch datab
 ### When to Back Up
 
 **Essential backup scenarios:**
+
 - Before major database schema changes
 - Before upgrading Dispatch version
 - Before modifying settings programmatically
@@ -22,6 +23,7 @@ This guide provides instructions for backing up and restoring the Dispatch datab
 ### What Gets Backed Up
 
 The `dispatch.db` file contains:
+
 - All settings and configuration (settings_categories, configuration_settings)
 - Session data and history (sessions, session_events)
 - Workspace definitions (workspaces)
@@ -99,11 +101,13 @@ echo "Backup complete!"
 ```
 
 Make the script executable:
+
 ```bash
 chmod +x scripts/backup-database.sh
 ```
 
 Run the backup:
+
 ```bash
 ./scripts/backup-database.sh
 ```
@@ -347,6 +351,7 @@ echo "Backup verification complete!"
 ```
 
 Save as `scripts/verify-backup.sh` and use:
+
 ```bash
 chmod +x scripts/verify-backup.sh
 ./scripts/verify-backup.sh backups/dispatch-backup-20250929-143000.db
@@ -357,32 +362,38 @@ chmod +x scripts/verify-backup.sh
 ### Complete Database Loss
 
 1. **Stop the application**
+
    ```bash
    docker-compose down
    ```
 
 2. **Locate most recent backup**
+
    ```bash
    ls -lt backups/dispatch-backup-*.db | head -1
    ```
 
 3. **Verify backup integrity**
+
    ```bash
    ./scripts/verify-backup.sh backups/dispatch-backup-YYYYMMDD-HHMMSS.db
    ```
 
 4. **Restore backup**
+
    ```bash
    cp backups/dispatch-backup-YYYYMMDD-HHMMSS.db dispatch.db
    ```
 
 5. **Verify restored database**
+
    ```bash
    sqlite3 dispatch.db "PRAGMA integrity_check;"
    sqlite3 dispatch.db "SELECT * FROM settings_categories;"
    ```
 
 6. **Restart application**
+
    ```bash
    docker-compose up -d
    ```
@@ -398,6 +409,7 @@ chmod +x scripts/verify-backup.sh
 If only specific data is lost or corrupted:
 
 1. **Export affected tables from backup**
+
    ```bash
    sqlite3 dispatch-backup.db << EOF > recovered-settings.sql
    .dump settings_categories
@@ -406,6 +418,7 @@ If only specific data is lost or corrupted:
    ```
 
 2. **Drop affected tables from current database**
+
    ```bash
    sqlite3 dispatch.db << EOF
    DROP TABLE configuration_settings;
@@ -414,6 +427,7 @@ If only specific data is lost or corrupted:
    ```
 
 3. **Import from backup**
+
    ```bash
    sqlite3 dispatch.db < recovered-settings.sql
    ```
@@ -434,6 +448,7 @@ If only specific data is lost or corrupted:
 ### Backup Retention
 
 Recommended retention policy:
+
 - Keep last 7 daily backups
 - Keep last 4 weekly backups (Sunday)
 - Keep last 12 monthly backups (1st of month)
@@ -442,10 +457,12 @@ Recommended retention policy:
 ### Backup Storage
 
 **Local storage:**
+
 - Keep backups on different drive/partition
 - Regularly verify backup accessibility
 
 **Remote storage:**
+
 - Use cloud storage (S3, GCS, Azure Blob)
 - Encrypt backups before uploading
 - Test restoration from remote backups
@@ -453,6 +470,7 @@ Recommended retention policy:
 ### Backup Testing
 
 **Monthly restoration test**:
+
 ```bash
 # 1. Create test directory
 mkdir test-restore

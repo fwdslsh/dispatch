@@ -533,7 +533,7 @@
 	.step-number {
 		width: 32px;
 		height: 32px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		background: rgba(46, 230, 107, 0.15);
 		color: var(--primary);
 		display: flex;

@@ -142,7 +142,7 @@
 		height: 40px;
 		border: 3px solid rgba(255, 255, 255, 0.3);
 		border-top: 3px solid white;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 		margin: 0 auto;
 	}
@@ -158,7 +158,7 @@
 
 	.error-container {
 		background: white;
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		padding: 3rem;
 		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 		text-align: center;
@@ -182,7 +182,7 @@
 		background: #3b82f6;
 		color: white;
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		padding: 0.75rem 1.5rem;
 		font-size: 1rem;
 		font-weight: 500;

@@ -90,7 +90,7 @@ export async function GET({ url, request, locals }) {
 }
 
 export async function PUT({ request, url, locals }) {
-	try{
+	try {
 		const requestedPath = url.searchParams.get('path');
 		const { content } = await request.json();
 

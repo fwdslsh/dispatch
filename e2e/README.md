@@ -32,6 +32,7 @@ npx playwright test --debug
 ## Test Servers
 
 **Default Test Server** (recommended):
+
 - URL: `http://localhost:7173`
 - No SSL (avoids certificate warnings)
 - Faster, more reliable
@@ -39,6 +40,7 @@ npx playwright test --debug
 - Isolated tmp storage
 
 **SSL Development Server** (for SSL-specific tests):
+
 - URL: `https://localhost:5173`
 - SSL enabled with self-signed certificate
 - Use `USE_SSL=true` environment variable
@@ -73,6 +75,7 @@ Single `playwright.config.js` with automatic server selection:
 - **Server**: Auto-starts `npm run dev:test` (or `npm run dev` with `USE_SSL=true`)
 
 **Environment Variables**:
+
 - `USE_SSL=true` - Use SSL server instead of test server
 - `TERMINAL_KEY=<key>` - Override default authentication key
 - `CI=true` - Enable CI optimizations (retries, single worker)
@@ -137,6 +140,7 @@ test.beforeEach(async ({ page }) => {
 ```
 
 **Key Benefits of Pre-Authentication:**
+
 - Bypasses login form completely
 - No need to find/fill terminal key input
 - Immediate access to protected routes
@@ -151,7 +155,7 @@ import { setupWorkspaceTestMocks } from './core-helpers.js';
 await setupWorkspaceTestMocks(page, {
 	sessions: [{ id: 'test', name: 'Test Session' }],
 	workspaces: [{ id: '/workspace/test', name: 'Test' }],
-	onboardingComplete: true  // default
+	onboardingComplete: true // default
 });
 ```
 
@@ -210,6 +214,7 @@ npx playwright test comprehensive-ui.spec.js --debug
 ## Troubleshooting
 
 **Connection refused errors**:
+
 - Default: Check test server is running on port 7173
 - SSL mode: Check dev server is running on port 5173
 - Verify `playwright.config.js` webServer configuration
@@ -221,10 +226,12 @@ npx playwright test comprehensive-ui.spec.js --debug
 **Screenshot mismatches**: Update baselines or check for font differences
 
 **SSL certificate errors** (when using SSL server):
+
 - Ensure `ignoreHTTPSErrors: true` is set
 - Verify self-signed certificate generation in dev server
 
 **Authentication failures**:
+
 - Check `TERMINAL_KEY` environment variable
 - Default test server (`npm run dev:test`) uses: `test-automation-key-12345`
 - Default dev server (`npm run dev`) uses: `testkey12345` (deprecated for tests)

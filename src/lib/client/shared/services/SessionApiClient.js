@@ -741,9 +741,12 @@ export class SessionApiClient {
 			const params = new URLSearchParams();
 			if (category) params.append('category', category);
 
-			const response = await fetch(`${this.baseUrl}/api/preferences${params.toString() ? '?' + params : ''}`, {
-				headers: this.getHeaders()
-			});
+			const response = await fetch(
+				`${this.baseUrl}/api/preferences${params.toString() ? '?' + params : ''}`,
+				{
+					headers: this.getHeaders()
+				}
+			);
 
 			return await this.handleResponse(response);
 		} catch (error) {
@@ -909,7 +912,10 @@ export class SessionApiClient {
 	 */
 	getAuthKey() {
 		if (typeof localStorage !== 'undefined') {
-			return localStorage.getItem('dispatch-auth-token') || localStorage.getItem(this.config.authTokenKey);
+			return (
+				localStorage.getItem('dispatch-auth-token') ||
+				localStorage.getItem(this.config.authTokenKey)
+			);
 		}
 		return null;
 	}

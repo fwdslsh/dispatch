@@ -33,6 +33,7 @@
 **Primary Requirement**: Modernize Dispatch codebase by eliminating legacy Svelte 4 syntax, modularizing large files, and documenting architectural patterns to improve developer experience and maintainability.
 
 **Technical Approach**:
+
 - Update 3 components from `export let` to Svelte 5 `$props()` syntax
 - Split SessionApiClient.js (~970 lines) into domain-specific modules
 - Extract ClaudePane.svelte (~1,800 lines) into focused subcomponents
@@ -45,6 +46,7 @@
 
 **Language/Version**: JavaScript ES2022+ (Node.js 22+, as specified in .nvmrc)
 **Primary Dependencies**:
+
 - Frontend: Svelte 5, SvelteKit 2.x, @battlefieldduck/xterm-svelte
 - Backend: Socket.IO 4.8.x, node-pty, SQLite3 5.1.7
 - Testing: Vitest (unit), Playwright (E2E)
@@ -54,16 +56,19 @@
 **Target Platform**: Docker containers (Linux), browser clients (modern Chrome/Firefox/Safari)
 **Project Type**: Web application (SvelteKit frontend + Node.js backend in monorepo)
 **Performance Goals**:
+
 - Refactoring must not degrade session replay performance (<100ms)
 - Module load times should remain comparable to current monolithic files
 
 **Constraints**:
+
 - Zero functional regressions (100% existing test pass rate)
 - Preserve MVVM architecture and event-sourcing patterns
 - No breaking changes to public APIs or component interfaces
 - Must support existing Docker deployment workflow
 
 **Scale/Scope**:
+
 - 3 components for syntax updates (~300 lines total)
 - 1 service module split (~970 lines → 3 modules)
 - 1 large component extraction (~1,800 lines → 4+ subcomponents)
@@ -74,9 +79,11 @@
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 ### ✅ I. Simplicity & Maintainability
+
 **Status**: PASS - Refactoring reduces complexity
 
 This feature actively improves simplicity by:
+
 - Eliminating mixed syntax patterns (legacy Svelte 4 + modern Svelte 5)
 - Breaking large files into cohesive, single-purpose modules
 - Documenting existing patterns to reduce cognitive load for new contributors
@@ -84,9 +91,11 @@ This feature actively improves simplicity by:
 No new dependencies or abstractions introduced. Aligns with YAGNI and SOLID principles.
 
 ### ✅ II. Single-User, Developer-First Platform
+
 **Status**: PASS - Enhances single-developer experience
 
 Target users are developers working on Dispatch itself. Benefits:
+
 - Faster onboarding for solo contributors (clear documentation)
 - Easier code navigation and modification (smaller, focused modules)
 - Reduced merge conflicts when solo developer switches contexts
@@ -94,26 +103,31 @@ Target users are developers working on Dispatch itself. Benefits:
 No multi-user features introduced.
 
 ### ✅ III. Isolated, Remotely Accessible Development Environment
+
 **Status**: PASS - No impact on isolation model
 
 Refactoring does not affect container isolation, remote access, or security model. All changes are internal code organization.
 
 ### ✅ IV. Event-Sourced State Management
+
 **Status**: PASS - Preserves event sourcing
 
 No changes to event sourcing architecture. SessionApiClient modularization preserves existing event handling. All session state remains immutable and recoverable.
 
 ### ✅ V. Adapter Pattern for Extensibility
+
 **Status**: PASS - Documents and reinforces adapter pattern
 
 FR-006 explicitly documents adapter registration process, making pattern more accessible. No changes to adapter interface or registration mechanism. Strengthens adherence to this principle.
 
 ### ✅ VI. Progressive Enhancement
+
 **Status**: PASS - No impact on progressive features
 
 Refactoring does not affect SSL, tunnels, or optional features. Core functionality remains minimal and self-contained.
 
 ### ✅ Implementation Standards
+
 **Status**: PASS - Follows all standards
 
 - Simplicity First: ✅ Reduces complexity
@@ -213,6 +227,7 @@ tests/
 ### Consolidation
 
 All research findings documented in `research.md` with:
+
 - Decision: Chosen approach
 - Rationale: Why selected
 - Alternatives considered: Trade-offs evaluated
@@ -321,17 +336,17 @@ interface InputAreaProps {
 ```javascript
 // tests/client/shared/services/session-api/queries.test.js
 describe('SessionApiQueries', () => {
-  it('should export getAllSessions function', () => {
-    expect(typeof queries.getAllSessions).toBe('function')
-  })
+	it('should export getAllSessions function', () => {
+		expect(typeof queries.getAllSessions).toBe('function');
+	});
 
-  it('should return promise from getAllSessions', async () => {
-    const result = queries.getAllSessions()
-    expect(result).toBeInstanceOf(Promise)
-  })
+	it('should return promise from getAllSessions', async () => {
+		const result = queries.getAllSessions();
+		expect(result).toBeInstanceOf(Promise);
+	});
 
-  // Additional interface validation tests
-})
+	// Additional interface validation tests
+});
 ```
 
 **Note**: Existing tests remain primary validation. Contract tests ensure refactored modules export expected interfaces.
@@ -341,30 +356,33 @@ describe('SessionApiQueries', () => {
 **From Spec Acceptance Scenarios**:
 
 1. **Scenario 1**: Props syntax consistency
+
    ```javascript
    // tests/client/onboarding/props-syntax.test.js
    it('should use $props() in AuthenticationStep', () => {
-     const component = render(AuthenticationStep)
-     // Verify no export let syntax in compiled output
-   })
+   	const component = render(AuthenticationStep);
+   	// Verify no export let syntax in compiled output
+   });
    ```
 
 2. **Scenario 3**: SessionApiClient modularity
+
    ```javascript
    // tests/client/shared/services/session-api/integration.test.js
    it('should load queries module independently', async () => {
-     const { getAllSessions } = await import('$lib/client/shared/services/session-api/queries.js')
-     expect(getAllSessions).toBeDefined()
-   })
+   	const { getAllSessions } = await import('$lib/client/shared/services/session-api/queries.js');
+   	expect(getAllSessions).toBeDefined();
+   });
    ```
 
 3. **Scenario 4**: ClaudePane subcomponent location
+
    ```javascript
    // tests/client/claude/component-structure.test.js
    it('should have ToolPanel as separate component', async () => {
-     const module = await import('$lib/client/claude/components/ToolPanel.svelte')
-     expect(module.default).toBeDefined()
-   })
+   	const module = await import('$lib/client/claude/components/ToolPanel.svelte');
+   	expect(module.default).toBeDefined();
+   });
    ```
 
 4. **Scenario 6**: Regression validation
@@ -386,12 +404,14 @@ Executed via script:
 ```
 
 **Updates Applied**:
+
 - Added "Svelte 5 $props() syntax" to tech stack
 - Added "Runes-in-classes MVVM pattern" to architecture patterns
 - Added "Module cohesion and separation of concerns" to code standards
 - Updated recent changes (keep last 3): "Code review refactor: syntax modernization, modularization"
 
 **Output**: ✅ All Phase 1 artifacts generated:
+
 - data-model.md
 - contracts/SessionApiClient.contracts.md
 - contracts/ClaudePane.contracts.md
@@ -431,12 +451,14 @@ _This section describes what the /tasks command will do - DO NOT execute during 
 6. **Regression validation**: Final gate before completion
 
 **Parallelization**:
+
 - [P] marks for: Props syntax updates (independent files), contract tests (no dependencies), documentation writing
 - Sequential for: Module creation (shared types), component extraction (parent-child relationships)
 
 **Estimated Output**: 18-22 numbered, ordered tasks in tasks.md
 
 **Task Template Structure**:
+
 ```markdown
 ## Task N: [Category] - [Brief Description]
 
@@ -446,10 +468,12 @@ _This section describes what the /tasks command will do - DO NOT execute during 
 **Objective**: [What to accomplish]
 
 **Acceptance Criteria**:
+
 - [ ] [Specific, testable criterion]
 - [ ] [Specific, testable criterion]
 
 **Implementation Notes**:
+
 - [Specific guidance from design docs]
 - [Edge cases from clarifications]
 ```
@@ -461,10 +485,12 @@ _This section describes what the /tasks command will do - DO NOT execute during 
 _These phases are beyond the scope of the /plan command_
 
 **Phase 3**: Task execution
+
 - `/tasks` command generates tasks.md
 - Tasks provide step-by-step implementation guide
 
 **Phase 4**: Implementation
+
 - Execute tasks in order (respect dependencies)
 - Follow constitutional principles (simplicity, single-user focus)
 - Use Svelte 5 best practices from research.md
@@ -472,6 +498,7 @@ _These phases are beyond the scope of the /plan command_
 - Flag complex coupling for manual review (per clarification #3)
 
 **Phase 5**: Validation
+
 - Run `npm run test` (100% pass rate per FR-001)
 - Run `npm run test:e2e` (all E2E tests pass)
 - Execute quickstart.md manual validation steps

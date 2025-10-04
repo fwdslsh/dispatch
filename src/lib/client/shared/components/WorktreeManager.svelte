@@ -407,7 +407,7 @@
 <style>
 	.worktree-manager {
 		border: 1px solid var(--border-color);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		padding: 12px;
 		margin-top: 8px;
 	}
@@ -431,7 +431,7 @@
 		align-items: center;
 		padding: 8px;
 		background: var(--surface-color);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid var(--border-color);
 	}
 
@@ -492,7 +492,7 @@
 	.branch-select {
 		padding: 8px;
 		border: 1px solid var(--border-color);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		background: var(--surface-color);
 		color: var(--text-primary);
 		font-size: 0.875rem;
@@ -501,7 +501,7 @@
 	.init-commands {
 		background: var(--surface-color);
 		border: 1px solid var(--border-color);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		padding: 12px;
 		margin-top: 8px;
 	}
@@ -548,7 +548,7 @@
 		background: var(--error-bg);
 		color: var(--error-text);
 		padding: 8px 12px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		font-size: 0.875rem;
 		margin-bottom: 8px;
 	}

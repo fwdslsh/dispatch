@@ -32,15 +32,18 @@ export async function GET({ request, url, locals }) {
 			// Return specific category settings
 			const categorySettings = await database.getSettingsByCategory(categoryFilter);
 
-			return json({
-				[categoryFilter]: categorySettings || {}
-			}, {
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					Pragma: 'no-cache',
-					Expires: '0'
+			return json(
+				{
+					[categoryFilter]: categorySettings || {}
+				},
+				{
+					headers: {
+						'Cache-Control': 'no-cache, no-store, must-revalidate',
+						Pragma: 'no-cache',
+						Expires: '0'
+					}
 				}
-			});
+			);
 		} else {
 			// Return all settings from settings table
 			// Query all categories and build response

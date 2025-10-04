@@ -2,5 +2,4 @@ Dispatch is an open-source, containerized development environment designed to se
 
 Key features of Dispatch include support for multiple session types—such as Terminal, Claude AI, and File Editor—each running in a given workspace. The user can have multiple workspaces, running various session types in each workspace simultaneously. The platform integrates real-time updates and persistent event storage, and offers VS Code Remote Tunnel integration for direct IDE access. Dispatch is local-first, with no vendor lock-in or usage limits, and is highly configurable through environment variables. It is ideal for AI-assisted development workflows, automation, and any scenario where secure, resumable execution is required.
 
-
 Open source, vendor agnostic version of https://devbox.microsoft.com/

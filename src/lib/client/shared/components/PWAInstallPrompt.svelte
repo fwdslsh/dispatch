@@ -204,7 +204,7 @@
 		display: inline-block;
 		background: #333;
 		padding: 0.1rem 0.3rem;
-		border-radius: 3px;
+		border-radius: var(--radius-xs);
 		font-size: 1rem;
 		vertical-align: middle;
 		margin: 0 0.2rem;

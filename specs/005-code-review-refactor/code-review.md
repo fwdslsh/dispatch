@@ -58,7 +58,7 @@ let total = $derived.by(() => items.reduce((s, i) => s + i.price, 0));
 
 // Correct: $effect for reactive side effects
 $effect(() => {
-  if (items.length > 0) console.log('updated');
+	if (items.length > 0) console.log('updated');
 });
 ```
 
@@ -79,12 +79,12 @@ Recommended pattern reminder:
 
 ```js
 onMount(() => {
-  const off = term.onData(handleInput);
-  return () => off.dispose(); // cleanup
+	const off = term.onData(handleInput);
+	return () => off.dispose(); // cleanup
 });
 
 $effect(() => {
-  if (sessionId) attachToSession(sessionId);
+	if (sessionId) attachToSession(sessionId);
 });
 ```
 
@@ -123,8 +123,8 @@ Minimal example:
 ```js
 // +page.server.js (or +page.js)
 export async function load({ fetch }) {
-  const sessions = await fetch('/api/sessions').then((r) => r.json());
-  return { sessions };
+	const sessions = await fetch('/api/sessions').then((r) => r.json());
+	return { sessions };
 }
 
 // +page.svelte
@@ -166,14 +166,17 @@ Sketch:
 
 ```js
 // Select strategy by env
-const strategy = process.env.AUTH_STRATEGY === 'jwt' ? new JwtStrategy(process.env.JWT_SECRET) : new ApiKeyStrategy(process.env.TERMINAL_KEY);
+const strategy =
+	process.env.AUTH_STRATEGY === 'jwt'
+		? new JwtStrategy(process.env.JWT_SECRET)
+		: new ApiKeyStrategy(process.env.TERMINAL_KEY);
 
 // Socket.IO
 io.use(async (socket, next) => {
-  const token = socket.handshake.auth?.token;
-  const result = await strategy.validate(token);
-  if (result.valid) return next();
-  next(new Error('auth failed'));
+	const token = socket.handshake.auth?.token;
+	const result = await strategy.validate(token);
+	if (result.valid) return next();
+	next(new Error('auth failed'));
 });
 ```
 
@@ -212,17 +215,17 @@ Example:
 
 ```js
 async function createSession(data) {
-  loading = true;
-  error = null;
-  try {
-    const result = await api.createSession(data);
-    return { success: true, data: result };
-  } catch (e) {
-    error = e?.message || 'Unknown error';
-    return { success: false, error: e };
-  } finally {
-    loading = false;
-  }
+	loading = true;
+	error = null;
+	try {
+		const result = await api.createSession(data);
+		return { success: true, data: result };
+	} catch (e) {
+		error = e?.message || 'Unknown error';
+		return { success: false, error: e };
+	} finally {
+		loading = false;
+	}
 }
 ```
 

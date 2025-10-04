@@ -33,15 +33,15 @@ components:
         id:
           type: string
           description: Theme identifier (filename without .json)
-          example: "dracula"
+          example: 'dracula'
         name:
           type: string
           description: Display name
-          example: "Dracula"
+          example: 'Dracula'
         description:
           type: string
           description: Theme description
-          example: "Dark theme inspired by Dracula color scheme"
+          example: 'Dark theme inspired by Dracula color scheme'
         source:
           type: string
           enum: [preset, custom]

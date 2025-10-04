@@ -137,9 +137,9 @@ src/
 
 ```javascript
 socket.emit('auth', 'your-key', (response) => {
-   if (response.ok) {
-      // Authenticated successfully
-   }
+	if (response.ok) {
+		// Authenticated successfully
+	}
 });
 ```
 
@@ -148,17 +148,17 @@ socket.emit('auth', 'your-key', (response) => {
 ```javascript
 // List sessions
 socket.emit('list', (response) => {
-   // response: { ok: true, sessions: [...], active }
+	// response: { ok: true, sessions: [...], active }
 });
 
 // Create session
 socket.emit('create', { mode: 'shell', cols: 80, rows: 24, meta: {} }, (response) => {
-   // response: { ok: true, sessionId: 'uuid' }
+	// response: { ok: true, sessionId: 'uuid' }
 });
 
 // Attach to session
 socket.emit('attach', { sessionId: 'uuid', cols: 80, rows: 24 }, (response) => {
-   // response: { ok: true }
+	// response: { ok: true }
 });
 
 // Send input
@@ -179,12 +179,12 @@ socket.emit('detach');
 ```javascript
 // Terminal output
 socket.on('output', (data) => {
-   terminal.write(data);
+	terminal.write(data);
 });
 
 // Sessions updated
 socket.on('sessions-updated', () => {
-   // Refresh session list
+	// Refresh session list
 });
 ```
 

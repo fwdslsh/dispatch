@@ -134,7 +134,7 @@
 	.activity-badge {
 		display: inline-block;
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		font-size: 0.75em;
 		font-weight: 600;
 		margin-left: var(--space-2);

@@ -83,7 +83,7 @@
 	.status-dot {
 		width: 8px;
 		height: 8px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		background: var(--accent-amber);
 		box-shadow: 0 0 8px color-mix(in oklab, var(--accent-amber) 60%, transparent);
 	}
@@ -97,7 +97,7 @@
 		color: var(--accent-amber);
 		background: color-mix(in oklab, var(--accent-amber) 15%, transparent);
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid color-mix(in oklab, var(--accent-amber) 30%, transparent);
 		font-weight: 500;
 	}
@@ -116,7 +116,7 @@
 		color: var(--text-muted);
 		background: var(--surface-hover);
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid var(--surface-border);
 	}
 
@@ -126,7 +126,7 @@
 		color: var(--accent-amber);
 		background: color-mix(in oklab, var(--accent-amber) 10%, transparent);
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid color-mix(in oklab, var(--accent-amber) 30%, transparent);
 	}
 

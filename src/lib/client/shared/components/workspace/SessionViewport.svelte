@@ -99,7 +99,7 @@
 		height: 24px;
 		border: 2px solid var(--surface-border);
 		border-top: 2px solid var(--primary);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 	}
 

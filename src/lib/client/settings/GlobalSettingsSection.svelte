@@ -66,12 +66,7 @@
 {:else if error}
 	<div class="error-container">
 		<p class="error-message">⚠️ {error}</p>
-		<Button
-			type="button"
-			variant="primary"
-			onclick={() => window.location.reload()}
-			text="Retry"
-		/>
+		<Button type="button" variant="primary" onclick={() => window.location.reload()} text="Retry" />
 	</div>
 {:else if settingsViewModel}
 	<GlobalSettings {settingsViewModel} />
@@ -98,7 +93,7 @@
 		height: 24px;
 		border: 2px solid var(--color-border);
 		border-top: 2px solid var(--color-primary);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 	}
 

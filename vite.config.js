@@ -64,11 +64,7 @@ export default defineConfig(async () => {
 							'tests/client/**/*.{test,spec}.{js,ts}',
 							'tests/**/*.svelte.{test,spec}.{js,ts}'
 						],
-						exclude: [
-							'tests/server/**',
-							'tests/unit/server/**',
-							'tests/e2e/**'
-						],
+						exclude: ['tests/server/**', 'tests/unit/server/**', 'tests/e2e/**'],
 						setupFiles: ['./tests/helpers/vitest-setup-client.js']
 					}
 				},
@@ -85,11 +81,7 @@ export default defineConfig(async () => {
 							'tests/integration/**/*.{test,spec}.{js,ts}',
 							'tests/docker/**/*.{test,spec}.{js,ts}'
 						],
-						exclude: [
-							'tests/client/**',
-							'tests/**/*.svelte.{test,spec}.{js,ts}',
-							'tests/e2e/**'
-						],
+						exclude: ['tests/client/**', 'tests/**/*.svelte.{test,spec}.{js,ts}', 'tests/e2e/**'],
 						setupFiles: ['./tests/helpers/vitest-setup-server.js']
 					}
 				}

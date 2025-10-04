@@ -25,7 +25,7 @@ class MockSettingsViewModel {
 		this.settingsByCategory = [];
 		this.categoryHasChanges = vi.fn(() => false);
 	}
-	
+
 	async loadSettings() {
 		// Mock successful load
 		this.settingsByCategory = [
@@ -35,7 +35,7 @@ class MockSettingsViewModel {
 				settings: []
 			},
 			{
-				id: 'ui', 
+				id: 'ui',
 				name: 'UI',
 				settings: []
 			}
@@ -89,7 +89,7 @@ describe('GlobalSettings Integration Fix', () => {
 		render(GlobalSettingsSection, { props });
 
 		// Allow component to mount
-		await new Promise(resolve => setTimeout(resolve, 0));
+		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		expect(mockServiceContainer.get).toHaveBeenCalledWith('settingsService');
 	});

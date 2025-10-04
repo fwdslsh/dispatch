@@ -24,6 +24,7 @@ All async functions that interact with APIs or perform fallible operations shoul
 ### Why This Shape?
 
 **Advantages**:
+
 1. **Predictable**: Every async function returns the same structure
 2. **Type-safe**: Easy to type with TypeScript
 3. **Testable**: Simple to mock and assert
@@ -201,6 +202,7 @@ async function saveSettings() {
 ```
 
 **When to use**:
+
 - Save confirmations
 - Non-blocking validation errors
 - Background operation failures
@@ -250,6 +252,7 @@ Display errors next to the relevant form field:
 ```
 
 **When to use**:
+
 - Form validation
 - Field-specific errors
 - Real-time validation feedback
@@ -300,6 +303,7 @@ For critical errors that prevent the entire page from functioning:
 ```
 
 **When to use**:
+
 - Critical data loading failures
 - Authentication errors
 - Server unavailable
@@ -428,7 +432,8 @@ export class SessionViewModel {
 	<!-- Global error message -->
 	{#if viewModel.error}
 		<div class="error-banner" role="alert">
-			<strong>Error:</strong> {viewModel.error}
+			<strong>Error:</strong>
+			{viewModel.error}
 		</div>
 	{/if}
 
@@ -497,35 +502,41 @@ export class SessionViewModel {
 ### Good Error Messages
 
 ✅ **Specific and actionable**:
+
 ```javascript
-"Workspace path '/invalid path' contains invalid characters. Use only letters, numbers, and hyphens."
+"Workspace path '/invalid path' contains invalid characters. Use only letters, numbers, and hyphens.";
 ```
 
 ✅ **Include context**:
+
 ```javascript
-"Failed to create session: Terminal key authentication required"
+'Failed to create session: Terminal key authentication required';
 ```
 
 ✅ **Suggest next steps**:
+
 ```javascript
-"Session limit reached (10/10). Please close an existing session before creating a new one."
+'Session limit reached (10/10). Please close an existing session before creating a new one.';
 ```
 
 ### Bad Error Messages
 
 ❌ **Too vague**:
+
 ```javascript
-"Error" // What error? Why did it happen?
+'Error'; // What error? Why did it happen?
 ```
 
 ❌ **Technical jargon**:
+
 ```javascript
-"ECONNREFUSED 127.0.0.1:3030" // User doesn't know what this means
+'ECONNREFUSED 127.0.0.1:3030'; // User doesn't know what this means
 ```
 
 ❌ **No recovery path**:
+
 ```javascript
-"Something went wrong" // What should the user do now?
+'Something went wrong'; // What should the user do now?
 ```
 
 ## Testing Error Handling

@@ -362,8 +362,8 @@ export class ClaudePaneViewModel {
 		this.isCatchingUp = true;
 
 		const loadedMessages = history
-			.filter(entry => entry.type === 'claude:message')
-			.map(entry => ({
+			.filter((entry) => entry.type === 'claude:message')
+			.map((entry) => ({
 				role: entry.payload?.role || 'assistant',
 				text: entry.payload?.text || entry.payload?.content || '',
 				timestamp: new Date(entry.timestamp || Date.now()),

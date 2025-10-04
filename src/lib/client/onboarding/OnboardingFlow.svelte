@@ -94,9 +94,7 @@
 	{:else if viewModel.currentStep === 'complete'}
 		<div class="flex flex-col items-center justify-center py-16">
 			<h2 class="text-2xl font-bold text-success mb-2">🎉 Welcome to Dispatch!</h2>
-			<p class="text-base-content/70">
-				Your setup is complete. Redirecting to your workspace...
-			</p>
+			<p class="text-base-content/70">Your setup is complete. Redirecting to your workspace...</p>
 		</div>
 	{:else}
 		<div class="bg-base-100 rounded-xl shadow-lg p-8 flex flex-col gap-8">
@@ -138,7 +136,8 @@
 									bind:value={viewModel.formData.confirmTerminalKey}
 									oninput={(e) => viewModel.updateFormData('confirmTerminalKey', e.target.value)}
 									disabled={viewModel.isLoading}
-									onkeydown={(e) => e.key === 'Enter' && viewModel.canProceedFromAuth && handleNextStep()}
+									onkeydown={(e) =>
+										e.key === 'Enter' && viewModel.canProceedFromAuth && handleNextStep()}
 								/>
 								<div class="bg-base-200 rounded p-3 text-xs mt-2">
 									<div class="font-semibold mb-1">Tips for a strong terminal key:</div>
@@ -194,20 +193,13 @@
 							<Button variant="ghost" onclick={handlePreviousStep} disabled={viewModel.isLoading}>
 								Back
 							</Button>
-							<Button
-								variant="primary"
-								onclick={handleNextStep}
-								disabled={viewModel.isLoading}
-							>
+							<Button variant="primary" onclick={handleNextStep} disabled={viewModel.isLoading}>
 								{viewModel.formData.workspaceName ? 'Continue' : 'Skip Workspace'}
 							</Button>
 						</div>
 					</div>
 				{:else if viewModel.currentStep === 'theme'}
-					<ThemeSelectionStep
-						onNext={handleNextStep}
-						onSkip={handleNextStep}
-					/>
+					<ThemeSelectionStep onNext={handleNextStep} onSkip={handleNextStep} />
 				{:else if viewModel.currentStep === 'settings'}
 					<div class="flex flex-col gap-6">
 						<div>

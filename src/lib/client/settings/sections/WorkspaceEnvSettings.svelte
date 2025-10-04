@@ -263,7 +263,7 @@
 	.env-help code {
 		background: var(--surface-secondary);
 		padding: 2px 4px;
-		border-radius: 2px;
+		border-radius: var(--radius-xs);
 		font-family: var(--font-mono);
 		font-size: var(--text-xs);
 	}

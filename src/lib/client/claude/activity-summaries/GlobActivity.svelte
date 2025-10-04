@@ -134,7 +134,7 @@
 		background: color-mix(in oklab, var(--accent-amber) 15%, transparent);
 		border: 1px solid color-mix(in oklab, var(--accent-amber) 25%, transparent);
 		padding: var(--space-1) var(--space-2);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		color: var(--accent-amber);
 		font-family: var(--font-mono);
 		font-size: 0.9em;

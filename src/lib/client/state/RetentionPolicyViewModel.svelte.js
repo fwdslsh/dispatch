@@ -74,7 +74,7 @@ export class RetentionPolicyViewModel {
 			// Load maintenance preferences via PreferencesViewModel
 			const response = await fetch(`/api/preferences?category=maintenance`, {
 				headers: {
-					'Authorization': `Bearer ${this.#authKey}`,
+					Authorization: `Bearer ${this.#authKey}`,
 					'Content-Type': 'application/json'
 				}
 			});
@@ -123,7 +123,7 @@ export class RetentionPolicyViewModel {
 			const response = await fetch('/api/maintenance', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${this.#authKey}`,
+					Authorization: `Bearer ${this.#authKey}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
@@ -160,7 +160,7 @@ export class RetentionPolicyViewModel {
 			const response = await fetch('/api/preferences', {
 				method: 'PUT',
 				headers: {
-					'Authorization': `Bearer ${this.#authKey}`,
+					Authorization: `Bearer ${this.#authKey}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
@@ -207,7 +207,7 @@ export class RetentionPolicyViewModel {
 			const response = await fetch('/api/maintenance', {
 				method: 'POST',
 				headers: {
-					'Authorization': `Bearer ${this.#authKey}`,
+					Authorization: `Bearer ${this.#authKey}`,
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({

@@ -199,9 +199,7 @@ test.describe('Onboarding Theme Selection', () => {
 
 				// Verify theme is applied (check CSS variable)
 				const bgColor = await page.evaluate(() => {
-					return getComputedStyle(document.documentElement).getPropertyValue(
-						'--theme-background'
-					);
+					return getComputedStyle(document.documentElement).getPropertyValue('--theme-background');
 				});
 
 				expect(bgColor.trim()).toBeTruthy();

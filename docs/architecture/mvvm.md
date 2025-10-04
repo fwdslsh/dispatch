@@ -19,23 +19,23 @@ This app uses a pragmatic MVVM pattern with Svelte 5 runes. ViewModels live in `
 ```js
 // src/lib/client/settings/SettingsViewModel.svelte.js
 export class SettingsViewModel {
-  constructor(api) {
-    this.isLoading = $state(false);
-    this.error = $state(null);
-    this.categories = $state({});
-    this.canSave = $derived.by(() => Object.keys(this.categories).length > 0);
-  }
+	constructor(api) {
+		this.isLoading = $state(false);
+		this.error = $state(null);
+		this.categories = $state({});
+		this.canSave = $derived.by(() => Object.keys(this.categories).length > 0);
+	}
 
-  async load() {
-    this.isLoading = true;
-    try {
-      this.categories = await api.fetchCategories();
-    } catch (e) {
-      this.error = e?.message || 'Failed to load';
-    } finally {
-      this.isLoading = false;
-    }
-  }
+	async load() {
+		this.isLoading = true;
+		try {
+			this.categories = await api.fetchCategories();
+		} catch (e) {
+			this.error = e?.message || 'Failed to load';
+		} finally {
+			this.isLoading = false;
+		}
+	}
 }
 ```
 
@@ -43,21 +43,21 @@ export class SettingsViewModel {
 
 ```svelte
 <script>
-  import { SettingsViewModel } from './SettingsViewModel.svelte.js';
-  import { serviceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
+	import { serviceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 
-  const api = await serviceContainer.get('SessionApiClient');
-  const vm = new SettingsViewModel(api);
+	const api = await serviceContainer.get('SessionApiClient');
+	const vm = new SettingsViewModel(api);
 
-  onMount(() => vm.load());
+	onMount(() => vm.load());
 </script>
 
 {#if vm.isLoading}
-  <p>Loading…</p>
+	<p>Loading…</p>
 {:else if vm.error}
-  <p class="error">{vm.error}</p>
+	<p class="error">{vm.error}</p>
 {:else}
-  <!-- render categories -->
+	<!-- render categories -->
 {/if}
 ```
 

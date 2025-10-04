@@ -178,7 +178,7 @@
 		padding: var(--space-3) var(--space-4);
 		background: color-mix(in oklab, var(--bg) 90%, var(--accent-cyan) 10%);
 		border: 2px solid var(--accent-cyan);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		font-family: var(--font-mono);
 	}
 
@@ -207,7 +207,7 @@
 		background: var(--bg-input);
 		border: 2px solid color-mix(in oklab, var(--accent-cyan) 50%, transparent);
 		color: var(--text);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		font-family: var(--font-mono);
 		transition: all 0.3s ease;
 	}
@@ -230,7 +230,7 @@
 		border: 2px solid color-mix(in oklab, var(--accent-cyan) 50%, transparent);
 		color: var(--accent-cyan);
 		cursor: pointer;
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		transition: all 0.3s ease;
 		font-size: var(--font-size-3);
 		min-width: 48px;
@@ -246,7 +246,7 @@
 		inset-inline: 0;
 		background: var(--bg-panel);
 		border: 2px solid color-mix(in oklab, var(--accent-cyan) 50%, transparent);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		box-shadow:
 			0 8px 32px rgba(0, 0, 0, 0.4),
 			0 0 0 1px rgba(0, 194, 255, 0.1);
@@ -291,7 +291,7 @@
 
 	.list::-webkit-scrollbar-thumb {
 		background: var(--accent-cyan);
-		border-radius: 3px;
+		border-radius: var(--radius-xs);
 	}
 
 	.list li {
@@ -306,7 +306,7 @@
 		gap: var(--space-2);
 		background: var(--bg);
 		border: 1px solid color-mix(in oklab, var(--accent-cyan) 30%, transparent);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		cursor: pointer;
 		transition: all 0.2s ease;
 		color: var(--text);

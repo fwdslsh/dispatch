@@ -18,7 +18,10 @@ export async function preAuthenticateUser(page) {
 
 		// Set session info (simulating successful login)
 		localStorage.setItem('authSessionId', `test-session-${Date.now()}`);
-		localStorage.setItem('authExpiresAt', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
+		localStorage.setItem(
+			'authExpiresAt',
+			new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+		);
 
 		// Mark onboarding as complete
 		localStorage.setItem('onboarding-complete', 'true');
@@ -58,7 +61,10 @@ export async function setupFreshTestEnvironment(page) {
 		// Set test auth key with full session info
 		localStorage.setItem('dispatch-auth-key', testKey);
 		localStorage.setItem('authSessionId', `test-session-${Date.now()}`);
-		localStorage.setItem('authExpiresAt', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString());
+		localStorage.setItem(
+			'authExpiresAt',
+			new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+		);
 		localStorage.setItem('onboarding-complete', 'true');
 
 		// Clear IndexedDB
@@ -423,7 +429,10 @@ export async function setupWorkspaceTestMocks(page, options = {}) {
 			route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify({ workspaces: config.workspaces, pagination: { total: config.workspaces.length, limit: 50, offset: 0, hasMore: false } })
+				body: JSON.stringify({
+					workspaces: config.workspaces,
+					pagination: { total: config.workspaces.length, limit: 50, offset: 0, hasMore: false }
+				})
 			});
 		} else {
 			route.continue();

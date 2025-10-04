@@ -27,11 +27,10 @@
  */
 .settings-container {
 	width: 100%;
-	max-width: 900px;
+	gap: var(--space-2);
 	margin: 0 auto;
 	padding: var(--space-5);
 	background: var(--surface);
-	border-radius: 8px;
 	border: 1px solid var(--line);
 	box-shadow:
 		0 4px 12px rgba(0, 0, 0, 0.4),
@@ -45,7 +44,6 @@
 .settings-panel {
 	background: var(--elev);
 	border: 1px solid var(--line);
-	border-radius: 6px;
 	padding: var(--space-4);
 	margin-bottom: var(--space-4);
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -101,7 +99,7 @@
 	margin-bottom: var(--space-6);
 	padding: var(--space-4);
 	background: var(--surface-primary-98);
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	border: 1px solid var(--primary-glow-15);
 }
 
@@ -212,7 +210,7 @@ label.required::after {
 	padding: var(--space-2);
 	background: var(--surface-primary-98);
 	border-left: 2px solid var(--primary-glow-30);
-	border-radius: 2px;
+	border-radius: var(--radius-xs);
 }
 
 /* ==========================================================================
@@ -276,7 +274,7 @@ label.required::after {
 	gap: var(--space-3);
 	min-height: 44px;
 	padding: var(--space-2);
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	transition: background 0.2s ease;
 }
 
@@ -290,7 +288,7 @@ label.required::after {
 	width: 20px;
 	height: 20px;
 	border: 2px solid var(--line);
-	border-radius: 3px;
+	border-radius: var(--radius-xs);
 	background: var(--bg);
 	cursor: pointer;
 	transition: all 0.2s ease;
@@ -392,7 +390,7 @@ label.required::after {
 .alert {
 	padding: var(--space-3) var(--space-4);
 	margin-bottom: var(--space-4);
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	font-family: var(--font-mono);
 	font-size: var(--font-size-1);
 	line-height: 1.5;
@@ -473,7 +471,7 @@ label.required::after {
 	font-size: var(--font-size-0);
 	margin-top: var(--space-1);
 	padding: var(--space-1) var(--space-2);
-	border-radius: 2px;
+	border-radius: var(--radius-xs);
 }
 
 .validation-message.error {
@@ -504,7 +502,7 @@ label.required::after {
 	color: var(--accent-cyan);
 	background: color-mix(in oklab, var(--accent-cyan) 10%, var(--surface));
 	border: 1px solid color-mix(in oklab, var(--accent-cyan) 30%, transparent);
-	border-radius: 3px;
+	border-radius: var(--radius-xs);
 	margin-top: var(--space-1);
 }
 
@@ -525,7 +523,7 @@ label.required::after {
 	font-weight: 600;
 	color: var(--bg);
 	background: var(--accent-cyan);
-	border-radius: 3px;
+	border-radius: var(--radius-xs);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	vertical-align: middle;
@@ -549,15 +547,10 @@ label.required::after {
  * Skeleton loading states
  */
 .skeleton {
-	background: linear-gradient(
-		90deg,
-		var(--surface) 25%,
-		var(--elev) 50%,
-		var(--surface) 75%
-	);
+	background: linear-gradient(90deg, var(--surface) 25%, var(--elev) 50%, var(--surface) 75%);
 	background-size: 200% 100%;
 	animation: skeleton-loading 1.5s ease-in-out infinite;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 }
 
 @keyframes skeleton-loading {

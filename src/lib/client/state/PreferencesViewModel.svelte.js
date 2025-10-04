@@ -94,7 +94,7 @@ export class PreferencesViewModel {
 
 			const response = await fetch(`/api/preferences`, {
 				headers: {
-					'Authorization': `Bearer ${this.authKey}`,
+					Authorization: `Bearer ${this.authKey}`,
 					'Content-Type': 'application/json'
 				}
 			});
@@ -146,7 +146,7 @@ export class PreferencesViewModel {
 				const response = await fetch('/api/preferences', {
 					method: 'PUT',
 					headers: {
-						'Authorization': `Bearer ${this.authKey}`,
+						Authorization: `Bearer ${this.authKey}`,
 						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
@@ -196,7 +196,7 @@ export class PreferencesViewModel {
 				const response = await fetch('/api/preferences', {
 					method: 'POST',
 					headers: {
-						'Authorization': `Bearer ${this.authKey}`,
+						Authorization: `Bearer ${this.authKey}`,
 						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({

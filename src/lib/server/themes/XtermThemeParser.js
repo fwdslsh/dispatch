@@ -70,12 +70,7 @@ export class XtermThemeParser {
 		const colorRegex = /^(#[0-9a-f]{3}([0-9a-f]{3}([0-9a-f]{2})?)?|rgba?\(|hsla?\()/i;
 
 		// Validate color formats for all color fields
-		const colorFields = [
-			...requiredFields,
-			'cursor',
-			'cursorAccent',
-			'selectionBackground'
-		];
+		const colorFields = [...requiredFields, 'cursor', 'cursorAccent', 'selectionBackground'];
 
 		for (const field of colorFields) {
 			const value = theme[field];
@@ -92,7 +87,9 @@ export class XtermThemeParser {
 			warnings.push('Missing optional field: cursor (will use foreground color)');
 		}
 		if (!theme.selectionBackground) {
-			warnings.push('Missing optional field: selectionBackground (will use cursor with transparency)');
+			warnings.push(
+				'Missing optional field: selectionBackground (will use cursor with transparency)'
+			);
 		}
 
 		return {
@@ -120,8 +117,7 @@ export class XtermThemeParser {
 
 		// Selection (use cursor with transparency as fallback)
 		cssVars['--theme-selection-bg'] =
-			theme.selectionBackground ||
-			(theme.cursor ? `${theme.cursor}40` : `${theme.foreground}40`);
+			theme.selectionBackground || (theme.cursor ? `${theme.cursor}40` : `${theme.foreground}40`);
 
 		// ANSI colors (16 colors)
 		const ansiMapping = {

@@ -99,7 +99,7 @@
 	.shortcut-item {
 		background: var(--surface);
 		border: 1px solid var(--primary-dim);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		align-items: center;
 	}
 
@@ -117,7 +117,7 @@
 		background: var(--bg);
 		padding: var(--space-2) var(--space-3);
 		border: 1px solid var(--primary-dim);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		min-width: 140px;
 		text-align: center;
 		text-transform: uppercase;
@@ -139,7 +139,7 @@
 		color: var(--text-secondary);
 		background: var(--surface);
 		padding: var(--space-3);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		border-left: 3px solid var(--accent-amber);
 	}
 
@@ -176,12 +176,12 @@
 
 	.help-content::-webkit-scrollbar-track {
 		background: var(--bg);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 	}
 
 	.help-content::-webkit-scrollbar-thumb {
 		background: var(--primary-dim);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid var(--bg);
 	}
 

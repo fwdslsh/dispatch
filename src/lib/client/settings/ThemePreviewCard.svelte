@@ -120,7 +120,12 @@
 	});
 </script>
 
-<div class="theme-card" class:active={isActive} role="article" aria-label={`${theme.name} theme preview`}>
+<div
+	class="theme-card"
+	class:active={isActive}
+	role="article"
+	aria-label={`${theme.name} theme preview`}
+>
 	<!-- Window chrome with macOS-style dots -->
 	<div class="chrome">
 		<div class="dots">
@@ -233,7 +238,9 @@
 
 	.theme-card.active {
 		border-color: var(--primary);
-		box-shadow: 0 0 0 2px var(--primary-glow-25), 0 4px 12px rgba(46, 230, 107, 0.2);
+		box-shadow:
+			0 0 0 2px var(--primary-glow-25),
+			0 4px 12px rgba(46, 230, 107, 0.2);
 	}
 
 	/* Window chrome */
@@ -254,7 +261,7 @@
 	.dot {
 		width: 12px;
 		height: 12px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		border: 1px solid rgba(0, 0, 0, 0.2);
 	}
 
@@ -288,7 +295,7 @@
 		font-weight: 600;
 		color: var(--bg);
 		background: var(--primary);
-		border-radius: 3px;
+		border-radius: var(--radius-xs);
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
 	}
@@ -329,10 +336,12 @@
 	}
 
 	@keyframes cursor-blink {
-		0%, 50% {
+		0%,
+		50% {
 			opacity: 1;
 		}
-		51%, 100% {
+		51%,
+		100% {
 			opacity: 0;
 		}
 	}
@@ -368,7 +377,7 @@
 
 	.color-block {
 		aspect-ratio: 1;
-		border-radius: 2px;
+		border-radius: var(--radius-xs);
 		border: 1px solid rgba(0, 0, 0, 0.2);
 		cursor: help;
 		transition: transform 0.15s ease;

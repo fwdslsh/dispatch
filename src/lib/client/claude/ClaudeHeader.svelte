@@ -80,7 +80,7 @@
 	.status-dot {
 		width: 8px;
 		height: 8px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		background: var(--primary);
 		box-shadow: 0 0 8px var(--primary-glow);
 	}
@@ -91,7 +91,7 @@
 		color: var(--primary);
 		background: color-mix(in oklab, var(--primary) 15%, transparent);
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid var(--primary-dim);
 		font-weight: 500;
 	}
@@ -102,7 +102,7 @@
 		color: var(--text-muted);
 		background: var(--surface-hover);
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid var(--surface-border);
 	}
 
@@ -112,7 +112,7 @@
 		color: var(--primary);
 		background: color-mix(in oklab, var(--primary) 10%, transparent);
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid var(--primary-dim);
 	}
 

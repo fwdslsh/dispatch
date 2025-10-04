@@ -700,7 +700,7 @@
 	.event-data {
 		background: var(--bg);
 		border: 1px solid var(--line);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		padding: var(--space-3);
 		font-size: var(--font-size-0);
 		color: var(--text);
@@ -835,7 +835,7 @@
 	.timeline-event {
 		background: var(--surface);
 		border: 1px solid var(--line);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		padding: var(--space-4);
 	}
 

@@ -94,7 +94,7 @@
 		height: 2rem;
 		border: 2px solid transparent;
 		border-top: 2px solid currentColor;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 	}
 

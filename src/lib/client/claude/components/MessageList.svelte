@@ -97,7 +97,10 @@
 	{/each}
 
 	{#if viewModel.isWaitingForReply}
-		<div class="message message--assistant typing-indicator" transition:fly={{ y: 20, duration: 300 }}>
+		<div
+			class="message message--assistant typing-indicator"
+			transition:fly={{ y: 20, duration: 300 }}
+		>
 			<div class="message-wrapper">
 				<div class="message-avatar">
 					<div class="ai-avatar-small">
@@ -179,7 +182,7 @@
 	.pulse-ring {
 		width: 12px;
 		height: 12px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		background: var(--primary);
 		animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 	}
@@ -243,7 +246,7 @@
 	.ai-avatar-small {
 		width: 36px;
 		height: 36px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -287,7 +290,7 @@
 	.message-text {
 		padding: var(--space-4);
 		font-size: var(--font-size-1);
-		border-radius: 20px;
+		border-radius: var(--radius-xl);
 		background: linear-gradient(
 			135deg,
 			color-mix(in oklab, var(--primary) 8%, var(--surface)),
@@ -305,12 +308,12 @@
 			color-mix(in oklab, var(--primary) 15%, var(--surface)),
 			color-mix(in oklab, var(--primary) 10%, var(--surface))
 		);
-		border-radius: 20px;
+		border-radius: var(--radius-xl);
 		border-top-right-radius: 8px;
 	}
 
 	.message--assistant .message-text {
-		border-radius: 20px;
+		border-radius: var(--radius-xl);
 		border-bottom-left-radius: 8px;
 	}
 
@@ -347,7 +350,7 @@
 			color-mix(in oklab, var(--primary) 6%, var(--surface))
 		);
 		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
-		border-radius: 24px;
+		border-radius: var(--radius-xl);
 		border-bottom-left-radius: 8px;
 		min-height: 48px;
 		box-shadow:
@@ -359,7 +362,7 @@
 		display: inline-block;
 		width: 10px;
 		height: 10px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		background: var(--primary);
 		opacity: 0.4;
 		animation: typingBounce 1.4s ease-in-out infinite;
@@ -418,7 +421,7 @@
 	.welcome-icon {
 		width: 80px;
 		height: 80px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		background: linear-gradient(
 			135deg,
 			color-mix(in oklab, var(--primary) 20%, transparent),

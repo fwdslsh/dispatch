@@ -116,7 +116,12 @@
 					Continue with Selected Theme
 				{/if}
 			</Button>
-			<Button variant="secondary" onclick={handleSkip} disabled={isActivating} text="Skip (use default)" />
+			<Button
+				variant="secondary"
+				onclick={handleSkip}
+				disabled={isActivating}
+				text="Skip (use default)"
+			/>
 		</div>
 	{:else}
 		<div class="error-state">
@@ -166,8 +171,10 @@
 
 	.theme-option {
 		cursor: pointer;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
-		border-radius: 8px;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease;
+		border-radius: var(--radius-md);
 		outline-offset: 4px;
 	}
 
@@ -206,7 +213,7 @@
 		height: 32px;
 		border: 3px solid #e5e7eb;
 		border-top: 3px solid #3b82f6;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 	}
 
@@ -229,7 +236,7 @@
 		padding: 2rem;
 		background: #fee;
 		border: 1px solid #fcc;
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 	}
 
 	.error-state p {
@@ -242,7 +249,7 @@
 		padding: 1rem;
 		background: #fee;
 		border: 1px solid #fcc;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		color: #dc2626;
 		text-align: center;
 	}

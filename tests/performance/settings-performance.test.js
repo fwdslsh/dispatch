@@ -119,9 +119,7 @@ describe('Settings Performance Validation', () => {
 			const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
 			const maxTime = Math.max(...times);
 
-			console.log(
-				`PUT settings - Average: ${avgTime.toFixed(2)}ms, Max: ${maxTime.toFixed(2)}ms`
-			);
+			console.log(`PUT settings - Average: ${avgTime.toFixed(2)}ms, Max: ${maxTime.toFixed(2)}ms`);
 
 			// Target: <50ms average
 			expect(avgTime).toBeLessThan(50);

@@ -67,7 +67,7 @@ canvas {
 		var(--accent),
 		color-mix(in oklab, var(--accent), transparent 35%)
 	);
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 }
 
 ::-webkit-scrollbar-track {
@@ -130,7 +130,7 @@ samp {
 	font-size: 0.95em;
 	background: color-mix(in oklab, var(--surface) 92%, black 8%);
 	border: 1px solid var(--line);
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	padding: 0 var(--space-1);
 }
 
@@ -182,7 +182,7 @@ a:hover {
 	box-shadow:
 		0 0 0 1px color-mix(in oklab, var(--accent) 10%, transparent),
 		0 0 24px -8px var(--glow);
-	border-radius: 10px;
+	border-radius: var(--radius-md);
 	/* graceful fallback if augs unsupported */
 }
 
@@ -253,7 +253,7 @@ textarea {
 	background: color-mix(in oklab, var(--surface) 92%, black 8%);
 	color: var(--text);
 	border: 1px solid var(--line);
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 	transition:
 		border-color 0.15s ease,
 		box-shadow 0.15s ease,
@@ -380,7 +380,7 @@ textarea:required:focus {
 	color: var(--text);
 	background: var(--btn-bg);
 	border: 1px solid var(--btn-border);
-	border-radius: 10px;
+	border-radius: var(--radius-md);
 	cursor: pointer;
 	text-decoration: none;
 	box-shadow:
@@ -862,7 +862,7 @@ table {
 	font-size: var(--font-size-1);
 	background: var(--surface);
 	border: 1px solid var(--line);
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 	overflow: hidden;
 }
 
@@ -890,7 +890,7 @@ tbody tr:hover {
 	font: 700 var(--font-size-0) / 1 var(--font-mono);
 	color: var(--text);
 	border: 1px solid var(--line);
-	border-radius: 999px;
+	border-radius: var(--radius-full);
 	background: color-mix(in oklab, var(--surface) 86%, black 14%);
 }
 

@@ -19,7 +19,6 @@
 </div>
 
 <style>
-
 	/* Background image overlay */
 	.empty-state::before {
 		content: '';

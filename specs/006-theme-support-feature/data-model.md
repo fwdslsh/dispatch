@@ -6,6 +6,7 @@
 ## Overview
 
 The theme system uses a hybrid storage approach:
+
 - **Theme content**: JSON files in file system (`static/themes/` for presets, `~/.dispatch/themes/` for custom)
 - **Theme preferences**: SQLite database (existing tables)
 - **Theme metadata**: In-memory cache loaded from file system
@@ -20,49 +21,52 @@ The theme system uses a hybrid storage approach:
 
 ```typescript
 interface Theme {
-  // Metadata (optional)
-  name?: string;              // Display name (defaults to filename)
-  description?: string;       // User-facing description
+	// Metadata (optional)
+	name?: string; // Display name (defaults to filename)
+	description?: string; // User-facing description
 
-  // Required colors
-  background: string;         // Background color (hex, rgb, hsl)
-  foreground: string;         // Default text color
+	// Required colors
+	background: string; // Background color (hex, rgb, hsl)
+	foreground: string; // Default text color
 
-  // ANSI colors (required)
-  black: string;
-  red: string;
-  green: string;
-  yellow: string;
-  blue: string;
-  magenta: string;
-  cyan: string;
-  white: string;
-  brightBlack: string;
-  brightRed: string;
-  brightGreen: string;
-  brightYellow: string;
-  brightBlue: string;
-  brightMagenta: string;
-  brightCyan: string;
-  brightWhite: string;
+	// ANSI colors (required)
+	black: string;
+	red: string;
+	green: string;
+	yellow: string;
+	blue: string;
+	magenta: string;
+	cyan: string;
+	white: string;
+	brightBlack: string;
+	brightRed: string;
+	brightGreen: string;
+	brightYellow: string;
+	brightBlue: string;
+	brightMagenta: string;
+	brightCyan: string;
+	brightWhite: string;
 
-  // Terminal-specific (optional)
-  cursor?: string;            // Cursor color
-  cursorAccent?: string;      // Cursor text color
-  selectionBackground?: string; // Selection highlight
+	// Terminal-specific (optional)
+	cursor?: string; // Cursor color
+	cursorAccent?: string; // Cursor text color
+	selectionBackground?: string; // Selection highlight
 }
 ```
 
 **File Naming**: Filename acts as unique identifier
+
 - Example: `dracula.json`, `phosphor-green.json`, `nord.json`
 - Filename rules: lowercase, alphanumeric + hyphens, `.json` extension
 - Uniqueness enforced by file system (no duplicates)
 
 **Source Types**:
+
 1. **preset**: Bundled in `static/themes/`, read-only
 2. **custom**: User-uploaded to `~/.dispatch/themes/`, writable
 
 **Validation Rules**:
+
 - All required fields must be present
 - Color values: Valid hex (#rrggbb), rgb(r,g,b), rgba, hsl, or hsla
 - File size: Max 5MB (FR-019)
@@ -72,28 +76,28 @@ interface Theme {
 
 ```json
 {
-  "name": "Phosphor Green",
-  "description": "Dispatch default theme with phosphorescent green accent",
-  "background": "#0a0e0f",
-  "foreground": "#39ff14",
-  "cursor": "#39ff14",
-  "selectionBackground": "#39ff1440",
-  "black": "#1a1a1a",
-  "red": "#ff6b6b",
-  "green": "#39ff14",
-  "yellow": "#f1fa8c",
-  "blue": "#6272a4",
-  "magenta": "#bd93f9",
-  "cyan": "#8be9fd",
-  "white": "#f8f8f2",
-  "brightBlack": "#6272a4",
-  "brightRed": "#ff6655",
-  "brightGreen": "#50fa7b",
-  "brightYellow": "#ffff66",
-  "brightBlue": "#8899ff",
-  "brightMagenta": "#ff79c6",
-  "brightCyan": "#66ddff",
-  "brightWhite": "#ffffff"
+	"name": "Phosphor Green",
+	"description": "Dispatch default theme with phosphorescent green accent",
+	"background": "#0a0e0f",
+	"foreground": "#39ff14",
+	"cursor": "#39ff14",
+	"selectionBackground": "#39ff1440",
+	"black": "#1a1a1a",
+	"red": "#ff6b6b",
+	"green": "#39ff14",
+	"yellow": "#f1fa8c",
+	"blue": "#6272a4",
+	"magenta": "#bd93f9",
+	"cyan": "#8be9fd",
+	"white": "#f8f8f2",
+	"brightBlack": "#6272a4",
+	"brightRed": "#ff6655",
+	"brightGreen": "#50fa7b",
+	"brightYellow": "#ffff66",
+	"brightBlue": "#8899ff",
+	"brightMagenta": "#ff79c6",
+	"brightCyan": "#66ddff",
+	"brightWhite": "#ffffff"
 }
 ```
 
@@ -103,18 +107,19 @@ interface Theme {
 
 ```typescript
 interface ThemeMetadata {
-  id: string;                 // Filename without .json (e.g., "dracula")
-  name: string;               // Display name from file or filename
-  description: string;        // Description from file or empty
-  source: 'preset' | 'custom'; // Where theme file is stored
-  filePath: string;           // Absolute path to JSON file
-  cssVariables: CSSVariables; // Parsed CSS custom properties
-  isActive: boolean;          // Currently active theme
-  lastModified: Date;         // File modification timestamp
+	id: string; // Filename without .json (e.g., "dracula")
+	name: string; // Display name from file or filename
+	description: string; // Description from file or empty
+	source: 'preset' | 'custom'; // Where theme file is stored
+	filePath: string; // Absolute path to JSON file
+	cssVariables: CSSVariables; // Parsed CSS custom properties
+	isActive: boolean; // Currently active theme
+	lastModified: Date; // File modification timestamp
 }
 ```
 
 **Lifecycle**:
+
 1. Loaded on app start from both `static/themes/` and `~/.dispatch/themes/`
 2. Cached in `ThemeManager` instance
 3. Invalidated on theme CRUD operations (upload, delete)
@@ -126,34 +131,35 @@ interface ThemeMetadata {
 
 ```typescript
 interface CSSVariables {
-  // Terminal colors
-  '--theme-background': string;
-  '--theme-foreground': string;
-  '--theme-cursor': string;
-  '--theme-cursor-accent': string;
-  '--theme-selection-bg': string;
+	// Terminal colors
+	'--theme-background': string;
+	'--theme-foreground': string;
+	'--theme-cursor': string;
+	'--theme-cursor-accent': string;
+	'--theme-selection-bg': string;
 
-  // ANSI colors (16 total)
-  '--theme-ansi-black': string;
-  '--theme-ansi-red': string;
-  '--theme-ansi-green': string;
-  '--theme-ansi-yellow': string;
-  '--theme-ansi-blue': string;
-  '--theme-ansi-magenta': string;
-  '--theme-ansi-cyan': string;
-  '--theme-ansi-white': string;
-  '--theme-ansi-bright-black': string;
-  '--theme-ansi-bright-red': string;
-  '--theme-ansi-bright-green': string;
-  '--theme-ansi-bright-yellow': string;
-  '--theme-ansi-bright-blue': string;
-  '--theme-ansi-bright-magenta': string;
-  '--theme-ansi-bright-cyan': string;
-  '--theme-ansi-bright-white': string;
+	// ANSI colors (16 total)
+	'--theme-ansi-black': string;
+	'--theme-ansi-red': string;
+	'--theme-ansi-green': string;
+	'--theme-ansi-yellow': string;
+	'--theme-ansi-blue': string;
+	'--theme-ansi-magenta': string;
+	'--theme-ansi-cyan': string;
+	'--theme-ansi-white': string;
+	'--theme-ansi-bright-black': string;
+	'--theme-ansi-bright-red': string;
+	'--theme-ansi-bright-green': string;
+	'--theme-ansi-bright-yellow': string;
+	'--theme-ansi-bright-blue': string;
+	'--theme-ansi-bright-magenta': string;
+	'--theme-ansi-bright-cyan': string;
+	'--theme-ansi-bright-white': string;
 }
 ```
 
 **Transformation** (ThemeParser):
+
 - Input: xterm Theme JSON
 - Output: CSS variable key-value pairs
 - Example: `{ "background": "#0a0e0f" }` → `{ "--theme-background": "#0a0e0f" }`
@@ -177,14 +183,15 @@ CREATE TABLE IF NOT EXISTS user_preferences (
 
 ```json
 {
-  "category": "themes",
-  "preferences": {
-    "globalDefault": "phosphor-green.json"
-  }
+	"category": "themes",
+	"preferences": {
+		"globalDefault": "phosphor-green.json"
+	}
 }
 ```
 
 **Operations**:
+
 - **Read**: `SELECT preferences FROM user_preferences WHERE category = 'themes'`
 - **Write**: `INSERT OR REPLACE INTO user_preferences (category, preferences) VALUES ('themes', ?)`
 - **Default**: If row missing, use hardcoded fallback ("phosphor-green.json")
@@ -201,6 +208,7 @@ ALTER TABLE workspaces ADD COLUMN theme_override TEXT DEFAULT NULL;
 ```
 
 **Fields**:
+
 - `id` (TEXT PRIMARY KEY): Workspace path
 - `name` (TEXT): Display name
 - `status` (TEXT): 'new', 'active', 'archived'
@@ -211,21 +219,21 @@ ALTER TABLE workspaces ADD COLUMN theme_override TEXT DEFAULT NULL;
 
 ```javascript
 function resolveThemeForWorkspace(workspaceId) {
-  const workspace = db.getWorkspace(workspaceId);
+	const workspace = db.getWorkspace(workspaceId);
 
-  // 1. Workspace-specific override
-  if (workspace.theme_override) {
-    return workspace.theme_override;
-  }
+	// 1. Workspace-specific override
+	if (workspace.theme_override) {
+		return workspace.theme_override;
+	}
 
-  // 2. Global default preference
-  const prefs = db.getUserPreferences('themes');
-  if (prefs?.globalDefault) {
-    return prefs.globalDefault;
-  }
+	// 2. Global default preference
+	const prefs = db.getUserPreferences('themes');
+	if (prefs?.globalDefault) {
+		return prefs.globalDefault;
+	}
 
-  // 3. System fallback
-  return 'phosphor-green.json';
+	// 3. System fallback
+	return 'phosphor-green.json';
 }
 ```
 
@@ -244,6 +252,7 @@ Theme File (JSON)
 ```
 
 **Cardinality**:
+
 - **User → GlobalDefault**: 1 to 1 (single default theme)
 - **Workspace → ThemeOverride**: 1 to 0..1 (optional override)
 - **ThemeFile → Workspaces**: 1 to many (one theme used by multiple workspaces)
@@ -267,6 +276,7 @@ Theme File (JSON)
 ```
 
 **Constraints**:
+
 - Cannot delete theme if `isActiveGlobal` or used by any workspace (FR-013)
 - Cannot delete preset themes (read-only)
 - Upload validates before saving to disk
@@ -372,54 +382,70 @@ Request: GET /api/themes/active?workspaceId=xxx
 
 ```typescript
 interface ValidationResult {
-  valid: boolean;
-  errors: string[];    // Blocking errors
-  warnings: string[];  // Non-blocking issues
+	valid: boolean;
+	errors: string[]; // Blocking errors
+	warnings: string[]; // Non-blocking issues
 }
 
 function validateTheme(themeContent: string): ValidationResult {
-  const errors = [];
-  const warnings = [];
+	const errors = [];
+	const warnings = [];
 
-  // 1. Parse JSON
-  let theme;
-  try {
-    theme = JSON.parse(themeContent);
-  } catch (e) {
-    errors.push('Invalid JSON syntax');
-    return { valid: false, errors, warnings };
-  }
+	// 1. Parse JSON
+	let theme;
+	try {
+		theme = JSON.parse(themeContent);
+	} catch (e) {
+		errors.push('Invalid JSON syntax');
+		return { valid: false, errors, warnings };
+	}
 
-  // 2. Required fields
-  const required = ['background', 'foreground', 'black', 'red', 'green',
-                   'yellow', 'blue', 'magenta', 'cyan', 'white',
-                   'brightBlack', 'brightRed', 'brightGreen', 'brightYellow',
-                   'brightBlue', 'brightMagenta', 'brightCyan', 'brightWhite'];
+	// 2. Required fields
+	const required = [
+		'background',
+		'foreground',
+		'black',
+		'red',
+		'green',
+		'yellow',
+		'blue',
+		'magenta',
+		'cyan',
+		'white',
+		'brightBlack',
+		'brightRed',
+		'brightGreen',
+		'brightYellow',
+		'brightBlue',
+		'brightMagenta',
+		'brightCyan',
+		'brightWhite'
+	];
 
-  for (const field of required) {
-    if (!theme[field]) {
-      errors.push(`Missing required field: ${field}`);
-    }
-  }
+	for (const field of required) {
+		if (!theme[field]) {
+			errors.push(`Missing required field: ${field}`);
+		}
+	}
 
-  // 3. Color format validation
-  const colorRegex = /^(#[0-9a-f]{6}|rgb\(|rgba\(|hsl\(|hsla\()/i;
+	// 3. Color format validation
+	const colorRegex = /^(#[0-9a-f]{6}|rgb\(|rgba\(|hsl\(|hsla\()/i;
 
-  for (const [key, value] of Object.entries(theme)) {
-    if (typeof value === 'string' && !colorRegex.test(value)) {
-      errors.push(`Invalid color format for ${key}: ${value}`);
-    }
-  }
+	for (const [key, value] of Object.entries(theme)) {
+		if (typeof value === 'string' && !colorRegex.test(value)) {
+			errors.push(`Invalid color format for ${key}: ${value}`);
+		}
+	}
 
-  // 4. Warnings for missing optional fields
-  if (!theme.name) warnings.push('Missing optional field: name');
-  if (!theme.cursor) warnings.push('Missing optional field: cursor (will use foreground)');
+	// 4. Warnings for missing optional fields
+	if (!theme.name) warnings.push('Missing optional field: name');
+	if (!theme.cursor) warnings.push('Missing optional field: cursor (will use foreground)');
 
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings
-  };
+	return {
+		valid: errors.length === 0,
+		errors,
+		warnings
+	};
 }
 ```
 
@@ -427,35 +453,35 @@ function validateTheme(themeContent: string): ValidationResult {
 
 ```javascript
 async function canDeleteTheme(themeName) {
-  // Check if theme is global default
-  const prefs = await db.getUserPreferences('themes');
-  if (prefs?.globalDefault === themeName) {
-    return {
-      canDelete: false,
-      reason: 'Theme is currently set as global default'
-    };
-  }
+	// Check if theme is global default
+	const prefs = await db.getUserPreferences('themes');
+	if (prefs?.globalDefault === themeName) {
+		return {
+			canDelete: false,
+			reason: 'Theme is currently set as global default'
+		};
+	}
 
-  // Check if theme is used by any workspace
-  const workspaces = await db.getWorkspacesWithTheme(themeName);
-  if (workspaces.length > 0) {
-    return {
-      canDelete: false,
-      reason: `Theme is used by ${workspaces.length} workspace(s)`,
-      workspaces: workspaces.map(w => w.name)
-    };
-  }
+	// Check if theme is used by any workspace
+	const workspaces = await db.getWorkspacesWithTheme(themeName);
+	if (workspaces.length > 0) {
+		return {
+			canDelete: false,
+			reason: `Theme is used by ${workspaces.length} workspace(s)`,
+			workspaces: workspaces.map((w) => w.name)
+		};
+	}
 
-  // Check if theme is a preset
-  const theme = await themeManager.getTheme(themeName);
-  if (theme.source === 'preset') {
-    return {
-      canDelete: false,
-      reason: 'Cannot delete preset themes'
-    };
-  }
+	// Check if theme is a preset
+	const theme = await themeManager.getTheme(themeName);
+	if (theme.source === 'preset') {
+		return {
+			canDelete: false,
+			reason: 'Cannot delete preset themes'
+		};
+	}
 
-  return { canDelete: true };
+	return { canDelete: true };
 }
 ```
 
@@ -465,39 +491,39 @@ async function canDeleteTheme(themeName) {
 
 ```javascript
 class ThemeManager {
-  constructor() {
-    this.cache = new Map();      // Map<themeId, ThemeMetadata>
-    this.lastCacheUpdate = Date.now();
-    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
-  }
+	constructor() {
+		this.cache = new Map(); // Map<themeId, ThemeMetadata>
+		this.lastCacheUpdate = Date.now();
+		this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+	}
 
-  async loadThemes() {
-    // Load from both directories
-    const presetThemes = await this.loadFromDirectory('static/themes', 'preset');
-    const customThemes = await this.loadFromDirectory('~/.dispatch/themes', 'custom');
+	async loadThemes() {
+		// Load from both directories
+		const presetThemes = await this.loadFromDirectory('static/themes', 'preset');
+		const customThemes = await this.loadFromDirectory('~/.dispatch/themes', 'custom');
 
-    // Update cache
-    this.cache.clear();
-    [...presetThemes, ...customThemes].forEach(theme => {
-      this.cache.set(theme.id, theme);
-    });
+		// Update cache
+		this.cache.clear();
+		[...presetThemes, ...customThemes].forEach((theme) => {
+			this.cache.set(theme.id, theme);
+		});
 
-    this.lastCacheUpdate = Date.now();
-  }
+		this.lastCacheUpdate = Date.now();
+	}
 
-  async getTheme(themeId) {
-    // Check cache validity
-    if (Date.now() - this.lastCacheUpdate > this.cacheTimeout) {
-      await this.loadThemes();
-    }
+	async getTheme(themeId) {
+		// Check cache validity
+		if (Date.now() - this.lastCacheUpdate > this.cacheTimeout) {
+			await this.loadThemes();
+		}
 
-    return this.cache.get(themeId);
-  }
+		return this.cache.get(themeId);
+	}
 
-  invalidateCache() {
-    this.cache.clear();
-    this.lastCacheUpdate = 0;
-  }
+	invalidateCache() {
+		this.cache.clear();
+		this.lastCacheUpdate = 0;
+	}
 }
 ```
 
@@ -531,6 +557,7 @@ async ensureWorkspaceSchema() {
 ```
 
 This approach:
+
 - Automatically runs on database initialization
 - Checks if column exists before adding (idempotent)
 - Follows existing pattern used for `name` column
@@ -539,6 +566,7 @@ This approach:
 ## Summary
 
 **Key Design Principles**:
+
 1. **Simplicity**: File-based storage, minimal database changes
 2. **Flexibility**: Parser abstraction allows future formats
 3. **Reliability**: Hardcoded fallback ensures app never breaks
@@ -546,6 +574,7 @@ This approach:
 5. **Single-User**: No sharing, permissions, or multi-user complexity
 
 **Data Stores**:
+
 - **File System**: Theme content (JSON files)
 - **Database**: Preferences (global default) and workspace overrides
 - **Memory**: Cached theme metadata for fast access

@@ -22,28 +22,28 @@ Dispatch uses an adapter pattern for all session types (terminal, Claude, file e
 ```js
 // src/lib/server/adapters/WebPreviewAdapter.js
 export class WebPreviewAdapter {
-  static type = 'webpreview';
-  #sessions = new Map();
+	static type = 'webpreview';
+	#sessions = new Map();
 
-  async create({ onEvent, sessionId, workspacePath, options }) {
-    const server = await startPreviewServer(workspacePath, options?.port);
-    server.on('request', (req) => {
-      onEvent({ channel: 'webpreview:request', payload: { url: req.url, method: req.method } });
-    });
+	async create({ onEvent, sessionId, workspacePath, options }) {
+		const server = await startPreviewServer(workspacePath, options?.port);
+		server.on('request', (req) => {
+			onEvent({ channel: 'webpreview:request', payload: { url: req.url, method: req.method } });
+		});
 
-    this.#sessions.set(sessionId, { server });
-    return {
-      input: {
-        write: (data) => {
-          // handle commands (e.g., reload)
-        }
-      },
-      close: async () => {
-        await server.close();
-        this.#sessions.delete(sessionId);
-      }
-    };
-  }
+		this.#sessions.set(sessionId, { server });
+		return {
+			input: {
+				write: (data) => {
+					// handle commands (e.g., reload)
+				}
+			},
+			close: async () => {
+				await server.close();
+				this.#sessions.delete(sessionId);
+			}
+		};
+	}
 }
 ```
 
@@ -62,10 +62,10 @@ runSessionManager.registerAdapter('webpreview', new WebPreviewAdapter());
 
 ```js
 export const sessionModules = {
-  pty: () => import('$lib/client/terminal/TerminalPane.svelte'),
-  claude: () => import('$lib/client/claude/ClaudePane.svelte'),
-  'file-editor': () => import('$lib/client/file-editor/FileEditorPane.svelte'),
-  // 'webpreview': () => import('$lib/client/webpreview/WebPreviewPane.svelte'),
+	pty: () => import('$lib/client/terminal/TerminalPane.svelte'),
+	claude: () => import('$lib/client/claude/ClaudePane.svelte'),
+	'file-editor': () => import('$lib/client/file-editor/FileEditorPane.svelte')
+	// 'webpreview': () => import('$lib/client/webpreview/WebPreviewPane.svelte'),
 };
 ```
 

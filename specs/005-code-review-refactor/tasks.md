@@ -6,6 +6,7 @@
 ## Execution Summary
 
 This refactoring feature focuses on:
+
 - **Syntax Modernization** (FR-002): Update 3 components to Svelte 5 `$props()` syntax
 - **Module Splitting** (FR-004): Break SessionApiClient.js into 3 cohesive modules
 - **Component Extraction** (FR-005): Extract ClaudePane.svelte into 5 focused subcomponents
@@ -41,28 +42,28 @@ These tasks ensure environment is ready and establish baseline.
 
 These tasks update legacy Svelte 4 syntax to Svelte 5. Independent and safe to parallelize.
 
-- [X] **T003** [P] Update AuthenticationStep.svelte to use `$props()` syntax
+- [x] **T003** [P] Update AuthenticationStep.svelte to use `$props()` syntax
   - **File**: `src/lib/client/onboarding/AuthenticationStep.svelte`
   - **Changes**: Replace `export let onComplete` and `export let error` with `let { onComplete = () => {}, error = '' } = $props()`
   - **Acceptance**: Component renders, props function correctly, no console errors
   - **Test**: Run existing onboarding tests, verify pass
   - **Notes**: Consult svelte-llm MCP tool if edge cases encountered (clarification #1)
 
-- [X] **T004** [P] Update WorkspaceCreationStep.svelte to use `$props()` syntax
+- [x] **T004** [P] Update WorkspaceCreationStep.svelte to use `$props()` syntax
   - **File**: `src/lib/client/onboarding/WorkspaceCreationStep.svelte`
   - **Changes**: Replace `export let onComplete` and `export let initialPath` with `$props()` destructuring
   - **Acceptance**: Component renders, props function correctly, existing tests pass
   - **Test**: Run onboarding tests
   - **Notes**: Same pattern as T003
 
-- [X] **T005** [P] Update testing/+page.svelte to use `$props()` syntax
+- [x] **T005** [P] Update testing/+page.svelte to use `$props()` syntax
   - **File**: `src/routes/testing/+page.svelte`
   - **Changes**: Replace `export let data` with `let { data } = $props()`
   - **Acceptance**: Page renders, SvelteKit data prop works correctly
   - **Test**: Navigate to /testing route, verify no errors
   - **Notes**: SvelteKit required prop (no default)
 
-- [X] **T006** Run syntax modernization validation tests (SKIPPED per user request)
+- [x] **T006** Run syntax modernization validation tests (SKIPPED per user request)
   - **Files**: All tests in `tests/client/onboarding/`
   - **Acceptance**: All tests pass after T003-T005 changes
   - **Notes**: Ensures no regressions from props syntax updates
@@ -71,14 +72,14 @@ These tasks update legacy Svelte 4 syntax to Svelte 5. Independent and safe to p
 
 These tasks split the 970-line SessionApiClient.js into cohesive modules. Sequential to avoid merge conflicts.
 
-- [X] **T007** Create session-api module directory and shared types
+- [x] **T007** Create session-api module directory and shared types
   - **File**: `src/lib/client/shared/services/session-api/` (new directory)
   - **Files Created**:
     - `types.js` - Shared TypeScript types (Session, SessionFilters, ValidationResult, etc.)
   - **Acceptance**: Directory exists, types.js exports all shared interfaces
   - **Notes**: Foundation for T008-T010
 
-- [X] **T008** Extract queries.js from SessionApiClient
+- [x] **T008** Extract queries.js from SessionApiClient
   - **File**: `src/lib/client/shared/services/session-api/queries.js`
   - **Functions**: `getAllSessions`, `getSession`, `getSessionEvents`, `getWorkspaceSessions`
   - **Acceptance**:
@@ -87,7 +88,7 @@ These tasks split the 970-line SessionApiClient.js into cohesive modules. Sequen
     - No circular dependencies
   - **Notes**: Import shared types from types.js; consult refactoring-specialist if tight coupling found (clarification #3)
 
-- [X] **T009** Extract mutations.js from SessionApiClient
+- [x] **T009** Extract mutations.js from SessionApiClient
   - **File**: `src/lib/client/shared/services/session-api/mutations.js`
   - **Functions**: `createSession`, `updateSession`, `deleteSession`, `sendInput`, `closeSession`
   - **Acceptance**:
@@ -96,7 +97,7 @@ These tasks split the 970-line SessionApiClient.js into cohesive modules. Sequen
     - Follows async error-handling pattern (per FR-007)
   - **Notes**: Import shared types; may share HTTP client with queries
 
-- [X] **T010** Extract validation.js from SessionApiClient
+- [x] **T010** Extract validation.js from SessionApiClient
   - **File**: `src/lib/client/shared/services/session-api/validation.js`
   - **Functions**: `validateSessionData`, `validateSessionId`, `validateSessionFilters`, `sanitizeInput`
   - **Acceptance**:
@@ -105,7 +106,7 @@ These tasks split the 970-line SessionApiClient.js into cohesive modules. Sequen
     - No external dependencies (pure functions)
   - **Notes**: Validation should not throw errors; returns success/error objects
 
-- [X] **T011** Update SessionApiClient.js facade for backward compatibility
+- [x] **T011** Update SessionApiClient.js facade for backward compatibility
   - **File**: `src/lib/client/shared/services/SessionApiClient.js`
   - **Changes**: ~~Replace implementation with re-exports~~ **Decision: Keep original SessionApiClient.js intact**
   - **Acceptance**:
@@ -114,7 +115,7 @@ These tasks split the 970-line SessionApiClient.js into cohesive modules. Sequen
     - Modular API available for new code ✅
   - **Notes**: Backward compatibility maintained by keeping original file; new modular API (queries.js, mutations.js, validation.js) available for new implementations
 
-- [X] **T012** Run SessionApiClient modularization validation
+- [x] **T012** Run SessionApiClient modularization validation
   - **Files**: All tests using SessionApiClient
   - **Acceptance**:
     - All unit tests pass ✅
@@ -127,7 +128,7 @@ These tasks split the 970-line SessionApiClient.js into cohesive modules. Sequen
 
 These tasks extract the 1,800-line ClaudePane into focused subcomponents. Sequential due to shared dependencies.
 
-- [X] **T013** Create ClaudePaneViewModel with $state runes
+- [x] **T013** Create ClaudePaneViewModel with $state runes
   - **File**: `src/lib/client/claude/viewmodels/ClaudePaneViewModel.svelte.js`
   - **State Properties**: sessionId, messages, input, loading, isWaitingForReply, liveEventIcons, authState, connectionState
   - **Derived Properties**: hasActiveSession, canSubmit, status
@@ -138,15 +139,15 @@ These tasks extract the 1,800-line ClaudePane into focused subcomponents. Sequen
     - No errors when instantiated ✅
   - **Notes**: Foundation for T014-T018; follows runes-in-classes pattern documented in FR-003
 
-- [X] **T014** Extract ToolPanel.svelte subcomponent - **SKIPPED** (doesn't exist in current implementation)
+- [x] **T014** Extract ToolPanel.svelte subcomponent - **SKIPPED** (doesn't exist in current implementation)
   - **File**: N/A
   - **Notes**: ToolPanel concept not present in current Claude implementation; task adapted to match actual codebase
 
-- [X] **T015** Extract TracePanel.svelte subcomponent - **SKIPPED** (doesn't exist in current implementation)
+- [x] **T015** Extract TracePanel.svelte subcomponent - **SKIPPED** (doesn't exist in current implementation)
   - **File**: N/A
   - **Notes**: TracePanel concept not present in current Claude implementation; live events handled via LiveIconStrip component
 
-- [X] **T016** Extract MessageList.svelte subcomponent
+- [x] **T016** Extract MessageList.svelte subcomponent
   - **File**: `src/lib/client/claude/components/MessageList.svelte`
   - **Props**: `{ viewModel }` (ClaudePaneViewModel instance)
   - **Rendering**: Scrollable message list with user/assistant differentiation, typing indicators, live event icons
@@ -157,7 +158,7 @@ These tasks extract the 1,800-line ClaudePane into focused subcomponents. Sequen
     - Welcome message for empty state ✅
   - **Notes**: 450 lines; handles messages, typing state, and activity icons
 
-- [X] **T017** Extract InputArea.svelte subcomponent
+- [x] **T017** Extract InputArea.svelte subcomponent
   - **File**: `src/lib/client/claude/components/InputArea.svelte`
   - **Props**: `{ viewModel }`
   - **Rendering**: Auto-resizing textarea with submit button
@@ -168,7 +169,7 @@ These tasks extract the 1,800-line ClaudePane into focused subcomponents. Sequen
     - Mobile-optimized input ✅
   - **Notes**: 140 lines; clean input handling with accessibility
 
-- [X] **T018** Update ClaudePane.svelte to orchestrate subcomponents
+- [x] **T018** Update ClaudePane.svelte to orchestrate subcomponents
   - **File**: `src/lib/client/claude/ClaudePane.svelte`
   - **Changes**:
     - Import and instantiate ClaudePaneViewModel ✅
@@ -183,7 +184,7 @@ These tasks extract the 1,800-line ClaudePane into focused subcomponents. Sequen
     - File reduced from 1,817 lines to 374 lines ✅
   - **Notes**: Successfully extracted with MVVM pattern; 79% LOC reduction
 
-- [X] **T019** Run ClaudePane extraction validation tests
+- [x] **T019** Run ClaudePane extraction validation tests
   - **Files**: All tests related to Claude functionality
   - **Acceptance**:
     - All unit tests pass ✅
@@ -196,7 +197,7 @@ These tasks extract the 1,800-line ClaudePane into focused subcomponents. Sequen
 
 These tasks document architectural patterns AFTER all code changes complete (clarification #2).
 
-- [X] **T020** [P] Write MVVM patterns documentation
+- [x] **T020** [P] Write MVVM patterns documentation
   - **File**: `src/docs/architecture/mvvm-patterns.md` (new file)
   - **Content**:
     - What is runes-in-classes pattern (definition + example)
@@ -207,7 +208,7 @@ These tasks document architectural patterns AFTER all code changes complete (cla
   - **Acceptance**: Documentation complete, accurate, includes working code examples from codebase
   - **Notes**: Addresses FR-003
 
-- [X] **T021** [P] Write adapter registration guide
+- [x] **T021** [P] Write adapter registration guide
   - **File**: `src/docs/architecture/adapter-guide.md` (new file)
   - **Content**:
     - Adapter pattern overview
@@ -218,7 +219,7 @@ These tasks document architectural patterns AFTER all code changes complete (cla
   - **Acceptance**: Guide complete, file paths accurate, example is functional
   - **Notes**: Addresses FR-006
 
-- [X] **T022** [P] Write async error-handling guide
+- [x] **T022** [P] Write async error-handling guide
   - **File**: `src/docs/contributing/error-handling.md` (new file)
   - **Content**:
     - Standard async return shape: `{ success, data?, error? }`
@@ -232,7 +233,7 @@ These tasks document architectural patterns AFTER all code changes complete (cla
 
 Final gate to ensure zero functional regressions (FR-001).
 
-- [X] **T023** Execute full regression validation checklist
+- [x] **T023** Execute full regression validation checklist
   - **File**: Follow `specs/005-code-review-refactor/quickstart.md`
   - **Steps**:
     1. Run `npm run test` → Tests pass (pre-existing failures noted)
@@ -251,10 +252,12 @@ Final gate to ensure zero functional regressions (FR-001).
 ## Dependencies
 
 **Parallel Groups** (can run simultaneously):
+
 - T003, T004, T005 (props syntax updates - independent files)
 - T020, T021, T022 (documentation - independent files)
 
 **Sequential Dependencies**:
+
 - T001 → T002 → T003-T005 (baseline before changes)
 - T007 → T008 → T009 → T010 → T011 → T012 (module creation order)
 - T013 → T014 → T015 → T016 → T017 → T018 → T019 (component extraction order)
@@ -295,6 +298,7 @@ Task: "Write async error-handling guide in src/docs/contributing/error-handling.
 ### Testing Requirements (FR-001)
 
 Every refactoring task MUST:
+
 1. Preserve existing functionality (zero behavioral changes)
 2. Pass all existing tests (100% pass rate maintained)
 3. Complete manual validation in quickstart.md before merge
@@ -332,6 +336,7 @@ _GATE: Verify before marking feature complete_
 **Estimated Duration**: 6-8 hours for experienced developer familiar with codebase
 
 **Coverage**:
+
 - ✅ All 3 components for syntax updates (FR-002)
 - ✅ SessionApiClient split into 3 modules + facade (FR-004)
 - ✅ ClaudePane extracted into 5 components (FR-005)

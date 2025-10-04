@@ -62,7 +62,7 @@
 
 	/* Subtle base appearance */
 	background: var(--line);
-	border-radius: 2px;
+	border-radius: var(--radius-xs);
 }
 
 .wm-divider[data-dir='row'] {
@@ -175,7 +175,7 @@
 .wm-tile:empty {
 	background: var(--surface);
 	border: 2px dashed var(--line);
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 	transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -196,7 +196,7 @@
 	z-index: 1000;
 	background: var(--surface);
 	border: 1px solid var(--accent);
-	border-radius: 12px;
+	border-radius: var(--radius-lg);
 	padding: var(--space-5);
 	max-width: 500px;
 	width: 90vw;
@@ -242,7 +242,7 @@
 	font-size: var(--font-size-3);
 	cursor: pointer;
 	padding: var(--space-1);
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	transition: all 0.2s ease;
 }
 
@@ -262,7 +262,7 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: var(--space-2);
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	transition: background-color 0.15s ease;
 }
 
@@ -285,7 +285,7 @@
 .wm-shortcut-key {
 	background: var(--bg);
 	border: 1px solid var(--line);
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	padding: 2px 6px;
 	font-family: var(--font-mono);
 	font-size: var(--font-size-0);
@@ -320,7 +320,7 @@
 	z-index: 20;
 	background: var(--surface);
 	border: 1px solid var(--line);
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	padding: var(--space-2) var(--space-3);
 	font-size: var(--font-size-0);
 	color: var(--text-muted);
@@ -342,7 +342,7 @@
 .wm-shortcut-hint-key {
 	background: var(--bg);
 	border: 1px solid var(--line);
-	border-radius: 3px;
+	border-radius: var(--radius-xs);
 	padding: 1px 4px;
 	font-family: var(--font-mono);
 	margin: 0 2px;
@@ -362,7 +362,7 @@
 	padding: var(--space-5);
 	text-align: center;
 	border: 2px dashed var(--line);
-	border-radius: 8px;
+	border-radius: var(--radius-md);
 	background: var(--surface);
 	transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -412,7 +412,7 @@
 	padding: var(--space-2) var(--space-3);
 	background: var(--bg);
 	border: 1px solid var(--line);
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	color: var(--text-primary);
 	font-size: var(--font-size-1);
 	cursor: pointer;

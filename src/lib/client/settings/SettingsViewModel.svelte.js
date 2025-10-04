@@ -47,9 +47,7 @@ export class SettingsViewModel {
 
 		this.hasValidationErrors = $derived(Object.keys(this.validationErrors).length > 0);
 
-		this.canSave = $derived(
-			this.hasUnsavedChanges && !this.hasValidationErrors && !this.saving
-		);
+		this.canSave = $derived(this.hasUnsavedChanges && !this.hasValidationErrors && !this.saving);
 	}
 
 	/**

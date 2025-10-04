@@ -69,9 +69,7 @@ test.describe('Workspace-Specific Themes', () => {
 				// Check if requesting specific workspace
 				const workspaceId = url.match(/\/api\/workspaces\/([^?]+)/)?.[1];
 				if (workspaceId) {
-					const workspace = mockWorkspaces.find((w) =>
-						encodeURIComponent(w.id) === workspaceId
-					);
+					const workspace = mockWorkspaces.find((w) => encodeURIComponent(w.id) === workspaceId);
 					route.fulfill({
 						status: 200,
 						contentType: 'application/json',
@@ -255,9 +253,7 @@ test.describe('Workspace-Specific Themes', () => {
 
 			// Verify theme changed
 			const newBgColor = await page.evaluate(() => {
-				return getComputedStyle(document.documentElement).getPropertyValue(
-					'--theme-background'
-				);
+				return getComputedStyle(document.documentElement).getPropertyValue('--theme-background');
 			});
 
 			// Colors should be different (Project A uses default, Project B uses dark)

@@ -26,6 +26,7 @@ npm run test
 ```
 
 **Success Criteria**:
+
 - ✅ All unit tests pass
 - ✅ No new test failures introduced
 - ✅ Test coverage maintained or improved
@@ -41,6 +42,7 @@ npm run test:e2e
 ```
 
 **Success Criteria**:
+
 - ✅ All E2E tests pass
 - ✅ No timeout errors
 - ✅ No visual regressions
@@ -55,6 +57,7 @@ npm run check
 ```
 
 **Success Criteria**:
+
 - ✅ No type errors
 - ✅ No new warnings introduced
 
@@ -68,6 +71,7 @@ npm run lint
 ```
 
 **Success Criteria**:
+
 - ✅ No ESLint errors
 - ✅ Code formatting consistent
 
@@ -89,6 +93,7 @@ npm run lint
 5. Check browser console → No errors or warnings
 
 **Expected**:
+
 - ✅ Component renders without errors
 - ✅ Props (onComplete, error) function correctly
 - ✅ No console errors about props
@@ -102,6 +107,7 @@ npm run lint
 5. Check browser console → No errors
 
 **Expected**:
+
 - ✅ Component renders without errors
 - ✅ Props (onComplete, initialPath) function correctly
 - ✅ Form submission works as before
@@ -115,6 +121,7 @@ npm run lint
 4. No console errors
 
 **Expected**:
+
 - ✅ Page renders without errors
 - ✅ `data` prop from SvelteKit works correctly
 
@@ -133,6 +140,7 @@ npm run lint
 5. Click on a session → Verify session details load
 
 **Expected**:
+
 - ✅ getAllSessions() function works (network request succeeds)
 - ✅ getSession() function works (session details load)
 - ✅ No console errors about missing imports
@@ -148,6 +156,7 @@ npm run lint
 7. Close session → Verify session stops
 
 **Expected**:
+
 - ✅ createSession() works (new session appears)
 - ✅ sendInput() works (input sent to session)
 - ✅ closeSession() works (session stops gracefully)
@@ -160,6 +169,7 @@ npm run lint
 4. Verify sanitization works
 
 **Expected**:
+
 - ✅ Validation catches invalid inputs
 - ✅ Error messages display correctly
 - ✅ Input sanitization prevents dangerous characters
@@ -179,6 +189,7 @@ npm run lint
 5. No console errors
 
 **Expected**:
+
 - ✅ ToolPanel renders separately
 - ✅ Tool selection works
 - ✅ Visual indicators correct
@@ -192,6 +203,7 @@ npm run lint
 5. No console errors
 
 **Expected**:
+
 - ✅ TracePanel renders separately
 - ✅ Expand/collapse works
 - ✅ Trace data displays correctly
@@ -206,6 +218,7 @@ npm run lint
 6. Verify actions work
 
 **Expected**:
+
 - ✅ MessageList renders separately
 - ✅ Messages display correctly (user vs. assistant)
 - ✅ Message actions functional
@@ -220,6 +233,7 @@ npm run lint
 6. No console errors
 
 **Expected**:
+
 - ✅ InputArea renders separately
 - ✅ Auto-resize works
 - ✅ Keyboard shortcuts functional
@@ -233,6 +247,7 @@ npm run lint
 4. No console errors about state mutations
 
 **Expected**:
+
 - ✅ ViewModel state syncs across all subcomponents
 - ✅ No reactivity issues
 - ✅ No memory leaks
@@ -256,6 +271,7 @@ npm run lint
 9. Close terminal session
 
 **Expected**:
+
 - ✅ Terminal session creates successfully
 - ✅ Commands execute correctly
 - ✅ Output displays in real-time
@@ -272,6 +288,7 @@ npm run lint
 7. Close Claude session
 
 **Expected**:
+
 - ✅ Claude session creates successfully
 - ✅ Messages send/receive correctly
 - ✅ UI updates in real-time
@@ -288,6 +305,7 @@ npm run lint
 7. Delete test workspace
 
 **Expected**:
+
 - ✅ Workspace list displays correctly
 - ✅ Workspace creation works
 - ✅ Workspace switching updates sessions
@@ -302,6 +320,7 @@ npm run lint
 **Objective**: Verify session replay remains <100ms
 
 **Test Procedure**:
+
 1. Create terminal session
 2. Execute 50+ commands to build event history
 3. Close session
@@ -309,6 +328,7 @@ npm run lint
 5. Measure replay time using browser DevTools Performance tab
 
 **Success Criteria**:
+
 - ✅ Replay completes in <100ms
 - ✅ No noticeable UI lag during replay
 - ✅ All events applied correctly
@@ -318,6 +338,7 @@ npm run lint
 **Objective**: Verify refactored modules load quickly
 
 **Test Procedure**:
+
 1. Open browser DevTools → Network tab
 2. Reload page (Cmd/Ctrl + Shift + R for hard reload)
 3. Observe module load times for refactored files:
@@ -329,6 +350,7 @@ npm run lint
    - etc.
 
 **Success Criteria**:
+
 - ✅ Individual modules load faster than original monolithic files
 - ✅ Total page load time unchanged or improved
 - ✅ No waterfall delays from module splitting
@@ -349,6 +371,7 @@ npm run lint
 4. Confirm "why/when/how" questions answered
 
 **Expected**:
+
 - ✅ Documentation accurate
 - ✅ Code examples runnable
 - ✅ Rationale explained
@@ -362,6 +385,7 @@ npm run lint
 4. Confirm minimal example is complete
 
 **Expected**:
+
 - ✅ Guide accurate and up-to-date
 - ✅ File paths correct
 - ✅ Example code functional
@@ -374,6 +398,7 @@ npm run lint
 4. Confirm pattern applied consistently
 
 **Expected**:
+
 - ✅ Pattern clearly documented
 - ✅ Examples match real usage
 - ✅ Consistency across codebase
@@ -424,26 +449,33 @@ If ANY criteria fail → **Return to implementation and fix issues**
 ### Common Issues
 
 **Issue**: Tests fail after refactoring
+
 - **Solution**: Check import paths updated to new module structure
 
 **Issue**: Props not working in migrated components
+
 - **Solution**: Verify `$props()` destructuring syntax correct (no `export let` remaining)
 
 **Issue**: ViewModel state not syncing to subcomponents
+
 - **Solution**: Ensure ViewModel instance passed as prop, not recreated in each child
 
 **Issue**: Performance degraded after split
+
 - **Solution**: Check for unnecessary reactive statements; use `$derived` instead of `$effect` where possible
 
 ---
 
 ## Sign-Off
 
-**Tester**: _________________
-**Date**: _________________
+**Tester**: ********\_********
+**Date**: ********\_********
 **Result**: ☐ Pass ☐ Fail (with notes attached)
 
 **Notes**:
-_______________________________________________________
-_______________________________________________________
-_______________________________________________________
+
+---
+
+---
+
+---

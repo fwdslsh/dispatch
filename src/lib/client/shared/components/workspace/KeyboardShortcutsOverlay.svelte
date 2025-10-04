@@ -289,7 +289,7 @@
 	.shortcuts-modal {
 		background: var(--bg, #1a1a1a);
 		border: 1px solid var(--surface-border, #333);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 		width: 100%;
 		max-width: 900px;
@@ -349,7 +349,7 @@
 	.shortcut-category {
 		background: var(--surface-hover, #2a2a2a);
 		border: 1px solid var(--surface-border, #333);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		padding: 1.5rem;
 	}
 
@@ -390,7 +390,7 @@
 	.key {
 		background: var(--surface-active, #333);
 		border: 1px solid var(--surface-border, #444);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		padding: 0.25rem 0.5rem;
 		font-family: var(--font-mono, monospace);
 		font-size: 0.75rem;
@@ -433,7 +433,7 @@
 	.pro-tips {
 		background: var(--surface-elevated, #222);
 		border: 1px solid var(--primary-muted, #0066cc40);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		padding: 1.5rem;
 		margin-top: 1rem;
 	}

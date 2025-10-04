@@ -258,7 +258,6 @@
 </div>
 
 <style>
-
 	.error-message {
 		color: #ff6347;
 		padding: var(--space-sm);

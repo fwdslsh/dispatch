@@ -53,20 +53,6 @@
 		width: 100%;
 	}
 
-	/* Background image overlay - reused from workspace */
-	.dispatch-app::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		opacity: 0.09;
-		background-image: url('/fwdslsh-green-bg.png');
-		background-repeat: no-repeat;
-		background-position: center center;
-		background-size: contain;
-		pointer-events: none;
-		z-index: -1;
-	}
-
 	/* Mobile responsive adjustments */
 	@media (max-width: 480px) {
 		.dispatch-app {

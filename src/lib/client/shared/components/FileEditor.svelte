@@ -265,7 +265,7 @@
 
 	.editor-textarea::-webkit-scrollbar-thumb {
 		background: var(--color-border);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 	}
 
 	.editor-textarea::-webkit-scrollbar-thumb:hover {

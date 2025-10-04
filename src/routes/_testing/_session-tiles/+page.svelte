@@ -481,7 +481,7 @@
 	.shortcuts kbd {
 		background: #333;
 		padding: 0.25rem 0.5rem;
-		border-radius: 0.25rem;
+		border-radius: var(--radius-xs);
 		font-family: 'JetBrains Mono', monospace;
 		font-size: 0.8rem;
 		border: 1px solid #555;
@@ -612,7 +612,7 @@
 		border: 1px solid #555;
 		color: #ccc;
 		padding: 0.25rem;
-		border-radius: 0.25rem;
+		border-radius: var(--radius-xs);
 		cursor: pointer;
 		transition: all 0.2s;
 		display: flex;
@@ -652,7 +652,7 @@
 		height: 32px;
 		border: 3px solid #333;
 		border-top: 3px solid #0066cc;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 		margin-bottom: 1rem;
 	}
@@ -685,7 +685,7 @@
 		border: 1px solid #555;
 		color: #ccc;
 		padding: 4px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		cursor: pointer;
 		transition: all 0.2s;
 		display: flex;

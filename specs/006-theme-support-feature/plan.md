@@ -53,32 +53,38 @@ Implement a unified theme support system for Dispatch that allows users to custo
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
 **I. Simplicity & Maintainability**: ✅ PASS
+
 - Uses simple file-based storage with JSON themes
 - Minimal abstraction: single ThemeParser abstract class
 - Reuses existing database for preferences (no new tables needed beyond user_preferences)
 - No unnecessary dependencies (leverages existing file system APIs)
 
 **II. Single-User, Developer-First Platform**: ✅ PASS
+
 - Explicitly designed for single-user (FR-032: no sharing/export/multi-user)
 - Serves individual developer customizing their environment
 - No team collaboration features
 
 **III. Isolated, Remotely Accessible Development Environment**: ✅ PASS
+
 - Themes stored in user's isolated data directory (`~/.dispatch/themes/`)
 - No external dependencies or cloud services
 - Works within containerized environment
 
 **IV. Event-Sourced State Management**: ✅ PASS (Not Applicable)
+
 - Theme changes trigger page refresh (FR-011) - no events needed
 - Theme state is preference data, not session activity
 - No session history replay required for theming
 
 **V. Adapter Pattern for Extensibility**: ✅ PASS
+
 - ThemeParser follows adapter pattern with abstract base class
 - XtermThemeParser is first concrete implementation
 - New formats can be added without modifying core code (FR-002)
 
 **VI. Progressive Enhancement**: ✅ PASS
+
 - Core functionality: hardcoded Phosphor Green fallback (FR-029, FR-030)
 - Enhanced: preset themes copied during onboarding (FR-005)
 - Advanced: custom theme uploads (optional feature)
@@ -87,6 +93,7 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 **Post-Design Re-Evaluation (Phase 1 Complete)**: ✅ ALL PRINCIPLES PASS
 
 After completing design artifacts (data-model.md, contracts/, quickstart.md):
+
 - No new constitutional violations introduced
 - Design maintains simplicity: file-based storage, single abstract class, reuses existing DB tables
 - Schema update via existing ensureWorkspaceSchema() pattern (adds theme_override column)
@@ -152,6 +159,7 @@ tests/
 ```
 
 **Structure Decision**: Web application (SvelteKit). Theme management follows existing patterns:
+
 - Backend services in `src/lib/server/themes/`
 - Frontend components in `src/lib/client/settings/`
 - State management using Svelte 5 runes in `src/lib/client/shared/state/`
@@ -296,6 +304,7 @@ The /tasks command will generate implementation tasks based on design artifacts:
 **Task Template Fields** (from tasks-template.md):
 
 Each task will include:
+
 - Task number and description
 - Dependencies (which tasks must complete first)
 - Acceptance criteria (testable outcomes)

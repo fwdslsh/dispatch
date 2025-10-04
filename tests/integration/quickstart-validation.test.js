@@ -221,9 +221,7 @@ describe('Quickstart Validation Scenarios', () => {
 
 			// Authentication category should contain auth-related settings
 			const authKeys = authSettings.map((s) => s.key);
-			expect(authKeys.some((k) => k.includes('terminal_key') || k.includes('oauth'))).toBe(
-				true
-			);
+			expect(authKeys.some((k) => k.includes('terminal_key') || k.includes('oauth'))).toBe(true);
 
 			// Workspace category should contain workspace-related settings
 			const workspaceKeys = workspaceSettings.map((s) => s.key);
@@ -327,9 +325,7 @@ describe('Quickstart Validation Scenarios', () => {
 			const db = settingsManager.db;
 
 			const tables = db
-				.prepare(
-					"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%settings%'"
-				)
+				.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%settings%'")
 				.all();
 
 			const tableNames = tables.map((t) => t.name);
@@ -434,9 +430,7 @@ describe('Quickstart Validation Scenarios', () => {
 
 			// Database has proper structure
 			const db = settingsManager.db;
-			const tables = db
-				.prepare("SELECT name FROM sqlite_master WHERE type='table'")
-				.all();
+			const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
 
 			expect(tables.length).toBeGreaterThan(0);
 		});

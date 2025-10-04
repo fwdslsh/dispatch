@@ -20,7 +20,8 @@ export async function GET({ locals }) {
 		const authSettings = await database.getSettingsByCategory('authentication');
 
 		// Build auth config response
-		const terminalKey = authSettings.terminal_key || process.env.TERMINAL_KEY || 'change-me-to-a-strong-password';
+		const terminalKey =
+			authSettings.terminal_key || process.env.TERMINAL_KEY || 'change-me-to-a-strong-password';
 		const oauthClientId = authSettings.oauth_client_id;
 		const oauthRedirectUri = authSettings.oauth_redirect_uri;
 
@@ -84,10 +85,7 @@ export async function PUT({ request, url, locals }) {
 		// Basic validation for terminal_key
 		if (authSettings.terminal_key !== undefined) {
 			if (typeof authSettings.terminal_key !== 'string' || authSettings.terminal_key.length < 8) {
-				return json(
-					{ error: 'Terminal key must be at least 8 characters long' },
-					{ status: 400 }
-				);
+				return json({ error: 'Terminal key must be at least 8 characters long' }, { status: 400 });
 			}
 		}
 
@@ -116,8 +114,7 @@ export async function PUT({ request, url, locals }) {
 			success: true,
 			updated_count: Object.keys(authSettings).length,
 			session_invalidated: true,
-			message:
-				'Authentication configuration updated. All active sessions have been invalidated.'
+			message: 'Authentication configuration updated. All active sessions have been invalidated.'
 		};
 
 		return json(response, {

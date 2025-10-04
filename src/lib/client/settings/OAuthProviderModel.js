@@ -53,8 +53,7 @@ export const OAuthProviders = {
 				label: 'Full repository and workflow access'
 			}
 		],
-		setupInstructions:
-			'Go to GitHub Settings → Developer settings → OAuth Apps → New OAuth App',
+		setupInstructions: 'Go to GitHub Settings → Developer settings → OAuth Apps → New OAuth App',
 		docsUrl: 'https://docs.github.com/en/apps/oauth-apps/building-oauth-apps'
 	},
 	custom: {

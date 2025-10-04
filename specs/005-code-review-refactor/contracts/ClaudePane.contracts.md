@@ -6,6 +6,7 @@
 ## Overview
 
 ClaudePane.svelte (~1,800 lines) will be extracted into:
+
 - **ClaudePane.svelte**: Parent container (~200 lines)
 - **ToolPanel.svelte**: Tool selection UI
 - **TracePanel.svelte**: Trace/debug display
@@ -20,33 +21,37 @@ ClaudePane.svelte (~1,800 lines) will be extracted into:
 **Purpose**: Container component orchestrating child components
 
 **Props**:
+
 ```typescript
 interface ClaudePaneProps {
-  sessionId: string         // Current Claude session ID
-  workspacePath: string     // Workspace path for context
+	sessionId: string; // Current Claude session ID
+	workspacePath: string; // Workspace path for context
 }
 ```
 
 **Usage**:
+
 ```svelte
 <ClaudePane sessionId="claude-session-123" workspacePath="/workspace/my-project" />
 ```
 
 **Responsibilities**:
+
 - Instantiate `ClaudePaneViewModel`
 - Pass ViewModel to all child components
 - Handle layout (grid/flexbox arrangement)
 - No business logic (delegated to ViewModel)
 
 **Rendering Structure**:
+
 ```svelte
 <div class="claude-pane">
-  <ToolPanel {viewModel} />
-  <div class="main-content">
-    <MessageList {viewModel} />
-    <InputArea {viewModel} />
-  </div>
-  <TracePanel {viewModel} />
+	<ToolPanel {viewModel} />
+	<div class="main-content">
+		<MessageList {viewModel} />
+		<InputArea {viewModel} />
+	</div>
+	<TracePanel {viewModel} />
 </div>
 ```
 
@@ -59,13 +64,15 @@ interface ClaudePaneProps {
 **Purpose**: Display available tools and handle tool selection
 
 **Props**:
+
 ```typescript
 interface ToolPanelProps {
-  viewModel: ClaudePaneViewModel  // Shared ViewModel instance
+	viewModel: ClaudePaneViewModel; // Shared ViewModel instance
 }
 ```
 
 **ViewModel State Access**:
+
 ```javascript
 viewModel.tools: Tool[]              // Array of available tools
 viewModel.selectedTool: string | null // Currently selected tool ID
@@ -75,17 +82,20 @@ viewModel.selectTool(toolId: string) // Method to select tool
 **Events Emitted**: None (uses ViewModel methods)
 
 **Rendering**:
+
 - List of tools with icons
 - Active tool visual indicator
 - Tool description on hover
 - Click handler calling `viewModel.selectTool(toolId)`
 
 **Accessibility**:
+
 - ARIA roles for list and listitem
 - Keyboard navigation (Tab, Enter)
 - Screen reader announcements for selection
 
 **Example Usage**:
+
 ```svelte
 <ToolPanel {viewModel} />
 ```
@@ -97,13 +107,15 @@ viewModel.selectTool(toolId: string) // Method to select tool
 **Purpose**: Display execution traces and debug information
 
 **Props**:
+
 ```typescript
 interface TracePanelProps {
-  viewModel: ClaudePaneViewModel
+	viewModel: ClaudePaneViewModel;
 }
 ```
 
 **ViewModel State Access**:
+
 ```javascript
 viewModel.traces: TraceEntry[]               // Array of trace entries
 viewModel.tracePanelExpanded: boolean        // Panel visibility state
@@ -113,17 +125,20 @@ viewModel.toggleTracePanel()                 // Toggle visibility method
 **Events Emitted**: None (uses ViewModel methods)
 
 **Rendering**:
+
 - Collapsible panel (header + content)
 - Trace entries with syntax highlighting
 - Expand/collapse button
 - Empty state when no traces
 
 **Accessibility**:
+
 - ARIA expanded state
 - Keyboard toggle (Enter/Space)
 - Focus management on expand/collapse
 
 **Example Usage**:
+
 ```svelte
 <TracePanel {viewModel} />
 ```
@@ -135,13 +150,15 @@ viewModel.toggleTracePanel()                 // Toggle visibility method
 **Purpose**: Render conversation messages between user and Claude
 
 **Props**:
+
 ```typescript
 interface MessageListProps {
-  viewModel: ClaudePaneViewModel
+	viewModel: ClaudePaneViewModel;
 }
 ```
 
 **ViewModel State Access**:
+
 ```javascript
 viewModel.messages: Message[]                        // Array of messages
 viewModel.handleMessageAction(messageId, action)     // Action handler
@@ -150,6 +167,7 @@ viewModel.handleMessageAction(messageId, action)     // Action handler
 **Events Emitted**: None (uses ViewModel methods)
 
 **Rendering**:
+
 - Scrollable message list
 - Message differentiation (user vs. assistant)
 - Action buttons (copy, retry, regenerate)
@@ -157,16 +175,19 @@ viewModel.handleMessageAction(messageId, action)     // Action handler
 - Auto-scroll to bottom on new messages
 
 **Message Actions**:
+
 - `copy`: Copy message content to clipboard
 - `retry`: Retry failed message
 - `regenerate`: Request new response
 
 **Accessibility**:
+
 - ARIA live region for new messages
 - Semantic HTML (article, section)
 - Keyboard-accessible action buttons
 
 **Example Usage**:
+
 ```svelte
 <MessageList {viewModel} />
 ```
@@ -178,13 +199,15 @@ viewModel.handleMessageAction(messageId, action)     // Action handler
 **Purpose**: Handle user text input and submission
 
 **Props**:
+
 ```typescript
 interface InputAreaProps {
-  viewModel: ClaudePaneViewModel
+	viewModel: ClaudePaneViewModel;
 }
 ```
 
 **ViewModel State Access**:
+
 ```javascript
 viewModel.inputText: string                  // Current input text
 viewModel.isProcessing: boolean              // Processing state
@@ -196,22 +219,26 @@ viewModel.cancelProcessing()                 // Cancel handler
 **Events Emitted**: None (uses ViewModel methods)
 
 **Rendering**:
+
 - Auto-resizing textarea
 - Submit button (disabled when `!canSubmit`)
 - Cancel button (visible only when `isProcessing`)
 - Character count (optional)
 
 **Keyboard Shortcuts**:
+
 - `Enter` (no modifiers): Submit input
 - `Shift+Enter`: New line
 - `Escape`: Cancel processing (if active)
 
 **Accessibility**:
+
 - Label for textarea
 - Button states announced
 - Error messages via aria-live
 
 **Example Usage**:
+
 ```svelte
 <InputArea {viewModel} />
 ```
@@ -225,11 +252,13 @@ viewModel.cancelProcessing()                 // Cancel handler
 **Purpose**: Centralized state management using Svelte 5 runes-in-classes pattern
 
 **Constructor**:
+
 ```javascript
 constructor(sessionId: string, workspacePath: string)
 ```
 
 **State Properties** (using `$state` runes):
+
 ```javascript
 sessionId: string                    // Session ID
 workspacePath: string                // Workspace path
@@ -251,12 +280,14 @@ isProcessing: boolean                // Processing flag
 ```
 
 **Derived Properties** (using `$derived`):
+
 ```javascript
-hasActiveSession: boolean            // Is session active?
-canSubmit: boolean                   // Can submit input?
+hasActiveSession: boolean; // Is session active?
+canSubmit: boolean; // Can submit input?
 ```
 
 **Methods**:
+
 ```javascript
 selectTool(toolId: string): void
 toggleTracePanel(): void
@@ -266,8 +297,9 @@ cancelProcessing(): void
 ```
 
 **Example Instantiation**:
+
 ```javascript
-const viewModel = new ClaudePaneViewModel('claude-123', '/workspace/my-project')
+const viewModel = new ClaudePaneViewModel('claude-123', '/workspace/my-project');
 ```
 
 ---
@@ -278,11 +310,11 @@ const viewModel = new ClaudePaneViewModel('claude-123', '/workspace/my-project')
 
 ```typescript
 interface Tool {
-  id: string
-  name: string
-  description: string
-  icon: string  // Icon name or path
-  enabled: boolean
+	id: string;
+	name: string;
+	description: string;
+	icon: string; // Icon name or path
+	enabled: boolean;
 }
 ```
 
@@ -290,11 +322,11 @@ interface Tool {
 
 ```typescript
 interface TraceEntry {
-  id: string
-  timestamp: string  // ISO timestamp
-  type: 'info' | 'warning' | 'error'
-  message: string
-  data?: object      // Optional structured data
+	id: string;
+	timestamp: string; // ISO timestamp
+	type: 'info' | 'warning' | 'error';
+	message: string;
+	data?: object; // Optional structured data
 }
 ```
 
@@ -302,11 +334,11 @@ interface TraceEntry {
 
 ```typescript
 interface Message {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: string  // ISO timestamp
-  status: 'pending' | 'complete' | 'error'
+	id: string;
+	role: 'user' | 'assistant';
+	content: string;
+	timestamp: string; // ISO timestamp
+	status: 'pending' | 'complete' | 'error';
 }
 ```
 
@@ -317,6 +349,7 @@ interface Message {
 ### Component Contract Tests
 
 Each subcomponent will have tests validating:
+
 - Props interface matches contract
 - ViewModel methods are called correctly
 - Rendering matches expected structure
@@ -325,6 +358,7 @@ Each subcomponent will have tests validating:
 ### Integration Tests
 
 Tests validating full component tree:
+
 - ClaudePane instantiates ViewModel
 - ViewModel state updates propagate to subcomponents
 - User interactions trigger correct ViewModel methods
@@ -367,6 +401,7 @@ InputArea (child)
 ### Props Interface
 
 ClaudePane.svelte props interface remains identical:
+
 ```svelte
 <!-- Before refactor -->
 <ClaudePane sessionId={id} workspacePath={path} />
@@ -378,6 +413,7 @@ ClaudePane.svelte props interface remains identical:
 ### Event Emissions
 
 All events emitted by original ClaudePane.svelte are preserved:
+
 - `session-started`
 - `session-ended`
 - `message-sent`
@@ -424,10 +460,10 @@ Use Svelte's `<svelte:boundary>` for component-level error handling:
 
 ```svelte
 <svelte:boundary>
-  <MessageList {viewModel} />
-  {#snippet error(err)}
-    <ErrorMessage message={err.message} />
-  {/snippet}
+	<MessageList {viewModel} />
+	{#snippet error(err)}
+		<ErrorMessage message={err.message} />
+	{/snippet}
 </svelte:boundary>
 ```
 

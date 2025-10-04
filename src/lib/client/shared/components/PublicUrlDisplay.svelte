@@ -122,7 +122,7 @@
 			margin: 0;
 			background: rgba(26, 26, 26, 0.9);
 			border: 1px solid rgba(0, 255, 136, 0.15);
-			border-radius: 6px;
+			border-radius: var(--radius-sm);
 		}
 
 		.public-url-wrapper {

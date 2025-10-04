@@ -241,7 +241,7 @@
 		margin-right: 0.25rem;
 		color: var(--accent-cyan);
 		border: 1px solid var(--accent-cyan);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		font-size: 0.5rem;
 		font-weight: bold;
 		font-style: italic;
@@ -257,7 +257,7 @@
 		margin-right: 0.25rem;
 		color: var(--err);
 		border: 1px solid var(--err);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		font-size: 0.5rem;
 		font-weight: bold;
 	}
@@ -272,7 +272,7 @@
 		margin-right: 0.25rem;
 		color: var(--warn);
 		border: 1px solid var(--warn);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		font-size: 0.5rem;
 		font-weight: bold;
 	}

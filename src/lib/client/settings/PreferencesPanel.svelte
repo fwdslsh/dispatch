@@ -130,7 +130,10 @@
 
 				<div class="form-group">
 					<label class="checkbox-container">
-						<input type="checkbox" bind:checked={viewModel.preferences.auth.rememberLastWorkspace} />
+						<input
+							type="checkbox"
+							bind:checked={viewModel.preferences.auth.rememberLastWorkspace}
+						/>
 						<span class="checkmark"></span>
 						<span class="checkbox-label">Remember last used workspace</span>
 					</label>
@@ -185,7 +188,11 @@
 
 				<div class="form-group">
 					<label for="terminal-font-family" class="form-label">Font family</label>
-					<select id="terminal-font-family" bind:value={viewModel.preferences.terminal.fontFamily} class="form-select">
+					<select
+						id="terminal-font-family"
+						bind:value={viewModel.preferences.terminal.fontFamily}
+						class="form-select"
+					>
 						<option value="Monaco, monospace">Monaco</option>
 						<option value="'Fira Code', monospace">Fira Code</option>
 						<option value="'JetBrains Mono', monospace">JetBrains Mono</option>
@@ -214,13 +221,28 @@
 
 			<!-- Form Actions -->
 			<div class="form-actions">
-				<Button variant="secondary" onclick={handleResetToDefaults} disabled={viewModel.isSaving} text="Reset to Defaults" />
+				<Button
+					variant="secondary"
+					onclick={handleResetToDefaults}
+					disabled={viewModel.isSaving}
+					text="Reset to Defaults"
+				/>
 
 				{#if viewModel.hasChanges}
-					<Button variant="secondary" onclick={handleDiscardChanges} disabled={viewModel.isSaving} text="Discard Changes" />
+					<Button
+						variant="secondary"
+						onclick={handleDiscardChanges}
+						disabled={viewModel.isSaving}
+						text="Discard Changes"
+					/>
 				{/if}
 
-				<Button variant="primary" onclick={handleSave} disabled={!viewModel.canSave} loading={viewModel.isSaving}>
+				<Button
+					variant="primary"
+					onclick={handleSave}
+					disabled={!viewModel.canSave}
+					loading={viewModel.isSaving}
+				>
 					{#if viewModel.isSaving}
 						Saving...
 					{:else}

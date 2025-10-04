@@ -189,7 +189,7 @@
 		background: color-mix(in oklab, var(--accent-magenta) 15%, transparent);
 		border: 1px solid color-mix(in oklab, var(--accent-magenta) 25%, transparent);
 		padding: var(--space-1) var(--space-2);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		color: var(--accent-magenta);
 		font-family: var(--font-mono);
 		font-size: 0.9em;
@@ -199,7 +199,7 @@
 	.option-badge {
 		display: inline-block;
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		font-size: 0.8em;
 		font-weight: 500;
 		margin-right: var(--space-2);

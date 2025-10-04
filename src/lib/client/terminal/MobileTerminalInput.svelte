@@ -517,7 +517,7 @@
 
 	.message-input::-webkit-scrollbar-thumb {
 		background: color-mix(in oklab, var(--primary) 40%, transparent);
-		border-radius: 3px;
+		border-radius: var(--radius-xs);
 	}
 
 	.message-input:focus {

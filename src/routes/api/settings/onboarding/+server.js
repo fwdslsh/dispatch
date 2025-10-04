@@ -112,10 +112,7 @@ export async function POST({ request, locals }) {
 				);
 
 				if (existingWorkspace) {
-					return json(
-						{ error: 'Workspace already exists at this path' },
-						{ status: 409 }
-					);
+					return json({ error: 'Workspace already exists at this path' }, { status: 409 });
 				}
 
 				const displayName =

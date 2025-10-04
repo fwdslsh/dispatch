@@ -191,13 +191,28 @@
 
 			<!-- Form Actions -->
 			<div class="form-actions">
-				<Button type="button" variant="secondary" onclick={handleResetToDefaults} text="Reset to Defaults" />
+				<Button
+					type="button"
+					variant="secondary"
+					onclick={handleResetToDefaults}
+					text="Reset to Defaults"
+				/>
 
 				{#if viewModel.hasChanges}
-					<Button type="button" variant="secondary" onclick={handleResetToOriginal} text="Discard Changes" />
+					<Button
+						type="button"
+						variant="secondary"
+						onclick={handleResetToOriginal}
+						text="Discard Changes"
+					/>
 				{/if}
 
-				<Button type="submit" variant="primary" disabled={!viewModel.canSave} loading={viewModel.isSaving}>
+				<Button
+					type="submit"
+					variant="primary"
+					disabled={!viewModel.canSave}
+					loading={viewModel.isSaving}
+				>
 					{#if viewModel.isSaving}
 						Saving...
 					{:else}

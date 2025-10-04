@@ -86,7 +86,7 @@
 	}
 
 	.spinner__circle {
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		border-style: solid;
 		animation: spin 1s linear infinite;
 	}
@@ -190,7 +190,7 @@
 			width: 6px;
 			height: 6px;
 			background: currentColor;
-			border-radius: 50%;
+			border-radius: var(--radius-full);
 			transform: translate(-50%, -50%);
 			opacity: 0.6;
 			animation: pulse 1.5s ease-in-out infinite;

@@ -81,10 +81,12 @@ USE_SSL=true npm run test:e2e -- e2e/ssl-tests.spec.js
 ```
 
 **Server Selection**:
+
 - **Default** (`npm run test:e2e`): Uses `http://localhost:7173` (test server, no SSL)
 - **SSL tests** (`USE_SSL=true npm run test:e2e`): Uses `https://localhost:5173` (SSL server)
 
 **Benefits of Test Server**:
+
 - ✅ No SSL certificate warnings
 - ✅ Faster test execution
 - ✅ Known authentication key (`test-automation-key-12345`)
@@ -280,22 +282,24 @@ USE_SSL=true npm run test:e2e -- e2e/ssl-tests.spec.js
 ```
 
 **When to use SSL tests**:
+
 - Certificate validation testing
 - HTTPS-specific security features
 - Browser behavior with self-signed certificates
 - Secure WebSocket connections
 
 **Example SSL test**:
+
 ```javascript
 // e2e/ssl-tests.spec.js
 import { test, expect } from '@playwright/test';
 
 test.describe('SSL Certificate Tests', () => {
-  test('should handle self-signed certificate', async ({ page }) => {
-    // This test uses https://localhost:5173 (SSL server)
-    await page.goto('/');
-    expect(page.url()).toContain('https://');
-  });
+	test('should handle self-signed certificate', async ({ page }) => {
+		// This test uses https://localhost:5173 (SSL server)
+		await page.goto('/');
+		expect(page.url()).toContain('https://');
+	});
 });
 ```
 
@@ -322,7 +326,8 @@ import { test, expect } from '@playwright/test';
 // Terminal key matches the test server default
 const TEST_KEY = process.env.TERMINAL_KEY || 'test-automation-key-12345';
 // Base URL is configured in playwright.config.js based on USE_SSL env var
-const BASE_URL = process.env.USE_SSL === 'true' ? 'https://localhost:5173' : 'http://localhost:7173';
+const BASE_URL =
+	process.env.USE_SSL === 'true' ? 'https://localhost:5173' : 'http://localhost:7173';
 
 test.describe('Feature Name', () => {
 	const testWorkspacePath = '/tmp/test-workspace-unique';
@@ -585,6 +590,7 @@ export default defineConfig({
 ```
 
 **Key Features**:
+
 - Default: Test server (`http://localhost:7173`) for speed and reliability
 - SSL mode: Development server (`https://localhost:5173`) when `USE_SSL=true`
 - Automatic HTTPS error handling based on mode
@@ -607,6 +613,7 @@ npm run dev:test
 ```
 
 **Isolation Features**:
+
 - Uses temporary directories (`/tmp/dispatch-test-*`) for home and workspace storage
 - Fresh state on each server start
 - No interference with development `.testing-home` directory
@@ -615,17 +622,22 @@ npm run dev:test
 **Authentication for Automated Tests**:
 
 Option 1: Inject auth key into localStorage before navigation:
+
 ```javascript
 // In your test automation tool
 await page.evaluate(() => {
-  localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
-  localStorage.setItem('authSessionId', 'test-session-' + Date.now());
-  localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+	localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
+	localStorage.setItem('authSessionId', 'test-session-' + Date.now());
+	localStorage.setItem(
+		'authExpiresAt',
+		new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+	);
 });
 await page.goto('http://localhost:7173');
 ```
 
 Option 2: Enter terminal key via UI:
+
 ```javascript
 // Navigate and authenticate
 await page.goto('http://localhost:7173');

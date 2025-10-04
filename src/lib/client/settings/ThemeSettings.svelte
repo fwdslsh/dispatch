@@ -174,8 +174,8 @@
 	<div class="settings-header">
 		<h2>Theme Management</h2>
 		<p class="settings-description">
-			Customize your terminal appearance with preset themes or upload custom color schemes.
-			Themes apply globally across all workspaces.
+			Customize your terminal appearance with preset themes or upload custom color schemes. Themes
+			apply globally across all workspaces.
 		</p>
 	</div>
 
@@ -233,7 +233,8 @@
 		<section class="theme-section">
 			<h3 class="section-title">Custom Themes</h3>
 			<p class="section-description">
-				Upload custom theme files in JSON format. Themes must include all required color definitions.
+				Upload custom theme files in JSON format. Themes must include all required color
+				definitions.
 			</p>
 
 			<!-- Upload Area -->
@@ -617,7 +618,7 @@
 		height: 32px;
 		border: 3px solid var(--line);
 		border-top-color: var(--primary);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 0.8s linear infinite;
 	}
 
@@ -651,7 +652,7 @@
 	.message-close:focus-visible {
 		outline: 2px solid var(--primary);
 		outline-offset: 2px;
-		border-radius: 2px;
+		border-radius: var(--radius-xs);
 	}
 
 	/* Accessibility: Reduced motion */

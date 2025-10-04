@@ -84,18 +84,23 @@ npm run dev:test
 ```
 
 This starts the server on `http://localhost:7173` with:
+
 - **No SSL**: Avoids certificate warnings in automated browsers
 - **Known Terminal Key**: `test-automation-key-12345` for predictable authentication
 - **Dedicated Port**: 7173 to avoid conflicts with regular dev server
 - **Isolated Storage**: Uses temporary directories in `/tmp` (fresh state, no interference with dev)
 
 **Quick Authentication Setup**:
+
 ```javascript
 // Pre-inject auth into localStorage (recommended for automation)
 await page.evaluate(() => {
-  localStorage.setItem('dispatch-auth-token', 'test-automation-key-12345');
-  localStorage.setItem('authSessionId', 'test-session-' + Date.now());
-  localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+	localStorage.setItem('dispatch-auth-token', 'test-automation-key-12345');
+	localStorage.setItem('authSessionId', 'test-session-' + Date.now());
+	localStorage.setItem(
+		'authExpiresAt',
+		new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+	);
 });
 await page.goto('http://localhost:7173');
 ```
@@ -195,9 +200,9 @@ npm run dev:test  # Port 7173, auto-onboarding complete
 import { navigateToWorkspaceWithOnboardingComplete } from './e2e/core-helpers.js';
 
 test('my test', async ({ page }) => {
-  // Automatically mocks onboarding complete and navigates to workspace
-  await navigateToWorkspaceWithOnboardingComplete(page);
-  // Your test code here
+	// Automatically mocks onboarding complete and navigates to workspace
+	await navigateToWorkspaceWithOnboardingComplete(page);
+	// Your test code here
 });
 ```
 
@@ -211,7 +216,7 @@ Event-sourced architecture with key tables:
 - `workspace_layout` - Client-specific UI layouts
 - `workspaces` - Workspace metadata and paths
 
->Note: Use sqlite cli and queries like these to get the current database schema
+> Note: Use sqlite cli and queries like these to get the current database schema
 
 ```sql
 select * from sqlite_master;
@@ -1038,8 +1043,8 @@ import { OnboardingFlow } from '$lib/client/components/OnboardingFlow.svelte';
 const needsOnboarding = !localStorage.getItem('onboardingComplete');
 
 if (needsOnboarding) {
-  // Redirect to onboarding flow
-  goto('/onboarding');
+	// Redirect to onboarding flow
+	goto('/onboarding');
 }
 ```
 
@@ -1096,29 +1101,29 @@ Dispatch provides a comprehensive theme management system allowing users to cust
 
 ```json
 {
-  "name": "Theme Name",
-  "description": "Theme description",
-  "background": "#0a0e0f",
-  "foreground": "#39ff14",
-  "cursor": "#39ff14",
-  "cursorAccent": "#0a0e0f",
-  "selectionBackground": "#39ff1440",
-  "black": "#1a1a1a",
-  "red": "#ff6b6b",
-  "green": "#39ff14",
-  "yellow": "#f1fa8c",
-  "blue": "#6272a4",
-  "magenta": "#bd93f9",
-  "cyan": "#8be9fd",
-  "white": "#f8f8f2",
-  "brightBlack": "#6272a4",
-  "brightRed": "#ff6655",
-  "brightGreen": "#50fa7b",
-  "brightYellow": "#ffff66",
-  "brightBlue": "#8899ff",
-  "brightMagenta": "#ff79c6",
-  "brightCyan": "#66ddff",
-  "brightWhite": "#ffffff"
+	"name": "Theme Name",
+	"description": "Theme description",
+	"background": "#0a0e0f",
+	"foreground": "#39ff14",
+	"cursor": "#39ff14",
+	"cursorAccent": "#0a0e0f",
+	"selectionBackground": "#39ff1440",
+	"black": "#1a1a1a",
+	"red": "#ff6b6b",
+	"green": "#39ff14",
+	"yellow": "#f1fa8c",
+	"blue": "#6272a4",
+	"magenta": "#bd93f9",
+	"cyan": "#8be9fd",
+	"white": "#f8f8f2",
+	"brightBlack": "#6272a4",
+	"brightRed": "#ff6655",
+	"brightGreen": "#50fa7b",
+	"brightYellow": "#ffff66",
+	"brightBlue": "#8899ff",
+	"brightMagenta": "#ff79c6",
+	"brightCyan": "#66ddff",
+	"brightWhite": "#ffffff"
 }
 ```
 
@@ -1191,20 +1196,20 @@ Themes resolve in priority order:
 
 ```javascript
 async function resolveThemeForWorkspace(workspaceId, db) {
-  // 1. Check workspace override
-  const workspace = await db.getWorkspace(workspaceId);
-  if (workspace?.theme_override) {
-    return await themeManager.getTheme(workspace.theme_override);
-  }
+	// 1. Check workspace override
+	const workspace = await db.getWorkspace(workspaceId);
+	if (workspace?.theme_override) {
+		return await themeManager.getTheme(workspace.theme_override);
+	}
 
-  // 2. Check global default
-  const prefs = await db.getUserPreferences('themes');
-  if (prefs?.globalDefault) {
-    return await themeManager.getTheme(prefs.globalDefault);
-  }
+	// 2. Check global default
+	const prefs = await db.getUserPreferences('themes');
+	if (prefs?.globalDefault) {
+		return await themeManager.getTheme(prefs.globalDefault);
+	}
 
-  // 3. Use hardcoded fallback
-  return HARDCODED_PHOSPHOR_GREEN_THEME;
+	// 3. Use hardcoded fallback
+	return HARDCODED_PHOSPHOR_GREEN_THEME;
 }
 ```
 
@@ -1249,24 +1254,20 @@ UPDATE workspaces SET theme_override = NULL WHERE id = '/workspace/my-project';
 import { ThemeState } from '$lib/client/shared/state/ThemeState.svelte.js';
 
 class ThemeState {
-  themes = $state([]);              // All available themes
-  globalDefault = $state(null);     // Current global default
-  workspaceOverrides = $state({});  // Map: workspaceId -> themeName
-  loading = $state(false);
+	themes = $state([]); // All available themes
+	globalDefault = $state(null); // Current global default
+	workspaceOverrides = $state({}); // Map: workspaceId -> themeName
+	loading = $state(false);
 
-  // Derived: filter themes by source
-  presetThemes = $derived.by(() =>
-    this.themes.filter(t => t.source === 'preset')
-  );
-  customThemes = $derived.by(() =>
-    this.themes.filter(t => t.source === 'custom')
-  );
+	// Derived: filter themes by source
+	presetThemes = $derived.by(() => this.themes.filter((t) => t.source === 'preset'));
+	customThemes = $derived.by(() => this.themes.filter((t) => t.source === 'custom'));
 
-  // Derived: active theme for current workspace
-  activeTheme = $derived.by(() => {
-    const workspaceId = this.currentWorkspaceId;
-    return this.workspaceOverrides[workspaceId] || this.globalDefault;
-  });
+	// Derived: active theme for current workspace
+	activeTheme = $derived.by(() => {
+		const workspaceId = this.currentWorkspaceId;
+		return this.workspaceOverrides[workspaceId] || this.globalDefault;
+	});
 }
 ```
 
@@ -1274,15 +1275,15 @@ class ThemeState {
 
 ```javascript
 async function activateTheme(apiClient, themeId) {
-  // Update global default preference
-  await apiClient.put('/api/preferences', {
-    category: 'themes',
-    preferences: { globalDefault: themeId }
-  });
+	// Update global default preference
+	await apiClient.put('/api/preferences', {
+		category: 'themes',
+		preferences: { globalDefault: themeId }
+	});
 
-  // Trigger page reload (FR-011)
-  // Existing session persistence mechanisms restore terminal/editor state
-  window.location.reload();
+	// Trigger page reload (FR-011)
+	// Existing session persistence mechanisms restore terminal/editor state
+	window.location.reload();
 }
 ```
 
@@ -1291,14 +1292,14 @@ async function activateTheme(apiClient, themeId) {
 ```javascript
 // In +layout.svelte or app startup
 async function applyActiveTheme() {
-  const workspaceId = getCurrentWorkspaceId();
-  const response = await fetch(`/api/themes/active?workspaceId=${workspaceId}`);
-  const { cssVariables } = await response.json();
+	const workspaceId = getCurrentWorkspaceId();
+	const response = await fetch(`/api/themes/active?workspaceId=${workspaceId}`);
+	const { cssVariables } = await response.json();
 
-  // Apply CSS variables to :root
-  for (const [property, value] of Object.entries(cssVariables)) {
-    document.documentElement.style.setProperty(property, value);
-  }
+	// Apply CSS variables to :root
+	for (const [property, value] of Object.entries(cssVariables)) {
+		document.documentElement.style.setProperty(property, value);
+	}
 }
 ```
 
@@ -1315,9 +1316,9 @@ async function applyActiveTheme() {
 
 ```typescript
 interface ValidationResult {
-  valid: boolean;        // Overall pass/fail
-  errors: string[];      // Blocking errors (prevent upload)
-  warnings: string[];    // Non-blocking warnings (shown to user)
+	valid: boolean; // Overall pass/fail
+	errors: string[]; // Blocking errors (prevent upload)
+	warnings: string[]; // Non-blocking warnings (shown to user)
 }
 ```
 
@@ -1325,14 +1326,9 @@ interface ValidationResult {
 
 ```json
 {
-  "valid": false,
-  "errors": [
-    "Missing required field: brightBlue",
-    "Invalid color format for red: not-a-color"
-  ],
-  "warnings": [
-    "Missing optional field: cursor (will use foreground color)"
-  ]
+	"valid": false,
+	"errors": ["Missing required field: brightBlue", "Invalid color format for red: not-a-color"],
+	"warnings": ["Missing optional field: cursor (will use foreground color)"]
 }
 ```
 
@@ -1361,19 +1357,19 @@ Adding support for new theme formats:
 import ThemeParser from './ThemeParser.js';
 
 class VSCodeThemeParser extends ThemeParser {
-  parse(fileContent) {
-    const vsCodeTheme = JSON.parse(fileContent);
-    // Convert VS Code format to internal theme format
-    return this.convertToInternalFormat(vsCodeTheme);
-  }
+	parse(fileContent) {
+		const vsCodeTheme = JSON.parse(fileContent);
+		// Convert VS Code format to internal theme format
+		return this.convertToInternalFormat(vsCodeTheme);
+	}
 
-  validate(theme) {
-    // VS Code-specific validation
-  }
+	validate(theme) {
+		// VS Code-specific validation
+	}
 
-  toCssVariables(theme) {
-    // Transform to CSS variables
-  }
+	toCssVariables(theme) {
+		// Transform to CSS variables
+	}
 }
 ```
 
@@ -1381,11 +1377,11 @@ class VSCodeThemeParser extends ThemeParser {
 
 ```javascript
 class ThemeManager {
-  constructor() {
-    this.parsers = new Map();
-    this.parsers.set('xterm', new XtermThemeParser());
-    this.parsers.set('vscode', new VSCodeThemeParser()); // New parser
-  }
+	constructor() {
+		this.parsers = new Map();
+		this.parsers.set('xterm', new XtermThemeParser());
+		this.parsers.set('vscode', new VSCodeThemeParser()); // New parser
+	}
 }
 ```
 
@@ -1420,7 +1416,7 @@ await themeState.activateTheme(apiClient, 'dark');
 
 ```javascript
 await apiClient.put(`/api/workspaces/${workspaceId}`, {
-  theme_override: 'dracula.json'
+	theme_override: 'dracula.json'
 });
 window.location.reload();
 // Workspace now uses Dracula theme, other workspaces use global default
@@ -1433,8 +1429,8 @@ const formData = new FormData();
 formData.append('file', themeFile);
 
 const response = await fetch('/api/themes?authKey=YOUR_KEY', {
-  method: 'POST',
-  body: formData
+	method: 'POST',
+	body: formData
 });
 
 const { theme, validation } = await response.json();
@@ -1448,11 +1444,11 @@ const { theme, validation } = await response.json();
 const canDelete = await apiClient.get(`/api/themes/${themeId}/can-delete`);
 
 if (!canDelete.canDelete) {
-  alert(`Cannot delete: ${canDelete.reason}`);
-  // Show workspaces using this theme: canDelete.workspaces
+	alert(`Cannot delete: ${canDelete.reason}`);
+	// Show workspaces using this theme: canDelete.workspaces
 } else {
-  await apiClient.delete(`/api/themes/${themeId}`);
-  // Theme removed from filesystem and cache
+	await apiClient.delete(`/api/themes/${themeId}`);
+	// Theme removed from filesystem and cache
 }
 ```
 
@@ -1491,9 +1487,9 @@ console.log(getComputedStyle(root).getPropertyValue('--theme-foreground'));
 
 // List all theme-related CSS variables
 Array.from(document.styleSheets)
-  .flatMap(sheet => Array.from(sheet.cssRules))
-  .filter(rule => rule.selectorText === ':root')
-  .forEach(rule => console.log(rule.style.cssText));
+	.flatMap((sheet) => Array.from(sheet.cssRules))
+	.filter((rule) => rule.selectorText === ':root')
+	.forEach((rule) => console.log(rule.style.cssText));
 ```
 
 **Theme Upload Validation Fails**:
@@ -1524,27 +1520,27 @@ During onboarding flow, users select their preferred default theme:
 
 ```svelte
 <script>
-  import { ThemeState } from '$lib/client/shared/state/ThemeState.svelte.js';
+	import { ThemeState } from '$lib/client/shared/state/ThemeState.svelte.js';
 
-  let themeState = new ThemeState();
-  let selectedTheme = $state('phosphor-green');
+	let themeState = new ThemeState();
+	let selectedTheme = $state('phosphor-green');
 
-  async function applySelectedTheme() {
-    await apiClient.put('/api/preferences', {
-      category: 'themes',
-      preferences: { globalDefault: selectedTheme }
-    });
-  }
+	async function applySelectedTheme() {
+		await apiClient.put('/api/preferences', {
+			category: 'themes',
+			preferences: { globalDefault: selectedTheme }
+		});
+	}
 </script>
 
 <div class="theme-grid">
-  {#each themeState.presetThemes as theme}
-    <ThemePreviewCard
-      {theme}
-      selected={selectedTheme === theme.id}
-      onclick={() => selectedTheme = theme.id}
-    />
-  {/each}
+	{#each themeState.presetThemes as theme}
+		<ThemePreviewCard
+			{theme}
+			selected={selectedTheme === theme.id}
+			onclick={() => (selectedTheme = theme.id)}
+		/>
+	{/each}
 </div>
 ```
 

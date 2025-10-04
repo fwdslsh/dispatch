@@ -24,11 +24,12 @@
 	--space-6: 32px;
 
 	/* Border Radius */
-	--radius-xs: 4px;
-	--radius-sm: 6px;
-	--radius-md: 8px;
-	--radius-lg: 12px;
-	--radius-xl: 16px;
+	--radius: 0px;
+	--radius-xs: calc(var(--radius) * 0.75);
+	--radius-sm: calc(var(--radius) * 0.5);
+	--radius-md: calc(var(--radius));
+	--radius-lg: calc(var(--radius) * 1.5);
+	--radius-xl: calc(var(--radius) * 2);
 	--radius-full: 9999px;
 
 	/* Focus States */
@@ -102,7 +103,8 @@
 	/* Additional consistent aliases for components */
 	--text-primary: var(--text);
 	--text-secondary: var(--muted);
-	--color-primary: var(--primary); /* Alias for PWA components */
+	--color-primary: var(--primary);
+	/* Alias for PWA components */
 	--text-muted: var(--muted);
 	--text-dim: color-mix(in oklab, var(--muted) 70%, transparent);
 	--bg-dark: var(--bg);

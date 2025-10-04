@@ -20,7 +20,9 @@
 
 	let hasChanges = $derived(settingsViewModel.categoryHasChanges('authentication'));
 
-	let canSave = $derived(hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving);
+	let canSave = $derived(
+		hasChanges && !settingsViewModel.hasValidationErrors && !settingsViewModel.saving
+	);
 
 	// Handle saving authentication settings
 	async function handleSave() {
@@ -41,7 +43,8 @@
 	<div class="settings-header">
 		<h3>Authentication</h3>
 		<p class="settings-description">
-			Configure terminal access and OAuth authentication settings for secure access to your development environment.
+			Configure terminal access and OAuth authentication settings for secure access to your
+			development environment.
 		</p>
 	</div>
 
@@ -61,8 +64,8 @@
 				<div class="warning-icon">⚠️</div>
 				<div class="warning-content">
 					<strong>Security Notice:</strong>
-					Changing authentication settings will invalidate all active sessions for security.
-					You will need to re-authenticate with the new credentials.
+					Changing authentication settings will invalidate all active sessions for security. You will
+					need to re-authenticate with the new credentials.
 				</div>
 			</div>
 		{/if}

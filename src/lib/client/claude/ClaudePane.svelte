@@ -49,7 +49,9 @@
 
 		try {
 			// Load Claude session history from API
-			const response = await fetch(`/api/claude/session/${encodeURIComponent(sessionIdToLoad)}?full=1`);
+			const response = await fetch(
+				`/api/claude/session/${encodeURIComponent(sessionIdToLoad)}?full=1`
+			);
 
 			if (response.ok) {
 				const data = await response.json();
@@ -242,7 +244,7 @@
 	.ai-avatar {
 		width: 48px;
 		height: 48px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		display: flex;
 		align-items: center;
 		justify-content: center;

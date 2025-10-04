@@ -46,7 +46,7 @@ const PUBLIC_ROUTES = [
  * Check if a route is public (doesn't require authentication)
  */
 function isPublicRoute(pathname) {
-	return PUBLIC_ROUTES.some(route => pathname.startsWith(route));
+	return PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 }
 
 /**
@@ -106,7 +106,4 @@ async function servicesMiddleware({ event, resolve }) {
 	return resolve(event);
 }
 
-export const handle = sequence(
-	servicesMiddleware,
-	authenticationMiddleware
-);
+export const handle = sequence(servicesMiddleware, authenticationMiddleware);

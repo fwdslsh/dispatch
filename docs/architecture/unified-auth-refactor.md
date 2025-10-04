@@ -10,6 +10,7 @@
 **All 9 implementation phases complete!** The unified authentication refactoring is fully implemented with all migration code removed and the codebase simplified.
 
 ### Completed Phases ✅
+
 - **Phase 1** ✅: Enhanced AuthService with async validation (multi-strategy auth)
 - **Phase 2** ✅: Added authentication middleware to hooks.server.js (centralized validation)
 - **Phase 3** ✅: Removed ~250 lines of redundant auth code from 47 route files
@@ -92,29 +93,34 @@ After OAuth login completes successfully, the user is not authenticated to the s
 ### Key Design Decisions
 
 **1. Hooks-Based Middleware (Zero Route Changes)**
+
 - Auth validation centralized in `hooks.server.js`
 - All 47+ route files continue working unchanged
 - New auth methods added without touching routes
 - Follows SvelteKit best practices
 
 **2. Single Entry Point via Hooks**
+
 - All requests flow through authentication middleware
 - `event.locals.auth` populated with auth state
 - Route handlers simply check `locals.auth.authenticated`
 - Strategy pattern: try each auth method in sequence
 
 **3. Token Type Agnostic**
+
 - Client sends token without knowing its type
 - Server auto-detects token type and validates accordingly
 - Future auth methods added without client changes
 
 **4. Storage Consolidation (Simplified for Single-User)**
+
 - **Before**: 5 localStorage keys (`dispatch-auth-token`, `authSessionId`, `authUserId`, `authProvider`, `authExpiresAt`)
 - **After**: 2 localStorage keys (`dispatch-auth-token`, `dispatch-auth-provider`)
 - No user profile metadata needed (single-user app)
 - Just track which auth mechanism is active
 
 **5. No JWT Complexity**
+
 - Use database-backed sessions instead of signed tokens
 - Simpler for single-user scenario
 - Session validation via `MultiAuthManager.validateSession()`
@@ -127,6 +133,7 @@ After OAuth login completes successfully, the user is not authenticated to the s
 **File:** `src/lib/server/shared/auth.js`
 
 **Implementation Summary:**
+
 - ✅ Added `multiAuthManager` property to AuthService constructor
 - ✅ Added `setMultiAuthManager()` method for dependency injection
 - ✅ Added `validateAuth()` async method with multi-strategy validation
@@ -135,6 +142,7 @@ After OAuth login completes successfully, the user is not authenticated to the s
 - ✅ Wired MultiAuthManager in `initializeServices()` (src/lib/server/shared/index.js)
 
 **Test Results:**
+
 ```bash
 ./test-auth-hooks.sh
 ✅ Terminal key authentication PASSED
@@ -143,6 +151,7 @@ After OAuth login completes successfully, the user is not authenticated to the s
 ```
 
 **Add property:**
+
 ```javascript
 class AuthService {
 	constructor() {
@@ -153,6 +162,7 @@ class AuthService {
 ```
 
 **Add method:**
+
 ```javascript
 	/**
 	 * Set multi-auth manager for OAuth/WebAuthn validation
@@ -165,6 +175,7 @@ class AuthService {
 ```
 
 **Add NEW async method (keep existing validateKey for compatibility):**
+
 ```javascript
 	/**
 	 * ASYNC authentication validation with multi-strategy support
@@ -215,6 +226,7 @@ class AuthService {
 ```
 
 **Keep existing validateKey for backwards compatibility:**
+
 ```javascript
 	/**
 	 * BACKWARDS COMPATIBLE: Synchronous terminal key validation only
@@ -227,6 +239,7 @@ class AuthService {
 ```
 
 **Impact:**
+
 - NEW `validateAuth()` method returns auth context (not just boolean)
 - Existing `validateKey()` unchanged - maintains backwards compatibility
 - No breaking changes to existing code
@@ -237,6 +250,7 @@ class AuthService {
 **File:** `src/hooks.server.js`
 
 **Implementation Summary:**
+
 - ✅ Added `authenticationMiddleware` to validate all `/api/*` requests
 - ✅ Public routes allowlist (`/auth/callback`, `/api/auth/callback`)
 - ✅ Populates `event.locals.auth` with authentication context
@@ -244,6 +258,7 @@ class AuthService {
 - ✅ Successfully validates both terminal key AND OAuth sessions
 
 **Test Results:**
+
 ```bash
 ./test-auth-hooks.sh
 ✅ Terminal key authentication PASSED
@@ -254,6 +269,7 @@ class AuthService {
 **Key Achievement:** Multi-strategy authentication working through hooks with ZERO route changes required!
 
 **Add authentication hooks (AFTER services initialization):**
+
 ```javascript
 import { sequence } from '@sveltejs/kit/hooks';
 import { logger } from './lib/server/shared/utils/logger.js';
@@ -272,7 +288,9 @@ const PUBLIC_ROUTES = [
 ];
 
 function isPublicRoute(pathname) {
-	return PUBLIC_ROUTES.some(pattern => pathname === pattern || pathname.startsWith(pattern + '/'));
+	return PUBLIC_ROUTES.some(
+		(pattern) => pathname === pattern || pathname.startsWith(pattern + '/')
+	);
 }
 
 /**
@@ -345,6 +363,7 @@ export async function getGlobalServices() {
 ```
 
 **Impact:**
+
 - All `/api/*` routes automatically validated
 - `event.locals.auth` populated with auth context
 - 401 returned automatically for unauthenticated requests
@@ -357,12 +376,14 @@ export async function getGlobalServices() {
 
 **Why removal was necessary:**
 Once hooks are in place, routes with `validateKey()` calls have redundant code:
+
 1. **Hook validates first**: `authenticationMiddleware` already validated auth and returned 401 if needed
 2. **Route never runs unauthenticated**: If hook validation failed, route handler never executes
 3. **Redundant error handling**: Route's 401 response can never be reached (hook already returned 401)
 4. **Code smell**: Violates DRY principle - same auth logic in hooks AND routes
 
 **OLD pattern (redundant):**
+
 ```javascript
 export async function GET({ request, locals }) {
 	// ❌ REDUNDANT: Hook already did this
@@ -378,6 +399,7 @@ export async function GET({ request, locals }) {
 ```
 
 **NEW pattern (hooks-based):**
+
 ```javascript
 export async function GET({ locals }) {
 	// ✅ Auth already validated by hooks middleware
@@ -392,12 +414,13 @@ export async function GET({ locals }) {
 ```
 
 **Files Updated by Category:**
+
 - ✅ Admin routes (7 files): events, history, logs, sockets, vscode-tunnel
 - ✅ Auth routes (2 files): check, config
 - ✅ Browse routes (3 files): browse, clone, create
 - ✅ Claude routes (8 files): projects, sessions
 - ✅ File routes (2 files): files, upload
-- ✅ Git routes (11 files): branches, branch, checkout, commit, diff, log, pull, push, stage, status, worktree/*
+- ✅ Git routes (11 files): branches, branch, checkout, commit, diff, log, pull, push, stage, status, worktree/\*
 - ✅ Maintenance/Preferences (2 files): maintenance, preferences
 - ✅ Session routes (3 files): sessions, layout, history
 - ✅ Settings routes (4 files): settings, category, onboarding, workspace
@@ -405,6 +428,7 @@ export async function GET({ locals }) {
 - ✅ Workspace routes (2 files): workspaces, workspaceId
 
 **Test Results:**
+
 ```bash
 ./test-auth-hooks.sh
 ✅ Terminal key authentication PASSED
@@ -413,6 +437,7 @@ export async function GET({ locals }) {
 ```
 
 **Impact:**
+
 - ~250 lines of redundant authentication boilerplate removed
 - Routes simplified to focus on business logic
 - Authentication now centralized in hooks middleware
@@ -447,6 +472,7 @@ src/routes/api/files/**/*.js (2 files)
 ```
 
 **Benefits of cleanup:**
+
 - **Reduced code**: Remove ~5-10 lines per route (235-470 LOC total)
 - **Clearer intent**: Route handlers only contain business logic
 - **Easier testing**: No need to mock auth in route unit tests
@@ -454,6 +480,7 @@ src/routes/api/files/**/*.js (2 files)
 - **Maintainability**: Single source of truth for auth (hooks only)
 
 **Risks of keeping redundant code:**
+
 - **Confusion**: New developers might think route-level checks are necessary
 - **False sense of security**: Might update route auth but forget hooks
 - **Code rot**: Redundant code tends to drift out of sync
@@ -466,6 +493,7 @@ src/routes/api/files/**/*.js (2 files)
 **File:** `src/lib/server/shared/socket-setup.js`
 
 **Update requireValidKey function:**
+
 ```javascript
 // BEFORE (synchronous)
 function requireValidKey(socket, key, callback, authService) {
@@ -492,6 +520,7 @@ async function requireValidKey(socket, key, callback, authService) {
 ```
 
 **Update all call sites in socket-setup.js:**
+
 ```javascript
 // BEFORE
 socket.on('auth', (key, callback) => {
@@ -510,12 +539,14 @@ socket.on('auth', async (key, callback) => {
 ```
 
 **Implementation Complete:**
+
 - ✅ `requireValidKey` function is now async
 - ✅ `auth` event handler updated to async/await
 - ✅ Socket.IO authentication now supports both terminal keys (sync fast path) and OAuth sessions (async)
 - ✅ Server restart successful - no breaking changes
 
 **Impact:**
+
 - Socket.IO authentication validated through unified `AuthService.validateKey()` method
 - Supports both terminal key and OAuth session authentication seamlessly
 - All authenticated socket events work with both auth methods
@@ -525,12 +556,14 @@ socket.on('auth', async (key, callback) => {
 **Status:** ✅ Implemented and tested (2025-10-01)
 
 **Implementation Summary:**
+
 - ✅ Updated `SessionApiClient.js` to prioritize `dispatch-auth-token`
 - ✅ Updated `ServiceContainer.svelte.js` to use `dispatch-auth-token` as default config key
 - ✅ Updated all client files to read from new unified token key with migration fallback
 - ✅ Maintained backward compatibility during migration window (dual-read strategy)
 
 **Files Updated:**
+
 - `src/lib/client/shared/services/SessionApiClient.js` - getAuthKey() method with fallback chain
 - `src/lib/client/shared/services/ServiceContainer.svelte.js` - config.authTokenKey default + settingsService factory
 - `src/lib/client/terminal/TerminalPane.svelte` - auth key lookup
@@ -549,6 +582,7 @@ All client code now uses `dispatch-auth-token` only. Write operations (Phase 4) 
 **File:** `src/lib/client/shared/services/SessionApiClient.js`
 
 **Update getHeaders method:**
+
 ```javascript
 	/**
 	 * Get authorization header with unified token
@@ -574,40 +608,43 @@ All client code now uses `dispatch-auth-token` only. Write operations (Phase 4) 
 **File:** `src/routes/auth/callback/+page.svelte`
 
 **Update OAuth callback storage (simplified for single-user):**
+
 ```javascript
-	// BEFORE
-	if (result.session) {
-		localStorage.setItem('authSessionId', result.session.sessionId);
-		localStorage.setItem('authUserId', result.session.userId);
-		localStorage.setItem('authProvider', result.session.provider);
-		if (result.session.expiresAt) {
-			localStorage.setItem('authExpiresAt', result.session.expiresAt);
-		}
+// BEFORE
+if (result.session) {
+	localStorage.setItem('authSessionId', result.session.sessionId);
+	localStorage.setItem('authUserId', result.session.userId);
+	localStorage.setItem('authProvider', result.session.provider);
+	if (result.session.expiresAt) {
+		localStorage.setItem('authExpiresAt', result.session.expiresAt);
 	}
+}
 
-	// AFTER (simplified - no user profile needed for single-user app)
-	if (result.session) {
-		// Store session ID as auth token
-		localStorage.setItem('dispatch-auth-token', result.session.sessionId);
+// AFTER (simplified - no user profile needed for single-user app)
+if (result.session) {
+	// Store session ID as auth token
+	localStorage.setItem('dispatch-auth-token', result.session.sessionId);
 
-		// Just track provider for UI display
-		localStorage.setItem('dispatch-auth-provider', result.session.provider);
-	}
+	// Just track provider for UI display
+	localStorage.setItem('dispatch-auth-provider', result.session.provider);
+}
 ```
 
 **File:** `src/routes/+page.svelte` (Terminal Key Auth)
 
 **Update terminal key storage:**
-```javascript
-	// BEFORE
-	localStorage.setItem('dispatch-auth-key', key);
 
-	// AFTER
-	localStorage.setItem('dispatch-auth-token', key);
-	localStorage.setItem('dispatch-auth-provider', 'terminal_key');
+```javascript
+// BEFORE
+localStorage.setItem('dispatch-auth-key', key);
+
+// AFTER
+localStorage.setItem('dispatch-auth-token', key);
+localStorage.setItem('dispatch-auth-provider', 'terminal_key');
 ```
 
 **Impact:**
+
 - All client code uses `dispatch-auth-token` for auth
 - OAuth users get metadata for UI enhancements
 - Terminal key users have no metadata (graceful degradation)
@@ -618,26 +655,31 @@ All client code now uses `dispatch-auth-token` only. Write operations (Phase 4) 
 
 **Strategic Decision:**
 Phase 6 implementation with fallback chain (`dispatch-auth-token` → `dispatch-auth-key`) is **superior** to removing fallback entirely. This provides:
+
 - **Graceful degradation** for edge cases
 - **Future-proof** migration support
 - **Zero-risk** backward compatibility
 - **Minimal code complexity** (2-3 lines vs single line)
 
 **Current Implementation (Phase 6):**
+
 ```javascript
 // Robust fallback strategy (KEPT)
-const token = localStorage.getItem('dispatch-auth-token') ||
-              localStorage.getItem('dispatch-auth-key') ||
-              'testkey12345';
+const token =
+	localStorage.getItem('dispatch-auth-token') ||
+	localStorage.getItem('dispatch-auth-key') ||
+	'testkey12345';
 ```
 
 **Alternative (NOT implemented):**
+
 ```javascript
 // Single lookup (REJECTED - less robust)
 const token = localStorage.getItem('dispatch-auth-token');
 ```
 
 **Rationale:**
+
 1. **Edge case protection**: If migration code fails, fallback prevents auth breakage
 2. **Browser storage quirks**: Some browsers may clear specific keys
 3. **Development workflow**: Fallback supports both dev and prod scenarios
@@ -654,6 +696,7 @@ All 12 client files now use the fallback pattern (see Phase 6 completion notes)
 **Status:** ✅ Implemented and tested (2025-10-01)
 
 **Implementation Summary:**
+
 - ✅ Created `AuthStatus.svelte` component with responsive design
 - ✅ Integrated into `AuthenticationSettings.svelte` for visibility
 - ✅ Displays current auth provider with appropriate icons
@@ -672,9 +715,9 @@ All 12 client files now use the fallback pattern (see Phase 6 completion notes)
 	});
 
 	const providerLabels = {
-		'terminal_key': 'Terminal Key',
-		'github': 'GitHub',
-		'google': 'Google'
+		terminal_key: 'Terminal Key',
+		github: 'GitHub',
+		google: 'Google'
 	};
 </script>
 
@@ -702,6 +745,7 @@ All 12 client files now use the fallback pattern (see Phase 6 completion notes)
 ```
 
 **Usage in settings page:**
+
 ```svelte
 <!-- Show in settings/authentication section -->
 <AuthStatus />
@@ -716,9 +760,11 @@ All migration code and backward compatibility fallbacks have been identified and
 #### 9.1: Comprehensive Inventory of Migration Code
 
 **Migration function in layout:**
+
 - `src/routes/+layout.svelte` (lines 20-81) - Complete `migrateAuthStorage()` function and call
 
 **Fallback reads (dispatch-auth-key → dispatch-auth-token):**
+
 1. `src/lib/client/shared/services/SessionApiClient.js:961` - Fallback in `getAuthKey()`
 2. `src/lib/client/shared/services/ServiceContainer.svelte.js:79` - Fallback in settings service
 3. `src/lib/client/terminal/TerminalPane.svelte:30` - Fallback in key lookup
@@ -734,20 +780,24 @@ All migration code and backward compatibility fallbacks have been identified and
 13. `src/lib/client/settings/sections/VSCodeTunnelControl.svelte:102` - Fallback in auth (2nd instance)
 
 **Dual-write locations (old key setItem):**
+
 1. `src/routes/+page.svelte:78` - Sets dispatch-auth-key on login
 2. `src/lib/client/onboarding/AuthenticationStep.svelte:54` - Sets dispatch-auth-key after auth
 3. `src/lib/client/onboarding/OnboardingFlow.svelte:61` - Sets dispatch-auth-key after auth
 
 **Old key removal (cleanup on logout):**
+
 1. `src/lib/client/shared/components/workspace/WorkspacePage.svelte:134` - Removes dispatch-auth-key on logout
 2. `src/lib/client/shared/components/workspace/WorkspacePage.svelte:204` - Removes dispatch-auth-key on error
 
 **E2E test files using old key:**
+
 - `e2e/core-helpers.js` (2 instances) - Test setup uses dispatch-auth-key
 - `e2e/auth-persistence.spec.js` (7 instances) - Auth persistence tests
 - `e2e/mvvm-basic.spec.js` (1 instance) - Basic MVVM test
 
 **Documentation references:**
+
 - `CLAUDE.md` (2 instances) - Testing guide references old key
 - `AGENTS.md` (1 instance) - Agent instructions reference old key
 - `.github/copilot-instructions.md` (1 instance) - Copilot instructions reference old key
@@ -758,6 +808,7 @@ All migration code and backward compatibility fallbacks have been identified and
 **File:** `src/routes/+layout.svelte`
 
 Remove the `migrateAuthStorage()` function entirely (lines 20-81):
+
 ```javascript
 // DELETE LINES 20-21 (call to migrateAuthStorage)
 migrateAuthStorage();
@@ -771,15 +822,20 @@ function migrateAuthStorage() {
 #### 9.3: Remove Fallback Code from All Client Files
 
 **Pattern to remove (13 instances):**
+
 ```javascript
 // BEFORE (with fallback)
-const key = localStorage.getItem('dispatch-auth-token') || localStorage.getItem('dispatch-auth-key') || 'default';
+const key =
+	localStorage.getItem('dispatch-auth-token') ||
+	localStorage.getItem('dispatch-auth-key') ||
+	'default';
 
 // AFTER (no fallback)
 const key = localStorage.getItem('dispatch-auth-token') || 'default';
 ```
 
 **Pattern to remove from SessionApiClient.js (lines 951-965):**
+
 ```javascript
 // DELETE fallback logic
 // Phase 6: Prioritize dispatch-auth-token, fallback to dispatch-auth-key for migration
@@ -790,11 +846,13 @@ if (oldKey) return oldKey;
 #### 9.4: Remove Old localStorage Key Writes
 
 **Files to update (stop writing old keys):**
+
 - `src/routes/+page.svelte:78` - Remove `localStorage.setItem('dispatch-auth-key', key);`
 - `src/lib/client/onboarding/AuthenticationStep.svelte:54` - Remove `localStorage.setItem('dispatch-auth-key', terminalKey);`
 - `src/lib/client/onboarding/OnboardingFlow.svelte:61` - Remove `localStorage.setItem('dispatch-auth-key', terminalKey);`
 
 **Pattern:**
+
 ```javascript
 // BEFORE (dual write for backward compatibility)
 localStorage.setItem('dispatch-auth-token', key);
@@ -807,10 +865,12 @@ localStorage.setItem('dispatch-auth-token', key);
 #### 9.5: Remove Old Key Cleanup on Logout
 
 **Files to update:**
+
 - `src/lib/client/shared/components/workspace/WorkspacePage.svelte:134` - Remove `localStorage.removeItem('dispatch-auth-key');`
 - `src/lib/client/shared/components/workspace/WorkspacePage.svelte:204` - Remove `localStorage.removeItem('dispatch-auth-key');`
 
 **Pattern:**
+
 ```javascript
 // BEFORE (cleanup both keys)
 localStorage.removeItem('dispatch-auth-token');
@@ -832,6 +892,7 @@ if (!locals.auth?.authenticated) {
 ```
 
 **Why this is redundant:**
+
 1. `hooks.server.js` runs BEFORE route handlers
 2. If authentication fails, hooks return 401 and route never executes
 3. If route executes, authentication has already succeeded
@@ -840,11 +901,13 @@ if (!locals.auth?.authenticated) {
 **Files to clean (remove redundant auth checks from ~47 routes):**
 
 Use this pattern to find redundant checks:
+
 ```bash
 grep -r "if (!locals.auth?.authenticated)" src/routes/api --include="*.js" -B 2 -A 3
 ```
 
 **Routes with redundant checks:**
+
 - `src/routes/api/sessions/+server.js` (POST handler)
 - `src/routes/api/workspaces/+server.js` (POST handler)
 - `src/routes/api/workspaces/[workspaceId]/+server.js` (PUT, DELETE handlers)
@@ -859,6 +922,7 @@ grep -r "if (!locals.auth?.authenticated)" src/routes/api --include="*.js" -B 2 
 - All file routes: `src/routes/api/files/**/*.js` (~2 files)
 
 **Cleanup strategy:**
+
 ```javascript
 // BEFORE (redundant check)
 export async function POST({ request, locals }) {
@@ -886,6 +950,7 @@ export async function POST({ request, locals }) {
 #### 9.4: Remove Helper Scripts
 
 Delete any temporary migration or testing scripts created during this refactoring:
+
 - `scripts/remove-redundant-auth.js` (if created)
 - `test-auth-hooks.sh` (if temporary)
 - Any other temporary helper scripts
@@ -893,6 +958,7 @@ Delete any temporary migration or testing scripts created during this refactorin
 #### 9.5: Update Documentation
 
 Remove backward compatibility notes from:
+
 - `CLAUDE.md` - Remove references to old localStorage keys
 - `README.md` - Update authentication documentation
 - Any developer guides mentioning old auth patterns
@@ -936,6 +1002,7 @@ Remove backward compatibility notes from:
    - Other routes: 1 file, 1 check
 
 **Total code removed:**
+
 - ~150 lines from client files (migration + fallbacks + dual-writes)
 - ~150 lines from route files (redundant auth checks)
 - **Total: ~300 lines eliminated**
@@ -943,6 +1010,7 @@ Remove backward compatibility notes from:
 **Build validation:** ✅ Successful (`npm run build` completed without errors)
 
 **Benefits of Phase 9:**
+
 - Simplified authentication flow (no dual-write complexity)
 - Cleaner codebase (single source of truth in hooks)
 - Better performance (skip redundant validations)
@@ -950,12 +1018,12 @@ Remove backward compatibility notes from:
 - Reduced bundle size (~300 lines eliminated)
 - Improved maintainability (fewer code paths to test)
 
-
 ## Migration Strategy
 
 ### Backwards Compatibility
 
 **Existing users with terminal keys:**
+
 ```javascript
 // Migration on first load
 if (!localStorage.getItem('dispatch-auth-token')) {
@@ -968,6 +1036,7 @@ if (!localStorage.getItem('dispatch-auth-token')) {
 ```
 
 **Existing OAuth users (if any):**
+
 ```javascript
 // Migration on first load
 if (!localStorage.getItem('dispatch-auth-token')) {
@@ -996,6 +1065,7 @@ if (!localStorage.getItem('dispatch-auth-token')) {
 ### Unit Tests
 
 **Test AuthService.validateKey():**
+
 ```javascript
 describe('AuthService.validateKey', () => {
 	test('validates terminal key (synchronous path)', async () => {
@@ -1036,6 +1106,7 @@ describe('AuthService.validateKey', () => {
 ### Integration Tests
 
 **Test full OAuth flow:**
+
 1. User clicks "Sign in with GitHub"
 2. Redirected to GitHub OAuth
 3. Callback receives code
@@ -1046,6 +1117,7 @@ describe('AuthService.validateKey', () => {
 8. User is authenticated ✅
 
 **Test terminal key flow:**
+
 1. User enters terminal key
 2. Client stores `dispatch-auth-token` with key
 3. Subsequent API calls send key as Bearer token
@@ -1065,7 +1137,7 @@ test('OAuth login flow', async ({ page }) => {
 	await page.click('[data-testid="oauth-login-button"]');
 
 	// Mock GitHub OAuth (intercept redirect)
-	await page.route('https://github.com/login/oauth/authorize', route => {
+	await page.route('https://github.com/login/oauth/authorize', (route) => {
 		route.fulfill({
 			status: 302,
 			headers: {
@@ -1082,7 +1154,7 @@ test('OAuth login flow', async ({ page }) => {
 	const sessionResponse = await page.evaluate(async () => {
 		const res = await fetch('/api/sessions', {
 			headers: {
-				'Authorization': `Bearer ${localStorage.getItem('dispatch-auth-token')}`
+				Authorization: `Bearer ${localStorage.getItem('dispatch-auth-token')}`
 			}
 		});
 		return res.ok;
@@ -1112,6 +1184,7 @@ test('Terminal key migration', async ({ page }) => {
 ## Rollout Plan
 
 ### Phase 1: Server-Side Foundation (Zero Breaking Changes)
+
 - ✅ Add `AuthService.validateAuth()` method (new, doesn't replace existing)
 - ✅ Add authentication middleware to `hooks.server.js`
 - ✅ Wire `MultiAuthManager` to `AuthService`
@@ -1122,6 +1195,7 @@ test('Terminal key migration', async ({ page }) => {
 **Risk:** Low (additive changes only)
 
 ### Phase 2: Enable OAuth Support
+
 - ✅ Update OAuth callback to create sessions
 - ✅ Test OAuth flow end-to-end
 - ✅ Verify hooks middleware validates OAuth sessions
@@ -1131,6 +1205,7 @@ test('Terminal key migration', async ({ page }) => {
 **Risk:** Low (new feature, doesn't affect existing users)
 
 ### Phase 3: Remove Redundant Route Auth Checks
+
 - 🧹 Create and test automated cleanup script
 - 🧹 Run script to remove `validateKey()` boilerplate from 47 routes
 - 🧹 Manual code review of changes
@@ -1143,6 +1218,7 @@ test('Terminal key migration', async ({ page }) => {
 **Metrics:** Remove ~250 lines of redundant code
 
 **Why do this:**
+
 - Routes become simpler and more maintainable
 - Eliminates redundant validation (hooks already did it)
 - Single source of truth for auth logic
@@ -1150,6 +1226,7 @@ test('Terminal key migration', async ({ page }) => {
 - Technical debt reduction
 
 ### Phase 4: Client Storage Migration (Breaking for OAuth users only) ✅ COMPLETE
+
 - ✅ Add migration code to `+layout.svelte`
 - ✅ Update OAuth callback to use `dispatch-auth-token`
 - ✅ Update terminal key login to use `dispatch-auth-token`
@@ -1159,6 +1236,7 @@ test('Terminal key migration', async ({ page }) => {
 **Risk:** Medium (affects all users' localStorage)
 
 **Files Updated:**
+
 - `src/routes/+layout.svelte` - Added migrateAuthStorage() function to handle old→new key transition
 - `src/routes/auth/callback/+page.svelte` - OAuth callback now stores both old and new keys
 - `src/routes/+page.svelte` - Terminal key login stores both old and new keys
@@ -1166,12 +1244,14 @@ test('Terminal key migration', async ({ page }) => {
 - `src/lib/client/onboarding/OnboardingFlow.svelte` - Onboarding flow stores both old and new keys
 
 **Migration Strategy:**
+
 - All authentication flows now write to BOTH `dispatch-auth-token` (new) AND old keys (`dispatch-auth-key`, `authSessionId`, etc.)
 - Migration code in +layout.svelte automatically copies old keys to new keys on app load
 - Old keys kept for backward compatibility during migration window
 - Phase 5 will remove references to old keys after migration period
 
 ### Phase 5: Client Code Cleanup (Required)
+
 - 🧹 Replace `dispatch-auth-key` lookups with `dispatch-auth-token` (15 files)
 - 🧹 Update OAuth callback storage
 - 🧹 Remove migration code after 1-2 release cycles
@@ -1195,12 +1275,14 @@ test('Terminal key migration', async ({ page }) => {
 ## Metrics
 
 **Code Changes Required (Initial Deployment):**
+
 - **Core files modified**: 3 (auth.js, hooks.server.js, index.js)
 - **Route files changed**: 0 (all 47+ routes work unchanged)
 - **Total LOC added**: ~100 lines (hooks + new auth method)
 - **Zero breaking changes**: Everything works immediately
 
 **Code Changes Required (Full Cleanup):**
+
 - **Route files cleaned**: 47 (remove redundant validateKey calls)
 - **Client files changed**: ~15 (localStorage consolidation)
 - **Total LOC removed**: ~450 lines
@@ -1209,10 +1291,12 @@ test('Terminal key migration', async ({ page }) => {
 - **Net code reduction**: ~350 lines removed
 
 **Storage Reduction:**
+
 - 5 localStorage keys → 2 localStorage keys per user
 - Simpler client code (single token lookup)
 
 **Performance:**
+
 - Terminal key auth: No change (synchronous fast path, <0.001ms)
 - OAuth session auth: 1 DB query per validation (cached in memory, ~2-5ms)
 - Session validation: <10ms average (in-memory map lookup)
@@ -1222,6 +1306,7 @@ test('Terminal key migration', async ({ page }) => {
 ## Future Extensions
 
 ### WebAuthn Support
+
 Add third strategy to `AuthService.validateKey()`:
 
 ```javascript
@@ -1233,6 +1318,7 @@ if (this.webAuthnManager) {
 ```
 
 ### API Keys (Machine-to-Machine)
+
 Add fourth strategy for long-lived API keys:
 
 ```javascript
@@ -1244,6 +1330,7 @@ if (token.startsWith('sk_')) {
 ```
 
 ### Rate Limiting
+
 Add per-strategy rate limits:
 
 ```javascript
@@ -1261,25 +1348,33 @@ async validateKey(token) {
 ## Risks & Mitigations
 
 ### Risk: Async Breaking Changes
+
 **Mitigation:**
+
 - Maintain synchronous fast path for terminal keys
 - Comprehensive test coverage before rollout
 - Gradual rollout with feature flag
 
 ### Risk: Session Hijacking
+
 **Mitigation:**
+
 - Sessions stored server-side in database
 - 30-day expiration with sliding window
 - Revocation supported via `MultiAuthManager.revokeSession()`
 
 ### Risk: localStorage Complexity
+
 **Mitigation:**
+
 - Migration code handles old→new key transition
 - Graceful fallback if migration fails
 - Clear documentation of storage schema
 
 ### Risk: Multiple Auth Methods Confusion
+
 **Mitigation:**
+
 - Single `dispatch-auth-token` key abstracts auth method
 - Server auto-detects token type
 - User doesn't need to know which auth method they're using
@@ -1315,20 +1410,23 @@ const routes = globSync('src/routes/api/**/*+server.js');
 let totalCleaned = 0;
 let totalLinesRemoved = 0;
 
-routes.forEach(file => {
+routes.forEach((file) => {
 	const content = readFileSync(file, 'utf-8');
 	let newContent = content;
 
 	// Pattern 1: Full auth boilerplate (most common)
-	const pattern1 = /\s*const authKey = locals\.services\.auth\.getAuthKeyFromRequest\(request\);\s*if \(!locals\.services\.auth\.validateKey\(authKey\)\) \{\s*return json\(\{ error: ['"]Authentication required['"] \}, \{ status: 401 \}\);\s*\}/g;
+	const pattern1 =
+		/\s*const authKey = locals\.services\.auth\.getAuthKeyFromRequest\(request\);\s*if \(!locals\.services\.auth\.validateKey\(authKey\)\) \{\s*return json\(\{ error: ['"]Authentication required['"] \}, \{ status: 401 \}\);\s*\}/g;
 	newContent = newContent.replace(pattern1, '\n\t// Auth validated by hooks middleware');
 
 	// Pattern 2: Variation with url.searchParams
-	const pattern2 = /\s*const authKey = url\.searchParams\.get\(['"]authKey['"]\) \|\| url\.searchParams\.get\(['"]key['"]\);\s*if \(!locals\.services\.auth\.validateKey\(authKey\)\) \{\s*return json\(\{ error: ['"]Authentication required['"] \}, \{ status: 401 \}\);\s*\}/g;
+	const pattern2 =
+		/\s*const authKey = url\.searchParams\.get\(['"]authKey['"]\) \|\| url\.searchParams\.get\(['"]key['"]\);\s*if \(!locals\.services\.auth\.validateKey\(authKey\)\) \{\s*return json\(\{ error: ['"]Authentication required['"] \}, \{ status: 401 \}\);\s*\}/g;
 	newContent = newContent.replace(pattern2, '\n\t// Auth validated by hooks middleware');
 
 	// Pattern 3: Two-line version
-	const pattern3 = /\s*if \(!locals\.services\.auth\.validateKey\(authKey\)\) \{\s*return json\(\{ error: ['"]Authentication required['"] \}, \{ status: 401 \}\);\s*\}/g;
+	const pattern3 =
+		/\s*if \(!locals\.services\.auth\.validateKey\(authKey\)\) \{\s*return json\(\{ error: ['"]Authentication required['"] \}, \{ status: 401 \}\);\s*\}/g;
 	newContent = newContent.replace(pattern3, '');
 
 	if (content !== newContent) {
@@ -1356,6 +1454,7 @@ console.log(`   3. Commit: git commit -am "Remove redundant auth checks (hooks h
 ```
 
 **Usage:**
+
 ```bash
 # Make script executable
 chmod +x scripts/remove-redundant-auth.js
@@ -1390,18 +1489,21 @@ handlers cleaner and maintaining single source of truth.
 ## Expert Recommendations Summary
 
 **From Refactoring Specialist:**
+
 - ✅ Use hooks-based middleware to avoid touching 47+ route files
 - ✅ Follow SOLID principles (Single Responsibility, Open/Closed)
 - ✅ Strategy pattern for extensible auth methods
 - ✅ Backwards compatible approach with gradual migration
 
 **From Svelte/SvelteKit Architect:**
+
 - ✅ Hooks are the idiomatic SvelteKit solution for cross-cutting concerns
 - ✅ Populate `event.locals.auth` for consistent access pattern
 - ✅ Use public route allow-list for fine-grained control
 - ✅ Keep route handlers focused on business logic only
 
 **Key Insight:**
+
 > "The hooks-based approach is not just a workaround - it's the RIGHT way to do auth in SvelteKit. It centralizes cross-cutting concerns while keeping route handlers clean and focused."
 
 ## References
@@ -1415,5 +1517,6 @@ handlers cleaner and maintaining single source of truth.
 ## Expert Analysis Documents
 
 Full expert analysis available in task outputs:
+
 - Refactoring Specialist: SOLID principles analysis, strategy pattern recommendations
 - SvelteKit Architect: Hooks implementation patterns, idiomatic SvelteKit approaches

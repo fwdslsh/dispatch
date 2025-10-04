@@ -81,7 +81,7 @@
 		width: 32px;
 		height: 32px;
 		padding: 0;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		background: linear-gradient(135deg, var(--surface-primary-92), var(--surface-primary-96));
 		border: 1px solid var(--primary-glow-20);
 		box-shadow:
@@ -119,7 +119,7 @@
 		padding: var(--space-3) var(--space-4);
 		background: linear-gradient(135deg, var(--surface-primary-95), var(--surface-primary-98));
 		border: 1px solid var(--primary-glow-25);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		box-shadow:
 			inset 0 1px 3px rgba(0, 0, 0, 0.05),
 			0 4px 12px -6px rgba(0, 0, 0, 0.1);
@@ -162,7 +162,7 @@
 		font-size: 0.9em;
 		padding: 2px 6px;
 		background: color-mix(in oklab, var(--accent-cyan) 15%, transparent);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		border: 1px solid color-mix(in oklab, var(--accent-cyan) 25%, transparent);
 	}
 	.event-summary-content :global(.event-id) {
@@ -171,7 +171,7 @@
 		font-size: 0.85em;
 		padding: 2px 4px;
 		background: color-mix(in oklab, var(--muted) 10%, transparent);
-		border-radius: 3px;
+		border-radius: var(--radius-xs);
 		border: 1px solid color-mix(in oklab, var(--muted) 20%, transparent);
 	}
 	.event-summary-content :global(.event-preview) {
@@ -183,7 +183,7 @@
 		margin-top: var(--space-1);
 		padding: var(--space-2);
 		background: color-mix(in oklab, var(--bg) 50%, transparent);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		border-left: 3px solid color-mix(in oklab, var(--primary) 30%, transparent);
 		overflow-wrap: break-word;
 	}

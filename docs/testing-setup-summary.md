@@ -37,6 +37,7 @@ A comprehensive guide that covers:
 A bash script that automates test instance creation with the following features:
 
 **Capabilities**:
+
 - Creates temporary directories for HOME and WORKSPACES_ROOT
 - Initializes fresh SQLite database with proper schema
 - Optionally completes onboarding automatically
@@ -45,6 +46,7 @@ A bash script that automates test instance creation with the following features:
 - Outputs environment variables for manual use
 
 **Options**:
+
 ```bash
 --auto-onboard          # Complete onboarding automatically
 --key KEY               # Set custom TERMINAL_KEY
@@ -57,6 +59,7 @@ A bash script that automates test instance creation with the following features:
 ```
 
 **Usage Examples**:
+
 ```bash
 # Basic auto-onboarded instance
 ./scripts/setup-test-instance.sh --auto-onboard
@@ -70,6 +73,7 @@ A bash script that automates test instance creation with the following features:
 
 **Database Initialization**:
 The script uses a Node.js inline script to properly initialize the SQLite database with:
+
 - All required tables (sessions, session_events, workspace_layout, workspaces, settings, user_preferences)
 - WAL mode enabled
 - Foreign keys enabled
@@ -90,11 +94,13 @@ Added references to the new testing quick start guide in:
 ### For Developers
 
 1. **Quick test instance**:
+
    ```bash
    ./scripts/setup-test-instance.sh --auto-onboard --start
    ```
 
 2. **Custom testing scenario**:
+
    ```bash
    ./scripts/setup-test-instance.sh --auto-onboard \
      --key "custom-test-key" \
@@ -103,13 +109,14 @@ Added references to the new testing quick start guide in:
    ```
 
 3. **CI/Automated testing**:
+
    ```bash
    # Get instance home directory
    export TEST_HOME=$(./scripts/setup-test-instance.sh --auto-onboard --print-home)
-   
+
    # Start server
    HOME="$TEST_HOME" npm run dev:test &
-   
+
    # Run tests
    npm run test:e2e
    ```
@@ -122,10 +129,10 @@ Use the existing Playwright helpers in `e2e/core-helpers.js`:
 import { navigateToWorkspaceWithOnboardingComplete } from './e2e/core-helpers.js';
 
 test('my test', async ({ page }) => {
-  // Automatically sets up mocks and bypasses onboarding
-  await navigateToWorkspaceWithOnboardingComplete(page);
-  
-  // Test your features
+	// Automatically sets up mocks and bypasses onboarding
+	await navigateToWorkspaceWithOnboardingComplete(page);
+
+	// Test your features
 });
 ```
 
@@ -137,7 +144,10 @@ test('my test', async ({ page }) => {
    ```javascript
    localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
    localStorage.setItem('authSessionId', 'test-' + Date.now());
-   localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+   localStorage.setItem(
+   	'authExpiresAt',
+   	new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+   );
    localStorage.setItem('onboarding-complete', 'true');
    ```
 
@@ -154,15 +164,19 @@ test('my test', async ({ page }) => {
 The script automatically creates and seeds the following:
 
 ### Settings Table
+
 - **authentication** category: Contains terminal_key
 - **onboarding** category: Marks onboarding as complete with timestamp
 
 ### Workspaces Table
+
 - Creates workspace entry when --workspace is provided
 - Includes path, name, and timestamps
 
 ### Database Schema
+
 All tables from the production schema:
+
 - sessions
 - session_events
 - workspace_layout
@@ -173,6 +187,7 @@ All tables from the production schema:
 ## Cleanup
 
 Temporary directories can be cleaned up with:
+
 ```bash
 # Manual cleanup of specific instance
 rm -rf /tmp/dispatch-test-home.XXXXXX /tmp/dispatch-test-workspaces.XXXXXX

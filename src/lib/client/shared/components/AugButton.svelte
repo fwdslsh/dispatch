@@ -146,7 +146,7 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 
 		/* Smooth transitions */
 		transition: all 0.2s ease;
@@ -253,7 +253,7 @@
 		height: 16px;
 		border: 2px solid currentColor;
 		border-top: 2px solid transparent;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: terminalSpin 1s linear infinite;
 	}
 

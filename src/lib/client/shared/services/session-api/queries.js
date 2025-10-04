@@ -132,9 +132,12 @@ export async function getWorkspaceLayout(config) {
  */
 export async function getClaudeSessions(config, project) {
 	try {
-		const response = await fetch(`${config.apiBaseUrl || ''}/api/claude/sessions?project=${encodeURIComponent(project)}`, {
-			headers: getHeaders(config)
-		});
+		const response = await fetch(
+			`${config.apiBaseUrl || ''}/api/claude/sessions?project=${encodeURIComponent(project)}`,
+			{
+				headers: getHeaders(config)
+			}
+		);
 
 		return await handleResponse(response);
 	} catch (error) {

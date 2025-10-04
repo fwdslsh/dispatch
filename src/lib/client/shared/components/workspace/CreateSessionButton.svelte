@@ -45,7 +45,7 @@
 		padding: 0;
 		background: var(--primary);
 		border: 2px solid var(--primary);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		color: var(--bg);
 		cursor: pointer;
 		transition: all 0.2s ease;

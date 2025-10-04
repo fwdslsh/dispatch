@@ -98,7 +98,7 @@
 		max-width: 400px;
 		width: 90%;
 		background: color-mix(in oklab, var(--surface) 90%, black 10%);
-		border-radius: 12px;
+		border-radius: var(--radius-lg);
 		backdrop-filter: blur(20px);
 		border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
 		box-shadow:

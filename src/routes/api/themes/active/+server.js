@@ -20,10 +20,9 @@ async function resolveActiveTheme(database, themeManager, workspaceId) {
 	// 1. Check workspace override if workspaceId provided
 	if (workspaceId) {
 		try {
-			const workspace = await database.get(
-				'SELECT theme_override FROM workspaces WHERE id = ?',
-				[workspaceId]
-			);
+			const workspace = await database.get('SELECT theme_override FROM workspaces WHERE id = ?', [
+				workspaceId
+			]);
 
 			if (workspace?.theme_override) {
 				// Remove .json extension if present for theme lookup

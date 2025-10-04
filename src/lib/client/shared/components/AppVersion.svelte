@@ -17,7 +17,7 @@
 	});
 </script>
 
-<span class="version-indicator" title="Application version: {appVersion}">
+<span class="version-indicator" title="Version: {appVersion}">
 	v{appVersion}
 </span>
 
@@ -25,8 +25,8 @@
 	/* StatusBar component uses utility classes - no additional styles needed */
 	.version-indicator {
 		font-size: 0.75rem;
-		color: var(--text-tertiary, #6b7280);
-		opacity: 0.7;
+		color: var(--text-primary, #6b7280);
+		opacity: 0.8;
 		font-weight: 400;
 		margin-left: 8px;
 		user-select: none;

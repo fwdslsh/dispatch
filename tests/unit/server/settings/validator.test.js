@@ -48,7 +48,10 @@ describe('SettingsValidator', () => {
 		});
 
 		it('should reject terminal key with default value', () => {
-			const result = validator.validateSetting(terminalKeySetting, 'change-me-to-a-strong-password');
+			const result = validator.validateSetting(
+				terminalKeySetting,
+				'change-me-to-a-strong-password'
+			);
 			expect(result.valid).toBe(false);
 			expect(result.errors.some((e) => e.includes('default'))).toBe(true);
 		});
@@ -75,10 +78,7 @@ describe('SettingsValidator', () => {
 		});
 
 		it('should accept valid OAuth client ID', () => {
-			const result = validator.validateSetting(
-				oauthClientIdSetting,
-				'abc123-def456-ghi789'
-			);
+			const result = validator.validateSetting(oauthClientIdSetting, 'abc123-def456-ghi789');
 			expect(result.valid).toBe(true);
 			expect(result.errors).toHaveLength(0);
 		});
@@ -132,10 +132,7 @@ describe('SettingsValidator', () => {
 		});
 
 		it('should warn about HTTP in production', () => {
-			const result = validator.validateSetting(
-				redirectUriSetting,
-				'http://example.com/callback'
-			);
+			const result = validator.validateSetting(redirectUriSetting, 'http://example.com/callback');
 			expect(result.warnings.length).toBeGreaterThan(0);
 			expect(result.warnings.some((w) => w.includes('HTTPS'))).toBe(true);
 		});
@@ -187,10 +184,7 @@ describe('SettingsValidator', () => {
 		});
 
 		it('should accept path with spaces when properly formatted', () => {
-			const result = validator.validateSetting(
-				workspacesRootSetting,
-				'/home/user/my workspaces'
-			);
+			const result = validator.validateSetting(workspacesRootSetting, '/home/user/my workspaces');
 			expect(result.valid).toBe(true);
 		});
 	});

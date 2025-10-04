@@ -608,7 +608,7 @@
 		background: var(--success-bg);
 		color: var(--success-text);
 		padding: 2px 6px;
-		border-radius: 3px;
+		border-radius: var(--radius-xs);
 		font-size: 0.75rem;
 	}
 
@@ -616,14 +616,14 @@
 		background: var(--warning-bg);
 		color: var(--warning-text);
 		padding: 2px 6px;
-		border-radius: 3px;
+		border-radius: var(--radius-xs);
 		font-size: 0.75rem;
 	}
 
 	.git-panel {
 		background: var(--surface-2);
 		border: 1px solid var(--border-color);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		margin-bottom: 8px;
 	}
 
@@ -664,7 +664,7 @@
 
 	.branch-item {
 		padding: 6px 8px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		font-size: 0.875rem;
 		transition: background-color 0.2s;
 		align-items: center;
@@ -695,7 +695,7 @@
 
 	.diff-content {
 		background: var(--surface-1);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		width: 90%;
 		max-width: 800px;
 		max-height: 80%;
@@ -728,7 +728,7 @@
 		background: var(--error-bg);
 		color: var(--error-text);
 		padding: 8px 12px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		font-size: 0.875rem;
 		margin-top: 8px;
 	}

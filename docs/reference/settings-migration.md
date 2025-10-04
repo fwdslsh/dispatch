@@ -78,6 +78,7 @@ class SettingsManager {
 ```
 
 **Usage Example**:
+
 ```javascript
 const settingsManager = new SettingsManager('./dispatch.db');
 await settingsManager.initialize();
@@ -87,7 +88,7 @@ const authSettings = await settingsManager.getSettings('authentication');
 
 // Update terminal key
 await settingsManager.updateCategorySettings('authentication', {
-  terminal_key: 'new-secure-key-12345'
+	terminal_key: 'new-secure-key-12345'
 });
 ```
 
@@ -112,6 +113,7 @@ class ValueResolver {
 ```
 
 **Priority Logic**:
+
 1. If `current_value` exists, use it (UI configuration)
 2. Else if environment variable exists, use it
 3. Else use `default_value`
@@ -179,31 +181,26 @@ class SettingsViewModel {
 ```
 
 **Usage in Components**:
+
 ```svelte
 <script>
-  import { SettingsViewModel } from './SettingsViewModel.svelte.js';
+	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
 
-  let { settingsViewModel } = $props();
+	let { settingsViewModel } = $props();
 
-  // Reactive values
-  let terminalKey = $derived(
-    settingsViewModel.getCurrentValue('terminal_key')
-  );
+	// Reactive values
+	let terminalKey = $derived(settingsViewModel.getCurrentValue('terminal_key'));
 
-  let hasChanges = $derived(
-    settingsViewModel.categoryHasChanges('authentication')
-  );
+	let hasChanges = $derived(settingsViewModel.categoryHasChanges('authentication'));
 </script>
 
 <input
-  bind:value={terminalKey}
-  on:input={(e) => settingsViewModel.updateSetting('terminal_key', e.target.value)}
+	bind:value={terminalKey}
+	on:input={(e) => settingsViewModel.updateSetting('terminal_key', e.target.value)}
 />
 
 {#if hasChanges}
-  <button on:click={() => settingsViewModel.saveCategory('authentication')}>
-    Save Changes
-  </button>
+	<button on:click={() => settingsViewModel.saveCategory('authentication')}> Save Changes </button>
 {/if}
 ```
 
@@ -238,26 +235,27 @@ curl "http://localhost:3030/api/settings?authKey=YOUR_KEY"
 ```
 
 Response:
+
 ```json
 {
-  "categories": [
-    {
-      "id": "authentication",
-      "name": "Authentication",
-      "settings": [
-        {
-          "key": "terminal_key",
-          "name": "Terminal Key",
-          "type": "string",
-          "current_value": "***",
-          "default_value": "change-me-to-a-strong-password",
-          "env_var_name": "TERMINAL_KEY",
-          "is_sensitive": true,
-          "is_required": true
-        }
-      ]
-    }
-  ]
+	"categories": [
+		{
+			"id": "authentication",
+			"name": "Authentication",
+			"settings": [
+				{
+					"key": "terminal_key",
+					"name": "Terminal Key",
+					"type": "string",
+					"current_value": "***",
+					"default_value": "change-me-to-a-strong-password",
+					"env_var_name": "TERMINAL_KEY",
+					"is_sensitive": true,
+					"is_required": true
+				}
+			]
+		}
+	]
 }
 ```
 
@@ -277,11 +275,12 @@ curl -X PUT "http://localhost:3030/api/settings/authentication" \
 ```
 
 Response:
+
 ```json
 {
-  "success": true,
-  "updated_count": 1,
-  "session_invalidated": true
+	"success": true,
+	"updated_count": 1,
+	"session_invalidated": true
 }
 ```
 
@@ -294,11 +293,12 @@ curl "http://localhost:3030/api/auth/config?authKey=YOUR_KEY"
 ```
 
 Response:
+
 ```json
 {
-  "terminal_key_set": true,
-  "oauth_configured": false,
-  "authentication_methods": ["terminal_key"]
+	"terminal_key_set": true,
+	"oauth_configured": false,
+	"authentication_methods": ["terminal_key"]
 }
 ```
 
@@ -307,6 +307,7 @@ Response:
 ### For Developers Adding New Settings
 
 1. **Add setting to schema** (`src/lib/server/settings/schema.sql`):
+
 ```sql
 INSERT INTO configuration_settings (
   key, category_id, name, description, type,
@@ -317,21 +318,23 @@ INSERT INTO configuration_settings (
 ```
 
 2. **Add validation if needed** (`SettingsValidator.js`):
+
 ```javascript
 this.customValidators.set('my_new_setting', (value) => {
-  if (!value || value.length < 5) {
-    return ['Setting must be at least 5 characters'];
-  }
-  return [];
+	if (!value || value.length < 5) {
+		return ['Setting must be at least 5 characters'];
+	}
+	return [];
 });
 ```
 
 3. **Add to ViewModel if needed** (`SettingsViewModel.svelte.js`):
+
 ```javascript
 myNewSetting = $derived.by(() => {
-  return this.settingsByCategory
-    .find(cat => cat.id === 'workspace')
-    ?.settings.find(s => s.key === 'my_new_setting');
+	return this.settingsByCategory
+		.find((cat) => cat.id === 'workspace')
+		?.settings.find((s) => s.key === 'my_new_setting');
 });
 ```
 
@@ -365,21 +368,19 @@ const authSettings = await settingsManager.getSettings('authentication');
 
 ```svelte
 <script>
-  import { getContext } from 'svelte';
+	import { getContext } from 'svelte';
 
-  const serviceContainer = getContext('services');
+	const serviceContainer = getContext('services');
 
-  let settingsService = $state(null);
+	let settingsService = $state(null);
 
-  $effect(async () => {
-    settingsService = await serviceContainer.get('settingsService');
-    await settingsService.loadAllSettings();
-  });
+	$effect(async () => {
+		settingsService = await serviceContainer.get('settingsService');
+		await settingsService.loadAllSettings();
+	});
 
-  // Use settings
-  let currentValue = $derived(
-    settingsService?.getCurrentValue('my_setting')
-  );
+	// Use settings
+	let currentValue = $derived(settingsService?.getCurrentValue('my_setting'));
 </script>
 ```
 
@@ -401,13 +402,13 @@ settingsService.setupRealTimeUpdates();
 
 // Custom handling
 socket.on('settings.category.updated', async (data) => {
-  console.log('Settings updated:', data.categoryId);
-  await settingsViewModel.loadSettings();
+	console.log('Settings updated:', data.categoryId);
+	await settingsViewModel.loadSettings();
 });
 
 socket.on('settings.auth.invalidated', (data) => {
-  console.warn('Re-authentication required:', data.reason);
-  // Handle session invalidation
+	console.warn('Re-authentication required:', data.reason);
+	// Handle session invalidation
 });
 ```
 
@@ -428,6 +429,7 @@ sqlite3 dispatch.db < src/lib/server/settings/optimize-database.sql
 ```
 
 This script:
+
 - Enables WAL mode for better concurrency
 - Runs ANALYZE for query optimization
 - Verifies foreign key integrity
@@ -466,16 +468,19 @@ npm test -- tests/performance/settings-performance.test.js
 ### Common Issues
 
 **Settings not updating in UI:**
+
 - Check browser console for Socket.IO connection errors
 - Verify `realTimeUpdates` is enabled in SettingsService
 - Check Network tab for failed API requests
 
 **Environment variable not taking effect:**
+
 - Verify priority hierarchy (UI > Env > Default)
 - Check if `current_value` is set (overrides env var)
 - Use ValueResolver to check actual resolution
 
 **Performance degradation:**
+
 - Run database optimization script
 - Check cache effectiveness in logs
 - Verify indexes are being used (EXPLAIN QUERY PLAN)

@@ -260,7 +260,7 @@
 		border: 1px solid rgba(255, 99, 71, 0.3);
 		color: #ff6347;
 		padding: var(--space-sm);
-		border-radius: var(--border-radius);
+		border-radius: var(--radius-md);
 		margin-bottom: var(--space-md);
 	}
 
@@ -276,7 +276,7 @@
 
 	.status-badge {
 		padding: 2px 8px;
-		border-radius: var(--border-radius-sm);
+		border-radius: var(--radius-sm);
 		font-size: var(--font-size-sm);
 		background: var(--bg-secondary);
 		color: var(--text-muted);
@@ -326,7 +326,7 @@
 		padding: var(--space-sm);
 		background: rgba(59, 130, 246, 0.1);
 		border: 1px solid rgba(59, 130, 246, 0.3);
-		border-radius: var(--border-radius);
+		border-radius: var(--radius-md);
 	}
 
 	.login-label {
@@ -361,7 +361,7 @@
 	.tunnel-info {
 		padding: var(--space-sm);
 		background: var(--bg-secondary);
-		border-radius: var(--border-radius);
+		border-radius: var(--radius-md);
 		font-size: var(--font-size-sm);
 		color: var(--text-muted);
 	}

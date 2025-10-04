@@ -139,9 +139,8 @@ export class ThemeService {
 			formData.append('theme', file);
 
 			// Get auth key for FormData request
-			const authKey = typeof localStorage !== 'undefined'
-				? localStorage.getItem(this.config.authTokenKey)
-				: null;
+			const authKey =
+				typeof localStorage !== 'undefined' ? localStorage.getItem(this.config.authTokenKey) : null;
 
 			const headers = {};
 			if (authKey) {

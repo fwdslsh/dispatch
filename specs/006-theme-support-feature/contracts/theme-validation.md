@@ -12,24 +12,24 @@ All theme files MUST contain:
 
 ```json
 {
-  "background": "<color>",
-  "foreground": "<color>",
-  "black": "<color>",
-  "red": "<color>",
-  "green": "<color>",
-  "yellow": "<color>",
-  "blue": "<color>",
-  "magenta": "<color>",
-  "cyan": "<color>",
-  "white": "<color>",
-  "brightBlack": "<color>",
-  "brightRed": "<color>",
-  "brightGreen": "<color>",
-  "brightYellow": "<color>",
-  "brightBlue": "<color>",
-  "brightMagenta": "<color>",
-  "brightCyan": "<color>",
-  "brightWhite": "<color>"
+	"background": "<color>",
+	"foreground": "<color>",
+	"black": "<color>",
+	"red": "<color>",
+	"green": "<color>",
+	"yellow": "<color>",
+	"blue": "<color>",
+	"magenta": "<color>",
+	"cyan": "<color>",
+	"white": "<color>",
+	"brightBlack": "<color>",
+	"brightRed": "<color>",
+	"brightGreen": "<color>",
+	"brightYellow": "<color>",
+	"brightBlue": "<color>",
+	"brightMagenta": "<color>",
+	"brightCyan": "<color>",
+	"brightWhite": "<color>"
 }
 ```
 
@@ -39,11 +39,11 @@ Theme files MAY contain:
 
 ```json
 {
-  "name": "Theme Display Name",
-  "description": "Theme description text",
-  "cursor": "<color>",
-  "cursorAccent": "<color>",
-  "selectionBackground": "<color>"
+	"name": "Theme Display Name",
+	"description": "Theme description text",
+	"cursor": "<color>",
+	"cursorAccent": "<color>",
+	"selectionBackground": "<color>"
 }
 ```
 
@@ -59,6 +59,7 @@ Valid color formats (case-insensitive):
 6. **HSLA**: `hsla(h, s%, l%, a)` (e.g., `hsla(120, 100%, 50%, 0.5)`)
 
 Where:
+
 - `r`, `g`, `b`: 0-255
 - `a`: 0.0-1.0 or 0-100%
 - `h`: 0-360 (degrees)
@@ -76,6 +77,7 @@ Where:
 ### Level 1: Parse Validation
 
 **Pass Criteria**:
+
 - File is valid JSON
 - File size ≤ 5MB
 
@@ -84,23 +86,27 @@ Where:
 ### Level 2: Structure Validation
 
 **Pass Criteria**:
+
 - All required fields present
 - All field values are strings
 
 **Failure**: Reject with error "Missing required field: {field}"
 
 **Warnings**:
+
 - Missing optional fields (name, description, cursor, etc.)
 - Extra fields not in schema (not blocking)
 
 ### Level 3: Color Format Validation
 
 **Pass Criteria**:
+
 - All color values match one of the valid color formats
 
 **Failure**: Reject with error "Invalid color format for {field}: {value}"
 
 **Warnings**:
+
 - Both background and foreground are same color
 - Low contrast between foreground and background
 - Missing cursor color (will use foreground as fallback)
@@ -109,9 +115,9 @@ Where:
 
 ```typescript
 interface ValidationResult {
-  valid: boolean;         // Overall validation status
-  errors: string[];       // Blocking errors (prevents upload/activation)
-  warnings: string[];     // Non-blocking warnings (shown to user)
+	valid: boolean; // Overall validation status
+	errors: string[]; // Blocking errors (prevents upload/activation)
+	warnings: string[]; // Non-blocking warnings (shown to user)
 }
 ```
 
@@ -121,9 +127,9 @@ interface ValidationResult {
 
 ```json
 {
-  "valid": true,
-  "errors": [],
-  "warnings": []
+	"valid": true,
+	"errors": [],
+	"warnings": []
 }
 ```
 
@@ -131,12 +137,12 @@ interface ValidationResult {
 
 ```json
 {
-  "valid": true,
-  "errors": [],
-  "warnings": [
-    "Missing optional field: name (will use filename as display name)",
-    "Missing optional field: cursor (will use foreground color)"
-  ]
+	"valid": true,
+	"errors": [],
+	"warnings": [
+		"Missing optional field: name (will use filename as display name)",
+		"Missing optional field: cursor (will use foreground color)"
+	]
 }
 ```
 
@@ -144,12 +150,9 @@ interface ValidationResult {
 
 ```json
 {
-  "valid": false,
-  "errors": [
-    "Missing required field: brightBlue",
-    "Invalid color format for red: not-a-color"
-  ],
-  "warnings": []
+	"valid": false,
+	"errors": ["Missing required field: brightBlue", "Invalid color format for red: not-a-color"],
+	"warnings": []
 }
 ```
 
@@ -159,21 +162,21 @@ All theme parsers MUST implement:
 
 ```typescript
 abstract class ThemeParser {
-  /**
-   * Parse theme file content to Theme object
-   * @throws Error if validation fails
-   */
-  abstract parse(fileContent: string): Theme;
+	/**
+	 * Parse theme file content to Theme object
+	 * @throws Error if validation fails
+	 */
+	abstract parse(fileContent: string): Theme;
 
-  /**
-   * Validate theme structure and colors
-   */
-  validate(theme: object): ValidationResult;
+	/**
+	 * Validate theme structure and colors
+	 */
+	validate(theme: object): ValidationResult;
 
-  /**
-   * Transform theme to CSS variables
-   */
-  toCssVariables(theme: Theme): CSSVariables;
+	/**
+	 * Transform theme to CSS variables
+	 */
+	toCssVariables(theme: Theme): CSSVariables;
 }
 ```
 
@@ -181,89 +184,103 @@ abstract class ThemeParser {
 
 ```typescript
 class XtermThemeParser extends ThemeParser {
-  parse(fileContent: string): Theme {
-    // 1. Parse JSON
-    const json = JSON.parse(fileContent);
+	parse(fileContent: string): Theme {
+		// 1. Parse JSON
+		const json = JSON.parse(fileContent);
 
-    // 2. Validate structure
-    const validation = this.validate(json);
-    if (!validation.valid) {
-      throw new Error(validation.errors.join(', '));
-    }
+		// 2. Validate structure
+		const validation = this.validate(json);
+		if (!validation.valid) {
+			throw new Error(validation.errors.join(', '));
+		}
 
-    // 3. Return theme with validation warnings
-    return {
-      ...json,
-      _validation: validation
-    };
-  }
+		// 3. Return theme with validation warnings
+		return {
+			...json,
+			_validation: validation
+		};
+	}
 
-  validate(theme: object): ValidationResult {
-    const errors = [];
-    const warnings = [];
+	validate(theme: object): ValidationResult {
+		const errors = [];
+		const warnings = [];
 
-    // Check required fields
-    const required = [
-      'background', 'foreground',
-      'black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white',
-      'brightBlack', 'brightRed', 'brightGreen', 'brightYellow',
-      'brightBlue', 'brightMagenta', 'brightCyan', 'brightWhite'
-    ];
+		// Check required fields
+		const required = [
+			'background',
+			'foreground',
+			'black',
+			'red',
+			'green',
+			'yellow',
+			'blue',
+			'magenta',
+			'cyan',
+			'white',
+			'brightBlack',
+			'brightRed',
+			'brightGreen',
+			'brightYellow',
+			'brightBlue',
+			'brightMagenta',
+			'brightCyan',
+			'brightWhite'
+		];
 
-    for (const field of required) {
-      if (!theme[field]) {
-        errors.push(`Missing required field: ${field}`);
-      }
-    }
+		for (const field of required) {
+			if (!theme[field]) {
+				errors.push(`Missing required field: ${field}`);
+			}
+		}
 
-    // Check color formats
-    const colorFields = [...required, 'cursor', 'cursorAccent', 'selectionBackground'];
-    const colorRegex = /^(#[0-9a-f]{6,8}|rgb\(|rgba\(|hsl\(|hsla\()/i;
+		// Check color formats
+		const colorFields = [...required, 'cursor', 'cursorAccent', 'selectionBackground'];
+		const colorRegex = /^(#[0-9a-f]{6,8}|rgb\(|rgba\(|hsl\(|hsla\()/i;
 
-    for (const field of colorFields) {
-      if (theme[field] && !colorRegex.test(theme[field])) {
-        errors.push(`Invalid color format for ${field}: ${theme[field]}`);
-      }
-    }
+		for (const field of colorFields) {
+			if (theme[field] && !colorRegex.test(theme[field])) {
+				errors.push(`Invalid color format for ${field}: ${theme[field]}`);
+			}
+		}
 
-    // Check optional fields
-    if (!theme.name) warnings.push('Missing optional field: name');
-    if (!theme.cursor) warnings.push('Missing optional field: cursor (will use foreground)');
+		// Check optional fields
+		if (!theme.name) warnings.push('Missing optional field: name');
+		if (!theme.cursor) warnings.push('Missing optional field: cursor (will use foreground)');
 
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings
-    };
-  }
+		return {
+			valid: errors.length === 0,
+			errors,
+			warnings
+		};
+	}
 
-  toCssVariables(theme: Theme): CSSVariables {
-    return {
-      '--theme-background': theme.background,
-      '--theme-foreground': theme.foreground,
-      '--theme-cursor': theme.cursor || theme.foreground,
-      '--theme-cursor-accent': theme.cursorAccent || theme.background,
-      '--theme-selection-bg': theme.selectionBackground || `${theme.foreground}40`,
+	toCssVariables(theme: Theme): CSSVariables {
+		return {
+			'--theme-background': theme.background,
+			'--theme-foreground': theme.foreground,
+			'--theme-cursor': theme.cursor || theme.foreground,
+			'--theme-cursor-accent': theme.cursorAccent || theme.background,
+			'--theme-selection-bg': theme.selectionBackground || `${theme.foreground}40`,
 
-      '--theme-ansi-black': theme.black,
-      '--theme-ansi-red': theme.red,
-      '--theme-ansi-green': theme.green,
-      '--theme-ansi-yellow': theme.yellow,
-      '--theme-ansi-blue': theme.blue,
-      '--theme-ansi-magenta': theme.magenta,
-      '--theme-ansi-cyan': theme.cyan,
-      '--theme-ansi-white': theme.white,
+			'--theme-ansi-black': theme.black,
+			'--theme-ansi-red': theme.red,
+			'--theme-ansi-green': theme.green,
+			'--theme-ansi-yellow': theme.yellow,
+			'--theme-ansi-blue': theme.blue,
+			'--theme-ansi-magenta': theme.magenta,
+			'--theme-ansi-cyan': theme.cyan,
+			'--theme-ansi-white': theme.white,
 
-      '--theme-ansi-bright-black': theme.brightBlack,
-      '--theme-ansi-bright-red': theme.brightRed,
-      '--theme-ansi-bright-green': theme.brightGreen,
-      '--theme-ansi-bright-yellow': theme.brightYellow,
-      '--theme-ansi-bright-blue': theme.brightBlue,
-      '--theme-ansi-bright-magenta': theme.brightMagenta,
-      '--theme-ansi-bright-cyan': theme.brightCyan,
-      '--theme-ansi-bright-white': theme.brightWhite
-    };
-  }
+			'--theme-ansi-bright-black': theme.brightBlack,
+			'--theme-ansi-bright-red': theme.brightRed,
+			'--theme-ansi-bright-green': theme.brightGreen,
+			'--theme-ansi-bright-yellow': theme.brightYellow,
+			'--theme-ansi-bright-blue': theme.brightBlue,
+			'--theme-ansi-bright-magenta': theme.brightMagenta,
+			'--theme-ansi-bright-cyan': theme.brightCyan,
+			'--theme-ansi-bright-white': theme.brightWhite
+		};
+	}
 }
 ```
 

@@ -109,16 +109,7 @@ describe('Themes API - GET /api/themes', () => {
 			expect(theme.cssVariables).toHaveProperty('--theme-cursor');
 
 			// Verify all ANSI colors are present
-			const ansiColors = [
-				'black',
-				'red',
-				'green',
-				'yellow',
-				'blue',
-				'magenta',
-				'cyan',
-				'white'
-			];
+			const ansiColors = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
 			ansiColors.forEach((color) => {
 				expect(theme.cssVariables).toHaveProperty(`--theme-ansi-${color}`);
 				expect(theme.cssVariables).toHaveProperty(`--theme-ansi-bright-${color}`);
@@ -200,7 +191,7 @@ describe('Themes API - GET /api/themes', () => {
 
 		it('should refresh cache after timeout', () => {
 			// After 5 minutes, cache is invalidated and themes are reloaded
-			const lastCacheUpdate = Date.now() - (6 * 60 * 1000); // 6 minutes ago
+			const lastCacheUpdate = Date.now() - 6 * 60 * 1000; // 6 minutes ago
 			const cacheTimeout = 5 * 60 * 1000;
 			const isCacheExpired = Date.now() - lastCacheUpdate > cacheTimeout;
 

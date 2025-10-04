@@ -280,7 +280,7 @@
 	.type-badge {
 		display: inline-block;
 		padding: 2px 8px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		font-size: 0.85em;
 		font-weight: 600;
 		text-transform: uppercase;
@@ -324,7 +324,7 @@
 	.activity-message-content {
 		padding: var(--space-3);
 		background: color-mix(in oklab, var(--bg) 50%, transparent);
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		border: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
 		margin-top: var(--space-2);
 		max-height: 400px;

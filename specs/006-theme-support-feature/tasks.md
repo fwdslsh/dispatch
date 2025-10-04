@@ -441,6 +441,7 @@ T039-T041 (sequential) ◄──────┘
 ## Parallel Execution Examples
 
 **Example 1: Setup Phase**
+
 ```bash
 # T001 and T003 can run in parallel
 Task: "Create preset theme files in static/themes/"
@@ -449,6 +450,7 @@ Task: "Configure theme directory structure"
 ```
 
 **Example 2: Contract Tests**
+
 ```bash
 # All contract tests run in parallel
 Task: "Contract test GET /api/themes in tests/server/api/themes-list.test.js"
@@ -459,6 +461,7 @@ Task: "Contract test GET /api/themes/active in tests/server/api/themes-active.te
 ```
 
 **Example 3: Frontend State & Services**
+
 ```bash
 # T028 and T029 run in parallel
 Task: "Implement ThemeState ViewModel in src/lib/client/shared/state/ThemeState.svelte.js"
@@ -466,6 +469,7 @@ Task: "Implement ThemeService API client in src/lib/client/shared/services/Theme
 ```
 
 **Example 4: E2E Tests**
+
 ```bash
 # All E2E tests run in parallel
 Task: "E2E test: Complete theme management workflow in e2e/theme-management.spec.js"

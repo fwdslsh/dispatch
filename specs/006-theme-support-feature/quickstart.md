@@ -198,12 +198,7 @@ export class XtermThemeParser extends ThemeParser {
 
 		// Color format validation
 		const colorRegex = /^(#[0-9a-f]{6,8}|rgb\(|rgba\(|hsl\(|hsla\()/i;
-		const colorFields = [
-			...required,
-			'cursor',
-			'cursorAccent',
-			'selectionBackground'
-		];
+		const colorFields = [...required, 'cursor', 'cursorAccent', 'selectionBackground'];
 
 		for (const field of colorFields) {
 			if (theme[field] && !colorRegex.test(theme[field])) {
@@ -213,8 +208,7 @@ export class XtermThemeParser extends ThemeParser {
 
 		// Optional field warnings
 		if (!theme.name) warnings.push('Missing optional field: name');
-		if (!theme.cursor)
-			warnings.push('Missing optional field: cursor (will use foreground)');
+		if (!theme.cursor) warnings.push('Missing optional field: cursor (will use foreground)');
 
 		return {
 			valid: errors.length === 0,
@@ -229,8 +223,7 @@ export class XtermThemeParser extends ThemeParser {
 			'--theme-foreground': theme.foreground,
 			'--theme-cursor': theme.cursor || theme.foreground,
 			'--theme-cursor-accent': theme.cursorAccent || theme.background,
-			'--theme-selection-bg':
-				theme.selectionBackground || `${theme.foreground}40`,
+			'--theme-selection-bg': theme.selectionBackground || `${theme.foreground}40`,
 
 			'--theme-ansi-black': theme.black,
 			'--theme-ansi-red': theme.red,
@@ -605,9 +598,7 @@ Create `src/lib/client/settings/ThemeSettings.svelte`:
 			<div class="theme-card">
 				<h3>{theme.name}</h3>
 				<p>{theme.description}</p>
-				<button on:click={() => themeState.activateTheme(apiClient, theme.id)}>
-					Activate
-				</button>
+				<button on:click={() => themeState.activateTheme(apiClient, theme.id)}> Activate </button>
 			</div>
 		{/each}
 	</section>

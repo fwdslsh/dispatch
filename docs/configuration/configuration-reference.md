@@ -32,17 +32,17 @@ All settings have been categorized into the following types:
 
 These variables control core container and deployment behavior:
 
-| Variable          | Default                                  | Location           | Category              | Description                               | Runtime Configurable  |
-| ----------------- | ---------------------------------------- | ------------------ | --------------------- | ----------------------------------------- | --------------------- |
+| Variable          | Default                                                       | Location           | Category              | Description                               | Runtime Configurable  |
+| ----------------- | ------------------------------------------------------------- | ------------------ | --------------------- | ----------------------------------------- | --------------------- |
 | **TERMINAL_KEY**  | `testkey12345` (dev), `change-me-to-a-strong-password` (prod) | **Container/Host** | Container Environment | Authentication key for terminal access    | No - requires restart |
-| **PORT**          | `3030`                                   | **Container/Host** | Container Environment | Server listening port                     | No - requires restart |
-| **ENABLE_TUNNEL** | `false`                                  | **Container/Host** | Container Environment | Enable LocalTunnel for public URL access  | No - requires restart |
-| **LT_SUBDOMAIN**  | `''`                                     | **Container/Host** | Container Environment | Custom LocalTunnel subdomain              | No - requires restart |
-| **NODE_ENV**      | `production`                             | **Container/Host** | Container Environment | Node environment (development/production) | No - requires restart |
-| **HOST_UID**      | `1000`                                   | **Container**      | Container Environment | Host user ID for file ownership mapping   | No - requires restart |
-| **HOST_GID**      | `1000`                                   | **Container**      | Container Environment | Host group ID for file ownership mapping  | No - requires restart |
-| **DEFAULT_UID**   | `1000`                                   | **Container**      | Container Environment | Default container user ID                 | No - build-time       |
-| **DEFAULT_GID**   | `1000`                                   | **Container**      | Container Environment | Default container group ID                | No - build-time       |
+| **PORT**          | `3030`                                                        | **Container/Host** | Container Environment | Server listening port                     | No - requires restart |
+| **ENABLE_TUNNEL** | `false`                                                       | **Container/Host** | Container Environment | Enable LocalTunnel for public URL access  | No - requires restart |
+| **LT_SUBDOMAIN**  | `''`                                                          | **Container/Host** | Container Environment | Custom LocalTunnel subdomain              | No - requires restart |
+| **NODE_ENV**      | `production`                                                  | **Container/Host** | Container Environment | Node environment (development/production) | No - requires restart |
+| **HOST_UID**      | `1000`                                                        | **Container**      | Container Environment | Host user ID for file ownership mapping   | No - requires restart |
+| **HOST_GID**      | `1000`                                                        | **Container**      | Container Environment | Host group ID for file ownership mapping  | No - requires restart |
+| **DEFAULT_UID**   | `1000`                                                        | **Container**      | Container Environment | Default container user ID                 | No - build-time       |
+| **DEFAULT_GID**   | `1000`                                                        | **Container**      | Container Environment | Default container group ID                | No - build-time       |
 
 ### Global Workspace Settings
 

@@ -75,31 +75,32 @@ ALTER TABLE workspaces ADD COLUMN themeId TEXT DEFAULT NULL;
 ```javascript
 // Called from OnboardingViewModel during setup
 async function installPresetsForOnboarding() {
-  const themesDir = '~/.dispatch/themes/';
-  const staticDir = 'static/themes/';
+	const themesDir = '~/.dispatch/themes/';
+	const staticDir = 'static/themes/';
 
-  // Create directory
-  await fs.mkdir(themesDir, { recursive: true });
+	// Create directory
+	await fs.mkdir(themesDir, { recursive: true });
 
-  // Copy ALL presets (no existence check - this is first-time setup)
-  for (const preset of PRESET_THEMES) {
-    const userPath = `${themesDir}${preset.id}`;
-    const staticPath = `${staticDir}${preset.id}`;
+	// Copy ALL presets (no existence check - this is first-time setup)
+	for (const preset of PRESET_THEMES) {
+		const userPath = `${themesDir}${preset.id}`;
+		const staticPath = `${staticDir}${preset.id}`;
 
-    await fs.copyFile(staticPath, userPath);
-    console.log(`Installed: ${preset.name}`);
-  }
+		await fs.copyFile(staticPath, userPath);
+		console.log(`Installed: ${preset.name}`);
+	}
 }
 
 // Check if themes installed (onboarding complete indicator)
 async function areThemesInstalled() {
-  const themesDir = '~/.dispatch/themes/';
-  const files = await fs.readdir(themesDir);
-  return files.length > 0;
+	const themesDir = '~/.dispatch/themes/';
+	const files = await fs.readdir(themesDir);
+	return files.length > 0;
 }
 ```
 
 **Onboarding Flow:**
+
 1. User completes authentication step
 2. OnboardingThemeStep presents preset theme cards with previews
 3. User selects preferred default theme (pre-select Phosphor Green)
@@ -108,6 +109,7 @@ async function areThemesInstalled() {
 6. Onboarding complete
 
 **Benefits:**
+
 - Presets available immediately after setup
 - User choice respected (deleted themes stay deleted)
 - No auto-restore on app restart (one-time operation)
@@ -124,42 +126,42 @@ async function areThemesInstalled() {
 import { onMount } from 'svelte';
 
 onMount(async () => {
-  const workspaceId = getCurrentWorkspaceId();
+	const workspaceId = getCurrentWorkspaceId();
 
-  // Fetch resolved theme via API
-  const res = await fetch(`/api/themes/resolve?workspaceId=${workspaceId}`);
-  const { theme } = await res.json();
+	// Fetch resolved theme via API
+	const res = await fetch(`/api/themes/resolve?workspaceId=${workspaceId}`);
+	const { theme } = await res.json();
 
-  // Apply CSS variables
-  const root = document.documentElement;
-  for (const [key, value] of Object.entries(theme.tokensJson)) {
-    root.style.setProperty(key, value);
-  }
+	// Apply CSS variables
+	const root = document.documentElement;
+	for (const [key, value] of Object.entries(theme.tokensJson)) {
+		root.style.setProperty(key, value);
+	}
 });
 ```
 
 ### Optional SSR Optimization (FOUC Prevention)
 
 ```svelte
+<script>
+	// Client-side still runs, overwrites if different
+	onMount(async () => {
+		await loadThemeForWorkspace(workspaceId);
+	});
+</script>
+
 <!-- +layout.svelte -->
 <svelte:head>
-  {#if data.themeTokens}
-    <style id="theme-vars-ssr">
+	{#if data.themeTokens}
+		<style id="theme-vars-ssr">
       :root {
         {#each Object.entries(data.themeTokens) as [key, value]}
           {key}: {value};
         {/each}
       }
-    </style>
-  {/if}
+		</style>
+	{/if}
 </svelte:head>
-
-<script>
-  // Client-side still runs, overwrites if different
-  onMount(async () => {
-    await loadThemeForWorkspace(workspaceId);
-  });
-</script>
 ```
 
 **Result:** Theme loads client-side by default, SSR is optional performance enhancement.
@@ -170,30 +172,30 @@ onMount(async () => {
 
 ### Theme Management
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/themes` | GET | List all themes from `~/.dispatch/themes/` |
-| `/api/themes/upload` | POST | Upload theme, save to `~/.dispatch/themes/` |
-| `/api/themes/:id` | DELETE | Delete custom theme from directory |
+| Endpoint             | Method | Purpose                                     |
+| -------------------- | ------ | ------------------------------------------- |
+| `/api/themes`        | GET    | List all themes from `~/.dispatch/themes/`  |
+| `/api/themes/upload` | POST   | Upload theme, save to `~/.dispatch/themes/` |
+| `/api/themes/:id`    | DELETE | Delete custom theme from directory          |
 
 ### Global Default
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/themes/default` | POST | Set global default theme |
+| Endpoint              | Method | Purpose                  |
+| --------------------- | ------ | ------------------------ |
+| `/api/themes/default` | POST   | Set global default theme |
 
 ### Workspace Overrides
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/workspaces/:id/theme` | POST | Set workspace-specific theme |
-| `/api/workspaces/:id/theme` | DELETE | Clear override, use default |
+| Endpoint                    | Method | Purpose                      |
+| --------------------------- | ------ | ---------------------------- |
+| `/api/workspaces/:id/theme` | POST   | Set workspace-specific theme |
+| `/api/workspaces/:id/theme` | DELETE | Clear override, use default  |
 
 ### Theme Resolution
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/themes/resolve` | GET | Resolve theme for workspace (hierarchy) |
+| Endpoint              | Method | Purpose                                 |
+| --------------------- | ------ | --------------------------------------- |
+| `/api/themes/resolve` | GET    | Resolve theme for workspace (hierarchy) |
 
 ---
 
@@ -239,8 +241,8 @@ onMount(async () => {
 
 ```javascript
 // Database stores filename
-workspace.themeId = "dracula.json";
-preferences.defaultThemeId = "phosphor-green.json";
+workspace.themeId = 'dracula.json';
+preferences.defaultThemeId = 'phosphor-green.json';
 
 // File resolved from ~/.dispatch/themes/{themeId}
 const themePath = `~/.dispatch/themes/${themeId}`;
@@ -251,19 +253,19 @@ const theme = JSON.parse(fs.readFileSync(themePath));
 
 ```json
 {
-  "id": "dracula.json",
-  "name": "Dracula Official",
-  "description": "Classic pink, purple, blue palette",
-  "isPreset": true,
-  "tokensJson": {
-    "--theme-bg-primary": "#282a36",
-    "--theme-fg-primary": "#f8f8f2",
-    "--theme-accent-primary": "#bd93f9",
-    "--theme-ansi-black": "#21222c",
-    "--theme-ansi-red": "#ff5555",
-    "--theme-ansi-green": "#50fa7b",
-    // ... all 24+ canonical palette variables
-  }
+	"id": "dracula.json",
+	"name": "Dracula Official",
+	"description": "Classic pink, purple, blue palette",
+	"isPreset": true,
+	"tokensJson": {
+		"--theme-bg-primary": "#282a36",
+		"--theme-fg-primary": "#f8f8f2",
+		"--theme-accent-primary": "#bd93f9",
+		"--theme-ansi-black": "#21222c",
+		"--theme-ansi-red": "#ff5555",
+		"--theme-ansi-green": "#50fa7b"
+		// ... all 24+ canonical palette variables
+	}
 }
 ```
 
@@ -318,6 +320,7 @@ const theme = JSON.parse(fs.readFileSync(themePath));
 ### Why File-Based Storage?
 
 **Pros:**
+
 - User can manually add themes (drop JSON file)
 - Easy to backup/restore (`~/.dispatch/themes/` directory)
 - No database migrations for new themes
@@ -325,6 +328,7 @@ const theme = JSON.parse(fs.readFileSync(themePath));
 - Works without database connection
 
 **Cons:**
+
 - Slightly slower than database (acceptable for theme loading)
 - Need file system permissions
 
@@ -333,12 +337,14 @@ const theme = JSON.parse(fs.readFileSync(themePath));
 ### Why Client-Side Primary?
 
 **Pros:**
+
 - Works without SSR (progressive enhancement)
 - Easier to debug (console shows theme application)
 - No FOUC with optional SSR
 - Consistent behavior across deployments
 
 **Cons:**
+
 - Slight flash if SSR not used (mitigated with SSR option)
 
 **Decision:** Client-side primary with SSR optimization available.
@@ -346,12 +352,14 @@ const theme = JSON.parse(fs.readFileSync(themePath));
 ### Why Filename-Based IDs?
 
 **Pros:**
+
 - One less mapping layer (ID → filename)
 - Intuitive (ID = what you see in directory)
 - Easy file operations (`fs.readFile(themeId)`)
 - Simple delete (just remove file)
 
 **Cons:**
+
 - Filenames must be sanitized
 - Can't use special characters
 
@@ -362,16 +370,19 @@ const theme = JSON.parse(fs.readFileSync(themePath));
 ## Success Metrics
 
 **User Adoption:**
+
 - % users who upload custom themes
 - % users who set workspace-specific themes
 - Most popular preset themes
 
 **Quality:**
+
 - % themes passing format validation
 - User feedback on theme accuracy
 - Visual workspace identification success
 
 **Performance:**
+
 - Theme upload/parse: <500ms ✅
 - Theme resolution API: <50ms ✅
 - Page refresh after activation: <2s ✅
@@ -382,17 +393,20 @@ const theme = JSON.parse(fs.readFileSync(themePath));
 ## Security Considerations
 
 **File Operations:**
+
 - Path traversal prevention (sanitize filenames)
 - File size limit: 1MB
 - Only JSON files accepted
 - Read-only access to `static/themes/`
 
 **API Authentication:**
+
 - All endpoints require TERMINAL_KEY
 - No unauthenticated theme access
 - Prevent deletion of in-use themes
 
 **User Data Isolation:**
+
 - Themes stored in user home directory
 - No cross-user theme access
 - Workspace themes tied to user account
@@ -413,6 +427,7 @@ const theme = JSON.parse(fs.readFileSync(themePath));
 ## Ready for Implementation ✅
 
 **Architectural Decisions:**
+
 - ✅ File-based storage in `~/.dispatch/themes/`
 - ✅ Global default + per-workspace override
 - ✅ Client-side primary, SSR optional
@@ -420,6 +435,7 @@ const theme = JSON.parse(fs.readFileSync(themePath));
 - ✅ Onboarding-time preset installation (one-time, respects user deletions)
 
 **Next Steps:**
+
 1. Create `static/themes/` directory with 6 preset JSONs
 2. Implement `installPresetsForOnboarding()` and `areThemesInstalled()`
 3. Build OnboardingThemeStep component with theme selector

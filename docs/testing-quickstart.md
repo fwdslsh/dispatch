@@ -145,23 +145,23 @@ For E2E tests, use the built-in test helpers:
 import { navigateToWorkspaceWithOnboardingComplete } from './e2e/core-helpers.js';
 
 test('my test', async ({ page }) => {
-  // Automatically mocks onboarding as complete and navigates to workspace
-  await navigateToWorkspaceWithOnboardingComplete(page);
-  
-  // Your test code here
+	// Automatically mocks onboarding as complete and navigates to workspace
+	await navigateToWorkspaceWithOnboardingComplete(page);
+
+	// Your test code here
 });
 ```
 
 ## Environment Variables Reference
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOME` | `~` | Home directory (contains `.dispatch/` config) |
-| `WORKSPACES_ROOT` | `~/.dispatch-home/workspaces` | Root directory for workspaces |
-| `TERMINAL_KEY` | (required) | Authentication key for access |
-| `SSL_ENABLED` | `true` | Enable/disable SSL |
-| `PORT` | `3030` (dev: `5173`) | Server port |
-| `DB_PATH` | `~/.dispatch/data/workspace.db` | SQLite database path |
+| Variable          | Default                         | Description                                   |
+| ----------------- | ------------------------------- | --------------------------------------------- |
+| `HOME`            | `~`                             | Home directory (contains `.dispatch/` config) |
+| `WORKSPACES_ROOT` | `~/.dispatch-home/workspaces`   | Root directory for workspaces                 |
+| `TERMINAL_KEY`    | (required)                      | Authentication key for access                 |
+| `SSL_ENABLED`     | `true`                          | Enable/disable SSL                            |
+| `PORT`            | `3030` (dev: `5173`)            | Server port                                   |
+| `DB_PATH`         | `~/.dispatch/data/workspace.db` | SQLite database path                          |
 
 ## Database Schema Overview
 
@@ -258,7 +258,10 @@ For Selenium, Cypress, or other UI automation tools:
    ```javascript
    localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
    localStorage.setItem('authSessionId', 'test-' + Date.now());
-   localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+   localStorage.setItem(
+   	'authExpiresAt',
+   	new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+   );
    localStorage.setItem('onboarding-complete', 'true');
    ```
 

@@ -114,7 +114,7 @@
 
 	// Authentication check state to prevent multiple simultaneous checks
 	let authCheckInProgress = $state(false);
-	
+
 	// Initialization
 	onMount(async () => {
 		// Prevent multiple simultaneous auth checks
@@ -123,7 +123,7 @@
 			return;
 		}
 		authCheckInProgress = true;
-		
+
 		try {
 			// Authentication check
 			if (browser) {
@@ -631,7 +631,6 @@
 		touch-action: pan-x pan-y;
 	}
 
-
 	/* Session bottom sheet - mobile specific */
 	.session-sheet {
 		position: fixed;
@@ -661,7 +660,7 @@
 		background: var(--surface-hover);
 		border: 1px solid var(--surface-border);
 		color: var(--text);
-		border-radius: 0.35rem;
+		border-radius: var(--radius-sm);
 		padding: 0.25rem 0.5rem;
 		-webkit-tap-highlight-color: transparent;
 		touch-action: manipulation;

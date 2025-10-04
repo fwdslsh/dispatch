@@ -1,7 +1,7 @@
 <script>
-	import AppVersion from "./AppVersion.svelte";
-
+	import AppVersion from './AppVersion.svelte';
 </script>
+
 <!--
 	BrandLogo.svelte
 
@@ -13,17 +13,19 @@
 	<span class="brand-icon">
 		<img src="/favicon.png" alt="Dispatch" height="32" />
 	</span>
-	<a href="/workspace"> <span class="brand-text">Dispatch</span></a>
-
-		<AppVersion />
+	<a href="/workspace">
+		<span class="brand-text">Dispatch</span>
+		<AppVersion /></a
+	>
 </div>
 
 <style>
 	.brand-logo {
 		display: flex;
 		align-items: center;
-		gap: var(--space-3);
+		gap: var(--space-2);
 		font-family: var(--font-accent);
+		user-select: none;
 		font-weight: 700;
 		a {
 			appearance: none;

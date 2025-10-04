@@ -1,4 +1,4 @@
-import { logger } from "./utils/logger";
+import { logger } from './utils/logger';
 
 /**
  * AuthService - Singleton authentication service
@@ -32,12 +32,16 @@ export class AuthService {
 				if (authSettings && authSettings.terminal_key) {
 					terminalKey = authSettings.terminal_key;
 					this.cachedTerminalKey = terminalKey;
-					logger.info('AUTH', 'Terminal key loaded from database settings', { instanceId: this.instanceId });
+					logger.info('AUTH', 'Terminal key loaded from database settings', {
+						instanceId: this.instanceId
+					});
 					return terminalKey;
 				}
 			} catch (error) {
 				// Fall through to environment variable if database lookup fails
-				logger.warn('AUTH', 'Failed to get terminal_key from settings database:', error.message, { instanceId: this.instanceId });
+				logger.warn('AUTH', 'Failed to get terminal_key from settings database:', error.message, {
+					instanceId: this.instanceId
+				});
 			}
 		}
 
@@ -45,7 +49,9 @@ export class AuthService {
 		if (process.env.TERMINAL_KEY) {
 			terminalKey = process.env.TERMINAL_KEY;
 			this.cachedTerminalKey = terminalKey;
-			logger.info('AUTH', 'Terminal key loaded from environment variable', { instanceId: this.instanceId });
+			logger.info('AUTH', 'Terminal key loaded from environment variable', {
+				instanceId: this.instanceId
+			});
 			return terminalKey;
 		}
 
@@ -79,7 +85,11 @@ export class AuthService {
 		}
 
 		// If not initialized, fall back to environment variable
-		logger.warn('AUTH', 'Terminal key cache not initialized, falling back to environment variable', { instanceId: this.instanceId });
+		logger.warn(
+			'AUTH',
+			'Terminal key cache not initialized, falling back to environment variable',
+			{ instanceId: this.instanceId }
+		);
 		return process.env.TERMINAL_KEY || 'change-me-to-a-strong-password';
 	}
 

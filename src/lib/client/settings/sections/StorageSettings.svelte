@@ -564,11 +564,19 @@
 	}
 
 	.usage-fill.warning {
-		background: linear-gradient(90deg, color-mix(in oklab, var(--warn) 60%, transparent) 0%, var(--warn) 100%);
+		background: linear-gradient(
+			90deg,
+			color-mix(in oklab, var(--warn) 60%, transparent) 0%,
+			var(--warn) 100%
+		);
 	}
 
 	.usage-fill.critical {
-		background: linear-gradient(90deg, color-mix(in oklab, var(--err) 60%, transparent) 0%, var(--err) 100%);
+		background: linear-gradient(
+			90deg,
+			color-mix(in oklab, var(--err) 60%, transparent) 0%,
+			var(--err) 100%
+		);
 	}
 
 	/* Stats display */

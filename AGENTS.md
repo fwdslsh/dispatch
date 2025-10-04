@@ -58,18 +58,23 @@ npm run dev:test
 ```
 
 **Configuration**:
+
 - URL: `http://localhost:7173` (no SSL certificate warnings)
 - Terminal Key: `test-automation-key-12345` (known/predictable for automation)
 - Port: 7173 (dedicated test port, avoids conflicts)
 - Storage: Temporary directories in `/tmp` (fresh state, auto-cleanup on reboot)
 
 **Authentication Options**:
+
 1. Pre-inject localStorage (recommended):
    ```javascript
    await page.evaluate(() => {
-     localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
-     localStorage.setItem('authSessionId', 'test-session-' + Date.now());
-     localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+   	localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
+   	localStorage.setItem('authSessionId', 'test-session-' + Date.now());
+   	localStorage.setItem(
+   		'authExpiresAt',
+   		new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+   	);
    });
    await page.goto('http://localhost:7173');
    ```
@@ -113,16 +118,19 @@ After calling the list_sections tool, you MUST analyze the returned documentatio
 **Key testing tools:**
 
 1. **Automated Setup Script**: Create isolated test instances with auto-onboarding
+
    ```bash
    ./scripts/setup-test-instance.sh --auto-onboard --workspace "/workspace/test"
    ```
 
 2. **Dedicated Test Server**: Pre-configured for automated testing
+
    ```bash
    npm run dev:test  # Port 7173, no SSL, known key, temp storage
    ```
 
 3. **Database Seeding**: Bypass onboarding via API, direct SQL, or Playwright helpers
+
    ```javascript
    // In E2E tests
    await navigateToWorkspaceWithOnboardingComplete(page);
@@ -217,7 +225,7 @@ Event-sourced architecture with key tables:
 - `workspace_layout` - Client-specific UI layouts
 - `workspaces` - Workspace metadata and paths
 
->Note: Use sqlite cli and queries like these to get the current database schema
+> Note: Use sqlite cli and queries like these to get the current database schema
 
 ```sql
 select * from sqlite_master;

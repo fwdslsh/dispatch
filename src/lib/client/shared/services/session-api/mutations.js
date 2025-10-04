@@ -16,7 +16,10 @@ import { SESSION_TYPE, getHeaders, handleResponse } from './types.js';
  * @param {string} [options.sessionId] - Session ID when resuming
  * @returns {Promise<Object>}
  */
-export async function createSession(config, { type, workspacePath, options = {}, resume = false, sessionId = null }) {
+export async function createSession(
+	config,
+	{ type, workspacePath, options = {}, resume = false, sessionId = null }
+) {
 	try {
 		// Validate session type
 		if (
@@ -98,7 +101,10 @@ export async function createSession(config, { type, workspacePath, options = {},
  * @param {Object} options - Update options
  * @returns {Promise<Object>}
  */
-export async function updateSession(config, { action, sessionId, newTitle, tileId, position, clientId }) {
+export async function updateSession(
+	config,
+	{ action, sessionId, newTitle, tileId, position, clientId }
+) {
 	try {
 		const body = {
 			action,

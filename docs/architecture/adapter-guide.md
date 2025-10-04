@@ -158,9 +158,15 @@ export class MyAdapter {
 		// Your custom process initialization
 		// Return whatever object your adapter needs
 		return {
-			send: async (data) => { /* ... */ },
-			terminate: async () => { /* ... */ },
-			on: (event, callback) => { /* ... */ }
+			send: async (data) => {
+				/* ... */
+			},
+			terminate: async () => {
+				/* ... */
+			},
+			on: (event, callback) => {
+				/* ... */
+			}
 		};
 	}
 }

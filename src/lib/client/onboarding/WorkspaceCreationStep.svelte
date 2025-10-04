@@ -155,7 +155,12 @@
 			{/if}
 
 			<div class="form-actions">
-				<Button variant="primary" onclick={handleCreateWorkspace} disabled={!canCreate} loading={isCreating}>
+				<Button
+					variant="primary"
+					onclick={handleCreateWorkspace}
+					disabled={!canCreate}
+					loading={isCreating}
+				>
 					{#if isCreating}
 						Creating Workspace...
 					{:else}
@@ -163,7 +168,12 @@
 					{/if}
 				</Button>
 
-				<Button variant="secondary" onclick={handleSkipWorkspace} disabled={isCreating} text="Skip for Now" />
+				<Button
+					variant="secondary"
+					onclick={handleSkipWorkspace}
+					disabled={isCreating}
+					text="Skip for Now"
+				/>
 			</div>
 
 			<div class="info-box">
@@ -223,7 +233,7 @@
 
 	.workspace-form {
 		background: white;
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		padding: 2rem;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 		border: 1px solid #e5e7eb;
@@ -252,7 +262,7 @@
 		width: 100%;
 		padding: 0.75rem;
 		border: 2px solid #d1d5db;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		font-size: 1rem;
 		transition: border-color 0.2s;
 		box-sizing: border-box;
@@ -284,7 +294,7 @@
 		border: 1px solid #fecaca;
 		color: #dc2626;
 		padding: 1rem;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		margin-bottom: 1.5rem;
 	}
 
@@ -298,7 +308,7 @@
 	.btn {
 		padding: 0.75rem 1.5rem;
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		font-size: 1rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -332,7 +342,7 @@
 	.info-box {
 		background-color: #f0f9ff;
 		border: 1px solid #bae6fd;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		padding: 1.5rem;
 	}
 
@@ -355,7 +365,7 @@
 
 	.success-state {
 		background: white;
-		border-radius: 8px;
+		border-radius: var(--radius-md);
 		padding: 3rem 2rem;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 		border: 1px solid #e5e7eb;
@@ -375,7 +385,7 @@
 
 	.workspace-details {
 		background-color: #f9fafb;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		padding: 1rem;
 		margin: 1rem 0;
 		text-align: left;
@@ -406,7 +416,7 @@
 		height: 20px;
 		border: 2px solid #e5e7eb;
 		border-top: 2px solid #3b82f6;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 	}
 

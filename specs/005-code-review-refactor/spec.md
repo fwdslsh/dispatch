@@ -197,6 +197,7 @@ As a maintainer, I need large files broken into manageable modules so that I can
 This specification is derived from the comprehensive code review document at `specs/.pending/code-review/code-review.md`. The code review provides detailed technical analysis and specific file paths, which will be referenced during the planning and implementation phases. This specification focuses on the "what" and "why" while the code review document serves as the detailed technical reference for "how" during implementation.
 
 The requirements are prioritized according to the code review's recommendations:
+
 - **Must-Do**: Small, high-signal improvements with immediate impact
 - **Should-Do**: Next iteration improvements for maintainability
 - **Nice-to-Have**: Optional enhancements that may be deferred

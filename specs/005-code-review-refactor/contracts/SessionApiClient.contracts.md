@@ -6,6 +6,7 @@
 ## Overview
 
 The SessionApiClient will be split into three cohesive modules:
+
 - **queries.js**: Read operations
 - **mutations.js**: Write operations
 - **validation.js**: Input validation and sanitization
@@ -17,6 +18,7 @@ The SessionApiClient will be split into three cohesive modules:
 **Purpose**: Retrieve all sessions, optionally filtered
 
 **Parameters**:
+
 - `filters` (optional): Filter criteria
   - `type?: string` - Session type (e.g., 'pty', 'claude')
   - `workspacePath?: string` - Filter by workspace
@@ -25,8 +27,9 @@ The SessionApiClient will be split into three cohesive modules:
 **Returns**: `Promise<Session[]>` - Array of session objects
 
 **Example**:
+
 ```javascript
-const sessions = await getAllSessions({ type: 'pty', status: 'running' })
+const sessions = await getAllSessions({ type: 'pty', status: 'running' });
 ```
 
 ### `getSession(id: string): Promise<Session>`
@@ -34,6 +37,7 @@ const sessions = await getAllSessions({ type: 'pty', status: 'running' })
 **Purpose**: Retrieve single session by ID
 
 **Parameters**:
+
 - `id` (required): Session ID string
 
 **Returns**: `Promise<Session>` - Session object
@@ -41,8 +45,9 @@ const sessions = await getAllSessions({ type: 'pty', status: 'running' })
 **Throws**: Error if session not found
 
 **Example**:
+
 ```javascript
-const session = await getSession('session-123')
+const session = await getSession('session-123');
 ```
 
 ### `getSessionEvents(id: string, fromSeq?: number): Promise<Event[]>`
@@ -50,14 +55,16 @@ const session = await getSession('session-123')
 **Purpose**: Retrieve event log for session (for replay/debugging)
 
 **Parameters**:
+
 - `id` (required): Session ID string
 - `fromSeq` (optional): Start sequence number (for incremental fetching)
 
 **Returns**: `Promise<Event[]>` - Array of event objects
 
 **Example**:
+
 ```javascript
-const events = await getSessionEvents('session-123', 100)
+const events = await getSessionEvents('session-123', 100);
 ```
 
 ### `getWorkspaceSessions(workspaceId: string): Promise<Session[]>`
@@ -65,13 +72,15 @@ const events = await getSessionEvents('session-123', 100)
 **Purpose**: Retrieve all sessions for a specific workspace
 
 **Parameters**:
+
 - `workspaceId` (required): Workspace ID/path
 
 **Returns**: `Promise<Session[]>` - Array of session objects
 
 **Example**:
+
 ```javascript
-const sessions = await getWorkspaceSessions('/workspace/my-project')
+const sessions = await getWorkspaceSessions('/workspace/my-project');
 ```
 
 ---
@@ -83,6 +92,7 @@ const sessions = await getWorkspaceSessions('/workspace/my-project')
 **Purpose**: Create new session
 
 **Parameters**:
+
 - `data` (required): Session creation data
   - `type: string` - Session type ('pty', 'claude', etc.)
   - `workspacePath: string` - Workspace path
@@ -91,12 +101,13 @@ const sessions = await getWorkspaceSessions('/workspace/my-project')
 **Returns**: `Promise<Session>` - Created session object
 
 **Example**:
+
 ```javascript
 const session = await createSession({
-  type: 'pty',
-  workspacePath: '/workspace/my-project',
-  options: { shell: '/bin/bash' }
-})
+	type: 'pty',
+	workspacePath: '/workspace/my-project',
+	options: { shell: '/bin/bash' }
+});
 ```
 
 ### `updateSession(id: string, updates: Partial<Session>): Promise<Session>`
@@ -104,14 +115,16 @@ const session = await createSession({
 **Purpose**: Update session metadata
 
 **Parameters**:
+
 - `id` (required): Session ID string
 - `updates` (required): Partial session object with fields to update
 
 **Returns**: `Promise<Session>` - Updated session object
 
 **Example**:
+
 ```javascript
-const session = await updateSession('session-123', { name: 'New Name' })
+const session = await updateSession('session-123', { name: 'New Name' });
 ```
 
 ### `deleteSession(id: string): Promise<void>`
@@ -119,13 +132,15 @@ const session = await updateSession('session-123', { name: 'New Name' })
 **Purpose**: Delete session and cleanup resources
 
 **Parameters**:
+
 - `id` (required): Session ID string
 
 **Returns**: `Promise<void>`
 
 **Example**:
+
 ```javascript
-await deleteSession('session-123')
+await deleteSession('session-123');
 ```
 
 ### `sendInput(id: string, input: string): Promise<void>`
@@ -133,14 +148,16 @@ await deleteSession('session-123')
 **Purpose**: Send input to running session
 
 **Parameters**:
+
 - `id` (required): Session ID string
 - `input` (required): Input string to send
 
 **Returns**: `Promise<void>`
 
 **Example**:
+
 ```javascript
-await sendInput('session-123', 'ls -la\n')
+await sendInput('session-123', 'ls -la\n');
 ```
 
 ### `closeSession(id: string): Promise<void>`
@@ -148,13 +165,15 @@ await sendInput('session-123', 'ls -la\n')
 **Purpose**: Gracefully close session
 
 **Parameters**:
+
 - `id` (required): Session ID string
 
 **Returns**: `Promise<void>`
 
 **Example**:
+
 ```javascript
-await closeSession('session-123')
+await closeSession('session-123');
 ```
 
 ---
@@ -166,9 +185,11 @@ await closeSession('session-123')
 **Purpose**: Validate session creation data
 
 **Parameters**:
+
 - `data` (required): Unknown data to validate
 
 **Returns**: `ValidationResult<CreateSessionData>`
+
 ```typescript
 {
   success: boolean
@@ -178,10 +199,11 @@ await closeSession('session-123')
 ```
 
 **Example**:
+
 ```javascript
-const result = validateSessionData({ type: 'pty', workspacePath: '/workspace' })
+const result = validateSessionData({ type: 'pty', workspacePath: '/workspace' });
 if (result.success) {
-  // result.data is typed CreateSessionData
+	// result.data is typed CreateSessionData
 }
 ```
 
@@ -190,19 +212,22 @@ if (result.success) {
 **Purpose**: Validate session ID format
 
 **Parameters**:
+
 - `id` (required): Unknown value to validate as session ID
 
 **Returns**: `ValidationResult<string>`
 
 **Validation Rules**:
+
 - Must be non-empty string
 - Must match pattern: `^[a-zA-Z0-9-_]+$`
 
 **Example**:
+
 ```javascript
-const result = validateSessionId('session-123')
+const result = validateSessionId('session-123');
 if (result.success) {
-  // result.data is valid session ID string
+	// result.data is valid session ID string
 }
 ```
 
@@ -211,13 +236,15 @@ if (result.success) {
 **Purpose**: Validate session filter object
 
 **Parameters**:
+
 - `filters` (required): Unknown value to validate as filters
 
 **Returns**: `ValidationResult<SessionFilters>`
 
 **Example**:
+
 ```javascript
-const result = validateSessionFilters({ type: 'pty', status: 'running' })
+const result = validateSessionFilters({ type: 'pty', status: 'running' });
 ```
 
 ### `sanitizeInput(input: string): string`
@@ -225,19 +252,22 @@ const result = validateSessionFilters({ type: 'pty', status: 'running' })
 **Purpose**: Sanitize user input before sending to session
 
 **Parameters**:
+
 - `input` (required): Raw input string
 
 **Returns**: `string` - Sanitized input
 
 **Sanitization Rules**:
+
 - Trim whitespace
 - Escape dangerous characters
 - Limit length to reasonable max (e.g., 10,000 chars)
 
 **Example**:
+
 ```javascript
-const safe = sanitizeInput(userInput)
-await sendInput(sessionId, safe)
+const safe = sanitizeInput(userInput);
+await sendInput(sessionId, safe);
 ```
 
 ---
@@ -248,13 +278,13 @@ await sendInput(sessionId, safe)
 
 ```typescript
 interface Session {
-  id: string
-  type: 'pty' | 'claude' | 'file-editor'
-  workspacePath: string
-  status: 'running' | 'stopped' | 'error'
-  createdAt: string  // ISO timestamp
-  updatedAt: string  // ISO timestamp
-  metadata?: object  // Type-specific metadata
+	id: string;
+	type: 'pty' | 'claude' | 'file-editor';
+	workspacePath: string;
+	status: 'running' | 'stopped' | 'error';
+	createdAt: string; // ISO timestamp
+	updatedAt: string; // ISO timestamp
+	metadata?: object; // Type-specific metadata
 }
 ```
 
@@ -262,9 +292,9 @@ interface Session {
 
 ```typescript
 interface CreateSessionData {
-  type: string
-  workspacePath: string
-  options?: object
+	type: string;
+	workspacePath: string;
+	options?: object;
 }
 ```
 
@@ -272,9 +302,9 @@ interface CreateSessionData {
 
 ```typescript
 interface SessionFilters {
-  type?: string
-  workspacePath?: string
-  status?: 'running' | 'stopped' | 'error'
+	type?: string;
+	workspacePath?: string;
+	status?: 'running' | 'stopped' | 'error';
 }
 ```
 
@@ -282,12 +312,12 @@ interface SessionFilters {
 
 ```typescript
 interface Event {
-  id: string
-  sessionId: string
-  sequence: number
-  type: string
-  payload: object
-  timestamp: string  // ISO timestamp
+	id: string;
+	sessionId: string;
+	sequence: number;
+	type: string;
+	payload: object;
+	timestamp: string; // ISO timestamp
 }
 ```
 
@@ -295,9 +325,9 @@ interface Event {
 
 ```typescript
 interface ValidationResult<T> {
-  success: boolean
-  data?: T
-  error?: string
+	success: boolean;
+	data?: T;
+	error?: string;
 }
 ```
 
@@ -311,12 +341,13 @@ The `SessionApiClient.js` file will serve as a facade during transition:
 
 ```javascript
 // SessionApiClient.js
-export * from './session-api/queries.js'
-export * from './session-api/mutations.js'
-export * from './session-api/validation.js'
+export * from './session-api/queries.js';
+export * from './session-api/mutations.js';
+export * from './session-api/validation.js';
 ```
 
 **Migration Path**:
+
 1. Existing imports continue working: `import { getAllSessions } from '$lib/client/shared/services/SessionApiClient.js'`
 2. New code uses specific modules: `import { getAllSessions } from '$lib/client/shared/services/session-api/queries.js'`
 3. Eventually remove facade after all consumers updated
@@ -328,6 +359,7 @@ export * from './session-api/validation.js'
 ### Contract Tests
 
 Each module will have contract tests validating:
+
 - Function exports exist
 - Function signatures match contracts
 - Return types are correct (Promise, ValidationResult, etc.)
@@ -335,6 +367,7 @@ Each module will have contract tests validating:
 ### Integration Tests
 
 Existing SessionApiClient tests will be updated to:
+
 - Import from new module paths
 - Validate same behavior as before split
 - Ensure no regressions
@@ -347,16 +380,18 @@ All async functions follow standardized error handling pattern (per FR-007):
 
 ```javascript
 async function getAllSessions(filters) {
-  try {
-    const response = await fetch('/api/sessions', { /* ... */ })
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-    return await response.json()
-  } catch (error) {
-    console.error('getAllSessions failed:', error)
-    throw error  // Re-throw for caller to handle
-  }
+	try {
+		const response = await fetch('/api/sessions', {
+			/* ... */
+		});
+		if (!response.ok) {
+			throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+		}
+		return await response.json();
+	} catch (error) {
+		console.error('getAllSessions failed:', error);
+		throw error; // Re-throw for caller to handle
+	}
 }
 ```
 
@@ -364,12 +399,12 @@ async function getAllSessions(filters) {
 
 ```javascript
 function validateSessionId(id) {
-  if (typeof id !== 'string' || id.trim() === '') {
-    return { success: false, error: 'Session ID must be non-empty string' }
-  }
-  if (!/^[a-zA-Z0-9-_]+$/.test(id)) {
-    return { success: false, error: 'Session ID contains invalid characters' }
-  }
-  return { success: true, data: id }
+	if (typeof id !== 'string' || id.trim() === '') {
+		return { success: false, error: 'Session ID must be non-empty string' };
+	}
+	if (!/^[a-zA-Z0-9-_]+$/.test(id)) {
+		return { success: false, error: 'Session ID contains invalid characters' };
+	}
+	return { success: true, data: id };
 }
 ```

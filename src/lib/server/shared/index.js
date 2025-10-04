@@ -110,7 +110,9 @@ export async function initializeServices(config = {}) {
 					const githubProvider = new GitHubAuthProvider({
 						clientId: authSettings.oauth_client_id,
 						clientSecret: authSettings.oauth_client_secret,
-						redirectUri: authSettings.oauth_redirect_uri || `http://localhost:${resolvedConfig.port}/auth/callback`,
+						redirectUri:
+							authSettings.oauth_redirect_uri ||
+							`http://localhost:${resolvedConfig.port}/auth/callback`,
 						scopes: (authSettings.oauth_scope || 'user:email').split(' ')
 					});
 					await multiAuthManager.registerProvider(githubProvider);
@@ -121,7 +123,10 @@ export async function initializeServices(config = {}) {
 				logger.error('SERVICES', 'Failed to parse authentication settings:', error);
 			}
 		} else {
-			logger.info('SERVICES', 'No authentication settings found - skipping OAuth provider registration');
+			logger.info(
+				'SERVICES',
+				'No authentication settings found - skipping OAuth provider registration'
+			);
 		}
 
 		// 7. Tunnel Manager for runtime tunnel control

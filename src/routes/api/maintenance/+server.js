@@ -140,24 +140,21 @@ async function executeCleanup(database, sessionDays, logDays) {
 	logCutoff.setDate(logCutoff.getDate() - logDays);
 
 	// Delete old session events first (foreign key constraint)
-	const eventResult = await database.run(
-		'DELETE FROM session_events WHERE ts < ?',
-		[logCutoff.getTime()]
-	);
+	const eventResult = await database.run('DELETE FROM session_events WHERE ts < ?', [
+		logCutoff.getTime()
+	]);
 	const eventsDeleted = eventResult.changes || 0;
 
 	// Delete old sessions
-	const sessionResult = await database.run(
-		'DELETE FROM sessions WHERE created_at < ?',
-		[sessionCutoff.getTime()]
-	);
+	const sessionResult = await database.run('DELETE FROM sessions WHERE created_at < ?', [
+		sessionCutoff.getTime()
+	]);
 	const sessionsDeleted = sessionResult.changes || 0;
 
 	// Delete old application logs
-	const logResult = await database.run(
-		'DELETE FROM logs WHERE timestamp < ?',
-		[logCutoff.getTime()]
-	);
+	const logResult = await database.run('DELETE FROM logs WHERE timestamp < ?', [
+		logCutoff.getTime()
+	]);
 	const logsDeleted = logResult.changes || 0;
 
 	return {

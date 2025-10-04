@@ -6,7 +6,7 @@
  * 3. Default Value (database default_value)
  */
 
-import SettingsManager from "./SettingsManager";
+import SettingsManager from './SettingsManager';
 
 export class ValueResolver {
 	/**

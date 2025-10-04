@@ -103,7 +103,7 @@
 		margin: 0 auto var(--space-3);
 		border: 4px solid color-mix(in oklab, var(--accent) 20%, transparent);
 		border-top: 4px solid var(--accent);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;
 	}
 
@@ -136,7 +136,7 @@
 		background: var(--accent);
 		color: var(--bg);
 		border: none;
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 		cursor: pointer;
 		font-size: var(--font-size-2);
 	}

@@ -55,13 +55,14 @@ Event-sourced architecture with key tables:
 - `workspace_layout` - Client-specific UI layouts
 - `workspaces` - Workspace metadata and paths
 
->Note: Use sqlite cli and queries like these to get the current database schema
+> Note: Use sqlite cli and queries like these to get the current database schema
 
 ```sql
 select * from sqlite_master;
 PRAGMA table_info('user_preferences');
 PRAGMA table_info('settings');
 ```
+
 ## What to change and what to avoid
 
 - Prefer small, focused changes per PR. Follow Conventional Commits and keep the summary <72 chars.
@@ -88,13 +89,17 @@ PRAGMA table_info('settings');
 ### UI Testing with Automated Tools
 
 When using Selenium, Cypress, or other UI automation frameworks:
+
 1. Start test server: `npm run dev:test` (avoids SSL certificate warnings)
 2. Connect to: `http://localhost:7173`
 3. Authenticate with key: `test-automation-key-12345` or pre-inject into localStorage:
    ```javascript
    localStorage.setItem('dispatch-auth-key', 'test-automation-key-12345');
    localStorage.setItem('authSessionId', 'test-' + Date.now());
-   localStorage.setItem('authExpiresAt', new Date(Date.now() + 30*24*60*60*1000).toISOString());
+   localStorage.setItem(
+   	'authExpiresAt',
+   	new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+   );
    ```
 
 ## Project-specific conventions & patterns

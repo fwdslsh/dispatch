@@ -12,9 +12,7 @@
 	let { actions = null } = $props();
 </script>
 
-<header
-	class="workspace-header flex items-center gap-4 px-3 bg-panel border-b border-primary-dim flex-shrink-0"
->
+<header class="workspace-header">
 	<BrandLogo />
 
 	<div class="flex-1"></div>
@@ -28,8 +26,10 @@
 </header>
 
 <style>
-	/* Component-specific sizing only */
 	.workspace-header {
-		min-height: 50px;
+		min-height: 40px;
+		display: flex;
+		align-items: end;
+		padding-inline: var(--space-2, 1rem);
 	}
 </style>
