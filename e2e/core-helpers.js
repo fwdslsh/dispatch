@@ -14,7 +14,7 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:7173';
 export async function preAuthenticateUser(page) {
 	await page.addInitScript((testKey) => {
 		// Set authentication key
-		localStorage.setItem('dispatch-auth-key', testKey);
+		localStorage.setItem('dispatch-auth-token', testKey);
 
 		// Set session info (simulating successful login)
 		localStorage.setItem('authSessionId', `test-session-${Date.now()}`);

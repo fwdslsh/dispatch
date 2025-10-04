@@ -23,7 +23,7 @@
 	// Helper to get Authorization header from localStorage
 	function getAuthHeaders() {
 		const key =
-			typeof localStorage !== 'undefined' ? localStorage.getItem('dispatch-auth-key') : null;
+			typeof localStorage !== 'undefined' ? localStorage.getItem('dispatch-auth-token') : null;
 		return key ? { Authorization: `Bearer ${key}` } : {};
 	}
 	function initializeAdminConsole() {

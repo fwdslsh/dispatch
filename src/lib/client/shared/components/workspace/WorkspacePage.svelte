@@ -112,35 +112,50 @@
 	let deferredPrompt = $state(null);
 	let __removeWorkspacePageListeners = $state(null);
 
+	// Authentication check state to prevent multiple simultaneous checks
+	let authCheckInProgress = $state(false);
+	
 	// Initialization
 	onMount(async () => {
-		// Authentication check
-		if (browser) {
-			const storedKey = localStorage.getItem('dispatch-auth-token');
-			if (!storedKey) {
-				log.info('No auth key found, redirecting to login');
-				goto('/');
-				return;
-			}
-
-			try {
-				const response = await fetch(`/api/auth/check`, {
-					method: 'POST',
-					headers: {
-						...getAuthHeaders(),
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({ key: storedKey })
-				});
-				if (!response.ok) {
-					log.warn('Auth key invalid, redirecting to login');
-					localStorage.removeItem('dispatch-auth-token');
+		// Prevent multiple simultaneous auth checks
+		if (authCheckInProgress) {
+			log.debug('Auth check already in progress, skipping');
+			return;
+		}
+		authCheckInProgress = true;
+		
+		try {
+			// Authentication check
+			if (browser) {
+				const storedKey = localStorage.getItem('dispatch-auth-token');
+				if (!storedKey) {
+					log.info('No auth key found, redirecting to login');
 					goto('/');
 					return;
 				}
-			} catch (error) {
-				log.error('Failed to verify auth key', error);
+
+				try {
+					const response = await fetch(`/api/auth/check`, {
+						method: 'POST',
+						headers: {
+							...getAuthHeaders(),
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({ key: storedKey })
+					});
+					if (!response.ok) {
+						log.warn('Auth key invalid, redirecting to login');
+						localStorage.removeItem('dispatch-auth-token');
+						goto('/');
+						return;
+					}
+				} catch (error) {
+					log.error('Failed to verify auth key', error);
+					// Don't redirect on network errors, allow user to retry
+				}
 			}
+		} finally {
+			authCheckInProgress = false;
 		}
 
 		// Get shared ViewModels from container

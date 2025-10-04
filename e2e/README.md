@@ -4,6 +4,8 @@
 
 Clean, maintainable end-to-end testing framework using Playwright, focused on core functionality and reliable CI execution.
 
+📖 **See also**: [Testing Quick Start Guide](../docs/testing-quickstart.md) - Comprehensive guide for setting up test instances and database seeding.
+
 ## Quick Start
 
 ```bash

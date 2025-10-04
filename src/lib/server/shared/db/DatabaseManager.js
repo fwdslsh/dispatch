@@ -419,6 +419,11 @@ export class DatabaseManager {
 			await this.run('ALTER TABLE workspaces ADD COLUMN name TEXT');
 		}
 
+		const hasThemeOverrideColumn = columns.some((column) => column.name === 'theme_override');
+		if (!hasThemeOverrideColumn) {
+			await this.run('ALTER TABLE workspaces ADD COLUMN theme_override TEXT DEFAULT NULL');
+		}
+
 		const workspaces = await this.all('SELECT path, name FROM workspaces');
 		for (const workspace of workspaces) {
 			if (!workspace?.name || !workspace.name.toString().trim()) {

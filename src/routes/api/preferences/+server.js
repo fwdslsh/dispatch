@@ -43,7 +43,7 @@ export async function PUT({ request, locals }) {
 		}
 
 		// Validate known preference categories and their structure
-		const validCategories = ['ui', 'auth', 'workspace', 'terminal', 'maintenance'];
+		const validCategories = ['ui', 'auth', 'workspace', 'terminal', 'maintenance', 'themes'];
 		if (!validCategories.includes(category)) {
 			return json({ error: 'Invalid preference category' }, { status: 400 });
 		}

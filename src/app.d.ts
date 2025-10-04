@@ -13,6 +13,11 @@ declare global {
 				runSessionManager: RunSessionManager;
 				claudeAuthManager: ClaudeAuthManager;
 			};
+			auth?: {
+				provider: string;
+				userId: string;
+				authenticated: boolean;
+			};
 		}
 		// interface PageData {}
 		// interface Platform {}

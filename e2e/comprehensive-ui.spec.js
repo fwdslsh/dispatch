@@ -34,7 +34,7 @@ test.describe('Dispatch Core UI Functionality', () => {
 
 	test('should handle authentication flow', async ({ page }) => {
 		// Clear auth and navigate to workspace
-		await page.evaluate(() => localStorage.removeItem('dispatch-auth-key'));
+		await page.evaluate(() => localStorage.removeItem('dispatch-auth-token'));
 		await page.goto('/workspace');
 
 		// Should redirect to auth or show auth form

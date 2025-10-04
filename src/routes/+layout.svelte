@@ -16,7 +16,99 @@
 	// Provide service container for dependency injection
 	provideServiceContainer();
 
+	// Get service container at component initialization (MUST be at top level)
+	const serviceContainer = useServiceContainer();
+
+	/**
+	 * Apply theme CSS variables to document root
+	 * @param {Object} theme - Theme object with cssVariables
+	 */
+	function applyThemeVariables(theme) {
+		if (!theme?.cssVariables) return;
+
+		const root = document.documentElement;
+		Object.entries(theme.cssVariables).forEach(([key, value]) => {
+			root.style.setProperty(key, value);
+		});
+	}
+
+	/**
+	 * Load and apply active theme based on workspace context
+	 */
+	async function loadAndApplyTheme() {
+		if (typeof window === 'undefined') return;
+
+		try {
+			// Get auth token
+			const authKey = getStoredAuthToken();
+			if (!authKey) return;
+
+			// Get current workspace if available (use container from top level)
+			let currentWorkspace = null;
+			try {
+				const workspaceStatePromise = serviceContainer.get('workspaceState');
+				const workspaceState = await (typeof workspaceStatePromise?.then === 'function'
+					? workspaceStatePromise
+					: Promise.resolve(workspaceStatePromise));
+				currentWorkspace = workspaceState?.selectedWorkspace;
+			} catch (err) {
+				// workspaceState may not be registered yet, continue without it
+				console.debug('[Layout] WorkspaceState not available yet');
+			}
+
+			// Fetch active theme
+			const url = new URL('/api/themes/active', window.location.origin);
+			if (currentWorkspace) {
+				url.searchParams.set('workspaceId', currentWorkspace);
+			}
+
+			const response = await fetch(url, {
+				headers: {
+					Authorization: `Bearer ${authKey}`
+				}
+			});
+
+			if (!response.ok) return;
+
+			const { theme } = await response.json();
+
+			// Apply CSS variables to :root
+			applyThemeVariables(theme);
+
+			// Store in localStorage for next page load
+			localStorage.setItem('dispatch-active-theme', JSON.stringify(theme));
+		} catch (error) {
+			console.error('[Layout] Failed to load theme:', error);
+			// Fallback: use cached theme from localStorage
+			const cached = localStorage.getItem('dispatch-active-theme');
+			if (cached) {
+				try {
+					const theme = JSON.parse(cached);
+					applyThemeVariables(theme);
+				} catch (parseError) {
+					console.error('[Layout] Failed to parse cached theme:', parseError);
+				}
+			}
+		}
+	}
+
 	onMount(async () => {
+		// Apply cached theme immediately for instant visual feedback (no flash)
+		if (typeof window !== 'undefined') {
+			const cached = localStorage.getItem('dispatch-active-theme');
+			if (cached) {
+				try {
+					const theme = JSON.parse(cached);
+					applyThemeVariables(theme);
+				} catch (error) {
+					console.error('[Layout] Failed to apply cached theme:', error);
+				}
+			}
+		}
+
+		// Then load fresh theme from server
+		await loadAndApplyTheme();
+
 		// Set body class based on whether TERMINAL_KEY is configured OR user has stored auth token
 		const hasStoredAuth = !!getStoredAuthToken();
 		const hasAuth = data?.hasTerminalKey || hasStoredAuth;
@@ -35,8 +127,8 @@
 	 */
 	async function checkOnboardingStatus() {
 		try {
-			const container = useServiceContainer();
-			const apiClientPromise = container.get('sessionApi');
+			// Use container from top level (already retrieved during component init)
+			const apiClientPromise = serviceContainer.get('sessionApi');
 
 			// Wait for API client
 			const apiClient = await (typeof apiClientPromise?.then === 'function'

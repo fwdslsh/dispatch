@@ -123,6 +123,7 @@ docker run -d -p 80:80 \
 ## Documentation & Support
 
 - 📖 [Full Documentation](docs)
+- 🧪 [Testing Quick Start](docs/testing-quickstart.md) - Set up test instances with automated onboarding
 - 🌿 [Git Worktree Guide](docs/features/git-worktrees.md) - Multiple working directories with auto-initialization
 - 🐛 [GitHub Issues](https://github.com/fwdslsh/dispatch/issues)
 

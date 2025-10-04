@@ -106,6 +106,30 @@ After calling the list_sections tool, you MUST analyze the returned documentatio
 - E2E tests live in `e2e/*.spec.js`. Install browsers with `npm run playwright:install` once.
 - Ensure new features have unit coverage; add/adjust E2E where user flows change.
 
+### Testing Quick Start
+
+📖 **See [Testing Quick Start Guide](docs/testing-quickstart.md)** for comprehensive testing setup
+
+**Key testing tools:**
+
+1. **Automated Setup Script**: Create isolated test instances with auto-onboarding
+   ```bash
+   ./scripts/setup-test-instance.sh --auto-onboard --workspace "/workspace/test"
+   ```
+
+2. **Dedicated Test Server**: Pre-configured for automated testing
+   ```bash
+   npm run dev:test  # Port 7173, no SSL, known key, temp storage
+   ```
+
+3. **Database Seeding**: Bypass onboarding via API, direct SQL, or Playwright helpers
+   ```javascript
+   // In E2E tests
+   await navigateToWorkspaceWithOnboardingComplete(page);
+   ```
+
+4. **Known Test Credentials**: Use `test-automation-key-12345` for authentication in tests
+
 ## Architecture Overview
 
 ## Extending Settings (Adding New Sections)

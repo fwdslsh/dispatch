@@ -178,7 +178,7 @@ test.describe('Onboarding Workflow', () => {
 			await page.waitForURL('/', { timeout: 10000 });
 
 			// Verify localStorage was updated
-			const authKey = await page.evaluate(() => localStorage.getItem('dispatch-auth-key'));
+			const authKey = await page.evaluate(() => localStorage.getItem('dispatch-auth-token'));
 			expect(authKey).toBe(TEST_KEY);
 
 			const onboardingComplete = await page.evaluate(() =>

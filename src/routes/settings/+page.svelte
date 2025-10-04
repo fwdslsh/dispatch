@@ -129,7 +129,7 @@
 			} catch {
 				serviceContainer = provideServiceContainer({
 					apiBaseUrl: '',
-					authTokenKey: 'dispatch-auth-key',
+					authTokenKey: 'dispatch-auth-token',
 					debug: false
 				});
 			}

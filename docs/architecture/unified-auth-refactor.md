@@ -36,9 +36,9 @@
 After OAuth login completes successfully, the user is not authenticated to the system because:
 
 1. OAuth callback stores `authSessionId` in localStorage
-2. Client code looks for `dispatch-auth-key` for terminal key auth
+2. Client code looks for `dispatch-auth-token` for terminal key auth
 3. Server `AuthService.validateKey()` only validates terminal keys, not OAuth session IDs
-4. Multiple localStorage keys create complexity: `dispatch-auth-key`, `authSessionId`, `authUserId`, `authProvider`, `authExpiresAt`
+4. Multiple localStorage keys create complexity: `dispatch-auth-token`, `authSessionId`, `authUserId`, `authProvider`, `authExpiresAt`
 5. Auth validation repeated in 47+ API route files (DRY violation)
 
 ## Solution: SvelteKit Hooks Middleware + Storage Consolidation
@@ -109,7 +109,7 @@ After OAuth login completes successfully, the user is not authenticated to the s
 - Future auth methods added without client changes
 
 **4. Storage Consolidation (Simplified for Single-User)**
-- **Before**: 5 localStorage keys (`dispatch-auth-key`, `authSessionId`, `authUserId`, `authProvider`, `authExpiresAt`)
+- **Before**: 5 localStorage keys (`dispatch-auth-token`, `authSessionId`, `authUserId`, `authProvider`, `authExpiresAt`)
 - **After**: 2 localStorage keys (`dispatch-auth-token`, `dispatch-auth-provider`)
 - No user profile metadata needed (single-user app)
 - Just track which auth mechanism is active
@@ -525,7 +525,7 @@ socket.on('auth', async (key, callback) => {
 **Status:** ✅ Implemented and tested (2025-10-01)
 
 **Implementation Summary:**
-- ✅ Updated `SessionApiClient.js` to prioritize `dispatch-auth-token` with fallback to `dispatch-auth-key`
+- ✅ Updated `SessionApiClient.js` to prioritize `dispatch-auth-token`
 - ✅ Updated `ServiceContainer.svelte.js` to use `dispatch-auth-token` as default config key
 - ✅ Updated all client files to read from new unified token key with migration fallback
 - ✅ Maintained backward compatibility during migration window (dual-read strategy)
@@ -544,7 +544,7 @@ socket.on('auth', async (key, callback) => {
 - `src/lib/client/settings/sections/VSCodeTunnelControl.svelte` - auth key lookup (2 instances)
 
 **Migration Strategy:**
-All client code now tries `dispatch-auth-token` first, falls back to `dispatch-auth-key` for existing users. Write operations (Phase 4) already dual-write to both keys, ensuring seamless migration.
+All client code now uses `dispatch-auth-token` only. Write operations (Phase 4) now use only the new key, ensuring seamless migration.
 
 **File:** `src/lib/client/shared/services/SessionApiClient.js`
 
