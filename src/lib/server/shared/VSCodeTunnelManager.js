@@ -1,55 +1,47 @@
 import { spawn } from 'node:child_process';
 import { homedir, hostname } from 'node:os';
-import { logger } from './utils/logger.js';
+import { BaseTunnelManager } from './BaseTunnelManager.js';
 
 /**
- * Manages VS Code Remote Tunnel with runtime control
- * Uses database settings for persistent tunnel configuration
+ * Manages VS Code Remote Tunnel with runtime control.
  */
-export class VSCodeTunnelManager {
-	constructor({ database }) {
-		this.database = database;
+export class VSCodeTunnelManager extends BaseTunnelManager {
+	constructor({ database, configService } = {}) {
+		super({
+			database,
+			logScope: 'VSCODE_TUNNEL',
+			settingsCategory: 'vscode-tunnel',
+			settingsDescription: 'VS Code Remote Tunnel configuration and state'
+		});
 		this.process = null;
 		this.state = null;
-		this.io = null; // Socket.IO instance for broadcasting
-		this.lastError = null; // Store last error for status reporting
+		this.lastError = null;
+		this.configService = configService || null;
 	}
 
 	/**
-	 * Set Socket.IO instance for broadcasting status updates
-	 * @param {object} io - Socket.IO server instance
-	 */
-	setSocketIO(io) {
-		this.io = io;
-		logger.info('VSCODE_TUNNEL', 'Socket.IO instance set for broadcasting');
-	}
-
-	/**
-	 * Initialize tunnel manager and restore state from database
+	 * Initialize tunnel manager and restore state from database.
 	 * @returns {Promise<void>}
 	 */
 	async init() {
-		try {
-			await this._loadState();
-			// Check if process is still alive
-			if (this.state?.pid) {
-				try {
-					process.kill(this.state.pid, 0); // Check if process exists
-					logger.info('VSCODE_TUNNEL', `Restored tunnel state for PID ${this.state.pid}`);
-				} catch (error) {
-					// Process is dead, clean up state
-					logger.info('VSCODE_TUNNEL', 'Previous tunnel process is dead, cleaning up state');
-					await this._clearState();
-				}
+		const settings = await this.loadSettings({ state: null });
+		this.state = settings.state || null;
+
+		if (this.state?.pid) {
+			try {
+				process.kill(this.state.pid, 0);
+				this.logInfo(`Restored tunnel state for PID ${this.state.pid}`);
+			} catch (error) {
+				this.logInfo('Previous tunnel process is dead, cleaning up state', error);
+				await this._persistState(null);
 			}
-			logger.info('VSCODE_TUNNEL', 'VS Code Tunnel manager initialized from database');
-		} catch (error) {
-			logger.error('VSCODE_TUNNEL', `Failed to initialize tunnel manager: ${error.message}`);
 		}
+
+		this.logInfo('VS Code Tunnel manager initialized from database');
 	}
 
 	/**
-	 * Start the VS Code tunnel
+	 * Start the VS Code tunnel.
 	 * @param {object} options - Tunnel options
 	 * @returns {Promise<object>} Tunnel state
 	 */
@@ -62,15 +54,20 @@ export class VSCodeTunnelManager {
 			try {
 				process.kill(this.state.pid, 0);
 				throw new Error('Tunnel process is already running');
-			} catch (killError) {
-				// Process is dead, continue with start
-				await this._clearState();
+			} catch {
+				await this._persistState(null);
 			}
 		}
 
 		const host = process.env.HOSTNAME || hostname();
 		const tunnelName = options.name || `dispatch-${host}`;
-		const workspaceRoot = process.env.WORKSPACES_ROOT || process.env.HOME || homedir();
+		const configuredRoot = this.configService?.get('workspacesRoot');
+		const workspaceRoot =
+			options.folder ||
+			configuredRoot ||
+			process.env.WORKSPACES_ROOT ||
+			process.env.HOME ||
+			homedir();
 		const extra = options.extra || [];
 
 		const args = [
@@ -82,7 +79,7 @@ export class VSCodeTunnelManager {
 			...extra
 		];
 
-		logger.info('VSCODE_TUNNEL', `Starting VS Code tunnel: ${tunnelName} in ${workspaceRoot}`);
+		this.logInfo(`Starting VS Code tunnel: ${tunnelName} in ${workspaceRoot}`);
 
 		try {
 			this.process = spawn('code', args, {
@@ -108,64 +105,45 @@ export class VSCodeTunnelManager {
 			openUrl
 		};
 
-		// Handle process output
 		this.process.stdout.on('data', (data) => {
 			const output = data.toString().trim();
-			logger.info('VSCODE_TUNNEL', `stdout: ${output}`);
+			this.logInfo(`stdout: ${output}`);
 
-			// Broadcast device login URL if found
-			if (output.includes('vscode.dev/tunnel') && this.io) {
-				this.io.emit('vscode.tunnel.login-url', { url: output });
+			if (output.includes('vscode.dev/tunnel')) {
+				this.emit('vscode.tunnel.login-url', { url: output });
 			}
 		});
 
 		this.process.stderr.on('data', (data) => {
 			const output = data.toString().trim();
-			logger.error('VSCODE_TUNNEL', `stderr: ${output}`);
+			this.logError(`stderr: ${output}`);
 
-			// Also check stderr for login URLs
-			if (output.includes('vscode.dev/tunnel') && this.io) {
-				this.io.emit('vscode.tunnel.login-url', { url: output });
+			if (output.includes('vscode.dev/tunnel')) {
+				this.emit('vscode.tunnel.login-url', { url: output });
 			}
 		});
 
 		this.process.on('exit', async (code, signal) => {
-			logger.info('VSCODE_TUNNEL', `Process exited with code=${code} signal=${signal}`);
-			await this._clearState();
-
-			// Broadcast status update
-			if (this.io) {
-				this.io.emit('vscode.tunnel.status', this.getStatus());
-			}
+			this.logInfo(`Process exited with code=${code} signal=${signal}`);
+			await this._persistState(null);
+			this.emit('vscode.tunnel.status', this.getStatus());
 		});
 
 		this.process.on('error', async (error) => {
-			logger.error('VSCODE_TUNNEL', `Process error: ${error.message}`);
-			await this._clearState();
-
-			// Store the error for later retrieval
+			this.logError(`Process error: ${error.message}`);
+			await this._persistState(null);
 			this.lastError =
 				error.code === 'ENOENT'
 					? 'VS Code CLI is not installed. Please install VS Code CLI first.'
 					: error.message;
-
-			// Broadcast status update
-			if (this.io) {
-				this.io.emit('vscode.tunnel.status', this.getStatus());
-			}
+			this.emit('vscode.tunnel.status', this.getStatus());
 		});
 
-		// Save state only after process is successfully started
-		// Wait a bit to ensure the process doesn't immediately fail
 		setTimeout(async () => {
 			if (this.process && !this.process.killed) {
-				await this._saveState(state);
+				await this._persistState(state);
 				this.state = state;
-
-				// Broadcast status update
-				if (this.io) {
-					this.io.emit('vscode.tunnel.status', this.getStatus());
-				}
+				this.emit('vscode.tunnel.status', this.getStatus());
 			}
 		}, 100);
 
@@ -173,51 +151,45 @@ export class VSCodeTunnelManager {
 	}
 
 	/**
-	 * Stop the VS Code tunnel
+	 * Stop the VS Code tunnel.
 	 * @returns {Promise<boolean>} Success status
 	 */
 	async stopTunnel() {
 		let success = false;
 
-		// Try to kill running process
 		if (this.process && !this.process.killed) {
 			try {
 				this.process.kill('SIGTERM');
 				success = true;
-				logger.info('VSCODE_TUNNEL', 'Tunnel process terminated');
+				this.logInfo('Tunnel process terminated');
 			} catch (error) {
-				logger.error('VSCODE_TUNNEL', `Failed to kill process: ${error.message}`);
+				this.logError(`Failed to kill process: ${error.message}`);
 			}
 		}
 
-		// Try to kill by PID from state
 		if (this.state?.pid && !success) {
 			try {
 				process.kill(this.state.pid, 'SIGTERM');
 				success = true;
-				logger.info('VSCODE_TUNNEL', `Tunnel process ${this.state.pid} terminated`);
+				this.logInfo(`Tunnel process ${this.state.pid} terminated`);
 			} catch (error) {
-				logger.warn('VSCODE_TUNNEL', `Process ${this.state.pid} not found or already dead`);
-				success = true; // Consider it success if process is already dead
+				this.logWarn(`Process ${this.state.pid} not found or already dead`, error);
+				success = true;
 			}
 		}
 
-		await this._clearState();
-
-		// Broadcast status update
-		if (this.io) {
-			this.io.emit('vscode.tunnel.status', this.getStatus());
-		}
+		await this._persistState(null);
+		this.emit('vscode.tunnel.status', this.getStatus());
 
 		return success;
 	}
 
 	/**
-	 * Get tunnel status
+	 * Get tunnel status.
 	 * @returns {object} Status information
 	 */
 	getStatus() {
-		const isRunning = this.state?.pid && this.process && !this.process.killed;
+		const isRunning = Boolean(this.state?.pid && this.process && !this.process.killed);
 
 		return {
 			running: isRunning,
@@ -226,73 +198,14 @@ export class VSCodeTunnelManager {
 		};
 	}
 
-	/**
-	 * Load tunnel state from database
-	 * @private
-	 */
-	async _loadState() {
-		try {
-			if (!this.database) {
-				logger.warn('VSCODE_TUNNEL', 'No database available for loading state');
-				return;
-			}
-
-			const settings = await this.database.getSettingsByCategory('vscode-tunnel');
-			this.state = settings.state || null;
-		} catch (error) {
-			logger.error('VSCODE_TUNNEL', `Failed to load tunnel state: ${error.message}`);
-			this.state = null;
-		}
-	}
-
-	/**
-	 * Save tunnel state to database
-	 * @private
-	 */
-	async _saveState(state) {
-		try {
-			if (!this.database) {
-				logger.warn('VSCODE_TUNNEL', 'No database available for saving state');
-				return;
-			}
-
-			const tunnelSettings = {
-				state: state,
-				lastUpdated: Date.now()
-			};
-
-			await this.database.setSettingsForCategory(
-				'vscode-tunnel',
-				tunnelSettings,
-				'VS Code Remote Tunnel configuration and state'
-			);
-		} catch (error) {
-			logger.error('VSCODE_TUNNEL', `Failed to save tunnel state: ${error.message}`);
-		}
-	}
-
-	/**
-	 * Clear tunnel state
-	 * @private
-	 */
-	async _clearState() {
-		this.state = null;
-		this.process = null;
+	async _persistState(state) {
+		this.state = state;
+		this.process = state ? this.process : null;
 		this.lastError = null;
 
-		try {
-			if (!this.database) {
-				logger.warn('VSCODE_TUNNEL', 'No database available for clearing state');
-				return;
-			}
-
-			await this.database.setSettingsForCategory(
-				'vscode-tunnel',
-				{ state: null, lastUpdated: Date.now() },
-				'VS Code Remote Tunnel configuration and state'
-			);
-		} catch (error) {
-			logger.error('VSCODE_TUNNEL', `Failed to clear tunnel state: ${error.message}`);
-		}
+		await this.saveSettings({
+			state,
+			lastUpdated: Date.now()
+		});
 	}
 }

@@ -150,7 +150,7 @@ export function normalizeWorkspacePath(workspacePath, defaultPath = process.cwd(
 
 	try {
 		return resolve(workspacePath);
-	} catch (error) {
+	} catch {
 		console.warn(`Invalid workspace path "${workspacePath}", using default: ${defaultPath}`);
 		return resolve(defaultPath);
 	}
@@ -163,7 +163,7 @@ export function normalizeWorkspacePath(workspacePath, defaultPath = process.cwd(
  */
 export async function getWorkspaceEnvVariables(databaseManager) {
 	try {
-		const workspaceSettings = await databaseManager.getSettingsByCategory('workspace');
+		const workspaceSettings = await databaseManager.settings.getCategorySettings('workspace');
 		return workspaceSettings?.envVariables || {};
 	} catch (error) {
 		console.warn('Failed to load workspace environment variables:', error);

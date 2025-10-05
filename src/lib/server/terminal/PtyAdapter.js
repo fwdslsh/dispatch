@@ -8,6 +8,10 @@ import { resolve } from 'node:path';
  * Provides a simple adapter interface that wraps node-pty functionality
  */
 export class PtyAdapter {
+	constructor({ configService = null } = {}) {
+		this.configService = configService;
+	}
+
 	/**
 	 * @param {Object} params
 	 * @param {string} params.cwd - Working directory
@@ -40,7 +44,12 @@ export class PtyAdapter {
 		}
 
 		// Expand tilde in cwd if present
-		let expandedCwd = cwd || process.env.WORKSPACES_ROOT || process.env.HOME;
+		const configEnv = this.configService?.getEnv?.() || process.env;
+		let expandedCwd =
+			cwd ||
+			this.configService?.get('workspacesRoot') ||
+			configEnv.WORKSPACES_ROOT ||
+			configEnv.HOME;
 		if (expandedCwd && expandedCwd.startsWith('~/')) {
 			expandedCwd = resolve(homedir(), expandedCwd.slice(2));
 		}
@@ -53,8 +62,8 @@ export class PtyAdapter {
 			// Environment variables with workspace environment variables merged
 			// Precedence: system env (process.env) → workspace env → session-specific env
 			env: options.env
-				? { ...process.env, ...options.workspaceEnv, ...options.env }
-				: { ...process.env, ...options.workspaceEnv },
+				? { ...configEnv, ...options.workspaceEnv, ...options.env }
+				: { ...configEnv, ...options.workspaceEnv },
 
 			// Terminal dimensions
 			cols: options.cols || 80,
@@ -85,8 +94,9 @@ export class PtyAdapter {
 		};
 
 		// Extract shell and args from options or use defaults
+		const fallbackShell = process.platform === 'win32' ? 'cmd.exe' : 'bash';
 		const shell =
-			options.shell || process.env.SHELL || (process.platform === 'win32' ? 'cmd.exe' : 'bash');
+			options.shell || this.configService?.getDefaultShell?.() || configEnv.SHELL || fallbackShell;
 		const args = options.args || [];
 
 		logger.info('PTY_ADAPTER', `Spawning ${shell} with args:`, args, 'options:', {

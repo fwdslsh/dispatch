@@ -8,8 +8,10 @@ describe('User Preferences API', () => {
 
 	beforeEach(() => {
 		mockDb = {
-			getUserPreferences: vi.fn(),
-			saveUserPreferences: vi.fn(),
+			users: {
+				getPreferences: vi.fn(),
+				updatePreferences: vi.fn()
+			},
 			getDefaultPreferences: vi.fn()
 		};
 	});
@@ -29,7 +31,7 @@ describe('User Preferences API', () => {
 				updatedAt: '2025-09-27T10:00:00Z'
 			};
 
-			mockDb.getUserPreferences.mockResolvedValue(mockPreferences);
+			mockDb.users.getPreferences.mockResolvedValue(mockPreferences);
 
 			const response = {
 				status: 200,
@@ -43,7 +45,7 @@ describe('User Preferences API', () => {
 		});
 
 		it('should return default preferences for new users', async () => {
-			mockDb.getUserPreferences.mockResolvedValue(null);
+			mockDb.users.getPreferences.mockResolvedValue(null);
 
 			const defaultPreferences = {
 				onboardingCompleted: false,
@@ -87,7 +89,7 @@ describe('User Preferences API', () => {
 				sessionAutoConnect: false
 			};
 
-			mockDb.saveUserPreferences.mockResolvedValue();
+			mockDb.users.updatePreferences.mockResolvedValue();
 
 			const updatedPreferences = {
 				onboardingCompleted: true,
@@ -108,10 +110,6 @@ describe('User Preferences API', () => {
 		});
 
 		it('should validate theme preference values', async () => {
-			const invalidUpdate = {
-				themePreference: 'invalid-theme'
-			};
-
 			const response = {
 				status: 400,
 				body: { error: 'Invalid preference values' }
@@ -122,10 +120,6 @@ describe('User Preferences API', () => {
 		});
 
 		it('should validate workspace display mode', async () => {
-			const invalidUpdate = {
-				workspaceDisplayMode: 'invalid-mode'
-			};
-
 			const response = {
 				status: 400,
 				body: { error: 'Invalid preference values' }
@@ -135,12 +129,7 @@ describe('User Preferences API', () => {
 		});
 
 		it('should allow partial updates', async () => {
-			const partialUpdate = {
-				themePreference: 'dark'
-				// Other preferences remain unchanged
-			};
-
-			mockDb.saveUserPreferences.mockResolvedValue();
+			mockDb.users.updatePreferences.mockResolvedValue();
 
 			const updatedPreferences = {
 				onboardingCompleted: true,
@@ -170,18 +159,18 @@ describe('User Preferences API', () => {
 				sessionAutoConnect: false
 			};
 
-			mockDb.saveUserPreferences.mockResolvedValue();
-			mockDb.getUserPreferences.mockResolvedValue({
+			mockDb.users.updatePreferences.mockResolvedValue();
+			mockDb.users.getPreferences.mockResolvedValue({
 				onboardingCompleted: true,
 				...preferences,
 				updatedAt: '2025-09-27T11:00:00Z'
 			});
 
 			// First save
-			await mockDb.saveUserPreferences('user123', preferences);
+			await mockDb.users.updatePreferences('user123', preferences);
 
 			// Then retrieve
-			const retrieved = await mockDb.getUserPreferences('user123');
+			const retrieved = await mockDb.users.getPreferences('user123');
 
 			expect(retrieved.themePreference).toBe('dark');
 			expect(retrieved.workspaceDisplayMode).toBe('grid');

@@ -20,10 +20,10 @@ export async function GET({ locals }) {
 		await dbManager.init();
 
 		// Get onboarding settings from database
-		const onboardingSettings = await dbManager.getSettingsByCategory('onboarding');
+		const onboardingSettings = await dbManager.settings.getCategorySettings('onboarding');
 
 		// Get authentication settings to check if terminal key exists
-		const authSettings = await dbManager.getSettingsByCategory('authentication');
+		const authSettings = await dbManager.settings.getCategorySettings('authentication');
 		const hasTerminalKey = !!authSettings?.terminal_key;
 
 		// Build response

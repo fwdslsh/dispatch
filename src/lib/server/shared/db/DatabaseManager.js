@@ -3,6 +3,11 @@ import { promises as fs } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { logger } from '../utils/logger.js';
+import { SessionRepository } from './repositories/SessionRepository.js';
+import { EventStore } from './repositories/EventStore.js';
+import { SettingsRepository } from './repositories/SettingsRepository.js';
+import { UserRepository } from './repositories/UserRepository.js';
+import { UnitOfWork } from './UnitOfWork.js';
 
 const deriveWorkspaceName = (path) => {
 	if (!path) return 'Unnamed Workspace';
@@ -22,6 +27,10 @@ export class DatabaseManager {
 		this.db = null;
 		this.isInitialized = false;
 		this.writeQueue = Promise.resolve();
+		this.sessions = new SessionRepository(this);
+		this.eventStore = new EventStore(this);
+		this.settings = new SettingsRepository(this);
+		this.users = new UserRepository(this);
 	}
 
 	/**
@@ -48,7 +57,7 @@ export class DatabaseManager {
 			await this.createTables();
 
 			// Initialize default settings
-			await this.initializeDefaultSettings();
+			await this.settings.initializeDefaults();
 
 			this.isInitialized = true;
 			logger.info('DATABASE', `Initialized SQLite database at: ${this.dbPath}`);
@@ -243,171 +252,34 @@ export class DatabaseManager {
 		});
 	}
 
-	// ===== UNIFIED SESSION MANAGEMENT METHODS =====
-
-	/**
-	 * Create a new run session (serialized write operation)
-	 */
-	async createRunSession(runId, kind, meta, ownerUserId = null) {
-		// Queue this write operation to prevent concurrent writes
-		this.writeQueue = this.writeQueue
-			.then(async () => {
-				const now = Date.now();
-				await this.run(
-					`INSERT INTO sessions(run_id, owner_user_id, kind, status, created_at, updated_at, meta_json)
-				 VALUES(?, ?, ?, 'starting', ?, ?, ?)`,
-					[runId, ownerUserId, kind, now, now, JSON.stringify(meta)]
-				);
-			})
-			.catch((err) => {
-				// Re-throw to maintain error propagation
-				throw err;
-			});
-
+	enqueueWrite(operation) {
+		const next = this.writeQueue.then(() => operation());
+		this.writeQueue = next.catch((error) => {
+			this.writeQueue = Promise.resolve();
+			throw error;
+		});
 		return this.writeQueue;
 	}
 
-	/**
-	 * Mark all sessions as stopped (used on startup to reset stale state)
-	 */
-	async markAllSessionsStopped() {
-		await this.run(
-			`UPDATE sessions
-			 SET status='stopped', updated_at=?
-			 WHERE status='running'`,
-			[Date.now()]
-		);
-	}
-
-	/**
-	 * Update run session status
-	 */
-	async updateRunSessionStatus(runId, status) {
-		await this.run(`UPDATE sessions SET status=?, updated_at=? WHERE run_id=?`, [
-			status,
-			Date.now(),
-			runId
-		]);
-	}
-
-	/**
-	 * Get run session by ID
-	 */
-	async getRunSession(runId) {
-		const row = await this.get('SELECT * FROM sessions WHERE run_id = ?', [runId]);
-		if (row && row.meta_json) {
-			try {
-				row.meta = JSON.parse(row.meta_json);
-			} catch (e) {
-				row.meta = {};
-			}
+	async waitForWrites() {
+		try {
+			await this.writeQueue;
+		} catch {
+			// ignore errors from previous writes when waiting for queue to drain
 		}
-		return row;
 	}
 
-	/**
-	 * List all run sessions
-	 */
-	async listRunSessions(kind = null) {
-		const sql = kind
-			? 'SELECT * FROM sessions WHERE kind = ? ORDER BY updated_at DESC'
-			: 'SELECT * FROM sessions ORDER BY updated_at DESC';
-		const params = kind ? [kind] : [];
+	createUnitOfWork() {
+		return new UnitOfWork(this);
+	}
 
-		const rows = await this.all(sql, params);
-		return rows.map((row) => {
-			if (row.meta_json) {
-				try {
-					row.meta = JSON.parse(row.meta_json);
-				} catch (e) {
-					row.meta = {};
-				}
-			}
-			return row;
+	async deleteRunSession(runSessionId) {
+		const unitOfWork = this.createUnitOfWork();
+		await unitOfWork.withTransaction(async ({ run }) => {
+			await this.eventStore.deleteForRun(runSessionId);
+			await run('DELETE FROM workspace_layout WHERE run_id = ?', [runSessionId]);
+			await run('DELETE FROM sessions WHERE run_id = ?', [runSessionId]);
 		});
-	}
-
-	/**
-	 * Delete run session
-	 */
-	async deleteRunSession(runId) {
-		// Delete session events first (foreign key constraint)
-		await this.run('DELETE FROM session_events WHERE run_id = ?', [runId]);
-		// Delete workspace layout entries
-		await this.run('DELETE FROM workspace_layout WHERE run_id = ?', [runId]);
-		// Delete session
-		await this.run('DELETE FROM sessions WHERE run_id = ?', [runId]);
-	}
-
-	/**
-	 * Append event to session event log (serialized write operation)
-	 */
-	async appendSessionEvent(runId, seq, channel, type, payload) {
-		// Queue this write operation to prevent concurrent writes
-		this.writeQueue = this.writeQueue
-			.then(async () => {
-				const ts = Date.now();
-				const buf =
-					payload instanceof Uint8Array
-						? payload
-						: new TextEncoder().encode(JSON.stringify(payload));
-
-				await this.run(
-					`INSERT INTO session_events(run_id, seq, channel, type, payload, ts) VALUES(?,?,?,?,?,?)`,
-					[runId, seq, channel, type, buf, ts]
-				);
-
-				return { runId, seq, channel, type, payload, ts };
-			})
-			.catch((err) => {
-				throw err;
-			});
-
-		return this.writeQueue;
-	}
-
-	/**
-	 * Get session events since a specific sequence number
-	 */
-	async getSessionEventsSince(runId, afterSeq = 0) {
-		const rows = await this.all(
-			`SELECT run_id as runId, seq, channel, type, payload, ts
-			 FROM session_events WHERE run_id=? AND seq>? ORDER BY seq ASC`,
-			[runId, afterSeq]
-		);
-
-		return rows.map((row) => {
-			// Decode payload based on type
-			if (row.payload) {
-				try {
-					const text = new TextDecoder().decode(row.payload);
-					row.payload = JSON.parse(text);
-				} catch (e) {
-					// Keep as raw buffer if not JSON
-					row.payload = row.payload;
-				}
-			}
-			return row;
-		});
-	}
-
-	/**
-	 * Get next sequence number for a run session
-	 */
-	async getNextSequenceNumber(runId) {
-		const result = await this.get(
-			`SELECT COALESCE(MAX(seq), 0) as maxSeq FROM session_events WHERE run_id=?`,
-			[runId]
-		);
-		return (result?.maxSeq ?? 0) + 1;
-	}
-
-	/**
-	 * Delete all session events for a run session
-	 * Used for cleanup when session creation fails after some events have been written
-	 */
-	async deleteSessionEvents(runId) {
-		return this.run(`DELETE FROM session_events WHERE run_id = ?`, [runId]);
 	}
 
 	// ===== WORKSPACE MANAGEMENT METHODS =====
@@ -470,13 +342,13 @@ export class DatabaseManager {
 	/**
 	 * Set workspace layout for a client
 	 */
-	async setWorkspaceLayout(runId, clientId, tileId) {
+	async setWorkspaceLayout(runSessionId, clientId, tileId) {
 		const now = Date.now();
 		await this.run(
 			`INSERT OR REPLACE INTO workspace_layout
-			 (run_id, client_id, tile_id, created_at, updated_at)
-			 VALUES (?, ?, ?, ?, ?)`,
-			[runId, clientId, tileId, now, now]
+                         (run_id, client_id, tile_id, created_at, updated_at)
+                         VALUES (?, ?, ?, ?, ?)`,
+			[runSessionId, clientId, tileId, now, now]
 		);
 	}
 
@@ -493,9 +365,9 @@ export class DatabaseManager {
 	/**
 	 * Remove workspace layout entry
 	 */
-	async removeWorkspaceLayout(runId, clientId) {
+	async removeWorkspaceLayout(runSessionId, clientId) {
 		await this.run('DELETE FROM workspace_layout WHERE run_id = ? AND client_id = ?', [
-			runId,
+			runSessionId,
 			clientId
 		]);
 	}
@@ -535,203 +407,11 @@ export class DatabaseManager {
 			if (row.data) {
 				try {
 					row.data = JSON.parse(row.data);
-				} catch (e) {
+				} catch {
 					// Keep as string if parsing fails
 				}
 			}
 			return row;
 		});
-	}
-
-	/**
-	 * Settings Management Methods - JSON objects per category
-	 */
-
-	/**
-	 * Get all settings for a category
-	 * @param {string} category - Setting category ('global', 'claude', etc.)
-	 * @returns {Promise<Object>} Settings object for the category
-	 */
-	async getSettingsByCategory(category) {
-		const row = await this.get('SELECT settings_json FROM settings WHERE category = ?', [category]);
-		if (!row) return {};
-		try {
-			return JSON.parse(row.settings_json);
-		} catch (e) {
-			console.warn(`Failed to parse settings for category '${category}':`, e);
-			return {};
-		}
-	}
-
-	/**
-	 * Get all settings with metadata
-	 * @returns {Promise<Array>} Array of setting categories with metadata
-	 */
-	async getAllSettings() {
-		const rows = await this.all(`
-			SELECT category, settings_json, description, created_at, updated_at 
-			FROM settings 
-			ORDER BY category
-		`);
-		return rows.map((row) => {
-			try {
-				row.settings = JSON.parse(row.settings_json);
-			} catch (e) {
-				row.settings = {};
-			}
-			delete row.settings_json; // Remove raw JSON from response
-			return row;
-		});
-	}
-
-	/**
-	 * Set settings for a category
-	 * @param {string} category - Setting category
-	 * @param {Object} settings - Settings object for this category
-	 * @param {string} description - Optional description
-	 */
-	async setSettingsForCategory(category, settings, description = null) {
-		const now = Date.now();
-		const settingsJson = JSON.stringify(settings);
-
-		await this.run(
-			`INSERT OR REPLACE INTO settings 
-			 (category, settings_json, description, created_at, updated_at) 
-			 VALUES (?, ?, ?, 
-			         COALESCE((SELECT created_at FROM settings WHERE category = ?), ?), 
-			         ?)`,
-			[category, settingsJson, description, category, now, now]
-		);
-	}
-
-	/**
-	 * Update specific setting in a category
-	 * @param {string} category - Setting category
-	 * @param {string} key - Setting key within the category
-	 * @param {any} value - Setting value
-	 */
-	async updateSettingInCategory(category, key, value) {
-		// Get current settings for category
-		const currentSettings = await this.getSettingsByCategory(category);
-
-		// Update the specific key
-		currentSettings[key] = value;
-
-		// Save back to database
-		await this.setSettingsForCategory(category, currentSettings);
-	}
-
-	/**
-	 * Delete a settings category
-	 * @param {string} category - Setting category
-	 */
-	async deleteSettingsCategory(category) {
-		await this.run('DELETE FROM settings WHERE category = ?', [category]);
-	}
-
-	/**
-	 * Initialize default settings with only actually used settings
-	 */
-	async initializeDefaultSettings() {
-		const categories = [
-			// Global settings - only include settings that are actually used
-			{
-				category: 'global',
-				settings: {
-					theme: 'retro' // Used in data-theme attribute setting
-				},
-				description: 'Global application settings'
-			},
-			// Claude settings - used in session creation
-			{
-				category: 'claude',
-				settings: {
-					model: 'claude-3-5-sonnet-20241022',
-					permissionMode: 'default',
-					executable: 'auto',
-					maxTurns: null,
-					includePartialMessages: false,
-					continueConversation: false
-				},
-				description: 'Default Claude session settings'
-			},
-			// Workspace environment variables - applied to all sessions
-			{
-				category: 'workspace',
-				settings: {
-					envVariables: {}
-				},
-				description: 'Workspace-level environment variables for all sessions'
-			}
-		];
-
-		for (const categoryData of categories) {
-			// Only insert if the category doesn't already exist
-			const existing = await this.getSettingsByCategory(categoryData.category);
-			if (Object.keys(existing).length === 0) {
-				await this.setSettingsForCategory(
-					categoryData.category,
-					categoryData.settings,
-					categoryData.description
-				);
-			}
-		}
-	}
-
-	// ========== USER PREFERENCES MANAGEMENT ==========
-
-	/**
-	 * Get user preferences for a category
-	 * @param {string} category - Preference category
-	 * @returns {object} Preferences object
-	 */
-	async getUserPreferences(category) {
-		const userId = 'default'; // Single-user system
-		const row = await this.get(
-			'SELECT preferences_json FROM user_preferences WHERE user_id = ? AND category = ?',
-			[userId, category]
-		);
-		return row ? JSON.parse(row.preferences_json) : {};
-	}
-
-	/**
-	 * Get all user preferences grouped by category
-	 * @returns {object} All preferences grouped by category
-	 */
-	async getAllUserPreferences() {
-		const userId = 'default'; // Single-user system
-		const rows = await this.all(
-			'SELECT category, preferences_json FROM user_preferences WHERE user_id = ?',
-			[userId]
-		);
-
-		const preferences = {};
-		for (const row of rows) {
-			preferences[row.category] = JSON.parse(row.preferences_json);
-		}
-		return preferences;
-	}
-
-	/**
-	 * Update user preferences for a category
-	 * @param {string} category - Preference category
-	 * @param {object} preferences - Preferences to update
-	 * @returns {object} Updated preferences
-	 */
-	async updateUserPreferences(category, preferences) {
-		const userId = 'default'; // Single-user system
-		const preferencesJson = JSON.stringify(preferences);
-
-		const sql = `
-			INSERT INTO user_preferences (user_id, category, preferences_json, updated_at)
-			VALUES (?, ?, ?, ?)
-			ON CONFLICT(user_id, category) DO UPDATE SET
-				preferences_json = excluded.preferences_json,
-				updated_at = excluded.updated_at
-		`;
-
-		await this.run(sql, [userId, category, preferencesJson, new Date().toISOString()]);
-
-		return preferences;
 	}
 }

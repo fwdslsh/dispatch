@@ -22,12 +22,16 @@ describe('DatabaseManager startup helpers', () => {
 		const database = new DatabaseManager(dbPath);
 		await database.init();
 
-		await database.createRunSession('run-1', 'pty', { cwd: '/tmp' });
-		await database.updateRunSessionStatus('run-1', 'running');
+		await database.sessions.create({
+			runSessionId: 'run-1',
+			kind: 'pty',
+			meta: { cwd: '/tmp' }
+		});
+		await database.sessions.updateStatus('run-1', 'running');
 
-		await database.markAllSessionsStopped();
+		await database.sessions.markAllStopped();
 
-		const session = await database.getRunSession('run-1');
+		const session = await database.sessions.findById('run-1');
 		expect(session.status).toBe('stopped');
 		await database.close();
 	});

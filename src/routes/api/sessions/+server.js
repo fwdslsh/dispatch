@@ -23,7 +23,7 @@ function getSessionTitle(kind) {
 	}
 }
 
-export async function GET({ url, request, locals }) {
+export async function GET({ url, locals }) {
 	// Require authentication
 	const includeAll = url.searchParams.get('include') === 'all';
 
@@ -122,19 +122,22 @@ export async function POST({ request, locals }) {
 		let defaultWorkspaceDir = null;
 		let workspaceEnvVariables = {};
 		try {
-			const globalSettings = await locals.services.database.getSettingsByCategory('global');
+			const globalSettings = await locals.services.database.settings.getCategorySettings('global');
 			defaultWorkspaceDir = globalSettings?.defaultWorkspaceDirectory || null;
 
 			// Load workspace environment variables
-			const workspaceSettings = await locals.services.database.getSettingsByCategory('workspace');
+			const workspaceSettings =
+				await locals.services.database.settings.getCategorySettings('workspace');
 			workspaceEnvVariables = workspaceSettings?.envVariables || {};
 		} catch (error) {
 			console.warn('[Sessions API] Failed to load workspace settings:', error);
 		}
 
 		// Determine the working directory with user preference override
-		const workingDirectory =
-			cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
+		const configService = locals.services.configService;
+		const configWorkspaceRoot = configService?.get('workspacesRoot');
+		const envHome = configService?.getEnv()?.HOME || process.env.HOME;
+		const workingDirectory = cwd || defaultWorkspaceDir || configWorkspaceRoot || envHome;
 
 		// Create run session using unified manager with workspace environment variables
 		const { runId } = await locals.services.runSessionManager.createRunSession({
@@ -201,13 +204,14 @@ export async function DELETE({ url, locals }) {
 
 // Layout management API for client-specific layouts
 export async function PUT({ request, locals }) {
-	const { action, runId, clientId, tileId } = await request.json();
+	const { action, runId, runSessionId, clientId, tileId } = await request.json();
+	const resolvedRunSessionId = runSessionId || runId;
 
 	if (action === 'setLayout') {
-		if (!runId || !clientId || !tileId) {
+		if (!resolvedRunSessionId || !clientId || !tileId) {
 			return new Response(
 				JSON.stringify({
-					error: 'Missing required parameters: runId, clientId, tileId'
+					error: 'Missing required parameters: runSessionId/runId, clientId, tileId'
 				}),
 				{ status: 400 }
 			);
@@ -215,7 +219,7 @@ export async function PUT({ request, locals }) {
 
 		try {
 			// Update or create layout for this client
-			await locals.services.database.setWorkspaceLayout(runId, clientId, tileId);
+			await locals.services.database.setWorkspaceLayout(resolvedRunSessionId, clientId, tileId);
 			return new Response(JSON.stringify({ success: true }));
 		} catch (error) {
 			console.error('[API] Layout update failed:', error);
@@ -224,17 +228,17 @@ export async function PUT({ request, locals }) {
 	}
 
 	if (action === 'removeLayout') {
-		if (!runId || !clientId) {
+		if (!resolvedRunSessionId || !clientId) {
 			return new Response(
 				JSON.stringify({
-					error: 'Missing required parameters: runId, clientId'
+					error: 'Missing required parameters: runSessionId/runId, clientId'
 				}),
 				{ status: 400 }
 			);
 		}
 
 		try {
-			await locals.services.database.removeWorkspaceLayout(runId, clientId);
+			await locals.services.database.removeWorkspaceLayout(resolvedRunSessionId, clientId);
 			return new Response(JSON.stringify({ success: true }));
 		} catch (error) {
 			console.error('[API] Layout removal failed:', error);

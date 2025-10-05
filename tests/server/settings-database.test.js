@@ -21,7 +21,7 @@ describe('Settings Database Integration - JSON per Category', () => {
 		}
 		try {
 			rmSync(tempDbPath, { force: true });
-		} catch (e) {
+		} catch {
 			// Ignore cleanup errors
 		}
 	});
@@ -29,11 +29,11 @@ describe('Settings Database Integration - JSON per Category', () => {
 	describe('Settings Management - JSON Objects per Category', () => {
 		it('should initialize default settings', async () => {
 			// Check that default settings are created
-			const globalSettings = await db.getSettingsByCategory('global');
+			const globalSettings = await db.settings.getCategorySettings('global');
 			expect(globalSettings).toHaveProperty('theme');
 			expect(globalSettings.theme).toBe('retro');
 
-			const claudeSettings = await db.getSettingsByCategory('claude');
+			const claudeSettings = await db.settings.getCategorySettings('claude');
 			expect(claudeSettings).toHaveProperty('model');
 			expect(claudeSettings.model).toBe('claude-3-5-sonnet-20241022');
 			expect(claudeSettings).toHaveProperty('permissionMode');
@@ -48,10 +48,10 @@ describe('Settings Database Integration - JSON per Category', () => {
 				testSetting3: { nested: true }
 			};
 
-			await db.setSettingsForCategory('test', testSettings, 'Test category');
+			await db.settings.setCategory('test', testSettings, 'Test category');
 
 			// Retrieve the settings
-			const retrieved = await db.getSettingsByCategory('test');
+			const retrieved = await db.settings.getCategorySettings('test');
 			expect(retrieved).toEqual(testSettings);
 		});
 
@@ -67,10 +67,10 @@ describe('Settings Database Integration - JSON per Category', () => {
 				}
 			};
 
-			await db.setSettingsForCategory('complex', complexSettings);
+			await db.settings.setCategory('complex', complexSettings);
 
 			// Retrieve and verify
-			const retrieved = await db.getSettingsByCategory('complex');
+			const retrieved = await db.settings.getCategorySettings('complex');
 			expect(retrieved).toEqual(complexSettings);
 		});
 
@@ -81,18 +81,18 @@ describe('Settings Database Integration - JSON per Category', () => {
 				newSetting: 'added'
 			};
 
-			await db.setSettingsForCategory('global', newGlobalSettings, 'Updated global settings');
+			await db.settings.setCategory('global', newGlobalSettings, 'Updated global settings');
 
-			const settings = await db.getSettingsByCategory('global');
+			const settings = await db.settings.getCategorySettings('global');
 			expect(settings.theme).toBe('dark');
 			expect(settings.newSetting).toBe('added');
 		});
 
 		it('should update individual setting in category', async () => {
 			// Update a specific setting within a category
-			await db.updateSettingInCategory('global', 'theme', 'light');
+			await db.settings.updateSetting('global', 'theme', 'light');
 
-			const settings = await db.getSettingsByCategory('global');
+			const settings = await db.settings.getCategorySettings('global');
 			expect(settings.theme).toBe('light');
 			// Other settings should remain unchanged
 			expect(settings).toHaveProperty('theme');
@@ -100,16 +100,16 @@ describe('Settings Database Integration - JSON per Category', () => {
 
 		it('should delete settings categories', async () => {
 			// Add a category
-			await db.setSettingsForCategory('temp', { temporary: true });
-			expect(await db.getSettingsByCategory('temp')).toEqual({ temporary: true });
+			await db.settings.setCategory('temp', { temporary: true });
+			expect(await db.settings.getCategorySettings('temp')).toEqual({ temporary: true });
 
 			// Delete it
-			await db.deleteSettingsCategory('temp');
-			expect(await db.getSettingsByCategory('temp')).toEqual({});
+			await db.settings.deleteCategory('temp');
+			expect(await db.settings.getCategorySettings('temp')).toEqual({});
 		});
 
 		it('should get all settings with metadata', async () => {
-			const allSettings = await db.getAllSettings();
+			const allSettings = await db.settings.getAll();
 
 			expect(Array.isArray(allSettings)).toBe(true);
 			expect(allSettings.length).toBeGreaterThan(0);
@@ -118,32 +118,32 @@ describe('Settings Database Integration - JSON per Category', () => {
 			const firstSetting = allSettings[0];
 			expect(firstSetting).toHaveProperty('category');
 			expect(firstSetting).toHaveProperty('settings');
-			expect(firstSetting).toHaveProperty('created_at');
-			expect(firstSetting).toHaveProperty('updated_at');
+			expect(firstSetting).toHaveProperty('createdAt');
+			expect(firstSetting).toHaveProperty('updatedAt');
 			expect(firstSetting).not.toHaveProperty('settings_json'); // Should be parsed
 		});
 
 		it('should handle non-existent categories gracefully', async () => {
-			const nonExistent = await db.getSettingsByCategory('does_not_exist');
+			const nonExistent = await db.settings.getCategorySettings('does_not_exist');
 			expect(nonExistent).toEqual({});
 		});
 
 		it('should preserve timestamps on updates', async () => {
 			// Get initial timestamps
-			const allBefore = await db.getAllSettings();
+			const allBefore = await db.settings.getAll();
 			const globalBefore = allBefore.find((s) => s.category === 'global');
-			const createdAtBefore = globalBefore.created_at;
+			const createdAtBefore = globalBefore.createdAt;
 
 			// Wait a bit and update
 			await new Promise((resolve) => setTimeout(resolve, 10));
-			await db.updateSettingInCategory('global', 'theme', 'updated');
+			await db.settings.updateSetting('global', 'theme', 'updated');
 
 			// Check timestamps
-			const allAfter = await db.getAllSettings();
+			const allAfter = await db.settings.getAll();
 			const globalAfter = allAfter.find((s) => s.category === 'global');
 
-			expect(globalAfter.created_at).toBe(createdAtBefore); // Should be preserved
-			expect(globalAfter.updated_at).toBeGreaterThan(globalAfter.created_at); // Should be updated
+			expect(globalAfter.createdAt).toBe(createdAtBefore); // Should be preserved
+			expect(globalAfter.updatedAt).toBeGreaterThan(globalAfter.createdAt); // Should be updated
 		});
 	});
 });

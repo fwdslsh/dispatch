@@ -96,19 +96,35 @@ export class MyAdapter {
 
 		// Set up event listeners
 		this.process.on('data', (data) => {
-			// Emit events to RunSessionManager
-			this.eventEmitter?.emit('run:event', {
+			// Emit events to the RunSession facade and legacy listeners
+			const event = {
 				channel: this.runId,
 				type: 'my-adapter:output',
 				payload: { data }
+			};
+			this.eventEmitter?.emit('runSession:event', {
+				runSessionId: this.runId,
+				event
+			});
+			this.eventEmitter?.emit('run:event', {
+				runId: this.runId,
+				event
 			});
 		});
 
 		this.process.on('error', (error) => {
-			this.eventEmitter?.emit('run:event', {
+			const event = {
 				channel: this.runId,
 				type: 'my-adapter:error',
 				payload: { error: error.message }
+			};
+			this.eventEmitter?.emit('runSession:event', {
+				runSessionId: this.runId,
+				event
+			});
+			this.eventEmitter?.emit('run:event', {
+				runId: this.runId,
+				event
 			});
 		});
 
@@ -427,11 +443,13 @@ class ProcessAdapter {
 	async init() {
 		this.process = spawn('my-command', args);
 		this.process.stdout.on('data', (data) => {
-			this.eventEmitter.emit('run:event', {
+			const event = {
 				channel: this.runId,
 				type: 'output',
 				payload: { data: data.toString() }
-			});
+			};
+			this.eventEmitter.emit('runSession:event', { runSessionId: this.runId, event });
+			this.eventEmitter.emit('run:event', { runId: this.runId, event });
 		});
 	}
 }
@@ -450,11 +468,13 @@ class ApiAdapter {
 
 	async write(input) {
 		const response = await this.client.sendMessage(this.session.id, input);
-		this.eventEmitter.emit('run:event', {
+		const event = {
 			channel: this.runId,
 			type: 'response',
 			payload: response
-		});
+		};
+		this.eventEmitter.emit('runSession:event', { runSessionId: this.runId, event });
+		this.eventEmitter.emit('run:event', { runId: this.runId, event });
 	}
 }
 ```

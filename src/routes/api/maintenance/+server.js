@@ -20,7 +20,7 @@ export async function POST({ request, locals }) {
 		}
 
 		// Get maintenance preferences from user preferences system
-		const maintenancePrefs = await locals.services.database.getUserPreferences('maintenance');
+		const maintenancePrefs = await locals.services.database.users.getPreferences('maintenance');
 
 		// Use defaults if no preferences are set
 		const sessionRetentionDays = maintenancePrefs.sessionRetentionDays || 30;

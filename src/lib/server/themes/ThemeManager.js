@@ -13,7 +13,7 @@
  */
 
 import { promises as fs } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
+import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
 
@@ -429,7 +429,7 @@ export class ThemeManager {
 
 		// Check if theme is global default
 		try {
-			const prefs = await database.getUserPreferences('themes');
+			const prefs = await database.users.getPreferences('themes');
 			const globalDefault = prefs?.globalDefault;
 
 			if (globalDefault === `${themeId}.json`) {

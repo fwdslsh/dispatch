@@ -57,7 +57,8 @@ class RunSessionManager {
 		await this.eventStore.append(runId, event);
 
 		// Real-time broadcast to connected clients
-		this.socketManager.emitToSession(runId, 'run:event', event);
+		this.socketManager.emitToSession(runId, 'runSession:event', event);
+		this.socketManager.emitToSession(runId, 'run:event', event); // legacy alias
 	}
 }
 ```

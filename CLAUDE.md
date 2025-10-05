@@ -32,7 +32,8 @@ The codebase uses a modern unified session architecture with event sourcing:
 - `run:attach` - Attach to run session with event replay from sequence
 - `run:input` - Send input to any session type
 - `run:close` - Terminate session
-- `run:event` - Server-sent events with (channel, type, payload)
+- `runSession:event` - Primary server-sent events with (channel, type, payload)
+- `run:event` - Legacy alias carrying the same payload for backward compatibility
 
 ## Development Commands
 

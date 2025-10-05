@@ -7,6 +7,10 @@ import { SESSION_TYPE } from '../../shared/session-types.js';
  * Provides a simple adapter interface for file browsing, editing, and management
  */
 export class FileEditorAdapter {
+	constructor({ configService = null } = {}) {
+		this.configService = configService;
+	}
+
 	/**
 	 * @param {Object} params
 	 * @param {string} params.cwd - Working directory
@@ -18,7 +22,8 @@ export class FileEditorAdapter {
 		// Use the passed cwd if provided, otherwise fall back to environment defaults
 		// Note: The session API should already resolve the proper directory, but we maintain
 		// defensive fallback logic to ensure a valid working directory is always available
-		const workingDirectory = cwd || process.env.WORKSPACES_ROOT || process.env.HOME;
+		const env = this.configService?.getEnv?.() || process.env;
+		const workingDirectory = cwd || this.configService?.get('workspacesRoot') || env.HOME;
 
 		const proc = new FileEditorProcess({
 			cwd: workingDirectory,

@@ -23,7 +23,7 @@ describe('Workspace Environment Variables', () => {
 	});
 
 	it('should initialize with empty workspace environment variables', async () => {
-		const workspaceSettings = await database.getSettingsByCategory('workspace');
+		const workspaceSettings = await database.settings.getCategorySettings('workspace');
 		expect(workspaceSettings).toHaveProperty('envVariables');
 		expect(workspaceSettings.envVariables).toEqual({});
 	});
@@ -36,12 +36,12 @@ describe('Workspace Environment Variables', () => {
 		};
 
 		// Save environment variables
-		await database.setSettingsForCategory('workspace', {
+		await database.settings.setCategory('workspace', {
 			envVariables: testEnvVars
 		});
 
 		// Retrieve environment variables
-		const workspaceSettings = await database.getSettingsByCategory('workspace');
+		const workspaceSettings = await database.settings.getCategorySettings('workspace');
 		expect(workspaceSettings.envVariables).toEqual(testEnvVars);
 	});
 
@@ -52,7 +52,7 @@ describe('Workspace Environment Variables', () => {
 		};
 
 		// Save test environment variables
-		await database.setSettingsForCategory('workspace', {
+		await database.settings.setCategory('workspace', {
 			envVariables: testEnvVars
 		});
 
@@ -70,8 +70,10 @@ describe('Workspace Environment Variables', () => {
 	it('should handle database errors gracefully', async () => {
 		// Create a mock database that throws an error
 		const mockDatabase = {
-			getSettingsByCategory: () => {
-				throw new Error('Database error');
+			settings: {
+				getCategorySettings: () => {
+					throw new Error('Database error');
+				}
 			}
 		};
 

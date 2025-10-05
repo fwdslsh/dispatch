@@ -38,6 +38,8 @@ Welcome to the comprehensive documentation for Dispatch! This index provides an 
 **Technical documentation:**
 
 - [**Architecture**](reference/architecture.md) - Event-sourced, adapter-based architecture overview
+- [**Application Architecture & Design Patterns**](architecture/dispatch-application-architecture.md) -
+  In-depth analysis of current patterns and refactoring opportunities
 - [**Workspace API**](reference/workspace-api.md) - API reference for workspace management
 - [**Visual Design System**](reference/visual-design-system.md) - UI components and design patterns
 

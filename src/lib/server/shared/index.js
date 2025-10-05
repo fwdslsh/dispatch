@@ -13,33 +13,11 @@ import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
 import { MultiAuthManager, GitHubAuthProvider } from './auth/oauth.js';
-import path from 'node:path';
-import os from 'node:os';
+import { ConfigService } from './config/ConfigService.js';
 import { SESSION_TYPE } from '../../shared/session-types.js';
 
 // Global service instances - shared across all processes
 let globalServicesInstance = null;
-
-// Resolve tilde paths
-function resolveConfigPaths(config) {
-	// Use process.env.HOME if set (for testing), otherwise os.homedir()
-	const homeDir = process.env.HOME || os.homedir();
-	const resolved = { ...config };
-
-	if (resolved.dbPath && resolved.dbPath.startsWith('~/')) {
-		resolved.dbPath = path.join(homeDir, resolved.dbPath.slice(2));
-	}
-
-	if (resolved.workspacesRoot && resolved.workspacesRoot.startsWith('~/')) {
-		resolved.workspacesRoot = path.join(homeDir, resolved.workspacesRoot.slice(2));
-	}
-
-	if (resolved.configDir && resolved.configDir.startsWith('~/')) {
-		resolved.configDir = path.join(homeDir, resolved.configDir.slice(2));
-	}
-
-	return resolved;
-}
 
 /**
  * Initialize all server services with unified session architecture
@@ -47,40 +25,32 @@ function resolveConfigPaths(config) {
  * @returns {Promise<object>} Services object
  */
 export async function initializeServices(config = {}) {
-	const serviceConfig = {
-		dbPath: config.dbPath || process.env.DB_PATH || '~/.dispatch/data/workspace.db',
-		workspacesRoot:
-			config.workspacesRoot || process.env.WORKSPACES_ROOT || '~/.dispatch-home/workspaces',
-		configDir: config.configDir || process.env.DISPATCH_CONFIG_DIR || '~/.config/dispatch',
-		debug: config.debug || process.env.DEBUG === 'true',
-		port: config.port || process.env.PORT || 3030,
-		tunnelSubdomain: config.tunnelSubdomain || process.env.LT_SUBDOMAIN || ''
-	};
+	const configService = new ConfigService({ overrides: config });
 
 	try {
 		logger.info('SERVICES', 'Initializing services...');
-		const resolvedConfig = resolveConfigPaths(serviceConfig);
+		const resolvedConfig = configService.load();
 
 		// 1. Database (no dependencies)
 		const database = new DatabaseManager(resolvedConfig.dbPath);
 		await database.init();
-		await database.markAllSessionsStopped();
+		await database.sessions.markAllStopped();
 		logger.info('SERVICES', 'Cleared stale running sessions on startup');
 
 		// 2. Initialize AuthService singleton (using unified settings table)
-		const authService = new AuthService();
+		const authService = new AuthService({ configService });
 		await authService.initialize(database);
 		logger.info('SERVICES', 'AuthService initialized');
 
 		// REMOVED: WorkspaceManager - obsolete in unified architecture
 
 		// 4. Create RunSessionManager (no Socket.IO initially, will be set later)
-		const runSessionManager = new RunSessionManager(database, null);
+		const runSessionManager = new RunSessionManager(database);
 
 		// 5. Create and register adapters
-		const ptyAdapter = new PtyAdapter();
+		const ptyAdapter = new PtyAdapter({ configService });
 		const claudeAdapter = new ClaudeAdapter();
-		const fileEditorAdapter = new FileEditorAdapter();
+		const fileEditorAdapter = new FileEditorAdapter({ configService });
 
 		runSessionManager.registerAdapter(SESSION_TYPE.PTY, ptyAdapter);
 		runSessionManager.registerAdapter(SESSION_TYPE.CLAUDE, claudeAdapter);
@@ -98,15 +68,13 @@ export async function initializeServices(config = {}) {
 
 		// Register GitHub OAuth provider
 		// Get OAuth settings from database
-		const authSettingsRow = await database.get(
-			"SELECT * FROM settings WHERE category = 'authentication'"
-		);
+		const authSettingsRecord = await database.settings.getCategory('authentication');
 
-		if (authSettingsRow && authSettingsRow.settings_json) {
-			try {
-				const authSettings = JSON.parse(authSettingsRow.settings_json);
+		if (authSettingsRecord?.settings) {
+			const authSettings = authSettingsRecord.settings;
 
-				if (authSettings.oauth_client_id && authSettings.oauth_client_secret) {
+			if (authSettings.oauth_client_id && authSettings.oauth_client_secret) {
+				try {
 					const githubProvider = new GitHubAuthProvider({
 						clientId: authSettings.oauth_client_id,
 						clientSecret: authSettings.oauth_client_secret,
@@ -116,11 +84,11 @@ export async function initializeServices(config = {}) {
 						scopes: (authSettings.oauth_scope || 'user:email').split(' ')
 					});
 					await multiAuthManager.registerProvider(githubProvider);
-				} else {
-					logger.info('SERVICES', 'GitHub OAuth not configured - skipping provider registration');
+				} catch (error) {
+					logger.error('SERVICES', 'Failed to register GitHub provider:', error);
 				}
-			} catch (error) {
-				logger.error('SERVICES', 'Failed to parse authentication settings:', error);
+			} else {
+				logger.info('SERVICES', 'GitHub OAuth not configured - skipping provider registration');
 			}
 		} else {
 			logger.info(
@@ -139,7 +107,8 @@ export async function initializeServices(config = {}) {
 
 		// 8. VS Code Tunnel Manager
 		const vscodeManager = new VSCodeTunnelManager({
-			database: database
+			database: database,
+			configService
 		});
 		await vscodeManager.init();
 
@@ -154,6 +123,7 @@ export async function initializeServices(config = {}) {
 			multiAuthManager,
 			tunnelManager,
 			vscodeManager,
+			configService,
 			// Convenience methods
 			getAuthManager: () => multiAuthManager,
 			getDatabase: () => database

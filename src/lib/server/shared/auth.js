@@ -9,10 +9,11 @@ export class AuthService {
 	 * Create AuthService instance
 	 * @private - Use AuthService.create() instead
 	 */
-	constructor() {
+	constructor({ configService = null } = {}) {
 		this.cachedTerminalKey = null;
 		this.multiAuthManager = null;
 		this.instanceId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+		this.configService = configService;
 	}
 
 	/**
@@ -26,9 +27,9 @@ export class AuthService {
 		let terminalKey;
 
 		// Try to get from database first (using new unified settings table)
-		if (database) {
+		if (database?.settings) {
 			try {
-				const authSettings = await database.getSettingsByCategory('authentication');
+				const authSettings = await database.settings.getCategorySettings('authentication');
 				if (authSettings && authSettings.terminal_key) {
 					terminalKey = authSettings.terminal_key;
 					this.cachedTerminalKey = terminalKey;
@@ -46,8 +47,9 @@ export class AuthService {
 		}
 
 		// Fall back to environment variable
-		if (process.env.TERMINAL_KEY) {
-			terminalKey = process.env.TERMINAL_KEY;
+		const configTerminalKey = this.configService?.getTerminalKey?.();
+		if (configTerminalKey) {
+			terminalKey = configTerminalKey;
 			this.cachedTerminalKey = terminalKey;
 			logger.info('AUTH', 'Terminal key loaded from environment variable', {
 				instanceId: this.instanceId
@@ -90,7 +92,7 @@ export class AuthService {
 			'Terminal key cache not initialized, falling back to environment variable',
 			{ instanceId: this.instanceId }
 		);
-		return process.env.TERMINAL_KEY || 'change-me-to-a-strong-password';
+		return this.configService?.getTerminalKey?.() || 'change-me-to-a-strong-password';
 	}
 
 	/**

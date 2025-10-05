@@ -71,9 +71,11 @@ export const sessionModules = {
 
 ## Event flow checklist
 
-- Server emits events to the run room: `io.to('run:ID').emit('run:event', event)`
-- Server persists events: `appendSessionEvent(runId, seq, event)`
-- Client attaches and streams `run:input`, listens to `run:event`
+- Server emits events to both `runSession:ID` (`runSession:event`) and the legacy `run:ID`
+  (`run:event`) rooms for backward compatibility
+- Server persists events via the `SessionEventRecorder`
+- Client attaches with `runSession:attach`/`run:attach`, streams `runSession:input` and listens to
+  `runSession:event`
 - Sequence numbers must be monotonic for replay/resume
 
 ## Quick checklist to add a session type
@@ -86,7 +88,7 @@ export const sessionModules = {
 
 ## References
 
-- Runtime: `src/lib/server/runtime/RunSessionManager.js`
+- Runtime: `src/lib/server/shared/runtime/RunSessionFacade.js`
 - Socket: `src/lib/server/socket-setup.js`
 - Adapters: `src/lib/server/adapters/`
 - Client attach API: `src/lib/client/shared/services/RunSessionClient.js`

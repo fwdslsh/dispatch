@@ -17,7 +17,7 @@ export async function GET({ locals }) {
 		const database = locals.services.database;
 
 		// Get authentication settings from unified settings table
-		const authSettings = await database.getSettingsByCategory('authentication');
+		const authSettings = await database.settings.getCategorySettings('authentication');
 
 		// Build auth config response
 		const terminalKey =
@@ -51,7 +51,7 @@ export async function GET({ locals }) {
  *
  * Authentication: Authorization header (preferred) or authKey in body (backwards compatible)
  */
-export async function PUT({ request, url, locals }) {
+export async function PUT({ request, locals }) {
 	try {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
@@ -90,7 +90,7 @@ export async function PUT({ request, url, locals }) {
 		}
 
 		// Get current authentication settings
-		const currentAuthSettings = await database.getSettingsByCategory('authentication');
+		const currentAuthSettings = await database.settings.getCategorySettings('authentication');
 
 		// Merge with updates
 		const updatedAuthSettings = {
@@ -99,7 +99,7 @@ export async function PUT({ request, url, locals }) {
 		};
 
 		// Save to database
-		await database.setSettingsForCategory(
+		await database.settings.setCategory(
 			'authentication',
 			updatedAuthSettings,
 			'Authentication configuration'

@@ -47,18 +47,23 @@ export class RunSessionClient {
 			this.authenticated = false;
 		});
 
-		this.socket.on('run:event', (event) => {
+		const eventHandler = (event) => {
 			this.handleRunEvent(event);
-		});
+		};
+		this.socket.on('runSession:event', eventHandler);
+		this.socket.on('run:event', eventHandler);
 
-		this.socket.on('run:error', (error) => {
+		const errorHandler = (error) => {
 			console.error('RunSessionClient: Run error:', error);
 			// Forward error to attached session handler if available
-			const attachment = this.attachedSessions.get(error.runId);
+			const resolvedRunId = error.runSessionId || error.runId;
+			const attachment = this.attachedSessions.get(resolvedRunId);
 			if (attachment && attachment.onError) {
 				attachment.onError(error);
 			}
-		});
+		};
+		this.socket.on('runSession:error', errorHandler);
+		this.socket.on('run:error', errorHandler);
 	}
 
 	/**
@@ -121,11 +126,13 @@ export class RunSessionClient {
 				return;
 			}
 
-			this.socket.emit('run:attach', { runId, afterSeq }, (response) => {
+			const payload = { runSessionId: runId, runId, afterSeq };
+			this.socket.emit('runSession:attach', payload, (response) => {
 				console.log('[RunSessionClient] Attach response:', response);
 				if (response?.success) {
+					const resolvedRunId = response.runSessionId || response.runId || runId;
 					// Store attachment info
-					this.attachedSessions.set(runId, {
+					this.attachedSessions.set(resolvedRunId, {
 						lastSeq: afterSeq,
 						onEvent,
 						onError
@@ -133,7 +140,7 @@ export class RunSessionClient {
 
 					console.log(
 						'[RunSessionClient] Stored attachment for runId:',
-						runId,
+						resolvedRunId,
 						'Total attachments:',
 						this.attachedSessions.size
 					);
@@ -143,7 +150,7 @@ export class RunSessionClient {
 						response.events.forEach((event) => {
 							onEvent(event);
 							// Update last sequence
-							const attachment = this.attachedSessions.get(runId);
+							const attachment = this.attachedSessions.get(resolvedRunId);
 							if (attachment) {
 								attachment.lastSeq = Math.max(attachment.lastSeq, event.seq || 0);
 							}
@@ -151,7 +158,8 @@ export class RunSessionClient {
 					}
 
 					resolve({
-						runId,
+						runId: resolvedRunId,
+						runSessionId: resolvedRunId,
 						backlogEvents: response.events?.length || 0
 					});
 				} else {
@@ -175,7 +183,8 @@ export class RunSessionClient {
 			connected: this.connected,
 			authenticated: this.authenticated
 		});
-		this.socket.emit('run:input', { runId, data });
+		const payload = { runSessionId: runId, runId, data };
+		this.socket.emit('runSession:input', payload);
 	}
 
 	/**
@@ -186,7 +195,7 @@ export class RunSessionClient {
 			throw new Error('Not authenticated');
 		}
 
-		this.socket.emit('run:resize', { runId, cols, rows });
+		this.socket.emit('runSession:resize', { runSessionId: runId, runId, cols, rows });
 	}
 
 	/**
@@ -201,7 +210,7 @@ export class RunSessionClient {
 		this.attachedSessions.delete(runId);
 
 		// Send close event
-		this.socket.emit('run:close', { runId });
+		this.socket.emit('runSession:close', { runSessionId: runId, runId });
 	}
 
 	/**
@@ -209,7 +218,8 @@ export class RunSessionClient {
 	 */
 	handleRunEvent(event) {
 		console.log('[RunSessionClient] Received run event:', event);
-		const attachment = this.attachedSessions.get(event.runId);
+		const resolvedRunId = event.runSessionId || event.runId;
+		const attachment = this.attachedSessions.get(resolvedRunId);
 		if (attachment) {
 			// Update last sequence
 			attachment.lastSeq = Math.max(attachment.lastSeq, event.seq || 0);
@@ -218,7 +228,7 @@ export class RunSessionClient {
 		} else {
 			console.warn(
 				'[RunSessionClient] No attachment found for runId:',
-				event.runId,
+				resolvedRunId,
 				'Available attachments:',
 				Array.from(this.attachedSessions.keys())
 			);

@@ -40,7 +40,7 @@ async function resolveActiveTheme(database, themeManager, workspaceId) {
 
 	// 2. Check global default from user_preferences
 	try {
-		const prefs = await database.getUserPreferences('themes');
+		const prefs = await database.users.getPreferences('themes');
 
 		if (prefs?.globalDefault) {
 			// Remove .json extension if present for theme lookup
