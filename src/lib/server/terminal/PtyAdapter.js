@@ -13,6 +13,7 @@ export class PtyAdapter {
 	 * @param {string} params.cwd - Working directory
 	 * @param {Object} [params.options={}] - PTY options
 	 * @param {Object} [params.options.env] - Environment variables
+	 * @param {Object} [params.options.workspaceEnv] - Workspace environment variables
 	 * @param {number} [params.options.cols] - Terminal columns
 	 * @param {number} [params.options.rows] - Terminal rows
 	 * @param {string} [params.options.name] - Terminal name

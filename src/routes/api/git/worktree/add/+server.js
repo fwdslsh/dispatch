@@ -3,6 +3,7 @@ import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { spawn } from 'node:child_process';
 
 // Expand tilde (~) in paths
 function expandTilde(filepath) {
@@ -18,21 +19,24 @@ function resolvePath(filepath) {
 	return resolve(expanded);
 }
 
-
 // Execute shell command in specified directory
 function execShell(command, cwd) {
 	return new Promise((resolve, reject) => {
-		const shell = spawn('sh', ['-c', command], { cwd, encoding: 'utf8' });
+		const shell = spawn('sh', ['-c', command], { cwd });
 		let stdout = '';
 		let stderr = '';
 
-		shell.stdout.on('data', (data) => {
-			stdout += data;
-		});
+		if (shell.stdout) {
+			shell.stdout.on('data', (data) => {
+				stdout += data;
+			});
+		}
 
-		shell.stderr.on('data', (data) => {
-			stderr += data;
-		});
+		if (shell.stderr) {
+			shell.stderr.on('data', (data) => {
+				stderr += data;
+			});
+		}
 
 		shell.on('close', (code) => {
 			if (code === 0) {
@@ -46,21 +50,26 @@ function execShell(command, cwd) {
 			reject(error);
 		});
 	});
+}
 
 // Execute .dispatchrc script with original repo path as first parameter
 function execDispatchrc(scriptPath, originalRepoPath, cwd) {
 	return new Promise((resolve, reject) => {
-		const shell = spawn('bash', [scriptPath, originalRepoPath], { cwd, encoding: 'utf8' });
+		const shell = spawn('bash', [scriptPath, originalRepoPath], { cwd });
 		let stdout = '';
 		let stderr = '';
 
-		shell.stdout.on('data', (data) => {
-			stdout += data;
-		});
+		if (shell.stdout) {
+			shell.stdout.on('data', (data) => {
+				stdout += data;
+			});
+		}
 
-		shell.stderr.on('data', (data) => {
-			stderr += data;
-		});
+		if (shell.stderr) {
+			shell.stderr.on('data', (data) => {
+				stderr += data;
+			});
+		}
 
 		shell.on('close', (code) => {
 			if (code === 0) {
@@ -74,6 +83,7 @@ function execDispatchrc(scriptPath, originalRepoPath, cwd) {
 			reject(error);
 		});
 	});
+}
 
 export async function POST({ request, locals }) {
 	try {
