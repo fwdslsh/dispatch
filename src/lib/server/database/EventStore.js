@@ -13,7 +13,7 @@ import { logger } from '../shared/utils/logger.js';
 export class EventStore {
 	#db;
 	#sequences = new Map(); // sessionId -> nextSeq (atomic in-memory counter)
-	#initializingSequences = new Set(); // Track sequences being initialized (mutex)
+	#initLocks = new Map(); // sessionId -> Promise (initialization lock)
 	#appendLocks = new Map(); // sessionId -> Promise (append operation lock)
 
 	/**
@@ -30,51 +30,36 @@ export class EventStore {
 	 * @param {string} event.channel - Event channel (e.g., 'pty:stdout', 'claude:delta')
 	 * @param {string} event.type - Event type (e.g., 'chunk', 'text', 'json')
 	 * @param {Object|Uint8Array} event.payload - Event payload
-	 * @param {number} [retryCount=0] - Internal retry counter (for bounded retry)
 	 * @returns {Promise<Object>} Event row with sequence number
 	 */
-	async append(sessionId, event, retryCount = 0) {
+	async append(sessionId, event) {
 		const { channel, type, payload } = event;
-		const MAX_RETRIES = 10;
-		const BASE_DELAY_MS = 10;
 
-		// Get or initialize sequence counter with mutex to prevent race conditions
+		// Get or initialize sequence counter with Promise-based lock
 		if (!this.#sequences.has(sessionId)) {
-			// If another thread is initializing, wait and retry with bounded attempts
-			if (this.#initializingSequences.has(sessionId)) {
-				if (retryCount >= MAX_RETRIES) {
-					logger.error(
-						'EVENTSTORE',
-						`Sequence initialization deadlock for session ${sessionId} after ${MAX_RETRIES} retries. ` +
-							`Another process may be stuck initializing.`
-					);
-					throw new Error(
-						`EventStore.append failed: sequence initialization timeout after ${MAX_RETRIES} retries for session ${sessionId}`
-					);
-				}
+			// Check if initialization is already in progress
+			let initLock = this.#initLocks.get(sessionId);
 
-				// Log retries for visibility (at INFO level after retry 5, ~150ms of waiting)
-				if (retryCount >= 5) {
-					logger.info(
-						'EVENTSTORE',
-						`Retry ${retryCount}/${MAX_RETRIES} waiting for sequence init: ${sessionId}`
-					);
-				}
+			if (!initLock) {
+				// Start initialization
+				initLock = (async () => {
+					try {
+						const lastSeq = await this.getLatestSeq(sessionId);
+						this.#sequences.set(sessionId, lastSeq + 1);
+					} catch (error) {
+						logger.error('EVENTSTORE', `Failed to initialize sequence for session ${sessionId}:`, error.message);
+						throw error;
+					} finally {
+						// Clean up lock after initialization completes
+						this.#initLocks.delete(sessionId);
+					}
+				})();
 
-				// Exponential backoff with higher cap (10ms -> 20ms -> 40ms -> 80ms -> 160ms -> 320ms -> 500ms max)
-				const delay = Math.min(BASE_DELAY_MS * Math.pow(2, retryCount), 500);
-				await new Promise((resolve) => setTimeout(resolve, delay));
-				return this.append(sessionId, event, retryCount + 1);
+				this.#initLocks.set(sessionId, initLock);
 			}
 
-			// Mark as initializing to prevent concurrent initialization
-			this.#initializingSequences.add(sessionId);
-			try {
-				const lastSeq = await this.getLatestSeq(sessionId);
-				this.#sequences.set(sessionId, lastSeq + 1);
-			} finally {
-				this.#initializingSequences.delete(sessionId);
-			}
+			// Wait for initialization to complete
+			await initLock;
 		}
 
 		// Lock the session during append to prevent clearSequence() races
@@ -131,8 +116,8 @@ export class EventStore {
 	 */
 	clearSequence(sessionId) {
 		this.#sequences.delete(sessionId);
-		this.#initializingSequences.delete(sessionId); // Also clear mutex to prevent stale entries
-		this.#appendLocks.delete(sessionId); // Also clear append lock to prevent memory leak
+		this.#initLocks.delete(sessionId); // Clear initialization lock
+		this.#appendLocks.delete(sessionId); // Clear append lock to prevent memory leak
 	}
 
 	/**
