@@ -106,4 +106,26 @@ async function servicesMiddleware({ event, resolve }) {
 	return resolve(event);
 }
 
-export const handle = sequence(servicesMiddleware, authenticationMiddleware);
+/**
+ * Transaction middleware
+ * Wraps API requests in database transactions for atomic operations
+ */
+async function transactionMiddleware({ event, resolve }) {
+	const { pathname } = event.url;
+
+	// Only wrap API routes in transactions (excluding public routes)
+	if (pathname.startsWith('/api/') && !isPublicRoute(pathname)) {
+		const db = event.locals.services?.db;
+		if (db) {
+			// Execute request within a transaction
+			return await db.transaction(async () => {
+				return await resolve(event);
+			})();
+		}
+	}
+
+	// For non-API routes or when db is unavailable, proceed normally
+	return resolve(event);
+}
+
+export const handle = sequence(servicesMiddleware, authenticationMiddleware, transactionMiddleware);

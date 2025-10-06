@@ -209,7 +209,7 @@ export class SessionOrchestrator {
 
 			const process = await adapter.create({
 				...metadata,
-				onEvent: (ev) => this.#eventRecorder.recordEvent(sessionId, ev)
+				onEvent: (/** @type {any} */ ev) => this.#eventRecorder.recordEvent(sessionId, ev)
 			});
 
 			this.#activeSessions.set(sessionId, { adapter, process });

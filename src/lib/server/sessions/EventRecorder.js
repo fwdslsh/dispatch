@@ -103,7 +103,7 @@ export class EventRecorder {
 			.then(async () => {
 				return await this.#persistAndEmit(sessionId, event);
 			})
-			.catch((err) => {
+			.catch((/** @type {Error} */ err) => {
 				console.error(`Event queue error for ${sessionId}:`, err);
 			});
 
@@ -115,7 +115,6 @@ export class EventRecorder {
 	 * @param {string} sessionId - Session ID
 	 * @param {Object} event - Event data
 	 * @returns {Promise<Object>} Persisted event row
-	 * @private
 	 */
 	async #persistAndEmit(sessionId, event) {
 		// Persist to database
@@ -151,7 +150,7 @@ export class EventRecorder {
 	/**
 	 * Subscribe to event stream
 	 * @param {string} eventName - Event name (typically 'event')
-	 * @param {Function} listener - Event listener (event) => void
+	 * @param {(...args: any[]) => void} listener - Event listener (event) => void
 	 * @returns {void}
 	 */
 	subscribe(eventName, listener) {
@@ -161,7 +160,7 @@ export class EventRecorder {
 	/**
 	 * Unsubscribe listener
 	 * @param {string} eventName - Event name
-	 * @param {Function} listener - Event listener to remove
+	 * @param {(...args: any[]) => void} listener - Event listener to remove
 	 * @returns {void}
 	 */
 	unsubscribe(eventName, listener) {
