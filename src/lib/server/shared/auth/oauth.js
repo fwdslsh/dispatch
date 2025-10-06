@@ -37,7 +37,7 @@ export class AuthProvider {
 	/**
 	 * Get authorization URL for OAuth flows
 	 * @param {Object} params - OAuth parameters
-	 * @returns {Promise<string>} Authorization URL
+	 * @returns {Promise<string|{url: string, state: any}>} Authorization URL or object with URL and state
 	 */
 	async getAuthorizationUrl(params) {
 		throw new Error('getAuthorizationUrl() not implemented for this provider');
