@@ -90,6 +90,9 @@ export function setupSocketIO(httpServer, services) {
 		throw new Error('AuthService is required for socket setup');
 	}
 
+	// Remove all previous listeners before subscribing (prevents memory leak on hot reload)
+	eventRecorder.removeAllListeners();
+
 	// Subscribe to EventRecorder for real-time event emission
 	eventRecorder.subscribe('event', (eventData) => {
 		const { sessionId, ...event } = eventData;

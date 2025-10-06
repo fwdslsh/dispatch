@@ -194,8 +194,13 @@ export class SessionOrchestrator {
 			throw new Error(`Session not found: ${sessionId}`);
 		}
 
+		// Check database status to prevent race condition with closeSession
+		if (session.status === 'running') {
+			return { sessionId, resumed: false, reason: 'Already running in database' };
+		}
+
 		if (this.#activeSessions.has(sessionId)) {
-			return { sessionId, resumed: false, reason: 'Already active' };
+			return { sessionId, resumed: false, reason: 'Already active in memory' };
 		}
 
 		// Start buffering

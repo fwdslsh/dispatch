@@ -105,6 +105,10 @@ export class EventRecorder {
 			})
 			.catch((/** @type {Error} */ err) => {
 				console.error(`Event queue error for ${sessionId}:`, err);
+				// Emit error event for monitoring
+				this.#eventEmitter.emit('error', { sessionId, error: err, event });
+				// Re-throw to propagate error to caller
+				throw err;
 			});
 
 		return buffer.eventQueue;

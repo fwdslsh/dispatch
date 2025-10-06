@@ -4,6 +4,8 @@
  * Implements atomic sequence number management from RunSessionManager
  */
 
+import { logger } from '../shared/utils/logger.js';
+
 export class EventStore {
 	#db;
 	#sequences = new Map(); // sessionId -> nextSeq (atomic in-memory counter)
@@ -36,13 +38,26 @@ export class EventStore {
 			// If another thread is initializing, wait and retry with bounded attempts
 			if (this.#initializingSequences.has(sessionId)) {
 				if (retryCount >= MAX_RETRIES) {
+					logger.error(
+						'EVENTSTORE',
+						`Sequence initialization deadlock for session ${sessionId} after ${MAX_RETRIES} retries. ` +
+							`Another process may be stuck initializing.`
+					);
 					throw new Error(
 						`EventStore.append failed: sequence initialization timeout after ${MAX_RETRIES} retries for session ${sessionId}`
 					);
 				}
 
-				// Exponential backoff (10ms, 20ms, 40ms, 80ms, 160ms, then capped at 160ms)
-				const delay = BASE_DELAY_MS * Math.pow(2, Math.min(retryCount, 4));
+				// Log retries for visibility (at INFO level after retry 3)
+				if (retryCount >= 3) {
+					logger.info(
+						'EVENTSTORE',
+						`Retry ${retryCount}/${MAX_RETRIES} waiting for sequence init: ${sessionId}`
+					);
+				}
+
+				// Exponential backoff with higher cap (10ms -> 20ms -> 40ms -> 80ms -> 160ms -> 320ms -> 500ms max)
+				const delay = Math.min(BASE_DELAY_MS * Math.pow(2, retryCount), 500);
 				await new Promise((resolve) => setTimeout(resolve, delay));
 				return this.append(sessionId, event, retryCount + 1);
 			}
@@ -57,9 +72,11 @@ export class EventStore {
 			}
 		}
 
-		// Atomic increment
+		// Get current sequence (don't increment yet to prevent sequence gaps on DB errors)
 		const seq = this.#sequences.get(sessionId);
-		this.#sequences.set(sessionId, seq + 1);
+		if (seq === undefined) {
+			throw new Error(`Sequence counter was cleared during append for session ${sessionId}`);
+		}
 
 		const ts = Date.now();
 
@@ -67,19 +84,29 @@ export class EventStore {
 		const buf =
 			payload instanceof Uint8Array ? payload : new TextEncoder().encode(JSON.stringify(payload));
 
-		await this.#db.run(
-			`INSERT INTO session_events (run_id, seq, channel, type, payload, ts)
-			 VALUES (?, ?, ?, ?, ?, ?)`,
-			[sessionId, seq, channel, type, buf, ts]
-		);
+		try {
+			// Insert to database FIRST
+			await this.#db.run(
+				`INSERT INTO session_events (run_id, seq, channel, type, payload, ts)
+				 VALUES (?, ?, ?, ?, ?, ?)`,
+				[sessionId, seq, channel, type, buf, ts]
+			);
 
-		return {
-			seq,
-			channel,
-			type,
-			payload,
-			timestamp: ts
-		};
+			// Only increment if insert succeeded (prevents sequence gaps)
+			this.#sequences.set(sessionId, seq + 1);
+
+			return {
+				seq,
+				channel,
+				type,
+				payload,
+				timestamp: ts
+			};
+		} catch (error) {
+			// Database insert failed - don't increment counter to prevent sequence gaps
+			logger.error('EVENTSTORE', `Failed to append event for session ${sessionId}:`, error.message);
+			throw new Error(`Failed to append event for session ${sessionId}: ${error.message}`);
+		}
 	}
 
 	/**
