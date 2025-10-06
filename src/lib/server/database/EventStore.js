@@ -23,17 +23,28 @@ export class EventStore {
 	 * @param {string} event.channel - Event channel (e.g., 'pty:stdout', 'claude:delta')
 	 * @param {string} event.type - Event type (e.g., 'chunk', 'text', 'json')
 	 * @param {Object|Uint8Array} event.payload - Event payload
+	 * @param {number} [retryCount=0] - Internal retry counter (for bounded retry)
 	 * @returns {Promise<Object>} Event row with sequence number
 	 */
-	async append(sessionId, event) {
+	async append(sessionId, event, retryCount = 0) {
 		const { channel, type, payload } = event;
+		const MAX_RETRIES = 10;
+		const BASE_DELAY_MS = 10;
 
 		// Get or initialize sequence counter with mutex to prevent race conditions
 		if (!this.#sequences.has(sessionId)) {
-			// If another thread is initializing, wait and retry
+			// If another thread is initializing, wait and retry with bounded attempts
 			if (this.#initializingSequences.has(sessionId)) {
-				await new Promise((resolve) => setTimeout(resolve, 10));
-				return this.append(sessionId, event); // Retry
+				if (retryCount >= MAX_RETRIES) {
+					throw new Error(
+						`EventStore.append failed: sequence initialization timeout after ${MAX_RETRIES} retries for session ${sessionId}`
+					);
+				}
+
+				// Exponential backoff (10ms, 20ms, 40ms, 80ms, 160ms, then capped at 160ms)
+				const delay = BASE_DELAY_MS * Math.pow(2, Math.min(retryCount, 4));
+				await new Promise((resolve) => setTimeout(resolve, delay));
+				return this.append(sessionId, event, retryCount + 1);
 			}
 
 			// Mark as initializing to prevent concurrent initialization
@@ -78,6 +89,7 @@ export class EventStore {
 	 */
 	clearSequence(sessionId) {
 		this.#sequences.delete(sessionId);
+		this.#initializingSequences.delete(sessionId); // Also clear mutex to prevent stale entries
 	}
 
 	/**

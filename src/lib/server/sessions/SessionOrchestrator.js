@@ -173,8 +173,9 @@ export class SessionOrchestrator {
 			this.#activeSessions.delete(sessionId);
 		}
 
-		// Clear event recorder buffer
+		// Clear event recorder buffer and sequence counter
 		this.#eventRecorder.clearBuffer(sessionId);
+		this.#eventRecorder.eventStore.clearSequence(sessionId);
 
 		// Update session status
 		await this.#sessionRepository.updateStatus(sessionId, 'stopped');

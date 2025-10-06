@@ -432,3 +432,15 @@ _GATE: Checked before task execution_
 - ⚠️ Some tight coupling between ViewModels
 
 **Fix Task List**: Created in `code-review-fixes.md` with 25 tasks organized by priority
+
+### 2025-10-06: Critical Fixes Implemented (Batch 1)
+
+**Server-Side Critical Fixes** (Commit: 850d3fd):
+
+- ✅ **FIX-001**: EventStore race condition fixed with mutex pattern
+- ✅ **FIX-002**: Transaction middleware anti-pattern removed
+- ✅ **FIX-003**: Socket middleware chain documented and verified
+
+**Status**: 3/6 Priority 1 critical fixes complete. Remaining: Client-side MVVM violations (FIX-004, FIX-005, FIX-006)
+
+**Next Steps**: Code review of completed fixes, then continue with client-side refactoring
