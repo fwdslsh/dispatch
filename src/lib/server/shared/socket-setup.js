@@ -95,8 +95,10 @@ export function setupSocketIO(httpServer, services) {
 
 	// Subscribe to EventRecorder for real-time event emission
 	eventRecorder.subscribe('event', (eventData) => {
-		const { sessionId, ...event } = eventData;
-		io.to(`run:${sessionId}`).emit('run:event', event);
+		const { sessionId } = eventData;
+		// Ensure runId exists for client compatibility (client expects event.runId)
+		eventData.runId = eventData.runId || sessionId;
+		io.to(`run:${sessionId}`).emit('run:event', eventData);
 	});
 
 	logger.info('SOCKET', 'EventRecorder subscribed for real-time emission');
