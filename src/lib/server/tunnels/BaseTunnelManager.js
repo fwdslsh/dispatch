@@ -7,16 +7,16 @@ import { logger } from '../shared/utils/logger.js';
 export class BaseTunnelManager {
 	/**
 	 * @param {Object} options - Tunnel manager options
-	 * @param {Object} options.database - Database instance
-	 * @param {string} options.settingsCategory - Settings category name in database
+	 * @param {Object} options.settingsRepository - SettingsRepository instance
+	 * @param {string} options.settingsCategory - Settings category name in settings
 	 * @param {string} options.logPrefix - Logger prefix for this tunnel type
 	 */
-	constructor({ database, settingsCategory, logPrefix }) {
+	constructor({ settingsRepository, settingsCategory, logPrefix }) {
 		if (new.target === BaseTunnelManager) {
 			throw new Error('BaseTunnelManager is abstract and cannot be instantiated directly');
 		}
 
-		this.database = database;
+		this.settingsRepository = settingsRepository;
 		this.settingsCategory = settingsCategory;
 		this.logPrefix = logPrefix;
 		this.process = null;
@@ -51,18 +51,18 @@ export class BaseTunnelManager {
 	}
 
 	/**
-	 * Load settings from database
+	 * Load settings from settings repository
 	 * @protected
 	 * @returns {Promise<Object>} Settings object
 	 */
 	async _loadSettings() {
 		try {
-			if (!this.database) {
-				logger.warn(this.logPrefix, 'No database available for loading settings');
+			if (!this.settingsRepository) {
+				logger.warn(this.logPrefix, 'No settings repository available for loading settings');
 				return {};
 			}
 
-			const settings = await this.database.getSettingsByCategory(this.settingsCategory);
+			const settings = await this.settingsRepository.getByCategory(this.settingsCategory);
 			return settings || {};
 		} catch (error) {
 			logger.error(this.logPrefix, `Failed to load settings: ${error.message}`);
@@ -71,7 +71,7 @@ export class BaseTunnelManager {
 	}
 
 	/**
-	 * Save settings to database
+	 * Save settings to settings repository
 	 * @protected
 	 * @param {Object} settings - Settings to save
 	 * @param {string} [description] - Settings description
@@ -79,12 +79,12 @@ export class BaseTunnelManager {
 	 */
 	async _saveSettings(settings, description = null) {
 		try {
-			if (!this.database) {
-				logger.warn(this.logPrefix, 'No database available for saving settings');
+			if (!this.settingsRepository) {
+				logger.warn(this.logPrefix, 'No settings repository available for saving settings');
 				return;
 			}
 
-			await this.database.setSettingsForCategory(
+			await this.settingsRepository.setByCategory(
 				this.settingsCategory,
 				settings,
 				description

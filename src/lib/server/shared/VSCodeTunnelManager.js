@@ -4,11 +4,11 @@ import { logger } from './utils/logger.js';
 
 /**
  * Manages VS Code Remote Tunnel with runtime control
- * Uses database settings for persistent tunnel configuration
+ * Uses settings repository for persistent tunnel configuration
  */
 export class VSCodeTunnelManager {
-	constructor({ database }) {
-		this.database = database;
+	constructor({ settingsRepository }) {
+		this.settingsRepository = settingsRepository;
 		this.process = null;
 		this.state = null;
 		this.io = null; // Socket.IO instance for broadcasting
@@ -227,17 +227,17 @@ export class VSCodeTunnelManager {
 	}
 
 	/**
-	 * Load tunnel state from database
+	 * Load tunnel state from settings repository
 	 * @private
 	 */
 	async _loadState() {
 		try {
-			if (!this.database) {
-				logger.warn('VSCODE_TUNNEL', 'No database available for loading state');
+			if (!this.settingsRepository) {
+				logger.warn('VSCODE_TUNNEL', 'No settings repository available for loading state');
 				return;
 			}
 
-			const settings = await this.database.getSettingsByCategory('vscode-tunnel');
+			const settings = await this.settingsRepository.getByCategory('vscode-tunnel');
 			this.state = settings.state || null;
 		} catch (error) {
 			logger.error('VSCODE_TUNNEL', `Failed to load tunnel state: ${error.message}`);
@@ -246,13 +246,13 @@ export class VSCodeTunnelManager {
 	}
 
 	/**
-	 * Save tunnel state to database
+	 * Save tunnel state to settings repository
 	 * @private
 	 */
 	async _saveState(state) {
 		try {
-			if (!this.database) {
-				logger.warn('VSCODE_TUNNEL', 'No database available for saving state');
+			if (!this.settingsRepository) {
+				logger.warn('VSCODE_TUNNEL', 'No settings repository available for saving state');
 				return;
 			}
 
@@ -261,7 +261,7 @@ export class VSCodeTunnelManager {
 				lastUpdated: Date.now()
 			};
 
-			await this.database.setSettingsForCategory(
+			await this.settingsRepository.setByCategory(
 				'vscode-tunnel',
 				tunnelSettings,
 				'VS Code Remote Tunnel configuration and state'
@@ -281,12 +281,12 @@ export class VSCodeTunnelManager {
 		this.lastError = null;
 
 		try {
-			if (!this.database) {
-				logger.warn('VSCODE_TUNNEL', 'No database available for clearing state');
+			if (!this.settingsRepository) {
+				logger.warn('VSCODE_TUNNEL', 'No settings repository available for clearing state');
 				return;
 			}
 
-			await this.database.setSettingsForCategory(
+			await this.settingsRepository.setByCategory(
 				'vscode-tunnel',
 				{ state: null, lastUpdated: Date.now() },
 				'VS Code Remote Tunnel configuration and state'

@@ -16,14 +16,13 @@ import { logger } from '$lib/server/shared/utils/logger.js';
  */
 export async function GET({ locals }) {
 	try {
-		const dbManager = locals.services.database;
-		await dbManager.init();
+		const { settingsRepository } = locals.services;
 
 		// Get onboarding settings from database
-		const onboardingSettings = await dbManager.getSettingsByCategory('onboarding');
+		const onboardingSettings = await settingsRepository.getByCategory('onboarding');
 
 		// Get authentication settings to check if terminal key exists
-		const authSettings = await dbManager.getSettingsByCategory('authentication');
+		const authSettings = await settingsRepository.getByCategory('authentication');
 		const hasTerminalKey = !!authSettings?.terminal_key;
 
 		// Build response

@@ -15,12 +15,12 @@ export async function GET({ params, url, locals }) {
 	// 2. Get themeId
 	const { themeId } = params;
 
-	// 3. Get database from locals
-	const database = locals.services.database;
+	// 3. Get settingsRepository and database from locals
+	const { settingsRepository, database } = locals.services;
 
 	// 4. Initialize and check deletion
 	await themeManager.initialize();
-	const result = await themeManager.canDelete(themeId, database);
+	const result = await themeManager.canDelete(themeId, settingsRepository, database);
 
 	// 5. Return result
 	return json(result);

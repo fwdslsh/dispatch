@@ -49,13 +49,11 @@ function extractWorkspaceName(path) {
  * }
  */
 export async function POST({ request, locals }) {
-	const dbManager = locals.services.database;
+	const { settingsRepository, workspaceRepository } = locals.services;
 
 	try {
-		await dbManager.init();
-
 		// Check if onboarding already completed
-		const existingOnboarding = await dbManager.getSettingsByCategory('onboarding');
+		const existingOnboarding = await settingsRepository.getByCategory('onboarding');
 		if (existingOnboarding?.isComplete) {
 			logger.warn('ONBOARDING_API', 'Attempt to complete onboarding when already complete');
 			return json({ error: 'Onboarding has already been completed' }, { status: 409 });
@@ -90,7 +88,7 @@ export async function POST({ request, locals }) {
 
 		try {
 			// Step 1: Store terminal key in authentication settings
-			await dbManager.setSettingsForCategory(
+			await settingsRepository.setByCategory(
 				'authentication',
 				{ terminal_key: terminalKey },
 				'Authentication settings configured during onboarding'
@@ -106,10 +104,7 @@ export async function POST({ request, locals }) {
 			// Step 2: Create workspace if provided
 			if (workspaceName && workspacePath) {
 				// Check if workspace already exists
-				const existingWorkspace = await dbManager.get(
-					'SELECT path FROM workspaces WHERE path = ?',
-					[workspacePath]
-				);
+				const existingWorkspace = await workspaceRepository.findById(workspacePath);
 
 				if (existingWorkspace) {
 					return json({ error: 'Workspace already exists at this path' }, { status: 409 });
@@ -120,7 +115,10 @@ export async function POST({ request, locals }) {
 						? workspaceName.trim()
 						: extractWorkspaceName(workspacePath);
 
-				await dbManager.createWorkspace(workspacePath, displayName);
+				await workspaceRepository.create({
+					path: workspacePath,
+					name: displayName
+				});
 				workspaceId = workspacePath;
 
 				logger.info('ONBOARDING_API', `Created workspace: ${workspacePath}`);
@@ -131,7 +129,7 @@ export async function POST({ request, locals }) {
 				// Save preferences by category
 				for (const [category, prefs] of Object.entries(preferences)) {
 					if (prefs && typeof prefs === 'object') {
-						await dbManager.setPreferencesForCategory(
+						await settingsRepository.setByCategory(
 							category,
 							prefs,
 							`User preferences for ${category} set during onboarding`
@@ -144,7 +142,7 @@ export async function POST({ request, locals }) {
 
 			// Step 4: Mark onboarding as complete
 			const completionTimestamp = new Date().toISOString();
-			await dbManager.setSettingsForCategory(
+			await settingsRepository.setByCategory(
 				'onboarding',
 				{
 					isComplete: true,
@@ -190,14 +188,12 @@ export async function POST({ request, locals }) {
 
 			try {
 				// Remove any settings that may have been created
-				await dbManager.run('DELETE FROM settings WHERE category IN (?, ?)', [
-					'authentication',
-					'onboarding'
-				]);
+				await settingsRepository.deleteCategory('authentication');
+				await settingsRepository.deleteCategory('onboarding');
 
 				// Remove workspace if it was created
 				if (workspaceId) {
-					await dbManager.run('DELETE FROM workspaces WHERE path = ?', [workspaceId]);
+					await workspaceRepository.delete(workspaceId);
 				}
 
 				logger.info('ONBOARDING_API', 'Rollback completed successfully');

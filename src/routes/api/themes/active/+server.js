@@ -11,22 +11,21 @@ const themeManager = new ThemeManager(parser);
  * 2. Global default from user preferences (themes category)
  * 3. Fallback theme (hardcoded Phosphor Green)
  *
- * @param {Object} database - DatabaseManager instance
+ * @param {Object} workspaceRepository - WorkspaceRepository instance
+ * @param {Object} settingsRepository - SettingsRepository instance
  * @param {Object} themeManager - ThemeManager instance
  * @param {string|null} workspaceId - Optional workspace ID
  * @returns {Promise<Object>} Resolved theme with metadata and CSS variables
  */
-async function resolveActiveTheme(database, themeManager, workspaceId) {
+async function resolveActiveTheme(workspaceRepository, settingsRepository, themeManager, workspaceId) {
 	// 1. Check workspace override if workspaceId provided
 	if (workspaceId) {
 		try {
-			const workspace = await database.get('SELECT theme_override FROM workspaces WHERE id = ?', [
-				workspaceId
-			]);
+			const workspace = await workspaceRepository.findById(workspaceId);
 
-			if (workspace?.theme_override) {
+			if (workspace?.themeOverride) {
 				// Remove .json extension if present for theme lookup
-				const themeId = workspace.theme_override.replace('.json', '');
+				const themeId = workspace.themeOverride.replace('.json', '');
 				const theme = await themeManager.getTheme(themeId);
 
 				if (theme) {
@@ -38,9 +37,9 @@ async function resolveActiveTheme(database, themeManager, workspaceId) {
 		}
 	}
 
-	// 2. Check global default from user_preferences
+	// 2. Check global default from user preferences (themes category in settings)
 	try {
-		const prefs = await database.getUserPreferences('themes');
+		const prefs = await settingsRepository.getByCategory('themes');
 
 		if (prefs?.globalDefault) {
 			// Remove .json extension if present for theme lookup
@@ -68,14 +67,14 @@ export async function GET({ url, locals }) {
 	// Get optional workspaceId from query params
 	const workspaceId = url.searchParams.get('workspaceId');
 
-	// Get services from locals
-	const database = locals.services.database;
+	// Get repositories from locals
+	const { workspaceRepository, settingsRepository } = locals.services;
 
 	// Initialize theme manager
 	await themeManager.initialize();
 
 	// Resolve active theme using hierarchy
-	const theme = await resolveActiveTheme(database, themeManager, workspaceId);
+	const theme = await resolveActiveTheme(workspaceRepository, settingsRepository, themeManager, workspaceId);
 
 	// Return resolved theme
 	return json({ theme });

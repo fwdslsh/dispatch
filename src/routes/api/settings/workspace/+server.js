@@ -2,11 +2,10 @@
  * API endpoint for workspace environment variables management
  */
 
-import { json } from '@sveltejs/kit';
-
-export async function GET({ request, locals }) {
+export async function GET({ locals }) {
 	try {
-		const workspaceSettings = await locals.services.database.getSettingsByCategory('workspace');
+		const { settingsRepository } = locals.services;
+		const workspaceSettings = await settingsRepository.getByCategory('workspace');
 
 		return new Response(
 			JSON.stringify({
@@ -52,7 +51,8 @@ export async function POST({ request, locals }) {
 		}
 
 		// Get current workspace settings
-		const currentSettings = await locals.services.database.getSettingsByCategory('workspace');
+		const { settingsRepository } = locals.services;
+		const currentSettings = await settingsRepository.getByCategory('workspace');
 
 		// Update environment variables
 		const updatedSettings = {
@@ -61,7 +61,7 @@ export async function POST({ request, locals }) {
 		};
 
 		// Save to database
-		await locals.services.database.setSettingsForCategory(
+		await settingsRepository.setByCategory(
 			'workspace',
 			updatedSettings,
 			'Workspace-level environment variables for all sessions'
@@ -84,10 +84,11 @@ export async function POST({ request, locals }) {
 	}
 }
 
-export async function DELETE({ request, locals }) {
+export async function DELETE({ locals }) {
 	try {
 		// Get current workspace settings
-		const currentSettings = await locals.services.database.getSettingsByCategory('workspace');
+		const { settingsRepository } = locals.services;
+		const currentSettings = await settingsRepository.getByCategory('workspace');
 
 		// Clear environment variables
 		const updatedSettings = {
@@ -96,7 +97,7 @@ export async function DELETE({ request, locals }) {
 		};
 
 		// Save to database
-		await locals.services.database.setSettingsForCategory(
+		await settingsRepository.setByCategory(
 			'workspace',
 			updatedSettings,
 			'Workspace-level environment variables for all sessions'

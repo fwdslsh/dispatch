@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
 
 /** @type {import('./$types').RequestHandler} */
-export async function GET({ url, request, locals }) {
+export async function GET({ url, locals }) {
 	try {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
@@ -10,8 +10,8 @@ export async function GET({ url, request, locals }) {
 			return json({ error: 'Authentication required to list workspaces' }, { status: 401 });
 		}
 
-		const dbManager = locals.services.database;
-		await dbManager.init();
+		const { workspaceRepository, database } = locals.services;
+		await database.init();
 
 		// Get query parameters for filtering
 		const status = url.searchParams.get('status');
@@ -19,11 +19,11 @@ export async function GET({ url, request, locals }) {
 		const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
 		// Get workspaces with session counts
-		let workspaces = await dbManager.listWorkspaces();
+		let workspaces = await workspaceRepository.findAll();
 
 		// Get session counts for each workspace
 		for (const workspace of workspaces) {
-			const sessions = await dbManager.all(
+			const sessions = await database.all(
 				`SELECT COUNT(*) as count, status
 				 FROM sessions
 				 WHERE JSON_EXTRACT(meta_json, '$.workspacePath') = ?
@@ -41,8 +41,8 @@ export async function GET({ url, request, locals }) {
 			// Add derived status based on activity and session state
 			if (workspace.sessionCounts.running > 0) {
 				workspace.status = 'active';
-			} else if (workspace.last_active) {
-				const daysSinceActivity = (Date.now() - workspace.last_active) / (1000 * 60 * 60 * 24);
+			} else if (workspace.lastActive) {
+				const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
 				workspace.status = daysSinceActivity > 30 ? 'archived' : 'inactive';
 			} else {
 				workspace.status = 'new';
@@ -61,18 +61,14 @@ export async function GET({ url, request, locals }) {
 		// Format response according to API contract
 		const response = {
 			workspaces: workspaces.map((w) => {
-				const displayName =
-					w?.name && w.name.toString().trim()
-						? w.name.toString().trim()
-						: extractWorkspaceName(w.path);
 				return {
-					id: w.path, // Use path as ID for simplicity
-					name: displayName,
+					id: w.id,
+					name: w.name,
 					path: w.path,
 					status: w.status,
-					createdAt: new Date(w.created_at || Date.now()).toISOString(),
-					lastActive: w.last_active ? new Date(w.last_active).toISOString() : null,
-					updatedAt: new Date(w.updated_at || w.created_at || Date.now()).toISOString(),
+					createdAt: new Date(w.createdAt || Date.now()).toISOString(),
+					lastActive: w.lastActive ? new Date(w.lastActive).toISOString() : null,
+					updatedAt: new Date(w.updatedAt || w.createdAt || Date.now()).toISOString(),
 					sessionCounts: w.sessionCounts
 				};
 			}),
@@ -99,7 +95,7 @@ export async function GET({ url, request, locals }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function POST({ request, url, locals }) {
+export async function POST({ request, locals }) {
 	try {
 		const data = await request.json();
 		const { name, path } = data;
@@ -119,11 +115,10 @@ export async function POST({ request, url, locals }) {
 			throw error(400, { message: 'Invalid workspace path format' });
 		}
 
-		const dbManager = locals.services.database;
-		await dbManager.init();
+		const { workspaceRepository } = locals.services;
 
 		// Check if workspace already exists
-		const existing = await dbManager.get('SELECT path FROM workspaces WHERE path = ?', [path]);
+		const existing = await workspaceRepository.findById(path);
 		if (existing) {
 			throw error(409, { message: 'Workspace already exists at this path' });
 		}
@@ -132,30 +127,24 @@ export async function POST({ request, url, locals }) {
 			typeof name === 'string' && name.trim() ? name.trim() : extractWorkspaceName(path);
 
 		// Create workspace entry
+		let workspace;
 		try {
-			await dbManager.createWorkspace(path, displayName);
+			workspace = await workspaceRepository.create({ path, name: displayName });
 		} catch (err) {
-			if (err?.code === 'SQLITE_CONSTRAINT') {
+			if (err?.message?.includes('already exists')) {
 				throw error(409, { message: 'Workspace already exists at this path' });
 			}
 			throw err;
 		}
 
-		// Get the created workspace
-		const workspace = await dbManager.get('SELECT * FROM workspaces WHERE path = ?', [path]);
-		const storedName =
-			workspace?.name && workspace.name.toString().trim()
-				? workspace.name.toString().trim()
-				: displayName;
-
 		const response = {
-			id: workspace.path,
-			name: storedName,
+			id: workspace.id,
+			name: workspace.name,
 			path: workspace.path,
 			status: 'new',
-			createdAt: new Date(workspace.created_at).toISOString(),
+			createdAt: new Date(workspace.createdAt).toISOString(),
 			lastActive: null,
-			updatedAt: new Date(workspace.updated_at).toISOString(),
+			updatedAt: new Date(workspace.updatedAt).toISOString(),
 			sessionCounts: {
 				total: 0,
 				running: 0,

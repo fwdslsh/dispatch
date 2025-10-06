@@ -19,16 +19,16 @@ export class AuthService {
 	 * Initialize the terminal key cache with proper settings hierarchy
 	 * Should be called during application startup
 	 *
-	 * @param {Object} database - DatabaseManager instance for settings lookup
+	 * @param {Object} settingsRepository - SettingsRepository instance for settings lookup
 	 * @returns {Promise<string>} The resolved terminal key
 	 */
-	async initialize(database) {
+	async initialize(settingsRepository) {
 		let terminalKey;
 
 		// Try to get from database first (using new unified settings table)
-		if (database) {
+		if (settingsRepository) {
 			try {
-				const authSettings = await database.getSettingsByCategory('authentication');
+				const authSettings = await settingsRepository.getByCategory('authentication');
 				if (authSettings && authSettings.terminal_key) {
 					terminalKey = authSettings.terminal_key;
 					this.cachedTerminalKey = terminalKey;
@@ -192,11 +192,11 @@ export class AuthService {
 // Backwards compatibility exports - deprecated, will be removed in future version
 let deprecatedInstance = null;
 
-export async function initializeTerminalKey(database = null) {
+export async function initializeTerminalKey(settingsRepository = null) {
 	if (!deprecatedInstance) {
 		deprecatedInstance = new AuthService();
 	}
-	return await deprecatedInstance.initialize(database);
+	return await deprecatedInstance.initialize(settingsRepository);
 }
 
 export function updateCachedTerminalKey(newKey) {

@@ -122,11 +122,12 @@ export async function POST({ request, locals }) {
 		let defaultWorkspaceDir = null;
 		let workspaceEnvVariables = {};
 		try {
-			const globalSettings = await locals.services.database.getSettingsByCategory('global');
+			const { settingsRepository } = locals.services;
+			const globalSettings = await settingsRepository.getByCategory('global');
 			defaultWorkspaceDir = globalSettings?.defaultWorkspaceDirectory || null;
 
 			// Load workspace environment variables
-			const workspaceSettings = await locals.services.database.getSettingsByCategory('workspace');
+			const workspaceSettings = await settingsRepository.getByCategory('workspace');
 			workspaceEnvVariables = workspaceSettings?.envVariables || {};
 		} catch (error) {
 			console.warn('[Sessions API] Failed to load workspace settings:', error);

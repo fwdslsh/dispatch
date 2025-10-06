@@ -90,9 +90,9 @@ export function createServices(config = {}) {
 	const tunnelManager = new TunnelManager({
 		port: resolvedConfig.port,
 		subdomain: resolvedConfig.tunnelSubdomain,
-		database: db
+		settingsRepository: settingsRepository
 	});
-	const vscodeManager = new VSCodeTunnelManager({ database: db });
+	const vscodeManager = new VSCodeTunnelManager({ settingsRepository: settingsRepository });
 
 	// Layer 7: Register adapters
 	const ptyAdapter = new PtyAdapter();
@@ -169,7 +169,7 @@ export async function initializeServices(config = {}) {
 		logger.info('SERVICES', 'Cleared stale running sessions on startup');
 
 		// Initialize AuthService
-		await services.auth.initialize(services.db);
+		await services.auth.initialize(services.settingsRepository);
 		logger.info('SERVICES', 'AuthService initialized');
 
 		// Initialize MultiAuthManager

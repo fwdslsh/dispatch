@@ -19,8 +19,9 @@ export async function POST({ request, locals }) {
 			return json({ error: 'Missing action parameter' }, { status: 400 });
 		}
 
-		// Get maintenance preferences from user preferences system
-		const maintenancePrefs = await locals.services.database.getUserPreferences('maintenance');
+		// Get maintenance preferences from settings repository
+		const { settingsRepository } = locals.services;
+		const maintenancePrefs = await settingsRepository.getByCategory('maintenance');
 
 		// Use defaults if no preferences are set
 		const sessionRetentionDays = maintenancePrefs.sessionRetentionDays || 30;

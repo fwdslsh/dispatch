@@ -5,17 +5,24 @@ import { json } from '@sveltejs/kit';
  * Supporting authentication persistence and UI customization
  */
 
-export async function GET({ request, url, locals }) {
+export async function GET({ url, locals }) {
 	const category = url.searchParams.get('category');
 
 	try {
+		const { settingsRepository } = locals.services;
+
 		if (category) {
 			// Get preferences for specific category
-			const preferences = await locals.services.database.getUserPreferences(category);
+			const preferences = await settingsRepository.getByCategory(category);
 			return json(preferences || {});
 		} else {
 			// Get all preferences grouped by category
-			const allPreferences = await locals.services.database.getAllUserPreferences();
+			// Get all settings and return as grouped object
+			const allSettings = await settingsRepository.getAll();
+			const allPreferences = {};
+			for (const setting of allSettings) {
+				allPreferences[setting.category] = setting.settings;
+			}
 			return json(allPreferences || {});
 		}
 	} catch (error) {
@@ -101,10 +108,13 @@ export async function PUT({ request, locals }) {
 		}
 
 		// Update preferences for category
-		const updatedPreferences = await locals.services.database.updateUserPreferences(
-			category,
-			preferences
-		);
+		const { settingsRepository } = locals.services;
+		const currentPreferences = await settingsRepository.getByCategory(category);
+		const updatedPreferences = {
+			...currentPreferences,
+			...preferences
+		};
+		await settingsRepository.setByCategory(category, updatedPreferences);
 
 		return json({
 			success: true,
@@ -126,6 +136,7 @@ export async function POST({ request, locals }) {
 
 		const body = await request.json();
 		const { action } = body;
+		const { settingsRepository } = locals.services;
 
 		if (action === 'reset') {
 			const { category } = body;
@@ -136,21 +147,22 @@ export async function POST({ request, locals }) {
 
 			// Reset preferences for category to defaults
 			const defaultPreferences = getDefaultPreferences(category);
-			const resetPreferences = await locals.services.database.updateUserPreferences(
-				category,
-				defaultPreferences
-			);
+			await settingsRepository.setByCategory(category, defaultPreferences);
 
 			return json({
 				success: true,
 				category,
-				preferences: resetPreferences
+				preferences: defaultPreferences
 			});
 		}
 
 		if (action === 'export') {
 			// Export all preferences for backup/migration
-			const allPreferences = await locals.services.database.getAllUserPreferences();
+			const allSettings = await settingsRepository.getAll();
+			const allPreferences = {};
+			for (const setting of allSettings) {
+				allPreferences[setting.category] = setting.settings;
+			}
 
 			return json({
 				success: true,
@@ -170,10 +182,8 @@ export async function POST({ request, locals }) {
 			const results = {};
 			for (const [category, categoryPrefs] of Object.entries(preferences)) {
 				try {
-					results[category] = await locals.services.database.updateUserPreferences(
-						category,
-						categoryPrefs
-					);
+					await settingsRepository.setByCategory(category, categoryPrefs);
+					results[category] = categoryPrefs;
 				} catch (error) {
 					console.warn(`[Preferences API] Failed to import category ${category}:`, error);
 					results[category] = { error: error.message };

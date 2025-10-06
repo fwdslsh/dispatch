@@ -16,7 +16,7 @@ import { json } from '@sveltejs/kit';
  *
  * Returns all settings grouped by category from the 'settings' table
  */
-export async function GET({ request, url, locals }) {
+export async function GET({ url, locals }) {
 	try {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
@@ -26,11 +26,11 @@ export async function GET({ request, url, locals }) {
 		// Get category filter if provided
 		const categoryFilter = url.searchParams.get('category');
 
-		const database = locals.services.database;
+		const { settingsRepository } = locals.services;
 
 		if (categoryFilter) {
 			// Return specific category settings
-			const categorySettings = await database.getSettingsByCategory(categoryFilter);
+			const categorySettings = await settingsRepository.getByCategory(categoryFilter);
 
 			return json(
 				{
@@ -46,17 +46,11 @@ export async function GET({ request, url, locals }) {
 			);
 		} else {
 			// Return all settings from settings table
-			// Query all categories and build response
+			const allSettingsArray = await settingsRepository.getAll();
 			const allSettings = {};
 
-			// Get all distinct categories from settings table
-			const categories = await database.all(
-				'SELECT DISTINCT category FROM settings ORDER BY category'
-			);
-
-			for (const row of categories) {
-				const categorySettings = await database.getSettingsByCategory(row.category);
-				allSettings[row.category] = categorySettings;
+			for (const setting of allSettingsArray) {
+				allSettings[setting.category] = setting.settings;
 			}
 
 			return json(allSettings, {
