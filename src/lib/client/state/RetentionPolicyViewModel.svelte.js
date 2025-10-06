@@ -149,7 +149,7 @@ export class RetentionPolicyViewModel {
 
 	/**
 	 * Save current policy settings to user preferences
-	 * @returns {object} Updated policy
+	 * @returns {Promise<object>} Updated policy
 	 */
 	async savePolicy() {
 		if (!this.canSave) return;
