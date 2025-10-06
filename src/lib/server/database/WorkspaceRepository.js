@@ -4,6 +4,10 @@
  */
 
 /**
+ * @typedef {import('./DatabaseManager.js').DatabaseManager} DatabaseManager
+ */
+
+/**
  * Derive workspace name from path
  * @param {string} path - Workspace path
  * @returns {string} Derived name
@@ -167,7 +171,6 @@ export class WorkspaceRepository {
 
 	/**
 	 * Parse database row into workspace object
-	 * @private
 	 * @param {Object} row - Database row
 	 * @returns {Object} Workspace object
 	 */

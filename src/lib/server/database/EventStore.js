@@ -6,6 +6,10 @@
 
 import { logger } from '../shared/utils/logger.js';
 
+/**
+ * @typedef {import('./DatabaseManager.js').DatabaseManager} DatabaseManager
+ */
+
 export class EventStore {
 	#db;
 	#sequences = new Map(); // sessionId -> nextSeq (atomic in-memory counter)
@@ -195,7 +199,6 @@ export class EventStore {
 
 	/**
 	 * Get next sequence number for session
-	 * @private
 	 * @param {string} sessionId - Session ID
 	 * @returns {Promise<number>} Next sequence number
 	 */
@@ -206,7 +209,6 @@ export class EventStore {
 
 	/**
 	 * Parse database row into event object
-	 * @private
 	 * @param {Object} row - Database row
 	 * @returns {Object} Event object
 	 */

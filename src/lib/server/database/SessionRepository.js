@@ -3,6 +3,10 @@
  * @file Handles session metadata persistence
  */
 
+/**
+ * @typedef {import('./DatabaseManager.js').DatabaseManager} DatabaseManager
+ */
+
 export class SessionRepository {
 	#db;
 	#stmts = {};
@@ -164,7 +168,6 @@ export class SessionRepository {
 
 	/**
 	 * Parse database row into session object
-	 * @private
 	 * @param {Object} row - Database row
 	 * @returns {Object} Session object
 	 */

@@ -88,7 +88,6 @@ export class DatabaseManager {
 
 	/**
 	 * Configure database settings
-	 * @private
 	 */
 	async #configure() {
 		// Enable WAL mode for better concurrent access
@@ -101,7 +100,6 @@ export class DatabaseManager {
 
 	/**
 	 * Create database schema
-	 * @private
 	 */
 	async #createSchema() {
 		// Sessions table (unified session architecture)
@@ -197,7 +195,6 @@ export class DatabaseManager {
 
 	/**
 	 * Create database indexes
-	 * @private
 	 */
 	async #createIndexes() {
 		await this.run(

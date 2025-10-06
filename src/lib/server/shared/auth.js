@@ -1,13 +1,16 @@
 import { logger } from './utils/logger';
 
 /**
+ * @typedef {import('../auth/MultiAuthManager.js').MultiAuthManager} MultiAuthManager
+ */
+
+/**
  * AuthService - Singleton authentication service
  * Manages terminal key caching and validation
  */
 export class AuthService {
 	/**
 	 * Create AuthService instance
-	 * @private - Use AuthService.create() instead
 	 */
 	constructor() {
 		this.cachedTerminalKey = null;

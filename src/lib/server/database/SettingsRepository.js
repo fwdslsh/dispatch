@@ -3,6 +3,10 @@
  * @file Handles settings persistence (JSON objects per category)
  */
 
+/**
+ * @typedef {import('./DatabaseManager.js').DatabaseManager} DatabaseManager
+ */
+
 export class SettingsRepository {
 	#db;
 
