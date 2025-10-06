@@ -170,6 +170,54 @@ export class WorkspaceRepository {
 	}
 
 	/**
+	 * Set workspace layout for a client
+	 * @param {string} runId - Session run ID
+	 * @param {string} clientId - Client identifier
+	 * @param {string} tileId - Tile identifier
+	 * @returns {Promise<void>}
+	 */
+	async setWorkspaceLayout(runId, clientId, tileId) {
+		await this.#db.run(
+			`INSERT OR REPLACE INTO workspace_layout (run_id, client_id, tile_id)
+			 VALUES (?, ?, ?)`,
+			[runId, clientId, tileId]
+		);
+	}
+
+	/**
+	 * Remove workspace layout for a client
+	 * @param {string} runId - Session run ID
+	 * @param {string} clientId - Client identifier
+	 * @returns {Promise<void>}
+	 */
+	async removeWorkspaceLayout(runId, clientId) {
+		await this.#db.run(
+			`DELETE FROM workspace_layout WHERE run_id = ? AND client_id = ?`,
+			[runId, clientId]
+		);
+	}
+
+	/**
+	 * Get workspace layout for a client
+	 * @param {string} clientId - Client identifier
+	 * @returns {Promise<Object|null>} Layout object or null
+	 */
+	async getWorkspaceLayout(clientId) {
+		const row = await this.#db.get(
+			`SELECT run_id, client_id, tile_id FROM workspace_layout WHERE client_id = ?`,
+			[clientId]
+		);
+
+		return row
+			? {
+					runId: row.run_id,
+					clientId: row.client_id,
+					tileId: row.tile_id
+			  }
+			: null;
+	}
+
+	/**
 	 * Parse database row into workspace object
 	 * @param {Object} row - Database row
 	 * @returns {Object} Workspace object

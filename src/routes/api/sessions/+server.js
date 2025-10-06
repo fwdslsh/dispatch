@@ -216,7 +216,7 @@ export async function PUT({ request, locals }) {
 
 		try {
 			// Update or create layout for this client
-			await locals.services.database.setWorkspaceLayout(runId, clientId, tileId);
+			await locals.services.workspaceRepository.setWorkspaceLayout(runId, clientId, tileId);
 			return new Response(JSON.stringify({ success: true }));
 		} catch (error) {
 			console.error('[API] Layout update failed:', error);
@@ -235,7 +235,7 @@ export async function PUT({ request, locals }) {
 		}
 
 		try {
-			await locals.services.database.removeWorkspaceLayout(runId, clientId);
+			await locals.services.workspaceRepository.removeWorkspaceLayout(runId, clientId);
 			return new Response(JSON.stringify({ success: true }));
 		} catch (error) {
 			console.error('[API] Layout removal failed:', error);
@@ -254,7 +254,7 @@ export async function PUT({ request, locals }) {
 		}
 
 		try {
-			const layout = await locals.services.database.getWorkspaceLayout(clientId);
+			const layout = await locals.services.workspaceRepository.getWorkspaceLayout(clientId);
 			return new Response(JSON.stringify({ layout }));
 		} catch (error) {
 			console.error('[API] Layout retrieval failed:', error);
