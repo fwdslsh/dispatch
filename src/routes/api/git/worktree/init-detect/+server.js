@@ -204,3 +204,4 @@ export async function POST({ request, locals }) {
 			{ status: 500 }
 		);
 	}
+}
