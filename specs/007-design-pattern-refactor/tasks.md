@@ -144,7 +144,7 @@
 
 - [ ] **T048** [P] Integration test: Service initialization and dependency wiring in `tests/integration/services-initialization.test.js`
 - [ ] **T049** [P] Integration test: Repository transaction boundaries in `tests/integration/repository-transactions.test.js`
-- [ ] **T050** [P] Integration test: JWT auth flow (TERMINAL_KEY → JWT → validation) in `tests/integration/auth-flow.test.js`
+- [x] **T050** [P] Integration test: JWT auth flow (TERMINAL_KEY → JWT → validation) in `tests/integration/auth-flow.test.js`
 - [ ] **T051** [P] Integration test: Socket.IO middleware chain in `tests/integration/socket-middleware.test.js`
 - [ ] **T052** [P] Integration test: Session creation via API in `tests/integration/session-creation.test.js`
 
