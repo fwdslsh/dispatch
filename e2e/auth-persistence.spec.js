@@ -66,7 +66,7 @@ test.describe('Authentication Persistence', () => {
 
 			// Set up authentication data as if from previous session
 			await newPage.addInitScript((terminalKey) => {
-				localStorage.setItem('dispatch-auth-key', terminalKey);
+				localStorage.setItem('dispatch-auth-token', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
 				localStorage.setItem(
 					'authExpiresAt',
@@ -122,7 +122,7 @@ test.describe('Authentication Persistence', () => {
 
 			// Set initial authentication
 			await page.addInitScript((terminalKey) => {
-				localStorage.setItem('dispatch-auth-key', terminalKey);
+				localStorage.setItem('dispatch-auth-token', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
 				localStorage.setItem(
 					'authExpiresAt',
@@ -179,7 +179,7 @@ test.describe('Authentication Persistence', () => {
 
 			// Set expired authentication data
 			await page.addInitScript((terminalKey) => {
-				localStorage.setItem('dispatch-auth-key', terminalKey);
+				localStorage.setItem('dispatch-auth-token', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
 				localStorage.setItem(
 					'authExpiresAt',
@@ -252,7 +252,7 @@ test.describe('Authentication Persistence', () => {
 			// Authentication data should be cleared
 			const authStatus = await page.evaluate(() => {
 				return {
-					hasKey: !!localStorage.getItem('dispatch-auth-key'),
+					hasKey: !!localStorage.getItem('dispatch-auth-token'),
 					hasSession: !!localStorage.getItem('authSessionId')
 				};
 			});
@@ -327,7 +327,7 @@ test.describe('Authentication Persistence', () => {
 			]) {
 				await page.addInitScript(
 					(terminalKey, sessionId) => {
-						localStorage.setItem('dispatch-auth-key', terminalKey);
+						localStorage.setItem('dispatch-auth-token', terminalKey);
 						localStorage.setItem('authSessionId', sessionId);
 						localStorage.setItem(
 							'authExpiresAt',
@@ -383,7 +383,7 @@ test.describe('Authentication Persistence', () => {
 			});
 
 			await page.addInitScript((terminalKey) => {
-				localStorage.setItem('dispatch-auth-key', terminalKey);
+				localStorage.setItem('dispatch-auth-token', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
 				localStorage.setItem(
 					'authExpiresAt',
@@ -406,7 +406,7 @@ test.describe('Authentication Persistence', () => {
 			// Verify authentication data is still present
 			const authStatus = await page.evaluate(() => {
 				return {
-					hasKey: !!localStorage.getItem('dispatch-auth-key'),
+					hasKey: !!localStorage.getItem('dispatch-auth-token'),
 					hasSession: !!localStorage.getItem('authSessionId'),
 					expiresAt: localStorage.getItem('authExpiresAt')
 				};
@@ -421,7 +421,7 @@ test.describe('Authentication Persistence', () => {
 	test('should handle session cleanup on logout', async ({ page }) => {
 		await test.step('Set up authenticated session', async () => {
 			await page.addInitScript((terminalKey) => {
-				localStorage.setItem('dispatch-auth-key', terminalKey);
+				localStorage.setItem('dispatch-auth-token', terminalKey);
 				localStorage.setItem('authSessionId', 'session-123');
 				localStorage.setItem(
 					'authExpiresAt',
@@ -464,7 +464,7 @@ test.describe('Authentication Persistence', () => {
 				// Should clear authentication data
 				const authStatus = await page.evaluate(() => {
 					return {
-						hasKey: !!localStorage.getItem('dispatch-auth-key'),
+						hasKey: !!localStorage.getItem('dispatch-auth-token'),
 						hasSession: !!localStorage.getItem('authSessionId')
 					};
 				});
