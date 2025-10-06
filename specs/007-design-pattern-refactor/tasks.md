@@ -115,8 +115,8 @@
 
 ### Repository Tests
 
-- [ ] **T037** [P] Unit test for SessionRepository in `tests/server/database/session-repository.test.js`
-- [ ] **T038** [P] Unit test for EventStore in `tests/server/database/event-store.test.js`
+- [x] **T037** [P] Unit test for SessionRepository in `tests/server/database/session-repository.test.js`
+- [x] **T038** [P] Unit test for EventStore in `tests/server/database/event-store.test.js`
 - [ ] **T039** [P] Unit test for SettingsRepository in `tests/server/database/settings-repository.test.js`
 - [ ] **T040** [P] Unit test for WorkspaceRepository in `tests/server/database/workspace-repository.test.js`
 
