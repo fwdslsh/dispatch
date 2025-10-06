@@ -117,8 +117,8 @@
 
 - [x] **T037** [P] Unit test for SessionRepository in `tests/server/database/session-repository.test.js`
 - [x] **T038** [P] Unit test for EventStore in `tests/server/database/event-store.test.js`
-- [ ] **T039** [P] Unit test for SettingsRepository in `tests/server/database/settings-repository.test.js`
-- [ ] **T040** [P] Unit test for WorkspaceRepository in `tests/server/database/workspace-repository.test.js`
+- [x] **T039** [P] Unit test for SettingsRepository in `tests/server/database/settings-repository.test.js`
+- [x] **T040** [P] Unit test for WorkspaceRepository in `tests/server/database/workspace-repository.test.js`
 
 ### Session Component Tests
 
@@ -154,10 +154,10 @@
 
 **Verify no regressions and meet performance targets**
 
-- [ ] **T053** [P] E2E test: Terminal session creation and interaction in `e2e/terminal-session.spec.js`
-- [ ] **T054** [P] E2E test: Claude session creation and interaction in `e2e/claude-session.spec.js`
-- [ ] **T055** [P] E2E test: File editor session creation in `e2e/file-editor-session.spec.js`
-- [ ] **T056** [P] E2E test: Workspace management flow in `e2e/workspace-management.spec.js`
+- [x] **T053** [P] E2E test: Terminal session creation and interaction in `e2e/terminal-session.spec.js`
+- [x] **T054** [P] E2E test: Claude session creation and interaction in `e2e/claude-session.spec.js`
+- [x] **T055** [P] E2E test: File editor session creation in `e2e/file-editor-session.spec.js`
+- [x] **T056** [P] E2E test: Workspace management flow in `e2e/workspace-management.spec.js`
 - [ ] **T057** Performance test: Session creation < 100ms in `tests/performance/session-creation.test.js`
 - [ ] **T058** Performance test: Event throughput maintained in `tests/performance/event-throughput.test.js`
 - [ ] **T059** Performance test: Memory footprint < 10% increase in `tests/performance/memory-footprint.test.js`
@@ -166,7 +166,7 @@
 
 ## Phase 3.7: Verification & Cleanup
 
-- [ ] **T060** Run quickstart.md verification steps 1-7 and verify all pass
+- [x] **T060** Run quickstart.md verification steps 1-7 and verify all pass
 
 ---
 
