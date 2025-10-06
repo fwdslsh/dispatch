@@ -3,7 +3,7 @@
  * @file Mediator pattern for Socket.IO event handling with middleware chain
  */
 
-import { Server } from "socket.io";
+import { Server } from 'socket.io';
 
 export class SocketEventMediator {
 	#io;
@@ -52,7 +52,7 @@ export class SocketEventMediator {
 	initialize() {
 		this.#io.on('connection', (socket) => {
 			// Apply middleware to socket
-			this.#middleware.forEach(mw => {
+			this.#middleware.forEach((mw) => {
 				socket.use(mw);
 			});
 

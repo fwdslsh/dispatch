@@ -88,12 +88,12 @@ export async function POST({ request, locals }) {
 		if (resume && sessionId) {
 			try {
 				// Actually resume the session (restart the process)
-				const resumeResult = await locals.services.runSessionManager.resumeRunSession(sessionId);
+				const resumeResult = await locals.services.sessionOrchestrator.resumeSession(sessionId);
 
 				return new Response(
 					JSON.stringify({
-						runId: resumeResult.runId,
-						id: resumeResult.runId,
+						runId: resumeResult.sessionId,
+						id: resumeResult.sessionId,
 						success: true,
 						resumed: resumeResult.resumed,
 						kind: resumeResult.kind,
@@ -136,10 +136,10 @@ export async function POST({ request, locals }) {
 		const workingDirectory =
 			cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
 
-		// Create run session using unified manager with workspace environment variables
-		const { runId } = await locals.services.runSessionManager.createRunSession({
-			kind: sessionKind,
-			meta: {
+		// Create session using SessionOrchestrator with workspace environment variables
+		const session = await locals.services.sessionOrchestrator.createSession(sessionKind, {
+			workspacePath: workingDirectory,
+			metadata: {
 				cwd: workingDirectory,
 				options: {
 					...options,
@@ -150,7 +150,7 @@ export async function POST({ request, locals }) {
 
 		return new Response(
 			JSON.stringify({
-				runId,
+				runId: session.id,
 				success: true,
 				kind: sessionKind,
 				type: sessionKind
@@ -189,8 +189,8 @@ export async function DELETE({ url, locals }) {
 	}
 
 	try {
-		// Close run session using unified manager
-		await locals.services.runSessionManager.closeRunSession(runId);
+		// Close session using SessionOrchestrator
+		await locals.services.sessionOrchestrator.closeSession(runId);
 
 		return new Response(JSON.stringify({ success: true }));
 	} catch (error) {

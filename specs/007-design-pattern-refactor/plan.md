@@ -9,6 +9,7 @@
 **Key Simplification** (per updated spec FR-005): Use organized imports and Svelte `setContext`/`getContext` instead of dependency injection containers.
 
 **Technical Approach**:
+
 1. Create `services.js` factory function that wires dependencies explicitly
 2. Replace global singletons with clean ES6 exports
 3. Use Svelte context API for client-side service sharing
@@ -22,6 +23,7 @@
 
 **Language/Version**: Node.js 22+ (JavaScript/ESNext with JSDoc), Svelte 5 (client-side)
 **Primary Dependencies**:
+
 - **Server**: SvelteKit 2.x, Socket.IO 4.8.x, SQLite3 5.1.7, node-pty, **jsonwebtoken (NEW - only addition)**
 - **Client**: Svelte 5 (runes), @battlefieldduck/xterm-svelte, Socket.IO client
 - **Testing**: Vitest (unit), Playwright (E2E)
@@ -32,11 +34,13 @@
 **Project Type**: Web application (SvelteKit full-stack)
 
 **Performance Goals**:
+
 - Session creation < 100ms
 - Event throughput maintained
 - Memory footprint increase < 10%
 
 **Constraints**:
+
 - **Simplicity First**: No DI frameworks (Awilix, InversifyJS, custom containers)
 - **Native Patterns**: ES6 modules + Svelte context only
 - Big Bang deployment
@@ -44,6 +48,7 @@
 - Per-request transaction boundaries
 
 **Scale/Scope**:
+
 - 12 architectural components (no DependencyContainer!)
 - 37 functional + 14 non-functional requirements
 - Refactoring 5 core subsystems
@@ -55,6 +60,7 @@
 ### I. Simplicity & Maintainability ✅
 
 **Perfect Alignment**:
+
 - **No frameworks**: Using native JavaScript ES6 modules
 - **No abstractions**: Factory function instead of DI container (~50 lines vs ~200 lines)
 - **YAGNI compliant**: Zero unused DI features
@@ -160,6 +166,7 @@ Created `data-model.md` with 12 components (removed DependencyContainer):
 12. Auth/Error Middleware (functions)
 
 **Simplified Pattern**:
+
 ```javascript
 export function createServices(config) {
   const db = new DatabaseManager(config);
@@ -178,6 +185,7 @@ export function initializeServices(config) {
 ### Contracts
 
 Created JSDoc contracts in `contracts/`:
+
 - `services.js` - Factory function and Services object type
 - `repositories.js` - Repository interfaces
 - `session-components.js` - Orchestrator/recorder interfaces
@@ -187,6 +195,7 @@ Created JSDoc contracts in `contracts/`:
 ### Quickstart
 
 `quickstart.md` includes 7 verification steps (updated for simplified approach):
+
 1. Verify service initialization (check `createServices` logs)
 2. Verify repository separation
 3. Verify Socket.IO organization
@@ -204,22 +213,26 @@ Created JSDoc contracts in `contracts/`:
 **Task Strategy** (for `/tasks` command):
 
 ### Phase A: Core Infrastructure (Parallel)
+
 1. Create ConfigurationService
 2. Create JWTService
 3. Refactor DatabaseManager (connection + migrations only)
 
 ### Phase B: Repositories (Parallel after A)
+
 4. Create SessionRepository
 5. Create EventStore
 6. Create SettingsRepository
 7. Create WorkspaceRepository
 
 ### Phase C: Session Components (Sequential)
+
 8. Create AdapterRegistry
 9. Create EventRecorder (depends on EventStore)
 10. Create SessionOrchestrator (depends on repositories + recorder)
 
 ### Phase D: Socket/Tunnel (Parallel)
+
 11. Create auth middleware factory
 12. Create error handling middleware
 13. Create SocketEventMediator
@@ -229,6 +242,7 @@ Created JSDoc contracts in `contracts/`:
 17. Refactor VSCodeTunnelManager (extend base)
 
 ### Phase E: Integration (Sequential)
+
 18. Create `services.js` factory function
 19. Refactor `shared/index.js` to use `initializeServices()`
 20. Update API routes to import from `services`
@@ -236,6 +250,7 @@ Created JSDoc contracts in `contracts/`:
 22. Update client +layout.svelte with setContext
 
 ### Phase F: Testing
+
 23-30. Unit tests for each new component
 31-35. Integration tests (DI wiring, transactions, auth flow, etc.)
 36-40. E2E tests (no regressions)
@@ -250,17 +265,18 @@ Previous plan had potential violation: Custom DI container added complexity.
 
 **This plan**: Uses only native patterns (ES6 exports, Svelte context). **Simpler than previous plan**.
 
-| Previous Concern | Resolution |
-|-----------------|------------|
+| Previous Concern        | Resolution                                      |
+| ----------------------- | ----------------------------------------------- |
 | DI Container complexity | ❌ **Removed** - using factory function instead |
-| Repository pattern | ✅ Justified - SOLID Single Responsibility |
-| Socket mediator | ✅ Justified - organizes 100+ line file |
-| Base tunnel class | ✅ Justified - DRY principle |
-| JWT dependency | ✅ Required by spec (FR-025) |
+| Repository pattern      | ✅ Justified - SOLID Single Responsibility      |
+| Socket mediator         | ✅ Justified - organizes 100+ line file         |
+| Base tunnel class       | ✅ Justified - DRY principle                    |
+| JWT dependency          | ✅ Required by spec (FR-025)                    |
 
 ## Progress Tracking
 
 **Phase Status**:
+
 - [x] Phase 0: Research complete ✅ research.md (simplified, no DI framework)
 - [x] Phase 1: Design complete ✅ data-model.md (no DependencyContainer), contracts/, quickstart.md, CLAUDE.md
 - [x] Phase 2: Task planning approach ✅ Described above (40 tasks)
@@ -269,12 +285,14 @@ Previous plan had potential violation: Custom DI container added complexity.
 - [ ] Phase 5: Validation
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS ✅
 - [x] Post-Design Constitution Check: PASS ✅ (Improved - simpler than before!)
 - [x] All NEEDS CLARIFICATION resolved ✅
 - [x] Complexity deviations: NONE ✅ (removed DI container)
 
 **Artifacts Generated**:
+
 - ✅ `plan.md` - This simplified plan
 - ✅ `research.md` - Native pattern decisions (no frameworks)
 - ✅ `data-model.md` - 12 components (no DI container class)

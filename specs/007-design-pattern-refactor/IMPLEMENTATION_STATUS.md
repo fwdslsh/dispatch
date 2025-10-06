@@ -113,11 +113,13 @@ This document tracks the implementation progress of the simplified architecture 
 ### Critical Integration Tasks
 
 **T024**: Refactor `src/lib/server/shared/index.js`
+
 - **Status**: ⚠️ **BLOCKED** - Requires careful integration with existing RunSessionManager
 - **Complexity**: HIGH - Existing code uses different architecture
 - **Recommendation**: Create migration strategy document first
 
 **T025-T028**: Update API routes
+
 - `/api/sessions/+server.js`
 - `/api/auth/+server.js`
 - `/api/workspaces/+server.js`
@@ -126,11 +128,13 @@ This document tracks the implementation progress of the simplified architecture 
 - **Dependency**: Requires T024 completion
 
 **T029-T030**: Update hooks and socket setup
+
 - `src/hooks.server.js` - transaction middleware
 - `src/lib/server/socket/setup.js` - SocketEventMediator integration
 - **Status**: PENDING
 
 **T031-T034**: Client-side Svelte context integration
+
 - Update `src/routes/+layout.svelte`
 - Update ViewModels to use `getContext('services')`
 - **Status**: PENDING
@@ -138,24 +142,29 @@ This document tracks the implementation progress of the simplified architecture 
 ### Testing Tasks (T035-T060)
 
 **T035-T047**: Unit tests (12 tests)
+
 - ConfigurationService, JWTService, Repositories, Session Components, Socket components
 - **Status**: NOT STARTED
 
 **T048-T052**: Integration tests (5 tests)
+
 - Service initialization, transactions, auth flow, socket middleware
 - **Status**: NOT STARTED
 
 **T053-T056**: E2E tests (4 tests)
+
 - Terminal, Claude, File editor, Workspace management
 - **Status**: NOT STARTED
 
 **T057-T059**: Performance tests
+
 - Session creation < 100ms
 - Event throughput maintained
 - Memory < 10% increase
 - **Status**: NOT STARTED
 
 **T060**: Verification from quickstart.md
+
 - **Status**: NOT STARTED
 
 ## Implementation Notes
@@ -223,22 +232,26 @@ This document tracks the implementation progress of the simplified architecture 
 ## Files Created (23 files)
 
 ### Core Services
+
 - `src/lib/server/shared/ConfigurationService.js`
 - `src/lib/server/auth/JWTService.js`
 - `src/lib/server/database/DatabaseManager.js` (refactored)
 
 ### Repositories
+
 - `src/lib/server/database/SessionRepository.js`
 - `src/lib/server/database/EventStore.js`
 - `src/lib/server/database/SettingsRepository.js`
 - `src/lib/server/database/WorkspaceRepository.js`
 
 ### Session Components
+
 - `src/lib/server/sessions/AdapterRegistry.js`
 - `src/lib/server/sessions/EventRecorder.js`
 - `src/lib/server/sessions/SessionOrchestrator.js`
 
 ### Socket Infrastructure
+
 - `src/lib/server/socket/middleware/auth.js`
 - `src/lib/server/socket/middleware/errorHandling.js`
 - `src/lib/server/socket/middleware/logging.js`
@@ -247,9 +260,11 @@ This document tracks the implementation progress of the simplified architecture 
 - `src/lib/server/socket/handlers/authHandlers.js`
 
 ### Service Factory
+
 - `src/lib/server/shared/services.js` ⭐ **Core DI implementation**
 
 ### Test Infrastructure
+
 - `tests/server/helpers/test-config.js`
 - `tests/server/helpers/mock-db.js`
 

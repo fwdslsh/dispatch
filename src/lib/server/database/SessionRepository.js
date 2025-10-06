@@ -76,7 +76,7 @@ export class SessionRepository {
 			[`%"workspacePath":"${workspacePath}"%`]
 		);
 
-		return rows.map(row => this.#parseSession(row));
+		return rows.map((row) => this.#parseSession(row));
 	}
 
 	/**
@@ -90,7 +90,7 @@ export class SessionRepository {
 			[kind]
 		);
 
-		return rows.map(row => this.#parseSession(row));
+		return rows.map((row) => this.#parseSession(row));
 	}
 
 	/**
@@ -98,11 +98,9 @@ export class SessionRepository {
 	 * @returns {Promise<Array>} All sessions
 	 */
 	async findAll() {
-		const rows = await this.#db.all(
-			'SELECT * FROM sessions ORDER BY updated_at DESC'
-		);
+		const rows = await this.#db.all('SELECT * FROM sessions ORDER BY updated_at DESC');
 
-		return rows.map(row => this.#parseSession(row));
+		return rows.map((row) => this.#parseSession(row));
 	}
 
 	/**
@@ -112,10 +110,11 @@ export class SessionRepository {
 	 * @returns {Promise<void>}
 	 */
 	async updateStatus(id, status) {
-		await this.#db.run(
-			'UPDATE sessions SET status = ?, updated_at = ? WHERE run_id = ?',
-			[status, Date.now(), id]
-		);
+		await this.#db.run('UPDATE sessions SET status = ?, updated_at = ? WHERE run_id = ?', [
+			status,
+			Date.now(),
+			id
+		]);
 	}
 
 	/**
@@ -135,10 +134,11 @@ export class SessionRepository {
 			...metadata
 		};
 
-		await this.#db.run(
-			'UPDATE sessions SET meta_json = ?, updated_at = ? WHERE run_id = ?',
-			[JSON.stringify(updatedMeta), Date.now(), id]
-		);
+		await this.#db.run('UPDATE sessions SET meta_json = ?, updated_at = ? WHERE run_id = ?', [
+			JSON.stringify(updatedMeta),
+			Date.now(),
+			id
+		]);
 	}
 
 	/**

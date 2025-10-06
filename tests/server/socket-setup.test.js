@@ -18,20 +18,36 @@ vi.mock('socket.io', () => {
 const { setupSocketIO } = await import('../../src/lib/server/shared/socket-setup.js');
 
 describe('setupSocketIO', () => {
-	it('registers io instance with RunSessionManager', () => {
+	it('subscribes to EventRecorder for real-time events', () => {
 		const httpServer = http.createServer();
-		const runSessionManager = {
-			setSocketIO: vi.fn(),
-			getEventsSince: vi.fn(),
-			sendInput: vi.fn(),
-			performOperation: vi.fn(),
-			closeRunSession: vi.fn()
+
+		const mockEventRecorder = {
+			subscribe: vi.fn()
 		};
 
-		const io = setupSocketIO(httpServer, { runSessionManager });
+		const mockSessionOrchestrator = {
+			attachToSession: vi.fn(),
+			sendInput: vi.fn(),
+			closeSession: vi.fn()
+		};
 
-		expect(runSessionManager.setSocketIO).toHaveBeenCalledTimes(1);
-		expect(runSessionManager.setSocketIO).toHaveBeenCalledWith(io);
+		const mockAuthService = {
+			validateKey: vi.fn()
+		};
+
+		const services = {
+			sessionOrchestrator: mockSessionOrchestrator,
+			eventRecorder: mockEventRecorder,
+			auth: mockAuthService,
+			tunnelManager: { setSocketIO: vi.fn() },
+			vscodeManager: { setSocketIO: vi.fn() }
+		};
+
+		const io = setupSocketIO(httpServer, services);
+
+		// Verify EventRecorder subscription
+		expect(mockEventRecorder.subscribe).toHaveBeenCalledTimes(1);
+		expect(mockEventRecorder.subscribe).toHaveBeenCalledWith('event', expect.any(Function));
 
 		io.close();
 		httpServer.close();

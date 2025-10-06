@@ -26,12 +26,10 @@ export class AdapterRegistry {
 			throw new Error('Adapter instance is required');
 		}
 
-		// Validate adapter has required methods
-		const requiredMethods = ['create', 'attach', 'sendInput', 'close'];
-		for (const method of requiredMethods) {
-			if (typeof adapter[method] !== 'function') {
-				throw new Error(`Adapter for '${kind}' missing required method: ${method}`);
-			}
+		// Validate adapter has required create method
+		// Process handle returned by create() provides input.write(), resize(), close()
+		if (typeof adapter.create !== 'function') {
+			throw new Error(`Adapter for '${kind}' must implement create() method`);
 		}
 
 		this.#adapters.set(kind, adapter);
@@ -66,6 +64,14 @@ export class AdapterRegistry {
 	 */
 	getRegisteredKinds() {
 		return Array.from(this.#adapters.keys());
+	}
+
+	/**
+	 * Get all registered adapter types (alias for getRegisteredKinds)
+	 * @returns {Array<string>} List of registered session types
+	 */
+	getRegisteredTypes() {
+		return this.getRegisteredKinds();
 	}
 
 	/**

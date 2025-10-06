@@ -1,190 +1,29 @@
 /**
- * Shared service initialization for both SvelteKit hooks and standalone server
+ * Shared service initialization
+ * REFACTORED: Using simplified architecture with ES6 modules
  */
 
-import { logger } from './utils/logger.js';
-import { DatabaseManager } from './db/DatabaseManager.js';
-import { RunSessionManager } from './runtime/RunSessionManager.js';
-import { TunnelManager } from './TunnelManager.js';
-import { VSCodeTunnelManager } from './VSCodeTunnelManager.js';
-import { AuthService } from './auth.js';
-import { PtyAdapter } from '../terminal/PtyAdapter.js';
-import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
-import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
-import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
-import { MultiAuthManager, GitHubAuthProvider } from './auth/oauth.js';
-import path from 'node:path';
-import os from 'node:os';
-import { SESSION_TYPE } from '../../shared/session-types.js';
+import { initializeServices, services, resetServices } from './services.js';
 
-// Global service instances - shared across all processes
-let globalServicesInstance = null;
-
-// Resolve tilde paths
-function resolveConfigPaths(config) {
-	// Use process.env.HOME if set (for testing), otherwise os.homedir()
-	const homeDir = process.env.HOME || os.homedir();
-	const resolved = { ...config };
-
-	if (resolved.dbPath && resolved.dbPath.startsWith('~/')) {
-		resolved.dbPath = path.join(homeDir, resolved.dbPath.slice(2));
-	}
-
-	if (resolved.workspacesRoot && resolved.workspacesRoot.startsWith('~/')) {
-		resolved.workspacesRoot = path.join(homeDir, resolved.workspacesRoot.slice(2));
-	}
-
-	if (resolved.configDir && resolved.configDir.startsWith('~/')) {
-		resolved.configDir = path.join(homeDir, resolved.configDir.slice(2));
-	}
-
-	return resolved;
-}
-
-/**
- * Initialize all server services with unified session architecture
- * @param {object} config Service configuration
- * @returns {Promise<object>} Services object
- */
-export async function initializeServices(config = {}) {
-	const serviceConfig = {
-		dbPath: config.dbPath || process.env.DB_PATH || '~/.dispatch/data/workspace.db',
-		workspacesRoot:
-			config.workspacesRoot || process.env.WORKSPACES_ROOT || '~/.dispatch-home/workspaces',
-		configDir: config.configDir || process.env.DISPATCH_CONFIG_DIR || '~/.config/dispatch',
-		debug: config.debug || process.env.DEBUG === 'true',
-		port: config.port || process.env.PORT || 3030,
-		tunnelSubdomain: config.tunnelSubdomain || process.env.LT_SUBDOMAIN || ''
-	};
-
-	try {
-		logger.info('SERVICES', 'Initializing services...');
-		const resolvedConfig = resolveConfigPaths(serviceConfig);
-
-		// 1. Database (no dependencies)
-		const database = new DatabaseManager(resolvedConfig.dbPath);
-		await database.init();
-		await database.markAllSessionsStopped();
-		logger.info('SERVICES', 'Cleared stale running sessions on startup');
-
-		// 2. Initialize AuthService singleton (using unified settings table)
-		const authService = new AuthService();
-		await authService.initialize(database);
-		logger.info('SERVICES', 'AuthService initialized');
-
-		// REMOVED: WorkspaceManager - obsolete in unified architecture
-
-		// 4. Create RunSessionManager (no Socket.IO initially, will be set later)
-		const runSessionManager = new RunSessionManager(database, null);
-
-		// 5. Create and register adapters
-		const ptyAdapter = new PtyAdapter();
-		const claudeAdapter = new ClaudeAdapter();
-		const fileEditorAdapter = new FileEditorAdapter();
-
-		runSessionManager.registerAdapter(SESSION_TYPE.PTY, ptyAdapter);
-		runSessionManager.registerAdapter(SESSION_TYPE.CLAUDE, claudeAdapter);
-		runSessionManager.registerAdapter(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
-
-		// 6. Claude Auth Manager (for OAuth flow)
-		const claudeAuthManager = new ClaudeAuthManager();
-
-		// 6b. Multi-Auth Manager (for OAuth providers like GitHub)
-		const multiAuthManager = new MultiAuthManager(database);
-		await multiAuthManager.init();
-
-		// Wire MultiAuthManager to AuthService for multi-strategy auth
-		authService.setMultiAuthManager(multiAuthManager);
-
-		// Register GitHub OAuth provider
-		// Get OAuth settings from database
-		const authSettingsRow = await database.get(
-			"SELECT * FROM settings WHERE category = 'authentication'"
-		);
-
-		if (authSettingsRow && authSettingsRow.settings_json) {
-			try {
-				const authSettings = JSON.parse(authSettingsRow.settings_json);
-
-				if (authSettings.oauth_client_id && authSettings.oauth_client_secret) {
-					const githubProvider = new GitHubAuthProvider({
-						clientId: authSettings.oauth_client_id,
-						clientSecret: authSettings.oauth_client_secret,
-						redirectUri:
-							authSettings.oauth_redirect_uri ||
-							`http://localhost:${resolvedConfig.port}/auth/callback`,
-						scopes: (authSettings.oauth_scope || 'user:email').split(' ')
-					});
-					await multiAuthManager.registerProvider(githubProvider);
-				} else {
-					logger.info('SERVICES', 'GitHub OAuth not configured - skipping provider registration');
-				}
-			} catch (error) {
-				logger.error('SERVICES', 'Failed to parse authentication settings:', error);
-			}
-		} else {
-			logger.info(
-				'SERVICES',
-				'No authentication settings found - skipping OAuth provider registration'
-			);
-		}
-
-		// 7. Tunnel Manager for runtime tunnel control
-		const tunnelManager = new TunnelManager({
-			port: resolvedConfig.port,
-			subdomain: resolvedConfig.tunnelSubdomain,
-			database: database
-		});
-		await tunnelManager.init();
-
-		// 8. VS Code Tunnel Manager
-		const vscodeManager = new VSCodeTunnelManager({
-			database: database
-		});
-		await vscodeManager.init();
-
-		const services = {
-			database,
-			auth: authService,
-			runSessionManager,
-			ptyAdapter,
-			claudeAdapter,
-			fileEditorAdapter,
-			claudeAuthManager,
-			multiAuthManager,
-			tunnelManager,
-			vscodeManager,
-			// Convenience methods
-			getAuthManager: () => multiAuthManager,
-			getDatabase: () => database
-		};
-
-		// Store as global for API routes
-		globalServicesInstance = services;
-
-		logger.info('SERVICES', 'Services initialized successfully');
-		logger.info('SERVICES', `RunSessionManager stats:`, runSessionManager.getStats());
-		return services;
-	} catch (error) {
-		logger.error('SERVICES', 'Failed to initialize services:', error);
-		throw error;
-	}
-}
+// Re-export for convenience
+export { initializeServices, services, resetServices };
 
 /**
  * Export global services instance for API routes
+ * Provides backward-compatible interface
  */
 export const __API_SERVICES = {
 	get services() {
-		return globalServicesInstance;
+		return services;
 	},
 	getAuthManager() {
-		return globalServicesInstance?.multiAuthManager;
+		return services?.multiAuthManager;
 	},
 	getDatabase() {
-		return globalServicesInstance?.database;
+		return services?.db;
 	},
 	getRunSessionManager() {
-		return globalServicesInstance?.runSessionManager;
+		// Return SessionOrchestrator - same interface for session operations
+		return services?.sessionOrchestrator;
 	}
 };

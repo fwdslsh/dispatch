@@ -7,6 +7,7 @@
 ## Core Architectural Pattern
 
 **Simplified Dependency Management**:
+
 - Server: Factory function in `services.js` that creates and wires services
 - Client: Svelte `setContext`/`getContext` for sharing services
 - Testing: Module mocking (Vitest `vi.mock()`) and context overrides
@@ -24,80 +25,82 @@
 **File**: `src/lib/server/shared/services.js`
 
 **Pattern**:
+
 ```javascript
 // Factory function for initialization
 export function createServices(config) {
-  // Layer 1: Database connection
-  const db = new DatabaseManager(config);
+	// Layer 1: Database connection
+	const db = new DatabaseManager(config);
 
-  // Layer 2: Repositories (depend on db)
-  const sessionRepository = new SessionRepository(db);
-  const eventStore = new EventStore(db);
-  const settingsRepository = new SettingsRepository(db);
-  const workspaceRepository = new WorkspaceRepository(db);
+	// Layer 2: Repositories (depend on db)
+	const sessionRepository = new SessionRepository(db);
+	const eventStore = new EventStore(db);
+	const settingsRepository = new SettingsRepository(db);
+	const workspaceRepository = new WorkspaceRepository(db);
 
-  // Layer 3: Services (depend on repositories)
-  const jwtService = new JWTService(config.TERMINAL_KEY);
-  const adapterRegistry = new AdapterRegistry();
-  const eventRecorder = new EventRecorder(eventStore);
+	// Layer 3: Services (depend on repositories)
+	const jwtService = new JWTService(config.TERMINAL_KEY);
+	const adapterRegistry = new AdapterRegistry();
+	const eventRecorder = new EventRecorder(eventStore);
 
-  // Layer 4: Orchestrators (depend on services)
-  const sessionOrchestrator = new SessionOrchestrator(
-    sessionRepository,
-    eventRecorder,
-    adapterRegistry
-  );
+	// Layer 4: Orchestrators (depend on services)
+	const sessionOrchestrator = new SessionOrchestrator(
+		sessionRepository,
+		eventRecorder,
+		adapterRegistry
+	);
 
-  // Register adapters
-  adapterRegistry.register('pty', new PtyAdapter());
-  adapterRegistry.register('claude', new ClaudeAdapter());
-  adapterRegistry.register('file-editor', new FileEditorAdapter());
+	// Register adapters
+	adapterRegistry.register('pty', new PtyAdapter());
+	adapterRegistry.register('claude', new ClaudeAdapter());
+	adapterRegistry.register('file-editor', new FileEditorAdapter());
 
-  return {
-    db,
-    sessionRepository,
-    eventStore,
-    settingsRepository,
-    workspaceRepository,
-    jwtService,
-    adapterRegistry,
-    eventRecorder,
-    sessionOrchestrator
-  };
+	return {
+		db,
+		sessionRepository,
+		eventStore,
+		settingsRepository,
+		workspaceRepository,
+		jwtService,
+		adapterRegistry,
+		eventRecorder,
+		sessionOrchestrator
+	};
 }
 
 // Singleton for app lifecycle
 export let services;
 
 export function initializeServices(config) {
-  services = createServices(config);
-  return services;
+	services = createServices(config);
+	return services;
 }
 ```
 
 **Responsibility**: Wire dependencies explicitly in correct order
 
 **Testing**:
+
 ```javascript
 // tests/server/services.test.js
 import { createServices } from '$lib/server/shared/services';
 
 test('services initialized correctly', () => {
-  const testConfig = { TERMINAL_KEY: 'test' };
-  const services = createServices(testConfig);
+	const testConfig = { TERMINAL_KEY: 'test' };
+	const services = createServices(testConfig);
 
-  expect(services.sessionOrchestrator).toBeDefined();
-  expect(services.sessionRepository).toBeInstanceOf(SessionRepository);
+	expect(services.sessionOrchestrator).toBeDefined();
+	expect(services.sessionRepository).toBeInstanceOf(SessionRepository);
 });
 
 // tests/server/api.test.js
 import { vi } from 'vitest';
 
 vi.mock('$lib/server/shared/services', () => ({
-  services: {
-    sessionRepository: { create: vi.fn() },
-    sessionOrchestrator: { createSession: vi.fn() }
-  }
+	services: {
+		sessionRepository: { create: vi.fn() },
+		sessionOrchestrator: { createSession: vi.fn() }
+	}
 }));
 ```
 
@@ -110,23 +113,28 @@ vi.mock('$lib/server/shared/services', () => ({
 **Purpose**: Session metadata CRUD
 
 **State**:
+
 ```javascript
 class SessionRepository {
-  #db; // Private field
+	#db; // Private field
 
-  constructor(db) {
-    this.#db = db;
-    this.#prepareStatements();
-  }
+	constructor(db) {
+		this.#db = db;
+		this.#prepareStatements();
+	}
 
-  #prepareStatements() {
-    this.#createStmt = this.#db.prepare('INSERT INTO sessions...');
-    // ...
-  }
+	#prepareStatements() {
+		this.#createStmt = this.#db.prepare('INSERT INTO sessions...');
+		// ...
+	}
 
-  create(sessionData) { /* ... */ }
-  findById(id) { /* ... */ }
-  // ...
+	create(sessionData) {
+		/* ... */
+	}
+	findById(id) {
+		/* ... */
+	}
+	// ...
 }
 ```
 
@@ -155,19 +163,20 @@ class SessionRepository {
 **Purpose**: Register and retrieve session type adapters
 
 **State**:
+
 ```javascript
 class AdapterRegistry {
-  #adapters = new Map(); // kind → adapter
+	#adapters = new Map(); // kind → adapter
 
-  register(kind, adapter) {
-    this.#adapters.set(kind, adapter);
-  }
+	register(kind, adapter) {
+		this.#adapters.set(kind, adapter);
+	}
 
-  getAdapter(kind) {
-    const adapter = this.#adapters.get(kind);
-    if (!adapter) throw new Error(`Adapter not found: ${kind}`);
-    return adapter;
-  }
+	getAdapter(kind) {
+		const adapter = this.#adapters.get(kind);
+		if (!adapter) throw new Error(`Adapter not found: ${kind}`);
+		return adapter;
+	}
 }
 ```
 
@@ -180,24 +189,25 @@ class AdapterRegistry {
 **Purpose**: Serialize and persist session events
 
 **State**:
+
 ```javascript
 class EventRecorder {
-  #eventStore;
-  #eventEmitter = new EventEmitter(); // Decoupled from Socket.IO
-  #buffers = new Map(); // sessionId → Event[]
+	#eventStore;
+	#eventEmitter = new EventEmitter(); // Decoupled from Socket.IO
+	#buffers = new Map(); // sessionId → Event[]
 
-  constructor(eventStore) {
-    this.#eventStore = eventStore;
-  }
+	constructor(eventStore) {
+		this.#eventStore = eventStore;
+	}
 
-  record(sessionId, event) {
-    const { seq } = this.#eventStore.append(sessionId, event);
-    this.#eventEmitter.emit('event', { sessionId, seq, event });
-  }
+	record(sessionId, event) {
+		const { seq } = this.#eventStore.append(sessionId, event);
+		this.#eventEmitter.emit('event', { sessionId, seq, event });
+	}
 
-  subscribe(listener) {
-    this.#eventEmitter.on('event', listener);
-  }
+	subscribe(listener) {
+		this.#eventEmitter.on('event', listener);
+	}
 }
 ```
 
@@ -210,29 +220,30 @@ class EventRecorder {
 **Purpose**: Coordinate session lifecycle
 
 **State**:
+
 ```javascript
 class SessionOrchestrator {
-  #sessionRepository;
-  #eventRecorder;
-  #adapterRegistry;
-  #activeSessions = new Map();
+	#sessionRepository;
+	#eventRecorder;
+	#adapterRegistry;
+	#activeSessions = new Map();
 
-  constructor(sessionRepository, eventRecorder, adapterRegistry) {
-    this.#sessionRepository = sessionRepository;
-    this.#eventRecorder = eventRecorder;
-    this.#adapterRegistry = adapterRegistry;
-  }
+	constructor(sessionRepository, eventRecorder, adapterRegistry) {
+		this.#sessionRepository = sessionRepository;
+		this.#eventRecorder = eventRecorder;
+		this.#adapterRegistry = adapterRegistry;
+	}
 
-  async createSession(kind, options) {
-    const adapter = this.#adapterRegistry.getAdapter(kind);
-    const session = await this.#sessionRepository.create({ kind, ...options });
-    const process = adapter.create(options);
+	async createSession(kind, options) {
+		const adapter = this.#adapterRegistry.getAdapter(kind);
+		const session = await this.#sessionRepository.create({ kind, ...options });
+		const process = adapter.create(options);
 
-    this.#activeSessions.set(session.id, { adapter, process });
-    this.#eventRecorder.record(session.id, { type: 'created' });
+		this.#activeSessions.set(session.id, { adapter, process });
+		this.#eventRecorder.record(session.id, { type: 'created' });
 
-    return session;
-  }
+		return session;
+	}
 }
 ```
 
@@ -245,41 +256,43 @@ class SessionOrchestrator {
 **Purpose**: Route socket events with middleware
 
 **State**:
+
 ```javascript
 class SocketEventMediator {
-  #io;
-  #middleware = [];
-  #handlers = new Map();
+	#io;
+	#middleware = [];
+	#handlers = new Map();
 
-  constructor(io) {
-    this.#io = io;
-  }
+	constructor(io) {
+		this.#io = io;
+	}
 
-  use(middlewareFn) {
-    this.#middleware.push(middlewareFn);
-  }
+	use(middlewareFn) {
+		this.#middleware.push(middlewareFn);
+	}
 
-  on(eventName, handler) {
-    this.#handlers.set(eventName, handler);
-  }
+	on(eventName, handler) {
+		this.#handlers.set(eventName, handler);
+	}
 
-  initialize() {
-    this.#io.on('connection', (socket) => {
-      this.#middleware.forEach(mw => socket.use(mw));
+	initialize() {
+		this.#io.on('connection', (socket) => {
+			this.#middleware.forEach((mw) => socket.use(mw));
 
-      this.#handlers.forEach((handler, eventName) => {
-        socket.on(eventName, (data, callback) => {
-          handler(socket, data, callback);
-        });
-      });
-    });
-  }
+			this.#handlers.forEach((handler, eventName) => {
+				socket.on(eventName, (data, callback) => {
+					handler(socket, data, callback);
+				});
+			});
+		});
+	}
 }
 ```
 
 **Dependencies**: Receives Socket.IO instance in constructor
 
 **Integration**:
+
 ```javascript
 // In services.js or socket setup
 import { services } from '$lib/server/shared/services';
@@ -292,8 +305,8 @@ mediator.use(createErrorHandlingMiddleware());
 
 // Handlers
 mediator.on('run:attach', (socket, data, cb) => {
-  services.sessionOrchestrator.attach(data.sessionId);
-  cb({ success: true });
+	services.sessionOrchestrator.attach(data.sessionId);
+	cb({ success: true });
 });
 
 mediator.initialize();
@@ -314,29 +327,30 @@ mediator.initialize();
 **Purpose**: Centralize env var reading
 
 **State**:
+
 ```javascript
 class ConfigurationService {
-  #config;
+	#config;
 
-  constructor(env = process.env) {
-    this.#config = {
-      TERMINAL_KEY: env.TERMINAL_KEY || 'change-me',
-      PORT: parseInt(env.PORT) || 3030,
-      WORKSPACES_ROOT: env.WORKSPACES_ROOT || '/workspace',
-      // ...
-    };
-    this.#validate();
-  }
+	constructor(env = process.env) {
+		this.#config = {
+			TERMINAL_KEY: env.TERMINAL_KEY || 'change-me',
+			PORT: parseInt(env.PORT) || 3030,
+			WORKSPACES_ROOT: env.WORKSPACES_ROOT || '/workspace'
+			// ...
+		};
+		this.#validate();
+	}
 
-  #validate() {
-    if (!this.#config.TERMINAL_KEY) {
-      throw new Error('TERMINAL_KEY required');
-    }
-  }
+	#validate() {
+		if (!this.#config.TERMINAL_KEY) {
+			throw new Error('TERMINAL_KEY required');
+		}
+	}
 
-  get(key) {
-    return this.#config[key];
-  }
+	get(key) {
+		return this.#config[key];
+	}
 }
 ```
 
@@ -351,16 +365,16 @@ class ConfigurationService {
 ```javascript
 // Middleware factory function
 export function createAuthMiddleware(jwtService) {
-  return ([event, ...args], next) => {
-    const token = args[0]?.authKey;
-    try {
-      const claims = jwtService.validateToken(token);
-      args[0].userId = claims.userId;
-      next();
-    } catch (err) {
-      next(new AuthError(err.message));
-    }
-  };
+	return ([event, ...args], next) => {
+		const token = args[0]?.authKey;
+		try {
+			const claims = jwtService.validateToken(token);
+			args[0].userId = claims.userId;
+			next();
+		} catch (err) {
+			next(new AuthError(err.message));
+		}
+	};
 }
 ```
 
@@ -371,50 +385,53 @@ export function createAuthMiddleware(jwtService) {
 ## Client-Side Pattern (Svelte Context)
 
 **Root Layout** (`src/routes/+layout.svelte`):
+
 ```svelte
 <script>
-  import { setContext } from 'svelte';
-  import { SocketService } from '$lib/client/shared/services/SocketService.svelte.js';
-  import { SessionViewModel } from '$lib/client/shared/state/SessionViewModel.svelte.js';
+	import { setContext } from 'svelte';
+	import { SocketService } from '$lib/client/shared/services/SocketService.svelte.js';
+	import { SessionViewModel } from '$lib/client/shared/state/SessionViewModel.svelte.js';
 
-  // Initialize services
-  const socketService = new SocketService();
-  const sessionViewModel = new SessionViewModel(socketService);
+	// Initialize services
+	const socketService = new SocketService();
+	const sessionViewModel = new SessionViewModel(socketService);
 
-  // Share via context
-  setContext('services', {
-    socket: socketService,
-    sessionVM: sessionViewModel
-  });
+	// Share via context
+	setContext('services', {
+		socket: socketService,
+		sessionVM: sessionViewModel
+	});
 </script>
 ```
 
 **Child Components**:
+
 ```svelte
 <script>
-  import { getContext } from 'svelte';
+	import { getContext } from 'svelte';
 
-  const { sessionVM } = getContext('services');
+	const { sessionVM } = getContext('services');
 
-  async function createSession() {
-    await sessionVM.createSession('pty');
-  }
+	async function createSession() {
+		await sessionVM.createSession('pty');
+	}
 </script>
 ```
 
 **Testing**:
+
 ```javascript
 import { setContext } from 'svelte';
 import { render } from '@testing-library/svelte';
 
 test('component uses services', () => {
-  const mockServices = {
-    sessionVM: { createSession: vi.fn() }
-  };
+	const mockServices = {
+		sessionVM: { createSession: vi.fn() }
+	};
 
-  render(MyComponent, {
-    context: new Map([['services', mockServices]])
-  });
+	render(MyComponent, {
+		context: new Map([['services', mockServices]])
+	});
 });
 ```
 
@@ -457,13 +474,16 @@ HTTP/Socket Request
 ## Testing Strategy
 
 **Server-Side**:
+
 - **Unit Tests**: Mock dependencies via constructor injection
+
   ```javascript
   const mockDb = { prepare: vi.fn() };
   const repo = new SessionRepository(mockDb);
   ```
 
 - **Integration Tests**: Use `createServices()` with test config
+
   ```javascript
   const services = createServices({ TERMINAL_KEY: 'test' });
   ```
@@ -471,15 +491,16 @@ HTTP/Socket Request
 - **API Tests**: Mock entire `services` export
   ```javascript
   vi.mock('$lib/server/shared/services', () => ({
-    services: { sessionOrchestrator: { createSession: vi.fn() } }
+  	services: { sessionOrchestrator: { createSession: vi.fn() } }
   }));
   ```
 
 **Client-Side**:
+
 - **Component Tests**: Override Svelte context
   ```javascript
   render(Component, {
-    context: new Map([['services', mockServices]])
+  	context: new Map([['services', mockServices]])
   });
   ```
 

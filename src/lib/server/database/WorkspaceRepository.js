@@ -36,9 +36,8 @@ export class WorkspaceRepository {
 		const { path, name, themeOverride = null } = workspaceData;
 		const now = Date.now();
 
-		const finalName = (typeof name === 'string' && name.trim())
-			? name.trim()
-			: deriveWorkspaceName(path);
+		const finalName =
+			typeof name === 'string' && name.trim() ? name.trim() : deriveWorkspaceName(path);
 
 		try {
 			await this.#db.run(
@@ -86,7 +85,7 @@ export class WorkspaceRepository {
 			'SELECT * FROM workspaces ORDER BY last_active DESC, updated_at DESC'
 		);
 
-		return rows.map(row => this.#parseWorkspace(row));
+		return rows.map((row) => this.#parseWorkspace(row));
 	}
 
 	/**
@@ -124,10 +123,7 @@ export class WorkspaceRepository {
 		params.push(Date.now());
 		params.push(path);
 
-		await this.#db.run(
-			`UPDATE workspaces SET ${sets.join(', ')} WHERE path = ?`,
-			params
-		);
+		await this.#db.run(`UPDATE workspaces SET ${sets.join(', ')} WHERE path = ?`, params);
 	}
 
 	/**
@@ -137,10 +133,11 @@ export class WorkspaceRepository {
 	 */
 	async updateLastActive(path) {
 		const now = Date.now();
-		await this.#db.run(
-			'UPDATE workspaces SET last_active = ?, updated_at = ? WHERE path = ?',
-			[now, now, path]
-		);
+		await this.#db.run('UPDATE workspaces SET last_active = ?, updated_at = ? WHERE path = ?', [
+			now,
+			now,
+			path
+		]);
 	}
 
 	/**

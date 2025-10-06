@@ -41,9 +41,9 @@
 
 ## Phase 3.1: Setup & Dependencies
 
-- [X] **T001** Install jsonwebtoken dependency via `npm install jsonwebtoken`
-- [X] **T002** [P] Create test infrastructure: `tests/server/helpers/test-config.js` with mock ConfigurationService
-- [X] **T003** [P] Create test infrastructure: `tests/server/helpers/mock-db.js` with SQLite in-memory helpers
+- [x] **T001** Install jsonwebtoken dependency via `npm install jsonwebtoken`
+- [x] **T002** [P] Create test infrastructure: `tests/server/helpers/test-config.js` with mock ConfigurationService
+- [x] **T003** [P] Create test infrastructure: `tests/server/helpers/mock-db.js` with SQLite in-memory helpers
 
 ---
 
@@ -51,31 +51,31 @@
 
 ### Phase A: Core Infrastructure (Parallel)
 
-- [X] **T004** [P] Create ConfigurationService in `src/lib/server/shared/ConfigurationService.js`
-- [X] **T005** [P] Create JWTService in `src/lib/server/auth/JWTService.js`
-- [X] **T006** Refactor DatabaseManager in `src/lib/server/database/DatabaseManager.js` (connection + migrations only, remove CRUD methods)
+- [x] **T004** [P] Create ConfigurationService in `src/lib/server/shared/ConfigurationService.js`
+- [x] **T005** [P] Create JWTService in `src/lib/server/auth/JWTService.js`
+- [x] **T006** Refactor DatabaseManager in `src/lib/server/database/DatabaseManager.js` (connection + migrations only, remove CRUD methods)
 
 ### Phase B: Repositories (Parallel after T006)
 
-- [X] **T007** [P] Create SessionRepository in `src/lib/server/database/SessionRepository.js`
-- [X] **T008** [P] Create EventStore in `src/lib/server/database/EventStore.js`
-- [X] **T009** [P] Create SettingsRepository in `src/lib/server/database/SettingsRepository.js`
-- [X] **T010** [P] Create WorkspaceRepository in `src/lib/server/database/WorkspaceRepository.js`
+- [x] **T007** [P] Create SessionRepository in `src/lib/server/database/SessionRepository.js`
+- [x] **T008** [P] Create EventStore in `src/lib/server/database/EventStore.js`
+- [x] **T009** [P] Create SettingsRepository in `src/lib/server/database/SettingsRepository.js`
+- [x] **T010** [P] Create WorkspaceRepository in `src/lib/server/database/WorkspaceRepository.js`
 
 ### Phase C: Session Components (Sequential - dependencies)
 
-- [X] **T011** Create AdapterRegistry in `src/lib/server/sessions/AdapterRegistry.js`
-- [X] **T012** Create EventRecorder in `src/lib/server/sessions/EventRecorder.js` (depends on T008 EventStore)
-- [X] **T013** Create SessionOrchestrator in `src/lib/server/sessions/SessionOrchestrator.js` (depends on T007, T012, T011)
+- [x] **T011** Create AdapterRegistry in `src/lib/server/sessions/AdapterRegistry.js`
+- [x] **T012** Create EventRecorder in `src/lib/server/sessions/EventRecorder.js` (depends on T008 EventStore)
+- [x] **T013** Create SessionOrchestrator in `src/lib/server/sessions/SessionOrchestrator.js` (depends on T007, T012, T011)
 
 ### Phase D: Socket.IO & Tunnel (Parallel)
 
-- [X] **T014** [P] Create auth middleware factory in `src/lib/server/socket/middleware/auth.js`
-- [X] **T015** [P] Create error handling middleware factory in `src/lib/server/socket/middleware/errorHandling.js`
-- [X] **T016** [P] Create logging middleware factory in `src/lib/server/socket/middleware/logging.js`
-- [X] **T017** Create SocketEventMediator in `src/lib/server/socket/SocketEventMediator.js`
-- [X] **T018** [P] Create domain socket handlers in `src/lib/server/socket/handlers/sessionHandlers.js`
-- [X] **T019** [P] Create domain socket handlers in `src/lib/server/socket/handlers/authHandlers.js`
+- [x] **T014** [P] Create auth middleware factory in `src/lib/server/socket/middleware/auth.js`
+- [x] **T015** [P] Create error handling middleware factory in `src/lib/server/socket/middleware/errorHandling.js`
+- [x] **T016** [P] Create logging middleware factory in `src/lib/server/socket/middleware/logging.js`
+- [x] **T017** Create SocketEventMediator in `src/lib/server/socket/SocketEventMediator.js`
+- [x] **T018** [P] Create domain socket handlers in `src/lib/server/socket/handlers/sessionHandlers.js`
+- [x] **T019** [P] Create domain socket handlers in `src/lib/server/socket/handlers/authHandlers.js`
 - [ ] **T020** [P] Create BaseTunnelManager in `src/lib/server/tunnels/BaseTunnelManager.js` (SKIPPED - not critical)
 - [ ] **T021** Refactor TunnelManager to extend BaseTunnelManager in `src/lib/server/tunnels/TunnelManager.js` (SKIPPED - not critical)
 - [ ] **T022** Refactor VSCodeTunnelManager to extend BaseTunnelManager in `src/lib/server/tunnels/VSCodeTunnelManager.js` (SKIPPED - not critical)
@@ -86,7 +86,7 @@
 
 ### Server-Side Integration
 
-- [X] **T023** Create services.js factory function in `src/lib/server/shared/services.js` (wires all dependencies)
+- [x] **T023** Create services.js factory function in `src/lib/server/shared/services.js` (wires all dependencies)
 - [ ] **T024** Refactor `src/lib/server/shared/index.js` to use `initializeServices()` from services.js
 - [ ] **T025** Update API route `/api/sessions/+server.js` to import from `services` module
 - [ ] **T026** Update API route `/api/auth/+server.js` to import from `services` module

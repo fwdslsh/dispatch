@@ -19,6 +19,7 @@ Per updated specification FR-005: "System SHOULD use simple dependency patterns 
 **Decision**: **ES6 Module Organization with Clean Exports**
 
 **Pattern**:
+
 ```javascript
 // src/lib/server/shared/services.js
 import { DatabaseManager } from '../database/DatabaseManager.js';
@@ -27,51 +28,53 @@ import { EventStore } from '../database/EventStore.js';
 
 // Initialize services with dependencies via factory functions
 export function createServices(config) {
-  const db = new DatabaseManager(config);
+	const db = new DatabaseManager(config);
 
-  // Repositories depend on db
-  const sessionRepository = new SessionRepository(db);
-  const eventStore = new EventStore(db);
-  const settingsRepository = new SettingsRepository(db);
+	// Repositories depend on db
+	const sessionRepository = new SessionRepository(db);
+	const eventStore = new EventStore(db);
+	const settingsRepository = new SettingsRepository(db);
 
-  // Higher-level services depend on repositories
-  const eventRecorder = new EventRecorder(eventStore);
-  const sessionOrchestrator = new SessionOrchestrator(
-    sessionRepository,
-    eventRecorder,
-    adapterRegistry
-  );
+	// Higher-level services depend on repositories
+	const eventRecorder = new EventRecorder(eventStore);
+	const sessionOrchestrator = new SessionOrchestrator(
+		sessionRepository,
+		eventRecorder,
+		adapterRegistry
+	);
 
-  return {
-    db,
-    sessionRepository,
-    eventStore,
-    settingsRepository,
-    eventRecorder,
-    sessionOrchestrator
-  };
+	return {
+		db,
+		sessionRepository,
+		eventStore,
+		settingsRepository,
+		eventRecorder,
+		sessionOrchestrator
+	};
 }
 
 // For API routes and hooks
 export let services;
 export function initializeServices(config) {
-  services = createServices(config);
-  return services;
+	services = createServices(config);
+	return services;
 }
 ```
 
 **Usage in API Routes**:
+
 ```javascript
 // src/routes/api/sessions/+server.js
 import { services } from '$lib/server/shared/services';
 
 export async function POST({ request }) {
-  const session = await services.sessionOrchestrator.createSession(data);
-  return json(session);
+	const session = await services.sessionOrchestrator.createSession(data);
+	return json(session);
 }
 ```
 
 **Rationale**:
+
 - Native JavaScript - zero dependencies
 - Explicit dependency graph (readable in 50 lines)
 - Easy to test (replace `services` object with mocks)
@@ -79,6 +82,7 @@ export async function POST({ request }) {
 - Constitution-aligned: simplicity, YAGNI, minimal dependencies
 
 **Alternatives Rejected**:
+
 - ❌ Awilix/InversifyJS: Framework overhead (40KB+), features we don't need
 - ❌ Custom DI Container: Reinventing the wheel, adds complexity
 - ❌ Global singleton pattern (current): Hidden dependencies, hard to test
@@ -92,6 +96,7 @@ export async function POST({ request }) {
 **Decision**: **Svelte Context API** (`setContext`/`getContext`)
 
 **Pattern**:
+
 ```javascript
 // src/routes/+layout.svelte
 <script>
@@ -122,12 +127,14 @@ export async function POST({ request }) {
 ```
 
 **Rationale**:
+
 - Native Svelte API - zero dependencies
 - Tree-scoped (not global)
 - Type-safe with JSDoc
 - Easy to override in tests
 
 **Alternatives Rejected**:
+
 - ❌ Global stores: Same problems as server-side globals
 - ❌ Props drilling: Verbose, breaks encapsulation
 - ❌ Custom context library: Reinventing Svelte's built-in API
@@ -147,14 +154,15 @@ export async function POST({ request }) {
 **Decision**: **SvelteKit Hooks + Socket.IO Middleware** (unchanged from previous research)
 
 **Pattern**:
+
 ```javascript
 // hooks.server.js
 import { services } from '$lib/server/shared/services';
 
 export async function handle({ event, resolve }) {
-  return services.db.transaction(() => {
-    return resolve(event);
-  })();
+	return services.db.transaction(() => {
+		return resolve(event);
+	})();
 }
 ```
 
@@ -180,20 +188,21 @@ export async function handle({ event, resolve }) {
 
 ## Summary of Simplified Approach
 
-| Area | Solution | Complexity |
-|------|----------|------------|
-| Server DI | ES6 module exports + factory function | **Minimal** (50 lines) |
-| Client DI | Svelte setContext/getContext | **Minimal** (native API) |
-| Repositories | Direct SQL + ES6 classes | Simple (50-150 lines each) |
-| Transactions | Middleware wrapper | Simple (10 lines) |
-| JWT | jsonwebtoken library | Standard (only new dep) |
-| Socket.IO | Middleware + handlers | Simple pattern |
+| Area         | Solution                              | Complexity                 |
+| ------------ | ------------------------------------- | -------------------------- |
+| Server DI    | ES6 module exports + factory function | **Minimal** (50 lines)     |
+| Client DI    | Svelte setContext/getContext          | **Minimal** (native API)   |
+| Repositories | Direct SQL + ES6 classes              | Simple (50-150 lines each) |
+| Transactions | Middleware wrapper                    | Simple (10 lines)          |
+| JWT          | jsonwebtoken library                  | Standard (only new dep)    |
+| Socket.IO    | Middleware + handlers                 | Simple pattern             |
 
 **Total New Dependencies**: 1 (jsonwebtoken)
 **Total New Abstraction Layers**: 0 (using native patterns)
 **Lines of "Framework" Code**: ~50 (just service initialization function)
 
 **Constitutional Compliance**:
+
 - ✅ Simplicity: No custom frameworks, native patterns
 - ✅ YAGNI: No unused DI features
 - ✅ Minimal Dependencies: Only jsonwebtoken added

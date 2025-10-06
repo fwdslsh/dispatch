@@ -43,10 +43,9 @@ export class SettingsRepository {
 	 * @returns {Promise<Object>} Settings object for the category
 	 */
 	async getByCategory(category) {
-		const row = await this.#db.get(
-			'SELECT settings_json FROM settings WHERE category = ?',
-			[category]
-		);
+		const row = await this.#db.get('SELECT settings_json FROM settings WHERE category = ?', [
+			category
+		]);
 
 		if (!row) return {};
 
@@ -103,7 +102,7 @@ export class SettingsRepository {
 			ORDER BY category
 		`);
 
-		return rows.map(row => {
+		return rows.map((row) => {
 			let settings = {};
 			try {
 				settings = JSON.parse(row.settings_json);

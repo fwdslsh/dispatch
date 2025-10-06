@@ -1,84 +1,88 @@
 /**
  * Session Socket Handlers
  * @file Domain handlers for session-related socket events
+ * Updated to work with SessionOrchestrator
  */
+
+import { logger } from '../../shared/utils/logger.js';
 
 /**
- * Create session handlers with service dependencies
- * @param {Object} services - Service dependencies
- * @param {SessionOrchestrator} services.sessionOrchestrator - Session orchestrator
+ * Create session handlers factory
+ * @param {SessionOrchestrator} sessionOrchestrator
  * @returns {Object} Handler functions
  */
-export function createSessionHandlers(services) {
-	const { sessionOrchestrator } = services;
-
+export function createSessionHandlers(sessionOrchestrator) {
 	return {
 		/**
 		 * Handle session attach event
-		 * @param {Object} socket - Socket.IO socket
-		 * @param {Object} data - Event data
-		 * @param {string} data.sessionId - Session ID to attach to
-		 * @param {number} [data.fromSeq=0] - Starting sequence number
-		 * @param {Function} callback - Acknowledgment callback
 		 */
-		async attach(socket, data, callback) {
+		async attach(socket, { runId, afterSeq = 0 }) {
 			try {
-				const { sessionId, fromSeq = 0 } = data;
+				// Join room for this session
+				socket.join(`run:${runId}`);
 
-				const result = await sessionOrchestrator.attachToSession(sessionId, fromSeq);
+				// Attach to session (or resume if stopped)
+				const result = await sessionOrchestrator.attachToSession(runId, afterSeq);
 
-				callback({
+				// If not active, try to resume
+				if (!result.process && result.session.status === 'stopped') {
+					const resumed = await sessionOrchestrator.resumeSession(runId);
+					return { success: true, resumed: true, ...resumed };
+				}
+
+				return {
 					success: true,
 					session: result.session,
-					events: result.events
-				});
-			} catch (err) {
-				callback({
-					success: false,
-					error: err.message
-				});
+					events: result.events,
+					resumed: false
+				};
+			} catch (error) {
+				logger.error('SOCKET', `Failed to attach to session ${runId}:`, error);
+				return { success: false, error: error.message };
 			}
 		},
 
 		/**
 		 * Handle session input event
-		 * @param {Object} socket - Socket.IO socket
-		 * @param {Object} data - Event data
-		 * @param {string} data.sessionId - Session ID
-		 * @param {string} data.input - Input data
 		 */
-		async input(socket, data) {
+		async input(socket, { runId, data }) {
 			try {
-				const { sessionId, input } = data;
-				await sessionOrchestrator.sendInput(sessionId, input);
-			} catch (err) {
-				console.error('Error sending input:', err);
-				socket.emit('error', { message: err.message });
+				await sessionOrchestrator.sendInput(runId, data);
+				return { success: true };
+			} catch (error) {
+				logger.error('SOCKET', `Failed to send input to ${runId}:`, error);
+				return { success: false, error: error.message };
+			}
+		},
+
+		/**
+		 * Handle session resize event
+		 */
+		async resize(socket, { runId, cols, rows }) {
+			try {
+				const active = sessionOrchestrator.getActiveProcess(runId);
+				if (active?.resize) {
+					active.resize(cols, rows);
+					return { success: true };
+				}
+				return { success: false, error: 'Resize not supported' };
+			} catch (error) {
+				logger.error('SOCKET', `Failed to resize ${runId}:`, error);
+				return { success: false, error: error.message };
 			}
 		},
 
 		/**
 		 * Handle session close event
-		 * @param {Object} socket - Socket.IO socket
-		 * @param {Object} data - Event data
-		 * @param {string} data.sessionId - Session ID
-		 * @param {Function} [callback] - Optional acknowledgment callback
 		 */
-		async close(socket, data, callback) {
+		async close(socket, { runId }) {
 			try {
-				const { sessionId } = data;
-				await sessionOrchestrator.closeSession(sessionId);
-
-				if (callback) {
-					callback({ success: true });
-				}
-			} catch (err) {
-				if (callback) {
-					callback({
-						success: false,
-						error: err.message
-					});
-				}
+				await sessionOrchestrator.closeSession(runId);
+				socket.leave(`run:${runId}`);
+				return { success: true };
+			} catch (error) {
+				logger.error('SOCKET', `Failed to close session ${runId}:`, error);
+				return { success: false, error: error.message };
 			}
 		}
 	};

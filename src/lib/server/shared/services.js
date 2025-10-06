@@ -13,6 +13,15 @@ import { WorkspaceRepository } from '../database/WorkspaceRepository.js';
 import { AdapterRegistry } from '../sessions/AdapterRegistry.js';
 import { EventRecorder } from '../sessions/EventRecorder.js';
 import { SessionOrchestrator } from '../sessions/SessionOrchestrator.js';
+import { AuthService } from './auth.js';
+import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
+import { MultiAuthManager, GitHubAuthProvider } from './auth/oauth.js';
+import { TunnelManager } from './TunnelManager.js';
+import { VSCodeTunnelManager } from './VSCodeTunnelManager.js';
+import path from 'node:path';
+import os from 'node:os';
+import { logger } from './utils/logger.js';
+import { SESSION_TYPE } from '../../shared/session-types.js';
 
 // Adapters
 import { PtyAdapter } from '../terminal/PtyAdapter.js';
@@ -25,15 +34,37 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  * @returns {Object} Services object containing all initialized services
  */
 export function createServices(config = {}) {
+	// Resolve tilde paths
+	const homeDir = config.HOME || process.env.HOME || os.homedir();
+	const resolvedConfig = {
+		dbPath: (config.dbPath || process.env.DB_PATH || '~/.dispatch/data/workspace.db').replace(
+			/^~\//,
+			`${homeDir}/`
+		),
+		workspacesRoot: (
+			config.workspacesRoot ||
+			process.env.WORKSPACES_ROOT ||
+			'~/.dispatch-home/workspaces'
+		).replace(/^~\//, `${homeDir}/`),
+		configDir: (
+			config.configDir ||
+			process.env.DISPATCH_CONFIG_DIR ||
+			'~/.config/dispatch'
+		).replace(/^~\//, `${homeDir}/`),
+		port: config.port || process.env.PORT || 3030,
+		tunnelSubdomain: config.tunnelSubdomain || process.env.LT_SUBDOMAIN || '',
+		debug: config.debug || process.env.DEBUG === 'true'
+	};
+
 	// Layer 1: Configuration
-	const configService = new ConfigurationService(config);
+	const configService = new ConfigurationService({
+		...config,
+		...resolvedConfig
+	});
 
 	// Layer 2: Core infrastructure
 	const jwtService = new JWTService(configService.get('TERMINAL_KEY'));
-	const db = new DatabaseManager({
-		dbPath: config.dbPath,
-		HOME: configService.get('HOME')
-	});
+	const db = new DatabaseManager(resolvedConfig.dbPath);
 
 	// Layer 3: Repositories (depend on db)
 	const sessionRepository = new SessionRepository(db);
@@ -44,30 +75,69 @@ export function createServices(config = {}) {
 	// Layer 4: Session components
 	const adapterRegistry = new AdapterRegistry();
 	const eventRecorder = new EventRecorder(eventStore);
-
-	// Layer 5: Orchestrators (depend on repositories + services)
 	const sessionOrchestrator = new SessionOrchestrator(
 		sessionRepository,
 		eventRecorder,
 		adapterRegistry
 	);
 
-	// Register adapters
-	adapterRegistry.register('pty', new PtyAdapter());
-	adapterRegistry.register('claude', new ClaudeAdapter());
-	adapterRegistry.register('file-editor', new FileEditorAdapter());
+	// Layer 5: Auth services
+	const authService = new AuthService();
+	const claudeAuthManager = new ClaudeAuthManager();
+	const multiAuthManager = new MultiAuthManager(db);
+
+	// Layer 6: Tunnel services
+	const tunnelManager = new TunnelManager({
+		port: resolvedConfig.port,
+		subdomain: resolvedConfig.tunnelSubdomain,
+		database: db
+	});
+	const vscodeManager = new VSCodeTunnelManager({ database: db });
+
+	// Layer 7: Register adapters
+	const ptyAdapter = new PtyAdapter();
+	const claudeAdapter = new ClaudeAdapter();
+	const fileEditorAdapter = new FileEditorAdapter();
+
+	adapterRegistry.register(SESSION_TYPE.PTY, ptyAdapter);
+	adapterRegistry.register(SESSION_TYPE.CLAUDE, claudeAdapter);
+	adapterRegistry.register(SESSION_TYPE.FILE_EDITOR, fileEditorAdapter);
 
 	return {
+		// Core
 		config: configService,
 		jwt: jwtService,
 		db,
+		database: db, // Alias for backward compatibility
+
+		// Repositories
 		sessionRepository,
 		eventStore,
 		settingsRepository,
 		workspaceRepository,
+
+		// Session management
 		adapterRegistry,
 		eventRecorder,
-		sessionOrchestrator
+		sessionOrchestrator,
+
+		// Auth
+		auth: authService,
+		claudeAuthManager,
+		multiAuthManager,
+
+		// Tunnels
+		tunnelManager,
+		vscodeManager,
+
+		// Adapters (direct access)
+		ptyAdapter,
+		claudeAdapter,
+		fileEditorAdapter,
+
+		// Convenience methods
+		getAuthManager: () => multiAuthManager,
+		getDatabase: () => db
 	};
 }
 
@@ -79,25 +149,80 @@ export let services = null;
 /**
  * Initialize services (called once at app startup)
  * @param {Object} [config] - Optional configuration overrides
- * @returns {Object} Initialized services
+ * @returns {Promise<Object>} Initialized services
  */
 export async function initializeServices(config = {}) {
 	if (services) {
 		return services;
 	}
 
-	services = createServices(config);
+	try {
+		logger.info('SERVICES', 'Initializing services...');
 
-	// Initialize database
-	await services.db.init();
+		services = createServices(config);
 
-	// Initialize default settings
-	await services.settingsRepository.initializeDefaults();
+		// Initialize database
+		await services.db.init();
 
-	// Mark all sessions as stopped (cleanup from previous run)
-	await services.sessionRepository.markAllStopped();
+		// Mark all sessions as stopped (cleanup from previous run)
+		await services.sessionRepository.markAllStopped();
+		logger.info('SERVICES', 'Cleared stale running sessions on startup');
 
-	return services;
+		// Initialize AuthService
+		await services.auth.initialize(services.db);
+		logger.info('SERVICES', 'AuthService initialized');
+
+		// Initialize MultiAuthManager
+		await services.multiAuthManager.init();
+
+		// Wire MultiAuthManager to AuthService
+		services.auth.setMultiAuthManager(services.multiAuthManager);
+
+		// Register OAuth providers from settings
+		const authSettingsRow = await services.db.get(
+			"SELECT * FROM settings WHERE category = 'authentication'"
+		);
+
+		if (authSettingsRow && authSettingsRow.settings_json) {
+			try {
+				const authSettings = JSON.parse(authSettingsRow.settings_json);
+
+				if (authSettings.oauth_client_id && authSettings.oauth_client_secret) {
+					const githubProvider = new GitHubAuthProvider({
+						clientId: authSettings.oauth_client_id,
+						clientSecret: authSettings.oauth_client_secret,
+						redirectUri:
+							authSettings.oauth_redirect_uri ||
+							`http://localhost:${services.config.get('PORT')}/auth/callback`,
+						scopes: (authSettings.oauth_scope || 'user:email').split(' ')
+					});
+					await services.multiAuthManager.registerProvider(githubProvider);
+					logger.info('SERVICES', 'GitHub OAuth provider registered');
+				} else {
+					logger.info('SERVICES', 'GitHub OAuth not configured - skipping provider registration');
+				}
+			} catch (error) {
+				logger.error('SERVICES', 'Failed to parse authentication settings:', error);
+			}
+		} else {
+			logger.info(
+				'SERVICES',
+				'No authentication settings found - skipping OAuth provider registration'
+			);
+		}
+
+		// Initialize tunnel managers
+		await services.tunnelManager.init();
+		await services.vscodeManager.init();
+
+		logger.info('SERVICES', 'Services initialized successfully');
+		logger.info('SERVICES', `SessionOrchestrator stats:`, services.sessionOrchestrator.getStats());
+
+		return services;
+	} catch (error) {
+		logger.error('SERVICES', 'Failed to initialize services:', error);
+		throw error;
+	}
 }
 
 /**

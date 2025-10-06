@@ -25,7 +25,8 @@ export class DatabaseManager {
 	 */
 	constructor(config = {}) {
 		this.#dbPath =
-			config.dbPath || join(config.HOME || process.env.HOME || homedir(), '.dispatch', 'data', 'workspace.db');
+			config.dbPath ||
+			join(config.HOME || process.env.HOME || homedir(), '.dispatch', 'data', 'workspace.db');
 	}
 
 	/**
@@ -69,10 +70,7 @@ export class DatabaseManager {
 			await fs.mkdir(dirname(this.#dbPath), { recursive: true });
 
 			// Create database connection
-			this.#db = new sqlite3.Database(
-				this.#dbPath,
-				sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE
-			);
+			this.#db = new sqlite3.Database(this.#dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE);
 
 			// Configure database
 			await this.#configure();
@@ -202,11 +200,15 @@ export class DatabaseManager {
 	 * @private
 	 */
 	async #createIndexes() {
-		await this.run('CREATE UNIQUE INDEX IF NOT EXISTS ix_events_run_seq ON session_events(run_id, seq)');
+		await this.run(
+			'CREATE UNIQUE INDEX IF NOT EXISTS ix_events_run_seq ON session_events(run_id, seq)'
+		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_events_run_ts ON session_events(run_id, ts)');
 		await this.run('CREATE INDEX IF NOT EXISTS ix_sessions_kind ON sessions(kind)');
 		await this.run('CREATE INDEX IF NOT EXISTS ix_sessions_status ON sessions(status)');
-		await this.run('CREATE INDEX IF NOT EXISTS ix_workspace_layout_client ON workspace_layout(client_id)');
+		await this.run(
+			'CREATE INDEX IF NOT EXISTS ix_workspace_layout_client ON workspace_layout(client_id)'
+		);
 		await this.run('CREATE INDEX IF NOT EXISTS ix_logs_timestamp ON logs(timestamp)');
 	}
 

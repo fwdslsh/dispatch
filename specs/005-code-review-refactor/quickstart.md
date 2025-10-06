@@ -468,8 +468,8 @@ If ANY criteria fail → **Return to implementation and fix issues**
 
 ## Sign-Off
 
-**Tester**: ********\_********
-**Date**: ********\_********
+**Tester**: **\*\*\*\***\_**\*\*\*\***
+**Date**: **\*\*\*\***\_**\*\*\*\***
 **Result**: ☐ Pass ☐ Fail (with notes attached)
 
 **Notes**:

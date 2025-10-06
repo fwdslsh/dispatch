@@ -1,10 +1,12 @@
 /**
  * EventStore - Append-only event log management
  * @file Handles session event persistence and retrieval
+ * Implements atomic sequence number management from RunSessionManager
  */
 
 export class EventStore {
 	#db;
+	#sequences = new Map(); // sessionId -> nextSeq (atomic in-memory counter)
 
 	/**
 	 * @param {DatabaseManager} db - Database connection manager
@@ -14,25 +16,32 @@ export class EventStore {
 	}
 
 	/**
-	 * Append event to session log
+	 * Append event to session log with atomic sequence numbering
 	 * @param {string} sessionId - Session ID (run_id)
 	 * @param {Object} event - Event data
 	 * @param {string} event.channel - Event channel (e.g., 'pty:stdout', 'claude:delta')
 	 * @param {string} event.type - Event type (e.g., 'chunk', 'text', 'json')
 	 * @param {Object|Uint8Array} event.payload - Event payload
-	 * @returns {Promise<{seq: number}>} Sequence number assigned
+	 * @returns {Promise<Object>} Event row with sequence number
 	 */
 	async append(sessionId, event) {
 		const { channel, type, payload } = event;
 
-		// Get next sequence number
-		const seq = await this.#getNextSequence(sessionId);
+		// Get or initialize sequence counter (atomic)
+		if (!this.#sequences.has(sessionId)) {
+			const lastSeq = await this.getLatestSeq(sessionId);
+			this.#sequences.set(sessionId, lastSeq + 1);
+		}
+
+		// Atomic increment
+		const seq = this.#sequences.get(sessionId);
+		this.#sequences.set(sessionId, seq + 1);
+
 		const ts = Date.now();
 
 		// Encode payload
-		const buf = payload instanceof Uint8Array
-			? payload
-			: new TextEncoder().encode(JSON.stringify(payload));
+		const buf =
+			payload instanceof Uint8Array ? payload : new TextEncoder().encode(JSON.stringify(payload));
 
 		await this.#db.run(
 			`INSERT INTO session_events (run_id, seq, channel, type, payload, ts)
@@ -40,7 +49,22 @@ export class EventStore {
 			[sessionId, seq, channel, type, buf, ts]
 		);
 
-		return { seq };
+		return {
+			seq,
+			channel,
+			type,
+			payload,
+			timestamp: ts
+		};
+	}
+
+	/**
+	 * Clear sequence counter for session (cleanup)
+	 * @param {string} sessionId - Session ID
+	 * @returns {void}
+	 */
+	clearSequence(sessionId) {
+		this.#sequences.delete(sessionId);
 	}
 
 	/**
@@ -58,7 +82,7 @@ export class EventStore {
 			[sessionId, fromSeq]
 		);
 
-		return rows.map(row => this.#parseEvent(row));
+		return rows.map((row) => this.#parseEvent(row));
 	}
 
 	/**

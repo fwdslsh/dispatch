@@ -3,7 +3,7 @@
  * @file Creates Socket.IO authentication middleware using JWT
  */
 
-import { JWTService } from "$lib/server/auth/JWTService";
+import { JWTService } from '$lib/server/auth/JWTService';
 
 /**
  * Create authentication middleware

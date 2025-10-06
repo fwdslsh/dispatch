@@ -55,6 +55,7 @@
 ### Primary User Story
 
 As a **developer working on the Dispatch codebase**, I need the architecture to be organized with clear separation of concerns and explicit dependencies, so that I can:
+
 - Understand which components are responsible for specific functionality
 - Add new features without modifying unrelated code
 - Write unit tests with mockable dependencies
@@ -86,6 +87,7 @@ As a **developer working on the Dispatch codebase**, I need the architecture to 
 ### Functional Requirements
 
 **Dependency Management**
+
 - **FR-001**: System MUST eliminate reliance on global service locator pattern through explicit module exports/imports and Svelte context API
 - **FR-002**: System MUST make service dependencies visible at component boundaries (ES6 module imports, Svelte setContext/getContext)
 - **FR-003**: System MUST support test environment with mock dependency substitution via module mocking and context overrides
@@ -94,12 +96,14 @@ As a **developer working on the Dispatch codebase**, I need the architecture to 
 - **FR-006**: System MUST fail-fast at startup if circular dependencies are detected (JavaScript will throw naturally), logging clear error message
 
 **Database Access Layer**
+
 - **FR-007**: System MUST separate database operations into domain-specific repositories (sessions, events, settings, workspaces)
 - **FR-008**: System MUST maintain single responsibility principle for each repository (focused on one data model)
 - **FR-009**: System MUST define per-request transaction boundaries where each API/Socket request is one atomic transaction encompassing all repository operations
 - **FR-010**: System MUST continue to enforce serial write operations to prevent concurrency conflicts
 
 **Session Management**
+
 - **FR-011**: System MUST decompose RunSessionManager into focused components (adapter registry, event recorder, session registry, orchestration service)
 - **FR-012**: System MUST separate session event emission from Socket.IO to enable multiple event consumers
 - **FR-013**: System MUST maintain event sourcing architecture with sequence-numbered events
@@ -107,62 +111,73 @@ As a **developer working on the Dispatch codebase**, I need the architecture to 
 - **FR-015**: System MUST continue to support multi-client session synchronization
 
 **Socket Event Handling**
+
 - **FR-016**: System MUST organize socket event handlers into domain-specific modules (run sessions, auth, tunnels, settings, workspaces)
 - **FR-017**: System MUST provide common middleware for cross-cutting concerns (authentication, error handling, logging)
 - **FR-018**: System MUST maintain event-driven architecture with Socket.IO
 - **FR-019**: System MAY update socket event contracts (run:attach, run:input, run:close, etc.) if needed, but client-side code MUST be updated accordingly to maintain compatibility
 
 **Tunnel Management**
+
 - **FR-020**: System MUST abstract shared tunnel management logic into reusable base class
 - **FR-021**: System MUST eliminate code duplication between TunnelManager and VSCodeTunnelManager
 - **FR-022**: System MUST preserve tunnel lifecycle operations (start, stop, status monitoring)
 - **FR-023**: System MUST continue broadcasting tunnel status events via Socket.IO
 
 **API Request Handling**
+
 - **FR-024**: System MUST provide uniform error handling across all API endpoints
 - **FR-025**: System MUST centralize authentication checks using JWT tokens for all authentication types
 - **FR-026**: System MUST maintain consistent response format across endpoints
 - **FR-027**: System MUST preserve all existing API contracts and endpoint URLs
 
 **Configuration Management**
+
 - **FR-028**: System MUST centralize environment variable reading and configuration assembly
 - **FR-029**: System MUST document all required and optional configuration parameters
 - **FR-030**: System MUST provide typed configuration objects to components
 - **FR-031**: System MUST support configuration override for testing environments
 
 **Adapter Pattern**
+
 - **FR-032**: System MUST maintain adapter pattern for session types (terminal, Claude, file editor)
 - **FR-033**: System MUST preserve adapter interface contract (create, input.write, resize, close, status)
 - **FR-034**: System MUST continue supporting extensibility for new session types
 - **FR-035**: System MUST maintain adapter registration mechanism
 
 **Initialization & Error Handling**
+
 - **FR-036**: System MUST crash immediately with non-zero exit code when required service initialization fails (DatabaseManager, AuthService, etc.)
 - **FR-037**: System MUST log detailed initialization failure messages including service name, error reason, and stack trace before exiting
 
 ### Non-Functional Requirements
 
 **Maintainability**
+
 - **NFR-001**: Refactored code MUST reduce cognitive load by limiting class responsibilities
 - **NFR-002**: Refactored code MUST improve navigability with clear file organization
 - **NFR-003**: Refactored code MUST reduce coupling between components
 
 **Testability**
+
 - **NFR-004**: Refactored architecture MUST enable unit testing with isolated components
 - **NFR-005**: Refactored architecture MUST support integration testing with controlled dependencies
 - **NFR-006**: Refactored architecture MUST allow test doubles (mocks, stubs) for external dependencies
 
 **Performance**
+
 - **NFR-007**: Refactoring MUST NOT degrade session creation performance (maintain < 100ms baseline)
 - **NFR-008**: Refactoring MUST NOT degrade event processing throughput
 - **NFR-009**: Refactoring MUST NOT increase memory footprint significantly (< 10% increase acceptable)
 
 **Compatibility**
+
 - **NFR-010**: Refactoring MUST preserve all existing API contracts
 - **NFR-011**: Refactoring MUST maintain Socket.IO event protocol compatibility
 - **NFR-012**: Refactoring MAY require client-side changes to align with server refactoring, and client-side code SHOULD be updated as needed to work with the refactored architecture
 
 **Deployment**
+
 - **NFR-013**: Refactoring MUST be deployed as Big Bang (single release) after comprehensive testing, not incrementally
 - **NFR-014**: All server-side and client-side changes MUST be deployed together in coordinated release
 

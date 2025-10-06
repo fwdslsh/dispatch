@@ -26,6 +26,7 @@ npm run dev:test
 ```
 
 **Validation**:
+
 - No "DependencyContainer" references in logs (that was the old complex approach)
 - Services initialized via factory function
 - Dependencies explicitly wired (visible in logs)
@@ -48,6 +49,7 @@ export function initializeServices(config) {
 ```
 
 **Failure Indicators**:
+
 - References to "DependencyContainer.resolve()"
 - Hidden service initialization
 - Circular import errors (JavaScript throws naturally)
@@ -83,13 +85,14 @@ curl -X POST http://localhost:7173/api/sessions \
 import { services } from '$lib/server/shared/services';
 
 export async function POST({ request }) {
-  const session = await services.sessionRepository.create(data);
-  await services.eventStore.append(session.id, event);
-  return json(session);
+	const session = await services.sessionRepository.create(data);
+	await services.eventStore.append(session.id, event);
+	return json(session);
 }
 ```
 
 **Validation**:
+
 - Import from `services` module (simple ES6 import)
 - No global singleton pattern (`globalServicesInstance`)
 - Repository methods called directly
@@ -133,11 +136,13 @@ export async function POST({ request }) {
 ```
 
 **Validation**:
+
 - Using native Svelte `setContext`/`getContext` (not custom framework)
 - Services shared from root layout
 - Child components retrieve via `getContext`
 
 **Failure Indicators**:
+
 - Custom context provider classes
 - Global stores instead of context
 - Props drilling
@@ -173,6 +178,7 @@ mediator.initialize();
 ```
 
 **Validation**:
+
 - Middleware as factory functions (closures over services)
 - Domain handlers in separate modules
 - No monolithic socket-setup.js
@@ -204,19 +210,19 @@ curl -X GET "http://localhost:7173/api/sessions" \
 ```javascript
 // Simple JWTService class (no framework)
 class JWTService {
-  #secret;
+	#secret;
 
-  constructor(terminalKey) {
-    this.#secret = terminalKey;
-  }
+	constructor(terminalKey) {
+		this.#secret = terminalKey;
+	}
 
-  generateToken(payload) {
-    return jwt.sign(payload, this.#secret, { expiresIn: '30d' });
-  }
+	generateToken(payload) {
+		return jwt.sign(payload, this.#secret, { expiresIn: '30d' });
+	}
 
-  validateToken(token) {
-    return jwt.verify(token, this.#secret);
-  }
+	validateToken(token) {
+		return jwt.verify(token, this.#secret);
+	}
 }
 
 // Used in services
@@ -225,6 +231,7 @@ const claims = services.jwtService.validateToken(token);
 ```
 
 **Validation**:
+
 - Simple ES6 class with private fields
 - Constructor receives dependencies (explicit)
 - No complex auth framework
@@ -249,24 +256,26 @@ import { vi } from 'vitest';
 
 // Simple module mock (native Vitest)
 vi.mock('$lib/server/shared/services', () => ({
-  services: {
-    sessionRepository: { create: vi.fn() },
-    sessionOrchestrator: { createSession: vi.fn() }
-  }
+	services: {
+		sessionRepository: { create: vi.fn() },
+		sessionOrchestrator: { createSession: vi.fn() }
+	}
 }));
 
 test('creates session', async () => {
-  services.sessionOrchestrator.createSession.mockResolvedValue({ id: '123' });
-  // Test API route
+	services.sessionOrchestrator.createSession.mockResolvedValue({ id: '123' });
+	// Test API route
 });
 ```
 
 **Validation**:
+
 - Using Vitest `vi.mock()` (native, not custom framework)
 - Mocking entire `services` export
 - No DI container test mode
 
 **Failure Indicators**:
+
 - Custom mock container classes
 - Complex test setup
 - Framework-specific test patterns
@@ -291,11 +300,13 @@ done
 ```
 
 **Validation**:
+
 - Session creation < 100ms (NFR-007)
 - Event throughput maintained (NFR-008)
 - Memory < 10% increase (NFR-009)
 
 **Why Simplified Approach is Fast**:
+
 - No DI container overhead (direct function calls)
 - Native ES6 modules (optimized by V8)
 - Svelte context (minimal runtime cost)
@@ -319,6 +330,7 @@ npm run test:perf
 ```
 
 **Expected Results**:
+
 - ✅ All unit tests pass (simple mocks via `vi.mock()`)
 - ✅ All integration tests pass (factory function creates valid services)
 - ✅ All E2E tests pass (no regressions)
@@ -379,6 +391,7 @@ Test called real service instead of mock
 ✅ Performance targets met (< 100ms sessions, throughput maintained, < 10% memory)
 
 **Simplicity Check**:
+
 - Can a new developer understand dependency graph in 5 minutes? ✅ (just read `createServices()`)
 - Is testing straightforward? ✅ (standard `vi.mock()` patterns)
 - Zero framework magic? ✅ (native JavaScript/Svelte only)
@@ -390,6 +403,7 @@ Test called real service instead of mock
 ## Comparison to Complex Approach (What We Avoided)
 
 **❌ What We Did NOT Do** (complex approach):
+
 - Create DependencyContainer class (~200 lines)
 - Implement service registration API
 - Build circular dependency detection framework
@@ -397,6 +411,7 @@ Test called real service instead of mock
 - Learn DI framework DSL
 
 **✅ What We DID Do** (simple approach):
+
 - Write `createServices()` factory function (~50 lines)
 - Use ES6 imports (native JavaScript)
 - Use Svelte context API (native Svelte)
