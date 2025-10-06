@@ -1,7 +1,7 @@
 import { logger } from './utils/logger';
 
 /**
- * @typedef {import('../auth/MultiAuthManager.js').MultiAuthManager} MultiAuthManager
+ * @typedef {import('./auth/oauth.js').MultiAuthManager} MultiAuthManager
  */
 
 /**

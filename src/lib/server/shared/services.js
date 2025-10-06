@@ -55,9 +55,6 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  * @property {() => DatabaseManager} getDatabase
  */
 
-// Export type for use in app.d.ts
-export { Services };
-
 /**
  * Factory function to create all services with dependencies wired
  * @param {Object} [config] - Optional configuration overrides
