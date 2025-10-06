@@ -10,6 +10,7 @@ export class EventStore {
 	#db;
 	#sequences = new Map(); // sessionId -> nextSeq (atomic in-memory counter)
 	#initializingSequences = new Set(); // Track sequences being initialized (mutex)
+	#appendLocks = new Map(); // sessionId -> Promise (append operation lock)
 
 	/**
 	 * @param {DatabaseManager} db - Database connection manager
@@ -48,8 +49,8 @@ export class EventStore {
 					);
 				}
 
-				// Log retries for visibility (at INFO level after retry 3)
-				if (retryCount >= 3) {
+				// Log retries for visibility (at INFO level after retry 5, ~150ms of waiting)
+				if (retryCount >= 5) {
 					logger.info(
 						'EVENTSTORE',
 						`Retry ${retryCount}/${MAX_RETRIES} waiting for sequence init: ${sessionId}`
@@ -72,41 +73,51 @@ export class EventStore {
 			}
 		}
 
-		// Get current sequence (don't increment yet to prevent sequence gaps on DB errors)
-		const seq = this.#sequences.get(sessionId);
-		if (seq === undefined) {
-			throw new Error(`Sequence counter was cleared during append for session ${sessionId}`);
-		}
+		// Lock the session during append to prevent clearSequence() races
+		const appendLock = this.#appendLocks.get(sessionId) || Promise.resolve();
 
-		const ts = Date.now();
+		const operation = appendLock.then(async () => {
+			// Get current sequence (don't increment yet to prevent sequence gaps on DB errors)
+			const seq = this.#sequences.get(sessionId);
+			if (seq === undefined) {
+				throw new Error(`Sequence counter was cleared during append for session ${sessionId}`);
+			}
 
-		// Encode payload
-		const buf =
-			payload instanceof Uint8Array ? payload : new TextEncoder().encode(JSON.stringify(payload));
+			const ts = Date.now();
 
-		try {
-			// Insert to database FIRST
-			await this.#db.run(
-				`INSERT INTO session_events (run_id, seq, channel, type, payload, ts)
-				 VALUES (?, ?, ?, ?, ?, ?)`,
-				[sessionId, seq, channel, type, buf, ts]
-			);
+			// Encode payload
+			const buf =
+				payload instanceof Uint8Array ? payload : new TextEncoder().encode(JSON.stringify(payload));
 
-			// Only increment if insert succeeded (prevents sequence gaps)
-			this.#sequences.set(sessionId, seq + 1);
+			try {
+				// Insert to database FIRST
+				await this.#db.run(
+					`INSERT INTO session_events (run_id, seq, channel, type, payload, ts)
+					 VALUES (?, ?, ?, ?, ?, ?)`,
+					[sessionId, seq, channel, type, buf, ts]
+				);
 
-			return {
-				seq,
-				channel,
-				type,
-				payload,
-				timestamp: ts
-			};
-		} catch (error) {
-			// Database insert failed - don't increment counter to prevent sequence gaps
-			logger.error('EVENTSTORE', `Failed to append event for session ${sessionId}:`, error.message);
-			throw new Error(`Failed to append event for session ${sessionId}: ${error.message}`);
-		}
+				// Only increment if insert succeeded (prevents sequence gaps)
+				this.#sequences.set(sessionId, seq + 1);
+
+				return {
+					seq,
+					channel,
+					type,
+					payload,
+					timestamp: ts
+				};
+			} catch (error) {
+				// Database insert failed - don't increment counter to prevent sequence gaps
+				logger.error('EVENTSTORE', `Failed to append event for session ${sessionId}:`, error.message);
+				throw new Error(`Failed to append event for session ${sessionId}: ${error.message}`);
+			}
+		});
+
+		// Update lock (swallow errors to prevent lock poisoning)
+		this.#appendLocks.set(sessionId, operation.catch(() => {}));
+
+		return operation;
 	}
 
 	/**
@@ -117,6 +128,7 @@ export class EventStore {
 	clearSequence(sessionId) {
 		this.#sequences.delete(sessionId);
 		this.#initializingSequences.delete(sessionId); // Also clear mutex to prevent stale entries
+		this.#appendLocks.delete(sessionId); // Also clear append lock to prevent memory leak
 	}
 
 	/**

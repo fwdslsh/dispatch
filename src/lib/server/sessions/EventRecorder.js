@@ -99,7 +99,8 @@ export class EventRecorder {
 		}
 
 		// Serialize async operations to prevent race conditions
-		buffer.eventQueue = buffer.eventQueue
+		// Chain the operation but return a clean promise to caller
+		const operation = buffer.eventQueue
 			.then(async () => {
 				return await this.#persistAndEmit(sessionId, event);
 			})
@@ -111,7 +112,12 @@ export class EventRecorder {
 				throw err;
 			});
 
-		return buffer.eventQueue;
+		// Update queue to continue from this operation (swallow error to prevent chain poisoning)
+		buffer.eventQueue = operation.catch(() => {
+			// Error already logged/emitted above, swallow to keep queue healthy
+		});
+
+		return operation; // Return the operation itself so caller gets the error
 	}
 
 	/**
@@ -177,6 +183,7 @@ export class EventRecorder {
 	 */
 	removeAllListeners() {
 		this.#eventEmitter.removeAllListeners('event');
+		this.#eventEmitter.removeAllListeners('error');
 	}
 
 	/**
