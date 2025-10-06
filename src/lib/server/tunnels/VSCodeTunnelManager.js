@@ -7,6 +7,11 @@ import { BaseTunnelManager } from './BaseTunnelManager.js';
  * Uses database settings for persistent tunnel configuration
  */
 export class VSCodeTunnelManager extends BaseTunnelManager {
+	/**
+	 * @param {Object} options
+	 * @param {*} [options.database]
+	 * @param {*} [options.settingsRepository]
+	 */
 	constructor({ database, settingsRepository }) {
 		super({
 			settingsRepository: settingsRepository || database,
