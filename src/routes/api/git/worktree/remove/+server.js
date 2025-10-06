@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { spawn } from 'node:child_process';
+import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -9,42 +9,12 @@ function expandTilde(filepath) {
 		return filepath.replace(/^~/, homedir());
 	}
 	return filepath;
-}
 
 // Resolve path with proper tilde expansion
 function resolvePath(filepath) {
 	const expanded = expandTilde(filepath);
 	return resolve(expanded);
-}
 
-// Execute git command in specified directory
-function execGit(args, cwd) {
-	return new Promise((resolve, reject) => {
-		const git = spawn('git', args, { cwd, encoding: 'utf8' });
-		let stdout = '';
-		let stderr = '';
-
-		git.stdout.on('data', (data) => {
-			stdout += data;
-		});
-
-		git.stderr.on('data', (data) => {
-			stderr += data;
-		});
-
-		git.on('close', (code) => {
-			if (code === 0) {
-				resolve(stdout.trim());
-			} else {
-				reject(new Error(stderr.trim() || `Git command failed with code ${code}`));
-			}
-		});
-
-		git.on('error', (error) => {
-			reject(error);
-		});
-	});
-}
 
 export async function POST({ request, locals }) {
 	try {
@@ -82,4 +52,3 @@ export async function POST({ request, locals }) {
 		console.error('Git worktree remove error:', error);
 		return json({ error: error.message || 'Failed to remove worktree' }, { status: 500 });
 	}
-}

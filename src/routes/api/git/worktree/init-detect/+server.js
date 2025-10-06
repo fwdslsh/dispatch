@@ -9,13 +9,11 @@ function expandTilde(filepath) {
 		return filepath.replace(/^~/, homedir());
 	}
 	return filepath;
-}
 
 // Resolve path with proper tilde expansion
 function resolvePath(filepath) {
 	const expanded = expandTilde(filepath);
 	return resolve(expanded);
-}
 
 // Common initialization patterns based on project files
 const INIT_PATTERNS = [
@@ -91,7 +89,6 @@ function detectInitCommands(projectPath) {
 	}
 
 	return detected;
-}
 
 // Check for existing initialization scripts
 function findExistingInitScript(projectPath) {
@@ -114,7 +111,6 @@ function findExistingInitScript(projectPath) {
 	}
 
 	return null;
-}
 
 export async function GET({ url, request, locals }) {
 	try {
@@ -158,7 +154,6 @@ export async function GET({ url, request, locals }) {
 		console.error('Init detection error:', error);
 		return json({ error: error.message || 'Failed to detect initialization' }, { status: 500 });
 	}
-}
 
 export async function POST({ request, locals }) {
 	try {
@@ -204,4 +199,3 @@ export async function POST({ request, locals }) {
 			{ status: 500 }
 		);
 	}
-}

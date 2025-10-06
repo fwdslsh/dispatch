@@ -29,9 +29,34 @@ import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 
 /**
+ * @typedef {Object} Services
+ * @property {ConfigurationService} config
+ * @property {JWTService} jwt
+ * @property {DatabaseManager} db
+ * @property {DatabaseManager} database
+ * @property {SessionRepository} sessionRepository
+ * @property {EventStore} eventStore
+ * @property {SettingsRepository} settingsRepository
+ * @property {WorkspaceRepository} workspaceRepository
+ * @property {AdapterRegistry} adapterRegistry
+ * @property {EventRecorder} eventRecorder
+ * @property {SessionOrchestrator} sessionOrchestrator
+ * @property {AuthService} auth
+ * @property {ClaudeAuthManager} claudeAuthManager
+ * @property {MultiAuthManager} multiAuthManager
+ * @property {TunnelManager} tunnelManager
+ * @property {VSCodeTunnelManager} vscodeManager
+ * @property {PtyAdapter} ptyAdapter
+ * @property {ClaudeAdapter} claudeAdapter
+ * @property {FileEditorAdapter} fileEditorAdapter
+ * @property {() => MultiAuthManager} getAuthManager
+ * @property {() => DatabaseManager} getDatabase
+ */
+
+/**
  * Factory function to create all services with dependencies wired
  * @param {Object} [config] - Optional configuration overrides
- * @returns {Object} Services object containing all initialized services
+ * @returns {Services} Services object containing all initialized services
  */
 export function createServices(config = {}) {
 	// Resolve tilde paths
@@ -143,6 +168,7 @@ export function createServices(config = {}) {
 
 /**
  * Singleton for app lifecycle
+ * @type {Services | null}
  */
 export let services = null;
 
