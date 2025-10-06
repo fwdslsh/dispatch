@@ -1,101 +1,43 @@
 <script>
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import PublicUrlDisplay from '$lib/client/shared/components/PublicUrlDisplay.svelte';
 	import ErrorDisplay from '$lib/client/shared/components/ErrorDisplay.svelte';
-	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
-	let key = $state('');
-	let error = $state('');
-	let loading = $state(false);
-	let authConfig = $state(null);
+	import { AuthViewModel } from '$lib/client/shared/state/AuthViewModel.svelte.js';
 
-	// PWA state
-	let isPWA = $state(false);
-	let currentUrl = $state('');
-	let urlInput = $state('');
+	// Create ViewModel instance
+	const viewModel = new AuthViewModel();
 
+	// Initialize on mount
 	onMount(async () => {
-		// Detect if running as PWA
-		isPWA =
-			window.matchMedia('(display-mode: standalone)').matches ||
-			/** @type {any} */ (window.navigator).standalone === true ||
-			document.referrer.includes('android-app://');
+		const result = await viewModel.initialize();
 
-		// Initialize current URL and input
-		currentUrl = window.location.href;
-		urlInput = currentUrl;
-
-		// Load authentication configuration
-		try {
-			const r = await fetch('/api/auth/config');
-			if (r.ok) {
-				authConfig = await r.json();
-			}
-		} catch (err) {
-			console.error('Failed to load auth config:', err);
-		}
-
-		// Check if already authenticated via HTTP (more robust than socket for login)
-		const storedKey = localStorage.getItem('dispatch-auth-token');
-		if (storedKey) {
-			try {
-				const r = await fetch(`/api/auth/check`, {
-					method: 'POST',
-					headers: { 'content-type': 'application/json', authorization: `Bearer ${storedKey}` },
-					body: JSON.stringify({ key: storedKey })
-				});
-				if (r.ok) {
-					goto('/workspace');
-				} else {
-					localStorage.removeItem('dispatch-auth-token');
-				}
-			} catch {
-				// Ignore; user can try manual login
-			}
-			return;
+		if (result.redirectToWorkspace) {
+			goto('/workspace');
 		}
 	});
 
+	// Handle form submission
 	async function handleLogin(e) {
 		e.preventDefault();
 
 		// In PWA mode, check if URL needs to be changed first
-		if (isPWA && urlInput && urlInput !== currentUrl) {
-			window.location.href = urlInput;
+		if (viewModel.needsUrlChange) {
+			viewModel.updateUrl(viewModel.urlInput);
 			return;
 		}
 
-		loading = true;
-		error = '';
-		try {
-			const r = await fetch('/api/auth/check', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-				body: JSON.stringify({ key })
-			});
-			loading = false;
-			if (r.ok) {
-				localStorage.setItem('dispatch-auth-token', key);
-				goto('/workspace');
-			} else {
-				const j = await r.json().catch(() => ({}));
-				error = j?.error || 'Invalid key';
-			}
-		} catch {
-			loading = false;
-			error = 'Unable to reach server';
+		const result = await viewModel.loginWithKey(viewModel.key);
+		if (result.success) {
+			goto('/workspace');
 		}
 	}
 
+	// Handle OAuth login
 	function handleOAuthLogin() {
-		if (!authConfig?.oauth_configured) return;
-
-		// Redirect to OAuth authorization endpoint
-		const redirectUri = authConfig.oauth_redirect_uri;
-		const clientId = authConfig.oauth_client_id;
-		const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`;
-		window.location.href = authUrl;
+		viewModel.loginWithOAuth();
 	}
 </script>
 
@@ -110,34 +52,34 @@
 			<p>terminal access via web</p>
 
 			<div class="card aug" data-augmented-ui="tl-clip br-clip both">
-				{#if authConfig}
+				{#if viewModel.authConfig}
 					<form onsubmit={handleLogin}>
-						{#if isPWA}
+						{#if viewModel.isPWA}
 							<Input
-								bind:value={urlInput}
+								bind:value={viewModel.urlInput}
 								type="url"
 								placeholder="server URL"
 								required
-								disabled={loading}
+								disabled={viewModel.loading}
 							/>
 						{/if}
 
-						{#if authConfig.terminal_key_set}
+						{#if viewModel.hasTerminalKeyAuth}
 							<Input
-								bind:value={key}
+								bind:value={viewModel.key}
 								type="password"
 								placeholder="terminal key"
 								data-testid="terminal-key-input"
 								required
-								disabled={loading}
+								disabled={viewModel.loading}
 							/>
-							<Button class="button primary aug" type="submit" disabled={loading}>
-								{loading ? 'connecting...' : 'connect'}
+							<Button class="button primary aug" type="submit" disabled={viewModel.loading}>
+								{viewModel.loading ? 'connecting...' : 'connect'}
 							</Button>
 						{/if}
 
-						{#if authConfig.oauth_configured}
-							{#if authConfig.terminal_key_set}
+						{#if viewModel.hasOAuthAuth}
+							{#if viewModel.hasTerminalKeyAuth}
 								<div class="auth-divider">
 									<span>or</span>
 								</div>
@@ -146,7 +88,7 @@
 								class="button oauth aug"
 								type="button"
 								onclick={handleOAuthLogin}
-								disabled={loading}
+								disabled={viewModel.loading}
 							>
 								<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
 									<path
@@ -157,7 +99,7 @@
 							</Button>
 						{/if}
 
-						{#if !authConfig.terminal_key_set && !authConfig.oauth_configured}
+						{#if !viewModel.hasAnyAuth}
 							<p class="auth-notice">
 								No authentication methods configured. Please contact your administrator.
 							</p>
@@ -171,8 +113,8 @@
 			</div>
 
 			<PublicUrlDisplay />
-			{#if error}
-				<ErrorDisplay {error} />
+			{#if viewModel.error}
+				<ErrorDisplay error={viewModel.error} />
 			{/if}
 		</div>
 	</div>

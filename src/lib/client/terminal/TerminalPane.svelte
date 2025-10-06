@@ -3,7 +3,7 @@
 	import { Terminal } from '@xterm/xterm';
 	import { FitAddon } from '@xterm/addon-fit';
 	import '@xterm/xterm/css/xterm.css';
-	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
+	import { TerminalPaneViewModel } from './viewmodels/TerminalPaneViewModel.svelte.js';
 	import MobileTerminalView from './MobileTerminalView.svelte';
 
 	const fitAddon = new FitAddon();
@@ -49,11 +49,6 @@
 		};
 	}
 
-	// State for history loading
-	let isCatchingUp = $state(false);
-	let isAttached = $state(false);
-	let connectionError = $state(null);
-
 	// Mobile detection
 	let isTouchDevice = $state(false);
 
@@ -62,7 +57,14 @@
 		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
 	}
 
-	let key = localStorage.getItem('dispatch-auth-token');
+	// Initialize ViewModel
+	const authKey = localStorage.getItem('dispatch-auth-token');
+	const viewModel = new TerminalPaneViewModel({
+		sessionId,
+		authKey,
+		shouldResume
+	});
+
 	// Handle window resize and ensure terminal fits its container
 	const resize = () => {
 		// Fit terminal to container first so cols/rows update
@@ -72,53 +74,25 @@
 			// fit may throw if terminal not yet attached; ignore
 		}
 
-		if (isAttached && runSessionClient.getStatus().connected) {
-			try {
-				runSessionClient.resizeTerminal(sessionId, term.cols, term.rows);
-			} catch (error) {
-				console.error('[TERMINAL] Failed to resize terminal:', error);
-			}
+		// Use ViewModel to handle resize
+		if (viewModel.isAttached) {
+			viewModel.resizeTerminal(term.cols, term.rows);
 		}
 	};
 
-	// Event handler for terminal data from run session
-	function handleRunEvent(event) {
-		try {
-			// If we receive output while catching up, clear the flag
-			if (isCatchingUp) {
-				isCatchingUp = false;
-				console.log('[TERMINAL] Received output from active session - caught up');
-			}
-
-			console.log('[TERMINAL] Event received:', event);
-
-			// Handle different event channels
-			if (event.channel === 'pty:stdout' || event.channel === 'pty:stderr') {
-				const data = event.payload;
-				if (data) {
-					// Convert Uint8Array to string if needed
-					const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
-					term.write(text);
-				}
-			} else if (event.channel === 'pty:exit') {
-				console.log('[TERMINAL] Terminal exited with code:', event.payload?.exitCode);
-				isCatchingUp = false;
-			}
-		} catch (e) {
-			console.error('[TERMINAL] Error handling run event:', e);
+	// Event handler for terminal data from ViewModel
+	function handleTerminalEvent(event) {
+		if (event.type === 'data') {
+			term.write(event.data);
+		} else if (event.type === 'exit') {
+			console.log('[TERMINAL] Terminal exited with code:', event.exitCode);
 		}
 	}
 
 	onMount(async () => {
-		// Debug logging for undefined sessionId issue
+		// Debug logging
 		console.log('[TERMINAL] TerminalPane mounted with sessionId:', sessionId);
 		console.log('[TERMINAL] TerminalPane props:', { sessionId, shouldResume });
-
-		// Safety check - don't proceed if sessionId is invalid
-		if (!sessionId || sessionId === 'undefined') {
-			console.error('[TERMINAL] Invalid sessionId, cannot initialize terminal');
-			return;
-		}
 
 		// Detect if we should use touch-optimized mobile view
 		isTouchDevice = detectTouchDevice();
@@ -154,50 +128,23 @@
 		// Fit once after opening so cols/rows are correct for the initial resize
 		fitAddon.fit();
 
-		try {
-			// Authenticate if not already done
-			if (!runSessionClient.getStatus().authenticated) {
-				await runSessionClient.authenticate(key);
-			}
+		// Initialize ViewModel with event handler
+		const result = await viewModel.initialize(handleTerminalEvent);
 
-			// Attach to the run session and get backlog
-			console.log('[TERMINAL] Attaching to run session:', sessionId);
-			isCatchingUp = shouldResume;
-
-			const result = await runSessionClient.attachToRunSession(sessionId, handleRunEvent, 0);
-			isAttached = true;
-			console.log('[TERMINAL] Attached to run session:', result);
-
+		if (result.success) {
 			// Handle user input
 			term.onData((data) => {
-				console.log('[TERMINAL] Sending input for session:', sessionId);
-				try {
-					runSessionClient.sendInput(sessionId, data);
-				} catch (error) {
-					console.error('[TERMINAL] Failed to send input:', error);
-				}
+				viewModel.sendInput(data);
 			});
 
 			// Send initial resize
-			runSessionClient.resizeTerminal(sessionId, term.cols, term.rows);
-
-			// Clear catching up state after a delay if no messages arrived
-			if (shouldResume) {
-				setTimeout(() => {
-					if (isCatchingUp) {
-						isCatchingUp = false;
-						console.log('[TERMINAL] Timeout reached, clearing catching up state');
-					}
-				}, 2000);
-			}
-		} catch (error) {
-			console.error('[TERMINAL] Failed to attach to run session:', error);
-			connectionError = `Failed to connect: ${error.message}`;
-			isCatchingUp = false;
+			viewModel.resizeTerminal(term.cols, term.rows);
 		}
 
+		// Set up window resize listener
 		window.addEventListener('resize', resize);
 
+		// Set up ResizeObserver for container size changes
 		if (typeof ResizeObserver !== 'undefined') {
 			ro = new ResizeObserver(() => {
 				resize();
@@ -207,18 +154,11 @@
 	});
 
 	onDestroy(() => {
-		// Detach from run session
-		if (isAttached && sessionId) {
-			try {
-				runSessionClient.detachFromRunSession(sessionId);
-				console.log('[TERMINAL] Detached from run session:', sessionId);
-			} catch (error) {
-				console.error('[TERMINAL] Failed to detach from run session:', error);
-			}
-		}
+		// Cleanup ViewModel
+		viewModel.cleanup();
 
+		// Cleanup UI resources
 		try {
-			// remove listeners and observers
 			window.removeEventListener('resize', resize);
 		} catch (e) {}
 		try {
@@ -236,11 +176,20 @@
 		<MobileTerminalView {sessionId} {shouldResume} />
 	{:else}
 		<!-- Desktop xterm.js terminal view -->
-		{#if isCatchingUp}
+		{#if viewModel.isCatchingUp}
 			<div class="terminal-loading">
 				<div class="loading-message">
 					<span class="loading-icon">⟳</span>
 					<span>Reconnecting to terminal session...</span>
+				</div>
+			</div>
+		{/if}
+
+		{#if viewModel.connectionError}
+			<div class="terminal-error">
+				<div class="error-message">
+					<span class="error-icon">⚠</span>
+					<span>{viewModel.connectionError}</span>
 				</div>
 			</div>
 		{/if}
@@ -319,5 +268,55 @@
 		color: var(--accent);
 		font-size: 0.875rem;
 		font-family: var(--font-mono);
+	}
+
+	.terminal-error {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 10;
+		background: linear-gradient(
+			to bottom,
+			color-mix(in oklab, var(--bg) 95%, #ef476f 5%),
+			color-mix(in oklab, var(--bg) 80%, transparent)
+		);
+		padding: var(--space-3);
+		animation: fadeIn 0.3s ease-in;
+	}
+
+	.error-message {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		color: #ef476f;
+		font-size: 0.875rem;
+		font-family: var(--font-mono);
+	}
+
+	.error-icon,
+	.loading-icon {
+		animation: pulse 2s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.5;
+		}
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(-8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 </style>
