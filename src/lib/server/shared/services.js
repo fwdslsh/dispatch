@@ -117,9 +117,9 @@ export function createServices(config = {}) {
 	const tunnelManager = new TunnelManager({
 		port: resolvedConfig.port,
 		subdomain: resolvedConfig.tunnelSubdomain,
-		settingsRepository: settingsRepository
+		database: db
 	});
-	const vscodeManager = new VSCodeTunnelManager({ settingsRepository: settingsRepository });
+	const vscodeManager = new VSCodeTunnelManager({ database: db });
 
 	// Layer 7: Register adapters
 	const ptyAdapter = new PtyAdapter();

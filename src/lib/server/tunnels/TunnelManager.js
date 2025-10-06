@@ -6,9 +6,9 @@ import { BaseTunnelManager } from './BaseTunnelManager.js';
  * Uses database settings for persistent tunnel configuration
  */
 export class TunnelManager extends BaseTunnelManager {
-	constructor({ port, subdomain = '', database }) {
+	constructor({ port, subdomain = '', database, settingsRepository }) {
 		super({
-			database,
+			settingsRepository: settingsRepository || database,
 			settingsCategory: 'tunnel',
 			logPrefix: 'TUNNEL'
 		});

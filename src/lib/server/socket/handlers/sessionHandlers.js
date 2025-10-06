@@ -7,6 +7,10 @@
 import { logger } from '../../shared/utils/logger.js';
 
 /**
+ * @typedef {import('../../sessions/SessionOrchestrator.js').SessionOrchestrator} SessionOrchestrator
+ */
+
+/**
  * Create session handlers factory
  * @param {SessionOrchestrator} sessionOrchestrator
  * @returns {Object} Handler functions
