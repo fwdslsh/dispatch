@@ -195,11 +195,100 @@ export class ClaudePaneViewModel {
 	handleRunEvent(event) {
 		console.log('[ClaudePaneViewModel] Handling event:', event);
 
-		const { type, payload } = event;
+		const { channel, type, payload } = event;
 
+		// Handle events by channel
+		if (channel === 'claude:message') {
+			switch (type) {
+				case 'assistant':
+					// Assistant message received - extract text from content
+					this.isWaitingForReply = false;
+					this.liveEventIcons = [];
+
+					// Extract message text from the event structure
+					let messageText = '';
+					if (payload.events && Array.isArray(payload.events)) {
+						// Extract text from content blocks
+						for (const evt of payload.events) {
+							if (evt.message?.content) {
+								for (const block of evt.message.content) {
+									if (block.type === 'text' && block.text) {
+										messageText += block.text;
+									}
+								}
+							}
+						}
+					} else {
+						messageText = payload.text || payload.content || '';
+					}
+
+					if (messageText) {
+						this.messages = [
+							...this.messages,
+							{
+								role: 'assistant',
+								text: messageText,
+								timestamp: new Date(),
+								id: this.nextMessageId()
+							}
+						];
+						this.scrollToBottom();
+					}
+					break;
+
+				case 'system':
+					// System initialization message
+					console.log('[ClaudePaneViewModel] System init:', payload);
+					break;
+
+				case 'result':
+					// Execution result - mark conversation complete
+					this.isWaitingForReply = false;
+					this.liveEventIcons = [];
+					console.log('[ClaudePaneViewModel] Execution result:', payload);
+					break;
+
+				default:
+					console.log('[ClaudePaneViewModel] Unhandled claude:message type:', type);
+			}
+			return;
+		}
+
+		// Handle error channel
+		if (channel === 'claude:error') {
+			this.isWaitingForReply = false;
+			this.liveEventIcons = [];
+
+			let errorMessage = payload.error || payload.message || 'An error occurred';
+			// Extract error from nested structure if needed
+			if (payload.events && Array.isArray(payload.events) && payload.events[0]?.error) {
+				errorMessage = payload.events[0].error;
+			}
+
+			this.lastError = errorMessage;
+			this.messages = [
+				...this.messages,
+				{
+					role: 'assistant',
+					text: `Error: ${errorMessage}`,
+					timestamp: new Date(),
+					id: this.nextMessageId()
+				}
+			];
+			this.scrollToBottom();
+			return;
+		}
+
+		// Handle other channel types
+		if (channel === 'system:input') {
+			// Echo user input (already handled via sendMessage)
+			return;
+		}
+
+		// Legacy event format (for backward compatibility)
 		switch (type) {
 			case 'claude:message':
-				// Assistant message received
+				// Assistant message received (legacy format)
 				this.isWaitingForReply = false;
 				this.liveEventIcons = [];
 				this.messages = [
