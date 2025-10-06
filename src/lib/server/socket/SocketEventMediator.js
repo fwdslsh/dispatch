@@ -48,18 +48,24 @@ export class SocketEventMediator {
 	/**
 	 * Initialize mediator (setup socket connections)
 	 * @returns {void}
+	 *
+	 * Note: Socket.IO's `socket.use()` middleware automatically applies to ALL
+	 * incoming events registered with `socket.on()`. The middleware chain runs
+	 * before any handler is invoked, ensuring auth, logging, and error handling
+	 * are applied consistently to all events.
 	 */
 	initialize() {
 		this.#io.on('connection', (socket) => {
-			// Apply middleware to socket
+			// Apply middleware to socket - Socket.IO will run these for ALL events
+			// registered below before dispatching to handlers
 			this.#middleware.forEach((mw) => {
 				socket.use(mw);
 			});
 
-			// Register event handlers
+			// Register event handlers - these will only execute AFTER middleware passes
 			this.#handlers.forEach((handler, eventName) => {
 				socket.on(eventName, (...args) => {
-					// Call handler with socket and args
+					// Handler is called only after middleware chain completes successfully
 					handler(socket, ...args);
 				});
 			});

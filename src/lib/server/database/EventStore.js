@@ -7,6 +7,7 @@
 export class EventStore {
 	#db;
 	#sequences = new Map(); // sessionId -> nextSeq (atomic in-memory counter)
+	#initializingSequences = new Set(); // Track sequences being initialized (mutex)
 
 	/**
 	 * @param {DatabaseManager} db - Database connection manager
@@ -27,10 +28,22 @@ export class EventStore {
 	async append(sessionId, event) {
 		const { channel, type, payload } = event;
 
-		// Get or initialize sequence counter (atomic)
+		// Get or initialize sequence counter with mutex to prevent race conditions
 		if (!this.#sequences.has(sessionId)) {
-			const lastSeq = await this.getLatestSeq(sessionId);
-			this.#sequences.set(sessionId, lastSeq + 1);
+			// If another thread is initializing, wait and retry
+			if (this.#initializingSequences.has(sessionId)) {
+				await new Promise((resolve) => setTimeout(resolve, 10));
+				return this.append(sessionId, event); // Retry
+			}
+
+			// Mark as initializing to prevent concurrent initialization
+			this.#initializingSequences.add(sessionId);
+			try {
+				const lastSeq = await this.getLatestSeq(sessionId);
+				this.#sequences.set(sessionId, lastSeq + 1);
+			} finally {
+				this.#initializingSequences.delete(sessionId);
+			}
 		}
 
 		// Atomic increment
