@@ -22,6 +22,10 @@
 	let messagesContainer = $state();
 
 	$effect(() => {
+		console.log('[MessageList] Messages changed:', viewModel.messages.length, viewModel.messages);
+	});
+
+	$effect(() => {
 		if (messagesContainer) {
 			viewModel.setMessagesContainer(messagesContainer);
 		}
@@ -35,8 +39,13 @@
 	aria-label="Chat messages"
 	bind:this={messagesContainer}
 >
+	<!-- DEBUG: Message count -->
+	<div style="position: fixed; top: 10px; right: 10px; background: red; color: white; padding: 10px; z-index: 9999;">
+		Messages: {viewModel.messages.length} | Loading: {viewModel.loading} | Catching Up: {viewModel.isCatchingUp}
+	</div>
+
 	{#if viewModel.loading && viewModel.messages.length === 0}
-		<div class="loading-message" transition:fly={{ y: 20, duration: 300 }}>
+		<div class="loading-message">
 			<div class="loading-indicator">
 				<div class="pulse-ring"></div>
 				<div class="pulse-ring"></div>
@@ -47,9 +56,9 @@
 	{/if}
 
 	{#each viewModel.messages as m, index (m.id || `msg-${index}`)}
+		<!-- DEBUG: Rendering message {index} -->
 		<div
 			class="message message--{m.role} {m.isError ? 'message--error' : ''}"
-			transition:fly={{ y: 20, duration: 400 }}
 			role="article"
 			aria-label="{m.role} message"
 		>
@@ -99,7 +108,6 @@
 	{#if viewModel.isWaitingForReply}
 		<div
 			class="message message--assistant typing-indicator"
-			transition:fly={{ y: 20, duration: 300 }}
 		>
 			<div class="message-wrapper">
 				<div class="message-avatar">

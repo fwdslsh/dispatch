@@ -153,15 +153,18 @@ export class ClaudePaneViewModel {
 		}
 
 		// Add user message immediately
+		const userMsg = {
+			role: 'user',
+			text: userMessage,
+			timestamp: new Date(),
+			id: this.nextMessageId()
+		};
+		console.log('[ClaudePaneViewModel] Adding user message:', userMsg);
 		this.messages = [
 			...this.messages,
-			{
-				role: 'user',
-				text: userMessage,
-				timestamp: new Date(),
-				id: this.nextMessageId()
-			}
+			userMsg
 		];
+		console.log('[ClaudePaneViewModel] Messages array after user message:', this.messages.length, this.messages);
 
 		// Clear input and show waiting state
 		this.input = '';
@@ -202,17 +205,23 @@ export class ClaudePaneViewModel {
 			switch (type) {
 				case 'assistant':
 					// Assistant message received - extract text from content
+					console.log('[ClaudePaneViewModel] Processing assistant message, current messages:', this.messages.length);
 					this.isWaitingForReply = false;
 					this.liveEventIcons = [];
 
 					// Extract message text from the event structure
 					let messageText = '';
+					console.log('[ClaudePaneViewModel] Payload structure:', JSON.stringify(payload, null, 2));
+
 					if (payload.events && Array.isArray(payload.events)) {
+						console.log('[ClaudePaneViewModel] Found', payload.events.length, 'events in payload');
 						// Extract text from content blocks
 						for (const evt of payload.events) {
 							if (evt.message?.content) {
+								console.log('[ClaudePaneViewModel] Found message with', evt.message.content.length, 'content blocks');
 								for (const block of evt.message.content) {
 									if (block.type === 'text' && block.text) {
+										console.log('[ClaudePaneViewModel] Extracted text block:', block.text);
 										messageText += block.text;
 									}
 								}
@@ -220,19 +229,27 @@ export class ClaudePaneViewModel {
 						}
 					} else {
 						messageText = payload.text || payload.content || '';
+						console.log('[ClaudePaneViewModel] Using fallback extraction, text:', messageText);
 					}
 
+					console.log('[ClaudePaneViewModel] Final extracted text:', messageText);
+
 					if (messageText) {
+						const newMessage = {
+							role: 'assistant',
+							text: messageText,
+							timestamp: new Date(),
+							id: this.nextMessageId()
+						};
+						console.log('[ClaudePaneViewModel] Adding message:', newMessage);
 						this.messages = [
 							...this.messages,
-							{
-								role: 'assistant',
-								text: messageText,
-								timestamp: new Date(),
-								id: this.nextMessageId()
-							}
+							newMessage
 						];
+						console.log('[ClaudePaneViewModel] Messages array now has', this.messages.length, 'messages');
 						this.scrollToBottom();
+					} else {
+						console.warn('[ClaudePaneViewModel] No message text extracted from assistant event');
 					}
 					break;
 
