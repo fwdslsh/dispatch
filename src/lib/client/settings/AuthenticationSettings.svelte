@@ -10,10 +10,12 @@
 	import AuthStatus from '../shared/components/AuthStatus.svelte';
 	import Button from '../shared/components/Button.svelte';
 
-	/**
-	 * @type {SettingsViewModel}
-	 */
-	let { settingsViewModel } = $props();
+	let {
+		/**
+		 * @type {SettingsViewModel}
+		 */
+		settingsViewModel
+	} = $props();
 
 	// Direct access to authentication category (reactive via $state proxy)
 	let authenticationSettings = $derived(settingsViewModel.categories.authentication || {});

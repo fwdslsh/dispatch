@@ -9,10 +9,12 @@
 	import SettingField from '$lib/client/shared/components/SettingField.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 
-	/**
-	 * @type {SettingsViewModel}
-	 */
-	let { settingsViewModel } = $props();
+	let {
+		/**
+		 * @type {SettingsViewModel}
+		 */
+		settingsViewModel
+	} = $props();
 
 	// Get authentication category (reactive via $state proxy)
 	let authCategory = $derived(settingsViewModel.categories.authentication || {});

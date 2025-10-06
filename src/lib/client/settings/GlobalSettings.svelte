@@ -7,10 +7,12 @@
 	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
 	import Button from '$lib/client/shared/components/Button.svelte';
 
-	/**
-	 * @type {SettingsViewModel}
-	 */
-	let { settingsViewModel } = $props();
+	let {
+		/**
+		 * @type {SettingsViewModel}
+		 */
+		settingsViewModel
+	} = $props();
 
 	// Direct access to category objects (reactive via $state proxy)
 	let globalSettings = $derived(settingsViewModel.categories.global || {});
