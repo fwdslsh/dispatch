@@ -9,11 +9,13 @@ function expandTilde(filepath) {
 		return filepath.replace(/^~/, homedir());
 	}
 	return filepath;
+}
 
 // Resolve path with proper tilde expansion
 function resolvePath(filepath) {
 	const expanded = expandTilde(filepath);
 	return resolve(expanded);
+}
 
 
 // Parse git worktree list output
@@ -49,6 +51,7 @@ function parseWorktreeList(output) {
 	}
 
 	return worktrees;
+}
 
 export async function GET({ url, request, locals }) {
 	try {
@@ -75,3 +78,4 @@ export async function GET({ url, request, locals }) {
 		console.error('Git worktree list error:', error);
 		return json({ error: error.message || 'Failed to list worktrees' }, { status: 500 });
 	}
+}

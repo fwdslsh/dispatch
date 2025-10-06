@@ -10,11 +10,13 @@ function expandTilde(filepath) {
 		return filepath.replace(/^~/, homedir());
 	}
 	return filepath;
+}
 
 // Resolve path with proper tilde expansion
 function resolvePath(filepath) {
 	const expanded = expandTilde(filepath);
 	return resolve(expanded);
+}
 
 
 // Execute shell command in specified directory
@@ -173,3 +175,4 @@ export async function POST({ request, locals }) {
 		console.error('Git worktree add error:', error);
 		return json({ error: error.message || 'Failed to add worktree' }, { status: 500 });
 	}
+}

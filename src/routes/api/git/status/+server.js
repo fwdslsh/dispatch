@@ -40,6 +40,7 @@ function parseGitStatus(output) {
 	}
 
 	return status;
+}
 
 export async function GET({ url, request, locals }) {
 	try {
@@ -73,3 +74,4 @@ export async function GET({ url, request, locals }) {
 		console.error('Git status error:', error);
 		return json({ error: error.message || 'Failed to get git status' }, { status: 500 });
 	}
+}

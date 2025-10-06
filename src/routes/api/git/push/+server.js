@@ -25,3 +25,4 @@ export async function POST({ request, locals }) {
 		console.error('Git push error:', error);
 		return json({ error: error.message || 'Failed to push changes' }, { status: 500 });
 	}
+}

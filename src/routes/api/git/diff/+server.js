@@ -31,3 +31,4 @@ export async function GET({ url, request, locals }) {
 		console.error('Git diff error:', error);
 		return json({ error: error.message || 'Failed to get git diff' }, { status: 500 });
 	}
+}

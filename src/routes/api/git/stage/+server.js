@@ -31,3 +31,4 @@ export async function POST({ request, locals }) {
 		console.error('Git stage error:', error);
 		return json({ error: error.message || `Failed to ${action} files` }, { status: 500 });
 	}
+}

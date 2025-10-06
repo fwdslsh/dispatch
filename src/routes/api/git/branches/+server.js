@@ -30,3 +30,4 @@ export async function GET({ url, request, locals }) {
 		console.error('Git branches error:', error);
 		return json({ error: error.message || 'Failed to get branches' }, { status: 500 });
 	}
+}

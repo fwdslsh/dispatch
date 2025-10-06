@@ -25,3 +25,4 @@ export async function POST({ request, locals }) {
 		console.error('Git pull error:', error);
 		return json({ error: error.message || 'Failed to pull changes' }, { status: 500 });
 	}
+}

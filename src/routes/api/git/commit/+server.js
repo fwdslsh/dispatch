@@ -21,3 +21,4 @@ export async function POST({ request, locals }) {
 		console.error('Git commit error:', error);
 		return json({ error: error.message || 'Failed to commit changes' }, { status: 500 });
 	}
+}

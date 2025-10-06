@@ -53,3 +53,4 @@ export async function GET({ url, request, locals }) {
 		console.error('Git log error:', error);
 		return json({ error: error.message || 'Failed to get git log' }, { status: 500 });
 	}
+}

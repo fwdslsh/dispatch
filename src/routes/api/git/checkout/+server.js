@@ -21,3 +21,4 @@ export async function POST({ request, locals }) {
 		console.error('Git checkout error:', error);
 		return json({ error: error.message || 'Failed to checkout branch' }, { status: 500 });
 	}
+}

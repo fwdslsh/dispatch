@@ -9,11 +9,13 @@ function expandTilde(filepath) {
 		return filepath.replace(/^~/, homedir());
 	}
 	return filepath;
+}
 
 // Resolve path with proper tilde expansion
 function resolvePath(filepath) {
 	const expanded = expandTilde(filepath);
 	return resolve(expanded);
+}
 
 
 export async function POST({ request, locals }) {
@@ -52,3 +54,4 @@ export async function POST({ request, locals }) {
 		console.error('Git worktree remove error:', error);
 		return json({ error: error.message || 'Failed to remove worktree' }, { status: 500 });
 	}
+}

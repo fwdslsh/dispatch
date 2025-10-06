@@ -29,6 +29,8 @@ import { ClaudeAdapter } from '../claude/ClaudeAdapter.js';
 import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 
 /**
+ * Services object containing all initialized application services
+ *
  * @typedef {Object} Services
  * @property {ConfigurationService} config
  * @property {JWTService} jwt
@@ -52,6 +54,9 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  * @property {() => MultiAuthManager} getAuthManager
  * @property {() => DatabaseManager} getDatabase
  */
+
+// Export type for use in app.d.ts
+export { Services };
 
 /**
  * Factory function to create all services with dependencies wired
