@@ -66,7 +66,7 @@ export class WorkspaceNavigationViewModel {
 	/**
 	 * Switch to a specific workspace
 	 * @param {object} workspace - Workspace to switch to
-	 * @returns {object} The workspace that was switched to
+	 * @returns {Promise<object>} The workspace that was switched to
 	 */
 	async switchToWorkspace(workspace) {
 		try {
@@ -96,7 +96,7 @@ export class WorkspaceNavigationViewModel {
 	 * Create a new workspace
 	 * @param {string} name - Workspace name
 	 * @param {string} path - Workspace path
-	 * @returns {object} Created workspace
+	 * @returns {Promise<object>} Created workspace
 	 */
 	async createNewWorkspace(name, path) {
 		this.isLoading = true;
@@ -117,7 +117,7 @@ export class WorkspaceNavigationViewModel {
 	 * Update workspace metadata
 	 * @param {string} workspaceId - Workspace ID (path)
 	 * @param {object} updates - Updates to apply
-	 * @returns {object} Updated workspace
+	 * @returns {Promise<object>} Updated workspace
 	 */
 	async updateWorkspace(workspaceId, updates) {
 		this.isLoading = true;

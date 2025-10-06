@@ -86,7 +86,7 @@ export class AuthSessionManager {
 	 * Create a new authentication session
 	 * @param {string} terminalKey - The terminal authentication key
 	 * @param {Object} sessionInfo - Additional session information
-	 * @returns {Object} Session details
+	 * @returns {Promise<Object>} Session details
 	 */
 	async createSession(terminalKey, sessionInfo = {}) {
 		const sessionId = randomUUID();
@@ -147,7 +147,7 @@ export class AuthSessionManager {
 	 * @param {string} sessionId - Session ID to validate
 	 * @param {string} terminalKey - Terminal key for validation
 	 * @param {Object} updateInfo - Optional session update information
-	 * @returns {Object|null} Session info if valid, null if invalid
+	 * @returns {Promise<Object|null>} Session info if valid, null if invalid
 	 */
 	async validateAndExtendSession(sessionId, terminalKey, updateInfo = {}) {
 		const terminalKeyHash = this.hashTerminalKey(terminalKey);
@@ -206,7 +206,7 @@ export class AuthSessionManager {
 	/**
 	 * Get session information
 	 * @param {string} sessionId - Session ID
-	 * @returns {Object|null} Session information
+	 * @returns {Promise<Object|null>} Session information
 	 */
 	async getSession(sessionId) {
 		try {
