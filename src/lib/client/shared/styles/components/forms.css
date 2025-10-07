@@ -29,16 +29,6 @@
 	font-weight: 700;
 }
 
-.form-required {
-	color: var(--err);
-	font-weight: bold;
-}
-
-.form-field-wrapper {
-	position: relative;
-	width: 100%;
-}
-
 .form-input,
 .form-textarea {
 	background: color-mix(in oklab, var(--surface) 60%, var(--bg));
@@ -64,12 +54,6 @@
 	outline: none;
 }
 
-.form-textarea {
-	resize: vertical;
-	min-height: 80px;
-	height: auto;
-}
-
 .form-help {
 	font-size: var(--font-size-0);
 	color: var(--muted);
@@ -92,21 +76,6 @@
 	display: flex;
 	align-items: center;
 	gap: var(--space-1);
-}
-
-.form-counter {
-	font-size: var(--font-size-0);
-	color: var(--muted);
-	text-align: right;
-	font-family: var(--font-mono);
-}
-
-.form-counter--warning {
-	color: var(--warn);
-}
-
-.form-counter--error {
-	color: var(--err);
 }
 
 .form-section {

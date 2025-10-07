@@ -68,18 +68,6 @@
 	gap: var(--space-4);
 }
 
-.icon-container {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 48px;
-	height: 48px;
-	border-radius: var(--radius-sm);
-	background: var(--surface);
-	border: 1px solid var(--surface-border);
-	flex-shrink: 0;
-}
-
 .info-section {
 	flex: 1;
 	min-width: 0;

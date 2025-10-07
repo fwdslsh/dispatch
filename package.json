@@ -41,7 +41,22 @@
 		"docker:stop": "node bin/cli.js stop",
 		"css:clean": "node scripts/remove-unused-css.js",
 		"css:clean:dry-run": "node scripts/remove-unused-css.js --dry-run --verbose",
-		"css:clean:backup": "node scripts/remove-unused-css.js --backup --verbose"
+		"css:clean:backup": "node scripts/remove-unused-css.js --backup --verbose",
+		"css:map": "node scripts/map-css-usage.js",
+		"css:map:verbose": "node scripts/map-css-usage.js --verbose",
+		"css:vars": "node scripts/map-css-variables.js",
+		"css:vars:verbose": "node scripts/map-css-variables.js --verbose",
+		"css:vars:unused": "node scripts/map-css-variables.js --unused-only",
+		"css:complexity": "node scripts/analyze-css-complexity.js",
+		"css:complexity:strict": "node scripts/analyze-css-complexity.js --threshold 5",
+		"css:analyze-components": "node scripts/analyze-component-styles.js",
+		"css:analyze-components:verbose": "node scripts/analyze-component-styles.js --verbose",
+		"css:duplicates": "node scripts/detect-duplicate-css.js",
+		"css:duplicates:strict": "node scripts/detect-duplicate-css.js --threshold 95",
+		"css:migrate": "node scripts/migrate-to-component-styles.js",
+		"css:migrate:component": "node scripts/migrate-to-component-styles.js --component",
+		"css:tokens": "node scripts/audit-css-tokens.js",
+		"css:tokens:verbose": "node scripts/audit-css-tokens.js --verbose"
 	},
 	"bin": {
 		"dispatch": "./bin/dispatch"

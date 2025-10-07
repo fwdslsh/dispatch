@@ -1,23 +1,3 @@
-/* ==========================================================================
-   Global UI — Retro Terminal x Modern UI (Augmented-UI v2 ready)
-   Requires: augmented-ui v2 CSS loaded before this file.
-   Docs: https://augmented-ui.com/docs/
-
-   NOTE: Utility classes (spacing, flex, layout, text) are defined in utilities.css
-   This file contains component-specific styling and retro-themed UI patterns
-   ========================================================================== */
-
-/* Reset & base */
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
-	transition-behavior: allow-discrete;
-	/* Remove tap highlight on mobile */
-	-webkit-tap-highlight-color: transparent;
-	-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-}
-
 html,
 body {
 	height: 100%;
@@ -223,14 +203,6 @@ a:hover {
 	background: var(--elev);
 }
 
-/* 5) Rules & chrome */
-.hr {
-	height: 1px;
-	background: linear-gradient(90deg, transparent, var(--line), transparent);
-	border: 0;
-	margin: var(--space-5) 0;
-}
-
 .term-grid {
 	display: grid;
 	gap: var(--space-3);
@@ -345,25 +317,6 @@ textarea:required:focus {
 		0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent),
 		inset 2px 0 0 var(--accent),
 		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent);
-}
-
-/* Augmented input rails (use data-augmented-ui on a wrapper) */
-/* Markup:
-   <label class="input-aug" data-augmented-ui="t-rect b-rect both">
-     <input ...>
-   </label> */
-.input-aug {
-	--aug-t: 10px;
-	--aug-b: 10px;
-	--aug-border-all: 2px;
-	--aug-border-bg: linear-gradient(90deg, var(--accent), transparent, var(--accent));
-	--aug-inlay-all: 1px;
-	--aug-inlay-bg: linear-gradient(
-		90deg,
-		transparent,
-		color-mix(in oklab, var(--accent) 20%, transparent),
-		transparent
-	);
 }
 
 /* 7) Buttons - Comprehensive state management */
@@ -909,36 +862,9 @@ tbody tr:hover {
 	border-color: color-mix(in oklab, var(--err) 40%, var(--line));
 }
 
-/* 10) Subtle CRT overlay */
-.crt {
-	position: relative;
-	isolation: isolate;
-}
-
-.crt::after {
-	content: '';
-	position: absolute;
-	inset: 0;
-	background: repeating-linear-gradient(
-		0deg,
-		color-mix(in oklab, var(--text) 2%, transparent) 0px,
-		transparent 1px,
-		transparent 3px
-	);
-	mix-blend-mode: overlay;
-	opacity: 0.06;
-	pointer-events: none;
-	z-index: 2;
-}
-
 /* 11) Utilities & Retro Effects */
 .glow {
 	text-shadow: 0 0 8px var(--glow);
-}
-
-.sep {
-	border-top: 1px dashed var(--line);
-	margin: var(--space-4) 0;
 }
 
 /* Terminal-style prompt indicators */
@@ -994,21 +920,6 @@ body::before {
 	content: '● ';
 	color: var(--accent);
 	animation: pulse 2s ease-in-out infinite;
-}
-
-/* 12) UI Component Utility Classes */
-
-/* Button Groups - for type toggles */
-.btn-group {
-	display: flex;
-	/* background: linear-gradient(135deg,
-			color-mix(in oklab, var(--surface) 90%, var(--accent) 10%),
-			color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%));
-	border: 2px solid var(--line);
-	border-radius: 0; */
-	padding: 0.5rem;
-	gap: var(--space-4);
-	/* box-shadow: inset 0 2px 4px color-mix(in oklab, var(--bg) 10%, black); */
 }
 
 .btn-group .button {
@@ -1177,18 +1088,6 @@ body::before {
 	filter: drop-shadow(0 0 6px var(--primary-glow-40));
 }
 
-/* Icon Text combinations */
-.icon-text {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.icon-text__icon {
-	font-size: 1.1em;
-	filter: drop-shadow(0 0 6px var(--glow));
-}
-
 /* Type Selection Cards */
 .type-card {
 	padding: 1.5rem 1rem;
@@ -1302,53 +1201,6 @@ body::before {
 	cursor: not-allowed;
 }
 
-/* Session Item Cards */
-.session-card {
-	width: 100%;
-	padding: 1rem;
-	margin-bottom: 0.75rem;
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
-		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%)
-	);
-	border: 2px solid var(--surface-border);
-	border-radius: 0;
-	text-align: left;
-	cursor: pointer;
-	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-	position: relative;
-	overflow: hidden;
-}
-
-.session-card::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: -100%;
-	width: 100%;
-	height: 100%;
-	background: linear-gradient(90deg, transparent, var(--primary-glow-10), transparent);
-	transition: left 0.5s ease;
-}
-
-.session-card:hover::before {
-	left: 100%;
-}
-
-.session-card:hover {
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
-		color-mix(in oklab, var(--primary) 10%, var(--surface-hover))
-	);
-	border-color: var(--primary);
-	box-shadow:
-		0 0 20px var(--primary-glow-20),
-		inset 0 1px 0 rgba(255, 255, 255, 0.1);
-	transform: translateY(-1px);
-}
-
 .session-card.selected {
 	background: linear-gradient(
 		135deg,
@@ -1395,121 +1247,6 @@ body::before {
 		grid-template-columns: 1fr;
 		gap: 0.75rem;
 	}
-}
-
-/* 13) Enhanced Utility Classes for Common Interaction Patterns */
-
-/* Glow Effect Utilities */
-.glow-subtle {
-	box-shadow: 0 0 8px var(--glow);
-}
-
-.glow-medium {
-	box-shadow: 0 0 16px var(--glow);
-}
-
-.glow-strong {
-	box-shadow: 0 0 24px var(--glow);
-}
-
-.glow-intense {
-	box-shadow:
-		0 0 32px var(--glow),
-		0 0 64px var(--glow);
-}
-
-.glow-inset-subtle {
-	box-shadow: inset 0 0 6px var(--glow);
-}
-
-.glow-inset-medium {
-	box-shadow: inset 0 0 12px var(--glow);
-}
-
-/* Scale Transform Utilities */
-.scale-hover {
-	transition: transform 0.2s ease;
-}
-
-.scale-hover:hover {
-	transform: scale(1.05);
-}
-
-.scale-hover-strong:hover {
-	transform: scale(1.1);
-}
-
-.scale-active:active {
-	transform: scale(0.95);
-}
-
-/* Combined Interactive Effects */
-.interactive-glow {
-	transition: all 0.2s ease;
-}
-
-.interactive-glow:hover {
-	box-shadow: 0 0 20px var(--glow);
-	transform: translateY(-1px);
-}
-
-.interactive-glow:active {
-	box-shadow: inset 0 0 8px var(--glow);
-	transform: translateY(0) scale(0.98);
-}
-
-/* Loading State Utilities */
-.loading-pulse {
-	animation: loadingPulse 1.5s ease-in-out infinite;
-}
-
-.loading-shimmer {
-	background: linear-gradient(90deg, transparent 0%, var(--glow) 50%, transparent 100%);
-	background-size: 200% 100%;
-	animation: shimmer 2s linear infinite;
-}
-
-/* State Indicator Utilities */
-.state-active::before {
-	content: '● ';
-	color: var(--accent);
-	animation: statusPulse 2s ease-in-out infinite;
-}
-
-.state-inactive::before {
-	content: '◦ ';
-	color: var(--muted);
-}
-
-.state-processing::before {
-	content: '⟳ ';
-	color: var(--accent-cyan);
-	animation: spin 1s linear infinite;
-}
-
-/*
- * NOTE: Utility classes (spacing, flex, text) have been moved to utilities.css
- * Import utilities.css for margin, padding, gap, flex, and text utilities
- */
-
-/* Terminal Effects Utilities */
-.terminal-blink {
-	animation: cursorBlink 1s step-end infinite;
-}
-
-.terminal-scan::before {
-	content: '';
-	position: absolute;
-	inset: 0;
-	background: repeating-linear-gradient(
-		0deg,
-		transparent 0px,
-		transparent 2px,
-		var(--scan-line) 3px,
-		transparent 4px
-	);
-	pointer-events: none;
-	opacity: 0.3;
 }
 
 /* 14) Nesting guidance (v2):

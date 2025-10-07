@@ -48,25 +48,6 @@
 	transform: scale(1) translateY(0);
 }
 
-.modal-container--small {
-	width: 400px;
-}
-
-.modal-container--medium {
-	width: 600px;
-}
-
-.modal-container--large {
-	width: 800px;
-}
-
-.modal-container--fullscreen {
-	width: 95vw;
-	height: 95vh;
-	max-width: none;
-	max-height: none;
-}
-
 .modal-header {
 	display: flex;
 	align-items: center;

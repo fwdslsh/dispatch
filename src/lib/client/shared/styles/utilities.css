@@ -69,10 +69,6 @@
 
 .flex-1 { flex: 1 1 0%; }
 .shrink-0 { flex-shrink: 0; }
-.grow { flex-grow: 1; }
-
-/* Grid */
-.grid { display: grid; }
 
 /* Width and height utilities */
 .w-full { width: 100%; }
@@ -83,8 +79,6 @@
 /* Display utilities */
 .block { display: block; }
 .inline-block { display: inline-block; }
-.inline { display: inline; }
-.hidden { display: none; }
 
 /* Position utilities */
 .relative { position: relative; }
@@ -128,7 +122,6 @@
 .bg-surface { background: var(--surface); }
 .bg-surface-glass { background: color-mix(in oklab, var(--surface) 80%, transparent); backdrop-filter: blur(8px); }
 .bg-surface-highlight { background: var(--elev); }
-.bg-primary-glow-10 { background: var(--primary-glow-20); }
 
 /* ==================================================================
    BORDER UTILITIES
@@ -168,24 +161,12 @@
 }
 
 /* ==================================================================
-   STATE CLASSES
-   Common visual states for components
-   ================================================================== */
-
-.is-selected {
-	border-color: var(--primary);
-	background: color-mix(in oklab, var(--primary) 5%, transparent);
-	box-shadow: 0 0 0 1px var(--primary-glow-20);
-}
-
-/* ==================================================================
    VISUAL EFFECTS
    Consistent glow, shadow, and highlight effects
    ================================================================== */
 
 /* Box shadow utilities */
 .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-.shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); }
 .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
 .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
 
@@ -198,17 +179,6 @@
 .transition-colors { transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease; }
 
 .duration-200 { transition-duration: 0.2s; }
-
-/* ==================================================================
-   MODERN UI ENHANCEMENTS
-   Glass morphism and advanced effects
-   ================================================================== */
-
-.glass {
-	background: color-mix(in oklab, var(--surface) 70%, transparent);
-	backdrop-filter: blur(12px) saturate(120%);
-	border: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
-}
 
 /* ==================================================================
    CURSOR UTILITIES
