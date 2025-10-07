@@ -1,0 +1,210 @@
+/* ==================================================================
+   BUTTON COMPONENT STYLES
+   Button utility classes and variants
+   ================================================================== */
+
+.btn-layout {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	white-space: nowrap;
+	position: relative;
+}
+
+.btn__text--hidden {
+	opacity: 0;
+	width: 0;
+	overflow: hidden;
+	transition: all 0.2s ease;
+}
+
+.btn__spinner {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.btn-aug {
+	border-radius: 0;
+}
+
+/* Icon Button Utilities */
+.btn-icon-only {
+	width: auto;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.2rem;
+	border: none;
+	background: none;
+	cursor: pointer;
+	transition: all 0.5s ease-in-out;
+	color: var(--muted);
+}
+
+.btn-icon-only:hover {
+	color: var(--accent);
+}
+
+.btn-icon-only.primary {
+	color: var(--accent);
+}
+
+.btn-icon-only.secondary,
+.btn-icon-only.warn {
+	color: var(--warn);
+}
+
+.btn-icon-only.danger {
+	color: var(--err-dim);
+}
+
+.btn-icon-only.danger:hover {
+	color: var(--err);
+}
+
+.btn-icon-only.ghost {
+	color: var(--muted);
+}
+
+.btn-icon-only.ghost:hover {
+	color: var(--accent);
+}
+
+.btn-icon-only:active,
+.btn-icon-only.active {
+	color: var(--primary);
+}
+
+.btn-icon-only:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+	color: var(--muted);
+}
+
+/* Icon Button SVG Effects */
+.btn-icon-only svg {
+	transition: all 0.5s ease-in-out;
+	width: 1.5rem;
+}
+
+.btn-icon-only:hover svg {
+	filter: drop-shadow(0 0 3px var(--primary-glow));
+}
+
+.btn-icon-only.primary svg {
+	filter: drop-shadow(0 0 2px var(--accent));
+}
+
+.btn-icon-only.primary:hover svg {
+	filter: drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 8px var(--accent));
+}
+
+.btn-icon-only.secondary svg,
+.btn-icon-only.warn svg {
+	filter: drop-shadow(0 0 2px var(--warn));
+}
+
+.btn-icon-only.secondary:hover svg,
+.btn-icon-only.warn:hover svg {
+	filter: drop-shadow(0 0 4px var(--warn)) drop-shadow(0 0 8px var(--warn));
+}
+
+.btn-icon-only.danger svg {
+	filter: drop-shadow(0 0 2px var(--err));
+}
+
+.btn-icon-only.danger:hover svg {
+	filter: drop-shadow(0 0 4px var(--err)) drop-shadow(0 0 8px var(--err));
+}
+
+.btn-icon-only.ghost svg {
+	filter: none;
+}
+
+.btn-icon-only.ghost:hover svg {
+	filter: drop-shadow(0 0 3px var(--accent));
+}
+
+.btn-icon-only:disabled svg {
+	filter: none;
+}
+
+/* Clone button */
+.clone-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 20%, var(--surface)),
+		color-mix(in oklab, var(--primary) 10%, var(--surface))
+	);
+	color: var(--primary);
+	border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
+	border-radius: var(--radius-sm);
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.clone-btn:hover:not(:disabled) {
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 30%, var(--surface)),
+		color-mix(in oklab, var(--primary) 20%, var(--surface))
+	);
+	border-color: var(--primary);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.clone-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Cancel button */
+.cancel-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-3);
+	background: transparent;
+	color: var(--muted);
+	border: 1px solid var(--surface-border);
+	border-radius: var(--radius-sm);
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.cancel-btn:hover:not(:disabled) {
+	background: var(--surface-glass);
+	color: var(--text);
+	border-color: var(--muted);
+}
+
+.cancel-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+	.btn-icon-only {
+		padding: var(--space-2);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.btn__text--hidden,
+	.spinner {
+		transition: none;
+		animation: none;
+	}
+}

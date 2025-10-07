@@ -38,7 +38,10 @@
 		"playwright:install": "npx playwright install",
 		"docker:dev": "node bin/cli.js start -k test --projects ~/code/ --home ~/ --build",
 		"docker:start": "node bin/cli.js start -k test --projects ~/code/ --home ~/",
-		"docker:stop": "node bin/cli.js stop"
+		"docker:stop": "node bin/cli.js stop",
+		"css:clean": "node scripts/remove-unused-css.js",
+		"css:clean:dry-run": "node scripts/remove-unused-css.js --dry-run --verbose",
+		"css:clean:backup": "node scripts/remove-unused-css.js --backup --verbose"
 	},
 	"bin": {
 		"dispatch": "./bin/dispatch"

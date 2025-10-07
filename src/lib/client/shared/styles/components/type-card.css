@@ -1,0 +1,117 @@
+/* ==================================================================
+   TYPE CARD COMPONENT STYLES
+   Styles for type selection cards with interactive states
+   ================================================================== */
+
+.type-card {
+	padding: 1.5rem 1rem;
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
+		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%)
+	);
+	border: 2px solid var(--surface-border);
+	border-radius: 0;
+	color: var(--text-muted);
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	text-align: left;
+	position: relative;
+	overflow: hidden;
+}
+
+.type-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, var(--primary-glow-10), transparent);
+	transition: left 0.5s ease;
+}
+
+.type-card:hover:not(:disabled)::before {
+	left: 100%;
+}
+
+.type-card:hover:not(:disabled) {
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
+		color-mix(in oklab, var(--primary) 10%, var(--surface-hover))
+	);
+	border-color: var(--primary);
+	box-shadow:
+		0 0 20px var(--primary-glow-30),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	transform: translateY(-2px);
+}
+
+.type-card.active {
+	background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+	border-color: var(--primary);
+	color: var(--bg);
+	box-shadow:
+		0 0 30px var(--primary-glow-40),
+		0 0 60px var(--primary-glow-20),
+		inset 0 1px 0 rgba(255, 255, 255, 0.2);
+	transform: translateY(-3px) scale(1.02);
+}
+
+.type-card:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.type-card__content {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	position: relative;
+	z-index: 1;
+}
+
+.type-card__icon {
+	font-size: 2rem;
+	filter: drop-shadow(0 0 8px var(--primary-glow-30));
+	transition: all 0.3s ease;
+}
+
+.type-card__info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.type-card__title {
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: var(--text);
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.type-card__desc {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	opacity: 0.8;
+}
+
+.type-card:hover:not(:disabled) .type-card__icon {
+	filter: drop-shadow(0 0 12px var(--primary-glow-60));
+	transform: scale(1.1);
+}
+
+.type-card.active .type-card__title,
+.type-card.active .type-card__desc {
+	color: var(--bg);
+	text-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+.type-card.active .type-card__icon {
+	filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+	transform: scale(1.15);
+}

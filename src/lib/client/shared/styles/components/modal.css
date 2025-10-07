@@ -1,0 +1,103 @@
+/* ==================================================================
+   MODAL COMPONENT STYLES
+   Modal and dialog patterns
+   ================================================================== */
+
+.modal-backdrop {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: color-mix(in oklab, var(--bg) 80%, black);
+	backdrop-filter: blur(8px);
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-4);
+	opacity: 0;
+	visibility: hidden;
+	transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.modal-backdrop.open {
+	opacity: 1;
+	visibility: visible;
+}
+
+.modal-container {
+	background: var(--surface);
+	border: 1px solid var(--surface-border);
+	border-radius: var(--radius-md);
+	box-shadow:
+		0 20px 40px -12px color-mix(in oklab, var(--bg) 90%, black),
+		0 0 60px -20px var(--primary-glow),
+		inset 0 1px 2px rgba(255, 255, 255, 0.05);
+	max-width: 90vw;
+	max-height: 90vh;
+	width: 100%;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	transform: scale(0.9) translateY(20px);
+	transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.modal-container.open {
+	transform: scale(1) translateY(0);
+}
+
+.modal-container--small {
+	width: 400px;
+}
+
+.modal-container--medium {
+	width: 600px;
+}
+
+.modal-container--large {
+	width: 800px;
+}
+
+.modal-container--fullscreen {
+	width: 95vw;
+	height: 95vh;
+	max-width: none;
+	max-height: none;
+}
+
+.modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-4);
+	border-bottom: 1px solid var(--surface-border);
+	background: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
+}
+
+.modal-title {
+	font-family: var(--font-mono);
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: var(--text);
+	margin: 0;
+	letter-spacing: 0.025em;
+}
+
+.modal-content {
+	flex: 1;
+	padding: var(--space-4);
+	overflow-y: auto;
+	color: var(--text);
+	line-height: 1.6;
+}
+
+.modal-footer {
+	padding: var(--space-4);
+	border-top: 1px solid var(--surface-border);
+	background: color-mix(in oklab, var(--surface) 98%, var(--bg));
+	display: flex;
+	gap: var(--space-3);
+	justify-content: flex-end;
+}
