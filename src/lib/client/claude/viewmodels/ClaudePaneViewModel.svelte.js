@@ -472,11 +472,11 @@ export class ClaudePaneViewModel {
 		for (const entry of history) {
 			const { channel, type, payload } = entry;
 
-			// Load user input messages
-			if (channel === 'system:input' && payload?.text) {
+			// Load user input messages (payload.data contains the user's input text)
+			if (channel === 'system:input' && payload?.data) {
 				loadedMessages.push({
 					role: 'user',
-					text: payload.text,
+					text: payload.data,
 					timestamp: new Date(entry.timestamp || Date.now()),
 					id: this.nextMessageId()
 				});
