@@ -15,6 +15,7 @@
 		recordError,
 		translateSettingsError
 	} from '$lib/client/settings/pageState.js';
+	import "$lib/client/settings/settings.css"; 
 
 	let serviceContainer = $state(null);
 	let isLoading = $state(true);

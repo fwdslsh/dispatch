@@ -1,17 +1,7 @@
 <script>
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import '$lib/client/shared/styles/index.css';
-	import { getStoredAuthToken } from '$lib/client/shared/socket-auth.js';
-	import {
-		useServiceContainer,
-		provideServiceContainer
-	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
-	import { OnboardingViewModel } from '$lib/client/onboarding/OnboardingViewModel.svelte.js';
 	let { children, header = null, footer = null } = $props();
 
-	onMount(async () => {});
 </script>
 
 <div class="dispatch-app">

@@ -147,7 +147,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
 
 	.terminal-key-settings {
 		display: flex;

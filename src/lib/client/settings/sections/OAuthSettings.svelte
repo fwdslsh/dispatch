@@ -274,7 +274,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
 
 	.oauth-settings {
 		padding: var(--space-4);

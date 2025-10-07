@@ -105,25 +105,21 @@
 .wm-divider[data-dir='row']::before {
 	width: 2px;
 	height: 20px;
-	background: repeating-linear-gradient(
-		to bottom,
-		var(--text-muted) 0px,
-		var(--text-muted) 2px,
-		transparent 2px,
-		transparent 4px
-	);
+	background: repeating-linear-gradient(to bottom,
+			var(--text-muted) 0px,
+			var(--text-muted) 2px,
+			transparent 2px,
+			transparent 4px);
 }
 
 .wm-divider[data-dir='column']::before {
 	width: 20px;
 	height: 2px;
-	background: repeating-linear-gradient(
-		to right,
-		var(--text-muted) 0px,
-		var(--text-muted) 2px,
-		transparent 2px,
-		transparent 4px
-	);
+	background: repeating-linear-gradient(to right,
+			var(--text-muted) 0px,
+			var(--text-muted) 2px,
+			transparent 2px,
+			transparent 4px);
 }
 
 .wm-divider:hover::before {
@@ -471,14 +467,39 @@
 }
 
 /* ================================================================
-   ANIMATION ENHANCEMENTS
+   ANIMATIONS
    ================================================================ */
+
+.wm-animate-focus {
+	animation: tile-focus-appear 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-divider-hover {
+	animation: divider-hover 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-empty-appear {
+	animation: empty-tile-appear 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-layout-split {
+	animation: layout-split 0.25s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-layout-collapse {
+	animation: layout-collapse 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.wm-animate-hint-in {
+	animation: hint-float-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) 0.5s forwards;
+}
 
 /* Pane resize animations */
 @keyframes pane-focus {
 	from {
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 	}
+
 	to {
 		box-shadow:
 			0 0 0 2px var(--primary-glow),
@@ -496,9 +517,11 @@
 	0% {
 		box-shadow: 0 0 0 var(--primary-glow);
 	}
+
 	50% {
 		box-shadow: 0 0 16px var(--primary-glow);
 	}
+
 	100% {
 		box-shadow: 0 0 0 var(--primary-glow);
 	}
@@ -510,6 +533,7 @@
 
 /* Accessibility improvements */
 @media (prefers-reduced-motion: reduce) {
+
 	.wm-root,
 	.wm-pane,
 	.wm-tile,
@@ -527,4 +551,99 @@
 	.wm-divider:active {
 		animation: none;
 	}
+}
+
+
+
+/* ==================================================================
+   WINDOW MANAGER ENHANCEMENT UTILITIES
+   Additional utilities for window manager components
+   NOTE: Core window manager styles are in window-manager.css
+   ================================================================== */
+
+.wm-container {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	position: relative;
+}
+
+.wm-tile-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: var(--space-2) var(--space-3);
+	background: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
+	border-bottom: 1px solid var(--surface-border);
+	min-height: 40px;
+}
+
+.wm-tile-content {
+	flex: 1;
+	overflow: hidden;
+	position: relative;
+	min-height: 0;
+}
+
+.wm-empty-tile {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-4);
+	padding: var(--space-6);
+	background: linear-gradient(135deg,
+			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
+			color-mix(in oklab, var(--surface) 95%, var(--primary) 5%));
+	border: 2px dashed color-mix(in oklab, var(--primary) 30%, transparent);
+	border-radius: var(--radius-md);
+	color: var(--muted);
+	text-align: center;
+	transition: all 0.3s ease;
+	cursor: pointer;
+}
+
+.wm-empty-tile:hover {
+	background: linear-gradient(135deg,
+			color-mix(in oklab, var(--surface) 85%, var(--primary) 15%),
+			color-mix(in oklab, var(--surface) 90%, var(--primary) 10%));
+	border-color: color-mix(in oklab, var(--primary) 50%, transparent);
+	color: var(--text);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 16px color-mix(in oklab, var(--primary) 20%, transparent);
+}
+
+.wm-session-actions {
+	display: flex;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.wm-action-button {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-4);
+	background: linear-gradient(135deg,
+			color-mix(in oklab, var(--primary) 20%, var(--surface)),
+			color-mix(in oklab, var(--primary) 10%, var(--surface)));
+	border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
+	border-radius: var(--radius-md);
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	text-decoration: none;
+}
+
+.wm-action-button:hover {
+	background: linear-gradient(135deg,
+			color-mix(in oklab, var(--primary) 30%, var(--surface)),
+			color-mix(in oklab, var(--primary) 20%, var(--surface)));
+	border-color: var(--primary);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px var(--primary-glow-30);
 }

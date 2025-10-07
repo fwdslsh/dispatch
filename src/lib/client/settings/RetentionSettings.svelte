@@ -240,7 +240,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
 
 	/* Component-specific overrides only */
 	.retention-settings {
@@ -311,9 +310,6 @@
 		color: var(--muted);
 	}
 
-	.loading-indicator .spinner {
-		/* Use shared spinner from settings.css */
-	}
 
 	.warning-message,
 	.error-message {

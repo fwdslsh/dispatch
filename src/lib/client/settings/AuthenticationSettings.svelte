@@ -118,7 +118,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
 
 	.authentication-settings {
 		background: var(--surface);

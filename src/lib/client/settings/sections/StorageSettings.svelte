@@ -490,7 +490,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
 
 	:global(.storage-settings .settings-content) {
 		display: flex;

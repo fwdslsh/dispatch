@@ -111,7 +111,6 @@
 </div>
 
 <style>
-	/* Use global styles from settings.css - only component-specific layout here */
 	.setting-field {
 		display: flex;
 		flex-direction: column;

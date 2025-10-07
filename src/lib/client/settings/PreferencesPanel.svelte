@@ -270,7 +270,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
 
 	/* Preferences panel container */
 	.preferences-panel {
@@ -352,10 +351,6 @@
 		gap: var(--space-3);
 		padding: var(--space-6) var(--space-5);
 		color: var(--muted);
-	}
-
-	.loading-indicator .spinner {
-		/* Use shared spinner from settings.css */
 	}
 
 	.success-message,

@@ -339,8 +339,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
-
 	.theme-settings {
 		background: var(--surface);
 		border: 1px solid var(--line);

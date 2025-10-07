@@ -190,7 +190,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
 
 	.global-settings {
 		background: var(--surface);
