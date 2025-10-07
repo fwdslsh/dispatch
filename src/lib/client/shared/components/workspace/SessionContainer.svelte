@@ -31,13 +31,16 @@
 
 <style>
 	.session-container {
+		display: flex;
+		flex-direction: column;
 		background: var(--bg-panel);
 		border: 1px solid var(--primary-dim);
-		overflow: hidden;
+		overflow: visible;
 		width: 100%;
 		height: 100%;
 		position: relative;
 		transition: border-color 0.2s ease;
+		contain: layout style;
 	}
 
 	.session-container:hover {

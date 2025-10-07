@@ -615,20 +615,18 @@
 </Shell>
 
 <style>
-	/* Workspace-specific layout grid */
+	/* Workspace-specific layout */
 	.dispatch-workspace {
 		position: relative;
-		display: grid;
-
+		display: flex;
+		flex-direction: column;
 		background: transparent;
 		color: var(--text-primary);
-		overflow: hidden;
-		max-width: 100svw;
+		overflow: visible;
 		height: 100%;
 		width: 100%;
-		transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 		overscroll-behavior: none;
-		touch-action: pan-x pan-y;
+		contain: layout style;
 	}
 
 	/* Session bottom sheet - mobile specific */

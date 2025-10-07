@@ -209,25 +209,21 @@
 		width: 100%;
 		height: 100%;
 		position: relative;
-		overflow: hidden;
+		overflow: visible;
 	}
 
 	.terminal-container {
-		display: flex;
 		flex: 1;
 		width: 100%;
-		height: 100%;
 		min-height: 0;
-		overflow: hidden;
+		overflow: auto;
 		position: relative;
 	}
 
 	.xterm-container {
 		flex: 1;
 		width: 100%;
-		height: 100%;
 		min-height: 0;
-		overflow: hidden;
 	}
 
 	/* Ensure xterm.js fills the container */

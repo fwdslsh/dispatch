@@ -37,17 +37,15 @@
 
 /* Pane containers with smooth transitions */
 .wm-pane {
-	display: flex;
 	min-inline-size: 0;
 	min-block-size: 0;
 	position: relative;
-	transition: flex 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+	overflow: visible;
 }
 
 .wm-pane-a,
 .wm-pane-b {
-	overflow: hidden;
-
+	overflow: visible;
 	transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -137,18 +135,21 @@
    ================================================================ */
 
 .wm-tile {
-	display: flex;
+	display: block;
 	inline-size: 100%;
 	block-size: 100%;
-	overflow: hidden;
+	overflow: visible;
 	position: relative;
-	background: none;
-	border: none;
 	padding: 0;
 	margin: 0;
 	border-radius: inherit;
 	transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
-	outline: none;
+	outline: 2px solid transparent;
+	outline-offset: -2px;
+}
+
+.wm-tile:focus-visible {
+	outline-color: var(--accent);
 }
 
 /* Focus state - professional and discoverable */

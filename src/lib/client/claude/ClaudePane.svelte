@@ -216,7 +216,7 @@
 			color-mix(in oklab, var(--bg) 95%, var(--surface)),
 			color-mix(in oklab, var(--bg) 98%, var(--surface))
 		);
-		overflow: hidden;
+		overflow: visible;
 	}
 
 	/* Chat Header */
