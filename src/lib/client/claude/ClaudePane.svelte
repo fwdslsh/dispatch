@@ -84,22 +84,9 @@
 	function checkMobile() {
 		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
 	}
-
-	// Effect for handling resize events
-	$effect(() => {
-		function handleResize() {
-			viewModel.setMobile(checkMobile());
-		}
-
-		if (typeof window !== 'undefined') {
-			viewModel.setMobile(checkMobile());
-			window.addEventListener('resize', handleResize);
-
-			return () => {
-				window.removeEventListener('resize', handleResize);
-			};
-		}
-	});
+	function handleResize() {
+		viewModel.setMobile(checkMobile());
+	}
 
 	// Mount lifecycle
 	onMount(async () => {
@@ -135,6 +122,11 @@
 					}
 				}, 2000);
 			}
+
+			if (typeof window !== 'undefined') {
+				viewModel.setMobile(checkMobile());
+				window.addEventListener('resize', handleResize);
+			}
 		} catch (error) {
 			console.error('[ClaudePane] Failed to attach to run session:', error);
 			viewModel.setConnectionError(`Failed to connect: ${error.message}`);
@@ -158,6 +150,7 @@
 				console.error('[ClaudePane] Failed to detach from run session:', error);
 			}
 		}
+		window.removeEventListener('resize', handleResize);
 	});
 </script>
 

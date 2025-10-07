@@ -87,19 +87,29 @@ export class EventRecorder {
 	async recordEvent(sessionId, event) {
 		const buffer = this.#buffers.get(sessionId);
 
+		console.log(`[EventRecorder] recordEvent for ${sessionId}:`, {
+			hasBuffer: !!buffer,
+			initializing: buffer?.initializing,
+			channel: event.channel,
+			type: event.type
+		});
+
 		if (!buffer) {
 			// Not a live session - record directly
+			console.log(`[EventRecorder] No buffer for ${sessionId} - recording directly`);
 			return await this.#persistAndEmit(sessionId, event);
 		}
 
 		if (buffer.initializing) {
 			// Buffer during initialization
+			console.log(`[EventRecorder] Buffering event for ${sessionId} (still initializing)`);
 			buffer.eventBuffer.push(event);
 			return;
 		}
 
 		// Serialize async operations to prevent race conditions
 		// Chain the operation but return a clean promise to caller
+		console.log(`[EventRecorder] Queueing event for ${sessionId}`);
 		const operation = buffer.eventQueue
 			.then(async () => {
 				return await this.#persistAndEmit(sessionId, event);
@@ -127,16 +137,23 @@ export class EventRecorder {
 	 * @returns {Promise<Object>} Persisted event row
 	 */
 	async #persistAndEmit(sessionId, event) {
-		// Persist to database
-		const row = await this.#eventStore.append(sessionId, event);
+		console.log(`[EventRecorder] Persisting event for ${sessionId}:`, event.channel, event.type);
+		try {
+			// Persist to database
+			const row = await this.#eventStore.append(sessionId, event);
+			console.log(`[EventRecorder] Event persisted with seq:`, row.seq);
 
-		// Emit to listeners (for real-time Socket.IO broadcast)
-		this.#eventEmitter.emit('event', {
-			sessionId,
-			...row
-		});
+			// Emit to listeners (for real-time Socket.IO broadcast)
+			this.#eventEmitter.emit('event', {
+				sessionId,
+				...row
+			});
 
-		return row;
+			return row;
+		} catch (error) {
+			console.error(`[EventRecorder] Failed to persist event for ${sessionId}:`, error);
+			throw error;
+		}
 	}
 
 	/**
