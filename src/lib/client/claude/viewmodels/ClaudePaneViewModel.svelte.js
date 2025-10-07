@@ -467,15 +467,51 @@ export class ClaudePaneViewModel {
 
 		this.isCatchingUp = true;
 
-		const loadedMessages = history
-			.filter((entry) => entry.type === 'claude:message')
-			.map((entry) => ({
-				role: entry.payload?.role || 'assistant',
-				text: entry.payload?.text || entry.payload?.content || '',
-				timestamp: new Date(entry.timestamp || Date.now()),
-				id: this.nextMessageId()
-			}));
+		const loadedMessages = [];
 
+		for (const entry of history) {
+			const { channel, type, payload } = entry;
+
+			// Load user input messages
+			if (channel === 'system:input' && payload?.text) {
+				loadedMessages.push({
+					role: 'user',
+					text: payload.text,
+					timestamp: new Date(entry.timestamp || Date.now()),
+					id: this.nextMessageId()
+				});
+			}
+
+			// Load assistant messages (using same extraction logic as handleRunEvent)
+			if (channel === 'claude:message' && type === 'assistant') {
+				let messageText = '';
+
+				if (payload.events && Array.isArray(payload.events)) {
+					for (const evt of payload.events) {
+						if (evt.message?.content) {
+							for (const block of evt.message.content) {
+								if (block.type === 'text' && block.text) {
+									messageText += block.text;
+								}
+							}
+						}
+					}
+				} else {
+					messageText = payload.text || payload.content || '';
+				}
+
+				if (messageText) {
+					loadedMessages.push({
+						role: 'assistant',
+						text: messageText,
+						timestamp: new Date(entry.timestamp || Date.now()),
+						id: this.nextMessageId()
+					});
+				}
+			}
+		}
+
+		console.log('[ClaudePaneViewModel] Loaded', loadedMessages.length, 'messages from history');
 		this.messages = loadedMessages;
 		this.isCatchingUp = false;
 

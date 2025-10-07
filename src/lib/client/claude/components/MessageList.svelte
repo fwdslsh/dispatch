@@ -1,12 +1,8 @@
 <script>
-	import { fly } from 'svelte/transition';
 	import Markdown from '$lib/client/shared/components/Markdown.svelte';
 	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
 	import IconClaude from '$lib/client/shared/components/Icons/IconClaude.svelte';
 	import IconUserCode from '$lib/client/shared/components/Icons/IconUserCode.svelte';
-	import IconLoader from '$lib/client/shared/components/Icons/IconLoader.svelte';
-	import IconProgressDown from '$lib/client/shared/components/Icons/IconProgressDown.svelte';
-	import IconSparkles from '$lib/client/shared/components/Icons/IconSparkles.svelte';
 
 	/**
 	 * MessageList Component
@@ -219,7 +215,7 @@
 	.message {
 		display: flex;
 		width: 100%;
-		animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+		animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 	}
 
 	@keyframes slideIn {
