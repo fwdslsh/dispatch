@@ -15,8 +15,15 @@
 
 import { tick } from 'svelte';
 import { runSessionClient } from '../../shared/services/RunSessionClient.js';
+import * as MessageParser from '../services/MessageParser.js';
+import { ClaudeEventHandlers } from '../services/EventHandlers.js';
+import { AuthenticationManager } from '../services/AuthenticationManager.svelte.js';
 
 export class ClaudePaneViewModel {
+	// Dependency injection
+	sessionClient = null;
+	eventHandlers = null;
+
 	// Core session props
 	sessionId = $state(null);
 	claudeSessionId = $state(null);
@@ -35,11 +42,11 @@ export class ClaudePaneViewModel {
 	// Live event feedback
 	liveEventIcons = $state([]);
 
-	// Authentication state
-	authStartRequested = $state(false);
-	authAwaitingCode = $state(false);
-	authInProgress = $state(false);
-	pendingAuthUrl = $state('');
+	// Event sourcing deduplication - track processed event sequences
+	processedEventSeqs = $state(new Set());
+
+	// Authentication manager (encapsulates auth flow state)
+	authManager = new AuthenticationManager();
 
 	// Connection state
 	isAttached = $state(false);
@@ -53,8 +60,8 @@ export class ClaudePaneViewModel {
 	// Derived status
 	status = $derived.by(() => {
 		if (this.connectionError) return 'connection-error';
-		if (this.authInProgress) return 'auth-in-progress';
-		if (this.authAwaitingCode) return 'awaiting-auth-code';
+		if (this.authManager.inProgress) return 'auth-in-progress';
+		if (this.authManager.awaitingCode) return 'awaiting-auth-code';
 		if (this.loading) return 'loading';
 		if (this.isCatchingUp) return 'catching-up';
 		if (this.isWaitingForReply) return 'thinking';
@@ -66,12 +73,34 @@ export class ClaudePaneViewModel {
 	canSubmit = $derived.by(() => this.input.trim().length > 0 && this.hasActiveSession);
 
 	/**
-	 * Initialize ViewModel with session props
+	 * Initialize ViewModel with session props and optional dependencies
+	 *
+	 * @param {Object} options - Constructor options
+	 * @param {string} options.sessionId - Run session ID
+	 * @param {string|null} [options.claudeSessionId=null] - Claude session ID for resume
+	 * @param {boolean} [options.shouldResume=false] - Whether to resume existing session
+	 * @param {Object|null} [options.sessionClient=null] - RunSessionClient instance for DI
+	 *
+	 * @example
+	 * // Production usage with singleton client
+	 * const vm = new ClaudePaneViewModel({ sessionId: 'abc123' });
+	 *
+	 * @example
+	 * // Testing usage with mock client
+	 * const mockClient = { sendInput: vi.fn(), getStatus: vi.fn() };
+	 * const vm = new ClaudePaneViewModel({
+	 *   sessionId: 'test-id',
+	 *   sessionClient: mockClient
+	 * });
 	 */
-	constructor(sessionId, claudeSessionId = null, shouldResume = false) {
+	constructor({ sessionId, claudeSessionId = null, shouldResume = false, sessionClient = null }) {
 		this.sessionId = sessionId;
 		this.claudeSessionId = claudeSessionId;
 		this.shouldResume = shouldResume;
+		// Use injected client or fallback to singleton (Dependency Inversion Principle)
+		this.sessionClient = sessionClient || runSessionClient;
+		// Initialize event handlers using Strategy Pattern
+		this.eventHandlers = new ClaudeEventHandlers(this);
 	}
 
 	/**
@@ -109,7 +138,7 @@ export class ClaudePaneViewModel {
 			sessionId: this.sessionId,
 			claudeSessionId: this.claudeSessionId,
 			input: this.input.trim(),
-			runSessionConnected: runSessionClient.getStatus().connected
+			runSessionConnected: this.sessionClient.getStatus().connected
 		});
 
 		if (!this.input.trim()) return;
@@ -123,17 +152,16 @@ export class ClaudePaneViewModel {
 		}
 
 		const userMessage = this.input.trim();
-		this.authStartRequested = false; // reset per user turn
+		this.authManager.resetForNewTurn(); // reset per user turn
 
-		// Handle OAuth authorization code submission
-		if (this.authAwaitingCode && userMessage) {
+		// Handle OAuth authorization code submission via AuthenticationManager
+		const authCommand = this.authManager.processAuthInput(userMessage);
+		if (authCommand) {
 			try {
-				this.authInProgress = true;
-				const code = userMessage;
 				this.input = '';
 
 				// Send auth code through run session client
-				runSessionClient.sendInput(this.sessionId, `/auth ${code}`);
+				this.sessionClient.sendInput(this.sessionId, authCommand);
 
 				// Show status message
 				this.messages = [
@@ -160,11 +188,12 @@ export class ClaudePaneViewModel {
 			id: this.nextMessageId()
 		};
 		console.log('[ClaudePaneViewModel] Adding user message:', userMsg);
-		this.messages = [
-			...this.messages,
-			userMsg
-		];
-		console.log('[ClaudePaneViewModel] Messages array after user message:', this.messages.length, this.messages);
+		this.messages = [...this.messages, userMsg];
+		console.log(
+			'[ClaudePaneViewModel] Messages array after user message:',
+			this.messages.length,
+			this.messages
+		);
 
 		// Clear input and show waiting state
 		this.input = '';
@@ -176,7 +205,7 @@ export class ClaudePaneViewModel {
 
 		try {
 			// Send input through run session client
-			runSessionClient.sendInput(this.sessionId, userMessage);
+			this.sessionClient.sendInput(this.sessionId, userMessage);
 		} catch (error) {
 			console.error('[ClaudePaneViewModel] Failed to send message:', error);
 			this.lastError = error.message || 'Failed to send message';
@@ -193,254 +222,87 @@ export class ClaudePaneViewModel {
 	}
 
 	/**
-	 * Handle run session events
+	 * Handle run session events (simplified with Strategy Pattern)
+	 * @param {Object} event - Event object with seq, channel, type, payload
 	 */
 	handleRunEvent(event) {
 		console.log('[ClaudePaneViewModel] Handling event:', event);
 
-		const { channel, type, payload } = event;
+		// Event sourcing deduplication - check sequence number
+		if (event.seq !== undefined && this.processedEventSeqs.has(event.seq)) {
+			console.log('[ClaudePaneViewModel] Skipping already processed event seq:', event.seq);
+			return;
+		}
 
-		// Handle events by channel
-		if (channel === 'claude:message') {
-			switch (type) {
-				case 'assistant':
-					// Assistant message received - extract text from content
-					console.log('[ClaudePaneViewModel] Processing assistant message, current messages:', this.messages.length);
+		// Delegate to event handler strategy
+		const action = this.eventHandlers.handleEvent(event);
+
+		// Apply the action to update state
+		this.applyAction(action);
+
+		// Track this event as processed (if it has a sequence number)
+		if (event.seq !== undefined) {
+			this.processedEventSeqs.add(event.seq);
+		}
+	}
+
+	/**
+	 * Apply state changes from event handler action
+	 * @param {Object} action - Action object describing state changes
+	 */
+	applyAction(action) {
+		if (!action || action.type === 'noop') return;
+
+		switch (action.type) {
+			case 'add_message':
+				this.messages = [...this.messages, action.message];
+				if (action.clearWaiting) {
 					this.isWaitingForReply = false;
 					this.liveEventIcons = [];
-
-					// Extract message text from the event structure
-					let messageText = '';
-					console.log('[ClaudePaneViewModel] Payload structure:', JSON.stringify(payload, null, 2));
-
-					if (payload.events && Array.isArray(payload.events)) {
-						console.log('[ClaudePaneViewModel] Found', payload.events.length, 'events in payload');
-						// Extract text from content blocks
-						for (const evt of payload.events) {
-							if (evt.message?.content) {
-								console.log('[ClaudePaneViewModel] Found message with', evt.message.content.length, 'content blocks');
-								for (const block of evt.message.content) {
-									if (block.type === 'text' && block.text) {
-										console.log('[ClaudePaneViewModel] Extracted text block:', block.text);
-										messageText += block.text;
-									}
-								}
-							}
-						}
-					} else {
-						messageText = payload.text || payload.content || '';
-						console.log('[ClaudePaneViewModel] Using fallback extraction, text:', messageText);
-					}
-
-					console.log('[ClaudePaneViewModel] Final extracted text:', messageText);
-
-					if (messageText) {
-						const newMessage = {
-							role: 'assistant',
-							text: messageText,
-							timestamp: new Date(),
-							id: this.nextMessageId()
-						};
-						console.log('[ClaudePaneViewModel] Adding message:', newMessage);
-						this.messages = [
-							...this.messages,
-							newMessage
-						];
-						console.log('[ClaudePaneViewModel] Messages array now has', this.messages.length, 'messages');
-						this.scrollToBottom();
-					} else {
-						console.warn('[ClaudePaneViewModel] No message text extracted from assistant event');
-					}
-					break;
-
-				case 'system':
-					// System initialization message
-					console.log('[ClaudePaneViewModel] System init:', payload);
-					break;
-
-				case 'result':
-					// Execution result - mark conversation complete
-					this.isWaitingForReply = false;
-					this.liveEventIcons = [];
-					console.log('[ClaudePaneViewModel] Execution result:', payload);
-					break;
-
-				default:
-					console.log('[ClaudePaneViewModel] Unhandled claude:message type:', type);
-			}
-			return;
-		}
-
-		// Handle error channel
-		if (channel === 'claude:error') {
-			this.isWaitingForReply = false;
-			this.liveEventIcons = [];
-
-			let errorMessage = payload.error || payload.message || 'An error occurred';
-			// Extract error from nested structure if needed
-			if (payload.events && Array.isArray(payload.events) && payload.events[0]?.error) {
-				errorMessage = payload.events[0].error;
-			}
-
-			this.lastError = errorMessage;
-			this.messages = [
-				...this.messages,
-				{
-					role: 'assistant',
-					text: `Error: ${errorMessage}`,
-					timestamp: new Date(),
-					id: this.nextMessageId()
 				}
-			];
-			this.scrollToBottom();
-			return;
-		}
-
-		// Handle system:input channel for user messages
-		if (channel === 'system:input') {
-			// User input message from history or other clients
-			// Don't add if we just sent this message ourselves (avoid duplication)
-			const userText = payload.data || payload.text || '';
-			if (userText) {
-				// Check if this is a duplicate of the last message we added
-				const lastMessage = this.messages[this.messages.length - 1];
-				if (lastMessage?.role === 'user' && lastMessage?.text === userText) {
-					console.log('[ClaudePaneViewModel] Skipping duplicate user message');
-					return;
+				if (action.scrollToBottom) {
+					this.scrollToBottom();
 				}
+				break;
 
-				console.log('[ClaudePaneViewModel] Adding user message from system:input event:', userText);
-				this.messages = [
-					...this.messages,
-					{
-						role: 'user',
-						text: userText,
-						timestamp: new Date(),
-						id: this.nextMessageId()
-					}
-				];
-				this.scrollToBottom();
-			}
-			return;
-		}
-
-		// Legacy event format (for backward compatibility)
-		switch (type) {
-			case 'claude:message':
-				// Assistant message received (legacy format)
+			case 'add_error_message':
+				this.messages = [...this.messages, action.message];
+				this.lastError = action.setError;
 				this.isWaitingForReply = false;
 				this.liveEventIcons = [];
-				this.messages = [
-					...this.messages,
-					{
-						role: 'assistant',
-						text: payload.text || payload.content || '',
-						timestamp: new Date(),
-						id: this.nextMessageId()
-					}
-				];
 				this.scrollToBottom();
 				break;
 
-			case 'claude:auth_start':
-				// OAuth authentication flow started
-				this.authStartRequested = true;
-				this.authAwaitingCode = false;
-				this.authInProgress = true;
-				this.pendingAuthUrl = payload.url || '';
-				this.messages = [
-					...this.messages,
-					{
-						role: 'assistant',
-						text: `Please authorize Claude Code:\n\n[Open Authorization URL](${this.pendingAuthUrl})`,
-						timestamp: new Date(),
-						id: this.nextMessageId()
-					}
-				];
-				this.scrollToBottom();
-				break;
-
-			case 'claude:auth_awaiting_code':
-				// Waiting for authorization code
-				this.authAwaitingCode = true;
-				this.authInProgress = false;
-				this.messages = [
-					...this.messages,
-					{
-						role: 'assistant',
-						text: 'Please paste the authorization code from the browser:',
-						timestamp: new Date(),
-						id: this.nextMessageId()
-					}
-				];
-				this.scrollToBottom();
-				break;
-
-			case 'claude:auth_success':
-				// Authentication successful
-				this.authInProgress = false;
-				this.authAwaitingCode = false;
-				this.authStartRequested = false;
-				this.messages = [
-					...this.messages,
-					{
-						role: 'assistant',
-						text: '✓ Authentication successful! You can now use Claude Code.',
-						timestamp: new Date(),
-						id: this.nextMessageId()
-					}
-				];
-				this.scrollToBottom();
-				break;
-
-			case 'claude:auth_error':
-				// Authentication failed
-				this.authInProgress = false;
-				this.authAwaitingCode = false;
-				this.lastError = payload.error || 'Authentication failed';
-				this.messages = [
-					...this.messages,
-					{
-						role: 'assistant',
-						text: `Authentication error: ${this.lastError}`,
-						timestamp: new Date(),
-						id: this.nextMessageId()
-					}
-				];
-				this.scrollToBottom();
-				break;
-
-			case 'claude:tool_use':
-			case 'claude:tool_result':
-			case 'claude:thinking':
-				// Add to live event icons for streaming feedback
-				this.pushLiveIcon(event);
-				break;
-
-			case 'claude:error':
-				// Handle errors
+			case 'clear_waiting':
 				this.isWaitingForReply = false;
 				this.liveEventIcons = [];
-				this.lastError = payload.error || 'An error occurred';
-				this.messages = [
-					...this.messages,
-					{
-						role: 'assistant',
-						text: `Error: ${this.lastError}`,
-						timestamp: new Date(),
-						id: this.nextMessageId()
-					}
-				];
-				this.scrollToBottom();
+				break;
+
+			case 'update_auth_state':
+				Object.assign(this, action.updates);
+				if (action.message) {
+					this.messages = [...this.messages, action.message];
+				}
+				if (action.setError) {
+					this.lastError = action.setError;
+				}
+				if (action.scrollToBottom) {
+					this.scrollToBottom();
+				}
+				break;
+
+			case 'add_live_icon':
+				this.liveEventIcons = [...this.liveEventIcons, action.icon];
 				break;
 
 			default:
-				console.log('[ClaudePaneViewModel] Unhandled event type:', type);
+				console.warn('[ClaudePaneViewModel] Unknown action type:', action.type);
 		}
 	}
 
 	/**
 	 * Add live event icon for streaming feedback
+	 * Implements bounds checking to prevent memory leak
 	 */
 	pushLiveIcon(event) {
 		const icon = {
@@ -449,6 +311,11 @@ export class ClaudePaneViewModel {
 			id: this.nextMessageId()
 		};
 		this.liveEventIcons = [...this.liveEventIcons, icon];
+
+		// Prevent memory leak by limiting to last 50 icons
+		if (this.liveEventIcons.length > 50) {
+			this.liveEventIcons = this.liveEventIcons.slice(-50);
+		}
 	}
 
 	/**
@@ -494,41 +361,35 @@ export class ClaudePaneViewModel {
 		for (const entry of history) {
 			const { channel, type, payload } = entry;
 
-			// Load user input messages (payload.data contains the user's input text)
-			if (channel === 'system:input' && payload?.data) {
-				loadedMessages.push({
-					role: 'user',
-					text: payload.data,
-					timestamp: new Date(entry.timestamp || Date.now()),
-					id: this.nextMessageId()
-				});
+			// Load user input messages - use MessageParser for consistent extraction
+			if (channel === 'system:input') {
+				const userText = MessageParser.parseUserInput(payload);
+				if (userText) {
+					const message = MessageParser.createMessage(
+						userText,
+						'user',
+						() => this.nextMessageId(),
+						new Date(entry.timestamp || Date.now())
+					);
+					if (message) {
+						loadedMessages.push(message);
+					}
+				}
 			}
 
-			// Load assistant messages (using same extraction logic as handleRunEvent)
+			// Load assistant messages - use MessageParser for consistent extraction
 			if (channel === 'claude:message' && type === 'assistant') {
-				let messageText = '';
-
-				if (payload.events && Array.isArray(payload.events)) {
-					for (const evt of payload.events) {
-						if (evt.message?.content) {
-							for (const block of evt.message.content) {
-								if (block.type === 'text' && block.text) {
-									messageText += block.text;
-								}
-							}
-						}
-					}
-				} else {
-					messageText = payload.text || payload.content || '';
-				}
-
+				const messageText = MessageParser.extractMessageText(payload);
 				if (messageText) {
-					loadedMessages.push({
-						role: 'assistant',
-						text: messageText,
-						timestamp: new Date(entry.timestamp || Date.now()),
-						id: this.nextMessageId()
-					});
+					const message = MessageParser.createMessage(
+						messageText,
+						'assistant',
+						() => this.nextMessageId(),
+						new Date(entry.timestamp || Date.now())
+					);
+					if (message) {
+						loadedMessages.push(message);
+					}
 				}
 			}
 		}

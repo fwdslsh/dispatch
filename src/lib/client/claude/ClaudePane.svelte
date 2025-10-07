@@ -18,10 +18,16 @@
 	 */
 
 	// Props
-	let { sessionId, claudeSessionId = null, shouldResume = false } = $props();
+	let { sessionId, claudeSessionId = null, shouldResume = false, sessionClient = null } = $props();
 
-	// Create ViewModel instance
-	const viewModel = new ClaudePaneViewModel(sessionId, claudeSessionId, shouldResume);
+	// Create ViewModel instance with dependency injection
+	// sessionClient can be injected for testing, defaults to singleton runSessionClient
+	const viewModel = new ClaudePaneViewModel({
+		sessionId,
+		claudeSessionId,
+		shouldResume,
+		sessionClient
+	});
 
 	// Debug logging
 	$effect(() => {
@@ -88,7 +94,7 @@
 		viewModel.setMobile(checkMobile());
 	}
 
-	// Mount lifecycle
+	// Mount lifecycle with comprehensive error boundary
 	onMount(async () => {
 		console.log('[ClaudePane] Mounting with:', { sessionId, claudeSessionId, shouldResume });
 
@@ -127,15 +133,18 @@
 				viewModel.setMobile(checkMobile());
 				window.addEventListener('resize', handleResize);
 			}
-		} catch (error) {
-			console.error('[ClaudePane] Failed to attach to run session:', error);
-			viewModel.setConnectionError(`Failed to connect: ${error.message}`);
-			viewModel.isCatchingUp = false;
-		}
 
-		// Load previous messages if this is a resumed session
-		if (claudeSessionId || shouldResume) {
-			await loadPreviousMessages();
+			// Load previous messages if this is a resumed session
+			if (claudeSessionId || shouldResume) {
+				await loadPreviousMessages();
+			}
+		} catch (error) {
+			// Comprehensive error boundary - handle all mount failures gracefully
+			console.error('[ClaudePane] Mount error:', error);
+			viewModel.setConnectionError(`Failed to initialize: ${error.message || 'Unknown error'}`);
+			viewModel.isCatchingUp = false;
+			viewModel.loading = false;
+			viewModel.isWaitingForReply = false;
 		}
 	});
 
