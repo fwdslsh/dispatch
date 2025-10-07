@@ -35,10 +35,6 @@
 	aria-label="Chat messages"
 	bind:this={messagesContainer}
 >
-	<!-- DEBUG: Message count -->
-	<div style="position: fixed; top: 10px; right: 10px; background: red; color: white; padding: 10px; z-index: 9999;">
-		Messages: {viewModel.messages.length} | Loading: {viewModel.loading} | Catching Up: {viewModel.isCatchingUp}
-	</div>
 
 	{#if viewModel.loading && viewModel.messages.length === 0}
 		<div class="loading-message">

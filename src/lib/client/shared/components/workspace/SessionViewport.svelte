@@ -73,12 +73,10 @@
 
 <style>
 	.session-viewport {
-		flex: 1;
 		overflow: hidden;
 		background: var(--bg-dark);
 		min-height: 0;
-		display: flex;
-		flex-direction: column;
+		height: 100%;
 		position: relative;
 		contain: layout;
 		text-align: justify;

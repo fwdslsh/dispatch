@@ -296,9 +296,31 @@ export class ClaudePaneViewModel {
 			return;
 		}
 
-		// Handle other channel types
+		// Handle system:input channel for user messages
 		if (channel === 'system:input') {
-			// Echo user input (already handled via sendMessage)
+			// User input message from history or other clients
+			// Don't add if we just sent this message ourselves (avoid duplication)
+			const userText = payload.data || payload.text || '';
+			if (userText) {
+				// Check if this is a duplicate of the last message we added
+				const lastMessage = this.messages[this.messages.length - 1];
+				if (lastMessage?.role === 'user' && lastMessage?.text === userText) {
+					console.log('[ClaudePaneViewModel] Skipping duplicate user message');
+					return;
+				}
+
+				console.log('[ClaudePaneViewModel] Adding user message from system:input event:', userText);
+				this.messages = [
+					...this.messages,
+					{
+						role: 'user',
+						text: userText,
+						timestamp: new Date(),
+						id: this.nextMessageId()
+					}
+				];
+				this.scrollToBottom();
+			}
 			return;
 		}
 
