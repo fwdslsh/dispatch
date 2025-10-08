@@ -5,13 +5,12 @@
 	 * Follows constitutional requirement for clear data management
 	 *
 	 * CONSOLIDATED ARCHITECTURE:
-	 * - Uses RetentionPolicyViewModel which reads from user_preferences (maintenance category)
+	 * - Uses RetentionPolicyViewModel which reads from settings (maintenance category)
 	 * - Cleanup operations via /api/maintenance endpoint
 	 */
 
 	import { getContext, onMount } from 'svelte';
 	import { RetentionPolicyViewModel } from '../state/RetentionPolicyViewModel.svelte.js';
-	import { PreferencesViewModel } from '../state/PreferencesViewModel.svelte.js';
 	import Button from '../shared/components/Button.svelte';
 
 	// Props
@@ -28,9 +27,9 @@
 				throw new Error('Service container not available');
 			}
 
-			const apiClient = await serviceContainer.get('apiClient');
-			if (!apiClient) {
-				throw new Error('API client not available');
+			const settingsService = await serviceContainer.get('settingsService');
+			if (!settingsService) {
+				throw new Error('Settings service not available');
 			}
 
 			// Get auth key from localStorage
@@ -39,9 +38,8 @@
 				throw new Error('Authentication key not found');
 			}
 
-			// Create PreferencesViewModel and RetentionPolicyViewModel
-			const preferencesViewModel = new PreferencesViewModel(apiClient, authKey);
-			viewModel = new RetentionPolicyViewModel(preferencesViewModel, authKey);
+			// Create RetentionPolicyViewModel with SettingsService
+			viewModel = new RetentionPolicyViewModel(settingsService, authKey);
 			await viewModel.loadPolicy();
 		} catch (error) {
 			console.error('Failed to initialize RetentionSettings:', error);

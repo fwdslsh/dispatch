@@ -1,5 +1,5 @@
 <script>
-	import DirectoryBrowser from '../shared/components/DirectoryBrowser.svelte';
+	import DirectoryBrowser from '../shared/components/directory-browser/DirectoryBrowser.svelte';
 	import FileEditor from '../shared/components/FileEditor.svelte';
 	import { onMount } from 'svelte';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';

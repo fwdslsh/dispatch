@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import DirectoryBrowser from '$lib/client/shared/components/DirectoryBrowser.svelte';
+	import DirectoryBrowser from '$lib/client/shared/components/directory-browser/DirectoryBrowser.svelte';
 	import Button from './Button.svelte';
 	import SessionCard from './SessionCard.svelte';
 	import IconFolder from './Icons/IconFolder.svelte';

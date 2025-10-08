@@ -1,5 +1,5 @@
 <script>
-	import DirectoryBrowser from '$lib/client/shared/components/DirectoryBrowser.svelte';
+	import DirectoryBrowser from '$lib/client/shared/components/directory-browser/DirectoryBrowser.svelte';
 	import FileEditor from '$lib/client/shared/components/FileEditor.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import { onMount } from 'svelte';
@@ -293,6 +293,8 @@
 				startPath={currentDirectory}
 				placeholder="Browse home directory..."
 				showFileActions={true}
+				showBreadcrumbs={false}
+				showGitOperations={false}
 				isAlwaysOpen={true}
 				rootFolder={homeDirectory}
 				onSelect={handleDirectorySelect}

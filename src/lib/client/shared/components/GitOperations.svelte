@@ -18,7 +18,7 @@
 	import WorktreeManager from './WorktreeManager.svelte';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
-	// Svelte 5 Git Operations Component
+
 	let {
 		currentPath,
 		onRefresh = null, // callback to refresh directory listing
@@ -77,7 +77,7 @@
 				currentBranch = '';
 				branches = [];
 				error = message;
-				onError?.(message);
+				onError?.(message, res.status);
 			}
 		} catch (e) {
 			isGitRepo = false;

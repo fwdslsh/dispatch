@@ -193,14 +193,9 @@
 	.workspace-env-settings {
 		height: 100%;
 		overflow-y: auto;
-		padding: var(--space-4);
+		padding: var(--space-3);
 	}
 
-	.settings-header h3 {
-		color: var(--primary);
-		font-weight: 700;
-		margin-bottom: var(--space-2);
-	}
 
 	.settings-description {
 		color: var(--primary-muted);

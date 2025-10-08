@@ -202,7 +202,7 @@
 			{/if}
 
 			<div class="settings-container">
-				<nav class="settings-nav" aria-label="Settings sections" role="tablist">
+				<div class="settings-nav" aria-label="Settings sections" role="tablist">
 					{#each sections as section, index}
 						<button
 							id={`settings-tab-${section.id}`}
@@ -221,7 +221,7 @@
 							<span class="tab-label">{section.label}</span>
 						</button>
 					{/each}
-				</nav>
+				</div>
 
 				<main class="settings-content">
 					{#if activeSection}
@@ -306,10 +306,7 @@
 		color: var(--primary);
 	}
 
-	.settings-container {
-		display: flex;
-		min-height: 100%;
-	}
+
 
 	.settings-nav {
 		width: 240px;
@@ -363,7 +360,7 @@
 	.settings-content {
 		flex: 1;
 		background: var(--bg-dark);
-		border: 1px solid rgba(46, 230, 107, 0.2);
+		border: 1px solid var(--primary-bright);
 		overflow: hidden;
 		position: relative;
 	}
@@ -371,25 +368,9 @@
 	.settings-panel {
 		height: 100%;
 		overflow: auto;
-		padding: var(--space-5);
 		position: relative;
-		background: var(--bg);
 	}
 
-	.settings-panel::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		pointer-events: none;
-		background: repeating-linear-gradient(
-			0deg,
-			transparent 0px,
-			transparent 2px,
-			var(--scan-line) 3px,
-			transparent 4px
-		);
-		opacity: 0.08;
-	}
 
 	.empty-state {
 		padding: var(--space-5);
@@ -407,7 +388,7 @@
 		text-align: center;
 	}
 
-	@media (max-width: 1024px) {
+	@media (max-width: 800px) {
 		.settings-container {
 			flex-direction: column;
 			min-height: auto;

@@ -1,6 +1,6 @@
 <script>
 	import Modal from '$lib/client/shared/components/Modal.svelte';
-	import DirectoryBrowser from './DirectoryBrowser.svelte';
+	import DirectoryBrowser from './directory-browser/DirectoryBrowser.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import WorkspaceSelector from '$lib/client/shared/components/WorkspaceSelector.svelte';
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';

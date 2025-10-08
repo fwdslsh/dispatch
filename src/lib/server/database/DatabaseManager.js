@@ -177,18 +177,6 @@ export class DatabaseManager {
 			)
 		`);
 
-		// User preferences table
-		await this.run(`
-			CREATE TABLE IF NOT EXISTS user_preferences (
-				user_id TEXT NOT NULL,
-				category TEXT NOT NULL,
-				preferences_json TEXT NOT NULL DEFAULT '{}',
-				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				PRIMARY KEY (user_id, category)
-			)
-		`);
-
 		// Create indexes
 		await this.#createIndexes();
 	}

@@ -147,7 +147,6 @@
 </div>
 
 <style>
-
 	.terminal-key-settings {
 		display: flex;
 		flex-direction: column;
@@ -170,7 +169,9 @@
 
 	.btn-icon-toggle {
 		position: absolute;
-		top: 38px; /* Align with input field after label */
+		top: unset;
+		bottom: 5px;
+
 		right: var(--space-2);
 		background: transparent;
 		border: none;

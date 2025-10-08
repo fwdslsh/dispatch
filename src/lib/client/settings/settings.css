@@ -26,10 +26,12 @@
  * Provides consistent layout, spacing, and backdrop styling
  */
 .settings-container {
-	width: 100%;
+
+	display: flex;
+	height: 100%;
+	overflow: hidden;
 	gap: var(--space-2);
-	margin: 0 auto;
-	padding: var(--space-5);
+	padding: var(--space-2);
 	background: var(--surface);
 	border: 1px solid var(--line);
 	box-shadow:
@@ -42,11 +44,15 @@
  * Used for embedded settings UI within other components
  */
 .settings-panel {
-	background: var(--elev);
 	border: 1px solid var(--line);
-	padding: var(--space-4);
-	margin-bottom: var(--space-4);
 	box-shadow: 0 2px 4px color-mix(in oklab, var(--bg) 85%, black);
+
+	>div {
+
+		padding: var(--space-3);
+		container-type: inline-size;
+
+	}
 }
 
 /**
@@ -56,6 +62,10 @@
 	margin-bottom: var(--space-5);
 	padding-bottom: var(--space-4);
 	border-bottom: 1px solid var(--line);
+}
+
+.settings-header h3 {
+	margin: 0 0 var(--space-2) 0;
 }
 
 .settings-title {
@@ -149,42 +159,18 @@
 		gap: var(--space-4);
 	}
 
-	.field-row > label {
+	.field-row>label {
 		flex: 0 0 200px;
 	}
 
-	.field-row > input,
-	.field-row > select,
-	.field-row > textarea {
+	.field-row>input,
+	.field-row>select,
+	.field-row>textarea {
 		flex: 1;
 	}
 }
 
-/* ==========================================================================
-   3. Labels and Typography
-   ========================================================================== */
 
-/**
- * Form labels with monospace styling for technical feel
- */
-label {
-	display: block;
-	font-family: var(--font-mono);
-	font-size: var(--font-size-1);
-	font-weight: 500;
-	color: var(--text);
-	margin-bottom: var(--space-2);
-	letter-spacing: 0.2px;
-}
-
-/**
- * Required field indicator
- */
-label.required::after {
-	content: ' *';
-	color: var(--err);
-	font-weight: bold;
-}
 
 /**
  * Helper text for additional context
@@ -242,7 +228,8 @@ label.required::after {
 	display: flex;
 	align-items: center;
 	gap: var(--space-3);
-	min-height: 44px; /* WCAG touch target */
+	min-height: 44px;
+	/* WCAG touch target */
 	padding: var(--space-2) 0;
 	cursor: pointer;
 }
@@ -557,6 +544,7 @@ label.required::after {
 	0% {
 		background-position: 200% 0;
 	}
+
 	100% {
 		background-position: -200% 0;
 	}
@@ -599,7 +587,7 @@ label.required::after {
 		flex-direction: column;
 	}
 
-	.field-row > label {
+	.field-row>label {
 		flex: 1;
 	}
 }
@@ -652,6 +640,7 @@ label.required::after {
  * Reduced motion support
  */
 @media (prefers-reduced-motion: reduce) {
+
 	*,
 	*::before,
 	*::after {
@@ -670,6 +659,7 @@ label.required::after {
  * High contrast mode support
  */
 @media (prefers-contrast: high) {
+
 	input[type='text'],
 	input[type='number'],
 	input[type='email'],
