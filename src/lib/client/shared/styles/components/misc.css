@@ -147,11 +147,12 @@
 	background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
 	color: var(--bg);
 	border-color: var(--primary);
+	border-width: 2px;
 	box-shadow:
 		0 0 20px var(--glow),
 		0 0 40px var(--glow),
+		0 0 0 3px var(--primary-glow-30),
 		inset 0 1px 0 color-mix(in oklab, var(--text) 20%, transparent);
-	transform: translateY(-1px);
 	text-shadow: 0 0 var(--space-2) color-mix(in oklab, var(--bg) 30%, black);
 }
 
@@ -166,11 +167,13 @@
 		color-mix(in oklab, var(--primary) 15%, var(--surface))
 	);
 	border-color: var(--primary);
+	border-width: 2px;
 	box-shadow:
 		0 0 0 2px var(--primary) inset,
 		0 0 30px var(--primary-glow-30),
+		0 0 0 4px var(--primary-glow-20),
 		inset 0 1px 0 color-mix(in oklab, var(--text) 20%, transparent);
-	transform: translateY(-2px) scale(1.02);
+	filter: brightness(1.05);
 }
 
 /* ==================================================================

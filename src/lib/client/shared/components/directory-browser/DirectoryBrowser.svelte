@@ -31,6 +31,7 @@
 		onNavigate = null, // (path) => void - called when user navigates to a directory
 		// Optional file operations
 		showFileActions = false,
+		showHidden = false,
 		onFileOpen = null, // (file) => void
 		onFileUpload = null, // (files, currentDirectory) => void
 		// Control initial state
@@ -46,7 +47,8 @@
 	const vm = new DirectoryBrowserViewModel({
 		api,
 		startPath,
-		rootFolder
+		rootFolder,
+		showHidden
 	});
 
 	// UI state
@@ -158,6 +160,8 @@
 			}
 		});
 	});
+
+	
 </script>
 
 {#if !isOpen}

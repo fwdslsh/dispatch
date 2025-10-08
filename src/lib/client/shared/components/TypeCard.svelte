@@ -96,8 +96,9 @@
 		border-color: var(--primary);
 		box-shadow:
 			0 0 20px var(--primary-glow-30),
+			0 0 0 2px var(--primary-glow-20),
 			inset 0 1px 0 rgba(255, 255, 255, 0.1);
-		transform: translateY(-2px);
+		filter: brightness(1.05);
 	}
 
 	/* BEM modifier for active state */
@@ -108,8 +109,10 @@
 		box-shadow:
 			0 0 30px var(--primary-glow-40),
 			0 0 60px var(--primary-glow-20),
+			0 0 0 3px var(--primary-glow-30),
 			inset 0 1px 0 rgba(255, 255, 255, 0.2);
-		transform: translateY(-3px) scale(1.02);
+		transform: scale(1.02);
+		filter: brightness(1.1);
 	}
 
 	/* BEM modifier for disabled state */

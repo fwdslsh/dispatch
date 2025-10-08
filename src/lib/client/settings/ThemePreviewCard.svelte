@@ -232,8 +232,9 @@
 	}
 
 	.theme-card:hover {
-		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-		transform: translateY(-2px);
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--primary-glow-20);
+		
+		filter: brightness(1.05);
 	}
 
 	.theme-card.active {

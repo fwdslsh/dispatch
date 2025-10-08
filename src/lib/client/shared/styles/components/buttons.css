@@ -52,13 +52,13 @@
 .btn:hover:not(:disabled) {
 	--btn-border: var(--primary);
 	--btn-bg: color-mix(in oklab, var(--surface) 85%, var(--primary) 15%);
-	--btn-transform: translateY(-1px);
-	--btn-shadow: 0 2px 12px -4px var(--glow);
+	--btn-transform: none;
+	--btn-shadow: 0 4px 16px -2px var(--glow), 0 0 0 2px var(--primary-glow-20);
 }
 
 .btn:active:not(:disabled) {
-	--btn-transform: translateY(1px) scale(0.98);
-	--btn-shadow: 0 0 var(--space-2) -4px var(--glow);
+	--btn-transform: scale(0.98);
+	--btn-shadow: 0 0 var(--space-2) -4px var(--glow), inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn:focus-visible {
@@ -361,7 +361,11 @@
 		animation: none;
 	}
 
-	.btn:hover:not(:disabled),
+	.btn:hover:not(:disabled) {
+		--btn-transform: none;
+		--btn-shadow: 0 0 0 2px var(--primary);
+	}
+
 	.btn:active:not(:disabled) {
 		--btn-transform: none;
 	}

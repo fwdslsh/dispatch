@@ -295,6 +295,7 @@
 				showFileActions={true}
 				showBreadcrumbs={false}
 				showGitOperations={false}
+				showHidden={true}
 				isAlwaysOpen={true}
 				rootFolder={homeDirectory}
 				onSelect={handleDirectorySelect}

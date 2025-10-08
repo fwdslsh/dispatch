@@ -68,6 +68,7 @@ export class DirectoryBrowserViewModel {
 		this.api = options.api || '/api/browse';
 		this.rootFolder = options.rootFolder || '/';
 		this.currentPath = options.startPath || null;
+		this.showHidden = options.showHidden || false;
 	}
 
 	/**

@@ -85,8 +85,9 @@
 		border-color: var(--primary);
 		box-shadow:
 			0 0 20px var(--primary-glow-20),
+			0 0 0 2px var(--primary-glow-10),
 			inset 0 1px 0 rgba(255, 255, 255, 0.1);
-		transform: translateY(-1px);
+		filter: brightness(1.05);
 	}
 
 	.workspace-selector__icon {
@@ -110,8 +111,8 @@
 	}
 
 	.workspace-selector:hover:not(:disabled) .workspace-selector__arrow {
-		transform: translateY(2px);
 		color: var(--primary);
+		filter: brightness(1.2) drop-shadow(0 0 4px var(--primary-glow-30));
 	}
 
 	.workspace-selector:disabled {

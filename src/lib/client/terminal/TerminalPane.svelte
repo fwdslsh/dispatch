@@ -295,24 +295,7 @@
 		animation: pulse 2s ease-in-out infinite;
 	}
 
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0.5;
-		}
-	}
+	
 
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-			transform: translateY(-8px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
+	
 </style>

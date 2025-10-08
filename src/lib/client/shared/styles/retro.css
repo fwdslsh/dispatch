@@ -229,7 +229,8 @@ textarea:focus {
 input:active:not(:disabled),
 select:active:not(:disabled),
 textarea:active:not(:disabled) {
-	transform: translateY(0);
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+	filter: brightness(0.97);
 }
 
 /* Disabled states */
