@@ -288,7 +288,7 @@
 	}
 
 	.catching-up {
-		font-size: 0.85rem;
+		font-size: var(--font-size-1);
 		color: var(--muted);
 		animation: loadingPulse 1.5s ease-in-out infinite;
 	}
@@ -301,7 +301,7 @@
 
 	.ai-name {
 		font-weight: 600;
-		font-size: 1rem;
+		font-size: var(--font-size-2);
 		color: var(--text);
 	}
 
@@ -328,7 +328,7 @@
 
 	.stat-value {
 		font-weight: 600;
-		font-size: 0.9rem;
+		font-size: var(--font-size-1);
 		color: var(--text);
 		min-width: 20px;
 		text-align: right;

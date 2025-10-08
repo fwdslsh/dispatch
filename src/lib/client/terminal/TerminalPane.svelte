@@ -262,7 +262,7 @@
 		align-items: center;
 		gap: var(--space-2);
 		color: var(--primary);
-		font-size: 0.875rem;
+		font-size: var(--font-size-1);
 		font-family: var(--font-mono);
 	}
 
@@ -286,7 +286,7 @@
 		align-items: center;
 		gap: var(--space-2);
 		color: #ef476f;
-		font-size: 0.875rem;
+		font-size: var(--font-size-1);
 		font-family: var(--font-mono);
 	}
 

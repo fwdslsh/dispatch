@@ -406,7 +406,7 @@
 					</SessionContainer>
 				{:else}
 					<div
-						class="empty-tile-content w-full h-full flex flex-col items-center justify-center surface radius p-4"
+						class="empty-tile-content h-full flex flex-col items-center justify-center surface radius p-4"
 					>
 						<EmptySessionPane onCreateSession={handleCreateSessionInTile}></EmptySessionPane>
 					</div>

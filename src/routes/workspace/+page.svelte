@@ -16,8 +16,7 @@
 <style>
 	/* Ensure the workspace page takes full height */
 	:global(html, body) {
-		/* Prevent horizontal scrolling due to overflowing children on mobile */
-		overflow-x: hidden;
+		overflow-x: auto;
 		/* Prevent pull-to-refresh on mobile */
 		overscroll-behavior-y: none;
 		overscroll-behavior: none;

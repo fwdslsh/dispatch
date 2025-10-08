@@ -34,13 +34,14 @@
 	/* Main content area - takes remaining vertical space */
 	.app-main {
 		flex: 1 1 auto;
-		overflow: hidden;
+		overflow: auto;
 		position: relative;
 		min-width: 0;
 		min-height: 0;
-		overscroll-behavior: none;
-		touch-action: pan-x pan-y;
+		overscroll-behavior: contain;
+		-webkit-overflow-scrolling: touch;
 		width: 100%;
+		display: grid;
 	}
 
 	/* Mobile responsive adjustments */

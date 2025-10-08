@@ -50,14 +50,14 @@
 
 .status-info h4 {
 	font-family: var(--font-mono);
-	font-size: 1.1rem;
+	font-size: var(--font-size-3);
 	margin: 0 0 var(--space-2) 0;
 	color: var(--text-primary);
 }
 
 .status-info p {
 	margin: 0;
-	font-size: 0.9rem;
+	font-size: var(--font-size-1);
 	color: var(--text-muted);
 }
 
@@ -99,7 +99,7 @@
 	align-items: center;
 	justify-content: center;
 	font-family: var(--font-mono);
-	font-size: 0.8rem;
+	font-size: var(--font-size-0);
 	font-weight: bold;
 	flex-shrink: 0;
 }
@@ -117,7 +117,7 @@
 
 .step-description {
 	margin: 0;
-	font-size: 0.9rem;
+	font-size: var(--font-size-1);
 	color: var(--text-muted);
 	line-height: 1.4;
 }
@@ -173,7 +173,7 @@
 }
 
 .setting-description {
-	font-size: 0.85rem;
+	font-size: var(--font-size-1);
 	color: var(--text-muted);
 	margin: 0;
 	line-height: 1.4;
@@ -207,7 +207,7 @@
 }
 
 .default-hint {
-	font-size: 0.8rem;
+	font-size: var(--font-size-0);
 	opacity: 0.7;
 	cursor: help;
 	margin-left: var(--space-1);
@@ -365,7 +365,7 @@
 }
 
 .message-role {
-	font-size: 0.75rem;
+	font-size: var(--font-size-0);
 	font-weight: 600;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;

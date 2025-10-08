@@ -54,7 +54,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: var(--space-4);
+	padding: var(--space-3) var(--space-4);
 	border-bottom: 1px solid var(--surface-border);
 	background: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
 }
@@ -70,14 +70,25 @@
 
 .modal-content {
 	flex: 1;
-	padding: var(--space-4);
+	padding: var(--space-5);
 	overflow-y: auto;
 	color: var(--text);
 	line-height: 1.6;
+	position: relative;
+
+	/* Scroll fade indicators */
+	background:
+		linear-gradient(var(--surface) 30%, transparent),
+		linear-gradient(transparent, var(--surface) 70%) 0 100%,
+		radial-gradient(farthest-side at 50% 0, rgba(0,0,0,0.3), transparent),
+		radial-gradient(farthest-side at 50% 100%, rgba(0,0,0,0.3), transparent) 0 100%;
+	background-repeat: no-repeat;
+	background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+	background-attachment: local, local, scroll, scroll;
 }
 
 .modal-footer {
-	padding: var(--space-4);
+	padding: var(--space-3) var(--space-4);
 	border-top: 1px solid var(--surface-border);
 	background: color-mix(in oklab, var(--surface) 98%, var(--bg));
 	display: flex;

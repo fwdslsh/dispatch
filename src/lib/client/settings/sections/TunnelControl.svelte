@@ -263,7 +263,7 @@
 		padding: var(--space-sm);
 		border-radius: var(--radius-sm);
 		margin-bottom: var(--space-md);
-		font-size: 0.9rem;
+		font-size: var(--font-size-1);
 	}
 
 	.tunnel-status {
@@ -306,7 +306,7 @@
 	}
 
 	.config-help {
-		font-size: 0.85rem;
+		font-size: var(--font-size-1);
 		color: var(--text-muted);
 		font-style: italic;
 	}

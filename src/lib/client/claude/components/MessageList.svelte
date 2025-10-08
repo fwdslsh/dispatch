@@ -266,13 +266,13 @@
 
 	.message-role {
 		font-weight: 600;
-		font-size: 0.85rem;
+		font-size: var(--font-size-1);
 		color: var(--primary);
 		text-transform: capitalize;
 	}
 
 	.message-time {
-		font-size: 0.75rem;
+		font-size: var(--font-size-0);
 		color: var(--muted);
 		opacity: 0.7;
 	}
@@ -299,12 +299,12 @@
 			color-mix(in oklab, var(--primary) 10%, var(--surface))
 		);
 		border-radius: var(--radius-xl);
-		border-top-right-radius: var(--space-2);
+		border-top-right-radius: var(--radius-sm);
 	}
 
 	.message--assistant .message-text {
 		border-radius: var(--radius-xl);
-		border-bottom-left-radius: var(--space-2);
+		border-bottom-left-radius: var(--radius-sm);
 	}
 
 	/* Typing Indicator */
@@ -331,7 +331,7 @@
 		);
 		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
 		border-radius: var(--radius-xl);
-		border-bottom-left-radius: var(--space-2);
+		border-bottom-left-radius: var(--radius-sm);
 		min-height: var(--space-7);
 		box-shadow:
 			0 var(--space-2) var(--space-6) -12px rgba(0, 0, 0, 0.1),

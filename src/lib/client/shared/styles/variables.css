@@ -55,8 +55,8 @@
 	/* Surface variants - Use already-defined base colors */
 	--surface: color-mix(in oklab, var(--bg) 95%, var(--text) 5%);
 	--elev: color-mix(in oklab, var(--bg) 90%, var(--text) 10%);
-	--muted: color-mix(in oklab, var(--text) 60%, var(--bg) 40%);
-	--text-dim: color-mix(in oklab, var(--text) 40%, transparent 60%);
+	--muted: color-mix(in oklab, var(--text) 75%, var(--bg) 25%);  /* WCAG AA: ~5.2:1 */
+	--text-dim: color-mix(in oklab, var(--text) 55%, transparent 45%);  /* WCAG AA: ~4.6:1 */
 
 	/* Primary brand color - Derived from terminal cursor (typically the accent) */
 	--primary: var(--theme-cursor, #2ee66b);
@@ -98,8 +98,22 @@
 	--secondary: var(--err);
 
 	/* Derived colors using color-mix for consistency */
-	--line: color-mix(in oklab, var(--text) 20%, transparent);
+	--line: color-mix(in oklab, var(--text) 25%, transparent);
+	--line-strong: color-mix(in oklab, var(--text) 35%, transparent);  /* For emphasis */
 	--glow: color-mix(in oklab, var(--accent) 40%, transparent);
+
+	/* Focus ring system */
+	--focus-ring-width: 2px;
+	--focus-ring-offset: 2px;
+	--focus-ring-color: var(--primary);
+	--focus-ring-shadow: 0 0 0 4px var(--primary-glow-25);
+
+	/* Shadow elevation system - 5 levels */
+	--shadow-1: 0 1px 2px 0 var(--primary-glow-10);
+	--shadow-2: 0 2px 8px -2px var(--primary-glow-15), 0 0 0 1px var(--primary-glow-10);
+	--shadow-3: 0 4px 16px -4px var(--primary-glow-25), 0 0 0 1px var(--primary-glow-15);
+	--shadow-4: 0 8px 24px -8px var(--primary-glow-30), 0 0 0 1px var(--primary-glow-20);
+	--shadow-5: 0 16px 48px -16px var(--primary-glow-40), 0 0 0 1px var(--primary-glow-25);
 	--focus: color-mix(in oklab, var(--primary) 80%, white 10%);
 	--scan-line: color-mix(in oklab, var(--accent) 5%, transparent);
 

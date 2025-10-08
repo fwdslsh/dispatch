@@ -291,7 +291,7 @@
 		align-items: center;
 		padding: 2px var(--space-2);
 		font-family: var(--font-mono);
-		font-size: 10px;
+		font-size: var(--font-size-0);
 		font-weight: 600;
 		color: var(--bg);
 		background: var(--primary);

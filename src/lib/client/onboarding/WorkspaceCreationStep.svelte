@@ -252,7 +252,7 @@
 
 	.form-help {
 		display: block;
-		font-size: 0.875rem;
+		font-size: var(--font-size-1);
 		font-weight: normal;
 		color: #6b7280;
 		margin-top: 0.25rem;
@@ -263,7 +263,7 @@
 		padding: 0.75rem;
 		border: 2px solid #d1d5db;
 		border-radius: var(--radius-sm);
-		font-size: 1rem;
+		font-size: var(--font-size-2);
 		transition: border-color 0.2s;
 		box-sizing: border-box;
 	}
@@ -285,7 +285,7 @@
 
 	.error-text {
 		color: #dc2626;
-		font-size: 0.875rem;
+		font-size: var(--font-size-1);
 		margin-top: 0.5rem;
 	}
 
@@ -309,7 +309,7 @@
 		padding: 0.75rem 1.5rem;
 		border: none;
 		border-radius: var(--radius-sm);
-		font-size: 1rem;
+		font-size: var(--font-size-2);
 		font-weight: 500;
 		cursor: pointer;
 		transition: all 0.2s;
@@ -349,7 +349,7 @@
 	.info-box h4 {
 		margin: 0 0 1rem 0;
 		color: #0369a1;
-		font-size: 1rem;
+		font-size: var(--font-size-2);
 	}
 
 	.info-box ul {

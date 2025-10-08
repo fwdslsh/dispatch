@@ -40,8 +40,9 @@ canvas {
    ================================================================== */
 
 :focus-visible {
-	outline: var(--space-0) solid var(--focus);
-	outline-offset: var(--space-0);
+	outline: var(--focus-ring-width) solid var(--focus-ring-color);
+	outline-offset: var(--focus-ring-offset);
+	box-shadow: var(--focus-ring-shadow);
 }
 
 ::selection {
@@ -66,6 +67,18 @@ canvas {
 ::-webkit-scrollbar-thumb {
 	background: var(--scrollbar-gradient);
 	border-radius: var(--radius-md);
+	transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(180deg,
+		color-mix(in oklab, var(--primary) 90%, white),
+		color-mix(in oklab, var(--primary) 70%, white)
+	);
+}
+
+::-webkit-scrollbar-thumb:active {
+	background: var(--primary);
 }
 
 ::-webkit-scrollbar-track {
@@ -167,7 +180,6 @@ input[type='tel'],
 input[type='number'],
 select,
 textarea {
-	width: 100%;
 	padding: var(--space-3) var(--space-4);
 	font: 500 var(--font-size-2) / 1.2 var(--font-mono);
 	background: color-mix(in oklab, var(--surface) 92%, black 8%);
@@ -212,19 +224,6 @@ textarea:focus {
 	outline: none;
 }
 
-/* Enhanced focus-visible for keyboard navigation (WCAG 2.1 AA) */
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-	outline: none;
-	border-color: var(--primary);
-	box-shadow:
-		0 0 0 1px var(--primary),
-		0 0 0 4px color-mix(in oklab, var(--primary) 20%, transparent),
-		inset 0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent);
-	background: color-mix(in oklab, var(--surface) 98%, var(--primary) 2%);
-	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
 /* Active states */
 input:active:not(:disabled),
@@ -344,12 +343,6 @@ tbody tr:hover {
 	font-weight: 700;
 }
 
-/* Enhanced focus states for accessibility and retro feel */
-*:focus-visible {
-	outline: var(--space-0) solid var(--primary);
-	outline-offset: var(--space-0);
-	box-shadow: 0 0 0 var(--space-1) color-mix(in oklab, var(--primary) 20%, transparent);
-}
 
 /* Subtle body scan lines for retro CRT effect */
 body::before {

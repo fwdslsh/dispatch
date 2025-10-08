@@ -228,7 +228,7 @@
 
 	.loading-state span {
 		color: #6b7280;
-		font-size: 1rem;
+		font-size: var(--font-size-2);
 	}
 
 	.error-state {

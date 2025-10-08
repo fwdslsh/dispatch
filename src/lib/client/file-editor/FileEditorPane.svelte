@@ -261,7 +261,7 @@
 		background: var(--color-error);
 		color: var(--color-error-text);
 		padding: 0.75rem 1rem;
-		font-size: 0.875rem;
+		font-size: var(--font-size-1);
 	}
 
 	.file-editor-container {

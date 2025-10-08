@@ -506,10 +506,7 @@
 						✕
 					</button>
 				</div>
-				<div
-					class="sheet-body"
-					style="overflow: hidden; min-height: calc(100% - var(--space-6)); padding: 0;"
-				>
+				<div class="sheet-body">
 					<ProjectSessionMenu
 						onNewSession={(e) => {
 							const { type } = e.detail || {};
@@ -618,15 +615,12 @@
 	/* Workspace-specific layout */
 	.dispatch-workspace {
 		position: relative;
-		display: flex;
-		flex-direction: column;
+		display: grid;
 		background: transparent;
 		color: var(--text-primary);
 		overflow: visible;
-		height: 100%;
+		min-height: 100%;
 		width: 100%;
-		overscroll-behavior: none;
-		contain: layout style;
 	}
 
 	/* Session bottom sheet - mobile specific */
@@ -651,6 +645,15 @@
 	.session-sheet.open {
 		transform: translateY(-56px);
 		opacity: 0.975;
+	}
+
+	/* Sheet body */
+	.sheet-body {
+		overflow-y: auto;
+		overflow-x: hidden;
+		min-height: calc(100% - 60px);
+		padding: 0;
+		-webkit-overflow-scrolling: touch;
 	}
 
 	/* Sheet close button */

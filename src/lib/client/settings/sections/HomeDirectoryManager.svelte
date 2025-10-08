@@ -340,7 +340,7 @@
 
 	.manager-description {
 		margin: var(--space-2) 0 0 0;
-		font-size: 0.875rem;
+		font-size: var(--font-size-1);
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 	}
@@ -357,7 +357,7 @@
 		color: var(--color-error-text, white);
 		padding: var(--space-3);
 		border-radius: var(--radius);
-		font-size: 0.875rem;
+		font-size: var(--font-size-1);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;

@@ -62,11 +62,9 @@
 }
 
 .btn:focus-visible {
-	outline: 2px solid var(--primary);
-	outline-offset: 2px;
-	box-shadow:
-		0 0 12px -8px var(--glow),
-		0 0 0 4px color-mix(in oklab, var(--primary) 20%, transparent);
+	outline: var(--focus-ring-width) solid var(--focus-ring-color);
+	outline-offset: var(--focus-ring-offset);
+	box-shadow: var(--focus-ring-shadow);
 }
 
 .btn:disabled,
@@ -147,34 +145,41 @@
 	--btn-shadow: 0 2px 12px -4px color-mix(in oklab, var(--err) 40%, transparent);
 }
 
+/* Toggle-off - For toggleable buttons in off state */
+.btn--toggle-off {
+	--btn-bg: transparent;
+	--btn-border: color-mix(in oklab, var(--primary) 20%, transparent);
+	--btn-color: var(--muted);
+	--btn-shadow: none;
+}
+
+.btn--toggle-off:hover:not(:disabled) {
+	--btn-border: color-mix(in oklab, var(--primary) 40%, transparent);
+	--btn-color: var(--primary);
+}
+
 /* ==========================================================================
    Icon Button Modifier - Simplified with Variable Inheritance
    ========================================================================== */
 
 .btn--icon {
-	/* Override base button layout for icon-only */
-	padding: 0;
-	min-width: 2.5rem;
-	min-height: 2.5rem;
-	width: 2.5rem;
-	height: 2.5rem;
+	padding: var(--space-1);
+	min-width: 2.75rem;
+	min-height: 2.75rem;
+	width: 2.75rem;
+	height: 2.75rem;
 	font-size: 1.2rem;
 
-	/* Simplified icon button appearance */
 	--btn-border: transparent;
 	--btn-bg: transparent;
-	--btn-color: var(--muted);
+	--btn-color: var(--text);
 	--btn-shadow: none;
 }
 
 .btn--icon:hover:not(:disabled) {
 	--btn-color: var(--primary);
-	--btn-transform: none;
-	--btn-shadow: none;
-}
-
-.btn--icon:active:not(:disabled) {
-	--btn-transform: scale(0.95);
+	--btn-bg: color-mix(in oklab, var(--primary) 8%, transparent);
+	--btn-shadow: 0 0 8px var(--primary-glow-20);
 }
 
 /* Variant color overrides - uses inheritance pattern */
@@ -226,12 +231,6 @@
 	font-size: var(--font-size-1);
 }
 
-.btn--sm.btn--icon {
-	width: 2rem;
-	height: 2rem;
-	min-width: 2rem;
-	min-height: 2rem;
-}
 
 .btn--lg {
 	padding: var(--space-3) var(--space-5);
@@ -334,36 +333,18 @@
    Mobile & Responsive - Consolidated
    ========================================================================== */
 
-@media (max-width: 768px) {
+@media (max-width: 800px) {
 	.btn {
 		min-height: 44px;
 		min-width: 44px;
-		-webkit-tap-highlight-color: transparent;
-		touch-action: manipulation;
+		font-size: clamp(0.875rem, 2.5vw, var(--font-size-2));
+		padding: var(--space-2) var(--space-3);
 	}
 
 	.btn--icon {
 		min-height: 44px;
 		min-width: 44px;
 		padding: var(--space-2);
-	}
-
-	.btn-group {
-		flex-direction: column;
-		gap: var(--space-2);
-	}
-}
-
-@media (max-width: 400px) {
-	.btn {
-		min-height: 40px;
-		min-width: 40px;
-		font-size: 0.85rem;
-	}
-
-	.btn--icon {
-		min-height: 40px;
-		min-width: 40px;
 	}
 }
 

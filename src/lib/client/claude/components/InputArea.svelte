@@ -82,7 +82,7 @@
 		border: 2px solid color-mix(in oklab, var(--primary) 20%, transparent);
 		border-radius: var(--radius-lg);
 		font-family: var(--font-mono);
-		font-size: 0.95rem;
+		font-size: var(--font-size-1);
 		line-height: 1.4;
 		color: var(--text);
 		resize: none;

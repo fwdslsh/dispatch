@@ -156,7 +156,7 @@
 	.status-bar-group {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		min-width: 0;
 	}
 
@@ -178,8 +178,7 @@
 	.desktop-navigation {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		margin-right: 0.5rem;
+		gap: var(--space-2);
 	}
 
 	.session-counter {
@@ -191,14 +190,13 @@
 	}
 
 	/* Small screen adjustments */
-	@media (max-width: 480px) {
+	@media (max-width: 800px) {
 		.status-bar {
-			padding: 0.3rem 0.5rem;
+			padding: var(--space-1) var(--space-2);
 		}
 
-		.status-bar-group.status-bar-left,
-		.status-bar-group.status-bar-right {
-			gap: 0.25rem;
+		.status-bar-group {
+			gap: var(--space-1);
 		}
 	}
 </style>

@@ -150,7 +150,7 @@
 	.settings-description {
 		color: var(--text-muted);
 		margin: 0;
-		font-size: 0.9rem;
+		font-size: var(--font-size-1);
 	}
 
 	.settings-content {
@@ -172,7 +172,7 @@
 
 	.save-status {
 		font-family: var(--font-mono);
-		font-size: 0.85rem;
+		font-size: var(--font-size-1);
 		padding: var(--space-2) 0;
 		min-height: var(--space-5);
 		display: flex;

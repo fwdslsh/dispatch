@@ -32,7 +32,9 @@
 	<div class="session-info">
 		<span class="session-id">#{sessionId}</span>
 		{#if session.projectName}
-			<span class="project-name">{session.projectName}</span>
+			<span class="project-name" title={session.projectName}>
+				{session.projectName}
+			</span>
 		{/if}
 	</div>
 
@@ -52,10 +54,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding-inline: var(--space-3);
+		padding: var(--space-2) var(--space-3);
 		background: var(--bg-panel);
 		border-bottom: 1px solid var(--primary-dim);
-		min-height: 44px;
+		min-height: 48px;
 		flex-shrink: 0;
 		gap: var(--space-3);
 	}
@@ -91,6 +93,7 @@
 		gap: var(--space-2);
 		flex: 1;
 		min-width: 0;
+		overflow: hidden;
 	}
 
 	.session-id {
@@ -111,19 +114,21 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		max-width: 120px;
+		flex: 1;
+		min-width: 80px;
+		max-width: 100%;
 	}
 
 	/* Mobile adjustments */
-	@media (max-width: 768px) {
+	@media (max-width: 800px) {
 		.session-header {
-			padding: var(--space-2) var(--space-3);
-			min-height: 40px;
+			min-height: 44px;
+			gap: var(--space-2);
 		}
 
 		.project-name {
-			max-width: 100px;
-			font-size: var(--font-size-0);
+			font-size: var(--font-size-1);
+			min-width: 60px;
 		}
 	}
 

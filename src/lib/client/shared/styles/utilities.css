@@ -110,9 +110,9 @@
 .font-bold { font-weight: 700; }
 
 /* Text size */
-.text-xs { font-size: 0.75rem; }
-.text-sm { font-size: 0.875rem; }
-.text-base { font-size: 1rem; }
+.text-xs { font-size: var(--font-size-0); }
+.text-sm { font-size: var(--font-size-1); }
+.text-base { font-size: var(--font-size-2); }
 
 /* ==================================================================
    BACKGROUND UTILITIES
