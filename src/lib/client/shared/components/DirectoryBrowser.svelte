@@ -524,7 +524,7 @@
 					</Button>
 					<Button
 						type="button"
-						class="btn-icon-only ghost"
+						class="btn-icon-ghost"
 						onclick={toggleNewDirInput}
 						disabled={creatingDir}
 					>
@@ -756,8 +756,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 24px;
-		height: 24px;
+		width: var(--space-5);
+		height: var(--space-5);
 		color: var(--accent-amber);
 		transition: all 0.2s ease;
 	}
@@ -835,12 +835,12 @@
 	/* Mobile-friendly directory browser styles */
 	@media (max-width: 768px) {
 		.directory-browser-enhanced {
-			font-size: 16px; /* Prevent zoom on iOS */
+			font-size: var(--font-size-2); /* Prevent zoom on iOS */
 		}
 
 		.directory-item-enhanced {
 			padding: var(--space-4);
-			min-height: 48px; /* Better touch target */
+			min-height: var(--space-7); /* Better touch target */
 		}
 
 		.directory-item-enhanced button {

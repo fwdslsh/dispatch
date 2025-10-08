@@ -43,9 +43,9 @@
 
 .form-input:focus,
 .form-textarea:focus {
-	border-color: var(--accent);
+	border-color: var(--primary);
 	background: color-mix(in oklab, var(--surface) 80%, var(--bg));
-	color: var(--accent);
+	color: var(--primary);
 	box-shadow:
 		inset 0 0 20px color-mix(in oklab, var(--bg) 50%, black),
 		0 0 20px var(--glow),

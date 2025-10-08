@@ -546,7 +546,7 @@
 	/* Storage usage bar */
 	.usage-bar {
 		width: 100%;
-		height: 12px;
+		height: var(--font-size-0);
 		background: color-mix(in oklab, var(--text) 5%, transparent);
 		border-radius: var(--radius-full);
 		overflow: hidden;
@@ -701,7 +701,7 @@
 		font-family: var(--font-mono);
 		font-size: var(--font-size-1);
 		color: var(--muted);
-		min-height: 24px;
+		min-height: var(--space-5);
 	}
 
 	.status-message.success {

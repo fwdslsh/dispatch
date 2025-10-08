@@ -9,6 +9,7 @@
 	import IconProgressDown from '../shared/components/Icons/IconProgressDown.svelte';
 	import IconClaude from '../shared/components/Icons/IconClaude.svelte';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
+	import './claude.css';
 
 	/**
 	 * ClaudePane Component
@@ -244,8 +245,8 @@
 	}
 
 	.ai-avatar {
-		width: 48px;
-		height: 48px;
+		width: var(--space-7);
+		height: var(--space-7);
 		border-radius: var(--radius-full);
 		display: flex;
 		align-items: center;
@@ -263,19 +264,7 @@
 	}
 
 	.ai-status.thinking .ai-avatar {
-		animation: pulse 2s ease-in-out infinite;
-	}
-
-	@keyframes pulse {
-		0%,
-		100% {
-			transform: scale(1);
-			box-shadow: 0 8px 24px -8px var(--primary-glow);
-		}
-		50% {
-			transform: scale(1.05);
-			box-shadow: 0 12px 32px -8px var(--primary-glow);
-		}
+		animation: avatarPulse 2s ease-in-out infinite;
 	}
 
 	:global(.ai-icon.spinning) {
@@ -283,19 +272,10 @@
 	}
 
 	:global(.ai-icon.glowing) {
-		animation: glow 2s ease-in-out infinite;
+		animation: glowIcon 2s ease-in-out infinite;
 	}
 
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	@keyframes glow {
+	@keyframes glowIcon {
 		0%,
 		100% {
 			opacity: 1;
@@ -310,7 +290,7 @@
 	.catching-up {
 		font-size: 0.85rem;
 		color: var(--muted);
-		animation: pulse 1.5s ease-in-out infinite;
+		animation: loadingPulse 1.5s ease-in-out infinite;
 	}
 
 	.ai-info {
@@ -388,7 +368,7 @@
 		}
 
 		.stat-item {
-			border-width: 2px;
+			border-width: var(--space-0);
 		}
 	}
 </style>

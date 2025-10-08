@@ -174,7 +174,7 @@
 		font-family: var(--font-mono);
 		font-size: 0.85rem;
 		padding: var(--space-2) 0;
-		min-height: 24px;
+		min-height: var(--space-5);
 		display: flex;
 		align-items: center;
 		color: var(--accent-red);

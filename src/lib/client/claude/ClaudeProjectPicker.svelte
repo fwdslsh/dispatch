@@ -138,7 +138,7 @@
 				onkeydown={key}
 				aria-controls="cc-panel"
 			/>
-			<button type="button" class="browse-btn" onclick={toggle} aria-label="Browse projects"
+			<button type="button" class="browse-btn flex-center" onclick={toggle} aria-label="Browse projects"
 				><IconFolder size={18} /></button
 			>
 		</div>
@@ -242,10 +242,8 @@
 		border-radius: var(--radius-xs);
 		transition: all 0.2s ease;
 		font-size: var(--font-size-2);
-		min-width: 48px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		min-width: var(--space-7);
+		/* Use flex-center utility for centering */
 	}
 
 	.browse-btn:hover {

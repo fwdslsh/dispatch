@@ -199,7 +199,7 @@
 	{/if}
 
 	{#if isCreating}
-		<div class="loading-indicator">
+		<div class="loading-indicator flex-center">
 			<div class="spinner"></div>
 			<span>Setting up your workspace...</span>
 		</div>
@@ -403,9 +403,7 @@
 	}
 
 	.loading-indicator {
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		/* Use flex-center utility for centering */
 		gap: 0.75rem;
 		margin-top: 2rem;
 		color: #6b7280;

@@ -21,7 +21,8 @@
 	transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.modal-backdrop.open {
+/* BEM modifier for open state */
+.modal-backdrop--open {
 	opacity: 1;
 	visibility: visible;
 }
@@ -33,7 +34,7 @@
 	box-shadow:
 		0 20px 40px -12px color-mix(in oklab, var(--bg) 90%, black),
 		0 0 60px -20px var(--primary-glow),
-		inset 0 1px 2px rgba(255, 255, 255, 0.05);
+		inset 0 1px 2px color-mix(in oklab, var(--text) 5%, transparent);
 	max-width: 90vw;
 	max-height: 90vh;
 	width: 100%;
@@ -44,7 +45,8 @@
 	transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.modal-container.open {
+/* BEM modifier for open state */
+.modal-container--open {
 	transform: scale(1) translateY(0);
 }
 

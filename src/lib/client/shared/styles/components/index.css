@@ -3,12 +3,8 @@
    Import all component-specific CSS files
    ================================================================== */
 
-@import url(./session-card.css);
-@import url(./type-card.css);
 @import url(./forms.css);
 @import url(./modal.css);
 @import url(./menu-panel.css);
-@import url(./claude.css);
-@import url(./status-bar.css);
 @import url(./buttons.css);
 @import url(./misc.css);

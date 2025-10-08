@@ -250,7 +250,7 @@
 		z-index: 10;
 		background: linear-gradient(
 			to bottom,
-			color-mix(in oklab, var(--bg) 95%, var(--accent) 5%),
+			var(--surface-primary-95),
 			color-mix(in oklab, var(--bg) 80%, transparent)
 		);
 		padding: var(--space-3);
@@ -261,7 +261,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		color: var(--accent);
+		color: var(--primary);
 		font-size: 0.875rem;
 		font-family: var(--font-mono);
 	}

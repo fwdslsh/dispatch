@@ -1,7 +1,208 @@
 /* ==================================================================
    MISCELLANEOUS COMPONENT STYLES
    Tile controls, markdown, error displays, and other specific components
+
+   This file contains component-specific styles that are shared across
+   multiple components. For single-component styles, use scoped <style> blocks.
    ================================================================== */
+
+/* ==================================================================
+   CARDS & PANELS - Base component patterns
+   ================================================================== */
+
+.card,
+.panel {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	padding: var(--space-5);
+	position: relative;
+	box-shadow: var(--card-shadow);
+	border-radius: var(--radius-md);
+}
+
+/* Augmented UI preset for cards/panels */
+
+/* ==================================================================
+    NESTING GUIDANCE (Augmented-UI v2)
+
+   If you nest augmented elements, place a reset layer between them:
+   [data-augmented-ui] [data-augmented-ui-reset] [data-augmented-ui]
+   This ensures independent shapes & borders in modern browsers.
+   ================================================================== */
+.aug,
+[data-augmented-ui] {
+	/* Region sizing - smaller cuts */
+	--aug-tl: var(--space-2);
+	--aug-br: var(--space-2);
+
+	/* BORDER (v2) - subtle border */
+	--aug-border: initial;
+	--aug-border-all: 1px;
+	--aug-border-bg: var(--primary);
+	--aug-border-opacity: 0.25;
+
+	/* INLAY (v2) - minimal inner accent */
+	--aug-inlay: initial;
+	--aug-inlay-all: 1px;
+	--aug-inlay-bg: color-mix(in oklab, var(--surface) 8%, transparent);
+	--aug-inlay-opacity: 0.4;
+
+	transition: all 0.15s ease;
+}
+
+.aug:hover,
+[data-augmented-ui]:hover {
+	--aug-border-opacity: 0.4;
+	--aug-inlay-opacity: 0.6;
+}
+
+.card.aug {
+	background: var(--surface);
+}
+
+.panel.aug {
+	background: var(--elev);
+}
+
+/* ==================================================================
+   BADGES - Status indicators
+   ================================================================== */
+
+.badge {
+	display: inline-block;
+	padding: 2px var(--space-2);
+	font: 700 var(--font-size-0) / 1 var(--font-mono);
+	color: var(--text);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-full);
+	background: color-mix(in oklab, var(--surface) 86%, black 14%);
+}
+
+.badge.ok {
+	color: var(--ok);
+	border-color: color-mix(in oklab, var(--ok) 40%, var(--line));
+}
+
+.badge.warn {
+	color: var(--warn);
+	border-color: color-mix(in oklab, var(--warn) 40%, var(--line));
+}
+
+.badge.err {
+	color: var(--err);
+	border-color: color-mix(in oklab, var(--err) 40%, var(--line));
+}
+
+/* ==================================================================
+   ERROR MESSAGES - Consistent error display
+   ================================================================== */
+
+.error-message {
+	padding: 1rem;
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--secondary) 15%, var(--surface)),
+		color-mix(in oklab, var(--secondary) 8%, var(--surface))
+	);
+	border: 2px solid var(--secondary);
+	border-radius: 0;
+	color: var(--secondary);
+	font-size: 0.9rem;
+	font-family: var(--font-mono);
+	font-weight: 600;
+	box-shadow:
+		0 0 20px color-mix(in oklab, var(--err) 20%, transparent),
+		inset 0 1px 0 color-mix(in oklab, var(--text) 10%, transparent);
+	position: relative;
+}
+
+/* ==================================================================
+   BUTTON GROUPS - For button sets in retro.css style
+   ================================================================== */
+
+.btn-group .button {
+	flex: 1;
+	border: 2px solid var(--line);
+	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	position: relative;
+	overflow: hidden;
+}
+
+.btn-group .button::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, var(--glow), transparent);
+	transition: left 0.5s ease;
+}
+
+.btn-group .button:hover:not(.active)::before {
+	left: 100%;
+}
+
+.btn-group .button.active {
+	background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+	color: var(--bg);
+	border-color: var(--primary);
+	box-shadow:
+		0 0 20px var(--glow),
+		0 0 40px var(--glow),
+		inset 0 1px 0 color-mix(in oklab, var(--text) 20%, transparent);
+	transform: translateY(-1px);
+	text-shadow: 0 0 var(--space-2) color-mix(in oklab, var(--bg) 30%, black);
+}
+
+/* ==================================================================
+   SESSION CARDS - Selected state
+   ================================================================== */
+
+.session-card.selected {
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 25%, var(--surface)),
+		color-mix(in oklab, var(--primary) 15%, var(--surface))
+	);
+	border-color: var(--primary);
+	box-shadow:
+		0 0 0 2px var(--primary) inset,
+		0 0 30px var(--primary-glow-30),
+		inset 0 1px 0 color-mix(in oklab, var(--text) 20%, transparent);
+	transform: translateY(-2px) scale(1.02);
+}
+
+/* ==================================================================
+   UTILITY ICONS - Icon-only button variant (legacy support)
+   ================================================================== */
+
+.btn-icon-only {
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.2rem;
+}
+
+/* ==================================================================
+   ANIMATIONS - Component-specific animations
+   ================================================================== */
+
+.spinning {
+	animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
 
 /* ===== TILE CONTROLS ===== */
 .tile-controls {
@@ -30,8 +231,8 @@
 }
 
 .tile-controls .btn-icon-only {
-	min-width: 32px;
-	height: 32px;
+	min-width: var(--space-6);
+	height: var(--space-6);
 	padding: var(--space-1);
 }
 
@@ -103,7 +304,7 @@
 .markdown-content a:hover {
 	color: var(--primary-bright);
 	text-decoration-color: var(--primary);
-	text-shadow: 0 0 8px var(--primary-glow-30);
+	text-shadow: 0 0 var(--space-2) var(--primary-glow-30);
 }
 
 /* Lists */
@@ -253,7 +454,7 @@
 
 /* Terminal-style enhancements */
 .markdown-content {
-	text-shadow: 0 0 1px rgba(46, 230, 107, 0.1);
+	text-shadow: 0 0 1px var(--primary-glow-10);
 }
 
 .markdown-content::selection {

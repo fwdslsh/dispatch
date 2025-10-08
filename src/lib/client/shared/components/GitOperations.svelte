@@ -323,7 +323,7 @@
 {#if isGitRepo}
 	<div class="git-operations">
 		<!-- Git toolbar -->
-		<div class="flex-between gap-2" style="margin-bottom: 8px;">
+		<div class="flex-between gap-2" style="margin-bottom: var(--space-2);">
 			<div class="git-info flex gap-2" style="font-size: 0.875rem;">
 				<IconGitBranch size={16} />
 				<span class="branch-name">{currentBranch}</span>
@@ -591,7 +591,7 @@
 <style>
 	.git-operations {
 		border-top: 1px solid var(--border-color);
-		padding-top: 8px;
+		padding-top: var(--space-2);
 	}
 
 	.git-info {
@@ -624,7 +624,7 @@
 		background: var(--surface-2);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-sm);
-		margin-bottom: 8px;
+		margin-bottom: var(--space-2);
 	}
 
 	.panel-title {
@@ -635,7 +635,7 @@
 	}
 
 	.file-group {
-		margin-bottom: 12px;
+		margin-bottom: var(--space-3);
 	}
 
 	.file-group:last-child {
@@ -663,7 +663,7 @@
 	}
 
 	.branch-item {
-		padding: 6px 8px;
+		padding: 6px var(--space-2);
 		border-radius: var(--radius-xs);
 		font-size: 0.875rem;
 		transition: background-color 0.2s;
@@ -708,7 +708,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 16px;
+		padding: var(--space-4);
 		border-bottom: 1px solid var(--border-color);
 	}
 
@@ -719,7 +719,7 @@
 	}
 
 	.diff-body {
-		padding: 16px;
+		padding: var(--space-4);
 		overflow: auto;
 		flex: 1;
 	}
@@ -727,10 +727,10 @@
 	.git-error {
 		background: var(--error-bg);
 		color: var(--error-text);
-		padding: 8px 12px;
+		padding: var(--space-2) 12px;
 		border-radius: var(--radius-xs);
 		font-size: 0.875rem;
-		margin-top: 8px;
+		margin-top: var(--space-2);
 	}
 
 	:global(.git-status-btn.active),

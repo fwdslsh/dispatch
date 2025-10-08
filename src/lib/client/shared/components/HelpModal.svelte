@@ -105,8 +105,8 @@
 
 	.shortcut-item:hover {
 		background: var(--surface-elevated);
-		border-color: var(--accent);
-		box-shadow: 0 0 10px var(--glow-dim);
+		border-color: var(--primary);
+		box-shadow: 0 0 10px var(--primary-glow-20);
 	}
 
 	.shortcut-keys {
@@ -186,6 +186,6 @@
 	}
 
 	.help-content::-webkit-scrollbar-thumb:hover {
-		background: var(--accent);
+		background: var(--primary);
 	}
 </style>

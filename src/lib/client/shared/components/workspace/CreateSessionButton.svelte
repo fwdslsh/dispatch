@@ -49,7 +49,7 @@
 		color: var(--bg);
 		cursor: pointer;
 		transition: all 0.2s ease;
-		box-shadow: 0 2px 8px rgba(46, 230, 107, 0.3);
+		box-shadow: 0 2px 8px var(--primary-glow);
 		-webkit-tap-highlight-color: transparent;
 		touch-action: manipulation;
 		user-select: none;
@@ -60,7 +60,7 @@
 	.create-session-btn:hover {
 		background: color-mix(in oklab, var(--primary) 90%, white 10%);
 		transform: scale(1.1);
-		box-shadow: 0 4px 12px rgba(46, 230, 107, 0.4);
+		box-shadow: 0 4px 12px var(--primary-glow);
 	}
 
 	.create-session-btn:active {
@@ -77,10 +77,10 @@
 	@keyframes pulse {
 		0%,
 		100% {
-			box-shadow: 0 2px 8px rgba(46, 230, 107, 0.3);
+			box-shadow: 0 2px 8px var(--primary-glow-50);
 		}
 		50% {
-			box-shadow: 0 4px 16px rgba(46, 230, 107, 0.5);
+			box-shadow: 0 4px 16px var(--primary-glow-60);
 		}
 	}
 

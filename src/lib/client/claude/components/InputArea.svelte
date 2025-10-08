@@ -68,8 +68,8 @@
 	.message-input-wrapper {
 		flex: 1;
 		position: relative;
-		--aug-tl: 12px;
-		--aug-br: 12px;
+		--aug-tl: var(--font-size-0);
+		--aug-br: var(--font-size-0);
 	}
 
 	.message-input {
@@ -132,8 +132,8 @@
 		}
 
 		.message-input-wrapper {
-			--aug-tl: 8px;
-			--aug-br: 8px;
+			--aug-tl: var(--space-2);
+			--aug-br: var(--space-2);
 		}
 
 		.message-input {
@@ -151,7 +151,7 @@
 	/* Touch Optimizations */
 	@media (hover: none) and (pointer: coarse) {
 		.message-input {
-			font-size: 16px; /* Prevents iOS zoom on focus */
+			font-size: var(--font-size-2); /* Prevents iOS zoom on focus */
 		}
 	}
 

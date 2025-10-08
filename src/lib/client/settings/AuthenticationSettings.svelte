@@ -225,8 +225,8 @@
 	}
 
 	.loading-state .loading-spinner {
-		width: 32px;
-		height: 32px;
+		width: var(--space-6);
+		height: var(--space-6);
 		border-width: 3px;
 	}
 
@@ -245,7 +245,7 @@
 	/* High contrast mode support */
 	@media (prefers-contrast: high) {
 		.authentication-settings {
-			border-width: 2px;
+			border-width: var(--space-0);
 		}
 	}
 </style>

@@ -93,18 +93,7 @@
 		padding: 1rem;
 		z-index: 10000;
 		max-width: 350px;
-		animation: slideIn 0.3s ease-out;
-	}
-
-	@keyframes slideIn {
-		from {
-			transform: translateX(100%);
-			opacity: 0;
-		}
-		to {
-			transform: translateX(0);
-			opacity: 1;
-		}
+		animation: slideInFromLeft 0.3s ease-out;
 	}
 
 	.notification-content {

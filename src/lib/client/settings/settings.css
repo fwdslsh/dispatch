@@ -33,7 +33,7 @@
 	background: var(--surface);
 	border: 1px solid var(--line);
 	box-shadow:
-		0 4px 12px rgba(0, 0, 0, 0.4),
+		0 4px 12px color-mix(in oklab, var(--bg) 80%, black),
 		inset 0 1px 0 var(--primary-glow-10);
 }
 
@@ -46,7 +46,7 @@
 	border: 1px solid var(--line);
 	padding: var(--space-4);
 	margin-bottom: var(--space-4);
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+	box-shadow: 0 2px 4px color-mix(in oklab, var(--bg) 85%, black);
 }
 
 /**
@@ -395,7 +395,7 @@ label.required::after {
 	font-size: var(--font-size-1);
 	line-height: 1.5;
 	border-left: 4px solid;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 2px 4px color-mix(in oklab, var(--bg) 90%, black);
 }
 
 /**

@@ -12,7 +12,6 @@
 	--font-size-2: 16px;
 	--font-size-3: 18px;
 	--font-size-4: 22px;
-	--font-size-5: 28px;
 
 	/* Spacing */
 	--space-0: 2px;
@@ -22,9 +21,10 @@
 	--space-4: 16px;
 	--space-5: 24px;
 	--space-6: 32px;
+	--space-7: 48px; /* Larger spacing for major sections */
 
 	/* Border Radius */
-	--radius: 0px;
+	--radius: 2px; /* Subtle softening from 0px for modern feel */
 	--radius-xs: calc(var(--radius) * 0.75);
 	--radius-sm: calc(var(--radius) * 0.5);
 	--radius-md: calc(var(--radius));
@@ -32,48 +32,39 @@
 	--radius-xl: calc(var(--radius) * 2);
 	--radius-full: 9999px;
 
-	/* Focus States */
-	--focus-ring: 0 0 0 3px var(--primary-glow-40);
-	--focus-ring-error: 0 0 0 3px var(--err-dim);
+	/* ================================================================
+	   DYNAMIC THEME INTEGRATION
 
-	/* Font Weights */
-	--font-weight-normal: 400;
-	--font-weight-medium: 500;
-	--font-weight-semibold: 600;
-	--font-weight-bold: 700;
+	   UI design tokens now derive from terminal theme colors.
+	   Terminal theme variables (--theme-*) are:
+	   - Provided by theme-integration.css (fallback defaults)
+	   - Overridden by +layout.svelte (dynamic from /api/themes/active)
 
-	/* Phosphor terminal palette - refined for professional feel */
-	--bg: light-dark(#0c1210, #0c1210);
-	--surface: light-dark(#121a17, #121a17);
-	--elev: light-dark(#18231f, #18231f);
-	--text: light-dark(#cfe7d8, #d9ffe6);
-	--muted: light-dark(#8aa699, #92b3a4);
+	   This ensures:
+	   - UI and terminal colors stay synchronized
+	   - Themes work even if API is unavailable (fallback)
+	   - Single source of truth for colors (theme API)
+	   ================================================================ */
 
-	--accent: light-dark(var(--primary), var(--primary));
-	--accent-2: light-dark(#ffd166, #ffd166);
+	/* Surface colors - Derived from terminal background */
+	--bg: var(--theme-background, #0c1210);
 
-	--ok: light-dark(#26d07c, #26d07c);
-	--warn: light-dark(#ffb703, #ffb703);
-	--err: light-dark(#ef476f, #ef476f);
-	--err-dim: color-mix(in oklab, var(--err) 60%, transparent);
-	--info: light-dark(#00c2ff, #00c2ff);
+	/* Text colors - Derived from terminal foreground */
+	--text: var(--theme-foreground, #d9ffe6);
 
-	/* Aliases for consistency */
-	--error: var(--err);
-	--success: var(--ok);
-	--success-rgb: 38, 208, 124;
-	--primary-rgb: 46, 230, 107;
+	/* Surface variants - Use already-defined base colors */
+	--surface: color-mix(in oklab, var(--bg) 95%, var(--text) 5%);
+	--elev: color-mix(in oklab, var(--bg) 90%, var(--text) 10%);
+	--muted: color-mix(in oklab, var(--text) 60%, var(--bg) 40%);
+	--text-dim: color-mix(in oklab, var(--text) 40%, transparent 60%);
 
-	--line: color-mix(in oklab, var(--text) 20%, transparent);
-	--glow: color-mix(in oklab, var(--accent) 40%, transparent);
-	--focus: color-mix(in oklab, var(--accent) 80%, white 10%);
+	/* Primary brand color - Derived from terminal cursor (typically the accent) */
+	--primary: var(--theme-cursor, #2ee66b);
+	--primary-bright: color-mix(in oklab, var(--primary) 90%, white 10%);
+	--primary-dim: color-mix(in oklab, var(--primary) 70%, black 30%);
+	--primary-muted: color-mix(in oklab, var(--primary) 50%, transparent 50%);
 
-	/* Primary Phosphor Green Family */
-	--primary: #2ee66b;
-	--primary-bright: #4eff82;
-	--primary-dim: #1ea851;
-	--primary-muted: #2ee66b80;
-	--primary-gradient: linear-gradient(135deg, #2ee66b, #4eff82);
+	/* Primary color family - Opacity variants for glows and shadows */
 	--primary-glow: color-mix(in oklab, var(--primary) 30%, transparent);
 	--primary-glow-10: color-mix(in oklab, var(--primary) 10%, transparent);
 	--primary-glow-15: color-mix(in oklab, var(--primary) 15%, transparent);
@@ -84,37 +75,65 @@
 	--primary-glow-50: color-mix(in oklab, var(--primary) 50%, transparent);
 	--primary-glow-60: color-mix(in oklab, var(--primary) 60%, transparent);
 
-	/* Surface mixing variants for common patterns */
+	/* Accent color - Use ANSI green (classic terminal accent) */
+	--accent: var(--theme-cursor-accent, var(--primary));
+	--color-primary: var(--primary);
+
+
+	/* Additional accent colors from ANSI palette */
+	--accent-amber: var(--theme-ansi-yellow, #ffd166);
+	--accent-cyan: var(--theme-ansi-cyan, #00c2ff);
+	--accent-magenta: var(--theme-ansi-magenta, #ff6b9d);
+	--accent-warning: var(--theme-ansi-yellow, #ff8c42);
+
+	/* Semantic status colors - Map to ANSI color semantics */
+	--ok: var(--theme-ansi-green, #26d07c);
+	--success: var(--ok);
+	--warn: var(--theme-ansi-yellow, #ffb703);
+	--warning: var(--warn);
+	--err: var(--theme-ansi-red, #ef476f);
+	--error: var(--err);
+	--err-dim: color-mix(in oklab, var(--err) 60%, transparent);
+	--info: var(--theme-ansi-blue, var(--accent-cyan));
+	--secondary: var(--err);
+
+	/* Derived colors using color-mix for consistency */
+	--line: color-mix(in oklab, var(--text) 20%, transparent);
+	--glow: color-mix(in oklab, var(--accent) 40%, transparent);
+	--focus: color-mix(in oklab, var(--primary) 80%, white 10%);
+	--scan-line: color-mix(in oklab, var(--accent) 5%, transparent);
+
+	/* Focus States */
+	--focus-ring: 0 0 0 3px var(--primary-glow-40);
+	--focus-ring-error: 0 0 0 3px var(--err-dim);
+
+	/* Surface mixing variants - Subtle backgrounds with primary color */
 	--surface-primary-92: color-mix(in oklab, var(--surface) 92%, var(--primary) 8%);
-	--surface-primary-96: color-mix(in oklab, var(--surface) 96%, var(--primary) 4%);
 	--surface-primary-95: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
+	--surface-primary-96: color-mix(in oklab, var(--surface) 96%, var(--primary) 4%);
 	--surface-primary-98: color-mix(in oklab, var(--surface) 98%, var(--primary) 2%);
-	--primary-surface-15: color-mix(in oklab, var(--primary) 15%, var(--surface));
 	--primary-surface-8: color-mix(in oklab, var(--primary) 8%, var(--surface));
+	--primary-surface-15: color-mix(in oklab, var(--primary) 15%, var(--surface));
 	--primary-surface-25: color-mix(in oklab, var(--primary) 25%, var(--surface));
 
-	/* Accent Colors for Variety */
-	--accent: var(--primary);
-	--accent-amber: #ffd166;
-	--accent-cyan: #00c2ff;
-	--accent-magenta: #ff6b9d;
-	--accent-warning: #ff8c42;
+	/* Reusable interactive element patterns with primary color */
+	--info-box-bg: color-mix(in oklab, var(--primary) 8%, transparent);
+	--info-box-border: color-mix(in oklab, var(--primary) 20%, transparent);
+	--hover-bg: color-mix(in oklab, var(--primary) 10%, transparent);
+	--card-shadow: 0 0 0 1px var(--primary-glow-10), 0 0 24px -8px var(--primary-glow-40);
+	--scrollbar-gradient: linear-gradient(180deg, var(--primary), color-mix(in oklab, var(--primary), transparent 35%));
 
-	/* Additional consistent aliases for components */
+	/* Component aliases - Maintain existing names for backward compatibility */
 	--text-primary: var(--text);
 	--text-secondary: var(--muted);
-	--color-primary: var(--primary);
-	/* Alias for PWA components */
 	--text-muted: var(--muted);
-	--text-dim: color-mix(in oklab, var(--muted) 70%, transparent);
 	--bg-dark: var(--bg);
 	--bg-light: color-mix(in oklab, var(--surface) 50%, var(--bg));
 	--bg-panel: var(--surface);
 	--surface-hover: var(--elev);
 	--surface-border: var(--line);
-	--primary-dim: color-mix(in oklab, var(--primary) 60%, transparent);
-	--secondary: var(--err);
-	--scan-line: color-mix(in oklab, var(--accent) 5%, transparent);
-	--glow-primary: 0 0 20px var(--primary-glow);
-	--glow-strong: 0 0 30px var(--primary-glow), 0 0 60px var(--primary-glow);
+
+	/* RGB values for rgba() usage - Populated by +layout.svelte at runtime */
+	--success-rgb: 38, 208, 124;
+	--primary-rgb: 46, 230, 107;
 }

@@ -17,7 +17,7 @@ import IconUser from '../shared/components/Icons/IconUser.svelte';
 import IconMessage from '../shared/components/Icons/IconMessage.svelte';
 import IconDots from '../shared/components/Icons/IconDots.svelte';
 
-// Maps a Claude/Tool event to a Tabler icon component and human label
+// Maps a Claude/Tool event to a icon component and human label
 export function getIconForEvent(event) {
 	try {
 		const type = (event?.type || '').toString().toLowerCase();

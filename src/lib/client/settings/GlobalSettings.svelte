@@ -263,11 +263,6 @@
 		gap: var(--space-1);
 	}
 
-	.required-indicator {
-		color: var(--err);
-		font-weight: bold;
-	}
-
 	.setting-description {
 		font-size: var(--font-size-0);
 		color: var(--muted);
@@ -296,79 +291,12 @@
 		box-shadow: var(--focus-ring);
 	}
 
-	.setting-input.input-error,
-	.setting-select.input-error {
-		border-color: var(--err);
-	}
-
-	.setting-input.input-error:focus,
-	.setting-select.input-error:focus {
-		border-color: var(--err);
-		box-shadow: var(--focus-ring-error);
-	}
-
-	.checkbox-wrapper {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		cursor: pointer;
-		padding: var(--space-2);
-		min-height: 44px;
-	}
-
-	.setting-checkbox {
-		width: 20px;
-		height: 20px;
-		cursor: pointer;
-		accent-color: var(--primary);
-	}
-
-	.checkbox-label {
-		color: var(--text);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		cursor: pointer;
-	}
-
 	.error-message {
 		padding: var(--space-3);
 		background: var(--err-dim);
 		border: 1px solid var(--err);
 		border-radius: var(--radius-xs);
 		color: var(--err);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-0);
-	}
-
-	.error-item {
-		margin-bottom: var(--space-1);
-	}
-
-	.error-item:last-child {
-		margin-bottom: 0;
-	}
-
-	.env-fallback {
-		display: flex;
-		align-items: flex-start;
-		gap: var(--space-2);
-		padding: var(--space-3);
-		background: color-mix(in oklab, var(--info) 15%, var(--surface));
-		border: 1px solid var(--info);
-		border-radius: var(--radius-xs);
-		color: var(--info);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-0);
-	}
-
-	.env-icon {
-		flex-shrink: 0;
-	}
-
-	.env-content code {
-		background: color-mix(in oklab, var(--bg) 80%, transparent);
-		padding: var(--space-0) var(--space-1);
-		border-radius: var(--radius-xs);
 		font-family: var(--font-mono);
 		font-size: var(--font-size-0);
 	}
@@ -405,18 +333,12 @@
 		}
 	}
 
-	/* Focus styles for accessibility */
-	.setting-checkbox:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
-	}
-
 	/* High contrast mode support */
 	@media (prefers-contrast: high) {
 		.global-settings,
 		.setting-input,
 		.setting-select {
-			border-width: 2px;
+			border-width: var(--space-0);
 		}
 	}
 </style>

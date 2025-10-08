@@ -19,7 +19,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
-		padding: 16px;
+		padding: var(--space-4);
 	}
 
 	.project-item {
@@ -30,7 +30,7 @@
 	}
 
 	.session-item {
-		margin-left: 16px;
+		margin-left: var(--space-4);
 		padding: 8px;
 		font-size: 0.9rem;
 		color: #444;

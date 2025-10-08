@@ -1,7 +1,7 @@
 <script>
 	/**
-	 * Button Foundation Component
-	 * Standardized button with variants, sizes, loading states, and augmented-ui styling
+	 * Button Component - Simplified Unified System
+	 * Uses BEM pattern with .btn base class and modifiers
 	 */
 
 	// Props with defaults
@@ -10,7 +10,7 @@
 		text = '',
 
 		// Variant and styling
-		variant = 'primary', // 'primary' | 'secondary' | 'danger' | 'ghost'
+		variant = 'primary', // 'primary' | 'ghost' | 'warn' | 'danger'
 		size = 'medium', // 'small' | 'medium' | 'large'
 
 		// State props
@@ -22,7 +22,7 @@
 		augmented = 'tl-clip br-clip both',
 
 		// Button behavior
-		type = /** @type {'button' | 'submit' | 'reset'} */ ('button'), // 'button' | 'submit' | 'reset'
+		type = /** @type {'button' | 'submit' | 'reset'} */ ('button'),
 		form = undefined,
 
 		// Icon support
@@ -49,15 +49,24 @@
 	// Generate unique ID if not provided
 	const buttonId = id || `btn-${Math.random().toString(36).substring(2, 9)}`;
 
-	// Compute button classes - use global retro.css classes
+	// Compute button classes - BEM pattern
 	const buttonClasses = $derived.by(() => {
-		const classes = ['button', 'btn-layout'];
+		const classes = ['btn'];
 
-		if (variant === 'primary') classes.push('primary');
-		else if (variant === 'danger') classes.push('danger');
-		else if (variant === 'secondary') classes.push('warn');
+		// Add variant modifier
+		if (variant === 'primary') classes.push('btn--primary');
+		else if (variant === 'danger') classes.push('btn--danger');
+		else if (variant === 'warn') classes.push('btn--warn');
+		else if (variant === 'ghost') classes.push('btn--ghost');
 
-		if (augmented && augmented !== 'none') classes.push('aug', 'btn-aug');
+		// Add size modifier
+		if (size === 'small') classes.push('btn--sm');
+		else if (size === 'large') classes.push('btn--lg');
+
+		// Add augmented modifier
+		if (augmented && augmented !== 'none') classes.push('btn--aug');
+
+		// Add custom classes
 		if (customClass) classes.push(...customClass.split(' '));
 
 		return classes.join(' ');
@@ -129,5 +138,5 @@
 </button>
 
 <style>
-	/* Button component uses utility classes - no additional styles needed */
+	/* All button styles defined in buttons.css - no component-specific CSS needed */
 </style>

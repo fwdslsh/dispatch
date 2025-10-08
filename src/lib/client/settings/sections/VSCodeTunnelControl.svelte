@@ -275,7 +275,7 @@
 	}
 
 	.status-badge {
-		padding: 2px 8px;
+		padding: 2px var(--space-2);
 		border-radius: var(--radius-sm);
 		font-size: var(--font-size-sm);
 		background: var(--bg-secondary);

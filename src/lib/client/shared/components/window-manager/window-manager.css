@@ -79,7 +79,7 @@
 
 /* Hover states for discoverability */
 .wm-divider:hover {
-	background: var(--accent);
+	background: var(--primary);
 	box-shadow: 0 0 12px var(--primary-glow);
 	transform: scale(1.1);
 }
@@ -145,7 +145,7 @@
 }
 
 .wm-tile:focus-visible {
-	outline-color: var(--accent);
+	outline-color: var(--primary);
 }
 
 /* Focus state - professional and discoverable */
@@ -155,17 +155,17 @@
 
 .wm-tile[data-focused='true'] .wm-pane-a,
 .wm-tile[data-focused='true'] .wm-pane-b {
-	border-color: var(--accent);
+	border-color: var(--primary);
 	box-shadow:
 		0 0 0 2px var(--primary-glow),
-		0 4px 12px rgba(0, 0, 0, 0.15);
+		0 4px 12px color-mix(in oklab, var(--bg) 92%, black);
 }
 
 /* Subtle hover state for unfocused tiles */
 .wm-tile:not([data-focused='true']):hover .wm-pane-a,
 .wm-tile:not([data-focused='true']):hover .wm-pane-b {
 	border-color: var(--primary-dim);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+	box-shadow: 0 2px 8px color-mix(in oklab, var(--bg) 94%, black);
 }
 
 /* Empty tile state styling */
@@ -192,14 +192,14 @@
 	transform: translate(-50%, -50%);
 	z-index: 1000;
 	background: var(--surface);
-	border: 1px solid var(--accent);
+	border: 1px solid var(--primary);
 	border-radius: var(--radius-lg);
 	padding: var(--space-5);
 	max-width: 500px;
 	width: 90vw;
 	box-shadow:
 		0 0 0 1px var(--primary-glow),
-		0 20px 40px rgba(0, 0, 0, 0.3);
+		0 20px 40px color-mix(in oklab, var(--bg) 85%, black);
 	backdrop-filter: blur(8px);
 
 	/* Animation */
@@ -227,7 +227,7 @@
 .wm-shortcuts-title {
 	font-family: var(--font-accent);
 	font-size: var(--font-size-4);
-	color: var(--accent);
+	color: var(--primary);
 	margin: 0;
 	text-shadow: 0 0 8px var(--primary-glow);
 }
@@ -244,7 +244,7 @@
 }
 
 .wm-shortcuts-close:hover {
-	color: var(--accent);
+	color: var(--primary);
 	background: var(--elev);
 }
 
@@ -289,7 +289,7 @@
 	color: var(--text-muted);
 	min-width: 20px;
 	text-align: center;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 1px 2px color-mix(in oklab, var(--bg) 95%, black);
 }
 
 .wm-shortcut-plus {
@@ -323,7 +323,7 @@
 	color: var(--text-muted);
 	pointer-events: none;
 	backdrop-filter: blur(4px);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 2px 8px color-mix(in oklab, var(--bg) 95%, black);
 
 	/* Animation */
 	opacity: 0;
@@ -421,8 +421,8 @@
 }
 
 .wm-empty-tile-action:hover {
-	background: var(--accent);
-	border-color: var(--accent);
+	background: var(--primary);
+	border-color: var(--primary);
 	color: var(--bg);
 	transform: translateY(-1px);
 	box-shadow: 0 2px 8px var(--primary-glow);
@@ -497,13 +497,13 @@
 /* Pane resize animations */
 @keyframes pane-focus {
 	from {
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 2px 8px color-mix(in oklab, var(--bg) 95%, black);
 	}
 
 	to {
 		box-shadow:
 			0 0 0 2px var(--primary-glow),
-			0 4px 12px rgba(0, 0, 0, 0.15);
+			0 4px 12px color-mix(in oklab, var(--bg) 92%, black);
 	}
 }
 
@@ -611,7 +611,7 @@
 	border-color: color-mix(in oklab, var(--primary) 50%, transparent);
 	color: var(--text);
 	transform: translateY(-2px);
-	box-shadow: 0 4px 16px color-mix(in oklab, var(--primary) 20%, transparent);
+	box-shadow: 0 4px 16px var(--primary-glow-20);
 }
 
 .wm-session-actions {

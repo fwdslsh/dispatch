@@ -156,7 +156,7 @@
 
 .interactive:focus {
 	outline: 2px solid var(--primary);
-	outline-offset: 2px;
+	outline-offset: var(--space-0);
 	box-shadow: 0 0 0 4px var(--primary-glow-20);
 }
 
@@ -166,9 +166,9 @@
    ================================================================== */
 
 /* Box shadow utilities */
-.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-.shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+.shadow-sm { box-shadow: 0 1px 2px 0 color-mix(in oklab, var(--bg) 97%, black); }
+.shadow-md { box-shadow: 0 4px 6px -1px color-mix(in oklab, var(--bg) 95%, black), 0 2px 4px -1px color-mix(in oklab, var(--bg) 97%, black); }
+.shadow-lg { box-shadow: 0 10px 15px -3px color-mix(in oklab, var(--bg) 95%, black), 0 4px 6px -2px color-mix(in oklab, var(--bg) 97%, black); }
 
 /* ==================================================================
    TRANSITION UTILITIES

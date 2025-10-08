@@ -31,5 +31,28 @@
 </div>
 
 <style>
-	/* Use CSS utility classes from retro.css - no additional styles needed */
+	/* Form Section Component Styles */
+	.form-section {
+		margin-bottom: 2rem;
+		position: relative;
+	}
+
+	.form-section__label {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+		font-weight: 700;
+		color: var(--primary);
+		font-size: 1rem;
+		font-family: var(--font-mono);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		text-shadow: 0 0 8px var(--primary-glow-30);
+	}
+
+	.form-section__label-icon {
+		font-size: 1.1em;
+		filter: drop-shadow(0 0 6px var(--primary-glow-40));
+	}
 </style>

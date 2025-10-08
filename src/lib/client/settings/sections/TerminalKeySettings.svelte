@@ -189,11 +189,11 @@
 
 	.btn-icon-toggle:hover {
 		color: var(--text);
-		background: color-mix(in oklab, var(--accent) 10%, transparent);
+		background: var(--hover-bg);
 	}
 
 	.btn-icon-toggle:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--primary);
 		outline-offset: 2px;
 	}
 
@@ -207,8 +207,8 @@
 		align-items: flex-start;
 		gap: var(--space-2);
 		padding: var(--space-3);
-		background: color-mix(in oklab, var(--accent) 8%, transparent);
-		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
+		background: var(--info-box-bg);
+		border: 1px solid var(--info-box-border);
 		border-radius: var(--radius-md);
 		font-size: var(--font-size-1);
 		line-height: 1.5;

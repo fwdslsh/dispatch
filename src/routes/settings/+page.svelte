@@ -314,7 +314,7 @@
 	.settings-nav {
 		width: 240px;
 		background: var(--bg-dark);
-		border: 1px solid rgba(46, 230, 107, 0.2);
+		border: 1px solid var(--primary);
 		padding: var(--space-3) 0;
 		display: flex;
 		flex-direction: column;
@@ -344,12 +344,12 @@
 	}
 
 	.settings-tab:hover {
-		background: rgba(46, 230, 107, 0.1);
+		background: var(--elev);
 		color: var(--primary);
 	}
 
 	.settings-tab.active {
-		background: rgba(46, 230, 107, 0.15);
+		background: var(--elev);
 		color: var(--primary);
 		border-left-color: var(--primary);
 	}

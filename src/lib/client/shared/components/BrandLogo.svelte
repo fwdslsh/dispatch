@@ -1,5 +1,6 @@
 <script>
 	import AppVersion from './AppVersion.svelte';
+	import Logo from './Logo.svelte';
 </script>
 
 <!--
@@ -11,7 +12,7 @@
 
 <div class="brand-logo">
 	<span class="brand-icon">
-		<img src="/favicon.png" alt="Dispatch" height="32" />
+		<Logo height={32} width={32} />
 	</span>
 	<a href="/workspace">
 		<span class="brand-text">Dispatch</span>
@@ -32,9 +33,6 @@
 			text-decoration: none;
 			color: inherit;
 			border-bottom: none;
-		}
-		a:hover {
-			text-decoration: none;
 		}
 	}
 

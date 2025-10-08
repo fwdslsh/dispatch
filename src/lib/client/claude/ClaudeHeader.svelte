@@ -78,11 +78,11 @@
 	}
 
 	.status-dot {
-		width: 8px;
-		height: 8px;
+		width: var(--space-2);
+		height: var(--space-2);
 		border-radius: var(--radius-full);
 		background: var(--primary);
-		box-shadow: 0 0 8px var(--primary-glow);
+		box-shadow: 0 0 var(--space-2) var(--primary-glow);
 	}
 
 	.claude-badge {
@@ -90,7 +90,7 @@
 		font-size: var(--font-size-0);
 		color: var(--primary);
 		background: color-mix(in oklab, var(--primary) 15%, transparent);
-		padding: 2px 6px;
+		padding: var(--space-0) 6px;
 		border-radius: var(--radius-xs);
 		border: 1px solid var(--primary-dim);
 		font-weight: 500;
@@ -101,7 +101,7 @@
 		font-size: var(--font-size-0);
 		color: var(--text-muted);
 		background: var(--surface-hover);
-		padding: 2px 6px;
+		padding: var(--space-0) 6px;
 		border-radius: var(--radius-xs);
 		border: 1px solid var(--surface-border);
 	}
@@ -111,7 +111,7 @@
 		font-size: var(--font-size-0);
 		color: var(--primary);
 		background: color-mix(in oklab, var(--primary) 10%, transparent);
-		padding: 2px 6px;
+		padding: var(--space-0) 6px;
 		border-radius: var(--radius-xs);
 		border: 1px solid var(--primary-dim);
 	}

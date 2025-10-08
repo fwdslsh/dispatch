@@ -57,6 +57,14 @@
 		gap: 1rem;
 	}
 
+	.session-counter {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+		min-width: 40px;
+		text-align: center;
+	}
+
 	:global(.nav-btn:disabled) {
 		opacity: 0.5;
 		cursor: not-allowed;
@@ -67,6 +75,12 @@
 		border-color: var(--surface-border) !important;
 		color: var(--text) !important;
 		transform: none !important;
+	}
+
+	/* Mobile touch improvements */
+	:global(.bottom-btn:active) {
+		opacity: 0.8;
+		transform: scale(0.95);
 	}
 
 	/* Hide on desktop */
@@ -80,6 +94,14 @@
 	@media (max-width: 480px) {
 		.mobile-navigation {
 			gap: 0.75rem;
+		}
+	}
+
+	/* Only apply touch styles on touch devices */
+	@media (hover: none) and (pointer: coarse) {
+		:global(.bottom-btn:active) {
+			opacity: 0.8;
+			transform: scale(0.95);
 		}
 	}
 </style>

@@ -72,23 +72,105 @@
 </div>
 
 <style>
-	/* Component-specific sizing and layout only */
+	/* Card base styles */
+	.card-session {
+		background: var(--bg);
+		min-height: 100px;
+		cursor: pointer;
+		margin-bottom: var(--space-2);
+		outline: none;
+		width: 100%;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.card-session:hover {
+		background: var(--bg-light);
+	}
+
+	.card-session:focus {
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px var(--primary-glow-20);
+	}
+
+	.card-session.is-selected {
+		border-color: var(--primary);
+		background: color-mix(in oklab, var(--primary) 5%, transparent);
+		box-shadow: 0 0 0 1px var(--primary-glow-20);
+	}
+
+	.card-session.is-active {
+		border-color: var(--success);
+		background: color-mix(in oklab, var(--success) 5%, transparent);
+		box-shadow: 0 0 0 1px color-mix(in oklab, var(--success) 10%, transparent);
+	}
+
+	.card-session.is-active:hover {
+		background: color-mix(in oklab, var(--success) 10%, transparent);
+		box-shadow: 0 2px 12px color-mix(in oklab, var(--success) 20%, transparent);
+	}
+
+	.card-session.is-active.is-selected {
+		border-color: var(--success);
+		background: color-mix(in oklab, var(--success) 15%, transparent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--success) 30%, transparent);
+	}
+
+	.card-session.is-inactive {
+		border-color: var(--surface-border);
+		opacity: 0.9;
+	}
+
+	.card-session.is-inactive:hover {
+		opacity: 1;
+	}
+
+	.card-session.is-inactive.is-selected {
+		border-color: var(--primary);
+		background: color-mix(in oklab, var(--primary) 5%, transparent);
+		opacity: 1;
+	}
+
+	/* Layout patterns */
+	.header-layout {
+		display: flex;
+		align-items: center;
+		gap: var(--space-4);
+	}
+
+	.info-section {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.title-text {
+		font-weight: 600;
+		color: var(--text);
+		margin-bottom: var(--space-1);
+		line-height: 1.4;
+		min-height: 1.5rem;
+	}
+
 	.meta-text {
+		display: flex;
+		gap: var(--space-3);
+		font-size: var(--font-size-1);
+		color: var(--muted);
+		line-height: 1.3;
 		min-height: 2.5rem;
 	}
 
 	.workspace-path {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 		font-size: 0.75rem;
 		word-break: break-all;
-		line-height: 1.3;
 	}
 
 	.date-text {
+		white-space: nowrap;
+		flex-shrink: 0;
 		font-size: 0.7rem;
-	}
-
-	.title-text {
-		min-height: 1.5rem;
-		line-height: 1.5;
 	}
 </style>

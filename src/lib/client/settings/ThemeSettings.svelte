@@ -499,7 +499,7 @@
 		background: transparent;
 		border: none;
 		color: inherit;
-		font-size: 24px;
+		font-size: var(--space-5);
 		line-height: 1;
 		cursor: pointer;
 		padding: var(--space-1);
@@ -612,8 +612,8 @@
 	}
 
 	.spinner {
-		width: 32px;
-		height: 32px;
+		width: var(--space-6);
+		height: var(--space-6);
 		border: 3px solid var(--line);
 		border-top-color: var(--primary);
 		border-radius: var(--radius-full);
@@ -667,7 +667,7 @@
 		.theme-settings,
 		.upload-area,
 		.modal-content {
-			border-width: 2px;
+			border-width: var(--space-0);
 		}
 	}
 </style>

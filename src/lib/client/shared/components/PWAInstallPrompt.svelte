@@ -202,7 +202,7 @@
 
 	.ios-icon {
 		display: inline-block;
-		background: #333;
+		background: var(--surface);
 		padding: 0.1rem 0.3rem;
 		border-radius: var(--radius-xs);
 		font-size: 1rem;

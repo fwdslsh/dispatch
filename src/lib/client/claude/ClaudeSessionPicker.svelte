@@ -233,7 +233,7 @@
 		border-radius: var(--radius-md);
 		transition: all 0.3s ease;
 		font-size: var(--font-size-3);
-		min-width: 48px;
+		min-width: var(--space-7);
 	}
 
 	.browse-btn:hover {

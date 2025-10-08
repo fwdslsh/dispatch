@@ -309,8 +309,8 @@
 	}
 
 	.spinner {
-		width: 32px;
-		height: 32px;
+		width: var(--space-6);
+		height: var(--space-6);
 		border: 3px solid rgba(255, 255, 255, 0.3);
 		border-top: 3px solid white;
 		border-radius: var(--radius-full);

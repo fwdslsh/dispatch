@@ -276,15 +276,4 @@
 		font-size: 0.5rem;
 		font-weight: bold;
 	}
-
-	@keyframes cursorBlink {
-		0%,
-		50% {
-			opacity: 1;
-		}
-		51%,
-		100% {
-			opacity: 0;
-		}
-	}
 </style>

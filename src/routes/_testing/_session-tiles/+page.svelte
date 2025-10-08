@@ -221,7 +221,6 @@
 	<title>Session Tiles Demo - Window Manager</title>
 	<style>
 		body {
-			margin: 0;
 			font-family:
 				system-ui,
 				-apple-system,
@@ -412,7 +411,7 @@
 
 	.demo-header {
 		padding: 1rem;
-		border-bottom: 1px solid #333;
+		border-bottom: 1px solid var(--surface-border);
 		background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
 		display: flex;
 		align-items: center;
@@ -442,7 +441,7 @@
 
 	.instructions-panel {
 		background: #1a1a1a;
-		border-bottom: 1px solid #333;
+		border-bottom: 1px solid var(--surface-border);
 		padding: 1rem;
 		animation: slideDown 0.3s ease-out;
 	}
@@ -479,7 +478,7 @@
 	}
 
 	.shortcuts kbd {
-		background: #333;
+		background: var(--surface);
 		padding: 0.25rem 0.5rem;
 		border-radius: var(--radius-xs);
 		font-family: 'JetBrains Mono', monospace;
@@ -539,7 +538,7 @@
 	}
 
 	:global(.wm-split[data-dir='row'] .wm-divider) {
-		width: 4px;
+		width: var(--space-1);
 		height: 100%;
 		cursor: col-resize;
 	}
@@ -564,7 +563,7 @@
 	}
 
 	:global(.wm-tile[data-focused='true']) {
-		background: #333;
+		background: var(--surface);
 		box-shadow: inset 0 0 0 2px #0066cc;
 	}
 
@@ -574,7 +573,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 0.5rem;
-		background: #333;
+		background: var(--surface);
 		border-bottom: 1px solid #444;
 	}
 
@@ -650,7 +649,7 @@
 	.loading-spinner {
 		width: 32px;
 		height: 32px;
-		border: 3px solid #333;
+		border: 3px solid var(--surface-border);
 		border-top: 3px solid #0066cc;
 		border-radius: var(--radius-full);
 		animation: spin 1s linear infinite;

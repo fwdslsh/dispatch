@@ -302,8 +302,8 @@
 		align-items: flex-start;
 		gap: var(--space-2);
 		padding: var(--space-3);
-		background: color-mix(in oklab, var(--accent) 8%, transparent);
-		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
+		background: var(--info-box-bg);
+		border: 1px solid var(--info-box-border);
 		border-radius: var(--radius-md);
 		font-size: var(--font-size-1);
 		margin-top: var(--space-2);
@@ -344,7 +344,7 @@
 	}
 
 	.helper-text code {
-		background: color-mix(in oklab, var(--accent) 15%, transparent);
+		background: var(--primary-glow-15);
 		padding: 0 var(--space-1);
 		border-radius: var(--radius-xs);
 		font-family: var(--font-mono);
@@ -368,8 +368,8 @@
 		align-items: flex-start;
 		gap: var(--space-2);
 		padding: var(--space-3);
-		background: color-mix(in oklab, var(--accent) 8%, transparent);
-		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
+		background: var(--info-box-bg);
+		border: 1px solid var(--info-box-border);
 		border-radius: var(--radius-md);
 		font-size: var(--font-size-1);
 		font-family: var(--font-mono);

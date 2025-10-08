@@ -4,7 +4,7 @@ A comprehensive suite of tools for analyzing, maintaining, and refactoring CSS i
 
 ## Overview
 
-The CSS refactoring toolkit provides **8 specialized tools** that help you understand, analyze, and improve the CSS architecture. These tools work together to identify issues, suggest improvements, and guide refactoring efforts.
+The CSS refactoring toolkit provides **9 specialized tools** that help you understand, analyze, and improve the CSS architecture. These tools work together to identify issues, suggest improvements, and guide refactoring efforts.
 
 ### Tool Categories
 
@@ -15,10 +15,11 @@ The CSS refactoring toolkit provides **8 specialized tools** that help you under
 4. CSS Complexity Analyzer
 5. Duplicate CSS Detector
 6. Color & Token Audit
+7. Unnecessary CSS Finder
 
 **Maintenance Tools** - Clean up and refactor:
-7. CSS Cleaner
-8. Style Migration Helper
+8. CSS Cleaner
+9. Style Migration Helper
 
 ---
 
@@ -341,7 +342,90 @@ find src -name "*.svelte" -o -name "*.css" | \
 
 ---
 
-### 7. CSS Cleaner
+### 7. Unnecessary CSS Finder
+
+**Purpose:** Identify CSS that duplicates global/theme styles and components that should inherit default styles.
+
+**What it does:**
+- Detects hardcoded values that exactly match CSS variable definitions
+- Finds unnecessary HTML element style overrides
+- Identifies components that duplicate global theme defaults
+- Calculates "inheritance score" (how well components use global styles)
+- Provides actionable refactoring recommendations
+
+**Usage:**
+```bash
+# Standard analysis
+node scripts/find-unnecessary-css.js
+
+# With verbose output
+node scripts/find-unnecessary-css.js --verbose
+
+# Console output only
+node scripts/find-unnecessary-css.js --console
+```
+
+**Output:** `UNNECESSARY_CSS_REPORT.md`
+
+**When to use:**
+- Before refactoring to simplify component styles
+- Identifying components that should inherit more from global styles
+- Finding hardcoded values that match CSS variables
+- Improving design system consistency
+- Reducing CSS redundancy
+
+**Example output:**
+```markdown
+## Summary
+
+- Files Analyzed: 102
+- Total Declarations: 6130
+- Unnecessary Declarations: 239
+- Inheritance Score: 96% (✅ Excellent)
+- Files with Issues: 51
+- Potential CSS Reduction: 4%
+
+## Hardcoded Values That Match CSS Variables
+
+### --space-2 (41 occurrences)
+**Replace:** `8px` → `var(--space-2)`
+
+## Quick Wins
+
+1. **Replace all `8px` with `var(--space-2)`**
+   - 41 occurrences
+   - Simple find & replace
+
+## Before/After Examples
+
+**Before:**
+```css
+.status-dot {
+  width: 8px;
+  height: 8px;
+}
+```
+
+**After:**
+```css
+.status-dot {
+  width: var(--space-2);
+  height: var(--space-2);
+}
+```
+```
+
+**Inheritance score formula:**
+```
+100 - (unnecessary_declarations / total_declarations) * 100
+```
+
+**Key metrics:**
+- **Current codebase:** 96% inheritance score, 239 unnecessary declarations, 4% potential reduction
+
+---
+
+### 8. CSS Cleaner
 
 **Purpose:** Remove unused CSS rules from the codebase.
 
@@ -396,7 +480,7 @@ Files modified: 5
 
 ---
 
-### 8. Style Migration Helper
+### 9. Style Migration Helper
 
 **Purpose:** Assist with moving external CSS into Svelte component styles.
 

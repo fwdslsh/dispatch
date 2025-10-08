@@ -43,11 +43,11 @@
 		gap: var(--space-3);
 	}
 
-	.layout-controls :global(.btn-icon-only.active) {
+	.layout-controls :global(.btn-icon-active) {
 		font-weight: 600;
 	}
 
-	.layout-controls :global(.btn-icon-only.active svg) {
+	.layout-controls :global(.btn-icon-active svg) {
 		color: var(--text-primary);
 	}
 

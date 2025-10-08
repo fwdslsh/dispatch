@@ -263,6 +263,20 @@
 		max-width: 90vw;
 	}
 
+	/* Type Selection Grid */
+	.type-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+	}
+
+	@media (max-width: 768px) {
+		.type-grid {
+			grid-template-columns: 1fr;
+			gap: 0.75rem;
+		}
+	}
+
 	.directory-browser-container {
 		border-radius: 0;
 		max-height: 400px;
