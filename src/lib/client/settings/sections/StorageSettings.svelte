@@ -299,7 +299,7 @@
 
 <div class="storage-settings">
 	<header class="settings-header">
-		<h3 class="settings-title">Storage Management</h3>
+		<h3>Storage Management</h3>
 		<p class="settings-description">
 			Manage local storage, export your data, and clear cached information.
 		</p>
@@ -490,6 +490,7 @@
 </div>
 
 <style>
+	/* Import shared settings styles - most styles now in settings.css */
 
 	:global(.storage-settings .settings-content) {
 		display: flex;
@@ -543,7 +544,7 @@
 		color: var(--primary);
 	}
 
-	/* Storage usage bar */
+	/* Storage-specific usage bar */
 	.usage-bar {
 		width: 100%;
 		height: var(--font-size-0);
@@ -710,39 +711,6 @@
 
 	.status-message.error {
 		color: var(--err);
-	}
-
-	/* Utility classes for flex layout */
-	.flex {
-		display: flex;
-	}
-
-	.flex-col {
-		flex-direction: column;
-	}
-
-	.flex-between {
-		justify-content: space-between;
-	}
-
-	.flex-wrap {
-		flex-wrap: wrap;
-	}
-
-	.gap-1 {
-		gap: var(--space-1);
-	}
-
-	.gap-3 {
-		gap: var(--space-3);
-	}
-
-	.gap-4 {
-		gap: var(--space-4);
-	}
-
-	.gap-6 {
-		gap: var(--space-6);
 	}
 
 	/* Responsive */

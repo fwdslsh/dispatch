@@ -2,6 +2,7 @@
 	import DirectoryBrowser from '$lib/client/shared/components/directory-browser/DirectoryBrowser.svelte';
 	import FileEditor from '$lib/client/shared/components/FileEditor.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
+	import InfoBox from '$lib/client/shared/components/InfoBox.svelte';
 	import { onMount } from 'svelte';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
@@ -256,17 +257,17 @@
 
 <div class="home-directory-manager">
 	<!-- Header -->
-	<div class="manager-header">
-		<h3 class="manager-title">Home Directory Manager</h3>
-		<p class="manager-description">
+	<header class="settings-header">
+		<h3>Home Directory Manager</h3>
+		<p class="settings-description">
 			Browse and manage files in your home directory ({homeDirectory})
 		</p>
-	</div>
+	</header>
 
 	<!-- Error display -->
 	{#if error}
-		<div class="error-banner">
-			<span class="error-text">{error}</span>
+		<InfoBox variant="error">
+			{error}
 			<Button
 				variant="ghost"
 				size="small"
@@ -277,13 +278,13 @@
 			>
 				{#snippet children()}×{/snippet}
 			</Button>
-		</div>
+		</InfoBox>
 	{/if}
 
 	<!-- Main content -->
 	{#if initializing}
-		<div class="loading-state">
-			<p>Loading home directory...</p>
+		<div class="loading-container">
+			<p class="loading-text">Loading home directory...</p>
 		</div>
 	{:else if !isEditing}
 		<!-- File browser view using DirectoryBrowser component -->
@@ -319,65 +320,3 @@
 		</div>
 	{/if}
 </div>
-
-<style>
-	.home-directory-manager {
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-	}
-
-	.manager-header {
-		padding: var(--space-3) 0;
-		border-bottom: 1px solid var(--border-color);
-	}
-
-	.manager-title {
-		margin: 0;
-		font-size: 1.25rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		font-family: var(--font-mono);
-	}
-
-	.manager-description {
-		margin: var(--space-2) 0 0 0;
-		font-size: var(--font-size-1);
-		color: var(--text-muted);
-		font-family: var(--font-mono);
-	}
-
-	.loading-state {
-		padding: var(--space-4);
-		text-align: center;
-		color: var(--text-muted);
-		font-family: var(--font-mono);
-	}
-
-	.error-banner {
-		background: var(--color-error, #dc2626);
-		color: var(--color-error-text, white);
-		padding: var(--space-3);
-		border-radius: var(--radius);
-		font-size: var(--font-size-1);
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-2);
-	}
-
-	.error-text {
-		flex: 1;
-	}
-
-	.directory-browser-container {
-		flex: 1;
-		overflow: hidden;
-	}
-
-	.file-editor-container {
-		flex: 1;
-		overflow: hidden;
-	}
-</style>

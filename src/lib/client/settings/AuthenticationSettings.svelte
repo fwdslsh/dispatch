@@ -4,7 +4,6 @@
 -->
 
 <script>
-	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
 	import TerminalKeySettings from './sections/TerminalKeySettings.svelte';
 	import OAuthSettings from './sections/OAuthSettings.svelte';
 	import AuthStatus from '../shared/components/AuthStatus.svelte';
@@ -50,15 +49,27 @@
 		</p>
 	</div>
 
-	<div class="settings-content">
+	<div>
 		<!-- Current Authentication Status -->
 		<AuthStatus />
 
 		<!-- Terminal Key Settings Section -->
-		<TerminalKeySettings {settingsViewModel} />
+		<section class="auth-section">
+			<h4>Terminal Key</h4>
+			<p class="subsection-description">
+				Secure authentication key for terminal and Claude Code sessions.
+			</p>
+			<TerminalKeySettings {settingsViewModel} />
+		</section>
 
 		<!-- OAuth Settings Section -->
-		<OAuthSettings {settingsViewModel} />
+		<section class="auth-section">
+			<h4>OAuth Configuration</h4>
+			<p class="subsection-description">
+				Configure OAuth authentication for secure user access to your application.
+			</p>
+			<OAuthSettings {settingsViewModel} />
+		</section>
 
 		<!-- Session Invalidation Warning -->
 		{#if hasChanges}

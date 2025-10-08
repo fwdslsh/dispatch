@@ -10,6 +10,9 @@
 	import IconUpload from '$lib/client/shared/components/Icons/IconUpload.svelte';
 	import IconAlertTriangle from '$lib/client/shared/components/Icons/IconAlertTriangle.svelte';
 	import IconCheck from '$lib/client/shared/components/Icons/IconCheck.svelte';
+	import MetricCard from '$lib/client/shared/components/MetricCard.svelte';
+	import InfoBox from '$lib/client/shared/components/InfoBox.svelte';
+	import SettingsFormSection from '$lib/client/shared/components/SettingsFormSection.svelte';
 
 	/**
 	 * Data Management Component
@@ -356,14 +359,14 @@
 		</p>
 	</header>
 
-	<div class="settings-content">
+	<div>
 		<!-- Browser Storage Section -->
 		<section class="settings-section">
 			<div class="section-header">
 				<h4 class="section-title">Browser Storage</h4>
 				<p class="section-subtitle">
-					Manages local browser data (settings, session history, cache). This data is stored in
-					your browser and persists between visits.
+					Manages local browser data (settings, session history, cache). This data is stored in your
+					browser and persists between visits.
 				</p>
 			</div>
 
@@ -375,26 +378,14 @@
 					<div class="usage-fill {usageStatus}" style="width: {storageUsage.percentage}%"></div>
 				</div>
 
-				<div class="stats-grid">
-					<div class="stat">
-						<span class="stat-label">Used</span>
-						<span class="stat-value">{formatBytes(storageUsage.used)}</span>
-					</div>
-					<div class="stat">
-						<span class="stat-label">Usage</span>
-						<span class="stat-value {usageStatus}">{storageUsage.percentage.toFixed(1)}%</span>
-					</div>
-					<div class="stat">
-						<span class="stat-label">Items</span>
-						<span class="stat-value">{storageUsage.items.length}</span>
-					</div>
+				<div class="metric-grid">
+					<MetricCard value={formatBytes(storageUsage.used)} label="Used" />
+					<MetricCard value="{storageUsage.percentage.toFixed(1)}%" label="Usage" />
+					<MetricCard value={storageUsage.items.length} label="Items" />
 				</div>
 
 				{#if storageUsage.percentage > 80}
-					<div class="usage-warning">
-						<IconAlertTriangle size={20} />
-						<span>Storage is nearly full. Consider clearing some data.</span>
-					</div>
+					<InfoBox variant="warning">Storage is nearly full. Consider clearing some data.</InfoBox>
 				{/if}
 
 				<Button onclick={refreshStorage} variant="ghost" size="small">
@@ -664,16 +655,15 @@
 
 				<!-- Retention Errors/Warnings -->
 				{#if viewModel.error}
-					<div class="error-message" role="alert">
-						<strong>Error:</strong>
+					<InfoBox variant="error" title="Error">
 						{viewModel.error}
-					</div>
+					</InfoBox>
 				{/if}
 
 				{#if viewModel.hasChanges}
-					<div class="warning-message">
-						<strong>Unsaved Changes:</strong> You have unsaved changes to your retention policy.
-					</div>
+					<InfoBox variant="warning" title="Unsaved Changes">
+						You have unsaved changes to your retention policy.
+					</InfoBox>
 				{/if}
 			{/if}
 		</section>
@@ -692,65 +682,6 @@
 </div>
 
 <style>
-	.data-management {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-6);
-	}
-
-	.settings-header {
-		border-bottom: 1px solid var(--primary-glow-30);
-		padding-bottom: var(--space-4);
-	}
-
-	.settings-title {
-		font-family: var(--font-mono);
-		font-size: var(--font-size-4);
-		color: var(--primary);
-		margin: 0 0 var(--space-2) 0;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		text-shadow: 0 0 8px var(--primary-glow);
-	}
-
-	.settings-description {
-		color: var(--muted);
-		margin: 0;
-		font-size: var(--font-size-1);
-		font-family: var(--font-mono);
-	}
-
-	.settings-content {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-6);
-	}
-
-	.settings-section {
-		background: var(--bg);
-		padding: var(--space-5);
-		border-radius: var(--radius-lg);
-		border: 1px solid var(--primary-glow-20);
-		box-shadow: 0 0 15px var(--primary-glow-10);
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-5);
-	}
-
-	.section-header {
-		border-bottom: 1px solid var(--line);
-		padding-bottom: var(--space-3);
-	}
-
-	.section-title {
-		font-family: var(--font-mono);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		font-size: var(--font-size-2);
-		margin: 0 0 var(--space-2) 0;
-		color: var(--primary);
-	}
-
 	.section-subtitle {
 		color: var(--muted);
 		margin: 0;
@@ -762,7 +693,8 @@
 	.subsection {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-3);
+		gap: var(--space-2);
+		margin-bottom: var(--space-2);
 	}
 
 	.subsection-title {
@@ -816,51 +748,7 @@
 		);
 	}
 
-	.stats-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-		gap: var(--space-4);
-	}
-
-	.stat {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-	}
-
-	.stat-label {
-		font-size: var(--font-size-0);
-		color: var(--muted);
-		font-family: var(--font-mono);
-	}
-
-	.stat-value {
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		color: var(--text);
-		font-weight: 600;
-	}
-
-	.stat-value.warning {
-		color: var(--warn);
-	}
-
-	.stat-value.critical {
-		color: var(--err);
-	}
-
-	.usage-warning {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-3);
-		border-radius: var(--radius-xs);
-		background: var(--err-dim);
-		border: 1px solid var(--err);
-		color: var(--err);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-	}
+	/* Usage bar remains component-specific */
 
 	/* Categories */
 	.category-row {
@@ -1070,26 +958,6 @@
 
 	.status-message.error {
 		color: var(--err);
-	}
-
-	.error-message {
-		padding: var(--space-3);
-		background: var(--err-dim);
-		border: 1px solid var(--err);
-		border-radius: var(--radius-sm);
-		color: var(--err);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-	}
-
-	.warning-message {
-		padding: var(--space-3);
-		background: var(--warn-dim);
-		border: 1px solid var(--warn);
-		border-radius: var(--radius-sm);
-		color: var(--warn);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
 	}
 
 	.loading-indicator {

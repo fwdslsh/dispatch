@@ -117,6 +117,116 @@
 }
 
 /* ==================================================================
+   MESSAGE BOXES - Enhanced informational messages
+   Consolidates error/success/warning/info patterns
+   ================================================================== */
+
+.message-box {
+	padding: var(--space-3);
+	border-radius: var(--radius-sm);
+	font-size: var(--font-size-1);
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-family: var(--font-mono);
+	position: relative;
+}
+
+.message-box--error {
+	background: var(--err-dim);
+	border: 1px solid var(--err);
+	color: var(--err);
+}
+
+.message-box--success {
+	background: color-mix(in oklab, var(--ok) 15%, var(--surface));
+	border: 1px solid var(--ok);
+	color: var(--ok);
+}
+
+.message-box--warning {
+	background: color-mix(in oklab, var(--warn) 15%, var(--surface));
+	border: 1px solid var(--warn);
+	color: var(--warn);
+}
+
+.message-box--info {
+	background: color-mix(in oklab, var(--info) 15%, var(--surface));
+	border: 1px solid var(--info);
+	color: var(--info);
+}
+
+.message-box__icon {
+	flex-shrink: 0;
+}
+
+.message-box__content {
+	flex: 1;
+}
+
+.message-box__close {
+	position: absolute;
+	top: var(--space-2);
+	right: var(--space-2);
+	background: transparent;
+	border: none;
+	color: inherit;
+	font-size: var(--space-5);
+	line-height: 1;
+	cursor: pointer;
+	padding: var(--space-1);
+	opacity: 0.7;
+	transition: opacity 0.2s ease;
+}
+
+.message-box__close:hover {
+	opacity: 1;
+}
+
+.message-box__close:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+/* ==================================================================
+   LOADING STATES - Enhanced loading indicators
+   ================================================================== */
+
+.loading-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-6);
+	gap: var(--space-3);
+	color: var(--muted);
+	font-family: var(--font-mono);
+}
+
+.loading-spinner {
+	width: 2rem;
+	height: 2rem;
+	border: 2px solid transparent;
+	border-top: 2px solid currentColor;
+	border-radius: var(--radius-full);
+	animation: spin 1s linear infinite;
+}
+
+.loading-text {
+	font-size: var(--font-size-1);
+	color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.loading-spinner {
+		animation: none;
+		border-top-color: transparent;
+		border-right-color: transparent;
+		opacity: 0.7;
+	}
+}
+
+/* ==================================================================
    BUTTON GROUPS - For button sets in retro.css style
    ================================================================== */
 

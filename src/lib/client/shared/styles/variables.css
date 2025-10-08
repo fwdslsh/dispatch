@@ -12,6 +12,7 @@
 	--font-size-2: 16px;
 	--font-size-3: 18px;
 	--font-size-4: 22px;
+	--font-size-5: 28px; /* Large headings, page titles */
 
 	/* Spacing */
 	--space-0: 2px;
@@ -116,6 +117,14 @@
 	--shadow-5: 0 16px 48px -16px var(--primary-glow-40), 0 0 0 1px var(--primary-glow-25);
 	--focus: color-mix(in oklab, var(--primary) 80%, white 10%);
 	--scan-line: color-mix(in oklab, var(--accent) 5%, transparent);
+
+	/* Animation & Transition Tokens */
+	--transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+	--transition-medium: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+	--transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+	--easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+	--easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+	--easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
 
 	/* Focus States */
 	--focus-ring: 0 0 0 3px var(--primary-glow-40);

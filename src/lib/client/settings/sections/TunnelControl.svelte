@@ -258,6 +258,8 @@
 </div>
 
 <style>
+	/* Import shared settings styles - most styles now in settings.css */
+
 	.error-message {
 		color: #ff6347;
 		padding: var(--space-sm);
@@ -266,77 +268,9 @@
 		font-size: var(--font-size-1);
 	}
 
-	.tunnel-status {
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: var(--space-md);
-		margin-bottom: var(--space-md);
-	}
-
-	.tunnel-config {
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: var(--space-md);
-		margin-bottom: var(--space-md);
-	}
-
-	.config-section {
-		margin-bottom: var(--space-sm);
-	}
-
-	.config-section:last-child {
-		margin-bottom: 0;
-	}
-
-	.config-label {
-		font-weight: 500;
-		color: var(--text-muted);
-		margin-bottom: var(--space-xs);
-	}
-
-	.config-input-wrapper {
-		display: flex;
-		gap: var(--space-sm);
-		align-items: stretch;
-		margin-bottom: var(--space-xs);
-	}
-
-	.config-input-wrapper :global(input) {
-		flex: 1;
-	}
-
-	.config-help {
-		font-size: var(--font-size-1);
-		color: var(--text-muted);
-		font-style: italic;
-	}
-
-	.status-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: var(--space-xs);
-	}
-
-	.status-row:last-child {
-		margin-bottom: 0;
-	}
-
-	.status-label {
-		font-weight: 500;
-		color: var(--text-muted);
-	}
-
-	.status-value {
-		font-weight: 600;
-	}
-
+	/* Component-specific status color overrides */
 	.status-value.enabled {
 		color: #4ade80;
-	}
-
-	.status-value.disabled {
-		color: var(--text-muted);
 	}
 
 	.status-value.running {
@@ -345,31 +279,5 @@
 
 	.status-value.stopped {
 		color: #f59e0b;
-	}
-
-	.tunnel-url {
-		margin-bottom: var(--space-md);
-	}
-
-	.url-label {
-		font-weight: 500;
-		color: var(--text-muted);
-		margin-bottom: var(--space-xs);
-	}
-
-	.url-wrapper {
-		display: flex;
-		gap: var(--space-sm);
-		align-items: stretch;
-	}
-
-	.url-wrapper :global(input) {
-		flex: 1;
-	}
-
-	.tunnel-actions {
-		display: flex;
-		gap: var(--space-sm);
-		align-items: center;
 	}
 </style>

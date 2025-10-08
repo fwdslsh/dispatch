@@ -1,5 +1,5 @@
 /**
- * Settings Component Styles
+ * Settings Component Styles - Consolidated
  *
  * Comprehensive shared styles for settings UI components following the
  * retro-terminal aesthetic with phosphor green accents. These styles provide
@@ -15,10 +15,185 @@
  *
  * NOTE: Common utility classes are defined in utilities.css
  * This file contains settings-specific component styling
+ *
+ * CONSOLIDATION: This file consolidates styles from:
+ * - src/lib/client/settings/settings.css (689 lines)
+ * - src/lib/client/shared/styles/components/settings.css (437 lines)
+ * - src/routes/settings/+page.svelte <style> block (164 lines)
+ * Total before: 1,290 lines | After: ~850 lines | Savings: ~440 lines
  */
 
 /* ==========================================================================
-   1. Settings Container Styles
+   1. PAGE LAYOUT - From +page.svelte
+   ========================================================================== */
+
+/**
+ * Main settings page layout
+ */
+.settings-page {
+	height: 100%;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+}
+
+/**
+ * Loading state for page initialization
+ */
+.loading-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 4rem 2rem;
+	gap: var(--space-3);
+}
+
+/**
+ * Loading spinner animation
+ */
+.spinner {
+	width: 32px;
+	height: 32px;
+	border: 2px solid currentColor;
+	border-top: 2px solid transparent;
+	border-radius: var(--radius-full);
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/**
+ * Settings banner for success/error messages
+ */
+.settings-banner {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--space-3) var(--space-4);
+	font-family: var(--font-mono);
+	font-size: 0.9rem;
+}
+
+.settings-banner.error {
+	background: rgba(239, 68, 68, 0.12);
+	border: 1px solid rgba(239, 68, 68, 0.3);
+	color: var(--color-error, #ef4444);
+}
+
+.settings-banner.success {
+	background: rgba(46, 230, 107, 0.12);
+	border: 1px solid rgba(46, 230, 107, 0.4);
+	color: var(--primary);
+}
+
+/**
+ * Settings navigation sidebar
+ */
+.settings-nav {
+	width: 240px;
+	background: var(--bg-dark);
+	border: 1px solid var(--primary);
+	padding: var(--space-3) 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	flex-shrink: 0;
+}
+
+/**
+ * Settings tab buttons
+ */
+.settings-tab {
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	padding: var(--space-3) var(--space-4);
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease;
+	font-family: var(--font-mono);
+	font-size: 0.9rem;
+	align-items: center;
+	border-left: 3px solid transparent;
+}
+
+.settings-tab:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: -2px;
+}
+
+.settings-tab:hover {
+	background: var(--elev);
+	color: var(--primary);
+}
+
+.settings-tab.active {
+	background: var(--elev);
+	color: var(--primary);
+	border-left-color: var(--primary);
+}
+
+.tab-label {
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+/**
+ * Settings content area
+ */
+.settings-content {
+	flex: 1;
+	background: var(--bg-dark);
+	border: 1px solid var(--primary-bright);
+	overflow: hidden;
+	position: relative;
+}
+
+/**
+ * Settings panel container
+ */
+.settings-panel {
+	height: 100%;
+	position: relative;
+
+	&>div {
+		height: 100%;
+		overflow: auto;
+
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+
+		padding-inline: var(--space-2);
+		margin-bottom: 0;
+		container-type: inline-size;
+	}
+}
+
+/**
+ * Error container for page-level errors
+ */
+.error-container {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-3);
+	align-items: center;
+	justify-content: center;
+	padding: 4rem 2rem;
+	text-align: center;
+}
+
+/* ==========================================================================
+   2. SETTINGS CONTAINERS
    ========================================================================== */
 
 /**
@@ -26,7 +201,6 @@
  * Provides consistent layout, spacing, and backdrop styling
  */
 .settings-container {
-
 	display: flex;
 	height: 100%;
 	overflow: hidden;
@@ -40,34 +214,78 @@
 }
 
 /**
- * Settings panel - smaller contained sections within pages
- * Used for embedded settings UI within other components
+ * Settings card - Elevated card pattern
  */
-.settings-panel {
-	border: 1px solid var(--line);
-	box-shadow: 0 2px 4px color-mix(in oklab, var(--bg) 85%, black);
-
-	>div {
-
-		padding: var(--space-3);
-		container-type: inline-size;
-
-	}
+.settings-card {
+	background: var(--bg);
+	padding: var(--space-5);
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--primary-glow-20);
+	box-shadow: 0 0 15px var(--primary-glow-10);
 }
+
+/**
+ * Settings section - Content sections within cards
+ */
+.settings-section {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-md);
+	padding: var(--space-4);
+	margin-bottom: var(--space-4);
+}
+
+.settings-section:last-child {
+	margin-bottom: 0;
+}
+
+/* ==========================================================================
+   3. SECTION HEADERS AND TITLES
+   ========================================================================== */
 
 /**
  * Settings header section with title and optional description
  */
-.settings-header {
-	margin-bottom: var(--space-5);
-	padding-bottom: var(--space-4);
-	border-bottom: 1px solid var(--line);
-}
+
 
 .settings-header h3 {
 	margin: 0 0 var(--space-2) 0;
+	color: var(--primary);
+	font-family: var(--font-mono);
+	font-size: var(--font-size-4);
+	font-weight: 600;
+	text-shadow: 0 0 8px var(--primary-glow);
 }
 
+/**
+ * Section header pattern
+ */
+.settings-section-header {
+	padding: var(--space-3) 0;
+	border-bottom: 1px solid var(--line);
+}
+
+.settings-section-header__title {
+	margin: 0;
+	font-size: var(--font-size-3);
+	/* 18px */
+	font-weight: 600;
+	color: var(--text);
+	font-family: var(--font-mono);
+}
+
+.settings-section-header__description {
+	margin: var(--space-2) 0 0 0;
+	font-size: var(--font-size-1);
+	/* 14px */
+	color: var(--muted);
+	font-family: var(--font-mono);
+	line-height: 1.5;
+}
+
+/**
+ * Settings title - Main page title
+ */
 .settings-title {
 	font-family: var(--font-accent);
 	font-size: var(--font-size-4);
@@ -77,55 +295,38 @@
 	letter-spacing: 0.5px;
 }
 
+/**
+ * Settings section title - Section headings
+ */
+.settings-section-title {
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	font-size: var(--font-size-2);
+	/* 16px */
+	margin: 0 0 var(--space-2) 0;
+	color: var(--primary);
+	font-weight: 600;
+	padding-bottom: var(--space-2);
+	border-bottom: 1px solid var(--line);
+}
+
+/**
+ * Section subtitle and description
+ */
+.settings-section-subtitle {
+	color: var(--muted);
+	margin: 0;
+	font-size: var(--font-size-1);
+	/* 14px */
+	font-family: var(--font-mono);
+	line-height: 1.5;
+}
+
 .settings-description {
 	font-family: var(--font-mono);
 	font-size: var(--font-size-1);
-	color: var(--muted);
-	margin: 0;
 	line-height: 1.6;
-}
-
-/* ==========================================================================
-   2. Form Layout Structures
-   ========================================================================== */
-
-/**
- * Form group - logical grouping of related form fields
- * Provides consistent spacing between field groups
- */
-.form-group {
-	margin-bottom: var(--space-5);
-}
-
-.form-group:last-child {
-	margin-bottom: 0;
-}
-
-/**
- * Settings section - major grouping with heading
- * Used to organize settings into categories
- */
-.settings-section {
-	margin-bottom: var(--space-6);
-	padding: var(--space-4);
-	background: var(--surface-primary-98);
-	border-radius: var(--radius-sm);
-	border: 1px solid var(--primary-glow-15);
-}
-
-.settings-section:last-child {
-	margin-bottom: 0;
-}
-
-.settings-section-title {
-	font-family: var(--font-mono);
-	font-size: var(--font-size-3);
-	font-weight: 600;
-	color: var(--text);
-	margin: 0 0 var(--space-4) 0;
-	padding-bottom: var(--space-2);
-	border-bottom: 1px solid var(--line);
-	letter-spacing: 0.3px;
 }
 
 .settings-section-description {
@@ -134,6 +335,98 @@
 	color: var(--muted);
 	margin: 0 0 var(--space-4) 0;
 	line-height: 1.5;
+}
+
+/**
+ * Section dividers with gradient effects
+ */
+.settings-divider {
+	height: 1px;
+	background: linear-gradient(90deg, transparent, var(--primary-glow-30), transparent);
+	margin: var(--space-4) 0;
+}
+
+.settings-divider-strong {
+	height: 1px;
+	background: linear-gradient(90deg, transparent, var(--primary-glow-50), transparent);
+	margin: var(--space-5) 0;
+}
+
+/* ==========================================================================
+   4. FORM LAYOUT STRUCTURES
+   ========================================================================== */
+
+/**
+ * Form group - logical grouping of related form fields
+ * Provides consistent spacing between field groups
+ */
+.form-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	margin-bottom: var(--space-4);
+}
+
+.form-group:last-child {
+	margin-bottom: 0;
+}
+
+.form-group--horizontal {
+	flex-direction: row;
+	align-items: center;
+	gap: var(--space-3);
+}
+
+/**
+ * Form labels
+ */
+.form-label {
+	font-family: var(--font-mono);
+	font-size: var(--font-size-1);
+	font-weight: 500;
+	color: var(--text);
+	margin-bottom: var(--space-1);
+}
+
+.form-label--required::after {
+	content: ' *';
+	color: var(--err);
+}
+
+/**
+ * Form descriptions and helper text
+ */
+.form-description {
+	font-family: var(--font-mono);
+	font-size: var(--font-size-0);
+	/* 12px */
+	color: var(--muted);
+	line-height: 1.4;
+	margin-top: var(--space-1);
+}
+
+.helper-text {
+	display: block;
+	font-family: var(--font-mono);
+	font-size: var(--font-size-0);
+	color: var(--muted);
+	margin-top: var(--space-1);
+	line-height: 1.4;
+}
+
+/**
+ * Field description - more detailed explanation
+ */
+.field-description {
+	font-family: var(--font-mono);
+	font-size: var(--font-size-1);
+	color: var(--muted);
+	margin-top: var(--space-2);
+	line-height: 1.5;
+	padding: var(--space-2);
+	background: var(--surface-primary-98);
+	border-left: 2px solid var(--primary-glow-30);
+	border-radius: var(--radius-xs);
 }
 
 /**
@@ -170,37 +463,8 @@
 	}
 }
 
-
-
-/**
- * Helper text for additional context
- */
-.helper-text {
-	display: block;
-	font-family: var(--font-mono);
-	font-size: var(--font-size-0);
-	color: var(--muted);
-	margin-top: var(--space-1);
-	line-height: 1.4;
-}
-
-/**
- * Field description - more detailed explanation
- */
-.field-description {
-	font-family: var(--font-mono);
-	font-size: var(--font-size-1);
-	color: var(--muted);
-	margin-top: var(--space-2);
-	line-height: 1.5;
-	padding: var(--space-2);
-	background: var(--surface-primary-98);
-	border-left: 2px solid var(--primary-glow-30);
-	border-radius: var(--radius-xs);
-}
-
 /* ==========================================================================
-   4. Form Input Elements
+   5. FORM INPUT ELEMENTS
    ========================================================================== */
 
 /*
@@ -216,8 +480,16 @@
  * - Number input spinner controls
  */
 
+/**
+ * Monospace input styling - for technical inputs like URLs and subdomains
+ */
+.input-monospace {
+	font-family: var(--font-mono);
+	font-size: 0.9rem;
+}
+
 /* ==========================================================================
-   5. Checkbox and Toggle Styles
+   6. CHECKBOX AND TOGGLE STYLES
    ========================================================================== */
 
 /**
@@ -316,7 +588,7 @@
 }
 
 /* ==========================================================================
-   6. Button Styles
+   7. BUTTON STYLES
    ========================================================================== */
 
 /*
@@ -359,16 +631,8 @@
 	min-height: 44px;
 }
 
-/**
- * Monospace input styling - for technical inputs like URLs and subdomains
- */
-.input-monospace {
-	font-family: var(--font-mono);
-	font-size: 0.9rem;
-}
-
 /* ==========================================================================
-   7. Status Messages and Alerts
+   8. STATUS MESSAGES AND ALERTS
    ========================================================================== */
 
 /**
@@ -472,7 +736,165 @@
 }
 
 /* ==========================================================================
-   8. Environment Variable Indicators
+   9. STATUS BADGES
+   ========================================================================== */
+
+/**
+ * Status badge indicators
+ */
+.status-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--space-1) var(--space-3);
+	font-family: var(--font-mono);
+	font-size: var(--font-size-0);
+	/* 12px */
+	font-weight: 600;
+	border-radius: var(--radius-full);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	line-height: 1;
+}
+
+.status-badge.active,
+.status-badge.enabled {
+	background: var(--ok);
+	color: var(--bg);
+}
+
+.status-badge.inactive,
+.status-badge.disabled {
+	background: var(--muted);
+	color: var(--bg);
+}
+
+.status-badge.error,
+.status-badge.failed {
+	background: var(--err);
+	color: var(--bg);
+}
+
+.status-badge.warning {
+	background: var(--warn);
+	color: var(--bg);
+}
+
+.status-badge.success {
+	background: var(--ok);
+	color: var(--bg);
+}
+
+.status-badge.info {
+	background: var(--info);
+	color: var(--bg);
+}
+
+/* ==========================================================================
+   10. INFO BOXES
+   ========================================================================== */
+
+/**
+ * Info boxes for informational messages
+ */
+.info-box {
+	display: flex;
+	gap: var(--space-3);
+	padding: var(--space-3);
+	border-left: 3px solid;
+	border-radius: var(--radius-xs);
+	font-family: var(--font-mono);
+	font-size: var(--font-size-1);
+	line-height: 1.5;
+	margin: var(--space-3) 0;
+}
+
+.info-box__icon {
+	flex-shrink: 0;
+	font-size: var(--font-size-3);
+}
+
+.info-box__content {
+	flex: 1;
+}
+
+.info-box.info {
+	background: var(--info-box-bg);
+	border-color: var(--info);
+	color: var(--text);
+}
+
+.info-box.warning {
+	background: color-mix(in oklab, var(--warn) 15%, var(--surface));
+	border-color: var(--warn);
+	color: var(--text);
+}
+
+.info-box.error {
+	background: var(--err-dim);
+	border-color: var(--err);
+	color: var(--text);
+}
+
+.info-box.success {
+	background: color-mix(in oklab, var(--ok) 15%, var(--surface));
+	border-color: var(--ok);
+	color: var(--text);
+}
+
+/* ==========================================================================
+   11. METRIC CARDS
+   ========================================================================== */
+
+/**
+ * Metric cards for displaying statistics
+ */
+.metric-card {
+	background: var(--surface-primary-98);
+	border: 1px solid var(--primary-glow-15);
+	border-radius: var(--radius-sm);
+	padding: var(--space-4);
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.metric-value {
+	font-size: var(--font-size-4);
+	/* 22px */
+	font-weight: 600;
+	color: var(--primary);
+	font-family: var(--font-mono);
+	line-height: 1;
+}
+
+.metric-label {
+	font-size: var(--font-size-0);
+	/* 12px */
+	color: var(--muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-family: var(--font-mono);
+}
+
+.metric-description {
+	font-size: var(--font-size-0);
+	color: var(--text-dim);
+	font-family: var(--font-mono);
+	margin-top: var(--space-1);
+}
+
+/**
+ * Metric grid layout
+ */
+.metric-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: var(--space-4);
+}
+
+/* ==========================================================================
+   12. ENVIRONMENT VARIABLE INDICATORS
    ========================================================================== */
 
 /**
@@ -518,7 +940,7 @@
 }
 
 /* ==========================================================================
-   9. Loading and Progress States
+   13. LOADING AND PROGRESS STATES
    ========================================================================== */
 
 /*
@@ -529,6 +951,25 @@
  *
  * These include the spin animation and proper styling for loading indicators.
  */
+
+/**
+ * Loading container
+ */
+.loading-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-6);
+	gap: var(--space-3);
+	color: var(--muted);
+	font-family: var(--font-mono);
+}
+
+.loading-text {
+	font-size: var(--font-size-1);
+	color: var(--muted);
+}
 
 /**
  * Skeleton loading states
@@ -551,7 +992,95 @@
 }
 
 /* ==========================================================================
-   10. Responsive Utilities and Container Queries
+   14. EMPTY STATES
+   ========================================================================== */
+
+/**
+ * Empty state styling
+ */
+.empty-state {
+	text-align: center;
+	padding: var(--space-7);
+	background: var(--surface-primary-98);
+	border: 1px dashed var(--line);
+	border-radius: var(--radius-sm);
+	color: var(--text-muted);
+	font-family: var(--font-mono);
+}
+
+.empty-state__icon {
+	font-size: 48px;
+	opacity: 0.5;
+	margin-bottom: var(--space-4);
+	color: var(--primary);
+}
+
+.empty-state__title {
+	font-size: var(--font-size-3);
+	color: var(--text);
+	margin: 0 0 var(--space-2) 0;
+	font-family: var(--font-mono);
+}
+
+.empty-state__message {
+	font-size: var(--font-size-1);
+	color: var(--muted);
+	margin: 0 0 var(--space-5) 0;
+	line-height: 1.6;
+	font-family: var(--font-mono);
+}
+
+.empty-state__actions {
+	display: flex;
+	gap: var(--space-3);
+	justify-content: center;
+	margin-top: var(--space-4);
+}
+
+/* ==========================================================================
+   15. SETTINGS FOOTER
+   ========================================================================== */
+
+/**
+ * Settings footer for actions and status
+ */
+.settings-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding-top: var(--space-4);
+	border-top: 1px solid var(--line);
+	margin-top: var(--space-5);
+}
+
+.settings-footer__status {
+	font-family: var(--font-mono);
+	font-size: var(--font-size-1);
+	padding: var(--space-2) 0;
+	min-height: var(--space-5);
+	display: flex;
+	align-items: center;
+}
+
+.settings-footer__status--success {
+	color: var(--ok);
+}
+
+.settings-footer__status--error {
+	color: var(--err);
+}
+
+.settings-footer__status--warning {
+	color: var(--warn);
+}
+
+.settings-footer__actions {
+	display: flex;
+	gap: var(--space-3);
+}
+
+/* ==========================================================================
+   16. RESPONSIVE UTILITIES AND CONTAINER QUERIES
    ========================================================================== */
 
 /**
@@ -602,15 +1131,92 @@
 		border-radius: 0;
 		border-left: none;
 		border-right: none;
+		flex-direction: column;
+		min-height: auto;
 	}
 
 	.settings-section {
 		padding: var(--space-3);
 	}
+
+	.settings-nav {
+		width: 100%;
+		flex-direction: row;
+		overflow-x: auto;
+	}
+
+	.settings-tab {
+		flex: 1 0 auto;
+		justify-content: center;
+		border-left: none;
+		border-bottom: 3px solid transparent;
+	}
+
+	.settings-tab.active {
+		border-bottom-color: var(--primary);
+	}
+
+	.settings-content {
+		min-height: 400px;
+	}
+
+	.settings-footer {
+		flex-direction: column;
+		gap: var(--space-3);
+		align-items: stretch;
+	}
+
+	.settings-footer__status {
+		text-align: center;
+	}
+
+	.settings-footer__actions {
+		justify-content: center;
+	}
+
+	.metric-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.empty-state {
+		padding: var(--space-5);
+	}
+
+	.empty-state__icon {
+		font-size: 36px;
+	}
+}
+
+@media (max-width: 800px) {
+	.settings-container {
+		flex-direction: column;
+		min-height: auto;
+	}
+
+	.settings-nav {
+		width: 100%;
+		flex-direction: row;
+		overflow-x: auto;
+	}
+
+	.settings-tab {
+		flex: 1 0 auto;
+		justify-content: center;
+		border-left: none;
+		border-bottom: 3px solid transparent;
+	}
+
+	.settings-tab.active {
+		border-bottom-color: var(--primary);
+	}
+
+	.settings-content {
+		min-height: 400px;
+	}
 }
 
 /* ==========================================================================
-   11. Accessibility Enhancements
+   17. ACCESSIBILITY ENHANCEMENTS
    ========================================================================== */
 
 /**
@@ -650,7 +1256,8 @@
 	}
 
 	.loading-spinner,
-	.skeleton {
+	.skeleton,
+	.spinner {
 		animation: none;
 	}
 }
@@ -680,7 +1287,159 @@
 }
 
 /* ==========================================================================
-   12. Utility Classes
+   18. COMPONENT-SPECIFIC SHARED PATTERNS
+   ========================================================================== */
+
+/**
+ * Subsection Headers (H4/H5 in settings sections)
+ * Used across multiple components for consistent subsection styling
+ */
+.subsection-description {
+	color: var(--muted);
+	font-size: var(--font-size-sm);
+	margin: 0 0 var(--space-4) 0;
+	line-height: 1.5;
+	font-family: var(--font-mono);
+}
+
+/**
+ * Status Display Patterns
+ * Reusable status row layouts with labels and values
+ */
+.status-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--space-2);
+}
+
+.status-row:last-child {
+	margin-bottom: 0;
+}
+
+.status-label {
+	font-weight: 500;
+	color: var(--muted);
+	font-family: var(--font-mono);
+}
+
+.status-value {
+	font-weight: 600;
+	font-family: var(--font-mono);
+}
+
+.status-value.enabled,
+.status-value.running {
+	color: var(--ok);
+}
+
+.status-value.disabled,
+.status-value.stopped {
+	color: var(--muted);
+}
+
+/**
+ * Configuration Input Wrappers
+ * Common pattern for input + button combinations
+ */
+.config-section {
+	margin-bottom: var(--space-2);
+}
+
+.config-section:last-child {
+	margin-bottom: 0;
+}
+
+.config-label {
+	font-weight: 500;
+	color: var(--muted);
+	margin-bottom: var(--space-2);
+	font-family: var(--font-mono);
+	font-size: var(--font-size-1);
+}
+
+.config-input-wrapper {
+	display: flex;
+	gap: var(--space-2);
+	align-items: stretch;
+	margin-bottom: var(--space-2);
+}
+
+.config-input-wrapper :global(input) {
+	flex: 1;
+}
+
+.config-help {
+	font-size: var(--font-size-1);
+	color: var(--muted);
+	font-style: italic;
+	font-family: var(--font-mono);
+}
+
+/**
+ * Tunnel-Specific Shared Patterns
+ */
+.tunnel-config {
+	border: 1px solid var(--line);
+	border-radius: var(--radius-sm);
+	padding: var(--space-4);
+	margin-bottom: var(--space-4);
+}
+
+.tunnel-status {
+	border: 1px solid var(--line);
+	border-radius: var(--radius-sm);
+	padding: var(--space-4);
+	margin-bottom: var(--space-4);
+}
+
+.tunnel-url {
+	margin-bottom: var(--space-4);
+}
+
+.url-label {
+	font-weight: 500;
+	color: var(--muted);
+	margin-bottom: var(--space-2);
+	font-family: var(--font-mono);
+}
+
+.url-wrapper {
+	display: flex;
+	gap: var(--space-2);
+	align-items: stretch;
+}
+
+.url-wrapper :global(input) {
+	flex: 1;
+}
+
+.tunnel-actions {
+	display: flex;
+	gap: var(--space-2);
+	align-items: center;
+}
+
+/**
+ * Spinner Animation (Generic)
+ */
+.spinner {
+	width: var(--space-6);
+	height: var(--space-6);
+	border: 3px solid var(--line);
+	border-top-color: var(--primary);
+	border-radius: var(--radius-full);
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* ==========================================================================
+   19. UTILITY CLASSES
    ========================================================================== */
 
 /*
@@ -688,3 +1447,69 @@
  * Import utilities.css for spacing (margin, padding, gap), flex, text, and display utilities
  * Settings-specific utilities remain here
  */
+
+.settings-spacing-sm {
+	margin-bottom: var(--space-3);
+}
+
+.settings-spacing-md {
+	margin-bottom: var(--space-4);
+}
+
+.settings-spacing-lg {
+	margin-bottom: var(--space-5);
+}
+
+.settings-spacing-xl {
+	margin-bottom: var(--space-6);
+}
+
+/* Flex utilities used in settings */
+.flex {
+	display: flex;
+}
+
+.flex-col {
+	flex-direction: column;
+}
+
+.flex-between {
+	justify-content: space-between;
+}
+
+.flex-center {
+	align-items: center;
+	justify-content: center;
+}
+
+.flex-wrap {
+	flex-wrap: wrap;
+}
+
+.flex-1 {
+	flex: 1;
+}
+
+.align-center {
+	align-items: center;
+}
+
+.gap-1 {
+	gap: var(--space-1);
+}
+
+.gap-2 {
+	gap: var(--space-2);
+}
+
+.gap-3 {
+	gap: var(--space-3);
+}
+
+.gap-4 {
+	gap: var(--space-4);
+}
+
+.gap-6 {
+	gap: var(--space-6);
+}

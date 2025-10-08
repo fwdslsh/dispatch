@@ -5,6 +5,8 @@
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
 	import LoadingSpinner from '$lib/client/shared/components/LoadingSpinner.svelte';
+	import StatusBadge from '$lib/client/shared/components/StatusBadge.svelte';
+	import InfoBox from '$lib/client/shared/components/InfoBox.svelte';
 
 	/**
 	 * Tunnels Settings Component
@@ -309,17 +311,28 @@
 </script>
 
 <div class="tunnels-settings">
+	<div class="settings-header">
+		<h3>Connectivity</h3>
+		<p class="section-subtitle">
+			Enable remote access to your development environment through LocalTunnel or VS Code Remote Tunnels.
+		</p>
+	</div>
+
 	<!-- LocalTunnel Section -->
 	<section class="settings-section">
+		<h4>LocalTunnel</h4>
+		<p class="subsection-description">
+			Create a public URL for your local development server using LocalTunnel. Perfect for quick demos and testing webhooks.
+		</p>
+
 		<FormSection
-			title="Public Tunnel (LocalTunnel)"
+			title="Public Tunnel Configuration"
 			description="Enable public URL access via LocalTunnel for external access"
 		>
 			{#if localError}
-				<div class="error-message">
-					<strong>Error:</strong>
+				<InfoBox variant="error">
 					{localError}
-				</div>
+				</InfoBox>
 			{/if}
 
 			<div class="tunnel-status">
@@ -416,27 +429,29 @@
 		</FormSection>
 	</section>
 
-	<!-- Divider -->
-	<div class="section-divider"></div>
-
 	<!-- VS Code Tunnel Section -->
 	<section class="settings-section">
+		<h4>VS Code Remote Tunnel</h4>
+		<p class="subsection-description">
+			Connect to this workspace remotely using VS Code Desktop or vscode.dev in your browser.
+		</p>
+
 		<FormSection
-			title="VS Code Remote Tunnel"
+			title="VS Code Tunnel Configuration"
 			description="Control VS Code Remote Tunnel access for development"
 		>
 			{#if vscodeError}
-				<div class="error-message vscode-error">
+				<InfoBox variant="error">
 					{vscodeError}
-				</div>
+				</InfoBox>
 			{/if}
 
 			<div class="tunnel-status">
 				<div class="status-item">
 					<strong>Status:</strong>
-					<span class="status-badge" class:running={vscodeTunnelStatus.running}>
+					<StatusBadge variant={vscodeTunnelStatus.running ? 'active' : 'inactive'}>
 						{vscodeTunnelStatus.running ? 'Running' : 'Stopped'}
-					</span>
+					</StatusBadge>
 				</div>
 
 				{#if vscodeTunnelStatus.running && vscodeTunnelStatus.state}
@@ -487,16 +502,15 @@
 			{/if}
 
 			{#if deviceLoginUrl}
-				<div class="device-login">
-					<div class="login-label">Device Login Required:</div>
+				<InfoBox variant="info" title="Device Login Required">
 					<div class="login-url-wrapper">
 						<Input value={deviceLoginUrl} readonly />
 						<Button onclick={copyLoginUrl} variant="secondary" size="sm">Copy</Button>
 					</div>
-					<div class="login-note">
+					<p style="margin: var(--space-2) 0 0 0; font-size: var(--font-size-1);">
 						Complete the device login in VS Code to activate the tunnel.
-					</div>
-				</div>
+					</p>
+				</InfoBox>
 			{/if}
 
 			<div class="tunnel-actions">
@@ -515,236 +529,55 @@
 			</div>
 
 			{#if !vscodeTunnelStatus.running}
-				<div class="tunnel-info">
-					<p>
+				<InfoBox variant="info">
+					<p style="margin: 0 0 var(--space-2) 0;">
 						<strong>First-time setup:</strong> When you start the tunnel for the first time, you'll
 						need to authenticate with Microsoft/GitHub. A device login URL will appear above.
 					</p>
-					<p>
+					<p style="margin: 0;">
 						<strong>VS Code Desktop:</strong> Install the "Remote - Tunnels" extension and connect
 						using the tunnel name.
 					</p>
-				</div>
+				</InfoBox>
 			{/if}
 		</FormSection>
 	</section>
 </div>
 
 <style>
-	.tunnels-settings {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-6);
-	}
+	/* Import shared settings styles - most styles now in settings.css */
 
-	.settings-section {
-		display: flex;
-		flex-direction: column;
-	}
 
-	.section-divider {
-		height: 1px;
-		background: linear-gradient(
-			90deg,
-			transparent,
-			rgba(46, 230, 107, 0.3),
-			transparent
-		);
-		margin: var(--space-4) 0;
-	}
-
-	.error-message {
-		color: #ff6347;
-		padding: var(--space-sm);
-		border-radius: var(--radius-sm);
-		margin-bottom: var(--space-md);
-		font-size: var(--font-size-1);
-	}
-
-	.vscode-error {
-		background: rgba(255, 99, 71, 0.1);
-		border: 1px solid rgba(255, 99, 71, 0.3);
-	}
-
-	.tunnel-status {
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: var(--space-md);
-		margin-bottom: var(--space-md);
-	}
-
-	.tunnel-config {
-		border: 1px solid var(--border-color);
-		border-radius: var(--radius-sm);
-		padding: var(--space-md);
-		margin-bottom: var(--space-md);
-	}
-
-	.config-section {
-		margin-bottom: var(--space-sm);
-	}
-
-	.config-section:last-child {
-		margin-bottom: 0;
-	}
-
-	.config-label {
-		font-weight: 500;
-		color: var(--text-muted);
-		margin-bottom: var(--space-xs);
-	}
-
-	.config-input-wrapper {
-		display: flex;
-		gap: var(--space-sm);
-		align-items: stretch;
-		margin-bottom: var(--space-xs);
-	}
-
-	.config-input-wrapper :global(input) {
-		flex: 1;
-	}
-
-	.config-help {
-		font-size: var(--font-size-1);
-		color: var(--text-muted);
-		font-style: italic;
-	}
-
+	/* Component-specific styles */
 	.config-row {
-		margin-bottom: var(--space-sm);
+		margin-bottom: var(--space-2);
 	}
 
 	.config-note {
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-		margin-top: var(--space-xs);
-	}
-
-	.status-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: var(--space-xs);
-	}
-
-	.status-row:last-child {
-		margin-bottom: 0;
-	}
-
-	.status-label {
-		font-weight: 500;
-		color: var(--text-muted);
-	}
-
-	.status-value {
-		font-weight: 600;
-	}
-
-	.status-value.enabled {
-		color: #4ade80;
-	}
-
-	.status-value.disabled {
-		color: var(--text-muted);
-	}
-
-	.status-value.running {
-		color: #4ade80;
+		font-size: var(--font-size-1);
+		color: var(--muted);
+		margin-top: var(--space-2);
 	}
 
 	.status-value.stopped {
-		color: #f59e0b;
+		color: var(--warn);
 	}
 
 	.status-item {
 		display: flex;
-		gap: var(--space-sm);
-		margin-bottom: var(--space-xs);
+		gap: var(--space-2);
+		margin-bottom: var(--space-2);
 	}
 
-	.status-badge {
-		padding: 2px var(--space-2);
-		border-radius: var(--radius-sm);
-		font-size: var(--font-size-sm);
-		background: var(--bg-secondary);
-		color: var(--text-muted);
-	}
-
-	.status-badge.running {
-		background: rgba(34, 197, 94, 0.1);
-		color: #22c55e;
-	}
-
-	.tunnel-url {
-		margin-bottom: var(--space-md);
-	}
-
-	.url-label {
-		font-weight: 500;
-		color: var(--text-muted);
-		margin-bottom: var(--space-xs);
-	}
-
-	.url-wrapper {
-		display: flex;
-		gap: var(--space-sm);
-		align-items: stretch;
-	}
-
-	.url-wrapper :global(input) {
-		flex: 1;
-	}
-
-	.device-login {
-		margin-bottom: var(--space-md);
-		padding: var(--space-sm);
-		background: rgba(59, 130, 246, 0.1);
-		border: 1px solid rgba(59, 130, 246, 0.3);
-		border-radius: var(--radius-md);
-	}
-
-	.login-label {
-		font-weight: 500;
-		color: #3b82f6;
-		margin-bottom: var(--space-xs);
-	}
-
+	/* Login URL wrapper for InfoBox content */
 	.login-url-wrapper {
 		display: flex;
-		gap: var(--space-sm);
+		gap: var(--space-2);
 		align-items: stretch;
-		margin-bottom: var(--space-xs);
+		margin-bottom: var(--space-2);
 	}
 
 	.login-url-wrapper :global(input) {
 		flex: 1;
-	}
-
-	.login-note {
-		font-size: var(--font-size-sm);
-		color: #3b82f6;
-	}
-
-	.tunnel-actions {
-		display: flex;
-		gap: var(--space-sm);
-		align-items: center;
-	}
-
-	.tunnel-info {
-		padding: var(--space-sm);
-		background: var(--bg-secondary);
-		border-radius: var(--radius-md);
-		font-size: var(--font-size-sm);
-		color: var(--text-muted);
-	}
-
-	.tunnel-info p {
-		margin-bottom: var(--space-xs);
-	}
-
-	.tunnel-info p:last-child {
-		margin-bottom: 0;
 	}
 </style>

@@ -1,456 +1,739 @@
-# MVVM Patterns in Dispatch
-
-**Last Updated**: 2025-10-01
-**Audience**: Contributors, developers extending Dispatch
+# MVVM Patterns with Svelte 5 Runes
 
 ## Overview
 
-Dispatch uses the **Model-View-ViewModel (MVVM)** architectural pattern with Svelte 5's reactive runes to create maintainable, testable frontend components. This document explains our approach, when to use it, and common pitfalls to avoid.
+Dispatch uses a modern MVVM (Model-View-ViewModel) architecture with Svelte 5 runes for reactive state management. This pattern separates business logic from presentation logic, making components testable, maintainable, and reusable.
 
-## What is Runes-in-Classes Pattern?
+**Core Principle**: ViewModels encapsulate business logic using Svelte 5 runes (`$state`, `$derived`, `$effect`) within JavaScript classes, while Views (`.svelte` components) handle only presentation.
 
-The "runes-in-classes" pattern combines:
+## Key Concepts
 
-- **Svelte 5 runes** (`$state`, `$derived`, `$effect`) for reactivity
-- **JavaScript classes** for organizing business logic
-- **Component composition** for UI presentation
+### The Runes-in-Classes Pattern
 
-### Example: Basic ViewModel
+Svelte 5 runes can be used inside class instances to create reactive state management objects. This pattern combines the reactivity of runes with the structure and testability of classes.
 
 ```javascript
-// src/lib/client/shared/state/ExampleViewModel.svelte.js
-export class ExampleViewModel {
-	// Reactive state using $state rune
-	items = $state([]);
+export class ThemeState {
+	constructor() {
+		// Reactive state using $state rune
+		this.themes = $state([]);
+		this.activeThemeId = $state(null);
+		this.loading = $state(false);
+
+		// Derived state using $derived rune
+		this.activeTheme = $derived.by(
+			() => this.themes.find(t => t.id === this.activeThemeId) || null
+		);
+
+		// Complex derivation with $derived.by()
+		this.customThemes = $derived.by(() =>
+			this.themes.filter(t => t.source === 'custom')
+		);
+	}
+
+	// Business logic methods
+	async loadThemes() {
+		this.loading = true;
+		try {
+			const response = await fetch('/api/themes');
+			this.themes = await response.json();
+		} finally {
+			this.loading = false;
+		}
+	}
+}
+```
+
+**Why Classes?**
+- Encapsulation of related state and behavior
+- Constructor-based initialization
+- Dependency injection support
+- Clear interface for testing
+- TypeScript-friendly
+
+## Architecture Layers
+
+### 1. Model Layer
+Pure data structures and business entities (TypeScript interfaces or classes).
+
+```javascript
+/**
+ * @typedef {Object} Session
+ * @property {string} id - Session ID
+ * @property {string} workspacePath - Workspace path
+ * @property {string} sessionType - Session type
+ * @property {boolean} isActive - Active status
+ * @property {string} title - Session title
+ */
+```
+
+### 2. ViewModel Layer
+Business logic with reactive state management using Svelte 5 runes.
+
+**State Management Classes** (`src/lib/client/shared/state/`):
+- `SessionViewModel.svelte.js` - Session lifecycle management
+- `WorkspaceState.svelte.js` - Workspace data and selection
+- `ThemeState.svelte.js` - Theme management
+- `AuthViewModel.svelte.js` - Authentication logic
+
+**Service Classes** (`src/lib/client/shared/services/`):
+- `SessionApiClient.js` - HTTP API client for sessions
+- `RunSessionClient.js` - WebSocket client for real-time events
+- `SocketService.svelte.js` - Socket.IO connection management
+
+### 3. View Layer
+Svelte components that bind to ViewModels (`.svelte` files).
+
+```svelte
+<script>
+	import { SessionViewModel } from './state/SessionViewModel.svelte.js';
+	import { useServiceContainer } from './services/ServiceContainer.svelte.js';
+
+	// Get dependencies from container
+	const container = useServiceContainer();
+	const appState = await container.get('appStateManager');
+	const sessionApi = await container.get('sessionApi');
+
+	// Create ViewModel with dependencies
+	const viewModel = new SessionViewModel(appState, sessionApi);
+
+	// Reactive bindings - automatically update when ViewModel state changes
+	const { sessions, loading, error } = $derived({
+		sessions: viewModel.sessions,
+		loading: viewModel.operationState.loading,
+		error: viewModel.operationState.error
+	});
+</script>
+
+{#if loading}
+	<p>Loading sessions...</p>
+{:else if error}
+	<p>Error: {error}</p>
+{:else}
+	{#each sessions as session}
+		<div>{session.title}</div>
+	{/each}
+{/if}
+```
+
+## When to Use Classes vs Modules
+
+### Use Classes When:
+
+✅ **State is scoped to component lifecycle**
+```javascript
+// WorkspaceState.svelte.js - Component-scoped state
+export class WorkspaceState {
+	constructor() {
+		this.workspaces = $state([]);
+		this.selectedWorkspace = $state(null);
+	}
+}
+```
+
+✅ **Multiple instances needed**
+```javascript
+// Multiple session ViewModels for different components
+const terminalVM = new SessionViewModel(appState, sessionApi);
+const claudeVM = new SessionViewModel(appState, sessionApi);
+```
+
+✅ **Dependency injection required**
+```javascript
+export class SessionViewModel {
+	constructor(appStateManager, sessionApi) {
+		this.appStateManager = appStateManager;
+		this.sessionApi = sessionApi;
+	}
+}
+```
+
+### Use Modules When:
+
+✅ **Global singleton state**
+```javascript
+// AppState.svelte.js - Application-wide state
+export class AppState {
+	// Single instance shared across app
+}
+```
+
+✅ **Pure utility functions**
+```javascript
+// utils/logger.js - Stateless utilities
+export function createLogger(namespace) {
+	return { info: (...args) => console.log(...args) };
+}
+```
+
+✅ **Service clients (often singletons)**
+```javascript
+// SessionApiClient.js - Shared HTTP client
+export class SessionApiClient {
+	constructor(config) { /* ... */ }
+}
+```
+
+## Svelte 5 Runes Usage Patterns
+
+### $state - Reactive State
+
+Use for mutable reactive values:
+
+```javascript
+export class SessionViewModel {
+	constructor() {
+		// Primitive state
+		this.operationState = $state({
+			loading: false,
+			creating: false,
+			error: null
+		});
+
+		// Collection state
+		this.sessionOperations = $state(new Map());
+	}
+
+	async createSession(params) {
+		// Direct mutation triggers reactivity
+		this.operationState.creating = true;
+
+		try {
+			const session = await this.sessionApi.create(params);
+		} finally {
+			this.operationState.creating = false;
+		}
+	}
+}
+```
+
+**Important**: Only use in `.svelte.js` or `.svelte` files. Regular `.js` files cannot use runes.
+
+### $derived - Computed Values
+
+Use for values computed from other reactive state:
+
+```javascript
+export class WorkspaceState {
+	constructor() {
+		this.workspaces = $state([]);
+
+		// Simple derivation
+		this.hasWorkspaces = $derived(this.workspaces.length > 0);
+
+		// Complex derivation with $derived.by()
+		this.claudeProjects = $derived.by(() =>
+			this.workspaces.filter(w => w.isClaudeProject)
+		);
+	}
+}
+```
+
+**When to use $derived.by()**:
+- Filtering, mapping, or transforming arrays
+- Complex computations requiring multiple statements
+- Any logic that needs a function body
+
+### $effect - Side Effects
+
+Use for synchronizing with external systems:
+
+```javascript
+export class SessionViewModel {
+	constructor(appStateManager) {
+		this.sessions = $derived(appStateManager.sessions.sessions);
+
+		// React to session changes
+		$effect(() => {
+			console.log('Sessions updated:', this.sessions.length);
+			// WARNING: Don't mutate state in effects!
+		});
+	}
+}
+```
+
+**Critical Rules**:
+- **Never mutate state inside $effect** - causes infinite loops
+- Use for logging, DOM updates, external API calls
+- Clean up subscriptions in effect cleanup
+
+## Real-World Examples
+
+### Example 1: AuthViewModel with Derived State
+
+```javascript
+export class AuthViewModel {
+	// Form state
+	key = $state('');
+	urlInput = $state('');
+
+	// Operation state
+	error = $state('');
 	loading = $state(false);
-	error = $state(null);
 
-	// Derived/computed values using $derived
-	itemCount = $derived.by(() => this.items.length);
-	hasItems = $derived.by(() => this.items.length > 0);
+	// Configuration
+	authConfig = $state(null);
+	isPWA = $state(false);
+	currentUrl = $state('');
 
-	// Methods for business logic
-	async loadItems() {
+	// Derived authentication status
+	hasTerminalKeyAuth = $derived.by(() => {
+		return this.authConfig?.terminal_key_set ?? false;
+	});
+
+	hasOAuthAuth = $derived.by(() => {
+		return this.authConfig?.oauth_configured ?? false;
+	});
+
+	hasAnyAuth = $derived.by(() => {
+		return this.hasTerminalKeyAuth || this.hasOAuthAuth;
+	});
+
+	// Business logic
+	async loginWithKey(key) {
+		this.loading = true;
+		this.error = '';
+
+		try {
+			const response = await fetch('/api/auth/check', {
+				method: 'POST',
+				headers: { 'authorization': `Bearer ${key}` },
+				body: JSON.stringify({ key })
+			});
+
+			if (response.ok) {
+				localStorage.setItem('dispatch-auth-token', key);
+				return { success: true };
+			} else {
+				const data = await response.json();
+				this.error = data?.error || 'Invalid key';
+				return { success: false, error: this.error };
+			}
+		} catch (err) {
+			this.error = 'Unable to reach server';
+			return { success: false, error: this.error };
+		} finally {
+			this.loading = false;
+		}
+	}
+}
+```
+
+### Example 2: SessionViewModel with Dependency Injection
+
+```javascript
+export class SessionViewModel {
+	/**
+	 * @param {AppState} appStateManager - Global state manager
+	 * @param {SessionApiClient} sessionApi - API client
+	 */
+	constructor(appStateManager, sessionApi) {
+		// Injected dependencies
+		this.appStateManager = appStateManager;
+		this.sessionApi = sessionApi;
+
+		// Local operation state
+		this.operationState = $state({
+			loading: false,
+			creating: false,
+			error: null
+		});
+
+		// Derived state from AppState
+		this.sessions = $derived(this.appStateManager.sessions.sessions);
+		this.hasActiveSessions = $derived(
+			this.appStateManager.sessions.hasActiveSessions
+		);
+	}
+
+	async createSession({ type, workspacePath, options = {} }) {
+		if (this.operationState.creating) {
+			return null; // Prevent duplicate operations
+		}
+
+		this.operationState.creating = true;
+		this.operationState.error = null;
+
+		try {
+			const result = await this.sessionApi.create({
+				type,
+				workspacePath,
+				...options
+			});
+
+			// Update global state
+			this.appStateManager.createSession(result);
+
+			return result;
+		} catch (error) {
+			this.operationState.error = error.message;
+			return null;
+		} finally {
+			this.operationState.creating = false;
+		}
+	}
+}
+```
+
+### Example 3: ThemeState with API Integration
+
+```javascript
+export class ThemeState {
+	constructor(config = {}) {
+		this.config = config;
+		this.baseUrl = config.apiBaseUrl || '';
+
+		// Core state
+		this.themes = $state([]);
+		this.activeThemeId = $state(null);
+		this.loading = $state(false);
+		this.error = $state(null);
+
+		// Operation states
+		this.uploading = $state(false);
+		this.activating = $state(false);
+
+		// Derived theme lists
+		this.presetThemes = $derived.by(() =>
+			this.themes.filter(t => t.source === 'preset')
+		);
+		this.customThemes = $derived.by(() =>
+			this.themes.filter(t => t.source === 'custom')
+		);
+
+		// Derived active theme
+		this.activeTheme = $derived.by(() =>
+			this.themes.find(t => t.id === this.activeThemeId) || null
+		);
+	}
+
+	async loadThemes() {
 		this.loading = true;
 		this.error = null;
 
 		try {
-			const response = await fetch('/api/items');
-			this.items = await response.json();
+			const response = await fetch(`${this.baseUrl}/api/themes`, {
+				headers: this.getHeaders()
+			});
+
+			if (!response.ok) {
+				throw new Error(await response.text());
+			}
+
+			const data = await response.json();
+			this.themes = data.themes || [];
 		} catch (err) {
-			this.error = err.message;
+			this.error = err.message || 'Failed to load themes';
+			throw err;
 		} finally {
 			this.loading = false;
 		}
 	}
 
-	addItem(item) {
-		this.items = [...this.items, item];
-	}
-
-	removeItem(id) {
-		this.items = this.items.filter((item) => item.id !== id);
-	}
-}
-```
-
-### Using the ViewModel in a Component
-
-```svelte
-<script>
-	import { ExampleViewModel } from './ExampleViewModel.svelte.js';
-
-	// Instantiate ViewModel
-	const viewModel = new ExampleViewModel();
-
-	// Optionally load data on mount
-	$effect(() => {
-		viewModel.loadItems();
-	});
-</script>
-
-<div>
-	{#if viewModel.loading}
-		<p>Loading...</p>
-	{:else if viewModel.error}
-		<p class="error">{viewModel.error}</p>
-	{:else if viewModel.hasItems}
-		<ul>
-			{#each viewModel.items as item}
-				<li>
-					{item.name}
-					<button onclick={() => viewModel.removeItem(item.id)}>Remove</button>
-				</li>
-			{/each}
-		</ul>
-	{:else}
-		<p>No items found</p>
-	{/if}
-
-	<button onclick={() => viewModel.addItem({ id: Date.now(), name: 'New Item' })}>
-		Add Item
-	</button>
-</div>
-```
-
-## Why We Use Runes-in-Classes
-
-### Trade-offs Considered
-
-**Advantages**:
-
-1. **Encapsulation**: Business logic separated from UI rendering
-2. **Testability**: ViewModels can be unit tested independently
-3. **Reusability**: Same ViewModel can power multiple views
-4. **Type Safety**: Classes provide structure for TypeScript/JSDoc
-5. **Debugging**: Easier to trace state changes in class methods
-
-**Trade-offs**:
-
-- More verbose than inline reactive statements
-- Requires understanding of both Svelte runes AND class patterns
-- Can lead to over-engineering for simple components
-
-**Decision**: We use this pattern for **complex state management** where the benefits outweigh the verbosity.
-
-## When to Use What
-
-### Use ViewModel Classes When:
-
-- ✅ Component has complex business logic (> 50 lines)
-- ✅ State needs to be shared across multiple components
-- ✅ Logic requires unit testing independent of UI
-- ✅ Component needs lifecycle management (loading, error states, etc.)
-
-**Examples**: `SessionViewModel`, `WorkspaceNavigationViewModel`, `OnboardingViewModel`
-
-### Use Inline Reactive Statements When:
-
-- ✅ Component is simple (< 50 lines total)
-- ✅ Logic is UI-specific (animations, focus management)
-- ✅ State is local to a single component
-- ✅ Rapid prototyping
-
-**Examples**: Simple form inputs, toggle buttons, modal dialogs
-
-### Use Service Modules (Not Classes) When:
-
-- ✅ No reactive state needed (pure API clients)
-- ✅ Singleton behavior required
-- ✅ Shared utilities across app
-
-**Examples**: `SessionApiClient`, `SocketService`, utility functions
-
-## How to Implement a ViewModel
-
-### Step-by-Step Guide
-
-#### 1. Create the ViewModel File
-
-File naming convention: `{Feature}ViewModel.svelte.js`
-
-```javascript
-// src/lib/client/workspace/WorkspaceViewModel.svelte.js
-export class WorkspaceViewModel {
-	// Start with state properties
-}
-```
-
-#### 2. Define Reactive State
-
-```javascript
-export class WorkspaceViewModel {
-	// Reactive state (use $state for mutable data)
-	workspaces = $state([]);
-	selectedWorkspace = $state(null);
-	loading = $state(false);
-	error = $state(null);
-}
-```
-
-#### 3. Add Derived/Computed Properties
-
-```javascript
-export class WorkspaceViewModel {
-	workspaces = $state([]);
-	selectedWorkspace = $state(null);
-	loading = $state(false);
-	error = $state(null);
-
-	// Derived values (automatically recompute)
-	activeWorkspaces = $derived.by(() => this.workspaces.filter((w) => w.status === 'active'));
-
-	hasSelection = $derived.by(() => this.selectedWorkspace !== null);
-}
-```
-
-#### 4. Implement Business Logic Methods
-
-```javascript
-export class WorkspaceViewModel {
-	// ... state and derived properties ...
-
-	constructor(apiClient) {
-		this.apiClient = apiClient;
-	}
-
-	async loadWorkspaces() {
-		this.loading = true;
+	async activateTheme(themeId) {
+		this.activating = true;
 		this.error = null;
 
 		try {
-			const data = await this.apiClient.getWorkspaces();
-			this.workspaces = data.workspaces;
+			const response = await fetch(`${this.baseUrl}/api/preferences`, {
+				method: 'PUT',
+				headers: this.getHeaders(),
+				body: JSON.stringify({
+					category: 'themes',
+					preferences: { globalDefault: themeId }
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error(await response.text());
+			}
+
+			this.activeThemeId = themeId;
+
+			// Trigger page reload to apply theme
+			if (typeof window !== 'undefined') {
+				window.location.reload();
+			}
 		} catch (err) {
-			this.error = err.message;
+			this.error = err.message || 'Failed to activate theme';
+			throw err;
 		} finally {
-			this.loading = false;
+			this.activating = false;
 		}
 	}
 
-	selectWorkspace(workspace) {
-		this.selectedWorkspace = workspace;
-	}
-
-	async createWorkspace(name, path) {
-		try {
-			const newWorkspace = await this.apiClient.createWorkspace({ name, path });
-			this.workspaces = [...this.workspaces, newWorkspace];
-			return { success: true, workspace: newWorkspace };
-		} catch (err) {
-			return { success: false, error: err.message };
-		}
+	getHeaders() {
+		const token = localStorage.getItem('dispatch-auth-token');
+		return {
+			'Content-Type': 'application/json',
+			...(token && { 'Authorization': `Bearer ${token}` })
+		};
 	}
 }
 ```
 
-#### 5. Wire to Component
+## Dependency Injection Pattern
+
+ViewModels use constructor injection for testability:
+
+```javascript
+export class SessionViewModel {
+	constructor(appStateManager, sessionApi) {
+		this.appStateManager = appStateManager;
+		this.sessionApi = sessionApi;
+	}
+}
+```
+
+**Service Container** manages dependency creation:
+
+```javascript
+// ServiceContainer.svelte.js
+export class ServiceContainer {
+	registerCoreServices() {
+		this.registerFactory('appStateManager', async () => {
+			const { AppState } = await import('./AppState.svelte.js');
+			return new AppState();
+		});
+
+		this.registerFactory('sessionViewModel', async () => {
+			const { SessionViewModel } = await import('./SessionViewModel.svelte.js');
+			const appState = await this.get('appStateManager');
+			const sessionApi = await this.get('sessionApi');
+			return new SessionViewModel(appState, sessionApi);
+		});
+	}
+}
+```
+
+**Usage in Components**:
 
 ```svelte
 <script>
-	import { getContext } from 'svelte';
-	import { WorkspaceViewModel } from './WorkspaceViewModel.svelte.js';
+	import { useServiceContainer } from './services/ServiceContainer.svelte.js';
 
-	// Get dependencies from context
-	const services = getContext('services');
-	const apiClient = services.get('apiClient');
-
-	// Instantiate ViewModel
-	const viewModel = new WorkspaceViewModel(apiClient);
-
-	// Load data on mount
-	$effect(() => {
-		viewModel.loadWorkspaces();
-	});
+	const container = useServiceContainer();
+	const viewModel = await container.get('sessionViewModel');
 </script>
-
-<!-- UI uses viewModel properties -->
-<div>
-	{#if viewModel.loading}
-		<p>Loading workspaces...</p>
-	{:else if viewModel.error}
-		<p class="error">{viewModel.error}</p>
-	{:else}
-		<ul>
-			{#each viewModel.activeWorkspaces as workspace}
-				<li>
-					<button onclick={() => viewModel.selectWorkspace(workspace)}>
-						{workspace.name}
-					</button>
-				</li>
-			{/each}
-		</ul>
-	{/if}
-</div>
 ```
+
+See [Dependency Injection Pattern](./dependency-injection-pattern.md) for detailed DI documentation.
 
 ## Common Pitfalls
 
-### 1. **Not Using $state for Reactive Properties**
-
-❌ **Wrong**:
+### ❌ Mutating State in $effect
 
 ```javascript
-export class ViewModel {
-	items = []; // Not reactive!
-}
-```
-
-✅ **Correct**:
-
-```javascript
-export class ViewModel {
-	items = $state([]); // Reactive
-}
-```
-
-### 2. **Mutating Arrays/Objects Directly**
-
-❌ **Wrong**:
-
-```javascript
-addItem(item) {
-	this.items.push(item); // Doesn't trigger reactivity
-}
-```
-
-✅ **Correct**:
-
-```javascript
-addItem(item) {
-	this.items = [...this.items, item]; // Creates new array, triggers reactivity
-}
-```
-
-### 3. **Overusing $effect for Data Loading**
-
-❌ **Wrong** (runs on every state change):
-
-```javascript
+// WRONG - causes infinite loop
 $effect(() => {
-	viewModel.loadData(); // Infinite loop if loadData updates state!
-});
-```
-
-✅ **Correct** (explicit control):
-
-```javascript
-// In component
-onMount(() => {
-	viewModel.loadData();
-});
-
-// OR with explicit dependency
-$effect(() => {
-	if (someCondition) {
-		viewModel.loadData();
+	if (this.sessions.length > 0) {
+		this.hasData = true; // Mutation triggers re-run
 	}
 });
 ```
 
-### 4. **Circular Dependencies Between ViewModels**
-
-❌ **Wrong**:
-
 ```javascript
-// ViewModel A depends on ViewModel B
-// ViewModel B depends on ViewModel A
-// = Circular dependency
+// CORRECT - use $derived instead
+this.hasData = $derived(this.sessions.length > 0);
 ```
 
-✅ **Correct**: Use shared state or event bus pattern
-
-### 5. **Not Cleaning Up Resources**
-
-❌ **Wrong**:
+### ❌ Using Runes in Regular .js Files
 
 ```javascript
-export class ViewModel {
+// WRONG - file: utils/helper.js
+export function createState() {
+	const count = $state(0); // Error: runes only in .svelte.js or .svelte
+}
+```
+
+```javascript
+// CORRECT - file: utils/helper.svelte.js
+export class StateHelper {
 	constructor() {
-		setInterval(() => this.poll(), 1000); // Never cleaned up!
+		this.count = $state(0); // Works in .svelte.js
 	}
 }
 ```
 
-✅ **Correct**:
+### ❌ Forgetting $derived.by() for Complex Logic
 
 ```javascript
-export class ViewModel {
-	intervalId = null;
+// WRONG - $derived requires single expression
+this.filtered = $derived(
+	const result = this.items.filter(i => i.active);
+	return result.sort((a, b) => a.name.localeCompare(b.name));
+);
+```
 
-	startPolling() {
-		this.intervalId = setInterval(() => this.poll(), 1000);
-	}
+```javascript
+// CORRECT - use $derived.by() for function body
+this.filtered = $derived.by(() => {
+	const result = this.items.filter(i => i.active);
+	return result.sort((a, b) => a.name.localeCompare(b.name));
+});
+```
 
-	stopPolling() {
-		if (this.intervalId) {
-			clearInterval(this.intervalId);
-			this.intervalId = null;
-		}
+### ❌ Direct Singleton Usage Instead of Injection
+
+```javascript
+// WRONG - hard to test
+import { sessionApi } from './services/SessionApiClient.js';
+
+export class SessionViewModel {
+	async loadSessions() {
+		const data = await sessionApi.list(); // Direct singleton
 	}
 }
+```
 
-// In component:
-onDestroy(() => {
-	viewModel.stopPolling();
-});
+```javascript
+// CORRECT - dependency injection
+export class SessionViewModel {
+	constructor(sessionApi) {
+		this.sessionApi = sessionApi; // Injected
+	}
+
+	async loadSessions() {
+		const data = await this.sessionApi.list();
+	}
+}
+```
+
+## Best Practices
+
+### ✅ Single Responsibility
+
+Each ViewModel handles one concern:
+- `SessionViewModel` - Session CRUD operations
+- `WorkspaceState` - Workspace data
+- `ThemeState` - Theme management
+- `AuthViewModel` - Authentication
+
+### ✅ Separation of Concerns
+
+- **ViewModels**: Business logic, state management
+- **Services**: External integrations (API, WebSocket)
+- **Views**: UI rendering, user interaction
+
+### ✅ Unidirectional Data Flow
+
+```
+User Action → ViewModel Method → Service Call → State Update → View Re-render
+```
+
+### ✅ Error Handling
+
+```javascript
+async createSession(params) {
+	this.operationState.creating = true;
+	this.operationState.error = null;
+
+	try {
+		const session = await this.sessionApi.create(params);
+		this.appStateManager.createSession(session);
+		return session;
+	} catch (error) {
+		// Set error state for UI display
+		this.operationState.error = error.message;
+		// Also propagate to global error state
+		this.appStateManager.sessions.setError(error.message);
+		return null;
+	} finally {
+		this.operationState.creating = false;
+	}
+}
+```
+
+### ✅ Derived State Over Duplication
+
+```javascript
+// WRONG - duplicate state
+this.sessions = $state([]);
+this.sessionCount = $state(0);
+
+updateSessions(sessions) {
+	this.sessions = sessions;
+	this.sessionCount = sessions.length; // Easy to forget!
+}
+```
+
+```javascript
+// CORRECT - derived state
+this.sessions = $state([]);
+this.sessionCount = $derived(this.sessions.length);
+
+updateSessions(sessions) {
+	this.sessions = sessions; // Count auto-updates
+}
 ```
 
 ## Testing ViewModels
 
-ViewModels can be unit tested independently:
+ViewModels with dependency injection are easy to test:
 
 ```javascript
-// ExampleViewModel.test.js
-import { describe, it, expect, vi } from 'vitest';
-import { ExampleViewModel } from './ExampleViewModel.svelte.js';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { SessionViewModel } from './SessionViewModel.svelte.js';
 
-describe('ExampleViewModel', () => {
-	it('should load items successfully', async () => {
-		const mockApiClient = {
-			getItems: vi.fn().mockResolvedValue([{ id: 1, name: 'Item 1' }])
+describe('SessionViewModel', () => {
+	let mockAppState;
+	let mockSessionApi;
+	let viewModel;
+
+	beforeEach(() => {
+		// Create mock dependencies
+		mockAppState = {
+			sessions: { sessions: [] },
+			createSession: vi.fn()
 		};
 
-		const viewModel = new ExampleViewModel(mockApiClient);
-		await viewModel.loadItems();
+		mockSessionApi = {
+			create: vi.fn(),
+			list: vi.fn()
+		};
 
-		expect(viewModel.items.length).toBe(1);
-		expect(viewModel.loading).toBe(false);
-		expect(viewModel.error).toBe(null);
+		// Inject mocks
+		viewModel = new SessionViewModel(mockAppState, mockSessionApi);
+	});
+
+	it('should create session successfully', async () => {
+		const mockSession = { id: 'test-123', type: 'pty' };
+		mockSessionApi.create.mockResolvedValue(mockSession);
+
+		const result = await viewModel.createSession({
+			type: 'pty',
+			workspacePath: '/workspace'
+		});
+
+		expect(result).toEqual(mockSession);
+		expect(mockAppState.createSession).toHaveBeenCalledWith(mockSession);
 	});
 
 	it('should handle errors gracefully', async () => {
-		const mockApiClient = {
-			getItems: vi.fn().mockRejectedValue(new Error('Network error'))
-		};
+		mockSessionApi.create.mockRejectedValue(new Error('API Error'));
 
-		const viewModel = new ExampleViewModel(mockApiClient);
-		await viewModel.loadItems();
+		const result = await viewModel.createSession({
+			type: 'pty',
+			workspacePath: '/workspace'
+		});
 
-		expect(viewModel.items.length).toBe(0);
-		expect(viewModel.error).toBe('Network error');
+		expect(result).toBeNull();
+		expect(viewModel.operationState.error).toBe('API Error');
 	});
 });
 ```
 
-## Real-World Examples in Dispatch
+## File Naming Conventions
 
-### SessionViewModel
+- **ViewModels with runes**: `*.svelte.js` (e.g., `SessionViewModel.svelte.js`)
+- **Pure services**: `*.js` (e.g., `SessionApiClient.js`)
+- **Components**: `*.svelte` (e.g., `SessionList.svelte`)
 
-Location: `src/lib/client/shared/state/SessionViewModel.svelte.js`
+The `.svelte.js` extension signals that the file uses Svelte runes and must be processed by the Svelte compiler.
 
-**Purpose**: Manages session lifecycle (create, attach, detach, close)
-**Complexity**: High (handles WebSocket reconnection, event replay, multi-tab sync)
-**Why ViewModel**: Complex state machine with async operations
+## See Also
 
-### WorkspaceNavigationViewModel
-
-Location: `src/lib/client/shared/state/WorkspaceNavigationViewModel.svelte.js`
-
-**Purpose**: Manages workspace selection and navigation
-**Complexity**: Medium (filters, search, metadata)
-**Why ViewModel**: Shared state across multiple UI panels
-
-### OnboardingViewModel
-
-Location: `src/lib/client/shared/state/OnboardingViewModel.svelte.js`
-
-**Purpose**: Multi-step onboarding workflow
-**Complexity**: Medium (progress tracking, validation)
-**Why ViewModel**: Testable step transitions and validation logic
-
-## Resources
-
-- [Svelte 5 Runes Documentation](https://svelte.dev/docs/svelte/$state)
-- [MVVM Pattern Overview](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93viewmodel)
-- Dispatch codebase examples: Search for `*.svelte.js` files
-
-## Questions?
-
-If you're unsure whether to use a ViewModel for your component, ask:
-
-1. Is the component > 50 lines of logic?
-2. Will the logic be reused or tested independently?
-3. Does it manage complex async state?
-
-If you answered "yes" to 2+, use a ViewModel. Otherwise, keep it simple with inline reactivity.
+- [Dependency Injection Pattern](./dependency-injection-pattern.md) - DI implementation details
+- [Adapter Registration Guide](./adapter-guide.md) - Adding new session types
+- [Error Handling Guide](../contributing/error-handling.md) - Error handling patterns
+- [Svelte 5 Runes Documentation](https://svelte-5-preview.vercel.app/docs/runes) - Official Svelte 5 docs

@@ -183,18 +183,19 @@ npm run dev:test              # Test server on port 7173 (no SSL, known key)
 
 Event-sourced architecture with key tables:
 
-- SQLite db located at .testing-home/dispatch/data/workspace.db
+- SQLite db located at  `.testing-home/dispatch/data/workspace.db`
 - `sessions` - Run sessions with runId, kind, status, metadata
 - `session_events` - Event log with sequence numbers for replay
 - `workspace_layout` - Client-specific UI layouts
 - `workspaces` - Workspace metadata and paths
 
-> Note: Use sqlite cli and queries like these to get the current database schema
+**See [Database Schema Reference](docs/reference/database-schema.md)** for complete schema documentation, field details, indexes, and common query patterns.
 
-```sql
-select * from sqlite_master;
-PRAGMA table_info('user_preferences');
-PRAGMA table_info('settings');
+**Quick schema inspection:**
+
+```bash
+sqlite3 .testing-home/dispatch/data/workspace.db "SELECT sql FROM sqlite_master WHERE type='table';"
+sqlite3 .testing-home/dispatch/data/workspace.db "PRAGMA table_info('sessions');"
 ```
 
 ## Environment Variables
@@ -291,7 +292,9 @@ Dynamic session component loading via `src/lib/client/shared/session-modules/`:
 - Type-based component resolution
 - Header and pane component mapping
 
-## Workspace Management
+## API Documentation
+
+### Workspace Management
 
 📖 **See [Workspace API Reference](docs/reference/workspace-api.md)** for complete API documentation and examples.
 
@@ -315,6 +318,38 @@ await fetch('/api/sessions', {
 	})
 });
 ```
+
+### REST API Routes
+
+📖 **See [API Routes Reference](docs/reference/api-routes.md)** for complete REST API documentation.
+
+**Major API groups:**
+
+- `/api/sessions` - Session lifecycle management (create, list, close, layout)
+- `/api/workspaces` - Workspace CRUD operations
+- `/api/settings` - Server configuration by category
+- `/api/files` - File read/write operations
+- `/api/browse` - Directory browsing and git cloning
+- `/api/git` - Git operations (status, commit, push, pull, worktrees)
+- `/api/claude` - Claude Code authentication and projects
+- `/api/themes` - Theme management
+- `/api/admin` - Admin monitoring endpoints
+
+**Authentication:** All protected routes require `TERMINAL_KEY` via Authorization header or authKey query parameter.
+
+### Socket.IO Events
+
+📖 **See [Socket.IO Events Reference](docs/reference/socket-events.md)** for complete event protocol documentation.
+
+**Core events:**
+
+- `client:hello` - Authentication and client identification
+- `run:attach` - Attach to session with event replay
+- `run:input` - Send input to session
+- `run:event` - Real-time event streaming from server
+- `run:close` - Terminate session
+
+**Event sourcing:** All session activity is persisted with monotonic sequence numbers, enabling replay and multi-client synchronization.
 
 ## Additional Features
 

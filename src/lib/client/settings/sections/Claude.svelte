@@ -343,294 +343,231 @@
 </script>
 
 <div class="claude-settings">
+	<div class="section-header">
+		<h3>CLAUDE</h3>
+		<p class="section-description">
+			Connect your Claude (Anthropic) account and configure default settings for AI-powered coding
+			sessions.
+		</p>
+	</div>
 	<!-- Authentication Section -->
-	<section class="settings-section">
-		<header class="section-header">
-			<h3 class="section-title">Authentication</h3>
-			<p class="section-description">
-				Connect your Claude (Anthropic) account to enable AI-powered coding sessions.
-			</p>
-		</header>
+	<h4>AUTHENTICATION</h4>
+	<p class="subsection-description">
+		Connect your Claude account to enable AI-powered features and coding assistance.
+	</p>
+	{#if authStatus === 'checking'}
+		<div class="status-card status-card--checking">
+			<LoadingSpinner size="small" />
+			<span>Checking authentication status...</span>
+		</div>
+	{:else if authStatus === 'authenticated'}
+		<!-- Authenticated State -->
+		<div class="status-card status-card--authenticated">
+			<IconCloudCheck size={24} />
+			<div class="status-info">
+				<h4>Connected to Claude</h4>
+				<p>Your Claude account is authenticated and ready to use.</p>
+			</div>
+			<Button onclick={signOut} variant="ghost" size="small" disabled={loading}>Sign Out</Button>
+		</div>
+	{:else if authStatus === 'not_authenticated'}
+		<!-- Not Authenticated State -->
+		<div class="status-card status-card--not-authenticated">
+			<IconCloudX size={24} />
+			<div class="status-info">
+				<h4>Claude Not Connected</h4>
+				<p>Connect your Claude account to access AI-powered features.</p>
+				{#if statusMessage}
+					<p class="status-hint">{statusMessage}</p>
+				{/if}
+			</div>
+		</div>
 
-		<div class="section-content">
-			{#if authStatus === 'checking'}
-				<div class="status-card status-card--checking">
-					<LoadingSpinner size="small" />
-					<span>Checking authentication status...</span>
-				</div>
-			{:else if authStatus === 'authenticated'}
-				<!-- Authenticated State -->
-				<div class="status-card status-card--authenticated">
-					<IconCloudCheck size={24} />
-					<div class="status-info">
-						<h4>Connected to Claude</h4>
-						<p>Your Claude account is authenticated and ready to use.</p>
+		{#if !showCodeInput && !showManualAuth}
+			<!-- Authentication Options -->
+			<div class="flow-setup">
+				<div class="flow-steps">
+					<div class="flow-step">
+						<div class="step-number">1</div>
+						<div class="step-content">
+							<h5 class="step-title">Recommended: OAuth Authentication</h5>
+							<p class="step-description">
+								Secure authentication through Anthropic's official OAuth flow.
+							</p>
+							<Button onclick={startOAuthFlow} variant="primary" disabled={loading} {loading}>
+								<IconExternalLink size={16} />
+								Login with Claude
+							</Button>
+						</div>
 					</div>
-					<Button onclick={signOut} variant="ghost" size="small" disabled={loading}>
-						Sign Out
+
+					<div class="flex-center gap-2 m-2">
+						<div class="flex-grow bg-surface-border" style="height: 1px;"></div>
+						<span class="text-muted font-mono text-sm">or</span>
+						<div class="flex-grow bg-surface-border" style="height: 1px;"></div>
+					</div>
+
+					<div class="flow-step">
+						<div class="step-number">2</div>
+						<div class="step-content">
+							<h5 class="step-title">Manual: API Key</h5>
+							<p class="step-description">Enter your Claude API key directly (less secure).</p>
+							<Button onclick={() => (showManualAuth = true)} variant="ghost" size="small">
+								<IconKey size={16} />
+								Use API Key
+							</Button>
+						</div>
+					</div>
+				</div>
+			</div>
+		{:else if showCodeInput}
+			<!-- OAuth Code Input -->
+			<div class="flow-setup">
+				<h4 class="step-title">Complete Authentication</h4>
+				<p class="step-description">
+					After authorizing in the popup window, paste the authorization code below:
+				</p>
+
+				<div class="form-wrapper">
+					<Input
+						bind:value={authCode}
+						placeholder="Paste authorization code here"
+						autocomplete="off"
+						autocapitalize="off"
+						spellcheck="false"
+					/>
+				</div>
+
+				<div class="flow-actions">
+					<Button onclick={cancelFlow} variant="ghost" size="small">Cancel</Button>
+					<Button
+						onclick={completeAuth}
+						variant="primary"
+						disabled={!authCode.trim() || loading}
+						{loading}
+					>
+						Complete Authentication
 					</Button>
 				</div>
-			{:else if authStatus === 'not_authenticated'}
-				<!-- Not Authenticated State -->
-				<div class="status-card status-card--not-authenticated">
-					<IconCloudX size={24} />
-					<div class="status-info">
-						<h4>Claude Not Connected</h4>
-						<p>Connect your Claude account to access AI-powered features.</p>
-						{#if statusMessage}
-							<p class="status-hint">{statusMessage}</p>
-						{/if}
-					</div>
-				</div>
 
-				{#if !showCodeInput && !showManualAuth}
-					<!-- Authentication Options -->
-					<div class="flow-setup">
-						<div class="flow-steps">
-							<div class="flow-step">
-								<div class="step-number">1</div>
-								<div class="step-content">
-									<h5 class="step-title">Recommended: OAuth Authentication</h5>
-									<p class="step-description">
-										Secure authentication through Anthropic's official OAuth flow.
-									</p>
-									<Button onclick={startOAuthFlow} variant="primary" disabled={loading} {loading}>
-										<IconExternalLink size={16} />
-										Login with Claude
-									</Button>
-								</div>
-							</div>
-
-							<div class="flex-center gap-2 m-2">
-								<div class="flex-grow bg-surface-border" style="height: 1px;"></div>
-								<span class="text-muted font-mono text-sm">or</span>
-								<div class="flex-grow bg-surface-border" style="height: 1px;"></div>
-							</div>
-
-							<div class="flow-step">
-								<div class="step-number">2</div>
-								<div class="step-content">
-									<h5 class="step-title">Manual: API Key</h5>
-									<p class="step-description">
-										Enter your Claude API key directly (less secure).
-									</p>
-									<Button onclick={() => (showManualAuth = true)} variant="ghost" size="small">
-										<IconKey size={16} />
-										Use API Key
-									</Button>
-								</div>
-							</div>
-						</div>
-					</div>
-				{:else if showCodeInput}
-					<!-- OAuth Code Input -->
-					<div class="flow-setup">
-						<h4 class="step-title">Complete Authentication</h4>
-						<p class="step-description">
-							After authorizing in the popup window, paste the authorization code below:
-						</p>
-
-						<div class="form-wrapper">
-							<Input
-								bind:value={authCode}
-								placeholder="Paste authorization code here"
-								autocomplete="off"
-								autocapitalize="off"
-								spellcheck="false"
-							/>
-						</div>
-
-						<div class="flow-actions">
-							<Button onclick={cancelFlow} variant="ghost" size="small">Cancel</Button>
-							<Button
-								onclick={completeAuth}
-								variant="primary"
-								disabled={!authCode.trim() || loading}
-								{loading}
-							>
-								Complete Authentication
-							</Button>
-						</div>
-
-						{#if oauthUrl}
-							<div class="status-message">
-								<p>
-									If the popup was blocked, <a
-										href={oauthUrl}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="text-primary">click here to open manually</a
-									>.
-								</p>
-							</div>
-						{/if}
-					</div>
-				{:else if showManualAuth}
-					<!-- Manual API Key Input -->
-					<div class="flow-setup">
-						<h4 class="step-title">API Key Authentication</h4>
-						<p class="step-description">
-							Enter your Claude API key. You can find this in your
-							<a
-								href="https://console.anthropic.com/"
+				{#if oauthUrl}
+					<div class="status-message">
+						<p>
+							If the popup was blocked, <a
+								href={oauthUrl}
 								target="_blank"
 								rel="noopener noreferrer"
-								class="text-primary">Anthropic Console</a
+								class="text-primary">click here to open manually</a
 							>.
 						</p>
-
-						<div class="form-wrapper">
-							<Input
-								bind:value={apiKey}
-								type="password"
-								placeholder="sk-ant-..."
-								autocomplete="off"
-								autocapitalize="off"
-								spellcheck="false"
-							/>
-						</div>
-
-						<div class="flow-actions">
-							<Button onclick={cancelFlow} variant="ghost" size="small">Cancel</Button>
-							<Button
-								onclick={authenticateWithApiKey}
-								variant="primary"
-								disabled={!apiKey.trim() || loading}
-								{loading}
-							>
-								Authenticate
-							</Button>
-						</div>
 					</div>
 				{/if}
-			{:else if authStatus === 'error'}
-				<ErrorDisplay message={authError} />
-			{/if}
-		</div>
+			</div>
+		{:else if showManualAuth}
+			<!-- Manual API Key Input -->
+			<div class="flow-setup">
+				<h4 class="step-title">API Key Authentication</h4>
+				<p class="step-description">
+					Enter your Claude API key. You can find this in your
+					<a
+						href="https://console.anthropic.com/"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-primary">Anthropic Console</a
+					>.
+				</p>
 
-		{#if authError && authStatus !== 'error'}
-			<ErrorDisplay message={authError} />
+				<div class="form-wrapper">
+					<Input
+						bind:value={apiKey}
+						type="password"
+						placeholder="sk-ant-..."
+						autocomplete="off"
+						autocapitalize="off"
+						spellcheck="false"
+					/>
+				</div>
+
+				<div class="flow-actions">
+					<Button onclick={cancelFlow} variant="ghost" size="small">Cancel</Button>
+					<Button
+						onclick={authenticateWithApiKey}
+						variant="primary"
+						disabled={!apiKey.trim() || loading}
+						{loading}
+					>
+						Authenticate
+					</Button>
+				</div>
+			</div>
 		{/if}
+	{:else if authStatus === 'error'}
+		<ErrorDisplay message={authError} />
+	{/if}
 
-		{#if statusMessage && authStatus === 'authenticated'}
-			<div class="status-footer" role="status">{statusMessage}</div>
-		{/if}
-	</section>
+	{#if authError && authStatus !== 'error'}
+		<ErrorDisplay message={authError} />
+	{/if}
 
-	<!-- Divider -->
-	<div class="section-divider"></div>
+	{#if statusMessage && authStatus === 'authenticated'}
+		<div class="status-footer" role="status">{statusMessage}</div>
+	{/if}
 
 	<!-- Session Defaults Section -->
-	<section class="settings-section">
-		<header class="section-header">
-			<h3 class="section-title">Session Defaults</h3>
-			<p class="section-description">
-				Configure default settings for new Claude sessions. These settings will be used as
-				defaults when creating new Claude sessions, but can be overridden per session.
-			</p>
-		</header>
+	<h4>SESSION DEFAULTS</h4>
+	<p class="subsection-description">
+		Configure default settings for new Claude sessions. These settings will be used as defaults when
+		creating new Claude sessions, but can be overridden per session.
+	</p>
+	<ClaudeSettings bind:settings mode="global" />
 
-		<div class="section-content">
-			<ClaudeSettings bind:settings mode="global" />
+	<!-- Settings Footer -->
+	<footer class="settings-footer">
+		<div
+			class="settings-footer__status"
+			class:settings-footer__status--success={saveStatus.includes('success')}
+			class:settings-footer__status--error={saveStatus.includes('Failed')}
+		>
+			{saveStatus}
 		</div>
-
-		<!-- Settings Footer -->
-		<footer class="section-footer">
-			<div
-				class="save-status"
-				class:success={saveStatus.includes('success')}
-				class:error={saveStatus.includes('Failed')}
+		<div class="settings-footer__actions">
+			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
+				Reset Defaults
+			</Button>
+			<Button
+				onclick={saveSettings}
+				variant="primary"
+				size="small"
+				disabled={saving}
+				loading={saving}
 			>
-				{saveStatus}
-			</div>
-			<div class="section-actions">
-				<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
-					Reset Defaults
-				</Button>
-				<Button
-					onclick={saveSettings}
-					variant="primary"
-					size="small"
-					disabled={saving}
-					loading={saving}
-				>
-					{saving ? 'Saving...' : 'Save Settings'}
-				</Button>
-			</div>
-		</footer>
-	</section>
+				{saving ? 'Saving...' : 'Save Settings'}
+			</Button>
+		</div>
+	</footer>
 </div>
 
 <style>
-	.claude-settings {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-6);
-	}
-
-	.settings-section {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
-
-	.section-header {
-		border-bottom: 1px solid rgba(46, 230, 107, 0.2);
-		padding-bottom: var(--space-4);
-	}
-
-	.section-title {
-		font-family: var(--font-mono);
-		font-size: 1.4rem;
-		color: var(--primary);
-		margin: 0 0 var(--space-2) 0;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-	}
-
-	.section-description {
-		color: var(--text-muted);
-		margin: 0;
-		font-size: 0.95rem;
-	}
-
-	.section-content {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
-
-	.section-divider {
-		height: 1px;
-		background: linear-gradient(
-			90deg,
-			transparent,
-			rgba(46, 230, 107, 0.3),
-			transparent
-		);
-		margin: var(--space-4) 0;
-	}
-
 	.status-card {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-4);
 		border-radius: var(--radius-lg);
-		border: 1px solid rgba(46, 230, 107, 0.2);
-		box-shadow: 0 0 20px rgba(46, 230, 107, 0.1);
+		border: 1px solid var(--primary-glow-20);
+		box-shadow: 0 0 20px var(--primary-glow-10);
 	}
 
 	.status-card--checking {
-		background: rgba(255, 255, 255, 0.02);
+		background: color-mix(in oklab, var(--text) 2%, transparent);
 	}
 
 	.status-card--authenticated {
-		background: linear-gradient(135deg, rgba(46, 230, 107, 0.15), rgba(46, 230, 107, 0.05));
+		background: linear-gradient(135deg, var(--primary-glow-15), var(--primary-glow));
 	}
 
 	.status-card--not-authenticated {
-		background: rgba(255, 255, 255, 0.02);
+		background: color-mix(in oklab, var(--text) 2%, transparent);
 	}
 
 	.status-info h4 {
@@ -641,17 +578,17 @@
 
 	.status-info p {
 		margin: 0;
-		color: var(--text-muted);
+		color: var(--muted);
 	}
 
 	.status-hint {
-		color: var(--primary-light);
+		color: var(--primary-bright);
 		margin-top: var(--space-2);
 	}
 
 	.flow-setup {
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid rgba(46, 230, 107, 0.15);
+		background: color-mix(in oklab, var(--text) 2%, transparent);
+		border: 1px solid var(--primary-glow-15);
 		border-radius: var(--radius-lg);
 		padding: var(--space-5);
 		display: flex;
@@ -675,7 +612,7 @@
 		width: 32px;
 		height: 32px;
 		border-radius: var(--radius-full);
-		background: rgba(46, 230, 107, 0.15);
+		background: var(--primary-glow-15);
 		color: var(--primary);
 		display: flex;
 		align-items: center;
@@ -701,7 +638,7 @@
 
 	.step-description {
 		margin: 0;
-		color: var(--text-muted);
+		color: var(--muted);
 		font-size: 0.9rem;
 	}
 
@@ -719,9 +656,9 @@
 
 	.status-message {
 		padding: var(--space-3);
-		background: rgba(255, 255, 255, 0.02);
+		background: color-mix(in oklab, var(--text) 2%, transparent);
 		border-radius: var(--radius);
-		border: 1px solid rgba(46, 230, 107, 0.15);
+		border: 1px solid var(--primary-glow-15);
 	}
 
 	.status-footer {
@@ -729,34 +666,6 @@
 		font-family: var(--font-mono);
 		font-size: 0.85rem;
 		color: var(--primary);
-	}
-
-	.section-footer {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding-top: var(--space-4);
-		border-top: 1px solid var(--primary-dim);
-		margin-top: auto;
-	}
-
-	.save-status {
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		padding: var(--space-2) 0;
-		min-height: var(--space-5);
-		display: flex;
-		align-items: center;
-		color: var(--accent-red);
-	}
-
-	.save-status.success {
-		color: var(--primary);
-	}
-
-	.section-actions {
-		display: flex;
-		gap: var(--space-3);
 	}
 
 	@media (max-width: 768px) {
@@ -767,20 +676,6 @@
 		.flow-actions {
 			flex-direction: column;
 			align-items: stretch;
-		}
-
-		.section-footer {
-			flex-direction: column;
-			gap: var(--space-3);
-			align-items: stretch;
-		}
-
-		.section-actions {
-			justify-content: center;
-		}
-
-		.save-status {
-			text-align: center;
 		}
 	}
 </style>
