@@ -1,5 +1,9 @@
 import { Server } from 'socket.io';
 import { logger } from './utils/logger.js';
+import { SocketEventMediator } from '../socket/SocketEventMediator.js';
+import { createLoggingMiddleware } from '../socket/middleware/logging.js';
+import { createErrorHandlingMiddleware } from '../socket/middleware/errorHandling.js';
+import { createSessionHandlers } from '../socket/handlers/sessionHandlers.js';
 
 // Admin event tracking
 let socketEvents = [];
@@ -43,7 +47,7 @@ export function getSocketEvents(limit = 100) {
 	return socketEvents.slice(0, Math.min(limit, socketEvents.length));
 }
 
-// Phase 5: Helper function for auth validation in event handlers (now async for OAuth support)
+// Helper function for auth validation in event handlers
 async function requireValidKey(socket, key, callback, authService) {
 	const isValid = await authService.validateKey(key);
 	if (!isValid) {
@@ -56,15 +60,17 @@ async function requireValidKey(socket, key, callback, authService) {
 }
 
 /**
- * Setup Socket.IO with unified run session handlers
+ * Setup Socket.IO with SocketEventMediator architecture
  */
 export function setupSocketIO(httpServer, services) {
+	logger.info('SOCKET', 'Initializing Socket.IO server with SocketEventMediator');
+
 	const io = new Server(httpServer, {
 		cors: { origin: '*', methods: ['GET', 'POST'] }
 	});
 	activeIO = io;
 
-	// Set Socket.IO instance on TunnelManager for broadcasting
+	// Set Socket.IO instance on Tunnel Managers for broadcasting
 	if (services.tunnelManager) {
 		services.tunnelManager.setSocketIO(io);
 	}
@@ -72,11 +78,11 @@ export function setupSocketIO(httpServer, services) {
 		services.vscodeManager.setSocketIO(io);
 	}
 
-	const { runSessionManager, auth: authService } = services;
+	const { sessionOrchestrator, eventRecorder, auth: authService } = services;
 
-	if (!runSessionManager) {
-		logger.error('SOCKET_SETUP', 'RunSessionManager not provided in services');
-		throw new Error('RunSessionManager is required for socket setup');
+	if (!sessionOrchestrator) {
+		logger.error('SOCKET_SETUP', 'SessionOrchestrator not provided in services');
+		throw new Error('SessionOrchestrator is required for socket setup');
 	}
 
 	if (!authService) {
@@ -84,10 +90,27 @@ export function setupSocketIO(httpServer, services) {
 		throw new Error('AuthService is required for socket setup');
 	}
 
-	// Ensure the RunSessionManager can emit real-time events through this Socket.IO instance
-	runSessionManager.setSocketIO(io);
+	// Remove all previous listeners before subscribing (prevents memory leak on hot reload)
+	eventRecorder.removeAllListeners();
 
-	// Packet logging middleware
+	// Subscribe to EventRecorder for real-time event emission
+	eventRecorder.subscribe('event', (eventData) => {
+		const { sessionId } = eventData;
+		// Ensure runId exists for client compatibility (client expects event.runId)
+		eventData.runId = eventData.runId || sessionId;
+		io.to(`run:${sessionId}`).emit('run:event', eventData);
+	});
+
+	logger.info('SOCKET', 'EventRecorder subscribed for real-time emission');
+
+	// Create SocketEventMediator
+	const mediator = new SocketEventMediator(io);
+
+	// Register middleware
+	mediator.use(createLoggingMiddleware({ verbose: false }));
+	mediator.use(createErrorHandlingMiddleware());
+
+	// Add packet logging middleware directly to io
 	io.use((socket, next) => {
 		socket.use((packet, next) => {
 			const [event, data] = packet;
@@ -98,338 +121,170 @@ export function setupSocketIO(httpServer, services) {
 		next();
 	});
 
-	// Simple connection tracking
-	io.use((socket, next) => {
-		socket.data = socket.data || {};
-		socket.data.authenticated = false;
-		next();
+	// Create session handlers
+	const sessionHandlers = createSessionHandlers(sessionOrchestrator);
+
+	// Register event handlers
+	// Auth events
+	mediator.on('client:hello', async (socket, data, callback) => {
+		logger.info('SOCKET', `Received client:hello from ${socket.id}:`, data);
+		const { clientId, terminalKey } = data || {};
+
+		if (terminalKey) {
+			const isValid = await requireValidKey(socket, terminalKey, callback, authService);
+			if (isValid && callback) {
+				callback({ success: true, message: 'Authenticated' });
+			}
+		} else if (callback) {
+			callback({ success: false, error: 'Missing terminalKey' });
+		}
 	});
 
+	// Session events
+	mediator.on('run:attach', async (socket, data, callback) => {
+		try {
+			const result = await sessionHandlers.attach(socket, data);
+			if (callback) callback(result);
+		} catch (error) {
+			logger.error('SOCKET', 'Error in run:attach:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	mediator.on('run:input', async (socket, data) => {
+		try {
+			await sessionHandlers.input(socket, data);
+		} catch (error) {
+			logger.error('SOCKET', 'Error in run:input:', error);
+			socket.emit('error', { message: error.message });
+		}
+	});
+
+	mediator.on('run:resize', async (socket, data, callback) => {
+		try {
+			const result = await sessionHandlers.resize(socket, data);
+			if (callback) callback(result);
+		} catch (error) {
+			logger.error('SOCKET', 'Error in run:resize:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	mediator.on('run:close', async (socket, data, callback) => {
+		try {
+			const result = await sessionHandlers.close(socket, data);
+			if (callback) callback(result);
+		} catch (error) {
+			logger.error('SOCKET', 'Error in run:close:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	// Tunnel events
+	mediator.on('tunnel:start', async (socket, data, callback) => {
+		try {
+			const { terminalKey } = data || {};
+			const isValid = await requireValidKey(socket, terminalKey, callback, authService);
+			if (!isValid) return;
+
+			const result = await services.tunnelManager.startTunnel();
+			if (callback) {
+				callback({
+					success: true,
+					url: result.url,
+					status: result.status
+				});
+			}
+		} catch (error) {
+			logger.error('SOCKET', 'Error starting tunnel:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	mediator.on('tunnel:stop', async (socket, data, callback) => {
+		try {
+			const { terminalKey } = data || {};
+			const isValid = await requireValidKey(socket, terminalKey, callback, authService);
+			if (!isValid) return;
+
+			await services.tunnelManager.stopTunnel();
+			if (callback) callback({ success: true });
+		} catch (error) {
+			logger.error('SOCKET', 'Error stopping tunnel:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	mediator.on('tunnel:status', async (socket, data, callback) => {
+		try {
+			const status = services.tunnelManager.getStatus();
+			if (callback) callback({ success: true, status });
+		} catch (error) {
+			logger.error('SOCKET', 'Error getting tunnel status:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	// VS Code tunnel events
+	mediator.on('vscode-tunnel:start', async (socket, data, callback) => {
+		try {
+			const { terminalKey } = data || {};
+			const isValid = await requireValidKey(socket, terminalKey, callback, authService);
+			if (!isValid) return;
+
+			const result = await services.vscodeManager.startTunnel();
+			if (callback) {
+				callback({
+					success: true,
+					url: result.url,
+					status: result.status
+				});
+			}
+		} catch (error) {
+			logger.error('SOCKET', 'Error starting VS Code tunnel:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	mediator.on('vscode-tunnel:stop', async (socket, data, callback) => {
+		try {
+			const { terminalKey } = data || {};
+			const isValid = await requireValidKey(socket, terminalKey, callback, authService);
+			if (!isValid) return;
+
+			await services.vscodeManager.stopTunnel();
+			if (callback) callback({ success: true });
+		} catch (error) {
+			logger.error('SOCKET', 'Error stopping VS Code tunnel:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	mediator.on('vscode-tunnel:status', async (socket, data, callback) => {
+		try {
+			const status = services.vscodeManager.getStatus();
+			if (callback) callback({ success: true, status });
+		} catch (error) {
+			logger.error('SOCKET', 'Error getting VS Code tunnel status:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	// Handle connection and disconnection events
 	io.on('connection', (socket) => {
 		logger.info('SOCKET', `Client connected: ${socket.id}`);
+		logSocketEvent(socket.id, 'connection', null);
 
-		// Track connection
-		socket.data.connectedAt = Date.now();
-		logSocketEvent(socket.id, 'connection');
-
-		// ===== UNIFIED RUN SESSION HANDLERS =====
-
-		// Phase 5: Authentication event - validates a key without starting a session (now async)
-		socket.on('auth', async (key, callback) => {
-			try {
-				logger.info('SOCKET', `Auth event received from ${socket.id}`);
-				const isValid = await requireValidKey(socket, key, callback, authService);
-				if (isValid) {
-					// Key is valid, send success response
-					if (callback) callback({ success: true });
-				}
-				// Error response already sent by requireValidKey if key was invalid
-			} catch (error) {
-				logger.error('SOCKET', 'Auth handler error:', error);
-				if (callback) callback({ success: false, error: 'Authentication failed' });
-			}
-		});
-
-		// Client identification with stable clientId
-		socket.on('client:hello', ({ clientId }) => {
-			if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated client:hello from ${socket.id}`);
-				return;
-			}
-
-			socket.data.clientId = clientId;
-			logger.info('SOCKET', `Client identified: ${clientId} (socket: ${socket.id})`);
-		});
-
-		// Attach to run session with event backlog
-		socket.on('run:attach', async ({ runId, afterSeq }, ack) => {
-			if (!socket.data.authenticated) {
-				ack?.({ error: 'Not authenticated' });
-				return;
-			}
-
-			try {
-				// Join the run session room
-				socket.join(`run:${runId}`);
-
-				// Get event backlog since afterSeq
-				const backlog = await runSessionManager.getEventsSince(runId, afterSeq || 0);
-
-				logger.info(
-					'SOCKET',
-					`Client attached to run:${runId}, sent ${backlog.length} events since seq ${afterSeq || 0}`
-				);
-
-				if (ack) {
-					ack({ success: true, events: backlog });
-				}
-			} catch (error) {
-				logger.error('SOCKET', `Failed to attach to run:${runId}`, error);
-				if (ack) {
-					ack({ success: false, error: 'Failed to attach to run session' });
-				}
-			}
-		});
-
-		// Send input to run session
-		socket.on('run:input', async ({ runId, data }) => {
-			if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated run:input from ${socket.id}`);
-				return;
-			}
-
-			try {
-				await runSessionManager.sendInput(runId, data);
-				logger.debug('SOCKET', `Input sent to run:${runId}`);
-			} catch (error) {
-				logger.error('SOCKET', `Failed to send input to run:${runId}:`, error);
-				// Optionally emit error back to client
-				socket.emit('run:error', {
-					runId,
-					error: error.message,
-					type: 'input_failed'
-				});
-			}
-		});
-
-		// Resize terminal (PTY-specific operation)
-		socket.on('run:resize', async ({ runId, cols, rows }) => {
-			if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated run:resize from ${socket.id}`);
-				return;
-			}
-
-			try {
-				await runSessionManager.performOperation(runId, 'resize', [cols, rows]);
-				logger.debug('SOCKET', `Resized run:${runId} to ${cols}x${rows}`);
-			} catch (error) {
-				logger.error('SOCKET', `Failed to resize run:${runId}:`, error);
-				// Silently ignore resize errors (might not be supported by adapter)
-			}
-		});
-
-		// Close run session
-		socket.on('run:close', async ({ runId }) => {
-			if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated run:close from ${socket.id}`);
-				return;
-			}
-
-			try {
-				await runSessionManager.closeRunSession(runId);
-				socket.leave(`run:${runId}`);
-				logger.info('SOCKET', `Run session closed: ${runId}`);
-			} catch (error) {
-				logger.error('SOCKET', `Failed to close run:${runId}:`, error);
-			}
-		});
-
-		// ===== ADMIN AND UTILITY HANDLERS =====
-
-		// Public URL retrieval (unchanged)
-		socket.on('get-public-url', (callback) => {
-			logger.debug('SOCKET', 'get-public-url handler called');
-			try {
-				const tunnelManager = services.tunnelManager;
-				const url = tunnelManager.getPublicUrl();
-				if (callback) {
-					callback({ ok: !!url, url: url });
-				}
-			} catch (error) {
-				logger.error('SOCKET', 'Error handling get-public-url:', error);
-				if (callback) {
-					callback({ ok: false, error: error.message });
-				}
-			}
-		});
-
-		// Tunnel control handlers
-		socket.on('tunnel.enable', (data, callback) => {
-			if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated tunnel.enable from ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Unauthorized' });
-				return;
-			}
-
-			logger.info('SOCKET', `Tunnel enable requested by socket ${socket.id} with data:`, data);
-			const tunnelManager = services.tunnelManager;
-
-			// Update port if provided
-			if (data?.port) {
-				tunnelManager.port = parseInt(data.port, 10);
-			}
-
-			tunnelManager
-				.start()
-				.then((success) => {
-					const status = tunnelManager.getStatus();
-					logger.info('SOCKET', `Tunnel enable result: ${success}`, status);
-					if (callback) {
-						callback({ success, status });
-					}
-					// Broadcast status to all connected clients
-					io.emit('tunnel.status', status);
-				})
-				.catch((error) => {
-					logger.error('SOCKET', 'Error enabling tunnel:', error);
-					if (callback) {
-						callback({ success: false, error: error.message });
-					}
-				});
-		});
-
-		socket.on('tunnel.disable', async (data, callback) => {
-			if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated tunnel.disable from ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Unauthorized' });
-				return;
-			}
-
-			logger.info('SOCKET', `Tunnel disable requested by socket ${socket.id}`);
-			const tunnelManager = services.tunnelManager;
-			const success = await tunnelManager.stop();
-			const status = tunnelManager.getStatus();
-
-			logger.info('SOCKET', `Tunnel disable result: ${success}`, status);
-			if (callback) {
-				callback({ success, status });
-			}
-			// Broadcast status to all connected clients
-			io.emit('tunnel.status', status);
-		});
-
-		socket.on('tunnel.status', (callback) => {
-			logger.debug('SOCKET', 'tunnel.status handler called');
-			try {
-				const tunnelManager = services.tunnelManager;
-				const status = tunnelManager.getStatus();
-				if (callback) {
-					callback({ success: true, status });
-				}
-			} catch (error) {
-				logger.error('SOCKET', 'Error getting tunnel status:', error);
-				if (callback) {
-					callback({ success: false, error: error.message });
-				}
-			}
-		});
-
-		socket.on('tunnel.updateConfig', async (data, callback) => {
-			if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated tunnel.updateConfig from ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Unauthorized' });
-				return;
-			}
-
-			logger.info('SOCKET', `Tunnel config update requested by socket ${socket.id}`, data);
-			const tunnelManager = services.tunnelManager;
-			const success = await tunnelManager.updateConfig(data);
-			const status = tunnelManager.getStatus();
-
-			logger.info('SOCKET', `Tunnel config update result: ${success}`, status);
-			if (callback) {
-				callback({ success, status });
-			}
-			// Broadcast status to all connected clients
-			io.emit('tunnel.status', status);
-		});
-
-		// VS Code Tunnel control handlers
-		socket.on('vscode.tunnel.status', (callback) => {
-			logger.debug('SOCKET', 'vscode.tunnel.status handler called');
-			try {
-				const vscodeManager = services.vscodeManager;
-				if (!vscodeManager) {
-					logger.warn('SOCKET', 'VS Code tunnel manager not available');
-					if (callback) callback({ success: false, error: 'VS Code tunnel manager not available' });
-					return;
-				}
-				const status = vscodeManager.getStatus();
-				if (callback) {
-					callback({ success: true, status });
-				}
-			} catch (error) {
-				logger.error('SOCKET', 'Error handling vscode.tunnel.status:', error);
-				if (callback) {
-					callback({ success: false, error: error.message });
-				}
-			}
-		});
-
-		socket.on('vscode.tunnel.start', async (data, callback) => {
-			if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated vscode.tunnel.start from ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Unauthorized' });
-				return;
-			}
-
-			logger.info(
-				'SOCKET',
-				`VS Code tunnel start requested by socket ${socket.id} with data:`,
-				data
-			);
-			const vscodeManager = services.vscodeManager;
-			if (!vscodeManager) {
-				logger.warn('SOCKET', 'VS Code tunnel manager not available');
-				if (callback) callback({ success: false, error: 'VS Code tunnel manager not available' });
-				return;
-			}
-
-			try {
-				const state = await vscodeManager.startTunnel({
-					name: data?.name,
-					folder: data?.folder,
-					extra: data?.extra
-				});
-				logger.info('SOCKET', 'VS Code tunnel start successful:', state);
-				if (callback) {
-					callback({ success: true, state });
-				}
-				// Status will be broadcast by the VSCodeTunnelManager itself
-			} catch (error) {
-				logger.error('SOCKET', 'Error starting VS Code tunnel:', error);
-				if (callback) {
-					callback({ success: false, error: error.message });
-				}
-			}
-		});
-
-		socket.on('vscode.tunnel.stop', async (data, callback) => {
-			if (!socket.data.authenticated) {
-				logger.warn('SOCKET', `Unauthenticated vscode.tunnel.stop from ${socket.id}`);
-				if (callback) callback({ success: false, error: 'Unauthorized' });
-				return;
-			}
-
-			logger.info('SOCKET', `VS Code tunnel stop requested by socket ${socket.id}`);
-			const vscodeManager = services.vscodeManager;
-			if (!vscodeManager) {
-				logger.warn('SOCKET', 'VS Code tunnel manager not available');
-				if (callback) callback({ success: false, error: 'VS Code tunnel manager not available' });
-				return;
-			}
-
-			try {
-				const success = await vscodeManager.stopTunnel();
-				logger.info('SOCKET', `VS Code tunnel stop result: ${success}`);
-				if (callback) {
-					callback({ success });
-				}
-				// Status will be broadcast by the VSCodeTunnelManager itself
-			} catch (error) {
-				logger.error('SOCKET', 'Error stopping VS Code tunnel:', error);
-				if (callback) {
-					callback({ success: false, error: error.message });
-				}
-			}
-		});
-
-		socket.on('disconnect', () => {
-			logger.info('SOCKET', `Client disconnected: ${socket.id}`);
-			logSocketEvent(socket.id, 'disconnect');
+		socket.on('disconnect', (reason) => {
+			logger.info('SOCKET', `Client disconnected: ${socket.id}, reason: ${reason}`);
+			logSocketEvent(socket.id, 'disconnect', { reason });
 		});
 	});
 
-	logger.info('SOCKET', 'Unified Socket.IO server initialized with run session handlers');
+	// Initialize mediator (this sets up event handlers)
+	mediator.initialize();
+
+	logger.info('SOCKET', 'Socket.IO setup complete with SocketEventMediator');
+
 	return io;
 }

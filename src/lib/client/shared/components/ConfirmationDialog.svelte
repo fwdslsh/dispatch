@@ -109,7 +109,7 @@
 
 		--aug-border-all: 1px;
 		--aug-border-bg: color-mix(in oklab, var(--primary) 40%, transparent);
-		--aug-inlay-all: 4px;
+		--aug-inlay-all: var(--space-1);
 		--aug-inlay-bg: color-mix(in oklab, var(--surface) 80%, black 20%);
 	}
 

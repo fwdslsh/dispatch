@@ -1,0 +1,4 @@
+- improve the directory browser's git integration
+- provide dedicated UI components that can be composed into dedicated git views both inside and outside of the directory browser
+- add diff viewer that allows a user to see the changes between two files or previous versions of the same file via git
+- create compossible components to create teh directory browser so they can be reused outside of the directory browser and to simplify the directory browser code

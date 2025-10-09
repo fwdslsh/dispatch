@@ -33,6 +33,7 @@ describe('Settings Page State Helpers', () => {
 			'claude-auth',
 			'claude-defaults',
 			'storage',
+			'themes',
 			'preferences',
 			'retention'
 		];

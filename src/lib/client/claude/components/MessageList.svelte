@@ -1,12 +1,9 @@
 <script>
-	import { fly } from 'svelte/transition';
 	import Markdown from '$lib/client/shared/components/Markdown.svelte';
 	import LiveIconStrip from '$lib/client/shared/components/LiveIconStrip.svelte';
 	import IconClaude from '$lib/client/shared/components/Icons/IconClaude.svelte';
 	import IconUserCode from '$lib/client/shared/components/Icons/IconUserCode.svelte';
-	import IconLoader from '$lib/client/shared/components/Icons/IconLoader.svelte';
-	import IconProgressDown from '$lib/client/shared/components/Icons/IconProgressDown.svelte';
-	import IconSparkles from '$lib/client/shared/components/Icons/IconSparkles.svelte';
+	import Logo from '$lib/client/shared/components/Logo.svelte';
 
 	/**
 	 * MessageList Component
@@ -22,6 +19,10 @@
 	let messagesContainer = $state();
 
 	$effect(() => {
+		console.log('[MessageList] Messages changed:', viewModel.messages.length, viewModel.messages);
+	});
+
+	$effect(() => {
 		if (messagesContainer) {
 			viewModel.setMessagesContainer(messagesContainer);
 		}
@@ -35,8 +36,9 @@
 	aria-label="Chat messages"
 	bind:this={messagesContainer}
 >
+
 	{#if viewModel.loading && viewModel.messages.length === 0}
-		<div class="loading-message" transition:fly={{ y: 20, duration: 300 }}>
+		<div class="loading-message">
 			<div class="loading-indicator">
 				<div class="pulse-ring"></div>
 				<div class="pulse-ring"></div>
@@ -47,9 +49,9 @@
 	{/if}
 
 	{#each viewModel.messages as m, index (m.id || `msg-${index}`)}
+		<!-- DEBUG: Rendering message {index} -->
 		<div
 			class="message message--{m.role} {m.isError ? 'message--error' : ''}"
-			transition:fly={{ y: 20, duration: 400 }}
 			role="article"
 			aria-label="{m.role} message"
 		>
@@ -99,7 +101,6 @@
 	{#if viewModel.isWaitingForReply}
 		<div
 			class="message message--assistant typing-indicator"
-			transition:fly={{ y: 20, duration: 300 }}
 		>
 			<div class="message-wrapper">
 				<div class="message-avatar">
@@ -134,7 +135,7 @@
 	{#if viewModel.messages.length === 0 && !viewModel.loading && !viewModel.isCatchingUp}
 		<div class="welcome-message">
 			<div class="welcome-icon">
-				<img src="/favicon.png" alt="" />
+				<Logo height={48} width={48} />
 			</div>
 			<h3>Welcome to Claude</h3>
 			<p>
@@ -180,8 +181,8 @@
 	}
 
 	.pulse-ring {
-		width: 12px;
-		height: 12px;
+		width: var(--font-size-0);
+		height: var(--font-size-0);
 		border-radius: var(--radius-full);
 		background: var(--primary);
 		animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -211,18 +212,7 @@
 	.message {
 		display: flex;
 		width: 100%;
-		animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-	}
-
-	@keyframes slideIn {
-		from {
-			opacity: 0;
-			transform: translateY(20px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
+		animation: messageSlideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 	}
 
 	.message-wrapper {
@@ -276,13 +266,13 @@
 
 	.message-role {
 		font-weight: 600;
-		font-size: 0.85rem;
+		font-size: var(--font-size-1);
 		color: var(--primary);
 		text-transform: capitalize;
 	}
 
 	.message-time {
-		font-size: 0.75rem;
+		font-size: var(--font-size-0);
 		color: var(--muted);
 		opacity: 0.7;
 	}
@@ -298,7 +288,7 @@
 		);
 		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
 		box-shadow:
-			0 8px 32px -12px rgba(0, 0, 0, 0.1),
+			0 var(--space-2) var(--space-6) -12px rgba(0, 0, 0, 0.1),
 			inset 0 1px 2px rgba(255, 255, 255, 0.05);
 	}
 
@@ -309,12 +299,12 @@
 			color-mix(in oklab, var(--primary) 10%, var(--surface))
 		);
 		border-radius: var(--radius-xl);
-		border-top-right-radius: 8px;
+		border-top-right-radius: var(--radius-sm);
 	}
 
 	.message--assistant .message-text {
 		border-radius: var(--radius-xl);
-		border-bottom-left-radius: 8px;
+		border-bottom-left-radius: var(--radius-sm);
 	}
 
 	/* Typing Indicator */
@@ -329,16 +319,6 @@
 		animation: typingPulse 1.5s ease-in-out infinite;
 	}
 
-	@keyframes typingPulse {
-		0%,
-		100% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 0.5;
-		}
-	}
-
 	.typing-animation {
 		display: flex;
 		align-items: center;
@@ -351,10 +331,10 @@
 		);
 		border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent);
 		border-radius: var(--radius-xl);
-		border-bottom-left-radius: 8px;
-		min-height: 48px;
+		border-bottom-left-radius: var(--radius-sm);
+		min-height: var(--space-7);
 		box-shadow:
-			0 8px 32px -12px rgba(0, 0, 0, 0.1),
+			0 var(--space-2) var(--space-6) -12px rgba(0, 0, 0, 0.1),
 			inset 0 1px 2px rgba(255, 255, 255, 0.05);
 	}
 
@@ -365,7 +345,7 @@
 		border-radius: var(--radius-full);
 		background: var(--primary);
 		opacity: 0.4;
-		animation: typingBounce 1.4s ease-in-out infinite;
+		animation: typingBounceSubtle 1.4s ease-in-out infinite;
 		box-shadow: 0 2px 8px -2px var(--primary-glow);
 	}
 
@@ -381,19 +361,6 @@
 		animation-delay: 0.4s;
 	}
 
-	@keyframes typingBounce {
-		0%,
-		60%,
-		100% {
-			transform: translateY(0);
-			opacity: 0.4;
-		}
-		30% {
-			transform: translateY(-8px);
-			opacity: 1;
-		}
-	}
-
 	/* Welcome Message */
 	.welcome-message {
 		display: flex;
@@ -405,17 +372,6 @@
 		gap: var(--space-4);
 		color: var(--muted);
 		animation: fadeIn 0.6s ease-out;
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-			transform: translateY(10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
 	}
 
 	.welcome-icon {
@@ -432,25 +388,10 @@
 		align-items: center;
 		justify-content: center;
 		box-shadow: 0 8px 24px -8px var(--primary-glow);
-		animation: welcomePulse 3s ease-in-out infinite;
+		animation: avatarPulse 3s ease-in-out infinite;
 	}
 
-	@keyframes welcomePulse {
-		0%,
-		100% {
-			transform: scale(1);
-			box-shadow: 0 8px 24px -8px var(--primary-glow);
-		}
-		50% {
-			transform: scale(1.05);
-			box-shadow: 0 12px 32px -8px var(--primary-glow);
-		}
-	}
-
-	.welcome-icon img {
-		width: 48px;
-		height: 48px;
-	}
+	
 
 	.welcome-message h3 {
 		font-size: 1.5rem;

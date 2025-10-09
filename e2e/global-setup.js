@@ -1,22 +1,50 @@
+// e2e/global-setup.js
 /**
- * Global setup for Playwright E2E tests
- * Disables service worker caching and clears storage globally
+ * Global setup for Playwright tests
+ *
+ * NOTE: This expects the dev:test server to already be running
+ * Run: npm run dev:test (in a separate terminal)
+ *
+ * The actual database reset and onboarding is handled by e2e/seed.spec.ts
+ * which runs first before all other tests.
  */
 
-async function globalSetup(config) {
-	console.log('🧹 Setting up E2E test environment...');
+export default async function globalSetup() {
+	const baseURL = 'http://localhost:7173';
 
-	// Set environment variables for test context
-	process.env.DISABLE_SERVICE_WORKER = 'true';
-	process.env.E2E_TEST_MODE = 'true';
+	console.log('\n===========================================');
+	console.log('[Global Setup] E2E Test Setup');
+	console.log(`[Global Setup] Checking server at ${baseURL}`);
+	console.log('===========================================\n');
 
-	// Note: Individual test storage clearing and service worker disabling
-	// is handled per-test in the beforeEach hooks via setupFreshTestEnvironment()
-	// This ensures each test starts with a completely fresh state
+	// Wait for server to be ready
+	const maxAttempts = 30;
+	let serverReady = false;
 
-	console.log('🚫 Service worker registration disabled for all tests');
-	console.log('🧹 Storage clearing configured for each test');
-	console.log('✅ E2E environment setup complete');
+	for (let i = 0; i < maxAttempts; i++) {
+		try {
+			const response = await fetch(`${baseURL}/api/status`);
+			if (response.ok) {
+				console.log('[Global Setup] ✓ Server is ready');
+				serverReady = true;
+				break;
+			}
+		} catch (err) {
+			if (i === 0) {
+				console.log('[Global Setup] Waiting for server to start...');
+				console.log('[Global Setup] If server is not running, start it with: npm run dev:test');
+			}
+			if (i === maxAttempts - 1) {
+				console.error('\n[Global Setup] ✗ ERROR: Server is not running!');
+				console.error('[Global Setup] Please start the dev server in a separate terminal:');
+				console.error('[Global Setup]   npm run dev:test');
+				console.error('[Global Setup] Then run the tests again.\n');
+				throw new Error('Server not running on http://localhost:7173');
+			}
+			await new Promise(resolve => setTimeout(resolve, 1000));
+		}
+	}
+
+	console.log('[Global Setup] ✓ Server check complete');
+	console.log('[Global Setup] Database reset and onboarding will be handled by seed.spec.ts\n');
 }
-
-export default globalSetup;

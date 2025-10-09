@@ -1,0 +1,117 @@
+/**
+ * THEME INTEGRATION LAYER
+ *
+ * This file provides fallback terminal theme variables and ensures
+ * graceful degradation when theme API is unavailable.
+ *
+ * Flow:
+ * 1. This layer provides --theme-* variable fallbacks (Phosphor Green default)
+ * 2. +layout.svelte fetches /api/themes/active and overrides these at :root
+ * 3. variables.css derives UI tokens (--bg, --text, etc.) from --theme-* variables
+ * 4. Components use UI design tokens for consistent theming
+ *
+ * Theme Variables Format:
+ * --theme-* variables follow xterm.js ITheme format for terminal compatibility
+ */
+
+:root {
+	/**
+	 * FALLBACK TERMINAL THEME - Phosphor Green
+	 *
+	 * These provide hardcoded defaults when:
+	 * - Theme API is unavailable
+	 * - Initial SSR render before client hydration
+	 * - LocalStorage cache is empty
+	 *
+	 * Overridden by +layout.svelte when theme loads from /api/themes/active
+	 */
+
+	/* Base terminal colors (xterm.js background/foreground) */
+	--theme-background: #0c1210;
+	--theme-foreground: #d9ffe6;
+	--theme-cursor: #2ee66b;
+	--theme-cursor-accent: #0c1210;
+	--theme-selection-bg: #2ee66b40;
+
+	/* ANSI color palette (16 standard terminal colors) */
+	/* Normal intensity colors (black, red, green, yellow, blue, magenta, cyan, white) */
+	--theme-ansi-black: #121a17;
+	--theme-ansi-red: #ef476f;
+	--theme-ansi-green: #2ee66b;
+	--theme-ansi-yellow: #ffd166;
+	--theme-ansi-blue: #00c2ff;
+	--theme-ansi-magenta: #ff6b9d;
+	--theme-ansi-cyan: #56b6c2;
+	--theme-ansi-white: #cfe7d8;
+
+	/* Bright intensity colors (bright variants of above) */
+	--theme-ansi-bright-black: #8aa699;
+	--theme-ansi-bright-red: #ef476f;
+	--theme-ansi-bright-green: #4eff82;
+	--theme-ansi-bright-yellow: #ffd166;
+	--theme-ansi-bright-blue: #00c2ff;
+	--theme-ansi-bright-magenta: #ff6b9d;
+	--theme-ansi-bright-cyan: #56b6c2;
+	--theme-ansi-bright-white: #d9ffe6;
+}
+
+/**
+ * THEME TRANSITION ANIMATIONS
+ *
+ * Smooth color transitions when switching themes at runtime.
+ * Disabled when user prefers reduced motion.
+ */
+
+/* Animate root-level color changes */
+:root {
+	transition:
+		background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+		color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animate theme-dependent properties on all elements */
+* {
+	transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+	transition-duration: 300ms;
+	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+	:root,
+	* {
+		transition: none !important;
+	}
+}
+
+/**
+ * THEME DEBUGGING UTILITIES
+ *
+ * Helpful for debugging theme application in development
+ */
+
+/* Show theme metadata in data attributes (populated by +layout.svelte) */
+/* Example: <html data-theme-id="dracula" data-theme-source="custom"> */
+
+[data-theme-id]::before {
+	/* Debugging info available via DevTools */
+	content: attr(data-theme-id) ' (' attr(data-theme-source) ')';
+	position: fixed;
+	bottom: 0;
+	right: 0;
+	padding: 2px 6px;
+	font-size: 10px;
+	background: var(--theme-background);
+	color: var(--theme-foreground);
+	border: 1px solid var(--theme-cursor);
+	opacity: 0;
+	pointer-events: none;
+	z-index: 99999;
+	font-family: monospace;
+}
+
+/* Show theme info on Ctrl+Shift+T (or when .debug-theme class is added) */
+.debug-theme [data-theme-id]::before,
+:root:focus-within [data-theme-id]::before {
+	opacity: 0.7;
+}

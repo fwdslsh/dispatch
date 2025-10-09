@@ -8,10 +8,12 @@
 	import SettingField from '$lib/client/shared/components/SettingField.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 
-	/**
-	 * @type {SettingsViewModel}
-	 */
-	let { settingsViewModel } = $props();
+	let {
+		/**
+		 * @type {SettingsViewModel}
+		 */
+		settingsViewModel
+	} = $props();
 
 	// Get authentication category (reactive via $state proxy)
 	let authCategory = $derived(settingsViewModel.categories.authentication || {});
@@ -145,8 +147,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
-
 	.terminal-key-settings {
 		display: flex;
 		flex-direction: column;
@@ -169,7 +169,9 @@
 
 	.btn-icon-toggle {
 		position: absolute;
-		top: 38px; /* Align with input field after label */
+		top: unset;
+		bottom: 5px;
+
 		right: var(--space-2);
 		background: transparent;
 		border: none;
@@ -188,11 +190,11 @@
 
 	.btn-icon-toggle:hover {
 		color: var(--text);
-		background: color-mix(in oklab, var(--accent) 10%, transparent);
+		background: var(--hover-bg);
 	}
 
 	.btn-icon-toggle:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--primary);
 		outline-offset: 2px;
 	}
 
@@ -206,8 +208,8 @@
 		align-items: flex-start;
 		gap: var(--space-2);
 		padding: var(--space-3);
-		background: color-mix(in oklab, var(--accent) 8%, transparent);
-		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
+		background: var(--info-box-bg);
+		border: 1px solid var(--info-box-border);
 		border-radius: var(--radius-md);
 		font-size: var(--font-size-1);
 		line-height: 1.5;

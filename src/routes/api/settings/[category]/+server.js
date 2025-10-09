@@ -16,7 +16,7 @@ import { json } from '@sveltejs/kit';
  *     "settings": { key: value pairs for this category }
  *   }
  */
-export async function PUT({ params, request, url, locals }) {
+export async function PUT({ params, request, locals }) {
 	try {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
@@ -31,10 +31,10 @@ export async function PUT({ params, request, url, locals }) {
 			return json({ error: 'Missing or invalid settings object' }, { status: 400 });
 		}
 
-		const database = locals.services.database;
+		const { settingsRepository, auth } = locals.services;
 
 		// Get current settings for this category
-		const currentSettings = await database.getSettingsByCategory(category);
+		const currentSettings = await settingsRepository.getByCategory(category);
 
 		// Merge with updates
 		const updatedSettings = {
@@ -43,7 +43,7 @@ export async function PUT({ params, request, url, locals }) {
 		};
 
 		// Save to database
-		await database.setSettingsForCategory(
+		await settingsRepository.setByCategory(
 			category,
 			updatedSettings,
 			`Settings for ${category} category`
@@ -51,7 +51,7 @@ export async function PUT({ params, request, url, locals }) {
 
 		// Update terminal key cache if authentication settings changed
 		if (category === 'authentication' && body.settings.terminal_key !== undefined) {
-			locals.services.auth.updateCachedKey(body.settings.terminal_key);
+			auth.updateCachedKey(body.settings.terminal_key);
 		}
 
 		return json(

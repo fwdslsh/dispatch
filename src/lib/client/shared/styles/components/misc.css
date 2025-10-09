@@ -1,0 +1,627 @@
+/* ==================================================================
+   MISCELLANEOUS COMPONENT STYLES
+   Tile controls, markdown, error displays, and other specific components
+
+   This file contains component-specific styles that are shared across
+   multiple components. For single-component styles, use scoped <style> blocks.
+   ================================================================== */
+
+/* ==================================================================
+   CARDS & PANELS - Base component patterns
+   ================================================================== */
+
+.card,
+.panel {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	padding: var(--space-5);
+	position: relative;
+	box-shadow: var(--card-shadow);
+	border-radius: var(--radius-md);
+}
+
+/* Augmented UI preset for cards/panels */
+
+/* ==================================================================
+    NESTING GUIDANCE (Augmented-UI v2)
+
+   If you nest augmented elements, place a reset layer between them:
+   [data-augmented-ui] [data-augmented-ui-reset] [data-augmented-ui]
+   This ensures independent shapes & borders in modern browsers.
+   ================================================================== */
+.aug,
+[data-augmented-ui] {
+	/* Region sizing - smaller cuts */
+	--aug-tl: var(--space-2);
+	--aug-br: var(--space-2);
+
+	/* BORDER (v2) - subtle border */
+	--aug-border: initial;
+	--aug-border-all: 1px;
+	--aug-border-bg: var(--primary);
+	--aug-border-opacity: 0.25;
+
+	/* INLAY (v2) - minimal inner accent */
+	--aug-inlay: initial;
+	--aug-inlay-all: 1px;
+	--aug-inlay-bg: color-mix(in oklab, var(--surface) 8%, transparent);
+	--aug-inlay-opacity: 0.4;
+
+	transition: all 0.15s ease;
+}
+
+.aug:hover,
+[data-augmented-ui]:hover {
+	--aug-border-opacity: 0.4;
+	--aug-inlay-opacity: 0.6;
+}
+
+.card.aug {
+	background: var(--surface);
+}
+
+.panel.aug {
+	background: var(--elev);
+}
+
+/* ==================================================================
+   BADGES - Status indicators
+   ================================================================== */
+
+.badge {
+	display: inline-block;
+	padding: 2px var(--space-2);
+	font: 700 var(--font-size-0) / 1 var(--font-mono);
+	color: var(--text);
+	border: 1px solid var(--line);
+	border-radius: var(--radius-full);
+	background: color-mix(in oklab, var(--surface) 86%, black 14%);
+}
+
+.badge.ok {
+	color: var(--ok);
+	border-color: color-mix(in oklab, var(--ok) 40%, var(--line));
+}
+
+.badge.warn {
+	color: var(--warn);
+	border-color: color-mix(in oklab, var(--warn) 40%, var(--line));
+}
+
+.badge.err {
+	color: var(--err);
+	border-color: color-mix(in oklab, var(--err) 40%, var(--line));
+}
+
+/* ==================================================================
+   ERROR MESSAGES - Consistent error display
+   ================================================================== */
+
+.error-message {
+	padding: 1rem;
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--secondary) 15%, var(--surface)),
+		color-mix(in oklab, var(--secondary) 8%, var(--surface))
+	);
+	border: 2px solid var(--secondary);
+	border-radius: 0;
+	color: var(--secondary);
+	font-size: var(--font-size-1);
+	font-family: var(--font-mono);
+	font-weight: 600;
+	box-shadow:
+		0 0 20px color-mix(in oklab, var(--err) 20%, transparent),
+		inset 0 1px 0 color-mix(in oklab, var(--text) 10%, transparent);
+	position: relative;
+}
+
+/* ==================================================================
+   MESSAGE BOXES - Enhanced informational messages
+   Consolidates error/success/warning/info patterns
+   ================================================================== */
+
+.message-box {
+	padding: var(--space-3);
+	border-radius: var(--radius-sm);
+	font-size: var(--font-size-1);
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-family: var(--font-mono);
+	position: relative;
+}
+
+.message-box--error {
+	background: var(--err-dim);
+	border: 1px solid var(--err);
+	color: var(--err);
+}
+
+.message-box--success {
+	background: color-mix(in oklab, var(--ok) 15%, var(--surface));
+	border: 1px solid var(--ok);
+	color: var(--ok);
+}
+
+.message-box--warning {
+	background: color-mix(in oklab, var(--warn) 15%, var(--surface));
+	border: 1px solid var(--warn);
+	color: var(--warn);
+}
+
+.message-box--info {
+	background: color-mix(in oklab, var(--info) 15%, var(--surface));
+	border: 1px solid var(--info);
+	color: var(--info);
+}
+
+.message-box__icon {
+	flex-shrink: 0;
+}
+
+.message-box__content {
+	flex: 1;
+}
+
+.message-box__close {
+	position: absolute;
+	top: var(--space-2);
+	right: var(--space-2);
+	background: transparent;
+	border: none;
+	color: inherit;
+	font-size: var(--space-5);
+	line-height: 1;
+	cursor: pointer;
+	padding: var(--space-1);
+	opacity: 0.7;
+	transition: opacity 0.2s ease;
+}
+
+.message-box__close:hover {
+	opacity: 1;
+}
+
+.message-box__close:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+/* ==================================================================
+   LOADING STATES - Enhanced loading indicators
+   ================================================================== */
+
+.loading-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--space-6);
+	gap: var(--space-3);
+	color: var(--muted);
+	font-family: var(--font-mono);
+}
+
+.loading-spinner {
+	width: 2rem;
+	height: 2rem;
+	border: 2px solid transparent;
+	border-top: 2px solid currentColor;
+	border-radius: var(--radius-full);
+	animation: spin 1s linear infinite;
+}
+
+.loading-text {
+	font-size: var(--font-size-1);
+	color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.loading-spinner {
+		animation: none;
+		border-top-color: transparent;
+		border-right-color: transparent;
+		opacity: 0.7;
+	}
+}
+
+/* ==================================================================
+   BUTTON GROUPS - For button sets in retro.css style
+   ================================================================== */
+
+.btn-group .button {
+	flex: 1;
+	border: 2px solid var(--line);
+	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+	position: relative;
+	overflow: hidden;
+}
+
+.btn-group .button::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, var(--glow), transparent);
+	transition: left 0.5s ease;
+}
+
+.btn-group .button:hover:not(.active)::before {
+	left: 100%;
+}
+
+.btn-group .button.active {
+	background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+	color: var(--bg);
+	border-color: var(--primary);
+	border-width: 2px;
+	box-shadow:
+		0 0 20px var(--glow),
+		0 0 40px var(--glow),
+		0 0 0 3px var(--primary-glow-30),
+		inset 0 1px 0 color-mix(in oklab, var(--text) 20%, transparent);
+	text-shadow: 0 0 var(--space-2) color-mix(in oklab, var(--bg) 30%, black);
+}
+
+/* ==================================================================
+   SESSION CARDS - Selected state
+   ================================================================== */
+
+.session-card.selected {
+	background: linear-gradient(
+		135deg,
+		color-mix(in oklab, var(--primary) 25%, var(--surface)),
+		color-mix(in oklab, var(--primary) 15%, var(--surface))
+	);
+	border-color: var(--primary);
+	border-width: 2px;
+	box-shadow:
+		0 0 0 2px var(--primary) inset,
+		0 0 30px var(--primary-glow-30),
+		0 0 0 4px var(--primary-glow-20),
+		inset 0 1px 0 color-mix(in oklab, var(--text) 20%, transparent);
+	filter: brightness(1.05);
+}
+
+/* ==================================================================
+   UTILITY ICONS - Icon-only button variant (legacy support)
+   ================================================================== */
+
+.btn-icon-only {
+	width: 2.5rem;
+	height: 2.5rem;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--font-size-3);
+}
+
+/* ==================================================================
+   ANIMATIONS - Component-specific animations
+   ================================================================== */
+
+.spinning {
+	animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* ===== TILE CONTROLS ===== */
+.tile-controls {
+	position: absolute;
+	top: var(--space-2);
+	right: var(--space-2);
+	z-index: 10;
+	background: var(--surface-raised);
+	border: 1px solid var(--surface-border);
+	border-radius: var(--radius);
+	padding: var(--space-1);
+	box-shadow: var(--shadow-sm);
+	backdrop-filter: blur(4px);
+	opacity: 0.9;
+	transition: opacity 0.2s ease;
+}
+
+.tile-controls:hover {
+	opacity: 1;
+}
+
+.tile-controls-group {
+	display: flex;
+	gap: var(--space-1);
+	align-items: center;
+}
+
+.tile-controls .btn-icon-only {
+	min-width: var(--space-6);
+	height: var(--space-6);
+	padding: var(--space-1);
+}
+
+/* ===== MARKDOWN CONTENT ===== */
+.markdown-content {
+	color: var(--text);
+	line-height: 1.6;
+	font-family: var(--font-mono);
+	font-size: var(--font-size-1);
+}
+
+/* Typography elements */
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+	color: var(--primary);
+	font-weight: 600;
+	margin-top: var(--space-4);
+	margin-bottom: var(--space-2);
+	line-height: 1.3;
+}
+
+.markdown-content h1 {
+	font-size: 2rem;
+	border-bottom: 2px solid var(--surface-border);
+	padding-bottom: var(--space-2);
+}
+
+.markdown-content h2 {
+	font-size: 1.5rem;
+	border-bottom: 1px solid var(--surface-border);
+	padding-bottom: var(--space-1);
+}
+
+.markdown-content h3 {
+	font-size: 1.25rem;
+}
+
+.markdown-content h4 {
+	font-size: 1.1rem;
+}
+
+.markdown-content h5,
+.markdown-content h6 {
+	font-size: 1rem;
+	color: var(--muted);
+}
+
+/* Paragraphs and spacing */
+.markdown-content p {
+	margin-bottom: var(--space-3);
+}
+
+.markdown-content p:last-child {
+	margin-bottom: 0;
+}
+
+/* Links */
+.markdown-content a {
+	color: var(--primary);
+	text-decoration: underline;
+	text-decoration-color: var(--primary-dim);
+	transition: all 0.2s ease;
+}
+
+.markdown-content a:hover {
+	color: var(--primary-bright);
+	text-decoration-color: var(--primary);
+	text-shadow: 0 0 var(--space-2) var(--primary-glow-30);
+}
+
+/* Lists */
+.markdown-content ul,
+.markdown-content ol {
+	margin-bottom: var(--space-3);
+	padding-left: var(--space-4);
+}
+
+.markdown-content li {
+	margin-bottom: var(--space-1);
+}
+
+.markdown-content li:last-child {
+	margin-bottom: 0;
+}
+
+.markdown-content ul li {
+	list-style-type: none;
+	position: relative;
+}
+
+.markdown-content ul li::before {
+	content: '▸';
+	color: var(--primary);
+	position: absolute;
+	left: -1rem;
+	top: 0;
+}
+
+.markdown-content ol li {
+	list-style-type: decimal;
+	list-style-position: outside;
+}
+
+/* Code blocks and inline code */
+.markdown-content code {
+	background: var(--bg);
+	border: 1px solid var(--surface-border);
+	border-radius: var(--radius-xs);
+	padding: 2px 6px;
+	font-family: var(--font-mono);
+	font-size: 0.9em;
+	color: var(--accent-cyan);
+}
+
+.markdown-content pre {
+	background: var(--bg);
+	border: 1px solid var(--surface-border);
+	border-radius: var(--radius-sm);
+	padding: var(--space-3);
+	margin: var(--space-3) 0;
+	overflow-x: auto;
+	position: relative;
+}
+
+.markdown-content pre code {
+	background: none;
+	border: none;
+	padding: 0;
+	border-radius: 0;
+	color: var(--text);
+	font-size: var(--font-size-0);
+}
+
+.markdown-content pre[class*='language-'] {
+	border-left: 4px solid var(--primary);
+}
+
+.markdown-content pre[class*='language-']::before {
+	content: attr(class);
+	position: absolute;
+	top: var(--space-1);
+	right: var(--space-2);
+	font-size: var(--font-size--1);
+	color: var(--muted);
+	text-transform: uppercase;
+	font-weight: 600;
+}
+
+/* Blockquotes */
+.markdown-content blockquote {
+	border-left: 4px solid var(--primary);
+	background: color-mix(in oklab, var(--primary) 5%, transparent);
+	margin: var(--space-3) 0;
+	padding: var(--space-2) var(--space-3);
+	font-style: italic;
+	color: var(--muted);
+}
+
+.markdown-content blockquote p {
+	margin-bottom: var(--space-2);
+}
+
+.markdown-content blockquote p:last-child {
+	margin-bottom: 0;
+}
+
+/* Tables */
+.markdown-content table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: var(--space-3) 0;
+	border: 1px solid var(--surface-border);
+	border-radius: var(--radius-sm);
+	overflow: hidden;
+}
+
+.markdown-content th,
+.markdown-content td {
+	padding: var(--space-2) var(--space-3);
+	text-align: left;
+	border-bottom: 1px solid var(--surface-border);
+}
+
+.markdown-content th {
+	background: var(--surface);
+	font-weight: 600;
+	color: var(--primary);
+	border-bottom-color: var(--primary-dim);
+}
+
+.markdown-content tr:last-child td {
+	border-bottom: none;
+}
+
+.markdown-content tr:nth-child(even) {
+	background: color-mix(in oklab, var(--surface) 50%, transparent);
+}
+
+/* Horizontal rule */
+.markdown-content hr {
+	border: none;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, var(--surface-border), transparent);
+	margin: var(--space-4) 0;
+}
+
+/* Images */
+.markdown-content img {
+	max-width: 100%;
+	height: auto;
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--surface-border);
+	margin: var(--space-2) 0;
+}
+
+/* Terminal-style enhancements */
+.markdown-content {
+	text-shadow: 0 0 1px var(--primary-glow-10);
+}
+
+.markdown-content::selection {
+	background: var(--primary-glow-30);
+	color: var(--bg);
+}
+
+/* Responsive typography */
+@media (max-width: 768px) {
+	.markdown-content {
+		font-size: var(--font-size-0);
+	}
+
+	.markdown-content h1 {
+		font-size: 1.5rem;
+	}
+
+	.markdown-content h2 {
+		font-size: 1.25rem;
+	}
+
+	.markdown-content h3 {
+		font-size: 1.1rem;
+	}
+
+	.markdown-content pre {
+		padding: var(--space-2);
+		margin: var(--space-2) 0;
+	}
+
+	.markdown-content blockquote {
+		margin: var(--space-2) 0;
+		padding: var(--space-2);
+	}
+}
+
+@keyframes slideInRight {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
+
+@keyframes blink {
+	0%,
+	50% {
+		opacity: 1;
+	}
+	51%,
+	100% {
+		opacity: 0;
+	}
+}

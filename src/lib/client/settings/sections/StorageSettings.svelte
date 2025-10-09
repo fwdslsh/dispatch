@@ -299,7 +299,7 @@
 
 <div class="storage-settings">
 	<header class="settings-header">
-		<h3 class="settings-title">Storage Management</h3>
+		<h3>Storage Management</h3>
 		<p class="settings-description">
 			Manage local storage, export your data, and clear cached information.
 		</p>
@@ -490,7 +490,7 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
+	/* Import shared settings styles - most styles now in settings.css */
 
 	:global(.storage-settings .settings-content) {
 		display: flex;
@@ -544,10 +544,10 @@
 		color: var(--primary);
 	}
 
-	/* Storage usage bar */
+	/* Storage-specific usage bar */
 	.usage-bar {
 		width: 100%;
-		height: 12px;
+		height: var(--font-size-0);
 		background: color-mix(in oklab, var(--text) 5%, transparent);
 		border-radius: var(--radius-full);
 		overflow: hidden;
@@ -702,7 +702,7 @@
 		font-family: var(--font-mono);
 		font-size: var(--font-size-1);
 		color: var(--muted);
-		min-height: 24px;
+		min-height: var(--space-5);
 	}
 
 	.status-message.success {
@@ -711,39 +711,6 @@
 
 	.status-message.error {
 		color: var(--err);
-	}
-
-	/* Utility classes for flex layout */
-	.flex {
-		display: flex;
-	}
-
-	.flex-col {
-		flex-direction: column;
-	}
-
-	.flex-between {
-		justify-content: space-between;
-	}
-
-	.flex-wrap {
-		flex-wrap: wrap;
-	}
-
-	.gap-1 {
-		gap: var(--space-1);
-	}
-
-	.gap-3 {
-		gap: var(--space-3);
-	}
-
-	.gap-4 {
-		gap: var(--space-4);
-	}
-
-	.gap-6 {
-		gap: var(--space-6);
 	}
 
 	/* Responsive */

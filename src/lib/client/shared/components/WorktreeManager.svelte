@@ -408,28 +408,28 @@
 	.worktree-manager {
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-sm);
-		padding: 12px;
-		margin-top: 8px;
+		padding: var(--space-3);
+		margin-top: var(--space-2);
 	}
 
 	.worktree-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 12px;
+		margin-bottom: var(--space-3);
 	}
 
 	.worktree-list {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 
 	.worktree-item {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 8px;
+		padding: var(--space-2);
 		background: var(--surface-color);
 		border-radius: var(--radius-xs);
 		border: 1px solid var(--border-color);
@@ -438,7 +438,7 @@
 	.worktree-info {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--space-1);
 	}
 
 	.worktree-path {
@@ -450,7 +450,7 @@
 	.worktree-branch {
 		display: flex;
 		align-items: center;
-		gap: 4px;
+		gap: var(--space-1);
 		font-size: 0.75rem;
 		color: var(--text-secondary);
 	}
@@ -464,12 +464,12 @@
 
 	.add-form {
 		border-top: 1px solid var(--border-color);
-		margin-top: 12px;
-		padding-top: 12px;
+		margin-top: var(--space-3);
+		padding-top: var(--space-3);
 	}
 
 	.form-section h4 {
-		margin: 0 0 12px 0;
+		margin: 0 0 var(--space-3) 0;
 		font-size: 1rem;
 		font-weight: 600;
 	}
@@ -477,8 +477,8 @@
 	.form-row {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		margin-bottom: 12px;
+		gap: var(--space-1);
+		margin-bottom: var(--space-3);
 	}
 
 	.form-row label {
@@ -486,11 +486,11 @@
 		font-weight: 500;
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 
 	.branch-select {
-		padding: 8px;
+		padding: var(--space-2);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-xs);
 		background: var(--surface-color);
@@ -502,19 +502,19 @@
 		background: var(--surface-color);
 		border: 1px solid var(--border-color);
 		border-radius: var(--radius-xs);
-		padding: 12px;
-		margin-top: 8px;
+		padding: var(--space-3);
+		margin-top: var(--space-2);
 	}
 
 	.init-commands h5 {
-		margin: 0 0 8px 0;
+		margin: 0 0 var(--space-2) 0;
 		font-size: 0.875rem;
 		font-weight: 600;
 	}
 
 	.detected-info,
 	.existing-script {
-		margin-bottom: 12px;
+		margin-bottom: var(--space-3);
 		font-size: 0.875rem;
 	}
 
@@ -526,30 +526,30 @@
 	.command-list {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 
 	.command-row {
 		display: flex;
-		gap: 8px;
+		gap: var(--space-2);
 		align-items: center;
 	}
 
 	.form-actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: 8px;
-		margin-top: 16px;
-		padding-top: 12px;
+		gap: var(--space-2);
+		margin-top: var(--space-4);
+		padding-top: var(--space-3);
 		border-top: 1px solid var(--border-color);
 	}
 
 	.error-msg {
 		background: var(--error-bg);
 		color: var(--error-text);
-		padding: 8px 12px;
+		padding: var(--space-2) 12px;
 		border-radius: var(--radius-xs);
 		font-size: 0.875rem;
-		margin-bottom: 8px;
+		margin-bottom: var(--space-2);
 	}
 </style>

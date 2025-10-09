@@ -175,7 +175,7 @@
 			transform 0.2s ease,
 			box-shadow 0.2s ease;
 		border-radius: var(--radius-md);
-		outline-offset: 4px;
+		outline-offset: var(--space-1);
 	}
 
 	.theme-option:hover {
@@ -188,7 +188,7 @@
 
 	.theme-option.selected {
 		outline: 3px solid #3b82f6;
-		outline-offset: 4px;
+		outline-offset: var(--space-1);
 	}
 
 	.actions {
@@ -209,8 +209,8 @@
 	}
 
 	.spinner {
-		width: 32px;
-		height: 32px;
+		width: var(--space-6);
+		height: var(--space-6);
 		border: 3px solid #e5e7eb;
 		border-top: 3px solid #3b82f6;
 		border-radius: var(--radius-full);
@@ -228,7 +228,7 @@
 
 	.loading-state span {
 		color: #6b7280;
-		font-size: 1rem;
+		font-size: var(--font-size-2);
 	}
 
 	.error-state {
@@ -293,7 +293,7 @@
 	/* Accessibility: High contrast mode */
 	@media (prefers-contrast: high) {
 		.theme-option.selected {
-			outline-width: 4px;
+			outline-width: var(--space-1);
 		}
 
 		.step-header h2,

@@ -106,7 +106,6 @@ The drag-to-resize feature works really well!
 	<style>
 		/* Global styles for the demo */
 		body {
-			margin: 0;
 			font-family:
 				system-ui,
 				-apple-system,
@@ -295,7 +294,7 @@ The drag-to-resize feature works really well!
 
 	.demo-header {
 		padding: 1rem;
-		border-bottom: 1px solid #333;
+		border-bottom: 1px solid var(--surface-border);
 		background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
 		display: flex;
 		align-items: center;
@@ -318,7 +317,7 @@ The drag-to-resize feature works really well!
 	}
 
 	.toggle-btn {
-		background: #333;
+		background: var(--surface);
 		border: 1px solid #555;
 		color: #fff;
 		padding: 0.5rem 1rem;
@@ -335,7 +334,7 @@ The drag-to-resize feature works really well!
 
 	.instructions-panel {
 		background: #1a1a1a;
-		border-bottom: 1px solid #333;
+		border-bottom: 1px solid var(--surface-border);
 		padding: 1rem;
 		animation: slideDown 0.3s ease-out;
 	}
@@ -372,7 +371,7 @@ The drag-to-resize feature works really well!
 	}
 
 	.shortcuts kbd {
-		background: #333;
+		background: var(--surface);
 		padding: 0.25rem 0.5rem;
 		border-radius: var(--radius-xs);
 		font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
@@ -450,7 +449,7 @@ The drag-to-resize feature works really well!
 	}
 
 	:global(.wm-tile[data-focused='true']) {
-		background: #333;
+		background: var(--surface);
 		box-shadow: inset 0 0 0 2px #0066cc;
 	}
 
@@ -466,14 +465,14 @@ The drag-to-resize feature works really well!
 
 	.tile-content.focused {
 		border-color: #0066cc;
-		background: #333;
+		background: var(--surface);
 	}
 
 	.tile-header {
 		display: flex;
 		align-items: center;
 		padding: 0.5rem;
-		background: #333;
+		background: var(--surface);
 		border-bottom: 1px solid #444;
 		gap: 0.5rem;
 	}
@@ -534,7 +533,7 @@ The drag-to-resize feature works really well!
 	}
 
 	.tile-textarea:focus {
-		background: #333;
+		background: var(--surface);
 	}
 
 	/* Tile Controls for Edit Mode */

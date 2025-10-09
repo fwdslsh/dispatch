@@ -255,8 +255,8 @@
 	}
 
 	.editor-textarea::-webkit-scrollbar {
-		width: 8px;
-		height: 8px;
+		width: var(--space-2);
+		height: var(--space-2);
 	}
 
 	.editor-textarea::-webkit-scrollbar-track {

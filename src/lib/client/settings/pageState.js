@@ -1,17 +1,10 @@
-import GlobalSettingsSection from './GlobalSettingsSection.svelte';
 import AuthenticationSettingsSection from './AuthenticationSettingsSection.svelte';
-import PreferencesPanel from './PreferencesPanel.svelte';
-import RetentionSettings from './RetentionSettings.svelte';
 import ThemeSettings from './ThemeSettings.svelte';
 import WorkspaceEnvSettings from './sections/WorkspaceEnvSettings.svelte';
 import HomeDirectoryManager from './sections/HomeDirectoryManager.svelte';
-import TunnelControl from './sections/TunnelControl.svelte';
-import VSCodeTunnelControl from './sections/VSCodeTunnelControl.svelte';
-import ClaudeAuth from './sections/ClaudeAuth.svelte';
-import ClaudeDefaults from './sections/ClaudeDefaults.svelte';
-import StorageSettings from './sections/StorageSettings.svelte';
-
-import IconSettings from '$lib/client/shared/components/Icons/IconSettings.svelte';
+import Tunnels from './sections/Tunnels.svelte';
+import Claude from './sections/Claude.svelte';
+import DataManagement from './sections/DataManagement.svelte';
 import IconFolder from '$lib/client/shared/components/Icons/IconFolder.svelte';
 import IconUser from '$lib/client/shared/components/Icons/IconUser.svelte';
 import IconCloud from '$lib/client/shared/components/Icons/IconCloud.svelte';
@@ -23,18 +16,18 @@ import IconAdjustmentsAlt from '$lib/client/shared/components/Icons/IconAdjustme
 
 const SETTINGS_SECTIONS = [
 	{
-		id: 'global',
-		label: 'Global',
-		navAriaLabel: 'Global application settings',
-		icon: IconSettings,
-		component: GlobalSettingsSection
+		id: 'themes',
+		label: 'Theme',
+		navAriaLabel: 'Color themes and appearance settings',
+		icon: IconAdjustmentsAlt,
+		component: ThemeSettings
 	},
 	{
-		id: 'authentication',
-		label: 'Authentication',
-		navAriaLabel: 'Authentication and security settings',
-		icon: IconKey,
-		component: AuthenticationSettingsSection
+		id: 'home',
+		label: 'Home Directory',
+		navAriaLabel: 'File browser and home directory manager',
+		icon: IconUser,
+		component: HomeDirectoryManager
 	},
 	{
 		id: 'workspace-env',
@@ -44,67 +37,32 @@ const SETTINGS_SECTIONS = [
 		component: WorkspaceEnvSettings
 	},
 	{
-		id: 'home',
-		label: 'Home Directory',
-		navAriaLabel: 'Home Directory manager',
-		icon: IconUser,
-		component: HomeDirectoryManager
+		id: 'authentication',
+		label: 'Authentication',
+		navAriaLabel: 'Authentication and security settings',
+		icon: IconKey,
+		component: AuthenticationSettingsSection
 	},
 	{
-		id: 'tunnel',
-		label: 'Tunnel',
-		navAriaLabel: 'Tunnel settings for local access',
+		id: 'tunnels',
+		label: 'Connectivity',
+		navAriaLabel: 'Remote tunnel settings for external access',
 		icon: IconCloud,
-		component: TunnelControl
+		component: Tunnels
 	},
 	{
-		id: 'vscode-tunnel',
-		label: 'VS Code Tunnel',
-		navAriaLabel: 'VS Code Tunnel connection settings',
-		icon: IconCloud,
-		component: VSCodeTunnelControl
-	},
-	{
-		id: 'claude-auth',
-		label: 'Claude Auth',
-		navAriaLabel: 'Claude Auth authentication settings',
-		icon: IconCloud,
-		component: ClaudeAuth
-	},
-	{
-		id: 'claude-defaults',
-		label: 'Claude Defaults',
-		navAriaLabel: 'Claude Defaults session settings',
-		icon: IconRobot,
-		component: ClaudeDefaults
-	},
-	{
-		id: 'storage',
-		label: 'Storage',
-		navAriaLabel: 'Storage management settings',
-		icon: IconTrash,
-		component: StorageSettings
-	},
-	{
-		id: 'themes',
-		label: 'Themes',
-		navAriaLabel: 'Theme and appearance settings',
-		icon: IconAdjustmentsAlt,
-		component: ThemeSettings
-	},
-	{
-		id: 'preferences',
-		label: 'User Preferences',
-		navAriaLabel: 'User Preferences settings',
-		icon: IconUser,
-		component: PreferencesPanel
-	},
-	{
-		id: 'retention',
-		label: 'Data Retention',
-		navAriaLabel: 'Data Retention settings',
+		id: 'data-management',
+		label: 'Data & Storage',
+		navAriaLabel: 'Data retention and storage management',
 		icon: IconArchive,
-		component: RetentionSettings
+		component: DataManagement
+	},
+	{
+		id: 'claude',
+		label: 'Claude',
+		navAriaLabel: 'Claude authentication and session settings',
+		icon: IconRobot,
+		component: Claude
 	}
 ];
 

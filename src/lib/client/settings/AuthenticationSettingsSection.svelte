@@ -79,16 +79,9 @@
 {/if}
 
 <style>
-	.loading-container {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 3rem;
-		gap: 1rem;
-		color: var(--text-secondary);
-	}
+	
 
+	/* Component-specific loading spinner animation */
 	.loading-spinner {
 		width: 2rem;
 		height: 2rem;
@@ -104,6 +97,13 @@
 		}
 	}
 
+	/* Component-specific error heading */
+	.error-container h4 {
+		margin: 0;
+		color: var(--text);
+	}
+
+	/* Error container uses shared .loading-container but with error styling */
 	.error-container {
 		display: flex;
 		flex-direction: column;
@@ -112,11 +112,6 @@
 		padding: 3rem;
 		gap: 1rem;
 		text-align: center;
-		color: var(--error-color, #dc3545);
-	}
-
-	.error-container h4 {
-		margin: 0;
-		color: var(--text-primary);
+		color: var(--err);
 	}
 </style>

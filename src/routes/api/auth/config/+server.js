@@ -14,10 +14,10 @@ import { json } from '@sveltejs/kit';
  */
 export async function GET({ locals }) {
 	try {
-		const database = locals.services.database;
+		const { settingsRepository } = locals.services;
 
 		// Get authentication settings from unified settings table
-		const authSettings = await database.getSettingsByCategory('authentication');
+		const authSettings = await settingsRepository.getByCategory('authentication');
 
 		// Build auth config response
 		const terminalKey =
@@ -51,7 +51,7 @@ export async function GET({ locals }) {
  *
  * Authentication: Authorization header (preferred) or authKey in body (backwards compatible)
  */
-export async function PUT({ request, url, locals }) {
+export async function PUT({ request, locals }) {
 	try {
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
@@ -59,9 +59,7 @@ export async function PUT({ request, url, locals }) {
 		}
 
 		const body = await request.json();
-		const auth = locals.services.auth;
-
-		const database = locals.services.database;
+		const { auth, settingsRepository } = locals.services;
 
 		// Extract authentication settings from body
 		const authSettings = {};
@@ -90,7 +88,7 @@ export async function PUT({ request, url, locals }) {
 		}
 
 		// Get current authentication settings
-		const currentAuthSettings = await database.getSettingsByCategory('authentication');
+		const currentAuthSettings = await settingsRepository.getByCategory('authentication');
 
 		// Merge with updates
 		const updatedAuthSettings = {
@@ -99,7 +97,7 @@ export async function PUT({ request, url, locals }) {
 		};
 
 		// Save to database
-		await database.setSettingsForCategory(
+		await settingsRepository.setByCategory(
 			'authentication',
 			updatedAuthSettings,
 			'Authentication configuration'

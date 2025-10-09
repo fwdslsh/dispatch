@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { spawn } from 'node:child_process';
+import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -17,34 +17,6 @@ function resolvePath(filepath) {
 	return resolve(expanded);
 }
 
-// Execute git command in specified directory
-function execGit(args, cwd) {
-	return new Promise((resolve, reject) => {
-		const git = spawn('git', args, { cwd, encoding: 'utf8' });
-		let stdout = '';
-		let stderr = '';
-
-		git.stdout.on('data', (data) => {
-			stdout += data;
-		});
-
-		git.stderr.on('data', (data) => {
-			stderr += data;
-		});
-
-		git.on('close', (code) => {
-			if (code === 0) {
-				resolve(stdout.trim());
-			} else {
-				reject(new Error(stderr.trim() || `Git command failed with code ${code}`));
-			}
-		});
-
-		git.on('error', (error) => {
-			reject(error);
-		});
-	});
-}
 
 // Parse git worktree list output
 function parseWorktreeList(output) {

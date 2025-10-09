@@ -136,5 +136,67 @@
 </footer>
 
 <style>
-	/* StatusBar component uses utility classes - no additional styles needed */
+	/* Status bar layout styles */
+	.status-bar-container {
+		grid-area: footer;
+	}
+
+	.status-bar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.4rem 0.6rem;
+		box-sizing: border-box;
+		width: 100%;
+		max-width: 100svw;
+		background: var(--bg-panel);
+		border-top: 1px solid var(--primary-dim);
+	}
+
+	.status-bar-group {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-width: 0;
+	}
+
+	.status-bar-left {
+		flex: 1 1 0;
+		justify-content: flex-start;
+	}
+
+	.status-bar-center {
+		flex: 0 0 auto;
+		justify-content: center;
+	}
+
+	.status-bar-right {
+		flex: 1 1 0;
+		justify-content: flex-end;
+	}
+
+	.desktop-navigation {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.session-counter {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+		min-width: 40px;
+		text-align: center;
+	}
+
+	/* Small screen adjustments */
+	@media (max-width: 800px) {
+		.status-bar {
+			padding: var(--space-1) var(--space-2);
+		}
+
+		.status-bar-group {
+			gap: var(--space-1);
+		}
+	}
 </style>

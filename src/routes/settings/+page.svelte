@@ -15,6 +15,7 @@
 		recordError,
 		translateSettingsError
 	} from '$lib/client/settings/pageState.js';
+	import "$lib/client/settings/settings.css"; 
 
 	let serviceContainer = $state(null);
 	let isLoading = $state(true);
@@ -201,7 +202,7 @@
 			{/if}
 
 			<div class="settings-container">
-				<nav class="settings-nav" aria-label="Settings sections" role="tablist">
+				<div class="settings-nav" aria-label="Settings sections" role="tablist">
 					{#each sections as section, index}
 						<button
 							id={`settings-tab-${section.id}`}
@@ -220,7 +221,7 @@
 							<span class="tab-label">{section.label}</span>
 						</button>
 					{/each}
-				</nav>
+				</div>
 
 				<main class="settings-content">
 					{#if activeSection}
@@ -250,187 +251,3 @@
 		<StatusBar />
 	{/snippet}
 </Shell>
-
-<style>
-	.settings-page {
-		height: 100%;
-		overflow: hidden;
-		display: flex;
-		flex-direction: column;
-		overflow-y: auto;
-	}
-
-	.loading-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 4rem 2rem;
-		gap: var(--space-3);
-	}
-
-	.spinner {
-		width: 32px;
-		height: 32px;
-		border: 2px solid currentColor;
-		border-top: 2px solid transparent;
-		border-radius: var(--radius-full);
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	.settings-banner {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: var(--space-3) var(--space-4);
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-	}
-
-	.settings-banner.error {
-		background: rgba(239, 68, 68, 0.12);
-		border: 1px solid rgba(239, 68, 68, 0.3);
-		color: var(--color-error, #ef4444);
-	}
-
-	.settings-banner.success {
-		background: rgba(46, 230, 107, 0.12);
-		border: 1px solid rgba(46, 230, 107, 0.4);
-		color: var(--primary);
-	}
-
-	.settings-container {
-		display: flex;
-		min-height: 100%;
-	}
-
-	.settings-nav {
-		width: 240px;
-		background: var(--bg-dark);
-		border: 1px solid rgba(46, 230, 107, 0.2);
-		padding: var(--space-3) 0;
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-1);
-		flex-shrink: 0;
-	}
-
-	.settings-tab {
-		border: none;
-		background: transparent;
-		color: var(--text-muted);
-		padding: var(--space-3) var(--space-4);
-		text-align: left;
-		cursor: pointer;
-		transition:
-			background 0.2s ease,
-			color 0.2s ease;
-		font-family: var(--font-mono);
-		font-size: 0.9rem;
-		align-items: center;
-		border-left: 3px solid transparent;
-	}
-
-	.settings-tab:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: -2px;
-	}
-
-	.settings-tab:hover {
-		background: rgba(46, 230, 107, 0.1);
-		color: var(--primary);
-	}
-
-	.settings-tab.active {
-		background: rgba(46, 230, 107, 0.15);
-		color: var(--primary);
-		border-left-color: var(--primary);
-	}
-
-	.tab-label {
-		font-weight: 600;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-	}
-
-	.settings-content {
-		flex: 1;
-		background: var(--bg-dark);
-		border: 1px solid rgba(46, 230, 107, 0.2);
-		overflow: hidden;
-		position: relative;
-	}
-
-	.settings-panel {
-		height: 100%;
-		overflow: auto;
-		padding: var(--space-5);
-		position: relative;
-		background: var(--bg);
-	}
-
-	.settings-panel::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		pointer-events: none;
-		background: repeating-linear-gradient(
-			0deg,
-			transparent 0px,
-			transparent 2px,
-			var(--scan-line) 3px,
-			transparent 4px
-		);
-		opacity: 0.08;
-	}
-
-	.empty-state {
-		padding: var(--space-5);
-		color: var(--text-muted);
-		font-family: var(--font-mono);
-	}
-
-	.error-container {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-3);
-		align-items: center;
-		justify-content: center;
-		padding: 4rem 2rem;
-		text-align: center;
-	}
-
-	@media (max-width: 1024px) {
-		.settings-container {
-			flex-direction: column;
-			min-height: auto;
-		}
-
-		.settings-nav {
-			width: 100%;
-			flex-direction: row;
-			overflow-x: auto;
-		}
-
-		.settings-tab {
-			flex: 1 0 auto;
-			justify-content: center;
-			border-left: none;
-			border-bottom: 3px solid transparent;
-		}
-
-		.settings-tab.active {
-			border-bottom-color: var(--primary);
-		}
-
-		.settings-content {
-			min-height: 400px;
-		}
-	}
-</style>

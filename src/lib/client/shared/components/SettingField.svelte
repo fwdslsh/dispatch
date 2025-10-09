@@ -111,7 +111,6 @@
 </div>
 
 <style>
-	/* Use global styles from settings.css - only component-specific layout here */
 	.setting-field {
 		display: flex;
 		flex-direction: column;
@@ -140,42 +139,7 @@
 		font-family: var(--font-mono);
 	}
 
-	.setting-input {
-		width: 100%;
-		min-height: 44px; /* WCAG touch target */
-		padding: var(--space-2) var(--space-3);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		color: var(--text);
-		background: var(--bg);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-xs);
-		transition: all 0.2s ease;
-		box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-	}
-
-	.setting-input:focus {
-		outline: none;
-		border-color: var(--primary);
-		box-shadow:
-			0 0 0 3px var(--primary-glow-25),
-			inset 0 1px 3px rgba(0, 0, 0, 0.3);
-		background: var(--surface);
-	}
-
-	.setting-input:hover:not(:focus) {
-		border-color: var(--primary-glow-40);
-	}
-
-	.setting-input.input-error {
-		border-color: var(--err);
-	}
-
-	.setting-input.input-error:focus {
-		box-shadow:
-			0 0 0 3px var(--err-dim),
-			inset 0 1px 3px rgba(0, 0, 0, 0.3);
-	}
+	
 
 	.error-message {
 		padding: var(--space-3);
@@ -196,8 +160,8 @@
 		align-items: flex-start;
 		gap: var(--space-2);
 		padding: var(--space-3);
-		background: color-mix(in oklab, var(--accent) 8%, transparent);
-		border: 1px solid color-mix(in oklab, var(--accent) 20%, transparent);
+		background: var(--info-box-bg);
+		border: 1px solid var(--info-box-border);
 		border-radius: var(--radius-md);
 		font-size: var(--font-size-1);
 		line-height: 1.5;
@@ -209,7 +173,7 @@
 	}
 
 	.env-content code {
-		background: color-mix(in oklab, var(--accent) 15%, transparent);
+		background: var(--primary-glow-15);
 		padding: 0 var(--space-1);
 		border-radius: var(--radius-xs);
 		font-family: var(--font-mono);

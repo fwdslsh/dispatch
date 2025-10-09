@@ -21,14 +21,18 @@
 	}
 </script>
 
-<button
-	type="button"
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div
 	class="wm-tile"
+	role="region"
+	tabindex="0"
 	data-tile-id={id}
 	data-focused={String(focused === id)}
-	aria-label={id}
+	aria-label="Session tile {id}"
 	onclick={focusSelf}
 	onfocus={focusSelf}
+	onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && focusSelf()}
 >
 	{@render children?.()}
-</button>
+</div>

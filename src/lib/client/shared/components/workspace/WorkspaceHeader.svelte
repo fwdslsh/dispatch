@@ -68,7 +68,7 @@
 			{#if viewMode === 'window-manager'}
 				<IconButton
 					onclick={handleEditModeToggle}
-					variant={editModeEnabled ? 'primary' : 'ghost'}
+					variant={editModeEnabled ? 'primary' : 'toggle-off'}
 					aria-label={editModeEnabled ? 'Disable edit mode' : 'Enable edit mode'}
 					title={editModeEnabled ? 'Disable Edit Mode' : 'Enable Edit Mode'}
 				>
@@ -99,9 +99,17 @@
 <style>
 	/* Component-specific sizing only */
 	.workspace-header {
-		min-height: min-content;
+		min-height: 56px;
 		display: flex;
-		align-items: end;
-		padding-inline: var(--space-2, 1rem);
+		align-items: center;
+		padding: var(--space-3) var(--space-4);
+		gap: var(--space-3);
+	}
+
+	@media (max-width: 800px) {
+		.workspace-header {
+			padding: var(--space-2) var(--space-3);
+			gap: var(--space-2);
+		}
 	}
 </style>

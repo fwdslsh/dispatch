@@ -89,9 +89,9 @@ export class SessionViewModel {
 		this.appStateManager.sessions.setLoading(true);
 
 		try {
-			// Respect UI state for showOnlyPinned unless explicitly overridden
-			const shouldIncludeAll =
-				filters.includeAll ?? !this.appStateManager.ui.display.showOnlyPinned;
+			// Always include all active sessions by default to ensure resumed sessions appear
+			// The UI will handle filtering and display - this ensures data availability
+			const shouldIncludeAll = filters.includeAll ?? true;
 			const requestOptions = { includeAll: shouldIncludeAll };
 			if (filters.workspace) {
 				requestOptions.workspace = filters.workspace;

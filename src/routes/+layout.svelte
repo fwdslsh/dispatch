@@ -9,6 +9,11 @@
 		provideServiceContainer
 	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { OnboardingViewModel } from '$lib/client/onboarding/OnboardingViewModel.svelte.js';
+	import {
+		deriveUIColors,
+		deriveRgbVariables,
+		validateThemeColors
+	} from '$lib/client/shared/utils/color-utils.js';
 
 	let { data, children } = $props();
 	let onboardingViewModel = $state(null);
@@ -21,15 +26,47 @@
 
 	/**
 	 * Apply theme CSS variables to document root
+	 * Applies both terminal theme colors and derived UI colors
 	 * @param {Object} theme - Theme object with cssVariables
 	 */
 	function applyThemeVariables(theme) {
 		if (!theme?.cssVariables) return;
 
 		const root = document.documentElement;
+
+		// 1. Apply terminal theme colors (--theme-*)
 		Object.entries(theme.cssVariables).forEach(([key, value]) => {
 			root.style.setProperty(key, value);
 		});
+
+		// 2. Derive and apply UI colors from terminal theme
+		// Note: variables.css already derives these via CSS var() with fallbacks,
+		// but we also apply them here for immediate effect and to support
+		// potential runtime theme switching without page reload
+		const uiColors = deriveUIColors(theme.cssVariables);
+		Object.entries(uiColors).forEach(([key, value]) => {
+			root.style.setProperty(key, value);
+		});
+
+		// 3. Extract and apply RGB values for rgba() usage
+		const rgbVars = deriveRgbVariables(theme.cssVariables);
+		Object.entries(rgbVars).forEach(([key, value]) => {
+			root.style.setProperty(key, value);
+		});
+
+		// 4. Add theme metadata for debugging (data-theme-id, data-theme-source)
+		if (theme.id) {
+			root.dataset.themeId = theme.id;
+		}
+		if (theme.source) {
+			root.dataset.themeSource = theme.source;
+		}
+
+		// 5. Validate theme has required colors (log warning if missing)
+		const validation = validateThemeColors(theme.cssVariables);
+		if (!validation.valid) {
+			console.warn('[Layout] Theme is missing required colors:', validation.missing);
+		}
 	}
 
 	/**

@@ -34,7 +34,7 @@ export class FileEditorAdapter {
 			input: {
 				write(data) {
 					// File editor doesn't process streaming input like terminals
-					// But we need this interface for compatibility with RunSessionManager
+					// But we need this interface for compatibility with SessionOrchestrator
 					proc.handleInput(data);
 				}
 			},

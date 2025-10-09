@@ -9,6 +9,8 @@
 	import { ThemeState } from '$lib/client/shared/state/ThemeState.svelte.js';
 	import ThemePreviewCard from './ThemePreviewCard.svelte';
 	import Button from '../shared/components/Button.svelte';
+	import InfoBox from '../shared/components/InfoBox.svelte';
+	import EmptyState from '../shared/components/EmptyState.svelte';
 
 	// Initialize ThemeState ViewModel
 	const themeState = new ThemeState({
@@ -172,7 +174,7 @@
 
 <div class="theme-settings" data-testid="theme-settings">
 	<div class="settings-header">
-		<h2>Theme Management</h2>
+		<h3>Theme Management</h3>
 		<p class="settings-description">
 			Customize your terminal appearance with preset themes or upload custom color schemes. Themes
 			apply globally across all workspaces.
@@ -182,15 +184,15 @@
 	<div class="settings-content">
 		<!-- Messages Section -->
 		{#if uploadError}
-			<div class="error-message" role="alert">
+			<InfoBox variant="error">
 				<strong>Error:</strong>
 				{uploadError}
 				<button class="message-close" onclick={clearError} aria-label="Dismiss error">×</button>
-			</div>
+			</InfoBox>
 		{/if}
 
 		{#if uploadSuccess}
-			<div class="success-message" role="status">
+			<InfoBox variant="success">
 				<strong>Success:</strong>
 				{uploadSuccess}
 				{#if uploadWarnings.length > 0}
@@ -203,12 +205,12 @@
 						</ul>
 					</div>
 				{/if}
-			</div>
+			</InfoBox>
 		{/if}
 
 		<!-- Preset Themes Section -->
 		<section class="theme-section">
-			<h3 class="section-title">Preset Themes</h3>
+			<h4 class="section-title">Preset Themes</h4>
 			<p class="section-description">
 				Built-in themes optimized for different terminal use cases and visual preferences.
 			</p>
@@ -225,13 +227,13 @@
 			</div>
 
 			{#if themeState.presetThemes.length === 0 && !themeState.loading}
-				<p class="empty-message">No preset themes available</p>
+				<EmptyState icon="🎨" message="No preset themes available" />
 			{/if}
 		</section>
 
 		<!-- Custom Themes Section -->
 		<section class="theme-section">
-			<h3 class="section-title">Custom Themes</h3>
+			<h4 class="section-title">Custom Themes</h4>
 			<p class="section-description">
 				Upload custom theme files in JSON format. Themes must include all required color
 				definitions.
@@ -297,7 +299,7 @@
 			</div>
 
 			{#if themeState.customThemes.length === 0 && !themeState.loading}
-				<p class="empty-message">No custom themes uploaded yet</p>
+				<EmptyState icon="📦" message="No custom themes uploaded yet" />
 			{/if}
 		</section>
 	</div>
@@ -339,7 +341,6 @@
 </div>
 
 <style>
-	@import '$lib/client/shared/styles/settings.css';
 
 	.theme-settings {
 		background: var(--surface);
@@ -350,14 +351,7 @@
 		container-type: inline-size;
 	}
 
-	.settings-header h2 {
-		margin: 0 0 var(--space-2) 0;
-		color: var(--primary);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-4);
-		font-weight: 600;
-		text-shadow: 0 0 8px var(--primary-glow);
-	}
+
 
 	.settings-description {
 		margin: 0 0 var(--space-5) 0;
@@ -472,28 +466,7 @@
 		font-size: var(--font-size-0);
 	}
 
-	/* Messages */
-	.error-message {
-		position: relative;
-		padding: var(--space-3);
-		background: var(--err-dim);
-		border: 1px solid var(--err);
-		border-radius: var(--radius-xs);
-		color: var(--err);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-	}
-
-	.success-message {
-		padding: var(--space-4);
-		background: color-mix(in oklab, var(--ok) 15%, var(--surface));
-		border: 1px solid var(--ok);
-		border-radius: var(--radius-sm);
-		color: var(--ok);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-	}
-
+	/* Message close button - custom styling for InfoBox */
 	.message-close {
 		position: absolute;
 		top: var(--space-2);
@@ -501,7 +474,7 @@
 		background: transparent;
 		border: none;
 		color: inherit;
-		font-size: 24px;
+		font-size: var(--space-5);
 		line-height: 1;
 		cursor: pointer;
 		padding: var(--space-1);
@@ -530,14 +503,7 @@
 		font-size: var(--font-size-0);
 	}
 
-	.empty-message {
-		color: var(--muted);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		font-style: italic;
-		text-align: center;
-		padding: var(--space-6) var(--space-4);
-	}
+	/* Empty state now handled by EmptyState component */
 
 	/* Modal */
 	.modal-overlay {
@@ -614,8 +580,8 @@
 	}
 
 	.spinner {
-		width: 32px;
-		height: 32px;
+		width: var(--space-6);
+		height: var(--space-6);
 		border: 3px solid var(--line);
 		border-top-color: var(--primary);
 		border-radius: var(--radius-full);
@@ -669,7 +635,7 @@
 		.theme-settings,
 		.upload-area,
 		.modal-content {
-			border-width: 2px;
+			border-width: var(--space-0);
 		}
 	}
 </style>

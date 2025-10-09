@@ -1,6 +1,6 @@
 <script>
 	import Modal from '$lib/client/shared/components/Modal.svelte';
-	import DirectoryBrowser from './DirectoryBrowser.svelte';
+	import DirectoryBrowser from './directory-browser/DirectoryBrowser.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import WorkspaceSelector from '$lib/client/shared/components/WorkspaceSelector.svelte';
 	import FormSection from '$lib/client/shared/components/FormSection.svelte';
@@ -261,6 +261,20 @@
 	:global(.create-session-modal) {
 		width: 520px;
 		max-width: 90vw;
+	}
+
+	/* Type Selection Grid */
+	.type-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+	}
+
+	@media (max-width: 768px) {
+		.type-grid {
+			grid-template-columns: 1fr;
+			gap: 0.75rem;
+		}
 	}
 
 	.directory-browser-container {

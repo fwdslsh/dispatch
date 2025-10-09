@@ -232,8 +232,9 @@
 	}
 
 	.theme-card:hover {
-		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-		transform: translateY(-2px);
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--primary-glow-20);
+		
+		filter: brightness(1.05);
 	}
 
 	.theme-card.active {
@@ -259,8 +260,8 @@
 	}
 
 	.dot {
-		width: 12px;
-		height: 12px;
+		width: var(--font-size-0);
+		height: var(--font-size-0);
 		border-radius: var(--radius-full);
 		border: 1px solid rgba(0, 0, 0, 0.2);
 	}
@@ -291,7 +292,7 @@
 		align-items: center;
 		padding: 2px var(--space-2);
 		font-family: var(--font-mono);
-		font-size: 10px;
+		font-size: var(--font-size-0);
 		font-weight: 600;
 		color: var(--bg);
 		background: var(--primary);
@@ -305,7 +306,7 @@
 		padding: var(--space-4);
 		min-height: 120px;
 		font-family: var(--font-mono);
-		font-size: 14px;
+		font-size: var(--font-size-1);
 		line-height: 1.5;
 		position: relative;
 	}
@@ -330,20 +331,9 @@
 
 	.cursor {
 		display: inline-block;
-		width: 8px;
-		height: 16px;
-		animation: cursor-blink 1s step-end infinite;
-	}
-
-	@keyframes cursor-blink {
-		0%,
-		50% {
-			opacity: 1;
-		}
-		51%,
-		100% {
-			opacity: 0;
-		}
+		width: var(--space-2);
+		height: var(--font-size-2);
+		animation: cursorBlink 1s step-end infinite;
 	}
 
 	/* ANSI palette */
@@ -410,7 +400,7 @@
 	/* Responsive adjustments */
 	@media (max-width: 768px) {
 		.preview {
-			font-size: 12px;
+			font-size: var(--font-size-0);
 			min-height: 100px;
 			padding: var(--space-3);
 		}
@@ -447,11 +437,11 @@
 	/* Accessibility: High contrast mode */
 	@media (prefers-contrast: high) {
 		.theme-card {
-			border-width: 2px;
+			border-width: var(--space-0);
 		}
 
 		.color-block {
-			border-width: 2px;
+			border-width: var(--space-0);
 		}
 	}
 </style>

@@ -74,11 +74,9 @@
 <style>
 	.session-viewport {
 		flex: 1;
-		overflow: hidden;
+		overflow: visible;
 		background: var(--bg-dark);
 		min-height: 0;
-		display: flex;
-		flex-direction: column;
 		position: relative;
 		contain: layout;
 		text-align: justify;
@@ -129,16 +127,6 @@
 			flex: 1 1 auto;
 			min-height: 0;
 			height: 100%;
-		}
-	}
-
-	/* Animation for loading spinner */
-	@keyframes spin {
-		0% {
-			transform: rotate(0deg);
-		}
-		100% {
-			transform: rotate(360deg);
 		}
 	}
 </style>

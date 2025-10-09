@@ -3,6 +3,7 @@
 	import Split from './Split.svelte';
 	import Tile from './Tile.svelte';
 	import { generateUUID } from '../../utils/uuid.js';
+	import './window-manager.css';
 
 	/**
 	 * @typedef {import('./types.js').LayoutNode} LayoutNode

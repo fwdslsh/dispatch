@@ -169,7 +169,8 @@
 	.error-display--warning:hover,
 	.error-display--success:hover,
 	.error-display--info:hover {
-		transform: translateY(-1px);
+		filter: brightness(1.05);
+		border-width: 2px;
 	}
 
 	.error-display--error:hover {

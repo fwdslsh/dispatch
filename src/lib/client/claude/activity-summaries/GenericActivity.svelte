@@ -1,5 +1,5 @@
 <script>
-	import './shared-styles.css';
+	
 	import Markdown from '$lib/client/shared/components/Markdown.svelte';
 
 	let { event, type = 'Unknown', tool = '' } = $props();
@@ -279,7 +279,7 @@
 <style>
 	.type-badge {
 		display: inline-block;
-		padding: 2px 8px;
+		padding: 2px var(--space-2);
 		border-radius: var(--radius-xs);
 		font-size: 0.85em;
 		font-weight: 600;

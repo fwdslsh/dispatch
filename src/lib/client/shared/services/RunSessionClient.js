@@ -63,11 +63,11 @@ export class RunSessionClient {
 
 	/**
 	 * Identify client with stable clientId
+	 * Note: Authentication is now done in authenticate() via client:hello
 	 */
 	identifyClient() {
-		if (this.authenticated && this.connected) {
-			this.socket.emit('client:hello', { clientId: this.clientId });
-		}
+		// No longer needed - authentication handled in authenticate()
+		// Kept for backward compatibility but does nothing
 	}
 
 	/**
@@ -80,10 +80,10 @@ export class RunSessionClient {
 				return;
 			}
 
-			this.socket.emit('auth', key, (response) => {
+			// Emit client:hello with terminalKey (server expects this)
+			this.socket.emit('client:hello', { clientId: this.clientId, terminalKey: key }, (response) => {
 				if (response?.success) {
 					this.authenticated = true;
-					this.identifyClient();
 					resolve();
 				} else {
 					reject(new Error(response?.error || 'Authentication failed'));

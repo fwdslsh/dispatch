@@ -1,6 +1,22 @@
+/* Import order matters - cascade from general to specific */
+
+/* 1. Fonts (typography) */
 @import url(./fonts.css);
+
+/* 2. Theme integration layer (provides --theme-* fallbacks) */
+@import url(./theme-integration.css);
+
+/* 3. Design tokens (maps --theme-* to --bg, --text, etc.) */
 @import url(./variables.css);
+
+/* 4. Base HTML theme (uses design tokens) */
 @import url(./retro.css);
+
+/* 5. Animation utilities */
 @import url(./animations.css);
-@import url(./window-manager.css);
+
+/* 6. Utility classes */
 @import url(./utilities.css);
+
+/* 7. Component styles */
+@import url(./components/index.css); 

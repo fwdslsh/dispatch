@@ -9,6 +9,7 @@
 	import IconProgressDown from '../shared/components/Icons/IconProgressDown.svelte';
 	import IconClaude from '../shared/components/Icons/IconClaude.svelte';
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
+	import './claude.css';
 
 	/**
 	 * ClaudePane Component
@@ -18,10 +19,16 @@
 	 */
 
 	// Props
-	let { sessionId, claudeSessionId = null, shouldResume = false } = $props();
+	let { sessionId, claudeSessionId = null, shouldResume = false, sessionClient = null } = $props();
 
-	// Create ViewModel instance
-	const viewModel = new ClaudePaneViewModel(sessionId, claudeSessionId, shouldResume);
+	// Create ViewModel instance with dependency injection
+	// sessionClient can be injected for testing, defaults to singleton runSessionClient
+	const viewModel = new ClaudePaneViewModel({
+		sessionId,
+		claudeSessionId,
+		shouldResume,
+		sessionClient
+	});
 
 	// Debug logging
 	$effect(() => {
@@ -84,24 +91,11 @@
 	function checkMobile() {
 		return ('ontouchstart' in window || navigator.maxTouchPoints > 0) && window.innerWidth <= 768;
 	}
+	function handleResize() {
+		viewModel.setMobile(checkMobile());
+	}
 
-	// Effect for handling resize events
-	$effect(() => {
-		function handleResize() {
-			viewModel.setMobile(checkMobile());
-		}
-
-		if (typeof window !== 'undefined') {
-			viewModel.setMobile(checkMobile());
-			window.addEventListener('resize', handleResize);
-
-			return () => {
-				window.removeEventListener('resize', handleResize);
-			};
-		}
-	});
-
-	// Mount lifecycle
+	// Mount lifecycle with comprehensive error boundary
 	onMount(async () => {
 		console.log('[ClaudePane] Mounting with:', { sessionId, claudeSessionId, shouldResume });
 
@@ -135,15 +129,23 @@
 					}
 				}, 2000);
 			}
-		} catch (error) {
-			console.error('[ClaudePane] Failed to attach to run session:', error);
-			viewModel.setConnectionError(`Failed to connect: ${error.message}`);
-			viewModel.isCatchingUp = false;
-		}
 
-		// Load previous messages if this is a resumed session
-		if (claudeSessionId || shouldResume) {
-			await loadPreviousMessages();
+			if (typeof window !== 'undefined') {
+				viewModel.setMobile(checkMobile());
+				window.addEventListener('resize', handleResize);
+			}
+
+			// Load previous messages if this is a resumed session
+			if (claudeSessionId || shouldResume) {
+				await loadPreviousMessages();
+			}
+		} catch (error) {
+			// Comprehensive error boundary - handle all mount failures gracefully
+			console.error('[ClaudePane] Mount error:', error);
+			viewModel.setConnectionError(`Failed to initialize: ${error.message || 'Unknown error'}`);
+			viewModel.isCatchingUp = false;
+			viewModel.loading = false;
+			viewModel.isWaitingForReply = false;
 		}
 	});
 
@@ -158,6 +160,7 @@
 				console.error('[ClaudePane] Failed to detach from run session:', error);
 			}
 		}
+		window.removeEventListener('resize', handleResize);
 	});
 </script>
 
@@ -214,7 +217,7 @@
 			color-mix(in oklab, var(--bg) 95%, var(--surface)),
 			color-mix(in oklab, var(--bg) 98%, var(--surface))
 		);
-		overflow: hidden;
+		overflow: visible;
 	}
 
 	/* Chat Header */
@@ -242,8 +245,8 @@
 	}
 
 	.ai-avatar {
-		width: 48px;
-		height: 48px;
+		width: var(--space-7);
+		height: var(--space-7);
 		border-radius: var(--radius-full);
 		display: flex;
 		align-items: center;
@@ -261,19 +264,7 @@
 	}
 
 	.ai-status.thinking .ai-avatar {
-		animation: pulse 2s ease-in-out infinite;
-	}
-
-	@keyframes pulse {
-		0%,
-		100% {
-			transform: scale(1);
-			box-shadow: 0 8px 24px -8px var(--primary-glow);
-		}
-		50% {
-			transform: scale(1.05);
-			box-shadow: 0 12px 32px -8px var(--primary-glow);
-		}
+		animation: avatarPulse 2s ease-in-out infinite;
 	}
 
 	:global(.ai-icon.spinning) {
@@ -281,19 +272,10 @@
 	}
 
 	:global(.ai-icon.glowing) {
-		animation: glow 2s ease-in-out infinite;
+		animation: glowIcon 2s ease-in-out infinite;
 	}
 
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	@keyframes glow {
+	@keyframes glowIcon {
 		0%,
 		100% {
 			opacity: 1;
@@ -306,9 +288,9 @@
 	}
 
 	.catching-up {
-		font-size: 0.85rem;
+		font-size: var(--font-size-1);
 		color: var(--muted);
-		animation: pulse 1.5s ease-in-out infinite;
+		animation: loadingPulse 1.5s ease-in-out infinite;
 	}
 
 	.ai-info {
@@ -319,7 +301,7 @@
 
 	.ai-name {
 		font-weight: 600;
-		font-size: 1rem;
+		font-size: var(--font-size-2);
 		color: var(--text);
 	}
 
@@ -346,7 +328,7 @@
 
 	.stat-value {
 		font-weight: 600;
-		font-size: 0.9rem;
+		font-size: var(--font-size-1);
 		color: var(--text);
 		min-width: 20px;
 		text-align: right;
@@ -386,7 +368,7 @@
 		}
 
 		.stat-item {
-			border-width: 2px;
+			border-width: var(--space-0);
 		}
 	}
 </style>

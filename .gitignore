@@ -152,6 +152,7 @@ playwright-report/
 .workspaces
 .dispatch/
 .testing-home/
+.plans/
 
 CSS_CONSOLIDATION_SUMMARY.md
 dispatch.db

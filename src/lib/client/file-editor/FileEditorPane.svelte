@@ -1,5 +1,5 @@
 <script>
-	import DirectoryBrowser from '../shared/components/DirectoryBrowser.svelte';
+	import DirectoryBrowser from '../shared/components/directory-browser/DirectoryBrowser.svelte';
 	import FileEditor from '../shared/components/FileEditor.svelte';
 	import { onMount } from 'svelte';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
@@ -261,7 +261,7 @@
 		background: var(--color-error);
 		color: var(--color-error-text);
 		padding: 0.75rem 1rem;
-		font-size: 0.875rem;
+		font-size: var(--font-size-1);
 	}
 
 	.file-editor-container {

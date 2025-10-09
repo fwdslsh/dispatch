@@ -1,5 +1,5 @@
 <script>
-	import './shared-styles.css';
+	
 
 	let { event } = $props();
 

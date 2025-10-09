@@ -106,4 +106,8 @@ async function servicesMiddleware({ event, resolve }) {
 	return resolve(event);
 }
 
+// Transaction middleware removed - this was an anti-pattern
+// Transactions should be at the repository method level, not wrapping entire HTTP requests
+// See code-review-fixes.md FIX-002 for details
+
 export const handle = sequence(servicesMiddleware, authenticationMiddleware);

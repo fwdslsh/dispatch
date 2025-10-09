@@ -1,17 +1,3 @@
-/* Common CSS Animations - Extracted from .svelte files */
-
-/* Animations */
-@keyframes pulse {
-	0%,
-	100% {
-		opacity: 0.7;
-	}
-
-	50% {
-		opacity: 0.4;
-	}
-}
-
 @keyframes fadeInUp {
 	from {
 		opacity: 0;
@@ -114,7 +100,7 @@
 @keyframes pulse-dot {
 	0%,
 	100% {
-		box-shadow: 0 0 8px color-mix(in oklab, var(--primary) 60%, transparent);
+		box-shadow: 0 0 var(--space-2) color-mix(in oklab, var(--primary) 60%, transparent);
 	}
 
 	50% {
@@ -138,17 +124,17 @@
 	100% {
 		transform: scale(1);
 		box-shadow:
-			0 8px 32px -12px var(--primary-glow),
-			inset 0 2px 4px color-mix(in oklab, var(--primary) 15%, transparent),
+			0 var(--space-2) var(--space-6) -12px var(--primary-glow),
+			inset 0 var(--space-0) var(--space-1) color-mix(in oklab, var(--primary) 15%, transparent),
 			0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent);
 	}
 
 	50% {
 		transform: scale(1.05);
 		box-shadow:
-			0 12px 40px -8px var(--primary-glow),
-			inset 0 2px 8px color-mix(in oklab, var(--primary) 20%, transparent),
-			0 0 0 2px color-mix(in oklab, var(--primary) 20%, transparent);
+			0 12px 40px -var(--space-2) var(--primary-glow),
+			inset 0 var(--space-0) var(--space-2) color-mix(in oklab, var(--primary) 20%, transparent),
+			0 0 0 var(--space-0) color-mix(in oklab, var(--primary) 20%, transparent);
 	}
 }
 
@@ -193,23 +179,11 @@
 	display: inline-block;
 	width: 1em;
 	height: 1em;
-	border: 2px solid color-mix(in oklab, currentColor 20%, transparent);
+	border: var(--space-0) solid color-mix(in oklab, currentColor 20%, transparent);
 	border-top-color: currentColor;
 	border-radius: var(--radius-full);
 	animation: spin 0.8s linear infinite;
 	will-change: transform;
-}
-
-.loading-spinner--sm {
-	width: 0.875em;
-	height: 0.875em;
-	border-width: 1.5px;
-}
-
-.loading-spinner--lg {
-	width: 1.5em;
-	height: 1.5em;
-	border-width: 3px;
 }
 
 /* Scan/sweep animations - unified single animation */
@@ -248,8 +222,22 @@
 		opacity: 1;
 		background: var(--accent-cyan);
 		box-shadow:
-			0 12px 20px -8px var(--primary-glow),
+			0 12px 20px -var(--space-2) var(--primary-glow),
 			0 0 12px var(--primary-glow);
+	}
+}
+
+@keyframes typingBounceSubtle {
+	0%,
+	60%,
+	100% {
+		transform: translateY(0);
+		opacity: 0.4;
+	}
+
+	30% {
+		transform: translateY(-var(--space-2));
+		opacity: 1;
 	}
 }
 
@@ -278,14 +266,14 @@
 	50%,
 	70%,
 	90% {
-		transform: translateX(-2px);
+		transform: translateX(-var(--space-0));
 	}
 
 	20%,
 	40%,
 	60%,
 	80% {
-		transform: translateX(2px);
+		transform: translateX(var(--space-0));
 	}
 }
 
@@ -310,15 +298,15 @@
 /* Tile focus animations */
 @keyframes tile-focus-appear {
 	from {
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 var(--space-0) var(--space-2) color-mix(in oklab, var(--bg) 95%, black);
 		border-color: var(--line);
 	}
 
 	to {
 		box-shadow:
-			0 0 0 2px var(--primary-glow),
-			0 4px 12px rgba(0, 0, 0, 0.15);
-		border-color: var(--accent);
+			0 0 0 var(--space-0) var(--primary-glow),
+			0 var(--space-1) 12px color-mix(in oklab, var(--bg) 92%, black);
+		border-color: var(--primary);
 	}
 }
 
@@ -326,14 +314,14 @@
 	0%,
 	100% {
 		box-shadow:
-			0 0 0 2px var(--primary-glow),
-			0 4px 12px rgba(0, 0, 0, 0.15);
+			0 0 0 var(--space-0) var(--primary-glow),
+			0 var(--space-1) 12px color-mix(in oklab, var(--bg) 92%, black);
 	}
 
 	50% {
 		box-shadow:
 			0 0 0 3px var(--primary-glow),
-			0 6px 16px rgba(0, 0, 0, 0.2);
+			0 6px 16px color-mix(in oklab, var(--bg) 90%, black);
 	}
 }
 
@@ -346,7 +334,7 @@
 	}
 
 	to {
-		background: var(--accent);
+		background: var(--primary);
 		box-shadow: 0 0 12px var(--primary-glow);
 		transform: scale(1.1);
 	}
@@ -354,7 +342,7 @@
 
 @keyframes divider-drag-pulse {
 	0% {
-		box-shadow: 0 0 8px var(--primary-glow);
+		box-shadow: 0 0 var(--space-2) var(--primary-glow);
 	}
 
 	50% {
@@ -362,7 +350,7 @@
 	}
 
 	100% {
-		box-shadow: 0 0 8px var(--primary-glow);
+		box-shadow: 0 0 var(--space-2) var(--primary-glow);
 	}
 }
 
@@ -395,8 +383,8 @@
 @keyframes empty-tile-focus {
 	0%,
 	100% {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 2px var(--primary-glow);
+		border-color: var(--primary);
+		box-shadow: 0 0 0 var(--space-0) var(--primary-glow);
 	}
 
 	50% {
@@ -412,7 +400,7 @@
 	}
 
 	50% {
-		transform: scale(1.2) translateY(-4px);
+		transform: scale(1.2) translateY(-var(--space-1));
 	}
 }
 
@@ -452,7 +440,7 @@
 	to {
 		opacity: 1;
 		transform: translate(-50%, -50%) scale(1);
-		backdrop-filter: blur(8px);
+		backdrop-filter: blur(var(--space-2));
 	}
 }
 
@@ -464,10 +452,10 @@
 	}
 
 	to {
-		background: var(--accent);
-		border-color: var(--accent);
+		background: var(--primary);
+		border-color: var(--primary);
 		color: var(--bg);
-		box-shadow: 0 0 8px var(--primary-glow);
+		box-shadow: 0 0 var(--space-2) var(--primary-glow);
 	}
 }
 
@@ -489,13 +477,13 @@
 	100% {
 		box-shadow:
 			0 0 0 1px var(--primary-glow),
-			0 4px 12px rgba(0, 0, 0, 0.2);
+			0 4px 12px color-mix(in oklab, var(--bg) 90%, black);
 	}
 
 	50% {
 		box-shadow:
 			0 0 0 2px var(--primary-glow),
-			0 6px 16px rgba(0, 0, 0, 0.3);
+			0 6px 16px color-mix(in oklab, var(--bg) 85%, black);
 	}
 }
 
@@ -524,35 +512,9 @@
 	}
 }
 
-/* Utility animation classes with performance optimization */
-.animate-fade-in {
-	animation: fadeIn 0.3s ease-out;
-	will-change: opacity;
-}
-
 .animate-slide-in {
 	animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 	will-change: transform, opacity;
-}
-
-.animate-pulse {
-	animation: pulse 2s ease-in-out infinite;
-	will-change: opacity;
-}
-
-.animate-spin {
-	animation: spin 1s linear infinite;
-	will-change: transform;
-}
-
-.animate-glow {
-	animation: pulse-dot 2s ease-in-out infinite;
-	will-change: box-shadow;
-}
-
-.animate-scan {
-	animation: scan 2s linear infinite;
-	will-change: transform;
 }
 
 /* Remove will-change after animation completes for performance */
@@ -570,7 +532,7 @@
 		}
 
 		to {
-			border-color: var(--accent);
+			border-color: var(--primary);
 		}
 	}
 
@@ -580,7 +542,7 @@
 		}
 
 		to {
-			background: var(--accent);
+			background: var(--primary);
 		}
 	}
 
@@ -641,11 +603,11 @@
 	@keyframes tile-focus-appear {
 		from {
 			border-color: var(--line);
-			border-width: 2px;
+			border-width: var(--space-0);
 		}
 
 		to {
-			border-color: var(--accent);
+			border-color: var(--primary);
 			border-width: 3px;
 		}
 	}
@@ -657,37 +619,8 @@
 		}
 
 		to {
-			background: var(--accent);
+			background: var(--primary);
 			border: 1px solid var(--text-primary);
 		}
 	}
-}
-
-/* ================================================================
-   UTILITY ANIMATION CLASSES
-   Apply these to elements for consistent motion
-   ================================================================ */
-
-.wm-animate-focus {
-	animation: tile-focus-appear 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-}
-
-.wm-animate-divider-hover {
-	animation: divider-hover 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-}
-
-.wm-animate-empty-appear {
-	animation: empty-tile-appear 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-}
-
-.wm-animate-layout-split {
-	animation: layout-split 0.25s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-}
-
-.wm-animate-layout-collapse {
-	animation: layout-collapse 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-}
-
-.wm-animate-hint-in {
-	animation: hint-float-in 0.3s cubic-bezier(0.23, 1, 0.32, 1) 0.5s forwards;
 }

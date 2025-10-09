@@ -28,7 +28,7 @@
 		color: var(--text-primary, #6b7280);
 		opacity: 0.8;
 		font-weight: 400;
-		margin-left: 8px;
+		margin-left: var(--space-2);
 		user-select: none;
 		cursor: default;
 		transition: opacity 0.2s ease;

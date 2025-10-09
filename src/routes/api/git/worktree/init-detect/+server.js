@@ -94,6 +94,8 @@ function detectInitCommands(projectPath) {
 }
 
 // Check for existing initialization scripts
+// NOTE: .dispatchrc is now read-only for display purposes
+// Execution has been removed for security (command injection risk)
 function findExistingInitScript(projectPath) {
 	const dispatchrcPath = join(projectPath, '.dispatchrc');
 
@@ -106,7 +108,8 @@ function findExistingInitScript(projectPath) {
 				commands: content
 					.split('\n')
 					.map((line) => line.trim())
-					.filter((line) => line && !line.startsWith('#'))
+					.filter((line) => line && !line.startsWith('#')),
+				warning: 'Script file detected but will not be executed automatically for security reasons'
 			};
 		} catch (error) {
 			console.warn(`Failed to read .dispatchrc ${dispatchrcPath}:`, error.message);

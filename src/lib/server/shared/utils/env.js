@@ -157,13 +157,13 @@ export function normalizeWorkspacePath(workspacePath, defaultPath = process.cwd(
 }
 
 /**
- * Get workspace environment variables from database
- * @param {Object} databaseManager - Database manager instance
+ * Get workspace environment variables from settings repository
+ * @param {Object} settingsRepository - SettingsRepository instance
  * @returns {Promise<Object>} Workspace environment variables object
  */
-export async function getWorkspaceEnvVariables(databaseManager) {
+export async function getWorkspaceEnvVariables(settingsRepository) {
 	try {
-		const workspaceSettings = await databaseManager.getSettingsByCategory('workspace');
+		const workspaceSettings = await settingsRepository.getByCategory('workspace');
 		return workspaceSettings?.envVariables || {};
 	} catch (error) {
 		console.warn('Failed to load workspace environment variables:', error);

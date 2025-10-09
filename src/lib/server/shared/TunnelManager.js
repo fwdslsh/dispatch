@@ -3,13 +3,13 @@ import { logger } from './utils/logger.js';
 
 /**
  * Manages LocalTunnel for public URL access with runtime control
- * Uses database settings for persistent tunnel configuration
+ * Uses settings repository for persistent tunnel configuration
  */
 export class TunnelManager {
-	constructor({ port, subdomain = '', database }) {
+	constructor({ port, subdomain = '', settingsRepository }) {
 		this.port = port;
 		this.subdomain = subdomain;
-		this.database = database;
+		this.settingsRepository = settingsRepository;
 		this.process = null;
 		this.isEnabled = false;
 		this.currentUrl = null;
@@ -180,13 +180,13 @@ export class TunnelManager {
 	}
 
 	/**
-	 * Save tunnel settings to database
+	 * Save tunnel settings to settings repository
 	 * @private
 	 */
 	async _saveTunnelSettings() {
 		try {
-			if (!this.database) {
-				logger.warn('TUNNEL', 'No database available for saving settings');
+			if (!this.settingsRepository) {
+				logger.warn('TUNNEL', 'No settings repository available for saving settings');
 				return;
 			}
 
@@ -198,7 +198,7 @@ export class TunnelManager {
 				lastUpdated: Date.now()
 			};
 
-			await this.database.setSettingsForCategory(
+			await this.settingsRepository.setByCategory(
 				'tunnel',
 				tunnelSettings,
 				'LocalTunnel configuration and status'
@@ -209,17 +209,17 @@ export class TunnelManager {
 	}
 
 	/**
-	 * Load tunnel settings from database
+	 * Load tunnel settings from settings repository
 	 * @private
 	 */
 	async _loadTunnelSettings() {
 		try {
-			if (!this.database) {
-				logger.warn('TUNNEL', 'No database available for loading settings');
+			if (!this.settingsRepository) {
+				logger.warn('TUNNEL', 'No settings repository available for loading settings');
 				return {};
 			}
 
-			return await this.database.getSettingsByCategory('tunnel');
+			return await this.settingsRepository.getByCategory('tunnel');
 		} catch (error) {
 			logger.error('TUNNEL', `Failed to load tunnel settings: ${error.message}`);
 			return {};

@@ -88,12 +88,12 @@ export async function POST({ request, locals }) {
 		if (resume && sessionId) {
 			try {
 				// Actually resume the session (restart the process)
-				const resumeResult = await locals.services.runSessionManager.resumeRunSession(sessionId);
+				const resumeResult = await locals.services.sessionOrchestrator.resumeSession(sessionId);
 
 				return new Response(
 					JSON.stringify({
-						runId: resumeResult.runId,
-						id: resumeResult.runId,
+						runId: resumeResult.sessionId,
+						id: resumeResult.sessionId,
 						success: true,
 						resumed: resumeResult.resumed,
 						kind: resumeResult.kind,
@@ -122,11 +122,12 @@ export async function POST({ request, locals }) {
 		let defaultWorkspaceDir = null;
 		let workspaceEnvVariables = {};
 		try {
-			const globalSettings = await locals.services.database.getSettingsByCategory('global');
+			const { settingsRepository } = locals.services;
+			const globalSettings = await settingsRepository.getByCategory('global');
 			defaultWorkspaceDir = globalSettings?.defaultWorkspaceDirectory || null;
 
 			// Load workspace environment variables
-			const workspaceSettings = await locals.services.database.getSettingsByCategory('workspace');
+			const workspaceSettings = await settingsRepository.getByCategory('workspace');
 			workspaceEnvVariables = workspaceSettings?.envVariables || {};
 		} catch (error) {
 			console.warn('[Sessions API] Failed to load workspace settings:', error);
@@ -136,10 +137,10 @@ export async function POST({ request, locals }) {
 		const workingDirectory =
 			cwd || defaultWorkspaceDir || process.env.WORKSPACES_ROOT || process.env.HOME;
 
-		// Create run session using unified manager with workspace environment variables
-		const { runId } = await locals.services.runSessionManager.createRunSession({
-			kind: sessionKind,
-			meta: {
+		// Create session using SessionOrchestrator with workspace environment variables
+		const session = await locals.services.sessionOrchestrator.createSession(sessionKind, {
+			workspacePath: workingDirectory,
+			metadata: {
 				cwd: workingDirectory,
 				options: {
 					...options,
@@ -150,7 +151,7 @@ export async function POST({ request, locals }) {
 
 		return new Response(
 			JSON.stringify({
-				runId,
+				runId: session.id,
 				success: true,
 				kind: sessionKind,
 				type: sessionKind
@@ -189,8 +190,8 @@ export async function DELETE({ url, locals }) {
 	}
 
 	try {
-		// Close run session using unified manager
-		await locals.services.runSessionManager.closeRunSession(runId);
+		// Close session using SessionOrchestrator
+		await locals.services.sessionOrchestrator.closeSession(runId);
 
 		return new Response(JSON.stringify({ success: true }));
 	} catch (error) {
@@ -215,7 +216,7 @@ export async function PUT({ request, locals }) {
 
 		try {
 			// Update or create layout for this client
-			await locals.services.database.setWorkspaceLayout(runId, clientId, tileId);
+			await locals.services.workspaceRepository.setWorkspaceLayout(runId, clientId, tileId);
 			return new Response(JSON.stringify({ success: true }));
 		} catch (error) {
 			console.error('[API] Layout update failed:', error);
@@ -234,7 +235,7 @@ export async function PUT({ request, locals }) {
 		}
 
 		try {
-			await locals.services.database.removeWorkspaceLayout(runId, clientId);
+			await locals.services.workspaceRepository.removeWorkspaceLayout(runId, clientId);
 			return new Response(JSON.stringify({ success: true }));
 		} catch (error) {
 			console.error('[API] Layout removal failed:', error);
@@ -253,7 +254,7 @@ export async function PUT({ request, locals }) {
 		}
 
 		try {
-			const layout = await locals.services.database.getWorkspaceLayout(clientId);
+			const layout = await locals.services.workspaceRepository.getWorkspaceLayout(clientId);
 			return new Response(JSON.stringify({ layout }));
 		} catch (error) {
 			console.error('[API] Layout retrieval failed:', error);

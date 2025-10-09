@@ -1,22 +1,17 @@
-/* ==========================================================================
-   Global UI — Retro Terminal x Modern UI (Augmented-UI v2 ready)
-   Requires: augmented-ui v2 CSS loaded before this file.
-   Docs: https://augmented-ui.com/docs/
+/* ==================================================================
+   RETRO TERMINAL THEME - Base HTML Styles
 
-   NOTE: Utility classes (spacing, flex, layout, text) are defined in utilities.css
-   This file contains component-specific styling and retro-themed UI patterns
-   ========================================================================== */
+   This file provides DEFAULT STYLING for HTML elements only.
+   Component-specific styles belong in component <style> blocks or
+   in /components/*.css files.
 
-/* Reset & base */
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
-	transition-behavior: allow-discrete;
-	/* Remove tap highlight on mobile */
-	-webkit-tap-highlight-color: transparent;
-	-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-}
+   Theme: Retro Terminal (Phosphor Green)
+   Purpose: Enable dynamic theme switching via CSS custom properties
+   ================================================================== */
+
+/* ==================================================================
+   1. BASE DOCUMENT
+   ================================================================== */
 
 html,
 body {
@@ -40,9 +35,14 @@ canvas {
 	height: auto;
 }
 
+/* ==================================================================
+   2. FOCUS & SELECTION STATES
+   ================================================================== */
+
 :focus-visible {
-	outline: 2px solid var(--focus);
-	outline-offset: 2px;
+	outline: var(--focus-ring-width) solid var(--focus-ring-color);
+	outline-offset: var(--focus-ring-offset);
+	box-shadow: var(--focus-ring-shadow);
 }
 
 ::selection {
@@ -50,10 +50,13 @@ canvas {
 	color: var(--text);
 }
 
-/* Scrollbars */
+/* ==================================================================
+   3. SCROLLBARS - Custom retro terminal styling
+   ================================================================== */
+
 * {
 	scrollbar-width: thin;
-	scrollbar-color: var(--accent) transparent;
+	scrollbar-color: var(--primary) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -62,19 +65,30 @@ canvas {
 }
 
 ::-webkit-scrollbar-thumb {
-	background: linear-gradient(
-		180deg,
-		var(--accent),
-		color-mix(in oklab, var(--accent), transparent 35%)
-	);
+	background: var(--scrollbar-gradient);
 	border-radius: var(--radius-md);
+	transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(180deg,
+		color-mix(in oklab, var(--primary) 90%, white),
+		color-mix(in oklab, var(--primary) 70%, white)
+	);
+}
+
+::-webkit-scrollbar-thumb:active {
+	background: var(--primary);
 }
 
 ::-webkit-scrollbar-track {
 	background: transparent;
 }
 
-/* 1) Type - Enhanced retro-modern hierarchy */
+/* ==================================================================
+   4. TYPOGRAPHY - Enhanced retro-modern hierarchy
+   ================================================================== */
+
 h1,
 h2,
 h3,
@@ -91,7 +105,7 @@ h6 {
 
 h1 {
 	font-family: var(--font-accent);
-	font-size: clamp(32px, 4vw, 48px);
+	font-size: clamp(var(--space-6), 4vw, var(--space-7));
 	letter-spacing: 0.05em;
 	text-shadow: 0 0 20px color-mix(in oklab, var(--accent) 30%, transparent);
 	user-select: none;
@@ -101,7 +115,7 @@ h1 {
 }
 
 h2 {
-	font-size: clamp(24px, 3vw, 36px);
+	font-size: clamp(var(--space-5), 3vw, 36px);
 	letter-spacing: 0.02em;
 }
 
@@ -139,105 +153,24 @@ pre {
 	overflow: auto;
 }
 
-/* 2) Links */
+/* ==================================================================
+   5. LINKS - Default link styling
+   ================================================================== */
+
 a {
-	color: var(--accent);
+	color: var(--primary);
 	text-decoration: none;
-	border-bottom: 1px dotted color-mix(in oklab, var(--accent) 60%, transparent);
+	border-bottom: 1px dotted color-mix(in oklab, var(--primary) 60%, transparent);
 }
 
 a:hover {
 	text-decoration: underline;
 }
 
-/* 3) Layout helpers */
-.container {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 0 var(--space-4);
-}
+/* ==================================================================
+   6. FORMS - Comprehensive state management for all input types
+   ================================================================== */
 
-.stack > * + * {
-	margin-top: var(--space-4);
-}
-
-.cluster {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-3);
-	align-items: center;
-}
-
-/* 4) Cards & Panels (Augmented-UI v2 mixins)
-   Equip shapes via data-augmented-ui with mixins like `tl-clip`, `br-clip`, plus `border|inlay|both`.
-   Example markup:
-   <div class="card aug" data-augmented-ui="tl-clip br-clip both"></div>
-   (Use class selectors to override defaults per v2 specificity guidance.) */
-.card,
-.panel {
-	background: var(--surface);
-	border: 1px solid var(--line);
-	padding: var(--space-5);
-	position: relative;
-	box-shadow:
-		0 0 0 1px color-mix(in oklab, var(--accent) 10%, transparent),
-		0 0 24px -8px var(--glow);
-	border-radius: var(--radius-md);
-	/* graceful fallback if augs unsupported */
-}
-
-/* Augmented preset: very subtle professional styling */
-.aug,
-[data-augmented-ui] {
-	/* region sizing (mixin layer) - smaller cuts */
-	--aug-tl: 8px;
-	--aug-br: 8px;
-
-	/* BORDER (v2) - very subtle border */
-	--aug-border: initial;
-	--aug-border-all: 1px;
-	--aug-border-bg: var(--accent);
-	--aug-border-opacity: 0.25;
-
-	/* INLAY (v2) - very minimal inner accent */
-	--aug-inlay: initial;
-	--aug-inlay-all: 1px;
-	--aug-inlay-bg: color-mix(in oklab, var(--accent) 8%, transparent);
-	--aug-inlay-opacity: 0.4;
-
-	/* Clean hover enhancement */
-	transition: all 0.15s ease;
-}
-
-.aug:hover,
-[data-augmented-ui]:hover {
-	--aug-border-opacity: 0.4;
-	--aug-inlay-opacity: 0.6;
-}
-
-.card.aug {
-	background: var(--surface);
-}
-
-.panel.aug {
-	background: var(--elev);
-}
-
-/* 5) Rules & chrome */
-.hr {
-	height: 1px;
-	background: linear-gradient(90deg, transparent, var(--line), transparent);
-	border: 0;
-	margin: var(--space-5) 0;
-}
-
-.term-grid {
-	display: grid;
-	gap: var(--space-3);
-	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-}
-
-/* 6) Forms - Comprehensive state management */
 input[type='text'],
 input[type='search'],
 input[type='password'],
@@ -247,7 +180,6 @@ input[type='tel'],
 input[type='number'],
 select,
 textarea {
-	width: 100%;
 	padding: var(--space-3) var(--space-4);
 	font: 500 var(--font-size-2) / 1.2 var(--font-mono);
 	background: color-mix(in oklab, var(--surface) 92%, black 8%);
@@ -263,36 +195,42 @@ textarea {
 	position: relative;
 }
 
+/* Enhanced placeholder styling for better visual hierarchy */
 input::placeholder,
-textarea::placeholder {
-	color: color-mix(in oklab, var(--muted) 70%, transparent);
+textarea::placeholder,
+select::placeholder {
+	color: var(--muted);
+	opacity: 0.6;
+	font-style: italic;
 }
 
 /* Hover states */
 input:hover:not(:disabled):not(:focus),
 select:hover:not(:disabled):not(:focus),
 textarea:hover:not(:disabled):not(:focus) {
-	border-color: color-mix(in oklab, var(--accent) 60%, var(--line));
-	background: color-mix(in oklab, var(--surface) 95%, var(--accent) 5%);
+	border-color: color-mix(in oklab, var(--primary) 60%, var(--line));
+	background: color-mix(in oklab, var(--surface) 95%, var(--primary) 5%);
 }
 
-/* Focus states */
+/* Focus states - Enhanced accessibility */
 input:focus,
 select:focus,
 textarea:focus {
-	border-color: var(--accent);
-	background: color-mix(in oklab, var(--surface) 98%, var(--accent) 2%);
+	border-color: var(--primary);
+	background: color-mix(in oklab, var(--surface) 98%, var(--primary) 2%);
 	box-shadow:
-		0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent),
-		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent);
+		0 0 0 3px color-mix(in oklab, var(--primary) 30%, transparent),
+		inset 0 0 0 1px color-mix(in oklab, var(--primary) 20%, transparent);
 	outline: none;
 }
+
 
 /* Active states */
 input:active:not(:disabled),
 select:active:not(:disabled),
 textarea:active:not(:disabled) {
-	transform: translateY(0);
+	box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+	filter: brightness(0.97);
 }
 
 /* Disabled states */
@@ -325,9 +263,9 @@ textarea:invalid:focus {
 
 /* Valid states (for forms with validation) */
 input:valid:not(:placeholder-shown):not(:focus),
-select:valid:not(:focus),
+select:user-valid:not(:focus),
 textarea:valid:not(:placeholder-shown):not(:focus) {
-	border-color: var(--ok);
+	border-color: var(--primary-bright);
 	background: color-mix(in oklab, var(--surface) 98%, var(--ok) 2%);
 }
 
@@ -335,526 +273,29 @@ textarea:valid:not(:placeholder-shown):not(:focus) {
 input:required,
 select:required,
 textarea:required {
-	box-shadow: inset 2px 0 0 color-mix(in oklab, var(--accent) 40%, transparent);
+	box-shadow: inset var(--space-0) 0 0 color-mix(in oklab, var(--primary) 40%, transparent);
 }
 
 input:required:focus,
 select:required:focus,
 textarea:required:focus {
 	box-shadow:
-		0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent),
-		inset 2px 0 0 var(--accent),
-		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent);
+		0 0 0 3px color-mix(in oklab, var(--primary) 30%, transparent),
+		inset var(--space-0) 0 0 var(--primary),
+		inset 0 0 0 1px color-mix(in oklab, var(--primary) 20%, transparent);
 }
 
-/* Augmented input rails (use data-augmented-ui on a wrapper) */
-/* Markup:
-   <label class="input-aug" data-augmented-ui="t-rect b-rect both">
-     <input ...>
-   </label> */
-.input-aug {
-	--aug-t: 10px;
-	--aug-b: 10px;
-	--aug-border-all: 2px;
-	--aug-border-bg: linear-gradient(90deg, var(--accent), transparent, var(--accent));
-	--aug-inlay-all: 1px;
-	--aug-inlay-bg: linear-gradient(
-		90deg,
-		transparent,
-		color-mix(in oklab, var(--accent) 20%, transparent),
-		transparent
-	);
-}
+/* ==================================================================
+   7. BUTTONS - See buttons.css
 
-/* 7) Buttons - Comprehensive state management */
-.button {
-	--btn-bg: color-mix(in oklab, var(--surface) 88%, black 12%);
-	--btn-border: color-mix(in oklab, var(--accent) 40%, transparent);
+   All button styles have been moved to:
+   src/lib/client/shared/styles/components/buttons.css
+   ================================================================== */
 
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: var(--space-2);
-	padding: calc(var(--space-2) + 1px) calc(var(--space-4) + 2px);
-	font: 700 var(--font-size-2) / 1 var(--font-mono);
-	color: var(--text);
-	background: var(--btn-bg);
-	border: 1px solid var(--btn-border);
-	border-radius: var(--radius-md);
-	cursor: pointer;
-	text-decoration: none;
-	box-shadow:
-		inset 0 0 0 1px color-mix(in oklab, var(--accent) 10%, transparent),
-		0 0 18px -8px var(--glow);
-	transition:
-		transform 0.06s ease,
-		box-shadow 0.15s ease,
-		border-color 0.15s ease,
-		background 0.15s ease,
-		color 0.15s ease,
-		opacity 0.15s ease;
-	position: relative;
-	overflow: hidden;
-}
+/* ==================================================================
+   8. TABLES - Default table styling
+   ================================================================== */
 
-.button::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: -100%;
-	width: 100%;
-	height: 100%;
-	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-	transition: left 0.5s ease;
-	pointer-events: none;
-}
-
-.button:hover:not(:disabled) {
-	border-color: var(--accent);
-	background: color-mix(in oklab, var(--btn-bg) 90%, var(--accent) 10%);
-	box-shadow:
-		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent),
-		0 0 24px -6px var(--glow);
-}
-
-.button:hover:not(:disabled)::before {
-	left: 100%;
-}
-
-.button:active:not(:disabled) {
-	transform: translateY(1px) scale(0.98);
-	box-shadow:
-		inset 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent),
-		0 0 12px -4px var(--glow);
-}
-
-.button:focus-visible {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
-	box-shadow:
-		inset 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent),
-		0 0 18px -8px var(--glow),
-		0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent);
-}
-
-.button:disabled,
-.button.disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-	pointer-events: none;
-	border-color: var(--line);
-	color: var(--muted);
-	background: color-mix(in oklab, var(--btn-bg) 70%, transparent);
-	box-shadow: none;
-	transform: none;
-}
-
-/* Button Variants */
-.button.primary {
-	--btn-bg: var(--accent);
-	--btn-border: var(--accent);
-	color: var(--bg);
-	background: var(--accent);
-	border-color: var(--accent);
-}
-
-.button.primary:hover:not(:disabled) {
-	background: color-mix(in oklab, var(--accent) 90%, white 10%);
-	border-color: color-mix(in oklab, var(--accent) 90%, white 10%);
-	box-shadow:
-		inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-		0 0 30px var(--glow);
-}
-
-.button.secondary {
-	--btn-bg: transparent;
-	--btn-border: var(--accent);
-	color: var(--accent);
-	background: transparent;
-}
-
-.button.secondary:hover:not(:disabled) {
-	background: color-mix(in oklab, var(--accent) 10%, transparent);
-	color: color-mix(in oklab, var(--accent) 90%, white 10%);
-}
-
-.button.ghost {
-	--btn-bg: transparent;
-	--btn-border: transparent;
-	color: var(--text);
-	background: transparent;
-	border-color: transparent;
-	box-shadow: none;
-}
-
-.button.ghost:hover:not(:disabled) {
-	background: color-mix(in oklab, var(--accent) 8%, transparent);
-	border-color: color-mix(in oklab, var(--accent) 30%, transparent);
-	color: var(--accent);
-	box-shadow: 0 0 16px -8px var(--glow);
-}
-
-.button.warn {
-	--btn-border: var(--warn);
-	color: var(--warn);
-	border-color: var(--warn);
-}
-
-.button.warn:hover:not(:disabled) {
-	background: color-mix(in oklab, var(--warn) 8%, transparent);
-	border-color: color-mix(in oklab, var(--warn) 80%, transparent);
-}
-
-.button.danger {
-	--btn-border: var(--err);
-	color: var(--err);
-	border-color: var(--err);
-}
-
-.button.danger:hover:not(:disabled) {
-	background: color-mix(in oklab, var(--err) 8%, transparent);
-	border-color: color-mix(in oklab, var(--err) 80%, transparent);
-}
-
-/* Register custom properties for transitions */
-@property --aug-l {
-	syntax: '<length>';
-	initial-value: 4px;
-	inherits: false;
-}
-
-@property --aug-r {
-	syntax: '<length>';
-	initial-value: 4px;
-	inherits: false;
-}
-
-@property --aug-border-all {
-	syntax: '<length>';
-	initial-value: 1px;
-	inherits: false;
-}
-
-@property --aug-border-opacity {
-	syntax: '<number>';
-	initial-value: 0.2;
-	inherits: false;
-}
-
-@property --aug-inlay-all {
-	syntax: '<length>';
-	initial-value: 0px;
-	inherits: false;
-}
-
-@property --aug-inlay-opacity {
-	syntax: '<number>';
-	initial-value: 0.3;
-	inherits: false;
-}
-
-/* Mobile-First Global Styles */
-@media (max-width: 768px) {
-	:root {
-		/* Adjust spacing for mobile */
-		--space-1: 0.125rem;
-		--space-2: 0.25rem;
-		--space-3: 0.375rem;
-		--space-4: 0.5rem;
-		--space-5: 0.75rem;
-		--space-6: 1rem;
-		--space-7: 1.5rem;
-		--space-8: 2rem;
-
-		/* Adjust font sizes for better mobile readability */
-		--font-size-0: 0.75rem;
-		--font-size-1: 0.85rem;
-		--font-size-2: 0.95rem;
-		--font-size-3: 1.05rem;
-		--font-size-4: 1.25rem;
-		--font-size-5: 1.5rem;
-
-		/* Touch target minimum size (44px per WCAG) */
-		--touch-target-min: 44px;
-	}
-
-	body {
-		/* Prevent horizontal scroll */
-		overflow-x: hidden;
-		/* Improve touch scrolling */
-		-webkit-overflow-scrolling: touch;
-	}
-
-	/* Make all buttons touch-friendly */
-	button,
-	.button,
-	[role='button'] {
-		min-height: var(--touch-target-min);
-		min-width: var(--touch-target-min);
-		/* Remove tap highlight */
-		-webkit-tap-highlight-color: transparent;
-		-webkit-user-select: none;
-		user-select: none;
-		touch-action: manipulation;
-	}
-
-	/* Improve input/textarea on mobile */
-	input,
-	textarea,
-	select {
-		min-height: var(--touch-target-min);
-		font-size: 16px;
-		/* Prevent zoom on iOS */
-		/* Remove tap highlight */
-		-webkit-tap-highlight-color: transparent;
-	}
-
-	/* Remove tap highlight from all interactive elements */
-	a,
-	button,
-	input,
-	textarea,
-	select,
-	[role='button'],
-	[role='link'],
-	[role='tab'],
-	[role='tabpanel'],
-	[tabindex] {
-		-webkit-tap-highlight-color: transparent;
-		-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-	}
-
-	/* Ensure clickable cards have proper touch targets */
-	.type-card,
-	.session-card,
-	.workspace-selector {
-		min-height: var(--touch-target-min);
-	}
-}
-
-/* Landscape mobile adjustments */
-@media (max-width: 768px) and (orientation: landscape) {
-	:root {
-		--space-6: 0.875rem;
-		--space-7: 1.25rem;
-		--space-8: 1.75rem;
-	}
-}
-
-/* Small mobile devices */
-@media (max-width: 400px) {
-	:root {
-		--font-size-4: 1.125rem;
-		--font-size-5: 1.25rem;
-		--space-6: 0.875rem;
-		--space-7: 1.125rem;
-	}
-
-	/* Extra small touch targets for very small screens */
-	button,
-	.button,
-	[role='button'] {
-		min-height: 40px;
-		min-width: 40px;
-		font-size: 0.85rem;
-	}
-
-	/* Adjust modal sizes */
-	.modal,
-	.dialog-container {
-		width: 95vw;
-		max-height: 90vh;
-		margin: 1rem;
-	}
-}
-
-/* Tablet landscape adjustments */
-@media (min-width: 769px) and (max-width: 1024px) {
-	:root {
-		/* Tablet-optimized spacing */
-		--space-4: 0.875rem;
-		--space-5: 1.125rem;
-		--space-6: 1.5rem;
-	}
-
-	/* Tablet touch targets - slightly smaller than mobile */
-	button,
-	.button,
-	[role='button'] {
-		min-height: 40px;
-		min-width: 40px;
-	}
-
-	/* Tablet-optimized containers */
-	.container {
-		max-width: 900px;
-		padding: 0 var(--space-5);
-	}
-}
-
-/* High DPI / Retina display adjustments */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
-	/* Ensure crisp borders on high DPI displays */
-	.button,
-	input,
-	textarea,
-	select,
-	.card,
-	.panel {
-		border-width: 0.5px;
-	}
-
-	/* Crisper box shadows */
-	.button {
-		box-shadow:
-			inset 0 0 0 0.5px color-mix(in oklab, var(--accent) 10%, transparent),
-			0 0 18px -8px var(--glow);
-	}
-}
-
-/* Reduce motion for accessibility */
-@media (prefers-reduced-motion: reduce) {
-	*,
-	*::before,
-	*::after {
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-		transition-duration: 0.01ms !important;
-		scroll-behavior: auto !important;
-	}
-
-	/* Keep essential focus indicators */
-	:focus-visible {
-		transition: outline-color 0.15s ease;
-	}
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-	:root {
-		--accent: #00ff88;
-		--primary: #00ff88;
-		--text: #ffffff;
-		--bg: #000000;
-		--surface: #111111;
-		--line: #444444;
-	}
-
-	.button,
-	input,
-	textarea,
-	select {
-		border-width: 2px;
-	}
-
-	.button:focus-visible,
-	input:focus,
-	textarea:focus,
-	select:focus {
-		outline: 3px solid var(--accent);
-		outline-offset: 2px;
-	}
-}
-
-/* Augmented button styling - animated professional approach */
-.button.aug {
-	--aug-tl: 8px;
-	--aug-br: 8px;
-	--aug-border-all: 1px;
-	--aug-border-bg: var(--accent);
-	--aug-border-opacity: 0.2;
-	--aug-inlay-all: 0px;
-	--aug-inlay-bg: color-mix(in oklab, var(--accent) 5%, transparent);
-	--aug-inlay-opacity: 0.3;
-
-	/* Override base button border to prevent clashing */
-	border: none;
-	border-radius: 0;
-
-	text-transform: uppercase;
-	font-weight: 600;
-	letter-spacing: 0.02em;
-
-	/* Animate augmented-ui properties and effects */
-	transition:
-		--aug-l 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-		--aug-r 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-		--aug-border-all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-		--aug-border-opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-		--aug-inlay-all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-		--aug-inlay-opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-		box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-		transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.button.aug:hover {
-	--aug-tl: 10px;
-	--aug-br: 10px;
-	--aug-border-all: 1px;
-	--aug-inlay-bg: color-mix(in oklab, var(--accent) 50%, transparent);
-	--aug-inlay-all: 1px;
-	--aug-inlay-opacity: 0.5;
-
-	/* Add outer glow */
-	box-shadow:
-		0 0 20px var(--primary-glow-40),
-		0 0 40px var(--primary-glow-20);
-}
-
-.button.aug:active,
-.button.aug.active {
-	--aug-br: 16px;
-	--aug-tl: 16px;
-	--aug-border-all: 1.5px;
-	--aug-border-opacity: 0.8;
-	--aug-inlay-all: 1px;
-	--aug-inlay-opacity: 0.7;
-
-	/* Inner glow for pressed state + slight scale */
-	box-shadow:
-		inset 0 0 8px var(--primary-glow-30),
-		0 0 10px var(--primary-glow-20);
-	transform: scale(0.98);
-}
-
-.button.aug.ghost:hover {
-	--aug-l: 6px;
-	--aug-r: 6px;
-	--aug-border-all: 2px;
-	--aug-border-opacity: 0.5;
-	--aug-inlay-all: 1px;
-	--aug-inlay-opacity: 0.4;
-
-	/* Ghost variant glow */
-	box-shadow:
-		0 0 18px var(--primary-glow-30),
-		0 0 35px var(--primary-glow-15);
-}
-
-.button.aug.ghost:active,
-.button.aug.ghost.active {
-	--aug-l: 5px;
-	--aug-r: 5px;
-	--aug-border-all: 2px;
-	--aug-border-opacity: 0.7;
-	--aug-inlay-all: 1px;
-	--aug-inlay-opacity: 0.6;
-
-	/* Ghost inner glow for pressed state */
-	box-shadow:
-		inset 0 0 6px var(--primary-glow-25),
-		0 0 8px var(--primary-glow-10);
-}
-
-.button.aug.ghost:active,
-.button.aug.ghost.active {
-	--aug-border-opacity: 0.5;
-	--aug-inlay-opacity: 0.7;
-	/* Ghost inner glow for pressed state */
-	box-shadow: inset 0 0 6px var(--primary-glow-25) !important;
-}
-
-/* 8) Tables */
 table {
 	width: 100%;
 	border-collapse: collapse;
@@ -883,62 +324,16 @@ tbody tr:hover {
 	background: color-mix(in oklab, var(--elev) 90%, black 10%);
 }
 
-/* 9) Badges */
-.badge {
-	display: inline-block;
-	padding: 2px 8px;
-	font: 700 var(--font-size-0) / 1 var(--font-mono);
-	color: var(--text);
-	border: 1px solid var(--line);
-	border-radius: var(--radius-full);
-	background: color-mix(in oklab, var(--surface) 86%, black 14%);
-}
+/* ==================================================================
+   9. RETRO THEME EFFECTS - CRT/Terminal aesthetic
 
-.badge.ok {
-	color: var(--ok);
-	border-color: color-mix(in oklab, var(--ok) 40%, var(--line));
-}
+   These styles are theme-specific and would be replaced/modified
+   for alternative themes (e.g., "modern", "light", etc.)
+   ================================================================== */
 
-.badge.warn {
-	color: var(--warn);
-	border-color: color-mix(in oklab, var(--warn) 40%, var(--line));
-}
-
-.badge.err {
-	color: var(--err);
-	border-color: color-mix(in oklab, var(--err) 40%, var(--line));
-}
-
-/* 10) Subtle CRT overlay */
-.crt {
-	position: relative;
-	isolation: isolate;
-}
-
-.crt::after {
-	content: '';
-	position: absolute;
-	inset: 0;
-	background: repeating-linear-gradient(
-		0deg,
-		color-mix(in oklab, var(--text) 2%, transparent) 0px,
-		transparent 1px,
-		transparent 3px
-	);
-	mix-blend-mode: overlay;
-	opacity: 0.06;
-	pointer-events: none;
-	z-index: 2;
-}
-
-/* 11) Utilities & Retro Effects */
+/* Terminal-style glow utility */
 .glow {
-	text-shadow: 0 0 8px var(--glow);
-}
-
-.sep {
-	border-top: 1px dashed var(--line);
-	margin: var(--space-4) 0;
+	text-shadow: 0 0 var(--space-2) var(--glow);
 }
 
 /* Terminal-style prompt indicators */
@@ -949,12 +344,6 @@ tbody tr:hover {
 	font-weight: 700;
 }
 
-/* Enhanced focus states for accessibility and retro feel */
-*:focus-visible {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
-	box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent);
-}
 
 /* Subtle body scan lines for retro CRT effect */
 body::before {
@@ -967,9 +356,9 @@ body::before {
 	background: repeating-linear-gradient(
 		0deg,
 		transparent 0px,
-		transparent 2px,
+		transparent var(--space-0),
 		color-mix(in oklab, var(--accent) 2%, transparent) 3px,
-		transparent 4px
+		transparent var(--space-1)
 	);
 	pointer-events: none;
 	z-index: 1000;
@@ -977,542 +366,3 @@ body::before {
 	mix-blend-mode: overlay;
 }
 
-/* Better visual hierarchy for sessions and controls */
-.session-indicator {
-	font-family: var(--font-mono);
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-}
-
-.session-indicator::before {
-	content: '◦ ';
-	color: var(--accent);
-}
-
-.session-indicator.active::before {
-	content: '● ';
-	color: var(--accent);
-	animation: pulse 2s ease-in-out infinite;
-}
-
-/* 12) UI Component Utility Classes */
-
-/* Button Groups - for type toggles */
-.btn-group {
-	display: flex;
-	/* background: linear-gradient(135deg,
-			color-mix(in oklab, var(--surface) 90%, var(--accent) 10%),
-			color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%));
-	border: 2px solid var(--line);
-	border-radius: 0; */
-	padding: 0.5rem;
-	gap: var(--space-4);
-	/* box-shadow: inset 0 2px 4px color-mix(in oklab, var(--bg) 10%, black); */
-}
-
-.btn-group .button {
-	flex: 1;
-	border: 2px solid var(--line);
-	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-	position: relative;
-	overflow: hidden;
-}
-
-.btn-group .button::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: -100%;
-	width: 100%;
-	height: 100%;
-	background: linear-gradient(90deg, transparent, var(--glow), transparent);
-	transition: left 0.5s ease;
-}
-
-.btn-group .button:hover:not(.active)::before {
-	left: 100%;
-}
-
-.btn-group .button.active {
-	background: linear-gradient(135deg, var(--accent), var(--accent-cyan));
-	color: var(--bg);
-	border-color: var(--accent);
-	box-shadow:
-		0 0 20px var(--glow),
-		0 0 40px var(--glow),
-		inset 0 1px 0 color-mix(in oklab, var(--text) 20%, transparent);
-	transform: translateY(-1px);
-	text-shadow: 0 0 8px color-mix(in oklab, var(--bg) 30%, black);
-}
-
-/* Icon-only buttons */
-.btn-icon-only {
-	width: 2.5rem;
-	height: 2.5rem;
-	padding: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 1.2rem;
-}
-
-.spinning {
-	animation: spin 2s linear infinite;
-}
-
-/* spinning state handled internally if needed */
-
-/* Workspace/Directory Selector */
-.workspace-selector {
-	width: 100%;
-	padding: 1rem 1.25rem;
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--surface) 90%, var(--primary) 10%),
-		color-mix(in oklab, var(--surface) 95%, var(--accent-cyan) 5%)
-	);
-	border: 2px solid var(--surface-border);
-	border-radius: 0;
-	color: var(--text);
-	font-family: var(--font-mono);
-	font-size: 0.9rem;
-	font-weight: 600;
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	cursor: pointer;
-	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-	position: relative;
-	overflow: hidden;
-}
-
-.workspace-selector:hover:not(:disabled) {
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--primary) 15%, var(--surface)),
-		color-mix(in oklab, var(--primary) 8%, var(--surface))
-	);
-	border-color: var(--primary);
-	box-shadow:
-		0 0 20px var(--primary-glow-20),
-		inset 0 1px 0 rgba(255, 255, 255, 0.1);
-	transform: translateY(-1px);
-}
-
-.workspace-selector__icon {
-	font-size: 1.2em;
-	color: var(--primary);
-	filter: drop-shadow(0 0 6px var(--primary-glow-30));
-}
-
-.workspace-selector:hover:not(:disabled) .workspace-selector__icon {
-	filter: drop-shadow(0 0 10px var(--primary-glow-50));
-	transform: scale(1.1);
-}
-
-.workspace-selector__path {
-	flex: 1;
-}
-
-.workspace-selector__arrow {
-	color: var(--text-muted);
-	transition: transform 0.3s ease;
-}
-
-.workspace-selector:hover:not(:disabled) .workspace-selector__arrow {
-	transform: translateY(2px);
-	color: var(--primary);
-}
-
-.workspace-selector:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-
-/* Modal Actions - for modal footer button layouts */
-.modal-actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: 0.75rem;
-	padding: 1.25rem;
-	border-top: 1px solid var(--surface-border);
-	background: var(--surface-hover);
-}
-
-@media (max-width: 768px) {
-	.modal-actions {
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.modal-actions .button {
-		width: 100%;
-		justify-content: center;
-	}
-}
-
-/* Form Section - for consistent form layouts */
-.form-section {
-	margin-bottom: 2rem;
-	position: relative;
-}
-
-.form-section__label {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	margin-bottom: 1rem;
-	font-weight: 700;
-	color: var(--primary);
-	font-size: 1rem;
-	font-family: var(--font-mono);
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	text-shadow: 0 0 8px var(--primary-glow-30);
-}
-
-.form-section__label-icon {
-	font-size: 1.1em;
-	filter: drop-shadow(0 0 6px var(--primary-glow-40));
-}
-
-/* Icon Text combinations */
-.icon-text {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.icon-text__icon {
-	font-size: 1.1em;
-	filter: drop-shadow(0 0 6px var(--glow));
-}
-
-/* Type Selection Cards */
-.type-card {
-	padding: 1.5rem 1rem;
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
-		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%)
-	);
-	border: 2px solid var(--surface-border);
-	border-radius: 0;
-	color: var(--text-muted);
-	font-weight: 600;
-	cursor: pointer;
-	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-	text-align: left;
-	position: relative;
-	overflow: hidden;
-}
-
-.type-card::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: -100%;
-	width: 100%;
-	height: 100%;
-	background: linear-gradient(90deg, transparent, var(--primary-glow-10), transparent);
-	transition: left 0.5s ease;
-}
-
-.type-card:hover:not(:disabled)::before {
-	left: 100%;
-}
-
-.type-card__content {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	position: relative;
-	z-index: 1;
-}
-
-.type-card__icon {
-	font-size: 2rem;
-	filter: drop-shadow(0 0 8px var(--primary-glow-30));
-}
-
-.type-card__info {
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
-}
-
-.type-card__title {
-	font-size: 1.1rem;
-	font-weight: 700;
-	color: var(--text);
-	font-family: var(--font-mono);
-	text-transform: uppercase;
-	letter-spacing: 0.03em;
-}
-
-.type-card__desc {
-	font-size: 0.85rem;
-	color: var(--text-muted);
-	opacity: 0.8;
-}
-
-.type-card:hover:not(:disabled) {
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
-		color-mix(in oklab, var(--primary) 10%, var(--surface-hover))
-	);
-	border-color: var(--primary);
-	box-shadow:
-		0 0 20px var(--primary-glow-30),
-		inset 0 1px 0 rgba(255, 255, 255, 0.1);
-	transform: translateY(-2px);
-}
-
-.type-card:hover:not(:disabled) .type-card__icon {
-	filter: drop-shadow(0 0 12px var(--primary-glow-60));
-	transform: scale(1.1);
-}
-
-.type-card.active {
-	background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
-	border-color: var(--primary);
-	color: var(--bg);
-	box-shadow:
-		0 0 30px var(--primary-glow-40),
-		0 0 60px var(--primary-glow-20),
-		inset 0 1px 0 rgba(255, 255, 255, 0.2);
-	transform: translateY(-3px) scale(1.02);
-}
-
-.type-card.active .type-card__title,
-.type-card.active .type-card__desc {
-	color: var(--bg);
-	text-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
-}
-
-.type-card.active .type-card__icon {
-	filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
-	transform: scale(1.15);
-}
-
-.type-card:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
-}
-
-/* Session Item Cards */
-.session-card {
-	width: 100%;
-	padding: 1rem;
-	margin-bottom: 0.75rem;
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--surface-hover) 90%, var(--primary) 10%),
-		color-mix(in oklab, var(--surface-hover) 95%, var(--accent-cyan) 5%)
-	);
-	border: 2px solid var(--surface-border);
-	border-radius: 0;
-	text-align: left;
-	cursor: pointer;
-	transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-	position: relative;
-	overflow: hidden;
-}
-
-.session-card::before {
-	content: '';
-	position: absolute;
-	top: 0;
-	left: -100%;
-	width: 100%;
-	height: 100%;
-	background: linear-gradient(90deg, transparent, var(--primary-glow-10), transparent);
-	transition: left 0.5s ease;
-}
-
-.session-card:hover::before {
-	left: 100%;
-}
-
-.session-card:hover {
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--primary) 20%, var(--surface-hover)),
-		color-mix(in oklab, var(--primary) 10%, var(--surface-hover))
-	);
-	border-color: var(--primary);
-	box-shadow:
-		0 0 20px var(--primary-glow-20),
-		inset 0 1px 0 rgba(255, 255, 255, 0.1);
-	transform: translateY(-1px);
-}
-
-.session-card.selected {
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--primary) 25%, var(--surface)),
-		color-mix(in oklab, var(--primary) 15%, var(--surface))
-	);
-	border-color: var(--primary);
-	box-shadow:
-		0 0 0 2px var(--primary) inset,
-		0 0 30px var(--primary-glow-30),
-		inset 0 1px 0 rgba(255, 255, 255, 0.2);
-	transform: translateY(-2px) scale(1.02);
-}
-
-/* Error message styling */
-.error-message {
-	padding: 1rem;
-	background: linear-gradient(
-		135deg,
-		color-mix(in oklab, var(--secondary) 15%, var(--surface)),
-		color-mix(in oklab, var(--secondary) 8%, var(--surface))
-	);
-	border: 2px solid var(--secondary);
-	border-radius: 0;
-	color: var(--secondary);
-	font-size: 0.9rem;
-	font-family: var(--font-mono);
-	font-weight: 600;
-	box-shadow:
-		0 0 20px rgba(255, 107, 107, 0.2),
-		inset 0 1px 0 rgba(255, 255, 255, 0.1);
-	position: relative;
-}
-
-/* Type Selection Grid */
-.type-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 1rem;
-}
-
-@media (max-width: 768px) {
-	.type-grid {
-		grid-template-columns: 1fr;
-		gap: 0.75rem;
-	}
-}
-
-/* 13) Enhanced Utility Classes for Common Interaction Patterns */
-
-/* Glow Effect Utilities */
-.glow-subtle {
-	box-shadow: 0 0 8px var(--glow);
-}
-
-.glow-medium {
-	box-shadow: 0 0 16px var(--glow);
-}
-
-.glow-strong {
-	box-shadow: 0 0 24px var(--glow);
-}
-
-.glow-intense {
-	box-shadow:
-		0 0 32px var(--glow),
-		0 0 64px var(--glow);
-}
-
-.glow-inset-subtle {
-	box-shadow: inset 0 0 6px var(--glow);
-}
-
-.glow-inset-medium {
-	box-shadow: inset 0 0 12px var(--glow);
-}
-
-/* Scale Transform Utilities */
-.scale-hover {
-	transition: transform 0.2s ease;
-}
-
-.scale-hover:hover {
-	transform: scale(1.05);
-}
-
-.scale-hover-strong:hover {
-	transform: scale(1.1);
-}
-
-.scale-active:active {
-	transform: scale(0.95);
-}
-
-/* Combined Interactive Effects */
-.interactive-glow {
-	transition: all 0.2s ease;
-}
-
-.interactive-glow:hover {
-	box-shadow: 0 0 20px var(--glow);
-	transform: translateY(-1px);
-}
-
-.interactive-glow:active {
-	box-shadow: inset 0 0 8px var(--glow);
-	transform: translateY(0) scale(0.98);
-}
-
-/* Loading State Utilities */
-.loading-pulse {
-	animation: loadingPulse 1.5s ease-in-out infinite;
-}
-
-.loading-shimmer {
-	background: linear-gradient(90deg, transparent 0%, var(--glow) 50%, transparent 100%);
-	background-size: 200% 100%;
-	animation: shimmer 2s linear infinite;
-}
-
-/* State Indicator Utilities */
-.state-active::before {
-	content: '● ';
-	color: var(--accent);
-	animation: statusPulse 2s ease-in-out infinite;
-}
-
-.state-inactive::before {
-	content: '◦ ';
-	color: var(--muted);
-}
-
-.state-processing::before {
-	content: '⟳ ';
-	color: var(--accent-cyan);
-	animation: spin 1s linear infinite;
-}
-
-/*
- * NOTE: Utility classes (spacing, flex, text) have been moved to utilities.css
- * Import utilities.css for margin, padding, gap, flex, and text utilities
- */
-
-/* Terminal Effects Utilities */
-.terminal-blink {
-	animation: cursorBlink 1s step-end infinite;
-}
-
-.terminal-scan::before {
-	content: '';
-	position: absolute;
-	inset: 0;
-	background: repeating-linear-gradient(
-		0deg,
-		transparent 0px,
-		transparent 2px,
-		var(--scan-line) 3px,
-		transparent 4px
-	);
-	pointer-events: none;
-	opacity: 0.3;
-}
-
-/* 14) Nesting guidance (v2):
-   If you nest augmented elements, place a reset layer between them:
-   [data-augmented-ui] [data-augmented-ui-reset] [data-augmented-ui]
-   This ensures independent shapes & borders in modern browsers. */

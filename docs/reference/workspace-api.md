@@ -4,10 +4,18 @@ The Workspace API provides REST endpoints for managing development workspaces in
 
 ## Authentication
 
-All workspace endpoints require authentication using one of these methods:
+All workspace endpoints require authentication. Authentication is validated by the hooks middleware (`src/hooks.server.js`).
 
-1. **Query Parameter**: `?authKey=YOUR_TERMINAL_KEY`
-2. **Authorization Header**: `Authorization: Bearer YOUR_TERMINAL_KEY`
+**Methods:**
+
+1. **Authorization Header** (preferred): `Authorization: Bearer YOUR_TERMINAL_KEY`
+
+
+**Implementation:**
+
+- Authentication is checked by SvelteKit hooks before route handlers execute
+- `locals.auth.authenticated` indicates authentication status
+- 401 responses are returned automatically for unauthenticated requests to protected routes
 
 ## Endpoints
 
@@ -161,15 +169,19 @@ Updates workspace metadata.
 ```json
 {
 	"name": "Updated Project Name",
-	"status": "archived",
-	"authKey": "YOUR_TERMINAL_KEY"
+	"status": "active"
 }
 ```
 
 **Updatable Fields:**
 
-- `name`: Workspace display name
-- `status`: Workspace status (`new`, `active`, `archived`)
+- `name`: Workspace display name (required if provided, cannot be empty)
+- `status`: Workspace status (`active`, `inactive`, `archived`)
+
+**Validation:**
+
+- Cannot archive workspace with active (running/starting) sessions
+- Name must not be empty string if provided
 
 **Response:**
 
@@ -177,33 +189,81 @@ Updates workspace metadata.
 {
 	"id": "/workspace/my-project",
 	"name": "Updated Project Name",
-	"status": "archived",
-	"updatedAt": "2024-01-15T15:30:00.000Z"
+	"path": "/workspace/my-project",
+	"status": "active",
+	"createdAt": "2024-01-15T10:30:00.000Z",
+	"lastActive": "2024-01-15T15:30:00.000Z",
+	"updatedAt": "2024-01-15T15:30:00.000Z",
+	"sessionCounts": {
+		"total": 3,
+		"running": 1,
+		"stopped": 2,
+		"starting": 0,
+		"error": 0
+	}
+}
+```
+
+**Error Responses:**
+
+```json
+// 400 - Invalid status
+{
+	"message": "Invalid status. Must be one of: active, inactive, archived"
+}
+
+// 400 - Empty name
+{
+	"message": "Workspace name cannot be empty"
+}
+
+// 400 - Active sessions when archiving
+{
+	"message": "Cannot archive workspace with active sessions"
 }
 ```
 
 ### Delete Workspace
 
-**DELETE** `/api/workspaces/{workspaceId}?authKey=YOUR_TERMINAL_KEY`
+**DELETE** `/api/workspaces/{workspaceId}`
 
-Deletes a workspace and all associated sessions.
+Soft deletes a workspace from the database. Sessions and events are preserved for historical reference.
 
 **Parameters:**
 
 - `workspaceId` (string): URL-encoded workspace path
-- `authKey` (query): Authentication key
 
 **Validation:**
 
-- Workspace cannot have active (running) sessions
-- All stopped sessions in the workspace will be cleaned up
+- Workspace cannot have active (running or starting) sessions
+- Must stop all sessions before deletion
+
+**Implementation Details:**
+
+- Removes workspace entry from `workspaces` table
+- Removes associated workspace layout entries
+- **Does NOT delete sessions or session events** (preserved for history)
+- This is a soft delete - workspace metadata is removed but session data remains
 
 **Response:**
 
 ```json
 {
-	"message": "Workspace deleted successfully",
-	"deletedSessions": 2
+	"message": "Workspace deleted successfully"
+}
+```
+
+**Error Responses:**
+
+```json
+// 400 - Active sessions
+{
+	"message": "Cannot delete workspace with active sessions"
+}
+
+// 404 - Not found
+{
+	"message": "Workspace not found"
 }
 ```
 
@@ -302,19 +362,115 @@ The workspace's session counts and statistics will automatically update based on
 
 ## Integration Notes
 
-- **Session Management**: Workspace API integrates with existing `RunSessionManager`
-- **Database**: Uses existing SQLite schema with `workspaces` and `sessions` tables
-- **Authentication**: Follows same patterns as existing Session API
-- **Real-time Updates**: Session counts update in real-time via Socket.IO events
-- **Multi-client Sync**: Multiple browsers see consistent workspace state
+### Session Integration
+
+Sessions are associated with workspaces via the `workspacePath` field in `meta_json`:
+
+```javascript
+// Session meta_json structure
+{
+  "workspacePath": "/workspace/my-project",
+  "cwd": "/workspace/my-project",
+  "options": { ... }
+}
+```
+
+**Querying sessions by workspace:**
+
+```sql
+SELECT * FROM sessions
+WHERE JSON_EXTRACT(meta_json, '$.workspacePath') = '/workspace/my-project';
+```
+
+### Architecture Components
+
+- **WorkspaceRepository** (`src/lib/server/workspace/WorkspaceRepository.js`): Database operations
+- **WorkspaceService** (`src/lib/client/shared/services/WorkspaceService.js`): Client-side API wrapper
+- **WorkspaceState** (`src/lib/client/shared/state/WorkspaceState.svelte.js`): Reactive state management
+- **DatabaseManager**: SQLite operations with event sourcing
+
+### Status Derivation
+
+Workspace status is computed dynamically based on session state and activity:
+
+```javascript
+if (sessionCounts.running > 0) {
+  status = 'active';
+} else if (workspace.lastActive) {
+  const daysSinceActivity = (Date.now() - workspace.lastActive) / (1000 * 60 * 60 * 24);
+  status = daysSinceActivity > 30 ? 'archived' : 'inactive';
+} else {
+  status = 'new';
+}
+```
+
+### Real-time Updates
+
+- Session creation/updates automatically trigger workspace activity updates
+- Socket.IO `run:event` emissions notify clients of session state changes
+- Multiple browser tabs stay synchronized via event sourcing
+
+## Implementation Details
+
+### Path Validation
+
+Workspace paths are validated in the `+server.js` handlers:
+
+```javascript
+function isValidWorkspacePath(path) {
+  if (!path || typeof path !== 'string') return false;
+
+  // Block path traversal
+  if (path.includes('..') || path.includes('~')) return false;
+
+  // Limit length
+  if (path.length > 500) return false;
+
+  // Must be absolute
+  if (!path.startsWith('/')) return false;
+
+  return true;
+}
+```
+
+### Name Derivation
+
+If no name is provided, workspace name is derived from the path:
+
+```javascript
+function extractWorkspaceName(path) {
+  if (!path) return 'Unnamed Workspace';
+  const segments = path.split('/').filter(Boolean);
+  return segments[segments.length - 1] || 'Root';
+}
+```
+
+### Database Schema
+
+**workspaces table:**
+
+```sql
+CREATE TABLE workspaces (
+  path TEXT PRIMARY KEY,
+  name TEXT,
+  last_active INTEGER,
+  created_at INTEGER,
+  updated_at INTEGER,
+  theme_override TEXT DEFAULT NULL
+)
+```
+
+See [Database Schema Reference](./database-schema.md) for complete schema documentation.
 
 ## Rate Limiting
 
-Currently no rate limiting is implemented. For production deployments, consider adding rate limiting middleware to prevent abuse.
+Currently no rate limiting is implemented. For production deployments, consider adding rate limiting middleware.
 
 ## Security Considerations
 
-- All paths are validated to prevent directory traversal attacks
-- Workspace deletion requires explicit confirmation of no active sessions
-- Authentication key must be provided for all operations
-- Path sanitization prevents access to system directories outside workspace root
+- **Path traversal prevention**: Rejects paths containing `..` or `~`
+- **Path length limits**: Maximum 500 characters
+- **Absolute paths only**: Must start with `/`
+- **Active session checks**: Cannot delete workspaces with running sessions
+- **Authentication required**: All endpoints require valid `TERMINAL_KEY`
+- **No filesystem access**: Workspace API only manages database metadata (file operations handled separately)

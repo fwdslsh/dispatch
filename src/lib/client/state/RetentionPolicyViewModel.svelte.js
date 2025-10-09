@@ -1,11 +1,11 @@
 /**
- * RetentionPolicyViewModel - Manages retention policy settings via user preferences
+ * RetentionPolicyViewModel - Manages retention policy settings via settings table
  * Uses Svelte 5 runes for reactive state management
  * Follows MVVM pattern with validation and preview capabilities
  *
  * CONSOLIDATED ARCHITECTURE:
- * - Retention policies stored in user_preferences table under 'maintenance' category
- * - Uses PreferencesViewModel for preference management
+ * - Retention policies stored in settings table under 'maintenance' category
+ * - Uses SettingsService for settings management
  * - Cleanup operations via /api/maintenance endpoint
  */
 
@@ -22,16 +22,16 @@ export class RetentionPolicyViewModel {
 	originalPolicy = $state(null);
 
 	// Injected dependencies
-	#preferencesViewModel;
+	#settingsService;
 	#authKey;
 
 	/**
 	 * Create RetentionPolicyViewModel
-	 * @param {PreferencesViewModel} preferencesViewModel - Preferences manager
+	 * @param {SettingsService} settingsService - Settings manager
 	 * @param {string} authKey - Authentication key
 	 */
-	constructor(preferencesViewModel, authKey) {
-		this.#preferencesViewModel = preferencesViewModel;
+	constructor(settingsService, authKey) {
+		this.#settingsService = settingsService;
 		this.#authKey = authKey;
 	}
 
@@ -66,29 +66,18 @@ export class RetentionPolicyViewModel {
 	}
 
 	/**
-	 * Load current retention policy from user preferences
+	 * Load current retention policy from settings
 	 */
 	async loadPolicy() {
 		this.isLoading = true;
 		try {
-			// Load maintenance preferences via PreferencesViewModel
-			const response = await fetch(`/api/preferences?category=maintenance`, {
-				headers: {
-					Authorization: `Bearer ${this.#authKey}`,
-					'Content-Type': 'application/json'
-				}
-			});
+			// Load maintenance settings via SettingsService
+			const maintenanceSettings = await this.#settingsService.getCategory('maintenance');
 
-			if (!response.ok) {
-				throw new Error('Failed to load maintenance preferences');
-			}
-
-			const maintenancePrefs = await response.json();
-
-			// Use defaults if preferences don't exist
-			this.sessionDays = maintenancePrefs.sessionRetentionDays || 30;
-			this.logDays = maintenancePrefs.logRetentionDays || 7;
-			this.autoCleanup = maintenancePrefs.autoCleanupEnabled ?? true;
+			// Use defaults if settings don't exist
+			this.sessionDays = maintenanceSettings.sessionRetentionDays || 30;
+			this.logDays = maintenanceSettings.logRetentionDays || 7;
+			this.autoCleanup = maintenanceSettings.autoCleanupEnabled ?? true;
 
 			// Store original policy for change tracking
 			this.originalPolicy = {
@@ -114,7 +103,7 @@ export class RetentionPolicyViewModel {
 
 		this.isGeneratingPreview = true;
 		try {
-			// Save policy first if changed (preview uses current preferences from DB)
+			// Save policy first if changed (preview uses current settings from DB)
 			if (this.hasChanges) {
 				await this.savePolicy();
 			}
@@ -148,37 +137,20 @@ export class RetentionPolicyViewModel {
 	}
 
 	/**
-	 * Save current policy settings to user preferences
-	 * @returns {object} Updated policy
+	 * Save current policy settings
+	 * @returns {Promise<object>} Updated policy
 	 */
 	async savePolicy() {
 		if (!this.canSave) return;
 
 		this.isSaving = true;
 		try {
-			// Save via preferences API (maintenance category)
-			const response = await fetch('/api/preferences', {
-				method: 'PUT',
-				headers: {
-					Authorization: `Bearer ${this.#authKey}`,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					category: 'maintenance',
-					preferences: {
-						sessionRetentionDays: this.sessionDays,
-						logRetentionDays: this.logDays,
-						autoCleanupEnabled: this.autoCleanup
-					}
-				})
+			// Save via SettingsService (maintenance category)
+			await this.#settingsService.updateCategorySettings('maintenance', {
+				sessionRetentionDays: this.sessionDays,
+				logRetentionDays: this.logDays,
+				autoCleanupEnabled: this.autoCleanup
 			});
-
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to save retention policy');
-			}
-
-			const data = await response.json();
 
 			// Update original policy tracking
 			this.originalPolicy = {
@@ -188,7 +160,7 @@ export class RetentionPolicyViewModel {
 			};
 
 			this.error = null;
-			return data.preferences;
+			return this.originalPolicy;
 		} catch (err) {
 			this.error = err.message || 'Failed to save retention policy';
 			console.error('Failed to save retention policy:', err);

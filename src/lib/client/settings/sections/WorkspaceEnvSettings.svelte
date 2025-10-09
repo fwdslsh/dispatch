@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
+	import InfoBox from '$lib/client/shared/components/InfoBox.svelte';
 	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
@@ -111,18 +112,17 @@
 </script>
 
 <div class="workspace-env-settings flex-col gap-4">
-	<header class="settings-header">
-		<h3>Workspace Environment Variables</h3>
-		<p class="settings-description">
-			Define environment variables that will be available to all sessions (PTY, Claude, etc.) in
-			this workspace. These variables are merged with system environment variables, with
-			session-specific variables taking highest precedence.
-		</p>
-	</header>
+	<h3>WORKSPACE ENVIRONMENT VARIABLES</h3>
+	<p class="section-subtitle">
+		Define environment variables that will be available to all sessions (PTY, Claude, etc.) in
+		this workspace. These variables are merged with system environment variables, with
+		session-specific variables taking highest precedence.
+	</p>
+
+	<h4>ENVIRONMENT VARIABLES</h4>
 
 	<div class="env-variables-section flex-col gap-3">
 		<div class="section-header flex-between">
-			<h4>Environment Variables</h4>
 			<Button onclick={addEnvVariable} variant="ghost" size="small">+ Add Variable</Button>
 		</div>
 
@@ -159,26 +159,26 @@
 			{/each}
 		</div>
 
-		<div class="env-help">
+		<InfoBox variant="info">
 			<h5>Examples:</h5>
 			<ul>
 				<li><code>NODE_ENV</code> = <code>development</code></li>
 				<li><code>API_KEY</code> = <code>your-api-key-here</code></li>
 				<li><code>DEBUG</code> = <code>app:*</code></li>
 			</ul>
-		</div>
+		</InfoBox>
 	</div>
 
 	<!-- Actions -->
-	<footer class="settings-footer flex-between gap-4">
+	<footer class="settings-footer">
 		<div
-			class="save-status"
-			class:success={saveStatus.includes('success')}
-			class:error={saveStatus.includes('Failed')}
+			class="settings-footer__status"
+			class:settings-footer__status--success={saveStatus.includes('success')}
+			class:settings-footer__status--error={saveStatus.includes('Failed')}
 		>
 			{saveStatus}
 		</div>
-		<div class="flex gap-3">
+		<div class="settings-footer__actions">
 			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
 				Reset
 			</Button>
@@ -190,22 +190,12 @@
 </div>
 
 <style>
+	/* Import shared settings styles - most styles now in settings.css */
+
 	.workspace-env-settings {
 		height: 100%;
 		overflow-y: auto;
-		padding: var(--space-4);
-	}
-
-	.settings-header h3 {
-		color: var(--primary);
-		font-weight: 700;
-		margin-bottom: var(--space-2);
-	}
-
-	.settings-description {
-		color: var(--primary-muted);
-		font-size: var(--text-sm);
-		line-height: 1.5;
+		padding: var(--space-3);
 	}
 
 	.section-header h4 {
@@ -214,76 +204,52 @@
 		margin: 0;
 	}
 
+	/* Component-specific environment variable row styling */
 	.env-variable-row {
 		padding: var(--space-2);
-		border: 1px solid var(--primary-dim);
+		border: 1px solid var(--line);
 		border-radius: var(--radius-sm);
-		background: var(--surface-secondary);
+		background: var(--surface);
 	}
 
 	.env-equals {
-		color: var(--primary-muted);
+		color: var(--muted);
 		font-weight: 600;
 		min-width: 20px;
 		text-align: center;
 	}
 
 	.validation-error {
-		color: var(--error);
-		font-size: var(--text-xs);
+		color: var(--err);
+		font-size: var(--font-size-0);
 		margin-top: var(--space-1);
 		display: block;
 	}
 
-	.env-help {
-		padding: var(--space-3);
-		background: var(--surface-tertiary);
-		border-radius: var(--radius-sm);
-		border: 1px solid var(--primary-dim);
-	}
-
-	.env-help h5 {
+	/* InfoBox customization for environment variable examples */
+	:global(.info-box h5) {
 		color: var(--primary);
-		font-size: var(--text-sm);
+		font-size: var(--font-size-1);
 		font-weight: 600;
 		margin: 0 0 var(--space-2) 0;
 	}
 
-	.env-help ul {
+	:global(.info-box ul) {
 		margin: 0;
 		padding-left: var(--space-4);
-		color: var(--primary-muted);
-		font-size: var(--text-sm);
+		color: var(--muted);
+		font-size: var(--font-size-1);
 	}
 
-	.env-help li {
+	:global(.info-box li) {
 		margin-bottom: var(--space-1);
 	}
 
-	.env-help code {
-		background: var(--surface-secondary);
+	:global(.info-box code) {
+		background: var(--elev);
 		padding: 2px 4px;
 		border-radius: var(--radius-xs);
 		font-family: var(--font-mono);
-		font-size: var(--text-xs);
-	}
-
-	.settings-footer {
-		margin-top: auto;
-		padding-top: var(--space-4);
-		border-top: 1px solid var(--primary-dim);
-	}
-
-	.save-status {
-		font-size: var(--text-sm);
-		font-weight: 500;
-	}
-
-	.save-status.success {
-		color: var(--success);
-	}
-
-	.save-status.error {
-		color: var(--error);
+		font-size: var(--font-size-0);
 	}
 </style>

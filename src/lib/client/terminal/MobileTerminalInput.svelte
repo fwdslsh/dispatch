@@ -327,7 +327,7 @@
 		position: relative;
 		z-index: 10;
 		box-shadow:
-			0 -8px 32px -16px rgba(0, 0, 0, 0.1),
+			0 calc(-1 * var(--space-2)) var(--space-6) -16px rgba(0, 0, 0, 0.1),
 			inset 0 1px 2px color-mix(in oklab, var(--primary) 10%, transparent);
 	}
 
@@ -435,7 +435,7 @@
 		position: relative;
 		z-index: 10;
 		box-shadow:
-			0 -8px 32px -16px rgba(0, 0, 0, 0.1),
+			0 calc(-1 * var(--space-2)) var(--space-6) -16px rgba(0, 0, 0, 0.1),
 			inset 0 1px 2px color-mix(in oklab, var(--primary) 10%, transparent);
 		flex-shrink: 0;
 		margin-top: auto;
@@ -458,13 +458,13 @@
 		--aug-border: 1px;
 		--aug-border-bg: linear-gradient(135deg, var(--primary), var(--accent-cyan));
 		--aug-border-fallback-color: var(--primary);
-		--aug-tl: 8px;
-		--aug-br: 8px;
+		--aug-tl: var(--space-2);
+		--aug-br: var(--space-2);
 		background: color-mix(in oklab, var(--surface) 94%, var(--primary) 6%);
 		backdrop-filter: blur(8px) saturate(110%);
 		box-shadow:
 			inset 0 1px 4px rgba(0, 0, 0, 0.05),
-			0 2px 8px -4px rgba(0, 0, 0, 0.1),
+			0 2px var(--space-2) -4px rgba(0, 0, 0, 0.1),
 			0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent);
 		transition: all 0.15s ease;
 	}

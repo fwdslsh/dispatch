@@ -93,14 +93,14 @@
 
 	/* Size variants */
 	.spinner--small .spinner__circle {
-		width: 16px;
-		height: 16px;
+		width: var(--font-size-2);
+		height: var(--font-size-2);
 		border-width: 2px;
 	}
 
 	.spinner--medium .spinner__circle {
-		width: 24px;
-		height: 24px;
+		width: var(--space-5);
+		height: var(--space-5);
 		border-width: 2.5px;
 	}
 
@@ -111,20 +111,20 @@
 	}
 
 	.spinner--xl .spinner__circle {
-		width: 48px;
-		height: 48px;
-		border-width: 4px;
+		width: var(--space-7);
+		height: var(--space-7);
+		border-width: var(--space-1);
 	}
 
 	/* Color variants */
 	.spinner--primary .spinner__circle {
-		border-color: color-mix(in oklab, var(--accent) 30%, transparent);
-		border-top-color: var(--accent);
+		border-color: color-mix(in oklab, var(--primary) 30%, transparent);
+		border-top-color: var(--primary);
 	}
 
 	.spinner--secondary .spinner__circle {
-		border-color: color-mix(in oklab, var(--accent-2) 30%, transparent);
-		border-top-color: var(--accent-2);
+		border-color: var(--primary-glow-30);
+		border-top-color: var(--primary);
 	}
 
 	.spinner--muted .spinner__circle {

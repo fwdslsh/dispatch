@@ -31,13 +31,17 @@ describe('OnboardingViewModel', () => {
 		viewModel.currentStep = 'auth';
 		expect(viewModel.progressPercentage).toBe(0);
 
-		// Workspace step = 33%
+		// Workspace step = 25% (step 1 of 4)
 		viewModel.currentStep = 'workspace';
-		expect(viewModel.progressPercentage).toBe(33);
+		expect(viewModel.progressPercentage).toBe(25);
 
-		// Settings step = 67%
+		// Theme step = 50% (step 2 of 4)
+		viewModel.currentStep = 'theme';
+		expect(viewModel.progressPercentage).toBe(50);
+
+		// Settings step = 75% (step 3 of 4)
 		viewModel.currentStep = 'settings';
-		expect(viewModel.progressPercentage).toBe(67);
+		expect(viewModel.progressPercentage).toBe(75);
 
 		// Complete step = 100%
 		viewModel.currentStep = 'complete';
@@ -48,6 +52,9 @@ describe('OnboardingViewModel', () => {
 		viewModel.currentStep = 'auth';
 		viewModel.nextStep();
 		expect(viewModel.currentStep).toBe('workspace');
+
+		viewModel.nextStep();
+		expect(viewModel.currentStep).toBe('theme');
 
 		viewModel.nextStep();
 		expect(viewModel.currentStep).toBe('settings');
@@ -64,6 +71,9 @@ describe('OnboardingViewModel', () => {
 		viewModel.currentStep = 'complete';
 		viewModel.previousStep();
 		expect(viewModel.currentStep).toBe('settings');
+
+		viewModel.previousStep();
+		expect(viewModel.currentStep).toBe('theme');
 
 		viewModel.previousStep();
 		expect(viewModel.currentStep).toBe('workspace');

@@ -195,8 +195,8 @@
 			font-size: 0.95rem;
 		}
 		.event-icon :global(svg) {
-			width: 14px;
-			height: 14px;
+			width: var(--font-size-1);
+			height: var(--font-size-1);
 		}
 		.event-summary {
 			padding: var(--space-2) var(--space-3);

@@ -287,8 +287,8 @@
 	}
 
 	.shortcuts-modal {
-		background: var(--bg, #1a1a1a);
-		border: 1px solid var(--surface-border, #333);
+		background: var(--bg);
+		border: 1px solid var(--surface-border);
 		border-radius: var(--radius-lg);
 		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 		width: 100%;
@@ -316,8 +316,8 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 1.5rem 2rem;
-		border-bottom: 1px solid var(--surface-border, #333);
-		background: var(--surface-elevated, #222);
+		border-bottom: 1px solid var(--surface-border);
+		background: var(--elev);
 	}
 
 	.header-content {
@@ -347,8 +347,8 @@
 	}
 
 	.shortcut-category {
-		background: var(--surface-hover, #2a2a2a);
-		border: 1px solid var(--surface-border, #333);
+		background: var(--surface-hover);
+		border: 1px solid var(--surface-border);
 		border-radius: var(--radius-md);
 		padding: 1.5rem;
 	}
@@ -388,17 +388,17 @@
 	}
 
 	.key {
-		background: var(--surface-active, #333);
-		border: 1px solid var(--surface-border, #444);
+		background: var(--elev);
+		border: 1px solid var(--surface-border);
 		border-radius: var(--radius-xs);
 		padding: 0.25rem 0.5rem;
-		font-family: var(--font-mono, monospace);
+		font-family: var(--font-mono);
 		font-size: 0.75rem;
 		font-weight: 500;
-		color: var(--text-primary, #fff);
+		color: var(--text);
 		min-width: 24px;
 		text-align: center;
-		box-shadow: 0 2px 0 var(--surface-border, #444);
+		box-shadow: 0 2px 0 var(--surface-border);
 	}
 
 	.key.small {
@@ -465,8 +465,8 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 1.5rem 2rem;
-		border-top: 1px solid var(--surface-border, #333);
-		background: var(--surface-elevated, #222);
+		border-top: 1px solid var(--surface-border);
+		background: var(--elev);
 	}
 
 	.footer-note {

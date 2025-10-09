@@ -406,10 +406,11 @@ export class ThemeManager {
 	/**
 	 * Check if a theme can be deleted (not in use, not a preset)
 	 * @param {string} themeId - Theme identifier to check
-	 * @param {Object} database - DatabaseManager instance to check usage
+	 * @param {Object} settingsRepository - SettingsRepository instance to check usage
+	 * @param {Object} database - DatabaseManager instance to check workspace usage
 	 * @returns {Promise<Object>} Object with canDelete flag and optional reason/details
 	 */
-	async canDelete(themeId, database) {
+	async canDelete(themeId, settingsRepository, database) {
 		const theme = await this.getTheme(themeId);
 
 		if (!theme) {
@@ -429,7 +430,7 @@ export class ThemeManager {
 
 		// Check if theme is global default
 		try {
-			const prefs = await database.getUserPreferences('themes');
+			const prefs = await settingsRepository.getByCategory('themes');
 			const globalDefault = prefs?.globalDefault;
 
 			if (globalDefault === `${themeId}.json`) {

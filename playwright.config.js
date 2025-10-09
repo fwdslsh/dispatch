@@ -48,24 +48,35 @@ export default defineConfig({
 		navigationTimeout: 30000
 	},
 
-	/* Global setup to disable service worker */
+	/* Global setup and teardown */
 	globalSetup: './e2e/global-setup.js',
+	globalTeardown: './e2e/global-teardown.js',
 
 	/* Configure projects for major browsers */
 	projects: [
+		// Setup project - runs first and sets up the database
+		{
+			name: 'setup',
+			testMatch: /.*seed\.spec\.ts/
+		},
+
+		// Browser test projects - depend on setup
 		{
 			name: 'chromium',
-			use: { ...devices['Desktop Chrome'] }
+			use: { ...devices['Desktop Chrome'] },
+			dependencies: ['setup']
 		},
 
 		{
 			name: 'firefox',
-			use: { ...devices['Desktop Firefox'] }
+			use: { ...devices['Desktop Firefox'] },
+			dependencies: ['setup']
 		},
 
 		{
 			name: 'webkit',
-			use: { ...devices['Desktop Safari'] }
+			use: { ...devices['Desktop Safari'] },
+			dependencies: ['setup']
 		},
 
 		/* Test against mobile viewports. */
@@ -74,24 +85,22 @@ export default defineConfig({
 			use: {
 				...devices['Pixel 5'],
 				hasTouch: true
-			}
+			},
+			dependencies: ['setup']
 		},
 		{
 			name: 'Mobile Safari',
 			use: {
 				...devices['iPhone 12'],
 				hasTouch: true
-			}
+			},
+			dependencies: ['setup']
 		}
-	],
+	]
 
-	/* Run your local dev server before starting the tests */
-	webServer: {
-		// Use test server (no SSL) by default. Override with USE_SSL=true for SSL-specific tests
-		command: process.env.USE_SSL === 'true' ? 'npm run dev' : 'npm run dev:test',
-		url: process.env.USE_SSL === 'true' ? 'https://localhost:5173' : 'http://localhost:7173',
-		reuseExistingServer: !process.env.CI,
-		timeout: 120 * 1000,
-		ignoreHTTPSErrors: process.env.USE_SSL === 'true'
-	}
+	/* NOTE: Web server must be started manually before running tests
+	 * Run: npm run dev:test
+	 * This starts the test server on http://localhost:7173
+	 * The webServer configuration has been removed to avoid startup issues
+	 */
 });

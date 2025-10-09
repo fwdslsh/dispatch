@@ -107,7 +107,7 @@
 </script>
 
 <div
-	class="modal-backdrop {open ? 'open' : ''}"
+	class="modal-backdrop {open ? 'modal-backdrop--open' : ''}"
 	role="dialog"
 	aria-modal="true"
 	aria-label={ariaLabel || title}
@@ -120,7 +120,7 @@
 >
 	<div
 		id={modalId}
-		class="modal-container modal-container--{size} {open ? 'open' : ''} {customClass}"
+		class="modal-container modal-container--{size} {open ? 'modal-container--open' : ''} {customClass}"
 		data-augmented-ui={augmented}
 		tabindex="-1"
 		{...restProps}

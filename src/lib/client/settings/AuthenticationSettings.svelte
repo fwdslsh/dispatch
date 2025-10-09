@@ -4,16 +4,17 @@
 -->
 
 <script>
-	import { SettingsViewModel } from './SettingsViewModel.svelte.js';
 	import TerminalKeySettings from './sections/TerminalKeySettings.svelte';
 	import OAuthSettings from './sections/OAuthSettings.svelte';
 	import AuthStatus from '../shared/components/AuthStatus.svelte';
 	import Button from '../shared/components/Button.svelte';
 
-	/**
-	 * @type {SettingsViewModel}
-	 */
-	let { settingsViewModel } = $props();
+	let {
+		/**
+		 * @type {SettingsViewModel}
+		 */
+		settingsViewModel
+	} = $props();
 
 	// Direct access to authentication category (reactive via $state proxy)
 	let authenticationSettings = $derived(settingsViewModel.categories.authentication || {});
@@ -48,15 +49,27 @@
 		</p>
 	</div>
 
-	<div class="settings-content">
+	<div>
 		<!-- Current Authentication Status -->
 		<AuthStatus />
 
 		<!-- Terminal Key Settings Section -->
-		<TerminalKeySettings {settingsViewModel} />
+		<section class="auth-section">
+			<h4>Terminal Key</h4>
+			<p class="subsection-description">
+				Secure authentication key for terminal and Claude Code sessions.
+			</p>
+			<TerminalKeySettings {settingsViewModel} />
+		</section>
 
 		<!-- OAuth Settings Section -->
-		<OAuthSettings {settingsViewModel} />
+		<section class="auth-section">
+			<h4>OAuth Configuration</h4>
+			<p class="subsection-description">
+				Configure OAuth authentication for secure user access to your application.
+			</p>
+			<OAuthSettings {settingsViewModel} />
+		</section>
 
 		<!-- Session Invalidation Warning -->
 		{#if hasChanges}
@@ -114,137 +127,3 @@
 		{/if}
 	</div>
 </div>
-
-<style>
-	@import '$lib/client/shared/styles/settings.css';
-
-	.authentication-settings {
-		background: var(--surface);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-md);
-		padding: var(--space-5);
-		margin-bottom: var(--space-5);
-		container-type: inline-size;
-	}
-
-	.settings-header h3 {
-		margin: 0 0 var(--space-2) 0;
-		color: var(--primary);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-4);
-		font-weight: 600;
-		text-shadow: 0 0 8px var(--primary-glow);
-	}
-
-	.settings-description {
-		margin: 0 0 var(--space-5) 0;
-		color: var(--muted);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		line-height: 1.5;
-	}
-
-	.settings-content {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-5);
-	}
-
-	/* Warning alert styling */
-	.session-warning {
-		display: flex;
-		align-items: flex-start;
-		gap: var(--space-3);
-		padding: var(--space-4);
-		background: color-mix(in oklab, var(--warn) 15%, var(--surface));
-		border: 1px solid var(--warn);
-		border-radius: var(--radius-sm);
-		color: var(--warn);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-	}
-
-	.warning-icon {
-		font-size: var(--font-size-4);
-		flex-shrink: 0;
-		line-height: 1;
-	}
-
-	.warning-content {
-		flex: 1;
-	}
-
-	.warning-content strong {
-		font-weight: 600;
-		display: block;
-		margin-bottom: var(--space-1);
-	}
-
-	/* Action buttons */
-	.settings-actions {
-		display: flex;
-		gap: var(--space-3);
-		align-items: center;
-		flex-wrap: wrap;
-		padding-top: var(--space-5);
-		margin-top: var(--space-4);
-		border-top: 1px solid var(--line);
-	}
-
-	/* Message states */
-	.success-message {
-		padding: var(--space-4);
-		background: color-mix(in oklab, var(--ok) 15%, var(--surface));
-		border: 1px solid var(--ok);
-		border-radius: var(--radius-sm);
-		color: var(--ok);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-	}
-
-	.error-message {
-		padding: var(--space-4);
-		background: var(--err-dim);
-		border: 1px solid var(--err);
-		border-radius: var(--radius-sm);
-		color: var(--err);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-	}
-
-	/* Loading state */
-	.loading-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--space-4);
-		padding: var(--space-6);
-		color: var(--muted);
-		font-family: var(--font-mono);
-	}
-
-	.loading-state .loading-spinner {
-		width: 32px;
-		height: 32px;
-		border-width: 3px;
-	}
-
-	/* Responsive Design */
-	@container (max-width: 600px) {
-		.authentication-settings {
-			padding: var(--space-4);
-		}
-
-		.settings-actions {
-			flex-direction: column;
-			align-items: stretch;
-		}
-	}
-
-	/* High contrast mode support */
-	@media (prefers-contrast: high) {
-		.authentication-settings {
-			border-width: 2px;
-		}
-	}
-</style>
