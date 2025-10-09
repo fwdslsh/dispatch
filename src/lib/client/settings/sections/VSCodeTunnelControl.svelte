@@ -62,30 +62,19 @@
 		error = null;
 		deviceLoginUrl = '';
 
-		// Get terminal key from localStorage
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
+		const data = {};
 
-		// Authenticate first
-		socket.emit('auth', terminalKey, (authResponse) => {
-			if (!authResponse?.success) {
-				isLoading = false;
-				error = 'Authentication failed. Please check your terminal key.';
-				return;
+		// Add optional parameters if provided
+		if (nameInput.trim()) data.name = nameInput.trim();
+
+		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+		socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
+			isLoading = false;
+			if (response.success) {
+				tunnelStatus = { running: true, state: response.state };
+			} else {
+				error = response.error || 'Failed to start tunnel';
 			}
-
-			const data = {};
-
-			// Add optional parameters if provided
-			if (nameInput.trim()) data.name = nameInput.trim();
-
-			socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
-				isLoading = false;
-				if (response.success) {
-					tunnelStatus = { running: true, state: response.state };
-				} else {
-					error = response.error || 'Failed to start tunnel';
-				}
-			});
 		});
 	}
 
@@ -96,25 +85,14 @@
 		error = null;
 		deviceLoginUrl = '';
 
-		// Get terminal key from localStorage
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
-
-		// Authenticate first
-		socket.emit('auth', terminalKey, (authResponse) => {
-			if (!authResponse?.success) {
-				isLoading = false;
-				error = 'Authentication failed. Please check your terminal key.';
-				return;
+		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+		socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, {}, (response) => {
+			isLoading = false;
+			if (response.success) {
+				tunnelStatus = { running: false, state: null };
+			} else {
+				error = response.error || 'Failed to stop tunnel';
 			}
-
-			socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, {}, (response) => {
-				isLoading = false;
-				if (response.success) {
-					tunnelStatus = { running: false, state: null };
-				} else {
-					error = response.error || 'Failed to stop tunnel';
-				}
-			});
 		});
 	}
 

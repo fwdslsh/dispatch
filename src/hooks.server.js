@@ -36,7 +36,6 @@ export async function getGlobalServices() {
  */
 const PUBLIC_ROUTES = [
 	'/login',
-	'/auth/callback',
 	'/api/auth/callback',
 	'/api/auth/config',
 	'/api/auth/login',

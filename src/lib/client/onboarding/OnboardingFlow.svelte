@@ -1,18 +1,6 @@
 <script>
 	/**
-	 * OnboardingFlow - Progressive o			// Store authentication in localStorage after successful submission
-		if (viewModel.formData.terminalKey) {
-			localStorage.setItem('dispatch-auth-token', viewModel.formData.terminalKey);
-		}
-		localStorage.setItem('onboarding-complete', 'true');
-
-		// Call parent's onComplete callback
-		onComplete({ detail: result });
-
-		// Redirect to main workspace
-		await goto('/');
-	} catch (error) {auth data for immediate use
-			localStorage.setItem('dispatch-auth-token', viewModel.formData.terminalKey);oarding component
+	 * OnboardingFlow - Progressive onboarding component
 	 * Implements step-by-step workflow for first-time users
 	 * Follows constitutional requirement for minimal first experience
 	 *
@@ -59,10 +47,8 @@
 		try {
 			const result = await viewModel.submit();
 
-			// Store authentication in localStorage after successful submission
-			if (viewModel.formData.terminalKey) {
-				localStorage.setItem('dispatch-auth-token', viewModel.formData.terminalKey);
-			}
+			// Session cookie is set by the server during onboarding submission
+			// Only store UI preference in localStorage
 			localStorage.setItem('onboarding-complete', 'true');
 
 			// Call parent's onComplete callback
@@ -94,7 +80,9 @@
 	{:else if viewModel.currentStep === 'complete'}
 		<div class="flex flex-col items-center justify-center py-16">
 			<h2 class="text-2xl font-bold text-success mb-2">🎉 Welcome to Dispatch!</h2>
-			<p class="text-base-content/70">Your setup is complete. Redirecting to your workspace...</p>
+			<p class="text-base-content/70">
+				Your setup is complete. Redirecting to your workspace...
+			</p>
 		</div>
 	{:else}
 		<div class="bg-base-100 rounded-xl shadow-lg p-8 flex flex-col gap-8">
@@ -136,8 +124,7 @@
 									bind:value={viewModel.formData.confirmTerminalKey}
 									oninput={(e) => viewModel.updateFormData('confirmTerminalKey', e.target.value)}
 									disabled={viewModel.isLoading}
-									onkeydown={(e) =>
-										e.key === 'Enter' && viewModel.canProceedFromAuth && handleNextStep()}
+									onkeydown={(e) => e.key === 'Enter' && viewModel.canProceedFromAuth && handleNextStep()}
 								/>
 								<div class="bg-base-200 rounded p-3 text-xs mt-2">
 									<div class="font-semibold mb-1">Tips for a strong terminal key:</div>
@@ -193,7 +180,11 @@
 							<Button variant="ghost" onclick={handlePreviousStep} disabled={viewModel.isLoading}>
 								Back
 							</Button>
-							<Button variant="primary" onclick={handleNextStep} disabled={viewModel.isLoading}>
+							<Button
+								variant="primary"
+								onclick={handleNextStep}
+								disabled={viewModel.isLoading}
+							>
 								{viewModel.formData.workspaceName ? 'Continue' : 'Skip Workspace'}
 							</Button>
 						</div>

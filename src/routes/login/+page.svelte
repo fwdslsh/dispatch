@@ -11,7 +11,7 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 
 	// SvelteKit form action response
-	export let form;
+	let { form } = $props();
 
 	// Initialize AuthViewModel
 	const authViewModel = new AuthViewModel();

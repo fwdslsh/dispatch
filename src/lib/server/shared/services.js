@@ -4,7 +4,6 @@
  */
 
 import { ConfigurationService } from './ConfigurationService.js';
-import { JWTService } from '../auth/JWTService.js';
 import { DatabaseManager } from '../database/DatabaseManager.js';
 import { SessionRepository } from '../database/SessionRepository.js';
 import { EventStore } from '../database/EventStore.js';
@@ -37,7 +36,6 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  *
  * @typedef {Object} Services
  * @property {ConfigurationService} config
- * @property {JWTService} jwt
  * @property {DatabaseManager} db
  * @property {DatabaseManager} database
  * @property {SessionRepository} sessionRepository
@@ -97,7 +95,6 @@ export function createServices(config = {}) {
 	});
 
 	// Layer 2: Core infrastructure
-	const jwtService = new JWTService(configService.get('TERMINAL_KEY'));
 	const db = new DatabaseManager(resolvedConfig.dbPath);
 
 	// Layer 3: Repositories (depend on db)
@@ -143,7 +140,6 @@ export function createServices(config = {}) {
 	return {
 		// Core
 		config: configService,
-		jwt: jwtService,
 		db,
 		database: db, // Alias for backward compatibility
 
@@ -235,7 +231,7 @@ export async function initializeServices(config = {}) {
 						clientSecret: authSettings.oauth_client_secret,
 						redirectUri:
 							authSettings.oauth_redirect_uri ||
-							`http://localhost:${services.config.get('PORT')}/auth/callback`,
+							`http://localhost:${services.config.get('PORT')}/api/auth/callback`,
 						scopes: (authSettings.oauth_scope || 'user:email').split(' ')
 					});
 					await services.multiAuthManager.registerProvider(githubProvider);

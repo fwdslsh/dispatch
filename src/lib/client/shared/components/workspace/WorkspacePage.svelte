@@ -9,7 +9,6 @@
 	// WorkspaceViewModel removed - obsolete in unified architecture
 	import { createLogger } from '$lib/client/shared/utils/logger.js';
 	import { SESSION_TYPE } from '$lib/shared/session-types.js';
-	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
 	// Components
 	import WorkspaceHeader from './WorkspaceHeader.svelte';
@@ -112,51 +111,10 @@
 	let deferredPrompt = $state(null);
 	let __removeWorkspacePageListeners = $state(null);
 
-	// Authentication check state to prevent multiple simultaneous checks
-	let authCheckInProgress = $state(false);
-
 	// Initialization
 	onMount(async () => {
-		// Prevent multiple simultaneous auth checks
-		if (authCheckInProgress) {
-			log.debug('Auth check already in progress, skipping');
-			return;
-		}
-		authCheckInProgress = true;
-
-		try {
-			// Authentication check
-			if (browser) {
-				const storedKey = localStorage.getItem('dispatch-auth-token');
-				if (!storedKey) {
-					log.info('No auth key found, redirecting to login');
-					goto('/');
-					return;
-				}
-
-				try {
-					const response = await fetch(`/api/auth/check`, {
-						method: 'POST',
-						headers: {
-							...getAuthHeaders(),
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify({ key: storedKey })
-					});
-					if (!response.ok) {
-						log.warn('Auth key invalid, redirecting to login');
-						localStorage.removeItem('dispatch-auth-token');
-						goto('/');
-						return;
-					}
-				} catch (error) {
-					log.error('Failed to verify auth key', error);
-					// Don't redirect on network errors, allow user to retry
-				}
-			}
-		} finally {
-			authCheckInProgress = false;
-		}
+		// Authentication is handled server-side via session cookies
+		// No client-side auth check needed
 
 		// Get shared ViewModels from container
 		sessionViewModel = await container.get('sessionViewModel');
@@ -215,9 +173,16 @@
 		log.info('Edit mode toggled:', editModeEnabled);
 	}
 
-	function handleLogout() {
-		if (typeof localStorage !== 'undefined') {
-			localStorage.removeItem('dispatch-auth-token');
+	async function handleLogout() {
+		try {
+			// Call logout endpoint to clear session cookie
+			await fetch('/api/auth/logout', {
+				method: 'POST',
+				credentials: 'include'
+			});
+		} catch (error) {
+			log.error('Logout request failed:', error);
+			// Continue with redirect even if logout fails
 		}
 		goto('/');
 	}

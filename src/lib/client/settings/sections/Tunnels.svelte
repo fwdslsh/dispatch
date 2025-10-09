@@ -81,34 +81,22 @@
 		localIsLoading = true;
 		localError = null;
 
-		// Get terminal key from localStorage using the correct key name
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
-
 		const event = localTunnelStatus.enabled
 			? SOCKET_EVENTS.TUNNEL_DISABLE
 			: SOCKET_EVENTS.TUNNEL_ENABLE;
 
-		// Authenticate first
-		localSocket.emit('auth', terminalKey, (authResponse) => {
-			if (!authResponse?.success) {
-				localIsLoading = false;
-				localError = 'Authentication failed. Please check your terminal key.';
-				return;
+		// Get the current port from window location
+		const currentPort =
+			window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+
+		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+		localSocket.emit(event, { port: currentPort }, (response) => {
+			localIsLoading = false;
+			if (response.success) {
+				localTunnelStatus = response.status;
+			} else {
+				localError = response.error || 'Failed to toggle tunnel';
 			}
-
-			// Get the current port from window location
-			const currentPort =
-				window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
-
-			// Now toggle tunnel with port
-			localSocket.emit(event, { port: currentPort }, (response) => {
-				localIsLoading = false;
-				if (response.success) {
-					localTunnelStatus = response.status;
-				} else {
-					localError = response.error || 'Failed to toggle tunnel';
-				}
-			});
 		});
 	}
 
@@ -131,31 +119,19 @@
 		isUpdatingConfig = true;
 		localError = null;
 
-		// Get terminal key from localStorage using the correct key name
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
-
-		// Authenticate first
-		localSocket.emit('auth', terminalKey, (authResponse) => {
-			if (!authResponse?.success) {
+		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+		localSocket.emit(
+			SOCKET_EVENTS.TUNNEL_UPDATE_CONFIG,
+			{ subdomain: subdomainInput },
+			(response) => {
 				isUpdatingConfig = false;
-				localError = 'Authentication failed. Please check your terminal key.';
-				return;
-			}
-
-			// Now update config
-			localSocket.emit(
-				SOCKET_EVENTS.TUNNEL_UPDATE_CONFIG,
-				{ subdomain: subdomainInput },
-				(response) => {
-					isUpdatingConfig = false;
-					if (response.success) {
-						localTunnelStatus = response.status;
-					} else {
-						localError = response.error || 'Failed to update subdomain';
-					}
+				if (response.success) {
+					localTunnelStatus = response.status;
+				} else {
+					localError = response.error || 'Failed to update subdomain';
 				}
-			);
-		});
+			}
+		);
 	}
 
 	function openLocalTunnelUrl() {
@@ -212,30 +188,19 @@
 		vscodeError = null;
 		deviceLoginUrl = '';
 
-		// Get terminal key from localStorage
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
+		const data = {};
 
-		// Authenticate first
-		vscodeSocket.emit('auth', terminalKey, (authResponse) => {
-			if (!authResponse?.success) {
-				vscodeIsLoading = false;
-				vscodeError = 'Authentication failed. Please check your terminal key.';
-				return;
+		// Add optional parameters if provided
+		if (nameInput.trim()) data.name = nameInput.trim();
+
+		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+		vscodeSocket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
+			vscodeIsLoading = false;
+			if (response.success) {
+				vscodeTunnelStatus = { running: true, state: response.state };
+			} else {
+				vscodeError = response.error || 'Failed to start tunnel';
 			}
-
-			const data = {};
-
-			// Add optional parameters if provided
-			if (nameInput.trim()) data.name = nameInput.trim();
-
-			vscodeSocket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
-				vscodeIsLoading = false;
-				if (response.success) {
-					vscodeTunnelStatus = { running: true, state: response.state };
-				} else {
-					vscodeError = response.error || 'Failed to start tunnel';
-				}
-			});
 		});
 	}
 
@@ -246,25 +211,14 @@
 		vscodeError = null;
 		deviceLoginUrl = '';
 
-		// Get terminal key from localStorage
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
-
-		// Authenticate first
-		vscodeSocket.emit('auth', terminalKey, (authResponse) => {
-			if (!authResponse?.success) {
-				vscodeIsLoading = false;
-				vscodeError = 'Authentication failed. Please check your terminal key.';
-				return;
+		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+		vscodeSocket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, {}, (response) => {
+			vscodeIsLoading = false;
+			if (response.success) {
+				vscodeTunnelStatus = { running: false, state: null };
+			} else {
+				vscodeError = response.error || 'Failed to stop tunnel';
 			}
-
-			vscodeSocket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, {}, (response) => {
-				vscodeIsLoading = false;
-				if (response.success) {
-					vscodeTunnelStatus = { running: false, state: null };
-				} else {
-					vscodeError = response.error || 'Failed to stop tunnel';
-				}
-			});
 		});
 	}
 

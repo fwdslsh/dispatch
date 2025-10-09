@@ -32,28 +32,28 @@
 		error = null;
 
 		try {
-			// Check if API client is available
-			if (!apiClient) {
-				throw new Error('API client not available');
-			}
+			// Use SvelteKit form action for login
+			// This will create a session and set the session cookie automatically
+			const formData = new FormData();
+			formData.append('key', terminalKey);
 
-			// Validate terminal key with auth API
-			const response = await fetch('/api/auth/check', {
+			const response = await fetch('/login', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ key: terminalKey })
+				body: formData,
+				credentials: 'include', // Include cookies in request/response
+				redirect: 'manual' // Handle redirect manually
 			});
 
-			const result = await response.json();
-
-			if (result.success) {
-				localStorage.setItem('dispatch-auth-token', terminalKey);
+			// Check if login was successful
+			if (response.type === 'opaqueredirect' || response.status === 303 || response.ok) {
+				// Session cookie has been set by server
 				isAuthenticated = true;
 
 				// Mark step complete and proceed
 				onComplete({ terminalKey });
 			} else {
-				error = result.error || 'Invalid terminal key';
+				const data = await response.json().catch(() => ({}));
+				error = data?.error || 'Invalid terminal key';
 			}
 		} catch (err) {
 			error = err.message || 'Authentication failed';

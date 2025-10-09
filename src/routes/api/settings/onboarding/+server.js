@@ -83,11 +83,27 @@ export async function POST({ request, cookies, locals }) {
 		let apiKeyResult = null;
 
 		try {
-			// Step 1: Generate first API key for the default user
+			// Step 1: Ensure default user exists in auth_users table
+			const userId = 'default';
+			const database = locals.services.database;
+			const existingUser = await database.get(
+				'SELECT user_id FROM auth_users WHERE user_id = ?',
+				[userId]
+			);
+
+			if (!existingUser) {
+				await database.run(
+					'INSERT INTO auth_users (user_id, created_at) VALUES (?, ?)',
+					[userId, Date.now()]
+				);
+				logger.info('ONBOARDING_API', `Created default user: ${userId}`);
+			}
+
+			// Step 2: Generate first API key for the default user
 			apiKeyResult = await apiKeyManager.generateKey('default', 'First API Key');
 			logger.info('ONBOARDING_API', `Generated first API key: ${apiKeyResult.id}`);
 
-			// Step 2: Create workspace if provided
+			// Step 3: Create workspace if provided
 			if (workspaceName && workspacePath) {
 				// Check if workspace already exists
 				const existingWorkspace = await workspaceRepository.findById(workspacePath);
@@ -110,7 +126,7 @@ export async function POST({ request, cookies, locals }) {
 				logger.info('ONBOARDING_API', `Created workspace: ${workspacePath}`);
 			}
 
-			// Step 3: Save user preferences if provided
+			// Step 4: Save user preferences if provided
 			if (preferences && typeof preferences === 'object') {
 				// Save preferences by category
 				for (const [category, prefs] of Object.entries(preferences)) {
@@ -126,7 +142,7 @@ export async function POST({ request, cookies, locals }) {
 				logger.info('ONBOARDING_API', 'User preferences saved');
 			}
 
-			// Step 4: Create session with the new API key
+			// Step 5: Create session with the new API key
 			const session = await sessionManager.createSession('default', 'api_key', {
 				apiKeyId: apiKeyResult.id,
 				label: apiKeyResult.label
@@ -135,7 +151,7 @@ export async function POST({ request, cookies, locals }) {
 			// Set session cookie
 			CookieService.setSessionCookie(cookies, session.sessionId);
 
-			// Step 5: Mark onboarding as complete
+			// Step 6: Mark onboarding as complete
 			const completionTimestamp = new Date().toISOString();
 			await settingsRepository.setByCategory(
 				'onboarding',

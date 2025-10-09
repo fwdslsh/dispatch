@@ -20,12 +20,7 @@
 			}
 		};
 	});
-	// Helper to get Authorization header from localStorage
-	function getAuthHeaders() {
-		const key =
-			typeof localStorage !== 'undefined' ? localStorage.getItem('dispatch-auth-token') : null;
-		return key ? { Authorization: `Bearer ${key}` } : {};
-	}
+	// Authentication handled via session cookies (no Authorization header needed)
 	function initializeAdminConsole() {
 		// Initialize Socket.IO connection for admin features
 		// Use current origin for socket connection to support remote access
@@ -52,7 +47,7 @@
 
 	async function loadActiveSockets() {
 		try {
-			const response = await fetch('/api/admin/sockets', { headers: getAuthHeaders() });
+			const response = await fetch('/api/admin/sockets', { credentials: 'include' });
 			if (response.ok) {
 				const data = await response.json();
 				activeSockets = data.sockets || [];
@@ -69,7 +64,7 @@
 			if (import.meta.env && import.meta.env.DEV) {
 				logsUrl += '?key=test';
 			}
-			const response = await fetch(logsUrl, { headers: getAuthHeaders() });
+			const response = await fetch(logsUrl, { credentials: 'include' });
 			if (response.ok) {
 				const data = await response.json();
 				serverLogs = data.logs || [];
@@ -81,7 +76,7 @@
 
 	async function loadSocketHistories() {
 		try {
-			const response = await fetch('/api/admin/history', { headers: getAuthHeaders() });
+			const response = await fetch('/api/admin/history', { credentials: 'include' });
 			if (response.ok) {
 				const data = await response.json();
 				socketHistories = data.histories || [];
@@ -93,7 +88,7 @@
 
 	async function loadSocketHistory(socketId) {
 		try {
-			const response = await fetch(`/api/admin/history/${socketId}`, { headers: getAuthHeaders() });
+			const response = await fetch(`/api/admin/history/${socketId}`, { credentials: 'include' });
 			if (response.ok) {
 				const data = await response.json();
 				selectedHistory = data.history;
@@ -116,9 +111,9 @@
 			const response = await fetch(`/api/admin/sockets/${socketId}/disconnect`, {
 				method: 'POST',
 				headers: {
-					...getAuthHeaders(),
 					'Content-Type': 'application/json'
-				}
+				},
+				credentials: 'include'
 			});
 
 			if (response.ok) {

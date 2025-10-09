@@ -53,12 +53,9 @@
 				throw new Error('Settings service not available');
 			}
 
-			const authKey = localStorage.getItem('dispatch-auth-token') || '';
-			if (!authKey) {
-				throw new Error('Authentication key not found');
-			}
-
-			viewModel = new RetentionPolicyViewModel(settingsService, authKey);
+			// Create RetentionPolicyViewModel with SettingsService
+			// Note: authKey parameter removed - API uses session cookies
+			viewModel = new RetentionPolicyViewModel(settingsService);
 			await viewModel.loadPolicy();
 		} catch (error) {
 			console.error('Failed to initialize retention settings:', error);

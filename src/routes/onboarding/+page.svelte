@@ -19,8 +19,7 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 
 	// Server load data
-	export let data;
-	export let form; // SvelteKit form action response
+	let { data, form } = $props();
 
 	// State management
 	let onboardingViewModel = $state(null);

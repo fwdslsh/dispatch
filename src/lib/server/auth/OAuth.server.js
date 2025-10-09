@@ -3,9 +3,9 @@
  * Handles OAuth provider configuration and authentication workflows
  */
 
-import { logger } from '$lib/server/shared/utils/logger.js';
+import { logger } from '../shared/utils/logger.js';
 import { randomBytes } from 'crypto';
-import { AuthProvider } from '$lib/shared/auth-types.js';
+import { AuthProvider } from '../../shared/auth-types.js';
 
 /**
  * OAuth.server.js
@@ -29,7 +29,7 @@ export class OAuthManager {
 	 */
 	async getProviders() {
 		try {
-			const settings = await this.settingsManager.getSettings('oauth');
+			const settings = await this.settingsManager.getByCategory('oauth');
 			const providers = settings?.providers || {};
 
 			return Object.entries(providers).map(([name, config]) => ({
@@ -52,7 +52,7 @@ export class OAuthManager {
 	 */
 	async getProvider(provider) {
 		try {
-			const settings = await this.settingsManager.getSettings('oauth');
+			const settings = await this.settingsManager.getByCategory('oauth');
 			const config = settings?.providers?.[provider];
 
 			if (!config) {
@@ -172,7 +172,7 @@ export class OAuthManager {
 	 */
 	async enableProvider(provider, clientId, clientSecret, redirectUri = null) {
 		try {
-			const settings = await this.settingsManager.getSettings('oauth');
+			const settings = await this.settingsManager.getByCategory('oauth');
 			const providers = settings?.providers || {};
 
 			providers[provider] = {
@@ -183,7 +183,7 @@ export class OAuthManager {
 				updatedAt: Date.now()
 			};
 
-			await this.settingsManager.updateSettings('oauth', { providers });
+			await this.settingsManager.setByCategory('oauth', { providers }, 'OAuth provider configuration');
 
 			logger.info('OAUTH', `Enabled OAuth provider: ${provider}`);
 			return true;
@@ -200,14 +200,14 @@ export class OAuthManager {
 	 */
 	async disableProvider(provider) {
 		try {
-			const settings = await this.settingsManager.getSettings('oauth');
+			const settings = await this.settingsManager.getByCategory('oauth');
 			const providers = settings?.providers || {};
 
 			if (providers[provider]) {
 				providers[provider].enabled = false;
 				providers[provider].updatedAt = Date.now();
 
-				await this.settingsManager.updateSettings('oauth', { providers });
+				await this.settingsManager.setByCategory('oauth', { providers }, 'OAuth provider configuration');
 
 				logger.info('OAUTH', `Disabled OAuth provider: ${provider} (existing sessions preserved)`);
 				return true;

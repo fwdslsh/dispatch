@@ -3,7 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import '$lib/client/shared/styles/index.css';
-	import { getStoredAuthToken } from '$lib/client/shared/socket-auth.js';
 	import {
 		useServiceContainer,
 		provideServiceContainer
@@ -76,10 +75,6 @@
 		if (typeof window === 'undefined') return;
 
 		try {
-			// Get auth token
-			const authKey = getStoredAuthToken();
-			if (!authKey) return;
-
 			// Get current workspace if available (use container from top level)
 			let currentWorkspace = null;
 			try {
@@ -100,9 +95,7 @@
 			}
 
 			const response = await fetch(url, {
-				headers: {
-					Authorization: `Bearer ${authKey}`
-				}
+				credentials: 'include' // Send session cookie
 			});
 
 			if (!response.ok) return;
@@ -146,9 +139,9 @@
 		// Then load fresh theme from server
 		await loadAndApplyTheme();
 
-		// Set body class based on whether TERMINAL_KEY is configured OR user has stored auth token
-		const hasStoredAuth = !!getStoredAuthToken();
-		const hasAuth = data?.hasTerminalKey || hasStoredAuth;
+		// Set body class based on whether TERMINAL_KEY is configured
+		// Authentication is now handled via session cookies server-side
+		const hasAuth = data?.hasTerminalKey;
 
 		if (!hasAuth) {
 			document.body.classList.add('no-key');

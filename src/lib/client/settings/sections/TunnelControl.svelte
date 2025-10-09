@@ -60,32 +60,20 @@
 		isLoading = true;
 		error = null;
 
-		// Get terminal key from localStorage using the correct key name
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
-
 		const event = tunnelStatus.enabled ? SOCKET_EVENTS.TUNNEL_DISABLE : SOCKET_EVENTS.TUNNEL_ENABLE;
 
-		// Authenticate first
-		socket.emit('auth', terminalKey, (authResponse) => {
-			if (!authResponse?.success) {
-				isLoading = false;
-				error = 'Authentication failed. Please check your terminal key.';
-				return;
+		// Get the current port from window location
+		const currentPort =
+			window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+
+		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+		socket.emit(event, { port: currentPort }, (response) => {
+			isLoading = false;
+			if (response.success) {
+				tunnelStatus = response.status;
+			} else {
+				error = response.error || 'Failed to toggle tunnel';
 			}
-
-			// Get the current port from window location
-			const currentPort =
-				window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
-
-			// Now toggle tunnel with port
-			socket.emit(event, { port: currentPort }, (response) => {
-				isLoading = false;
-				if (response.success) {
-					tunnelStatus = response.status;
-				} else {
-					error = response.error || 'Failed to toggle tunnel';
-				}
-			});
 		});
 	}
 
@@ -109,26 +97,14 @@
 		isUpdatingConfig = true;
 		error = null;
 
-		// Get terminal key from localStorage using the correct key name
-		const terminalKey = localStorage.getItem('dispatch-auth-token') || '';
-
-		// Authenticate first
-		socket.emit('auth', terminalKey, (authResponse) => {
-			if (!authResponse?.success) {
-				isUpdatingConfig = false;
-				error = 'Authentication failed. Please check your terminal key.';
-				return;
+		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+		socket.emit(SOCKET_EVENTS.TUNNEL_UPDATE_CONFIG, { subdomain: subdomainInput }, (response) => {
+			isUpdatingConfig = false;
+			if (response.success) {
+				tunnelStatus = response.status;
+			} else {
+				error = response.error || 'Failed to update subdomain';
 			}
-
-			// Now update config
-			socket.emit(SOCKET_EVENTS.TUNNEL_UPDATE_CONFIG, { subdomain: subdomainInput }, (response) => {
-				isUpdatingConfig = false;
-				if (response.success) {
-					tunnelStatus = response.status;
-				} else {
-					error = response.error || 'Failed to update subdomain';
-				}
-			});
 		});
 	}
 

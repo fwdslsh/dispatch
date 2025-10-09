@@ -46,22 +46,14 @@ export class SessionApiClient {
 	}
 
 	/**
-	 * Get authorization header if auth token exists
+	 * Get standard headers for API requests
+	 * Authentication is handled via session cookies (credentials: 'include')
 	 * @returns {Object} Headers object
 	 */
 	getHeaders() {
-		const headers = {
+		return {
 			'content-type': 'application/json'
 		};
-
-		if (typeof localStorage !== 'undefined') {
-			const token = localStorage.getItem(this.config.authTokenKey);
-			if (token) {
-				headers['Authorization'] = `Bearer ${token}`;
-			}
-		}
-
-		return headers;
 	}
 
 	/**
@@ -122,7 +114,8 @@ export class SessionApiClient {
 			console.log('[SessionApiClient] Fetching URL:', url);
 
 			const response = await fetch(url, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			const data = await this.handleResponse(response);
@@ -211,6 +204,7 @@ export class SessionApiClient {
 			const response = await fetch(`${this.baseUrl}/api/sessions`, {
 				method: 'POST',
 				headers: this.getHeaders(),
+				credentials: 'include', // Send session cookie
 				body: JSON.stringify(body)
 			});
 
@@ -296,6 +290,7 @@ export class SessionApiClient {
 			const response = await fetch(`${this.baseUrl}/api/sessions`, {
 				method: 'PUT',
 				headers: this.getHeaders(),
+				credentials: 'include', // Send session cookie
 				body: JSON.stringify(body)
 			});
 
@@ -321,7 +316,8 @@ export class SessionApiClient {
 
 			const response = await fetch(`${this.baseUrl}/api/sessions?${params}`, {
 				method: 'DELETE',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			return await this.handleResponse(response);
@@ -387,7 +383,8 @@ export class SessionApiClient {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/sessions/layout`, {
 				method: 'GET',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 			return await this.handleResponse(response);
 		} catch (error) {
@@ -437,7 +434,8 @@ export class SessionApiClient {
 			const params = new URLSearchParams({ runId: sessionId }); // Server expects runId parameter
 			const response = await fetch(`${this.baseUrl}/api/sessions/layout?${params}`, {
 				method: 'DELETE',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 			return await this.handleResponse(response);
 		} catch (error) {
@@ -456,7 +454,8 @@ export class SessionApiClient {
 	async getHistory(sessionId) {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/sessions/${sessionId}/history`, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			if (response.status === 404) {
@@ -481,7 +480,8 @@ export class SessionApiClient {
 	async getClaudeSessions(project) {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/claude/sessions/${project}`, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			if (response.status === 404) {
@@ -506,7 +506,8 @@ export class SessionApiClient {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/claude/auth`, {
 				method: 'POST',
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			if (response.status === 401) {
@@ -629,7 +630,8 @@ export class SessionApiClient {
 			params.append('category', 'maintenance');
 
 			const response = await fetch(`${this.baseUrl}/api/preferences?${params}`, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			const data = await this.handleResponse(response);
@@ -817,7 +819,8 @@ export class SessionApiClient {
 	async getWorkspaces() {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/workspaces`, {
-				headers: this.getHeaders()
+				headers: this.getHeaders(),
+				credentials: 'include' // Send session cookie
 			});
 
 			const data = await this.handleResponse(response);
@@ -905,20 +908,6 @@ export class SessionApiClient {
 	}
 
 	// ===== HELPER METHODS =====
-
-	/**
-	 * Get authentication key from localStorage or environment
-	 * @returns {string|null} - Auth key
-	 */
-	getAuthKey() {
-		if (typeof localStorage !== 'undefined') {
-			return (
-				localStorage.getItem('dispatch-auth-token') ||
-				localStorage.getItem(this.config.authTokenKey)
-			);
-		}
-		return null;
-	}
 
 	/**
 	 * Dispose of resources (for cleanup)

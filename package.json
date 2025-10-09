@@ -75,7 +75,6 @@
 		"commander": "^12.1.0",
 		"express": "^5.1.0",
 		"hammerjs": "^2.0.8",
-		"jsonwebtoken": "^9.0.2",
 		"localtunnel": "^2.0.2",
 		"markdown-it": "^14.1.0",
 		"marked": "^16.4.0",

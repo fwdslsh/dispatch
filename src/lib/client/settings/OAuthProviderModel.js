@@ -92,5 +92,5 @@ export function getProviderIds() {
 export function generateExampleRedirectUri() {
 	const protocol = window.location.protocol;
 	const host = window.location.host;
-	return `${protocol}//${host}/auth/callback`;
+	return `${protocol}//${host}/api/auth/callback`;
 }

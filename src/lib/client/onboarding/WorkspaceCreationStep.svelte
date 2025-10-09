@@ -39,20 +39,15 @@
 				throw new Error('API client not available');
 			}
 
-			// Get auth key from storage
-			const authKey = localStorage.getItem('dispatch-auth-token');
-			if (!authKey) {
-				throw new Error('Authentication required');
-			}
-
+			// Authentication handled via session cookie (no auth key needed)
 			// Create workspace via API
 			const response = await fetch('/api/workspaces', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
 				body: JSON.stringify({
 					name: workspaceName.trim(),
-					path: workspacePath.trim(),
-					authKey
+					path: workspacePath.trim()
 				})
 			});
 

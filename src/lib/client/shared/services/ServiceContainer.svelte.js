@@ -72,14 +72,8 @@ class ServiceContainer {
 
 		this.registerFactory('settingsService', async () => {
 			const { SettingsService } = await import('./SettingsService.svelte.js');
-			// Get auth key from localStorage with development fallback
-			const authKey =
-				typeof window !== 'undefined'
-					? localStorage.getItem('dispatch-auth-token') ||
-						localStorage.getItem(this.config.authTokenKey)
-					: '';
-
-			return new SettingsService(authKey, this.config.apiBaseUrl || '');
+			// Auth handled via session cookies - no need to pass auth key
+			return new SettingsService(this.config);
 		});
 
 		// ViewModels

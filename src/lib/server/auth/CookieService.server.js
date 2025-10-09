@@ -1,5 +1,3 @@
-import { dev } from '$app/environment';
-
 /**
  * Cookie Service - Helper utilities for managing session cookies
  *
@@ -18,10 +16,11 @@ export class CookieService {
 	 * @returns {Object} Cookie options for SvelteKit's cookies.set()
 	 */
 	static getSessionCookieAttributes() {
+		const isDev = process.env.NODE_ENV !== 'production';
 		return {
 			path: '/', // Cookie available to entire application
 			httpOnly: true, // Prevent JavaScript access (XSS protection)
-			secure: !dev, // Require HTTPS in production (allow HTTP in dev)
+			secure: !isDev, // Require HTTPS in production (allow HTTP in dev)
 			sameSite: 'lax', // CSRF protection while allowing normal navigation
 			maxAge: this.MAX_AGE // 30 days in seconds
 		};
