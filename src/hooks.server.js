@@ -36,13 +36,17 @@ export async function getGlobalServices() {
  */
 const PUBLIC_ROUTES = [
 	'/login',
+	'/onboarding',
 	'/api/auth/callback',
+	'/api/auth/check',
 	'/api/auth/config',
 	'/api/auth/login',
 	'/api/auth/logout',
 	'/api/status',
-	'/api/settings/onboarding',
-	'/api/environment'
+	'/api/environment',
+	'/api/themes/active',
+	'/api/themes',
+	'/api/test' // Test API routes (only available in non-production)
 ];
 
 /**

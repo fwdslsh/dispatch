@@ -150,7 +150,39 @@
 		}
 
 		await checkOnboardingStatus();
+
+		// Apply theme selected during onboarding (if any)
+		await applyOnboardingTheme();
 	});
+
+	/**
+	 * Apply theme that was selected during onboarding (if any)
+	 * This runs after authentication is complete
+	 */
+	async function applyOnboardingTheme() {
+		if (typeof window === 'undefined') return;
+
+		const selectedTheme = localStorage.getItem('onboarding-selected-theme');
+		if (!selectedTheme) return;
+
+		try {
+			const themeStatePromise = serviceContainer.get('themeState');
+			const themeState = await (typeof themeStatePromise?.then === 'function'
+				? themeStatePromise
+				: Promise.resolve(themeStatePromise));
+
+			if (themeState) {
+				console.log('[Layout] Applying theme selected during onboarding:', selectedTheme);
+				await themeState.activateTheme(selectedTheme);
+				// Clear the flag so we don't apply it again
+				localStorage.removeItem('onboarding-selected-theme');
+			}
+		} catch (error) {
+			console.error('[Layout] Failed to apply onboarding theme:', error);
+			// Clear the flag even on error to avoid retry loops
+			localStorage.removeItem('onboarding-selected-theme');
+		}
+	}
 
 	/**
 	 * Check if user needs onboarding and redirect accordingly
@@ -198,7 +230,7 @@
 			} else if (!shouldOnboard && isOnOnboardingPage) {
 				// User completed onboarding but is still on onboarding page
 				/* eslint-disable svelte/no-navigation-without-resolve */
-				goto('/', { replaceState: true });
+				goto('/workspace', { replaceState: true });
 				/* eslint-enable svelte/no-navigation-without-resolve */
 			}
 		} catch (error) {

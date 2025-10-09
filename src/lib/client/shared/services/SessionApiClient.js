@@ -585,14 +585,14 @@ export class SessionApiClient {
 
 	/**
 	 * Complete onboarding setup in a single atomic operation
-	 * @param {Object} options - Onboarding options
-	 * @param {string} options.terminalKey - Terminal key (required, min 8 characters)
+	 * Server will generate first API key automatically and return it ONCE
+	 * @param {Object} [options={}] - Onboarding options
 	 * @param {string} [options.workspaceName] - Optional workspace name
 	 * @param {string} [options.workspacePath] - Optional workspace path
 	 * @param {Object} [options.preferences] - Optional user preferences
-	 * @returns {Promise<{success: boolean, onboarding: {isComplete: boolean, completedAt: string, firstWorkspaceId: string|null}, workspace: {id: string, name: string, path: string}|null}>}
+	 * @returns {Promise<{success: boolean, apiKey: {id: string, key: string, label: string}, workspace: {id: string, name: string, path: string}|null}>}
 	 */
-	async submitOnboarding({ terminalKey, workspaceName, workspacePath, preferences }) {
+	async submitOnboarding({ workspaceName, workspacePath, preferences } = {}) {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/settings/onboarding`, {
 				method: 'POST',
@@ -600,7 +600,6 @@ export class SessionApiClient {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					terminalKey,
 					workspaceName,
 					workspacePath,
 					preferences

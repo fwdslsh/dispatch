@@ -10,7 +10,7 @@
 	 */
 
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import OnboardingFlow from '$lib/client/onboarding/OnboardingFlow.svelte';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
@@ -26,8 +26,12 @@
 	let isLoading = $state(true);
 	let error = $state(null);
 	let showApiKey = $state(false);
-	let apiKeyCopied = $state(false);
-	let canContinue = $state(false);
+	let apiKeyCopied = $state(false); // Permanent state - stays true once copied
+	let showCopiedFeedback = $state(false); // Temporary visual feedback
+	let manualConfirmation = $state(false);
+
+	// Derived state: can continue if key was copied OR user manually confirmed
+	let canContinue = $derived(apiKeyCopied || manualConfirmation);
 
 	onMount(async () => {
 		await initializeOnboarding();
@@ -71,22 +75,19 @@
 
 	/**
 	 * Handle onboarding completion
-	 * @param {CustomEvent} event - Completion event with result details
+	 * @param {Object} result - Result data from form action (passed directly from OnboardingFlow)
 	 */
-	async function handleOnboardingComplete(event) {
+	async function handleOnboardingComplete(result) {
 		try {
-			// Check if we got an API key from the form action
-			if (form?.success && form?.apiKey) {
+			// Result is passed directly from OnboardingFlow (not wrapped in event.detail)
+			if (result?.apiKey) {
+				// Show API key display screen
 				showApiKey = true;
+				// Store form data so we can access it in the display
+				form = { success: true, ...result };
 			} else {
-				// If no form response, check event detail
-				const result = event.detail;
-				if (result?.apiKey) {
-					showApiKey = true;
-				} else {
-					// No API key in response - redirect to main app
-					await goto('/');
-				}
+				// No API key in response - redirect to workspace
+				await goto('/workspace');
 			}
 		} catch (err) {
 			console.error('Failed to handle onboarding completion:', err);
@@ -105,6 +106,7 @@
 
 	/**
 	 * Copy API key to clipboard
+	 * Per spec FR-002 and T021: Only enable continue after copy OR explicit confirmation
 	 */
 	async function copyApiKey() {
 		const key = form?.apiKey?.key;
@@ -112,12 +114,12 @@
 
 		try {
 			await navigator.clipboard.writeText(key);
-			apiKeyCopied = true;
-			canContinue = true; // Allow continue after copying
+			apiKeyCopied = true; // Permanent - enables continue button via derived state
+			showCopiedFeedback = true; // Temporary - shows "Copied!" text
 
-			// Reset copied state after 2 seconds
+			// Reset visual feedback after 2 seconds (keep apiKeyCopied true)
 			setTimeout(() => {
-				apiKeyCopied = false;
+				showCopiedFeedback = false;
 			}, 2000);
 		} catch (err) {
 			console.error('Failed to copy API key:', err);
@@ -126,17 +128,15 @@
 	}
 
 	/**
-	 * Navigate to main app
+	 * Navigate to main app after onboarding
+	 * Per authentication flow: user is now signed in via session cookie
+	 * Navigate to /workspace (not / which is the login page)
 	 */
 	async function continueToApp() {
-		await goto('/', { replaceState: true });
-	}
-
-	/**
-	 * Allow user to continue without copying (checkbox confirmation)
-	 */
-	function confirmWithoutCopy() {
-		canContinue = true;
+		// Invalidate all data to force SvelteKit to re-check authentication
+		// This ensures the session cookie is recognized before navigation
+		await invalidateAll();
+		await goto('/workspace', { replaceState: true });
 	}
 </script>
 
@@ -183,7 +183,7 @@
 
 					<div class="key-actions">
 						<Button variant="primary" onclick={copyApiKey} fullWidth={true}>
-							{apiKeyCopied ? '✓ Copied to Clipboard!' : 'Copy API Key'}
+							{showCopiedFeedback ? '✓ Copied to Clipboard!' : 'Copy API Key'}
 						</Button>
 					</div>
 
@@ -198,7 +198,7 @@
 					{#if !canContinue}
 						<div class="confirmation-box">
 							<label class="checkbox-label">
-								<input type="checkbox" onchange={confirmWithoutCopy} />
+								<input type="checkbox" bind:checked={manualConfirmation} />
 								<span>I have saved my API key in a secure location</span>
 							</label>
 						</div>

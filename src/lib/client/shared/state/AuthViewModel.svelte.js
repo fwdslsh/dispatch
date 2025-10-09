@@ -140,19 +140,22 @@ export class AuthViewModel {
 	 */
 	async checkExistingAuth() {
 		try {
-			// Try to access a protected API endpoint
-			// If we have a valid session cookie, this will succeed
-			const response = await fetch('/api/workspaces', {
+			// Use the dedicated auth check endpoint
+			// This endpoint always returns 200 OK with an authenticated flag
+			const response = await fetch('/api/auth/check', {
 				method: 'GET',
 				credentials: 'include' // Include cookies in request
 			});
 
 			if (response.ok) {
-				log.info('Already authenticated via session cookie');
-				return true;
-			} else if (response.status === 401) {
-				log.info('No valid session cookie found');
-				return false;
+				const data = await response.json();
+				if (data.authenticated) {
+					log.info('Already authenticated via session cookie');
+					return true;
+				} else {
+					log.info('No valid session cookie found');
+					return false;
+				}
 			} else {
 				log.warn('Unexpected response checking auth', response.status);
 				return false;

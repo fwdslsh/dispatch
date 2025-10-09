@@ -37,10 +37,32 @@ export const actions = {
 		// Extract form data
 		const workspaceName = formData.get('workspaceName');
 		const workspacePath = formData.get('workspacePath');
+		const selectedTheme = formData.get('selectedTheme');
 		const preferences = formData.get('preferences');
 
 		try {
 			logger.info('ONBOARDING', 'Starting onboarding process');
+
+			// Validate database schema exists
+			try {
+				const tableCheck = await services.database.get(
+					`SELECT name FROM sqlite_master WHERE type='table' AND name='auth_users'`
+				);
+				if (!tableCheck) {
+					throw new Error('Database schema not initialized: auth_users table missing');
+				}
+			} catch (schemaErr) {
+				logger.error('ONBOARDING', `Database schema validation failed: ${schemaErr.message}`);
+				throw new Error('Database not properly initialized. Please restart the application');
+			}
+
+			// Create default user first (required for foreign key constraints)
+			const now = Date.now();
+			await services.database.run(
+				`INSERT OR IGNORE INTO auth_users (user_id, email, name, created_at, last_login)
+				 VALUES (?, NULL, ?, ?, ?)`,
+				['default', 'Default User', now, now]
+			);
 
 			// Generate first API key for the default user
 			// This is the ONLY time we show the plaintext key
@@ -89,10 +111,29 @@ export const actions = {
 				}
 			}
 
+			// Apply selected theme if provided
+			if (selectedTheme) {
+				try {
+					// Set theme as global default
+					await services.themeManager.setGlobalDefault(selectedTheme);
+					logger.info('ONBOARDING', `Theme applied: ${selectedTheme}`);
+				} catch (err) {
+					logger.warn('ONBOARDING', `Failed to apply theme: ${err.message}`);
+					// Don't fail onboarding if theme application fails
+				}
+			}
+
 			// Mark onboarding as complete
 			await services.settingsManager.updateSettings('system', {
 				onboarding_complete: true
 			});
+
+			// Verify the setting was actually written to database
+			const verifyStatus = await services.settingsManager.getSystemStatus();
+			if (!verifyStatus.onboarding.isComplete) {
+				logger.error('ONBOARDING', 'Failed to mark onboarding as complete - verification failed');
+				throw new Error('Failed to mark onboarding as complete');
+			}
 
 			logger.info('ONBOARDING', 'Onboarding completed successfully');
 
@@ -114,9 +155,30 @@ export const actions = {
 			};
 		} catch (err) {
 			logger.error('ONBOARDING', `Failed to complete onboarding: ${err.message}`);
+
+			// Provide specific error messages based on error type
+			let userMessage = 'Failed to complete onboarding';
+
+			if (err.message?.includes('FOREIGN KEY constraint')) {
+				userMessage = 'Database constraint error: Please ensure all required data is valid';
+			} else if (err.message?.includes('UNIQUE constraint')) {
+				userMessage = 'An account already exists. Please contact support if this persists';
+			} else if (err.message?.includes('bcrypt') || err.message?.includes('hash')) {
+				userMessage = 'Failed to secure authentication credentials. Please try again';
+			} else if (err.message?.includes('SQLITE_') || err.message?.includes('database')) {
+				userMessage = 'Database connection error. Please try again later';
+			} else if (err.message?.includes('API key')) {
+				userMessage = 'Failed to generate API key. Please try again';
+			} else if (err.message?.includes('workspace')) {
+				userMessage = 'Workspace setup failed. You can create a workspace later';
+			} else if (err.message) {
+				// Use the error message if it's descriptive enough
+				userMessage = err.message;
+			}
+
 			return {
 				success: false,
-				error: err.message || 'Failed to complete onboarding'
+				error: userMessage
 			};
 		}
 	}

@@ -319,8 +319,8 @@ Paths use existing Dispatch architecture (unified src/lib structure):
 - [x] **T024 [P]** Create auth types in `src/lib/shared/auth-types.js`
   - Export: AUTH_PROVIDERS constant: ['api_key', 'oauth_github', 'oauth_google']
   - Export: COOKIE_NAME constant: 'dispatch_session'
-  - Export: SESSION_DURATION constant: 30 _ 24 _ 60 _ 60 _ 1000 (30 days in ms)
-  - Export: REFRESH_WINDOW constant: 24 _ 60 _ 60 \* 1000 (24 hours in ms)
+  - Export: SESSION*DURATION constant: 30 * 24 _ 60 _ 60 \_ 1000 (30 days in ms)
+  - Export: REFRESH*WINDOW constant: 24 * 60 \_ 60 \* 1000 (24 hours in ms)
   - Export: API_KEY_LENGTH constant: 32 (bytes)
 
 **Output**: Shared constants for consistent behavior

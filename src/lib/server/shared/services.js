@@ -147,7 +147,9 @@ export function createServices(config = {}) {
 		sessionRepository,
 		eventStore,
 		settingsRepository,
+		settingsManager: settingsRepository, // Alias for backward compatibility
 		workspaceRepository,
+		workspaceManager: workspaceRepository, // Alias for backward compatibility
 
 		// Session management
 		adapterRegistry,

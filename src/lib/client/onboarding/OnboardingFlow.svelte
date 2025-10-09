@@ -5,11 +5,12 @@
 	 * Follows constitutional requirement for minimal first experience
 	 *
 	 * NOTE: This component collects all onboarding data locally and submits
-	 * it in a single atomic POST request at the end of the flow.
+	 * it in a single atomic POST request at the end of the flow using SvelteKit form actions.
 	 */
 
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { enhance } from '$app/forms';
 	import { useServiceContainer } from '../shared/services/ServiceContainer.svelte.js';
 	import { OnboardingViewModel } from './OnboardingViewModel.svelte.js';
 	import Button from '../shared/components/Button.svelte';
@@ -21,7 +22,7 @@
 	// Get services from context
 	const serviceContainer = useServiceContainer();
 
-	// ViewModel instance
+	// ViewModel instance (for local state management only)
 	let viewModel = $state(null);
 
 	// Initialize ViewModel with async apiClient
@@ -42,24 +43,32 @@
 		viewModel.previousStep();
 	}
 
-	// Handle final submission
-	async function handleSubmit() {
-		try {
-			const result = await viewModel.submit();
+	// Form submission handler using SvelteKit's enhance
+	function handleFormSubmit() {
+		return async ({ result, update }) => {
+			// Set loading state before submission
+			viewModel.isLoading = true;
+			viewModel.error = null;
 
-			// Session cookie is set by the server during onboarding submission
-			// Only store UI preference in localStorage
-			localStorage.setItem('onboarding-complete', 'true');
+			try {
+				if (result.type === 'success') {
+					// Session cookie is set by the server during onboarding submission
+					// Only store UI preference in localStorage
+					localStorage.setItem('onboarding-complete', 'true');
 
-			// Call parent's onComplete callback
-			onComplete({ detail: result });
-
-			// Redirect to main workspace
-			await goto('/');
-		} catch (error) {
-			console.error('Onboarding submission failed:', error);
-			// Error is already set in viewModel.error
-		}
+					// Call parent's onComplete callback with form result
+					// Pass data directly - parent function expects result as parameter, not event object
+					onComplete(result.data);
+				} else if (result.type === 'failure') {
+					// Handle error
+					viewModel.error = result.data?.error || 'Onboarding failed';
+				}
+				await update();
+			} finally {
+				// Clear loading state after submission completes
+				viewModel.isLoading = false;
+			}
+		};
 	}
 
 	// Skip onboarding (minimal approach)
@@ -98,57 +107,7 @@
 
 			<!-- Step content -->
 			<div>
-				{#if viewModel.currentStep === 'auth'}
-					<div class="flex flex-col gap-6">
-						<div>
-							<h2 class="text-xl font-semibold mb-1">🔐 Authentication Setup</h2>
-							<p class="text-base-content/70 mb-4">
-								Create a secure terminal key to protect access to your Dispatch instance. This key
-								will be used to authenticate all requests.
-							</p>
-							<div class="flex flex-col gap-3">
-								<input
-									type="password"
-									placeholder="Create terminal key (min 8 characters)"
-									class="input input-bordered w-full"
-									bind:value={viewModel.formData.terminalKey}
-									oninput={(e) => viewModel.updateFormData('terminalKey', e.target.value)}
-									disabled={viewModel.isLoading}
-								/>
-								<input
-									type="password"
-									placeholder="Confirm terminal key"
-									class="input input-bordered w-full"
-									bind:value={viewModel.formData.confirmTerminalKey}
-									oninput={(e) => viewModel.updateFormData('confirmTerminalKey', e.target.value)}
-									disabled={viewModel.isLoading}
-									onkeydown={(e) =>
-										e.key === 'Enter' && viewModel.canProceedFromAuth && handleNextStep()}
-								/>
-								<div class="bg-base-200 rounded p-3 text-xs mt-2">
-									<div class="font-semibold mb-1">Tips for a strong terminal key:</div>
-									<ul class="list-disc pl-5 space-y-1">
-										<li>Use at least 8 characters</li>
-										<li>Include letters, numbers, and symbols</li>
-										<li>Keep it private and secure</li>
-									</ul>
-								</div>
-							</div>
-						</div>
-						<div class="flex gap-3 justify-end mt-4">
-							<Button
-								variant="primary"
-								onclick={handleNextStep}
-								disabled={viewModel.isLoading || !viewModel.canProceedFromAuth}
-							>
-								Continue to Workspace Setup
-							</Button>
-							<Button variant="ghost" onclick={handleSkip} disabled={viewModel.isLoading}>
-								Skip Setup
-							</Button>
-						</div>
-					</div>
-				{:else if viewModel.currentStep === 'workspace'}
+				{#if viewModel.currentStep === 'workspace'}
 					<div class="flex flex-col gap-6">
 						<div>
 							<h2 class="text-xl font-semibold mb-1">📁 Workspace Setup</h2>
@@ -176,67 +135,102 @@
 							</div>
 						</div>
 						<div class="flex gap-3 justify-end mt-4">
-							<Button variant="ghost" onclick={handlePreviousStep} disabled={viewModel.isLoading}>
-								Back
-							</Button>
 							<Button variant="primary" onclick={handleNextStep} disabled={viewModel.isLoading}>
 								{viewModel.formData.workspaceName ? 'Continue' : 'Skip Workspace'}
 							</Button>
 						</div>
 					</div>
 				{:else if viewModel.currentStep === 'theme'}
-					<ThemeSelectionStep onNext={handleNextStep} onSkip={handleNextStep} />
+					<ThemeSelectionStep {viewModel} onNext={handleNextStep} onSkip={handleNextStep} />
 				{:else if viewModel.currentStep === 'settings'}
-					<div class="flex flex-col gap-6">
-						<div>
-							<h2 class="text-xl font-semibold mb-1">⚙️ Basic Settings</h2>
-							<p class="text-base-content/70 mb-4">
-								Configure essential settings for your Dispatch experience. These can be changed
-								later in the settings page.
-							</p>
-							<div class="flex flex-col gap-2">
-								<label class="label cursor-pointer justify-start gap-2">
+					<form method="POST" action="?/submit" use:enhance={handleFormSubmit}>
+						<div class="flex flex-col gap-6">
+							<div>
+								<h2 class="text-xl font-semibold mb-1">⚙️ Basic Settings</h2>
+								<p class="text-base-content/70 mb-4">
+									Configure essential settings for your Dispatch experience. These can be changed
+									later in the settings page.
+								</p>
+
+								<!-- Hidden fields for workspace data -->
+								{#if viewModel.formData.workspaceName}
 									<input
-										type="checkbox"
-										class="checkbox checkbox-primary"
-										checked={viewModel.formData.preferences.autoCleanup !== false}
-										onchange={(e) => {
-											viewModel.formData.preferences.autoCleanup = e.target.checked;
-										}}
+										type="hidden"
+										name="workspaceName"
+										value={viewModel.formData.workspaceName}
 									/>
-									<span class="label-text">Enable automatic cleanup of old sessions</span>
-								</label>
-								<label class="label cursor-pointer justify-start gap-2">
 									<input
-										type="checkbox"
-										class="checkbox checkbox-primary"
-										checked={viewModel.formData.preferences.rememberWorkspace !== false}
-										onchange={(e) => {
-											viewModel.formData.preferences.rememberWorkspace = e.target.checked;
-										}}
+										type="hidden"
+										name="workspacePath"
+										value={viewModel.formData.workspacePath}
 									/>
-									<span class="label-text">Remember last used workspace</span>
-								</label>
+								{/if}
+
+								<!-- Hidden field for selected theme -->
+								{#if viewModel.formData.selectedTheme}
+									<input
+										type="hidden"
+										name="selectedTheme"
+										value={viewModel.formData.selectedTheme}
+									/>
+								{/if}
+
+								<!-- Hidden field for preferences -->
+								<input
+									type="hidden"
+									name="preferences"
+									value={JSON.stringify(viewModel.formData.preferences)}
+								/>
+
+								<div class="flex flex-col gap-2">
+									<label class="label cursor-pointer justify-start gap-2">
+										<input
+											type="checkbox"
+											class="checkbox checkbox-primary"
+											checked={viewModel.formData.preferences.autoCleanup !== false}
+											onchange={(e) => {
+												viewModel.formData.preferences.autoCleanup = e.target.checked;
+											}}
+										/>
+										<span class="label-text">Enable automatic cleanup of old sessions</span>
+									</label>
+									<label class="label cursor-pointer justify-start gap-2">
+										<input
+											type="checkbox"
+											class="checkbox checkbox-primary"
+											checked={viewModel.formData.preferences.rememberWorkspace !== false}
+											onchange={(e) => {
+												viewModel.formData.preferences.rememberWorkspace = e.target.checked;
+											}}
+										/>
+										<span class="label-text">Remember last used workspace</span>
+									</label>
+								</div>
+							</div>
+							<div class="flex gap-3 justify-end mt-4">
+								<Button
+									variant="ghost"
+									onclick={handlePreviousStep}
+									disabled={viewModel.isLoading}
+									type="button"
+								>
+									Back
+								</Button>
+								<Button
+									variant="primary"
+									type="submit"
+									disabled={viewModel.isLoading}
+									loading={viewModel.isLoading}
+								>
+									{#if viewModel.isLoading}
+										Completing Setup...
+									{:else}
+										Complete Setup
+									{/if}
+								</Button>
 							</div>
 						</div>
-						<div class="flex gap-3 justify-end mt-4">
-							<Button variant="ghost" onclick={handlePreviousStep} disabled={viewModel.isLoading}>
-								Back
-							</Button>
-							<Button
-								variant="primary"
-								onclick={handleSubmit}
-								disabled={viewModel.isLoading}
-								loading={viewModel.isLoading}
-							>
-								{#if viewModel.isLoading}
-									Completing Setup...
-								{:else}
-									Complete Setup
-								{/if}
-							</Button>
-						</div>
-					</div>
+					</form>
 				{/if}
 			</div>
 

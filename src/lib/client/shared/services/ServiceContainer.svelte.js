@@ -76,6 +76,11 @@ class ServiceContainer {
 			return new SettingsService(this.config);
 		});
 
+		this.registerFactory('themeState', async () => {
+			const { ThemeState } = await import('../state/ThemeState.svelte.js');
+			return new ThemeState(this.config);
+		});
+
 		// ViewModels
 		this.registerFactory('sessionViewModel', async () => {
 			const { SessionViewModel } = await import('../state/SessionViewModel.svelte.js');

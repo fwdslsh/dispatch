@@ -6,25 +6,36 @@
 	 */
 
 	import { onMount } from 'svelte';
-	import { ThemeState } from '$lib/client/shared/state/ThemeState.svelte.js';
+	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import ThemePreviewCard from '$lib/client/settings/ThemePreviewCard.svelte';
 	import Button from '../shared/components/Button.svelte';
 
 	// Props
-	let { onNext = () => {}, onSkip = () => {} } = $props();
+	let { viewModel, onNext = () => {}, onSkip = () => {} } = $props();
+
+	// Get service container at component initialization
+	const serviceContainer = useServiceContainer();
 
 	// Theme state management
-	const themeState = new ThemeState();
+	let themeState = $state(null);
 	let selectedThemeId = $state('phosphor-green'); // Default selection
 	let isActivating = $state(false);
 
 	// Load themes on mount
 	onMount(async () => {
 		try {
-			await themeState.loadThemes();
-			// Set default selection to first preset theme if available
-			if (themeState.presetThemes.length > 0 && !selectedThemeId) {
-				selectedThemeId = themeState.presetThemes[0].id;
+			// Get themeState from ServiceContainer
+			const themeStatePromise = serviceContainer.get('themeState');
+			themeState = await (typeof themeStatePromise?.then === 'function'
+				? themeStatePromise
+				: Promise.resolve(themeStatePromise));
+
+			if (themeState) {
+				await themeState.loadThemes();
+				// Set default selection to first preset theme if available
+				if (themeState.presetThemes.length > 0 && !selectedThemeId) {
+					selectedThemeId = themeState.presetThemes[0].id;
+				}
 			}
 		} catch (error) {
 			console.error('Failed to load themes:', error);
@@ -34,28 +45,28 @@
 	// Handle theme selection
 	function handleThemeSelect(themeId) {
 		selectedThemeId = themeId;
+		// Update viewModel formData so theme is included in form submission
+		if (viewModel) {
+			viewModel.formData.selectedTheme = themeId;
+		}
 	}
 
 	// Handle continue with selected theme
 	async function handleContinue() {
-		if (!selectedThemeId) {
-			onNext();
-			return;
+		// Update viewModel with selected theme
+		if (selectedThemeId && viewModel) {
+			viewModel.formData.selectedTheme = selectedThemeId;
 		}
 
-		isActivating = true;
-
-		try {
-			// Set as global default theme
-			await themeState.activateTheme(selectedThemeId);
-			// Note: activateTheme will trigger page reload, which will continue onboarding
-			// The onboarding state is preserved in localStorage
-		} catch (error) {
-			console.error('Failed to activate theme:', error);
-			// Continue anyway on error
-			isActivating = false;
-			onNext();
+		// Also store in localStorage as backup
+		// The theme will be applied after authentication is complete
+		if (selectedThemeId) {
+			localStorage.setItem('onboarding-selected-theme', selectedThemeId);
 		}
+
+		// Continue to next step without activating theme
+		// (activation requires auth which user doesn't have yet during onboarding)
+		onNext();
 	}
 
 	// Handle skip (keep default phosphor-green theme)
@@ -70,7 +81,12 @@
 		<p>Select a color theme for your Dispatch workspace</p>
 	</div>
 
-	{#if themeState.loading}
+	{#if !themeState}
+		<div class="loading-state">
+			<div class="spinner"></div>
+			<span>Initializing theme system...</span>
+		</div>
+	{:else if themeState.loading}
 		<div class="loading-state">
 			<div class="spinner"></div>
 			<span>Loading themes...</span>
@@ -130,7 +146,7 @@
 		</div>
 	{/if}
 
-	{#if themeState.error && !themeState.loading}
+	{#if themeState?.error && !themeState?.loading}
 		<div class="error-message" role="alert">
 			{themeState.error}
 		</div>

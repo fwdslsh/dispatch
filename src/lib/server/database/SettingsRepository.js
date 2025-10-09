@@ -179,4 +179,31 @@ export class SettingsRepository {
 			}
 		}
 	}
+
+	/**
+	 * Get system status including onboarding state
+	 * @returns {Promise<Object>} System status object
+	 */
+	async getSystemStatus() {
+		const systemSettings = await this.getByCategory('system');
+
+		return {
+			onboarding: {
+				isComplete: systemSettings.onboarding_complete === true
+			},
+			authConfigured: false // Placeholder for auth configuration check
+		};
+	}
+
+	/**
+	 * Update settings for a category (alias for setByCategory with partial updates)
+	 * @param {string} category - Setting category
+	 * @param {Object} updates - Settings to update
+	 * @returns {Promise<void>}
+	 */
+	async updateSettings(category, updates) {
+		const current = await this.getByCategory(category);
+		const merged = { ...current, ...updates };
+		await this.setByCategory(category, merged);
+	}
 }
