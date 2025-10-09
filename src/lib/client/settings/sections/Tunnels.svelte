@@ -314,7 +314,8 @@
 	<div class="settings-header">
 		<h3>Connectivity</h3>
 		<p class="section-subtitle">
-			Enable remote access to your development environment through LocalTunnel or VS Code Remote Tunnels.
+			Enable remote access to your development environment through LocalTunnel or VS Code Remote
+			Tunnels.
 		</p>
 	</div>
 
@@ -322,7 +323,8 @@
 	<section class="settings-section">
 		<h4>LocalTunnel</h4>
 		<p class="subsection-description">
-			Create a public URL for your local development server using LocalTunnel. Perfect for quick demos and testing webhooks.
+			Create a public URL for your local development server using LocalTunnel. Perfect for quick
+			demos and testing webhooks.
 		</p>
 
 		<FormSection
@@ -531,12 +533,12 @@
 			{#if !vscodeTunnelStatus.running}
 				<InfoBox variant="info">
 					<p style="margin: 0 0 var(--space-2) 0;">
-						<strong>First-time setup:</strong> When you start the tunnel for the first time, you'll
-						need to authenticate with Microsoft/GitHub. A device login URL will appear above.
+						<strong>First-time setup:</strong> When you start the tunnel for the first time, you'll need
+						to authenticate with Microsoft/GitHub. A device login URL will appear above.
 					</p>
 					<p style="margin: 0;">
-						<strong>VS Code Desktop:</strong> Install the "Remote - Tunnels" extension and connect
-						using the tunnel name.
+						<strong>VS Code Desktop:</strong> Install the "Remote - Tunnels" extension and connect using
+						the tunnel name.
 					</p>
 				</InfoBox>
 			{/if}
@@ -546,7 +548,6 @@
 
 <style>
 	/* Import shared settings styles - most styles now in settings.css */
-
 
 	/* Component-specific styles */
 	.config-row {

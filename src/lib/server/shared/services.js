@@ -18,6 +18,10 @@ import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
 import { MultiAuthManager, GitHubAuthProvider } from './auth/oauth.js';
 import { TunnelManager } from '../tunnels/TunnelManager.js';
 import { VSCodeTunnelManager } from '../tunnels/VSCodeTunnelManager.js';
+import { ApiKeyManager } from '../auth/ApiKeyManager.server.js';
+import { SessionManager } from '../auth/SessionManager.server.js';
+import { OAuthManager } from '../auth/OAuth.server.js';
+import { createMigrationManager } from './db/migrate.js';
 import path from 'node:path';
 import os from 'node:os';
 import { logger } from './utils/logger.js';
@@ -44,6 +48,9 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  * @property {EventRecorder} eventRecorder
  * @property {SessionOrchestrator} sessionOrchestrator
  * @property {AuthService} auth
+ * @property {ApiKeyManager} apiKeyManager
+ * @property {SessionManager} sessionManager
+ * @property {OAuthManager} oauthManager
  * @property {ClaudeAuthManager} claudeAuthManager
  * @property {MultiAuthManager} multiAuthManager
  * @property {TunnelManager} tunnelManager
@@ -109,7 +116,10 @@ export function createServices(config = {}) {
 	);
 
 	// Layer 5: Auth services
-	const authService = new AuthService();
+	const apiKeyManager = new ApiKeyManager(db);
+	const sessionManager = new SessionManager(db);
+	const oauthManager = new OAuthManager(db, settingsRepository);
+	const authService = new AuthService(apiKeyManager);
 	const claudeAuthManager = new ClaudeAuthManager();
 	const multiAuthManager = new MultiAuthManager(db);
 
@@ -150,6 +160,9 @@ export function createServices(config = {}) {
 
 		// Auth
 		auth: authService,
+		apiKeyManager,
+		sessionManager,
+		oauthManager,
 		claudeAuthManager,
 		multiAuthManager,
 
@@ -192,13 +205,14 @@ export async function initializeServices(config = {}) {
 		// Initialize database
 		await services.db.init();
 
+		// Run database migrations
+		const migrationManager = createMigrationManager(services.db);
+		await migrationManager.migrate();
+		logger.info('SERVICES', 'Database migrations completed');
+
 		// Mark all sessions as stopped (cleanup from previous run)
 		await services.sessionRepository.markAllStopped();
 		logger.info('SERVICES', 'Cleared stale running sessions on startup');
-
-		// Initialize AuthService
-		await services.auth.initialize(services.settingsRepository);
-		logger.info('SERVICES', 'AuthService initialized');
 
 		// Initialize MultiAuthManager
 		await services.multiAuthManager.init();

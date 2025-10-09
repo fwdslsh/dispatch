@@ -79,8 +79,6 @@
 {/if}
 
 <style>
-	
-
 	/* Component-specific loading spinner animation */
 	.loading-spinner {
 		width: 2rem;

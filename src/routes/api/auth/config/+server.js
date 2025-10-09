@@ -14,7 +14,7 @@ import { json } from '@sveltejs/kit';
  */
 export async function GET({ locals }) {
 	try {
-		const { settingsRepository } = locals.services;
+		const { settingsRepository, oauthManager } = locals.services;
 
 		// Get authentication settings from unified settings table
 		const authSettings = await settingsRepository.getByCategory('authentication');
@@ -22,14 +22,22 @@ export async function GET({ locals }) {
 		// Build auth config response
 		const terminalKey =
 			authSettings.terminal_key || process.env.TERMINAL_KEY || 'change-me-to-a-strong-password';
-		const oauthClientId = authSettings.oauth_client_id;
-		const oauthRedirectUri = authSettings.oauth_redirect_uri;
+
+		// Check OAuth providers via OAuthManager
+		let oauthConfigured = false;
+		if (oauthManager) {
+			try {
+				const providers = await oauthManager.getProviders();
+				// OAuth is considered configured if ANY provider is enabled
+				oauthConfigured = providers.some((p) => p.enabled && p.clientId);
+			} catch (err) {
+				console.error('Failed to check OAuth providers:', err);
+			}
+		}
 
 		const authConfig = {
 			terminal_key_set: Boolean(terminalKey && terminalKey !== 'change-me-to-a-strong-password'),
-			oauth_configured: Boolean(oauthClientId && oauthRedirectUri),
-			oauth_client_id: oauthClientId,
-			oauth_redirect_uri: oauthRedirectUri
+			oauth_configured: oauthConfigured
 		};
 
 		return json(authConfig, {

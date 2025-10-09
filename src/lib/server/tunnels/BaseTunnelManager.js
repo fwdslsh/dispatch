@@ -84,11 +84,7 @@ export class BaseTunnelManager {
 				return;
 			}
 
-			await this.settingsRepository.setByCategory(
-				this.settingsCategory,
-				settings,
-				description
-			);
+			await this.settingsRepository.setByCategory(this.settingsCategory, settings, description);
 		} catch (error) {
 			logger.error(this.logPrefix, `Failed to save settings: ${error.message}`);
 		}

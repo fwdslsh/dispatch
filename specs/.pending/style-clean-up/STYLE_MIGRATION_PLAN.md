@@ -47,6 +47,7 @@ _No single-component CSS files found._
 3. **Option C (Keep):** Keep as external CSS if truly shared presentation logic
 
 **Recommended Approach:**
+
 - If styles are identical across components: Choose Option A
 - If styles represent a reusable pattern: Choose Option B
 - If styles are foundational/global: Choose Option C
@@ -131,7 +132,6 @@ _No single-component CSS files found._
 		gap: 0.25rem;
 	}
 }
-
 ```
 
 ---
@@ -391,4 +391,3 @@ _No single-component CSS files found._
 4. **Run `npm test`** after each migration
 5. **Check responsive behavior** - Ensure mobile/desktop views still work
 6. **Review dark/light themes** - If applicable, test both theme variants
-

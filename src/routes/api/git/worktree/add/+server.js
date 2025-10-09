@@ -13,12 +13,7 @@ import { existsSync } from 'node:fs';
  */
 export async function POST({ request, locals }) {
 	try {
-		const {
-			path,
-			worktreePath,
-			branch,
-			newBranch
-		} = await request.json();
+		const { path, worktreePath, branch, newBranch } = await request.json();
 
 		// Validate required parameters
 		if (!path || !worktreePath) {
@@ -94,7 +89,8 @@ export async function POST({ request, locals }) {
 			worktreePath: resolvedWorktreePath,
 			branch: newBranch || branch,
 			message: result,
-			securityNotice: 'Automatic command execution disabled. Please run initialization commands manually.'
+			securityNotice:
+				'Automatic command execution disabled. Please run initialization commands manually.'
 		});
 	} catch (error) {
 		console.error('Git worktree add error:', error);

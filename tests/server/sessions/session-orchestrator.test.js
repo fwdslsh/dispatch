@@ -102,9 +102,7 @@ describe('SessionOrchestrator', () => {
 			});
 
 			// Act & Assert
-			await expect(
-				orchestrator.createSession('unknown', {})
-			).rejects.toThrow();
+			await expect(orchestrator.createSession('unknown', {})).rejects.toThrow();
 
 			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('session-123', 'error');
 			expect(mockEventRecorder.clearBuffer).toHaveBeenCalledWith('session-123');
@@ -124,14 +122,9 @@ describe('SessionOrchestrator', () => {
 			});
 
 			// Act & Assert
-			await expect(
-				orchestrator.createSession('pty', {})
-			).rejects.toThrow('Creation failed');
+			await expect(orchestrator.createSession('pty', {})).rejects.toThrow('Creation failed');
 
-			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith(
-				'session-123',
-				'error'
-			);
+			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('session-123', 'error');
 			expect(mockEventRecorder.clearBuffer).toHaveBeenCalledWith('session-123');
 		});
 	});
@@ -170,9 +163,7 @@ describe('SessionOrchestrator', () => {
 
 		it('should throw error for non-existent session', async () => {
 			// Act & Assert
-			await expect(
-				orchestrator.sendInput('invalid', 'test')
-			).rejects.toThrow('Session not found');
+			await expect(orchestrator.sendInput('invalid', 'test')).rejects.toThrow('Session not found');
 		});
 	});
 
@@ -198,10 +189,7 @@ describe('SessionOrchestrator', () => {
 			// Assert
 			expect(mockProcess.close).toHaveBeenCalled();
 			expect(mockEventRecorder.clearBuffer).toHaveBeenCalledWith(sessionId);
-			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith(
-				sessionId,
-				'closed'
-			);
+			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith(sessionId, 'closed');
 		});
 
 		it('should handle session not found without error', async () => {
@@ -209,10 +197,7 @@ describe('SessionOrchestrator', () => {
 			const result = await orchestrator.closeSession('invalid');
 
 			// Assert - should still update status in database
-			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith(
-				'invalid',
-				'closed'
-			);
+			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('invalid', 'closed');
 		});
 	});
 
@@ -285,9 +270,7 @@ describe('SessionOrchestrator', () => {
 			mockSessionRepository.findById.mockResolvedValue(null);
 
 			// Act & Assert
-			await expect(
-				orchestrator.resumeSession('invalid')
-			).rejects.toThrow();
+			await expect(orchestrator.resumeSession('invalid')).rejects.toThrow();
 		});
 
 		it('should handle session already running', async () => {

@@ -70,6 +70,7 @@
 		"@xterm/xterm": "^5.5.0",
 		"ansi_up": "^6.0.6",
 		"augmented-ui": "^2.0.0",
+		"bcrypt": "^6.0.0",
 		"better-sqlite3": "^12.4.1",
 		"commander": "^12.1.0",
 		"express": "^5.1.0",

@@ -1,6 +1,4 @@
 <script>
-	
-
 	let { event } = $props();
 
 	const globInfo = $derived(parseGlobEvent(event));

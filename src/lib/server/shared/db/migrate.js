@@ -524,10 +524,69 @@ export function createMigrationManager(database) {
 		)
 	);
 
+	// Migration 2: Cookie-based authentication system
+	manager.registerMigration(
+		new Migration(
+			2,
+			'Cookie-based authentication - sessions, API keys, users',
+			[
+				// Create auth_users table
+				`CREATE TABLE IF NOT EXISTS auth_users (
+					user_id TEXT PRIMARY KEY,
+					email TEXT UNIQUE,
+					name TEXT,
+					created_at INTEGER NOT NULL,
+					last_login INTEGER
+				)`,
+
+				// Create auth_sessions table
+				`CREATE TABLE auth_sessions (
+					id TEXT PRIMARY KEY,
+					user_id TEXT NOT NULL,
+					provider TEXT NOT NULL CHECK (provider IN ('api_key', 'oauth_github', 'oauth_google')),
+					expires_at INTEGER NOT NULL,
+					created_at INTEGER NOT NULL,
+					last_active_at INTEGER NOT NULL,
+					FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
+				)`,
+
+				// Create auth_api_keys table
+				`CREATE TABLE auth_api_keys (
+					id TEXT PRIMARY KEY,
+					user_id TEXT NOT NULL,
+					key_hash TEXT NOT NULL,
+					label TEXT NOT NULL,
+					created_at INTEGER NOT NULL,
+					last_used_at INTEGER,
+					disabled INTEGER DEFAULT 0,
+					FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
+				)`,
+
+				// Create indexes for auth_sessions
+				'CREATE INDEX ix_sessions_user_id ON auth_sessions(user_id)',
+				'CREATE INDEX ix_sessions_expires_at ON auth_sessions(expires_at)',
+
+				// Create indexes for auth_api_keys
+				'CREATE INDEX ix_api_keys_user_id ON auth_api_keys(user_id)',
+				'CREATE INDEX ix_api_keys_disabled ON auth_api_keys(disabled)'
+			],
+			[
+				// Rollback: Drop indexes and tables in reverse order
+				'DROP INDEX IF EXISTS ix_api_keys_disabled',
+				'DROP INDEX IF EXISTS ix_api_keys_user_id',
+				'DROP INDEX IF EXISTS ix_sessions_expires_at',
+				'DROP INDEX IF EXISTS ix_sessions_user_id',
+				'DROP TABLE IF EXISTS auth_api_keys',
+				'DROP TABLE IF EXISTS auth_sessions',
+				'DROP TABLE IF EXISTS auth_users'
+			]
+		)
+	);
+
 	// Future migrations can be added here as new Migration instances
 	// Example:
 	// manager.registerMigration(new Migration(
-	//     2,
+	//     3,
 	//     'Add workspace templates table',
 	//     'CREATE TABLE workspace_templates (...)',
 	//     'DROP TABLE workspace_templates'

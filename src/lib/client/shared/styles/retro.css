@@ -71,7 +71,8 @@ canvas {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: linear-gradient(180deg,
+	background: linear-gradient(
+		180deg,
 		color-mix(in oklab, var(--primary) 90%, white),
 		color-mix(in oklab, var(--primary) 70%, white)
 	);
@@ -224,7 +225,6 @@ textarea:focus {
 	outline: none;
 }
 
-
 /* Active states */
 input:active:not(:disabled),
 select:active:not(:disabled),
@@ -344,7 +344,6 @@ tbody tr:hover {
 	font-weight: 700;
 }
 
-
 /* Subtle body scan lines for retro CRT effect */
 body::before {
 	content: '';
@@ -365,4 +364,3 @@ body::before {
 	opacity: 0.3;
 	mix-blend-mode: overlay;
 }
-

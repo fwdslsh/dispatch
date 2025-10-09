@@ -139,8 +139,6 @@
 		font-family: var(--font-mono);
 	}
 
-	
-
 	.error-message {
 		padding: var(--space-3);
 		background: color-mix(in oklab, var(--err) 15%, transparent);

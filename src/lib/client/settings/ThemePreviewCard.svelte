@@ -232,8 +232,10 @@
 	}
 
 	.theme-card:hover {
-		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--primary-glow-20);
-		
+		box-shadow:
+			0 4px 8px rgba(0, 0, 0, 0.3),
+			0 0 0 2px var(--primary-glow-20);
+
 		filter: brightness(1.05);
 	}
 

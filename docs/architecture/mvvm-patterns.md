@@ -22,13 +22,11 @@ export class ThemeState {
 
 		// Derived state using $derived rune
 		this.activeTheme = $derived.by(
-			() => this.themes.find(t => t.id === this.activeThemeId) || null
+			() => this.themes.find((t) => t.id === this.activeThemeId) || null
 		);
 
 		// Complex derivation with $derived.by()
-		this.customThemes = $derived.by(() =>
-			this.themes.filter(t => t.source === 'custom')
-		);
+		this.customThemes = $derived.by(() => this.themes.filter((t) => t.source === 'custom'));
 	}
 
 	// Business logic methods
@@ -45,6 +43,7 @@ export class ThemeState {
 ```
 
 **Why Classes?**
+
 - Encapsulation of related state and behavior
 - Constructor-based initialization
 - Dependency injection support
@@ -54,6 +53,7 @@ export class ThemeState {
 ## Architecture Layers
 
 ### 1. Model Layer
+
 Pure data structures and business entities (TypeScript interfaces or classes).
 
 ```javascript
@@ -68,20 +68,24 @@ Pure data structures and business entities (TypeScript interfaces or classes).
 ```
 
 ### 2. ViewModel Layer
+
 Business logic with reactive state management using Svelte 5 runes.
 
 **State Management Classes** (`src/lib/client/shared/state/`):
+
 - `SessionViewModel.svelte.js` - Session lifecycle management
 - `WorkspaceState.svelte.js` - Workspace data and selection
 - `ThemeState.svelte.js` - Theme management
 - `AuthViewModel.svelte.js` - Authentication logic
 
 **Service Classes** (`src/lib/client/shared/services/`):
+
 - `SessionApiClient.js` - HTTP API client for sessions
 - `RunSessionClient.js` - WebSocket client for real-time events
 - `SocketService.svelte.js` - Socket.IO connection management
 
 ### 3. View Layer
+
 Svelte components that bind to ViewModels (`.svelte` files).
 
 ```svelte
@@ -121,6 +125,7 @@ Svelte components that bind to ViewModels (`.svelte` files).
 ### Use Classes When:
 
 ✅ **State is scoped to component lifecycle**
+
 ```javascript
 // WorkspaceState.svelte.js - Component-scoped state
 export class WorkspaceState {
@@ -132,6 +137,7 @@ export class WorkspaceState {
 ```
 
 ✅ **Multiple instances needed**
+
 ```javascript
 // Multiple session ViewModels for different components
 const terminalVM = new SessionViewModel(appState, sessionApi);
@@ -139,6 +145,7 @@ const claudeVM = new SessionViewModel(appState, sessionApi);
 ```
 
 ✅ **Dependency injection required**
+
 ```javascript
 export class SessionViewModel {
 	constructor(appStateManager, sessionApi) {
@@ -151,6 +158,7 @@ export class SessionViewModel {
 ### Use Modules When:
 
 ✅ **Global singleton state**
+
 ```javascript
 // AppState.svelte.js - Application-wide state
 export class AppState {
@@ -159,6 +167,7 @@ export class AppState {
 ```
 
 ✅ **Pure utility functions**
+
 ```javascript
 // utils/logger.js - Stateless utilities
 export function createLogger(namespace) {
@@ -167,10 +176,13 @@ export function createLogger(namespace) {
 ```
 
 ✅ **Service clients (often singletons)**
+
 ```javascript
 // SessionApiClient.js - Shared HTTP client
 export class SessionApiClient {
-	constructor(config) { /* ... */ }
+	constructor(config) {
+		/* ... */
+	}
 }
 ```
 
@@ -222,14 +234,13 @@ export class WorkspaceState {
 		this.hasWorkspaces = $derived(this.workspaces.length > 0);
 
 		// Complex derivation with $derived.by()
-		this.claudeProjects = $derived.by(() =>
-			this.workspaces.filter(w => w.isClaudeProject)
-		);
+		this.claudeProjects = $derived.by(() => this.workspaces.filter((w) => w.isClaudeProject));
 	}
 }
 ```
 
 **When to use $derived.by()**:
+
 - Filtering, mapping, or transforming arrays
 - Complex computations requiring multiple statements
 - Any logic that needs a function body
@@ -253,6 +264,7 @@ export class SessionViewModel {
 ```
 
 **Critical Rules**:
+
 - **Never mutate state inside $effect** - causes infinite loops
 - Use for logging, DOM updates, external API calls
 - Clean up subscriptions in effect cleanup
@@ -297,7 +309,7 @@ export class AuthViewModel {
 		try {
 			const response = await fetch('/api/auth/check', {
 				method: 'POST',
-				headers: { 'authorization': `Bearer ${key}` },
+				headers: { authorization: `Bearer ${key}` },
 				body: JSON.stringify({ key })
 			});
 
@@ -341,9 +353,7 @@ export class SessionViewModel {
 
 		// Derived state from AppState
 		this.sessions = $derived(this.appStateManager.sessions.sessions);
-		this.hasActiveSessions = $derived(
-			this.appStateManager.sessions.hasActiveSessions
-		);
+		this.hasActiveSessions = $derived(this.appStateManager.sessions.hasActiveSessions);
 	}
 
 	async createSession({ type, workspacePath, options = {} }) {
@@ -394,16 +404,12 @@ export class ThemeState {
 		this.activating = $state(false);
 
 		// Derived theme lists
-		this.presetThemes = $derived.by(() =>
-			this.themes.filter(t => t.source === 'preset')
-		);
-		this.customThemes = $derived.by(() =>
-			this.themes.filter(t => t.source === 'custom')
-		);
+		this.presetThemes = $derived.by(() => this.themes.filter((t) => t.source === 'preset'));
+		this.customThemes = $derived.by(() => this.themes.filter((t) => t.source === 'custom'));
 
 		// Derived active theme
-		this.activeTheme = $derived.by(() =>
-			this.themes.find(t => t.id === this.activeThemeId) || null
+		this.activeTheme = $derived.by(
+			() => this.themes.find((t) => t.id === this.activeThemeId) || null
 		);
 	}
 
@@ -466,7 +472,7 @@ export class ThemeState {
 		const token = localStorage.getItem('dispatch-auth-token');
 		return {
 			'Content-Type': 'application/json',
-			...(token && { 'Authorization': `Bearer ${token}` })
+			...(token && { Authorization: `Bearer ${token}` })
 		};
 	}
 }
@@ -568,7 +574,7 @@ this.filtered = $derived(
 ```javascript
 // CORRECT - use $derived.by() for function body
 this.filtered = $derived.by(() => {
-	const result = this.items.filter(i => i.active);
+	const result = this.items.filter((i) => i.active);
 	return result.sort((a, b) => a.name.localeCompare(b.name));
 });
 ```
@@ -604,6 +610,7 @@ export class SessionViewModel {
 ### ✅ Single Responsibility
 
 Each ViewModel handles one concern:
+
 - `SessionViewModel` - Session CRUD operations
 - `WorkspaceState` - Workspace data
 - `ThemeState` - Theme management

@@ -30,24 +30,25 @@ Execution steps:
    - Output: Write review to `.claude/reviews/validation-review.md`
 
 2. **Synthesis Phase** - After all three reviews are complete:
-
    - Read all three review documents
    - Extract actionable items from each review
    - Categorize by: severity (critical/high/medium/low), area (mvvm/refactoring/validation), estimated effort
    - Remove duplicates and consolidate related items
    - Prioritize based on: constitution violations, architectural issues, code quality, style improvements
    - Output: Write consolidated todos to `.claude/reviews/consolidated-todos.md` with format:
+
      ```markdown
      ## Critical Priority
+
      - [ ] [MVVM] Item description (assigned: svelte-mvvm-architect)
      - [ ] [REFACTOR] Item description (assigned: refactoring-specialist)
 
      ## High Priority
+
      ...
      ```
 
 3. **Delegation Phase** - Assign and execute todos with appropriate experts:
-
    - Group todos by assigned expert
    - For MVVM items: Launch `svelte-mvvm-architect` agent with specific tasks
    - For refactoring items: Launch `refactoring-specialist` agent with specific tasks
@@ -56,7 +57,6 @@ Execution steps:
    - Update todo checkboxes as items are completed
 
 4. **Final Validation Phase** - After all delegated work is complete:
-
    - Launch `sveltekit-validator` agent for comprehensive final pass
    - Verify: no new inconsistencies, all changes align, tests pass, build succeeds
    - Check: architectural integrity maintained, no regressions introduced
@@ -64,7 +64,6 @@ Execution steps:
    - Include: issues found, corrections made, overall quality assessment, sign-off status
 
 5. **Summary Report** - Generate final summary:
-
    - Total items identified across all reviews
    - Items completed by each expert
    - Remaining items (if any) with recommendations

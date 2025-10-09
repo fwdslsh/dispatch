@@ -1,7 +1,6 @@
 <script>
 	import '$lib/client/shared/styles/index.css';
 	let { children, header = null, footer = null } = $props();
-
 </script>
 
 <div class="dispatch-app">

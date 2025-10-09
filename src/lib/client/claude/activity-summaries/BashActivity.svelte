@@ -1,5 +1,4 @@
-<script>	
-
+<script>
 	let { event } = $props();
 
 	let commandInfo = $derived(parseBashEvent(event));

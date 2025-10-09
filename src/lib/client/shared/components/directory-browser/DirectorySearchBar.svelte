@@ -43,12 +43,7 @@
 				<IconCheck size={20} />
 			</IconButton>
 		{/if}
-		<IconButton
-			type="button"
-			onclick={onToggleNewDir}
-			title="Create new directory"
-			variant="ghost"
-		>
+		<IconButton type="button" onclick={onToggleNewDir} title="Create new directory" variant="ghost">
 			<IconFolderPlus size={16} />
 		</IconButton>
 		<IconButton

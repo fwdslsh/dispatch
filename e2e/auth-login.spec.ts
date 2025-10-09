@@ -42,9 +42,11 @@ test.describe('Authentication 1.1 - Login Flow', () => {
 
 		// 5. Wait for redirect
 		// Expected: Button text changes to "connecting..." during auth
-		await expect(page.locator('button:has-text("connecting")')).toBeVisible({ timeout: 2000 }).catch(() => {
-			// Button may change text very quickly, so this is optional
-		});
+		await expect(page.locator('button:has-text("connecting")'))
+			.toBeVisible({ timeout: 2000 })
+			.catch(() => {
+				// Button may change text very quickly, so this is optional
+			});
 
 		// Expected: Redirect to /workspace occurs
 		await page.waitForURL('**/workspace', { timeout: 10000 });
@@ -56,10 +58,7 @@ test.describe('Authentication 1.1 - Login Flow', () => {
 
 		// Expected: clientId generated and stored (for Socket.IO identification)
 		// Wait for Socket.IO connection to establish and clientId to be generated
-		await page.waitForFunction(
-			() => localStorage.getItem('clientId') !== null,
-			{ timeout: 5000 }
-		);
+		await page.waitForFunction(() => localStorage.getItem('clientId') !== null, { timeout: 5000 });
 		const clientId = await page.evaluate(() => localStorage.getItem('clientId'));
 		expect(clientId).toBeTruthy();
 		// clientId should be a UUID format

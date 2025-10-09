@@ -9,11 +9,11 @@ Generated on 10/7/2025, 3:36:21 PM
 **Total Components:** 185
 
 | Style Approach | Count | Percentage |
-|----------------|-------|------------|
-| Scoped Only | 13 | 7.0% |
-| External Only | 10 | 5.4% |
-| Mixed | 75 | 40.5% |
-| No Styles | 87 | 47.0% |
+| -------------- | ----- | ---------- |
+| Scoped Only    | 13    | 7.0%       |
+| External Only  | 10    | 5.4%       |
+| Mixed          | 75    | 40.5%      |
+| No Styles      | 87    | 47.0%      |
 
 ---
 
@@ -459,7 +459,7 @@ CSS files used by only one component. **Candidates for migration to scoped style
 
 Single-component CSS files: **0**
 
-*No single-component CSS files found.*
+_No single-component CSS files found._
 
 ---
 
@@ -567,8 +567,8 @@ Components with no styling (neither scoped nor external): **87**
 ### 1. Fix Mixed Approach Components (75)
 
 Components using both scoped and external CSS should consolidate to one approach:
+
 - Move external CSS into scoped `<style>` blocks, OR
 - Move scoped styles to external CSS files
 
 **Priority:** High - Inconsistent architecture
-

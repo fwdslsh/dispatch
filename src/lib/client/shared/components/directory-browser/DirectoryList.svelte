@@ -21,16 +21,11 @@
 		onSelectDirectory,
 		onFileOpen
 	} = $props();
-
 </script>
 
 <div class="directory-listing-container overflow-y-auto p-2">
 	{#if showParentDirectory}
-		<DirectoryItem
-			isParentDirectory={true}
-			{loading}
-			onNavigate={onGoUp}
-		/>
+		<DirectoryItem isParentDirectory={true} {loading} onNavigate={onGoUp} />
 	{/if}
 
 	{#each entries as entry}

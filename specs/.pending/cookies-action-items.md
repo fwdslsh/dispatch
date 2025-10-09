@@ -5,6 +5,7 @@
 This document summarizes the critical additions needed for the cookie authentication PRD based on the [detailed review](./cookies-review.md).
 
 **Implementation Strategy**: Atomic big bang deployment with NO migration or backwards compatibility.
+
 - All existing sessions will be invalidated
 - All users must re-authenticate after upgrade
 - No localStorage migration code
@@ -15,46 +16,47 @@ This document summarizes the critical additions needed for the cookie authentica
 
 ## Critical Additions Required (Before Implementation)
 
-### 1. Hooks Implementation (FR-HOOKS-*)
+### 1. Hooks Implementation (FR-HOOKS-\*)
 
 **Add to Spec:**
 
 ```javascript
 // FR-HOOKS-001: Session Validation in hooks.server.js
 export const handle = async ({ event, resolve }) => {
-  const sessionId = event.cookies.get('dispatch_session');
-  event.locals.user = null;
-  event.locals.session = null;
+	const sessionId = event.cookies.get('dispatch_session');
+	event.locals.user = null;
+	event.locals.session = null;
 
-  if (sessionId) {
-    const { session, user } = await event.locals.services.sessionManager.validateSession(sessionId);
+	if (sessionId) {
+		const { session, user } = await event.locals.services.sessionManager.validateSession(sessionId);
 
-    if (session?.fresh) {
-      // Refresh cookie
-      event.cookies.set('dispatch_session', session.id, getSessionCookieAttributes());
-    }
+		if (session?.fresh) {
+			// Refresh cookie
+			event.cookies.set('dispatch_session', session.id, getSessionCookieAttributes());
+		}
 
-    if (!session) {
-      // Clear expired cookie
-      event.cookies.delete('dispatch_session', { path: '/' });
-    }
+		if (!session) {
+			// Clear expired cookie
+			event.cookies.delete('dispatch_session', { path: '/' });
+		}
 
-    event.locals.user = user;
-    event.locals.session = session;
-  }
+		event.locals.user = user;
+		event.locals.session = session;
+	}
 
-  return resolve(event);
+	return resolve(event);
 };
 ```
 
 **Requirements:**
+
 - [ ] FR-HOOKS-001: Complete `handle` hook with session validation
 - [ ] FR-HOOKS-002: Session refresh logic (sliding window)
 - [ ] FR-HOOKS-003: Cookie deletion for expired sessions
 
 ---
 
-### 2. Server-Only Modules (FR-SECURITY-*)
+### 2. Server-Only Modules (FR-SECURITY-\*)
 
 **Add to Spec:**
 
@@ -71,84 +73,87 @@ All authentication logic MUST be in server-only modules:
 ```
 
 **Requirements:**
+
 - [ ] FR-SECURITY-001: All auth logic in `$lib/server/` or `.server.js` files
 - [ ] FR-SECURITY-002: Build validation to prevent server module leaks
 
 ---
 
-### 3. Event Locals Types (FR-TYPES-*)
+### 3. Event Locals Types (FR-TYPES-\*)
 
 **Add to Spec:**
 
 ```typescript
 // src/app.d.ts
 declare global {
-  namespace App {
-    interface Locals {
-      user: { id: string; email?: string; name?: string } | null;
-      session: { id: string; userId: string; expiresAt: Date; fresh: boolean } | null;
-      apiKey?: { id: string; label: string; lastUsed: Date };
-      services: { sessionManager: SessionManager; apiKeyManager: ApiKeyManager; /* ... */ };
-    }
-  }
+	namespace App {
+		interface Locals {
+			user: { id: string; email?: string; name?: string } | null;
+			session: { id: string; userId: string; expiresAt: Date; fresh: boolean } | null;
+			apiKey?: { id: string; label: string; lastUsed: Date };
+			services: { sessionManager: SessionManager; apiKeyManager: ApiKeyManager /* ... */ };
+		}
+	}
 }
 ```
 
 **Requirements:**
+
 - [ ] FR-TYPES-001: Complete TypeScript interface for `event.locals`
 
 ---
 
-### 4. Form Actions (FR-FORM-*)
+### 4. Form Actions (FR-FORM-\*)
 
 **Add to Spec:**
 
 ```javascript
 // src/routes/login/+page.server.js
 export const actions = {
-  login: async ({ request, cookies, locals }) => {
-    const data = await request.formData();
-    const key = data.get('key');
+	login: async ({ request, cookies, locals }) => {
+		const data = await request.formData();
+		const key = data.get('key');
 
-    const validKey = await locals.services.apiKeyManager.verify(key);
-    if (!validKey) {
-      return fail(401, { error: 'Invalid key' });
-    }
+		const validKey = await locals.services.apiKeyManager.verify(key);
+		if (!validKey) {
+			return fail(401, { error: 'Invalid key' });
+		}
 
-    const session = await locals.services.sessionManager.createSession({
-      userId: 'default',
-      provider: 'api_key'
-    });
+		const session = await locals.services.sessionManager.createSession({
+			userId: 'default',
+			provider: 'api_key'
+		});
 
-    cookies.set('dispatch_session', session.id, {
-      path: '/',
-      httpOnly: true,
-      secure: import.meta.env.PROD,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30
-    });
+		cookies.set('dispatch_session', session.id, {
+			path: '/',
+			httpOnly: true,
+			secure: import.meta.env.PROD,
+			sameSite: 'lax',
+			maxAge: 60 * 60 * 24 * 30
+		});
 
-    redirect(303, '/');
-  },
+		redirect(303, '/');
+	},
 
-  logout: async ({ cookies, locals }) => {
-    const sessionId = cookies.get('dispatch_session');
-    if (sessionId) {
-      await locals.services.sessionManager.invalidateSession(sessionId);
-    }
-    cookies.delete('dispatch_session', { path: '/' });
-    redirect(303, '/login');
-  }
+	logout: async ({ cookies, locals }) => {
+		const sessionId = cookies.get('dispatch_session');
+		if (sessionId) {
+			await locals.services.sessionManager.invalidateSession(sessionId);
+		}
+		cookies.delete('dispatch_session', { path: '/' });
+		redirect(303, '/login');
+	}
 };
 ```
 
 **Requirements:**
+
 - [ ] FR-FORM-001: Login form action with cookie setting
 - [ ] FR-FORM-002: Logout form action with session invalidation
 
 ---
 
-### 5. Database Schema (FR-DB-*)
+### 5. Database Schema (FR-DB-\*)
 
 **Add to Spec:**
 
@@ -188,6 +193,7 @@ CREATE INDEX ix_api_keys_disabled ON auth_api_keys(disabled);
 ```
 
 **Requirements:**
+
 - [ ] FR-DB-001: `auth_sessions` table with clean schema (DROP/CREATE)
 - [ ] FR-DB-002: `auth_api_keys` table with bcrypt hashes (new table)
 - [ ] FR-DB-003: Migration script uses DROP/CREATE (no backwards compat)
@@ -201,94 +207,96 @@ CREATE INDEX ix_api_keys_disabled ON auth_api_keys(disabled);
 
 ```javascript
 const SESSION_CONFIG = {
-  absoluteTimeout: 30 * 24 * 60 * 60 * 1000,  // 30 days
-  idleTimeout: 7 * 24 * 60 * 60 * 1000,       // 7 days
-  refreshWindow: 24 * 60 * 60 * 1000,         // 24 hours
+	absoluteTimeout: 30 * 24 * 60 * 60 * 1000, // 30 days
+	idleTimeout: 7 * 24 * 60 * 60 * 1000, // 7 days
+	refreshWindow: 24 * 60 * 60 * 1000 // 24 hours
 };
 
 async function validateSession(sessionId) {
-  const session = await db.getSession(sessionId);
-  if (!session) return null;
+	const session = await db.getSession(sessionId);
+	if (!session) return null;
 
-  const now = Date.now();
-  const absoluteExpired = now > session.expiresAt;
-  const idleExpired = (now - session.lastActiveAt) > SESSION_CONFIG.idleTimeout;
+	const now = Date.now();
+	const absoluteExpired = now > session.expiresAt;
+	const idleExpired = now - session.lastActiveAt > SESSION_CONFIG.idleTimeout;
 
-  if (absoluteExpired || idleExpired) {
-    await db.deleteSession(sessionId);
-    return null;
-  }
+	if (absoluteExpired || idleExpired) {
+		await db.deleteSession(sessionId);
+		return null;
+	}
 
-  const timeUntilExpiry = session.expiresAt - now;
-  const fresh = timeUntilExpiry < SESSION_CONFIG.refreshWindow;
+	const timeUntilExpiry = session.expiresAt - now;
+	const fresh = timeUntilExpiry < SESSION_CONFIG.refreshWindow;
 
-  if (fresh) {
-    await db.updateSession(sessionId, {
-      lastActiveAt: now,
-      expiresAt: now + SESSION_CONFIG.absoluteTimeout
-    });
-  }
+	if (fresh) {
+		await db.updateSession(sessionId, {
+			lastActiveAt: now,
+			expiresAt: now + SESSION_CONFIG.absoluteTimeout
+		});
+	}
 
-  return { session, fresh };
+	return { session, fresh };
 }
 ```
 
 **Requirements:**
+
 - [ ] FR-SECURITY-004: Session expiration policy (absolute + idle)
 - [ ] FR-SECURITY-005: Session refresh mechanism
 - [ ] FR-SECURITY-006: Background cleanup of expired sessions
 
 ---
 
-### 7. Socket.IO Cookie Auth (FR-SOCKET-*)
+### 7. Socket.IO Cookie Auth (FR-SOCKET-\*)
 
 **Add to Spec:**
 
 ```javascript
 // Socket.IO middleware for cookie auth
 export function createSocketAuthMiddleware(services) {
-  return async (socket, next) => {
-    // Strategy 1: Cookie-based (browser)
-    const cookies = parseCookies(socket.handshake.headers.cookie);
-    const sessionId = cookies['dispatch_session'];
+	return async (socket, next) => {
+		// Strategy 1: Cookie-based (browser)
+		const cookies = parseCookies(socket.handshake.headers.cookie);
+		const sessionId = cookies['dispatch_session'];
 
-    if (sessionId) {
-      const { session, user } = await services.sessionManager.validateSession(sessionId);
-      if (session) {
-        socket.data.user = user;
-        socket.data.session = session;
-        socket.data.authMethod = 'session_cookie';
-        return next();
-      }
-    }
+		if (sessionId) {
+			const { session, user } = await services.sessionManager.validateSession(sessionId);
+			if (session) {
+				socket.data.user = user;
+				socket.data.session = session;
+				socket.data.authMethod = 'session_cookie';
+				return next();
+			}
+		}
 
-    // Strategy 2: API key (programmatic)
-    const authHeader = socket.handshake.auth.token || socket.handshake.headers.authorization;
-    if (authHeader) {
-      const key = authHeader.replace(/^Bearer\s+/i, '');
-      const apiKey = await services.apiKeyManager.verify(key);
-      if (apiKey) {
-        socket.data.apiKey = apiKey;
-        socket.data.authMethod = 'api_key';
-        return next();
-      }
-    }
+		// Strategy 2: API key (programmatic)
+		const authHeader = socket.handshake.auth.token || socket.handshake.headers.authorization;
+		if (authHeader) {
+			const key = authHeader.replace(/^Bearer\s+/i, '');
+			const apiKey = await services.apiKeyManager.verify(key);
+			if (apiKey) {
+				socket.data.apiKey = apiKey;
+				socket.data.authMethod = 'api_key';
+				return next();
+			}
+		}
 
-    next(new Error('Authentication required'));
-  };
+		next(new Error('Authentication required'));
+	};
 }
 
 function parseCookies(cookieHeader) {
-  if (!cookieHeader) return {};
-  return cookieHeader.split(';').reduce((cookies, cookie) => {
-    const [name, value] = cookie.trim().split('=');
-    cookies[name] = decodeURIComponent(value);
-    return cookies;
-  }, {});
+	if (!cookieHeader) return {};
+	return cookieHeader.split(';').reduce((cookies, cookie) => {
+		const [name, value] = cookie.trim().split('=');
+		cookies[name] = decodeURIComponent(value);
+		return cookies;
+	}, {});
 }
 ```
 
 **Requirements:**
+
 - [ ] FR-SOCKET-001: Socket.IO middleware for cookie + API key auth
 - [ ] FR-SOCKET-002: Manual cookie parsing from handshake headers
 - [ ] FR-SOCKET-003: Store auth context in `socket.data`
@@ -304,58 +312,59 @@ function parseCookies(cookieHeader) {
 
 // API endpoints: Origin validation
 async function validateOrigin(request, url) {
-  const origin = request.headers.get('origin');
-  const allowedOrigins = [url.origin /* add tunnel URLs if needed */];
-  return origin ? allowedOrigins.includes(origin) : true;
+	const origin = request.headers.get('origin');
+	const allowedOrigins = [url.origin /* add tunnel URLs if needed */];
+	return origin ? allowedOrigins.includes(origin) : true;
 }
 
 export async function POST({ request, url }) {
-  if (!validateOrigin(request, url)) {
-    return json({ error: 'Invalid origin' }, { status: 403 });
-  }
-  // ... handle request
+	if (!validateOrigin(request, url)) {
+		return json({ error: 'Invalid origin' }, { status: 403 });
+	}
+	// ... handle request
 }
 ```
 
 **Requirements:**
+
 - [ ] FR-SECURITY-007: CSRF protection for form actions (built-in)
 - [ ] FR-SECURITY-008: Origin validation for API endpoints
 - [ ] FR-SECURITY-009: Document API key auth bypasses CSRF
 
 ---
 
-### 9. Client State Refactor (FR-CLIENT-*) - No Migration Code
+### 9. Client State Refactor (FR-CLIENT-\*) - No Migration Code
 
 **Add to Spec:**
 
 ```javascript
 // AuthViewModel - Clean implementation, no localStorage
 export class AuthViewModel {
-  constructor(sessionApi) {
-    this.sessionApi = sessionApi;
+	constructor(sessionApi) {
+		this.sessionApi = sessionApi;
 
-    // UI state only (NO localStorage checking)
-    this.loginForm = $state({ key: '', error: null, loading: false });
-    this.isAuthenticated = $state(false);  // Derived from server
-    this.user = $state(null);              // From +layout.server.js
-  }
+		// UI state only (NO localStorage checking)
+		this.loginForm = $state({ key: '', error: null, loading: false });
+		this.isAuthenticated = $state(false); // Derived from server
+		this.user = $state(null); // From +layout.server.js
+	}
 
-  // Use form action only (no localStorage fallback)
-  async loginWithKey(key) {
-    // Delegates to form action, no migration code
-  }
+	// Use form action only (no localStorage fallback)
+	async loginWithKey(key) {
+		// Delegates to form action, no migration code
+	}
 
-  // No checkExistingAuth() that checks localStorage
-  // No migration prompts or localStorage cleanup
+	// No checkExistingAuth() that checks localStorage
+	// No migration prompts or localStorage cleanup
 }
 
 // Socket.IO: Enable cookies (no token passing)
 export function createAuthenticatedSocket(config = {}) {
-  const socket = io(config.socketUrl || window.location.origin, {
-    transports: ['websocket', 'polling'],
-    withCredentials: true  // ✅ Send cookies automatically (NO manual auth)
-  });
-  return socket;
+	const socket = io(config.socketUrl || window.location.origin, {
+		transports: ['websocket', 'polling'],
+		withCredentials: true // ✅ Send cookies automatically (NO manual auth)
+	});
+	return socket;
 }
 
 // DELETE from socket-auth.js:
@@ -365,6 +374,7 @@ export function createAuthenticatedSocket(config = {}) {
 ```
 
 **Requirements:**
+
 - [ ] FR-CLIENT-001: Refactor `AuthViewModel` to remove ALL localStorage code
 - [ ] FR-CLIENT-002: DELETE token storage functions from `socket-auth.js` entirely
 - [ ] FR-CLIENT-003: Use `withCredentials: true` for Socket.IO (no manual auth)
@@ -372,37 +382,38 @@ export function createAuthenticatedSocket(config = {}) {
 
 ---
 
-### 10. Testing Strategy (FR-TEST-*)
+### 10. Testing Strategy (FR-TEST-\*)
 
 **Add to Spec:**
 
 ```javascript
 // Unit test example
 describe('SessionManager', () => {
-  it('should reject expired session', async () => {
-    const expiredSession = { id: '123', expiresAt: Date.now() - 1000 };
-    mockDb.getSession.mockResolvedValue(expiredSession);
-    const result = await sessionManager.validateSession('123');
-    expect(result).toBeNull();
-  });
+	it('should reject expired session', async () => {
+		const expiredSession = { id: '123', expiresAt: Date.now() - 1000 };
+		mockDb.getSession.mockResolvedValue(expiredSession);
+		const result = await sessionManager.validateSession('123');
+		expect(result).toBeNull();
+	});
 });
 
 // E2E test example
 test('should login and set cookie', async ({ page }) => {
-  await page.goto('/login');
-  await page.fill('input[name="key"]', 'test-key');
-  await page.click('button[type="submit"]');
+	await page.goto('/login');
+	await page.fill('input[name="key"]', 'test-key');
+	await page.click('button[type="submit"]');
 
-  await expect(page).toHaveURL('/');
+	await expect(page).toHaveURL('/');
 
-  const cookies = await page.context().cookies();
-  const sessionCookie = cookies.find(c => c.name === 'dispatch_session');
-  expect(sessionCookie).toBeDefined();
-  expect(sessionCookie.httpOnly).toBe(true);
+	const cookies = await page.context().cookies();
+	const sessionCookie = cookies.find((c) => c.name === 'dispatch_session');
+	expect(sessionCookie).toBeDefined();
+	expect(sessionCookie.httpOnly).toBe(true);
 });
 ```
 
 **Requirements:**
+
 - [ ] FR-TEST-001: Unit tests for SessionManager
 - [ ] FR-TEST-002: Unit tests for ApiKeyManager
 - [ ] FR-TEST-003: E2E tests for login flow with cookie verification
@@ -414,6 +425,7 @@ test('should login and set cookie', async ({ page }) => {
 ## Implementation Phases (Big Bang - No Migration)
 
 ### Phase 1: Server Infrastructure (Week 1) - 2-3 days
+
 - [ ] Create `SessionManager.server.js` (clean implementation)
 - [ ] Create `ApiKeyManager.server.js`
 - [ ] Create `CookieService.server.js`
@@ -424,6 +436,7 @@ test('should login and set cookie', async ({ page }) => {
 **Effort Reduction**: No dual auth complexity
 
 ### Phase 2: Authentication Flows (Week 2) - 3-5 days
+
 - [ ] Login form action (clean, no migration UI)
 - [ ] Logout form action
 - [ ] OAuth callback handler (optional)
@@ -434,6 +447,7 @@ test('should login and set cookie', async ({ page }) => {
 **Effort Reduction**: Simplified validation logic (no backwards compat)
 
 ### Phase 3: Client Integration (Week 2-3) - 2-3 days
+
 - [ ] Refactor `AuthViewModel` (DELETE localStorage code)
 - [ ] Update `socket-auth.js` (DELETE token functions)
 - [ ] Root layout load function
@@ -443,6 +457,7 @@ test('should login and set cookie', async ({ page }) => {
 **Effort Reduction**: No migration code, no localStorage detection
 
 ### Phase 4: Socket.IO Integration (Week 3) - 1-2 days
+
 - [ ] Socket.IO auth middleware
 - [ ] Cookie parsing utility
 - [ ] Session expiration handling
@@ -451,6 +466,7 @@ test('should login and set cookie', async ({ page }) => {
 **Unchanged**: Core Socket.IO work same as gradual approach
 
 ### Phase 5: Testing & Documentation (Week 3-4) - 2-3 days
+
 - [ ] Unit tests (SessionManager, ApiKeyManager)
 - [ ] E2E tests (login, logout, sessions)
 - [ ] Update API documentation
@@ -464,6 +480,7 @@ test('should login and set cookie', async ({ page }) => {
 ## Total Effort: ~2-3 weeks (10-16 days)
 
 **Reduction from gradual approach**: ~40-50% faster due to:
+
 - No dual auth complexity
 - No migration code/testing
 - No backwards compatibility
@@ -490,29 +507,23 @@ Before implementation, decide on:
 ## Priority Order
 
 **Must Have (Blocking)**:
-1. Hooks implementation (FR-HOOKS-*)
+
+1. Hooks implementation (FR-HOOKS-\*)
 2. Server-only modules (FR-SECURITY-001-002)
-3. Database schema (FR-DB-*)
-4. Form actions (FR-FORM-*)
-5. Socket.IO cookie auth (FR-SOCKET-*)
+3. Database schema (FR-DB-\*)
+4. Form actions (FR-FORM-\*)
+5. Socket.IO cookie auth (FR-SOCKET-\*)
 
-**Should Have (Important)**:
-6. Session expiration policy (FR-SECURITY-004-006)
-7. CSRF protection (FR-SECURITY-007-009)
-8. Client state refactor (FR-CLIENT-*)
-9. Testing strategy (FR-TEST-*)
+**Should Have (Important)**: 6. Session expiration policy (FR-SECURITY-004-006) 7. CSRF protection (FR-SECURITY-007-009) 8. Client state refactor (FR-CLIENT-_) 9. Testing strategy (FR-TEST-_)
 
-**Nice to Have (Post-Launch)**:
-10. OAuth integration (FR-OAUTH-*)
-11. Advanced features (rate limiting, 2FA, audit logging)
-12. Extended documentation (advanced use cases, troubleshooting)
+**Nice to Have (Post-Launch)**: 10. OAuth integration (FR-OAUTH-\*) 11. Advanced features (rate limiting, 2FA, audit logging) 12. Extended documentation (advanced use cases, troubleshooting)
 
 ---
 
 ## Next Steps
 
 1. **Review this action items doc** with the team
-2. **Update the original PRD** with the functional requirements (FR-*)
+2. **Update the original PRD** with the functional requirements (FR-\*)
 3. **Create detailed technical design doc** based on code examples
 4. **Prototype hooks.server.js** to validate approach
 5. **Design database schema** and review with DBA

@@ -238,7 +238,6 @@
 </div>
 
 <style>
-
 	/* Component-specific overrides only */
 	.retention-settings {
 		container-type: inline-size;
@@ -307,7 +306,6 @@
 		padding: var(--space-6) var(--space-5);
 		color: var(--muted);
 	}
-
 
 	.warning-message,
 	.error-message {

@@ -17,7 +17,6 @@ function resolvePath(filepath) {
 	return resolve(expanded);
 }
 
-
 export async function POST({ request, locals }) {
 	try {
 		const { path, worktreePath, force = false } = await request.json();

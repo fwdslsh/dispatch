@@ -5,6 +5,7 @@
 Dispatch uses standardized error handling patterns across the codebase to ensure consistent error propagation, user-friendly error messages, and robust failure recovery. This guide documents the patterns used in services, ViewModels, API routes, and Socket.IO handlers.
 
 **Core Principles**:
+
 - Fail gracefully with user-friendly messages
 - Log errors with context for debugging
 - Propagate errors to appropriate layers
@@ -80,6 +81,7 @@ export class SessionApiClient {
 ```
 
 **Key Features**:
+
 - Centralized response handling
 - Error code extraction
 - Specific error codes for common issues
@@ -163,9 +165,7 @@ export class SessionViewModel {
 			const result = await this.sessionApi.list(filters);
 			log.info('Loaded sessions from API', result.sessions?.length || 0);
 
-			const validatedSessions = this.validateAndNormalizeSessions(
-				result.sessions || []
-			);
+			const validatedSessions = this.validateAndNormalizeSessions(result.sessions || []);
 
 			this.appStateManager.loadSessions(validatedSessions);
 
@@ -194,6 +194,7 @@ export class SessionViewModel {
 ```
 
 **Key Features**:
+
 - Operation state tracking (loading, creating, error)
 - Prevent duplicate operations
 - User-friendly error messages
@@ -240,24 +241,18 @@ Components display errors from ViewModels and handle user interaction errors.
 
 <div class="session-manager">
 	{#if loading}
-		<div class="loading-indicator">
-			Creating session...
-		</div>
+		<div class="loading-indicator">Creating session...</div>
 	{/if}
 
 	{#if error}
 		<div class="error-banner" role="alert">
 			<span class="error-icon">⚠️</span>
 			<span class="error-message">{error}</span>
-			<button onclick={() => viewModel.clearError()}>
-				Dismiss
-			</button>
+			<button onclick={() => viewModel.clearError()}> Dismiss </button>
 		</div>
 	{/if}
 
-	<button onclick={handleCreateSession} disabled={loading}>
-		Create Session
-	</button>
+	<button onclick={handleCreateSession} disabled={loading}> Create Session </button>
 </div>
 
 <style>
@@ -275,6 +270,7 @@ Components display errors from ViewModels and handle user interaction errors.
 ```
 
 **Key Features**:
+
 - Reactive error display via `$derived`
 - User-friendly error UI
 - Dismissible error messages
@@ -409,6 +405,7 @@ export class RunSessionClient {
 ```
 
 **Key Features**:
+
 - Connection state tracking
 - Error event handlers
 - Promise-based async operations
@@ -442,16 +439,15 @@ export async function POST({ request }) {
 		// Validate session type
 		const validTypes = ['pty', 'claude', 'file-editor'];
 		if (!validTypes.includes(body.kind)) {
-			throw error(400, `Invalid session type: ${body.kind}. Must be one of: ${validTypes.join(', ')}`);
+			throw error(
+				400,
+				`Invalid session type: ${body.kind}. Must be one of: ${validTypes.join(', ')}`
+			);
 		}
 
 		// Create session via orchestrator
 		const sessionOrchestrator = services.sessionOrchestrator;
-		const runId = await sessionOrchestrator.createSession(
-			body.kind,
-			body.cwd,
-			body.options || {}
-		);
+		const runId = await sessionOrchestrator.createSession(body.kind, body.cwd, body.options || {});
 
 		return json({ runId, success: true });
 	} catch (err) {
@@ -507,6 +503,7 @@ export async function DELETE({ url }) {
 ```
 
 **Key Features**:
+
 - Input validation with clear error messages
 - Structured error responses
 - HTTP status code mapping
@@ -539,9 +536,7 @@ export class ClaudeAdapter {
 						return;
 					}
 
-					const message = typeof data === 'string'
-						? data
-						: new TextDecoder().decode(data);
+					const message = typeof data === 'string' ? data : new TextDecoder().decode(data);
 
 					activeQuery = query({
 						prompt: message,
@@ -590,6 +585,7 @@ export class ClaudeAdapter {
 ```
 
 **Key Features**:
+
 - Graceful error handling during execution
 - Error event emission to clients
 - State-aware error handling (isClosing)

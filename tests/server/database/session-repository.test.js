@@ -233,7 +233,10 @@ describe('SessionRepository', () => {
 		it('should order by updated_at DESC', async () => {
 			const session1 = await repository.create({ kind: 'pty', workspacePath: '/workspace/test' });
 			await new Promise((resolve) => setTimeout(resolve, 10));
-			const session2 = await repository.create({ kind: 'claude', workspacePath: '/workspace/test' });
+			const session2 = await repository.create({
+				kind: 'claude',
+				workspacePath: '/workspace/test'
+			});
 
 			const sessions = await repository.findAll();
 
@@ -336,9 +339,9 @@ describe('SessionRepository', () => {
 		});
 
 		it('should throw error for non-existent session', async () => {
-			await expect(
-				repository.updateMetadata('non-existent-id', { key: 'value' })
-			).rejects.toThrow('Session not found: non-existent-id');
+			await expect(repository.updateMetadata('non-existent-id', { key: 'value' })).rejects.toThrow(
+				'Session not found: non-existent-id'
+			);
 		});
 
 		it('should update updatedAt timestamp', async () => {
@@ -360,7 +363,10 @@ describe('SessionRepository', () => {
 	describe('markAllStopped', () => {
 		it('should mark all running sessions as stopped', async () => {
 			const session1 = await repository.create({ kind: 'pty', workspacePath: '/workspace/test' });
-			const session2 = await repository.create({ kind: 'claude', workspacePath: '/workspace/test' });
+			const session2 = await repository.create({
+				kind: 'claude',
+				workspacePath: '/workspace/test'
+			});
 			const session3 = await repository.create({
 				kind: 'file-editor',
 				workspacePath: '/workspace/test'
@@ -427,7 +433,10 @@ describe('SessionRepository', () => {
 
 		it('should not affect other sessions', async () => {
 			const session1 = await repository.create({ kind: 'pty', workspacePath: '/workspace/test' });
-			const session2 = await repository.create({ kind: 'claude', workspacePath: '/workspace/test' });
+			const session2 = await repository.create({
+				kind: 'claude',
+				workspacePath: '/workspace/test'
+			});
 
 			await repository.delete(session1.id);
 

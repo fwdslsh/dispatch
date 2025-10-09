@@ -7,6 +7,7 @@
 
 import { json } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import { CookieService } from '$lib/server/auth/CookieService.server.js';
 
 /**
  * Validate workspace path format and constraints
@@ -48,8 +49,9 @@ function extractWorkspaceName(path) {
  *   preferences?: object (optional settings)
  * }
  */
-export async function POST({ request, locals }) {
-	const { settingsRepository, workspaceRepository } = locals.services;
+export async function POST({ request, cookies, locals }) {
+	const { settingsRepository, workspaceRepository, apiKeyManager, sessionManager } =
+		locals.services;
 
 	try {
 		// Check if onboarding already completed
@@ -60,16 +62,9 @@ export async function POST({ request, locals }) {
 		}
 
 		const body = await request.json();
-		const { terminalKey, workspaceName, workspacePath, preferences } = body;
+		const { workspaceName, workspacePath, preferences } = body;
 
-		// Validate terminal key
-		if (!terminalKey || typeof terminalKey !== 'string') {
-			return json({ error: 'Terminal key is required' }, { status: 400 });
-		}
-
-		if (terminalKey.length < 8) {
-			return json({ error: 'Terminal key must be at least 8 characters long' }, { status: 400 });
-		}
+		// Note: No terminalKey validation - we generate an API key instead
 
 		// Validate workspace parameters if provided
 		if ((workspaceName && !workspacePath) || (!workspaceName && workspacePath)) {
@@ -85,21 +80,12 @@ export async function POST({ request, locals }) {
 
 		// Begin atomic operation
 		let workspaceId = null;
+		let apiKeyResult = null;
 
 		try {
-			// Step 1: Store terminal key in authentication settings
-			await settingsRepository.setByCategory(
-				'authentication',
-				{ terminal_key: terminalKey },
-				'Authentication settings configured during onboarding'
-			);
-
-			// Update the cached terminal key for immediate use
-			if (locals.services.auth && typeof locals.services.auth.updateCachedKey === 'function') {
-				locals.services.auth.updateCachedKey(terminalKey);
-			}
-
-			logger.info('ONBOARDING_API', 'Terminal key configured successfully');
+			// Step 1: Generate first API key for the default user
+			apiKeyResult = await apiKeyManager.generateKey('default', 'First API Key');
+			logger.info('ONBOARDING_API', `Generated first API key: ${apiKeyResult.id}`);
 
 			// Step 2: Create workspace if provided
 			if (workspaceName && workspacePath) {
@@ -140,21 +126,31 @@ export async function POST({ request, locals }) {
 				logger.info('ONBOARDING_API', 'User preferences saved');
 			}
 
-			// Step 4: Mark onboarding as complete
+			// Step 4: Create session with the new API key
+			const session = await sessionManager.createSession('default', 'api_key', {
+				apiKeyId: apiKeyResult.id,
+				label: apiKeyResult.label
+			});
+
+			// Set session cookie
+			CookieService.setSessionCookie(cookies, session.sessionId);
+
+			// Step 5: Mark onboarding as complete
 			const completionTimestamp = new Date().toISOString();
 			await settingsRepository.setByCategory(
 				'onboarding',
 				{
 					isComplete: true,
 					completedAt: completionTimestamp,
-					firstWorkspaceId: workspaceId
+					firstWorkspaceId: workspaceId,
+					firstApiKeyId: apiKeyResult.id
 				},
 				'Onboarding completed successfully'
 			);
 
 			logger.info('ONBOARDING_API', 'Onboarding completed successfully');
 
-			// Return success response
+			// Return success response with API key (shown ONCE)
 			return json(
 				{
 					success: true,
@@ -162,6 +158,12 @@ export async function POST({ request, locals }) {
 						isComplete: true,
 						completedAt: completionTimestamp,
 						firstWorkspaceId: workspaceId
+					},
+					apiKey: {
+						id: apiKeyResult.id,
+						key: apiKeyResult.key,
+						label: apiKeyResult.label,
+						warning: 'Save this key - it will not be shown again'
 					},
 					workspace: workspaceId
 						? {

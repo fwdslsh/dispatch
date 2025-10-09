@@ -175,9 +175,9 @@ class CSSParser {
 
 		declarationsString
 			.split(';')
-			.map(decl => decl.trim())
-			.filter(decl => decl.length > 0)
-			.forEach(decl => {
+			.map((decl) => decl.trim())
+			.filter((decl) => decl.length > 0)
+			.forEach((decl) => {
 				const colonIndex = decl.indexOf(':');
 				if (colonIndex > 0) {
 					const property = decl.substring(0, colonIndex).trim();
@@ -234,13 +234,30 @@ class ThemeAnalyzer {
 			this.globalRules.set(rule.selector, rule.declarations);
 
 			// Track HTML element defaults
-			const htmlElements = ['html', 'body', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-			                     'p', 'a', 'button', 'input', 'select', 'textarea',
-			                     'table', 'code', 'pre', 'small'];
+			const htmlElements = [
+				'html',
+				'body',
+				'h1',
+				'h2',
+				'h3',
+				'h4',
+				'h5',
+				'h6',
+				'p',
+				'a',
+				'button',
+				'input',
+				'select',
+				'textarea',
+				'table',
+				'code',
+				'pre',
+				'small'
+			];
 
 			for (const element of htmlElements) {
 				// Check if selector targets this element (exact match or comma-separated)
-				const selectors = rule.selector.split(',').map(s => s.trim());
+				const selectors = rule.selector.split(',').map((s) => s.trim());
 				if (selectors.includes(element)) {
 					if (!this.htmlDefaults.has(element)) {
 						this.htmlDefaults.set(element, new Map());
@@ -416,7 +433,8 @@ class UnnecessaryCSSDetector {
 function generateMarkdownReport(allIssues, themeAnalyzer) {
 	let markdown = '# Unnecessary CSS Report\n\n';
 	markdown += `Generated on ${new Date().toLocaleString()}\n\n`;
-	markdown += '> This report identifies CSS that duplicates global/theme styles and suggests simplifications.\n\n';
+	markdown +=
+		'> This report identifies CSS that duplicates global/theme styles and suggests simplifications.\n\n';
 
 	// Calculate overall statistics
 	const stats = calculateOverallStats(allIssues);
@@ -434,7 +452,7 @@ function generateMarkdownReport(allIssues, themeAnalyzer) {
 	markdown += '---\n\n';
 
 	// Duplicate Variable Values
-	const filesWithDuplicateVars = allIssues.filter(i => i.duplicatesVariableValues.length > 0);
+	const filesWithDuplicateVars = allIssues.filter((i) => i.duplicatesVariableValues.length > 0);
 	if (filesWithDuplicateVars.length > 0) {
 		markdown += '## Hardcoded Values That Match CSS Variables\n\n';
 		markdown += 'These styles use hardcoded values that exactly match CSS variable definitions. ';
@@ -456,8 +474,7 @@ function generateMarkdownReport(allIssues, themeAnalyzer) {
 		}
 
 		// Sort by frequency
-		const sortedVars = Array.from(byVariable.entries())
-			.sort((a, b) => b[1].length - a[1].length);
+		const sortedVars = Array.from(byVariable.entries()).sort((a, b) => b[1].length - a[1].length);
 
 		for (const [varName, occurrences] of sortedVars.slice(0, 15)) {
 			markdown += `### \`--${varName}\` (${occurrences.length} occurrences)\n\n`;
@@ -484,10 +501,11 @@ function generateMarkdownReport(allIssues, themeAnalyzer) {
 	markdown += '---\n\n';
 
 	// Unnecessary HTML Overrides
-	const filesWithHTMLOverrides = allIssues.filter(i => i.unnecessaryHTMLOverrides.length > 0);
+	const filesWithHTMLOverrides = allIssues.filter((i) => i.unnecessaryHTMLOverrides.length > 0);
 	if (filesWithHTMLOverrides.length > 0) {
 		markdown += '## Unnecessary HTML Element Overrides\n\n';
-		markdown += 'These components override HTML element styles with the same values already defined globally in `retro.css`. ';
+		markdown +=
+			'These components override HTML element styles with the same values already defined globally in `retro.css`. ';
 		markdown += 'Remove these declarations to reduce redundancy.\n\n';
 		markdown += `**Files affected:** ${filesWithHTMLOverrides.length}\n\n`;
 
@@ -516,14 +534,17 @@ function generateMarkdownReport(allIssues, themeAnalyzer) {
 
 	// Components That Should Inherit More
 	markdown += '## Components That Should Use More Global Styles\n\n';
-	markdown += 'Components with low inheritance scores that could benefit from relying more on global theme styles.\n\n';
+	markdown +=
+		'Components with low inheritance scores that could benefit from relying more on global theme styles.\n\n';
 
-	const filesWithScores = allIssues.map(issue => ({
-		file: issue.file,
-		score: new UnnecessaryCSSDetector(themeAnalyzer).calculateInheritanceScore(issue),
-		unnecessaryCount: issue.unnecessaryDeclarations,
-		totalCount: issue.totalDeclarations
-	})).filter(f => f.score < 90 && f.unnecessaryCount > 0);
+	const filesWithScores = allIssues
+		.map((issue) => ({
+			file: issue.file,
+			score: new UnnecessaryCSSDetector(themeAnalyzer).calculateInheritanceScore(issue),
+			unnecessaryCount: issue.unnecessaryDeclarations,
+			totalCount: issue.totalDeclarations
+		}))
+		.filter((f) => f.score < 90 && f.unnecessaryCount > 0);
 
 	const sortedByScore = filesWithScores.sort((a, b) => a.score - b.score);
 
@@ -678,8 +699,12 @@ function calculateOverallStats(allIssues) {
 
 	// Calculate overall scores
 	if (stats.totalDeclarations > 0) {
-		stats.inheritanceScore = Math.round(100 - (stats.unnecessaryDeclarations / stats.totalDeclarations) * 100);
-		stats.potentialReduction = Math.round((stats.unnecessaryDeclarations / stats.totalDeclarations) * 100);
+		stats.inheritanceScore = Math.round(
+			100 - (stats.unnecessaryDeclarations / stats.totalDeclarations) * 100
+		);
+		stats.potentialReduction = Math.round(
+			(stats.unnecessaryDeclarations / stats.totalDeclarations) * 100
+		);
 	}
 
 	// Find most common duplicate variable
@@ -749,7 +774,12 @@ async function main() {
 
 	// Find all CSS and Svelte files
 	const cssDir = path.join(PROJECT_ROOT, options.cssDir);
-	const cssFiles = findFiles(cssDir, '.css', ['node_modules', '.svelte-kit', 'variables.css', 'retro.css']);
+	const cssFiles = findFiles(cssDir, '.css', [
+		'node_modules',
+		'.svelte-kit',
+		'variables.css',
+		'retro.css'
+	]);
 
 	const svelteDir = path.join(PROJECT_ROOT, options.svelteDir);
 	const svelteFiles = findFiles(svelteDir, '.svelte', ['node_modules', '.svelte-kit']);
@@ -825,16 +855,28 @@ async function main() {
 	log('='.repeat(60), 'cyan');
 
 	log(`Files analyzed: ${stats.filesAnalyzed}`, 'blue');
-	log(`Files with issues: ${stats.filesWithIssues}`, stats.filesWithIssues > 0 ? 'yellow' : 'green');
+	log(
+		`Files with issues: ${stats.filesWithIssues}`,
+		stats.filesWithIssues > 0 ? 'yellow' : 'green'
+	);
 	log(
 		`Inheritance score: ${stats.inheritanceScore}%`,
 		stats.inheritanceScore >= 80 ? 'green' : stats.inheritanceScore >= 60 ? 'yellow' : 'red'
 	);
-	log(`Unnecessary declarations: ${stats.unnecessaryDeclarations}/${stats.totalDeclarations}`, 'yellow');
-	log(`Potential CSS reduction: ${stats.potentialReduction}%`, stats.potentialReduction > 10 ? 'yellow' : 'green');
+	log(
+		`Unnecessary declarations: ${stats.unnecessaryDeclarations}/${stats.totalDeclarations}`,
+		'yellow'
+	);
+	log(
+		`Potential CSS reduction: ${stats.potentialReduction}%`,
+		stats.potentialReduction > 10 ? 'yellow' : 'green'
+	);
 
 	if (stats.unnecessaryDeclarations > 0) {
-		log(`\n💡 Found ${stats.unnecessaryDeclarations} unnecessary declarations across ${stats.filesWithIssues} files`, 'yellow');
+		log(
+			`\n💡 Found ${stats.unnecessaryDeclarations} unnecessary declarations across ${stats.filesWithIssues} files`,
+			'yellow'
+		);
 	} else {
 		log('\n✅ No unnecessary CSS found! Excellent theme inheritance!', 'green');
 	}

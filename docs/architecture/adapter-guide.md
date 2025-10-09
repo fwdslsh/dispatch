@@ -52,10 +52,10 @@ Adapters receive an `onEvent` callback for emitting events:
 
 ```javascript
 onEvent({
-	channel: string,    // Event channel (e.g., 'pty:stdout', 'claude:message')
-	type: string,       // Event type (e.g., 'chunk', 'closed')
-	payload: any        // Event data
-})
+	channel: string, // Event channel (e.g., 'pty:stdout', 'claude:message')
+	type: string, // Event type (e.g., 'chunk', 'closed')
+	payload: any // Event data
+});
 ```
 
 ## Existing Adapter Examples
@@ -116,9 +116,7 @@ export class PtyAdapter {
 			kind: SESSION_TYPE.PTY,
 			input: {
 				write(data) {
-					const text = typeof data === 'string'
-						? data
-						: new TextDecoder().decode(data);
+					const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
 					term.write(text);
 				}
 			},
@@ -133,15 +131,22 @@ export class PtyAdapter {
 			close() {
 				term.kill();
 			},
-			get pid() { return term.pid; },
-			get cols() { return term.cols; },
-			get rows() { return term.rows; }
+			get pid() {
+				return term.pid;
+			},
+			get cols() {
+				return term.cols;
+			},
+			get rows() {
+				return term.rows;
+			}
 		};
 	}
 }
 ```
 
 **Key Features**:
+
 - Lazy loading of node-pty dependency
 - Environment variable handling
 - Terminal dimension management
@@ -187,9 +192,7 @@ export class ClaudeAdapter {
 				async write(data) {
 					if (isClosing) return;
 
-					const message = typeof data === 'string'
-						? data
-						: new TextDecoder().decode(data);
+					const message = typeof data === 'string' ? data : new TextDecoder().decode(data);
 
 					// Create new query
 					activeQuery = query({
@@ -227,6 +230,7 @@ export class ClaudeAdapter {
 ```
 
 **Key Features**:
+
 - Async streaming with `for await`
 - Event serialization for Socket.IO
 - Graceful error handling
@@ -297,9 +301,7 @@ class FileEditorProcess extends EventEmitter {
 	}
 
 	handleInput(data) {
-		const text = typeof data === 'string'
-			? data
-			: new TextDecoder().decode(data);
+		const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
 
 		this.onEvent({
 			channel: 'file-editor:input',
@@ -329,6 +331,7 @@ class FileEditorProcess extends EventEmitter {
 ```
 
 **Key Features**:
+
 - Custom EventEmitter-based process
 - Flexible input handling
 - Lifecycle management
@@ -429,9 +432,7 @@ export class JupyterAdapter {
 			kind: SESSION_TYPE.JUPYTER,
 			input: {
 				async write(data) {
-					const code = typeof data === 'string'
-						? data
-						: new TextDecoder().decode(data);
+					const code = typeof data === 'string' ? data : new TextDecoder().decode(data);
 
 					// Execute code in kernel
 					const result = await kernel.execute(code);
@@ -741,9 +742,7 @@ describe('Jupyter Session Integration', () => {
 		// Wait for output
 		await new Promise((resolve) => setTimeout(resolve, 1000));
 
-		const outputEvents = events.filter(
-			e => e.channel === 'jupyter:output'
-		);
+		const outputEvents = events.filter((e) => e.channel === 'jupyter:output');
 		expect(outputEvents.length).toBeGreaterThan(0);
 	});
 });
@@ -772,7 +771,9 @@ async create({ cwd, options, onEvent }) {
 ```javascript
 return {
 	kind: SESSION_TYPE.CUSTOM,
-	input: { /* ... */ },
+	input: {
+		/* ... */
+	},
 	close() {
 		// Clean up resources
 		if (this.activeProcess) {
@@ -821,6 +822,7 @@ async write(data) {
 **Symptom**: Error "No adapter registered for type: xyz"
 
 **Solution**: Verify adapter is registered in `services.js`:
+
 ```javascript
 sessionOrchestrator.registerAdapter(SESSION_TYPE.XYZ, new XyzAdapter());
 ```
@@ -830,6 +832,7 @@ sessionOrchestrator.registerAdapter(SESSION_TYPE.XYZ, new XyzAdapter());
 **Symptom**: Client doesn't receive events from adapter
 
 **Solution**:
+
 1. Verify `onEvent()` is called with correct channel/type
 2. Check Socket.IO connection status
 3. Verify client is attached to session via `run:attach`
@@ -839,6 +842,7 @@ sessionOrchestrator.registerAdapter(SESSION_TYPE.XYZ, new XyzAdapter());
 **Symptom**: Session stays active after close
 
 **Solution**:
+
 1. Implement `close()` method in adapter
 2. Emit `system:status:closed` event
 3. Clean up resources (processes, timers, etc.)

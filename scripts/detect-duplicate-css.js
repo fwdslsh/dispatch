@@ -94,9 +94,9 @@ class CSSParser {
 	static normalize(declarations) {
 		return declarations
 			.split(';')
-			.map(decl => decl.trim())
-			.filter(decl => decl.length > 0)
-			.map(decl => {
+			.map((decl) => decl.trim())
+			.filter((decl) => decl.length > 0)
+			.map((decl) => {
 				// Normalize whitespace
 				return decl.replace(/\s+/g, ' ').trim();
 			})
@@ -112,9 +112,9 @@ class CSSParser {
 	static extractDeclarations(declarations) {
 		return declarations
 			.split(';')
-			.map(decl => decl.trim())
-			.filter(decl => decl.length > 0)
-			.map(decl => decl.replace(/\s+/g, ' ').trim());
+			.map((decl) => decl.trim())
+			.filter((decl) => decl.length > 0)
+			.map((decl) => decl.replace(/\s+/g, ' ').trim());
 	}
 }
 
@@ -138,7 +138,11 @@ class FileScanner {
 
 			if (entry.isDirectory()) {
 				// Skip node_modules and build directories
-				if (entry.name === 'node_modules' || entry.name === 'build' || entry.name === '.svelte-kit') {
+				if (
+					entry.name === 'node_modules' ||
+					entry.name === 'build' ||
+					entry.name === '.svelte-kit'
+				) {
 					continue;
 				}
 				files.push(...this.scanDirectory(fullPath, ext));
@@ -211,7 +215,7 @@ class DuplicateDetector {
 		const set1 = new Set(decls1);
 		const set2 = new Set(decls2);
 
-		const intersection = new Set([...set1].filter(x => set2.has(x)));
+		const intersection = new Set([...set1].filter((x) => set2.has(x)));
 		const union = new Set([...set1, ...set2]);
 
 		if (union.size === 0) return 0;
@@ -261,7 +265,7 @@ class DuplicateDetector {
 	 */
 	static getCommonDeclarations(decls1, decls2) {
 		const set2 = new Set(decls2);
-		return decls1.filter(d => set2.has(d));
+		return decls1.filter((d) => set2.has(d));
 	}
 
 	/**
@@ -269,7 +273,7 @@ class DuplicateDetector {
 	 */
 	static getUniqueDeclarations(decls1, decls2) {
 		const set2 = new Set(decls2);
-		return decls1.filter(d => !set2.has(d));
+		return decls1.filter((d) => !set2.has(d));
 	}
 }
 
@@ -347,7 +351,7 @@ class PatternExtractor {
 			const normalized = rule.normalized.toLowerCase();
 
 			for (const pattern of this.patterns) {
-				const matchCount = pattern.keywords.filter(keyword =>
+				const matchCount = pattern.keywords.filter((keyword) =>
 					normalized.includes(keyword.toLowerCase())
 				).length;
 
@@ -397,15 +401,17 @@ class Statistics {
 			duplicateLines += ruleLines * (rules.length - 1);
 		}
 
-		const duplicationPercentage = totalLines > 0
-			? Math.round((duplicateLines / totalLines) * 100 * 10) / 10
-			: 0;
+		const duplicationPercentage =
+			totalLines > 0 ? Math.round((duplicateLines / totalLines) * 100 * 10) / 10 : 0;
 
 		return {
 			totalRules: allRules.length,
 			totalLines,
 			exactDuplicateGroups: exactDuplicates.size,
-			exactDuplicateInstances: Array.from(exactDuplicates.values()).reduce((sum, rules) => sum + rules.length, 0),
+			exactDuplicateInstances: Array.from(exactDuplicates.values()).reduce(
+				(sum, rules) => sum + rules.length,
+				0
+			),
 			nearDuplicatePairs: nearDuplicates.length,
 			duplicateLines,
 			duplicationPercentage
@@ -440,14 +446,18 @@ class ReportGenerator {
 		lines.push(`- **Duplication Percentage**: ${stats.duplicationPercentage}%`);
 		lines.push(`- **Exact Duplicate Groups**: ${stats.exactDuplicateGroups}`);
 		lines.push(`- **Exact Duplicate Instances**: ${stats.exactDuplicateInstances}`);
-		lines.push(`- **Near-Duplicate Pairs**: ${stats.nearDuplicatePairs} (≥${options.threshold}% similar)`);
+		lines.push(
+			`- **Near-Duplicate Pairs**: ${stats.nearDuplicatePairs} (≥${options.threshold}% similar)`
+		);
 		lines.push('');
 
 		// Exact Duplicates
 		if (exactDuplicates.size > 0) {
 			lines.push('## Exact Duplicates');
 			lines.push('');
-			lines.push('These CSS rule blocks are identical and can be consolidated into a single utility class or mixin.');
+			lines.push(
+				'These CSS rule blocks are identical and can be consolidated into a single utility class or mixin.'
+			);
 			lines.push('');
 
 			let groupNum = 1;
@@ -488,7 +498,9 @@ class ReportGenerator {
 		if (nearDuplicates.length > 0) {
 			lines.push('## Near Duplicates');
 			lines.push('');
-			lines.push(`These CSS rule blocks share significant similarity (≥${options.threshold}%). Consider extracting common patterns.`);
+			lines.push(
+				`These CSS rule blocks share significant similarity (≥${options.threshold}%). Consider extracting common patterns.`
+			);
 			lines.push('');
 
 			// Sort by similarity descending
@@ -579,10 +591,16 @@ class ReportGenerator {
 		lines.push('');
 
 		if (stats.exactDuplicateGroups > 0) {
-			lines.push(`1. **Extract ${stats.exactDuplicateGroups} exact duplicates** into utility classes`);
+			lines.push(
+				`1. **Extract ${stats.exactDuplicateGroups} exact duplicates** into utility classes`
+			);
 			lines.push('   - Create reusable classes in a utilities CSS file');
 			lines.push('   - Replace duplicate rules with class references');
-			lines.push('   - Estimated reduction: ~' + Math.round((stats.duplicateLines / stats.totalLines) * 100) + '% of CSS');
+			lines.push(
+				'   - Estimated reduction: ~' +
+					Math.round((stats.duplicateLines / stats.totalLines) * 100) +
+					'% of CSS'
+			);
 		}
 
 		if (stats.nearDuplicatePairs > 5) {
@@ -626,26 +644,28 @@ class ReportGenerator {
 		const decls = CSSParser.extractDeclarations(rule.declarations);
 
 		// Check for common patterns
-		if (decls.some(d => d.includes('display: flex'))) {
-			if (decls.some(d => d.includes('align-items: center')) &&
-			    decls.some(d => d.includes('justify-content: center'))) {
+		if (decls.some((d) => d.includes('display: flex'))) {
+			if (
+				decls.some((d) => d.includes('align-items: center')) &&
+				decls.some((d) => d.includes('justify-content: center'))
+			) {
 				return 'flex-center';
 			}
-			if (decls.some(d => d.includes('flex-direction: column'))) {
+			if (decls.some((d) => d.includes('flex-direction: column'))) {
 				return 'flex-column';
 			}
 			return 'flex-row';
 		}
 
-		if (decls.some(d => d.includes('display: grid'))) {
+		if (decls.some((d) => d.includes('display: grid'))) {
 			return 'grid-layout';
 		}
 
-		if (decls.some(d => d.includes('position: absolute'))) {
+		if (decls.some((d) => d.includes('position: absolute'))) {
 			return 'absolute';
 		}
 
-		if (decls.some(d => d.includes('position: fixed'))) {
+		if (decls.some((d) => d.includes('position: fixed'))) {
 			return 'fixed';
 		}
 
@@ -665,8 +685,12 @@ class ReportGenerator {
 		console.log(`Total Rules:        ${stats.totalRules}`);
 		console.log(`Total Lines:        ${stats.totalLines}`);
 		console.log(`Duplicate Lines:    ${stats.duplicateLines} (${stats.duplicationPercentage}%)`);
-		console.log(`Exact Duplicates:   ${stats.exactDuplicateGroups} groups, ${stats.exactDuplicateInstances} instances`);
-		console.log(`Near Duplicates:    ${stats.nearDuplicatePairs} pairs (≥${options.threshold}% similar)`);
+		console.log(
+			`Exact Duplicates:   ${stats.exactDuplicateGroups} groups, ${stats.exactDuplicateInstances} instances`
+		);
+		console.log(
+			`Near Duplicates:    ${stats.nearDuplicatePairs} pairs (≥${options.threshold}% similar)`
+		);
 		console.log('');
 		console.log(`Report saved to: ${options.output}`);
 		console.log('');
@@ -731,7 +755,13 @@ async function main() {
 
 	// Generate report
 	console.log('Generating report...');
-	const report = ReportGenerator.generateReport(stats, exactDuplicates, nearDuplicates, patterns, options);
+	const report = ReportGenerator.generateReport(
+		stats,
+		exactDuplicates,
+		nearDuplicates,
+		patterns,
+		options
+	);
 
 	// Output
 	if (!options.console) {
@@ -754,7 +784,7 @@ async function main() {
 }
 
 // Run
-main().catch(err => {
+main().catch((err) => {
 	console.error('Error:', err.message);
 	if (options.verbose) {
 		console.error(err.stack);

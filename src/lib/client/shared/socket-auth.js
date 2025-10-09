@@ -2,35 +2,15 @@
  * Socket.IO Authentication Utilities
  *
  * Centralized utilities for handling Socket.IO authentication
- * with the SocketIOServer authentication system.
+ * with cookie-based session authentication.
+ *
+ * COOKIE-BASED AUTHENTICATION:
+ * - Browser clients: Automatically send session cookie via withCredentials
+ * - Programmatic clients: Can still use API key via auth.token option
  */
 
 import { io } from 'socket.io-client';
-import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
-
-/**
- * Get stored authentication token
- * @returns {string|null} Stored auth token or null
- */
-export function getStoredAuthToken() {
-	return localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
-}
-
-/**
- * Store authentication token
- * @param {string} token - Auth token to store
- */
-export function storeAuthToken(token) {
-	localStorage.setItem(STORAGE_CONFIG.AUTH_TOKEN_KEY, token);
-}
-
-/**
- * Remove stored authentication token
- */
-export function clearAuthToken() {
-	localStorage.removeItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
-}
 
 /**
  * Get socket URL from configuration or fall back to current origin
@@ -42,35 +22,43 @@ function getSocketUrl(config = {}) {
 }
 
 /**
- * Create authenticated Socket.IO connection
+ * Create authenticated Socket.IO connection with cookie support
+ * Browser clients automatically send session cookie via withCredentials
  * @param {Object} options - Socket.IO connection options
- * @param {Object} config - Configuration object with socketUrl
+ * @param {Object} config - Configuration object with socketUrl, apiKey (optional)
  * @returns {Promise<Object>} Promise resolving to {socket, authenticated}
  */
 export async function createAuthenticatedSocket(options = {}, config = {}) {
 	// Use configured URL or current origin for socket connection to support remote access
 	const socketUrl = getSocketUrl(config);
-	const socket = io(socketUrl, { transports: ['websocket', 'polling'], ...options });
+
+	// Enable cookie-based authentication for browser clients
+	const socketOptions = {
+		transports: ['websocket', 'polling'],
+		withCredentials: true, // Send cookies with requests (session cookie)
+		...options
+	};
+
+	// If API key provided (programmatic access), include in auth
+	if (config.apiKey) {
+		socketOptions.auth = { token: config.apiKey };
+	}
+
+	const socket = io(socketUrl, socketOptions);
 
 	return new Promise((resolve, reject) => {
-		const token = getStoredAuthToken();
-
-		if (!token) {
-			socket.disconnect();
-			resolve({ socket: null, authenticated: false });
-			return;
-		}
-
-		// Try to authenticate with stored token
-		socket.emit('auth', token, (response) => {
-			if (response?.success) {
-				resolve({ socket, authenticated: true });
-			} else {
-				// Clear invalid token
-				clearAuthToken();
-				socket.disconnect();
-				resolve({ socket: null, authenticated: false });
-			}
+		// Wait for connection, then send client:hello
+		socket.on(SOCKET_EVENTS.CONNECTION, () => {
+			// Send client:hello event for authentication
+			// Server will check cookie or auth.token automatically
+			socket.emit('client:hello', {}, (response) => {
+				if (response?.success) {
+					resolve({ socket, authenticated: true });
+				} else {
+					socket.disconnect();
+					resolve({ socket: null, authenticated: false });
+				}
+			});
 		});
 
 		// Handle connection errors
@@ -78,19 +66,33 @@ export async function createAuthenticatedSocket(options = {}, config = {}) {
 			socket.disconnect();
 			reject(error);
 		});
+
+		// Handle session expiration
+		socket.on('session:expired', (data) => {
+			console.warn('Session expired:', data.message);
+			socket.disconnect();
+			// Optionally redirect to login
+			if (typeof window !== 'undefined') {
+				window.location.href = '/login';
+			}
+		});
 	});
 }
 
 /**
- * Test authentication with a specific key
- * @param {string} key - Authentication key to test
+ * Test authentication with a specific API key
+ * @param {string} key - API key to test
  * @param {Object} config - Configuration object with socketUrl
  * @returns {Promise<boolean>} Promise resolving to authentication result
  */
 export async function testAuthKey(key, config = {}) {
 	// Use configured URL or current origin for socket connection to support remote access
 	const socketUrl = getSocketUrl(config);
-	const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
+	const socket = io(socketUrl, {
+		transports: ['websocket', 'polling'],
+		withCredentials: true,
+		auth: { token: key } // Send API key for testing
+	});
 
 	return new Promise((resolve) => {
 		// Set a timeout to prevent hanging
@@ -100,7 +102,8 @@ export async function testAuthKey(key, config = {}) {
 		}, 5000);
 
 		socket.on(SOCKET_EVENTS.CONNECTION, () => {
-			socket.emit('auth', key, (response) => {
+			// Send client:hello with API key
+			socket.emit('client:hello', { apiKey: key }, (response) => {
 				clearTimeout(timeout);
 				socket.disconnect();
 				resolve(response?.success === true);
@@ -117,41 +120,47 @@ export async function testAuthKey(key, config = {}) {
 }
 
 /**
- * Authenticate existing socket connection
+ * Authenticate existing socket connection with API key
  * @param {Object} socket - Socket.IO socket instance
- * @param {string} key - Authentication key
+ * @param {string} key - API key
  * @returns {Promise<boolean>} Promise resolving to authentication result
  */
 export async function authenticateSocket(socket, key) {
 	return new Promise((resolve) => {
-		socket.emit('auth', key, (response) => {
+		socket.emit('client:hello', { apiKey: key }, (response) => {
 			resolve(response?.success === true);
 		});
 	});
 }
 
 /**
- * Check if user is currently authenticated
+ * Check if user is currently authenticated via session cookie
  * @param {Object} config - Configuration object with socketUrl
  * @returns {Promise<boolean>} Promise resolving to authentication status
  */
 export async function isAuthenticated(config = {}) {
-	const token = getStoredAuthToken();
-	if (!token) return false;
+	try {
+		// Try to access a protected API endpoint
+		// If we have a valid session cookie, this will succeed
+		const response = await fetch('/api/workspaces', {
+			method: 'GET',
+			credentials: 'include'
+		});
 
-	return await testAuthKey(token, config);
+		return response.ok;
+	} catch (err) {
+		console.error('Error checking authentication:', err);
+		return false;
+	}
 }
 
 /**
- * Attempt auto-authentication with development key
- * @param {string} devKey - Development key to test
+ * Attempt auto-authentication with API key (for development/testing)
+ * Note: This stores the key temporarily for testing, but production should use cookies
+ * @param {string} apiKey - API key to test
  * @param {Object} config - Configuration object with socketUrl
  * @returns {Promise<boolean>} Promise resolving to authentication result
  */
-export async function tryAutoAuth(devKey, config = {}) {
-	const success = await testAuthKey(devKey, config);
-	if (success) {
-		storeAuthToken(devKey);
-	}
-	return success;
+export async function tryAutoAuth(apiKey, config = {}) {
+	return await testAuthKey(apiKey, config);
 }

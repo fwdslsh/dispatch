@@ -114,9 +114,9 @@
 <div class="workspace-env-settings flex-col gap-4">
 	<h3>WORKSPACE ENVIRONMENT VARIABLES</h3>
 	<p class="section-subtitle">
-		Define environment variables that will be available to all sessions (PTY, Claude, etc.) in
-		this workspace. These variables are merged with system environment variables, with
-		session-specific variables taking highest precedence.
+		Define environment variables that will be available to all sessions (PTY, Claude, etc.) in this
+		workspace. These variables are merged with system environment variables, with session-specific
+		variables taking highest precedence.
 	</p>
 
 	<h4>ENVIRONMENT VARIABLES</h4>

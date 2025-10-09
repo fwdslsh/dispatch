@@ -1,6 +1,4 @@
 <script>
-	
-
 	let { event } = $props();
 
 	let editInfo = $derived(parseEditEvent(event));

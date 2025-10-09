@@ -47,7 +47,11 @@ export class EventStore {
 						const lastSeq = await this.getLatestSeq(sessionId);
 						this.#sequences.set(sessionId, lastSeq + 1);
 					} catch (error) {
-						logger.error('EVENTSTORE', `Failed to initialize sequence for session ${sessionId}:`, error.message);
+						logger.error(
+							'EVENTSTORE',
+							`Failed to initialize sequence for session ${sessionId}:`,
+							error.message
+						);
 						throw error;
 					} finally {
 						// Clean up lock after initialization completes
@@ -98,13 +102,20 @@ export class EventStore {
 				};
 			} catch (error) {
 				// Database insert failed - don't increment counter to prevent sequence gaps
-				logger.error('EVENTSTORE', `Failed to append event for session ${sessionId}:`, error.message);
+				logger.error(
+					'EVENTSTORE',
+					`Failed to append event for session ${sessionId}:`,
+					error.message
+				);
 				throw new Error(`Failed to append event for session ${sessionId}: ${error.message}`);
 			}
 		});
 
 		// Update lock (swallow errors to prevent lock poisoning)
-		this.#appendLocks.set(sessionId, operation.catch(() => {}));
+		this.#appendLocks.set(
+			sessionId,
+			operation.catch(() => {})
+		);
 
 		return operation;
 	}

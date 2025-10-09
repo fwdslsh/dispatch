@@ -7,6 +7,7 @@ The Dispatch application uses Dependency Injection (DI) to make ViewModels testa
 ## Problem Statement
 
 Before DI implementation:
+
 - ViewModels directly imported singleton services (e.g., `runSessionClient`)
 - Direct singleton imports prevented unit testing
 - Impossible to mock dependencies for isolated testing
@@ -40,6 +41,7 @@ export class ClaudePaneViewModel {
 ## Benefits
 
 ### 1. Testability
+
 ViewModels can now be tested in isolation with mock dependencies:
 
 ```javascript
@@ -59,6 +61,7 @@ expect(mockClient.sendInput).toHaveBeenCalled();
 ```
 
 ### 2. Backward Compatibility
+
 Production code continues to work without changes:
 
 ```javascript
@@ -114,10 +117,7 @@ describe('ClaudePaneViewModel', () => {
 
 		await vm.submitInput();
 
-		expect(mockSessionClient.sendInput).toHaveBeenCalledWith(
-			'test-id',
-			'Hello'
-		);
+		expect(mockSessionClient.sendInput).toHaveBeenCalledWith('test-id', 'Hello');
 	});
 });
 ```

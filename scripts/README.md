@@ -25,6 +25,7 @@ See [docs/reference/css-tools.md](../docs/reference/css-tools.md) for complete d
 ## New Tool: Unnecessary CSS Finder
 
 The `find-unnecessary-css.js` tool identifies:
+
 - **Hardcoded values** that match CSS variable definitions (e.g., `8px` instead of `var(--space-2)`)
 - **Unnecessary HTML element overrides** that duplicate global theme defaults
 - **Components** with low inheritance scores that could rely more on global styles
@@ -32,6 +33,7 @@ The `find-unnecessary-css.js` tool identifies:
 ### Current Codebase Metrics
 
 Latest run results:
+
 - **Inheritance Score:** 96% ✅ Excellent
 - **Files Analyzed:** 102
 - **Unnecessary Declarations:** 239 out of 6,130 total
@@ -66,6 +68,7 @@ node scripts/find-unnecessary-css.js \
 ### Output
 
 Generates `UNNECESSARY_CSS_REPORT.md` with:
+
 - Summary statistics and inheritance score
 - Hardcoded values grouped by variable (sorted by frequency)
 - Unnecessary HTML element overrides

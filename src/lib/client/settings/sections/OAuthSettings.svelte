@@ -274,7 +274,6 @@
 </div>
 
 <style>
-
 	.oauth-settings {
 		padding: var(--space-4);
 	}

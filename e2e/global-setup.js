@@ -41,7 +41,7 @@ export default async function globalSetup() {
 				console.error('[Global Setup] Then run the tests again.\n');
 				throw new Error('Server not running on http://localhost:7173');
 			}
-			await new Promise(resolve => setTimeout(resolve, 1000));
+			await new Promise((resolve) => setTimeout(resolve, 1000));
 		}
 	}
 

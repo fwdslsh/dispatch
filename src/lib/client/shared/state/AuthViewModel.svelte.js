@@ -133,33 +133,28 @@ export class AuthViewModel {
 	}
 
 	/**
-	 * Check if user is already authenticated via stored key
+	 * Check if user is already authenticated via session cookie
+	 * The server will automatically validate the cookie via hooks.server.js
 	 * @private
 	 * @returns {Promise<boolean>} True if authenticated
 	 */
 	async checkExistingAuth() {
-		const storedKey = localStorage.getItem('dispatch-auth-token');
-		if (!storedKey) {
-			return false;
-		}
-
 		try {
-			const response = await fetch('/api/auth/check', {
-				method: 'POST',
-				headers: {
-					'content-type': 'application/json',
-					authorization: `Bearer ${storedKey}`
-				},
-				body: JSON.stringify({ key: storedKey })
+			// Try to access a protected API endpoint
+			// If we have a valid session cookie, this will succeed
+			const response = await fetch('/api/workspaces', {
+				method: 'GET',
+				credentials: 'include' // Include cookies in request
 			});
 
 			if (response.ok) {
-				log.info('Already authenticated via stored key');
+				log.info('Already authenticated via session cookie');
 				return true;
+			} else if (response.status === 401) {
+				log.info('No valid session cookie found');
+				return false;
 			} else {
-				// Invalid stored key, remove it
-				localStorage.removeItem('dispatch-auth-token');
-				log.warn('Stored key is invalid, removed from localStorage');
+				log.warn('Unexpected response checking auth', response.status);
 				return false;
 			}
 		} catch (err) {
@@ -173,8 +168,9 @@ export class AuthViewModel {
 	// =================================================================
 
 	/**
-	 * Login with terminal key
-	 * @param {string} key - Terminal key
+	 * Login with API key using SvelteKit form action
+	 * This will create a session cookie on successful login
+	 * @param {string} key - API key
 	 * @returns {Promise<LoginResult>}
 	 */
 	async loginWithKey(key) {
@@ -182,26 +178,31 @@ export class AuthViewModel {
 		this.error = '';
 
 		try {
-			log.info('Attempting login with terminal key');
+			log.info('Attempting login with API key');
 
-			const response = await fetch('/api/auth/check', {
+			// Use SvelteKit form action for login
+			// This will set the session cookie automatically
+			const formData = new FormData();
+			formData.append('key', key);
+
+			const response = await fetch('/login', {
 				method: 'POST',
-				headers: {
-					'content-type': 'application/json',
-					authorization: `Bearer ${key}`
-				},
-				body: JSON.stringify({ key })
+				body: formData,
+				credentials: 'include', // Include cookies in response
+				redirect: 'manual' // Handle redirect manually
 			});
 
-			if (response.ok) {
-				// Store key for future requests
-				localStorage.setItem('dispatch-auth-token', key);
+			if (response.type === 'opaqueredirect' || response.status === 303) {
+				// Successful login - SvelteKit form action redirected
 				log.info('Login successful');
-
+				return { success: true };
+			} else if (response.ok) {
+				// Also consider 200 OK as success (manual handling)
+				log.info('Login successful');
 				return { success: true };
 			} else {
 				const data = await response.json().catch(() => ({}));
-				const errorMessage = data?.error || 'Invalid key';
+				const errorMessage = data?.error || 'Invalid API key';
 				this.error = errorMessage;
 				log.warn('Login failed', errorMessage);
 
@@ -220,22 +221,51 @@ export class AuthViewModel {
 
 	/**
 	 * Initiate OAuth login flow
-	 * Redirects to GitHub OAuth authorization
+	 * Redirects to OAuth provider authorization
+	 * @param {string} [provider='github'] - OAuth provider name ('github' or 'google')
 	 */
-	loginWithOAuth() {
+	async loginWithOAuth(provider = 'github') {
 		if (!this.authConfig?.oauth_configured) {
 			log.warn('OAuth not configured');
+			this.error = 'OAuth authentication is not configured';
 			return;
 		}
 
-		const redirectUri = this.authConfig.oauth_redirect_uri;
-		const clientId = this.authConfig.oauth_client_id;
+		try {
+			log.info('Initiating OAuth flow', { provider });
 
-		// Build GitHub OAuth authorization URL
-		const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`;
+			// Request OAuth authorization URL from server
+			const response = await fetch('/api/auth/oauth/initiate', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ provider })
+			});
 
-		log.info('Redirecting to OAuth authorization', authUrl);
-		window.location.href = authUrl;
+			if (!response.ok) {
+				const data = await response.json().catch(() => ({}));
+				const errorMessage = data?.message || `OAuth provider ${provider} is not available`;
+				this.error = errorMessage;
+				log.error('OAuth initiation failed', errorMessage);
+				return;
+			}
+
+			const data = await response.json();
+			if (!data.authUrl) {
+				this.error = 'Failed to get OAuth authorization URL';
+				log.error('OAuth initiation missing authUrl', data);
+				return;
+			}
+
+			// Redirect to OAuth provider
+			log.info('Redirecting to OAuth authorization', data.authUrl);
+			window.location.href = data.authUrl;
+		} catch (err) {
+			const errorMessage = 'Unable to initiate OAuth login';
+			this.error = errorMessage;
+			log.error('OAuth initiation error', err);
+		}
 	}
 
 	// =================================================================

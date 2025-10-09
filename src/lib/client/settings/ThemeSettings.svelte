@@ -341,7 +341,6 @@
 </div>
 
 <style>
-
 	.theme-settings {
 		background: var(--surface);
 		border: 1px solid var(--line);
@@ -350,8 +349,6 @@
 		margin-bottom: var(--space-5);
 		container-type: inline-size;
 	}
-
-
 
 	.settings-description {
 		margin: 0 0 var(--space-5) 0;

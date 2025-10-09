@@ -102,19 +102,19 @@ Found 578 hardcoded color values:
   ```css
   border-top: 1px solid var(--surface-border, #333);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border-bottom: 1px solid #333;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border-bottom: 1px solid #333;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #333;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #333;
   ```
@@ -144,11 +144,19 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/shared/styles/utilities.css**
   ```css
-  .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+  .shadow-md {
+  	box-shadow:
+  		0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  		0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
   ```
 - **src/lib/client/shared/styles/utilities.css**
   ```css
-  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+  .shadow-lg {
+  	box-shadow:
+  		0 10px 15px -3px rgba(0, 0, 0, 0.1),
+  		0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
   ```
 - **src/lib/client/claude/components/InputArea.svelte**
   ```css
@@ -294,35 +302,35 @@ Found 578 hardcoded color values:
   ```css
   color: var(--primary, #0066cc);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: linear-gradient(45deg, #0066cc, #00ccff);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #0066cc;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   box-shadow: inset 0 0 0 2px #0066cc;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border-top: 3px solid #0066cc;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: linear-gradient(45deg, #0066cc, #00ccff);
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border-color: #0066cc;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   color: #0066cc;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   box-shadow: inset 0 0 0 2px #0066cc;
   ```
@@ -352,11 +360,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  green: cv['--theme-ansi-green'] || '#00ff00',
+  green: cv[ '--theme-ansi-green'] || '#00ff00';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  green: theme.green || '#00ff00',
+  green: theme.green || '#00ff00';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
@@ -410,23 +418,23 @@ Found 578 hardcoded color values:
   ```css
   color: var(--warning-contrast, #fff);
   ```
-- **src/routes/_testing/+page.svelte**
+- **src/routes/\_testing/+page.svelte**
   ```css
   background: var(--surface, #fff);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #fff;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #fff;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   color: #fff;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   color: #fff;
   ```
@@ -494,43 +502,43 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border: 1px solid #555;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #555;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border: 1px solid #555;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border: 1px solid #555;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border: 1px solid #555;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border: 1px solid #555;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #555;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border: 1px solid #555;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #555;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border: 1px solid #555;
   ```
@@ -606,35 +614,35 @@ Found 578 hardcoded color values:
   ```css
   box-shadow: 0 2px 0 var(--surface-border, #444);
   ```
-- **src/routes/_testing/+page.svelte**
+- **src/routes/\_testing/+page.svelte**
   ```css
   color: #444;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border-bottom: 1px solid #444;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #444;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border: 2px dashed #444;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #444;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border: 1px solid #444;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border-bottom: 1px solid #444;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #444;
   ```
@@ -702,11 +710,11 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  yellow: cv['--theme-ansi-yellow'] || '#ffff00',
+  yellow: cv[ '--theme-ansi-yellow'] || '#ffff00';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  yellow: theme.yellow || '#ffff00',
+  yellow: theme.yellow || '#ffff00';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
@@ -734,11 +742,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  yellow: getCssVar('--theme-ansi-yellow') || '#ffd166',
+  yellow: getCssVar('--theme-ansi-yellow') || '#ffd166';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightYellow: getCssVar('--theme-ansi-bright-yellow') || '#ffd166',
+  brightyellow: getCssVar('--theme-ansi-bright-yellow') || '#ffd166';
   ```
 
 </details>
@@ -800,35 +808,35 @@ Found 578 hardcoded color values:
   ```css
   background: var(--bg, #1a1a1a);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #1a1a1a;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #1a1a1a;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #1a1a1a;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #1a1a1a;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #1a1a1a;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #1a1a1a;
   ```
@@ -934,27 +942,27 @@ Found 578 hardcoded color values:
   ```css
   background: var(--surface-hover, #2a2a2a);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #2a2a2a;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #2a2a2a;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #2a2a2a;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #2a2a2a;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #2a2a2a;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #2a2a2a;
   ```
@@ -1012,27 +1020,27 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  foreground: '#ffffff',
+  foreground: '#ffffff';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  cursor: '#ffffff',
+  cursor: '#ffffff';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  foreground: cv['--theme-foreground'] || '#ffffff',
+  foreground: cv[ '--theme-foreground'] || '#ffffff';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  cursor: cv['--theme-cursor'] || '#ffffff',
+  cursor: cv[ '--theme-cursor'] || '#ffffff';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  foreground: theme.foreground || '#ffffff',
+  foreground: theme.foreground || '#ffffff';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  cursor: theme.cursor || '#ffffff',
+  cursor: theme.cursor || '#ffffff';
   ```
 
 </details>
@@ -1088,11 +1096,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  red: getCssVar('--theme-ansi-red') || '#ef476f',
+  red: getCssVar('--theme-ansi-red') || '#ef476f';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightRed: getCssVar('--theme-ansi-bright-red') || '#ef476f',
+  brightred: getCssVar('--theme-ansi-bright-red') || '#ef476f';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
@@ -1114,7 +1122,7 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  brightBlack: cv['--theme-ansi-bright-black'] || '#555555'
+  brightblack: cv[ '--theme-ansi-bright-black'] || '#555555';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
@@ -1130,11 +1138,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  black: getCssVar('--theme-ansi-black') || '#121a17',
+  black: getCssVar('--theme-ansi-black') || '#121a17';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightBlack: getCssVar('--theme-ansi-bright-black') || '#8aa699',
+  brightblack: getCssVar('--theme-ansi-bright-black') || '#8aa699';
   ```
 
 </details>
@@ -1164,11 +1172,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  red: getCssVar('--theme-ansi-red') || '#ef476f',
+  red: getCssVar('--theme-ansi-red') || '#ef476f';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightRed: getCssVar('--theme-ansi-bright-red') || '#ef476f',
+  brightred: getCssVar('--theme-ansi-bright-red') || '#ef476f';
   ```
 
 </details>
@@ -1198,11 +1206,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  blue: getCssVar('--theme-ansi-blue') || '#00c2ff',
+  blue: getCssVar('--theme-ansi-blue') || '#00c2ff';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightBlue: getCssVar('--theme-ansi-bright-blue') || '#00c2ff',
+  brightblue: getCssVar('--theme-ansi-bright-blue') || '#00c2ff';
   ```
 
 </details>
@@ -1230,11 +1238,11 @@ Found 578 hardcoded color values:
   ```css
   color: var(--text-muted, #888);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #888;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #888;
   ```
@@ -1292,11 +1300,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  yellow: getCssVar('--theme-ansi-yellow') || '#ffd166',
+  yellow: getCssVar('--theme-ansi-yellow') || '#ffd166';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightYellow: getCssVar('--theme-ansi-bright-yellow') || '#ffd166',
+  brightyellow: getCssVar('--theme-ansi-bright-yellow') || '#ffd166';
   ```
 
 </details>
@@ -1322,11 +1330,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  blue: getCssVar('--theme-ansi-blue') || '#00c2ff',
+  blue: getCssVar('--theme-ansi-blue') || '#00c2ff';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightBlue: getCssVar('--theme-ansi-bright-blue') || '#00c2ff',
+  brightblue: getCssVar('--theme-ansi-bright-blue') || '#00c2ff';
   ```
 
 </details>
@@ -1440,11 +1448,11 @@ Found 578 hardcoded color values:
   ```css
   background: var(--surface-elevated, #222);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #222;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #222;
   ```
@@ -1516,15 +1524,15 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  background: '#000000',
+  background: '#000000';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  background: cv['--theme-background'] || '#000000',
+  background: cv[ '--theme-background'] || '#000000';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  background: theme.background || '#000000',
+  background: theme.background || '#000000';
   ```
 
 </details>
@@ -1538,11 +1546,17 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/shared/styles/utilities.css**
   ```css
-  .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+  .shadow-sm {
+  	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
   ```
 - **src/lib/client/shared/styles/utilities.css**
   ```css
-  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+  .shadow-lg {
+  	box-shadow:
+  		0 10px 15px -3px rgba(0, 0, 0, 0.1),
+  		0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
   ```
 - **src/lib/client/shared/components/LiveIconStrip.svelte**
   ```css
@@ -1572,11 +1586,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  background: getCssVar('--theme-background') || '#0c1210',
+  background: getCssVar('--theme-background') || '#0c1210';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  cursorAccent: getCssVar('--theme-cursor-accent') || '#0c1210',
+  cursoraccent: getCssVar('--theme-cursor-accent') || '#0c1210';
   ```
 
 </details>
@@ -1598,11 +1612,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  cursor: getCssVar('--theme-cursor') || '#2ee66b',
+  cursor: getCssVar('--theme-cursor') || '#2ee66b';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  green: getCssVar('--theme-ansi-green') || '#2ee66b',
+  green: getCssVar('--theme-ansi-green') || '#2ee66b';
   ```
 
 </details>
@@ -1696,15 +1710,15 @@ Found 578 hardcoded color values:
   ```css
   color: #ccc;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #ccc;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #ccc;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #ccc;
   ```
@@ -1726,11 +1740,11 @@ Found 578 hardcoded color values:
   ```css
   color: #aaa;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #aaa;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   color: #aaa;
   ```
@@ -1744,19 +1758,19 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border-color: #666;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   color: #666;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   color: #666;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border-color: #666;
   ```
@@ -1770,19 +1784,19 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #cc4444;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border-color: #cc4444;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #cc4444;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   border-color: #cc4444;
   ```
@@ -1806,7 +1820,7 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  black: getCssVar('--theme-ansi-black') || '#121a17',
+  black: getCssVar('--theme-ansi-black') || '#121a17';
   ```
 
 </details>
@@ -1824,11 +1838,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  foreground: getCssVar('--theme-foreground') || '#d9ffe6',
+  foreground: getCssVar('--theme-foreground') || '#d9ffe6';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightWhite: getCssVar('--theme-ansi-bright-white') || '#d9ffe6'
+  brightwhite: getCssVar('--theme-ansi-bright-white') || '#d9ffe6';
   ```
 
 </details>
@@ -1850,7 +1864,7 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightGreen: getCssVar('--theme-ansi-bright-green') || '#4eff82',
+  brightgreen: getCssVar('--theme-ansi-bright-green') || '#4eff82';
   ```
 
 </details>
@@ -1868,11 +1882,11 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  magenta: getCssVar('--theme-ansi-magenta') || '#ff6b9d',
+  magenta: getCssVar('--theme-ansi-magenta') || '#ff6b9d';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightMagenta: getCssVar('--theme-ansi-bright-magenta') || '#ff6b9d',
+  brightmagenta: getCssVar('--theme-ansi-bright-magenta') || '#ff6b9d';
   ```
 
 </details>
@@ -1996,15 +2010,15 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  green: '#00ff00',
+  green: '#00ff00';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  green: cv['--theme-ansi-green'] || '#00ff00',
+  green: cv[ '--theme-ansi-green'] || '#00ff00';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  green: theme.green || '#00ff00',
+  green: theme.green || '#00ff00';
   ```
 
 </details>
@@ -2018,15 +2032,15 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  cyan: '#00ffff',
+  cyan: '#00ffff';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  cyan: cv['--theme-ansi-cyan'] || '#00ffff',
+  cyan: cv[ '--theme-ansi-cyan'] || '#00ffff';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  cyan: theme.cyan || '#00ffff',
+  cyan: theme.cyan || '#00ffff';
   ```
 
 </details>
@@ -2040,15 +2054,15 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  yellow: '#ffff00',
+  yellow: '#ffff00';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  yellow: cv['--theme-ansi-yellow'] || '#ffff00',
+  yellow: cv[ '--theme-ansi-yellow'] || '#ffff00';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  yellow: theme.yellow || '#ffff00',
+  yellow: theme.yellow || '#ffff00';
   ```
 
 </details>
@@ -2062,15 +2076,15 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  brightBlack: '#555555'
+  brightblack: '#555555';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  brightBlack: cv['--theme-ansi-bright-black'] || '#555555'
+  brightblack: cv[ '--theme-ansi-bright-black'] || '#555555';
   ```
 - **src/lib/client/settings/ThemePreviewCard.svelte**
   ```css
-  brightBlack: theme.brightBlack || '#555555'
+  brightblack: theme.brightBlack || '#555555';
   ```
 
 </details>
@@ -2160,7 +2174,7 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  white: getCssVar('--theme-ansi-white') || '#cfe7d8',
+  white: getCssVar('--theme-ansi-white') || '#cfe7d8';
   ```
 
 </details>
@@ -2178,7 +2192,7 @@ Found 578 hardcoded color values:
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightBlack: getCssVar('--theme-ansi-bright-black') || '#8aa699',
+  brightblack: getCssVar('--theme-ansi-bright-black') || '#8aa699';
   ```
 
 </details>
@@ -2320,7 +2334,7 @@ Found 578 hardcoded color values:
   ```css
   background: rgba(0, 0, 0, 0.8);
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: rgba(0, 0, 0, 0.8);
   ```
@@ -2426,11 +2440,11 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  cyan: getCssVar('--theme-ansi-cyan') || '#56b6c2',
+  cyan: getCssVar('--theme-ansi-cyan') || '#56b6c2';
   ```
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  brightCyan: getCssVar('--theme-ansi-bright-cyan') || '#56b6c2',
+  brightcyan: getCssVar('--theme-ansi-bright-cyan') || '#56b6c2';
   ```
 
 </details>
@@ -2442,11 +2456,11 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
   ```
@@ -2460,11 +2474,11 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: linear-gradient(45deg, #0066cc, #00ccff);
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: linear-gradient(45deg, #0066cc, #00ccff);
   ```
@@ -2478,11 +2492,11 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_session-tiles/+page.svelte**
+- **src/routes/\_testing/\_session-tiles/+page.svelte**
   ```css
   background: #777;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #777;
   ```
@@ -2496,11 +2510,11 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #0088ff;
   ```
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border-color: #0088ff;
   ```
@@ -2572,7 +2586,11 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/shared/styles/utilities.css**
   ```css
-  .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+  .shadow-md {
+  	box-shadow:
+  		0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  		0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
   ```
 
 </details>
@@ -3146,7 +3164,7 @@ Found 578 hardcoded color values:
 
 - **src/lib/client/terminal/TerminalPane.svelte**
   ```css
-  selectionBackground: getCssVar('--theme-selection-bg') || '#2ee66b40',
+  selectionbackground: getCssVar('--theme-selection-bg') || '#2ee66b40';
   ```
 
 </details>
@@ -3158,7 +3176,7 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/+page.svelte**
+- **src/routes/\_testing/+page.svelte**
   ```css
   border: 1px solid var(--border-color, #ddd);
   ```
@@ -3172,7 +3190,7 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   background: #cc3300;
   ```
@@ -3186,7 +3204,7 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   border-color: #ff4411;
   ```
@@ -3200,7 +3218,7 @@ Found 578 hardcoded color values:
 <details>
 <summary>Show occurrences</summary>
 
-- **src/routes/_testing/_tiles/+page.svelte**
+- **src/routes/\_testing/\_tiles/+page.svelte**
   ```css
   color: #00cc66;
   ```
@@ -3916,7 +3934,7 @@ Found 573 hardcoded spacing values:
   ```css
   border-left: 3px solid color-mix(in oklab, var(--primary) 30%, transparent);
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte** (top)
+- **src/routes/\_testing/\_session-tiles/+page.svelte** (top)
   ```css
   border-top: 3px solid #0066cc;
   ```
@@ -3952,15 +3970,15 @@ Found 573 hardcoded spacing values:
   ```css
   margin-top: 16px;
   ```
-- **src/routes/_testing/+page.svelte** (padding)
+- **src/routes/\_testing/+page.svelte** (padding)
   ```css
   padding: 16px;
   ```
-- **src/routes/_testing/+page.svelte** (margin)
+- **src/routes/\_testing/+page.svelte** (margin)
   ```css
   margin-left: 16px;
   ```
-- **src/routes/_testing/+page.svelte** (left)
+- **src/routes/\_testing/+page.svelte** (left)
   ```css
   margin-left: 16px;
   ```
@@ -4204,7 +4222,7 @@ Found 573 hardcoded spacing values:
   ```css
   padding: 0.125rem 0.375rem;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (padding)
+- **src/routes/\_testing/\_tiles/+page.svelte** (padding)
   ```css
   padding: 0.375rem;
   ```
@@ -4530,7 +4548,9 @@ Found 708 hardcoded size values:
   ```
 - **src/lib/client/shared/styles/utilities.css** (font-size)
   ```css
-  .text-sm { font-size: 0.875rem; }
+  .text-sm {
+  	font-size: 0.875rem;
+  }
   ```
 - **src/lib/client/file-editor/FileEditorPane.svelte** (font-size)
   ```css
@@ -4556,15 +4576,21 @@ Found 708 hardcoded size values:
   ```
 - **src/lib/client/shared/styles/utilities.css** (width)
   ```css
-  .w-4 { width: 1rem; }
+  .w-4 {
+  	width: 1rem;
+  }
   ```
 - **src/lib/client/shared/styles/utilities.css** (height)
   ```css
-  .h-4 { height: 1rem; }
+  .h-4 {
+  	height: 1rem;
+  }
   ```
 - **src/lib/client/shared/styles/utilities.css** (font-size)
   ```css
-  .text-base { font-size: 1rem; }
+  .text-base {
+  	font-size: 1rem;
+  }
   ```
 - **src/lib/client/claude/ClaudePane.svelte** (font-size)
   ```css
@@ -4710,7 +4736,9 @@ Found 708 hardcoded size values:
   ```
 - **src/lib/client/shared/styles/utilities.css** (font-size)
   ```css
-  .text-xs { font-size: 0.75rem; }
+  .text-xs {
+  	font-size: 0.75rem;
+  }
   ```
 - **src/lib/client/claude/components/MessageList.svelte** (font-size)
   ```css
@@ -5472,19 +5500,19 @@ Found 708 hardcoded size values:
   ```css
   min-width: 60px;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte** (width)
+- **src/routes/\_testing/\_session-tiles/+page.svelte** (width)
   ```css
   min-width: 60px;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte** (min-width)
+- **src/routes/\_testing/\_session-tiles/+page.svelte** (min-width)
   ```css
   min-width: 60px;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (width)
+- **src/routes/\_testing/\_tiles/+page.svelte** (width)
   ```css
   min-width: 60px;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (min-width)
+- **src/routes/\_testing/\_tiles/+page.svelte** (min-width)
   ```css
   min-width: 60px;
   ```
@@ -5748,11 +5776,17 @@ Found 708 hardcoded size values:
   ```
 - **src/lib/client/shared/styles/utilities.css** (width)
   ```css
-  .border { border-width: 1px; border-style: solid; }
+  .border {
+  	border-width: 1px;
+  	border-style: solid;
+  }
   ```
 - **src/lib/client/shared/styles/utilities.css** (width)
   ```css
-  .border-b { border-bottom-width: 1px; border-bottom-style: solid; }
+  .border-b {
+  	border-bottom-width: 1px;
+  	border-bottom-style: solid;
+  }
   ```
 - **src/lib/client/shared/styles/utilities.css** (width)
   ```css
@@ -5976,23 +6010,23 @@ Found 708 hardcoded size values:
   ```css
   font-size: 0.8rem;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte** (font-size)
+- **src/routes/\_testing/\_session-tiles/+page.svelte** (font-size)
   ```css
   font-size: 0.8rem;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte** (font-size)
+- **src/routes/\_testing/\_session-tiles/+page.svelte** (font-size)
   ```css
   font-size: 0.8rem;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (font-size)
+- **src/routes/\_testing/\_tiles/+page.svelte** (font-size)
   ```css
   font-size: 0.8rem;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (font-size)
+- **src/routes/\_testing/\_tiles/+page.svelte** (font-size)
   ```css
   font-size: 0.8rem;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (font-size)
+- **src/routes/\_testing/\_tiles/+page.svelte** (font-size)
   ```css
   font-size: 0.8rem;
   ```
@@ -6196,19 +6230,19 @@ Found 708 hardcoded size values:
   ```css
   max-width: 1200px;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte** (width)
+- **src/routes/\_testing/\_session-tiles/+page.svelte** (width)
   ```css
   max-width: 1200px;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte** (max-width)
+- **src/routes/\_testing/\_session-tiles/+page.svelte** (max-width)
   ```css
   max-width: 1200px;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (width)
+- **src/routes/\_testing/\_tiles/+page.svelte** (width)
   ```css
   max-width: 1200px;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (max-width)
+- **src/routes/\_testing/\_tiles/+page.svelte** (max-width)
   ```css
   max-width: 1200px;
   ```
@@ -6358,19 +6392,19 @@ Found 708 hardcoded size values:
   ```css
   border-width: 4px;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte** (width)
+- **src/routes/\_testing/\_session-tiles/+page.svelte** (width)
   ```css
   width: 4px;
   ```
-- **src/routes/_testing/_session-tiles/+page.svelte** (height)
+- **src/routes/\_testing/\_session-tiles/+page.svelte** (height)
   ```css
   height: 4px;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (width)
+- **src/routes/\_testing/\_tiles/+page.svelte** (width)
   ```css
   width: 4px;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (height)
+- **src/routes/\_testing/\_tiles/+page.svelte** (height)
   ```css
   height: 4px;
   ```
@@ -6720,7 +6754,7 @@ Found 708 hardcoded size values:
   ```css
   font-size: 0.7rem;
   ```
-- **src/routes/_testing/_tiles/+page.svelte** (font-size)
+- **src/routes/\_testing/\_tiles/+page.svelte** (font-size)
   ```css
   font-size: 0.7rem;
   ```
@@ -7075,4 +7109,3 @@ find src -name "*.css" -o -name "*.svelte" | xargs sed -i 's/8px/var(--space-2)/
 ⚠️ **Warning:** Always review changes before committing. Test thoroughly after running migrations.
 
 ## Before/After Examples
-

@@ -193,7 +193,8 @@ export function deriveUIColors(terminalTheme) {
 		uiColors['--bg-light'] = `color-mix(in oklab, ${background} 50%, white 50%)`;
 		uiColors['--bg-panel'] = uiColors['--surface'] || background;
 		uiColors['--surface-hover'] = uiColors['--elev'] || background;
-		uiColors['--surface-border'] = uiColors['--line'] || `color-mix(in oklab, ${background} 80%, white 20%)`;
+		uiColors['--surface-border'] =
+			uiColors['--line'] || `color-mix(in oklab, ${background} 80%, white 20%)`;
 	}
 
 	if (cursor || ansiGreen) {

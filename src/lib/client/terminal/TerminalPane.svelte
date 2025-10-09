@@ -294,8 +294,4 @@
 	.loading-icon {
 		animation: pulse 2s ease-in-out infinite;
 	}
-
-	
-
-	
 </style>

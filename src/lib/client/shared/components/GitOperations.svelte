@@ -18,7 +18,6 @@
 	import WorktreeManager from './WorktreeManager.svelte';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 
-
 	let {
 		currentPath,
 		onRefresh = null, // callback to refresh directory listing

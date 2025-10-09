@@ -7,16 +7,19 @@ Fixed the Playwright E2E test configuration for authentication tests in `e2e/aut
 ## Issues Found
 
 ### 1. **Server Not Starting**
+
 - **Problem**: Tests failed with `ERR_CONNECTION_REFUSED at http://localhost:7173`
 - **Root Cause**: The `webServer` configuration in `playwright.config.js` was not starting the dev server properly
 - **Impact**: All tests failed immediately when trying to navigate to the application
 
 ### 2. **Temporary Directory Issues in dev:test Script**
+
 - **Problem**: The `dev:test` npm script used `mktemp` commands that created new temporary directories on each invocation
 - **Root Cause**: `mktemp -d` created ephemeral directories that didn't persist between command runs
 - **Impact**: Server couldn't start reliably with inconsistent home directories
 
 ### 3. **Missing Global Setup Logic**
+
 - **Problem**: No proper global setup to ensure server is ready before tests run
 - **Root Cause**: Global setup existed but didn't handle server lifecycle
 - **Impact**: Tests started before server was ready, causing race conditions
@@ -24,7 +27,9 @@ Fixed the Playwright E2E test configuration for authentication tests in `e2e/aut
 ## Fixes Applied
 
 ### 1. **Fixed dev:test Script** (`package.json`)
+
 **Changed:**
+
 ```javascript
 // Before (using mktemp - creates new dirs each time)
 "dev:test": "TERMINAL_KEY='test-automation-key-12345' HOME=\"$(mktemp -d /tmp/dispatch-test-home.XXXXXX)\" WORKSPACES_ROOT=\"$(mktemp -d /tmp/dispatch-test-workspaces.XXXXXX)\" SSL_ENABLED=false vite dev --host --port 7173"
@@ -36,7 +41,9 @@ Fixed the Playwright E2E test configuration for authentication tests in `e2e/aut
 **Why**: Fixed directories ensure consistent state between test runs and allow the server to start reliably.
 
 ### 2. **Simplified Playwright webServer Configuration** (`playwright.config.js`)
+
 **Changed:**
+
 ```javascript
 // Before (trying to auto-start server)
 webServer: {
@@ -58,7 +65,9 @@ webServer: {
 **Why**: Auto-starting the server through Playwright was unreliable. Manual start gives better control and clearer error messages.
 
 ### 3. **Enhanced Global Setup** (`e2e/global-setup.js`)
+
 **Created comprehensive setup that:**
+
 - Creates `.testing-home` directories if they don't exist
 - Checks if server is running on port 7173
 - Waits up to 30 seconds for server to be ready
@@ -66,15 +75,19 @@ webServer: {
 - Provides helpful error messages if server isn't running
 
 **Key Features:**
+
 - Clear console output showing setup progress
 - Helpful error messages directing users to start server
 - Automatic onboarding to save manual setup steps
 
 ### 4. **Added Global Teardown** (`e2e/global-teardown.js`)
+
 **Created simple teardown** to log test completion (no cleanup needed since we don't start the server).
 
 ### 5. **Updated Test Documentation** (`e2e/auth-login.spec.ts`)
+
 **Added clear prerequisite** comments:
+
 ```typescript
 // PREREQUISITE: Start the test server before running these tests
 //   Terminal 1: npm run dev:test
@@ -82,6 +95,7 @@ webServer: {
 ```
 
 ### 6. **Updated Test Runner** (`run-e2e-tests.js`)
+
 **Added reminder** to start dev server before running tests.
 
 ## Test Execution Instructions
@@ -89,9 +103,11 @@ webServer: {
 ### Required Steps
 
 1. **Start the test server** (in Terminal 1):
+
    ```bash
    npm run dev:test
    ```
+
    This starts the server on `http://localhost:7173` with:
    - No SSL (avoids certificate warnings)
    - Known test key: `test-automation-key-12345`
@@ -157,6 +173,7 @@ To verify the fixes work:
 ## Future Improvements
 
 Consider adding:
+
 - Automatic server startup in CI environments
 - Health check endpoint polling with retries
 - Database seeding for consistent test data

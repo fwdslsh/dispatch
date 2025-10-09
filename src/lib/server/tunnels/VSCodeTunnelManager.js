@@ -229,10 +229,7 @@ export class VSCodeTunnelManager extends BaseTunnelManager {
 			lastUpdated: Date.now()
 		};
 
-		await this._saveSettings(
-			tunnelSettings,
-			'VS Code Remote Tunnel configuration and state'
-		);
+		await this._saveSettings(tunnelSettings, 'VS Code Remote Tunnel configuration and state');
 	}
 
 	/**

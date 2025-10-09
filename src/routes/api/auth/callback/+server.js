@@ -1,75 +1,69 @@
-import { json } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import { CookieService } from '$lib/server/auth/CookieService.server.js';
 
 /**
  * OAuth Callback Handler
- * Exchanges authorization code for access token and creates user session
+ * Exchanges authorization code for access token and creates user session with cookie
+ * Uses OAuthManager for provider-agnostic OAuth flow handling
  */
-export async function POST({ request, locals }) {
+export async function GET({ url, cookies, locals }) {
 	try {
-		const { code, state } = await request.json();
+		const code = url.searchParams.get('code');
+		const state = url.searchParams.get('state');
+		const provider = url.searchParams.get('provider') || 'github';
 
 		if (!code) {
 			logger.warn('AUTH', 'OAuth callback missing authorization code');
-			return json({ success: false, error: 'Missing authorization code' }, { status: 400 });
+			throw redirect(303, '/login?error=missing_code');
 		}
 
-		// Get auth manager from locals (populated by hooks)
-		const authManager = locals.services?.multiAuthManager;
-		if (!authManager) {
-			logger.error('AUTH', 'Auth manager not initialized');
-			return json({ success: false, error: 'Authentication not configured' }, { status: 500 });
+		if (!state) {
+			logger.warn('AUTH', 'OAuth callback missing state token');
+			throw redirect(303, '/login?error=missing_state');
 		}
 
-		const githubProvider = authManager.providers.get('github');
-		if (!githubProvider || !githubProvider.isEnabled) {
-			logger.error('AUTH', 'GitHub OAuth provider not available or not configured');
-			return json(
-				{ success: false, error: 'GitHub authentication not configured' },
-				{ status: 500 }
-			);
+		// Get OAuthManager from locals
+		const oauthManager = locals.services?.oauthManager;
+		if (!oauthManager) {
+			logger.error('AUTH', 'OAuth manager not initialized');
+			throw redirect(303, '/login?error=auth_not_configured');
 		}
 
-		// Handle OAuth callback
-		const user = await githubProvider.handleCallback({ code, state });
-		if (!user) {
-			logger.warn('AUTH', 'GitHub OAuth callback failed');
-			return json({ success: false, error: 'Authentication failed' }, { status: 401 });
+		// Handle OAuth callback and get user data
+		const userData = await oauthManager.handleCallback(code, state, provider);
+		if (!userData) {
+			logger.warn('AUTH', `OAuth callback failed for provider ${provider}`);
+			throw redirect(303, '/login?error=auth_failed');
 		}
 
-		// Create or update user record
-		await authManager.upsertUser(user);
-
-		// Create session
-		const session = await authManager.createSession(user.id, 'github', {
-			expiresIn: 30 * 24 * 60 * 60 * 1000, // 30 days
-			userAgent: request.headers.get('user-agent'),
-			ipAddress: request.headers.get('x-forwarded-for') || 'unknown'
-		});
-
-		logger.info('AUTH', `User ${user.id} authenticated via GitHub OAuth`);
-
-		return json({
-			success: true,
-			user: {
-				id: user.id,
-				username: user.username,
-				displayName: user.displayName,
-				email: user.email,
-				avatar: user.avatar
-			},
-			session: {
-				sessionId: session.sessionId,
-				userId: session.userId,
-				provider: session.provider,
-				expiresAt: session.expiresAt
+		// Create session using SessionManager
+		const session = await locals.services.sessionManager.createSession(
+			userData.userId,
+			userData.provider, // e.g., "oauth_github"
+			{
+				email: userData.email,
+				name: userData.name
 			}
-		});
-	} catch (error) {
-		logger.error('AUTH', 'OAuth callback error:', error);
-		return json(
-			{ success: false, error: error.message || 'Authentication failed' },
-			{ status: 500 }
 		);
+
+		// Set session cookie
+		CookieService.setSessionCookie(cookies, session.sessionId);
+
+		logger.info(
+			'AUTH',
+			`User ${userData.userId} authenticated via ${provider} OAuth (email: ${userData.email})`
+		);
+
+		// Redirect to home
+		throw redirect(303, '/');
+	} catch (error) {
+		// If it's already a redirect, re-throw
+		if (error?.status === 303) {
+			throw error;
+		}
+
+		logger.error('AUTH', 'OAuth callback error:', error);
+		throw redirect(303, '/login?error=auth_error');
 	}
 }

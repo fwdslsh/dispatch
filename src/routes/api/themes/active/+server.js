@@ -17,7 +17,12 @@ const themeManager = new ThemeManager(parser);
  * @param {string|null} workspaceId - Optional workspace ID
  * @returns {Promise<Object>} Resolved theme with metadata and CSS variables
  */
-async function resolveActiveTheme(workspaceRepository, settingsRepository, themeManager, workspaceId) {
+async function resolveActiveTheme(
+	workspaceRepository,
+	settingsRepository,
+	themeManager,
+	workspaceId
+) {
 	// 1. Check workspace override if workspaceId provided
 	if (workspaceId) {
 		try {
@@ -74,7 +79,12 @@ export async function GET({ url, locals }) {
 	await themeManager.initialize();
 
 	// Resolve active theme using hierarchy
-	const theme = await resolveActiveTheme(workspaceRepository, settingsRepository, themeManager, workspaceId);
+	const theme = await resolveActiveTheme(
+		workspaceRepository,
+		settingsRepository,
+		themeManager,
+		workspaceId
+	);
 
 	// Return resolved theme
 	return json({ theme });

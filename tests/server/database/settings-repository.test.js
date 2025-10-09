@@ -261,7 +261,11 @@ describe('SettingsRepository', () => {
 
 		it('should return all settings with metadata', async () => {
 			await repository.setByCategory('global', { theme: 'retro' }, 'Global settings');
-			await repository.setByCategory('claude', { model: 'claude-3-5-sonnet-20241022' }, 'Claude settings');
+			await repository.setByCategory(
+				'claude',
+				{ model: 'claude-3-5-sonnet-20241022' },
+				'Claude settings'
+			);
 			await repository.setByCategory('workspace', { envVariables: {} });
 
 			const all = await repository.getAll();

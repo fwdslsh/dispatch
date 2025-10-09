@@ -181,8 +181,8 @@ function buildVariableMap(file, allFiles) {
 		definitions,
 		variableMap,
 		totalVars: definitions.size,
-		usedVars: Array.from(variableMap.values()).filter(v => v.usedIn.length > 0).length,
-		unusedVars: Array.from(variableMap.values()).filter(v => v.usedIn.length === 0).length
+		usedVars: Array.from(variableMap.values()).filter((v) => v.usedIn.length > 0).length,
+		unusedVars: Array.from(variableMap.values()).filter((v) => v.usedIn.length === 0).length
 	};
 }
 
@@ -192,7 +192,8 @@ function buildVariableMap(file, allFiles) {
 function generateMarkdownReport(variableMaps, allVarNames) {
 	let markdown = '# CSS Variables Map\n\n';
 	markdown += `Generated on ${new Date().toLocaleString()}\n\n`;
-	markdown += '> This document shows where CSS variables (custom properties) are defined and used throughout the codebase.\n\n';
+	markdown +=
+		'> This document shows where CSS variables (custom properties) are defined and used throughout the codebase.\n\n';
 
 	// Summary statistics
 	const totalFiles = variableMaps.length;
@@ -351,7 +352,10 @@ async function main() {
 		const map = buildVariableMap(file, allFiles);
 		variableMaps.push(map);
 
-		logVerbose(`    ${map.usedVars} used, ${map.unusedVars} unused`, map.unusedVars > 0 ? 'yellow' : 'green');
+		logVerbose(
+			`    ${map.usedVars} used, ${map.unusedVars} unused`,
+			map.unusedVars > 0 ? 'yellow' : 'green'
+		);
 	}
 
 	log('');
@@ -395,7 +399,7 @@ async function main() {
 }
 
 // Run the script
-main().catch(error => {
+main().catch((error) => {
 	log(`\n❌ Error: ${error.message}`, 'red');
 	if (options.verbose) {
 		console.error(error);

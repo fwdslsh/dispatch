@@ -11,6 +11,7 @@
 ### Critical Finding: File Is Already Deprecated ✅
 
 The `utilities.css` file has already been successfully refactored out of the codebase:
+
 - **Location**: Moved to `.remove/` directory
 - **Import Status**: Commented out in `index.css` (line 5)
 - **Application Status**: **Working perfectly without this file**
@@ -22,14 +23,14 @@ The `utilities.css` file has already been successfully refactored out of the cod
 
 ## File Statistics
 
-| Metric | Value | Notes |
-|--------|-------|-------|
-| **File Size** | 2,940 lines (56.6 KB) | Large monolithic file |
-| **Total CSS Rules** | 443 class selectors | Mix of utilities and components |
-| **Referenced in Code** | 202 classes (45.6%) | Found via grep search |
-| **Completely Unused** | 241 classes (54.4%) | Zero references |
-| **Component-Specific** | ~350 rules (79%) | Wrong location for these |
-| **Generic Utilities** | ~93 rules (21%) | Only these should be in utilities |
+| Metric                 | Value                 | Notes                             |
+| ---------------------- | --------------------- | --------------------------------- |
+| **File Size**          | 2,940 lines (56.6 KB) | Large monolithic file             |
+| **Total CSS Rules**    | 443 class selectors   | Mix of utilities and components   |
+| **Referenced in Code** | 202 classes (45.6%)   | Found via grep search             |
+| **Completely Unused**  | 241 classes (54.4%)   | Zero references                   |
+| **Component-Specific** | ~350 rules (79%)      | Wrong location for these          |
+| **Generic Utilities**  | ~93 rules (21%)       | Only these should be in utilities |
 
 ---
 
@@ -40,6 +41,7 @@ The `utilities.css` file has already been successfully refactored out of the cod
 **Problem**: ~350 rules are component-specific and should NEVER be in a global utilities file.
 
 **Examples**:
+
 - `.card-session` + 17 related rules → Should be in `SessionCard.svelte`
 - `.type-card` + 14 related rules → Should be in `TypeCard.svelte`
 - `.modal-backdrop` + 11 related rules → Should be in `Modal.svelte`
@@ -111,7 +113,9 @@ All components use scoped `<style>` blocks:
 <div class="card-session">...</div>
 
 <style>
-  .card-session { /* Component-specific CSS */ }
+	.card-session {
+		/* Component-specific CSS */
+	}
 </style>
 ```
 
@@ -120,7 +124,9 @@ All components use scoped `<style>` blocks:
 <div class="modal-backdrop">...</div>
 
 <style>
-  .modal-backdrop { /* Component-specific CSS */ }
+	.modal-backdrop {
+		/* Component-specific CSS */
+	}
 </style>
 ```
 
@@ -132,19 +138,19 @@ All components use scoped `<style>` blocks:
 
 ### Components with Scoped Styles (Verified ✅)
 
-| Component | Classes in utilities.css | Has Scoped Styles |
-|-----------|--------------------------|-------------------|
-| **SessionCard.svelte** | 18 rules | ✅ Yes - already has them |
-| **TypeCard.svelte** | 15 rules | ✅ Yes - already has them |
-| **Modal.svelte** | 12 rules | ✅ Yes - already has them |
-| **FormSection.svelte** | 3 rules | ✅ Yes - already has them |
-| **IconButton.svelte** | 25+ rules | ✅ Yes - already has them |
-| **Markdown.svelte** | 100+ rules | ✅ Yes - already has them |
-| **ClaudePane.svelte** | 50+ rules | ✅ Yes - already has them |
-| **StatusBar.svelte** | 15+ rules | ✅ Yes - already has them |
-| **ErrorDisplay.svelte** | 30 rules | ✅ Component exists |
-| **TileControls.svelte** | 4 rules | ✅ Component exists |
-| **settings.css** | 40+ rules | ✅ Dedicated file (15.6 KB) |
+| Component               | Classes in utilities.css | Has Scoped Styles           |
+| ----------------------- | ------------------------ | --------------------------- |
+| **SessionCard.svelte**  | 18 rules                 | ✅ Yes - already has them   |
+| **TypeCard.svelte**     | 15 rules                 | ✅ Yes - already has them   |
+| **Modal.svelte**        | 12 rules                 | ✅ Yes - already has them   |
+| **FormSection.svelte**  | 3 rules                  | ✅ Yes - already has them   |
+| **IconButton.svelte**   | 25+ rules                | ✅ Yes - already has them   |
+| **Markdown.svelte**     | 100+ rules               | ✅ Yes - already has them   |
+| **ClaudePane.svelte**   | 50+ rules                | ✅ Yes - already has them   |
+| **StatusBar.svelte**    | 15+ rules                | ✅ Yes - already has them   |
+| **ErrorDisplay.svelte** | 30 rules                 | ✅ Component exists         |
+| **TileControls.svelte** | 4 rules                  | ✅ Component exists         |
+| **settings.css**        | 40+ rules                | ✅ Dedicated file (15.6 KB) |
 
 ---
 
@@ -153,6 +159,7 @@ All components use scoped `<style>` blocks:
 ### Option 1: Delete the File (Recommended) ✅
 
 **Why:**
+
 - File is already in `.remove/` directory
 - Already commented out in `index.css`
 - Application works perfectly without it
@@ -160,6 +167,7 @@ All components use scoped `<style>` blocks:
 - Maintaining this creates technical debt
 
 **How:**
+
 ```bash
 rm /home/founder3/code/github/fwdslsh/dispatch/src/lib/client/shared/styles/.remove/utilities.css
 ```
@@ -167,6 +175,7 @@ rm /home/founder3/code/github/fwdslsh/dispatch/src/lib/client/shared/styles/.rem
 **Risk Level:** **ZERO** - file is not imported anywhere
 
 **Benefits:**
+
 - Removes 2,940 lines of redundant code
 - Eliminates technical debt
 - Reinforces correct architecture pattern
@@ -181,6 +190,7 @@ rm /home/founder3/code/github/fwdslsh/dispatch/src/lib/client/shared/styles/.rem
 **Steps:**
 
 1. **Create** a new, clean utilities file:
+
    ```bash
    touch src/lib/client/shared/styles/utilities.css
    ```
@@ -195,6 +205,7 @@ rm /home/founder3/code/github/fwdslsh/dispatch/src/lib/client/shared/styles/.rem
    - Accessibility utilities
 
 3. **Update** `index.css`:
+
    ```css
    @import url(./fonts.css);
    @import url(./variables.css);
@@ -207,6 +218,7 @@ rm /home/founder3/code/github/fwdslsh/dispatch/src/lib/client/shared/styles/.rem
    ```
 
 **Result:**
+
 - New file: ~135 rules (70% reduction from 443)
 - Only generic, reusable utilities
 - No component-specific CSS
@@ -216,6 +228,7 @@ rm /home/founder3/code/github/fwdslsh/dispatch/src/lib/client/shared/styles/.rem
 ## Impact Assessment
 
 ### Option 1 (Delete File) - Recommended
+
 - ✅ **Breaking Changes**: ZERO (file already disabled)
 - ✅ **Code to Modify**: ZERO files
 - ✅ **Testing Required**: ZERO (app already works)
@@ -223,6 +236,7 @@ rm /home/founder3/code/github/fwdslsh/dispatch/src/lib/client/shared/styles/.rem
 - ✅ **Benefit**: Remove 56.6 KB of dead code
 
 ### Option 2 (Extract Generic Utilities)
+
 - ✅ **Breaking Changes**: ZERO (optional enhancement)
 - ⚠️ **Code to Modify**: 2 files (create new utilities.css, modify index.css)
 - ⚠️ **Testing Required**: Basic visual regression test
@@ -234,6 +248,7 @@ rm /home/founder3/code/github/fwdslsh/dispatch/src/lib/client/shared/styles/.rem
 ## File Structure Recommendations
 
 ### Current (Working) ✅
+
 ```
 src/lib/client/shared/styles/
 ├── index.css           ← @import fonts, variables only
@@ -244,6 +259,7 @@ src/lib/client/shared/styles/
 ```
 
 ### Option 1 (Delete) - Recommended
+
 ```
 src/lib/client/shared/styles/
 ├── index.css           ← No change
@@ -254,6 +270,7 @@ src/lib/client/shared/styles/
 ```
 
 ### Option 2 (Extract)
+
 ```
 src/lib/client/shared/styles/
 ├── index.css           ← Uncomment utilities import
@@ -285,11 +302,13 @@ src/lib/client/shared/styles/
 ### Best Practices
 
 ✅ **DO:**
+
 - Use scoped `<style>` blocks for component-specific CSS
 - Keep utilities generic and minimal
 - Delete dead code
 
 ❌ **DON'T:**
+
 - Put component-specific CSS in global utilities
 - Mix concerns in monolithic files
 - Keep deprecated code "just in case"
@@ -311,6 +330,7 @@ This audit includes:
 ## Conclusion
 
 The `utilities.css` file is **already successfully deprecated** in the codebase. The team correctly:
+
 1. Moved the file to `.remove/` directory
 2. Commented out the import in `index.css`
 3. Migrated all component CSS to scoped `<style>` blocks
@@ -328,6 +348,7 @@ rm /home/founder3/code/github/fwdslsh/dispatch/src/lib/client/shared/styles/.rem
 ## Questions?
 
 If you have any questions about this audit or need clarification on any findings, please refer to:
+
 - Detailed analysis: `/tmp/css_analysis_report.md`
 - Visual breakdown: `/tmp/utilities_breakdown.txt`
 - Or contact the auditor

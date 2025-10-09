@@ -90,7 +90,11 @@
 <!-- Example 3: Theme Section with Empty State -->
 <SettingsFormSection title="Custom Themes" subtitle="Upload and manage custom color themes">
 	{#if customThemes.length === 0}
-		<EmptyState icon="🎨" title="No Custom Themes" message="Upload a JSON theme file to get started">
+		<EmptyState
+			icon="🎨"
+			title="No Custom Themes"
+			message="Upload a JSON theme file to get started"
+		>
 			<Button variant="primary" onclick={handleUploadTheme}>Upload Theme</Button>
 		</EmptyState>
 	{:else}

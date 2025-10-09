@@ -49,7 +49,6 @@
 </section>
 
 <style>
-
 	/* Additional section-specific styles */
 	.settings-section-content {
 		display: flex;

@@ -60,7 +60,7 @@ test.describe('Seed - Environment Verification', () => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${testKey}`
+				Authorization: `Bearer ${testKey}`
 			},
 			body: JSON.stringify({ key: testKey })
 		});
