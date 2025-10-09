@@ -55,6 +55,7 @@ However, **localStorage is still being used** for authentication token storage i
 **16 files identified** with localStorage authentication usage. This is a **HIGH SECURITY PRIORITY** as localStorage storage undermines cookie-based security (XSS vulnerability).
 
 **Files Requiring Cleanup:**
+
 - High Priority (3): OAuth callback, AuthenticationStep, OnboardingFlow
 - Medium Priority (2): SessionApiClient, ServiceContainer
 - Other (11): Various components using localStorage for auth tokens
@@ -80,17 +81,20 @@ This document tracks architectural issues and improvements identified during the
 **Issue**: ViewModels contain direct fetch() calls instead of using Service layer abstraction.
 
 **Affected Files**:
+
 - `src/lib/client/shared/state/AuthViewModel.svelte.js` (lines 123, 145, 188, 238)
 - `src/lib/client/shared/state/ApiKeyState.svelte.js` (lines 93, 129, 182, 226)
 - `src/lib/client/settings/OAuthSettings.svelte` (lines 62, 106)
 
 **Why This Violates MVVM**:
+
 - ViewModels should contain business logic, not HTTP implementation details
 - Makes ViewModels harder to test (requires mocking fetch globally)
 - Violates Single Responsibility Principle (ViewModel handles both logic AND transport)
 - Prevents proper dependency injection and service abstraction
 
 **Current Implementation** (AuthViewModel.svelte.js:123-130):
+
 ```javascript
 async loadAuthConfig() {
     try {
@@ -113,107 +117,108 @@ Create an `AuthService` class to handle all authentication API calls:
 ```javascript
 // src/lib/client/shared/services/AuthService.js
 export class AuthService {
-    constructor(config = {}) {
-        this.baseUrl = config.apiBaseUrl || '';
-    }
+	constructor(config = {}) {
+		this.baseUrl = config.apiBaseUrl || '';
+	}
 
-    async getAuthConfig() {
-        const response = await fetch(`${this.baseUrl}/api/auth/config`, {
-            credentials: 'include'
-        });
-        if (!response.ok) {
-            throw new Error(`Failed to load auth config: ${response.status}`);
-        }
-        return response.json();
-    }
+	async getAuthConfig() {
+		const response = await fetch(`${this.baseUrl}/api/auth/config`, {
+			credentials: 'include'
+		});
+		if (!response.ok) {
+			throw new Error(`Failed to load auth config: ${response.status}`);
+		}
+		return response.json();
+	}
 
-    async loginWithKey(key) {
-        const formData = new FormData();
-        formData.append('key', key);
+	async loginWithKey(key) {
+		const formData = new FormData();
+		formData.append('key', key);
 
-        const response = await fetch(`${this.baseUrl}/login`, {
-            method: 'POST',
-            body: formData,
-            credentials: 'include',
-            redirect: 'manual'
-        });
+		const response = await fetch(`${this.baseUrl}/login`, {
+			method: 'POST',
+			body: formData,
+			credentials: 'include',
+			redirect: 'manual'
+		});
 
-        if (response.type === 'opaqueredirect' || response.status === 303 || response.ok) {
-            return { success: true };
-        }
+		if (response.type === 'opaqueredirect' || response.status === 303 || response.ok) {
+			return { success: true };
+		}
 
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data?.error || 'Invalid API key');
-    }
+		const data = await response.json().catch(() => ({}));
+		throw new Error(data?.error || 'Invalid API key');
+	}
 
-    async checkExistingAuth() {
-        const response = await fetch(`${this.baseUrl}/api/workspaces`, {
-            method: 'GET',
-            credentials: 'include'
-        });
-        return response.ok;
-    }
+	async checkExistingAuth() {
+		const response = await fetch(`${this.baseUrl}/api/workspaces`, {
+			method: 'GET',
+			credentials: 'include'
+		});
+		return response.ok;
+	}
 
-    async initiateOAuth(provider = 'github') {
-        const response = await fetch(`${this.baseUrl}/api/auth/oauth/initiate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider })
-        });
+	async initiateOAuth(provider = 'github') {
+		const response = await fetch(`${this.baseUrl}/api/auth/oauth/initiate`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ provider })
+		});
 
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data?.message || `OAuth provider ${provider} is not available`);
-        }
+		if (!response.ok) {
+			const data = await response.json().catch(() => ({}));
+			throw new Error(data?.message || `OAuth provider ${provider} is not available`);
+		}
 
-        const data = await response.json();
-        if (!data.authUrl) {
-            throw new Error('Failed to get OAuth authorization URL');
-        }
+		const data = await response.json();
+		if (!data.authUrl) {
+			throw new Error('Failed to get OAuth authorization URL');
+		}
 
-        return data.authUrl;
-    }
+		return data.authUrl;
+	}
 }
 ```
 
 **Updated AuthViewModel**:
+
 ```javascript
 export class AuthViewModel {
-    constructor(authService) {
-        this.authService = authService;
+	constructor(authService) {
+		this.authService = authService;
 
-        // Reactive state
-        this.key = $state('');
-        this.error = $state('');
-        this.loading = $state(false);
-        this.authConfig = $state(null);
-    }
+		// Reactive state
+		this.key = $state('');
+		this.error = $state('');
+		this.loading = $state(false);
+		this.authConfig = $state(null);
+	}
 
-    async loadAuthConfig() {
-        try {
-            this.authConfig = await this.authService.getAuthConfig();
-            log.info('Auth config loaded', this.authConfig);
-        } catch (err) {
-            log.error('Failed to load auth config', err);
-        }
-    }
+	async loadAuthConfig() {
+		try {
+			this.authConfig = await this.authService.getAuthConfig();
+			log.info('Auth config loaded', this.authConfig);
+		} catch (err) {
+			log.error('Failed to load auth config', err);
+		}
+	}
 
-    async loginWithKey(key) {
-        this.loading = true;
-        this.error = '';
+	async loginWithKey(key) {
+		this.loading = true;
+		this.error = '';
 
-        try {
-            log.info('Attempting login with API key');
-            const result = await this.authService.loginWithKey(key);
-            return result;
-        } catch (err) {
-            this.error = err.message;
-            log.error('Login error', err);
-            return { success: false, error: err.message };
-        } finally {
-            this.loading = false;
-        }
-    }
+		try {
+			log.info('Attempting login with API key');
+			const result = await this.authService.loginWithKey(key);
+			return result;
+		} catch (err) {
+			this.error = err.message;
+			log.error('Login error', err);
+			return { success: false, error: err.message };
+		} finally {
+			this.loading = false;
+		}
+	}
 }
 ```
 
@@ -230,53 +235,55 @@ export class AuthViewModel {
 **File**: `src/lib/client/settings/OAuthSettings.svelte`
 
 **Why This Violates MVVM**:
+
 - Component has 592 lines combining state management, business logic, and UI
 - Direct API calls in component instead of ViewModel (lines 62, 106)
 - Business logic (validation, data transformation) mixed with rendering
 - Difficult to test business logic without rendering component
 
 **Current Implementation** (lines 13-44):
+
 ```svelte
 <script>
-    // Component state mixing ViewModel concerns
-    let loading = $state(false);
-    let saving = $state(false);
-    let error = $state('');
-    let successMessage = $state('');
+	// Component state mixing ViewModel concerns
+	let loading = $state(false);
+	let saving = $state(false);
+	let error = $state('');
+	let successMessage = $state('');
 
-    let providers = $state({
-        github: { enabled: false, clientId: '', clientSecret: '' },
-        google: { enabled: false, clientId: '', clientSecret: '' }
-    });
+	let providers = $state({
+		github: { enabled: false, clientId: '', clientSecret: '' },
+		google: { enabled: false, clientId: '', clientSecret: '' }
+	});
 
-    let originalProviders = $state(null);
+	let originalProviders = $state(null);
 
-    // Derived state - belongs in ViewModel
-    let hasChanges = $derived.by(() => {
-        if (!originalProviders) return false;
-        return JSON.stringify(providers) !== JSON.stringify(originalProviders);
-    });
+	// Derived state - belongs in ViewModel
+	let hasChanges = $derived.by(() => {
+		if (!originalProviders) return false;
+		return JSON.stringify(providers) !== JSON.stringify(originalProviders);
+	});
 
-    let canSave = $derived.by(() => {
-        return hasChanges && !saving && !loading;
-    });
+	let canSave = $derived.by(() => {
+		return hasChanges && !saving && !loading;
+	});
 
-    // Direct API calls - belongs in Service layer
-    async function loadOAuthSettings() {
-        loading = true;
-        error = '';
-        try {
-            const response = await fetch('/api/settings/oauth', {
-                method: 'GET',
-                credentials: 'include'
-            });
-            // ... more logic
-        } catch (err) {
-            error = 'Unable to reach server';
-        } finally {
-            loading = false;
-        }
-    }
+	// Direct API calls - belongs in Service layer
+	async function loadOAuthSettings() {
+		loading = true;
+		error = '';
+		try {
+			const response = await fetch('/api/settings/oauth', {
+				method: 'GET',
+				credentials: 'include'
+			});
+			// ... more logic
+		} catch (err) {
+			error = 'Unable to reach server';
+		} finally {
+			loading = false;
+		}
+	}
 </script>
 ```
 
@@ -286,316 +293,317 @@ Create dedicated `OAuthSettingsViewModel.svelte.js` and `OAuthService.js`:
 ```javascript
 // src/lib/client/shared/services/OAuthService.js
 export class OAuthService {
-    constructor(config = {}) {
-        this.baseUrl = config.apiBaseUrl || '';
-    }
+	constructor(config = {}) {
+		this.baseUrl = config.apiBaseUrl || '';
+	}
 
-    async getOAuthSettings() {
-        const response = await fetch(`${this.baseUrl}/api/settings/oauth`, {
-            method: 'GET',
-            credentials: 'include'
-        });
+	async getOAuthSettings() {
+		const response = await fetch(`${this.baseUrl}/api/settings/oauth`, {
+			method: 'GET',
+			credentials: 'include'
+		});
 
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data?.error || 'Failed to load OAuth settings');
-        }
+		if (!response.ok) {
+			const data = await response.json().catch(() => ({}));
+			throw new Error(data?.error || 'Failed to load OAuth settings');
+		}
 
-        return response.json();
-    }
+		return response.json();
+	}
 
-    async saveOAuthSettings(providers) {
-        const response = await fetch(`${this.baseUrl}/api/settings/oauth`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ providers })
-        });
+	async saveOAuthSettings(providers) {
+		const response = await fetch(`${this.baseUrl}/api/settings/oauth`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ providers })
+		});
 
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data?.error || 'Failed to save OAuth settings');
-        }
+		if (!response.ok) {
+			const data = await response.json().catch(() => ({}));
+			throw new Error(data?.error || 'Failed to save OAuth settings');
+		}
 
-        return response.json();
-    }
+		return response.json();
+	}
 }
 ```
 
 ```javascript
 // src/lib/client/shared/state/OAuthSettingsViewModel.svelte.js
 export class OAuthSettingsViewModel {
-    constructor(oauthService) {
-        this.oauthService = oauthService;
+	constructor(oauthService) {
+		this.oauthService = oauthService;
 
-        // Reactive state
-        this.loading = $state(false);
-        this.saving = $state(false);
-        this.error = $state('');
-        this.successMessage = $state('');
+		// Reactive state
+		this.loading = $state(false);
+		this.saving = $state(false);
+		this.error = $state('');
+		this.successMessage = $state('');
 
-        this.providers = $state({
-            github: { enabled: false, clientId: '', clientSecret: '' },
-            google: { enabled: false, clientId: '', clientSecret: '' }
-        });
+		this.providers = $state({
+			github: { enabled: false, clientId: '', clientSecret: '' },
+			google: { enabled: false, clientId: '', clientSecret: '' }
+		});
 
-        this.originalProviders = $state(null);
-    }
+		this.originalProviders = $state(null);
+	}
 
-    // Derived state
-    hasChanges = $derived.by(() => {
-        if (!this.originalProviders) return false;
-        return JSON.stringify(this.providers) !== JSON.stringify(this.originalProviders);
-    });
+	// Derived state
+	hasChanges = $derived.by(() => {
+		if (!this.originalProviders) return false;
+		return JSON.stringify(this.providers) !== JSON.stringify(this.originalProviders);
+	});
 
-    canSave = $derived.by(() => {
-        return this.hasChanges && !this.saving && !this.loading;
-    });
+	canSave = $derived.by(() => {
+		return this.hasChanges && !this.saving && !this.loading;
+	});
 
-    // Business logic methods
-    async initialize() {
-        await this.loadSettings();
-    }
+	// Business logic methods
+	async initialize() {
+		await this.loadSettings();
+	}
 
-    async loadSettings() {
-        this.loading = true;
-        this.error = '';
+	async loadSettings() {
+		this.loading = true;
+		this.error = '';
 
-        try {
-            const data = await this.oauthService.getOAuthSettings();
-            this.providers = {
-                github: {
-                    enabled: data.github?.enabled || false,
-                    clientId: data.github?.clientId || '',
-                    clientSecret: ''
-                },
-                google: {
-                    enabled: data.google?.enabled || false,
-                    clientId: data.google?.clientId || '',
-                    clientSecret: ''
-                }
-            };
+		try {
+			const data = await this.oauthService.getOAuthSettings();
+			this.providers = {
+				github: {
+					enabled: data.github?.enabled || false,
+					clientId: data.github?.clientId || '',
+					clientSecret: ''
+				},
+				google: {
+					enabled: data.google?.enabled || false,
+					clientId: data.google?.clientId || '',
+					clientSecret: ''
+				}
+			};
 
-            this.originalProviders = JSON.parse(JSON.stringify(this.providers));
-        } catch (err) {
-            this.error = err.message;
-            throw err;
-        } finally {
-            this.loading = false;
-        }
-    }
+			this.originalProviders = JSON.parse(JSON.stringify(this.providers));
+		} catch (err) {
+			this.error = err.message;
+			throw err;
+		} finally {
+			this.loading = false;
+		}
+	}
 
-    async save() {
-        this.saving = true;
-        this.error = '';
-        this.successMessage = '';
+	async save() {
+		this.saving = true;
+		this.error = '';
+		this.successMessage = '';
 
-        try {
-            await this.oauthService.saveOAuthSettings(this.providers);
-            this.successMessage = 'OAuth settings saved successfully';
-            await this.loadSettings();
+		try {
+			await this.oauthService.saveOAuthSettings(this.providers);
+			this.successMessage = 'OAuth settings saved successfully';
+			await this.loadSettings();
 
-            // Auto-clear success message
-            setTimeout(() => {
-                this.successMessage = '';
-            }, 3000);
+			// Auto-clear success message
+			setTimeout(() => {
+				this.successMessage = '';
+			}, 3000);
 
-            return true;
-        } catch (err) {
-            this.error = err.message;
-            return false;
-        } finally {
-            this.saving = false;
-        }
-    }
+			return true;
+		} catch (err) {
+			this.error = err.message;
+			return false;
+		} finally {
+			this.saving = false;
+		}
+	}
 
-    toggleProvider(providerName) {
-        this.providers[providerName].enabled = !this.providers[providerName].enabled;
+	toggleProvider(providerName) {
+		this.providers[providerName].enabled = !this.providers[providerName].enabled;
 
-        if (!this.providers[providerName].enabled) {
-            this.providers[providerName].clientId = '';
-            this.providers[providerName].clientSecret = '';
-        }
-    }
+		if (!this.providers[providerName].enabled) {
+			this.providers[providerName].clientId = '';
+			this.providers[providerName].clientSecret = '';
+		}
+	}
 
-    updateClientId(providerName, value) {
-        this.providers[providerName].clientId = value;
-    }
+	updateClientId(providerName, value) {
+		this.providers[providerName].clientId = value;
+	}
 
-    updateClientSecret(providerName, value) {
-        this.providers[providerName].clientSecret = value;
-    }
+	updateClientSecret(providerName, value) {
+		this.providers[providerName].clientSecret = value;
+	}
 
-    discardChanges() {
-        if (this.originalProviders) {
-            this.providers = JSON.parse(JSON.stringify(this.originalProviders));
-        }
-        this.error = '';
-        this.successMessage = '';
-    }
+	discardChanges() {
+		if (this.originalProviders) {
+			this.providers = JSON.parse(JSON.stringify(this.originalProviders));
+		}
+		this.error = '';
+		this.successMessage = '';
+	}
 
-    clearError() {
-        this.error = '';
-    }
+	clearError() {
+		this.error = '';
+	}
 
-    clearSuccess() {
-        this.successMessage = '';
-    }
+	clearSuccess() {
+		this.successMessage = '';
+	}
 }
 ```
 
 **Updated Component**:
+
 ```svelte
 <!-- src/lib/client/settings/OAuthSettings.svelte -->
 <script>
-    import { onMount } from 'svelte';
-    import { OAuthSettingsViewModel } from '$lib/client/shared/state/OAuthSettingsViewModel.svelte.js';
-    import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
-    import Button from '../shared/components/Button.svelte';
-    import InfoBox from '../shared/components/InfoBox.svelte';
+	import { onMount } from 'svelte';
+	import { OAuthSettingsViewModel } from '$lib/client/shared/state/OAuthSettingsViewModel.svelte.js';
+	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import Button from '../shared/components/Button.svelte';
+	import InfoBox from '../shared/components/InfoBox.svelte';
 
-    // Get dependencies via DI
-    const container = useServiceContainer();
-    const oauthService = await container.get('oauthService');
+	// Get dependencies via DI
+	const container = useServiceContainer();
+	const oauthService = await container.get('oauthService');
 
-    // Initialize ViewModel
-    const viewModel = new OAuthSettingsViewModel(oauthService);
+	// Initialize ViewModel
+	const viewModel = new OAuthSettingsViewModel(oauthService);
 
-    onMount(async () => {
-        await viewModel.initialize();
-    });
+	onMount(async () => {
+		await viewModel.initialize();
+	});
 
-    // Provider metadata (pure UI data)
-    const providerMeta = {
-        github: {
-            name: 'GitHub',
-            icon: 'github',
-            docsUrl: 'https://docs.github.com/en/developers/apps/building-oauth-apps',
-            description: 'Allow users to log in with their GitHub account'
-        },
-        google: {
-            name: 'Google',
-            icon: 'google',
-            docsUrl: 'https://developers.google.com/identity/protocols/oauth2',
-            description: 'Allow users to log in with their Google account'
-        }
-    };
+	// Provider metadata (pure UI data)
+	const providerMeta = {
+		github: {
+			name: 'GitHub',
+			icon: 'github',
+			docsUrl: 'https://docs.github.com/en/developers/apps/building-oauth-apps',
+			description: 'Allow users to log in with their GitHub account'
+		},
+		google: {
+			name: 'Google',
+			icon: 'google',
+			docsUrl: 'https://developers.google.com/identity/protocols/oauth2',
+			description: 'Allow users to log in with their Google account'
+		}
+	};
 </script>
 
 <div class="oauth-settings" data-testid="oauth-settings">
-    <div class="settings-header">
-        <h4>OAuth Provider Configuration</h4>
-        <p class="settings-description">
-            Enable and configure OAuth providers to allow users to authenticate using external services.
-        </p>
-    </div>
+	<div class="settings-header">
+		<h4>OAuth Provider Configuration</h4>
+		<p class="settings-description">
+			Enable and configure OAuth providers to allow users to authenticate using external services.
+		</p>
+	</div>
 
-    {#if viewModel.error}
-        <InfoBox variant="error">
-            <strong>Error:</strong> {viewModel.error}
-            <button class="message-close" onclick={() => viewModel.clearError()}>×</button>
-        </InfoBox>
-    {/if}
+	{#if viewModel.error}
+		<InfoBox variant="error">
+			<strong>Error:</strong>
+			{viewModel.error}
+			<button class="message-close" onclick={() => viewModel.clearError()}>×</button>
+		</InfoBox>
+	{/if}
 
-    {#if viewModel.successMessage}
-        <InfoBox variant="success">
-            <strong>Success:</strong> {viewModel.successMessage}
-            <button class="message-close" onclick={() => viewModel.clearSuccess()}>×</button>
-        </InfoBox>
-    {/if}
+	{#if viewModel.successMessage}
+		<InfoBox variant="success">
+			<strong>Success:</strong>
+			{viewModel.successMessage}
+			<button class="message-close" onclick={() => viewModel.clearSuccess()}>×</button>
+		</InfoBox>
+	{/if}
 
-    {#if viewModel.loading}
-        <div class="loading-state">
-            <div class="spinner"></div>
-            <p>Loading OAuth settings...</p>
-        </div>
-    {:else}
-        <!-- Provider Configurations -->
-        <div class="providers-container">
-            {#each Object.entries(providerMeta) as [providerKey, meta] (providerKey)}
-                {@const config = viewModel.providers[providerKey]}
-                <div class="provider-card">
-                    <div class="provider-header">
-                        <div class="provider-info">
-                            <h5 class="provider-name">{meta.name}</h5>
-                            <p class="provider-description">{meta.description}</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input
-                                type="checkbox"
-                                checked={config.enabled}
-                                onchange={() => viewModel.toggleProvider(providerKey)}
-                                disabled={viewModel.saving}
-                            />
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
+	{#if viewModel.loading}
+		<div class="loading-state">
+			<div class="spinner"></div>
+			<p>Loading OAuth settings...</p>
+		</div>
+	{:else}
+		<!-- Provider Configurations -->
+		<div class="providers-container">
+			{#each Object.entries(providerMeta) as [providerKey, meta] (providerKey)}
+				{@const config = viewModel.providers[providerKey]}
+				<div class="provider-card">
+					<div class="provider-header">
+						<div class="provider-info">
+							<h5 class="provider-name">{meta.name}</h5>
+							<p class="provider-description">{meta.description}</p>
+						</div>
+						<label class="toggle-switch">
+							<input
+								type="checkbox"
+								checked={config.enabled}
+								onchange={() => viewModel.toggleProvider(providerKey)}
+								disabled={viewModel.saving}
+							/>
+							<span class="toggle-slider"></span>
+						</label>
+					</div>
 
-                    {#if config.enabled}
-                        <div class="provider-config">
-                            <div class="form-group">
-                                <label for="{providerKey}-client-id" class="form-label">
-                                    Client ID
-                                    <a href={meta.docsUrl} target="_blank" class="docs-link">📖 Docs</a>
-                                </label>
-                                <input
-                                    id="{providerKey}-client-id"
-                                    type="text"
-                                    class="form-input"
-                                    placeholder="Enter {meta.name} Client ID"
-                                    value={config.clientId}
-                                    oninput={(e) => viewModel.updateClientId(providerKey, e.target.value)}
-                                    disabled={viewModel.saving}
-                                />
-                            </div>
+					{#if config.enabled}
+						<div class="provider-config">
+							<div class="form-group">
+								<label for="{providerKey}-client-id" class="form-label">
+									Client ID
+									<a href={meta.docsUrl} target="_blank" class="docs-link">📖 Docs</a>
+								</label>
+								<input
+									id="{providerKey}-client-id"
+									type="text"
+									class="form-input"
+									placeholder="Enter {meta.name} Client ID"
+									value={config.clientId}
+									oninput={(e) => viewModel.updateClientId(providerKey, e.target.value)}
+									disabled={viewModel.saving}
+								/>
+							</div>
 
-                            <div class="form-group">
-                                <label for="{providerKey}-client-secret" class="form-label">
-                                    Client Secret
-                                </label>
-                                <input
-                                    id="{providerKey}-client-secret"
-                                    type="password"
-                                    class="form-input"
-                                    placeholder="Enter {meta.name} Client Secret"
-                                    value={config.clientSecret}
-                                    oninput={(e) => viewModel.updateClientSecret(providerKey, e.target.value)}
-                                    disabled={viewModel.saving}
-                                />
-                            </div>
-                        </div>
-                    {/if}
-                </div>
-            {/each}
-        </div>
+							<div class="form-group">
+								<label for="{providerKey}-client-secret" class="form-label"> Client Secret </label>
+								<input
+									id="{providerKey}-client-secret"
+									type="password"
+									class="form-input"
+									placeholder="Enter {meta.name} Client Secret"
+									value={config.clientSecret}
+									oninput={(e) => viewModel.updateClientSecret(providerKey, e.target.value)}
+									disabled={viewModel.saving}
+								/>
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/each}
+		</div>
 
-        <!-- Action Buttons -->
-        <div class="settings-actions">
-            <Button
-                variant="primary"
-                onclick={() => viewModel.save()}
-                disabled={!viewModel.canSave}
-                loading={viewModel.saving}
-            >
-                {viewModel.saving ? 'Saving...' : 'Save OAuth Settings'}
-            </Button>
+		<!-- Action Buttons -->
+		<div class="settings-actions">
+			<Button
+				variant="primary"
+				onclick={() => viewModel.save()}
+				disabled={!viewModel.canSave}
+				loading={viewModel.saving}
+			>
+				{viewModel.saving ? 'Saving...' : 'Save OAuth Settings'}
+			</Button>
 
-            {#if viewModel.hasChanges}
-                <Button
-                    variant="secondary"
-                    onclick={() => viewModel.discardChanges()}
-                    disabled={viewModel.saving}
-                >
-                    Discard Changes
-                </Button>
-            {/if}
-        </div>
+			{#if viewModel.hasChanges}
+				<Button
+					variant="secondary"
+					onclick={() => viewModel.discardChanges()}
+					disabled={viewModel.saving}
+				>
+					Discard Changes
+				</Button>
+			{/if}
+		</div>
 
-        <InfoBox variant="info">
-            <strong>Security Notice:</strong>
-            OAuth client secrets are encrypted at rest and never sent to the browser.
-        </InfoBox>
-    {/if}
+		<InfoBox variant="info">
+			<strong>Security Notice:</strong>
+			OAuth client secrets are encrypted at rest and never sent to the browser.
+		</InfoBox>
+	{/if}
 </div>
 
 <!-- Keep existing styles -->
@@ -604,6 +612,7 @@ export class OAuthSettingsViewModel {
 **Priority**: HIGH
 **Effort**: Medium (2-3 hours)
 **Benefits**:
+
 - Cleaner component code (reduced from 592 to ~150 lines)
 - Testable business logic
 - Reusable ViewModel for other OAuth components
@@ -619,64 +628,67 @@ export class OAuthSettingsViewModel {
 **File**: `src/lib/client/onboarding/OnboardingViewModel.svelte.js` (lines 33-50)
 
 **Current Implementation**:
+
 ```javascript
 export class OnboardingViewModel {
-    currentStep = $state('auth');
-    formData = $state({
-        terminalKey: '',
-        confirmTerminalKey: '',
-        workspaceName: '',
-        workspacePath: ''
-    });
+	currentStep = $state('auth');
+	formData = $state({
+		terminalKey: '',
+		confirmTerminalKey: '',
+		workspaceName: '',
+		workspacePath: ''
+	});
 
-    // Using regular getters instead of $derived
-    get progressPercentage() {
-        const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
-        const currentIndex = steps.indexOf(this.currentStep);
-        return Math.round((currentIndex / (steps.length - 1)) * 100);
-    }
+	// Using regular getters instead of $derived
+	get progressPercentage() {
+		const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
+		const currentIndex = steps.indexOf(this.currentStep);
+		return Math.round((currentIndex / (steps.length - 1)) * 100);
+	}
 
-    get canProceedFromAuth() {
-        return (
-            this.formData.terminalKey.length >= 8 &&
-            this.formData.terminalKey === this.formData.confirmTerminalKey
-        );
-    }
+	get canProceedFromAuth() {
+		return (
+			this.formData.terminalKey.length >= 8 &&
+			this.formData.terminalKey === this.formData.confirmTerminalKey
+		);
+	}
 }
 ```
 
 **Why This Is Inconsistent**:
+
 - Uses JavaScript getters instead of Svelte's `$derived` rune
 - Getters don't integrate with Svelte's reactivity system as cleanly
 - Inconsistent with MVVM patterns guide (docs/architecture/mvvm-patterns.md)
 - May not trigger component re-renders when dependencies change
 
 **Recommended Fix**:
+
 ```javascript
 export class OnboardingViewModel {
-    currentStep = $state('auth');
-    formData = $state({
-        terminalKey: '',
-        confirmTerminalKey: '',
-        workspaceName: '',
-        workspacePath: ''
-    });
+	currentStep = $state('auth');
+	formData = $state({
+		terminalKey: '',
+		confirmTerminalKey: '',
+		workspaceName: '',
+		workspacePath: ''
+	});
 
-    // Use $derived for reactive computed values
-    progressPercentage = $derived.by(() => {
-        const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
-        const currentIndex = steps.indexOf(this.currentStep);
-        return Math.round((currentIndex / (steps.length - 1)) * 100);
-    });
+	// Use $derived for reactive computed values
+	progressPercentage = $derived.by(() => {
+		const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
+		const currentIndex = steps.indexOf(this.currentStep);
+		return Math.round((currentIndex / (steps.length - 1)) * 100);
+	});
 
-    canProceedFromAuth = $derived.by(() => {
-        return (
-            this.formData.terminalKey.length >= 8 &&
-            this.formData.terminalKey === this.formData.confirmTerminalKey
-        );
-    });
+	canProceedFromAuth = $derived.by(() => {
+		return (
+			this.formData.terminalKey.length >= 8 &&
+			this.formData.terminalKey === this.formData.confirmTerminalKey
+		);
+	});
 
-    canProceedFromWorkspace = $derived(true); // Simple boolean
+	canProceedFromWorkspace = $derived(true); // Simple boolean
 }
 ```
 
@@ -693,57 +705,54 @@ export class OnboardingViewModel {
 **File**: `src/routes/login/+page.svelte` (lines 20-21)
 
 **Current Implementation**:
+
 ```svelte
 <script>
-    const authViewModel = new AuthViewModel();
+	const authViewModel = new AuthViewModel();
 
-    // Component state duplicating ViewModel state
-    let apiKey = $state('');
-    let isSubmitting = $state(false);
+	// Component state duplicating ViewModel state
+	let apiKey = $state('');
+	let isSubmitting = $state(false);
 </script>
 
-<input
-    id="api-key"
-    name="key"
-    type="password"
-    bind:value={apiKey}
-    disabled={isSubmitting}
-/>
+<input id="api-key" name="key" type="password" bind:value={apiKey} disabled={isSubmitting} />
 ```
 
 **Why This Is Suboptimal**:
+
 - Component maintains its own `apiKey` state separate from ViewModel's `key` state
 - `isSubmitting` duplicates ViewModel's `loading` state
 - Creates two sources of truth for the same data
 - Breaks unidirectional data flow pattern
 
 **Recommended Fix**:
+
 ```svelte
 <script>
-    import { AuthViewModel } from '$lib/client/shared/state/AuthViewModel.svelte.js';
-    import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import { AuthViewModel } from '$lib/client/shared/state/AuthViewModel.svelte.js';
+	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 
-    const container = useServiceContainer();
-    const authService = await container.get('authService');
-    const authViewModel = new AuthViewModel(authService);
+	const container = useServiceContainer();
+	const authService = await container.get('authService');
+	const authViewModel = new AuthViewModel(authService);
 
-    // No local state - use ViewModel directly
+	// No local state - use ViewModel directly
 </script>
 
 <input
-    id="api-key"
-    name="key"
-    type="password"
-    bind:value={authViewModel.key}
-    disabled={authViewModel.loading}
+	id="api-key"
+	name="key"
+	type="password"
+	bind:value={authViewModel.key}
+	disabled={authViewModel.loading}
 />
 
 <Button
-    type="submit"
-    disabled={authViewModel.loading || !authViewModel.key.trim()}
-    loading={authViewModel.loading}
+	type="submit"
+	disabled={authViewModel.loading || !authViewModel.key.trim()}
+	loading={authViewModel.loading}
 >
-    {authViewModel.loading ? 'Logging in...' : 'Log In'}
+	{authViewModel.loading ? 'Logging in...' : 'Log In'}
 </Button>
 ```
 
@@ -762,6 +771,7 @@ export class OnboardingViewModel {
 **File**: `src/lib/client/shared/socket-auth.js`
 
 **Why This Violates MVVM**:
+
 - Cannot be properly injected into ViewModels (not following DI pattern)
 - Stores configuration as function parameters instead of class instance state
 - Cannot maintain connection state across multiple calls
@@ -769,28 +779,31 @@ export class OnboardingViewModel {
 - Inconsistent with other services in codebase
 
 **Current Implementation**:
+
 ```javascript
 // Utility functions - not a class
 export async function createAuthenticatedSocket(options = {}, config = {}) {
-    const socketUrl = getSocketUrl(config);
-    const socketOptions = {
-        transports: ['websocket', 'polling'],
-        withCredentials: true,
-        ...options
-    };
+	const socketUrl = getSocketUrl(config);
+	const socketOptions = {
+		transports: ['websocket', 'polling'],
+		withCredentials: true,
+		...options
+	};
 
-    if (config.apiKey) {
-        socketOptions.auth = { token: config.apiKey };
-    }
+	if (config.apiKey) {
+		socketOptions.auth = { token: config.apiKey };
+	}
 
-    const socket = io(socketUrl, socketOptions);
-    // ... connection logic
+	const socket = io(socketUrl, socketOptions);
+	// ... connection logic
 }
 
 export async function testAuthKey(key, config = {}) {
-    const socketUrl = getSocketUrl(config);
-    const socket = io(socketUrl, { /* ... */ });
-    // ... test logic
+	const socketUrl = getSocketUrl(config);
+	const socket = io(socketUrl, {
+		/* ... */
+	});
+	// ... test logic
 }
 ```
 
@@ -803,135 +816,137 @@ import { io } from 'socket.io-client';
 import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 
 export class SocketAuthService {
-    constructor(config = {}) {
-        this.config = config;
-        this.socketUrl = config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+	constructor(config = {}) {
+		this.config = config;
+		this.socketUrl =
+			config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
 
-        // Track active connections
-        this.activeSocket = $state(null);
-        this.isConnected = $state(false);
-    }
+		// Track active connections
+		this.activeSocket = $state(null);
+		this.isConnected = $state(false);
+	}
 
-    /**
-     * Create authenticated Socket.IO connection with cookie support
-     * @param {Object} options - Additional socket options
-     * @returns {Promise<{socket: Object, authenticated: boolean}>}
-     */
-    async createAuthenticatedSocket(options = {}) {
-        const socketOptions = {
-            transports: ['websocket', 'polling'],
-            withCredentials: true,
-            ...options
-        };
+	/**
+	 * Create authenticated Socket.IO connection with cookie support
+	 * @param {Object} options - Additional socket options
+	 * @returns {Promise<{socket: Object, authenticated: boolean}>}
+	 */
+	async createAuthenticatedSocket(options = {}) {
+		const socketOptions = {
+			transports: ['websocket', 'polling'],
+			withCredentials: true,
+			...options
+		};
 
-        // If API key provided (programmatic access), include in auth
-        if (this.config.apiKey) {
-            socketOptions.auth = { token: this.config.apiKey };
-        }
+		// If API key provided (programmatic access), include in auth
+		if (this.config.apiKey) {
+			socketOptions.auth = { token: this.config.apiKey };
+		}
 
-        const socket = io(this.socketUrl, socketOptions);
+		const socket = io(this.socketUrl, socketOptions);
 
-        return new Promise((resolve, reject) => {
-            socket.on(SOCKET_EVENTS.CONNECTION, () => {
-                socket.emit('client:hello', {}, (response) => {
-                    if (response?.success) {
-                        this.activeSocket = socket;
-                        this.isConnected = true;
-                        resolve({ socket, authenticated: true });
-                    } else {
-                        socket.disconnect();
-                        resolve({ socket: null, authenticated: false });
-                    }
-                });
-            });
+		return new Promise((resolve, reject) => {
+			socket.on(SOCKET_EVENTS.CONNECTION, () => {
+				socket.emit('client:hello', {}, (response) => {
+					if (response?.success) {
+						this.activeSocket = socket;
+						this.isConnected = true;
+						resolve({ socket, authenticated: true });
+					} else {
+						socket.disconnect();
+						resolve({ socket: null, authenticated: false });
+					}
+				});
+			});
 
-            socket.on('connect_error', (error) => {
-                socket.disconnect();
-                reject(error);
-            });
+			socket.on('connect_error', (error) => {
+				socket.disconnect();
+				reject(error);
+			});
 
-            socket.on('session:expired', (data) => {
-                console.warn('Session expired:', data.message);
-                this.disconnect();
-                if (typeof window !== 'undefined') {
-                    window.location.href = '/login';
-                }
-            });
-        });
-    }
+			socket.on('session:expired', (data) => {
+				console.warn('Session expired:', data.message);
+				this.disconnect();
+				if (typeof window !== 'undefined') {
+					window.location.href = '/login';
+				}
+			});
+		});
+	}
 
-    /**
-     * Test authentication with a specific API key
-     * @param {string} key - API key to test
-     * @returns {Promise<boolean>}
-     */
-    async testAuthKey(key) {
-        const socket = io(this.socketUrl, {
-            transports: ['websocket', 'polling'],
-            withCredentials: true,
-            auth: { token: key }
-        });
+	/**
+	 * Test authentication with a specific API key
+	 * @param {string} key - API key to test
+	 * @returns {Promise<boolean>}
+	 */
+	async testAuthKey(key) {
+		const socket = io(this.socketUrl, {
+			transports: ['websocket', 'polling'],
+			withCredentials: true,
+			auth: { token: key }
+		});
 
-        return new Promise((resolve) => {
-            const timeout = setTimeout(() => {
-                socket.disconnect();
-                resolve(false);
-            }, 5000);
+		return new Promise((resolve) => {
+			const timeout = setTimeout(() => {
+				socket.disconnect();
+				resolve(false);
+			}, 5000);
 
-            socket.on(SOCKET_EVENTS.CONNECTION, () => {
-                socket.emit('client:hello', { apiKey: key }, (response) => {
-                    clearTimeout(timeout);
-                    socket.disconnect();
-                    resolve(response?.success === true);
-                });
-            });
+			socket.on(SOCKET_EVENTS.CONNECTION, () => {
+				socket.emit('client:hello', { apiKey: key }, (response) => {
+					clearTimeout(timeout);
+					socket.disconnect();
+					resolve(response?.success === true);
+				});
+			});
 
-            socket.on(SOCKET_EVENTS.CONNECT_ERROR, () => {
-                clearTimeout(timeout);
-                socket.disconnect();
-                resolve(false);
-            });
-        });
-    }
+			socket.on(SOCKET_EVENTS.CONNECT_ERROR, () => {
+				clearTimeout(timeout);
+				socket.disconnect();
+				resolve(false);
+			});
+		});
+	}
 
-    /**
-     * Check if user is currently authenticated via session cookie
-     * @returns {Promise<boolean>}
-     */
-    async isAuthenticated() {
-        try {
-            const response = await fetch('/api/workspaces', {
-                method: 'GET',
-                credentials: 'include'
-            });
-            return response.ok;
-        } catch (err) {
-            console.error('Error checking authentication:', err);
-            return false;
-        }
-    }
+	/**
+	 * Check if user is currently authenticated via session cookie
+	 * @returns {Promise<boolean>}
+	 */
+	async isAuthenticated() {
+		try {
+			const response = await fetch('/api/workspaces', {
+				method: 'GET',
+				credentials: 'include'
+			});
+			return response.ok;
+		} catch (err) {
+			console.error('Error checking authentication:', err);
+			return false;
+		}
+	}
 
-    /**
-     * Disconnect active socket
-     */
-    disconnect() {
-        if (this.activeSocket) {
-            this.activeSocket.disconnect();
-            this.activeSocket = null;
-            this.isConnected = false;
-        }
-    }
+	/**
+	 * Disconnect active socket
+	 */
+	disconnect() {
+		if (this.activeSocket) {
+			this.activeSocket.disconnect();
+			this.activeSocket = null;
+			this.isConnected = false;
+		}
+	}
 
-    /**
-     * Cleanup on service disposal
-     */
-    dispose() {
-        this.disconnect();
-    }
+	/**
+	 * Cleanup on service disposal
+	 */
+	dispose() {
+		this.disconnect();
+	}
 }
 ```
 
 **Update ServiceContainer registration**:
+
 ```javascript
 // src/lib/client/shared/services/ServiceContainer.svelte.js
 registerCoreServices() {
@@ -945,24 +960,26 @@ registerCoreServices() {
 ```
 
 **Usage in ViewModels**:
+
 ```javascript
 export class AuthViewModel {
-    constructor(authService, socketAuthService) {
-        this.authService = authService;
-        this.socketAuthService = socketAuthService;
-    }
+	constructor(authService, socketAuthService) {
+		this.authService = authService;
+		this.socketAuthService = socketAuthService;
+	}
 
-    async initialize() {
-        // Check authentication via service
-        const isAuthenticated = await this.socketAuthService.isAuthenticated();
-        return { redirectToWorkspace: isAuthenticated };
-    }
+	async initialize() {
+		// Check authentication via service
+		const isAuthenticated = await this.socketAuthService.isAuthenticated();
+		return { redirectToWorkspace: isAuthenticated };
+	}
 }
 ```
 
 **Priority**: HIGH
 **Effort**: Medium (2 hours)
 **Benefits**:
+
 - Proper dependency injection
 - Testable service layer
 - State management for socket connections
@@ -982,120 +999,121 @@ Create `ApiKeyService.js`:
 ```javascript
 // src/lib/client/shared/services/ApiKeyService.js
 export class ApiKeyService {
-    constructor(config = {}) {
-        this.baseUrl = config.apiBaseUrl || '';
-    }
+	constructor(config = {}) {
+		this.baseUrl = config.apiBaseUrl || '';
+	}
 
-    async listKeys() {
-        const response = await fetch(`${this.baseUrl}/api/auth/keys`, {
-            method: 'GET',
-            credentials: 'include'
-        });
+	async listKeys() {
+		const response = await fetch(`${this.baseUrl}/api/auth/keys`, {
+			method: 'GET',
+			credentials: 'include'
+		});
 
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data?.error || 'Failed to load API keys');
-        }
+		if (!response.ok) {
+			const data = await response.json().catch(() => ({}));
+			throw new Error(data?.error || 'Failed to load API keys');
+		}
 
-        const data = await response.json();
-        return data.keys || [];
-    }
+		const data = await response.json();
+		return data.keys || [];
+	}
 
-    async createKey(label) {
-        const response = await fetch(`${this.baseUrl}/api/auth/keys`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ label })
-        });
+	async createKey(label) {
+		const response = await fetch(`${this.baseUrl}/api/auth/keys`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ label })
+		});
 
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data?.error || 'Failed to create API key');
-        }
+		if (!response.ok) {
+			const data = await response.json().catch(() => ({}));
+			throw new Error(data?.error || 'Failed to create API key');
+		}
 
-        return response.json();
-    }
+		return response.json();
+	}
 
-    async deleteKey(keyId) {
-        const response = await fetch(`${this.baseUrl}/api/auth/keys/${keyId}`, {
-            method: 'DELETE',
-            credentials: 'include'
-        });
+	async deleteKey(keyId) {
+		const response = await fetch(`${this.baseUrl}/api/auth/keys/${keyId}`, {
+			method: 'DELETE',
+			credentials: 'include'
+		});
 
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data?.error || 'Failed to delete API key');
-        }
+		if (!response.ok) {
+			const data = await response.json().catch(() => ({}));
+			throw new Error(data?.error || 'Failed to delete API key');
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    async toggleKey(keyId, disabled) {
-        const response = await fetch(`${this.baseUrl}/api/auth/keys/${keyId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ disabled })
-        });
+	async toggleKey(keyId, disabled) {
+		const response = await fetch(`${this.baseUrl}/api/auth/keys/${keyId}`, {
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ disabled })
+		});
 
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data?.error || 'Failed to toggle API key');
-        }
+		if (!response.ok) {
+			const data = await response.json().catch(() => ({}));
+			throw new Error(data?.error || 'Failed to toggle API key');
+		}
 
-        return true;
-    }
+		return true;
+	}
 }
 ```
 
 **Updated ApiKeyState ViewModel**:
+
 ```javascript
 export class ApiKeyState {
-    constructor(apiKeyService) {
-        this.apiKeyService = apiKeyService;
+	constructor(apiKeyService) {
+		this.apiKeyService = apiKeyService;
 
-        this.keys = $state([]);
-        this.loading = $state(false);
-        this.error = $state('');
+		this.keys = $state([]);
+		this.loading = $state(false);
+		this.error = $state('');
 
-        this.activeKeys = $derived.by(() => this.keys.filter(k => k.disabled === 0));
-        this.disabledKeys = $derived.by(() => this.keys.filter(k => k.disabled === 1));
-        this.activeCount = $derived(this.activeKeys.length);
-    }
+		this.activeKeys = $derived.by(() => this.keys.filter((k) => k.disabled === 0));
+		this.disabledKeys = $derived.by(() => this.keys.filter((k) => k.disabled === 1));
+		this.activeCount = $derived(this.activeKeys.length);
+	}
 
-    async loadKeys() {
-        this.loading = true;
-        this.error = '';
+	async loadKeys() {
+		this.loading = true;
+		this.error = '';
 
-        try {
-            this.keys = await this.apiKeyService.listKeys();
-            log.info(`Loaded ${this.keys.length} API keys`);
-        } catch (err) {
-            this.error = err.message;
-            log.error('Load keys error', err);
-        } finally {
-            this.loading = false;
-        }
-    }
+		try {
+			this.keys = await this.apiKeyService.listKeys();
+			log.info(`Loaded ${this.keys.length} API keys`);
+		} catch (err) {
+			this.error = err.message;
+			log.error('Load keys error', err);
+		} finally {
+			this.loading = false;
+		}
+	}
 
-    async createKey(label) {
-        this.loading = true;
-        this.error = '';
+	async createKey(label) {
+		this.loading = true;
+		this.error = '';
 
-        try {
-            const result = await this.apiKeyService.createKey(label);
-            await this.loadKeys();
-            return result;
-        } catch (err) {
-            this.error = err.message;
-            return null;
-        } finally {
-            this.loading = false;
-        }
-    }
+		try {
+			const result = await this.apiKeyService.createKey(label);
+			await this.loadKeys();
+			return result;
+		} catch (err) {
+			this.error = err.message;
+			return null;
+		} finally {
+			this.loading = false;
+		}
+	}
 
-    // ... similar for deleteKey, toggleKey
+	// ... similar for deleteKey, toggleKey
 }
 ```
 
@@ -1114,32 +1132,34 @@ export class ApiKeyState {
 **File**: `src/routes/login/+page.svelte` (line 17)
 
 **Current Implementation**:
+
 ```svelte
 <script>
-    // Creates ViewModel without dependencies
-    const authViewModel = new AuthViewModel();
+	// Creates ViewModel without dependencies
+	const authViewModel = new AuthViewModel();
 </script>
 ```
 
 **Recommended Fix**:
+
 ```svelte
 <script>
-    import { onMount } from 'svelte';
-    import { goto } from '$app/navigation';
-    import { AuthViewModel } from '$lib/client/shared/state/AuthViewModel.svelte.js';
-    import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { AuthViewModel } from '$lib/client/shared/state/AuthViewModel.svelte.js';
+	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 
-    // Get dependencies from container
-    const container = useServiceContainer();
-    const authService = await container.get('authService');
-    const authViewModel = new AuthViewModel(authService);
+	// Get dependencies from container
+	const container = useServiceContainer();
+	const authService = await container.get('authService');
+	const authViewModel = new AuthViewModel(authService);
 
-    onMount(async () => {
-        const initResult = await authViewModel.initialize();
-        if (initResult.redirectToWorkspace) {
-            await goto('/');
-        }
-    });
+	onMount(async () => {
+		const initResult = await authViewModel.initialize();
+		if (initResult.redirectToWorkspace) {
+			await goto('/');
+		}
+	});
 </script>
 ```
 
@@ -1200,6 +1220,7 @@ Extract sub-components:
    - `isAuthenticated()` - Check auth status
 
 **Register in ServiceContainer**:
+
 ```javascript
 // src/lib/client/shared/services/ServiceContainer.svelte.js
 registerCoreServices() {
@@ -1226,6 +1247,7 @@ registerCoreServices() {
 ```
 
 **Benefits**:
+
 - Consistent service abstraction across all auth features
 - Testable ViewModels with mock services
 - Single source of truth for API endpoints
@@ -1247,30 +1269,32 @@ registerCoreServices() {
 **Example Migration** (AuthViewModel):
 
 **Before**:
+
 ```javascript
 export class AuthViewModel {
-    async loadAuthConfig() {
-        const response = await fetch('/api/auth/config');
-        // ... handle response
-    }
+	async loadAuthConfig() {
+		const response = await fetch('/api/auth/config');
+		// ... handle response
+	}
 }
 ```
 
 **After**:
+
 ```javascript
 export class AuthViewModel {
-    constructor(authService) {
-        this.authService = authService;
-        // ... state initialization
-    }
+	constructor(authService) {
+		this.authService = authService;
+		// ... state initialization
+	}
 
-    async loadAuthConfig() {
-        try {
-            this.authConfig = await this.authService.getAuthConfig();
-        } catch (err) {
-            log.error('Failed to load auth config', err);
-        }
-    }
+	async loadAuthConfig() {
+		try {
+			this.authConfig = await this.authService.getAuthConfig();
+		} catch (err) {
+			log.error('Failed to load auth config', err);
+		}
+	}
 }
 ```
 
@@ -1288,99 +1312,102 @@ export class AuthViewModel {
 3. `tests/client/state/OAuthSettingsViewModel.test.js`
 
 **Example Test** (AuthViewModel):
+
 ```javascript
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AuthViewModel } from '$lib/client/shared/state/AuthViewModel.svelte.js';
 
 describe('AuthViewModel', () => {
-    let mockAuthService;
-    let viewModel;
+	let mockAuthService;
+	let viewModel;
 
-    beforeEach(() => {
-        mockAuthService = {
-            getAuthConfig: vi.fn(),
-            loginWithKey: vi.fn(),
-            checkExistingAuth: vi.fn(),
-            initiateOAuth: vi.fn()
-        };
+	beforeEach(() => {
+		mockAuthService = {
+			getAuthConfig: vi.fn(),
+			loginWithKey: vi.fn(),
+			checkExistingAuth: vi.fn(),
+			initiateOAuth: vi.fn()
+		};
 
-        viewModel = new AuthViewModel(mockAuthService);
-    });
+		viewModel = new AuthViewModel(mockAuthService);
+	});
 
-    describe('loadAuthConfig', () => {
-        it('should load auth config successfully', async () => {
-            const mockConfig = {
-                terminal_key_set: true,
-                oauth_configured: false
-            };
-            mockAuthService.getAuthConfig.mockResolvedValue(mockConfig);
+	describe('loadAuthConfig', () => {
+		it('should load auth config successfully', async () => {
+			const mockConfig = {
+				terminal_key_set: true,
+				oauth_configured: false
+			};
+			mockAuthService.getAuthConfig.mockResolvedValue(mockConfig);
 
-            await viewModel.loadAuthConfig();
+			await viewModel.loadAuthConfig();
 
-            expect(viewModel.authConfig).toEqual(mockConfig);
-            expect(viewModel.hasTerminalKeyAuth).toBe(true);
-            expect(viewModel.hasOAuthAuth).toBe(false);
-        });
+			expect(viewModel.authConfig).toEqual(mockConfig);
+			expect(viewModel.hasTerminalKeyAuth).toBe(true);
+			expect(viewModel.hasOAuthAuth).toBe(false);
+		});
 
-        it('should handle errors gracefully', async () => {
-            mockAuthService.getAuthConfig.mockRejectedValue(new Error('Network error'));
+		it('should handle errors gracefully', async () => {
+			mockAuthService.getAuthConfig.mockRejectedValue(new Error('Network error'));
 
-            await viewModel.loadAuthConfig();
+			await viewModel.loadAuthConfig();
 
-            expect(viewModel.authConfig).toBeNull();
-        });
-    });
+			expect(viewModel.authConfig).toBeNull();
+		});
+	});
 
-    describe('loginWithKey', () => {
-        it('should login successfully with valid key', async () => {
-            mockAuthService.loginWithKey.mockResolvedValue({ success: true });
+	describe('loginWithKey', () => {
+		it('should login successfully with valid key', async () => {
+			mockAuthService.loginWithKey.mockResolvedValue({ success: true });
 
-            const result = await viewModel.loginWithKey('valid-key');
+			const result = await viewModel.loginWithKey('valid-key');
 
-            expect(result.success).toBe(true);
-            expect(viewModel.loading).toBe(false);
-            expect(viewModel.error).toBe('');
-        });
+			expect(result.success).toBe(true);
+			expect(viewModel.loading).toBe(false);
+			expect(viewModel.error).toBe('');
+		});
 
-        it('should set error on invalid key', async () => {
-            mockAuthService.loginWithKey.mockRejectedValue(new Error('Invalid API key'));
+		it('should set error on invalid key', async () => {
+			mockAuthService.loginWithKey.mockRejectedValue(new Error('Invalid API key'));
 
-            const result = await viewModel.loginWithKey('invalid-key');
+			const result = await viewModel.loginWithKey('invalid-key');
 
-            expect(result.success).toBe(false);
-            expect(viewModel.error).toBe('Invalid API key');
-            expect(viewModel.loading).toBe(false);
-        });
+			expect(result.success).toBe(false);
+			expect(viewModel.error).toBe('Invalid API key');
+			expect(viewModel.loading).toBe(false);
+		});
 
-        it('should set loading state during login', async () => {
-            let resolveLogin;
-            mockAuthService.loginWithKey.mockReturnValue(
-                new Promise((resolve) => { resolveLogin = resolve; })
-            );
+		it('should set loading state during login', async () => {
+			let resolveLogin;
+			mockAuthService.loginWithKey.mockReturnValue(
+				new Promise((resolve) => {
+					resolveLogin = resolve;
+				})
+			);
 
-            const loginPromise = viewModel.loginWithKey('test-key');
-            expect(viewModel.loading).toBe(true);
+			const loginPromise = viewModel.loginWithKey('test-key');
+			expect(viewModel.loading).toBe(true);
 
-            resolveLogin({ success: true });
-            await loginPromise;
-            expect(viewModel.loading).toBe(false);
-        });
-    });
+			resolveLogin({ success: true });
+			await loginPromise;
+			expect(viewModel.loading).toBe(false);
+		});
+	});
 
-    describe('derived state', () => {
-        it('should compute hasAnyAuth correctly', async () => {
-            expect(viewModel.hasAnyAuth).toBe(false);
+	describe('derived state', () => {
+		it('should compute hasAnyAuth correctly', async () => {
+			expect(viewModel.hasAnyAuth).toBe(false);
 
-            viewModel.authConfig = { terminal_key_set: true, oauth_configured: false };
-            expect(viewModel.hasAnyAuth).toBe(true);
+			viewModel.authConfig = { terminal_key_set: true, oauth_configured: false };
+			expect(viewModel.hasAnyAuth).toBe(true);
 
-            viewModel.authConfig = { terminal_key_set: false, oauth_configured: true };
-            expect(viewModel.hasAnyAuth).toBe(true);
+			viewModel.authConfig = { terminal_key_set: false, oauth_configured: true };
+			expect(viewModel.hasAnyAuth).toBe(true);
 
-            viewModel.authConfig = { terminal_key_set: true, oauth_configured: true };
-            expect(viewModel.hasAnyAuth).toBe(true);
-        });
-    });
+			viewModel.authConfig = { terminal_key_set: true, oauth_configured: true };
+			expect(viewModel.hasAnyAuth).toBe(true);
+		});
+	});
 });
 ```
 
@@ -1389,25 +1416,30 @@ describe('AuthViewModel', () => {
 ## Summary
 
 ### Critical Issues (Must Fix)
+
 1. Direct fetch() calls in ViewModels (8.1.1)
 2. Create unified service layer (8.5.1)
 3. Update ViewModels to use services (8.5.2)
 
 ### High Priority Issues (Should Fix)
+
 1. OAuthSettings component mixing ViewModel and View (8.1.2)
 2. socket-auth.js should be a Service class (8.3.1)
 3. Add comprehensive ViewModel tests (8.5.3)
 
 ### Medium Priority Issues (Nice to Have)
+
 1. Overuse of $state for simple derived values (8.2.1)
 2. Missing API Key Service abstraction (8.3.2)
 3. Login page missing service injection (8.4.1)
 
 ### Low Priority Issues (Optional)
+
 1. Missing $state for reactive component variables (8.2.2)
 2. ApiKeyManager component too large (8.4.2)
 
 ### Estimated Total Effort
+
 - **Critical**: 7-10 hours
 - **High**: 7-9 hours
 - **Medium**: 3-4 hours
@@ -1415,6 +1447,7 @@ describe('AuthViewModel', () => {
 - **Total**: 19-26 hours
 
 ### Benefits of Refactoring
+
 1. **Testability**: All ViewModels can be unit tested with mock services
 2. **Maintainability**: Clear separation of concerns
 3. **Reusability**: Services can be shared across ViewModels

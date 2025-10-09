@@ -86,16 +86,15 @@ export async function POST({ request, cookies, locals }) {
 			// Step 1: Ensure default user exists in auth_users table
 			const userId = 'default';
 			const database = locals.services.database;
-			const existingUser = await database.get(
-				'SELECT user_id FROM auth_users WHERE user_id = ?',
-				[userId]
-			);
+			const existingUser = await database.get('SELECT user_id FROM auth_users WHERE user_id = ?', [
+				userId
+			]);
 
 			if (!existingUser) {
-				await database.run(
-					'INSERT INTO auth_users (user_id, created_at) VALUES (?, ?)',
-					[userId, Date.now()]
-				);
+				await database.run('INSERT INTO auth_users (user_id, created_at) VALUES (?, ?)', [
+					userId,
+					Date.now()
+				]);
 				logger.info('ONBOARDING_API', `Created default user: ${userId}`);
 			}
 

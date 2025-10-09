@@ -10,6 +10,7 @@
 ## 🚀 CLEANUP PROGRESS UPDATE (2025-01-09)
 
 ### ✅ CRITICAL Fixes - COMPLETED (50 minutes)
+
 - ✅ **JWTService.js removed** - Deleted deprecated JWT authentication file
 - ✅ **session.js removed** - Deleted deprecated session manager
 - ✅ **jsonwebtoken dependency removed** - Removed from package.json
@@ -18,6 +19,7 @@
 **Status**: All CRITICAL priority items complete. Ready for localStorage cleanup.
 
 ### 🚧 HIGH Priority - IN PROGRESS
+
 - 🚧 **localStorage auth removal** - 16 files identified, cleanup in progress
 - See: `/specs/009-cookie-auth-refactor/critical-fixes-progress.md` for details
 
@@ -27,13 +29,13 @@
 
 ## Validation Summary
 
-| Category | Count | Status |
-|----------|-------|--------|
-| **CRITICAL Issues** | 2 | ❌ Must fix before commit |
-| **HIGH Priority** | 7 | ⚠️ Should fix soon |
-| **MEDIUM Priority** | 12 | 📋 Fix when possible |
-| **LOW Priority** | 5 | 💡 Nice to have |
-| **Positive Findings** | 10 | ✅ Excellent work |
+| Category              | Count | Status                    |
+| --------------------- | ----- | ------------------------- |
+| **CRITICAL Issues**   | 2     | ❌ Must fix before commit |
+| **HIGH Priority**     | 7     | ⚠️ Should fix soon        |
+| **MEDIUM Priority**   | 12    | 📋 Fix when possible      |
+| **LOW Priority**      | 5     | 💡 Nice to have           |
+| **Positive Findings** | 10    | ✅ Excellent work         |
 
 ---
 
@@ -42,6 +44,7 @@
 The cookie-based authentication refactor is **architecturally sound and functionally complete**. The core implementation demonstrates excellent security practices and clean architectural patterns:
 
 ### ✅ Core Strengths
+
 - **SessionManager**: Clean API with automatic cleanup, 30-day rolling expiry, multi-tab support
 - **ApiKeyManager**: Proper bcrypt hashing (cost factor 12) with constant-time comparison
 - **CookieService**: Correct security attributes (httpOnly, secure, sameSite=lax)
@@ -50,11 +53,14 @@ The cookie-based authentication refactor is **architecturally sound and function
 - **Dual Authentication**: Seamless support for both cookies and API keys
 
 ### ⚠️ Critical Issues
+
 The implementation has **2 CRITICAL issues** that must be addressed before production:
+
 1. **Deprecated authentication files** (JWTService.js, session.js, oauth.js) still exist
 2. **localStorage usage** in 15+ client files undermines cookie-based security
 
 ### 📊 Overall Assessment
+
 **Production-ready after addressing CRITICAL and HIGH priority issues.** Estimated effort to reach production quality: **5.5 hours** (HIGH priority cleanup).
 
 ---
@@ -64,6 +70,7 @@ The implementation has **2 CRITICAL issues** that must be addressed before produ
 ### ❌ CRITICAL - Deprecated Authentication Files
 
 #### 1.1 - Remove JWTService.js
+
 **File**: `src/lib/server/auth/JWTService.js` (58 lines)
 **Priority**: CRITICAL
 **Effort**: 15 minutes
@@ -71,17 +78,20 @@ The implementation has **2 CRITICAL issues** that must be addressed before produ
 **Reason**: JWT-based authentication replaced by cookie-based sessions via `SessionManager`
 
 **Impact**:
+
 - JWT dependency (jsonwebtoken) still in package.json
 - Confusion about which auth system is active
 - Security risk if old code paths are accidentally used
 
 **Recommended Fix**:
+
 ```bash
 rm src/lib/server/auth/JWTService.js
 npm uninstall jsonwebtoken
 ```
 
 **Verification**:
+
 ```bash
 # Search for any remaining JWTService imports
 grep -r "JWTService" src/
@@ -91,6 +101,7 @@ grep -r "import.*jsonwebtoken" src/
 ---
 
 #### 1.2 - Remove AuthSessionManager (Legacy Session Handler)
+
 **File**: `src/lib/server/auth/session.js` (418 lines)
 **Priority**: CRITICAL
 **Effort**: 30 minutes
@@ -98,6 +109,7 @@ grep -r "import.*jsonwebtoken" src/
 **Reason**: Replaced by `SessionManager.server.js` with cleaner API
 
 **Current Code** (session.js lines 28-42):
+
 ```javascript
 export class AuthSessionManager {
 	constructor(dbManager = null) {
@@ -123,6 +135,7 @@ export class AuthSessionManager {
 **Issue**: Old session management with different table schema (`terminal_key_hash` vs new schema)
 
 **Recommended Fix**:
+
 ```bash
 rm src/lib/server/auth/session.js
 # Search for any imports
@@ -135,6 +148,7 @@ grep -r "auth/session" src/
 ---
 
 #### 1.3 - Remove Legacy OAuth Multi-Auth System
+
 **File**: `src/lib/server/shared/auth/oauth.js` (771 lines)
 **Priority**: HIGH
 **Effort**: 1 hour
@@ -142,12 +156,14 @@ grep -r "auth/session" src/
 **Reason**: Replaced by simpler `OAuth.server.js` with `OAuthManager`
 
 **Classes to Remove**:
+
 - `AuthProvider` (base class)
 - `GitHubAuthProvider` (320 lines)
 - `DevicePairingProvider` (197 lines)
 - `MultiAuthManager` (300 lines)
 
 **Current Code** (oauth.js excerpt):
+
 ```javascript
 export class MultiAuthManager {
 	constructor(database) {
@@ -167,6 +183,7 @@ export class MultiAuthManager {
 **Issue**: Overly complex multi-auth architecture not needed for current requirements
 
 **Recommended Fix**:
+
 ```bash
 rm src/lib/server/shared/auth/oauth.js
 # Search for imports
@@ -176,6 +193,7 @@ grep -r "MultiAuthManager\|GitHubAuthProvider\|DevicePairingProvider" src/
 ---
 
 #### 1.4 - Clean Up Auth Socket Handlers
+
 **File**: `src/lib/server/socket/handlers/authHandlers.js` (85 lines)
 **Priority**: HIGH
 **Effort**: 15 minutes
@@ -183,6 +201,7 @@ grep -r "MultiAuthManager\|GitHubAuthProvider\|DevicePairingProvider" src/
 **Reason**: JWT-based token validation functions (`validateToken`, `refreshToken`) no longer used
 
 **Current Code** (authHandlers.js lines 43-83):
+
 ```javascript
 async validateToken(socket, data, callback) {
 	try {
@@ -206,6 +225,7 @@ async refreshToken(socket, data, callback) {
 ```
 
 **Recommended Fix**:
+
 ```javascript
 // Only keep the hello() handler if needed, remove:
 // - validateToken()
@@ -220,6 +240,7 @@ async refreshToken(socket, data, callback) {
 **Issue**: Multiple client files store authentication tokens in localStorage, bypassing cookie security model.
 
 **Security Impact**:
+
 - Tokens accessible via JavaScript (XSS vulnerability)
 - No httpOnly protection
 - Defeats purpose of cookie-based authentication
@@ -228,12 +249,14 @@ async refreshToken(socket, data, callback) {
 ---
 
 #### 1.5 - Remove localStorage from OAuth Callback
+
 **File**: `src/routes/auth/callback/+page.svelte`
 **Lines**: 48-58
 **Priority**: HIGH
 **Effort**: 10 minutes
 
 **Current Code**:
+
 ```javascript
 // Phase 4: Store authentication data using new unified key
 if (result.session) {
@@ -253,12 +276,14 @@ if (result.session) {
 ```
 
 **Why This Is Wrong**:
+
 - Session cookie is already set by server via `CookieService` in `/api/auth/callback`
 - Client shouldn't store session ID (defeats cookie security)
 - Creates redundant auth state
 - localStorage is accessible to JavaScript (XSS risk)
 
 **Recommended Fix**:
+
 ```javascript
 // Remove ALL localStorage.setItem calls
 // Cookie is already set by server, client shouldn't store session ID
@@ -269,7 +294,9 @@ await goto('/', { replaceState: true });
 ---
 
 #### 1.6 - Remove localStorage from Onboarding Components
+
 **Files**:
+
 - `src/lib/client/onboarding/AuthenticationStep.svelte` (line 50)
 - `src/lib/client/onboarding/OnboardingFlow.svelte` (lines 5, 15, 64)
 
@@ -277,6 +304,7 @@ await goto('/', { replaceState: true });
 **Effort**: 45 minutes (30min + 15min)
 
 **Current Code** (AuthenticationStep.svelte:50):
+
 ```javascript
 if (result.success) {
 	localStorage.setItem('dispatch-auth-token', terminalKey);
@@ -286,11 +314,13 @@ if (result.success) {
 ```
 
 **Why This Is Wrong**:
+
 - Should use server-side form action to establish cookie session
 - Direct localStorage bypass cookie security
 - No server-side session creation
 
 **Recommended Fix**:
+
 ```javascript
 // Instead of direct localStorage, use proper login flow:
 
@@ -319,7 +349,9 @@ async function handleAuthenticate() {
 ---
 
 #### 1.7 - Update Client-Side API Helpers to Use Cookies
+
 **Files** (8 files affected):
+
 - `src/lib/shared/api-helpers.js` (lines 23, 166, 176)
 - `src/lib/client/shared/services/SessionApiClient.js` (lines 58, 916-917)
 - `src/lib/client/shared/services/ThemeService.js` (lines 47, 143, 375)
@@ -333,6 +365,7 @@ async function handleAuthenticate() {
 **Effort**: 2 hours
 
 **Current Pattern** (api-helpers.js:23):
+
 ```javascript
 export function getAuthHeaders() {
 	const token = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
@@ -346,11 +379,13 @@ export function getAuthHeaders() {
 ```
 
 **Why This Is Wrong**:
+
 - API requests should rely on cookies (sent automatically)
 - No need to manually add Authorization header for cookie-based auth
 - Only programmatic API key access should use Authorization header
 
 **Recommended Fix**:
+
 ```javascript
 // BEFORE (token-based):
 const response = await fetch('/api/workspaces', {
@@ -375,6 +410,7 @@ if (apiKey) {
 ```
 
 **Migration Strategy**:
+
 1. Update `api-helpers.js` to check if cookie authentication is available
 2. Fall back to API key from localStorage only for programmatic access
 3. Add `credentials: 'include'` to all fetch calls
@@ -387,12 +423,14 @@ if (apiKey) {
 ### 🔒 MEDIUM - Cookie Attributes Missing sameSite in Socket.IO
 
 #### 2.1 - Verify Socket.IO Cookie Handling
+
 **File**: `src/lib/server/shared/socket-setup.js`
 **Lines**: 52-66 (parseCookies function)
 **Priority**: MEDIUM
 **Effort**: 30 minutes
 
 **Current Implementation**:
+
 ```javascript
 function parseCookies(cookieHeader) {
 	if (!cookieHeader) return {};
@@ -411,10 +449,12 @@ function parseCookies(cookieHeader) {
 **Issue**: No validation of cookie attributes (httpOnly, secure, sameSite)
 
 **Security Risk**:
+
 - Could accept cookies without proper security attributes
 - No verification that cookie came from secure context
 
 **Recommended Fix**:
+
 ```javascript
 function parseCookies(cookieHeader) {
 	if (!cookieHeader) return {};
@@ -438,12 +478,14 @@ function parseCookies(cookieHeader) {
 ### 🔒 MEDIUM - OAuth State Token Storage
 
 #### 2.2 - Persist OAuth State Tokens
+
 **File**: `src/lib/server/auth/OAuth.server.js`
 **Line**: 23
 **Priority**: MEDIUM
 **Effort**: 1 hour
 
 **Current Code**:
+
 ```javascript
 export class OAuthManager {
 	constructor(db, settingsManager) {
@@ -458,6 +500,7 @@ export class OAuthManager {
 **Issue**: State tokens stored in-memory Map will be lost on server restart
 
 **Security Risk**:
+
 - OAuth flow fails after server restart (poor UX)
 - State tokens lost during deployment/restart
 - Can't validate OAuth callback if server restarted mid-flow
@@ -465,6 +508,7 @@ export class OAuthManager {
 **Recommended Fix**:
 
 **Option 1: Store in database with cleanup**:
+
 ```sql
 CREATE TABLE oauth_state_tokens (
 	state TEXT PRIMARY KEY,
@@ -534,12 +578,14 @@ async cleanupExpiredStateTokens() {
 ### 🔒 MEDIUM - OAuth Client Secret Encryption
 
 #### 2.3 - Encrypt OAuth Client Secrets
+
 **File**: `src/lib/server/auth/OAuth.server.js`
 **Line**: 181 (TODO comment)
 **Priority**: MEDIUM
 **Effort**: 2 hours
 
 **Current Code**:
+
 ```javascript
 providers[provider] = {
 	enabled: true,
@@ -551,11 +597,13 @@ providers[provider] = {
 ```
 
 **Security Risk**:
+
 - OAuth client secrets stored in plaintext in settings database
 - Database dump exposes secrets
 - Settings API responses include plaintext secrets
 
 **Recommended Fix**:
+
 ```javascript
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
@@ -570,14 +618,14 @@ function encryptSecret(plaintext) {
 	const key = Buffer.from(ENCRYPTION_KEY, 'base64');
 	const iv = randomBytes(16);
 	const cipher = createCipheriv('aes-256-gcm', key, iv);
-	
+
 	const encrypted = Buffer.concat([
 		cipher.update(plaintext, 'utf8'),
 		cipher.final()
 	]);
-	
+
 	const authTag = cipher.getAuthTag();
-	
+
 	// Format: iv (16 bytes) + authTag (16 bytes) + encrypted data
 	return Buffer.concat([iv, authTag, encrypted]).toString('base64');
 }
@@ -585,21 +633,21 @@ function encryptSecret(plaintext) {
 function decryptSecret(ciphertext) {
 	const key = Buffer.from(ENCRYPTION_KEY, 'base64');
 	const buffer = Buffer.from(ciphertext, 'base64');
-	
+
 	const iv = buffer.slice(0, 16);
 	const authTag = buffer.slice(16, 32);
 	const encrypted = buffer.slice(32);
-	
+
 	const decipher = createDecipheriv('aes-256-gcm', key, iv);
 	decipher.setAuthTag(authTag);
-	
+
 	return decipher.update(encrypted) + decipher.final('utf8');
 }
 
 // Usage in OAuthManager:
 async enableProvider(provider, clientId, clientSecret, redirectUri = null) {
 	const encryptedSecret = encryptSecret(clientSecret);
-	
+
 	providers[provider] = {
 		enabled: true,
 		clientId,
@@ -607,15 +655,15 @@ async enableProvider(provider, clientId, clientSecret, redirectUri = null) {
 		redirectUri: redirectUri || this.getDefaultRedirectUri(provider),
 		updatedAt: Date.now()
 	};
-	
+
 	await this.settingsManager.updateSettings('oauth', { providers });
 }
 
 async getProvider(provider) {
 	const config = settings?.providers?.[provider];
-	
+
 	if (!config) return null;
-	
+
 	return {
 		name: provider,
 		enabled: config.enabled || false,
@@ -628,6 +676,7 @@ async getProvider(provider) {
 ```
 
 **.env Configuration**:
+
 ```bash
 # Generate encryption key (once):
 # node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
@@ -639,12 +688,14 @@ OAUTH_ENCRYPTION_KEY=<base64-encoded-32-byte-key>
 ### 💡 LOW - API Key Verification Performance
 
 #### 2.4 - Optimize API Key Lookup
+
 **File**: `src/lib/server/auth/ApiKeyManager.server.js`
 **Lines**: 84-88
 **Priority**: LOW
 **Effort**: 4 hours
 
 **Current Code**:
+
 ```javascript
 async verify(key) {
 	if (!key || typeof key !== 'string') {
@@ -679,6 +730,7 @@ async verify(key) {
 **Issue**: O(n) bcrypt comparisons for n active keys (~100-150ms per comparison)
 
 **Performance Impact**:
+
 - 1 key: ~100ms
 - 10 keys: ~1000ms (1 second)
 - 100 keys: ~10 seconds (unacceptable)
@@ -686,22 +738,23 @@ async verify(key) {
 **Recommended Fix**:
 
 **Option 1: Add key prefix to identify key before bcrypt** (simplest):
+
 ```javascript
 // When generating key:
 async generateKey(userId, label) {
 	const keyId = randomBytes(4).toString('hex'); // 8 characters
 	const keySecret = randomBytes(28).toString('base64url'); // 37 characters
 	const plainKey = `dsp_${keyId}_${keySecret}`; // Total: ~50 characters
-	
+
 	// Store keyId in database for quick lookup
 	const keyHash = await bcrypt.hash(plainKey, this.BCRYPT_COST_FACTOR);
-	
+
 	await this.db.run(
 		`INSERT INTO auth_api_keys (id, user_id, key_prefix, key_hash, label, created_at, last_used_at, disabled)
 		 VALUES (?, ?, ?, ?, ?, ?, NULL, 0)`,
 		[randomUUID(), userId, keyId, keyHash, label.trim(), Date.now()]
 	);
-	
+
 	return { id, key: plainKey, label: label.trim() };
 }
 
@@ -712,9 +765,9 @@ async verify(key) {
 	if (parts.length !== 3 || parts[0] !== 'dsp') {
 		return null;
 	}
-	
+
 	const keyPrefix = parts[1];
-	
+
 	// Query only keys with matching prefix (usually 1)
 	const keys = await this.db.all(
 		`SELECT id, user_id, key_hash, label, created_at, last_used_at
@@ -722,7 +775,7 @@ async verify(key) {
 		 WHERE key_prefix = ? AND disabled = 0`,
 		[keyPrefix]
 	);
-	
+
 	// Now only 1-2 bcrypt comparisons instead of 100
 	for (const storedKey of keys) {
 		const match = await bcrypt.compare(key, storedKey.key_hash);
@@ -730,12 +783,13 @@ async verify(key) {
 			return { /* metadata */ };
 		}
 	}
-	
+
 	return null;
 }
 ```
 
 **Option 2: Use key derivation to create searchable hash**:
+
 ```javascript
 // Create SHA-256 hash for quick lookup (not for authentication)
 const searchHash = createHash('sha256').update(plainKey).digest('hex');
@@ -749,15 +803,15 @@ await this.db.run(
 // Verify:
 async verify(key) {
 	const searchHash = createHash('sha256').update(key).digest('hex');
-	
+
 	// Find key by search hash (O(1) with index)
 	const storedKey = await this.db.get(
 		`SELECT * FROM auth_api_keys WHERE search_hash = ? AND disabled = 0`,
 		[searchHash]
 	);
-	
+
 	if (!storedKey) return null;
-	
+
 	// Verify with bcrypt (only 1 comparison)
 	const match = await bcrypt.compare(key, storedKey.key_hash);
 	return match ? { /* metadata */ } : null;
@@ -775,12 +829,14 @@ async verify(key) {
 ### ⚠️ HIGH - Missing Form Action for Onboarding
 
 #### 3.1 - Add Form Actions to Onboarding
+
 **File**: `src/lib/client/onboarding/AuthenticationStep.svelte`
 **Lines**: 40-45
 **Priority**: HIGH
 **Effort**: 1 hour
 
 **Current Code**:
+
 ```javascript
 async function handleAuthenticate() {
 	if (!terminalKey.trim()) {
@@ -819,6 +875,7 @@ async function handleAuthenticate() {
 **Issue**: Should use SvelteKit form action like `/login/+page.server.js` for CSRF protection
 
 **Security Risk**:
+
 - No CSRF token validation
 - Bypasses SvelteKit's built-in security
 - Direct API calls instead of form actions
@@ -826,6 +883,7 @@ async function handleAuthenticate() {
 **Recommended Fix**:
 
 Create `src/routes/onboarding/+page.server.js`:
+
 ```javascript
 import { fail, redirect } from '@sveltejs/kit';
 import { CookieService } from '$lib/server/auth/CookieService.server.js';
@@ -843,17 +901,16 @@ export const actions = {
 		// Validate key using ApiKeyManager
 		const services = locals.services;
 		const keyData = await services.apiKeyManager.verify(key);
-		
+
 		if (!keyData) {
 			return fail(401, { error: 'Invalid API key' });
 		}
 
 		// Create session
-		const session = await services.sessionManager.createSession(
-			keyData.userId,
-			'api_key',
-			{ apiKeyId: keyData.id, label: keyData.label }
-		);
+		const session = await services.sessionManager.createSession(keyData.userId, 'api_key', {
+			apiKeyId: keyData.id,
+			label: keyData.label
+		});
 
 		// Set cookie
 		CookieService.setSessionCookie(cookies, session.sessionId);
@@ -865,6 +922,7 @@ export const actions = {
 ```
 
 Update `AuthenticationStep.svelte`:
+
 ```svelte
 <script>
 	import { enhance } from '$app/forms';
@@ -928,6 +986,7 @@ Update `AuthenticationStep.svelte`:
 ### 📋 MEDIUM - Redirect Pattern Inconsistency
 
 #### 3.2 - Standardize Redirect Pattern
+
 **Files**: Various client components
 **Priority**: MEDIUM
 **Effort**: 30 minutes
@@ -935,6 +994,7 @@ Update `AuthenticationStep.svelte`:
 **Issue**: Some routes use `goto()` instead of `throw redirect()` for server-side redirects
 
 **Current Code**:
+
 ```javascript
 // In +page.svelte (client-side):
 await goto('/');
@@ -944,22 +1004,24 @@ throw redirect(303, '/');
 ```
 
 **Why This Matters**:
+
 - `goto()` is client-side navigation only
 - Server-side redirects need `throw redirect()` with status code
 - Status code 303 ensures proper POST → GET redirect (prevents form resubmission)
 
 **Recommended Fix**:
+
 ```javascript
 // In +page.server.js (server-side):
 export const actions = {
 	login: async ({ request, cookies }) => {
 		// ... authentication logic
-		
+
 		if (authenticated) {
 			// Server-side redirect with 303 status
 			throw redirect(303, '/');
 		}
-		
+
 		return fail(401, { error: 'Invalid credentials' });
 	}
 };
@@ -967,7 +1029,7 @@ export const actions = {
 // In +page.svelte (client-side):
 <script>
 	import { goto } from '$app/navigation';
-	
+
 	// Client-side navigation (after user action)
 	async function navigateToSettings() {
 		await goto('/settings');
@@ -980,6 +1042,7 @@ export const actions = {
 ### 💡 LOW - Missing Error Handling in Form Actions
 
 #### 3.3 - Add Form Validation
+
 **File**: `src/routes/login/+page.server.js`
 **Priority**: LOW
 **Effort**: 30 minutes
@@ -987,6 +1050,7 @@ export const actions = {
 **Issue**: Login form action doesn't validate input before processing
 
 **Recommended Fix**:
+
 ```javascript
 import { fail, redirect } from '@sveltejs/kit';
 import { CookieService } from '$lib/server/auth/CookieService.server.js';
@@ -998,14 +1062,14 @@ export const actions = {
 
 		// Input validation
 		if (!key || key.length === 0) {
-			return fail(400, { 
+			return fail(400, {
 				error: 'API key is required',
 				field: 'key'
 			});
 		}
-		
+
 		if (key.length > 256) {
-			return fail(400, { 
+			return fail(400, {
 				error: 'Invalid API key format',
 				field: 'key'
 			});
@@ -1013,7 +1077,7 @@ export const actions = {
 
 		// Check for suspicious patterns
 		if (key.includes('<') || key.includes('>')) {
-			return fail(400, { 
+			return fail(400, {
 				error: 'Invalid characters in API key',
 				field: 'key'
 			});
@@ -1024,18 +1088,17 @@ export const actions = {
 		const keyData = await services.apiKeyManager.verify(key);
 
 		if (!keyData) {
-			return fail(401, { 
+			return fail(401, {
 				error: 'Invalid API key',
 				field: 'key'
 			});
 		}
 
 		// Create session and set cookie
-		const session = await services.sessionManager.createSession(
-			keyData.userId,
-			'api_key',
-			{ apiKeyId: keyData.id, label: keyData.label }
-		);
+		const session = await services.sessionManager.createSession(keyData.userId, 'api_key', {
+			apiKeyId: keyData.id,
+			label: keyData.label
+		});
 
 		CookieService.setSessionCookie(cookies, session.sessionId);
 
@@ -1053,16 +1116,19 @@ export const actions = {
 ### 📋 MEDIUM - Inconsistent Error Handling
 
 #### 4.1 - Standardize Error Responses
+
 **Files**: `SessionManager.server.js`, `ApiKeyManager.server.js`, `OAuth.server.js`
 **Priority**: MEDIUM
 **Effort**: 1 hour
 
 **Current Behavior**:
+
 - `SessionManager.validateSession()` returns `null` on error
 - `OAuthManager.handleCallback()` throws errors
 - `ApiKeyManager.verify()` returns `null` on error
 
 **Why This Is Inconsistent**:
+
 - Callers need to handle both null returns and try-catch
 - Error messages lost when returning null
 - Different patterns for similar operations
@@ -1070,6 +1136,7 @@ export const actions = {
 **Recommended Fix**:
 
 **Option 1: Always return `{ success, data, error }` (verbose but explicit)**:
+
 ```javascript
 async validateSession(sessionId) {
 	try {
@@ -1078,7 +1145,7 @@ async validateSession(sessionId) {
 		}
 
 		const session = await this.db.get(/* ... */);
-		
+
 		if (!session) {
 			return { success: false, data: null, error: 'Session not found' };
 		}
@@ -1087,14 +1154,14 @@ async validateSession(sessionId) {
 			return { success: false, data: null, error: 'Session expired' };
 		}
 
-		return { 
-			success: true, 
+		return {
+			success: true,
 			data: {
 				session: { /* ... */ },
 				user: { /* ... */ },
 				needsRefresh: timeUntilExpiry < this.REFRESH_WINDOW
 			},
-			error: null 
+			error: null
 		};
 	} catch (err) {
 		return { success: false, data: null, error: err.message };
@@ -1111,13 +1178,14 @@ const { session, user } = result.data;
 ```
 
 **Option 2: Keep current pattern but document it** (simpler, actually cleaner):
+
 ```javascript
 /**
  * Validate a session
- * 
+ *
  * @param {string} sessionId - Session ID from cookie
  * @returns {Promise<Object|null>} Session data if valid, null if invalid/expired
- * 
+ *
  * @example
  * const sessionData = await sessionManager.validateSession(sessionId);
  * if (!sessionData) {
@@ -1139,6 +1207,7 @@ async validateSession(sessionId) {
 ### 📋 MEDIUM - Logging Inconsistency
 
 #### 4.2 - Standardize Logging Levels
+
 **Files**: All authentication modules
 **Priority**: MEDIUM
 **Effort**: 30 minutes
@@ -1146,6 +1215,7 @@ async validateSession(sessionId) {
 **Current Pattern**: Mixed INFO/DEBUG/WARN levels without clear criteria
 
 **Recommended Logging Standard**:
+
 ```javascript
 // Authentication Events:
 logger.info()  - Session created, key validated, OAuth success
@@ -1161,6 +1231,7 @@ logger.error('AUTH', 'Failed to create session:', error);
 ```
 
 **Implementation**:
+
 ```javascript
 // SessionManager.server.js
 async createSession(userId, provider, sessionInfo = {}) {
@@ -1203,11 +1274,13 @@ async validateSession(sessionId) {
 ### 💡 LOW - Magic Numbers in Cookie/Session Configuration
 
 #### 4.3 - Centralize Auth Configuration
+
 **Files**: `SessionManager.server.js`, `CookieService.server.js`, `OAuth.server.js`
 **Priority**: LOW
 **Effort**: 30 minutes
 
 **Current Code**:
+
 - `SessionManager`: 30 days, 24 hour refresh (lines 19-21)
 - `CookieService`: 30 days maxAge (line 14)
 - `OAuth`: 10 minute state expiry (line 95)
@@ -1217,10 +1290,11 @@ async validateSession(sessionId) {
 **Recommended Fix**:
 
 Create `src/lib/server/auth/config.js`:
+
 ```javascript
 /**
  * Authentication Configuration Constants
- * 
+ *
  * Centralized configuration for authentication system.
  * Modify these values to adjust session behavior across the application.
  */
@@ -1240,7 +1314,7 @@ export const AUTH_CONFIG = {
 
 	// API Key Configuration
 	BCRYPT_COST_FACTOR: 12, // bcrypt cost factor (higher = more secure, slower)
-	API_KEY_BYTES: 32, // 256 bits for API key generation
+	API_KEY_BYTES: 32 // 256 bits for API key generation
 };
 
 // Validation
@@ -1254,6 +1328,7 @@ if (AUTH_CONFIG.BCRYPT_COST_FACTOR < 10 || AUTH_CONFIG.BCRYPT_COST_FACTOR > 14) 
 ```
 
 Usage:
+
 ```javascript
 // SessionManager.server.js
 import { AUTH_CONFIG } from './config.js';
@@ -1301,6 +1376,7 @@ export class ApiKeyManager {
 ### ⚠️ HIGH - No Session Cleanup on Logout
 
 #### 5.1 - Implement Proper Logout Flow
+
 **File**: `src/routes/api/auth/logout/+server.js`
 **Priority**: HIGH
 **Effort**: 15 minutes
@@ -1310,11 +1386,13 @@ export class ApiKeyManager {
 **Issue**: Session remains valid in database until expiry
 
 **Security Risk**:
+
 - Stolen session ID could be reused after logout
 - Database accumulates zombie sessions
 - No audit trail of logout events
 
 **Current Code**:
+
 ```javascript
 export async function POST({ cookies }) {
 	CookieService.deleteSessionCookie(cookies);
@@ -1323,6 +1401,7 @@ export async function POST({ cookies }) {
 ```
 
 **Recommended Fix**:
+
 ```javascript
 import { json } from '@sveltejs/kit';
 import { CookieService } from '$lib/server/auth/CookieService.server.js';
@@ -1334,7 +1413,7 @@ export async function POST({ cookies, locals }) {
 		// Invalidate session in database
 		const services = locals.services;
 		await services.sessionManager.invalidateSession(sessionId);
-		
+
 		logger.info('AUTH', `User logged out: session ${sessionId}`);
 	}
 
@@ -1350,6 +1429,7 @@ export async function POST({ cookies, locals }) {
 ### 📋 MEDIUM - No API Key Rotation Support
 
 #### 5.2 - Add API Key Rotation
+
 **File**: `src/routes/api/auth/keys/[keyId]/+server.js`
 **Priority**: MEDIUM
 **Effort**: 1 hour
@@ -1359,6 +1439,7 @@ export async function POST({ cookies, locals }) {
 **Use Case**: Rotate compromised keys and issue replacements
 
 **Recommended Fix**:
+
 ```javascript
 // Add rotation action to existing endpoint
 export async function POST({ params, locals, request }) {
@@ -1377,10 +1458,10 @@ export async function POST({ params, locals, request }) {
 		}
 
 		// Generate new key with same label
-		const oldKey = await services.apiKeyManager.listKeys(userId).then(keys => 
-			keys.find(k => k.id === keyId)
-		);
-		
+		const oldKey = await services.apiKeyManager
+			.listKeys(userId)
+			.then((keys) => keys.find((k) => k.id === keyId));
+
 		const newKey = await services.apiKeyManager.generateKey(
 			userId,
 			oldKey?.label ? `${oldKey.label} (rotated)` : 'Rotated key'
@@ -1400,6 +1481,7 @@ export async function POST({ params, locals, request }) {
 ```
 
 **Client Usage**:
+
 ```javascript
 // In ApiKeyManager.svelte or ApiKeyState.svelte.js
 async rotateKey(keyId) {
@@ -1424,6 +1506,7 @@ async rotateKey(keyId) {
 ### 📋 MEDIUM - No OAuth Token Refresh
 
 #### 5.3 - Store OAuth Tokens for API Access
+
 **File**: `src/lib/server/auth/OAuth.server.js`
 **Priority**: MEDIUM
 **Effort**: 2 hours
@@ -1435,6 +1518,7 @@ async rotateKey(keyId) {
 **Recommended Fix**:
 
 **Database Schema Update**:
+
 ```sql
 -- Add columns to auth_users table for OAuth token storage
 ALTER TABLE auth_users ADD COLUMN oauth_provider TEXT;
@@ -1461,6 +1545,7 @@ CREATE INDEX idx_oauth_tokens_expires ON oauth_tokens(expires_at);
 ```
 
 **Updated OAuth Handler**:
+
 ```javascript
 async handleCallback(code, state, provider) {
 	// Verify state token
@@ -1503,12 +1588,12 @@ async storeOAuthTokens(userId, provider, tokens) {
 
 	// Encrypt tokens before storage
 	const encryptedAccessToken = encryptSecret(tokens.accessToken);
-	const encryptedRefreshToken = tokens.refreshToken 
-		? encryptSecret(tokens.refreshToken) 
+	const encryptedRefreshToken = tokens.refreshToken
+		? encryptSecret(tokens.refreshToken)
 		: null;
 
 	await this.db.run(
-		`INSERT OR REPLACE INTO oauth_tokens 
+		`INSERT OR REPLACE INTO oauth_tokens
 		 (user_id, provider, access_token, refresh_token, expires_at, scope, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		[
@@ -1566,7 +1651,7 @@ async getAccessToken(userId, provider) {
  */
 async refreshAccessToken(userId, provider, refreshToken) {
 	const config = await this.getProvider(provider);
-	
+
 	const tokenEndpoint = this.getTokenEndpoint(provider);
 	const params = new URLSearchParams({
 		grant_type: 'refresh_token',
@@ -1603,6 +1688,7 @@ async refreshAccessToken(userId, provider, refreshToken) {
 ```
 
 **Usage Example**:
+
 ```javascript
 // In API route that needs to access GitHub API
 export async function GET({ locals }) {
@@ -1634,11 +1720,13 @@ export async function GET({ locals }) {
 ### 💡 LOW - No User Management UI
 
 #### 5.4 - Create Admin Dashboard
+
 **Missing Routes**: `/admin/users`, `/admin/sessions`, `/admin/keys`
 **Priority**: LOW
 **Effort**: 8 hours
 
 **Recommended Features**:
+
 - View all users
 - View active sessions per user
 - Revoke sessions
@@ -1646,25 +1734,29 @@ export async function GET({ locals }) {
 - Authentication statistics dashboard
 
 **Implementation Outline**:
+
 ```javascript
 // src/routes/admin/users/+page.server.js
 export async function load({ locals }) {
 	const services = locals.services;
-	
+
 	// Get all users
 	const users = await services.db.all('SELECT * FROM auth_users ORDER BY created_at DESC');
-	
+
 	// Get session counts per user
-	const sessionCounts = await services.db.all(`
+	const sessionCounts = await services.db.all(
+		`
 		SELECT user_id, COUNT(*) as count
 		FROM auth_sessions
 		WHERE expires_at > ?
 		GROUP BY user_id
-	`, [Date.now()]);
-	
+	`,
+		[Date.now()]
+	);
+
 	return {
 		users,
-		sessionCounts: Object.fromEntries(sessionCounts.map(s => [s.user_id, s.count]))
+		sessionCounts: Object.fromEntries(sessionCounts.map((s) => [s.user_id, s.count]))
 	};
 }
 
@@ -1672,9 +1764,9 @@ export const actions = {
 	revokeSession: async ({ request, locals }) => {
 		const data = await request.formData();
 		const sessionId = data.get('sessionId');
-		
+
 		await locals.services.sessionManager.invalidateSession(sessionId);
-		
+
 		return { success: true };
 	}
 };
@@ -1685,10 +1777,12 @@ export const actions = {
 ### 💡 LOW - No Session Activity Tracking
 
 #### 5.5 - Add Authentication Audit Log
+
 **Priority**: LOW
 **Effort**: 2 hours
 
 **Recommended Schema**:
+
 ```sql
 CREATE TABLE auth_audit_log (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1709,6 +1803,7 @@ CREATE INDEX idx_audit_event_type ON auth_audit_log(event_type);
 ```
 
 **Implementation**:
+
 ```javascript
 // src/lib/server/auth/AuditLogger.js
 export class AuditLogger {
@@ -1768,11 +1863,12 @@ export class AuditLogger {
 ```
 
 **Usage**:
+
 ```javascript
 // In login handler
 try {
 	const session = await services.sessionManager.createSession(userId, 'api_key');
-	
+
 	// Log successful login
 	await services.auditLogger.log({
 		userId,
@@ -1782,7 +1878,7 @@ try {
 		userAgent: request.headers.get('user-agent'),
 		success: true
 	});
-	
+
 	return { success: true, session };
 } catch (err) {
 	// Log failed login
@@ -1793,7 +1889,7 @@ try {
 		success: false,
 		errorMessage: err.message
 	});
-	
+
 	return { success: false, error: err.message };
 }
 ```
@@ -1805,6 +1901,7 @@ try {
 ### ⚠️ HIGH - Socket.IO Client Still Uses localStorage
 
 #### 6.1 - Update Socket Auth Client
+
 **File**: `src/lib/client/shared/socket-auth.js`
 **Priority**: HIGH
 **Effort**: 1 hour
@@ -1812,6 +1909,7 @@ try {
 **Issue**: Socket.IO client-side auth helper reads from localStorage instead of relying on cookies
 
 **Current Pattern**:
+
 ```javascript
 // Client passes sessionId/apiKey explicitly
 socket.emit('client:hello', { sessionId, apiKey }, (response) => {
@@ -1820,10 +1918,12 @@ socket.emit('client:hello', { sessionId, apiKey }, (response) => {
 ```
 
 **Why This Is Wrong**:
+
 - Should rely on automatic cookie transmission via `withCredentials: true`
 - Manually passing sessionId from localStorage defeats cookie security
 
 **Recommended Fix**:
+
 ```javascript
 // createAuthenticatedSocket should NOT pass sessionId
 export async function createAuthenticatedSocket(options = {}, config = {}) {
@@ -1906,6 +2006,7 @@ export async function testAuthKey(key, config = {}) {
 ```
 
 **Server-Side Handling** (already implemented correctly in socket-setup.js:203-224):
+
 ```javascript
 // Strategy 3: Check for session cookie in handshake headers
 const cookieHeader = socket.handshake.headers.cookie;
@@ -1934,6 +2035,7 @@ if (cookieHeader) {
 ### 📋 MEDIUM - Socket.IO Session Validation Timer
 
 #### 6.2 - Fix Session Validation Timer Cleanup
+
 **File**: `src/lib/server/shared/socket-setup.js`
 **Lines**: 404-425
 **Priority**: MEDIUM
@@ -1942,6 +2044,7 @@ if (cookieHeader) {
 **Issue**: Timer set in connection handler, but reference might be lost if socket.data.session undefined
 
 **Current Code**:
+
 ```javascript
 io.on('connection', (socket) => {
 	logger.info('SOCKET', `Client connected: ${socket.id}`);
@@ -1968,6 +2071,7 @@ io.on('connection', (socket) => {
 **Issue**: `sessionValidationTimer` variable might not be accessible in disconnect handler
 
 **Recommended Fix**:
+
 ```javascript
 io.on('connection', (socket) => {
 	logger.info('SOCKET', `Client connected: ${socket.id}`);
@@ -1989,7 +2093,7 @@ io.on('connection', (socket) => {
 						message: 'Your session has expired. Please log in again.'
 					});
 					socket.disconnect(true);
-					
+
 					// Clear timer
 					if (socket.sessionValidationTimer) {
 						clearInterval(socket.sessionValidationTimer);
@@ -2019,6 +2123,7 @@ io.on('connection', (socket) => {
 ### 📋 MEDIUM - Missing Database Migration Execution
 
 #### 6.3 - Verify Migration Auto-Execution
+
 **File**: `src/lib/server/shared/services.js`
 **Priority**: MEDIUM
 **Effort**: 30 minutes
@@ -2030,6 +2135,7 @@ io.on('connection', (socket) => {
 **Verification Needed**: Ensure `migrationManager.migrate()` is called on startup
 
 **Check services.js for**:
+
 ```javascript
 // In initializeServices() or similar
 export async function initializeServices() {
@@ -2037,19 +2143,23 @@ export async function initializeServices() {
 
 	// Migration manager
 	const migrationManager = createMigrationManager(database);
-	
+
 	// ❓ Is migrate() called here?
 	await migrationManager.migrate(); // <-- Need to verify this line exists
 
 	// Log migration status
 	const status = await migrationManager.getStatus();
-	logger.info('MIGRATION', `Database at version ${status.currentVersion} (${status.appliedMigrations} applied, ${status.pendingMigrations} pending)`);
+	logger.info(
+		'MIGRATION',
+		`Database at version ${status.currentVersion} (${status.appliedMigrations} applied, ${status.pendingMigrations} pending)`
+	);
 
 	// ... continue initialization
 }
 ```
 
 **Recommended Fix** (if not already present):
+
 ```javascript
 export async function initializeServices() {
 	// Initialize database
@@ -2060,7 +2170,7 @@ export async function initializeServices() {
 	// Run migrations
 	const migrationManager = createMigrationManager(database);
 	const migrationResult = await migrationManager.migrate();
-	
+
 	if (migrationResult.applied.length > 0) {
 		logger.info('MIGRATION', `Applied ${migrationResult.applied.length} migration(s)`);
 	}
@@ -2068,7 +2178,7 @@ export async function initializeServices() {
 	// Verify migration status
 	const status = await migrationManager.getStatus();
 	logger.info('MIGRATION', `Database schema version: ${status.currentVersion}`);
-	
+
 	if (status.pendingMigrations > 0) {
 		logger.warn('MIGRATION', `${status.pendingMigrations} pending migration(s) remain`);
 	}
@@ -2089,12 +2199,14 @@ export async function initializeServices() {
 ### 💡 LOW - OAuth Callback URL Configuration
 
 #### 6.4 - Make OAuth Redirect URI Configurable
+
 **File**: `src/lib/server/auth/OAuth.server.js`
 **Line**: 336
 **Priority**: LOW
 **Effort**: 30 minutes
 
 **Current Code**:
+
 ```javascript
 getDefaultRedirectUri(provider) {
 	// In production, this should use the actual domain
@@ -2106,18 +2218,20 @@ getDefaultRedirectUri(provider) {
 **Issue**: Needs full URL with domain for OAuth providers (relative path won't work)
 
 **Recommended Fix**:
+
 ```javascript
 getDefaultRedirectUri(provider) {
 	// Get base URL from environment or derive from request
-	const baseUrl = process.env.PUBLIC_URL || 
-	                process.env.ORIGIN || 
+	const baseUrl = process.env.PUBLIC_URL ||
+	                process.env.ORIGIN ||
 	                'http://localhost:3030';
-	
+
 	return `${baseUrl}/api/auth/callback?provider=${provider}`;
 }
 ```
 
 **.env Configuration**:
+
 ```bash
 # Production
 PUBLIC_URL=https://dispatch.example.com
@@ -2130,13 +2244,14 @@ ORIGIN=https://dispatch.example.com
 ```
 
 **Alternative: Dynamic from Request**:
+
 ```javascript
 async initiateOAuth(provider, redirectUri = null, request = null) {
 	const config = await this.getProvider(provider);
 
 	// Generate redirect URI from request if available
 	if (!redirectUri && request) {
-		const protocol = request.headers.get('x-forwarded-proto') || 
+		const protocol = request.headers.get('x-forwarded-proto') ||
 		                 (request.url.startsWith('https') ? 'https' : 'http');
 		const host = request.headers.get('host') || 'localhost:3030';
 		redirectUri = `${protocol}://${host}/api/auth/callback?provider=${provider}`;
@@ -2144,7 +2259,7 @@ async initiateOAuth(provider, redirectUri = null, request = null) {
 
 	// Build authorization URL
 	const authUrl = this.buildAuthorizationUrl(provider, config, state, redirectUri);
-	
+
 	return { url: authUrl, state };
 }
 ```
@@ -2154,6 +2269,7 @@ async initiateOAuth(provider, redirectUri = null, request = null) {
 ## 7. Actionable TODO List
 
 ### ❌ CRITICAL (Must Fix Before Commit)
+
 **Estimated Effort**: 45 minutes
 
 1. ✅ Remove `src/lib/server/auth/JWTService.js` - **15min**
@@ -2163,6 +2279,7 @@ async initiateOAuth(provider, redirectUri = null, request = null) {
 ---
 
 ### ⚠️ HIGH PRIORITY (Should Fix Soon)
+
 **Estimated Effort**: 5.5 hours
 
 1. ✅ Remove `src/lib/server/shared/auth/oauth.js` - **1hr**
@@ -2179,6 +2296,7 @@ async initiateOAuth(provider, redirectUri = null, request = null) {
 ---
 
 ### 📋 MEDIUM PRIORITY (Fix When Possible)
+
 **Estimated Effort**: 15 hours
 
 1. ✅ Persist OAuth state tokens in database - **1hr**
@@ -2199,6 +2317,7 @@ async initiateOAuth(provider, redirectUri = null, request = null) {
 ---
 
 ### 💡 LOW PRIORITY (Nice to Have)
+
 **Estimated Effort**: 18 hours
 
 1. ✅ Optimize API key lookup performance - **4hrs**
@@ -2219,6 +2338,7 @@ async initiateOAuth(provider, redirectUri = null, request = null) {
 The cookie-based authentication refactor demonstrates **excellent architectural decisions**:
 
 ### ✅ Strong Foundation
+
 - **SessionManager**: Clean API with automatic cleanup, rolling expiry, multi-tab support
 - **ApiKeyManager**: Proper bcrypt hashing (cost factor 12) with constant-time comparison
 - **CookieService**: Correct security attributes (httpOnly, secure, sameSite=lax)
@@ -2226,6 +2346,7 @@ The cookie-based authentication refactor demonstrates **excellent architectural 
 - **Database Migration**: Well-structured migration system with up/down scripts
 
 ### ✅ Security Best Practices
+
 - ✅ bcrypt for API key hashing (cost factor 12)
 - ✅ httpOnly cookies preventing XSS
 - ✅ Secure cookies in production
@@ -2235,12 +2356,14 @@ The cookie-based authentication refactor demonstrates **excellent architectural 
 - ✅ Dual authentication (cookies OR API keys)
 
 ### ✅ SvelteKit Integration
+
 - ✅ Form actions for login with CSRF protection
 - ✅ Server-side authentication in hooks.server.js
 - ✅ Proper use of event.cookies API
 - ✅ Session data in locals.session
 
 ### ✅ Code Quality
+
 - ✅ Clear separation of concerns (SessionManager, ApiKeyManager, CookieService, OAuthManager)
 - ✅ Consistent logging with logger utility
 - ✅ Comprehensive error handling
@@ -2252,6 +2375,7 @@ The cookie-based authentication refactor demonstrates **excellent architectural 
 ## 9. Final Recommendations
 
 ### Immediate Actions (Next 1-2 Days)
+
 1. ✅ **Remove deprecated authentication code** (CRITICAL priority items) - **45min**
 2. ✅ **Fix localStorage usage** (HIGH priority items 2-5) - **2.5hrs**
 3. ✅ **Implement proper logout** (HIGH priority item 7) - **15min**
@@ -2262,6 +2386,7 @@ The cookie-based authentication refactor demonstrates **excellent architectural 
 ---
 
 ### Short-Term (Next Week)
+
 1. ✅ **Complete HIGH priority cleanup** (remaining items 1, 6, 8) - **3hrs**
 2. ✅ **Add integration tests** for cookie-based auth - **4hrs**
 3. ✅ **Document authentication system** for future maintainers - **2hrs**
@@ -2272,6 +2397,7 @@ The cookie-based authentication refactor demonstrates **excellent architectural 
 ---
 
 ### Long-Term (Next Month)
+
 1. ✅ **Implement MEDIUM priority features** (API key rotation, OAuth token refresh) - **8hrs**
 2. ✅ **Add admin dashboard** for user/session management - **8hrs**
 3. ✅ **Optimize performance** (API key lookup, database queries) - **4hrs**

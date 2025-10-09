@@ -107,7 +107,10 @@ export class OAuthManager {
 		// Build authorization URL based on provider
 		const authUrl = this.buildAuthorizationUrl(provider, config, state, redirectUri);
 
-		logger.info('OAUTH', `Initiated ${provider} OAuth flow with state: ${state.substring(0, 10)}...`);
+		logger.info(
+			'OAUTH',
+			`Initiated ${provider} OAuth flow with state: ${state.substring(0, 10)}...`
+		);
 
 		return {
 			url: authUrl,
@@ -183,7 +186,11 @@ export class OAuthManager {
 				updatedAt: Date.now()
 			};
 
-			await this.settingsManager.setByCategory('oauth', { providers }, 'OAuth provider configuration');
+			await this.settingsManager.setByCategory(
+				'oauth',
+				{ providers },
+				'OAuth provider configuration'
+			);
 
 			logger.info('OAUTH', `Enabled OAuth provider: ${provider}`);
 			return true;
@@ -207,7 +214,11 @@ export class OAuthManager {
 				providers[provider].enabled = false;
 				providers[provider].updatedAt = Date.now();
 
-				await this.settingsManager.setByCategory('oauth', { providers }, 'OAuth provider configuration');
+				await this.settingsManager.setByCategory(
+					'oauth',
+					{ providers },
+					'OAuth provider configuration'
+				);
 
 				logger.info('OAUTH', `Disabled OAuth provider: ${provider} (existing sessions preserved)`);
 				return true;

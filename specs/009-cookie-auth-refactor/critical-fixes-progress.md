@@ -12,6 +12,7 @@
 
 **Status**: COMPLETE
 **Files Modified**:
+
 - ✅ Deleted `/src/lib/server/auth/JWTService.js`
 - ✅ Removed import from `/src/lib/server/shared/services.js` (line 6)
 - ✅ Removed JWTService instantiation from services.js (line 100)
@@ -19,11 +20,13 @@
 - ✅ Removed JWTService from typedef (line 39)
 
 **Files Cleaned**:
+
 - ✅ `/src/lib/server/socket/handlers/authHandlers.js` - Removed `validateToken()` and `refreshToken()` handlers
   - Kept `hello()` handler for compatibility
   - Added documentation explaining JWT removal
 
 **Verification**:
+
 ```bash
 ✓ No remaining JWTService imports found
 ✓ File successfully deleted
@@ -36,10 +39,12 @@
 
 **Status**: COMPLETE
 **Files Modified**:
+
 - ✅ Deleted `/src/lib/server/auth/session.js`
 - ✅ No imports found (already replaced by SessionManager.server.js)
 
 **Verification**:
+
 ```bash
 ✓ No remaining AuthSessionManager imports found
 ✓ File successfully deleted
@@ -52,14 +57,17 @@
 
 **Status**: COMPLETE
 **Files Modified**:
+
 - ✅ Removed `"jsonwebtoken": "^9.0.2"` from package.json (line 78)
 
 **Next Step** (to be run by user):
+
 ```bash
 npm install  # Update package-lock.json and remove node_modules
 ```
 
 **Verification**:
+
 ```bash
 ✓ jsonwebtoken removed from package.json
 ⏳ Awaiting: npm install to update lock file
@@ -76,6 +84,7 @@ npm install  # Update package-lock.json and remove node_modules
 **Status**: COMPLETE (DELETED - was dead code)
 
 **Files Modified**:
+
 - ✅ Deleted `/src/routes/auth/callback/+page.svelte` (148 lines)
 - ✅ Removed `/auth/callback` from PUBLIC_ROUTES in `hooks.server.js`
 - ✅ Fixed `OAuthProviderModel.js` generateExampleRedirectUri() to use `/api/auth/callback`
@@ -91,9 +100,11 @@ OAuth providers redirect to `/api/auth/callback` (server endpoint), not `/auth/c
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/onboarding/AuthenticationStep.svelte` (line 50)
 
 **Changes**:
+
 - Removed `localStorage.setItem('dispatch-auth-token', terminalKey)`
 - Changed from `/api/auth/check` to `/login` form action
 - Added `credentials: 'include'` for cookie handling
@@ -109,15 +120,18 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE (after corruption recovery)
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/onboarding/OnboardingFlow.svelte`
 
 **Recovery Steps**:
+
 1. File was corrupted during initial edit attempt (lines 1-20 malformed)
 2. Corruption was committed to both current and main branches
 3. Restored clean version from commit `a757f45`
 4. Applied proper fixes to cleaned file
 
 **Changes**:
+
 - Removed `localStorage.setItem('dispatch-auth-key', viewModel.formData.terminalKey)` (line 50)
 - Updated comment to clarify session cookies are set server-side (lines 50-52)
 - Kept `localStorage.setItem('onboarding-complete', 'true')` (UI preference, not auth)
@@ -128,7 +142,7 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 ✅ File structure is clean and syntactically valid
 ✅ Server sets session cookie during onboarding submission
 ✅ No auth data stored client-side
-⚠️  Pre-existing TypeScript errors remain (EventTarget type issues, not related to auth changes)
+⚠️ Pre-existing TypeScript errors remain (EventTarget type issues, not related to auth changes)
 
 ---
 
@@ -139,9 +153,11 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/shared/services/SessionApiClient.js`
 
 **Changes**:
+
 - Removed `getAuthKey()` method (lines 913-921)
 - Simplified `getHeaders()` to remove Authorization header logic (lines 48-65 → 48-57)
 - Added `credentials: 'include'` to all fetch calls (12+ locations) using replace_all
@@ -159,9 +175,11 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/shared/services/ServiceContainer.svelte.js`
 
 **Changes**:
+
 - Removed localStorage auth key retrieval when creating SettingsService (lines 73-82)
 - Simplified SettingsService instantiation to pass only config object
 - No longer reads from localStorage for authentication
@@ -177,9 +195,11 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/shared/services/SettingsService.svelte.js`
 
 **Changes**:
+
 - Removed `getAuthKey()` method completely (lines 33-36)
 - Updated `makeRequest()` to remove Authorization header and add `credentials: 'include'` (lines 30-56)
 - Updated `isConfigured()` to return true (auth handled server-side via session cookies)
@@ -198,6 +218,7 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE - Build now succeeds!
 
 **Issues Fixed**:
+
 1. ✅ **OAuth.server.js** - Changed `$lib` imports to relative paths (lines 6, 8)
    - `from '$lib/server/shared/utils/logger.js'` → `from '../shared/utils/logger.js'`
    - `from '$lib/shared/auth-types.js'` → `from '../../shared/auth-types.js'`
@@ -218,6 +239,7 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
    - Removed `getStoredAuthToken()` calls from onMount (lines 144, 150)
 
 **Verification**:
+
 ```bash
 ✅ npm run build - SUCCESSFUL (built in 6.00s)
 ✅ All server-side code uses relative imports (no $lib during vite config loading)
@@ -226,11 +248,13 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 ```
 
 **Root Cause**:
+
 - Vite config loads hooks.server.js which imports services.js → OAuth.server.js
 - OAuth.server.js used `$lib` and `$app` aliases before they were available
 - SvelteKit alias resolution happens after vite config loads
 
 **Fix Strategy**:
+
 - Changed all server code to use relative imports (no aliases in server code)
 - Updated client code to use cookie-based auth (removed localStorage dependencies)
 - Updated Svelte 4 syntax (`export let`) to Svelte 5 ($props())
@@ -244,9 +268,11 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/terminal/TerminalPane.svelte`
 
 **Changes**:
+
 - Removed `localStorage.getItem('dispatch-auth-token')` from line 61
 - Changed TerminalPaneViewModel instantiation to pass `authKey: null`
 - Added comment explaining Socket.IO authenticates via session cookie
@@ -261,9 +287,11 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/terminal/MobileTerminalView.svelte`
 
 **Changes**:
+
 - Removed `let key = localStorage.getItem('dispatch-auth-token')` from line 27
 - Removed `runSessionClient.authenticate(key)` call (lines 289-292)
 - Added comment explaining Socket.IO authenticates via session cookie
@@ -278,9 +306,11 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/shared/components/workspace/WorkspacePage.svelte`
 
 **Changes**:
+
 - Removed entire authentication check block (lines 128-156)
 - Removed `getAuthHeaders` import (no longer needed)
 - Removed `authCheckInProgress` state variable
@@ -297,9 +327,11 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/shared/services/ThemeService.js`
 
 **Changes**:
+
 - Updated `getHeaders()` to remove localStorage auth token retrieval
 - Updated `uploadTheme()` to use `credentials: 'include'` instead of Authorization header
 - Removed `getAuthKey()` method (lines 373-378)
@@ -316,9 +348,11 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/shared/state/ThemeState.svelte.js`
 
 **Changes**:
+
 - Updated `getHeaders()` to remove localStorage auth token retrieval
 - Removed `getAuthKey()` method (lines 93-98)
 - Removed auth checks from 8 methods: `loadThemes()`, `loadActiveTheme()`, `uploadTheme()`, `activateTheme()`, `setWorkspaceTheme()`, `canDeleteTheme()`, `deleteTheme()`
@@ -334,6 +368,7 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 ### ✅ ALL localStorage AUTH REMOVED
 
 **Final Verification**:
+
 ```bash
 ✅ grep search for auth-related localStorage: 0 matches found in src/lib/client
 ✅ grep search for auth-related localStorage: 0 matches found in src/routes
@@ -341,6 +376,7 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 ```
 
 **Files with remaining localStorage usage** (non-auth purposes only):
+
 - Tunnels.svelte - UI preferences
 - RetentionSettings.svelte - UI preferences
 - Other files - Theme caching, UI state, etc.
@@ -348,6 +384,7 @@ Server sets session cookie automatically via `/login` endpoint. No client-side s
 These are intentional and do NOT store authentication data.
 
 ### localStorage Keys to Remove:
+
 - `dispatch-auth-token` - Main session token
 - `authSessionId` - Session identifier
 - `authUserId` - User identifier
@@ -355,18 +392,19 @@ These are intentional and do NOT store authentication data.
 - `authExpiresAt` - Session expiration
 
 ### Replacement Strategy:
+
 ```javascript
 // BEFORE (localStorage-based):
 const token = localStorage.getItem('dispatch-auth-token');
 const response = await fetch('/api/endpoint', {
-  headers: {
-    Authorization: `Bearer ${token}`
-  }
+	headers: {
+		Authorization: `Bearer ${token}`
+	}
 });
 
 // AFTER (cookie-based):
 const response = await fetch('/api/endpoint', {
-  credentials: 'include'  // Sends session cookie automatically
+	credentials: 'include' // Sends session cookie automatically
 });
 ```
 
@@ -381,26 +419,31 @@ const response = await fetch('/api/endpoint', {
 
 **Problem**:
 Onboarding flow was attempting to insert user record without a valid sessionId, causing foreign key constraint violation:
+
 ```
 FOREIGN KEY constraint failed: INSERT INTO users (auth_provider, sessionId, created_at)
 ```
 
 **Root Cause**:
+
 - `onboarding/+server.js` was trying to create user with `sessionId: data.sessionId` from form data
 - Form data only contained `terminalKey`, not a valid database sessionId
 - CookieService creates session but doesn't return sessionId in response
 - Onboarding needed to get sessionId from created session cookie
 
 **Files Modified**:
+
 - ✅ `/src/routes/onboarding/+server.js` (lines 84-107)
 
 **Fix Applied**:
+
 1. Removed invalid sessionId from user creation (line 92)
 2. Session cookie is created by CookieService during authentication
 3. User record references the session created by the cookie
 4. Form data no longer attempts to provide sessionId
 
 **Verification**:
+
 ```bash
 ✅ Onboarding completes without foreign key errors
 ✅ User record properly references session from cookie
@@ -416,32 +459,38 @@ FOREIGN KEY constraint failed: INSERT INTO users (auth_provider, sessionId, crea
 
 **Problem**:
 Runtime error when OAuth providers tried to call non-existent method:
+
 ```
 TypeError: oauthManager.getProviderNames is not a function
 ```
 
 **Root Cause**:
+
 - `/src/lib/server/auth/OAuth.server.js` exports `listProviders()` method
 - Calling code in `src/routes/api/auth/config/+server.js` calls `getProviderNames()`
 - Method name mismatch causing runtime crashes
 
 **Files Modified**:
+
 - ✅ `/src/routes/api/auth/config/+server.js` (line 28)
 
 **Fix Applied**:
 Changed method call from `getProviderNames()` to `listProviders()` to match actual API
 
 **Before**:
+
 ```javascript
 const providers = services.oauth.getProviderNames();
 ```
 
 **After**:
+
 ```javascript
 const providers = services.oauth.listProviders();
 ```
 
 **Verification**:
+
 ```bash
 ✅ OAuth config endpoint returns provider list without errors
 ✅ OAuth initiation flow works correctly
@@ -459,15 +508,18 @@ const providers = services.oauth.listProviders();
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/settings/sections/Tunnels.svelte`
 
 **Changes** (4 occurrences removed):
+
 1. `toggleLocalTunnel()` - Removed localStorage auth retrieval and explicit Socket.IO auth call (lines 78-113)
 2. `updateSubdomain()` - Removed localStorage auth retrieval and explicit Socket.IO auth call (lines 128-159)
 3. `startVSCodeTunnel()` - Removed localStorage auth retrieval and explicit Socket.IO auth call (lines 208-240)
 4. `stopVSCodeTunnel()` - Removed localStorage auth retrieval and explicit Socket.IO auth call (lines 242-269)
 
 **Pattern Applied**:
+
 - Removed `localStorage.getItem('dispatch-auth-token')`
 - Removed `socket.emit('auth', terminalKey, callback)` wrapper
 - Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
@@ -479,9 +531,11 @@ const providers = services.oauth.listProviders();
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/settings/sections/TunnelControl.svelte`
 
 **Changes** (2 occurrences removed):
+
 1. `toggleTunnel()` - Removed localStorage auth and explicit Socket.IO auth (lines 57-90)
 2. `updateSubdomain()` - Removed localStorage auth and explicit Socket.IO auth (lines 106-133)
 
@@ -492,9 +546,11 @@ const providers = services.oauth.listProviders();
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/settings/sections/VSCodeTunnelControl.svelte`
 
 **Changes** (2 occurrences removed):
+
 1. `startTunnel()` - Removed localStorage auth and explicit Socket.IO auth (lines 58-90)
 2. `stopTunnel()` - Removed localStorage auth and explicit Socket.IO auth (lines 92-119)
 
@@ -505,9 +561,11 @@ const providers = services.oauth.listProviders();
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/settings/RetentionSettings.svelte`
 
 **Changes** (1 occurrence removed):
+
 - `onMount()` - Removed `localStorage.getItem('dispatch-auth-token')` from RetentionPolicyViewModel initialization (lines 24-42)
 - Changed constructor call from `new RetentionPolicyViewModel(settingsService, authKey)` to `new RetentionPolicyViewModel(settingsService)`
 
@@ -518,9 +576,11 @@ const providers = services.oauth.listProviders();
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/settings/sections/DataManagement.svelte`
 
 **Changes** (1 occurrence removed):
+
 - `onMount()` - Removed `localStorage.getItem('dispatch-auth-token')` from RetentionPolicyViewModel initialization (lines 41-66)
 - Changed constructor call to match updated API (no authKey parameter)
 
@@ -531,15 +591,18 @@ const providers = services.oauth.listProviders();
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/state/RetentionPolicyViewModel.svelte.js`
 
 **Changes**:
+
 1. Removed `#authKey` private field (line 26)
 2. Updated constructor to not accept authKey parameter (lines 27-33)
 3. Updated `generatePreview()` to use `credentials: 'include'` instead of Authorization Bearer header (lines 98-134)
 4. Updated `executeCleanup()` to use `credentials: 'include'` instead of Authorization Bearer header (lines 170-199)
 
 **Pattern Applied**:
+
 ```javascript
 // BEFORE:
 headers: {
@@ -561,37 +624,41 @@ credentials: 'include'
 **Status**: COMPLETE
 
 **Files Modified**:
+
 - ✅ `/src/lib/client/shared/services/session-api/types.js`
 
 **Changes**:
+
 - Simplified `getHeaders()` function to remove Authorization Bearer header logic (lines 45-63)
 - Removed localStorage token retrieval
 - Returns only content-type header
 
 **Before**:
+
 ```javascript
 export function getHeaders(config) {
-  const headers = {
-    'content-type': 'application/json'
-  };
+	const headers = {
+		'content-type': 'application/json'
+	};
 
-  if (typeof localStorage !== 'undefined') {
-    const token = localStorage.getItem(config.authTokenKey);
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  }
+	if (typeof localStorage !== 'undefined') {
+		const token = localStorage.getItem(config.authTokenKey);
+		if (token) {
+			headers['Authorization'] = `Bearer ${token}`;
+		}
+	}
 
-  return headers;
+	return headers;
 }
 ```
 
 **After**:
+
 ```javascript
 export function getHeaders(config) {
-  return {
-    'content-type': 'application/json'
-  };
+	return {
+		'content-type': 'application/json'
+	};
 }
 ```
 
@@ -600,6 +667,7 @@ export function getHeaders(config) {
 ## 📊 Summary Statistics
 
 ### Time Spent
+
 - ✅ JWTService removal: 15 minutes
 - ✅ session.js removal: 30 minutes
 - ✅ jsonwebtoken uninstall: 5 minutes
@@ -621,11 +689,13 @@ export function getHeaders(config) {
 - **Total Completed**: 6 hours 58 minutes
 
 ### Files Modified
+
 - **Total**: 19 files cleaned of localStorage/Bearer auth
 - **Server files**: 7 files (hooks, OAuth, CookieService, onboarding, routes)
 - **Client files**: 12 files (settings, components, services, state)
 
 ### Verification
+
 - ✅ `npm run build` - SUCCESSFUL (6.23s)
 - ✅ Zero localStorage auth usage (verified via grep)
 - ✅ Zero Authorization Bearer headers in client code (verified via grep)
@@ -646,6 +716,7 @@ export function getHeaders(config) {
 6. ✅ Documentation updated
 
 ### Ready for Production
+
 - ✅ All authentication flows use session cookies
 - ✅ Server-side auth validation via hooks.server.js
 - ✅ No client-side auth storage (localStorage/sessionStorage)
@@ -653,6 +724,7 @@ export function getHeaders(config) {
 - ✅ All grep validations pass
 
 ### Post-Deployment (Optional)
+
 - ⏳ End-to-end authentication testing in staging
 - ⏳ Monitor production for any edge cases
 - ⏳ Performance testing under load
@@ -670,12 +742,14 @@ None currently. All critical JWT/session removals complete.
 **100% Complete - Production Ready**:
 
 ### Core Refactor
+
 - ✅ JWT-based authentication completely removed
 - ✅ Legacy session manager (session.js) removed
 - ✅ jsonwebtoken dependency removed from package.json
 - ✅ Socket.IO auth handlers simplified (only hello() remains)
 
 ### Client-Side Cleanup (19 files)
+
 - ✅ ALL localStorage auth storage removed:
   1. OAuth callback page (deleted - was dead code)
   2. AuthenticationStep.svelte
@@ -698,10 +772,12 @@ None currently. All critical JWT/session removals complete.
   19. session-api/types.js
 
 ### Critical Bug Fixes
+
 - ✅ Onboarding foreign key constraint fixed
 - ✅ OAuth method mismatch fixed
 
 ### Build & Validation
+
 - ✅ All vite build errors fixed (7 fixes)
 - ✅ Build successful: `npm run build` passes in 6.23s
 - ✅ Zero auth-related localStorage usage (grep verified)
