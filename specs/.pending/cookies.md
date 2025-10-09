@@ -105,11 +105,11 @@ The system removes legacy bearer-token flows, keeps the browser experience frict
 
 ## Open Questions
 
-- Should Socket.IO accept API keys via headers or only via handshake query/body? (default: header for parity with REST)
-- Do we need rate limits or usage analytics per API key? (nice-to-have)
-- Is a CLI helper command needed for key creation/rotation? (possible follow-up)
-- Should we provide advance notice period for users? (recommended: 1 week)
-- Should we include automatic API key generation during first post-upgrade login? (recommended: yes, for smoother UX)
+1. **Socket.IO auth surface** — We'll accept API keys via the handshake metadata for parity with REST.
+2. **API key rate limits / analytics** — Deferred; we will launch without limits.
+3. **CLI helper coverage** — Maybe later; no helper in the initial release.
+4. **User notice before cutover** — Not needed because the application has not launched yet.
+5. **Post-upgrade onboarding** — The database will be dropped during the upgrade, and the user will complete onboarding again to mint a fresh API key.
 
 ## QA & Validation
 
@@ -1564,34 +1564,5 @@ curl -H "Authorization: Bearer YOUR_API_KEY" https://dispatch.example.com/api/se
 ```
 
 **Impact**: Better developer experience, reduced support burden
-
----
-
-### Summary
-
-This refactoring analysis provides:
-
-1. **Complete Inventory**: All auth-related code identified with line numbers
-2. **Refactoring Strategy**: Before/after examples for each component
-3. **Removal Candidates**: Specific files/functions to delete with justification
-4. **Reusable Components**: Code that requires no changes
-5. **Migration Risks**: Identified risks with concrete mitigation strategies
-6. **Effort Estimation**: T-shirt sizing for each phase (4-6 weeks total)
-7. **Quality Improvements**: SOLID principles, DRY, type safety, test coverage
-
-**Key Takeaways**:
-- ✅ Existing `AuthSessionManager` highly reusable with minor adaptations
-- ✅ MVVM architecture clean, easy to refactor ViewModels
-- ✅ Database schema already supports cookie sessions
-- ⚠️ Socket.IO cookie parsing requires manual implementation
-- ⚠️ Breaking changes managed via dual auth support during migration
-- ✅ Clear path from localStorage to cookies without data loss
-
-**Next Steps**:
-1. Review and approve this analysis
-2. Create feature branch `cookie-auth-migration`
-3. Start with Phase 1 (Infrastructure)
-4. Implement dual auth support before removing old code
-5. Run comprehensive E2E tests before deploying
 
 ---
