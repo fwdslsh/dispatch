@@ -13,7 +13,8 @@ The system removes legacy bearer-token flows, keeps the browser experience frict
 ## Background
 
 - Auth today is powered by a single terminal key stored in localStorage and re-used across API calls, pages, and Socket.IO, creating security concerns and awkward UX.
-- We no longer need backwards compatibility with existing keys or stored sessions; we can re-imagine onboarding and session storage from a clean slate.
+- This refactor is implemented as an **atomic breaking change** with no migration path or backwards compatibility.
+- All users will be logged out and must re-authenticate after upgrade.
 - A unified model that splits browser and programmatic access (cookies vs. API keys) reduces complexity while staying compatible with optional OAuth logins.
 
 ## Goals
@@ -26,6 +27,9 @@ The system removes legacy bearer-token flows, keeps the browser experience frict
 ## Non-Goals
 
 - Maintaining legacy bearer-token compatibility or migrating existing localStorage data.
+- Preserving existing sessions across the upgrade.
+- Backwards compatibility with old authentication system.
+- Gradual rollout or dual auth support.
 - Multi-user account management or granular RBAC.
 - Advanced audit tooling (can be layered later).
 
@@ -76,19 +80,34 @@ The system removes legacy bearer-token flows, keeps the browser experience frict
 - **OAuth edge cases**: Keep OAuth optional; if disabled, the flow should gracefully fallback to API key login.
 - **Single cookie failure**: Support re-login via API key if cookie expires or is cleared.
 
-## Rollout Plan
+## Rollout Plan (Big Bang Deployment)
 
-1. Implement the new onboarding flow and session cookie handler (no migration needed).
-2. Build API key CRUD APIs and UI, wired into `AuthService`.
-3. Update REST endpoints and Socket.IO middleware to rely solely on the new guards.
-4. Integrate optional OAuth callbacks with the shared session writer.
-5. Ship documentation and automate Playwright coverage for browser + API key scenarios.
+### Pre-Deployment
+1. **Notify Users**: Communicate upcoming breaking change requiring re-authentication.
+2. **Documentation**: Prepare updated login instructions and API key creation guide.
+3. **Testing**: Complete all unit and E2E tests in staging environment.
+
+### Deployment (Atomic)
+1. **Deploy Code**: Deploy all authentication components as single atomic update.
+2. **Database Migration**: Execute schema updates (DROP old auth tables, CREATE new tables).
+3. **Session Invalidation**: All existing sessions automatically invalidated.
+4. **Server Restart**: Application starts with clean auth state.
+
+### Post-Deployment
+1. **User Re-Authentication**: All users see login screen and authenticate with API key.
+2. **New Sessions Created**: Cookie-based sessions created for browser access.
+3. **Monitor**: Watch for authentication errors and user support requests.
+
+### Communication Template
+"We're upgrading to a more secure authentication system on [DATE]. **You'll need to log in again** after the upgrade completes. Your workspaces, sessions, and settings will be preserved, but all active sessions will be terminated. The upgrade will take approximately 5-10 minutes."
 
 ## Open Questions
 
 - Should Socket.IO accept API keys via headers or only via handshake query/body? (default: header for parity with REST)
 - Do we need rate limits or usage analytics per API key? (nice-to-have)
 - Is a CLI helper command needed for key creation/rotation? (possible follow-up)
+- Should we provide advance notice period for users? (recommended: 1 week)
+- Should we include automatic API key generation during first post-upgrade login? (recommended: yes, for smoother UX)
 
 ## QA & Validation
 
@@ -109,9 +128,9 @@ This analysis examines the current Dispatch authentication implementation to ide
 **Key Findings:**
 - **Current Implementation**: localStorage-based bearer tokens managed by `AuthViewModel.svelte.js` and `socket-auth.js`
 - **Server Auth**: `AuthService` class with terminal key validation and OAuth session support
-- **Database**: Existing `auth_sessions` and `auth_users` tables suitable for cookie sessions
+- **Database**: Existing `auth_sessions` and `auth_users` tables will be replaced with clean schema
 - **MVVM Pattern**: Clean separation between ViewModels and Services, ideal for refactoring
-- **Migration Path**: Gradual migration possible with dual auth support during transition
+- **Implementation Strategy**: Atomic replacement with no backwards compatibility
 
 ---
 
@@ -239,17 +258,57 @@ This analysis examines the current Dispatch authentication implementation to ide
 
 **14. Database Tables** (from `/docs/reference/database-schema.md`)
 
-**Existing tables that can be reused:**
-- `auth_sessions` (lines 284-289) - Session storage
-  - Current fields: `session_id`, `user_id`, `expires_at`, `created_at`
-  - **Migration needed**: Add `provider`, `last_active_at`, `session_data` JSON
-- `auth_users` (lines 293-304) - User accounts
-  - Current fields: `user_id`, `email`, `name`, `created_at`, `last_login`
-  - **Reusable**: No changes needed
+**Clean Schema (No Migration - Fresh Start):**
 
-**New tables needed:**
-- `auth_api_keys` - API key storage (see cookies-review.md lines 328-341)
-  - Fields: `id`, `user_id`, `key_hash`, `label`, `created_at`, `last_used_at`, `disabled`
+```sql
+-- Drop old tables (no data preservation)
+DROP TABLE IF EXISTS auth_sessions;
+DROP TABLE IF EXISTS auth_api_keys;
+
+-- Create clean session table
+CREATE TABLE auth_sessions (
+  id TEXT PRIMARY KEY,              -- Session ID (secure random token)
+  user_id TEXT NOT NULL,            -- User identifier (default: 'default')
+  provider TEXT NOT NULL,           -- 'api_key' | 'oauth_github' | 'oauth_google'
+  expires_at INTEGER NOT NULL,      -- Unix timestamp (ms)
+  created_at INTEGER NOT NULL,      -- Unix timestamp (ms)
+  last_active_at INTEGER NOT NULL,  -- Unix timestamp (ms) for idle timeout
+  FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
+);
+
+CREATE INDEX ix_sessions_user_id ON auth_sessions(user_id);
+CREATE INDEX ix_sessions_expires_at ON auth_sessions(expires_at);
+
+-- Create API key table
+CREATE TABLE auth_api_keys (
+  id TEXT PRIMARY KEY,              -- API key ID
+  user_id TEXT NOT NULL,            -- Owner user ID (default: 'default')
+  key_hash TEXT NOT NULL,           -- bcrypt hash of API key (cost factor 12)
+  label TEXT NOT NULL,              -- User-friendly label
+  created_at INTEGER NOT NULL,      -- Unix timestamp (ms)
+  last_used_at INTEGER,             -- Unix timestamp (ms)
+  disabled INTEGER DEFAULT 0,       -- 0=active, 1=disabled (soft delete)
+  FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
+);
+
+CREATE INDEX ix_api_keys_user_id ON auth_api_keys(user_id);
+CREATE INDEX ix_api_keys_disabled ON auth_api_keys(disabled);
+
+-- auth_users table unchanged (if exists, otherwise create)
+CREATE TABLE IF NOT EXISTS auth_users (
+  user_id TEXT PRIMARY KEY,         -- 'default' for single-user mode
+  email TEXT UNIQUE,                -- From OAuth or manual entry
+  name TEXT,                        -- Display name
+  created_at INTEGER NOT NULL,
+  last_login INTEGER                -- Unix timestamp (ms)
+);
+```
+
+**Schema Simplifications vs. Migration Approach:**
+- No `terminal_key_hash` field (legacy removed)
+- No backwards-compatible field support
+- Simple, minimal tables without migration complexity
+- Clean indexes optimized for new access patterns
 
 #### Layout and UI Components
 
@@ -272,35 +331,7 @@ This analysis examines the current Dispatch authentication implementation to ide
 
 ##### **MUST REFACTOR: AuthViewModel.svelte.js**
 
-**Before (localStorage-based):**
-```javascript
-async checkExistingAuth() {
-  const storedKey = localStorage.getItem('dispatch-auth-token');
-  if (!storedKey) return false;
-
-  const response = await fetch('/api/auth/check', {
-    headers: { authorization: `Bearer ${storedKey}` }
-  });
-
-  if (response.ok) return true;
-  localStorage.removeItem('dispatch-auth-token');
-  return false;
-}
-
-async loginWithKey(key) {
-  const response = await fetch('/api/auth/check', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${key}` }
-  });
-
-  if (response.ok) {
-    localStorage.setItem('dispatch-auth-token', key);
-    return { success: true };
-  }
-}
-```
-
-**After (cookie-based via form actions):**
+**After (cookie-based via form actions only - no localStorage code):**
 ```javascript
 async checkExistingAuth() {
   // Session is now server-side, check via load function
@@ -332,43 +363,18 @@ async loginWithKey(key) {
 ```
 
 **Changes:**
-- **Remove**: Lines 141, 161, 198 (all localStorage access)
+- **Remove**: All localStorage access (lines 141, 161, 198 deleted)
 - **Add**: Form action submission pattern
 - **Keep**: Reactive state (`$state`), error handling, loading states
+- **No Migration Code**: No localStorage checking or fallback logic
 
-**Impact**: ✅ Breaking change (requires new login flow)
+**Impact**: ✅ Breaking change - all users must re-login
 
 ---
 
 ##### **MUST REFACTOR: socket-auth.js**
 
-**Before (manual token passing):**
-```javascript
-export function getStoredAuthToken() {
-  return localStorage.getItem('dispatch-auth-token');
-}
-
-export async function createAuthenticatedSocket(options, config) {
-  const socket = io(socketUrl, {
-    transports: ['websocket', 'polling'],
-    ...options
-  });
-
-  const token = getStoredAuthToken();
-  if (!token) {
-    socket.disconnect();
-    return { socket: null, authenticated: false };
-  }
-
-  socket.emit('auth', token, (response) => {
-    if (response?.success) {
-      resolve({ socket, authenticated: true });
-    }
-  });
-}
-```
-
-**After (cookie-based auth):**
+**After (cookie-based auth only - no token code):**
 ```javascript
 // DELETE: getStoredAuthToken(), storeAuthToken(), clearAuthToken()
 
@@ -385,12 +391,13 @@ export async function createAuthenticatedSocket(options, config) {
 ```
 
 **Changes:**
-- **Delete**: Lines 13-33 (localStorage functions)
+- **Delete**: All localStorage functions (lines 13-33 completely removed)
 - **Add**: `withCredentials: true` to socket config
 - **Remove**: Manual `auth` event emission
 - **Keep**: Socket.IO connection logic, error handling
+- **No Migration Code**: No token storage compatibility layer
 
-**Impact**: ✅ Breaking change (simplified auth flow)
+**Impact**: ✅ Breaking change - socket connections automatically use cookies
 
 ---
 
@@ -443,34 +450,7 @@ async authenticate() {
 
 ##### **MUST REFACTOR: hooks.server.js**
 
-**Before (Bearer token validation):**
-```javascript
-async function authenticationMiddleware({ event, resolve }) {
-  if (!pathname.startsWith('/api/')) return resolve(event);
-
-  const authService = event.locals.services.auth;
-  const token = authService.getAuthKeyFromRequest(event.request);
-
-  if (!token) {
-    return json({ error: 'Authentication required' }, { status: 401 });
-  }
-
-  const authResult = await authService.validateAuth(token);
-  if (!authResult.valid) {
-    return json({ error: 'Invalid authentication token' }, { status: 401 });
-  }
-
-  event.locals.auth = {
-    provider: authResult.provider,
-    userId: authResult.userId,
-    authenticated: true
-  };
-
-  return resolve(event);
-}
-```
-
-**After (cookie + API key multi-auth):**
+**After (cookie + API key auth - clean implementation):**
 ```javascript
 async function authenticationMiddleware({ event, resolve }) {
   const { pathname } = event.url;
@@ -545,40 +525,17 @@ async function authenticationMiddleware({ event, resolve }) {
 - **Add**: Session validation and refresh logic
 - **Add**: Cookie writing for session refresh
 - **Add**: Redirect to login for unauthenticated browser requests
-- **Keep**: API key validation for programmatic access
-- **Keep**: Multi-strategy auth pattern
+- **Add**: API key validation for programmatic access (new auth strategy)
+- **Remove**: Old terminal key validation (no backwards compatibility)
+- **No Migration**: Single auth path, no localStorage fallback
 
-**Impact**: ✅ Major enhancement (dual auth support)
+**Impact**: ✅ Breaking change - clean dual-strategy auth (cookies OR API keys)
 
 ---
 
 ##### **MUST REFACTOR: AuthService (auth.js)**
 
-**Current validateAuth():**
-```javascript
-async validateAuth(token) {
-  // Strategy 1: Terminal key validation (sync)
-  if (this.validateKey(token)) {
-    return { valid: true, provider: 'terminal_key' };
-  }
-
-  // Strategy 2: OAuth session validation (async)
-  if (this.multiAuthManager) {
-    const session = await this.multiAuthManager.validateSession(token);
-    if (session) {
-      return {
-        valid: true,
-        provider: session.provider,
-        userId: session.userId
-      };
-    }
-  }
-
-  return { valid: false };
-}
-```
-
-**After (add API key validation):**
+**After (API key only - no legacy support):**
 ```javascript
 async validateAuth(token) {
   // Strategy 1: API key validation (async, bcrypt compare)
@@ -590,28 +547,12 @@ async validateAuth(token) {
           valid: true,
           provider: 'api_key',
           apiKeyId: apiKey.id,
-          label: apiKey.label
+          label: apiKey.label,
+          userId: apiKey.userId
         };
       }
     } catch (error) {
-      // Continue to next strategy
-    }
-  }
-
-  // Strategy 2: Terminal key validation (sync, backwards compat)
-  if (this.validateKey(token)) {
-    return { valid: true, provider: 'terminal_key' };
-  }
-
-  // Strategy 3: OAuth session validation (async)
-  if (this.multiAuthManager) {
-    const session = await this.multiAuthManager.validateSession(token);
-    if (session) {
-      return {
-        valid: true,
-        provider: session.provider,
-        userId: session.userId
-      };
+      console.error('API key validation error:', error);
     }
   }
 
@@ -620,13 +561,13 @@ async validateAuth(token) {
 ```
 
 **Changes:**
-- **Add**: `ApiKeyManager` dependency
-- **Add**: API key validation as first strategy
-- **Keep**: Terminal key validation (backwards compat during migration)
-- **Keep**: OAuth session validation
-- **Keep**: Multi-strategy pattern
+- **Add**: `ApiKeyManager` dependency for hash verification
+- **Remove**: Terminal key validation (legacy removed)
+- **Remove**: OAuth session validation via token (sessions use cookies now)
+- **Simplified**: Single validation strategy for API keys only
+- **No Migration**: No backwards compatibility code
 
-**Impact**: ✅ Non-breaking addition (new auth method)
+**Impact**: ✅ Breaking change - only API keys supported for programmatic access
 
 ---
 
@@ -638,19 +579,14 @@ async validateAuth(token) {
 - ✅ Already has cleanup timer
 - ✅ Already uses SQLite for persistence
 
-**Minor adaptations needed:**
+**Clean implementation (no legacy code):**
 
 ```javascript
-// BEFORE: Hash terminal key for storage
-async createSession(terminalKey, sessionInfo) {
-  const terminalKeyHash = this.hashTerminalKey(terminalKey);
-  // ...
-}
-
-// AFTER: Store provider and session metadata
-async createSession(userId, provider, sessionInfo) {
+// Create session with provider tracking
+async createSession(userId, provider, sessionInfo = {}) {
   const sessionId = randomUUID();
   const now = Date.now();
+  const expiresAt = now + SESSION_DURATION_MS;
 
   await db.run(`
     INSERT INTO auth_sessions (
@@ -660,22 +596,63 @@ async createSession(userId, provider, sessionInfo) {
     sessionId,
     userId,
     provider,  // 'api_key' | 'oauth_github' | 'oauth_google'
-    now + SESSION_DURATION_MS,
+    expiresAt,
     now,
     now
   ]);
 
-  return { sessionId, expiresAt: now + SESSION_DURATION_MS };
+  return { sessionId, expiresAt };
+}
+
+// Validate and optionally refresh session
+async validateSession(sessionId) {
+  const session = await db.get(`
+    SELECT * FROM auth_sessions WHERE id = ?
+  `, [sessionId]);
+
+  if (!session) return null;
+
+  const now = Date.now();
+  const absoluteExpired = now > session.expires_at;
+  const idleExpired = (now - session.last_active_at) > IDLE_TIMEOUT_MS;
+
+  if (absoluteExpired || idleExpired) {
+    await db.run('DELETE FROM auth_sessions WHERE id = ?', [sessionId]);
+    return null;
+  }
+
+  // Check if session needs refresh
+  const timeUntilExpiry = session.expires_at - now;
+  const fresh = timeUntilExpiry < REFRESH_WINDOW_MS;
+
+  if (fresh) {
+    const newExpiresAt = now + SESSION_DURATION_MS;
+    await db.run(`
+      UPDATE auth_sessions
+      SET last_active_at = ?, expires_at = ?
+      WHERE id = ?
+    `, [now, newExpiresAt, sessionId]);
+
+    session.expires_at = newExpiresAt;
+    session.last_active_at = now;
+  }
+
+  const user = await db.get('SELECT * FROM auth_users WHERE user_id = ?', [session.user_id]);
+
+  return { session: { ...session, fresh }, user };
 }
 ```
 
 **Changes:**
-- **Remove**: Terminal key hashing (not needed for cookie sessions)
-- **Add**: Provider field ('api_key', 'oauth_github', etc.)
+- **Remove**: All terminal key hashing and validation
+- **Add**: Provider field tracking auth source
+- **Add**: Idle timeout validation
+- **Add**: Session refresh with sliding window
 - **Keep**: Session validation, extension, cleanup
 - **Keep**: 30-day rolling window logic
+- **No Migration**: Clean implementation, no legacy support
 
-**Impact**: ✅ Minor refactor (adapt to cookie sessions)
+**Impact**: ✅ Clean refactor - modern session management only
 
 ---
 
@@ -1103,29 +1080,19 @@ export async function DELETE({ request, locals }) {
 
 ---
 
-### Migration Risks and Mitigation
+### Deployment Risks and Mitigation
 
-#### **Risk 1: Breaking Changes for Existing Users**
+#### **Risk 1: All Users Logged Out After Deployment**
 
-**Issue**: Users with localStorage tokens will lose authentication
+**Issue**: Breaking change invalidates all existing sessions
 
 **Mitigation**:
-1. **Dual Auth Support**: Keep terminal key validation during transition period
-2. **Migration Prompt**: Detect localStorage token on first load, show re-auth prompt
-3. **Cleanup**: Remove old localStorage tokens after successful migration
+1. **Advance Notice**: Communicate upgrade 1 week in advance via email/dashboard banner
+2. **Clear Messaging**: "You'll need to log in again after the upgrade"
+3. **Smooth Re-login**: Ensure login page works perfectly, provide clear instructions
+4. **Support Readiness**: Prepare support team for authentication questions
 
-**Implementation**:
-```javascript
-// src/routes/+layout.svelte
-onMount(() => {
-  const oldToken = localStorage.getItem('dispatch-auth-token');
-  if (oldToken && !data.session) {
-    // Show migration UI: "Please log in with your API key to continue"
-    showMigrationDialog();
-    localStorage.removeItem('dispatch-auth-token');
-  }
-});
-```
+**Acceptable Trade-off**: One-time inconvenience for long-term security benefits
 
 ---
 
@@ -1209,114 +1176,142 @@ socket.on('session:expired', () => {
 
 #### **Risk 5: Database Migration Failures**
 
-**Issue**: Schema changes could fail on production databases
+**Issue**: Schema changes could fail during deployment
 
 **Mitigation**:
-1. **Idempotent Migrations**: Use `IF NOT EXISTS` and `PRAGMA table_info()` checks
-2. **Rollback Plan**: Keep old auth system running until migration confirmed
-3. **Testing**: Run migrations on copy of production database first
+1. **Simple Migration**: Use DROP and CREATE (no complex data transformation)
+2. **Backup First**: Automated backup before schema changes
+3. **Staging Testing**: Run full migration in staging environment first
+4. **Rollback Plan**: Keep backup for potential rollback scenario
 
 **Implementation**:
 ```javascript
 // src/lib/server/shared/db/migrate.js
 {
-  id: 'add_auth_api_keys_table',
+  id: 'auth_big_bang_migration',
   run: async (db) => {
-    // Check if table exists
-    const tables = await db.all(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='auth_api_keys'"
-    );
+    // Backup old data (if needed for audit/recovery)
+    // Note: Session data is ephemeral, can be safely dropped
 
-    if (tables.length === 0) {
-      await db.run(`
-        CREATE TABLE auth_api_keys (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          key_hash TEXT NOT NULL,
-          label TEXT NOT NULL,
-          created_at INTEGER NOT NULL,
-          last_used_at INTEGER,
-          disabled BOOLEAN DEFAULT 0
-        )
-      `);
-    }
+    // Clean slate approach
+    await db.run('DROP TABLE IF EXISTS auth_sessions');
+    await db.run('DROP TABLE IF EXISTS auth_api_keys');
+
+    // Create clean tables
+    await db.run(`
+      CREATE TABLE auth_sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        last_active_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
+      )
+    `);
+
+    await db.run(`
+      CREATE TABLE auth_api_keys (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        key_hash TEXT NOT NULL,
+        label TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        last_used_at INTEGER,
+        disabled INTEGER DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
+      )
+    `);
+
+    // Create indexes
+    await db.run('CREATE INDEX ix_sessions_user_id ON auth_sessions(user_id)');
+    await db.run('CREATE INDEX ix_sessions_expires_at ON auth_sessions(expires_at)');
+    await db.run('CREATE INDEX ix_api_keys_user_id ON auth_api_keys(user_id)');
+    await db.run('CREATE INDEX ix_api_keys_disabled ON auth_api_keys(disabled)');
   }
 }
 ```
+
+**Simplification**: No data migration = simpler, faster, less error-prone
 
 ---
 
 ### Estimated Effort (T-Shirt Sizing)
 
-#### **Phase 1: Infrastructure (Week 1) - L (Large)**
+**Big Bang Implementation (No Migration Phases)**
+
+#### **Phase 1: Core Infrastructure (Week 1) - M (Medium)**
 - [ ] Create `ApiKeyManager.server.js` module - **S**
-- [ ] Create `SessionManager.server.js` (adapt existing) - **M**
+- [ ] Create `SessionManager.server.js` (clean implementation) - **M**
 - [ ] Create `CookieService.server.js` helper - **S**
-- [ ] Add database migration for `auth_api_keys` table - **S**
+- [ ] Database migration script (DROP/CREATE) - **S**
 - [ ] Update `hooks.server.js` with cookie validation - **M**
 - [ ] Add TypeScript types for `event.locals` - **S**
 
-**Total**: **L** (3-5 days)
+**Total**: **M** (2-3 days)
+**Reduced from**: L (removed dual auth complexity)
 
 ---
 
-#### **Phase 2: Authentication Flows (Week 2) - XL (Extra Large)**
+#### **Phase 2: Authentication Flows (Week 2) - L (Large)**
 - [ ] Create login form action (`/login/+page.server.js`) - **M**
 - [ ] Create logout form action - **S**
-- [ ] Create OAuth callback handler - **M**
+- [ ] Create OAuth callback handler (optional) - **M**
 - [ ] Create API key management endpoints (`/api/keys/*`) - **L**
 - [ ] Implement onboarding flow for first API key - **M**
-- [ ] Update `AuthService.validateAuth()` - **M**
-
-**Total**: **XL** (5-8 days)
-
----
-
-#### **Phase 3: Client Integration (Week 3) - L (Large)**
-- [ ] Refactor `AuthViewModel.svelte.js` - **M**
-- [ ] Update `socket-auth.js` - **M**
-- [ ] Update `SocketService.svelte.js` - **S**
-- [ ] Add root layout load function - **S**
-- [ ] Update protected routes with session checks - **M**
-- [ ] Create API key management UI - **L**
+- [ ] Update `AuthService.validateAuth()` (API keys only) - **S**
 
 **Total**: **L** (3-5 days)
+**Reduced from**: XL (simplified validation logic)
 
 ---
 
-#### **Phase 4: Socket.IO Integration (Week 4) - M (Medium)**
-- [ ] Create Socket.IO auth middleware for cookies - **M**
-- [ ] Add cookie parsing utility - **S**
-- [ ] Implement session expiration handling - **M**
-- [ ] Test Socket.IO with both cookie and API key auth - **M**
+#### **Phase 3: Client Integration (Week 2-3) - M (Medium)**
+- [ ] Refactor `AuthViewModel.svelte.js` (remove localStorage) - **M**
+- [ ] Update `socket-auth.js` (remove token storage) - **S**
+- [ ] Update `SocketService.svelte.js` - **S**
+- [ ] Add root layout load function - **S**
+- [ ] Update protected routes with session checks - **S**
+- [ ] Create API key management UI - **M**
 
 **Total**: **M** (2-3 days)
+**Reduced from**: L (no migration code needed)
 
 ---
 
-#### **Phase 5: Testing & Documentation (Week 5) - L (Large)**
+#### **Phase 4: Socket.IO Integration (Week 3) - S (Small)**
+- [ ] Create Socket.IO auth middleware for cookies - **M**
+- [ ] Add cookie parsing utility - **S**
+- [ ] Implement session expiration handling - **S**
+- [ ] Test Socket.IO with both cookie and API key auth - **M**
+
+**Total**: **S** (1-2 days)
+**Unchanged**: Core Socket.IO work remains the same
+
+---
+
+#### **Phase 5: Testing & Documentation (Week 3-4) - M (Medium)**
 - [ ] Write unit tests for `SessionManager` - **M**
 - [ ] Write unit tests for `ApiKeyManager` - **M**
-- [ ] Write E2E tests for login/logout flows - **L**
-- [ ] Write E2E tests for session persistence - **M**
+- [ ] Write E2E tests for login/logout flows - **M**
+- [ ] Write E2E tests for session persistence - **S**
 - [ ] Update API documentation - **M**
 - [ ] Create authentication guide - **M**
 - [ ] Add troubleshooting section - **S**
 
-**Total**: **L** (3-5 days)
+**Total**: **M** (2-3 days)
+**Reduced from**: L (no migration test cases)
 
 ---
 
-#### **Phase 6: Cleanup (Week 6) - S (Small)**
-- [ ] Remove old auth code (JWT, localStorage) - **S**
-- [ ] Remove feature flags - **S**
-- [ ] Final testing and validation - **M**
+### **TOTAL EFFORT: ~2-3 weeks** (10-16 working days)
 
-**Total**: **S** (1-2 days)
-
----
-
-### **TOTAL EFFORT: ~4-6 weeks** (20-30 working days)
+**Reduction**: ~40-50% faster than gradual migration approach due to:
+- No dual auth complexity
+- No migration code or testing
+- No backwards compatibility layers
+- No phased rollout coordination
+- Simpler database migrations (DROP/CREATE vs complex transformations)
 
 ---
 

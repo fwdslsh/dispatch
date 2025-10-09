@@ -1,8 +1,15 @@
-# Cookie Authentication - Action Items Summary
+# Cookie Authentication - Action Items Summary (Big Bang Implementation)
 
 ## Quick Reference
 
 This document summarizes the critical additions needed for the cookie authentication PRD based on the [detailed review](./cookies-review.md).
+
+**Implementation Strategy**: Atomic big bang deployment with NO migration or backwards compatibility.
+- All existing sessions will be invalidated
+- All users must re-authenticate after upgrade
+- No localStorage migration code
+- No dual auth support
+- Clean schema with DROP/CREATE migrations
 
 ---
 
@@ -146,8 +153,12 @@ export const actions = {
 **Add to Spec:**
 
 ```sql
--- Session storage
-CREATE TABLE IF NOT EXISTS auth_sessions (
+-- Clean slate migration (no data preservation)
+DROP TABLE IF EXISTS auth_sessions;
+DROP TABLE IF EXISTS auth_api_keys;
+
+-- Session storage (clean schema)
+CREATE TABLE auth_sessions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   provider TEXT NOT NULL,
@@ -157,23 +168,30 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
 );
 
--- API key storage
-CREATE TABLE IF NOT EXISTS auth_api_keys (
+CREATE INDEX ix_sessions_user_id ON auth_sessions(user_id);
+CREATE INDEX ix_sessions_expires_at ON auth_sessions(expires_at);
+
+-- API key storage (new table)
+CREATE TABLE auth_api_keys (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   key_hash TEXT NOT NULL,
   label TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   last_used_at INTEGER,
-  disabled BOOLEAN DEFAULT 0,
+  disabled INTEGER DEFAULT 0,
   FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
 );
+
+CREATE INDEX ix_api_keys_user_id ON auth_api_keys(user_id);
+CREATE INDEX ix_api_keys_disabled ON auth_api_keys(disabled);
 ```
 
 **Requirements:**
-- [ ] FR-DB-001: `auth_sessions` table with expiration tracking
-- [ ] FR-DB-002: `auth_api_keys` table with bcrypt hashes
-- [ ] FR-DB-003: Migration scripts
+- [ ] FR-DB-001: `auth_sessions` table with clean schema (DROP/CREATE)
+- [ ] FR-DB-002: `auth_api_keys` table with bcrypt hashes (new table)
+- [ ] FR-DB-003: Migration script uses DROP/CREATE (no backwards compat)
+- [ ] FR-DB-004: No data preservation for session tables (ephemeral data)
 
 ---
 
@@ -306,42 +324,51 @@ export async function POST({ request, url }) {
 
 ---
 
-### 9. Client State Refactor (FR-CLIENT-*)
+### 9. Client State Refactor (FR-CLIENT-*) - No Migration Code
 
 **Add to Spec:**
 
 ```javascript
-// Remove localStorage from AuthViewModel
+// AuthViewModel - Clean implementation, no localStorage
 export class AuthViewModel {
   constructor(sessionApi) {
     this.sessionApi = sessionApi;
 
-    // UI state only (no localStorage)
+    // UI state only (NO localStorage checking)
     this.loginForm = $state({ key: '', error: null, loading: false });
     this.isAuthenticated = $state(false);  // Derived from server
     this.user = $state(null);              // From +layout.server.js
   }
 
-  // Use form action instead of localStorage
+  // Use form action only (no localStorage fallback)
   async loginWithKey(key) {
-    // ... delegates to form action
+    // Delegates to form action, no migration code
   }
+
+  // No checkExistingAuth() that checks localStorage
+  // No migration prompts or localStorage cleanup
 }
 
-// Socket.IO: Enable cookies
+// Socket.IO: Enable cookies (no token passing)
 export function createAuthenticatedSocket(config = {}) {
   const socket = io(config.socketUrl || window.location.origin, {
     transports: ['websocket', 'polling'],
-    withCredentials: true  // ✅ Send cookies automatically
+    withCredentials: true  // ✅ Send cookies automatically (NO manual auth)
   });
   return socket;
 }
+
+// DELETE from socket-auth.js:
+// - getStoredAuthToken()  ❌
+// - storeAuthToken()      ❌
+// - clearAuthToken()      ❌
 ```
 
 **Requirements:**
-- [ ] FR-CLIENT-001: Refactor `AuthViewModel` to remove localStorage
-- [ ] FR-CLIENT-002: Remove token storage functions from `socket-auth.js`
-- [ ] FR-CLIENT-003: Use `withCredentials: true` for Socket.IO
+- [ ] FR-CLIENT-001: Refactor `AuthViewModel` to remove ALL localStorage code
+- [ ] FR-CLIENT-002: DELETE token storage functions from `socket-auth.js` entirely
+- [ ] FR-CLIENT-003: Use `withCredentials: true` for Socket.IO (no manual auth)
+- [ ] FR-CLIENT-004: NO migration detection or localStorage cleanup code
 
 ---
 
@@ -384,42 +411,63 @@ test('should login and set cookie', async ({ page }) => {
 
 ---
 
-## Implementation Phases
+## Implementation Phases (Big Bang - No Migration)
 
-### Phase 1: Server Infrastructure (Week 1)
-- [ ] Create `SessionManager.server.js`
+### Phase 1: Server Infrastructure (Week 1) - 2-3 days
+- [ ] Create `SessionManager.server.js` (clean implementation)
 - [ ] Create `ApiKeyManager.server.js`
 - [ ] Create `CookieService.server.js`
-- [ ] Database migrations
-- [ ] Implement `hooks.server.js`
+- [ ] Database migrations (DROP/CREATE, no data migration)
+- [ ] Implement `hooks.server.js` (single auth path, no dual support)
 - [ ] Add TypeScript types
 
-### Phase 2: Authentication Flows (Week 2)
-- [ ] Login form action
+**Effort Reduction**: No dual auth complexity
+
+### Phase 2: Authentication Flows (Week 2) - 3-5 days
+- [ ] Login form action (clean, no migration UI)
 - [ ] Logout form action
 - [ ] OAuth callback handler (optional)
 - [ ] API key management endpoints
 - [ ] Onboarding flow
+- [ ] Update `AuthService.validateAuth()` (API keys only)
 
-### Phase 3: Client Integration (Week 3)
-- [ ] Refactor `AuthViewModel`
-- [ ] Update `socket-auth.js`
+**Effort Reduction**: Simplified validation logic (no backwards compat)
+
+### Phase 3: Client Integration (Week 2-3) - 2-3 days
+- [ ] Refactor `AuthViewModel` (DELETE localStorage code)
+- [ ] Update `socket-auth.js` (DELETE token functions)
 - [ ] Root layout load function
-- [ ] Protected route patterns
+- [ ] Protected route patterns (simple redirect)
 - [ ] API key management UI
 
-### Phase 4: Socket.IO Integration (Week 4)
+**Effort Reduction**: No migration code, no localStorage detection
+
+### Phase 4: Socket.IO Integration (Week 3) - 1-2 days
 - [ ] Socket.IO auth middleware
 - [ ] Cookie parsing utility
 - [ ] Session expiration handling
 - [ ] Test cookie + API key auth
 
-### Phase 5: Testing & Documentation (Week 5)
+**Unchanged**: Core Socket.IO work same as gradual approach
+
+### Phase 5: Testing & Documentation (Week 3-4) - 2-3 days
 - [ ] Unit tests (SessionManager, ApiKeyManager)
 - [ ] E2E tests (login, logout, sessions)
 - [ ] Update API documentation
 - [ ] Create authentication guide
 - [ ] Troubleshooting section
+
+**Effort Reduction**: No migration test cases, simpler test scenarios
+
+---
+
+## Total Effort: ~2-3 weeks (10-16 days)
+
+**Reduction from gradual approach**: ~40-50% faster due to:
+- No dual auth complexity
+- No migration code/testing
+- No backwards compatibility
+- Simpler database migrations
 
 ---
 
@@ -433,6 +481,9 @@ Before implementation, decide on:
 4. **Concurrent Sessions**: Allow multiple browser sessions per user?
 5. **API Key Limits**: Max number of API keys per user?
 6. **Session Cleanup**: Background job frequency for expired session deletion?
+7. **User Notice Period**: How much advance warning? (recommended: 1 week)
+8. **Automatic API Key**: Generate API key automatically on first post-upgrade login?
+9. **Support Preparation**: What FAQs/guides do support team need before deployment?
 
 ---
 
@@ -453,8 +504,8 @@ Before implementation, decide on:
 
 **Nice to Have (Post-Launch)**:
 10. OAuth integration (FR-OAUTH-*)
-11. Migration from localStorage (FR-MIGRATE-*)
-12. Documentation updates (DOC-*)
+11. Advanced features (rate limiting, 2FA, audit logging)
+12. Extended documentation (advanced use cases, troubleshooting)
 
 ---
 

@@ -2,13 +2,15 @@
 
 ## Executive Summary
 
-The cookie authentication PRD provides a solid foundation but needs significant SvelteKit-specific implementation details to be production-ready. This review identifies gaps, security concerns, and provides concrete recommendations aligned with SvelteKit best practices and the existing MVVM architecture.
+The cookie authentication PRD provides a solid foundation for a **big bang implementation** with no backwards compatibility. This review identifies SvelteKit-specific implementation details needed for production readiness, aligned with the atomic deployment strategy.
 
 **Overall Assessment**: ⚠️ Needs Enhancement
+- **Implementation Strategy**: Big bang deployment, all users re-authenticate
 - **Security**: Good foundation, needs specifics
 - **SvelteKit Integration**: Missing critical implementation details
 - **MVVM Alignment**: Needs clarification on state management patterns
 - **Socket.IO Integration**: Underspecified for cookie-based auth
+- **Migration**: None - clean break with no backwards compatibility
 
 ---
 
@@ -23,6 +25,8 @@ The cookie authentication PRD provides a solid foundation but needs significant 
 ✅ **Optional OAuth**: Smart to keep OAuth optional while focusing on core session management.
 
 ✅ **No localStorage secrets**: Eliminating localStorage for auth tokens is the right move.
+
+✅ **No migration complexity**: Big bang approach eliminates dual auth, migration code, and backwards compatibility concerns.
 
 ---
 
@@ -305,19 +309,20 @@ export async function GET({ url, params, cookies, locals }) {
 
 ### 2.6 Missing: Database Schema for Sessions
 
-**Gap**: The spec says "SQLite persistence" but doesn't define schema changes needed.
+**Gap**: The spec says "SQLite persistence" but doesn't define clean schema structure.
 
-**Recommendation**: Add database migration requirement:
+**Recommendation**: Add database schema requirement (clean slate, no migration):
 
 ```sql
--- FR-DB-001: Session Storage Schema
-CREATE TABLE IF NOT EXISTS auth_sessions (
+-- FR-DB-001: Clean Session Storage Schema (no migration, fresh start)
+DROP TABLE IF EXISTS auth_sessions;  -- Clean slate
+CREATE TABLE auth_sessions (
   id TEXT PRIMARY KEY,              -- Session ID (random secure token)
   user_id TEXT NOT NULL,            -- User identifier
   provider TEXT NOT NULL,           -- 'api_key' | 'oauth_github' | 'oauth_google'
   expires_at INTEGER NOT NULL,      -- Unix timestamp (ms)
   created_at INTEGER NOT NULL,      -- Unix timestamp (ms)
-  last_active_at INTEGER NOT NULL,  -- Unix timestamp (ms) for session refresh
+  last_active_at INTEGER NOT NULL,  -- Unix timestamp (ms) for idle timeout
 
   FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
 );
@@ -325,15 +330,16 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 CREATE INDEX ix_sessions_user_id ON auth_sessions(user_id);
 CREATE INDEX ix_sessions_expires_at ON auth_sessions(expires_at);
 
--- FR-DB-002: API Key Storage Schema
-CREATE TABLE IF NOT EXISTS auth_api_keys (
+-- FR-DB-002: Clean API Key Storage Schema
+DROP TABLE IF EXISTS auth_api_keys;  -- Clean slate
+CREATE TABLE auth_api_keys (
   id TEXT PRIMARY KEY,              -- API key ID
   user_id TEXT NOT NULL,            -- Owner user ID
-  key_hash TEXT NOT NULL,           -- bcrypt hash of API key
+  key_hash TEXT NOT NULL,           -- bcrypt hash of API key (cost 12)
   label TEXT NOT NULL,              -- User-friendly label
   created_at INTEGER NOT NULL,      -- Unix timestamp (ms)
   last_used_at INTEGER,             -- Unix timestamp (ms)
-  disabled BOOLEAN DEFAULT 0,       -- 0=active, 1=disabled
+  disabled INTEGER DEFAULT 0,       -- 0=active, 1=disabled (soft delete)
 
   FOREIGN KEY (user_id) REFERENCES auth_users(user_id)
 );
@@ -341,7 +347,7 @@ CREATE TABLE IF NOT EXISTS auth_api_keys (
 CREATE INDEX ix_api_keys_user_id ON auth_api_keys(user_id);
 CREATE INDEX ix_api_keys_disabled ON auth_api_keys(disabled);
 
--- FR-DB-003: Users Table (if not exists)
+-- FR-DB-003: Users Table (create if needed)
 CREATE TABLE IF NOT EXISTS auth_users (
   user_id TEXT PRIMARY KEY,         -- 'default' for single-user mode
   email TEXT UNIQUE,                -- From OAuth or manual entry
@@ -352,12 +358,12 @@ CREATE TABLE IF NOT EXISTS auth_users (
 ```
 
 **Add to spec**:
-- [ ] FR-DB-001: `auth_sessions` table schema with expiration tracking
-- [ ] FR-DB-002: `auth_api_keys` table schema with bcrypt hashes
-- [ ] FR-DB-003: `auth_users` table schema for user profiles
-- [ ] FR-DB-004: Migration script to add new tables without breaking existing data
+- [ ] FR-DB-001: `auth_sessions` table with clean schema (DROP existing)
+- [ ] FR-DB-002: `auth_api_keys` table with bcrypt hashes (new table)
+- [ ] FR-DB-003: `auth_users` table (preserve if exists, create if not)
+- [ ] FR-DB-004: Migration script uses DROP/CREATE (no data preservation for sessions)
 
-**Note**: The spec mentions existing `auth_sessions` and `auth_users` tables in the database schema doc, so this is primarily about ensuring the schema supports the new requirements.
+**Simplification**: No legacy fields, no backwards-compatible schema, clean indexes optimized for new patterns.
 
 ---
 
@@ -962,53 +968,51 @@ test.describe('Cookie-based authentication', () => {
 
 ---
 
-## 7. Migration Strategy Gaps
+## 7. Deployment Strategy (No Migration)
 
-### 7.1 Missing: Backward Compatibility Plan
+### 7.1 Big Bang Deployment Approach
 
-**Gap**: The spec says "No backwards compatibility" but existing users with localStorage tokens need a migration path.
+**Implementation**: Atomic deployment with breaking change, no migration code needed.
 
-**Recommendation**: Add migration requirements:
+**Deployment Flow**:
 
 ```javascript
-// FR-MIGRATE-001: Graceful Migration from localStorage
+// FR-DEPLOY-001: Clean Deployment (No Migration Code)
 
-// On first load after upgrade, detect old auth
-export async function load({ locals, cookies }) {
-  // If no cookie session but localStorage had token,
-  // show migration prompt
+// hooks.server.js - Single auth path only
+export const handle = async ({ event, resolve }) => {
+  const sessionId = event.cookies.get('dispatch_session');
 
-  return {
-    needsMigration: !locals.session,  // Will trigger client-side check
-    user: locals.user,
-    session: locals.session
-  };
-}
+  // No localStorage checking
+  // No dual auth support
+  // Just validate session or redirect to login
 
-// Client-side migration helper
-// src/routes/+layout.svelte
+  if (!sessionId && !isPublicRoute(event.url.pathname)) {
+    redirect(303, '/login');
+  }
+
+  // ... rest of session validation
+};
+
+// routes/login/+page.svelte - No migration UI
 <script>
-  import { onMount } from 'svelte';
-
-  let { data } = $props();
-
-  onMount(() => {
-    if (data.needsMigration) {
-      const oldToken = localStorage.getItem('dispatch-auth-token');
-      if (oldToken) {
-        // Show migration UI: "Re-enter your key to continue"
-        // or auto-login if we can validate the old token
-        showMigrationPrompt(oldToken);
-      }
-    }
-  });
+  // Clean login form, no localStorage detection
+  // No "migrate from old auth" messaging
+  // Just standard login flow
 </script>
 ```
 
 **Add to spec**:
-- [ ] FR-MIGRATE-001: Detect localStorage auth and prompt re-authentication
-- [ ] FR-MIGRATE-002: Show user-friendly migration message
-- [ ] FR-MIGRATE-003: Clean up localStorage tokens after successful migration
+- [ ] FR-DEPLOY-001: Single auth path, no backwards compatibility
+- [ ] FR-DEPLOY-002: All users see login screen after deployment
+- [ ] FR-DEPLOY-003: Clear user communication: "Breaking change, please re-login"
+- [ ] FR-DEPLOY-004: No localStorage cleanup code (browser will eventually clear)
+
+**Benefits of Big Bang**:
+- Simpler codebase (no dual auth complexity)
+- Faster implementation (no migration code to write/test)
+- Cleaner architecture (no legacy code paths)
+- One-time user impact (re-login once)
 
 ---
 
@@ -1188,8 +1192,8 @@ export async function load({ locals, cookies }) {
 11. **OAuth Integration** (Section 2.5)
     - Optional feature, can iterate
 
-12. **Migration Strategy** (Section 7.1)
-    - Nice-to-have for smooth upgrade
+12. **Deployment Communication** (Section 7.1)
+    - User notification strategy can be refined
 
 13. **Documentation** (Section 8.1)
     - Can be updated incrementally
@@ -1215,6 +1219,8 @@ export async function load({ locals, cookies }) {
    - Should we implement rate limiting for API key validation?
    - Should we add 2FA support for session creation?
    - How should we handle concurrent sessions (multiple browsers)?
+   - How much advance notice should users receive? (recommended: 1 week)
+   - Should we provide a "test your login before deployment" environment?
 
 ### Before Implementation:
 
