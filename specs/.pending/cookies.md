@@ -22,7 +22,8 @@ The system removes legacy bearer-token flows, keeps the browser experience frict
 - Provide a hardened onboarding flow that issues the first API key and sets up the default browser session.
 - Allow the user to create, label, rotate, and revoke API keys at any point from the UI.
 - Support optional OAuth providers; when enabled, successful OAuth login mints the same SvelteKit cookie session.
-- Ensure every surface—pages, `+server` endpoints, and Socket.IO—relies on one session evaluator.
+- Ensure every surface—pages, `+server` endpoints, and Socket.IO—supports **BOTH** session cookies and API keys for authentication, providing flexibility for browser and programmatic clients.
+- Leverage SvelteKit's built-in cookie handling (`event.cookies` API) throughout to minimize custom cookie implementation and maximize framework integration.
 
 ## Non-Goals
 
@@ -42,21 +43,22 @@ The system removes legacy bearer-token flows, keeps the browser experience frict
 ## Solution Approach
 
 - **Onboarding-generated API key**: First-run flow mints a random API key, hashes and stores it server-side, shows it once to the user, and immediately sets a browser session cookie.
-- **Session cookies**: All browser logins—whether via API key or OAuth—issue an httpOnly, Secure, SameSite=Lax cookie from the SvelteKit `handle` hook. Session data lives in `event.locals.session` for downstream handlers.
+- **Session cookies**: All browser logins—whether via API key or OAuth—issue an httpOnly, Secure, SameSite=Lax cookie from the SvelteKit `handle` hook. Session data lives in `event.locals.session` for downstream handlers. **We leverage SvelteKit's built-in `event.cookies` API throughout to minimize custom cookie handling.**
 - **API key management UI**: A settings section lets the user generate, label, disable, or delete API keys. Keys are stored hashed (bcrypt/argon2) with metadata and can be toggled without restarts.
 - **OAuth toggles**: Settings allow enabling supported providers (GitHub, Google, etc.). Successful OAuth callback creates the same session cookie and optionally spawns a new API key if requested.
-- **API enforcement**: REST `+server` endpoints and the CLI API layer expect an `Authorization: ApiKey <token>` header (or similar) and validate against the stored hashes. No cookie fallback is performed for these programmatic calls.
-- **Socket.IO enforcement**: Handshake middleware checks for either the active session cookie (browser) or an API key passed via header/query, using the same validator as REST.
-- **Central validator**: Refactor `AuthService` to act as a façade over the session store (cookies) and API key store, removing localStorage assumptions.
+- **Unified authentication for API routes**: REST `+server` endpoints accept **EITHER** session cookies (browser clients) **OR** API keys via `Authorization: Bearer <key>` header (programmatic clients). SvelteKit's `event.cookies` handles cookie parsing automatically; we only add API key validation for non-cookie requests.
+- **Unified authentication for Socket.IO**: Handshake middleware checks for **EITHER** the active session cookie (browser) **OR** an API key passed via header/auth object (programmatic), using the same validator as REST endpoints. Cookie parsing is manual for Socket.IO but follows the same validation flow.
+- **Central validator**: Refactor `AuthService` to act as a façade over the session store (cookies) and API key store, removing localStorage assumptions. Single validation path for both cookies and API keys.
 
 ## Functional Requirements
 
 - [ ] Onboarding flow that issues the first API key, stores it hashed, and writes an authenticated cookie for the browser.
 - [ ] API endpoints to list, create, label, disable, and delete API keys, with UI integration.
 - [ ] OAuth provider management UI and server plumbing to enable/disable providers and share session issuance logic.
-- [ ] SvelteKit `handle` hook that reads/writes session cookies and populates `event.locals.session`.
-- [ ] API guard utilities that validate either session cookies (browser) or API keys (programmatic) and reject all other auth attempts.
-- [ ] Socket.IO middleware that mirrors the API guard logic for both cookies and API keys.
+- [ ] SvelteKit `handle` hook that reads/writes session cookies using `event.cookies` API and populates `event.locals.session`.
+- [ ] Unified authentication for REST API routes: validate **EITHER** session cookies (via SvelteKit's `event.cookies`) **OR** API keys (via Authorization header) and reject all other auth attempts.
+- [ ] Unified authentication for Socket.IO: middleware that validates **EITHER** session cookies (parsed from handshake headers) **OR** API keys (from Authorization header/auth object), using the same validation logic as REST API routes.
+- [ ] Leverage SvelteKit's built-in cookie handling (`event.cookies.get()`, `event.cookies.set()`, `event.cookies.delete()`) to minimize custom cookie implementation.
 
 ## Non-Functional Requirements
 
@@ -450,7 +452,7 @@ async authenticate() {
 
 ##### **MUST REFACTOR: hooks.server.js**
 
-**After (cookie + API key auth - clean implementation):**
+**After (cookie + API key auth - unified support using SvelteKit's event.cookies):**
 ```javascript
 async function authenticationMiddleware({ event, resolve }) {
   const { pathname } = event.url;
@@ -460,12 +462,13 @@ async function authenticationMiddleware({ event, resolve }) {
   if (isPublicRoute(pathname)) return resolve(event);
 
   // Strategy 1: Check for session cookie (browser clients)
+  // Uses SvelteKit's built-in event.cookies API - automatic parsing!
   const sessionId = event.cookies.get('dispatch_session');
   if (sessionId) {
     const { session, user } = await sessionManager.validateSession(sessionId);
 
     if (session?.fresh) {
-      // Refresh cookie with new expiration
+      // Refresh cookie with new expiration using SvelteKit's API
       event.cookies.set('dispatch_session', session.id, {
         path: '/',
         httpOnly: true,
@@ -484,32 +487,33 @@ async function authenticationMiddleware({ event, resolve }) {
       };
       return resolve(event);
     } else {
-      // Expired session, clear cookie
+      // Expired session, clear cookie using SvelteKit's API
       event.cookies.delete('dispatch_session', { path: '/' });
     }
   }
 
   // Strategy 2: Check for API key (programmatic clients)
-  // Only for API routes
-  if (pathname.startsWith('/api/')) {
-    const apiKey = auth.getAuthKeyFromRequest(event.request);
-    if (apiKey) {
-      const authResult = await auth.validateAuth(apiKey);
-      if (authResult.valid) {
-        event.locals.auth = {
-          provider: authResult.provider,
-          authenticated: true
-        };
-        return resolve(event);
-      }
+  // Supports API keys for BOTH browser and non-browser clients
+  const apiKey = auth.getAuthKeyFromRequest(event.request);
+  if (apiKey) {
+    const authResult = await auth.validateAuth(apiKey);
+    if (authResult.valid) {
+      event.locals.auth = {
+        provider: authResult.provider,
+        authenticated: true
+      };
+      return resolve(event);
     }
+  }
 
-    // No valid auth found for API route
+  // No valid auth found - handle based on route type
+  if (pathname.startsWith('/api/')) {
+    // API routes require authentication (cookie OR API key)
     return json({ error: 'Authentication required' }, { status: 401 });
   }
 
   // Non-API routes without session redirect to login
-  if (!event.locals.session && !isPublicRoute(pathname)) {
+  if (!event.locals.session) {
     return new Response(null, {
       status: 303,
       headers: { location: '/login' }
@@ -521,15 +525,16 @@ async function authenticationMiddleware({ event, resolve }) {
 ```
 
 **Changes:**
-- **Add**: Cookie reading via `event.cookies.get()`
-- **Add**: Session validation and refresh logic
-- **Add**: Cookie writing for session refresh
+- **Leverage SvelteKit**: Use `event.cookies.get()`, `event.cookies.set()`, `event.cookies.delete()` throughout
+- **Add**: Session validation and refresh logic using SvelteKit's cookie API
+- **Add**: Unified auth strategy - **BOTH** API routes and pages support cookies OR API keys
 - **Add**: Redirect to login for unauthenticated browser requests
-- **Add**: API key validation for programmatic access (new auth strategy)
+- **Add**: API key validation available to all routes (not just `/api/*`)
 - **Remove**: Old terminal key validation (no backwards compatibility)
-- **No Migration**: Single auth path, no localStorage fallback
+- **No Migration**: Clean implementation, no localStorage fallback
 
-**Impact**: ✅ Breaking change - clean dual-strategy auth (cookies OR API keys)
+**Impact**: ✅ Breaking change - unified dual-strategy auth (cookies OR API keys everywhere)
+**Benefit**: Maximizes SvelteKit framework integration, minimizes custom cookie handling code
 
 ---
 
