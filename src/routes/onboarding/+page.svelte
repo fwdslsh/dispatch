@@ -25,13 +25,26 @@
 	let onboardingViewModel = $state(null);
 	let isLoading = $state(true);
 	let error = $state(null);
-	let showApiKey = $state(false);
+	let apiKeyData = $state(null); // Local copy of API key data from form submission
+
+	// API key confirmation state - must be separate $state declarations for proper reactivity
 	let apiKeyCopied = $state(false); // Permanent state - stays true once copied
 	let showCopiedFeedback = $state(false); // Temporary visual feedback
-	let manualConfirmation = $state(false);
+	let manualConfirmation = $state(false); // Manual checkbox confirmation
 
 	// Derived state: can continue if key was copied OR user manually confirmed
 	let canContinue = $derived(apiKeyCopied || manualConfirmation);
+
+	// Debug effect to log state on every render
+	$effect(() => {
+		if (apiKeyData) {
+			console.log('[OnboardingPage] API Key display rendered with state:', {
+				apiKeyCopied,
+				manualConfirmation,
+				canContinue
+			});
+		}
+	});
 
 	onMount(async () => {
 		await initializeOnboarding();
@@ -79,13 +92,19 @@
 	 */
 	async function handleOnboardingComplete(result) {
 		try {
+			console.log('[OnboardingPage] handleOnboardingComplete called with result:', result);
+
 			// Result is passed directly from OnboardingFlow (not wrapped in event.detail)
 			if (result?.apiKey) {
-				// Show API key display screen
-				showApiKey = true;
-				// Store form data so we can access it in the display
-				form = { success: true, ...result };
+				console.log('[OnboardingPage] API key found in result, showing API key display');
+				// Store API key data - this will trigger the API key display to render
+				apiKeyData = {
+					success: true,
+					apiKey: result.apiKey,
+					workspace: result.workspace || null
+				};
 			} else {
+				console.log('[OnboardingPage] No API key in result, redirecting to /workspace');
 				// No API key in response - redirect to workspace
 				await goto('/workspace');
 			}
@@ -109,7 +128,7 @@
 	 * Per spec FR-002 and T021: Only enable continue after copy OR explicit confirmation
 	 */
 	async function copyApiKey() {
-		const key = form?.apiKey?.key;
+		const key = apiKeyData?.apiKey?.key;
 		if (!key) return;
 
 		try {
@@ -134,8 +153,23 @@
 	 */
 	async function continueToApp() {
 		// Invalidate all data to force SvelteKit to re-check authentication
-		// This ensures the session cookie is recognized before navigation
 		await invalidateAll();
+
+		// Add small delay to ensure cookie propagation to browser
+		await new Promise(resolve => setTimeout(resolve, 100));
+
+		// Verify session is valid before navigating
+		try {
+			const authCheck = await fetch('/api/auth/check');
+			if (!authCheck.ok) {
+				throw new Error('Session not established');
+			}
+		} catch (err) {
+			console.error('[OnboardingPage] Authentication verification failed:', err);
+			error = 'Session setup failed. Please try logging in again.';
+			return;
+		}
+
 		await goto('/workspace', { replaceState: true });
 	}
 </script>
@@ -161,61 +195,61 @@
 				<p class="error-message">{error}</p>
 				<button class="retry-button" onclick={initializeOnboarding}> Try Again </button>
 			</div>
-		{:else if showApiKey && form?.apiKey}
+		{:else if apiKeyData?.apiKey}
 			<!-- API Key Display (shown ONCE) -->
-			<div class="api-key-display-container">
-				<div class="api-key-card">
-					<h1>Your API Key</h1>
-					<p class="subtitle">Save this key securely - it will not be shown again!</p>
+			{#key apiKeyData.apiKey.id}
+				<div class="api-key-display-container">
+					<div class="api-key-card">
+						<h1>Your API Key</h1>
+						<p class="subtitle">Save this key securely - it will not be shown again!</p>
 
-					<div class="warning-box">
-						<div class="warning-icon">⚠️</div>
-						<div class="warning-content">
-							<strong>Important:</strong>
-							This is the only time you will see this API key. Copy it now and store it in a secure location.
-							You will need this key to log in to Dispatch.
+						<div class="warning-box">
+							<div class="warning-icon">⚠️</div>
+							<div class="warning-content">
+								<strong>Important:</strong>
+								This is the only time you will see this API key. Copy it now and store it in a secure location.
+								You will need this key to log in to Dispatch.
+							</div>
 						</div>
-					</div>
 
-					<div class="key-display-box">
-						<code class="api-key-text">{form.apiKey.key}</code>
-					</div>
+						<div class="key-display-box">
+							<code class="api-key-text">{apiKeyData.apiKey.key}</code>
+						</div>
 
-					<div class="key-actions">
-						<Button variant="primary" onclick={copyApiKey} fullWidth={true}>
-							{showCopiedFeedback ? '✓ Copied to Clipboard!' : 'Copy API Key'}
-						</Button>
-					</div>
+						<div class="key-actions">
+							<Button variant="primary" onclick={copyApiKey} fullWidth={true}>
+								{showCopiedFeedback ? '✓ Copied to Clipboard!' : 'Copy API Key'}
+							</Button>
+						</div>
 
-					<div class="key-info">
-						<p><strong>Key Label:</strong> {form.apiKey.label}</p>
-						<p><strong>Key ID:</strong> {form.apiKey.id}</p>
-						{#if form.workspace}
-							<p><strong>Workspace:</strong> {form.workspace.name}</p>
-						{/if}
-					</div>
+						<div class="key-info">
+							<p><strong>Key Label:</strong> {apiKeyData.apiKey.label}</p>
+							<p><strong>Key ID:</strong> {apiKeyData.apiKey.id}</p>
+							{#if apiKeyData.workspace}
+								<p><strong>Workspace:</strong> {apiKeyData.workspace.name}</p>
+							{/if}
+						</div>
 
-					{#if !canContinue}
 						<div class="confirmation-box">
 							<label class="checkbox-label">
-								<input type="checkbox" bind:checked={manualConfirmation} />
+								<input type="checkbox" disabled={apiKeyCopied} bind:checked={manualConfirmation} />
 								<span>I have saved my API key in a secure location</span>
 							</label>
 						</div>
-					{/if}
 
-					<div class="continue-actions">
-						<Button
-							variant="primary"
-							onclick={continueToApp}
-							disabled={!canContinue}
-							fullWidth={true}
-						>
-							Continue to Dispatch
-						</Button>
+						<div class="continue-actions">
+							<Button
+								variant="primary"
+								onclick={continueToApp}
+								disabled={!canContinue}
+								fullWidth={true}
+							>
+								Continue to Dispatch
+							</Button>
+						</div>
 					</div>
 				</div>
-			</div>
+			{/key}
 		{:else if onboardingViewModel}
 			<OnboardingFlow viewModel={onboardingViewModel} onComplete={handleOnboardingComplete} />
 		{/if}

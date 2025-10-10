@@ -74,7 +74,7 @@ test.describe('Onboarding - Authentication & Session Tests', () => {
 		console.log(`[Test] Cookie expires in ${daysDiff.toFixed(1)} days`);
 	});
 
-	test('Test: Authentication state after onboarding', async ({ page }) => {
+	test('Test: Authentication state after onboarding', async ({ page, context }) => {
 		// Complete onboarding
 		await page.goto('http://localhost:7173/onboarding');
 		await fillWorkspaceStep(page, ''); // Skip workspace
@@ -88,31 +88,34 @@ test.describe('Onboarding - Authentication & Session Tests', () => {
 		// Wait for navigation
 		await page.waitForURL('**/workspace', { timeout: 10000 });
 
-		// Navigate to /api/auth/check via fetch
-		const authCheckResponse = await page.evaluate(async () => {
-			const res = await fetch('http://localhost:7173/api/auth/check');
-			return {
-				ok: res.ok,
-				status: res.status,
-				data: await res.json()
-			};
-		});
+		// Get cookies from the browser context and make authenticated request
+		const cookies = await context.cookies();
+		const sessionCookie = cookies.find((c) => c.name === 'dispatch_session');
+
+		// Verify session cookie exists
+		expect(sessionCookie).toBeTruthy();
+
+		// Make request with cookies using context's request which shares storage
+		const authCheckResponse = await context.request.get('http://localhost:7173/api/auth/check');
 
 		// Verify response is 200 OK
-		expect(authCheckResponse.status).toBe(200);
-		expect(authCheckResponse.ok).toBe(true);
+		expect(authCheckResponse.status()).toBe(200);
+		expect(authCheckResponse.ok()).toBe(true);
+
+		// Get response data
+		const authData = await authCheckResponse.json();
 
 		// Verify user is authenticated
-		expect(authCheckResponse.data.authenticated).toBe(true);
+		expect(authData.authenticated).toBe(true);
 
 		// Verify user ID is "default"
-		expect(authCheckResponse.data.user?.user_id || authCheckResponse.data.userId).toBe('default');
+		expect(authData.userId).toBe('default');
 
 		console.log('[Test] ✓ Authentication state verified after onboarding');
-		console.log('[Test] User:', authCheckResponse.data.user || authCheckResponse.data);
+		console.log('[Test] User:', authData);
 	});
 
-	test('Test: Cookie persistence across page reload', async ({ page }) => {
+	test('Test: Cookie persistence across page reload', async ({ page, context }) => {
 		// Complete onboarding
 		await completeOnboarding(page, {
 			workspaceName: 'Reload Test',
@@ -124,17 +127,17 @@ test.describe('Onboarding - Authentication & Session Tests', () => {
 		expect(page.url()).toContain('/workspace');
 
 		// Get session cookie before reload
-		const cookiesBefore = await page.context().cookies();
+		const cookiesBefore = await context.cookies();
 		const sessionCookieBefore = cookiesBefore.find((c) => c.name === 'dispatch_session');
 		expect(sessionCookieBefore).toBeTruthy();
 
 		const sessionValueBefore = sessionCookieBefore.value;
 
 		// Reload page
-		await page.reload({ waitUntil: 'networkidle' });
+		await page.reload({ waitUntil: 'domcontentloaded' });
 
-		// Wait a moment for any redirects
-		await page.waitForTimeout(1000);
+		// Wait for page to be fully loaded
+		await page.waitForLoadState('load');
 
 		// Verify still authenticated (not redirected to login)
 		expect(page.url()).toContain('/workspace');
@@ -142,7 +145,7 @@ test.describe('Onboarding - Authentication & Session Tests', () => {
 		expect(page.url()).not.toContain('/onboarding');
 
 		// Get session cookie after reload
-		const cookiesAfter = await page.context().cookies();
+		const cookiesAfter = await context.cookies();
 		const sessionCookieAfter = cookiesAfter.find((c) => c.name === 'dispatch_session');
 		expect(sessionCookieAfter).toBeTruthy();
 
@@ -160,17 +163,16 @@ test.describe('Onboarding - Authentication & Session Tests', () => {
 			console.log('[Test] ✓ Workspace content visible after reload');
 		}
 
-		// Verify auth check still works
-		const authCheckResponse = await page.evaluate(async () => {
-			const res = await fetch('http://localhost:7173/api/auth/check');
-			return {
-				ok: res.ok,
-				data: await res.json()
-			};
+		// Verify auth check still works by making request from page context
+		const authData = await page.evaluate(async () => {
+			const response = await fetch('/api/auth/check', {
+				method: 'GET',
+				credentials: 'include'
+			});
+			return await response.json();
 		});
 
-		expect(authCheckResponse.ok).toBe(true);
-		expect(authCheckResponse.data.authenticated).toBe(true);
+		expect(authData.authenticated).toBe(true);
 
 		console.log('[Test] ✓ Cookie persistence verified across page reload');
 	});

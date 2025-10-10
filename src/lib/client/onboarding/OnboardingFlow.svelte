@@ -52,6 +52,8 @@
 
 			try {
 				if (result.type === 'success') {
+					console.log('[OnboardingFlow] Form submission success, result.data:', result.data);
+
 					// Session cookie is set by the server during onboarding submission
 					// Only store UI preference in localStorage
 					localStorage.setItem('onboarding-complete', 'true');
@@ -59,11 +61,17 @@
 					// Call parent's onComplete callback with form result
 					// Pass data directly - parent function expects result as parameter, not event object
 					onComplete(result.data);
+
+					// DON'T call update() for successful onboarding
+					// The page load function will redirect to / if onboarding is complete
+					// We want to show the API key display first, so we skip update()
 				} else if (result.type === 'failure') {
+					console.log('[OnboardingFlow] Form submission failure:', result.data);
 					// Handle error
 					viewModel.error = result.data?.error || 'Onboarding failed';
+					// Call update() for failures to show error state
+					await update();
 				}
-				await update();
 			} finally {
 				// Clear loading state after submission completes
 				viewModel.isLoading = false;

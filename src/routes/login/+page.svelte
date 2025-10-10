@@ -29,23 +29,25 @@
 	});
 
 	// Handle form submission with progressive enhancement
-	function handleEnhance() {
-		return async ({ formData, cancel }) => {
-			isSubmitting = true;
+	const handleEnhance = ({ formData, cancel, submitter }) => {
+		isSubmitting = true;
 
-			// Let SvelteKit handle the submission
-			return async ({ result }) => {
-				isSubmitting = false;
+		// Let SvelteKit handle the submission
+		return async ({ result, update }) => {
+			isSubmitting = false;
 
-				if (result.type === 'redirect') {
-					// Successful login - redirect handled by SvelteKit
-					await goto(result.location);
-				} else if (result.type === 'failure') {
-					// Error handled via form.error below
-				}
-			};
+			if (result.type === 'redirect') {
+				// Successful login - redirect handled by SvelteKit
+				await goto(result.location);
+			} else if (result.type === 'failure') {
+				// Error handled via form.error below
+				await update();
+			} else {
+				// For any other result type, reset state
+				await update();
+			}
 		};
-	}
+	};
 </script>
 
 <svelte:head>

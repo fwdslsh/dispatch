@@ -154,13 +154,30 @@ test.describe('Onboarding - API Key Display & Copy Tests', () => {
 		const apiKeyElement = page.locator('.api-key-text');
 		await expect(apiKeyElement).toBeVisible({ timeout: 10000 });
 
+		// Wait a moment for the onboarding flow component to fully unmount
+		await page.waitForTimeout(500);
+
 		// Verify "Continue to Dispatch" button is disabled
 		const continueButton = page.locator('button:has-text("Continue to Dispatch")');
 		await expect(continueButton).toBeDisabled();
 
-		// Find the manual confirmation checkbox
-		// The checkbox should have text like "I have saved my API key"
-		const confirmCheckbox = page.locator('input[type="checkbox"]').last(); // API key page checkbox
+		// Debug: Check what's on the page AFTER waiting
+		const allConfirmationBoxes = await page.locator('.confirmation-box').count();
+		const allCheckboxes = await page.locator('input[type="checkbox"]').count();
+		const apiKeyCard = await page.locator('.api-key-card').count();
+		const onboardingFlow = await page.locator('.onboarding-page').count();
+
+		console.log(`[Test] Found ${allConfirmationBoxes} .confirmation-box elements`);
+		console.log(`[Test] Found ${allCheckboxes} checkboxes total`);
+		console.log(`[Test] Found ${apiKeyCard} .api-key-card elements`);
+		console.log(`[Test] Found ${onboardingFlow} .onboarding-page elements`);
+
+		// Find the manual confirmation checkbox specifically in the confirmation box
+		// This ensures we're not finding checkboxes from the previous onboarding steps
+		const confirmCheckbox = page.locator('.confirmation-box input[type="checkbox"]');
+
+		// Wait for the checkbox to be visible
+		await expect(confirmCheckbox).toBeVisible({ timeout: 5000 });
 
 		// Check "I have saved my API key" checkbox
 		await confirmCheckbox.check();
@@ -194,25 +211,20 @@ test.describe('Onboarding - API Key Display & Copy Tests', () => {
 
 		const continueButton = page.locator('button:has-text("Continue to Dispatch")');
 		const copyButton = page.locator('button:has-text("Copy API Key")');
-		const confirmCheckbox = page.locator('input[type="checkbox"]').last();
+		const confirmCheckbox = page.locator('.confirmation-box input[type="checkbox"]');
 
-		// Initially disabled
+		// Initially, continue button is disabled and checkbox is enabled
 		await expect(continueButton).toBeDisabled();
+		await expect(confirmCheckbox).not.toBeDisabled();
 
 		// Click "Copy API Key"
 		await copyButton.click();
 
-		// Verify continue button enabled
+		// Verify continue button becomes enabled
 		await expect(continueButton).toBeEnabled({ timeout: 1000 });
 
-		// Check manual confirmation
-		await confirmCheckbox.check();
-
-		// Both should enable the button, verify still enabled
-		await expect(continueButton).toBeEnabled();
-
-		// Uncheck manual confirmation
-		await confirmCheckbox.uncheck();
+		// Verify checkbox becomes disabled after copy (user made their choice)
+		await expect(confirmCheckbox).toBeDisabled();
 
 		// Verify continue button stays enabled (copy state persists)
 		await expect(continueButton).toBeEnabled();

@@ -27,16 +27,33 @@ export async function POST({ locals }) {
 	logger.debug('TEST_API', 'Reset onboarding request received');
 
 	try {
-		const { settingsRepository } = locals.services;
+		const { database } = locals.services;
 
-		// Delete onboarding settings from database
-		await settingsRepository.deleteCategory('onboarding');
+		// Delete onboarding_complete setting from system category
+		// The onboarding status is stored in settings table as JSON
+		// We need to remove the onboarding_complete key from the system category JSON
+
+		// Get current system settings
+		const systemRow = await database.get(
+			`SELECT settings_json FROM settings WHERE category = ?`,
+			['system']
+		);
+
+		if (systemRow) {
+			const settings = JSON.parse(systemRow.settings_json || '{}');
+			delete settings.onboarding_complete;
+
+			// Update settings without onboarding_complete
+			await database.run(
+				`UPDATE settings SET settings_json = ?, updated_at = ? WHERE category = ?`,
+				[JSON.stringify(settings), Date.now(), 'system']
+			);
+		}
 
 		// Also delete any API keys that were created during onboarding
 		// This ensures a clean slate for the onboarding flow
 		try {
-			const db = settingsRepository.db; // Access the database directly
-			await db.run('DELETE FROM api_keys WHERE label = ?', 'Onboarding Key');
+			await database.run('DELETE FROM auth_api_keys WHERE label = ?', 'First API Key');
 		} catch (dbError) {
 			logger.warn('TEST_API', 'Could not delete onboarding API keys:', dbError.message);
 		}

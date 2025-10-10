@@ -18,8 +18,9 @@ import { expect } from '@playwright/test';
  * @param {import('@playwright/test').Page} page - Playwright page object
  */
 export async function resetOnboardingState(page) {
-	// Navigate to test server
-	await page.goto('http://localhost:7173');
+	// First, ensure we have a page context for fetch() calls
+	// Navigate to a neutral page that doesn't redirect
+	await page.goto('http://127.0.0.1:7173/api/status');
 
 	// Clear localStorage
 	await page.evaluate(() => {
@@ -31,16 +32,10 @@ export async function resetOnboardingState(page) {
 
 	// Reset onboarding state in the database by deleting the onboarding settings
 	// This allows the onboarding flow to run again
-	// Note: This requires direct database access or an API endpoint for test environments
-
-	// For now, we'll use SQLite directly via a test API endpoint
-	// The test server should provide a way to reset onboarding state
-	// If this endpoint doesn't exist, the test will fail and we need to create it
-
 	try {
 		const resetResponse = await page.evaluate(async () => {
 			// Try to reset via API (needs to be implemented server-side)
-			const response = await fetch('http://localhost:7173/api/test/reset-onboarding', {
+			const response = await fetch('http://127.0.0.1:7173/api/test/reset-onboarding', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' }
 			});
@@ -58,7 +53,7 @@ export async function resetOnboardingState(page) {
 
 	// Verify onboarding is not complete using page context
 	const status = await page.evaluate(async () => {
-		const response = await fetch('http://localhost:7173/api/status');
+		const response = await fetch('http://127.0.0.1:7173/api/status');
 		return response.json();
 	});
 
@@ -67,11 +62,14 @@ export async function resetOnboardingState(page) {
 
 	expect(status.onboarding?.isComplete).toBe(false);
 
-	// Navigate to onboarding page to trigger the flow
-	await page.goto('http://localhost:7173/onboarding');
+	// Now navigate to onboarding page (it's a public route and onboarding is not complete)
+	await page.goto('http://127.0.0.1:7173/onboarding');
 
-	// Wait for the page to fully load
-	await page.waitForLoadState('networkidle');
+	// Wait for the workspace input to be visible (proves we're on onboarding, not redirected)
+	await page.waitForSelector('input[placeholder*="Workspace name"]', {
+		state: 'visible',
+		timeout: 5000
+	});
 }
 
 /**
@@ -329,7 +327,7 @@ export async function completeOnboarding(page, options = {}) {
 	} = options;
 
 	// Navigate to onboarding page
-	await page.goto('http://localhost:7173/onboarding');
+	await page.goto('http://127.0.0.1:7173/onboarding');
 
 	// Step 1: Workspace
 	await fillWorkspaceStep(page, workspaceName);
@@ -386,7 +384,7 @@ export function validateApiKeyFormat(apiKey) {
  * @returns {Promise<boolean>} True if onboarding is complete
  */
 export async function isOnboardingComplete() {
-	const response = await fetch('http://localhost:7173/api/status');
+	const response = await fetch('http://127.0.0.1:7173/api/status');
 	const status = await response.json();
 	return status.onboarding?.isComplete === true;
 }

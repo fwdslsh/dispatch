@@ -38,7 +38,6 @@ const PUBLIC_ROUTES = [
 	'/login',
 	'/onboarding',
 	'/api/auth/callback',
-	'/api/auth/check',
 	'/api/auth/config',
 	'/api/auth/login',
 	'/api/auth/logout',
@@ -50,10 +49,23 @@ const PUBLIC_ROUTES = [
 ];
 
 /**
+ * Routes that should run auth middleware but not require authentication
+ * These routes need to check auth status but should work for both authenticated and unauthenticated users
+ */
+const OPTIONAL_AUTH_ROUTES = ['/api/auth/check'];
+
+/**
  * Check if a route is public (doesn't require authentication)
  */
 function isPublicRoute(pathname) {
 	return PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+}
+
+/**
+ * Check if a route requires authentication check but doesn't enforce it
+ */
+function isOptionalAuthRoute(pathname) {
+	return OPTIONAL_AUTH_ROUTES.some((route) => pathname.startsWith(route));
 }
 
 /**
@@ -65,9 +77,10 @@ function isPublicRoute(pathname) {
  */
 async function authenticationMiddleware({ event, resolve }) {
 	const { pathname } = event.url;
+	const isOptionalAuth = isOptionalAuthRoute(pathname);
 
-	// Skip auth for public routes
-	if (isPublicRoute(pathname)) {
+	// Skip auth for public routes (but not optional auth routes)
+	if (isPublicRoute(pathname) && !isOptionalAuth) {
 		logger.debug('AUTH', `Skipping auth for public route: ${pathname}`);
 		return resolve(event);
 	}
@@ -133,6 +146,16 @@ async function authenticationMiddleware({ event, resolve }) {
 
 	// Handle unauthenticated requests
 	if (!authenticated) {
+		// Optional auth routes should proceed even without authentication
+		if (isOptionalAuth) {
+			logger.debug('AUTH', `Optional auth route ${pathname} - proceeding without authentication`);
+			// Set locals.auth to indicate unauthenticated state
+			event.locals.auth = {
+				authenticated: false
+			};
+			return resolve(event);
+		}
+
 		if (isApiRoute) {
 			logger.warn('AUTH', `Unauthenticated API request to ${pathname}`);
 			return json({ error: 'Authentication required' }, { status: 401 });

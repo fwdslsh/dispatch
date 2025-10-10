@@ -10,7 +10,7 @@ import { logger } from '../shared/utils/logger.js';
  * - bcrypt hashing with cost factor 12 (~100-150ms per validation)
  * - Constant-time comparison via bcrypt
  * - 256-bit (32-byte) cryptographically secure random keys
- * - Base64url encoding for display (43-44 characters)
+ * - Base64url encoding with dpk_ prefix (47 characters total: dpk_ + 43 chars)
  * - Secrets shown EXACTLY ONCE on creation
  */
 export class ApiKeyManager {
@@ -39,11 +39,15 @@ export class ApiKeyManager {
 		const keyBuffer = randomBytes(this.KEY_BYTES);
 
 		// Base64url encode for display (URL-safe, no padding)
-		const plainKey = keyBuffer
+		const randomPart = keyBuffer
 			.toString('base64')
 			.replace(/\+/g, '-')
 			.replace(/\//g, '_')
 			.replace(/=/g, '');
+
+		// Add dpk_ prefix to the random part to form the final API key
+		// Format: dpk_[43 chars] = 47 chars total
+		const plainKey = `dpk_${randomPart}`;
 
 		// Hash the key with bcrypt cost factor 12
 		const keyHash = await bcrypt.hash(plainKey, this.BCRYPT_COST_FACTOR);

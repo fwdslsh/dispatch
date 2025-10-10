@@ -54,10 +54,7 @@ npm run dev:test         # Automated testing server (port 7173, no SSL, known ke
 npm run test             # All unit tests
 npm run test:unit        # Vitest unit tests
 npm run test:e2e         # Playwright E2E tests
-npm run test:e2e:headed  # E2E with browser UI
 npm run test:unit        # Vitest unit tests
-npm run test:original    # Run tests with original session management
-npm run test:simplified  # Run tests with simplified sessions
 
 # Building & Production
 npm run build            # Production build
