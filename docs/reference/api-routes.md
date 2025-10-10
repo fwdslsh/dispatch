@@ -4,20 +4,39 @@ Complete reference for all REST API endpoints in Dispatch. All routes are prefix
 
 ## Authentication
 
-**Methods:**
+Dispatch supports **dual authentication** for different access patterns:
 
-1. **Authorization Header** (preferred):
+### Browser Sessions (Session Cookies)
 
-   ```
-   Authorization: Bearer YOUR_TERMINAL_KEY
-   ```
+Automatic authentication for web browsers using httpOnly, Secure (production), SameSite=Lax cookies:
 
-2. **Query Parameter** (backwards compatible):
-   ```
-   ?authKey=YOUR_TERMINAL_KEY
-   ```
+- **Login**: POST to `/api/auth/login` with API key (form action)
+- **Session Cookie**: `dispatch_session` automatically included in requests
+- **Logout**: POST to `/api/auth/logout`
+- **Expiration**: 30 days with 24-hour rolling refresh window
+- **Multi-tab**: Same cookie shared across browser tabs
 
-**Authentication is validated by hooks middleware** (`src/hooks.server.js`) for protected routes. The `locals.auth` object contains authentication state.
+### Programmatic Access (API Keys)
+
+For scripts, CLI tools, and automation:
+
+**Authorization Header** (recommended):
+```
+Authorization: Bearer dpk_YOUR_API_KEY_HERE
+```
+
+**Query Parameter** (alternative):
+```
+?authKey=dpk_YOUR_API_KEY_HERE
+```
+
+### Unified Route Support
+
+**All protected routes accept EITHER authentication method:**
+- Browser requests: Automatically use session cookie (via SvelteKit)
+- Programmatic requests: Include API key in Authorization header
+
+**Authentication validation** is performed by hooks middleware (`src/hooks.server.js`). The `event.locals.user` and `event.locals.sessionId` are populated on successful authentication.
 
 ## Session Management
 
@@ -956,6 +975,156 @@ Get authentication configuration.
 ### POST /api/auth/callback
 
 OAuth callback handler.
+
+### POST /api/auth/logout
+
+Logout and destroy session.
+
+**Response:**
+
+```json
+{
+	"success": true
+}
+```
+
+**Effects:**
+- Invalidates session cookie
+- Removes session from database
+- Clears cookie from browser
+
+### GET /api/auth/keys
+
+List all API keys for authenticated user.
+
+**Authentication:** Required (session cookie)
+
+**Response:**
+
+```json
+{
+	"keys": [
+		{
+			"id": "key-abc123",
+			"label": "Production Server",
+			"createdAt": "2024-01-15T10:30:00.000Z",
+			"lastUsedAt": "2024-01-16T14:20:00.000Z",
+			"disabled": false
+		},
+		{
+			"id": "key-xyz789",
+			"label": "CI/CD Pipeline",
+			"createdAt": "2024-01-10T08:15:00.000Z",
+			"lastUsedAt": null,
+			"disabled": true
+		}
+	]
+}
+```
+
+### POST /api/auth/keys
+
+Create a new API key.
+
+**Authentication:** Required (session cookie)
+
+**Request Body:**
+
+```json
+{
+	"label": "My New Key"
+}
+```
+
+**Response (201 Created):**
+
+```json
+{
+	"id": "key-abc123",
+	"key": "dpk_1234567890abcdefghijklmnopqrstuvwxyzABCDE",
+	"label": "My New Key",
+	"createdAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Security Notes:**
+- API key is returned ONLY ONCE in the response
+- Key is hashed with bcrypt (cost 12) before storage
+- Client must save the key immediately - it cannot be retrieved later
+
+### PUT /api/auth/keys/[keyId]
+
+Update API key (currently supports disabling/enabling).
+
+**Authentication:** Required (session cookie)
+
+**Request Body:**
+
+```json
+{
+	"disabled": true
+}
+```
+
+**Response:**
+
+```json
+{
+	"success": true,
+	"key": {
+		"id": "key-abc123",
+		"disabled": true
+	}
+}
+```
+
+### DELETE /api/auth/keys/[keyId]
+
+Delete an API key (hard delete).
+
+**Authentication:** Required (session cookie)
+
+**Response:**
+
+```json
+{
+	"success": true
+}
+```
+
+**Effects:**
+- Permanently removes API key from database
+- All future requests with this key will fail with 401
+- Active sessions using this key are immediately invalidated
+
+### POST /api/auth/oauth/initiate
+
+Initiate OAuth login flow.
+
+**Request Body:**
+
+```json
+{
+	"provider": "github" // or "google"
+}
+```
+
+**Response:**
+
+```json
+{
+	"authUrl": "https://github.com/login/oauth/authorize?client_id=...",
+	"state": "random-state-token"
+}
+```
+
+**Flow:**
+1. Client redirects to `authUrl`
+2. User authorizes on OAuth provider
+3. Provider redirects to `/api/auth/callback?code=...&state=...`
+4. Server exchanges code for access token
+5. Server creates session cookie
+6. Server redirects to application
 
 ## Environment & Status
 

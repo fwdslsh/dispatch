@@ -128,17 +128,18 @@
 >
 	<!-- Window chrome with macOS-style dots -->
 	<div class="chrome">
-		<div class="dots">
-			<span class="dot dot-red" aria-hidden="true"></span>
-			<span class="dot dot-yellow" aria-hidden="true"></span>
-			<span class="dot dot-green" aria-hidden="true"></span>
-		</div>
+		
 		<span class="title">{theme.name}</span>
 		{#if isActive}
 			<span class="active-badge" role="status">Active</span>
 		{/if}
 	</div>
-
+	<!-- Theme description -->
+	{#if theme.description}
+		<div class="description">
+			{theme.description}
+		</div>
+	{/if}
 	<!-- Terminal preview showing background, foreground, and cursor -->
 	<div
 		class="preview"
@@ -148,10 +149,10 @@
 		"
 	>
 		<div class="preview-line">
-			<span class="prompt" style="color: {colors.green};">$</span>
+			<span class="prompt" style="color: {colors.green};">&dollar;</span>
 			<span class="command" style="color: {colors.cyan};">dispatch</span>
 			<span class="arg" style="color: {colors.yellow};">--theme</span>
-			<span style="color: {colors.foreground};">{theme.name}</span>
+			<span style="color: {colors.foreground};">"{theme.name}"</span>
 		</div>
 		<div class="preview-line">
 			<span style="color: {colors.brightBlack};"># Terminal theme preview</span>
@@ -190,12 +191,7 @@
 		</div>
 	</div>
 
-	<!-- Theme description -->
-	{#if theme.description}
-		<div class="description">
-			{theme.description}
-		</div>
-	{/if}
+
 
 	<!-- Action buttons -->
 	<div class="actions">
@@ -223,18 +219,20 @@
 	.theme-card {
 		display: flex;
 		flex-direction: column;
+		justify-content: space-evenly;
 		border: 1px solid var(--line);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-xs);
 		overflow: hidden;
+		max-width: 250px;
 		background: var(--surface);
 		transition: all 0.2s ease;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 	}
 
 	.theme-card:hover {
 		box-shadow:
-			0 4px 8px rgba(0, 0, 0, 0.3),
-			0 0 0 2px var(--primary-glow-20);
+			0 2px 4px rgba(0, 0, 0, 0.18),
+			0 0 0 1.5px var(--primary-glow-20);
 
 		filter: brightness(1.05);
 	}
@@ -242,59 +240,31 @@
 	.theme-card.active {
 		border-color: var(--primary);
 		box-shadow:
-			0 0 0 2px var(--primary-glow-25),
-			0 4px 12px rgba(46, 230, 107, 0.2);
+			0 0 0 1.5px var(--primary-glow-25),
+			0 2px 6px rgba(46, 230, 107, 0.13);
 	}
 
 	/* Window chrome */
 	.chrome {
 		display: flex;
 		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-2) var(--space-3);
+		gap: var(--space-2);
+		padding: var(--space-1) var(--space-2);
 		background: var(--surface-primary-98);
 		border-bottom: 1px solid var(--line);
-	}
-
-	.dots {
-		display: flex;
-		gap: var(--space-2);
-	}
-
-	.dot {
-		width: var(--font-size-0);
-		height: var(--font-size-0);
-		border-radius: var(--radius-full);
-		border: 1px solid rgba(0, 0, 0, 0.2);
-	}
-
-	.dot-red {
-		background: #ff5f56;
-	}
-
-	.dot-yellow {
-		background: #ffbd2e;
-	}
-
-	.dot-green {
-		background: #27c93f;
+		justify-content: space-between;
 	}
 
 	.title {
-		flex: 1;
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		font-weight: 600;
-		color: var(--text);
-		letter-spacing: 0.3px;
+		font-size: var(--font-size-0);
 	}
 
 	.active-badge {
 		display: inline-flex;
 		align-items: center;
-		padding: 2px var(--space-2);
+		padding: 1px var(--space-1);
 		font-family: var(--font-mono);
-		font-size: var(--font-size-0);
+		font-size: 11px;
 		font-weight: 600;
 		color: var(--bg);
 		background: var(--primary);
@@ -305,62 +275,53 @@
 
 	/* Terminal preview area */
 	.preview {
-		padding: var(--space-4);
-		min-height: 120px;
+		padding: var(--space-2);
+		min-height: 64px;
 		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
+		font-size: 13px;
 		line-height: 1.5;
 		position: relative;
 	}
 
 	.preview-line {
-		margin-bottom: var(--space-2);
+		margin-bottom: 2px;
 	}
 
 	.prompt {
 		font-weight: bold;
-		margin-right: var(--space-2);
+		margin-right: var(--space-1);
 	}
 
 	.command,
 	.arg {
-		margin-right: var(--space-2);
+		margin-right: 6px;
 	}
 
 	.cursor-line {
-		margin-top: var(--space-3);
+		margin-top: 8px;
 	}
 
 	.cursor {
 		display: inline-block;
-		width: var(--space-2);
-		height: var(--font-size-2);
-		animation: cursorBlink 1s step-end infinite;
+		width: 8px;
+		height: 16px;
 	}
 
 	/* ANSI palette */
 	.palette {
-		padding: var(--space-3);
-		background: var(--surface-primary-98);
-		border-top: 1px solid var(--line);
-		border-bottom: 1px solid var(--line);
+		padding: var(--space-2);
 	}
 
 	.palette-label {
-		font-family: var(--font-mono);
-		font-size: var(--font-size-0);
-		font-weight: 600;
-		color: var(--muted);
-		margin-bottom: var(--space-2);
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
+		font-size: 11px;
+		margin-bottom: 2px;
 	}
 
 	.palette-row {
 		display: grid;
 		grid-template-columns: repeat(8, 1fr);
-		gap: var(--space-1);
-		margin-bottom: var(--space-1);
+		gap: 2px;
+		margin-bottom: 2px;
 	}
 
 	.palette-row:last-child {
@@ -369,7 +330,7 @@
 
 	.color-block {
 		aspect-ratio: 1;
-		border-radius: var(--radius-xs);
+		border-radius: 3px;
 		border: 1px solid rgba(0, 0, 0, 0.2);
 		cursor: help;
 		transition: transform 0.15s ease;
@@ -382,9 +343,9 @@
 
 	/* Description */
 	.description {
-		padding: var(--space-3);
+		padding: var(--space-2);
 		font-family: var(--font-mono);
-		font-size: var(--font-size-0);
+		font-size: 12px;
 		color: var(--muted);
 		line-height: 1.5;
 		font-style: italic;
@@ -393,8 +354,8 @@
 	/* Action buttons */
 	.actions {
 		display: flex;
-		gap: var(--space-2);
-		padding: var(--space-3);
+		gap: var(--space-1);
+		padding: var(--space-2);
 		border-top: 1px solid var(--line);
 		background: var(--surface-primary-98);
 	}
@@ -402,15 +363,13 @@
 	/* Responsive adjustments */
 	@media (max-width: 768px) {
 		.preview {
-			font-size: var(--font-size-0);
-			min-height: 100px;
-			padding: var(--space-3);
+			font-size: 11px;
+			min-height: 48px;
+			padding: var(--space-1);
 		}
-
 		.palette-row {
-			gap: 2px;
+			gap: 1px;
 		}
-
 		.actions {
 			flex-direction: column;
 		}

@@ -67,37 +67,88 @@ export class TunnelManager extends BaseTunnelManager {
 			this._logInfo(`Starting LocalTunnel on port ${this.port}...`);
 			this.process = spawn('npx', ['localtunnel', ...args], { stdio: 'pipe' });
 
-			this.process.stdout.on('data', async (buf) => {
-				const line = buf.toString().trim();
-				this._logDebug(line);
-				const url = this._extractUrl(line);
-				if (url) {
-					this.currentUrl = url;
-					await this._saveTunnelSettings();
-					this._logInfo(`Public URL: ${url}`);
+			let urlResolved = false;
 
-					// Broadcast status update to all connected clients
-					this._broadcastStatus('tunnel.status', this.getStatus());
-				}
-			});
+			// Create promise that resolves when URL is received
+			const urlPromise = new Promise((resolve, reject) => {
+				const timeout = setTimeout(() => {
+					if (!urlResolved) {
+						reject(new Error('Timeout waiting for tunnel URL (30s)'));
+					}
+				}, 30000); // 30 second timeout
 
-			this.process.stderr.on('data', (buf) => {
-				this._logError(buf.toString().trim());
-			});
+				const handleData = async (buf) => {
+					if (urlResolved) return; // URL already resolved, ignore additional data
 
-			this.process.on('exit', async (code, signal) => {
-				this._logInfo(`Process exited with code=${code} signal=${signal}`);
-				await this._cleanup();
+					const line = buf.toString().trim();
+					this._logDebug(line);
+					const url = this._extractUrl(line);
+					if (url) {
+						urlResolved = true;
+						clearTimeout(timeout);
+						this.currentUrl = url;
+						await this._saveTunnelSettings();
+						this._logInfo(`Public URL: ${url}`);
+
+						// Broadcast status update to all connected clients
+						this._broadcastStatus('tunnel.status', this.getStatus());
+						resolve(url);
+					}
+				};
+
+				const handleError = (err) => {
+					if (!urlResolved) {
+						urlResolved = true;
+						clearTimeout(timeout);
+						reject(err);
+					}
+				};
+
+				const handleExit = async (code, signal) => {
+					this._logInfo(`Process exited with code=${code} signal=${signal}`);
+					await this._cleanup();
+
+					if (!urlResolved) {
+						urlResolved = true;
+						clearTimeout(timeout);
+						if (code !== 0) {
+							reject(new Error(`LocalTunnel process exited with code=${code} signal=${signal}`));
+						} else {
+							// Process exited cleanly but no URL was received
+							reject(new Error('LocalTunnel process exited without providing URL'));
+						}
+					}
+				};
+
+				// Register event handlers
+				this.process.stdout.on('data', handleData);
+				this.process.stderr.on('data', (buf) => {
+					this._logError(buf.toString().trim());
+				});
+				this.process.on('error', handleError);
+				this.process.on('exit', handleExit);
 			});
 
 			this.isEnabled = true;
 			await this._saveTunnelSettings();
+
+			// Wait for URL to be available before returning
+			await urlPromise;
+
 			return true;
 		} catch (error) {
 			this._logError(`Failed to start tunnel: ${error.message}`);
 			this.isEnabled = false;
+			this.currentUrl = null;
 			await this._saveTunnelSettings();
-			return false;
+
+			// Clean up process if it exists
+			if (this.process) {
+				this._killProcess();
+				this.process = null;
+			}
+
+			throw error; // Propagate error to caller
 		}
 	}
 
@@ -108,16 +159,45 @@ export class TunnelManager extends BaseTunnelManager {
 	async stop() {
 		if (!this._isProcessRunning()) {
 			this._logWarn('Tunnel is not running');
+			// Still cleanup state even if process isn't running
+			await this._cleanup();
 			return false;
 		}
 
 		try {
+			const processToKill = this.process;
 			this._killProcess();
+
+			// Wait for process to actually exit
+			if (processToKill && !processToKill.killed) {
+				await new Promise((resolve) => {
+					const timeout = setTimeout(() => {
+						this._logWarn('Process did not exit gracefully, forcing kill');
+						try {
+							processToKill.kill('SIGKILL');
+						} catch (e) {
+							// Ignore errors on force kill
+						}
+						resolve();
+					}, 2000); // 2 second timeout
+
+					processToKill.once('exit', () => {
+						clearTimeout(timeout);
+						resolve();
+					});
+				});
+			}
+
 			await this._cleanup();
 			this._logInfo('Tunnel stopped');
+
+			// Broadcast status update to all connected clients
+			this._broadcastStatus('tunnel.status', this.getStatus());
+
 			return true;
 		} catch (error) {
 			this._logError(`Failed to stop tunnel: ${error.message}`);
+			await this._cleanup(); // Cleanup state even if stop failed
 			return false;
 		}
 	}

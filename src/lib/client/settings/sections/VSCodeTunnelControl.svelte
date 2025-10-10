@@ -23,7 +23,16 @@
 		socket = io(socketUrl, { transports: ['websocket', 'polling'] });
 
 		socket.on(SOCKET_EVENTS.CONNECTION, () => {
-			fetchTunnelStatus();
+			// Authenticate via session cookie before making requests
+			socket.emit('client:hello', {}, (response) => {
+				if (response?.success) {
+					console.log('[VSCodeTunnelControl] Authenticated via session cookie');
+					fetchTunnelStatus();
+				} else {
+					console.error('[VSCodeTunnelControl] Authentication failed:', response?.error);
+					error = 'Authentication failed - please refresh the page';
+				}
+			});
 		});
 
 		// Listen for tunnel status broadcasts
@@ -56,7 +65,7 @@
 	}
 
 	async function startTunnel() {
-		if (!socket) return;
+		if (!socket || isLoading) return; // Prevent double-clicks during loading
 
 		isLoading = true;
 		error = null;
@@ -67,33 +76,45 @@
 		// Add optional parameters if provided
 		if (nameInput.trim()) data.name = nameInput.trim();
 
-		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
-		socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
+		try {
+			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+			socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
+				isLoading = false;
+				if (response?.success) {
+					tunnelStatus = { running: true, state: response.state };
+					error = null; // Clear any previous errors
+				} else {
+					error = response?.error || 'Failed to start tunnel';
+				}
+			});
+		} catch (err) {
 			isLoading = false;
-			if (response.success) {
-				tunnelStatus = { running: true, state: response.state };
-			} else {
-				error = response.error || 'Failed to start tunnel';
-			}
-		});
+			error = err.message || 'Failed to start tunnel';
+		}
 	}
 
 	async function stopTunnel() {
-		if (!socket) return;
+		if (!socket || isLoading) return; // Prevent double-clicks during loading
 
 		isLoading = true;
 		error = null;
 		deviceLoginUrl = '';
 
-		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
-		socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, {}, (response) => {
+		try {
+			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+			socket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, {}, (response) => {
+				isLoading = false;
+				if (response?.success) {
+					tunnelStatus = response.status || { running: false, state: null };
+					error = null; // Clear any previous errors
+				} else {
+					error = response?.error || 'Failed to stop tunnel';
+				}
+			});
+		} catch (err) {
 			isLoading = false;
-			if (response.success) {
-				tunnelStatus = { running: false, state: null };
-			} else {
-				error = response.error || 'Failed to stop tunnel';
-			}
-		});
+			error = err.message || 'Failed to stop tunnel';
+		}
 	}
 
 	async function copyUrlToClipboard() {
@@ -132,7 +153,7 @@
 			</div>
 		{/if}
 
-		<div class="tunnel-status">
+		<div class="tunnel-status" data-section="vscode">
 			<div class="status-item">
 				<strong>Status:</strong>
 				<span class="status-badge" class:running={tunnelStatus.running}>

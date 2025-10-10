@@ -12,7 +12,7 @@
 		"dev:no-key": "TERMINAL_KEY='' SSL_ENABLED=true vite dev --host",
 		"dev:tunnel": "TERMINAL_KEY=testkey12345 ENABLE_TUNNEL=true SSL_ENABLED=true vite dev --host",
 		"dev:http": "TERMINAL_KEY='testkey12345' HOME=\"$(pwd)/.testing-home\" WORKSPACES_ROOT=\"$(pwd)/.testing-home/workspaces\" SSL_ENABLED=false vite dev --host",
-		"dev:test": "mkdir -p /tmp/dispatch-test-home /tmp/dispatch-test-workspaces && TERMINAL_KEY='test-automation-key-12345' HOME=/tmp/dispatch-test-home WORKSPACES_ROOT=/tmp/dispatch-test-workspaces SSL_ENABLED=false vite dev --host --port 7173",
+		"dev:test": "mkdir -p /tmp/dispatch-test-home /tmp/dispatch-test-workspaces && PORT=7173 TERMINAL_KEY='test-automation-key-12345' HOME=/tmp/dispatch-test-home WORKSPACES_ROOT=/tmp/dispatch-test-workspaces SSL_ENABLED=false vite dev --host --port 7173",
 		"build": "vite build",
 		"build:strict": "npm run check && vite build",
 		"preview": "vite preview",

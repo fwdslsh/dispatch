@@ -63,9 +63,9 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
 /**
  * Factory function to create all services with dependencies wired
  * @param {Object} [config] - Optional configuration overrides
- * @returns {Services} Services object containing all initialized services
+ * @returns {Promise<Services>} Services object containing all initialized services
  */
-export function createServices(config = {}) {
+export async function createServices(config = {}) {
 	// Resolve tilde paths
 	const homeDir = config.HOME || process.env.HOME || os.homedir();
 	const resolvedConfig = {
@@ -198,7 +198,7 @@ export async function initializeServices(config = {}) {
 	try {
 		logger.info('SERVICES', 'Initializing services...');
 
-		services = createServices(config);
+		services = await createServices(config);
 
 		// Initialize database
 		await services.db.init();

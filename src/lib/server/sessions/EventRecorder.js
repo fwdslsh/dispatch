@@ -167,14 +167,6 @@ export class EventRecorder {
 	}
 
 	/**
-	 * Legacy method for backward compatibility
-	 * @deprecated Use recordEvent instead
-	 */
-	async record(sessionId, event) {
-		return await this.recordEvent(sessionId, event);
-	}
-
-	/**
 	 * Subscribe to event stream
 	 * @param {string} eventName - Event name (typically 'event')
 	 * @param {(...args: any[]) => void} listener - Event listener (event) => void

@@ -19,6 +19,7 @@
 	import Button from '$lib/client/shared/components/Button.svelte';
 
 	// Server load data
+	/** @type {import('./$types').PageData} */
 	let { data, form } = $props();
 
 	// State management

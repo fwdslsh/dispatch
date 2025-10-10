@@ -336,13 +336,7 @@ tbody tr:hover {
 	text-shadow: 0 0 var(--space-2) var(--glow);
 }
 
-/* Terminal-style prompt indicators */
-.prompt::before {
-	content: '$ ';
-	color: var(--accent);
-	font-family: var(--font-mono);
-	font-weight: 700;
-}
+
 
 /* Subtle body scan lines for retro CRT effect */
 body::before {

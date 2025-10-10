@@ -50,7 +50,16 @@
 		localSocket = io(socketUrl, { transports: ['websocket', 'polling'] });
 
 		localSocket.on(SOCKET_EVENTS.CONNECTION, () => {
-			fetchLocalTunnelStatus();
+			// Authenticate via session cookie before making requests
+			localSocket.emit('client:hello', {}, (response) => {
+				if (response?.success) {
+					console.log('[Tunnels] LocalTunnel socket authenticated');
+					fetchLocalTunnelStatus();
+				} else {
+					console.error('[Tunnels] LocalTunnel authentication failed:', response?.error);
+					localError = 'Authentication failed - please refresh the page';
+				}
+			});
 		});
 
 		// Listen for tunnel status broadcasts
@@ -76,28 +85,34 @@
 	}
 
 	async function toggleLocalTunnel() {
-		if (!localSocket) return;
+		if (!localSocket || localIsLoading) return; // Prevent double-clicks during loading
 
 		localIsLoading = true;
 		localError = null;
 
 		const event = localTunnelStatus.enabled
-			? SOCKET_EVENTS.TUNNEL_DISABLE
-			: SOCKET_EVENTS.TUNNEL_ENABLE;
+			? SOCKET_EVENTS.TUNNEL_STOP
+			: SOCKET_EVENTS.TUNNEL_START;
 
 		// Get the current port from window location
 		const currentPort =
 			window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
 
-		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
-		localSocket.emit(event, { port: currentPort }, (response) => {
+		try {
+			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+			localSocket.emit(event, { port: currentPort }, (response) => {
+				localIsLoading = false;
+				if (response?.success) {
+					localTunnelStatus = response.status;
+					localError = null; // Clear any previous errors
+				} else {
+					localError = response?.error || 'Failed to toggle tunnel';
+				}
+			});
+		} catch (err) {
 			localIsLoading = false;
-			if (response.success) {
-				localTunnelStatus = response.status;
-			} else {
-				localError = response.error || 'Failed to toggle tunnel';
-			}
-		});
+			localError = err.message || 'Failed to toggle tunnel';
+		}
 	}
 
 	function copyLocalUrlToClipboard() {
@@ -149,7 +164,16 @@
 		vscodeSocket = io(socketUrl, { transports: ['websocket', 'polling'] });
 
 		vscodeSocket.on(SOCKET_EVENTS.CONNECTION, () => {
-			fetchVSCodeTunnelStatus();
+			// Authenticate via session cookie before making requests
+			vscodeSocket.emit('client:hello', {}, (response) => {
+				if (response?.success) {
+					console.log('[Tunnels] VS Code socket authenticated');
+					fetchVSCodeTunnelStatus();
+				} else {
+					console.error('[Tunnels] VS Code authentication failed:', response?.error);
+					vscodeError = 'Authentication failed - please refresh the page';
+				}
+			});
 		});
 
 		// Listen for tunnel status broadcasts
@@ -182,7 +206,7 @@
 	}
 
 	async function startVSCodeTunnel() {
-		if (!vscodeSocket) return;
+		if (!vscodeSocket || vscodeIsLoading) return; // Prevent double-clicks during loading
 
 		vscodeIsLoading = true;
 		vscodeError = null;
@@ -193,33 +217,46 @@
 		// Add optional parameters if provided
 		if (nameInput.trim()) data.name = nameInput.trim();
 
-		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
-		vscodeSocket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
+		try {
+			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+			vscodeSocket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_START, data, (response) => {
+				vscodeIsLoading = false;
+				if (response?.success) {
+					vscodeTunnelStatus = { running: true, state: response.state };
+					vscodeError = null; // Clear any previous errors
+				} else {
+					vscodeError = response?.error || 'Failed to start tunnel';
+				}
+			});
+		} catch (err) {
 			vscodeIsLoading = false;
-			if (response.success) {
-				vscodeTunnelStatus = { running: true, state: response.state };
-			} else {
-				vscodeError = response.error || 'Failed to start tunnel';
-			}
-		});
+			vscodeError = err.message || 'Failed to start tunnel';
+		}
 	}
 
 	async function stopVSCodeTunnel() {
-		if (!vscodeSocket) return;
+		if (!vscodeSocket || vscodeIsLoading) return; // Prevent double-clicks during loading
 
 		vscodeIsLoading = true;
 		vscodeError = null;
 		deviceLoginUrl = '';
 
-		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
-		vscodeSocket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, {}, (response) => {
+		try {
+			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+			vscodeSocket.emit(SOCKET_EVENTS.VSCODE_TUNNEL_STOP, {}, (response) => {
+				vscodeIsLoading = false;
+				if (response?.success) {
+					// Update status from response (backend provides current state)
+					vscodeTunnelStatus = response.status;
+					vscodeError = null; // Clear any previous errors
+				} else {
+					vscodeError = response?.error || 'Failed to stop tunnel';
+				}
+			});
+		} catch (err) {
 			vscodeIsLoading = false;
-			if (response.success) {
-				vscodeTunnelStatus = { running: false, state: null };
-			} else {
-				vscodeError = response.error || 'Failed to stop tunnel';
-			}
-		});
+			vscodeError = err.message || 'Failed to stop tunnel';
+		}
 	}
 
 	async function copyVSCodeUrlToClipboard() {
@@ -291,7 +328,7 @@
 				</InfoBox>
 			{/if}
 
-			<div class="tunnel-status">
+			<div class="tunnel-status" data-section="localtunnel">
 				<div class="status-row">
 					<span class="status-label">Status:</span>
 					<span
@@ -402,7 +439,7 @@
 				</InfoBox>
 			{/if}
 
-			<div class="tunnel-status">
+			<div class="tunnel-status" data-section="vscode">
 				<div class="status-item">
 					<strong>Status:</strong>
 					<StatusBadge variant={vscodeTunnelStatus.running ? 'active' : 'inactive'}>

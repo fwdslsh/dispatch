@@ -29,7 +29,16 @@
 		socket = io(socketUrl, { transports: ['websocket', 'polling'] });
 
 		socket.on(SOCKET_EVENTS.CONNECTION, () => {
-			fetchTunnelStatus();
+			// Authenticate via session cookie before making requests
+			socket.emit('client:hello', {}, (response) => {
+				if (response?.success) {
+					console.log('[TunnelControl] Authenticated via session cookie');
+					fetchTunnelStatus();
+				} else {
+					console.error('[TunnelControl] Authentication failed:', response?.error);
+					error = 'Authentication failed - please refresh the page';
+				}
+			});
 		});
 
 		// Listen for tunnel status broadcasts
@@ -55,26 +64,33 @@
 	}
 
 	async function toggleTunnel() {
-		if (!socket) return;
+		if (!socket || isLoading) return; // Prevent double-clicks during loading
 
 		isLoading = true;
 		error = null;
 
-		const event = tunnelStatus.enabled ? SOCKET_EVENTS.TUNNEL_DISABLE : SOCKET_EVENTS.TUNNEL_ENABLE;
+		const event = tunnelStatus.enabled ? SOCKET_EVENTS.TUNNEL_STOP : SOCKET_EVENTS.TUNNEL_START;
 
 		// Get the current port from window location
 		const currentPort =
 			window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
 
-		// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
-		socket.emit(event, { port: currentPort }, (response) => {
+		try {
+			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+			socket.emit(event, { port: currentPort }, (response) => {
+				isLoading = false;
+				if (response?.success) {
+					// Update status from response (works for both start and stop)
+					tunnelStatus = response.status;
+					error = null; // Clear any previous errors
+				} else {
+					error = response?.error || 'Failed to toggle tunnel';
+				}
+			});
+		} catch (err) {
 			isLoading = false;
-			if (response.success) {
-				tunnelStatus = response.status;
-			} else {
-				error = response.error || 'Failed to toggle tunnel';
-			}
-		});
+			error = err.message || 'Failed to toggle tunnel';
+		}
 	}
 
 	function copyUrlToClipboard() {
@@ -139,7 +155,7 @@
 			</div>
 		{/if}
 
-		<div class="tunnel-status">
+		<div class="tunnel-status" data-section="localtunnel">
 			<div class="status-row">
 				<span class="status-label">Status:</span>
 				<span

@@ -117,55 +117,6 @@ export class OnboardingViewModel {
 	}
 
 	/**
-	 * Submit the complete onboarding form via API endpoint
-	 *
-	 * @deprecated This method is no longer used by OnboardingFlow.svelte which now
-	 * uses SvelteKit form actions for better CSRF protection and progressive enhancement.
-	 * Kept for backward compatibility and potential programmatic usage.
-	 *
-	 * @returns {Promise<{success: boolean, apiKey: object, workspace: object|null}>}
-	 */
-	async submit() {
-		this.isLoading = true;
-		this.error = null;
-
-		try {
-			// Validate all steps before submission
-			const validation = this.validateCurrentStep();
-			if (!validation.valid) {
-				throw new Error(validation.errors.join(', '));
-			}
-
-			// Prepare submission data
-			const submissionData = {};
-
-			// Include workspace if provided
-			if (this.formData.workspaceName && this.formData.workspacePath) {
-				submissionData.workspaceName = this.formData.workspaceName;
-				submissionData.workspacePath = this.formData.workspacePath;
-			}
-
-			// Include preferences if any were set
-			if (Object.keys(this.formData.preferences).length > 0) {
-				submissionData.preferences = this.formData.preferences;
-			}
-
-			// Submit to API (single atomic operation)
-			const result = await this.#apiClient.submitOnboarding(submissionData);
-
-			// Mark as complete
-			this.currentStep = 'complete';
-
-			return result;
-		} catch (err) {
-			this.error = err.message || 'Failed to complete onboarding';
-			throw err;
-		} finally {
-			this.isLoading = false;
-		}
-	}
-
-	/**
 	 * Reset the form (for testing or retry)
 	 */
 	reset() {

@@ -163,10 +163,12 @@ export class ThemeState {
 			});
 			const data = await this.handleResponse(response);
 
-			this.activeThemeId = data.id;
-			log.info('Active theme loaded', { themeId: data.id, source: data.source });
+			// API returns {theme: {...}} structure
+			const theme = data.theme || data;
+			this.activeThemeId = theme.id;
+			log.info('Active theme loaded', { themeId: theme.id, source: theme.source });
 
-			return data;
+			return theme;
 		} catch (err) {
 			this.error = err.message || 'Failed to load active theme';
 			log.error('Failed to load active theme', err);
@@ -245,15 +247,14 @@ export class ThemeState {
 		try {
 			// Authentication via session cookie (server validates)
 
-			// Update global theme preference
-			const url = `${this.baseUrl}/api/preferences`;
+			// Update global theme preference using correct settings API endpoint
+			const url = `${this.baseUrl}/api/settings/themes`;
 			const response = await fetch(url, {
 				method: 'PUT',
 				headers: this.getHeaders(),
 				credentials: 'include',
 				body: JSON.stringify({
-					category: 'themes',
-					preferences: {
+					settings: {
 						globalDefault: themeId
 					}
 				})

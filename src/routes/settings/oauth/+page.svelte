@@ -6,8 +6,6 @@
 <script>
 	import OAuthSettings from '$lib/client/settings/OAuthSettings.svelte';
 	import Shell from '$lib/client/shared/components/Shell.svelte';
-
-	export let data;
 </script>
 
 <svelte:head>

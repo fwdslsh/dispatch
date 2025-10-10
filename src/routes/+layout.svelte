@@ -14,6 +14,7 @@
 		validateThemeColors
 	} from '$lib/client/shared/utils/color-utils.js';
 
+	/** @type {import('./$types').LayoutData} */
 	let { data, children } = $props();
 	let onboardingViewModel = $state(null);
 
@@ -213,14 +214,22 @@
 			// Check if we need to redirect to onboarding
 			const currentPath = page.url.pathname;
 			const isOnOnboardingPage = currentPath.startsWith('/onboarding');
+			const isOnSettingsPage = currentPath.startsWith('/settings');
 			const shouldOnboard = !status.onboarding.isComplete;
 
 			console.log('[Layout] Redirect logic:', {
 				currentPath,
 				isOnOnboardingPage,
+				isOnSettingsPage,
 				shouldOnboard,
 				isComplete: status.onboarding.isComplete
 			});
+
+			// Don't redirect if user is on settings page - allow settings access
+			if (isOnSettingsPage) {
+				console.log('[Layout] User is on settings page, skipping onboarding redirect');
+				return;
+			}
 
 			if (shouldOnboard && !isOnOnboardingPage) {
 				// User needs onboarding and isn't on onboarding page

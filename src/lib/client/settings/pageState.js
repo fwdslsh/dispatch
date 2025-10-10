@@ -13,8 +13,18 @@ import IconTrash from '$lib/client/shared/components/Icons/IconTrash.svelte';
 import IconArchive from '$lib/client/shared/components/Icons/IconArchive.svelte';
 import IconKey from '$lib/client/shared/components/Icons/IconKey.svelte';
 import IconAdjustmentsAlt from '$lib/client/shared/components/Icons/IconAdjustmentsAlt.svelte';
+import OAuthSettings from './OAuthSettings.svelte';
+import IconSettings from '../shared/components/Icons/IconSettings.svelte';
+import ClaudeIcon from '../shared/components/Icons/ClaudeIcon.svelte';
 
 const SETTINGS_SECTIONS = [
+	{
+		id: 'home',
+		label: 'Home Directory',
+		navAriaLabel: 'File browser and home directory manager',
+		icon: IconFolder,
+		component: HomeDirectoryManager
+	},
 	{
 		id: 'themes',
 		label: 'Theme',
@@ -23,32 +33,25 @@ const SETTINGS_SECTIONS = [
 		component: ThemeSettings
 	},
 	{
-		id: 'home',
-		label: 'Home Directory',
-		navAriaLabel: 'File browser and home directory manager',
-		icon: IconUser,
-		component: HomeDirectoryManager
-	},
-	{
-		id: 'workspace-env',
-		label: 'Environment',
-		navAriaLabel: 'Environment settings for your workspace',
-		icon: IconFolder,
-		component: WorkspaceEnvSettings
-	},
-	{
-		id: 'authentication',
-		label: 'Authentication',
-		navAriaLabel: 'Authentication and security settings',
-		icon: IconKey,
-		component: AuthenticationSettingsSection
-	},
-	{
 		id: 'tunnels',
 		label: 'Connectivity',
 		navAriaLabel: 'Remote tunnel settings for external access',
 		icon: IconCloud,
 		component: Tunnels
+	},
+	{
+		id: 'workspace-env',
+		label: 'Environment',
+		navAriaLabel: 'Environment settings for your workspace',
+		icon: IconSettings,
+		component: WorkspaceEnvSettings
+	},
+	{
+		id: 'authentication',
+		label: 'OAuth',
+		navAriaLabel: 'Authentication and security settings',
+		icon: IconUser,
+		component: OAuthSettings
 	},
 	{
 		id: 'data-management',
@@ -61,7 +64,7 @@ const SETTINGS_SECTIONS = [
 		id: 'claude',
 		label: 'Claude',
 		navAriaLabel: 'Claude authentication and session settings',
-		icon: IconRobot,
+		icon: ClaudeIcon,
 		component: Claude
 	}
 ];

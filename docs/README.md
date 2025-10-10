@@ -33,12 +33,23 @@ Welcome to the comprehensive documentation for Dispatch! This index provides an 
 - [**Home Directory Manager**](features/home-directory-manager.md) - Persistent home directory management
 - [**Workspace Environment Variables**](features/workspace-env.md) - Environment variable management per workspace
 
-## 📚 Reference
+## 🏗️ Architecture
+
+**System design and patterns:**
+
+- [**Architecture Overview**](reference/architecture.md) - Event-sourced, adapter-based architecture
+- [**MVVM Patterns**](architecture/mvvm-patterns.md) - Svelte 5 ViewModels with runes and dependency injection
+- [**Adapter Guide**](architecture/adapter-guide.md) - Adding new session types
+- [**Dependency Injection**](architecture/dependency-injection-pattern.md) - ServiceContainer implementation
+
+## 📚 API Reference
 
 **Technical documentation:**
 
-- [**Architecture**](reference/architecture.md) - Event-sourced, adapter-based architecture overview
-- [**Workspace API**](reference/workspace-api.md) - API reference for workspace management
+- [**API Routes**](reference/api-routes.md) - REST API endpoints and usage
+- [**Socket.IO Events**](reference/socket-events.md) - Real-time event protocol
+- [**Workspace API**](reference/workspace-api.md) - Workspace management API
+- [**Database Schema**](reference/database-schema.md) - SQLite schema and queries
 - [**Visual Design System**](reference/visual-design-system.md) - UI components and design patterns
 
 ## 📝 Articles & Examples
@@ -70,12 +81,14 @@ Welcome to the comprehensive documentation for Dispatch! This index provides an 
 
 ### I want to...
 
-**Get started quickly** → [Quick Start Guide](quickstart.md)  
-**Use with VSCode** → [Devcontainer Integration](articles/dispatch-devcontainer-attach.md)  
-**Work with AI** → [Claude AI Authentication](claude-authentication.md)  
-**Manage multiple branches** → [Git Worktree Support](features/git-worktrees.md)  
-**Configure environment** → [Configuration Reference](configuration/configuration-reference.md)  
-**Understand architecture** → [Architecture Documentation](reference/architecture.md)  
+**Get started quickly** → [Quick Start Guide](quickstart.md)
+**Use with VSCode** → [Devcontainer Integration](articles/dispatch-devcontainer-attach.md)
+**Work with AI** → [Claude AI Authentication](claude-authentication.md)
+**Manage multiple branches** → [Git Worktree Support](features/git-worktrees.md)
+**Configure environment** → [Configuration Reference](configuration/configuration-reference.md)
+**Understand architecture** → [Architecture Overview](reference/architecture.md)
+**Learn Svelte 5 patterns** → [Svelte 5 Best Practices](architecture/svelte5-best-practices.md) ✅
+**Build with MVVM** → [MVVM Patterns Guide](architecture/mvvm-patterns.md)
 **Contribute to project** → [Contributing Guide](../CONTRIBUTING.md)
 
 **Can't find what you're looking for?** [Open an issue](https://github.com/fwdslsh/dispatch/issues) and we'll help!

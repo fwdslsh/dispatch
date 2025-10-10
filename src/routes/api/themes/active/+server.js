@@ -64,10 +64,6 @@ async function resolveActiveTheme(
 }
 
 export async function GET({ url, locals }) {
-	// Auth already validated by hooks middleware
-	if (!locals.auth?.authenticated) {
-		return json({ error: 'Invalid authentication key' }, { status: 401 });
-	}
 
 	// Get optional workspaceId from query params
 	const workspaceId = url.searchParams.get('workspaceId');

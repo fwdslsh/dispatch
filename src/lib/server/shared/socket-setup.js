@@ -288,12 +288,13 @@ export function setupSocketIO(httpServer, services) {
 				return;
 			}
 
-			const result = await services.tunnelManager.startTunnel();
+			await services.tunnelManager.start();
+			const status = services.tunnelManager.getStatus();
 			if (callback) {
 				callback({
 					success: true,
-					url: result.url,
-					status: result.status
+					url: status.url,
+					status: status
 				});
 			}
 		} catch (error) {
@@ -316,8 +317,9 @@ export function setupSocketIO(httpServer, services) {
 				return;
 			}
 
-			await services.tunnelManager.stopTunnel();
-			if (callback) callback({ success: true });
+			await services.tunnelManager.stop();
+			const status = services.tunnelManager.getStatus();
+			if (callback) callback({ success: true, status });
 		} catch (error) {
 			logger.error('SOCKET', 'Error stopping tunnel:', error);
 			if (callback) callback({ success: false, error: error.message });
@@ -349,12 +351,13 @@ export function setupSocketIO(httpServer, services) {
 				return;
 			}
 
-			const result = await services.vscodeManager.startTunnel();
+			await services.vscodeManager.start();
+			const status = services.vscodeManager.getStatus();
 			if (callback) {
 				callback({
 					success: true,
-					url: result.url,
-					status: result.status
+					url: status.url,
+					status: status
 				});
 			}
 		} catch (error) {
@@ -377,8 +380,9 @@ export function setupSocketIO(httpServer, services) {
 				return;
 			}
 
-			await services.vscodeManager.stopTunnel();
-			if (callback) callback({ success: true });
+			await services.vscodeManager.stop();
+			const status = services.vscodeManager.getStatus();
+			if (callback) callback({ success: true, status });
 		} catch (error) {
 			logger.error('SOCKET', 'Error stopping VS Code tunnel:', error);
 			if (callback) callback({ success: false, error: error.message });

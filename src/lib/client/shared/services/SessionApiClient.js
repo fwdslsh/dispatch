@@ -583,40 +583,6 @@ export class SessionApiClient {
 		}
 	}
 
-	/**
-	 * Complete onboarding setup in a single atomic operation
-	 * Server will generate first API key automatically and return it ONCE
-	 * @param {Object} [options={}] - Onboarding options
-	 * @param {string} [options.workspaceName] - Optional workspace name
-	 * @param {string} [options.workspacePath] - Optional workspace path
-	 * @param {Object} [options.preferences] - Optional user preferences
-	 * @returns {Promise<{success: boolean, apiKey: {id: string, key: string, label: string}, workspace: {id: string, name: string, path: string}|null}>}
-	 */
-	async submitOnboarding({ workspaceName, workspacePath, preferences } = {}) {
-		try {
-			const response = await fetch(`${this.baseUrl}/api/settings/onboarding`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					workspaceName,
-					workspacePath,
-					preferences
-				})
-			});
-
-			const data = await this.handleResponse(response);
-
-			return data;
-		} catch (error) {
-			if (this.config.debug) {
-				console.error('[SessionApiClient] Failed to submit onboarding:', error);
-			}
-			throw error;
-		}
-	}
-
 	// ===== RETENTION POLICY API (via Preferences) =====
 
 	/**

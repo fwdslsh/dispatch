@@ -69,7 +69,7 @@
 			const result = await themeState.uploadTheme(file);
 
 			// Show success message
-			uploadSuccess = `Theme "${result.theme.name}" uploaded successfully`;
+			uploadSuccess = `Theme "${result.name}" uploaded successfully`;
 
 			// Show warnings if any
 			if (result.validation?.warnings?.length) {
@@ -394,7 +394,7 @@
 	/* Theme Grid */
 	.theme-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 		gap: var(--space-4);
 		margin-top: var(--space-4);
 	}
