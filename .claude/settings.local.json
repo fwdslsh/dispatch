@@ -25,5 +25,18 @@
   "enabledMcpjsonServers": [
     "svelte-llm",
     "chrome-devtools"
-  ]
+  ],
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./.claude/scripts/send-msg.sh"
+          }
+        ]
+      }
+    ]
+  }
 }

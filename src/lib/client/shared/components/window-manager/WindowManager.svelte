@@ -387,9 +387,3 @@
 		/>
 	{/if}
 </div>
-
-<style>
-	.wm-root {
-		position: relative;
-	}
-</style>

@@ -20,7 +20,7 @@ import {
 	verifyAuthenticated,
 	verifyProgressBar,
 	validateApiKeyFormat
-} from './helpers/onboarding-helpers.js';
+} from '../helpers/onboarding-helpers.js';
 
 test.describe('Onboarding - Happy Path Tests', () => {
 	test.beforeEach(async ({ page }) => {

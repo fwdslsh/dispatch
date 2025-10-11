@@ -16,15 +16,10 @@ import IconAdjustmentsAlt from '$lib/client/shared/components/Icons/IconAdjustme
 import OAuthSettings from './OAuthSettings.svelte';
 import IconSettings from '../shared/components/Icons/IconSettings.svelte';
 import ClaudeIcon from '../shared/components/Icons/ClaudeIcon.svelte';
+import { KEYS_SECTION } from './keysSection.js';
 
 const SETTINGS_SECTIONS = [
-	{
-		id: 'home',
-		label: 'Home Directory',
-		navAriaLabel: 'File browser and home directory manager',
-		icon: IconFolder,
-		component: HomeDirectoryManager
-	},
+
 	{
 		id: 'themes',
 		label: 'Theme',
@@ -33,11 +28,11 @@ const SETTINGS_SECTIONS = [
 		component: ThemeSettings
 	},
 	{
-		id: 'tunnels',
-		label: 'Connectivity',
-		navAriaLabel: 'Remote tunnel settings for external access',
-		icon: IconCloud,
-		component: Tunnels
+		id: 'home',
+		label: 'Home Directory',
+		navAriaLabel: 'File browser and home directory manager',
+		icon: IconFolder,
+		component: HomeDirectoryManager
 	},
 	{
 		id: 'workspace-env',
@@ -46,12 +41,21 @@ const SETTINGS_SECTIONS = [
 		icon: IconSettings,
 		component: WorkspaceEnvSettings
 	},
+
+	KEYS_SECTION,
 	{
 		id: 'authentication',
 		label: 'OAuth',
 		navAriaLabel: 'Authentication and security settings',
 		icon: IconUser,
 		component: OAuthSettings
+	},
+	{
+		id: 'tunnels',
+		label: 'Connectivity',
+		navAriaLabel: 'Remote tunnel settings for external access',
+		icon: IconCloud,
+		component: Tunnels
 	},
 	{
 		id: 'data-management',

@@ -581,11 +581,12 @@
 	.dispatch-workspace {
 		position: relative;
 		display: grid;
-		background: transparent;
-		color: var(--text-primary);
-		overflow: visible;
-		min-height: 100%;
-		width: 100%;
+		overflow: hidden;
+		height: stretch;
+		width: stretch;
+		.workspace-content {			
+			overflow: hidden;
+		}
 	}
 
 	/* Session bottom sheet - mobile specific */

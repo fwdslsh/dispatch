@@ -18,7 +18,7 @@ import {
 	copyApiKey,
 	verifySessionCookie,
 	verifyAuthenticated
-} from './helpers/onboarding-helpers.js';
+} from '../helpers/onboarding-helpers.js';
 
 test.describe('Onboarding - Authentication & Session Tests', () => {
 	test.beforeEach(async ({ page }) => {

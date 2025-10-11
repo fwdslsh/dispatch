@@ -17,7 +17,7 @@ import {
 	verifyApiKeyDisplay,
 	copyApiKey,
 	verifyAuthenticated
-} from './helpers/onboarding-helpers.js';
+} from '../helpers/onboarding-helpers.js';
 
 test.describe('Onboarding - Skip Path Tests', () => {
 	test.beforeEach(async ({ page }) => {

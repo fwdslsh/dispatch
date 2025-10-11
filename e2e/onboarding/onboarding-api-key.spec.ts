@@ -18,7 +18,7 @@ import {
 	verifyApiKeyDisplay,
 	copyApiKey,
 	validateApiKeyFormat
-} from './helpers/onboarding-helpers.js';
+} from '../helpers/onboarding-helpers.js';
 
 test.describe('Onboarding - API Key Display & Copy Tests', () => {
 	test.beforeEach(async ({ page }) => {
