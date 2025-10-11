@@ -278,17 +278,6 @@ export function registerCoreSettings() {
     order: 60
   });
 
-  // Session Settings (order 70)
-  registerSettingsSection({
-    id: 'claude',
-    label: 'Claude',
-    category: 'sessions',
-    navAriaLabel: 'Claude authentication and session settings',
-    icon: ClaudeIcon,
-    component: ClaudeSettings,
-    order: 70
-  });
-
   // Data Management (order 90)
   registerSettingsSection({
     id: 'data-management',
@@ -300,36 +289,110 @@ export function registerCoreSettings() {
     order: 90
   });
 }
+
+// NOTE: Claude settings are NOT registered here.
+// Claude is a session type and registers its own settings section
+// via the session module system in src/lib/client/claude/claude.js
 ```
 
-### Phase 3: Session Module Integration (Optional Future Enhancement)
+### Phase 3: Session Module Integration
 
-**Note:** Session modules can optionally register settings sections for future session types. This is not required for Claude since it's already registered in core-sections.js.
+**Enable session modules to register their own settings sections.**
 
-**Example for future session types:**
+This demonstrates the key architectural goal: session adapters can contribute settings without modifying core files.
+
+**Update:** `src/lib/client/shared/session-modules/index.js`
 
 ```javascript
-// In new-session-type/new-session-type.js
+import { terminalSessionModule } from '../../terminal/terminal.js';
+import { claudeSessionModule } from '../../claude/claude.js';
+import { fileEditorSessionModule } from '../../file-editor/file-editor.js';
 import { registerSettingsSection } from '../../settings/registry/settings-registry.js';
 
-export const newSessionModule = {
-  type: 'new-session-type',
-  component: NewPane,
-  header: NewHeader,
+const moduleMap = new Map();
 
-  // Optional: Auto-register settings section
+export function registerClientSessionModules(...modules) {
+  for (const module of modules) {
+    if (!module || typeof module !== 'object' || !module.type) continue;
+
+    // Register session module
+    moduleMap.set(module.type, module);
+
+    // Auto-register settings section if provided
+    if (module.settingsSection) {
+      registerSettingsSection({
+        category: 'sessions', // Default category for session modules
+        order: 70,             // Default order for session modules
+        ...module.settingsSection
+      });
+    }
+  }
+}
+
+export function getClientSessionModule(type) {
+  return type ? moduleMap.get(type) || null : null;
+}
+
+export function listClientSessionModules() {
+  return Array.from(moduleMap.values());
+}
+
+registerClientSessionModules(terminalSessionModule, claudeSessionModule, fileEditorSessionModule);
+```
+
+**Update:** `src/lib/client/claude/claude.js`
+
+```javascript
+import ClaudePane from '$lib/client/claude/ClaudePane.svelte';
+import ClaudeSettings from '$lib/client/claude/ClaudeSettings.svelte';
+import ClaudeHeader from '$lib/client/claude/ClaudeHeader.svelte';
+import ClaudeSettingsSection from '$lib/client/settings/sections/sessions/Claude.svelte';
+import ClaudeIcon from '$lib/client/shared/components/Icons/ClaudeIcon.svelte';
+import { SESSION_TYPE } from '$lib/shared/session-types.js';
+
+export const claudeSessionModule = {
+  type: SESSION_TYPE.CLAUDE,
+  component: ClaudePane,
+  header: ClaudeHeader,
+  settingsComponent: ClaudeSettings, // In-session settings dialog
+
+  // Settings page section (NEW - auto-registered by session-modules/index.js)
   settingsSection: {
-    id: 'new-session-settings',
-    label: 'New Session',
-    category: 'sessions',
-    component: NewSessionSettings,
-    icon: NewIcon,
-    order: 80
+    id: 'claude',
+    label: 'Claude',
+    icon: ClaudeIcon,
+    component: ClaudeSettingsSection,
+    navAriaLabel: 'Claude authentication and session settings',
+    order: 70
+  },
+
+  prepareProps(session = {}) {
+    return {
+      sessionId: session.id,
+      claudeSessionId: session.claudeSessionId || session.typeSpecificId || session.sessionId,
+      shouldResume: Boolean(session.shouldResume || session.resumeSession),
+      workspacePath: session.workspacePath
+    };
+  },
+
+  prepareHeaderProps(session = {}, options = {}) {
+    const { onClose, index } = options;
+    return {
+      session,
+      onClose,
+      index,
+      claudeSessionId: session.claudeSessionId || session.typeSpecificId || session.sessionId
+    };
   }
 };
 ```
 
-The session module registration system can be enhanced to automatically register settings sections, but this is not required for the initial implementation.
+**Key Points:**
+
+- **Claude is the first example** of a session module providing its own settings section
+- Session modules automatically register their settings when they define `settingsSection`
+- No need to edit `core-sections.js` - it's completely self-contained
+- Future session types (terminal, file-editor) can follow this pattern
 
 ### Phase 4: Update Settings Page
 
@@ -417,11 +480,17 @@ src/lib/client/settings/
 
 ### Stage 1: Foundation (Non-Breaking)
 - [ ] Create `src/lib/client/settings/registry/settings-registry.js`
-- [ ] Create `src/lib/client/settings/registry/core-sections.js` with all current sections
+- [ ] Create `src/lib/client/settings/registry/core-sections.js` (core settings only, NOT Claude)
 - [ ] Add registry initialization to settings page
 - [ ] Test that settings page still works with registry
 
-### Stage 2: Reorganize Directory Structure
+### Stage 2: Session Module Integration
+- [ ] Update `session-modules/index.js` to auto-register `settingsSection` from modules
+- [ ] Add `settingsSection` property to `claudeSessionModule` in `src/lib/client/claude/claude.js`
+- [ ] Test that Claude settings section appears via module registration
+- [ ] Verify Claude settings are functional
+
+### Stage 3: Reorganize Directory Structure
 - [ ] Create subdirectories: `sections/core/`, `sections/auth/`, `sections/connectivity/`, `sections/sessions/`
 - [ ] Move existing sections to appropriate subdirectories:
   - ThemeSettings → `sections/core/Themes.svelte`
@@ -433,16 +502,17 @@ src/lib/client/settings/
   - Tunnels → `sections/connectivity/Tunnels.svelte`
   - Claude → `sections/sessions/Claude.svelte`
 - [ ] Update imports in `core-sections.js` to reflect new paths
+- [ ] Update imports in `claude.js` to reflect new path for Claude settings component
 - [ ] Update imports throughout codebase
 - [ ] Remove legacy files (keysSection.js, etc.)
 
-### Stage 3: Remove Hardcoded Array
+### Stage 4: Remove Hardcoded Array
 - [ ] Update `pageState.js` to use `getSettingsSections()` from registry
 - [ ] Remove `SETTINGS_SECTIONS` constant
 - [ ] Remove manual imports of section components/icons from pageState.js
-- [ ] Verify all settings sections still appear
+- [ ] Verify all settings sections still appear (including Claude from module registration)
 
-### Stage 4: Testing & Documentation
+### Stage 5: Testing & Documentation
 - [ ] Write unit tests for settings registry
 - [ ] Update settings architecture documentation
 - [ ] Update adapter guide with settings section registration
@@ -504,9 +574,10 @@ All changes maintain backward compatibility until Stage 6:
 ### Rollback Plan
 Each stage is independently testable and reversible:
 - Stage 1: Can be disabled by not initializing registry
-- Stage 2: Directory moves are reversible via git
-- Stage 3: Keep hardcoded array in git history for emergency rollback
-- Stage 4: Documentation changes are non-breaking
+- Stage 2: Can be disabled by not calling registerClientSessionModules with updated logic
+- Stage 3: Directory moves are reversible via git
+- Stage 4: Keep hardcoded array in git history for emergency rollback
+- Stage 5: Documentation changes are non-breaking
 
 ### Testing Approach
 - Unit test registry functions (register, unregister, getAll)
@@ -518,12 +589,13 @@ Each stage is independently testable and reversible:
 
 1. ✅ All existing settings sections appear and function identically
 2. ✅ Settings registry is fully functional and tested
-3. ✅ Session modules can optionally register settings sections
-4. ✅ Settings directory reorganized by category (core, auth, connectivity, sessions)
-5. ✅ `pageState.js` uses registry instead of hardcoded array
-6. ✅ Documentation updated with new architecture
-7. ✅ Zero regressions in settings functionality
-8. ✅ New adapter can add settings in < 5 lines of code
+3. ✅ **Claude settings section is registered via session module (not core-sections.js)**
+4. ✅ Session modules can register settings sections via `settingsSection` property
+5. ✅ Settings directory reorganized by category (core, auth, connectivity, sessions)
+6. ✅ `pageState.js` uses registry instead of hardcoded array
+7. ✅ Documentation updated with new architecture
+8. ✅ Zero regressions in settings functionality
+9. ✅ New adapter can add settings in < 5 lines of code
 
 ## Future Enhancements
 

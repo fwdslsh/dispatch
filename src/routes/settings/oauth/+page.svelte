@@ -4,7 +4,7 @@
 -->
 
 <script>
-	import OAuthSettings from '$lib/client/settings/OAuthSettings.svelte';
+	import OAuthSettings from '$lib/client/settings/sections/auth/OAuth.svelte';
 	import Shell from '$lib/client/shared/components/Shell.svelte';
 </script>
 

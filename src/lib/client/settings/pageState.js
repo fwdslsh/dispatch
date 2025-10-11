@@ -1,84 +1,30 @@
-import AuthenticationSettingsSection from './AuthenticationSettingsSection.svelte';
-import ThemeSettings from './ThemeSettings.svelte';
-import WorkspaceEnvSettings from './sections/WorkspaceEnvSettings.svelte';
-import HomeDirectoryManager from './sections/HomeDirectoryManager.svelte';
-import Tunnels from './sections/Tunnels.svelte';
-import Claude from './sections/Claude.svelte';
-import DataManagement from './sections/DataManagement.svelte';
-import IconFolder from '$lib/client/shared/components/Icons/IconFolder.svelte';
-import IconUser from '$lib/client/shared/components/Icons/IconUser.svelte';
-import IconCloud from '$lib/client/shared/components/Icons/IconCloud.svelte';
-import IconRobot from '$lib/client/shared/components/Icons/IconRobot.svelte';
-import IconTrash from '$lib/client/shared/components/Icons/IconTrash.svelte';
-import IconArchive from '$lib/client/shared/components/Icons/IconArchive.svelte';
-import IconKey from '$lib/client/shared/components/Icons/IconKey.svelte';
-import IconAdjustmentsAlt from '$lib/client/shared/components/Icons/IconAdjustmentsAlt.svelte';
-import OAuthSettings from './OAuthSettings.svelte';
-import IconSettings from '../shared/components/Icons/IconSettings.svelte';
-import ClaudeIcon from '../shared/components/Icons/ClaudeIcon.svelte';
-import { KEYS_SECTION } from './keysSection.js';
+/**
+ * Settings Page State Management
+ *
+ * Provides state management utilities for the settings page.
+ * Settings sections are registered via the settings registry system.
+ */
 
-const SETTINGS_SECTIONS = [
+// Initialize settings registry
+import { registerCoreSettings } from './registry/core-sections.js';
+import { getSettingsSections as getRegisteredSections } from './registry/settings-registry.js';
 
-	{
-		id: 'themes',
-		label: 'Theme',
-		navAriaLabel: 'Color themes and appearance settings',
-		icon: IconAdjustmentsAlt,
-		component: ThemeSettings
-	},
-	{
-		id: 'home',
-		label: 'Home Directory',
-		navAriaLabel: 'File browser and home directory manager',
-		icon: IconFolder,
-		component: HomeDirectoryManager
-	},
-	{
-		id: 'workspace-env',
-		label: 'Environment',
-		navAriaLabel: 'Environment settings for your workspace',
-		icon: IconSettings,
-		component: WorkspaceEnvSettings
-	},
+// Register core settings on module load
+registerCoreSettings();
 
-	KEYS_SECTION,
-	{
-		id: 'authentication',
-		label: 'OAuth',
-		navAriaLabel: 'Authentication and security settings',
-		icon: IconUser,
-		component: OAuthSettings
-	},
-	{
-		id: 'tunnels',
-		label: 'Connectivity',
-		navAriaLabel: 'Remote tunnel settings for external access',
-		icon: IconCloud,
-		component: Tunnels
-	},
-	{
-		id: 'data-management',
-		label: 'Data & Storage',
-		navAriaLabel: 'Data retention and storage management',
-		icon: IconArchive,
-		component: DataManagement
-	},
-	{
-		id: 'claude',
-		label: 'Claude',
-		navAriaLabel: 'Claude authentication and session settings',
-		icon: ClaudeIcon,
-		component: Claude
+// Section label lookup for error messages (built dynamically from registry)
+let SECTION_LABEL_LOOKUP = null;
+
+function getSectionLabelLookup() {
+	if (!SECTION_LABEL_LOOKUP) {
+		const sections = getRegisteredSections();
+		SECTION_LABEL_LOOKUP = new Map(sections.map((section) => [section.id, section.label]));
 	}
-];
-
-const SECTION_LABEL_LOOKUP = new Map(
-	SETTINGS_SECTIONS.map((section) => [section.id, section.label])
-);
+	return SECTION_LABEL_LOOKUP;
+}
 
 export function getSettingsSections() {
-	return SETTINGS_SECTIONS.map((section) => ({ ...section }));
+	return getRegisteredSections();
 }
 
 export function createSettingsPageState(options = {}) {
@@ -131,7 +77,8 @@ export function translateSettingsError(error) {
 		return error;
 	}
 
-	const sectionLabel = error.sectionId ? SECTION_LABEL_LOOKUP.get(error.sectionId) : null;
+	const lookup = getSectionLabelLookup();
+	const sectionLabel = error.sectionId ? lookup.get(error.sectionId) : null;
 
 	switch (error.type) {
 		case 'component-load':

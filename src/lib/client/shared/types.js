@@ -8,6 +8,13 @@
  * @property {import('svelte').Component} component - Svelte component used to render the session pane
  * @property {import('svelte').Component} [header] - optional header component for the session
  * @property {import('svelte').Component} [settingsComponent] - optional settings component
+ * @property {Object} [settingsSection] - optional settings page section definition
+ * @property {string} [settingsSection.id] - unique section identifier
+ * @property {string} [settingsSection.label] - display label for navigation
+ * @property {import('svelte').Component} [settingsSection.icon] - icon component
+ * @property {import('svelte').Component} [settingsSection.component] - settings section component
+ * @property {string} [settingsSection.navAriaLabel] - accessibility label
+ * @property {number} [settingsSection.order] - display order (lower = earlier)
  * @property {(session?: Record<string, any>) => Record<string, any>} prepareProps - prepare props for the session pane
  * @property {(session?: Record<string, any>, options?: Record<string, any>) => Record<string, any>} prepareHeaderProps - prepare props for the header component
  */

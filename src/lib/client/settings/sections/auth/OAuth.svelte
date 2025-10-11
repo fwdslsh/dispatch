@@ -6,8 +6,8 @@
 
 <script>
 	import { onMount } from 'svelte';
-	import Button from '../shared/components/Button.svelte';
-	import InfoBox from '../shared/components/InfoBox.svelte';
+	import Button from '../../../shared/components/Button.svelte';
+	import InfoBox from '../../../shared/components/InfoBox.svelte';
 
 	// Component state
 	let loading = $state(false);

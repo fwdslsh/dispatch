@@ -1,6 +1,6 @@
 <!-- KeysSettings.svelte: Settings section for API keys management -->
 <script>
-	import ApiKeyManager from '../ApiKeyManager.svelte';
+	import ApiKeyManager from '../../ApiKeyManager.svelte';
 </script>
 
 <div class="settings-section-keys">

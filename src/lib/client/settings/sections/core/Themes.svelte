@@ -7,10 +7,10 @@
 <script>
 	import { onMount } from 'svelte';
 	import { ThemeState } from '$lib/client/shared/state/ThemeState.svelte.js';
-	import ThemePreviewCard from './ThemePreviewCard.svelte';
-	import Button from '../shared/components/Button.svelte';
-	import InfoBox from '../shared/components/InfoBox.svelte';
-	import EmptyState from '../shared/components/EmptyState.svelte';
+	import ThemePreviewCard from '../../ThemePreviewCard.svelte';
+	import Button from '../../../shared/components/Button.svelte';
+	import InfoBox from '../../../shared/components/InfoBox.svelte';
+	import EmptyState from '../../../shared/components/EmptyState.svelte';
 
 	// Initialize ThemeState ViewModel
 	const themeState = new ThemeState({
