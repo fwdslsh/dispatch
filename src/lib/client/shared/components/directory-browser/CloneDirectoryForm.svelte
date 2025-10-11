@@ -60,8 +60,6 @@
 		>
 			{cloning ? 'Cloning...' : 'Clone Directory'}
 		</Button>
-		<Button type="button" class="cancel-btn" onclick={onCancel} disabled={cloning}>
-			Cancel
-		</Button>
+		<Button type="button" class="cancel-btn" onclick={onCancel} disabled={cloning}>Cancel</Button>
 	</div>
 </div>

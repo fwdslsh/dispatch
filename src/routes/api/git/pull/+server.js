@@ -2,7 +2,6 @@ import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
 
-
 export async function POST({ request, locals }) {
 	try {
 		const { path, remote = 'origin', branch } = await request.json();

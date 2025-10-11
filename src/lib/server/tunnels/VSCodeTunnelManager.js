@@ -47,6 +47,25 @@ export class VSCodeTunnelManager extends BaseTunnelManager {
 	}
 
 	/**
+	 * Start the VS Code tunnel (wrapper for startTunnel)
+	 * Provides consistent interface with TunnelManager
+	 * @param {Object} options - Tunnel options
+	 * @returns {Promise<Object>} Tunnel state
+	 */
+	async start(options = {}) {
+		return this.startTunnel(options);
+	}
+
+	/**
+	 * Stop the VS Code tunnel (wrapper for stopTunnel)
+	 * Provides consistent interface with TunnelManager
+	 * @returns {Promise<boolean>} Success status
+	 */
+	async stop() {
+		return this.stopTunnel();
+	}
+
+	/**
 	 * Start the VS Code tunnel
 	 * @param {Object} options - Tunnel options
 	 * @returns {Promise<Object>} Tunnel state
@@ -229,10 +248,7 @@ export class VSCodeTunnelManager extends BaseTunnelManager {
 			lastUpdated: Date.now()
 		};
 
-		await this._saveSettings(
-			tunnelSettings,
-			'VS Code Remote Tunnel configuration and state'
-		);
+		await this._saveSettings(tunnelSettings, 'VS Code Remote Tunnel configuration and state');
 	}
 
 	/**

@@ -17,7 +17,6 @@ function resolvePath(filepath) {
 	return resolve(expanded);
 }
 
-
 // Parse git worktree list output
 function parseWorktreeList(output) {
 	if (!output.trim()) return [];

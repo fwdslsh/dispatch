@@ -13,24 +13,24 @@ Generated on 10/7/2025, 3:36:14 PM
 
 ## Complexity Overview
 
-| File | Complexity | Avg Specificity | Max Nesting | Rules | Problems |
-|------|------------|-----------------|-------------|-------|----------|
-| `buttons.css` | **7.5**/10 ⚠️ | 21.6 | 1 | 31 | 17 |
-| `type-card.css` | **7.2**/10 ⚠️ | 23.6 | 1 | 14 | 6 |
-| `retro.css` | **6.5**/10 | 19.5 | 2 | 120 | 45 |
-| `session-card.css` | **5.8**/10 | 18.1 | 0 | 16 | 7 |
-| `modal.css` | **3.8**/10 | 12.5 | 0 | 8 | 2 |
-| `misc.css` | **3.7**/10 | 13.4 | 2 | 41 | 2 |
-| `claude.css` | **3.0**/10 | 12.0 | 1 | 47 | 2 |
-| `status-bar.css` | **2.9**/10 | 12.0 | 0 | 10 | 1 |
-| `utilities.css` | **2.9**/10 | 10.4 | 2 | 84 | 1 |
-| `menu-panel.css` | **2.6**/10 | 11.3 | 0 | 16 | 1 |
-| `forms.css` | **2.2**/10 | 10.8 | 0 | 12 | 0 |
-| `variables.css` | **2.0**/10 | 10.0 | 0 | 1 | 0 |
-| `animations.css` | **0.6**/10 | 2.1 | 0 | 42 | 1 |
-| `index.css` | **0.0**/10 | 0.0 | 0 | 0 | 0 |
-| `fonts.css` | **0.0**/10 | 0.0 | 0 | 0 | 0 |
-| `index.css` | **0.0**/10 | 0.0 | 0 | 0 | 0 |
+| File               | Complexity    | Avg Specificity | Max Nesting | Rules | Problems |
+| ------------------ | ------------- | --------------- | ----------- | ----- | -------- |
+| `buttons.css`      | **7.5**/10 ⚠️ | 21.6            | 1           | 31    | 17       |
+| `type-card.css`    | **7.2**/10 ⚠️ | 23.6            | 1           | 14    | 6        |
+| `retro.css`        | **6.5**/10    | 19.5            | 2           | 120   | 45       |
+| `session-card.css` | **5.8**/10    | 18.1            | 0           | 16    | 7        |
+| `modal.css`        | **3.8**/10    | 12.5            | 0           | 8     | 2        |
+| `misc.css`         | **3.7**/10    | 13.4            | 2           | 41    | 2        |
+| `claude.css`       | **3.0**/10    | 12.0            | 1           | 47    | 2        |
+| `status-bar.css`   | **2.9**/10    | 12.0            | 0           | 10    | 1        |
+| `utilities.css`    | **2.9**/10    | 10.4            | 2           | 84    | 1        |
+| `menu-panel.css`   | **2.6**/10    | 11.3            | 0           | 16    | 1        |
+| `forms.css`        | **2.2**/10    | 10.8            | 0           | 12    | 0        |
+| `variables.css`    | **2.0**/10    | 10.0            | 0           | 1     | 0        |
+| `animations.css`   | **0.6**/10    | 2.1             | 0           | 42    | 1        |
+| `index.css`        | **0.0**/10    | 0.0             | 0           | 0     | 0        |
+| `fonts.css`        | **0.0**/10    | 0.0             | 0           | 0     | 0        |
+| `index.css`        | **0.0**/10    | 0.0             | 0           | 0     | 0        |
 
 ---
 
@@ -43,6 +43,7 @@ These files should be prioritized for refactoring:
 **Complexity Score:** 7.5/10
 
 **Metrics:**
+
 - Average Specificity: 21.65
 - Max Nesting Depth: 1
 - Complex Selectors: 2
@@ -54,6 +55,7 @@ These files should be prioritized for refactoring:
 **Complexity Score:** 7.2/10
 
 **Metrics:**
+
 - Average Specificity: 23.57
 - Max Nesting Depth: 1
 - Complex Selectors: 3
@@ -162,11 +164,11 @@ Found 85 selectors with potential issues:
 
 **Line 169:** `.markdown-content pre[class*='language-']`
 
-- ⚠️ Uses universal selector (*)
+- ⚠️ Uses universal selector (\*)
 
 **Line 173:** `.markdown-content pre[class*='language-']::before`
 
-- ⚠️ Uses universal selector (*)
+- ⚠️ Uses universal selector (\*)
 
 ### modal.css
 
@@ -244,11 +246,11 @@ Found 85 selectors with potential issues:
 
 **Line 34:** `*`
 
-- ⚠️ Uses universal selector (*)
+- ⚠️ Uses universal selector (\*)
 
 **Line 140:** `.stack > * + *`
 
-- ⚠️ Uses universal selector (*)
+- ⚠️ Uses universal selector (\*)
 
 **Line 194:** `.card.aug`
 
@@ -376,7 +378,7 @@ Found 85 selectors with potential issues:
 
 **Line 875:** `*:focus-visible`
 
-- ⚠️ Uses universal selector (*)
+- ⚠️ Uses universal selector (\*)
 
 **Line 915:** `.session-indicator.active::before`
 
@@ -434,7 +436,7 @@ Found 85 selectors with potential issues:
 
 **Line 40:** `.space-y-2 > * + *`
 
-- ⚠️ Uses universal selector (*)
+- ⚠️ Uses universal selector (\*)
 
 ---
 
@@ -590,11 +592,11 @@ Found 85 selectors with potential issues:
 
 **Line 34:** `*`
 
-- Uses universal selector (*)
+- Uses universal selector (\*)
 
 **Line 140:** `.stack > * + *`
 
-- Uses universal selector (*)
+- Uses universal selector (\*)
 
 **Line 194:** `.card.aug`
 
@@ -722,7 +724,7 @@ Found 85 selectors with potential issues:
 
 **Line 875:** `*:focus-visible`
 
-- Uses universal selector (*)
+- Uses universal selector (\*)
 
 **Line 915:** `.session-indicator.active::before`
 
@@ -874,11 +876,11 @@ Found 85 selectors with potential issues:
 
 **Line 169:** `.markdown-content pre[class*='language-']`
 
-- Uses universal selector (*)
+- Uses universal selector (\*)
 
 **Line 173:** `.markdown-content pre[class*='language-']::before`
 
-- Uses universal selector (*)
+- Uses universal selector (\*)
 
 </details>
 
@@ -954,7 +956,7 @@ Found 85 selectors with potential issues:
 
 **Line 40:** `.space-y-2 > * + *`
 
-- Uses universal selector (*)
+- Uses universal selector (\*)
 
 </details>
 
@@ -1102,4 +1104,3 @@ Found 85 selectors with potential issues:
    - Use utility classes for common patterns
    - Avoid universal selectors in production
    - Consider BEM or similar naming conventions
-

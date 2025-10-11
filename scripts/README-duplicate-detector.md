@@ -48,14 +48,14 @@ node scripts/detect-duplicate-css.js --css-dir src/styles --svelte-dir src/lib
 
 ## Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--output <path>` | Output file path | `CSS_DUPLICATES_REPORT.md` |
-| `--threshold <number>` | Similarity threshold % for near-duplicates | `80` |
-| `--css-dir <path>` | CSS directory to scan | `src/lib/client/shared/styles` |
-| `--svelte-dir <path>` | Svelte directory to scan | `src` |
-| `--verbose` | Show detailed progress output | `false` |
-| `--console` | Output to console instead of file | `false` |
+| Option                 | Description                                | Default                        |
+| ---------------------- | ------------------------------------------ | ------------------------------ |
+| `--output <path>`      | Output file path                           | `CSS_DUPLICATES_REPORT.md`     |
+| `--threshold <number>` | Similarity threshold % for near-duplicates | `80`                           |
+| `--css-dir <path>`     | CSS directory to scan                      | `src/lib/client/shared/styles` |
+| `--svelte-dir <path>`  | Svelte directory to scan                   | `src`                          |
+| `--verbose`            | Show detailed progress output              | `false`                        |
+| `--console`            | Output to console instead of file          | `false`                        |
 
 ## Report Sections
 
@@ -73,24 +73,27 @@ The generated report includes:
 ### 2. Exact Duplicates
 
 Groups of identical CSS rule blocks with:
+
 - File locations and line numbers
 - Selector names
 - Complete CSS code
 - Suggested refactoring with utility class names
 
 Example:
+
 ```css
 /* Found in 5 locations */
 .flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 ```
 
 ### 3. Near Duplicates
 
 Pairs of similar CSS rules showing:
+
 - Similarity percentage
 - Both rule locations
 - Common declarations
@@ -101,6 +104,7 @@ Helps identify patterns that could be consolidated with minor adjustments.
 ### 4. Common Patterns
 
 Frequently occurring patterns with occurrence counts:
+
 - Flexbox Center
 - Flex Column/Row
 - Absolute/Fixed Positioning
@@ -112,6 +116,7 @@ Frequently occurring patterns with occurrence counts:
 ### 5. Recommendations
 
 Actionable suggestions including:
+
 - Quick wins (exact duplicates to extract)
 - Near-duplicate review priorities
 - Utility class recommendations
@@ -136,6 +141,7 @@ Actionable suggestions including:
 ## Workflow
 
 1. **Run the analysis**:
+
    ```bash
    npm run css:duplicates
    ```
@@ -214,20 +220,20 @@ Extract common patterns into a utility file:
 ```css
 /* utilities.css */
 .flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .flex-column {
-  display: flex;
-  flex-direction: column;
+	display: flex;
+	flex-direction: column;
 }
 
 .card-base {
-  border-radius: var(--radius-md);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: var(--space-4);
+	border-radius: var(--radius-md);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	padding: var(--space-4);
 }
 ```
 
@@ -237,15 +243,23 @@ Replace duplicate values with variables:
 
 ```css
 /* Before */
-.component-a { color: #3b82f6; }
-.component-b { color: #3b82f6; }
+.component-a {
+	color: #3b82f6;
+}
+.component-b {
+	color: #3b82f6;
+}
 
 /* After */
 :root {
-  --color-primary: #3b82f6;
+	--color-primary: #3b82f6;
 }
-.component-a { color: var(--color-primary); }
-.component-b { color: var(--color-primary); }
+.component-a {
+	color: var(--color-primary);
+}
+.component-b {
+	color: var(--color-primary);
+}
 ```
 
 ### 3. Component-Scoped Styles
@@ -254,15 +268,15 @@ Keep component-specific styles in component files, but extract shared patterns:
 
 ```svelte
 <style>
-  /* Component-specific */
-  .unique-layout {
-    /* ... */
-  }
+	/* Component-specific */
+	.unique-layout {
+		/* ... */
+	}
 
-  /* Use utility classes for common patterns */
-  .content {
-    /* Apply .flex-column utility instead of duplicating */
-  }
+	/* Use utility classes for common patterns */
+	.content {
+		/* Apply .flex-column utility instead of duplicating */
+	}
 </style>
 ```
 
@@ -274,13 +288,13 @@ Instead of duplicating styles, compose from utilities:
 <!-- Before -->
 <div class="custom-card"></div>
 <style>
-  .custom-card {
-    display: flex;
-    align-items: center;
-    border-radius: 8px;
-    padding: 16px;
-    /* ... lots of duplicate code ... */
-  }
+	.custom-card {
+		display: flex;
+		align-items: center;
+		border-radius: 8px;
+		padding: 16px;
+		/* ... lots of duplicate code ... */
+	}
 </style>
 
 <!-- After -->

@@ -1,7 +1,8 @@
 import { sequence } from '@sveltejs/kit/hooks';
-import { json } from '@sveltejs/kit';
+import { json, redirect } from '@sveltejs/kit';
 import { logger } from './lib/server/shared/utils/logger.js';
 import { initializeServices } from './lib/server/shared/index.js';
+import { CookieService } from './lib/server/auth/CookieService.server.js';
 
 // Use process-level singleton to survive module reloads
 const SERVICES_KEY = Symbol.for('dispatch.services');
@@ -34,13 +35,24 @@ export async function getGlobalServices() {
  * Public routes that don't require authentication
  */
 const PUBLIC_ROUTES = [
-	'/auth/callback',
+	'/login',
+	'/onboarding',
 	'/api/auth/callback',
 	'/api/auth/config',
+	'/api/auth/login',
+	'/api/auth/logout',
 	'/api/status',
-	'/api/settings/onboarding',
-	'/api/environment'
+	'/api/environment',
+	'/api/themes/active',
+	'/api/themes',
+	'/api/test' // Test API routes (only available in non-production)
 ];
+
+/**
+ * Routes that should run auth middleware but not require authentication
+ * These routes need to check auth status but should work for both authenticated and unauthenticated users
+ */
+const OPTIONAL_AUTH_ROUTES = ['/api/auth/check'];
 
 /**
  * Check if a route is public (doesn't require authentication)
@@ -50,48 +62,109 @@ function isPublicRoute(pathname) {
 }
 
 /**
+ * Check if a route requires authentication check but doesn't enforce it
+ */
+function isOptionalAuthRoute(pathname) {
+	return OPTIONAL_AUTH_ROUTES.some((route) => pathname.startsWith(route));
+}
+
+/**
  * Authentication middleware
- * Validates requests using multi-strategy auth (terminal key or OAuth session)
+ * Validates requests using dual auth strategy (session cookies OR API keys)
+ *
+ * Strategy 1: Session cookie validation (browser requests)
+ * Strategy 2: API key validation (programmatic access)
  */
 async function authenticationMiddleware({ event, resolve }) {
 	const { pathname } = event.url;
+	const isOptionalAuth = isOptionalAuthRoute(pathname);
 
-	// Skip auth for public routes
-	if (isPublicRoute(pathname)) {
+	// Skip auth for public routes (but not optional auth routes)
+	if (isPublicRoute(pathname) && !isOptionalAuth) {
 		logger.debug('AUTH', `Skipping auth for public route: ${pathname}`);
 		return resolve(event);
 	}
 
-	// Only enforce auth on API routes
-	if (!pathname.startsWith('/api/')) {
-		return resolve(event);
+	const services = event.locals.services;
+	const isApiRoute = pathname.startsWith('/api/');
+	let authenticated = false;
+
+	// Strategy 1: Check for session cookie (browser authentication)
+	const sessionId = CookieService.getSessionCookie(event.cookies);
+	if (sessionId) {
+		const sessionData = await services.sessionManager.validateSession(sessionId);
+		if (sessionData) {
+			// Valid session - attach to locals
+			event.locals.session = sessionData.session;
+			event.locals.user = sessionData.user;
+			event.locals.auth = {
+				authenticated: true,
+				provider: sessionData.session.provider,
+				userId: sessionData.session.userId
+			};
+
+			// Refresh session cookie if needed (within 24h of expiration)
+			if (sessionData.needsRefresh) {
+				const newExpiresAt = await services.sessionManager.refreshSession(sessionId);
+				logger.debug(
+					'AUTH',
+					`Refreshed session ${sessionId} (new expiry: ${new Date(newExpiresAt).toISOString()})`
+				);
+			}
+
+			authenticated = true;
+			logger.debug(
+				'AUTH',
+				`Authenticated ${pathname} via session cookie (provider: ${sessionData.session.provider})`
+			);
+		}
 	}
 
-	// Extract auth token from request
-	const authService = event.locals.services.auth;
-	const token = authService.getAuthKeyFromRequest(event.request);
+	// Strategy 2: Check for API key (Authorization header)
+	if (!authenticated) {
+		const authService = services.auth;
+		const token = authService.getAuthKeyFromRequest(event.request);
 
-	if (!token) {
-		logger.warn('AUTH', `Unauthenticated API request to ${pathname}`);
-		return json({ error: 'Authentication required' }, { status: 401 });
+		if (token) {
+			const authResult = await authService.validateAuth(token);
+			if (authResult.valid) {
+				event.locals.auth = {
+					authenticated: true,
+					provider: authResult.provider,
+					userId: authResult.userId,
+					apiKeyId: authResult.apiKeyId,
+					label: authResult.label
+				};
+				authenticated = true;
+				logger.debug(
+					'AUTH',
+					`Authenticated ${pathname} via API key (provider: ${authResult.provider})`
+				);
+			}
+		}
 	}
 
-	// Validate using multi-strategy auth
-	const authResult = await authService.validateAuth(token);
+	// Handle unauthenticated requests
+	if (!authenticated) {
+		// Optional auth routes should proceed even without authentication
+		if (isOptionalAuth) {
+			logger.debug('AUTH', `Optional auth route ${pathname} - proceeding without authentication`);
+			// Set locals.auth to indicate unauthenticated state
+			event.locals.auth = {
+				authenticated: false
+			};
+			return resolve(event);
+		}
 
-	if (!authResult.valid) {
-		logger.warn('AUTH', `Invalid authentication token for ${pathname}`);
-		return json({ error: 'Invalid authentication token' }, { status: 401 });
+		if (isApiRoute) {
+			logger.warn('AUTH', `Unauthenticated API request to ${pathname}`);
+			return json({ error: 'Authentication required' }, { status: 401 });
+		} else {
+			// Redirect browser requests to login page
+			logger.debug('AUTH', `Redirecting unauthenticated request to /login (from ${pathname})`);
+			throw redirect(303, `/login?redirect=${encodeURIComponent(pathname)}`);
+		}
 	}
-
-	// Store auth context in locals for use by routes
-	event.locals.auth = {
-		provider: authResult.provider,
-		userId: authResult.userId,
-		authenticated: true
-	};
-
-	logger.debug('AUTH', `Authenticated ${pathname} via ${authResult.provider}`);
 
 	return resolve(event);
 }

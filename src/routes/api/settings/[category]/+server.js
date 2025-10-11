@@ -49,11 +49,6 @@ export async function PUT({ params, request, locals }) {
 			`Settings for ${category} category`
 		);
 
-		// Update terminal key cache if authentication settings changed
-		if (category === 'authentication' && body.settings.terminal_key !== undefined) {
-			auth.updateCachedKey(body.settings.terminal_key);
-		}
-
 		return json(
 			{
 				success: true,

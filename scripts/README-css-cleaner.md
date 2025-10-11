@@ -45,13 +45,13 @@ node scripts/remove-unused-css.js --css-dir src/styles --svelte-dir src/lib
 
 ## Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--dry-run` | Show what would be removed without making changes | false |
-| `--backup` | Create .backup files before modifying CSS | false |
-| `--verbose` | Show detailed output including removed selectors | false |
-| `--css-dir <path>` | CSS directory to scan | `src/lib/client/shared/styles` |
-| `--svelte-dir <path>` | Svelte directory to scan | `src` |
+| Option                | Description                                       | Default                        |
+| --------------------- | ------------------------------------------------- | ------------------------------ |
+| `--dry-run`           | Show what would be removed without making changes | false                          |
+| `--backup`            | Create .backup files before modifying CSS         | false                          |
+| `--verbose`           | Show detailed output including removed selectors  | false                          |
+| `--css-dir <path>`    | CSS directory to scan                             | `src/lib/client/shared/styles` |
+| `--svelte-dir <path>` | Svelte directory to scan                          | `src`                          |
 
 ## How It Works
 
@@ -60,11 +60,16 @@ node scripts/remove-unused-css.js --css-dir src/styles --svelte-dir src/lib
 The script parses CSS files and extracts all class selectors from rules like:
 
 ```css
-.button { }                    /* Simple selector */
-.card:hover { }               /* Pseudo-class */
-.icon::before { }             /* Pseudo-element */
-.parent .child { }            /* Descendant selector */
-div.component { }             /* Element + class */
+.button {
+} /* Simple selector */
+.card:hover {
+} /* Pseudo-class */
+.icon::before {
+} /* Pseudo-element */
+.parent .child {
+} /* Descendant selector */
+div.component {
+} /* Element + class */
 ```
 
 ### 2. Svelte Component Scanning
@@ -72,6 +77,11 @@ div.component { }             /* Element + class */
 It searches for class usage in multiple patterns:
 
 ```svelte
+<!-- Pattern 4: classList API -->
+<script>
+	element.classList.add('highlight');
+</script>
+
 <!-- Pattern 1: class attribute -->
 <div class="button primary"></div>
 
@@ -80,11 +90,6 @@ It searches for class usage in multiple patterns:
 
 <!-- Pattern 3: className prop -->
 <Component className="custom-style" />
-
-<!-- Pattern 4: classList API -->
-<script>
-  element.classList.add('highlight');
-</script>
 
 <!-- Pattern 5: Template literals -->
 <div class={`container ${theme}`}></div>
@@ -152,6 +157,7 @@ npm run css:clean:backup
 ```
 
 This creates `.backup` files alongside each modified CSS file:
+
 - `utilities.css`
 - `utilities.css.backup` ← Safe copy of original
 
@@ -184,6 +190,7 @@ Keep backups until you've tested the changes.
 ### 3. Test After Cleaning
 
 After running the script:
+
 1. Run the dev server: `npm run dev`
 2. Visually inspect your application
 3. Check all routes and components
@@ -206,6 +213,7 @@ This allows easy rollback if needed.
 ### What It Doesn't Detect
 
 1. **Dynamic class names constructed in JavaScript:**
+
    ```javascript
    const className = 'btn-' + type; // Won't detect 'btn-primary', 'btn-secondary'
    ```
@@ -219,11 +227,13 @@ This allows easy rollback if needed.
 ### Workarounds
 
 **For dynamic classes**, either:
+
 - Safelist them manually by keeping them in CSS
 - Use explicit class names in the code when possible
 - Run in dry-run mode and manually review
 
 **For external libraries:**
+
 - Use `--css-dir` to target only your custom CSS
 - Exclude library CSS files from the scan
 
@@ -262,6 +272,7 @@ Add to your CI workflow to catch unused CSS:
 
 **Cause:** False positive removal
 **Solution:**
+
 1. Restore from backup: `cp utilities.css.backup utilities.css`
 2. Or restore from git: `git checkout -- src/lib/client/shared/styles/`
 3. Review the removed rules and identify which are needed

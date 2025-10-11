@@ -5,11 +5,13 @@ Dispatch uses SQLite for persistent storage with an event-sourced architecture f
 ## Database Configuration
 
 **SQLite Pragmas:**
+
 - `journal_mode=WAL` - Write-Ahead Logging for better concurrent access
 - `foreign_keys=ON` - Enforce referential integrity
 - `busy_timeout=5000` - 5-second timeout for locked database
 
 **Location:**
+
 - Production: `~/.dispatch/data/workspace.db`
 - Development: `.testing-home/dispatch/data/workspace.db`
 
@@ -32,6 +34,7 @@ CREATE TABLE sessions (
 ```
 
 **Indexes:**
+
 - `ix_sessions_kind` on `kind`
 - `ix_sessions_status` on `status`
 
@@ -97,6 +100,7 @@ CREATE TABLE session_events (
 ```
 
 **Indexes:**
+
 - `ix_events_run_seq` (UNIQUE) on `(run_id, seq)` - Ensures unique sequence numbers
 - `ix_events_run_ts` on `(run_id, ts)` - Enables timestamp-based queries
 
@@ -129,9 +133,9 @@ Clients can replay events from a specific sequence number:
 const events = await db.getSessionEventsSince(runId, lastSeq);
 
 // Events are ordered by seq for guaranteed ordering
-events.forEach(event => {
-  // Process event
-  lastSeq = event.seq;
+events.forEach((event) => {
+	// Process event
+	lastSeq = event.seq;
 });
 ```
 
@@ -152,6 +156,7 @@ CREATE TABLE workspace_layout (
 ```
 
 **Indexes:**
+
 - `ix_workspace_layout_client` on `client_id`
 
 **Field Details:**
@@ -210,6 +215,7 @@ CREATE TABLE logs (
 ```
 
 **Indexes:**
+
 - `ix_logs_timestamp` on `timestamp`
 
 ### settings
@@ -397,14 +403,17 @@ ORDER BY w.last_active DESC;
 ## Data Integrity
 
 **Foreign Keys:**
+
 - `session_events.run_id` → `sessions.run_id`
   - Cascading deletes: When a session is deleted, its events are deleted first
 
 **Unique Constraints:**
+
 - `workspace_layout(run_id, client_id)` - One layout per client per session
 - `session_events(run_id, seq)` - Unique sequence numbers per session
 
 **Serialization:**
+
 - Write operations are serialized via a `writeQueue` in DatabaseManager to prevent SQLITE_BUSY errors
 - Read operations use retry logic with exponential backoff (3 retries, 100ms base)
 
@@ -434,6 +443,7 @@ Migrations are handled by `/src/lib/server/shared/db/migrate.js`:
 ## Performance Considerations
 
 **Indexes:** All high-traffic queries have supporting indexes
+
 - Sessions: `kind`, `status`
 - Events: `(run_id, seq)`, `(run_id, ts)`
 - Layout: `client_id`
@@ -444,22 +454,26 @@ Migrations are handled by `/src/lib/server/shared/db/migrate.js`:
 **Connection Pooling:** Single connection with serialized writes via queue
 
 **Cleanup:**
+
 - Stopped sessions can be manually cleaned via maintenance API
 - Event log grows indefinitely (consider periodic archival for production)
 
 ## Troubleshooting
 
 **View Schema:**
+
 ```bash
 sqlite3 ~/.dispatch/data/workspace.db "SELECT sql FROM sqlite_master WHERE type='table';"
 ```
 
 **Check Table Info:**
+
 ```bash
 sqlite3 ~/.dispatch/data/workspace.db "PRAGMA table_info(sessions);"
 ```
 
 **View Recent Events:**
+
 ```bash
 sqlite3 ~/.dispatch/data/workspace.db "
   SELECT run_id, seq, channel, type, datetime(ts/1000, 'unixepoch') as time
@@ -470,6 +484,7 @@ sqlite3 ~/.dispatch/data/workspace.db "
 ```
 
 **Session Status:**
+
 ```bash
 sqlite3 ~/.dispatch/data/workspace.db "
   SELECT kind, status, COUNT(*) as count

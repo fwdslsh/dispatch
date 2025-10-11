@@ -1,5 +1,6 @@
 <script>
 	// Props (Svelte 5 $props() syntax)
+	/** @type {import('./$types').PageData} */
 	let { data } = $props();
 
 	const workspaces = data?.workspaces ?? [];

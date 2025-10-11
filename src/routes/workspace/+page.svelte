@@ -16,9 +16,12 @@
 <style>
 	/* Ensure the workspace page takes full height */
 	:global(html, body) {
-		overflow-x: auto;
 		/* Prevent pull-to-refresh on mobile */
 		overscroll-behavior-y: none;
 		overscroll-behavior: none;
+
+		:global(main.app-main){
+			overflow: hidden !important;
+		}
 	}
 </style>

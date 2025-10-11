@@ -24,8 +24,6 @@
 	const MAX_LINES = 1000; // Keep only last 1000 lines for performance
 	let lineIdCounter = 0; // Unique counter for line IDs
 
-	let key = localStorage.getItem('dispatch-auth-token');
-
 	// Initialize AnsiUp for proper ANSI escape sequence handling
 	const ansiUp = new AnsiUp();
 
@@ -288,10 +286,7 @@
 		}
 
 		try {
-			// Authenticate if not already done
-			if (!runSessionClient.getStatus().authenticated) {
-				await runSessionClient.authenticate(key);
-			}
+			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
 
 			// Attach to the run session and get backlog
 			console.log('[MOBILE-TERMINAL] Attaching to run session:', sessionId);

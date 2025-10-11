@@ -11,10 +11,13 @@ $ARGUMENTS
 ## Orchestration Strategy
 
 ### For Simple Refactorings (single file/component)
+
 Execute the workflow below directly with specialized agents.
 
 ### For Complex Refactorings (multiple files/systems/features)
+
 **First, launch the parallel-work-orchestrator agent** to:
+
 - Break down the refactoring into parallel workstreams
 - Identify dependencies and execution order
 - Assign workstreams to specialized agents
@@ -30,23 +33,27 @@ Then execute the coordinated plan using the workflow phases below.
 Launch agents in parallel for comprehensive analysis:
 
 **svelte-mvvm-architect** - Analyze architecture:
+
 - Current architecture and patterns in affected code
 - MVVM compliance and Svelte 5 best practices
 - Component boundaries and separation of concerns
 - State management patterns ($state, $derived, $effect)
 
 **refactoring-specialist** - Identify improvements:
+
 - Code smells and technical debt
 - SOLID principle adherence
 - Design pattern opportunities
 - Testability and maintainability gaps
 
 **frontend-design-expert** (if UI changes involved):
+
 - Visual consistency and modern CSS techniques
 - Design system alignment
 - Accessibility considerations
 
 **Deliverable**: Comprehensive refactoring plan with:
+
 - Architectural changes required
 - Sequence of refactoring steps (parallel vs sequential)
 - Risk assessment and mitigation strategies
@@ -73,6 +80,7 @@ Execute the refactoring plan systematically:
 ### Phase 3: Code Review (svelte-code-reviewer)
 
 After implementation, launch **svelte-code-reviewer** agent to:
+
 - Perform comprehensive code review of all changes
 - Verify adherence to SOLID principles and clean code practices
 - Check Svelte 5 best practices and runes usage
@@ -101,6 +109,7 @@ Run comprehensive validation in parallel:
 ### Phase 5: CSS Maintenance (css-maintainer) - If Applicable
 
 If refactoring involves UI changes, launch **css-maintainer** to:
+
 - Analyze CSS usage patterns in modified components
 - Consolidate duplicate styles
 - Remove unused CSS selectors

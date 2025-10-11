@@ -81,14 +81,18 @@ export class RunSessionClient {
 			}
 
 			// Emit client:hello with terminalKey (server expects this)
-			this.socket.emit('client:hello', { clientId: this.clientId, terminalKey: key }, (response) => {
-				if (response?.success) {
-					this.authenticated = true;
-					resolve();
-				} else {
-					reject(new Error(response?.error || 'Authentication failed'));
+			this.socket.emit(
+				'client:hello',
+				{ clientId: this.clientId, terminalKey: key },
+				(response) => {
+					if (response?.success) {
+						this.authenticated = true;
+						resolve();
+					} else {
+						reject(new Error(response?.error || 'Authentication failed'));
+					}
 				}
-			});
+			);
 		});
 	}
 

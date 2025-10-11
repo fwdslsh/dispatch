@@ -23,16 +23,13 @@ export class RetentionPolicyViewModel {
 
 	// Injected dependencies
 	#settingsService;
-	#authKey;
 
 	/**
 	 * Create RetentionPolicyViewModel
 	 * @param {SettingsService} settingsService - Settings manager
-	 * @param {string} authKey - Authentication key
 	 */
-	constructor(settingsService, authKey) {
+	constructor(settingsService) {
 		this.#settingsService = settingsService;
-		this.#authKey = authKey;
 	}
 
 	// Derived state - computed properties
@@ -112,9 +109,9 @@ export class RetentionPolicyViewModel {
 			const response = await fetch('/api/maintenance', {
 				method: 'POST',
 				headers: {
-					Authorization: `Bearer ${this.#authKey}`,
 					'Content-Type': 'application/json'
 				},
+				credentials: 'include',
 				body: JSON.stringify({
 					action: 'preview'
 				})
@@ -179,9 +176,9 @@ export class RetentionPolicyViewModel {
 			const response = await fetch('/api/maintenance', {
 				method: 'POST',
 				headers: {
-					Authorization: `Bearer ${this.#authKey}`,
 					'Content-Type': 'application/json'
 				},
+				credentials: 'include',
 				body: JSON.stringify({
 					action: 'cleanup'
 				})

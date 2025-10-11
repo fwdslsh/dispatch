@@ -15,6 +15,7 @@ The Dispatch CSS architecture now supports dynamic theme switching via CSS custo
 ### 1. Base Theme File (`retro.css`)
 
 Contains ONLY base HTML element styling:
+
 - Document defaults (html, body)
 - Typography (h1-h6, p, code, pre)
 - Links (a)
@@ -23,6 +24,7 @@ Contains ONLY base HTML element styling:
 - Theme-specific effects (.glow, .prompt, body::before scanlines)
 
 **What belongs in a theme file:**
+
 - ✅ Default HTML element styles
 - ✅ Focus and selection states
 - ✅ Scrollbar customization
@@ -30,6 +32,7 @@ Contains ONLY base HTML element styling:
 - ✅ Form input states (hover, focus, disabled, invalid, valid)
 
 **What does NOT belong in a theme file:**
+
 - ❌ Component-specific classes (`.card`, `.badge`, `.modal-actions`)
 - ❌ Layout utilities (`.container`, `.flex`, `.grid`)
 - ❌ Component BEM selectors (`.btn--primary`, `.workspace-selector`)
@@ -98,12 +101,12 @@ If your theme needs different color values, create a theme-specific variables fi
 
 ```css
 :root {
-  /* Override only the tokens that change */
-  --bg: #ffffff;
-  --surface: #f5f5f5;
-  --text: #1a1a1a;
-  --accent: #0066cc;
-  /* etc. */
+	/* Override only the tokens that change */
+	--bg: #ffffff;
+	--surface: #f5f5f5;
+	--text: #1a1a1a;
+	--accent: #0066cc;
+	/* etc. */
 }
 ```
 
@@ -122,27 +125,30 @@ Or use dynamic loading based on user preference:
 ```javascript
 // In theme switching logic
 if (theme === 'modern') {
-  import('./themes/modern.css');
+	import('./themes/modern.css');
 } else {
-  import('./retro.css');
+	import('./retro.css');
 }
 ```
 
 ## Theme Examples
 
 ### Retro Terminal (Current)
+
 - **Colors:** Dark phosphor green (#2ee66b), dark background
 - **Effects:** CRT scanlines, glow effects, terminal prompts
 - **Typography:** Monospace primary, uppercase headers
 - **Forms:** Futuristic with gradient borders
 
 ### Modern (Future)
+
 - **Colors:** Clean whites/grays, subtle blues
 - **Effects:** Subtle shadows, minimal glow
 - **Typography:** Sans-serif, normal case
 - **Forms:** Clean borders, soft focus states
 
 ### High Contrast (Future)
+
 - **Colors:** Pure black/white, high contrast accent
 - **Effects:** No effects, maximum readability
 - **Typography:** Large, clear fonts
@@ -151,26 +157,32 @@ if (theme === 'modern') {
 ## Design Token Categories
 
 ### Typography Tokens
+
 - `--font-sans`, `--font-mono`, `--font-accent`
 - `--font-size-0` through `--font-size-4`
 
 ### Spacing Tokens
+
 - `--space-0` through `--space-7` (2px to 48px)
 - `--radius-xs` through `--radius-full`
 
 ### Color Tokens
+
 **Surface Colors:**
+
 - `--bg` - Background
 - `--surface` - Card/panel surface
 - `--elev` - Elevated surface
 - `--line` - Border color
 
 **Text Colors:**
+
 - `--text` - Primary text
 - `--muted` - Secondary text
 - `--text-dim` - Tertiary text
 
 **Semantic Colors:**
+
 - `--accent` / `--primary` - Primary brand color
 - `--ok` / `--success` - Success state
 - `--warn` / `--warning` - Warning state
@@ -178,6 +190,7 @@ if (theme === 'modern') {
 - `--info` - Information
 
 **Effect Colors:**
+
 - `--glow` - Glow/shadow effect
 - `--focus` - Focus ring color
 - `--primary-glow-[10-60]` - Opacity variants for gradients
@@ -197,18 +210,18 @@ const theme = process.env.THEME || 'retro';
 
 ```svelte
 <script>
-  import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
+	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
 
-  let theme = $state(settingsService.get('appearance.theme', 'retro'));
+	let theme = $state(settingsService.get('appearance.theme', 'retro'));
 
-  $effect(() => {
-    // Dynamically load theme CSS
-    if (theme === 'modern') {
-      import('./themes/modern.css');
-    } else {
-      import('./retro.css');
-    }
-  });
+	$effect(() => {
+		// Dynamically load theme CSS
+		if (theme === 'modern') {
+			import('./themes/modern.css');
+		} else {
+			import('./retro.css');
+		}
+	});
 </script>
 ```
 
@@ -232,9 +245,11 @@ document.documentElement.style.setProperty('--accent', '#0066cc');
 ## Migration Notes
 
 **Previous State:**
+
 - retro.css contained 810 lines mixing base HTML and components
 
 **Current State (Refactored):**
+
 - retro.css: 386 lines (pure base HTML theme)
 - Component styles moved to:
   - `WorkspaceSelector.svelte` (66 lines)
@@ -243,6 +258,7 @@ document.documentElement.style.setProperty('--accent', '#0066cc');
   - `misc.css` (cards, badges, error messages, button groups)
 
 **Benefits:**
+
 - Clean separation enables theme switching
 - Components work with any theme
 - Reduced global CSS footprint

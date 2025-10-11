@@ -191,10 +191,10 @@ export class WorkspaceRepository {
 	 * @returns {Promise<void>}
 	 */
 	async removeWorkspaceLayout(runId, clientId) {
-		await this.#db.run(
-			`DELETE FROM workspace_layout WHERE run_id = ? AND client_id = ?`,
-			[runId, clientId]
-		);
+		await this.#db.run(`DELETE FROM workspace_layout WHERE run_id = ? AND client_id = ?`, [
+			runId,
+			clientId
+		]);
 	}
 
 	/**
@@ -213,7 +213,7 @@ export class WorkspaceRepository {
 					runId: row.run_id,
 					clientId: row.client_id,
 					tileId: row.tile_id
-			  }
+				}
 			: null;
 	}
 

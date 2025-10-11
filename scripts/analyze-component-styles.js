@@ -111,7 +111,9 @@ function hasScopedStyles(content) {
 
 	// Check if the style block has any actual content (not just comments/whitespace)
 	for (const match of matches) {
-		const styleContent = match.replace(/<style(?:\s+lang=["'][^"']*["'])?\s*>|<\/style>/gi, '').trim();
+		const styleContent = match
+			.replace(/<style(?:\s+lang=["'][^"']*["'])?\s*>|<\/style>/gi, '')
+			.trim();
 
 		// Remove comments
 		const withoutComments = styleContent
@@ -506,7 +508,10 @@ async function main() {
 	log(`External-only: ${externalOnly}`, 'blue');
 	log(`Mixed approach: ${mixed}`, mixed > 0 ? 'yellow' : 'green');
 	log(`No styles: ${noStyles}`, 'gray');
-	log(`Single-component CSS: ${singleComponentCSS.length}`, singleComponentCSS.length > 0 ? 'yellow' : 'green');
+	log(
+		`Single-component CSS: ${singleComponentCSS.length}`,
+		singleComponentCSS.length > 0 ? 'yellow' : 'green'
+	);
 
 	if (mixed > 0 || singleComponentCSS.length > 0) {
 		log(`\n💡 ${mixed + singleComponentCSS.length} items need attention (see report)`, 'yellow');

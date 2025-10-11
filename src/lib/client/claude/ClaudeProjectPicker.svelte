@@ -138,8 +138,11 @@
 				onkeydown={key}
 				aria-controls="cc-panel"
 			/>
-			<button type="button" class="browse-btn flex-center" onclick={toggle} aria-label="Browse projects"
-				><IconFolder size={18} /></button
+			<button
+				type="button"
+				class="browse-btn flex-center"
+				onclick={toggle}
+				aria-label="Browse projects"><IconFolder size={18} /></button
 			>
 		</div>
 	{/if}

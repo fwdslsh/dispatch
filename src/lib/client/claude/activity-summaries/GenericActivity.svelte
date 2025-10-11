@@ -1,5 +1,4 @@
 <script>
-	
 	import Markdown from '$lib/client/shared/components/Markdown.svelte';
 
 	let { event, type = 'Unknown', tool = '' } = $props();

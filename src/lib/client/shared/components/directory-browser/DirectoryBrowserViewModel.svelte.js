@@ -9,7 +9,6 @@ import { getAuthHeaders } from '$lib/shared/api-helpers.js';
  * Uses Svelte 5 runes ($state, $derived) for reactive state management.
  */
 export class DirectoryBrowserViewModel {
-
 	// Core state
 	currentPath = $state(null);
 	loading = $state(false);
@@ -87,10 +86,12 @@ export class DirectoryBrowserViewModel {
 		} else {
 			// If we have a custom root folder, start from there
 			const rootParts = normalizedRoot.split('/').filter(Boolean);
-			this.breadcrumbs = [{
-				name: rootParts[rootParts.length - 1] || '/',
-				path: normalizedRoot
-			}];
+			this.breadcrumbs = [
+				{
+					name: rootParts[rootParts.length - 1] || '/',
+					path: normalizedRoot
+				}
+			];
 		}
 
 		// Add breadcrumbs for parts beyond the root folder
@@ -347,10 +348,9 @@ export class DirectoryBrowserViewModel {
 	}
 
 	handleGitError(err, status = null) {
-		if (status !== 404)
-			this.error = err;
+		if (status !== 404) this.error = err;
 	}
-	
+
 	/**
 	 * Handle file upload
 	 * @param {FileList} files - Files to upload

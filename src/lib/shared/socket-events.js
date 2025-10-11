@@ -34,17 +34,17 @@ export const SOCKET_EVENTS = {
 	GET_PUBLIC_URL: 'get-public-url',
 	PUBLIC_URL_RESPONSE: 'public-url-response',
 
-	// Tunnel control events
-	TUNNEL_ENABLE: 'tunnel.enable',
-	TUNNEL_DISABLE: 'tunnel.disable',
-	TUNNEL_STATUS: 'tunnel.status',
-	TUNNEL_UPDATE_CONFIG: 'tunnel.updateConfig',
+	// Tunnel control events (LocalTunnel)
+	TUNNEL_START: 'tunnel:start',
+	TUNNEL_STOP: 'tunnel:stop',
+	TUNNEL_STATUS: 'tunnel:status',
+	TUNNEL_UPDATE_CONFIG: 'tunnel:updateConfig',
 
 	// VS Code tunnel events
-	VSCODE_TUNNEL_START: 'vscode.tunnel.start',
-	VSCODE_TUNNEL_STOP: 'vscode.tunnel.stop',
-	VSCODE_TUNNEL_STATUS: 'vscode.tunnel.status',
-	VSCODE_TUNNEL_LOGIN_URL: 'vscode.tunnel.login-url',
+	VSCODE_TUNNEL_START: 'vscode-tunnel:start',
+	VSCODE_TUNNEL_STOP: 'vscode-tunnel:stop',
+	VSCODE_TUNNEL_STATUS: 'vscode-tunnel:status',
+	VSCODE_TUNNEL_LOGIN_URL: 'vscode-tunnel:login-url',
 
 	// Settings events for real-time updates
 	SETTINGS_UPDATED: 'settings.updated',

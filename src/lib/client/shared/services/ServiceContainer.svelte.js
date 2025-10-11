@@ -23,6 +23,12 @@ class ServiceContainer {
 		// Service factories
 		this.factories = new Map();
 
+		// Track which services are currently loading
+		this.loading = $state(new Set());
+
+		// Store pending promises for services being loaded
+		this.loadingPromises = new Map();
+
 		// Service configuration
 		// Phase 6: Use new unified auth token key
 		this.config = $state({
@@ -72,14 +78,13 @@ class ServiceContainer {
 
 		this.registerFactory('settingsService', async () => {
 			const { SettingsService } = await import('./SettingsService.svelte.js');
-			// Get auth key from localStorage with development fallback
-			const authKey =
-				typeof window !== 'undefined'
-					? localStorage.getItem('dispatch-auth-token') ||
-						localStorage.getItem(this.config.authTokenKey)
-					: '';
+			// Auth handled via session cookies - no need to pass auth key
+			return new SettingsService(this.config);
+		});
 
-			return new SettingsService(authKey, this.config.apiBaseUrl || '');
+		this.registerFactory('themeState', async () => {
+			const { ThemeState } = await import('../state/ThemeState.svelte.js');
+			return new ThemeState(this.config);
 		});
 
 		// ViewModels
@@ -127,12 +132,36 @@ class ServiceContainer {
 			return this.services.get(name);
 		}
 
+		// If service is already being loaded, wait for the existing promise
+		if (this.loadingPromises.has(name)) {
+			return this.loadingPromises.get(name);
+		}
+
 		// Create instance using factory
 		if (this.factories.has(name)) {
-			const factory = this.factories.get(name);
-			const instance = this.assertInstance(name, await factory());
-			this.services.set(name, instance);
-			return instance;
+			// Mark service as loading
+			this.loading.add(name);
+
+			try {
+				const factory = this.factories.get(name);
+
+				// Create the loading promise and store it
+				const loadingPromise = factory().then((instance) => {
+					const validInstance = this.assertInstance(name, instance);
+					this.services.set(name, validInstance);
+					return validInstance;
+				});
+
+				// Store the promise so concurrent calls can await it
+				this.loadingPromises.set(name, loadingPromise);
+
+				const instance = await loadingPromise;
+				return instance;
+			} finally {
+				// Remove from loading state and pending promises
+				this.loading.delete(name);
+				this.loadingPromises.delete(name);
+			}
 		}
 
 		throw new Error(`Service '${name}' not registered`);
@@ -169,6 +198,15 @@ class ServiceContainer {
 	}
 
 	/**
+	 * Check if a service is currently loading
+	 * @param {string} name - Service name
+	 * @returns {boolean}
+	 */
+	isLoading(name) {
+		return this.loading.has(name);
+	}
+
+	/**
 	 * Update configuration
 	 * @param {Object} updates - Configuration updates
 	 */
@@ -182,6 +220,8 @@ class ServiceContainer {
 	 */
 	reset(name) {
 		this.services.delete(name);
+		this.loading.delete(name);
+		this.loadingPromises.delete(name);
 	}
 
 	/**
@@ -189,6 +229,8 @@ class ServiceContainer {
 	 */
 	resetAll() {
 		this.services.clear();
+		this.loading.clear();
+		this.loadingPromises.clear();
 	}
 
 	/**
@@ -201,6 +243,8 @@ class ServiceContainer {
 			await service.dispose();
 		}
 		this.services.delete(name);
+		this.loading.delete(name);
+		this.loadingPromises.delete(name);
 	}
 
 	/**
@@ -213,6 +257,8 @@ class ServiceContainer {
 			}
 		}
 		this.services.clear();
+		this.loading.clear();
+		this.loadingPromises.clear();
 	}
 }
 

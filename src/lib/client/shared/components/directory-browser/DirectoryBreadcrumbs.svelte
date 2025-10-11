@@ -29,7 +29,9 @@
 		}
 
 		// Show first 2, ellipsis, last 2
-		const first = breadcrumbs.slice(0, 2).map((crumb, i) => ({ ...crumb, index: i, isEllipsis: false }));
+		const first = breadcrumbs
+			.slice(0, 2)
+			.map((crumb, i) => ({ ...crumb, index: i, isEllipsis: false }));
 		const last = breadcrumbs.slice(-2).map((crumb, i) => ({
 			...crumb,
 			index: breadcrumbs.length - 2 + i,
@@ -75,12 +77,7 @@
 	</div>
 	<div class="flex items-center gap-1 ml-auto shrink-0">
 		{#if !isAlwaysOpen}
-			<IconButton
-				type="button"
-				onclick={onClose}
-				title="Close directory browser"
-				variant="ghost"
-			>
+			<IconButton type="button" onclick={onClose} title="Close directory browser" variant="ghost">
 				<IconX size={16} />
 			</IconButton>
 		{/if}

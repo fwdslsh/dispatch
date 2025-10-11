@@ -13,41 +13,91 @@
    ================================================================== */
 
 /* Padding utilities */
-.p-1 { padding: var(--space-1); }
-.p-2 { padding: var(--space-2); }
-.p-3 { padding: var(--space-3); }
-.p-4 { padding: var(--space-4); }
-.p-5 { padding: var(--space-5); }
-.p-6 { padding: var(--space-6); }
+.p-1 {
+	padding: var(--space-1);
+}
+.p-2 {
+	padding: var(--space-2);
+}
+.p-3 {
+	padding: var(--space-3);
+}
+.p-4 {
+	padding: var(--space-4);
+}
+.p-5 {
+	padding: var(--space-5);
+}
+.p-6 {
+	padding: var(--space-6);
+}
 
 /* Padding directional utilities */
-.px-2 { padding-left: var(--space-2); padding-right: var(--space-2); }
-.px-3 { padding-left: var(--space-3); padding-right: var(--space-3); }
+.px-2 {
+	padding-left: var(--space-2);
+	padding-right: var(--space-2);
+}
+.px-3 {
+	padding-left: var(--space-3);
+	padding-right: var(--space-3);
+}
 
-.py-2 { padding-top: var(--space-2); padding-bottom: var(--space-2); }
+.py-2 {
+	padding-top: var(--space-2);
+	padding-bottom: var(--space-2);
+}
 
 /* Margin utilities */
-.m-0 { margin: var(--space-0); }
-.m-2 { margin: var(--space-2); }
-.m-3 { margin: var(--space-3); }
+.m-0 {
+	margin: var(--space-0);
+}
+.m-2 {
+	margin: var(--space-2);
+}
+.m-3 {
+	margin: var(--space-3);
+}
 
 /* Margin directional utilities */
-.mx-auto { margin-left: auto; margin-right: auto; }
-.ml-auto { margin-left: auto; }
+.mx-auto {
+	margin-left: auto;
+	margin-right: auto;
+}
+.ml-auto {
+	margin-left: auto;
+}
 
-.mt-2 { margin-top: var(--space-2); }
-.mt-3 { margin-top: var(--space-3); }
-.mb-2 { margin-bottom: var(--space-2); }
+.mt-2 {
+	margin-top: var(--space-2);
+}
+.mt-3 {
+	margin-top: var(--space-3);
+}
+.mb-2 {
+	margin-bottom: var(--space-2);
+}
 
 /* Gap utilities for flex/grid */
-.gap-1 { gap: var(--space-1); }
-.gap-2 { gap: var(--space-2); }
-.gap-3 { gap: var(--space-3); }
-.gap-4 { gap: var(--space-4); }
-.gap-6 { gap: var(--space-6); }
+.gap-1 {
+	gap: var(--space-1);
+}
+.gap-2 {
+	gap: var(--space-2);
+}
+.gap-3 {
+	gap: var(--space-3);
+}
+.gap-4 {
+	gap: var(--space-4);
+}
+.gap-6 {
+	gap: var(--space-6);
+}
 
 /* Space between utilities (for flex/grid children) */
-.space-y-2 > * + * { margin-top: var(--space-2); }
+.space-y-2 > * + * {
+	margin-top: var(--space-2);
+}
 
 /* ==================================================================
    LAYOUT UTILITIES
@@ -55,38 +105,85 @@
    ================================================================== */
 
 /* Flexbox */
-.flex { display: flex; }
-.flex-col { display: flex; flex-direction: column; }
-.flex-center { display: flex; align-items: center; justify-content: center; }
-.flex-between { display: flex; align-items: center; justify-content: space-between; }
-.flex-wrap { flex-wrap: wrap; }
+.flex {
+	display: flex;
+}
+.flex-col {
+	display: flex;
+	flex-direction: column;
+}
+.flex-center {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.flex-between {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.flex-wrap {
+	flex-wrap: wrap;
+}
 
-.items-center { align-items: center; }
+.items-center {
+	align-items: center;
+}
 
-.justify-start { justify-content: flex-start; }
-.justify-center { justify-content: center; }
-.justify-end { justify-content: flex-end; }
+.justify-start {
+	justify-content: flex-start;
+}
+.justify-center {
+	justify-content: center;
+}
+.justify-end {
+	justify-content: flex-end;
+}
 
-.flex-1 { flex: 1 1 0%; }
-.shrink-0 { flex-shrink: 0; }
+.flex-1 {
+	flex: 1 1 0%;
+}
+.shrink-0 {
+	flex-shrink: 0;
+}
 
 /* Width and height utilities */
-.w-full { width: 100%; }
-.w-4 { width: 1rem; }
-.h-4 { height: 1rem; }
-.h-full { height: 100%; }
+.w-full {
+	width: 100%;
+}
+.w-4 {
+	width: 1rem;
+}
+.h-4 {
+	height: 1rem;
+}
+.h-full {
+	height: 100%;
+}
 
 /* Display utilities */
-.block { display: block; }
-.inline-block { display: inline-block; }
+.block {
+	display: block;
+}
+.inline-block {
+	display: inline-block;
+}
 
 /* Position utilities */
-.relative { position: relative; }
-.absolute { position: absolute; }
+.relative {
+	position: relative;
+}
+.absolute {
+	position: absolute;
+}
 
 /* Overflow utilities */
-.overflow-x-auto { overflow-x: auto; }
-.overflow-y-auto { overflow-y: auto; }
+.overflow-x-auto {
+	overflow-x: auto;
+}
+.overflow-y-auto {
+	overflow-y: auto;
+}
 
 /* ==================================================================
    TEXT UTILITIES
@@ -94,47 +191,94 @@
    ================================================================== */
 
 /* Text colors */
-.text-primary { color: var(--text); }
-.text-text { color: var(--text); }
-.text-muted { color: var(--muted); }
-.text-success { color: var(--success); }
-.text-warning { color: var(--warning); }
+.text-primary {
+	color: var(--text);
+}
+.text-text {
+	color: var(--text);
+}
+.text-muted {
+	color: var(--muted);
+}
+.text-success {
+	color: var(--success);
+}
+.text-warning {
+	color: var(--warning);
+}
 
 /* Text alignment */
-.text-left { text-align: left; }
-.text-center { text-align: center; }
+.text-left {
+	text-align: left;
+}
+.text-center {
+	text-align: center;
+}
 
 /* Font weight */
-.font-medium { font-weight: 500; }
-.font-semibold { font-weight: 600; }
-.font-bold { font-weight: 700; }
+.font-medium {
+	font-weight: 500;
+}
+.font-semibold {
+	font-weight: 600;
+}
+.font-bold {
+	font-weight: 700;
+}
 
 /* Text size */
-.text-xs { font-size: var(--font-size-0); }
-.text-sm { font-size: var(--font-size-1); }
-.text-base { font-size: var(--font-size-2); }
+.text-xs {
+	font-size: var(--font-size-0);
+}
+.text-sm {
+	font-size: var(--font-size-1);
+}
+.text-base {
+	font-size: var(--font-size-2);
+}
 
 /* ==================================================================
    BACKGROUND UTILITIES
    Surface and background variants using design tokens
    ================================================================== */
 
-.bg-surface { background: var(--surface); }
-.bg-surface-glass { background: color-mix(in oklab, var(--surface) 80%, transparent); backdrop-filter: blur(8px); }
-.bg-surface-highlight { background: var(--elev); }
+.bg-surface {
+	background: var(--surface);
+}
+.bg-surface-glass {
+	background: color-mix(in oklab, var(--surface) 80%, transparent);
+	backdrop-filter: blur(8px);
+}
+.bg-surface-highlight {
+	background: var(--elev);
+}
 
 /* ==================================================================
    BORDER UTILITIES
    Border patterns using design tokens
    ================================================================== */
 
-.border { border-width: 1px; border-style: solid; }
-.border-surface-border { border-color: var(--surface-border); }
-.border-b { border-bottom-width: 1px; border-bottom-style: solid; }
+.border {
+	border-width: 1px;
+	border-style: solid;
+}
+.border-surface-border {
+	border-color: var(--surface-border);
+}
+.border-b {
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
 
-.rounded { border-radius: var(--radius-xs); }
-.rounded-lg { border-radius: var(--radius-md); }
-.rounded-xl { border-radius: var(--radius-lg); }
+.rounded {
+	border-radius: var(--radius-xs);
+}
+.rounded-lg {
+	border-radius: var(--radius-md);
+}
+.rounded-xl {
+	border-radius: var(--radius-lg);
+}
 
 /* ==================================================================
    INTERACTIVE STATES
@@ -147,7 +291,9 @@
 }
 
 .interactive:hover {
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 2px var(--primary-glow-20);
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.15),
+		0 0 0 2px var(--primary-glow-20);
 	border-color: var(--primary);
 	filter: brightness(1.05);
 }
@@ -169,40 +315,69 @@
    ================================================================== */
 
 /* Box shadow utilities */
-.shadow-sm { box-shadow: 0 1px 2px 0 color-mix(in oklab, var(--bg) 97%, black); }
-.shadow-md { box-shadow: 0 4px 6px -1px color-mix(in oklab, var(--bg) 95%, black), 0 2px 4px -1px color-mix(in oklab, var(--bg) 97%, black); }
-.shadow-lg { box-shadow: 0 10px 15px -3px color-mix(in oklab, var(--bg) 95%, black), 0 4px 6px -2px color-mix(in oklab, var(--bg) 97%, black); }
+.shadow-sm {
+	box-shadow: 0 1px 2px 0 color-mix(in oklab, var(--bg) 97%, black);
+}
+.shadow-md {
+	box-shadow:
+		0 4px 6px -1px color-mix(in oklab, var(--bg) 95%, black),
+		0 2px 4px -1px color-mix(in oklab, var(--bg) 97%, black);
+}
+.shadow-lg {
+	box-shadow:
+		0 10px 15px -3px color-mix(in oklab, var(--bg) 95%, black),
+		0 4px 6px -2px color-mix(in oklab, var(--bg) 97%, black);
+}
 
 /* ==================================================================
    TRANSITION UTILITIES
    Consistent animation patterns
    ================================================================== */
 
-.transition-all { transition: all 0.2s ease; }
-.transition-colors { transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease; }
+.transition-all {
+	transition: all 0.2s ease;
+}
+.transition-colors {
+	transition:
+		color 0.2s ease,
+		background-color 0.2s ease,
+		border-color 0.2s ease;
+}
 
-.duration-200 { transition-duration: 0.2s; }
+.duration-200 {
+	transition-duration: 0.2s;
+}
 
 /* ==================================================================
    CURSOR UTILITIES
    ================================================================== */
 
-.cursor-pointer { cursor: pointer; }
-.cursor-not-allowed { cursor: not-allowed; }
+.cursor-pointer {
+	cursor: pointer;
+}
+.cursor-not-allowed {
+	cursor: not-allowed;
+}
 
 /* ==================================================================
    OPACITY UTILITIES
    ================================================================== */
 
-.opacity-50 { opacity: 0.5; }
-.opacity-75 { opacity: 0.75; }
+.opacity-50 {
+	opacity: 0.5;
+}
+.opacity-75 {
+	opacity: 0.75;
+}
 
 /* ==================================================================
    ANIMATION UTILITIES
    Apply consistent motion to elements
    ================================================================== */
 
-.animate-slide-in { animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1); }
+.animate-slide-in {
+	animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
 
 /* ==================================================================
    RESPONSIVE UTILITIES
@@ -210,7 +385,9 @@
    ================================================================== */
 
 @media (max-width: 768px) {
-	.mobile-full-width { width: 100%; }
+	.mobile-full-width {
+		width: 100%;
+	}
 }
 
 /* ==================================================================

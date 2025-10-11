@@ -100,11 +100,7 @@
 		console.log('[ClaudePane] Mounting with:', { sessionId, claudeSessionId, shouldResume });
 
 		try {
-			// Authenticate if not already done
-			const key = localStorage.getItem('dispatch-auth-token');
-			if (!runSessionClient.getStatus().authenticated) {
-				await runSessionClient.authenticate(key);
-			}
+			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
 
 			// Attach to the run session and get backlog
 			console.log('[ClaudePane] Attaching to run session:', sessionId);

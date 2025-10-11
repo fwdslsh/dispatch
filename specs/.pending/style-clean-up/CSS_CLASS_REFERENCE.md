@@ -7,6 +7,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ### Session Components
 
 **SessionCard.svelte**
+
 ```css
 /* Location: src/lib/client/shared/components/SessionCard.svelte <style> block */
 .card-base
@@ -26,6 +27,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ```
 
 **TypeCard.svelte**
+
 ```css
 /* Location: src/lib/client/shared/components/TypeCard.svelte <style> block */
 .type-card
@@ -42,6 +44,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ### Modal & Overlay Components
 
 **Modal.svelte**
+
 ```css
 /* Location: src/lib/client/shared/components/Modal.svelte <style> block */
 .modal-backdrop
@@ -60,6 +63,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ### Form Components
 
 **FormSection.svelte**
+
 ```css
 /* Location: src/lib/client/shared/components/FormSection.svelte <style> block */
 .form-section
@@ -68,6 +72,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ```
 
 **Form Utilities (Various Components)**
+
 ```css
 /* Location: Scoped in individual form components */
 .form-wrapper
@@ -84,6 +89,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ### Button Components
 
 **IconButton.svelte**
+
 ```css
 /* Location: src/lib/client/shared/components/IconButton.svelte <style> block */
 .btn-icon-only
@@ -98,6 +104,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ```
 
 **Button Utilities**
+
 ```css
 /* Location: src/lib/client/shared/components/Button.svelte <style> block */
 .btn-layout
@@ -109,6 +116,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ### Content Display Components
 
 **Markdown.svelte**
+
 ```css
 /* Location: src/lib/client/shared/components/Markdown.svelte <style> block */
 .markdown-content
@@ -126,6 +134,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ```
 
 **ErrorDisplay.svelte**
+
 ```css
 /* Location: src/lib/client/shared/components/ErrorDisplay.svelte <style> block */
 .error-display
@@ -146,6 +155,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ### Layout Components
 
 **StatusBar.svelte**
+
 ```css
 /* Location: src/lib/client/shared/components/StatusBar.svelte <style> block */
 .status-bar-container
@@ -159,6 +169,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ```
 
 **TileControls.svelte**
+
 ```css
 /* Location: src/lib/client/shared/components/window-manager/TileControls.svelte */
 .tile-controls
@@ -167,6 +178,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ```
 
 **Panel/Menu Components**
+
 ```css
 /* Location: Scoped in panel/menu components */
 .menu-root
@@ -183,6 +195,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ### Claude Components
 
 **ClaudePane.svelte**
+
 ```css
 /* Location: src/lib/client/claude/ClaudePane.svelte <style> block */
 .claude-pane
@@ -212,6 +225,7 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 ```
 
 **Claude Settings**
+
 ```css
 /* Location: src/lib/client/settings/settings.css */
 .claude-auth
@@ -246,10 +260,12 @@ Quick reference for finding CSS classes in the Dispatch codebase.
 
 These ~93 utility classes were in `utilities.css` but the file is disabled.
 If you need these, either:
+
 1. Add them to a new `utilities.css` file
 2. Use them inline in component `<style>` blocks
 
 ### Spacing
+
 ```css
 .p-0, .p-1, .p-2, .p-3, .p-4, .p-5, .p-6
 .m-0, .m-1, .m-2, .m-3, .m-4, .m-5, .m-6
@@ -262,6 +278,7 @@ If you need these, either:
 ```
 
 ### Layout
+
 ```css
 .flex, .flex-col, .flex-center, .flex-between, .flex-wrap
 .grid, .grid-cols-2, .grid-cols-3
@@ -275,6 +292,7 @@ If you need these, either:
 ```
 
 ### Typography
+
 ```css
 .text-left, .text-center, .text-right
 .font-medium, .font-semibold, .font-bold
@@ -283,6 +301,7 @@ If you need these, either:
 ```
 
 ### Visual Effects
+
 ```css
 .cursor-pointer, .cursor-not-allowed
 .opacity-0, .opacity-50, .opacity-75, .opacity-100
@@ -293,12 +312,14 @@ If you need these, either:
 ```
 
 ### Interactive States
+
 ```css
 .interactive
 .is-active, .is-selected, .is-disabled, .is-loading, .is-hidden, .is-invisible
 ```
 
 ### Modern Effects
+
 ```css
 .glow-sm, .glow-md, .glow-lg, .glow-focus, .glow-success, .glow-error
 .backdrop-blur, .backdrop-blur-sm, .backdrop-blur-lg
@@ -306,6 +327,7 @@ If you need these, either:
 ```
 
 ### Transitions & Animations
+
 ```css
 .transition-all, .transition-colors, .transition-transform
 .duration-150, .duration-200, .duration-300
@@ -314,6 +336,7 @@ If you need these, either:
 ```
 
 ### Backgrounds & Borders
+
 ```css
 .bg-surface, .bg-surface-glass, .bg-surface-highlight, .bg-surface-hover
 .bg-primary-glow-5, .bg-primary-glow-10
@@ -321,12 +344,14 @@ If you need these, either:
 ```
 
 ### Responsive
+
 ```css
 .mobile-hidden, .mobile-full-width
 .desktop-only, .mobile-only
 ```
 
 ### Accessibility
+
 ```css
 .sr-only
 .focus-visible:focus-visible
@@ -336,6 +361,7 @@ If you need these, either:
 ## How to Find CSS
 
 ### Method 1: Check Component File
+
 Most components have scoped `<style>` blocks:
 
 ```svelte
@@ -343,13 +369,16 @@ Most components have scoped `<style>` blocks:
 <div class="modal-backdrop">...</div>
 
 <style>
-  .modal-backdrop { /* CSS is here */ }
+	.modal-backdrop {
+		/* CSS is here */
+	}
 </style>
 ```
 
 ### Method 2: Check Dedicated CSS Files
 
 Some components have separate CSS files:
+
 - `src/lib/client/settings/settings.css` - Settings/Claude auth components
 - `src/lib/client/shared/components/window-manager/window-manager.css` - Window manager
 - `src/lib/client/claude/activity-summaries/shared-styles.css` - Activity summaries
@@ -357,6 +386,7 @@ Some components have separate CSS files:
 ### Method 3: Global Styles
 
 Global styles are in:
+
 - `src/lib/client/shared/styles/variables.css` - CSS custom properties
 - `src/lib/client/shared/styles/fonts.css` - Font definitions
 
@@ -388,6 +418,7 @@ src/lib/client/shared/styles/
 ```
 
 All CSS from utilities.css has been migrated to:
+
 - Component scoped `<style>` blocks
 - Dedicated CSS files (settings.css, etc.)
 

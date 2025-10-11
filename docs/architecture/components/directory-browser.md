@@ -153,6 +153,7 @@ DirectoryBrowser.svelte (260 lines)
 ## Component Communication
 
 **Props Flow Down ▼**
+
 ```
 DirectoryBrowser (orchestrator)
 ├─▼ DirectoryBreadcrumbs (breadcrumbs, onNavigate, onClose)
@@ -164,6 +165,7 @@ DirectoryBrowser (orchestrator)
 ```
 
 **Events Flow Up ▲**
+
 ```
 DirectoryBrowser
 ▲── onNavigate (from breadcrumbs, directory items)
@@ -179,33 +181,33 @@ DirectoryBrowser
 
 ```javascript
 class DirectoryBrowserViewModel {
-  // Navigation state
-  currentPath = $state(null);
-  entries = $state([]);
-  breadcrumbs = $state([]);
+	// Navigation state
+	currentPath = $state(null);
+	entries = $state([]);
+	breadcrumbs = $state([]);
 
-  // UI state
-  loading = $state(false);
-  error = $state('');
+	// UI state
+	loading = $state(false);
+	error = $state('');
 
-  // Search state
-  query = $state('');
-  showHidden = $state(false);
+	// Search state
+	query = $state('');
+	showHidden = $state(false);
 
-  // Form states
-  showNewDirInput = $state(false);
-  newDirName = $state('');
-  creatingDir = $state(false);
+	// Form states
+	showNewDirInput = $state(false);
+	newDirName = $state('');
+	creatingDir = $state(false);
 
-  showCloneDirInput = $state(false);
-  cloneSourcePath = $state('');
-  cloneTargetPath = $state('');
-  cloningDir = $state(false);
-  cloneOverwrite = $state(false);
+	showCloneDirInput = $state(false);
+	cloneSourcePath = $state('');
+	cloneTargetPath = $state('');
+	cloningDir = $state(false);
+	cloneOverwrite = $state(false);
 
-  // Upload state
-  uploadFiles = $state(null);
-  uploading = $state(false);
+	// Upload state
+	uploadFiles = $state(null);
+	uploading = $state(false);
 }
 ```
 
@@ -214,16 +216,14 @@ class DirectoryBrowserViewModel {
 ```javascript
 // Filtered entries based on search query and hidden files
 filtered = $derived.by(() => {
-  const q = this.query.trim().toLowerCase();
-  let result = this.showHidden
-    ? this.entries
-    : this.entries.filter(e => !e.name.startsWith('.'));
+	const q = this.query.trim().toLowerCase();
+	let result = this.showHidden ? this.entries : this.entries.filter((e) => !e.name.startsWith('.'));
 
-  if (q) {
-    result = result.filter(e => e.name.toLowerCase().includes(q));
-  }
+	if (q) {
+		result = result.filter((e) => e.name.toLowerCase().includes(q));
+	}
 
-  return result;
+	return result;
 });
 ```
 
@@ -231,8 +231,8 @@ filtered = $derived.by(() => {
 
 ```javascript
 // DirectoryBrowser.svelte (UI-only state)
-let isOpen = $state(isAlwaysOpen);  // Collapsed/expanded state
-let fileInputId = $state('...');    // File input element ID
+let isOpen = $state(isAlwaysOpen); // Collapsed/expanded state
+let fileInputId = $state('...'); // File input element ID
 ```
 
 ## Key Methods & API Integration
@@ -319,12 +319,14 @@ async handleFileUpload(files) {
 ### 2. Testability
 
 **ViewModel Tests:**
+
 - Test `browse()` API calls
 - Test navigation logic
 - Test filtering logic
 - Test boundary enforcement
 
 **Component Tests:**
+
 - Test DirectoryItem rendering
 - Test event handling
 - Test conditional UI
@@ -340,12 +342,14 @@ async handleFileUpload(files) {
 ### 4. Maintainability
 
 **Before Refactoring:**
+
 ```
 DirectoryBrowser.svelte (869 lines)
 └─ Everything mixed together
 ```
 
 **After Refactoring:**
+
 ```
 ├─ DirectoryBrowserViewModel.svelte.js (338 lines) - Business logic
 ├─ DirectoryBrowser.svelte (260 lines) - Orchestrator
@@ -362,6 +366,7 @@ Each file has a single, clear purpose
 ### 5. Scalability
 
 Easy to add new features:
+
 - ✅ New actions → Add button to DirectorySearchBar
 - ✅ New entry types → Extend DirectoryItem
 - ✅ New forms → Add new form component
@@ -373,48 +378,52 @@ Easy to add new features:
 ### Adding a New Action (Rename Directory)
 
 **1. Add state to ViewModel:**
+
 ```javascript
 class DirectoryBrowserViewModel {
-  showRenameInput = $state(false);
-  renameTarget = $state('');
-  renameNewName = $state('');
+	showRenameInput = $state(false);
+	renameTarget = $state('');
+	renameNewName = $state('');
 
-  async renameDirectory(oldPath, newPath) {
-    // API call implementation
-  }
+	async renameDirectory(oldPath, newPath) {
+		// API call implementation
+	}
 }
 ```
 
 **2. Create form component:**
+
 ```svelte
 <!-- RenameDirectoryForm.svelte -->
 <script>
-  let { target, newName, onRename, onCancel } = $props();
+	let { target, newName, onRename, onCancel } = $props();
 </script>
 
 <form on:submit|preventDefault={onRename}>
-  <input bind:value={newName} placeholder="New name" />
-  <Button type="submit">Rename</Button>
-  <Button type="button" onclick={onCancel}>Cancel</Button>
+	<input bind:value={newName} placeholder="New name" />
+	<Button type="submit">Rename</Button>
+	<Button type="button" onclick={onCancel}>Cancel</Button>
 </form>
 ```
 
 **3. Add button to DirectorySearchBar:**
+
 ```svelte
 <IconButton onclick={onToggleRename} title="Rename directory">
-  <IconEdit />
+	<IconEdit />
 </IconButton>
 ```
 
 **4. Wire up in DirectoryBrowser:**
+
 ```svelte
 {#if vm.showRenameInput}
-  <RenameDirectoryForm
-    target={vm.renameTarget}
-    newName={vm.renameNewName}
-    onRename={vm.renameDirectory}
-    onCancel={() => vm.showRenameInput = false}
-  />
+	<RenameDirectoryForm
+		target={vm.renameTarget}
+		newName={vm.renameNewName}
+		onRename={vm.renameDirectory}
+		onCancel={() => (vm.showRenameInput = false)}
+	/>
 {/if}
 ```
 
@@ -448,46 +457,50 @@ import VirtualList from 'svelte-virtual-list';
 ### GET /api/browse
 
 **Request:**
+
 ```
 GET /api/browse?path=/workspace/project&showHidden=false
 ```
 
 **Response:**
+
 ```json
 {
-  "path": "/workspace/project",
-  "entries": [
-    {
-      "name": "src",
-      "isDirectory": true,
-      "size": null,
-      "modified": "2025-10-08T12:00:00Z"
-    },
-    {
-      "name": "package.json",
-      "isDirectory": false,
-      "size": 1024,
-      "modified": "2025-10-07T15:30:00Z"
-    }
-  ]
+	"path": "/workspace/project",
+	"entries": [
+		{
+			"name": "src",
+			"isDirectory": true,
+			"size": null,
+			"modified": "2025-10-08T12:00:00Z"
+		},
+		{
+			"name": "package.json",
+			"isDirectory": false,
+			"size": 1024,
+			"modified": "2025-10-07T15:30:00Z"
+		}
+	]
 }
 ```
 
 ### POST /api/directories
 
 **Request:**
+
 ```json
 {
-  "path": "/workspace/project",
-  "name": "new-directory"
+	"path": "/workspace/project",
+	"name": "new-directory"
 }
 ```
 
 **Response:**
+
 ```json
 {
-  "success": true,
-  "path": "/workspace/project/new-directory"
+	"success": true,
+	"path": "/workspace/project/new-directory"
 }
 ```
 
@@ -496,36 +509,38 @@ GET /api/browse?path=/workspace/project&showHidden=false
 ### Unit Tests
 
 **ViewModel Tests** (`DirectoryBrowserViewModel.test.js`):
+
 ```javascript
 describe('DirectoryBrowserViewModel', () => {
-  it('filters entries based on search query', () => {
-    const vm = new DirectoryBrowserViewModel(/* ... */);
-    vm.entries = [{ name: 'test.js' }, { name: 'other.md' }];
-    vm.query = 'test';
-    expect(vm.filtered).toEqual([{ name: 'test.js' }]);
-  });
+	it('filters entries based on search query', () => {
+		const vm = new DirectoryBrowserViewModel(/* ... */);
+		vm.entries = [{ name: 'test.js' }, { name: 'other.md' }];
+		vm.query = 'test';
+		expect(vm.filtered).toEqual([{ name: 'test.js' }]);
+	});
 
-  it('enforces workspace boundaries', () => {
-    const vm = new DirectoryBrowserViewModel(/* ... */);
-    expect(vm.isWithinBoundary('/workspace/../etc')).toBe(false);
-  });
+	it('enforces workspace boundaries', () => {
+		const vm = new DirectoryBrowserViewModel(/* ... */);
+		expect(vm.isWithinBoundary('/workspace/../etc')).toBe(false);
+	});
 });
 ```
 
 **Component Tests** (`DirectoryItem.test.js`):
+
 ```javascript
 describe('DirectoryItem', () => {
-  it('renders directory icon for directories', () => {
-    render(DirectoryItem, { entry: { name: 'src', isDirectory: true } });
-    expect(screen.getByRole('img', { name: /folder/i })).toBeInTheDocument();
-  });
+	it('renders directory icon for directories', () => {
+		render(DirectoryItem, { entry: { name: 'src', isDirectory: true } });
+		expect(screen.getByRole('img', { name: /folder/i })).toBeInTheDocument();
+	});
 
-  it('emits navigate event on click', async () => {
-    const onNavigate = vi.fn();
-    render(DirectoryItem, { entry: { name: 'src' }, onNavigate });
-    await userEvent.click(screen.getByText('src'));
-    expect(onNavigate).toHaveBeenCalledWith(expect.stringContaining('src'));
-  });
+	it('emits navigate event on click', async () => {
+		const onNavigate = vi.fn();
+		render(DirectoryItem, { entry: { name: 'src' }, onNavigate });
+		await userEvent.click(screen.getByText('src'));
+		expect(onNavigate).toHaveBeenCalledWith(expect.stringContaining('src'));
+	});
 });
 ```
 
@@ -533,21 +548,23 @@ describe('DirectoryItem', () => {
 
 ```javascript
 describe('DirectoryBrowser integration', () => {
-  it('creates new directory and refreshes list', async () => {
-    const { component } = render(DirectoryBrowser, { /* ... */ });
+	it('creates new directory and refreshes list', async () => {
+		const { component } = render(DirectoryBrowser, {
+			/* ... */
+		});
 
-    // Click create button
-    await userEvent.click(screen.getByTitle('Create new directory'));
+		// Click create button
+		await userEvent.click(screen.getByTitle('Create new directory'));
 
-    // Fill in form
-    await userEvent.type(screen.getByPlaceholderText('Directory name'), 'new-dir');
-    await userEvent.click(screen.getByText('Create'));
+		// Fill in form
+		await userEvent.type(screen.getByPlaceholderText('Directory name'), 'new-dir');
+		await userEvent.click(screen.getByText('Create'));
 
-    // Verify API call and refresh
-    await waitFor(() => {
-      expect(screen.getByText('new-dir')).toBeInTheDocument();
-    });
-  });
+		// Verify API call and refresh
+		await waitFor(() => {
+			expect(screen.getByText('new-dir')).toBeInTheDocument();
+		});
+	});
 });
 ```
 

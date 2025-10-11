@@ -253,7 +253,8 @@ function generateComponentMigration(cssMap, componentFile) {
 function generateMigrationPlan(categories, usageMap) {
 	let markdown = '# Style Migration Plan\n\n';
 	markdown += `Generated on ${new Date().toLocaleString()}\n\n`;
-	markdown += '> This document provides a step-by-step plan for migrating external CSS into Svelte component scoped styles.\n\n';
+	markdown +=
+		'> This document provides a step-by-step plan for migrating external CSS into Svelte component scoped styles.\n\n';
 
 	// Overview
 	markdown += '## Overview\n\n';
@@ -319,7 +320,8 @@ function generateMigrationPlan(categories, usageMap) {
 
 	// Phase 2: Moderate Complexity
 	markdown += '## Phase 2: Moderate Complexity (2-5 Components)\n\n';
-	markdown += '**Priority:** Handle after Phase 1. May need to split styles or create shared components.\n\n';
+	markdown +=
+		'**Priority:** Handle after Phase 1. May need to split styles or create shared components.\n\n';
 
 	if (categories.phase2.length === 0) {
 		markdown += '_No moderately shared CSS files found._\n\n';
@@ -358,7 +360,8 @@ function generateMigrationPlan(categories, usageMap) {
 
 	// Phase 3: Complex Migrations
 	markdown += '## Phase 3: Complex Migrations (6+ Components)\n\n';
-	markdown += '**Priority:** Handle last. These are likely shared design tokens or component libraries.\n\n';
+	markdown +=
+		'**Priority:** Handle last. These are likely shared design tokens or component libraries.\n\n';
 
 	if (categories.phase3.length === 0) {
 		markdown += '_No complex shared CSS files found._\n\n';
@@ -450,9 +453,7 @@ function generateSingleComponentPlan(componentName, usageMap, allSvelteFiles) {
 	const componentFile = componentFiles[0];
 
 	// Find CSS files that use this component
-	const relevantCSSMaps = usageMap.filter((cssMap) =>
-		cssMap.usedByFiles.includes(componentFile)
-	);
+	const relevantCSSMaps = usageMap.filter((cssMap) => cssMap.usedByFiles.includes(componentFile));
 
 	if (relevantCSSMaps.length === 0) {
 		throw new Error(`No CSS files found for component "${componentName}"`);

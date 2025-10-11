@@ -154,7 +154,8 @@ function findHardcodedColors(content, filePath) {
 	}
 
 	// HSL/HSLA
-	const hslRegex = /hsla?\(\s*([\d.]+)(?:deg)?\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%(?:\s*,\s*([\d.]+))?\s*\)/g;
+	const hslRegex =
+		/hsla?\(\s*([\d.]+)(?:deg)?\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%(?:\s*,\s*([\d.]+))?\s*\)/g;
 	while ((match = hslRegex.exec(content)) !== null) {
 		if (!isInsideFunction(content, match.index, ['var', 'color-mix'])) {
 			colors.push({
@@ -265,7 +266,15 @@ function findHardcodedSizes(content, filePath) {
 	const sizes = [];
 
 	// Match size values in width, height, font-size properties
-	const sizeProps = ['width', 'height', 'min-width', 'min-height', 'max-width', 'max-height', 'font-size'];
+	const sizeProps = [
+		'width',
+		'height',
+		'min-width',
+		'min-height',
+		'max-width',
+		'max-height',
+		'font-size'
+	];
 
 	for (const prop of sizeProps) {
 		const propRegex = new RegExp(`${prop}[^:]*:\\s*([^;]+);`, 'gi');
@@ -376,9 +385,9 @@ function suggestVariable(value, type, cssVariables) {
 			'#ffd166': 'var(--accent-amber)',
 			'#ff6b9d': 'var(--accent-magenta)',
 			'#ff8c42': 'var(--accent-warning)',
-			'transparent': 'transparent',
-			'black': 'var(--bg)',
-			'white': 'var(--text)'
+			transparent: 'transparent',
+			black: 'var(--bg)',
+			white: 'var(--text)'
 		};
 
 		const normalized = value.toLowerCase();
@@ -449,7 +458,11 @@ function calculateTokenizationScore(files) {
 		const pxMatches = content.match(/\d+px\b/g);
 		const remMatches = content.match(/\d+rem\b/g);
 
-		totalValues += (hexMatches?.length || 0) + (rgbMatches?.length || 0) + (pxMatches?.length || 0) + (remMatches?.length || 0);
+		totalValues +=
+			(hexMatches?.length || 0) +
+			(rgbMatches?.length || 0) +
+			(pxMatches?.length || 0) +
+			(remMatches?.length || 0);
 	}
 
 	totalValues += varUsages;
@@ -463,7 +476,8 @@ function calculateTokenizationScore(files) {
 function generateMarkdownReport(data) {
 	let markdown = '# CSS Tokens Audit Report\n\n';
 	markdown += `Generated on ${new Date().toLocaleString()}\n\n`;
-	markdown += '> This report identifies hardcoded values that should use CSS variables (design tokens).\n\n';
+	markdown +=
+		'> This report identifies hardcoded values that should use CSS variables (design tokens).\n\n';
 
 	// Summary
 	markdown += '## Summary\n\n';
@@ -492,7 +506,9 @@ function generateMarkdownReport(data) {
 		}
 
 		// Sort by frequency
-		const sortedColors = Array.from(colorsByValue.entries()).sort((a, b) => b[1].length - a[1].length);
+		const sortedColors = Array.from(colorsByValue.entries()).sort(
+			(a, b) => b[1].length - a[1].length
+		);
 
 		for (const [value, occurrences] of sortedColors) {
 			const suggestion = suggestVariable(value, 'color', data.cssVariables);
@@ -532,7 +548,9 @@ function generateMarkdownReport(data) {
 		}
 
 		// Sort by frequency
-		const sortedSpacing = Array.from(spacingByValue.entries()).sort((a, b) => b[1].length - a[1].length);
+		const sortedSpacing = Array.from(spacingByValue.entries()).sort(
+			(a, b) => b[1].length - a[1].length
+		);
 
 		for (const [value, occurrences] of sortedSpacing) {
 			const suggestion = suggestVariable(value, 'spacing', data.cssVariables);
@@ -570,7 +588,9 @@ function generateMarkdownReport(data) {
 		}
 
 		// Sort by frequency
-		const sortedSizes = Array.from(sizesByValue.entries()).sort((a, b) => b[1].length - a[1].length);
+		const sortedSizes = Array.from(sizesByValue.entries()).sort(
+			(a, b) => b[1].length - a[1].length
+		);
 
 		for (const [value, occurrences] of sortedSizes) {
 			const suggestion = suggestVariable(value, 'size', data.cssVariables);
@@ -646,7 +666,8 @@ function generateMarkdownReport(data) {
 
 	markdown += '```\n\n';
 
-	markdown += '⚠️ **Warning:** Always review changes before committing. Test thoroughly after running migrations.\n\n';
+	markdown +=
+		'⚠️ **Warning:** Always review changes before committing. Test thoroughly after running migrations.\n\n';
 
 	// Before/After Examples
 	markdown += '## Before/After Examples\n\n';
@@ -721,7 +742,10 @@ async function main() {
 			logVerbose(`  ${path.relative(PROJECT_ROOT, file)} - ${colors.length} colors`, 'gray');
 		}
 	}
-	log(`Found ${hardcodedColors.length} hardcoded colors`, hardcodedColors.length > 0 ? 'yellow' : 'green');
+	log(
+		`Found ${hardcodedColors.length} hardcoded colors`,
+		hardcodedColors.length > 0 ? 'yellow' : 'green'
+	);
 
 	log('🔍 Finding hardcoded spacing...', 'cyan');
 	const hardcodedSpacing = [];
@@ -730,10 +754,16 @@ async function main() {
 		const spacing = findHardcodedSpacing(content, file);
 		hardcodedSpacing.push(...spacing);
 		if (spacing.length > 0) {
-			logVerbose(`  ${path.relative(PROJECT_ROOT, file)} - ${spacing.length} spacing values`, 'gray');
+			logVerbose(
+				`  ${path.relative(PROJECT_ROOT, file)} - ${spacing.length} spacing values`,
+				'gray'
+			);
 		}
 	}
-	log(`Found ${hardcodedSpacing.length} hardcoded spacing values`, hardcodedSpacing.length > 0 ? 'yellow' : 'green');
+	log(
+		`Found ${hardcodedSpacing.length} hardcoded spacing values`,
+		hardcodedSpacing.length > 0 ? 'yellow' : 'green'
+	);
 
 	log('🔍 Finding hardcoded sizes...', 'cyan');
 	const hardcodedSizes = [];
@@ -745,13 +775,19 @@ async function main() {
 			logVerbose(`  ${path.relative(PROJECT_ROOT, file)} - ${sizes.length} size values`, 'gray');
 		}
 	}
-	log(`Found ${hardcodedSizes.length} hardcoded size values`, hardcodedSizes.length > 0 ? 'yellow' : 'green');
+	log(
+		`Found ${hardcodedSizes.length} hardcoded size values`,
+		hardcodedSizes.length > 0 ? 'yellow' : 'green'
+	);
 	log('');
 
 	// Calculate tokenization score
 	log('📊 Calculating tokenization score...', 'cyan');
 	const tokenizationScore = calculateTokenizationScore(allFiles);
-	log(`Tokenization score: ${tokenizationScore}%`, tokenizationScore >= 70 ? 'green' : tokenizationScore >= 50 ? 'yellow' : 'red');
+	log(
+		`Tokenization score: ${tokenizationScore}%`,
+		tokenizationScore >= 70 ? 'green' : tokenizationScore >= 50 ? 'yellow' : 'red'
+	);
 	log('');
 
 	// Generate report
@@ -781,9 +817,18 @@ async function main() {
 	log('📊 Summary', 'cyan');
 	log('='.repeat(60), 'cyan');
 
-	log(`Tokenization Score: ${tokenizationScore}%`, tokenizationScore >= 70 ? 'green' : tokenizationScore >= 50 ? 'yellow' : 'red');
-	log(`Hardcoded Colors: ${hardcodedColors.length}`, hardcodedColors.length > 0 ? 'yellow' : 'green');
-	log(`Hardcoded Spacing: ${hardcodedSpacing.length}`, hardcodedSpacing.length > 0 ? 'yellow' : 'green');
+	log(
+		`Tokenization Score: ${tokenizationScore}%`,
+		tokenizationScore >= 70 ? 'green' : tokenizationScore >= 50 ? 'yellow' : 'red'
+	);
+	log(
+		`Hardcoded Colors: ${hardcodedColors.length}`,
+		hardcodedColors.length > 0 ? 'yellow' : 'green'
+	);
+	log(
+		`Hardcoded Spacing: ${hardcodedSpacing.length}`,
+		hardcodedSpacing.length > 0 ? 'yellow' : 'green'
+	);
 	log(`Hardcoded Sizes: ${hardcodedSizes.length}`, hardcodedSizes.length > 0 ? 'yellow' : 'green');
 
 	const totalHardcoded = hardcodedColors.length + hardcodedSpacing.length + hardcodedSizes.length;

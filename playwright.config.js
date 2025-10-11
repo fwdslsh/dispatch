@@ -1,5 +1,10 @@
 // @ts-check
 import { defineConfig, devices } from '@playwright/test';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -16,8 +21,9 @@ export default defineConfig({
 	/* Retry on CI only */
 	retries: process.env.CI ? 2 : 0,
 
-	/* Opt out of parallel tests on CI. */
-	workers: process.env.CI ? 1 : undefined,
+	/* Run tests serially to avoid database conflicts */
+	/* TODO: Implement per-test database isolation for parallel execution */
+	workers: 1,
 
 	/* Reporter to use. See https://playwright.dev/docs/test-reporters */
 	reporter: [
@@ -30,7 +36,7 @@ export default defineConfig({
 	use: {
 		/* Base URL to use in actions like `await page.goto('/')`. */
 		// Use test server (no SSL) by default. Override with USE_SSL=true for SSL-specific tests
-		baseURL: process.env.USE_SSL === 'true' ? 'https://localhost:5173' : 'http://localhost:7173',
+		baseURL: process.env.USE_SSL === 'true' ? 'https://127.0.0.1:5173' : 'http://127.0.0.1:7173',
 
 		/* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
 		trace: 'on-first-retry',
@@ -42,6 +48,9 @@ export default defineConfig({
 		/* Test setup options */
 		// Only ignore HTTPS errors when using SSL server
 		ignoreHTTPSErrors: process.env.USE_SSL === 'true',
+
+		/* Grant clipboard permissions for automated testing */
+		permissions: ['clipboard-read', 'clipboard-write'],
 
 		/* Timeout settings */
 		actionTimeout: 10000,
@@ -98,9 +107,7 @@ export default defineConfig({
 		}
 	]
 
-	/* NOTE: Web server must be started manually before running tests
-	 * Run: npm run dev:test
-	 * This starts the test server on http://localhost:7173
-	 * The webServer configuration has been removed to avoid startup issues
+	/* Note: Server is started by global-setup.js instead of webServer config
+	 * This is more reliable in different execution contexts (MCP, CI, local)
 	 */
 });

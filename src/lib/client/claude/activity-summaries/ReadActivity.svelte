@@ -1,6 +1,4 @@
 <script>
-	
-
 	let { event } = $props();
 
 	// Parse the event to extract file read information

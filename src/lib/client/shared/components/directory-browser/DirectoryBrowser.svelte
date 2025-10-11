@@ -160,8 +160,6 @@
 			}
 		});
 	});
-
-	
 </script>
 
 {#if !isOpen}
@@ -194,7 +192,8 @@
 				<GitOperations
 					currentPath={vm.currentPath}
 					onRefresh={() => vm.browse(vm.currentPath)}
-					onError={(/** @type {string} */ err, /** @type {number?} */ status) => vm.handleGitError(err, status)}
+					onError={(/** @type {string} */ err, /** @type {number?} */ status) =>
+						vm.handleGitError(err, status)}
 				/>
 			</div>
 		{/if}

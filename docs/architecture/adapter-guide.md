@@ -52,10 +52,10 @@ Adapters receive an `onEvent` callback for emitting events:
 
 ```javascript
 onEvent({
-	channel: string,    // Event channel (e.g., 'pty:stdout', 'claude:message')
-	type: string,       // Event type (e.g., 'chunk', 'closed')
-	payload: any        // Event data
-})
+	channel: string, // Event channel (e.g., 'pty:stdout', 'claude:message')
+	type: string, // Event type (e.g., 'chunk', 'closed')
+	payload: any // Event data
+});
 ```
 
 ## Existing Adapter Examples
@@ -116,9 +116,7 @@ export class PtyAdapter {
 			kind: SESSION_TYPE.PTY,
 			input: {
 				write(data) {
-					const text = typeof data === 'string'
-						? data
-						: new TextDecoder().decode(data);
+					const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
 					term.write(text);
 				}
 			},
@@ -133,15 +131,22 @@ export class PtyAdapter {
 			close() {
 				term.kill();
 			},
-			get pid() { return term.pid; },
-			get cols() { return term.cols; },
-			get rows() { return term.rows; }
+			get pid() {
+				return term.pid;
+			},
+			get cols() {
+				return term.cols;
+			},
+			get rows() {
+				return term.rows;
+			}
 		};
 	}
 }
 ```
 
 **Key Features**:
+
 - Lazy loading of node-pty dependency
 - Environment variable handling
 - Terminal dimension management
@@ -187,9 +192,7 @@ export class ClaudeAdapter {
 				async write(data) {
 					if (isClosing) return;
 
-					const message = typeof data === 'string'
-						? data
-						: new TextDecoder().decode(data);
+					const message = typeof data === 'string' ? data : new TextDecoder().decode(data);
 
 					// Create new query
 					activeQuery = query({
@@ -227,6 +230,7 @@ export class ClaudeAdapter {
 ```
 
 **Key Features**:
+
 - Async streaming with `for await`
 - Event serialization for Socket.IO
 - Graceful error handling
@@ -297,9 +301,7 @@ class FileEditorProcess extends EventEmitter {
 	}
 
 	handleInput(data) {
-		const text = typeof data === 'string'
-			? data
-			: new TextDecoder().decode(data);
+		const text = typeof data === 'string' ? data : new TextDecoder().decode(data);
 
 		this.onEvent({
 			channel: 'file-editor:input',
@@ -329,6 +331,7 @@ class FileEditorProcess extends EventEmitter {
 ```
 
 **Key Features**:
+
 - Custom EventEmitter-based process
 - Flexible input handling
 - Lifecycle management
@@ -429,9 +432,7 @@ export class JupyterAdapter {
 			kind: SESSION_TYPE.JUPYTER,
 			input: {
 				async write(data) {
-					const code = typeof data === 'string'
-						? data
-						: new TextDecoder().decode(data);
+					const code = typeof data === 'string' ? data : new TextDecoder().decode(data);
 
 					// Execute code in kernel
 					const result = await kernel.execute(code);
@@ -741,9 +742,7 @@ describe('Jupyter Session Integration', () => {
 		// Wait for output
 		await new Promise((resolve) => setTimeout(resolve, 1000));
 
-		const outputEvents = events.filter(
-			e => e.channel === 'jupyter:output'
-		);
+		const outputEvents = events.filter((e) => e.channel === 'jupyter:output');
 		expect(outputEvents.length).toBeGreaterThan(0);
 	});
 });
@@ -772,7 +771,9 @@ async create({ cwd, options, onEvent }) {
 ```javascript
 return {
 	kind: SESSION_TYPE.CUSTOM,
-	input: { /* ... */ },
+	input: {
+		/* ... */
+	},
 	close() {
 		// Clean up resources
 		if (this.activeProcess) {
@@ -814,6 +815,197 @@ async write(data) {
 }
 ```
 
+## Settings Registration (Optional)
+
+Session adapters can optionally provide settings UI that automatically appears in the Settings page under the "Sessions" category. This eliminates the need to manually edit core settings files.
+
+### Step 6: Add Settings Section to Session Module
+
+**File**: `/src/lib/client/jupyter/jupyter.js`
+
+```javascript
+import JupyterPane from './JupyterPane.svelte';
+import JupyterHeader from './JupyterHeader.svelte';
+import JupyterSettingsSection from './JupyterSettings.svelte';
+import JupyterIcon from '../shared/components/Icons/JupyterIcon.svelte';
+import { SESSION_TYPE } from '$lib/shared/session-types.js';
+
+export const jupyterSessionModule = {
+	type: SESSION_TYPE.JUPYTER,
+	component: JupyterPane,
+	header: JupyterHeader,
+
+	// Settings page section (auto-registered by session-modules/index.js)
+	settingsSection: {
+		id: 'jupyter',
+		label: 'Jupyter',
+		icon: JupyterIcon,
+		component: JupyterSettingsSection,
+		navAriaLabel: 'Jupyter kernel and notebook settings',
+		order: 71 // Display order (70-79 reserved for session types)
+	},
+
+	prepareProps(session = {}) {
+		return {
+			sessionId: session.id,
+			kernelName: session.kernelName || 'python3',
+			workspacePath: session.workspacePath
+		};
+	},
+
+	prepareHeaderProps(session = {}, options = {}) {
+		const { onClose, index } = options;
+		return { session, onClose, index };
+	}
+};
+```
+
+### Settings Section Component
+
+**File**: `/src/lib/client/jupyter/JupyterSettings.svelte`
+
+```svelte
+<script>
+	import { settingsService } from '../shared/services/SettingsService.svelte.js';
+	import Button from '../shared/components/Button.svelte';
+	import Input from '../shared/components/Input.svelte';
+
+	let settings = $state({
+		defaultKernel: '',
+		autoRestart: false,
+		timeout: 30
+	});
+
+	let saveStatus = $state('');
+	let saving = $state(false);
+
+	onMount(() => {
+		if (!settingsService.isLoaded) {
+			await settingsService.loadServerSettings();
+		}
+		updateSettingsFromService();
+	});
+
+	function updateSettingsFromService() {
+		settings = {
+			defaultKernel: settingsService.get('jupyter.defaultKernel', 'python3'),
+			autoRestart: settingsService.get('jupyter.autoRestart', false),
+			timeout: settingsService.get('jupyter.timeout', 30)
+		};
+	}
+
+	async function saveSettings() {
+		if (saving) return;
+
+		saving = true;
+		saveStatus = '';
+
+		try {
+			// Save as client overrides
+			Object.entries(settings).forEach(([key, value]) => {
+				settingsService.setClientOverride(`jupyter.${key}`, value);
+			});
+
+			saveStatus = 'Jupyter settings saved successfully';
+			setTimeout(() => { saveStatus = ''; }, 3000);
+		} catch (error) {
+			console.error('Failed to save Jupyter settings:', error);
+			saveStatus = 'Failed to save settings';
+		} finally {
+			saving = false;
+		}
+	}
+
+	async function resetToDefaults() {
+		settingsService.resetClientOverridesForCategory('jupyter');
+		updateSettingsFromService();
+		saveStatus = 'Settings reset to defaults';
+		setTimeout(() => { saveStatus = ''; }, 3000);
+	}
+</script>
+
+<div class="jupyter-settings">
+	<div class="section-header">
+		<h3>JUPYTER</h3>
+		<p class="section-description">
+			Configure default settings for Jupyter notebook sessions.
+		</p>
+	</div>
+
+	<h4>SESSION DEFAULTS</h4>
+
+	<div class="form-group">
+		<label for="default-kernel">Default Kernel</label>
+		<Input
+			id="default-kernel"
+			bind:value={settings.defaultKernel}
+			placeholder="python3"
+		/>
+	</div>
+
+	<div class="form-group">
+		<label for="timeout">Execution Timeout (seconds)</label>
+		<Input
+			id="timeout"
+			type="number"
+			bind:value={settings.timeout}
+			min="1"
+			max="300"
+		/>
+	</div>
+
+	<div class="form-group">
+		<label>
+			<input type="checkbox" bind:checked={settings.autoRestart} />
+			Auto-restart kernel on error
+		</label>
+	</div>
+
+	<footer class="settings-footer">
+		<div class="settings-footer__status">{saveStatus}</div>
+		<div class="settings-footer__actions">
+			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
+				Reset Defaults
+			</Button>
+			<Button onclick={saveSettings} variant="primary" size="small" disabled={saving} loading={saving}>
+				{saving ? 'Saving...' : 'Save Settings'}
+			</Button>
+		</div>
+	</footer>
+</div>
+```
+
+### How Settings Registration Works
+
+1. **Automatic Registration**: When you define `settingsSection` in your session module, it's automatically registered by `/src/lib/client/shared/session-modules/index.js`.
+
+2. **Registry System**: The settings registry (`/src/lib/client/settings/registry/settings-registry.js`) manages all settings sections with ordering, categorization, and dynamic discovery.
+
+3. **No Core Changes**: Adding settings for a new session type requires NO changes to core settings files - just add the `settingsSection` property to your module definition.
+
+4. **Category Organization**:
+   - `core` (order 10-39): Application-wide settings
+   - `auth` (order 40-59): Authentication settings
+   - `connectivity` (order 60-69): Network and tunnel settings
+   - `sessions` (order 70-89): Session-type specific settings
+   - `other` (order 90+): Miscellaneous settings
+
+### Settings Section API
+
+```javascript
+settingsSection: {
+	id: string,              // Unique identifier for the section
+	label: string,           // Display name in navigation
+	icon: Component,         // Svelte icon component
+	component: Component,    // Svelte settings page component
+	navAriaLabel: string,    // Accessibility label for navigation
+	order: number,           // Display order (optional, default: 100)
+	category: string         // Category grouping (optional, default: 'sessions')
+}
+```
+
+**Example Real Implementation**: See `/src/lib/client/claude/claude.js` for Claude's settings section which combines authentication and session defaults in a single comprehensive UI.
+
 ## Troubleshooting
 
 ### Adapter Not Found
@@ -821,6 +1013,7 @@ async write(data) {
 **Symptom**: Error "No adapter registered for type: xyz"
 
 **Solution**: Verify adapter is registered in `services.js`:
+
 ```javascript
 sessionOrchestrator.registerAdapter(SESSION_TYPE.XYZ, new XyzAdapter());
 ```
@@ -830,6 +1023,7 @@ sessionOrchestrator.registerAdapter(SESSION_TYPE.XYZ, new XyzAdapter());
 **Symptom**: Client doesn't receive events from adapter
 
 **Solution**:
+
 1. Verify `onEvent()` is called with correct channel/type
 2. Check Socket.IO connection status
 3. Verify client is attached to session via `run:attach`
@@ -839,9 +1033,21 @@ sessionOrchestrator.registerAdapter(SESSION_TYPE.XYZ, new XyzAdapter());
 **Symptom**: Session stays active after close
 
 **Solution**:
+
 1. Implement `close()` method in adapter
 2. Emit `system:status:closed` event
 3. Clean up resources (processes, timers, etc.)
+
+### Settings Section Not Appearing
+
+**Symptom**: Settings section doesn't appear in Settings page
+
+**Solution**:
+
+1. Verify `settingsSection` is defined in session module
+2. Check that session module is registered in `/src/lib/client/shared/session-modules/index.js`
+3. Inspect browser console for registration warnings
+4. Verify component import paths are correct
 
 ## See Also
 

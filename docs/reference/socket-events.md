@@ -36,14 +36,18 @@ Initial client identification and authentication.
 **Example:**
 
 ```javascript
-socket.emit('client:hello', {
-  clientId: localStorage.getItem('clientId'),
-  terminalKey: 'my-terminal-key'
-}, (response) => {
-  if (response.success) {
-    console.log('Authenticated successfully');
-  }
-});
+socket.emit(
+	'client:hello',
+	{
+		clientId: localStorage.getItem('clientId'),
+		terminalKey: 'my-terminal-key'
+	},
+	(response) => {
+		if (response.success) {
+			console.log('Authenticated successfully');
+		}
+	}
+);
 ```
 
 ## Session Management
@@ -96,27 +100,35 @@ Attach to a session and receive event replay from a specific sequence number.
 
 ```javascript
 // Initial attach (full replay)
-socket.emit('run:attach', {
-  runId: 'pty_abc123',
-  seq: 0,
-  clientId: myClientId
-}, (response) => {
-  if (response.success) {
-    // Process historical events
-    response.events.forEach(event => processEvent(event));
+socket.emit(
+	'run:attach',
+	{
+		runId: 'pty_abc123',
+		seq: 0,
+		clientId: myClientId
+	},
+	(response) => {
+		if (response.success) {
+			// Process historical events
+			response.events.forEach((event) => processEvent(event));
 
-    // Now subscribed to live events via 'run:event'
-  }
-});
+			// Now subscribed to live events via 'run:event'
+		}
+	}
+);
 
 // Resume after disconnect (partial replay)
-socket.emit('run:attach', {
-  runId: 'pty_abc123',
-  seq: lastSeenSeq,  // Only get events after this
-  clientId: myClientId
-}, (response) => {
-  // Catch up on missed events
-});
+socket.emit(
+	'run:attach',
+	{
+		runId: 'pty_abc123',
+		seq: lastSeenSeq, // Only get events after this
+		clientId: myClientId
+	},
+	(response) => {
+		// Catch up on missed events
+	}
+);
 ```
 
 ### Client → Server: `run:input`
@@ -139,14 +151,14 @@ Send input to a session (terminal keystrokes, Claude messages, etc.).
 ```javascript
 // Terminal input
 socket.emit('run:input', {
-  runId: terminalSessionId,
-  data: 'echo "Hello"\n'
+	runId: terminalSessionId,
+	data: 'echo "Hello"\n'
 });
 
 // Claude message
 socket.emit('run:input', {
-  runId: claudeSessionId,
-  data: 'Explain this code'
+	runId: claudeSessionId,
+	data: 'Explain this code'
 });
 ```
 
@@ -168,20 +180,24 @@ Resize terminal dimensions (PTY sessions only).
 
 ```javascript
 {
-  success: true
+	success: true;
 }
 ```
 
 **Example:**
 
 ```javascript
-socket.emit('run:resize', {
-  runId: ptySessionId,
-  cols: 120,
-  rows: 30
-}, (response) => {
-  console.log('Terminal resized');
-});
+socket.emit(
+	'run:resize',
+	{
+		runId: ptySessionId,
+		cols: 120,
+		rows: 30
+	},
+	(response) => {
+		console.log('Terminal resized');
+	}
+);
 ```
 
 ### Client → Server: `run:close`
@@ -192,7 +208,7 @@ Terminate a session.
 
 ```javascript
 {
-  runId: 'pty_abc123'
+	runId: 'pty_abc123';
 }
 ```
 
@@ -200,20 +216,24 @@ Terminate a session.
 
 ```javascript
 {
-  success: true
+	success: true;
 }
 ```
 
 **Example:**
 
 ```javascript
-socket.emit('run:close', {
-  runId: sessionId
-}, (response) => {
-  if (response.success) {
-    // Session closed, clean up UI
-  }
-});
+socket.emit(
+	'run:close',
+	{
+		runId: sessionId
+	},
+	(response) => {
+		if (response.success) {
+			// Session closed, clean up UI
+		}
+	}
+);
 ```
 
 ## Event Streaming
@@ -241,6 +261,7 @@ Real-time event emission for attached sessions.
 **Channels by Session Type:**
 
 **PTY (Terminal) Channels:**
+
 - `pty:stdout` - Standard output
   - `type: 'chunk'`, `payload: { data: string }`
 - `pty:stderr` - Standard error
@@ -249,6 +270,7 @@ Real-time event emission for attached sessions.
   - `type: 'json'`, `payload: { status: 'running'|'stopped'|'error' }`
 
 **Claude Channels:**
+
 - `claude:message` - Message events from Claude SDK
   - `type: 'event'`, `payload: { events: [...] }`
   - Events include: `startTurn`, `text`, `toolUse`, `endTurn`, etc.
@@ -256,6 +278,7 @@ Real-time event emission for attached sessions.
   - `type: 'json'`, `payload: { error: string, details: {...} }`
 
 **File Editor Channels:**
+
 - `file-editor:content` - File content updates
   - `type: 'text'`, `payload: { content: string }`
 - `file-editor:saved` - Save confirmation
@@ -265,27 +288,27 @@ Real-time event emission for attached sessions.
 
 ```javascript
 socket.on('run:event', (event) => {
-  // Track sequence for replay
-  lastSeenSeq = event.seq;
+	// Track sequence for replay
+	lastSeenSeq = event.seq;
 
-  // Route by channel
-  switch (event.channel) {
-    case 'pty:stdout':
-      terminal.write(event.payload.data);
-      break;
+	// Route by channel
+	switch (event.channel) {
+		case 'pty:stdout':
+			terminal.write(event.payload.data);
+			break;
 
-    case 'claude:message':
-      event.payload.events.forEach(claudeEvent => {
-        if (claudeEvent.type === 'text') {
-          appendClaudeMessage(claudeEvent.text);
-        }
-      });
-      break;
+		case 'claude:message':
+			event.payload.events.forEach((claudeEvent) => {
+				if (claudeEvent.type === 'text') {
+					appendClaudeMessage(claudeEvent.text);
+				}
+			});
+			break;
 
-    case 'system:status':
-      updateSessionStatus(event.payload.status);
-      break;
-  }
+		case 'system:status':
+			updateSessionStatus(event.payload.status);
+			break;
+	}
 });
 ```
 
@@ -299,7 +322,7 @@ Start LocalTunnel for public URL.
 
 ```javascript
 {
-  terminalKey: 'your-key-here'    // Authentication required
+	terminalKey: 'your-key-here'; // Authentication required
 }
 ```
 
@@ -321,7 +344,7 @@ Stop active tunnel.
 
 ```javascript
 {
-  terminalKey: 'your-key-here'
+	terminalKey: 'your-key-here';
 }
 ```
 
@@ -329,7 +352,7 @@ Stop active tunnel.
 
 ```javascript
 {
-  success: true
+	success: true;
 }
 ```
 
@@ -362,7 +385,7 @@ Start VS Code tunnel.
 
 ```javascript
 {
-  terminalKey: 'your-key-here'
+	terminalKey: 'your-key-here';
 }
 ```
 
@@ -384,7 +407,7 @@ Stop VS Code tunnel.
 
 ```javascript
 {
-  terminalKey: 'your-key-here'
+	terminalKey: 'your-key-here';
 }
 ```
 
@@ -392,7 +415,7 @@ Stop VS Code tunnel.
 
 ```javascript
 {
-  success: true
+	success: true;
 }
 ```
 
@@ -421,13 +444,13 @@ Server-initiated disconnect (automatic from Socket.IO).
 
 ```javascript
 socket.on('disconnect', (reason) => {
-  console.log('Disconnected:', reason);
-  // reason values: 'transport close', 'ping timeout', 'server namespace disconnect', etc.
+	console.log('Disconnected:', reason);
+	// reason values: 'transport close', 'ping timeout', 'server namespace disconnect', etc.
 
-  // Implement reconnection logic
-  setTimeout(() => {
-    socket.connect();
-  }, 1000);
+	// Implement reconnection logic
+	setTimeout(() => {
+		socket.connect();
+	}, 1000);
 });
 ```
 
@@ -436,30 +459,34 @@ socket.on('disconnect', (reason) => {
 **Client-side reconnection with state recovery:**
 
 ```javascript
-let lastSeenSeq = {};  // Track per session
+let lastSeenSeq = {}; // Track per session
 
 socket.on('connect', () => {
-  console.log('Connected to server');
+	console.log('Connected to server');
 
-  // Reattach to active sessions
-  activeSessions.forEach(sessionId => {
-    socket.emit('run:attach', {
-      runId: sessionId,
-      seq: lastSeenSeq[sessionId] || 0,
-      clientId: myClientId
-    }, (response) => {
-      // Process missed events
-      response.events.forEach(event => {
-        processEvent(event);
-        lastSeenSeq[sessionId] = event.seq;
-      });
-    });
-  });
+	// Reattach to active sessions
+	activeSessions.forEach((sessionId) => {
+		socket.emit(
+			'run:attach',
+			{
+				runId: sessionId,
+				seq: lastSeenSeq[sessionId] || 0,
+				clientId: myClientId
+			},
+			(response) => {
+				// Process missed events
+				response.events.forEach((event) => {
+					processEvent(event);
+					lastSeenSeq[sessionId] = event.seq;
+				});
+			}
+		);
+	});
 });
 
 socket.on('run:event', (event) => {
-  lastSeenSeq[event.runId] = event.seq;
-  processEvent(event);
+	lastSeenSeq[event.runId] = event.seq;
+	processEvent(event);
 });
 ```
 
@@ -473,7 +500,7 @@ Generic error event (Socket.IO standard).
 
 ```javascript
 {
-  message: 'Error description'
+	message: 'Error description';
 }
 ```
 
@@ -492,13 +519,13 @@ All callbacks use consistent error structure:
 
 ```javascript
 socket.emit('run:attach', { runId: 'invalid' }, (response) => {
-  if (!response.success) {
-    console.error('Attach failed:', response.error);
-    // Common errors:
-    // - 'Session not found'
-    // - 'Invalid runId'
-    // - 'Session already stopped'
-  }
+	if (!response.success) {
+		console.error('Attach failed:', response.error);
+		// Common errors:
+		// - 'Session not found'
+		// - 'Invalid runId'
+		// - 'Session already stopped'
+	}
 });
 ```
 
@@ -515,6 +542,7 @@ io.to(`run:${runId}`).emit('run:event', eventData);
 ```
 
 **Multi-client synchronization:**
+
 - Multiple browser tabs can attach to same session
 - All receive identical event stream
 - Each tracks own `seq` for independent replay
@@ -558,22 +586,16 @@ Used by `/console` admin interface for monitoring.
 
 ```javascript
 // Server-side event recording
-await db.appendSessionEvent(
-  runId,
-  nextSeq,
-  'pty:stdout',
-  'chunk',
-  { data: outputChunk }
-);
+await db.appendSessionEvent(runId, nextSeq, 'pty:stdout', 'chunk', { data: outputChunk });
 
 // Emit to connected clients
 io.to(`run:${runId}`).emit('run:event', {
-  runId,
-  seq: nextSeq,
-  channel: 'pty:stdout',
-  type: 'chunk',
-  payload: { data: outputChunk },
-  ts: Date.now()
+	runId,
+	seq: nextSeq,
+	channel: 'pty:stdout',
+	type: 'chunk',
+	payload: { data: outputChunk },
+	ts: Date.now()
 });
 ```
 
@@ -592,26 +614,30 @@ io.to(`run:${runId}`).emit('run:event', {
 ```javascript
 // Robust attach with retry
 async function attachToSession(runId, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const response = await new Promise((resolve) => {
-        socket.emit('run:attach', {
-          runId,
-          seq: lastSeenSeq[runId] || 0,
-          clientId: myClientId
-        }, resolve);
-      });
+	for (let i = 0; i < maxRetries; i++) {
+		try {
+			const response = await new Promise((resolve) => {
+				socket.emit(
+					'run:attach',
+					{
+						runId,
+						seq: lastSeenSeq[runId] || 0,
+						clientId: myClientId
+					},
+					resolve
+				);
+			});
 
-      if (response.success) {
-        return response;
-      }
+			if (response.success) {
+				return response;
+			}
 
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-    } catch (error) {
-      console.error('Attach attempt failed:', error);
-    }
-  }
-  throw new Error('Failed to attach after retries');
+			await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+		} catch (error) {
+			console.error('Attach attempt failed:', error);
+		}
+	}
+	throw new Error('Failed to attach after retries');
 }
 ```
 
@@ -629,22 +655,22 @@ async function attachToSession(runId, maxRetries = 3) {
 ```javascript
 // Logging middleware
 mediator.use((socket, event, data, next) => {
-  logger.debug('SOCKET', `${socket.id} -> ${event}`, data);
-  next();
+	logger.debug('SOCKET', `${socket.id} -> ${event}`, data);
+	next();
 });
 
 // Error handling middleware
 mediator.use((socket, event, data, next) => {
-  try {
-    next();
-  } catch (error) {
-    socket.emit('error', { message: error.message });
-  }
+	try {
+		next();
+	} catch (error) {
+		socket.emit('error', { message: error.message });
+	}
 });
 
 // Register handlers
 mediator.on('run:attach', async (socket, data, callback) => {
-  // Handler implementation
+	// Handler implementation
 });
 ```
 
@@ -671,7 +697,7 @@ DEBUG=SOCKET,SESSION npm run dev
 
 ```javascript
 socket.onAny((event, ...args) => {
-  console.log('Socket event:', event, args);
+	console.log('Socket event:', event, args);
 });
 ```
 

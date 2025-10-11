@@ -165,7 +165,7 @@ export class ClaudeEventHandlers {
 			console.log('[ClaudeEventHandlers] Skipping duplicate user message');
 			return { type: 'noop' };
 		}
-		
+
 		console.log('[ClaudeEventHandlers] Adding user message from system:input event:', userText);
 
 		return {

@@ -1,0 +1,430 @@
+openapi: 3.0.3
+info:
+  title: Dispatch Cookie Authentication API
+  description: |
+    REST API contract for cookie-based authentication with managed API keys.
+    Supports dual authentication: session cookies (browser) and API keys (programmatic).
+  version: 1.0.0
+  contact:
+    name: Dispatch Development Team
+
+servers:
+  - url: http://localhost:3030
+    description: Local development server
+  - url: https://dispatch.example.com
+    description: Production server (TLS required)
+
+security:
+  - CookieAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  /api/auth/keys:
+    get:
+      summary: List all API keys
+      description: Returns all API keys for the authenticated user (metadata only, no secrets)
+      operationId: listApiKeys
+      tags:
+        - API Keys
+      security:
+        - CookieAuth: []
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKeyMetadata'
+              example:
+                keys:
+                  - id: '550e8400-e29b-41d4-a716-446655440000'
+                    label: 'CI/CD Pipeline'
+                    created_at: 1704067200000
+                    last_used_at: 1704153600000
+                    disabled: 0
+                  - id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+                    label: 'Local Development'
+                    created_at: 1703980800000
+                    last_used_at: null
+                    disabled: 0
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create new API key
+      description: |
+        Generates a new API key with the provided label. The key secret is returned
+        EXACTLY ONCE and cannot be retrieved later. User must save it immediately.
+      operationId: createApiKey
+      tags:
+        - API Keys
+      security:
+        - CookieAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - label
+              properties:
+                label:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  description: User-friendly label for the API key
+                  example: 'Production Server'
+            example:
+              label: 'Production Server'
+      responses:
+        '200':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - key
+                  - label
+                  - message
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: API key ID
+                  key:
+                    type: string
+                    description: API key secret (shown ONCE, base64url encoded)
+                    pattern: '^[A-Za-z0-9_-]{43,44}$'
+                  label:
+                    type: string
+                    description: User-provided label
+                  message:
+                    type: string
+                    description: Warning message about key storage
+              example:
+                id: '7c9e6679-7425-40de-944b-e07fc1f90ae7'
+                key: 'dGhpc19pc19hX3NlY3JldF9hcGlfa2V5X2V4YW1wbGVfMTIzNDU2Nzg5MA'
+                label: 'Production Server'
+                message: 'Save this key - it will not be shown again'
+        '400':
+          description: Invalid request (e.g., missing label)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/keys/{keyId}:
+    delete:
+      summary: Delete API key
+      description: Permanently deletes an API key (hard delete). All subsequent requests with this key will fail.
+      operationId: deleteApiKey
+      tags:
+        - API Keys
+      security:
+        - CookieAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/KeyId'
+      responses:
+        '200':
+          description: API key deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Disable or enable API key
+      description: Soft delete (disable=1) or re-enable (disabled=0) an API key without deletion
+      operationId: updateApiKey
+      tags:
+        - API Keys
+      security:
+        - CookieAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/KeyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - disabled
+              properties:
+                disabled:
+                  type: boolean
+                  description: Whether to disable (true) or enable (false) the key
+            example:
+              disabled: true
+      responses:
+        '200':
+          description: API key updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /login:
+    post:
+      summary: Log in with API key
+      description: |
+        Authenticates user with an API key and creates a browser session cookie.
+        Uses SvelteKit form action. On success, redirects to main application with session cookie set.
+      operationId: login
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - key
+              properties:
+                key:
+                  type: string
+                  description: API key secret
+                  pattern: '^[A-Za-z0-9_-]{43,44}$'
+      responses:
+        '303':
+          description: Login successful, redirect to application
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /
+            Set-Cookie:
+              schema:
+                type: string
+                example: dispatch_session=550e8400-e29b-41d4-a716-446655440000; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000
+        '400':
+          description: Missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'API key required'
+        '401':
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'Invalid API key'
+
+  /api/auth/logout:
+    post:
+      summary: Log out
+      description: |
+        Invalidates current session and clears session cookie.
+        Redirects to login page.
+      operationId: logout
+      tags:
+        - Authentication
+      security:
+        - CookieAuth: []
+      responses:
+        '303':
+          description: Logout successful, redirect to login
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /login
+            Set-Cookie:
+              schema:
+                type: string
+                example: dispatch_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0
+
+  /api/auth/callback:
+    get:
+      summary: OAuth callback handler
+      description: |
+        Handles OAuth provider callback. Exchanges authorization code for tokens,
+        creates session, and redirects to application with session cookie set.
+      operationId: oauthCallback
+      tags:
+        - OAuth
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: OAuth authorization code
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          description: CSRF state token
+        - name: provider
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [github, google]
+          description: OAuth provider name
+      responses:
+        '303':
+          description: OAuth successful, redirect to application
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /
+            Set-Cookie:
+              schema:
+                type: string
+                example: dispatch_session=550e8400-e29b-41d4-a716-446655440000; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000
+        '400':
+          description: Invalid OAuth response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'Invalid OAuth response'
+        '401':
+          description: OAuth authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: 'OAuth authentication failed'
+
+components:
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: dispatch_session
+      description: Session cookie (httpOnly, Secure, SameSite=Lax, 30-day expiration)
+
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: base64url
+      description: API key in Authorization header (Bearer scheme)
+
+  parameters:
+    KeyId:
+      name: keyId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: API key ID (UUID)
+      example: '550e8400-e29b-41d4-a716-446655440000'
+
+  schemas:
+    ApiKeyMetadata:
+      type: object
+      required:
+        - id
+        - label
+        - created_at
+        - disabled
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: API key ID
+          example: '550e8400-e29b-41d4-a716-446655440000'
+        label:
+          type: string
+          description: User-provided label
+          example: 'CI/CD Pipeline'
+        created_at:
+          type: integer
+          format: int64
+          description: Creation timestamp (Unix ms)
+          example: 1704067200000
+        last_used_at:
+          type: integer
+          format: int64
+          nullable: true
+          description: Last usage timestamp (Unix ms, null if never used)
+          example: 1704153600000
+        disabled:
+          type: integer
+          enum: [0, 1]
+          description: Disabled flag (0=active, 1=disabled)
+          example: 0
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: 'Authentication required'
+
+  responses:
+    Unauthorized:
+      description: Authentication required or failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: 'Authentication required'
+
+tags:
+  - name: API Keys
+    description: API key management operations
+  - name: Authentication
+    description: Login and logout operations
+  - name: OAuth
+    description: OAuth provider integration (optional)

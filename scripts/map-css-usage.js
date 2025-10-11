@@ -162,7 +162,7 @@ function buildCSSFileMap(cssFile, svelteFiles) {
 
 		if (usedIn.length > 0) {
 			classUsageMap.set(className, usedIn);
-			usedIn.forEach(file => usedByFiles.add(file));
+			usedIn.forEach((file) => usedByFiles.add(file));
 		}
 	}
 
@@ -183,7 +183,8 @@ function generateMarkdownReport(usageMaps) {
 	let markdown = '# CSS Usage Map\n\n';
 	markdown += `Generated on ${new Date().toLocaleString()}\n\n`;
 	markdown += '> This document shows where CSS files are used throughout the codebase.\n';
-	markdown += '> Each CSS file lists the Svelte components that use classes defined in that file.\n\n';
+	markdown +=
+		'> Each CSS file lists the Svelte components that use classes defined in that file.\n\n';
 
 	// Summary statistics
 	const totalCSSFiles = usageMaps.length;
@@ -297,7 +298,7 @@ async function main() {
 	log('='.repeat(60), 'cyan');
 
 	const totalUsage = usageMaps.reduce((sum, map) => sum + map.usedByFiles.length, 0);
-	const unusedFiles = usageMaps.filter(map => map.usedByFiles.length === 0).length;
+	const unusedFiles = usageMaps.filter((map) => map.usedByFiles.length === 0).length;
 
 	log(`CSS files analyzed: ${usageMaps.length}`, 'blue');
 	log(`Total usage connections: ${totalUsage}`, 'green');
@@ -311,7 +312,7 @@ async function main() {
 }
 
 // Run the script
-main().catch(error => {
+main().catch((error) => {
 	log(`\n❌ Error: ${error.message}`, 'red');
 	if (options.verbose) {
 		console.error(error);

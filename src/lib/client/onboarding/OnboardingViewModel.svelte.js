@@ -10,16 +10,15 @@
 
 export class OnboardingViewModel {
 	// State runes for reactive data (all client-side)
-	currentStep = $state('auth');
+	currentStep = $state('workspace');
 	isLoading = $state(false);
 	error = $state(null);
 
 	// Form data collected during onboarding
 	formData = $state({
-		terminalKey: '',
-		confirmTerminalKey: '',
 		workspaceName: '',
 		workspacePath: '',
+		selectedTheme: '', // Theme ID selected during onboarding
 		preferences: {}
 	});
 
@@ -32,16 +31,9 @@ export class OnboardingViewModel {
 
 	// Derived state - computed properties
 	get progressPercentage() {
-		const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
+		const steps = ['workspace', 'theme', 'settings', 'complete'];
 		const currentIndex = steps.indexOf(this.currentStep);
 		return Math.round((currentIndex / (steps.length - 1)) * 100);
-	}
-
-	get canProceedFromAuth() {
-		return (
-			this.formData.terminalKey.length >= 8 &&
-			this.formData.terminalKey === this.formData.confirmTerminalKey
-		);
 	}
 
 	get canProceedFromWorkspace() {
@@ -55,7 +47,7 @@ export class OnboardingViewModel {
 	 * Navigate to the next step
 	 */
 	nextStep() {
-		const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
+		const steps = ['workspace', 'theme', 'settings', 'complete'];
 		const currentIndex = steps.indexOf(this.currentStep);
 
 		if (currentIndex < steps.length - 1) {
@@ -67,7 +59,7 @@ export class OnboardingViewModel {
 	 * Navigate to the previous step
 	 */
 	previousStep() {
-		const steps = ['auth', 'workspace', 'theme', 'settings', 'complete'];
+		const steps = ['workspace', 'theme', 'settings', 'complete'];
 		const currentIndex = steps.indexOf(this.currentStep);
 
 		if (currentIndex > 0) {
@@ -102,18 +94,6 @@ export class OnboardingViewModel {
 		const errors = [];
 
 		switch (this.currentStep) {
-			case 'auth':
-				if (!this.formData.terminalKey) {
-					errors.push('Terminal key is required');
-				} else if (this.formData.terminalKey.length < 8) {
-					errors.push('Terminal key must be at least 8 characters long');
-				}
-
-				if (this.formData.terminalKey !== this.formData.confirmTerminalKey) {
-					errors.push('Terminal keys do not match');
-				}
-				break;
-
 			case 'workspace':
 				// Workspace is optional, but if name is provided, path must be too
 				if (this.formData.workspaceName && !this.formData.workspacePath) {
@@ -137,64 +117,16 @@ export class OnboardingViewModel {
 	}
 
 	/**
-	 * Submit the complete onboarding form
-	 * This is the ONLY API call made during the onboarding flow
-	 * @returns {Promise<{success: boolean, onboarding: object, workspace: object|null}>}
-	 */
-	async submit() {
-		this.isLoading = true;
-		this.error = null;
-
-		try {
-			// Validate all steps before submission
-			const validation = this.validateCurrentStep();
-			if (!validation.valid) {
-				throw new Error(validation.errors.join(', '));
-			}
-
-			// Prepare submission data
-			const submissionData = {
-				terminalKey: this.formData.terminalKey
-			};
-
-			// Include workspace if provided
-			if (this.formData.workspaceName && this.formData.workspacePath) {
-				submissionData.workspaceName = this.formData.workspaceName;
-				submissionData.workspacePath = this.formData.workspacePath;
-			}
-
-			// Include preferences if any were set
-			if (Object.keys(this.formData.preferences).length > 0) {
-				submissionData.preferences = this.formData.preferences;
-			}
-
-			// Submit to API (single atomic operation)
-			const result = await this.#apiClient.submitOnboarding(submissionData);
-
-			// Mark as complete
-			this.currentStep = 'complete';
-
-			return result;
-		} catch (err) {
-			this.error = err.message || 'Failed to complete onboarding';
-			throw err;
-		} finally {
-			this.isLoading = false;
-		}
-	}
-
-	/**
 	 * Reset the form (for testing or retry)
 	 */
 	reset() {
-		this.currentStep = 'auth';
+		this.currentStep = 'workspace';
 		this.isLoading = false;
 		this.error = null;
 		this.formData = {
-			terminalKey: '',
-			confirmTerminalKey: '',
 			workspaceName: '',
 			workspacePath: '',
+			selectedTheme: '',
 			preferences: {}
 		};
 	}

@@ -58,10 +58,10 @@
 	}
 
 	// Initialize ViewModel
-	const authKey = localStorage.getItem('dispatch-auth-token');
+	// Authentication handled via session cookies (no auth key needed)
 	const viewModel = new TerminalPaneViewModel({
 		sessionId,
-		authKey,
+		authKey: null, // Socket.IO authenticates via session cookie
 		shouldResume
 	});
 
@@ -294,8 +294,4 @@
 	.loading-icon {
 		animation: pulse 2s ease-in-out infinite;
 	}
-
-	
-
-	
 </style>

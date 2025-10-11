@@ -4,8 +4,8 @@
  * E2E Test Runner for Dispatch
  * Runs Playwright tests with proper setup
  *
- * NOTE: This script expects the dev:test server to be running
- * Start it in a separate terminal: npm run dev:test
+ * The test server is automatically started by Playwright's webServer config.
+ * No need to manually start the server.
  */
 
 import { spawn } from 'child_process';
@@ -30,7 +30,7 @@ if (!args.some((arg) => arg.includes('--project'))) {
 playwrightArgs.push(...args);
 
 console.log('🎭 Running E2E Tests');
-console.log('📝 NOTE: Make sure dev:test server is running (npm run dev:test)');
+console.log('📝 Test server will be auto-started by Playwright');
 console.log('Command:', playwrightArgs.join(' '));
 
 // Set environment variables for testing

@@ -120,7 +120,9 @@
 >
 	<div
 		id={modalId}
-		class="modal-container modal-container--{size} {open ? 'modal-container--open' : ''} {customClass}"
+		class="modal-container modal-container--{size} {open
+			? 'modal-container--open'
+			: ''} {customClass}"
 		data-augmented-ui={augmented}
 		tabindex="-1"
 		{...restProps}

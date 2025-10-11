@@ -57,7 +57,6 @@
 </div>
 
 <style>
-
 	/* Additional InfoBox-specific styles */
 	.info-box__title {
 		font-weight: 600;
