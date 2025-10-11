@@ -46,7 +46,9 @@ test.describe('Environment Variables', () => {
 		await navigateToSettingsTab(page, 'Environment');
 
 		// Verify variable is still present after reload
-		const reloadedNameInput = page.getByRole('textbox', { name: 'Variable name (e.g., NODE_ENV' }).first();
+		const reloadedNameInput = page
+			.getByRole('textbox', { name: 'Variable name (e.g., NODE_ENV' })
+			.first();
 		const reloadedValueInput = page.getByRole('textbox', { name: 'Value' }).first();
 		await expect(reloadedNameInput).toHaveValue('NODE_ENV');
 		await expect(reloadedValueInput).toHaveValue('development');
@@ -280,7 +282,9 @@ test.describe('Environment Variables', () => {
 
 		// 5. Verify both name and value empty doesn't save
 		await page.getByRole('button', { name: '+ Add Variable' }).click();
-		const secondNameInput = page.getByRole('textbox', { name: 'Variable name (e.g., NODE_ENV' }).nth(1);
+		const secondNameInput = page
+			.getByRole('textbox', { name: 'Variable name (e.g., NODE_ENV' })
+			.nth(1);
 		const secondValueInput = page.getByRole('textbox', { name: 'Value' }).nth(1);
 
 		// Leave both empty

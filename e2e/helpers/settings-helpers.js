@@ -243,7 +243,9 @@ export async function setOAuthProvider(page, provider, config = {}) {
 	await navigateToSettingsTab(page, 'Authentication');
 
 	// Select provider from dropdown
-	const providerDropdown = page.locator('select[name*="provider"], select:has(option:text("Google"))');
+	const providerDropdown = page.locator(
+		'select[name*="provider"], select:has(option:text("Google"))'
+	);
 	await providerDropdown.selectOption({ label: provider });
 
 	// Fill in configuration if provided
@@ -335,9 +337,9 @@ export async function startVSCodeTunnel(page, tunnelName) {
 	await page.getByRole('button', { name: /Start Tunnel/i }).click();
 
 	// Wait for authentication flow or running status
-	await expect(
-		page.getByText(/Running|Device login|Authentication/i)
-	).toBeVisible({ timeout: 10000 });
+	await expect(page.getByText(/Running|Device login|Authentication/i)).toBeVisible({
+		timeout: 10000
+	});
 }
 
 // ============================================================================
@@ -545,12 +547,16 @@ export async function setClaudeDefaults(page, config = {}) {
 
 	// Set max turns
 	if (config.maxTurns !== undefined) {
-		await page.locator('input[type="number"][placeholder*="Max Turns"]').fill(String(config.maxTurns));
+		await page
+			.locator('input[type="number"][placeholder*="Max Turns"]')
+			.fill(String(config.maxTurns));
 	}
 
 	// Set max thinking tokens
 	if (config.maxThinkingTokens !== undefined) {
-		await page.locator('input[type="number"][placeholder*="Thinking Tokens"]').fill(String(config.maxThinkingTokens));
+		await page
+			.locator('input[type="number"][placeholder*="Thinking Tokens"]')
+			.fill(String(config.maxThinkingTokens));
 	}
 
 	// Save settings

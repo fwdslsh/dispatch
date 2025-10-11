@@ -82,9 +82,30 @@ class ClaudeAuthManager {
 	async start(socket) {
 		try {
 			const key = socket.id;
-			// If already running, do nothing
+			// If already running, re-emit URL if we have it
 			if (this.sessions.has(key)) {
 				logger.info('CLAUDE', `Auth session already running for socket ${key}`);
+				const state = this.sessions.get(key);
+
+				// If we already extracted the URL, re-emit it for reconnected clients
+				if (state.urlEmitted && state.buffer) {
+					const url = this.extractAuthUrl(state.buffer);
+					if (url) {
+						const payload = {
+							url,
+							instructions: 'Open the link to authenticate, then paste the authorization code here.'
+						};
+						try {
+							socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_URL, payload);
+							logger.info(
+								'CLAUDE',
+								`Re-emitted auth URL to reconnected client: ${url.substring(0, 60)}...`
+							);
+						} catch (err) {
+							logger.error('CLAUDE', 'Failed to re-emit auth URL:', err);
+						}
+					}
+				}
 				return true;
 			}
 
@@ -131,6 +152,15 @@ class ClaudeAuthManager {
 					state.buffer += String(data || '');
 					if (state.finished) return;
 					const plain = this.stripAnsi(state.buffer);
+
+					// TEMPORARY: Always log PTY output to debug URL extraction issue
+					logger.info(
+						'CLAUDE',
+						`PTY data received (${data.length} bytes), total buffer: ${state.buffer.length} bytes`
+					);
+					logger.debug('CLAUDE', `PTY raw output: ${data.substring(0, 300)}`);
+					logger.debug('CLAUDE', `Buffer plain text: ${plain.substring(0, 300)}`);
+
 					if (state.codeSubmitted) {
 						const lower = plain.toLowerCase();
 						if (
@@ -166,10 +196,15 @@ class ClaudeAuthManager {
 							return;
 						}
 					}
-					const url = this.extractAuthUrl(state.buffer);
-					if (url) {
-						// Send URL once
-						if (!state.urlEmitted) {
+					// Always try to extract URL from buffer (even before code submission)
+					if (!state.urlEmitted && !state.codeSubmitted) {
+						logger.debug(
+							'CLAUDE',
+							`Attempting URL extraction from buffer (${state.buffer.length} bytes)...`
+						);
+						const url = this.extractAuthUrl(state.buffer);
+						if (url) {
+							// Send URL once
 							state.urlEmitted = true;
 							const payload = {
 								url,
@@ -178,8 +213,12 @@ class ClaudeAuthManager {
 							};
 							try {
 								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_URL, payload);
-							} catch {}
-							logger.info('CLAUDE', 'Auth URL emitted to client');
+								logger.info('CLAUDE', `Auth URL emitted to client: ${url.substring(0, 60)}...`);
+							} catch (err) {
+								logger.error('CLAUDE', 'Failed to emit auth URL:', err);
+							}
+						} else {
+							logger.debug('CLAUDE', `No URL found in ${state.buffer.length} bytes of buffer`);
 						}
 					}
 				} catch (e) {

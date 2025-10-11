@@ -349,16 +349,16 @@
 	{/if}
 
 	<!-- Mobile terminal output -->
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		bind:this={container}
 		class="terminal-scroll {wrapMode === 'wrap' ? 'wrap-mode' : 'scroll-mode'}"
 		onscroll={onScroll}
 		onclick={handleTerminalClick}
-		onkeydown={(e) => e.key === 'Enter' && handleTerminalClick(e)}
+		onkeydown={handleTerminalClick}
 		role="log"
 		aria-label="Terminal output with clickable links"
 		aria-live="polite"
-		tabindex="0"
 	>
 		<div class="terminal-pre">
 			{#each terminalLines as line (line.id)}

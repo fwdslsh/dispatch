@@ -1,18 +1,15 @@
 import { json } from '@sveltejs/kit';
 
 export async function GET({ url, locals }) {
-	const databaseManager = locals.services?.database;
+	// NOTE: Database-persisted logging was removed during architecture refactoring.
+	// The application now uses console-based logging via logger utility.
+	// This endpoint returns an empty array to maintain API contract compatibility
+	// with the admin console UI at /console.
+	//
+	// Query params preserved for potential future implementation:
+	// - limit: Max number of logs (default 100, max 1000)
+	// - level: Filter by log level
+	// - component: Filter by component name
 
-	// Parse query params for limit, level, component
-	const limit = Math.max(1, Math.min(1000, parseInt(url.searchParams.get('limit') || '100')));
-	const level = url.searchParams.get('level') || null;
-	const component = url.searchParams.get('component') || null;
-
-	try {
-		const logs = await databaseManager.getLogs(component, level, limit);
-		return json({ logs });
-	} catch (error) {
-		console.error('Failed to fetch logs from database:', error);
-		return json({ error: 'Failed to fetch logs' }, { status: 500 });
-	}
+	return json({ logs: [] });
 }

@@ -33,19 +33,31 @@ test.describe('Settings Theme Functionality', () => {
 
 		// 4. Verify Dark theme card components
 		await expect(darkTheme.locator('.title', { hasText: 'Dark' })).toBeVisible();
-		await expect(darkTheme.locator('.description', { hasText: 'Professional dark theme with balanced contrast' })).toBeVisible();
+		await expect(
+			darkTheme.locator('.description', {
+				hasText: 'Professional dark theme with balanced contrast'
+			})
+		).toBeVisible();
 		await expect(darkTheme.getByRole('img', { name: 'ANSI color palette' })).toBeVisible();
 		await expect(darkTheme.getByRole('button', { name: 'Activate Dark theme' })).toBeVisible();
 
 		// 5. Verify Light theme card components
 		await expect(lightTheme.locator('.title', { hasText: 'Light' })).toBeVisible();
-		await expect(lightTheme.locator('.description', { hasText: 'Clean light theme with high contrast for daytime coding' })).toBeVisible();
+		await expect(
+			lightTheme.locator('.description', {
+				hasText: 'Clean light theme with high contrast for daytime coding'
+			})
+		).toBeVisible();
 		await expect(lightTheme.getByRole('img', { name: 'ANSI color palette' })).toBeVisible();
 		await expect(lightTheme.getByRole('button', { name: 'Activate Light theme' })).toBeVisible();
 
 		// 6. Verify Phosphor Green theme card components
 		await expect(phosphorTheme.locator('.title', { hasText: 'Phosphor Green' })).toBeVisible();
-		await expect(phosphorTheme.locator('.description', { hasText: 'Classic terminal phosphor green - the default Dispatch theme' })).toBeVisible();
+		await expect(
+			phosphorTheme.locator('.description', {
+				hasText: 'Classic terminal phosphor green - the default Dispatch theme'
+			})
+		).toBeVisible();
 		await expect(phosphorTheme.getByRole('img', { name: 'ANSI color palette' })).toBeVisible();
 		// Phosphor Green is the default theme, so it should show as active
 		// Button should be either "Active" or "Currently active theme" (disabled)
@@ -60,7 +72,9 @@ test.describe('Settings Theme Functionality', () => {
 		// 7. Verify each theme has terminal preview with command
 		await expect(darkTheme.getByText('dispatch --theme Dark', { exact: false })).toBeVisible();
 		await expect(lightTheme.getByText('dispatch --theme Light', { exact: false })).toBeVisible();
-		await expect(phosphorTheme.getByText('dispatch --theme Phosphor Green', { exact: false })).toBeVisible();
+		await expect(
+			phosphorTheme.getByText('dispatch --theme Phosphor Green', { exact: false })
+		).toBeVisible();
 	});
 
 	test('Test 2.2: Activate Different Theme', async ({ page }) => {
@@ -77,7 +91,8 @@ test.describe('Settings Theme Functionality', () => {
 
 		// 3. Set up API request listener to verify the activation request succeeds
 		const apiPromise = page.waitForResponse(
-			(response) => response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
+			(response) =>
+				response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
 		);
 
 		// 4. Click "Activate" button on Dark theme card
@@ -95,7 +110,9 @@ test.describe('Settings Theme Functionality', () => {
 		// 7. Verify Dark theme now shows as active (page already reloaded)
 		const reloadedDarkTheme = page.getByRole('article', { name: 'Dark theme preview' });
 		await expect(reloadedDarkTheme.getByRole('status')).toHaveText('Active');
-		await expect(reloadedDarkTheme.getByRole('button', { name: 'Currently active theme' })).toBeDisabled();
+		await expect(
+			reloadedDarkTheme.getByRole('button', { name: 'Currently active theme' })
+		).toBeDisabled();
 	});
 
 	test('Test 2.3: Verify Theme Persistence', async ({ page }) => {
@@ -108,7 +125,8 @@ test.describe('Settings Theme Functionality', () => {
 
 		// 2. Set up API request listener
 		const apiPromise = page.waitForResponse(
-			(response) => response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
+			(response) =>
+				response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
 		);
 
 		// 3. Activate Light theme
@@ -130,7 +148,9 @@ test.describe('Settings Theme Functionality', () => {
 		// 7. Verify Light theme persists as active after reload
 		const reloadedLightTheme = page.getByRole('article', { name: 'Light theme preview' });
 		await expect(reloadedLightTheme.getByRole('status')).toHaveText('Active');
-		await expect(reloadedLightTheme.getByRole('button', { name: 'Currently active theme' })).toBeDisabled();
+		await expect(
+			reloadedLightTheme.getByRole('button', { name: 'Currently active theme' })
+		).toBeDisabled();
 	});
 
 	test('Test 2.4: Switch Between All Themes', async ({ page }) => {
@@ -143,7 +163,8 @@ test.describe('Settings Theme Functionality', () => {
 
 		// 2. Activate Dark theme
 		let apiPromise = page.waitForResponse(
-			(response) => response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
+			(response) =>
+				response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
 		);
 		const darkTheme = page.getByRole('article', { name: 'Dark theme preview' });
 		await darkTheme.getByRole('button', { name: 'Activate Dark theme' }).click();
@@ -155,7 +176,8 @@ test.describe('Settings Theme Functionality', () => {
 
 		// 3. Activate Light theme (page already reloaded from previous activation)
 		apiPromise = page.waitForResponse(
-			(response) => response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
+			(response) =>
+				response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
 		);
 		const lightTheme = page.getByRole('article', { name: 'Light theme preview' });
 		await lightTheme.getByRole('button', { name: 'Activate Light theme' }).click();
@@ -166,7 +188,8 @@ test.describe('Settings Theme Functionality', () => {
 
 		// 4. Activate Phosphor Green theme (page already reloaded from previous activation)
 		apiPromise = page.waitForResponse(
-			(response) => response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
+			(response) =>
+				response.url().includes('/api/settings/themes') && response.request().method() === 'PUT'
 		);
 		const phosphorTheme = page.getByRole('article', { name: 'Phosphor Green theme preview' });
 		await phosphorTheme.getByRole('button', { name: 'Activate Phosphor Green theme' }).click();
@@ -198,7 +221,7 @@ test.describe('Settings Theme Functionality', () => {
 		// Verify Dark theme has all 16 ANSI colors (8 normal + 8 bright)
 		const darkTheme = page.getByRole('article', { name: 'Dark theme preview' });
 		const darkPalette = darkTheme.getByRole('img', { name: 'ANSI color palette' });
-		
+
 		// Verify normal colors (0-7) - use .first() to avoid strict mode violation
 		for (let i = 0; i < 8; i++) {
 			await expect(darkPalette.getByLabel(`Color ${i}`, { exact: true }).first()).toBeVisible();

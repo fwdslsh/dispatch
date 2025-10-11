@@ -1,5 +1,7 @@
 import { logger } from '../utils/logger.js';
 
+/** @typedef {import('../../database/DatabaseManager.js').DatabaseManager} DatabaseManager */
+
 /**
  * Database Migration System for Dispatch
  *

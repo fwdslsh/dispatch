@@ -1,7 +1,5 @@
 export async function load() {
-	return {
-		
-	};
+	return {};
 }
 
 export const ssr = false;

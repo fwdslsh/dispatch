@@ -35,6 +35,7 @@ export async function getGlobalServices() {
  * Public routes that don't require authentication
  */
 const PUBLIC_ROUTES = [
+	'/',
 	'/login',
 	'/onboarding',
 	'/api/auth/callback',

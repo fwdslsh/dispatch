@@ -7,6 +7,9 @@ import {
 	printSSLInstructions
 } from './src/lib/server/shared/utils/ssl-certificates.js';
 
+/**
+ * @returns {import('vite').Plugin}
+ */
 function socketIOPlugin() {
 	return {
 		name: 'socketio',
@@ -28,6 +31,7 @@ function socketIOPlugin() {
 		}
 	};
 }
+
 export default defineConfig(async () => {
 	// Get SSL configuration for development
 	const sslConfig = await getViteSSLConfig();
@@ -36,7 +40,9 @@ export default defineConfig(async () => {
 	if (sslConfig) {
 		printSSLInstructions();
 	}
-	return {
+
+	/** @type {import('vite').UserConfig} */
+	const config = {
 		resolve: {
 			alias: {
 				$lib: fileURLToPath(new URL('./src/lib', import.meta.url))
@@ -44,7 +50,7 @@ export default defineConfig(async () => {
 		},
 		plugins: [sveltekit(), socketIOPlugin(), devtoolsJson()],
 		server: {
-			https: sslConfig,
+			https: sslConfig || undefined,
 			host: true
 		},
 		test: {
@@ -88,4 +94,6 @@ export default defineConfig(async () => {
 			]
 		}
 	};
+
+	return config;
 });

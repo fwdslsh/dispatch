@@ -8,7 +8,7 @@
 </div>
 
 <style>
-.settings-section-keys {
-	padding: var(--space-4) 0;
-}
+	.settings-section-keys {
+		padding: var(--space-4) 0;
+	}
 </style>

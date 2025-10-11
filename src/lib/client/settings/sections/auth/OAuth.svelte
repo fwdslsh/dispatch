@@ -270,7 +270,8 @@
 									class="form-input"
 									placeholder="Enter {meta.name} Client ID"
 									value={config.clientId}
-									oninput={(e) => updateClientId(providerKey, e.target.value)}
+									oninput={(e) =>
+										updateClientId(providerKey, /** @type {HTMLInputElement} */ (e.target).value)}
 									disabled={saving}
 								/>
 							</div>
@@ -290,7 +291,11 @@
 										? 'Enter new secret to update'
 										: 'Enter {meta.name} Client Secret'}
 									value={config.clientSecret}
-									oninput={(e) => updateClientSecret(providerKey, e.target.value)}
+									oninput={(e) =>
+										updateClientSecret(
+											providerKey,
+											/** @type {HTMLInputElement} */ (e.target).value
+										)}
 									disabled={saving}
 									autocomplete="off"
 								/>

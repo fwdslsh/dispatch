@@ -39,7 +39,6 @@ export class AuthService {
 		return null;
 	}
 
-
 	/**
 	 * Validate authentication using API key
 	 * Note: OAuth session validation is now handled via SessionManager in hooks.server.js

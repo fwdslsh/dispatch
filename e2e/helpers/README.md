@@ -9,6 +9,7 @@ This directory contains helper functions for Playwright E2E tests.
 Main function to reset the test database to a clean state.
 
 **Options:**
+
 - `deleteFile` (boolean): Delete entire database file and recreate (default: `false`)
 - `seedData` (boolean): Create default user and API key (default: `false`)
 - `onboarded` (boolean): Mark onboarding as complete (default: `false`)
@@ -16,18 +17,19 @@ Main function to reset the test database to a clean state.
 **Returns:** Promise with reset result and state information
 
 **Example:**
+
 ```javascript
 import { resetDatabase } from './helpers/reset-database.js';
 
 test.beforeEach(async () => {
-  // Reset to fresh install
-  await resetDatabase();
+	// Reset to fresh install
+	await resetDatabase();
 });
 
 test('with seeded data', async () => {
-  // Reset with user and API key
-  const result = await resetDatabase({ seedData: true, onboarded: true });
-  console.log('API Key:', result.apiKey.key);
+	// Reset with user and API key
+	const result = await resetDatabase({ seedData: true, onboarded: true });
+	console.log('API Key:', result.apiKey.key);
 });
 ```
 
@@ -36,11 +38,12 @@ test('with seeded data', async () => {
 Quick helper: Reset to fresh install state (onboarding not complete, no data).
 
 **Example:**
+
 ```javascript
 import { resetToFreshInstall } from './helpers/index.js';
 
 test.beforeEach(async () => {
-  await resetToFreshInstall();
+	await resetToFreshInstall();
 });
 ```
 
@@ -51,16 +54,17 @@ Quick helper: Reset with onboarding complete and a test API key created.
 **Returns:** Promise with API key information
 
 **Example:**
+
 ```javascript
 import { resetToOnboarded } from './helpers/index.js';
 
 test('authenticated test', async ({ page }) => {
-  const { apiKey } = await resetToOnboarded();
+	const { apiKey } = await resetToOnboarded();
 
-  // Use the API key to authenticate
-  await page.goto('/login');
-  await page.fill('[name="key"]', apiKey.key);
-  await page.click('button[type="submit"]');
+	// Use the API key to authenticate
+	await page.goto('/login');
+	await page.fill('[name="key"]', apiKey.key);
+	await page.click('button[type="submit"]');
 });
 ```
 
@@ -69,12 +73,13 @@ test('authenticated test', async ({ page }) => {
 Nuclear option: Delete the entire database file. The server will recreate it on next access.
 
 **Example:**
+
 ```javascript
 import { deleteDatabase } from './helpers/index.js';
 
 test('schema migration test', async () => {
-  await deleteDatabase();
-  // Database will be recreated with latest schema
+	await deleteDatabase();
+	// Database will be recreated with latest schema
 });
 ```
 
@@ -87,14 +92,14 @@ import { resetToFreshInstall } from './helpers/index.js';
 import { test, expect } from '@playwright/test';
 
 test.describe('Onboarding Flow', () => {
-  test.beforeEach(async () => {
-    await resetToFreshInstall();
-  });
+	test.beforeEach(async () => {
+		await resetToFreshInstall();
+	});
 
-  test('should complete onboarding', async ({ page }) => {
-    await page.goto('/');
-    // Test onboarding flow...
-  });
+	test('should complete onboarding', async ({ page }) => {
+		await page.goto('/');
+		// Test onboarding flow...
+	});
 });
 ```
 
@@ -105,22 +110,22 @@ import { resetToOnboarded } from './helpers/index.js';
 import { test, expect } from '@playwright/test';
 
 test.describe('Workspace Features', () => {
-  let apiKey;
+	let apiKey;
 
-  test.beforeEach(async ({ page }) => {
-    const result = await resetToOnboarded();
-    apiKey = result.apiKey.key;
+	test.beforeEach(async ({ page }) => {
+		const result = await resetToOnboarded();
+		apiKey = result.apiKey.key;
 
-    // Auto-login
-    await page.goto('/login');
-    await page.fill('[name="key"]', apiKey);
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/workspace');
-  });
+		// Auto-login
+		await page.goto('/login');
+		await page.fill('[name="key"]', apiKey);
+		await page.click('button[type="submit"]');
+		await page.waitForURL('/workspace');
+	});
 
-  test('should create a session', async ({ page }) => {
-    // Test workspace features...
-  });
+	test('should create a session', async ({ page }) => {
+		// Test workspace features...
+	});
 });
 ```
 
@@ -131,14 +136,14 @@ import { resetDatabase } from './helpers/index.js';
 import { test, expect } from '@playwright/test';
 
 test('custom state test', async () => {
-  // Reset with specific state
-  const result = await resetDatabase({
-    onboarded: true,
-    seedData: true
-  });
+	// Reset with specific state
+	const result = await resetDatabase({
+		onboarded: true,
+		seedData: true
+	});
 
-  // Additional custom setup...
-  // (e.g., create specific sessions, workspaces, etc.)
+	// Additional custom setup...
+	// (e.g., create specific sessions, workspaces, etc.)
 });
 ```
 

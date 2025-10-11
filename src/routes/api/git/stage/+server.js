@@ -3,8 +3,11 @@ import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
 
 export async function POST({ request, locals }) {
+	let action = 'unknown'; // Define in outer scope for error handler
 	try {
-		const { path, files, action } = await request.json();
+		const data = await request.json();
+		const { path, files } = data;
+		action = data.action;
 
 		if (!path || !files || !Array.isArray(files) || !action) {
 			return json({ error: 'Path, files array, and action are required' }, { status: 400 });

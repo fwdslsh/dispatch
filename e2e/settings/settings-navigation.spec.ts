@@ -54,32 +54,50 @@ test.describe('Settings Navigation & Access', () => {
 
 		// 1. Click Home Directory tab
 		await page.getByRole('tab', { name: 'Home Directory' }).click();
-		await expect(page.getByRole('tab', { name: 'Home Directory' })).toHaveAttribute('aria-selected', 'true');
+		await expect(page.getByRole('tab', { name: 'Home Directory' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		await expect(page.getByRole('tabpanel', { name: 'Home Directory' })).toBeVisible();
 
 		// 2. Click Environment tab
 		await page.getByRole('tab', { name: 'Environment' }).click();
-		await expect(page.getByRole('tab', { name: 'Environment' })).toHaveAttribute('aria-selected', 'true');
+		await expect(page.getByRole('tab', { name: 'Environment' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		await expect(page.getByRole('tabpanel', { name: 'Environment' })).toBeVisible();
 
 		// 3. Click Authentication tab
 		await page.getByRole('tab', { name: 'Authentication' }).click();
-		await expect(page.getByRole('tab', { name: 'Authentication' })).toHaveAttribute('aria-selected', 'true');
+		await expect(page.getByRole('tab', { name: 'Authentication' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		await expect(page.getByRole('tabpanel', { name: 'Authentication' })).toBeVisible();
 
 		// 4. Click Connectivity tab
 		await page.getByRole('tab', { name: 'Connectivity' }).click();
-		await expect(page.getByRole('tab', { name: 'Connectivity' })).toHaveAttribute('aria-selected', 'true');
+		await expect(page.getByRole('tab', { name: 'Connectivity' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		await expect(page.getByRole('tabpanel', { name: 'Connectivity' })).toBeVisible();
 
 		// 5. Click Data & Storage tab
 		await page.getByRole('tab', { name: 'Data & Storage' }).click();
-		await expect(page.getByRole('tab', { name: 'Data & Storage' })).toHaveAttribute('aria-selected', 'true');
+		await expect(page.getByRole('tab', { name: 'Data & Storage' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		await expect(page.getByRole('tabpanel', { name: 'Data & Storage' })).toBeVisible();
 
 		// 6. Click Claude tab
 		await page.getByRole('tab', { name: 'Claude' }).click();
-		await expect(page.getByRole('tab', { name: 'Claude' })).toHaveAttribute('aria-selected', 'true');
+		await expect(page.getByRole('tab', { name: 'Claude' })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		await expect(page.getByRole('tabpanel', { name: 'Claude' })).toBeVisible();
 
 		// 7. Return to Theme tab to verify navigation back

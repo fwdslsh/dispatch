@@ -62,6 +62,9 @@
 			</div>
 		</div>
 	{/snippet}
+	{#snippet footer()}
+		<!-- Empty footer snippet to satisfy Modal component requirements -->
+	{/snippet}
 </Modal>
 
 <style>

@@ -64,7 +64,6 @@ async function resolveActiveTheme(
 }
 
 export async function GET({ url, locals }) {
-
 	// Get optional workspaceId from query params
 	const workspaceId = url.searchParams.get('workspaceId');
 

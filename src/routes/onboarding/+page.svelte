@@ -18,8 +18,13 @@
 	import Shell from '$lib/client/shared/components/Shell.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 
-	// Server load data
-	/** @type {import('./$types').PageData} */
+	/**
+	 * @typedef {Object} OnboardingPageProps
+	 * @property {import('./$types').PageData} data
+	 * @property {import('./$types').ActionData} [form]
+	 */
+
+	/** @type {OnboardingPageProps} */
 	let { data, form } = $props();
 
 	// State management
@@ -157,7 +162,7 @@
 		await invalidateAll();
 
 		// Add small delay to ensure cookie propagation to browser
-		await new Promise(resolve => setTimeout(resolve, 100));
+		await new Promise((resolve) => setTimeout(resolve, 100));
 
 		// Verify session is valid before navigating
 		try {
@@ -208,8 +213,8 @@
 							<div class="warning-icon">⚠️</div>
 							<div class="warning-content">
 								<strong>Important:</strong>
-								This is the only time you will see this API key. Copy it now and store it in a secure location.
-								You will need this key to log in to Dispatch.
+								This is the only time you will see this API key. Copy it now and store it in a secure
+								location. You will need this key to log in to Dispatch.
 							</div>
 						</div>
 
@@ -252,7 +257,7 @@
 				</div>
 			{/key}
 		{:else if onboardingViewModel}
-			<OnboardingFlow viewModel={onboardingViewModel} onComplete={handleOnboardingComplete} />
+			<OnboardingFlow onComplete={handleOnboardingComplete} />
 		{/if}
 	</div>
 </Shell>

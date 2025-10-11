@@ -157,7 +157,7 @@ export async function PUT({ params, request, url, locals }) {
 
 		// If reactivating, update last_active
 		if (status === 'active') {
-			await dbManager.updateWorkspaceActivity(workspaceId);
+			await locals.services.workspaceRepository.updateLastActive(workspaceId);
 		}
 
 		// Get updated workspace

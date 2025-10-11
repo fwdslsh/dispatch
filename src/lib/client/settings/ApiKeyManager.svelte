@@ -241,8 +241,19 @@
 
 	<!-- Create Key Modal -->
 	{#if showCreateModal}
-		<div class="modal-overlay" onclick={closeCreateModal} role="dialog" aria-modal="true">
-			<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+		<div
+			class="modal-overlay"
+			onclick={(e) => {
+				if (e.target === e.currentTarget) {
+					closeCreateModal();
+				}
+			}}
+			onkeydown={(e) => e.key === 'Escape' && closeCreateModal()}
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+		>
+			<div class="modal-content">
 				{#if !generatedKey}
 					<!-- Step 1: Enter Label -->
 					<h3>Create New API Key</h3>
@@ -260,7 +271,6 @@
 							bind:value={newKeyLabel}
 							onkeydown={handleKeyEnter}
 							disabled={apiKeyState.loading}
-							autofocus
 						/>
 					</div>
 
@@ -310,8 +320,19 @@
 
 	<!-- Delete Confirmation Modal -->
 	{#if deleteConfirm}
-		<div class="modal-overlay" onclick={cancelDelete} role="dialog" aria-modal="true">
-			<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+		<div
+			class="modal-overlay"
+			onclick={(e) => {
+				if (e.target === e.currentTarget) {
+					cancelDelete();
+				}
+			}}
+			onkeydown={(e) => e.key === 'Escape' && cancelDelete()}
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+		>
+			<div class="modal-content">
 				<h3>Delete API Key</h3>
 				<p>Are you sure you want to delete this API key? This action cannot be undone.</p>
 

@@ -67,22 +67,28 @@ const SETTINGS_SECTIONS = [
 ## Problems
 
 ### 1. Tight Coupling
+
 Adding a new session adapter requires:
+
 - Creating settings component
 - Manually editing `pageState.js` to add section
 - Importing component and icon
 - Choosing insertion point in hardcoded array
 
 ### 2. Poor Scalability
+
 As more session types are added (WebContainers, Jupyter, etc.), `pageState.js` becomes a bottleneck with increasing imports and array management.
 
 ### 3. Inconsistent Architecture
+
 - Session adapters use plugin pattern: `registerClientSessionModules()`
 - Settings use hardcoded array: `SETTINGS_SECTIONS`
 - No architectural consistency
 
 ### 4. Component Scope
+
 Current component organization is reasonable:
+
 - Claude.svelte combines related Claude-specific features (auth + session defaults)
 - Tunnels.svelte combines related connectivity features (LocalTunnel + VS Code)
 - Components are appropriately sized and focused on their domain
@@ -115,70 +121,70 @@ const settingsCategories = new Map();
  * @param {number} [section.order=100] - Display order (lower = earlier)
  */
 export function registerSettingsSection(section) {
-  if (!section?.id || !section?.component) {
-    console.warn('[Settings Registry] Invalid section:', section);
-    return;
-  }
+	if (!section?.id || !section?.component) {
+		console.warn('[Settings Registry] Invalid section:', section);
+		return;
+	}
 
-  settingsSections.set(section.id, {
-    order: 100,
-    category: 'core',
-    ...section
-  });
+	settingsSections.set(section.id, {
+		order: 100,
+		category: 'core',
+		...section
+	});
 
-  // Group by category
-  const category = section.category || 'core';
-  if (!settingsCategories.has(category)) {
-    settingsCategories.set(category, []);
-  }
-  settingsCategories.get(category).push(section);
+	// Group by category
+	const category = section.category || 'core';
+	if (!settingsCategories.has(category)) {
+		settingsCategories.set(category, []);
+	}
+	settingsCategories.get(category).push(section);
 }
 
 /**
  * Get all registered settings sections, sorted by order
  */
 export function getSettingsSections() {
-  return Array.from(settingsSections.values())
-    .sort((a, b) => (a.order || 100) - (b.order || 100));
+	return Array.from(settingsSections.values()).sort((a, b) => (a.order || 100) - (b.order || 100));
 }
 
 /**
  * Get settings sections by category
  */
 export function getSettingsByCategory(category) {
-  return (settingsCategories.get(category) || [])
-    .sort((a, b) => (a.order || 100) - (b.order || 100));
+	return (settingsCategories.get(category) || []).sort(
+		(a, b) => (a.order || 100) - (b.order || 100)
+	);
 }
 
 /**
  * Get all categories
  */
 export function getCategories() {
-  return Array.from(settingsCategories.keys());
+	return Array.from(settingsCategories.keys());
 }
 
 /**
  * Unregister a section (useful for testing)
  */
 export function unregisterSettingsSection(id) {
-  const section = settingsSections.get(id);
-  if (section) {
-    settingsSections.delete(id);
-    // Remove from category
-    const categoryList = settingsCategories.get(section.category);
-    if (categoryList) {
-      const index = categoryList.findIndex(s => s.id === id);
-      if (index !== -1) categoryList.splice(index, 1);
-    }
-  }
+	const section = settingsSections.get(id);
+	if (section) {
+		settingsSections.delete(id);
+		// Remove from category
+		const categoryList = settingsCategories.get(section.category);
+		if (categoryList) {
+			const index = categoryList.findIndex((s) => s.id === id);
+			if (index !== -1) categoryList.splice(index, 1);
+		}
+	}
 }
 
 /**
  * Clear all registrations (useful for testing)
  */
 export function clearSettingsRegistry() {
-  settingsSections.clear();
-  settingsCategories.clear();
+	settingsSections.clear();
+	settingsCategories.clear();
 }
 ```
 
@@ -214,80 +220,80 @@ import IconSettings from '$lib/client/shared/components/Icons/IconSettings.svelt
  * Called during app initialization
  */
 export function registerCoreSettings() {
-  // Appearance (order 10)
-  registerSettingsSection({
-    id: 'themes',
-    label: 'Theme',
-    category: 'core',
-    navAriaLabel: 'Color themes and appearance settings',
-    icon: IconAdjustmentsAlt,
-    component: ThemeSettings,
-    order: 10
-  });
+	// Appearance (order 10)
+	registerSettingsSection({
+		id: 'themes',
+		label: 'Theme',
+		category: 'core',
+		navAriaLabel: 'Color themes and appearance settings',
+		icon: IconAdjustmentsAlt,
+		component: ThemeSettings,
+		order: 10
+	});
 
-  // Workspace (order 20-30)
-  registerSettingsSection({
-    id: 'home',
-    label: 'Home Directory',
-    category: 'core',
-    navAriaLabel: 'File browser and home directory manager',
-    icon: IconFolder,
-    component: HomeDirectoryManager,
-    order: 20
-  });
+	// Workspace (order 20-30)
+	registerSettingsSection({
+		id: 'home',
+		label: 'Home Directory',
+		category: 'core',
+		navAriaLabel: 'File browser and home directory manager',
+		icon: IconFolder,
+		component: HomeDirectoryManager,
+		order: 20
+	});
 
-  registerSettingsSection({
-    id: 'workspace-env',
-    label: 'Environment',
-    category: 'core',
-    navAriaLabel: 'Environment settings for your workspace',
-    icon: IconSettings,
-    component: WorkspaceEnvSettings,
-    order: 30
-  });
+	registerSettingsSection({
+		id: 'workspace-env',
+		label: 'Environment',
+		category: 'core',
+		navAriaLabel: 'Environment settings for your workspace',
+		icon: IconSettings,
+		component: WorkspaceEnvSettings,
+		order: 30
+	});
 
-  // Authentication (order 40-50)
-  registerSettingsSection({
-    id: 'keys',
-    label: 'Keys',
-    category: 'auth',
-    navAriaLabel: 'API key management',
-    icon: IconKey,
-    component: ApiKeysSettings,
-    order: 40
-  });
+	// Authentication (order 40-50)
+	registerSettingsSection({
+		id: 'keys',
+		label: 'Keys',
+		category: 'auth',
+		navAriaLabel: 'API key management',
+		icon: IconKey,
+		component: ApiKeysSettings,
+		order: 40
+	});
 
-  registerSettingsSection({
-    id: 'oauth',
-    label: 'OAuth',
-    category: 'auth',
-    navAriaLabel: 'OAuth provider configuration',
-    icon: IconUser,
-    component: OAuthSettings,
-    order: 50
-  });
+	registerSettingsSection({
+		id: 'oauth',
+		label: 'OAuth',
+		category: 'auth',
+		navAriaLabel: 'OAuth provider configuration',
+		icon: IconUser,
+		component: OAuthSettings,
+		order: 50
+	});
 
-  // Connectivity (order 60)
-  registerSettingsSection({
-    id: 'tunnels',
-    label: 'Connectivity',
-    category: 'connectivity',
-    navAriaLabel: 'Remote tunnel settings for external access',
-    icon: IconCloud,
-    component: TunnelsSettings,
-    order: 60
-  });
+	// Connectivity (order 60)
+	registerSettingsSection({
+		id: 'tunnels',
+		label: 'Connectivity',
+		category: 'connectivity',
+		navAriaLabel: 'Remote tunnel settings for external access',
+		icon: IconCloud,
+		component: TunnelsSettings,
+		order: 60
+	});
 
-  // Data Management (order 90)
-  registerSettingsSection({
-    id: 'data-management',
-    label: 'Data & Storage',
-    category: 'core',
-    navAriaLabel: 'Data retention and storage management',
-    icon: IconArchive,
-    component: DataManagement,
-    order: 90
-  });
+	// Data Management (order 90)
+	registerSettingsSection({
+		id: 'data-management',
+		label: 'Data & Storage',
+		category: 'core',
+		navAriaLabel: 'Data retention and storage management',
+		icon: IconArchive,
+		component: DataManagement,
+		order: 90
+	});
 }
 
 // NOTE: Claude settings are NOT registered here.
@@ -312,29 +318,29 @@ import { registerSettingsSection } from '../../settings/registry/settings-regist
 const moduleMap = new Map();
 
 export function registerClientSessionModules(...modules) {
-  for (const module of modules) {
-    if (!module || typeof module !== 'object' || !module.type) continue;
+	for (const module of modules) {
+		if (!module || typeof module !== 'object' || !module.type) continue;
 
-    // Register session module
-    moduleMap.set(module.type, module);
+		// Register session module
+		moduleMap.set(module.type, module);
 
-    // Auto-register settings section if provided
-    if (module.settingsSection) {
-      registerSettingsSection({
-        category: 'sessions', // Default category for session modules
-        order: 70,             // Default order for session modules
-        ...module.settingsSection
-      });
-    }
-  }
+		// Auto-register settings section if provided
+		if (module.settingsSection) {
+			registerSettingsSection({
+				category: 'sessions', // Default category for session modules
+				order: 70, // Default order for session modules
+				...module.settingsSection
+			});
+		}
+	}
 }
 
 export function getClientSessionModule(type) {
-  return type ? moduleMap.get(type) || null : null;
+	return type ? moduleMap.get(type) || null : null;
 }
 
 export function listClientSessionModules() {
-  return Array.from(moduleMap.values());
+	return Array.from(moduleMap.values());
 }
 
 registerClientSessionModules(terminalSessionModule, claudeSessionModule, fileEditorSessionModule);
@@ -351,39 +357,39 @@ import ClaudeIcon from '$lib/client/shared/components/Icons/ClaudeIcon.svelte';
 import { SESSION_TYPE } from '$lib/shared/session-types.js';
 
 export const claudeSessionModule = {
-  type: SESSION_TYPE.CLAUDE,
-  component: ClaudePane,
-  header: ClaudeHeader,
-  settingsComponent: ClaudeSettings, // In-session settings dialog
+	type: SESSION_TYPE.CLAUDE,
+	component: ClaudePane,
+	header: ClaudeHeader,
+	settingsComponent: ClaudeSettings, // In-session settings dialog
 
-  // Settings page section (NEW - auto-registered by session-modules/index.js)
-  settingsSection: {
-    id: 'claude',
-    label: 'Claude',
-    icon: ClaudeIcon,
-    component: ClaudeSettingsSection,
-    navAriaLabel: 'Claude authentication and session settings',
-    order: 70
-  },
+	// Settings page section (NEW - auto-registered by session-modules/index.js)
+	settingsSection: {
+		id: 'claude',
+		label: 'Claude',
+		icon: ClaudeIcon,
+		component: ClaudeSettingsSection,
+		navAriaLabel: 'Claude authentication and session settings',
+		order: 70
+	},
 
-  prepareProps(session = {}) {
-    return {
-      sessionId: session.id,
-      claudeSessionId: session.claudeSessionId || session.typeSpecificId || session.sessionId,
-      shouldResume: Boolean(session.shouldResume || session.resumeSession),
-      workspacePath: session.workspacePath
-    };
-  },
+	prepareProps(session = {}) {
+		return {
+			sessionId: session.id,
+			claudeSessionId: session.claudeSessionId || session.typeSpecificId || session.sessionId,
+			shouldResume: Boolean(session.shouldResume || session.resumeSession),
+			workspacePath: session.workspacePath
+		};
+	},
 
-  prepareHeaderProps(session = {}, options = {}) {
-    const { onClose, index } = options;
-    return {
-      session,
-      onClose,
-      index,
-      claudeSessionId: session.claudeSessionId || session.typeSpecificId || session.sessionId
-    };
-  }
+	prepareHeaderProps(session = {}, options = {}) {
+		const { onClose, index } = options;
+		return {
+			session,
+			onClose,
+			index,
+			claudeSessionId: session.claudeSessionId || session.typeSpecificId || session.sessionId
+		};
+	}
 };
 ```
 
@@ -409,30 +415,30 @@ registerCoreSettings();
 const SECTION_LABEL_LOOKUP = new Map();
 
 export function getSettingsSections() {
-  const sections = getSettingsSections();
+	const sections = getSettingsSections();
 
-  // Update lookup map
-  SECTION_LABEL_LOOKUP.clear();
-  sections.forEach(section => {
-    SECTION_LABEL_LOOKUP.set(section.id, section.label);
-  });
+	// Update lookup map
+	SECTION_LABEL_LOOKUP.clear();
+	sections.forEach((section) => {
+		SECTION_LABEL_LOOKUP.set(section.id, section.label);
+	});
 
-  return sections;
+	return sections;
 }
 
 export function createSettingsPageState(options = {}) {
-  const sections = getSettingsSections();
-  const defaultSectionId = sections[0]?.id ?? null;
-  const initialSectionId = sections.some((section) => section.id === options.initialSection)
-    ? options.initialSection
-    : defaultSectionId;
+	const sections = getSettingsSections();
+	const defaultSectionId = sections[0]?.id ?? null;
+	const initialSectionId = sections.some((section) => section.id === options.initialSection)
+		? options.initialSection
+		: defaultSectionId;
 
-  return {
-    sections,
-    activeSection: initialSectionId,
-    savedMessage: null,
-    error: null
-  };
+	return {
+		sections,
+		activeSection: initialSectionId,
+		savedMessage: null,
+		error: null
+	};
 }
 
 // ... rest of the file remains the same
@@ -468,29 +474,34 @@ src/lib/client/settings/
 ```
 
 **Files to remove:**
+
 - `src/lib/client/settings/keysSection.js` (integrated into core-sections.js)
 - `src/lib/client/settings/AuthenticationSettingsSection.svelte` (if duplicate)
 - `src/lib/client/settings/OAuthSettings.svelte` (move to sections/auth/OAuth.svelte)
 
 **Files to move:**
+
 - `src/lib/client/settings/sections/Tunnels.svelte` → `src/lib/client/settings/sections/connectivity/Tunnels.svelte`
 - `src/lib/client/settings/sections/Claude.svelte` → `src/lib/client/settings/sections/sessions/Claude.svelte`
 
 ## Implementation Plan
 
 ### Stage 1: Foundation (Non-Breaking)
+
 - [ ] Create `src/lib/client/settings/registry/settings-registry.js`
 - [ ] Create `src/lib/client/settings/registry/core-sections.js` (core settings only, NOT Claude)
 - [ ] Add registry initialization to settings page
 - [ ] Test that settings page still works with registry
 
 ### Stage 2: Session Module Integration
+
 - [ ] Update `session-modules/index.js` to auto-register `settingsSection` from modules
 - [ ] Add `settingsSection` property to `claudeSessionModule` in `src/lib/client/claude/claude.js`
 - [ ] Test that Claude settings section appears via module registration
 - [ ] Verify Claude settings are functional
 
 ### Stage 3: Reorganize Directory Structure
+
 - [ ] Create subdirectories: `sections/core/`, `sections/auth/`, `sections/connectivity/`, `sections/sessions/`
 - [ ] Move existing sections to appropriate subdirectories:
   - ThemeSettings → `sections/core/Themes.svelte`
@@ -507,12 +518,14 @@ src/lib/client/settings/
 - [ ] Remove legacy files (keysSection.js, etc.)
 
 ### Stage 4: Remove Hardcoded Array
+
 - [ ] Update `pageState.js` to use `getSettingsSections()` from registry
 - [ ] Remove `SETTINGS_SECTIONS` constant
 - [ ] Remove manual imports of section components/icons from pageState.js
 - [ ] Verify all settings sections still appear (including Claude from module registration)
 
 ### Stage 5: Testing & Documentation
+
 - [ ] Write unit tests for settings registry
 - [ ] Update settings architecture documentation
 - [ ] Update adapter guide with settings section registration
@@ -522,57 +535,70 @@ src/lib/client/settings/
 ## Benefits
 
 ### 1. Self-Registering Adapters
+
 New session adapters automatically contribute settings without modifying core files:
 
 ```javascript
 // In new-adapter/new-adapter.js
 export const newAdapterModule = {
-  type: 'new-type',
-  component: NewPane,
-  settingsSection: {
-    id: 'new-adapter-settings',
-    label: 'New Adapter',
-    component: NewAdapterSettings,
-    icon: NewIcon
-  }
+	type: 'new-type',
+	component: NewPane,
+	settingsSection: {
+		id: 'new-adapter-settings',
+		label: 'New Adapter',
+		component: NewAdapterSettings,
+		icon: NewIcon
+	}
 };
 ```
 
 ### 2. Clear Organization
+
 Settings grouped by logical categories instead of flat list:
+
 - **Core:** Themes, home directory, workspace, data
 - **Auth:** API keys, OAuth
 - **Connectivity:** Tunnels (LocalTunnel + VS Code tunnel combined)
 - **Sessions:** Claude settings (auth + defaults combined)
 
 ### 3. Better Directory Structure
+
 Settings organized by category in subdirectories:
+
 - Easier to locate related settings
 - Clear separation of concerns by category
 - Scalable structure for future settings
 
 ### 4. Architectural Consistency
+
 Settings follow same plugin pattern as session modules:
+
 - Both use registration functions
 - Both support dynamic discovery
 - Both are extensible
 
 ### 5. Zero Core Changes for New Adapters
+
 Adding a new session type with settings:
+
 - **Before:** Edit `pageState.js`, add imports, insert into array
 - **After:** Add `settingsSection` to module definition (1 property)
 
 ## Migration Strategy
 
 ### Backward Compatibility
+
 All changes maintain backward compatibility until Stage 6:
+
 1. Registry works alongside hardcoded array
 2. Existing components continue working
 3. No breaking changes to settings API
 4. Gradual migration component-by-component
 
 ### Rollback Plan
+
 Each stage is independently testable and reversible:
+
 - Stage 1: Can be disabled by not initializing registry
 - Stage 2: Can be disabled by not calling registerClientSessionModules with updated logic
 - Stage 3: Directory moves are reversible via git
@@ -580,6 +606,7 @@ Each stage is independently testable and reversible:
 - Stage 5: Documentation changes are non-breaking
 
 ### Testing Approach
+
 - Unit test registry functions (register, unregister, getAll)
 - Integration test: Add mock section, verify it appears
 - E2E test: Navigate to each settings section
@@ -600,7 +627,9 @@ Each stage is independently testable and reversible:
 ## Future Enhancements
 
 ### Category-Based Navigation
+
 Once categorized, could add category grouping in UI:
+
 ```
 Core
   ├─ Themes
@@ -621,7 +650,9 @@ Sessions
 ```
 
 ### Dynamic Section Loading
+
 Lazy-load setting components to reduce bundle size:
+
 ```javascript
 settingsSection: {
   id: 'claude-defaults',
@@ -630,7 +661,9 @@ settingsSection: {
 ```
 
 ### Settings Search
+
 With registry, can implement settings search across all sections:
+
 ```javascript
 searchSettings(query) {
   return getSettingsSections().filter(section =>

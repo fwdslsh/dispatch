@@ -21,11 +21,13 @@ Automatic authentication for web browsers using httpOnly, Secure (production), S
 For scripts, CLI tools, and automation:
 
 **Authorization Header** (recommended):
+
 ```
 Authorization: Bearer dpk_YOUR_API_KEY_HERE
 ```
 
 **Query Parameter** (alternative):
+
 ```
 ?authKey=dpk_YOUR_API_KEY_HERE
 ```
@@ -33,6 +35,7 @@ Authorization: Bearer dpk_YOUR_API_KEY_HERE
 ### Unified Route Support
 
 **All protected routes accept EITHER authentication method:**
+
 - Browser requests: Automatically use session cookie (via SvelteKit)
 - Programmatic requests: Include API key in Authorization header
 
@@ -989,6 +992,7 @@ Logout and destroy session.
 ```
 
 **Effects:**
+
 - Invalidates session cookie
 - Removes session from database
 - Clears cookie from browser
@@ -1048,6 +1052,7 @@ Create a new API key.
 ```
 
 **Security Notes:**
+
 - API key is returned ONLY ONCE in the response
 - Key is hashed with bcrypt (cost 12) before storage
 - Client must save the key immediately - it cannot be retrieved later
@@ -1093,6 +1098,7 @@ Delete an API key (hard delete).
 ```
 
 **Effects:**
+
 - Permanently removes API key from database
 - All future requests with this key will fail with 401
 - Active sessions using this key are immediately invalidated
@@ -1119,6 +1125,7 @@ Initiate OAuth login flow.
 ```
 
 **Flow:**
+
 1. Client redirects to `authUrl`
 2. User authorizes on OAuth provider
 3. Provider redirects to `/api/auth/callback?code=...&state=...`

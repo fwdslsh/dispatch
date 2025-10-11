@@ -12,7 +12,20 @@ vi.mock('node:child_process', () => ({
 
 // Mock path
 vi.mock('node:path', () => ({
-	resolve: vi.fn((path) => path)
+	resolve: vi.fn((path) => path),
+	normalize: vi.fn((path) => path),
+	isAbsolute: vi.fn((path) => path && path.startsWith('/')),
+	join: vi.fn((...paths) => paths.join('/')),
+	dirname: vi.fn((path) => path.substring(0, path.lastIndexOf('/'))),
+	basename: vi.fn((path) => path.substring(path.lastIndexOf('/') + 1)),
+	relative: vi.fn((from, to) => to)
+}));
+
+// Mock fs
+vi.mock('node:fs', () => ({
+	existsSync: vi.fn(() => true),
+	readFileSync: vi.fn(),
+	writeFileSync: vi.fn()
 }));
 
 describe('Git API Endpoints', () => {
@@ -61,7 +74,10 @@ describe('Git API Endpoints', () => {
 			}));
 
 			const url = new URL('http://localhost/api/git/status?path=/test/repo');
-			const response = await GET({ url });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ url })
+			);
+			const response = await GET(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -87,7 +103,10 @@ describe('Git API Endpoints', () => {
 			}));
 
 			const url = new URL('http://localhost/api/git/status?path=/test/repo');
-			const response = await GET({ url });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ url })
+			);
+			const response = await GET(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(404);
@@ -96,7 +115,10 @@ describe('Git API Endpoints', () => {
 
 		it('should return 400 for missing path parameter', async () => {
 			const url = new URL('http://localhost/api/git/status');
-			const response = await GET({ url });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ url })
+			);
+			const response = await GET(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -115,14 +137,20 @@ describe('Git API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: async () => ({
-					path: '/test/repo',
-					message: 'Test commit message'
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo',
+						message: 'Test commit message'
+					})
 				})
-			};
+			);
 
-			const response = await commitPost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await commitPost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -131,14 +159,20 @@ describe('Git API Endpoints', () => {
 		});
 
 		it('should return 400 for missing message', async () => {
-			const request = {
-				json: async () => ({
-					path: '/test/repo',
-					message: ''
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo',
+						message: ''
+					})
 				})
-			};
+			);
 
-			const response = await commitPost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await commitPost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -155,14 +189,20 @@ describe('Git API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: async () => ({
-					path: '/test/repo',
-					message: 'Test commit message'
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo',
+						message: 'Test commit message'
+					})
 				})
-			};
+			);
 
-			const response = await commitPost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await commitPost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(500);
@@ -181,15 +221,21 @@ describe('Git API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: async () => ({
-					path: '/test/repo',
-					files: ['file1.js'],
-					action: 'stage'
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo',
+						files: ['file1.js'],
+						action: 'stage'
+					})
 				})
-			};
+			);
 
-			const response = await stagePost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await stagePost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -208,15 +254,21 @@ describe('Git API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: async () => ({
-					path: '/test/repo',
-					files: ['file1.js'],
-					action: 'unstage'
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo',
+						files: ['file1.js'],
+						action: 'unstage'
+					})
 				})
-			};
+			);
 
-			const response = await stagePost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await stagePost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -226,15 +278,21 @@ describe('Git API Endpoints', () => {
 		});
 
 		it('should return 400 for invalid action', async () => {
-			const request = {
-				json: async () => ({
-					path: '/test/repo',
-					files: ['file1.js'],
-					action: 'invalid'
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo',
+						files: ['file1.js'],
+						action: 'invalid'
+					})
 				})
-			};
+			);
 
-			const response = await stagePost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await stagePost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -242,14 +300,20 @@ describe('Git API Endpoints', () => {
 		});
 
 		it('should return 400 for missing required parameters', async () => {
-			const request = {
-				json: async () => ({
-					path: '/test/repo'
-					// missing files and action
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo'
+						// missing files and action
+					})
 				})
-			};
+			);
 
-			const response = await stagePost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await stagePost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -268,14 +332,20 @@ describe('Git API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: async () => ({
-					path: '/test/repo',
-					branch: 'develop'
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo',
+						branch: 'develop'
+					})
 				})
-			};
+			);
 
-			const response = await checkoutPost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await checkoutPost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -285,14 +355,20 @@ describe('Git API Endpoints', () => {
 		});
 
 		it('should return 400 for missing branch', async () => {
-			const request = {
-				json: async () => ({
-					path: '/test/repo'
-					// missing branch
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo'
+						// missing branch
+					})
 				})
-			};
+			);
 
-			const response = await checkoutPost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await checkoutPost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -309,14 +385,20 @@ describe('Git API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: async () => ({
-					path: '/test/repo',
-					branch: 'nonexistent'
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: async () => ({
+						path: '/test/repo',
+						branch: 'nonexistent'
+					})
 				})
-			};
+			);
 
-			const response = await checkoutPost({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await checkoutPost(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(500);

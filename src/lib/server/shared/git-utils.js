@@ -44,7 +44,7 @@ export function execGit(args, cwd, options = {}) {
 			return arg;
 		});
 
-		const git = spawn('git', sanitizedArgs, { cwd, encoding: 'utf8' });
+		const git = spawn('git', sanitizedArgs, { cwd });
 		let stdout = '';
 		let stderr = '';
 

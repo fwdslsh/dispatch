@@ -14,7 +14,13 @@
 		validateThemeColors
 	} from '$lib/client/shared/utils/color-utils.js';
 
-	/** @type {import('./$types').LayoutData} */
+	/**
+	 * @typedef {Object} LayoutProps
+	 * @property {import('./$types').LayoutData} data
+	 * @property {import('svelte').Snippet} children
+	 */
+
+	/** @type {LayoutProps} */
 	let { data, children } = $props();
 	let onboardingViewModel = $state(null);
 
@@ -139,16 +145,6 @@
 
 		// Then load fresh theme from server
 		await loadAndApplyTheme();
-
-		// Set body class based on whether TERMINAL_KEY is configured
-		// Authentication is now handled via session cookies server-side
-		const hasAuth = data?.hasTerminalKey;
-
-		if (!hasAuth) {
-			document.body.classList.add('no-key');
-		} else {
-			document.body.classList.remove('no-key');
-		}
 
 		await checkOnboardingStatus();
 

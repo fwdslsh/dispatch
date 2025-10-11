@@ -5,6 +5,7 @@ import { createLoggingMiddleware } from '../socket/middleware/logging.js';
 import { createErrorHandlingMiddleware } from '../socket/middleware/errorHandling.js';
 import { createSessionHandlers } from '../socket/handlers/sessionHandlers.js';
 import { CookieService } from '../auth/CookieService.server.js';
+import { SOCKET_EVENTS } from '../../shared/socket-events.js';
 
 // Admin event tracking
 let socketEvents = [];
@@ -364,6 +365,98 @@ export function setupSocketIO(httpServer, services) {
 			}
 		} catch (error) {
 			logger.error('SOCKET', 'Error updating tunnel config:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	// Claude authentication events
+	mediator.on(SOCKET_EVENTS.CLAUDE_AUTH_START, async (socket, data, callback) => {
+		try {
+			const { apiKey, terminalKey } = data || {};
+			const token = apiKey || terminalKey;
+
+			// Require authentication - check multiple strategies
+			if (token) {
+				// Strategy 1: Validate explicit API key
+				const isValid = await requireValidAuth(socket, token, callback, services);
+				if (!isValid) return;
+			} else if (!socket.data.authenticated) {
+				// Strategy 2: Check for session cookie in handshake headers
+				const cookieHeader = socket.handshake.headers.cookie;
+				if (cookieHeader) {
+					const cookies = parseCookies(cookieHeader);
+					const cookieSessionId = cookies[CookieService.COOKIE_NAME];
+
+					if (cookieSessionId) {
+						const sessionData = await services.sessionManager.validateSession(cookieSessionId);
+						if (sessionData) {
+							// Authenticate socket with session data
+							socket.data.authenticated = true;
+							socket.data.auth = {
+								provider: sessionData.session.provider,
+								userId: sessionData.session.userId
+							};
+							socket.data.session = sessionData.session;
+							socket.data.user = sessionData.user;
+							logger.debug(
+								'SOCKET',
+								`Socket ${socket.id} authenticated via cookie for Claude auth`
+							);
+						}
+					}
+				}
+
+				// If still not authenticated after checking cookies, reject
+				if (!socket.data.authenticated) {
+					logger.warn('SOCKET', `Unauthenticated claude.auth.start from socket ${socket.id}`);
+					if (callback) callback({ success: false, error: 'Authentication required' });
+					return;
+				}
+			}
+
+			// Start Claude OAuth flow using ClaudeAuthManager
+			const success = await services.claudeAuthManager.start(socket);
+
+			logger.info('SOCKET', `Claude auth start result: ${success}`);
+
+			if (callback) {
+				// Return consistent error field for client
+				const errorMsg = success
+					? null
+					: 'Failed to start Claude authentication. Please ensure the Claude CLI is installed.';
+				callback({
+					success,
+					error: errorMsg,
+					message: success ? 'OAuth flow started' : errorMsg
+				});
+
+				if (!success) {
+					logger.warn('SOCKET', `Returned error to client: ${errorMsg}`);
+				}
+			}
+		} catch (error) {
+			logger.error('SOCKET', 'Error starting Claude auth:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
+	mediator.on(SOCKET_EVENTS.CLAUDE_AUTH_CODE, async (socket, data, callback) => {
+		try {
+			const { code } = data || {};
+
+			if (!code) {
+				logger.warn('SOCKET', `Claude auth code missing from socket ${socket.id}`);
+				if (callback) callback({ success: false, error: 'Authorization code required' });
+				return;
+			}
+
+			// Submit authorization code to Claude OAuth flow
+			const success = services.claudeAuthManager.submitCode(socket, code);
+			if (callback) {
+				callback({ success, message: success ? 'Code submitted' : 'Failed to submit code' });
+			}
+		} catch (error) {
+			logger.error('SOCKET', 'Error submitting Claude auth code:', error);
 			if (callback) callback({ success: false, error: error.message });
 		}
 	});

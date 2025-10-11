@@ -32,7 +32,9 @@ test.describe('Connectivity Settings', () => {
 		await expect(portLabel).toBeVisible();
 
 		// 4. Verify subdomain field is empty (optional)
-		const subdomainInput = page.getByPlaceholder('Enter custom subdomain or leave empty for random');
+		const subdomainInput = page.getByPlaceholder(
+			'Enter custom subdomain or leave empty for random'
+		);
 		await expect(subdomainInput).toBeVisible();
 		await expect(subdomainInput).toHaveValue('');
 
@@ -99,7 +101,10 @@ test.describe('Connectivity Settings', () => {
 		await expect(statusValue).toHaveText('Enabled', { timeout: 10000 });
 
 		// Running should show "Yes"
-		const runningValue = localTunnelSection.getByText('Running:').locator('..').locator('.status-value');
+		const runningValue = localTunnelSection
+			.getByText('Running:')
+			.locator('..')
+			.locator('.status-value');
 		await expect(runningValue).toHaveText('Yes');
 
 		// CRITICAL: Public URL must be displayed
@@ -129,7 +134,9 @@ test.describe('Connectivity Settings', () => {
 		await navigateToSettingsTab(page, 'Connectivity');
 
 		// 1. Locate subdomain input field
-		const subdomainInput = page.getByPlaceholder('Enter custom subdomain or leave empty for random');
+		const subdomainInput = page.getByPlaceholder(
+			'Enter custom subdomain or leave empty for random'
+		);
 		await expect(subdomainInput).toBeVisible();
 
 		// 2. Enter custom subdomain
@@ -197,10 +204,7 @@ test.describe('Connectivity Settings', () => {
 		const tunnelNameInput = page.getByRole('textbox', { name: 'Tunnel Name' });
 		await expect(tunnelNameInput).toBeVisible();
 		await expect(tunnelNameInput).toHaveValue('');
-		await expect(tunnelNameInput).toHaveAttribute(
-			'placeholder',
-			'Custom tunnel name (optional)'
-		);
+		await expect(tunnelNameInput).toHaveAttribute('placeholder', 'Custom tunnel name (optional)');
 
 		// 4. Verify default tunnel name info is displayed
 		await expect(
@@ -213,7 +217,7 @@ test.describe('Connectivity Settings', () => {
 		await expect(page.getByText('First-time setup:')).toBeVisible();
 		await expect(
 			page.getByText(
-				'When you start the tunnel for the first time, you\'ll need to authenticate with Microsoft/GitHub. A device login URL will appear above.'
+				"When you start the tunnel for the first time, you'll need to authenticate with Microsoft/GitHub. A device login URL will appear above."
 			)
 		).toBeVisible();
 
@@ -258,10 +262,7 @@ test.describe('Connectivity Settings', () => {
 		const hasInfo = (await infoBox.count()) > 0;
 
 		// Check for status update in VS Code section
-		const vscodeSection = page
-			.locator('text=VS Code Remote Tunnel')
-			.locator('..')
-			.locator('..');
+		const vscodeSection = page.locator('text=VS Code Remote Tunnel').locator('..').locator('..');
 		const statusBadge = vscodeSection.locator('.status-item').first();
 		const hasStatus = await statusBadge.isVisible().catch(() => false);
 
@@ -320,7 +321,10 @@ test.describe('Connectivity Settings', () => {
 			.isVisible()
 			.catch(() => false);
 
-		const errorVisible = await page.locator('.info-box.error').isVisible().catch(() => false);
+		const errorVisible = await page
+			.locator('.info-box.error')
+			.isVisible()
+			.catch(() => false);
 
 		// MUST have received a response from backend
 		// This validates the socket event was handled (not timeout)

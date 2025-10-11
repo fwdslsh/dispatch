@@ -204,11 +204,11 @@ test.describe('Authentication Settings', () => {
 
 		// 3. Try entering a very short key (< 8 characters)
 		await terminalKeyInput.fill('short');
-		
+
 		// Verify changes detected (button enabled or validation error shown)
 		// The UI should either disable the button or show validation error
 		const hasChanges = await saveButton.isEnabled();
-		
+
 		if (hasChanges) {
 			// If button is enabled, try to save and expect validation error
 			await saveButton.click();
@@ -218,7 +218,7 @@ test.describe('Authentication Settings', () => {
 
 		// 4. Enter a valid length key (8+ characters)
 		await terminalKeyInput.fill('ValidKey123');
-		
+
 		// Verify Save button is now enabled
 		await expect(saveButton).toBeEnabled();
 
@@ -320,7 +320,9 @@ test.describe('Authentication Settings', () => {
 		// Scope buttons use data-testid based on label
 		await expect(page.getByTestId('scope-button-Read user profile and email')).toBeVisible();
 		await expect(page.getByTestId('scope-button-Repository access + profile')).toBeVisible();
-		await expect(page.getByTestId('scope-button-Full repository and workflow access')).toBeVisible();
+		await expect(
+			page.getByTestId('scope-button-Full repository and workflow access')
+		).toBeVisible();
 
 		// 8. Verify redirect URI example is still displayed
 		await expect(page.getByText('Example:')).toBeVisible();
@@ -387,9 +389,7 @@ test.describe('Authentication Settings', () => {
 		await expect(redirectUriInput).toHaveValue('');
 
 		// 2. Click "Use Default" button
-		await page
-			.getByRole('button', { name: 'Use default redirect URI for this domain' })
-			.click();
+		await page.getByRole('button', { name: 'Use default redirect URI for this domain' }).click();
 
 		// 3. Verify redirect URI is auto-filled with default value
 		const defaultRedirectUri = await redirectUriInput.inputValue();

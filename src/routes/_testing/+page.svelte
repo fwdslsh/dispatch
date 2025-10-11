@@ -1,6 +1,10 @@
 <script>
-	// Props (Svelte 5 $props() syntax)
-	/** @type {import('./$types').PageData} */
+	/**
+	 * @typedef {Object} TestingPageProps
+	 * @property {import('./$types').PageData & { workspaces?: Array<{path: string, name: string}> }} data
+	 */
+
+	/** @type {TestingPageProps} */
 	let { data } = $props();
 
 	const workspaces = data?.workspaces ?? [];

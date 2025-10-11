@@ -129,7 +129,11 @@
 									placeholder="Workspace name (e.g., My Project)"
 									class="input input-bordered w-full"
 									bind:value={viewModel.formData.workspaceName}
-									oninput={(e) => viewModel.updateFormData('workspaceName', e.target.value)}
+									oninput={(e) =>
+										viewModel.updateFormData(
+											'workspaceName',
+											/** @type {HTMLInputElement} */ (e.target).value
+										)}
 									disabled={viewModel.isLoading}
 								/>
 								<input
@@ -197,7 +201,8 @@
 											class="checkbox checkbox-primary"
 											checked={viewModel.formData.preferences.autoCleanup !== false}
 											onchange={(e) => {
-												viewModel.formData.preferences.autoCleanup = e.target.checked;
+												viewModel.formData.preferences.autoCleanup =
+													/** @type {HTMLInputElement} */ (e.target).checked;
 											}}
 										/>
 										<span class="label-text">Enable automatic cleanup of old sessions</span>
@@ -208,7 +213,8 @@
 											class="checkbox checkbox-primary"
 											checked={viewModel.formData.preferences.rememberWorkspace !== false}
 											onchange={(e) => {
-												viewModel.formData.preferences.rememberWorkspace = e.target.checked;
+												viewModel.formData.preferences.rememberWorkspace =
+													/** @type {HTMLInputElement} */ (e.target).checked;
 											}}
 										/>
 										<span class="label-text">Remember last used workspace</span>

@@ -128,7 +128,6 @@
 >
 	<!-- Window chrome with macOS-style dots -->
 	<div class="chrome">
-		
 		<span class="title">{theme.name}</span>
 		{#if isActive}
 			<span class="active-badge" role="status">Active</span>
@@ -190,8 +189,6 @@
 			{/each}
 		</div>
 	</div>
-
-
 
 	<!-- Action buttons -->
 	<div class="actions">

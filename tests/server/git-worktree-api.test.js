@@ -17,12 +17,17 @@ vi.mock('node:child_process', () => ({
 // Mock path
 vi.mock('node:path', () => ({
 	resolve: vi.fn((path) => path),
-	join: vi.fn((...paths) => paths.join('/'))
+	join: vi.fn((...paths) => paths.join('/')),
+	normalize: vi.fn((path) => path),
+	isAbsolute: vi.fn((path) => path && path.startsWith('/')),
+	dirname: vi.fn((path) => path.substring(0, path.lastIndexOf('/'))),
+	basename: vi.fn((path) => path.substring(path.lastIndexOf('/') + 1)),
+	relative: vi.fn((from, to) => to)
 }));
 
-// Mock fs
+// Mock fs - default to paths under /test/ existing for path validation
 vi.mock('node:fs', () => ({
-	existsSync: vi.fn(),
+	existsSync: vi.fn((path) => path && path.startsWith('/test/')),
 	readFileSync: vi.fn(),
 	writeFileSync: vi.fn()
 }));
@@ -74,7 +79,10 @@ describe('Git Worktree API Endpoints', () => {
 			}));
 
 			const url = new URL('http://test.com?path=/test/repo');
-			const response = await listWorktrees({ url });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ url })
+			);
+			const response = await listWorktrees(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -97,7 +105,10 @@ describe('Git Worktree API Endpoints', () => {
 			}));
 
 			const url = new URL('http://test.com?path=/test/not-repo');
-			const response = await listWorktrees({ url });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ url })
+			);
+			const response = await listWorktrees(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(404);
@@ -131,16 +142,22 @@ describe('Git Worktree API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: () =>
-					Promise.resolve({
-						path: '/test/repo',
-						worktreePath: '/test/repo-feature',
-						newBranch: 'feature-branch'
-					})
-			};
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: () =>
+						Promise.resolve({
+							path: '/test/repo',
+							worktreePath: '/test/repo-feature',
+							newBranch: 'feature-branch'
+						})
+				})
+			);
 
-			const response = await addWorktree({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await addWorktree(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -163,16 +180,22 @@ describe('Git Worktree API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: () =>
-					Promise.resolve({
-						path: '/test/repo',
-						worktreePath: '/test/existing',
-						newBranch: 'feature-branch'
-					})
-			};
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: () =>
+						Promise.resolve({
+							path: '/test/repo',
+							worktreePath: '/test/existing',
+							newBranch: 'feature-branch'
+						})
+				})
+			);
 
-			const response = await addWorktree({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await addWorktree(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
@@ -221,18 +244,24 @@ describe('Git Worktree API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: () =>
-					Promise.resolve({
-						path: '/test/repo',
-						worktreePath: '/test/repo-feature',
-						newBranch: 'feature-branch',
-						runInit: true,
-						initCommands: ['npm install'] // This should be ignored if .dispatchrc exists
-					})
-			};
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: () =>
+						Promise.resolve({
+							path: '/test/repo',
+							worktreePath: '/test/repo-feature',
+							newBranch: 'feature-branch',
+							runInit: true,
+							initCommands: ['npm install'] // This should be ignored if .dispatchrc exists
+						})
+				})
+			);
 
-			const response = await addWorktree({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await addWorktree(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -290,18 +319,24 @@ describe('Git Worktree API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: () =>
-					Promise.resolve({
-						path: '/test/repo',
-						worktreePath: '/test/repo-feature',
-						newBranch: 'feature-branch',
-						runInit: true,
-						initCommands: ['npm install']
-					})
-			};
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: () =>
+						Promise.resolve({
+							path: '/test/repo',
+							worktreePath: '/test/repo-feature',
+							newBranch: 'feature-branch',
+							runInit: true,
+							initCommands: ['npm install']
+						})
+				})
+			);
 
-			const response = await addWorktree({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await addWorktree(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -342,15 +377,21 @@ describe('Git Worktree API Endpoints', () => {
 				})
 			}));
 
-			const request = {
-				json: () =>
-					Promise.resolve({
-						path: '/test/repo',
-						worktreePath: '/test/repo-feature'
-					})
-			};
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: () =>
+						Promise.resolve({
+							path: '/test/repo',
+							worktreePath: '/test/repo-feature'
+						})
+				})
+			);
 
-			const response = await removeWorktree({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await removeWorktree(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -366,7 +407,10 @@ describe('Git Worktree API Endpoints', () => {
 			});
 
 			const url = new URL('http://test.com?path=/test/project');
-			const response = await detectInit({ url });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ url })
+			);
+			const response = await detectInit(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -383,7 +427,10 @@ describe('Git Worktree API Endpoints', () => {
 			readFileSync.mockReturnValue('#!/bin/bash\nnpm install\nnpm run build');
 
 			const url = new URL('http://test.com?path=/test/project');
-			const response = await detectInit({ url });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ url })
+			);
+			const response = await detectInit(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
@@ -397,15 +444,21 @@ describe('Git Worktree API Endpoints', () => {
 		it('should save .dispatchrc script', async () => {
 			existsSync.mockReturnValue(true);
 
-			const request = {
-				json: () =>
-					Promise.resolve({
-						path: '/test/project',
-						commands: ['npm install', 'npm run build']
-					})
-			};
+			const request = /** @type {Request} */ (
+				/** @type {any} */ ({
+					json: () =>
+						Promise.resolve({
+							path: '/test/project',
+							commands: ['npm install', 'npm run build']
+						})
+				})
+			);
 
-			const response = await saveInit({ request });
+			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+				/** @type {any} */ ({ request })
+			);
+
+			const response = await saveInit(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);

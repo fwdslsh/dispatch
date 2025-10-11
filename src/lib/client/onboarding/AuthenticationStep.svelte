@@ -16,10 +16,10 @@
 	const apiClient = serviceContainer?.get('apiClient');
 
 	// Local state
-	let terminalKey = '';
-	let isValidating = false;
-	let error = null;
-	let isAuthenticated = false;
+	let terminalKey = $state('');
+	let isValidating = $state(false);
+	let error = $state(null);
+	let isAuthenticated = $state(false);
 
 	// Handle authentication
 	async function handleAuthenticate() {

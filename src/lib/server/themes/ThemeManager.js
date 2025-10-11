@@ -79,9 +79,10 @@ export class ThemeManager {
 	/**
 	 * Initialize ThemeManager with parser and optional custom paths
 	 * @param {Object} parser - XtermThemeParser instance for theme parsing
-	 * @param {Object} options - Configuration options
-	 * @param {string} options.customThemesDir - Custom themes directory (default: ~/.dispatch/themes)
-	 * @param {string} options.presetThemesDir - Preset themes directory (default: static/themes)
+	 * @param {Object} [options] - Configuration options
+	 * @param {string} [options.customThemesDir] - Custom themes directory (default: ~/.dispatch/themes)
+	 * @param {string} [options.presetThemesDir] - Preset themes directory (default: static/themes)
+	 * @param {string} [options.projectRoot] - Project root directory (default: process.cwd())
 	 */
 	constructor(parser, options = {}) {
 		if (!parser) {

@@ -336,8 +336,6 @@ tbody tr:hover {
 	text-shadow: 0 0 var(--space-2) var(--glow);
 }
 
-
-
 /* Subtle body scan lines for retro CRT effect */
 body::before {
 	content: '';

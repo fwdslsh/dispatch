@@ -9,7 +9,7 @@ import { join } from 'path';
 
 /**
  * Create in-memory SQLite database with schema
- * @returns {Database} In-memory database instance
+ * @returns {ReturnType<typeof Database>} In-memory database instance
  */
 export function createTestDatabase() {
 	const db = new Database(':memory:');
@@ -75,29 +75,51 @@ export function createTestDatabase() {
  * Mock DatabaseManager for tests
  */
 export class MockDatabaseManager {
+	/** @type {ReturnType<typeof Database>} */
 	#db;
 
 	constructor() {
 		this.#db = createTestDatabase();
 	}
 
+	/**
+	 * Get the database instance
+	 * @returns {ReturnType<typeof Database>}
+	 */
 	get db() {
 		return this.#db;
 	}
 
+	/**
+	 * Prepare a SQL statement
+	 * @param {string} sql - SQL statement to prepare
+	 * @returns {ReturnType<ReturnType<typeof Database>['prepare']>}
+	 */
 	prepare(sql) {
 		return this.#db.prepare(sql);
 	}
 
+	/**
+	 * Create a transaction
+	 * @param {Function} fn - Transaction function
+	 * @returns {Function} Transaction wrapper
+	 */
 	transaction(fn) {
 		return this.#db.transaction(fn);
 	}
 
+	/**
+	 * Close the database
+	 * @returns {void}
+	 */
 	close() {
 		this.#db.close();
 	}
 
-	// Helper method for tests to clean up
+	/**
+	 * Reset the database by clearing all tables
+	 * @returns {void}
+	 */
 	reset() {
 		this.#db.exec(`
 			DELETE FROM sessions;

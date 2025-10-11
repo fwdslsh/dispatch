@@ -33,14 +33,23 @@ describe('Directory Clone API', () => {
 	});
 
 	it('should clone a directory successfully', async () => {
-		const request = {
-			json: async () => ({
-				sourcePath: sourceDir,
-				targetPath: targetDir
+		// Type assertion needed because mock only implements json() method
+		// Full Request interface has 20+ properties we don't need for testing
+		const request = /** @type {Request} */ (
+			/** @type {any} */ ({
+				json: async () => ({
+					sourcePath: sourceDir,
+					targetPath: targetDir
+				})
 			})
-		};
+		);
 
-		const response = await POST({ request });
+		// Type assertion for RequestEvent - test only needs request property
+		const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+			/** @type {any} */ ({ request })
+		);
+
+		const response = await POST(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(200);
@@ -60,14 +69,20 @@ describe('Directory Clone API', () => {
 	});
 
 	it('should return error if source directory does not exist', async () => {
-		const request = {
-			json: async () => ({
-				sourcePath: join(testDir, 'nonexistent'),
-				targetPath: targetDir
+		const request = /** @type {Request} */ (
+			/** @type {any} */ ({
+				json: async () => ({
+					sourcePath: join(testDir, 'nonexistent'),
+					targetPath: targetDir
+				})
 			})
-		};
+		);
 
-		const response = await POST({ request });
+		const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+			/** @type {any} */ ({ request })
+		);
+
+		const response = await POST(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(404);
@@ -78,15 +93,21 @@ describe('Directory Clone API', () => {
 		// Create target directory
 		await mkdir(targetDir, { recursive: true });
 
-		const request = {
-			json: async () => ({
-				sourcePath: sourceDir,
-				targetPath: targetDir,
-				overwrite: false
+		const request = /** @type {Request} */ (
+			/** @type {any} */ ({
+				json: async () => ({
+					sourcePath: sourceDir,
+					targetPath: targetDir,
+					overwrite: false
+				})
 			})
-		};
+		);
 
-		const response = await POST({ request });
+		const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+			/** @type {any} */ ({ request })
+		);
+
+		const response = await POST(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(409);
@@ -94,14 +115,20 @@ describe('Directory Clone API', () => {
 	});
 
 	it('should validate required parameters', async () => {
-		const request = {
-			json: async () => ({
-				sourcePath: '',
-				targetPath: targetDir
+		const request = /** @type {Request} */ (
+			/** @type {any} */ ({
+				json: async () => ({
+					sourcePath: '',
+					targetPath: targetDir
+				})
 			})
-		};
+		);
 
-		const response = await POST({ request });
+		const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+			/** @type {any} */ ({ request })
+		);
+
+		const response = await POST(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(400);
@@ -109,14 +136,20 @@ describe('Directory Clone API', () => {
 	});
 
 	it('should prevent copying directory into itself', async () => {
-		const request = {
-			json: async () => ({
-				sourcePath: sourceDir,
-				targetPath: join(sourceDir, 'subfolder')
+		const request = /** @type {Request} */ (
+			/** @type {any} */ ({
+				json: async () => ({
+					sourcePath: sourceDir,
+					targetPath: join(sourceDir, 'subfolder')
+				})
 			})
-		};
+		);
 
-		const response = await POST({ request });
+		const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
+			/** @type {any} */ ({ request })
+		);
+
+		const response = await POST(event);
 		const result = await response.json();
 
 		expect(response.status).toBe(400);

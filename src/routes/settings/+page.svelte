@@ -31,7 +31,7 @@
 		`${settingsState.activeSection}:${sectionRenderCounters[settingsState.activeSection] ?? 0}`
 	);
 
-	const activeSectionHandlers = $derived(() => {
+	const activeSectionHandlers = $derived.by(() => {
 		if (!activeSection) return null;
 		return {
 			onSave: (payload) => handleSectionSave(activeSection.id, payload),

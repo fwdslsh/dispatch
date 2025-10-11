@@ -68,14 +68,19 @@
 <SettingsFormSection title="API Configuration" subtitle="Configure external API access">
 	<!-- Form fields using CSS classes -->
 	<div class="form-group">
-		<label class="form-label form-label--required">API Key</label>
-		<Input type="password" bind:value={apiKey} placeholder="Enter your API key" />
+		<label for="api-key-input" class="form-label form-label--required">API Key</label>
+		<Input
+			id="api-key-input"
+			type="password"
+			bind:value={apiKey}
+			placeholder="Enter your API key"
+		/>
 		<span class="form-description">Your API key is stored securely in local storage</span>
 	</div>
 
 	<div class="form-group">
-		<label class="form-label">Provider URL</label>
-		<Input type="url" placeholder="https://api.example.com" />
+		<label for="provider-url-input" class="form-label">Provider URL</label>
+		<Input id="provider-url-input" type="url" placeholder="https://api.example.com" />
 		<span class="form-description">Optional: Override the default API endpoint</span>
 	</div>
 
@@ -120,17 +125,17 @@
 <!-- Example 4: Advanced Options (Collapsed/Expanded Pattern) -->
 <SettingsFormSection title="Advanced Options" subtitle="Power user settings">
 	<div class="form-group">
-		<label class="form-label">Debug Mode</label>
+		<label for="debug-mode-checkbox" class="form-label">Debug Mode</label>
 		<label class="flex items-center gap-2">
-			<input type="checkbox" />
+			<input id="debug-mode-checkbox" type="checkbox" />
 			<span class="text-sm">Enable verbose logging</span>
 		</label>
 		<span class="form-description">Logs will be visible in browser console</span>
 	</div>
 
 	<div class="form-group">
-		<label class="form-label">Connection Timeout</label>
-		<Input type="number" value="30000" />
+		<label for="timeout-input" class="form-label">Connection Timeout</label>
+		<Input id="timeout-input" type="number" value="30000" />
 		<span class="form-description">Timeout in milliseconds (default: 30000)</span>
 	</div>
 

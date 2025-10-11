@@ -14,15 +14,23 @@ describe('SessionOrchestrator', () => {
 			hasAdapter: vi.fn()
 		};
 
-		// Create mock session repository
-		mockSessionRepository = {
-			create: vi.fn(),
-			findById: vi.fn(),
-			updateStatus: vi.fn(),
-			updateMetadata: vi.fn(),
-			delete: vi.fn(),
-			list: vi.fn()
-		};
+		// Create mock session repository with all public methods
+		// Type assertion needed because mock doesn't include private members (#db, #stmts, #parseSession)
+		// which are implementation details not needed for testing
+		mockSessionRepository =
+			/** @type {import('../../../src/lib/server/database/SessionRepository.js').SessionRepository} */ (
+				/** @type {any} */ ({
+					create: vi.fn(),
+					findById: vi.fn(),
+					findByWorkspace: vi.fn(),
+					findByKind: vi.fn(),
+					updateStatus: vi.fn(),
+					updateMetadata: vi.fn(),
+					delete: vi.fn(),
+					findAll: vi.fn(),
+					markAllStopped: vi.fn()
+				})
+			);
 
 		// Create mock event recorder
 		mockEventRecorder = {

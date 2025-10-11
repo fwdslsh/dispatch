@@ -584,7 +584,7 @@
 		overflow: hidden;
 		height: stretch;
 		width: stretch;
-		.workspace-content {			
+		.workspace-content {
 			overflow: hidden;
 		}
 	}

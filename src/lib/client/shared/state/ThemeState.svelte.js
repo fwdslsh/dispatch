@@ -28,14 +28,15 @@ const log = createLogger('theme-state');
 
 export class ThemeState {
 	/**
-	 * @param {Object} config - Configuration object
-	 * @param {string} config.apiBaseUrl - Base URL for API requests
-	 * @param {string} config.authTokenKey - Key for auth token in localStorage
+	 * @param {{ apiBaseUrl?: string, authTokenKey?: string }} config - Configuration object
 	 */
 	constructor(config = {}) {
-		this.config = config;
-		this.baseUrl = config.apiBaseUrl || '';
-		this.authTokenKey = 'dispatch-auth-token';
+		this.config = {
+			apiBaseUrl: config.apiBaseUrl || '/api',
+			authTokenKey: config.authTokenKey || 'dispatch-auth-token'
+		};
+		this.baseUrl = this.config.apiBaseUrl;
+		this.authTokenKey = this.config.authTokenKey;
 
 		// Core theme data
 		this.themes = $state([]);
@@ -120,7 +121,7 @@ export class ThemeState {
 
 		try {
 			// Authentication via session cookie (server validates)
-			const url = `${this.baseUrl}/api/themes`;
+			const url = `${this.baseUrl}/themes`;
 			const response = await fetch(url, {
 				method: 'GET',
 				headers: this.getHeaders(),
@@ -155,7 +156,7 @@ export class ThemeState {
 				params.append('workspaceId', workspaceId);
 			}
 
-			const url = `${this.baseUrl}/api/themes/active${params.toString() ? '?' + params.toString() : ''}`;
+			const url = `${this.baseUrl}/themes/active${params.toString() ? '?' + params.toString() : ''}`;
 			const response = await fetch(url, {
 				method: 'GET',
 				headers: this.getHeaders(),
@@ -204,7 +205,7 @@ export class ThemeState {
 			const formData = new FormData();
 			formData.append('theme', file);
 
-			const url = `${this.baseUrl}/api/themes`;
+			const url = `${this.baseUrl}/themes`;
 			const response = await fetch(url, {
 				method: 'POST',
 				credentials: 'include',
@@ -339,7 +340,7 @@ export class ThemeState {
 	async canDeleteTheme(themeId) {
 		try {
 			// Authentication via session cookie (server validates)
-			const url = `${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}/can-delete`;
+			const url = `${this.baseUrl}/themes/${encodeURIComponent(themeId)}/can-delete`;
 			const response = await fetch(url, {
 				method: 'GET',
 				headers: this.getHeaders(),
@@ -370,7 +371,7 @@ export class ThemeState {
 				throw new Error(canDelete.reason || 'Theme cannot be deleted');
 			}
 
-			const url = `${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}`;
+			const url = `${this.baseUrl}/themes/${encodeURIComponent(themeId)}`;
 			const response = await fetch(url, {
 				method: 'DELETE',
 				headers: this.getHeaders(),

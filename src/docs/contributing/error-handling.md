@@ -25,6 +25,7 @@ Dispatch uses **two primary patterns** based on operation type:
 Use this pattern for **operations that must succeed** or that have no meaningful fallback.
 
 **When to use:**
+
 - Data loading operations (loadSessions, loadThemes)
 - Critical initialization (initialize, setupWorkspace)
 - Operations with no meaningful partial success state
@@ -58,15 +59,16 @@ async loadSessions() {
 
 ```javascript
 try {
-    await viewModel.loadSessions();
-    // Continue with loaded data
+	await viewModel.loadSessions();
+	// Continue with loaded data
 } catch (error) {
-    // Show error UI or retry
-    showError(error.message);
+	// Show error UI or retry
+	showError(error.message);
 }
 ```
 
 **Benefits:**
+
 - Forces callers to handle errors explicitly
 - No ambiguity about success/failure
 - Stack traces preserved for debugging
@@ -79,6 +81,7 @@ try {
 Use this pattern for **user-initiated operations** where you want to provide structured feedback.
 
 **When to use:**
+
 - Form submissions (login, createKey)
 - User actions with explicit success/failure feedback (deleteKey, toggleKey)
 - Operations where the caller needs detailed error information
@@ -158,15 +161,16 @@ async createKey(label) {
 const result = await apiKeyState.createKey('My API Key');
 
 if (result.success) {
-    // Show success message with result.data
-    showKey(result.data.key);
+	// Show success message with result.data
+	showKey(result.data.key);
 } else {
-    // Show error message
-    showError(result.error);
+	// Show error message
+	showError(result.error);
 }
 ```
 
 **Benefits:**
+
 - Explicit success/failure without try/catch
 - Structured error information
 - Type-safe (with TypeScript/JSDoc)
@@ -176,14 +180,14 @@ if (result.success) {
 
 ## Pattern Comparison
 
-| Aspect | Throw Errors | Return Result Object |
-|--------|-------------|---------------------|
-| **Use Case** | Critical operations | User operations |
-| **Error Signal** | Exception thrown | `success: false` |
-| **Caller Handling** | `try/catch` | `if (result.success)` |
-| **Fail Fast** | ✅ Yes | ❌ No (graceful) |
-| **Type Safety** | ⚠️ Limited | ✅ Excellent |
-| **Best For** | Data loading, initialization | Forms, user actions |
+| Aspect              | Throw Errors                 | Return Result Object  |
+| ------------------- | ---------------------------- | --------------------- |
+| **Use Case**        | Critical operations          | User operations       |
+| **Error Signal**    | Exception thrown             | `success: false`      |
+| **Caller Handling** | `try/catch`                  | `if (result.success)` |
+| **Fail Fast**       | ✅ Yes                       | ❌ No (graceful)      |
+| **Type Safety**     | ⚠️ Limited                   | ✅ Excellent          |
+| **Best For**        | Data loading, initialization | Forms, user actions   |
 
 ---
 
@@ -204,6 +208,7 @@ async createSession() {
 ```
 
 **Why it's bad:**
+
 - Callers can't distinguish between "operation failed" and "no result"
 - Silently swallows errors
 - Makes debugging harder
@@ -230,6 +235,7 @@ async operation3() {
 ```
 
 **Why it's bad:**
+
 - Unpredictable for callers
 - Requires callers to know implementation details
 - Hard to maintain
@@ -253,6 +259,7 @@ async loadData() {
 ```
 
 **Why it's bad:**
+
 - UI has no way to show error feedback
 - Silent failures lead to poor UX
 
@@ -375,6 +382,7 @@ Ask: Is this operation **critical** (must succeed) or **user-initiated** (provid
 ### 2. Update Method Signature
 
 **Before (returns null):**
+
 ```javascript
 async createSession() {
     // ...
@@ -383,6 +391,7 @@ async createSession() {
 ```
 
 **After (Pattern 1 - Throw):**
+
 ```javascript
 /**
  * @throws {Error} If creation fails
@@ -394,6 +403,7 @@ async createSession() {
 ```
 
 **After (Pattern 2 - Result):**
+
 ```javascript
 /**
  * @returns {Promise<Result>} Result with session or error
@@ -407,36 +417,38 @@ async createSession() {
 ### 3. Update All Callers
 
 **Pattern 1 callers:**
+
 ```javascript
 // OLD
 const session = await createSession();
 if (!session) {
-    // handle error
+	// handle error
 }
 
 // NEW
 try {
-    const session = await createSession();
-    // use session
+	const session = await createSession();
+	// use session
 } catch (error) {
-    // handle error
+	// handle error
 }
 ```
 
 **Pattern 2 callers:**
+
 ```javascript
 // OLD
 const session = await createSession();
 if (!session) {
-    // handle error
+	// handle error
 }
 
 // NEW
 const result = await createSession();
 if (result.success) {
-    // use result.data
+	// use result.data
 } else {
-    // handle result.error
+	// handle result.error
 }
 ```
 
@@ -447,16 +459,16 @@ Ensure tests reflect the new error handling pattern:
 ```javascript
 // Pattern 1 tests
 test('throws on API error', async () => {
-    mockApi.load.mockRejectedValue(new Error('API error'));
-    await expect(viewModel.loadSessions()).rejects.toThrow('API error');
+	mockApi.load.mockRejectedValue(new Error('API error'));
+	await expect(viewModel.loadSessions()).rejects.toThrow('API error');
 });
 
 // Pattern 2 tests
 test('returns error on API failure', async () => {
-    mockApi.create.mockRejectedValue(new Error('API error'));
-    const result = await viewModel.createKey('label');
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('API error');
+	mockApi.create.mockRejectedValue(new Error('API error'));
+	const result = await viewModel.createKey('label');
+	expect(result.success).toBe(false);
+	expect(result.error).toContain('API error');
 });
 ```
 
@@ -525,6 +537,7 @@ These changes would improve consistency and make error handling more predictable
 **a) `createSession()` - Lines 133-177**
 
 **Current:** Returns `null` on error, returns `Session` on success
+
 ```javascript
 async createSession({ type, workspacePath, options = {} }) {
     try {
@@ -539,6 +552,7 @@ async createSession({ type, workspacePath, options = {} }) {
 ```
 
 **Recommended:** Pattern 1 - Throw on error
+
 ```javascript
 /**
  * Create a new session
@@ -577,6 +591,7 @@ async createSession({ type, workspacePath, options = {} }) {
 ```
 
 **Callers to Update:**
+
 - Search for: `const session = await.*createSession\(`
 - Pattern: Wrap in try/catch instead of null check
 - Example locations: SessionContainer.svelte, CreateSessionModal.svelte
@@ -586,6 +601,7 @@ async createSession({ type, workspacePath, options = {} }) {
 **b) `updateSession()` - Lines 184-212**
 
 **Current:** Returns `null` on error
+
 ```javascript
 async updateSession(sessionId, updates) {
     try {
@@ -599,6 +615,7 @@ async updateSession(sessionId, updates) {
 ```
 
 **Recommended:** Pattern 1 - Throw on error
+
 ```javascript
 /**
  * Update session properties
@@ -633,6 +650,7 @@ async updateSession(sessionId, updates) {
 **c) `resumeSession()` - Lines 301-348**
 
 **Current:** Returns `null` on error
+
 ```javascript
 async resumeSession(sessionId, workspacePath) {
     try {
@@ -646,6 +664,7 @@ async resumeSession(sessionId, workspacePath) {
 ```
 
 **Recommended:** Pattern 1 - Throw on error
+
 ```javascript
 /**
  * Resume an existing session
@@ -697,6 +716,7 @@ async resumeSession(sessionId, workspacePath) {
 **d) `loadSessions()` - Lines 83-124**
 
 **Current:** Doesn't throw, only sets error state
+
 ```javascript
 async loadSessions(filters = {}) {
     try {
@@ -712,6 +732,7 @@ async loadSessions(filters = {}) {
 ```
 
 **Recommended:** Pattern 1 - Throw on error
+
 ```javascript
 /**
  * Load sessions from API
@@ -762,6 +783,7 @@ async loadSessions(filters = {}) {
 **a) `createKey()` - Lines 122-159**
 
 **Current:** Returns `null` on error, returns object on success
+
 ```javascript
 async createKey(label) {
     try {
@@ -775,6 +797,7 @@ async createKey(label) {
 ```
 
 **Recommended:** Pattern 2 - Return Result object
+
 ```javascript
 /**
  * Create a new API key
@@ -838,6 +861,7 @@ async createKey(label) {
 ```
 
 **Callers to Update:**
+
 - Search for: `const.*= await.*createKey\(`
 - Pattern: Check `result.success` instead of null
 - Example: AuthenticationSettings.svelte
@@ -847,6 +871,7 @@ async createKey(label) {
 **b) `loadKeys()` - Lines 86-115**
 
 **Current:** Doesn't throw, only sets error state
+
 ```javascript
 async loadKeys() {
     try {
@@ -859,6 +884,7 @@ async loadKeys() {
 ```
 
 **Recommended:** Pattern 1 - Throw on error (critical data loading)
+
 ```javascript
 /**
  * Load all API keys from server
@@ -903,6 +929,7 @@ async loadKeys() {
 **c) `deleteKey()` and `toggleKey()` - Consider Pattern 2**
 
 **Current:** Returns boolean (acceptable but could be improved)
+
 ```javascript
 async deleteKey(keyId) {
     try {
@@ -915,6 +942,7 @@ async deleteKey(keyId) {
 ```
 
 **Optional Improvement:** Pattern 2 - Return Result for better error messages
+
 ```javascript
 /**
  * Delete an API key permanently
@@ -1012,11 +1040,13 @@ After refactoring, verify:
 **Impact:** Medium - Requires caller updates
 
 **Affected Areas:**
+
 - Components calling `SessionViewModel` methods
 - Components calling `ApiKeyState.createKey()`
 - Any tests mocking these methods
 
 **Migration Path:**
+
 1. Update ViewModel methods first
 2. Update component callers
 3. Update tests
@@ -1030,6 +1060,7 @@ After refactoring, verify:
 **Priority:** Optional - Current code is functional, this improves consistency
 
 **Benefits:**
+
 - Predictable error handling across the codebase
 - Better developer experience (clearer APIs)
 - Improved error messages for users

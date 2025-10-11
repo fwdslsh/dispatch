@@ -16,7 +16,7 @@ export function registerClientSessionModules(...modules) {
 		if (module.settingsSection) {
 			registerSettingsSection({
 				category: 'sessions', // Default category for session modules
-				order: 70,             // Default order for session modules
+				order: 70, // Default order for session modules
 				...module.settingsSection
 			});
 		}

@@ -2,7 +2,7 @@
  * @file Unit tests for settings registry
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
 	registerSettingsSection,
 	getSettingsSections,
@@ -12,9 +12,15 @@ import {
 	clearSettingsRegistry
 } from '../../src/lib/client/settings/registry/settings-registry.js';
 
-// Mock components for testing
-const MockComponent = { name: 'MockComponent' };
-const MockIcon = { name: 'MockIcon' };
+// Mock components for testing - must match Svelte 5 Component type signature
+// Using Object.defineProperty to make function properties writable
+/** @type {import('svelte').Component} */
+const MockComponent = function () {};
+Object.defineProperty(MockComponent, 'name', { value: 'MockComponent', writable: true });
+
+/** @type {import('svelte').Component} */
+const MockIcon = function () {};
+Object.defineProperty(MockIcon, 'name', { value: 'MockIcon', writable: true });
 
 describe('Settings Registry', () => {
 	beforeEach(() => {
@@ -71,6 +77,7 @@ describe('Settings Registry', () => {
 		it('should warn and skip invalid sections', () => {
 			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
+			// @ts-expect-error - Testing invalid section (missing required fields)
 			registerSettingsSection({
 				id: 'test-section',
 				label: 'Test Section'
@@ -91,6 +98,7 @@ describe('Settings Registry', () => {
 				label: 'Section 3',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Section 3',
 				order: 30
 			});
 
@@ -99,6 +107,7 @@ describe('Settings Registry', () => {
 				label: 'Section 1',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Section 1',
 				order: 10
 			});
 
@@ -107,6 +116,7 @@ describe('Settings Registry', () => {
 				label: 'Section 2',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Section 2',
 				order: 20
 			});
 
@@ -129,6 +139,7 @@ describe('Settings Registry', () => {
 				label: 'Core Section',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Core section',
 				category: 'core'
 			});
 
@@ -137,6 +148,7 @@ describe('Settings Registry', () => {
 				label: 'Auth Section',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Auth section',
 				category: 'auth'
 			});
 
@@ -145,12 +157,13 @@ describe('Settings Registry', () => {
 				label: 'Core Section 2',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Core section 2',
 				category: 'core'
 			});
 
 			const coreSections = getSettingsByCategory('core');
 			expect(coreSections).toHaveLength(2);
-			expect(coreSections.every(s => s.category === 'core')).toBe(true);
+			expect(coreSections.every((s) => s.category === 'core')).toBe(true);
 
 			const authSections = getSettingsByCategory('auth');
 			expect(authSections).toHaveLength(1);
@@ -167,6 +180,7 @@ describe('Settings Registry', () => {
 				label: 'Core 3',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Core 3',
 				category: 'core',
 				order: 30
 			});
@@ -176,6 +190,7 @@ describe('Settings Registry', () => {
 				label: 'Core 1',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Core 1',
 				category: 'core',
 				order: 10
 			});
@@ -193,6 +208,7 @@ describe('Settings Registry', () => {
 				label: 'Core Section',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Core section',
 				category: 'core'
 			});
 
@@ -201,6 +217,7 @@ describe('Settings Registry', () => {
 				label: 'Auth Section',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Auth section',
 				category: 'auth'
 			});
 
@@ -209,6 +226,7 @@ describe('Settings Registry', () => {
 				label: 'Sessions Section',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Sessions section',
 				category: 'sessions'
 			});
 
@@ -230,7 +248,8 @@ describe('Settings Registry', () => {
 				id: 'test-section',
 				label: 'Test Section',
 				component: MockComponent,
-				icon: MockIcon
+				icon: MockIcon,
+				navAriaLabel: 'Test section'
 			});
 
 			expect(getSettingsSections()).toHaveLength(1);
@@ -246,6 +265,7 @@ describe('Settings Registry', () => {
 				label: 'Core 1',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Core 1',
 				category: 'core'
 			});
 
@@ -254,6 +274,7 @@ describe('Settings Registry', () => {
 				label: 'Core 2',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Core 2',
 				category: 'core'
 			});
 
@@ -277,7 +298,8 @@ describe('Settings Registry', () => {
 				id: 'section-1',
 				label: 'Section 1',
 				component: MockComponent,
-				icon: MockIcon
+				icon: MockIcon,
+				navAriaLabel: 'Section 1'
 			});
 
 			registerSettingsSection({
@@ -285,6 +307,7 @@ describe('Settings Registry', () => {
 				label: 'Section 2',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Section 2',
 				category: 'auth'
 			});
 
@@ -305,6 +328,7 @@ describe('Settings Registry', () => {
 				label: 'Original Label',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Original label',
 				category: 'core',
 				order: 50
 			});
@@ -315,6 +339,7 @@ describe('Settings Registry', () => {
 				label: 'Updated Label',
 				component: MockComponent,
 				icon: MockIcon,
+				navAriaLabel: 'Updated label',
 				category: 'auth',
 				order: 30
 			});

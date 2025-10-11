@@ -7,7 +7,7 @@ export async function GET({ url, request, locals }) {
 	// Require authentication
 	try {
 		const clientId = url.searchParams.get('clientId') || 'default';
-		const layout = await locals.services.database.getWorkspaceLayout(clientId);
+		const layout = await locals.services.workspaceRepository.getWorkspaceLayout(clientId);
 		return new Response(JSON.stringify({ layout }), {
 			headers: { 'content-type': 'application/json' }
 		});
@@ -34,7 +34,7 @@ export async function POST({ request, locals }) {
 			);
 		}
 
-		await locals.services.database.setWorkspaceLayout(actualRunId, clientId, tileId);
+		await locals.services.workspaceRepository.setWorkspaceLayout(actualRunId, clientId, tileId);
 		return new Response(JSON.stringify({ success: true }));
 	} catch (error) {
 		console.error('[API] Layout update failed:', error);
@@ -55,7 +55,7 @@ export async function DELETE({ url, request, locals }) {
 
 		if (actualRunId) {
 			// Remove specific session from layout
-			await locals.services.database.removeWorkspaceLayout(actualRunId, clientId);
+			await locals.services.workspaceRepository.removeWorkspaceLayout(actualRunId, clientId);
 		} else {
 			return new Response(
 				JSON.stringify({

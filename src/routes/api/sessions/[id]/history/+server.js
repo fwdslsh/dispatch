@@ -4,16 +4,16 @@ export async function GET({ params, request, locals }) {
 	const { id } = params;
 
 	try {
-		const db = locals.services?.database;
-		if (!db) {
-			throw new Error('Database not available');
+		const eventStore = locals.services?.eventStore;
+		if (!eventStore) {
+			throw new Error('EventStore not available');
 		}
 
-		// Get session events from unified database
-		const events = await db.getSessionEventsSince(id, 0);
+		// Get all session events from sequence 0
+		const events = await eventStore.getEvents(id, 0);
 		return json({ events });
 	} catch (err) {
 		console.error('Failed to read terminal history from database:', err);
-		return json({ history: '' }); // Return empty history on error
+		return json({ events: [] }); // Return empty events on error
 	}
 }

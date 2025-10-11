@@ -41,7 +41,9 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  * @property {SessionRepository} sessionRepository
  * @property {EventStore} eventStore
  * @property {SettingsRepository} settingsRepository
+ * @property {SettingsRepository} settingsManager - Alias for backward compatibility
  * @property {WorkspaceRepository} workspaceRepository
+ * @property {WorkspaceRepository} workspaceManager - Alias for backward compatibility
  * @property {AdapterRegistry} adapterRegistry
  * @property {EventRecorder} eventRecorder
  * @property {SessionOrchestrator} sessionOrchestrator

@@ -26,7 +26,7 @@ export class RetentionPolicyViewModel {
 
 	/**
 	 * Create RetentionPolicyViewModel
-	 * @param {SettingsService} settingsService - Settings manager
+	 * @param {import('$lib/client/shared/services/SettingsService.svelte.js').SettingsService} settingsService - Settings manager
 	 */
 	constructor(settingsService) {
 		this.#settingsService = settingsService;

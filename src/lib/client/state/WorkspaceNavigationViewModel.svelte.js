@@ -33,7 +33,7 @@ export class WorkspaceNavigationViewModel {
 	get recentWorkspaces() {
 		return this.workspaces
 			.filter((w) => w.lastActive)
-			.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive))
+			.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime())
 			.slice(0, 5);
 	}
 

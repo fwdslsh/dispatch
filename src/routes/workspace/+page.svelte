@@ -20,7 +20,7 @@
 		overscroll-behavior-y: none;
 		overscroll-behavior: none;
 
-		:global(main.app-main){
+		:global(main.app-main) {
 			overflow: hidden !important;
 		}
 	}

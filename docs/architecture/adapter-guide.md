@@ -927,31 +927,19 @@ export const jupyterSessionModule = {
 <div class="jupyter-settings">
 	<div class="section-header">
 		<h3>JUPYTER</h3>
-		<p class="section-description">
-			Configure default settings for Jupyter notebook sessions.
-		</p>
+		<p class="section-description">Configure default settings for Jupyter notebook sessions.</p>
 	</div>
 
 	<h4>SESSION DEFAULTS</h4>
 
 	<div class="form-group">
 		<label for="default-kernel">Default Kernel</label>
-		<Input
-			id="default-kernel"
-			bind:value={settings.defaultKernel}
-			placeholder="python3"
-		/>
+		<Input id="default-kernel" bind:value={settings.defaultKernel} placeholder="python3" />
 	</div>
 
 	<div class="form-group">
 		<label for="timeout">Execution Timeout (seconds)</label>
-		<Input
-			id="timeout"
-			type="number"
-			bind:value={settings.timeout}
-			min="1"
-			max="300"
-		/>
+		<Input id="timeout" type="number" bind:value={settings.timeout} min="1" max="300" />
 	</div>
 
 	<div class="form-group">
@@ -967,7 +955,13 @@ export const jupyterSessionModule = {
 			<Button onclick={resetToDefaults} variant="ghost" size="small" disabled={saving}>
 				Reset Defaults
 			</Button>
-			<Button onclick={saveSettings} variant="primary" size="small" disabled={saving} loading={saving}>
+			<Button
+				onclick={saveSettings}
+				variant="primary"
+				size="small"
+				disabled={saving}
+				loading={saving}
+			>
 				{saving ? 'Saving...' : 'Save Settings'}
 			</Button>
 		</div>

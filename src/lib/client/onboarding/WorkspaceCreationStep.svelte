@@ -16,16 +16,16 @@
 	const apiClient = serviceContainer?.get('apiClient');
 
 	// Local state
-	let workspaceName = 'My First Project';
-	let workspacePath = '/workspace/my-first-project';
-	let isCreating = false;
-	let error = null;
-	let successWorkspace = null;
+	let workspaceName = $state('My First Project');
+	let workspacePath = $state('/workspace/my-first-project');
+	let isCreating = $state(false);
+	let error = $state(null);
+	let successWorkspace = $state(null);
 
-	// Validation
-	$: isValidName = workspaceName.trim().length > 0;
-	$: isValidPath = workspacePath.trim().length > 0 && workspacePath.startsWith('/');
-	$: canCreate = isValidName && isValidPath && !isCreating;
+	// Validation (derived values)
+	let isValidName = $derived(workspaceName.trim().length > 0);
+	let isValidPath = $derived(workspacePath.trim().length > 0 && workspacePath.startsWith('/'));
+	let canCreate = $derived(isValidName && isValidPath && !isCreating);
 
 	// Handle workspace creation
 	async function handleCreateWorkspace() {
@@ -90,10 +90,12 @@
 		}
 	}
 
-	// Auto-generate path when name changes
-	$: if (workspaceName) {
-		generatePath();
-	}
+	// Auto-generate path when name changes (side effect)
+	$effect(() => {
+		if (workspaceName) {
+			generatePath();
+		}
+	});
 </script>
 
 <div class="workspace-step" role="main" aria-label="Workspace Creation">

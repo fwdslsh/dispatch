@@ -96,8 +96,8 @@ This starts the server on `http://localhost:7173` with:
 import { completeOnboarding } from './e2e/helpers/onboarding-helpers.js';
 
 const apiKey = await completeOnboarding(page, {
- workspaceName: 'test-workspace',
- clickContinue: true  // Auto-login after onboarding
+	workspaceName: 'test-workspace',
+	clickContinue: true // Auto-login after onboarding
 });
 // Page is now authenticated with session cookie
 
@@ -205,29 +205,29 @@ npm run dev:test              # Test server on port 7173 (no SSL, known key)
 import { resetToFreshInstall } from './e2e/helpers/index.js';
 
 test.beforeEach(async () => {
-  await resetToFreshInstall();
+	await resetToFreshInstall();
 });
 
 // Pattern 2: Authenticated Tests
 import { resetToOnboarded } from './e2e/helpers/index.js';
 
 test.beforeEach(async ({ page }) => {
-  const { apiKey } = await resetToOnboarded();
-  // Auto-login with API key
-  await page.goto('/login');
-  await page.fill('[name="key"]', apiKey.key);
-  await page.click('button[type="submit"]');
+	const { apiKey } = await resetToOnboarded();
+	// Auto-login with API key
+	await page.goto('/login');
+	await page.fill('[name="key"]', apiKey.key);
+	await page.click('button[type="submit"]');
 });
 
 // Pattern 3: Complete Onboarding Flow
 import { completeOnboarding } from './e2e/helpers/onboarding-helpers.js';
 
 test('onboarding test', async ({ page }) => {
-  const apiKey = await completeOnboarding(page, {
-    workspaceName: 'my-project',
-    clickContinue: true
-  });
-  // Now authenticated and ready to test
+	const apiKey = await completeOnboarding(page, {
+		workspaceName: 'my-project',
+		clickContinue: true
+	});
+	// Now authenticated and ready to test
 });
 ```
 
@@ -450,12 +450,12 @@ Dynamic session component loading via `src/lib/client/shared/session-modules/`:
 ```javascript
 // Create session in workspace
 await fetch('/api/sessions', {
- method: 'POST',
- body: JSON.stringify({
-  type: 'pty',
-  workspacePath: '/workspace/my-project',
-  authKey: 'YOUR_KEY'
- })
+	method: 'POST',
+	body: JSON.stringify({
+		type: 'pty',
+		workspacePath: '/workspace/my-project',
+		authKey: 'YOUR_KEY'
+	})
 });
 ```
 

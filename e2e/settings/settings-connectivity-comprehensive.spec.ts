@@ -28,7 +28,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		// Verify initial state is disabled
 		console.log('[Test] Step 3: Verify initial state is disabled');
 		await expect(
-			page.locator('[data-section="localtunnel"]').getByText('Status:').locator('..').getByText('Disabled')
+			page
+				.locator('[data-section="localtunnel"]')
+				.getByText('Status:')
+				.locator('..')
+				.getByText('Disabled')
 		).toBeVisible();
 
 		// Enable the tunnel first
@@ -39,7 +43,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		// Wait for tunnel to be enabled
 		console.log('[Test] Step 5: Wait for tunnel to be enabled');
 		await expect(
-			page.locator('[data-section="localtunnel"]').getByText('Status:').locator('..').getByText('Enabled')
+			page
+				.locator('[data-section="localtunnel"]')
+				.getByText('Status:')
+				.locator('..')
+				.getByText('Enabled')
 		).toBeVisible({
 			timeout: 10000
 		});
@@ -57,7 +65,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 
 		// 1. Status changes to "Disabled"
 		await expect(
-			page.locator('[data-section="localtunnel"]').getByText('Status:').locator('..').getByText('Disabled')
+			page
+				.locator('[data-section="localtunnel"]')
+				.getByText('Status:')
+				.locator('..')
+				.getByText('Disabled')
 		).toBeVisible({
 			timeout: 5000
 		});
@@ -97,7 +109,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		// Wait for tunnel to be enabled
 		console.log('[Test] Step 4: Wait for tunnel to be enabled');
 		await expect(
-			page.locator('[data-section="localtunnel"]').getByText('Status:').locator('..').getByText('Enabled')
+			page
+				.locator('[data-section="localtunnel"]')
+				.getByText('Status:')
+				.locator('..')
+				.getByText('Enabled')
 		).toBeVisible({
 			timeout: 10000
 		});
@@ -105,7 +121,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 
 		// Wait for tunnel URL to appear (may take up to 30 seconds)
 		console.log('[Test] Step 4.5: Wait for tunnel URL to appear');
-		const urlInput = page.getByText('Public URL:').locator('..').locator('input.input-monospace').first();
+		const urlInput = page
+			.getByText('Public URL:')
+			.locator('..')
+			.locator('input.input-monospace')
+			.first();
 		await expect(urlInput).toBeVisible({
 			timeout: 35000
 		});
@@ -127,7 +147,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 
 		// 1. Status should still show "Enabled"
 		await expect(
-			page.locator('[data-section="localtunnel"]').getByText('Status:').locator('..').getByText('Enabled')
+			page
+				.locator('[data-section="localtunnel"]')
+				.getByText('Status:')
+				.locator('..')
+				.getByText('Enabled')
 		).toBeVisible({
 			timeout: 5000
 		});
@@ -171,7 +195,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 
 		// Verify initial state is disabled
 		await expect(
-			page.locator('[data-section="localtunnel"]').getByText('Status:').locator('..').getByText('Disabled')
+			page
+				.locator('[data-section="localtunnel"]')
+				.getByText('Status:')
+				.locator('..')
+				.getByText('Disabled')
 		).toBeVisible();
 
 		// Test 1: Rapid enable/disable sequence
@@ -223,9 +251,7 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		console.log('[Test] ✓ Test 4.2 passed: No race conditions detected');
 	});
 
-	test('Test 7.3: Stop VS Code Tunnel When Running - Verify Stops Correctly', async ({
-		page
-	}) => {
+	test('Test 7.3: Stop VS Code Tunnel When Running - Verify Stops Correctly', async ({ page }) => {
 		console.log('[Test] Starting Test 7.3: Stop VS Code Tunnel');
 
 		// Complete onboarding to get authentication
@@ -240,7 +266,9 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		// Verify initial VS Code tunnel status is "Stopped"
 		console.log('[Test] Step 3: Verify initial VS Code tunnel status');
 		const vscodeSection = page.locator('[data-section="vscode"]');
-		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Stopped')).toBeVisible();
+		await expect(
+			vscodeSection.getByText('Status:').locator('..').getByText('Stopped')
+		).toBeVisible();
 
 		// Start the VS Code tunnel (mock should always succeed)
 		console.log('[Test] Step 4: Start VS Code tunnel');
@@ -248,9 +276,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		await startButton.click();
 
 		// Wait for tunnel to start (should be fast with mock)
-		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Running')).toBeVisible({
-			timeout: 5000
-		});
+		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Running')).toBeVisible(
+			{
+				timeout: 5000
+			}
+		);
 
 		// Now attempt to stop the tunnel
 		console.log('[Test] Step 5: Click Stop Tunnel button');
@@ -261,9 +291,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		console.log('[Test] Step 6: Verify tunnel stops correctly');
 
 		// 1. Status changes to "Stopped"
-		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Stopped')).toBeVisible({
-			timeout: 10000
-		});
+		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Stopped')).toBeVisible(
+			{
+				timeout: 10000
+			}
+		);
 
 		// 2. Start Tunnel button is available again
 		await expect(page.getByRole('button', { name: 'Start Tunnel' })).toBeVisible();
@@ -296,9 +328,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		await startButton.click();
 
 		// Wait for tunnel to start (should be fast with mock)
-		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Running')).toBeVisible({
-			timeout: 5000
-		});
+		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Running')).toBeVisible(
+			{
+				timeout: 5000
+			}
+		);
 
 		// Reload the page
 		console.log('[Test] Step 4: Reload page');
@@ -312,9 +346,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		console.log('[Test] Step 6: Verify VS Code tunnel state persisted');
 
 		// Status should still show "Running"
-		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Running')).toBeVisible({
-			timeout: 5000
-		});
+		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Running')).toBeVisible(
+			{
+				timeout: 5000
+			}
+		);
 
 		// Stop button should be available
 		await expect(page.getByRole('button', { name: 'Stop Tunnel' })).toBeVisible();
@@ -338,7 +374,9 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 
 		// Verify initial status
 		const vscodeSection = page.locator('[data-section="vscode"]');
-		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Stopped')).toBeVisible();
+		await expect(
+			vscodeSection.getByText('Status:').locator('..').getByText('Stopped')
+		).toBeVisible();
 
 		// Test rapid start/stop sequence
 		console.log('[Test] Step 3: Perform rapid start/stop clicks');
@@ -429,7 +467,10 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 
 		while (Date.now() - startTime < 10000) {
 			// Check if there's an error
-			hasError = await page.locator('.info-box.error, .error-message, [role="alert"]').isVisible().catch(() => false);
+			hasError = await page
+				.locator('.info-box.error, .error-message, [role="alert"]')
+				.isVisible()
+				.catch(() => false);
 			if (hasError) {
 				finalStatus = 'error';
 				break;
@@ -489,9 +530,11 @@ test.describe('Connectivity Settings - Comprehensive Tests', () => {
 		console.log('[Test] Step 4: Verify tunnel starts successfully');
 
 		// Wait for tunnel to start (should be fast with mock)
-		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Running')).toBeVisible({
-			timeout: 5000
-		});
+		await expect(vscodeSection.getByText('Status:').locator('..').getByText('Running')).toBeVisible(
+			{
+				timeout: 5000
+			}
+		);
 
 		// Verify no error messages
 		const errorBox = page.locator('.info-box.error, .error-message, [role="alert"]');

@@ -287,8 +287,13 @@
 				<h4>Add New Worktree</h4>
 
 				<div class="form-row">
-					<label>Worktree Path:</label>
-					<Input bind:value={newWorktreePath} placeholder="/path/to/new/worktree" fullWidth />
+					<label for="worktree-path">Worktree Path:</label>
+					<Input
+						id="worktree-path"
+						bind:value={newWorktreePath}
+						placeholder="/path/to/new/worktree"
+						fullWidth
+					/>
 				</div>
 
 				<div class="form-row">
@@ -300,13 +305,18 @@
 
 				{#if createNewBranch}
 					<div class="form-row">
-						<label>New Branch Name:</label>
-						<Input bind:value={newBranchName} placeholder="feature-branch" fullWidth />
+						<label for="branch-name">New Branch Name:</label>
+						<Input
+							id="branch-name"
+							bind:value={newBranchName}
+							placeholder="feature-branch"
+							fullWidth
+						/>
 					</div>
 				{:else if branches.length > 0}
 					<div class="form-row">
-						<label>Select Branch:</label>
-						<select bind:value={selectedBranch} class="branch-select">
+						<label for="branch-select">Select Branch:</label>
+						<select id="branch-select" bind:value={selectedBranch} class="branch-select">
 							<option value="">Choose a branch...</option>
 							{#each branches as branch}
 								<option value={branch}>{branch}</option>

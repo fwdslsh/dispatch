@@ -238,7 +238,8 @@ describe('AuthViewModel', () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: async () => ({
-					authUrl: 'https://github.com/login/oauth/authorize?client_id=test&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Fauth%2Fcallback'
+					authUrl:
+						'https://github.com/login/oauth/authorize?client_id=test&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Fauth%2Fcallback'
 				})
 			});
 

@@ -667,14 +667,13 @@
 	</div>
 
 	<ConfirmationDialog
-		open={showClearConfirm}
+		bind:show={showClearConfirm}
 		title="Confirm Storage Clear"
 		message={getClearMessage(clearType)}
-		onCancel={() => (showClearConfirm = false)}
-		onConfirm={confirmClearStorage}
-		confirmLabel="Clear"
-		confirmTone="danger"
-		loading={storageLoading}
+		oncancel={() => (showClearConfirm = false)}
+		onconfirm={confirmClearStorage}
+		confirmText="Clear"
+		dangerous={true}
 	/>
 </div>
 

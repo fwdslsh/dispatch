@@ -87,8 +87,14 @@ export const actions = {
 			// Create workspace if provided
 			let workspace = null;
 			if (workspaceName && workspacePath) {
+				// Type validation for FormDataEntryValue
+				if (typeof workspaceName !== 'string' || typeof workspacePath !== 'string') {
+					logger.warn('ONBOARDING', 'Invalid workspace data types');
+					throw new Error('Invalid workspace information provided');
+				}
+
 				try {
-					workspace = await services.workspaceManager.createWorkspace({
+					workspace = await services.workspaceManager.create({
 						name: workspaceName,
 						path: workspacePath
 					});
@@ -101,25 +107,37 @@ export const actions = {
 
 			// Save preferences if provided
 			if (preferences) {
-				try {
-					const prefs = JSON.parse(preferences);
-					await services.settingsManager.updateSettings('general', prefs);
-					logger.info('ONBOARDING', 'Preferences saved');
-				} catch (err) {
-					logger.warn('ONBOARDING', `Failed to save preferences: ${err.message}`);
-					// Don't fail onboarding if preference save fails
+				// Type validation for FormDataEntryValue
+				if (typeof preferences !== 'string') {
+					logger.warn('ONBOARDING', 'Invalid preferences data type');
+				} else {
+					try {
+						const prefs = JSON.parse(preferences);
+						await services.settingsManager.updateSettings('general', prefs);
+						logger.info('ONBOARDING', 'Preferences saved');
+					} catch (err) {
+						logger.warn('ONBOARDING', `Failed to save preferences: ${err.message}`);
+						// Don't fail onboarding if preference save fails
+					}
 				}
 			}
 
 			// Apply selected theme if provided
 			if (selectedTheme) {
-				try {
-					// Set theme as global default
-					await services.themeManager.setGlobalDefault(selectedTheme);
-					logger.info('ONBOARDING', `Theme applied: ${selectedTheme}`);
-				} catch (err) {
-					logger.warn('ONBOARDING', `Failed to apply theme: ${err.message}`);
-					// Don't fail onboarding if theme application fails
+				// Type validation for FormDataEntryValue
+				if (typeof selectedTheme !== 'string') {
+					logger.warn('ONBOARDING', 'Invalid theme data type');
+				} else {
+					try {
+						// Set theme as global default via settings
+						await services.settingsManager.updateSettings('themes', {
+							globalDefault: selectedTheme
+						});
+						logger.info('ONBOARDING', `Theme applied: ${selectedTheme}`);
+					} catch (err) {
+						logger.warn('ONBOARDING', `Failed to apply theme: ${err.message}`);
+						// Don't fail onboarding if theme application fails
+					}
 				}
 			}
 

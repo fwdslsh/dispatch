@@ -63,10 +63,14 @@
 
 	const handleAuthUrl = (payload) => {
 		try {
+			console.log('[Claude Auth] Received CLAUDE_AUTH_URL event:', payload);
 			const url = String(payload?.url || '');
 			oauthUrl = url;
 			showCodeInput = true;
 			statusMessage = payload?.instructions || 'Open the link, then paste the code here.';
+			loading = false; // Stop loading spinner
+			console.log('[Claude Auth] Set oauthUrl:', url.substring(0, 60) + '...');
+			console.log('[Claude Auth] showCodeInput:', showCodeInput);
 			// Open OAuth URL in a new tab for convenience
 			if (url) {
 				try {
@@ -74,6 +78,7 @@
 				} catch {}
 			}
 		} catch (e) {
+			console.error('[Claude Auth] Error in handleAuthUrl:', e);
 			authError = 'Failed to start authentication.';
 		}
 	};
@@ -156,7 +161,14 @@
 		try {
 			if (!socket) {
 				socket = io(socketUrl, { autoConnect: true, reconnection: true });
+
+				// Register event listeners immediately after socket creation
+				// This prevents race condition where events might be emitted before listeners are attached
+				socket.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
+				socket.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
+				socket.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
 			}
+
 			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
 
 			// Ensure socket is connected before emitting
@@ -179,8 +191,32 @@
 				});
 			}
 
-			socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_START, { key });
+			// Fix: Send { apiKey } instead of { key } to match server expectations
+			// Server expects { apiKey, terminalKey } in socket-setup.js lines 375-376
+
 			statusMessage = 'Requesting authorization URL...';
+
+			// BUG FIX #2: Add timeout protection to prevent infinite waiting
+			const timeoutId = setTimeout(() => {
+				if (loading && !oauthUrl) {
+					loading = false;
+					authError = 'Authentication request timed out. Please try again.';
+					statusMessage = '';
+				}
+			}, 30000); // 30 second timeout
+
+			// BUG FIX #1: Add callback handler to catch server errors
+			socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_START, { apiKey: key }, (response) => {
+				clearTimeout(timeoutId);
+				console.log('[Claude Auth] Received callback response:', response);
+				if (response && !response.success) {
+					loading = false;
+					// Server might send 'error' or 'message' field
+					authError = response.error || response.message || 'Failed to start authentication';
+					statusMessage = '';
+					console.log('[Claude Auth] Set error:', authError);
+				}
+			});
 		} catch (error) {
 			console.error('OAuth setup (WS) failed:', error);
 			authError = 'Failed to start authentication process';
@@ -196,8 +232,10 @@
 		authError = '';
 		statusMessage = '';
 		try {
+			// Fix: Send { apiKey, code } instead of { key, code }
+			// Server expects apiKey in socket-setup.js
 			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
-			socket?.emit(SOCKET_EVENTS.CLAUDE_AUTH_CODE, { key, code: authCode.trim() });
+			socket?.emit(SOCKET_EVENTS.CLAUDE_AUTH_CODE, { apiKey: key, code: authCode.trim() });
 			statusMessage = 'Submitting authorization code...';
 		} catch (error) {
 			console.error('Auth completion (WS) failed:', error);

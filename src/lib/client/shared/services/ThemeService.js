@@ -85,7 +85,7 @@ export class ThemeService {
 	 */
 	async listThemes() {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/themes`, {
+			const response = await fetch(`${this.baseUrl}/themes`, {
 				headers: this.getHeaders(),
 				credentials: 'include'
 			});
@@ -107,7 +107,7 @@ export class ThemeService {
 	 */
 	async getTheme(themeId) {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}`, {
+			const response = await fetch(`${this.baseUrl}/themes/${encodeURIComponent(themeId)}`, {
 				headers: this.getHeaders(),
 				credentials: 'include'
 			});
@@ -133,7 +133,7 @@ export class ThemeService {
 			formData.append('theme', file);
 
 			// Authentication via session cookie (no Authorization header needed)
-			const response = await fetch(`${this.baseUrl}/api/themes`, {
+			const response = await fetch(`${this.baseUrl}/themes`, {
 				method: 'POST',
 				credentials: 'include',
 				body: formData
@@ -161,7 +161,7 @@ export class ThemeService {
 	 */
 	async deleteTheme(themeId) {
 		try {
-			const response = await fetch(`${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}`, {
+			const response = await fetch(`${this.baseUrl}/themes/${encodeURIComponent(themeId)}`, {
 				method: 'DELETE',
 				headers: this.getHeaders(),
 				credentials: 'include'
@@ -191,7 +191,7 @@ export class ThemeService {
 	async canDeleteTheme(themeId) {
 		try {
 			const response = await fetch(
-				`${this.baseUrl}/api/themes/${encodeURIComponent(themeId)}/can-delete`,
+				`${this.baseUrl}/themes/${encodeURIComponent(themeId)}/can-delete`,
 				{
 					headers: this.getHeaders(),
 					credentials: 'include'
@@ -228,7 +228,7 @@ export class ThemeService {
 				params.append('workspaceId', workspaceId);
 			}
 
-			const url = `${this.baseUrl}/api/themes/active${params.toString() ? '?' + params : ''}`;
+			const url = `${this.baseUrl}/themes/active${params.toString() ? '?' + params : ''}`;
 			const response = await fetch(url, {
 				headers: this.getHeaders(),
 				credentials: 'include'

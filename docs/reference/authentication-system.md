@@ -12,6 +12,7 @@ Dispatch implements a modern dual authentication system supporting both browser 
 ### Dual Authentication Model
 
 **Browser Sessions** (Interactive Users):
+
 - httpOnly, Secure (production), SameSite=Lax cookies
 - Automatic inclusion in all requests via browser
 - 30-day expiration with 24-hour rolling refresh
@@ -19,6 +20,7 @@ Dispatch implements a modern dual authentication system supporting both browser 
 - Automatic logout on session expiry
 
 **API Keys** (Programmatic Access):
+
 - Bearer token authentication via Authorization header
 - User-managed keys with custom labels
 - bcrypt hashing (cost 12) for storage security
@@ -34,6 +36,7 @@ Dispatch implements a modern dual authentication system supporting both browser 
 **Route**: `/onboarding`
 
 **Process**:
+
 1. User completes multi-step wizard (workspace, theme, settings)
 2. System generates first API key (shown once with warning)
 3. User copies and saves API key
@@ -41,12 +44,14 @@ Dispatch implements a modern dual authentication system supporting both browser 
 5. User is logged in and redirected to main application
 
 **Database Changes**:
+
 - Creates default user (`user_id='default'`)
 - Stores hashed API key in `auth_api_keys` table
 - Creates session record in `auth_sessions` table
 - Marks onboarding as complete in settings
 
 **Security**:
+
 - API key displayed ONLY ONCE (cannot be retrieved later)
 - bcrypt hashing before storage (never plaintext)
 - Session cookie set with secure attributes
@@ -56,6 +61,7 @@ Dispatch implements a modern dual authentication system supporting both browser 
 **Route**: `/login` (SvelteKit form action: `?/login`)
 
 **Process**:
+
 1. User enters API key in login form
 2. Server validates key via bcrypt comparison (constant-time)
 3. On success:
@@ -68,6 +74,7 @@ Dispatch implements a modern dual authentication system supporting both browser 
    - No redirect, no cookie
 
 **Session Cookie Attributes**:
+
 ```javascript
 {
   name: 'dispatch_session',
@@ -85,6 +92,7 @@ Dispatch implements a modern dual authentication system supporting both browser 
 **Method**: Authorization header with Bearer scheme
 
 **Usage**:
+
 ```bash
 # cURL example
 curl -H "Authorization: Bearer dpk_YOUR_API_KEY_HERE" \
@@ -99,6 +107,7 @@ const response = await fetch('http://localhost:3030/api/sessions', {
 ```
 
 **Validation**:
+
 - Server extracts token from Authorization header
 - Looks up API key in `auth_api_keys` table
 - Validates using bcrypt.compare() (constant-time)
@@ -110,6 +119,7 @@ const response = await fetch('http://localhost:3030/api/sessions', {
 **Creation**: On successful login (API key or OAuth)
 
 **Storage**:
+
 ```sql
 CREATE TABLE auth_sessions (
   id TEXT PRIMARY KEY,              -- UUID (hashed for cookie)
@@ -123,6 +133,7 @@ CREATE TABLE auth_sessions (
 ```
 
 **Refresh Logic**:
+
 - On each authenticated request, check if session expires within 24 hours
 - If yes: Extend `expires_at` by 30 days from current time
 - Update `last_active_at` to current timestamp
@@ -130,17 +141,20 @@ CREATE TABLE auth_sessions (
 - Set cookie in response
 
 **Expiration**:
+
 - Sessions expire 30 days from last refresh
 - Expired sessions automatically cleaned up by background job
 - Socket.IO clients receive `session:expired` event
 - Browser clients redirected to `/login`
 
 **Multi-Client Support**:
+
 - Same session cookie shared across browser tabs
 - All tabs receive synchronized state updates
 - Logout in one tab logs out all tabs
 
 **Termination**:
+
 - User clicks logout → POST to `/api/auth/logout`
 - Session removed from database
 - Cookie cleared (Max-Age=0)
@@ -166,12 +180,14 @@ CREATE TABLE auth_api_keys (
 ### Key Generation
 
 **Format**: `dpk_[43-char-base64url]`
+
 - Prefix: `dpk_` (Dispatch Private Key)
 - Secret: 32 bytes random data → base64url encoding
 - Total length: 47 characters
 - Character set: `A-Za-z0-9_-` (URL-safe, no special chars)
 
 **Security**:
+
 - Generated via `crypto.randomBytes(32)`
 - Hashed with bcrypt (cost factor 12) before storage
 - Original secret NEVER stored or logged
@@ -180,21 +196,23 @@ CREATE TABLE auth_api_keys (
 ### API Endpoints
 
 **List Keys**: `GET /api/auth/keys`
+
 ```json
 {
-  "keys": [
-    {
-      "id": "key-uuid",
-      "label": "Production Server",
-      "createdAt": "2025-01-15T10:30:00.000Z",
-      "lastUsedAt": "2025-01-16T14:20:00.000Z",
-      "disabled": false
-    }
-  ]
+	"keys": [
+		{
+			"id": "key-uuid",
+			"label": "Production Server",
+			"createdAt": "2025-01-15T10:30:00.000Z",
+			"lastUsedAt": "2025-01-16T14:20:00.000Z",
+			"disabled": false
+		}
+	]
 }
 ```
 
 **Create Key**: `POST /api/auth/keys`
+
 ```json
 // Request
 {
@@ -211,24 +229,28 @@ CREATE TABLE auth_api_keys (
 ```
 
 **Disable Key**: `PUT /api/auth/keys/[keyId]`
+
 ```json
 {
-  "disabled": true
+	"disabled": true
 }
 ```
 
 **Delete Key**: `DELETE /api/auth/keys/[keyId]`
+
 - Hard delete from database
 - Immediately invalidates all requests using this key
 
 ### Client Integration
 
 **MVVM Components**:
+
 - `ApiKeyState.svelte.js` - Reactive state management
 - `ApiKeyManager.svelte` - UI component for key CRUD operations
 - `AuthViewModel.svelte.js` - Authentication orchestration
 
 **Features**:
+
 - Create keys with custom labels
 - View all keys with metadata (never the secret)
 - Disable keys (soft delete, reversible)
@@ -248,10 +270,12 @@ CREATE TABLE auth_api_keys (
 **Settings UI**: `/settings/oauth`
 
 **Required Credentials**:
+
 - Client ID (public)
 - Client Secret (encrypted at rest, never sent to browser)
 
 **Database Storage**:
+
 ```sql
 -- Stored in settings table, category 'oauth'
 {
@@ -289,16 +313,19 @@ CREATE TABLE auth_api_keys (
 ### Provider Lifecycle
 
 **Enabling Provider**:
+
 - Configure credentials in `/settings/oauth`
 - Save settings
 - Provider becomes available on login page
 
 **Disabling Provider**:
+
 - Uncheck provider in settings
 - Prevents NEW OAuth logins
 - Existing sessions remain valid until expiration
 
 **Unavailable Provider**:
+
 - If OAuth provider API is down during login attempt
 - System displays error message
 - Offers fallback: "Log in with API key instead"
@@ -319,6 +346,7 @@ Sessions created via OAuth are tracked with provider information:
 ```
 
 This enables:
+
 - Auditing of authentication methods
 - Provider-specific session management
 - Analytics on authentication patterns
@@ -330,17 +358,19 @@ This enables:
 Socket.IO connections accept BOTH authentication methods:
 
 **Session Cookie** (Browser):
+
 ```javascript
 const socket = io({ withCredentials: true });
 // Cookies automatically sent by browser
 ```
 
 **API Key** (Programmatic):
+
 ```javascript
 const socket = io({
-  auth: {
-    apiKey: 'dpk_YOUR_API_KEY_HERE'
-  }
+	auth: {
+		apiKey: 'dpk_YOUR_API_KEY_HERE'
+	}
 });
 ```
 
@@ -349,6 +379,7 @@ const socket = io({
 **Location**: `src/lib/server/shared/socket-setup.js`
 
 **Process**:
+
 1. Extract cookies from `socket.request.headers.cookie`
 2. Extract API key from `socket.handshake.auth.apiKey`
 3. Validate cookie session OR API key (whichever present)
@@ -356,12 +387,14 @@ const socket = io({
 5. Emit `connect_error` on failure
 
 **Session Validation**:
+
 - Check `auth_sessions` table for matching session ID
 - Verify `expires_at > current_time`
 - Update `last_active_at` timestamp
 - Emit `session:expired` event if session becomes invalid during connection
 
 **API Key Validation**:
+
 - Look up key in `auth_api_keys` table
 - Verify not disabled
 - Validate using bcrypt.compare()
@@ -370,10 +403,12 @@ const socket = io({
 ### Events
 
 **Client → Server**:
+
 - `client:hello` - Initial authentication and identification
 - Requires valid authentication before accepting other events
 
 **Server → Client**:
+
 - `session:expired` - Session became invalid, client should redirect to login
 - Payload: `{ message: 'Session has expired' }`
 
@@ -405,10 +440,12 @@ const socket = io({
 **Current Status**: No rate limiting implemented
 
 **Rationale**: bcrypt's cost factor (12) provides natural rate limiting:
+
 - ~100ms per API key validation attempt
 - Prevents brute-force attacks at reasonable throughput
 
 **Future Consideration**: Add rate limiting for production deployments:
+
 - Per-IP limits on login attempts
 - Per-user limits on API key generation
 - Global rate limits on authentication endpoints
@@ -416,11 +453,13 @@ const socket = io({
 ### Key Rotation
 
 **API Keys**:
+
 - Users can create new keys and delete old ones at any time
 - No forced expiration (keys valid until explicitly disabled/deleted)
 - Best practice: Rotate keys periodically (e.g., every 90 days)
 
 **Sessions**:
+
 - Automatic 30-day expiration enforced
 - 24-hour refresh window for active users
 - Rotation on sensitive operations (change password, etc.)
@@ -432,49 +471,52 @@ const socket = io({
 **Location**: `src/hooks.server.js`
 
 **Authentication Hook**:
+
 ```javascript
 export async function handle({ event, resolve }) {
-  // 1. Check for session cookie
-  const sessionCookie = event.cookies.get('dispatch_session');
+	// 1. Check for session cookie
+	const sessionCookie = event.cookies.get('dispatch_session');
 
-  // 2. Validate session if cookie present
-  if (sessionCookie) {
-    const session = await SessionManager.validateSession(sessionCookie);
-    if (session) {
-      event.locals.user = session.user;
-      event.locals.sessionId = session.id;
-      event.locals.authMethod = 'cookie';
-    }
-  }
+	// 2. Validate session if cookie present
+	if (sessionCookie) {
+		const session = await SessionManager.validateSession(sessionCookie);
+		if (session) {
+			event.locals.user = session.user;
+			event.locals.sessionId = session.id;
+			event.locals.authMethod = 'cookie';
+		}
+	}
 
-  // 3. Fallback to API key if no valid session
-  if (!event.locals.user) {
-    const apiKey = event.request.headers.get('Authorization')?.replace('Bearer ', '');
-    if (apiKey) {
-      const key = await ApiKeyManager.verifyApiKey(apiKey);
-      if (key) {
-        event.locals.user = key.user;
-        event.locals.authMethod = 'api_key';
-      }
-    }
-  }
+	// 3. Fallback to API key if no valid session
+	if (!event.locals.user) {
+		const apiKey = event.request.headers.get('Authorization')?.replace('Bearer ', '');
+		if (apiKey) {
+			const key = await ApiKeyManager.verifyApiKey(apiKey);
+			if (key) {
+				event.locals.user = key.user;
+				event.locals.authMethod = 'api_key';
+			}
+		}
+	}
 
-  // 4. Protect routes
-  if (requiresAuth(event.url.pathname) && !event.locals.user) {
-    throw redirect(303, '/login');
-  }
+	// 4. Protect routes
+	if (requiresAuth(event.url.pathname) && !event.locals.user) {
+		throw redirect(303, '/login');
+	}
 
-  return resolve(event);
+	return resolve(event);
 }
 ```
 
 **Protected Routes**:
+
 - `/workspace`
 - `/settings`
 - `/console`
 - All `/api/*` routes (except `/api/auth/check`, `/api/status`)
 
 **Public Routes**:
+
 - `/login`
 - `/onboarding`
 - `/` (root, redirects based on auth state)
@@ -486,12 +528,12 @@ All API routes automatically inherit authentication from hooks:
 ```javascript
 // src/routes/api/sessions/+server.js
 export async function GET({ locals }) {
-  // locals.user populated by hooks if authenticated
-  if (!locals.user) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
-  }
+	// locals.user populated by hooks if authenticated
+	if (!locals.user) {
+		return json({ error: 'Unauthorized' }, { status: 401 });
+	}
 
-  // ... authorized logic
+	// ... authorized logic
 }
 ```
 
@@ -502,6 +544,7 @@ export async function GET({ locals }) {
 **Location**: `e2e/helpers/`
 
 **Database Reset**:
+
 ```javascript
 import { resetToOnboarded } from './helpers/index.js';
 
@@ -510,17 +553,19 @@ const { apiKey } = await resetToOnboarded();
 ```
 
 **Onboarding Flow**:
+
 ```javascript
 import { completeOnboarding } from './helpers/onboarding-helpers.js';
 
 const apiKey = await completeOnboarding(page, {
-  workspaceName: 'test-project',
-  clickContinue: true  // Auto-login
+	workspaceName: 'test-project',
+	clickContinue: true // Auto-login
 });
 // Page is now authenticated
 ```
 
 **Authentication Patterns**:
+
 ```javascript
 // Pattern 1: Fresh install
 await resetToFreshInstall();
@@ -542,19 +587,21 @@ const apiKey = await completeOnboarding(page, { clickContinue: true });
 **Command**: `npm run dev:test`
 
 **Configuration**:
+
 - Port: 7173 (avoids conflict with dev server)
 - SSL: Disabled (no certificate warnings in automated browsers)
 - Isolated storage: `/tmp/.dispatch-test/` (fresh state)
 - Known credentials: Predictable for test setup
 
 **Usage**:
+
 ```javascript
 // Test setup
 test.beforeEach(async ({ page }) => {
-  // Server running on localhost:7173
-  const { apiKey } = await resetToOnboarded();
-  await page.goto('http://localhost:7173/login');
-  // ... authenticate
+	// Server running on localhost:7173
+	const { apiKey } = await resetToOnboarded();
+	await page.goto('http://localhost:7173/login');
+	// ... authenticate
 });
 ```
 
@@ -563,6 +610,7 @@ test.beforeEach(async ({ page }) => {
 ### What Changed
 
 **Before** (localStorage-based):
+
 - API key stored in localStorage
 - No session management
 - No multi-tab support
@@ -570,6 +618,7 @@ test.beforeEach(async ({ page }) => {
 - Vulnerable to XSS
 
 **After** (Cookie-based):
+
 - httpOnly, Secure session cookies
 - Server-side session management
 - Multi-tab support via shared cookies
@@ -592,16 +641,18 @@ test.beforeEach(async ({ page }) => {
 ### Migration Path
 
 **For Users**:
+
 1. Complete onboarding flow (one-time)
 2. Save generated API key securely
 3. Use session cookie for browser access OR
 4. Use API key for programmatic access
 
 **For Tests**:
+
 ```javascript
 // OLD (localStorage)
 await page.evaluate(() => {
-  localStorage.setItem('auth-token', 'test-key');
+	localStorage.setItem('auth-token', 'test-key');
 });
 
 // NEW (session cookie via helpers)
@@ -618,11 +669,13 @@ await page.click('button[type="submit"]');
 **Symptom**: Login succeeds but cookie not in browser
 
 **Causes**:
+
 - `Secure` attribute in dev environment (should be `false` for http://)
 - SameSite restrictions in cross-origin scenarios
 - Browser blocking third-party cookies
 
 **Fix**:
+
 - Ensure `process.env.NODE_ENV !== 'production'` sets `Secure: false`
 - Check browser DevTools → Application → Cookies for warnings
 
@@ -631,18 +684,20 @@ await page.click('button[type="submit"]');
 **Symptom**: `connect_error: Authentication required`
 
 **Causes**:
+
 - Missing `withCredentials: true` for cookie auth
 - Invalid API key format
 - Expired session
 
 **Fix**:
+
 ```javascript
 // Browser (cookie)
 const socket = io({ withCredentials: true });
 
 // Programmatic (API key)
 const socket = io({
-  auth: { apiKey: 'dpk_YOUR_KEY_HERE' }
+	auth: { apiKey: 'dpk_YOUR_KEY_HERE' }
 });
 ```
 
@@ -651,10 +706,12 @@ const socket = io({
 **Symptom**: Session expires despite active use
 
 **Causes**:
+
 - `last_active_at` not updating on requests
 - Refresh logic not triggering (should trigger within 24h of expiry)
 
 **Debug**:
+
 ```sql
 -- Check session details
 SELECT
@@ -670,10 +727,12 @@ WHERE user_id = 'default';
 **Symptom**: Error creating new API key
 
 **Causes**:
+
 - Not authenticated with session cookie (API key management requires browser session)
 - Database write error
 
 **Fix**:
+
 - Ensure logged in via browser (not API key)
 - Check server logs for bcrypt errors
 

@@ -30,6 +30,7 @@ export class SettingsViewModel {
 		this.saving = $state(false);
 		this.error = $state(null);
 		this.successMessage = $state(null);
+		/** @type {Record<string, string[]>} */
 		this.validationErrors = $state({}); // category.field -> error array
 
 		// Derived state - automatic change detection per category
@@ -73,6 +74,7 @@ export class SettingsViewModel {
 			this.originalCategories = this._deepClone(this.categories);
 
 			// Clear state
+			/** @type {Record<string, string[]>} */
 			this.validationErrors = {};
 			this.successMessage = null;
 		} catch (error) {
@@ -143,7 +145,7 @@ export class SettingsViewModel {
 		if (errors.length > 0) {
 			this.validationErrors = { ...this.validationErrors, [key]: errors };
 		} else {
-			const { [key]: _, ...rest } = this.validationErrors;
+			const { [key]: _unused, ...rest } = this.validationErrors;
 			this.validationErrors = rest;
 		}
 	}

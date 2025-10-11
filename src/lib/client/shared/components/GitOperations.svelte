@@ -550,21 +550,21 @@
 
 		<!-- File diff modal -->
 		{#if showDiff}
-			<div
+			<button
 				class="git-diff-modal"
+				type="button"
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="diff-title"
-				tabindex="-1"
-				onclick={() => (showDiff = null)}
+				aria-label="Close diff viewer"
+				onclick={(e) => {
+					if (e.target === e.currentTarget) {
+						showDiff = null;
+					}
+				}}
 				onkeydown={(e) => e.key === 'Escape' && (showDiff = null)}
 			>
-				<div
-					class="diff-content"
-					role="document"
-					onclick={(e) => e.stopPropagation()}
-					onkeydown={(e) => e.stopPropagation()}
-				>
+				<div class="diff-content" role="document">
 					<div class="diff-header">
 						<h4 id="diff-title">Diff: {showDiff}</h4>
 						<IconButton onclick={() => (showDiff = null)} variant="ghost">
@@ -576,7 +576,7 @@
 						<p>File diff display would be implemented here</p>
 					</div>
 				</div>
-			</div>
+			</button>
 		{/if}
 
 		{#if error}
@@ -690,6 +690,9 @@
 		align-items: center;
 		justify-content: center;
 		z-index: 1000;
+		border: none;
+		padding: 0;
+		cursor: pointer;
 	}
 
 	.diff-content {

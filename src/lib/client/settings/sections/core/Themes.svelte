@@ -69,7 +69,7 @@
 			const result = await themeState.uploadTheme(file);
 
 			// Show success message
-			uploadSuccess = `Theme "${result.name}" uploaded successfully`;
+			uploadSuccess = `Theme "${result.theme.name}" uploaded successfully`;
 
 			// Show warnings if any
 			if (result.validation?.warnings?.length) {
@@ -308,12 +308,18 @@
 	{#if showDeleteConfirm}
 		<div
 			class="modal-overlay"
-			onclick={cancelDelete}
+			onclick={(e) => {
+				if (e.target === e.currentTarget) {
+					cancelDelete();
+				}
+			}}
+			onkeydown={(e) => e.key === 'Escape' && cancelDelete()}
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="delete-modal-title"
+			tabindex="-1"
 		>
-			<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+			<div class="modal-content">
 				<h3 id="delete-modal-title">Delete Theme</h3>
 				<p>Are you sure you want to delete this theme? This action cannot be undone.</p>
 
