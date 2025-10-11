@@ -59,9 +59,17 @@ export class AuthViewModel {
 	// DERIVED STATE
 	// =================================================================
 
-	/** @type {boolean} */
+	/**
+	 * API key authentication is always available (via database-backed API keys)
+	 * NOTE: This used to check authConfig.terminal_key_set from TERMINAL_KEY env var,
+	 * but that was the legacy single-key auth method. Now API keys are the primary
+	 * auth method and are always available via ApiKeyManager.
+	 * @type {boolean}
+	 */
 	hasTerminalKeyAuth = $derived.by(() => {
-		return this.authConfig?.terminal_key_set ?? false;
+		// API key authentication is always available
+		// The login form should always be visible regardless of TERMINAL_KEY env var
+		return true;
 	});
 
 	/** @type {boolean} */

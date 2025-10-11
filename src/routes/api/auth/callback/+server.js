@@ -37,6 +37,13 @@ export async function GET({ url, cookies, locals }) {
 			throw redirect(303, '/login?error=auth_failed');
 		}
 
+		// IMPORTANT: Create/update user record BEFORE creating session
+		// This ensures auth_users table has the user_id that auth_sessions will reference
+		await locals.services.userManager.upsertUser(userData.userId, {
+			email: userData.email,
+			name: userData.name
+		});
+
 		// Create session using SessionManager
 		const session = await locals.services.sessionManager.createSession(
 			userData.userId,

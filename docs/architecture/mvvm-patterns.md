@@ -289,8 +289,10 @@ export class AuthViewModel {
 	currentUrl = $state('');
 
 	// Derived authentication status
+	// API key authentication is always available (via database-backed API keys)
 	hasTerminalKeyAuth = $derived.by(() => {
-		return this.authConfig?.terminal_key_set ?? false;
+		// Always return true - API key auth is always available via ApiKeyManager
+		return true;
 	});
 
 	hasOAuthAuth = $derived.by(() => {

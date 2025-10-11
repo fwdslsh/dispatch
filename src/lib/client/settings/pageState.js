@@ -6,10 +6,12 @@
  */
 
 // Initialize settings registry
+// IMPORTANT: Import session modules FIRST to ensure they register their settings sections
+import '$lib/client/shared/session-modules/index.js';
 import { registerCoreSettings } from './registry/core-sections.js';
 import { getSettingsSections as getRegisteredSections } from './registry/settings-registry.js';
 
-// Register core settings on module load
+// Register core settings on module load (after session modules have been imported)
 registerCoreSettings();
 
 // Section label lookup for error messages (built dynamically from registry)

@@ -35,6 +35,10 @@ export async function GET({ locals }) {
 			}
 		}
 
+		// NOTE: terminal_key_set is a LEGACY flag from when TERMINAL_KEY env var was the sole auth method.
+		// It's kept for backward compatibility but is no longer used for UI rendering decisions.
+		// API key authentication is now the primary method and is ALWAYS available via ApiKeyManager,
+		// regardless of the TERMINAL_KEY env var. The login form should always be visible.
 		const authConfig = {
 			terminal_key_set: Boolean(terminalKey && terminalKey !== 'change-me-to-a-strong-password'),
 			oauth_configured: oauthConfigured
@@ -110,11 +114,6 @@ export async function PUT({ request, locals }) {
 			updatedAuthSettings,
 			'Authentication configuration'
 		);
-
-		// Update terminal key cache if it was changed
-		if (authSettings.terminal_key !== undefined) {
-			auth.updateCachedKey(authSettings.terminal_key);
-		}
 
 		const response = {
 			success: true,

@@ -336,6 +336,38 @@ export function setupSocketIO(httpServer, services) {
 		}
 	});
 
+	mediator.on('tunnel:updateConfig', async (socket, data, callback) => {
+		try {
+			const { apiKey, terminalKey, subdomain } = data || {};
+			const token = apiKey || terminalKey;
+
+			if (token) {
+				const isValid = await requireValidAuth(socket, token, callback, services);
+				if (!isValid) return;
+			} else if (!socket.data.authenticated) {
+				logger.warn('SOCKET', `Unauthenticated tunnel:updateConfig from socket ${socket.id}`);
+				if (callback) callback({ success: false, error: 'Authentication required' });
+				return;
+			}
+
+			// Update configuration
+			const success = await services.tunnelManager.updateConfig({ subdomain });
+
+			if (success) {
+				const status = services.tunnelManager.getStatus();
+				if (callback) callback({ success: true, status });
+
+				// Broadcast status update to all connected clients
+				services.tunnelManager._broadcastStatus('tunnel:status', status);
+			} else {
+				if (callback) callback({ success: false, error: 'Failed to update configuration' });
+			}
+		} catch (error) {
+			logger.error('SOCKET', 'Error updating tunnel config:', error);
+			if (callback) callback({ success: false, error: error.message });
+		}
+	});
+
 	// VS Code tunnel events
 	mediator.on('vscode-tunnel:start', async (socket, data, callback) => {
 		try {

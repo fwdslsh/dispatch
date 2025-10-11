@@ -14,12 +14,12 @@ import { EventRecorder } from '../sessions/EventRecorder.js';
 import { SessionOrchestrator } from '../sessions/SessionOrchestrator.js';
 import { AuthService } from './auth.js';
 import { ClaudeAuthManager } from '../claude/ClaudeAuthManager.js';
-import { MultiAuthManager, GitHubAuthProvider } from './auth/oauth.js';
 import { TunnelManager } from '../tunnels/TunnelManager.js';
 import { VSCodeTunnelManager } from '../tunnels/VSCodeTunnelManager.js';
 import { ApiKeyManager } from '../auth/ApiKeyManager.server.js';
 import { SessionManager } from '../auth/SessionManager.server.js';
 import { OAuthManager } from '../auth/OAuth.server.js';
+import { UserManager } from '../auth/UserManager.server.js';
 import { createMigrationManager } from './db/migrate.js';
 import path from 'node:path';
 import os from 'node:os';
@@ -48,15 +48,14 @@ import { FileEditorAdapter } from '../file-editor/FileEditorAdapter.js';
  * @property {AuthService} auth
  * @property {ApiKeyManager} apiKeyManager
  * @property {SessionManager} sessionManager
+ * @property {UserManager} userManager
  * @property {OAuthManager} oauthManager
  * @property {ClaudeAuthManager} claudeAuthManager
- * @property {MultiAuthManager} multiAuthManager
  * @property {TunnelManager} tunnelManager
  * @property {VSCodeTunnelManager} vscodeManager
  * @property {PtyAdapter} ptyAdapter
  * @property {ClaudeAdapter} claudeAdapter
  * @property {FileEditorAdapter} fileEditorAdapter
- * @property {() => MultiAuthManager} getAuthManager
  * @property {() => DatabaseManager} getDatabase
  */
 
@@ -115,10 +114,10 @@ export async function createServices(config = {}) {
 	// Layer 5: Auth services
 	const apiKeyManager = new ApiKeyManager(db);
 	const sessionManager = new SessionManager(db);
+	const userManager = new UserManager(db);
 	const oauthManager = new OAuthManager(db, settingsRepository);
 	const authService = new AuthService(apiKeyManager);
 	const claudeAuthManager = new ClaudeAuthManager();
-	const multiAuthManager = new MultiAuthManager(db);
 
 	// Layer 6: Tunnel services
 	const tunnelManager = new TunnelManager({
@@ -160,9 +159,9 @@ export async function createServices(config = {}) {
 		auth: authService,
 		apiKeyManager,
 		sessionManager,
+		userManager,
 		oauthManager,
 		claudeAuthManager,
-		multiAuthManager,
 
 		// Tunnels
 		tunnelManager,
@@ -174,7 +173,6 @@ export async function createServices(config = {}) {
 		fileEditorAdapter,
 
 		// Convenience methods
-		getAuthManager: () => multiAuthManager,
 		getDatabase: () => db
 	};
 }
@@ -211,45 +209,6 @@ export async function initializeServices(config = {}) {
 		// Mark all sessions as stopped (cleanup from previous run)
 		await services.sessionRepository.markAllStopped();
 		logger.info('SERVICES', 'Cleared stale running sessions on startup');
-
-		// Initialize MultiAuthManager
-		await services.multiAuthManager.init();
-
-		// Wire MultiAuthManager to AuthService
-		services.auth.setMultiAuthManager(services.multiAuthManager);
-
-		// Register OAuth providers from settings
-		const authSettingsRow = await services.db.get(
-			"SELECT * FROM settings WHERE category = 'authentication'"
-		);
-
-		if (authSettingsRow && authSettingsRow.settings_json) {
-			try {
-				const authSettings = JSON.parse(authSettingsRow.settings_json);
-
-				if (authSettings.oauth_client_id && authSettings.oauth_client_secret) {
-					const githubProvider = new GitHubAuthProvider({
-						clientId: authSettings.oauth_client_id,
-						clientSecret: authSettings.oauth_client_secret,
-						redirectUri:
-							authSettings.oauth_redirect_uri ||
-							`http://localhost:${services.config.get('PORT')}/api/auth/callback`,
-						scopes: (authSettings.oauth_scope || 'user:email').split(' ')
-					});
-					await services.multiAuthManager.registerProvider(githubProvider);
-					logger.info('SERVICES', 'GitHub OAuth provider registered');
-				} else {
-					logger.info('SERVICES', 'GitHub OAuth not configured - skipping provider registration');
-				}
-			} catch (error) {
-				logger.error('SERVICES', 'Failed to parse authentication settings:', error);
-			}
-		} else {
-			logger.info(
-				'SERVICES',
-				'No authentication settings found - skipping OAuth provider registration'
-			);
-		}
 
 		// Initialize tunnel managers
 		await services.tunnelManager.init();

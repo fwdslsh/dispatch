@@ -16,9 +16,6 @@ export const __API_SERVICES = {
 	get services() {
 		return services;
 	},
-	getAuthManager() {
-		return services?.multiAuthManager;
-	},
 	getDatabase() {
 		return services?.db;
 	},
