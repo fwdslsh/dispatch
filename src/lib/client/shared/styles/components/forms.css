@@ -38,7 +38,7 @@
 	transition: all 0.3s ease;
 	position: relative;
 	border-radius: 0;
-	width: 100%;
+	width: stretch;
 }
 
 .form-input:focus,

@@ -750,10 +750,15 @@
 	.menu-root {
 		display: flex;
 		flex-direction: column;
-		height: 100%;
-		padding-inline: var(--space-2);
+		height: stretch;
+		background: var(--surface);
+		border: 1px solid var(--surface-border);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+		.panel {
+			padding: 0;
+		}
 	}
-
 	/* Bottom Navigation */
 	.bottom-navigation {
 		display: flex;

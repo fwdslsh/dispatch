@@ -526,28 +526,7 @@
 		font-weight: 400;
 	}
 
-	.form-input {
-		width: 100%;
-		padding: var(--space-3);
-		background: var(--surface);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-sm);
-		color: var(--text);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-		transition: all 0.2s ease;
-	}
-
-	.form-input:focus {
-		outline: none;
-		border-color: var(--primary);
-		box-shadow: 0 0 0 3px var(--primary-glow-15);
-	}
-
-	.form-input:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
+	
 
 	.input-hint {
 		margin: 0;
