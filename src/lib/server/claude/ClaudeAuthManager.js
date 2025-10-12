@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { logger } from '../shared/utils/logger.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
+import { CLAUDE_AUTH_TIMEOUTS } from '../../shared/constants/auth-timeouts.js';
 
 let pty;
 async function ensurePtyLoaded() {
@@ -36,7 +37,7 @@ class ClaudeAuthManager {
 		// This runs every 60 seconds and cleans up sessions older than 5 minutes
 		this.cleanupTimer = setInterval(() => {
 			const now = Date.now();
-			const staleThreshold = 5 * 60 * 1000; // 5 minutes
+			const staleThreshold = CLAUDE_AUTH_TIMEOUTS.STALE_SESSION_THRESHOLD;
 
 			for (const [key, state] of this.sessions.entries()) {
 				const age = now - state.startedAt;
@@ -45,7 +46,7 @@ class ClaudeAuthManager {
 					this.cleanup(key);
 				}
 			}
-		}, 60000); // Check every minute
+		}, CLAUDE_AUTH_TIMEOUTS.SESSION_CHECK_INTERVAL || 60000); // Check every minute
 
 		// Cleanup timer on process exit
 		process.once('beforeExit', () => {
@@ -181,13 +182,15 @@ class ClaudeAuthManager {
 					if (state.finished) return;
 					const plain = this.stripAnsi(state.buffer);
 
-					// TEMPORARY: Always log PTY output to debug URL extraction issue
-					logger.info(
-						'CLAUDE',
-						`PTY data received (${data.length} bytes), total buffer: ${state.buffer.length} bytes`
-					);
-					logger.debug('CLAUDE', `PTY raw output: ${data.substring(0, 300)}`);
-					logger.debug('CLAUDE', `Buffer plain text: ${plain.substring(0, 300)}`);
+					// Verbose logging for debugging (enable with DEBUG_CLAUDE_AUTH env var)
+					if (process.env.DEBUG_CLAUDE_AUTH) {
+						logger.debug(
+							'CLAUDE',
+							`PTY data received (${data.length} bytes), total buffer: ${state.buffer.length} bytes`
+						);
+						logger.debug('CLAUDE', `PTY raw output: ${data.substring(0, 300)}`);
+						logger.debug('CLAUDE', `Buffer plain text: ${plain.substring(0, 300)}`);
+					}
 
 					if (state.codeSubmitted) {
 						const lower = plain.toLowerCase();
@@ -327,7 +330,7 @@ class ClaudeAuthManager {
 					// Intentionally ignoring write error - PTY may be closed
 				}
 			}, 250);
-			// Watchdog: if nothing concludes within 25s after code submission, emit error
+			// Watchdog: if nothing concludes after code submission, emit error
 			setTimeout(() => {
 				if (state.finished) return;
 				try {
@@ -344,7 +347,7 @@ class ClaudeAuthManager {
 					// Intentionally ignoring PTY kill error - process may already be terminated
 				}
 				state.finished = true;
-			}, 25000);
+			}, CLAUDE_AUTH_TIMEOUTS.CLI_WATCHDOG);
 			logger.info('CLAUDE', 'Authorization code submitted to PTY');
 			// We will rely on process exit to indicate completion
 			return true;

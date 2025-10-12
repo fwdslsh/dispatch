@@ -15,6 +15,7 @@
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { getAuthHeaders } from '$lib/shared/api-helpers.js';
 	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
+	import { CLAUDE_AUTH_TIMEOUTS } from '$lib/shared/constants/auth-timeouts.js';
 
 	/**
 	 * Claude Settings Component
@@ -209,14 +210,14 @@
 
 			statusMessage = 'Requesting authorization URL...';
 
-			// BUG FIX #2: Add timeout protection to prevent infinite waiting
+			// Add timeout protection to prevent infinite waiting
 			const timeoutId = setTimeout(() => {
 				if (loading && !oauthUrl) {
 					loading = false;
 					authError = 'Authentication request timed out. Please try again.';
 					statusMessage = '';
 				}
-			}, 30000); // 30 second timeout
+			}, CLAUDE_AUTH_TIMEOUTS.OAUTH_START);
 
 			// BUG FIX #1: Add callback handler to catch server errors
 			socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_START, { apiKey: key }, (response) => {
@@ -249,7 +250,7 @@
 				authError = 'Code submission timed out. Please try again.';
 				statusMessage = '';
 			}
-		}, 30000); // 30 second timeout
+		}, CLAUDE_AUTH_TIMEOUTS.CODE_SUBMIT);
 
 		try {
 			// Fix: Send { apiKey, code } instead of { key, code }

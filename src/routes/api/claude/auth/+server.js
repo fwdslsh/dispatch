@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { logger } from '$lib/server/shared/utils/logger.js';
+import { AUTH_TIMEOUTS } from '$lib/shared/constants/auth-timeouts.js';
 
 /**
  * Promisify spawn() for async/await with timeout support
@@ -152,7 +153,7 @@ export async function POST({ request }) {
 		// SECURITY: Use spawn() with array args to prevent shell injection
 		try {
 			await spawnAsync('claude', ['auth', 'login', '--api-key', apiKey], {
-				timeout: 10000,
+				timeout: AUTH_TIMEOUTS.API_REQUEST,
 				env: { ...process.env, PATH: process.env.PATH }
 			});
 
@@ -187,7 +188,7 @@ export async function DELETE() {
 		// Sign out using Claude CLI
 		// SECURITY: Use spawn() with array args to prevent shell injection
 		await spawnAsync('claude', ['auth', 'logout'], {
-			timeout: 5000,
+			timeout: AUTH_TIMEOUTS.LOGOUT,
 			env: { ...process.env, PATH: process.env.PATH }
 		});
 
