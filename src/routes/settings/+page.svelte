@@ -204,6 +204,7 @@
 			<div class="settings-container">
 				<div class="settings-nav" aria-label="Settings sections" role="tablist">
 					{#each sections as section, index}
+						{@const IconComponent = section.icon}
 						<button
 							id={`settings-tab-${section.id}`}
 							type="button"
@@ -217,7 +218,9 @@
 							tabindex={settingsState.activeSection === section.id ? 0 : -1}
 							title={section.navAriaLabel}
 						>
-							<svelte:component this={section.icon} size={18} />
+							{#if IconComponent}
+								<IconComponent size={18} />
+							{/if}
 							<span class="tab-label">{section.label}</span>
 						</button>
 					{/each}
@@ -225,6 +228,7 @@
 
 				<main class="settings-content">
 					{#if activeSection}
+						{@const SectionComponent = activeSection.component}
 						<div
 							class="settings-panel"
 							role="tabpanel"
@@ -232,11 +236,12 @@
 							id={`settings-panel-${activeSection.id}`}
 						>
 							{#key activeRenderKey}
-								<svelte:component
-									this={activeSection.component}
-									onSave={activeSectionHandlers?.onSave}
-									onError={activeSectionHandlers?.onError}
-								/>
+								{#if SectionComponent}
+									<SectionComponent
+										onSave={activeSectionHandlers?.onSave}
+										onError={activeSectionHandlers?.onError}
+									/>
+								{/if}
 							{/key}
 						</div>
 					{:else}

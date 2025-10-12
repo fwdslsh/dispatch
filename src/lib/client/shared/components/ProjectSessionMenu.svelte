@@ -711,10 +711,11 @@
 							: 'Search workspaces...'}
 					value={currentTab === 'workspaces' ? workspaceNavigation?.searchTerm || '' : searchTerm}
 					oninput={(e) => {
+						const value = /** @type {HTMLInputElement} */ (e.target).value;
 						if (currentTab === 'workspaces' && workspaceNavigation) {
-							workspaceNavigation.searchWorkspaces(e.target.value);
+							workspaceNavigation.searchWorkspaces(value);
 						} else {
-							searchTerm = e.target.value;
+							searchTerm = value;
 						}
 					}}
 					class="search-input"

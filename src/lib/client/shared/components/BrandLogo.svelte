@@ -44,13 +44,6 @@
 		display: flex;
 	}
 
-	.brand-icon img {
-		max-width: 100%;
-		height: 32px;
-		width: auto;
-		display: block;
-	}
-
 	.brand-text {
 		color: var(--primary);
 		font-size: 1.5rem;
@@ -60,7 +53,7 @@
 
 	/* Mobile adjustments */
 	@media (max-width: 768px) {
-		.brand-icon img {
+		.brand-icon {
 			display: none;
 		}
 	}

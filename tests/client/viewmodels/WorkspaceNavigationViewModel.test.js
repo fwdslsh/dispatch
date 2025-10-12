@@ -49,7 +49,7 @@ describe('WorkspaceNavigationViewModel', () => {
 			get recentWorkspaces() {
 				return this.workspaces.value
 					.filter((w) => w.lastActive)
-					.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive))
+					.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime())
 					.slice(0, 5);
 			},
 
@@ -409,6 +409,7 @@ describe('WorkspaceNavigationViewModel', () => {
 		expect(viewModel.isLoading.value).toBe(true);
 
 		// Complete loading
+		// @ts-ignore - Test uses manually controlled promise
 		resolvePromise([]);
 		await loadPromise;
 

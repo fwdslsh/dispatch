@@ -879,7 +879,7 @@ export const jupyterSessionModule = {
 	let saveStatus = $state('');
 	let saving = $state(false);
 
-	onMount(() => {
+	onMount(async () => {
 		if (!settingsService.isLoaded) {
 			await settingsService.loadServerSettings();
 		}
@@ -907,7 +907,9 @@ export const jupyterSessionModule = {
 			});
 
 			saveStatus = 'Jupyter settings saved successfully';
-			setTimeout(() => { saveStatus = ''; }, 3000);
+			setTimeout(() => {
+				saveStatus = '';
+			}, 3000);
 		} catch (error) {
 			console.error('Failed to save Jupyter settings:', error);
 			saveStatus = 'Failed to save settings';
@@ -920,7 +922,9 @@ export const jupyterSessionModule = {
 		settingsService.resetClientOverridesForCategory('jupyter');
 		updateSettingsFromService();
 		saveStatus = 'Settings reset to defaults';
-		setTimeout(() => { saveStatus = ''; }, 3000);
+		setTimeout(() => {
+			saveStatus = '';
+		}, 3000);
 	}
 </script>
 

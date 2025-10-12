@@ -198,12 +198,6 @@
 		padding: var(--space-3);
 	}
 
-	.section-header h4 {
-		color: var(--primary);
-		font-weight: 600;
-		margin: 0;
-	}
-
 	/* Component-specific environment variable row styling */
 	.env-variable-row {
 		padding: var(--space-2);

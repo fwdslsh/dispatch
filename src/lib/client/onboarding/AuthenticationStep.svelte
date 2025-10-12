@@ -231,40 +231,6 @@
 		margin-top: 2rem;
 	}
 
-	.btn {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		border-radius: var(--radius-sm);
-		font-size: var(--font-size-2);
-		font-weight: 500;
-		cursor: pointer;
-		transition: all 0.2s;
-		min-width: 120px;
-	}
-
-	.btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.btn-primary {
-		background-color: #3b82f6;
-		color: white;
-	}
-
-	.btn-primary:hover:not(:disabled) {
-		background-color: #2563eb;
-	}
-
-	.btn-secondary {
-		background-color: #e5e7eb;
-		color: #374151;
-	}
-
-	.btn-secondary:hover:not(:disabled) {
-		background-color: #d1d5db;
-	}
-
 	.success-state {
 		background: white;
 		border-radius: var(--radius-md);
@@ -338,10 +304,6 @@
 
 		.form-actions {
 			flex-direction: column;
-		}
-
-		.btn {
-			width: 100%;
 		}
 	}
 </style>

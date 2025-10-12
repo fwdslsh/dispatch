@@ -54,6 +54,10 @@
 	let errorTestId = $derived(`${setting.key}-error`);
 	let helpTestId = $derived(`${setting.key}-help`);
 	let envFallbackTestId = $derived(`${setting.key}-env-fallback`);
+
+	// Cast autocomplete to avoid type errors with Svelte's strict typing
+	// The autocomplete prop accepts string, but Svelte expects specific union type
+	let autocompleteValue = /** @type {any} */ (autocomplete);
 </script>
 
 <div class="setting-field">
@@ -81,7 +85,7 @@
 		{placeholder}
 		{value}
 		oninput={onInput}
-		{autocomplete}
+		autocomplete={autocompleteValue}
 		{spellcheck}
 		data-testid={inputTestId}
 		aria-describedby={hasErrors ? errorId : setting.description ? helpId : undefined}

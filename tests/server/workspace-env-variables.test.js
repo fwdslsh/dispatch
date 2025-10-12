@@ -16,6 +16,7 @@ describe('Workspace Environment Variables', () => {
 		tempDbPath = `/tmp/test-workspace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.db`;
 		database = new DatabaseManager(tempDbPath);
 		await database.init();
+		// @ts-ignore - Test uses compatible DatabaseManager interface
 		settingsRepository = new SettingsRepository(database);
 	});
 

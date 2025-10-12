@@ -11,5 +11,6 @@
 		"strict": false,
 		"moduleResolution": "bundler",
 		"maxNodeModuleJsDepth": 2
-	}
+	},
+	"exclude": ["specs", ".claude", "docs"]
 }

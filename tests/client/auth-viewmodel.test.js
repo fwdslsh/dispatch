@@ -220,6 +220,7 @@ describe('AuthViewModel', () => {
 			expect(viewModel.loading).toBe(true);
 
 			// Resolve the login
+			// @ts-ignore - Test uses manually controlled promise
 			resolveLogin({ ok: true, json: async () => ({ success: true }) });
 			await resultPromise;
 

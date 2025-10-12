@@ -57,14 +57,6 @@
 		gap: 1rem;
 	}
 
-	.session-counter {
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		color: var(--text-secondary);
-		min-width: 40px;
-		text-align: center;
-	}
-
 	:global(.nav-btn:disabled) {
 		opacity: 0.5;
 		cursor: not-allowed;

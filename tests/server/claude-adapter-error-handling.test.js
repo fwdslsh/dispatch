@@ -9,6 +9,7 @@ describe('ClaudeAdapter error handling', () => {
 		});
 
 		// Add an interrupt method that would throw the problematic error
+		// @ts-ignore - Test adds arbitrary properties to mock
 		mockQuery.interrupt = vi.fn().mockImplementation(() => {
 			throw new Error('interrupt requires --input-format stream-json');
 		});
@@ -30,6 +31,7 @@ describe('ClaudeAdapter error handling', () => {
 		await session.input.write('test message');
 
 		// Verify that the interrupt method was removed from the query
+		// @ts-ignore - Test checks arbitrary properties on mock
 		expect(mockQuery.interrupt).toBeUndefined();
 
 		// Test that close() completes gracefully without interrupting

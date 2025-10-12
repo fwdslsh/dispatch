@@ -14,6 +14,7 @@ if (!process.env.NODE_ENV) {
 // and $effect (side-effect runner that re-runs when dependencies change).
 if (typeof global.$state === 'undefined') {
 	// Keep $state compatible with existing tests/components that expect a plain value
+	// @ts-ignore - Test shim doesn't need full $state API
 	global.$state = function (initial) {
 		return initial;
 	};
@@ -84,6 +85,7 @@ if (typeof global.$derived === 'undefined') {
 	}
 
 	// Effects: run immediately and re-run when dependencies (state boxes) change
+	// @ts-ignore - Test shim doesn't need full $effect API
 	global.$effect = function (fn) {
 		let cleanup;
 		const run = () => {
@@ -117,22 +119,29 @@ if (typeof global.$derived === 'undefined') {
 	};
 
 	// expose
+	// @ts-ignore - Test shim doesn't need full $derived API
 	global.$derived = $derived;
 
 	// convenience helpers so compiled code can call $derived.by(fn) or $derived.get(fn)
+	// @ts-ignore - Test shim extensions
 	global.$derived.by = (fn) => $derived(fn).by();
+	// @ts-ignore - Test shim extensions
 	global.$derived.get = (fn) => $derived(fn).get();
 }
 if (typeof global.$props === 'undefined') {
 	// Simple placeholder for $props() calls in compiled Svelte modules
+	// @ts-ignore - Test shim doesn't need full $props API
 	global.$props = () => ({});
 }
 
 // Mock database manager for tests
 vi.mock('./src/lib/server/db/DatabaseManager.js', async (importOriginal) => {
+	// @ts-ignore - Test mock doesn't need exact type match
 	const actual = await importOriginal();
+	// Cast to object for spread operation
+	const actualModule = /** @type {Record<string, any>} */ (actual);
 	return {
-		...actual,
+		...actualModule,
 		getDatabaseManager: vi.fn(() => ({
 			init: vi.fn(),
 			createWorkspace: vi.fn(),
@@ -172,6 +181,7 @@ global.__API_SERVICES = {
 
 // Minimal fetch mock for server-side tests (some client services call fetch)
 if (typeof global.fetch === 'undefined') {
+	// @ts-ignore - Test mock doesn't need full fetch API
 	global.fetch = async (url, opts) => {
 		// simple handling for sessions endpoint
 		try {

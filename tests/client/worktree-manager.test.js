@@ -3,7 +3,12 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import WorktreeManager from '../../src/lib/client/shared/components/WorktreeManager.svelte';
 
 // Mock fetch
+// @ts-ignore - Test mock doesn't need full fetch signature
 global.fetch = vi.fn();
+
+// Helper to access fetch as a vitest mock (for type safety)
+// @ts-ignore - Test helper for mock access
+const mockFetch = /** @type {import('vitest').Mock} */ (fetch);
 
 // Mock component props
 const defaultProps = {
@@ -15,12 +20,12 @@ const defaultProps = {
 describe('WorktreeManager Component', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
-		fetch.mockClear();
+		mockFetch.mockClear();
 	});
 
 	it('should render worktree manager with empty state', async () => {
 		// Mock empty worktree list
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve({ worktrees: [] })
 		});
@@ -42,7 +47,7 @@ describe('WorktreeManager Component', () => {
 			{ path: '/test/repo-feature', branch: 'feature-branch', head: 'def456' }
 		];
 
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve({ worktrees: mockWorktrees })
 		});
@@ -62,13 +67,13 @@ describe('WorktreeManager Component', () => {
 
 	it('should show add worktree form when add button is clicked', async () => {
 		// Mock empty worktree list
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve({ worktrees: [] })
 		});
 
 		// Mock init detection
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () =>
 				Promise.resolve({
@@ -99,13 +104,13 @@ describe('WorktreeManager Component', () => {
 
 	it('should detect initialization commands', async () => {
 		// Mock empty worktree list
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve({ worktrees: [] })
 		});
 
 		// Mock init detection with Node.js project
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () =>
 				Promise.resolve({
@@ -137,13 +142,13 @@ describe('WorktreeManager Component', () => {
 
 	it('should handle worktree creation with initialization', async () => {
 		// Mock empty worktree list
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve({ worktrees: [] })
 		});
 
 		// Mock init detection
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () =>
 				Promise.resolve({
@@ -154,7 +159,7 @@ describe('WorktreeManager Component', () => {
 		});
 
 		// Mock successful worktree creation
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () =>
 				Promise.resolve({
@@ -166,7 +171,7 @@ describe('WorktreeManager Component', () => {
 		});
 
 		// Mock worktree list reload
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve({ worktrees: [] })
 		});
@@ -223,19 +228,19 @@ describe('WorktreeManager Component', () => {
 		];
 
 		// Mock worktree list
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve({ worktrees: mockWorktrees })
 		});
 
 		// Mock successful removal
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve({ success: true })
 		});
 
 		// Mock worktree list reload
-		fetch.mockResolvedValueOnce({
+		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve({ worktrees: [] })
 		});
@@ -273,7 +278,7 @@ describe('WorktreeManager Component', () => {
 
 	it('should handle API errors gracefully', async () => {
 		// Mock failed worktree list
-		fetch.mockRejectedValueOnce(new Error('Network error'));
+		mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
 		const mockOnError = vi.fn();
 

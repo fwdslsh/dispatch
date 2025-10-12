@@ -49,6 +49,7 @@ describe('Directory Clone API', () => {
 			/** @type {any} */ ({ request })
 		);
 
+		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 		const response = await POST(event);
 		const result = await response.json();
 
@@ -82,6 +83,7 @@ describe('Directory Clone API', () => {
 			/** @type {any} */ ({ request })
 		);
 
+		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 		const response = await POST(event);
 		const result = await response.json();
 
@@ -107,6 +109,7 @@ describe('Directory Clone API', () => {
 			/** @type {any} */ ({ request })
 		);
 
+		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 		const response = await POST(event);
 		const result = await response.json();
 
@@ -128,6 +131,7 @@ describe('Directory Clone API', () => {
 			/** @type {any} */ ({ request })
 		);
 
+		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 		const response = await POST(event);
 		const result = await response.json();
 
@@ -149,6 +153,7 @@ describe('Directory Clone API', () => {
 			/** @type {any} */ ({ request })
 		);
 
+		// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 		const response = await POST(event);
 		const result = await response.json();
 

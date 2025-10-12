@@ -9,10 +9,15 @@ describe('SessionOrchestrator', () => {
 
 	beforeEach(() => {
 		// Create mock adapter registry
-		mockAdapterRegistry = {
-			getAdapter: vi.fn(),
-			hasAdapter: vi.fn()
-		};
+		// Type assertion needed because mock doesn't include private members (#adapters)
+		// which are implementation details not needed for testing
+		mockAdapterRegistry =
+			/** @type {import('../../../src/lib/server/sessions/AdapterRegistry.js').AdapterRegistry} */ (
+				/** @type {any} */ ({
+					getAdapter: vi.fn(),
+					hasAdapter: vi.fn()
+				})
+			);
 
 		// Create mock session repository with all public methods
 		// Type assertion needed because mock doesn't include private members (#db, #stmts, #parseSession)
@@ -32,19 +37,21 @@ describe('SessionOrchestrator', () => {
 				})
 			);
 
-		// Create mock event recorder
-		mockEventRecorder = {
-			startBuffering: vi.fn(),
-			flushBuffer: vi.fn(),
-			clearBuffer: vi.fn(),
-			recordEvent: vi.fn(),
-			stopRecording: vi.fn(),
-			getSequence: vi.fn().mockResolvedValue(0),
-			eventStore: {
-				clearSequence: vi.fn(),
-				getSequence: vi.fn().mockResolvedValue(0)
-			}
-		};
+		// Create mock event recorder with all public methods
+		// Type assertion needed because mock doesn't include private members (#eventStore, #eventEmitter, #buffers)
+		// which are implementation details not needed for testing
+		mockEventRecorder =
+			/** @type {import('../../../src/lib/server/sessions/EventRecorder.js').EventRecorder} */ (
+				/** @type {any} */ ({
+					startBuffering: vi.fn(),
+					flushBuffer: vi.fn(),
+					clearBuffer: vi.fn(),
+					recordEvent: vi.fn(),
+					eventStore: {
+						clearSequence: vi.fn()
+					}
+				})
+			);
 
 		// Create orchestrator with mocks in correct order (repository, recorder, registry)
 		orchestrator = new SessionOrchestrator(

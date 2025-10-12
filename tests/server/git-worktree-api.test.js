@@ -32,6 +32,14 @@ vi.mock('node:fs', () => ({
 	writeFileSync: vi.fn()
 }));
 
+// Type assertions for mocked functions so TypeScript knows they're vitest mocks
+// @ts-ignore - Test mocks
+const mockExistsSync = /** @type {import('vitest').Mock} */ (existsSync);
+// @ts-ignore - Test mocks
+const mockReadFileSync = /** @type {import('vitest').Mock} */ (readFileSync);
+// @ts-ignore - Test mocks
+const mockWriteFileSync = /** @type {import('vitest').Mock} */ (writeFileSync);
+
 describe('Git Worktree API Endpoints', () => {
 	let mockSpawn;
 
@@ -82,6 +90,7 @@ describe('Git Worktree API Endpoints', () => {
 			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
 				/** @type {any} */ ({ url })
 			);
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await listWorktrees(event);
 			const data = await response.json();
 
@@ -108,6 +117,7 @@ describe('Git Worktree API Endpoints', () => {
 			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
 				/** @type {any} */ ({ url })
 			);
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await listWorktrees(event);
 			const data = await response.json();
 
@@ -118,7 +128,7 @@ describe('Git Worktree API Endpoints', () => {
 
 	describe('POST /api/git/worktree/add', () => {
 		it('should add worktree with new branch', async () => {
-			existsSync.mockReturnValue(false); // Worktree path doesn't exist
+			mockExistsSync.mockReturnValue(false); // Worktree path doesn't exist
 
 			// Mock git rev-parse success
 			mockSpawn.mockImplementationOnce(() => ({
@@ -157,6 +167,7 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await addWorktree(event);
 			const data = await response.json();
 
@@ -167,7 +178,7 @@ describe('Git Worktree API Endpoints', () => {
 		});
 
 		it('should handle existing worktree path', async () => {
-			existsSync.mockImplementation((path) => {
+			mockExistsSync.mockImplementation((path) => {
 				return path === '/test/existing'; // Only worktree path exists
 			});
 
@@ -195,6 +206,7 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await addWorktree(event);
 			const data = await response.json();
 
@@ -203,7 +215,7 @@ describe('Git Worktree API Endpoints', () => {
 		});
 
 		it('should execute .dispatchrc with original repo path parameter', async () => {
-			existsSync.mockImplementation((path) => {
+			mockExistsSync.mockImplementation((path) => {
 				if (path === '/test/repo-feature') return false; // Worktree path doesn't exist
 				if (path === '/test/repo/.dispatchrc') return true; // .dispatchrc exists
 				return false;
@@ -261,6 +273,7 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await addWorktree(event);
 			const data = await response.json();
 
@@ -278,7 +291,7 @@ describe('Git Worktree API Endpoints', () => {
 		});
 
 		it('should fallback to individual commands when .dispatchrc does not exist', async () => {
-			existsSync.mockImplementation((path) => {
+			mockExistsSync.mockImplementation((path) => {
 				if (path === '/test/repo-feature') return false; // Worktree path doesn't exist
 				if (path === '/test/repo/.dispatchrc') return false; // .dispatchrc does not exist
 				return false;
@@ -336,6 +349,7 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await addWorktree(event);
 			const data = await response.json();
 
@@ -391,6 +405,7 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await removeWorktree(event);
 			const data = await response.json();
 
@@ -402,7 +417,7 @@ describe('Git Worktree API Endpoints', () => {
 
 	describe('GET /api/git/worktree/init-detect', () => {
 		it('should detect Node.js project', async () => {
-			existsSync.mockImplementation((path) => {
+			mockExistsSync.mockImplementation((path) => {
 				return path.includes('package.json') || path === '/test/project';
 			});
 
@@ -410,6 +425,7 @@ describe('Git Worktree API Endpoints', () => {
 			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
 				/** @type {any} */ ({ url })
 			);
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await detectInit(event);
 			const data = await response.json();
 
@@ -420,16 +436,17 @@ describe('Git Worktree API Endpoints', () => {
 		});
 
 		it('should detect existing .dispatchrc script', async () => {
-			existsSync.mockImplementation((path) => {
+			mockExistsSync.mockImplementation((path) => {
 				return path === '/test/project' || path.includes('.dispatchrc');
 			});
 
-			readFileSync.mockReturnValue('#!/bin/bash\nnpm install\nnpm run build');
+			mockReadFileSync.mockReturnValue('#!/bin/bash\nnpm install\nnpm run build');
 
 			const url = new URL('http://test.com?path=/test/project');
 			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
 				/** @type {any} */ ({ url })
 			);
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await detectInit(event);
 			const data = await response.json();
 
@@ -442,7 +459,7 @@ describe('Git Worktree API Endpoints', () => {
 
 	describe('POST /api/git/worktree/init-detect', () => {
 		it('should save .dispatchrc script', async () => {
-			existsSync.mockReturnValue(true);
+			mockExistsSync.mockReturnValue(true);
 
 			const request = /** @type {Request} */ (
 				/** @type {any} */ ({
@@ -458,13 +475,14 @@ describe('Git Worktree API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await saveInit(event);
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
 			expect(data.success).toBe(true);
 			expect(data.scriptPath).toBe('/test/project/.dispatchrc');
-			expect(writeFileSync).toHaveBeenCalledWith(
+			expect(mockWriteFileSync).toHaveBeenCalledWith(
 				'/test/project/.dispatchrc',
 				expect.stringContaining('npm install'),
 				'utf8'

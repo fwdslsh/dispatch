@@ -77,6 +77,7 @@ describe('Git API Endpoints', () => {
 			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
 				/** @type {any} */ ({ url })
 			);
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await GET(event);
 			const data = await response.json();
 
@@ -106,6 +107,7 @@ describe('Git API Endpoints', () => {
 			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
 				/** @type {any} */ ({ url })
 			);
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await GET(event);
 			const data = await response.json();
 
@@ -118,6 +120,7 @@ describe('Git API Endpoints', () => {
 			const event = /** @type {import('@sveltejs/kit').RequestEvent} */ (
 				/** @type {any} */ ({ url })
 			);
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await GET(event);
 			const data = await response.json();
 
@@ -150,6 +153,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await commitPost(event);
 			const data = await response.json();
 
@@ -172,6 +176,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await commitPost(event);
 			const data = await response.json();
 
@@ -202,6 +207,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await commitPost(event);
 			const data = await response.json();
 
@@ -235,6 +241,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await stagePost(event);
 			const data = await response.json();
 
@@ -268,6 +275,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await stagePost(event);
 			const data = await response.json();
 
@@ -292,6 +300,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await stagePost(event);
 			const data = await response.json();
 
@@ -313,6 +322,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await stagePost(event);
 			const data = await response.json();
 
@@ -345,6 +355,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await checkoutPost(event);
 			const data = await response.json();
 
@@ -368,6 +379,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await checkoutPost(event);
 			const data = await response.json();
 
@@ -398,6 +410,7 @@ describe('Git API Endpoints', () => {
 				/** @type {any} */ ({ request })
 			);
 
+			// @ts-expect-error - Test mock doesn't match exact RequestEvent type
 			const response = await checkoutPost(event);
 			const data = await response.json();
 

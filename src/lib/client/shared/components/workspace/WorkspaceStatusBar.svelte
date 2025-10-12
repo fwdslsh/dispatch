@@ -181,14 +181,6 @@
 		gap: var(--space-2);
 	}
 
-	.session-counter {
-		font-family: var(--font-mono);
-		font-size: 0.75rem;
-		color: var(--text-secondary);
-		min-width: 40px;
-		text-align: center;
-	}
-
 	/* Small screen adjustments */
 	@media (max-width: 800px) {
 		.status-bar {
