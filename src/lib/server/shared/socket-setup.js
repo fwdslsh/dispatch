@@ -561,6 +561,11 @@ export function setupSocketIO(httpServer, services) {
 			if (sessionValidationTimer) {
 				clearInterval(sessionValidationTimer);
 			}
+
+			// Clean up Claude authentication PTY session if active
+			if (services.claudeAuthManager) {
+				services.claudeAuthManager.cleanup(socket.id);
+			}
 		});
 	});
 

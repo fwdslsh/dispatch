@@ -1,12 +1,68 @@
 import { json } from '@sveltejs/kit';
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { logger } from '$lib/server/shared/utils/logger.js';
 
-const execAsync = promisify(exec);
+/**
+ * Promisify spawn() for async/await with timeout support
+ * Prevents shell injection by passing arguments as array
+ */
+function spawnAsync(command, args, options = {}) {
+	return new Promise((resolve, reject) => {
+		const { timeout, ...spawnOptions } = options;
+		const child = spawn(command, args, spawnOptions);
+
+		let stdout = '';
+		let stderr = '';
+		let timedOut = false;
+		let timeoutId;
+
+		// Set up timeout if specified
+		if (timeout) {
+			timeoutId = setTimeout(() => {
+				timedOut = true;
+				child.kill('SIGTERM');
+				reject(new Error(`Process timed out after ${timeout}ms`));
+			}, timeout);
+		}
+
+		if (child.stdout) {
+			child.stdout.on('data', (data) => {
+				stdout += data.toString();
+			});
+		}
+
+		if (child.stderr) {
+			child.stderr.on('data', (data) => {
+				stderr += data.toString();
+			});
+		}
+
+		child.on('error', (error) => {
+			if (timeoutId) clearTimeout(timeoutId);
+			if (!timedOut) reject(error);
+		});
+
+		child.on('close', (code) => {
+			if (timeoutId) clearTimeout(timeoutId);
+			if (timedOut) return; // Error already sent
+
+			if (code === 0) {
+				resolve({ stdout, stderr });
+			} else {
+				const error = /** @type {Error & {code?: number, stdout?: string, stderr?: string}} */ (
+					new Error(`Process exited with code ${code}`)
+				);
+				error.code = code || undefined;
+				error.stdout = stdout;
+				error.stderr = stderr;
+				reject(error);
+			}
+		});
+	});
+}
 
 /**
  * Claude Authentication API
@@ -62,7 +118,7 @@ export async function GET() {
 			authenticated: false,
 			status: 'not_authenticated',
 			hint: 'Claude credentials not found or invalid',
-			error: error_
+			error: error_.message || 'Unknown error'
 		});
 	}
 }
@@ -93,8 +149,9 @@ export async function POST({ request }) {
 		}
 
 		// Try to authenticate with the API key using Claude CLI
+		// SECURITY: Use spawn() with array args to prevent shell injection
 		try {
-			await execAsync(`claude auth login --api-key "${apiKey}"`, {
+			await spawnAsync('claude', ['auth', 'login', '--api-key', apiKey], {
 				timeout: 10000,
 				env: { ...process.env, PATH: process.env.PATH }
 			});
@@ -104,7 +161,7 @@ export async function POST({ request }) {
 				message: 'API key authentication successful'
 			});
 		} catch (authError) {
-			console.error('Claude API key auth failed:', authError);
+			logger.error('Claude API key auth failed:', authError);
 			return json(
 				{
 					success: false,
@@ -128,7 +185,8 @@ export async function POST({ request }) {
 export async function DELETE() {
 	try {
 		// Sign out using Claude CLI
-		await execAsync('claude auth logout', {
+		// SECURITY: Use spawn() with array args to prevent shell injection
+		await spawnAsync('claude', ['auth', 'logout'], {
 			timeout: 5000,
 			env: { ...process.env, PATH: process.env.PATH }
 		});
@@ -146,7 +204,7 @@ export async function DELETE() {
 			message: 'Signed out successfully'
 		});
 	} catch (error_) {
-		console.error('Claude sign out failed:', error_);
+		logger.error('Claude sign out failed:', error_);
 		return json(
 			{
 				success: false,

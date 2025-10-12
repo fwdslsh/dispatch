@@ -96,11 +96,15 @@
 		await checkAuthStatus();
 
 		// Initialize a general Socket.IO connection for auth events
-		socket = io(socketUrl, { autoConnect: true, reconnection: true });
+		// CRITICAL: Use autoConnect: false and register listeners first to prevent race condition
+		socket = io(socketUrl, { autoConnect: false, reconnection: true });
 
 		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
 		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
 		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
+
+		// Connect after listeners are registered
+		socket.connect();
 
 		// Load Claude settings
 		if (!settingsService.isLoaded) {
@@ -158,13 +162,18 @@
 		statusMessage = '';
 		try {
 			if (!socket) {
-				socket = io(socketUrl, { autoConnect: true, reconnection: true });
+				// CRITICAL: Create socket with autoConnect: false to prevent race condition
+				// Register listeners BEFORE connecting to ensure no events are missed
+				socket = io(socketUrl, { autoConnect: false, reconnection: true });
 
 				// Register event listeners immediately after socket creation
 				// This prevents race condition where events might be emitted before listeners are attached
 				socket.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
 				socket.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
 				socket.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
+
+				// NOW connect after listeners are ready
+				socket.connect();
 			}
 
 			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
@@ -232,15 +241,37 @@
 		loading = true;
 		authError = '';
 		statusMessage = '';
+
+		// Add timeout protection - UI shouldn't hang if server never responds
+		const timeoutId = setTimeout(() => {
+			if (loading) {
+				loading = false;
+				authError = 'Code submission timed out. Please try again.';
+				statusMessage = '';
+			}
+		}, 30000); // 30 second timeout
+
 		try {
 			// Fix: Send { apiKey, code } instead of { key, code }
 			// Server expects apiKey in socket-setup.js
 			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
-			socket?.emit(SOCKET_EVENTS.CLAUDE_AUTH_CODE, { apiKey: key, code: authCode.trim() });
+			socket?.emit(
+				SOCKET_EVENTS.CLAUDE_AUTH_CODE,
+				{ apiKey: key, code: authCode.trim() },
+				(response) => {
+					clearTimeout(timeoutId);
+					if (response && !response.success) {
+						loading = false;
+						authError = response.error || response.message || 'Failed to submit code';
+						statusMessage = '';
+					}
+					// On success, handleAuthComplete will be called via socket event
+				}
+			);
 			statusMessage = 'Submitting authorization code...';
 		} catch (_error) {
+			clearTimeout(timeoutId);
 			authError = 'Failed to submit authorization code';
-		} finally {
 			loading = false;
 		}
 	}

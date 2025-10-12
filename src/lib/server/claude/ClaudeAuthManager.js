@@ -31,6 +31,28 @@ class ClaudeAuthManager {
 		 * }>}
 		 */
 		this.sessions = new Map(); // key by socket.id
+
+		// Automatic cleanup of stale sessions (safety net for orphaned PTYs)
+		// This runs every 60 seconds and cleans up sessions older than 5 minutes
+		this.cleanupTimer = setInterval(() => {
+			const now = Date.now();
+			const staleThreshold = 5 * 60 * 1000; // 5 minutes
+
+			for (const [key, state] of this.sessions.entries()) {
+				const age = now - state.startedAt;
+				if (age > staleThreshold) {
+					logger.warn('CLAUDE', `Cleaning up stale auth session ${key} (age: ${Math.round(age / 1000)}s)`);
+					this.cleanup(key);
+				}
+			}
+		}, 60000); // Check every minute
+
+		// Cleanup timer on process exit
+		process.once('beforeExit', () => {
+			if (this.cleanupTimer) {
+				clearInterval(this.cleanupTimer);
+			}
+		});
 	}
 
 	/** Strip ANSI escape sequences and control characters */
