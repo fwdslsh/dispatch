@@ -25,7 +25,7 @@ function socketIOPlugin() {
 			console.log('[DEV] Using shared services from hooks.server.js');
 
 			const { setupSocketIO } = await import('./src/lib/server/shared/socket-setup.js');
-			const io = setupSocketIO(server.httpServer, services);
+			setupSocketIO(server.httpServer, services);
 
 			console.log('[DEV] Socket.IO ready with shared services');
 		}
@@ -49,6 +49,24 @@ export default defineConfig(async () => {
 			}
 		},
 		plugins: [sveltekit(), socketIOPlugin(), devtoolsJson()],
+		build: {
+			rollupOptions: {
+				onwarn(warning, warn) {
+					// Suppress warning about unused default export from node:path
+					// We correctly use only named imports (join, resolve, etc.)
+					// This warning is a Rollup quirk about node:path having both default and named exports
+					if (
+						warning.code === 'UNUSED_EXTERNAL_IMPORT' &&
+						warning.message?.includes('"default"') &&
+						warning.message?.includes('"node:path"')
+					) {
+						return;
+					}
+					// Use default warning handling for all other warnings
+					warn(warning);
+				}
+			}
+		},
 		server: {
 			https: sslConfig || undefined,
 			host: true
