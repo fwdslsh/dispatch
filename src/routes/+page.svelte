@@ -11,8 +11,8 @@
 	import IconGitHub from '$lib/client/shared/components/Icons/IconGitHub.svelte';
 	import IconGoogle from '$lib/client/shared/components/Icons/IconGoogle.svelte';
 	// SvelteKit form action response
-	/** @type {{ form: import('./$types').ActionData }} */
-	let { form } = $props();
+	/** @type {{ data: import('./$types').PageData, form: import('./$types').ActionData }} */
+	let { data, form } = $props();
 
 	// Create ViewModel instance
 	const authViewModel = new AuthViewModel();
@@ -20,20 +20,69 @@
 		github: IconGitHub,
 		google: IconGoogle
 	};
-	const availableOAuthProviders = $derived(() =>
+
+	function toDisplayName(name) {
+		return name
+			.split(/[-_]/)
+			.map((part) => (part ? part[0].toUpperCase() + part.slice(1) : ''))
+			.join(' ')
+			.trim();
+	}
+
+	const settings = $derived(data?.settings ?? {});
+	const authenticationSettings = $derived(settings.authentication ?? {});
+	const rawOAuthProviders = $derived(settings.oauth?.providers ?? {});
+	const normalizedOAuthProviders = $derived(
+		Object.entries(rawOAuthProviders).map(([name, config]) => {
+			const enabled = config?.enabled === true;
+			const clientId = config?.clientId ?? config?.clientID ?? '';
+			const hasClientId = typeof clientId === 'string' && clientId.trim().length > 0;
+
+			return {
+				name,
+				displayName: config?.displayName || toDisplayName(name) || name,
+				enabled,
+				hasClientId,
+				available: enabled && hasClientId
+			};
+		})
+	);
+	const layoutAvailableOAuthProviders = $derived(
+		normalizedOAuthProviders.filter(
+			(provider) => provider.available && iconByProvider[provider.name]
+		)
+	);
+	const fallbackAvailableOAuthProviders = $derived(
 		(authViewModel.oauthProviders ?? []).filter(
 			(provider) => provider.available && iconByProvider[provider.name]
 		)
 	);
-	const showOnboardingLink = $derived(() => authViewModel.onboardingComplete === false);
+	const availableOAuthProviders = $derived(
+		layoutAvailableOAuthProviders.length ? layoutAvailableOAuthProviders : fallbackAvailableOAuthProviders
+	);
+	const terminalKeySet = $derived(() => {
+		const key = authenticationSettings.terminal_key;
+		return typeof key === 'string' && key.trim().length > 0;
+	});
+
+	$effect(() => {
+		const providers = normalizedOAuthProviders;
+
+		authViewModel.oauthProviders = providers;
+		authViewModel.authConfig = {
+			terminal_key_set: terminalKeySet,
+			oauth_configured: providers.some((provider) => provider.available),
+			oauthProviders: providers
+		};
+	});
 	// Component state
 	let apiKey = $state('');
 	let isSubmitting = $state(false);
 	// Initialize on mount
 	onMount(async () => {
-		const result = await authViewModel.initialize();
+		const isAuthenticated = await authViewModel.checkExistingAuth();
 
-		if (result.redirectToWorkspace) {
+		if (isAuthenticated) {
 			// eslint-disable-next-line svelte/no-navigation-without-resolve -- Internal app route for authenticated users
 			goto('/workspace');
 		}
@@ -133,15 +182,6 @@
 					</div>
 				{/if}
 
-				{#if showOnboardingLink}
-					<div class="login-footer">
-						<p class="footer-text">
-							First time here?
-							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-							<a href="/onboarding" class="footer-link">Get started</a>
-						</p>
-					</div>
-				{/if}
 			</div>
 
 			<PublicUrlDisplay />
@@ -351,9 +391,6 @@
 		transform: translateY(30px) scale(0.9);
 		box-shadow: 0 12px 32px color-mix(in oklab, var(--bg) 85%, transparent);
 		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-		.login-footer {
-			margin-top: var(--space-4);
-		}
 	}
 
 	.card::before {
@@ -472,27 +509,6 @@
 	.oauth-button svg {
 		width: 1.5rem;
 		height: 1.5rem;
-	}
-
-	.login-footer {
-		text-align: center;
-	}
-
-	.footer-text {
-		margin: 0;
-		color: var(--muted);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
-	}
-
-	.footer-link {
-		margin-left: var(--space-1);
-		color: var(--primary);
-		text-decoration: none;
-	}
-
-	.footer-link:hover {
-		text-decoration: underline;
 	}
 
 	@media (max-width: 480px) {

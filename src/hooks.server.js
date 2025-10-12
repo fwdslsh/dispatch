@@ -180,8 +180,50 @@ async function servicesMiddleware({ event, resolve }) {
 	return resolve(event);
 }
 
+/**
+ * Onboarding enforcement middleware
+ * Redirects HTML page requests to onboarding until setup is complete
+ */
+async function onboardingMiddleware({ event, resolve }) {
+	const { pathname } = event.url;
+
+	// Allow onboarding and settings routes without redirection
+	const isOnboardingRoute = pathname === '/onboarding' || pathname.startsWith('/onboarding/');
+	const isSettingsRoute = pathname.startsWith('/settings');
+	if (isOnboardingRoute || isSettingsRoute) {
+		return resolve(event);
+	}
+
+	// Only enforce on HTML navigation requests (skip APIs and assets)
+	const acceptHeader = event.request.headers.get('accept') || '';
+	if (!acceptHeader.includes('text/html')) {
+		return resolve(event);
+	}
+
+	// Allow API and internal asset routes explicitly
+	if (pathname.startsWith('/api/') || pathname.startsWith('/_app/')) {
+		return resolve(event);
+	}
+
+	try {
+		const services = event.locals.services;
+		const status = await services?.settingsRepository?.getSystemStatus();
+		const onboardingComplete = status?.onboarding?.isComplete === true;
+
+		if (!onboardingComplete) {
+			logger.debug('ONBOARDING', `Redirecting ${pathname} to /onboarding`);
+			throw redirect(303, '/onboarding');
+		}
+	} catch (error) {
+		logger.error('ONBOARDING', 'Failed to evaluate onboarding state:', error);
+		// Allow request to proceed on failure to avoid blocking access
+	}
+
+	return resolve(event);
+}
+
 // Transaction middleware removed - this was an anti-pattern
 // Transactions should be at the repository method level, not wrapping entire HTTP requests
 // See code-review-fixes.md FIX-002 for details
 
-export const handle = sequence(servicesMiddleware, authenticationMiddleware);
+export const handle = sequence(servicesMiddleware, authenticationMiddleware, onboardingMiddleware);

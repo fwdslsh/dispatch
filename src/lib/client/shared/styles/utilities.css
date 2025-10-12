@@ -149,7 +149,7 @@
 
 /* Width and height utilities */
 .w-full {
-	width: 100%;
+	width: stretch;
 }
 .w-4 {
 	width: 1rem;

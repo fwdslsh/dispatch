@@ -250,7 +250,7 @@ export class ThemeState {
 			// Authentication via session cookie (server validates)
 
 			// Update global theme preference using correct settings API endpoint
-			const url = `${this.baseUrl}/api/settings/themes`;
+			const url = `${this.baseUrl}/settings/themes`;
 			const response = await fetch(url, {
 				method: 'PUT',
 				headers: this.getHeaders(),

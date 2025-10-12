@@ -265,7 +265,7 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
-		width: 100%;
+		width: stretch;
 		height: 100%;
 		padding: 2rem;
 		box-sizing: border-box;
@@ -309,7 +309,7 @@
 		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 		text-align: center;
 		max-width: 500px;
-		width: 100%;
+		width: stretch;
 	}
 
 	.error-container h1 {
@@ -345,12 +345,12 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		width: 100%;
+		width: stretch;
 		max-width: 600px;
 	}
 
 	.api-key-card {
-		width: 100%;
+		width: stretch;
 		background: var(--surface);
 		border: 1px solid var(--line);
 		border-radius: var(--radius-md);
