@@ -22,7 +22,6 @@
 	 */
 
 	// Authentication state
-	let isAuthenticated = $state(false);
 	let authStatus = $state('checking'); // 'checking' | 'authenticated' | 'not_authenticated' | 'error'
 	let authError = $state('');
 	let loading = $state(false);
@@ -41,7 +40,6 @@
 	let statusMessage = $state('');
 
 	// Service container for configuration
-	let container = null;
 	let socketUrl = '';
 
 	// Settings state (for Defaults section)
@@ -51,10 +49,10 @@
 
 	// Try to get service container for configuration
 	try {
-		container = useServiceContainer();
+		const container = useServiceContainer();
 		socketUrl =
 			container.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
-	} catch (e) {
+	} catch (_e) {
 		// Fallback if container is not available (not in context)
 		socketUrl = typeof window !== 'undefined' ? window.location.origin : '';
 	}
@@ -63,22 +61,20 @@
 
 	const handleAuthUrl = (payload) => {
 		try {
-			console.log('[Claude Auth] Received CLAUDE_AUTH_URL event:', payload);
 			const url = String(payload?.url || '');
 			oauthUrl = url;
 			showCodeInput = true;
 			statusMessage = payload?.instructions || 'Open the link, then paste the code here.';
 			loading = false; // Stop loading spinner
-			console.log('[Claude Auth] Set oauthUrl:', url.substring(0, 60) + '...');
-			console.log('[Claude Auth] showCodeInput:', showCodeInput);
 			// Open OAuth URL in a new tab for convenience
 			if (url) {
 				try {
 					window.open(url, '_blank', 'width=600,height=700');
-				} catch {}
+				} catch {
+					// Popup blocked - user can still click the link
+				}
 			}
-		} catch (e) {
-			console.error('[Claude Auth] Error in handleAuthUrl:', e);
+		} catch (_e) {
 			authError = 'Failed to start authentication.';
 		}
 	};
@@ -119,10 +115,14 @@
 				socket.off(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
 				socket.off(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
 				socket.off(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
-			} catch {}
+			} catch {
+				// Event listener cleanup failed - non-critical
+			}
 			try {
 				socket.disconnect();
-			} catch {}
+			} catch {
+				// Socket disconnect failed - non-critical
+			}
 		}
 	});
 
@@ -136,7 +136,6 @@
 			const data = await response.json();
 
 			if (response.ok) {
-				isAuthenticated = data.authenticated;
 				authStatus = data.authenticated ? 'authenticated' : 'not_authenticated';
 				if (data.hint && !data.authenticated) {
 					statusMessage = data.hint;
@@ -145,8 +144,7 @@
 				authStatus = 'error';
 				authError = data.error || 'Failed to check authentication status';
 			}
-		} catch (error) {
-			console.error('Auth check failed:', error);
+		} catch (_error) {
 			authStatus = 'error';
 			authError = 'Unable to connect to authentication service';
 		}
@@ -177,12 +175,18 @@
 					const onConnect = () => {
 						try {
 							socket.off('connect', onConnect);
-						} catch {}
+						} catch {
+							// Event listener removal failed - non-critical
+						}
 						// authenticate this socket context for consistency
 						try {
 							const authKey = key;
-							socket.emit('auth', authKey, () => {});
-						} catch {}
+							socket.emit('auth', authKey, () => {
+								// Auth callback - intentionally empty
+							});
+						} catch {
+							// Socket auth failed - will retry on next connection
+						}
 						resolve();
 					};
 					socket.on('connect', onConnect);
@@ -208,17 +212,14 @@
 			// BUG FIX #1: Add callback handler to catch server errors
 			socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_START, { apiKey: key }, (response) => {
 				clearTimeout(timeoutId);
-				console.log('[Claude Auth] Received callback response:', response);
 				if (response && !response.success) {
 					loading = false;
 					// Server might send 'error' or 'message' field
 					authError = response.error || response.message || 'Failed to start authentication';
 					statusMessage = '';
-					console.log('[Claude Auth] Set error:', authError);
 				}
 			});
-		} catch (error) {
-			console.error('OAuth setup (WS) failed:', error);
+		} catch (_error) {
 			authError = 'Failed to start authentication process';
 		} finally {
 			loading = false;
@@ -237,8 +238,7 @@
 			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
 			socket?.emit(SOCKET_EVENTS.CLAUDE_AUTH_CODE, { apiKey: key, code: authCode.trim() });
 			statusMessage = 'Submitting authorization code...';
-		} catch (error) {
-			console.error('Auth completion (WS) failed:', error);
+		} catch (_error) {
 			authError = 'Failed to submit authorization code';
 		} finally {
 			loading = false;
@@ -272,8 +272,7 @@
 			} else {
 				authError = data.error || 'Invalid API key';
 			}
-		} catch (error) {
-			console.error('API key auth failed:', error);
+		} catch (_error) {
 			authError = 'Failed to authenticate with API key';
 		} finally {
 			loading = false;
@@ -301,8 +300,7 @@
 				const data = await response.json();
 				authError = data.error || 'Failed to sign out';
 			}
-		} catch (error) {
-			console.error('Sign out failed:', error);
+		} catch (_error) {
 			authError = 'Failed to sign out';
 		} finally {
 			loading = false;
@@ -360,8 +358,7 @@
 			setTimeout(() => {
 				saveStatus = '';
 			}, 3000);
-		} catch (error) {
-			console.error('Failed to save Claude settings:', error);
+		} catch (_error) {
 			saveStatus = 'Failed to save Claude settings';
 		} finally {
 			saving = false;
@@ -491,11 +488,10 @@
 				{#if oauthUrl}
 					<div class="status-message">
 						<p>
-							If the popup was blocked, <a
-								href={oauthUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="text-primary">click here to open manually</a
+							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+							If the popup was blocked,
+							<a href={oauthUrl} target="_blank" rel="noopener noreferrer" class="text-primary"
+								>click here to open manually</a
 							>.
 						</p>
 					</div>
@@ -506,6 +502,7 @@
 			<div class="flow-setup">
 				<h4 class="step-title">API Key Authentication</h4>
 				<p class="step-description">
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 					Enter your Claude API key. You can find this in your
 					<a
 						href="https://console.anthropic.com/"

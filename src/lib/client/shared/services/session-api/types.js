@@ -44,10 +44,10 @@ export { SESSION_TYPE };
 
 /**
  * Get headers for API requests
- * @param {SessionConfig} config
+ * @param {SessionConfig} _config
  * @returns {Object} Headers object
  */
-export function getHeaders(config) {
+export function getHeaders(_config) {
 	return {
 		'content-type': 'application/json'
 	};

@@ -21,7 +21,6 @@ import { SessionManager } from '../auth/SessionManager.server.js';
 import { OAuthManager } from '../auth/OAuth.server.js';
 import { UserManager } from '../auth/UserManager.server.js';
 import { createMigrationManager } from './db/migrate.js';
-import path from 'node:path';
 import os from 'node:os';
 import { logger } from './utils/logger.js';
 import { SESSION_TYPE } from '../../shared/session-types.js';

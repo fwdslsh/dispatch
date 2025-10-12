@@ -298,7 +298,7 @@ export class DatabaseManager {
 		if (row && row.meta_json) {
 			try {
 				row.meta = JSON.parse(row.meta_json);
-			} catch (e) {
+			} catch (_e) {
 				row.meta = {};
 			}
 		}
@@ -319,7 +319,7 @@ export class DatabaseManager {
 			if (row.meta_json) {
 				try {
 					row.meta = JSON.parse(row.meta_json);
-				} catch (e) {
+				} catch (_e) {
 					row.meta = {};
 				}
 			}
@@ -386,9 +386,8 @@ export class DatabaseManager {
 				try {
 					const text = new TextDecoder().decode(row.payload);
 					row.payload = JSON.parse(text);
-				} catch (e) {
-					// Keep as raw buffer if not JSON
-					row.payload = row.payload;
+				} catch (_e) {
+					// Keep as raw buffer if not JSON - no assignment needed
 				}
 			}
 			return row;
@@ -539,7 +538,7 @@ export class DatabaseManager {
 			if (row.data) {
 				try {
 					row.data = JSON.parse(row.data);
-				} catch (e) {
+				} catch (_e) {
 					// Keep as string if parsing fails
 				}
 			}
@@ -580,7 +579,7 @@ export class DatabaseManager {
 		return rows.map((row) => {
 			try {
 				row.settings = JSON.parse(row.settings_json);
-			} catch (e) {
+			} catch (_e) {
 				row.settings = {};
 			}
 			delete row.settings_json; // Remove raw JSON from response

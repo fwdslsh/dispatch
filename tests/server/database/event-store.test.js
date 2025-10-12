@@ -119,7 +119,7 @@ describe('EventStore', () => {
 			await eventStore.append('session-1', event);
 
 			// Spy on get to simulate clearSequence being called
-			const originalGet = eventStore['#sequences'].get.bind(eventStore['#sequences']);
+			const _originalGet = eventStore['#sequences'].get.bind(eventStore['#sequences']);
 			vi.spyOn(eventStore['#sequences'], 'get').mockImplementation((sessionId) => {
 				// Simulate clearSequence being called during append
 				eventStore.clearSequence(sessionId);

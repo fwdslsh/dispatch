@@ -3,6 +3,8 @@
  * @file Interface definitions for session management components
  */
 
+/* eslint-disable no-unused-vars */
+
 /**
  * AdapterRegistry - Session adapter registry
  * @class
@@ -152,6 +154,8 @@ class Adapter {
 	 */
 	close(process) {}
 }
+
+/* eslint-enable no-unused-vars */
 
 /**
  * TypeDefs

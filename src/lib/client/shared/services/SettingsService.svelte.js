@@ -4,7 +4,7 @@
  * Consolidates previous SettingsService.js and SettingsService.svelte.js
  */
 
-import { STORAGE_CONFIG } from '$lib/shared/constants.js';
+import { SvelteDate } from 'svelte/reactivity';
 
 export class SettingsService {
 	constructor(config = {}) {
@@ -75,7 +75,7 @@ export class SettingsService {
 
 			// Store the categorized settings directly
 			this.settings = data;
-			this.lastSync = new Date().toISOString();
+			this.lastSync = new SvelteDate().toISOString();
 			this.isLoaded = true;
 
 			if (this.config.debug) {

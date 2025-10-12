@@ -194,16 +194,6 @@ export class EventStore {
 	}
 
 	/**
-	 * Get next sequence number for session
-	 * @param {string} sessionId - Session ID
-	 * @returns {Promise<number>} Next sequence number
-	 */
-	async #getNextSequence(sessionId) {
-		const current = await this.getLatestSeq(sessionId);
-		return current + 1;
-	}
-
-	/**
 	 * Parse database row into event object
 	 * @param {Object} row - Database row
 	 * @returns {Object} Event object
@@ -216,7 +206,7 @@ export class EventStore {
 			try {
 				const text = new TextDecoder().decode(row.payload);
 				payload = JSON.parse(text);
-			} catch (e) {
+			} catch (_e) {
 				// Keep as raw buffer if not JSON
 				payload = row.payload;
 			}

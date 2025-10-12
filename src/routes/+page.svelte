@@ -15,6 +15,7 @@
 		const result = await viewModel.initialize();
 
 		if (result.redirectToWorkspace) {
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- Internal app route for authenticated users
 			goto('/workspace');
 		}
 	});
@@ -31,6 +32,7 @@
 
 		const result = await viewModel.loginWithKey(viewModel.key);
 		if (result.success) {
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- Internal app route after successful login
 			goto('/workspace');
 		}
 	}

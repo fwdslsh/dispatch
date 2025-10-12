@@ -150,7 +150,7 @@ export function normalizeWorkspacePath(workspacePath, defaultPath = process.cwd(
 
 	try {
 		return resolve(workspacePath);
-	} catch (error) {
+	} catch (_error) {
 		console.warn(`Invalid workspace path "${workspacePath}", using default: ${defaultPath}`);
 		return resolve(defaultPath);
 	}

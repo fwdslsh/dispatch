@@ -7,6 +7,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { SESSION_TYPE } from '../../../shared/session-types.js';
+import { SvelteMap, SvelteDate } from 'svelte/reactivity';
 
 const log = createLogger('session-state');
 
@@ -19,8 +20,8 @@ export class SessionState {
 		this.error = $state(null);
 
 		// Activity tracking
-		this.sessionActivity = $state(new Map());
-		this.lastMessageTimestamps = $state(new Map());
+		this.sessionActivity = $state(new SvelteMap());
+		this.lastMessageTimestamps = $state(new SvelteMap());
 
 		// Derived state
 		this.inLayoutSessions = $derived.by(() => this.sessions.filter((s) => s.inLayout));
@@ -51,8 +52,8 @@ export class SessionState {
 			inLayout: session.inLayout !== undefined ? session.inLayout : !!session.tileId,
 			tileId: session.tileId ?? null,
 			title: session.title || `${session.type} session`,
-			createdAt: session.createdAt || new Date().toISOString(),
-			lastActivity: session.lastActivity || new Date().toISOString(),
+			createdAt: session.createdAt || new SvelteDate().toISOString(),
+			lastActivity: session.lastActivity || new SvelteDate().toISOString(),
 			activityState: session.activityState || 'idle'
 		}));
 		log.info('[SessionState] Processed sessions:', this.sessions);
@@ -64,8 +65,8 @@ export class SessionState {
 	addSession(sessionData) {
 		const newSession = {
 			...sessionData,
-			createdAt: new Date().toISOString(),
-			lastActivity: new Date().toISOString(),
+			createdAt: new SvelteDate().toISOString(),
+			lastActivity: new SvelteDate().toISOString(),
 			isActive: true,
 			inLayout: false,
 			tileId: sessionData.tileId ?? null

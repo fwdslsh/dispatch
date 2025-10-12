@@ -23,7 +23,7 @@ function getSessionTitle(kind) {
 	}
 }
 
-export async function GET({ url, request, locals }) {
+export async function GET({ url, request: _request, locals }) {
 	// Require authentication
 	const includeAll = url.searchParams.get('include') === 'all';
 

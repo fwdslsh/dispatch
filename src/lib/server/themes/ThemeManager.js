@@ -13,7 +13,7 @@
  */
 
 import { promises as fs } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
+import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
 

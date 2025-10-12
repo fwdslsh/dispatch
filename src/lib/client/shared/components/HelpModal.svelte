@@ -32,36 +32,34 @@
 </script>
 
 <Modal bind:open title="Keyboard Shortcuts" size="medium">
-	{#snippet children()}
-		<div class="help-content p-5" style="max-height: 70vh; overflow-y: auto; line-height: 1.6;">
-			<p class="help-intro">Use these keyboard shortcuts to efficiently manage your workspace:</p>
+	<div class="help-content p-5" style="max-height: 70vh; overflow-y: auto; line-height: 1.6;">
+		<p class="help-intro">Use these keyboard shortcuts to efficiently manage your workspace:</p>
 
-			{#each shortcuts as category}
-				<div class="shortcut-category">
-					<h3 class="category-title">{category.category}</h3>
-					<div class="flex-col gap-3">
-						{#each category.items as shortcut}
-							<div class="shortcut-item interactive flex gap-4 p-3">
-								<div class="shortcut-keys">
-									{shortcut.keys}
-								</div>
-								<div class="flex-1">
-									{shortcut.description}
-								</div>
+		{#each shortcuts as category (category.category)}
+			<div class="shortcut-category">
+				<h3 class="category-title">{category.category}</h3>
+				<div class="flex-col gap-3">
+					{#each category.items as shortcut (shortcut.keys)}
+						<div class="shortcut-item interactive flex gap-4 p-3">
+							<div class="shortcut-keys">
+								{shortcut.keys}
 							</div>
-						{/each}
-					</div>
+							<div class="flex-1">
+								{shortcut.description}
+							</div>
+						</div>
+					{/each}
 				</div>
-			{/each}
-
-			<div class="help-footer">
-				<p class="help-note">
-					💡 <strong>Tip:</strong> These shortcuts work when the window manager has focus. Click on the
-					workspace area to ensure shortcuts are active.
-				</p>
 			</div>
+		{/each}
+
+		<div class="help-footer">
+			<p class="help-note">
+				💡 <strong>Tip:</strong> These shortcuts work when the window manager has focus. Click on the
+				workspace area to ensure shortcuts are active.
+			</p>
 		</div>
-	{/snippet}
+	</div>
 	{#snippet footer()}
 		<!-- Empty footer snippet to satisfy Modal component requirements -->
 	{/snippet}

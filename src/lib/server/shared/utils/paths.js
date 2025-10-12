@@ -8,7 +8,7 @@
  * the server process can read. Use restrictive validation only when workspace
  * boundaries need to be enforced for specific features.
  */
-import { resolve, relative, isAbsolute, join } from 'node:path';
+import { resolve, relative, isAbsolute } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { logger } from './logger.js';
 
@@ -96,6 +96,7 @@ export function sanitizePath(path) {
 	}
 
 	// Remove null bytes and other control characters that could cause issues
+	// eslint-disable-next-line no-control-regex -- Path sanitization requires control character removal
 	let sanitized = path.replace(/[\x00-\x1f\x7f]/g, '');
 
 	// Remove Windows reserved characters that could cause filesystem issues

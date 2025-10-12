@@ -95,7 +95,7 @@
 	<!-- Validation Errors -->
 	{#if hasErrors}
 		<div class="error-message" id={errorId} role="alert" data-testid={errorTestId}>
-			{#each errors as error}
+			{#each errors as error, i (i)}
 				<div class="error-item">{error}</div>
 			{/each}
 		</div>

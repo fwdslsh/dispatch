@@ -201,7 +201,7 @@ export class VSCodeTunnelManager extends BaseTunnelManager {
 				process.kill(this.state.pid, 'SIGTERM');
 				success = true;
 				this._logInfo(`Tunnel process ${this.state.pid} terminated`);
-			} catch (error) {
+			} catch (_error) {
 				this._logWarn(`Process ${this.state.pid} not found or already dead`);
 				success = true; // Consider it success if process is already dead
 			}

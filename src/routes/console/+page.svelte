@@ -1,5 +1,5 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { io } from 'socket.io-client';
 	import Shell from '$lib/client/shared/components/Shell.svelte';
 
@@ -139,14 +139,6 @@
 		return `${minutes}m ${seconds}s`;
 	}
 
-	function formatFileSize(bytes) {
-		if (bytes === 0) return '0 B';
-		const k = 1024;
-		const sizes = ['B', 'KB', 'MB', 'GB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-	}
-
 	function getEventTypeClass(eventType) {
 		if (eventType === 'connection') return 'event-connection';
 		if (eventType === 'disconnect') return 'event-disconnect';
@@ -241,7 +233,7 @@
 							</div>
 						{:else}
 							<div class="term-grid">
-								{#each activeSockets as socket}
+								{#each activeSockets as socket (socket.id)}
 									<div class="card aug socket-card" data-augmented-ui="tl-clip br-clip both">
 										<div class="socket-header">
 											<h3 class="session-indicator">Socket {socket.id}</h3>
@@ -291,7 +283,7 @@
 							</div>
 						{:else}
 							<div class="events-list">
-								{#each socketEvents as event}
+								{#each socketEvents as event, index (index)}
 									<div
 										class="panel aug event-card {getEventTypeClass(event.type)}"
 										data-augmented-ui="tl-clip br-clip both"
@@ -327,7 +319,7 @@
 						{:else}
 							<div class="logs-container panel aug" data-augmented-ui="tl-clip br-clip both">
 								<div class="logs-list">
-									{#each serverLogs as log}
+									{#each serverLogs as log, index (index)}
 										<div class="log-entry log-{log.level}">
 											<span class="log-timestamp muted">{formatTimestamp(log.timestamp)}</span>
 											<span class="log-level badge {log.level}">[{log.level.toUpperCase()}]</span>
@@ -402,7 +394,7 @@
 										<p class="empty-state">No events recorded</p>
 									{:else}
 										<div class="events-timeline">
-											{#each selectedHistory.events as event}
+											{#each selectedHistory.events as event, index (index)}
 												<div class="timeline-event {getEventTypeClass(event.type)}">
 													<div class="event-header cluster">
 														<span class="badge">{event.type}</span>
@@ -439,7 +431,7 @@
 								</div>
 							{:else}
 								<div class="term-grid">
-									{#each socketHistories as history}
+									{#each socketHistories as history (history.socketId)}
 										<div
 											class="card aug history-card {history.isActive ? 'active' : ''}"
 											data-augmented-ui="tl-clip br-clip both"

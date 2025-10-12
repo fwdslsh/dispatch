@@ -17,7 +17,7 @@ function resolvePath(filepath) {
 	return resolve(expanded);
 }
 
-export async function POST({ request, locals }) {
+export async function POST({ request, locals: _locals }) {
 	try {
 		const { path, worktreePath, force = false } = await request.json();
 
@@ -31,7 +31,7 @@ export async function POST({ request, locals }) {
 		// Check if it's a git repository
 		try {
 			await execGit(['rev-parse', '--git-dir'], resolvedPath);
-		} catch (error) {
+		} catch (_error) {
 			return json({ error: 'Not a git repository' }, { status: 404 });
 		}
 

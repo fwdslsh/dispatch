@@ -118,7 +118,6 @@
 
 	<!-- Divider (unstyled) -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<!-- svelte-ignore a11y_role_has_required_aria_props -->
 	<div
 		class="wm-divider"
 		role="separator"

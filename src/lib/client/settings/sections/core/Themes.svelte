@@ -33,8 +33,8 @@
 		try {
 			await themeState.loadThemes();
 			await themeState.loadActiveTheme();
-		} catch (error) {
-			console.error('Failed to load themes:', error);
+		} catch (_error) {
+			// Theme loading error - will be reflected in themeState.error
 		}
 	});
 
@@ -122,8 +122,8 @@
 		try {
 			await themeState.activateTheme(themeId);
 			// Page will reload automatically (FR-011)
-		} catch (error) {
-			console.error('Failed to activate theme:', error);
+		} catch (_error) {
+			// Activation error - will be reflected in themeState.error
 		}
 	}
 
@@ -199,7 +199,7 @@
 					<div class="warning-list">
 						<strong>Warnings:</strong>
 						<ul>
-							{#each uploadWarnings as warning}
+							{#each uploadWarnings as warning (warning)}
 								<li>{warning}</li>
 							{/each}
 						</ul>

@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { writeFile, stat, mkdir } from 'node:fs/promises';
-import { resolve, normalize, dirname, basename, join } from 'node:path';
+import { resolve, dirname, basename, join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Get the base directory for file operations (can be configured via environment)
@@ -50,7 +50,7 @@ async function generateUniqueFilename(targetPath) {
 	return finalPath;
 }
 
-export async function POST({ request, locals }) {
+export async function POST({ request }) {
 	try {
 		const formData = await request.formData();
 		const files = formData.getAll('files');

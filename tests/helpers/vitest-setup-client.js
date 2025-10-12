@@ -100,9 +100,8 @@ if (typeof globalThis.localStorage === 'undefined' && globalThis.window?.localSt
 
 if (typeof globalThis.document === 'undefined' && globalThis.window?.document) {
 	globalThis.document = globalThis.window.document;
-} else if (typeof globalThis.document === 'undefined') {
-	globalThis.document = globalThis.document; // Use the mocked version
 }
+// Note: If document is still undefined, the mock from line 31 will be used
 
 // Provide minimal Svelte 5 rune shims for client-side tests
 // Implement $state box, $derived with dep-tracking and .by proxy, and $effect that re-runs
@@ -176,7 +175,9 @@ if (typeof window.$derived === 'undefined') {
 			if (cleanup) {
 				try {
 					cleanup();
-				} catch (e) {}
+				} catch {
+					// Ignore cleanup errors
+				}
 				cleanup = undefined;
 			}
 			const ctx = { deps: new Set() };

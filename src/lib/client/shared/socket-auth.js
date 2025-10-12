@@ -135,10 +135,10 @@ export async function authenticateSocket(socket, key) {
 
 /**
  * Check if user is currently authenticated via session cookie
- * @param {Object} config - Configuration object with socketUrl
+ * @param {Object} _config - Configuration object with socketUrl (unused, relies on cookies)
  * @returns {Promise<boolean>} Promise resolving to authentication status
  */
-export async function isAuthenticated(config = {}) {
+export async function isAuthenticated(_config = {}) {
 	try {
 		// Try to access a protected API endpoint
 		// If we have a valid session cookie, this will succeed

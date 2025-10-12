@@ -11,9 +11,9 @@
 	// Props (Svelte 5 $props() syntax)
 	let { onComplete = () => {}, onSkip = () => {} } = $props();
 
-	// Get services from context
+	// Get services from context (currently unused but may be needed for future features)
 	const serviceContainer = getContext('services');
-	const apiClient = serviceContainer?.get('apiClient');
+	const _apiClient = serviceContainer?.get('apiClient');
 
 	// Local state
 	let terminalKey = $state('');

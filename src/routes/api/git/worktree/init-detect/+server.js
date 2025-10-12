@@ -119,7 +119,7 @@ function findExistingInitScript(projectPath) {
 	return null;
 }
 
-export async function GET({ url, request, locals }) {
+export async function GET({ url, request: _request, locals: _locals }) {
 	try {
 		const path = url.searchParams.get('path');
 		if (!path) {
@@ -163,7 +163,7 @@ export async function GET({ url, request, locals }) {
 	}
 }
 
-export async function POST({ request, locals }) {
+export async function POST({ request, locals: _locals }) {
 	try {
 		const { path, commands } = await request.json();
 

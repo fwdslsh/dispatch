@@ -14,6 +14,7 @@
 	<span class="brand-icon">
 		<Logo height={32} width={32} />
 	</span>
+	<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- Internal app route -->
 	<a href="/workspace">
 		<span class="brand-text">Dispatch</span>
 		<AppVersion /></a

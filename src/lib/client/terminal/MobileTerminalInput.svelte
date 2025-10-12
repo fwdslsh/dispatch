@@ -15,8 +15,8 @@
 		onSubmit = () => {},
 		onTab = () => {},
 		onSpecialKey = () => {},
-		toggleWrapMode = () => {},
-		wrapMode = 'wrap'
+		toggleWrapMode: _toggleWrapMode = () => {},
+		wrapMode: _wrapMode = 'wrap'
 	} = $props();
 
 	// State

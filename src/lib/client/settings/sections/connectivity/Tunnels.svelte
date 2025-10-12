@@ -53,10 +53,8 @@
 			// Authenticate via session cookie before making requests
 			localSocket.emit('client:hello', {}, (response) => {
 				if (response?.success) {
-					console.log('[Tunnels] LocalTunnel socket authenticated');
 					fetchLocalTunnelStatus();
 				} else {
-					console.error('[Tunnels] LocalTunnel authentication failed:', response?.error);
 					localError = 'Authentication failed - please refresh the page';
 				}
 			});
@@ -117,14 +115,9 @@
 
 	function copyLocalUrlToClipboard() {
 		if (localTunnelStatus.url) {
-			navigator.clipboard
-				.writeText(localTunnelStatus.url)
-				.then(() => {
-					console.log('Tunnel URL copied to clipboard');
-				})
-				.catch((err) => {
-					console.error('Failed to copy URL:', err);
-				});
+			navigator.clipboard.writeText(localTunnelStatus.url).catch(() => {
+				// Copy failed - user can still manually copy the URL
+			});
 		}
 	}
 
@@ -167,10 +160,8 @@
 			// Authenticate via session cookie before making requests
 			vscodeSocket.emit('client:hello', {}, (response) => {
 				if (response?.success) {
-					console.log('[Tunnels] VS Code socket authenticated');
 					fetchVSCodeTunnelStatus();
 				} else {
-					console.error('[Tunnels] VS Code authentication failed:', response?.error);
 					vscodeError = 'Authentication failed - please refresh the page';
 				}
 			});
@@ -263,8 +254,8 @@
 		if (vscodeTunnelStatus.state?.openUrl) {
 			try {
 				await navigator.clipboard.writeText(vscodeTunnelStatus.state.openUrl);
-			} catch (err) {
-				console.error('Failed to copy URL:', err);
+			} catch (_err) {
+				// Copy failed - user can still manually copy the URL
 			}
 		}
 	}

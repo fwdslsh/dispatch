@@ -58,11 +58,14 @@ function log(message, color = 'reset') {
 	console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
-function logVerbose(message, color = 'gray') {
+function _logVerbose(message, color = 'gray') {
 	if (options.verbose) {
 		log(message, color);
 	}
 }
+
+// Note: _logVerbose is defined but currently unused in this script
+// It's kept for potential future verbose logging functionality
 
 /**
  * Recursively find files matching a pattern
@@ -90,7 +93,7 @@ function findFiles(dir, pattern, ignore = []) {
 					results.push(fullPath);
 				}
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Skip directories we can't read
 		}
 	}
@@ -250,7 +253,7 @@ function generateComponentMigration(cssMap, componentFile) {
 /**
  * Generate markdown migration plan
  */
-function generateMigrationPlan(categories, usageMap) {
+function generateMigrationPlan(categories, _usageMap) {
 	let markdown = '# Style Migration Plan\n\n';
 	markdown += `Generated on ${new Date().toLocaleString()}\n\n`;
 	markdown +=
@@ -402,7 +405,7 @@ function generateMigrationPlan(categories, usageMap) {
 	} else {
 		for (const cssMap of categories.skip) {
 			const relativeCSSPath = path.relative(PROJECT_ROOT, cssMap.cssFile);
-			const fileName = path.basename(cssMap.cssFile);
+			const _fileName = path.basename(cssMap.cssFile);
 			const reason =
 				cssMap.usedByFiles.length === 0
 					? 'Not used by any components'
@@ -420,7 +423,7 @@ function generateMigrationPlan(categories, usageMap) {
 	markdown += '1. **Start with Phase 1** - These are low-risk, high-value migrations\n';
 	markdown += '2. **Test thoroughly** - Visual regression is the primary risk\n';
 	markdown += '3. **Use git** - Commit each migration separately for easy rollback\n';
-	markdown += '4. **Run \`npm test\`** after each migration\n';
+	markdown += '4. **Run `npm test`** after each migration\n';
 	markdown += '5. **Check responsive behavior** - Ensure mobile/desktop views still work\n';
 	markdown += '6. **Review dark/light themes** - If applicable, test both theme variants\n\n';
 

@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
 
-export async function GET({ url, request, locals }) {
+export async function GET({ url, request: _request, locals: _locals }) {
 	try {
 		const path = url.searchParams.get('path');
 		if (!path) {

@@ -22,11 +22,11 @@ export class OnboardingViewModel {
 		preferences: {}
 	});
 
-	// Injected dependencies
-	#apiClient;
-
-	constructor(apiClient) {
-		this.#apiClient = apiClient;
+	// Note: apiClient parameter is accepted for future use but not currently needed
+	// All data is collected locally and submitted via SvelteKit form action
+	constructor(_apiClient) {
+		// No API calls are made during onboarding flow
+		// Data is submitted atomically at the end via form action
 	}
 
 	// Derived state - computed properties

@@ -19,7 +19,7 @@ export function createTestDatabase() {
 	try {
 		const schema = readFileSync(schemaPath, 'utf-8');
 		db.exec(schema);
-	} catch (err) {
+	} catch {
 		// Fallback: create basic schema for tests
 		db.exec(`
 			CREATE TABLE IF NOT EXISTS sessions (

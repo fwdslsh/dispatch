@@ -167,7 +167,7 @@
 
 		<!-- Normal colors (0-7) -->
 		<div class="palette-row">
-			{#each ansiColors.normal as color, index}
+			{#each ansiColors.normal as color, index (index)}
 				<span
 					class="color-block"
 					style="background-color: {color};"
@@ -179,7 +179,7 @@
 
 		<!-- Bright colors (8-15) -->
 		<div class="palette-row">
-			{#each ansiColors.bright as color, index}
+			{#each ansiColors.bright as color, index (index + 8)}
 				<span
 					class="color-block"
 					style="background-color: {color};"

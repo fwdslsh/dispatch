@@ -10,7 +10,7 @@
 	let {
 		entries = [],
 		selectedPath = '',
-		currentPath = '/',
+		currentPath: _currentPath = '/',
 		loading = false,
 		isAlwaysOpen = false,
 		showFileActions = false,
@@ -28,7 +28,7 @@
 		<DirectoryItem isParentDirectory={true} {loading} onNavigate={onGoUp} />
 	{/if}
 
-	{#each entries as entry}
+	{#each entries as entry (entry.path)}
 		<DirectoryItem
 			{entry}
 			isSelected={selectedPath === entry.path}

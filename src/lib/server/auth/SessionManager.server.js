@@ -34,10 +34,10 @@ export class SessionManager {
 	 * Create a new browser session
 	 * @param {string} userId - User ID (default: 'default')
 	 * @param {string} provider - Authentication provider ('api_key', 'oauth_github', 'oauth_google')
-	 * @param {Object} sessionInfo - Additional session metadata (e.g., {apiKeyId, label})
+	 * @param {Object} [_sessionInfo] - Additional session metadata (e.g., {apiKeyId, label}) - unused but preserved for future use
 	 * @returns {Promise<Object>} Object with {sessionId, expiresAt}
 	 */
-	async createSession(userId, provider, sessionInfo = {}) {
+	async createSession(userId, provider, _sessionInfo = {}) {
 		// Validate provider
 		const validProviders = ['api_key', 'oauth_github', 'oauth_google'];
 		if (!validProviders.includes(provider)) {

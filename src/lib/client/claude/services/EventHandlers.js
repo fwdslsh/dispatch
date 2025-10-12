@@ -207,8 +207,8 @@ export class ClaudeEventHandlers {
 	/**
 	 * Handle authentication start
 	 */
-	handleAuthStart(event) {
-		const { payload } = event;
+	handleAuthStart(_event) {
+		const { payload } = _event;
 		const authUrl = payload.url || '';
 
 		// Delegate to AuthenticationManager and get message
@@ -229,7 +229,7 @@ export class ClaudeEventHandlers {
 	/**
 	 * Handle awaiting authorization code
 	 */
-	handleAuthAwaitingCode(event) {
+	handleAuthAwaitingCode(_event) {
 		// Delegate to AuthenticationManager and get message
 		const authResult = this.vm.authManager.handleAuthAwaitingCode();
 
@@ -248,7 +248,7 @@ export class ClaudeEventHandlers {
 	/**
 	 * Handle authentication success
 	 */
-	handleAuthSuccess(event) {
+	handleAuthSuccess(_event) {
 		// Delegate to AuthenticationManager and get message
 		const authResult = this.vm.authManager.handleAuthSuccess();
 

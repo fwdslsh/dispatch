@@ -6,7 +6,7 @@ yarn.lock
 bun.lock
 bun.lockb
 
-# Miscellaneous
+## Miscellaneous
 
 /static/
 docs/

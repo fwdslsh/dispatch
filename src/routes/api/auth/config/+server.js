@@ -71,7 +71,7 @@ export async function PUT({ request, locals }) {
 		}
 
 		const body = await request.json();
-		const { auth, settingsRepository } = locals.services;
+		const { auth: _auth, settingsRepository } = locals.services;
 
 		// Extract authentication settings from body
 		const authSettings = {};

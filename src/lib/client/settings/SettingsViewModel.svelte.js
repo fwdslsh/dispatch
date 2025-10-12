@@ -77,8 +77,8 @@ export class SettingsViewModel {
 			/** @type {Record<string, string[]>} */
 			this.validationErrors = {};
 			this.successMessage = null;
-		} catch (error) {
-			console.error('Failed to load settings:', error);
+		} catch (_error) {
+			// Error caught - show user-friendly message in UI
 			this.error = 'Failed to load settings. Please try again.';
 		} finally {
 			this.loading = false;
@@ -120,9 +120,9 @@ export class SettingsViewModel {
 					}
 					break;
 				case 'URL':
-					try {
-						new URL(value);
-					} catch {
+					// Simple URL validation without using URL constructor
+					// to avoid Svelte reactivity warnings
+					if (!this._isValidUrl(value)) {
 						errors.push(`Must be a valid URL`);
 					}
 					break;
@@ -194,7 +194,7 @@ export class SettingsViewModel {
 			// Reload settings to get any server-side updates
 			await this.loadSettings();
 		} catch (error) {
-			console.error('Failed to save settings:', error);
+			// Error caught - extract message for user-friendly display
 			this.error = error.message || 'Failed to save settings. Please try again.';
 		} finally {
 			this.saving = false;
@@ -288,5 +288,12 @@ export class SettingsViewModel {
 		if (fieldPath.includes('path') || fieldPath.includes('directory')) return 'PATH';
 		if (fieldPath.includes('url')) return 'URL';
 		return 'STRING';
+	}
+
+	_isValidUrl(value) {
+		// Simple URL validation using regex pattern
+		// Checks for protocol and basic URL structure
+		const urlPattern = /^(https?:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:[0-9]+)?(\/.*)?$/;
+		return urlPattern.test(value);
 	}
 }

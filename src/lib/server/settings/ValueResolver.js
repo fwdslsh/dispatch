@@ -266,7 +266,7 @@ export class ValueResolver {
 		const resolutionInfo = await this.getAllResolutionInfo();
 
 		for (const info of resolutionInfo) {
-			const { key, source, sources, setting_info } = info;
+			const { key, source, sources: _sources, setting_info } = info;
 
 			// Recommend UI configuration for sensitive settings
 			if (setting_info.is_sensitive && source === 'environment') {

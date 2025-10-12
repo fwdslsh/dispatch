@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
 
-export async function GET({ url, locals, request }) {
+export async function GET({ url: _url, locals: _locals, request: _request }) {
 	try {
 		const io = getActiveSocketIO();
 

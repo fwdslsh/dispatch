@@ -7,7 +7,6 @@
 		useServiceContainer,
 		provideServiceContainer
 	} from '$lib/client/shared/services/ServiceContainer.svelte.js';
-	import { OnboardingViewModel } from '$lib/client/onboarding/OnboardingViewModel.svelte.js';
 	import {
 		deriveUIColors,
 		deriveRgbVariables,
@@ -21,8 +20,7 @@
 	 */
 
 	/** @type {LayoutProps} */
-	let { data, children } = $props();
-	let onboardingViewModel = $state(null);
+	let { children } = $props();
 
 	// Provide service container for dependency injection
 	provideServiceContainer();
@@ -90,7 +88,7 @@
 					? workspaceStatePromise
 					: Promise.resolve(workspaceStatePromise));
 				currentWorkspace = workspaceState?.selectedWorkspace;
-			} catch (err) {
+			} catch (_err) {
 				// workspaceState may not be registered yet, continue without it
 				console.debug('[Layout] WorkspaceState not available yet');
 			}

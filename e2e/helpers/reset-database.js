@@ -16,7 +16,6 @@
  */
 
 import Database from 'better-sqlite3';
-import { resolve } from 'path';
 import { existsSync, rmSync } from 'fs';
 
 /**
@@ -93,7 +92,7 @@ export async function resetDatabase(options = {}) {
 		// Check if user_preferences table exists (may not in older schemas)
 		try {
 			db.prepare('DELETE FROM user_preferences').run();
-		} catch (err) {
+		} catch (_err) {
 			// Table doesn't exist, ignore
 		}
 

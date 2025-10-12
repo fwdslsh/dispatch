@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { readdir, stat, mkdir } from 'node:fs/promises';
-import { join, resolve, normalize } from 'node:path';
+import { readdir, stat } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 
 // Get the base directory for browsing (can be configured via environment)
@@ -24,7 +24,7 @@ function isPathAllowed(requestedPath) {
 	return true;
 }
 
-export async function GET({ url, request, locals }) {
+export async function GET({ url }) {
 	try {
 		// If no path is provided, start in the workspaces root directory
 		const requestedPath = url.searchParams.get('path') || getBaseDirectory();

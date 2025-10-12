@@ -105,7 +105,7 @@
 	{:else}
 		<!-- Theme list would go here -->
 		<div class="flex flex-col gap-3">
-			{#each customThemes as theme}
+			{#each customThemes as theme (theme.name)}
 				<div class="flex items-center justify-between p-3 bg-surface">
 					<span>{theme.name}</span>
 					<Button variant="ghost" size="sm">Remove</Button>

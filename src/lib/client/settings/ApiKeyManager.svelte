@@ -68,8 +68,9 @@
 			setTimeout(() => {
 				keyCopied = false;
 			}, 2000);
-		} catch (err) {
-			console.error('Failed to copy to clipboard:', err);
+		} catch (_err) {
+			// Silently fail - clipboard operations are not critical
+			// User can still manually copy the key from the display
 		}
 	}
 

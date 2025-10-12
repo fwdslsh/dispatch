@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 
-export async function GET({ url, locals }) {
+export async function GET({ url: _url, locals: _locals }) {
 	// NOTE: Database-persisted logging was removed during architecture refactoring.
 	// The application now uses console-based logging via logger utility.
 	// This endpoint returns an empty array to maintain API contract compatibility

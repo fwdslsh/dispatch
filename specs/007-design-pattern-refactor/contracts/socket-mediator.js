@@ -3,6 +3,8 @@
  * @file Interface definitions for Socket.IO event handling
  */
 
+/* eslint-disable no-unused-vars */
+
 /**
  * SocketEventMediator - Routes socket events with middleware
  * @class
@@ -57,6 +59,8 @@ function createErrorHandlingMiddleware() {}
  * @returns {MiddlewareFunction} Socket.IO middleware
  */
 function createLoggingMiddleware() {}
+
+/* eslint-enable no-unused-vars */
 
 /**
  * TypeDefs

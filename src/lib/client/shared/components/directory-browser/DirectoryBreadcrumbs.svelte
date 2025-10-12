@@ -55,7 +55,7 @@
 	aria-label="Breadcrumbs"
 >
 	<div class="flex items-center gap-1 overflow-x-auto flex-1">
-		{#each displayBreadcrumbs as crumb, i}
+		{#each displayBreadcrumbs as crumb, i (crumb.index)}
 			{#if i > 0}
 				<span class="breadcrumb-separator">/</span>
 			{/if}

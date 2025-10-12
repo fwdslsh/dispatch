@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm, writeFile, readdir, stat } from 'node:fs/promises';
+import { mkdir, rm, writeFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { POST } from '../../src/routes/api/browse/clone/+server.js';
 
@@ -27,7 +27,7 @@ describe('Directory Clone API', () => {
 		// Cleanup test directories
 		try {
 			await rm(testDir, { recursive: true });
-		} catch (error) {
+		} catch {
 			// Ignore cleanup errors
 		}
 	});

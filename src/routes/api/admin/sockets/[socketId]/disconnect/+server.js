@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
 
-export async function POST({ params, request, locals }) {
+export async function POST({ params, request: _request, locals: _locals }) {
 	const { socketId } = params;
 
 	try {

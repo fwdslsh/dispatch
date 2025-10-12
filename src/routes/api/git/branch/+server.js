@@ -3,7 +3,7 @@ import { execGit } from '$lib/server/shared/git-utils.js';
 import { resolve } from 'node:path';
 
 // Create new branch
-export async function POST({ request, locals }) {
+export async function POST({ request, locals: _locals }) {
 	try {
 		const { path, name, checkout = false } = await request.json();
 

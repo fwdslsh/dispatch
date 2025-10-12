@@ -4,7 +4,7 @@ import { json } from '@sveltejs/kit';
  * Public endpoint to check authentication status
  * Always returns 200 OK with authenticated flag
  */
-export async function GET({ url, locals }) {
+export async function GET({ url: _url, locals }) {
 	// Return authentication status without 401 error
 	if (!locals.auth?.authenticated) {
 		return json({ authenticated: false });
@@ -17,7 +17,7 @@ export async function GET({ url, locals }) {
 	});
 }
 
-export async function POST({ request, locals }) {
+export async function POST({ request: _request, locals }) {
 	// Same as GET - just check auth status
 	if (!locals.auth?.authenticated) {
 		return json({ authenticated: false });

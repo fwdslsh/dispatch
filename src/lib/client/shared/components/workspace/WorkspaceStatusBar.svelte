@@ -6,8 +6,6 @@
 -->
 
 <script>
-	import AppVersion from '../AppVersion.svelte';
-
 	import MobileNavigation from './MobileNavigation.svelte';
 	import CreateSessionButton from './CreateSessionButton.svelte';
 	import IconButton from '../IconButton.svelte';
@@ -16,13 +14,9 @@
 	import IconCodeMinus from '../Icons/IconCodeMinus.svelte';
 	import IconPlayerTrackNext from '../Icons/IconPlayerTrackNext.svelte';
 	import IconPlayerTrackPrev from '../Icons/IconPlayerTrackPrev.svelte';
-	import { useService } from '../../services/ServiceContainer.svelte.js';
-	import { onMount } from 'svelte';
 
 	// Props
 	let {
-		onLogout = () => {},
-		onInstallPWA = () => {},
 		onOpenSettings = () => {},
 		onCreateSession = () => {},
 		onToggleSessionMenu = () => {},
@@ -30,7 +24,6 @@
 		sessionMenuOpen = false,
 		isMobile = false,
 		hasActiveSessions = false,
-		sessionCount = 0,
 		currentSessionIndex = 0,
 		totalSessions = 0,
 		viewMode = 'window-manager'
@@ -42,20 +35,6 @@
 	const desktopNextDisabled = $derived(
 		desktopNavDisabled || currentSessionIndex >= Math.max(totalSessions - 1, 0)
 	);
-
-	// Version information
-	let appVersion = $state('');
-
-	// Fetch version on mount
-	onMount(async () => {
-		try {
-			const environmentService = await useService('environment');
-			appVersion = await environmentService.getAppVersion();
-		} catch (error) {
-			console.warn('Failed to fetch app version:', error);
-			appVersion = '';
-		}
-	});
 </script>
 
 <footer class="status-bar-container">

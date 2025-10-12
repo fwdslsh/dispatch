@@ -607,10 +607,10 @@ export async function getValidationErrors(page) {
  * Verify settings persisted after page reload
  *
  * @param {import('@playwright/test').Page} page - Playwright page object
- * @param {Object} expectedSettings - Settings to verify
+ * @param {Object} _expectedSettings - Settings to verify
  * @returns {Promise<void>}
  */
-export async function verifySettingsPersisted(page, expectedSettings) {
+export async function verifySettingsPersisted(page, _expectedSettings) {
 	// Reload the page
 	await page.reload();
 	await page.waitForLoadState('networkidle');

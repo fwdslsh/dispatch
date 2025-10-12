@@ -43,12 +43,6 @@
 		return path;
 	}
 
-	function truncateString(str, maxLength = 100) {
-		if (!str) return '';
-		if (str.length <= maxLength) return str;
-		return str.substring(0, maxLength) + '...';
-	}
-
 	function getDiffPreview(oldStr, newStr) {
 		// Simple diff visualization
 		const oldLines = (oldStr || '').split('\n');

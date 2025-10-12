@@ -203,7 +203,7 @@
 
 			<div class="settings-container">
 				<div class="settings-nav" aria-label="Settings sections" role="tablist">
-					{#each sections as section, index}
+					{#each sections as section, index (section.id)}
 						{@const IconComponent = section.icon}
 						<button
 							id={`settings-tab-${section.id}`}

@@ -89,7 +89,7 @@ function findFiles(dir, pattern, ignore = []) {
 					results.push(fullPath);
 				}
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Skip directories we can't read
 		}
 	}
@@ -633,7 +633,7 @@ function generateMarkdownReport(data) {
 		.sort((a, b) => b[1].length - a[1].length)
 		.slice(0, 5);
 
-	for (const [value, occurrences] of topColors) {
+	for (const [value, _occurrences] of topColors) {
 		const suggestion = suggestVariable(value, 'color', data.cssVariables);
 		if (suggestion && !suggestion.includes('Consider')) {
 			markdown += `find src -name "*.css" -o -name "*.svelte" | xargs sed -i 's/${value}/${suggestion}/g'\n`;
@@ -655,7 +655,7 @@ function generateMarkdownReport(data) {
 		.sort((a, b) => b[1].length - a[1].length)
 		.slice(0, 5);
 
-	for (const [value, occurrences] of topSpacing) {
+	for (const [value, _occurrences] of topSpacing) {
 		const suggestion = suggestVariable(value, 'spacing', data.cssVariables);
 		if (suggestion) {
 			// Escape special regex characters

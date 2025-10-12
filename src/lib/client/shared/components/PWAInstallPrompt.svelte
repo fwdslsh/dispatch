@@ -5,7 +5,6 @@
 	let showInstallPrompt = $state(false);
 	let deferredPrompt = null;
 	let isInstalled = $state(false);
-	let canInstall = $state(false);
 	let isIOS = $state(false);
 	let showManualPrompt = $state(false);
 
@@ -41,7 +40,6 @@
 			e.preventDefault();
 			// Store the event for later use
 			deferredPrompt = e;
-			canInstall = true;
 			// Show our custom install prompt
 			showInstallPrompt = true;
 		});
@@ -53,7 +51,6 @@
 			showManualPrompt = false;
 			isInstalled = true;
 			deferredPrompt = null;
-			canInstall = false;
 		});
 
 		// Check if the PWA can be installed (for debugging)
@@ -86,7 +83,6 @@
 		// Clear the deferred prompt
 		deferredPrompt = null;
 		showInstallPrompt = false;
-		canInstall = false;
 	}
 
 	function dismissPrompt() {

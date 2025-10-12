@@ -16,15 +16,11 @@
 		sessionIndex = 0,
 		onSessionFocus = () => {},
 		onSessionClose = () => {},
-		onSessionUnpin = () => {},
+		onSessionUnpin: _onSessionUnpin = () => {},
 		onCreateSession = () => {}
 	} = $props();
 
 	const hasSession = $derived(Boolean(session));
-
-	function create(type) {
-		onCreateSession?.(type);
-	}
 
 	$effect(() => {
 		if (hasSession) {

@@ -18,7 +18,7 @@
 		totalSessions = 0
 	} = $props();
 
-	const currentDisplay = $derived(Math.min(currentIndex + 1, totalSessions));
+	const _currentDisplay = $derived(Math.min(currentIndex + 1, totalSessions));
 
 	function handlePrevious() {
 		onNavigateSession('prev');

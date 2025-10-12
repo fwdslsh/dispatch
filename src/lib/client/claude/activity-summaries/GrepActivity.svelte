@@ -151,7 +151,7 @@
 
 				{#if searchInfo.results.preview && searchInfo.results.preview.length > 0}
 					<ul class="activity-list">
-						{#each searchInfo.results.preview as item}
+						{#each searchInfo.results.preview as item (typeof item === 'string' ? item : JSON.stringify(item))}
 							<li>{typeof item === 'string' ? item : JSON.stringify(item)}</li>
 						{/each}
 					</ul>

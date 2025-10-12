@@ -51,7 +51,7 @@ function findFiles(dir, pattern, ignore = []) {
 					results.push(fullPath);
 				}
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Skip directories we can't read
 		}
 	}
@@ -99,8 +99,9 @@ function logVerbose(message, color = 'gray') {
 
 /**
  * Extract CSS class selectors from CSS content
+ * Note: This function is currently unused but kept for potential future use
  */
-function extractCSSClasses(cssContent) {
+function _extractCSSClasses(cssContent) {
 	const classes = new Set();
 
 	// Match class selectors (.classname)

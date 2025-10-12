@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { SvelteURLSearchParams } from 'svelte/reactivity';
 
 const log = createLogger('theme-state');
 
@@ -151,7 +152,7 @@ export class ThemeState {
 
 		try {
 			// Authentication via session cookie (server validates)
-			const params = new URLSearchParams();
+			const params = new SvelteURLSearchParams();
 			if (workspaceId) {
 				params.append('workspaceId', workspaceId);
 			}

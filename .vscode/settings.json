@@ -9,5 +9,19 @@
 		"**/.svelte-kit": true,
 		"**/build": true
 	},
-	"cSpell.words": ["appuser", "map", "sandboxing", "Unsubscribers", "viewmodels"]
+	"cSpell.words": [
+		"appuser",
+		"battlefieldduck",
+		"ename",
+		"evalue",
+		"fwdslsh",
+		"keymap",
+		"map",
+		"Mcpjson",
+		"MVVM",
+		"sandboxing",
+		"testkey",
+		"Unsubscribers",
+		"viewmodels"
+	]
 }

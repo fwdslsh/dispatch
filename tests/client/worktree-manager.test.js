@@ -30,7 +30,7 @@ describe('WorktreeManager Component', () => {
 			json: () => Promise.resolve({ worktrees: [] })
 		});
 
-		const { getByText, queryByText } = render(WorktreeManager, {
+		const { getByText } = render(WorktreeManager, {
 			props: defaultProps
 		});
 

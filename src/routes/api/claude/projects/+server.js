@@ -3,7 +3,7 @@ import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 
-export async function GET({ request, locals }) {
+export async function GET({ request: _request, locals: _locals }) {
 	const base = projectsRoot();
 	const items = await readdir(base, { withFileTypes: true }).catch(() => []);
 	const projects = [];

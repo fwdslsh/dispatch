@@ -25,12 +25,14 @@
 		// Check if already authenticated
 		const initResult = await authViewModel.initialize();
 		if (initResult.redirectToWorkspace) {
+			/* eslint-disable svelte/no-navigation-without-resolve */
 			await goto('/');
+			/* eslint-enable svelte/no-navigation-without-resolve */
 		}
 	});
 
 	// Handle form submission with progressive enhancement
-	const handleEnhance = ({ formData, cancel, submitter }) => {
+	const handleEnhance = ({ formData: _formData, cancel: _cancel, submitter: _submitter }) => {
 		isSubmitting = true;
 
 		// Let SvelteKit handle the submission
@@ -39,7 +41,9 @@
 
 			if (result.type === 'redirect') {
 				// Successful login - redirect handled by SvelteKit
+				/* eslint-disable svelte/no-navigation-without-resolve */
 				await goto(result.location);
+				/* eslint-enable svelte/no-navigation-without-resolve */
 			} else if (result.type === 'failure') {
 				// Error handled via form.error below
 				await update();
@@ -158,6 +162,7 @@
 			<div class="login-footer">
 				<p class="footer-text">
 					First time here?
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 					<a href="/onboarding" class="footer-link">Get started</a>
 				</p>
 			</div>

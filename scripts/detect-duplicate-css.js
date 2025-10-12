@@ -395,7 +395,7 @@ class Statistics {
 		}
 
 		// Count duplicate lines
-		for (const [_, rules] of exactDuplicates) {
+		for (const [_normalized, rules] of exactDuplicates) {
 			const ruleLines = rules[0].raw.split('\n').length;
 			// Count duplicates beyond the first occurrence
 			duplicateLines += ruleLines * (rules.length - 1);
@@ -461,7 +461,7 @@ class ReportGenerator {
 			lines.push('');
 
 			let groupNum = 1;
-			for (const [normalized, rules] of exactDuplicates) {
+			for (const [_normalized, rules] of exactDuplicates) {
 				lines.push(`### Duplicate Group ${groupNum} (${rules.length} occurrences)`);
 				lines.push('');
 				lines.push('**Locations:**');

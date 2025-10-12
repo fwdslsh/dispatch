@@ -40,7 +40,7 @@ function logSocketEvent(socketId, eventType, data = null) {
 		if (io) {
 			io.emit('admin.event.logged', event);
 		}
-	} catch (error) {
+	} catch (_error) {
 		// Silently ignore errors
 	}
 }
@@ -77,7 +77,7 @@ function parseCookies(cookieHeader) {
  * @returns {Promise<boolean>} True if authenticated, false otherwise
  */
 async function requireValidAuth(socket, token, callback, services) {
-	const { auth: authService, sessionManager } = services;
+	const { auth: authService, sessionManager: _sessionManager } = services;
 
 	// Validate using AuthService (supports both API keys and OAuth sessions)
 	const authResult = await authService.validateAuth(token);
@@ -170,7 +170,7 @@ export function setupSocketIO(httpServer, services) {
 	// Auth events
 	mediator.on('client:hello', async (socket, data, callback) => {
 		logger.info('SOCKET', `Received client:hello from ${socket.id}:`, data);
-		const { clientId, sessionId, apiKey, terminalKey } = data || {};
+		const { clientId: _clientId, sessionId, apiKey, terminalKey } = data || {};
 
 		// Strategy 1: Check for sessionId (browser authentication via cookie)
 		if (sessionId) {

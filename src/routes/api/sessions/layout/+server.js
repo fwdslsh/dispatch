@@ -3,7 +3,7 @@
  * Manages session-to-tile mappings for persistent window layouts
  */
 
-export async function GET({ url, request, locals }) {
+export async function GET({ url, request: _request, locals }) {
 	// Require authentication
 	try {
 		const clientId = url.searchParams.get('clientId') || 'default';
@@ -42,12 +42,12 @@ export async function POST({ request, locals }) {
 	}
 }
 
-export async function DELETE({ url, request, locals }) {
+export async function DELETE({ url, request: _request, locals }) {
 	// Require authentication
 	try {
 		const runId = url.searchParams.get('runId');
 		const sessionId = url.searchParams.get('sessionId');
-		const tileId = url.searchParams.get('tileId');
+		const _tileId = url.searchParams.get('tileId');
 
 		// Accept both runId and sessionId for backward compatibility
 		const actualRunId = runId || sessionId;

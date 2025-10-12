@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { getSocketEvents } from '$lib/server/shared/socket-setup.js';
 
-export async function GET({ url, locals }) {
+export async function GET({ url, locals: _locals }) {
 	const limit = parseInt(url.searchParams.get('limit') || '100');
 	const socketId = url.searchParams.get('socketId'); // Optional filter by socket
 

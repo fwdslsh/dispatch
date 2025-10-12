@@ -47,12 +47,10 @@
 	const titleId = title ? `${modalId}-title` : undefined;
 	const contentId = `${modalId}-content`;
 
-	// Responsive state
-	let isMobile = $state(false);
-
 	// Check if mobile on mount and resize
 	function updateMobileState() {
-		isMobile = window.innerWidth <= 768;
+		// Mobile state check (currently unused but available for future use)
+		return window.innerWidth <= 768;
 	}
 
 	// Handle backdrop click

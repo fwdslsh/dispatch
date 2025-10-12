@@ -4,6 +4,8 @@
  * Integrates with existing workspace API and session management
  */
 
+import { SvelteDate } from 'svelte/reactivity';
+
 export class WorkspaceNavigationViewModel {
 	// State runes for reactive data
 	activeWorkspace = $state(null);
@@ -33,7 +35,9 @@ export class WorkspaceNavigationViewModel {
 	get recentWorkspaces() {
 		return this.workspaces
 			.filter((w) => w.lastActive)
-			.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime())
+			.sort(
+				(a, b) => new SvelteDate(b.lastActive).getTime() - new SvelteDate(a.lastActive).getTime()
+			)
 			.slice(0, 5);
 	}
 

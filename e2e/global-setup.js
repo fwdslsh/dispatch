@@ -32,7 +32,7 @@ export default async function globalSetup() {
 			console.log('[Global Setup] ✓ Ready to run tests\n');
 			return;
 		}
-	} catch (err) {
+	} catch (_err) {
 		// Server not running, need to start it
 	}
 
@@ -88,7 +88,7 @@ export default async function globalSetup() {
 				global.__SERVER_PROCESS__ = serverProcess;
 				return;
 			}
-		} catch (err) {
+		} catch (_err) {
 			if ((i + 1) % 10 === 0) {
 				console.log(`[Global Setup] Still waiting... (${i + 1}s elapsed)`);
 			}

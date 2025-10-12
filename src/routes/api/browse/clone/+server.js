@@ -1,14 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { stat, readdir, mkdir, copyFile, access } from 'node:fs/promises';
-import { resolve, normalize, dirname, join, basename } from 'node:path';
-import { homedir } from 'node:os';
+import { resolve, dirname, join } from 'node:path';
 import { constants } from 'node:fs';
-
-// Get the base directory for browsing (can be configured via environment)
-function getBaseDirectory() {
-	// Use WORKSPACES_ROOT if set, otherwise fall back to home directory
-	return process.env.WORKSPACES_ROOT || join(homedir(), 'workspaces');
-}
 
 // Validate that the requested path is within allowed bounds
 function isPathAllowed(requestedPath) {
@@ -61,7 +54,7 @@ async function copyDirectoryRecursive(source, target) {
 	}
 }
 
-export async function POST({ request, locals }) {
+export async function POST({ request }) {
 	try {
 		const { sourcePath, targetPath, overwrite = false } = await request.json();
 
@@ -104,7 +97,7 @@ export async function POST({ request, locals }) {
 			if (!overwrite) {
 				return json({ error: 'Target directory already exists' }, { status: 409 });
 			}
-		} catch (error) {
+		} catch (_error) {
 			// Target doesn't exist, which is what we want (unless overwrite is enabled)
 		}
 
@@ -112,7 +105,7 @@ export async function POST({ request, locals }) {
 		const targetParent = dirname(resolvedTarget);
 		try {
 			await access(targetParent, constants.W_OK);
-		} catch (error) {
+		} catch (_error) {
 			return json(
 				{ error: 'Target parent directory does not exist or is not writable' },
 				{ status: 403 }

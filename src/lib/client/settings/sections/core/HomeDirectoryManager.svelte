@@ -38,8 +38,8 @@
 
 		try {
 			localStorage.setItem(HOME_MANAGER_STATE_KEY, JSON.stringify(state));
-		} catch (error) {
-			console.warn('[HomeDirectoryManager] Failed to save state:', error);
+		} catch (_error) {
+			// State save failed - non-critical, will use server defaults on next load
 		}
 	}
 
@@ -56,8 +56,8 @@
 					return state;
 				}
 			}
-		} catch (error) {
-			console.warn('[HomeDirectoryManager] Failed to load state:', error);
+		} catch (_error) {
+			// State load failed - will use server defaults
 		}
 		return null;
 	}
@@ -90,7 +90,6 @@
 			saveManagerState();
 		} catch (e) {
 			error = e.message || 'Failed to load file';
-			console.error('[HomeDirectoryManager] Load file error:', e);
 		} finally {
 			loading = false;
 		}
@@ -122,7 +121,6 @@
 			saveManagerState();
 		} catch (e) {
 			error = e.message || 'Failed to save file';
-			console.error('[HomeDirectoryManager] Save file error:', e);
 		} finally {
 			loading = false;
 		}
@@ -162,7 +160,6 @@
 			saveManagerState();
 		} catch (e) {
 			error = e.message || 'Failed to upload files';
-			console.error('[HomeDirectoryManager] Upload error:', e);
 		} finally {
 			loading = false;
 		}
@@ -231,11 +228,9 @@
 				}
 			} else {
 				error = 'Failed to load home directory from server';
-				console.error('[HomeDirectoryManager] Server response:', data);
 			}
-		} catch (e) {
+		} catch (_e) {
 			error = 'Failed to connect to environment service';
-			console.error('[HomeDirectoryManager] Init error:', e);
 		} finally {
 			initializing = false;
 		}
@@ -275,9 +270,8 @@
 				onclick={() => (error = null)}
 				ariaLabel="Dismiss error"
 				class="error-dismiss"
-			>
-				{#snippet children()}×{/snippet}
-			</Button>
+				text="×"
+			/>
 		</InfoBox>
 	{/if}
 

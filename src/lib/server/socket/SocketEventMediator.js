@@ -3,6 +3,7 @@
  * @file Mediator pattern for Socket.IO event handling with middleware chain
  */
 
+// eslint-disable-next-line no-unused-vars -- Needed for JSDoc type annotations
 import { Server } from 'socket.io';
 
 export class SocketEventMediator {

@@ -41,7 +41,7 @@ export async function scanForFiles(baseDir, matcher, options = {}) {
 					try {
 						fileInfo.stats = await stat(fullPath);
 						fileInfo.mtimeMs = fileInfo.stats.mtimeMs;
-					} catch (error) {
+					} catch (_error) {
 						// Skip files that can't be stat'd
 						continue;
 					}
@@ -89,7 +89,7 @@ export async function findFileInDirectories(directories, filename, options = {})
 							stats,
 							mtimeMs: stats.mtimeMs
 						};
-					} catch (error) {
+					} catch (_error) {
 						// File exists in readdir but can't be stat'd, skip
 						continue;
 					}

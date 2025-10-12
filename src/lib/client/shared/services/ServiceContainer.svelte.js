@@ -9,6 +9,7 @@
  */
 
 import { getContext, setContext } from 'svelte';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
 const SERVICE_CONTAINER_KEY = Symbol('service-container');
 
@@ -18,16 +19,16 @@ const SERVICE_CONTAINER_KEY = Symbol('service-container');
 class ServiceContainer {
 	constructor() {
 		// Service instances cache
-		this.services = new Map();
+		this.services = new SvelteMap();
 
 		// Service factories
-		this.factories = new Map();
+		this.factories = new SvelteMap();
 
 		// Track which services are currently loading
-		this.loading = $state(new Set());
+		this.loading = $state(new SvelteSet());
 
 		// Store pending promises for services being loaded
-		this.loadingPromises = new Map();
+		this.loadingPromises = new SvelteMap();
 
 		// Service configuration
 		// Phase 6: Use new unified auth token key
@@ -251,7 +252,7 @@ class ServiceContainer {
 	 * Dispose of all services
 	 */
 	async disposeAll() {
-		for (const [name, service] of this.services) {
+		for (const [_name, service] of this.services) {
 			if (typeof service.dispose === 'function') {
 				await service.dispose();
 			}

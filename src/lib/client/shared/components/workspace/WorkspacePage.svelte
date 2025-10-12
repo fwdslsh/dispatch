@@ -1,8 +1,8 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
-	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { innerWidth } from 'svelte/reactivity/window';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	// Services and ViewModels
 	import { provideServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { settingsService } from '$lib/client/shared/services/SettingsService.svelte.js';
@@ -141,7 +141,7 @@
 		}
 
 		// Check for PWA shortcut parameters
-		const urlParams = new URLSearchParams(window.location.search);
+		const urlParams = new SvelteURLSearchParams(window.location.search);
 		const newSessionType = urlParams.get('new');
 		if (newSessionType === 'pty' || newSessionType === 'claude') {
 			// Use local modal helper to open create-session modal
@@ -213,7 +213,6 @@
 	}
 
 	async function handleCreateSession(type = 'claude') {
-		console.log('[WorkspacePage] handleCreateSession called:', type);
 		// For quick-create buttons, create session directly with default workspace and global settings
 		if (sessionViewModel) {
 			try {
@@ -246,7 +245,6 @@
 
 	// Function to handle create session button (opens modal)
 	function handleCreateSessionModal(type = 'claude') {
-		console.log('[WorkspacePage] handleCreateSessionModal called:', type);
 		openCreateSessionModal(type);
 	}
 
@@ -259,7 +257,7 @@
 	// This processes settings the same way ClaudeSettings component does for session mode
 	function getGlobalDefaultSettings(sessionType) {
 		switch (sessionType) {
-			case SESSION_TYPE.CLAUDE:
+			case SESSION_TYPE.CLAUDE: {
 				// Get raw values from settings service
 				const model = settingsService.get('claude.model', '');
 				const customSystemPrompt = settingsService.get('claude.customSystemPrompt', '');
@@ -320,7 +318,7 @@
 				return Object.fromEntries(
 					Object.entries(cleanSettings).filter(([_, value]) => value !== undefined)
 				);
-
+			}
 			case SESSION_TYPE.PTY:
 			case SESSION_TYPE.FILE_EDITOR:
 			default:
@@ -485,8 +483,8 @@
 
 							try {
 								await sessionViewModel.handleSessionSelected(e.detail);
-							} catch (error) {
-								console.error('Error resuming session:', error);
+							} catch {
+								// Session resume failed - error is logged by sessionViewModel
 							}
 							sessionMenuOpen = false;
 						}}
@@ -521,8 +519,6 @@
 	{#snippet footer()}
 		<!-- Status Bar -->
 		<StatusBar
-			onLogout={handleLogout}
-			onInstallPWA={handleInstallPWA}
 			onOpenSettings={handleOpenSettings}
 			onCreateSession={handleCreateSessionModal}
 			onToggleSessionMenu={handleToggleSessionMenu}
@@ -530,7 +526,6 @@
 			{sessionMenuOpen}
 			{isMobile}
 			{hasActiveSessions}
-			sessionCount={totalSessions}
 			{currentSessionIndex}
 			{totalSessions}
 			viewMode={workspaceViewMode}
@@ -547,22 +542,20 @@
 			/>
 		{:else if activeModal.type === 'pwaInstructions'}
 			<Modal open={true} title={activeModal.data?.title} size="small" onclose={closeActiveModal}>
-				{#snippet children()}
-					<div class="flex-col gap-4" style="line-height: 1.6;">
-						{#if activeModal.data?.description}
-							<p class="m-0 text-muted" style="color: var(--text-secondary);">
-								{activeModal.data.description}
-							</p>
-						{/if}
-						{#if activeModal.data?.steps?.length}
-							<ol class="pwa-instructions__steps flex-col gap-2">
-								{#each activeModal.data.steps as step}
-									<li>{step}</li>
-								{/each}
-							</ol>
-						{/if}
-					</div>
-				{/snippet}
+				<div class="flex-col gap-4" style="line-height: 1.6;">
+					{#if activeModal.data?.description}
+						<p class="m-0 text-muted" style="color: var(--text-secondary);">
+							{activeModal.data.description}
+						</p>
+					{/if}
+					{#if activeModal.data?.steps?.length}
+						<ol class="pwa-instructions__steps flex-col gap-2">
+							{#each activeModal.data.steps as step, i (i)}
+								<li>{step}</li>
+							{/each}
+						</ol>
+					{/if}
+				</div>
 				{#snippet footer()}
 					<div class="flex gap-3" style="justify-content: flex-end;">
 						<Button variant="primary" onclick={closeActiveModal}>Got it</Button>

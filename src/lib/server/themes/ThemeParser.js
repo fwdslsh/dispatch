@@ -14,11 +14,11 @@ export class ThemeParser {
 	 * a structured theme object. The parser should handle format-specific details
 	 * (JSON, YAML, CSS, etc.) and return a normalized theme object.
 	 *
-	 * @param {string} fileContent - Raw theme file content
+	 * @param {string} _fileContent - Raw theme file content
 	 * @returns {object} Parsed theme object
 	 * @throws {Error} if parsing fails or not implemented
 	 */
-	parse(fileContent) {
+	parse(_fileContent) {
 		throw new Error('parse() must be implemented by subclass');
 	}
 
@@ -28,11 +28,11 @@ export class ThemeParser {
 	 * Subclasses must implement this method to validate the theme object structure,
 	 * required fields, color values, and other theme-specific requirements.
 	 *
-	 * @param {object} theme - Theme object to validate
+	 * @param {object} _theme - Theme object to validate
 	 * @returns {{valid: boolean, errors: string[], warnings: string[]}} Validation result
 	 * @throws {Error} if not implemented
 	 */
-	validate(theme) {
+	validate(_theme) {
 		throw new Error('validate() must be implemented by subclass');
 	}
 
@@ -43,11 +43,11 @@ export class ThemeParser {
 	 * into CSS custom properties. Returns a key-value map where keys are CSS variable
 	 * names (without --prefix) and values are the corresponding theme values.
 	 *
-	 * @param {object} theme - Validated theme object
+	 * @param {object} _theme - Validated theme object
 	 * @returns {object} CSS custom properties key-value map
 	 * @throws {Error} if not implemented
 	 */
-	toCssVariables(theme) {
+	toCssVariables(_theme) {
 		throw new Error('toCssVariables() must be implemented by subclass');
 	}
 }

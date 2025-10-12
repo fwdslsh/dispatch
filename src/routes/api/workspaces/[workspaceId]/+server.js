@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { logger } from '$lib/server/shared/utils/logger.js';
 
 /** @type {import('./$types').RequestHandler} */
-export async function GET({ params, request, locals }) {
+export async function GET({ params, request: _request, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 		const dbManager = locals.services.database;
@@ -91,7 +91,7 @@ export async function GET({ params, request, locals }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function PUT({ params, request, url, locals }) {
+export async function PUT({ params, request, url: _url, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 		const data = await request.json();
@@ -213,7 +213,7 @@ export async function PUT({ params, request, url, locals }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function DELETE({ params, request, url, locals }) {
+export async function DELETE({ params, request: _request, url: _url, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 

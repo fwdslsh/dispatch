@@ -37,12 +37,13 @@
 	let windowManagerRef = $state(null);
 
 	// Edit mode state
+	// eslint-disable-next-line svelte/prefer-writable-derived -- editMode is bidirectionally synced via event handler and prop
 	let editMode = $state(showEditMode);
 
 	// Dropdown state for move session menu
 	let activeMoveDropdown = $state(null); // stores { sessionId, tileId } when dropdown is open
 
-	const tileOrder = $derived.by(() => Array.from(tileIds));
+	const _tileOrder = $derived.by(() => Array.from(tileIds));
 
 	// Ensure there is enough layout surface for every session and auto-assign unassigned sessions
 	$effect(() => {
@@ -51,7 +52,7 @@
 		// Count sessions that need tile assignments
 		const unassignedSessions = sessions.filter((session) => !session.tileId);
 		const assignedSessions = sessions.filter((session) => session.tileId);
-		const tilesAvailable = tileIds.size;
+		const _tilesAvailable = tileIds.size;
 		const occupiedTiles = new Set(assignedSessions.map((s) => s.tileId));
 		const availableTiles = Array.from(tileIds).filter((tileId) => !occupiedTiles.has(tileId));
 
@@ -59,12 +60,6 @@
 		unassignedSessions.forEach((session, index) => {
 			if (index < availableTiles.length) {
 				const targetTileId = availableTiles[index];
-				console.log(
-					'[SessionWindowManager] Auto-assigning session',
-					session.id,
-					'to tile',
-					targetTileId
-				);
 				if (typeof onSessionAssignToTile === 'function') {
 					onSessionAssignToTile(session.id, targetTileId);
 				}
@@ -77,8 +72,8 @@
 			for (let i = 0; i < additionalTilesNeeded; i += 1) {
 				try {
 					windowManagerRef.splitBesideCurrent('row');
-				} catch (error) {
-					console.warn('[SessionWindowManager] Failed to auto-split layout', error);
+				} catch {
+					// Failed to auto-split layout - stop creating additional tiles
 					break;
 				}
 			}
@@ -124,7 +119,6 @@
 	}
 
 	function handleCreateSessionInTile(type) {
-		console.log('[SessionWindowManager] Creating session in tile:', type);
 		// Call the direct creation function instead of opening modal
 		if (typeof onCreateSession === 'function') {
 			onCreateSession(type);
@@ -149,11 +143,6 @@
 
 		if (targetSession) {
 			// Target tile is occupied - perform swap
-			console.log('[SessionWindowManager] Swapping sessions:', {
-				source: { sessionId, tileId: sourceTileId },
-				target: { sessionId: targetSession.id, tileId: targetTileId }
-			});
-
 			// Move source session to target tile
 			if (typeof onSessionAssignToTile === 'function') {
 				onSessionAssignToTile(sessionId, targetTileId);
@@ -168,13 +157,6 @@
 			}
 		} else {
 			// Target tile is empty - simple move
-			console.log(
-				'[SessionWindowManager] Moving session',
-				sessionId,
-				'to empty tile:',
-				targetTileId
-			);
-
 			if (typeof onSessionAssignToTile === 'function') {
 				onSessionAssignToTile(sessionId, targetTileId);
 			}
@@ -225,7 +207,7 @@
 		onlayoutchange={handleLayoutChange}
 		oneditmodetoggle={handleEditModeToggle}
 	>
-		{#snippet tile({ focused, tileId, editMode, onSplitRight, onSplitDown, onClose })}
+		{#snippet tile({ focused: _focused, tileId, editMode, onSplitRight, onSplitDown, onClose })}
 			{@const session = getTileSession(tileId)}
 			{@const sessionIndex = session ? sessions.indexOf(session) : -1}
 			<div
@@ -331,7 +313,7 @@
 
 									{#if activeMoveDropdown?.sessionId === session.id}
 										{@const availableTiles = Array.from(tileIds).filter((id) => id !== tileId)}
-										{@const occupiedTiles = sessions
+										{@const _occupiedTiles = sessions
 											.filter((s) => s.tileId && s.id !== session.id)
 											.map((s) => s.tileId)}
 										<div
@@ -344,7 +326,7 @@
 													No other tiles available
 												</div>
 											{:else}
-												{#each availableTiles as targetTileId}
+												{#each availableTiles as targetTileId (targetTileId)}
 													{@const targetSession = getTileSession(targetTileId)}
 													<button
 														class="dropdown-item block w-full p-2 bg-transparent border-0 radius text-primary font-mono text-sm text-left cursor-pointer transition-all hover:surface-hover {targetSession

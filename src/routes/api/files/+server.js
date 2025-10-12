@@ -1,12 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { readFile, writeFile, stat } from 'node:fs/promises';
-import { resolve, normalize, dirname } from 'node:path';
-import { homedir } from 'node:os';
-
-// Get the base directory for file operations (can be configured via environment)
-function getBaseDirectory() {
-	return process.env.WORKSPACES_ROOT || process.env.HOME || homedir();
-}
+import { resolve, dirname } from 'node:path';
 
 // Validate that the requested path is within allowed bounds
 function isPathAllowed(requestedPath) {
@@ -29,7 +23,7 @@ function sanitizeContent(content) {
 	return content.replace(/\0/g, '');
 }
 
-export async function GET({ url, request, locals }) {
+export async function GET({ url }) {
 	try {
 		const requestedPath = url.searchParams.get('path');
 
@@ -89,7 +83,7 @@ export async function GET({ url, request, locals }) {
 	}
 }
 
-export async function PUT({ request, url, locals }) {
+export async function PUT({ request, url }) {
 	try {
 		const requestedPath = url.searchParams.get('path');
 		const { content } = await request.json();

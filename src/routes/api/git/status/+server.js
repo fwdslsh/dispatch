@@ -42,7 +42,7 @@ function parseGitStatus(output) {
 	return status;
 }
 
-export async function GET({ url, request, locals }) {
+export async function GET({ url, request: _request, locals: _locals }) {
 	try {
 		const path = url.searchParams.get('path');
 		if (!path) {
@@ -54,7 +54,7 @@ export async function GET({ url, request, locals }) {
 		// Check if it's a git repository
 		try {
 			await execGit(['rev-parse', '--git-dir'], resolvedPath);
-		} catch (error) {
+		} catch (_error) {
 			return json({ error: 'Not a git repository' }, { status: 404 });
 		}
 

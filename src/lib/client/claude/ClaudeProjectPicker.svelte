@@ -156,7 +156,7 @@
 				{#if error}<span class="err">{error}</span>{/if}
 			</div>
 			<ul class="list" role="listbox">
-				{#each filtered as p, i}
+				{#each filtered as p, i (p.path || p.name || i)}
 					<li class={i === highlight ? 'is-active' : ''}>
 						<button type="button" onclick={() => choose(p)}>
 							<div class="name">{formatProjectName(p)}</div>

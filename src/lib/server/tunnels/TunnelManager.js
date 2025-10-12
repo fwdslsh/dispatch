@@ -175,7 +175,7 @@ export class TunnelManager extends BaseTunnelManager {
 						this._logWarn('Process did not exit gracefully, forcing kill');
 						try {
 							processToKill.kill('SIGKILL');
-						} catch (e) {
+						} catch (_e) {
 							// Ignore errors on force kill
 						}
 						resolve();

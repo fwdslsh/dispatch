@@ -9,6 +9,7 @@
 	import { runSessionClient } from '$lib/client/shared/services/RunSessionClient.js';
 	import MobileTerminalInput from './MobileTerminalInput.svelte';
 	import { AnsiUp } from 'ansi_up';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	// Props
 	let { sessionId, shouldResume = false } = $props();
@@ -18,7 +19,7 @@
 	let container = $state();
 	let isAttached = $state(false);
 	let isCatchingUp = $state(false);
-	let connectionError = $state(null);
+	let _connectionError = $state(null);
 	let shouldAutoScroll = $state(true);
 	let wrapMode = $state('wrap'); // 'wrap' | 'scroll'
 	const MAX_LINES = 1000; // Keep only last 1000 lines for performance
@@ -35,11 +36,11 @@
 	const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
 
 	// ANSI-to-HTML conversion with clickable links
-	function ansiToHtml(text, lineId) {
+	function ansiToHtml(text, _lineId) {
 		try {
 			// First, apply URL detection to raw text before ANSI conversion
 			// This prevents conflicts with ANSI escape sequences
-			const urlPlaceholders = new Map();
+			const urlPlaceholders = new SvelteMap();
 			let placeholderIndex = 0;
 
 			// Replace URLs with placeholders temporarily
@@ -294,7 +295,7 @@
 
 			const result = await runSessionClient.attachToRunSession(sessionId, handleRunEvent, 0);
 			isAttached = true;
-			connectionError = null;
+			_connectionError = null;
 			console.log('[MOBILE-TERMINAL] Attached to run session:', result);
 
 			// Send initial enter to trigger prompt (only for new terminals)
@@ -320,7 +321,7 @@
 			}
 		} catch (error) {
 			console.error('[MOBILE-TERMINAL] Failed to attach to run session:', error);
-			connectionError = `Failed to connect: ${error.message}`;
+			_connectionError = `Failed to connect: ${error.message}`;
 			isCatchingUp = false;
 		}
 	});
@@ -362,6 +363,7 @@
 	>
 		<div class="terminal-pre">
 			{#each terminalLines as line (line.id)}
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- Terminal output sanitized via ansi_up library -->
 				<div class="terminal-line">{@html line.html}</div>
 			{/each}
 		</div>

@@ -20,9 +20,9 @@
 		/** @type {number} */ minSize = 48,
 		/** @type {Partial<Keymap>} */ keymap = {},
 		/** @type {boolean} */ showEditMode = false,
-		onfocuschange = (e) => {},
-		onlayoutchange = (e) => {},
-		oneditmodetoggle = (e) => {},
+		onfocuschange = (_e) => {},
+		onlayoutchange = (_e) => {},
+		oneditmodetoggle: _oneditmodetoggle = (_e) => {},
 		/** @type {import('svelte').Snippet<[{focused: string, tileId: string, editMode: boolean, onSplitRight: () => void, onSplitDown: () => void, onClose: () => void}]>} */ tile
 	} = $props();
 
@@ -33,7 +33,7 @@
 	/** @type {HTMLElement|null} */
 	let containerEl = $state(null);
 	/** @type {boolean} */
-	let editMode = $state(showEditMode);
+	let editMode = $derived(showEditMode);
 
 	/** @type {Keymap} */
 	const DEFAULT_KEYMAP = {
@@ -299,12 +299,6 @@
 	// Expose core layout helpers to parent components
 	export { splitBesideCurrent, closeFocused };
 
-	// Edit mode toggle
-	function toggleEditMode() {
-		editMode = !editMode;
-		oneditmodetoggle?.({ detail: { editMode } });
-	}
-
 	// Helper to temporarily set focus to a tile, perform an action, then restore previous focus
 	function withTileFocus(tileId, action) {
 		const prevFocused = focused;
@@ -328,11 +322,6 @@
 	function handleCloseTile(tileId) {
 		withTileFocus(tileId, () => closeFocused());
 	}
-
-	// Sync edit mode with prop
-	$effect(() => {
-		editMode = showEditMode;
-	});
 </script>
 
 <!--
@@ -360,16 +349,14 @@
 
 	{#if root.type === 'leaf'}
 		<Tile id={/** @type {Leaf} */ (root).id} {focused} onfocus={handleFocus}>
-			{#snippet children()}
-				{@render tile({
-					focused,
-					tileId: /** @type {Leaf} */ (root).id,
-					editMode,
-					onSplitRight: () => handleSplitRight(/** @type {Leaf} */ (root).id),
-					onSplitDown: () => handleSplitDown(/** @type {Leaf} */ (root).id),
-					onClose: () => handleCloseTile(/** @type {Leaf} */ (root).id)
-				})}
-			{/snippet}
+			{@render tile({
+				focused,
+				tileId: /** @type {Leaf} */ (root).id,
+				editMode,
+				onSplitRight: () => handleSplitRight(/** @type {Leaf} */ (root).id),
+				onSplitDown: () => handleSplitDown(/** @type {Leaf} */ (root).id),
+				onClose: () => handleCloseTile(/** @type {Leaf} */ (root).id)
+			})}
 		</Tile>
 	{:else}
 		<Split

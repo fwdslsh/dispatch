@@ -36,12 +36,16 @@ class ClaudeAuthManager {
 	/** Strip ANSI escape sequences and control characters */
 	stripAnsi(input) {
 		try {
-			return String(input)
-				.replace(
-					/[\u001B\u009B][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-					''
-				)
-				.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+			return (
+				String(input)
+					.replace(
+						// eslint-disable-next-line no-control-regex -- ANSI escape codes for terminal output processing
+						/[\u001B\u009B][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+						''
+					)
+					// eslint-disable-next-line no-control-regex -- Control characters removed from PTY output
+					.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+			);
 		} catch {
 			return String(input || '');
 		}
@@ -132,7 +136,9 @@ class ClaudeAuthManager {
 						success: false,
 						error: 'Terminal functionality not available - node-pty failed to load'
 					});
-				} catch {}
+				} catch (_error) {
+					// Intentionally ignoring socket emit error - socket may be disconnected
+				}
 				return false;
 			}
 
@@ -174,11 +180,15 @@ class ClaudeAuthManager {
 							state.finished = true;
 							try {
 								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, { success: true });
-							} catch {}
+							} catch (_error) {
+								// Intentionally ignoring socket emit error - socket may be disconnected
+							}
 							logger.info('CLAUDE', 'Auth flow reported success; terminating PTY');
 							try {
 								state.p.kill();
-							} catch {}
+							} catch (_error) {
+								// Intentionally ignoring PTY kill error - process may already be terminated
+							}
 							return;
 						}
 						if (lower.includes('invalid') || lower.includes('expired') || lower.includes('error')) {
@@ -188,11 +198,15 @@ class ClaudeAuthManager {
 									success: false,
 									error: 'Authorization code rejected'
 								});
-							} catch {}
+							} catch (_error) {
+								// Intentionally ignoring socket emit error - socket may be disconnected
+							}
 							logger.warn('CLAUDE', 'Auth flow reported error; terminating PTY');
 							try {
 								state.p.kill();
-							} catch {}
+							} catch (_error) {
+								// Intentionally ignoring PTY kill error - process may already be terminated
+							}
 							return;
 						}
 					}
@@ -253,7 +267,9 @@ class ClaudeAuthManager {
 					success: false,
 					error: String(error?.message || error)
 				});
-			} catch {}
+			} catch (_error) {
+				// Intentionally ignoring socket emit error - socket may be disconnected
+			}
 			return false;
 		}
 	}
@@ -268,7 +284,9 @@ class ClaudeAuthManager {
 					success: false,
 					error: 'No auth session active'
 				});
-			} catch {}
+			} catch (_error) {
+				// Intentionally ignoring socket emit error - socket may be disconnected
+			}
 			return false;
 		}
 		// Ensure state has the properties used below
@@ -283,7 +301,9 @@ class ClaudeAuthManager {
 			setTimeout(() => {
 				try {
 					if (!state.finished) state.p.write('\r');
-				} catch {}
+				} catch (_error) {
+					// Intentionally ignoring write error - PTY may be closed
+				}
 			}, 250);
 			// Watchdog: if nothing concludes within 25s after code submission, emit error
 			setTimeout(() => {
@@ -293,10 +313,14 @@ class ClaudeAuthManager {
 						success: false,
 						error: 'Authentication timeout waiting for CLI'
 					});
-				} catch {}
+				} catch (_error) {
+					// Intentionally ignoring socket emit error - socket may be disconnected
+				}
 				try {
 					state.p.kill();
-				} catch {}
+				} catch (_error) {
+					// Intentionally ignoring PTY kill error - process may already be terminated
+				}
 				state.finished = true;
 			}, 25000);
 			logger.info('CLAUDE', 'Authorization code submitted to PTY');
@@ -309,7 +333,9 @@ class ClaudeAuthManager {
 					success: false,
 					error: String(error?.message || error)
 				});
-			} catch {}
+			} catch (_error) {
+				// Intentionally ignoring socket emit error - socket may be disconnected
+			}
 			return false;
 		}
 	}
@@ -320,7 +346,9 @@ class ClaudeAuthManager {
 			if (s && s.p) {
 				try {
 					s.p.kill();
-				} catch {}
+				} catch (_error) {
+					// Intentionally ignoring PTY kill error - process may already be terminated
+				}
 			}
 		} finally {
 			this.sessions.delete(key);

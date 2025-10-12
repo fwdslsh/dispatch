@@ -60,8 +60,10 @@
 		if (md && markdownContainer && content) {
 			// Render markdown content
 			const rendered = md.render(content);
+			// eslint-disable-next-line svelte/no-dom-manipulating -- Required for markdown rendering library
 			markdownContainer.innerHTML = rendered;
 		} else if (markdownContainer && !content) {
+			// eslint-disable-next-line svelte/no-dom-manipulating -- Required to clear markdown content
 			markdownContainer.innerHTML = '';
 		}
 	});

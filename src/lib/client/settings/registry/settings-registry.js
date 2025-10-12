@@ -29,7 +29,7 @@ const settingsCategories = new Map();
  */
 export function registerSettingsSection(section) {
 	if (!section?.id || !section?.component) {
-		console.warn('[Settings Registry] Invalid section:', section);
+		// Invalid section registration - skip silently in production
 		return;
 	}
 

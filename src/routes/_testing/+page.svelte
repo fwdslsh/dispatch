@@ -11,7 +11,7 @@
 </script>
 
 <div class="testing-list">
-	{#each workspaces as ws}
+	{#each workspaces as ws (ws.path)}
 		<div class="project-item" data-path={ws.path} role="button">
 			<strong>{ws.name}</strong>
 			<div class="session-item">No sessions (placeholder)</div>

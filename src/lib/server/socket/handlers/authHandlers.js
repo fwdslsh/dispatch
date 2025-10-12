@@ -9,10 +9,10 @@
 
 /**
  * Create auth handlers with service dependencies
- * @param {Object} services - Service dependencies (unused, kept for consistency)
+ * @param {Object} _services - Service dependencies (unused, kept for consistency)
  * @returns {Object} Handler functions
  */
-export function createAuthHandlers(services) {
+export function createAuthHandlers(_services) {
 	return {
 		/**
 		 * Handle client hello event

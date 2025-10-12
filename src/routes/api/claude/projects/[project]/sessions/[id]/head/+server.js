@@ -6,7 +6,7 @@ import { projectsRoot } from '$lib/server/claude/cc-root.js';
 
 const MAX_BYTES = 512 * 1024; // cap to keep responses snappy
 
-export async function GET({ params, url, request, locals }) {
+export async function GET({ params, url, request: _request, locals: _locals }) {
 	const { project, id } = params;
 	const n = Math.max(1, Math.min(200, Number(url.searchParams.get('n') ?? 40)));
 	const tail = url.searchParams.get('tail') === '1';

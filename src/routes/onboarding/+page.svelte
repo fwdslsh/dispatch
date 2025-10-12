@@ -11,7 +11,6 @@
 
 	import { onMount } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
-	import { enhance } from '$app/forms';
 	import OnboardingFlow from '$lib/client/onboarding/OnboardingFlow.svelte';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
 	import { OnboardingViewModel } from '$lib/client/onboarding/OnboardingViewModel.svelte.js';
@@ -25,7 +24,7 @@
 	 */
 
 	/** @type {OnboardingPageProps} */
-	let { data, form } = $props();
+	let { data } = $props();
 
 	// State management
 	let onboardingViewModel = $state(null);
@@ -76,7 +75,9 @@
 			// Check if onboarding is already complete (from server load)
 			if (data?.onboardingStatus?.isComplete) {
 				// Redirect to main app if already completed
+				/* eslint-disable svelte/no-navigation-without-resolve */
 				await goto('/', { replaceState: true });
+				/* eslint-enable svelte/no-navigation-without-resolve */
 				return;
 			}
 
@@ -112,21 +113,14 @@
 			} else {
 				console.log('[OnboardingPage] No API key in result, redirecting to /workspace');
 				// No API key in response - redirect to workspace
+				/* eslint-disable svelte/no-navigation-without-resolve */
 				await goto('/workspace');
+				/* eslint-enable svelte/no-navigation-without-resolve */
 			}
 		} catch (err) {
 			console.error('Failed to handle onboarding completion:', err);
 			error = err.message || 'Failed to complete onboarding';
 		}
-	}
-
-	/**
-	 * Handle onboarding errors
-	 * @param {CustomEvent} event - Error event
-	 */
-	function handleOnboardingError(event) {
-		const { error: errorMessage } = event.detail;
-		error = errorMessage;
 	}
 
 	/**
@@ -176,7 +170,9 @@
 			return;
 		}
 
+		/* eslint-disable svelte/no-navigation-without-resolve */
 		await goto('/workspace', { replaceState: true });
+		/* eslint-enable svelte/no-navigation-without-resolve */
 	}
 </script>
 

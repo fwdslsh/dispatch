@@ -11,7 +11,7 @@ import { existsSync } from 'node:fs';
  *
  * @route POST /api/git/worktree/add
  */
-export async function POST({ request, locals }) {
+export async function POST({ request, locals: _locals }) {
 	try {
 		const { path, worktreePath, branch, newBranch } = await request.json();
 
@@ -51,7 +51,7 @@ export async function POST({ request, locals }) {
 		// Check if it's a git repository
 		try {
 			await execGit(['rev-parse', '--git-dir'], resolvedPath);
-		} catch (error) {
+		} catch (_error) {
 			return json({ error: 'Not a git repository' }, { status: 404 });
 		}
 
@@ -65,7 +65,7 @@ export async function POST({ request, locals }) {
 
 		if (newBranch) {
 			// Validate branch name to prevent injection
-			if (!newBranch.match(/^[a-zA-Z0-9_\-\/\.]+$/)) {
+			if (!newBranch.match(/^[a-zA-Z0-9_\-/.]+$/)) {
 				return json({ error: 'Invalid branch name format' }, { status: 400 });
 			}
 			args.push('-b', newBranch);
@@ -75,7 +75,7 @@ export async function POST({ request, locals }) {
 
 		if (branch && !newBranch) {
 			// Validate branch name to prevent injection
-			if (!branch.match(/^[a-zA-Z0-9_\-\/\.]+$/)) {
+			if (!branch.match(/^[a-zA-Z0-9_\-/.]+$/)) {
 				return json({ error: 'Invalid branch name format' }, { status: 400 });
 			}
 			args.push(branch);

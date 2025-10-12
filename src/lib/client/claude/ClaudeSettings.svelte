@@ -176,7 +176,7 @@
 				{/if}
 			</label>
 			<select id="claude-model" class="setting-input" bind:value={model} {disabled}>
-				{#each availableModels as modelOption}
+				{#each availableModels as modelOption (modelOption.value)}
 					<option value={modelOption.value}>{modelOption.label}</option>
 				{/each}
 			</select>
@@ -191,7 +191,7 @@
 				{disabled}
 			>
 				<option value="">Use default fallback</option>
-				{#each availableModels as modelOption}
+				{#each availableModels as modelOption (modelOption.value)}
 					<option value={modelOption.value}>{modelOption.label}</option>
 				{/each}
 			</select>
@@ -279,7 +279,7 @@
 					bind:value={permissionMode}
 					{disabled}
 				>
-					{#each permissionModes as mode}
+					{#each permissionModes as mode (mode.value)}
 						<option value={mode.value}>{mode.label}</option>
 					{/each}
 				</select>
@@ -288,7 +288,7 @@
 			<div class="setting-group">
 				<label for="claude-executable" class="setting-label">JavaScript Runtime</label>
 				<select id="claude-executable" class="setting-input" bind:value={executable} {disabled}>
-					{#each executables as exec}
+					{#each executables as exec (exec.value)}
 						<option value={exec.value}>{exec.label}</option>
 					{/each}
 				</select>

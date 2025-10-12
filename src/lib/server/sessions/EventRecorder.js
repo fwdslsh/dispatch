@@ -4,6 +4,7 @@
  * Implements buffering logic from RunSessionManager to prevent race conditions during initialization
  */
 
+// eslint-disable-next-line no-unused-vars -- Needed for JSDoc type annotations
 import { EventStore } from '../database/EventStore.js';
 
 import { EventEmitter } from 'events';

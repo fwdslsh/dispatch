@@ -55,14 +55,14 @@ export async function GET() {
 				hint: 'No valid Claude OAuth token found'
 			});
 		}
-	} catch (error) {
-		logger.error('Claude auth GET error:', error);
+	} catch (error_) {
+		logger.error('Claude auth GET error:', error_);
 
 		return json({
 			authenticated: false,
 			status: 'not_authenticated',
 			hint: 'Claude credentials not found or invalid',
-			error
+			error: error_
 		});
 	}
 }
@@ -94,7 +94,7 @@ export async function POST({ request }) {
 
 		// Try to authenticate with the API key using Claude CLI
 		try {
-			const { stdout, stderr } = await execAsync(`claude auth login --api-key "${apiKey}"`, {
+			await execAsync(`claude auth login --api-key "${apiKey}"`, {
 				timeout: 10000,
 				env: { ...process.env, PATH: process.env.PATH }
 			});
@@ -113,8 +113,8 @@ export async function POST({ request }) {
 				{ status: 401 }
 			);
 		}
-	} catch (error) {
-		console.error('Claude auth POST error:', error);
+	} catch (error_) {
+		console.error('Claude auth POST error:', error_);
 		return json(
 			{
 				success: false,
@@ -145,8 +145,8 @@ export async function DELETE() {
 			success: true,
 			message: 'Signed out successfully'
 		});
-	} catch (error) {
-		console.error('Claude sign out failed:', error);
+	} catch (error_) {
+		console.error('Claude sign out failed:', error_);
 		return json(
 			{
 				success: false,

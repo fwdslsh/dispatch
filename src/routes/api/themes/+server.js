@@ -14,7 +14,7 @@ import { XtermThemeParser } from '$lib/server/themes/XtermThemeParser.js';
 const parser = new XtermThemeParser();
 const themeManager = new ThemeManager(parser);
 
-export async function GET({ locals }) {
+export async function GET({ locals: _locals }) {
 	try {
 		// Public route - no auth required (accessible during onboarding)
 		// Auth is optional - if provided, may enable additional features in future

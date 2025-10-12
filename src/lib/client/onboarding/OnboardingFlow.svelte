@@ -8,7 +8,6 @@
 	 * it in a single atomic POST request at the end of the flow using SvelteKit form actions.
 	 */
 
-	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { useServiceContainer } from '../shared/services/ServiceContainer.svelte.js';
@@ -17,7 +16,7 @@
 	import ThemeSelectionStep from './ThemeSelectionStep.svelte';
 
 	// Props
-	let { onComplete = () => {}, onSkip = () => {} } = $props();
+	let { onComplete = () => {} } = $props();
 
 	// Get services from context
 	const serviceContainer = useServiceContainer();
@@ -77,12 +76,6 @@
 				viewModel.isLoading = false;
 			}
 		};
-	}
-
-	// Skip onboarding (minimal approach)
-	async function handleSkip() {
-		onSkip();
-		await goto('/');
 	}
 </script>
 

@@ -209,7 +209,7 @@ describe('SessionOrchestrator', () => {
 
 		it('should handle session not found without error', async () => {
 			// Act - closeSession doesn't throw for non-existent sessions
-			const result = await orchestrator.closeSession('invalid');
+			const _result = await orchestrator.closeSession('invalid');
 
 			// Assert - should still update status in database
 			expect(mockSessionRepository.updateStatus).toHaveBeenCalledWith('invalid', 'closed');

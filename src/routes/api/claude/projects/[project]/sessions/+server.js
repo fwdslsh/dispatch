@@ -3,7 +3,7 @@ import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { projectsRoot } from '$lib/server/claude/cc-root.js';
 
-export async function GET({ params, request, locals }) {
+export async function GET({ params, request: _request, locals: _locals }) {
 	const { project } = params;
 	const root = projectsRoot();
 	const projectPath = join(root, project);

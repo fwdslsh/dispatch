@@ -10,12 +10,8 @@
 	import IconKeyboard from '../Icons/IconKeyboard.svelte';
 	import IconTerminal from '../Icons/IconTerminal.svelte';
 	import IconPlus from '../Icons/IconPlus.svelte';
-	import IconMinus from '../Icons/IconMinus.svelte';
-	import IconArrowLeft from '../Icons/IconArrowLeft.svelte';
 	import IconArrowRight from '../Icons/IconArrowRight.svelte';
 	import IconArrowUp from '../Icons/IconArrowUp.svelte';
-	import IconArrowDown from '../Icons/IconArrowDown.svelte';
-	import IconClaude from '../Icons/IconClaude.svelte';
 	import IconEdit from '../Icons/IconEdit.svelte';
 	import Button from '../Button.svelte';
 
@@ -192,7 +188,7 @@
 			<!-- Content -->
 			<div class="modal-content">
 				<div class="shortcuts-grid">
-					{#each shortcuts as category}
+					{#each shortcuts as category (category.category)}
 						{@const IconComponent = category.icon}
 						<div class="shortcut-category">
 							<div class="category-header">
@@ -200,10 +196,10 @@
 								<h3>{category.category}</h3>
 							</div>
 							<div class="category-shortcuts">
-								{#each category.shortcuts as shortcut}
+								{#each category.shortcuts as shortcut (shortcut.description)}
 									<div class="shortcut-item">
 										<div class="shortcut-keys">
-											{#each shortcut.keys as key, index}
+											{#each shortcut.keys as key, index (index)}
 												<kbd class="key">{key}</kbd>
 												{#if index < shortcut.keys.length - 1}
 													<span class="key-separator">+</span>

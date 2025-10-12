@@ -6,6 +6,7 @@
  */
 
 import { SESSION_TYPE } from '../../../shared/session-types.js';
+import { SvelteDate } from 'svelte/reactivity';
 
 /**
  * @typedef {Object} Session
@@ -246,8 +247,8 @@ export class SessionApiClient {
 				inLayout: false,
 				resumed: raw?.resumed ?? (resume && !!sessionId) ?? false,
 				title: raw?.title || getSessionTitle(type),
-				createdAt: raw?.createdAt || new Date().toISOString(),
-				lastActivity: raw?.lastActivity || new Date().toISOString(),
+				createdAt: raw?.createdAt || new SvelteDate().toISOString(),
+				lastActivity: raw?.lastActivity || new SvelteDate().toISOString(),
 				activityState: raw?.activityState || 'launching',
 				_raw: raw
 			};
@@ -606,7 +607,7 @@ export class SessionApiClient {
 				sessionRetentionDays: data.sessionRetentionDays || 30,
 				logRetentionDays: data.logRetentionDays || 7,
 				autoCleanupEnabled: data.autoCleanupEnabled ?? true,
-				updatedAt: data.updatedAt || new Date().toISOString()
+				updatedAt: data.updatedAt || new SvelteDate().toISOString()
 			};
 		} catch (error) {
 			if (this.config.debug) {
@@ -647,12 +648,12 @@ export class SessionApiClient {
 
 	/**
 	 * Preview retention policy changes via maintenance API
-	 * @param {object} policy - Policy to preview
-	 * @param {number} policy.sessionRetentionDays - Session retention period
-	 * @param {number} policy.logRetentionDays - Log retention period
+	 * @param {object} _policy - Policy to preview (unused, API infers from current settings)
+	 * @param {number} _policy.sessionRetentionDays - Session retention period
+	 * @param {number} _policy.logRetentionDays - Log retention period
 	 * @returns {Promise<{summary: string, sessionsToDelete: number, logsToDelete: number, sessionRetentionDays: number, logRetentionDays: number}>}
 	 */
-	async previewRetentionChanges(policy) {
+	async previewRetentionChanges(_policy) {
 		try {
 			const response = await fetch(`${this.baseUrl}/api/maintenance`, {
 				method: 'POST',

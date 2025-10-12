@@ -3,6 +3,8 @@
  * @file Interface definitions for database repositories
  */
 
+/* eslint-disable no-unused-vars */
+
 /**
  * SessionRepository - Session metadata CRUD
  * @class
@@ -175,6 +177,8 @@ class WorkspaceRepository {
 	 */
 	async updateLastActive(path) {}
 }
+
+/* eslint-enable no-unused-vars */
 
 /**
  * TypeDefs

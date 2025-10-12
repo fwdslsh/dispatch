@@ -4,7 +4,7 @@
  * Tests authentication business logic without UI concerns
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AuthViewModel } from '$lib/client/shared/state/AuthViewModel.svelte.js';
 
 describe('AuthViewModel', () => {
@@ -243,9 +243,6 @@ describe('AuthViewModel', () => {
 						'https://github.com/login/oauth/authorize?client_id=test&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Fauth%2Fcallback'
 				})
 			});
-
-			// Store initial href to check if it changes
-			const initialHref = window.location.href;
 
 			await viewModel.loginWithOAuth();
 

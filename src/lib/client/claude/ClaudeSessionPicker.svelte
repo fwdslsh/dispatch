@@ -142,7 +142,7 @@
 				{#if error}<span class="err">{error}</span>{/if}
 			</div>
 			<ul class="list" role="listbox">
-				{#each filtered as s, i}
+				{#each filtered as s, i (s.id || i)}
 					<li class={i === highlight ? 'is-active' : ''}>
 						<button type="button" onclick={() => choose(s)}>
 							<div class="row2">

@@ -59,12 +59,12 @@ function formatLogMessage(level, component, message, ...args) {
 
 /**
  * Log to database - Disabled to prevent database locking issues
- * @param {string} level - Log level
- * @param {string} component - Component name
- * @param {string} message - Log message
- * @param {...any} args - Additional arguments
+ * @param {string} _level - Log level
+ * @param {string} _component - Component name
+ * @param {string} _message - Log message
+ * @param {...any} _args - Additional arguments
  */
-function logToDatabase(level, component, message, args) {
+function _logToDatabase(_level, _component, _message, _args) {
 	// Database logging disabled to prevent SQLITE_BUSY errors
 	// The logger was creating its own DatabaseManager instance,
 	// causing multiple connections competing for the same database file.

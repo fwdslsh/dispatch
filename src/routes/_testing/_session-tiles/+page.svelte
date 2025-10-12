@@ -1,5 +1,3 @@
-<svelte:options runes={true} />
-
 <script>
 	import WindowManager from '$lib/client/shared/components/window-manager/WindowManager.svelte';
 	import SessionContainer from '$lib/client/shared/components/workspace/SessionContainer.svelte';
@@ -11,13 +9,16 @@
 	import IconPin from '$lib/client/shared/components/Icons/IconPin.svelte';
 	import IconPinnedOff from '$lib/client/shared/components/Icons/IconPinnedOff.svelte';
 	import IconClaude from '$lib/client/shared/components/Icons/IconClaude.svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	// Session management state
-	/** @type {Map<string, any>} */
-	let sessions = $state(new Map());
+	/** @type {SvelteMap<string, any>} */
+	// svelte-ignore non_reactive_update
+	let sessions = new SvelteMap();
 
-	/** @type {Map<string, string>} Tile ID to Session ID mapping */
-	let tileSessionMap = $state(new Map());
+	/** @type {SvelteMap<string, string>} Tile ID to Session ID mapping */
+	// svelte-ignore non_reactive_update
+	let tileSessionMap = new SvelteMap();
 
 	/** @type {boolean} */
 	let showInstructions = $state(true);
@@ -44,12 +45,12 @@
 		};
 
 		sessions.set(sessionId, newSession);
-		sessions = new Map(sessions); // Trigger reactivity
+		sessions = new SvelteMap(sessions); // Trigger reactivity
 
 		// If a specific tile ID is provided, assign this session to it
 		if (tileId) {
 			tileSessionMap.set(tileId, sessionId);
-			tileSessionMap = new Map(tileSessionMap);
+			tileSessionMap = new SvelteMap(tileSessionMap);
 		}
 
 		// Simulate session becoming active after a brief delay
@@ -58,7 +59,7 @@
 			if (session) {
 				session.isActive = true;
 				sessions.set(sessionId, session);
-				sessions = new Map(sessions);
+				sessions = new SvelteMap(sessions);
 			}
 		}, 500);
 
@@ -80,7 +81,7 @@
 	 */
 	function closeSession(sessionId) {
 		sessions.delete(sessionId);
-		sessions = new Map(sessions);
+		sessions = new SvelteMap(sessions);
 
 		// Remove from tile mapping
 		for (const [tileId, mappedSessionId] of tileSessionMap.entries()) {
@@ -89,7 +90,7 @@
 				break;
 			}
 		}
-		tileSessionMap = new Map(tileSessionMap);
+		tileSessionMap = new SvelteMap(tileSessionMap);
 	}
 
 	/**
@@ -101,7 +102,7 @@
 		if (session) {
 			session.isPinned = !session.isPinned;
 			sessions.set(sessionId, session);
-			sessions = new Map(sessions);
+			sessions = new SvelteMap(sessions);
 		}
 	}
 

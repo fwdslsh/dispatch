@@ -2,17 +2,13 @@
 	import { onMount, getContext } from 'svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import ConfirmationDialog from '$lib/client/shared/components/ConfirmationDialog.svelte';
-	import Input from '$lib/client/shared/components/Input.svelte';
-	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import { RetentionPolicyViewModel } from '$lib/client/state/RetentionPolicyViewModel.svelte.js';
 	import IconTrash from '$lib/client/shared/components/Icons/IconTrash.svelte';
 	import IconDownload from '$lib/client/shared/components/Icons/IconDownload.svelte';
 	import IconUpload from '$lib/client/shared/components/Icons/IconUpload.svelte';
-	import IconAlertTriangle from '$lib/client/shared/components/Icons/IconAlertTriangle.svelte';
 	import IconCheck from '$lib/client/shared/components/Icons/IconCheck.svelte';
 	import MetricCard from '$lib/client/shared/components/MetricCard.svelte';
 	import InfoBox from '$lib/client/shared/components/InfoBox.svelte';
-	import SettingsFormSection from '$lib/client/shared/components/SettingsFormSection.svelte';
 
 	/**
 	 * Data Management Component
@@ -57,8 +53,8 @@
 			// Note: authKey parameter removed - API uses session cookies
 			viewModel = new RetentionPolicyViewModel(settingsService);
 			await viewModel.loadPolicy();
-		} catch (error) {
-			console.error('Failed to initialize retention settings:', error);
+		} catch (_error) {
+			// Initialization error will be reflected in viewModel.error state
 		}
 	});
 
@@ -105,8 +101,8 @@
 				percentage,
 				items
 			};
-		} catch (error) {
-			console.error('Failed to calculate storage usage:', error);
+		} catch (_error) {
+			// Failed to calculate storage - reset to zero state
 			storageUsage = {
 				used: 0,
 				available: 0,
@@ -191,8 +187,7 @@
 			setTimeout(() => {
 				storageStatusMessage = '';
 			}, 3000);
-		} catch (error) {
-			console.error('Failed to clear storage:', error);
+		} catch (_error) {
 			storageStatusMessage = 'Failed to clear storage';
 		} finally {
 			storageLoading = false;
@@ -229,8 +224,7 @@
 			setTimeout(() => {
 				storageStatusMessage = '';
 			}, 3000);
-		} catch (error) {
-			console.error('Failed to export data:', error);
+		} catch (_error) {
 			storageStatusMessage = 'Failed to export data';
 		}
 	}
@@ -270,8 +264,7 @@
 			setTimeout(() => {
 				storageStatusMessage = '';
 			}, 3000);
-		} catch (error) {
-			console.error('Failed to import data:', error);
+		} catch (_error) {
 			storageStatusMessage = 'Failed to import data - invalid file format';
 		} finally {
 			storageLoading = false;
@@ -314,8 +307,8 @@
 		if (!viewModel) return;
 		try {
 			await viewModel.savePolicy();
-		} catch (error) {
-			console.error('Failed to save retention policy:', error);
+		} catch (_error) {
+			// Save error will be reflected in viewModel.error state
 		}
 	}
 
@@ -396,7 +389,7 @@
 				<div class="subsection">
 					<h5 class="subsection-title">Breakdown by Category</h5>
 
-					{#each Object.entries(groupedItems) as [category, items]}
+					{#each Object.entries(groupedItems) as [category, items] (category)}
 						<div class="category-row">
 							<div class="category-info">
 								<span class="category-name">{category}</span>

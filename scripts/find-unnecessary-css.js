@@ -103,7 +103,7 @@ function findFiles(dir, pattern, ignore = []) {
 					results.push(fullPath);
 				}
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Skip directories we can't read
 		}
 	}
@@ -396,7 +396,7 @@ class UnnecessaryCSSDetector {
 		}
 
 		// Element with pseudo-class or attribute (e.g., "button:hover", "input[type='text']")
-		const elementWithModifierMatch = selector.match(/^([a-z][a-z0-9]*)[\[:]/i);
+		const elementWithModifierMatch = selector.match(/^([a-z][a-z0-9]*)[[:]/i);
 		if (elementWithModifierMatch) {
 			return elementWithModifierMatch[1].toLowerCase();
 		}

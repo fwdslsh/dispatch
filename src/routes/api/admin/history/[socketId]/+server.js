@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { createHistoryManager } from '$lib/server/shared/history-manager.js';
 
-export async function GET({ params, url, locals }) {
+export async function GET({ params, url: _url, locals }) {
 	const { socketId } = params;
 
 	if (!socketId) {

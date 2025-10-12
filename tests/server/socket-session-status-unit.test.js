@@ -233,7 +233,7 @@ describe('Session Status Handler Logic', () => {
 
 					if (sessionRegistry && data.sessionId) {
 						// This branch won't be taken since sessionRegistry is undefined
-						const session = sessionRegistry.getSession(data.sessionId);
+						const _session = sessionRegistry.getSession(data.sessionId);
 						// ... rest of logic
 					} else {
 						if (callback)

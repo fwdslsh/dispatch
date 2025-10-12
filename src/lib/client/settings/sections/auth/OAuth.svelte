@@ -85,9 +85,8 @@
 				const data = await response.json().catch(() => ({}));
 				error = data?.error || 'Failed to load OAuth settings';
 			}
-		} catch (err) {
+		} catch (_err) {
 			error = 'Unable to reach server';
-			console.error('Load OAuth settings error:', err);
 		} finally {
 			loading = false;
 		}
@@ -128,9 +127,8 @@
 				const data = await response.json().catch(() => ({}));
 				error = data?.error || 'Failed to save OAuth settings';
 			}
-		} catch (err) {
+		} catch (_err) {
 			error = 'Unable to reach server';
-			console.error('Save OAuth settings error:', err);
 		} finally {
 			saving = false;
 		}
@@ -254,6 +252,8 @@
 							<div class="form-group">
 								<label for="{providerKey}-client-id" class="form-label">
 									Client ID
+									<!-- External documentation link (not a route) -->
+									<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
 									<a
 										href={meta.docsUrl}
 										target="_blank"

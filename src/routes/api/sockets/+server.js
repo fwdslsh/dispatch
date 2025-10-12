@@ -3,10 +3,9 @@
  * GET /api/sockets - Returns list of active socket connections
  */
 
-import { json } from '@sveltejs/kit';
 import { getActiveSocketIO } from '$lib/server/shared/socket-setup.js';
 
-export async function GET({ url, request, locals }) {
+export async function GET({ url, request: _request, locals: _locals }) {
 	try {
 		const io = getActiveSocketIO();
 

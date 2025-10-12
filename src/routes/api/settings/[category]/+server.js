@@ -31,7 +31,7 @@ export async function PUT({ params, request, locals }) {
 			return json({ error: 'Missing or invalid settings object' }, { status: 400 });
 		}
 
-		const { settingsRepository, auth } = locals.services;
+		const { settingsRepository } = locals.services;
 
 		// Get current settings for this category
 		const currentSettings = await settingsRepository.getByCategory(category);

@@ -1,4 +1,5 @@
 import { getAuthHeaders } from '$lib/shared/api-helpers.js';
+import { SvelteURLSearchParams } from 'svelte/reactivity';
 
 /**
  * DirectoryBrowserViewModel
@@ -118,7 +119,7 @@ export class DirectoryBrowserViewModel {
 		this.error = '';
 		try {
 			// If path is null, don't send it as a param - let the server use its default
-			const params = new URLSearchParams({ showHidden: this.showHidden.toString() });
+			const params = new SvelteURLSearchParams({ showHidden: this.showHidden.toString() });
 			if (path !== null && path !== undefined) {
 				params.set('path', path);
 			}

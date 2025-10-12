@@ -88,7 +88,7 @@ function findFiles(dir, pattern, ignore = []) {
 					results.push(fullPath);
 				}
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Skip directories we can't read
 		}
 	}
@@ -107,10 +107,11 @@ function parseCSS(cssContent) {
 	cssContent = cssContent.replace(/\/\*[\s\S]*?\*\//g, '');
 
 	// Match CSS rules (selector { ... })
-	const ruleRegex = /([^{}]+)\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
-
-	let match;
-	let nestingLevel = 0;
+	// Note: ruleRegex, match, and nestingLevel are declared but not currently used
+	// Kept for potential future implementation of nested CSS parsing
+	// const _ruleRegex = /([^{}]+)\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
+	// let _match;
+	// let _nestingLevel = 0;
 
 	// Split by rules and track nesting
 	const lines = cssContent.split('\n');
@@ -344,7 +345,7 @@ function generateMarkdownReport(analyses) {
 	const sortedByComplexity = [...analyses].sort((a, b) => b.complexityScore - a.complexityScore);
 
 	for (const analysis of sortedByComplexity) {
-		const relativePath = path.relative(PROJECT_ROOT, analysis.file);
+		const _relativePath = path.relative(PROJECT_ROOT, analysis.file);
 		const fileName = path.basename(analysis.file);
 		const complexityIndicator = analysis.complexityScore > options.threshold ? ' ⚠️' : '';
 
@@ -420,7 +421,7 @@ function generateMarkdownReport(analyses) {
 
 	for (const analysis of sortedByComplexity) {
 		const relativePath = path.relative(PROJECT_ROOT, analysis.file);
-		const fileName = path.basename(analysis.file);
+		const _fileName = path.basename(analysis.file);
 
 		markdown += `### ${relativePath}\n\n`;
 		markdown += `**Complexity Score:** ${analysis.complexityScore.toFixed(1)}/10\n\n`;

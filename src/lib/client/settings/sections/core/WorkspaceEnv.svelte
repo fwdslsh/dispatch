@@ -62,7 +62,7 @@
 			// Filter out empty entries and convert to object
 			const envVarsObject = {};
 			envVariables
-				.filter(({ key, value }) => key.trim() !== '')
+				.filter(({ key }) => key.trim() !== '')
 				.forEach(({ key, value }) => {
 					envVarsObject[key.trim()] = value;
 				});
@@ -87,8 +87,7 @@
 			setTimeout(() => {
 				saveStatus = '';
 			}, 3000);
-		} catch (error) {
-			console.error('Failed to save environment variables:', error);
+		} catch (_error) {
 			saveStatus = 'Failed to save environment variables';
 			setTimeout(() => {
 				saveStatus = '';
@@ -104,7 +103,7 @@
 		saveStatus = '';
 	}
 
-	// Handle key input validation
+	// Validate environment variable key format
 	function validateEnvVarKey(key) {
 		// Environment variable names should be valid identifiers
 		return /^[A-Za-z_][A-Za-z0-9_]*$/.test(key);
@@ -127,7 +126,7 @@
 		</div>
 
 		<div class="env-variables-list flex-col gap-2">
-			{#each envVariables as envVar, index}
+			{#each envVariables as envVar, index (index)}
 				<div class="env-variable-row flex gap-2 align-center">
 					<div class="env-key-input flex-1">
 						<Input
