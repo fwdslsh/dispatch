@@ -16,11 +16,21 @@ import { createLogger } from '../utils/logger.js';
 const log = createLogger('auth:viewmodel');
 
 /**
+ * @typedef {Object} OAuthProviderConfig
+ * @property {string} name - Provider identifier (e.g. 'github', 'google')
+ * @property {string} displayName - Human-friendly provider name
+ * @property {boolean} enabled - Whether provider is enabled in settings
+ * @property {boolean} hasClientId - Whether provider has a client ID configured
+ * @property {boolean} available - Whether provider can be used for login
+ */
+
+/**
  * @typedef {Object} AuthConfig
  * @property {boolean} terminal_key_set - Whether terminal key is configured
  * @property {boolean} oauth_configured - Whether OAuth is configured
  * @property {string} [oauth_client_id] - OAuth client ID
  * @property {string} [oauth_redirect_uri] - OAuth redirect URI
+ * @property {OAuthProviderConfig[]} [oauthProviders] - OAuth providers and availability
  */
 
 /**
@@ -50,10 +60,16 @@ export class AuthViewModel {
 	// Configuration state
 	/** @type {AuthConfig|null} */
 	authConfig = $state(null);
+	/** @type {OAuthProviderConfig[]} */
+	oauthProviders = $state([]);
 
 	// PWA state
 	isPWA = $state(false);
 	currentUrl = $state('');
+
+	// Onboarding state
+	/** @type {boolean|null} */
+	onboardingComplete = $state(null);
 
 	// =================================================================
 	// DERIVED STATE
@@ -74,7 +90,7 @@ export class AuthViewModel {
 
 	/** @type {boolean} */
 	hasOAuthAuth = $derived.by(() => {
-		return this.authConfig?.oauth_configured ?? false;
+		return this.oauthProviders.some((provider) => provider.available);
 	});
 
 	/** @type {boolean} */
@@ -114,6 +130,9 @@ export class AuthViewModel {
 		// Load authentication configuration
 		await this.loadAuthConfig();
 
+		// Load onboarding status
+		await this.loadSystemStatus();
+
 		// Check if already authenticated
 		const isAuthenticated = await this.checkExistingAuth();
 
@@ -130,13 +149,44 @@ export class AuthViewModel {
 		try {
 			const response = await fetch('/api/auth/config');
 			if (response.ok) {
-				this.authConfig = await response.json();
+				const data = await response.json();
+				const { oauth_providers: oauthProvidersFromApi = [], ...rest } = data ?? {};
+				const normalizedProviders = Array.isArray(oauthProvidersFromApi)
+					? oauthProvidersFromApi
+					: [];
+
+				this.authConfig = {
+					...rest,
+					oauthProviders: normalizedProviders
+				};
+				this.oauthProviders = normalizedProviders;
 				log.info('Auth config loaded', this.authConfig);
 			} else {
 				log.error('Failed to load auth config', response.status);
 			}
 		} catch (err) {
 			log.error('Failed to load auth config', err);
+		}
+	}
+
+	/**
+	 * Load onboarding completion status
+	 * @private
+	 */
+	async loadSystemStatus() {
+		try {
+			const response = await fetch('/api/status');
+			if (!response.ok) {
+				log.warn('Failed to load system status', response.status);
+				return;
+			}
+
+			const data = await response.json();
+			const isComplete = data?.onboarding?.isComplete;
+			this.onboardingComplete = typeof isComplete === 'boolean' ? isComplete : false;
+			log.info('Onboarding status loaded', { onboardingComplete: this.onboardingComplete });
+		} catch (err) {
+			log.error('Failed to load system status', err);
 		}
 	}
 
@@ -242,6 +292,16 @@ export class AuthViewModel {
 			return;
 		}
 
+		const selectedProvider = this.oauthProviders.find(
+			(entry) => entry.name === provider && entry.available
+		);
+
+		if (!selectedProvider) {
+			log.warn('Requested OAuth provider is not available', { provider });
+			this.error = `OAuth provider ${provider} is not available`;
+			return;
+		}
+
 		try {
 			log.info('Initiating OAuth flow', { provider });
 
@@ -317,10 +377,12 @@ export class AuthViewModel {
 			loading: this.loading,
 			error: this.error,
 			isPWA: this.isPWA,
+			onboardingComplete: this.onboardingComplete,
 			hasTerminalKeyAuth: this.hasTerminalKeyAuth,
 			hasOAuthAuth: this.hasOAuthAuth,
 			hasAnyAuth: this.hasAnyAuth,
-			needsUrlChange: this.needsUrlChange
+			needsUrlChange: this.needsUrlChange,
+			oauthProviders: this.oauthProviders
 		};
 	}
 }

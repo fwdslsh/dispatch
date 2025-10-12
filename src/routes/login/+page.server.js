@@ -46,7 +46,7 @@ export const actions = {
 		);
 
 		// Redirect to home or to redirect parameter
-		const redirectUrl = new URL(request.url).searchParams.get('redirect') || '/';
+		const redirectUrl = new URL(request.url).searchParams.get('redirect') || '/workspace';
 		throw redirect(303, redirectUrl);
 	}
 };

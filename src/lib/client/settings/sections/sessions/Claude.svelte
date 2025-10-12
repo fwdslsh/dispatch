@@ -9,7 +9,6 @@
 	import IconKey from '$lib/client/shared/components/Icons/IconKey.svelte';
 	import IconExternalLink from '$lib/client/shared/components/Icons/IconExternalLink.svelte';
 	import ClaudeSettings from '$lib/client/claude/ClaudeSettings.svelte';
-	import { io } from 'socket.io-client';
 	import { SOCKET_EVENTS } from '$lib/shared/socket-events.js';
 	import { STORAGE_CONFIG } from '$lib/shared/constants.js';
 	import { useServiceContainer } from '$lib/client/shared/services/ServiceContainer.svelte.js';
@@ -31,7 +30,6 @@
 	let oauthUrl = $state('');
 	let authCode = $state('');
 	let showCodeInput = $state(false);
-	let socket = $state();
 
 	// Manual API key state
 	let showManualAuth = $state(false);
@@ -40,8 +38,11 @@
 	// Status messages
 	let statusMessage = $state('');
 
-	// Service container for configuration
-	let socketUrl = '';
+	// Service container + socket references
+	let serviceContainer = null;
+	let socketService = null;
+	let socketCleanupFns = [];
+	let socketInitializationPromise = null;
 
 	// Settings state (for Defaults section)
 	let settings = $state({});
@@ -50,12 +51,115 @@
 
 	// Try to get service container for configuration
 	try {
-		const container = useServiceContainer();
-		socketUrl =
-			container.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+		serviceContainer = useServiceContainer();
 	} catch (_e) {
-		// Fallback if container is not available (not in context)
-		socketUrl = typeof window !== 'undefined' ? window.location.origin : '';
+		// Service container not available (likely outside app shell)
+		serviceContainer = null;
+	}
+
+	function getAuthToken() {
+		if (typeof window === 'undefined') return null;
+		try {
+			return localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
+		} catch {
+			return null;
+		}
+	}
+
+	function cleanupSocketListeners() {
+		if (!socketCleanupFns.length) return;
+
+		for (const cleanup of socketCleanupFns) {
+			try {
+				if (typeof cleanup === 'function') cleanup();
+			} catch {
+				// Ignore cleanup failures
+			}
+		}
+		socketCleanupFns = [];
+	}
+
+	async function ensureSocketReady() {
+		if (!serviceContainer) {
+			throw new Error('Socket service unavailable');
+		}
+
+		if (!socketService) {
+			socketService = await serviceContainer.get('socket');
+		}
+
+		if (!socketService) {
+			throw new Error('Failed to resolve socket service');
+		}
+
+		if (!socketInitializationPromise) {
+			socketInitializationPromise = (async () => {
+				if (!socketService.socket) {
+					await socketService.connect({ path: '/socket.io' });
+					return;
+				}
+
+				if (!socketService.socket.connected) {
+					if (socketService.connecting) {
+						await socketService.waitForConnection();
+					} else {
+						socketService.socket.connect();
+						await socketService.waitForConnection();
+					}
+				}
+			})();
+		}
+
+		try {
+			await socketInitializationPromise;
+		} finally {
+			socketInitializationPromise = null;
+		}
+
+		if (!socketService.authenticated) {
+			const key = getAuthToken();
+			await new Promise((resolve, reject) => {
+				const payload = key ? { apiKey: key } : {};
+				const timeout = setTimeout(() => {
+					reject(new Error('Authentication timeout'));
+				}, 5000);
+
+				socketService.emit('client:hello', payload, (response) => {
+					clearTimeout(timeout);
+					if (response?.success) {
+						socketService.authenticated = true;
+						resolve(true);
+					} else {
+						reject(new Error(response?.error || 'Authentication failed'));
+					}
+				});
+			});
+		}
+
+		return socketService.socket;
+	}
+
+	async function initializeSocketListeners() {
+		if (!serviceContainer) {
+			authError = 'Socket service unavailable. Please refresh and try again.';
+			return;
+		}
+
+		try {
+			await ensureSocketReady();
+			cleanupSocketListeners();
+
+			socketCleanupFns = [
+				socketService.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl),
+				socketService.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete),
+				socketService.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError)
+			];
+		} catch (error) {
+			console.error('[ClaudeSettings] Failed to initialize socket listeners:', error);
+			if (!authError) {
+				authError = 'Unable to connect to authentication service';
+			}
+		}
 	}
 
 	// === Authentication Handlers ===
@@ -96,16 +200,7 @@
 	onMount(async () => {
 		await checkAuthStatus();
 
-		// Initialize a general Socket.IO connection for auth events
-		// CRITICAL: Use autoConnect: false and register listeners first to prevent race condition
-		socket = io(socketUrl, { autoConnect: false, reconnection: true });
-
-		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
-		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
-		socket.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
-
-		// Connect after listeners are registered
-		socket.connect();
+		await initializeSocketListeners();
 
 		// Load Claude settings
 		if (!settingsService.isLoaded) {
@@ -115,20 +210,7 @@
 	});
 
 	onDestroy(() => {
-		if (socket) {
-			try {
-				socket.off(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
-				socket.off(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
-				socket.off(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
-			} catch {
-				// Event listener cleanup failed - non-critical
-			}
-			try {
-				socket.disconnect();
-			} catch {
-				// Socket disconnect failed - non-critical
-			}
-		}
+		cleanupSocketListeners();
 	});
 
 	// Check current authentication status
@@ -161,49 +243,19 @@
 		loading = true;
 		authError = '';
 		statusMessage = '';
+		let timeoutId;
 		try {
-			if (!socket) {
-				// CRITICAL: Create socket with autoConnect: false to prevent race condition
-				// Register listeners BEFORE connecting to ensure no events are missed
-				socket = io(socketUrl, { autoConnect: false, reconnection: true });
-
-				// Register event listeners immediately after socket creation
-				// This prevents race condition where events might be emitted before listeners are attached
-				socket.on(SOCKET_EVENTS.CLAUDE_AUTH_URL, handleAuthUrl);
-				socket.on(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, handleAuthComplete);
-				socket.on(SOCKET_EVENTS.CLAUDE_AUTH_ERROR, handleAuthError);
-
-				// NOW connect after listeners are ready
-				socket.connect();
+			if (!socketService || !socketCleanupFns.length) {
+				await initializeSocketListeners();
+			} else {
+				await ensureSocketReady();
 			}
 
-			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
-
-			// Ensure socket is connected before emitting
-			if (!socket.connected) {
-				await new Promise((resolve) => {
-					const onConnect = () => {
-						try {
-							socket.off('connect', onConnect);
-						} catch {
-							// Event listener removal failed - non-critical
-						}
-						// authenticate this socket context for consistency
-						try {
-							const authKey = key;
-							socket.emit('auth', authKey, () => {
-								// Auth callback - intentionally empty
-							});
-						} catch {
-							// Socket auth failed - will retry on next connection
-						}
-						resolve();
-					};
-					socket.on('connect', onConnect);
-					// If already connecting, wait; otherwise, force connect
-					if (!socket.connecting) socket.connect();
-				});
+			if (!socketService) {
+				throw new Error('Socket service unavailable');
 			}
+
+			const key = getAuthToken();
 
 			// Fix: Send { apiKey } instead of { key } to match server expectations
 			// Server expects { apiKey, terminalKey } in socket-setup.js lines 375-376
@@ -211,7 +263,7 @@
 			statusMessage = 'Requesting authorization URL...';
 
 			// Add timeout protection to prevent infinite waiting
-			const timeoutId = setTimeout(() => {
+			timeoutId = setTimeout(() => {
 				if (loading && !oauthUrl) {
 					loading = false;
 					authError = 'Authentication request timed out. Please try again.';
@@ -220,7 +272,7 @@
 			}, CLAUDE_AUTH_TIMEOUTS.OAUTH_START);
 
 			// BUG FIX #1: Add callback handler to catch server errors
-			socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_START, { apiKey: key }, (response) => {
+			socketService.emit(SOCKET_EVENTS.CLAUDE_AUTH_START, { apiKey: key }, (response) => {
 				clearTimeout(timeoutId);
 				if (response && !response.success) {
 					loading = false;
@@ -229,9 +281,11 @@
 					statusMessage = '';
 				}
 			});
-		} catch (_error) {
-			authError = 'Failed to start authentication process';
+		} catch (error) {
+			if (timeoutId) clearTimeout(timeoutId);
+			authError = error?.message || 'Failed to start authentication process';
 		} finally {
+			if (timeoutId) clearTimeout(timeoutId);
 			loading = false;
 		}
 	}
@@ -243,20 +297,32 @@
 		authError = '';
 		statusMessage = '';
 
-		// Add timeout protection - UI shouldn't hang if server never responds
-		const timeoutId = setTimeout(() => {
-			if (loading) {
-				loading = false;
-				authError = 'Code submission timed out. Please try again.';
-				statusMessage = '';
-			}
-		}, CLAUDE_AUTH_TIMEOUTS.CODE_SUBMIT);
-
+		let timeoutId;
 		try {
+			if (!socketService || !socketCleanupFns.length) {
+				await initializeSocketListeners();
+			} else {
+				await ensureSocketReady();
+			}
+
+			if (!socketService) {
+				throw new Error('Socket service unavailable');
+			}
+
 			// Fix: Send { apiKey, code } instead of { key, code }
 			// Server expects apiKey in socket-setup.js
-			const key = localStorage.getItem(STORAGE_CONFIG.AUTH_TOKEN_KEY);
-			socket?.emit(
+			const key = getAuthToken();
+
+			// Add timeout protection - UI shouldn't hang if server never responds
+			timeoutId = setTimeout(() => {
+				if (loading) {
+					loading = false;
+					authError = 'Code submission timed out. Please try again.';
+					statusMessage = '';
+				}
+			}, CLAUDE_AUTH_TIMEOUTS.CODE_SUBMIT);
+
+			socketService.emit(
 				SOCKET_EVENTS.CLAUDE_AUTH_CODE,
 				{ apiKey: key, code: authCode.trim() },
 				(response) => {
@@ -270,9 +336,11 @@
 				}
 			);
 			statusMessage = 'Submitting authorization code...';
-		} catch (_error) {
-			clearTimeout(timeoutId);
-			authError = 'Failed to submit authorization code';
+		} catch (error) {
+			if (timeoutId) clearTimeout(timeoutId);
+			authError = error?.message || 'Failed to submit authorization code';
+		} finally {
+			if (timeoutId) clearTimeout(timeoutId);
 			loading = false;
 		}
 	}

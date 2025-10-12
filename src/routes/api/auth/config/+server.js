@@ -25,11 +25,25 @@ export async function GET({ locals }) {
 
 		// Check OAuth providers via OAuthManager
 		let oauthConfigured = false;
+		let oauthProviders = [];
 		if (oauthManager) {
 			try {
 				const providers = await oauthManager.getProviders();
-				// OAuth is considered configured if ANY provider is enabled
-				oauthConfigured = providers.some((p) => p.enabled && p.clientId);
+				oauthProviders = providers.map((provider) => {
+					const hasClientId = Boolean(provider.clientId);
+					const isEnabled = provider.enabled === true;
+					const isAvailable = isEnabled && hasClientId;
+
+					return {
+						name: provider.name,
+						displayName: provider.displayName,
+						enabled: isEnabled,
+						hasClientId,
+						available: isAvailable
+					};
+				});
+				// OAuth is considered configured if ANY provider is available
+				oauthConfigured = oauthProviders.some((provider) => provider.available);
 			} catch (err) {
 				console.error('Failed to check OAuth providers:', err);
 			}
@@ -41,7 +55,8 @@ export async function GET({ locals }) {
 		// regardless of the TERMINAL_KEY env var. The login form should always be visible.
 		const authConfig = {
 			terminal_key_set: Boolean(terminalKey && terminalKey !== 'change-me-to-a-strong-password'),
-			oauth_configured: oauthConfigured
+			oauth_configured: oauthConfigured,
+			oauth_providers: oauthProviders
 		};
 
 		return json(authConfig, {

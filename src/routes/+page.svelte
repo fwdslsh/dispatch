@@ -1,18 +1,37 @@
 <script>
 	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import { onMount } from 'svelte';
 	import PublicUrlDisplay from '$lib/client/shared/components/PublicUrlDisplay.svelte';
 	import ErrorDisplay from '$lib/client/shared/components/ErrorDisplay.svelte';
 	import Button from '$lib/client/shared/components/Button.svelte';
 	import Input from '$lib/client/shared/components/Input.svelte';
 	import { AuthViewModel } from '$lib/client/shared/state/AuthViewModel.svelte.js';
+	import IconButton from '$lib/client/shared/components/IconButton.svelte';
+	import IconGitHub from '$lib/client/shared/components/Icons/IconGitHub.svelte';
+	import IconGoogle from '$lib/client/shared/components/Icons/IconGoogle.svelte';
+	// SvelteKit form action response
+	/** @type {{ form: import('./$types').ActionData }} */
+	let { form } = $props();
 
 	// Create ViewModel instance
-	const viewModel = new AuthViewModel();
-
+	const authViewModel = new AuthViewModel();
+	const iconByProvider = {
+		github: IconGitHub,
+		google: IconGoogle
+	};
+	const availableOAuthProviders = $derived(() =>
+		(authViewModel.oauthProviders ?? []).filter(
+			(provider) => provider.available && iconByProvider[provider.name]
+		)
+	);
+	const showOnboardingLink = $derived(() => authViewModel.onboardingComplete === false);
+	// Component state
+	let apiKey = $state('');
+	let isSubmitting = $state(false);
 	// Initialize on mount
 	onMount(async () => {
-		const result = await viewModel.initialize();
+		const result = await authViewModel.initialize();
 
 		if (result.redirectToWorkspace) {
 			// eslint-disable-next-line svelte/no-navigation-without-resolve -- Internal app route for authenticated users
@@ -20,103 +39,114 @@
 		}
 	});
 
-	// Handle form submission
-	async function handleLogin(e) {
-		e.preventDefault();
+	// Handle form submission with progressive enhancement
+	const handleEnhance = ({ formData: _formData, cancel: _cancel, submitter: _submitter }) => {
+		isSubmitting = true;
 
-		// In PWA mode, check if URL needs to be changed first
-		if (viewModel.needsUrlChange) {
-			viewModel.updateUrl(viewModel.urlInput);
-			return;
-		}
+		// Let SvelteKit handle the submission
+		return async ({ result, update }) => {
+			isSubmitting = false;
 
-		const result = await viewModel.loginWithKey(viewModel.key);
-		if (result.success) {
-			// eslint-disable-next-line svelte/no-navigation-without-resolve -- Internal app route after successful login
-			goto('/workspace');
-		}
-	}
-
-	// Handle OAuth login
-	function handleOAuthLogin() {
-		viewModel.loginWithOAuth();
-	}
+			if (result.type === 'redirect') {
+				// Successful login - redirect handled by SvelteKit
+				/* eslint-disable svelte/no-navigation-without-resolve */
+				await goto(result.location);
+				/* eslint-enable svelte/no-navigation-without-resolve */
+			} else if (result.type === 'failure') {
+				// Error handled via form.error below
+				await update();
+			} else {
+				// For any other result type, reset state
+				await update();
+			}
+		};
+	};
 </script>
 
 <svelte:head>
-	<title>dispatch</title>
+	<title>Login - Dispatch</title>
+	<meta name="description" content="Log in to your Dispatch development environment" />
 </svelte:head>
 
 <main class="login-container">
 	<div class="container">
 		<div class="login-content">
-			<h1 class="glow">dispatch</h1>
-			<p>terminal access via web</p>
+			<h1>dispatch</h1>
 
 			<div class="card aug" data-augmented-ui="tl-clip br-clip both">
-				{#if viewModel.authConfig}
-					<form onsubmit={handleLogin}>
-						{#if viewModel.isPWA}
-							<Input
-								bind:value={viewModel.urlInput}
-								type="url"
-								placeholder="server URL"
-								required
-								disabled={viewModel.loading}
-							/>
-						{/if}
+				<!-- API Key Login Form -->
+				<form method="POST" action="?/login" use:enhance={handleEnhance} class="login-form">
+					<div class="form-group">
+						<label for="api-key" class="form-label">API Key</label>
+						<Input
+							id="api-key"
+							name="key"
+							type="password"
+							placeholder="Enter your API key"
+							autocomplete="off"
+							bind:value={apiKey}
+							disabled={isSubmitting}
+							required
+							class="form-input"
+							aria-describedby={form?.error ? 'login-error' : undefined}
+						/>
+					</div>
 
-						{#if viewModel.hasTerminalKeyAuth}
-							<Input
-								bind:value={viewModel.key}
-								type="password"
-								placeholder="terminal key"
-								data-testid="terminal-key-input"
-								required
-								disabled={viewModel.loading}
-							/>
-							<Button class="button primary aug" type="submit" disabled={viewModel.loading}>
-								{viewModel.loading ? 'connecting...' : 'connect'}
-							</Button>
-						{/if}
+					{#if form?.error}
+						<div id="login-error" class="error-message" role="alert">
+							{form.error}
+						</div>
+					{/if}
 
-						{#if viewModel.hasOAuthAuth}
-							{#if viewModel.hasTerminalKeyAuth}
-								<div class="auth-divider">
-									<span>or</span>
-								</div>
-							{/if}
-							<Button
-								class="button oauth aug"
+					<Button
+						type="submit"
+						variant="primary"
+						disabled={isSubmitting || !apiKey.trim()}
+						loading={isSubmitting}
+						fullWidth={true}
+					>
+						{#if isSubmitting}
+							Connecting...
+						{:else}
+							Connect
+						{/if}
+					</Button>
+				</form>
+
+				{#if availableOAuthProviders.length}
+					<div class="divider">
+						<span>or</span>
+					</div>
+
+					<div class="oauth-buttons">
+						{#each availableOAuthProviders as provider (provider.name)}
+							<IconButton
 								type="button"
-								onclick={handleOAuthLogin}
-								disabled={viewModel.loading}
+								class={`oauth-button oauth-${provider.name}`}
+								onclick={() => authViewModel.loginWithOAuth(provider.name)}
+								disabled={isSubmitting}
+								aria-label={`Log in with ${provider.displayName || provider.name}`}
 							>
-								<svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-									<path
-										d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0110 4.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C17.137 18.163 20 14.418 20 10c0-5.523-4.477-10-10-10z"
-									/>
-								</svg>
-								Sign in with GitHub
-							</Button>
-						{/if}
+								<svelte:component this={iconByProvider[provider.name]} />
+							</IconButton>
+						{/each}
+					</div>
+				{/if}
 
-						{#if !viewModel.hasAnyAuth}
-							<p class="auth-notice">
-								No authentication methods configured. Please contact your administrator.
-							</p>
-						{/if}
-					</form>
-				{:else}
-					<div class="loading-auth">
-						<p>Loading authentication options...</p>
+				{#if showOnboardingLink}
+					<div class="login-footer">
+						<p class="footer-text">
+							First time here?
+							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+							<a href="/onboarding" class="footer-link">Get started</a>
+						</p>
 					</div>
 				{/if}
 			</div>
 
 			<PublicUrlDisplay />
-			{#if viewModel.error}
-				<ErrorDisplay error={viewModel.error} />
+			{#if authViewModel.error}
+				<ErrorDisplay error={authViewModel.error} />
 			{/if}
 		</div>
 	</div>
@@ -149,6 +179,9 @@
 		background-attachment: fixed, local;
 		animation: matrixFlow 120s linear infinite;
 
+		.container {
+			max-width: 80x;
+		}
 		h1,
 		p {
 			margin: 0;
@@ -250,12 +283,11 @@
 	}
 
 	.login-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 		text-align: center;
-		position: relative;
-		z-index: 2;
 		animation: contentAppear 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-		opacity: 0;
-		transform: translateY(20px) scale(0.95);
 	}
 
 	@keyframes contentAppear {
@@ -269,15 +301,15 @@
 		}
 	}
 
-	.login-content > * + * {
-		margin-top: var(--space-5);
-	}
 
-	/* Enhanced title styling */
+
 	.login-content h1 {
 		font-family: var(--font-accent);
-		font-size: clamp(2.5rem, 5vw, 4rem);
+		font-size: clamp(2.5rem, 6vw, 4rem);
 		font-weight: 400;
+		letter-spacing: 0.08em;
+		text-transform: lowercase;
+		margin: 0;
 		background: linear-gradient(
 			135deg,
 			var(--primary) 0%,
@@ -296,58 +328,32 @@
 		position: relative;
 	}
 
-	@keyframes titlePulse {
-		0%,
-		100% {
-			filter: brightness(1);
-			text-shadow:
-				0 0 20px var(--primary-glow),
-				0 0 40px var(--primary-glow);
-		}
-		50% {
-			filter: brightness(1.1);
-			text-shadow:
-				0 0 25px var(--primary-glow),
-				0 0 50px var(--primary-glow),
-				0 0 75px color-mix(in oklab, var(--primary) 30%, transparent);
-		}
-	}
-
-	/* Enhanced subtitle */
 	.login-content p {
+		margin: 0;
+		color: var(--muted);
 		font-family: var(--font-mono);
 		font-size: var(--font-size-2);
-		color: var(--muted);
-		letter-spacing: 0.1em;
 		text-transform: lowercase;
-		opacity: 0.8;
-		animation: subtitleFade 1.5s ease-in-out 0.3s forwards;
-		transform: translateY(10px);
 	}
 
-	@keyframes subtitleFade {
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	/* Enhanced form card */
 	.card {
-		position: relative;
-		background: color-mix(in oklab, var(--surface) 90%, transparent);
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-5);
+		background: color-mix(in oklab, var(--surface) 92%, transparent);
 		backdrop-filter: blur(12px);
-		border: 1px solid color-mix(in oklab, var(--primary) 20%, transparent);
+		border: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
 		border-radius: var(--radius-md);
 		padding: var(--space-6);
 		animation: cardMaterialize 1s ease-out 0.6s forwards;
 		opacity: 0;
 		transform: translateY(30px) scale(0.9);
-		box-shadow:
-			0 8px 32px color-mix(in oklab, var(--bg) 80%, transparent),
-			0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent),
-			inset 0 1px 0 color-mix(in oklab, var(--primary) 5%, transparent);
+		box-shadow: 0 12px 32px color-mix(in oklab, var(--bg) 85%, transparent);
 		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+		.login-footer {
+			margin-top: var(--space-4);
+		}
 	}
 
 	.card::before {
@@ -393,263 +399,114 @@
 			transform: translateY(0) scale(1);
 		}
 	}
-
-	form {
+	.login-form {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-4);
-		align-items: center;
-		min-width: 320px;
-		position: relative;
+		align-items: stretch;
 	}
 
-	/* Enhanced form animations */
-	form :global(.input-group) {
-		animation: inputSlideIn 0.6s ease-out forwards;
-		opacity: 0;
-		transform: translateX(-20px);
+	.error-message {
+		margin: 0;
+		padding: var(--space-3) var(--space-4);
+		color: var(--warn);
+		font-size: var(--font-size-1);
+		border-radius: var(--radius-sm);
+		border: 1px solid color-mix(in oklab, var(--warn) 30%, transparent);
+		background: color-mix(in oklab, var(--warn) 12%, transparent);
+		text-align: left;
 	}
 
-	form :global(.input-group:nth-child(1)) {
-		animation-delay: 0.8s;
-	}
-
-	form :global(.input-group:nth-child(2)) {
-		animation-delay: 1s;
-	}
-
-	@keyframes inputSlideIn {
-		to {
-			opacity: 1;
-			transform: translateX(0);
-		}
-	}
-
-	form :global(button) {
-		width: 100%;
-		animation: buttonMaterialize 0.8s ease-out 1.2s forwards;
-		opacity: 0;
-		transform: translateY(20px) scale(0.9);
-		position: relative;
-		overflow: hidden;
-	}
-
-	@keyframes buttonMaterialize {
-		to {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
-	}
-
-	/* Enhanced button hover effects */
-	/* form :global(button:hover) {
-		animation: buttonPulse 0.6s ease-in-out;
-	}
-
-	@keyframes buttonPulse {
-		0%, 100% {
-			transform: scale(1);
-			opacity: 1;
-		}
-		50% {
-			transform: scale(1.02);
-			opacity: 1;
-		}
-	}
- */
-	/* Floating particles effect */
-	.login-content::before {
-		content: '';
-		position: absolute;
-		top: -50%;
-		left: -50%;
-		width: 200%;
-		height: 200%;
-		background-image:
-			radial-gradient(
-				circle at 20% 30%,
-				color-mix(in oklab, var(--primary) 5%, transparent) 1px,
-				transparent 1px
-			),
-			radial-gradient(
-				circle at 80% 70%,
-				color-mix(in oklab, var(--accent-cyan) 4%, transparent) 1px,
-				transparent 1px
-			),
-			radial-gradient(
-				circle at 40% 80%,
-				color-mix(in oklab, var(--accent-amber) 3%, transparent) 1px,
-				transparent 1px
-			);
-		background-size:
-			100px 100px,
-			150px 150px,
-			120px 120px;
-		animation: particleDrift 60s linear infinite;
-		pointer-events: none;
-		z-index: -1;
-	}
-
-	@keyframes particleDrift {
-		0% {
-			transform: translateX(0) translateY(0) rotate(0deg);
-		}
-		100% {
-			transform: translateX(-100px) translateY(-100px) rotate(360deg);
-		}
-	}
-
-	/* Error and loading state enhancements */
-	:global(.error-display) {
-		animation:
-			errorSlideIn 0.4s ease-out,
-			errorShake 0.5s ease-in-out 0.4s;
-	}
-
-	@keyframes errorSlideIn {
-		from {
-			opacity: 0;
-			transform: translateY(-10px) scale(0.95);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0) scale(1);
-		}
-	}
-
-	/* Enhanced loading states */
-	.card:has(:global(button[disabled])) {
-		border-color: color-mix(in oklab, var(--accent-cyan) 30%, transparent);
-		animation: loadingPulse 2s ease-in-out infinite;
-	}
-
-	@keyframes loadingPulse {
-		0%,
-		100% {
-			box-shadow:
-				0 8px 32px color-mix(in oklab, var(--bg) 80%, transparent),
-				0 0 0 1px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
-		}
-		50% {
-			box-shadow:
-				0 12px 40px color-mix(in oklab, var(--bg) 70%, transparent),
-				0 0 0 1px color-mix(in oklab, var(--accent-cyan) 20%, transparent),
-				0 0 20px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
-		}
-	}
-
-	/* Auth divider styling */
-	.auth-divider {
+	.divider {
 		display: flex;
 		align-items: center;
-		text-align: center;
-		margin: var(--space-4) 0;
+		gap: var(--space-3);
+		justify-content: center;
 		color: var(--muted);
 		font-family: var(--font-mono);
 		font-size: var(--font-size-1);
 	}
 
-	.auth-divider::before,
-	.auth-divider::after {
+	.divider::before,
+	.divider::after {
 		content: '';
 		flex: 1;
-		border-bottom: 1px solid var(--line);
+		height: 1px;
+		background: var(--line);
 	}
 
-	.auth-divider span {
-		padding: 0 var(--space-3);
-	}
-
-	/* OAuth button styling */
-	:global(.button.oauth) {
+	.oauth-buttons {
 		display: flex;
-		align-items: center;
 		justify-content: center;
-		gap: var(--space-2);
-		background: var(--surface);
-		border: 1px solid var(--line);
+		gap: var(--space-3);
+	}
+
+	.oauth-button {
+		width: 3rem;
+		height: 3rem;
+		border-radius: var(--radius-full);
+		border: 1px solid transparent;
+		background: color-mix(in oklab, var(--surface) 95%, transparent);
+		transition:
+			transform 0.2s ease,
+			border-color 0.2s ease,
+			box-shadow 0.2s ease;
+	}
+
+	.oauth-button:hover {
+		transform: translateY(-1px);
+		border-color: color-mix(in oklab, var(--primary) 40%, transparent);
+		box-shadow: 0 8px 16px color-mix(in oklab, var(--bg) 80%, transparent);
+	}
+
+	.oauth-button:focus-visible {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
+	}
+
+	.oauth-github,
+	.oauth-google {
 		color: var(--text);
 	}
 
-	:global(.button.oauth:hover) {
-		background: color-mix(in oklab, var(--surface) 90%, var(--primary) 10%);
-		border-color: var(--primary);
+	.oauth-button svg {
+		width: 1.5rem;
+		height: 1.5rem;
 	}
 
-	:global(.button.oauth svg) {
-		flex-shrink: 0;
-	}
-
-	/* Auth notice styling */
-	.auth-notice {
-		color: var(--warn);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-1);
+	.login-footer {
 		text-align: center;
-		margin: 0;
-		padding: var(--space-4);
-		background: color-mix(in oklab, var(--warn) 10%, transparent);
-		border: 1px solid color-mix(in oklab, var(--warn) 30%, transparent);
-		border-radius: var(--radius-sm);
 	}
 
-	/* Loading auth state */
-	.loading-auth {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: var(--space-6);
+	.footer-text {
+		margin: 0;
 		color: var(--muted);
 		font-family: var(--font-mono);
 		font-size: var(--font-size-1);
 	}
 
-	/* Responsive enhancements */
+	.footer-link {
+		margin-left: var(--space-1);
+		color: var(--primary);
+		text-decoration: none;
+	}
+
+	.footer-link:hover {
+		text-decoration: underline;
+	}
+
 	@media (max-width: 480px) {
 		.login-container {
-			padding: var(--space-4);
-		}
-
-		.login-content h1 {
-			font-size: clamp(3rem, 8vw, 4.5rem);
-		}
-
-		form {
-			min-width: 280px;
+			padding: var(--space-6) var(--space-3);
 		}
 
 		.card {
 			padding: var(--space-5);
 		}
-	}
 
-	/* Accessibility enhancements */
-	@media (prefers-reduced-motion: reduce) {
-		.login-container {
-			animation: none;
-		}
-
-		.login-container::before,
-		.login-container::after,
-		.login-content::before {
-			animation: none;
-		}
-
-		.login-content h1 {
-			animation: none;
-		}
-
-		.card {
-			animation: none;
-			opacity: 1;
-			transform: none;
-		}
-
-		form :global(.input-group),
-		form :global(button) {
-			animation: none;
-			opacity: 1;
-			transform: none;
+		.oauth-buttons {
+			flex-wrap: wrap;
+			gap: var(--space-2);
 		}
 	}
 </style>

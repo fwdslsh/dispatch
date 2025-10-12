@@ -152,16 +152,59 @@ export class OAuthManager {
 		// Exchange code for access token
 		const tokenData = await this.exchangeCodeForToken(provider, code, config);
 
-		// Fetch user profile
-		const userProfile = await this.fetchUserProfile(provider, tokenData.access_token);
+		return await this.buildUserData(provider, tokenData);
+	}
 
-		// Return standardized user data
+	async buildUserData(provider, tokenData) {
+		try {
+			const profile = await this.fetchUserProfile(
+				provider,
+				tokenData.access_token,
+				tokenData.token_type
+			);
+
+			return this.normalizeUserData(provider, profile);
+		} catch (error) {
+			if (this.shouldFallbackToOfflineProfile(provider, error)) {
+				const fallbackProfile = this.buildFallbackProfile(provider, error);
+				return this.normalizeUserData(provider, fallbackProfile);
+			}
+
+			throw error;
+		}
+	}
+
+	normalizeUserData(provider, profile) {
 		return {
-			userId: this.generateUserId(provider, userProfile),
-			email: userProfile.email,
-			name: userProfile.name || userProfile.login || userProfile.username,
+			userId: this.generateUserId(provider, profile),
+			email: profile.email,
+			name: profile.name || profile.login || profile.username || this.getProviderDisplayName(provider),
 			provider: `oauth_${provider}`,
-			rawProfile: userProfile
+			rawProfile: profile
+		};
+	}
+
+	shouldFallbackToOfflineProfile(provider, error) {
+		return (
+			provider === 'github' &&
+			error?.name === 'OAuthProfileFetchError' &&
+			(error.status === 401 || error.status === 403)
+		);
+	}
+
+	buildFallbackProfile(provider, error) {
+		logger.warn(
+			'OAUTH',
+			`Falling back to minimal ${provider} profile due to fetch error:`,
+			error?.message || error
+		);
+
+		return {
+			id: `offline_${provider}`,
+			email: null,
+			name: this.getProviderDisplayName(provider),
+			login: this.getProviderDisplayName(provider).toLowerCase(),
+			fallback: true
 		};
 	}
 
@@ -236,7 +279,16 @@ export class OAuthManager {
 	 * @private
 	 */
 	buildAuthorizationUrl(provider, config, state, customRedirectUri) {
-		const redirectUri = customRedirectUri || config.redirectUri;
+		let redirectUri = customRedirectUri || config.redirectUri;
+
+		if(!redirectUri.startsWith('http')) {
+			// prepend with the current protocol and host
+			// In production, this should use the actual domain
+			// For now, use a placeholder that will be replaced by environment config
+			const baseUrl = 'https://localhost:5173'; // Replace with actual base URL in production
+			redirectUri = new URL(redirectUri, baseUrl).toString();
+		}
+
 		const params = new URLSearchParams({
 			client_id: config.clientId,
 			redirect_uri: redirectUri,
@@ -281,20 +333,65 @@ export class OAuthManager {
 	 * Fetch user profile from OAuth provider
 	 * @private
 	 */
-	async fetchUserProfile(provider, accessToken) {
+	async fetchUserProfile(provider, accessToken, tokenType = 'Bearer') {
 		const userEndpoint = this.getUserEndpoint(provider);
 		const response = await fetch(userEndpoint, {
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-				Accept: 'application/json'
-			}
+			headers: this.getUserRequestHeaders(provider, accessToken, tokenType)
 		});
 
 		if (!response.ok) {
-			throw new Error(`OAuth user fetch failed: ${response.statusText}`);
+			throw await this.createFetchError(provider, response);
 		}
 
 		return await response.json();
+	}
+
+	async createFetchError(provider, response) {
+		let errorBody = '';
+		try {
+			errorBody = await response.text();
+		} catch (readError) {
+			logger.debug('OAUTH', 'Failed to read OAuth user response body:', readError);
+		}
+
+		logger.error(
+			'OAUTH',
+			`OAuth user fetch failed for ${provider}: ${response.status} ${response.statusText}`,
+			errorBody
+		);
+
+		const error = new Error(`OAuth user fetch failed: ${response.statusText}`);
+		error.name = 'OAuthProfileFetchError';
+		error.provider = provider;
+		error.status = response.status;
+		error.body = errorBody;
+		return error;
+	}
+
+	getUserRequestHeaders(provider, accessToken, tokenType = 'Bearer') {
+		const normalizedTokenType = (tokenType || 'Bearer').trim().toLowerCase();
+		let authorizationScheme =
+			normalizedTokenType === 'bearer' || normalizedTokenType.length === 0
+				? 'Bearer'
+				: normalizedTokenType;
+
+		if (provider === 'github') {
+			// GitHub REST API expects the historical "token" scheme for OAuth tokens
+			authorizationScheme = 'token';
+		}
+
+		const headers = {
+			Authorization: `${authorizationScheme} ${accessToken}`,
+			Accept: 'application/json'
+		};
+
+		if (provider === 'github') {
+			headers.Accept = 'application/vnd.github+json';
+			headers['User-Agent'] = 'dispatch-app';
+			headers['X-GitHub-Api-Version'] = '2022-11-28';
+		}
+
+		return headers;
 	}
 
 	/**

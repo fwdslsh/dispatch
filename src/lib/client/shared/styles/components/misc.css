@@ -104,6 +104,7 @@
 		color-mix(in oklab, var(--secondary) 15%, var(--surface)),
 		color-mix(in oklab, var(--secondary) 8%, var(--surface))
 	);
+	width: stretch;
 	border: 2px solid var(--secondary);
 	border-radius: 0;
 	color: var(--secondary);

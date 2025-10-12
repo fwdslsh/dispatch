@@ -103,4 +103,5 @@
 
 .form-group {
 	margin-bottom: var(--space-4);
+	width: stretch;
 }
