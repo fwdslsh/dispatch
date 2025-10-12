@@ -14,6 +14,7 @@
  */
 
 import { tick } from 'svelte';
+import { SvelteSet, SvelteDate } from 'svelte/reactivity';
 import { runSessionClient } from '../../shared/services/RunSessionClient.js';
 import * as MessageParser from '../services/MessageParser.js';
 import { ClaudeEventHandlers } from '../services/EventHandlers.js';
@@ -43,7 +44,7 @@ export class ClaudePaneViewModel {
 	liveEventIcons = $state([]);
 
 	// Event sourcing deduplication - track processed event sequences
-	processedEventSeqs = $state(new Set());
+	processedEventSeqs = $state(new SvelteSet());
 
 	// Authentication manager (encapsulates auth flow state)
 	authManager = new AuthenticationManager();
@@ -169,7 +170,7 @@ export class ClaudePaneViewModel {
 					{
 						role: 'assistant',
 						text: 'Submitting authorization code…',
-						timestamp: new Date(),
+						timestamp: new SvelteDate(),
 						id: this.nextMessageId()
 					}
 				];
@@ -184,7 +185,7 @@ export class ClaudePaneViewModel {
 		const userMsg = {
 			role: 'user',
 			text: userMessage,
-			timestamp: new Date(),
+			timestamp: new SvelteDate(),
 			id: this.nextMessageId()
 		};
 		console.log('[ClaudePaneViewModel] Adding user message:', userMsg);
@@ -369,7 +370,7 @@ export class ClaudePaneViewModel {
 						userText,
 						'user',
 						() => this.nextMessageId(),
-						new Date(entry.timestamp || Date.now())
+						new SvelteDate(entry.timestamp || Date.now())
 					);
 					if (message) {
 						loadedMessages.push(message);
@@ -385,7 +386,7 @@ export class ClaudePaneViewModel {
 						messageText,
 						'assistant',
 						() => this.nextMessageId(),
-						new Date(entry.timestamp || Date.now())
+						new SvelteDate(entry.timestamp || Date.now())
 					);
 					if (message) {
 						loadedMessages.push(message);
