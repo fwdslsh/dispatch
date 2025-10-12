@@ -10,6 +10,7 @@
 	import IconButton from '$lib/client/shared/components/IconButton.svelte';
 	import IconGitHub from '$lib/client/shared/components/Icons/IconGitHub.svelte';
 	import IconGoogle from '$lib/client/shared/components/Icons/IconGoogle.svelte';
+	import Static from '$lib/client/shared/components/Static.svelte';
 	// SvelteKit form action response
 	/** @type {{ data: import('./$types').PageData, form: import('./$types').ActionData }} */
 	let { data, form } = $props();
@@ -58,7 +59,9 @@
 		)
 	);
 	const availableOAuthProviders = $derived(
-		layoutAvailableOAuthProviders.length ? layoutAvailableOAuthProviders : fallbackAvailableOAuthProviders
+		layoutAvailableOAuthProviders.length
+			? layoutAvailableOAuthProviders
+			: fallbackAvailableOAuthProviders
 	);
 	const terminalKeySet = $derived(() => {
 		const key = authenticationSettings.terminal_key;
@@ -116,7 +119,7 @@
 	<title>Login - Dispatch</title>
 	<meta name="description" content="Log in to your Dispatch development environment" />
 </svelte:head>
-
+<Static />
 <main class="login-container">
 	<div class="container">
 		<div class="login-content">
@@ -181,7 +184,6 @@
 						{/each}
 					</div>
 				{/if}
-
 			</div>
 
 			<PublicUrlDisplay />
@@ -200,7 +202,7 @@
 		min-height: 100vh;
 		position: relative;
 		overflow: hidden;
-
+		--bg: #0a0a0abe;
 		/* Animated matrix background */
 		background:
 			linear-gradient(
@@ -210,25 +212,26 @@
 				color-mix(in oklab, var(--bg) 98%, var(--accent-cyan) 2%) 100%
 			),
 			url('/bg.svg');
+
 		background-size:
 			100% 100%,
-			64px 64px;
+			50px 50px;
 		background-position:
 			0 0,
 			0 0;
 		background-attachment: fixed, local;
-		animation: matrixFlow 120s linear infinite;
+		/* 
+		animation: matrixFlow 360s linear infinite; */
 
 		.container {
 			max-width: 80x;
 		}
-		h1,
-		p {
+		h1 {
 			margin: 0;
 		}
 	}
 
-	/* Subtle matrix flow animation */
+	/* TV static flow animation - vertical only */
 	@keyframes matrixFlow {
 		0% {
 			background-position:
@@ -267,58 +270,225 @@
 				transparent 60%
 			);
 		pointer-events: none;
-		animation: atmosphericShift 40s ease-in-out infinite;
+		animation: atmosphericShift 20s ease-in-out infinite;
+		opacity: 1;
 	}
 
 	@keyframes atmosphericShift {
-		0%,
-		100% {
-			opacity: 0.6;
+		0% {
+			opacity: 0.5;
 			transform: scale(1);
 		}
-		33% {
-			opacity: 0.8;
-			transform: scale(1.02);
+		17% {
+			opacity: 0.7;
+			transform: scale(1.01);
 		}
-		66% {
+		34% {
 			opacity: 0.4;
-			transform: scale(0.98);
+			transform: scale(0.99);
 		}
-	}
-
-	/* Scanning line effect */
-	.login-container::after {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: -100%;
-		width: 100%;
-		height: 2px;
-		background: linear-gradient(
-			90deg,
-			transparent 0%,
-			color-mix(in oklab, var(--primary) 5%, transparent) 20%,
-			color-mix(in oklab, var(--primary) 8%, transparent) 40%,
-			color-mix(in oklab, var(--accent-cyan) 6%, transparent) 60%,
-			color-mix(in oklab, var(--accent-cyan) 3%, transparent) 80%,
-			transparent 100%
-		);
-		animation: scanLinePassage 8s ease-in-out infinite;
-		pointer-events: none;
-	}
-
-	@keyframes scanLinePassage {
-		0% {
-			left: -100%;
-			top: 20%;
+		51% {
+			opacity: 0.65;
+			transform: scale(1.015);
 		}
-		50% {
-			left: 100%;
-			top: 60%;
+		68% {
+			opacity: 0.45;
+			transform: scale(0.985);
+		}
+		85% {
+			opacity: 0.6;
+			transform: scale(1.005);
 		}
 		100% {
-			left: -100%;
-			top: 80%;
+			opacity: 0.5;
+			transform: scale(1);
+		}
+	}
+
+	/* CRT Scan lines - persistent horizontal lines */
+	.login-container::after {
+		/* content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: repeating-linear-gradient(
+			0deg,
+			rgba(0, 0, 0, 0) 0px,
+			rgba(0, 0, 0, 0.03) 1px,
+			rgba(0, 0, 0, 0) 2px,
+			rgba(0, 0, 0, 0) 3px
+		);
+		pointer-events: none;
+		z-index: 1; */
+
+		/* content: '';
+		position: fixed;
+		display:none;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-image:
+			repeating-linear-gradient(
+				0deg,
+				transparent 0px,
+				transparent 2px,
+				color-mix(in oklab, var(--primary) 2%, transparent) 2px,
+				transparent 3px
+			),
+			repeating-linear-gradient(
+				90deg,
+				transparent 0px,
+				transparent 2px,
+				color-mix(in oklab, var(--accent-cyan) 2%, transparent) 2px,
+				transparent 3px
+			);
+		animation:
+			tvNoise 0.2s steps(4) infinite,
+			tvFlicker 3s ease-in-out infinite;
+		pointer-events: none;
+		opacity: 0.15;
+		will-change: opacity; */
+	}
+
+	/* TV interference bands - horizontal bars that move down */
+	.container::before {
+		content: '';
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: repeating-linear-gradient(
+			0deg,
+			transparent 0px,
+			transparent 2px,
+			color-mix(in oklab, var(--primary) 15%, transparent) 2px,
+			color-mix(in oklab, var(--primary) 15%, transparent) 5px,
+			transparent 5px,
+			transparent 10px,
+			color-mix(in oklab, var(--accent-cyan) 12%, transparent) 10px,
+			color-mix(in oklab, var(--accent-cyan) 12%, transparent) 12px,
+			transparent 12px,
+			transparent 100px
+		);
+		animation: tvInterference 8s linear infinite;
+		pointer-events: none;
+		opacity: 0;
+		will-change: transform, opacity;
+	}
+
+	@keyframes tvInterference {
+		0% {
+			transform: translateY(-100vh);
+			opacity: 0;
+		}
+		5% {
+			opacity: 0.4;
+		}
+		20% {
+			opacity: 0.6;
+		}
+		40% {
+			opacity: 0.3;
+		}
+		60% {
+			opacity: 0.5;
+		}
+		80% {
+			opacity: 0.2;
+			transform: translateY(100vh);
+		}
+		95% {
+			opacity: 0;
+		}
+		100% {
+			transform: translateY(100vh);
+			opacity: 0;
+		}
+	}
+
+	/* Flickering noise overlay */
+	.login-content::after {
+		content: '';
+		position: fixed;
+		display: none;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-image:
+			repeating-linear-gradient(
+				0deg,
+				transparent 0px,
+				transparent 2px,
+				color-mix(in oklab, var(--primary) 2%, transparent) 2px,
+				transparent 3px
+			),
+			repeating-linear-gradient(
+				90deg,
+				transparent 0px,
+				transparent 2px,
+				color-mix(in oklab, var(--accent-cyan) 2%, transparent) 2px,
+				transparent 3px
+			);
+		animation:
+			tvNoise 0.2s steps(4) infinite,
+			tvFlicker 3s ease-in-out infinite;
+		pointer-events: none;
+		opacity: 0.15;
+		will-change: opacity;
+	}
+
+	@keyframes tvNoise {
+		0%,
+		100% {
+			transform: translate(0, 0);
+		}
+		25% {
+			transform: translate(-1px, 1px);
+		}
+		50% {
+			transform: translate(1px, -1px);
+		}
+		75% {
+			transform: translate(-1px, -1px);
+		}
+	}
+
+	@keyframes tvFlicker {
+		0%,
+		100% {
+			opacity: 0.12;
+		}
+		10% {
+			opacity: 0.18;
+		}
+		20% {
+			opacity: 0.1;
+		}
+		30% {
+			opacity: 0.2;
+		}
+		40% {
+			opacity: 0.14;
+		}
+		50% {
+			opacity: 0.22;
+		}
+		60% {
+			opacity: 0.11;
+		}
+		70% {
+			opacity: 0.16;
+		}
+		80% {
+			opacity: 0.19;
+		}
+		90% {
+			opacity: 0.13;
 		}
 	}
 
@@ -328,6 +498,9 @@
 		align-items: center;
 		text-align: center;
 		animation: contentAppear 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+		position: relative;
+		z-index: 2;
+		background: transparent;
 	}
 
 	@keyframes contentAppear {
@@ -340,8 +513,6 @@
 			transform: translateY(0) scale(1);
 		}
 	}
-
-
 
 	.login-content h1 {
 		font-family: var(--font-accent);
@@ -363,17 +534,65 @@
 			0 0 20px var(--primary-glow),
 			0 0 40px var(--primary-glow),
 			0 0 60px color-mix(in oklab, var(--primary) 20%, transparent);
-		animation: titlePulse 3s ease-in-out infinite;
+		animation:
+			titleSlideIn 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards,
+			titleGlow 4s ease-in-out 1.4s infinite;
 		letter-spacing: 0.05em;
 		position: relative;
+		opacity: 0;
+		transform: translateY(-60px);
 	}
 
-	.login-content p {
-		margin: 0;
-		color: var(--muted);
-		font-family: var(--font-mono);
-		font-size: var(--font-size-2);
-		text-transform: lowercase;
+	@keyframes titleSlideIn {
+		0% {
+			opacity: 0;
+			transform: translateY(-80px) scale(0.85);
+			filter: blur(12px);
+		}
+		50% {
+			opacity: 0.5;
+			filter: blur(6px);
+		}
+		75% {
+			opacity: 0.85;
+			filter: blur(2px);
+		}
+		100% {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+			filter: blur(0);
+		}
+	}
+
+	@keyframes titleGlow {
+		0%,
+		100% {
+			text-shadow:
+				0 0 20px var(--primary-glow),
+				0 0 40px var(--primary-glow),
+				0 0 60px color-mix(in oklab, var(--primary) 20%, transparent);
+		}
+		25% {
+			text-shadow:
+				0 0 25px var(--primary-glow),
+				0 0 50px var(--primary-glow),
+				0 0 75px color-mix(in oklab, var(--primary) 25%, transparent),
+				0 0 100px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
+		}
+		50% {
+			text-shadow:
+				0 0 30px var(--primary-glow),
+				0 0 60px var(--primary-glow),
+				0 0 90px color-mix(in oklab, var(--primary) 30%, transparent),
+				0 0 120px color-mix(in oklab, var(--accent-cyan) 15%, transparent);
+		}
+		75% {
+			text-shadow:
+				0 0 25px var(--primary-glow),
+				0 0 50px var(--primary-glow),
+				0 0 75px color-mix(in oklab, var(--primary) 25%, transparent),
+				0 0 100px color-mix(in oklab, var(--accent-cyan) 10%, transparent);
+		}
 	}
 
 	.card {
@@ -381,10 +600,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-		background: color-mix(in oklab, var(--surface) 92%, transparent);
+		background: #00000062;
 		backdrop-filter: blur(12px);
-		border: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
-		border-radius: var(--radius-md);
 		padding: var(--space-6);
 		animation: cardMaterialize 1s ease-out 0.6s forwards;
 		opacity: 0;
@@ -430,10 +647,16 @@
 		0% {
 			opacity: 0;
 			transform: translateY(30px) scale(0.9);
+			filter: blur(8px);
+		}
+		60% {
+			opacity: 0.9;
+			filter: blur(2px);
 		}
 		100% {
 			opacity: 1;
 			transform: translateY(0) scale(1);
+			filter: blur(0);
 		}
 	}
 	.login-form {
