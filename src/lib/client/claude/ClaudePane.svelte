@@ -100,7 +100,14 @@
 		console.log('[ClaudePane] Mounting with:', { sessionId, claudeSessionId, shouldResume });
 
 		try {
-			// Socket.IO authenticates via session cookie in handshake (no explicit auth needed)
+			// Ensure socket is authenticated (cookie-based or stored token)
+			if (!runSessionClient.getStatus().authenticated) {
+				try {
+					await runSessionClient.authenticate(); // cookie-based if available
+				} catch (e) {
+					console.warn('[ClaudePane] Cookie auth failed, continuing:', e?.message || e);
+				}
+			}
 
 			// Attach to the run session and get backlog
 			console.log('[ClaudePane] Attaching to run session:', sessionId);

@@ -1,8 +1,8 @@
-import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import path, { resolve } from 'node:path';
+import { existsSync, unlink, unlinkSync } from 'node:fs';
 import { logger } from '../shared/utils/logger.js';
 import { SOCKET_EVENTS } from '../../shared/socket-events.js';
-import { CLAUDE_AUTH_TIMEOUTS } from '../../shared/constants/auth-timeouts.js';
+import { homedir } from 'node:os';
 
 let pty;
 async function ensurePtyLoaded() {
@@ -32,43 +32,17 @@ class ClaudeAuthManager {
 		 * }>}
 		 */
 		this.sessions = new Map(); // key by socket.id
-
-		// Automatic cleanup of stale sessions (safety net for orphaned PTYs)
-		// This runs every 60 seconds and cleans up sessions older than 5 minutes
-		this.cleanupTimer = setInterval(() => {
-			const now = Date.now();
-			const staleThreshold = CLAUDE_AUTH_TIMEOUTS.STALE_SESSION_THRESHOLD;
-
-			for (const [key, state] of this.sessions.entries()) {
-				const age = now - state.startedAt;
-				if (age > staleThreshold) {
-					logger.warn('CLAUDE', `Cleaning up stale auth session ${key} (age: ${Math.round(age / 1000)}s)`);
-					this.cleanup(key);
-				}
-			}
-		}, CLAUDE_AUTH_TIMEOUTS.SESSION_CHECK_INTERVAL || 60000); // Check every minute
-
-		// Cleanup timer on process exit
-		process.once('beforeExit', () => {
-			if (this.cleanupTimer) {
-				clearInterval(this.cleanupTimer);
-			}
-		});
 	}
 
 	/** Strip ANSI escape sequences and control characters */
 	stripAnsi(input) {
 		try {
-			return (
-				String(input)
-					.replace(
-						// eslint-disable-next-line no-control-regex -- ANSI escape codes for terminal output processing
-						/[\u001B\u009B][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-						''
-					)
-					// eslint-disable-next-line no-control-regex -- Control characters removed from PTY output
-					.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-			);
+			return String(input)
+				.replace(
+					/[\u001B\u009B][[\]()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+					''
+				)
+				.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 		} catch {
 			return String(input || '');
 		}
@@ -80,7 +54,11 @@ class ClaudeAuthManager {
 		let text = this.stripAnsi(raw).replace(/\r/g, '');
 		text = text.replace(/Paste code here if prompted >\S*/g, '');
 		text = text.replace(/\n+/g, ' ');
-		const starts = ['https://console.anthropic.com/login?', 'https://claude.ai/oauth/authorize?'];
+		const starts = [
+			'https://console.anthropic.com/login?',
+			'https://console.anthropic.com/oauth/authorize?',
+			'https://claude.ai/oauth/authorize?'
+		];
 		let idx = -1;
 		for (const s of starts) {
 			const i = text.indexOf(s);
@@ -109,30 +87,9 @@ class ClaudeAuthManager {
 	async start(socket) {
 		try {
 			const key = socket.id;
-			// If already running, re-emit URL if we have it
+			// If already running, do nothing
 			if (this.sessions.has(key)) {
 				logger.info('CLAUDE', `Auth session already running for socket ${key}`);
-				const state = this.sessions.get(key);
-
-				// If we already extracted the URL, re-emit it for reconnected clients
-				if (state.urlEmitted && state.buffer) {
-					const url = this.extractAuthUrl(state.buffer);
-					if (url) {
-						const payload = {
-							url,
-							instructions: 'Open the link to authenticate, then paste the authorization code here.'
-						};
-						try {
-							socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_URL, payload);
-							logger.info(
-								'CLAUDE',
-								`Re-emitted auth URL to reconnected client: ${url.substring(0, 60)}...`
-							);
-						} catch (err) {
-							logger.error('CLAUDE', 'Failed to re-emit auth URL:', err);
-						}
-					}
-				}
 				return true;
 			}
 
@@ -145,11 +102,25 @@ class ClaudeAuthManager {
 				BROWSER: 'echo'
 			};
 
+			// Do not override HOME/CLAUDE_CONFIG_DIR/XDG_CONFIG_HOME.
+			// The CLI should write to $HOME/.claude/.credentials.json so our GET endpoint can read it.
+
 			const localCli = resolve(process.cwd(), 'node_modules', '.bin', 'claude');
 			let exe = existsSync(localCli) ? localCli : 'claude';
 			let args = ['setup-token'];
 
 			logger.info('CLAUDE', `Starting OAuth flow with: ${[exe, ...args].join(' ')}`);
+
+			// Delete any existing credentials file to ensure a fresh login
+			const credentialsPath = path.join(homedir(), '.claude', '.credentials.json');
+			try {
+				if (existsSync(credentialsPath)) {
+					unlinkSync(credentialsPath);
+					logger.info('CLAUDE', 'Deleted existing credentials file for fresh login');
+				}
+			} catch (err) {
+				logger.warn('CLAUDE', 'Failed to delete existing credentials file:', err);
+			}
 
 			const loadedPty = await ensurePtyLoaded();
 			if (!loadedPty) {
@@ -159,9 +130,7 @@ class ClaudeAuthManager {
 						success: false,
 						error: 'Terminal functionality not available - node-pty failed to load'
 					});
-				} catch (_error) {
-					// Intentionally ignoring socket emit error - socket may be disconnected
-				}
+				} catch { }
 				return false;
 			}
 
@@ -180,18 +149,37 @@ class ClaudeAuthManager {
 				try {
 					state.buffer += String(data || '');
 					if (state.finished) return;
-					const plain = this.stripAnsi(state.buffer);
 
-					// Verbose logging for debugging (enable with DEBUG_CLAUDE_AUTH env var)
-					if (process.env.DEBUG_CLAUDE_AUTH) {
-						logger.debug(
-							'CLAUDE',
-							`PTY data received (${data.length} bytes), total buffer: ${state.buffer.length} bytes`
-						);
-						logger.debug('CLAUDE', `PTY raw output: ${data.substring(0, 300)}`);
-						logger.debug('CLAUDE', `Buffer plain text: ${plain.substring(0, 300)}`);
+					// One-time debug snapshot after a short delay (only if DEBUG_CLAUDE_AUTH)
+					if (!state.urlEmitted && !state.debugTimer && process.env.DEBUG_CLAUDE_AUTH) {
+						state.debugTimer = setTimeout(() => {
+							try {
+								const tail = this.stripAnsi(state.buffer).slice(-800) || '[buffer empty]';
+								logger.info('CLAUDE', 'Auth buffer snapshot (tail)', tail);
+							} catch { }
+						}, 3500);
 					}
 
+					// Fast-path: capture OSC 8 hyperlink URL if CLI emits it
+					if (!state.urlEmitted) {
+						const m =
+							// eslint-disable-next-line no-control-regex
+							state.buffer.match(/\u001B]8;;(https?:\/\/[^\u001B\u0007]+)(?:\u0007|\u001B\\)/);
+						if (m && m[1]) {
+							const url = m[1];
+							const payload = {
+								url,
+								instructions:
+									'Open the link to authenticate, then paste the authorization code here.'
+							};
+							try {
+								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_URL, payload);
+								state.urlEmitted = true;
+								logger.info('CLAUDE', 'Auth URL emitted (OSC hyperlink)');
+							} catch { }
+						}
+					}
+					const plain = this.stripAnsi(state.buffer);
 					if (state.codeSubmitted) {
 						const lower = plain.toLowerCase();
 						if (
@@ -205,15 +193,11 @@ class ClaudeAuthManager {
 							state.finished = true;
 							try {
 								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_COMPLETE, { success: true });
-							} catch (_error) {
-								// Intentionally ignoring socket emit error - socket may be disconnected
-							}
+							} catch { }
 							logger.info('CLAUDE', 'Auth flow reported success; terminating PTY');
 							try {
 								state.p.kill();
-							} catch (_error) {
-								// Intentionally ignoring PTY kill error - process may already be terminated
-							}
+							} catch { }
 							return;
 						}
 						if (lower.includes('invalid') || lower.includes('expired') || lower.includes('error')) {
@@ -223,27 +207,18 @@ class ClaudeAuthManager {
 									success: false,
 									error: 'Authorization code rejected'
 								});
-							} catch (_error) {
-								// Intentionally ignoring socket emit error - socket may be disconnected
-							}
+							} catch { }
 							logger.warn('CLAUDE', 'Auth flow reported error; terminating PTY');
 							try {
 								state.p.kill();
-							} catch (_error) {
-								// Intentionally ignoring PTY kill error - process may already be terminated
-							}
+							} catch { }
 							return;
 						}
 					}
-					// Always try to extract URL from buffer (even before code submission)
-					if (!state.urlEmitted && !state.codeSubmitted) {
-						logger.debug(
-							'CLAUDE',
-							`Attempting URL extraction from buffer (${state.buffer.length} bytes)...`
-						);
-						const url = this.extractAuthUrl(state.buffer);
-						if (url) {
-							// Send URL once
+					const url = this.extractAuthUrl(state.buffer);
+					if (url) {
+						// Send URL once
+						if (!state.urlEmitted) {
 							state.urlEmitted = true;
 							const payload = {
 								url,
@@ -252,12 +227,8 @@ class ClaudeAuthManager {
 							};
 							try {
 								socket.emit(SOCKET_EVENTS.CLAUDE_AUTH_URL, payload);
-								logger.info('CLAUDE', `Auth URL emitted to client: ${url.substring(0, 60)}...`);
-							} catch (err) {
-								logger.error('CLAUDE', 'Failed to emit auth URL:', err);
-							}
-						} else {
-							logger.debug('CLAUDE', `No URL found in ${state.buffer.length} bytes of buffer`);
+							} catch { }
+							logger.info('CLAUDE', 'Auth URL emitted to client');
 						}
 					}
 				} catch (e) {
@@ -292,9 +263,7 @@ class ClaudeAuthManager {
 					success: false,
 					error: String(error?.message || error)
 				});
-			} catch (_error) {
-				// Intentionally ignoring socket emit error - socket may be disconnected
-			}
+			} catch { }
 			return false;
 		}
 	}
@@ -309,9 +278,7 @@ class ClaudeAuthManager {
 					success: false,
 					error: 'No auth session active'
 				});
-			} catch (_error) {
-				// Intentionally ignoring socket emit error - socket may be disconnected
-			}
+			} catch { }
 			return false;
 		}
 		// Ensure state has the properties used below
@@ -326,11 +293,9 @@ class ClaudeAuthManager {
 			setTimeout(() => {
 				try {
 					if (!state.finished) state.p.write('\r');
-				} catch (_error) {
-					// Intentionally ignoring write error - PTY may be closed
-				}
+				} catch { }
 			}, 250);
-			// Watchdog: if nothing concludes after code submission, emit error
+			// Watchdog: if nothing concludes within 25s after code submission, emit error
 			setTimeout(() => {
 				if (state.finished) return;
 				try {
@@ -338,16 +303,12 @@ class ClaudeAuthManager {
 						success: false,
 						error: 'Authentication timeout waiting for CLI'
 					});
-				} catch (_error) {
-					// Intentionally ignoring socket emit error - socket may be disconnected
-				}
+				} catch { }
 				try {
 					state.p.kill();
-				} catch (_error) {
-					// Intentionally ignoring PTY kill error - process may already be terminated
-				}
+				} catch { }
 				state.finished = true;
-			}, CLAUDE_AUTH_TIMEOUTS.CLI_WATCHDOG);
+			}, 25000);
 			logger.info('CLAUDE', 'Authorization code submitted to PTY');
 			// We will rely on process exit to indicate completion
 			return true;
@@ -358,9 +319,7 @@ class ClaudeAuthManager {
 					success: false,
 					error: String(error?.message || error)
 				});
-			} catch (_error) {
-				// Intentionally ignoring socket emit error - socket may be disconnected
-			}
+			} catch { }
 			return false;
 		}
 	}
@@ -371,9 +330,7 @@ class ClaudeAuthManager {
 			if (s && s.p) {
 				try {
 					s.p.kill();
-				} catch (_error) {
-					// Intentionally ignoring PTY kill error - process may already be terminated
-				}
+				} catch { }
 			}
 		} finally {
 			this.sessions.delete(key);

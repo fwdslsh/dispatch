@@ -62,7 +62,7 @@
 		"dispatch": "./bin/dispatch"
 	},
 	"dependencies": {
-		"@anthropic-ai/claude-code": "^1.0.128",
+		"@anthropic-ai/claude-code": "^2.0.0",
 		"@battlefieldduck/xterm-svelte": "^2.1.1",
 		"@floating-ui/dom": "^1.7.4",
 		"@sveltejs/adapter-node": "^5.3.3",

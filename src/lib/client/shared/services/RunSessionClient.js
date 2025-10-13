@@ -33,12 +33,20 @@ export class RunSessionClient {
 		// Use configured URL or current origin for socket connection
 		const socketUrl =
 			this.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
-		this.socket = io(socketUrl, { path: '/socket.io' });
+		this.socket = io(socketUrl, { path: '/socket.io', withCredentials: true, transports: ['websocket', 'polling'] });
 
-		this.socket.on('connect', () => {
+
+		this.socket.on('connect', async () => {
 			this.logger.info('Connected to server');
 			this.connected = true;
 			this.identifyClient();
+
+			// Try to authenticate automatically via cookie-based session
+			try {
+				await this.authenticate();
+			} catch (err) {
+				this.logger.warn('Auto-authentication (cookie) failed:', err?.message || err);
+			}
 		});
 
 		this.socket.on('disconnect', () => {
@@ -80,19 +88,19 @@ export class RunSessionClient {
 				return;
 			}
 
-			// Emit client:hello with terminalKey (server expects this)
-			this.socket.emit(
-				'client:hello',
-				{ clientId: this.clientId, terminalKey: key },
-				(response) => {
-					if (response?.success) {
-						this.authenticated = true;
-						resolve();
-					} else {
-						reject(new Error(response?.error || 'Authentication failed'));
-					}
+			// If key is provided, use it. Otherwise, try cookie-based auth.
+			const payload = key
+				? { clientId: this.clientId, terminalKey: key }
+				: {}; // server will validate via cookie if present
+
+			this.socket.emit('client:hello', payload, (response) => {
+				if (response?.success) {
+					this.authenticated = true;
+					resolve();
+				} else {
+					reject(new Error(response?.error || 'Authentication failed'));
 				}
-			);
+			});
 		});
 	}
 
@@ -358,23 +366,23 @@ export class RunSessionClient {
 	/**
 	 * Disconnect from server
 	 */
-	disconnect() {
-		if (this.socket) {
-			this.socket.disconnect();
-			this.socket = null;
+		disconnect() {
+			if (this.socket) {
+				this.socket.disconnect();
+				this.socket = null;
+			}
+			this.connected = false;
+			this.authenticated = false;
+			this.attachedSessions.clear();
 		}
-		this.connected = false;
-		this.authenticated = false;
-		this.attachedSessions.clear();
-	}
 
 	/**
 	 * Reconnect to server
 	 */
-	reconnect() {
-		this.disconnect();
-		this.connect();
-	}
+		reconnect() {
+			this.disconnect();
+			this.connect();
+		}
 }
 
 // Export singleton instance with default config
