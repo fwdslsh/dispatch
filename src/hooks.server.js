@@ -38,6 +38,7 @@ const PUBLIC_ROUTES = [
 	'/',
 	'/login',
 	'/onboarding',
+	'/api/auth/oauth/initiate',
 	'/api/auth/callback',
 	'/api/auth/config',
 	'/api/auth/login',
@@ -45,8 +46,7 @@ const PUBLIC_ROUTES = [
 	'/api/status',
 	'/api/environment',
 	'/api/themes/active',
-	'/api/themes',
-	'/api/test' // Test API routes (only available in non-production)
+	'/api/themes'
 ];
 
 /**
@@ -59,9 +59,9 @@ const OPTIONAL_AUTH_ROUTES = ['/api/auth/check'];
  * Check if a route is public (doesn't require authentication)
  */
 function isPublicRoute(pathname) {
-    return PUBLIC_ROUTES.some((route) =>
-        route === '/' ? pathname === '/' : pathname.startsWith(route)
-    );
+	return PUBLIC_ROUTES.some((route) =>
+		route === '/' ? pathname === '/' : pathname.startsWith(route)
+	);
 }
 
 /**
@@ -245,9 +245,5 @@ async function onboardingMiddleware({ event, resolve }) {
 
 	return resolve(event);
 }
-
-// Transaction middleware removed - this was an anti-pattern
-// Transactions should be at the repository method level, not wrapping entire HTTP requests
-// See code-review-fixes.md FIX-002 for details
 
 export const handle = sequence(servicesMiddleware, authenticationMiddleware, onboardingMiddleware);

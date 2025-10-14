@@ -63,7 +63,7 @@ export async function GET({ url, cookies, locals }) {
 		);
 
 		// Redirect to home
-		throw redirect(303, '/');
+		throw redirect(303, '/workspace');
 	} catch (error) {
 		// If it's already a redirect, re-throw
 		if (error?.status === 303) {
