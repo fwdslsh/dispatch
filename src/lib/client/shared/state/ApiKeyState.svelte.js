@@ -92,6 +92,7 @@ export class ApiKeyState {
 
 			const response = await fetch('/api/auth/keys', {
 				method: 'GET',
+				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include' // Include session cookie
 			});
 
@@ -128,9 +129,7 @@ export class ApiKeyState {
 
 			const response = await fetch('/api/auth/keys', {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include', // Include session cookie
 				body: JSON.stringify({ label })
 			});
@@ -181,6 +180,7 @@ export class ApiKeyState {
 
 			const response = await fetch(`/api/auth/keys/${keyId}`, {
 				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include' // Include session cookie
 			});
 
@@ -225,9 +225,7 @@ export class ApiKeyState {
 
 			const response = await fetch(`/api/auth/keys/${keyId}`, {
 				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include', // Include session cookie
 				body: JSON.stringify({ disabled })
 			});

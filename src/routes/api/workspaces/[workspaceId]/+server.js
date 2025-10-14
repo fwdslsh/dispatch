@@ -95,7 +95,7 @@ export async function PUT({ params, request, url: _url, locals }) {
 	try {
 		const workspaceId = decodeURIComponent(params.workspaceId);
 		const data = await request.json();
-		const { name, status } = data;
+		const { name, status, theme_override } = data;
 
 		// Auth already validated by hooks middleware
 		if (!locals.auth?.authenticated) {
@@ -148,6 +148,14 @@ export async function PUT({ params, request, url: _url, locals }) {
 		if (trimmedName) {
 			updateParts.push('name = ?');
 			updateParams.push(trimmedName);
+		}
+
+		// Handle theme override updates (allow explicit null to clear)
+		if (Object.prototype.hasOwnProperty.call(data, 'theme_override')) {
+			updateParts.push('theme_override = ?');
+			// Store with .json suffix for consistency if provided
+			const storedOverride = theme_override ? `${theme_override}` : null;
+			updateParams.push(storedOverride);
 		}
 		updateParams.push(workspaceId);
 		await dbManager.run(

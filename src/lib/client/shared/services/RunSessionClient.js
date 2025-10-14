@@ -11,6 +11,7 @@ export class RunSessionClient {
 		this.config = {
 			socketUrl: '',
 			apiBaseUrl: '',
+			apiKey: null,
 			...config
 		};
 		this.socket = null;
@@ -19,6 +20,7 @@ export class RunSessionClient {
 		this.connected = false;
 		this.authenticated = false;
 		this.logger = createLogger('RunSessionClient');
+		this.apiKey = this.config.apiKey || null;
 		this.connect();
 	}
 
@@ -33,7 +35,11 @@ export class RunSessionClient {
 		// Use configured URL or current origin for socket connection
 		const socketUrl =
 			this.config.socketUrl || (typeof window !== 'undefined' ? window.location.origin : '');
-		this.socket = io(socketUrl, { path: '/socket.io', withCredentials: true, transports: ['websocket', 'polling'] });
+		this.socket = io(socketUrl, {
+			path: '/socket.io',
+			withCredentials: true,
+			transports: ['websocket', 'polling']
+		});
 
 
 		this.socket.on('connect', async () => {
@@ -41,9 +47,13 @@ export class RunSessionClient {
 			this.connected = true;
 			this.identifyClient();
 
-			// Try to authenticate automatically via cookie-based session
+			// Try to authenticate automatically
 			try {
-				await this.authenticate();
+				if (this.apiKey) {
+					await this.authenticate({ apiKey: this.apiKey });
+				} else {
+					await this.authenticate(); // cookie-based
+				}
 			} catch (err) {
 				this.logger.warn('Auto-authentication (cookie) failed:', err?.message || err);
 			}
@@ -88,10 +98,17 @@ export class RunSessionClient {
 				return;
 			}
 
-			// If key is provided, use it. Otherwise, try cookie-based auth.
-			const payload = key
-				? { clientId: this.clientId, terminalKey: key }
-				: {}; // server will validate via cookie if present
+			// Support object payloads for explicit field control
+			let payload = {};
+			if (typeof key === 'object' && key !== null) {
+				payload = { clientId: this.clientId, ...key };
+			} else if (typeof key === 'string' && key.length > 0) {
+				// Default to apiKey field for non-browser clients
+				payload = { clientId: this.clientId, apiKey: key };
+			} else {
+				// Cookie-based
+				payload = { clientId: this.clientId };
+			}
 
 			this.socket.emit('client:hello', payload, (response) => {
 				if (response?.success) {
@@ -109,9 +126,12 @@ export class RunSessionClient {
 	 */
 	async createRunSession(kind, cwd, options = {}) {
 		const baseUrl = this.config.apiBaseUrl || '';
+		const headers = { 'Content-Type': 'application/json' };
+		if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
 		const response = await fetch(`${baseUrl}/api/sessions`, {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers,
+			credentials: 'include',
 			body: JSON.stringify({ kind, cwd, options })
 		});
 
@@ -252,7 +272,9 @@ export class RunSessionClient {
 		const url = kind
 			? `${baseUrl}/api/sessions?kind=${encodeURIComponent(kind)}`
 			: `${baseUrl}/api/sessions`;
-		const response = await fetch(url);
+		const headers = {};
+		if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
+		const response = await fetch(url, { headers, credentials: 'include' });
 		const result = await response.json();
 
 		if (!response.ok) {
@@ -267,8 +289,11 @@ export class RunSessionClient {
 	 */
 	async deleteRunSession(runId) {
 		const baseUrl = this.config.apiBaseUrl || '';
+		const headers = {};
+		if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
 		const response = await fetch(`${baseUrl}/api/sessions?runId=${encodeURIComponent(runId)}`, {
 			method: 'DELETE'
+			, headers, credentials: 'include'
 		});
 
 		const result = await response.json();
@@ -287,9 +312,12 @@ export class RunSessionClient {
 	 */
 	async setWorkspaceLayout(runId, tileId) {
 		const baseUrl = this.config.apiBaseUrl || '';
+		const headers = { 'Content-Type': 'application/json' };
+		if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
 		const response = await fetch(`${baseUrl}/api/sessions`, {
 			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
+			headers,
+			credentials: 'include',
 			body: JSON.stringify({
 				action: 'setLayout',
 				runId,
@@ -311,9 +339,12 @@ export class RunSessionClient {
 	 */
 	async removeWorkspaceLayout(runId) {
 		const baseUrl = this.config.apiBaseUrl || '';
+		const headers = { 'Content-Type': 'application/json' };
+		if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
 		const response = await fetch(`${baseUrl}/api/sessions`, {
 			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
+			headers,
+			credentials: 'include',
 			body: JSON.stringify({
 				action: 'removeLayout',
 				runId,
@@ -334,9 +365,12 @@ export class RunSessionClient {
 	 */
 	async getWorkspaceLayout() {
 		const baseUrl = this.config.apiBaseUrl || '';
+		const headers = { 'Content-Type': 'application/json' };
+		if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
 		const response = await fetch(`${baseUrl}/api/sessions`, {
 			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
+			headers,
+			credentials: 'include',
 			body: JSON.stringify({
 				action: 'getLayout',
 				clientId: this.clientId
@@ -383,6 +417,15 @@ export class RunSessionClient {
 			this.disconnect();
 			this.connect();
 		}
+
+	/**
+	 * Update API key at runtime (for non-browser clients)
+	 * Automatically re-authenticates on next connect.
+	 * @param {string|null} key
+	 */
+	setApiKey(key) {
+		this.apiKey = key || null;
+	}
 }
 
 // Export singleton instance with default config

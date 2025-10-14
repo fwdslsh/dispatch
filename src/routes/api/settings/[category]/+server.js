@@ -5,6 +5,7 @@
  */
 
 import { json } from '@sveltejs/kit';
+import { logger } from '$lib/server/shared/utils/logger.js';
 
 /**
  * PUT /api/settings/{category}
@@ -18,8 +19,13 @@ import { json } from '@sveltejs/kit';
  */
 export async function PUT({ params, request, locals }) {
 	try {
-		// Auth already validated by hooks middleware
+		logger.info('SETTINGS_API', `PUT /api/settings/${params.category} hit`, {
+			user: locals.auth?.userId || null,
+			authenticated: Boolean(locals.auth?.authenticated)
+		});
+		// Auth must be handled in hooks only
 		if (!locals.auth?.authenticated) {
+			logger.info('SETTINGS_API', `Unauthenticated on PUT /api/settings/${params.category}`);
 			return json({ error: 'Authentication failed' }, { status: 401 });
 		}
 
@@ -49,19 +55,22 @@ export async function PUT({ params, request, locals }) {
 			`Settings for ${category} category`
 		);
 
-		return json(
-			{
-				success: true,
-				category,
-				settings: updatedSettings,
-				updated_count: Object.keys(body.settings).length
-			},
-			{
-				headers: {
-					'Cache-Control': 'no-cache, no-store, must-revalidate'
-				}
+		const payload = {
+			success: true,
+			category,
+			settings: updatedSettings,
+			updated_count: Object.keys(body.settings).length
+		};
+
+		logger.info('SETTINGS_API', `Updated settings for ${category}`, {
+			updated_count: payload.updated_count
+		});
+
+		return json(payload, {
+			headers: {
+				'Cache-Control': 'no-cache, no-store, must-revalidate'
 			}
-		);
+		});
 	} catch (error) {
 		console.error('Settings update error:', error);
 		return json({ error: 'Internal server error' }, { status: 500 });

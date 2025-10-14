@@ -59,7 +59,9 @@ const OPTIONAL_AUTH_ROUTES = ['/api/auth/check'];
  * Check if a route is public (doesn't require authentication)
  */
 function isPublicRoute(pathname) {
-	return PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+    return PUBLIC_ROUTES.some((route) =>
+        route === '/' ? pathname === '/' : pathname.startsWith(route)
+    );
 }
 
 /**
@@ -80,6 +82,15 @@ async function authenticationMiddleware({ event, resolve }) {
 	const { pathname } = event.url;
 	const isOptionalAuth = isOptionalAuthRoute(pathname);
 
+	// Always initialize locals.auth to a boolean state
+	event.locals.auth = event.locals.auth || { authenticated: false };
+
+	// Allow CORS preflight and OPTIONS requests to skip auth entirely
+	if (event.request.method === 'OPTIONS') {
+		logger.debug('AUTH', `Skipping auth for OPTIONS ${pathname}`);
+		return resolve(event);
+	}
+
 	// Skip auth for public routes (but not optional auth routes)
 	if (isPublicRoute(pathname) && !isOptionalAuth) {
 		logger.debug('AUTH', `Skipping auth for public route: ${pathname}`);
@@ -91,8 +102,13 @@ async function authenticationMiddleware({ event, resolve }) {
 	let authenticated = false;
 
 	// Strategy 1: Check for session cookie (browser authentication)
+	const isSettingsApi = pathname.startsWith('/api/settings');
+	if (isSettingsApi) {
+		logger.info('AUTH', 'Settings API request detected');
+	}
 	const sessionId = CookieService.getSessionCookie(event.cookies);
 	if (sessionId) {
+		if (isSettingsApi) logger.info('AUTH', `Found session cookie: ${sessionId.slice(0, 8)}...`);
 		const sessionData = await services.sessionManager.validateSession(sessionId);
 		if (sessionData) {
 			// Valid session - attach to locals
@@ -103,6 +119,12 @@ async function authenticationMiddleware({ event, resolve }) {
 				provider: sessionData.session.provider,
 				userId: sessionData.session.userId
 			};
+
+			if (isSettingsApi)
+				logger.info(
+					'AUTH',
+					`Validated session for user ${sessionData.session.userId} (provider ${sessionData.session.provider})`
+				);
 
 			// Refresh session cookie if needed (within 24h of expiration)
 			if (sessionData.needsRefresh) {
@@ -119,6 +141,9 @@ async function authenticationMiddleware({ event, resolve }) {
 				`Authenticated ${pathname} via session cookie (provider: ${sessionData.session.provider})`
 			);
 		}
+	}
+	else if (isSettingsApi) {
+		logger.info('AUTH', 'No session cookie found for settings request');
 	}
 
 	// Strategy 2: Check for API key (Authorization header)
@@ -150,15 +175,14 @@ async function authenticationMiddleware({ event, resolve }) {
 		// Optional auth routes should proceed even without authentication
 		if (isOptionalAuth) {
 			logger.debug('AUTH', `Optional auth route ${pathname} - proceeding without authentication`);
-			// Set locals.auth to indicate unauthenticated state
-			event.locals.auth = {
-				authenticated: false
-			};
+			// Ensure locals.auth reflects unauthenticated state
+			event.locals.auth = { authenticated: false };
 			return resolve(event);
 		}
 
 		if (isApiRoute) {
 			logger.warn('AUTH', `Unauthenticated API request to ${pathname}`);
+			if (isSettingsApi) logger.info('AUTH', 'Returning 401 for settings API (unauthenticated)');
 			return json({ error: 'Authentication required' }, { status: 401 });
 		} else {
 			// Redirect browser requests to login page
@@ -183,14 +207,14 @@ async function servicesMiddleware({ event, resolve }) {
 /**
  * Onboarding enforcement middleware
  * Redirects HTML page requests to onboarding until setup is complete
+ * Note: Settings are no longer exempt; they require onboarding + auth.
  */
 async function onboardingMiddleware({ event, resolve }) {
 	const { pathname } = event.url;
 
-	// Allow onboarding and settings routes without redirection
+	// Allow onboarding routes without redirection
 	const isOnboardingRoute = pathname === '/onboarding' || pathname.startsWith('/onboarding/');
-	const isSettingsRoute = pathname.startsWith('/settings');
-	if (isOnboardingRoute || isSettingsRoute) {
+	if (isOnboardingRoute) {
 		return resolve(event);
 	}
 

@@ -5,10 +5,9 @@ import { XtermThemeParser } from '$lib/server/themes/XtermThemeParser.js';
 const parser = new XtermThemeParser();
 const themeManager = new ThemeManager(parser);
 
-export async function GET({ params, url, locals }) {
-	// 1. Check auth
-	const authKey = url.searchParams.get('authKey');
-	if (!authKey || authKey !== process.env.TERMINAL_KEY) {
+export async function GET({ params, locals }) {
+	// 1. Auth via centralized hooks (session cookie or API key)
+	if (!locals.auth?.authenticated) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 

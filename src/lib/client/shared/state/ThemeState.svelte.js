@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { settingsService } from '../services/SettingsService.svelte.js';
 import { SvelteURLSearchParams } from 'svelte/reactivity';
 
 const log = createLogger('theme-state');
@@ -71,13 +72,41 @@ export class ThemeState {
 
 	/**
 	 * Get headers for API requests
-	 * Authentication via session cookies (no Authorization header needed)
+	 * Authentication via session cookies (no Authorization header)
 	 * @returns {Object} Headers object
 	 */
 	getHeaders() {
-		return {
-			'Content-Type': 'application/json'
-		};
+		return { 'Content-Type': 'application/json' };
+	}
+
+	/**
+	 * Check if the user is authenticated via session cookie
+	 * @returns {Promise<boolean>}
+	 */
+	async isAuthenticated() {
+		try {
+			const res = await fetch('/api/auth/check', { method: 'GET', credentials: 'include' });
+			if (!res.ok) return false;
+			const data = await res.json().catch(() => ({ authenticated: false }));
+			return Boolean(data.authenticated);
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Ensure user is authenticated, otherwise redirect to login
+	 * @throws {Error} When unauthenticated (after initiating redirect)
+	 */
+	async ensureAuthenticated() {
+		const authed = await this.isAuthenticated();
+		if (!authed) {
+			if (typeof window !== 'undefined') {
+				const redirect = '/settings';
+				window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
+			}
+			throw new Error('Authentication required');
+		}
 	}
 
 	/**
@@ -194,6 +223,8 @@ export class ThemeState {
 		this.error = null;
 
 		try {
+			// Require authentication for upload operations
+			await this.ensureAuthenticated();
 			// Authentication via session cookie (server validates)
 
 			// Validate file size (5MB limit)
@@ -247,22 +278,13 @@ export class ThemeState {
 		this.error = null;
 
 		try {
-			// Authentication via session cookie (server validates)
+			// Require authentication for settings update
+			await this.ensureAuthenticated();
 
-			// Update global theme preference using correct settings API endpoint
-			const url = `${this.baseUrl}/settings/themes`;
-			const response = await fetch(url, {
-				method: 'PUT',
-				headers: this.getHeaders(),
-				credentials: 'include',
-				body: JSON.stringify({
-					settings: {
-						globalDefault: themeId
-					}
-				})
+			// Use unified SettingsService to align with other settings writes
+			await settingsService.updateCategorySettings('themes', {
+				globalDefault: `${themeId}.json`
 			});
-
-			await this.handleResponse(response);
 
 			this.activeThemeId = themeId;
 			log.info('Theme activated successfully', { themeId });
@@ -291,15 +313,16 @@ export class ThemeState {
 		this.error = null;
 
 		try {
-			// Authentication via session cookie (server validates)
+			// Require authentication for workspace update
+			await this.ensureAuthenticated();
 
-			const url = `${this.baseUrl}/api/workspaces/${encodeURIComponent(workspaceId)}`;
+			const url = `${this.baseUrl}/workspaces/${encodeURIComponent(workspaceId)}`;
 			const response = await fetch(url, {
 				method: 'PUT',
 				headers: this.getHeaders(),
 				credentials: 'include',
 				body: JSON.stringify({
-					theme_override: themeId
+					theme_override: themeId ? `${themeId}.json` : null
 				})
 			});
 
@@ -364,7 +387,8 @@ export class ThemeState {
 		this.error = null;
 
 		try {
-			// Authentication via session cookie (server validates)
+			// Require authentication for deletion
+			await this.ensureAuthenticated();
 
 			// Check if theme can be deleted
 			const canDelete = await this.canDeleteTheme(themeId);

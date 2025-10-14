@@ -13,6 +13,9 @@
 	// Initialize ApiKeyState ViewModel
 	const apiKeyState = new ApiKeyState();
 
+	// Auth gate to avoid 401 noise before auth is established
+	let isAuthenticated = $state(null);
+
 	// Local UI state
 	let showCreateModal = $state(false);
 	let newKeyLabel = $state('');
@@ -20,9 +23,21 @@
 	let keyCopied = $state(false);
 	let deleteConfirm = $state(null); // ID of key to delete
 
-	// Load API keys on mount
+	// Load API keys on mount (only if authenticated)
 	onMount(async () => {
-		await apiKeyState.initialize();
+		try {
+			const res = await fetch('/api/auth/check', {
+				method: 'GET',
+				credentials: 'include'
+			});
+			const data = res.ok ? await res.json() : { authenticated: false };
+			isAuthenticated = !!data.authenticated;
+			if (isAuthenticated) {
+				await apiKeyState.initialize();
+			}
+		} catch (_err) {
+			isAuthenticated = false;
+		}
 	});
 
 	// =================================================================
@@ -160,7 +175,12 @@
 		</InfoBox>
 	{/if}
 
-	<!-- API Keys Table -->
+    <!-- API Keys Table -->
+	{#if isAuthenticated === false}
+		<InfoBox variant="warning">
+			You are not authenticated. Log in to view and manage API keys.
+		</InfoBox>
+	{/if}
 	{#if apiKeyState.loading && apiKeyState.keys.length === 0}
 		<div class="loading-state">
 			<div class="spinner"></div>
