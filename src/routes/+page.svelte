@@ -220,8 +220,8 @@
 			0 0,
 			0 0;
 		background-attachment: fixed, local;
-		/* 
-		animation: matrixFlow 360s linear infinite; */
+
+		animation: matrixFlow 60s cubic-bezier(0.6, -0.28, 0.735, 0.045) alternate-reverse infinite;
 
 		.container {
 			max-width: 80x;
@@ -246,7 +246,7 @@
 	}
 
 	/* Enhanced atmospheric overlay */
-	.login-container::before {
+	/* .login-container::before {
 		content: '';
 		position: absolute;
 		top: 0;
@@ -272,7 +272,7 @@
 		pointer-events: none;
 		animation: atmosphericShift 20s ease-in-out infinite;
 		opacity: 1;
-	}
+	} */
 
 	@keyframes atmosphericShift {
 		0% {
@@ -305,7 +305,7 @@
 		}
 	}
 
-	/* CRT Scan lines - persistent horizontal lines */
+	/* CRT Scan lines - persistent horizontal lines
 	.login-container::after {
 		/* content: '';
 		position: absolute;
@@ -323,7 +323,7 @@
 		pointer-events: none;
 		z-index: 1; */
 
-		/* content: '';
+	/* content: '';
 		position: fixed;
 		display:none;
 		top: 0;
@@ -350,31 +350,25 @@
 			tvFlicker 3s ease-in-out infinite;
 		pointer-events: none;
 		opacity: 0.15;
-		will-change: opacity; */
+		will-change: opacity; 
 	}
-
+ */
 	/* TV interference bands - horizontal bars that move down */
 	.container::before {
 		content: '';
 		position: fixed;
-		top: 0;
 		left: 0;
-		right: 0;
-		bottom: 0;
+		width: stretch;
+		height: 10vh;
 		background: repeating-linear-gradient(
 			0deg,
 			transparent 0px,
-			transparent 2px,
-			color-mix(in oklab, var(--primary) 15%, transparent) 2px,
-			color-mix(in oklab, var(--primary) 15%, transparent) 5px,
-			transparent 5px,
-			transparent 10px,
 			color-mix(in oklab, var(--accent-cyan) 12%, transparent) 10px,
-			color-mix(in oklab, var(--accent-cyan) 12%, transparent) 12px,
-			transparent 12px,
-			transparent 100px
+			transparent 25px,
+			color-mix(in oklab, var(--primary) 12%, transparent) 12px,
+			transparent 120px
 		);
-		animation: tvInterference 8s linear infinite;
+		animation: tvInterference 10s ease-in both infinite;
 		pointer-events: none;
 		opacity: 0;
 		will-change: transform, opacity;
@@ -389,16 +383,16 @@
 			opacity: 0.4;
 		}
 		20% {
-			opacity: 0.6;
+			opacity: 0.5;
 		}
 		40% {
 			opacity: 0.3;
 		}
 		60% {
-			opacity: 0.5;
+			opacity: 0.3;
 		}
 		80% {
-			opacity: 0.2;
+			opacity: 0.5;
 			transform: translateY(100vh);
 		}
 		95% {
@@ -438,7 +432,7 @@
 			tvNoise 0.2s steps(4) infinite,
 			tvFlicker 3s ease-in-out infinite;
 		pointer-events: none;
-		opacity: 0.15;
+		opacity: 0.95;
 		will-change: opacity;
 	}
 
@@ -476,7 +470,7 @@
 			opacity: 0.14;
 		}
 		50% {
-			opacity: 0.22;
+			opacity: 0.92;
 		}
 		60% {
 			opacity: 0.11;
@@ -600,33 +594,13 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-		background: #00000062;
-		backdrop-filter: blur(12px);
+		background: #ffffff11;
+		backdrop-filter: blur(5px);
 		padding: var(--space-6);
 		animation: cardMaterialize 1s ease-out 0.6s forwards;
 		opacity: 0;
 		transform: translateY(30px) scale(0.9);
-		box-shadow: 0 12px 32px color-mix(in oklab, var(--bg) 85%, transparent);
-		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-	}
-
-	.card::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: linear-gradient(
-			135deg,
-			color-mix(in oklab, var(--primary) 3%, transparent) 0%,
-			transparent 50%,
-			color-mix(in oklab, var(--accent-cyan) 2%, transparent) 100%
-		);
-		border-radius: inherit;
-		pointer-events: none;
-		opacity: 0;
-		transition: opacity 0.3s ease;
+		transition: all 0.3s ease-in-out;
 	}
 
 	.card:hover::before {
@@ -636,11 +610,6 @@
 	.card:hover {
 		transform: translateY(-2px) scale(1.01);
 		border-color: color-mix(in oklab, var(--primary) 30%, transparent);
-		box-shadow:
-			0 12px 48px color-mix(in oklab, var(--bg) 70%, transparent),
-			0 0 0 1px color-mix(in oklab, var(--primary) 20%, transparent),
-			0 0 20px color-mix(in oklab, var(--primary) 15%, transparent),
-			inset 0 1px 0 color-mix(in oklab, var(--primary) 8%, transparent);
 	}
 
 	@keyframes cardMaterialize {
@@ -699,39 +668,6 @@
 		display: flex;
 		justify-content: center;
 		gap: var(--space-3);
-	}
-
-	.oauth-button {
-		width: 3rem;
-		height: 3rem;
-		border-radius: var(--radius-full);
-		border: 1px solid transparent;
-		background: color-mix(in oklab, var(--surface) 95%, transparent);
-		transition:
-			transform 0.2s ease,
-			border-color 0.2s ease,
-			box-shadow 0.2s ease;
-	}
-
-	.oauth-button:hover {
-		transform: translateY(-1px);
-		border-color: color-mix(in oklab, var(--primary) 40%, transparent);
-		box-shadow: 0 8px 16px color-mix(in oklab, var(--bg) 80%, transparent);
-	}
-
-	.oauth-button:focus-visible {
-		outline: 2px solid var(--primary);
-		outline-offset: 2px;
-	}
-
-	.oauth-github,
-	.oauth-google {
-		color: var(--text);
-	}
-
-	.oauth-button svg {
-		width: 1.5rem;
-		height: 1.5rem;
 	}
 
 	@media (max-width: 480px) {

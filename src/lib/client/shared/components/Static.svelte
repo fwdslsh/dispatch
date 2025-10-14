@@ -56,7 +56,7 @@
 		--glitch-right: var(--theme-foreground, rgba(255, 120, 220, 0.45));
 
 		/* ---- layer strengths (opacities) ---- */
-		--noise-opacity: 0.5;
+		--noise-opacity: 0.75;
 		--scanlines-opacity: 0.8; /* baseline; flicker anim varies it */
 		--tracking-opacity: 0.25;
 		--glitchbar-opacity: 0.95;
