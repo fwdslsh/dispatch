@@ -221,7 +221,7 @@
 			0 0;
 		background-attachment: fixed, local;
 
-		animation: matrixFlow 60s cubic-bezier(0.6, -0.28, 0.735, 0.045) alternate-reverse infinite;
+		/* animation: matrixFlow 60s cubic-bezier(0.6, -0.28, 0.735, 0.045) alternate-reverse infinite; */
 
 		.container {
 			max-width: 80x;
@@ -589,12 +589,12 @@
 		}
 	}
 
-	.card {
+	.card.aug {
 		width: 100%;
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-5);
-		background: #ffffff11;
+		background: #ffffff02;
 		backdrop-filter: blur(5px);
 		padding: var(--space-6);
 		animation: cardMaterialize 1s ease-out 0.6s forwards;
