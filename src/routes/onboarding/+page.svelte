@@ -160,7 +160,7 @@
 
 		// Verify session is valid before navigating
 		try {
-			const authCheck = await fetch('/api/auth/check');
+			const authCheck = await fetch('/api/auth/keys', { credentials: 'include' });
 			if (!authCheck.ok) {
 				throw new Error('Session not established');
 			}

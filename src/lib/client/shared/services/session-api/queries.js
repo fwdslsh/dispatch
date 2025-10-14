@@ -153,18 +153,3 @@ export async function getClaudeSessions(config, project) {
  * @param {Object} config - API configuration
  * @returns {Promise<Object>}
  */
-// export async function checkClaudeAuth(config) {
-// 	try {
-// 		const response = await fetch(`${config.apiBaseUrl || ''}/api/claude/auth/check`, {
-// 			method: 'GET',
-// 			headers: getHeaders(config)
-// 		});
-
-// 		return await handleResponse(response);
-// 	} catch (error) {
-// 		if (config.debug) {
-// 			console.error('[SessionApiClient] Failed to check Claude auth:', error);
-// 		}
-// 		throw error;
-// 	}
-// }

@@ -124,11 +124,11 @@ test.describe('Authentication 1.1 - Login Flow', () => {
 		expect(page.url()).toContain('localhost:7173');
 
 		// Expected: User is not authenticated (no session cookie created)
-		const authCheckResponse = await page.evaluate(async () => {
-			const response = await fetch('/api/auth/check');
-			return await response.json();
+		const notAuthed = await page.evaluate(async () => {
+			const response = await fetch('/api/auth/keys', { credentials: 'include' });
+			return response.status === 401;
 		});
-		expect(authCheckResponse.authenticated).toBe(false);
+		expect(notAuthed).toBe(true);
 
 		// Expected: Form remains interactive (not disabled)
 		await expect(passwordField).toBeEnabled();
@@ -165,10 +165,10 @@ test.describe('Authentication 1.1 - Login Flow', () => {
 		expect(page.url()).not.toContain('/workspace');
 
 		// Expected: User is not authenticated
-		const authCheckResponse = await page.evaluate(async () => {
-			const response = await fetch('/api/auth/check');
-			return await response.json();
+		const notAuthedEmpty = await page.evaluate(async () => {
+			const response = await fetch('/api/auth/keys', { credentials: 'include' });
+			return response.status === 401;
 		});
-		expect(authCheckResponse.authenticated).toBe(false);
+		expect(notAuthedEmpty).toBe(true);
 	});
 });

@@ -26,12 +26,11 @@
 	// Load API keys on mount (only if authenticated)
 	onMount(async () => {
 		try {
-			const res = await fetch('/api/auth/check', {
+			const res = await fetch('/api/auth/keys', {
 				method: 'GET',
 				credentials: 'include'
 			});
-			const data = res.ok ? await res.json() : { authenticated: false };
-			isAuthenticated = !!data.authenticated;
+			isAuthenticated = res.ok;
 			if (isAuthenticated) {
 				await apiKeyState.initialize();
 			}

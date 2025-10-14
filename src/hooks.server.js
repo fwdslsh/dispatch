@@ -53,7 +53,7 @@ const PUBLIC_ROUTES = [
  * Routes that should run auth middleware but not require authentication
  * These routes need to check auth status but should work for both authenticated and unauthenticated users
  */
-const OPTIONAL_AUTH_ROUTES = ['/api/auth/check'];
+const OPTIONAL_AUTH_ROUTES = [];
 
 /**
  * Check if a route is public (doesn't require authentication)

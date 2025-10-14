@@ -309,20 +309,23 @@ export class AuthViewModel {
 		this.error = '';
 
 		try {
-			const response = await fetch('/api/auth/check', {
+			// Submit via SvelteKit login action to establish a session cookie
+			const form = new FormData();
+			form.append('key', key);
+			const response = await fetch('/login', {
 				method: 'POST',
-				headers: { authorization: `Bearer ${key}` },
-				body: JSON.stringify({ key })
+				body: form,
+				credentials: 'include',
+				redirect: 'manual'
 			});
 
-			if (response.ok) {
-				localStorage.setItem('dispatch-auth-token', key);
+			if (response.ok || response.status === 303 || response.type === 'opaqueredirect') {
 				return { success: true };
-			} else {
-				const data = await response.json();
-				this.error = data?.error || 'Invalid key';
-				return { success: false, error: this.error };
 			}
+
+			const data = await response.json().catch(() => ({}));
+			this.error = data?.error || 'Invalid key';
+			return { success: false, error: this.error };
 		} catch (err) {
 			this.error = 'Unable to reach server';
 			return { success: false, error: this.error };

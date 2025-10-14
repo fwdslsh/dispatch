@@ -85,10 +85,8 @@ export class ThemeState {
 	 */
 	async isAuthenticated() {
 		try {
-			const res = await fetch('/api/auth/check', { method: 'GET', credentials: 'include' });
-			if (!res.ok) return false;
-			const data = await res.json().catch(() => ({ authenticated: false }));
-			return Boolean(data.authenticated);
+			const res = await fetch('/api/auth/keys', { method: 'GET', credentials: 'include' });
+			return res.ok;
 		} catch {
 			return false;
 		}

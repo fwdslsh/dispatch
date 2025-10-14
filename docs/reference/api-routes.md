@@ -948,20 +948,6 @@ Delete a custom theme.
 
 ## Authentication
 
-### GET /api/auth/check
-
-Check authentication status.
-
-**Response:**
-
-```json
-{
-	"authenticated": true,
-	"method": "terminal_key",
-	"sessionId": "session-abc123"
-}
-```
-
 ### GET /api/auth/config
 
 Get authentication configuration.

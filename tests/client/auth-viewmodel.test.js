@@ -46,11 +46,8 @@ describe('AuthViewModel', () => {
 				})
 			});
 
-			// Mock auth check response (not authenticated)
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				json: async () => ({ authenticated: false })
-			});
+			// Mock protected route check (not authenticated -> 401)
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
 
 			await viewModel.initialize();
 
@@ -73,11 +70,8 @@ describe('AuthViewModel', () => {
 				})
 			});
 
-			// Mock auth check response (not authenticated)
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				json: async () => ({ authenticated: false })
-			});
+			// Mock protected route check (not authenticated)
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
 
 			await viewModel.initialize();
 
@@ -112,16 +106,13 @@ describe('AuthViewModel', () => {
 				json: async () => ({ terminal_key_set: true, oauth_configured: false })
 			});
 
-			// Mock auth check response (authenticated via session cookie)
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				json: async () => ({ authenticated: true })
-			});
+			// Mock protected route check (authenticated -> 200)
+			mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
 
 			const result = await viewModel.initialize();
 
 			expect(result.redirectToWorkspace).toBe(true);
-			expect(mockFetch).toHaveBeenCalledWith('/api/auth/check', {
+			expect(mockFetch).toHaveBeenCalledWith('/api/auth/keys', {
 				method: 'GET',
 				credentials: 'include'
 			});
@@ -134,11 +125,8 @@ describe('AuthViewModel', () => {
 				json: async () => ({ terminal_key_set: true, oauth_configured: false })
 			});
 
-			// Mock auth check response (not authenticated)
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				json: async () => ({ authenticated: false })
-			});
+			// Mock protected route check (not authenticated)
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
 
 			const result = await viewModel.initialize();
 

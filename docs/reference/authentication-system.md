@@ -513,7 +513,7 @@ export async function handle({ event, resolve }) {
 - `/workspace`
 - `/settings`
 - `/console`
-- All `/api/*` routes (except `/api/auth/check`, `/api/status`)
+- All `/api/*` routes (except `/api/status`)
 
 **Public Routes**:
 
